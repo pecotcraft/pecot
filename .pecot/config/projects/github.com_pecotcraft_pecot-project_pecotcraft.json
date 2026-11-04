@@ -44,11 +44,6 @@
       "develop_branch": "main",
       "release_branch": "main",
       "release_type": "nx"
-    },
-    {
-      "owner": "pecotcraft",
-      "name": "aist-roadmap",
-      "develop_branch": "main"
     }
   ],
   "aggregation_repo": "pecotcraft/pecot"
