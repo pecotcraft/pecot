@@ -24,7 +24,7 @@
     "record:parity:check": "tsx tests/parity/record.ts --check"
   },
   "dependencies": {
-    "commander": "^14.0.3",
+    "commander": "^15.0.0",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
