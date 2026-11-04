@@ -55,3 +55,4 @@ sudo install -m 0755 "$actionlint_tmp/actionlint" "$ACTIONLINT_BIN_DIR/actionlin
 rm -rf "$actionlint_tmp"
 
 bash "$(dirname "${BASH_SOURCE[0]}")/install-git-hooks.sh"
+bash "$(dirname "${BASH_SOURCE[0]}")/../../setup.sh"
