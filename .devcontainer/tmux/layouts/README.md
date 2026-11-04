@@ -7,7 +7,7 @@
 1 ファイル 1 レイアウトとし、拡張子は `.conf`、中身は bash として `source` される。形は次のとおり。
 
 ```bash
-TITLE="任意の説明（--list-layouts 用）"
+TITLE="--list-layouts に出す説明"
 REPOS=(wt1:pecot wt2:pecot)
 ```
 
@@ -38,12 +38,12 @@ REPOS=(wt1:pecot wt2:pecot wt3:pecot wt4:pecot)
 
 常に `pecot-<variant>-<layout>` をデフォルトセッション名として使う。
 
-| variant | layout  | session              |
-|---------|---------|----------------------|
-| base    | default | `pecot-base-default`  |
-| base    | plugin4 | `pecot-base-plugin4`  |
-| wt1     | default | `pecot-wt1-default`   |
-| wt1     | plugin4 | `pecot-wt1-plugin4`   |
+| variant | layout    | session                |
+|---------|-----------|------------------------|
+| base    | default   | `pecot-base-default`   |
+| base    | parallel4 | `pecot-base-parallel4` |
+| wt1     | default   | `pecot-wt1-default`    |
+| wt1     | parallel4 | `pecot-wt1-parallel4`  |
 
 positional `session-name` を明示指定した場合はそれが最優先され、variant/layout は
 セッション名に混入しない。layout が異なれば別セッションとなるため、同 variant でも
@@ -59,14 +59,14 @@ layout 違いを並行起動できる。
 - `<N>` は同一 layout 内で同じ `(entry_variant, repo)` の組が複数回登場したときの
   `-2`, `-3`... 連番で、**layout スコープ内でのみユニーク**。
 - layout が異なれば別プレフィックスになるため、layout 並行起動が可能
-  （`pecot-base-default:*` と `pecot-base-plugin4:*` が併存する）。
+  （`pecot-base-default:*` と `pecot-base-parallel4:*` が併存する）。
 
 例:
 
-| variant | layout  | セッション例                                                                   |
-|---------|---------|--------------------------------------------------------------------------------|
-| base    | default | `pecot-base-default:base-pecot`                                          |
-| base    | plugin4 | `pecot-base-plugin4:wt1-pecot`, ..., `pecot-base-plugin4:wt4-pecot`  |
+| variant | layout    | セッション例                                                            |
+|---------|-----------|-------------------------------------------------------------------------|
+| base    | default   | `pecot-base-default:base-pecot`                                         |
+| base    | parallel4 | `pecot-base-parallel4:wt1-pecot`, ..., `pecot-base-parallel4:wt4-pecot` |
 
 ## 入力バリデーション
 
