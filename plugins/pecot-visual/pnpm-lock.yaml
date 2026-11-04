@@ -294,8 +294,8 @@ importers:
   assets/slidev/scripts/eslint/_shared:
     dependencies:
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
 
   assets/slidev/scripts/eslint/asset-path:
     devDependencies:
@@ -321,8 +321,8 @@ importers:
         specifier: workspace:*
         version: link:../_shared
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
     devDependencies:
       eslint:
         specifier: ^10.13.0
@@ -337,8 +337,8 @@ importers:
         specifier: workspace:*
         version: link:../_shared
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
       synckit:
         specifier: ^0.12.3
         version: 0.12.3
@@ -359,8 +359,8 @@ importers:
         specifier: ^6.15.0
         version: 6.15.0
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
 
   cli:
     dependencies:

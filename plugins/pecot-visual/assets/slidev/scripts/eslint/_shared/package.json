@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "js-yaml": "^4.3.2"
+    "js-yaml": "^5.5.0"
   },
   "engines": {
     "node": "^24.22.1 || >=26.12.1",
