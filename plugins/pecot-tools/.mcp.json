@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "pecot-tools": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/pecot-tools",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

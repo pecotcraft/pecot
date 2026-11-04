@@ -1,0 +1,13 @@
+{
+    "logGroups": [
+        {
+            "logGroupName": "/aws/lambda/order-notifier",
+            "creationTime": 1756500000000,
+            "retentionInDays": 30,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:ap-northeast-1:123456789012:log-group:/aws/lambda/order-notifier:*",
+            "storedBytes": 1048576,
+            "logGroupClass": "STANDARD"
+        }
+    ]
+}

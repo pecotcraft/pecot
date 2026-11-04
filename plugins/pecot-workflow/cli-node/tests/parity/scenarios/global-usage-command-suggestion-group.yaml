@@ -1,0 +1,7 @@
+# グループの中でも近いコマンドを案内する。近さの順に最大 3 件。全コマンドの移植後に比べる。
+id: global-usage-command-suggestion-group
+command:
+  path: []
+  args: ["issue", "reed"]
+setup: {}
+github: []

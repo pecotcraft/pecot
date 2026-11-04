@@ -1,0 +1,88 @@
+<mxfile>
+  <diagram name="注文処理のスイムレーンフロー">
+    <mxGraphModel page="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ===== canvas background (paperWhite, fixes tight viewbox crop) ===== -->
+        <mxCell id="bg" value="" style="rounded=0;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="1584" height="1122" as="geometry"/></mxCell>
+
+        <!-- ===== header (eyebrow badge + h1 + primary rule + lead) ===== -->
+        <mxCell id="eyebrow" value="処理フロー" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#4f46e5;strokeColor=none;fontFamily=sans-serif;fontSize=14;fontStyle=1;fontColor=#FFFFFF;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="48" y="48" width="128" height="32" as="geometry"/></mxCell>
+        <mxCell id="title" value="&lt;font style=&quot;font-size:33px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;オンラインストア注文の受付から出荷までの処理フロー&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="208" y="40" width="1000" height="48" as="geometry"/></mxCell>
+        <mxCell id="titlerule" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4f46e5;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="96" width="1488" height="3" as="geometry"/></mxCell>
+        <mxCell id="lead" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.7;letter-spacing:0.02em;&quot;&gt;注文の受付から出荷までを 4 工程・5 レーンで表します。在庫の引当は出荷手配サービスが一括して担い、倉庫は受け取った指示に従って梱包して発送します。&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="48" y="120" width="1488" height="32" as="geometry"/></mxCell>
+
+        <!-- ===== stage column headers (caption Bold + hairline rule) ===== -->
+        <mxCell id="colrule" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C7CBD1;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="200" width="1488" height="1" as="geometry"/></mxCell>
+        <mxCell id="colA" value="&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.5;letter-spacing:0.02em;&quot;&gt;① 注文の受付&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="312" y="168" width="240" height="24" as="geometry"/></mxCell>
+        <mxCell id="colB" value="&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.5;letter-spacing:0.02em;&quot;&gt;② 在庫の引当&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="632" y="168" width="240" height="24" as="geometry"/></mxCell>
+        <mxCell id="colC" value="&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.5;letter-spacing:0.02em;&quot;&gt;③ 出荷の準備&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="952" y="168" width="240" height="24" as="geometry"/></mxCell>
+        <mxCell id="colD" value="&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.5;letter-spacing:0.02em;&quot;&gt;④ 発送と記録&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1272" y="168" width="240" height="24" as="geometry"/></mxCell>
+
+        <!-- ===== lane bands =====
+             lane1  顧客              y=208  h=152
+             lane2  受注管理システム   y=360  h=152
+             lane3  出荷手配サービス   y=512  h=184   (主役レーン / primaryFog)
+             lane4  倉庫              y=696  h=168
+             lane5  配送業者          y=864  h=200   -> bottom 1064
+        -->
+        <mxCell id="lane1bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="208" width="1488" height="152" as="geometry"/></mxCell>
+        <mxCell id="lane2bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="360" width="1488" height="152" as="geometry"/></mxCell>
+        <mxCell id="lane3bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EEF2FF;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="512" width="1488" height="184" as="geometry"/></mxCell>
+        <mxCell id="lane4bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="696" width="1488" height="168" as="geometry"/></mxCell>
+        <mxCell id="lane5bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=none;" vertex="1" parent="1"><mxGeometry x="48" y="864" width="1488" height="200" as="geometry"/></mxCell>
+
+        <!-- ===== lane label column separator (dashed hairline) ===== -->
+        <mxCell id="lanedivider" style="edgeStyle=none;html=1;endArrow=none;dashed=1;strokeColor=#C7CBD1;strokeWidth=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="256" y="208" as="sourcePoint"/><mxPoint x="256" y="1064" as="targetPoint"/></mxGeometry></mxCell>
+
+        <!-- ===== lane labels ===== -->
+        <mxCell id="lane1t" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;顧客&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="72" y="208" width="176" height="152" as="geometry"/></mxCell>
+        <mxCell id="lane2t" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;受注管理&lt;br&gt;システム&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="72" y="360" width="176" height="152" as="geometry"/></mxCell>
+        <mxCell id="lane3t" value="&lt;font style=&quot;font-size:17px;color:#4f46e5;line-height:1.5;letter-spacing:0.02em;&quot;&gt;出荷手配&lt;br&gt;サービス&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="72" y="512" width="176" height="184" as="geometry"/></mxCell>
+        <mxCell id="lane4t" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;倉庫&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="72" y="696" width="176" height="168" as="geometry"/></mxCell>
+        <mxCell id="lane5t" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;配送業者&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="72" y="864" width="176" height="200" as="geometry"/></mxCell>
+
+        <!-- ===== lane 1 (顧客) ===== -->
+        <mxCell id="n_order" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;注文の送信&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;&quot;&gt;カートの内容を確定&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7CBD1;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="312" y="248" width="240" height="72" as="geometry"/></mxCell>
+        <mxCell id="note_customer" value="&lt;font style=&quot;font-size:17px;color:#6B7280;line-height:1.7;letter-spacing:0.02em;&quot;&gt;顧客の操作は注文の送信までです。&lt;br&gt;以降の工程は自動で進み、発送が完了した時点で通知が届きます。&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="632" y="248" width="768" height="72" as="geometry"/></mxCell>
+
+        <!-- ===== lane 2 (受注管理システム) ===== -->
+        <mxCell id="n_accept" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;注文の受理&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;&quot;&gt;注文番号を採番&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7CBD1;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="312" y="400" width="240" height="72" as="geometry"/></mxCell>
+        <mxCell id="n_pay" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;決済の確認&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;&quot;&gt;与信結果を反映&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7CBD1;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="632" y="400" width="240" height="72" as="geometry"/></mxCell>
+
+        <!-- ===== lane 3 (出荷手配サービス / 主役レーン) ===== -->
+        <mxCell id="n_alloc" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;在庫の引当&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#c2410c;line-height:1.7;&quot;&gt;&lt;b&gt;引当数量をここで確保&lt;br&gt;重複引当を防ぐ&lt;/b&gt;&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#c2410c;strokeWidth=3;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="632" y="560" width="240" height="88" as="geometry"/></mxCell>
+        <mxCell id="n_plan" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;ピッキング指示の作成&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.7;&quot;&gt;棚番号ごとに並べる&lt;br&gt;同梱の可否を判定&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4f46e5;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="952" y="560" width="240" height="88" as="geometry"/></mxCell>
+        <mxCell id="n_send" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;出荷指示の送信&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.7;&quot;&gt;倉庫システムへ連携&lt;br&gt;1 指示 1 出荷&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4f46e5;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="1272" y="560" width="240" height="88" as="geometry"/></mxCell>
+
+        <!-- ===== lane 4 (倉庫) ===== -->
+        <mxCell id="n_pack" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;梱包と検品&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.7;&quot;&gt;同梱物を確認&lt;br&gt;送り状を貼付&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7CBD1;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="1272" y="736" width="240" height="88" as="geometry"/></mxCell>
+
+        <!-- ===== lane 5 (配送業者) ===== -->
+        <mxCell id="n_carrier" value="&lt;font style=&quot;font-size:17px;color:#111418;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;配送業者への引き渡し&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:14px;color:#6B7280;line-height:1.7;&quot;&gt;追跡番号を発行&lt;br&gt;配送状況を記録&lt;/font&gt;&lt;/font&gt;" style="rounded=1;absoluteArcSize=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C7CBD1;strokeWidth=1;fontFamily=sans-serif;verticalAlign=middle;align=center;" vertex="1" parent="1"><mxGeometry x="1272" y="920" width="240" height="88" as="geometry"/></mxCell>
+        <mxCell id="note_carrier" value="&lt;font style=&quot;font-size:17px;color:#6B7280;line-height:1.7;letter-spacing:0.02em;&quot;&gt;出荷手配サービスから配送業者への直接の線はありません。&lt;br&gt;引き渡しと追跡番号の登録は倉庫が行います。&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="312" y="920" width="768" height="88" as="geometry"/></mxCell>
+
+        <!-- ===== edges: 主経路 accent 3px / 副経路 textMuted 1px ===== -->
+        <mxCell id="e1" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c2410c;strokeWidth=3;endArrow=classic;endFill=1;" edge="1" parent="1" source="n_order" target="n_accept"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e1l" value="&lt;font style=&quot;font-size:14px;color:#c2410c;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;注文データの受け渡し&lt;/b&gt;&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="448" y="352" width="240" height="24" as="geometry"/></mxCell>
+
+        <mxCell id="e2" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6B7280;strokeWidth=1;endArrow=open;endFill=0;" edge="1" parent="1" source="n_accept" target="n_pay"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="e3" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c2410c;strokeWidth=3;endArrow=classic;endFill=1;" edge="1" parent="1" source="n_pay" target="n_alloc"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3l" value="&lt;font style=&quot;font-size:14px;color:#c2410c;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;引当の依頼&lt;/b&gt;&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="768" y="504" width="240" height="24" as="geometry"/></mxCell>
+
+        <mxCell id="e4" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6B7280;strokeWidth=1;endArrow=open;endFill=0;" edge="1" parent="1" source="n_alloc" target="n_plan"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6B7280;strokeWidth=1;endArrow=open;endFill=0;" edge="1" parent="1" source="n_plan" target="n_send"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <mxCell id="e6" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c2410c;strokeWidth=3;endArrow=classic;endFill=1;" edge="1" parent="1" source="n_send" target="n_pack"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6l" value="&lt;font style=&quot;font-size:14px;color:#c2410c;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;出荷指示の引き渡し&lt;/b&gt;&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="1152" y="680" width="224" height="24" as="geometry"/></mxCell>
+
+        <mxCell id="e7" style="edgeStyle=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c2410c;strokeWidth=3;endArrow=classic;endFill=1;" edge="1" parent="1" source="n_pack" target="n_carrier"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7l" value="&lt;font style=&quot;font-size:14px;color:#c2410c;line-height:1.5;letter-spacing:0.02em;&quot;&gt;&lt;b&gt;梱包完了の連携&lt;/b&gt;&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;align=right;verticalAlign=middle;strokeColor=none;fillColor=none;fontFamily=sans-serif;" vertex="1" parent="1"><mxGeometry x="1152" y="864" width="224" height="24" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

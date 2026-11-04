@@ -1,0 +1,7 @@
+# プロジェクト設定が 1 つも無い状態で project list を流す。GitHub は呼ばない。
+id: project-list-state
+command:
+  path: [project, list]
+  args: []
+setup: {}
+github: []

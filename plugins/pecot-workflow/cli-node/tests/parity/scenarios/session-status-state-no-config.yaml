@@ -1,0 +1,16 @@
+# フラグはあるが、アクティブなプロジェクト設定が無い。警告を出して exit 0 で終わる。
+id: session-status-state-no-config
+command:
+  path: [session, status]
+  args:
+    - "-D"
+    - "."
+setup:
+  repo:
+    branch: feat/demo/7
+    files:
+      .pecot/state/.pecot-active: |
+        acme/demo/7
+      .pecot/state/.plan-post-pending: |
+        acme/demo/7
+github: []

@@ -1,0 +1,7 @@
+# -m には --issue が必須。exit 1。
+id: issue-comment-usage-message-without-issue
+command:
+  path: [issue, comment]
+  args: [-t, merge-diff, -m, 進捗です]
+setup: {}
+github: []

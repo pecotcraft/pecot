@@ -1,0 +1,185 @@
+# Issue/PR フロー基本ルール
+
+`/pecot-w:w-quick` / `/pecot-w:w-ready` / `/pecot-w:w-issueize` / `/pecot-w:w-backlog` が対象。
+これらの Issue 起票に共通する、判定ルールを定める。
+判定ルールは 4 つあり、投稿先リポ・親 Epic 参照・タイトル連番・テンプレート選択を扱う。
+着手前のセッションスコープ前提（§5）と、着手後の変更対象リポジトリ限定（§6）も、このファイルが定義元になる。
+AI は推測で埋めない。ここで定義される手順に従い、ユーザー指示と CLI 出力を組み合わせて決定する。
+
+## 1. `repository` の決定
+
+実装ファイル: `commands/issue.py::_resolve_epic_target_repo`
+
+Epic と通常 Issue（task / bug）で挙動が異なる。
+
+| 種類 | 投稿先の決まり方 |
+|------|-----------------|
+| Epic | `aggregation_repo` が設定済みなら **そこに集約する**。`--repo` 未指定 + `repository: ""` でも CLI が自動補完。例外時のみ `--repo <owner/repo>` で明示（CLI が stderr 警告を出して作成は続行） |
+| 通常 Issue（task / bug） | **実装が行われるリポ** を指定する。Epic が aggregation_repo に置かれていても、その配下のサブタスクは aggregation_repo に作らない |
+
+Epic は「プロジェクト全体の進捗把握 / 親子追跡」のため集約リポに寄せる。一方サブタスクは
+実装コードが置かれるリポに作ることで、PR や branch と同じ場所で追跡できる。両者を混同すると
+aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰性が失われる。
+
+ユーザー指示が無い時の確認手順:
+
+1. `pecot project show-aggregation-repo` で集約リポを取得
+2. 集約リポと実装リポが異なる場合、サブタスクは実装リポ側を `--repo` で指定する
+3. どちらに作るべきか判断材料が無い場合は AskUserQuestion で確認する（推測で埋めない）
+
+CLI が exit 2 で失敗する代表ケース:
+
+- Epic で `--repo` 未指定かつ `aggregation_repo` も未設定（決定不能）
+- 通常 Issue で `repository: ""` のまま投稿（必須フィールド欠落）
+
+## 2. `parent_epic` の指定
+
+実装ファイル: `commands/issue.py::_resolve_parent_epic_ref` / `core/frontmatter.py::_normalize_parent_epic`
+
+受理形式は 2 通り。
+
+| 形式 | 解釈 |
+|------|------|
+| `owner/repo/N`（主軸形式・推奨） | そのまま該当リポの Issue #N を指す |
+| 整数 `N` 単体 | `aggregation_repo` の Issue #N として解決。`aggregation_repo` 未設定時は task repo にフォールバック |
+
+クロスリポで親 Epic を参照する場合は **full path 必須**。集約リポに置いた Epic の配下に
+別リポのサブタスクを作るケース（典型的な pecot 運用）では `parent_epic: acme-labs/aist-roadmap/123`
+のように書く。整数 `123` だけだと aggregation_repo 解釈になるため、サブタスクの task repo と
+aggregation_repo が同じ場合のみ意図通り動く。
+
+整数指定で aggregation_repo と task repo が異なるとき、CLI は stderr に note を出す。形式は次のとおり。
+
+```
+note: parent_epic=123 を aggregation_repo (acme-labs/aist-roadmap) の #123 として解決しました。
+```
+
+これは **エラーではなく挙動の確認通知**。AI は警告メッセージとして再投稿を試みたり、
+ユーザーに「失敗しました」と報告しない。フォーマットを誤検知して止めないこと。
+
+CLI 受理後のフロントマター正規化（`_normalize_parent_epic`）は次のとおり。
+
+- `None` / 空文字 → `None`
+- `int` → そのまま
+- 数字文字列 `"21"` → `int(21)`
+- 任意文字列 `"owner/repo/21"` → `str` のまま（CLI 層で `parse_issue_ref` 対象）
+
+## 3. `order` と タイトル prefix
+
+実装ファイル: `commands/issue.py::_build_issue_title` / `_check_duplicate_order`
+
+フロントマター側の実装ファイル: `core/frontmatter.py::IssueFrontmatter.validate_order_with_parent_epic`
+
+`parent_epic` を指定した場合 `order` は **必須かつ 1 以上の整数**。`parent_epic` と `order` は
+相互依存で、片方だけ指定するとフロントマター validation が失敗する。
+
+`parallel` は任意で、`a`〜`z` の小文字 1 文字を入れる。
+入れるのは、並列に進められる Issue が同じ段（`order`）で 2 件以上あるときだけ。`order` が無いと指定できない。
+
+タイトルは CLI が自動生成する。形式は次のとおり。
+
+```
+[Task] #{epic}-{order:02d}{parallel}: <title>
+[Bug]  #{epic}-{order:02d}{parallel}: <title>
+```
+
+`parallel` が無いときは `#{epic}-{order:02d}` のままになる。
+
+`order` の続番決定:
+
+- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が `_check_duplicate_order` で
+  チェックし、重複時は exit 1 で失敗する
+- 重複の判定は (`order`, `parallel`) の組で行う。同じ段で枝が違えば重複ではない。
+  同じ段の枝なしと枝ありは、どちらが既存でも重複とする
+- 続番を決めるときは、`pecot issue read <Epic の owner/repo/N>` の sub-issue 一覧で既存 `order` を確認する。
+  一覧のタイトルには `#<Epic番号>-NN`（枝があれば `NNa`）が含まれる。確認してから次の番号を指定する。
+  再利用はできない（CLOSED でも空き番号にしない）
+
+タイトル prefix（`[Task]` / `[Bug]` / `[Epic]`）は `_build_issue_title` が type から自動付与する。
+ユーザー入力のタイトルに先頭で同じ prefix が入っていれば剥がしてから付け直す。
+
+## 4. テンプレート選択
+
+実装ファイル: `cli/templates/issue/{task,bug,epic,task-implement}.md`
+
+スキル ↔ テンプレート対応:
+
+| スキル | テンプレート | 用途 |
+|--------|-------------|------|
+| `/pecot-w:w-backlog` | `epic.md` | Epic を 1 件作成し Backlog 配置 |
+| `/pecot-w:w-ready` | `task.md` / `bug.md` | Epic 配下のサブタスクを 1 件作成し Ready 配置 |
+| `/pecot-w:w-issueize` | `task-implement.md`（または `task.md`） | 計画ファイル（speckit の tasks.md 等）の各フェーズを一括 Issue 化 |
+| `/pecot-w:w-quick` | `task.md` / `bug.md` | ユーザー指示が来た直後に小タスクを Issue 化 + ブランチ作成まで一気に進める |
+
+`task.md` / `bug.md` の使い分け:
+
+- `task.md`: 新機能・改善・リファクタ・タスク追加など、**達成したい状態** が主軸
+- `bug.md`: 既存挙動が期待値と乖離している事象の修正。**Problem（Expected / Actual を対置する表 + Repro）** が主軸
+
+`task-implement.md` は w-issueize 固有の「実装フェーズを順に展開する」フォーマットで、
+通常の単発起票では使わない。
+
+各テンプレ本文の `<!-- フィールド: -->` ブロックには、このファイルへの参照行が入っている。
+このファイルの場所は `skills/w-help/references/issue-flow-rules.md`。
+CLI が生成した prepared file を見れば、AI は判定基準に辿り着ける。
+
+### 起票時の既定 status
+
+本節は §4「テンプレート選択」の一部で、各テンプレで起票したときの既定 status を扱う。
+
+計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
+既定は task/bug=ready、epic=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
+これらは未着手の置き場であり、着手時に `create-branch` がボード Status を active に設定する。
+
+`issue quick` は task/bug を active で起票する。
+quick は即着手フローで、起票時点が作業開始時点になる。
+board-status.md の `作業開始時に必ず設定` を起票と同時に適用したものであり、`issue create` との矛盾ではない。
+違いは、active を設定する担い手が `create-branch` か起票時かだけ。
+
+## 5. セッションスコープ（着手前の前提）
+
+pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態を持つ。並行作業は別 WT で行う。
+
+`.pecot-active` の役割:
+
+- 配置: `.pecot/state/.pecot-active`（`CLAUDE_PROJECT_DIR` 単位 = WT ごとに独立）
+- 書き手: `pecot create-branch` / `pecot issue quick` / `pecot session restore`（実行時に上書き）
+- `pecot pr merge` が消す。`pecot pr merge` を通さずにマージした場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
+
+CLI ガード（この表が最終の基準）は次のとおり。
+
+| 違反 | 検出箇所 | CLI 出力 | バイパス |
+|------|----------|----------|----------|
+| CWD と Issue ref の owner/repo 不一致 | `pecot create-branch` の冒頭 | exit 2 + 対象リポ WT への移動誘導 | `--allow-cross-repo` / `-X` |
+| `.pecot-active` に OPEN な別 Issue ref | `pecot create-branch` ブランチ作成前 | exit 2 + WT 分離誘導 | `--force-overwrite-active` / `-F` |
+| `.pecot-active` の Issue が CLOSED | 同上 | stale note + 続行 | （バイパス不要） |
+
+状況を着手前に把握したいときは、ユーザー / AI が `pecot session status -D .` を実行する。
+`.pecot-active` の内容と `=== アクティブIssue ===` の OPEN/CLOSED が表示される。
+
+未コミット差分の扱いは CLI ガード対象外（git status の判断は AI / 人間に委ねられる）。`git status` で前 Issue 由来の差分が残っていれば commit / stash / 破棄で clean にしてから着手する。
+
+関連: [`w-worktree-add/SKILL.md`](../../w-worktree-add/SKILL.md) / [`w-merge/references/worktree-handling.md`](../../w-merge/references/worktree-handling.md) / [`flags.md`](./flags.md)。
+
+## 6. 変更対象のリポジトリ限定（越境ガード）
+
+計画・実装で変更するファイルは、active Issue の owner/repo が指すリポ内に限定する。
+§5 が「着手してよい状態か」を扱うのに対し、本節は着手後に「どこまで触ってよいか」を扱う。
+
+判定手段:
+
+- `.pecot/state/.pecot-active` に記録された owner/repo を見る
+- `pecot session status -D .` で `.pecot-active` の内容と OPEN/CLOSED を確認する
+
+他リポの変更が必要になった場合の手順:
+
+1. **当該リポのファイルを編集しない**。「一旦編集して `git diff` を取る」は越境編集の
+   実行そのもので、他リポの作業ツリーを dirty にするため diff 取得目的でも行わない
+2. 変更内容は書き起こした unified diff として `.pecot/work/<Issue番号>/<slug>.patch` に退避する
+3. 当該リポへの Issue 起票を提案する（起票するかはユーザーが判断する）
+
+他リポへの dirty 残置・直接 commit はいずれも不可。持ち越す手段はパッチ退避だけ。
+
+例外はユーザーの明示指示がある場合のみで、そのときは対象リポの WT へ移って作業する
+（現 WT からは編集しない）。§5 の CLI ガードと同様、バイパスはユーザーの明示指示に限り、
+AI 側で例外を作らない。

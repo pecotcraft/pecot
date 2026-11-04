@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "pecot-visual": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/pecotv",
+      "args": [
+        "mcp"
+      ]
+    },
+    "pecot-visual-playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--browser",
+        "chromium",
+        "--headless",
+        "--no-sandbox"
+      ]
+    }
+  }
+}

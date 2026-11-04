@@ -1,0 +1,9 @@
+# 不正な PECOT_GITHUB_API_URL でも、-v は先に実行される。
+id: global-ok-version-bad-api-url
+command:
+  path: []
+  args: ["-v"]
+setup:
+  env:
+    PECOT_GITHUB_API_URL: http://example.com
+github: []

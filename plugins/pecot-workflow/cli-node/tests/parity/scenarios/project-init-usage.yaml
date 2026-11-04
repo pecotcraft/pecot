@@ -1,0 +1,7 @@
+# 必須の --suffix が無い。typer の使い方エラーを記録する。
+id: project-init-usage
+command:
+  path: [project, init]
+  args: [acme, board, --host, ghes.example.com]
+setup: {}
+github: []

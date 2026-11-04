@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot issue read [OPTIONS] ISSUE_REF\nTry 'pecot issue read --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'ISSUE_REF'.                                                │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

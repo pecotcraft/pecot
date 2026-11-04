@@ -1,0 +1,2 @@
+
+aws: [ERROR]: An error occurred (ResourceNotFoundException) when calling the GetFunctionConfiguration operation: Function not found: arn:aws:lambda:ap-northeast-1:123456789012:function:no-such-function

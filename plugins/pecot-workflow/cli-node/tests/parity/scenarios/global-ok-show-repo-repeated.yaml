@@ -1,0 +1,7 @@
+# --repo を重ねると、後の値が使われる。
+id: global-ok-show-repo-repeated
+command:
+  path: []
+  args: ["--repo", "acme/one", "--repo", "acme/two", "--show-repo"]
+setup: {}
+github: []

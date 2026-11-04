@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "エラー: 引数が不足しています\n\n使用方法:\n  直接投稿: pecot issue create -t \"タイトル\" -r owner/repo -m \"本文\"\n  テンプレート準備: pecot issue create --prepare --template task --repo owner/repo\n  ファイルから: pecot issue create <path>\n",
+  "exitCode": 1,
+  "requests": [],
+  "files": {}
+}

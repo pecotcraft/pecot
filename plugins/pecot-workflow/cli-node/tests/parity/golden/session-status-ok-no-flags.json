@@ -1,0 +1,7 @@
+{
+  "stdout": "=== フラグ状態 ===\n\nブランチ: main\nリポジトリ: acme/demo\n推定Issue: (none)\n\n| フラグ | 状態 | 内容 |\n|-------|------|------|\n| .pecot-active | - |  |\n| .plan-post-pending | - |  |\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [],
+  "files": {}
+}

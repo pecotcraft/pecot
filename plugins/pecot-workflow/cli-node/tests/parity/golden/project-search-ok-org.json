@@ -1,0 +1,26 @@
+{
+  "stdout": "=== acme のプロジェクト一覧 (ghes.example.com) ===\n\n#    タイトル                                     URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsOrg",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

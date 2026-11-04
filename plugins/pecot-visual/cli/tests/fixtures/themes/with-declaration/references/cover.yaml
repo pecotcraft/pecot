@@ -1,0 +1,42 @@
+layout: 'cover'
+description: '資料の表紙。タイトルと副題だけを置く。'
+category: 'text'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: 'タイトル'
+  subtitle:
+    type: 'String'
+    default: "''"
+    description: '副題'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+  'subtitle':
+    min_chars: 0
+    max_chars: 40
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: cover
+      heading: 発表タイトル
+      subtitle: 副題の例
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '表紙には題名と副題だけを置く'
+
+anti_patterns:
+  - '表紙に本文を書く'

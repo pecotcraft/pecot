@@ -1,0 +1,19 @@
+# user と organization のどちらにも存在しない。オーナーが見つかりませんと出して exit 1。
+id: project-create-4xx
+command:
+  path: [project, create]
+  args: [acme, board, --suffix, acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: GetUserNodeId
+    respond:
+      status: 200
+      body: {"data": {"user": null}}
+  - match:
+      operation: GetOrgNodeId
+    respond:
+      status: 200
+      body: {"data": {"organization": null}}

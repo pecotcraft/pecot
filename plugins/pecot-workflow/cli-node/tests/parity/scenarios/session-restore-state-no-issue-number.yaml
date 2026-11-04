@@ -1,0 +1,11 @@
+# --issue が無く、ブランチ名の末尾に番号が無い。exit 1。
+id: session-restore-state-no-issue-number
+command:
+  path: [session, restore]
+  args:
+    - "-D"
+    - "."
+setup:
+  repo:
+    branch: feat/no-number
+github: []

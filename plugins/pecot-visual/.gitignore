@@ -1,0 +1,4 @@
+node_modules/
+.pnpm-install.lock
+.pnpm-store/
+.pecotv-bootstrap.lock

@@ -1,0 +1,7 @@
+# -v があっても、後ろの未知のオプションの誤りが先に出る。
+id: global-usage-unknown-option-after-version
+command:
+  path: []
+  args: ["-v", "--bogus"]
+setup: {}
+github: []

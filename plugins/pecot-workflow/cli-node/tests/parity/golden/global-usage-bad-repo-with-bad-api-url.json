@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot [OPTIONS] COMMAND [ARGS]...\nTry 'pecot --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Invalid value for '--repo': 'owner/repo' 形式で指定してください (不正な      │\n│ owner/repo 形式: 'bad' (期待: 'owner/repo'))                                 │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

@@ -1,0 +1,218 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "YAML Reference File Schema",
+  "description": "Schema for _references/*.yaml layout and shared reference files",
+  "type": "object",
+  "$defs": {
+    "propEntry": {
+      "type": "object",
+      "required": ["type", "description"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["String", "Boolean", "Number", "Array", "Object", "Array<String>", "Array<Number>", "String|Number"]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": {
+          "type": "string"
+        },
+        "v-html": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "note": {
+          "type": "string"
+        },
+        "same_length_as": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/propEntry"
+          }
+        },
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/propEntry"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "textConstraintEntry": {
+      "type": "object",
+      "properties": {
+        "min_chars": { "type": "number" },
+        "max_chars": { "type": "number" },
+        "min_items": { "type": "integer", "minimum": 1 },
+        "max_items": { "type": "integer", "minimum": 1 },
+        "bold_required": { "type": "boolean" },
+        "note": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "if": {
+    "required": ["layout"]
+  },
+  "then": {
+    "$comment": "Layout reference file (e.g., cover.yaml, end.yaml)",
+    "required": [
+      "layout",
+      "description",
+      "includes",
+      "text_constraints",
+      "clicks",
+      "best_practices",
+      "anti_patterns",
+      "examples"
+    ],
+    "properties": {
+      "layout": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": {
+        "type": "string",
+        "minLength": 1
+      },
+      "category": {
+        "type": "string",
+        "minLength": 1
+      },
+      "includes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1
+      },
+      "props": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/$defs/propEntry"
+        }
+      },
+      "text_constraints": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/$defs/textConstraintEntry"
+        }
+      },
+      "clicks": {
+        "type": "object",
+        "required": ["supported"],
+        "properties": {
+          "supported": {
+            "type": "boolean"
+          },
+          "recommended_pattern": {
+            "type": "string"
+          }
+        }
+      },
+      "pptx": {
+        "type": "object",
+        "required": ["supported"],
+        "properties": {
+          "supported": {
+            "type": "boolean"
+          },
+          "known_issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "best_practices": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1
+      },
+      "anti_patterns": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1
+      },
+      "examples": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["name", "frontmatter"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "frontmatter": {
+              "type": "string",
+              "minLength": 1
+            },
+            "body": {
+              "type": "string"
+            }
+          }
+        },
+        "minItems": 1
+      }
+    },
+    "additionalProperties": true,
+    "if": {
+      "$comment": "category は catalog 掲載レイアウトの必須項目。status: hidden は catalog に載らないため required から外す",
+      "properties": { "status": { "const": "hidden" } },
+      "required": ["status"]
+    },
+    "else": {
+      "required": ["category"]
+    }
+  },
+  "else": {
+    "$comment": "Shared reference file (e.g., _common.yaml, _header.yaml, _footer.yaml)",
+    "required": ["description"],
+    "properties": {
+      "description": {
+        "type": "string",
+        "minLength": 1
+      },
+      "layout_categories": {
+        "$comment": "_common.yaml だけが持つ見せ方の分類語彙。_header / _footer も else を通るため required には入れない",
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["id", "label", "question"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "label": { "type": "string", "minLength": 1 },
+            "question": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": true
+  }
+}

@@ -1,0 +1,7 @@
+# --repo だけなら何も出さず、exit 0 で終わる。
+id: global-ok-repo-only
+command:
+  path: []
+  args: ["--repo", "acme/other"]
+setup: {}
+github: []

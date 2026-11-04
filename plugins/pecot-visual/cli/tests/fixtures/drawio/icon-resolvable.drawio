@@ -1,0 +1,16 @@
+<mxfile>
+<diagram name="all-icons-resolvable">
+<mxGraphModel page="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1">
+<root>
+  <mxCell id="0"/>
+  <mxCell id="1" parent="0"/>
+  <mxCell id="ai" value="AI" style="shape=image;image=icon://science/brain-circuit#4f46e5;fontFamily=sans-serif;fontFamily=sans-serif;fontSize=12;" vertex="1" parent="1">
+    <mxGeometry x="60" y="60" width="64" height="64" as="geometry"/>
+  </mxCell>
+  <mxCell id="cloud" value="Cloud" style="shape=image;image=icon://weather/cloud;fontFamily=sans-serif;fontFamily=sans-serif;fontSize=12;" vertex="1" parent="1">
+    <mxGeometry x="200" y="60" width="64" height="64" as="geometry"/>
+  </mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+</mxfile>

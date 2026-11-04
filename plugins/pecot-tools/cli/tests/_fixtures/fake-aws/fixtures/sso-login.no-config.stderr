@@ -1,0 +1,2 @@
+
+aws: [ERROR]: An error occurred (Configuration): Missing the following required SSO configuration values: sso_start_url, sso_region. To make sure this profile is properly configured to use SSO, please run: aws configure sso

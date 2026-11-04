@@ -1,0 +1,13 @@
+# Shared Reference: _footer
+# フッターの props
+
+description: フッターのプロパティ。
+props:
+  sensitivity:
+    type: String
+    default: "'Internal'"
+    description: フッターの分類表示
+  bridgeText:
+    type: String
+    default: "''"
+    description: 次のスライドへのつなぎ文

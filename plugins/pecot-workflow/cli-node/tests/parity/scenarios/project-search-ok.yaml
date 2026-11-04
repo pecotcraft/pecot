@@ -1,0 +1,15 @@
+# user のプロジェクトが 2 件ある。ListProjectsUser を 1 回受けて表を出す。
+id: project-search-ok
+command:
+  path: [project, search]
+  args: [acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: ListProjectsUser
+      variables: {owner: acme, first: 20}
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}, {"number": 2, "title": "とても長いタイトルのプロジェクトで三十八文字を超えるので末尾が省略される例", "url": "https://ghes.example.com/users/acme/projects/2", "id": "PVT_2"}]}}}}

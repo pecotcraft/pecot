@@ -1,0 +1,15 @@
+{
+    "EventSourceMappings": [
+        {
+            "UUID": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+            "BatchSize": 10,
+            "MaximumBatchingWindowInSeconds": 0,
+            "EventSourceArn": "arn:aws:sqs:ap-northeast-1:123456789012:order-events",
+            "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:order-notifier",
+            "LastModified": "2026-09-01T10:00:00+09:00",
+            "LastProcessingResult": "OK",
+            "State": "Enabled",
+            "StateTransitionReason": "USER_INITIATED"
+        }
+    ]
+}

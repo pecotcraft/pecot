@@ -1,0 +1,14 @@
+# 指定のタイトルのプロジェクトが無い。一覧を出して exit 1。
+id: project-init-state
+command:
+  path: [project, init]
+  args: [acme, missing, --suffix, acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}]}}}}

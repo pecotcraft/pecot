@@ -1,0 +1,7 @@
+# 不正な --repo より、eager な -v が先に実行される。
+id: global-ok-version-after-bad-repo
+command:
+  path: []
+  args: ["--repo", "bad", "-v"]
+setup: {}
+github: []

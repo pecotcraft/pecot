@@ -1,0 +1,7 @@
+# グループだけを指定すると Missing command になる。全コマンドの移植後に比べる。
+id: global-usage-group-missing-command
+command:
+  path: []
+  args: ["issue"]
+setup: {}
+github: []

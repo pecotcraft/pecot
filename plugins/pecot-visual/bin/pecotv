@@ -1,0 +1,285 @@
+#!/usr/bin/env bash
+# pecotv CLI wrapper — プラグインのデータ置き場に作る実行用ミラーの Node ランタイムを起動する。
+#
+# 依存（node_modules）と build 成果物は、プラグイン本体（CLAUDE_PLUGIN_ROOT）ではなく
+# `${データ置き場}/runtime/<deps-hash>-<src-hash>/` に作る。本体は更新のたびに別のディレクトリへ
+# 入れ替わる（Claude）か中身ごと入れ替わる（Copilot）ため、本体配下に作ると更新のたびに
+# install と build をやり直す。ハッシュが同じなら何もせず、ソースだけ変わったときは build だけ、
+# 依存が変わったときだけ install する。
+#
+#   1. SKIP（開発・ゲート専用）: 本体ツリーの成果物を直接実行する。データ置き場は使わない
+#   2. 実行中のミラーを引き継いだ子プロセス: そのまま実行する
+#   3. データ置き場を解決して作る（CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所。bin/_lib.sh の plugin_data_dir_ensure）
+#   4. ミラーを用意する（bin/_lib.sh の plugin_runtime_ensure）。使用中は `.inuse` の共有ロックで示す
+#   5. Chromium と OS ライブラリの確認（MCP 起動以外）
+#   6. ミラーの cli を exec する
+set -euo pipefail
+
+# PLUGIN_ROOT を解決
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" ]; then
+  PLUGIN_ROOT="$CLAUDE_PLUGIN_ROOT"
+else
+  SELF="$(realpath "$0")"
+  PLUGIN_ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
+fi
+# cli は実行用ミラーから動くため、同梱アセットと plugin.json の起点は env で渡す。
+export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
+
+# `pecotv mcp` として起動されたか。MCP クライアント (.mcp.json 経由の stdio 起動) は
+# 接続確立までのタイムアウトを持つ (Claude Code の MCP_TIMEOUT 既定 30000ms) ため、
+# 起動に不要な chromium の同期 DL を bootstrap から外す判断に使う。
+PECOTV_MCP_INVOCATION=0
+if [ "${1:-}" = "mcp" ]; then
+  PECOTV_MCP_INVOCATION=1
+fi
+
+# source path は symlink 経由起動でも壊れないよう PLUGIN_ROOT 基準で解決する。
+# shellcheck source=./_lib.sh
+. "$PLUGIN_ROOT/bin/_lib.sh"
+
+# 1. SKIP: 本体ツリーの成果物を直接実行する（開発・ゲート専用）。
+# 開発者の Claude セッションの子として起動されると、導入済み版の実行用ミラー（PECOTV_RUNTIME_DIR・
+# PECOTV_DEPENDENCY_ROOT）を受け継ぐ。SKIP のときにそれを使うと、worktree のソースの cli が導入済み版の
+# 置き場へ書いてしまうため、データ置き場に触れず、ミラーの変数も外す。wrapper は SKIP を export しない
+# （子プロセスの再帰防止は 2. で行う）。
+if [ "${PECOTV_BOOTSTRAP_SKIP:-}" = "1" ]; then
+  unset PECOTV_RUNTIME_DIR PECOTV_DEPENDENCY_ROOT
+  CLI_DIST="${PLUGIN_ROOT}/cli/dist/cli.js"
+  if [ ! -f "$CLI_DIST" ]; then
+    echo "pecotv: ${CLI_DIST} が無い。先に build する (PECOTV_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
+    exit 1
+  fi
+  exec node "$CLI_DIST" "$@"
+fi
+
+# 2. 実行中のミラーを引き継いだ子プロセス（cli が bin/pecotv を起動し直した場合）は再準備しない。
+# ゲート（scripts/ci/run-tests.sh）が PECOTV_RUNTIME_DIR を unset して固定するので、ここは外の値を読む経路である。
+# 走査器（.githooks/pre-commit/tests/test_nx_env_inputs.py）が SKIP 分岐の unset を束縛に数えて見落とすため、除外には載せていない。
+if [ -n "${PECOTV_RUNTIME_DIR:-}" ] && plugin_runtime_is_complete "$PECOTV_RUNTIME_DIR"; then
+  exec node "$PECOTV_RUNTIME_DIR/cli/dist/cli.js" "$@"
+fi
+
+# 3. データ置き場。解決順は CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所（本体配下には何も作らない）。
+# 判定に落ちた子プロセスも、受け継いだ CLAUDE_PLUGIN_DATA / PLUGIN_DATA で同じ置き場に解決し直す。
+DATA="$(plugin_data_dir_ensure pecot-visual)" || exit 1
+RUNTIME_BASE="$DATA/runtime"
+PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
+
+# bootstrap 中の stdout を丸ごと stderr へ寄せる。`pecotv mcp` は stdout を JSON-RPC
+# チャネルとして専有するため、pnpm / tsc / playwright の進捗出力が 1 行でも stdout に
+# 混ざるとクライアント側のパースが壊れる。node 起動後の stdout 汚染は
+# cli/src/mcp/serve.ts の installStdoutGuard が守るが、node 起動前に走る本ブロックの
+# 子プロセスはその射程外なので、ここで一括して寄せる（子プロセス個別の `>&2` は
+# 追加時の付け忘れがそのまま回帰になるため採らない）。
+# あわせて stdin も /dev/null に差し替える。`pecotv mcp` では stdin が JSON-RPC の
+# 入力パイプであり、bootstrap の子プロセスがそこから 1 バイトでも読むと initialize
+# リクエストが失われてサーバが応答不能のまま生き続ける。
+# 本リダイレクトはブロック内に閉じるため、後段の `exec node` の stdin は影響を受けない。
+{
+  # Chromium の取得ログとロック、OS ライブラリの確認の印は、cli (infra/_shared/dependency-root.ts の
+  # runtimeStateDirectory) と同じ `${DATA}/runtime` に置く。ハードリンクで複製した node_modules の中に
+  # 置くと別世代と inode を共有し、bin と cli の置き場が食い違うと確認が毎回走り二重取得も起きる。
+  HOST_DEPS_MARKER="$RUNTIME_BASE/.pecotv-chromium-host-deps"
+  HOST_DEPS_FAILURE_TTL_SECONDS=86400
+  CHROMIUM_INSTALL_LOG="$RUNTIME_BASE/.pecotv-chromium-install.log"
+  CHROMIUM_INSTALL_LOCK="$RUNTIME_BASE/.pecotv-chromium-install.lock"
+
+  # 4. ミラーを用意し、使用中を示す共有ロックを取る。取った後に完成印が消えていたら（世代削除と
+  # 行き違った）、作り直しへ戻る。
+  attempt=0
+  while :; do
+    plugin_runtime_ensure "$PLUGIN_ROOT" "$RUNTIME_BASE" || exit $?
+    RUNTIME_DIR="$PLUGIN_RUNTIME_DIR"
+    # fd 6 を開いたまま `exec node` する（fd は継承され、プロセスが生きている間ロックが残る）。
+    # 完成済みを使う経路はロックを取らずに戻るため、別プロセスの世代削除と行き違うと `.inuse` を開けない
+    # ことがある。その場合も失敗にせず、attempt を進めて作り直しへ合流する。
+    if { : >> "$RUNTIME_DIR/.inuse" && exec 6<"$RUNTIME_DIR/.inuse"; } 2>/dev/null; then
+      if command -v flock >/dev/null 2>&1; then flock -s 6; fi
+      if plugin_runtime_is_complete "$RUNTIME_DIR"; then break; fi
+      exec 6<&-
+    fi
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 3 ]; then
+      pecotv_log "error: 実行用ミラーを用意できませんでした: ${RUNTIME_DIR}"
+      exit 1
+    fi
+  done
+  # 再実行の場合に完成印を信用して FORCE で作り直し続けないよう、ここから先は FORCE を持ち越さない。
+  PLUGIN_RUNTIME_FORCE=""
+
+  # cli に渡す。PECOTV_DEPENDENCY_ROOT は `current` 経由（デッキの node_modules symlink が世代削除で
+  # 切れないように）。cli 自身の依存は、cli/dist のあるミラーの node_modules から解決される。
+  export PECOTV_RUNTIME_DIR="$RUNTIME_DIR"
+  export PECOTV_DEPENDENCY_ROOT="$RUNTIME_BASE/current"
+
+  # pnpm の起動（ミラー内で pnpm を呼ぶときは、状態ファイルの絶対パスが合わず verifyDepsBeforeRun が
+  # install を走らせて依存を削るため、--config.verify-deps-before-run=false を付ける）。
+  MIRROR_PNPM_FLAGS="--config.verify-deps-before-run=false"
+
+  # Playwright Chromium が取得済みかの判定。判定基準は cli/src/infra/playwright/chromium.ts
+  # と揃える（片側だけが「取得済み」と見なすと、取得の空振りや無用な再取得が起きる）。
+  # - PLAYWRIGHT_BROWSERS_PATH を尊重する。同変数を export した環境（playwright 公式
+  #   イメージ / devcontainer）で HOME 固定パスだけを見ると判定が恒久的に空振りする。
+  # - `0` はパッケージ同梱位置を指す特殊値で場所を特定できないため、判定を諦めて
+  #   取得済み扱いに倒す（実際に無ければ各コマンドの実行時エラーとして表面化する）。
+  # - `chromium-*` の前方一致だと、DL 途中の半端な状態や Playwright を上げた直後の
+  #   旧リビジョン (chromium-<旧 rev>) の残りを取得済みと誤判定する。現在の playwright-core
+  #   のリビジョンの `chromium-<rev>` に Playwright が完了時に置く INSTALLATION_COMPLETE が
+  #   あるかまで見る。
+  _pecotv_has_chromium() {
+    if [ "${PLAYWRIGHT_BROWSERS_PATH:-}" = "0" ]; then return 0; fi
+    local browsers_root="${PLAYWRIGHT_BROWSERS_PATH:-${HOME:-/root}/.cache/ms-playwright}"
+    local revision
+    revision="$(_pecotv_chromium_revision)"
+    # リビジョンを引けないときは取得済みと断言できないため未取得側に倒す。
+    [ -n "$revision" ] || return 1
+    [ -e "$browsers_root/chromium-$revision/INSTALLATION_COMPLETE" ]
+  }
+
+  # Chromium の OS ライブラリの確認結果の印 (cli/src/infra/playwright/host-dependencies.ts が書く) を見て、
+  # 確認を飛ばしてよいか。印は 1 行 `<chromium のリビジョン> <ok|missing|launch-failed> <記録時の epoch 秒>`。
+  # - リビジョンが現在の playwright-core の chromium と一致しないものは古いブラウザの結果なので使わない。
+  # - ok は恒久的に飛ばす。missing / launch-failed (入れられなかった・OS ライブラリ以外で起動不可・
+  #   印は書けても sudo 不可) は 24 時間だけ飛ばす。毎回確認と警告を繰り返さず、環境を直した後は
+  #   期限切れで再確認される。
+  # - 読めない・形式不正は確認する側に倒す。
+  # PECOTV_REQUIRE_HOST_DEPS=1 (setup.sh) のときは失敗の印を無視して必ず確かめる。
+  _pecotv_chromium_revision() {
+    sed -n '/"name": "chromium",/{n;s/.*"revision": "\([0-9][0-9]*\)".*/\1/p;q;}' \
+      "$RUNTIME_DIR/node_modules/playwright-core/browsers.json" 2>/dev/null || true
+  }
+  _pecotv_has_host_deps() {
+    local rev status recorded extra current now
+    [ -f "$HOST_DEPS_MARKER" ] || return 1
+    read -r rev status recorded extra < "$HOST_DEPS_MARKER" || true
+    [ -z "${extra:-}" ] || return 1
+    current="$(_pecotv_chromium_revision)"
+    [ -n "$current" ] && [ "$rev" = "$current" ] || return 1
+    case "$status" in
+      ok) return 0 ;;
+      missing | launch-failed)
+        [ "${PECOTV_REQUIRE_HOST_DEPS:-}" != "1" ] || return 1
+        case "$recorded" in '' | *[!0-9]*) return 1 ;; esac
+        now="$(date +%s)"
+        [ "$((now - recorded))" -ge 0 ] && [ "$((now - recorded))" -le "$HOST_DEPS_FAILURE_TTL_SECONDS" ]
+        return
+        ;;
+      *) return 1 ;;
+    esac
+  }
+
+  # 5. 非 MCP 経路（通常の CLI 実行）の Playwright Chromium 取得。
+  #
+  # pecotv drawio url / slide convert は chromium が必須なので、不足時は同期取得し、
+  # 解決失敗・DL 失敗は fatal 化する（#543 の Acceptance）。pnpm install の postinstall
+  # 自動 DL は既存 node_modules キャッシュ環境で skip されることがあるため、install/build
+  # の要否とは独立に存在確認する。
+  #
+  # 判定を ensure の外に置くのは、install / build が warm な環境
+  # （MCP 経路で先に bootstrap を済ませた環境が既定になる）で取得の機会を失わないため。
+  # warm な起動で増えるのは chromium 取得済みかの判定 1 回で、cold start の予算には
+  # 影響しない（未取得のときだけ pnpm を解決して subprocess を起こす）。
+  if [ "$PECOTV_MCP_INVOCATION" != "1" ] && ! _pecotv_has_chromium; then
+    PNPM_FOR_CHROMIUM="$(resolve_pnpm "$PLUGIN_ROOT")"
+    if [ -z "$PNPM_FOR_CHROMIUM" ]; then
+      pecotv_log "error: chromium が未取得ですが pnpm / corepack / npx が見つからないため取得できません。"
+      pecotv_log "  Node.js 24.22.1 以上の 24 系または 26.12.1 以上 (npm / npx 同梱) を入れて再実行してください。"
+      HINT="$(pnpm_resolution_hint "$PLUGIN_ROOT")"
+      [ -n "$HINT" ] && pecotv_log "  $HINT"
+      exit 1
+    fi
+    # shellcheck disable=SC2086
+    if ! ( cd "$RUNTIME_DIR" && $PNPM_FOR_CHROMIUM $MIRROR_PNPM_FLAGS --filter @pecot/pecotv-cli exec playwright --version >/dev/null 2>&1 ); then
+      pecotv_log "error: playwright CLI を解決できません。依存の準備が破損している可能性があります。"
+      pecotv_log "  PECOTV_BOOTSTRAP_FORCE=1 で再 bootstrap するか、データ置き場の runtime/ を削除して再実行してください。"
+      exit 1
+    fi
+    pecotv_log "running playwright install chromium ..."
+    # shellcheck disable=SC2086
+    if ! ( cd "$RUNTIME_DIR" && $PNPM_FOR_CHROMIUM $MIRROR_PNPM_FLAGS --filter @pecot/pecotv-cli exec playwright install chromium ); then
+      pecotv_log "error: chromium のダウンロードに失敗しました。pecotv drawio url / slide convert は chromium が必須です。"
+      pecotv_log "  ネットワーク到達性 / プロキシ設定 (HTTPS_PROXY / HTTP_PROXY) / PLAYWRIGHT_DOWNLOAD_HOST を確認のうえ再実行してください。"
+      exit 1
+    fi
+  fi
+
+  # 非 MCP 経路の Chromium が起動するのに要る OS ライブラリの確認と導入 (#1217)。
+  #
+  # 実行ファイルの取得 (上の段) では libatk / libpango 等の OS ライブラリは入らない。
+  # 確認と導入の本体は `pecotv chromium host-deps` (cli/src/infra/playwright/host-dependencies.ts) で、
+  # sudo を使える環境では自分で入れ、使えない環境では入れるコマンドを案内する。
+  # 結果は確認の印 (_pecotv_has_host_deps) に記録され、成功なら恒久的に、失敗なら 24 時間は
+  # 以降の起動で確認を飛ばす。
+  # 入れられなくても通常の起動では fatal にしない: Chromium を使わないコマンド (slide create /
+  # lint 等) まで塞がないため。Chromium を使うコマンドは起動時に同じ案内を返す。
+  # ただし setup.sh (PECOTV_REQUIRE_HOST_DEPS=1) は入れられなかったら非 0 で終わる。
+  # 完了に見えて直っていない状態を避けるため。Linux 以外は Playwright が依存を
+  # ブラウザ側に同梱するため確認しない。
+  if [ "$PECOTV_MCP_INVOCATION" != "1" ] && [ "$(uname -s)" = "Linux" ] && ! _pecotv_has_host_deps; then
+    if ! node "$RUNTIME_DIR/cli/dist/cli.js" chromium host-deps; then
+      pecotv_log "warning: Chromium の起動に要る OS のライブラリが足りないため、drawio url / export の PNG・PDF と slide convert は使えません (上の案内を参照)。"
+      if [ "${PECOTV_REQUIRE_HOST_DEPS:-}" = "1" ]; then
+        exit 2
+      fi
+    fi
+  fi
+
+  # MCP 起動経路の chromium 取得（PECOTV_AUTO_INSTALL_BROWSER=1 のときだけ）。
+  #
+  # serve に要るのは node_modules と cli/dist だけで、chromium が要るのは
+  # drawio export / drawio url の PNG 出力 / slide convert を実行するときに限られる。
+  # 真 cold の実測では install + build が 19s に対し chromium DL が 33s かかり、
+  # 合計 52s が Claude Code の MCP_TIMEOUT (既定 30000ms) を超えて接続そのものが
+  # 失敗していた。そのため MCP 経路では chromium を起動条件から外す。
+  #
+  # 既定では取得もしない。モデルが呼ぶ MCP ツールが 120MB 級のバイナリを黙って
+  # 取得しないための方針で、未取得のまま chromium 依存ツールを呼ばれたときは
+  # cli 側の実行時ガード (src/mcp/tools/_shared.ts の ensureChromium) が
+  # `setup` ツールの呼び出しを案内する（サーバは serve を継続する）。
+  # 取得を自動化したい CI・コンテナ・繰り返し使う開発者は、本 env を立てることで
+  # 起動時のバックグラウンド取得とツール実行時の自動取得の両方を有効にできる。
+  #
+  # playwright CLI の解決確認 (`playwright --version`) は MCP 経路では行わない。
+  # 破損検知の手段だが結末が exit 1 = サーバを起動させないことであり、
+  # 「chromium 依存ツールを呼んだときだけ困る」問題に対して代償が大きすぎる。
+  # 解決できない場合はバックグラウンド取得がログに失敗を残し、実行時ガードが
+  # 未準備として返す。
+  if [ "$PECOTV_MCP_INVOCATION" = "1" ] && [ "${PECOTV_AUTO_INSTALL_BROWSER:-}" = "1" ] \
+    && ! _pecotv_has_chromium; then
+    PNPM_FOR_CHROMIUM="$(resolve_pnpm "$PLUGIN_ROOT")"
+    if [ -z "$PNPM_FOR_CHROMIUM" ]; then
+      pecotv_log "chromium 未取得だが pnpm / corepack / npx が無いため取得できません。drawio export / drawio url (PNG) / slide convert は setup ツールの案内を返します。"
+      HINT="$(pnpm_resolution_hint "$PLUGIN_ROOT")"
+      [ -n "$HINT" ] && pecotv_log "  $HINT"
+    else
+      pecotv_log "chromium 未取得。PECOTV_AUTO_INSTALL_BROWSER=1 のためバックグラウンドで取得します: $CHROMIUM_INSTALL_LOG"
+      pecotv_log "  取得完了までの間、drawio export / drawio url (PNG) / slide convert は setup ツールの案内を返します。"
+      # 子プロセスの stdout / stderr は MCP の stdio から完全に切り離してログファイルへ
+      # 落とす（stdout は JSON-RPC 専有、stderr もクライアントが読む）。stdin は /dev/null。
+      # 外側の /dev/null は、専有ロックを取れずに何もせず抜けるときに既存ログを
+      # truncate しないための保険（ログへの切替はロック取得後に行う）。
+      # fd 6 は使用中の共有ロック。閉じずに渡すと DL 完了までロックが子プロセスに保持され、
+      # 世代削除が待たされる（bootstrap ロックの fd 9 は plugin_runtime_ensure が戻る前に閉じている）。
+      # 二重 fork（外側 subshell が内側を background 起動して即 exit）で取得プロセスを
+      # init に引き取らせる。単純な `&` だと親は直後の `exec node` で置き換わった
+      # MCP サーバ（同一 PID）のままになり、libuv は自身が spawn した pid しか
+      # waitpid しないため、取得完了後のプロセスがサーバ終了までゾンビとして残る。
+      (
+        (
+          # 専有ロック（fd 8）。MCP サーバが同時に複数起動しても DL は 1 本に絞る。
+          exec 8>"$CHROMIUM_INSTALL_LOCK"
+          if command -v flock >/dev/null 2>&1; then
+            flock -n 8 || exit 0
+          fi
+          exec >"$CHROMIUM_INSTALL_LOG" 2>&1
+          cd "$RUNTIME_DIR" || exit 1
+          # shellcheck disable=SC2086
+          exec $PNPM_FOR_CHROMIUM $MIRROR_PNPM_FLAGS --filter @pecot/pecotv-cli exec playwright install chromium
+        ) &
+      ) </dev/null >/dev/null 2>&1 6>&-
+    fi
+  fi
+} >&2 </dev/null
+
+# 6. ミラーの cli を実行する。
+exec node "$RUNTIME_DIR/cli/dist/cli.js" "$@"

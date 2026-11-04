@@ -1,0 +1,24 @@
+{
+  "stdout": "オーナー情報を取得中: acme\n",
+  "stderr": "オーナーが見つかりません: acme\n",
+  "exitCode": 1,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "GetUserNodeId",
+      "variables": {
+        "login": "acme"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetOrgNodeId",
+      "variables": {
+        "login": "acme"
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

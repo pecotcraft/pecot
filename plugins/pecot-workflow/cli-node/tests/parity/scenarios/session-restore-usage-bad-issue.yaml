@@ -1,0 +1,11 @@
+# --issue が owner/repo/N の形ではない。exit 2。
+id: session-restore-usage-bad-issue
+command:
+  path: [session, restore]
+  args:
+    - "-D"
+    - "."
+    - "--issue"
+    - "9"
+setup: {}
+github: []

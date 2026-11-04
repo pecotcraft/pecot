@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "エラー: --repo owner/repo は --template task|bug|task-implement では必須です\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

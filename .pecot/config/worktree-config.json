@@ -1,0 +1,31 @@
+{
+  "version": 3,
+  "description": "wtN リポから base/<target_repo> への相対 symlink 設定。 対象リポ名/パスを環境に合わせて調整してください。",
+  "links": [
+    {
+      "path": "CLAUDE.local.md",
+      "target_repo": "pecot",
+      "target_path": "CLAUDE.local.md",
+      "description": "ローカル向け CLAUDE 指示（Git 管理外）"
+    },
+    {
+      "path": ".pecot/config/hooks-config.json",
+      "target_repo": "pecot",
+      "target_path": ".pecot/config/hooks-config.json",
+      "description": "pecot hooks 設定"
+    },
+    {
+      "path": ".pecot/work",
+      "target_repo": "pecot",
+      "target_path": ".pecot/work",
+      "description": "作業ファイル置き場（main WT の .pecot/work を共有）"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "target_repo": "pecot",
+      "target_path": ".claude/settings.local.json",
+      "description": "Claude Code のローカル権限設定"
+    }
+  ],
+  "setup_command": "bash setup.sh"
+}

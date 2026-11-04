@@ -1,0 +1,10 @@
+# 枠の幅は COLUMNS より TERMINAL_WIDTH が先。
+id: global-usage-bad-repo-terminal-width
+command:
+  path: []
+  args: ["--repo", "bad", "--show-repo"]
+setup:
+  env:
+    COLUMNS: "50"
+    TERMINAL_WIDTH: "60"
+github: []

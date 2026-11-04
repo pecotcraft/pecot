@@ -1,0 +1,253 @@
+# stages 未指定の hook は pre-commit stage だけで動かす。
+# 既定は全 stage のため、外部リポの標準 hook が pre-push と commit-msg でも重複実行される。
+default_stages: [pre-commit]
+
+# language: unsupported / unsupported_script（旧 system / script）は pre-commit 4.4.0 から使える。
+minimum_pre_commit_version: "4.4.0"
+
+# speckit の配布物（.specify/ と speckit のスキル）は上流のファイルで、speckit の更新で上書きされる。
+# そのため、すべての hook の対象から外す。
+exclude: ^(\.specify/|\.claude/skills/speckit-)
+
+repos:
+  - repo: local
+    hooks:
+      - id: check-forbidden-dirs
+        name: block work/ and tmp/ directories
+        entry: .githooks/pre-commit/check-forbidden-dirs.sh
+        language: unsupported_script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: check-misplaced-pecot
+        name: block misplaced nested .pecot/ directories
+        entry: .githooks/pre-commit/check-misplaced-pecot.sh
+        language: unsupported_script
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: check-direct-commit
+        name: check direct commit to protected branches
+        entry: .githooks/pre-commit/check-direct-commit.sh
+        language: unsupported_script
+        stages: [commit-msg]
+        always_run: true
+
+      - id: check-commit-text
+        name: text rules (commit message)
+        entry: .githooks/pre-commit/with-timing.sh check-commit-text .githooks/pre-commit/check-commit-text.sh
+        language: unsupported_script
+        # メッセージは COMMIT_EDITMSG で、files: の対象にならないため常に動かす
+        always_run: true
+        stages: [commit-msg]
+
+      - id: check-version-plan-format
+        name: validate .nx/version-plans/*.md format
+        entry: .githooks/pre-commit/check-version-plan-format.sh
+        language: unsupported_script
+        files: ^\.nx/version-plans/.*\.md$
+        stages: [pre-commit]
+
+      - id: check-release-group-changelog
+        name: require release group CHANGELOG (exists, non-empty, trailing newline)
+        entry: .githooks/pre-commit/check-release-group-changelog.sh
+        language: unsupported_script
+        pass_filenames: false
+        # 削除 commit も捕捉するため files: を付けず always_run で毎回評価する
+        always_run: true
+        # ガード失敗が確定した時点で後続の nx affected lint（数分）を始めない
+        fail_fast: true
+        stages: [pre-commit]
+
+      - id: check-text
+        name: text rules
+        entry: .githooks/pre-commit/with-timing.sh check-text .githooks/pre-commit/check-text.sh
+        language: unsupported_script
+        files: \.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$
+        # CHANGELOG.md は nx release の生成物のため対象にしない。
+        # parity の golden は Python の CLI の出力を記録した生成物のため対象にしない。
+        # python-output の fixture も同じく Python の出力を逐語で置いた記録のため対象にしない。
+        # speckit の配布物（.specify/ と speckit のスキル）は上流の文書で、speckit の更新で上書きされるため対象にしない
+        exclude: (^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli-node/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-
+        # 違反が確定した時点で、後続の重い hook を始めない
+        fail_fast: true
+        # 分割すると node の起動と形態素解析の初期化を分割数だけ払い、出力の順序も崩れる
+        require_serial: true
+        stages: [pre-commit]
+
+      # pre-push は pre-commit が渡す remote_sha...local_sha の差分でなく、
+      # version plan ガードと同じ push 範囲（ブランチ全体）を対象にする
+      - id: check-text-push
+        name: text rules (push range)
+        entry: .githooks/pre-commit/with-timing.sh check-text-push .githooks/pre-commit/check-text-push.sh
+        language: unsupported_script
+        pass_filenames: false
+        always_run: true
+        fail_fast: true
+        stages: [pre-push]
+
+      - id: check-version-plan-required
+        name: require version plan for package source changes (branch vs base branch)
+        entry: .githooks/pre-commit/with-timing.sh check-version-plan-required .githooks/pre-commit/check-version-plan-required.sh
+        language: unsupported_script
+        pass_filenames: false
+        always_run: true
+        # ガード失敗が確定した時点で後続の nx affected tests（数分）を始めない
+        fail_fast: true
+        stages: [pre-push]
+
+      - id: githooks-tests
+        name: githooks tests
+        entry: .githooks/pre-commit/with-timing.sh githooks-tests .githooks/pre-commit/tests/run.sh
+        language: unsupported_script
+        pass_filenames: false
+        files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
+        stages: [pre-push]
+
+      - id: nx-env-inputs
+        name: nx env inputs declared
+        entry: .githooks/pre-commit/with-timing.sh nx-env-inputs .githooks/pre-commit/check-nx-env-inputs.sh
+        language: unsupported_script
+        pass_filenames: false
+        # test_nx_env_inputs.py が環境変数の読み取りを探す範囲と、その確認が読む nx.json を対象にする。
+        # 範囲は plugins と libs 配下の ci スクリプト、bin、setup.sh、tests 配下のシェル、
+        # package.json、vitest 設定、ts、js、py。
+        # 未宣言の変数を足しただけの push でも確認を起動する。nx のタスクキャッシュ越しでも宣言の不足を検知できる (#1225)。
+        # 確認は約 0.3 秒のため githooks-tests とは別にし、広い範囲で起動する。
+        files: ^(nx\.json$|(plugins|libs)/.*\.(sh|ts|tsx|mts|cts|mjs|cjs|js|py)$|(plugins|libs)/([^/]+/)*package\.json$|plugins/[^/]+/bin/)
+        stages: [pre-push]
+
+      # ブランドの語の一覧は本体の外にある。PECOT_BRAND_TERMS_FILE が無ければ飛ばしたことを表示して通す。
+      # 成功時も一致 0 件の表示を端末へ出すため verbose にする
+      - id: check-brand-terms
+        name: brand terms (push range)
+        entry: .githooks/pre-commit/with-timing.sh check-brand-terms .githooks/pre-commit/check-brand-terms.sh
+        language: unsupported_script
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        fail_fast: true
+        stages: [pre-push]
+
+      - id: nx-affected-tests
+        name: nx affected tests
+        entry: .githooks/pre-commit/with-timing.sh nx-affected-tests .githooks/pre-commit/run-affected-tests.sh
+        language: unsupported_script
+        pass_filenames: false
+        always_run: true
+        # 成功 push でも合計と最長レーンの 1 行を端末へ出すため（pre-commit は
+        # verbose でない hook の成功時出力を捨てる）
+        verbose: true
+        stages: [pre-push]
+
+      - id: nx-affected-lint
+        name: nx affected lint
+        entry: .githooks/pre-commit/with-timing.sh nx-affected-lint .githooks/pre-commit/run-affected-lint.sh
+        language: unsupported_script
+        require_serial: true
+        stages: [pre-commit]
+
+      - id: githooks-lint
+        name: githooks python lint
+        entry: bash .githooks/scripts/run-lint.sh
+        language: unsupported
+        pass_filenames: false
+        files: ^\.githooks/gitlint/.*\.py$
+        stages: [pre-commit]
+
+      - id: check-engines-node-drift
+        name: pecotv engines.node drift
+        entry: bash .githooks/pre-commit/check-engines-node-drift.sh
+        language: unsupported
+        pass_filenames: false
+        files: ^plugins/pecot-visual/.*package\.json$
+        stages: [pre-commit]
+
+      - id: check-skill-doc-direct-call
+        name: pecotv skill doc direct-call
+        entry: bash .githooks/pre-commit/check-skill-doc-direct-call.sh
+        language: unsupported
+        pass_filenames: false
+        files: ^plugins/pecot-visual/skills/.*(SKILL|README)\.md$
+        stages: [pre-commit]
+
+      - id: plugin-validate
+        name: claude plugin validate --strict
+        entry: .githooks/pre-commit/with-timing.sh plugin-validate .githooks/pre-commit/plugin-validate.sh
+        language: unsupported_script
+        pass_filenames: false
+        files: ^(\.claude-plugin/[^/]+\.json|\.github/plugin/[^/]+\.json|plugins/[^/]+/(\.claude-plugin/[^/]+\.json|\.github/plugin/[^/]+\.json|hooks/hooks[^/]*\.json|\.mcp\.json|skills/.+/SKILL\.md|agents/[^/]+\.md))$
+        stages: [pre-commit]
+
+      - id: check-entry-point-logic
+        name: pecot hooks entry point dispatcher purity
+        entry: .githooks/pre-commit/check-entry-point-logic.sh
+        language: unsupported_script
+        require_serial: true
+        files: ^plugins/pecot-workflow/hooks/[^/]+\.sh$
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # NOTE: 標準 no-commit-to-branch は pre-commit stage で commit message を参照できない。
+      # chore(release): の例外判定ができないため使わない。
+      # protected branch への直接コミット防止は commit-msg stage の check-direct-commit に一本化する。
+      # release commit は例外として許可し、通常の直接コミットは block する。
+      # 上流マニフェストが stages を宣言する 3 hook は、default_stages が反映されない。
+      # 対象は trailing-whitespace、end-of-file-fixer、check-added-large-files の 3 hook。
+      # そのため設定側で pre-commit のみに固定する。
+      - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: end-of-file-fixer
+        stages: [pre-commit]
+      - id: check-yaml
+        exclude: (^|/)pnpm-lock\.yaml$
+      # pnpm 11 以降の lockfile は package manager 自身の記録と依存の記録の 2 ドキュメント構成のため、
+      # lockfile だけ複数ドキュメントを許して構文を確認する。
+      # 手書きの YAML は単一ドキュメントのまま確認する (#1217)。
+      - id: check-yaml
+        name: check yaml (pnpm-lock)
+        files: (^|/)pnpm-lock\.yaml$
+        args: ['--allow-multiple-documents']
+      - id: check-added-large-files
+        args: ['--maxkb=4096']
+        stages: [pre-commit]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      # v0.17 の ruff-format は初期設定で Markdown も対象にするため、従来どおり Python に限る
+      - id: ruff-check
+        types_or: [python, pyi]
+        args: ['--fix', '--config', 'plugins/pecot-workflow/cli/pyproject.toml']
+      - id: ruff-format
+        types_or: [python, pyi]
+        args: ['--config', 'plugins/pecot-workflow/cli/pyproject.toml']
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.24.0
+    hooks:
+      - id: markdownlint-cli2
+        args: ['--fix']
+
+  - repo: https://github.com/jorisroovers/gitlint
+    rev: v0.19.1
+    hooks:
+      - id: gitlint
+        stages: [commit-msg]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: ['--strict', '-c', '.yamllint']
+
+  # ワークフローの構文と式の誤りを確かめる。
+  # actionlint-system は PATH の actionlint を使う。導入は .devcontainer/scripts/post-create.sh にある。
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint-system
+        files: ^\.github/workflows/.*\.ya?ml$

@@ -1,0 +1,7 @@
+# Git の中では origin から解決される。
+id: global-ok-show-repo-git
+command:
+  path: []
+  args: ["--show-repo"]
+setup: {}
+github: []

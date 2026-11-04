@@ -1,0 +1,7 @@
+# 近いコマンドが無ければ、案内は付かない。
+id: global-usage-command-unknown
+command:
+  path: []
+  args: ["xyz"]
+setup: {}
+github: []

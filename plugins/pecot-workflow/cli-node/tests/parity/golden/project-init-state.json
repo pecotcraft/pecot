@@ -1,0 +1,17 @@
+{
+  "stdout": "プロジェクト情報を取得中: acme/missing\n\n利用可能なプロジェクト:\n  - board\n",
+  "stderr": "プロジェクトが見つかりません: missing\n",
+  "exitCode": 1,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

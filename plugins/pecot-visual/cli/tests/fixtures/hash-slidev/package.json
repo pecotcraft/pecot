@@ -1,0 +1,14 @@
+{
+  "name": "hash-slidev",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "npm": "<0.0.0",
+    "yarn": "<0.0.0"
+  },
+  "dependencies": {
+    "@slidev/cli": "53.0.0",
+    "@slidev/theme-default": "*"
+  }
+}

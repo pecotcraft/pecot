@@ -1,0 +1,7 @@
+# アクティブなプロジェクト設定が無い。案内を出して exit 1。
+id: project-info-state
+command:
+  path: [project, info]
+  args: []
+setup: {}
+github: []

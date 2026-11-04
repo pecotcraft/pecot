@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "error: --repo: unexpected remote URL format: not-a-url\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

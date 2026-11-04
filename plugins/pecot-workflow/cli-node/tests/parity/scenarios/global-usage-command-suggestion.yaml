@@ -1,0 +1,7 @@
+# 未知のコマンドに、近いコマンドの案内が付く。全コマンドの移植後に比べる。
+id: global-usage-command-suggestion
+command:
+  path: []
+  args: ["isue"]
+setup: {}
+github: []

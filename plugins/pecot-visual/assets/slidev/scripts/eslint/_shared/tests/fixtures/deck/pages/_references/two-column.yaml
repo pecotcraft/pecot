@@ -1,0 +1,56 @@
+# Layout Reference: two-column
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: two-column
+description: 左右 2 者を対比する。
+category: two-column
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  left:
+    type: Object
+    default: "null"
+    description: 左
+    props:
+      heading:
+        type: String
+        default: "''"
+        description: 見出し
+      body:
+        type: String
+        default: "''"
+        description: 本文
+  right:
+    type: Object
+    default: "null"
+    description: 右
+    props:
+      heading:
+        type: String
+        default: "''"
+        description: 見出し
+      body:
+        type: String
+        default: "''"
+        description: 本文
+text_constraints: {}
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 対比
+    frontmatter: |
+      ---
+      layout: two-column
+      left:
+        heading: "現状"
+        body: "手作業で運用している"
+      right:
+        heading: "目標"
+        body: "自動化する"
+      ---

@@ -1,0 +1,42 @@
+layout: 'section'
+description: '章の区切りに置く。見出しと一言の説明に、装飾の線を添える。'
+category: 'text'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '章の見出し'
+  description:
+    type: 'String'
+    default: "''"
+    description: '章の説明'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+  'description':
+    min_chars: 0
+    max_chars: 40
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: section
+      heading: 章の見出し
+      description: 章の説明の例
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '章の見出しは名詞で短く書く'
+
+anti_patterns:
+  - '章扉に本文を並べる'

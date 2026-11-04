@@ -1,0 +1,13 @@
+# Shared Reference: _header
+# ヘッダーの props
+
+description: ヘッダーのプロパティ。
+props:
+  description:
+    type: String
+    default: "''"
+    description: ヘッダー中央の説明テキスト
+  minimalHeader:
+    type: Boolean
+    default: "false"
+    description: ヘッダーを最小表示にする

@@ -1,0 +1,7 @@
+# --repo の値が無い。Usage 行の無い枠だけが出る。
+id: global-usage-repo-missing-value
+command:
+  path: []
+  args: ["--repo"]
+setup: {}
+github: []

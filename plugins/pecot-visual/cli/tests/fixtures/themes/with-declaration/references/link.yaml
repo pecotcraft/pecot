@@ -1,0 +1,64 @@
+layout: 'link'
+description: '見出しと、リンク付きのカードを縦に並べる。参考資料や関連 URL をまとめる場面に使う。'
+category: 'text'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '見出し'
+  cards:
+    type: 'Array'
+    default: '[]'
+    description: 'リンクのカードの配列'
+    items:
+      title:
+        type: 'String'
+        required: true
+        description: 'リンクの表示名'
+      description:
+        type: 'String'
+        default: "''"
+        description: 'リンク先の説明'
+      url:
+        type: 'String'
+        required: true
+        description: 'リンク先の URL'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+  'cards[].title':
+    min_chars: 2
+    max_chars: 28
+  'cards[].description':
+    min_chars: 0
+    max_chars: 60
+  'cards[].url':
+    min_chars: 3
+    max_chars: 59
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: link
+      heading: 関連リソース
+      cards:
+        - title: 仕様
+          description: 仕様へのリンク
+          url: https://example.com
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '実際のリンク先を書く'
+
+anti_patterns:
+  - '本編の内容をリンクの一覧に置き換える'

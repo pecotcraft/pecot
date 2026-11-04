@@ -1,0 +1,18 @@
+# compare-cx-measure.test.sh が --config に渡す、汎用の小さな cx の下限の設定。
+# 形は cx assertion の config.yml と同じ（`- id:` と `min_cx_emu:` を 1 spec につき 1 組ずつ並べる）。
+spec:
+  - id: footer-note
+    text_match_substring: 'Sample footer'
+    expected_match_count: '>= 1'
+    min_cx_emu: 2286000   # 240px
+    reason: '固定幅の下限'
+  - id: heading-auto
+    text_match_regex: '^(AGENDA|Agenda)$'
+    expected_match_count: '== 1'
+    min_cx_emu: 4696301   # 計測 4943475 × 0.95 切り捨て
+    reason: '自然幅の 5% 縮小マージン下限'
+  - id: caption-overlay
+    text_match_exact: 'Sample caption'
+    expected_match_count: '>= 1'
+    min_cx_emu: 1714500   # 180px
+    reason: '固定幅の下限'

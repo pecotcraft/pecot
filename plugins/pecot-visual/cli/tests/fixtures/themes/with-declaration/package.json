@@ -1,0 +1,24 @@
+{
+  "name": "slidev-theme-pecotv-test-declared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "dependencies": {
+    "pecotv-test-theme-dep": "file:../theme-only-dep"
+  },
+  "peerDependencies": {
+    "@slidev/client": "^53.0.0",
+    "vue": "^3.5.44"
+  },
+  "slidev": {
+    "defaults": {
+      "canvasWidth": 960,
+      "aspectRatio": "16/9",
+      "routerMode": "history",
+      "selectable": true
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "pecotv-audit-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "lodash": "4.17.15"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  }
+}

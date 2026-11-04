@@ -1,0 +1,17 @@
+{
+  "stdout": "=== acme のプロジェクト一覧 (ghes.example.com) ===\n\n#    タイトル                                     URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1\n2    とても長いタイトルのプロジェクトで三十八文字を超えるので末尾が省略される例    https://ghes.example.com/users/acme/projects/2\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

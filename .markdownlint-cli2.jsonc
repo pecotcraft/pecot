@@ -1,0 +1,27 @@
+// markdownlint-cli2 設定
+// .markdownlint.json 単体では per-file ignore ができないため .markdownlint-cli2.jsonc
+// に移行した。config は旧 .markdownlint.json からそのまま移植。
+// ignores: CHANGELOG.md は除外する。
+// Nx Release が自動生成する行末 PR/Issue URL refs で、MD013 (line_length: 200) を必然的に超過するため。
+// plan 本文の長さ制御は .githooks/pre-commit/check-version-plan-format.sh で別途担保する。
+{
+  "config": {
+    "default": true,
+    "MD013": {
+      "line_length": 200,
+      "code_blocks": false,
+      "tables": false
+    },
+    "MD024": false,
+    "MD025": false,
+    "MD026": false,
+    "MD033": false,
+    "MD034": false,
+    "MD036": false,
+    "MD040": false,
+    "MD041": false,
+    "MD051": false,
+    "MD060": false
+  },
+  "ignores": ["**/CHANGELOG.md"]
+}

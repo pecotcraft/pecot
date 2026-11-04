@@ -1,0 +1,101 @@
+# ファイルを渡す形の dry-run。ブランチ末尾の番号の種別を GetIssueKind で調べてから検証する。
+id: pr-create-ok-dry-run-file
+command:
+  path: [pr, create]
+  args:
+    - "pr.md"
+    - "--dry-run"
+setup:
+  repo:
+    branch: feat/demo/12
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+          {
+            "host": "ghes.example.com",
+            "owner": "acme",
+            "workflow_suffix": "acme",
+            "project": {
+              "number": 1,
+              "id": "PVT_1",
+              "board_url": "https://ghes.example.com/users/acme/projects/1",
+              "fields": {
+                "workflow": {
+                  "id": "PVTSSF_workflow",
+                  "options": {
+                    "backlog": "o1",
+                    "pending": "o2",
+                    "ready": "o3",
+                    "active": "o4",
+                    "in_review": "o5",
+                    "archived": "o6"
+                  }
+                },
+                "priority": {
+                  "id": "PVTSSF_priority",
+                  "options": {
+                    "high": "p1",
+                    "medium": "p2",
+                    "low": "p3"
+                  }
+                },
+                "size": {
+                  "id": "PVTSSF_size",
+                  "options": {
+                    "xs": "s1",
+                    "s": "s2",
+                    "m": "s3",
+                    "l": "s4"
+                  }
+                }
+              }
+            },
+            "repositories": [
+              {
+                "owner": "acme",
+                "name": "demo",
+                "develop_branch": "main"
+              }
+            ]
+          }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+      pr.md: |
+        ---
+        title: "feat(demo): #12 見本の変更"
+        repository: "acme/demo"
+        base: "main"
+        head: ""
+        draft: false
+        ---
+
+        ## Summary — 見本の変更を取り込む
+
+        見本の変更を取り込みます。
+
+        ## Changes
+
+
+        なし
+
+
+        ## Verified — 見本の確認を終えた
+
+        確認しました。
+
+        - 見本の確認 — 通過
+
+        ## Risks — 残る懸念はない
+
+        なし。
+
+        - 見本の懸念 — なし
+
+        Closes #12
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: "GetIssueKind"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 0}}}}}

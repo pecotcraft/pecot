@@ -1,0 +1,65 @@
+# Layout Reference: agenda
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: agenda
+description: 目次。
+category: fixed
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  items:
+    type: Array
+    default: "[]"
+    description: 章の配列
+    items:
+      section:
+        type: String
+        default: "''"
+        description: 章の名前
+      time:
+        type: String
+        default: "''"
+        description: 所要時間
+      description:
+        type: String
+        default: "''"
+        description: 章の説明
+text_constraints: {}
+clicks:
+  supported: true
+  recommended_pattern: 6 件ごとに 1 クリック
+  validation:
+    type: pagination
+    source_prop: items
+    per_page: 6
+    formula: ceil(count / per_page) - 1
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 2 章
+    frontmatter: |
+      ---
+      layout: agenda
+      titleContent:
+        label: "AGENDA"
+      items:
+        - section: "背景"
+          time: "10 min"
+          description: "目的"
+        - section: "方式"
+          time: "15 min"
+          description: "構成"
+      ---

@@ -1,0 +1,7 @@
+# 設定ファイルでない引数で --host が無い。案内を出して exit 1。
+id: project-activate-state
+command:
+  path: [project, activate]
+  args: [board]
+setup: {}
+github: []

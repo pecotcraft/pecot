@@ -1,0 +1,7 @@
+# 引数なしは help を stdout に出して exit 2 になる。--help と違い、末尾の空行が無い。全コマンドの移植後に比べる。
+id: global-usage-no-args
+command:
+  path: []
+  args: []
+setup: {}
+github: []

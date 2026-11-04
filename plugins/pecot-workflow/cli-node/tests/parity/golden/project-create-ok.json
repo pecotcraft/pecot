@@ -1,0 +1,180 @@
+{
+  "stdout": "オーナー情報を取得中: acme\n既存プロジェクトを確認中...\nプロジェクトを作成中: board\nプロジェクトを作成しました: https://ghes.example.com/users/acme/projects/1\n  番号: 1\n\npecot-workflowフィールドを追加中...\nプロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\npecot-workflow-acmeフィールドを作成中...\npecot-workflow-acmeフィールドを作成しました (ID: PVTSSF_w)\npecot-priorityフィールドを作成中...\npecot-priorityフィールドを作成しました (ID: PVTSSF_p)\npecot-sizeフィールドを作成中...\npecot-sizeフィールドを作成しました (ID: PVTSSF_s)\n\n3件のフィールドを作成しました\n\n設定ファイルを生成中...\nプロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\nリンク済みリポジトリを取得中...\n設定ファイルを生成しました: {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n生成した設定をアクティベートしました\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "GetUserNodeId",
+      "variables": {
+        "login": "acme"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "CreateProject",
+      "variables": {
+        "ownerId": "U_1",
+        "title": "board"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "CreateProjectField",
+      "variables": {
+        "projectId": "PVT_1",
+        "name": "pecot-workflow-acme",
+        "options": [
+          {
+            "name": "Pending",
+            "color": "GRAY",
+            "description": "Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized or blocked."
+          },
+          {
+            "name": "Backlog",
+            "color": "RED",
+            "description": "Items waiting to be planned. Not for direct work - break down into smaller tasks first."
+          },
+          {
+            "name": "Ready",
+            "color": "GREEN",
+            "description": "Tasks ready for implementation. AI agent picks from here and moves to Active on start."
+          },
+          {
+            "name": "Active",
+            "color": "BLUE",
+            "description": "Currently being worked on. One active task per worktree - track progress and updates here."
+          },
+          {
+            "name": "In Review",
+            "color": "YELLOW",
+            "description": "Pull request created and waiting for review. Moves to Archived after merge is completed."
+          },
+          {
+            "name": "Archived",
+            "color": "PURPLE",
+            "description": "Storage for completed or cancelled items. Moved here after issue is closed or no longer needed."
+          }
+        ]
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "CreateProjectField",
+      "variables": {
+        "projectId": "PVT_1",
+        "name": "pecot-priority",
+        "options": [
+          {
+            "name": "High",
+            "color": "RED",
+            "description": "優先度: 高"
+          },
+          {
+            "name": "Medium",
+            "color": "YELLOW",
+            "description": "優先度: 中"
+          },
+          {
+            "name": "Low",
+            "color": "GREEN",
+            "description": "優先度: 低"
+          }
+        ]
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "CreateProjectField",
+      "variables": {
+        "projectId": "PVT_1",
+        "name": "pecot-size",
+        "options": [
+          {
+            "name": "XS",
+            "color": "GREEN",
+            "description": "サイズ: 極小"
+          },
+          {
+            "name": "S",
+            "color": "BLUE",
+            "description": "サイズ: 小"
+          },
+          {
+            "name": "M",
+            "color": "YELLOW",
+            "description": "サイズ: 中"
+          },
+          {
+            "name": "L",
+            "color": "RED",
+            "description": "サイズ: 大"
+          }
+        ]
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetLinkedRepositoriesUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-workflow-acme%3APending%2CBacklog%2CReady%2CActive%2CArchived%2C%22In%20Review%22\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": []\n}\n"
+  }
+}

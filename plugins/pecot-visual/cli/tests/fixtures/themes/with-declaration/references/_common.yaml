@@ -1,0 +1,10 @@
+# Shared Reference: _common
+description: 'テスト用テーマの共通の宣言。'
+
+layout_categories:
+  - id: 'text'
+    label: '文章'
+    question: '文章で見せる'
+  - id: 'figure'
+    label: '図'
+    question: '図で見せる'

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "pecot-visual": {
+      "type": "stdio",
+      "command": "./bin/pecotv",
+      "args": [
+        "mcp"
+      ]
+    },
+    "pecot-visual-playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--browser",
+        "chromium",
+        "--headless",
+        "--no-sandbox"
+      ]
+    }
+  }
+}

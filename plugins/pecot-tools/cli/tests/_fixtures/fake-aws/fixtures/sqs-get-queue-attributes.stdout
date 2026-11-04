@@ -1,0 +1,14 @@
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:ap-northeast-1:123456789012:order-events",
+        "ApproximateNumberOfMessages": "3",
+        "ApproximateNumberOfMessagesNotVisible": "0",
+        "CreatedTimestamp": "1756500000",
+        "LastModifiedTimestamp": "1756500000",
+        "VisibilityTimeout": "30",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "345600",
+        "DelaySeconds": "0",
+        "ReceiveMessageWaitTimeSeconds": "20"
+    }
+}

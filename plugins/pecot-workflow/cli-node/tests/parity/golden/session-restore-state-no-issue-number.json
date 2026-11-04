@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "ERROR: ブランチ名からIssue番号を推定できません: feat/no-number\nHINT: --issue owner/repo/number で手動指定してください\n",
+  "exitCode": 1,
+  "requests": [],
+  "files": {}
+}

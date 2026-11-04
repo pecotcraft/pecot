@@ -1,0 +1,24 @@
+# 設定ファイルが既にある。上書きせず exit 1。
+id: worktree-init-state-exists
+command:
+  path: [worktree, init]
+  args:
+    - "-D"
+    - "."
+setup:
+  repo:
+    files:
+      .pecot/config/worktree-config.json: |
+        {
+          "version": 3,
+          "links": [
+            {
+              "path": "CLAUDE.local.md",
+              "target_repo": "demo",
+              "target_path": "CLAUDE.local.md"
+            }
+          ]
+        }
+      .pecot/config/.worktreeignore: |
+        .pecot/
+github: []

@@ -1,0 +1,72 @@
+{
+  "stdout": "ブランチ作成中: feat/7 (from main)\n作成完了: feat/7\nIssue #7 にリンクしました\nステータスを 'active' に設定しました\n\n★ acme/demo で以下のコマンドを実行してブランチを切り替えてください:\n  git fetch origin\n  git checkout feat/7\n作業対象を記録: acme/demo/7\n作業ファイル置き場: .pecot/work/7/\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "GetLinkedRepositoriesUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueNodeId",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/git/ref/heads/main",
+      "query": {},
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "CreateLinkedBranch",
+      "variables": {
+        "input": {
+          "issueId": "I_7",
+          "oid": "0123456789abcdef0123456789abcdef01234567",
+          "name": "feat/7"
+        }
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueProjectItems",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "UpdateProjectItemField",
+      "variables": {
+        "projectId": "PVT_1",
+        "itemId": "PVTI_7",
+        "fieldId": "PVTSSF_workflow",
+        "optionId": "o4"
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"PVTSSF_workflow\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": [\n    {\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"main\"\n    }\n  ]\n}\n",
+    ".pecot/state/.pecot-active": "acme/demo/7",
+    ".pecot/state/.pecot-session-title": "#7 見本の Issue"
+  }
+}

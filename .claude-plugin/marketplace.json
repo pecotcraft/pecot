@@ -1,0 +1,26 @@
+{
+  "name": "pecot",
+  "owner": {
+    "name": "pecot"
+  },
+  "metadata": {
+    "description": "pecot workflow automation plugins（pecot-w = pecot-workflow、pecot-v = pecot-visual、pecot-t = pecot-tools）"
+  },
+  "plugins": [
+    {
+      "name": "pecot-w",
+      "source": "./plugins/pecot-workflow",
+      "description": "pecot-w（pecot-workflow）— Issue/PR/リリース運用のワークフロー管理プラグイン"
+    },
+    {
+      "name": "pecot-v",
+      "source": "./plugins/pecot-visual",
+      "description": "pecot-v（pecot-visual）— 可視化・ドキュメント系プラグイン (drawio/slidev/evidence)"
+    },
+    {
+      "name": "pecot-t",
+      "source": "./plugins/pecot-tools",
+      "description": "pecot-t（pecot-tools）— 許可リストで限定した CLI コマンドを MCP ツールとして提供するプラグイン"
+    }
+  ]
+}

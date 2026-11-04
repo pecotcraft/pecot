@@ -1,0 +1,7 @@
+# 必須の引数 OWNER が無い。typer の使い方エラーを記録する。
+id: project-search-usage
+command:
+  path: [project, search]
+  args: []
+setup: {}
+github: []

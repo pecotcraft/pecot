@@ -1,0 +1,62 @@
+{
+  "name": "@pecot/pecot-workflow-cli",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "//pin-reason": "版数は .claude-plugin/plugin.json を import.meta.url 相対で直読みするため bump 不要。0.0.0 pin は pecot-tools cli と同じ意図的設計。",
+  "//tsc7-path-reason": "typescript7 (npm:typescript@7 alias) は、pnpm の hoisted linker により workspace root にのみ hoist される。root は plugins/pecot-workflow/node_modules/ を指す。そのため cli からは ../node_modules/typescript7/bin/tsc を明示パスで起動する。tsc bin 名の解決はパッケージマネージャ実装依存で非決定的なので、.bin/tsc 経由には簡略化しない。",
+  "type": "module",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "npm": "<0.0.0",
+    "yarn": "<0.0.0"
+  },
+  "scripts": {
+    "prebuild": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "node ../node_modules/typescript7/bin/tsc -p tsconfig.build.json",
+    "postbuild": "node --eval \"require('node:fs').writeFileSync('dist/package.json', JSON.stringify({type:'module'}))\"",
+    "lint": "node ../node_modules/typescript7/bin/tsc --noEmit && eslint --max-warnings=0 . && knip",
+    "test": "vitest run --coverage --project cli",
+    "test:watch": "vitest",
+    "dev": "tsx src/cli.ts",
+    "test:hooks": "vitest run --project hooks",
+    "record:parity": "tsx tests/parity/record.ts",
+    "record:parity:check": "tsx tests/parity/record.ts --check"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "knip": {
+    "project": [
+      "src/**/*.ts",
+      "tests/**/*.ts"
+    ],
+    "ignoreExportsUsedInFile": true
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/node": "^25.9.9",
+    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/eslint-plugin": "^1.6.28",
+    "eslint": "^10.13.0",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-n": "^18.5.0",
+    "eslint-plugin-promise": "^7.3.0",
+    "eslint-plugin-regexp": "^3.3.1",
+    "eslint-plugin-security": "^4.2.0",
+    "eslint-plugin-unicorn": "^79.0.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "graphql": "^16.14.2",
+    "knip": "^6.42.1",
+    "tsx": "^4.23.15",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.0",
+    "typescript7": "npm:typescript@^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.5"
+  }
+}

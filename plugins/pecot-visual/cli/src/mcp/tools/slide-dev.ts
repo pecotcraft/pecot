@@ -1,0 +1,294 @@
+// slide_dev ツール。talk-dir の Slidev dev サーバを起動し、ブラウザで開ける URL を返す。
+//
+// 対応する CLI サブコマンドは持たない (`setup` と同じ MCP 専用ツール)。dev サーバの寿命は
+// MCP サーバプロセスに紐づくため、CLI から起動しても呼び出しの終了と同時に落ちるだけで
+// 意味を持たない。プレビュールートを MCP 一本に絞る #1023 の決定にも沿う。
+//
+// 実処理は src/mcp/dev-server-registry.ts が持つ。ここに置くのは引数の写像・実行前ガード・
+// ToolResult への正規化だけで、他のツールが commands/ の execute<Cmd>() を呼ぶ位置に
+// レジストリが入る形になる。
+
+// 参照するのは引数で受けた talk-dir と、その直下の固定名 (slides.md / node_modules) のみ。
+/* eslint-disable security/detect-non-literal-fs-filename */
+
+import { existsSync, statSync } from 'node:fs'
+import path from 'node:path'
+
+import type { CallToolResult } from '@modelcontextprotocol/server'
+import { z } from 'zod'
+
+import { errorToReason as slideCreateErrorToReason } from '../../commands/slidev-project/create.js'
+import {
+  ensureTalkThemeLinked,
+  linkedThemeDefaultDependencies,
+  type EnsureThemeLinkedResult,
+  type ThemeLinkContext,
+} from '../../commands/slidev-project/linked-theme.js'
+import { pluginDependencyRoot } from '../../infra/_shared/dependency-root.js'
+import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
+import { devServerRegistry, type DevServerRegistry } from '../dev-server-registry.js'
+import { parsePathArguments, toCallToolResult } from '../result.js'
+import type { ToolResult } from '../result.js'
+import type { ToolDefinition, ToolCallContext } from '../server.js'
+import {
+  ensureRuntimeDependencies,
+  runtimeDefaultDependencies,
+  TOOL_OUTPUT_SCHEMA,
+  WINDOWS_PATH_NOTE,
+  type RuntimeDependencies,
+} from './_shared.js'
+
+/**
+dev サーバを起動できなかったときの exit code (各コマンドの RuntimeError と同じ 1)。
+*/
+const DEV_SERVER_EXIT_CODE = 1
+
+/**
+子プロセスを起こす前に諦めたルートの出力。
+
+ToolResult の stdout / stderr が省略されるのは「捕捉していない」ときで、捕捉した結果が
+空であることとは意味が違う (tools/_shared.ts)。実行前ガードでも捕捉相当のキーは残す。
+*/
+const NO_OUTPUT: Pick<ToolResult, 'stdout' | 'stderr'> = { stdout: '', stderr: '' }
+
+/**
+テーマを今の値で張る port。dev は、テーマを参照しない talk-dir を `theme-none` で止める。
+*/
+// context に AbortSignal を持つため readonly にできない。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+export type EnsureThemeLinked = (talkDirectory: string, context: ThemeLinkContext) => Promise<EnsureThemeLinkedResult>
+
+// context に AbortSignal を持つため readonly にできない。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+function ensureThemeLinkedWithDefaults(directory: string, context: ThemeLinkContext): Promise<EnsureThemeLinkedResult> {
+  return ensureTalkThemeLinked(
+    directory,
+    linkedThemeDefaultDependencies(pluginDependencyRoot() ?? resolvePluginRoot(), context),
+    { requireTheme: true },
+  )
+}
+
+function defaultEnsureThemeLinked(): EnsureThemeLinked {
+  return ensureThemeLinkedWithDefaults
+}
+
+const slideDevInput = z.object({
+  dir: z.string()
+    .describe('Slidev dev サーバを起動する talk-dir の絶対パス。相対パスは受け付けない。'
+      + WINDOWS_PATH_NOTE),
+  port: z.number().int().min(1).max(65_535).optional()
+    .describe('起動するポート。使用中なら別のポートへは移らず失敗する。'
+      + '省略時は 3030 から 3034 までを小さい順に試し、最初に空いていたポートで起動する。'
+      + '起動済みの talk-dir に別のポートを指定すると、そのポートで開き直す'),
+  stop: z.boolean().default(false)
+    .describe('true で該当 talk-dir の dev サーバを停止する (停止時は dir 以外の引数は意味を持たない)'),
+})
+
+/**
+talk-dir の不備 1 件。spawn 前に返すため、reason は起動失敗系と混在しない名前にする。
+*/
+interface TalkDirectoryDefect {
+  readonly reason: string
+  readonly detail: string
+}
+
+/**
+spawn する前に talk-dir の体裁を確認する。続行してよければ undefined。
+
+実在しない cwd への spawn は 'error' イベントになり、これを spawn 後に扱うと失敗の理由が
+プロセス起動エラーに化ける。node_modules の確認は、テーマの張り直しの後に行う (inspectNodeModules)。
+*/
+function inspectTalkDirectory(directory: string): TalkDirectoryDefect | undefined {
+  let isDirectory = false
+  try {
+    isDirectory = statSync(directory).isDirectory()
+  }
+  catch {
+    // 不在。下の分岐で理由を組み立てる。
+  }
+  if (!isDirectory) {
+    return {
+      reason: 'talk-dir-not-found',
+      detail: `talk-dir がありません: ${directory}。`
+        + '`slide_create` で生成したディレクトリの絶対パスを指定してください。',
+    }
+  }
+
+  if (!existsSync(path.join(directory, 'slides.md'))) {
+    return {
+      reason: 'slides-md-not-found',
+      detail: `${directory} に slides.md がありません。Slidev プロジェクトのルートを指定してください。`,
+    }
+  }
+
+  return undefined
+}
+
+/**
+テーマを張った後の node_modules を確認する。続行してよければ undefined。
+テーマの張り直しで復旧できる状態を、復旧の前に拒まないよう、張り直しの後に呼ぶ。
+*/
+function inspectNodeModules(directory: string): TalkDirectoryDefect | undefined {
+  // existsSync は symlink を辿るため、dangling symlink もここで false になる。
+  if (!existsSync(path.join(directory, 'node_modules'))) {
+    return {
+      reason: 'node-modules-unresolved',
+      detail: `${directory}/node_modules を解決できません (symlink が切れている可能性があります)。`
+        + `\`slide_sync\` (dir: ${directory}) を実行してから再試行してください。`,
+    }
+  }
+
+  return undefined
+}
+
+/**
+実行前ガードで諦めたときの ToolResult。
+*/
+function guardFailure(defect: Readonly<TalkDirectoryDefect>, directory: string, warnings: readonly string[] = []): ToolResult {
+  return {
+    ok: false,
+    exitCode: DEV_SERVER_EXIT_CODE,
+    artifacts: [],
+    data: {
+      event: 'slide.dev.error',
+      reason: defect.reason,
+      detail: defect.detail,
+      dir: directory,
+      ...(warnings.length > 0 && { warnings }),
+    },
+    message: defect.detail,
+    ...NO_OUTPUT,
+  }
+}
+
+/**
+`slide_dev` を公開する。
+
+起動は「ポートを決めて slidev を子プロセスで起こし、127.0.0.1 へ GET 200 が通ったら
+URL を返す」だけで、終了は待たない。ready までは計測で約 1 秒、その間は直列キュー
+(src/mcp/queue.ts) を占有する。
+*/
+export function slideDevTool(
+  buildRegistry: () => DevServerRegistry = devServerRegistry,
+  buildRuntimeDependencies: () => RuntimeDependencies = runtimeDefaultDependencies,
+  buildEnsureThemeLinked: () => EnsureThemeLinked = defaultEnsureThemeLinked,
+): ToolDefinition {
+  const handler = async (
+    arguments_: Readonly<Record<string, unknown>>,
+    // ToolCallContext.signal (AbortSignal は EventTarget で addEventListener を呼ぶため readonly 化できない)。
+    // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+    call: ToolCallContext,
+  ): Promise<CallToolResult> => {
+    const validated = parsePathArguments(slideDevInput, arguments_, ['dir'])
+    if (validated.rejected !== undefined) return toCallToolResult(validated.rejected)
+    const input = validated.input
+
+    // 停止は実行時依存の確認より前に置く。止めるのに @slidev/cli は要らず、後ろに置くと
+    // 起動後に依存を失った環境で「動いているサーバを止められない」行き止まりになる。
+    if (input.stop) {
+      const stopped = buildRegistry().stop(input.dir)
+      return toCallToolResult({
+        ok: true,
+        exitCode: 0,
+        artifacts: [],
+        data: {
+          event: 'slide.dev.stopped',
+          dir: input.dir,
+          stopped: stopped.stopped,
+          ...(stopped.port !== undefined && { port: stopped.port }),
+        },
+        // 動いていないサーバへの停止要求は失敗にしない (呼び出しの目的は達成されている)。
+        message: stopped.stopped
+          ? `slide dev: 停止しました (${input.dir})`
+          : `slide dev: 起動中のサーバはありません (${input.dir})`,
+        ...NO_OUTPUT,
+      })
+    }
+
+    // 起動には @slidev/cli の bin が要る。未取得のときの失敗の型は
+    // slide_create / slide_convert / slide_sync と揃える。
+    const missingRuntime = ensureRuntimeDependencies('slide_dev', buildRuntimeDependencies())
+    if (missingRuntime !== undefined) return toCallToolResult(missingRuntime)
+
+    const defect = inspectTalkDirectory(input.dir)
+    if (defect !== undefined) return toCallToolResult(guardFailure(defect, input.dir))
+
+    // テーマを今の値で張る。取得済みなら stamp を比べるだけで、ネットワークには出ない。
+    // 取得中の警告は応答の data.warnings に載せ、MCP のキャンセルは取得 (git) まで届ける。
+    const warnings: string[] = []
+    let ensured: EnsureThemeLinkedResult
+    const context: ThemeLinkContext = {
+      signal: call.signal,
+      warn: (message) => {
+        warnings.push(message)
+      },
+    }
+    try {
+      ensured = await buildEnsureThemeLinked()(input.dir, context)
+    }
+    catch (error: unknown) {
+      return toCallToolResult(guardFailure({
+        reason: slideCreateErrorToReason(error),
+        detail: error instanceof Error ? error.message : String(error),
+      }, input.dir, warnings))
+    }
+    const nodeModulesDefect = inspectNodeModules(input.dir)
+    if (nodeModulesDefect !== undefined) return toCallToolResult(guardFailure(nodeModulesDefect, input.dir, warnings))
+
+    // 起動済みのサーバは、稼働中の vite が旧い module graph のままになる。張り直すか、生成ファイルを書き直したら止めて起動し直す。
+    // 旧プロセスがポートを手放すまで待つ。待たないと、port 明示の呼び出しが「使用中」で失敗しうる。
+    if (ensured.relinked || ensured.regenerated) await buildRegistry().stopAndWait(input.dir)
+
+    const started = await buildRegistry().start(input.dir, { port: input.port, signal: call.signal })
+    if (!started.ok) {
+      return toCallToolResult({
+        ok: false,
+        exitCode: DEV_SERVER_EXIT_CODE,
+        artifacts: [],
+        data: { event: 'slide.dev.error', reason: started.reason, detail: started.detail, dir: input.dir },
+        message: started.detail,
+        stdout: started.stdout,
+        stderr: started.stderr,
+      })
+    }
+
+    return toCallToolResult({
+      ok: true,
+      exitCode: 0,
+      artifacts: [],
+      data: {
+        event: started.reused ? 'slide.dev.reused' : 'slide.dev.started',
+        dir: input.dir,
+        url: started.url,
+        port: started.port,
+        reused: started.reused,
+        // MCP サーバが異常終了して dev サーバだけ残ったときの、手動回収の逃がし先。
+        ...(started.pid !== undefined && { pid: started.pid }),
+        ...(warnings.length > 0 && { warnings }),
+      },
+      message: started.reused
+        ? `slide dev: 起動済みのサーバを再利用します ${started.url}`
+        : `slide dev: 起動しました ${started.url}`,
+      ...NO_OUTPUT,
+    })
+  }
+
+  return {
+    name: 'slide_dev',
+    config: {
+      title: 'Slidev プレビュー起動',
+      description: 'talk-dir の Slidev dev サーバを起動し、ブラウザで開ける URL (data.url) を返す。'
+        + 'ポートは port で指定でき、省略時は 3030 から 3034 までの空きを使う。'
+        + '同じ talk-dir を再度呼ぶと起動済みのサーバをそのまま返す (data.reused: true)。'
+        + 'stop: true で停止する。'
+        + 'サーバは MCP サーバプロセスが生きている間だけ動き、セッションが終わるとプレビューも切れる。',
+      inputSchema: slideDevInput,
+      outputSchema: TOOL_OUTPUT_SCHEMA,
+      // annotations は明示しない。
+      // `--remote` で全インタフェースに LISTEN するため、openWorldHint: false の明示基準に反する。
+      // その基準は、ネットワークに到達しないことが確定していること。
+      // 子プロセスを起こす以上、readOnlyHint も立てられない。
+    },
+    handler,
+  }
+}

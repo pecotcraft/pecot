@@ -1,0 +1,55 @@
+# Layout Reference: triad-triptych
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: triad-triptych
+description: 3 つの柱を縦長のパネルに並べる。
+category: showpiece
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  items:
+    type: Array
+    default: "[]"
+    description: パネルの配列（3 件固定）
+    items:
+      name:
+        type: String
+        default: "''"
+        description: パネルの題
+      body:
+        type: String
+        default: "''"
+        description: 本文
+text_constraints: {}
+clicks:
+  supported: true
+  recommended_pattern: clicks は items の件数
+  validation:
+    type: count
+    source_prop: items
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 3 本柱
+    frontmatter: |
+      ---
+      layout: triad-triptych
+      clicks: 3
+      items:
+        - { name: "速さ", body: "短くする" }
+        - { name: "安さ", body: "抑える" }
+        - { name: "確かさ", body: "確かめる" }
+      ---

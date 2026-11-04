@@ -1,0 +1,19 @@
+<mxfile>
+  <diagram name="Order API">
+    <mxGraphModel page="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="client" value="Client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4f46e5;" parent="1" vertex="1"><mxGeometry x="10" y="130" width="60" height="60" as="geometry"/></mxCell>
+        <mxCell id="api-gateway" value="API Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4f46e5;strokeColor=none;fontColor=#ffffff;" parent="1" vertex="1"><mxGeometry x="90" y="120" width="90" height="80" as="geometry"/></mxCell>
+        <mxCell id="auth-service" value="Auth Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6b7280;strokeColor=none;fontColor=#ffffff;" parent="1" vertex="1"><mxGeometry x="210" y="10" width="100" height="70" as="geometry"/></mxCell>
+        <mxCell id="order-service" value="Order Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6b7280;strokeColor=none;fontColor=#ffffff;" parent="1" vertex="1"><mxGeometry x="210" y="130" width="100" height="70" as="geometry"/></mxCell>
+        <mxCell id="order-db" value="Order DB" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=none;fontColor=#ffffff;" parent="1" vertex="1"><mxGeometry x="340" y="125" width="60" height="80" as="geometry"/></mxCell>
+        <mxCell id="e-client-gw" style="endArrow=classic;html=1;" parent="1" source="client" target="api-gateway" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-gw-auth" style="endArrow=classic;html=1;" parent="1" source="api-gateway" target="auth-service" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-gw-order" style="endArrow=classic;html=1;" parent="1" source="api-gateway" target="order-service" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-order-db" style="endArrow=classic;html=1;" parent="1" source="order-service" target="order-db" edge="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

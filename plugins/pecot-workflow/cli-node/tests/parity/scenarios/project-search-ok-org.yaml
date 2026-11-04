@@ -1,0 +1,20 @@
+# user が null のとき organization に切り替わる。ListProjectsUser のあと ListProjectsOrg を受ける。
+id: project-search-ok-org
+command:
+  path: [project, search]
+  args: [acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": null}}
+  - match:
+      operation: ListProjectsOrg
+      variables: {owner: acme, first: 20}
+    respond:
+      status: 200
+      body: {"data": {"organization": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}]}}}}

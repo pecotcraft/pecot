@@ -1,0 +1,21 @@
+{
+    "Arn": "arn:aws:scheduler:ap-northeast-1:123456789012:schedule/default/order-digest",
+    "CreationDate": "2026-08-01T09:00:00+09:00",
+    "FlexibleTimeWindow": {
+        "Mode": "OFF"
+    },
+    "GroupName": "default",
+    "LastModificationDate": "2026-09-01T09:00:00+09:00",
+    "Name": "order-digest",
+    "ScheduleExpression": "cron(0 9 * * ? *)",
+    "ScheduleExpressionTimezone": "Asia/Tokyo",
+    "State": "ENABLED",
+    "Target": {
+        "Arn": "arn:aws:lambda:ap-northeast-1:123456789012:function:order-notifier",
+        "RetryPolicy": {
+            "MaximumEventAgeInSeconds": 86400,
+            "MaximumRetryAttempts": 185
+        },
+        "RoleArn": "arn:aws:iam::123456789012:role/order-digest-scheduler"
+    }
+}

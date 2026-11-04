@@ -1,0 +1,39 @@
+{
+  "name": "@pecot/slidev-runtime",
+  "version": "0.0.0",
+  "description": "pecot-visual 本体の実行時依存。talk-dir が張る依存ルートと単体配布の install の根拠になる。",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "//peer-reason": "peer 11 件は、テーマ（slidev-theme-*）の peerDependencies と完全一致の版で書く。単体配布は --no-package-lock で入れるため、範囲だと取得した日の版になる。@slidev/* は SLIDEV_CORE_VERSION（runtime-install.ts）と cli/package.json の @slidev/parser に合わせる。",
+  "//override-reason": "overrides の理由は plugins/pecot-visual/pnpm-workspace.yaml のコメントを参照する。本ファイルの overrides は、そこで決めた版を talk-dir / 永続層の npm install へ引き継ぐための写し。lodash-es は直接依存の固定で足りる。overrides にも置くと、spec が違うとき npm が EOVERRIDE で止まる。",
+  "dependencies": {
+    "@shikijs/langs": "4.5.0",
+    "@shikijs/themes": "4.5.0",
+    "@slidev/cli": "53.0.0",
+    "@slidev/client": "53.0.0",
+    "@slidev/theme-default": "^0.25.0",
+    "@slidev/types": "53.0.0",
+    "@vueuse/core": "14.4.0",
+    "dayjs": "1.11.23",
+    "html2canvas": "1.4.1",
+    "lodash-es": "4.18.1",
+    "shiki": "4.5.0",
+    "uuid": "13.0.2",
+    "vite": "^8.3.0",
+    "vue": "3.5.44"
+  },
+  "devDependencies": {
+    "dom-to-pptx": "2.1.1"
+  },
+  "overrides": {
+    "dompurify": "^3.4.17",
+    "puppeteer": "npm:puppeteer-core@25.16.0",
+    "image-size": "^2.0.3"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "npm": "<0.0.0",
+    "yarn": "<0.0.0"
+  }
+}

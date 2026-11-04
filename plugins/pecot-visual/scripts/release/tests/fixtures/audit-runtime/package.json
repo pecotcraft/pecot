@@ -1,0 +1,11 @@
+{
+  "name": "pecotv-audit-runtime-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "image-size": "1.2.1"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  }
+}

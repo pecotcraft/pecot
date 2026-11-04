@@ -1,0 +1,19 @@
+{
+  "name": "@pecot/pecot-visual-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "pecot-visual plugin の pnpm workspaces ルート — マーケットプレイス配布単位で自己完結する",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "npm": "<0.0.0",
+    "yarn": "<0.0.0"
+  },
+  "dependencies": {
+    "@pecot/text-rules-src": "workspace:*"
+  },
+  "devDependencies": {
+    "patch-package": "8.0.1"
+  },
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61"
+}

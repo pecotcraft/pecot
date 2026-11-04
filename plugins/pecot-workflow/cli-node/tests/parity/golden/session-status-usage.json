@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot session status [OPTIONS]\nTry 'pecot session status --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing option '--directory' / '-D'.                                         │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

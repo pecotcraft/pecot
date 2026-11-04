@@ -1,0 +1,7 @@
+# 絵文字を並べた、1 行より長い語を含む。幅 76 で折られる。
+id: global-usage-bad-repo-folded
+command:
+  path: []
+  args: ["--repo", "😀😁😂😃😄😅😆😇😈😉😊😋😌😍😎😏😐😑😒😓😔😕😖😗😘😙😚😛😜😝😞😟😠😡😢😣😤😥😦😧😀😁😂😃😄/b", "--show-repo"]
+setup: {}
+github: []

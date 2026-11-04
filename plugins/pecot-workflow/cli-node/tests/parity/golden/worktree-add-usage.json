@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot worktree add [OPTIONS]\nTry 'pecot worktree add --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing option '--directory' / '-D'.                                         │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}

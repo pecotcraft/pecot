@@ -1,0 +1,111 @@
+# Layout Reference: annotated-terminal
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: annotated-terminal
+description: 端末の画面に印を付けて手順を解説する。
+category: figure
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  terminalContent:
+    type: Object
+    default: "null"
+    description: 既定の端末表示
+    required: true
+    props:
+      title:
+        type: String
+        default: "''"
+        description: タイトルバーの文字列
+      prompt:
+        type: String
+        default: "''"
+        description: プロンプト
+      lines:
+        type: Array
+        default: "[]"
+        description: 表示する行
+        required: true
+        items:
+          type:
+            type: String
+            description: 行の種別
+            required: true
+            enum:
+              - command
+              - output
+          text:
+            type: String
+            default: "''"
+            description: 行の文字列
+  steps:
+    type: Array
+    default: "[]"
+    description: ステップの配列
+    items:
+      point1:
+        type: String
+        default: "''"
+        description: 要所の見出し
+      terminal:
+        type: Object
+        default: "null"
+        description: このステップの端末表示
+        props:
+          title:
+            type: String
+            default: "''"
+            description: タイトルバーの文字列
+          lines:
+            type: Array
+            default: "[]"
+            description: 表示する行
+            items:
+              type:
+                type: String
+                description: 行の種別
+                enum:
+                  - command
+                  - output
+              text:
+                type: String
+                default: "''"
+                description: 行の文字列
+text_constraints: {}
+clicks:
+  supported: true
+  recommended_pattern: clicks は steps の件数
+  validation:
+    type: count
+    source_prop: steps
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 1 ステップ
+    frontmatter: |
+      ---
+      layout: annotated-terminal
+      terminalContent:
+        title: "user@host: ~"
+        lines:
+          - { type: command, text: "ls" }
+          - { type: output, text: "a.txt" }
+      steps:
+        - point1: "一覧を見る"
+          terminal:
+            lines:
+              - { type: command, text: "ls" }
+      ---

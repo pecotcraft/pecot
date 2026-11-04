@@ -1,0 +1,12 @@
+# origin の URL を読めない。error: --repo: の文を出して exit 2 になる。
+id: global-state-show-repo-origin-not-url
+command:
+  path: []
+  args: ["--show-repo"]
+setup:
+  repo:
+    files:
+      .git/config: |
+        [remote "origin"]
+        	url = not-a-url
+github: []

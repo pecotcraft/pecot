@@ -1,0 +1,7 @@
+# --repo を明示すると explicit で解決される。
+id: global-ok-show-repo-explicit
+command:
+  path: []
+  args: ["--repo", "acme/other", "--show-repo"]
+setup: {}
+github: []

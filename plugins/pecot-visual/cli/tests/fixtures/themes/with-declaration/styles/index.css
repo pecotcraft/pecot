@@ -1,0 +1,33 @@
+/* テスト用テーマの書体。OFL の 2 書体を、テーマの public/fonts から配る（/theme/ で配られる）。 */
+@font-face {
+  font-family: 'Inter';
+  src: url('/theme/fonts/Inter-latin.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('/theme/fonts/NotoSansJP-latin.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+.cover,
+.end,
+.section,
+.link,
+.plain,
+.panel,
+.marked,
+.legacy-panel,
+.scratch {
+  font-family: 'Inter', sans-serif;
+}
+
+/* 見出しの書体。cover と end が使う（本文は Inter のまま）。 */
+.cover h1 {
+  font-family: 'Noto Sans JP', 'Inter', sans-serif;
+}

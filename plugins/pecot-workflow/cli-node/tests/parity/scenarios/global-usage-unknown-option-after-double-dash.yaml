@@ -1,0 +1,7 @@
+# -- の後ろの未知のオプションも、解析し直されて誤りになる。
+id: global-usage-unknown-option-after-double-dash
+command:
+  path: []
+  args: ["--", "--bogus"]
+setup: {}
+github: []

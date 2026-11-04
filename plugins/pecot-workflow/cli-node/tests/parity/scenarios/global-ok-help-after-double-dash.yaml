@@ -1,0 +1,7 @@
+# -- の後ろの --help はオプションとして解析し直される。全コマンドの移植後に比べる。
+id: global-ok-help-after-double-dash
+command:
+  path: []
+  args: ["--", "--help"]
+setup: {}
+github: []

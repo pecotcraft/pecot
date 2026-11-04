@@ -1,0 +1,7 @@
+# --repo のセグメントが不正。括弧の中に入る検証ライブラリの文が、全角を 2 幅で数えて折り返される。
+id: global-usage-bad-repo-segment
+command:
+  path: []
+  args: ["--repo", "日本語/b", "--show-repo"]
+setup: {}
+github: []

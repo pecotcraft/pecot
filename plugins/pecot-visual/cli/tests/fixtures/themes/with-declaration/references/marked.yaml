@@ -1,0 +1,34 @@
+layout: 'marked'
+description: '見出しと印のセルを置く枠を持つレイアウト。図に印を付ける場面に使う。'
+category: 'figure'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '見出し'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: marked
+      heading: 印の見出し
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '印を付けるセルを図に合わせて決める'
+
+anti_patterns:
+  - '印のセルを持たない図に印を付ける'

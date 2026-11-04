@@ -1,0 +1,55 @@
+# Layout Reference: cover
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: cover
+description: 表紙。
+category: fixed
+includes:
+  - _common
+  - _footer
+props:
+  coverTitle1:
+    type: String
+    default: "''"
+    description: タイトル 1 行目
+  coverTitle2:
+    type: String
+    default: "null"
+    description: タイトル 2 行目（任意）
+  eyebrow:
+    type: String
+    default: "''"
+    description: タイトル上部の見出し
+  date:
+    type: String
+    default: "''"
+    description: 日付
+text_constraints:
+  coverTitle1:
+    min_chars: 3
+    max_chars: 18
+  coverTitle2:
+    min_chars: 3
+    max_chars: 18
+  eyebrow:
+    min_chars: 7
+    max_chars: 25
+  date:
+    min_chars: 3
+    max_chars: 10
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 2 行タイトル
+    frontmatter: |
+      ---
+      layout: cover
+      coverTitle1: "移行計画の概要"
+      coverTitle2: "進め方と判断基準"
+      eyebrow: "SAMPLE PROPOSAL"
+      date: "2026年4月"
+      ---

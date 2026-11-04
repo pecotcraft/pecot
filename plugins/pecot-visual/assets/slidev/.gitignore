@@ -1,0 +1,9 @@
+node_modules/
+
+# TS build outputs (untracked; standalone 配布は create_presentation.py の copytree 経由)
+scripts/**/dist/
+**/*.tsbuildinfo
+
+# c8 coverage 成果物
+coverage/
+.nyc_output/

@@ -1,0 +1,7 @@
+# -v は eager で、他の引数が不正でも pecot version を出して exit 0 になる。
+id: global-ok-version-short
+command:
+  path: []
+  args: ["-v"]
+setup: {}
+github: []

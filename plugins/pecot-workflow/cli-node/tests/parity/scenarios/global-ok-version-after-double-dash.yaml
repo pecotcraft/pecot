@@ -1,0 +1,7 @@
+# -- の後ろの --version はオプションとして解析し直され、バージョンを出す。
+id: global-ok-version-after-double-dash
+command:
+  path: []
+  args: ["--", "--version"]
+setup: {}
+github: []

@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./scripts/eslint/2layer" },
+    { "path": "./scripts/eslint/asset-path" },
+    { "path": "./scripts/eslint/pptx-compat" },
+    { "path": "./scripts/eslint/_shared" },
+    { "path": "./scripts/eslint/slidev-pages-lint" },
+    { "path": "./scripts/eslint/text-constraints" },
+    { "path": "./scripts/eslint/validate-references" }
+  ]
+}

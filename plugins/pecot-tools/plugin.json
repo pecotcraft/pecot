@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pecot-t",
+  "version": "1.0.0",
+  "description": "pecot-t（pecot-tools）— 許可リストで限定した CLI コマンドを MCP ツールとして提供するプラグイン",
+  "author": {
+    "name": "pecot"
+  }
+}

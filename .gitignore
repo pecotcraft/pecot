@@ -1,0 +1,45 @@
+# Working directories
+# 注: `.pecot/tmp/` `.pecot/work/` は `.pecot/.gitignore` 側でカバーするため root では ignore しない。
+# bare な `tmp/` はこのリポでは使わない（一時領域は `.pecot/tmp/`、作業ファイルは `.pecot/work/`）。
+
+# Environment / secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Python coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Node.js
+node_modules/
+# talk-dir に張る node_modules は symlink のため、末尾スラッシュ付きパターンでは
+# マッチしない（gitignore の `/` 終端はディレクトリ限定で symlink を除外する）。
+node_modules
+.nx/*
+!.nx/version-plans/
+!.nx/nx-release/
+# pnpm が devcontainer の filesystem 不一致で repo root に fallback で作るローカル store
+.pnpm-store/
+
+# e2e fixture の Slidev ビルド生成物（テストが異常終了すると cleanup されず残る）
+plugins/pecot-visual/cli/tests/fixtures/*/pptx/
+plugins/pecot-visual/cli/tests/fixtures/*/index.html
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code local settings
+.claude/settings.local.json

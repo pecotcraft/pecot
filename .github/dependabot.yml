@@ -1,0 +1,151 @@
+# Dependabot version updates
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# 対象は lock を持つ install 単位ごとに 1 エントリ。
+# pecot-workflow は npm（plugins/pecot-workflow の pnpm-lock.yaml）と uv（cli/）の 2 エントリを持つ。
+# groups の名前は、npm が pecot-workflow-npm-minor-patch、uv が pecot-workflow-minor-patch で分ける。
+# 更新を止めるための除外エントリ（audit-canary）も 1 つ置く。
+# pnpm workspace（pecot-visual / pecot-tools）は、sharedWorkspaceLockfile で lock が workspace root に 1 本。
+# そのため root ディレクトリだけを指定する。
+# cli/ や assets/slidev/ などのメンバー package.json は root から辿られる。
+#
+# .pre-commit-config.yaml の外部 hook（ruff / markdownlint / gitlint 等）の rev は Dependabot の対象外。
+# pre-commit autoupdate で上げる。
+# gitlint のバージョンはその rev が定義元で、型確認用の venv も .githooks/scripts/run-lint.sh がそこから読む。
+#
+# cooldown の 1 日は pnpm-workspace.yaml の minimumReleaseAge: 1440 に揃える。
+# plugins/pecot-workflow/cli/pyproject.toml の [tool.uv] exclude-newer = "1 day" にも揃える。
+
+version: 2
+updates:
+  # monorepo root（npm / package-lock.json）: nx
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(repo)"
+    groups:
+      root-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # pecot-visual（pnpm workspace / pnpm-lock.yaml）
+  - package-ecosystem: "npm"
+    directory: "/plugins/pecot-visual"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(pecot-visual)"
+    groups:
+      pecot-visual-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # pecot-workflow（pnpm / pnpm-lock.yaml）
+  - package-ecosystem: "npm"
+    directory: "/plugins/pecot-workflow"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(pecot-workflow)"
+    groups:
+      pecot-workflow-npm-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # pecot-tools（pnpm workspace / pnpm-lock.yaml）
+  - package-ecosystem: "npm"
+    directory: "/plugins/pecot-tools"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(pecot-tools)"
+    groups:
+      pecot-tools-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # text-rules（npm / libs/text-rules/package-lock.json）
+  - package-ecosystem: "npm"
+    directory: "/libs/text-rules"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(text-rules)"
+    groups:
+      text-rules-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # pecot-workflow CLI（uv / pyproject.toml + uv.lock）
+  - package-ecosystem: "uv"
+    directory: "/plugins/pecot-workflow/cli"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(pecot-workflow)"
+    groups:
+      pecot-workflow-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions（.github/workflows/ の uses を SHA で固定している）
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: "build(repo)"
+    groups:
+      github-actions-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # pecot-visual のリリース監査（plugins/pecot-visual/scripts/release/audit-mcp-dist.sh）が使う canary。
+  # 用途は「監査先が advisory を返すこと」の確認。
+  # minimist 1.2.5 は意図して置いた脆弱依存で、更新されると検出確認が成立しなくなる。
+  # version updates は open-pull-requests-limit: 0 で立てない。
+  # security updates は ignore で全依存・全バージョンを止める（limit 0 は version updates にしか適用されない）。
+  # ignore の versions は、security update の処理が明示値しか見ないため省略しない。
+  # schedule は必須キーなので、他と同じ週次を書く。
+  # alert は GitHub 側で not_used として dismiss する（dependabot.yml は alert に影響しない）。
+  - package-ecosystem: "npm"
+    directory: "/plugins/pecot-visual/scripts/release/audit-canary"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+        versions: [">= 0"]

@@ -1,0 +1,24 @@
+{
+    "QueryExecution": {
+        "QueryExecutionId": "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e",
+        "Query": "SELECT order_id FROM orders LIMIT 10",
+        "StatementType": "DML",
+        "ResultConfiguration": {
+            "OutputLocation": "s3://example-athena-results/b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e.csv"
+        },
+        "QueryExecutionContext": {
+            "Database": "analytics"
+        },
+        "Status": {
+            "State": "SUCCEEDED",
+            "SubmissionDateTime": "2026-09-01T10:00:00.000000+09:00",
+            "CompletionDateTime": "2026-09-01T10:00:03.000000+09:00"
+        },
+        "Statistics": {
+            "EngineExecutionTimeInMillis": 2100,
+            "DataScannedInBytes": 1048576,
+            "TotalExecutionTimeInMillis": 3000
+        },
+        "WorkGroup": "primary"
+    }
+}

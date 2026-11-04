@@ -1,0 +1,372 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "pecot-visual",
+  "projectType": "library",
+  "tags": ["type:plugin", "scope:p-v"],
+  "namedInputs": {
+    "cliProduction": [
+      "{projectRoot}/cli/**/*",
+      "!{projectRoot}/cli/**/*.md",
+      "!{projectRoot}/cli/**/tests/**/*",
+      "!{projectRoot}/cli/**/*.test.*",
+      "!{projectRoot}/cli/dist/**/*"
+    ],
+    "slidevProduction": [
+      "{projectRoot}/assets/slidev/**/*",
+      "!{projectRoot}/assets/slidev/**/*.md",
+      "!{projectRoot}/assets/slidev/**/tests/**/*",
+      "!{projectRoot}/assets/slidev/**/*.test.*",
+      "!{projectRoot}/assets/slidev/**/dist/**/*"
+    ]
+  },
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "metadata": {
+        "description": "1 回の nx 実行につき 1 回の依存導入 (#1080)。test / lint の各レーンが dependsOn で参照する。nx の task graph は同一の project:target を 1 タスクへ dedupe するので、実行するレーンが何本あっても install は 1 回にまとまる。cache: false は明示的な宣言とする。install は node_modules への副作用で outputs を宣言できず、cache 対象にできない。cache を付けると『1 回』が『0 回』になり、lockfile と node_modules の乖離を見逃してしまう。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_SLIDEV_PREPARE=1 bash scripts/ci/install.sh",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "check-pm-guard": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": ["install"],
+      "metadata": {
+        "description": "パッケージマネージャガード (#806) を確認する。test のレーンだけが dependsOn で参照し、1 push で 1 回にまとまる。挙動の確認（隔離 install）は 6 秒前後かかる。そのため、commit ごとに実行する lint のレーンには載せない。lint のレーンは従来から、この確認をしていない。cache: false は install と同じ理由で、ガードの回帰を見逃さないためとなる。"
+      },
+      "options": {
+        "command": "bash scripts/ci/check-pm-guard.sh",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "chromium-preflight": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": ["install", "build-cli"],
+      "metadata": {
+        "description": "Chromium を使うレーン (test-cli / test-bootstrap) の前提を本実行の前に 1 回だけ確かめる (#1217)。headless Chromium の起動を 1 回試し、OS のライブラリが足りなければ入れ、入れられない・起動できないならレーンを始めずに落とす。cache: false は install と同じ理由（結果が OS の状態に依存し outputs を宣言できない）。"
+      },
+      "options": {
+        "command": "bash scripts/ci/chromium-preflight.sh",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "build-cli": {
+      "executor": "nx:run-commands",
+      "dependsOn": [{ "projects": ["text-rules"], "target": "build" }],
+      "inputs": ["cliProduction", "sharedGlobals", "^production"],
+      "metadata": {
+        "description": "cli の tsc が @pecot/text-rules の型を libs/text-rules/dist から読むため、text-rules:build を待つ。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。"
+      },
+      "options": {
+        "command": "pnpm --filter @pecot/pecotv-cli run build",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "build-slidev": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["install", { "projects": ["text-rules"], "target": "build" }],
+      "inputs": [
+        "slidevProduction",
+        "sharedGlobals",
+        "^production"
+      ],
+      "metadata": {
+        "description": "assets/slidev/scripts/build.mjs が assets/slidev を build する。text-rules の build は text-rules:build に任せる。command が渡す PECOTV_SKIP_LIB_BUILD=1 で、build.mjs は飛ばす。同じ libs/text-rules/dist を並行して消さないため。ミラーの bootstrap は env を渡さず、build.mjs が text-rules も build する。開発環境では、node がリンクを実体の libs/text-rules に解決する。tsc と text-rules の依存は libs/text-rules/node_modules から読む。install が libs/text-rules の npm ci まで行うので、順序は install、text-rules:build とする。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_LIB_BUILD=1 pnpm --filter @pecot/slidev-assets-dev run build",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        "test-cli",
+        "test-bootstrap",
+        "test-slidev",
+        "test-hooks",
+        "test-compare",
+        "test-release",
+        "test-skills"
+      ],
+      "metadata": {
+        "description": "pre-push の nx-affected-tests が起動する、テスト全体の起点となる target。各レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+      }
+    },
+    "test-cli": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/**/*",
+        "!{projectRoot}/cli/tests/bootstrap/**",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "{projectRoot}/bin/pecotv",
+        "{projectRoot}/.claude-plugin/plugin.json",
+        "{projectRoot}/.mcp.json",
+        "{projectRoot}/assets/drawio-icons/**",
+        "{projectRoot}/assets/slidev/deck-lint.config.js",
+        "{projectRoot}/assets/slidev/deck-lint.env.config.js",
+        "{projectRoot}/assets/slidev/scripts/eslint/**",
+        "!{projectRoot}/assets/slidev/scripts/eslint/**/tests/**",
+        "{projectRoot}/skills/v-drawio/references/**",
+        "{projectRoot}/skills/v-slidev/SKILL.md",
+        "{workspaceRoot}/plugins/pecot-tools/package.json",
+        "{workspaceRoot}/plugins/pecot-tools/cli/package.json",
+        "{workspaceRoot}/plugins/pecot-tools/cli/src/node-runtime.ts",
+        "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh",
+        "^production"
+      ],
+      "dependsOn": [
+        "install",
+        "check-pm-guard",
+        "chromium-preflight",
+        "build-slidev",
+        "build-cli"
+      ],
+      "metadata": {
+        "//inputs-reason": "bin/pecotv、.claude-plugin/plugin.json、.mcp.json は、E2E が起動して読む実体になる。対応する E2E は e2e/version.test.ts、mcp-stdio.test.ts、server.test.ts。bootstrap の bash テスト（cli/tests/bootstrap/）と、その専用の入力は入れない。専用の入力は次の 4 種類。Agent Plugins 1.0 形式の plugin.json・mcp.json・com.github.copilot/hooks/hooks.json。他プラグインの bin/_lib.sh。ミラーの build 構造を決める assets/slidev/ の tsconfig。build.mjs。これらは test-bootstrap が確認する (#1235)。assets/slidev/package.json は、pecotvPluginTestGlobals の **/package.json が拾う。ESLint プラグインのテストは、test-slidev が確認するので入れない（.claude/rules/nx-inputs.md）。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。",
+        "description": "cli の build / test / test:e2e。install と cli/dist の build は、dependsOn 経由で 1 push につき 1 回だけ実行する (#1080)。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 21 秒）は test-bootstrap に分けた。cli/src だけを変えた push では実行しない (#1235)。cli/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。bin/pecotv、plugin.json、.mcp.json は、E2E が起動する実体になる。assets は、drawio の E2E が読むアイコンと証明書になる。skills の references は drawio の E2E が読む。pecot-tools の 3 ファイルと drift の確認は、node-runtime の同期テストが読む。assets/slidev から inputs に入れるのは 3 つだけとする。deck-lint.config.js、deck-lint.env.config.js、scripts/eslint/**（テスト以外）。slide lint 系のテスト（slide-lint.test.ts と mcp-tools.test.ts の slide_lint）が、子プロセスで起動するファイルを指す。eslint plugin の dist は build-slidev が作るので、dependsOn へ載せる。これでソースを変えた push では、古い dist の成功が残らない。実行時依存の manifest は assets/slidev/runtime/package.json にある。runtime-install.test.ts と runtime-peers.test.ts が読む。pecotvPluginTestGlobals の **/package.json が拾うので、個別には入れない。上の 3 つ以外の assets/slidev（lint の補助スクリプトとそのテスト等）は、E2E が読まないので入れない。入れると、それらを変えるたびに本レーンが実行される（.claude/rules/nx-inputs.md）。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test-bootstrap": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/tests/bootstrap/**/*",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "{projectRoot}/bin/**/*",
+        "{projectRoot}/.claude-plugin/plugin.json",
+        "{projectRoot}/.mcp.json",
+        "{projectRoot}/plugin.json",
+        "{projectRoot}/mcp.json",
+        "{projectRoot}/com.github.copilot/**/*",
+        "{projectRoot}/cli/tsconfig.json",
+        "{projectRoot}/cli/tsconfig.build.json",
+        "{projectRoot}/assets/slidev/tsconfig.base.json",
+        "{projectRoot}/assets/slidev/tsconfig.build.json",
+        "{projectRoot}/assets/slidev/scripts/build.mjs",
+        "{workspaceRoot}/plugins/pecot-workflow/bin/_lib.sh",
+        "{workspaceRoot}/plugins/pecot-tools/bin/_lib.sh",
+        "^production"
+      ],
+      "dependsOn": ["install", "check-pm-guard", "chromium-preflight"],
+      "metadata": {
+        "//inputs-reason": "検証の対象は次の 4 つ。bin/pecotv と bin/_lib.sh（wrapper とミラーの準備）。登録ファイル（.mcp.json、mcp.json、plugin.json 2 本、com.github.copilot/hooks/hooks.json）。本レーンのスクリプト（cli/tests/bootstrap/）。run-tests.sh（pecotvPluginTestGlobals）。他プラグインの bin/_lib.sh は、lib-consistency.sh（逐語一致）の入力になる。assets/slidev の tsconfig.*・build.mjs は、ミラーの build 構造の入力になる。mirror-real-pnpm.sh が実 pnpm でミラーを build する。package.json は pecotvPluginTestGlobals が拾う。cli/tsconfig.json と cli/tsconfig.build.json は、ミラーへ複製する集合に含まれる。この集合は bin/_lib.sh の plugin_runtime_src_files が決める。mirror-real-pnpm.sh の実 build が、この 2 本を使う。com.github.copilot/agents は symlink のため、nx の file-map に載らない。com.github.copilot/ のうち入力になるのは hooks/hooks.json だけとする。よって symlink を張り替えても、本レーンのハッシュは変わらない。setup.sh は、本レーンの 7 本のテストが読まないので入れない。読むのは、レーンに含めない run.sh だけとなる。cli/src も入れない。ミラーの build が使う cli/src の型の確認は build-cli が担う。cli/src を変えるたびに bootstrap を実行することはしない。libs/text-rules はリンクで載せていて、リンク先の変更を nx が検知しないため、実体を inputs に入れる。mirror-real-pnpm.sh がミラーで text-rules を実 build する。テストと dist は除く。",
+        "description": "bin/pecotv の bootstrap と登録ファイルの bash テスト。対象は次の 7 本。host-deps-marker、install-record、data-dir、mirror-real-pnpm、manifest、lib-consistency、text-rules-link。約 21 秒かかる。test-cli から切り出し、cli/src だけを変えた push では実行しない (#1235)。重い CUJ 一式の run.sh は従来どおり手動で実行し、本レーンには含めない。pnpm は stub を使うか、ミラーを実 build する mirror-real-pnpm.sh の実 pnpm を使う。本体の cli/dist は使わない。そのため build-cli には依存しない。chromium-preflight には依存する。mirror-real-pnpm.sh の bin/pecotv --version が、MCP 以外の起動で Chromium の取得と host-deps を試みることがある。install と check-pm-guard は、dependsOn 経由で 1 push につき 1 回だけ実行する。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡す。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test-slidev": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/assets/slidev/**/*",
+        "{projectRoot}/cli/tests/fixtures/themes/**",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "{projectRoot}/skills/v-drawio/references/**/DESIGN.md",
+        "{projectRoot}/skills/v-slidev/references/implementation-guide.md",
+        "^production"
+      ],
+      "dependsOn": [
+        "install",
+        "check-pm-guard",
+        "build-slidev"
+      ],
+      "metadata": {
+        "description": "libs/text-rules の変更は、project graph の依存先として ^production が取り込む。cli/tests/fixtures/themes/** は inputs に入れる。scripts/eslint の規則のテスト（slidev-pages-lint / text-constraints）が、テスト用テーマの宣言と references を読むため。規則のテスト用の fixture deck は assets/slidev/** に含まれる。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=slidev",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test-hooks": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/hooks/**/*",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "{projectRoot}/cli/src/node-runtime.ts",
+        "{projectRoot}/com.github.copilot/hooks/hooks.json",
+        "{projectRoot}/assets/slidev/deck-lint.config.js",
+        "{projectRoot}/assets/slidev/deck-lint.env.config.js",
+        "{projectRoot}/cli/tests/fixtures/themes/with-declaration/references/*.yaml",
+        "{projectRoot}/assets/slidev/scripts/eslint/**",
+        "!{projectRoot}/assets/slidev/scripts/eslint/**/tests/**",
+        "^production"
+      ],
+      "dependsOn": ["install", "check-pm-guard", "build-slidev", { "projects": ["text-rules"], "target": "build" }],
+      "metadata": {
+        "description": "hooks/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。hooks のテストは、fixture テーマ（cli/tests/fixtures/themes/with-declaration）の references を talk-dir へ複写して使う。実 eslint で本体の規則（slidev-pages-lint / text-constraints 等）を動かす。そのため inputs に 4 つを入れる。deck-lint.config.js、deck-lint.env.config.js、fixture の references/*.yaml、scripts/eslint/**（テスト以外）。テーマの宣言は mirror-helper.sh の stub CLI が返す。cli の node-runtime.ts も参照する。lint の図の幾何は scripts/eslint/_shared が持つ。validate-references-check.test.sh は scripts/eslint/validate-references の dist/index.js を起動する。dist が無いと SKIP して通る。dist は build-slidev が作るので dependsOn に載せ、ソース（テスト以外）を inputs に入れる。dist の無い worktree で SKIP して成功した結果が、共有キャッシュ経由で別の worktree へ再利用されるのを防ぐ。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。text-lint-check.test.sh は libs/text-rules/dist の bin を起動するため、text-rules:build を dependsOn に明記する。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test-compare": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/scripts/pptx-compare/**/*",
+        "{projectRoot}/scripts/page-compare/**/*",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "cliProduction"
+      ],
+      "dependsOn": ["install", "check-pm-guard", "build-cli"],
+      "metadata": {
+        "description": "依存更新の前後比較スクリプト (#1073) の検証。ページ画像を画素で比べる page-compare (#1341) の検証も同じレーンで実行する。pptx-compare の被テストスクリプトは cli/dist の archive・xml-engine・preview-normalize を import する。fixture の合成にも同じ writer を使う。そのため cliProduction を inputs に入れる。入れないと cli/src の変更でキャッシュがヒットし、古い cli/dist に対する判定のまま緑になる。compare-cx-measure のテストは、scripts/pptx-compare/tests/fixtures の汎用の config.yml を読む。install と cli/dist の build は、dependsOn 経由で 1 push につき 1 回だけ実行する。レーン内で cli を再 build すると、prebuild の dist 削除が並行する test-cli の E2E から CLI を奪う。この現象は #1084 で、実 push の間欠的な失敗として観測した。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=compare",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test-release": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/scripts/release/**/*",
+        "{workspaceRoot}/.githooks/scripts/attach-mcp-tgz.sh",
+        "{workspaceRoot}/.githooks/scripts/origin-slug.mjs",
+        "{workspaceRoot}/.githooks/scripts/tests/attach-mcp-tgz.test.sh",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "{projectRoot}/.claude-plugin/plugin.json",
+        "^production"
+      ],
+      "dependsOn": [
+        "install",
+        "check-pm-guard",
+        "build-cli",
+        "build-slidev",
+        { "projects": ["text-rules"], "target": "build" }
+      ],
+      "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡す。publish は配布ツリーへ cd してから npm を実行する。nx の workspaceRoot トークンは command の途中では使えず、options.env では相対パスに展開される。そのため、cwd（plugins/pecot-visual）からの $PWD で組む (#1225)。",
+      "metadata": {
+        "//inputs-reason": "libs/text-rules は ^production で inputs に入れる。配布ツリーは libs のソース由来で、同梱する dist、相対 import の書き換え、依存 manifest の整合を確認するのは本レーンだけとなる。libs/text-rules の tests と dist は、production が除く。",
+        "description": "MCP 単体配布の publish スクリプトの検証。cache: true (#1225)。publish のテストは、npm の依存解決で外部レジストリの状態を読む。その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src や SKILL.md を 1 行直すたびに本レーンを実行しないためとなる。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化し、実行時にも 2 回目以降はレジストリへアクセスしない。audit のテストは常に使い捨てのキャッシュを使い、この永続キャッシュは使わない。掃除は .pecot/tmp/release-npm-cache/pecot-visual を消す。packument の分だけ増え続ける。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-visual\" bash scripts/ci/run-tests.sh --scope=release",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "test-skills": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/skills/v-drawio/**/*",
+        "{projectRoot}/skills/v-evidence/**/*",
+        "{projectRoot}/skills/v-slidev/**/*",
+        "sharedGlobals",
+        "pecotvPluginTestGlobals",
+        "{projectRoot}/agents/**/*.md",
+        "{projectRoot}/scripts/ci/tests/**"
+      ],
+      "dependsOn": ["install", "check-pm-guard"],
+      "metadata": {
+        "description": "SKILL.md / agents / references の DESIGN.md に現れる references/ パスの実在を、静的に確認する。agents/ と scripts/ci/tests/ も inputs に入れる。後者は run-tests.sh --scope=skills が実行する *.test.sh を含む。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "lint": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": ["lint-cli", "lint-slidev", "lint-skills"],
+      "metadata": {
+        "description": "pre-commit の nx-affected-lint が起動する、lint 全体の起点となる target。各レーン（lint-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+      }
+    },
+    "lint-cli": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/**/*",
+        "sharedGlobals",
+        "pecotvPluginLintGlobals",
+        "{projectRoot}/.gitignore",
+        "{workspaceRoot}/plugins/pecot-tools/package.json",
+        "^production"
+      ],
+      "dependsOn": ["install", { "projects": ["text-rules"], "target": "build" }],
+      "metadata": {
+        "description": "cli の tsc が @pecot/text-rules の型を libs/text-rules/dist から読むため、text-rules:build を待つ。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-lint.sh --scope=cli",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "lint-slidev": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/assets/slidev/**/*",
+        "sharedGlobals",
+        "pecotvPluginLintGlobals",
+        "{projectRoot}/skills/v-drawio/references/**/DESIGN.md",
+        "^production"
+      ],
+      "dependsOn": ["install", { "projects": ["text-rules"], "target": "build" }],
+      "metadata": {
+        "description": "build-slidev と同じく text-rules:build を待つ。PECOTV_SKIP_LIB_BUILD=1 を渡し、prelint の build.mjs が libs/text-rules/dist を消し直さないようにする。消し直すと、並行する lint-cli の tsc と競合する。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 PECOTV_SKIP_LIB_BUILD=1 bash scripts/ci/run-lint.sh --scope=slidev",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "lint-skills": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/skills/v-drawio/**/*",
+        "sharedGlobals",
+        "pecotvPluginLintGlobals",
+        "{projectRoot}/assets/slidev/scripts/design-lint/**"
+      ],
+      "dependsOn": ["install"],
+      "metadata": {
+        "description": "references/**/DESIGN.md を、公式 linter（@google/design.md）に掛ける。error か warning が 1 件でもあれば落とす。確認の本体となる lint-design.mjs も inputs に入れる。"
+      },
+      "options": {
+        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-lint.sh --scope=skills",
+        "cwd": "plugins/pecot-visual"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "nx release の publish phase から MCP サーバの tgz を作り、Release に添えて publish-npm.yml を起動する (#982)。スクリプト側が HEAD の pecot-visual-v<version> タグで冪等性を判定し、pecot-visual 非リリース時は何もせず終了する。"
+      },
+      "options": {
+        "//forwardAllArgs-reason": "既定 true だと nx が --dryRun=true をコマンド末尾へ注入する。dry-run は NX_DRY_RUN env で受けるため引数転送は不要 (#982)。",
+        "forwardAllArgs": false,
+        "command": "bash scripts/release/publish-mcp-dist.sh",
+        "cwd": "plugins/pecot-visual"
+      }
+    }
+  },
+  "release": {
+    "//note": "pecot-visual plugin distribution unit. plugin.json × 2（.claude-plugin/ と、Copilot CLI 向け Agent Plugins 1.0 形式のルート）の manifest owner。プラグイン配下を 1 project にまとめ、release group には本 project だけを列挙する。",
+    "version": {
+      "versionActions": "./.nx/nx-release/src/version-actions.js",
+      "manifestRootsToUpdate": [
+        { "path": "{projectRoot}/.claude-plugin" },
+        { "path": "{projectRoot}" }
+      ]
+    }
+  }
+}

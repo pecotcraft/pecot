@@ -1,0 +1,142 @@
+{
+  "description": "pecot workflow automation hooks for GitHub Copilot CLI — Notification event excluded for Copilot CLI compatibility",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-bash.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-enter-plan-mode.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*|github-mcp-server-create_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-mcp.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-exit-plan-mode.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Skill|skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-skill.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill|skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-skill.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-bash.sh",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-enter-plan-mode.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-exit-plan-mode.sh",
+            "timeout": 90
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-start.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/user-prompt-submit.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop-copilot.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

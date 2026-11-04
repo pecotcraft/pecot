@@ -1,0 +1,9 @@
+# 不正な PECOT_GITHUB_API_URL は、--show-repo の前に文言を出して exit 1 になる。
+id: global-state-bad-api-url
+command:
+  path: []
+  args: ["--show-repo"]
+setup:
+  env:
+    PECOT_GITHUB_API_URL: http://example.com
+github: []

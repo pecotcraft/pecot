@@ -1,0 +1,42 @@
+layout: 'end'
+description: '資料の最後に置く。結びの言葉だけを置く。'
+category: 'text'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '結びの見出し'
+  message:
+    type: 'String'
+    default: "''"
+    description: '結びの言葉'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+  'message':
+    min_chars: 0
+    max_chars: 40
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: end
+      heading: ご清聴ありがとうございました
+      message: 結びの言葉の例
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '結びは短くまとめる'
+
+anti_patterns:
+  - '最後のページに新しい論点を足す'

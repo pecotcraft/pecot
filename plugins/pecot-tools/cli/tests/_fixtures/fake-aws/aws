@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# テスト用の偽 awscli。実 awscli を導入せずに infra / mcp の実行経路を検証する。
+#
+# 環境変数:
+#   FAKE_AWS_FIXTURE_DIR   fixture ディレクトリ
+#   FAKE_AWS_FIXTURE       fixture 名の明示。無ければ "$1-$2"
+#   FAKE_AWS_CALL_LOG      引数配列を JSON 1 行で追記する先
+#   FAKE_AWS_PID_FILE      起動直後に $$ を書き出す先
+#   FAKE_AWS_SLEEP_SECONDS 応答前に待つ秒数
+#   FAKE_AWS_HANG          1 なら fixture を出力したうえで SIGTERM を受けるまで待機する
+#   FAKE_AWS_EXIT_WHEN_FILE  fixture を出力したうえで、指定パスが現れるまで待機する
+#   FAKE_AWS_VERSION       --version の stdout 1 行（全文置換）
+#
+# fixture は <name>.stdout / <name>.stderr / <name>.exit。同名 n 回目の呼び出しは
+# <name>.<n>.<ext> を優先し、無ければ <name>.<ext> にフォールバックする。いずれも無ければ
+# stdout 空・exit 0。
+#
+# HANG と EXIT_WHEN_FILE は「出力してから待つ」意味にしてある（research R5 の sso_login は
+# URL とコードを出したうえで子が生き続ける）。出力の無い fixture では待機だけになる。
+# EXIT_WHEN_FILE は待機を解いた後に <name>.after.stdout があれば追加で出力する（SSO 認証の
+# 完了で成功行が続く経路）。
+#
+# SIGTERM は trap で孫を落としてから自分へ撃ち直す。実 awscli は SIGTERM で死ぬため
+# 呼び出し側の close は code=null / signal='SIGTERM' になり、exit 143 で抜けると実物と食い違う。
+set -u
+
+DEFAULT_VERSION='aws-cli/2.36.40 Python/3.14.6 Linux/7.0.0-30-generic exe/x86_64.ubuntu.26'
+
+if [ -n "${FAKE_AWS_PID_FILE:-}" ]; then
+    printf '%s\n' "$$" > "$FAKE_AWS_PID_FILE"
+fi
+
+json_escape() {
+    # バックスラッシュ → 二重引用符 → タブ → 復帰 → 改行 の順に置換する（jq 非依存）。
+    printf '%s' "$1" |
+        sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\t/\\t/g' -e 's/\r/\\r/g' |
+        sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g'
+}
+
+if [ -n "${FAKE_AWS_CALL_LOG:-}" ]; then
+    line='['
+    sep=''
+    for arg in "$@"; do
+        line="${line}${sep}\"$(json_escape "$arg")\""
+        sep=','
+    done
+    printf '%s]\n' "$line" >> "$FAKE_AWS_CALL_LOG"
+fi
+
+# --version は ensureAwscli が最初に呼ぶ経路。HANG / SLEEP を無視して即応答する。
+if [ "${1:-}" = '--version' ]; then
+    printf '%s\n' "${FAKE_AWS_VERSION:-$DEFAULT_VERSION}"
+    exit 0
+fi
+
+if [ -n "${FAKE_AWS_SLEEP_SECONDS:-}" ]; then
+    sleep "$FAKE_AWS_SLEEP_SECONDS"
+fi
+
+name="${FAKE_AWS_FIXTURE:-}"
+if [ -z "$name" ]; then
+    name="${1:-}-${2:-}"
+fi
+
+# 同名呼び出しの連番。状態は call log と同じディレクトリに置く（fixture ディレクトリは汚さない）。
+#
+# read-modify-write は flock で直列化する。素の read-modify-write だと並行呼び出しで同じ連番が
+# 複数プロセスへ配られる。mkdir を排他に使う書き方は本 devcontainer の overlayfs では成立せず、
+# 複数プロセスが同時にロックを取れることを実測している（flock は fd 単位でカーネルが持つため
+# ファイルシステムに依らない）。fd はプロセス終了で閉じ、ロックも自動で外れる。
+seq=1
+if [ -n "${FAKE_AWS_CALL_LOG:-}" ]; then
+    safe_name="$(printf '%s' "$name" | tr -c 'A-Za-z0-9._-' '_')"
+    counter="$(dirname "$FAKE_AWS_CALL_LOG")/.seq-${safe_name}"
+    exec 9> "${counter}.lock"
+    flock 9
+    if [ -f "$counter" ]; then
+        seq=$(($(cat "$counter") + 1))
+    fi
+    printf '%s\n' "$seq" > "$counter"
+    exec 9>&-
+fi
+
+resolve_fixture() {
+    dir="${FAKE_AWS_FIXTURE_DIR:-}"
+    if [ -z "$dir" ]; then
+        return
+    fi
+    if [ -f "$dir/$name.$seq.$1" ]; then
+        printf '%s' "$dir/$name.$seq.$1"
+        return
+    fi
+    if [ -f "$dir/$name.$1" ]; then
+        printf '%s' "$dir/$name.$1"
+    fi
+}
+
+stdout_file="$(resolve_fixture stdout)"
+if [ -n "$stdout_file" ]; then
+    cat "$stdout_file"
+fi
+
+stderr_file="$(resolve_fixture stderr)"
+if [ -n "$stderr_file" ]; then
+    cat "$stderr_file" >&2
+fi
+
+# 待機中の孫。TERM trap がここを落としてから自分へ SIGTERM を撃ち直す。
+sleep_child=''
+
+terminate() {
+    if [ -n "$sleep_child" ]; then
+        kill "$sleep_child" 2>/dev/null
+    fi
+    trap - TERM
+    kill -TERM $$
+}
+
+if [ "${FAKE_AWS_HANG:-}" = '1' ]; then
+    # sleep infinity を直接 wait すると、SIGTERM 後も孫プロセスが残って親の stdio パイプが
+    # 閉じず、呼び出し側の close が発火しない。trap で孫を明示的に落とす。
+    trap terminate TERM
+    sleep infinity &
+    sleep_child=$!
+    wait "$sleep_child"
+fi
+
+if [ -n "${FAKE_AWS_EXIT_WHEN_FILE:-}" ]; then
+    # sleep を前面で回すと、SIGTERM が届いても bash は sleep の完了まで trap を実行しない。
+    # 孫として起こして wait すれば、シグナルで wait が解けて即座に trap へ入る。
+    trap terminate TERM
+    while [ ! -e "$FAKE_AWS_EXIT_WHEN_FILE" ]; do
+        sleep 0.1 &
+        sleep_child=$!
+        wait "$sleep_child"
+    done
+    trap - TERM
+    sleep_child=''
+
+    after_file="$(resolve_fixture after.stdout)"
+    if [ -n "$after_file" ]; then
+        cat "$after_file"
+    fi
+fi
+
+exit_file="$(resolve_fixture exit)"
+exit_code=0
+if [ -n "$exit_file" ]; then
+    exit_code="$(tr -d '[:space:]' < "$exit_file")"
+fi
+
+exit "$exit_code"

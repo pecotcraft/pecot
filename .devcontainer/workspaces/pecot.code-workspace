@@ -1,0 +1,63 @@
+{
+  "folders": [
+    { "name": "pecot (base)", "path": "/workspaces/base/pecot" },
+    { "name": "pecot (wt1)", "path": "/workspaces/wt1/pecot" },
+    { "name": "pecot (wt2)", "path": "/workspaces/wt2/pecot" },
+    { "name": "pecot (wt3)", "path": "/workspaces/wt3/pecot" },
+    { "name": "pecot (wt4)", "path": "/workspaces/wt4/pecot" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.ruff_cache": true,
+      "**/.pytest_cache": true,
+      "**/.mypy_cache": true,
+      "**/__pycache__": true,
+      "**/.venv": true,
+      "**/*.egg-info": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.turbo": true,
+      "**/.next": true,
+      "**/uv.lock": true,
+      "**/.nx/workspace-data": true,
+      "**/*.tsbuildinfo": true,
+      "**/.eslintcache": true,
+      "**/coverage": true,
+      "**/.swc": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.ruff_cache": true,
+      "**/.pytest_cache": true,
+      "**/.mypy_cache": true,
+      "**/__pycache__": true,
+      "**/.venv": true,
+      "**/*.egg-info": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.turbo": true,
+      "**/.next": true,
+      "**/package-lock.json": true,
+      "**/uv.lock": true,
+      "**/.nx/workspace-data": true,
+      "**/*.tsbuildinfo": true,
+      "**/.eslintcache": true,
+      "**/coverage": true,
+      "**/.swc": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/.ruff_cache/**": true,
+      "**/.pytest_cache/**": true,
+      "**/.mypy_cache/**": true,
+      "**/__pycache__/**": true,
+      "**/.venv/**": true,
+      "**/.nx/workspace-data/**": true,
+      "**/*.tsbuildinfo": true,
+      "**/.eslintcache": true,
+      "**/coverage/**": true,
+      "**/.swc/**": true
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# --prepare は GitHub を呼ばず、テンプレートを .pecot/tmp/output に作ってパスを出す。
+id: issue-create-ok-prepare
+command:
+  path: [issue, create]
+  args: [--prepare, --template, task, --repo, acme/demo]
+setup: {}
+github: []

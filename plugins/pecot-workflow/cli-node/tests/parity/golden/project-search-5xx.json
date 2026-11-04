@@ -1,0 +1,26 @@
+{
+  "stdout": "",
+  "stderr": "GitHub APIエラー: GraphQLクエリ実行エラー: Server error '500 Internal Server Error' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\n",
+  "exitCode": 1,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsOrg",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

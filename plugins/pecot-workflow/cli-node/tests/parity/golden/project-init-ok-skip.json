@@ -1,0 +1,26 @@
+{
+  "stdout": "プロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\npecot-workflow-acmeフィールドは既に存在します。スキップします。\npecot-priorityフィールドは既に存在します。スキップします。\npecot-sizeフィールドは既に存在します。スキップします。\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

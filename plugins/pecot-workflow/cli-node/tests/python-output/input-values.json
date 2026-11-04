@@ -1,0 +1,20 @@
+{
+"cases": [
+  {"name": "ascii-48", "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "inputValue": "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'"},
+  {"name": "ascii-49", "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "inputValue": "'aaaaaaaaaaaaaaaaaaaaaaaa...aaaaaaaaaaaaaaaaaaaaaaa'"},
+  {"name": "japanese-16", "input": "ああああああああああああああああ", "inputValue": "'ああああああああああああああああ'"},
+  {"name": "japanese-17", "input": "あああああああああああああああああ", "inputValue": "'ああああああああ...あああああああ'"},
+  {"name": "japanese-18", "input": "ああああああああああああああああああ", "inputValue": "'ああああああああ...あああああああ'"},
+  {"name": "emoji-12", "input": "😀😀😀😀😀😀😀😀😀😀😀😀", "inputValue": "'😀😀😀😀😀😀😀😀😀😀😀😀'"},
+  {"name": "emoji-13", "input": "😀😀😀😀😀😀😀😀😀😀😀😀😀", "inputValue": "'😀😀😀😀😀😀...😀😀😀😀😀'"},
+  {"name": "emoji-45", "input": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀", "inputValue": "'😀😀😀😀😀😀...😀😀😀😀😀'"},
+  {"name": "mixed-ascii-japanese", "input": "aaaaaaaaaaaaaaaaaaaaああああああああああ", "inputValue": "'aaaaaaaaaaaaaaaaaaaaあ...あああああああ'"},
+  {"name": "japanese-first-50-bytes", "input": "あbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "inputValue": "'あbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"},
+  {"name": "emoji-first-50-bytes", "input": "😀bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "inputValue": "'😀bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"},
+  {"name": "emoji-then-ascii", "input": "😀😀bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "inputValue": "'😀😀bbbbbbbbbbbbbbbb...bbbbbbbbbbbbbbbbbbbbbbb'"},
+  {"name": "e-acute-30", "input": "éééééééééééééééééééééééééééééé", "inputValue": "'éééééééééééé...ééééééééééé'"},
+  {"name": "alternating", "input": "aあaあaあaあaあaあaあaあaあaあaあaあaあaあaあaあaあaあaあaあ", "inputValue": "'aあaあaあaあaあaあ...あaあaあaあaあaあ'"},
+  {"name": "list", "input": ["ああああああああああああああああああああ", "x"], "inputValue": "['あああああああ...あああああ', 'x']"},
+  {"name": "host-75", "input": {"host": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh"}, "inputValue": "{'host': 'hhhhhhhhhhhhhhh...hhhhhhhhhhhhhhhhhhhhhh'}"}
+]
+}

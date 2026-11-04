@@ -1,0 +1,22 @@
+# Layout Reference: end
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: end
+description: 裏表紙。
+category: fixed
+includes:
+  - _common
+  - _footer
+text_constraints: {}
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 基本形
+    frontmatter: |
+      ---
+      layout: end
+      ---

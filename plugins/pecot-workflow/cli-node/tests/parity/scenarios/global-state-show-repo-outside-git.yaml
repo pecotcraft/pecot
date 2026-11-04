@@ -1,0 +1,8 @@
+# Git の外で --repo が無い。解決できず exit 2 になる。
+id: global-state-show-repo-outside-git
+command:
+  path: []
+  args: ["--show-repo"]
+setup:
+  cwd: ".."
+github: []

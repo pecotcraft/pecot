@@ -1,0 +1,9 @@
+# 不正な --repo と不正な PECOT_GITHUB_API_URL が同時にあると、--repo の誤り（exit 2）が先に出る。
+id: global-usage-bad-repo-with-bad-api-url
+command:
+  path: []
+  args: ["--repo", "bad", "--show-repo"]
+setup:
+  env:
+    PECOT_GITHUB_API_URL: http://example.com
+github: []

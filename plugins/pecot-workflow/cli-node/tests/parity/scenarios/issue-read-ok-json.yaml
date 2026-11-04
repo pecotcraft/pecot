@@ -1,0 +1,91 @@
+# --json で Issue を JSON のまま出力する。GetIssueSlim を 1 回受ける。
+id: issue-read-ok-json
+command:
+  path: [issue, read]
+  args: [acme/demo/7, --json]
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: GetIssueSlim
+      variables: {owner: acme, repo: demo, number: 7}
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue:
+              number: 7
+              state: OPEN
+              title: 見本の Issue
+              body: |
+                本文の 1 行目
+                本文の 2 行目
+              comments:
+                totalCount: 1
+                nodes:
+                  - author: {login: reviewer}
+                    createdAt: "2026-01-02T03:04:05Z"
+                    body: コメントの本文
+              parent:
+              subIssues:
+                nodes:
+                  - {number: 8, state: OPEN, title: 子の Issue}
+              linkedBranches:
+                nodes:
+                  - ref: {name: feat/7}
+              timelineItems:
+                nodes: []

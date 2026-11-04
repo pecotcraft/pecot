@@ -1,0 +1,25 @@
+{
+  "all": true,
+  "check-coverage": true,
+  "lines": 63,
+  "branches": 83,
+  "functions": 85,
+  "statements": 63,
+  "reporter": ["text", "text-summary", "lcov"],
+  "temp-directory": "coverage/tmp",
+  "include": [
+    "scripts/design-lint/**/*.ts",
+    "scripts/eslint/2layer/**/*.ts",
+    "scripts/eslint/asset-path/**/*.ts",
+    "scripts/eslint/pptx-compat/**/*.ts",
+    "scripts/eslint/_shared/**/*.ts",
+    "scripts/eslint/slidev-pages-lint/**/*.ts",
+    "scripts/eslint/text-constraints/**/*.ts",
+    "scripts/eslint/validate-references/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/dist/**",
+    "**/node_modules/**"
+  ]
+}

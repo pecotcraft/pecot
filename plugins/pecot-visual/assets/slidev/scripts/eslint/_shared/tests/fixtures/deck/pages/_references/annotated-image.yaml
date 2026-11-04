@@ -1,0 +1,87 @@
+# Layout Reference: annotated-image
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: annotated-image
+description: 画像に印を付けて手順を解説する。
+category: figure
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  steps:
+    type: Array
+    default: "[]"
+    description: ステップの配列
+    items:
+      point1:
+        type: String
+        default: "''"
+        description: 要所の見出し
+      notes1:
+        type: String
+        default: "''"
+        description: 補足
+      image:
+        type: Object
+        default: "null"
+        description: 画像
+        props:
+          src:
+            type: String
+            default: "''"
+            description: 画像のパス
+          alt:
+            type: String
+            default: "''"
+            description: 代替テキスト
+          objectFit:
+            type: String
+            default: "'contain'"
+            description: はめ込み方
+      marker:
+        type: Object
+        default: "null"
+        description: 印の位置
+        props:
+          px:
+            type: Number
+            default: "0"
+            description: 横位置
+          py:
+            type: Number
+            default: "0"
+            description: 縦位置
+text_constraints: {}
+clicks:
+  supported: true
+  recommended_pattern: clicks は steps の件数
+  validation:
+    type: count
+    source_prop: steps
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 1 ステップ
+    frontmatter: |
+      ---
+      layout: annotated-image
+      steps:
+        - point1: "操作する"
+          notes1: "補足"
+          image:
+            src: "/assets/samples/step.png"
+            alt: "画面"
+          marker: { px: 10, py: 20 }
+      ---

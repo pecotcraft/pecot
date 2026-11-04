@@ -1,0 +1,42 @@
+layout: 'panel'
+description: '見出しと画像の枠を置くレイアウト。図を 1 つ見せる場面に使う。'
+category: 'figure'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '見出し'
+  caption:
+    type: 'String'
+    default: "''"
+    description: '画像の下の説明'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+  'caption':
+    min_chars: 0
+    max_chars: 40
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: panel
+      heading: 図の見出し
+      caption: 図の説明
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '画像は枠の縦横比に合わせて用意する'
+
+anti_patterns:
+  - '図の枠に収まらない画像を置く'

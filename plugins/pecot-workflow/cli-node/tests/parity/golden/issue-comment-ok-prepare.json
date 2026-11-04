@@ -1,0 +1,9 @@
+{
+  "stdout": "{{TMP}}/base/demo/.pecot/tmp/output/comment-merge-diff-{{TIMESTAMP}}.md\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [],
+  "files": {
+    ".pecot/tmp/output/comment-merge-diff-{{TIMESTAMP}}.md": "---\nissue_ref: \"acme/demo/7\"\ntemplate: merge-diff\n---\n\n<!--\n読者: この Issue が属する Epic を追う人（後のタスクを計画する人・Epic の完了を判定する人）。末尾の「例:」の形で書く。\n\n書き方:\n- 見出しの `—` の後は、何がどうなったか（どうなるか）を、主語と述語のある 1 文で書く\n- 計画との差が無ければ Variance を `- 計画通り完了` に、後への影響が無ければ Impact を `- 後続タスクへの影響なし` にする\n\n例:\n\n## Merge — CSV の書き出しが入り、計画と違う点が 1 つある\n\n### Variance — 列の順の決め方が計画と違う\n\n- 列の順 — 計画では設定ファイルで決める予定だった。実績は `mytool list` の表示と同じ順にした（利用者が 2 つの順を覚えずに済むため）\n\n### Impact — 並べ替えのタスクは CSV の列の順を前提にできる\n\n- 並べ替えのタスク — CSV の列の順が `mytool list` と同じなので、並べ替えの結果を CSV でそのまま確かめられる\n-->\n\n## Merge — <完了サマリを1行で>\n\n### Variance — <計画との差分を1行で>\n\n- <変わった点> — <計画では A、実績は B（理由）>\n\n### Impact — <後続への影響を1行で>\n\n- <影響を受ける後のタスク> — <何を合わせるか>\n"
+  }
+}

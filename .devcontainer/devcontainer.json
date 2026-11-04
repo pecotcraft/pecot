@@ -1,0 +1,32 @@
+{
+  "name": "pecot",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu26.04",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/va-h/devcontainers-features/uv:1": {},
+    "ghcr.io/devcontainers/features/node:2": { "version": "24.22.1" },
+    "ghcr.io/devcontainers/features/copilot-cli:1": {},
+    "ghcr.io/devcontainers/features/aws-cli:1": { "version": "2.38.5" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+  },
+  "workspaceFolder": "/workspaces/base",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/base/pecot,type=bind,consistency=cached",
+  "onCreateCommand": "bash /workspaces/base/pecot/.devcontainer/scripts/on-create.sh",
+  "postCreateCommand": "bash /workspaces/base/pecot/.devcontainer/scripts/post-create.sh",
+  "postStartCommand": "bash /workspaces/base/pecot/.devcontainer/scripts/post-start.sh",
+  "forwardPorts": [3030, 3031, 3032, 3033, 3034],
+  "portsAttributes": {
+    "3030": { "label": "Slidev dev server", "onAutoForward": "notify" },
+    "3031": { "label": "Slidev (fallback)", "onAutoForward": "silent" },
+    "3032": { "label": "Slidev (fallback)", "onAutoForward": "silent" },
+    "3033": { "label": "Slidev (fallback)", "onAutoForward": "silent" },
+    "3034": { "label": "Slidev (fallback)", "onAutoForward": "silent" }
+  },
+  "mounts": [
+    "source=pecot-claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    "source=pecot-commandhistory-${devcontainerId},target=/commandhistory,type=volume"
+  ]
+}

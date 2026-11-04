@@ -1,0 +1,42 @@
+layout: 'plain'
+description: '見出しと本文だけを置く最小のレイアウト。文章で伝える場面に使う。'
+category: 'text'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '見出し'
+  body:
+    type: 'String'
+    default: "''"
+    description: '本文'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+  'body':
+    min_chars: 0
+    max_chars: 80
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: plain
+      heading: 見出しの例
+      body: 本文の例
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '1 枚で伝える内容を 1 つに絞る'
+
+anti_patterns:
+  - '見出しに文章を書く'

@@ -1,0 +1,7 @@
+# --prepare の task は --repo が必須。無ければ exit 2。
+id: issue-create-usage-prepare-no-repo
+command:
+  path: [issue, create]
+  args: [--prepare, --template, task]
+setup: {}
+github: []

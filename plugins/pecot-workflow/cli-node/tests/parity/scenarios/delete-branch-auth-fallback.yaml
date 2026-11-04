@@ -1,0 +1,87 @@
+# env のトークンに REST が 401 を返す。gh auth token のトークンで再送が通り、警告が stderr に出る。最初の GET が 2 回記録される。
+id: delete-branch-auth-fallback
+command:
+  path: [delete-branch]
+  args: [acme/demo, feat/7]
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+  gh:
+    token: fallback-token
+github:
+  - match:
+      method: GET
+      path: /repos/acme/demo
+    respond:
+      status: 401
+      body: {message: Bad credentials}
+  - match:
+      method: GET
+      path: /repos/acme/demo
+    respond:
+      status: 200
+      body: {default_branch: main}
+  - match:
+      method: DELETE
+      path: /repos/acme/demo/git/refs/heads/feat/7
+    respond:
+      status: 204
+      text: ""
+  - match:
+      method: DELETE
+      path: /repos/acme/demo/git/refs/heads/wip/feat/7
+    respond:
+      status: 404
+      body: {message: Not Found}

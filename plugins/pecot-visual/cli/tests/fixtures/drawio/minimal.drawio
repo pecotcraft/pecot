@@ -1,0 +1,17 @@
+<mxfile>
+<diagram name="minimal">
+<mxGraphModel page="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1">
+<root>
+  <mxCell id="0"/>
+  <mxCell id="1" parent="0"/>
+  <!-- comment to be stripped -->
+  <mxCell id="title" value="Hello" style="text;html=1;align=center;fontFamily=sans-serif;fontSize=16;fontColor=#4f46e5;" vertex="1" parent="1">
+    <mxGeometry x="40" y="40" width="200" height="40" as="geometry"/>
+  </mxCell>
+  <mxCell id="box" value="Box" style="rounded=1;fillColor=#ffffff;strokeColor=#4f46e5;fontFamily=sans-serif;fontSize=12;" vertex="1" parent="1">
+    <mxGeometry x="40" y="100" width="120" height="60" as="geometry"/>
+  </mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+</mxfile>

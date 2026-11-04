@@ -1,0 +1,817 @@
+// infra/_shared/runtime-install.ts の unit test。
+//
+// 実際の npm install は 600MB 級なので実行しない。ここで固定するのは
+// 「何を install 対象にするか」と「install 先の package.json を必ず用意すること」。
+// 実取得を伴う確認は #982 の CUJ 2 が持つ。CUJ 2 は単体配布の setup から slide_convert までを通す。
+
+/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp の一時ディレクトリ配下と、リポジトリ内の追跡ファイルだけ */
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
+
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { parse as parseYaml } from 'yaml'
+
+import { isRecord } from '../../../src/domain/_shared/json.js'
+import { hasFlockCommand } from '../../../src/infra/_shared/flock.js'
+import {
+  installRuntimeDependencies,
+  runtimeInstallLockPath,
+  runtimeInstallPlan,
+  runtimeInstallSpecs,
+  runtimeInstallStamp,
+  PATCH_PACKAGE_RANGE,
+  SLIDEV_CORE_VERSION,
+} from '../../../src/infra/_shared/runtime-install.js'
+import { stubNoDataDirectory } from '../../_helpers/no-data-directory.js'
+import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+
+// tests/unit/infra → cli/
+const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
+const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
+const RUNTIME_MANIFEST = path.join(PLUGIN_ROOT, 'assets', 'slidev', 'runtime', 'package.json')
+// nodeLinker: hoisted なので workspace の依存は plugins/pecot-visual/node_modules 直下に並ぶ。
+const DOM_TO_PPTX_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'dom-to-pptx', 'package.json')
+const PPTXGENJS_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'pptxgenjs', 'package.json')
+const MONACO_EDITOR_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'monaco-editor', 'package.json')
+const MICROMARK_EXTENSION_MATH_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'micromark-extension-math', 'package.json')
+const WORKSPACE_YAML = path.join(PLUGIN_ROOT, 'pnpm-workspace.yaml')
+const LOCKFILE = path.join(PLUGIN_ROOT, 'pnpm-lock.yaml')
+
+/**
+`1.2.3` を [1, 2, 3] にする。semver を依存に足さないための最小 parser。
+*/
+function parseVersionTriple(version: string): readonly number[] {
+  return version.split('.').map(part => Math.trunc(Number(part)))
+}
+
+/**
+semver triple の辞書順比較。a > b で正、a < b で負。
+*/
+function compareVersionTriple(a: readonly number[], b: readonly number[]): number {
+  for (let index = 0; index < 3; index++) {
+    // eslint-disable-next-line security/detect-object-injection -- index は 0..2 の loop counter
+    const difference = (a[index] ?? 0) - (b[index] ?? 0)
+    if (difference !== 0) return difference
+  }
+  return 0
+}
+
+/**
+caret range (`^x.y.z`) を version が満たさない理由を返す。満たすなら undefined。
+
+semver を依存に足さないための最小判定。
+0.x の caret では minor が互換の単位で、`^0.20.3` の範囲に 0.21.0 は入らない。
+そのため下限の major が 0 のときは minor の一致も要求する。
+この条件が無いと、0.x の peer 範囲を誤って「満たす」と判定する。
+*/
+function caretRangeViolation(version: string, range: string): string | undefined {
+  if (!/^\^\d+\.\d+\.\d+$/.test(range)) return `宣言が caret range ではない: ${range}`
+  if (!/^\d+\.\d+\.\d+$/.test(version)) return `版が完全一致指定ではない: ${version}`
+  const lowerBound = parseVersionTriple(range.slice(1))
+  const actual = parseVersionTriple(version)
+  if (actual[0] !== lowerBound[0]) return `${version} が ${range} と major 不一致`
+  if (lowerBound[0] === 0 && actual[1] !== lowerBound[1]) {
+    return `${version} が ${range} と minor 不一致 (0.x の caret は minor が互換の単位)`
+  }
+  if (compareVersionTriple(actual, lowerBound) < 0) return `${version} が ${range} の下限未満`
+  return undefined
+}
+
+/**
+pnpm-workspace.yaml の packages 列を読む (末尾 `/*` は実ディレクトリへ展開する)。
+*/
+function workspacePackageDirectories(): readonly string[] {
+  const config: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
+  const declared = isRecord(config) && Array.isArray(config['packages']) ? config['packages'] : []
+  const directories: string[] = []
+  for (const entry of declared) {
+    if (typeof entry !== 'string') continue
+    if (entry.endsWith('/*')) {
+      const parent = entry.slice(0, -2)
+      const children = readdirSync(path.join(PLUGIN_ROOT, parent), { withFileTypes: true })
+      for (const child of children) {
+        if (child.isDirectory()) directories.push(path.posix.join(parent, child.name))
+      }
+      continue
+    }
+    directories.push(entry)
+  }
+  return directories
+}
+
+/**
+レジストリ外へ出る specifier の判定。
+
+`https:` の tarball 以外の指定も対象にする。
+`git+https:` / `git+ssh:` / `github:` / `git:` / `ssh:` もレジストリを通らず外部ホストへ取りに行く。
+そのため同じ網に入れる。
+*/
+const NON_REGISTRY_SPECIFIER = /^(?:https?|git|git\+[a-z]+|github|ssh):/
+
+/**
+依存 map を再帰的にたどり、レジストリ外の値を `<場所> = <値>` の列で返す (overrides の入れ子も見る)。
+*/
+function urlValuedEntries(value: unknown, trail: string): readonly string[] {
+  if (!isRecord(value)) return []
+  const found: string[] = []
+  for (const [name, entry] of Object.entries(value)) {
+    if (typeof entry === 'string') {
+      if (NON_REGISTRY_SPECIFIER.test(entry)) found.push(`${trail}.${name} = ${entry}`)
+      continue
+    }
+    found.push(...urlValuedEntries(entry, `${trail}.${name}`))
+  }
+  return found
+}
+
+const temporaryRoot = useTemporaryDirectory('pecotv-runtime-install-', { resolveRealPath: true })
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+  rmSync(temporaryRoot(), { recursive: true, force: true })
+})
+
+function writeManifest(contents: unknown): string {
+  const directory = temporaryRoot('manifest')
+  mkdirSync(directory, { recursive: true })
+  const manifestPath = path.join(directory, 'package.json')
+  writeFileSync(manifestPath, JSON.stringify(contents), 'utf8')
+  return manifestPath
+}
+
+describe('runtimeInstallSpecs', () => {
+  it('manifest の dependencies を range 付きで並べる', () => {
+    const manifestPath = writeManifest({
+      dependencies: { vue: '^3.5.13', echarts: '^5.5.0' },
+    })
+
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([
+      'vue@^3.5.13',
+      'echarts@^5.5.0',
+      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      `patch-package@${PATCH_PACKAGE_RANGE}`,
+    ])
+  })
+
+  it('workspace: 等のローカル参照は落とす', () => {
+    // 配布ツリーではパッケージとして解決できない。eslint プラグインは dist を同梱し、
+    // publish スクリプトが specifier を相対パスへ書き換えて供給する。
+    const manifestPath = writeManifest({
+      dependencies: {
+        'vue': '^3.5.13',
+        '@v-slidev/eslint-shared': 'workspace:*',
+        'local-a': 'link:../a',
+        'local-b': 'file:../b',
+      },
+    })
+
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([
+      'vue@^3.5.13',
+      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      `patch-package@${PATCH_PACKAGE_RANGE}`,
+    ])
+  })
+
+  it('devDependencies からは dom-to-pptx だけ取る', () => {
+    // eslint / prettier は起動層 (配布 package.json の dependencies)
+    // にあり、永続層へ二重に置かない。
+    const manifestPath = writeManifest({
+      dependencies: {},
+      devDependencies: { 'dom-to-pptx': '1.1.10', 'eslint': '^9.17.0', 'prettier': '^3.4.2' },
+    })
+
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([
+      'dom-to-pptx@1.1.10',
+      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      `patch-package@${PATCH_PACKAGE_RANGE}`,
+    ])
+  })
+
+  it('manifest が読めなくても @slidev/parser だけは返す', () => {
+    // 空を返すと「install は成功したのに何も入らない」という判別しづらい状態になる。
+    expect(runtimeInstallSpecs(temporaryRoot('no-such-package.json')))
+      .toEqual([`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`])
+  })
+
+  it('依存フィールドが object でなくても例外を投げない', () => {
+    const manifestPath = writeManifest({ dependencies: 'nonsense', devDependencies: 42 })
+
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`])
+  })
+
+  it('manifest 自体が object でなくても例外を投げない', () => {
+    // JSON としては読めるが object ではない形 (配列・スカラ)。空 manifest 扱いに倒さないと
+    // 以降の dependencies 参照が throw し、install そのものが起動しない。
+    for (const contents of [[], 42, 'nonsense']) {
+      expect(runtimeInstallSpecs(writeManifest(contents)))
+        .toEqual([`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`])
+    }
+  })
+
+  it('slidev 中核パッケージは宣言 range を捨てて固定版にする', () => {
+    const manifestPath = writeManifest({
+      dependencies: { '@slidev/cli': '^52.14.1', '@slidev/client': '^52.14.1', '@slidev/theme-default': '^0.25.0' },
+    })
+
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([
+      `@slidev/cli@${SLIDEV_CORE_VERSION}`,
+      `@slidev/client@${SLIDEV_CORE_VERSION}`,
+      '@slidev/theme-default@^0.25.0',
+      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      `patch-package@${PATCH_PACKAGE_RANGE}`,
+    ])
+  })
+})
+
+describe('runtimeInstallPlan: overrides', () => {
+  it('manifest の overrides をそのまま写す (入れ子も落とさない)', () => {
+    const overrides = { 'lodash-es': '^4.17.23', 'foo': { bar: '1.0.0' } }
+    const manifestPath = writeManifest({ dependencies: {}, overrides })
+
+    expect(runtimeInstallPlan(manifestPath).overrides).toEqual(overrides)
+  })
+
+  it('overrides が無い / object でなければ空', () => {
+    expect(runtimeInstallPlan(writeManifest({ dependencies: {} })).overrides).toEqual({})
+    expect(runtimeInstallPlan(writeManifest({ overrides: 'nonsense' })).overrides).toEqual({})
+  })
+})
+
+describe('runtimeInstallStamp', () => {
+  it('install 対象が同じなら同じ印になる', () => {
+    const manifestPath = writeManifest({ dependencies: { vue: '^3.5.13' } })
+
+    expect(runtimeInstallStamp(manifestPath)).toBe(runtimeInstallStamp(manifestPath))
+  })
+
+  it('依存が増えれば印が変わる (版上げで依存が増えた状態を検出する)', () => {
+    const before = runtimeInstallStamp(writeManifest({ dependencies: { vue: '^3.5.13' } }))
+    const after = runtimeInstallStamp(writeManifest({ dependencies: { vue: '^3.5.13', echarts: '^5.5.0' } }))
+
+    expect(after).not.toBe(before)
+  })
+
+  it('overrides だけが変わっても印が変わる', () => {
+    const before = runtimeInstallStamp(writeManifest({ dependencies: {}, overrides: { 'lodash-es': '^4.17.23' } }))
+    const after = runtimeInstallStamp(writeManifest({ dependencies: {}, overrides: { 'lodash-es': '^4.18.0' } }))
+
+    expect(after).not.toBe(before)
+  })
+})
+
+describe('runtimeInstallLockPath', () => {
+  // ロックは永続層の直下に置く (node_modules を作る側なので chromium 側とは場所が違う)。
+  it('永続層直下の固定名を返す', () => {
+    const data = temporaryRoot('lock-data')
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+
+    expect(runtimeInstallLockPath())
+      .toBe(path.join(data, 'mcp-dist', '.pecotv-runtime-install.lock'))
+  })
+
+  it('データ置き場を決められなければ undefined (実在しない親を指すパスを組み立てない)', () => {
+    // flock(1) は親ディレクトリが無いとロックファイルを作れず exit 66 で終わる。
+    stubNoDataDirectory()
+
+    expect(runtimeInstallLockPath()).toBeUndefined()
+  })
+})
+
+describe('本体の runtime manifest との整合', () => {
+  it('manifest の runtime 依存が漏れなく install 対象になる', () => {
+    // talk-dir は依存ルートの node_modules へ symlink を張る。
+    // その状態で slidev build を回すため、
+    // manifest が宣言している runtime 依存はすべて永続層に要る。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      dependencies: Record<string, string>
+    }
+    const specs = runtimeInstallSpecs(RUNTIME_MANIFEST)
+
+    for (const [name, range] of Object.entries(manifest.dependencies)) {
+      if (range.startsWith('workspace:')) continue
+      // slidev 中核パッケージだけは宣言 range ではなく固定版で入る (下のセルを参照)。
+      const expected = name !== '@slidev/theme-default' && name.startsWith('@slidev/')
+        ? SLIDEV_CORE_VERSION
+        : range
+      expect(specs, `${name} が install 対象から漏れている`).toContain(`${name}@${expected}`)
+    }
+  })
+
+  it('manifest はコードが足す @slidev/parser と patch-package を宣言しない', () => {
+    // 宣言すると、コードが足す spec と二重になり、版の食い違いが起きうる。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      dependencies: Record<string, string>
+      devDependencies: Record<string, string>
+    }
+    const declared = [...Object.keys(manifest.dependencies), ...Object.keys(manifest.devDependencies)]
+
+    expect(declared).not.toContain('@slidev/parser')
+    expect(declared).not.toContain('patch-package')
+    expect(Object.keys(manifest.devDependencies), 'devDependencies から取るのは dom-to-pptx だけ').toEqual(['dom-to-pptx'])
+  })
+
+  it('slidev 中核パッケージは cli と client は parser と同じ固定バージョンで入る', () => {
+    // `--no-package-lock` の install では `^52.14.1` が時点の最新 52.x へ解決される。
+    // cli だけが上位版へ動くと、nested に別バージョンの parser / client が入る。
+    // すると pptx 差分キャッシュの slideHash を求める parser と、slidev build の parser が食い違う。
+    const specs = runtimeInstallSpecs(RUNTIME_MANIFEST)
+
+    for (const name of ['@slidev/cli', '@slidev/client', '@slidev/parser']) {
+      expect(specs, `${name} が固定版で入っていない`).toContain(`${name}@${SLIDEV_CORE_VERSION}`)
+    }
+    // 別の版系列 (0.25.x) なので固定の対象に含めない。
+    expect(specs).toContain('@slidev/theme-default@^0.25.0')
+  })
+
+  it('固定版が cli/package.json の pin と一致する', () => {
+    // 別バージョンを掴むと、slides.md の分解結果 (= pptx 差分キャッシュの slideHash) が
+    // ビルド時の分解結果と食い違う。理由は cli/package.json の slidev-parser-pin-reason と同じ。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const cliManifest = JSON.parse(readFileSync(path.join(CLI_ROOT, 'package.json'), 'utf8')) as {
+      dependencies: Record<string, string>
+    }
+
+    expect(SLIDEV_CORE_VERSION).toBe(cliManifest.dependencies['@slidev/parser'])
+  })
+
+  it('E2E fixture の @slidev/cli が固定版と一致する', () => {
+    // fixture が `*` のままだと、無関係な lock 更新で SLIDEV_CORE_VERSION から静かに離れ、
+    // E2E が配布物と別の slidev で回る。
+    for (const fixture of ['hash-slidev', 'minimal-slidev']) {
+      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+      const manifest = JSON.parse(
+        readFileSync(path.join(CLI_ROOT, 'tests', 'fixtures', fixture, 'package.json'), 'utf8'),
+      ) as { dependencies: Record<string, string> }
+
+      expect(manifest.dependencies['@slidev/cli'], `${fixture} が固定版で宣言されていない`)
+        .toBe(SLIDEV_CORE_VERSION)
+    }
+  })
+
+  it('zod の pnpm override が cli/package.json の宣言下限と一致する', () => {
+    // 配布 package.json の zod は、dist-manifest が cli の宣言を読んで決める。
+    // override 値と cli の下限が離れると、ワークスペースと配布物が別の zod を掴む。
+    // インスタンスが分かれると tools/list が TypeError で落ちる。
+    // 理由は plugins/pecot-visual/pnpm-workspace.yaml の overrides に添えた説明と同じ。
+    // override の置き場所は pnpm-workspace.yaml。
+    // package.json の pnpm.overrides は pnpm 10 以降で読まれず、警告が出る。
+    const workspaceConfig: unknown = parseYaml(readFileSync(path.join(PLUGIN_ROOT, 'pnpm-workspace.yaml'), 'utf8'))
+    const overrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
+      ? workspaceConfig['overrides']
+      : {}
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const cliManifest = JSON.parse(readFileSync(path.join(CLI_ROOT, 'package.json'), 'utf8')) as {
+      dependencies: Record<string, string>
+    }
+
+    const overridden = typeof overrides['zod'] === 'string' ? overrides['zod'] : ''
+    expect(overridden, 'zod の override が宣言されていない').not.toBe('')
+    expect(cliManifest.dependencies['zod']).toBe(`^${overridden}`)
+  })
+
+  it('manifest の overrides を永続層へ引き継ぐ', () => {
+    // install 対象を manifest から導く設計なので、解決の pin だけ落とすと
+    // 永続層とプラグインとして動く側で別の推移依存を掴む。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      overrides: Record<string, string>
+    }
+
+    expect(runtimeInstallPlan(RUNTIME_MANIFEST).overrides).toEqual(manifest.overrides)
+  })
+
+  it('manifest の alias override (npm: 接頭辞) を値のまま引き継ぐ', () => {
+    // puppeteer の Chrome 自動取得を止める override は、`npm:puppeteer-core@<version>` という alias 形式。
+    // version だけを取り出す正規化を挟むと別名解決が失われる。
+    // すると永続層の install が本物の puppeteer を入れ、postinstall で Chrome を取りに行く。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      overrides: Record<string, string>
+    }
+
+    const declared = manifest.overrides['puppeteer'] ?? ''
+    expect(declared, 'manifest が puppeteer の alias override を宣言していない')
+      .toMatch(/^npm:puppeteer-core@/)
+    expect(runtimeInstallPlan(RUNTIME_MANIFEST).overrides['puppeteer']).toBe(declared)
+  })
+
+  it('puppeteer の alias override が dom-to-pptx の宣言範囲を満たす', () => {
+    // alias override (`npm:puppeteer-core@<version>`) は、要求範囲が上がっても自動では追従しない。
+    // dom-to-pptx が puppeteer の要求範囲を上げても、pnpm / npm はエラーを出さず古いバージョンのまま残る。
+    // 範囲外の puppeteer-core を掴むと、node exporter が参照する API が欠ける。
+    // そのため両立の確認はここに置く。
+    // 追従手順は plugins/pecot-visual/pnpm-workspace.yaml の overrides コメントに書いてある。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      overrides: Record<string, string>
+    }
+    const declared = manifest.overrides['puppeteer'] ?? ''
+    const overridden = declared.replace(/^npm:puppeteer-core@/, '')
+    expect(overridden, `manifest の puppeteer override が版を持たない: ${declared}`)
+      .toMatch(/^\d+\.\d+\.\d+$/)
+
+    // 置き場所が 2 つ (workspace の pnpm 解決用と、talk-dir / 永続層の npm install 用) あるため、
+    // 片方だけ更新した状態を弾く。
+    const workspaceConfig: unknown = parseYaml(readFileSync(path.join(PLUGIN_ROOT, 'pnpm-workspace.yaml'), 'utf8'))
+    const workspaceOverrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
+      ? workspaceConfig['overrides']
+      : {}
+    expect(workspaceOverrides['puppeteer'], 'pnpm-workspace.yaml と manifest で override 値が食い違う')
+      .toBe(declared)
+
+    expect(existsSync(DOM_TO_PPTX_MANIFEST), `dom-to-pptx が未 install: ${DOM_TO_PPTX_MANIFEST}`).toBe(true)
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const domToPptx = JSON.parse(readFileSync(DOM_TO_PPTX_MANIFEST, 'utf8')) as {
+      dependencies: Record<string, string>
+    }
+    const range = domToPptx.dependencies['puppeteer'] ?? ''
+    // semver を依存に足さず caret range 前提で判定する (range の形の固定と 0.x の扱いは
+    // caretRangeViolation が持つ)。
+    expect(
+      caretRangeViolation(overridden, range),
+      `puppeteer override ${overridden} が dom-to-pptx の宣言 ${range} と両立しない`,
+    ).toBeUndefined()
+  })
+
+  it('image-size の override が workspace と manifest で一致する', () => {
+    // 置き場所は 2 つ。
+    // workspace の pnpm 解決用と、talk-dir / 永続層の npm install 用の manifest。
+    // 一部だけ更新した状態を弾く。
+    // 理由と撤去条件は plugins/pecot-visual/pnpm-workspace.yaml の overrides コメントに書いてある。
+    const workspaceConfig: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
+    const workspaceOverrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
+      ? workspaceConfig['overrides']
+      : {}
+    const overridden = workspaceOverrides['image-size']
+    expect(overridden, 'pnpm-workspace.yaml が image-size の override を宣言していない').toMatch(/^\^\d+\.\d+\.\d+$/)
+
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      overrides: Record<string, string>
+    }
+    expect(manifest.overrides['image-size'], `pnpm-workspace.yaml と ${RUNTIME_MANIFEST} で override 値が食い違う`)
+      .toBe(overridden)
+  })
+
+  it('pptxgenjs の image-size 宣言が override を入れた時点のままになっている', () => {
+    // image-size の override は pptxgenjs が修正版を含まない範囲を宣言していることが前提。
+    // 宣言が変わったら (依存から外れた・範囲が 2.0.3 以上を含むようになった等)、override の
+    // 撤去を判断する。形を問わず変化を検出するため、範囲判定ではなく文字列の一致で固定する。
+    expect(existsSync(PPTXGENJS_MANIFEST), `pptxgenjs が未 install: ${PPTXGENJS_MANIFEST}`).toBe(true)
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const pptxgenjs = JSON.parse(readFileSync(PPTXGENJS_MANIFEST, 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+
+    expect(
+      pptxgenjs.dependencies?.['image-size'],
+      'pptxgenjs の image-size 宣言が変わった。依存から外れたか宣言範囲が 2.0.3 以上を含むなら、pnpm-workspace.yaml・manifest の image-size override を撤去する',
+    ).toBe('^1.2.1')
+  })
+
+  it('dompurify の override が workspace と manifest で一致する', () => {
+    // 置き場所は 2 つ。
+    // workspace の pnpm 解決用と、talk-dir / 永続層の npm install 用の manifest。
+    // 一部だけ更新した状態を弾く。
+    // 理由と撤去条件は plugins/pecot-visual/pnpm-workspace.yaml の overrides コメントに書いてある。
+    const workspaceConfig: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
+    const workspaceOverrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
+      ? workspaceConfig['overrides']
+      : {}
+    const overridden = workspaceOverrides['dompurify']
+    expect(overridden, 'pnpm-workspace.yaml が dompurify の override を宣言していない').toMatch(/^\^\d+\.\d+\.\d+$/)
+
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
+      overrides: Record<string, string>
+    }
+    expect(manifest.overrides['dompurify'], `pnpm-workspace.yaml と ${RUNTIME_MANIFEST} で override 値が食い違う`)
+      .toBe(overridden)
+  })
+
+  it('monaco-editor の dompurify 宣言が override を入れた時点のままになっている', () => {
+    // dompurify の override は monaco-editor が脆弱な版を固定で宣言することが前提。
+    // 宣言が変わったら (3.4.17 以上になった等)、override の撤去を判断する。
+    // 形を問わず変化を検出するため、範囲判定ではなく文字列の一致で固定する。
+    expect(existsSync(MONACO_EDITOR_MANIFEST), `monaco-editor が未 install: ${MONACO_EDITOR_MANIFEST}`).toBe(true)
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const monaco = JSON.parse(readFileSync(MONACO_EDITOR_MANIFEST, 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+
+    expect(
+      monaco.dependencies?.['dompurify'],
+      'monaco-editor の dompurify 宣言が変わった。3.4.17 以上になり @slidev/cli がそれを許すなら、2 か所の dompurify override を撤去する',
+    ).toBe('3.4.8')
+  })
+
+  it('micromark-extension-math の katex 宣言が override を入れた時点のままになっている', () => {
+    // katex の override (micromark-extension-math>katex) は micromark-extension-math が 0.16 系に縛ることが前提。
+    // 宣言が変わったら (0.18.2 以上を許すようになった等)、override の撤去を判断する。
+    // 形を問わず変化を検出するため、範囲判定ではなく文字列の一致で固定する。
+    expect(
+      existsSync(MICROMARK_EXTENSION_MATH_MANIFEST),
+      `micromark-extension-math が未 install: ${MICROMARK_EXTENSION_MATH_MANIFEST}`,
+    ).toBe(true)
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const math = JSON.parse(readFileSync(MICROMARK_EXTENSION_MATH_MANIFEST, 'utf8')) as {
+      dependencies?: Record<string, string>
+    }
+
+    expect(
+      math.dependencies?.['katex'],
+      'micromark-extension-math の katex 宣言が変わった。0.18.2 以上を許すなら、pnpm-workspace.yaml の micromark-extension-math>katex override を撤去する',
+    ).toBe('^0.16.0')
+  })
+
+  it('ワークスペースの package.json が URL 直指定の依存を持たない', () => {
+    // レジストリ以外へ出る依存が 1 つでも残ると、cdn へ届かない、レジストリにしか届かないネットワークで install が exit 1 になる。
+    // 走査対象はファイル名を固定せず、pnpm-workspace.yaml の packages 列から導出する。
+    // パッケージが増えても自動で網に入る。
+    // pnpm が実際に読む overrides は pnpm-workspace.yaml にあるため、そちらも同じ網に入れる。
+    // package.json 側の overrides は、talk-dir / 永続層の npm install 用の写し。
+    const targets = workspacePackageDirectories()
+    expect(targets.length, 'pnpm-workspace.yaml から走査対象を導出できていない')
+      .toBeGreaterThan(0)
+
+    const offenders: string[] = []
+    for (const directory of targets) {
+      const manifestPath = path.join(PLUGIN_ROOT, directory, 'package.json')
+      expect(existsSync(manifestPath), `走査対象に package.json が無い: ${manifestPath}`).toBe(true)
+      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
+      for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'overrides']) {
+        // eslint-disable-next-line security/detect-object-injection -- field は上のリテラル配列の要素
+        offenders.push(...urlValuedEntries(manifest[field], `${directory}/package.json ${field}`))
+      }
+    }
+
+    const workspaceConfig: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
+    const workspaceOverrides = isRecord(workspaceConfig) ? workspaceConfig['overrides'] : {}
+    expect(isRecord(workspaceOverrides), 'pnpm-workspace.yaml に overrides が無い').toBe(true)
+    offenders.push(...urlValuedEntries(workspaceOverrides, 'pnpm-workspace.yaml overrides'))
+
+    expect(offenders, `URL 直指定の依存が残っている:\n${offenders.join('\n')}`).toEqual([])
+  })
+
+  it('pnpm-lock.yaml が tarball 直取得の解決を持たない', () => {
+    // 宣言から URL を消しても、peer 宣言の写しや推移依存として lock に残ることがある。
+    // 宣言だけを直して、lock に古い解決が残った状態を見分けるため、宣言の確認とは別に lock を見る。
+    const lock = readFileSync(LOCKFILE, 'utf8')
+
+    expect(lock.match(/tarball:/g) ?? [], 'lock に tarball 直取得の resolution が残っている')
+      .toEqual([])
+    expect(lock.match(/cdn\.sheetjs\.com/g) ?? [], 'lock に cdn.sheetjs.com への参照が残っている')
+      .toEqual([])
+  })
+
+  it('PATCH_PACKAGE_RANGE が plugins/pecot-visual/package.json の宣言と一致する', () => {
+    // 永続層はワークスペースと同じ patch-package をテーマの置き場に供給する。片方だけ上げると、
+    // ワークスペースで当たったテーマの patch が永続層では当たらない（またはその逆）状態になる。
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const pluginManifest = JSON.parse(readFileSync(path.join(PLUGIN_ROOT, 'package.json'), 'utf8')) as {
+      devDependencies: Record<string, string>
+    }
+
+    expect(PATCH_PACKAGE_RANGE).toBe(pluginManifest.devDependencies['patch-package'])
+  })
+})
+
+/**
+argv と受け取った NODE_EXTRA_CA_CERTS、起動時点の node_modules の並びを JSON で吐くだけの
+npm 代役。実 install (600MB 級) は実行しない。
+
+node_modules は、起動時点の並びを記録する。
+*/
+function writeStubNpm(temporaryDirectory: string): string {
+  const stub = path.join(temporaryDirectory, 'stub-npm.cjs')
+  writeFileSync(
+    stub,
+    `#!/usr/bin/env node
+const fs = require('node:fs')
+const nodePath = require('node:path')
+
+const argv = process.argv.slice(2)
+const prefix = argv[argv.indexOf('--prefix') + 1] ?? ''
+const nodeModules = []
+try {
+  const root = nodePath.join(prefix, 'node_modules')
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.startsWith('@')) {
+      for (const child of fs.readdirSync(nodePath.join(root, entry.name))) {
+        nodeModules.push(entry.name + '/' + child)
+      }
+      continue
+    }
+    nodeModules.push(entry.name)
+  }
+  nodeModules.sort()
+}
+catch {}
+process.stdout.write(JSON.stringify({
+  argv,
+  extraCaCerts: process.env.NODE_EXTRA_CA_CERTS ?? null,
+  nodeModules,
+}))
+`,
+    { encoding: 'utf8', mode: 0o755 },
+  )
+  return stub
+}
+
+/**
+stub npm が吐いた観測値。
+*/
+function readStubNpmOutput(stdout: string): { argv: string[], extraCaCerts: string | null, nodeModules: string[] } {
+  // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+  return JSON.parse(stdout) as { argv: string[], extraCaCerts: string | null, nodeModules: string[] }
+}
+
+describe('installRuntimeDependencies', () => {
+  it('永続層へ package.json を置いてから --prefix 付きで install する', async () => {
+    // package.json が無いと npm は上位へ遡り、置き場の外など意図しない場所へ書き込む。
+    const data = temporaryRoot('data')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifest({ dependencies: { vue: '^3.5.13' } })
+
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    expect(result.exitCode).toBe(0)
+    const runtimeRoot = path.join(data, 'mcp-dist')
+    const { argv } = readStubNpmOutput(result.stdout)
+    expect(argv.slice(0, 3)).toEqual(['install', '--prefix', runtimeRoot])
+    expect(argv).toContain('vue@^3.5.13')
+    expect(argv).toContain(`@slidev/parser@${SLIDEV_CORE_VERSION}`)
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const written = JSON.parse(readFileSync(path.join(runtimeRoot, 'package.json'), 'utf8')) as {
+      name: string
+      private: boolean
+    }
+    expect(written).toMatchObject({ name: 'pecotv-runtime', private: true })
+  })
+
+  it('2 回続けて呼んでも package.json を書き直して成功する (冪等)', async () => {
+    const data = temporaryRoot('home2')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifest({ dependencies: {} })
+    const npmCommand = writeStubNpm(temporaryRoot())
+
+    await installRuntimeDependencies({ manifestPath, npmCommand })
+    const second = await installRuntimeDependencies({ manifestPath, npmCommand })
+
+    expect(second.exitCode).toBe(0)
+  })
+
+  it('データ置き場を決められなければ取得先を決められないので起動失敗として返す', async () => {
+    stubNoDataDirectory()
+
+    const result = await installRuntimeDependencies({ manifestPath: writeManifest({}) })
+
+    // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+    expect(result.exitCode).toBe(null)
+    expect(result.stderr).toContain('PLUGIN_DATA')
+  })
+
+  it('manifest の overrides を永続層の package.json へ書く', async () => {
+    // 推移依存の pin を落とすと、永続層とプラグインとして動く側で別の実体を掴む。
+    const data = temporaryRoot('data-overrides')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifest({
+      dependencies: {},
+      overrides: { 'lodash-es': '^4.17.23', 'dompurify': '^3.3.3' },
+    })
+
+    await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const written = JSON.parse(readFileSync(runtimePackageJson(data), 'utf8')) as {
+      overrides: Record<string, string>
+    }
+    expect(written.overrides).toEqual({ 'lodash-es': '^4.17.23', 'dompurify': '^3.3.3' })
+  })
+
+  it('成功したときだけ stamp を置く', async () => {
+    const data = temporaryRoot('data-stamp')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifest({ dependencies: { vue: '^3.5.13' } })
+
+    await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    expect(readFileSync(stampPath(data), 'utf8').trim()).toBe(runtimeInstallStamp(manifestPath))
+  })
+
+  it('失敗したら stamp を消したままにする (途中終了の残骸を取得済みにしない)', async () => {
+    const data = temporaryRoot('data-stamp-fail')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifest({ dependencies: {} })
+    // 先に成功させて stamp を置き、次の install を失敗させる。
+    await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+    expect(existsSync(stampPath(data))).toBe(true)
+
+    const failing = temporaryRoot('failing-npm.cjs')
+    writeFileSync(failing, '#!/usr/bin/env node\nprocess.exit(1)\n', { encoding: 'utf8', mode: 0o755 })
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: failing })
+
+    expect(result.exitCode).toBe(1)
+    expect(existsSync(stampPath(data))).toBe(false)
+  })
+
+  it('NODE_EXTRA_CA_CERTS が未設定なら未設定のまま npm へ渡す', async () => {
+    // pecot は証明書を足さない。空文字とも区別するため、npm 代役は未設定を null で返す。
+    const data = temporaryRoot('data-ca')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
+    vi.stubEnv('NODE_EXTRA_CA_CERTS', undefined)
+    const manifestPath = writeManifest({ dependencies: {} })
+
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    expect(readStubNpmOutput(result.stdout).extraCaCerts).toBeNull()
+  })
+
+  it('NODE_EXTRA_CA_CERTS が設定済みならその値のまま npm へ渡す', async () => {
+    // 単一ファイルしか渡せないため、上書きすると、利用者の用意した束が落ちる。
+    const data = temporaryRoot('data-ca-preset')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
+    vi.stubEnv('NODE_EXTRA_CA_CERTS', '/etc/ssl/corp.pem')
+    const manifestPath = writeManifest({ dependencies: {} })
+
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    expect(readStubNpmOutput(result.stdout).extraCaCerts).toBe('/etc/ssl/corp.pem')
+  })
+
+  // flock(1) が無い環境 (macOS 等) はロックなしで動く契約なので、このセルは成立しない。
+  it.skipIf(!hasFlockCommand())('同じ永続層への同時 install は flock で直列化される', async () => {
+    // 単体配布は MCP クライアントごとに別プロセスが立つため、複数セッションからの
+    // `setup` が同じ node_modules へ 2 本並走し得る。
+    const data = temporaryRoot('data-concurrent')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const marker = temporaryRoot('in-flight')
+    vi.stubEnv('PECOTV_TEST_IN_FLIGHT', marker)
+    const manifestPath = writeManifest({ dependencies: {} })
+    const npmCommand = writeOverlapDetectingNpm(temporaryRoot())
+
+    const results = await Promise.all([
+      installRuntimeDependencies({ manifestPath, npmCommand }),
+      installRuntimeDependencies({ manifestPath, npmCommand }),
+    ])
+
+    // 重なりを検出した側は exit 1 で終わる。両方 0 なら直列に動いている。
+    expect(results.map(result => result.exitCode)).toEqual([0, 0])
+  })
+})
+
+/**
+永続層の package.json のパス。
+*/
+function runtimePackageJson(data: string): string {
+  return path.join(data, 'mcp-dist', 'package.json')
+}
+
+/**
+永続層の install stamp のパス。
+*/
+function stampPath(data: string): string {
+  return path.join(data, 'mcp-dist', '.pecotv-runtime-stamp')
+}
+
+/**
+実行が重なったら失敗する npm 代役。
+
+排他できていれば 2 本とも exit 0、重なれば後発が marker の排他生成に失敗して exit 1。
+*/
+function writeOverlapDetectingNpm(temporaryDirectory: string): string {
+  const stub = path.join(temporaryDirectory, 'overlap-npm.cjs')
+  writeFileSync(
+    stub,
+    `#!/usr/bin/env node
+const fs = require('node:fs')
+const marker = process.env.PECOTV_TEST_IN_FLIGHT
+try {
+  fs.writeFileSync(marker, '', { flag: 'wx' })
+}
+catch {
+  process.stderr.write('overlapped')
+  process.exit(1)
+}
+setTimeout(() => {
+  fs.rmSync(marker)
+  process.exit(0)
+}, 300)
+`,
+    { encoding: 'utf8', mode: 0o755 },
+  )
+  return stub
+}

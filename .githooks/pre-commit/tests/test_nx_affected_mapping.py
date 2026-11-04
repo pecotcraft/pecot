@@ -1,0 +1,669 @@
+"""nx affected のファイル→project マッピングを pin する回帰テスト（#1021）。
+
+このディレクトリの他テスト（test_run_affected_tests.py 等）は、temp repo に nx スタブを置く。
+どれも hermetic なユニットテストで、フック側のシェルロジックだけを検証する。
+本テストはそれとは意図的に異なる。
+リポジトリ実体の nx を実際に起動する。
+起動するのは node_modules/.bin/nx で、`.nxignore` と `nx.json` の namedInputs が生む affected の範囲そのものを検証する。
+スタブでは、「どのファイルがどの project を affected にするか」を捕捉できない。
+今回の回帰対象である、プロジェクト外ファイルでの全 project 発火も、スタブでは見つからない。
+
+実 nx に依存する代償として、次の制約を置く。
+  - node_modules/.bin/nx が無ければ skip する。fresh clone の npm ci 前は、正当な未整備として扱う。
+  - NX_DAEMON=false を明示し、デーモンのグラフキャッシュによる結果の揺れを排除する。
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+import pytest
+
+# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# nx の判定を左右する root 設定ファイル。
+# --base/--head ケースの複製リポへ、作業ツリー側の内容を持ち込むために使う。
+# 本テストは、未コミットの設定変更も対象にする。
+_NX_CONFIG_FILES = (".nxignore", "nx.json")
+
+
+@pytest.fixture(scope="session")
+def nx_bin() -> Path:
+    """リポジトリ実体の nx 実行ファイル。未導入なら skip。"""
+    candidate = _REPO_ROOT / "node_modules" / ".bin" / "nx"
+    if not candidate.exists():
+        pytest.skip("node_modules/.bin/nx が無い（npm ci 前）ため実 nx テストを skip する")
+    return candidate
+
+
+def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None) -> list[str]:
+    """`nx show projects --affected --json` を実行して project 名リストを返す。
+
+    nx_state を渡すと、キャッシュと索引 db をそこへ向ける。一時 clone など `_REPO_ROOT` 以外で
+    動かすときに渡す（nx 24 は repo ごとの id で `~/.nx/<id>/` を作り、一時リポの分が残るため）。
+    """
+    isolation = (
+        {
+            "NX_CACHE_DIRECTORY": str(nx_state / "cache"),
+            "NX_WORKSPACE_DATA_DIRECTORY": str(nx_state / "workspace-data"),
+        }
+        if nx_state
+        else {}
+    )
+    result = subprocess.run(
+        [str(nx_bin), "show", "projects", "--affected", "--json", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env={**os.environ, "NX_DAEMON": "false", **isolation},
+    )
+    assert result.returncode == 0, f"nx 失敗: {result.stderr}"
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+# -----------------------------------------------------------------------------
+#
+# --files ケース。軽量で、単一ファイルの変更に対する project 集合を pin する
+#
+# -----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        # root lockfile では、@nx/js の lockfile locator が全 project を touched にする。
+        # この既定を、.nxignore の /package-lock.json で止めている。
+        "package-lock.json",
+        # markdownlint 設定: nx の lint target は markdownlint を実行しない（実行元は
+        # .pre-commit-config.yaml の外部 hook）。sharedGlobals から外して発火を止めている。
+        ".markdownlint-cli2.jsonc",
+        # プロジェクト外の一般ファイル。どの namedInputs にも載らない。
+        ".pecot/config/.worktreeignore",
+    ],
+)
+def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -> None:
+    assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == []
+
+
+@pytest.mark.parametrize(
+    ("changed_file", "expected"),
+    [
+        ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow"}),
+        ("plugins/pecot-visual/cli/src/cli.ts", {"pecot-visual"}),
+        ("libs/text-rules/index.ts", {"text-rules"}),
+    ],
+)
+def test_plugin_source_affects_own_projects(
+    nx_bin: Path, changed_file: str, expected: set[str]
+) -> None:
+    # 存在しないパスを --files に渡すと、nx は何も言わずに [] を返す。
+    # そのため代表ファイルの移動や改名は、「affected が空」ではなく明示的な失敗として出す。
+    assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
+    assert expected <= set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
+
+
+def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
+    """nx.json は sharedGlobals に残す設計。全 project 発火が生きていることを pin する。"""
+    affected = set(_affected(nx_bin, _REPO_ROOT, "--files=nx.json"))
+    assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
+
+
+# -----------------------------------------------------------------------------
+#
+# レーンの inputs ケース。どのファイルの変更でどのレーンが再実行されるかを見る
+#
+# -----------------------------------------------------------------------------
+#
+# 1 プラグイン = 1 project で、レーンは project の test-* target になる。
+# affected になった project の中で、実際に実行されるのは inputs の変わったレーンだけで、
+# ほかはキャッシュを再利用する。
+# そのため、ファイルの変更で再実行されるレーンは、各レーンの inputs で決まる。
+
+
+def _nx(nx_bin: Path, *args: str) -> str:
+    # stdout はパイプでなくファイルで受ける。nx は stdout がパイプのとき大きな JSON を書き切る前に
+    # 終了することがあり、切れた出力を受け取って JSONDecodeError になる (#1217)。
+    with tempfile.TemporaryFile("w+", encoding="utf-8") as out:
+        result = subprocess.run(
+            [str(nx_bin), *args],
+            cwd=_REPO_ROOT,
+            stdout=out,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=180,
+            env={**os.environ, "NX_DAEMON": "false"},
+        )
+        assert result.returncode == 0, f"nx 失敗: {result.stderr}"
+        out.seek(0)
+        return out.read()
+
+
+@pytest.fixture(scope="module")
+def lane_input_files(nx_bin: Path, tmp_path_factory: pytest.TempPathFactory) -> dict[str, set[str]]:
+    """全 project の test-* レーン（`project:target`）→ そのレーンの inputs に入るファイル。"""
+    graph_file = tmp_path_factory.mktemp("graph") / "graph.json"
+    _nx(nx_bin, "graph", f"--file={graph_file}")
+    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    lanes = [
+        f"{project}:{target}"
+        for project, node in nodes.items()
+        for target in node["data"]["targets"]
+        if target.startswith("test-")
+    ]
+    return {
+        lane: set(json.loads(_nx(nx_bin, "show", "target", "inputs", lane, "--json"))["files"])
+        for lane in lanes
+    }
+
+
+def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> set[str]:
+    assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
+    return {lane for lane, files in lane_input_files.items() if changed_file in files}
+
+
+@pytest.mark.parametrize(
+    ("changed_file", "expected"),
+    [
+        # pecot-visual の agents/*.md を読むテストは 2 つある。
+        # 1 つは v-drawio の references の実在を確認するテストになる。
+        # もう 1 つは、スキルとエージェント定義の型を確認するテストで、pecot-workflow の test_agent_definitions (#1231) を指す。
+        (
+            "plugins/pecot-visual/agents/v-diagram-creator.md",
+            {"pecot-visual:test-skills", "pecot-workflow:test-hooks"},
+        ),
+        # w-e2e-planner.md を読むテストは 3 つある。
+        # 1 つは CUJ 定義の単一化を確かめるテストで、test-hooks が持つ (#1091)。
+        # 1 つは skills の pecot 呼び出しを CLI のコマンド木と比べるテストで、test-skills が持つ (#1185)。
+        # 残る 1 つは文書内の参照の実在を見るテストで、test-py が持つ。#1225 の strace 棚卸しで宣言した。
+        (
+            "plugins/pecot-workflow/agents/w-e2e-planner.md",
+            {"pecot-workflow:test-py", "pecot-workflow:test-hooks", "pecot-workflow:test-skills"},
+        ),
+        # scripts/ci/tests の *.test.sh を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
+        # pecotvPluginTestGlobals（pecot-visual 全レーン共有）に置くと、1 ファイルの変更で全レーンが再実行される。
+        (
+            "plugins/pecot-visual/scripts/ci/tests/references-path-existence.test.sh",
+            {"pecot-visual:test-skills"},
+        ),
+        # fake-aws を使うのは pecot-tools の cli のテストだけ (#1225)。
+        ("plugins/pecot-tools/cli/tests/_fixtures/fake-aws/aws", {"pecot-tools:test-cli"}),
+        # bin/pecotv を起動するのは cli の E2E と bootstrap のテストだけ (#1225, #1235)。
+        (
+            "plugins/pecot-visual/bin/pecotv",
+            {"pecot-visual:test-cli", "pecot-visual:test-bootstrap"},
+        ),
+        # Agent Plugins 1.0 形式の manifest を確かめるのは、cli/tests/bootstrap/manifest.sh だけとなる。
+        # 版の更新（nx release）は、nx-release の単体テストが読む (#1230, #1235)。
+        (
+            "plugins/pecot-visual/plugin.json",
+            {"pecot-visual:test-bootstrap", "nx-release:test-unit"},
+        ),
+        ("plugins/pecot-visual/mcp.json", {"pecot-visual:test-bootstrap"}),
+        (
+            "plugins/pecot-visual/com.github.copilot/hooks/hooks.json",
+            {"pecot-visual:test-bootstrap", "pecot-visual:test-hooks"},
+        ),
+        # hook から実行用ミラーを引く解決のテストは hooks レーンだけ (#1230)。
+        (
+            "plugins/pecot-visual/hooks/tests/runtime-dir-for-hooks.test.sh",
+            {"pecot-visual:test-hooks"},
+        ),
+        # ミラーの回数・解決順のテストは bootstrap のレーンだけ (#1230, #1235)。
+        (
+            "plugins/pecot-visual/cli/tests/bootstrap/install-record.sh",
+            {"pecot-visual:test-bootstrap"},
+        ),
+        ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
+        ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
+    ],
+)
+def test_out_of_lane_input_reruns_only_consumer_lane(
+    lane_input_files: dict[str, set[str]], changed_file: str, expected: set[str]
+) -> None:
+    """レーンのディレクトリ外の入力は、消費者レーンの inputs だけに宣言する設計を pin する（#1080）。
+
+    nx.json の pecotvPluginTestGlobals（pecot-visual 全レーンが共有）へ戻すと、
+    1 ファイルの変更で pecot-visual の全レーンが再実行される。
+    """
+    assert _lanes_reading(lane_input_files, changed_file) == expected
+
+
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        "plugins/pecot-workflow/skills/w-pr/SKILL.md",
+        "plugins/pecot-visual/skills/v-slidev/SKILL.md",
+    ],
+)
+def test_skill_definition_change_runs_definition_check(
+    lane_input_files: dict[str, set[str]], changed_file: str
+) -> None:
+    """SKILL.md の frontmatter を確かめる test_agent_definitions は、pecot-workflow の hooks レーンが持つ (#1231)。
+
+    skills と pecot-visual の SKILL.md は hooks/ の外にある。
+    レーンの inputs に直接宣言しないと、nx キャッシュが定義の変更を見逃し、確認が行われなくなる。
+    """
+    assert "pecot-workflow:test-hooks" in _lanes_reading(lane_input_files, changed_file)
+
+
+@pytest.mark.parametrize(
+    ("changed_file", "release_lane"),
+    [
+        ("plugins/pecot-visual/cli/src/domain/drawio/url.ts", "pecot-visual:test-release"),
+        ("plugins/pecot-visual/skills/v-slidev/SKILL.md", "pecot-visual:test-release"),
+        ("plugins/pecot-visual/hooks/hooks.json", "pecot-visual:test-release"),
+        ("plugins/pecot-tools/cli/src/cli.ts", "pecot-tools:test-release"),
+    ],
+)
+def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
+    nx_bin: Path,
+    tmp_path: Path,
+    lane_input_files: dict[str, set[str]],
+    changed_file: str,
+    release_lane: str,
+) -> None:
+    """cli/src・SKILL.md・hooks の変更で release レーンはキャッシュから再利用される（#1080）。
+
+    release レーンは配布ツリー用の dist を自前で build するので、cli/src を inputs に入れない。
+    加えてレーンは cache: true なので、inputs に入らない変更では入力ハッシュが変わらない。
+    その場合はキャッシュが再利用される。
+    外部レジストリの状態はハッシュに表せない。その変化は、リリース時の dry-run と監査で拾う。
+    """
+    assert release_lane not in _lanes_reading(lane_input_files, changed_file)
+    graph_file = tmp_path / "graph.json"
+    _nx(nx_bin, "graph", f"--file={graph_file}")
+    project, target = release_lane.split(":")
+    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    assert nodes[project]["data"]["targets"][target].get("cache") is True
+
+
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        ".nx/nx-release/src/version-actions.js",
+        "package.json",  # nx 本体の版
+        "libs/text-rules/project.json",  # versionActions / manifestRootsToUpdate
+        "libs/text-rules/package.json",  # 実体の版
+        ".nx/nx-release/src/package-version-actions.js",
+        "plugins/pecot-workflow/project.json",  # versionActions / manifestRootsToUpdate
+        "plugins/pecot-tools/.claude-plugin/plugin.json",
+        "plugins/pecot-visual/plugin.json",  # Agent Plugins 1.0 形式のルートの plugin.json
+        "plugins/pecot-tools/plugin.json",
+    ],
+)
+def test_nx_release_lane_follows_its_inputs(
+    lane_input_files: dict[str, set[str]], changed_file: str
+) -> None:
+    """`.nx/nx-release` のレーンが nx 更新・リリース設定の変更でも再実行される。"""
+    assert "nx-release:test-unit" in _lanes_reading(lane_input_files, changed_file)
+
+
+# -----------------------------------------------------------------------------
+#
+# task graph ケース。pecot-visual のレーンが共有ステップを nx target に寄せている配線を pin する
+#
+# -----------------------------------------------------------------------------
+#
+# pecot-visual の各レーンは、run-tests.sh を別プロセスで起動する。
+# install や cli build をレーン内で重ねると、並列実行中の別レーンから CLI を奪うことがある。
+# 奪われるのは、test-cli の E2E が起動する bin/pecotv で、prebuild の dist 削除が原因になる。
+# #1084 で実 push の間欠的な失敗として観測した。
+# pecot-visual の全レーンは install に、cli/dist を読むレーンは build-cli に dependsOn する。
+# これを実 nx の task graph で確かめる。
+
+
+def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx_bin: Path) -> None:
+    graph_file = tmp_path / "graph.json"
+    _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
+    # nx 24 の dependencies は、task id から `[{"id": <依存 task id>}]` への対応になる。
+    # nx 22 では、id の文字列の配列だった。
+    deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
+    lanes = [t for t in tasks["tasks"] if t.startswith("pecot-visual:test-")]
+    assert "pecot-visual:test-compare" in lanes, lanes
+    for lane in lanes:
+        assert "pecot-visual:install" in deps[lane], f"{lane} が install に依存しない"
+    for lane in ("pecot-visual:test-cli", "pecot-visual:test-release", "pecot-visual:test-compare"):
+        assert "pecot-visual:build-cli" in deps[lane], f"{lane} が build-cli に依存しない"
+    # 共有ステップは task graph 上で project ごとの 1 件が載る。
+    # text-rules:build が text-rules:install を連れてくるので、install は 2 件になる (#1281)。
+    assert sorted(t for t in tasks["tasks"] if t.endswith(":install")) == [
+        "pecot-visual:install",
+        "text-rules:install",
+    ]
+    # 配布ツリーに同梱する text-rules の dist を、release レーンが先に build する。
+    assert "text-rules:build" in deps["pecot-visual:test-release"]
+    # libs/text-rules の node_modules は pecot-visual:install が npm ci で戻す。
+    # text-rules:install は何もせず、順序だけを与える (#1297, #1309)。
+    # pecot-visual:install → text-rules:install → text-rules:build → build-slidev。
+    assert "pecot-visual:install" in deps["text-rules:install"]
+    assert "text-rules:install" in deps["text-rules:build"]
+    assert "text-rules:build" in deps["pecot-visual:build-slidev"]
+    assert "pecot-visual:install" in deps["pecot-visual:build-slidev"]
+
+
+def test_bootstrap_lanes_wait_for_install_and_pecot_tools_also_for_build_cli(
+    tmp_path: Path, nx_bin: Path
+) -> None:
+    """bootstrap のレーン (#1235) は install を共有し、pecot-tools のレーンは build-cli の後に実行する。
+
+    pecot-tools の `cli/tests/bootstrap/run.sh` は、本体の cli/dist/cli.js を bootstrap が書き換えていないか、mtime で確かめる。
+    build-cli が並行すると、dist の再生成を本体への書き込みと誤判定する。
+    pecot-visual のレーンは本体の cli/dist を使わないので、build-cli に依存しない。
+    """
+    graph_file = tmp_path / "graph.json"
+    _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual,pecot-tools", f"--graph={graph_file}")
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
+    deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
+    assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
+    assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
+    assert {"pecot-tools:install", "pecot-tools:build-cli"} <= deps["pecot-tools:test-bootstrap"]
+
+
+# -----------------------------------------------------------------------------
+#
+# --base/--head ケース。実際の呼び方で、使い捨て複製リポ上にプローブコミットを作る
+#
+# -----------------------------------------------------------------------------
+#
+# --files 指定の affected は、全て WholeFileChange 扱いになる。
+# そのため、JSON の構造差分を見る locator（getTouchedNpmPackages 等）が動かない。
+# 実際の pre-push の確認（run-affected-tests.sh）と version-plan ガードは、--base/--head で評価する。
+# lockfile のように locator の有無で結果が変わるケースは、こちらで pin する。
+
+
+def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_path: Path) -> None:
+    probe = tmp_path / "probe"
+    # --no-hardlinks は必須とする。
+    # tmp_path はリポジトリと別マウントになり得る。
+    # devcontainer の bind mount 構成では、実際に別デバイスになる。
+    # その場合、既定のハードリンク複製は "Invalid cross-device link" で失敗する。
+    subprocess.run(
+        ["git", "clone", "--local", "--no-hardlinks", "-q", str(_REPO_ROOT), str(probe)],
+        check=True,
+        capture_output=True,
+    )
+    # 複製には node_modules が無いので実体を貼る（nx 本体と plugin 依存の解決用）。
+    (probe / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
+
+    def git(*args: str) -> None:
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "user.email=t@example.com",
+                "-c",
+                "user.name=t",
+                *args,
+            ],
+            cwd=probe,
+            check=True,
+            capture_output=True,
+        )
+
+    # プローブ 1: 作業ツリー側の nx 設定を複製へ持ち込んで base を作る。clone は
+    # コミット済みの内容しか持たないため、未コミットの .nxignore / nx.json 変更でも
+    # 同じ判定が pin されるようにする。
+    for name in _NX_CONFIG_FILES:
+        shutil.copyfile(_REPO_ROOT / name, probe / name)
+    git("add", "-A")
+    git("commit", "-q", "--allow-empty", "-m", "probe: sync nx config")
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+    # プローブ 2: root lockfile だけを変更する（transitive package の version を 1 件 bump）。
+    lockfile = probe / "package-lock.json"
+    lock = json.loads(lockfile.read_text())
+    target = next(k for k in lock["packages"] if k.startswith("node_modules/"))
+    lock["packages"][target]["version"] += "-probe"
+    lockfile.write_text(json.dumps(lock, indent=2) + "\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "probe: bump transitive lockfile version")
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+    assert (
+        _affected(nx_bin, probe, f"--base={base}", f"--head={head}", nx_state=tmp_path / "nx-state")
+        == []
+    )
+
+
+# -----------------------------------------------------------------------------
+#
+# pre-commit と pre-push が要求するレーン単位の affected ケース（#1232）
+#
+# -----------------------------------------------------------------------------
+#
+# pre-commit と pre-push の確認は、`nx affected -t <レーン名の列挙>` を呼ぶ。
+# 呼ぶのは run-affected-tests.sh と run-affected-lint.sh になる。
+# nx 24 のタスク単位 affected は、変更が届いた「要求 target のタスク」だけを選ぶ。
+# そのため、起点となる target（test / lint の nx:noop）を要求すると、project 全体を入力にして全レーンを連れてくる。
+# レーンを直接要求すれば、変更が届いたレーンだけが選ばれる。
+# nx 22 は project 単位で選ぶので、affected になった project の全レーンが残る。このテストは nx 22 で失敗する。
+
+
+def _graph_lane_names(nx_bin: Path, tmp_path: Path, kind: str) -> list[str]:
+    """pre-push と pre-commit の確認と同じ規則で、graph から集めた target 名を返す。
+
+    対象は、名前が `^test(-|$)`（test の場合）か `^lint(-|$)`（lint の場合）に合う target とする。
+    ただし executor が nx:noop（起点の target）の場合と、nx:run-script（package.json の scripts 由来）の場合は除く。
+    """
+    pattern = re.compile(r"^test(-|$)" if kind == "test" else r"^lint(-|$)")
+    graph_file = tmp_path / f"graph-{kind}.json"
+    _nx(nx_bin, "graph", f"--file={graph_file}")
+    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    names = {
+        target
+        for node in nodes.values()
+        for target, config in node["data"]["targets"].items()
+        if pattern.match(target) and config.get("executor") not in ("nx:noop", "nx:run-script")
+    }
+    assert names, f"{kind} のレーンが graph に無い"
+    return sorted(names)
+
+
+def _selected_lanes(nx_bin: Path, tmp_path: Path, lanes: list[str], changed_file: str) -> set[str]:
+    """`nx affected -t <lanes> --files=<file>` が選んだレーンのタスク（`project:target`）。
+
+    install / build などの依存タスクは含めない。何も選ばれないと nx は graph を書かないことがある。
+    """
+    assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
+    graph_file = tmp_path / "affected-tasks.json"
+    graph_file.unlink(missing_ok=True)
+    _nx(
+        nx_bin,
+        "affected",
+        "-t",
+        ",".join(lanes),
+        f"--files={changed_file}",
+        f"--graph={graph_file}",
+    )
+    if not graph_file.exists():
+        return set()
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]["tasks"]
+    wanted = set(lanes)
+    return {task for task in tasks if task.split(":")[1] in wanted}
+
+
+_PECOTV_TEST_LANES = {
+    f"pecot-visual:test-{lane}"
+    for lane in ("cli", "bootstrap", "slidev", "hooks", "compare", "release", "skills")
+}
+
+
+@pytest.mark.parametrize(
+    ("changed_file", "expected"),
+    [
+        # 1 パッケージのソースだけの変更は、そのソースを読むレーンだけが選ばれる。
+        (
+            "plugins/pecot-visual/cli/src/version.ts",
+            {"pecot-visual:test-cli", "pecot-visual:test-compare"},
+        ),
+        ("plugins/pecot-tools/cli/src/version.ts", {"pecot-tools:test-cli"}),
+        # 起動スクリプトは Globals が全レーンに引く / E2E と bootstrap が起動する (#1235、実 push で確認済み)。
+        (
+            "plugins/pecot-tools/bin/pecot-tools",
+            {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+        ),
+        (
+            "plugins/pecot-visual/bin/pecotv",
+            {"pecot-visual:test-cli", "pecot-visual:test-bootstrap"},
+        ),
+        # setup.sh はどのレーンも読まない (#1235、pecot-visual:test-bootstrap の inputs から外した)。
+        ("plugins/pecot-visual/setup.sh", set()),
+        # bootstrap の bash テストの変更は、test-bootstrap だけに届く。cli の test は再実行されない (#1235)。
+        ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
+        ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
+        # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
+        ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"}),
+        # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
+        # ソースの変更は、配布ツリーに同梱する dist の元になるので、pecot-visual の release レーンにも届く (#1281)。
+        # pecot-visual は libs/text-rules をリンクで載せていて、nx がリンク先の変更を検知しない。
+        # そのため text-constraints を使う test-cli / test-hooks / test-slidev も inputs に持つ (#1297)。
+        # ミラーを実 build する test-bootstrap も同じ。
+        (
+            "libs/text-rules/index.ts",
+            {
+                "text-rules:test-unit",
+                "pecot-visual:test-release",
+                "pecot-visual:test-cli",
+                "pecot-visual:test-hooks",
+                "pecot-visual:test-slidev",
+                "pecot-visual:test-bootstrap",
+            },
+        ),
+        # 依存だけの変更も同じ。pecot-visual の lock が libs/text-rules の importer を持つため、
+        # package.json の変更はそのレーンに届く (#1297)。
+        (
+            "libs/text-rules/package.json",
+            {
+                "text-rules:test-unit",
+                "nx-release:test-unit",
+                "pecot-visual:test-release",
+                "pecot-visual:test-cli",
+                "pecot-visual:test-hooks",
+                "pecot-visual:test-slidev",
+                "pecot-visual:test-bootstrap",
+            },
+        ),
+        ("libs/text-rules/tests/index.test.ts", {"text-rules:test-unit"}),
+        # project root の外を読む入力（check-engines-node-drift.sh は 2 つの cli のテストが起動する）。
+        (
+            ".githooks/pre-commit/check-engines-node-drift.sh",
+            {"pecot-tools:test-cli", "pecot-visual:test-cli"},
+        ),
+        # plugins/pecot-tools/package.json は pecot-visual:test-cli も読む（projectRoot の外）。
+        (
+            "plugins/pecot-tools/package.json",
+            {
+                "pecot-tools:test-cli",
+                "pecot-tools:test-bootstrap",
+                "pecot-tools:test-release",
+                "pecot-visual:test-cli",
+            },
+        ),
+        # 検証対象の wrapper の変更は、bootstrap のレーンに届く。
+        # pecot-tools は Globals に持つので、全レーンが再実行される (#1235)。
+        (
+            "plugins/pecot-tools/bin/_lib.sh",
+            {
+                "pecot-tools:test-cli",
+                "pecot-tools:test-bootstrap",
+                "pecot-tools:test-release",
+                "pecot-visual:test-bootstrap",
+            },
+        ),
+        # pecot-workflow の Node の CLI と Python の CLI は、それぞれのレーンだけを選ぶ (#1313)。
+        ("plugins/pecot-workflow/cli-node/src/cli.ts", {"pecot-workflow:test-cli"}),
+        ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow:test-py"}),
+        # baseline.json は test-cli の閾値と、test-hooks の起動スクリプトの実在確認の両方が読む。
+        (
+            "plugins/pecot-workflow/cli-node/tests/parity/baseline.json",
+            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks"},
+        ),
+        # hooks/ を読むテストは tests/hooks/ に置き、test-hooks だけが実行する。
+        (
+            "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",
+            {"pecot-workflow:test-hooks"},
+        ),
+        # root の lockfile は .nxignore で入力から外す。
+        ("package-lock.json", set()),
+    ],
+)
+def test_gate_selects_only_the_lanes_the_change_reaches(
+    nx_bin: Path, tmp_path: Path, changed_file: str, expected: set[str]
+) -> None:
+    lanes = _graph_lane_names(nx_bin, tmp_path, "test")
+    assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
+
+
+@pytest.mark.parametrize(
+    ("changed_file", "expected"),
+    [
+        # pecot-visual の起点の lint（nx:noop）は inputs を持たず、全レーンを連れてこない。
+        ("plugins/pecot-visual/cli/src/version.ts", {"pecot-visual:lint-cli"}),
+        # pecot-tools の lint は実体の target。plugins/pecot-tools/package.json は pecot-visual:lint-cli も読む。
+        ("plugins/pecot-tools/package.json", {"pecot-tools:lint", "pecot-visual:lint-cli"}),
+        # text-rules の lint は root の package.json を読まない。root の package.json が選ぶのは pecot-workflow:lint-py だけ。
+        ("package.json", {"pecot-workflow:lint-py"}),
+        # pecot-workflow の lint は lint-py と lint-cli に分かれ、変更が届いたほうだけが選ばれる (#1313)。
+        ("plugins/pecot-workflow/cli-node/src/cli.ts", {"pecot-workflow:lint-cli"}),
+        ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow:lint-py"}),
+        # tests/hooks/ のテストも型の確認と eslint の対象。
+        (
+            "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",
+            {"pecot-workflow:lint-cli"},
+        ),
+        # libs/text-rules の lint は実体の target 1 つ。
+        # pecot-visual の lint-slidev は、リンクで載せた libs/text-rules を inputs に持つ (#1297)。
+        # lint-cli も text-rules:build に依存し、^production で libs/text-rules を取り込む (#1282)。
+        (
+            "libs/text-rules/index.ts",
+            {
+                "text-rules:lint",
+                "pecot-visual:lint-slidev",
+                "pecot-visual:lint-cli",
+            },
+        ),
+        (
+            "libs/text-rules/package.json",
+            {
+                "text-rules:lint",
+                "pecot-visual:lint-slidev",
+                "pecot-visual:lint-cli",
+            },
+        ),
+    ],
+)
+def test_lint_gate_selects_only_the_lanes_the_change_reaches(
+    nx_bin: Path, tmp_path: Path, changed_file: str, expected: set[str]
+) -> None:
+    lanes = _graph_lane_names(nx_bin, tmp_path, "lint")
+    assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
+
+
+@pytest.mark.parametrize("kind", ["test", "lint"])
+def test_gate_lane_names_match_the_lib(nx_bin: Path, tmp_path: Path, kind: str) -> None:
+    """lib/nx-lanes.sh が返すレーン名は、graph の定義から機械的に集めた名前と一致する。"""
+    lib = _REPO_ROOT / ".githooks" / "pre-commit" / "lib" / "nx-lanes.sh"
+    result = subprocess.run(
+        ["bash", "-c", f'source "{lib}" && nx_lane_targets "{nx_bin}" "{_REPO_ROOT}" {kind}'],
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env={**os.environ, "NX_DAEMON": "false"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().split(",") == _graph_lane_names(nx_bin, tmp_path, kind)

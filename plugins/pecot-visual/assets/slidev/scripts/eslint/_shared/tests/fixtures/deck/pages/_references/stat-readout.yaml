@@ -1,0 +1,98 @@
+# Layout Reference: stat-readout
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: stat-readout
+description: 左に数値の行、右にその読み取りを置く。
+category: stat
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  statContent:
+    type: Object
+    default: "null"
+    description: 数値の行
+    props:
+      heading:
+        type: String
+        default: "''"
+        description: 見出し
+      rows:
+        type: Array
+        default: "[]"
+        description: 数値の行の配列
+        required: true
+        items:
+          label:
+            type: String
+            default: "''"
+            description: 指標名
+          value:
+            type: String
+            default: "''"
+            description: 数値
+          unit:
+            type: String
+            default: "''"
+            description: 単位
+          detail:
+            type: String
+            default: "''"
+            description: 補足
+  readout:
+    type: Object
+    default: "null"
+    description: 読み取り
+    props:
+      heading:
+        type: String
+        default: "''"
+        description: 見出し
+      items:
+        type: Array
+        default: "[]"
+        description: 読み取りの配列。statContent.rows と同じ件数・同じ順で並べる
+        required: true
+        same_length_as: statContent.rows
+        items:
+          claim:
+            type: String
+            default: "''"
+            description: 主張
+          detail:
+            type: String
+            default: "''"
+            description: 根拠
+text_constraints: {}
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 2 行
+    frontmatter: |
+      ---
+      layout: stat-readout
+      statContent:
+        heading: "指標"
+        rows:
+          - { label: "稼働率", value: "99", unit: "%", detail: "月平均" }
+          - { label: "件数", value: "12", unit: "件", detail: "今期" }
+      readout:
+        heading: "読み取り"
+        items:
+          - { claim: "安定している", detail: "目標を超えた" }
+          - { claim: "増えている", detail: "前期より多い" }
+      ---

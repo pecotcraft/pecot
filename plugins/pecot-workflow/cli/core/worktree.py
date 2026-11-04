@@ -1,0 +1,953 @@
+"""core/worktree.py - ワークツリー管理コアロジック
+
+ワークツリーの作成・削除・ファイルコピーの
+コアビジネスロジックを提供する。
+
+全ての関数はcwd引数で対象リポジトリを指定する。
+pecot CLI は作業リポジトリの中で実行されるが、worktree コマンドは
+別のリポジトリを対象にするため、cwd引数が必須。
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import re
+import shutil
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
+
+import pathspec
+from pydantic import ValidationError
+
+from cli.core.config import ProjectConfig, load_active_config
+from cli.core.git import git_toplevel, origin_repo, run_git
+from cli.core.repo_resolver import RepoRef
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from cli.core.worktree_links import SymlinkResult, WorktreeConfig
+
+logger = logging.getLogger(__name__)
+
+# 環境ガード
+
+
+def ensure_devcontainer_environment() -> None:
+    """pecot worktree 系コマンドが devcontainer 内で実行されていることを確認
+
+    devcontainer 外（host 直接）での実行はサポート外。プロジェクトの
+    devcontainer が整えるマウント構造（/workspaces/<project>/base/<repo>）に
+    依存するため、外で動かしても動作は保証しない。
+
+    検出方法（いずれかでヒットすれば通過）は次のとおり。
+      - ``/.dockerenv`` ファイルの存在
+      - 環境変数 ``REMOTE_CONTAINERS`` / ``CODESPACES`` / ``DEVCONTAINER`` のいずれかが設定されている。
+
+    Raises:
+        RuntimeError: いずれも満たさない場合
+    """
+    if Path("/.dockerenv").exists():
+        return
+    for env_var in ("REMOTE_CONTAINERS", "CODESPACES", "DEVCONTAINER"):
+        if os.environ.get(env_var):
+            return
+    raise RuntimeError(
+        "このコマンドは devcontainer 内で実行してください。\n"
+        "現在の環境では pecot の想定するマウント構造"
+        "（/workspaces/<project>/base/<repo>）が満たされません。\n"
+        "プロジェクトの .devcontainer/ を用意し、"
+        "VS Code で Reopen in Container してから再実行してください。"
+    )
+
+
+# データクラス
+
+
+@dataclass
+class CopyResult:
+    """ファイルコピー結果
+
+    Attributes:
+        source: コピー元パス。
+        dest: コピー先パス。
+        action: 実行アクション（"copied" | "skipped" | "error"）。
+        message: 追加メッセージ（エラー詳細など）。
+    """
+
+    source: Path
+    dest: Path
+    action: str  # "copied" | "skipped" | "error"
+    message: str = ""
+
+
+@dataclass
+class SetupResult:
+    """setup_command 実行結果
+
+    Attributes:
+        command: 実行したコマンド文字列
+        returncode: 終了コード
+        stdout: 標準出力
+        stderr: 標準エラー出力
+    """
+
+    command: str
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+@dataclass
+class WorktreeCreateResult:
+    """ワークツリー作成結果
+
+    Attributes:
+        name: WT名。
+        path: WTパス。
+        branch: ブランチ名。
+        base_branch: ベースブランチ名。
+        copied_files: コピー結果リスト。
+        linked_files: シンボリックリンク作成結果リスト。
+        setup_result: setup_command の実行結果（実行しなかった場合は None）。
+    """
+
+    name: str
+    path: Path
+    branch: str
+    base_branch: str
+    copied_files: list[CopyResult] = field(default_factory=list[CopyResult])
+    # SymlinkResult は循環 import 回避のため TYPE_CHECKING 限定 import。
+    # 実行時に名前解決できないため list[SymlinkResult] を default_factory に
+    # 渡せず、cast で型だけ付与する（実体は空 list を返す list）。
+    linked_files: list[SymlinkResult] = field(
+        default_factory=cast("Callable[[], list[SymlinkResult]]", list)
+    )
+    setup_result: SetupResult | None = None
+
+
+# Git操作関数
+
+
+@dataclass
+class WorktreeInfo:
+    """ワークツリー情報"""
+
+    path: str
+    commit: str
+    branch: str | None
+
+
+def get_worktree_list(cwd: Path | None = None) -> list[WorktreeInfo]:
+    """git worktree listの結果をパース
+
+    Args:
+        cwd: 対象ディレクトリ（省略時: カレントディレクトリ）
+
+    Returns:
+        WorktreeInfoのリスト
+    """
+    result = run_git(["worktree", "list"], cwd, check=False)
+    if result.returncode != 0:
+        return []
+
+    worktrees: list[WorktreeInfo] = []
+    for line in result.stdout.strip().split("\n"):
+        if not line:
+            continue
+
+        # フォーマット: /path/to/worktree  abc123 [branch-name]
+        # または: /path/to/worktree  abc123 (detached HEAD)
+        match = re.match(r"^(\S+)\s+(\S+)\s+\[([^\]]+)\]", line)
+        if match:
+            worktrees.append(
+                WorktreeInfo(
+                    path=match.group(1),
+                    commit=match.group(2),
+                    branch=match.group(3),
+                )
+            )
+        else:
+            # detached HEAD の場合
+            match = re.match(r"^(\S+)\s+(\S+)", line)
+            if match:
+                worktrees.append(
+                    WorktreeInfo(
+                        path=match.group(1),
+                        commit=match.group(2),
+                        branch=None,
+                    )
+                )
+
+    return worktrees
+
+
+def find_main_worktree(cwd: Path) -> Path:
+    """メインワークツリーのパスを取得
+
+    git worktree list の最初のエントリがメインWT。
+
+    Args:
+        cwd: 対象ディレクトリ（任意のWT内でOK）
+
+    Returns:
+        メインWTの絶対パス
+
+    Raises:
+        RuntimeError: git worktree list の実行に失敗した場合
+    """
+    result = run_git(["worktree", "list"], cwd, check=False)
+    if result.returncode != 0 or not result.stdout.strip():
+        raise RuntimeError(f"ワークツリー一覧を取得できません: {result.stderr}")
+
+    first_line = result.stdout.strip().split("\n")[0]
+    match = re.match(r"^(\S+)", first_line)
+    if not match:
+        raise RuntimeError("ワークツリー一覧を取得できません: パースエラー")
+
+    return Path(match.group(1))
+
+
+def is_worktree_env(cwd: Path) -> bool:
+    """サブワークツリー環境かどうかを判定
+
+    git rev-parse --git-dir と --git-common-dir を比較する。
+    サブWTでは git-dir がメインの .git を指すため、両者が異なる。
+
+    Args:
+        cwd: 判定対象ディレクトリ
+
+    Returns:
+        サブWT環境なら True、メインWT/通常リポジトリなら False
+
+    Raises:
+        RuntimeError: Gitリポジトリ外で実行した場合、またはgitコマンド失敗時
+    """
+    try:
+        git_dir_result = run_git(["rev-parse", "--git-dir"], cwd, check=True)
+        common_dir_result = run_git(["rev-parse", "--git-common-dir"], cwd, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Gitリポジトリではありません: {e.stderr.strip()}") from e
+
+    git_dir = Path(git_dir_result.stdout.strip()).resolve()
+    common_dir = Path(common_dir_result.stdout.strip()).resolve()
+    return git_dir != common_dir
+
+
+def get_worktree_dirs(cwd: Path) -> list[Path]:
+    """サブワークツリーのパス一覧を取得
+
+    get_worktree_list() を利用して全WTを取得し、
+    最初のエントリ（メインWT）を除外したサブWTのパスを返す。
+
+    Args:
+        cwd: 対象ディレクトリ（任意のWT内でOK）
+
+    Returns:
+        サブWTの絶対パスのリスト
+
+    Raises:
+        RuntimeError: ワークツリー一覧を取得できない場合
+    """
+    entries = get_worktree_list(cwd=cwd)
+    if not entries:
+        raise RuntimeError("ワークツリー一覧を取得できません")
+
+    # 最初のエントリ（メインWT）を除外
+    return [Path(entry.path) for entry in entries[1:]]
+
+
+def get_current_worktree_name(cwd: Path) -> str | None:
+    """現在のサブワークツリー名を取得
+
+    pecot の配置規約 ``<root>/wtN/<repo_dir>/`` を前提にする。
+    ``git rev-parse --show-toplevel`` が返すリポジトリディレクトリの
+    **親ディレクトリ名**（= WT 名）を返す。
+    サブWT環境でない場合は None を返す。
+
+    Args:
+        cwd: 判定対象ディレクトリ
+
+    Returns:
+        WT名（例: "wt2"）。サブWT環境でない場合・ルートを取得できない場合は None
+
+    Raises:
+        RuntimeError: Gitリポジトリ外で実行した場合（``is_worktree_env`` 由来）
+    """
+    if not is_worktree_env(cwd):
+        return None
+
+    toplevel = git_toplevel(cwd)
+    if toplevel is None:
+        return None
+    return toplevel.parent.name
+
+
+def detect_project_root(cwd: Path) -> Path:
+    """プロジェクトルートを検出
+
+    呼び出し側リポジトリの main_wt を正規化し、
+    ``<root>/base/<repo>`` の形になっているか確認する。
+
+    Args:
+        cwd: 対象ディレクトリ（任意のWT内でOK）
+
+    Returns:
+        プロジェクトルートの絶対パス（`<root>`）
+
+    Raises:
+        RuntimeError: ``<root>/base/<repo>`` 形式でない場合
+    """
+    main_wt = find_main_worktree(cwd)
+    resolved = main_wt.resolve()
+    if resolved.parent.name != "base":
+        expected = resolved.parent / "base" / resolved.name
+        raise RuntimeError(
+            "このリポジトリは pecot プロジェクトの期待構造に配置されていません。\n"
+            "\n"
+            f"  現在: {resolved}\n"
+            f"  期待: {expected}\n"
+            "\n"
+            "なぜ base/ が必要か:\n"
+            "  devcontainer が並行作業セット（wt1, wt2...）を選択的にマウントするため、\n"
+            "  「常駐セット」と「並行セット」を base/ で分離しています。\n"
+            "\n"
+            "移行手順（cwd が消えるため、本 CLI セッションを必ず終了してから実行）:\n"
+            "  1. この CLI セッションを閉じる\n"
+            f"  2. 別ターミナルで実行:\n"
+            f"       mkdir -p {resolved.parent}/base\n"
+            f"       mv {resolved} {resolved.parent}/base/\n"
+            f"  3. {resolved.parent}/base/{resolved.name}/ で CLI を再起動"
+        )
+    return resolved.parent.parent
+
+
+def get_next_set_name(
+    project_root: Path,
+    repo_dir_name: str,
+    prefix: str = "wt",
+    max_n: int = 9,
+) -> str:
+    """プロジェクトルート基準で対象リポの参加先セット名を決定
+
+    ロジック（プロジェクトセット = 同じ wtN 配下の複数リポ WT）は次のとおり。
+
+    1. ``<project_root>/wt\\d+/`` を列挙する。
+    2. 各 wtN について ``wtN/<repo_dir_name>`` が存在しないものを先頭から探す。
+       見つかったら既存セットに参加させる形でその名前を返す。
+    3. 全ての既存 wtN に該当リポが既にあるなら、``max(N)+1`` で新セット ``wt<N+1>`` を返す。
+    4. 既存セットが無ければ ``wt1`` を返す
+
+    Args:
+        project_root: プロジェクトルート。
+        repo_dir_name: 対象リポのディレクトリ名（main_wt の basename）。
+        prefix: プレフィクス（デフォルト: "wt"）。
+        max_n: 最大番号（デフォルト: 9）。
+
+    Returns:
+        参加先セット名（例: "wt2"）。
+
+    Raises:
+        RuntimeError: 全セットに参加済みで max_n を超える場合
+    """
+    existing: list[int] = []
+    if project_root.exists():
+        pattern = re.compile(rf"^{re.escape(prefix)}(\d+)$")
+        for entry in project_root.iterdir():
+            if entry.is_dir():
+                m = pattern.match(entry.name)
+                if m:
+                    existing.append(int(m.group(1)))
+
+    if not existing:
+        return f"{prefix}1"
+
+    existing.sort()
+
+    # 2. 既存セットで該当リポが未登場のものがあればそこに参加
+    for n in existing:
+        if not (project_root / f"{prefix}{n}" / repo_dir_name).exists():
+            return f"{prefix}{n}"
+
+    # 3. 全セットに参加済 → 新セット
+    new_n = existing[-1] + 1
+    if new_n > max_n:
+        raise RuntimeError(f"{prefix}1〜{prefix}{max_n} は全て使用済みです。空きがありません。")
+    return f"{prefix}{new_n}"
+
+
+# 未追跡ファイル操作
+
+
+def get_untracked_files(cwd: Path) -> list[Path]:
+    """git管理外（gitignored）ファイルの一覧を取得
+
+    Args:
+        cwd: 対象ディレクトリ（メインWTのルート）
+
+    Returns:
+        相対パスのリスト
+    """
+    result = run_git(["ls-files", "--others", "--ignored", "--exclude-standard"], cwd, check=False)
+    if result.returncode != 0 or not result.stdout.strip():
+        return []
+
+    return [Path(line) for line in result.stdout.strip().split("\n") if line]
+
+
+def _should_exclude(file_path: Path, spec: pathspec.PathSpec[Any]) -> bool:
+    """除外パターンにマッチするか判定
+
+    Args:
+        file_path: チェック対象の相対パス
+        spec: .worktreeignore から読み込んだ pathspec
+
+    Returns:
+        除外すべき場合True
+    """
+    return spec.match_file(str(file_path))
+
+
+def filter_copyable_files(files: list[Path], spec: pathspec.PathSpec[Any]) -> list[Path]:
+    """コピー対象外のファイルを除外
+
+    Args:
+        files: 相対パスのリスト
+        spec: .worktreeignore から読み込んだ pathspec
+
+    Returns:
+        フィルタ後のリスト
+    """
+    return [f for f in files if not _should_exclude(f, spec)]
+
+
+def copy_files(source_root: Path, dest_root: Path, files: list[Path]) -> list[CopyResult]:
+    """ファイルをコピー
+
+    Args:
+        source_root: コピー元のルートディレクトリ
+        dest_root: コピー先のルートディレクトリ
+        files: コピーする相対パスのリスト
+
+    Returns:
+        CopyResultのリスト
+    """
+    results: list[CopyResult] = []
+
+    for rel_path in files:
+        src = source_root / rel_path
+        dst = dest_root / rel_path
+
+        if not src.exists():
+            results.append(
+                CopyResult(
+                    source=src,
+                    dest=dst,
+                    action="skipped",
+                    message="ソースファイルが存在しません",
+                )
+            )
+            continue
+
+        try:
+            # 親ディレクトリを作成
+            dst.parent.mkdir(parents=True, exist_ok=True)
+
+            if src.is_dir():
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+            else:
+                # シンボリックリンクの場合はリンク先をコピー（follow_symlinks=True）
+                shutil.copy2(src, dst, follow_symlinks=True)
+
+            results.append(CopyResult(source=src, dest=dst, action="copied"))
+        except OSError as e:
+            results.append(
+                CopyResult(
+                    source=src,
+                    dest=dst,
+                    action="error",
+                    message=str(e),
+                )
+            )
+
+    return results
+
+
+# オーケストレーション
+
+
+def _get_repo_info(cwd: Path) -> RepoRef:
+    """origin リモートからリポジトリ情報を取得
+
+    Args:
+        cwd: 対象ディレクトリ
+
+    Returns:
+        RepoRef
+
+    Raises:
+        RuntimeError: リポジトリ情報を取得できない場合
+    """
+    origin = origin_repo(cwd)
+    info: RepoRef | None = None
+    if origin is not None:
+        _host, owner, repo = origin
+        try:
+            info = RepoRef(owner=owner, repo=repo)
+        except ValidationError:
+            info = None
+    if info is None:
+        raise RuntimeError(
+            "リポジトリ情報を取得できません。git remote originが設定されているか確認してください。"
+        )
+    return info
+
+
+def _load_copy_exclude_spec_or_raise(main_wt: Path) -> tuple[Path, pathspec.GitIgnoreSpec]:
+    """1.1 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）
+
+    Returns:
+        (ワークツリー設定ファイルのパス, コピー除外 spec)
+    """
+    from cli.core.paths import WORKTREE_CONFIG_FILENAME
+    from cli.core.worktree_links import WorktreeConfigError, load_copy_exclude_spec
+
+    worktree_config_path = main_wt / WORKTREE_CONFIG_FILENAME
+    if not worktree_config_path.exists():
+        raise RuntimeError(
+            f"ワークツリー設定が見つかりません: {WORKTREE_CONFIG_FILENAME}\n"
+            "  pecot worktree init でテンプレートを生成してください。"
+        )
+
+    try:
+        return worktree_config_path, load_copy_exclude_spec(main_wt)
+    except WorktreeConfigError as e:
+        raise RuntimeError(str(e)) from e
+
+
+def _require_registered_repo(cwd: Path) -> tuple[RepoRef, ProjectConfig]:
+    """1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）"""
+    repo_info = _get_repo_info(cwd)
+    config = load_active_config()
+    if config is None:
+        raise RuntimeError(
+            "プロジェクト設定が見つかりません。\n"
+            "  ヒント: pecot project activate <PROJECT> でプロジェクトを設定"
+        )
+    if config.find_repository(repo_info.owner, repo_info.repo) is None:
+        registered = (
+            "\n".join(f"  - {r.owner}/{r.name}" for r in config.repositories)
+            if config.repositories
+            else "  (登録なし)"
+        )
+        raise RuntimeError(
+            f"リポジトリ {repo_info.owner}/{repo_info.repo} は現在アクティブな "
+            "pecot プロジェクトに登録されていません。\n"
+            "\n"
+            "登録済みリポジトリ:\n"
+            f"{registered}\n"
+            "\n"
+            "このリポジトリを pecot プロジェクトに追加するには:\n"
+            f"  pecot project set-repo {repo_info.owner}/{repo_info.repo}\n"
+            "\n"
+            "別のプロジェクトに切り替えるには:\n"
+            "  pecot project activate <PROJECT>"
+        )
+    return repo_info, config
+
+
+def _default_base_branch(config: ProjectConfig, repo_info: RepoRef) -> str:
+    """3. ベースブランチ決定（プロジェクト設定の develop_branch を使用）"""
+    develop_branch = config.get_develop_branch(repo_info.owner, repo_info.repo)
+    if not develop_branch:
+        repo_full = f"{repo_info.owner}/{repo_info.repo}"
+        raise RuntimeError(
+            f"リポジトリ {repo_full} の develop_branch が設定されていません。\n"
+            "  プロジェクト設定ファイルの repositories に"
+            " develop_branch を追加してください。\n"
+            "  または --base オプションで明示的に指定してください。"
+        )
+    return develop_branch
+
+
+def _load_worktree_config_or_raise(worktree_config_path: Path) -> WorktreeConfig:
+    """ワークツリー設定を読み込む（設定は Step 1.1 で存在確認済み）"""
+    from cli.core.worktree_links import WorktreeConfigError, load_config
+
+    try:
+        return load_config(worktree_config_path)
+    except WorktreeConfigError as e:
+        # 設定ファイルは存在するが読み込み/検証に失敗（不正 JSON、スキーマ違反等）。
+        # 設定ファイル不在と同様に hard error として扱い、ユーザーに修正を促す。
+        raise RuntimeError(
+            f"ワークツリー設定の読み込みに失敗しました: {worktree_config_path}: {e}\n"
+            "  設定ファイルを修正してから再実行してください。"
+        ) from e
+
+
+def _create_worktree_symlinks(
+    worktree_config: WorktreeConfig,
+    project_root: Path,
+    name: str,
+    repo_dir_name: str,
+    path: Path,
+) -> tuple[list[SymlinkResult], set[Path]]:
+    """6. シンボリックリンク作成。(結果, 作成成功したリンクの WT 相対パス) を返す"""
+    from cli.core.worktree_links import create_symlinks
+
+    linked_files = create_symlinks(worktree_config, project_root, name, repo_dir_name)
+
+    # 作成成功したシンボリックリンクのパスを記録（コピー除外用）
+    symlinked_paths: set[Path] = set()
+    for lr in linked_files:
+        if lr.action == "created":
+            try:
+                symlinked_paths.add(lr.symlink_path.relative_to(path))
+            except ValueError:
+                pass
+    return linked_files, symlinked_paths
+
+
+def _copy_untracked_to_worktree(
+    main_wt: Path,
+    path: Path,
+    copy_exclude_spec: pathspec.GitIgnoreSpec,
+    symlinked_paths: set[Path],
+) -> list[CopyResult]:
+    """7. 未追跡ファイルコピー（シンボリックリンク対象を除外）"""
+    untracked = get_untracked_files(main_wt)
+    copyable = filter_copyable_files(untracked, copy_exclude_spec)
+
+    # シンボリックリンク対象を除外
+    if symlinked_paths:
+        copyable = [f for f in copyable if not any(f.is_relative_to(sp) for sp in symlinked_paths)]
+
+    if copyable:
+        return copy_files(main_wt, path, copyable)
+    return []
+
+
+def _run_effective_setup(
+    setup_command: str | None, worktree_config: WorktreeConfig, path: Path
+) -> SetupResult | None:
+    """8. セットアップコマンド実行
+
+    優先順位: CLI --setup 明示 > config.setup_command > skip
+    """
+    effective_setup = setup_command
+    if effective_setup is None:
+        effective_setup = worktree_config.setup_command
+
+    if not effective_setup:
+        return None
+    setup_result = _run_setup_command(
+        effective_setup, cwd=path, timeout=worktree_config.setup_command_timeout
+    )
+    if setup_result.returncode != 0:
+        logger.warning(
+            "setup_command が非ゼロ終了しました (exit %d): %s",
+            setup_result.returncode,
+            effective_setup,
+        )
+    return setup_result
+
+
+def create_worktree(
+    cwd: Path,
+    name: str | None = None,
+    base_branch: str | None = None,
+    path: Path | None = None,
+    copy: bool = True,
+    link: bool = True,
+    setup_command: str | None = None,
+    dry_run: bool = False,
+    allow_existing_branch: bool = False,
+) -> WorktreeCreateResult:
+    """ワークツリーを作成
+
+    注記:
+        CLI (``pecot worktree add``) は NAME 位置引数を廃止しているため、
+        常に ``name=None`` で呼ばれる（プロジェクトルート基準で自動採番）。
+        SDK/直接利用で明示 name を渡すことは可能だが、セット整合性が
+        ユーザー責務になる。
+
+    Args:
+        cwd: 対象Gitリポジトリのパス。
+        name: WT名（省略時: 自動決定）。
+        base_branch: ベースブランチ（省略時: プロジェクト設定の develop_branch）。
+        path: WT作成先パス（省略時: ``<project_root>/<name>/<repo_dir_name>``）。
+        copy: 未追跡ファイルをコピーするか（デフォルト: True）。
+        link: シンボリックリンクを作成するか（デフォルト: True）。
+        setup_command: 作成後に実行するコマンド。
+        dry_run: プレビューのみ（デフォルト: False）。
+        allow_existing_branch: 既存ブランチの upstream が develop_branch と
+            異なる場合でも再利用を許可する（デフォルト: False）。
+
+    Returns:
+        WorktreeCreateResult
+
+    Raises:
+        RuntimeError: 作成に失敗した場合、またはプロジェクトルート/既存ブランチ衝突時
+    """
+    # 1. メインWT検出 & プロジェクトルート
+    main_wt = find_main_worktree(cwd)
+    project_root = detect_project_root(cwd)
+
+    # 1.1 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）
+    worktree_config_path, copy_exclude_spec = _load_copy_exclude_spec_or_raise(main_wt)
+
+    # 1.2 container rebuild 後の stale worktree メタデータを事前に掃除。
+    #     `.git/worktrees/<name>/` だけ残って実体が消えているケース（rebuild や
+    #     手動 rm -rf のあと）で add が衝突エラーになるのを防ぐ。
+    run_git(["worktree", "prune"], main_wt, check=False)
+
+    # 1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）
+    repo_info, config = _require_registered_repo(cwd)
+
+    # 2. 名前決定（プロジェクトセットへの自動参加）
+    if name is None:
+        name = get_next_set_name(project_root, main_wt.name)
+
+    # 3. ベースブランチ決定（プロジェクト設定の develop_branch を使用）
+    if base_branch is None:
+        base_branch = _default_base_branch(config, repo_info)
+
+    # 4. パス計算: <project_root>/<name>/<repo_dir_name>
+    repo_dir_name = main_wt.name
+    if path is None:
+        path = project_root / name / repo_dir_name
+
+    # dry-run時はここで結果を返す
+    if dry_run:
+        return WorktreeCreateResult(
+            name=name,
+            path=path,
+            branch=name,
+            base_branch=base_branch,
+            copied_files=[],
+            linked_files=[],
+        )
+
+    # 5. git worktree add
+    _run_git_worktree_add(
+        cwd=cwd,
+        path=path,
+        name=name,
+        base_branch=base_branch,
+        allow_existing_branch=allow_existing_branch,
+    )
+
+    # 6〜8. シンボリックリンク作成・未追跡ファイルコピー・セットアップコマンド実行
+    result = WorktreeCreateResult(name=name, path=path, branch=name, base_branch=base_branch)
+    _populate_worktree(
+        result,
+        main_wt,
+        project_root,
+        worktree_config_path,
+        copy_exclude_spec,
+        link=link,
+        copy=copy,
+        setup_command=setup_command,
+    )
+    return result
+
+
+def _populate_worktree(
+    result: WorktreeCreateResult,
+    main_wt: Path,
+    project_root: Path,
+    worktree_config_path: Path,
+    copy_exclude_spec: pathspec.GitIgnoreSpec,
+    *,
+    link: bool,
+    copy: bool,
+    setup_command: str | None,
+) -> None:
+    """git worktree add 後の 6〜8 を実行し、結果を result に格納する"""
+    # 6. シンボリックリンク作成（設定は Step 1.1 で存在確認済み）
+    worktree_config = _load_worktree_config_or_raise(worktree_config_path)
+    symlinked_paths: set[Path] = set()
+    if link:
+        result.linked_files, symlinked_paths = _create_worktree_symlinks(
+            worktree_config, project_root, result.name, main_wt.name, result.path
+        )
+
+    # 7. 未追跡ファイルコピー（シンボリックリンク対象を除外）
+    if copy:
+        result.copied_files = _copy_untracked_to_worktree(
+            main_wt, result.path, copy_exclude_spec, symlinked_paths
+        )
+
+    # 8. セットアップコマンド実行
+    result.setup_result = _run_effective_setup(setup_command, worktree_config, result.path)
+
+
+def _run_git_worktree_add(
+    cwd: Path,
+    path: Path,
+    name: str,
+    base_branch: str | None,
+    allow_existing_branch: bool,
+) -> None:
+    """`git worktree add` を実行し、既存ブランチ衝突ガードも含めて処理する
+
+    Args:
+        cwd: 対象 Git リポジトリのパス（メイン WT でも サブ WT でも可）。
+        path: 作成先 WT パス。
+        name: ブランチ名 / WT 名。
+        base_branch: upstream 期待値 (`origin/<base_branch>`)。
+        allow_existing_branch: 既存ブランチの upstream 不一致を許容するか。
+
+    Raises:
+        RuntimeError: 既存ブランチの upstream 不一致、または git worktree add 失敗時
+    """
+    branch_exists = (
+        run_git(
+            ["show-ref", "--verify", "--quiet", f"refs/heads/{name}"], cwd, check=False
+        ).returncode
+        == 0
+    )
+
+    if branch_exists:
+        if not allow_existing_branch:
+            upstream_result = run_git(
+                ["for-each-ref", "--format=%(upstream:short)", f"refs/heads/{name}"],
+                cwd,
+                check=False,
+            )
+            current_upstream = upstream_result.stdout.strip() or None
+            expected_upstream = f"origin/{base_branch}" if base_branch else None
+            if current_upstream != expected_upstream:
+                raise RuntimeError(
+                    f"ブランチ '{name}' は既に存在し、upstream が想定と異なります "
+                    f"(現在: {current_upstream or '(未設定)'}, 期待: {expected_upstream})。"
+                    " 再利用する場合は --allow-existing-branch を指定してください。"
+                )
+
+            # upstream 一致かつ bind なし → prune に取り残された孤児ブランチとみなし除去
+            wt_path_result = run_git(
+                ["for-each-ref", "--format=%(worktreepath)", f"refs/heads/{name}"], cwd, check=False
+            )
+            if wt_path_result.returncode == 0 and not wt_path_result.stdout.strip():
+                run_git(["branch", "-D", name], cwd, check=False)
+                branch_exists = False
+
+    if branch_exists:
+        args = ["worktree", "add", str(path), name]
+    else:
+        args = ["worktree", "add", str(path), "-b", name]
+        if base_branch:
+            args.extend(["--track", f"origin/{base_branch}"])
+
+    result = run_git(args, cwd, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(f"ワークツリーの作成に失敗しました: {result.stderr}")
+
+
+def _run_setup_command(command: str, cwd: Path, timeout: int | None = None) -> SetupResult:
+    """setup_command を shell 経由で実行して結果を構造化して返す
+
+    stdin は常に ``DEVNULL`` に差し向けて対話プロンプトで stall しないようにする。
+    ``timeout`` 秒を超えた場合は子プロセスを kill し、``returncode=-1`` の
+    SetupResult を返す（例外は投げない）。``-1`` は timeout 起因の sentinel。
+
+    Args:
+        command: 実行する shell コマンド文字列
+        cwd: 実行ディレクトリ（通常は作成されたサブ WT ルート）
+        timeout: タイムアウト秒数（None なら無制限）
+
+    Returns:
+        SetupResult（returncode / stdout / stderr / command）
+    """
+    try:
+        proc = subprocess.run(
+            command,
+            cwd=cwd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            stdin=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired as e:
+        stdout = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
+        stderr = e.stderr.decode() if isinstance(e.stderr, bytes) else (e.stderr or "")
+        return SetupResult(
+            command=command,
+            returncode=-1,
+            stdout=stdout,
+            stderr=f"{stderr}timeout after {timeout} seconds".lstrip(),
+        )
+    return SetupResult(
+        command=command,
+        returncode=proc.returncode,
+        stdout=proc.stdout,
+        stderr=proc.stderr,
+    )
+
+
+def remove_worktree(
+    cwd: Path,
+    name: str,
+    force: bool = False,
+    keep_branch: bool = False,
+) -> None:
+    """ワークツリーを削除
+
+    Args:
+        cwd: 対象Gitリポジトリのパス
+        name: WT名（ブランチ名）
+        force: 強制削除（デフォルト: False）
+        keep_branch: ブランチを残す（デフォルト: False）
+
+    Raises:
+        RuntimeError: 削除に失敗した場合
+    """
+    # 1. WTパスを特定
+    result = run_git(["worktree", "list"], cwd, check=False)
+
+    wt_path: str | None = None
+    for line in result.stdout.strip().split("\n"):
+        if not line:
+            continue
+        match = re.match(r"^(\S+)\s+(\S+)\s+\[([^\]]+)\]", line)
+        if match and match.group(3) == name:
+            wt_path = match.group(1)
+            break
+
+    if wt_path is None:
+        raise RuntimeError(f"ワークツリーが見つかりません: {name}")
+
+    # 2. git worktree remove
+    args = ["worktree", "remove", wt_path]
+    if force:
+        args.append("--force")
+
+    result = run_git(args, cwd, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(f"ワークツリーの削除に失敗しました: {result.stderr}")
+
+    # 3. ブランチ削除
+    if not keep_branch:
+        # ローカルブランチ削除
+        run_git(["branch", "-D", name], cwd, check=False)
+
+    # 4. プロジェクトルート配下の <name> ディレクトリが空なら rmdir
+    try:
+        project_root = detect_project_root(cwd)
+    except RuntimeError:
+        project_root = None
+
+    if project_root is not None:
+        set_dir = project_root / name
+        if set_dir.exists() and set_dir.is_dir():
+            try:
+                next(set_dir.iterdir())
+            except StopIteration:
+                try:
+                    set_dir.rmdir()
+                except OSError as e:
+                    logger.warning("セットディレクトリの削除に失敗: %s: %s", set_dir, e)

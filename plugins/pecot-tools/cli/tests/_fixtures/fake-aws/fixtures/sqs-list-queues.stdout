@@ -1,0 +1,6 @@
+{
+    "QueueUrls": [
+        "https://sqs.ap-northeast-1.amazonaws.com/123456789012/order-events",
+        "https://sqs.ap-northeast-1.amazonaws.com/123456789012/order-events-dlq"
+    ]
+}

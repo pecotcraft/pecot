@@ -1,0 +1,9 @@
+{
+  "stdout": "{{TMP}}/base/demo/.pecot/tmp/output/issue-task-{{TIMESTAMP}}.md\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [],
+  "files": {
+    ".pecot/tmp/output/issue-task-{{TIMESTAMP}}.md": "---\ntitle: \"\"\ntype: task\nrepository: acme/demo\nstatus: ready\npriority: \"\"\nsize: \"\"\nlabels: []\nparent_epic: \"\"\norder: \"\"\n---\n\n<!--\n読者: /pecot-w:w-active で plan を立てる実装者と、完了を判定する人。末尾の「例:」の形で書く。\n\n書き方:\n- 見出しの `—` の後は、何がどうなったか（どうなるか）を、主語と述語のある 1 文で書く\n\nフィールド:\n- repository: 起票先 `owner/repo` 必須\n- parent_epic: `owner/repo/number` 推奨。番号のみは aggregation_repo 解釈なので別リポの Epic を指すなら full path 必須\n- order: 親 Epic 内の通し番号。タイトル先頭が `#{epic}-{order:02d}` で自動生成\n- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / order の判定基準）\n\n例:\n\n## Goal — `mytool export` が CSV を書き出せる\n\n今は JSON しか書き出せず、表計算ソフトで開くには利用者が自分で変換している。\n\n| コマンド | 今 | 達成後 |\n|---|---|---|\n| `mytool export --format csv` | エラーで止まる | CSV を書き出す |\n\n## Acceptance — CSV が表計算ソフトでそのまま開ける\n\n- `mytool export --format csv` の出力が、表計算ソフトで列のずれなく開ける — 確認: 実際に書き出して開く\n\n- `--format` を省くと、今までどおり JSON を書き出す — 確認: `mytool export` の出力を読む\n-->\n\n## Goal — <達成したい状態を1行で>\n\n<利用者から見て何が変わるか。今と達成後の比較は表にする>\n\n## Acceptance — <達成判定を1行で>\n\n- <外から見える状態> — 確認: <判定の手段>\n"
+  }
+}

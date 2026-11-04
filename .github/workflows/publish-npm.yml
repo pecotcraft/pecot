@@ -1,0 +1,115 @@
+# MCP サーバの tgz を npm へ publish する。
+# tgz は nx release の publish phase（publish-mcp-dist.sh）が Release に添える。
+# 認証は trusted publishing（OIDC）で行い、秘密は使わない。
+# ビルドは手元で済んでいるので checkout しない。
+# 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
+name: publish-npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "リリースのタグ（pecot-visual-v<version> か pecot-tools-v<version>）"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-npm-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: tag からパッケージ名と版を決める
+        id: resolve
+        env:
+          MSG_BAD_TAG: "tag の形が違います。pecot-visual-v<version> か pecot-tools-v<version> を渡してください。"
+        run: |
+          if [[ ! "$TAG" =~ ^pecot-(visual|tools)-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::$MSG_BAD_TAG"
+            exit 1
+          fi
+          echo "package=@pecot/${BASH_REMATCH[1]}-mcp" >> "$GITHUB_OUTPUT"
+          echo "version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      # 未公開の版は E404 で非 0 になる。E404 は未公開として進み、ほかの失敗は止める。
+      - name: 公開済みか確かめる
+        id: published
+        env:
+          PACKAGE: ${{ steps.resolve.outputs.package }}
+          VERSION: ${{ steps.resolve.outputs.version }}
+          MSG_DONE: "公開済みの版です。何もせずに終えます。"
+          MSG_NEW: "未公開の版です。publish へ進みます。"
+          MSG_FAIL: "npm view が E404 以外の理由で失敗しました。"
+        run: |
+          rc=0
+          out="$(npm view "$PACKAGE@$VERSION" version --json 2>/dev/null)" || rc=$?
+          if [ "$rc" -eq 0 ] && [ -n "$out" ]; then
+            echo "$MSG_DONE ($PACKAGE@$VERSION)"
+            echo "done=true" >> "$GITHUB_OUTPUT"
+          elif [ "$rc" -ne 0 ] && [ "$(jq -r '.error.code // empty' <<< "$out" 2>/dev/null)" = "E404" ]; then
+            echo "$MSG_NEW ($PACKAGE@$VERSION)"
+            echo "done=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$out"
+            echo "::error::$MSG_FAIL"
+            exit 1
+          fi
+
+      # private のリポからの --provenance は registry に拒まれる。
+      # 拒まれる前に、透明性ログへリポ名が残る。
+      - name: リポが private なら止める
+        if: steps.published.outputs.done == 'false'
+        env:
+          PRIVATE: ${{ github.event.repository.private }}
+          MSG_PRIVATE: "リポが private のため止めます。公開してから再実行してください。"
+        run: |
+          if [ "$PRIVATE" = "true" ]; then
+            echo "::error::$MSG_PRIVATE"
+            exit 1
+          fi
+
+      - name: tgz を取る
+        if: steps.published.outputs.done == 'false'
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" --pattern '*.tgz' -R "$REPO"
+          ls -l ./*.tgz
+
+      - name: publish
+        if: steps.published.outputs.done == 'false'
+        env:
+          PACKAGE: ${{ steps.resolve.outputs.package }}
+          VERSION: ${{ steps.resolve.outputs.version }}
+          MSG_COUNT: "Release に添えられた tgz が 1 つではありません。"
+          MSG_MISMATCH: "tgz の package.json の name か version が、tag から決めた値と違います。"
+        run: |
+          shopt -s nullglob
+          files=(./*.tgz)
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "::error::$MSG_COUNT (${files[*]})"
+            exit 1
+          fi
+          meta="$(tar -xOzf "${files[0]}" package/package.json)"
+          name="$(jq -r '.name' <<< "$meta")"
+          ver="$(jq -r '.version' <<< "$meta")"
+          if [ "$name" != "$PACKAGE" ] || [ "$ver" != "$VERSION" ]; then
+            echo "::error::$MSG_MISMATCH (tgz: $name@$ver, tag: $PACKAGE@$VERSION)"
+            exit 1
+          fi
+          npm publish "${files[0]}" --access public --provenance

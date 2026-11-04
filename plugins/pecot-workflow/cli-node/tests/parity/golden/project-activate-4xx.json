@@ -1,0 +1,15 @@
+{
+  "stdout": "\nヒント: --owner オプションで明示的に指定してください\n",
+  "stderr": "認証ユーザーの取得に失敗しました: リソースが見つかりません: {{GITHUB_API}}/user\n",
+  "exitCode": 1,
+  "requests": [
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/user",
+      "query": {},
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

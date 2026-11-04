@@ -1,0 +1,31 @@
+# golden-path E2E (CUJ 2) がパイプライン全体 (slide create → slide convert) の
+# 最終出力に当てる XPath assert の定義。
+# CUJ 2 は fixture テーマから動的に組み立てた PPTX を検証する。
+# ここには「どの part を走査し、どの XPath を、どう集約するか」だけを置く。
+# 期待値 (件数・値) は golden-path.test.ts 側で assert する。
+# 観点を足すときは id を golden-path.test.ts の find() と揃えること。
+namespaces:
+  a: "http://schemas.openxmlformats.org/drawingml/2006/main"
+  rel: "http://schemas.openxmlformats.org/package/2006/relationships"
+  p159: "http://schemas.microsoft.com/office/powerpoint/2015/09/main"
+cases:
+  - id: east-asian-declared-font
+    description: "日本語テキストの East Asian フォントがテーマの宣言 (pptx.eastAsianFont) に置換されている (日本語フォント補正の結果)。{{eastAsianFont}} は呼び出し側が宣言の値に置き換える"
+    parts: ["ppt/slides/slide*.xml"]
+    xpath: '//a:rPr/a:ea[@typeface="{{eastAsianFont}}"]'
+    extract: count
+  - id: named-hyperlink-rel-target-named
+    description: "slide rels に格納された hyperlink Relationship の Target URL"
+    parts: ["ppt/slides/_rels/slide*.xml.rels"]
+    xpath: '//rel:Relationship[@Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"]'
+    extract: 'attr:Target'
+  - id: named-hyperlink-hlink-click-count
+    description: "slide XML 側の hyperlink 参照 (a:hlinkClick) 要素数"
+    parts: ["ppt/slides/slide*.xml"]
+    xpath: '//a:hlinkClick'
+    extract: count
+  - id: transition-type-morph-presence
+    description: "morph トランジション (p159:morph) 要素数。fade デフォルトでは 0 件になる"
+    parts: ["ppt/slides/slide*.xml"]
+    xpath: '//p159:morph'
+    extract: count

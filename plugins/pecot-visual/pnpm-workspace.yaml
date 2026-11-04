@@ -1,0 +1,109 @@
+# pnpm 11 以降は .npmrc から pnpm 固有の設定を読まないため、ここに置く (#1217)。
+# .npmrc の engine-strict=true は npm を engines "<0.0.0" で止めるための npm 向け設定として残す。
+nodeLinker: hoisted
+sharedWorkspaceLockfile: true
+engineStrict: true
+# 公開から 1 日未満の版を採用しない。
+# 1440 分はデフォルト値と同じだが、明示すると minimumReleaseAgeStrict が true になる。
+# true だと 1 日未満の版が minimumReleaseAgeExclude に自動で足されず、解決が止まる。
+minimumReleaseAge: 1440
+
+packages:
+  - cli
+  - cli/tests/fixtures/hash-slidev
+  - cli/tests/fixtures/minimal-slidev
+  - libs/text-rules
+  - assets/slidev
+  - assets/slidev/scripts/eslint/2layer
+  - assets/slidev/scripts/eslint/asset-path
+  - assets/slidev/scripts/eslint/pptx-compat
+  - assets/slidev/runtime
+  - assets/slidev/scripts/eslint/_shared
+  - assets/slidev/scripts/eslint/slidev-pages-lint
+  - assets/slidev/scripts/eslint/text-constraints
+  - assets/slidev/scripts/eslint/validate-references
+
+overrides:
+  # dom-to-pptx 2.x は node exporter (dist/dom-to-pptx-node.mjs) 用に puppeteer を必須依存として宣言する。
+  # しかし pecotv が使うのはブラウザ bundle (dist/dom-to-pptx.bundle.js) だけで、node exporter は呼ばない。
+  # puppeteer の postinstall は Chrome を ~/.cache/puppeteer へ取得するため、install 時間とディスクを無駄に使う。
+  # puppeteer は自身と同版の puppeteer-core を再 export する。
+  # 25.16.0 の dependencies は puppeteer-core: 25.16.0 を固定で指す。
+  # node 側で追加されるのは PuppeteerNode のデフォルトブラウザ解決だけ。
+  # そのため同版の puppeteer-core へ alias しても、node exporter が参照する API は欠けない。
+  # #1062 で pnpm と npm の双方で実際に反映されることを確認した。
+  # dom-to-pptx が puppeteer の要求範囲を変えたら、この override も両立する版へ更新する。
+  # override 値は dom-to-pptx の宣言範囲を満たす版にし、unit test で一致を固定している。
+  # 宣言範囲は dom-to-pptx/package.json の dependencies.puppeteer に書かれている。
+  # alias override は範囲を外れても pnpm と npm がエラーを出さず、古い版のまま残る。
+  # そのため確認はテスト側に置く必要がある。
+  puppeteer: npm:puppeteer-core@25.16.0
+  # zod はワークスペースで単一版に固定する。
+  # 要求範囲を持つのは次の 3 系統で、override 値はそのすべてを満たす版にする。
+  #   - cli: ^4.6.7（下限を override 値に揃え、unit test で一致を固定している）
+  #   - @modelcontextprotocol/server・core: ^4.2.0。
+  #     SDK は zod の ~standard.jsonSchema でツール定義の JSON Schema を作るため、4.2 未満は使えない。
+  #   - @slidev/cli: 52.19.2 以降は ^4.6.5、52.19.0〜52.19.1 は ^4.4.3。
+  #     52.17.0〜52.18.1 は ^3.25.76、52.16.0 以前は zod に依存しない。
+  # 固定しない場合、main の lock は cli の ^4.3.6 を 4.3.6 に固定していて ^4.4.3 を満たさない。
+  # そのため pnpm が 4.5.4 を別途解決し、hoisted linker で root 4.5.4 と nested 4.3.6 に割れた（#1061 で確認した）。
+  # ツール定義側と SDK で zod のインスタンスが別になると、v1 SDK では tools/list が TypeError で落ちた。
+  # v2 SDK は渡されたスキーマ自身から JSON Schema を作るため、同じ形では起きない。
+  # ただしバージョンが割れると挙動の違いが結果に影響する。
+  # 配布 shrinkwrap が npm で単一版へ解決されるのと揃えて、ワークスペースの zod を 1 つにしておく。
+  # cli / slidev / SDK のいずれかが zod の要求範囲を変えたら、この override も両立する版へ更新する。
+  # package.json の pnpm.overrides は pnpm 10 以降で読まれない旨の警告が出るため、ここに置く。
+  zod: 4.6.7
+  # image-size は dom-to-pptx → pptxgenjs の推移依存で、advisory 2 件の修正版は 2.0.3。
+  # 対象は GHSA-w3rx-r6r6-pgpr と GHSA-5p2g-fcmc-qvqq で、いずれも 2.0.2 以下の無限ループ DoS。
+  # pptxgenjs 4.0.1 は image-size ^1.2.1 を宣言し、1.x に修正版は無い。
+  # そのため宣言範囲外の 2.x へ差し替える。
+  # pptxgenjs は実行時に image-size を import しない。
+  # pecotv が注入するのは単体完結の dom-to-pptx.bundle.js だけ。
+  # lock 上の依存元は pptxgenjs のみなので、メジャー版を跨いでも影響しない。
+  # pptxgenjs が image-size を依存から外すか、宣言範囲が 2.0.3 以上を含むようになったら撤去する。
+  # 撤去条件は unit test で pptxgenjs の宣言を固定して見つけている。
+  image-size: ^2.0.3
+  # uuid はテーマの peer（13.0.2）と同じ版に揃える。
+  # 揃えないと mermaid が 14.x を引き、hoisted の root の版がテーマの peer とずれる。
+  # runtime の manifest の uuid と同値にし、runtime-peers.test.ts が root の版との一致を見る。
+  uuid: 13.0.2
+  # dompurify は monaco-editor（@slidev/cli 53 経由）が版固定で宣言する（0.56 は 3.4.8、0.57 も 3.4.15）。
+  # この override は、lock から脆弱な版を消して Dependabot の alert（GHSA-cg2g-xh64-v4q7 ほか）を閉じるためのもの。
+  # monaco-editor は DOMPurify 3.4.8 を esm/vs/base/browser/dompurify/dompurify.js に同梱し、相対 import で使う。
+  # そのため Monaco の実行時のコードは、この override で変わらない。
+  # runtime/package.json の overrides と同じ値にし、runtime-install.test.ts が一致を固定している。
+  # monaco-editor の同梱と宣言が 3.4.17 以上になり、@slidev/cli がその monaco-editor を許したら撤去する。
+  # 撤去条件は unit test で monaco-editor の宣言を固定して見つけている。
+  dompurify: ^3.4.17
+  # katex は @eslint/markdown → micromark-extension-math 3.1.0 が ^0.16.0 に縛る。
+  # 0.16.47 は GHSA-238p-pmpm-9mq7（0.18.2 未満が対象）に当たるため、@slidev/cli と同じ ^0.18.7 にそろえる。
+  # 永続層には micromark-extension-math が入らないので、runtime/package.json には写さない。
+  # micromark-extension-math が katex 0.18.2 以上を許したら撤去する。
+  # 撤去条件は unit test で micromark-extension-math の宣言を固定して見つけている。
+  micromark-extension-math>katex: ^0.18.7
+# 依存に許す動作を permissions に集約する。
+# これは pnpm 12.11 以降の機能で、build は allowBuilds より優先される。
+# permissions がある workspace では、pnpm approve-builds と pnpm permissions approve もここへ書く。
+# allowBuilds を併記すると宣言が 2 系統に割れるため、allowBuilds は置かない。
+# build: 依存の install scripts は従来どおり実行しない。
+# pnpm 11 以降は未宣言のものを ERR_PNPM_IGNORED_BUILDS で落とすため、実行しないことを明示する。
+# 実行が要るものだけ true にする。
+# skills: 依存が同梱するエージェント向けスキル（pnpm 12 の skills 取り込み）は使わない。pecotv は
+# 配布物で、利用環境のエージェントの挙動はプラグイン自身のスキルだけで決まる必要があるため、
+# 取り込みを拒否する。
+permissions:
+  '@slidev/cli':
+    skills: false
+  core-js:
+    build: false
+  dom-to-pptx:
+    skills: false
+  esbuild:
+    build: false
+  playwright-chromium:
+    build: false
+  unrs-resolver:
+    build: false
+  vue-demi:
+    build: false

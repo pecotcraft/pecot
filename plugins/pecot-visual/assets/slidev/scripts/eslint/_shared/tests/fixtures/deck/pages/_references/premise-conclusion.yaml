@@ -1,0 +1,76 @@
+# Layout Reference: premise-conclusion
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: premise-conclusion
+description: 前提と結論を左右に置く。
+category: two-column
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  premise:
+    type: Object
+    default: "null"
+    description: 前提
+    props:
+      heading:
+        type: String
+        default: "''"
+        description: 見出し
+      rows:
+        type: Array
+        default: "[]"
+        description: 前提の配列
+        items:
+          claim:
+            type: String
+            default: "''"
+            description: 主張
+          detail:
+            type: String
+            default: "''"
+            description: 根拠
+  conclusion:
+    type: Object
+    default: "null"
+    description: 結論
+    props:
+      heading:
+        type: String
+        default: "''"
+        description: 見出し
+      items:
+        type: Array
+        default: "[]"
+        description: 結論の配列
+        items:
+          claim:
+            type: String
+            default: "''"
+            description: 主張
+          detail:
+            type: String
+            default: "''"
+            description: 根拠
+text_constraints: {}
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 1 組
+    frontmatter: |
+      ---
+      layout: premise-conclusion
+      premise:
+        heading: "前提"
+        rows:
+          - { claim: "負荷が高い", detail: "夜間に集中" }
+      conclusion:
+        heading: "結論"
+        items:
+          - { claim: "分散する", detail: "時間帯をずらす" }
+      ---

@@ -1,0 +1,23 @@
+# Shared Reference: _common
+# 全レイアウト共通
+
+description: 規則テスト用の共通宣言。見せ方の分類の語彙を持つ。
+layout_categories:
+  - id: fixed
+    label: 定型ページ
+    question: 表紙・目次・裏表紙など、見せ方の選択対象外
+  - id: figure
+    label: 図
+    question: 図・画像・コードで見せる
+  - id: table
+    label: 表
+    question: 項目と観点の軸のある表で見せる
+  - id: two-column
+    label: 2カラム
+    question: 左右で対比する
+  - id: stat
+    label: 数値カード
+    question: 大型の数値を少数で見せる
+  - id: showpiece
+    label: 演出
+    question: 指名された枚にだけ使う演出寄りの見せ方

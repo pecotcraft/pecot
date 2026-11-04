@@ -1,0 +1,26 @@
+{
+  "name": "pecot",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "nx workspace。prepare が root フック用に libs/text-rules を build する",
+  "scripts": {
+    "prepare": "npm --prefix libs/text-rules ci && npm --prefix libs/text-rules run build"
+  },
+  "engines": {
+    "pnpm": "<0.0.0",
+    "yarn": "<0.0.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error"
+    }
+  },
+  "devDependencies": {
+    "nx": "^24.0.1"
+  },
+  "overrides": {
+    "undici": "7.30.1"
+  }
+}

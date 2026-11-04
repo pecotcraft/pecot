@@ -1,0 +1,38 @@
+# フィールドが 1 つも無いプロジェクトに init する。CreateProjectField を 3 回受ける。
+id: project-init-ok
+command:
+  path: [project, init]
+  args: [acme, board, --suffix, acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}]}}}}
+  - match:
+      operation: GetProjectFieldsUser
+      variables: {owner: acme, projectNumber: 1}
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectV2": {"id": "PVT_1", "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "fields": {"nodes": [{"id": "PVTF_title", "name": "Title"}]}}}}}
+  - match:
+      operation: CreateProjectField
+      variables: {name: pecot-workflow-acme}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_w", "name": "pecot-workflow-acme", "options": []}}}}
+  - match:
+      operation: CreateProjectField
+      variables: {name: pecot-priority}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_p", "name": "pecot-priority", "options": []}}}}
+  - match:
+      operation: CreateProjectField
+      variables: {name: pecot-size}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_s", "name": "pecot-size", "options": []}}}}

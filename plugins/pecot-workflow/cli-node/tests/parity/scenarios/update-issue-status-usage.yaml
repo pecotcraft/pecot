@@ -1,0 +1,7 @@
+# status が 6 値以外のとき、設定を読む前に exit 1 で止まる。
+id: update-issue-status-usage
+command:
+  path: [update-issue-status]
+  args: [acme/demo/7, bogus]
+setup: {}
+github: []

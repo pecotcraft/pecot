@@ -1,0 +1,60 @@
+# 設定済みの値をクリアする。
+id: project-unset-aggregation-repo-ok
+command:
+  path: [project, unset-aggregation-repo]
+  args: []
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ],
+          "aggregation_repo": "acme/roadmap"
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+github: []

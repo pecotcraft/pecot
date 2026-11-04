@@ -1,0 +1,20 @@
+{
+  "stdout": "# プロジェクト情報\n\n## 基本情報\n- プロジェクト: ghes.example.com_acme_board_acme\n- Host: ghes.example.com\n- Owner: acme\n- ロードマップリポ: 未設定\n\n## 登録済みリポジトリ\n- (なし)\n\n## ボード状況\n\n### Active (1件)\n| Ref | タイトル |\n|-----|----------|\n| acme/demo#2 | 作業中の課題 |\n\n### Ready (1件)\n| Ref | タイトル |\n|-----|----------|\n| acme/demo#1 | 準備済みの課題 |\n",
+  "stderr": "プロジェクト情報を取得中...\n",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectItems",
+      "variables": {
+        "projectId": "PVT_1",
+        "cursor": null
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-workflow-acme%3APending%2CBacklog%2CReady%2CActive%2CArchived%2C%22In%20Review%22\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": []\n}\n"
+  }
+}

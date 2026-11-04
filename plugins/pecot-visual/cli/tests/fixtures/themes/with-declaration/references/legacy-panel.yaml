@@ -1,0 +1,35 @@
+layout: 'legacy-panel'
+description: '【非推奨】品質が水準に達していないため選ばない、見出しだけの枠。'
+category: 'figure'
+status: 'deprecated'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '見出し'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: legacy-panel
+      heading: 旧い枠の見出し
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '新しい資料では選ばない'
+
+anti_patterns:
+  - '候補に数える'

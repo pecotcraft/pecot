@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "slide": { "width": 960, "height": 540 },
+  "fonts": {
+    "body": ["Sample Sans"],
+    "heading": ["Sample Sans"],
+    "eastAsian": "Sample Sans JP"
+  },
+  "fontSizes": { "heading": 16, "headingSm": 13, "body": 12, "bodySm": 10, "label": 9 },
+  "pptx": { "eastAsianFont": "Sample Sans JP", "linkColor": "0A7F3F" },
+  "lint": {
+    "rules": {
+      "slidev-pages-lint/one-slide-per-file": "error",
+      "slidev-pages-lint/no-content-before-frontmatter": "error",
+      "slidev-pages-lint/validate-clicks": "error",
+      "slidev-pages-lint/no-unknown-props": "error",
+      "slidev-pages-lint/require-slides-entry": "error",
+      "slidev-pages-lint/no-triple-hyphen-in-frontmatter": "error",
+      "slidev-pages-lint/no-numeric-filename-prefix": "error",
+      "slidev-pages-lint/no-numeric-asset-prefix": "error",
+      "slidev-pages-lint/require-matching-length": "error",
+      "slidev-pages-lint/no-missing-marker-cell": "error",
+      "slidev-pages-lint/no-scaled-drawio": "error",
+      "slidev-pages-lint/no-missing-page": "error",
+      "text-constraints/max-chars": "error",
+      "text-constraints/textlint": "error",
+      "text-constraints/textlint-body": "error"
+    }
+  },
+  "layouts": { "references": "pages/_references" },
+  "drawio": {
+    "panels": {
+      "topic-intro": { "width": 495, "height": 378 },
+      "media-right-diagram": { "width": 495, "height": 348 },
+      "annotated-diagram": { "width": 560, "height": 390 }
+    },
+    "markerLayouts": ["annotated-diagram"]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "エラー: アクティブなプロジェクト設定が見つかりません\nヒント: pecot project activate <PROJECT> でプロジェクトを設定してください\n",
+  "exitCode": 1,
+  "requests": [],
+  "files": {}
+}

@@ -1,0 +1,22 @@
+{
+  "stdout": "{\n  \"number\": 7,\n  \"state\": \"OPEN\",\n  \"title\": \"見本の Issue\",\n  \"body\": \"本文の 1 行目\\n本文の 2 行目\\n\",\n  \"comments\": {\n    \"total_count\": 1,\n    \"nodes\": [\n      {\n        \"author\": \"reviewer\",\n        \"created_at\": \"2026-01-02T03:04:05Z\",\n        \"body\": \"コメントの本文\"\n      }\n    ]\n  },\n  \"parent\": null,\n  \"sub_issues\": [\n    {\n      \"number\": 8,\n      \"state\": \"OPEN\",\n      \"title\": \"子の Issue\"\n    }\n  ],\n  \"linked_branches\": [\n    \"feat/7\"\n  ],\n  \"linked_prs\": [],\n  \"owner\": \"acme\",\n  \"repo\": \"demo\"\n}\n",
+  "stderr": "",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "GetIssueSlim",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7,
+        "commentLimit": 5
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"PVTSSF_workflow\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": [\n    {\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"main\"\n    }\n  ]\n}\n"
+  }
+}

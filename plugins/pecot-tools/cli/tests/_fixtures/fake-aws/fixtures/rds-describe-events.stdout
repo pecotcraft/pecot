@@ -1,0 +1,14 @@
+{
+    "Events": [
+        {
+            "SourceIdentifier": "order-db",
+            "SourceType": "db-instance",
+            "Message": "DB instance stopped",
+            "EventCategories": [
+                "availability"
+            ],
+            "Date": "2026-09-01T02:15:00+00:00",
+            "SourceArn": "arn:aws:rds:ap-northeast-1:123456789012:db:order-db"
+        }
+    ]
+}

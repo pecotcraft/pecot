@@ -1,0 +1,16 @@
+{
+  "hosts": {
+    "github.com": {
+      "env_var": "PECOT_GITHUB_COM_TOKEN",
+      "token_url": "https://github.com/settings/tokens/new",
+      "scopes": ["repo", "read:org", "project"],
+      "description": "GitHub.com"
+    },
+    "ghes.example.com": {
+      "env_var": "PECOT_GITHUB_GHES_TOKEN",
+      "token_url": "https://ghes.example.com/settings/tokens/new",
+      "scopes": ["repo", "read:org", "project"],
+      "description": "GitHub Enterprise Server"
+    }
+  }
+}

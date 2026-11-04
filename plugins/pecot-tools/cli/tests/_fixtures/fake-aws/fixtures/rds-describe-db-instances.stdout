@@ -1,0 +1,18 @@
+{
+    "DBInstances": [
+        {
+            "DBInstanceIdentifier": "order-db",
+            "DBInstanceArn": "arn:aws:rds:ap-northeast-1:123456789012:db:order-db",
+            "DBInstanceClass": "db.t4g.medium",
+            "Engine": "postgres",
+            "EngineVersion": "16.4",
+            "DBInstanceStatus": "available",
+            "AvailabilityZone": "ap-northeast-1a",
+            "MultiAZ": false,
+            "Endpoint": {
+                "Address": "order-db.abcdefghijkl.ap-northeast-1.rds.amazonaws.com",
+                "Port": 5432
+            }
+        }
+    ]
+}

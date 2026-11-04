@@ -1,0 +1,34 @@
+layout: 'scratch'
+description: '内部の確認用の枠。一覧に載せない。'
+status: 'hidden'
+
+includes:
+  - _common
+
+props:
+  heading:
+    type: 'String'
+    required: true
+    description: '見出し'
+
+text_constraints:
+  'heading':
+    min_chars: 2
+    max_chars: 20
+
+examples:
+  - name: 基本
+    frontmatter: |
+      ---
+      layout: scratch
+      heading: 確認用の見出し
+      ---
+
+clicks:
+  supported: false
+
+best_practices:
+  - '一覧に載せない'
+
+anti_patterns:
+  - '資料に使う'

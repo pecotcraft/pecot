@@ -1,0 +1,266 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/*.md",
+      "!{projectRoot}/**/tests/**/*",
+      "!{projectRoot}/**/*.test.*",
+      "!{projectRoot}/dist/**/*",
+      "!{projectRoot}/build/**/*"
+    ],
+    "sharedGlobals": ["{workspaceRoot}/nx.json"],
+    "runtime": [{ "runtime": "node --version" }],
+    "env": [
+      { "env": "NODE_OPTIONS" },
+      { "env": "NODE_V8_COVERAGE" },
+      { "env": "HOME" }
+    ],
+    "pecotPluginEnv": [
+      { "env": "PECOT_HOOKS_CONFIG_PATH" },
+      { "env": "CLAUDE_PLUGIN_ROOT" },
+      { "env": "CLAUDE_PROJECT_DIR" },
+      { "env": "PECOT_SESSION_PROJECT_DIR" },
+      { "env": "CLAUDE_CONFIG_DIR" }
+    ],
+    "pecotvPluginEnv": [
+      { "env": "PLAYWRIGHT_BROWSERS_PATH" },
+      { "env": "PECOTV_SINGLE_PASS" },
+      { "env": "PECOTV_SINGLE_PASS_CONCURRENCY" },
+      { "env": "PECOTV_AUTO_INSTALL_BROWSER" },
+      { "env": "PECOTV_FORCE_PDF_FAIL" },
+      { "env": "PECOTV_DECK_LINT" },
+      { "env": "PECOTV_CLI_DIST" },
+      { "env": "PECOTV_PLAYWRIGHT_AVAILABLE" },
+      { "env": "PECOTV_CACHE_IDENTITY_A" },
+      { "env": "PECOTV_CACHE_IDENTITY_B" },
+      { "env": "PECOTV_HOOKS_CONFIG_PATH" },
+      { "env": "PECOTV_BOOTSTRAP_SKIP" },
+      { "env": "PECOTV_BOOTSTRAP_FORCE" },
+      { "env": "SLIDEV_PORT" },
+      { "env": "CLAUDE_PLUGIN_ROOT" },
+      { "env": "CLAUDE_CONFIG_DIR" }
+    ],
+    "pecotToolsPluginEnv": [
+      { "env": "PECOT_TOOLS_BOOTSTRAP_FORCE" },
+      { "env": "PECOT_TOOLS_BOOTSTRAP_SKIP" },
+      { "env": "CLAUDE_PLUGIN_ROOT" }
+    ],
+    "pecotPluginTestGlobals": [
+      "runtime",
+      "env",
+      "pecotPluginEnv",
+      { "runtime": "uv --version" },
+      {
+        "runtime": "bash -c '. plugins/pecot-workflow/scripts/ci/python-version.sh && uv python find --no-project --show-version \"$PY\"'"
+      },
+      "{workspaceRoot}/pyproject.toml",
+      "{workspaceRoot}/plugins/pecot-workflow/cli/pyproject.toml",
+      "{workspaceRoot}/plugins/pecot-workflow/cli/uv.lock",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-tests.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/python-version.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/compare_junit.py"
+    ],
+    "pecotPluginLintGlobals": [
+      "runtime",
+      "env",
+      "pecotPluginEnv",
+      { "runtime": "uv --version" },
+      {
+        "runtime": "bash -c '. plugins/pecot-workflow/scripts/ci/python-version.sh && uv python find --no-project --show-version \"$PY\"'"
+      },
+      "{workspaceRoot}/pyproject.toml",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/.npmrc",
+      "{workspaceRoot}/plugins/pecot-workflow/cli/pyproject.toml",
+      "{workspaceRoot}/plugins/pecot-workflow/cli/uv.lock",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-lint.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/python-version.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/compare_junit.py"
+    ],
+    "pecotPluginNodeInputs": [
+      "{workspaceRoot}/plugins/pecot-workflow/pnpm-lock.yaml",
+      "{workspaceRoot}/plugins/pecot-workflow/**/package.json",
+      "{workspaceRoot}/plugins/pecot-workflow/pnpm-workspace.yaml",
+      "{workspaceRoot}/plugins/pecot-workflow/**/.npmrc",
+      "{workspaceRoot}/plugins/pecot-workflow/.gitignore",
+      "{workspaceRoot}/plugins/pecot-workflow/bin/_lib.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/install.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/check-pm-scripts.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/pm-guard-lib.sh"
+    ],
+    "pecotvPluginTestGlobals": [
+      "runtime",
+      "env",
+      "pecotvPluginEnv",
+      "{workspaceRoot}/plugins/pecot-visual/pnpm-lock.yaml",
+      "{workspaceRoot}/plugins/pecot-visual/**/package.json",
+      "{workspaceRoot}/plugins/pecot-visual/pnpm-workspace.yaml",
+      "{workspaceRoot}/plugins/pecot-visual/**/.npmrc",
+      "{workspaceRoot}/plugins/pecot-visual/bin/_lib.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/run-tests.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/check-pm-guard.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/pm-guard-lib.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/parallel-lib.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/dev-install-lib.sh",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/.npmrc"
+    ],
+    "pecotvPluginLintGlobals": [
+      "runtime",
+      "env",
+      "pecotvPluginEnv",
+      "{workspaceRoot}/plugins/pecot-visual/pnpm-lock.yaml",
+      "{workspaceRoot}/plugins/pecot-visual/**/package.json",
+      "{workspaceRoot}/plugins/pecot-visual/pnpm-workspace.yaml",
+      "{workspaceRoot}/plugins/pecot-visual/**/.npmrc",
+      "{workspaceRoot}/plugins/pecot-visual/bin/_lib.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/run-lint.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/dev-install-lib.sh"
+    ],
+    "pecotToolsPluginTestGlobals": [
+      "runtime",
+      "env",
+      "pecotToolsPluginEnv",
+      { "runtime": "aws --version | cut -d' ' -f1" },
+      "{workspaceRoot}/plugins/pecot-tools/.claude-plugin/plugin.json",
+      "{workspaceRoot}/plugins/pecot-tools/plugin.json",
+      "{workspaceRoot}/plugins/pecot-tools/mcp.json",
+      "{workspaceRoot}/plugins/pecot-tools/pnpm-lock.yaml",
+      "{workspaceRoot}/plugins/pecot-tools/**/package.json",
+      "{workspaceRoot}/plugins/pecot-tools/pnpm-workspace.yaml",
+      "{workspaceRoot}/plugins/pecot-tools/**/.npmrc",
+      "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-tests.sh",
+      "{workspaceRoot}/plugins/pecot-tools/scripts/ci/check-pm-scripts.sh",
+      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/pm-guard-lib.sh",
+      "{workspaceRoot}/plugins/pecot-tools/bin/_lib.sh",
+      "{workspaceRoot}/plugins/pecot-tools/bin/pecot-tools",
+      "{workspaceRoot}/plugins/pecot-tools/.mcp.json",
+      "{workspaceRoot}/plugins/pecot-tools/setup.sh"
+    ],
+    "pecotToolsPluginLintGlobals": [
+      "runtime",
+      "env",
+      "pecotToolsPluginEnv",
+      "{workspaceRoot}/plugins/pecot-tools/pnpm-lock.yaml",
+      "{workspaceRoot}/plugins/pecot-tools/**/package.json",
+      "{workspaceRoot}/plugins/pecot-tools/pnpm-workspace.yaml",
+      "{workspaceRoot}/plugins/pecot-tools/**/.npmrc",
+      "{workspaceRoot}/plugins/pecot-tools/.gitignore",
+      "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-lint.sh",
+      "{workspaceRoot}/plugins/pecot-tools/bin/_lib.sh",
+      "{workspaceRoot}/plugins/pecot-tools/bin/pecot-tools",
+      "{workspaceRoot}/plugins/pecot-tools/.mcp.json",
+      "{workspaceRoot}/plugins/pecot-tools/setup.sh"
+    ]
+  },
+  "targetDefaults": {
+    "build-*": {
+      "cache": false,
+      "metadata": {
+        "description": "cache: false は明示的な宣言 (#1225)。build は 0.2〜0.8 秒で、devcontainer では daemon が無くヒットしても毎回 dist を削除して復元するため時間は変わらない。test は dependsOn の build を毎回実行しても、build の入力ハッシュが同じなら再利用される（計測で確認済み）。キャッシュすると、outputs の宣言を忘れたときに古い結果を誤って使う機会が増えるだけになる。"
+      }
+    },
+    "nx:noop": {
+      "cache": false,
+      "inputs": [],
+      "metadata": {
+        "description": "まとめ役の test / lint (nx:noop) はレーンを dependsOn で束ねるだけで、実行するものが無い。executor 名のキーは target 名のキーより優先されるため、下の test / lint キー（cache: true）がまとめ役に掛かってプラグイン全体をハッシュするのを止める。レーンはそれぞれの inputs でキャッシュされる。inputs: [] は nx affected のため (#1232)。nx 24 は変更が届いた「要求 target のタスク」だけを選ぶ。まとめ役が project 全体を入力にしていると、まとめ役自身が affected になって dependsOn のレーンを全部連れてくる。フックはまとめ役でなくレーン名を列挙して要求するが、pecot-visual のまとめ役 lint は lint-* と同じ列挙に入るため、ここで空にしておく。"
+      }
+    },
+    "test": {
+      "cache": true,
+      "inputs": ["default", "runtime", "env"]
+    },
+    "test-*": {
+      "cache": true,
+      "inputs": ["default", "runtime", "env"]
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["default", "runtime", "env"]
+    },
+    "lint-*": {
+      "cache": true,
+      "inputs": ["default", "runtime", "env"]
+    }
+  },
+  "release": {
+    "projectsRelationship": "independent",
+    "groups": {
+      "pecot-workflow": {
+        "projects": ["pecot-workflow"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "pecot-workflow-v{version}"
+        },
+        "version": {
+          "specifierSource": "version-plans",
+          "updateDependents": "never",
+          "currentVersionResolver": "disk"
+        },
+        "changelog": {
+          "file": "plugins/pecot-workflow/CHANGELOG.md",
+          "createRelease": "github"
+        }
+      },
+      "pecot-visual": {
+        "projects": ["pecot-visual"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "pecot-visual-v{version}"
+        },
+        "version": {
+          "specifierSource": "version-plans",
+          "updateDependents": "never",
+          "currentVersionResolver": "disk",
+          "groupPreVersionCommand": "bash \"$(git rev-parse --show-toplevel)/plugins/pecot-visual/scripts/release/audit-mcp-dist.sh\""
+        },
+        "changelog": {
+          "file": "plugins/pecot-visual/CHANGELOG.md",
+          "createRelease": "github"
+        }
+      },
+      "pecot-tools": {
+        "projects": ["pecot-tools"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "pecot-tools-v{version}"
+        },
+        "version": {
+          "specifierSource": "version-plans",
+          "updateDependents": "never",
+          "currentVersionResolver": "disk"
+        },
+        "changelog": {
+          "file": "plugins/pecot-tools/CHANGELOG.md",
+          "createRelease": "github"
+        }
+      },
+      "text-rules": {
+        "projects": ["text-rules"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "text-rules-v{version}"
+        },
+        "version": {
+          "specifierSource": "version-plans",
+          "updateDependents": "always",
+          "currentVersionResolver": "disk"
+        },
+        "changelog": {
+          "file": "libs/text-rules/CHANGELOG.md",
+          "createRelease": "github"
+        }
+      }
+    },
+    "version": {
+      "adjustSemverBumpsForZeroMajorVersion": false
+    },
+    "versionPlans": true,
+    "changelog": {
+      "workspaceChangelog": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+# user のプロジェクトが 0 件。見つかりませんと出して exit 1。
+id: project-search-state
+command:
+  path: [project, search]
+  args: [acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": []}}}}

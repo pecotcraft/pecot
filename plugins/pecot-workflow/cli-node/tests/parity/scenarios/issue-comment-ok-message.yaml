@@ -1,0 +1,74 @@
+# -m の直接投稿。
+id: issue-comment-ok-message
+command:
+  path: [issue, comment]
+  args:
+    - -t
+    - merge-diff
+    - -m
+    - "## Merge — 実装は半分まで進んだ\n\n### Variance — 一覧の取得を検証した\n\n- 一覧を取得できる — テストで確認した\n\n### Impact — 画面の表示に着手する\n\n- 画面を作る — 判断は不要\n"
+    - --issue
+    - acme/demo/7
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      method: POST
+      path: /repos/acme/demo/issues/7/comments
+    respond:
+      status: 201
+      body:
+        html_url: https://ghes.example.com/acme/demo/issues/7#issuecomment-2

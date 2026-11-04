@@ -1,0 +1,13 @@
+{
+  "name": "slidev-theme-pecotv-test-bare",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "peerDependencies": {
+    "@slidev/client": "^53.0.0",
+    "vue": "^3.5.44"
+  }
+}

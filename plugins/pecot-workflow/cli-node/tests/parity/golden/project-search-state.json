@@ -1,0 +1,17 @@
+{
+  "stdout": "",
+  "stderr": "acme のプロジェクトが見つかりません\n",
+  "exitCode": 1,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {}
+}

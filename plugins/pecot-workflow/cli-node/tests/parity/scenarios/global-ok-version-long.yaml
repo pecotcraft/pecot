@@ -1,0 +1,7 @@
+# --version も同じ。
+id: global-ok-version-long
+command:
+  path: []
+  args: ["--version"]
+setup: {}
+github: []

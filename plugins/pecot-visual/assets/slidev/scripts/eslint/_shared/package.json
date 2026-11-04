@@ -1,0 +1,23 @@
+{
+  "name": "@v-slidev/eslint-shared",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "js-yaml": "^4.3.2"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "npm": "<0.0.0",
+    "yarn": "<0.0.0"
+  }
+}

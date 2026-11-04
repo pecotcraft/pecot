@@ -1,0 +1,5 @@
+{
+"cases": [
+  {"params": {"state": "open", "per_page": 100}, "query": "?state=open&per_page=100"}
+]
+}

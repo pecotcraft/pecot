@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # プラグインルート (= plugins/pecot-tools/)
+PLUGIN_ROOT="$PWD"
+
+# pecot-tools plugin の依存導入を、1 push につき 1 回だけ実行するための nx target
+# `pecot-tools:install` の実体 (#1080)。
+#
+# 従来は run-tests.sh の先頭で scope 非依存に実行していた。
+# そのため affected な lane の数だけ install が繰り返されていた。
+# nx の task graph は同一 `project:target` を 1 run につき 1 タスクへ dedupe する。
+# 各 lane の test target が本 target を dependsOn すれば、並列実行でも 1 回に収束する。
+#
+# 手動実行（run-tests.sh を env 無しで直接叩く場合）は、従来どおり run-tests.sh 側が install を行う。
+# 本スクリプトは、その場合と同じ処理・同じログ文言を保つ。
+# パッケージマネージャガード (#806) のうち、engines / .npmrc / devEngines の検証対象は pecot-visual と repo root。
+# それらは pecot-visual:install が担う。
+# scripts の package manager 自己呼び出しだけは、本 plugin も pnpm 12 に上げた以上、同じ失敗をする (#1217)。
+# そのため install 直後に、pecot-visual と共有の検証関数で確かめる。
+
+# corepack の `packageManager` 初回 fetch 時の Y/n プロンプトを抑止する（自動取得）。
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# nx run-commands は子プロセスへ FORCE_COLOR=true を注入する。
+# nx 経由実行と直接実行で挙動が割れる問題を予防的に塞ぐため、除去する（run-tests.sh と対称）。
+unset FORCE_COLOR
+
+# pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う（bin/pecot-tools と共通）。
+# shellcheck source=../../bin/_lib.sh
+. "$PLUGIN_ROOT/bin/_lib.sh"
+
+PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
+if [ -z "$PNPM" ]; then
+    echo "ERROR: pnpm / corepack / npx not found. Install Node.js 24.22.1+ in the 24.x line or 26.12.1+ (npm and npx are bundled) and retry." >&2
+    HINT="$(pnpm_resolution_hint "$PLUGIN_ROOT")"
+    [ -n "$HINT" ] && echo "  $HINT" >&2
+    exit 1
+fi
+
+# pecot-tools plugin が自己完結 pnpm workspace ルート。
+# `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
+echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT)"
+# shellcheck disable=SC2086
+( cd "$PLUGIN_ROOT" && $PNPM install --frozen-lockfile )
+
+# scripts の package manager 自己呼び出しガード (#1217)。手動実行（run-tests.sh）と同じ検証を呼ぶ。
+echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
+bash "$PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"

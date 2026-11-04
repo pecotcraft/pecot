@@ -1,0 +1,7 @@
+# グループの --help も同じ書式になる。全コマンドの移植後に比べる。
+id: global-ok-help-group
+command:
+  path: []
+  args: ["issue", "--help"]
+setup: {}
+github: []

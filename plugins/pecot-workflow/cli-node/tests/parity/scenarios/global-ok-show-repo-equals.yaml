@@ -1,0 +1,7 @@
+# --repo=値 の形でも解決される。
+id: global-ok-show-repo-equals
+command:
+  path: []
+  args: ["--repo=acme/other", "--show-repo"]
+setup: {}
+github: []

@@ -1,0 +1,29 @@
+{
+  "name": "@v-slidev/eslint-plugin-text-constraints",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "@pecot/text-rules": "workspace:@pecot/text-rules-src@*",
+    "@v-slidev/eslint-shared": "workspace:*",
+    "js-yaml": "^4.3.2",
+    "synckit": "^0.12.3"
+  },
+  "peerDependencies": {
+    "eslint": "^10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/markdown": "^8.0.3",
+    "eslint": "^10.13.0"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1",
+    "npm": "<0.0.0",
+    "yarn": "<0.0.0"
+  }
+}

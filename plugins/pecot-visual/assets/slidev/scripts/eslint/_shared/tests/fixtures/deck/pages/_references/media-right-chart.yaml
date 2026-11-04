@@ -1,0 +1,66 @@
+# Layout Reference: media-right-chart
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: media-right-chart
+description: 左に説明、右にグラフを置く。
+category: figure
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  chartContent:
+    type: Object
+    default: "null"
+    description: 右側のグラフ
+    props:
+      kind:
+        type: String
+        default: "''"
+        description: グラフの種類
+  descriptionContent:
+    type: Object
+    default: "null"
+    description: 説明
+    props:
+      items:
+        type: Array
+        default: "[]"
+        description: 説明の配列
+        items:
+          title:
+            type: String
+            default: "''"
+            description: 見出し
+          description:
+            type: String
+            default: "''"
+            description: 説明文
+text_constraints: {}
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 1 項目
+    frontmatter: |
+      ---
+      layout: media-right-chart
+      chartContent:
+        kind: "bar"
+      descriptionContent:
+        items:
+          - title: "要点"
+            description: "説明"
+      ---

@@ -1,0 +1,11 @@
+{
+  "typeCheckingMode": "strict",
+  "pythonVersion": "3.10",
+  "include": ["."],
+  "exclude": ["**/__pycache__", ".venv"],
+  // gitlint は py.typed 非同梱の完全 untyped ライブラリ。
+  // stub が存在しないため reportMissingTypeStubs を false にする（py.typed 非同梱が根拠）。
+  "reportMissingTypeStubs": false,
+  // 死蔵 ignore を strict の確認で error 化（F-01 と整合）。
+  "reportUnnecessaryTypeIgnoreComment": true
+}

@@ -1,0 +1,66 @@
+# Layout Reference: media-right-diagram
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: media-right-diagram
+description: 左に説明、右に draw.io の図を置く。
+category: figure
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  mediaContent:
+    type: Object
+    default: "null"
+    description: 右側の図
+    props:
+      xmlSrc:
+        type: String
+        default: "''"
+        description: draw.io のパス
+  descriptionContent:
+    type: Object
+    default: "null"
+    description: 説明
+    props:
+      items:
+        type: Array
+        default: "[]"
+        description: 説明の配列
+        items:
+          title:
+            type: String
+            default: "''"
+            description: 見出し
+          description:
+            type: String
+            default: "''"
+            description: 説明文
+text_constraints: {}
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 1 項目
+    frontmatter: |
+      ---
+      layout: media-right-diagram
+      mediaContent:
+        xmlSrc: "/assets/diagrams/order-api.drawio"
+      descriptionContent:
+        items:
+          - title: "要点"
+            description: "説明"
+      ---

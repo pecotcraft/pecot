@@ -1,0 +1,132 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "pecot-tools",
+  "projectType": "library",
+  "tags": ["type:plugin", "scope:p-t"],
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "metadata": {
+        "description": "1 push に 1 回の依存導入 (#1080)。各 test レーンが dependsOn で参照する。nx の task graph は、同じ project:target を 1 タスクにまとめる。そのため、実行するレーンが何本あっても、install は 1 回になる。cache: false は明示的な宣言。install は node_modules への副作用で、outputs を宣言できず、cache の対象にできない。cache を付けると、『1 push 1 回』が『0 回』になる。その結果、lockfile と node_modules のずれを見逃す。"
+      },
+      "options": {
+        "command": "bash scripts/ci/install.sh",
+        "cwd": "plugins/pecot-tools"
+      }
+    },
+    "build-cli": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/**/*",
+        "!{projectRoot}/cli/**/*.md",
+        "!{projectRoot}/cli/**/tests/**/*",
+        "!{projectRoot}/cli/**/*.test.*",
+        "!{projectRoot}/cli/dist/**/*",
+        "sharedGlobals"
+      ],
+      "options": {
+        "command": "pnpm --filter @pecot/pecot-tools-cli run build",
+        "cwd": "plugins/pecot-tools"
+      }
+    },
+    "test": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": ["test-cli", "test-bootstrap", "test-release"],
+      "metadata": {
+        "description": "pre-push の nx-affected-tests が起動する起点の target。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+      }
+    },
+    "test-cli": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/**/*",
+        "!{projectRoot}/cli/tests/bootstrap/**",
+        "sharedGlobals",
+        "pecotToolsPluginTestGlobals",
+        "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh"
+      ],
+      "dependsOn": ["install", "build-cli"],
+      "metadata": {
+        "description": "install と cli/dist の build は、dependsOn 経由で 1 push に 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 25 秒）は test-bootstrap に分けた。cli/src だけを変えた push では実行しない (#1235)。plugin.json、.mcp.json、bin/ などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
+      },
+      "options": {
+        "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
+        "cwd": "plugins/pecot-tools"
+      }
+    },
+    "test-bootstrap": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/tests/bootstrap/**/*",
+        "sharedGlobals",
+        "pecotToolsPluginTestGlobals",
+        "{projectRoot}/cli/tsconfig.json",
+        "{projectRoot}/cli/tsconfig.build.json"
+      ],
+      "dependsOn": ["install", "build-cli"],
+      "metadata": {
+        "description": "bin/pecot-tools の bootstrap と登録ファイルの bash テスト（run.sh、install-record、data-dir、manifest。約 25 秒）。test-cli から切り出した。cli/src だけを変えた push では実行しない (#1235)。登録ファイルと wrapper は pecotToolsPluginTestGlobals が引く。対象は bin/pecot-tools、bin/_lib.sh、setup.sh、.mcp.json、mcp.json、plugin.json の 2 本。本レーン固有の入力は、cli/tests/bootstrap/ のスクリプトと、cli/tsconfig.json、cli/tsconfig.build.json。後の 2 つは、ミラーへ複製され、run.sh の CUJ 4 の実 build が使う。cli/src は入れない。ミラーの build が使う cli/src の型の確認は、build-cli が担う。build-cli を dependsOn に置くのは、run.sh の CUJ 2 が、本体の cli/dist/cli.js を書き換えていないことを mtime で確かめるため。build-cli が並行して動くと、dist の再生成を本体への書き込みと誤判定する。dependsOn なら、build-cli が済んでから動く。cli/src が変わらなければ、build-cli はキャッシュから戻る。install は dependsOn 経由で 1 push に 1 回だけ実行し、run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡す。"
+      },
+      "options": {
+        "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
+        "cwd": "plugins/pecot-tools"
+      }
+    },
+    "test-release": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/scripts/release/**/*",
+        "{workspaceRoot}/.githooks/scripts/attach-mcp-tgz.sh",
+        "{workspaceRoot}/.githooks/scripts/origin-slug.mjs",
+        "{workspaceRoot}/.githooks/scripts/tests/attach-mcp-tgz.test.sh",
+        "sharedGlobals",
+        "pecotToolsPluginTestGlobals"
+      ],
+      "dependsOn": ["install", "build-cli"],
+      "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡す。publish は配布ツリーへ cd してから npm を実行するため。nx の workspaceRoot トークンは、command の途中では使えない。options.env では相対パスに展開される。そこで cwd（plugins/pecot-tools）からの $PWD で組む (#1225)。",
+      "metadata": {
+        "description": "MCP 単体配布の publish スクリプトの確認。cache: true (#1225)。publish のテストは、npm の依存解決で外部レジストリの状態を読む。その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに、本レーンを実行しないため。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。実行するときも、2 回目以降はレジストリに出さない。掃除は .pecot/tmp/release-npm-cache/pecot-tools を消す。packument の分だけ増え続けるため。test-cli との直列化 (parallelism: false, #1080) は外した。bootstrap の bash テストは test-bootstrap に分かれている。本体の cli/dist には書き込まず、stub のルートと一時のデータ置き場だけに作る。run.sh は、本体の cli/dist/cli.js の mtime が変わらないことを確かめる側。本レーンの publish は、--skip-build で共有の cli/dist を複製するだけ。そのため両者が並行して動いても、dist を奪い合わない (#1235)。"
+      },
+      "options": {
+        "command": "PECOT_TOOLS_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-tools\" bash scripts/ci/run-tests.sh --scope=release",
+        "cwd": "plugins/pecot-tools"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli/**/*",
+        "sharedGlobals",
+        "pecotToolsPluginLintGlobals"
+      ],
+      "options": {
+        "command": "bash scripts/ci/run-lint.sh --scope=cli",
+        "cwd": "plugins/pecot-tools"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "nx release の publish phase から MCP サーバの tgz を作って Release に添え、publish-npm.yml を起動する (#1056)。スクリプト側が HEAD の pecot-tools-v<version> タグで冪等性を判定し、pecot-tools 非リリース時は何もせず終了する。"
+      },
+      "options": {
+        "//forwardAllArgs-reason": "既定 true だと nx が --dryRun=true をコマンド末尾へ注入し、未対応の引数として publish スクリプトが exit 1 になる。dry-run は NX_DRY_RUN env で受けるため引数転送は不要 (#1056)。",
+        "forwardAllArgs": false,
+        "command": "bash scripts/release/publish-mcp-dist.sh",
+        "cwd": "plugins/pecot-tools"
+      }
+    }
+  },
+  "release": {
+    "//note": "pecot-tools plugin distribution unit. plugin.json × 2（.claude-plugin/ と、Copilot CLI 向け Agent Plugins 1.0 形式のルート）の manifest owner。プラグイン配下を 1 project にまとめ、release group には本 project だけを列挙する。",
+    "version": {
+      "versionActions": "./.nx/nx-release/src/version-actions.js",
+      "manifestRootsToUpdate": [
+        { "path": "{projectRoot}/.claude-plugin" },
+        { "path": "{projectRoot}" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+# GraphQL が 500 を返す。user で失敗し organization も 500 になる。
+id: project-search-5xx
+command:
+  path: [project, search]
+  args: [acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 500
+      body: {"message": "Server Error"}
+    times: 1
+  - match:
+      operation: ListProjectsOrg
+    respond:
+      status: 500
+      body: {"message": "Server Error"}
+    times: 1

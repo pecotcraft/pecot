@@ -1,0 +1,7 @@
+# メッセージが空白だけ。GitHub を呼ぶ前に exit 1。
+id: issue-quick-usage-empty-message
+command:
+  path: [issue, quick]
+  args: [-m, " ", -r, acme/demo]
+setup: {}
+github: []

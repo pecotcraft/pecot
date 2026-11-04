@@ -1,0 +1,27 @@
+{
+    "FunctionName": "order-notifier",
+    "FunctionArn": "arn:aws:lambda:ap-northeast-1:123456789012:function:order-notifier",
+    "Runtime": "nodejs22.x",
+    "Role": "arn:aws:iam::123456789012:role/service-role/order-notifier-role",
+    "Handler": "index.handler",
+    "CodeSize": 5797206,
+    "Description": "",
+    "Timeout": 30,
+    "MemorySize": 512,
+    "LastModified": "2026-08-30T05:11:00.000+0000",
+    "Version": "$LATEST",
+    "Environment": {
+        "Variables": {
+            "LOG_LEVEL": "info"
+        }
+    },
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "State": "Active",
+    "LastUpdateStatus": "Successful",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ]
+}

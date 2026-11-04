@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "slide": { "width": 960, "height": 540 },
+  "fonts": {
+    "body": ["Test Sans"],
+    "heading": ["Test Sans"],
+    "eastAsian": "Test Sans JP"
+  },
+  "fontSizes": { "heading": 18, "headingSm": 15, "body": 14, "bodySm": 11, "label": 10 },
+  "pptx": { "eastAsianFont": "Test Sans JP", "linkColor": "0A7F3F" },
+  "lint": {
+    "rules": {
+      "slidev-pages-lint/no-unknown-props": "error",
+      "slidev-pages-lint/no-missing-page": "error",
+      "text-constraints/max-chars": "error"
+    }
+  },
+  "layouts": { "references": "references" },
+  "drawio": {
+    "panels": { "panel": { "width": 400, "height": 300 } },
+    "markerLayouts": ["marked"]
+  }
+}

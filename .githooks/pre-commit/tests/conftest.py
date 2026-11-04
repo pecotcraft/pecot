@@ -1,0 +1,247 @@
+"""conftest.py - .githooks/pre-commit/tests/ 共通フィクスチャ
+
+root 共通フック（.githooks/pre-commit/*.sh）の pytest テストが共有するフィクスチャを定義する。
+bats 時代の test_helper.bash（`_unset_git_local_env_vars`）に相当する機能を提供する。
+各 .bats の setup 相当のセットアップも提供する。
+内容は GIT_* 隔離・temp git repo 生成・nx スタブ配置。
+
+plugins/pecot-workflow/hooks/conftest.py からスタイルを踏襲する。
+ただしツリー間 import はせず、独立した conftest として複製する。
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+from collections.abc import Callable
+from pathlib import Path
+
+import pytest
+
+# グローバル環境隔離（pre-push フック配下の GIT_* リーク対策）
+#
+# pre-push フック内では git が GIT_DIR / GIT_INDEX_FILE 等を子プロセスへ export する。
+# 各テストは temp repo を git init/config/commit する。
+# これらが残ると、親リポの index/working tree/.git/config を巻き込んで失敗・破壊する。
+#
+# bats 版 run.sh は `unset $(git rev-parse --local-env-vars)` でプロセス単位に一括解除していた。
+# その 15 変数はすべて GIT_ プレフィックスを持つ。
+# そのためここでは、os.environ を走査して GIT_ プレフィックスを一括 delenv する（上位集合）。
+#
+# hooks/conftest.py は 7 キー限定にしている。
+# run-tests.sh pass2 が export する GIT_CONFIG_GLOBAL=/dev/null まで剥がさない理由があるため。
+# .githooks 側は pass2 を持たないため、一括 delenv で問題ない。
+
+
+# push の範囲（base / tip）を決める env。lib/push-range.sh が読む。
+# pre-push 配下では pre-commit が PRE_COMMIT_* を渡す。
+# 計測や検証では PECOT_VERSION_PLAN_BASE を付けて push する。
+# これらが pytest に引き継がれると、temp repo の base 解決（merge-base）が実リポの値で上書きされて落ちる (#1225)。
+# 各テストが必要な値を env= で渡す。
+_PUSH_RANGE_ENV = ("PECOT_VERSION_PLAN_BASE", "PRE_COMMIT_FROM_REF", "PRE_COMMIT_TO_REF")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_git_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in list(os.environ):
+        if key.startswith("GIT_") or key in _PUSH_RANGE_ENV:
+            monkeypatch.delenv(key, raising=False)
+
+
+# パス解決（フックスクリプトのディレクトリ）
+#
+# このファイルは .githooks/pre-commit/tests/conftest.py に置かれる。
+# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
+
+
+@pytest.fixture(scope="session")
+def script_dir() -> Path:
+    """.githooks/pre-commit/（テスト対象フックスクリプトの親）。"""
+    return Path(__file__).resolve().parents[1]
+
+
+# テスト用 git リポジトリ生成
+
+
+@pytest.fixture
+def git_repo(tmp_path: Path) -> Callable[..., Path]:
+    """初期化済み（init/config 済み・コミットは未実施）の git リポを作る factory。
+
+    各 .bats の setup が行っていた `git init -q [-b main]` を実施する。
+    加えて user.email/user.name/commit.gpgsign の設定までを実施する。
+    初期コミットの有無やブランチ構成はテスト側で組み立てる。
+    _isolate_git_env autouse により素の git 呼び出しで隔離される。
+    """
+
+    def _make(name: str = "repo", *, initial_branch: str | None = None) -> Path:
+        repo_dir = tmp_path / name
+        repo_dir.mkdir(parents=True, exist_ok=True)
+        init_cmd = ["git", "init", "-q"]
+        if initial_branch is not None:
+            init_cmd += ["-b", initial_branch]
+        subprocess.run(init_cmd, cwd=repo_dir, check=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=repo_dir,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "test"],
+            cwd=repo_dir,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"],
+            cwd=repo_dir,
+            check=True,
+        )
+        return repo_dir
+
+    return _make
+
+
+# git ヘルパ
+#
+# importlib import-mode 下では conftest を直接 import できない。
+# そのため fixture として公開し、各テストへ callable を注入する。
+
+
+@pytest.fixture
+def git() -> Callable[..., subprocess.CompletedProcess]:
+    """`git <args...>` を repo_dir で実行して CompletedProcess を返す callable。"""
+
+    def _git(repo_dir: Path, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", "-c", "commit.gpgsign=false", *args],
+            cwd=repo_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    return _git
+
+
+@pytest.fixture
+def nx_stub_graph_branch() -> Callable[[dict, dict], str]:
+    """記録型 nx スタブの `graph` 分岐（bash）を組む callable。
+
+    lib/nx-lanes.sh（レーン名の収集）が呼ぶ `nx graph --file=<path>` を模す。
+    呼び出しは $STUB_NX_LOG.graph に分け、affected / run-many の記録に混ぜない。
+    STUB_NX_GRAPH_FAIL で失敗する。
+    STUB_NX_GRAPH_NO_LANES で no_lanes_graph を書く。それ以外は lanes_graph を書く。
+    各テストファイルは自分の graph JSON だけを渡し、スタブ本体の先頭に差し込む。
+    """
+
+    def _branch(lanes_graph: dict, no_lanes_graph: dict) -> str:
+        lanes = json.dumps(lanes_graph, separators=(",", ":"))
+        no_lanes = json.dumps(no_lanes_graph, separators=(",", ":"))
+        return (
+            r"""if [ "${1:-}" = "graph" ]; then
+    printf '%s\n' "$*" >> "$STUB_NX_LOG.graph"
+    if [ -n "${STUB_NX_GRAPH_FAIL:-}" ]; then
+        echo "simulated nx graph failure" >&2
+        exit 1
+    fi
+    for arg in "$@"; do
+        case "$arg" in --file=*) graph_file="${arg#--file=}" ;; esac
+    done
+    if [ -n "${STUB_NX_GRAPH_NO_LANES:-}" ]; then
+        cat > "$graph_file" <<'NO_LANES'
+"""
+            + no_lanes
+            + r"""
+NO_LANES
+    else
+        cat > "$graph_file" <<'GRAPH'
+"""
+            + lanes
+            + r"""
+GRAPH
+    fi
+    exit 0
+fi
+"""
+        )
+
+    return _branch
+
+
+@pytest.fixture
+def git_rev_parse() -> Callable[..., str]:
+    """`git rev-parse <ref>` の結果（SHA）を返す callable。"""
+
+    def _rev_parse(repo_dir: Path, ref: str = "HEAD") -> str:
+        return subprocess.run(
+            ["git", "rev-parse", ref],
+            cwd=repo_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    return _rev_parse
+
+
+# モックコマンド配置（PATH 先頭の mock-bin）
+#
+
+
+class _MockBin:
+    """PATH 先頭に挿入した mock-bin ディレクトリへ実行可能スクリプトを配置する。"""
+
+    def __init__(self, bin_dir: Path) -> None:
+        self.bin_dir = bin_dir
+
+    def install(self, name: str, script_body: str) -> Path:
+        target = self.bin_dir / name
+        body = script_body if script_body.startswith("#!") else f"#!/bin/bash\n{script_body}"
+        target.write_text(body)
+        target.chmod(0o755)
+        return target
+
+
+@pytest.fixture
+def mock_bin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> _MockBin:
+    """tmp/mock-bin を PATH 先頭に挿入し install() でモックコマンドを置く。"""
+    bin_dir = tmp_path / "mock-bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}")
+    return _MockBin(bin_dir)
+
+
+# スクリプト実行ヘルパ
+
+
+@pytest.fixture
+def run_script() -> Callable[..., subprocess.CompletedProcess]:
+    """`bash <script> [args...]` を実行する薄いラッパを返す。
+
+    env 契約: env=None なら subprocess に env= を渡さない。
+    _isolate_git_env と monkeypatch 済みの os.environ を、そのまま継承する。
+    env が dict のときは {**os.environ, **env} でマージして渡す。
+    GIT_* 再注入や PATH 喪失を防ぐ。
+    """
+
+    def _run(
+        script: str | Path,
+        *args: str,
+        stdin: str | None = None,
+        cwd: str | Path | None = None,
+        env: dict | None = None,
+    ) -> subprocess.CompletedProcess:
+        kwargs: dict = {}
+        if env is not None:
+            kwargs["env"] = {**os.environ, **env}
+        return subprocess.run(
+            ["bash", str(script), *args],
+            input=stdin,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            timeout=25,
+            **kwargs,
+        )
+
+    return _run

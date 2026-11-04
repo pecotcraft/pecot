@@ -1,0 +1,93 @@
+# Layout Reference: axis-table
+# 規則テスト用の汎用レイアウトの宣言
+
+layout: axis-table
+description: 軸のある表。
+category: table
+includes:
+  - _common
+  - _header
+  - _footer
+props:
+  titleContent:
+    type: Object
+    default: "null"
+    description: 見出し領域。
+    props:
+      label:
+        type: String
+        default: "''"
+        description: 見出しラベル
+  tableContent:
+    type: Object
+    default: "null"
+    description: 表の中身
+    required: true
+    props:
+      rowHeader:
+        type: String
+        default: "''"
+        description: 左端列の軸のラベル
+        required: true
+      columns:
+        type: Array
+        default: "[]"
+        description: 観点の配列
+        required: true
+        items:
+          label:
+            type: String
+            default: "''"
+            description: 列見出し
+            required: true
+          width:
+            type: Number
+            default: "0"
+            description: 列幅
+      rows:
+        type: Array
+        default: "[]"
+        description: 行の配列
+        required: true
+        items:
+          label:
+            type: String
+            default: "''"
+            description: 行見出し
+            required: true
+          cells:
+            type: Array<String>
+            default: "[]"
+            description: 各観点の値
+            required: true
+            v-html: true
+text_constraints:
+  title:
+    min_chars: 4
+    max_chars: 21
+  tableContent.columns:
+    min_items: 2
+  tableContent.rows:
+    min_items: 3
+clicks:
+  supported: false
+best_practices:
+  - 見本の構成パターンを雛形にする
+anti_patterns:
+  - 宣言に無いキーを足さない
+examples:
+  - name: 3 行 2 列
+    frontmatter: |
+      ---
+      layout: axis-table
+      title: "環境別の運用ルール"
+      tableContent:
+        rowHeader: "環境"
+        columns:
+          - { label: "頻度" }
+          - { label: "担当" }
+        rows:
+          - { label: "本番", cells: ["毎週", "運用"] }
+          - { label: "検証", cells: ["毎日", "開発"] }
+          - { label: "開発", cells: ["随時", "開発"] }
+      ---

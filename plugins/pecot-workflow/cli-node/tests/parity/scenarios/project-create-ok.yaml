@@ -1,0 +1,69 @@
+# 新規作成から init、設定ファイルの生成とアクティベートまでを通す。
+id: project-create-ok
+command:
+  path: [project, create]
+  args: [acme, board, --suffix, acme, --host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: GetUserNodeId
+      variables: {login: acme}
+    respond:
+      status: 200
+      body: {"data": {"user": {"id": "U_1"}}}
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": []}}}}
+  - match:
+      operation: CreateProject
+      variables: {ownerId: U_1, title: board}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2": {"projectV2": {"id": "PVT_1", "number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1"}}}}
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}]}}}}
+  - match:
+      operation: GetProjectFieldsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectV2": {"id": "PVT_1", "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "views": {"nodes": [{"number": 1}]}, "fields": {"nodes": [{"id": "PVTF_title", "name": "Title"}]}}}}}
+  - match:
+      operation: CreateProjectField
+      variables: {name: pecot-workflow-acme}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_w", "name": "pecot-workflow-acme", "options": []}}}}
+  - match:
+      operation: CreateProjectField
+      variables: {name: pecot-priority}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_p", "name": "pecot-priority", "options": []}}}}
+  - match:
+      operation: CreateProjectField
+      variables: {name: pecot-size}
+    respond:
+      status: 200
+      body: {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_s", "name": "pecot-size", "options": []}}}}
+  - match:
+      operation: ListProjectsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectsV2": {"nodes": [{"number": 1, "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "id": "PVT_1"}]}}}}
+  - match:
+      operation: GetProjectFieldsUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectV2": {"id": "PVT_1", "title": "board", "url": "https://ghes.example.com/users/acme/projects/1", "views": {"nodes": [{"number": 1}]}, "fields": {"nodes": [{"id": "PVTF_title", "name": "Title"}, {"id": "MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2", "name": "pecot-workflow-acme", "databaseId": 456, "options": [{"id": "o1", "name": "Backlog"}, {"id": "o2", "name": "Pending"}, {"id": "o3", "name": "Ready"}, {"id": "o4", "name": "Active"}, {"id": "o5", "name": "In Review"}, {"id": "o6", "name": "Archived"}]}, {"id": "PVTSSF_priority", "name": "pecot-priority", "options": [{"id": "p1", "name": "High"}, {"id": "p2", "name": "Medium"}, {"id": "p3", "name": "Low"}]}, {"id": "PVTSSF_size", "name": "pecot-size", "options": [{"id": "s1", "name": "XS"}, {"id": "s2", "name": "S"}, {"id": "s3", "name": "M"}, {"id": "s4", "name": "L"}]}]}}}}}
+  - match:
+      operation: GetLinkedRepositoriesUser
+    respond:
+      status: 200
+      body: {"data": {"user": {"projectV2": {"repositories": {"nodes": []}}}}}

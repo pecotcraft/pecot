@@ -1,0 +1,15 @@
+# --owner が無く、認証ユーザーの取得（GET /user）が 404 を返す。
+id: project-activate-4xx
+command:
+  path: [project, activate]
+  args: [--host, ghes.example.com]
+setup:
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      method: GET
+      path: /user
+    respond:
+      status: 404
+      body: {"message": "Not Found"}

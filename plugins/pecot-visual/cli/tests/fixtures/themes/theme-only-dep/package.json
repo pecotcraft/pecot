@@ -1,0 +1,14 @@
+{
+  "name": "pecotv-test-theme-dep",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "exports": "./index.js",
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.44"
+  }
+}

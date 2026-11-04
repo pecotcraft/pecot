@@ -1,0 +1,85 @@
+# Issue の作成が 500 で失敗する。
+id: issue-create-5xx
+command:
+  path: [issue, create]
+  args:
+    - -m
+    - "## Goal — 一覧画面から状態を確認できる\n\n利用者が一覧画面で各項目の状態を確認できる。\n\n## Acceptance — 一覧に状態の列が出る\n\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\n"
+    - -t
+    - 一覧に状態を出す
+    - -r
+    - acme/demo
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: GetLinkedRepositoriesUser
+    respond:
+      status: 200
+      body:
+        data:
+          user:
+            projectV2:
+              repositories:
+                nodes:
+                  - {name: demo, owner: {login: acme}}
+  - match:
+      method: POST
+      path: /repos/acme/demo/issues
+    respond:
+      status: 500
+      body:
+        message: Server Error

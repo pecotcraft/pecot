@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# pecot-tools CLI wrapper — プラグインのデータ置き場に作る実行用ミラーの Node ランタイムを起動する。
+# pecotv の bin/pecotv と同型（chromium / v-slidev の取得が無い分だけ短い）。
+#
+# 依存（node_modules）と build 成果物は、プラグイン本体（CLAUDE_PLUGIN_ROOT）ではなく
+# `${データ置き場}/runtime/<deps-hash>-<src-hash>/` に作る。本体は更新のたびに別の
+# ディレクトリへ入れ替わる（Claude）か中身ごと入れ替わる（Copilot）ため、本体配下に作ると
+# 更新のたびに install と build をやり直す。ハッシュが同じなら何もせず、ソースだけ変わった
+# ときは build だけ、依存が変わったときだけ install する。
+#
+#   1. SKIP（開発・ゲート専用）: 本体ツリーの成果物を直接実行する。データ置き場は使わない
+#   2. 実行中のミラーを引き継いだ子プロセス: そのまま実行する
+#   3. データ置き場を解決して作る（CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所。bin/_lib.sh の plugin_data_dir_ensure）
+#   4. ミラーを用意する（bin/_lib.sh の plugin_runtime_ensure）。使用中は `.inuse` の共有ロックで示す
+#   5. ミラーの cli を exec する
+set -euo pipefail
+
+# PLUGIN_ROOT を解決
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" ]; then
+  PLUGIN_ROOT="$CLAUDE_PLUGIN_ROOT"
+else
+  SELF="$(realpath "$0")"
+  PLUGIN_ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
+fi
+# cli は実行用ミラーから動くため、plugin.json の起点は env で渡す（cli/src/version.ts）。
+export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
+
+# source path は symlink 経由起動でも壊れないよう PLUGIN_ROOT 基準で解決する。
+# shellcheck source=./_lib.sh
+. "$PLUGIN_ROOT/bin/_lib.sh"
+
+# 1. SKIP: 本体ツリーの成果物を直接実行する（開発・ゲート専用）。
+# 開発者の Claude セッションの子として起動されると、導入済み版の実行用ミラー（PECOT_TOOLS_RUNTIME_DIR）を
+# 受け継ぐ。SKIP のときにそれを使うと、worktree のソースの cli が導入済み版の置き場を使ってしまうため、
+# データ置き場に触れず、ミラーの変数も外す。wrapper は SKIP を export しない（子プロセスの再帰防止は
+# 2. で行う）。
+if [ "${PECOT_TOOLS_BOOTSTRAP_SKIP:-}" = "1" ]; then
+  unset PECOT_TOOLS_RUNTIME_DIR
+  CLI_DIST="${PLUGIN_ROOT}/cli/dist/cli.js"
+  if [ ! -f "$CLI_DIST" ]; then
+    echo "pecot-tools: ${CLI_DIST} が無い。先に build する (PECOT_TOOLS_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
+    exit 1
+  fi
+  exec node "$CLI_DIST" "$@"
+fi
+
+# 2. 実行中のミラーを引き継いだ子プロセス（cli が bin/pecot-tools を起動し直した場合）は再準備しない。
+# ゲート（scripts/ci/run-tests.sh）が PECOT_TOOLS_RUNTIME_DIR を unset して固定するので、ここは外の値を読む経路である。
+# 走査器（.githooks/pre-commit/tests/test_nx_env_inputs.py）が SKIP 分岐の unset を束縛に数えて見落とすため、除外には載せていない。
+if [ -n "${PECOT_TOOLS_RUNTIME_DIR:-}" ] && plugin_runtime_is_complete "$PECOT_TOOLS_RUNTIME_DIR"; then
+  exec node "$PECOT_TOOLS_RUNTIME_DIR/cli/dist/cli.js" "$@"
+fi
+
+# 3. データ置き場。解決順は CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所（本体配下には何も作らない）。
+# 判定に落ちた子プロセスも、受け継いだ CLAUDE_PLUGIN_DATA / PLUGIN_DATA で同じ置き場に解決し直す。
+DATA="$(plugin_data_dir_ensure pecot-tools)" || exit 1
+RUNTIME_BASE="$DATA/runtime"
+PLUGIN_RUNTIME_FORCE="${PECOT_TOOLS_BOOTSTRAP_FORCE:-}"
+
+# bootstrap 中の stdout を丸ごと stderr へ寄せ、stdin を /dev/null に差し替える。
+# `pecot-tools mcp` は stdout を JSON-RPC チャネルとして専有し、stdin は JSON-RPC の
+# 入力パイプになる。pnpm / tsc の進捗が stdout に 1 行でも混ざるとクライアントの
+# パースが壊れ、子プロセスが stdin から 1 バイトでも読むと initialize が失われる。
+# 本リダイレクトはブロック内に閉じるため、後段の `exec node` には影響しない。
+{
+  # 4. ミラーを用意し、使用中を示す共有ロックを取る。取った後に完成印が消えていたら（世代削除と
+  # 行き違った）、作り直しへ戻る。
+  attempt=0
+  while :; do
+    plugin_runtime_ensure "$PLUGIN_ROOT" "$RUNTIME_BASE" || exit $?
+    RUNTIME_DIR="$PLUGIN_RUNTIME_DIR"
+    # fd 6 を開いたまま `exec node` する（fd は継承され、プロセスが生きている間ロックが残る）。
+    # 完成済みを使う経路はロックを取らずに戻るため、別プロセスの世代削除と行き違うと `.inuse` を開けない
+    # ことがある。その場合も失敗にせず、attempt を進めて作り直しへ合流する。
+    if { : >> "$RUNTIME_DIR/.inuse" && exec 6<"$RUNTIME_DIR/.inuse"; } 2>/dev/null; then
+      if command -v flock >/dev/null 2>&1; then flock -s 6; fi
+      if plugin_runtime_is_complete "$RUNTIME_DIR"; then break; fi
+      exec 6<&-
+    fi
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 3 ]; then
+      pecot_tools_log "error: 実行用ミラーを用意できませんでした: ${RUNTIME_DIR}"
+      exit 1
+    fi
+  done
+  export PECOT_TOOLS_RUNTIME_DIR="$RUNTIME_DIR"
+} >&2 </dev/null
+
+# 5. ミラーの cli を実行する。
+exec node "$RUNTIME_DIR/cli/dist/cli.js" "$@"

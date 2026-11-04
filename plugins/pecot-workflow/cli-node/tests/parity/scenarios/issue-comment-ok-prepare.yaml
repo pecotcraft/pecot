@@ -1,0 +1,7 @@
+# --prepare は --issue があれば issue_ref を埋めたテンプレートを作り、パスを出す。
+id: issue-comment-ok-prepare
+command:
+  path: [issue, comment]
+  args: [-t, merge-diff, --prepare, --issue, acme/demo/7]
+setup: {}
+github: []

@@ -1,0 +1,76 @@
+# --dry-run（-n）。マージせず、クローズ対象とローカルの後片付けのプレビューを出す。
+id: pr-merge-ok-dry-run
+command:
+  path: [pr, merge]
+  args:
+    - "acme/demo/21"
+    - "-n"
+setup:
+  repo:
+    branch: feat/demo/12
+    branches:
+      - name: feat/demo/12
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+          {
+            "host": "ghes.example.com",
+            "owner": "acme",
+            "workflow_suffix": "acme",
+            "project": {
+              "number": 1,
+              "id": "PVT_1",
+              "board_url": "https://ghes.example.com/users/acme/projects/1",
+              "fields": {
+                "workflow": {
+                  "id": "PVTSSF_workflow",
+                  "options": {
+                    "backlog": "o1",
+                    "pending": "o2",
+                    "ready": "o3",
+                    "active": "o4",
+                    "in_review": "o5",
+                    "archived": "o6"
+                  }
+                },
+                "priority": {
+                  "id": "PVTSSF_priority",
+                  "options": {
+                    "high": "p1",
+                    "medium": "p2",
+                    "low": "p3"
+                  }
+                },
+                "size": {
+                  "id": "PVTSSF_size",
+                  "options": {
+                    "xs": "s1",
+                    "s": "s2",
+                    "m": "s3",
+                    "l": "s4"
+                  }
+                }
+              }
+            },
+            "repositories": [
+              {
+                "owner": "acme",
+                "name": "demo",
+                "develop_branch": "main"
+              }
+            ]
+          }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      operation: "GetPullRequestSlim"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "OPEN", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
+  - match:
+      operation: "GetIssueKind"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 0}}}}}

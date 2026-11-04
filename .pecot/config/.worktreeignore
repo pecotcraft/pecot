@@ -1,0 +1,36 @@
+# Git メタデータ
+.git/
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# カバレッジ
+htmlcov/
+.coverage
+
+# ビルド生成物
+dist/
+build/
+
+# JS 依存
+node_modules/
+
+# pecot の実行時状態・一時領域（config は worktree-links 経由で symlink）
+.pecot/
+tmp/
+
+# Nx ビルド状態（version-plans は残すので .nx/ 丸ごとは除外しない）
+.nx/workspace-data/
+
+# pnpm ローカルストア（キャッシュ。WT へのコピー約 1.6GB は不要で、
+# base 側に実体のない .bin 参照が残っているとコピー自体も失敗する）
+.pnpm-store/

@@ -1,0 +1,7 @@
+# --help はルートの help を rich の枠付きで stdout に出して exit 0 になる。全コマンドの移植後に比べる。
+id: global-ok-help
+command:
+  path: []
+  args: ["--help"]
+setup: {}
+github: []

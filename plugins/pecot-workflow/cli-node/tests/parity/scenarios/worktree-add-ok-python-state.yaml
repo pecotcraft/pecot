@@ -1,0 +1,144 @@
+# Python の worktree init が書いた形の設定を読む。手本の golden は worktree-init-ok。
+# description の値は文章規則に合わせて短い英語に置き換えた。キーの並びと値の型は手本のまま。
+# wt1 を作る。symlink を 1 件張り、git の ignore 対象の .env.local をコピーする。
+id: worktree-add-ok-python-state
+command:
+  path: [worktree, add]
+  args:
+    - "-D"
+    - "."
+setup:
+  repo:
+    commits: [{message: "chore: .env.local を ignore する", files: {.gitignore: ".pecot/\n.env.local\n"}}]
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+      .pecot/config/worktree-config.json: |
+        {
+          "version": 3,
+          "description": "relative symlinks from wtN to base",
+          "links": [
+            {
+              "path": "CLAUDE.local.md",
+              "target_repo": "demo",
+              "target_path": "CLAUDE.local.md",
+              "description": "local CLAUDE notes"
+            },
+            {
+              "path": ".env",
+              "target_repo": "demo",
+              "target_path": ".env",
+              "description": "environment variables"
+            },
+            {
+              "path": ".claude/settings.local.json",
+              "target_repo": "demo",
+              "target_path": ".claude/settings.local.json",
+              "description": "local Claude Code settings"
+            },
+            {
+              "path": ".pecot/config/hooks-config.json",
+              "target_repo": "demo",
+              "target_path": ".pecot/config/hooks-config.json",
+              "description": "hooks switch shared with main WT"
+            },
+            {
+              "path": ".pecot/config/projects/.active",
+              "target_repo": "demo",
+              "target_path": ".pecot/config/projects/.active",
+              "description": "active project pointer shared with main WT"
+            },
+            {
+              "path": ".pecot/work",
+              "target_repo": "demo",
+              "target_path": ".pecot/work",
+              "description": "work files shared with main WT"
+            }
+          ]
+        }
+      .pecot/config/.worktreeignore: |
+        # Git メタデータ
+        .git/
+
+        # Python キャッシュ。
+        __pycache__/
+        *.pyc
+        *.pyo
+        .venv/
+        venv/
+        *.egg-info/
+        .pytest_cache/
+        .mypy_cache/
+        .ruff_cache/
+        .tox/
+
+        # カバレッジ
+        htmlcov/
+        .coverage
+
+        # ビルド生成物
+        dist/
+        build/
+
+        # JS 依存
+        node_modules/
+
+        # pecot の実行時状態・一時領域（config は worktree-config の links 経由で symlink）
+        .pecot/
+        tmp/
+
+        # Nx ビルド状態（version-plans は残すので .nx/ 丸ごとは除外しない）
+        .nx/workspace-data/
+      CLAUDE.local.md: |
+        ローカル向けの指示
+      .env.local: |
+        TOKEN=sample
+github: []

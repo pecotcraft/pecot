@@ -1,0 +1,7 @@
+# 未知のオプションに、近いオプションの案内が付く。
+id: global-usage-option-suggestion
+command:
+  path: []
+  args: ["--show-rep"]
+setup: {}
+github: []

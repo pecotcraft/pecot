@@ -1,0 +1,498 @@
+// talk-dir に本体が生成する vite.config.ts と start.mjs の中身を固定する。
+
+/* eslint-disable security/detect-non-literal-fs-filename */
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+
+import { build, createServer, loadConfigFromFile } from 'vite'
+import type { PluginOption } from 'vite'
+import { describe, expect, it } from 'vitest'
+
+import { compareStrings } from '../../_shared/compare-strings.js'
+import { isRecord } from '../../_shared/json.js'
+import { START_SCRIPT_SOURCE, viteConfigSource } from '../generated-files.js'
+
+describe('viteConfigSource', () => {
+  it('symlink を辿らず、キャッシュを talk-dir に閉じ、print ページを有効にする', () => {
+    const source = viteConfigSource({})
+
+    expect(source).toContain('preserveSymlinks: true')
+    expect(source).toContain('cacheDir: \'./.vite\'')
+    expect(source).toContain('__SLIDEV_FEATURE_PRINT__: \'true\'')
+    expect(source).toContain('/// <reference types="@slidev/types" />')
+  })
+
+  it('テンプレート固有の warmup を持たない', () => {
+    expect(viteConfigSource({})).not.toContain('warmup')
+  })
+
+  it('テーマが無ければ dedupe は空配列を書く', () => {
+    expect(viteConfigSource({})).toContain('dedupe: []')
+  })
+
+  it('テーマがあれば dedupe は読み込み時に求めた peer を渡す', () => {
+    expect(viteConfigSource({ themeName: 'slidev-theme-x' })).toContain('dedupe: themePeers')
+  })
+
+  it('先頭に、本体が生成することと Vite の追加設定の置き場を書く', () => {
+    const [first, second] = viteConfigSource({}).split('\n', 2)
+
+    expect(first).toContain('本体が生成')
+    expect(second).toContain('setup/vite-plugins.ts')
+  })
+
+  it('テーマの版だけが違っても、生成する中身は同じ', () => {
+    expect(viteConfigSource({ themeName: 'slidev-theme-x' })).toBe(viteConfigSource({ themeName: 'slidev-theme-x' }))
+  })
+})
+
+const THEME_NAME = 'slidev-theme-example'
+
+interface GlobModule {
+  readonly glob: (patterns: readonly string[], options: Readonly<Record<string, unknown>>) => Promise<string[]>
+}
+
+interface StaticCopyModule {
+  readonly viteStaticCopy: (options: { readonly silent: boolean, readonly targets: readonly unknown[] }) => PluginOption
+}
+
+interface Scenario {
+  readonly directory: string
+  readonly talk: string
+  readonly theme: string
+}
+
+/**
+テーマ（public/ 付き）を talk-dir の外に置き、node_modules に symlink で張った作業場を作る。
+Slidev の `node_modules` の張り方と同じ形にする。
+*/
+function createScenario(options: {
+  readonly publicFiles: Readonly<Record<string, string>> | undefined
+  /**
+  テーマの package.json の中身。省略すると `{}`。
+  */
+  readonly manifest?: string
+  /**
+  talk-dir の node_modules に実ディレクトリとして置く名前。
+  */
+  readonly installed?: readonly string[]
+}): Scenario {
+  const created = mkdtempSync(path.join(tmpdir(), 'pecotv-vite-config-'))
+  const directory = realpathSync(created)
+  const theme = path.join(directory, 'store', 'nested', THEME_NAME)
+  const talk = path.join(directory, 'work', 'talk')
+  mkdirSync(theme, { recursive: true })
+  mkdirSync(path.join(talk, 'node_modules'), { recursive: true })
+  writeFileSync(path.join(theme, 'package.json'), options.manifest ?? '{}', 'utf8')
+  const installed = options.installed ?? []
+  for (const name of installed) mkdirSync(path.join(talk, 'node_modules', name), { recursive: true })
+  const publicFiles = Object.entries(options.publicFiles ?? {})
+  for (const [name, content] of publicFiles) {
+    mkdirSync(path.dirname(path.join(theme, 'public', name)), { recursive: true })
+    writeFileSync(path.join(theme, 'public', name), content, 'utf8')
+  }
+  symlinkSync(theme, path.join(talk, 'node_modules', THEME_NAME), 'dir')
+  // 生成した設定は `vite` を import する。実際の talk-dir と同じく node_modules から解決させる。
+  const viteDirectory = path.dirname(createRequire(import.meta.url).resolve('vite/package.json'))
+  symlinkSync(viteDirectory, path.join(talk, 'node_modules', 'vite'), 'dir')
+  writeFileSync(path.join(talk, 'vite.config.ts'), viteConfigSource({ themeName: THEME_NAME }), 'utf8')
+  return { directory, talk, theme }
+}
+
+/**
+生成した設定を vite が設定を読むときと同じ関数で評価し、`slidev.staticCopy.targets` を取り出す。
+*/
+async function loadStaticCopyTargets(talk: string): Promise<readonly unknown[] | undefined> {
+  const loaded = await loadConfigFromFile({ command: 'build', mode: 'production' }, path.join(talk, 'vite.config.ts'), talk)
+  const slidev: unknown = loaded === null ? undefined : Reflect.get(loaded.config, 'slidev')
+  const staticCopy: unknown = isRecord(slidev) ? slidev['staticCopy'] : undefined
+  const targets: unknown = isRecord(staticCopy) ? staticCopy['targets'] : undefined
+  return Array.isArray(targets) ? targets : undefined
+}
+
+/**
+@slidev/cli の依存（vite-plugin-static-copy・tinyglobby）は、このパッケージの依存ではない。plugin root から解決する。
+*/
+function resolveFromPluginRoot(name: string): string {
+  const pluginRequire = createRequire(path.resolve(import.meta.dirname, '../../../../../package.json'))
+  return pluginRequire.resolve(name)
+}
+
+/**
+生成した設定の `server.warmup.clientFiles` を取り出す。無ければ空。
+*/
+async function loadWarmupFiles(talk: string): Promise<readonly string[]> {
+  const loaded = await loadConfigFromFile({ command: 'serve', mode: 'development' }, path.join(talk, 'vite.config.ts'), talk)
+  const server: unknown = loaded === null ? undefined : Reflect.get(loaded.config, 'server')
+  const warmup: unknown = isRecord(server) ? server['warmup'] : undefined
+  const files: unknown = isRecord(warmup) ? warmup['clientFiles'] : undefined
+  return Array.isArray(files) ? files.filter((file): file is string => typeof file === 'string') : []
+}
+
+/**
+Slidev と同じく、取り出した targets を vite-plugin-static-copy へそのまま渡して build する。
+プラグインは @slidev/cli の依存で、このパッケージの依存ではないため、plugin root から解決する。
+*/
+async function buildWithStaticCopy(talk: string, targets: readonly unknown[]): Promise<string> {
+  const pluginPath = resolveFromPluginRoot('vite-plugin-static-copy')
+  // 動的 import の型は any。使う口だけを StaticCopyModule で絞る。
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const staticCopyModule: StaticCopyModule = await import(pluginPath)
+  writeFileSync(path.join(talk, 'index.html'), '<script type="module" src="./main.js"></script>', 'utf8')
+  writeFileSync(path.join(talk, 'main.js'), 'console.log(1)', 'utf8')
+  const outDirectory = path.join(talk, 'dist')
+  await build({
+    root: talk,
+    configFile: false,
+    logLevel: 'silent',
+    plugins: [staticCopyModule.viteStaticCopy({ silent: true, targets })],
+    resolve: { preserveSymlinks: true },
+    build: { outDir: outDirectory, emptyOutDir: true },
+  })
+  return outDirectory
+}
+
+describe('viteConfigSource の theme の public/', () => {
+  it('テーマ名が無ければ静的コピーを書かない', () => {
+    expect(viteConfigSource({})).not.toContain('staticCopy')
+  })
+
+  it('テーマ名があれば、node_modules のテーマの public/ を /theme/ へ配る設定を書く', () => {
+    const source = viteConfigSource({ themeName: THEME_NAME })
+
+    expect(source).toContain('staticCopy')
+    expect(source).toContain(`'${THEME_NAME}'`)
+    expect(source).toContain('dest: \'theme\'')
+    expect(source).toContain('stripBase')
+  })
+
+  it('絶対パスを生成物に埋め込まない', () => {
+    const source = viteConfigSource({ themeName: THEME_NAME })
+
+    expect(source).not.toMatch(/['"`]\/(?:home|workspaces|tmp|Users)\//u)
+    expect(source).toContain('import.meta.url')
+  })
+
+  it('テーマ名の引用符で文字列を壊さない', () => {
+    expect(viteConfigSource({ themeName: 'a\'b' })).toContain('\'a\\\'b\'')
+  })
+
+  it('public/assets の下も /theme/ の直下に出す（dev と build で同じ targets）', async () => {
+    const scenario = createScenario({ publicFiles: { 'top.txt': 'TOP', 'assets/x/y.txt': 'DEEP', 'assets/z.txt': 'MID' } })
+    try {
+      const targets = await loadStaticCopyTargets(scenario.talk)
+
+      expect(targets).toEqual([{
+        src: `${realpathSync(path.join(scenario.theme, 'public'))}/**/*`,
+        dest: 'theme',
+        rename: { stripBase: 4 },
+      }])
+      const outDirectory = await buildWithStaticCopy(scenario.talk, targets ?? [])
+      expect(readFileSync(path.join(outDirectory, 'theme', 'top.txt'), 'utf8')).toBe('TOP')
+      expect(readFileSync(path.join(outDirectory, 'theme', 'assets', 'z.txt'), 'utf8')).toBe('MID')
+      expect(readFileSync(path.join(outDirectory, 'theme', 'assets', 'x', 'y.txt'), 'utf8')).toBe('DEEP')
+      // テーマまでのパス（store/nested/...）が出力に残らない。
+      expect(existsSync(path.join(outDirectory, 'theme', 'store'))).toBe(false)
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('glob の特殊文字を含むパスのテーマでも配る', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    try {
+      const special = path.join(scenario.directory, 'st[or]e (1)', THEME_NAME)
+      mkdirSync(path.join(special, 'public', 'assets'), { recursive: true })
+      writeFileSync(path.join(special, 'public', 'assets', 'k.txt'), 'SPECIAL', 'utf8')
+      rmSync(path.join(scenario.talk, 'node_modules', THEME_NAME))
+      symlinkSync(special, path.join(scenario.talk, 'node_modules', THEME_NAME), 'dir')
+
+      const targets = await loadStaticCopyTargets(scenario.talk)
+      const outDirectory = await buildWithStaticCopy(scenario.talk, targets ?? [])
+
+      expect(readFileSync(path.join(outDirectory, 'theme', 'assets', 'k.txt'), 'utf8')).toBe('SPECIAL')
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('テーマに public/ が無ければ targets を足さない', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    try {
+      expect(await loadStaticCopyTargets(scenario.talk)).toBeUndefined()
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('warmup の glob は、テーマの実体のパスと talk-dir の相対で並べる', () => {
+    const source = viteConfigSource({ themeName: THEME_NAME })
+
+    expect(source).toContain('warmup')
+    expect(source).toContain('`${escapeGlob(themeRoot)}/layouts/**/*.vue`')
+    expect(source).toContain('`${escapeGlob(themeRoot)}/components/**/*.vue`')
+    expect(source).toContain('`${escapeGlob(themeRoot)}/styles/**/*.css`')
+    expect(source).toContain('\'./layouts/**/*.vue\'')
+    expect(source).toContain('\'./components/**/*.vue\'')
+    expect(source).toContain('\'./styles/**/*.css\'')
+  })
+
+  it('warmup の glob が、symlink で張ったテーマの .vue と .css を Vite と同じ ignore で拾う', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    try {
+      for (const name of ['layouts/cover.vue', 'components/Card.vue', 'styles/main.css']) {
+        mkdirSync(path.dirname(path.join(scenario.theme, name)), { recursive: true })
+        writeFileSync(path.join(scenario.theme, name), '', 'utf8')
+      }
+      mkdirSync(path.join(scenario.talk, 'layouts'), { recursive: true })
+      writeFileSync(path.join(scenario.talk, 'layouts', 'own.vue'), '', 'utf8')
+
+      const patterns = await loadWarmupFiles(scenario.talk)
+      // Vite の mapFiles と同じ指定。node_modules の下は拾わない。
+      // 動的 import の型は any。使う口だけを GlobModule で絞る。
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const globModule: GlobModule = await import(resolveFromPluginRoot('tinyglobby'))
+      const found = await globModule.glob(patterns, {
+        absolute: true,
+        cwd: scenario.talk,
+        ignore: ['**/.git/**', '**/node_modules/**'],
+        expandDirectories: false,
+      })
+
+      expect(found.toSorted(compareStrings)).toEqual([
+        path.join(scenario.talk, 'layouts', 'own.vue'),
+        path.join(scenario.theme, 'components', 'Card.vue'),
+        path.join(scenario.theme, 'layouts', 'cover.vue'),
+        path.join(scenario.theme, 'styles', 'main.css'),
+      ].toSorted(compareStrings))
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('テーマが解決できなければ warmup を足さない', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    try {
+      rmSync(path.join(scenario.talk, 'node_modules', THEME_NAME))
+
+      expect(await loadWarmupFiles(scenario.talk)).toEqual([])
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('node_modules にテーマが無くても設定は読み込める', async () => {
+    const scenario = createScenario({ publicFiles: { 'top.txt': 'TOP' } })
+    try {
+      rmSync(path.join(scenario.talk, 'node_modules', THEME_NAME))
+
+      expect(await loadStaticCopyTargets(scenario.talk)).toBeUndefined()
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+})
+
+/**
+生成した設定を、dev の `serve` で読み込む。
+*/
+async function loadServeConfig(talk: string): Promise<Record<string, unknown>> {
+  const loaded = await loadConfigFromFile({ command: 'serve', mode: 'development' }, path.join(talk, 'vite.config.ts'), talk)
+  if (loaded === null) throw new Error('設定を読み込めませんでした')
+  return { ...loaded.config }
+}
+
+function serverOf(config: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const server = config['server']
+  return isRecord(server) ? { ...server } : {}
+}
+
+describe('viteConfigSource の応答ヘッダ', () => {
+  it('テーマ名が無くても、server.headers に Cache-Control: no-cache を書く', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    try {
+      writeFileSync(path.join(scenario.talk, 'vite.config.ts'), viteConfigSource({}), 'utf8')
+
+      const headers = serverOf(await loadServeConfig(scenario.talk))['headers']
+
+      expect(headers).toEqual({ 'Cache-Control': 'no-cache' })
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('テーマ名があれば、warmup を残したまま server.headers に Cache-Control: no-cache を書く', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    try {
+      const server = serverOf(await loadServeConfig(scenario.talk))
+
+      expect(server['headers']).toEqual({ 'Cache-Control': 'no-cache' })
+      expect(isRecord(server['warmup']) ? server['warmup']['clientFiles'] : undefined).toBeInstanceOf(Array)
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('版の query 付きの /@fs/ の JS への応答が no-cache になり、immutable を含まない', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    const probe = path.join(scenario.talk, 'node_modules', '.probe', 'probe.js')
+    mkdirSync(path.dirname(probe), { recursive: true })
+    writeFileSync(probe, 'export const probe = 1\n', 'utf8')
+    const config = await loadServeConfig(scenario.talk)
+    // Vite は Cache-Control を決めた後に server.headers を上書きで当てる。この順序に依存する設定なので、実サーバの応答で確かめる。
+    const server = await createServer({
+      ...config,
+      root: scenario.talk,
+      configFile: false,
+      logLevel: 'silent',
+      server: { ...serverOf(config), host: '127.0.0.1', port: 0 },
+    })
+    try {
+      await server.listen()
+      const address = server.httpServer?.address()
+      if (address === null || address === undefined || typeof address === 'string') throw new Error('待ち受けポートを特定できませんでした')
+
+      const response = await fetch(`http://127.0.0.1:${String(address.port)}/@fs/${realpathSync(probe)}?v=abc123`)
+      const cacheControl = response.headers.get('cache-control')
+
+      expect(response.status).toBe(200)
+      expect(cacheControl).toBe('no-cache')
+      expect(cacheControl).not.toContain('immutable')
+    }
+    finally {
+      await server.close()
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('START_SCRIPT_SOURCE', () => {
+  it('SLIDEV_PORT を読み、slidev を --remote で起動する', () => {
+    expect(START_SCRIPT_SOURCE).toContain('process.env.SLIDEV_PORT')
+    expect(START_SCRIPT_SOURCE).toContain('\'--port\'')
+    expect(START_SCRIPT_SOURCE).toContain('slidevBin, \'--remote\'')
+  })
+
+  it('npx を使わず、node で @slidev/cli の bin を直接起動する', () => {
+    expect(START_SCRIPT_SOURCE).not.toContain('npx')
+    expect(START_SCRIPT_SOURCE).not.toContain('platform')
+    expect(START_SCRIPT_SOURCE).toContain('\'@slidev\', \'cli\', \'bin\', \'slidev.mjs\'')
+    expect(START_SCRIPT_SOURCE).toContain('spawn(process.execPath, slidevArgs')
+  })
+
+  it('node_modules が無ければ sync の案内を stderr に出して exit 1 で終わる', () => {
+    expect(START_SCRIPT_SOURCE).toContain('pecotv slide sync --dir')
+    expect(START_SCRIPT_SOURCE).toContain('--node-modules-only')
+    expect(START_SCRIPT_SOURCE).toContain('console.error')
+    expect(START_SCRIPT_SOURCE).toContain('process.exit(1)')
+  })
+
+  it('symlink 1 本の前提を持たない', () => {
+    expect(START_SCRIPT_SOURCE).not.toContain('unlinkSync')
+    expect(START_SCRIPT_SOURCE).not.toContain('lstatSync')
+    expect(START_SCRIPT_SOURCE).not.toContain('dangling')
+  })
+
+  it('shebang で始まる', () => {
+    expect(START_SCRIPT_SOURCE.startsWith('#!/usr/bin/env node\n')).toBe(true)
+  })
+
+  it('ES module として構文が正しい', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'pecotv-start-script-'))
+    try {
+      const file = path.join(directory, 'start.mjs')
+      writeFileSync(file, START_SCRIPT_SOURCE, 'utf8')
+      expect(() => execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' })).not.toThrow()
+    }
+    finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+})
+
+/**
+生成した設定の `resolve.dedupe` を、vite が設定を読むときと同じ関数で取り出す。
+*/
+async function loadDedupe(talk: string): Promise<unknown> {
+  const loaded = await loadConfigFromFile({ command: 'serve', mode: 'development' }, path.join(talk, 'vite.config.ts'), talk)
+  const resolve: unknown = loaded === null ? undefined : Reflect.get(loaded.config, 'resolve')
+  return isRecord(resolve) ? resolve['dedupe'] : undefined
+}
+
+describe('viteConfigSource の resolve.dedupe（読み込み時に求める）', () => {
+  it('テーマの peerDependencies のうち、talk-dir の node_modules にある名前を渡す', async () => {
+    const scenario = createScenario({
+      publicFiles: undefined,
+      manifest: JSON.stringify({ peerDependencies: { 'vue': '^3', '@vueuse/core': '^10', 'absent': '^1' } }),
+      installed: ['vue', '@vueuse/core'],
+    })
+    try {
+      expect(await loadDedupe(scenario.talk)).toStrictEqual(['vue', '@vueuse/core'])
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('peerDependenciesMeta で optional の名前は除く', async () => {
+    const scenario = createScenario({
+      publicFiles: undefined,
+      manifest: JSON.stringify({
+        peerDependencies: { vue: '^3', shiki: '^1' },
+        peerDependenciesMeta: { shiki: { optional: true } },
+      }),
+      installed: ['vue', 'shiki'],
+    })
+    try {
+      expect(await loadDedupe(scenario.talk)).toStrictEqual(['vue'])
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('talk-dir の node_modules に無い名前は除く（Vite は見つからないと起動が失敗する）', async () => {
+    const scenario = createScenario({
+      publicFiles: undefined,
+      manifest: JSON.stringify({ peerDependencies: { vue: '^3' } }),
+    })
+    try {
+      expect(await loadDedupe(scenario.talk)).toStrictEqual([])
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('package.json が JSON でなくても、空配列で設定を読み込める', async () => {
+    const scenario = createScenario({ publicFiles: undefined, manifest: '{not json' })
+    try {
+      expect(await loadDedupe(scenario.talk)).toStrictEqual([])
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+
+  it('package.json が無くても、空配列で設定を読み込める', async () => {
+    const scenario = createScenario({ publicFiles: undefined })
+    rmSync(path.join(scenario.theme, 'package.json'))
+    try {
+      expect(await loadDedupe(scenario.talk)).toStrictEqual([])
+    }
+    finally {
+      rmSync(scenario.directory, { recursive: true, force: true })
+    }
+  })
+})

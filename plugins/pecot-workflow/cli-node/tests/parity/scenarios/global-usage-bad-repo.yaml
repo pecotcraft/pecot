@@ -1,0 +1,7 @@
+# --repo の形式が不正。rich の枠付きエラー（幅 80）を記録する。
+id: global-usage-bad-repo
+command:
+  path: []
+  args: ["--repo", "bad", "--show-repo"]
+setup: {}
+github: []

@@ -1,0 +1,7 @@
+{
+  "stdout": "",
+  "stderr": "Usage: pecot [OPTIONS] COMMAND [ARGS]...\nTry 'pecot --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such command 'xyz'.                                                       │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "exitCode": 2,
+  "requests": [],
+  "files": {}
+}
