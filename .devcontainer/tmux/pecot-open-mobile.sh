@@ -203,11 +203,23 @@ for entry in "${REPOS[@]}"; do
     fi
 done
 
-cmd_for() {
+# tmux はコンテナの中で動かす（#53）。コンテナの中の Claude Code が tmux の中にいると判定でき、
+# マウスで選んだ文字を OSC 52 でホストの端末に送れる。teammate も tmux のペインに分かれる。
+# 設定はリポジトリのファイルを -f で渡す。-f はサーバの起動時にだけ読まれる。
+TMUX_CONF="/workspaces/base/pecot/.devcontainer/tmux/tmux.conf"
+ctmux() {
+    docker exec -u vscode "$CID" tmux -f "$TMUX_CONF" "$@"
+}
+ctmux_attach() {
+    exec docker exec -it -u vscode -e TERM="${TERM:-xterm-256color}" "$CID" \
+        tmux -f "$TMUX_CONF" attach-session -t "$1"
+}
+
+dir_for() {
     local v r
     v="$(entry_variant "$1")"
     r="$(entry_repo "$1")"
-    printf 'docker exec -it -u vscode -w %q %s bash' "/workspaces/$v/$r" "$CID"
+    printf '%s' "/workspaces/$v/$r"
 }
 
 # (variant, repo) の組が複数出る場合は -2, -3... を付与（layout スコープ内でのみユニーク）
@@ -229,15 +241,22 @@ for entry in "${REPOS[@]}"; do
     SESSION_NAMES+=("$SESSION_PREFIX:$base_name")
 done
 
+# tmux はセッション名の `:` と `.` を `_` に替えて保存し、`-t a:b` をセッション a のウィンドウ b と読む。
+# そのため、セッションを指すときは保存された名前を `=`（完全一致）で指す。
+target_for() {
+    local name="${1//[:.]/_}"
+    printf '=%s' "$name"
+}
+
 for i in "${!REPOS[@]}"; do
     entry="${REPOS[$i]}"
     session="${SESSION_NAMES[$i]}"
-    if tmux has-session -t "$session" 2>/dev/null; then
+    if ctmux has-session -t "$(target_for "$session")" 2>/dev/null; then
         echo "既存セッション '$session' を再利用します"
     else
-        tmux new-session -d -s "$session" "$(cmd_for "$entry")"
+        ctmux new-session -d -s "$session" -c "$(dir_for "$entry")" bash
         echo "セッション '$session' を作成しました"
     fi
 done
 
-exec tmux attach-session -t "${SESSION_NAMES[0]}"
+ctmux_attach "$(target_for "${SESSION_NAMES[0]}")"

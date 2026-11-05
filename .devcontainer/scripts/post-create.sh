@@ -7,7 +7,7 @@ sudo apt-get update
 # pptx 変換自体は impress だけで足りる (draw は impress の Depends)。calc が要るのは
 # evidence-xlsx 系 E2E のため。--no-install-recommends は付けない。
 # pdftotext が日本語を抽出するのに必要な poppler-data は、recommends 経由でしか入らない。
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y shellcheck fontconfig fonts-noto-cjk fonts-inter fonts-crosextra-carlito libreoffice-impress libreoffice-calc poppler-utils
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y shellcheck tmux fontconfig fonts-noto-cjk fonts-inter fonts-crosextra-carlito libreoffice-impress libreoffice-calc poppler-utils
 
 # PPTX が要求するフォントのファミリー名と、コンテナの deb 実体は一致しない。
 # "Noto Sans JP" の deb 配布は "Noto Sans CJK JP" のみで、

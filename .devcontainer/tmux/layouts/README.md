@@ -2,6 +2,14 @@
 
 `pecot-open.sh` / `pecot-open-mobile.sh` の `--layout <name>` で参照されるレイアウト定義ディレクトリ。
 
+## tmux が動く場所
+
+スクリプトはホストで打つ。tmux のセッションは devcontainer の中にできる。
+
+- 設定は `.devcontainer/tmux/tmux.conf` を `tmux -f` で渡す
+- ホストの tmux の外から打つ。ホストの tmux の中から打つと tmux が二重になり、prefix のキーを外側の tmux が取る
+- ホストの端末アプリで、OSC 52 によるクリップボードへの書き込みを許可しておく。Claude Code でマウスで選んだ文字が、ホストのクリップボードに入る
+
 ## ファイルフォーマット
 
 1 ファイル 1 レイアウトとし、拡張子は `.conf`、中身は bash として `source` される。形は次のとおり。
@@ -60,6 +68,7 @@ layout 違いを並行起動できる。
   `-2`, `-3`... 連番で、**layout スコープ内でのみユニーク**。
 - layout が異なれば別プレフィックスになるため、layout 並行起動が可能
   （`pecot-base-default:*` と `pecot-base-parallel4:*` が併存する）。
+- tmux はセッション名の `:` を `_` に替えて保存する。`Ctrl-b s` の一覧には `pecot-base-default_base-pecot` の形で出る。
 
 例:
 
