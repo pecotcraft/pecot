@@ -1665,9 +1665,11 @@ write_requests "$TMP/npx-requests.json" \
 mkdir -p "$TMP/home-npx"
 for run in cold warm; do
     NPX_JSON="$TMP/npx-$run.json"
-    env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME -u CLAUDE_PLUGIN_ROOT HOME="$TMP/home-npx" \
+    # 利用者は自分の dir で npx を打つ。nx はこのテストを plugin の dir から起動するため、cwd を plugin の外へ移す。
+    # plugin の dir のままだと、package.json の devEngines（pnpm）を見た npm が EBADDEVENGINES を出して止まる。
+    (cd "$TMP/home-npx" && env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME -u CLAUDE_PLUGIN_ROOT HOME="$TMP/home-npx" \
         SMOKE_BIN="$(command -v npx)" PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-        node "$TMP/smoke.mjs" "$TMP/npx-requests.json" "${NPX_FLAGS[@]}" "--package=$GH_UPLOAD_COPY" pecot-visual-mcp \
+        node "$TMP/smoke.mjs" "$TMP/npx-requests.json" "${NPX_FLAGS[@]}" "--package=$GH_UPLOAD_COPY" pecot-visual-mcp) \
         > "$NPX_JSON" 2> "$TMP/npx-$run.err"
     case "$(head -c 5 "$NPX_JSON")" in
         FAIL:) fail "npx の $run 起動が MCP サーバとして起動しない ($(log_cat npx-$run.json))" ;;
