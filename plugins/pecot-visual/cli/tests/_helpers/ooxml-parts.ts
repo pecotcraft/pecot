@@ -43,7 +43,7 @@ export function mediaPartsByRelationship(
   const resolved = new Map<string, string>()
   for (const node of rels.selectNodes('//rel:Relationship', OOXML_NS)) {
     const target = node.getAttr('Target') ?? ''
-    resolved.set(node.getAttr('Id') ?? '', `xl/${target.replace('../', '')}`)
+    resolved.set(node.getAttr('Id') ?? '', `xl/${target.replace(/^\.\.\//, '')}`)
   }
   return resolved
 }

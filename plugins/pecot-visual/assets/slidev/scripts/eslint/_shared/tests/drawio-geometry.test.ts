@@ -319,3 +319,33 @@ describe('drawioGeometry: 非対応形式', () => {
     assertGeometryError(() => parseDrawio('<svg xmlns="http://www.w3.org/2000/svg"/>'), 'no-model');
   });
 });
+
+describe('drawioGeometry: XML コメント', () => {
+  it('コメントの中のセルは無視し、外のセルは読む', () => {
+    const xml = wrap(
+      '<!-- ' + vertex('hidden', 0, 0, 10, 10) + ' -->' + vertex('a', 100, 100, 50, 40),
+    );
+    const model = parseDrawio(xml);
+    assert.equal(resolveCellRect(model, 'a').width, 50);
+    assert.throws(() => resolveCellRect(model, 'hidden'));
+  });
+
+  it('連続するコメントを全て除く', () => {
+    const xml = wrap('<!--a--><!--b-->' + vertex('a', 0, 0, 30, 20) + '<!-- c -->');
+    const model = parseDrawio(xml);
+    assert.equal(resolveCellRect(model, 'a').width, 30);
+  });
+
+  it('閉じないコメントは除かず、後続をそのまま残す', () => {
+    const xml = wrap(vertex('a', 0, 0, 30, 20) + '<!-- 閉じない');
+    const model = parseDrawio(xml);
+    assert.equal(resolveCellRect(model, 'a').width, 30);
+  });
+
+  it('`<!-->` は閉じ記号を共有しない（`<!--` の直後 4 文字以降から探す）', () => {
+    const xml = wrap('<!-->' + vertex('hidden', 0, 0, 10, 10) + '-->' + vertex('a', 0, 0, 30, 20));
+    const model = parseDrawio(xml);
+    assert.equal(resolveCellRect(model, 'a').width, 30);
+    assert.throws(() => resolveCellRect(model, 'hidden'));
+  });
+});

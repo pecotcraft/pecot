@@ -192,13 +192,30 @@ function crispOffsetOf(strokeWidth: number): number {
 const TAG_RE = /<(\/?)([A-Za-z_][\w:.-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/g
 
 /**
+ * XML コメント（`<!-- ... -->`）を取り除く。閉じないコメントはそのまま残す。
+ */
+function stripXmlComments(xml: string): string {
+  let out = ''
+  let i = 0
+  for (;;) {
+    const start = xml.indexOf('<!--', i)
+    if (start === -1) break
+    const end = xml.indexOf('-->', start + 4)
+    if (end === -1) break
+    out += xml.slice(i, start)
+    i = end + 3
+  }
+  return out + xml.slice(i)
+}
+
+/**
  * XML 文字列を mxCell の一覧に分解する。
  */
 function scanCells(xml: string): Cell[] {
   if (typeof xml !== 'string' || xml.trim() === '') {
     throw new DrawioGeometryError('empty-xml', 'draw.io の XML が空です')
   }
-  const source = xml.replace(/<!--[\s\S]*?-->/g, '')
+  const source = stripXmlComments(xml)
 
   const cells: Cell[] = []
   let diagramCount = 0
