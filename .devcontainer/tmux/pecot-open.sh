@@ -259,7 +259,13 @@ resolve_term() {
 ctmux_attach() {
     local term
     term="$(resolve_term)"
-    exec docker exec -it -u vscode -e TERM="$term" "$CID" \
+    local envs=(-e TERM="$term")
+    # tmux は attach するクライアントの COLORTERM が truecolor / 24bit なら RGB を付ける（#87）。
+    # ホストの端末が名乗る値をそのまま渡す。無ければ渡さない。
+    if [[ -n "${COLORTERM:-}" ]]; then
+        envs+=(-e COLORTERM="$COLORTERM")
+    fi
+    exec docker exec -it -u vscode "${envs[@]}" "$CID" \
         tmux -f "$TMUX_CONF" attach-session -t "$1"
 }
 
