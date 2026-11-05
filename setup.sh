@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # pecot setup script
-# 作業ツリーに開発用の依存を入れる。devcontainer の作成時と、pecot でワークツリーを作ったときに実行する。
-# git hook はワークツリー間で共有するため、ここでは入れない（.devcontainer/scripts/install-git-hooks.sh が入れる）。
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
