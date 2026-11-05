@@ -412,6 +412,36 @@ class TestReviewExceptions:
         client.add_to_project.assert_called_once()
         client.get_item_set_field_ids.assert_called_once()
 
+    def test_duplicate_review_issues_are_closed(self, tmp_path: Path) -> None:
+        """一覧の反映の遅れで続けて作られた重複は、番号の小さい 1 件を残して閉じる"""
+        marker = "<!-- pecot-alert: exceptions-review -->"
+        client = _client(
+            issues=[
+                {"number": 12, "state": "open", "body": marker},
+                {"number": 9, "state": "open", "body": marker},
+            ]
+        )
+        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1))
+
+        assert result.exit_code == 0
+        client.create_issue.assert_not_called()
+        client.close_issue.assert_called_once_with("o", "r", 12, "not_planned")
+        assert "#9" in client.add_issue_comment.call_args.args[3]
+
+    def test_duplicate_review_issues_dry_run_closes_nothing(self, tmp_path: Path) -> None:
+        marker = "<!-- pecot-alert: exceptions-review -->"
+        client = _client(
+            issues=[
+                {"number": 12, "state": "open", "body": marker},
+                {"number": 9, "state": "open", "body": marker},
+            ]
+        )
+        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1), ["--dry-run"])
+
+        assert result.exit_code == 0
+        assert "[dry-run] 重複を閉じる" in result.output
+        client.close_issue.assert_not_called()
+
     def test_closed_review_issue_does_not_block(self, tmp_path: Path) -> None:
         client = _client(
             issues=[

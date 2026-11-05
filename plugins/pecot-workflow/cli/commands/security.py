@@ -301,8 +301,21 @@ def security_review_exceptions(ctx: typer.Context, dry_run: DryRunOption = False
             if i.get("state") == "open" and REVIEW_MARKER in cast("str", i.get("body") or "")
         ]
         if existing:
-            number = existing[0]["number"]
+            numbers = sorted(cast("int", i["number"]) for i in existing)
+            number = numbers[0]
             typer.echo(f"見直しの Issue #{number} が open のため、作りません")
+            # 一覧の反映の遅れで続けて作られた重複は、番号の小さい 1 件を残して閉じる
+            for dup in numbers[1:]:
+                if dry_run:
+                    typer.echo(
+                        f"[dry-run] 重複を閉じる: 例外の見直し（Issue #{dup}、残す Issue #{number}）"
+                    )
+                    continue
+                client.close_issue(owner, repo, dup, "not_planned")
+                client.add_issue_comment(
+                    owner, repo, dup, f"例外の見直しの Issue #{number} と重複のため閉じます。"
+                )
+                typer.echo(f"閉じた: 例外の見直しの重複（Issue #{dup}）")
             if not dry_run:
                 # 作った後にボードの登録が失敗した実行を、次の実行で直す
                 _put_on_board(client, config, owner, repo, number, "medium", "if-empty")
