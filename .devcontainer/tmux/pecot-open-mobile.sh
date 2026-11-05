@@ -210,8 +210,32 @@ TMUX_CONF="/workspaces/base/pecot/.devcontainer/tmux/tmux.conf"
 ctmux() {
     docker exec -u vscode "$CID" tmux -f "$TMUX_CONF" "$@"
 }
+# ホストの TERM がコンテナの terminfo に無いと、attach が
+# `missing or unsuitable terminal` で止まる（#85）。
+# 例: Ghostty の `xterm-ghostty` は、コンテナでは `ghostty` の名前でしか引けない。
+# 候補を順にコンテナの infocmp で引き、最初に引けた名前を使う。
+resolve_term() {
+    local host_term="${TERM:-}"
+    if [[ -z "$host_term" ]]; then
+        printf '%s' xterm-256color
+        return
+    fi
+    local cand
+    for cand in "$host_term" "${host_term#xterm-}" xterm-256color; do
+        if docker exec "$CID" infocmp "$cand" >/dev/null 2>&1; then
+            if [[ "$cand" != "$host_term" ]]; then
+                echo "TERM '$host_term' はコンテナの terminfo に無いため '$cand' で attach します" >&2
+            fi
+            printf '%s' "$cand"
+            return
+        fi
+    done
+    printf '%s' xterm-256color
+}
 ctmux_attach() {
-    exec docker exec -it -u vscode -e TERM="${TERM:-xterm-256color}" "$CID" \
+    local term
+    term="$(resolve_term)"
+    exec docker exec -it -u vscode -e TERM="$term" "$CID" \
         tmux -f "$TMUX_CONF" attach-session -t "$1"
 }
 
