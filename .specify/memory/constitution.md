@@ -2,13 +2,15 @@
   =========================================================================
   Sync Impact Report
   =========================================================================
-  Version change: 2.1.0 → 2.2.0
+  Version change: 2.2.0 → 3.0.0
   Modified principles:
-    - V. 本体実装優先: 対象リポ例示からアーカイブ済み pecot-cli を削除（明確化のみ）
+    - III. コード品質ゲート: `--no-verify` の禁止から、ツールが内部で使う push
+      （nx release）を除くと明確化
+    - V. 本体実装優先（aist-roadmap編集の最小化）→ V. 本体実装優先（speckit 成果物の編集の最小化）:
+      廃止した aist-roadmap を対象から外し、このリポジトリの specs/ と本体の関係に置き換えた（MAJOR）
   Modified sections:
-    - タイトル: starter-kit からの転記名を aist-roadmap 憲法に修正
-    - ガバナンス/スコープ: ai-engineer-starter-kit 単独から、aist-roadmap の
-      speckit 成果物とその対象リポでの実装へ拡張（MINOR）
+    - タイトル: aist-roadmap 憲法 → pecot 憲法
+    - ガバナンス/スコープ: aist-roadmap と対象リポ群から、pecotcraft/pecot の speckit 成果物と実装へ
   Added sections: なし
   Removed sections: なし
   Templates requiring updates:
@@ -16,12 +18,11 @@
     - .specify/templates/spec-template.md ✅ 更新不要
     - .specify/templates/tasks-template.md ✅ 更新不要
     - .specify/templates/checklist-template.md ✅ 更新不要
-    - .specify/templates/agent-file-template.md ✅ 更新不要
   Follow-up TODOs: none
   =========================================================================
 -->
 
-# aist-roadmap 憲法
+# pecot 憲法
 
 ## 基本原則
 
@@ -104,6 +105,8 @@ AIエージェントが書く単体テストは「グリーンパス」の足場
 - ゲートが未導入のプロジェクトでは、機能開発の前にゲート整備を
   行わなければならない（MUST）。ゲートなしでの開発着手は禁止。
 - 通常のワークフローで `--no-verify` バイパスは許可されない。
+  ツールが内部で付けるもの（`nx release` の push）は除く。
+  その場合も、push する中身は PR の検証を通っていなければならない（MUST）。
 
 **根拠**: 自動化されたゲートは主観的なスタイル議論を排除し、
 すべてのコントリビューター間で一貫したレビュー可能なコードベースを保証する。
@@ -130,28 +133,27 @@ AIエージェントが書く単体テストは「グリーンパス」の足場
 **根拠**: 複雑さはソフトウェアの主要な長期コストである。
 コードベースをリーンに保つことで保守性と迅速なオンボーディングを確保する。
 
-### V. 本体実装優先（aist-roadmap編集の最小化）
+### V. 本体実装優先（speckit 成果物の編集の最小化）
 
-`aist-roadmap` リポジトリ自体への編集は必要最小限に留めなければならない（MUST）。
-AIエージェントは speckit 成果物（spec/plan/tasks/docs等）の体裁整理や
-小さな改善よりも、対象リポジトリ（`pecot` /
-`ai-engineer-starter-kit` 等）における実装作業を
-優先しなければならない（MUST）。
+speckit 成果物（`specs/` の spec・plan・tasks など）への編集は、必要最小限に留めなければならない（MUST）。
+AIエージェントは成果物の体裁整理や小さな改善よりも、
+本体（`plugins/`・`libs/`・`.githooks/`・`.github/` など、配布物と開発基盤）の
+実装作業を優先しなければならない（MUST）。
 
-- `aist-roadmap` への編集が許容されるのは以下の場合に限る（MUST）:
+- speckit 成果物への編集が許容されるのは以下の場合に限る（MUST）:
   - 新規機能の spec/plan/tasks 一式の作成・追加
   - 仕様変更や実装結果との差分に伴う既存 speckit 成果物の整合性修正
   - 憲法・テンプレート・ガバナンス関連ファイルの変更（明示的指示があるとき）
-- 本体リポジトリの実装が未完・未着手の状態で、`aist-roadmap` 内ファイルの
+- 本体の実装が未完・未着手の状態で、speckit 成果物の
   文書整形・体裁改善・リファクタのみを目的とした編集を行ってはならない
   （MUST NOT）。「ついでに直す」も禁止。
-- 本体リポジトリ側に不具合や未実装を発見した場合、`aist-roadmap` の docs を
-  先に直すのではなく、本体リポジトリでの修正を優先提案しなければならない（MUST）。
-- ユーザーから `aist-roadmap` 編集の明示的指示があった場合のみ本原則の
+- 本体に不具合や未実装を発見した場合、speckit 成果物を
+  先に直すのではなく、本体での修正を優先提案しなければならない（MUST）。
+- ユーザーから speckit 成果物の編集の明示的指示があった場合のみ本原則の
   制約は解除される。指示の範囲を超えた追加編集はしてはならない（MUST NOT）。
 
-**根拠**: `aist-roadmap` は計画・仕様の集約所であり、その価値は指し示す
-本体リポジトリの実装が完成して初めて実現される。docs整形は機械的に
+**根拠**: speckit 成果物は計画・仕様の集約所であり、その価値は指し示す
+本体の実装が完成して初めて実現される。文書の整形は機械的に
 着手しやすいためAIエージェントが安易に手を出しがちだが、それ単体では
 本来的価値を生まず、本体実装の停滞を覆い隠す。本体優先を明示することで、
 計画と実装の乖離および「動いた風」のごまかしを防ぐ。
@@ -171,8 +173,7 @@ AIエージェントは speckit 成果物（spec/plan/tasks/docs等）の体裁�
 - **準拠**: PRレビューはこれらの原則への準拠を検証すべきである（SHOULD）。
   `/speckit.plan` のConstitution Checkゲートはこれらの原則を
   参照しなければならない（MUST）。
-- **スコープ**: この憲法は `aist-roadmap` で管理する speckit 成果物と、
-  それが対象とする各リポジトリ（`pecot` / `ai-engineer-starter-kit` 等）での
-  実装に適用する。
+- **スコープ**: この憲法は、このリポジトリ（`pecotcraft/pecot`）の speckit 成果物
+  （`specs/`・`.specify/`）と実装に適用する。
 
-**Version**: 2.2.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-10-24
+**Version**: 3.0.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-05
