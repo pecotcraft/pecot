@@ -50,11 +50,10 @@ stub_root_init() {
   printf '{"name":"pecot-tools","version":"1.0.0"}\n' > "$ROOT/.claude-plugin/plugin.json"
   printf '# changelog 1\n' > "$ROOT/CHANGELOG.md"
   cat > "$ROOT/package.json" <<'JSON'
-{ "name": "stub-root", "private": true, "packageManager": "pnpm@12.15.0+sha512.aaaa" }
+{ "name": "stub-root", "private": true, "packageManager": "pnpm@12.15.0+sha512.aaaa", "devEngines": { "packageManager": { "name": "pnpm", "version": "12.15.0", "onFail": "download" } } }
 JSON
   printf 'lock: 1\n' > "$ROOT/pnpm-lock.yaml"
   printf 'packages:\n  - cli\n' > "$ROOT/pnpm-workspace.yaml"
-  printf 'engine-strict=true\n' > "$ROOT/.npmrc"
   printf '{ "name": "@pecot/pecot-tools-cli", "version": "0.0.0" }\n' > "$ROOT/cli/package.json"
   printf '{}\n' > "$ROOT/cli/tsconfig.json"
   printf '{}\n' > "$ROOT/cli/tsconfig.build.json"

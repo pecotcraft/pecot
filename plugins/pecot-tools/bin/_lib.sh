@@ -15,8 +15,10 @@
 # corepack は Node.js 16.9〜24 に同梱されていて、`corepack pnpm <args>` は enable 不要で透過的に起動できる。
 # Node.js 25 以降は corepack を同梱しない。
 # その場合は、npm 同梱の npx で、packageManager に固定したバージョンの pnpm を取得して起動する。
+# npx を使うときは、関数 plugin_npx_pnpm にバージョンを添えた文字列を返す。
+# 呼び出し側は `$pnpm install` のように展開する。
 # 引数: $1 = plugin root。package.json の packageManager から pnpm のバージョンを読む。
-# 戻り値: stdout に「pnpm」「corepack pnpm」「npx --yes pnpm@<版>」「（空文字列）」のいずれか
+# 戻り値: stdout に「pnpm」「corepack pnpm」「plugin_npx_pnpm <版>」「（空文字列）」のいずれか
 resolve_pnpm() {
     local plugin_root="${1:-}"
     if command -v pnpm >/dev/null 2>&1; then
@@ -27,13 +29,24 @@ resolve_pnpm() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -n "$version" ]; then
-            echo "npx --yes pnpm@$version"
+            echo "plugin_npx_pnpm $version"
         else
             echo ""
         fi
     else
         echo ""
     fi
+}
+
+# npx 経由で pnpm を起動する。resolve_pnpm が npx を選んだときに返す。
+# npm 11 は、cwd の package.json が devEngines.packageManager に pnpm を宣言していると、npx も EBADDEVENGINES で止める。
+# そのため cwd を / にして npx を起動し、pnpm には --dir で対象の dir（呼び出し時の cwd）を指す。
+# --prefix=/ は、global の npmrc が /etc/npmrc に変わり、利用者が設定したレジストリを読まなくなるので採らない。
+# 引数: $1 = pnpm の版、残り = pnpm への引数。
+plugin_npx_pnpm() {
+    local version="$1" dir="$PWD"
+    shift
+    (cd / && npx --yes "pnpm@$version" --dir "$dir" "$@")
 }
 
 # package.json の packageManager（例: pnpm@12.15.0+sha512...）から pnpm の版だけを返す。
@@ -79,7 +92,7 @@ pecot_tools_log() {
 # 返す案内文を stdout に出す。許可する版・node 不在・.ts を直接 import できない node・
 # ファイルが読めない場合は何も出さない（呼び出し側は従来どおりの失敗で終わる）。
 # 成功したときは呼ばない。install / build が失敗した後の診断だけに使う。
-# 古い node では pnpm が engine-strict で先に止まり、英語のエラーしか出ないため。
+# 古い node では pnpm が engines.node の不一致で先に止まり、英語のエラーしか出ないため。
 pecot_tools_node_runtime_message() {
     local plugin_root="$1"
     [ -f "$plugin_root/cli/src/node-runtime.ts" ] || return 0
@@ -578,7 +591,7 @@ plugin_runtime_build() {
     ( cd "$dir" && $pnpm --config.verify-deps-before-run=false --filter @pecot/pecot-tools-cli run build )
 }
 
-# install / build が失敗した後の診断。古い node では pnpm が engine-strict で先に止まり英語のエラーしか出ないため、
+# install / build が失敗した後の診断。古い node では pnpm が engines.node の不一致で先に止まり英語のエラーしか出ないため、
 # 案内文があれば CLI と同じ書式で出して exit 1 する。
 plugin_runtime_diagnose_failure() {
     pecot_tools_fail_if_node_runtime_blocked "$1"

@@ -48,12 +48,11 @@ def test_prepare_installs_and_builds_the_lib(root: dict) -> None:
 
 
 def test_package_manager_guard_is_kept(root: dict) -> None:
-    """pnpm / yarn を入れさせない向き（engines）と npm 固定（devEngines）を弱めない。"""
-    assert root["engines"] == {"pnpm": "<0.0.0", "yarn": "<0.0.0"}
-    assert root["devEngines"]["packageManager"]["name"] == "npm"
-    assert root["devEngines"]["packageManager"]["onFail"] == "error"
-    # 実体側も同じ向きにそろえる（cli の `npm: <0.0.0` を写すと自分の npm ci が止まる）。
-    engines = _load(_LIB_DIR / "package.json")["engines"]
-    assert engines["pnpm"] == "<0.0.0"
-    assert engines["yarn"] == "<0.0.0"
-    assert "npm" not in engines
+    """違うパッケージマネージャの install を止める宣言（devEngines）を弱めない。"""
+    # engines の pnpm / yarn の "<0.0.0" は使わない。止める役は devEngines.packageManager が持つ。
+    assert "engines" not in root
+    assert root["devEngines"]["packageManager"] == {"name": "npm", "onFail": "error"}
+    # 実体側も同じ宣言にそろえる。engines は node だけにする。
+    lib = _load(_LIB_DIR / "package.json")
+    assert lib["devEngines"]["packageManager"] == {"name": "npm", "onFail": "error"}
+    assert set(lib["engines"]) == {"node"}

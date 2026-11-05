@@ -7,10 +7,6 @@
   "scripts": {
     "prepare": "npm --prefix libs/text-rules ci && npm --prefix libs/text-rules run build"
   },
-  "engines": {
-    "pnpm": "<0.0.0",
-    "yarn": "<0.0.0"
-  },
   "devEngines": {
     "packageManager": {
       "name": "npm",

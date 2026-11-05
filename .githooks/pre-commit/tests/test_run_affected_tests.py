@@ -768,7 +768,7 @@ def test_pm_guard_behavior_off_without_manifest_change(
     "changed_path",
     [
         "plugins/pecot-visual/cli/package.json",
-        "plugins/pecot-visual/.npmrc",
+        ".npmrc",
         "plugins/pecot-visual/pnpm-workspace.yaml",
         "plugins/pecot-visual/scripts/ci/check-pm-guard.sh",
     ],

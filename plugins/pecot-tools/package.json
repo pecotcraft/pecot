@@ -5,9 +5,14 @@
   "license": "MIT",
   "description": "pecot-tools plugin の pnpm workspaces ルート — plugin 配下で自己完結する（プラグイン配布はしない）",
   "engines": {
-    "node": "^24.22.1 || >=26.12.1",
-    "npm": "<0.0.0",
-    "yarn": "<0.0.0"
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.15.0",
+      "onFail": "download"
+    }
   },
   "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61"
 }

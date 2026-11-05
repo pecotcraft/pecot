@@ -616,6 +616,7 @@ else if (q === 'license') process.stdout.write(m.license)
 else if (q === 'repository') process.stdout.write(JSON.stringify(m.repository))
 else if (q === 'bin') process.stdout.write(JSON.stringify(m.bin))
 else if (q === 'engines') process.stdout.write(Object.keys(m.engines).sort().join(','))
+else if (q === 'hasDevEngines') process.stdout.write(String('devEngines' in m))
 else if (q === 'deps') process.stdout.write(Object.keys(m.dependencies).sort().join(','))
 " "$1"
 }
@@ -627,8 +628,10 @@ assert_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
 assert_eq "package.json の repository" \
     '{"type":"git","url":"git+https://github.com/pecotcraft/pecot.git","directory":"plugins/pecot-visual"}' \
     "$(read_manifest repository)"
-# engines に npm / yarn を写すと engine-strict 環境で npx 自身が EBADENGINE になる。
+# engines は node のみ。
 assert_eq "package.json の engines は node のみ" "node" "$(read_manifest engines)"
+# devEngines に pnpm を写すと、npm が EBADDEVENGINES で止まり、npx 自身が起動しない。
+assert_eq "package.json に devEngines キーが無い" "false" "$(read_manifest hasDevEngines)"
 
 DIST_DEPS="$(read_manifest deps)"
 # 期待値を列挙で持つと、dist-manifest.mjs の RUNTIME_DEPS を人手で写しただけになる。

@@ -133,7 +133,7 @@ trap cleanup EXIT
 # pecot-visual plugin は、自己完結した pnpm workspace のルート。
 # 1 回の install で、cli / v-slidev / runtime を全て解決する。
 # パッケージマネージャガード (#806) は、install の直後に確認する。この確認はオフラインで完結する。
-# pecotv への npm / yarn の混入と、repo root への pnpm / yarn の混入を、engines "<0.0.0" と engine-strict で止められているか。
+# 違うパッケージマネージャの混入を、各 package.json の devEngines.packageManager で止められているか。
 # これを静的な面と挙動の面の両方で確認する。
 # nx 経由では、pecot-visual:install と pecot-visual:check-pm-guard の target が実行済み。
 if [ "$SKIP_SHARED" = false ]; then

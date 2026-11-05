@@ -76,7 +76,11 @@ if [ "$RUN_PY" = true ]; then
     }
     # 明示 path を渡すため pyproject の [tool.pyright] include は上書きされる（exclude は有効）。
     # テスト・.venv 等を巻き込まないよう、ソースサブツリーと compare_junit を明示列挙する。
-    npx --yes pyright@1.1.410 --pythonpath .venv/bin/python commands core templates __init__.py __main__.py "$PLUGIN_ROOT/scripts/ci/compare_junit.py"
+    # npm 11 は、cwd から上へたどって見つけた package.json が pnpm を宣言していると npx も止める（plugin ルートが該当する）。
+    # そのため cwd を / にして呼ぶ。設定は --project で cli/ を指し、パスと --pythonpath は絶対パスで渡す。
+    CLI_DIR="$PWD"
+    ( cd / && npx --yes pyright@1.1.410 --project "$CLI_DIR" --pythonpath "$CLI_DIR/.venv/bin/python" \
+        "$CLI_DIR/commands" "$CLI_DIR/core" "$CLI_DIR/templates" "$CLI_DIR/__init__.py" "$CLI_DIR/__main__.py" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" )
 fi
 
 # Node 側（cli-node/）は plugin ルートが自己完結の pnpm workspace ルート。

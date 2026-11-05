@@ -5,9 +5,14 @@
   "license": "MIT",
   "description": "pecot-visual plugin の pnpm workspaces ルート — マーケットプレイス配布単位で自己完結する",
   "engines": {
-    "node": "^24.22.1 || >=26.12.1",
-    "npm": "<0.0.0",
-    "yarn": "<0.0.0"
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.15.0",
+      "onFail": "download"
+    }
   },
   "dependencies": {
     "@pecot/text-rules-src": "workspace:*"

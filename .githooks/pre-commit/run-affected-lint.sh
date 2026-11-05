@@ -53,7 +53,7 @@ if ! nx_bin=$(resolve_nx "$repo_root"); then
     cat >&2 <<'EOF'
 ERROR: nx 実行ファイルが見つからないため affected lint を実行できません。
        リポジトリルートで依存を導入してください:
-         npm ci    （または pnpm install）
+         npm ci
        緊急で回避する場合のみ `git commit --no-verify` を使ってください。
 EOF
     exit 1

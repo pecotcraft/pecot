@@ -5,21 +5,23 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 PECOTV_PLUGIN_ROOT="$REPO_ROOT/plugins/pecot-visual"
 
-# pecotv への npm / yarn 混入と repo root への pnpm / yarn 混入を機械検知するガード (#806)。
-# 方式: engines に不可能レンジ "<0.0.0" を宣言し .npmrc engine-strict=true で強制する。
-# npm 11 は EBADENGINE、pnpm 10 は ERR_PNPM_UNSUPPORTED_ENGINE で止まる。
-# yarn 1 は validate 段階で止まる。
+# 違うパッケージマネージャの install を機械検知するガード (#806 / #52)。
+# 方式: 各 package.json の devEngines.packageManager に使うものを宣言する。
+#   ルートと libs/text-rules は npm、3 プラグインのルートとメンバーは pnpm を宣言する。
+#   宣言の形と置き場所は pm-guard-lib.sh の check_package_manager_declarations が確かめる。
+# npm は、ローカルの package.json が別のパッケージマネージャを宣言していると、
+# global でないコマンドを EBADDEVENGINES で止める。pnpm 11 以降は ERR_PNPM_OTHER_PM_EXPECTED で止める。
+# yarn は corepack の shim が packageManager か devEngines を読んで止める。
 # どれも fetch の前に即 fail するので、node_modules や lockfile を残さない（#802 の npm 残骸の再発防止）。
-# pnpm 11 以降は .npmrc の engine-strict を読まず、engines では止まらない。
-# そのため repo root は devEngines.packageManager に npm を宣言し、ERR_PNPM_OTHER_PM_EXPECTED で止める (#1217)。
+# ルートの .npmrc の engine-strict=true は、依存の engines.node を厳格に確かめる設定として残す。
 #
 # 役割分担:
-#   静的確認 = 常に実行する恒久の確認。メンバーを足したときの宣言の書き忘れと、逆方向ガードの回帰を検知する。
+#   静的確認 = 常に実行する恒久の確認。宣言の書き忘れ・置き場所の誤り・未分類の package.json を検知する。
 #   挙動確認 = npm / yarn / pnpm が実在する場合だけ行う補強。不在のときは skip とログに書く。
 # nx target `pecot-visual:check-pm-guard` から 1 push 1 回だけ実行する（test のレーンが dependsOn で参照する）。
 #
-# 挙動確認は隔離 install を最大 5 回起動するため、8〜26s かかる。
-# ガードが守る対象は、package.json の engines、.npmrc の engine-strict、pnpm-workspace.yaml のメンバー、本スクリプト自体。
+# 挙動確認は隔離 install を十数回起動する。
+# ガードが守る対象は、package.json の宣言、.npmrc、pnpm-workspace.yaml のメンバー、本スクリプト自体。
 # これらが push range で変わらない限り結果は変わらない。
 # そのため pre-push フックが PECOTV_PM_GUARD_BEHAVIOR=0 を渡してきたときは、静的確認だけに絞る (#1080)。
 # 未設定のとき（手動実行とフォールバック）は、従来どおり両方を実行する。安全側に倒した既定とする。
@@ -40,15 +42,15 @@ fail() {
     _counter=$((_counter + 1))
 }
 
-# 確認用の関数（read_engine / list_pm_invoking_scripts など）は、pecot-tools の install.sh と共有する。
+# 確認用の関数は、pecot-tools・pecot-workflow の check-pm-scripts.sh と共有する。
+# 例は check_package_manager_declarations と list_pm_invoking_scripts。
 # shellcheck source=pm-guard-lib.sh
 . "$SCRIPT_DIR/pm-guard-lib.sh"
 
 # ---- 静的確認 ----
-# 走査対象は pnpm-workspace.yaml の packages リスト + pecotv root + repo root の明示列挙。
 run_static_check() {
     FAIL_PHASE=STATIC
-    echo "==> check-pm-guard: 静的確認 (engines / .npmrc / scripts)"
+    echo "==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)"
 
     local -a members
     mapfile -t members < <(list_workspace_members "$PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml")
@@ -61,52 +63,28 @@ run_static_check() {
     linker="$(read_workspace_setting "$PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml" nodeLinker)"
     [ "$linker" = "hoisted" ] || fail "nodeLinker: hoisted が無い: $PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml"
 
-    # pecotv 側: root + 全メンバーで engines.npm / engines.yarn = "<0.0.0" と engine-strict=true を assert。
-    local rel dir pkg checked=0
-    for rel in "." "${members[@]}"; do
-        # 例外は libs/text-rules の 1 件だけ。repo 共通のライブラリをリンクで載せたメンバー。
-        # aist-roadmap 向けに npm で build するので、npm を禁止できない。
-        # scripts が package manager を呼ばないことの確認は、このメンバーにも掛けたままにする。
-        [ "$rel" != "libs/text-rules" ] || continue
-        [ "$rel" = "." ] || checked=$((checked + 1))
-        dir="$PECOTV_PLUGIN_ROOT/$rel"
-        pkg="$dir/package.json"
-        if [ ! -f "$pkg" ]; then
-            fail "pecotv メンバーの package.json が不在: $pkg"
-            continue
-        fi
-        [ "$(read_engine "$pkg" npm)" = "<0.0.0" ] || fail "engines.npm != \"<0.0.0\": $pkg"
-        [ "$(read_engine "$pkg" yarn)" = "<0.0.0" ] || fail "engines.yarn != \"<0.0.0\": $pkg"
-        has_engine_strict "$dir" || fail "engine-strict=true が無い: $dir/.npmrc"
-        local violation
-        while IFS= read -r violation; do
-            [ -n "$violation" ] && fail ".npmrc に pnpm 固有の設定がある（pnpm 11 以降は読まないため pnpm-workspace.yaml へ移す）: $dir/.npmrc の $violation"
-        done < <(list_pnpm_only_npmrc_keys "$dir")
-    done
+    # 全 package.json の宣言と、プラグインの下に .npmrc が無いこと。
+    check_package_manager_declarations "$REPO_ROOT"
+    # ルートの .npmrc は、依存の engines.node を厳格に確かめるために残している。
+    grep -qx 'engine-strict=true' "$REPO_ROOT/.npmrc" 2>/dev/null || fail "engine-strict=true が無い: $REPO_ROOT/.npmrc"
+    # scripts が package manager を呼ばないことの確認は、libs/text-rules のメンバーにも掛ける。
     check_plugin_scripts_pm_free "$PECOTV_PLUGIN_ROOT" pecotv
-
-    # repo root 側: 逆方向ガード（pnpm / yarn を block、npm は許可）。
-    local root_pkg="$REPO_ROOT/package.json"
-    [ "$(read_engine "$root_pkg" pnpm)" = "<0.0.0" ] || fail "engines.pnpm != \"<0.0.0\": $root_pkg"
-    [ "$(read_engine "$root_pkg" yarn)" = "<0.0.0" ] || fail "engines.yarn != \"<0.0.0\": $root_pkg"
-    # repo root は npm が主なので、engines.npm を宣言してはならない（宣言すると、npm の正常な使い方まで止まる）。
-    [ -z "$(read_engine "$root_pkg" npm)" ] || fail "repo root は engines.npm を宣言してはいけない（npm の正常な使い方まで block してしまう）: $root_pkg"
-    has_engine_strict "$REPO_ROOT" || fail "engine-strict=true が無い: $REPO_ROOT/.npmrc"
-    [ "$(read_dev_engine_pm "$root_pkg")" = "npm:error" ] || fail "devEngines.packageManager が {name: npm, onFail: error} でない（pnpm 11 以降を止められない）: $root_pkg"
 
     if [ "$STATIC_FAIL" -ne 0 ]; then
         echo "check-pm-guard: 静的確認 FAILED ($STATIC_FAIL 件)" >&2
         return 1
     fi
-    echo "  OK: pecotv root + ${checked} メンバー + repo root の engines / .npmrc と pecotv の scripts を確認。libs/text-rules は engines の確認の対象外"
+    local total
+    total="$(list_package_jsons "$REPO_ROOT" | grep -c .)"
+    echo "  OK: 全 package.json の宣言と .npmrc、pecotv の scripts を確認 (${total} 件)"
 }
 
 # ---- 挙動確認 ----
-# 該当する package.json と .npmrc を mktemp の隔離 dir へ複製して install を実行する。
+# 該当する package.json を mktemp の隔離 dir へ複製して install を実行する。
 # 非 0 終了で、node_modules と lockfile が無いことを assert する。
 # 実ツリーで install を実行すると、node_modules は gitignore 済みなので残骸を検出できない。
 # その結果 #802 が再発するため、必ず隔離 dir で行う。
-# EBADENGINE / engines validate は fetch 前に発火するためネットワーク不要。
+# EBADDEVENGINES / ERR_PNPM_OTHER_PM_EXPECTED は fetch 前に発火するためネットワーク不要。
 ISOLATED_DIRS=()
 cleanup() {
     local d
@@ -117,7 +95,7 @@ cleanup() {
     fi
 }
 
-# 隔離 dir を作り、src の package.json と .npmrc を複製する。
+# 隔離 dir を作り、src の package.json を複製する。
 # 生成したパスは、呼び出し元が参照できるよう $_ISOLATED_TMP に返す。
 # $(...) 経由だと ISOLATED_DIRS への登録がサブシェルに閉じ、trap cleanup が掃除できない。
 # そのため、代入で現在のシェルに反映する。
@@ -126,14 +104,11 @@ make_isolated() {
     _ISOLATED_TMP="$(mktemp -d)"
     ISOLATED_DIRS+=("$_ISOLATED_TMP")
     cp "$src/package.json" "$_ISOLATED_TMP/package.json"
-    if [ -f "$src/.npmrc" ]; then
-        cp "$src/.npmrc" "$_ISOLATED_TMP/.npmrc"
-    fi
 }
 
 # 隔離 dir で install コマンドを実行し、非 0 終了 && 残骸不在を assert する。
 # timeout があれば PM_GUARD_TIMEOUT 秒で打ち切る。
-# rc=124（timeout）は「ガードが即時に発火していない疑い」として fail にする。EBADENGINE などなら 1 秒未満で返るはず。
+# rc=124（timeout）は「ガードが即時に発火していない疑い」として fail にする。EBADDEVENGINES などなら 1 秒未満で返るはず。
 # timeout コマンド不在時は timeout 無しで実行する。
 # $1=ラベル $2=隔離元 dir $3...=install コマンド
 assert_blocked() {
@@ -169,22 +144,61 @@ assert_blocked() {
     fi
 }
 
+# npx がローカルの宣言で止まるかを、隔離 dir で確かめる。
+# npm は、pnpm を宣言した package.json の下では npx も EBADDEVENGINES で止める。
+# pnpm を宣言した dir の下（package.json の無い dir を含む）で npx を呼ぶ箇所は、cwd を / にして呼ぶ。
+# $1=ラベル、$2=宣言を持つ dir（package.json の複製元）。
+# $3=cwd にする dir（隔離 dir からの相対）、$4=cwd を / に替えるなら "root"。
+# $4 が空なら止まること、root なら止まらないことを assert する。
+assert_npx_declaration() {
+    local label="$1" src="$2" sub="$3" mode="${4:-}" tmp err
+    make_isolated "$src"
+    tmp="$_ISOLATED_TMP"
+    mkdir -p "$tmp/$sub"
+    set +e
+    if [ "$mode" = "root" ]; then
+        err="$(cd / && npx --no-install pm-guard-probe-not-installed 2>&1 >/dev/null)"
+    else
+        err="$(cd "$tmp/$sub" && npx --no-install pm-guard-probe-not-installed 2>&1 >/dev/null)"
+    fi
+    set -e
+    if [ "$mode" = "root" ]; then
+        if [[ "$err" == *EBADDEVENGINES* ]]; then
+            fail "$label: cwd を / にしても EBADDEVENGINES で止まった"
+        else
+            echo "  OK: $label は宣言で止まらない"
+        fi
+    elif [[ "$err" == *EBADDEVENGINES* ]]; then
+        echo "  OK: $label は EBADDEVENGINES で止まる（cwd を / にする回避が要る理由）"
+    else
+        fail "$label: EBADDEVENGINES で止まらなかった（npx の呼び方の前提が変わった疑い）"
+    fi
+}
+
 run_behavior_check() {
     FAIL_PHASE=BEHAVIOR
     echo "==> check-pm-guard: 挙動確認 (隔離 install)"
 
+    local plugins_dir="$REPO_ROOT/plugins"
     if command -v npm >/dev/null 2>&1; then
-        assert_blocked "pecotv root × npm install" "$PECOTV_PLUGIN_ROOT" npm install
-        assert_blocked "pecotv cli × npm install" "$PECOTV_PLUGIN_ROOT/cli" npm install
+        assert_blocked "pecot-visual root × npm install" "$plugins_dir/pecot-visual" npm install
+        assert_blocked "pecot-visual cli × npm install" "$plugins_dir/pecot-visual/cli" npm install
+        assert_blocked "pecot-tools root × npm install" "$plugins_dir/pecot-tools" npm install
+        assert_blocked "pecot-tools cli × npm install" "$plugins_dir/pecot-tools/cli" npm install
+        assert_blocked "pecot-workflow root × npm install" "$plugins_dir/pecot-workflow" npm install
+        assert_blocked "pecot-workflow cli-node × npm install" "$plugins_dir/pecot-workflow/cli-node" npm install
+        # package.json の無い dir（plugins/pecot-workflow/cli）は、上の plugins/pecot-workflow/package.json の宣言を受ける。
+        assert_npx_declaration "pecot-workflow cli（package.json の無い dir）× npx" "$plugins_dir/pecot-workflow" cli
+        assert_npx_declaration "pecot-workflow cli（cwd を /）× npx" "$plugins_dir/pecot-workflow" cli root
     else
-        echo "  SKIP: npm 不在のため pecotv × npm の挙動確認を skip"
+        echo "  SKIP: npm 不在のため npm の挙動確認を skip"
     fi
 
     if command -v yarn >/dev/null 2>&1; then
-        # pecotv root の yarn は、packageManager=pnpm 固定（corepack 経由）でも block され得る。
-        # そのため、この挙動確認の非 0 終了は engines.yarn="<0.0.0" の証明にならない。
-        # engines.yarn 自体の確認は静的確認が受け持つ。この挙動確認は、残骸が無いことを補強にとどまる。
-        assert_blocked "pecotv root × yarn install" "$PECOTV_PLUGIN_ROOT" yarn install
+        # pecot-visual root の yarn は、packageManager=pnpm 固定（corepack 経由）でも block され得る。
+        # そのため、この挙動確認の非 0 終了は devEngines の証明にならない。
+        # 宣言自体の確認は静的確認が受け持つ。この挙動確認は、残骸が無いことの補強にとどまる。
+        assert_blocked "pecot-visual root × yarn install" "$plugins_dir/pecot-visual" yarn install
         assert_blocked "repo root × yarn install" "$REPO_ROOT" yarn install
     else
         echo "  SKIP: yarn 不在のため yarn の挙動確認を skip"
@@ -192,8 +206,9 @@ run_behavior_check() {
 
     if command -v pnpm >/dev/null 2>&1; then
         assert_blocked "repo root × pnpm install" "$REPO_ROOT" pnpm install
+        assert_blocked "libs/text-rules × pnpm install" "$REPO_ROOT/libs/text-rules" pnpm install
     else
-        echo "  SKIP: pnpm 不在のため repo root × pnpm の挙動確認を skip"
+        echo "  SKIP: pnpm 不在のため pnpm の挙動確認を skip"
     fi
 
     if [ "$BEHAVIOR_FAIL" -ne 0 ]; then

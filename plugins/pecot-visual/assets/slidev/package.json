@@ -7,9 +7,13 @@
   "license": "MIT",
   "//tsc7-path-reason": "typescript7（npm:typescript@7 alias）は、pnpm の hoisted linker の挙動により hoist される。hoist 先は workspace root（plugins/pecot-visual/node_modules/）だけになる。そのため assets/slidev からは、../../node_modules/typescript7/bin/tsc を明示パスで起動する。tsc bin 名の解決は、パッケージマネージャの実装に依存して非決定的になる。そのため、.bin/tsc 経由には簡略化しない。",
   "engines": {
-    "node": "^24.22.1 || >=26.12.1",
-    "npm": "<0.0.0",
-    "yarn": "<0.0.0"
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "onFail": "error"
+    }
   },
   "scripts": {
     "lint": "eslint --no-cache --max-warnings 0 scripts && node scripts/design-lint/lint-design.mjs",

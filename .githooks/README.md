@@ -118,7 +118,7 @@ pre-commit と pre-push の責務はそれぞれ排他に固定する。`run-tes
 
 plugin 内のサブパッケージが複雑な build / test を持つ場合、plugin 側 dispatcher が `cd <サブパッケージ dir>/` する。
 その後で、そのサブパッケージの npm scripts を呼ぶ。
-例は `(cd assets/slidev && npm run lint)`。
+例は `(cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run lint)`。
 
 ### R3. CI スクリプトの先頭定型 (固定)
 

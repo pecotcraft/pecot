@@ -1,5 +1,5 @@
 // infra/_shared/pnpm.ts の unit test。
-// pnpm → corepack pnpm → npx pnpm@<版> の順と、版の読み方を固定する。
+// pnpm → corepack pnpm → npx pnpm@<版>（cwd は /、--dir で対象を指す）の順と、版の読み方を固定する。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp の一時ディレクトリ配下と追跡ファイルだけ */
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -11,6 +11,7 @@ import { FALLBACK_PNPM_VERSION, resolvePnpmCommand } from '../../../src/infra/_s
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
+const TARGET = '/work/theme/package'
 const temporaryRoot = useTemporaryDirectory('pecotv-pnpm-')
 
 afterEach(() => {
@@ -28,27 +29,35 @@ function writeManifest(contents: string): string {
 
 describe('resolvePnpmCommand', () => {
   it('pnpm があればそれを使う', () => {
-    expect(resolvePnpmCommand(temporaryRoot(), only('pnpm', 'corepack', 'npx'))).toEqual({ command: 'pnpm', commandArguments: [] })
+    expect(resolvePnpmCommand(temporaryRoot(), TARGET, only('pnpm', 'corepack', 'npx'))).toEqual({ command: 'pnpm', commandArguments: [] })
   })
 
   it('pnpm が無ければ corepack で packageManager の版の pnpm を使う', () => {
     const root = writeManifest('{ "packageManager": "pnpm@10.1.2+sha512.abc" }')
-    expect(resolvePnpmCommand(root, only('corepack', 'npx'))).toEqual({ command: 'corepack', commandArguments: ['pnpm@10.1.2'] })
+    expect(resolvePnpmCommand(root, TARGET, only('corepack', 'npx'))).toEqual({ command: 'corepack', commandArguments: ['pnpm@10.1.2'] })
   })
 
   it('どちらも無ければ npx で packageManager の版を指す', () => {
     const root = writeManifest('{ "packageManager": "pnpm@10.0.0-beta.1+sha512.abc" }')
-    expect(resolvePnpmCommand(root, only('npx'))).toEqual({ command: 'npx', commandArguments: ['--yes', 'pnpm@10.0.0-beta.1'] })
+    expect(resolvePnpmCommand(root, TARGET, only('npx'))).toEqual({
+      command: 'npx',
+      commandArguments: ['--yes', 'pnpm@10.0.0-beta.1', '--dir', TARGET],
+      cwd: '/',
+    })
   })
 
   it('packageManager が読めなければ定数の版を使う', () => {
-    expect(resolvePnpmCommand(temporaryRoot(), only('npx'))).toEqual({ command: 'npx', commandArguments: ['--yes', `pnpm@${FALLBACK_PNPM_VERSION}`] })
+    expect(resolvePnpmCommand(temporaryRoot(), TARGET, only('npx'))).toEqual({
+      command: 'npx',
+      commandArguments: ['--yes', `pnpm@${FALLBACK_PNPM_VERSION}`, '--dir', TARGET],
+      cwd: '/',
+    })
     const root = writeManifest('{ "name": "x" }')
-    expect(resolvePnpmCommand(root, only('npx')).commandArguments).toEqual(['--yes', `pnpm@${FALLBACK_PNPM_VERSION}`])
+    expect(resolvePnpmCommand(root, TARGET, only('npx')).commandArguments).toEqual(['--yes', `pnpm@${FALLBACK_PNPM_VERSION}`, '--dir', TARGET])
   })
 
   it('既定の probe は PATH を引く（この環境には pnpm がある）', () => {
-    expect(resolvePnpmCommand(temporaryRoot())).toEqual({ command: 'pnpm', commandArguments: [] })
+    expect(resolvePnpmCommand(temporaryRoot(), TARGET)).toEqual({ command: 'pnpm', commandArguments: [] })
   })
 })
 

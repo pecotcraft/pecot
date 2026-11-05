@@ -136,7 +136,7 @@ if ! nx_bin=$(resolve_nx "$repo_root"); then
     cat >&2 <<'EOF'
 ERROR: nx 実行ファイルが見つからないため affected テストを実行できません。
        リポジトリルートで依存を導入してください:
-         npm ci    （または pnpm install）
+         npm ci
        緊急で回避する場合のみ `git push --no-verify` を使ってください。
 EOF
     exit 1
@@ -412,9 +412,9 @@ for tip in "${tips[@]}"; do
     from="${range%% *}"
     to="${range##* }"
 
-    # pm-guard の挙動チェック（隔離 install を最大 5 回、8〜26s）の結果は、
+    # pm-guard の挙動チェック（隔離 install と npx の確認、数秒）の結果は、
     # ガードの保護対象が push range で変わらない限り不変。
-    # 対象は、各 package.json の engines / .npmrc の engine-strict / pnpm-workspace.yaml のメンバー / チェックスクリプト自体。
+    # 対象は、各 package.json の devEngines / engines、.npmrc、pnpm-workspace.yaml のメンバー、チェックスクリプト自体。
     # 変更が無い push では、静的チェックだけに絞る (#1080)。
     # grep へはヒアストリングで渡す（パイプだと grep -q の早期終了が pipefail に拾われる）。
     changed_files=$(git -C "$repo_root" diff --name-only "$from" "$to" 2>/dev/null || true)

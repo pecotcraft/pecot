@@ -78,8 +78,10 @@ plugin_data_dir_ensure() {
 # corepack は Node.js 16.9〜24 に同梱されていて、`corepack pnpm <args>` は enable 不要で透過的に起動できる。
 # Node.js 25 以降は corepack を同梱しない。
 # その場合は、npm 同梱の npx で、packageManager に固定したバージョンの pnpm を取得して起動する。
+# npx を使うときは、関数 plugin_npx_pnpm にバージョンを添えた文字列を返す。
+# 呼び出し側は `$pnpm install` のように展開する。
 # 引数: $1 = plugin root。package.json の packageManager から pnpm のバージョンを読む。
-# 戻り値: stdout に「pnpm」「corepack pnpm」「npx --yes pnpm@<バージョン>」「（空文字列）」のいずれか
+# 戻り値: stdout に「pnpm」「corepack pnpm」「plugin_npx_pnpm <バージョン>」「（空文字列）」のいずれか
 resolve_pnpm() {
     local plugin_root="${1:-}"
     if command -v pnpm >/dev/null 2>&1; then
@@ -90,13 +92,24 @@ resolve_pnpm() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -n "$version" ]; then
-            echo "npx --yes pnpm@$version"
+            echo "plugin_npx_pnpm $version"
         else
             echo ""
         fi
     else
         echo ""
     fi
+}
+
+# npx 経由で pnpm を起動する。resolve_pnpm が npx を選んだときに返す。
+# npm 11 は、cwd の package.json が devEngines.packageManager に pnpm を宣言していると、npx も EBADDEVENGINES で止める。
+# そのため cwd を / にして npx を起動し、pnpm には --dir で対象の dir（呼び出し時の cwd）を指す。
+# --prefix=/ は、global の npmrc が /etc/npmrc に変わり、利用者が設定したレジストリを読まなくなるので採らない。
+# 引数: $1 = pnpm の版、残り = pnpm への引数。
+plugin_npx_pnpm() {
+    local version="$1" dir="$PWD"
+    shift
+    (cd / && npx --yes "pnpm@$version" --dir "$dir" "$@")
 }
 
 # package.json の packageManager（例: pnpm@12.15.0+sha512...）から pnpm のバージョンだけを返す。

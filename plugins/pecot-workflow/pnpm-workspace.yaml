@@ -1,5 +1,4 @@
 # pnpm 11 以降は .npmrc から pnpm 固有の設定を読まないため、ここに置く (#1217)。
-# .npmrc の engine-strict=true は npm を engines "<0.0.0" で止めるための npm 向け設定として残す。
 nodeLinker: hoisted
 sharedWorkspaceLockfile: true
 engineStrict: true
