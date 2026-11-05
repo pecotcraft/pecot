@@ -227,44 +227,56 @@ for entry in "${REPOS[@]}"; do
     fi
 done
 
-cmd_for() {
+# tmux はコンテナの中で動かす（#53）。コンテナの中の Claude Code が tmux の中にいると判定でき、
+# マウスで選んだ文字を OSC 52 でホストの端末に送れる。teammate も tmux のペインに分かれる。
+# 設定はリポジトリのファイルを -f で渡す。-f はサーバの起動時にだけ読まれる。
+TMUX_CONF="/workspaces/base/pecot/.devcontainer/tmux/tmux.conf"
+ctmux() {
+    docker exec -u vscode "$CID" tmux -f "$TMUX_CONF" "$@"
+}
+ctmux_attach() {
+    exec docker exec -it -u vscode -e TERM="${TERM:-xterm-256color}" "$CID" \
+        tmux -f "$TMUX_CONF" attach-session -t "$1"
+}
+
+dir_for() {
     local v r
     v="$(entry_variant "$1")"
     r="$(entry_repo "$1")"
-    printf 'docker exec -it -u vscode -w %q %s bash' "/workspaces/$v/$r" "$CID"
+    printf '%s' "/workspaces/$v/$r"
 }
 
-if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+if ctmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo "既存セッション '$SESSION_NAME' にアタッチします"
-    exec tmux attach-session -t "$SESSION_NAME"
+    ctmux_attach "$SESSION_NAME"
 fi
 
 build_panes() {
     local count=${#REPOS[@]}
-    tmux new-session -d -s "$SESSION_NAME" "$(cmd_for "${REPOS[0]}")"
+    ctmux new-session -d -s "$SESSION_NAME" -c "$(dir_for "${REPOS[0]}")" bash
     case "$count" in
         1)
             ;;
         2)
-            tmux split-window -h -t "$SESSION_NAME" "$(cmd_for "${REPOS[1]}")"
+            ctmux split-window -h -t "$SESSION_NAME" -c "$(dir_for "${REPOS[1]}")" bash
             ;;
         3)
             # 左 1 + 右を上下 2 分割
-            tmux split-window -h -t "$SESSION_NAME" "$(cmd_for "${REPOS[1]}")"
-            tmux split-window -v -t "$SESSION_NAME.1" "$(cmd_for "${REPOS[2]}")"
+            ctmux split-window -h -t "$SESSION_NAME" -c "$(dir_for "${REPOS[1]}")" bash
+            ctmux split-window -v -t "$SESSION_NAME.1" -c "$(dir_for "${REPOS[2]}")" bash
             ;;
         4)
             # 2x2
-            tmux split-window -h -t "$SESSION_NAME" "$(cmd_for "${REPOS[1]}")"
-            tmux select-pane  -t "$SESSION_NAME.0"
-            tmux split-window -v -t "$SESSION_NAME" "$(cmd_for "${REPOS[2]}")"
-            tmux select-pane  -t "$SESSION_NAME.2"
-            tmux split-window -v -t "$SESSION_NAME" "$(cmd_for "${REPOS[3]}")"
+            ctmux split-window -h -t "$SESSION_NAME" -c "$(dir_for "${REPOS[1]}")" bash
+            ctmux select-pane  -t "$SESSION_NAME.0"
+            ctmux split-window -v -t "$SESSION_NAME" -c "$(dir_for "${REPOS[2]}")" bash
+            ctmux select-pane  -t "$SESSION_NAME.2"
+            ctmux split-window -v -t "$SESSION_NAME" -c "$(dir_for "${REPOS[3]}")" bash
             ;;
     esac
-    tmux select-pane -t "$SESSION_NAME.0"
+    ctmux select-pane -t "$SESSION_NAME.0"
 }
 
 build_panes
 
-exec tmux attach-session -t "$SESSION_NAME"
+ctmux_attach "$SESSION_NAME"
