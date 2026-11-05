@@ -1,0 +1,71 @@
+"""core/issue_board.py - Issue の作成・ボードへの追加・フィールドの設定
+
+失敗は ``GitHubAPIError`` で呼び出し側に返す。表示と終了コードは呼び出し側が決める
+（``pecot issue`` は警告で流し、``pecot security sync`` は件ごとの失敗として数える）。
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from cli.core.config import ProjectConfig
+from cli.core.github import GitHubClient
+
+
+def create_issue(
+    client: GitHubClient,
+    owner: str,
+    repo: str,
+    title: str,
+    body: str,
+    labels: list[str] | None,
+) -> dict[str, Any]:
+    """Issue を作成して API の応答を返す
+
+    Raises:
+        GitHubAPIError: 作成に失敗した場合
+    """
+    return client.create_issue(owner=owner, repo=repo, title=title, body=body, labels=labels)
+
+
+def add_issue_to_board(
+    client: GitHubClient,
+    config: ProjectConfig,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    issue_node_id: str | None,
+) -> tuple[str, str]:
+    """Issue をボードへ追加し、(item_id, issue_node_id) を返す
+
+    追加済みの Issue に対しては既存の item_id が返る（何度呼んでも同じ結果になる）。
+
+    Raises:
+        GitHubAPIError: node id の取得かボードへの追加に失敗した場合
+    """
+    if not issue_node_id:
+        issue_node_id = client.get_issue_node_id(owner, repo, issue_number)
+    item_id = client.add_to_project(config.project.id, issue_node_id)
+    return item_id, issue_node_id
+
+
+def set_issue_field(
+    client: GitHubClient,
+    config: ProjectConfig,
+    item_id: str,
+    field_name: str,
+    option_name: str,
+) -> bool:
+    """カスタムフィールドを 1 つ設定する。設定したら True
+
+    設定に無いフィールド・オプションは False を返す（何もしない）。
+
+    Raises:
+        GitHubAPIError: 更新に失敗した場合
+    """
+    field_id = config.get_field_id(field_name)
+    option_id = config.get_option_id(field_name, option_name)
+    if not (field_id and option_id):
+        return False
+    client.update_project_item_field(config.project.id, item_id, field_id, option_id)
+    return True

@@ -34,11 +34,17 @@ from cli.core.git import git_toplevel, origin_repo
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
 from cli.core.ref_parser import RefParseError, parse_pr_ref
 from cli.core.release import ReleaseError, run_preflight
+from cli.core.security_alerts import (
+    ScanAlertStatus,
+    SecurityAlertError,
+    fetch_code_scanning_status,
+    fetch_secret_scanning_status,
+)
 
 # ヘルパー関数
 
 
-def _resolve_release_target_repo(
+def resolve_release_target_repo(
     ctx: typer.Context | None, cwd: Path | None = None
 ) -> tuple[str, str]:
     """release系コマンドの操作対象 (owner, repo) を決定する (FR-009b)。
@@ -177,7 +183,7 @@ def _load_release_context(
         raise typer.Exit(1)
 
     # リポジトリ情報取得: グローバル --repo 優先 (FR-009b)
-    owner, repo = _resolve_release_target_repo(ctx, cwd)
+    owner, repo = resolve_release_target_repo(ctx, cwd)
 
     # プロジェクト設定からブランチ情報取得
     config = load_active_config()
@@ -273,6 +279,59 @@ def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str, git_r
     raise typer.Exit(1)
 
 
+def _check_scanning_alerts(
+    name: str, fetch: Any, config: ProjectConfig, owner: str, repo: str
+) -> None:
+    """code scanning / secret scanning の open の alert があれば exit 1。無効のリポは通す
+
+    この 2 種は dismiss が閉じる手段なので、Dependabot のような例外の仕組みを持たない。
+    """
+    try:
+        status: ScanAlertStatus = fetch(GitHubClient(host=config.host), config.host, owner, repo)
+    except SecurityAlertError as e:
+        typer.echo(f"エラー: {name} の状態を確認できません: {e}", err=True)
+        raise typer.Exit(1) from None
+    if not status.enabled:
+        typer.echo(f"✓ {name}: 無効")
+        return
+    if status.open_count == 0:
+        typer.echo(f"✓ {name}: open 0")
+        return
+    listing = "".join(f"  #{n}\n" for n in status.open_numbers)
+    typer.echo(
+        f"エラー: {name} の alert が open {status.open_count} 件\n"
+        f"{listing}"
+        f"→ {status.alerts_url}\n"
+        "  解消（fixed）か理由付きの dismiss で 0 件にしてから再実行してください。",
+        err=True,
+    )
+    raise typer.Exit(1)
+
+
+def _check_alerts(config: ProjectConfig, owner: str, repo: str, git_root: Path) -> None:
+    """Dependabot・code scanning・secret scanning の 3 つを確かめ、1 つでも失敗なら exit 1
+
+    先に失敗した種類があっても残りを確かめてから終了コードを決める（一度で全部が分かる）。
+    """
+    checks: list[Any] = [
+        lambda: _check_dependabot_alerts(config, owner, repo, git_root),
+        lambda: _check_scanning_alerts(
+            "code scanning", fetch_code_scanning_status, config, owner, repo
+        ),
+        lambda: _check_scanning_alerts(
+            "secret scanning", fetch_secret_scanning_status, config, owner, repo
+        ),
+    ]
+    failed = False
+    for check in checks:
+        try:
+            check()
+        except typer.Exit:
+            failed = True
+    if failed:
+        raise typer.Exit(1)
+
+
 # コマンド実装
 
 
@@ -295,8 +354,9 @@ def release_preflight(
 ) -> None:
     """リリース前チェック（preflight）
 
-    open の Dependabot alert の確認（1 件でもあれば失敗）に加え、
-    CHANGELOG.md確認、バージョン検証、タグ不存在確認、
+    open の Dependabot・code scanning・secret scanning の alert を確かめる。
+    1 件でもあれば失敗する。Dependabot は例外に載せた alert を除く。
+    あわせて、CHANGELOG.md確認、バージョン検証、タグ不存在確認、
     ブランチ差分確認、リリースノート抽出をまとめて行う。
     release_type が nx のリポでは alert の確認だけを行う。
 
@@ -313,7 +373,7 @@ def release_preflight(
     is_nx = rc.repo_obj is not None and rc.repo_obj.effective_release_type == "nx"
 
     typer.echo("=== Release Preflight Check ===\n")
-    _check_dependabot_alerts(config, owner, repo, rc.git_root)
+    _check_alerts(config, owner, repo, rc.git_root)
     if is_nx:
         # version 整合・タグ・差分は Nx Release が担うため alert の確認だけで終える
         typer.echo("\n=== Preflight Check Passed ===")

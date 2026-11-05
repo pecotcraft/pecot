@@ -89,7 +89,11 @@ App の権限は次のとおり。
 | Contents: write | release commit・tag・CHANGELOG の push と GitHub Release の作成 |
 | Pull requests: write | dependabot の PR を merge queue に入れる |
 | Actions: write | `publish-npm.yml` を `gh workflow run` で起動する |
-| Dependabot alerts: read | `pecot release preflight` が open の alert を数える |
+| Dependabot alerts: read | `pecot release preflight` と `security-alerts.yml` が open の alert を読む |
+| Code scanning alerts: read | 同上 |
+| Secret scanning alerts: read | 同上 |
+| Issues: write | `security-alerts.yml` が alert の Issue を作り、閉じる |
+| Organization の Projects: read and write | `security-alerts.yml` が alert の Issue をボードに載せ、フィールドを設定する |
 | Metadata: read | 必須（自動で付く） |
 
 Rationale: ruleset の bypass に GitHub Actions（GITHUB_TOKEN）は載せられない。GITHUB_TOKEN で push しても後続の workflow は起動しない。

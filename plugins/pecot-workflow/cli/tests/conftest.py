@@ -374,11 +374,13 @@ def create_test_pr_data(
 
 @pytest.fixture
 def no_open_alerts():
-    """Dependabot alert が open 0 件のリポとして release コマンドの GitHub 問い合わせを差し替える
+    """3 種の alert（Dependabot・code scanning・secret scanning）が open 0 件のリポとして
+    release コマンドの GitHub 問い合わせを差し替える
 
     autouse ではなく ``usefixtures`` で必要なクラス・テストにだけ適用する。
     """
     from cli.core.dependabot import DependabotAlertStatus
+    from cli.core.security_alerts import ScanAlertStatus
 
     status = DependabotAlertStatus(
         enabled=True,
@@ -389,5 +391,13 @@ def no_open_alerts():
     with (
         patch("cli.commands.release.GitHubClient"),
         patch("cli.commands.release.fetch_dependabot_alert_status", return_value=status),
+        patch(
+            "cli.commands.release.fetch_code_scanning_status",
+            return_value=ScanAlertStatus(enabled=True, open_count=0, alerts_url="https://x/cs"),
+        ),
+        patch(
+            "cli.commands.release.fetch_secret_scanning_status",
+            return_value=ScanAlertStatus(enabled=True, open_count=0, alerts_url="https://x/ss"),
+        ),
     ):
         yield

@@ -37,6 +37,8 @@ from cli.commands.release import release_preflight as release_preflight_command
 from cli.commands.repo import create_branch as create_branch_command
 from cli.commands.repo import delete_branch as delete_branch_command
 from cli.commands.repo_display import print_resolved_repo
+from cli.commands.security import security_review_exceptions as security_review_exceptions_command
+from cli.commands.security import security_sync as security_sync_command
 from cli.commands.session import flag_restore as flag_restore_command
 from cli.commands.session import flag_status as flag_status_command
 from cli.commands.worktree import (
@@ -145,6 +147,12 @@ release_app.command(name="preflight")(release_preflight_command)
 release_app.command(name="create")(release_create_command)
 release_app.command(name="merge")(release_merge_command)
 app.add_typer(release_app, name="release")
+
+# security サブコマンドグループ
+security_app = typer.Typer(help="security alert の Issue 化コマンド")
+security_app.command(name="sync")(security_sync_command)
+security_app.command(name="review-exceptions")(security_review_exceptions_command)
+app.add_typer(security_app, name="security")
 
 # worktree サブコマンドグループ
 worktree_app = typer.Typer(help="ワークツリー操作コマンド")

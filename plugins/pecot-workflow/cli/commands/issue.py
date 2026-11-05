@@ -28,6 +28,7 @@ from cli.core.frontmatter import (
     strip_leading_html_comment,
 )
 from cli.core.github import GitHubAPIError, GitHubClient
+from cli.core.issue_board import add_issue_to_board, create_issue, set_issue_field
 from cli.core.paths import (
     WORK_DIR,
     OutputPathReservationError,
@@ -915,7 +916,7 @@ def _create_issue_or_exit(
     """Issue作成（失敗時は exit 1）"""
     typer.echo("Creating issue...")
     try:
-        return client.create_issue(owner=owner, repo=repo, title=title, body=body, labels=labels)
+        return create_issue(client, owner, repo, title, body, labels)
     except GitHubAPIError as e:
         typer.echo(f"エラー: Issue作成失敗: {e.message}", err=True)
         raise typer.Exit(1) from None
@@ -933,15 +934,13 @@ def _add_issue_to_board(
     """ボード追加。成功時は (item_id, issue_node_id) を返し、失敗時は警告と URL を出して None を返す。"""
     typer.echo("Adding to board...")
     try:
-        if not issue_node_id:
-            issue_node_id = client.get_issue_node_id(owner, repo, issue_number)
-        item_id = client.add_to_project(config.project.id, issue_node_id)
+        added = add_issue_to_board(client, config, owner, repo, issue_number, issue_node_id)
         typer.echo("  Added to board")
     except GitHubAPIError as e:
         typer.echo(f"警告: ボード追加失敗: {e.message}", err=True)
         typer.echo(f"\n{issue_url}")
         return None
-    return item_id, issue_node_id
+    return added
 
 
 def _set_issue_fields(
@@ -953,14 +952,11 @@ def _set_issue_fields(
     """カスタムフィールド設定。fields は (フィールド名, オプション名, 表示ラベル)。失敗は無視"""
     fields_set: list[str] = []
     for field_name, option_name, label in fields:
-        field_id = config.get_field_id(field_name)
-        option_id = config.get_option_id(field_name, option_name)
-        if field_id and option_id:
-            try:
-                client.update_project_item_field(config.project.id, item_id, field_id, option_id)
+        try:
+            if set_issue_field(client, config, item_id, field_name, option_name):
                 fields_set.append(label)
-            except GitHubAPIError:
-                pass  # フィールド設定失敗は無視
+        except GitHubAPIError:
+            pass  # フィールド設定失敗は無視
 
     if fields_set:
         typer.echo(f"  Set fields: {', '.join(fields_set)}")
