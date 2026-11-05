@@ -1,5 +1,5 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n",
+  "stdout": "=== Release Preflight Check ===\n\n✓ code scanning: open 0\n✓ secret scanning: open 0\n",
   "stderr": "エラー: Dependabot alert の状態を確認できません: acme/demo: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）\n",
   "exitCode": 1,
   "requests": [
@@ -18,6 +18,28 @@
       "method": "GET",
       "path": "/repos/acme/demo/vulnerability-alerts",
       "query": {},
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/code-scanning/alerts",
+      "query": {
+        "per_page": "100",
+        "ref": "refs/heads/main",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/secret-scanning/alerts",
+      "query": {
+        "hide_secret": "true",
+        "per_page": "100",
+        "state": "open"
+      },
       "auth": "token"
     }
   ],

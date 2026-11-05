@@ -1,0 +1,8 @@
+# 存在しないオプション。typer の使い方エラーを記録する。
+id: security-review-exceptions-usage-unknown-option
+command:
+  path: [security, review-exceptions]
+  args:
+    - "--bogus"
+setup: {}
+github: []

@@ -1,5 +1,5 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ Auto-detected version: 0.2.0\n✓ Tag v0.2.0 does not exist\n✓ 2 commits to release (origin/develop → origin/main)\n\n=== Preflight Check Passed ===\n\nVersion: 0.2.0\n\nRelease Notes:\n### 追加\n\n- 新機能 A\n- 新機能 B\n",
+  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n✓ Auto-detected version: 0.2.0\n✓ Tag v0.2.0 does not exist\n✓ 2 commits to release (origin/develop → origin/main)\n\n=== Preflight Check Passed ===\n\nVersion: 0.2.0\n\nRelease Notes:\n### 追加\n\n- 新機能 A\n- 新機能 B\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -8,6 +8,28 @@
       "method": "GET",
       "path": "/repos/acme/demo/dependabot/alerts",
       "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/code-scanning/alerts",
+      "query": {
+        "per_page": "100",
+        "ref": "refs/heads/main",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/secret-scanning/alerts",
+      "query": {
+        "hide_secret": "true",
         "per_page": "100",
         "state": "open"
       },

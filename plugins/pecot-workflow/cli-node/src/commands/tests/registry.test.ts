@@ -38,6 +38,8 @@ const PENDING_PATHS: readonly (readonly string[])[] = [
   ['release', 'preflight'],
   ['release', 'create'],
   ['release', 'merge'],
+  ['security', 'sync'],
+  ['security', 'review-exceptions'],
   ['worktree', 'init'],
   ['worktree', 'add'],
   ['worktree', 'link'],
@@ -49,13 +51,13 @@ function keyOf(path: readonly string[]): string {
 }
 
 describe('コマンドの一覧', () => {
-  it('未移植と移植済みを合わせて、前後比較の 32 個と一致する', () => {
+  it('未移植と移植済みを合わせて、前後比較の 34 個と一致する', () => {
     const registered = COMMANDS.map(command => keyOf(command.path))
     const pending = PENDING_PATHS.map(path => keyOf(path))
     expect([...registered, ...pending].toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(path => keyOf(path)).toSorted(compareStrings))
     expect(registered.filter(key => pending.includes(key))).toEqual([])
-    expect(registered.length + pending.length).toBe(32)
-    expect(new Set([...registered, ...pending]).size).toBe(32)
+    expect(registered.length + pending.length).toBe(34)
+    expect(new Set([...registered, ...pending]).size).toBe(34)
   })
 
   it('toolName は重複せず、path から作られている', () => {
@@ -66,7 +68,7 @@ describe('コマンドの一覧', () => {
 
   it('未移植の path は toolName が重複しない', () => {
     const names = PENDING_PATHS.map(path => toolNameOf(path))
-    expect(new Set(names).size).toBe(32)
+    expect(new Set(names).size).toBe(34)
   })
 })
 

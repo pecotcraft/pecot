@@ -87,3 +87,17 @@ github:
       path: "/repos/acme/demo/vulnerability-alerts"
     respond:
       status: 204
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/code-scanning/alerts"
+      query: {"state": "open", "ref": "refs/heads/main", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/secret-scanning/alerts"
+      query: {"state": "open", "hide_secret": "true", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
