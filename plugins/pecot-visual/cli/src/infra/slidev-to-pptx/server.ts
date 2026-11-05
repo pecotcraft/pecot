@@ -3,18 +3,20 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 import { createServer, type Server } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve as resolvePath, sep } from 'node:path'
 
 import * as mimeTypes from 'mime-types'
 
 const lookup = mimeTypes.lookup.bind(mimeTypes)
+
+export const LOOPBACK_HOST = '127.0.0.1'
 
 /**
 dist 配信サーバが実際に bind したポートを解決する。
 listen 後の `address()` が AddressInfo を返せば、その port を使う。
 返さない場合 (address() が null / パイプ名を返す stub 等) は、要求ポートへフォールバックする。
 要求ポートが 0 (ephemeral) のまま実ポートを取れないときは throw する。
-`http://localhost:0` という到達不能な baseUrl を組ませないため。
+`http://127.0.0.1:0` という到達不能な baseUrl を組ませないため。
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- Server は mutable 型
 export function resolveBoundPort(server: Server, fallbackPort: number): number {
@@ -38,7 +40,14 @@ export function startServer(distDir: string, port: number): Promise<Server> {
       void (async () => {
         const urlPath = (request.url ?? '/').split('?', 1)[0]
         const safePath = urlPath ?? '/'
-        const filePath = join(distDir, safePath === '/' ? 'index.html' : safePath)
+        const root = resolvePath(distDir)
+        const filePath = resolvePath(root, '.' + (safePath === '/' ? '/index.html' : safePath))
+        // `..` を含む要求で dist の外を読ませない
+        if (filePath !== root && !filePath.startsWith(root + sep)) {
+          res.writeHead(404)
+          res.end('Not found')
+          return
+        }
 
         try {
           const content = await readFile(filePath)
@@ -71,7 +80,8 @@ export function startServer(distDir: string, port: number): Promise<Server> {
     // リスナーは dom-to-pptx の Emscripten ランタイムが登録する。
     // すると Promise は永遠に pending のままになり、CLI が無限ハングする。
     server.once('error', reject)
-    server.listen(port, () => {
+    // ループバックだけで待ち受け、同じネットワークの他の端末から届かないようにする
+    server.listen(port, LOOPBACK_HOST, () => {
       // listen 成功後は Promise が settled 済みで reject が無効になる。
       // そのため reject リスナーを外し、stderr 出力へ差し替える。
       // 以後のサーバエラー (配信中の socket error 等) は通知なしで捨てず、変換ログから観測できるようにする。

@@ -204,7 +204,7 @@ async function hideOtherContainers(page: Page, containerIds: readonly string[]):
 export interface SinglePassRequest {
   readonly browser: Browser
   /**
-  dist 配信サーバの origin（`http://localhost:<port>`）
+  dist 配信サーバの origin（`http://127.0.0.1:<port>`）
   */
   readonly baseUrl: string
   /**
