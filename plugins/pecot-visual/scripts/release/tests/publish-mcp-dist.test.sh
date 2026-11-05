@@ -486,15 +486,24 @@ echo "==> dry-run で pnpm 呼び出し順を検証（偽 pnpm）"
 mkdir -p "$TMP/bin"
 PNPM_CALLS="$TMP/pnpm-calls.txt"
 # publish は eslint プラグインの build 前に、各パッケージの dist を消す。
-# 偽 pnpm は build をしないので、本体ツリーの dist を退避しておき、eslint の build 呼び出しで戻す。
+# 本体ツリーの dist は、並行して動く別のレーン（test-cli の deck lint など）が読んでいる (#82)。
+# そのため publish には PECOTV_ESLINT_PLUGINS_DIR で一時の写しを指させ、本体ツリーの dist には触らせない。
+# 偽 pnpm は build をしないので、写しの dist を退避しておき、eslint の build 呼び出しで戻す。
 # 戻す前に dist の有無を記録し、build の前に消えていたことを後で確かめる。
-ESLINT_TREE="$ESLINT_SOURCE"
+ESLINT_TREE="$TMP/eslint-tree"
 ESLINT_BACKUP="$TMP/eslint-dist-backup"
 ESLINT_DIST_AT_BUILD="$TMP/eslint-dist-at-build.txt"
-mkdir -p "$ESLINT_BACKUP" || exit 1
+mkdir -p "$ESLINT_BACKUP" "$ESLINT_TREE" || exit 1
 for pkg in "${ESLINT_PKGS[@]}"; do
-    cp -a "$ESLINT_TREE/$pkg/dist" "$ESLINT_BACKUP/$pkg" || exit 1
+    mkdir -p "$ESLINT_TREE/$pkg" || exit 1
+    cp -a "$ESLINT_SOURCE/$pkg/dist" "$ESLINT_TREE/$pkg/dist" || exit 1
+    cp -a "$ESLINT_SOURCE/$pkg/dist" "$ESLINT_BACKUP/$pkg" || exit 1
 done
+# 本体ツリーの dist の指紋。publish の前後で変わらないことを確かめる。
+eslint_source_fingerprint() {
+    (cd "$ESLINT_SOURCE" && find "${ESLINT_PKGS[@]/%//dist}" -type f -exec cksum {} + 2>/dev/null | sort)
+}
+ESLINT_SOURCE_BEFORE="$(eslint_source_fingerprint)"
 cat > "$TMP/bin/pnpm" << 'FAKE_PNPM'
 #!/bin/bash
 # 呼び出しごとに「cwd<TAB>引数」を 1 行追記する。build はしない。
@@ -532,7 +541,7 @@ chmod +x "$TMP/bin/npm"
 : > "$PNPM_CALLS"
 : > "$NPM_CALLS"
 BUILD_RC=0
-NPM_CALLS="$NPM_CALLS" REAL_NPM="$REAL_NPM" PNPM_CALLS="$PNPM_CALLS" \
+PECOTV_ESLINT_PLUGINS_DIR="$TMP/eslint-tree" NPM_CALLS="$NPM_CALLS" REAL_NPM="$REAL_NPM" PNPM_CALLS="$PNPM_CALLS" \
     ESLINT_TREE="$ESLINT_TREE" ESLINT_BACKUP="$ESLINT_BACKUP" ESLINT_DIST_AT_BUILD="$ESLINT_DIST_AT_BUILD" \
     ESLINT_PKGS="${ESLINT_PKGS[*]}" PATH="$TMP/bin:$PATH" \
     bash "$PUBLISH" --dry-run --out-dir="$TMP/dist-build" \
@@ -541,8 +550,13 @@ assert_eq "build を伴う dry-run が正常終了する" "0" "$BUILD_RC"
 # 古い dist が残ると、削除したソースに対応するモジュールが配布へ同梱される。build の前に消えていることを見る。
 assert_eq "eslint プラグインの build の時点で、前回の dist が残っていない" "0" \
     "$(wc -l < "$ESLINT_DIST_AT_BUILD" 2> /dev/null | tr -d ' ')"
-assert_eq "偽 build が dist を戻した後、本体ツリーの dist が揃っている" "${#ESLINT_PKGS[@]}" \
+assert_eq "偽 build が dist を戻した後、写しの dist が揃っている" "${#ESLINT_PKGS[@]}" \
     "$(for pkg in "${ESLINT_PKGS[@]}"; do [ -f "$ESLINT_TREE/$pkg/dist/index.js" ] && echo "$pkg"; done | wc -l | tr -d ' ')"
+if [ "$(eslint_source_fingerprint)" = "$ESLINT_SOURCE_BEFORE" ]; then
+    pass "build を伴う dry-run が、本体ツリーの eslint プラグインの dist に触らない"
+else
+    fail "build を伴う dry-run が、本体ツリーの eslint プラグインの dist を変えた"
+fi
 assert_eq "1 回目の pnpm 呼び出しは lock の確認" "install --lockfile-only --prefer-offline" \
     "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
 assert_eq "2 回目の pnpm 呼び出しは install（lifecycle は動かさない）" "install --prefer-frozen-lockfile --ignore-scripts" \
