@@ -31,6 +31,9 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 PECOTV_ROOT="$REPO_ROOT/plugins/pecot-visual"
+# eslint プラグインの置き場所。build の前に dist を消し、配布ツリーへ dist を写す元になる。
+# 既定は実ツリー。テストは偽の build と組み合わせて一時の写しを指し、並行する別のテストが読む実ツリーの dist を消さない。
+ESLINT_PLUGINS_DIR="${PECOTV_ESLINT_PLUGINS_DIR:-$PECOTV_ROOT/assets/slidev/scripts/eslint}"
 
 VERSION=""
 OUT_DIR=""
@@ -256,7 +259,7 @@ if [ "$SKIP_BUILD" = false ]; then
     # build は tsc -b で、削除したソースに対応する dist を掃除しない。
     # 古い dist が残ると、消したモジュールが配布へそのまま同梱される。
     # tsbuildinfo も dist の中にあるので、dist ごと消せば全部作り直される。
-    rm -rf "$PECOTV_ROOT"/assets/slidev/scripts/eslint/*/dist
+    rm -rf "${ESLINT_PLUGINS_DIR:?}"/*/dist
     echo "==> $PNPM --filter @pecot/slidev-assets-dev run build (eslint プラグイン dist を含む)"
     # shellcheck disable=SC2086
     (cd "$PECOTV_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run build)
@@ -315,7 +318,7 @@ git -C "$REPO_ROOT" archive HEAD \
 
 # eslint プラグインの dist は git 管理外のため実体をコピーする。
 for pkg in _shared slidev-pages-lint text-constraints validate-references; do
-    src="$PECOTV_ROOT/assets/slidev/scripts/eslint/$pkg/dist"
+    src="$ESLINT_PLUGINS_DIR/$pkg/dist"
     dst="$DIST/assets/slidev/scripts/eslint/$pkg/dist"
     if [ ! -d "$src" ]; then
         echo "ERROR: $src がありません（eslint プラグインの build 未実行）。" >&2

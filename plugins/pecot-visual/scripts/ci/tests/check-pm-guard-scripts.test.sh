@@ -1,5 +1,5 @@
 #!/bin/bash
-# check-pm-guard.sh の scripts 確認（list_pm_invoking_scripts）を検証する (#1217)。
+# check-pm-guard.sh と pm-guard-lib.sh の確認（scripts・devEngines の宣言・.npmrc）を検証する (#1217 / #52)。
 #
 # scripts から package manager を自己呼び出しすると、次の理由で落ちる。
 # pnpm 12 が packageManager の版を @pnpm/exe（単一実行ファイル）で起動する。
@@ -79,31 +79,13 @@ assert_violations 'スコープ付きパッケージ名の npm-' '{"x":"node nod
 assert_violations 'npm: を含まない concurrently' '{"x":"concurrently \"node a.mjs\" \"node b.mjs\""}' 0
 assert_violations 'scripts 無し' '{}' 0
 
-# --- .npmrc の pnpm 固有設定 ---------------------------------------------------
-
-# $1 = ラベル、$2 = .npmrc の中身、$3 = 期待件数
-assert_npmrc_keys() {
-    local label="$1" content="$2" expected="$3" actual
-    printf '%s\n' "$content" > "$TMP/.npmrc"
-    actual="$(list_pnpm_only_npmrc_keys "$TMP" | grep -c . || true)"
-    if [ "$actual" = "$expected" ]; then
-        t_pass "$label"
-    else
-        t_fail "$label (違反 $expected 件を期待、実際 $actual 件)"
-    fi
-}
-
-assert_npmrc_keys '.npmrc の node-linker を拾う' $'node-linker=hoisted\nengine-strict=true' 1
-assert_npmrc_keys '.npmrc の pnpm 固有設定を全件拾う' $'shared-workspace-lockfile=true\npublic-hoist-pattern[]=*\nonly-built-dependencies[]=esbuild' 3
-assert_npmrc_keys 'npm 向けの設定は拾わない' $'# node-linker=hoisted\nengine-strict=true\naudit=false\nfund=false' 0
-
 # --- devEngines.packageManager の読み取り --------------------------------------
 
-# $1 = ラベル、$2 = devEngines の JSON、$3 = 期待値（<name>:<onFail>）
-assert_dev_engine_pm() {
-    local label="$1" dev="$2" expected="$3" actual
-    printf '{"name":"probe","devEngines":%s}\n' "$dev" > "$TMP/package.json"
-    actual="$(read_dev_engine_pm "$TMP/package.json")"
+# $1 = ラベル、$2 = package.json の JSON、$3 = 期待値（<形>|<name>|<version>|<onFail>|<engines の node 以外>|<packageManager>）
+assert_declaration() {
+    local label="$1" json="$2" expected="$3" actual
+    printf '%s\n' "$json" > "$TMP/package.json"
+    actual="$(read_pm_declaration "$TMP/package.json")"
     if [ "$actual" = "$expected" ]; then
         t_pass "$label"
     else
@@ -111,11 +93,12 @@ assert_dev_engine_pm() {
     fi
 }
 
-assert_dev_engine_pm 'devEngines の単体オブジェクト' '{"packageManager":{"name":"npm","onFail":"error"}}' 'npm:error'
-assert_dev_engine_pm 'devEngines の配列（npm 1 要素）' '{"packageManager":[{"name":"npm","onFail":"error"}]}' 'npm:error'
-assert_dev_engine_pm 'devEngines の配列に npm 以外が入ると止められない' '{"packageManager":[{"name":"npm","onFail":"error"},{"name":"pnpm"}]}' 'mixed:'
-assert_dev_engine_pm 'devEngines の onFail が error でない' '{"packageManager":{"name":"npm","onFail":"warn"}}' 'npm:warn'
-assert_dev_engine_pm 'devEngines の宣言なし' '{}' ':'
+assert_declaration 'devEngines の単体オブジェクト' '{"devEngines":{"packageManager":{"name":"npm","onFail":"error"}}}' 'object|npm||error||'
+assert_declaration 'devEngines の version と packageManager' '{"packageManager":"pnpm@1.2.3+sha512.ab","devEngines":{"packageManager":{"name":"pnpm","version":"1.2.3","onFail":"download"}}}' 'object|pnpm|1.2.3|download||pnpm@1.2.3+sha512.ab'
+assert_declaration 'devEngines の配列は array を返す' '{"devEngines":{"packageManager":[{"name":"npm","onFail":"error"}]}}' 'array|||||'
+assert_declaration 'devEngines の宣言なし' '{}' 'none|||||'
+assert_declaration 'engines の node 以外のキーを返す' '{"engines":{"node":"^24","npm":"<0.0.0","yarn":"<0.0.0"}}' 'none||||npm,yarn|'
+assert_declaration 'engines が node だけなら余分なキーは空' '{"engines":{"node":"^24"}}' 'none|||||'
 
 # --- pnpm-workspace.yaml の設定読み取り ------------------------------------------
 
@@ -147,19 +130,23 @@ REAL_PECOTV_ROOT="$PECOTV_PLUGIN_ROOT"
 
 make_fixture() {
     FIX="$(mktemp -d "$TMP/fix.XXXXXX")"
-    local rel
-    local -a members
-    local -a rels=(".")
-    mapfile -t members < <(list_workspace_members "$REAL_PECOTV_ROOT/pnpm-workspace.yaml")
-    rels+=("${members[@]}")
-    mkdir -p "$FIX/plugins/pecot-visual"
-    cp "$REAL_PECOTV_ROOT/pnpm-workspace.yaml" "$FIX/plugins/pecot-visual/"
-    for rel in "${rels[@]}"; do
-        mkdir -p "$FIX/plugins/pecot-visual/$rel"
-        cp "$REAL_PECOTV_ROOT/$rel/package.json" "$FIX/plugins/pecot-visual/$rel/"
-        [ ! -f "$REAL_PECOTV_ROOT/$rel/.npmrc" ] || cp "$REAL_PECOTV_ROOT/$rel/.npmrc" "$FIX/plugins/pecot-visual/$rel/"
+    local rel p
+    while IFS= read -r rel; do
+        mkdir -p "$FIX/$(dirname "$rel")"
+        cp "$REAL_REPO_ROOT/$rel" "$FIX/$rel"
+    done < <(list_package_jsons "$REAL_REPO_ROOT")
+    for p in pecot-visual pecot-tools pecot-workflow; do
+        cp "$REAL_REPO_ROOT/plugins/$p/pnpm-workspace.yaml" "$FIX/plugins/$p/"
     done
-    cp "$REAL_REPO_ROOT/package.json" "$REAL_REPO_ROOT/.npmrc" "$FIX/"
+    cp "$REAL_REPO_ROOT/.npmrc" "$FIX/"
+    # pecot-visual のメンバー libs/text-rules は、実ツリーと同じくリンクにする。
+    mkdir -p "$FIX/plugins/pecot-visual/libs"
+    ln -s ../../../libs/text-rules "$FIX/plugins/pecot-visual/libs/text-rules"
+}
+
+# fixture の package.json を node の式で書き換える。$1=相対パス $2=p を書き換える JS の文
+edit_fixture_pkg() {
+    node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));eval(process.argv[2]);fs.writeFileSync(f,JSON.stringify(p,null,2))' "$FIX/$1" "$2"
 }
 
 # fixture に対して run_static_check を実行する。出力は $STATIC_OUT、終了コードは $STATIC_RC に入れる。
@@ -185,40 +172,101 @@ assert_static() {
     fi
 }
 
+VIS=plugins/pecot-visual
+
 make_fixture
 assert_static '静的確認: 現行ツリーの複製は pass する' ''
 
-sed -i 's/^nodeLinker: hoisted$/nodeLinker: isolated/' "$FIX/plugins/pecot-visual/pnpm-workspace.yaml"
+sed -i 's/^nodeLinker: hoisted$/nodeLinker: isolated/' "$FIX/$VIS/pnpm-workspace.yaml"
 assert_static '静的確認: nodeLinker: hoisted が無いと落ちる' 'nodeLinker: hoisted が無い'
 
 make_fixture
-sed -i 's/^nodeLinker: hoisted$/nodeLinker: hoisted # 末尾コメント/' "$FIX/plugins/pecot-visual/pnpm-workspace.yaml"
+sed -i 's/^nodeLinker: hoisted$/nodeLinker: hoisted # 末尾コメント/' "$FIX/$VIS/pnpm-workspace.yaml"
 assert_static '静的確認: nodeLinker の末尾コメントでは落ちない' ''
 
 make_fixture
-node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));p.devEngines.packageManager.onFail="warn";fs.writeFileSync(f,JSON.stringify(p))' "$FIX/package.json"
-assert_static '静的確認: devEngines.packageManager が npm:error でないと落ちる' 'devEngines.packageManager が'
+edit_fixture_pkg package.json 'p.devEngines.packageManager.onFail="warn"'
+assert_static '静的確認: ルートの onFail が error でないと落ちる' 'devEngines.packageManager が { name: npm, onFail: error } でない: package.json'
 
 make_fixture
-node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));p.devEngines.packageManager=[p.devEngines.packageManager];fs.writeFileSync(f,JSON.stringify(p))' "$FIX/package.json"
-assert_static '静的確認: devEngines.packageManager の配列形式（npm:error）は pass する' ''
+edit_fixture_pkg package.json 'delete p.devEngines'
+assert_static '静的確認: ルートの宣言の欠けで落ちる' 'devEngines.packageManager の宣言が無い: package.json'
 
 make_fixture
-node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));p.scripts={...p.scripts,x:"pnpm run y"};fs.writeFileSync(f,JSON.stringify(p))' "$FIX/plugins/pecot-visual/package.json"
+edit_fixture_pkg libs/text-rules/package.json 'delete p.devEngines'
+assert_static '静的確認: libs/text-rules の宣言の欠けで落ちる' 'devEngines.packageManager の宣言が無い: libs/text-rules/package.json'
+
+make_fixture
+edit_fixture_pkg $VIS/cli/package.json 'delete p.devEngines'
+assert_static '静的確認: メンバーの宣言の欠けで落ちる' "devEngines.packageManager の宣言が無い: $VIS/cli/package.json"
+
+make_fixture
+edit_fixture_pkg $VIS/package.json 'delete p.devEngines'
+assert_static '静的確認: プラグインのルートの宣言の欠けで落ちる' "devEngines.packageManager の宣言が無い: $VIS/package.json"
+
+make_fixture
+edit_fixture_pkg package.json 'p.devEngines.packageManager=[p.devEngines.packageManager]'
+assert_static '静的確認: ルートの配列の宣言で落ちる' 'devEngines.packageManager が配列'
+
+make_fixture
+edit_fixture_pkg $VIS/cli/package.json 'p.devEngines.packageManager=[p.devEngines.packageManager]'
+assert_static '静的確認: メンバーの配列の宣言で落ちる' "devEngines.packageManager が配列（corepack は配列を読まずに無視する。オブジェクトにする）: $VIS/cli/package.json"
+
+make_fixture
+edit_fixture_pkg $VIS/cli/package.json 'p.engines.npm="<0.0.0"'
+assert_static '静的確認: engines の余分なキーで落ちる' "engines に node 以外のキーがある（npm）: $VIS/cli/package.json"
+
+make_fixture
+edit_fixture_pkg package.json 'p.engines={pnpm:"<0.0.0"}'
+assert_static '静的確認: ルートの engines の余分なキーで落ちる' 'engines に node 以外のキーがある（pnpm）: package.json'
+
+make_fixture
+printf 'engine-strict=true\n' > "$FIX/$VIS/cli/.npmrc"
+assert_static '静的確認: プラグインの下の .npmrc の残りで落ちる' ".npmrc はルートの 1 本だけに置く（プラグインの下に置かない）: $VIS/cli/.npmrc"
+
+make_fixture
+rm "$FIX/.npmrc"
+assert_static '静的確認: ルートの .npmrc が無いと落ちる' 'engine-strict=true が無い'
+
+make_fixture
+edit_fixture_pkg $VIS/package.json 'p.devEngines.packageManager.version="12.16.1"'
+assert_static '静的確認: packageManager と devEngines の版のずれで落ちる' 'packageManager（'"'pnpm@12.15.0'"'）が devEngines.packageManager の版（pnpm@12.16.1）とずれている'
+
+make_fixture
+edit_fixture_pkg $VIS/package.json 'p.devEngines.packageManager.version="^12.15.0"'
+assert_static '静的確認: プラグインのルートの版が完全一致の semver でないと落ちる' '完全一致の semver でない'
+
+make_fixture
+edit_fixture_pkg $VIS/package.json 'p.devEngines.packageManager.onFail="error"'
+assert_static '静的確認: プラグインのルートの onFail が download でないと落ちる' 'devEngines.packageManager が { name: pnpm, version, onFail: download } でない'
+
+make_fixture
+edit_fixture_pkg $VIS/cli/package.json 'p.packageManager="pnpm@12.15.0"'
+assert_static '静的確認: メンバーに packageManager があると落ちる' 'packageManager はプラグインのルートだけに置く'
+
+make_fixture
+edit_fixture_pkg $VIS/cli/package.json 'p.devEngines.packageManager.name="npm"'
+assert_static '静的確認: メンバーが pnpm でないと落ちる' "devEngines.packageManager が { name: pnpm, onFail: error } でない: $VIS/cli/package.json"
+
+make_fixture
+mkdir -p "$FIX/plugins/pecot-tools/stray"
+printf '{"name":"stray"}\n' > "$FIX/plugins/pecot-tools/stray/package.json"
+assert_static '静的確認: 未分類の package.json で落ちる' 'package.json の種類を分けられない'
+assert_static '静的確認: 未分類の package.json は相対パスで報告する' 'plugins/pecot-tools/stray/package.json'
+
+make_fixture
+mkdir -p "$FIX/$VIS/scripts/release/audit-canary"
+printf '{"name":"canary"}\n' > "$FIX/$VIS/scripts/release/audit-canary/package.json"
+assert_static '静的確認: 宣言しない例外（監査の canary）は pass する' ''
+
+make_fixture
+edit_fixture_pkg $VIS/package.json 'p.scripts={...p.scripts,x:"pnpm run y"}'
 assert_static '静的確認: scripts が package manager を呼ぶと落ちる' 'scripts が package manager を呼んでいる'
 
-# engines の確認の例外は libs/text-rules の 1 件だけで、scripts の確認は text-rules にも掛かる。
+# scripts の確認は libs/text-rules にも掛かる。
 make_fixture
-node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));p.scripts={...p.scripts,x:"pnpm run y"};fs.writeFileSync(f,JSON.stringify(p))' "$FIX/plugins/pecot-visual/libs/text-rules/package.json"
+edit_fixture_pkg libs/text-rules/package.json 'p.scripts={...p.scripts,x:"pnpm run y"}'
 assert_static '静的確認: libs/text-rules の scripts が package manager を呼ぶと落ちる' 'libs/text-rules/package.json の'
-
-make_fixture
-node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));delete p.engines;fs.writeFileSync(f,JSON.stringify(p))' "$FIX/plugins/pecot-visual/libs/text-rules/package.json"
-assert_static '静的確認: libs/text-rules は engines が無くても pass する' ''
-
-make_fixture
-node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f,"utf8"));delete p.engines.npm;fs.writeFileSync(f,JSON.stringify(p))' "$FIX/plugins/pecot-visual/cli/package.json"
-assert_static '静的確認: libs/text-rules 以外のメンバーから engines.npm を消すと落ちる' 'engines.npm != "<0.0.0": '"$FIX"'/plugins/pecot-visual/cli/package.json'
 
 # --- 現行ツリー ---------------------------------------------------------------
 

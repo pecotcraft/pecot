@@ -3,7 +3,7 @@
 #
 # vitest は `dist/cli.js` を直接起動する。
 # そのため、手前にある bash wrapper と登録ファイルには検証が掛からない。
-# ここで押さえるのは 5 つ。
+# ここで押さえるのは 6 つ。
 #   CUJ 1  .mcp.json の登録内容（command / args）と、置換後パスが実行可能なこと。
 #   CUJ 2  初回の `bin/pecot-tools mcp` が、データ置き場に実行用ミラーを作る（install + build）。
 #          MCP サーバとして応答し、stdout が JSON-RPC 専有のまま、stdin の EOF で 0 終了すること。
@@ -12,6 +12,8 @@
 #          stdout が JSON-RPC 専有のままであること。
 #   CUJ 5  クライアントが置き場を渡さない起動（変数なし）は、標準の場所に実行用ミラーを作る。
 #          標準の場所は ${XDG_DATA_HOME}/pecot/pecot-tools。
+#   CUJ 6  pnpm と corepack が無く、npx だけある環境（Node.js 25 以降）で、npx 経由の pnpm が install と build を完走する。
+#          プラグインのルートの package.json は devEngines で pnpm を宣言しているため、cwd を / にして npx を呼ぶ形でないと止まる。
 #
 # 依存と build 成果物はプラグインのデータ置き場（${データ置き場}/runtime/<hash>/）に作る。
 # 本体のワークツリーには node_modules・dist を作らず、触れない（書き込みが無いことを確かめる）。
@@ -254,5 +256,36 @@ if [ ! -f "$DEFAULT_CURRENT/cli/dist/cli.js" ]; then
   fail "CUJ 5 が既定の場所にミラーを作っていない: $XDG_DIR/pecot/pecot-tools/runtime"
 fi
 echo "[bootstrap-test] CUJ 5 pass"
+
+# CUJ 6: pnpm 無し / corepack 無し / npx あり（Node.js 25 以降の corepack 非同梱環境）。
+# node + npm + npx だけの bin dir で起動し、install と build が npx 経由の pnpm で完走することを確かめる。
+# 隔離 HOME のため npx は pnpm の tarball を毎回取得する（ネット依存）。npx が無い環境では飛ばす。
+echo "[bootstrap-test] CUJ 6: npx fallback (no pnpm, no corepack)"
+NPM_PATH="$(command -v npm 2>/dev/null || true)"
+NPX_PATH="$(command -v npx 2>/dev/null || true)"
+if [ -z "$NPM_PATH" ] || [ -z "$NPX_PATH" ]; then
+  echo "[bootstrap-test] CUJ 6 skipped: npm / npx not present in environment" >&2
+else
+  ISO_BIN_NODE_NPX="$WORK_DIR/iso-bin-node-npx"
+  ISO_HOME="$WORK_DIR/iso-home-npx"
+  DATA_DIR_6="$WORK_DIR/data-npx"
+  mkdir -p "$ISO_BIN_NODE_NPX" "$ISO_HOME" "$DATA_DIR_6"
+  ln -s "$(command -v node)" "$ISO_BIN_NODE_NPX/node"
+  ln -s "$NPM_PATH" "$ISO_BIN_NODE_NPX/npm"
+  ln -s "$NPX_PATH" "$ISO_BIN_NODE_NPX/npx"
+  STDERR6="$WORK_DIR/cuj6.stderr"
+  set +e
+  env -i CLAUDE_PLUGIN_DATA="$DATA_DIR_6" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_NPX:/usr/bin:/bin" \
+    "$PLUGIN_ROOT/bin/pecot-tools" --help >/dev/null 2>"$STDERR6"
+  code=$?
+  set -e
+  if [ "$code" -ne 0 ]; then
+    sed -n '1,40p' "$STDERR6" >&2
+    fail "CUJ 6 exit=$code (expected 0)"
+  fi
+  grep -q '^pecot-tools: installing dependencies$' "$STDERR6" || fail "CUJ 6 が npx 経由で install していない"
+  grep -q '^pecot-tools: building$' "$STDERR6" || fail "CUJ 6 が npx 経由で build していない"
+fi
+echo "[bootstrap-test] CUJ 6 pass"
 
 echo "[bootstrap-test] all CUJ passed"

@@ -298,10 +298,11 @@ async function populate(
     command: string,
     commandArguments: readonly string[],
     environment: Readonly<NodeJS.ProcessEnv>,
+    cwd: string = packageDirectory,
   ): Promise<SpawnResult> => {
     const locked = withFlock(lockPath, command, commandArguments)
     return (options.runner ?? spawnPromise)(locked.command, locked.commandArguments, {
-      cwd: packageDirectory,
+      cwd,
       env: environment,
       timeoutMs: FETCH_TIMEOUT_MS,
       signal: options.signal,
@@ -321,12 +322,14 @@ async function populate(
 
   const beforePnpm = await placedElsewhere()
   if (beforePnpm !== undefined) return beforePnpm
-  const pnpm = resolvePnpmCommand(pluginRoot)
+  const pnpm = resolvePnpmCommand(pluginRoot, packageDirectory)
   // cwd がテーマ側のため、テーマの packageManager で corepack が止まらないようにする。
+  // npx を使うときは cwd を / にする（テーマの devEngines で npm が止まらないようにする）。対象は --dir で渡す。
   const installed = await run(
     pnpm.command,
     [...pnpm.commandArguments, ...PNPM_INSTALL_ARGUMENTS],
     { ...process.env, COREPACK_ENABLE_STRICT: '0' },
+    pnpm.cwd,
   )
   assertStarted(installed, 'pnpm', 'install')
   if (installed.exitCode !== 0) throw installFailure('テーマの依存を pnpm で取得できませんでした', installed)

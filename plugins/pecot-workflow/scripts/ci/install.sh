@@ -11,9 +11,9 @@ PLUGIN_ROOT="$PWD"
 #
 # 手動実行（run-tests.sh / run-lint.sh を env 無しで直接叩く場合）は、各スクリプトが install を行う。
 # 本スクリプトは、その場合と同じ処理・同じログ文言を保つ。
-# パッケージマネージャガード (#806) のうち、engines / .npmrc / devEngines の検証対象は pecot-visual と repo root。
-# それらは pecot-visual:install が担う。
-# scripts の package manager 自己呼び出しだけは、本 plugin も pnpm 12 を使う以上、同じ失敗をする (#1217)。
+# パッケージマネージャガード (#806 / #52) は、全 package.json の宣言を pecot-visual:check-pm-guard で確かめる。
+# 宣言は devEngines・engines・packageManager・.npmrc を指す。本 plugin でも、同じ検証関数で宣言を確かめる。
+# scripts の package manager 自己呼び出しは、pnpm 12 で同じ失敗をする (#1217)。
 # そのため install 直後に、pecot-visual と共有の検証関数で確かめる。
 
 # corepack の `packageManager` 初回 fetch 時の Y/n プロンプトを抑止する（自動取得）。

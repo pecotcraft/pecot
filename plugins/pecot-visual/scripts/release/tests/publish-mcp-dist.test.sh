@@ -486,15 +486,24 @@ echo "==> dry-run で pnpm 呼び出し順を検証（偽 pnpm）"
 mkdir -p "$TMP/bin"
 PNPM_CALLS="$TMP/pnpm-calls.txt"
 # publish は eslint プラグインの build 前に、各パッケージの dist を消す。
-# 偽 pnpm は build をしないので、本体ツリーの dist を退避しておき、eslint の build 呼び出しで戻す。
+# 本体ツリーの dist は、並行して動く別のレーン（test-cli の deck lint など）が読んでいる (#82)。
+# そのため publish には PECOTV_ESLINT_PLUGINS_DIR で一時の写しを指させ、本体ツリーの dist には触らせない。
+# 偽 pnpm は build をしないので、写しの dist を退避しておき、eslint の build 呼び出しで戻す。
 # 戻す前に dist の有無を記録し、build の前に消えていたことを後で確かめる。
-ESLINT_TREE="$ESLINT_SOURCE"
+ESLINT_TREE="$TMP/eslint-tree"
 ESLINT_BACKUP="$TMP/eslint-dist-backup"
 ESLINT_DIST_AT_BUILD="$TMP/eslint-dist-at-build.txt"
-mkdir -p "$ESLINT_BACKUP" || exit 1
+mkdir -p "$ESLINT_BACKUP" "$ESLINT_TREE" || exit 1
 for pkg in "${ESLINT_PKGS[@]}"; do
-    cp -a "$ESLINT_TREE/$pkg/dist" "$ESLINT_BACKUP/$pkg" || exit 1
+    mkdir -p "$ESLINT_TREE/$pkg" || exit 1
+    cp -a "$ESLINT_SOURCE/$pkg/dist" "$ESLINT_TREE/$pkg/dist" || exit 1
+    cp -a "$ESLINT_SOURCE/$pkg/dist" "$ESLINT_BACKUP/$pkg" || exit 1
 done
+# 本体ツリーの dist の指紋。publish の前後で変わらないことを確かめる。
+eslint_source_fingerprint() {
+    (cd "$ESLINT_SOURCE" && find "${ESLINT_PKGS[@]/%//dist}" -type f -exec cksum {} + 2>/dev/null | sort)
+}
+ESLINT_SOURCE_BEFORE="$(eslint_source_fingerprint)"
 cat > "$TMP/bin/pnpm" << 'FAKE_PNPM'
 #!/bin/bash
 # 呼び出しごとに「cwd<TAB>引数」を 1 行追記する。build はしない。
@@ -532,7 +541,7 @@ chmod +x "$TMP/bin/npm"
 : > "$PNPM_CALLS"
 : > "$NPM_CALLS"
 BUILD_RC=0
-NPM_CALLS="$NPM_CALLS" REAL_NPM="$REAL_NPM" PNPM_CALLS="$PNPM_CALLS" \
+PECOTV_ESLINT_PLUGINS_DIR="$TMP/eslint-tree" NPM_CALLS="$NPM_CALLS" REAL_NPM="$REAL_NPM" PNPM_CALLS="$PNPM_CALLS" \
     ESLINT_TREE="$ESLINT_TREE" ESLINT_BACKUP="$ESLINT_BACKUP" ESLINT_DIST_AT_BUILD="$ESLINT_DIST_AT_BUILD" \
     ESLINT_PKGS="${ESLINT_PKGS[*]}" PATH="$TMP/bin:$PATH" \
     bash "$PUBLISH" --dry-run --out-dir="$TMP/dist-build" \
@@ -541,8 +550,13 @@ assert_eq "build を伴う dry-run が正常終了する" "0" "$BUILD_RC"
 # 古い dist が残ると、削除したソースに対応するモジュールが配布へ同梱される。build の前に消えていることを見る。
 assert_eq "eslint プラグインの build の時点で、前回の dist が残っていない" "0" \
     "$(wc -l < "$ESLINT_DIST_AT_BUILD" 2> /dev/null | tr -d ' ')"
-assert_eq "偽 build が dist を戻した後、本体ツリーの dist が揃っている" "${#ESLINT_PKGS[@]}" \
+assert_eq "偽 build が dist を戻した後、写しの dist が揃っている" "${#ESLINT_PKGS[@]}" \
     "$(for pkg in "${ESLINT_PKGS[@]}"; do [ -f "$ESLINT_TREE/$pkg/dist/index.js" ] && echo "$pkg"; done | wc -l | tr -d ' ')"
+if [ "$(eslint_source_fingerprint)" = "$ESLINT_SOURCE_BEFORE" ]; then
+    pass "build を伴う dry-run が、本体ツリーの eslint プラグインの dist に触らない"
+else
+    fail "build を伴う dry-run が、本体ツリーの eslint プラグインの dist を変えた"
+fi
 assert_eq "1 回目の pnpm 呼び出しは lock の確認" "install --lockfile-only --prefer-offline" \
     "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
 assert_eq "2 回目の pnpm 呼び出しは install（lifecycle は動かさない）" "install --prefer-frozen-lockfile --ignore-scripts" \
@@ -616,6 +630,7 @@ else if (q === 'license') process.stdout.write(m.license)
 else if (q === 'repository') process.stdout.write(JSON.stringify(m.repository))
 else if (q === 'bin') process.stdout.write(JSON.stringify(m.bin))
 else if (q === 'engines') process.stdout.write(Object.keys(m.engines).sort().join(','))
+else if (q === 'hasDevEngines') process.stdout.write(String('devEngines' in m))
 else if (q === 'deps') process.stdout.write(Object.keys(m.dependencies).sort().join(','))
 " "$1"
 }
@@ -627,8 +642,10 @@ assert_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
 assert_eq "package.json の repository" \
     '{"type":"git","url":"git+https://github.com/pecotcraft/pecot.git","directory":"plugins/pecot-visual"}' \
     "$(read_manifest repository)"
-# engines に npm / yarn を写すと engine-strict 環境で npx 自身が EBADENGINE になる。
+# engines は node のみ。
 assert_eq "package.json の engines は node のみ" "node" "$(read_manifest engines)"
+# devEngines に pnpm を写すと、npm が EBADDEVENGINES で止まり、npx 自身が起動しない。
+assert_eq "package.json に devEngines キーが無い" "false" "$(read_manifest hasDevEngines)"
 
 DIST_DEPS="$(read_manifest deps)"
 # 期待値を列挙で持つと、dist-manifest.mjs の RUNTIME_DEPS を人手で写しただけになる。
@@ -1662,9 +1679,11 @@ write_requests "$TMP/npx-requests.json" \
 mkdir -p "$TMP/home-npx"
 for run in cold warm; do
     NPX_JSON="$TMP/npx-$run.json"
-    env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME -u CLAUDE_PLUGIN_ROOT HOME="$TMP/home-npx" \
+    # 利用者は自分の dir で npx を打つ。nx はこのテストを plugin の dir から起動するため、cwd を plugin の外へ移す。
+    # plugin の dir のままだと、package.json の devEngines（pnpm）を見た npm が EBADDEVENGINES を出して止まる。
+    (cd "$TMP/home-npx" && env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME -u CLAUDE_PLUGIN_ROOT HOME="$TMP/home-npx" \
         SMOKE_BIN="$(command -v npx)" PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-        node "$TMP/smoke.mjs" "$TMP/npx-requests.json" "${NPX_FLAGS[@]}" "--package=$GH_UPLOAD_COPY" pecot-visual-mcp \
+        node "$TMP/smoke.mjs" "$TMP/npx-requests.json" "${NPX_FLAGS[@]}" "--package=$GH_UPLOAD_COPY" pecot-visual-mcp) \
         > "$NPX_JSON" 2> "$TMP/npx-$run.err"
     case "$(head -c 5 "$NPX_JSON")" in
         FAIL:) fail "npx の $run 起動が MCP サーバとして起動しない ($(log_cat npx-$run.json))" ;;

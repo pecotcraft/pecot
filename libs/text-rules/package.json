@@ -6,9 +6,13 @@
   "description": "テキスト規則ライブラリの実体。textlint の preset とカスタム規則を束ね、root フックと pecot-visual の同梱が使う。",
   "type": "module",
   "engines": {
-    "node": "^24.22.1 || >=26.12.1",
-    "pnpm": "<0.0.0",
-    "yarn": "<0.0.0"
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error"
+    }
   },
   "exports": {
     ".": "./dist/index.js"

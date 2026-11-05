@@ -109,9 +109,9 @@ export function buildDistManifest(rawPecotvRoot, version, rawRepoRoot) {
     throw new Error('libs/text-rules/package.json に dependencies がありません（text-rules の依存が配布から欠けます）')
   }
 
-  // engines は node のみ残す。
-  // pecotv の manifest は npm / yarn を "<0.0.0" で塞いでいる（パッケージマネージャガード #806）。
-  // これを配布物へ写すと、engine-strict 環境で npx 自身が EBADENGINE になり起動しない。
+  // engines は node のみ残す。devEngines は写さない。
+  // pecotv の manifest は devEngines.packageManager に pnpm を宣言している（パッケージマネージャガード #806 / #52）。
+  // これを配布物へ写すと、npm が EBADDEVENGINES で止まり、npx 自身が起動しない。
   const engineNode = cliManifest.engines?.node
   if (typeof engineNode !== 'string') {
     throw new Error('cli/package.json に engines.node がありません')

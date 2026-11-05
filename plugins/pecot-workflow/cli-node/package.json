@@ -7,9 +7,13 @@
   "//tsc7-path-reason": "typescript7 (npm:typescript@7 alias) は、pnpm の hoisted linker により workspace root にのみ hoist される。root は plugins/pecot-workflow/node_modules/ を指す。そのため cli からは ../node_modules/typescript7/bin/tsc を明示パスで起動する。tsc bin 名の解決はパッケージマネージャ実装依存で非決定的なので、.bin/tsc 経由には簡略化しない。",
   "type": "module",
   "engines": {
-    "node": "^24.22.1 || >=26.12.1",
-    "npm": "<0.0.0",
-    "yarn": "<0.0.0"
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "onFail": "error"
+    }
   },
   "scripts": {
     "prebuild": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",

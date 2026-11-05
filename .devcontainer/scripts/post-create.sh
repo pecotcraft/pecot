@@ -35,7 +35,7 @@ sudo fc-cache -f
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 bash "$root/.devcontainer/scripts/install-git-hooks.sh"
 bash "$root/setup.sh"
-(cd "$root/plugins/pecot-visual/cli" && npx --no-install playwright install --with-deps chromium)
+(cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install --with-deps chromium)
 cd "$root"
 git worktree prune
 for _ in 1 2 3 4; do

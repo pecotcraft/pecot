@@ -40,7 +40,7 @@ trap 'rm -rf "$TMP"' EXIT
 # 静的確認に必要な外部コマンドだけを集めた PATH を作る（npm / yarn / pnpm は入れない）。
 TOOLS_BIN="$TMP/bin"
 mkdir -p "$TOOLS_BIN"
-for tool in bash dirname basename node awk grep sed cat mktemp rm cp find sort timeout; do
+for tool in bash dirname basename node awk grep sed cat mktemp rm cp find sort timeout git; do
     src="$(command -v "$tool" 2>/dev/null)"
     [ -n "$src" ] && ln -s "$src" "$TOOLS_BIN/$tool"
 done
