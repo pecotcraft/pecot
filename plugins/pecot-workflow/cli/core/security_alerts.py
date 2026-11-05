@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
@@ -86,14 +87,7 @@ def _str(value: Any) -> str | None:
 
 def _url(raw: dict[str, Any], host: str, owner: str, repo: str, kind: AlertKind) -> str:
     url = _str(raw.get("html_url"))
-    if url:
-        return url
-    path = {
-        "dependabot": "dependabot",
-        "code-scanning": "code-scanning",
-        "secret-scanning": "secret-scanning",
-    }[kind]
-    return f"https://{host}/{owner}/{repo}/security/{path}/{raw.get('number')}"
+    return url or f"https://{host}/{owner}/{repo}/security/{kind}/{raw.get('number')}"
 
 
 def normalize_dependabot(raw: dict[str, Any], host: str, owner: str, repo: str) -> Alert | None:
@@ -221,9 +215,11 @@ class SyncPlan:
     Attributes:
         create: Issue を作る alert。
         reopen: closed の Issue を reopen する (alert, Issue 番号)。
-        ensure: 既にある open の Issue (alert, Issue 番号)。ボードへの追加を毎回やり直す。
+        ensure: 既にある open の Issue (alert, Issue 番号)。ボードへの追加を毎回やり直す(Status は空のときだけ)。
         close: 対応する open の alert が無い open の Issue (kind, alert 番号, Issue 番号)。
             閉じる前に alert を単体で確かめる。
+        duplicates: 同じ alert の open の Issue が複数あるときの余り
+            (kind, alert 番号, 閉じる Issue 番号, 残す Issue 番号)。
     """
 
     create: list[Alert] = field(default_factory=list[Alert])
@@ -231,6 +227,9 @@ class SyncPlan:
     ensure: list[tuple[Alert, int]] = field(default_factory=list[tuple[Alert, int]])
     close: list[tuple[AlertKind, int, int]] = field(
         default_factory=list[tuple[AlertKind, int, int]]
+    )
+    duplicates: list[tuple[AlertKind, int, int, int]] = field(
+        default_factory=list[tuple[AlertKind, int, int, int]]
     )
 
 
@@ -243,7 +242,8 @@ def plan_sync(
 
     一覧を取れなかった種類（``skipped_kinds``）は、作る・閉じるを飛ばす。
     空の一覧とみなして全件を閉じることを防ぐ。
-    同じ alert の Issue が複数あるときは、open を優先し、なければ番号が最大のものを使う。
+    同じ alert の Issue が複数あるときは、open を優先して番号が最小の 1 件を残し、
+    ほかの open は重複として閉じる。open が無ければ番号が最大の closed を reopen する。
     """
     by_alert: dict[tuple[AlertKind, int], list[dict[str, Any]]] = {}
     for issue in issues:
@@ -261,7 +261,9 @@ def plan_sync(
             candidates = by_alert.get((kind, alert.number), [])
             opened = [i for i in candidates if i.get("state") == "open"]
             if opened:
-                plan.ensure.append((alert, max(i["number"] for i in opened)))
+                keep, *rest = sorted(i["number"] for i in opened)
+                plan.ensure.append((alert, keep))
+                plan.duplicates.extend((kind, alert.number, n, keep) for n in rest)
             elif candidates:
                 plan.reopen.append((alert, max(i["number"] for i in candidates)))
             else:
@@ -300,25 +302,6 @@ def close_reason(kind: AlertKind, raw: dict[str, Any] | None) -> str | None:
     return None
 
 
-# --- preflight 用の有効 / 無効の判定 ---------------------------------------------
-
-
-class ScanAlertStatus(BaseModel):
-    """code scanning / secret scanning の状態
-
-    Attributes:
-        enabled: 機能が有効か。
-        open_count: open の alert 件数（無効なら 0）。
-        alerts_url: alert 一覧の Web URL。
-        open_numbers: open の alert 番号（件数だけを返す箇所では空）。
-    """
-
-    enabled: bool
-    open_count: int
-    alerts_url: str
-    open_numbers: list[int] = []
-
-
 def _error_message(response_body: str | None) -> str:
     try:
         body = json.loads(response_body or "")
@@ -344,53 +327,142 @@ def is_no_analysis(e: GitHubAPIError) -> bool:
     return e.status_code == 404 and "no analysis found" in _error_message(e.response_body)
 
 
-def _enabled(alerts: list[dict[str, Any]], url: str) -> ScanAlertStatus:
-    numbers = sorted(n for n in (a.get("number") for a in alerts) if isinstance(n, int))
-    return ScanAlertStatus(
-        enabled=True, open_count=len(alerts), alerts_url=url, open_numbers=numbers
-    )
+def _list_dependabot(client: GitHubClient, owner: str, repo: str) -> list[dict[str, Any]] | None:
+    try:
+        return client.list_open_dependabot_alerts(owner, repo)
+    except GitHubAPIError as e:
+        if e.status_code != 403 or isinstance(e, GitHubRateLimitError):
+            raise
+        # 403 は無効と権限不足の両方で起きる。有効なら権限不足としてエラーにする
+        if client.is_dependabot_alerts_enabled(owner, repo):
+            raise SecurityAlertError(
+                f"{owner}/{repo}: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）"
+            ) from e
+        return None
+
+
+def _list_code_scanning(client: GitHubClient, owner: str, repo: str) -> list[dict[str, Any]] | None:
+    try:
+        return client.list_open_code_scanning_alerts(owner, repo)
+    except GitHubAPIError as e:
+        if is_code_scanning_disabled(e):
+            return None
+        if is_no_analysis(e):
+            return []
+        raise
+
+
+def _list_secret_scanning(
+    client: GitHubClient, owner: str, repo: str
+) -> list[dict[str, Any]] | None:
+    try:
+        return client.list_open_secret_scanning_alerts(owner, repo)
+    except GitHubAPIError as e:
+        if e.status_code != 404:
+            raise
+        # 404 は「無効」だけでなく、権限不足（admin でない）でも起きる。
+        # 無効と確認できたときだけ無効とし、状態が読めない・有効なのに 404 はエラーにする
+        if client.get_secret_scanning_status(owner, repo) == "disabled":
+            return None
+        raise SecurityAlertError(
+            f"{owner}/{repo}: secret scanning の一覧を取得できません"
+            "（権限不足の可能性。無効とは確認できません）"
+        ) from e
+
+
+_LISTERS: dict[AlertKind, Callable[[GitHubClient, str, str], list[dict[str, Any]] | None]] = {
+    "dependabot": _list_dependabot,
+    "code-scanning": _list_code_scanning,
+    "secret-scanning": _list_secret_scanning,
+}
+
+_NORMALIZERS: dict[AlertKind, Callable[[dict[str, Any], str, str, str], Alert | None]] = {
+    "dependabot": normalize_dependabot,
+    "code-scanning": normalize_code_scanning,
+    "secret-scanning": normalize_secret_scanning,
+}
+
+
+def list_open_alerts(
+    client: GitHubClient, kind: AlertKind, owner: str, repo: str
+) -> list[dict[str, Any]] | None:
+    """種類ごとの open の alert を取る。機能が無効のリポは None
+
+    - Dependabot: 403 のとき、alerts が無効なら None、有効なら権限不足としてエラー
+    - code scanning: GHAS 無しの 403 は None、解析が無い 404 は空
+    - secret scanning: 404 のとき、リポの状態が ``disabled`` と読めたときだけ None。
+      読めない・``enabled`` なのは権限不足などとしてエラー
+
+    Raises:
+        SecurityAlertError: 一覧を取得できず、無効とも言えない場合（API エラー・通信エラー）
+    """
+    try:
+        return _LISTERS[kind](client, owner, repo)
+    except SecurityAlertError:
+        raise
+    except GitHubAPIError as e:
+        raise SecurityAlertError(
+            f"{owner}/{repo}: {KIND_LABELS[kind]}: {describe_api_error(e)}"
+        ) from e
+    except httpx.HTTPError as e:
+        raise SecurityAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
+
+
+def normalize_alerts(
+    kind: AlertKind, raws: list[dict[str, Any]], host: str, owner: str, repo: str
+) -> list[Alert]:
+    """API の alert の並びを共通の形にする（番号の無いものは除く）"""
+    normalize = _NORMALIZERS[kind]
+    return [a for a in (normalize(raw, host, owner, repo) for raw in raws) if a is not None]
+
+
+# --- preflight 用の有効 / 無効の判定 ---------------------------------------------
+
+
+class ScanAlertStatus(BaseModel):
+    """code scanning / secret scanning の状態
+
+    Attributes:
+        enabled: 機能が有効か。
+        open_count: open の alert 件数（無効なら 0）。
+        alerts_url: alert 一覧の Web URL。
+        open_numbers: open の alert 番号（件数だけを返す箇所では空）。
+    """
+
+    enabled: bool
+    open_count: int
+    alerts_url: str
+    open_numbers: list[int] = []
+
+
+def _scan_status(
+    client: GitHubClient, kind: AlertKind, host: str, owner: str, repo: str
+) -> ScanAlertStatus:
+    url = f"https://{host}/{owner}/{repo}/security/{kind}"
+    raws = list_open_alerts(client, kind, owner, repo)
+    if raws is None:
+        return ScanAlertStatus(enabled=False, open_count=0, alerts_url=url)
+    numbers = sorted(n for n in (a.get("number") for a in raws) if isinstance(n, int))
+    return ScanAlertStatus(enabled=True, open_count=len(raws), alerts_url=url, open_numbers=numbers)
 
 
 def fetch_code_scanning_status(
-    client: GitHubClient, host: str, owner: str, repo: str, ref: str = "refs/heads/main"
+    client: GitHubClient, host: str, owner: str, repo: str
 ) -> ScanAlertStatus:
-    """code scanning の open の alert 数を取る
-
-    403（GHAS 無し）は無効、解析が無い 404 は 0 件とみなす。
-    権限不足などの 403 は無効とみなさずエラーにする。
+    """code scanning の open の alert 数を取る（既定ブランチが対象）
 
     Raises:
         SecurityAlertError: 状態を判定できない場合
     """
-    url = f"https://{host}/{owner}/{repo}/security/code-scanning"
-    try:
-        alerts = client.list_open_code_scanning_alerts(owner, repo, ref)
-    except GitHubAPIError as e:
-        if is_code_scanning_disabled(e):
-            return ScanAlertStatus(enabled=False, open_count=0, alerts_url=url)
-        if is_no_analysis(e):
-            return ScanAlertStatus(enabled=True, open_count=0, alerts_url=url)
-        raise SecurityAlertError(f"{owner}/{repo}: code scanning: {describe_api_error(e)}") from e
-    except httpx.HTTPError as e:
-        raise SecurityAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
-    return _enabled(alerts, url)
+    return _scan_status(client, "code-scanning", host, owner, repo)
 
 
 def fetch_secret_scanning_status(
     client: GitHubClient, host: str, owner: str, repo: str
 ) -> ScanAlertStatus:
-    """secret scanning の open の alert 数を取る。404 は無効とみなす（値は取得しない）
+    """secret scanning の open の alert 数を取る（値は取得しない）
 
     Raises:
-        SecurityAlertError: 状態を判定できない場合（403 は権限不足として扱う）
+        SecurityAlertError: 状態を判定できない場合（権限不足などで無効と確認できない場合を含む）
     """
-    url = f"https://{host}/{owner}/{repo}/security/secret-scanning"
-    try:
-        alerts = client.list_open_secret_scanning_alerts(owner, repo)
-    except GitHubAPIError as e:
-        if e.status_code == 404:
-            return ScanAlertStatus(enabled=False, open_count=0, alerts_url=url)
-        raise SecurityAlertError(f"{owner}/{repo}: secret scanning: {describe_api_error(e)}") from e
-    except httpx.HTTPError as e:
-        raise SecurityAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
-    return _enabled(alerts, url)
+    return _scan_status(client, "secret-scanning", host, owner, repo)

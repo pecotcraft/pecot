@@ -1,6 +1,6 @@
 {
-  "stdout": "作る 0 件・reopen 0 件・閉じる候補 0 件・既にある 0 件\n",
-  "stderr": "エラー: Dependabot の一覧を取得できません（作る・閉じるを飛ばします）: 認証に失敗しました。トークンを確認してください。\n",
+  "stdout": "作る 0 件・reopen 0 件・閉じる候補 0 件・重複 0 件・既にある 0 件\n",
+  "stderr": "エラー: Dependabot の一覧を取得できません（作る・閉じるを飛ばします）: acme/demo: Dependabot: 認証に失敗しました。トークンを確認してください。 Bad credentials\n",
   "exitCode": 1,
   "requests": [
     {
@@ -19,7 +19,6 @@
       "path": "/repos/acme/demo/code-scanning/alerts",
       "query": {
         "per_page": "100",
-        "ref": "refs/heads/main",
         "state": "open"
       },
       "auth": "token"

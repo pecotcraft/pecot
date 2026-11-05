@@ -19,7 +19,6 @@
       "path": "/repos/acme/demo/code-scanning/alerts",
       "query": {
         "per_page": "100",
-        "ref": "refs/heads/main",
         "state": "open"
       },
       "auth": "token"

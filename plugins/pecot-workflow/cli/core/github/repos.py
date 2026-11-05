@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from cli.core.github.auth import as_dict
 from cli.core.github.client import GitHubClientBase
 from cli.core.github.errors import GitHubAPIError, GitHubNotFoundError
 from cli.core.github.queries import (
@@ -238,22 +239,17 @@ class ReposAPI(GitHubClientBase):
             self._handle_http_error(response)
         return response.json()
 
-    def list_open_code_scanning_alerts(
-        self, owner: str, repo: str, ref: str = "refs/heads/main"
-    ) -> list[dict[str, Any]]:
-        """open な code scanning alert を ref 指定で全件取得（REST API）
+    def list_open_code_scanning_alerts(self, owner: str, repo: str) -> list[dict[str, Any]]:
+        """open な code scanning alert を全件取得（REST API）
 
-        Args:
-            owner: リポジトリオーナー
-            repo: リポジトリ名
-            ref: 対象の ref（例: ``refs/heads/main``）
+        ``ref`` は付けない。API は既定ブランチを対象にする。
 
         Raises:
             GitHubAPIError: GHAS 無し（403）・analysis 無し（404）等で一覧を取得できない場合
         """
         return self._list_all(
             f"/repos/{owner}/{repo}/code-scanning/alerts",
-            {"state": "open", "ref": ref, "per_page": 100},
+            {"state": "open", "per_page": 100},
         )
 
     def get_code_scanning_alert(self, owner: str, repo: str, number: int) -> dict[str, Any]:
@@ -280,6 +276,22 @@ class ReposAPI(GitHubClientBase):
             f"/repos/{owner}/{repo}/secret-scanning/alerts",
             {"state": "open", "hide_secret": "true", "per_page": 100},
         )
+
+    def get_secret_scanning_status(self, owner: str, repo: str) -> str | None:
+        """リポジトリの secret scanning の状態（``enabled`` / ``disabled``）を取得（REST API）
+
+        ``security_and_analysis`` は admin 権限が無いと応答に載らない。載っていなければ None。
+
+        Raises:
+            GitHubNotFoundError: リポジトリが見つからない場合
+            GitHubAPIError: その他のAPIエラー
+        """
+        response = self._rest_request("get", f"/repos/{owner}/{repo}")
+        if not response.is_success:
+            self._handle_http_error(response)
+        analysis = as_dict(as_dict(response.json()).get("security_and_analysis"))
+        status = as_dict(analysis.get("secret_scanning")).get("status")
+        return status if isinstance(status, str) else None
 
     def get_secret_scanning_alert(self, owner: str, repo: str, number: int) -> dict[str, Any]:
         """secret scanning alert を 1 件取得（REST API、``hide_secret=true``）

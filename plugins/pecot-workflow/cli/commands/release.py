@@ -7,10 +7,12 @@ Python CLIに置き換える。
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, cast
 
+import httpx
 import typer
 
 from cli.commands._repo_policy import read_resolved_repo, require_repo_match
@@ -30,6 +32,7 @@ from cli.core.dependabot import (
     load_dependabot_exceptions,
     max_severity_of,
 )
+from cli.core.errors import PecotError
 from cli.core.git import git_toplevel, origin_repo
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
 from cli.core.ref_parser import RefParseError, parse_pr_ref
@@ -280,7 +283,11 @@ def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str, git_r
 
 
 def _check_scanning_alerts(
-    name: str, fetch: Any, config: ProjectConfig, owner: str, repo: str
+    name: str,
+    fetch: Callable[[GitHubClient, str, str, str], ScanAlertStatus],
+    config: ProjectConfig,
+    owner: str,
+    repo: str,
 ) -> None:
     """code scanning / secret scanning の open の alert があれば exit 1。無効のリポは通す
 
@@ -313,7 +320,7 @@ def _check_alerts(config: ProjectConfig, owner: str, repo: str, git_root: Path) 
 
     先に失敗した種類があっても残りを確かめてから終了コードを決める（一度で全部が分かる）。
     """
-    checks: list[Any] = [
+    checks: list[Callable[[], None]] = [
         lambda: _check_dependabot_alerts(config, owner, repo, git_root),
         lambda: _check_scanning_alerts(
             "code scanning", fetch_code_scanning_status, config, owner, repo
@@ -327,6 +334,9 @@ def _check_alerts(config: ProjectConfig, owner: str, repo: str, git_root: Path) 
         try:
             check()
         except typer.Exit:
+            failed = True
+        except (httpx.HTTPError, PecotError) as e:
+            typer.echo(f"エラー: alert の状態を確認できません: {e}", err=True)
             failed = True
     if failed:
         raise typer.Exit(1)

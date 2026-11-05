@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -920,8 +921,8 @@ class TestGitHubClientRestAPI:
         assert calls[1].args == (next_url,)
         assert calls[1].kwargs == {"params": None}
 
-    def test_list_open_code_scanning_alerts_passes_ref(self, client: GitHubClient) -> None:
-        """list_open_code_scanning_alerts: ref=refs/heads/main を付けて Link を辿る"""
+    def test_list_open_code_scanning_alerts_no_ref(self, client: GitHubClient) -> None:
+        """list_open_code_scanning_alerts: ref を付けず（既定ブランチ）、Link を辿る"""
         next_url = "https://api.example.com/repos/owner/repo/code-scanning/alerts?page=2"
         first = MagicMock()
         first.is_success = True
@@ -938,9 +939,7 @@ class TestGitHubClientRestAPI:
         assert result == [{"number": 1}, {"number": 2}]
         calls = client._rest.get.call_args_list
         assert calls[0].args == ("/repos/owner/repo/code-scanning/alerts",)
-        assert calls[0].kwargs == {
-            "params": {"state": "open", "ref": "refs/heads/main", "per_page": 100}
-        }
+        assert calls[0].kwargs == {"params": {"state": "open", "per_page": 100}}
         assert calls[1].args == (next_url,)
         assert calls[1].kwargs == {"params": None}
 
@@ -957,6 +956,27 @@ class TestGitHubClientRestAPI:
             "/repos/owner/repo/secret-scanning/alerts",
             params={"state": "open", "hide_secret": "true", "per_page": 100},
         )
+
+    @pytest.mark.parametrize(
+        ("body", "expected"),
+        [
+            ({"security_and_analysis": {"secret_scanning": {"status": "disabled"}}}, "disabled"),
+            ({"security_and_analysis": {"secret_scanning": {"status": "enabled"}}}, "enabled"),
+            ({"security_and_analysis": None}, None),
+            ({"name": "repo"}, None),
+        ],
+    )
+    def test_get_secret_scanning_status(
+        self, client: GitHubClient, body: dict[str, Any], expected: str | None
+    ) -> None:
+        """get_secret_scanning_status: security_and_analysis が無ければ None（権限不足）"""
+        response = MagicMock()
+        response.is_success = True
+        response.json.return_value = body
+        client._rest.get.return_value = response
+
+        assert client.get_secret_scanning_status("owner", "repo") == expected
+        client._rest.get.assert_called_once_with("/repos/owner/repo")
 
     def test_get_secret_scanning_alert_hides_secret(self, client: GitHubClient) -> None:
         """get_secret_scanning_alert: 単体の取得にも hide_secret=true を付ける"""

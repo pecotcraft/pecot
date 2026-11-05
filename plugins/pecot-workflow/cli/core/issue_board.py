@@ -69,3 +69,27 @@ def set_issue_field(
         return False
     client.update_project_item_field(config.project.id, item_id, field_id, option_id)
     return True
+
+
+def item_has_field_value(
+    client: GitHubClient,
+    config: ProjectConfig,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    item_id: str,
+    field_name: str,
+) -> bool:
+    """ボード項目にそのフィールドの値が入っているか
+
+    設定にないフィールドは入っているとみなす（設定できないので、空として扱わない）。
+
+    Raises:
+        GitHubAPIError: 取得に失敗した場合
+    """
+    field_id = config.get_field_id(field_name)
+    if not field_id:
+        return True
+    return field_id in client.get_item_set_field_ids(
+        config.project.id, owner, repo, issue_number, item_id
+    )

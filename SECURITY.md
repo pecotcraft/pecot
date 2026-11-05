@@ -47,6 +47,21 @@ Issue の本文のリンクから、種類ごとの節へ進みます。
 | secret scanning | [secret scanning の alert](#alert-secret-scanning) |
 | 月 1 回の例外の見直し | [例外の見直し](#alert-exceptions-review) |
 
+### 費用の前提
+
+このリポは公開なので、次のものは無料で使えます。
+
+- GitHub が用意するランナーでの Actions の実行（`security-alerts` の毎時の job を含む）
+- Dependabot・code scanning・secret scanning
+- GitHub App
+
+リポを非公開にすると、次の費用が出ます。
+
+- Actions の実行時間が、組織の無料枠を消費する。実行ごとに分単位で切り上げるので、毎時の job だけで月 720 分以上になる
+- code scanning と secret scanning に、有料の GitHub Advanced Security が要る
+
+非公開へ切り替える前は、`security-alerts.yml` の schedule の間隔と、alert の機能を続けるかを決めます。
+
 <a id="alert-dependabot"></a>
 
 ### Dependabot の alert
@@ -80,8 +95,9 @@ gh api -X PATCH repos/pecotcraft/pecot/dependabot/alerts/<番号> \
 
 ### secret scanning の alert
 
-漏れた値は、まず失効させて入れ替えます。値を Issue・コメント・PR に書きません。
-どこにあるか（ファイルパス・コミット）だけを書きます。
+漏れた値は、まず失効させて入れ替えます。
+値・種類・場所（ファイルパス・コミット）は、Issue・コメント・PR などの公開の場に書きません。
+場所は Security タブの alert で確かめます。
 テストのための合成の値など、直さない alert は、次の「誤検知の alert を閉じる」の手順で決めます。
 閉じた alert の Issue は、次の実行で閉じます。
 

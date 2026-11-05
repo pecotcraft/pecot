@@ -1,6 +1,6 @@
 {
-  "stdout": "作る 0 件・reopen 0 件・閉じる候補 0 件・既にある 0 件\n",
-  "stderr": "エラー: secret scanning の一覧を取得できません（作る・閉じるを飛ばします）: アクセスが拒否されました。\n",
+  "stdout": "作る 0 件・reopen 0 件・閉じる候補 0 件・重複 0 件・既にある 0 件\n",
+  "stderr": "エラー: secret scanning の一覧を取得できません（作る・閉じるを飛ばします）: acme/demo: secret scanning: アクセスが拒否されました。 Resource not accessible by integration\n",
   "exitCode": 1,
   "requests": [
     {
@@ -19,7 +19,6 @@
       "path": "/repos/acme/demo/code-scanning/alerts",
       "query": {
         "per_page": "100",
-        "ref": "refs/heads/main",
         "state": "open"
       },
       "auth": "token"

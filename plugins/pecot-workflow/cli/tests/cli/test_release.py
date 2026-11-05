@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 import typer.testing
 
@@ -837,8 +838,8 @@ def _invoke_preflight(
     *,
     status: DependabotAlertStatus | None = None,
     alert_error: Exception | None = None,
-    code_scanning: ScanAlertStatus | SecurityAlertError | None = None,
-    secret_scanning: ScanAlertStatus | SecurityAlertError | None = None,
+    code_scanning: ScanAlertStatus | Exception | None = None,
+    secret_scanning: ScanAlertStatus | Exception | None = None,
     git_root: Path = Path("/repo"),
 ) -> tuple[typer.testing.Result, MagicMock]:
     """alert 判定を差し替えて ``pecot release preflight`` を起動し、run_preflight の mock も返す"""
@@ -924,6 +925,19 @@ class TestReleasePreflightScanning:
 
         assert result.exit_code == 1
         assert "secret scanning の状態を確認できません: 権限不足" in result.stderr
+        run_pf.assert_not_called()
+
+    def test_network_error_does_not_skip_remaining_checks(self) -> None:
+        """通信エラーでも残りの種類を確かめてから exit 1（traceback で終わらない）"""
+        result, run_pf = _invoke_preflight(
+            _alert_config(), code_scanning=httpx.ConnectError("down")
+        )
+
+        assert result.exit_code == 1
+        assert "Traceback" not in result.output
+        assert "alert の状態を確認できません" in result.stderr
+        assert "✓ Dependabot alerts: open 0" in result.output
+        assert "✓ secret scanning: open 0" in result.output
         run_pf.assert_not_called()
 
     def test_nx_also_checks_scanning(self) -> None:

@@ -87,7 +87,7 @@ github:
   - match:
       method: "GET"
       path: "/repos/acme/demo/code-scanning/alerts"
-      query: {"state": "open", "ref": "refs/heads/main", "per_page": "100"}
+      query: {"state": "open", "per_page": "100"}
     respond:
       status: 200
       body: []

@@ -313,6 +313,17 @@ query($owner: String!, $repo: String!, $number: Int!) {
           project {
             id
           }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }

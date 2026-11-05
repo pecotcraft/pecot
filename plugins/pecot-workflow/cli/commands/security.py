@@ -8,7 +8,7 @@ Actions の schedule と手元の両方から同じコマンドで動かす。
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Annotated, Any, Literal, cast
 
 import httpx
 import typer
@@ -18,7 +18,12 @@ from cli.core.config import ProjectConfig, load_active_config
 from cli.core.dependabot import DependabotAlertError, load_dependabot_exceptions
 from cli.core.git import git_toplevel
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
-from cli.core.issue_board import add_issue_to_board, create_issue, set_issue_field
+from cli.core.issue_board import (
+    add_issue_to_board,
+    create_issue,
+    item_has_field_value,
+    set_issue_field,
+)
 from cli.core.security_alerts import (
     ALERT_KINDS,
     ALERT_LABEL,
@@ -27,16 +32,14 @@ from cli.core.security_alerts import (
     REVIEW_TITLE,
     Alert,
     AlertKind,
+    SecurityAlertError,
     SyncPlan,
     build_issue_body,
     build_issue_title,
     build_review_body,
     close_reason,
-    is_code_scanning_disabled,
-    is_no_analysis,
-    normalize_code_scanning,
-    normalize_dependabot,
-    normalize_secret_scanning,
+    list_open_alerts,
+    normalize_alerts,
     plan_sync,
 )
 
@@ -72,43 +75,21 @@ def _fetch_open_alerts(
     failed = False
     for kind in ALERT_KINDS:
         try:
-            if kind == "dependabot":
-                raws = client.list_open_dependabot_alerts(owner, repo)
-                found[kind] = _normalize(raws, normalize_dependabot, host, owner, repo)
-            elif kind == "code-scanning":
-                raws = client.list_open_code_scanning_alerts(owner, repo)
-                found[kind] = _normalize(raws, normalize_code_scanning, host, owner, repo)
-            else:
-                raws = client.list_open_secret_scanning_alerts(owner, repo)
-                found[kind] = _normalize(raws, normalize_secret_scanning, host, owner, repo)
-        except GitHubAPIError as e:
-            if kind == "code-scanning" and is_no_analysis(e):
-                found[kind] = []
-            elif (kind == "code-scanning" and is_code_scanning_disabled(e)) or (
-                kind == "secret-scanning" and e.status_code == 404
-            ):
-                skipped.add(kind)
-                typer.echo(f"{KIND_LABELS[kind]}: 無効のため飛ばします")
-            else:
-                skipped.add(kind)
-                failed = True
-                typer.echo(
-                    f"エラー: {KIND_LABELS[kind]} の一覧を取得できません"
-                    f"（作る・閉じるを飛ばします）: {e.message}",
-                    err=True,
-                )
-        except httpx.HTTPError as e:
+            raws = list_open_alerts(client, kind, owner, repo)
+        except SecurityAlertError as e:
             skipped.add(kind)
             failed = True
-            typer.echo(f"エラー: {KIND_LABELS[kind]} の一覧を取得できません: {e}", err=True)
+            typer.echo(
+                f"エラー: {KIND_LABELS[kind]} の一覧を取得できません（作る・閉じるを飛ばします）: {e}",
+                err=True,
+            )
+            continue
+        if raws is None:
+            skipped.add(kind)
+            typer.echo(f"{KIND_LABELS[kind]}: 無効のため飛ばします")
+            continue
+        found[kind] = normalize_alerts(kind, raws, host, owner, repo)
     return found, skipped, failed
-
-
-def _normalize(
-    raws: list[dict[str, Any]], func: Any, host: str, owner: str, repo: str
-) -> list[Alert]:
-    alerts = (func(raw, host, owner, repo) for raw in raws)
-    return [a for a in alerts if a is not None]
 
 
 def _echo_plan(plan: SyncPlan, dry_run: bool) -> None:
@@ -119,10 +100,16 @@ def _echo_plan(plan: SyncPlan, dry_run: bool) -> None:
         typer.echo(f"{prefix}reopen する: {a.kind} #{a.number}（Issue #{n}）")
     for kind, number, n in plan.close:
         typer.echo(f"{prefix}閉じる候補: {kind} #{number}（Issue #{n}）")
+    for kind, number, n, keep in plan.duplicates:
+        typer.echo(f"{prefix}重複を閉じる: {kind} #{number}（Issue #{n}、残す Issue #{keep}）")
     typer.echo(
         f"{prefix}作る {len(plan.create)} 件・reopen {len(plan.reopen)} 件・"
-        f"閉じる候補 {len(plan.close)} 件・既にある {len(plan.ensure)} 件"
+        f"閉じる候補 {len(plan.close)} 件・重複 {len(plan.duplicates)} 件・"
+        f"既にある {len(plan.ensure)} 件"
     )
+
+
+StatusMode = Literal["always", "if-empty"]
 
 
 def _put_on_board(
@@ -131,19 +118,21 @@ def _put_on_board(
     owner: str,
     repo: str,
     issue_number: int,
-    alert: Alert,
-    *,
-    with_status: bool,
+    priority: str,
+    status_mode: StatusMode,
 ) -> None:
-    """ボードへの追加と Priority の設定（追加は何度でも同じ結果になる）
+    """ボードへの追加と、Status・Priority の設定（何度やっても同じ結果になる）
 
-    Status は作った・reopen した直後にだけ Ready にする。毎回設定すると、
-    着手して Active にした Issue を次の実行が Ready に戻してしまう。
+    Status は ``always`` なら Ready にする（作った・reopen した直後）。``if-empty`` は
+    ボード項目の Status が空のときだけ Ready にする。着手して Active にした Issue を
+    次の実行が Ready に戻さず、途中で失敗して空のままの Issue は直る。
     """
     item_id, _ = add_issue_to_board(client, config, owner, repo, issue_number, None)
-    if with_status:
+    if status_mode == "always" or not item_has_field_value(
+        client, config, owner, repo, issue_number, item_id, "workflow"
+    ):
         set_issue_field(client, config, item_id, "workflow", _BOARD_STATUS)
-    set_issue_field(client, config, item_id, "priority", alert.priority)
+    set_issue_field(client, config, item_id, "priority", priority)
 
 
 def _close_stale(
@@ -164,8 +153,9 @@ def _close_stale(
     if reason is None:
         typer.echo(f"飛ばす: {kind} #{number} は open のため Issue #{issue_number} を閉じません")
         return False
-    client.add_issue_comment(owner, repo, issue_number, reason)
+    # 閉じてから理由を付ける（閉じるのに失敗した実行がコメントだけ残すと、次の実行で重複する）
     client.close_issue(owner, repo, issue_number)
+    client.add_issue_comment(owner, repo, issue_number, reason)
     typer.echo(f"閉じた: {kind} #{number}（Issue #{issue_number}）")
     return True
 
@@ -198,7 +188,7 @@ def _apply_plan(
                 [ALERT_LABEL],
             )
             typer.echo(f"作った: {alert.kind} #{alert.number}（Issue #{issue['number']}）")
-            _put_on_board(client, config, owner, repo, issue["number"], alert, with_status=True)
+            _put_on_board(client, config, owner, repo, issue["number"], alert.priority, "always")
 
         run(f"{alert.kind} #{alert.number} の Issue 作成", create)
 
@@ -207,7 +197,7 @@ def _apply_plan(
         def reopen(alert: Alert = alert, number: int = number) -> None:
             client.reopen_issue(owner, repo, number)
             typer.echo(f"reopen した: {alert.kind} #{alert.number}（Issue #{number}）")
-            _put_on_board(client, config, owner, repo, number, alert, with_status=True)
+            _put_on_board(client, config, owner, repo, number, alert.priority, "always")
 
         run(f"{alert.kind} #{alert.number} の reopen", reopen)
 
@@ -215,7 +205,7 @@ def _apply_plan(
         run(
             f"Issue #{number} のボード登録",
             lambda alert=alert, number=number: _put_on_board(
-                client, config, owner, repo, number, alert, with_status=False
+                client, config, owner, repo, number, alert.priority, "if-empty"
             ),
         )
 
@@ -229,6 +219,22 @@ def _apply_plan(
             _close_stale(client, owner, repo, kind, alert_number, issue_number)
 
         run(f"{kind} #{alert_number} の Issue #{issue_number} を閉じる", close)
+
+    for kind, alert_number, issue_number, keep in plan.duplicates:
+
+        def close_duplicate(
+            kind: AlertKind = kind,
+            alert_number: int = alert_number,
+            issue_number: int = issue_number,
+            keep: int = keep,
+        ) -> None:
+            client.close_issue(owner, repo, issue_number, "not_planned")
+            client.add_issue_comment(
+                owner, repo, issue_number, f"同じ alert の Issue #{keep} と重複のため閉じます。"
+            )
+            typer.echo(f"閉じた: {kind} #{alert_number} の重複（Issue #{issue_number}）")
+
+        run(f"{kind} #{alert_number} の重複 Issue #{issue_number} を閉じる", close_duplicate)
     return failures
 
 
@@ -295,7 +301,11 @@ def security_review_exceptions(ctx: typer.Context, dry_run: DryRunOption = False
             if i.get("state") == "open" and REVIEW_MARKER in cast("str", i.get("body") or "")
         ]
         if existing:
-            typer.echo(f"見直しの Issue #{existing[0]['number']} が open のため、作りません")
+            number = existing[0]["number"]
+            typer.echo(f"見直しの Issue #{number} が open のため、作りません")
+            if not dry_run:
+                # 作った後にボードの登録が失敗した実行を、次の実行で直す
+                _put_on_board(client, config, owner, repo, number, "medium", "if-empty")
             return
         if dry_run:
             typer.echo(f"[dry-run] 作る: 例外の見直し（例外 {len(exceptions)} 件）")
@@ -309,9 +319,7 @@ def security_review_exceptions(ctx: typer.Context, dry_run: DryRunOption = False
             [ALERT_LABEL],
         )
         typer.echo(f"作った: 例外の見直し（Issue #{issue['number']}）")
-        item_id, _ = add_issue_to_board(client, config, owner, repo, issue["number"], None)
-        set_issue_field(client, config, item_id, "workflow", _BOARD_STATUS)
-        set_issue_field(client, config, item_id, "priority", "medium")
+        _put_on_board(client, config, owner, repo, issue["number"], "medium", "always")
     except (GitHubAPIError, httpx.HTTPError) as e:
         detail = e.message if isinstance(e, GitHubAPIError) else str(e)
         typer.echo(f"エラー: {detail}", err=True)
