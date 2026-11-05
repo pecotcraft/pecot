@@ -186,6 +186,20 @@ class TestHostsConfig:
             # ドットをアンダースコアに変換
             assert get_env_var_name("gitlab.example.com") == "PECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN"
 
+    def test_get_env_var_name_github_com_without_hosts_json(self, tmp_path: Path) -> None:
+        """hosts.json が無い checkout でも、github.com は PECOT_GITHUB_COM_TOKEN を読む"""
+        with patch("cli.core.github.auth.get_config_dir", return_value=tmp_path):
+            assert not (tmp_path / "hosts.json").exists()
+            assert get_env_var_name("github.com") == "PECOT_GITHUB_COM_TOKEN"
+
+    def test_get_env_var_name_hosts_json_overrides_default(self, tmp_path: Path) -> None:
+        """hosts.json の定義は既定の対応より優先する"""
+        hosts_file = tmp_path / "hosts.json"
+        hosts_file.write_text(json.dumps({"hosts": {"github.com": {"env_var": "MY_TOKEN"}}}))
+
+        with patch("cli.core.github.auth.get_config_dir", return_value=tmp_path):
+            assert get_env_var_name("github.com") == "MY_TOKEN"
+
 
 class TestLoadEnvFile:
     """環境変数ファイル読み込みのテスト"""

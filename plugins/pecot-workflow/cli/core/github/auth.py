@@ -63,11 +63,18 @@ def get_host_config(host: str) -> dict[str, Any] | None:
     return config.get("hosts", {}).get(host)
 
 
+# hosts.json に定義が無いときの既定の環境変数名。hosts.json.sample・.env.sample と同じ名前
+DEFAULT_ENV_VAR_MAP: dict[str, str] = {"github.com": "PECOT_GITHUB_COM_TOKEN"}
+
+
 def get_env_var_name(host: str) -> str:
     """ホストに対応する環境変数名を取得
 
     1. hosts.jsonに定義があればそれを使用
-    2. なければフォールバック命名規則を適用
+    2. なければ既定の対応（DEFAULT_ENV_VAR_MAP）を使用
+    3. どちらにも無ければフォールバック命名規則を適用
+
+    hosts.json はリポに含まれないため、Actions などの新しい checkout では 2 が使われる
 
     Args:
         host: GitHubホスト
@@ -79,12 +86,16 @@ def get_env_var_name(host: str) -> str:
         >>> get_env_var_name("github.com")
         'PECOT_GITHUB_COM_TOKEN'
 
-        >>> get_env_var_name("ghes.example.com")
-        'PECOT_GITHUB_GHES_TOKEN'
+        >>> get_env_var_name("gitlab.example.com")
+        'PECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN'
     """
     host_config = get_host_config(host)
     if host_config:
         return host_config["env_var"]
+
+    default = DEFAULT_ENV_VAR_MAP.get(host)
+    if default:
+        return default
 
     # フォールバック: ドットをアンダースコアに変換
     host_part = host.upper().replace(".", "_")
