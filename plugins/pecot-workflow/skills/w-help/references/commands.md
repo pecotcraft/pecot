@@ -61,6 +61,8 @@
 | `worktree add` | 新しいワークツリーを作成 |
 | `worktree link` | 既存ワークツリーにシンボリックリンクを適用/更新 |
 | `worktree remove` | ワークツリーを削除 |
-| `release preflight` | リリース前チェック（open の Dependabot alert・CHANGELOG・バージョン・タグ不存在の確認。nx のリポは alert のみ） |
+| `release preflight` | リリース前チェック（open の Dependabot・code scanning・secret scanning の alert、CHANGELOG・バージョン・タグ不存在の確認。nx のリポは alert のみ） |
+| `security sync` | open の security alert をラベル `security-alert` の Issue にしてボードに載せ、閉じた alert の Issue を閉じる |
+| `security review-exceptions` | Dependabot の例外があれば、見直しの Issue を作る |
 | `release create` | GitHubリリースとタグを作成（リリースノートは CHANGELOG から取得） |
 | `release merge` | リリースPRをregular mergeでマージ |
