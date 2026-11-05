@@ -107,13 +107,19 @@ check_plugin_scripts_pm_free() {
 
 PM_GUARD_PNPM_PLUGINS=(pecot-visual pecot-tools pecot-workflow)
 
+# git を、hook が渡す GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE を外して呼ぶ。
+pm_guard_git() {
+    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git "$@"
+}
+
 # $1=repo root。追跡している package.json を、repo root からの相対パスで返す。
 # git の作業ツリーなら git ls-files、そうでなければ（テストの fixture）find で拾う。
+# git hook の下では GIT_DIR などが渡り、git -C の先でも本体の index を読む。そのため pm_guard_git で外す。
 list_package_jsons() {
     local root="$1" top
-    top="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)"
+    top="$(pm_guard_git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)"
     if [ -n "$top" ] && [ "$(cd "$root" && pwd -P)" = "$(cd "$top" && pwd -P)" ]; then
-        git -C "$root" ls-files '*package.json'
+        pm_guard_git -C "$root" ls-files '*package.json'
     else
         (cd "$root" && find . -name package.json -not -path '*/node_modules/*' | sed 's|^\./||' | sort)
     fi
@@ -122,9 +128,9 @@ list_package_jsons() {
 # $1=repo root。追跡している .npmrc を、repo root からの相対パスで返す。
 list_npmrc_files() {
     local root="$1" top
-    top="$(git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)"
+    top="$(pm_guard_git -C "$root" rev-parse --show-toplevel 2>/dev/null || true)"
     if [ -n "$top" ] && [ "$(cd "$root" && pwd -P)" = "$(cd "$top" && pwd -P)" ]; then
-        git -C "$root" ls-files '*.npmrc'
+        pm_guard_git -C "$root" ls-files '*.npmrc'
     else
         (cd "$root" && find . -name .npmrc -not -path '*/node_modules/*' | sed 's|^\./||' | sort)
     fi
