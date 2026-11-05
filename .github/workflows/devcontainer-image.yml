@@ -1,0 +1,62 @@
+# .devcontainer/ の定義から CI 用のイメージを build し、GHCR へ push する。
+# push するのは main への push・schedule・workflow_dispatch のときだけにする。
+# PR では build だけを動かし、マージ前に Dockerfile が通ることを確かめる。
+# 週 1 回の schedule は noCache で動かす。自分のイメージを cache に使うため、
+# noCache が無いと apt のパッケージと features が新しくならない。
+name: devcontainer-image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".devcontainer/**"
+      - ".github/workflows/devcontainer-image.yml"
+  pull_request:
+    paths:
+      - ".devcontainer/**"
+      - ".github/workflows/devcontainer-image.yml"
+  schedule:
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: devcontainer-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # PR では push しないので、ログインは要らない。
+      # fork からの PR は packages: write が使えず、ログインが失敗するため飛ばす。
+      - name: GHCR へログインする
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # runCmd を書かない。省くと devcontainer build だけが動き、lifecycle は動かない。
+      # cacheFrom を書かない。imageName:imageTag が 1 つのとき、action が自動で足す。
+      # refFilterForPush で main だけに絞る。workflow_dispatch は feature ブランチからも起動できるため。
+      # eventFilterForPush は 1 行に 1 件で書く。カンマ区切りは 1 件として読まれ、push されない。
+      - name: イメージを build して push する
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          imageTag: latest
+          push: filter
+          refFilterForPush: refs/heads/main
+          eventFilterForPush: |
+            push
+            schedule
+            workflow_dispatch
+          noCache: ${{ github.event_name == 'schedule' }}

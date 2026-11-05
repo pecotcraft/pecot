@@ -36,7 +36,7 @@ job は次のとおり。必須チェックは `ci-result` と `version-plan` �
 
 | 項目 | 約束 |
 |---|---|
-| 起動 | `main` への push のうち `.devcontainer/**` が変わったもの、週 1 回の schedule、`workflow_dispatch` |
+| 起動 | `main` への push のうち `.devcontainer/**` と workflow 自身が変わったもの、`pull_request`（`.devcontainer/**` と workflow 自身が変わったもの。build だけで push しない）、週 1 回の schedule、`workflow_dispatch` |
 | 権限 | `contents: read`・`packages: write` |
 | 成果物 | `ghcr.io/pecotcraft/pecot-devcontainer:latest`（public） |
 
