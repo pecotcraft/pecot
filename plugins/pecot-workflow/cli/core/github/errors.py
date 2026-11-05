@@ -57,9 +57,10 @@ class GitHubRateLimitError(GitHubAPIError):
 
 
 def describe_api_error(error: GitHubAPIError) -> str:
-    """GitHubAPIError の message に、応答本文 JSON の message だけを添える
+    """GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える
 
-    本文が JSON でない（HTML 等）・message が無いときは添えない。
+    本文が JSON でない（HTML 等）・どちらも無いときは添えない。
+    422 では理由が errors[].message にだけ入ることがある（例: "Validation Failed" の詳細）。
     """
     try:
         body = json.loads(error.response_body or "")
@@ -67,7 +68,18 @@ def describe_api_error(error: GitHubAPIError) -> str:
         return error.message
     if not isinstance(body, dict):
         return error.message
-    detail = cast("dict[str, Any]", body).get("message")
-    if isinstance(detail, str) and detail.strip():
-        return f"{error.message} {detail.strip()}"
-    return error.message
+    data = cast("dict[str, Any]", body)
+    details: list[str] = []
+    top = data.get("message")
+    if isinstance(top, str) and top.strip():
+        details.append(top.strip())
+    errors = data.get("errors")
+    if isinstance(errors, list):
+        for item in cast("list[Any]", errors):
+            if isinstance(item, dict):
+                msg = cast("dict[str, Any]", item).get("message")
+                if isinstance(msg, str) and msg.strip():
+                    details.append(msg.strip())
+    if not details:
+        return error.message
+    return f"{error.message} {' '.join(details)}"

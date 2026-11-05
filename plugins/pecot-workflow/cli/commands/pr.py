@@ -2064,9 +2064,21 @@ def _close_related_issues(
             except GitHubNotFoundError:
                 typer.echo(f"  ⚠ Issue #{issue_number} が見つかりません（スキップ）", err=True)
             except GitHubAPIError as e:
+                if _is_closed_by_another_request(e):
+                    typer.echo(f"  ✔ Issue #{issue_number} は既にクローズされています")
+                    continue
                 typer.echo(
                     f"  ⚠ Issue #{issue_number} のクローズに失敗: {describe_api_error(e)}", err=True
                 )
+
+
+def _is_closed_by_another_request(e: GitHubAPIError) -> bool:
+    """同時に別のリクエスト（PR の Closes による自動クローズ等）が閉じたことを示す 422 かを返す"""
+    return (
+        e.status_code == 422
+        and e.response_body is not None
+        and "closed by another request" in e.response_body
+    )
 
 
 def _is_missing_ref_error(e: GitHubAPIError) -> bool:
