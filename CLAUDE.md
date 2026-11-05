@@ -110,7 +110,7 @@ export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
   各サブパッケージの tsconfig: references によるビルド順
   ```
 
-- devcontainer には awscli 2.38.5 が常備されている。
+- devcontainer には awscli 2.39.4 が常備されている。
   `plugins/pecot-tools` の実 awscli テスト（`cli/tests/integration/real-awscli.test.ts`）はこの版で動く。
   偽 awscli の fixture と出典のコメントは、2.36.40 の実物から採ったものである。
   `grep -rn 2.36.40 plugins/pecot-tools` で当たる。
