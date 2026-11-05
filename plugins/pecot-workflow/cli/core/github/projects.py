@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
+from cli.core.github.auth import as_dict
 from cli.core.github.errors import GitHubAPIError, GitHubNotFoundError
 from cli.core.github.queries import (
     MUTATION_ADD_TO_PROJECT,
@@ -351,6 +352,46 @@ class ProjectsAPI(ReposAPI):
                 return item["id"]
 
         return None
+
+    def get_item_set_field_ids(
+        self,
+        project_id: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        item_id: str,
+    ) -> set[str]:
+        """プロジェクトアイテムで値が入っている単一選択フィールドの ID を取得
+
+        Args:
+            project_id: プロジェクトのGraphQL Node ID。
+            owner: リポジトリオーナー。
+            repo: リポジトリ名。
+            issue_number: Issue番号。
+            item_id: プロジェクトアイテムID。
+
+        Returns:
+            値が入っているフィールド ID の集合（アイテムが見つからなければ空）
+        """
+        result = self._execute_graphql(
+            QUERY_GET_ISSUE_PROJECT_ITEMS,
+            {"owner": owner, "repo": repo, "number": issue_number},
+        )
+        issue = as_dict(as_dict(result.get("repository")).get("issue"))
+        nodes = as_dict(issue.get("projectItems")).get("nodes")
+        field_ids: set[str] = set()
+        for item in cast("list[Any]", nodes) if isinstance(nodes, list) else []:
+            item_dict = as_dict(item)
+            if item_dict.get("id") != item_id:
+                continue
+            if as_dict(item_dict.get("project")).get("id") != project_id:
+                continue
+            values = as_dict(item_dict.get("fieldValues")).get("nodes")
+            for value in cast("list[Any]", values) if isinstance(values, list) else []:
+                field_id = as_dict(as_dict(value).get("field")).get("id")
+                if isinstance(field_id, str):
+                    field_ids.add(field_id)
+        return field_ids
 
     def link_repository_to_project(
         self, owner: str, project_number: int, repo_owner: str, repo_name: str

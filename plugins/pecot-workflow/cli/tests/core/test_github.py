@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -919,6 +920,113 @@ class TestGitHubClientRestAPI:
         assert calls[0].kwargs == {"params": {"state": "open", "per_page": 100}}
         assert calls[1].args == (next_url,)
         assert calls[1].kwargs == {"params": None}
+
+    def test_list_open_code_scanning_alerts_no_ref(self, client: GitHubClient) -> None:
+        """list_open_code_scanning_alerts: ref を付けず（既定ブランチ）、Link を辿る"""
+        next_url = "https://api.example.com/repos/owner/repo/code-scanning/alerts?page=2"
+        first = MagicMock()
+        first.is_success = True
+        first.json.return_value = [{"number": 1}]
+        first.links = {"next": {"url": next_url, "rel": "next"}}
+        second = MagicMock()
+        second.is_success = True
+        second.json.return_value = [{"number": 2}]
+        second.links = {}
+        client._rest.get.side_effect = [first, second]
+
+        result = client.list_open_code_scanning_alerts("owner", "repo")
+
+        assert result == [{"number": 1}, {"number": 2}]
+        calls = client._rest.get.call_args_list
+        assert calls[0].args == ("/repos/owner/repo/code-scanning/alerts",)
+        assert calls[0].kwargs == {"params": {"state": "open", "per_page": 100}}
+        assert calls[1].args == (next_url,)
+        assert calls[1].kwargs == {"params": None}
+
+    def test_list_open_secret_scanning_alerts_hides_secret(self, client: GitHubClient) -> None:
+        """list_open_secret_scanning_alerts: 必ず hide_secret=true を付ける"""
+        response = MagicMock()
+        response.is_success = True
+        response.json.return_value = [{"number": 1}]
+        response.links = {}
+        client._rest.get.return_value = response
+
+        assert client.list_open_secret_scanning_alerts("owner", "repo") == [{"number": 1}]
+        client._rest.get.assert_called_once_with(
+            "/repos/owner/repo/secret-scanning/alerts",
+            params={"state": "open", "hide_secret": "true", "per_page": 100},
+        )
+
+    @pytest.mark.parametrize(
+        ("body", "expected"),
+        [
+            ({"security_and_analysis": {"secret_scanning": {"status": "disabled"}}}, "disabled"),
+            ({"security_and_analysis": {"secret_scanning": {"status": "enabled"}}}, "enabled"),
+            ({"security_and_analysis": None}, None),
+            ({"name": "repo"}, None),
+        ],
+    )
+    def test_get_secret_scanning_status(
+        self, client: GitHubClient, body: dict[str, Any], expected: str | None
+    ) -> None:
+        """get_secret_scanning_status: security_and_analysis が無ければ None（権限不足）"""
+        response = MagicMock()
+        response.is_success = True
+        response.json.return_value = body
+        client._rest.get.return_value = response
+
+        assert client.get_secret_scanning_status("owner", "repo") == expected
+        client._rest.get.assert_called_once_with("/repos/owner/repo")
+
+    def test_get_secret_scanning_alert_hides_secret(self, client: GitHubClient) -> None:
+        """get_secret_scanning_alert: 単体の取得にも hide_secret=true を付ける"""
+        response = MagicMock()
+        response.is_success = True
+        response.json.return_value = {"number": 3, "state": "resolved"}
+        client._rest.get.return_value = response
+
+        assert client.get_secret_scanning_alert("owner", "repo", 3)["state"] == "resolved"
+        client._rest.get.assert_called_once_with(
+            "/repos/owner/repo/secret-scanning/alerts/3", params={"hide_secret": "true"}
+        )
+
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("get_dependabot_alert", "/repos/owner/repo/dependabot/alerts/4"),
+            ("get_code_scanning_alert", "/repos/owner/repo/code-scanning/alerts/4"),
+        ],
+    )
+    def test_get_single_alert(self, client: GitHubClient, method: str, path: str) -> None:
+        """get_*_alert: 単体の GET と 404"""
+        ok = MagicMock()
+        ok.is_success = True
+        ok.json.return_value = {"number": 4, "state": "fixed"}
+        client._rest.get.return_value = ok
+        assert getattr(client, method)("owner", "repo", 4)["state"] == "fixed"
+        client._rest.get.assert_called_once_with(path)
+
+        missing = MagicMock()
+        missing.is_success = False
+        missing.status_code = 404
+        missing.text = "{}"
+        client._rest.get.return_value = missing
+        with pytest.raises(GitHubNotFoundError):
+            getattr(client, method)("owner", "repo", 4)
+
+    def test_list_issues_by_label_all_states_without_pulls(self, client: GitHubClient) -> None:
+        """list_issues_by_label: open と closed を引き、PR を除く"""
+        response = MagicMock()
+        response.is_success = True
+        response.json.return_value = [{"number": 1}, {"number": 2, "pull_request": {}}]
+        response.links = {}
+        client._rest.get.return_value = response
+
+        assert client.list_issues_by_label("owner", "repo", "security-alert") == [{"number": 1}]
+        client._rest.get.assert_called_once_with(
+            "/repos/owner/repo/issues",
+            params={"state": "all", "labels": "security-alert", "per_page": 100},
+        )
 
     def test_list_open_dependabot_alerts_forbidden(self, client: GitHubClient) -> None:
         """list_open_dependabot_alerts: 403 は GitHubAPIError（status_code 403）"""

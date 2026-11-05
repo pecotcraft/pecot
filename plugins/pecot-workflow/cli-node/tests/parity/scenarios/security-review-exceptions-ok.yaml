@@ -1,0 +1,110 @@
+# 例外が 1 件あり、見直しの Issue が無い。Issue を作ってボードに載せる。
+id: security-review-exceptions-ok
+command:
+  path: [security, review-exceptions]
+  args: []
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "develop",
+              "release_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+      .github/dependabot-exceptions.json: |
+        {
+          "exceptions": [
+            {"alert": 1, "package": "minimatch", "reason": "parent pins the vulnerable major", "reevaluate": "bump when the parent accepts the fix"}
+          ]
+        }
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/issues"
+      query: {"state": "all", "labels": "security-alert", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
+  - match:
+      method: POST
+      path: /repos/acme/demo/issues
+    respond:
+      status: 201
+      body:
+        number: 12
+        title: 作成された Issue
+        node_id: I_kwDO12
+        html_url: https://ghes.example.com/acme/demo/issues/12
+  - match:
+      operation: GetIssueNodeId
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue: {id: I_kwDO12, title: 作成された Issue}
+  - match:
+      operation: AddToProject
+    respond:
+      status: 200
+      body:
+        data:
+          addProjectV2ItemById:
+            item: {id: PVTI_12}
+  - match:
+      operation: UpdateProjectItemField
+    times: 2
+    respond:
+      status: 200
+      body:
+        data:
+          updateProjectV2ItemFieldValue:
+            projectV2Item: {id: PVTI_12}

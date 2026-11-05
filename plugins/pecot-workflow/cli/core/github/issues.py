@@ -55,6 +55,37 @@ class IssuesAPI(GitHubClientBase):
             self._handle_http_error(response)
         return response.json()
 
+    def list_issues_by_label(self, owner: str, repo: str, label: str) -> list[dict[str, Any]]:
+        """ラベルの付いた Issue を open・closed の両方で全件取得（REST API）
+
+        Pull Request は除く。2 ページ目以降は Link ヘッダの ``rel="next"`` の絶対 URL を
+        params 無しで辿る。
+
+        Args:
+            owner: リポジトリオーナー
+            repo: リポジトリ名
+            label: ラベル名
+
+        Returns:
+            Issue オブジェクトのリスト
+
+        Raises:
+            GitHubAPIError: 一覧を取得できない場合
+        """
+        issues: list[dict[str, Any]] = []
+        url = f"/repos/{owner}/{repo}/issues"
+        params: dict[str, Any] | None = {"state": "all", "labels": label, "per_page": 100}
+        while True:
+            response = self._rest_request("get", url, params=params)
+            if not response.is_success:
+                self._handle_http_error(response)
+            issues.extend(i for i in response.json() if "pull_request" not in i)
+            next_link = response.links.get("next")
+            if not next_link:
+                return issues
+            url = next_link["url"]
+            params = None
+
     def add_issue_comment(self, owner: str, repo: str, number: int, body: str) -> dict[str, Any]:
         """Issueにコメントを追加
 

@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 import typer.testing
 
@@ -17,6 +18,7 @@ from cli.commands.main import app
 from cli.core.dependabot import DependabotAlertError, DependabotAlertStatus, OpenAlert
 from cli.core.github import GitHubAuthError
 from cli.core.release import PreflightResult, ReleaseError
+from cli.core.security_alerts import ScanAlertStatus, SecurityAlertError
 
 runner = typer.testing.CliRunner()
 
@@ -836,12 +838,24 @@ def _invoke_preflight(
     *,
     status: DependabotAlertStatus | None = None,
     alert_error: Exception | None = None,
+    code_scanning: ScanAlertStatus | Exception | None = None,
+    secret_scanning: ScanAlertStatus | Exception | None = None,
     git_root: Path = Path("/repo"),
 ) -> tuple[typer.testing.Result, MagicMock]:
     """alert 判定を差し替えて ``pecot release preflight`` を起動し、run_preflight の mock も返す"""
     fetch = MagicMock(return_value=status or _alert_status(), side_effect=alert_error)
     run_pf = MagicMock(return_value=_PREFLIGHT_RESULT)
+    zero = ScanAlertStatus(enabled=True, open_count=0, alerts_url="https://x/scan")
+    cs = MagicMock(side_effect=None, return_value=zero)
+    ss = MagicMock(side_effect=None, return_value=zero)
+    for mock, given in ((cs, code_scanning), (ss, secret_scanning)):
+        if isinstance(given, Exception):
+            mock.side_effect = given
+        elif given is not None:
+            mock.return_value = given
     with (
+        patch("cli.commands.release.fetch_code_scanning_status", cs),
+        patch("cli.commands.release.fetch_secret_scanning_status", ss),
         patch("cli.commands.release.git_toplevel", return_value=git_root),
         patch(
             "cli.commands.release.origin_repo", return_value=("ghes.example.com", "owner", "repo")
@@ -853,6 +867,84 @@ def _invoke_preflight(
     ):
         result = runner.invoke(app, ["release", "preflight", *(args or [])])
     return result, run_pf
+
+
+class TestReleasePreflightScanning:
+    """code scanning・secret scanning の open の alert でも preflight が止まる"""
+
+    def test_all_zero_passes_and_shows_three_lines(self) -> None:
+        result, run_pf = _invoke_preflight(_alert_config())
+
+        assert result.exit_code == 0
+        assert "✓ Dependabot alerts: open 0" in result.output
+        assert "✓ code scanning: open 0" in result.output
+        assert "✓ secret scanning: open 0" in result.output
+        run_pf.assert_called_once()
+
+    def test_open_code_scanning_fails_with_numbers(self) -> None:
+        status = ScanAlertStatus(
+            enabled=True, open_count=1, alerts_url="https://x/cs", open_numbers=[10]
+        )
+        result, run_pf = _invoke_preflight(_alert_config(), code_scanning=status)
+
+        assert result.exit_code == 1
+        assert "code scanning の alert が open 1 件" in result.stderr
+        assert "#10" in result.stderr
+        assert "https://x/cs" in result.stderr
+        assert "Preflight Check Passed" not in result.output
+        run_pf.assert_not_called()
+
+    def test_disabled_scanning_passes(self) -> None:
+        off = ScanAlertStatus(enabled=False, open_count=0, alerts_url="https://x/s")
+        result, _ = _invoke_preflight(_alert_config(), code_scanning=off, secret_scanning=off)
+
+        assert result.exit_code == 0
+        assert "✓ code scanning: 無効" in result.output
+        assert "✓ secret scanning: 無効" in result.output
+
+    def test_all_three_are_checked_before_exit(self) -> None:
+        """Dependabot が止まっても、残りの 2 種の結果まで表示してから終える"""
+        bad = ScanAlertStatus(
+            enabled=True, open_count=2, alerts_url="https://x/ss", open_numbers=[3, 4]
+        )
+        result, _ = _invoke_preflight(
+            _alert_config(),
+            status=_alert_status(open_count=1, max_severity="high"),
+            secret_scanning=bad,
+        )
+
+        assert result.exit_code == 1
+        assert "Dependabot alert が open 1 件" in result.stderr
+        assert "✓ code scanning: open 0" in result.output
+        assert "secret scanning の alert が open 2 件" in result.stderr
+
+    def test_undeterminable_scanning_fails(self) -> None:
+        result, run_pf = _invoke_preflight(
+            _alert_config(), secret_scanning=SecurityAlertError("権限不足")
+        )
+
+        assert result.exit_code == 1
+        assert "secret scanning の状態を確認できません: 権限不足" in result.stderr
+        run_pf.assert_not_called()
+
+    def test_network_error_does_not_skip_remaining_checks(self) -> None:
+        """通信エラーでも残りの種類を確かめてから exit 1（traceback で終わらない）"""
+        result, run_pf = _invoke_preflight(
+            _alert_config(), code_scanning=httpx.ConnectError("down")
+        )
+
+        assert result.exit_code == 1
+        assert "Traceback" not in result.output
+        assert "alert の状態を確認できません" in result.stderr
+        assert "✓ Dependabot alerts: open 0" in result.output
+        assert "✓ secret scanning: open 0" in result.output
+        run_pf.assert_not_called()
+
+    def test_nx_also_checks_scanning(self) -> None:
+        bad = ScanAlertStatus(enabled=True, open_count=1, alerts_url="u", open_numbers=[1])
+        result, _ = _invoke_preflight(_alert_config(release_type="nx"), code_scanning=bad)
+
+        assert result.exit_code == 1
 
 
 class TestReleasePreflightDependabot:

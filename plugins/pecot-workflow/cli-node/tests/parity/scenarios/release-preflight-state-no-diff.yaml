@@ -83,3 +83,17 @@ github:
     respond:
       status: 200
       body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/code-scanning/alerts"
+      query: {"state": "open", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/secret-scanning/alerts"
+      query: {"state": "open", "hide_secret": "true", "per_page": "100"}
+    respond:
+      status: 200
+      body: []

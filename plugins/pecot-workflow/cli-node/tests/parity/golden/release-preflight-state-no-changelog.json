@@ -1,5 +1,5 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n",
+  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n",
   "stderr": "エラー: CHANGELOG.mdが見つかりません: {{TMP}}/base/demo/CHANGELOG.md\n",
   "exitCode": 1,
   "requests": [
@@ -8,6 +8,27 @@
       "method": "GET",
       "path": "/repos/acme/demo/dependabot/alerts",
       "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/code-scanning/alerts",
+      "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/secret-scanning/alerts",
+      "query": {
+        "hide_secret": "true",
         "per_page": "100",
         "state": "open"
       },

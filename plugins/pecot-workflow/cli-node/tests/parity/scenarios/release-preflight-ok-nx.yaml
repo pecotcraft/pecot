@@ -1,4 +1,4 @@
-# release_type が nx のリポ。Dependabot の確認だけで終わる。
+# release_type が nx のリポ。3 種の alert の確認だけで終わる。
 id: release-preflight-ok-nx
 command:
   path: [release, preflight]
@@ -65,6 +65,20 @@ github:
       method: "GET"
       path: "/repos/acme/demo/dependabot/alerts"
       query: {"state": "open", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/code-scanning/alerts"
+      query: {"state": "open", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/secret-scanning/alerts"
+      query: {"state": "open", "hide_secret": "true", "per_page": "100"}
     respond:
       status: 200
       body: []

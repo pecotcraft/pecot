@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n",
-  "stderr": "エラー: Dependabot alert が open 2 件（最高 severity: critical）\n  #1（medium）\n  #2（critical）\n→ https://ghes.example.com/acme/demo/security/dependabot\n  解消（fixed）か理由付きの dismiss で 0 件にしてから再実行してください。\n  修正版に上げられない alert は、理由と見直し条件を .github/dependabot-exceptions.json に載せて通せます。\n",
+  "stdout": "=== Release Preflight Check ===\n\n✓ secret scanning: open 0\n",
+  "stderr": "エラー: Dependabot alert が open 2 件（最高 severity: critical）\n  #1（medium）\n  #2（critical）\n→ https://ghes.example.com/acme/demo/security/dependabot\n  解消（fixed）か理由付きの dismiss で 0 件にしてから再実行してください。\n  修正版に上げられない alert は、理由と見直し条件を .github/dependabot-exceptions.json に載せて通せます。\nエラー: code scanning の alert が open 1 件\n  #10\n→ https://ghes.example.com/acme/demo/security/code-scanning\n  解消（fixed）か理由付きの dismiss で 0 件にしてから再実行してください。\n",
   "exitCode": 1,
   "requests": [
     {
@@ -8,6 +8,27 @@
       "method": "GET",
       "path": "/repos/acme/demo/dependabot/alerts",
       "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/code-scanning/alerts",
+      "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/secret-scanning/alerts",
+      "query": {
+        "hide_secret": "true",
         "per_page": "100",
         "state": "open"
       },

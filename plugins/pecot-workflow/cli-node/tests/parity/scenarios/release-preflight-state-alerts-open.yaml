@@ -1,4 +1,4 @@
-# open の Dependabot alert が 2 件ある。最高 severity を添えて exit 1。
+# open の Dependabot alert が 2 件、code scanning の alert が 1 件ある。3 種を確かめてから exit 1。
 id: release-preflight-state-alerts-open
 command:
   path: [release, preflight]
@@ -82,3 +82,17 @@ github:
     respond:
       status: 200
       body: [{"number": 1, "security_vulnerability": {"severity": "medium"}}, {"number": 2, "security_vulnerability": {"severity": "critical"}}]
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/code-scanning/alerts"
+      query: {"state": "open", "per_page": "100"}
+    respond:
+      status: 200
+      body: [{"number": 10, "rule": {"severity": "error"}}]
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/secret-scanning/alerts"
+      query: {"state": "open", "hide_secret": "true", "per_page": "100"}
+    respond:
+      status: 200
+      body: []

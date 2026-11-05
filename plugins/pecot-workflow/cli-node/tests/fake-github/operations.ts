@@ -18,7 +18,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['deleteProjectV2Item{deletedItemId}|itemId,projectId', 'DeleteProjectItem'],
   ['addSubIssue{issue,subIssue}|childId,parentId', 'AddSubIssue'],
   ['createLinkedBranch.linkedBranch.ref{name,prefix}|input', 'CreateLinkedBranch'],
-  ['repository.issue.projectItems.nodes{id,project}|number,owner,repo', 'GetIssueProjectItems'],
+  ['repository.issue.projectItems.nodes{id,project,fieldValues}|number,owner,repo', 'GetIssueProjectItems'],
   ['user.projectsV2.nodes{number,title,url,id}|first,owner', 'ListProjectsUser'],
   ['organization.projectsV2.nodes{number,title,url,id}|first,owner', 'ListProjectsOrg'],
   ['user.projectV2{id,title,url,fields,views}|owner,projectNumber', 'GetProjectFieldsUser'],
