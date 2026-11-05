@@ -18,6 +18,7 @@ from typer.testing import CliRunner
 from cli.commands.main import app
 from cli.commands.pr import (
     _append_issue_close_if_needed,
+    _is_missing_ref_error,
     _update_issue_status_to_in_review,
     _validate_issue_reference,
     _validate_pr_content,
@@ -1595,7 +1596,7 @@ class TestPRMergeDeleteBranch:
             "merged": True,
         }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
-        # featureブランチ削除は成功、WIPブランチ削除は404
+        # featureブランチ削除は成功、WIPブランチ削除は422
         mock_client.delete_branch.side_effect = [
             None,  # feat/test-branch 成功
             GitHubAPIError("Reference does not exist", status_code=422),
@@ -1686,6 +1687,75 @@ class TestPRMergeDeleteBranch:
             # 警告メッセージは stderr に出る
             assert "⚠ ブランチ削除に失敗: 削除失敗" in result.stderr
             assert "⚠" not in result.stdout
+            # head 削除失敗では WIP 削除に進まず、削除したブランチとして報告しない
+            assert mock_client.delete_branch.call_count == 1
+            assert "削除したブランチ" not in result.stdout
+
+    def test_delete_branch_head_already_deleted_treated_as_deleted(self) -> None:
+        """head が既に消えている(422 Reference does not exist)場合は削除済みとして WIP も削除する"""
+        from cli.core.github import GitHubAPIError
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = {
+            "number": 42,
+            "state": "OPEN",
+            "title": "feat: テスト",
+            "body": "",
+            "head_ref": "feat/test-branch",
+            "base_ref": "develop-aist",
+            "is_draft": False,
+            "mergeable": "MERGEABLE",
+            "comments": 0,
+            "closing_issues": [],
+            "reviews": [],
+        }
+        mock_client.merge_pull_request.return_value = {
+            "sha": "abc123",
+            "merged": True,
+        }
+        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+        mock_client.delete_branch.side_effect = [
+            GitHubAPIError(
+                "GitHub APIエラー: 422",
+                status_code=422,
+                response_body='{"message":"Reference does not exist"}',
+            ),
+            None,  # wip/feat/test-branch 成功
+        ]
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--delete-branch"])
+
+            assert result.exit_code == 0
+            assert "ブランチ削除に失敗" not in result.output
+            assert "ブランチ 'feat/test-branch' は既に削除されています" in result.output
+            mock_client.delete_branch.assert_any_call("owner", "repo", "wip/feat/test-branch")
+            assert mock_client.delete_branch.call_count == 2
+            assert "削除したブランチ: feat/test-branch" in result.output
+
+
+@pytest.mark.parametrize(
+    ("status_code", "response_body", "expected"),
+    [
+        (422, '{"message":"Reference does not exist"}', True),
+        (404, '{"message":"Reference does not exist"}', True),
+        (404, '{"message":"Not Found"}', False),
+        (422, '{"message":"Validation Failed"}', False),
+        (403, '{"message":"Reference does not exist"}', False),
+        (422, None, False),
+    ],
+)
+def test_is_missing_ref_error(status_code: int, response_body: str | None, expected: bool) -> None:
+    from cli.core.github import GitHubAPIError
+
+    e = GitHubAPIError("err", status_code=status_code, response_body=response_body)
+    assert _is_missing_ref_error(e) is expected
 
 
 # pr merge --admin テスト

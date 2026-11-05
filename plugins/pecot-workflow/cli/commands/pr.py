@@ -2066,23 +2066,35 @@ def _close_related_issues(
                 typer.echo(f"  ⚠ Issue #{issue_number} のクローズに失敗: {e.message}", err=True)
 
 
+def _is_missing_ref_error(e: GitHubAPIError) -> bool:
+    """ブランチ(ref)が既に存在しないことを示すエラーかを返す"""
+    if e.status_code not in (404, 422):
+        return False
+    return e.response_body is not None and "Reference does not exist" in e.response_body
+
+
 def _delete_merged_branch(client: GitHubClient, owner: str, repo: str, head_branch: str) -> bool:
-    """9. head ブランチと WIP ブランチを削除し、head を削除できたかを返す"""
+    """9. head ブランチと WIP ブランチを削除し、head を削除済みにできたかを返す
+
+    head が既に消えている場合（GitHub の自動削除など）は削除済みとして扱い、WIP も削除する。
+    """
     typer.echo(f"\nブランチ '{head_branch}' を削除中...")
     try:
         client.delete_branch(owner, repo, head_branch)
         typer.echo(f"  ✔ ブランチ '{head_branch}' を削除しました")
-        # WIPブランチも連動削除
-        wip_branch = f"wip/{head_branch}"
-        try:
-            client.delete_branch(owner, repo, wip_branch)
-            typer.echo(f"  ✔ WIPブランチ '{wip_branch}' も削除しました")
-        except GitHubAPIError:
-            pass  # 存在しない場合は無視
-        return True
     except GitHubAPIError as e:
-        typer.echo(f"  ⚠ ブランチ削除に失敗: {e.message}", err=True)
-        return False
+        if not _is_missing_ref_error(e):
+            typer.echo(f"  ⚠ ブランチ削除に失敗: {e.message}", err=True)
+            return False
+        typer.echo(f"  ✔ ブランチ '{head_branch}' は既に削除されています")
+    # WIPブランチも連動削除
+    wip_branch = f"wip/{head_branch}"
+    try:
+        client.delete_branch(owner, repo, wip_branch)
+        typer.echo(f"  ✔ WIPブランチ '{wip_branch}' も削除しました")
+    except GitHubAPIError:
+        pass  # 存在しない場合は無視
+    return True
 
 
 def _remove_active_flags() -> None:
