@@ -109,7 +109,7 @@ PM_GUARD_PNPM_PLUGINS=(pecot-visual pecot-tools pecot-workflow)
 
 # git を、hook が渡す GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE を外して呼ぶ。
 pm_guard_git() {
-    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE git "$@"
+    (unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE; git "$@")
 }
 
 # $1=repo root。追跡している package.json を、repo root からの相対パスで返す。
