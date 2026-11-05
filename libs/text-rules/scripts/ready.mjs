@@ -11,7 +11,7 @@ function dependenciesResolve() {
   const manifest = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'))
   try {
     const names = Object.keys(manifest.dependencies ?? {})
-    for (const name of names) import.meta.resolve(name)
+    for (const name of names) void import.meta.resolve(name)
     return true
   }
   catch {

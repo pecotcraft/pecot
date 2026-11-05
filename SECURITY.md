@@ -26,3 +26,38 @@ GitHub の非公開の脆弱性報告で受け付けます。[Report a vulnerabi
 更新の手順は [README の「更新」](README.md#更新) を参照してください。
 最新リリースは [Releases](https://github.com/pecotcraft/pecot/releases) で確認できます。
 タグは pecot-w が `pecot-workflow-v*`、pecot-v が `pecot-visual-v*`、pecot-t が `pecot-tools-v*` です。
+
+## 誤検知の alert を閉じる（メンテナ向け）
+
+対象は code scanning と secret scanning の alert です。
+Dependabot の alert は、`.github/dependabot-exceptions.json` の運用で別に扱います。
+
+- 閉じてよいのは、リポジトリの admin が認めた alert だけである。エージェントは、閉じる alert の一覧と理由を示す。admin が承認してから dismiss を打つ
+- 理由は、alert の dismiss コメントに書く。code scanning は `dismissed_comment` で、280 字以内である。secret scanning は `resolution_comment` で、後から直せない
+- まとめて閉じるときは、一覧を承認した Issue の plan コメントの URL をコメントに書く
+- 実害のある alert と、直すほうが安い alert は、dismiss せずに直す
+
+閉じる前に、次の順で確かめます。
+
+1. 書き直してテストや実装が良くなるなら、直す。例は、部分一致の assert を全体の比較にすることである
+2. テストに要る秘密の形の値は、`.github/secret_scanning.yml` の `paths-ignore` で、そのファイルだけを外す。値を文字列の連結で組み立てて、検知を避けない
+3. それでも残る誤検知を dismiss する
+
+reason は次の表で選びます。
+
+| alert の状況 | code scanning の `dismissed_reason` | secret scanning の `resolution` |
+|---|---|---|
+| テストのコード | `used in tests` | `used_in_tests` |
+| 仕様どおり、または結果を描画しない加工 | `false positive` | `false_positive` |
+| 入力が作者自身のファイルに限られ、直す益が薄い | `won't fix` | `wont_fix` |
+| 別の層で防いでいる | `mitigated` | なし |
+
+打つコマンドの例です。
+
+```
+gh api -X PATCH repos/pecotcraft/pecot/code-scanning/alerts/<番号> \
+  -f state=dismissed -f dismissed_reason='used in tests' -f dismissed_comment='<理由と plan コメントの URL>'
+
+gh api -X PATCH repos/pecotcraft/pecot/secret-scanning/alerts/<番号> \
+  -f state=resolved -f resolution=used_in_tests -f resolution_comment='<理由と plan コメントの URL>'
+```

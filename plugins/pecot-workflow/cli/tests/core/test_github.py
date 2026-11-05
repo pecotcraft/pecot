@@ -109,9 +109,7 @@ class TestHostsConfig:
 
         with patch("cli.core.github.auth.get_config_dir", return_value=tmp_path):
             config = load_hosts_config()
-            assert "hosts" in config
-            assert "github.com" in config["hosts"]
-            assert config["hosts"]["github.com"]["env_var"] == "PECOT_GITHUB_COM_TOKEN"
+            assert config == hosts_data
 
     def test_load_hosts_config_file_not_found(self, tmp_path: Path) -> None:
         """hosts.jsonが存在しない場合は空の設定"""

@@ -58,8 +58,7 @@ def test_wsl_calls_powershell(scripts_dir: Path, mock_bin) -> None:
 
     result = _run(scripts_dir, "https://example.com")
     assert result.returncode == 0
-    assert "mock: powershell.exe" in result.stdout
-    assert "https://example.com" in result.stdout
+    assert result.stdout == "mock: powershell.exe -Command Start-Process 'https://example.com'\n"
 
 
 # macOS 環境
@@ -76,8 +75,7 @@ def test_macos_calls_open(scripts_dir: Path, mock_bin) -> None:
 
     result = _run(scripts_dir, "https://example.com")
     assert result.returncode == 0
-    assert "mock: open" in result.stdout
-    assert "https://example.com" in result.stdout
+    assert result.stdout == "mock: open https://example.com\n"
 
 
 # Linux 環境 (xdg-open あり)
@@ -94,8 +92,7 @@ def test_linux_calls_xdg_open(scripts_dir: Path, mock_bin) -> None:
 
     result = _run(scripts_dir, "https://example.com")
     assert result.returncode == 0
-    assert "mock: xdg-open" in result.stdout
-    assert "https://example.com" in result.stdout
+    assert result.stdout == "mock: xdg-open https://example.com\n"
 
 
 # ブラウザコマンドなし
@@ -136,4 +133,7 @@ def test_no_browser_command_errors(scripts_dir: Path, mock_bin) -> None:
     env = {**os.environ, "PATH": str(bin_dir)}
     result = _run(scripts_dir, "https://example.com", env=env)
     assert result.returncode == 1
-    assert "https://example.com" in (result.stdout + result.stderr)
+    assert result.stdout == ""
+    assert result.stderr == (
+        "ブラウザを自動で開けません。以下のURLを手動で開いてください:\nhttps://example.com\n"
+    )
