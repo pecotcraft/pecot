@@ -15,6 +15,18 @@
       "description": "pecot hooks 設定"
     },
     {
+      "path": ".pecot/config/.env",
+      "target_repo": "pecot",
+      "target_path": ".pecot/config/.env",
+      "description": "GitHub のトークン"
+    },
+    {
+      "path": ".pecot/config/hosts.json",
+      "target_repo": "pecot",
+      "target_path": ".pecot/config/hosts.json",
+      "description": "GitHub のホストごとのトークンの変数名と取得先"
+    },
+    {
       "path": ".pecot/work",
       "target_repo": "pecot",
       "target_path": ".pecot/work",

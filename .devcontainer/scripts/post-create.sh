@@ -32,6 +32,12 @@ sudo tee /etc/fonts/local.conf > /dev/null <<'EOF'
 EOF
 sudo fc-cache -f
 
-bash "$(dirname "${BASH_SOURCE[0]}")/install-git-hooks.sh"
-bash "$(dirname "${BASH_SOURCE[0]}")/../../setup.sh"
-(cd "$(dirname "${BASH_SOURCE[0]}")/../../plugins/pecot-visual/cli" && npx --no-install playwright install --with-deps chromium)
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+bash "$root/.devcontainer/scripts/install-git-hooks.sh"
+bash "$root/setup.sh"
+(cd "$root/plugins/pecot-visual/cli" && npx --no-install playwright install --with-deps chromium)
+cd "$root"
+git worktree prune
+for _ in 1 2 3 4; do
+  "$root/plugins/pecot-workflow/bin/pecot" worktree add -D "$root"
+done
