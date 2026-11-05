@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from typing import Any, cast
+
 from cli.core.errors import PecotError
 
 
@@ -51,3 +54,20 @@ class GitHubRateLimitError(GitHubAPIError):
     """
 
     pass
+
+
+def describe_api_error(error: GitHubAPIError) -> str:
+    """GitHubAPIError の message に、応答本文 JSON の message だけを添える
+
+    本文が JSON でない（HTML 等）・message が無いときは添えない。
+    """
+    try:
+        body = json.loads(error.response_body or "")
+    except ValueError:
+        return error.message
+    if not isinstance(body, dict):
+        return error.message
+    detail = cast("dict[str, Any]", body).get("message")
+    if isinstance(detail, str) and detail.strip():
+        return f"{error.message} {detail.strip()}"
+    return error.message

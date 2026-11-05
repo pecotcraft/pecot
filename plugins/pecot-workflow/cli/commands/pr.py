@@ -24,6 +24,7 @@ from cli.core.frontmatter import (
 from cli.core.git import git_current_branch, git_remote_url, git_toplevel, origin_repo, run_git
 from cli.core.git_url import parse_remote_url
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
+from cli.core.github.errors import describe_api_error
 from cli.core.issue_kind import is_epic_issue
 from cli.core.nx_scope import changed_files, expected_scope, nx_projects, parse_title_scope
 from cli.core.paths import OutputPathReservationError, get_output_dir, reserved_output_path
@@ -2063,7 +2064,9 @@ def _close_related_issues(
             except GitHubNotFoundError:
                 typer.echo(f"  ⚠ Issue #{issue_number} が見つかりません（スキップ）", err=True)
             except GitHubAPIError as e:
-                typer.echo(f"  ⚠ Issue #{issue_number} のクローズに失敗: {e.message}", err=True)
+                typer.echo(
+                    f"  ⚠ Issue #{issue_number} のクローズに失敗: {describe_api_error(e)}", err=True
+                )
 
 
 def _is_missing_ref_error(e: GitHubAPIError) -> bool:
@@ -2084,7 +2087,7 @@ def _delete_merged_branch(client: GitHubClient, owner: str, repo: str, head_bran
         typer.echo(f"  ✔ ブランチ '{head_branch}' を削除しました")
     except GitHubAPIError as e:
         if not _is_missing_ref_error(e):
-            typer.echo(f"  ⚠ ブランチ削除に失敗: {e.message}", err=True)
+            typer.echo(f"  ⚠ ブランチ削除に失敗: {describe_api_error(e)}", err=True)
             return False
         typer.echo(f"  ✔ ブランチ '{head_branch}' は既に削除されています")
     # WIPブランチも連動削除

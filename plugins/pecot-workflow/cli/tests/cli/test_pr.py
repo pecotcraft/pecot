@@ -4421,6 +4421,34 @@ class TestPrMergeEpicProtect:
         assert "⚠ Issue #901 のクローズに失敗: 権限不足" in result.stderr
         assert "⚠" not in result.stdout
 
+    def test_merge_close_issue_api_error_shows_github_message(self) -> None:
+        """close_issue の失敗の警告に、応答本文の GitHub の message を添える"""
+        from cli.core.github import GitHubAPIError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = self._make_pr(
+            head_ref="feat/test/902",
+        )
+        mock_client.merge_pull_request.return_value = {"sha": "abc"}
+        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+        mock_client.close_issue.side_effect = GitHubAPIError(
+            "GitHub APIエラー: 422",
+            status_code=422,
+            response_body='{"message":"Validation Failed"}',
+        )
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=self._config()),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+
+        assert result.exit_code == 0
+        assert (
+            "⚠ Issue #902 のクローズに失敗: GitHub APIエラー: 422 Validation Failed"
+            in result.stderr
+        )
+
 
 # pr 雛形ラウンドトリップテスト（#958 F-02 / F-03 / F-06）
 

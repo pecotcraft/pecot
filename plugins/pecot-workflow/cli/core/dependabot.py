@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
 from cli.core.errors import PecotError
 from cli.core.github import GitHubAPIError, GitHubClient
-from cli.core.github.errors import GitHubRateLimitError
+from cli.core.github.errors import GitHubRateLimitError, describe_api_error
 
 # severity の強さ順（大きいほど重い）。未知の値は順位 -1 として扱い落とさない
 SEVERITY_ORDER: dict[str, int] = {"low": 0, "medium": 1, "high": 2, "critical": 3}
@@ -150,23 +150,6 @@ def _max_severity(alerts: list[dict[str, Any]]) -> str | None:
     return max(values, key=_severity_rank, default=None)
 
 
-def _describe(error: GitHubAPIError) -> str:
-    """GitHubAPIError の message に、応答本文 JSON の message だけを添える
-
-    本文が JSON でない（HTML 等）・message が無いときは添えない。
-    """
-    try:
-        body = json.loads(error.response_body or "")
-    except ValueError:
-        return error.message
-    if not isinstance(body, dict):
-        return error.message
-    detail = cast("dict[str, Any]", body).get("message")
-    if isinstance(detail, str) and detail.strip():
-        return f"{error.message} {detail.strip()}"
-    return error.message
-
-
 def _classify_forbidden(
     client: GitHubClient, owner: str, repo: str, alerts_url: str
 ) -> DependabotAlertStatus:
@@ -214,7 +197,7 @@ def fetch_dependabot_alert_status(
     try:
         alerts = _fetch_alerts_or_status(client, owner, repo, alerts_url)
     except GitHubAPIError as e:
-        raise DependabotAlertError(f"{owner}/{repo}: {_describe(e)}") from e
+        raise DependabotAlertError(f"{owner}/{repo}: {describe_api_error(e)}") from e
     except httpx.HTTPError as e:
         raise DependabotAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
 
