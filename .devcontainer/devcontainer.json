@@ -1,6 +1,6 @@
 {
   "name": "pecot",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu26.04",
+  "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/va-h/devcontainers-features/uv:1": {},
