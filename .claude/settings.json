@@ -51,6 +51,7 @@
       "Bash(plugins/pecot-visual/scripts/ci/run-lint.sh *)",
       "Bash(unzip -l *)",
       "mcp__plugin_pecot-v_pecot-visual__slide_lint"
-    ]
+    ],
+    "additionalDirectories": ["/workspaces/base/pecot/.pecot/work"]
   }
 }

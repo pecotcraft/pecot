@@ -75,6 +75,9 @@ export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
 タスクに紐づかない作業は、先に Issue を起票する。
 `/tmp/` 直下は使わない。ユーザーが明示指定した場合と、`find /tmp -name ...` 等の system 調査参照は除く。
 `.pecot/tmp/` は CLI / hooks 専用で、人・エージェントはファイルを置かない。
+各 worktree の `.pecot/work` は、base の `.pecot/work` へのシンボリックリンクにしている。
+リンクをたどって作業ディレクトリの外に出る書き込みでは、auto mode が確認を出す。
+そのため、`.claude/settings.json` の `additionalDirectories` に、base の `.pecot/work` の絶対パスを置いている。
 
 ## リリース・nx release group の規約
 
