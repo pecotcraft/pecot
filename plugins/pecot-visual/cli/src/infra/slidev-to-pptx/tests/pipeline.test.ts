@@ -96,7 +96,7 @@ describe('convertToPptx', () => {
     const result = await convertToPptx(config, deps)
     // step.url は常に絶対 URL。worker は baseUrl を受け取らないため、実 bind ポートが
     // 反映されていることは step.url 側で確かめる
-    expect(stepUrls).toEqual(['http://localhost:45678/1', 'http://localhost:45678/2'])
+    expect(stepUrls).toEqual(['http://127.0.0.1:45678/1', 'http://127.0.0.1:45678/2'])
     expect(result.success).toBe(true)
     expect(result.slideCount).toBe(2)
     expect(result.slidesDirectory).toContain('pptx/slides')
@@ -132,8 +132,8 @@ describe('convertToPptx', () => {
     }
     // 1 枚目は routerMode 判定用、2 枚目が buildOnlySteps の走査ページ
     const routerPage = new FakePage()
-    const scanPage = new FakePage({ url: 'http://localhost:4001/3' })
-    scanPage.urlQueue = ['http://localhost:4001/4'] // slide 番号変化で打ち切り
+    const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/3' })
+    scanPage.urlQueue = ['http://127.0.0.1:4001/4'] // slide 番号変化で打ち切り
     document.body.innerHTML = '<div class="slidev-page-3"></div>'
     const browser = new FakeBrowser({ pages: [routerPage, scanPage] })
     const deps: PipelineDependencies = {
@@ -149,8 +149,8 @@ describe('convertToPptx', () => {
 
   it('全 slide scan: scanSlideSteps で複数 step 取得 → 全 step 変換', async () => {
     const config: PipelineConfig = { ...baseConfig(presDir) }
-    const scanPage = new FakePage({ url: 'http://localhost:4001/1' })
-    scanPage.urlQueue = ['http://localhost:4001/2'] // 2 step に
+    const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/1' })
+    scanPage.urlQueue = ['http://127.0.0.1:4001/2'] // 2 step に
     const browser = new FakeBrowser({ pages: [scanPage, new FakePage(), new FakePage()] })
     const deps: PipelineDependencies = {
       createBrowser: async () => browser.asBrowser(),
@@ -169,7 +169,7 @@ describe('convertToPptx', () => {
     // すると stepIndex が衝突して、1 枚に上書きされる (#971)。
     const config: PipelineConfig = { ...baseConfig(presDir) }
     const routerPage = new FakePage({ gotoRedirect: url => `${url}/#/1` })
-    routerPage.urlQueue = ['http://localhost:4001/#/2', 'http://localhost:4001/#/2?clicks=1']
+    routerPage.urlQueue = ['http://127.0.0.1:4001/#/2', 'http://127.0.0.1:4001/#/2?clicks=1']
     const browser = new FakeBrowser({ pages: [routerPage] })
     const logger = makeLogger()
     const steps: SlideStep[] = []
@@ -209,8 +209,8 @@ describe('convertToPptx', () => {
 
     expect(logger.info).toHaveBeenCalledWith('ルータ判定: router=history')
     // dist 配信サーバの起動ログは console.log でなく logger を通す (--json の stdout を汚さない)
-    expect(logger.info).toHaveBeenCalledWith('HTTPサーバー起動: http://localhost:4001')
-    expect(steps[0]?.url).toBe('http://localhost:4001/3')
+    expect(logger.info).toHaveBeenCalledWith('HTTPサーバー起動: http://127.0.0.1:4001')
+    expect(steps[0]?.url).toBe('http://127.0.0.1:4001/3')
   })
 
   it('hash ルータの onlySteps はフラグメント形式で URL を組み立てる', async () => {
@@ -230,7 +230,7 @@ describe('convertToPptx', () => {
     }
     await convertToPptx(config, deps)
 
-    expect(steps[0]?.url).toBe('http://localhost:4001/#/3')
+    expect(steps[0]?.url).toBe('http://127.0.0.1:4001/#/3')
     // 判定専用ページは走査に使わないので閉じる
     expect(routerPage.closed).toBe(true)
   })
@@ -257,8 +257,8 @@ describe('convertToPptx', () => {
 
   it('onProgress はスキャンの各ステップと、成功・失敗どちらの worker 完了でも呼ばれる (#1097)', async () => {
     const config: PipelineConfig = { ...baseConfig(presDir) }
-    const scanPage = new FakePage({ url: 'http://localhost:4001/1' })
-    scanPage.urlQueue = ['http://localhost:4001/2'] // 2 step に
+    const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/1' })
+    scanPage.urlQueue = ['http://127.0.0.1:4001/2'] // 2 step に
     const browser = new FakeBrowser({ pages: [scanPage, new FakePage(), new FakePage()] })
     const labels: string[] = []
     const deps: PipelineDependencies = {
@@ -286,8 +286,8 @@ describe('convertToPptx', () => {
 
   it('onStepProgress はスキャン後に 0/総数、以降は成功・失敗どちらの完了でも 1 ずつ報告する (#1160)', async () => {
     const config: PipelineConfig = { ...baseConfig(presDir) }
-    const scanPage = new FakePage({ url: 'http://localhost:4001/1' })
-    scanPage.urlQueue = ['http://localhost:4001/2']
+    const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/1' })
+    scanPage.urlQueue = ['http://127.0.0.1:4001/2']
     const browser = new FakeBrowser({ pages: [scanPage, new FakePage(), new FakePage()] })
     const reports: [number, number][] = []
     const deps: PipelineDependencies = {
@@ -627,7 +627,7 @@ async function runCached(deck: Readonly<CacheDeck>, options: CacheRunOptions = {
   const scanPage = new FakePage()
   scanPage.urlQueue = Array.from(
     { length: scanSteps - 1 },
-    (_v, index) => `http://localhost:4001/${(index + 2).toString()}`,
+    (_v, index) => `http://127.0.0.1:4001/${(index + 2).toString()}`,
   )
   const browser = new FakeBrowser({ pages: [scanPage] })
   const deps: PipelineDependencies = {
@@ -1274,8 +1274,8 @@ const singlePassTiming = { kind: 'converted' as const, groups: [{ slides: [1, 2]
 2 ステップの全走査 deck（routerPage をそのまま走査に使う）。
 */
 function fullScanBrowser(options: Readonly<{ hash?: boolean }> = {}): FakeBrowser {
-  const routerPage = new FakePage(options.hash === true ? { gotoRedirect: url => `${url}/#/1` } : { url: 'http://localhost:4001/1' })
-  routerPage.urlQueue = [options.hash === true ? 'http://localhost:4001/#/2' : 'http://localhost:4001/2']
+  const routerPage = new FakePage(options.hash === true ? { gotoRedirect: url => `${url}/#/1` } : { url: 'http://127.0.0.1:4001/1' })
+  routerPage.urlQueue = [options.hash === true ? 'http://127.0.0.1:4001/#/2' : 'http://127.0.0.1:4001/2']
   return new FakeBrowser({ pages: [routerPage] })
 }
 
@@ -1355,7 +1355,7 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     const result = await convertToPptx({ ...baseConfig(presDir), singlePass: true }, deps)
 
     expect(requests).toHaveLength(1)
-    expect(requests[0]?.baseUrl).toBe('http://localhost:4001')
+    expect(requests[0]?.baseUrl).toBe('http://127.0.0.1:4001')
     expect(requests[0]?.urlFormat).toStrictEqual({ hash: false })
     expect(requests[0]?.steps.map(step => step.slideNumber)).toStrictEqual([1, 2])
     // グループ数は singlePassConcurrency 未指定なら concurrency

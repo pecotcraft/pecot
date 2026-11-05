@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/name-replacements -- test fixture */
-import type { Server } from 'node:http'
+import { request, type Server } from 'node:http'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -9,12 +9,26 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { resolveBoundPort, startServer } from '../server.js'
 
 async function fetchText(port: number, urlPath: string): Promise<{ status: number, text: string, contentType: string }> {
-  const response = await fetch(`http://localhost:${port.toString()}${urlPath}`)
+  const response = await fetch(`http://127.0.0.1:${port.toString()}${urlPath}`)
   return {
     status: response.status,
     text: await response.text(),
     contentType: response.headers.get('content-type') ?? '',
   }
+}
+
+// fetch は `..` を正規化して送るので、生のパスは node:http の request で送る
+async function requestRawPath(port: number, rawPath: string): Promise<{ status: number, text: string }> {
+  return new Promise((resolve, reject) => {
+    const client = request({ host: '127.0.0.1', port, path: rawPath }, (response) => {
+      let text = ''
+      response.setEncoding('utf8')
+      response.on('data', (chunk: string) => { text += chunk })
+      response.on('end', () => { resolve({ status: response.statusCode ?? 0, text }) })
+    })
+    client.on('error', reject)
+    client.end()
+  })
 }
 
 describe('startServer', () => {
@@ -136,6 +150,33 @@ describe('startServer', () => {
     // プロセスに uncaughtException リスナーが居るかで、挙動が変わらない。
     // リスナーは dom-to-pptx の Emscripten ランタイムが登録する。
     await expect(startServer(distDir, address.port)).rejects.toMatchObject({ code: 'EADDRINUSE' })
+  })
+
+  it('`..` を含む要求には、dist の外のファイルを返さず 404 を返す', async () => {
+    await writeFile(path.join(workDir, 'outside.txt'), 'outside-secret', 'utf8')
+    server = await startServer(distDir, 0)
+    const address = server.address()
+    if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
+    for (const rawPath of ['/../outside.txt', '/a/../../outside.txt', '/../dist/../outside.txt']) {
+      const r = await requestRawPath(address.port, rawPath)
+      expect(r.status).toBe(404)
+      expect(r.text).not.toContain('outside-secret')
+    }
+  })
+
+  it('拡張子の無い `..` の要求にも、index.html を返さず 404 を返す', async () => {
+    server = await startServer(distDir, 0)
+    const address = server.address()
+    if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
+    const r = await requestRawPath(address.port, '/../../etc')
+    expect(r.status).toBe(404)
+  })
+
+  it('ループバック (127.0.0.1) だけで待ち受ける', async () => {
+    server = await startServer(distDir, 0)
+    const address = server.address()
+    if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
+    expect(address.address).toBe('127.0.0.1')
   })
 
   it('起動時に console.log へ書かない (起動ログは pipeline が logger 経由で出す。--json の stdout を JSON 行だけに保つ)', async () => {

@@ -60,7 +60,7 @@ import { readSlidesTitle } from './dom-converter.js'
 import { buildOnlySteps, scanSlideSteps } from './scanner.js'
 import { DEPENDENCY_RECOVERY_HINT, resolveDependency } from '../_shared/dependency-root.js'
 import { chromiumLaunchError } from '../playwright/launch.js'
-import { resolveBoundPort, startServer } from './server.js'
+import { LOOPBACK_HOST, resolveBoundPort, startServer } from './server.js'
 import { runWithConcurrency } from './concurrency.js'
 import { convertStepsSinglePass, removeStepArtifacts, type SinglePassRunner } from './single-pass-worker.js'
 import { convertSingleSlideWithRetry, type SlideConvertResult, type SlideWorkerConfig, type SlideWorkerRunner } from './slide-worker.js'
@@ -603,7 +603,7 @@ export async function convertToPptx(
   // baseUrl は、要求ポートでなく実際に bind されたポートで組む。
   // port=0 (ephemeral、既定) では OS が空きポートを採番する。
   // そのため、並行する別プロセスの convert と衝突しない。
-  const baseUrl = `http://localhost:${resolveBoundPort(server, port).toString()}`
+  const baseUrl = `http://${LOOPBACK_HOST}:${resolveBoundPort(server, port).toString()}`
   logger.info(`HTTPサーバー起動: ${baseUrl}`)
   let browser: Browser
   try {

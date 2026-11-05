@@ -133,7 +133,7 @@ function classHasCompositeBorder(cssText: string, className: string): boolean {
     const rulesText = match[1];
     for (const prop of SIDE_BORDER_PROPS) {
       const propRegex = new RegExp(
-        `(?:^|;|\\s)${prop.replace(/-/g, '-')}\\s*:`,
+        `(?:^|;|\\s)${prop}\\s*:`,
         'i',
       );
       if (propRegex.test(rulesText)) {
