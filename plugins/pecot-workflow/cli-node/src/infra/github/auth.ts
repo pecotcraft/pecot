@@ -78,12 +78,20 @@ function requiredField(config: JsonObject, key: string): JsonValue {
 }
 
 /**
-ホストに対応する環境変数名。hosts.json に定義があればそれを使い、なければ `PECOT_GITHUB_<HOST>_TOKEN`（ドットはアンダースコア）
+hosts.json に定義が無いときの既定の環境変数名。hosts.json.sample・.env.sample と同じ名前。
+hosts.json はリポに含まれないため、Actions などの新しい checkout ではこの名前を使う
+*/
+export const DEFAULT_ENV_VAR_MAP: ReadonlyMap<string, string> = new Map([
+  ['github.com', 'PECOT_GITHUB_COM_TOKEN'],
+])
+
+/**
+ホストに対応する環境変数名。hosts.json の定義、既定の対応、`PECOT_GITHUB_<HOST>_TOKEN`（ドットはアンダースコア）の順に使う
 */
 export function getEnvironmentVariableName(host: string): string {
   const hostConfig = getHostConfig(host)
   return hostConfig === undefined
-    ? `PECOT_GITHUB_${host.toUpperCase().replaceAll('.', '_')}_TOKEN`
+    ? DEFAULT_ENV_VAR_MAP.get(host) ?? `PECOT_GITHUB_${host.toUpperCase().replaceAll('.', '_')}_TOKEN`
     : pythonString(requiredField(hostConfig, 'env_var'))
 }
 

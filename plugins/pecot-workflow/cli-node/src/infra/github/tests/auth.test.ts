@@ -121,6 +121,16 @@ describe('ホスト設定', () => {
     expect(getEnvironmentVariableName('gitlab.example.com')).toBe('PECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN')
   })
 
+  it('hosts.json が無くても、github.com は PECOT_GITHUB_COM_TOKEN', () => {
+    useProject()
+    expect(getEnvironmentVariableName('github.com')).toBe('PECOT_GITHUB_COM_TOKEN')
+  })
+
+  it('hosts.json の定義は既定の対応より優先する', () => {
+    useProject({ 'github.com': { env_var: 'MY_TOKEN' } })
+    expect(getEnvironmentVariableName('github.com')).toBe('MY_TOKEN')
+  })
+
   it('env_var の無い定義は KeyError と同じ文の InvalidValueError', () => {
     useProject({ 'github.com': { token_url: 'x' } })
     expect(() => getEnvironmentVariableName('github.com')).toThrow(new InvalidValueError('\'env_var\''))
