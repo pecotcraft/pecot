@@ -37,6 +37,12 @@ Dependabot の alert は、`.github/dependabot-exceptions.json` の運用で別�
 - まとめて閉じるときは、一覧を承認した Issue の plan コメントの URL をコメントに書く
 - 実害のある alert と、直すほうが安い alert は、dismiss せずに直す
 
+閉じる前に、次の順で確かめます。
+
+1. 書き直してテストや実装が良くなるなら、直す。例は、部分一致の assert を全体の比較にすることである
+2. テストに要る秘密の形の値は、`.github/secret_scanning.yml` の `paths-ignore` で、そのファイルだけを外す。値を文字列の連結で組み立てて、検知を避けない
+3. それでも残る誤検知を dismiss する
+
 reason は次の表で選びます。
 
 | alert の状況 | code scanning の `dismissed_reason` | secret scanning の `resolution` |

@@ -700,7 +700,8 @@ class TestProjectSearchCommand:
             )
             assert result.exit_code == 0
             mock_cls.assert_called_with(host="ghes.example.com")
-            assert "ghes.example.com" in result.output
+            expected = "=== test-owner のプロジェクト一覧 (ghes.example.com) ==="
+            assert result.output.splitlines().count(expected) == 1
 
     def test_project_search_empty(self) -> None:
         """プロジェクトがない場合"""
@@ -1588,7 +1589,8 @@ class TestActivateCommand:
                 ["project", "activate", "--host", "ghes.example.com", "--owner", "test-owner"],
             )
             assert result.exit_code == 0
-            assert "ghes.example.com" in result.output
+            expected = "=== init済みプロジェクト (ghes.example.com/test-owner) ==="
+            assert result.output.splitlines().count(expected) == 1
 
     def test_activate_api_error(self) -> None:
         """GitHub APIエラー"""
