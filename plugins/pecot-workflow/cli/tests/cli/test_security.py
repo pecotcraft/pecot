@@ -1,11 +1,11 @@
-"""tests/cli/test_security.py - pecot security sync / review-exceptions のテスト
+"""tests/cli/test_security.py - pecot security sync（Tracker の一覧の書き直し）のテスト
 
 GitHubClient（I/O 境界）を差し替え、ボード設定は MagicMock にする。
 """
 
 from __future__ import annotations
 
-import json
+import re
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -13,7 +13,9 @@ from unittest.mock import MagicMock, patch
 import typer.testing
 
 from cli.commands.main import app
+from cli.core.dependabot import DependabotException
 from cli.core.github import GitHubAPIError, GitHubNotFoundError
+from cli.core.security_alerts import TrackerEntry, render_tracker_body
 
 runner = typer.testing.CliRunner()
 
@@ -61,10 +63,17 @@ def _client(
     return client
 
 
-def _invoke(client: MagicMock, args: list[str], config: MagicMock | None = None) -> Any:
+def _invoke(
+    client: MagicMock,
+    args: list[str],
+    config: MagicMock | None = None,
+    exceptions: list[DependabotException] | None = None,
+) -> Any:
     with (
         patch("cli.commands.security.GitHubClient", return_value=client),
         patch("cli.commands.security.load_active_config", return_value=config or _config()),
+        patch("cli.commands.security.git_toplevel", return_value=Path("/repo")),
+        patch("cli.commands.security.load_dependabot_exceptions", return_value=exceptions),
         patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),
     ):
         return runner.invoke(app, ["security", *args])
@@ -75,7 +84,7 @@ def _dep(number: int, severity: str = "medium") -> dict[str, Any]:
         "number": number,
         "html_url": f"https://github.com/o/r/security/dependabot/{number}",
         "security_vulnerability": {"severity": severity},
-        "security_advisory": {"ghsa_id": "GHSA-x"},
+        "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc"},
         "dependency": {"package": {"name": "pkg"}},
     }
 
@@ -84,259 +93,273 @@ def _cs(number: int) -> dict[str, Any]:
     return {"number": number, "rule": {"id": "js/xss", "severity": "error"}}
 
 
-def _issue(number: int, state: str, kind: str, alert: int) -> dict[str, Any]:
-    return {"number": number, "state": state, "body": f"<!-- pecot-alert: {kind}/{alert} -->"}
+def _exc(alert: int) -> DependabotException:
+    return DependabotException(alert=alert, package="pkg", reason="理由", reevaluate="v2 が出たら")
+
+
+def _body(*entries: TrackerEntry) -> str:
+    return render_tracker_body(list(entries), 0, "github.com", "o", "r")
+
+
+def _row(kind: str, number: int, state: str = "open", **kw: Any) -> TrackerEntry:
+    return TrackerEntry(kind=kind, number=number, state=state, **kw)  # type: ignore[arg-type]
+
+
+def _tracker(number: int, body: str, state: str = "open") -> dict[str, Any]:
+    return {"number": number, "state": state, "body": body}
 
 
 class TestSync:
-    def test_creates_issue_and_puts_on_board(self) -> None:
-        client = _client(dependabot=[_dep(7, "high")])
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0, result.output
-        args = client.create_issue.call_args.kwargs
-        assert args["title"] == "[Bug] Security alert: dependabot #7 (pkg)"
-        assert args["labels"] == ["security-alert"]
-        assert "<!-- pecot-alert: dependabot/7 -->" in args["body"]
-        client.add_to_project.assert_called_once_with("PVT_1", "I_node")
-        assert client.update_project_item_field.call_count == 2  # Status と Priority
-
-    def test_status_ready_and_priority_values(self) -> None:
+    def test_creates_one_tracker_and_puts_it_on_backlog(self) -> None:
         config = _config()
         config.get_field_id.side_effect = lambda name: f"F_{name}"
         config.get_option_id.side_effect = lambda field, option: f"O_{field}_{option}"
-        client = _client(code_scanning=[_cs(10)])
+        client = _client(dependabot=[_dep(1, "low"), _dep(2, "high")], code_scanning=[_cs(10)])
         result = _invoke(client, ["sync"], config)
 
         assert result.exit_code == 0, result.output
+        client.create_issue.assert_called_once()
+        args = client.create_issue.call_args.kwargs
+        assert re.fullmatch(r"\[Tracker\] security alert — \d{4}-\d\d-\d\d から", args["title"])
+        assert args["labels"] == ["security-alert"]
+        assert args["body"].startswith("<!-- pecot-alert: tracker -->")
+        assert args["body"].count("pecot-alert: dependabot/") == 2
+        assert "js/xss" not in args["body"]
+        client.update_issue_body.assert_not_called()
         updates = [c.args for c in client.update_project_item_field.call_args_list]
-        assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_ready") in updates
+        assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_high") in updates
-        body = client.create_issue.call_args.kwargs["body"]
-        assert "js/xss" not in body
 
-    def test_dry_run_changes_nothing(self) -> None:
-        client = _client(
-            dependabot=[_dep(1)],
-            issues=[_issue(5, "open", "code-scanning", 9)],
-        )
-        result = _invoke(client, ["sync", "--dry-run"])
+    def test_exceptions_only_creates_nothing(self) -> None:
+        client = _client(dependabot=[_dep(1)])
+        result = _invoke(client, ["sync"], exceptions=[_exc(1)])
+
+        assert result.exit_code == 0, result.output
+        client.create_issue.assert_not_called()
+        client.update_issue_body.assert_not_called()
+
+    def test_exceptions_are_left_out_of_a_new_tracker(self) -> None:
+        client = _client(code_scanning=[_cs(10)], dependabot=[_dep(1)])
+        result = _invoke(client, ["sync"], exceptions=[_exc(1)])
+
+        assert result.exit_code == 0, result.output
+        body = client.create_issue.call_args.kwargs["body"]
+        assert "pecot-alert: dependabot/" not in body
+        assert "pecot-alert: code-scanning/10" in body
+
+    def test_no_alerts_no_tracker(self) -> None:
+        client = _client()
+        result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
-        assert "[dry-run] 作る: dependabot #1" in result.output
-        assert "[dry-run] 閉じる候補: code-scanning #9" in result.output
         client.create_issue.assert_not_called()
-        client.close_issue.assert_not_called()
-        client.add_to_project.assert_not_called()
 
-    def test_list_failure_skips_kind_and_never_closes(self) -> None:
+    def test_existing_tracker_is_patched_without_new_issue(self) -> None:
+        client = _client(
+            dependabot=[_dep(1), _dep(2)],
+            issues=[_tracker(5, _body(_row("dependabot", 1, priority="medium", package="pkg")))],
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.create_issue.assert_not_called()
+        client.update_issue_body.assert_called_once()
+        args = client.update_issue_body.call_args.args
+        assert args[:3] == ("o", "r", 5)
+        assert "pecot-alert: dependabot/2" in args[3]
+        assert "Tracker #5 に足す: dependabot #2" in result.output
+
+    def test_same_body_is_not_patched(self) -> None:
+        entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(entry))])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_not_called()
+        assert "Tracker #5 は変わらない" in result.output
+
+    def test_crlf_body_counts_as_the_same(self) -> None:
+        entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
+        body = _body(entry).replace("\n", "\r\n")
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, body)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_not_called()
+
+    def test_row_leaving_the_list_becomes_result_after_single_fetch(self) -> None:
+        client = _client(
+            issues=[_tracker(5, _body(_row("code-scanning", 9)))],
+            singles={"get_code_scanning_alert": {"state": "fixed"}},
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        body = client.update_issue_body.call_args.args[3]
+        assert "state=fixed" in body
+        assert "要判断 → 結果: fixed" in result.output
+        client.close_issue.assert_not_called()
+
+    def test_single_fetch_failure_keeps_row_and_exits_1(self) -> None:
+        client = _client(
+            issues=[_tracker(5, _body(_row("code-scanning", 9)))],
+            singles={"get_code_scanning_alert": GitHubAPIError("x", status_code=500)},
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        client.update_issue_body.assert_not_called()
+
+    def test_still_open_single_keeps_row(self) -> None:
+        client = _client(
+            issues=[_tracker(5, _body(_row("dependabot", 9)))],
+            singles={"get_dependabot_alert": {"state": "open"}},
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0
+        client.update_issue_body.assert_not_called()
+
+    def test_missing_alert_404_becomes_gone(self) -> None:
+        client = _client(
+            issues=[_tracker(5, _body(_row("dependabot", 9)))],
+            singles={"get_dependabot_alert": GitHubNotFoundError("nf", status_code=404)},
+        )
+        _invoke(client, ["sync"])
+
+        assert "state=gone" in client.update_issue_body.call_args.args[3]
+
+    def test_patch_422_is_a_failure(self) -> None:
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body())])
+        client.update_issue_body.side_effect = GitHubAPIError("too long", status_code=422)
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        assert "本文を書き直せません" in result.stderr
+
+    def test_broken_markers_exit_1_without_writing(self) -> None:
+        broken = _body().replace("<!-- pecot-alert: list-end -->", "")
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, broken)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        client.update_issue_body.assert_not_called()
+        client.create_issue.assert_not_called()
+
+    def test_multiple_trackers_use_the_smallest_and_warn(self) -> None:
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(9, _body()), _tracker(5, _body())])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        assert client.update_issue_body.call_args.args[2] == 5
+        assert "#9" in result.stderr
+        client.close_issue.assert_not_called()
+
+    def test_closed_tracker_is_not_reused(self) -> None:
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(), "closed")])
+        _invoke(client, ["sync"])
+
+        client.create_issue.assert_called_once()
+        client.update_issue_body.assert_not_called()
+
+    def _existing_board(self, set_field_ids: set[str]) -> MagicMock:
+        config = _config()
+        config.get_field_id.side_effect = lambda name: f"F_{name}"
+        config.get_option_id.side_effect = lambda field, option: f"O_{field}_{option}"
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body())])
+        client.get_item_set_field_ids.return_value = set_field_ids
+        _invoke(client, ["sync"], config)
+        return client
+
+    def test_existing_tracker_with_status_and_priority_is_not_reset(self) -> None:
+        client = self._existing_board({"F_workflow", "F_priority"})
+
+        client.update_project_item_field.assert_not_called()
+
+    def test_existing_tracker_with_empty_fields_gets_backlog_and_priority(self) -> None:
+        client = self._existing_board(set())
+
+        updates = [c.args for c in client.update_project_item_field.call_args_list]
+        assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
+        assert ("PVT_1", "ITEM", "F_priority", "O_priority_medium") in updates
+
+    def test_failed_kind_is_untouched_and_exits_1(self) -> None:
+        entry = _row("secret-scanning", 1)
         client = _client(
             secret_scanning=GitHubAPIError("boom", status_code=500),
-            issues=[_issue(5, "open", "secret-scanning", 1)],
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body(entry))],
         )
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
         assert "secret scanning の一覧を取得できません" in result.stderr
-        client.close_issue.assert_not_called()
         client.get_secret_scanning_alert.assert_not_called()
+        body = client.update_issue_body.call_args.args[3]
+        assert "pecot-alert: secret-scanning/1 state=open" in body
+        assert "pecot-alert: dependabot/1" in body
 
-    def test_disabled_secret_scanning_is_skipped_without_failure(self) -> None:
+    def test_failed_kind_does_not_create_a_tracker(self) -> None:
+        client = _client(dependabot=GitHubAPIError("boom", status_code=500))
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        client.create_issue.assert_not_called()
+
+    def test_disabled_kind_is_untouched_with_exit_0(self) -> None:
+        entry = _row("secret-scanning", 1)
         client = _client(
             secret_scanning=GitHubNotFoundError("nf", status_code=404, response_body="{}"),
-            issues=[_issue(5, "open", "secret-scanning", 1)],
+            issues=[_tracker(5, _body(entry))],
         )
         client.get_secret_scanning_status.return_value = "disabled"
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
         assert "secret scanning: 無効のため飛ばします" in result.output
-        client.close_issue.assert_not_called()
+        client.get_secret_scanning_alert.assert_not_called()
+        client.update_issue_body.assert_not_called()
 
     def test_secret_scanning_404_without_disabled_status_fails(self) -> None:
-        """権限不足の 404 を無効とみなさない。飛ばして exit 1"""
+        """権限不足の 404 を無効とみなさない。触れずに exit 1"""
         client = _client(
             secret_scanning=GitHubNotFoundError("nf", status_code=404, response_body="{}"),
-            issues=[_issue(5, "open", "secret-scanning", 1)],
+            issues=[_tracker(5, _body(_row("secret-scanning", 1)))],
         )
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
-        client.close_issue.assert_not_called()
+        client.get_secret_scanning_alert.assert_not_called()
 
     def test_code_scanning_no_analysis_404_is_zero_alerts(self) -> None:
-        """解析が無い 404 は open 0 件。その種類の古い Issue は alert を確かめて閉じる"""
         client = _client(
             code_scanning=GitHubNotFoundError(
                 "nf", status_code=404, response_body='{"message": "no analysis found"}'
             ),
-            issues=[_issue(5, "open", "code-scanning", 9)],
+            issues=[_tracker(5, _body(_row("code-scanning", 9)))],
             singles={"get_code_scanning_alert": {"state": "fixed"}},
         )
         result = _invoke(client, ["sync"])
 
-        assert result.exit_code == 0
-        client.close_issue.assert_called_once_with("o", "r", 5)
+        assert result.exit_code == 0, result.output
+        assert "state=fixed" in client.update_issue_body.call_args.args[3]
 
-    def test_code_scanning_without_ghas_403_is_skipped(self) -> None:
+    def test_code_scanning_without_ghas_403_is_disabled(self) -> None:
         client = _client(
             code_scanning=GitHubAPIError(
                 "denied",
                 status_code=403,
                 response_body='{"message": "Advanced Security must be enabled for this repository"}',
             ),
-            issues=[_issue(5, "open", "code-scanning", 9)],
         )
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
         assert "code scanning: 無効のため飛ばします" in result.output
-        client.close_issue.assert_not_called()
-
-    def test_code_scanning_permission_403_fails(self) -> None:
-        client = _client(
-            code_scanning=GitHubAPIError(
-                "denied",
-                status_code=403,
-                response_body='{"message": "Resource not accessible by integration"}',
-            )
-        )
-        assert _invoke(client, ["sync"]).exit_code == 1
-
-    def test_dependabot_disabled_is_skipped_without_failure(self) -> None:
-        client = _client(
-            dependabot=GitHubAPIError("denied", status_code=403, response_body="{}"),
-            issues=[_issue(5, "open", "dependabot", 1)],
-        )
-        client.is_dependabot_alerts_enabled.return_value = False
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0
-        assert "Dependabot: 無効のため飛ばします" in result.output
-        client.close_issue.assert_not_called()
 
     def test_dependabot_forbidden_while_enabled_fails(self) -> None:
         client = _client(dependabot=GitHubAPIError("denied", status_code=403, response_body="{}"))
         assert _invoke(client, ["sync"]).exit_code == 1
-
-    def test_closes_issue_when_alert_fixed(self) -> None:
-        client = _client(
-            issues=[_issue(5, "open", "code-scanning", 9)],
-            singles={"get_code_scanning_alert": {"state": "fixed"}},
-        )
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0
-        client.add_issue_comment.assert_called_once_with(
-            "o", "r", 5, "alert が fixed になったため閉じます。"
-        )
-        client.close_issue.assert_called_once_with("o", "r", 5)
-        names = [c[0] for c in client.mock_calls if c[0] in ("close_issue", "add_issue_comment")]
-        assert names == ["close_issue", "add_issue_comment"]  # 閉じてから理由を付ける
-
-    def test_failed_close_leaves_no_comment(self) -> None:
-        client = _client(
-            issues=[_issue(5, "open", "code-scanning", 9)],
-            singles={"get_code_scanning_alert": {"state": "fixed"}},
-        )
-        client.close_issue.side_effect = GitHubAPIError("x", status_code=500)
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 1
-        client.add_issue_comment.assert_not_called()
-
-    def test_does_not_close_when_single_alert_still_open(self) -> None:
-        client = _client(
-            issues=[_issue(5, "open", "dependabot", 9)],
-            singles={"get_dependabot_alert": {"state": "open"}},
-        )
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0
-        client.close_issue.assert_not_called()
-
-    def test_closes_with_missing_alert_404(self) -> None:
-        client = _client(
-            issues=[_issue(5, "open", "dependabot", 9)],
-            singles={"get_dependabot_alert": GitHubNotFoundError("nf", status_code=404)},
-        )
-        _invoke(client, ["sync"])
-
-        client.add_issue_comment.assert_called_once_with("o", "r", 5, "alert が無いため閉じます。")
-        client.close_issue.assert_called_once()
-
-    def test_reopens_closed_issue(self) -> None:
-        client = _client(dependabot=[_dep(2)], issues=[_issue(8, "closed", "dependabot", 2)])
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0
-        client.reopen_issue.assert_called_once_with("o", "r", 8)
-        client.create_issue.assert_not_called()
-
-    def test_reopened_issue_is_set_back_to_ready(self) -> None:
-        config = _config()
-        config.get_field_id.side_effect = lambda name: f"F_{name}"
-        config.get_option_id.side_effect = lambda field, option: f"O_{field}_{option}"
-        # 閉じる前に Active だった項目でも、reopen では Ready に戻す
-        client = _client(dependabot=[_dep(2)], issues=[_issue(8, "closed", "dependabot", 2)])
-        client.get_item_set_field_ids.return_value = {"F_workflow"}
-        result = _invoke(client, ["sync"], config)
-
-        assert result.exit_code == 0
-        updates = [c.args for c in client.update_project_item_field.call_args_list]
-        assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_ready") in updates
-        assert ("PVT_1", "ITEM", "F_priority", "O_priority_medium") in updates
-
-    def _existing(self, set_field_ids: set[str]) -> tuple[MagicMock, Any]:
-        config = _config()
-        config.get_field_id.side_effect = lambda name: f"F_{name}"
-        config.get_option_id.side_effect = lambda field, option: f"O_{field}_{option}"
-        client = _client(dependabot=[_dep(1)], issues=[_issue(5, "open", "dependabot", 1)])
-        client.get_item_set_field_ids.return_value = set_field_ids
-        return client, _invoke(client, ["sync"], config)
-
-    def test_existing_issue_with_started_status_is_not_reset(self) -> None:
-        """Status が入っている項目（着手済み）を Ready に戻さない。Priority は付け直す"""
-        client, result = self._existing({"F_workflow", "F_priority"})
-
-        assert result.exit_code == 0
-        client.create_issue.assert_not_called()
-        client.add_to_project.assert_called_once()
-        fields = [c.args[2] for c in client.update_project_item_field.call_args_list]
-        assert fields == ["F_priority"]
-
-    def test_existing_issue_with_empty_status_gets_ready(self) -> None:
-        """途中で失敗して Status が空のまま残った項目は、次の実行で Ready になる"""
-        client, result = self._existing(set())
-
-        assert result.exit_code == 0
-        updates = [c.args for c in client.update_project_item_field.call_args_list]
-        assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_ready") in updates
-
-    def test_duplicate_open_issues_are_closed_keeping_the_oldest(self) -> None:
-        client = _client(
-            dependabot=[_dep(1)],
-            issues=[_issue(7, "open", "dependabot", 1), _issue(5, "open", "dependabot", 1)],
-        )
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0
-        client.close_issue.assert_called_once_with("o", "r", 7, "not_planned")
-        comment = client.add_issue_comment.call_args.args
-        assert comment[:3] == ("o", "r", 7)
-        assert "#5" in comment[3]
-        assert "重複" in comment[3]
-
-    def test_one_failure_does_not_stop_the_rest(self) -> None:
-        client = _client(dependabot=[_dep(1), _dep(2)])
-        client.create_issue.side_effect = [
-            GitHubAPIError("x", status_code=500),
-            {"number": 101, "html_url": "u"},
-        ]
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 1
-        assert client.create_issue.call_count == 2
 
     def test_issue_list_failure_exits_1(self) -> None:
         client = _client()
@@ -347,115 +370,59 @@ class TestSync:
         client.create_issue.assert_not_called()
 
 
-def _git_root_with_exceptions(tmp_path: Path, count: int) -> Path:
-    gh = tmp_path / ".github"
-    gh.mkdir()
-    items = [
-        {"alert": n, "package": "pkg", "reason": "理由", "reevaluate": f"条件{n}"}
-        for n in range(1, count + 1)
-    ]
-    (gh / "dependabot-exceptions.json").write_text(json.dumps({"exceptions": items}))
-    return tmp_path
-
-
-def _invoke_review(client: MagicMock, git_root: Path, args: list[str] | None = None) -> Any:
-    with (
-        patch("cli.commands.security.GitHubClient", return_value=client),
-        patch("cli.commands.security.load_active_config", return_value=_config()),
-        patch("cli.commands.security.git_toplevel", return_value=git_root),
-        patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),
-    ):
-        return runner.invoke(app, ["security", "review-exceptions", *(args or [])])
-
-
-class TestReviewExceptions:
-    def test_no_exceptions_creates_nothing(self, tmp_path: Path) -> None:
-        client = _client()
-        result = _invoke_review(client, tmp_path)
-
-        assert result.exit_code == 0
-        client.create_issue.assert_not_called()
-
-    def test_creates_review_issue(self, tmp_path: Path) -> None:
-        client = _client()
-        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 2))
+class TestDryRun:
+    def test_new_tracker_line_and_no_writes(self) -> None:
+        client = _client(dependabot=[_dep(1, "high")], code_scanning=[_cs(10)])
+        result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        kwargs = client.create_issue.call_args.kwargs
-        assert kwargs["title"] == "[Task] Dependabot の例外を見直す"
-        assert "<!-- pecot-alert: exceptions-review -->" in kwargs["body"]
-        assert "条件1" in kwargs["body"]
-        assert "条件2" in kwargs["body"]
-        client.add_to_project.assert_called_once()
-
-    def test_open_review_issue_blocks_creation(self, tmp_path: Path) -> None:
-        client = _client(
-            issues=[
-                {"number": 9, "state": "open", "body": "<!-- pecot-alert: exceptions-review -->"}
-            ]
+        assert re.search(
+            r"\[dry-run\] Tracker を立てる: \[Tracker\] security alert — \d{4}-\d\d-\d\d から"
+            r"（要判断 2 件・Priority: high）",
+            result.output,
         )
-        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1))
-
-        assert result.exit_code == 0
+        assert "[dry-run] Tracker に載せる: dependabot #1" in result.output
         client.create_issue.assert_not_called()
+        client.update_issue_body.assert_not_called()
+        client.add_to_project.assert_not_called()
+        client.update_project_item_field.assert_not_called()
 
-    def test_open_review_issue_is_put_on_board_again(self, tmp_path: Path) -> None:
-        """作った後にボード登録が失敗した実行を、次の実行で直す（Status は空のときだけ）"""
+    def test_existing_tracker_lines(self) -> None:
         client = _client(
-            issues=[
-                {"number": 9, "state": "open", "body": "<!-- pecot-alert: exceptions-review -->"}
-            ]
+            dependabot=[_dep(2)],
+            issues=[_tracker(5, _body(_row("dependabot", 2), _row("code-scanning", 9)))],
+            singles={
+                "get_code_scanning_alert": {
+                    "state": "dismissed",
+                    "dismissed_reason": "false positive",
+                }
+            },
         )
-        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1))
+        result = _invoke(client, ["sync", "--dry-run"])
 
-        assert result.exit_code == 0
-        client.add_to_project.assert_called_once()
-        client.get_item_set_field_ids.assert_called_once()
-
-    def test_duplicate_review_issues_are_closed(self, tmp_path: Path) -> None:
-        """一覧の反映の遅れで続けて作られた重複は、番号の小さい 1 件を残して閉じる"""
-        marker = "<!-- pecot-alert: exceptions-review -->"
-        client = _client(
-            issues=[
-                {"number": 12, "state": "open", "body": marker},
-                {"number": 9, "state": "open", "body": marker},
-            ]
+        assert result.exit_code == 0, result.output
+        assert (
+            "[dry-run] Tracker #5 の行を変える: code-scanning #9（要判断 → 結果: dismissed（理由: false_positive）"
+            "）" in result.output
         )
-        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1))
+        client.update_issue_body.assert_not_called()
 
-        assert result.exit_code == 0
-        client.create_issue.assert_not_called()
-        client.close_issue.assert_called_once_with("o", "r", 12, "not_planned")
-        assert "#9" in client.add_issue_comment.call_args.args[3]
+    def test_unchanged_line(self) -> None:
+        entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(entry))])
+        result = _invoke(client, ["sync", "--dry-run"])
 
-    def test_duplicate_review_issues_dry_run_closes_nothing(self, tmp_path: Path) -> None:
-        marker = "<!-- pecot-alert: exceptions-review -->"
-        client = _client(
-            issues=[
-                {"number": 12, "state": "open", "body": marker},
-                {"number": 9, "state": "open", "body": marker},
-            ]
-        )
-        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1), ["--dry-run"])
+        assert "[dry-run] Tracker #5 は変わらない" in result.output
 
-        assert result.exit_code == 0
-        assert "[dry-run] 重複を閉じる" in result.output
-        client.close_issue.assert_not_called()
 
-    def test_closed_review_issue_does_not_block(self, tmp_path: Path) -> None:
-        client = _client(
-            issues=[
-                {"number": 9, "state": "closed", "body": "<!-- pecot-alert: exceptions-review -->"}
-            ]
-        )
-        _invoke_review(client, _git_root_with_exceptions(tmp_path, 1))
+class TestCommands:
+    def test_review_exceptions_is_gone(self) -> None:
+        result = runner.invoke(app, ["security", "review-exceptions"])
 
-        client.create_issue.assert_called_once()
+        assert result.exit_code != 0
 
-    def test_dry_run(self, tmp_path: Path) -> None:
-        client = _client()
-        result = _invoke_review(client, _git_root_with_exceptions(tmp_path, 1), ["--dry-run"])
+    def test_help_lists_only_sync(self) -> None:
+        result = runner.invoke(app, ["security", "--help"])
 
-        assert result.exit_code == 0
-        assert "[dry-run] 作る" in result.output
-        client.create_issue.assert_not_called()
+        assert "sync" in result.output
+        assert "review-exceptions" not in result.output

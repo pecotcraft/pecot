@@ -1,6 +1,6 @@
 """tests/unit/test_template_rules.py - テンプレの形と、冒頭のコメントの例を確かめる。
 
-`--prepare` が配る 11 テンプレ（issue 4 種 / comment 5 種 / pr 2 種）は、冒頭のコメントに
+`--prepare` が配る 12 テンプレ（issue 5 種 / comment 5 種 / pr 2 種）は、冒頭のコメントに
 「読者:」と、本文の手本の「例:」を持つ。CLI が投稿時に弾く記法は、テンプレに規則として書かない。
 
 次を固定する。
@@ -76,9 +76,9 @@ def _body(template: Path) -> str:
     return template.read_text(encoding="utf-8").split("\n-->\n", 1)[1]
 
 
-def test_eleven_templates_are_covered() -> None:
-    """issue 4 種 / comment 5 種 / pr 2 種がそろっている"""
-    assert len(TEMPLATE_PATHS) == 11
+def test_twelve_templates_are_covered() -> None:
+    """issue 5 種 / comment 5 種 / pr 2 種がそろっている"""
+    assert len(TEMPLATE_PATHS) == 12
 
 
 @pytest.mark.parametrize("template", TEMPLATE_PATHS, ids=_template_id)

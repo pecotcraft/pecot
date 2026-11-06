@@ -1,5 +1,5 @@
-# main の security alert（Dependabot・code scanning・secret scanning）を読み、ボードの Issue にそろえる。
-# 毎時 17 分に sync を、毎月 1 日の 0:23 に review-exceptions を動かす。
+# main の security alert（Dependabot・code scanning・secret scanning）を読み、ボードの Tracker の一覧にそろえる。
+# 毎時 17 分に sync を動かす。
 # GITHUB_TOKEN は secret scanning の alert と org の Projects を扱えないため、GitHub App のトークンを使う。
 # 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。
 # 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
@@ -8,17 +8,7 @@ name: security-alerts
 on:
   schedule:
     - cron: "17 * * * *"
-    - cron: "23 0 1 * *"
   workflow_dispatch:
-    inputs:
-      command:
-        description: "動かす処理"
-        required: true
-        default: sync
-        type: choice
-        options:
-          - sync
-          - review-exceptions
 
 permissions:
   contents: read
@@ -32,9 +22,6 @@ jobs:
     if: ${{ vars.SECURITY_APP_CLIENT_ID != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      # schedule は起動した cron の式で選ぶ。手動起動は入力で選ぶ。
-      COMMAND: ${{ github.event_name == 'workflow_dispatch' && inputs.command || (github.event.schedule == '23 0 1 * *' && 'review-exceptions' || 'sync') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,4 +44,4 @@ jobs:
       - name: pecot security を動かす
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: plugins/pecot-workflow/bin/pecot security "$COMMAND"
+        run: plugins/pecot-workflow/bin/pecot security sync
