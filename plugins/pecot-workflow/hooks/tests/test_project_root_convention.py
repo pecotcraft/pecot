@@ -40,8 +40,8 @@ _CWD_TOPLEVEL_RE = re.compile(r"\bgit\b(?:(?!\s-C\b)[^|;&])*?\brev-parse\s+--sho
 
 
 def test_entry_points_enumerated() -> None:
-    # 列挙が空振りすると全 pass になるため下限を置く（実数は hooks.json の entry 17 本）。
-    assert len(_ENTRY_POINTS) >= 17
+    # 列挙が空振りすると全 pass になるため下限を置く（実数は hooks/ 直下の 14 本）。
+    assert len(_ENTRY_POINTS) >= 14
     assert len(_LIB_SCRIPTS) >= 40
 
 

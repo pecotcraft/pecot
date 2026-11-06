@@ -2,8 +2,8 @@
 
 contracts/hook-flow.md 不変条件 3 は次のとおり。
 Copilot CLI 手段（hooks-copilot.json）の plan 系 hook 挙動は、Claude Code 手段（hooks.json）と同一。
-両ファイルの plan 系 4 エントリを、{(event, matcher): command} の写像に正規化する。
-4 エントリは、PreToolUse/PostToolUse × EnterPlanMode/ExitPlanMode。
+両ファイルの plan 系エントリを、{(event, matcher): command} の写像に正規化する。
+plan 系エントリは、PostToolUse の ExitPlanMode の 1 本だけ。
 配列順に依存せず、一致を検証する。
 """
 
@@ -24,7 +24,7 @@ def hooks_dir(project_root: Path) -> Path:
 
 
 def _plan_entry_map(config_path: Path) -> dict[tuple[str, str], str]:
-    """plan 系 4 エントリを {(event, matcher): command} に正規化する（順序非依存）。"""
+    """plan 系エントリを {(event, matcher): command} に正規化する（順序非依存）。"""
     data = json.loads(config_path.read_text())
     result: dict[tuple[str, str], str] = {}
     for event in _PLAN_EVENTS:
@@ -43,7 +43,7 @@ def _plan_entry_map(config_path: Path) -> dict[tuple[str, str], str]:
 def test_plan_entries_present_in_both(hooks_dir: Path):
     claude = _plan_entry_map(hooks_dir / "hooks.json")
     copilot = _plan_entry_map(hooks_dir / "hooks-copilot.json")
-    expected_keys = {(e, m) for e in _PLAN_EVENTS for m in _PLAN_MATCHERS}
+    expected_keys = {("PostToolUse", "ExitPlanMode")}
     assert set(claude.keys()) == expected_keys
     assert set(copilot.keys()) == expected_keys
 
