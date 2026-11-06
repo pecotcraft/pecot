@@ -21,8 +21,8 @@ TEXT_FILES_RE='\.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|ym
 TEXT_EXCLUDE_RE='(^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli-node/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-'
 
 here="$(dirname "${BASH_SOURCE[0]}")"
-# shellcheck source=lib/push-range.sh
-source "$here/lib/push-range.sh"
+# shellcheck source=../lib/push-range.sh
+source "$here/../lib/push-range.sh"
 
 declare -a tips=()
 while IFS= read -r tip; do
@@ -65,4 +65,4 @@ if [ "${#targets[@]}" -eq 0 ]; then
 fi
 
 cd "$root"
-exec "$here/check-text.sh" "${targets[@]}"
+exec "$here/../pre-commit/check-text.sh" "${targets[@]}"

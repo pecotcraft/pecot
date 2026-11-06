@@ -54,7 +54,7 @@ fi
 
 # 2. 実行中のミラーを引き継いだ子プロセス（cli が bin/pecotv を起動し直した場合）は再準備しない。
 # ゲート（scripts/ci/run-tests.sh）が PECOTV_RUNTIME_DIR を unset して固定するので、ここは外の値を読む経路である。
-# 走査器（.githooks/pre-commit/tests/test_nx_env_inputs.py）が SKIP 分岐の unset を束縛に数えて見落とすため、除外には載せていない。
+# 走査器（.githooks/tests/test_nx_env_inputs.py）が SKIP 分岐の unset を束縛に数えて見落とすため、除外には載せていない。
 if [ -n "${PECOTV_RUNTIME_DIR:-}" ] && plugin_runtime_is_complete "$PECOTV_RUNTIME_DIR"; then
   exec node "$PECOTV_RUNTIME_DIR/cli/dist/cli.js" "$@"
 fi

@@ -1,6 +1,6 @@
-"""conftest.py - .githooks/pre-commit/tests/ 共通フィクスチャ
+"""conftest.py - .githooks/tests/ 共通フィクスチャ
 
-root 共通フック（.githooks/pre-commit/*.sh）の pytest テストが共有するフィクスチャを定義する。
+root 共通フック（.githooks/ 配下の stage ごとのディレクトリの *.sh）の pytest テストが共有するフィクスチャを定義する。
 bats 時代の test_helper.bash（`_unset_git_local_env_vars`）に相当する機能を提供する。
 各 .bats の setup 相当のセットアップも提供する。
 内容は GIT_* 隔離・temp git repo 生成・nx スタブ配置。
@@ -51,14 +51,22 @@ def _isolate_git_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 # パス解決（フックスクリプトのディレクトリ）
 #
-# このファイルは .githooks/pre-commit/tests/conftest.py に置かれる。
-# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
+# このファイルは .githooks/tests/conftest.py に置かれる。
+# parents[0]=tests, [1]=.githooks, [2]=リポルート。
+# script_dir は pre-commit stage の hook の置き場で、script_dir.parents[1] がリポルートになる。
+# 他の stage の hook は githooks_dir から `githooks_dir / "commit-msg" / ...` のように引く。
 
 
 @pytest.fixture(scope="session")
-def script_dir() -> Path:
-    """.githooks/pre-commit/（テスト対象フックスクリプトの親）。"""
+def githooks_dir() -> Path:
+    """.githooks/（stage ごとのディレクトリ・lib・tests の親）。"""
     return Path(__file__).resolve().parents[1]
+
+
+@pytest.fixture(scope="session")
+def script_dir(githooks_dir: Path) -> Path:
+    """.githooks/pre-commit/（pre-commit stage のフックスクリプトの親）。"""
+    return githooks_dir / "pre-commit"
 
 
 # テスト用 git リポジトリ生成

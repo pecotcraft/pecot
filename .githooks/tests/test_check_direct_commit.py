@@ -42,7 +42,7 @@ def _run_hook_on(
     msg_file = repo / ".commit-msg"
     msg_file.write_text(f"{msg}\n")
     return run_script(
-        script_dir / "check-direct-commit.sh",
+        script_dir.parent / "commit-msg" / "check-direct-commit.sh",
         str(msg_file),
         cwd=repo,
     )

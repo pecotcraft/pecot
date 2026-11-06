@@ -33,8 +33,8 @@ from pathlib import Path
 
 import pytest
 
-# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+# parents[0]=tests, [1]=.githooks, [2]=リポルート。
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 _NX_JSON = _REPO_ROOT / "nx.json"
 
 # nx がキャッシュを再利用したときの status。outputs の無い task のヒットは
@@ -332,7 +332,7 @@ def ws(
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "feat: touch every lane")
 
-    script = _REPO_ROOT / ".githooks" / "pre-commit" / "run-affected-tests.sh"
+    script = _REPO_ROOT / ".githooks" / "ci" / "run-affected-tests.sh"
     lint_script = _REPO_ROOT / ".githooks" / "pre-commit" / "run-affected-lint.sh"
     return _Workspace(
         repo,

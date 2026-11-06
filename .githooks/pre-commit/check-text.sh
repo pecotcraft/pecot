@@ -14,8 +14,8 @@ if [ "$#" -eq 0 ]; then
 fi
 
 here="$(dirname "${BASH_SOURCE[0]}")"
-# shellcheck source=lib/text-rules-ready.sh
-source "$here/lib/text-rules-ready.sh"
+# shellcheck source=../lib/text-rules-ready.sh
+source "$here/../lib/text-rules-ready.sh"
 
 root=$(git rev-parse --show-toplevel)
 bin="$root/libs/text-rules/dist/bin/pecot-text-lint.js"

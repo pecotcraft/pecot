@@ -2,7 +2,7 @@
 
 scope は、各プロジェクトの nx の tag ``scope:<名前>`` の値を使う。tag が無ければプロジェクト名を使う。
 
-割り当ては ``.githooks/pre-commit/check-version-plan-required.sh`` と同じ規則。
+割り当ては ``.githooks/pre-push/check-version-plan-required.sh`` と同じ規則。
 （nx の project graph → git diff → project root との最長一致）。
 判定できない場合は例外ではなく ``None`` を返し、呼び出し側が警告して割り当てを飛ばす
 （フェイルオープン）。

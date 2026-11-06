@@ -21,7 +21,7 @@ import pytest
 _LIB = Path(__file__).resolve().parents[1] / "lib" / "timing.sh"
 
 _TIMING_RELPATH = Path(".pecot/tmp/githooks-timing.tsv")
-_WRAPPER_RELPATH = ".githooks/pre-commit/with-timing.sh"
+_WRAPPER_RELPATH = ".githooks/lib/with-timing.sh"
 
 # 子として渡す bash 本文。引数を 1 行ずつ・stdin をそのまま stdout へ出し、$EXIT_CODE で終わる。
 _CHILD = 'for a in "$@"; do echo "ARG:$a"; done; cat; exit "${EXIT_CODE:-0}"'
@@ -43,7 +43,7 @@ def _wrap(
     env: dict | None = None,
 ) -> subprocess.CompletedProcess:
     return run_script(
-        script_dir / "with-timing.sh",
+        script_dir.parent / "lib" / "with-timing.sh",
         hook_id,
         "bash",
         "-c",
@@ -131,7 +131,7 @@ def test_outside_git_keeps_exit_code(script_dir: Path, run_script, tmp_path: Pat
 
 def test_usage_error_without_child(script_dir: Path, run_script, repo: Path) -> None:
     """子のコマンドが無い呼び出しは usage を出して exit 2（記録しない）。"""
-    result = run_script(script_dir / "with-timing.sh", "probe-hook", cwd=repo)
+    result = run_script(script_dir.parent / "lib" / "with-timing.sh", "probe-hook", cwd=repo)
     assert result.returncode == 2
     assert "usage" in result.stderr
     assert _rows(repo) == []
@@ -174,7 +174,7 @@ def _start_blocking_child(script_dir: Path, repo: Path, tmp_path: Path):
     proc = subprocess.Popen(
         [
             "bash",
-            str(script_dir / "with-timing.sh"),
+            str(script_dir.parent / "lib" / "with-timing.sh"),
             "sig-hook",
             "bash",
             "-c",

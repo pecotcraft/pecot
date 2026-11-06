@@ -182,7 +182,7 @@ head_tags() {
 # nx の release group フィルタは --groups と --projects だけを持つ。
 # そのため pecot-workflow 単独のリリースでも、pecot-visual group の pre-version command は起動する。
 # pecot-visual の bump 宣言が無いリリースでは配布物が更新されないので、監査せずに抜ける。
-# frontmatter の bump 宣言の抽出は、.githooks/pre-commit/check-version-plan-required.sh と同じ awk/sed 規則を使う。
+# frontmatter の bump 宣言の抽出は、.githooks/pre-push/check-version-plan-required.sh と同じ awk/sed 規則を使う。
 # 宣言として扱うのは、値が妥当な semver ReleaseType になっている行だけとする。
 #
 # 失敗したときはスキップせず、中止する側に倒す。次の 2 つの場合は exit 1 で止める。

@@ -29,14 +29,14 @@ repos:
 
       - id: check-direct-commit
         name: check direct commit to protected branches
-        entry: .githooks/pre-commit/check-direct-commit.sh
+        entry: .githooks/commit-msg/check-direct-commit.sh
         language: unsupported_script
         stages: [commit-msg]
         always_run: true
 
       - id: check-commit-text
         name: text rules (commit message)
-        entry: .githooks/pre-commit/with-timing.sh check-commit-text .githooks/pre-commit/check-commit-text.sh
+        entry: .githooks/lib/with-timing.sh check-commit-text .githooks/commit-msg/check-commit-text.sh
         language: unsupported_script
         # メッセージは COMMIT_EDITMSG で、files: の対象にならないため常に動かす
         always_run: true
@@ -62,7 +62,7 @@ repos:
 
       - id: check-text
         name: text rules
-        entry: .githooks/pre-commit/with-timing.sh check-text .githooks/pre-commit/check-text.sh
+        entry: .githooks/lib/with-timing.sh check-text .githooks/pre-commit/check-text.sh
         language: unsupported_script
         files: \.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$
         # CHANGELOG.md は nx release の生成物のため対象にしない。
@@ -80,7 +80,7 @@ repos:
       # version plan ガードと同じ push 範囲（ブランチ全体）を対象にする
       - id: check-text-push
         name: text rules (push range)
-        entry: .githooks/pre-commit/with-timing.sh check-text-push .githooks/pre-commit/check-text-push.sh
+        entry: .githooks/lib/with-timing.sh check-text-push .githooks/pre-push/check-text-push.sh
         language: unsupported_script
         pass_filenames: false
         always_run: true
@@ -89,7 +89,7 @@ repos:
 
       - id: check-version-plan-required
         name: require version plan for package source changes (branch vs base branch)
-        entry: .githooks/pre-commit/with-timing.sh check-version-plan-required .githooks/pre-commit/check-version-plan-required.sh
+        entry: .githooks/lib/with-timing.sh check-version-plan-required .githooks/pre-push/check-version-plan-required.sh
         language: unsupported_script
         pass_filenames: false
         always_run: true
@@ -99,7 +99,7 @@ repos:
 
       - id: githooks-tests
         name: githooks tests
-        entry: .githooks/pre-commit/with-timing.sh githooks-tests .githooks/pre-commit/tests/run.sh
+        entry: .githooks/lib/with-timing.sh githooks-tests .githooks/tests/run.sh
         language: unsupported_script
         pass_filenames: false
         files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
@@ -107,7 +107,7 @@ repos:
 
       - id: nx-env-inputs
         name: nx env inputs declared
-        entry: .githooks/pre-commit/with-timing.sh nx-env-inputs .githooks/pre-commit/check-nx-env-inputs.sh
+        entry: .githooks/lib/with-timing.sh nx-env-inputs .githooks/pre-push/check-nx-env-inputs.sh
         language: unsupported_script
         pass_filenames: false
         # test_nx_env_inputs.py が環境変数の読み取りを探す範囲と、その確認が読む nx.json を対象にする。
@@ -122,7 +122,7 @@ repos:
       # 成功時も一致 0 件の表示を端末へ出すため verbose にする
       - id: check-brand-terms
         name: brand terms (push range)
-        entry: .githooks/pre-commit/with-timing.sh check-brand-terms .githooks/pre-commit/check-brand-terms.sh
+        entry: .githooks/lib/with-timing.sh check-brand-terms .githooks/pre-commit/check-brand-terms.sh
         language: unsupported_script
         pass_filenames: false
         always_run: true
@@ -132,7 +132,7 @@ repos:
 
       - id: nx-affected-tests
         name: nx affected tests
-        entry: .githooks/pre-commit/with-timing.sh nx-affected-tests .githooks/pre-commit/run-affected-tests.sh
+        entry: .githooks/lib/with-timing.sh nx-affected-tests .githooks/ci/run-affected-tests.sh
         language: unsupported_script
         pass_filenames: false
         always_run: true
@@ -143,7 +143,7 @@ repos:
 
       - id: nx-affected-lint
         name: nx affected lint
-        entry: .githooks/pre-commit/with-timing.sh nx-affected-lint .githooks/pre-commit/run-affected-lint.sh
+        entry: .githooks/lib/with-timing.sh nx-affected-lint .githooks/pre-commit/run-affected-lint.sh
         language: unsupported_script
         require_serial: true
         stages: [pre-commit]
@@ -174,7 +174,7 @@ repos:
 
       - id: plugin-validate
         name: claude plugin validate --strict
-        entry: .githooks/pre-commit/with-timing.sh plugin-validate .githooks/pre-commit/plugin-validate.sh
+        entry: .githooks/lib/with-timing.sh plugin-validate .githooks/pre-commit/plugin-validate.sh
         language: unsupported_script
         pass_filenames: false
         files: ^(\.claude-plugin/[^/]+\.json|\.github/plugin/[^/]+\.json|plugins/[^/]+/(\.claude-plugin/[^/]+\.json|\.github/plugin/[^/]+\.json|hooks/hooks[^/]*\.json|\.mcp\.json|skills/.+/SKILL\.md|agents/[^/]+\.md))$

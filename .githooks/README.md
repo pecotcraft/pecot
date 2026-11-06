@@ -2,7 +2,15 @@
 
 ## 配置
 
-- `.githooks/pre-commit/`、`.githooks/pre-push/` : root 共通 (リポ全体に適用される) フック
+- root 共通 (リポ全体に適用される) フックは、動く stage ごとのディレクトリに置く
+  - `.githooks/pre-commit/` : pre-commit stage の hook
+  - `.githooks/commit-msg/` : commit-msg stage の hook
+  - `.githooks/pre-push/` : pre-push stage の hook
+  - `.githooks/ci/` : CI と共有する実行スクリプト（`run-affected-tests.sh`。stage は今のところ pre-push）
+  - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
+  - `.githooks/tests/` : 上の hook と lib のテスト
+  - 例外は、`pre-commit/check-brand-terms.sh`（pre-push で動く）と `ci/run-affected-tests.sh`（pre-push で動く）の 2 件。
+    `tests/test_pre_commit_config_wiring.py` が、置き場のディレクトリと `stages:` の一致を確かめる
 - プラグイン固有 CI : `plugins/<plugin>/scripts/ci/run-{lint,tests}.sh`
 
 最新の hook 一覧は `.pre-commit-config.yaml` を参照する (本 README には書かない)。
@@ -143,14 +151,14 @@ lint / test は root 共通フック各 1 本に一本化する。次のとお�
 ```yaml
 - id: nx-affected-lint
   name: nx affected lint
-  entry: .githooks/pre-commit/with-timing.sh nx-affected-lint .githooks/pre-commit/run-affected-lint.sh
+  entry: .githooks/lib/with-timing.sh nx-affected-lint .githooks/pre-commit/run-affected-lint.sh
   language: unsupported_script
   require_serial: true
   stages: [pre-commit]
 
 - id: nx-affected-tests
   name: nx affected tests
-  entry: .githooks/pre-commit/with-timing.sh nx-affected-tests .githooks/pre-commit/run-affected-tests.sh
+  entry: .githooks/lib/with-timing.sh nx-affected-tests .githooks/ci/run-affected-tests.sh
   language: unsupported_script
   pass_filenames: false
   always_run: true
@@ -184,7 +192,7 @@ build target は hook から単独で起動されないため、PluginGlobals �
 
 ### R7. root 共通フック / 外部 hook (対象外)
 
-- `.githooks/{pre-commit,pre-push}/` のプラグイン非依存フックは命名・配置とも本規約の対象外。`<plugin>` を付けない。
+- `.githooks/{pre-commit,commit-msg,pre-push,ci}/` のプラグイン非依存フックは命名・配置とも本規約の対象外。`<plugin>` を付けない。
 - `repo: https://...` の外部 hook (`ruff-pre-commit`, `markdownlint-cli2`, `gitlint`) も対象外。
   - 外部 `ruff-pre-commit` はリポ全体に適用されるため、`run-lint.sh`（`nx-affected-lint` 経由）内の ruff と二重に動く。
     これは許容する。前者はリポ全体、後者はプラグイン専用 lint で、見ていない領域を補う。

@@ -378,7 +378,7 @@ def _run(script_dir: Path, h: _AffectedTestsRepo, run_script, **kwargs):
     env = {"STUB_NX_LOG": str(h.nx_log)}
     env.update(kwargs.pop("env", {}))
     return run_script(
-        script_dir / "run-affected-tests.sh",
+        script_dir.parent / "ci" / "run-affected-tests.sh",
         cwd=h.repo,
         env=env,
         **kwargs,
