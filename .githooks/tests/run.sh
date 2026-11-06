@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# root 共通フック (.githooks/pre-commit/*.sh) の pytest を実行する専用ランナー。
+# root 共通フック (.githooks/ 配下の *.sh) の pytest を実行する専用ランナー。
 # plugins/<plugin>/scripts/ci/run-tests.sh は plugin 専用 (R2) のため混ぜず、
 # root 共通フックの回帰検知はこのランナーに分離する。
 #
@@ -12,6 +12,6 @@ set -euo pipefail
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "==> pytest (.githooks/pre-commit/tests/)"
+echo "==> pytest (.githooks/tests/)"
 uvx --python 3.12 --with pytest-xdist --with packaging \
     pytest "$TESTS_DIR" -q --import-mode=importlib -n auto -p no:cacheprovider

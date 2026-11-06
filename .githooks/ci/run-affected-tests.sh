@@ -85,8 +85,8 @@
 
 set -euo pipefail
 
-# shellcheck source=lib/timing.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/timing.sh"
+# shellcheck source=../lib/timing.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 hook_start_us=$(timing_now_us)
 
 # nx の lane 並列度。N=4 で確定 (#1225)。
@@ -111,10 +111,10 @@ hook_start_us=$(timing_now_us)
 # 値を変えるときは test_run_affected_tests.py の `--parallel=` と「並列 N」も直す。
 NX_PARALLEL=4
 
-# shellcheck source=lib/push-range.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/push-range.sh"
-# shellcheck source=lib/nx-lanes.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/nx-lanes.sh"
+# shellcheck source=../lib/push-range.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
+# shellcheck source=../lib/nx-lanes.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 if [ -z "$repo_root" ]; then

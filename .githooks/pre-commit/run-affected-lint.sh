@@ -36,10 +36,10 @@ if [ -z "$repo_root" ]; then
     exit 1
 fi
 
-# shellcheck source=lib/push-range.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/push-range.sh"
-# shellcheck source=lib/nx-lanes.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/nx-lanes.sh"
+# shellcheck source=../lib/push-range.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
+# shellcheck source=../lib/nx-lanes.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 
 if ! command -v node > /dev/null 2>&1; then
     cat >&2 <<'EOF'

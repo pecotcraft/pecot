@@ -28,7 +28,7 @@ const hostsCache: { value: JsonObject | undefined } = { value: undefined }
 
 名前が実行時に決まるので、`process.env['X']` の形では読めない。
 名前の元は、hosts.json の env_var、ホストから作る `PECOT_GITHUB_<HOST>_TOKEN`、ROOT_ENV_VAR_MAP。
-環境変数の宣言の確認（.githooks/pre-commit/tests/test_nx_env_inputs.py）は、この読み方を検出できない。
+環境変数の宣言の確認（.githooks/tests/test_nx_env_inputs.py）は、この読み方を検出できない。
 宣言できない代わりに、テストが結果をトークンの値に依存させない。
 テストは token を明示して渡すか、トークンの変数を自分で設定する。
 トークンの変数を外す隔離は tests/_helpers/environment.ts の useIsolatedEnvironment が行う。

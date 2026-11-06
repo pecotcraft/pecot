@@ -205,7 +205,7 @@ def _run(script_dir: Path, h: _VprRepo, run_script, *, to_ref: str | None = None
     if env:
         full_env.update(env)
     return run_script(
-        script_dir / "check-version-plan-required.sh",
+        script_dir.parent / "pre-push" / "check-version-plan-required.sh",
         cwd=h.repo,
         env=full_env,
     )
@@ -677,7 +677,7 @@ def test_28_error_nested_project_outside_group(
 # 使い捨て clone に実 nx（NX_DAEMON=false）を向け、ケースごとにブランチを切って hook を実行する。
 # clone は 1 回だけ作る。node_modules/.bin/nx が無ければ skip。
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 _NX_BIN = _REPO_ROOT / "node_modules" / ".bin" / "nx"
 
 
@@ -732,7 +732,7 @@ class _RealNx:
 
     def run_hook(self) -> subprocess.CompletedProcess:
         return subprocess.run(
-            ["bash", str(_REPO_ROOT / ".githooks/pre-commit/check-version-plan-required.sh")],
+            ["bash", str(_REPO_ROOT / ".githooks/pre-push/check-version-plan-required.sh")],
             cwd=self.probe,
             capture_output=True,
             text=True,
