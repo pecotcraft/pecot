@@ -8,7 +8,7 @@
 # 前提は、cli・eslint プラグイン・text-rules の dist が build 済みであること。
 # build 自体は cli / slidev レーンと nx の text-rules:build が担当するので、本テストでは実行しない。
 # publish は原則 --skip-build を付けて実行する。
-# build を伴う場合（セクション 1-4）だけは、偽 pnpm と偽 npm を PATH に被せて、呼び出し順だけを検証する。
+# build を伴う場合（セクション 1-4）だけは、偽 pnpm を PATH に被せて、呼び出し順だけを検証する。
 # run-tests.sh --scope=release が事前に build する。
 #
 # `set -e` は使わない。早期 return の検証で、非ゼロ終了を意図的に発生させる。
@@ -523,25 +523,9 @@ esac
 exit 0
 FAKE_PNPM
 chmod +x "$TMP/bin/pnpm"
-# text-rules の build は npm --prefix で起動される。実行すると dist を作り直すため、
-# --prefix 付きの呼び出しだけ記録して止め、依存解決など他の呼び出しは実体の npm へ渡す。
-NPM_CALLS="$TMP/npm-calls.txt"
-REAL_NPM="$(command -v npm)"
-cat > "$TMP/bin/npm" << 'FAKE_NPM'
-#!/bin/bash
-case "$*" in
-    --prefix*)
-        printf '%s\t%s\n' "$PWD" "$*" >> "$NPM_CALLS"
-        exit 0
-        ;;
-esac
-exec "$REAL_NPM" "$@"
-FAKE_NPM
-chmod +x "$TMP/bin/npm"
 : > "$PNPM_CALLS"
-: > "$NPM_CALLS"
 BUILD_RC=0
-PECOTV_ESLINT_PLUGINS_DIR="$TMP/eslint-tree" NPM_CALLS="$NPM_CALLS" REAL_NPM="$REAL_NPM" PNPM_CALLS="$PNPM_CALLS" \
+PECOTV_ESLINT_PLUGINS_DIR="$TMP/eslint-tree" PNPM_CALLS="$PNPM_CALLS" \
     ESLINT_TREE="$ESLINT_TREE" ESLINT_BACKUP="$ESLINT_BACKUP" ESLINT_DIST_AT_BUILD="$ESLINT_DIST_AT_BUILD" \
     ESLINT_PKGS="${ESLINT_PKGS[*]}" PATH="$TMP/bin:$PATH" \
     bash "$PUBLISH" --dry-run --out-dir="$TMP/dist-build" \
@@ -557,31 +541,19 @@ if [ "$(eslint_source_fingerprint)" = "$ESLINT_SOURCE_BEFORE" ]; then
 else
     fail "build を伴う dry-run が、本体ツリーの eslint プラグインの dist を変えた"
 fi
-assert_eq "1 回目の pnpm 呼び出しは lock の確認" "install --lockfile-only --prefer-offline" \
+assert_eq "1 回目の pnpm 呼び出しは frozen の install" "install --frozen-lockfile" \
     "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
-assert_eq "2 回目の pnpm 呼び出しは install（lifecycle は動かさない）" "install --prefer-frozen-lockfile --ignore-scripts" \
+assert_eq "install の cwd はリポジトリルート" "$REPO_ROOT" \
+    "$(sed -n '1s/\t.*//p' "$PNPM_CALLS")"
+assert_eq "2 回目の pnpm 呼び出しは cli の build" "--filter @pecot/pecotv-cli run build" \
     "$(sed -n '2s/^[^\t]*\t//p' "$PNPM_CALLS")"
-assert_eq "install の cwd は pecot-visual プラグインルート" "$PECOTV_ROOT" \
-    "$(sed -n '2s/\t.*//p' "$PNPM_CALLS")"
-# 導入のあと、text-rules の ci を挟んでから、assets/slidev の prepare を明示して動かす。
-assert_eq "3 回目の pnpm 呼び出しは assets/slidev の prepare" "--filter @pecot/slidev-assets-dev run prepare" \
+assert_eq "3 回目の pnpm 呼び出しは eslint プラグインを含む build" "--filter @pecot/slidev-assets-dev run build" \
     "$(sed -n '3s/^[^\t]*\t//p' "$PNPM_CALLS")"
-assert_eq "prepare の cwd は pecot-visual プラグインルート" "$PECOTV_ROOT" \
-    "$(sed -n '3s/\t.*//p' "$PNPM_CALLS")"
-assert_eq "4 回目の pnpm 呼び出しは cli の build" "--filter @pecot/pecotv-cli run build" \
+assert_eq "4 回目の pnpm 呼び出しは text-rules の build" "--filter @pecot/text-rules-src run build" \
     "$(sed -n '4s/^[^\t]*\t//p' "$PNPM_CALLS")"
-assert_eq "5 回目の pnpm 呼び出しは eslint プラグインを含む build" "--filter @pecot/slidev-assets-dev run build" \
-    "$(sed -n '5s/^[^\t]*\t//p' "$PNPM_CALLS")"
-# 1 回目の ci は、開発環境の導入（pecotv_dev_install）の中で、prepare の前にある。
-# pnpm が整理した libs/text-rules/node_modules を、npm で戻す。
-# 配布ツリー用の text-rules の dist は、その ci を繰り返さず build だけで作る。これが 2 回目になる。
-assert_eq "1 回目の npm --prefix 呼び出しは導入後の text-rules の ci" "--prefix libs/text-rules ci" \
-    "$(sed -n '1s/^[^\t]*\t//p' "$NPM_CALLS")"
-assert_eq "2 回目の npm --prefix 呼び出しは text-rules の build" "--prefix libs/text-rules run build" \
-    "$(sed -n '2s/^[^\t]*\t//p' "$NPM_CALLS")"
-assert_eq "npm --prefix 呼び出しは 2 回だけ" "2" "$(wc -l < "$NPM_CALLS" | tr -d ' ')"
-assert_eq "text-rules の npm 呼び出しの cwd はリポジトリルート" "$REPO_ROOT" \
-    "$(sed -n '1s/\t.*//p' "$NPM_CALLS")"
+assert_eq "text-rules の build の cwd はリポジトリルート" "$REPO_ROOT" \
+    "$(sed -n '4s/\t.*//p' "$PNPM_CALLS")"
+assert_eq "pnpm 呼び出しは 4 回だけ" "4" "$(wc -l < "$PNPM_CALLS" | tr -d ' ')"
 
 # install が失敗したときに build へ進まず非ゼロで止まることを固定する。
 # install は lockfile と package.json の乖離でも落ちるため、そのまま build に進むと lockfile を
@@ -591,15 +563,14 @@ cat > "$TMP/bin/pnpm" << 'FAKE_PNPM_FAIL'
 #!/bin/bash
 printf '%s\t%s\n' "$PWD" "$*" >> "$PNPM_CALLS"
 case "$*" in
-    "install --prefer-frozen-lockfile --ignore-scripts") exit 1 ;;
+    "install --frozen-lockfile") exit 1 ;;
 esac
 exit 0
 FAKE_PNPM_FAIL
 chmod +x "$TMP/bin/pnpm"
 : > "$PNPM_CALLS"
-: > "$NPM_CALLS"
 INSTALL_FAIL_RC=0
-NPM_CALLS="$NPM_CALLS" REAL_NPM="$REAL_NPM" PNPM_CALLS="$PNPM_CALLS" PATH="$TMP/bin:$PATH" \
+PNPM_CALLS="$PNPM_CALLS" PATH="$TMP/bin:$PATH" \
     bash "$PUBLISH" --dry-run --out-dir="$TMP/dist-install-fail" \
     > "$TMP/dryrun-install-fail.log" 2>&1 || INSTALL_FAIL_RC=$?
 if [ "$INSTALL_FAIL_RC" -ne 0 ]; then
@@ -608,15 +579,10 @@ else
     fail "install が失敗したのに publish が正常終了した"
 fi
 # 記録が空だと下の build 不在は自明に成立するため、install が実際に呼ばれた印を先に置く。
-assert_eq "失敗ケースでも 2 回目は install" "install --prefer-frozen-lockfile --ignore-scripts" \
-    "$(sed -n '2s/^[^\t]*\t//p' "$PNPM_CALLS")"
+assert_eq "失敗ケースでも 1 回目は install" "install --frozen-lockfile" \
+    "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
 assert_eq "install 失敗後に build を呼ばない" "0" \
     "$(grep -c 'run build' "$PNPM_CALLS" | tr -d ' ')"
-assert_eq "install 失敗後に text-rules の build も呼ばない" "0" \
-    "$(grep -c 'run build' "$NPM_CALLS" | tr -d ' ')"
-# pnpm が導入を始めた後の失敗なので、text-rules の依存は npm ci で 1 回だけ戻す。
-assert_eq "install 失敗後に text-rules の依存を npm ci で戻す" "1" \
-    "$(grep -c -- '--prefix libs/text-rules ci' "$NPM_CALLS" | tr -d ' ')"
 
 # --- 2. 生成 package.json ---
 

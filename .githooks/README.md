@@ -202,7 +202,11 @@ build target は hook から単独で起動されないため、PluginGlobals �
 
 ### R8. lock ファイル運用
 
-`uv.lock` / `package-lock.json` は **すべて git 管理対象**。依存追加・更新時は lock ファイルも同一コミットに含める。`npm ci` / `uv sync --locked` の決定性を保証するため、lock のずれを残したコミットは作らない。
+`uv.lock` / `pnpm-lock.yaml` は **すべて git 管理対象**。Node の依存は repo root の 1 つの pnpm workspace（`pnpm-workspace.yaml`）で管理する。
+lock は root の `pnpm-lock.yaml` 1 つだけ。
+プラグイン別の `pnpm-lock.yaml` / `pnpm-workspace.yaml` と `package-lock.json` は置かない。
+依存追加・更新時は lock ファイルも同一コミットに含める。
+`pnpm install --frozen-lockfile` / `uv sync --locked` の決定性を保証するため、lock のずれを残したコミットは作らない。
 
 ### R9. dispatcher の skill 拡張余地
 

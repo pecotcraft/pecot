@@ -83,7 +83,7 @@ if [ "$RUN_PY" = true ]; then
         "$CLI_DIR/commands" "$CLI_DIR/core" "$CLI_DIR/templates" "$CLI_DIR/__init__.py" "$CLI_DIR/__main__.py" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" )
 fi
 
-# Node 側（cli-node/）は plugin ルートが自己完結の pnpm workspace ルート。
+# Node 側（cli-node/）は repo root の 1 つの pnpm workspace に属する。
 # pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
 if [ "$RUN_CLI" = true ]; then
@@ -101,9 +101,9 @@ if [ "$RUN_CLI" = true ]; then
     # nx run-commands は子プロセスへ FORCE_COLOR=true を注入する。除去して、直接実行と挙動をそろえる。
     unset FORCE_COLOR
     if [ "$SCRIPT_SKIP_INSTALL" = false ]; then
-        echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT)"
+        echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT/../..)"
         # shellcheck disable=SC2086
-        ( cd "$PLUGIN_ROOT" && $PNPM install --frozen-lockfile )
+        ( cd "$PLUGIN_ROOT/../.." && $PNPM install --frozen-lockfile )
         echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
         bash "$PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
     fi

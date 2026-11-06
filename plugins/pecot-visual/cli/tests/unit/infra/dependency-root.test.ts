@@ -340,6 +340,46 @@ describe('resolveTalkDirectoryNodeModules', () => {
   })
 })
 
+/**
+開発ツリーの形（<repository>/plugins/pecot-visual）を作る。依存は repository の node_modules にだけ置く。
+*/
+function createWorkspace(packages: readonly string[]): { repository: string, plugin: string } {
+  const repository = createRoot('repository')
+  writeFileSync(path.join(repository, 'pnpm-workspace.yaml'), `packages:\n${packages.map(entry => `  - '${entry}'`).join('\n')}\n`, 'utf8')
+  const plugin = temporaryRoot('repository', 'plugins', 'pecot-visual')
+  mkdirSync(plugin, { recursive: true })
+  return { repository, plugin }
+}
+
+describe('開発ツリーの workspace root', () => {
+  it('root を packages に含む上位の workspace は、その node_modules を返す', () => {
+    const { repository, plugin } = createWorkspace(['libs/*', 'plugins/pecot-visual'])
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('no-data'))
+
+    expect(resolveTalkDirectoryNodeModules(plugin)).toBe(path.join(repository, 'node_modules'))
+  })
+
+  it('glob の packages でも一致すれば採る', () => {
+    const { repository, plugin } = createWorkspace(['plugins/*'])
+
+    expect(resolveTalkDirectoryNodeModules(plugin)).toBe(path.join(repository, 'node_modules'))
+  })
+
+  it('root を含まない上位の workspace は採らず、root のまま返す', () => {
+    const { plugin } = createWorkspace(['other/*'])
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('no-data'))
+
+    expect(resolveTalkDirectoryNodeModules(plugin)).toBeUndefined()
+  })
+
+  it('除外された root は採らない', () => {
+    const { plugin } = createWorkspace(['plugins/*', '!plugins/pecot-visual'])
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('no-data'))
+
+    expect(resolveTalkDirectoryNodeModules(plugin)).toBeUndefined()
+  })
+})
+
 describe('resolveDependency', () => {
   it('依存ルートに置かれたパッケージを解決する', () => {
     const pluginRoot = createRoot('plugin', ['pkg-a'])

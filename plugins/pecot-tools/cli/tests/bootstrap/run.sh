@@ -181,7 +181,7 @@ for created in "$PLUGIN_ROOT/.pecot-tools-bootstrap.lock"; do
     fail "CUJ 2 が本体に旧配置のロックを作った: $created"
   fi
 done
-TOUCHED="$(find "$PLUGIN_ROOT/node_modules/.modules.yaml" "$PLUGIN_ROOT/cli/dist/cli.js" "$PLUGIN_ROOT/pnpm-lock.yaml" -newer "$BEFORE_REF" 2>/dev/null || true)"
+TOUCHED="$(find "$PLUGIN_ROOT/node_modules/.modules.yaml" "$PLUGIN_ROOT/cli/dist/cli.js" "$PLUGIN_ROOT/runtime-lock.yaml" -newer "$BEFORE_REF" 2>/dev/null || true)"
 if [ -n "$TOUCHED" ]; then
   fail "CUJ 2 が本体へ書き込んだ: $TOUCHED"
 fi

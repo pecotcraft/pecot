@@ -789,14 +789,14 @@ assert_eq "実リポジトリの対象 group は pecot-visual と text-rules" "p
 
 # 別の workspace 依存が増えても、列挙し直さずに追従する。fixture で依存を 2 つにして確かめる。
 GROUPS_REPO="$TMP/groups-repo"
-mkdir -p "$GROUPS_REPO/plugins/pecot-visual/libs/alpha" "$GROUPS_REPO/plugins/pecot-visual/libs/beta" "$GROUPS_REPO/plugins/pecot-visual/libs/gamma"
+mkdir -p "$GROUPS_REPO/plugins/pecot-visual" "$GROUPS_REPO/libs/alpha" "$GROUPS_REPO/libs/beta" "$GROUPS_REPO/libs/gamma"
 cat > "$GROUPS_REPO/plugins/pecot-visual/package.json" << 'JSON_EOF'
 { "name": "fixture", "dependencies": { "@fx/alpha-pkg": "workspace:*", "left-pad": "1.0.0" }, "devDependencies": { "@fx/beta-pkg": "workspace:^" } }
 JSON_EOF
-printf 'packages:\n  - libs/alpha\n  - libs/beta\n  - libs/gamma\n' > "$GROUPS_REPO/plugins/pecot-visual/pnpm-workspace.yaml"
+printf 'packages:\n  - libs/alpha\n  - libs/beta\n  - libs/gamma\n' > "$GROUPS_REPO/pnpm-workspace.yaml"
 for lib in alpha beta gamma; do
-    printf '{ "name": "@fx/%s-pkg" }\n' "$lib" > "$GROUPS_REPO/plugins/pecot-visual/libs/$lib/package.json"
-    printf '{ "name": "%s-project" }\n' "$lib" > "$GROUPS_REPO/plugins/pecot-visual/libs/$lib/project.json"
+    printf '{ "name": "@fx/%s-pkg" }\n' "$lib" > "$GROUPS_REPO/libs/$lib/package.json"
+    printf '{ "name": "%s-project" }\n' "$lib" > "$GROUPS_REPO/libs/$lib/project.json"
 done
 cat > "$GROUPS_REPO/nx.json" << 'JSON_EOF'
 { "release": { "groups": {

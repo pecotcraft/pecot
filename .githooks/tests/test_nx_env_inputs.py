@@ -61,10 +61,6 @@ _EXEMPT: dict[str, str] = {
         "端末・フック・IDE ごとに揺れ、入れると無関係な再実行が増える"
     ),
     "PECOTV_SKIP_INSTALL": "test target の command が 1 を渡す。install と共有 build を nx の別 target に分ける",
-    "PECOTV_SKIP_SLIDEV_PREPARE": (
-        "install target（cache: false）の command が 1 を渡す。nx では build-slidev が prepare と同じ build を担う。"
-        "手動の実行は渡さず、導入の最後に prepare まで行う"
-    ),
     "PECOTV_SKIP_LIB_BUILD": (
         "build-slidev の command が 1 を渡す定数。nx では text-rules:build が先に dist を作る。"
         "ミラーの bootstrap は渡さず、build.mjs が text-rules も build する"

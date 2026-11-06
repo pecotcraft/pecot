@@ -3,20 +3,31 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "description": "nx workspace。prepare が root フック用に libs/text-rules を build する",
-  "scripts": {
-    "prepare": "npm --prefix libs/text-rules ci && npm --prefix libs/text-rules run build"
-  },
+  "description": "pnpm workspace と nx workspace のルート。依存と lock は、このルートの 1 つで管理する",
   "devEngines": {
     "packageManager": {
-      "name": "npm",
-      "onFail": "error"
+      "name": "pnpm",
+      "version": "12.15.0",
+      "onFail": "download"
     }
   },
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "devDependencies": {
-    "nx": "^24.0.1"
+    "nx": "^24.0.1",
+    "yaml": "^2.9.1"
   },
-  "overrides": {
-    "undici": "7.30.1"
+  "nx": {
+    "targets": {
+      "install": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "metadata": {
+          "description": "リポジトリ全体の依存導入を、1 回の nx 実行につき 1 回だけ行う。各 project の install が dependsOn で参照する。nx の task graph は同一の project:target を 1 タスクへ dedupe するので、実行するレーンが何本あっても 1 回にまとまる。cache: false は明示的な宣言。install は node_modules への副作用で outputs を宣言できず、cache 対象にできない。"
+        },
+        "options": {
+          "command": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 scripts/run-pnpm.sh install --frozen-lockfile"
+        }
+      }
+    }
   }
 }

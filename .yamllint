@@ -13,3 +13,8 @@ rules:
     spaces: 2
     indent-sequences: consistent
     check-multi-line-strings: false
+
+# pnpm が書く生成物。
+ignore: |
+  pnpm-lock.yaml
+  runtime-lock.yaml

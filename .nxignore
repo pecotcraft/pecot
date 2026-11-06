@@ -5,15 +5,6 @@
 # 外せる（新しいブランチの diff にはこの削除が現れない）。
 /plugins/pecot-visual/samples/
 
-# root lockfile は nx の affected 判定からのみ除外する（#1021）。git 追跡は従来どおり
-# 継続し、`.githooks/README.md` R8「lockfile は git 管理対象」を変えるものではない。
-# 成立前提（#1225 で task cache を有効にした後）: root 依存の版は nx-release:test-unit の runtime 入力
-# （`node -p "require('nx/package.json').version"`）で捉え、plugin のレーンは root 依存を使わない。
-# .nxignore 済みのファイルは nx の file 入力に書いても無視される（`nx show target inputs
-# nx-release:test-unit --check package-lock.json` が false を返すことで確認済み）ため、lockfile ではなく
-# 実際に入っている nx の版を見る。nx の版を変えると nx-release:test-unit のタスクハッシュが変わり、
-# 再利用されずに実行されることも確認している。
-# plugins/*/ 配下の lockfile には一致しない。
-# 公式ノブ pluginsConfig["@nx/js"].projectsAffectedByDependencyUpdates は採らない
-# （pluginsConfig ブロックの追加自体が analyzeSourceFiles を暗黙反転させグラフ構築を変える）
-/package-lock.json
+# lock は affected 判定からだけ外す (#1021)。変わるたびに root の project が affected になるため。
+# nx の版は nx-release:test-unit の runtime 入力で見る。
+/pnpm-lock.yaml

@@ -7,11 +7,12 @@
     "install": {
       "executor": "nx:run-commands",
       "cache": false,
+      "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
       "metadata": {
-        "description": "1 push に 1 回の依存導入 (#1080)。各 test レーンが dependsOn で参照する。nx の task graph は、同じ project:target を 1 タスクにまとめる。そのため、実行するレーンが何本あっても、install は 1 回になる。cache: false は明示的な宣言。install は node_modules への副作用で、outputs を宣言できず、cache の対象にできない。cache を付けると、『1 push 1 回』が『0 回』になる。その結果、lockfile と node_modules のずれを見逃す。"
+        "description": "リポジトリ全体の依存導入は、root の project の install が 1 回の nx 実行につき 1 回だけ行う (#1080, #113)。各レーンはこの install を dependsOn で参照する。nx の task graph は、同じ project:target を 1 タスクにまとめる。そのため、実行するレーンが何本あっても、導入は 1 回になる。本ターゲットは pnpm を打たず、導入の後に scripts の package manager 自己呼び出しガード (#1217) を確かめる。cache: false は明示的な宣言。ガードは node_modules の状態に依らないが、cache を付けると、確認が 0 回になる。"
       },
       "options": {
-        "command": "bash scripts/ci/install.sh",
+        "command": "bash scripts/ci/check-pm-scripts.sh",
         "cwd": "plugins/pecot-tools"
       }
     },
@@ -85,7 +86,7 @@
         "pecotToolsPluginTestGlobals"
       ],
       "dependsOn": ["install", "build-cli"],
-      "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡す。publish は配布ツリーへ cd してから npm を実行するため。nx の workspaceRoot トークンは、command の途中では使えない。options.env では相対パスに展開される。そこで cwd（plugins/pecot-tools）からの $PWD で組む (#1225)。",
+      "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡すため、cwd からの $PWD で組む (#1225)。",
       "metadata": {
         "description": "MCP 単体配布の publish スクリプトの確認。cache: true (#1225)。publish のテストは、npm の依存解決で外部レジストリの状態を読む。その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに、本レーンを実行しないため。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。実行するときも、2 回目以降はレジストリに出さない。掃除は .pecot/tmp/release-npm-cache/pecot-tools を消す。packument の分だけ増え続けるため。test-cli との直列化 (parallelism: false, #1080) は外した。bootstrap の bash テストは test-bootstrap に分かれている。本体の cli/dist には書き込まず、stub のルートと一時のデータ置き場だけに作る。run.sh は、本体の cli/dist/cli.js の mtime が変わらないことを確かめる側。本レーンの publish は、--skip-build で共有の cli/dist を複製するだけ。そのため両者が並行して動いても、dist を奪い合わない (#1235)。"
       },
@@ -112,7 +113,7 @@
         "description": "nx release の publish phase から MCP サーバの tgz を作って Release に添え、publish-npm.yml を起動する (#1056)。スクリプト側が HEAD の pecot-tools-v<version> タグで冪等性を判定し、pecot-tools 非リリース時は何もせず終了する。"
       },
       "options": {
-        "//forwardAllArgs-reason": "既定 true だと nx が --dryRun=true をコマンド末尾へ注入し、未対応の引数として publish スクリプトが exit 1 になる。dry-run は NX_DRY_RUN env で受けるため引数転送は不要 (#1056)。",
+        "//forwardAllArgs-reason": "既定 true だと --dryRun=true が末尾に注入される。dry-run は NX_DRY_RUN で受ける (#1056)。",
         "forwardAllArgs": false,
         "command": "bash scripts/release/publish-mcp-dist.sh",
         "cwd": "plugins/pecot-tools"
@@ -120,7 +121,6 @@
     }
   },
   "release": {
-    "//note": "pecot-tools plugin distribution unit. plugin.json × 2（.claude-plugin/ と、Copilot CLI 向け Agent Plugins 1.0 形式のルート）の manifest owner。プラグイン配下を 1 project にまとめ、release group には本 project だけを列挙する。",
     "version": {
       "versionActions": "./.nx/nx-release/src/version-actions.js",
       "manifestRootsToUpdate": [

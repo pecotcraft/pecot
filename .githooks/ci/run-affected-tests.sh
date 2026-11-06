@@ -90,24 +90,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 hook_start_us=$(timing_now_us)
 
 # nx の lane 並列度。N=4 で確定 (#1225)。
-# 計測条件 (2026-10-25 / #1225 Step 8) は次のとおり。
-#   - devcontainer（24 コア）で `npx nx run-many -t test --parallel=N --skip-nx-cache` を実行した。
-#   - 環境変数は `PECOTV_PM_GUARD_BEHAVIOR=0` を付けた。
-#   - 捨ての 1 回（npm の永続キャッシュを温める）の後、N を 2 → 3 → 4 → 3 → 4 → 2 → 4 → 2 → 3 の順で変え、計 9 回測った。
-#   - 捨ての 1 回（npm の永続キャッシュを温める）を実行した後、N の順は 2 → 3 → 4 → 3 → 4 → 2 → 4 → 2 → 3 の 9 回で、交互に測った。
-#   - 各回の直前に、nx / vitest / pytest のプロセスが 0、loadavg(1 分) が 6 未満になるまで待った。
-#   - `nx reset` は graph の再構築が加わるので使わない。
-# 計測結果は次のとおり。
-#   N=2: 129.1 / 117.5 / 118.3 秒（中央値 118.3）。
-#   N=3: 146.4 / 95.6 / 94.3 秒（中央値 95.6）。
-#        146.4 の回は、pecot-visual の cli レーンの E2E 2 件が、SVG 書き出しの 60 秒の時間切れで失敗した。
-#        失敗したのは drawio export の PDF degrade。同条件の他の 2 回は成功し、nx も flaky と判定した。
-#        原因候補の embed の準備完了通知の取りこぼしは、#1225 で直した。
-#   N=4: 103.7 / 80.3 / 83.5 秒（中央値 83.5）。
-# 中央値が最短の 4 を採る。
-# pecot-visual の cli レーンの E2E が単独で maxWorkers=4 を使い、pecot-workflow の pytest も -n auto を使う。
-# これらが重なっても、24 コアでは N=4 の総所要が短かった。
-# N=4 の 3 回は全て成功した。
+# 24 コアで N=2〜4 を各 3 回測り、中央値が最短（83.5 秒）だった。N=3 の 1 回は drawio export の flaky で失敗した。
 # 値を変えるときは test_run_affected_tests.py の `--parallel=` と「並列 N」も直す。
 NX_PARALLEL=4
 
@@ -136,7 +119,7 @@ if ! nx_bin=$(resolve_nx "$repo_root"); then
     cat >&2 <<'EOF'
 ERROR: nx 実行ファイルが見つからないため affected テストを実行できません。
        リポジトリルートで依存を導入してください:
-         npm ci
+         pnpm install --frozen-lockfile
        緊急で回避する場合のみ `git push --no-verify` を使ってください。
 EOF
     exit 1

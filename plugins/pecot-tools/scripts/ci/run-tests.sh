@@ -85,9 +85,9 @@ trap 'rm -rf "$GATE_PLUGIN_DATA"' EXIT
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
 # nx 経由では scripts/ci/install.sh（pecot-tools:install target）が実行済み。
 if [ "$SKIP_SHARED" = false ]; then
-    echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT)"
+    echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT/../..)"
     # shellcheck disable=SC2086
-    ( cd "$PLUGIN_ROOT" && $PNPM install --frozen-lockfile )
+    ( cd "$PLUGIN_ROOT/../.." && $PNPM install --frozen-lockfile )
     # install と同じく nx 経由では pecot-tools:install target（install.sh）が実行済み。
     echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
     bash "$PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"

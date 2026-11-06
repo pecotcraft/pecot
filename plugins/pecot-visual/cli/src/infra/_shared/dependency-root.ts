@@ -34,6 +34,8 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
+import { parse as parseYaml } from 'yaml'
+
 const DATA_DIRECTORY_PROJECT = 'pecot-visual'
 
 /**
@@ -90,6 +92,60 @@ export function runtimeDependencyRoot(): string | undefined {
 export function themeStoreRoot(): string | undefined {
   const data = dataDirectory()
   return data === undefined ? undefined : path.join(data, 'themes')
+}
+
+/**
+`node_modules` を持つ側のディレクトリ。`root` 自身か、`root` を `packages` に含む上位の workspace root。
+
+`root` に `pnpm-workspace.yaml` が無いときだけ、上の dir を最大 3 つまで遡る。無関係な workspace は採らない。
+*/
+function nodeModulesHolder(root: string): string {
+  let current = root
+  for (let level = 0; level <= 3; level += 1) {
+    const workspace = path.join(current, 'pnpm-workspace.yaml')
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は pnpm-workspace.yaml のみ
+    if (existsSync(workspace)) return level === 0 || isIncludedByWorkspace(workspace, path.relative(current, root)) ? current : root
+    const parent = path.dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return root
+}
+
+/**
+`pnpm-workspace.yaml` の `packages` が、workspace root からの相対パスを含むか。読めない・形が違うときは false。
+*/
+function isIncludedByWorkspace(workspaceFile: string, relative: string): boolean {
+  let packages: unknown
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は pnpm-workspace.yaml のみ
+    const parsed: unknown = parseYaml(readFileSync(workspaceFile, 'utf8'))
+    packages = typeof parsed === 'object' && parsed !== null && 'packages' in parsed ? parsed.packages : undefined
+  }
+  catch {
+    return false
+  }
+  if (!Array.isArray(packages)) return false
+  const target = relative.split(path.sep)
+  let isIncluded = false
+  for (const entry of packages) {
+    if (typeof entry !== 'string') continue
+    const isNegated = entry.startsWith('!')
+    const pattern = (isNegated ? entry.slice(1) : entry).replace(/^\.\//, '').replace(/\/$/, '').split('/')
+    if (isMatchingSegments(pattern, target)) isIncluded = !isNegated
+  }
+  return isIncluded
+}
+
+/**
+`*`（1 階層の任意の名前）と `**`（0 階層以上）だけを扱う glob の一致の判定。
+*/
+function isMatchingSegments(pattern: readonly string[], target: readonly string[]): boolean {
+  const [head, ...rest] = pattern
+  if (head === undefined) return target.length === 0
+  if (head === '**') return isMatchingSegments(rest, target) || (target.length > 0 && isMatchingSegments(pattern, target.slice(1)))
+  const [first, ...others] = target
+  return first !== undefined && (head === '*' || head === first) && isMatchingSegments(rest, others)
 }
 
 /**
@@ -177,7 +233,7 @@ flock(1) は、親ディレクトリが実在しないとロックファイル�
 */
 function firstExistingNodeModules(roots: readonly string[]): string | undefined {
   for (const root of roots) {
-    const candidate = path.join(root, 'node_modules')
+    const candidate = path.join(nodeModulesHolder(root), 'node_modules')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は node_modules のみ
     if (existsSync(candidate)) return candidate
   }
@@ -208,7 +264,7 @@ export function resolveTalkDirectoryNodeModules(dependencyRoot: string): string 
   const runtimeRoot = runtimeDependencyRoot()
   const roots = runtimeRoot === undefined ? [dependencyRoot] : [dependencyRoot, runtimeRoot]
   for (const root of roots) {
-    if (areProbesResolvableWithin(root)) return path.join(root, 'node_modules')
+    if (areProbesResolvableWithin(root)) return path.join(nodeModulesHolder(root), 'node_modules')
   }
   return undefined
 }
@@ -284,7 +340,8 @@ Node の解決は基準点の上位ディレクトリへ遡る。
 bind mount / worktree では、論理パスと物理パスが割れるため。
 */
 function areProbesResolvableWithin(root: string): boolean {
-  const nodeModules = path.join(root, 'node_modules')
+  const holder = nodeModulesHolder(root)
+  const nodeModules = path.join(holder, 'node_modules')
   let physical: string
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は node_modules のみ

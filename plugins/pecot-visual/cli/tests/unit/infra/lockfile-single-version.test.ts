@@ -18,9 +18,11 @@ import { isRecord } from '../../../src/domain/_shared/json.js'
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
-const LOCKFILE = path.join(PLUGIN_ROOT, 'pnpm-lock.yaml')
-// nodeLinker: hoisted なので workspace の依存は plugins/pecot-visual/node_modules 直下に並ぶ。
-const SLIDEV_CLI_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', '@slidev', 'cli', 'package.json')
+// 依存と lock は repo root の 1 つの pnpm workspace が持つ (#113)。
+const REPO_ROOT = path.resolve(PLUGIN_ROOT, '..', '..')
+const LOCKFILE = path.join(REPO_ROOT, 'pnpm-lock.yaml')
+// nodeLinker: hoisted なので workspace の依存は repo root の node_modules 直下に並ぶ。
+const SLIDEV_CLI_MANIFEST = path.join(REPO_ROOT, 'node_modules', '@slidev', 'cli', 'package.json')
 const RUNTIME_MANIFEST = path.join(PLUGIN_ROOT, 'assets', 'slidev', 'runtime', 'package.json')
 const CLI_MANIFEST = path.join(CLI_ROOT, 'package.json')
 

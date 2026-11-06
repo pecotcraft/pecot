@@ -249,7 +249,7 @@ if [ "$SKIP_BUILD" = false ]; then
     # 一方 publish は build を直接起動するため、node_modules が未導入の環境や、
     # リリースコミットで依存が変わった直後の環境では、install を経ずに build が落ちる。
     # そこで build の直前に install を固定する。
-    # frozen をやめて lock の確認と導入に分ける理由は scripts/ci/dev-install-lib.sh を参照。
+    # 導入の手順は scripts/ci/dev-install-lib.sh を参照。
     # shellcheck source=../ci/dev-install-lib.sh
     . "$PECOTV_ROOT/scripts/ci/dev-install-lib.sh"
     pecotv_dev_install "$PECOTV_ROOT" "$PNPM"
@@ -263,9 +263,10 @@ if [ "$SKIP_BUILD" = false ]; then
     echo "==> $PNPM --filter @pecot/slidev-assets-dev run build (eslint プラグイン dist を含む)"
     # shellcheck disable=SC2086
     (cd "$PECOTV_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run build)
-    # 同梱する text-rules の dist。依存の導入は pecotv_dev_install の最後の npm ci が済ませているので、build だけを行う。
-    echo "==> npm --prefix libs/text-rules run build"
-    (cd "$REPO_ROOT" && npm --prefix libs/text-rules run build)
+    # 同梱する text-rules の dist。依存は済んでいるので build だけ行う。
+    echo "==> $PNPM --filter @pecot/text-rules-src run build"
+    # shellcheck disable=SC2086
+    (cd "$REPO_ROOT" && $PNPM --filter @pecot/text-rules-src run build)
 fi
 
 if [ ! -d "$PECOTV_ROOT/cli/dist" ]; then
@@ -402,7 +403,7 @@ if [ "$AUDIT_SKIPPED" = false ]; then
     if [ "$DIST_FP" != "$RECORD_FP" ]; then
         echo "ERROR: 監査した依存ツリーと配布ツリーが一致しません（監査 $RECORD_FP / 配布 $DIST_FP）。" >&2
         echo "       release commit 上で audit-mcp-dist.sh を再実行して記録を作り直し、" >&2
-        echo "       npx nx release publish を再実行してください。" >&2
+        echo "       pnpm exec nx release publish を再実行してください。" >&2
         exit 1
     fi
     echo "==> 監査記録と一致 (指紋 $DIST_FP, 監査時 HEAD $RECORD_HEAD)"

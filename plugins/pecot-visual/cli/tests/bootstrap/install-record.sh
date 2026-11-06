@@ -6,7 +6,7 @@
 #
 #   回数（install/build）は次のとおり。
 #   同一なら 0/0、版だけなら 0/0（報告される版は新版）、ソースだけなら 0/1、依存の変更なら 1/1、2 回目は 0/0。
-#   libs/text-rules の版だけの更新では install しない（0/1）。
+#   vendor/text-rules の版だけの更新では install しない（0/1）。
 #   CHANGELOG などだけの更新では build もしない（0/0）。
 #   途中で止まったディレクトリは作り直す。current は切り替えず、非 0 で終わる。
 #   同時に 2 本起動しても、install 行は合計 1 行にする。
@@ -52,6 +52,9 @@ assert_eq "初回: 本体に node_modules を作らない" no "$([ -e "$ROOT/nod
 assert_eq "初回: 本体に cli/dist を作らない" no "$([ -e "$ROOT/cli/dist" ] && echo yes || echo no)"
 assert_eq "初回: 本体に旧配置のロックを作らない" no "$([ -e "$ROOT/.pecotv-bootstrap.lock" ] && echo yes || echo no)"
 FIRST="$(mirrors | head -n 1)"
+assert_eq "初回: ミラーの pnpm-lock.yaml は runtime-lock.yaml の中身" "$(cat "$ROOT/runtime-lock.yaml")" "$(cat "$FIRST/pnpm-lock.yaml")"
+assert_eq "初回: ミラーの pnpm-workspace.yaml は runtime-workspace.yaml の中身" "$(cat "$ROOT/runtime-workspace.yaml")" "$(cat "$FIRST/pnpm-workspace.yaml")"
+assert_eq "初回: ミラーに runtime-*.yaml の名前を残さない" no "$([ -e "$FIRST/runtime-lock.yaml" ] || [ -e "$FIRST/runtime-workspace.yaml" ] && echo yes || echo no)"
 assert_eq "初回: build のとき --config.verify-deps-before-run=false を付ける" 1 "$(count_calls 'verify-deps-before-run=false --filter @pecot/pecotv-cli run build')"
 
 # --- 同一の 2 回目 ---
@@ -83,40 +86,40 @@ assert_eq "ソースだけの更新: .modules.yaml は複製する" yes "$([ -e 
 stub_run -- mcp
 check_counts "ソースだけの更新の 2 回目: install 0 / build 0" 0 0
 
-# --- libs/text-rules の版上げ ---
+# --- vendor/text-rules の版上げ ---
 # text-rules は repo 共通のライブラリ。
 # リリースのたびに、package.json の version と CHANGELOG.md などが変わる。
-# 依存の宣言は pnpm-lock.yaml が持つので、版上げで利用者の導入をやり直さない。
-mkdir -p "$ROOT/libs/text-rules"
-printf '{ "name": "@pecot/text-rules", "version": "1.0.0" }\n' > "$ROOT/libs/text-rules/package.json"
-printf 'export const rule = 1;\n' > "$ROOT/libs/text-rules/index.ts"
-printf '# text-rules changelog 1\n' > "$ROOT/libs/text-rules/CHANGELOG.md"
-printf 'lock: 1\n' > "$ROOT/libs/text-rules/package-lock.json"
-printf '{ "name": "text-rules" }\n' > "$ROOT/libs/text-rules/project.json"
-printf 'packages:\n  - cli\n  - libs/text-rules\n' > "$ROOT/pnpm-workspace.yaml"
+# 依存の宣言は runtime-lock.yaml が持つので、版上げで利用者の導入をやり直さない。
+mkdir -p "$ROOT/vendor/text-rules"
+printf '{ "name": "@pecot/text-rules", "version": "1.0.0" }\n' > "$ROOT/vendor/text-rules/package.json"
+printf 'export const rule = 1;\n' > "$ROOT/vendor/text-rules/index.ts"
+printf '# text-rules changelog 1\n' > "$ROOT/vendor/text-rules/CHANGELOG.md"
+printf 'lock: 1\n' > "$ROOT/vendor/text-rules/package-lock.json"
+printf '{ "name": "text-rules" }\n' > "$ROOT/vendor/text-rules/project.json"
+printf 'packages:\n  - cli\n  - vendor/text-rules\n' > "$ROOT/runtime-workspace.yaml"
 stub_run -- mcp
 check_counts "text-rules を workspace に加える: install 1 / build 1" 1 1
 stub_run -- mcp
 check_counts "text-rules を加えた後の 2 回目: install 0 / build 0" 0 0
 DEPS_BEFORE="$(basename "$(current_target)" | cut -d- -f1)"
-printf '{ "name": "@pecot/text-rules", "version": "1.1.0" }\n' > "$ROOT/libs/text-rules/package.json"
-printf '# text-rules changelog 2\n' > "$ROOT/libs/text-rules/CHANGELOG.md"
+printf '{ "name": "@pecot/text-rules", "version": "1.1.0" }\n' > "$ROOT/vendor/text-rules/package.json"
+printf '# text-rules changelog 2\n' > "$ROOT/vendor/text-rules/CHANGELOG.md"
 stub_run -- mcp
 check_counts "text-rules の版だけを上げる: install 0 / build 1" 0 1
 assert_eq "text-rules の版だけを上げる: deps-hash は変わらない" "$DEPS_BEFORE" "$(basename "$(current_target)" | cut -d- -f1)"
 SRC_BEFORE="$(basename "$(current_target)")"
-printf '# text-rules changelog 3\n' > "$ROOT/libs/text-rules/CHANGELOG.md"
-printf 'lock: 2\n' > "$ROOT/libs/text-rules/package-lock.json"
-printf '{ "name": "text-rules", "tags": [] }\n' > "$ROOT/libs/text-rules/project.json"
+printf '# text-rules changelog 3\n' > "$ROOT/vendor/text-rules/CHANGELOG.md"
+printf 'lock: 2\n' > "$ROOT/vendor/text-rules/package-lock.json"
+printf '{ "name": "text-rules", "tags": [] }\n' > "$ROOT/vendor/text-rules/project.json"
 stub_run -- mcp
 check_counts "text-rules の CHANGELOG・package-lock・project.json だけを変える: install 0 / build 0" 0 0
 assert_eq "text-rules の CHANGELOG などだけを変える: ミラーは変わらない" "$SRC_BEFORE" "$(basename "$(current_target)")"
-printf 'export const rule = 2;\n' > "$ROOT/libs/text-rules/index.ts"
+printf 'export const rule = 2;\n' > "$ROOT/vendor/text-rules/index.ts"
 stub_run -- mcp
 check_counts "text-rules のソースを変える: install 0 / build 1" 0 1
 
 # --- 依存の変更（lock） ---
-printf 'lock: 2\n' > "$ROOT/pnpm-lock.yaml"
+printf 'lock: 2\n' > "$ROOT/runtime-lock.yaml"
 stub_run -- mcp
 check_counts "依存の変更: install 1 / build 1" 1 1
 stub_run -- mcp
@@ -142,7 +145,7 @@ check_counts "pnpm の版が変わる: install 1 / build 1" 1 1
 # runtime の manifest は workspace のメンバーなので、依存の入力に入る。
 mkdir -p "$ROOT/assets/slidev/runtime"
 printf '{ "name": "@pecot/slidev-runtime", "version": "0.0.0", "private": true }\n' > "$ROOT/assets/slidev/runtime/package.json"
-printf 'packages:\n  - cli\n  - assets/slidev/runtime\n' > "$ROOT/pnpm-workspace.yaml"
+printf 'packages:\n  - cli\n  - assets/slidev/runtime\n' > "$ROOT/runtime-workspace.yaml"
 stub_run STUB_NODE_MAJOR=26 -- mcp
 check_counts "runtime の manifest が workspace に加わる: install 1 / build 1" 1 1
 printf '{ "name": "@pecot/slidev-runtime", "version": "0.0.0", "private": true, "dependencies": { "left-pad": "1.3.0" } }\n' > "$ROOT/assets/slidev/runtime/package.json"
@@ -171,7 +174,7 @@ check_counts "失敗した起動の後でも完成済みは 0 / 0" 0 0
 
 # --- install が失敗する依存の変更 ---
 before="$(current_target)"
-printf 'lock: 3\n' > "$ROOT/pnpm-lock.yaml"
+printf 'lock: 3\n' > "$ROOT/runtime-lock.yaml"
 stub_run STUB_NODE_MAJOR=26 STUB_FAIL_INSTALL=1 -- mcp
 if [ "$RC" != 0 ]; then ok "install が失敗: 非 0 で終わる (exit=$RC)"; else ng "install が失敗しても exit 0"; fi
 assert_eq "install が失敗: current は切り替えない" "$before" "$(current_target)"
@@ -238,7 +241,7 @@ fi
 
 # --- 同時起動 ---
 printf 'c0\n' > "$ROOT/cli/src/index.ts"
-printf 'lock: 4\n' > "$ROOT/pnpm-lock.yaml"
+printf 'lock: 4\n' > "$ROOT/runtime-lock.yaml"
 rm -rf "$DATA/runtime"
 : > "$CALLS"
 # stub pnpm の install / build に 1 秒の遅延を入れ、3 本の起動が必ず重なるようにする（ロックが無ければ二重になる）。

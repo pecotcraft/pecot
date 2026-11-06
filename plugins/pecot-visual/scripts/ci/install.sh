@@ -39,8 +39,8 @@ if [ -z "$PNPM" ]; then
     exit 1
 fi
 
-# pecot-visual plugin が自己完結 pnpm workspace ルート。1 回の install で cli / v-slidev / runtime を全て解決
-# frozen をやめて lock の確認と導入に分ける理由は dev-install-lib.sh を参照。
+# リポジトリは root の 1 つの pnpm workspace。repo root での 1 回の frozen の install で、全メンバーを解決する。
+# 手順は dev-install-lib.sh を参照。
 # shellcheck source=dev-install-lib.sh
 . "$SCRIPT_DIR/dev-install-lib.sh"
 pecotv_dev_install "$PECOTV_PLUGIN_ROOT" "$PNPM"

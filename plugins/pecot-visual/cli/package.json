@@ -3,9 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "//pin-reason": "nx-release は CLI runtime の解決を切り替えたため、bump 不要。解決先は CLAUDE_PLUGIN_ROOT と、import.meta.url 相対の plugin.json の直読み。0.0.0 pin は意図的な設計（PR #741）。",
-  "//slidev-parser-pin-reason": "@slidev/parser は完全固定。@slidev/cli が引き込む parser と別バージョンを使うと、slides.md の分解結果（= pptx 差分キャッシュの slideHash）がビルド時の結果と食い違う。hoisted linker で実体が分かれ得る ^ 指定は使わない。@slidev/cli を更新するときは、本項も同じバージョンへ上げる。",
-  "//tsc7-path-reason": "typescript7（npm:typescript@7 alias）は、pnpm の hoisted linker で workspace root にだけ hoist される。置き場所は plugins/pecot-visual/node_modules/ になる。そのため cli からは ../node_modules/typescript7/bin/tsc を明示パスで起動する。tsc bin 名の解決はパッケージマネージャの実装に依存し、結果が一定でない。そのため .bin/tsc 経由には簡略化しない。",
+  "//slidev-parser-pin-reason": "@slidev/parser は @slidev/cli が引き込む版と同じに固定する。pptx 差分キャッシュの slideHash がずれるため。",
   "type": "module",
   "engines": {
     "node": "^24.22.1 || >=26.12.1"
@@ -18,9 +16,9 @@
   },
   "scripts": {
     "prebuild": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "node ../node_modules/typescript7/bin/tsc -p tsconfig.build.json",
+    "build": "node scripts/tsc.mjs -p tsconfig.build.json",
     "postbuild": "node --eval \"require('node:fs').writeFileSync('dist/package.json', JSON.stringify({type:'module'}))\"",
-    "lint": "node ../node_modules/typescript7/bin/tsc --noEmit && eslint --max-warnings=0 . && knip",
+    "lint": "node scripts/tsc.mjs --noEmit && eslint --max-warnings=0 . && knip",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
@@ -57,7 +55,8 @@
     ],
     "ignoreDependencies": [
       "dom-to-pptx",
-      "@slidev/cli"
+      "@slidev/cli",
+      "typescript7"
     ],
     "ignoreExportsUsedInFile": true
   },
@@ -89,5 +88,10 @@
     "typescript7": "npm:typescript@^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.5"
+  },
+  "nx": {
+    "root": "plugins/pecot-visual",
+    "name": "pecot-visual",
+    "includedScripts": []
   }
 }

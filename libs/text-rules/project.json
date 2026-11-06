@@ -13,13 +13,13 @@
       "dependsOn": [
         {
           "projects": [
-            "pecot-visual"
+            "pecot"
           ],
           "target": "install"
         }
       ],
       "metadata": {
-        "description": "依存の置き直しは pecot-visual:install が行う。pecot-visual の pnpm install は libs/text-rules/node_modules を削るため、その最後に npm ci で戻す。このターゲットは何もせず、pecot-visual:install の後に動く順序だけを build / lint / test-unit に与える。cache: false は明示的な宣言で、何もしないので、キャッシュしても省ける処理が無い。"
+        "description": "依存の導入は、root の project の install（pnpm install --frozen-lockfile）が行う。このターゲットは何もせず、root の install の後に動く順序だけを build / lint / test-unit に与える。cache: false は明示的な宣言で、何もしないので、キャッシュしても省ける処理が無い。"
       }
     },
     "build": {
@@ -36,7 +36,7 @@
         "description": "dist を作る。root フック・pecot-visual の同梱・ミラーがこの dist を使う。dist/source-hash に入力のハッシュを書く。root フックがこれで dist の鮮度を見る (#1331)。cache: false は dist を outputs に宣言せず、毎回作り直すため。"
       },
       "options": {
-        "command": "npm run build",
+        "command": "pnpm run build",
         "cwd": "libs/text-rules"
       }
     },
@@ -54,7 +54,7 @@
         "description": "型チェック（typescript7 の tsc --noEmit）と eslint（警告も失敗）。"
       },
       "options": {
-        "command": "npm run lint",
+        "command": "pnpm run lint",
         "cwd": "libs/text-rules"
       }
     },
@@ -83,7 +83,7 @@
         "description": "vitest の単体テスト。カバレッジ閾値は 90%。"
       },
       "options": {
-        "command": "npx vitest run --coverage",
+        "command": "pnpm exec vitest run --coverage",
         "cwd": "libs/text-rules"
       }
     },
@@ -93,7 +93,7 @@
         "description": "nx release の publish phase は全 group の project を回り、このターゲットを持たない project があると throw する。pecot-v に同梱するため、publish 時にすることは無い。"
       },
       "options": {
-        "//forwardAllArgs-reason": "既定 true だと nx が --dryRun=true をコマンド末尾へ注入し、echo の出力にそのまま混入する。",
+        "//forwardAllArgs-reason": "既定 true だと --dryRun=true が echo の出力に入る。",
         "forwardAllArgs": false,
         "command": "echo 'text-rules: pecot-v に同梱するため publish は不要'"
       }

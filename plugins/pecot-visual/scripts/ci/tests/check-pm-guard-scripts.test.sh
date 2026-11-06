@@ -130,18 +130,13 @@ REAL_PECOTV_ROOT="$PECOTV_PLUGIN_ROOT"
 
 make_fixture() {
     FIX="$(mktemp -d "$TMP/fix.XXXXXX")"
-    local rel p
+    local rel
     while IFS= read -r rel; do
         mkdir -p "$FIX/$(dirname "$rel")"
         cp "$REAL_REPO_ROOT/$rel" "$FIX/$rel"
     done < <(list_package_jsons "$REAL_REPO_ROOT")
-    for p in pecot-visual pecot-tools pecot-workflow; do
-        cp "$REAL_REPO_ROOT/plugins/$p/pnpm-workspace.yaml" "$FIX/plugins/$p/"
-    done
+    cp "$REAL_REPO_ROOT/pnpm-workspace.yaml" "$FIX/"
     cp "$REAL_REPO_ROOT/.npmrc" "$FIX/"
-    # pecot-visual のメンバー libs/text-rules は、実ツリーと同じくリンクにする。
-    mkdir -p "$FIX/plugins/pecot-visual/libs"
-    ln -s ../../../libs/text-rules "$FIX/plugins/pecot-visual/libs/text-rules"
 }
 
 # fixture の package.json を node の式で書き換える。$1=相対パス $2=p を書き換える JS の文
@@ -177,16 +172,16 @@ VIS=plugins/pecot-visual
 make_fixture
 assert_static '静的確認: 現行ツリーの複製は pass する' ''
 
-sed -i 's/^nodeLinker: hoisted$/nodeLinker: isolated/' "$FIX/$VIS/pnpm-workspace.yaml"
+sed -i 's/^nodeLinker: hoisted$/nodeLinker: isolated/' "$FIX/pnpm-workspace.yaml"
 assert_static '静的確認: nodeLinker: hoisted が無いと落ちる' 'nodeLinker: hoisted が無い'
 
 make_fixture
-sed -i 's/^nodeLinker: hoisted$/nodeLinker: hoisted # 末尾コメント/' "$FIX/$VIS/pnpm-workspace.yaml"
+sed -i 's/^nodeLinker: hoisted$/nodeLinker: hoisted # 末尾コメント/' "$FIX/pnpm-workspace.yaml"
 assert_static '静的確認: nodeLinker の末尾コメントでは落ちない' ''
 
 make_fixture
 edit_fixture_pkg package.json 'p.devEngines.packageManager.onFail="warn"'
-assert_static '静的確認: ルートの onFail が error でないと落ちる' 'devEngines.packageManager が { name: npm, onFail: error } でない: package.json'
+assert_static '静的確認: ルートの onFail が download でないと落ちる' 'devEngines.packageManager が { name: pnpm, version, onFail: download } でない: package.json'
 
 make_fixture
 edit_fixture_pkg package.json 'delete p.devEngines'
@@ -268,18 +263,23 @@ make_fixture
 edit_fixture_pkg libs/text-rules/package.json 'p.scripts={...p.scripts,x:"pnpm run y"}'
 assert_static '静的確認: libs/text-rules の scripts が package manager を呼ぶと落ちる' 'libs/text-rules/package.json の'
 
+# メンバーが root の workspace に無いプラグインの scripts 確認は、その旨で落ちる。
+make_fixture
+sed -i '/^  - plugins\/pecot-visual\/cli$/d' "$FIX/pnpm-workspace.yaml"
+assert_static '静的確認: メンバーが workspace から外れて未分類になると落ちる' 'package.json の種類を分けられない'
+
 # --- 現行ツリー ---------------------------------------------------------------
 
-if [ "$(read_workspace_setting "$PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml" nodeLinker)" = "hoisted" ]; then
+if [ "$(read_workspace_setting "$REPO_ROOT/pnpm-workspace.yaml" nodeLinker)" = "hoisted" ]; then
     t_pass "現行ツリー: pnpm-workspace.yaml が nodeLinker: hoisted を宣言している"
 else
     t_fail "現行ツリー: pnpm-workspace.yaml に nodeLinker: hoisted が無い"
 fi
 
 members=()
-mapfile -t members < <(list_workspace_members "$PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml")
+mapfile -t members < <(list_workspace_members "$REPO_ROOT/pnpm-workspace.yaml")
 for rel in "." "${members[@]}"; do
-    pkg="$PECOTV_PLUGIN_ROOT/$rel/package.json"
+    pkg="$REPO_ROOT/$rel/package.json"
     out="$(list_pm_invoking_scripts "$pkg")"
     if [ -z "$out" ]; then
         t_pass "現行ツリー: $rel の scripts は package manager を呼ばない"

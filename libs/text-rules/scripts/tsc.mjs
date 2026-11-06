@@ -1,3 +1,4 @@
+// hoist 先が開発とミラーで違うため、Node の解決で typescript7 の tsc を探す。.bin/tsc 経由にはしない。
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import path from 'node:path'

@@ -22,5 +22,10 @@
       "name": "pnpm",
       "onFail": "error"
     }
+  },
+  "nx": {
+    "root": "plugins/pecot-visual",
+    "name": "pecot-visual",
+    "includedScripts": []
   }
 }

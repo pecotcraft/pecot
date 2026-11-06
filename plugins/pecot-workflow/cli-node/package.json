@@ -3,8 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "//pin-reason": "版数は .claude-plugin/plugin.json を import.meta.url 相対で直読みするため bump 不要。0.0.0 pin は pecot-tools cli と同じ意図的設計。",
-  "//tsc7-path-reason": "typescript7 (npm:typescript@7 alias) は、pnpm の hoisted linker により workspace root にのみ hoist される。root は plugins/pecot-workflow/node_modules/ を指す。そのため cli からは ../node_modules/typescript7/bin/tsc を明示パスで起動する。tsc bin 名の解決はパッケージマネージャ実装依存で非決定的なので、.bin/tsc 経由には簡略化しない。",
   "type": "module",
   "engines": {
     "node": "^24.22.1 || >=26.12.1"
@@ -17,9 +15,9 @@
   },
   "scripts": {
     "prebuild": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "node ../node_modules/typescript7/bin/tsc -p tsconfig.build.json",
+    "build": "node scripts/tsc.mjs -p tsconfig.build.json",
     "postbuild": "node --eval \"require('node:fs').writeFileSync('dist/package.json', JSON.stringify({type:'module'}))\"",
-    "lint": "node ../node_modules/typescript7/bin/tsc --noEmit && eslint --max-warnings=0 . && knip",
+    "lint": "node scripts/tsc.mjs --noEmit && eslint --max-warnings=0 . && knip",
     "test": "vitest run --coverage --project cli",
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts",
@@ -36,6 +34,9 @@
     "project": [
       "src/**/*.ts",
       "tests/**/*.ts"
+    ],
+    "ignoreDependencies": [
+      "typescript7"
     ],
     "ignoreExportsUsedInFile": true
   },
@@ -62,5 +63,10 @@
     "typescript7": "npm:typescript@^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.1.0"
+  },
+  "nx": {
+    "root": "plugins/pecot-workflow",
+    "name": "pecot-workflow",
+    "includedScripts": []
   }
 }

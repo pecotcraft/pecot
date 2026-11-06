@@ -1,14 +1,15 @@
 """root package.json が nx workspace として成り立っていることを pin する。
 
-root の `prepare` が libs/text-rules を build する。
+root は pnpm workspace の root で、依存と lock（pnpm-lock.yaml）を 1 つで管理する (#113)。
+libs/text-rules/dist は、nx の text-rules:build と .githooks/lib/text-rules-ready.sh が build する。
 root フック（check-text.sh 等）は libs/text-rules/dist を起動する。
-そのため `npm install` / `npm ci` の直後に dist が揃っている必要がある。
 root は外部へ配布しないので、exports / bin / dependencies は持たない。
 """
 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -32,7 +33,10 @@ def test_root_is_a_private_nx_workspace(root: dict) -> None:
     assert root["private"] is True
     assert root["version"] == "0.0.0"
     assert "nx" in root["devDependencies"]
-    assert root["overrides"]["undici"]
+    assert "overrides" not in root
+    assert re.search(
+        r"^  undici: \S+", (_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"), re.M
+    )
 
 
 def test_root_does_not_distribute(root: dict) -> None:
@@ -40,19 +44,26 @@ def test_root_does_not_distribute(root: dict) -> None:
         assert key not in root, key
 
 
-def test_prepare_installs_and_builds_the_lib(root: dict) -> None:
-    assert (
-        root["scripts"]["prepare"]
-        == "npm --prefix libs/text-rules ci && npm --prefix libs/text-rules run build"
-    )
+def test_root_has_no_prepare(root: dict) -> None:
+    """lib の build は nx の text-rules:build が担うので、root に prepare を置かない。"""
+    assert "prepare" not in root.get("scripts", {})
+
+
+def test_root_install_target_is_a_frozen_pnpm_install(root: dict) -> None:
+    install = root["nx"]["targets"]["install"]
+    assert install["cache"] is False
+    assert install["options"]["command"].endswith("scripts/run-pnpm.sh install --frozen-lockfile")
 
 
 def test_package_manager_guard_is_kept(root: dict) -> None:
     """違うパッケージマネージャの install を止める宣言（devEngines）を弱めない。"""
-    # engines の pnpm / yarn の "<0.0.0" は使わない。止める役は devEngines.packageManager が持つ。
+    # engines の npm / yarn の "<0.0.0" は使わない。止める役は devEngines.packageManager が持つ。
     assert "engines" not in root
-    assert root["devEngines"]["packageManager"] == {"name": "npm", "onFail": "error"}
-    # 実体側も同じ宣言にそろえる。engines は node だけにする。
+    pm = root["devEngines"]["packageManager"]
+    assert pm["name"] == "pnpm"
+    assert pm["onFail"] == "download"
+    assert root["packageManager"].startswith(f"pnpm@{pm['version']}+")
     lib = _load(_LIB_DIR / "package.json")
-    assert lib["devEngines"]["packageManager"] == {"name": "npm", "onFail": "error"}
+    assert lib["devEngines"]["packageManager"] == {"name": "pnpm", "onFail": "error"}
+    assert "packageManager" not in lib
     assert set(lib["engines"]) == {"node"}

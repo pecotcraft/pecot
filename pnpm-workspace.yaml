@@ -1,0 +1,65 @@
+# pnpm 11 以降は .npmrc から pnpm 固有の設定を読まない (#1217)。
+nodeLinker: hoisted
+sharedWorkspaceLockfile: true
+engineStrict: true
+# 明示すると minimumReleaseAgeStrict が true になり、1 日未満の版は自動で除外されない。
+minimumReleaseAge: 1440
+
+packages:
+  - libs/text-rules
+  - plugins/pecot-workflow
+  - plugins/pecot-tools
+  - plugins/pecot-visual
+  - plugins/pecot-workflow/cli-node
+  - plugins/pecot-tools/cli
+  - plugins/pecot-visual/cli
+  - plugins/pecot-visual/cli/tests/fixtures/hash-slidev
+  - plugins/pecot-visual/cli/tests/fixtures/minimal-slidev
+  - plugins/pecot-visual/assets/slidev
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/2layer
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/asset-path
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/pptx-compat
+  - plugins/pecot-visual/assets/slidev/runtime
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/_shared
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/slidev-pages-lint
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/text-constraints
+  - plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references
+
+
+overrides:
+  # nx が undici を固定している。.nx/nx-release/tests/undici-override.test.js が値を固定する。
+  undici: 7.30.1
+  # puppeteer の postinstall が Chrome を取得するのを避ける。pecotv は dom-to-pptx の bundle しか使わない (#1062)。
+  puppeteer: npm:puppeteer-core@25.16.0
+  # 単一版に固定する。版が割れると v1 SDK の tools/list が落ちた (#1061)。runtime-install.test.ts が固定する。
+  zod: 4.6.7
+  # GHSA-w3rx-r6r6-pgpr と GHSA-5p2g-fcmc-qvqq の修正版。runtime-install.test.ts が固定する。
+  image-size: ^2.0.3
+  # テーマの peer と同じ版。runtime-peers.test.ts が root の版との一致を見る。
+  uuid: 13.0.2
+  # GHSA-cg2g-xh64-v4q7 ほかの修正版。runtime/package.json と同値で、runtime-install.test.ts が固定する。
+  dompurify: ^3.4.17
+  # GHSA-238p-pmpm-9mq7 の修正版。永続層には入らない。
+  micromark-extension-math>katex: ^0.18.7
+# build は未宣言だと ERR_PNPM_IGNORED_BUILDS で落ちるため、実行しないものを false にする。
+# skills は、配布物の挙動をプラグイン自身のスキルだけで決めるため拒否する。
+permissions:
+  '@slidev/cli':
+    skills: false
+  core-js:
+    build: false
+  dom-to-pptx:
+    skills: false
+  esbuild:
+    build: false
+  nx:
+    build: false
+  playwright-chromium:
+    build: false
+  unrs-resolver:
+    build: false
+  vue-demi:
+    build: false
+# root の .claude/skills を pnpm が取り込むのを切る。
+skills:
+  dirs: []

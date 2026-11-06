@@ -303,7 +303,7 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     for (const entry of readdirSync(projectDirectory)) {
       if (/^vite\.config\.[cm]?[jt]s$/.test(entry)) rmSync(path.join(projectDirectory, entry))
     }
-    symlinkSync(path.join(PLUGIN_ROOT, 'node_modules'), path.join(projectDirectory, 'node_modules'), 'dir')
+    symlinkSync(path.join(PLUGIN_ROOT, '..', '..', 'node_modules'), path.join(projectDirectory, 'node_modules'), 'dir')
 
     // 既定（1 パス方式）を試みさせるため、外側の PECOTV_SINGLE_PASS は引き継がない
     const environment = { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' }

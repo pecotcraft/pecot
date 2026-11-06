@@ -47,6 +47,7 @@ import { themeErrorReason } from '../../../src/domain/slidev-theme/error-reason.
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
+const DEPENDENCY_NODE_MODULES = path.resolve(PLUGIN_ROOT, '..', '..', 'node_modules')
 
 interface CapturedStream {
   readonly chunks: string[]
@@ -201,7 +202,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     const linkPath = path.join(nodeModules, 'vue')
     expect(lstatSync(linkPath).isSymbolicLink()).toBe(true)
     expect(readlinkSync(linkPath).startsWith('/')).toBe(false)
-    expect(realpathSync(linkPath)).toBe(realpathSync(path.join(PLUGIN_ROOT, 'node_modules', 'vue')))
+    expect(realpathSync(linkPath)).toBe(realpathSync(path.join(DEPENDENCY_NODE_MODULES, 'vue')))
     const themeLink = path.join(nodeModules, ...THEME_NAME.split('/'))
     expect(realpathSync(themeLink)).toBe(realpathSync(state.themeDirectory))
   })
@@ -259,7 +260,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
 
   it('旧形の symlink 1 本の node_modules を実ディレクトリに替え、依存ルートの項目を消さない', async () => {
     const talk = await setupTalkDirectory()
-    const dependencyNodeModules = path.join(PLUGIN_ROOT, 'node_modules')
+    const dependencyNodeModules = DEPENDENCY_NODE_MODULES
     const itemsBefore = readdirSync(dependencyNodeModules).length
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
     symlinkSync(path.relative(talk, realpathSync(dependencyNodeModules)), path.join(talk, 'node_modules'), 'dir')

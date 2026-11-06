@@ -13,12 +13,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const assetRoot = resolve(__dirname, "..");
 
 // text-constraints が読む text-rules を先に build する。
-// libs/text-rules は、リンクで載せた repo 共通のライブラリ。
+// vendor/text-rules は、リンクで載せた repo 共通のライブラリ（実体は repo root の libs/text-rules）。
 // build の実体は libs/text-rules/scripts/build.mjs の 1 本で、ここでは起動するだけにする。
 // nx 経由では text-rules:build が先に済ませている。
 // PECOTV_SKIP_LIB_BUILD=1 のときは飛ばす。同じ dist を並行して消し、作り直すのを避けるため。
 if (process.env.PECOTV_SKIP_LIB_BUILD !== "1") {
-  const textRules = resolve(assetRoot, "../../libs/text-rules");
+  const textRules = resolve(assetRoot, "../../vendor/text-rules");
   const textRulesBuild = spawnSync(process.execPath, [join(textRules, "scripts/build.mjs")], {
     cwd: textRules,
     stdio: "inherit",
@@ -27,9 +27,8 @@ if (process.env.PECOTV_SKIP_LIB_BUILD !== "1") {
   if (textRulesBuild.status !== 0) process.exit(textRulesBuild.status ?? 1);
 }
 
-// tsc7 を明示パスで起動する理由は package.json の "//tsc7-path-reason" を参照。
-const tsc = resolve(assetRoot, "../../node_modules/typescript7/bin/tsc");
-const result = spawnSync(process.execPath, [tsc, "-b", "tsconfig.build.json"], {
+// typescript7 の解決は scripts/tsc.mjs に任せる。
+const result = spawnSync(process.execPath, [join(__dirname, "tsc.mjs"), "-b", "tsconfig.build.json"], {
   cwd: assetRoot,
   stdio: "inherit",
 });

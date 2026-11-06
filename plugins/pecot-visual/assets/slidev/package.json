@@ -5,7 +5,6 @@
   "type": "module",
   "private": true,
   "license": "MIT",
-  "//tsc7-path-reason": "typescript7（npm:typescript@7 alias）は、pnpm の hoisted linker の挙動により hoist される。hoist 先は workspace root（plugins/pecot-visual/node_modules/）だけになる。そのため assets/slidev からは、../../node_modules/typescript7/bin/tsc を明示パスで起動する。tsc bin 名の解決は、パッケージマネージャの実装に依存して非決定的になる。そのため、.bin/tsc 経由には簡略化しない。",
   "engines": {
     "node": "^24.22.1 || >=26.12.1"
   },
@@ -19,8 +18,7 @@
     "lint": "eslint --no-cache --max-warnings 0 scripts && node scripts/design-lint/lint-design.mjs",
     "lint:design": "node scripts/design-lint/lint-design.mjs",
     "build": "node scripts/build.mjs",
-    "prepare": "node scripts/build.mjs",
-    "build:test": "node ../../node_modules/typescript7/bin/tsc -b --force tsconfig.test.json",
+    "build:test": "node scripts/tsc.mjs -b --force tsconfig.test.json",
     "prelint": "node scripts/build.mjs",
     "test": "node scripts/test.mjs",
     "test:coverage": "c8 node scripts/test.mjs"
@@ -43,5 +41,10 @@
     "typescript7": "npm:typescript@^7.0.2",
     "vue-eslint-parser": "^10.4.1",
     "yaml": "^2.9.1"
+  },
+  "nx": {
+    "root": "plugins/pecot-visual",
+    "name": "pecot-visual",
+    "includedScripts": []
   }
 }
