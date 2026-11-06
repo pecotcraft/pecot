@@ -61,8 +61,6 @@ setup:
         ghes.example.com_acme_board_acme.json
       .pecot/state/.pecot-active: |
         acme/demo/7
-      .pecot/state/.plan-post-pending: |
-        acme/demo/7
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:

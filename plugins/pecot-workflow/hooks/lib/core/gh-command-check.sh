@@ -52,8 +52,7 @@ if pecot_hook_enabled "gh-pr-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_PR_
   echo "トレーサビリティ記録が行われず、ワークフローの一貫性が失われます。"
   echo ""
   echo "代わりに以下を使用してください:"
-  echo '  PECOT=pecot   # Copilot CLI の場合: PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"'
-  echo '  $PECOT pr create'
+  echo '  pecot pr create'
   exit 1
 fi
 
@@ -66,9 +65,8 @@ if pecot_hook_enabled "gh-issue-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_
   echo "ワークフローの一貫性とトレーサビリティが失われます。"
   echo ""
   echo "代わりに以下のいずれかを使用してください:"
-  echo '  PECOT=pecot   # Copilot CLI の場合: PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"'
-  echo '  $PECOT issue quick   # フリーフォーマット即起票'
-  echo '  $PECOT issue create  # フロントマター付きMarkdownから'
+  echo '  pecot issue quick   # フリーフォーマット即起票'
+  echo '  pecot issue create  # フロントマター付きMarkdownから'
   exit 1
 fi
 

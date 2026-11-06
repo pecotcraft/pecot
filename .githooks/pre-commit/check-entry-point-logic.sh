@@ -20,11 +20,8 @@ CLAUDE_ENTRY_POINTS=(
     "plugins/pecot-workflow/hooks/pre-tool-use-bash.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-mcp.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-skill.sh"
-    "plugins/pecot-workflow/hooks/pre-tool-use-enter-plan-mode.sh"
-    "plugins/pecot-workflow/hooks/pre-tool-use-exit-plan-mode.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-websearch.sh"
     "plugins/pecot-workflow/hooks/post-tool-use-bash.sh"
-    "plugins/pecot-workflow/hooks/post-tool-use-enter-plan-mode.sh"
     "plugins/pecot-workflow/hooks/post-tool-use-exit-plan-mode.sh"
     "plugins/pecot-workflow/hooks/post-tool-use-skill.sh"
     "plugins/pecot-workflow/hooks/user-prompt-submit.sh"
@@ -33,7 +30,6 @@ CLAUDE_ENTRY_POINTS=(
     "plugins/pecot-workflow/hooks/stop-copilot.sh"
     "plugins/pecot-workflow/hooks/notification.sh"
     "plugins/pecot-workflow/hooks/session-start.sh"
-    "plugins/pecot-workflow/hooks/stop-plan-post.sh"
 )
 
 ALL_ENTRY_POINTS=("${CLAUDE_ENTRY_POINTS[@]}")

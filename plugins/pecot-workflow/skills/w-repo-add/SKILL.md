@@ -9,24 +9,6 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 # リポジトリ追加
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 アクティブなプロジェクトにリポジトリを追加する。
 プロジェクトは `/pecot-w:w-onboarding` 済みでアクティブになっていることが前提。
 
@@ -35,7 +17,7 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 ### Step 1: アクティブプロジェクトの確認
 
 ```bash
-$PECOT project info
+pecot project info
 ```
 
 プロジェクト情報が表示された場合は Step 2 へ。
@@ -115,13 +97,13 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 **単一 CHANGELOG モード** (質問4 で「単一」を選択):
 
 ```bash
-$PECOT project set-repo <owner/repo> --develop-branch <branch> --release-branch <branch> --changelog-file <ファイル名>
+pecot project set-repo <owner/repo> --develop-branch <branch> --release-branch <branch> --changelog-file <ファイル名>
 ```
 
 **monorepo モード** (質問4 で「monorepo」を選択):
 
 ```bash
-$PECOT project set-repo <owner/repo> --develop-branch <branch> --release-branch <branch> \
+pecot project set-repo <owner/repo> --develop-branch <branch> --release-branch <branch> \
   --package <name1>:<changelog path1> \
   --package <name2>:<changelog path2>
 ```
@@ -129,7 +111,7 @@ $PECOT project set-repo <owner/repo> --develop-branch <branch> --release-branch 
 **リリースブランチ未設定**（CHANGELOG 質問なし）の場合は次のとおり。
 
 ```bash
-$PECOT project set-repo <owner/repo> --develop-branch <branch>
+pecot project set-repo <owner/repo> --develop-branch <branch>
 ```
 
 | 引数・オプション | 説明 |
@@ -145,7 +127,7 @@ $PECOT project set-repo <owner/repo> --develop-branch <branch>
 ### Step 4: 動作確認
 
 ```bash
-$PECOT project info
+pecot project info
 ```
 
 「登録済みリポジトリ」セクションに追加したリポジトリが表示されれば成功。

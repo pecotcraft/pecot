@@ -11,6 +11,4 @@ setup:
     files:
       .pecot/state/.pecot-active: |
         acme/demo/7
-      .pecot/state/.plan-post-pending: |
-        acme/demo/7
 github: []

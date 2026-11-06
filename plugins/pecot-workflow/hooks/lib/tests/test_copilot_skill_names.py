@@ -134,12 +134,19 @@ def test_post_other_plugin_skill_with_same_prefix_is_not_treated_as_own(
     assert not (project / ".pecot" / "state" / "issue-pending").exists()
 
 
-def test_post_enter_plan_mode_emits_top_level_additional_context(hooks_dir, project) -> None:
-    """EnterPlanMode の案内も merge を通り、Copilot CLI が読むトップレベルの additionalContext に出る。"""
-    result = _run(hooks_dir / "post-tool-use-enter-plan-mode.sh", "PostToolUse", "x", project)
+def test_post_exit_plan_mode_emits_top_level_additional_context(hooks_dir, project) -> None:
+    """ExitPlanMode の案内も merge を通り、Copilot CLI が読むトップレベルの additionalContext に出る。"""
+    (project / ".pecot" / "state").mkdir(parents=True)
+    (project / ".pecot" / "state" / ".pecot-active").write_text("org/repo/1\n")
+    result = _run(
+        hooks_dir / "post-tool-use-exit-plan-mode.sh",
+        "PostToolUse",
+        "x",
+        project,
+        tool_name="ExitPlanMode",
+    )
     assert result.returncode == 0
     out = json.loads(result.stdout)
-    template = (hooks_dir / "templates" / "plan-mode-reminder.md").read_text().strip()
-    assert out["additionalContext"].strip() == template
+    assert "計画のコメントの更新" in out["additionalContext"]
     assert out["hookSpecificOutput"]["additionalContext"] == out["additionalContext"]
     assert out["hookSpecificOutput"]["hookEventName"] == "PostToolUse"

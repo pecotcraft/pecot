@@ -1,9 +1,7 @@
 """pre-tool-use.sh のユニットテスト（#1229 T054）。
 
 PreToolUse(Edit|Write|MultiEdit|NotebookEdit|EnterPlanMode) のエントリ。Issue 起票忘れの
-リマインダー（pecot-issue-pending-reminder）だけを merge 経由で返す。コンテキストクリア後の
-計画投稿は Stop の stop-plan-post.sh に移したため、ここでは
-`.plan-post-pending` を触らない。Bash は pre-tool-use-bash.sh が受け持つ。
+リマインダー（pecot-issue-pending-reminder）だけを merge 経由で返す。Bash は pre-tool-use-bash.sh が受け持つ。
 """
 
 from __future__ import annotations
@@ -28,7 +26,6 @@ def ctx(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
     return {
         "state_dir": state_dir,
-        "pending": state_dir / ".plan-post-pending",
         "issue_pending": state_dir / "issue-pending",
     }
 
@@ -87,17 +84,6 @@ def test_apply_patch_string_tool_input_does_not_break(ctx, hook_script):
     assert (
         "Issue 起票が未完了" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
     )
-
-
-def test_plan_post_pending_flag_is_not_touched(ctx, hook_script):
-    """計画投稿のフォールバックは SessionStart(clear) へ移した。ここではフラグを消費しない。"""
-    ctx["pending"].write_text("old-session:org/repo/100\n/p/plan.md\n")
-    result = _run(
-        hook_script,
-        {"tool_name": "Edit", "session_id": "new-session", "tool_input": {"file_path": "/x"}},
-    )
-    assert result.stdout == ""
-    assert ctx["pending"].read_text() == "old-session:org/repo/100\n/p/plan.md\n"
 
 
 def test_edit_in_work_link_ignores_base_issue_pending(

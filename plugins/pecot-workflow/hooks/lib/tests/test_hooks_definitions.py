@@ -34,7 +34,6 @@ NOTIFICATION_MATCHER = "permission_prompt|idle_prompt|elicitation_dialog"
 QUOTED_COMMAND_RE = re.compile(r'^"\$\{CLAUDE_PLUGIN_ROOT\}"/hooks/(?P<file>[A-Za-z0-9._-]+\.sh)$')
 # ファイル名の抽出用（クォートの有無は問わない。クォートは test_command_quotes_plugin_root が固定する）。
 FILE_RE = re.compile(r"/hooks/(?P<file>[A-Za-z0-9._-]+\.sh)$")
-FALLBACK_ENTRY = "stop-plan-post.sh"
 PASCAL_CASE_EVENTS = {
     "SessionStart",
     "UserPromptSubmit",
@@ -96,7 +95,7 @@ def _expected_timeout(plugin: str, event: str, matcher: str | None, command_file
                 "ExitPlanMode": 90,
             }[matcher or ""]
         if event == "Stop":
-            return 90 if command_file == FALLBACK_ENTRY else 10
+            return 10
         if event in ("UserPromptSubmit", "Notification"):
             return 10
     else:
@@ -206,33 +205,6 @@ def test_pecot_tools_has_no_hooks_directory(plugins_dir: Path) -> None:
     assert not (plugins_dir / "pecot-tools" / "hooks").exists()
 
 
-def test_claude_has_no_plan_post_fallback_on_session_start(load) -> None:
-    """SessionStart(clear) の時点では新しい transcript が無く、承認のクリアかを判定できない。"""
-    for plugin in (WORKFLOW, VISUAL):
-        files = [
-            _file(h)
-            for e in _entries(load(plugin, "hooks.json"), "SessionStart")
-            for h in e["hooks"]
-        ]
-        assert FALLBACK_ENTRY not in files
-
-
-def test_claude_workflow_has_plan_post_fallback_on_stop(load) -> None:
-    entries = [
-        e
-        for e in _entries(load(WORKFLOW, "hooks.json"), "Stop")
-        if any(_file(h) == FALLBACK_ENTRY for h in e["hooks"])
-    ]
-    assert len(entries) == 1
-    assert "matcher" not in entries[0]
-    assert [h["timeout"] for h in entries[0]["hooks"]] == [90]
-
-
-def test_claude_visual_has_no_plan_post_fallback(load) -> None:
-    files = [_file(h) for e in _entries(load(VISUAL, "hooks.json"), "Stop") for h in e["hooks"]]
-    assert FALLBACK_ENTRY not in files
-
-
 def test_claude_workflow_session_title_entry_only_in_claude_definition(load) -> None:
     """セッション名（sessionTitle）は Claude Code 専用の UserPromptSubmit エントリで出す。
     sessionTitle は、公式ドキュメント（hooks の UserPromptSubmit / SessionStart decision control）に記載がある出力項目。
@@ -259,7 +231,6 @@ def test_copilot_session_start_single_entry_without_matcher(load, plugin, name) 
     assert len(entries) == 1
     assert "matcher" not in entries[0], "Copilot CLI は SessionStart の matcher を解釈しない"
     assert len(entries[0]["hooks"]) == 1
-    assert _file(entries[0]["hooks"][0]) != FALLBACK_ENTRY
 
 
 # Stop / Notification（pecot-workflow）
@@ -271,7 +242,7 @@ def test_claude_notification_matcher_and_stop_entry(load) -> None:
     assert len(notification) == 1
     assert notification[0]["matcher"] == NOTIFICATION_MATCHER
     stop_files = [_file(h) for e in _entries(hooks, "Stop") for h in e["hooks"]]
-    assert stop_files == ["stop.sh", FALLBACK_ENTRY]
+    assert stop_files == ["stop.sh"]
 
 
 def test_copilot_stop_points_at_copilot_entry(load) -> None:

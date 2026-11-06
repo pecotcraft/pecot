@@ -10,24 +10,6 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 # プルリクエスト作成
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。
 
 ## 手順
@@ -35,7 +17,7 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 ### Step 1: 事前確認スクリプトを実行
 
 ```bash
-$PECOT pr preflight -D .
+pecot pr preflight -D .
 ```
 
 exit 1 なら出力を見て解決し、再実行してから次へ進む。
@@ -55,11 +37,11 @@ exit 1 なら出力を見て解決し、再実行してから次へ進む。
 
 ```bash
 # 1. テンプレート準備
-$PECOT pr create --prepare
+pecot pr create --prepare
 # 2. 出力されたファイルを編集
 #    - 冒頭の <!-- 読者: / 書き方: / フィールド: --> ガイドコメントに従って YAML フロントマターと本文を記述
 # 3. 投稿
-$PECOT pr create <ファイルパス>
+pecot pr create <ファイルパス>
 ```
 
 feature PR の `base` は `--prepare` が config 由来で自動設定する。2ブランチモードのリポは
@@ -75,16 +57,6 @@ gh pr edit <PR番号> --body-file <画像のディレクトリ>/body.md --attach
 ```
 
 `--attach` は画像ごとに繰り返す。本文の画像のパスは、アップロード後の URL に書き換わる。
-
-下書きの文章規則は、Claude Code で pecot-visual を入れた環境なら、下書きを Write / Edit した直後に確かめられる。
-違反があると `[text-lint] Writing-rule violations in` で始まる通知が返る。指摘の行の文を書き直す。
-下書きは書き込みで止まらず、投稿の CLI も文面を確かめない。投稿前に直す。何も返らないことは、違反が無いことを意味しない。
-`[text-lint] Not checked` は、確認していないという通知を表す。
-違反が多いと先頭 100 行だけが返る。直して保存し直すと、残りが返る。
-関門（pre-commit と commit-msg）を入れたリポでは、commit する文書とコミットメッセージが止まる。
-出力の形はリポで異なる。例は `<path>:<line>:<col> <ruleId> <message>` と、ファイル名の行に続く `行:列 error メッセージ 規則名` の 2 形がある。
-どちらも、指摘された行の文を直す。
-規則・除外は変えない。無効化コメントと `--no-verify` にも触れない。
 
 ### Closing Issue キーワードと Epic
 

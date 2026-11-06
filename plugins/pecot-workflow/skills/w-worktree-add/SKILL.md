@@ -9,24 +9,6 @@ when_to_use: "ワークツリーを作りたい、並行作業用の作業ディ
 
 # ワークツリー作成
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 `pecot worktree add` でワークツリーを作る。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
 
 main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<リポ名>/` に作られる。セット名 `wtN` は常に自動採番（手動指定は不可、対象リポが未参加の最小 `wtN` に入る）。
@@ -44,7 +26,7 @@ main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<�
 対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると `pecot worktree add` は exit 1 で失敗する。init は両ファイルを同時に生成する。
 
 ```bash
-$PECOT worktree init -D <project-root>/base/<repo>
+pecot worktree init -D <project-root>/base/<repo>
 ```
 
 生成される `worktree-config.json` の `links[]` を編集する（symlink 不要なら空でよい）。
@@ -75,7 +57,7 @@ CLI で `--setup "<cmd>"` を渡した場合はそちらが優先される（con
 
 ```bash
 cd <project-root>/base/<repo>
-$PECOT worktree add -D .
+pecot worktree add -D .
 ```
 
 オプションは `pecot worktree add --help`。既存ブランチ衝突時は `--allow-existing-branch` で再利用可能。
@@ -89,7 +71,7 @@ symlink は add 時に自動で張られる（`.pecot/config/worktree-config.jso
 
 ```bash
 cd <project-root>/base/<repo>
-$PECOT worktree link -D . --all
+pecot worktree link -D . --all
 ```
 
 リアルファイルが置かれていて衝突する場合は `--force`。

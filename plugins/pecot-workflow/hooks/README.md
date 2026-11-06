@@ -68,11 +68,11 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下6つのコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
-| `gh-pr-create-check` | `gh pr create` を検出しブロック。`$PECOT pr create`（`PECOT=pecot`）の使用を強制する | コアガード | `true` |
-| `gh-issue-create-check` | `gh issue create` を検出しブロック。`$PECOT issue quick` / `issue create`（`PECOT=pecot`）の使用を強制する | コアガード | `true` |
+| `gh-pr-create-check` | `gh pr create` を検出しブロック。`pecot pr create` の使用を強制する | コアガード | `true` |
+| `gh-issue-create-check` | `gh issue create` を検出しブロック。`pecot issue quick` / `issue create` の使用を強制する | コアガード | `true` |
 | `pecot-pr-create-ask` | `pecot pr create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p`/`--dry-run`/`-n` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | コアガード（external-post-check） | `true` |
 | `pecot-issue-create-ask` | `pecot issue quick` / `issue create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p` は素通し。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | コアガード（external-post-check） | `true` |
-| `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。従来は無プロンプトだったが本ガードで ask に変わる。確認フラグ（`--dry-run`/`-n`）の免除は持たず無条件で ask し、`$PECOT pr merge` 経由を案内する | コアガード（external-post-check） | `true` |
+| `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。従来は無プロンプトだったが本ガードで ask に変わる。確認フラグ（`--dry-run`/`-n`）の免除は持たず無条件で ask し、`pecot pr merge` 経由を案内する | コアガード（external-post-check） | `true` |
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
 | `git-worktree-branch-check` | `wt*`/`develop-aist` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
@@ -97,7 +97,7 @@ w-merge スキル起動はユーザーのマージ指示であり、マージ直
 
 deny は、両クライアントとも `hookSpecificOutput.permissionDecision: "deny"` と `permissionDecisionReason` で出す。
 対象は PreToolUse の全出力。
-含まれるのは、`claude-bash-guards` / `claude-adapter` / `pr-create-block` / `exit-plan-mode-first-block` など。
+含まれるのは、`claude-bash-guards` / `claude-adapter` / `pr-create-block` など。
 PostToolUse の `decision: "block"` は変えない。
 
 確認フラグによる素通しは `pecot pr create`（`--prepare`/`-p`/`--dry-run`/`-n`）と
@@ -115,16 +115,11 @@ PostToolUse の `decision: "block"` は変えない。
 
 ### プランモード
 
-プランモード（EnterPlanMode/ExitPlanMode）に関連するフック。
+ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `plan-flag-setter` | EnterPlanMode直前に `.plan-post-pending` フラグ（1 行目 `<session_id>:<Issue ref>`）を作成する。後続フックが計画投稿の必要性を判断するための起点。ExitPlanMode の PreToolUse で計画ファイルのパス（2 行目）を追記する `plan-path-recorder.sh` も、このキーで有効・無効を切り替える | PreToolUse (EnterPlanMode, ExitPlanMode) | `true` |
-| `plan-mode-reminder` | EnterPlanMode直後にプランモード開始時の指示テンプレートを注入する。クイックモードフラグ存在時は専用テンプレートに切り替え | PostToolUse (EnterPlanMode) | `true` |
-| `plan-issue-poster` | ExitPlanMode後に計画内容をアクティブIssueにコメント投稿する（frontmatter に `issue_ref` と `template: plan` を付けた一時ファイル `.pecot/tmp/plan-post/<slug>.md` を `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue comment <ファイル>` で投稿し、投稿後に消す。`cli/templates/comment/plan.md` の構成で検証される）。exit code 3（検証失敗）では `.plan-post-pending` を消して手動投稿を案内し、それ以外の失敗（通信エラー等）では残す。クイックモードフラグもクリア | PostToolUse (ExitPlanMode) | `true` |
-| `plan-post-fallback` | ExitPlanMode後にコンテキストクリアが選択された場合の投稿フォールバック（Claude Code のみ）。新セッションの SessionStart（`clear`）で、旧セッションの PreToolUse(ExitPlanMode) が `.plan-post-pending` の 2 行目に残した計画ファイルのパスから、`plan-issue-poster` と同じ一時ファイル経由で投稿する。判定できない状態（パスが無い・ファイルが読めない）ではフラグを消さない。exit code 3（検証失敗）では `.plan-post-pending` を戻さず手動投稿を案内し、それ以外の失敗（通信エラー等）では戻して次回に再試行する。クイックモードフラグもクリア | SessionStart (clear) | `true` |
-| `exit-plan-mode-first-block` | 初回ExitPlanModeを deny（`hookSpecificOutput.permissionDecision`）しレビュー指摘の反映確認リマインドを表示する。クイックモードフラグ存在時はスキップ | PreToolUse (ExitPlanMode) | `true` |
-| `plan-mode-coordinator` | `permission_mode` が `"plan"` の場合にフラグ作成を補完する。`plan-flag-setter` のバックアップ | UserPromptSubmit | `true` |
+| `exit-plan-remind` | ExitPlanMode後に案内を返す。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して `pecot issue comment` を打ち直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode) | `true` |
 
 ### セッション管理
 
@@ -194,11 +189,11 @@ MCPツールやdraw.io等の外部ツールとの連携。
 括弧内の注記（`(Claude Code)` / `（deny 系 → tech-advisor-clone-allow）` 等）は、1段深い呼び出しの参考記載。
 エントリスクリプトからの直接呼び出しではない。
 `hooks-copilot.json`（Copilot CLI）は同じエントリを指す。
-ただし、Notification イベント、WebSearch の配線、`stop-plan-post.sh` を持たない。
+ただし、Notification イベントと WebSearch の配線を持たない。
 SessionStart は matcher なし、Stop は `stop-copilot.sh` を指す。
 Skill の matcher は `Skill|skill`、MCP の matcher は `mcp__.*|github-mcp-server-create_pull_request` 。
 各エントリの `timeout`（秒）は SessionStart 120、PreToolUse 10、PostToolUse は Bash 30・ExitPlanMode 90・その他 10 になる。
-UserPromptSubmit / Notification は 10、Stop は 10（`stop-plan-post.sh` は 90）。
+UserPromptSubmit / Notification / Stop は 10。
 pecot-visual の PostToolUse（Write / Edit）は 80 で、中の lint の打ち切り 10 + 30 + 30 秒より長くする。
 
 ```
@@ -211,9 +206,6 @@ PreToolUse (Bash)               → pre-tool-use-bash.sh              → claude
                                                                        （deny 系 → tech-advisor-clone-allow）,
                                                                        tmp-path-warner,
                                                                        pecot-issue-pending-reminder
-PreToolUse (EnterPlanMode)      → pre-tool-use-enter-plan-mode.sh   → plan-flag-setter
-PreToolUse (ExitPlanMode)       → pre-tool-use-exit-plan-mode.sh    → plan-path-recorder,
-                                                                       exit-plan-mode-first-block
 PreToolUse (mcp__.*)            → pre-tool-use-mcp.sh               → mcp-dispatcher
                                                                        → pr-create-block →
                                                                        context7-allow (Claude Code)
@@ -221,8 +213,7 @@ PreToolUse (WebSearch)          → pre-tool-use-websearch.sh         → websea
 
 PostToolUse (Skill)             → post-tool-use-skill.sh            → pecot-skill-reminder
 PostToolUse (Bash)              → post-tool-use-bash.sh             → commit-info-display, auto-push
-PostToolUse (EnterPlanMode)     → post-tool-use-enter-plan-mode.sh  → plan-mode-reminder
-PostToolUse (ExitPlanMode)      → post-tool-use-exit-plan-mode.sh   → plan-issue-poster
+PostToolUse (ExitPlanMode)      → post-tool-use-exit-plan-mode.sh   → exit-plan-remind
 
 SessionStart (startup|clear|resume|fork) → session-start.sh              → session-title (Claude Code のみ。common と別に merge へ渡す),
                                                                        session-start-common → issue-pending-cleanup,
@@ -233,13 +224,11 @@ SessionStart (startup|clear|resume|fork) → session-start.sh              → s
 
 UserPromptSubmit                → user-prompt-submit.sh             → pecot-dir-init-detect,
                                                                        workflow-compliance-injector,
-                                                                       plan-mode-coordinator,
                                                                        pecot-issue-pending-state,
                                                                        create-slash-flag
 UserPromptSubmit                → user-prompt-submit-title.sh       → session-title（Claude Code のみ）
 
 Stop                            → stop.sh                           → terminal-bell, auto-push, misplaced-pecot-notice
-Stop                            → stop-plan-post.sh                 → plan-post-fallback
 Stop                            → stop-copilot.sh                   → pty-bell-sender, auto-push, misplaced-pecot-notice
 Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification.sh → terminal-bell
 ```
@@ -261,24 +250,9 @@ Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification
   （commit は Pre / Post 各 1 回。それ以外の Bash の Post は解決しない）。`pecot issue create|quick` の
   Post は解決しない（`issue-pending` は CLI が起票成功時に消す）。
 
-### plan-post-fallback の移設
+### 計画の Issue 投稿
 
-ExitPlanMode でコンテキストクリアを選ぶと、PostToolUse は起動しない。
-変更前は、matcher の無い PreToolUse で新しいセッションの最初のツール呼び出しのたびに判定していた。
-しかし全ツールで hook が起動するため、判定を新しいセッションの最初の Stop に移した。
-
-- PreToolUse(ExitPlanMode)（`plan-path-recorder.sh`）が、`.plan-post-pending` の 2 行目に計画ファイルのパスを残す。
-  パスは `tool_input.planFilePath` から取る。first-block が止める初回の呼び出しでは残さない
-- Stop（`stop-plan-post.sh`、Claude 版の定義だけ、timeout 90）が投稿する。
-  投稿するのは、別のセッションで transcript の先頭に「Implement the following plan:」があるとき（承認してクリアしたとき）だけ。
-  無ければ（ただの `/clear`、計画を却下したあとの `/clear`、無関係なセッション）、投稿せずフラグを消す
-- SessionStart(clear) では判定しない。
-  Claude Code 2.1.310 では、クリア付きの承認は旧セッション側で ExitPlanMode の deny として扱われる。
-  SessionStart(clear) は「Implement the following plan:」より前に起動するため、その時点では承認か却下かを区別できない
-- 投稿は最初のターンの終わりになる。検証に失敗したときの手動投稿の案内は `systemMessage` で出す
-- Copilot CLI は対象外（fallback が Claude の transcript と `~/.claude/plans` に依存するため、Copilot 版の
-  定義には置かない）
-- クリアの選択肢は Claude Code 2.1.81 から初期状態で非表示（`showClearContextOnPlanAccept: true` で表示）
+フックは計画を投稿しない。w-active / w-quick の手順で、エージェントが確認の前に投稿する。
 
 ## クライアント差分
 
@@ -332,8 +306,6 @@ ExitPlanMode でコンテキストクリアを選ぶと、PostToolUse は起動�
   Claude はトップレベルを読まないので、二重に入らない
 - 通知音: Claude は `terminalSequence`、Copilot は `stop-copilot.sh`（PTY ベル）。Claude の Notification は
   `permission_prompt|idle_prompt|elicitation_dialog` だけ起動する
-- plan-post-fallback の判定を、matcher の無い PreToolUse から新しいセッションの最初の Stop に移した。
-  対象は Claude のみで、Copilot は対象外（fallback が Claude の transcript と `~/.claude/plans` に依存するため）
 
 ### 変更後の記録
 
@@ -354,8 +326,6 @@ ExitPlanMode でコンテキストクリアを選ぶと、PostToolUse は起動�
 | 両方 | SessionStart の timeout | 定義の timeout を 5 秒にし、hook に 45 秒の待ちを入れた写し | — | 約 5 秒で打ち切ってセッションが続く | 2026-10-25 |
 | Claude 2.1.310 | ターンの終了 | Stop: `stop.sh` | — | `{"terminalSequence":"\u0007"}` を出す（`-p` では端末に出ない） | 2026-10-25 |
 | Copilot 1.0.103 | ターンの終了 | Stop: `stop-copilot.sh` | — | PTY ベルを送る | 2026-10-25 |
-| Claude 2.1.310 | `/clear` のあと 1 ターン | Stop: `stop-plan-post.sh` | transcript の先頭に「Implement the following plan:」なし | 投稿せずフラグを消す | 2026-10-25 |
-| Claude 2.1.310 | 「Implement the following plan:」で始まる新しいセッション | Stop: `stop-plan-post.sh` | 別セッションのフラグと計画ファイル | 最初のターンの終わりに投稿処理を 1 回呼び、フラグを消す | 2026-10-25 |
 | Copilot 1.0.103 | スキル w-quick | Post: `post-tool-use-skill.sh` | `tool_name: "skill"` | トップレベルの `additionalContext` で「【pecot-workflowスキル起動】」がモデルに届く | 2026-10-25 |
 | Claude 2.1.310 | 70KB のコマンド + `git commit --no-verify` | Pre: `pre-tool-use-bash.sh` | snake_case | `permissionDecision: "ask"`（60,000 バイト超）→ `-p` では拒否、実行なし | 2026-10-25 |
 | Claude 2.1.310 | 起票前の Write | Pre: `pre-tool-use.sh` | `tool_input.file_path` | 起票のリマインダーが届く | 2026-10-25 |

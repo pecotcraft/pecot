@@ -9,24 +9,6 @@ when_to_use: "PR をマージしたい、マージ後のブランチ削除と後
 
 # PRマージ
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 PRをマージし、ブランチ削除とワークツリー環境の後処理を実行します。
 
 ## 手順
@@ -36,13 +18,13 @@ PRをマージし、ブランチ削除とワークツリー環境の後処理を
 引数 `owner/repo/PR番号` 形式（例: `acme-labs/ai-engineer-starter-kit/759`）を受け取る。省略された場合は、直前の会話から対象 PR が一意に特定できる（同じセッションで作成・レビューした PR が 1 件しかない等）ならそれを採用して進んでよい。曖昧な場合にのみユーザーに確認する。
 
 ```bash
-$PECOT pr read <owner>/<repo>/<PR番号>
+pecot pr read <owner>/<repo>/<PR番号>
 ```
 
 PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。
 
 ```bash
-$PECOT pr preflight -D .
+pecot pr preflight -D .
 ```
 
 exit 1 なら出力を見て解決し、再実行してからマージに進む。
@@ -51,7 +33,7 @@ exit 1 なら出力を見て解決し、再実行してからマージに進む�
 
 ```bash
 # PRをsquashマージし、リモートブランチを削除
-$PECOT pr merge <owner>/<repo>/<PR番号> --delete-branch
+pecot pr merge <owner>/<repo>/<PR番号> --delete-branch
 ```
 
 > 注意: `gh`コマンドやMCPツールではなく、必ず`pecot pr merge`を使用すること
@@ -94,7 +76,7 @@ $PECOT pr merge <owner>/<repo>/<PR番号> --delete-branch
 `pr merge` の出力からクローズしたIssue番号を取得し、Issueを読む。
 
 ```bash
-$PECOT issue read <owner>/<repo>/<issue_number>
+pecot issue read <owner>/<repo>/<issue_number>
 ```
 
 - `Parent:` フィールドから親EpicのIssue番号を取得 → なければ **Step 4-5 をスキップ**
@@ -113,7 +95,7 @@ $PECOT issue read <owner>/<repo>/<issue_number>
 Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。
 
 ```bash
-$PECOT issue comment --prepare -t merge-diff --issue <owner>/<repo>/<epic番号>
+pecot issue comment --prepare -t merge-diff --issue <owner>/<repo>/<epic番号>
 ```
 
 - 出力されたファイル冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
@@ -124,22 +106,12 @@ $PECOT issue comment --prepare -t merge-diff --issue <owner>/<repo>/<epic番号>
 4.3 で編集したファイルを投稿する。
 
 ```bash
-$PECOT issue comment <編集後ファイル>
+pecot issue comment <編集後ファイル>
 ```
 
 > 注意: `pecot issue comment` 以外の方法（MCP等）でIssueコメントを投稿しない
 
 差分がまったくない（計画通り）の場合も、「計画通り完了」のコメントを投稿する。
-
-下書きの文章規則は、Claude Code で pecot-visual を入れた環境なら、下書きを Write / Edit した直後に確かめられる。
-違反があると `[text-lint] Writing-rule violations in` で始まる通知が返る。指摘の行の文を書き直す。
-下書きは書き込みで止まらず、投稿の CLI も文面を確かめない。投稿前に直す。何も返らないことは、違反が無いことを意味しない。
-`[text-lint] Not checked` は、確認していないという通知を表す。
-違反が多いと先頭 100 行だけが返る。直して保存し直すと、残りが返る。
-関門（pre-commit と commit-msg）を入れたリポでは、commit する文書とコミットメッセージが止まる。
-出力の形はリポで異なる。例は `<path>:<line>:<col> <ruleId> <message>` と、ファイル名の行に続く `行:列 error メッセージ 規則名` の 2 形がある。
-どちらも、指摘された行の文を直す。
-規則・除外は変えない。無効化コメントと `--no-verify` にも触れない。
 
 ### Step 5: speckit後続フェーズ通知（条件付き）
 
@@ -155,7 +127,7 @@ $PECOT issue comment <編集後ファイル>
 #### 5.1 後続フェーズの特定
 
 ```bash
-$PECOT issue read <owner>/<repo>/<epic番号>
+pecot issue read <owner>/<repo>/<epic番号>
 ```
 
 `Sub-issues:` セクションから次を行う。
@@ -168,9 +140,9 @@ $PECOT issue read <owner>/<repo>/<epic番号>
 後続フェーズに影響する変更がある場合、テンプレ実体に従って影響コメントを生成・投稿する。
 
 ```bash
-$PECOT issue comment --prepare -t precede-notify --issue <owner>/<repo>/<後続issue番号>
+pecot issue comment --prepare -t precede-notify --issue <owner>/<repo>/<後続issue番号>
 # 出力された .pecot/tmp/output/ 配下の md を編集後:
-$PECOT issue comment <編集後ファイル>
+pecot issue comment <編集後ファイル>
 ```
 
 - フォーマットはテンプレ実体に従う。SKILL.md にはフォーマット例示を持たない

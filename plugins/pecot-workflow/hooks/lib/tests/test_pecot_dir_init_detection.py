@@ -18,7 +18,6 @@ import pytest
 
 _MOCK_LIB_SCRIPTS = (
     "workflow-compliance-injector.sh",
-    "plan-mode-coordinator.sh",
     "pecot-issue-pending-state.sh",
     "create-slash-flag.sh",
 )

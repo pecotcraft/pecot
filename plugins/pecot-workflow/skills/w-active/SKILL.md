@@ -9,36 +9,18 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 # Readyからタスクを実装
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
-**Readyステータスのタスクから1個選択→ブランチ作成→調査→計画ドラフト作成→レビュー→プランモードで計画を最終化。**
+**Readyステータスのタスクから1個選択→ブランチ作成→調査→計画を書く→レビュー→Issue に投稿→プランモードで承認を得る。**
 
 ## 手順
 
 ### Step 1: 事前確認とプロジェクト情報表示
 
-#### 事前セルフチェック（CLI ガードの予習）
+#### 着手前の確認
 
-`pecot create-branch` は CWD–Issue ref 整合と `.pecot-active` 上書きを自身でガードする。着手前に状況を把握しておくと、exit 2 で止められる前に対処できる。
+`pecot create-branch` は、作業ディレクトリのリポが Issue のリポと違うときと、`.pecot-active` に別の Issue が残っているときに exit 2 で止まる。先に次のコマンドで確かめる。
 
 ```bash
-$PECOT session status -D .
+pecot session status -D .
 ```
 
 `.pecot-active` の内容と `=== アクティブIssue ===` の OPEN/CLOSED が出る。違反時の対応:
@@ -55,7 +37,7 @@ $PECOT session status -D .
 ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する
 
 ```bash
-$PECOT project info
+pecot project info
 ```
 
 ### Step 2: 対象タスクを確認
@@ -63,7 +45,7 @@ $PECOT project info
 ユーザーが選択したタスクのIssue内容を確認する
 
 ```bash
-$PECOT issue read owner/repo/XXX
+pecot issue read owner/repo/XXX
 ```
 
 ### Step 3: ベースブランチを最新化
@@ -77,7 +59,7 @@ git pull
 ### Step 4: ブランチ作成
 
 ```bash
-$PECOT create-branch owner/repo/XXX feat/description
+pecot create-branch owner/repo/XXX feat/description
 ```
 
 **ブランチ名の決め方:**
@@ -105,61 +87,49 @@ CWDが別リポジトリであっても、案内に表示されたリポジト�
 案内されたWT名が作業対象リポジトリに存在しない場合は、
 `/pecot-w:w-worktree-add` コマンドでWT作成を案内するか、作業を中止する。
 
-### Step 6: 調査（通常モード・読み取り中心）
+### Step 6: 調査
 
-ブランチ切り替えが完了したら、まず**通常モードのまま**調査する。この段階では
-EnterPlanMode を呼ばない。
-
-Issue の Tasks / Acceptance を起点に、次を読み取り中心で把握する。
-
-- 変更対象になるファイルと、その周辺の既存パターン
-- 参考にすべき既存実装・命名規約
-- テスト構成（どのテストがどの範囲を守っているか）
-
-読み取り中心の調査であり、この段階でコードは編集しない。調査で得た事実が
-次の計画ドラフトのもとになる。
+通常モードのまま、Issue の Tasks / Acceptance を起点に、変更対象のファイル・既存の実装と命名・テストの構成を読む。EnterPlanMode を呼ばない。コードは編集しない。
 
 ### Step 7: 計画ドラフト作成
 
-調査結果をもとに、**通常モードのまま**実装計画のドラフトを作成する。
+次のコマンドで plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
 
-ドラフト本体の書式は、`$PECOT issue comment --prepare -t plan` で得る plan テンプレが決める。
+```bash
+pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
+```
 
-ドラフトには `## PECOT-Workflow` セクション（E2E）を
-概形として含める。ここでは項目の当たりを付ける程度でよく、書式全文をこの SKILL.md
-から複製しない。書式への最終適合は Step 9 のプランモード側で行う。
+変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 
 ### Step 8: レビュー（通常モード・一巡 1 回）
 
-計画ドラフトが完成したら、EnterPlanMode の前に**通常モードのまま**専門視点レビューを
-受ける。この段階でも EnterPlanMode を呼ばない。
+通常モードのまま、書いた計画をレビューしてもらう。EnterPlanMode を呼ばない。
 
 - w-tech-advisor を `Agent` ツールの単発 spawn でレビュー依頼する
 - w-e2e-planner を `Agent` ツールの単発 spawn でレビュー依頼する
 - 2 者の並列 spawn を既定とする。直列にする場合のみ、理由を `w-tech-advisor` の Goal 末尾に括弧書きで添える（例: `(直列の理由: ...)`）。Goal は spawn prompt の冒頭行を指す
 - 1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。
-- 各エージェントの指摘をドラフトへ反映してから次の Step へ進む
+- 指摘を計画に反映してから次の Step へ進む
 
-レビューは**一巡 1 回**であり、指摘反映後の**再レビューは不要**。反映を終えたら
-再度レビューを依頼せず、そのままプランモードへ進む。spawn 済みエージェントへの
-追質問は `SendMessage` で行える。
+レビューは一巡 1 回で、反映後の再レビューは不要。追質問は `SendMessage` で送る。
 
-### Step 9: プランモードに入る
+### Step 9: 計画の投稿
 
-レビュー指摘の反映まで終えたら、**必ずプランモードで計画を最終化する。** プランモードは
-**計画最終化と承認の窓**で、レビュー反映後に呼ぶ最終ステップとして扱う。
+通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。
 
-**必須**: 以下のツールを呼び出してプランモードに入ること。
+```bash
+pecot issue comment <書いたファイル>
+```
+
+exit 3 で止まったら、指摘を直して打ち直す。
+
+### Step 10: プランモードで承認を得る
+
+EnterPlanMode を呼び、投稿した計画で承認を得る。
 
 ```
 EnterPlanMode tool:
   (パラメータなし)
 ```
 
-> [!TIP]
-> 最終化編集の対象は、Step 7 のドラフトに Step 8 のレビュー指摘を反映した計画書である。
-> 書式適合と承認を得るための仕上げをここで行う。書式は `$PECOT issue comment --prepare -t plan` で得る
-> plan テンプレが決める。Step 7 で概形を置いた `## PECOT-Workflow` セクション
-> （E2E）を、そのテンプレに最終適合させる。実装フェーズの
-> w-implementer / w-e2e-planner 起動は ExitPlanMode 後のリマインダー
-> （`exit-plan-implementer-remind.md`）が案内する。
+承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 9 のコマンドを打ち直す。投稿したコメントが書き換わる。

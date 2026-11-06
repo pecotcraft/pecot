@@ -24,6 +24,7 @@ from cli.core.frontmatter import (
     IssueType,
     parse_comment_file,
     parse_issue_file,
+    set_frontmatter_value,
     strip_frontmatter,
     strip_leading_html_comment,
 )
@@ -1682,6 +1683,9 @@ def issue_comment(
     3. ファイルから投稿（frontmatter の template でテンプレートを決める）。
        $ pecot issue comment ./tmp/pecot/comment-plan-xxx.md
 
+       投稿すると、コメントの URL を同じファイルの frontmatter の comment_url に書き戻します。
+       comment_url があるファイルを渡すと、新しく投稿せず、そのコメントを書き換えます。
+
     終了コードは、テンプレ検証の失敗が 3 です。
     失敗とは不足セクション、見出しサマリの規則違反、使用できない記法、
     折りたたみの規則違反、テンプレに無い見出しを指します。
@@ -1784,6 +1788,11 @@ def _issue_comment_from_file(ctx: typer.Context | None, file: Path) -> None:
     if _report_template_violations(parsed.body, template_path):
         raise typer.Exit(COMMENT_VALIDATION_EXIT_CODE)
 
+    # 5. comment_url は、issue_ref と同じ Issue のコメントに限る
+    comment_id = 0
+    if fm.comment_url:
+        comment_id = _comment_id_for_issue(fm.comment_url, owner, repo, issue_number)
+
     # 6. クライアント初期化
     client = GitHubClient(host=config.host)
 
@@ -1791,15 +1800,62 @@ def _issue_comment_from_file(ctx: typer.Context | None, file: Path) -> None:
     if not config.is_repo_in_project(owner, repo, client):
         typer.echo(f"警告: {owner}/{repo} はプロジェクトに含まれていません", err=True)
 
-    # 8. コメント投稿
+    # 8. comment_url があれば、そのコメントを書き換える
+    if fm.comment_url:
+        try:
+            comment = client.update_issue_comment(owner, repo, comment_id, parsed.body)
+        except GitHubAPIError as e:
+            typer.echo(f"エラー: コメント更新失敗: {e.message}", err=True)
+            raise typer.Exit(1) from None
+        typer.echo(f"コメント更新完了: {owner}/{repo}/{issue_number}")
+        typer.echo(comment.get("html_url", fm.comment_url))
+        return
+
+    # 9. コメント投稿
     try:
         comment = client.add_issue_comment(owner, repo, issue_number, parsed.body)
-        comment_url = comment.get("html_url", "")
-        typer.echo(f"コメント投稿完了: {owner}/{repo}/{issue_number}")
-        typer.echo(comment_url)
     except GitHubAPIError as e:
         typer.echo(f"エラー: コメント投稿失敗: {e.message}", err=True)
         raise typer.Exit(1) from None
+    comment_url = comment.get("html_url", "")
+    typer.echo(f"コメント投稿完了: {owner}/{repo}/{issue_number}")
+    typer.echo(comment_url)
+
+    # 10. 次に同じファイルを渡したとき更新になるよう、URL を書き戻す
+    if comment_url:
+        try:
+            content = file.read_text(encoding="utf-8")
+            file.write_text(
+                set_frontmatter_value(content, "comment_url", comment_url), encoding="utf-8"
+            )
+        except (OSError, FrontmatterError) as e:
+            typer.echo(f"警告: comment_url をファイルに書き戻せませんでした: {e}", err=True)
+
+
+_COMMENT_URL_RE = re.compile(
+    r"^https?://[^/]+/(?P<owner>[^/]+)/(?P<repo>[^/]+)/issues/(?P<number>\d+)#issuecomment-(?P<id>\d+)$"
+)
+
+
+def _comment_id_for_issue(comment_url: str, owner: str, repo: str, issue_number: int) -> int:
+    """comment_url から comment id を取る。issue_ref と別の Issue を指していれば止める"""
+    match = _COMMENT_URL_RE.match(comment_url.strip())
+    if match is None:
+        typer.echo(
+            f"エラー: comment_url の形が違います: {comment_url}"
+            "（https://<host>/<owner>/<repo>/issues/<番号>#issuecomment-<id> の形）",
+            err=True,
+        )
+        raise typer.Exit(1)
+    target = (match["owner"].lower(), match["repo"].lower(), int(match["number"]))
+    if target != (owner.lower(), repo.lower(), issue_number):
+        typer.echo(
+            f"エラー: comment_url（{match['owner']}/{match['repo']}/{match['number']}）が"
+            f" issue_ref（{owner}/{repo}/{issue_number}）と違う Issue を指しています",
+            err=True,
+        )
+        raise typer.Exit(1)
+    return int(match["id"])
 
 
 def _issue_comment_direct(

@@ -9,24 +9,6 @@ when_to_use: "pecot の使い方が分からない、どのスキルを使えば
 
 # pecot ヘルプ
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 pecot CLI とスキル群の使い方で迷ったとき、何から始めればよいか分からないときの案内所。
 
 ## やりたいことから探す
@@ -67,13 +49,13 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 CLI のヘルプは `--help` で確認できる。
 
 ```bash
-$PECOT --help             # コマンド一覧
-$PECOT <command> --help   # サブコマンドの詳細
-$PECOT --version          # バージョン表示
+pecot --help             # コマンド一覧
+pecot <command> --help   # サブコマンドの詳細
+pecot --version          # バージョン表示
 ```
 
 ボードの現在状態を確認したいとき:
 
 ```bash
-$PECOT project info
+pecot project info
 ```

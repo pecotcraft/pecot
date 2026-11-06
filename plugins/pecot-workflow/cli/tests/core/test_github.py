@@ -896,6 +896,21 @@ class TestGitHubClientRestAPI:
             json={"body": "Test comment"},
         )
 
+    def test_update_issue_comment_success(self, client: GitHubClient) -> None:
+        """update_issue_comment: コメント ID 宛てに PATCH する"""
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.json.return_value = {"id": 456, "body": "New"}
+        client._rest.patch.return_value = mock_response
+
+        result = client.update_issue_comment("owner", "repo", 456, "New")
+
+        assert result["id"] == 456
+        client._rest.patch.assert_called_once_with(
+            "/repos/owner/repo/issues/comments/456",
+            json={"body": "New"},
+        )
+
     def test_list_open_dependabot_alerts_single_page(self, client: GitHubClient) -> None:
         """list_open_dependabot_alerts: 1 ページ"""
         mock_response = MagicMock()

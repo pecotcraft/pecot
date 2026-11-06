@@ -1004,3 +1004,31 @@ class TestStripFrontmatter:
 
         content = "## Goal — 目標\n"
         assert strip_frontmatter(content) == content
+
+
+class TestSetFrontmatterValue:
+    """set_frontmatter_value: フロントマターの 1 キーを足す・置き換える"""
+
+    def test_appends_new_key_and_keeps_body(self) -> None:
+        from cli.core.frontmatter import set_frontmatter_value
+
+        content = '---\nissue_ref: "o/r/1"\n---\n\n## Plan\n'
+        assert set_frontmatter_value(content, "comment_url", "https://x/1") == (
+            '---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n'
+        )
+
+    def test_replaces_existing_key(self) -> None:
+        from cli.core.frontmatter import set_frontmatter_value
+
+        content = '---\ncomment_url: "old"\nissue_ref: "o/r/1"\n---\nbody\n'
+        assert set_frontmatter_value(content, "comment_url", "new") == (
+            '---\ncomment_url: "new"\nissue_ref: "o/r/1"\n---\nbody\n'
+        )
+
+    def test_no_frontmatter_raises(self) -> None:
+        import pytest
+
+        from cli.core.frontmatter import FrontmatterError, set_frontmatter_value
+
+        with pytest.raises(FrontmatterError):
+            set_frontmatter_value("## Plan\n", "comment_url", "x")

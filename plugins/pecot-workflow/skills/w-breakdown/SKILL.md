@@ -9,24 +9,6 @@ when_to_use: "Epic をサブタスクに分解したい、speckit で計画を�
 
 # Epic分解：speckit 工程の逐次実行
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 Epic の内容を読み取り、main が speckit コマンド（specify → clarify → plan → tasks）を
 逐次実行して分解する。speckit の成果物（ブランチ・`.specify/` 配下のファイル）は
 **w-breakdown を実行したリポジトリ** に作成する。ただし `pecot project info` に表示
@@ -41,7 +23,7 @@ Epic の内容を読み取り、main が speckit コマンド（specify → clar
 ### Step 1: ボードを確認する
 
 ```bash
-$PECOT project info
+pecot project info
 ```
 
 ### Step 2: 成果物作成先の決定（ロードマップリポチェック）
@@ -70,7 +52,7 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 ユーザーの指示から対象Epicを特定する。Epic番号・タイトル指定なら直接使用、不明な場合は AskUserQuestion で Backlog 内の Epic を選択させる。
 
 ```bash
-$PECOT issue read owner/repo/XXX
+pecot issue read owner/repo/XXX
 ```
 
 `owner/repo` は Epic Issue が置かれているリポ。speckit 成果物の作成先は Step 2 で確定済。

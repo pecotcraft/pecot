@@ -80,10 +80,10 @@ _MIN_GUARDED_SCRIPTS = 60
 # そのため、総量の下限で別方向から検知する。
 _MIN_RESOLVED_REFS = 90
 # テンプレ参照の解決総数の下限。
-# 確認は 4 件（plan-issue-poster.sh / plan-mode-reminder.sh ×2 / exit-plan-mode-first-block.sh）。
+# 確認は 2 件（exit-plan-remind.sh ×2）。
 # スコープ規則を誤って 0 件抽出になっても、実在チェック・会計とも全 pass する。
 # そこで、別方向から空振りを検知する。
-_MIN_RESOLVED_TEMPLATE_REFS = 3
+_MIN_RESOLVED_TEMPLATE_REFS = 2
 
 _CONFIG_FILES = ("hooks.json", "hooks-copilot.json")
 _PLUGIN_ROOT_PREFIX = "${CLAUDE_PLUGIN_ROOT}/"
@@ -632,8 +632,8 @@ def test_self_comment_template_ref_is_ignored(extract_template_refs, code_lines)
     """コメント内のテンプレ参照は抽出・会計とも 0 件になること。"""
     text = (
         _SYNTHETIC_LIB_HEADER
-        + "# ${PLUGIN_HOOKS}/templates/plan-mode-reminder.md を読み込む\n"
-        + 'MODE="quick"  # ${PLUGIN_HOOKS}/templates/plan-mode-reminder-quick.md を使う\n'
+        + "# ${PLUGIN_HOOKS}/templates/reminder.md を読み込む\n"
+        + 'MODE="quick"  # ${PLUGIN_HOOKS}/templates/reminder-quick.md を使う\n'
     )
     refs = extract_template_refs(text, _SYNTHETIC_LIB_DIR, _PLUGIN_ROOT)
     assert _template_token_accounting(text, refs, code_lines) == ([], [])
@@ -654,7 +654,7 @@ def test_self_md_outside_templates_is_out_of_scope(extract_template_refs, code_l
     """`templates/` セグメントを含まない `.md` は抽出・会計とも対象外であること。
 
     次のものを対象に含めると、会計側の鈍い走査だけが拾って恒常的に不一致になる。
-    `$HOME/.claude/plans/${SLUG}.md`（plan-issue-poster.sh）と、echo 文字列の `CLAUDE.md`。
+    `$HOME/.claude/plans/${SLUG}.md` のような変数入りのパスと、echo 文字列の `CLAUDE.md`。
     スコープを `templates/` に限る根拠をここで固定する。
     """
     text = (
@@ -670,8 +670,8 @@ def test_self_nested_template_rel_resolves(extract_template_refs) -> None:
     """`hooks/templates/x.md` のような深い rel も対象に入ること（誤除外の防止）。"""
     text = (
         _SYNTHETIC_HEADER
-        + 'REMIND="${CLAUDE_PLUGIN_ROOT}/hooks/templates/exit-plan-mode-remind.md"\n'
+        + 'REMIND="${CLAUDE_PLUGIN_ROOT}/hooks/templates/exit-plan-comment-update.md"\n'
     )
     refs = extract_template_refs(text, _HOOKS_DIR, _PLUGIN_ROOT)
-    assert [ref.path for ref in refs] == [_HOOKS_DIR / "templates" / "exit-plan-mode-remind.md"]
+    assert [ref.path for ref in refs] == [_HOOKS_DIR / "templates" / "exit-plan-comment-update.md"]
     assert _missing_ref_paths(refs) == []

@@ -111,6 +111,33 @@ class IssuesAPI(GitHubClientBase):
             self._handle_http_error(response)
         return response.json()
 
+    def update_issue_comment(
+        self, owner: str, repo: str, comment_id: int, body: str
+    ) -> dict[str, Any]:
+        """Issueのコメントを書き換える
+
+        Args:
+            owner: リポジトリオーナー
+            repo: リポジトリ名
+            comment_id: コメントID（URL の ``#issuecomment-<id>``）
+            body: 新しいコメント本文
+
+        Returns:
+            更新したコメント情報の辞書
+
+        Raises:
+            GitHubNotFoundError: コメントが見つからない場合
+            GitHubAPIError: 更新に失敗した場合
+        """
+        response = self._rest_request(
+            "patch",
+            f"/repos/{owner}/{repo}/issues/comments/{comment_id}",
+            json={"body": body},
+        )
+        if not response.is_success:
+            self._handle_http_error(response)
+        return response.json()
+
     def get_issue_node_id(self, owner: str, repo: str, number: int) -> str:
         """Issue番号からGraphQL Node IDを取得
 

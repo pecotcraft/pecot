@@ -64,8 +64,6 @@ setup:
         acme/demo/7
       .pecot/state/.pecot-session-title: |
         #7 見本の Issue
-      .pecot/state/.plan-post-pending: |
-        acme/demo/7
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:

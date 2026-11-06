@@ -3,7 +3,7 @@
 
 issue-pending フラグ（w-quick / w-ready / 未知値）と tool_name の組み合わせを検証する。
 検証するのは、リマインダーの出し分け。
-案内文は、ランチャー規約（`PECOT=pecot` 確立ブロック + `$PECOT issue quick` / `issue create`）で提示される。
+案内文は、`pecot issue quick` / `issue create` のコマンドを示す。
 """
 
 from __future__ import annotations
@@ -67,8 +67,7 @@ def test_quick_flag_edit_shows_quick_reminder(ctx, script):
     result = _run(script, '{"tool_name":"Edit","tool_input":{}}')
     assert result.returncode == 0
     assert "Issue 起票が未完了" in result.stdout
-    assert "PECOT=pecot" in result.stdout
-    assert "$PECOT issue quick" in result.stdout
+    assert "pecot issue quick" in result.stdout
     assert "PreToolUse" in result.stdout
 
 
@@ -77,8 +76,7 @@ def test_ready_flag_enter_plan_mode_shows_ready_reminder(ctx, script):
     result = _run(script, '{"tool_name":"EnterPlanMode","tool_input":{}}')
     assert result.returncode == 0
     assert "サブタスク Issue" in result.stdout
-    assert "PECOT=pecot" in result.stdout
-    assert "$PECOT issue create --prepare" in result.stdout
+    assert "pecot issue create --prepare" in result.stdout
 
 
 def test_flag_bash_git_checkout_shows_reminder(ctx, script):

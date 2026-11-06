@@ -20,7 +20,6 @@ from cli.core.paths import WORK_DIR
 from cli.core.ref_parser import RefParseError, parse_issue_ref
 from cli.core.state import (
     FLAG_PECOT_ACTIVE,
-    FLAG_PLAN_POST_PENDING,
     ensure_work_dir,
     flag_exists,
     read_flag,
@@ -44,7 +43,6 @@ class FlagStatus:
 
 ALL_FLAGS = [
     FLAG_PECOT_ACTIVE,
-    FLAG_PLAN_POST_PENDING,
 ]
 
 
