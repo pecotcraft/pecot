@@ -88,6 +88,7 @@ jobs:
           path: |
             .pecot/tmp/pre-push/
             .pecot/tmp/githooks-timing.tsv
+            .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore
 
   ci-result:
