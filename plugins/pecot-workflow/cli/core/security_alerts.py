@@ -213,8 +213,8 @@ def _alert_link(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
 
 
 def _entry_row(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
-    """code scanning・secret scanning の行（alert・Priority）"""
-    return f"| {_entry_marker(e)} {_alert_link(e, host, owner, repo)} | {e.priority} |"
+    """code scanning・secret scanning の行（title・alert・Priority）。title は固定の ``masked``"""
+    return f"| {_entry_marker(e)} masked | {_alert_link(e, host, owner, repo)} | {e.priority} |"
 
 
 def _advisory_groups(entries: list[TrackerEntry]) -> list[list[TrackerEntry]]:
@@ -318,14 +318,14 @@ def _section(
         return head + "なし"
     if kind == "dependabot":
         lines = [
-            "| 内容 | alert | Priority |",
+            "| title | alert | Priority |",
             "|---|---|---|",
             *(_advisory_row(g, host, owner, repo) for g in _advisory_groups(rows)),
         ]
     else:
         lines = [
-            "| alert | Priority |",
-            "|---|---|",
+            "| title | alert | Priority |",
+            "|---|---|---|",
             *(_entry_row(e, host, owner, repo) for e in rows),
         ]
     return head + "\n".join(lines)

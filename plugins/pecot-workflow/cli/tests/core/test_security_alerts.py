@@ -284,14 +284,14 @@ class TestTrackerBody:
         assert body.endswith("<!-- pecot-alert: list-end -->\n")
         assert body.index("## Dependabot") < body.index("## code scanning")
         assert body.index("## code scanning") < body.index("## secret scanning")
-        assert "| 内容 | alert | Priority |\n|---|---|---|\n" in body
-        assert "| alert | Priority |\n|---|---|\n" in body
+        assert "| title | alert | Priority |\n|---|---|---|\n" in body
+        assert body.count("| title | alert | Priority |") == 3
         assert "[#1](https://github.com/o/r/security/dependabot/1)" in body
         assert "(https://github.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](" in body
         assert "--> a--b |" in body
         assert "SECURITY.md" not in body
         assert "状態" not in body
-        assert "## code scanning — 1 件\n\n| alert | Priority |" in body
+        assert "## code scanning — 1 件\n\n| title | alert | Priority |" in body
         assert "## secret scanning — 1 件" in body
         # 印・見出し・表の行だけ。説明の文は無い
         for line in body.split("\n"):
@@ -300,8 +300,14 @@ class TestTrackerBody:
     def test_code_scanning_row_has_no_package_cell(self) -> None:
         body = self._render([_e("code-scanning", 4, priority="low")])
 
-        assert "| <!-- pecot-alert: code-scanning/4 priority=low --> [#4](" in body
+        assert "| <!-- pecot-alert: code-scanning/4 priority=low --> masked | [#4](" in body
         assert body.count("| low |") == 1
+        assert parse_tracker_entries(body) == [_e("code-scanning", 4, priority="low")]
+
+    def test_secret_scanning_title_is_masked(self) -> None:
+        body = self._render([_e("secret-scanning", 5, priority="high")])
+
+        assert "| <!-- pecot-alert: secret-scanning/5 priority=high --> masked | [#5](" in body
 
     def test_empty_kinds_show_none(self) -> None:
         body = self._render([])

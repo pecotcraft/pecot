@@ -35,8 +35,10 @@ open の Tracker が無く、判断の要る alert があるときだけ、新�
 
 Tracker の本文には、Tracker の印と、alert の一覧だけがあります。一覧は、Dependabot・code scanning・secret scanning の順に、種類ごとの見出し（`## Dependabot — 8 件` の形）と表に分かれます。
 表に載るのは、open で `.github/dependabot-exceptions.json` に載っていない、判断の要る alert だけです。0 件の種類は「なし」と書きます。機能が無効の種類は、見出しに「無効」と書き、表は置きません。
-表の列は、Dependabot が内容・alert・Priority、ほかの 2 種が alert・Priority です。
-Dependabot の表は advisory（GHSA）ごとに 1 行です。内容は advisory の題で、advisory へのリンクです。alert の列には、同じ advisory の alert（Security タブへのリンク）を番号順に並べます。
+表の列は、3 種とも title・alert・Priority です。
+Dependabot の表は advisory（GHSA）ごとに 1 行です。title は advisory の題で、advisory へのリンクです。
+alert の列には、同じ advisory の alert（Security タブへのリンク）を番号順に並べます。
+code scanning と secret scanning の title は、まだ直していない弱点の中身なので `masked` と書きます。
 Priority は束ねた alert の最大で、行は Priority の高い順に並びます。見出しの件数は alert の件数です。
 alert が直った・閉じられた・例外になったときは、次の実行で行が表から消えます。
 

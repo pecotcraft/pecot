@@ -52,7 +52,7 @@
       "query": {},
       "body": {
         "title": "[Tracker] security alert — {{TODAY}}",
-        "body": "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot — 1 件\n\n| 内容 | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc sum=Prototype%20Pollution%20in%20left%2Dpad --> [Prototype Pollution in left-pad](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high |\n\n## code scanning — 0 件\n\nなし\n\n## secret scanning — 0 件\n\nなし\n<!-- pecot-alert: list-end -->\n",
+        "body": "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot — 1 件\n\n| title | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc sum=Prototype%20Pollution%20in%20left%2Dpad --> [Prototype Pollution in left-pad](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high |\n\n## code scanning — 0 件\n\nなし\n\n## secret scanning — 0 件\n\nなし\n<!-- pecot-alert: list-end -->\n",
         "labels": [
           "security-alert"
         ]

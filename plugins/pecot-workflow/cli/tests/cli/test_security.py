@@ -139,7 +139,7 @@ class TestSync:
         assert body.startswith(
             "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n"
         )
-        assert "## Dependabot — 1 件\n\n| 内容 | alert | Priority |" in body
+        assert "## Dependabot — 1 件\n\n| title | alert | Priority |" in body
         assert "## code scanning — 0 件\n\nなし" in body
         assert "state=" not in body
         assert "SECURITY.md" not in body
