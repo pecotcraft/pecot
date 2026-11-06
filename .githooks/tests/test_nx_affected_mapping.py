@@ -31,7 +31,17 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 # nx の判定を左右する root 設定ファイル。
 # --base/--head ケースの複製リポへ、作業ツリー側の内容を持ち込むために使う。
 # 本テストは、未コミットの設定変更も対象にする。
-_NX_CONFIG_FILES = (".nxignore", "nx.json")
+_NX_CONFIG_FILES = (".nxignore", "nx.json", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json")
+
+# nx が認識する project の集合。入れ子のメンバーは `nx.root` / `nx.name` でプラグインの project へ束ねる (#113)。
+_EXPECTED_PROJECTS = {
+    "nx-release",
+    "pecot",
+    "pecot-tools",
+    "pecot-visual",
+    "pecot-workflow",
+    "text-rules",
+}
 
 
 @pytest.fixture(scope="session")
@@ -80,8 +90,17 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
     "changed_file",
     [
         # root lockfile では、@nx/js の lockfile locator が全 project を touched にする。
-        # この既定を、.nxignore の /package-lock.json で止めている。
-        "package-lock.json",
+        # この既定を、.nxignore の /pnpm-lock.yaml で止めている。
+        "pnpm-lock.yaml",
+    ],
+)
+def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -> None:
+    assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == []
+
+
+@pytest.mark.parametrize(
+    "changed_file",
+    [
         # markdownlint 設定: nx の lint target は markdownlint を実行しない（実行元は
         # .pre-commit-config.yaml の外部 hook）。sharedGlobals から外して発火を止めている。
         ".markdownlint-cli2.jsonc",
@@ -89,8 +108,25 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
         ".pecot/config/.worktreeignore",
     ],
 )
-def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -> None:
-    assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == []
+def test_outside_project_file_affects_only_the_root_project(
+    nx_bin: Path, changed_file: str
+) -> None:
+    """プラグインの外のファイルは、root の project（pecot）だけに属する。pecot はレーンの target を持たない (#113)。"""
+    assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == ["pecot"]
+
+
+def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
+    """project の集合を pin する。入れ子のメンバーが独立した project になると、レーンの選択が崩れる (#113)。"""
+    result = subprocess.run(
+        [str(nx_bin), "show", "projects", "--json"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env={**os.environ, "NX_DAEMON": "false"},
+    )
+    assert result.returncode == 0, f"nx 失敗: {result.stderr}"
+    assert set(json.loads(result.stdout.strip().splitlines()[-1])) == _EXPECTED_PROJECTS
 
 
 @pytest.mark.parametrize(
@@ -334,17 +370,18 @@ def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx
     for lane in ("pecot-visual:test-cli", "pecot-visual:test-release", "pecot-visual:test-compare"):
         assert "pecot-visual:build-cli" in deps[lane], f"{lane} が build-cli に依存しない"
     # 共有ステップは task graph 上で project ごとの 1 件が載る。
-    # text-rules:build が text-rules:install を連れてくるので、install は 2 件になる (#1281)。
+    # text-rules:build が text-rules:install を連れてくるので、install は 3 件になる (#1281)。
+    # どの project の install も、root の pecot:install（pnpm install --frozen-lockfile）に依存する (#113)。
     assert sorted(t for t in tasks["tasks"] if t.endswith(":install")) == [
         "pecot-visual:install",
+        "pecot:install",
         "text-rules:install",
     ]
+    assert "pecot:install" in deps["pecot-visual:install"]
+    assert "pecot:install" in deps["text-rules:install"]
     # 配布ツリーに同梱する text-rules の dist を、release レーンが先に build する。
     assert "text-rules:build" in deps["pecot-visual:test-release"]
-    # libs/text-rules の node_modules は pecot-visual:install が npm ci で戻す。
-    # text-rules:install は何もせず、順序だけを与える (#1297, #1309)。
-    # pecot-visual:install → text-rules:install → text-rules:build → build-slidev。
-    assert "pecot-visual:install" in deps["text-rules:install"]
+    # pecot:install → text-rules:install → text-rules:build → build-slidev。
     assert "text-rules:install" in deps["text-rules:build"]
     assert "text-rules:build" in deps["pecot-visual:build-slidev"]
     assert "pecot-visual:install" in deps["pecot-visual:build-slidev"]
@@ -423,11 +460,10 @@ def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_pa
     ).stdout.strip()
 
     # プローブ 2: root lockfile だけを変更する（transitive package の version を 1 件 bump）。
-    lockfile = probe / "package-lock.json"
-    lock = json.loads(lockfile.read_text())
-    target = next(k for k in lock["packages"] if k.startswith("node_modules/"))
-    lock["packages"][target]["version"] += "-probe"
-    lockfile.write_text(json.dumps(lock, indent=2) + "\n")
+    lockfile = probe / "pnpm-lock.yaml"
+    lock = lockfile.read_text(encoding="utf-8")
+    # 先頭の packages の version を 1 件だけ変える代わりに、lock 全体の末尾へ 1 行足して内容を変える。
+    lockfile.write_text(lock + "# probe: bump transitive lockfile version\n", encoding="utf-8")
     git("add", "-A")
     git("commit", "-q", "-m", "probe: bump transitive lockfile version")
     head = subprocess.run(
@@ -530,7 +566,7 @@ _PECOTV_TEST_LANES = {
         ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"}),
         # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
         # ソースの変更は、配布ツリーに同梱する dist の元になるので、pecot-visual の release レーンにも届く (#1281)。
-        # pecot-visual は libs/text-rules をリンクで載せていて、nx がリンク先の変更を検知しない。
+        # pecot-visual は text-rules をリンク（vendor/text-rules）で載せていて、nx がリンク先の変更を検知しない。
         # そのため text-constraints を使う test-cli / test-hooks / test-slidev も inputs に持つ (#1297)。
         # ミラーを実 build する test-bootstrap も同じ。
         (
@@ -544,7 +580,7 @@ _PECOTV_TEST_LANES = {
                 "pecot-visual:test-bootstrap",
             },
         ),
-        # 依存だけの変更も同じ。pecot-visual の lock が libs/text-rules の importer を持つため、
+        # 依存だけの変更も同じ。root の lock が libs/text-rules の importer を持つため、
         # package.json の変更はそのレーンに届く (#1297)。
         (
             "libs/text-rules/package.json",
@@ -599,7 +635,7 @@ _PECOTV_TEST_LANES = {
             {"pecot-workflow:test-hooks"},
         ),
         # root の lockfile は .nxignore で入力から外す。
-        ("package-lock.json", set()),
+        ("pnpm-lock.yaml", set()),
     ],
 )
 def test_gate_selects_only_the_lanes_the_change_reaches(

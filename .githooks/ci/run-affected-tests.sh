@@ -91,7 +91,7 @@ hook_start_us=$(timing_now_us)
 
 # nx の lane 並列度。N=4 で確定 (#1225)。
 # 計測条件 (2026-10-25 / #1225 Step 8) は次のとおり。
-#   - devcontainer（24 コア）で `npx nx run-many -t test --parallel=N --skip-nx-cache` を実行した。
+#   - devcontainer（24 コア）で `pnpm exec nx run-many -t test --parallel=N --skip-nx-cache` を実行した。
 #   - 環境変数は `PECOTV_PM_GUARD_BEHAVIOR=0` を付けた。
 #   - 捨ての 1 回（npm の永続キャッシュを温める）の後、N を 2 → 3 → 4 → 3 → 4 → 2 → 4 → 2 → 3 の順で変え、計 9 回測った。
 #   - 捨ての 1 回（npm の永続キャッシュを温める）を実行した後、N の順は 2 → 3 → 4 → 3 → 4 → 2 → 4 → 2 → 3 の 9 回で、交互に測った。
@@ -136,7 +136,7 @@ if ! nx_bin=$(resolve_nx "$repo_root"); then
     cat >&2 <<'EOF'
 ERROR: nx 実行ファイルが見つからないため affected テストを実行できません。
        リポジトリルートで依存を導入してください:
-         npm ci
+         pnpm install --frozen-lockfile
        緊急で回避する場合のみ `git push --no-verify` を使ってください。
 EOF
     exit 1

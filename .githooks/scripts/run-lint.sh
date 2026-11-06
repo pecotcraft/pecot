@@ -39,4 +39,7 @@ uv pip install --quiet --python "$VENV_DIR/bin/python" "gitlint==$GITLINT_VERSIO
 # pyright --strict で .githooks/gitlint/ 配下の Python を確認する。
 # --project で pyrightconfig.json を指定し、
 # reportMissingTypeStubs/reportUnnecessaryTypeIgnoreComment を制御する。
-npx --yes pyright@1.1.410 --pythonpath "$VENV_DIR/bin/python" --project .githooks/gitlint
+# npm 11 は、cwd から上へたどって見つけた package.json が pnpm を宣言していると npx も止める（repo root が該当する）。
+# そのため cwd を / にして呼ぶ。パスは絶対パスで渡す。
+REPO_ROOT="$PWD"
+( cd / && npx --yes pyright@1.1.410 --pythonpath "$REPO_ROOT/$VENV_DIR/bin/python" --project "$REPO_ROOT/.githooks/gitlint" )

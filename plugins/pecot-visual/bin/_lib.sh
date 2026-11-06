@@ -547,7 +547,7 @@ PLUGIN_RUNTIME_NAME=pecotv
 
 # 依存の入力（相対パス。cd した root で実在するものだけ）。
 # lock・workspace 定義・.npmrc。
-# 加えて、workspace メンバーの package.json。ただし libs/text-rules は除く。
+# 加えて、workspace メンバーの package.json。ただし vendor/text-rules は除く。
 # 実行時依存の manifest（assets/slidev/runtime/package.json）も workspace メンバーなので、ここで拾われる。
 plugin_runtime_deps_files() {
     local root="$1" file member
@@ -562,10 +562,10 @@ plugin_runtime_deps_files() {
                 collecting && /^[^ ]/ { collecting = 0 }
                 collecting && /^  - / { sub(/^  - /, ""); gsub(/["\047 ]/, ""); print }
             ' pnpm-workspace.yaml | while IFS= read -r member; do
-                # libs/text-rules は入れない。依存の宣言は pnpm-lock.yaml の importers が持ち、package.json の version は
+                # vendor/text-rules は入れない。依存の宣言は pnpm-lock.yaml の importers が持ち、package.json の version は
                 # text-rules のリリースで毎回変わる。入れると、その版で利用者全員の導入がやり直しになる。
                 # package.json 自体は src の入力に入っていて、ミラーへは src として載る。
-                [ "$member" != libs/text-rules ] || continue
+                [ "$member" != vendor/text-rules ] || continue
                 [ ! -f "$member/package.json" ] || printf '%s\n' "$member/package.json"
             done
         fi
@@ -573,10 +573,10 @@ plugin_runtime_deps_files() {
 }
 
 # v-slidev の ESLint プラグイン群（assets/slidev/tsconfig.build.json の references と同じ 7 本）。
-# これに加えて、text-constraints が使う libs/text-rules を載せる。repo 共通のライブラリをリンクで載せたもの。
+# これに加えて、text-constraints が使う vendor/text-rules を載せる。repo 共通のライブラリをリンクで載せたもの。
 plugin_runtime_slidev_packages() {
     printf '%s\n' \
-        libs/text-rules \
+        vendor/text-rules \
         assets/slidev/scripts/eslint/2layer \
         assets/slidev/scripts/eslint/asset-path \
         assets/slidev/scripts/eslint/pptx-compat \
@@ -590,14 +590,14 @@ plugin_runtime_slidev_packages() {
 # 含めるものは次のとおり。
 # cli の src・types・package.json・tsconfig。
 # v-slidev の ESLint プラグイン一式の lib・schema.json・package.json・tsconfig。
-# libs/text-rules、deck-lint.config.js と deck-lint.env.config.js、build.mjs。
+# vendor/text-rules、deck-lint.config.js と deck-lint.env.config.js、build.mjs。
 # 実行時依存の manifest（assets/slidev/runtime/package.json）も含める。
 # テストと生成物（dist・node_modules・tsbuildinfo・__pycache__・egg-info・build）は含めない。
 plugin_runtime_src_files() {
     local root="$1" package file
     (
         cd "$root" || exit 0
-        printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json
+        printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json cli/scripts/tsc.mjs
         find cli/src cli/types -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
             ! -path '*/node_modules/*' ! -path '*/dist/*' ! -path '*/__pycache__/*' ! -path '*.egg-info/*' ! -path '*/build/*' 2>/dev/null || true
         printf '%s\n' \
@@ -609,12 +609,12 @@ plugin_runtime_src_files() {
             assets/slidev/deck-lint.env.config.js \
             assets/slidev/runtime/package.json
         plugin_runtime_slidev_packages | while IFS= read -r package; do
-            # libs/text-rules はリンクなので -L で辿る。開発環境では実体に npm の node_modules・dist・coverage が
+            # vendor/text-rules はリンクなので -L で辿る。開発環境では実体に npm の node_modules・dist・coverage が
             # あるため、降りないように -prune する。
-            # libs/text-rules では、build の入力にならない *.md・package-lock.json・project.json も外す。
+            # vendor/text-rules では、build の入力にならない *.md・package-lock.json・project.json も外す。
             # リリースのたびに変わる CHANGELOG.md などで、ソースのハッシュを動かさないため。
             case "$package" in
-                libs/text-rules)
+                vendor/text-rules)
                     find -L "$package" \( -name node_modules -o -name dist -o -name coverage -o -name build \) -prune -o \
                         -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
                         ! -path '*/__pycache__/*' ! -path '*.egg-info/*' \

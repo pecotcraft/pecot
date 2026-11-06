@@ -28,14 +28,16 @@ import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
+// 依存と lock は repo root の 1 つの pnpm workspace が持つ (#113)。
+const REPO_ROOT = path.resolve(PLUGIN_ROOT, '..', '..')
 const RUNTIME_MANIFEST = path.join(PLUGIN_ROOT, 'assets', 'slidev', 'runtime', 'package.json')
-// nodeLinker: hoisted なので workspace の依存は plugins/pecot-visual/node_modules 直下に並ぶ。
-const DOM_TO_PPTX_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'dom-to-pptx', 'package.json')
-const PPTXGENJS_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'pptxgenjs', 'package.json')
-const MONACO_EDITOR_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'monaco-editor', 'package.json')
-const MICROMARK_EXTENSION_MATH_MANIFEST = path.join(PLUGIN_ROOT, 'node_modules', 'micromark-extension-math', 'package.json')
-const WORKSPACE_YAML = path.join(PLUGIN_ROOT, 'pnpm-workspace.yaml')
-const LOCKFILE = path.join(PLUGIN_ROOT, 'pnpm-lock.yaml')
+// nodeLinker: hoisted なので workspace の依存は repo root の node_modules 直下に並ぶ。
+const DOM_TO_PPTX_MANIFEST = path.join(REPO_ROOT, 'node_modules', 'dom-to-pptx', 'package.json')
+const PPTXGENJS_MANIFEST = path.join(REPO_ROOT, 'node_modules', 'pptxgenjs', 'package.json')
+const MONACO_EDITOR_MANIFEST = path.join(REPO_ROOT, 'node_modules', 'monaco-editor', 'package.json')
+const MICROMARK_EXTENSION_MATH_MANIFEST = path.join(REPO_ROOT, 'node_modules', 'micromark-extension-math', 'package.json')
+const WORKSPACE_YAML = path.join(REPO_ROOT, 'pnpm-workspace.yaml')
+const LOCKFILE = path.join(REPO_ROOT, 'pnpm-lock.yaml')
 
 /**
 `1.2.3` を [1, 2, 3] にする。semver を依存に足さないための最小 parser。
@@ -88,7 +90,7 @@ function workspacePackageDirectories(): readonly string[] {
     if (typeof entry !== 'string') continue
     if (entry.endsWith('/*')) {
       const parent = entry.slice(0, -2)
-      const children = readdirSync(path.join(PLUGIN_ROOT, parent), { withFileTypes: true })
+      const children = readdirSync(path.join(REPO_ROOT, parent), { withFileTypes: true })
       for (const child of children) {
         if (child.isDirectory()) directories.push(path.posix.join(parent, child.name))
       }
@@ -354,10 +356,10 @@ describe('本体の runtime manifest との整合', () => {
     // 配布 package.json の zod は、dist-manifest が cli の宣言を読んで決める。
     // override 値と cli の下限が離れると、ワークスペースと配布物が別の zod を掴む。
     // インスタンスが分かれると tools/list が TypeError で落ちる。
-    // 理由は plugins/pecot-visual/pnpm-workspace.yaml の overrides に添えた説明と同じ。
+    // 理由は pnpm-workspace.yaml の overrides に添えた説明と同じ。
     // override の置き場所は pnpm-workspace.yaml。
     // package.json の pnpm.overrides は pnpm 10 以降で読まれず、警告が出る。
-    const workspaceConfig: unknown = parseYaml(readFileSync(path.join(PLUGIN_ROOT, 'pnpm-workspace.yaml'), 'utf8'))
+    const workspaceConfig: unknown = parseYaml(readFileSync(path.join(REPO_ROOT, 'pnpm-workspace.yaml'), 'utf8'))
     const overrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
       ? workspaceConfig['overrides']
       : {}
@@ -402,7 +404,7 @@ describe('本体の runtime manifest との整合', () => {
     // dom-to-pptx が puppeteer の要求範囲を上げても、pnpm / npm はエラーを出さず古いバージョンのまま残る。
     // 範囲外の puppeteer-core を掴むと、node exporter が参照する API が欠ける。
     // そのため両立の確認はここに置く。
-    // 追従手順は plugins/pecot-visual/pnpm-workspace.yaml の overrides コメントに書いてある。
+    // 追従手順は pnpm-workspace.yaml の overrides コメントに書いてある。
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
       overrides: Record<string, string>
@@ -414,7 +416,7 @@ describe('本体の runtime manifest との整合', () => {
 
     // 置き場所が 2 つ (workspace の pnpm 解決用と、talk-dir / 永続層の npm install 用) あるため、
     // 片方だけ更新した状態を弾く。
-    const workspaceConfig: unknown = parseYaml(readFileSync(path.join(PLUGIN_ROOT, 'pnpm-workspace.yaml'), 'utf8'))
+    const workspaceConfig: unknown = parseYaml(readFileSync(path.join(REPO_ROOT, 'pnpm-workspace.yaml'), 'utf8'))
     const workspaceOverrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
       ? workspaceConfig['overrides']
       : {}
@@ -439,7 +441,7 @@ describe('本体の runtime manifest との整合', () => {
     // 置き場所は 2 つ。
     // workspace の pnpm 解決用と、talk-dir / 永続層の npm install 用の manifest。
     // 一部だけ更新した状態を弾く。
-    // 理由と撤去条件は plugins/pecot-visual/pnpm-workspace.yaml の overrides コメントに書いてある。
+    // 理由と撤去条件は pnpm-workspace.yaml の overrides コメントに書いてある。
     const workspaceConfig: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
     const workspaceOverrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
       ? workspaceConfig['overrides']
@@ -475,7 +477,7 @@ describe('本体の runtime manifest との整合', () => {
     // 置き場所は 2 つ。
     // workspace の pnpm 解決用と、talk-dir / 永続層の npm install 用の manifest。
     // 一部だけ更新した状態を弾く。
-    // 理由と撤去条件は plugins/pecot-visual/pnpm-workspace.yaml の overrides コメントに書いてある。
+    // 理由と撤去条件は pnpm-workspace.yaml の overrides コメントに書いてある。
     const workspaceConfig: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
     const workspaceOverrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides'])
       ? workspaceConfig['overrides']
@@ -538,7 +540,7 @@ describe('本体の runtime manifest との整合', () => {
 
     const offenders: string[] = []
     for (const directory of targets) {
-      const manifestPath = path.join(PLUGIN_ROOT, directory, 'package.json')
+      const manifestPath = path.join(REPO_ROOT, directory, 'package.json')
       expect(existsSync(manifestPath), `走査対象に package.json が無い: ${manifestPath}`).toBe(true)
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
       const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>

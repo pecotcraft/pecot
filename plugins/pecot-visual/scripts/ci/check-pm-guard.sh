@@ -3,11 +3,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 確認対象の root。失敗時の挙動を確かめる単体テストが fixture へ差し替えられるよう、source 後に代入し直せる。
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# shellcheck disable=SC2034  # 単体テストが fixture へ差し替える
 PECOTV_PLUGIN_ROOT="$REPO_ROOT/plugins/pecot-visual"
 
 # 違うパッケージマネージャの install を機械検知するガード (#806 / #52)。
 # 方式: 各 package.json の devEngines.packageManager に使うものを宣言する。
-#   ルートと libs/text-rules は npm、3 プラグインのルートとメンバーは pnpm を宣言する。
 #   宣言の形と置き場所は pm-guard-lib.sh の check_package_manager_declarations が確かめる。
 # npm は、ローカルの package.json が別のパッケージマネージャを宣言していると、
 # global でないコマンドを EBADDEVENGINES で止める。pnpm 11 以降は ERR_PNPM_OTHER_PM_EXPECTED で止める。
@@ -21,7 +21,7 @@ PECOTV_PLUGIN_ROOT="$REPO_ROOT/plugins/pecot-visual"
 # nx target `pecot-visual:check-pm-guard` から 1 push 1 回だけ実行する（test のレーンが dependsOn で参照する）。
 #
 # 挙動確認は隔離 install を十数回起動する。
-# ガードが守る対象は、package.json の宣言、.npmrc、pnpm-workspace.yaml のメンバー、本スクリプト自体。
+# 対象は package.json の宣言、.npmrc、workspace のメンバー、本スクリプト自体。
 # これらが push range で変わらない限り結果は変わらない。
 # そのため pre-push フックが PECOTV_PM_GUARD_BEHAVIOR=0 を渡してきたときは、静的確認だけに絞る (#1080)。
 # 未設定のとき（手動実行とフォールバック）は、従来どおり両方を実行する。安全側に倒した既定とする。
@@ -53,22 +53,20 @@ run_static_check() {
     echo "==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)"
 
     local -a members
-    mapfile -t members < <(list_workspace_members "$PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml")
+    mapfile -t members < <(list_workspace_members "$REPO_ROOT/pnpm-workspace.yaml")
     if [ "${#members[@]}" -eq 0 ]; then
         fail "pnpm-workspace.yaml の packages ブロックからメンバーを取得できません（フォーマット変更の疑い）"
     fi
 
-    # hoisted linker は bootstrap / テストの依存解決の前提（plugins/pecot-visual/node_modules 直下に並ぶ）。
     local linker
-    linker="$(read_workspace_setting "$PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml" nodeLinker)"
-    [ "$linker" = "hoisted" ] || fail "nodeLinker: hoisted が無い: $PECOTV_PLUGIN_ROOT/pnpm-workspace.yaml"
+    linker="$(read_workspace_setting "$REPO_ROOT/pnpm-workspace.yaml" nodeLinker)"
+    [ "$linker" = "hoisted" ] || fail "nodeLinker: hoisted が無い: $REPO_ROOT/pnpm-workspace.yaml"
 
     # 全 package.json の宣言と、プラグインの下に .npmrc が無いこと。
     check_package_manager_declarations "$REPO_ROOT"
     # ルートの .npmrc は、依存の engines.node を厳格に確かめるために残している。
     grep -qx 'engine-strict=true' "$REPO_ROOT/.npmrc" 2>/dev/null || fail "engine-strict=true が無い: $REPO_ROOT/.npmrc"
-    # scripts が package manager を呼ばないことの確認は、libs/text-rules のメンバーにも掛ける。
-    check_plugin_scripts_pm_free "$PECOTV_PLUGIN_ROOT" pecotv
+    check_scripts_pm_free_under "$REPO_ROOT" pecotv plugins/pecot-visual libs/text-rules
 
     if [ "$STATIC_FAIL" -ne 0 ]; then
         echo "check-pm-guard: 静的確認 FAILED ($STATIC_FAIL 件)" >&2
@@ -181,6 +179,8 @@ run_behavior_check() {
 
     local plugins_dir="$REPO_ROOT/plugins"
     if command -v npm >/dev/null 2>&1; then
+        assert_blocked "repo root × npm install" "$REPO_ROOT" npm install
+        assert_blocked "libs/text-rules × npm install" "$REPO_ROOT/libs/text-rules" npm install
         assert_blocked "pecot-visual root × npm install" "$plugins_dir/pecot-visual" npm install
         assert_blocked "pecot-visual cli × npm install" "$plugins_dir/pecot-visual/cli" npm install
         assert_blocked "pecot-tools root × npm install" "$plugins_dir/pecot-tools" npm install
@@ -202,13 +202,6 @@ run_behavior_check() {
         assert_blocked "repo root × yarn install" "$REPO_ROOT" yarn install
     else
         echo "  SKIP: yarn 不在のため yarn の挙動確認を skip"
-    fi
-
-    if command -v pnpm >/dev/null 2>&1; then
-        assert_blocked "repo root × pnpm install" "$REPO_ROOT" pnpm install
-        assert_blocked "libs/text-rules × pnpm install" "$REPO_ROOT/libs/text-rules" pnpm install
-    else
-        echo "  SKIP: pnpm 不在のため pnpm の挙動確認を skip"
     fi
 
     if [ "$BEHAVIOR_FAIL" -ne 0 ]; then

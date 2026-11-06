@@ -1,7 +1,19 @@
 # Nx Release によるリリース
 
-`release_type: nx` が設定されているリポ向け。`npx nx release` が version plan をもとに、
+`release_type: nx` が設定されているリポ向け。`$NX release` が version plan をもとに、
 リリース処理を一括で実行する。
+
+## nx の起動コマンド（`$NX`）
+
+npm 11 以降は、`devEngines.packageManager` が pnpm の dir で `npx` が `EBADDEVENGINES` で止まる。
+対象は root に `pnpm-lock.yaml` がある pnpm のリポ。
+そのため、pnpm のリポは `pnpm exec nx`、それ以外は `npx nx` で起動する。
+Bash の呼び出し間で変数は残らないので、nx を使う呼び出しごとに、先頭で次を実行する。
+以降のコマンド例の `$NX` は、この変数を指す。
+
+```bash
+if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi
+```
 
 ## 前提
 
@@ -19,7 +31,7 @@ w-release SKILL.md の Step 1 で判定したブランチモードに従う。
 
 - `pecot project info` の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
   （pecot は両方 `main`）。[単一ブランチモード（develop == release）](#単一ブランチモードdevelop--release) に従う。
-  `main` 上で `npx nx release` を実行し、リリース PR と `pecot release merge` は行わない。
+  `main` 上で `$NX release` を実行し、リリース PR と `pecot release merge` は行わない。
 - 対象リポ行で `develop:` と `release:` が異なるなら、**2ブランチモード**になる。
   下記の [2ブランチモードの手順](#2ブランチモードの手順) に従う。
 
@@ -51,7 +63,7 @@ Nx Release の最終段（publish phase）は release group 内の project の `
 target を実行する。**このフェーズを通すか止めるかでコマンドのフラグが変わる**ため、
 dry-run の前に対象リポで判定する。
 
-判定するのは「**自リポが publish target を意図的に定義しているか**」。`npx nx show projects
+判定するのは「**自リポが publish target を意図的に定義しているか**」。`$NX show projects
 --with-target nx-release-publish` の出力が非空であることを条件にしてはいけない。`@nx/js` を
 使うリポでは、publishable package に `nx-release-publish` が自動で付く。その実体は
 **npm registry への publish** になる。出力の非空を `--yes` の根拠にすると、registry への
@@ -104,7 +116,7 @@ publish だけが失敗した場合、リリース自体は成立しているの
 原因を除去してから、publish だけを再実行する。
 
 ```bash
-npx nx release publish
+$NX release publish
 ```
 
 再実行の安全性は publish target の実装が担保する。pecot では、pecot-visual と pecot-tools が
@@ -122,13 +134,13 @@ HEAD の `pecot-visual-v<version>` タグがあるため、version plan が消�
 
 ```bash
 bash plugins/pecot-visual/scripts/release/audit-mcp-dist.sh
-npx nx release publish
+$NX release publish
 ```
 
 ## 単一ブランチモード（develop == release）
 
 開発ブランチと release ブランチが同一（`main`、trunk-based）のリポ向け。Nx Release は
-current branch に commit する。そのため `main` 上で `npx nx release` を実行すれば、commit・タグ・
+current branch に commit する。そのため `main` 上で `$NX release` を実行すれば、commit・タグ・
 push・GitHub Release の発行までが一括で完結する。**`develop` と `release` が同じブランチで
 中間 PR が存在しないため、リリース PR 作成と `pecot release merge` は行わない。**
 
@@ -148,11 +160,11 @@ git pull --ff-only origin main
 ```
 
 pecot では root フック（`check-text` / `check-commit-text`）が `libs/text-rules/dist` を使う。
-release commit は `--no-verify` なしでそのフックを通る。dist は root の `prepare` でしか作られないため、
-`npm ci` で作る。lockfile のずれで `npm ci` が止まったら、release を止めて報告する。
+release commit は `--no-verify` なしでそのフックを通る。dist は依存の導入（pecot では `pnpm install --frozen-lockfile`）の lifecycle でしか作られないため、
+導入して作る。lockfile のずれで導入が止まったら、release を止めて報告する。
 
 ```bash
-cd <project-root>/base/<repo> && npm ci
+cd <project-root>/base/<repo> && pnpm install --frozen-lockfile
 ```
 
 `main` 以外が checkout されている場合は実行しない（release commit が意図しない
@@ -182,7 +194,7 @@ version 整合・タグ・差分の検証は Nx Release が担う。
 ### 4. dry-run でプレビュー確認
 
 ```bash
-cd <project-root>/base/<repo> && npx nx release --dry-run --verbose <publish-flag>
+cd <project-root>/base/<repo> && $NX release --dry-run --verbose <publish-flag>
 ```
 
 Step 1 の `cd` とは別の Bash 呼び出しになるため、毎回 `cd` を先頭に付けて cwd の持続に
@@ -205,7 +217,7 @@ CHANGELOG 追記内容・GitHub Release 対象 URL）。想定と違う場合は
 ユーザー承認後に `main` 上で実行する。
 
 ```bash
-cd <project-root>/base/<repo> && npx nx release --verbose <publish-flag>
+cd <project-root>/base/<repo> && $NX release --verbose <publish-flag>
 ```
 
 `<publish-flag>` の選び方と mutually exclusive の制約は
@@ -279,7 +291,7 @@ version 整合・タグ・差分の検証は Nx Release が担う。
 ### 4. dry-run でプレビュー確認
 
 ```bash
-cd <project-root>/base/<repo> && npx nx release --dry-run --verbose <publish-flag>
+cd <project-root>/base/<repo> && $NX release --dry-run --verbose <publish-flag>
 ```
 
 dry-run も本実行と同条件にする。`<publish-flag>` は
@@ -297,7 +309,7 @@ dry-run も本実行と同条件にする。`<publish-flag>` は
 ### 5. bump 妥当性のユーザー確認
 
 Step 4 の dry-run 出力をもとに、ユーザーへ以下を提示して明示的承認を得る。
-承認を得るまで Step 6（本実行）の `npx nx release`（dry-run 無し）は発行しない。
+承認を得るまで Step 6（本実行）の `$NX release`（dry-run 無し）は発行しない。
 
 提示項目:
 
@@ -322,7 +334,7 @@ Step 4 の dry-run 出力をもとに、ユーザーへ以下を提示して明�
 Step 5 でユーザー承認を得た後に実行する。
 
 ```bash
-cd <project-root>/base/<repo> && npx nx release --verbose <publish-flag>
+cd <project-root>/base/<repo> && $NX release --verbose <publish-flag>
 ```
 
 `<publish-flag>` は [publish フェーズの扱い](#publish-フェーズの扱い) で判定したもの。

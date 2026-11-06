@@ -104,7 +104,7 @@ fi
 echo "==> gh release view $TAG -R $GH_REPO"
 if ! RELEASE_ERR="$(gh release view "$TAG" -R "$GH_REPO" 2>&1 > /dev/null)"; then
     echo "ERROR: Release $TAG を確認できません: $RELEASE_ERR" >&2
-    echo "       Release が無いときは、Release を作ってから npx nx release publish を再実行してください。" >&2
+    echo "       Release が無いときは、Release を作ってから pnpm exec nx release publish を再実行してください。" >&2
     exit 1
 fi
 echo "==> gh release upload $TAG $TGZ_NAME --clobber -R $GH_REPO"

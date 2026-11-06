@@ -572,7 +572,7 @@ plugin_runtime_src_files() {
     local root="$1" file
     (
         cd "$root" || exit 0
-        printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json
+        printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json cli/scripts/tsc.mjs
         find cli/src -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
             ! -path '*/node_modules/*' ! -path '*/dist/*' ! -path '*/__pycache__/*' ! -path '*.egg-info/*' ! -path '*/build/*' 2>/dev/null || true
     ) | while IFS= read -r file; do

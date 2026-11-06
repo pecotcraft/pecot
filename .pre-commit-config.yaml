@@ -102,7 +102,7 @@ repos:
         entry: .githooks/lib/with-timing.sh githooks-tests .githooks/tests/run.sh
         language: unsupported_script
         pass_filenames: false
-        files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
+        files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
         stages: [pre-push]
 
       - id: nx-env-inputs

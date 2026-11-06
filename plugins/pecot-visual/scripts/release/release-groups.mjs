@@ -8,7 +8,7 @@
 //
 // 依存する project は、手で列挙しない。
 // plugins/pecot-visual/package.json の dependencies と devDependencies のうち、`workspace:` で参照するものから求める。
-//   1. 依存の名前から、pnpm-workspace.yaml のメンバーで package.json の name が一致する dir を探す。
+//   1. 依存の名前から、repo root の pnpm-workspace.yaml のメンバーで package.json の name が一致する dir を探す。
 //   2. その dir の project.json の name を読む。
 //   3. nx.json の release.groups で、その project を含む group を探す。
 // 求められないときは exit 1 で止める。監査が静かに抜ける状態を避けるため。
@@ -60,8 +60,8 @@ export function releaseGroups(repoRoot) {
   }
 
   const memberByName = new Map()
-  for (const member of workspaceMembers(path.join(pluginRoot, 'pnpm-workspace.yaml'))) {
-    const memberManifest = path.join(pluginRoot, member, 'package.json')
+  for (const member of workspaceMembers(path.join(repoRoot, 'pnpm-workspace.yaml'))) {
+    const memberManifest = path.join(repoRoot, member, 'package.json')
     if (existsSync(memberManifest)) memberByName.set(readJson(memberManifest).name, member)
   }
 
@@ -69,7 +69,7 @@ export function releaseGroups(repoRoot) {
   for (const name of workspaceDependencies) {
     const member = memberByName.get(name)
     if (member === undefined) throw new Error(`workspace 依存 ${name} に対応するメンバーが pnpm-workspace.yaml に無い`)
-    const projectFile = path.join(pluginRoot, member, 'project.json')
+    const projectFile = path.join(repoRoot, member, 'project.json')
     if (!existsSync(projectFile)) throw new Error(`workspace 依存 ${name} の project.json が無い: ${projectFile}`)
     const projectName = readJson(projectFile).name
     const owners = Object.entries(groups)

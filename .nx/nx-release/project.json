@@ -20,6 +20,7 @@
         { "runtime": "node -p \"require('nx/package.json').version\"" },
         { "runtime": "node -p \"require('undici/package.json').version\"" },
         "{workspaceRoot}/package.json",
+        "{workspaceRoot}/pnpm-workspace.yaml",
         "{workspaceRoot}/plugins/pecot-workflow/project.json",
         "{workspaceRoot}/plugins/pecot-visual/project.json",
         "{workspaceRoot}/plugins/pecot-tools/project.json",
@@ -33,7 +34,7 @@
         "{workspaceRoot}/plugins/pecot-tools/plugin.json"
       ],
       "metadata": {
-        "description": "PecotVersionActions（nx release の versionActions）の単体テスト。nx 本体の VersionActions を継承する。各プラグインと libs/text-rules の project.json から、manifestRootsToUpdate を読んで実ファイルへ展開する。libs/text-rules は実体の package.json を bump する PecotPackageVersionActions を使う。そのため、nx の更新（package.json）と、リリース設定の変更も affected にする inputs を宣言する。リリース設定は、各 plugin-root の project.json・plugin.json と、libs/text-rules の project.json・package.json を指す。root の package-lock.json は .nxignore で nx の入力から外れる。file 入力に書いても無視される。確認は nx show target inputs nx-release:test-unit --check package-lock.json で行う。このためタスクキャッシュ (#1225) では、実際に入っている nx の版を runtime 入力（node -p）で見る。lockfile ではなく実体を見るので、npm ci 前の誤再利用も防げる。undici の実体版も、同じく runtime 入力で見る。tests/undici-override.test.js は node_modules 内の undici の版を読む。lock だけが変わって実体が変わる場合、root の package.json が変わらず、タスクキャッシュが再利用され得る。"
+        "description": "PecotVersionActions（nx release の versionActions）の単体テスト。inputs は、nx の実体の版と undici の実体の版を runtime 入力（node -p）で見る。root の pnpm-lock.yaml は .nxignore で入力から外れるため、lock ではなく実体を見る (#1225)。"
       },
       "options": {
         "command": "node --test tests/*.test.js",

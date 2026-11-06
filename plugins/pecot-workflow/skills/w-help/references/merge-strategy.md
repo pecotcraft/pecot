@@ -21,6 +21,7 @@ develop → release は regular merge を使い、merge-base を維持する。
 
 単一ブランチモードには `develop → main` の中間 PR が存在しない。
 リリースは `main` 上で直接行う。
-`release_type: nx` なら、`npx nx release` を `main` 上で実行する（詳細は w-release の
-[release-nx.md 単一ブランチモード節](../../w-release/references/release-nx.md#単一ブランチモードdevelop--release)）。
+`release_type: nx` なら、`$NX release` を `main` 上で実行する。
+`$NX` は pnpm のリポなら `pnpm exec nx`、それ以外は `npx nx`。
+詳細は w-release の [release-nx.md 単一ブランチモード節](../../w-release/references/release-nx.md#単一ブランチモードdevelop--release)。
 そのため `release merge` を使う develop → main のマージは発生しない。

@@ -171,9 +171,10 @@ if [ "$SKIP_BUILD" = false ]; then
     # publish は build を直接起動するので、node_modules 未導入の環境や、
     # リリースコミットで依存が変わった直後の環境では、install を経ずに build が失敗する。
     # そのため build の直前に install を固定する。
-    echo "==> $PNPM install --frozen-lockfile (cwd=$TOOLS_ROOT)"
+    # 依存は repo root の 1 つの pnpm workspace が持つので、install は repo root で行う (#113)。
+    echo "==> $PNPM install --frozen-lockfile (cwd=$REPO_ROOT)"
     # shellcheck disable=SC2086
-    (cd "$TOOLS_ROOT" && $PNPM install --frozen-lockfile)
+    (cd "$REPO_ROOT" && $PNPM install --frozen-lockfile)
     echo "==> $PNPM --filter @pecot/pecot-tools-cli run build"
     # shellcheck disable=SC2086
     (cd "$TOOLS_ROOT" && $PNPM --filter @pecot/pecot-tools-cli run build)

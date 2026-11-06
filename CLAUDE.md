@@ -85,7 +85,7 @@ export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
 ## リリース・nx release group の規約
 
 - 単一ブランチ（`main`）trunk-based 運用。リリースは `base/pecot` の `main` 上で
-  `npx nx release` を実行する。詳細は w-release スキルにある。
+  `pnpm exec nx release` を実行する。詳細は w-release スキルにある。
   どの worktree で起動したセッションでも base に移動して実行し、実行場所をユーザーに確認しない。
   base で行うのは w-release の手順のコマンドだけで、復旧手順も含む。base のファイル編集・ブランチ切替はしない。
   `base/pecot` は `main` を checkout した状態を維持する

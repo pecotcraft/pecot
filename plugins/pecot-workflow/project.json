@@ -7,11 +7,12 @@
     "install": {
       "executor": "nx:run-commands",
       "cache": false,
+      "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
       "metadata": {
-        "description": "Node 側（cli-node/）の依存導入を 1 push に 1 回だけ実行する (#1080)。各 Node レーンが dependsOn で参照する。nx の task graph は、同じ project:target を 1 タスクにまとめる。そのため、実行するレーンが何本あっても、install は 1 回になる。cache: false は明示的な宣言。install は node_modules への副作用で、outputs を宣言できず、cache の対象にできない。cache を付けると、『1 push 1 回』が『0 回』になる。その結果、lockfile と node_modules のずれを見逃す。"
+        "description": "リポジトリ全体の依存導入は、root の project の install が 1 回の nx 実行につき 1 回だけ行う (#1080, #113)。各レーンはこの install を dependsOn で参照する。nx の task graph は、同じ project:target を 1 タスクにまとめる。そのため、実行するレーンが何本あっても、導入は 1 回になる。本ターゲットは pnpm を打たず、導入の後に scripts の package manager 自己呼び出しガード (#1217) を確かめる。cache: false は明示的な宣言。ガードは node_modules の状態に依らないが、cache を付けると、確認が 0 回になる。"
       },
       "options": {
-        "command": "bash scripts/ci/install.sh",
+        "command": "bash scripts/ci/check-pm-scripts.sh",
         "cwd": "plugins/pecot-workflow"
       }
     },
@@ -199,14 +200,13 @@
         "description": "no-op。nx release の publish phase は全 release group をループし、publish target を持つ project が 0 件だと throw する。pecot-visual 側が publish target を持つため、pecot-workflow にも空実装が要る (#982)。"
       },
       "options": {
-        "//forwardAllArgs-reason": "既定 true だと nx が --dryRun=true をコマンド末尾へ注入し、echo の出力にそのまま入り込む (#982)。",
+        "//forwardAllArgs-reason": "既定 true だと --dryRun=true が echo の出力に入る (#982)。",
         "forwardAllArgs": false,
         "command": "echo 'pecot-workflow: 配布対象の publish はありません (no-op)'"
       }
     }
   },
   "release": {
-    "//note": "pecot-workflow plugin distribution unit. plugin.json × 2 の manifest owner。プラグイン配下を 1 project にまとめ、release group には本 project だけを列挙する。",
     "version": {
       "versionActions": "./.nx/nx-release/src/version-actions.js",
       "manifestRootsToUpdate": [

@@ -2,8 +2,8 @@
 # Check if committing directly to protected branches.
 #
 # Stage: commit-msg (runs after pre-commit, receives COMMIT_EDITMSG as $1).
-# This lets us exempt release commits (chore(release):) produced by `npx nx release`.
-# `npx nx release` commits to current HEAD only.
+# This lets us exempt release commits (chore(release):) produced by `nx release`.
+# `nx release` commits to current HEAD only.
 #
 # Exemption: a message starting with "chore(release)" is allowed on any
 # branch (including main). 単一ブランチ(trunk-based)運用では

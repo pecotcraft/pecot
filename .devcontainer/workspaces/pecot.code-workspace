@@ -38,7 +38,7 @@
       "**/build": true,
       "**/.turbo": true,
       "**/.next": true,
-      "**/package-lock.json": true,
+      "**/pnpm-lock.yaml": true,
       "**/uv.lock": true,
       "**/.nx/workspace-data": true,
       "**/*.tsbuildinfo": true,

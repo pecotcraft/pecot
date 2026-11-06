@@ -59,7 +59,7 @@ export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # pecot-visual plugin が自己完結 pnpm workspace ルート。1 回の install で cli / v-slidev / runtime を全て解決
-# frozen をやめて lock の確認と導入に分ける理由は dev-install-lib.sh を参照。
+# 導入の手順は dev-install-lib.sh を参照。
 if [ "${PECOTV_SKIP_INSTALL:-0}" != "1" ]; then
     # shellcheck source=dev-install-lib.sh
     . "$PECOTV_PLUGIN_ROOT/scripts/ci/dev-install-lib.sh"

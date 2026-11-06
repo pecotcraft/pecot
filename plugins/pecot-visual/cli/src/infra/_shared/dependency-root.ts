@@ -93,6 +93,30 @@ export function themeStoreRoot(): string | undefined {
 }
 
 /**
+`node_modules` を持つ側のディレクトリ。`root` 自身か、開発ツリーの workspace root。
+
+実行用ミラーと配布のディレクトリは、自分自身に `node_modules` を持つ。
+開発ツリーでは pnpm の hoisted で、共通の依存が repo root（`pnpm-workspace.yaml` のある dir）の `node_modules` に置かれる。
+プラグインの dir には、版がぶつかった分しか残らない。
+
+`root` に `pnpm-workspace.yaml` が無いときだけ、上の dir を最大 3 つまで遡る。
+ミラーは `pnpm-workspace.yaml` を `root` に置くので遡らない。
+配布先に workspace の定義は無いので、見つからなければ `root` のまま。
+開発ツリーは `<repo>/plugins/<プラグイン>` の深さなので、3 つあれば届く。
+*/
+function nodeModulesHolder(root: string): string {
+  let current = root
+  for (let level = 0; level <= 3; level += 1) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は pnpm-workspace.yaml のみ
+    if (existsSync(path.join(current, 'pnpm-workspace.yaml'))) return current
+    const parent = path.dirname(current)
+    if (parent === current) break
+    current = parent
+  }
+  return root
+}
+
+/**
 環境変数の値。未設定・空白のみは undefined。
 */
 export function trimmedEnvironment(name: string): string | undefined {
@@ -177,7 +201,7 @@ flock(1) は、親ディレクトリが実在しないとロックファイル�
 */
 function firstExistingNodeModules(roots: readonly string[]): string | undefined {
   for (const root of roots) {
-    const candidate = path.join(root, 'node_modules')
+    const candidate = path.join(nodeModulesHolder(root), 'node_modules')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は node_modules のみ
     if (existsSync(candidate)) return candidate
   }
@@ -208,7 +232,7 @@ export function resolveTalkDirectoryNodeModules(dependencyRoot: string): string 
   const runtimeRoot = runtimeDependencyRoot()
   const roots = runtimeRoot === undefined ? [dependencyRoot] : [dependencyRoot, runtimeRoot]
   for (const root of roots) {
-    if (areProbesResolvableWithin(root)) return path.join(root, 'node_modules')
+    if (areProbesResolvableWithin(root)) return path.join(nodeModulesHolder(root), 'node_modules')
   }
   return undefined
 }
@@ -284,7 +308,8 @@ Node の解決は基準点の上位ディレクトリへ遡る。
 bind mount / worktree では、論理パスと物理パスが割れるため。
 */
 function areProbesResolvableWithin(root: string): boolean {
-  const nodeModules = path.join(root, 'node_modules')
+  const holder = nodeModulesHolder(root)
+  const nodeModules = path.join(holder, 'node_modules')
   let physical: string
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は node_modules のみ

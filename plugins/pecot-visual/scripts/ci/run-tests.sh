@@ -137,7 +137,7 @@ trap cleanup EXIT
 # これを静的な面と挙動の面の両方で確認する。
 # nx 経由では、pecot-visual:install と pecot-visual:check-pm-guard の target が実行済み。
 if [ "$SKIP_SHARED" = false ]; then
-    # frozen をやめて lock の確認と導入に分ける理由は dev-install-lib.sh を参照。
+    # 導入の手順は dev-install-lib.sh を参照。
     # shellcheck source=dev-install-lib.sh
     . "$SCRIPT_DIR/dev-install-lib.sh"
     pecotv_dev_install "$PECOTV_PLUGIN_ROOT" "$PNPM"

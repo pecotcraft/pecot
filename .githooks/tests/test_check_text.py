@@ -3,8 +3,9 @@
 どちらも libs/text-rules/dist の bin を起動する薄いラッパー。
 違反ケースは実リポの root を cwd にして実 bin を動かす。
 dist が無い場合は、dist を持たない一時リポを cwd にして ERROR を確かめる。
-依存が欠けている場合は、dist だけを持ち node_modules を持たない一時リポを使う。
-フックは npm ci で依存を戻してから続ける。npm は PATH に置いた偽物で、戻せる場合と戻せない場合を作る。
+依存が欠けている場合は、dist だけを持ち root の node_modules を持たない一時リポを使う。
+フックは root の `pnpm install --frozen-lockfile` で依存を戻してから続ける。pnpm は PATH に置いた偽物で、戻せる場合と戻せない場合を作る。
+依存は root の node_modules にある (#113)。
 dist が古い・無い場合は、実ソースを複製した一時リポでフックが build.mjs を動かして作り直す (#1331)。
 違反文は literal で持たず、101 文字の本文から組み立てる。
 """
@@ -46,11 +47,13 @@ def _real_root() -> Path:
 
 def _require_bin(repo_root: Path) -> None:
     if not (repo_root / "libs/text-rules/dist/bin/pecot-text-lint.js").is_file():
-        pytest.fail("libs/text-rules/dist が無い。root で npm install を実行してください")
+        pytest.fail(
+            "libs/text-rules/dist が無い。root で pnpm install --frozen-lockfile を実行してください"
+        )
 
 
 def _repo_with_dist_only(git_repo: Callable[..., Path]) -> Path:
-    """dist の bin はあるが、libs/text-rules/node_modules が無い一時リポ。
+    """dist の bin はあるが、root の node_modules が無い一時リポ。
 
     実物と同じく dist を ESM として扱い、bin は起動時に依存を import する。
     依存の確認が無ければ、bin が ERR_MODULE_NOT_FOUND のスタックを出す。
@@ -99,19 +102,22 @@ def _real_sources() -> list[str]:
 def _copy_real_sources(repo: Path, link_node_modules: bool = True) -> Path:
     """実ソースを複製した一時リポの libs/text-rules を返す。
 
-    link_node_modules が真なら、node_modules を実リポへの symlink にして dist を作る。
+    link_node_modules が真なら、複製リポの root の node_modules を実リポへの symlink にして dist を作る。
     偽なら、node_modules と dist の両方が無い状態で返す。
     dist は複製側で作る。symlink にすると、フックの build.mjs が実 dist を消してしまう。
     """
     real = _real_root() / "libs/text-rules"
-    if not (real / "node_modules").is_dir():
-        pytest.fail("libs/text-rules/node_modules が無い。root で npm install を実行してください")
+    real_node_modules = _real_root() / "node_modules"
+    if not real_node_modules.is_dir():
+        pytest.fail(
+            "root の node_modules が無い。root で pnpm install --frozen-lockfile を実行してください"
+        )
     package_dir = repo / "libs/text-rules"
     for rel in _real_sources():
         (package_dir / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(real / rel, package_dir / rel)
     if link_node_modules:
-        os.symlink(real / "node_modules", package_dir / "node_modules")
+        os.symlink(real_node_modules, repo / "node_modules")
         subprocess.run(["node", str(package_dir / "scripts/build.mjs")], check=True)
     return package_dir
 
@@ -149,22 +155,22 @@ def source_repo(git_repo: Callable[..., Path]) -> Path:
     return repo
 
 
-def _fake_npm(tmp_path: Path, *, restores: bool, link_real: bool = False) -> tuple[dict, Path]:
-    """呼び出しを記録する偽の npm を PATH の先頭に置く env と、記録ファイルを返す。
+def _fake_pnpm(tmp_path: Path, *, restores: bool, link_real: bool = False) -> tuple[dict, Path]:
+    """呼び出しと cwd を記録する偽の pnpm を PATH の先頭に置く env と、記録ファイルを返す。
 
-    restores が真なら、`--prefix <dir> ci` の <dir> に依存の実体を置いて 0 で終わる。
+    restores が真なら、cwd（repo root）の node_modules に依存の実体を置いて 0 で終わる。
     link_real も真なら、実体の代わりに実リポの node_modules への symlink を置く。
     偽なら何も置かずに 1 で終わる。
     """
     bin_dir = tmp_path / "fake-bin"
     bin_dir.mkdir()
-    calls = tmp_path / "npm-calls"
-    body = 'echo "$*" >> "$NPM_CALLS"\n'
+    calls = tmp_path / "pnpm-calls"
+    body = 'echo "$*" >> "$PNPM_CALLS"\n'
     if restores and link_real:
-        body += 'ln -s "$REAL_NODE_MODULES" "$2/node_modules"\n'
+        body += 'ln -s "$REAL_NODE_MODULES" "$PWD/node_modules"\n'
     elif restores:
         body += (
-            'dep="$2/node_modules/@textlint/kernel"\n'
+            'dep="$PWD/node_modules/@textlint/kernel"\n'
             'mkdir -p "$dep"\n'
             'printf \'%s\' \'{"name":"@textlint/kernel","type":"module","main":"index.js"}\''
             ' > "$dep/package.json"\n'
@@ -172,27 +178,27 @@ def _fake_npm(tmp_path: Path, *, restores: bool, link_real: bool = False) -> tup
         )
     else:
         body += "exit 1\n"
-    npm = bin_dir / "npm"
-    npm.write_text("#!/usr/bin/env bash\n" + body)
-    npm.chmod(0o755)
+    pnpm = bin_dir / "pnpm"
+    pnpm.write_text("#!/usr/bin/env bash\n" + body)
+    pnpm.chmod(0o755)
     env = {
         "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
-        "NPM_CALLS": str(calls),
-        "REAL_NODE_MODULES": str(_real_root() / "libs/text-rules/node_modules"),
+        "PNPM_CALLS": str(calls),
+        "REAL_NODE_MODULES": str(_real_root() / "node_modules"),
     }
     return env, calls
 
 
-def _npm_calls(calls: Path) -> list[str]:
+def _pnpm_calls(calls: Path) -> list[str]:
     return calls.read_text().splitlines() if calls.exists() else []
 
 
 def _assert_deps_guidance(result) -> None:
     assert result.returncode == 1
     errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
-    assert any("依存が欠けている" in line and "npm install" in line for line in errors), (
-        result.stderr
-    )
+    assert any(
+        "依存が欠けている" in line and "pnpm install --frozen-lockfile" in line for line in errors
+    ), result.stderr
     assert "ERR_MODULE_NOT_FOUND" not in result.stderr + result.stdout
 
 
@@ -233,36 +239,36 @@ def test_check_text_errors_without_dist(
     result = run_script(script_dir / "check-text.sh", str(target), cwd=repo)
     assert result.returncode == 1
     errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
-    assert any("npm install" in line for line in errors), result.stderr
+    assert any("pnpm install --frozen-lockfile" in line for line in errors), result.stderr
 
 
 def test_check_text_errors_when_deps_cannot_be_restored(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
     repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_npm(tmp_path, restores=False)
+    env, calls = _fake_pnpm(tmp_path, restores=False)
     target = repo / "a.md"
     target.write_text("# 見出し\n")
     result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
     _assert_deps_guidance(result)
-    assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
+    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
 
 
 def test_check_text_restores_missing_deps(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
-    """push の確認が install の npm ci を途中で止めると、依存が空のまま残る (#1313)。
+    """push の確認が install を途中で止めると、依存が空のまま残る (#1313)。
 
-    次の commit を止めないよう、フックが npm ci で戻してから文章規則を適用する。
+    次の commit を止めないよう、フックが root の frozen の install で戻してから文章規則を適用する。
     """
     repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_npm(tmp_path, restores=True)
+    env, calls = _fake_pnpm(tmp_path, restores=True)
     target = repo / "a.md"
     target.write_text("# 見出し\n")
     result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout == ""
-    assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
+    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
     assert "ERROR:" not in result.stderr
 
 
@@ -287,12 +293,12 @@ def test_check_text_restores_deps_then_builds_dist(
     """依存と dist の両方が無いと、ready は 20 のあとに 30 を返す。フックは両方を順に直す (#1331)。"""
     repo = git_repo("fresh-clone")
     package_dir = _copy_real_sources(repo, link_node_modules=False)
-    env, calls = _fake_npm(tmp_path, restores=True, link_real=True)
+    env, calls = _fake_pnpm(tmp_path, restores=True, link_real=True)
     target = repo / "a.md"
     target.write_text("# 見出し\n")
     result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
+    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
     assert "依存が欠けている" in result.stderr
     assert "作り直します" in result.stderr
     assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
@@ -378,35 +384,35 @@ def test_check_commit_text_errors_without_dist(
     )
     assert result.returncode == 1
     errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
-    assert any("npm install" in line for line in errors), result.stderr
+    assert any("pnpm install --frozen-lockfile" in line for line in errors), result.stderr
 
 
 def test_check_commit_text_errors_when_deps_cannot_be_restored(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
     repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_npm(tmp_path, restores=False)
+    env, calls = _fake_pnpm(tmp_path, restores=False)
     message = repo / "COMMIT_EDITMSG"
     message.write_text("test: 動作確認\n")
     result = run_script(
         script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo, env=env
     )
     _assert_deps_guidance(result)
-    assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
+    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
 
 
 def test_check_commit_text_restores_missing_deps(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
     repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_npm(tmp_path, restores=True)
+    env, calls = _fake_pnpm(tmp_path, restores=True)
     message = repo / "COMMIT_EDITMSG"
     message.write_text("test: 動作確認\n")
     result = run_script(
         script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo, env=env
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
+    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
 
 
 def test_check_commit_text_rebuilds_stale_dist(
@@ -440,7 +446,7 @@ class _PushRepo:
         self._git = git
         self._rev = git_rev_parse
         self.package_dir = _copy_real_sources(repo)
-        (repo / ".git/info/exclude").write_text("libs/\n")
+        (repo / ".git/info/exclude").write_text("libs/\nnode_modules\n")
         (repo / "README.md").write_text("# 見出し\n")
         self.commit("chore: init")
         self.base = self._rev(repo, "HEAD")
@@ -500,7 +506,7 @@ def test_check_text_push_rebuilds_stale_dist(
 def test_check_text_push_errors_without_deps(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    (push_repo.package_dir / "node_modules").unlink()
+    (push_repo.repo / "node_modules").unlink()
     push_repo.write("docs-src/a.md", "# 見出し\n")
     push_repo.commit("feat: add")
     result = _run_push(script_dir, run_script, push_repo)

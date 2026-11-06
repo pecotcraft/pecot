@@ -1,13 +1,7 @@
 # Dependabot version updates
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
-# 対象は lock を持つ install 単位ごとに 1 エントリ。
-# pecot-workflow は npm（plugins/pecot-workflow の pnpm-lock.yaml）と uv（cli/）の 2 エントリを持つ。
-# groups の名前は、npm が pecot-workflow-npm-minor-patch、uv が pecot-workflow-minor-patch で分ける。
-# 更新を止めるための除外エントリ（audit-canary）も 1 つ置く。
-# pnpm workspace（pecot-visual / pecot-tools）は、sharedWorkspaceLockfile で lock が workspace root に 1 本。
-# そのため root ディレクトリだけを指定する。
-# cli/ や assets/slidev/ などのメンバー package.json は root から辿られる。
+# 対象は lock を持つ install 単位ごとに 1 エントリ。npm は root の pnpm workspace 1 つだけ。
 #
 # .pre-commit-config.yaml の外部 hook（ruff / markdownlint / gitlint 等）の rev は Dependabot の対象外。
 # pre-commit autoupdate で上げる。
@@ -18,7 +12,6 @@
 
 version: 2
 updates:
-  # monorepo root（npm / package-lock.json）: nx
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -32,70 +25,6 @@ updates:
       prefix: "build(repo)"
     groups:
       root-minor-patch:
-        update-types: ["minor", "patch"]
-
-  # pecot-visual（pnpm workspace / pnpm-lock.yaml）
-  - package-ecosystem: "npm"
-    directory: "/plugins/pecot-visual"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    cooldown:
-      default-days: 1
-    commit-message:
-      prefix: "build(pecot-visual)"
-    groups:
-      pecot-visual-minor-patch:
-        update-types: ["minor", "patch"]
-
-  # pecot-workflow（pnpm / pnpm-lock.yaml）
-  - package-ecosystem: "npm"
-    directory: "/plugins/pecot-workflow"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    cooldown:
-      default-days: 1
-    commit-message:
-      prefix: "build(pecot-workflow)"
-    groups:
-      pecot-workflow-npm-minor-patch:
-        update-types: ["minor", "patch"]
-
-  # pecot-tools（pnpm workspace / pnpm-lock.yaml）
-  - package-ecosystem: "npm"
-    directory: "/plugins/pecot-tools"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    cooldown:
-      default-days: 1
-    commit-message:
-      prefix: "build(pecot-tools)"
-    groups:
-      pecot-tools-minor-patch:
-        update-types: ["minor", "patch"]
-
-  # text-rules（npm / libs/text-rules/package-lock.json）
-  - package-ecosystem: "npm"
-    directory: "/libs/text-rules"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    cooldown:
-      default-days: 1
-    commit-message:
-      prefix: "build(text-rules)"
-    groups:
-      text-rules-minor-patch:
         update-types: ["minor", "patch"]
 
   # pecot-workflow CLI（uv / pyproject.toml + uv.lock）

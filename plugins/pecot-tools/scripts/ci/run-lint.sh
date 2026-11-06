@@ -46,9 +46,9 @@ export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 # pecot-tools plugin が自己完結 pnpm workspace ルート。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
-echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT)"
+echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT/../..)"
 # shellcheck disable=SC2086
-( cd "$PLUGIN_ROOT" && $PNPM install --frozen-lockfile )
+( cd "$PLUGIN_ROOT/../.." && $PNPM install --frozen-lockfile )
 
 if [ "$RUN_CLI" = true ]; then
     # cli (TS lane) の lint dispatch（tsc --noEmit → eslint → knip）

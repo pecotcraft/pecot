@@ -34,11 +34,13 @@ if [ -z "$PNPM" ]; then
     exit 1
 fi
 
-# pecot-workflow plugin が自己完結 pnpm workspace ルート。
+# リポジトリは root の 1 つの pnpm workspace。依存の導入は repo root での frozen の install 1 回で済む。
+# nx の install target では、root の project の install が導入を担う。本スクリプトは手動実行用で、同じ処理を行う。
+REPO_ROOT="$(cd "$PLUGIN_ROOT/../.." && pwd)"
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
-echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT)"
+echo "==> $PNPM install --frozen-lockfile (cwd=$REPO_ROOT)"
 # shellcheck disable=SC2086
-( cd "$PLUGIN_ROOT" && $PNPM install --frozen-lockfile )
+( cd "$REPO_ROOT" && $PNPM install --frozen-lockfile )
 
 # scripts の package manager 自己呼び出しガード (#1217)。手動実行（run-tests.sh）と同じ検証を呼ぶ。
 echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"

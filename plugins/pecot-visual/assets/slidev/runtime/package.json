@@ -5,8 +5,8 @@
   "type": "module",
   "private": true,
   "license": "MIT",
-  "//peer-reason": "peer 11 件は、テーマ（slidev-theme-*）の peerDependencies と完全一致の版で書く。単体配布は --no-package-lock で入れるため、範囲だと取得した日の版になる。@slidev/* は SLIDEV_CORE_VERSION（runtime-install.ts）と cli/package.json の @slidev/parser に合わせる。",
-  "//override-reason": "overrides の理由は plugins/pecot-visual/pnpm-workspace.yaml のコメントを参照する。本ファイルの overrides は、そこで決めた版を talk-dir / 永続層の npm install へ引き継ぐための写し。lodash-es は直接依存の固定で足りる。overrides にも置くと、spec が違うとき npm が EOVERRIDE で止まる。",
+  "//peer-reason": "peer は slidev-theme-* の peerDependencies と同じ版に固定する。@slidev/* は SLIDEV_CORE_VERSION に合わせる。",
+  "//override-reason": "overrides は root の pnpm-workspace.yaml の写し。lodash-es は overrides に置くと EOVERRIDE になる。",
   "dependencies": {
     "@shikijs/langs": "4.5.0",
     "@shikijs/themes": "4.5.0",
@@ -39,5 +39,10 @@
       "name": "pnpm",
       "onFail": "error"
     }
+  },
+  "nx": {
+    "root": "plugins/pecot-visual",
+    "name": "pecot-visual",
+    "includedScripts": []
   }
 }

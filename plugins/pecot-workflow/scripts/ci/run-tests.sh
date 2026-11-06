@@ -130,7 +130,7 @@ _run_pytest_pass2() {
             --junitxml="$junit"
 }
 
-# Node 側（cli-node/）は plugin ルートが自己完結の pnpm workspace ルート。
+# Node 側（cli-node/）は repo root の 1 つの pnpm workspace に属する。
 # pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
 # nx 経由では scripts/ci/install.sh（pecot-workflow:install target）が実行済み。
@@ -147,9 +147,9 @@ if [ "$RUN_CLI" = true ] || [ "$RUN_HOOKS" = true ]; then
     # corepack の `packageManager` 初回 fetch 時の Y/n プロンプトを抑止する（自動取得）。
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
     if [ "$SKIP_INSTALL" = false ]; then
-        echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT)"
+        echo "==> $PNPM install --frozen-lockfile (cwd=$PLUGIN_ROOT/../..)"
         # shellcheck disable=SC2086
-        ( cd "$PLUGIN_ROOT" && $PNPM install --frozen-lockfile )
+        ( cd "$PLUGIN_ROOT/../.." && $PNPM install --frozen-lockfile )
         echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
         bash "$PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
     fi

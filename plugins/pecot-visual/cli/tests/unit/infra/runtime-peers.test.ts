@@ -1,7 +1,7 @@
 // 実行時依存の manifest が完全一致で書いた peer の版と、依存ルートの実体の版が一致することのチェック。
 //
 // テーマは peerDependencies を完全一致の版で宣言し、利用側の依存ルートが同じ版を提供する前提で動く。
-// 開発環境の依存ルートは plugins/pecot-visual/node_modules（hoisted）で、単体配布の永続層は manifest から作る。
+// 開発環境の依存ルートは repo root の node_modules（hoisted）で、単体配布の永続層は manifest から作る。
 // manifest の版と hoisted の版が離れると、開発環境のテストと配布物が別の版で動く。
 // 範囲の外の版が root に載る原因は、推移依存の別の版の hoist である（uuid を overrides で揃えている理由）。
 
@@ -14,9 +14,11 @@ import { describe, expect, it } from 'vitest'
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
+// 依存と lock は repo root の 1 つの pnpm workspace が持つ (#113)。
+const REPO_ROOT = path.resolve(PLUGIN_ROOT, '..', '..')
 const RUNTIME_MANIFEST = path.join(PLUGIN_ROOT, 'assets', 'slidev', 'runtime', 'package.json')
-// nodeLinker: hoisted なので workspace の依存は plugins/pecot-visual/node_modules 直下に並ぶ。
-const DEPENDENCY_ROOT = path.join(PLUGIN_ROOT, 'node_modules')
+// nodeLinker: hoisted なので workspace の依存は repo root の node_modules 直下に並ぶ。
+const DEPENDENCY_ROOT = path.join(REPO_ROOT, 'node_modules')
 
 /**
 テーマが peerDependencies として要求する 11 件。THEME.md の契約で、manifest が完全一致の版で持つ。
