@@ -582,8 +582,8 @@ importers:
         specifier: workspace:*
         version: link:../_shared
       ajv:
-        specifier: ^6.15.0
-        version: 6.15.0
+        specifier: ^8.20.0
+        version: 8.20.0
       js-yaml:
         specifier: ^4.3.2
         version: 4.3.2
