@@ -55,6 +55,9 @@ _ZERO_SHA = "0000000000000000000000000000000000000000"
 #   STUB_NX_NO_SUMMARY     : 要約を出さずに終わる（task 開始前に終了した nx）。
 #   STUB_NX_SUMMARY_NO_TASKS : 要約に `Failed tasks:` を出さず、要約の後ろへレーン出力を続ける。
 #   STUB_NX_FAILED_TWO     : `Failed tasks:` へ 2 レーン（lane-two → lane-one の順）を載せる。
+#   STUB_NX_RECOMMEND      : `Failed tasks:` の後に、実 nx と同じ並びの性能レポートを出す。
+#                            multi は推奨が複数行、single は `  Recommendation: ` の 1 行。
+#                            hidden は `Output of … not shown` を挟んで multi を続ける。
 #   STUB_NX_DOTS           : 失敗レーンの本文へ進捗ドット行を N 行入れる。
 #   STUB_NX_WIDE           : 失敗レーンの本文へ 48 KiB 級のマルチバイト行を 3 行入れる。
 #   STUB_NX_NO_PROFILE     : NX_PROFILE があっても profile を書かない。
@@ -88,6 +91,28 @@ printf 'ENV NO_COLOR=%s\\n' "${NO_COLOR-unset}" >> "$STUB_NX_LOG"
 calls_file="$STUB_NX_LOG.calls"
 call_n=$(( $(cat "$calls_file" 2>/dev/null || echo 0) + 1 ))
 echo "$call_n" > "$calls_file"
+
+emit_recommend() {
+    case "${STUB_NX_RECOMMEND:-}" in
+        "") return 0 ;;
+        hidden)
+            echo "Output of lane-three:test-unit not shown. Re-run with --verbose to see it."
+            echo
+            ;;
+    esac
+    echo "  Run duration:      9m 59s"
+    echo "  Cache:             Skipped (--skip-nx-cache)"
+    echo "  Critical path:     7m 17s (4 tasks)"
+    echo "  Recoverable time:  2m 42s (27% of the run)"
+    echo
+    if [ "$STUB_NX_RECOMMEND" = single ]; then
+        echo "  Recommendation: Cache: drop --skip-nx-cache to restore unchanged tasks instantly."
+    else
+        echo "  Recommendations:"
+        echo "    - Cache: drop --skip-nx-cache to restore unchanged tasks instantly."
+        echo "    - Distribute across machines with Nx Agents → https://example.invalid/agents"
+    fi
+}
 
 rc="${STUB_NX_EXIT:-0}"
 if [ -n "${STUB_NX_FAIL_ON_CALL:-}" ] && [ "$call_n" != "$STUB_NX_FAIL_ON_CALL" ]; then
@@ -165,9 +190,14 @@ STATIC_PASS_HOOKS_BODY 5 passed, 1 skipped
 Failed tasks:
 
 - p:test-cli
-
-Performance Profile: placeholder
 STATIC
+    if [ -n "${STUB_NX_FAILED_TWO:-}" ]; then
+        echo "- q:test-hooks"
+    fi
+    echo
+    emit_recommend
+    echo
+    echo "Performance Profile: placeholder"
     exit "$rc"
 fi
 
@@ -244,6 +274,8 @@ echo "- lane-two:test-unit"
 if [ -n "${STUB_NX_FAILED_TWO:-}" ]; then
     echo "- lane-one:test-unit"
 fi
+echo
+emit_recommend
 echo
 echo "Performance Profile: $PWD/${NX_PROFILE-none}"
 exit "$rc"
@@ -1638,3 +1670,142 @@ def test_ci_mode_failure_normalizes_exit_130(
     )
     assert result.returncode == 1
     assert "nx exit code: 130" in result.stderr
+
+
+_RECOMMEND_SHAPES = ("multi", "single", "hidden")
+
+
+def _lane_headings(stderr: str) -> list[str]:
+    return [ln for ln in stderr.splitlines() if ln.startswith("=== 失敗レーン:")]
+
+
+@pytest.mark.parametrize("shape", _RECOMMEND_SHAPES)
+def test_failure_ignores_performance_report_recommendations_in_stream(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, shape: str
+) -> None:
+    """性能レポートの推奨（`    - Cache: …`）を失敗レーンとして拾わない（stream）。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={
+            "STUB_NX_EXIT": "1",
+            "STUB_NX_RECOMMEND": shape,
+            "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+        },
+    )
+    assert result.returncode == 1
+    assert _lane_headings(result.stderr) == ["=== 失敗レーン: lane-two ==="]
+    assert "Cache: drop" in result.stderr  # 要約としては出る
+
+
+@pytest.mark.parametrize("shape", _RECOMMEND_SHAPES)
+def test_failure_ignores_performance_report_recommendations_in_static(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, shape: str
+) -> None:
+    """性能レポートの推奨を失敗レーンとして拾わない（static）。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={
+            "PECOT_NX_CI": "1",
+            "STUB_NX_STATIC": "1",
+            "STUB_NX_EXIT": "1",
+            "STUB_NX_RECOMMEND": shape,
+            "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+        },
+    )
+    assert result.returncode == 1
+    assert _lane_headings(result.stderr) == ["=== 失敗レーン: p:test-cli ==="]
+
+
+@pytest.mark.parametrize("static", [False, True])
+def test_failure_with_two_lanes_and_recommendations_reports_both(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, static: bool
+) -> None:
+    """失敗が 2 件で推奨が続いても、2 件とも拾い、推奨は拾わない。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    env = {
+        "STUB_NX_EXIT": "1",
+        "STUB_NX_FAILED_TWO": "1",
+        "STUB_NX_RECOMMEND": "multi",
+        "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+    }
+    if static:
+        env.update({"PECOT_NX_CI": "1", "STUB_NX_STATIC": "1"})
+    result = _run(script_dir, at_repo, run_script, env=env)
+    assert result.returncode == 1
+    expected = (
+        ["=== 失敗レーン: p:test-cli ===", "=== 失敗レーン: q:test-hooks ==="]
+        if static
+        else ["=== 失敗レーン: lane-two ===", "=== 失敗レーン: lane-one ==="]
+    )
+    assert _lane_headings(result.stderr) == expected
+
+
+def test_nx_parallel_env_overrides_default(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """PECOT_NX_PARALLEL=2 → nx へ --parallel=2、要約は「並列 2」、timing の nx 行は parallel=2。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_PARALLEL": "2", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0
+    log = at_repo.nx_log.read_text()
+    assert "--parallel=2" in log
+    assert "--parallel=4" not in log
+    assert "並列 2" in result.stdout
+    nx_rows = _rows_of(at_repo, "nx")
+    assert nx_rows[0][4].startswith("parallel=2 ")
+
+
+def test_nx_parallel_empty_uses_default(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """PECOT_NX_PARALLEL= （空文字列）→ 既定の 4。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_PARALLEL": "", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0
+    assert "--parallel=4" in at_repo.nx_log.read_text()
+    assert "並列 4" in result.stdout
+
+
+@pytest.mark.parametrize("value", ["0", "abc", "-1", "2.5", "04", "2 3"])
+def test_nx_parallel_invalid_fails_before_nx(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, value: str
+) -> None:
+    """PECOT_NX_PARALLEL が正の整数でない → nx を起動せず exit 1 で ERROR を出す。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_PARALLEL": value, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 1
+    assert f"ERROR: PECOT_NX_PARALLEL は正の整数です: {value}" in result.stderr
+    assert at_repo.nx_log.read_text() == ""
