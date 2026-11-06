@@ -3021,6 +3021,57 @@ class TestCloseIssue:
         assert result["state"] == "closed"
 
 
+# GitHubClient update_issue_body テスト
+
+
+class TestUpdateIssueBody:
+    """update_issue_body メソッドのテスト"""
+
+    @pytest.fixture
+    def client(self) -> GitHubClient:
+        """テスト用クライアント（モック済み）"""
+        with patch.object(GitHubClient, "_setup_clients"):
+            client = GitHubClient(host="github.com", token="test_token")
+            client._rest = MagicMock()
+            return client
+
+    def test_patches_only_the_body(self, client: GitHubClient) -> None:
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.json.return_value = {"number": 7, "body": "new"}
+        client._rest.patch.return_value = mock_response
+
+        result = client.update_issue_body("owner", "repo", 7, "new")
+
+        assert result["body"] == "new"
+        client._rest.patch.assert_called_once_with(
+            "/repos/owner/repo/issues/7", json={"body": "new"}
+        )
+
+    def test_not_found(self, client: GitHubClient) -> None:
+        mock_response = MagicMock()
+        mock_response.is_success = False
+        mock_response.status_code = 404
+        mock_response.text = "Not Found"
+        mock_response.url = "https://api.github.com/repos/owner/repo/issues/7"
+        client._rest.patch.return_value = mock_response
+
+        with pytest.raises(GitHubNotFoundError):
+            client.update_issue_body("owner", "repo", 7, "x")
+
+    def test_422_raises_api_error(self, client: GitHubClient) -> None:
+        mock_response = MagicMock()
+        mock_response.is_success = False
+        mock_response.status_code = 422
+        mock_response.text = '{"message": "Validation Failed"}'
+        mock_response.url = "https://api.github.com/repos/owner/repo/issues/7"
+        client._rest.patch.return_value = mock_response
+
+        with pytest.raises(GitHubAPIError) as excinfo:
+            client.update_issue_body("owner", "repo", 7, "x" * 70000)
+        assert excinfo.value.status_code == 422
+
+
 # GitHubClient reopen_issue テスト
 
 

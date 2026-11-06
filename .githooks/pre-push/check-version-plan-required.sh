@@ -61,11 +61,11 @@ set -e
 # 対象は resolve_base_branch / resolve_nx / collect_push_tips / resolve_push_range。
 # 同一の解決ロジックを構造的に共有することで、両チェックが同じ push range を評価することを保証する。
 # 保証は複製でなく source で行う。
-# shellcheck source=lib/push-range.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/push-range.sh"
+# shellcheck source=../lib/push-range.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
 # project graph の取得（run-affected-* のレーン名収集と共通）。
-# shellcheck source=lib/nx-lanes.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/nx-lanes.sh"
+# shellcheck source=../lib/nx-lanes.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 
 RELEASE_RE="${PECOT_VERSION_PLAN_RELEASE_RE:-^chore\\(release\\)}"
 

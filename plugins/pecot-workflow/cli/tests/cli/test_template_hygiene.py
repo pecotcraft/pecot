@@ -1,6 +1,6 @@
 """tests/cli/test_template_hygiene.py - 配布テンプレ雛形の記法ガード
 
-`--prepare` が生成する雛形（issue 4 種 / comment 6 種 / pr 2 種）の本文部を確認する。
+`--prepare` が生成する雛形（issue 5 種 / comment 6 種 / pr 2 種）の本文部を確認する。
 本文部とは、冒頭 `読者:/書き方:/フィールド:` コメントの終端 `-->` より後ろの部分を指す。
 投稿時の検証器から弾かれる記法が残っていないことを固定する。
 冒頭コメントは禁止記法を名指しで説明するため対象外にする。
@@ -39,6 +39,12 @@ PREPARE_CASES: list[tuple[str, list[str], str, str]] = [
         "issue-epic",
         ["issue", "create", "--prepare", "--template", "epic"],
         "issue-epic-*.md",
+        "cli.commands.issue",
+    ),
+    (
+        "issue-tracker",
+        ["issue", "create", "--prepare", "--template", "tracker", "--repo", "owner/repo"],
+        "issue-tracker-*.md",
         "cli.commands.issue",
     ),
     (

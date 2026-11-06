@@ -4744,6 +4744,60 @@ class TestIssueQuickEnhancements:
             assert status_call[0][2] == "field_workflow"  # field_id
             assert status_call[0][3] == "option_backlog"  # option_id
 
+    def test_issue_quick_with_type_tracker_backlog_without_size(self) -> None:
+        """--type tracker は backlog で起票し、size を設定しない"""
+        from unittest.mock import MagicMock, patch
+
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 126,
+            "html_url": "https://ghes.example.com/owner/repo/issues/126",
+            "node_id": "MDU6SXNzdWUxMjY=",
+        }
+        mock_client.add_to_project.return_value = "item126"
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.side_effect = lambda field: {
+            "workflow": "field_workflow",
+            "priority": "field_priority",
+            "size": "field_size",
+        }.get(field)
+        mock_config.get_option_id.side_effect = lambda field, value: {
+            ("workflow", "backlog"): "option_backlog",
+            ("workflow", "active"): "option_active",
+            ("priority", "medium"): "option_medium",
+            ("size", "s"): "option_s",
+        }.get((field, value))
+
+        with (
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "quick",
+                    "-r",
+                    "owner/repo",
+                    "--type",
+                    "tracker",
+                    "-m",
+                    "束ねる対象",
+                    "--no-branch",
+                ],
+            )
+
+        assert result.exit_code == 0
+        assert mock_client.create_issue.call_args[1]["title"] == "[Tracker] 束ねる対象"
+        assert "Set fields: status: backlog, priority: medium" in result.output
+        assert "size" not in result.output.split("Set fields:", 1)[1].splitlines()[0]
+        field_ids = [c[0][2] for c in mock_client.update_project_item_field.call_args_list]
+        assert "field_size" not in field_ids
+
     def test_issue_quick_no_branch_writes_pecot_active(self) -> None:
         """--no-branch でも .pecot-active に書き込む"""
         from unittest.mock import MagicMock, patch
@@ -5375,6 +5429,63 @@ class TestIssueCreateStatusValidation:
                 "PVT_123", "PVTI_789", "PVTF_workflow", "opt_backlog"
             )
             assert "status: backlog" in result.output
+
+    def test_direct_tracker_title_prefix_and_backlog_status(self) -> None:
+        """direct: --type tracker は題が [Tracker] で始まり、Status が backlog になる"""
+        mock_config = self._make_config()
+        mock_client = self._make_client()
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue._validate_issue_template"),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "create",
+                    "-t",
+                    "束ねる対象",
+                    "-r",
+                    "owner/repo",
+                    "--type",
+                    "tracker",
+                    "-m",
+                    MINIMAL_EPIC_BODY,
+                ],
+            )
+            assert result.exit_code == 0
+            assert mock_client.create_issue.call_args[1]["title"] == "[Tracker] 束ねる対象"
+            mock_client.update_project_item_field.assert_called_once_with(
+                "PVT_123", "PVTI_789", "PVTF_workflow", "opt_backlog"
+            )
+            assert "status: backlog" in result.output
+
+    def test_direct_tracker_status_ready_rejected(self) -> None:
+        """direct: --type tracker --status ready は型既定でないので exit 1"""
+        mock_client = self._make_client()
+        with patch("cli.commands.issue.GitHubClient", return_value=mock_client):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "create",
+                    "-t",
+                    "束ねる対象",
+                    "-r",
+                    "owner/repo",
+                    "--type",
+                    "tracker",
+                    "--status",
+                    "ready",
+                    "-m",
+                    MINIMAL_EPIC_BODY,
+                ],
+            )
+        assert result.exit_code == 1
+        assert "type 'tracker' の起票時 status は 'backlog' のみです" in result.output
+        assert "指定: ready" in result.output
+        mock_client.create_issue.assert_not_called()
 
     def test_direct_task_status_ready_explicit_success(self) -> None:
         """direct: --type task --status ready の明示指定は従来どおり成功"""

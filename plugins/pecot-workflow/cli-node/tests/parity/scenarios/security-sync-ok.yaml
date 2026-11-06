@@ -1,4 +1,4 @@
-# Dependabot の open の alert が 1 件で、Issue が無い。Issue を作り、ボードの Ready と Priority を設定する。
+# Dependabot の open の alert が 1 件で、open の Tracker が無い。Tracker を 1 件立て、ボードの Backlog と Priority を設定する。
 id: security-sync-ok
 command:
   path: [security, sync]

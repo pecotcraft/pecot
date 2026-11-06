@@ -144,7 +144,7 @@ def test_logic_reports_violation(linter, tmp_path, fixture_name, marker) -> None
 # 実エントリポイント全件（ガード本体と一覧のドリフト検知）。
 # guard は .pre-commit-config.yaml では、staged ファイルのみを確認する。
 # そのため、「全 entry point が違反 0」と「一覧が実ファイルと一致」は、ここで担保する。
-# .githooks/pre-commit/tests/ 側の同名ファイルは、files: ^\.githooks/ の pre-push でしか動かない。
+# .githooks/tests/ 側の同名ファイルは、files: ^\.githooks/ の pre-push でしか動かない。
 # entry point の変更では発火しない。
 
 

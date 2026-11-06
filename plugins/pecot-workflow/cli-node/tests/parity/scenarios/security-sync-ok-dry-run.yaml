@@ -1,4 +1,4 @@
-# --dry-run は作る予定を表示するだけで、Issue を作らない。
+# --dry-run は Tracker を立てる予定を表示するだけで、Issue を作らない。
 id: security-sync-ok-dry-run
 command:
   path: [security, sync]

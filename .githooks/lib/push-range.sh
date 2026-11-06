@@ -17,7 +17,7 @@
 #     version-plan は判定不能なら skip + warn とする。
 #     テストのチェックは判定不能なら run-many フォールバックとし、nx・node 不在のときだけ fail-closed とする。
 #     この意図的な非対称を、呼び出し側に閉じ込めるための分担。
-#   - source は呼び出し側の `$(dirname "${BASH_SOURCE[0]}")/lib/push-range.sh` 基準で行う。
+#   - source は呼び出し側の `$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh` 基準で行う。
 #     cwd には依存しない。
 #
 # 提供する関数:

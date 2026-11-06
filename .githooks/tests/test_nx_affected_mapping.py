@@ -25,8 +25,8 @@ from pathlib import Path
 
 import pytest
 
-# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+# parents[0]=tests, [1]=.githooks, [2]=リポルート。
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # nx の判定を左右する root 設定ファイル。
 # --base/--head ケースの複製リポへ、作業ツリー側の内容を持ち込むために使う。
@@ -657,7 +657,7 @@ def test_lint_gate_selects_only_the_lanes_the_change_reaches(
 @pytest.mark.parametrize("kind", ["test", "lint"])
 def test_gate_lane_names_match_the_lib(nx_bin: Path, tmp_path: Path, kind: str) -> None:
     """lib/nx-lanes.sh が返すレーン名は、graph の定義から機械的に集めた名前と一致する。"""
-    lib = _REPO_ROOT / ".githooks" / "pre-commit" / "lib" / "nx-lanes.sh"
+    lib = _REPO_ROOT / ".githooks" / "lib" / "nx-lanes.sh"
     result = subprocess.run(
         ["bash", "-c", f'source "{lib}" && nx_lane_targets "{nx_bin}" "{_REPO_ROOT}" {kind}'],
         capture_output=True,

@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が渡すリポジトリルート配下 */
 // 変更した nx プロジェクトから PR タイトルの scope を算出する。
 //
-// 割り当ては `.githooks/pre-commit/check-version-plan-required.sh` と同じ規則。
+// 割り当ては `.githooks/pre-push/check-version-plan-required.sh` と同じ規則。
 // nx の project graph → git diff → project root との最長一致、の順で求める。
 // 判定できない場合は例外ではなく undefined を返し、呼び出し側が警告して割り当てを飛ばす（フェイルオープン）。
 

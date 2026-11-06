@@ -64,7 +64,7 @@ def test_entry_wrapped_with_timing(script_dir: Path, hook_id: str) -> None:
     entries = [line.strip() for line in block if line.strip().startswith("entry:")]
     assert len(entries) == 1
     entry = entries[0].removeprefix("entry:").strip()
-    prefix = f".githooks/pre-commit/with-timing.sh {hook_id} "
+    prefix = f".githooks/lib/with-timing.sh {hook_id} "
     assert entry.startswith(prefix)
     wrapped = entry[len(prefix) :].split()[0]
     assert (script_dir.parents[1] / wrapped).is_file()
@@ -144,8 +144,8 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
 @pytest.mark.parametrize(
     "changed_path",
     [
-        ".githooks/pre-commit/run-affected-tests.sh",
-        ".githooks/pre-commit/tests/test_nx_env_inputs.py",
+        ".githooks/ci/run-affected-tests.sh",
+        ".githooks/tests/test_nx_env_inputs.py",
         "nx.json",
         ".nxignore",
         "pyproject.toml",
@@ -305,7 +305,7 @@ def test_check_text_push_stage_and_flags(script_dir: Path) -> None:
 
 
 def _script_regex(script_dir: Path, name: str) -> str:
-    text = (script_dir / "check-text-push.sh").read_text()
+    text = (script_dir.parent / "pre-push" / "check-text-push.sh").read_text()
     matches = re.findall(rf"^{name}='(.*)'$", text, flags=re.MULTILINE)
     assert len(matches) == 1, f"check-text-push.sh に {name} が 1 行だけ必要"
     return matches[0]
@@ -385,3 +385,130 @@ def test_local_hooks_use_unsupported_languages(script_dir: Path) -> None:
     match = re.search(r'^minimum_pre_commit_version:\s*"?([\d.]+)"?', text, flags=re.MULTILINE)
     assert match, "minimum_pre_commit_version が無い"
     assert tuple(int(p) for p in match.group(1).split(".")) >= (4, 4, 0)
+
+
+# --- 置き場のディレクトリと stages の一致（#64） ---
+#
+# hook の実体が `pre-commit/`・`commit-msg/`・`pre-push/` の直下にあるとき、
+# そのディレクトリ名がその hook の stages と一致する。
+# 例外は hook id をキーにした表で持つ。表の行は、hook が config に残り、実体が書いた場所にある間だけ通る。
+# #66 で hook を消したときに行が残ると落ちるため、消し忘れに気づける。
+
+_STAGE_DIRS = ("pre-commit", "commit-msg", "pre-push")
+
+# hook id -> (実体の相対パス, 例外の理由)
+_STAGE_DIR_EXCEPTIONS: dict[str, tuple[str, str]] = {
+    "check-brand-terms": (
+        ".githooks/pre-commit/check-brand-terms.sh",
+        "pre-push で動くが pre-commit/ に残す。#66 で消す",
+    ),
+    "nx-affected-tests": (
+        ".githooks/ci/run-affected-tests.sh",
+        "ci/ にあるが pre-push で動く。#66 で stage を変える",
+    ),
+}
+
+
+def _local_hook_blocks(config_text: str) -> dict[str, list[str]]:
+    """`repo: local` の hook を id ごとに切り出す。"""
+    lines = config_text.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.strip() == "- repo: local")
+    end = next(
+        (i for i in range(start + 1, len(lines)) if lines[i].strip().startswith("- repo:")),
+        len(lines),
+    )
+    section = lines[start + 1 : end]
+    blocks: dict[str, list[str]] = {}
+    current: list[str] | None = None
+    for line in section:
+        stripped = line.strip()
+        if stripped.startswith("- id:"):
+            current = blocks.setdefault(stripped.removeprefix("- id:").strip(), [])
+        if current is not None:
+            current.append(line)
+    return blocks
+
+
+def _entry_script(block: list[str]) -> str | None:
+    """entry から実体の script を取り出す。entry が無ければ None。"""
+    entries = [line.strip() for line in block if line.strip().startswith("entry:")]
+    if not entries:
+        return None
+    assert len(entries) == 1
+    words = entries[0].removeprefix("entry:").strip().split()
+    if Path(words[0]).name == "with-timing.sh":
+        return words[2]
+    if words[0] == "bash":
+        return words[1]
+    return words[0]
+
+
+def _stages(block: list[str]) -> list[str] | None:
+    for line in block:
+        stripped = line.strip()
+        if stripped.startswith("stages:"):
+            value = stripped.removeprefix("stages:").strip().strip("[]")
+            return [item.strip() for item in value.split(",") if item.strip()]
+    return None
+
+
+def _local_scripts(script_dir: Path) -> dict[str, str]:
+    blocks = _local_hook_blocks(_config_text(script_dir))
+    return {
+        hook_id: script
+        for hook_id, block in blocks.items()
+        if (script := _entry_script(block)) is not None
+    }
+
+
+def test_local_hooks_declare_stages(script_dir: Path) -> None:
+    """local hook は stages を必ず持つ。置き場との一致を確かめる前提になる。"""
+    blocks = _local_hook_blocks(_config_text(script_dir))
+    missing = [hook_id for hook_id, block in blocks.items() if _stages(block) is None]
+    assert missing == []
+
+
+def test_local_hook_entry_scripts_exist(script_dir: Path) -> None:
+    """全 local hook の entry の実体が実在する。E2E で発火しない hook も押さえる。"""
+    root = script_dir.parents[1]
+    missing = [
+        f"{hook_id}: {script}"
+        for hook_id, script in _local_scripts(script_dir).items()
+        if not (root / script).is_file()
+    ]
+    assert missing == []
+
+
+def test_stage_dir_matches_stages(script_dir: Path) -> None:
+    """実体が stage 名のディレクトリ直下にある hook は、stages がそのディレクトリ名 1 つだけ。"""
+    blocks = _local_hook_blocks(_config_text(script_dir))
+    mismatched = []
+    for hook_id, script in _local_scripts(script_dir).items():
+        if hook_id in _STAGE_DIR_EXCEPTIONS:
+            continue
+        parts = Path(script).parts  # 直下 = (.githooks, <dir>, <file>) の 3 要素
+        if len(parts) == 3 and parts[0] == ".githooks" and parts[1] in _STAGE_DIRS:
+            if _stages(blocks[hook_id]) != [parts[1]]:
+                mismatched.append(f"{hook_id}: {script} stages={_stages(blocks[hook_id])}")
+    assert mismatched == []
+
+
+@pytest.mark.parametrize("hook_id", sorted(_STAGE_DIR_EXCEPTIONS))
+def test_stage_dir_exception_rows_are_live(script_dir: Path, hook_id: str) -> None:
+    """例外の行は、hook が config にあり、実体が書いた場所にある間だけ有効。"""
+    expected_script, _reason = _STAGE_DIR_EXCEPTIONS[hook_id]
+    assert _local_scripts(script_dir).get(hook_id) == expected_script
+
+
+def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
+    """stage 名のディレクトリ直下の *.sh は、どれかの entry から参照される。"""
+    root = script_dir.parents[1]
+    referenced = set(_local_scripts(script_dir).values())
+    orphans = [
+        str(path.relative_to(root))
+        for stage_dir in _STAGE_DIRS
+        if (root / ".githooks" / stage_dir).is_dir()
+        for path in sorted((root / ".githooks" / stage_dir).glob("*.sh"))
+        if str(path.relative_to(root)) not in referenced
+    ]
+    assert orphans == []

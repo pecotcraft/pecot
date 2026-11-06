@@ -48,8 +48,8 @@ from pathlib import Path
 
 import pytest
 
-# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+# parents[0]=tests, [1]=.githooks, [2]=リポルート。
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # 宣言しない変数と、その理由を置く。
 # 対象は、値が結果を左右しない変数、レーンの外で決まる変数、レーン自身が必ず上書きする変数に限る。

@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-# parents[0]=tests, [1]=pre-commit, [2]=.githooks, [3]=リポルート。
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+# parents[0]=tests, [1]=.githooks, [2]=リポルート。
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 _LIB_DIR = _REPO_ROOT / "libs" / "text-rules"
 
 

@@ -76,6 +76,7 @@ TYPE_PREFIX_MAP: dict[str, str] = {
     "task": "[Task]",
     "bug": "[Bug]",
     "epic": "[Epic]",
+    "tracker": "[Tracker]",
 }
 
 
@@ -217,7 +218,7 @@ def _build_issue_title(
     """タイトルにプレフィックスとEpic番号+order(+枝)を付与する。
 
     Args:
-        issue_type: Issueタイプ（task, bug, epic）。
+        issue_type: Issueタイプ（task, bug, epic, tracker）。
         title: 元のタイトル。
         parent_epic: 親EpicのIssue番号。
         order: サブタスクの順序番号（段）。
@@ -398,7 +399,15 @@ VALID_STATUSES = {"backlog", "pending", "ready", "active", "in_review", "archive
 
 # 起票時の status は型対応テンプレートの既定値のみ受理する（#669）。
 # pending / archived への配置はボード上の手動操作領域。
-TYPE_DEFAULT_STATUS: dict[IssueType, str] = {"epic": "backlog", "task": "ready", "bug": "ready"}
+TYPE_DEFAULT_STATUS: dict[IssueType, str] = {
+    "epic": "backlog",
+    "tracker": "backlog",
+    "task": "ready",
+    "bug": "ready",
+}
+
+# Backlog に置く型（quick の status / size / quick フラグの扱いが Epic と同じ）
+BACKLOG_TYPES: frozenset[str] = frozenset({"epic", "tracker"})
 
 
 def _validate_status_for_type(issue_type: IssueType, status: str) -> None:
@@ -618,7 +627,7 @@ def issue_create(
     ] = None,
     issue_type: Annotated[
         IssueType,
-        typer.Option("--type", help="Issueタイプ (task/bug/epic)"),
+        typer.Option("--type", help="Issueタイプ (task/bug/epic/tracker)"),
     ] = "task",
     status: Annotated[
         str | None,
@@ -656,7 +665,8 @@ def issue_create(
     template: Annotated[
         IssueTemplateType,
         typer.Option(
-            "--template", help="テンプレートタイプ (prepare時: task/bug/epic/task-implement)"
+            "--template",
+            help="テンプレートタイプ (prepare時: task/bug/epic/tracker/task-implement)",
         ),
     ] = "task",
     suffix: Annotated[
@@ -787,7 +797,7 @@ def _issue_create_prepare(
     if template != "epic":
         if repo is None:
             typer.echo(
-                "エラー: --repo owner/repo は --template task|bug|task-implement では必須です",
+                "エラー: --repo owner/repo は --template task|bug|tracker|task-implement では必須です",
                 err=True,
             )
             raise typer.Exit(2)
@@ -1259,14 +1269,14 @@ def _quick_fields(issue_type: IssueType) -> list[tuple[str, str, str]]:
     status は epic のとき backlog、それ以外は active。priority は medium、size は s。
     """
     # status: epic なら "backlog"、それ以外なら "active"
-    default_status = "backlog" if issue_type == "epic" else "active"
+    default_status = "backlog" if issue_type in BACKLOG_TYPES else "active"
     fields: list[tuple[str, str, str]] = [
         ("workflow", default_status, f"status: {default_status}"),
         # priority: medium
         ("priority", "medium", "priority: medium"),
     ]
-    # size: s (epic以外)
-    if issue_type != "epic":
+    # size: s (Backlog に置く型以外)
+    if issue_type not in BACKLOG_TYPES:
         fields.append(("size", "s", "size: s"))
     return fields
 
@@ -1341,7 +1351,7 @@ def issue_quick_command(
     ] = False,
     issue_type: Annotated[
         IssueType,
-        typer.Option("--type", help="Issueタイプ (task/bug/epic)"),
+        typer.Option("--type", help="Issueタイプ (task/bug/epic/tracker)"),
     ] = "task",
 ) -> None:
     """フリーフォーマットメッセージからIssueを即座に作成
@@ -1452,8 +1462,8 @@ def _finish_quick_issue(
         no_branch,
     )
 
-    # 10. クイックモードフラグを作成（epicを除く）
-    if issue_type != "epic":
+    # 10. クイックモードフラグを作成（Backlog に置く型を除く）
+    if issue_type not in BACKLOG_TYPES:
         from cli.core.state import FLAG_PECOT_QUICK_MODE, touch_flag
 
         touch_flag(FLAG_PECOT_QUICK_MODE)
@@ -1604,7 +1614,7 @@ def _validate_issue_template(template_type: IssueTemplateType, body: str) -> Non
     """Issueテンプレート準拠チェック（共通関数）。
 
     Args:
-        template_type: テンプレートタイプ (task/bug/epic/task-implement)。
+        template_type: テンプレートタイプ (task/bug/epic/tracker/task-implement)。
         body: Issue本文。
 
     Raises:

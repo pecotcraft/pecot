@@ -41,7 +41,7 @@ def work_dir(tmp_path: Path) -> Path:
 
 
 def _real_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[2]
 
 
 def _require_bin(repo_root: Path) -> None:
@@ -347,7 +347,9 @@ def test_check_commit_text_reports_violation(
     _require_bin(repo_root)
     message = work_dir / "COMMIT_EDITMSG"
     message.write_text(f"test: 動作確認\n\n{_LONG_SENTENCE}\n")
-    result = run_script(script_dir / "check-commit-text.sh", str(message), cwd=repo_root)
+    result = run_script(
+        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo_root
+    )
     assert result.returncode == 1
     assert f"{message}:3:" in result.stdout
     assert "sentence-length" in result.stdout
@@ -359,7 +361,9 @@ def test_check_commit_text_ignores_comment_lines(
     _require_bin(repo_root)
     message = work_dir / "COMMIT_EDITMSG"
     message.write_text(f"test: 動作確認\n\n# {_LONG_SENTENCE}\n")
-    result = run_script(script_dir / "check-commit-text.sh", str(message), cwd=repo_root)
+    result = run_script(
+        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo_root
+    )
     assert result.returncode == 0, result.stdout + result.stderr
 
 
@@ -369,7 +373,9 @@ def test_check_commit_text_errors_without_dist(
     repo = git_repo("nodist")
     message = repo / "COMMIT_EDITMSG"
     message.write_text("test: 動作確認\n")
-    result = run_script(script_dir / "check-commit-text.sh", str(message), cwd=repo)
+    result = run_script(
+        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo
+    )
     assert result.returncode == 1
     errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
     assert any("npm install" in line for line in errors), result.stderr
@@ -382,7 +388,9 @@ def test_check_commit_text_errors_when_deps_cannot_be_restored(
     env, calls = _fake_npm(tmp_path, restores=False)
     message = repo / "COMMIT_EDITMSG"
     message.write_text("test: 動作確認\n")
-    result = run_script(script_dir / "check-commit-text.sh", str(message), cwd=repo, env=env)
+    result = run_script(
+        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo, env=env
+    )
     _assert_deps_guidance(result)
     assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
 
@@ -394,7 +402,9 @@ def test_check_commit_text_restores_missing_deps(
     env, calls = _fake_npm(tmp_path, restores=True)
     message = repo / "COMMIT_EDITMSG"
     message.write_text("test: 動作確認\n")
-    result = run_script(script_dir / "check-commit-text.sh", str(message), cwd=repo, env=env)
+    result = run_script(
+        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo, env=env
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     assert _npm_calls(calls) == ["--prefix libs/text-rules ci"]
 
@@ -407,7 +417,9 @@ def test_check_commit_text_rebuilds_stale_dist(
     _disable_all_rules(package_dir)
     message = source_repo / "COMMIT_EDITMSG"
     message.write_text(f"test: 動作確認\n\n{_LONG_SENTENCE}\n")
-    result = run_script(script_dir / "check-commit-text.sh", str(message), cwd=source_repo)
+    result = run_script(
+        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=source_repo
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     assert _stamp(package_dir) != before
 
@@ -415,7 +427,7 @@ def test_check_commit_text_rebuilds_stale_dist(
 def test_check_commit_text_without_argument_guides(
     script_dir: Path, repo_root: Path, run_script
 ) -> None:
-    result = run_script(script_dir / "check-commit-text.sh", cwd=repo_root)
+    result = run_script(script_dir.parent / "commit-msg" / "check-commit-text.sh", cwd=repo_root)
     assert result.returncode == 1
     assert "COMMIT_EDITMSG のパスを渡してください" in result.stderr
 
@@ -457,7 +469,9 @@ def push_repo(git_repo, git, git_rev_parse, repo_root: Path) -> _PushRepo:
 
 def _run_push(script_dir: Path, run_script, h: _PushRepo):
     return run_script(
-        script_dir / "check-text-push.sh", cwd=h.repo, env={"PRE_COMMIT_TO_REF": h.head()}
+        script_dir.parent / "pre-push" / "check-text-push.sh",
+        cwd=h.repo,
+        env={"PRE_COMMIT_TO_REF": h.head()},
     )
 
 
@@ -538,6 +552,8 @@ def test_check_text_push_skips_deleted_files(
 def test_check_text_push_without_push_info_warns_and_passes(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    result = run_script(script_dir / "check-text-push.sh", stdin="", cwd=push_repo.repo)
+    result = run_script(
+        script_dir.parent / "pre-push" / "check-text-push.sh", stdin="", cwd=push_repo.repo
+    )
     assert result.returncode == 0
     assert "WARN" in result.stderr

@@ -10,6 +10,6 @@
 
 set -euo pipefail
 
-TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tests"
+TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../tests"
 
 uvx --python 3.12 pytest "$TESTS_DIR/test_nx_env_inputs.py" -q --import-mode=importlib -p no:cacheprovider

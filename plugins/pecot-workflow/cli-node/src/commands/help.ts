@@ -14,6 +14,7 @@ const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
   ['pr', 'PR操作コマンド'],
   ['session', 'セッション管理コマンド'],
   ['release', 'リリース操作コマンド'],
+  ['security', 'security alert の Tracker 化コマンド'],
   ['worktree', 'ワークツリー操作コマンド'],
 ])
 

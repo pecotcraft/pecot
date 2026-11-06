@@ -17,8 +17,8 @@
 
 set -uo pipefail
 
-# shellcheck source=lib/timing.sh
-source "$(dirname "${BASH_SOURCE[0]}")/lib/timing.sh"
+# shellcheck source=timing.sh
+source "$(dirname "${BASH_SOURCE[0]}")/timing.sh"
 
 if [ "$#" -lt 2 ]; then
     echo "usage: with-timing.sh <hook-id> <script> [args...]" >&2
