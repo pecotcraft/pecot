@@ -1,6 +1,6 @@
 // プラグイン版数の解決。cli.ts と今後の mcp の双方から参照するため、cli.ts から独立させている
 // （mcp → cli.ts の import は循環になる）。
-// 層構成は domain ← infra ← mcp。本ファイルはどの層にも属さない共通モジュールとして src 直下に置く。
+// 層構成は domain ← infra ← mcp。本ファイルはどの層にも属さない共通モジュールとして src 直下に置く。 確認用。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
