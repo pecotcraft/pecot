@@ -9,24 +9,6 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 
 # 実装計画のIssue化
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 実装計画ファイル（tasks.md など）を読み取り、各フェーズを親Epic配下のサブタスクIssueとして一括作成する。ブランチ作成・実装作業は行わない。Issue作成後は `/pecot-w:w-active` で1件ずつ実装する。
 
 ## 手順
@@ -41,7 +23,7 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 - `TASKS_PATH`: 受け取った tasks.md の実パス（Step 4 で削除する対象）
 
 ```bash
-$PECOT issue read owner/repo/EPIC_NUMBER
+pecot issue read owner/repo/EPIC_NUMBER
 ```
 
 ### Step 2: フェーズ構造を把握し、番号を決める
@@ -77,8 +59,8 @@ tasks.md を読み取り、Phase 1, Phase 2 ... の区切り・各フェーズ�
 フェーズ数だけテンプレートを生成する。
 
 ```bash
-$PECOT issue create --prepare --template task-implement --suffix phase1 --repo <owner/repo>
-$PECOT issue create --prepare --template task-implement --suffix phase2 --repo <owner/repo>
+pecot issue create --prepare --template task-implement --suffix phase1 --repo <owner/repo>
+pecot issue create --prepare --template task-implement --suffix phase2 --repo <owner/repo>
 ```
 
 `--repo <owner/repo>` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
@@ -103,7 +85,7 @@ before / after の例を示す。
 複数回に分けて実行しない。
 
 ```bash
-$PECOT issue create <phase1のファイル> <phase2のファイル> ...
+pecot issue create <phase1のファイル> <phase2のファイル> ...
 ```
 
 ### Step 4: tasks.md を削除する

@@ -40,12 +40,7 @@ case "$ORIGIN" in
         MESSAGE='【リマインダー】Issue 起票が未完了です。
 
 w-quick の Step 1 を完了してから次に進んでください。
-  PECOT=pecot
-  # Copilot CLI の場合は、次の値にする。
-
-  PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-
-  $PECOT issue quick -r owner/repo -m "ユーザー指示の要約"
+  pecot issue quick -r owner/repo -m "ユーザー指示の要約"
 
 起票に成功すると自動でこのリマインダーは消えます。'
         ;;
@@ -53,16 +48,11 @@ w-quick の Step 1 を完了してから次に進んでください。
         MESSAGE='【リマインダー】サブタスク Issue の起票が未完了です。
 
 w-ready の Step 4 を完了してから次に進んでください。
-  PECOT=pecot
-  # Copilot CLI の場合は、次の値にする。
-
-  PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-
-  1. $PECOT issue create --prepare --template task --repo <owner/repo>
+  1. pecot issue create --prepare --template task --repo <owner/repo>
 
   2. 出力されたファイルを編集（title / parent_epic を設定。repository は --repo で反映済）
 
-  3. $PECOT issue create <ファイルパス>
+  3. pecot issue create <ファイルパス>
 
 起票に成功すると自動でこのリマインダーは消えます。'
         ;;

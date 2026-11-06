@@ -33,7 +33,6 @@ CLAUDE_ENTRY_POINTS=(
     "plugins/pecot-workflow/hooks/stop-copilot.sh"
     "plugins/pecot-workflow/hooks/notification.sh"
     "plugins/pecot-workflow/hooks/session-start.sh"
-    "plugins/pecot-workflow/hooks/stop-plan-post.sh"
 )
 
 ALL_ENTRY_POINTS=("${CLAUDE_ENTRY_POINTS[@]}")

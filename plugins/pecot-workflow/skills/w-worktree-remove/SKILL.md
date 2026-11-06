@@ -10,24 +10,6 @@ argument-hint: "[WT 名]"
 
 # ワークツリー削除
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 `pecot worktree remove` でワークツリーを削除する。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
 
 削除は **ローカルブランチも同時に消す**（`--keep-branch` で残せる）。リモートブランチはこのコマンドの対象外。
@@ -40,7 +22,7 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 
 ```bash
 cd <project-root>/base/<repo>
-$PECOT worktree remove <NAME> -D . [--force] [--keep-branch]
+pecot worktree remove <NAME> -D . [--force] [--keep-branch]
 ```
 
 オプションは `pecot worktree remove --help`。変更が残っているサブ WT を消すときは `--force`。
@@ -53,10 +35,10 @@ $PECOT worktree remove <NAME> -D . [--force] [--keep-branch]
 
 ```bash
 cd <project-root>/base/<repo-A>
-$PECOT worktree remove wt1 -D . --force
+pecot worktree remove wt1 -D . --force
 
 cd <project-root>/base/<repo-B>
-$PECOT worktree remove wt1 -D . --force
+pecot worktree remove wt1 -D . --force
 ```
 
 最後のリポを remove した時点で、`<project-root>/wt1/` が rmdir される。
@@ -66,6 +48,6 @@ $PECOT worktree remove wt1 -D . --force
 remove はローカルブランチまでしか消さない。リモートの同名ブランチまで消す場合は、別途次を実行する。
 
 ```bash
-$PECOT delete-branch <owner>/<repo-A> wt1
-$PECOT delete-branch <owner>/<repo-B> wt1
+pecot delete-branch <owner>/<repo-A> wt1
+pecot delete-branch <owner>/<repo-B> wt1
 ```

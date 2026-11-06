@@ -21,7 +21,6 @@ FLAG_PECOT_ACTIVE = ".pecot-active"
 # .pecot-active と同じタイミングで write_work_target が書く
 FLAG_PECOT_SESSION_TITLE = ".pecot-session-title"
 FLAG_PECOT_QUICK_MODE = ".pecot-quick-mode"
-FLAG_PLAN_POST_PENDING = ".plan-post-pending"
 
 # スラッシュコマンド起点の外部反映免除フラグ。
 # 設置は hooks の create-slash-flag.sh、確認は external-post-check.sh。

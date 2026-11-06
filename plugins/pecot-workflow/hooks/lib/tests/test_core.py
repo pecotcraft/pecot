@@ -425,7 +425,7 @@ def test_pr_external_passes(external_post_script, command) -> None:
 def test_pr_external_gh_merge_guides_to_pecot(external_post_script) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": "gh pr merge 810"})
     assert result.returncode == 11
-    assert "$PECOT pr merge" in result.stdout
+    assert "pecot pr merge" in result.stdout
 
 
 def test_pr_external_mixed_kinds_asks_by_gh_merge(external_post_script) -> None:
@@ -435,7 +435,7 @@ def test_pr_external_mixed_kinds_asks_by_gh_merge(external_post_script) -> None:
         env={"HOOK_COMMAND": "pecot pr create --prepare && gh pr merge 810"},
     )
     assert result.returncode == 11
-    assert "$PECOT pr merge" in result.stdout
+    assert "pecot pr merge" in result.stdout
 
 
 def test_pr_external_unset_command_exit_2(external_post_script) -> None:

@@ -21,8 +21,6 @@ README 内の突合対象節も互いに重ならない。
   `websearch-allow.sh` が返す `permissionDecision: allow` は Claude Code 形式。
   Copilot CLI での allow 応答は実機未検証のため、Claude 側のみに登録している。
   #789 で追跡中で、in-tree の参照は `lib/mcp-handlers/context7-allow.sh`。
-- `stop-plan-post.sh`（クリア後の計画投稿）を持たない。
-  fallback は Claude の transcript と `~/.claude/plans` に依存する。
 - Stop は `stop-copilot.sh`（PTY ベル）を指す。Claude 側は `stop.sh`（`terminalSequence`）を指す。
 - Skill / MCP の matcher が Copilot のツール名（`skill` / `github-mcp-server-create_pull_request`）を足している。
   matcher の個別の値は `lib/tests/test_hooks_definitions.py` が固定する。

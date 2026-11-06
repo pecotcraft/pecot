@@ -156,15 +156,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/stop-plan-post.sh",
-            "timeout": 90
-          }
-        ]
       }
     ],
     "Notification": [

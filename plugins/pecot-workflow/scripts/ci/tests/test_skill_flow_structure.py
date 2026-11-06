@@ -6,7 +6,7 @@ import pytest
 PLUGIN_ROOT = Path(__file__).resolve().parents[3]
 SKILLS_ROOT = PLUGIN_ROOT / "skills"
 
-FINALIZE_MARKER = "計画最終化と承認の窓"
+FINALIZE_MARKER = "投稿した計画で承認を得る"
 PARALLEL_SPAWN_NOTE = "1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。"
 SERIAL_REASON_MARKER = "(直列の理由: ...)"
 STEP_HEADING = re.compile(r"^###\s+Step\s+(\d+)\s*[:：]\s*(.+)$")
@@ -70,6 +70,22 @@ def test_step_order_survey_then_draft_then_planmode(skill_name: str) -> None:
     planmode = _title_index(headings, "プランモード")
 
     assert survey < draft < planmode
+
+
+@pytest.mark.parametrize("skill_name", ["w-active", "w-quick"])
+def test_plan_is_posted_between_draft_and_planmode(skill_name: str) -> None:
+    """確認を求める前に、通常モードで計画を Issue へ投稿する。"""
+    text = _read_skill(skill_name)
+    headings = _step_headings(text)
+    draft = _title_index(headings, "計画ドラフト")
+    assert "pecot issue comment --prepare -t plan" in _section_body(text, draft)
+    post = _title_index(headings, "計画の投稿")
+    planmode = _title_index(headings, "プランモード")
+    body = _section_body(text, post)
+
+    assert draft < post < planmode
+    assert "pecot issue comment <書いたファイル>" in body
+    assert "EnterPlanMode を呼ばない" in body
 
 
 @pytest.mark.parametrize("skill_name", ["w-active", "w-quick"])

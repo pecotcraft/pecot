@@ -8,24 +8,6 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 # オンボーディング
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 新規プロジェクトのセットアップを行う。本スキルの責務は **プロジェクト作成まで**。リポジトリ登録は `/pecot-w:w-repo-add` に委譲する。
 
 前提: GitHub 認証が完了している（PAT or `gh auth login`）。
@@ -44,7 +26,7 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 最初のチェックに使う検出コマンドは次のとおり。
 
 ```bash
-$PECOT project list
+pecot project list
 ```
 
 各パターンの検出手順・兄弟リポ走査 Python スクリプトの詳細は [既存設定検出の詳細](references/existing-config-detection.md) を参照。
@@ -56,7 +38,7 @@ AskUserQuestion でプロジェクト名とワークフローサフィックス�
 `project create` でプロジェクトを作成する（create = プロジェクト作成 + フィールド追加 + activate を実行）。
 
 ```bash
-$PECOT project create <owner> "<プロジェクト名>" --host <host> --suffix <suffix>
+pecot project create <owner> "<プロジェクト名>" --host <host> --suffix <suffix>
 ```
 
 | 引数・オプション | 説明 |
@@ -84,7 +66,7 @@ AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ�
 ### Step 4: 動作確認
 
 ```bash
-$PECOT project info
+pecot project info
 ```
 
 プロジェクト設定が表示されることを確認する。

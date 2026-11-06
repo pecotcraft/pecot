@@ -9,24 +9,6 @@ when_to_use: "Epic の次のサブタスクを 1 件作りたい、Ready に積�
 
 # 作業準備：サブタスクIssueを作成してReadyに配置
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録してReadyに置く。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
 
 > 注意: 既存サブタスクの完了状況をユーザーに報告したり、「Epicを閉じますか」等を提案してはならない。直前タスクが完了済みなのはこのスキルを呼ぶ前提であり、特筆事項ではない。
@@ -38,7 +20,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 対象Epicの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。
 
 ```bash
-$PECOT project info
+pecot project info
 ```
 
 ### Step 2: 対象Epicを特定
@@ -53,7 +35,7 @@ $PECOT project info
 
 ```bash
 # Epic詳細を取得
-$PECOT issue read owner/repo/XXX
+pecot issue read owner/repo/XXX
 ```
 
 ### Step 3: 次のサブタスクをAIが計画する
@@ -81,8 +63,8 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 タイプに応じて選び、テンプレートを準備する。
 
 ```bash
-$PECOT issue create --prepare --template task --repo <owner/repo>  # 機能追加・改善
-$PECOT issue create --prepare --template bug  --repo <owner/repo>  # バグ修正
+pecot issue create --prepare --template task --repo <owner/repo>  # 機能追加・改善
+pecot issue create --prepare --template bug  --repo <owner/repo>  # バグ修正
 ```
 
 出力されたファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
@@ -92,18 +74,8 @@ $PECOT issue create --prepare --template bug  --repo <owner/repo>  # バグ修�
 
 ```bash
 # ファイル編集後に投稿
-$PECOT issue create <ファイルパス>
+pecot issue create <ファイルパス>
 ```
-
-下書きの文章規則は、Claude Code で pecot-visual を入れた環境なら、下書きを Write / Edit した直後に確かめられる。
-違反があると `[text-lint] Writing-rule violations in` で始まる通知が返る。指摘の行の文を書き直す。
-下書きは書き込みで止まらず、投稿の CLI も文面を確かめない。投稿前に直す。何も返らないことは、違反が無いことを意味しない。
-`[text-lint] Not checked` は、確認していないという通知を表す。
-違反が多いと先頭 100 行だけが返る。直して保存し直すと、残りが返る。
-関門（pre-commit と commit-msg）を入れたリポでは、commit する文書とコミットメッセージが止まる。
-出力の形はリポで異なる。例は `<path>:<line>:<col> <ruleId> <message>` と、ファイル名の行に続く `行:列 error メッセージ 規則名` の 2 形がある。
-どちらも、指摘された行の文を直す。
-規則・除外は変えない。無効化コメントと `--no-verify` にも触れない。
 
 ### Step 5: 完了報告
 

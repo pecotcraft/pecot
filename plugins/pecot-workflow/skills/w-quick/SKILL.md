@@ -10,25 +10,7 @@ argument-hint: "[タスクの内容]"
 
 # 簡単なタスクの即Issue化
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
-1ファイル修正や小さなバグ修正など、簡単なタスクを即座にIssue化してブランチ作成→調査→計画ドラフト作成→プランモードで計画を最終化する。Issue作成・ブランチ作成が完了するまで実装作業には着手しない。
+1ファイル修正や小さなバグ修正など、簡単なタスクを即座にIssue化してブランチ作成→調査→計画を書く→Issue に投稿→プランモードで承認を得る。Issue作成・ブランチ作成が完了するまで実装作業には着手しない。
 
 ## 手順
 
@@ -40,7 +22,7 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 
 ```bash
 # 基本形（親Epicなし）
-$PECOT issue quick -r owner/repo -m "ユーザー指示の要約"
+pecot issue quick -r owner/repo -m "ユーザー指示の要約"
 ```
 
 **`-m` の書き方:** テンプレを経由しないため `-m` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
@@ -60,18 +42,6 @@ $PECOT issue quick -r owner/repo -m "ユーザー指示の要約"
 - ユーザーが明示的に指定している場合はその値を使用
 - 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `pecot project show-aggregation-repo` を実行して根拠を得てから決める（推測で `-r` を埋めない）
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
-
-下書きの文章規則は、Claude Code で pecot-visual を入れた環境なら、下書きを Write / Edit した直後に確かめられる。
-違反があると `[text-lint] Writing-rule violations in` で始まる通知が返る。指摘の行の文を書き直す。
-下書きは書き込みで止まらず、投稿の CLI も文面を確かめない。投稿前に直す。何も返らないことは、違反が無いことを意味しない。
-`[text-lint] Not checked` は、確認していないという通知を表す。
-違反が多いと先頭 100 行だけが返る。直して保存し直すと、残りが返る。
-関門（pre-commit と commit-msg）を入れたリポでは、commit する文書とコミットメッセージが止まる。
-出力の形はリポで異なる。例は `<path>:<line>:<col> <ruleId> <message>` と、ファイル名の行に続く `行:列 error メッセージ 規則名` の 2 形がある。
-どちらも、指摘された行の文を直す。
-規則・除外は変えない。無効化コメントと `--no-verify` にも触れない。
-
-`pecot issue quick -m` で渡す本文はファイルを経ないので、hook は確かめない。投稿前に、上の規則に照らして自分で読み直す。
 
 ### Step 2: ブランチ切り替え
 
@@ -94,35 +64,33 @@ CLIがWT名を含む案内メッセージ（例: `作業対象リポジトリの
 
 ### Step 3: 調査
 
-**前提: Step 2でブランチ切り替え済みであること。**
-
-ブランチ切り替えが完了したら、まず**通常モードのまま**軽く調査する。この段階では
-EnterPlanMode を呼ばない。
-
-quick は小タスク前提なので、変更対象ファイルとその周辺の既存パターンを読み取りで
-把握する程度でよい。得た事実が次の計画ドラフトのもとになる。
+通常モードのまま、変更対象のファイルと周辺の既存パターンを読む。EnterPlanMode を呼ばない。
 
 ### Step 4: 計画ドラフト作成
 
-**前提: Step 3で調査済みであること。**
+次のコマンドで plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
 
-調査結果をもとに、**通常モードのまま**実装計画のドラフトを作成する。小タスクなので
-簡潔でよいが、`## PECOT-Workflow` セクション（E2E）を
-概形として含める。書式全文はこの SKILL.md から複製しない。
-書式への最終適合は次の Step 5 のプランモード側で行う。
+```bash
+pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
+```
 
-ドラフト本体の書式は、`$PECOT issue comment --prepare -t plan` で得る plan テンプレが決める。
+### Step 5: 計画の投稿
 
-### Step 5: プランモードに入る
+通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。
 
-**前提: Step 4で計画ドラフト作成済みであること。**
+```bash
+pecot issue comment <書いたファイル>
+```
 
-ドラフトが固まったら、**必ずプランモードで計画を最終化する。** プランモードは
-**計画最終化と承認の窓**で、ドラフト完成後に呼ぶ最終ステップとして扱う。
+exit 3 で止まったら、指摘を直して打ち直す。
 
-**必須**: 以下のツールを呼び出してプランモードに入ること。
+### Step 6: プランモードで承認を得る
+
+EnterPlanMode を呼び、投稿した計画で承認を得る。
 
 ```
 EnterPlanMode tool:
   (パラメータなし)
 ```
+
+承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 5 のコマンドを打ち直す。投稿したコメントが書き換わる。

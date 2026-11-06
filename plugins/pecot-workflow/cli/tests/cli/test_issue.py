@@ -2442,6 +2442,117 @@ template: merge-diff
         assert "FILE" in result.output or "file" in result.output.lower()
 
 
+_MERGE_DIFF_BODY = """## Merge — タスク1完了
+
+### Variance — タスク1完了
+
+- **タスク1** — pytest で確認。
+
+### Impact — 次のタスク
+
+- **次のタスク** — 詳細は `.pecot/work/123/plan.md`。
+"""
+
+
+class TestIssueCommentUpdateByFile:
+    """issue comment <file> の comment_url による書き戻しと更新"""
+
+    def _config(self) -> MagicMock:
+        config = MagicMock()
+        config.host = "github.com"
+        config.is_repo_in_project.return_value = True
+        return config
+
+    def _write(self, path: Path, extra: str = "") -> Path:
+        path.write_text(
+            f'---\nissue_ref: "owner/repo/123"\ntemplate: merge-diff\n{extra}---\n\n{_MERGE_DIFF_BODY}',
+            encoding="utf-8",
+        )
+        return path
+
+    def test_new_post_writes_back_comment_url(self, tmp_path: Path) -> None:
+        """新規投稿の後、frontmatter に comment_url を書き戻す。本文は変えない"""
+        comment_file = self._write(tmp_path / "comment.md")
+        url = "https://github.com/owner/repo/issues/123#issuecomment-456"
+        mock_client = MagicMock()
+        mock_client.add_issue_comment.return_value = {"id": 456, "html_url": url}
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 0, result.output
+        content = comment_file.read_text(encoding="utf-8")
+        assert content.startswith(
+            f'---\nissue_ref: "owner/repo/123"\ntemplate: merge-diff\ncomment_url: "{url}"\n---\n'
+        )
+        assert content.endswith(_MERGE_DIFF_BODY)
+        mock_client.update_issue_comment.assert_not_called()
+
+    def test_comment_url_updates_existing_comment(self, tmp_path: Path) -> None:
+        """comment_url があれば、新しく投稿せずにそのコメントを書き換える"""
+        url = "https://github.com/owner/repo/issues/123#issuecomment-456"
+        comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
+        mock_client = MagicMock()
+        mock_client.update_issue_comment.return_value = {"id": 456, "html_url": url}
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 0, result.output
+        assert "コメント更新完了: owner/repo/123" in result.output
+        assert url in result.output
+        mock_client.add_issue_comment.assert_not_called()
+        args = mock_client.update_issue_comment.call_args[0]
+        assert args[:3] == ("owner", "repo", 456)
+        assert "### Variance —" in args[3]
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://github.com/other/repo/issues/123#issuecomment-456",
+            "https://github.com/owner/repo/issues/124#issuecomment-456",
+            "https://github.com/owner/repo/issues/123",
+        ],
+    )
+    def test_comment_url_for_other_issue_is_rejected(self, tmp_path: Path, url: str) -> None:
+        """issue_ref と別の Issue を指す・形の違う comment_url では、API を呼ばずに止める"""
+        comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 1
+        assert "comment_url" in result.output
+        mock_client.add_issue_comment.assert_not_called()
+        mock_client.update_issue_comment.assert_not_called()
+
+    def test_update_failure_exits_1(self, tmp_path: Path) -> None:
+        """更新の API が失敗したら exit 1"""
+        url = "https://github.com/owner/repo/issues/123#issuecomment-456"
+        comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
+        mock_client = MagicMock()
+        mock_client.update_issue_comment.side_effect = GitHubAPIError("Not Found", status_code=404)
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 1
+        assert "コメント更新失敗" in result.output
+
+
 # --- issue comment 直接投稿コマンドテスト ---
 
 

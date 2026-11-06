@@ -78,7 +78,7 @@ def test_guard_result_independent_of_permission_mode(
     command: str,
     expected: str,
 ):
-    # 環境: feature ブランチの git repo・.pecot-active あり・.plan-post-pending 無し
+    # 環境: feature ブランチの git repo・.pecot-active あり
     repo = git_repo()
     subprocess.run(
         ["git", "-C", str(repo), "checkout", "-b", "feat/regression/820", "--quiet"],
@@ -88,7 +88,6 @@ def test_guard_result_independent_of_permission_mode(
     state = repo / ".pecot" / "state"
     state.mkdir(parents=True)
     (state / ".pecot-active").write_text("org/repo/820\n")
-    assert not (state / ".plan-post-pending").is_file()
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
 
     payload = json.dumps(

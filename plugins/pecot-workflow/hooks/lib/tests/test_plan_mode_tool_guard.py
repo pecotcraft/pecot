@@ -1,9 +1,9 @@
-"""plan-issue-poster / plan-flag-setter の tool 名ガードのユニットテスト
+"""exit-plan-remind / plan-flag-setter の tool 名ガードのユニットテスト
 （test_plan_mode_tool_guard.bats 移植）。
 
 Copilot CLI は matcher を honor せず、全ツールで PostToolUse/PreToolUse を発火させる。
 そのため、両スクリプトは冒頭の tool 名ガードで、ExitPlanMode / EnterPlanMode 以外を弾く。
-JSON stdin を流し、ログ・フラグファイルの副作用を検証する。
+JSON stdin を流し、出力とフラグファイルの副作用を検証する。
 """
 
 from __future__ import annotations
@@ -22,38 +22,29 @@ def guard_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, project_root: Pat
     return {
         "project": project,
         "state_dir": project / ".pecot" / "state",
-        "debug_log": project / ".pecot" / "tmp" / "debug" / "plan-post-flow.log",
-        "plan_issue_poster": lib / "post-tool-use" / "plan-issue-poster.sh",
+        "exit_plan_remind": lib / "post-tool-use" / "exit-plan-remind.sh",
         "plan_flag_setter": lib / "pre-tool-use" / "plan-flag-setter.sh",
     }
 
 
-# plan-issue-poster.sh — ExitPlanMode 以外を弾く。
+# exit-plan-remind.sh — ExitPlanMode 以外を弾く。
 
 
-def test_poster_copilot_bash_no_log(guard_env, run_script) -> None:
+def test_remind_copilot_bash_no_output(guard_env, run_script) -> None:
+    (guard_env["state_dir"] / ".pecot-active").write_text("org/repo/1\n")
     result = run_script(
-        guard_env["plan_issue_poster"], stdin='{"tool_name":"bash","tool_input":{"command":"ls"}}'
+        guard_env["exit_plan_remind"], stdin='{"tool_name":"bash","tool_input":{"command":"ls"}}'
     )
     assert result.returncode == 0
     assert result.stdout == ""
-    assert not guard_env["debug_log"].is_file()
 
 
-def test_poster_bash_keeps_quick_mode(guard_env, run_script) -> None:
+def test_remind_bash_keeps_quick_mode(guard_env, run_script) -> None:
     quick_mode = guard_env["state_dir"] / ".pecot-quick-mode"
     quick_mode.touch()
-    result = run_script(guard_env["plan_issue_poster"], stdin='{"tool_name":"Bash"}')
+    result = run_script(guard_env["exit_plan_remind"], stdin='{"tool_name":"Bash"}')
     assert result.returncode == 0
     assert quick_mode.is_file()
-    assert not guard_env["debug_log"].is_file()
-
-
-def test_poster_exit_plan_mode_logs_start(guard_env, run_script) -> None:
-    result = run_script(guard_env["plan_issue_poster"], stdin='{"tool_name":"ExitPlanMode"}')
-    assert result.returncode == 0
-    assert guard_env["debug_log"].is_file()
-    assert "ExitPlanMode PostToolUse: start" in guard_env["debug_log"].read_text()
 
 
 # plan-flag-setter.sh — EnterPlanMode 以外を弾く。

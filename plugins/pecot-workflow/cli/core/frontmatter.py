@@ -150,10 +150,12 @@ class CommentFrontmatter(BaseModel):
     Attributes:
         issue_ref: Issue参照（owner/repo/123形式）
         template: テンプレート識別子（オプション）
+        comment_url: 書き換えるコメントの URL
     """
 
     issue_ref: str
     template: CommentTemplate | None = None
+    comment_url: str | None = None
 
 
 class ParsedComment(BaseModel):
@@ -360,6 +362,33 @@ def parse_comment_content(content: str) -> ParsedComment:
         raise FrontmatterError(f"バリデーションエラー:\n{error_detail}") from e
 
     return ParsedComment(frontmatter=frontmatter, body=body)
+
+
+def set_frontmatter_value(content: str, key: str, value: str) -> str:
+    """フロントマターに ``key: "value"`` の 1 行を足す（同じキーの行があれば置き換える）
+
+    Args:
+        content: フロントマター付きMarkdown文字列
+        key: キー名
+        value: 値（ダブルクォートで囲んで書く）
+
+    Returns:
+        書き換えた文字列
+
+    Raises:
+        FrontmatterError: フロントマターが無い・閉じられていない場合
+    """
+    match = FRONTMATTER_PATTERN.match(content)
+    if not match:
+        raise FrontmatterError("フロントマターが見つかりません")
+    lines = match.group(1).split("\n")
+    entry = f'{key}: "{value}"'
+    key_re = re.compile(rf"^{re.escape(key)}\s*:")
+    replaced = [entry if key_re.match(line) else line for line in lines]
+    if replaced == lines:
+        replaced.append(entry)
+    start, end = match.span(1)
+    return content[:start] + "\n".join(replaced) + content[end:]
 
 
 def parse_comment_file(path: Path | str) -> ParsedComment:

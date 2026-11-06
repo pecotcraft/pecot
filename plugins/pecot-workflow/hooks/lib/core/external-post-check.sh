@@ -144,10 +144,7 @@ gh pr merge は PR を外部へ反映する操作です。
 
 ユーザーが明示的に承認するまで実行しないでください。
 可能であれば pecot ワークフロー経由を使用してください。
-  PECOT=pecot
-  # Copilot CLI の場合は、次の値にする。
-  PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-  $PECOT pr merge'
+  pecot pr merge'
 
 # スラッシュコマンド起点の免除フラグ。
 # 設置は user-prompt-submit の create-slash-flag.sh、消費は CLI が実投稿成功時に削除する。

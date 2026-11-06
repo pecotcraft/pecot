@@ -228,7 +228,7 @@ def mock_bin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> _MockBin:
 
 
 # bin/pecot 実体モック配置（フルパス実行される ${CLAUDE_PLUGIN_ROOT}/bin/pecot 用）。
-# plan-issue-poster / plan-post-fallback / post-exit-plan は、次のパスをフルパス実行する。
+# hooks は pecot CLI を次のパスでフルパス実行する。
 # `"${CLAUDE_PLUGIN_ROOT}/bin/pecot"`
 # そのため、PATH 挿入型 mock_bin では差し替えられない。
 # CLAUDE_PLUGIN_ROOT 配下に実体スクリプトを置く必要がある。
@@ -407,8 +407,7 @@ _VAR_SH_REF_RE = re.compile(
 # 上の `.sh` 版と同形だが、rel が `templates/` セグメントを含むものだけを対象にする。
 # `templates/x.md` に加え、`hooks/templates/x.md` のような深い rel も対象になる。
 # `.md` 参照全数へ広げない理由は、次のとおり。
-# `$HOME/.claude/plans/${SLUG}.md` は、`${SLUG}` が rel の文字クラスに乗らない。
-# 該当するのは plan-issue-poster.sh / plan-post-fallback.sh 。
+# `$HOME/.claude/plans/${SLUG}.md` のような参照は、`${SLUG}` が rel の文字クラスに乗らない。
 # そのため、変数プレフィックス型 regex ではトークン化されない。
 # 一方で会計側の鈍い走査だけが拾うため、対象を広げると会計が恒常的に不一致になる。
 # 次のものも、同じく会計側のみの雑音になる。

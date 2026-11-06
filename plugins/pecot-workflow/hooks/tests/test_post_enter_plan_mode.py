@@ -67,11 +67,7 @@ def test_includes_four_points(env_setup, hook_script):
     assert result.returncode == 0
     assert "mode: shared" in result.stdout
     assert "# 【pecot計画モード】" in result.stdout
-    assert "$PECOT issue comment --prepare -t plan" in result.stdout
-    assert "Context は Context" in result.stdout
-    assert "推奨方針は Approach" in result.stdout
-    assert "主要ファイルと再利用する既存関数は Files" in result.stdout
-    assert "検証は `## PECOT-Workflow` の E2E" in result.stdout
+    assert "投稿したファイル" in result.stdout
     assert "越境" in result.stdout
 
 
@@ -91,4 +87,4 @@ def test_empty_config_common_template(env_setup, hook_script):
     assert result.returncode == 0
     assert "mode: shared" in result.stdout
     assert "# 【pecot計画モード】" in result.stdout
-    assert "$PECOT issue comment --prepare -t plan" in result.stdout
+    assert "投稿したファイル" in result.stdout

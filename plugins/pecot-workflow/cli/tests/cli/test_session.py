@@ -31,7 +31,7 @@ class TestCollectFlagStatuses:
         ):
             result = _collect_flag_statuses()
 
-        assert len(result) == 2
+        assert len(result) == 1
         for fs in result:
             assert fs.exists is True
             assert fs.content == "test-content"
@@ -40,7 +40,6 @@ class TestCollectFlagStatuses:
         """一部のフラグだけ存在する場合"""
         exists_map = {
             ".pecot-active": True,
-            ".plan-post-pending": False,
         }
         content_map = {
             ".pecot-active": "owner/repo/123",
@@ -58,15 +57,11 @@ class TestCollectFlagStatuses:
         ):
             result = _collect_flag_statuses()
 
-        assert len(result) == 2
+        assert len(result) == 1
         # .pecot-active
         assert result[0].name == ".pecot-active"
         assert result[0].exists is True
         assert result[0].content == "owner/repo/123"
-        # .plan-post-pending
-        assert result[1].name == ".plan-post-pending"
-        assert result[1].exists is False
-        assert result[1].content == ""
 
     def test_no_flags_exist(self) -> None:
         """全フラグが存在しない場合"""
@@ -75,7 +70,7 @@ class TestCollectFlagStatuses:
         ):
             result = _collect_flag_statuses()
 
-        assert len(result) == 2
+        assert len(result) == 1
         for fs in result:
             assert fs.exists is False
             assert fs.content == ""
@@ -91,7 +86,6 @@ class TestFlagStatusCommand:
         """正常系: ブランチ・リポジトリ・フラグすべてあり"""
         exists_map = {
             ".pecot-active": True,
-            ".plan-post-pending": False,
         }
         content_map = {
             ".pecot-active": "acme-labs/ai-engineer-starter-kit/867",
@@ -124,7 +118,7 @@ class TestFlagStatusCommand:
         assert "リポジトリ: acme-labs/ai-engineer-starter-kit" in result.output
         assert "推定Issue: #867" in result.output
         assert "| .pecot-active | ✓ | acme-labs/ai-engineer-starter-kit/867 |" in result.output
-        assert "| .plan-post-pending | - |  |" in result.output
+        assert ".plan-post-pending" not in result.output
 
     def test_unknown_branch(self, tmp_path: Path) -> None:
         """ブランチ不明時は (unknown) と表示"""
@@ -177,7 +171,7 @@ class TestFlagStatusCommand:
         assert "推定Issue: (none)" in result.output
         # 全フラグが "-" で表示
         assert "| .pecot-active | - |  |" in result.output
-        assert "| .plan-post-pending | - |  |" in result.output
+        assert ".plan-post-pending" not in result.output
 
     def test_branch_without_issue_number(self, tmp_path: Path) -> None:
         """Issue番号がないブランチの場合 (none) と表示"""
@@ -212,7 +206,6 @@ class TestShowActiveIssue:
 
         flag_statuses = [
             FlagStatus(name=".pecot-active", exists=True, content="owner/repo/42"),
-            FlagStatus(name=".plan-post-pending", exists=False, content=""),
         ]
 
         mock_config = MagicMock()
@@ -246,7 +239,6 @@ class TestShowActiveIssue:
 
         flag_statuses = [
             FlagStatus(name=".pecot-active", exists=True, content="owner/repo/42"),
-            FlagStatus(name=".plan-post-pending", exists=False, content=""),
         ]
 
         mock_config = MagicMock()
@@ -272,7 +264,6 @@ class TestShowActiveIssue:
 
         flag_statuses = [
             FlagStatus(name=".pecot-active", exists=False, content=""),
-            FlagStatus(name=".plan-post-pending", exists=False, content=""),
         ]
 
         _show_active_issue(flag_statuses)
@@ -286,7 +277,6 @@ class TestShowActiveIssue:
 
         flag_statuses = [
             FlagStatus(name=".pecot-active", exists=True, content="owner/repo/42"),
-            FlagStatus(name=".plan-post-pending", exists=False, content=""),
         ]
 
         with patch("cli.commands.session.load_active_config", return_value=None):
@@ -303,7 +293,6 @@ class TestShowActiveIssue:
 
         flag_statuses = [
             FlagStatus(name=".pecot-active", exists=True, content="invalid-ref"),
-            FlagStatus(name=".plan-post-pending", exists=False, content=""),
         ]
 
         _show_active_issue(flag_statuses)

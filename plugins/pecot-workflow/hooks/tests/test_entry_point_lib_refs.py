@@ -80,7 +80,7 @@ _MIN_GUARDED_SCRIPTS = 60
 # そのため、総量の下限で別方向から検知する。
 _MIN_RESOLVED_REFS = 90
 # テンプレ参照の解決総数の下限。
-# 確認は 4 件（plan-issue-poster.sh / plan-mode-reminder.sh ×2 / exit-plan-mode-first-block.sh）。
+# 確認は 5 件（exit-plan-remind.sh ×2 / plan-mode-reminder.sh ×2 / exit-plan-mode-first-block.sh）。
 # スコープ規則を誤って 0 件抽出になっても、実在チェック・会計とも全 pass する。
 # そこで、別方向から空振りを検知する。
 _MIN_RESOLVED_TEMPLATE_REFS = 3
@@ -654,7 +654,7 @@ def test_self_md_outside_templates_is_out_of_scope(extract_template_refs, code_l
     """`templates/` セグメントを含まない `.md` は抽出・会計とも対象外であること。
 
     次のものを対象に含めると、会計側の鈍い走査だけが拾って恒常的に不一致になる。
-    `$HOME/.claude/plans/${SLUG}.md`（plan-issue-poster.sh）と、echo 文字列の `CLAUDE.md`。
+    `$HOME/.claude/plans/${SLUG}.md` のような変数入りのパスと、echo 文字列の `CLAUDE.md`。
     スコープを `templates/` に限る根拠をここで固定する。
     """
     text = (

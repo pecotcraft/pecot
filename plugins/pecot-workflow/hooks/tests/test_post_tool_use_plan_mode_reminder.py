@@ -75,7 +75,7 @@ def test_normal_mode_outputs_reminder(ctx, script):
     assert result.returncode == 0
     assert "mode: shared" in result.stdout
     assert "# 【pecot計画モード】" in result.stdout
-    assert "$PECOT issue comment --prepare -t plan" in result.stdout
+    assert "投稿したファイル" in result.stdout
 
 
 def test_common_template_mode_independent(ctx, script):
@@ -83,7 +83,7 @@ def test_common_template_mode_independent(ctx, script):
     result = _run(script)
     assert result.returncode == 0
     assert "mode: shared" in result.stdout
-    assert "$PECOT issue comment --prepare -t plan" in result.stdout
+    assert "投稿したファイル" in result.stdout
 
 
 # クイックモード: plan-mode-reminder-quick.md が読み込まれる
@@ -126,7 +126,7 @@ def test_plugin_root_reads_normal_template(ctx, script, monkeypatch):
     result = _run(script)
     assert result.returncode == 0
     assert "# 【pecot計画モード】" in result.stdout
-    assert "$PECOT issue comment --prepare -t plan" in result.stdout
+    assert "投稿したファイル" in result.stdout
 
 
 def test_plugin_root_reads_quick_template(ctx, script, monkeypatch):
@@ -155,7 +155,7 @@ def test_plugin_root_reads_quick_template(ctx, script, monkeypatch):
 
 def test_normal_template_no_command_hygiene(ctx):
     body = (ctx["templates"] / "plan-mode-reminder.md").read_text()
-    assert "$PECOT issue comment --prepare -t plan" in body
+    assert "投稿したファイル" in body
     assert "コマンド衛生" not in body
     assert "インタープリタ" not in body
 
@@ -235,26 +235,20 @@ def test_quick_does_not_include_parallel_default_guidance_table(ctx, script):
     assert "**前提**:" not in result.stdout
 
 
-# 新フロー: plan mode 突入時テンプレは「ドラフト作成済み前提・最終化特化」。
-# 計画ドラフト作成は plan mode 前の通常モードで済ませる前提のため、
-# テンプレはドラフト作成誘導（旧導入文「追加してください」）を含まず、
-# 書式確認と最終化に絞る。
+# 計画は plan mode の前に Issue へ投稿済み。テンプレは投稿した計画を写して承認を求めることだけを案内する。
 
 
-def test_normal_template_assumes_draft_prepared(ctx, script):
+def test_normal_template_assumes_plan_posted(ctx, script):
     result = _run(script)
     assert result.returncode == 0
-    assert "作成済み" in result.stdout
-    assert "最終化" in result.stdout
-    assert "レビュー指摘の反映も完了済み" in result.stdout
+    assert "投稿済み" in result.stdout
 
 
-def test_quick_template_assumes_draft_prepared(ctx, script):
+def test_quick_template_assumes_plan_posted(ctx, script):
     (ctx["state_dir"] / ".pecot-quick-mode").touch()
     result = _run(script)
     assert result.returncode == 0
-    assert "作成済み" in result.stdout
-    assert "最終化" in result.stdout
+    assert "投稿済み" in result.stdout
 
 
 def test_normal_template_no_draft_creation_guidance(ctx, script):
@@ -277,8 +271,6 @@ def test_quick_template_no_draft_creation_guidance(ctx, script):
 
 def test_reminder_template_file_no_reviewer_spawn_directive(ctx):
     body = (ctx["templates"] / "plan-mode-reminder.md").read_text()
-    # レビューは plan mode 前の通常モード工程で完了済みという前提が明示されている
-    assert "レビュー指摘の反映も完了済み" in body
     # レビュアー（w-tech-advisor）の spawn 指示はテンプレ本文に無い。
     # 表中の w-implementer / w-e2e-planner は実装フェーズの構成要素で、plan mode 中の
     # レビュアー spawn ではない。w-tech-advisor はレビュー専任のため不在が SC-001 の目印。

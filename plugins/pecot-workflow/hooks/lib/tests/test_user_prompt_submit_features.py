@@ -1,7 +1,7 @@
 """user-prompt-submit ロジックスクリプトのユニットテスト
 （test_user_prompt_submit_features.bats 移植）。
 
-workflow-compliance-injector / plan-mode-coordinator を検証する。
+workflow-compliance-injector を検証する。
 テストは 2 種類ある。
 JSON stdin を流すものと、state ファイルの配置で挙動が変わるもの。
 """
@@ -136,54 +136,3 @@ def test_workflow_injector_empty_prompt_no_output(ups_env, run_script) -> None:
     )
     assert result.returncode == 0
     assert result.stdout == ""
-
-
-# plan-mode-coordinator.sh
-
-
-def test_plan_coordinator_creates_pending_flag(ups_env, run_script) -> None:
-    (ups_env["state_dir"] / ".pecot-active").write_text("org/repo/123\n")
-    result = _run_piped(
-        run_script,
-        ups_env["script_dir"] / "plan-mode-coordinator.sh",
-        '{"permission_mode": "plan", "session_id": "sess-1"}',
-    )
-    assert result.returncode == 0
-    pending = ups_env["state_dir"] / ".plan-post-pending"
-    assert pending.is_file()
-    assert pending.read_text().strip() == "sess-1:org/repo/123"
-
-
-def test_plan_coordinator_default_mode_no_flag(ups_env, run_script) -> None:
-    (ups_env["state_dir"] / ".pecot-active").write_text("org/repo/123\n")
-    result = _run_piped(
-        run_script,
-        ups_env["script_dir"] / "plan-mode-coordinator.sh",
-        '{"permission_mode": "default", "session_id": "sess-1"}',
-    )
-    assert result.returncode == 0
-    assert not (ups_env["state_dir"] / ".plan-post-pending").is_file()
-
-
-def test_plan_coordinator_no_active_no_flag(ups_env, run_script) -> None:
-    # .pecot-active 未存在 → ISSUE_REF が空のためフラグ未作成。
-    result = _run_piped(
-        run_script,
-        ups_env["script_dir"] / "plan-mode-coordinator.sh",
-        '{"permission_mode": "plan", "session_id": "sess-1"}',
-    )
-    assert result.returncode == 0
-    assert not (ups_env["state_dir"] / ".plan-post-pending").is_file()
-
-
-def test_plan_coordinator_existing_flag_not_overwritten(ups_env, run_script) -> None:
-    (ups_env["state_dir"] / ".pecot-active").write_text("org/repo/123\n")
-    pending = ups_env["state_dir"] / ".plan-post-pending"
-    pending.write_text("existing-session:org/repo/999\n")
-    result = _run_piped(
-        run_script,
-        ups_env["script_dir"] / "plan-mode-coordinator.sh",
-        '{"permission_mode": "plan", "session_id": "sess-2"}',
-    )
-    assert result.returncode == 0
-    assert pending.read_text().strip() == "existing-session:org/repo/999"

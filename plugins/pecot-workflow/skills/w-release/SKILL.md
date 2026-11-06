@@ -10,24 +10,6 @@ when_to_use: "リリースしたい、CHANGELOG を更新して公開したい�
 
 # リリース
 
-## pecot CLI ランチャー
-
-pecot CLI は実行環境ごとにランチャーを変数化してから使う。
-
-Claude Code:
-
-```bash
-PECOT=pecot
-```
-
-GitHub Copilot CLI は shell tool の PATH にプラグイン `bin/` が入らないため、最初からインストール済み wrapper を使う。
-
-```bash
-PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
-```
-
-以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
-
 CHANGELOG を更新してリリースする。
 ブランチモードが 2ブランチなら、develop ブランチから release ブランチへ PR を出して merge する。
 単一ブランチ / trunk-based なら、`main` 上で直接リリースする。
@@ -37,7 +19,7 @@ CHANGELOG を更新してリリースする。
 1. **対象リポの release_type を確認する**
 
    ```bash
-   $PECOT project info
+   pecot project info
    ```
 
    出力中の対象リポ行の直下にある `release_type: <...>` を読む:
