@@ -8,8 +8,8 @@
   "//peer-reason": "peer は slidev-theme-* の peerDependencies と同じ版に固定する。@slidev/* は SLIDEV_CORE_VERSION に合わせる。",
   "//override-reason": "overrides は root の pnpm-workspace.yaml の写し。lodash-es は overrides に置くと EOVERRIDE になる。",
   "dependencies": {
-    "@shikijs/langs": "4.5.0",
-    "@shikijs/themes": "4.5.0",
+    "@shikijs/langs": "4.6.0",
+    "@shikijs/themes": "4.6.0",
     "@slidev/cli": "53.0.0",
     "@slidev/client": "53.0.0",
     "@slidev/theme-default": "^0.25.0",
@@ -18,13 +18,13 @@
     "dayjs": "1.11.23",
     "html2canvas": "1.4.1",
     "lodash-es": "4.18.1",
-    "shiki": "4.5.0",
+    "shiki": "4.6.0",
     "uuid": "13.0.2",
-    "vite": "^8.3.0",
+    "vite": "^8.3.6",
     "vue": "3.5.44"
   },
   "devDependencies": {
-    "dom-to-pptx": "2.1.1"
+    "dom-to-pptx": "2.1.2"
   },
   "overrides": {
     "dompurify": "^3.4.17",
