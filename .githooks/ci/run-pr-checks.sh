@@ -239,7 +239,7 @@ emit_summary() {
             echo "- $lane"
         done <<< "$failed"
         echo
-        echo "ログは artifact \`ci-logs\` と、検証の step のログの \`=== 失敗レーン: ... ===\` を見る。"
+        echo "ログは artifact \`ci-logs\` と、\`Run checks\` の step のログの \`=== 失敗レーン: ... ===\` を見る。"
     else
         echo "なし"
     fi
