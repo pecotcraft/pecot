@@ -41,11 +41,21 @@ import pytest
 # 各テストが必要な値を env= で渡す。
 _PUSH_RANGE_ENV = ("PECOT_VERSION_PLAN_BASE", "PRE_COMMIT_FROM_REF", "PRE_COMMIT_TO_REF")
 
+# CI の run-pr-checks.sh が立てる env。引き継ぐと、手元の既定を確かめるテストが CI の動きで落ちる。
+_CI_ENV = (
+    "PECOT_NX_CI",
+    "NX_SKIP_NX_CACHE",
+    "NO_PREV",
+    "PECOT_CI_SUMMARY",
+    "PECOT_CI_IMAGE",
+    "SKIP",
+)
+
 
 @pytest.fixture(autouse=True)
 def _isolate_git_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for key in list(os.environ):
-        if key.startswith("GIT_") or key in _PUSH_RANGE_ENV:
+        if key.startswith("GIT_") or key in _PUSH_RANGE_ENV or key in _CI_ENV:
             monkeypatch.delenv(key, raising=False)
 
 
