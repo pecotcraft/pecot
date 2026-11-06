@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ci.yml の「Summary を書き写す」step が、ホストの runner で動かす。
+# ci.yml の「Write job summary」step が、ホストの runner で動かす。
 # コンテナの中からは $GITHUB_STEP_SUMMARY に書けないため、ワークスペースの Summary をここで書き写す。
 # buildx が無いと devcontainers/ci は警告だけで成功するため、完了の印が無ければ失敗にする。
 

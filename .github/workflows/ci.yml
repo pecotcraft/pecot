@@ -21,13 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       # error-on-no-successful-workflow は書かない。成功した run が無いとき、noPreviousBuild=true で全レーンのモードに入る。
-      - name: 範囲の base を決める
+      - name: Derive base and head SHAs
         id: shas
         uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
         with:
@@ -35,7 +36,7 @@ jobs:
 
       # push: never にする。省くと main の push で image を push しようとする。
       # GITHUB_STEP_SUMMARY は Action が固定するため、GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
-      - name: コンテナを取得・起動する
+      - name: Start dev container
         id: up
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
@@ -54,7 +55,7 @@ jobs:
             PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 
       # exec の cwd は /workspaces/base のため、cd してから動かす。
-      - name: 検証する
+      - name: Run checks
         id: verify
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
@@ -73,13 +74,13 @@ jobs:
             PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 
       # buildx が無いと Action は警告だけで成功するため、完了の印が無ければ失敗にする。
-      - name: Summary を書き写す
+      - name: Write job summary
         if: always()
         env:
           UP_OUTCOME: ${{ steps.up.outcome }}
         run: .githooks/ci/finish-ci-summary.sh
 
-      - name: ログを artifact に上げる
+      - name: Upload logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -95,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: checks の結果を確かめる
+      - name: Require checks to succeed
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
         run: |

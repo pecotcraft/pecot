@@ -21,22 +21,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: Set up Node.js
+
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.22.1"
 
       # pnpm の版は package.json の packageManager が決める。
-      - run: corepack enable
+      - name: Enable Corepack
+        run: corepack enable
 
-      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - run: node scripts/gen-runtime-lock.mjs --write
+      - name: Regenerate runtime lock
+        run: node scripts/gen-runtime-lock.mjs --write
 
-      - name: 差分があれば同じブランチへ push する
+      - name: Push regenerated lock
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           COMMIT_MSG: "chore(repo): runtime-lock を root の lock から作り直す"
