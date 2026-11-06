@@ -23,7 +23,7 @@ const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 const REPO_ROOT = path.resolve(PLUGIN_ROOT, '..', '..')
 const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
 const CLI_TS_DIST = path.resolve(PLUGIN_ROOT, 'cli', 'dist', 'cli.js')
-const NODE_MODULES_DIR = path.resolve(PLUGIN_ROOT, 'node_modules')
+const NODE_MODULES_DIR = path.resolve(REPO_ROOT, 'node_modules')
 
 // 走査から除外する pathspec。CHANGELOG は撤去の経緯記録、自テストはパターン定義
 // そのものを含むため、いずれも痕跡ではない。
@@ -54,7 +54,7 @@ beforeAll(() => {
     throw new Error(`cli dist が存在しません: ${CLI_TS_DIST}\n先に plugins/pecot-visual/scripts/ci/run-tests.sh の build ステップを実行してください`)
   }
   if (!existsSync(NODE_MODULES_DIR)) {
-    throw new Error(`node_modules が存在しません: ${NODE_MODULES_DIR}\n先に plugins/pecot-visual で pnpm install --frozen-lockfile を実行してください`)
+    throw new Error(`node_modules が存在しません: ${NODE_MODULES_DIR}\n先に repo root で pnpm install --frozen-lockfile を実行してください`)
   }
 })
 

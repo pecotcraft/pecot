@@ -30,6 +30,7 @@ import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 const HERE = import.meta.dirname
 // repo の plugins/pecot-visual が plugin-root（cli/.. = plugins/pecot-visual）。
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
+const DEPENDENCY_NODE_MODULES = path.resolve(PLUGIN_ROOT, '..', '..', 'node_modules')
 const DECLARED_THEME_NAME = 'slidev-theme-pecotv-test-declared'
 const BARE_THEME_NAME = 'slidev-theme-pecotv-test-bare'
 
@@ -150,7 +151,7 @@ describe('executeSlideCreate (smoke)', () => {
     expect(readFileSync(path.join(projectDirectory, 'vite.config.ts'), 'utf8')).toBe(viteConfigSource({ themeName: DECLARED_THEME_NAME }))
     expect(readFileSync(path.join(projectDirectory, 'start.mjs'), 'utf8')).toBe(START_SCRIPT_SOURCE)
 
-    // node_modules が実ディレクトリで、項目ごとに plugin-root の node_modules へ相対 symlink を張っていること
+    // node_modules が実ディレクトリで、項目ごとに依存ルートの node_modules へ相対 symlink を張っていること
     const nodeModulesPath = path.join(projectDirectory, 'node_modules')
     expect(lstatSync(nodeModulesPath).isDirectory()).toBe(true)
     expect(lstatSync(nodeModulesPath).isSymbolicLink()).toBe(false)
@@ -158,7 +159,7 @@ describe('executeSlideCreate (smoke)', () => {
       const link = path.join(nodeModulesPath, name)
       expect(lstatSync(link).isSymbolicLink(), `${name} は symlink`).toBe(true)
       expect(path.isAbsolute(readlinkSync(link))).toBe(false)
-      expect(realpathSync(link)).toBe(realpathSync(path.join(PLUGIN_ROOT, 'node_modules', name)))
+      expect(realpathSync(link)).toBe(realpathSync(path.join(DEPENDENCY_NODE_MODULES, name)))
     }
     // テーマは name の項目としてテーマの実体へ張る。
     expect(realpathSync(path.join(nodeModulesPath, DECLARED_THEME_NAME))).toBe(realpathSync(theme.directory))
