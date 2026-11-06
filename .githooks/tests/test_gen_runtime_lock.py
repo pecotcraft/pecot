@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -26,7 +28,12 @@ def _members() -> list[str]:
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     """gen-runtime-lock.mjs が読むファイルだけを、作業ツリーから複製した repo。"""
-    files = ["scripts/gen-runtime-lock.mjs", "pnpm-workspace.yaml", "pnpm-lock.yaml"]
+    files = [
+        "scripts/gen-runtime-lock.mjs",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+    ]
     files += [f"{member}/package.json" for member in _members()]
     files += [f"{d}/runtime-{name}.yaml" for d in _TARGET_DIRS for name in ("lock", "workspace")]
     for file in files:
@@ -115,3 +122,28 @@ def test_package_missing_in_root_lock_stops(repo: Path) -> None:
     result = _check(repo)
     assert result.returncode == 1
     assert "commander@15.0.0 が root の pnpm-lock.yaml にありません" in result.stderr
+
+
+def test_write_runs_every_target_with_the_root_pnpm_version(repo: Path, tmp_path: Path) -> None:
+    """生成で使う pnpm の版は、PATH 上の pnpm によらず、root の packageManager に揃う。"""
+    log = tmp_path / "pnpm-versions.log"
+    fake = tmp_path / "bin" / "pnpm"
+    fake.parent.mkdir()
+    fake.write_text(
+        f"#!/bin/sh\nnode -p \"const m = require('./package.json'); m.packageManager + ' ' + m.devEngines.packageManager.version\" >> {log}\n",
+        encoding="utf-8",
+    )
+    fake.chmod(0o755)
+    env = {**os.environ, "PATH": f"{fake.parent}:{os.environ['PATH']}"}
+    result = subprocess.run(
+        ["node", "scripts/gen-runtime-lock.mjs", "--write"],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    root = json.loads((repo / "package.json").read_text(encoding="utf-8"))
+    want = [root["packageManager"], root["devEngines"]["packageManager"]["version"]]
+    assert log.read_text(encoding="utf-8").split() == want * len(_TARGET_DIRS)

@@ -101,6 +101,13 @@ function generate(target, tmpBase) {
       fs.mkdirSync(path.dirname(to), { recursive: true });
       fs.copyFileSync(from, to);
     }
+    // pnpm の版を全対象で root と揃える。text-rules の package.json は版を持たず、PATH 上の pnpm が使われる。
+    const manifestFile = path.join(work, 'package.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+    const { packageManager, devEngines } = readJson('package.json');
+    manifest.packageManager = packageManager;
+    manifest.devEngines = { ...manifest.devEngines, packageManager: devEngines.packageManager };
+    fs.writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
     fs.writeFileSync(path.join(work, 'pnpm-workspace.yaml'), workspaceText(target));
     fs.writeFileSync(path.join(work, 'pnpm-lock.yaml'), seed.map((doc) => `---\n${stringify(doc)}`).join(''));
     execFileSync('pnpm', ['install', '--lockfile-only', '--fix-lockfile', '--ignore-scripts', '--prefer-offline'], {
