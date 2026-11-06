@@ -35,7 +35,7 @@ README 内の突合対象節も互いに重ならない。
 - 中継の追跡は 1 段まで（エントリ → `_RELAY_DISPATCHERS` の lib → その配下）。
   中継先がさらに別の lib を呼ぶ場合、その先は検知しない。
 - 中継先は集合比較のため、呼び出し順を検証しない。
-  `lib/session-start-common.sh:32-34` は、`gitignore-untrack-notice` を gitignore 再生成の後に置くことを安定性要件としている。
+  `lib/session-start-common.sh` は、`gitignore-track-notice` を ensure の後に置くことを安定性要件としている。
   順序の逆転は、本テストでは落ちない。
 - 括弧内注記（`(Claude Code)` / `（deny 系 → tech-advisor-clone-allow）` 等）は、1 段深い呼び出しの参考記載。
   エントリスクリプトの直接呼び出しとはみなさない。

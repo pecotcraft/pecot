@@ -43,7 +43,7 @@
       "hooks/lib/session-start-common.sh",
       "hooks/lib/session-start/create-slash-cleanup.sh",
       "hooks/lib/session-start/git-sync.sh",
-      "hooks/lib/session-start/gitignore-untrack-notice.sh",
+      "hooks/lib/session-start/gitignore-track-notice.sh",
       "hooks/lib/session-start/issue-pending-cleanup.sh",
       "hooks/lib/session-start/plugin-update-notice.sh",
       "hooks/lib/session-start/session-project-dir.sh",

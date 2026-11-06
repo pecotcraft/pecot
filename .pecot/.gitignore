@@ -1,0 +1,9 @@
+# pecot の設定だけを追跡し、生成物は管理外にする許可の一覧。
+*
+!/config/
+/config/*
+!/config/worktree-config.json
+!/config/.worktreeignore
+!/config/projects/
+/config/projects/*
+!/config/projects/*.json

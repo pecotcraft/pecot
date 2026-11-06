@@ -323,7 +323,7 @@ def test_no_pecot_dir_is_not_created_when_absent(common_script, tmp_path, monkey
     assert not (project_dir / ".pecot").exists()
 
 
-def test_gitignore_regenerated_when_pecot_exists(common_script, tmp_path, monkeypatch):
+def test_gitignore_written_when_pecot_exists(common_script, tmp_path, monkeypatch):
     project_dir = tmp_path / "proj"
     (project_dir / ".pecot").mkdir(parents=True)
     subprocess.run(["git", "-C", str(project_dir), "init", "--quiet"], check=True)
@@ -340,5 +340,5 @@ def test_gitignore_regenerated_when_pecot_exists(common_script, tmp_path, monkey
     gitignore = project_dir / ".pecot" / ".gitignore"
     assert gitignore.is_file()
     lines = gitignore.read_text().splitlines()
-    assert "tmp/" in lines
-    assert "state/" in lines
+    assert lines[lines.index("*") + 1] == "!/config/"
+    assert "!/config/projects/*.json" in lines

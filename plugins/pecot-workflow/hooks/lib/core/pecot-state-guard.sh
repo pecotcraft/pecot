@@ -6,7 +6,7 @@
 # - .pecot 不在（pecot 未使用リポ）→ return 1。呼び出し元は書き込みをスキップする
 #   （.pecot を新規作成しない。新規作成は利用検知フック pecot-dir-init.sh に一本化済 #662）。
 # - .pecot 存在 → .gitignore 不在なら pecot-gitignore-ensure.sh を呼んでから mkdir
-#   （gitignore-before-write）。鮮度維持は session-start の責務なので毎回上書きはしない。
+#   （gitignore-before-write）。既存の .gitignore は書き換えない。
 #
 # source されるため自己ディレクトリは BASH_SOURCE[0] から導出する（$0 は source 元を指す）。
 _PECOT_STATE_GUARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

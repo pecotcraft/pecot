@@ -5,8 +5,7 @@ source "${SCRIPT_DIR}/core/config-dispatcher.sh"
 pecot_hook_enabled "session-start-common" true || exit 0
 
 # .pecot/ の新規作成は利用検知側（pecot-dir-init.sh）に一本化する（#662）。
-# session-start では .pecot が既に存在するリポに限り .gitignore を単一出所
-# （pecot-gitignore-ensure.sh）から再生成して内容の鮮度を維持する。
+# session-start では .pecot が既に存在するリポに限り、.gitignore の ensure を呼ぶ（書くかは ensure が決める）。
 # CLAUDE_PROJECT_DIR は、エントリポイント（session-start-*.sh）が project-root.sh で揃えたもの。
 # 値は hook 入力の cwd の git toplevel で、git 外では未設定のまま。
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
@@ -29,7 +28,7 @@ if command -v flock >/dev/null 2>&1; then
 fi
 
 if [ -n "$PROJECT_DIR" ] && [ -d "$PECOT_DIR" ]; then
-    # .pecot 既存リポのみ .gitignore を再生成する。
+    # 書く条件（無い・未追跡）は ensure に任せる。
     "${SCRIPT_DIR}/core/pecot-gitignore-ensure.sh" || true
 fi
 
@@ -39,9 +38,6 @@ LIB_DIR="$SCRIPT_DIR/session-start"
 "$LIB_DIR/session-project-dir.sh"
 "$LIB_DIR/git-sync.sh"
 "$LIB_DIR/vscode-workspace-detector.sh"
-# gitignore-untrack-notice は gitignore-ensure（再生成）後に tracked 検知するため
-# 列の末尾に置く（順序が安定性要件）。
-"$LIB_DIR/gitignore-untrack-notice.sh"
-# plugin-update-notice は git index 非依存（version 比較のみ）のため untrack-notice の
-# 後置でも安全。
+# gitignore-track-notice は ensure の後に追跡の有無を見るため、列の末尾側に置く。
+"$LIB_DIR/gitignore-track-notice.sh"
 "$LIB_DIR/plugin-update-notice.sh"

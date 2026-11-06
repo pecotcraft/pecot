@@ -411,7 +411,7 @@ _VAR_SH_REF_RE = re.compile(
 # そのため、変数プレフィックス型 regex ではトークン化されない。
 # 一方で会計側の鈍い走査だけが拾うため、対象を広げると会計が恒常的に不一致になる。
 # 次のものも、同じく会計側のみの雑音になる。
-# heredoc 内の README.md / CHANGELOG.md（pecot-gitignore-ensure.sh）。
+# heredoc 内の定義（pecot-gitignore-ensure.sh）の `!/config/...` 行。
 # `$HOME` を解決対象にしないのは、pass1 と pass2 の食い違いを避けるためでもある。
 # pass2 は env -i で HOME を tmp の空ディレクトリへ差し替える。
 # 解決先が変わり、junit に食い違いが出る。

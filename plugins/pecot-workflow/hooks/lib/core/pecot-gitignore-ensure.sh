@@ -1,44 +1,48 @@
 #!/usr/bin/env bash
-# .pecot/.gitignore を生成する。
+# .pecot/.gitignore を生成する。中身の定義はこのスクリプトを単一の出所とする。
 #
-# .pecot/ 配下の runtime 生成物（state/ tmp/ 等）と、プラグインからコピーされるファイルがある。
-# これらを、repo root の .gitignore 設定に依存せず確実に git 管理外にする。
-# そのため、最初の .pecot/ 書き込みより前に、このスクリプトを呼ぶ。
+# 中身は許可の一覧で、`*` で全部を除外し、追跡する設定だけを `!` で戻す。
+# 追跡している .pecot/.gitignore は書き換えない（無関係のブランチに差が出るため）。
+# 書くのは、ファイルが無いか追跡していないときだけ。git 外・git 不在は追跡なしとして書く。
 #
-# session-start フック（session-start-common.sh）と pecot-dir-init.sh の双方から
-# 呼ばれる。.gitignore の内容定義はこのスクリプトを単一の出所とする。
+# 使い方: pecot-gitignore-ensure.sh [--print]
+#   --print  書かずに定義を標準出力へ出す（CLAUDE_PROJECT_DIR は不要）。
 set -euo pipefail
+
+_print_definition() {
+    cat <<'GITIGNORE_EOF'
+# pecot の設定だけを追跡し、生成物は管理外にする許可の一覧。
+*
+!/config/
+/config/*
+!/config/worktree-config.json
+!/config/.worktreeignore
+!/config/projects/
+/config/projects/*
+!/config/projects/*.json
+GITIGNORE_EOF
+}
+
+if [[ "${1:-}" == "--print" ]]; then
+    _print_definition
+    exit 0
+fi
 
 [[ -z "${CLAUDE_PROJECT_DIR:-}" ]] && exit 0
 
 PECOT_DIR="${CLAUDE_PROJECT_DIR}/.pecot"
+TARGET="${PECOT_DIR}/.gitignore"
+
+if [[ -f "$TARGET" ]] && command -v git >/dev/null 2>&1 \
+    && git -C "$CLAUDE_PROJECT_DIR" ls-files --error-unmatch -- .pecot/.gitignore >/dev/null 2>&1; then
+    exit 0
+fi
+
 mkdir -p "$PECOT_DIR"
 
-# 一時ファイルへ書き出してから mv でアトミックに差し替える。
-# session-start-common.sh は flock 取得より前にこのスクリプトを呼ぶため、
-# 複数 matcher の並行発火時に同一 .gitignore への書き込みが競合しうる。
-# mv（同一 filesystem）はアトミックなので、競合しても空ファイル等は生じない。
+# 並行発火でも空ファイルが生じないよう、一時ファイルへ書いて mv（同一 filesystem でアトミック）。
 _TMP=$(mktemp "${PECOT_DIR}/.gitignore.XXXXXX")
 trap 'rm -f "$_TMP"' EXIT
 
-cat > "$_TMP" <<'GITIGNORE_EOF'
-# 実行時生成ファイル（git管理外）。
-state/
-tmp/
-# work は WT 側で symlink になるため trailing slash なし（work/ は symlink にマッチしない）。
-work
-# プラグインからコピーされるファイル（git管理外）。
-README.md
-CHANGELOG.md
-config/hooks-config.json
-config/hooks-config.json.sample
-config/projects/.active
-config/hosts.json
-config/hosts.json.sample
-config/.env
-config/.env.sample
-# このファイル自身（フックが自動再生成するため git 管理外）。
-/.gitignore
-GITIGNORE_EOF
-
-mv -f "$_TMP" "${PECOT_DIR}/.gitignore"
+_print_definition > "$_TMP"
+mv -f "$_TMP" "$TARGET"

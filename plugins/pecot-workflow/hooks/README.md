@@ -134,7 +134,7 @@ ExitPlanMode の後のフック。
 | `session-project-dir` | `$CLAUDE_ENV_FILE` に `PECOT_SESSION_PROJECT_DIR`（セッションを開始した worktree のルート。Claude Code が渡した元の `CLAUDE_PROJECT_DIR` の git toplevel）を追記する。worktree の `.pecot/work` は base への symlink で、そこへ `cd` した後に Bash から呼ぶ `pecot` CLI が worktree の `.pecot/state` を読むための起点になる（この変数は CLI 用。hooks 側は Claude Code が渡す `CLAUDE_PROJECT_DIR` を直接起点に使う）。Copilot CLI には `CLAUDE_ENV_FILE` が無く、この設定は使えない | SessionStart サブスクリプト | `true` |
 | `git-sync` | 未コミット変更がない場合にカレントブランチを `git pull` で最新化する。pull は 1 回だけ（`GIT_TERMINAL_PROMPT=0` と、`GIT_SSH_COMMAND` への `-o BatchMode=yes` の追加で認証の入力待ちをしない。既存の `GIT_SSH_COMMAND` は残す）で、失敗時は git の出力を stderr に出す | SessionStart サブスクリプト | `true` |
 | `vscode-workspace-detector` | `code --status` からVSCodeのワークスペース情報を取得し表示する | SessionStart サブスクリプト | `true` |
-| `gitignore-untrack-notice` | tracked な `.pecot/.gitignore` を検知し untrack 手順（`git rm --cached`）を案内する。index は変異させない | SessionStart サブスクリプト | `true` |
+| `gitignore-track-notice` | `.pecot/.gitignore` が未追跡なら `git add -f` で追跡を始める手順を、追跡中で定義の行が欠けていれば直す手順を案内する。index は変異させない | SessionStart サブスクリプト | `true` |
 | `plugin-update-notice` | installed プラグインと marketplace clone の version 乖離を検知し、installed が古い場合に更新手順を案内する | SessionStart サブスクリプト | `true` |
 
 ### MCP・外部ツール連携
@@ -220,7 +220,7 @@ SessionStart (startup|clear|resume|fork) → session-start.sh              → s
                                                                        create-slash-cleanup,
                                                                        session-project-dir, git-sync,
                                                                        vscode-workspace-detector,
-                                                                       gitignore-untrack-notice, plugin-update-notice
+                                                                       gitignore-track-notice, plugin-update-notice
 
 UserPromptSubmit                → user-prompt-submit.sh             → pecot-dir-init-detect,
                                                                        workflow-compliance-injector,

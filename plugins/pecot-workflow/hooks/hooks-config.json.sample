@@ -35,6 +35,6 @@
   "misplaced-pecot-notice": true,
   "pecot-issue-pending-state": true,
   "pecot-issue-pending-reminder": true,
-  "gitignore-untrack-notice": true,
+  "gitignore-track-notice": true,
   "plugin-update-notice": true
 }
