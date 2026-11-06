@@ -139,8 +139,8 @@ class TestSync:
         assert body.startswith(
             "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n"
         )
-        assert "## Dependabot — 1 件\n\n| title | alert | Priority |" in body
-        assert "## code scanning — 0 件\n\nなし" in body
+        assert "## Dependabot\n\n| title | alert | Priority |" in body
+        assert "## code scanning\n\nnone" in body
         assert "state=" not in body
         assert "SECURITY.md" not in body
 
@@ -323,7 +323,7 @@ class TestSync:
         assert result.exit_code == 0
         assert "secret scanning: 無効のため飛ばします" in result.output
         body = client.update_issue_body.call_args.args[3]
-        assert "## secret scanning — 無効" in body
+        assert "## secret scanning\n\ndisabled" in body
         assert "pecot-alert: secret-scanning/" not in body
 
     def test_failed_kind_keeps_rows_and_count(self) -> None:
@@ -336,7 +336,7 @@ class TestSync:
         _invoke(client, ["sync"])
 
         body = client.update_issue_body.call_args.args[3]
-        assert "## secret scanning — 1 件" in body
+        assert "## secret scanning\n\n| title" in body
         assert "pecot-alert: secret-scanning/1 priority=" in body
 
     def test_secret_scanning_404_without_disabled_status_fails(self) -> None:

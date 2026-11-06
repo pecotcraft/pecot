@@ -308,14 +308,14 @@ def sorted_entries(entries: list[TrackerEntry]) -> list[TrackerEntry]:
 def _section(
     kind: AlertKind, entries: list[TrackerEntry], disabled: bool, host: str, owner: str, repo: str
 ) -> str:
-    """種類ごとの見出しと表。無効の種類は見出しだけ、0 件の種類は「なし」"""
+    """種類ごとの見出しと表。無効の種類は ``disabled``、0 件の種類は ``none``"""
     label = KIND_LABELS[kind]
     if disabled:
-        return f"## {label} — 無効"
+        return f"## {label}\n\ndisabled"
     rows = [e for e in entries if e.kind == kind]
-    head = f"## {label} — {len(rows)} 件\n\n"
+    head = f"## {label}\n\n"
     if not rows:
-        return head + "なし"
+        return head + "none"
     if kind == "dependabot":
         lines = [
             "| title | alert | Priority |",
@@ -353,7 +353,7 @@ def render_tracker_body(
 ) -> str:
     """Tracker の本文を作る
 
-    一覧は種類ごとの見出しと表にする。無効の種類（``disabled_kinds``）は見出しだけにする。
+    一覧は種類ごとの見出しと表にする。無効の種類（``disabled_kinds``）は見出しの下に ``disabled`` だけを置く。
 
     ``existing_body`` があれば、list-begin から list-end の間だけを書き直し、外の文は残す。
     無ければ、Tracker の印と一覧だけの本文を作る。
@@ -431,7 +431,7 @@ def plan_tracker(
     ``entries`` が None のときは open の Tracker が無い。表に載せる行があるときだけ立てる。
     取れた種類の行は、open の alert から例外（Dependabot）を引いたものにする。
     一覧を取れなかった種類（``failed_kinds``）は、その種類の前の行をそのまま使い、足さない。
-    無効の種類（``disabled_kinds``）は行を持たない（本文には見出しだけが出る）。
+    無効の種類（``disabled_kinds``）は行を持たない（本文には ``disabled`` だけが出る）。
     """
     skipped = set(failed_kinds) | set(disabled_kinds)
     excepted = {e.alert for e in exceptions or []}

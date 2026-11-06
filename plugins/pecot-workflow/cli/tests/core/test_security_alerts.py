@@ -279,7 +279,7 @@ class TestTrackerBody:
         body = self._render(self._entries())
 
         assert body.startswith(
-            "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot — 2 件\n\n"
+            "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot\n\n"
         )
         assert body.endswith("<!-- pecot-alert: list-end -->\n")
         assert body.index("## Dependabot") < body.index("## code scanning")
@@ -291,8 +291,8 @@ class TestTrackerBody:
         assert "--> a--b |" in body
         assert "SECURITY.md" not in body
         assert "状態" not in body
-        assert "## code scanning — 1 件\n\n| title | alert | Priority |" in body
-        assert "## secret scanning — 1 件" in body
+        assert "## code scanning\n\n| title | alert | Priority |" in body
+        assert "## secret scanning\n\n| title" in body
         # 印・見出し・表の行だけ。説明の文は無い
         for line in body.split("\n"):
             assert line == "" or line.startswith(("<!--", "## ", "|"))
@@ -313,7 +313,7 @@ class TestTrackerBody:
         body = self._render([])
 
         for label in ("Dependabot", "code scanning", "secret scanning"):
-            assert f"## {label} — 0 件\n\nなし" in body
+            assert f"## {label}\n\nnone" in body
         assert "|" not in body
         assert parse_tracker_entries(body) == []
 
@@ -322,8 +322,8 @@ class TestTrackerBody:
             [_e("dependabot", 1)], H, OWNER, R, disabled_kinds={"code-scanning"}
         )
 
-        assert "## code scanning — 無効\n\n## secret scanning — 0 件\n\nなし" in body
-        assert "## Dependabot — 1 件" in body
+        assert "## code scanning\n\ndisabled\n\n## secret scanning\n\nnone" in body
+        assert "## Dependabot\n\n| title" in body
 
     def test_headings_and_none_lines_are_not_parsed_as_rows(self) -> None:
         entries = self._entries()
@@ -340,7 +340,8 @@ class TestTrackerBody:
         ]
         body = self._render(entries)
 
-        assert "## Dependabot — 3 件" in body
+        assert "## Dependabot\n\n| title" in body
+        assert "件" not in body
         rows = [ln for ln in body.split("\n") if ln.startswith("| <!--")]
         assert len(rows) == 2
         # 並びは Priority の高い順。Priority は束ねた alert の最大
