@@ -99,6 +99,8 @@ CWDが別リポジトリであっても、案内に表示されたリポジト�
 pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
 ```
 
+変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
+
 ### Step 8: レビュー（通常モード・一巡 1 回）
 
 通常モードのまま、書いた計画をレビューしてもらう。EnterPlanMode を呼ばない。

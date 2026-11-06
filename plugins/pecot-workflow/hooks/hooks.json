@@ -23,31 +23,11 @@
         ]
       },
       {
-        "matcher": "EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-enter-plan-mode.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "mcp__.*",
         "hooks": [
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-mcp.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-exit-plan-mode.sh",
             "timeout": 10
           }
         ]
@@ -91,16 +71,6 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-bash.sh",
             "timeout": 30
-          }
-        ]
-      },
-      {
-        "matcher": "EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-enter-plan-mode.sh",
-            "timeout": 10
           }
         ]
       },

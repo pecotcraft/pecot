@@ -125,17 +125,6 @@ def test_deny_worktree_branch_check(run_hook_entry, project, client) -> None:
     _assert_decision(result, "deny", "git-worktree-branch-check")
 
 
-def test_deny_exit_plan_mode_first_block(run_hook_entry, project) -> None:
-    payload = {
-        "hook_event_name": "PreToolUse",
-        "tool_name": "ExitPlanMode",
-        "tool_input": {"plan": "p"},
-        "cwd": str(project),
-    }
-    result = run_hook_entry("pre-tool-use-exit-plan-mode.sh", payload)
-    _assert_decision(result, "deny", "計画確認リマインド")
-
-
 def test_deny_mcp_pr_create(run_hook_entry, project) -> None:
     payload = {
         "hook_event_name": "PreToolUse",

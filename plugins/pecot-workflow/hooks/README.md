@@ -97,7 +97,7 @@ w-merge スキル起動はユーザーのマージ指示であり、マージ直
 
 deny は、両クライアントとも `hookSpecificOutput.permissionDecision: "deny"` と `permissionDecisionReason` で出す。
 対象は PreToolUse の全出力。
-含まれるのは、`claude-bash-guards` / `claude-adapter` / `pr-create-block` / `exit-plan-mode-first-block` など。
+含まれるのは、`claude-bash-guards` / `claude-adapter` / `pr-create-block` など。
 PostToolUse の `decision: "block"` は変えない。
 
 確認フラグによる素通しは `pecot pr create`（`--prepare`/`-p`/`--dry-run`/`-n`）と
@@ -115,14 +115,11 @@ PostToolUse の `decision: "block"` は変えない。
 
 ### プランモード
 
-プランモード（EnterPlanMode/ExitPlanMode）に関連するフック。
+ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `plan-flag-setter` | EnterPlanMode直前に `.exit-plan-confirmed` を消す。初回 ExitPlanMode の deny（`exit-plan-mode-first-block`）を、プランモードごとに 1 回出すため | PreToolUse (EnterPlanMode, ExitPlanMode) | `true` |
-| `plan-mode-reminder` | EnterPlanMode直後にプランモード開始時の指示テンプレートを注入する。クイックモードフラグ存在時は専用テンプレートに切り替え | PostToolUse (EnterPlanMode) | `true` |
 | `exit-plan-remind` | ExitPlanMode後に案内を返す。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して `pecot issue comment` を打ち直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode) | `true` |
-| `exit-plan-mode-first-block` | 初回ExitPlanModeを deny（`hookSpecificOutput.permissionDecision`）しレビュー指摘の反映確認リマインドを表示する。クイックモードフラグ存在時はスキップ | PreToolUse (ExitPlanMode) | `true` |
 
 ### セッション管理
 
@@ -209,8 +206,6 @@ PreToolUse (Bash)               → pre-tool-use-bash.sh              → claude
                                                                        （deny 系 → tech-advisor-clone-allow）,
                                                                        tmp-path-warner,
                                                                        pecot-issue-pending-reminder
-PreToolUse (EnterPlanMode)      → pre-tool-use-enter-plan-mode.sh   → plan-flag-setter
-PreToolUse (ExitPlanMode)       → pre-tool-use-exit-plan-mode.sh    → exit-plan-mode-first-block
 PreToolUse (mcp__.*)            → pre-tool-use-mcp.sh               → mcp-dispatcher
                                                                        → pr-create-block →
                                                                        context7-allow (Claude Code)
@@ -218,7 +213,6 @@ PreToolUse (WebSearch)          → pre-tool-use-websearch.sh         → websea
 
 PostToolUse (Skill)             → post-tool-use-skill.sh            → pecot-skill-reminder
 PostToolUse (Bash)              → post-tool-use-bash.sh             → commit-info-display, auto-push
-PostToolUse (EnterPlanMode)     → post-tool-use-enter-plan-mode.sh  → plan-mode-reminder
 PostToolUse (ExitPlanMode)      → post-tool-use-exit-plan-mode.sh   → exit-plan-remind
 
 SessionStart (startup|clear|resume|fork) → session-start.sh              → session-title (Claude Code のみ。common と別に merge へ渡す),

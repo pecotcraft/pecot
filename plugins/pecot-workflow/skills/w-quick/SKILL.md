@@ -74,6 +74,8 @@ CLIがWT名を含む案内メッセージ（例: `作業対象リポジトリの
 pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
 ```
 
+変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
+
 ### Step 5: 計画の投稿
 
 通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。
@@ -94,3 +96,5 @@ EnterPlanMode tool:
 ```
 
 承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 5 のコマンドを打ち直す。投稿したコメントが書き換わる。
+
+承認後は、サブエージェントを起動せず main が実装する。

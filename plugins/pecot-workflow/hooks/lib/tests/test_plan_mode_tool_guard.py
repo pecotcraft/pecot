@@ -1,8 +1,8 @@
-"""exit-plan-remind / plan-flag-setter の tool 名ガードのユニットテスト
+"""exit-plan-remind の tool 名ガードのユニットテスト
 （test_plan_mode_tool_guard.bats 移植）。
 
 Copilot CLI は matcher を honor せず、全ツールで PostToolUse/PreToolUse を発火させる。
-そのため、両スクリプトは冒頭の tool 名ガードで、ExitPlanMode / EnterPlanMode 以外を弾く。
+そのため、冒頭の tool 名ガードで ExitPlanMode 以外を弾く。
 JSON stdin を流し、出力とフラグファイルの副作用を検証する。
 """
 
@@ -23,7 +23,6 @@ def guard_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, project_root: Pat
         "project": project,
         "state_dir": project / ".pecot" / "state",
         "exit_plan_remind": lib / "post-tool-use" / "exit-plan-remind.sh",
-        "plan_flag_setter": lib / "pre-tool-use" / "plan-flag-setter.sh",
     }
 
 
@@ -45,27 +44,3 @@ def test_remind_bash_keeps_quick_mode(guard_env, run_script) -> None:
     result = run_script(guard_env["exit_plan_remind"], stdin='{"tool_name":"Bash"}')
     assert result.returncode == 0
     assert quick_mode.is_file()
-
-
-# plan-flag-setter.sh — EnterPlanMode 以外を弾く。
-
-
-def test_flag_setter_copilot_bash_keeps_confirmed(guard_env, run_script) -> None:
-    confirmed = guard_env["state_dir"] / ".exit-plan-confirmed"
-    confirmed.touch()
-    result = run_script(
-        guard_env["plan_flag_setter"], stdin='{"tool_name":"bash","tool_input":{"command":"ls"}}'
-    )
-    assert result.returncode == 0
-    assert confirmed.is_file()
-
-
-def test_flag_setter_enter_plan_mode_removes_confirmed(guard_env, run_script) -> None:
-    confirmed = guard_env["state_dir"] / ".exit-plan-confirmed"
-    confirmed.touch()
-    result = run_script(
-        guard_env["plan_flag_setter"],
-        stdin='{"tool_name":"EnterPlanMode","session_id":"s1"}',
-    )
-    assert result.returncode == 0
-    assert not confirmed.is_file()
