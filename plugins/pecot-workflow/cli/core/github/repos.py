@@ -227,18 +227,6 @@ class ReposAPI(GitHubClientBase):
             url = next_link["url"]
             next_params = None
 
-    def get_dependabot_alert(self, owner: str, repo: str, number: int) -> dict[str, Any]:
-        """Dependabot alert を 1 件取得（REST API）
-
-        Raises:
-            GitHubNotFoundError: alert が無い場合
-            GitHubAPIError: その他のAPIエラー
-        """
-        response = self._rest_request("get", f"/repos/{owner}/{repo}/dependabot/alerts/{number}")
-        if not response.is_success:
-            self._handle_http_error(response)
-        return response.json()
-
     def list_open_code_scanning_alerts(self, owner: str, repo: str) -> list[dict[str, Any]]:
         """open な code scanning alert を全件取得（REST API）
 
@@ -251,18 +239,6 @@ class ReposAPI(GitHubClientBase):
             f"/repos/{owner}/{repo}/code-scanning/alerts",
             {"state": "open", "per_page": 100},
         )
-
-    def get_code_scanning_alert(self, owner: str, repo: str, number: int) -> dict[str, Any]:
-        """code scanning alert を 1 件取得（REST API）
-
-        Raises:
-            GitHubNotFoundError: alert が無い場合
-            GitHubAPIError: その他のAPIエラー
-        """
-        response = self._rest_request("get", f"/repos/{owner}/{repo}/code-scanning/alerts/{number}")
-        if not response.is_success:
-            self._handle_http_error(response)
-        return response.json()
 
     def list_open_secret_scanning_alerts(self, owner: str, repo: str) -> list[dict[str, Any]]:
         """open な secret scanning alert を全件取得（REST API）
@@ -292,22 +268,6 @@ class ReposAPI(GitHubClientBase):
         analysis = as_dict(as_dict(response.json()).get("security_and_analysis"))
         status = as_dict(analysis.get("secret_scanning")).get("status")
         return status if isinstance(status, str) else None
-
-    def get_secret_scanning_alert(self, owner: str, repo: str, number: int) -> dict[str, Any]:
-        """secret scanning alert を 1 件取得（REST API、``hide_secret=true``）
-
-        Raises:
-            GitHubNotFoundError: alert が無い場合
-            GitHubAPIError: その他のAPIエラー
-        """
-        response = self._rest_request(
-            "get",
-            f"/repos/{owner}/{repo}/secret-scanning/alerts/{number}",
-            params={"hide_secret": "true"},
-        )
-        if not response.is_success:
-            self._handle_http_error(response)
-        return response.json()
 
     def is_dependabot_alerts_enabled(self, owner: str, repo: str) -> bool:
         """リポジトリで Dependabot alerts が有効かを取得（REST API）

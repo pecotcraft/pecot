@@ -1,7 +1,7 @@
 """cli/security.py - security alert をボードの Tracker に載せるコマンド
 
 ``pecot security sync`` は open の Tracker 1 件の本文の一覧を、alert の今の状態で書き直す。
-Tracker は、open のものが無く、判断の要る alert があるときだけ立てる。
+Tracker は、open のものが無く、表に載せる alert があるときだけ立てる。
 閉じる操作と Archived へ移す操作は人が行う。
 Actions の schedule と手元の両方から同じコマンドで動かす。
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 import httpx
 import typer
@@ -23,7 +23,7 @@ from cli.core.dependabot import (
     load_dependabot_exceptions,
 )
 from cli.core.git import git_toplevel
-from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
+from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.issue_board import (
     add_issue_to_board,
     create_issue,
@@ -36,10 +36,8 @@ from cli.core.security_alerts import (
     KIND_LABELS,
     Alert,
     AlertKind,
-    EntryState,
     SecurityAlertError,
     TrackerPlan,
-    alert_result,
     build_tracker_title,
     find_tracker,
     list_open_alerts,
@@ -48,7 +46,6 @@ from cli.core.security_alerts import (
     parse_tracker_entries,
     plan_tracker,
     render_tracker_body,
-    state_label,
 )
 
 DryRunOption = Annotated[
@@ -114,45 +111,6 @@ def _fetch_open_alerts(
     return found, failed, disabled
 
 
-def _fetch_single(
-    client: GitHubClient, owner: str, repo: str, kind: AlertKind, number: int
-) -> dict[str, Any] | None:
-    """alert を単体で取る。404 は None（alert が無い）"""
-    try:
-        if kind == "dependabot":
-            return client.get_dependabot_alert(owner, repo, number)
-        if kind == "code-scanning":
-            return client.get_code_scanning_alert(owner, repo, number)
-        return client.get_secret_scanning_alert(owner, repo, number)
-    except GitHubNotFoundError:
-        return None
-
-
-def _refetch(
-    client: GitHubClient, owner: str, repo: str, targets: list[tuple[AlertKind, int]]
-) -> tuple[dict[tuple[AlertKind, int], tuple[EntryState, str | None]], int]:
-    """一覧から消えた行の alert を単体で取り直し、(結果の状態, 失敗の件数) を返す
-
-    取り直しの失敗・open・未知の state は結果に入れない（行を変えない）。
-    """
-    results: dict[tuple[AlertKind, int], tuple[EntryState, str | None]] = {}
-    failures = 0
-    for kind, number in targets:
-        try:
-            raw = _fetch_single(client, owner, repo, kind, number)
-        except (GitHubAPIError, httpx.HTTPError) as e:
-            failures += 1
-            detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-            typer.echo(f"エラー: {kind} #{number} を取り直せません: {detail}", err=True)
-            continue
-        outcome = alert_result(kind, raw)
-        if outcome is None:
-            typer.echo(f"飛ばす: {kind} #{number} は結果になっていないため、行を変えません")
-            continue
-        results[(kind, number)] = outcome
-    return results, failures
-
-
 def _put_on_board(
     client: GitHubClient,
     config: ProjectConfig,
@@ -185,23 +143,19 @@ def _echo_plan(plan: TrackerPlan, tracker: int | None, title: str, dry_run: bool
     prefix = "[dry-run] " if dry_run else ""
     if tracker is None:
         if not plan.create:
-            typer.echo(f"{prefix}Tracker を立てません（判断の要る alert がありません）")
+            typer.echo(f"{prefix}Tracker を立てません（open で例外に無い alert がありません）")
             return
-        open_count = sum(1 for e in plan.entries if e.state == "open")
         typer.echo(
             f"{prefix}Tracker を立てる: {title}"
-            f"（要判断 {open_count} 件・Priority: {max_priority(plan.entries)}）"
+            f"（{len(plan.entries)} 件・Priority: {max_priority(plan.entries)}）"
         )
         for e in plan.entries:
             typer.echo(f"{prefix}Tracker に載せる: {e.kind} #{e.number}")
         return
     for e in plan.added:
         typer.echo(f"{prefix}Tracker #{tracker} に足す: {e.kind} #{e.number}")
-    for old, new in plan.changed:
-        typer.echo(
-            f"{prefix}Tracker #{tracker} の行を変える: {old.kind} #{old.number}"
-            f"（{state_label(old)} → {state_label(new)}）"
-        )
+    for e in plan.removed:
+        typer.echo(f"{prefix}Tracker #{tracker} から外す: {e.kind} #{e.number}")
 
 
 def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
@@ -209,9 +163,9 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
 
     対象: Dependabot・code scanning（main）・secret scanning の open の alert。
     ラベル security-alert の open の Tracker（本文に印がある Issue）を 1 件探す。
-    その本文の list-begin から list-end の間の表を、alert の今の状態で書き直す。
-    open の Tracker が無く、判断の要る alert があるときだけ、Tracker を立ててボードの Backlog に載せる。
-    例外は、cwd のリポの .github/dependabot-exceptions.json から読む（載る alert は一覧に足さない）。
+    その本文の list-begin から list-end の間の表を、open の alert から例外を引いた行で書き直す。
+    open の Tracker が無く、表に載せる行があるときだけ、Tracker を立ててボードの Backlog に載せる。
+    例外は、cwd のリポの .github/dependabot-exceptions.json から読む（載る alert は表に載せない）。
     閉じる操作と Archived へ移す操作は人が行う。
     一覧を取れなかった種類は行に触れず、最後に終了コード 1 で終わる。
 
@@ -242,30 +196,31 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         )
     existing_body = (tracker.get("body") or "") if tracker else None
     try:
-        entries, folded = parse_tracker_entries(existing_body) if tracker else (None, 0)
+        entries = parse_tracker_entries(existing_body) if tracker else None
     except SecurityAlertError as e:
         label = f"Tracker #{tracker['number']}" if tracker else "Tracker"
         typer.echo(f"エラー: {label}: {e}", err=True)
         raise typer.Exit(1) from None
 
     plan = plan_tracker(alerts, exceptions, entries, failed, disabled)
-    results, failures = _refetch(client, owner, repo, plan.refetch)
-    plan = plan_tracker(alerts, exceptions, entries, failed, disabled, results)
 
     today = datetime.now(timezone.utc).date()
     title = build_tracker_title(today)
-    body = render_tracker_body(plan.entries, folded, config.host, owner, repo, existing_body)
+    body = render_tracker_body(
+        plan.entries, config.host, owner, repo, existing_body, disabled, failed
+    )
     number = int(tracker["number"]) if tracker else None
     unchanged = number is not None and body == (existing_body or "").replace("\r\n", "\n")
     if number is not None and unchanged:
         typer.echo(f"{'[dry-run] ' if dry_run else ''}Tracker #{number} は変わらない")
     else:
         _echo_plan(plan, number, title, dry_run)
-        if number is not None and not (plan.added or plan.changed):
+        if number is not None and not (plan.added or plan.removed):
             typer.echo(f"{'[dry-run] ' if dry_run else ''}Tracker #{number} の本文を書き直す")
 
-    if not dry_run:
-        failures += _apply(client, config, owner, repo, plan, number, title, body, unchanged)
+    failures = (
+        0 if dry_run else _apply(client, config, owner, repo, plan, number, title, body, unchanged)
+    )
     if failed or failures:
         raise typer.Exit(1)
 

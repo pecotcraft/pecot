@@ -18,7 +18,7 @@ github:
       query: {"state": "open", "per_page": "100"}
     respond:
       status: 200
-      body: [{"number": 7, "html_url": "https://ghes.example.com/acme/demo/security/dependabot/7", "security_vulnerability": {"severity": "high"}, "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc"}, "dependency": {"package": {"name": "left-pad"}}}]
+      body: [{"number": 7, "html_url": "https://ghes.example.com/acme/demo/security/dependabot/7", "security_vulnerability": {"severity": "high"}, "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc", "summary": "Prototype Pollution in left-pad"}, "dependency": {"package": {"name": "left-pad"}}}]
   - match:
       method: "GET"
       path: "/repos/acme/demo/code-scanning/alerts"
@@ -41,9 +41,9 @@ github:
       status: 200
       body:
         - number: 20
-          title: '[Tracker] security alert — 2026-01-01 から'
+          title: '[Tracker] security alert — 2026-01-01'
           state: open
-          body: "<!-- pecot-alert: tracker -->\n\nDependabot\u30fbcode scanning\u30fbsecret scanning \u306e open \u306e alert \u3092\u675f\u306d\u308b Tracker\u3002\n`pecot security sync` \u304c\u6bce\u6642\u3001\u4e0b\u306e\u8868\u3092\u66f8\u304d\u76f4\u3059\u3002\u8868\u306e\u5916\u306e\u6587\u306f\u6b8b\u308b\u3002\nalert \u306e\u4e2d\u8eab\u306f\u516c\u958b\u306e Issue \u306b\u66f8\u304b\u305a\u3001Security \u30bf\u30d6\u3067\u78ba\u304b\u3081\u308b\u3002\n\n\u624b\u9806: [Dependabot](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-dependabot)\u30fb[code scanning](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-code-scanning)\u30fb[secret scanning](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-secret-scanning)\n\u4f8b\u5916\u306e\u898b\u76f4\u3057: [\u624b\u9806](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-exceptions-review)\n<!-- pecot-alert: list-begin -->\n| \u7a2e\u985e | alert | Priority | \u30d1\u30c3\u30b1\u30fc\u30b8 | \u72b6\u614b |\n|---|---|---|---|---|\n| <!-- pecot-alert: dependabot/7 state=open priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high | left-pad\uff08GHSA-aaaa-bbbb-cccc\uff09 | \u8981\u5224\u65ad |\n| <!-- pecot-alert: code-scanning/3 state=open priority=medium --> code scanning | [#3](https://ghes.example.com/acme/demo/security/code-scanning/3) | medium |  | \u8981\u5224\u65ad |\n<!-- pecot-alert: list-end -->\n"
+          body: "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot\n\n| title | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc sum=Prototype%20Pollution%20in%20left%2Dpad --> [Prototype Pollution in left-pad](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high |\n\n## code scanning\n\n| title | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: code-scanning/3 priority=medium --> masked | [#3](https://ghes.example.com/acme/demo/security/code-scanning/3) | medium |\n\n## secret scanning\n\nnone\n<!-- pecot-alert: list-end -->\n"
           labels:
             - name: security-alert
   - match:

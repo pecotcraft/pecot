@@ -14,8 +14,6 @@
       "args": [
         "-y",
         "@playwright/mcp@0.0.83",
-        "--browser",
-        "chromium",
         "--headless",
         "--no-sandbox"
       ]

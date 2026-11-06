@@ -33,7 +33,6 @@ def _client(
     code_scanning: list[dict[str, Any]] | Exception | None = None,
     secret_scanning: list[dict[str, Any]] | Exception | None = None,
     issues: list[dict[str, Any]] | None = None,
-    singles: dict[str, Any] | None = None,
 ) -> MagicMock:
     client = MagicMock()
     for attr, value in (
@@ -53,13 +52,6 @@ def _client(
     client.is_dependabot_alerts_enabled.return_value = True
     client.get_issue_node_id.return_value = "I_node"
     client.add_to_project.return_value = "ITEM"
-    for attr in ("get_dependabot_alert", "get_code_scanning_alert", "get_secret_scanning_alert"):
-        single = (singles or {}).get(attr)
-        fn = getattr(client, attr)
-        if isinstance(single, Exception):
-            fn.side_effect = single
-        else:
-            fn.return_value = single
     return client
 
 
@@ -98,11 +90,11 @@ def _exc(alert: int) -> DependabotException:
 
 
 def _body(*entries: TrackerEntry) -> str:
-    return render_tracker_body(list(entries), 0, "github.com", "o", "r")
+    return render_tracker_body(list(entries), "github.com", "o", "r")
 
 
-def _row(kind: str, number: int, state: str = "open", **kw: Any) -> TrackerEntry:
-    return TrackerEntry(kind=kind, number=number, state=state, **kw)  # type: ignore[arg-type]
+def _row(kind: str, number: int, **kw: Any) -> TrackerEntry:
+    return TrackerEntry(kind=kind, number=number, **kw)  # type: ignore[arg-type]
 
 
 def _tracker(number: int, body: str, state: str = "open") -> dict[str, Any]:
@@ -120,7 +112,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.create_issue.assert_called_once()
         args = client.create_issue.call_args.kwargs
-        assert re.fullmatch(r"\[Tracker\] security alert — \d{4}-\d\d-\d\d から", args["title"])
+        assert re.fullmatch(r"\[Tracker\] security alert — \d{4}-\d\d-\d\d", args["title"])
         assert args["labels"] == ["security-alert"]
         assert args["body"].startswith("<!-- pecot-alert: tracker -->")
         assert args["body"].count("pecot-alert: dependabot/") == 2
@@ -137,6 +129,20 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.create_issue.assert_not_called()
         client.update_issue_body.assert_not_called()
+
+    def test_new_tracker_body_is_marker_and_table_only(self) -> None:
+        client = _client(dependabot=[_dep(1)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        body = client.create_issue.call_args.kwargs["body"]
+        assert body.startswith(
+            "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n"
+        )
+        assert "## Dependabot\n\n| title | alert | Priority |" in body
+        assert "## code scanning\n\nnone" in body
+        assert "state=" not in body
+        assert "SECURITY.md" not in body
 
     def test_exceptions_are_left_out_of_a_new_tracker(self) -> None:
         client = _client(code_scanning=[_cs(10)], dependabot=[_dep(1)])
@@ -187,47 +193,47 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.update_issue_body.assert_not_called()
 
-    def test_row_leaving_the_list_becomes_result_after_single_fetch(self) -> None:
+    def test_row_leaving_the_list_is_removed(self) -> None:
         client = _client(
-            issues=[_tracker(5, _body(_row("code-scanning", 9)))],
-            singles={"get_code_scanning_alert": {"state": "fixed"}},
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body(_row("dependabot", 1), _row("code-scanning", 9)))],
         )
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0, result.output
         body = client.update_issue_body.call_args.args[3]
-        assert "state=fixed" in body
-        assert "要判断 → 結果: fixed" in result.output
+        assert "pecot-alert: code-scanning/9" not in body
+        assert "pecot-alert: dependabot/1" in body
+        assert "Tracker #5 から外す: code-scanning #9" in result.output
         client.close_issue.assert_not_called()
 
-    def test_single_fetch_failure_keeps_row_and_exits_1(self) -> None:
-        client = _client(
-            issues=[_tracker(5, _body(_row("code-scanning", 9)))],
-            singles={"get_code_scanning_alert": GitHubAPIError("x", status_code=500)},
+    def test_exception_row_leaves_the_table(self) -> None:
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(_row("dependabot", 1)))])
+        result = _invoke(client, ["sync"], exceptions=[_exc(1)])
+
+        assert result.exit_code == 0, result.output
+        assert "pecot-alert: dependabot/1" not in client.update_issue_body.call_args.args[3]
+        assert "Tracker #5 から外す: dependabot #1" in result.output
+
+    def test_old_format_body_is_rewritten_in_place(self) -> None:
+        old_row = (
+            "| <!-- pecot-alert: dependabot/1 state=open priority=medium pkg=pkg"
+            " ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#1](u) | medium | pkg | 要判断 |"
         )
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 1
-        client.update_issue_body.assert_not_called()
-
-    def test_still_open_single_keeps_row(self) -> None:
-        client = _client(
-            issues=[_tracker(5, _body(_row("dependabot", 9)))],
-            singles={"get_dependabot_alert": {"state": "open"}},
+        old_exception = (
+            "| <!-- pecot-alert: dependabot/2 state=exception priority=low --> x | | | | 例外 |"
         )
-        result = _invoke(client, ["sync"])
-
-        assert result.exit_code == 0
-        client.update_issue_body.assert_not_called()
-
-    def test_missing_alert_404_becomes_gone(self) -> None:
-        client = _client(
-            issues=[_tracker(5, _body(_row("dependabot", 9)))],
-            singles={"get_dependabot_alert": GitHubNotFoundError("nf", status_code=404)},
+        body = _body().replace(
+            "<!-- pecot-alert: list-end -->",
+            f"{old_row}\n{old_exception}\n<!-- pecot-alert: list-end -->",
         )
-        _invoke(client, ["sync"])
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, body)])
+        result = _invoke(client, ["sync", "--dry-run"])
 
-        assert "state=gone" in client.update_issue_body.call_args.args[3]
+        assert result.exit_code == 0, result.output
+        assert "Tracker #5 の本文を書き直す" in result.output
+        assert "から外す" not in result.output
+        assert "に足す" not in result.output
 
     def test_patch_422_is_a_failure(self) -> None:
         client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body())])
@@ -294,10 +300,21 @@ class TestSync:
 
         assert result.exit_code == 1
         assert "secret scanning の一覧を取得できません" in result.stderr
-        client.get_secret_scanning_alert.assert_not_called()
         body = client.update_issue_body.call_args.args[3]
-        assert "pecot-alert: secret-scanning/1 state=open" in body
+        assert "pecot-alert: secret-scanning/1 priority=" in body
         assert "pecot-alert: dependabot/1" in body
+
+    def test_failed_kind_without_previous_rows_is_unavailable(self) -> None:
+        client = _client(
+            code_scanning=GitHubAPIError("boom", status_code=500),
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body())],
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        body = client.update_issue_body.call_args.args[3]
+        assert "## code scanning\n\nunavailable" in body
 
     def test_failed_kind_does_not_create_a_tracker(self) -> None:
         client = _client(dependabot=GitHubAPIError("boom", status_code=500))
@@ -306,19 +323,33 @@ class TestSync:
         assert result.exit_code == 1
         client.create_issue.assert_not_called()
 
-    def test_disabled_kind_is_untouched_with_exit_0(self) -> None:
-        entry = _row("secret-scanning", 1)
+    def test_disabled_kind_is_a_heading_only_with_exit_0(self) -> None:
         client = _client(
             secret_scanning=GitHubNotFoundError("nf", status_code=404, response_body="{}"),
-            issues=[_tracker(5, _body(entry))],
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body(_row("secret-scanning", 1)))],
         )
         client.get_secret_scanning_status.return_value = "disabled"
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
         assert "secret scanning: 無効のため飛ばします" in result.output
-        client.get_secret_scanning_alert.assert_not_called()
-        client.update_issue_body.assert_not_called()
+        body = client.update_issue_body.call_args.args[3]
+        assert "## secret scanning\n\ndisabled" in body
+        assert "pecot-alert: secret-scanning/" not in body
+
+    def test_failed_kind_keeps_its_previous_rows(self) -> None:
+        entry = _row("secret-scanning", 1)
+        client = _client(
+            secret_scanning=GitHubAPIError("boom", status_code=500),
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body(entry))],
+        )
+        _invoke(client, ["sync"])
+
+        body = client.update_issue_body.call_args.args[3]
+        assert "## secret scanning\n\n| title" in body
+        assert "pecot-alert: secret-scanning/1 priority=" in body
 
     def test_secret_scanning_404_without_disabled_status_fails(self) -> None:
         """権限不足の 404 を無効とみなさない。触れずに exit 1"""
@@ -329,7 +360,6 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
-        client.get_secret_scanning_alert.assert_not_called()
 
     def test_code_scanning_no_analysis_404_is_zero_alerts(self) -> None:
         client = _client(
@@ -337,12 +367,11 @@ class TestSync:
                 "nf", status_code=404, response_body='{"message": "no analysis found"}'
             ),
             issues=[_tracker(5, _body(_row("code-scanning", 9)))],
-            singles={"get_code_scanning_alert": {"state": "fixed"}},
         )
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0, result.output
-        assert "state=fixed" in client.update_issue_body.call_args.args[3]
+        assert "pecot-alert: code-scanning/9" not in client.update_issue_body.call_args.args[3]
 
     def test_code_scanning_without_ghas_403_is_disabled(self) -> None:
         client = _client(
@@ -377,8 +406,8 @@ class TestDryRun:
 
         assert result.exit_code == 0, result.output
         assert re.search(
-            r"\[dry-run\] Tracker を立てる: \[Tracker\] security alert — \d{4}-\d\d-\d\d から"
-            r"（要判断 2 件・Priority: high）",
+            r"\[dry-run\] Tracker を立てる: \[Tracker\] security alert — \d{4}-\d\d-\d\d"
+            r"（2 件・Priority: high）",
             result.output,
         )
         assert "[dry-run] Tracker に載せる: dependabot #1" in result.output
@@ -389,22 +418,15 @@ class TestDryRun:
 
     def test_existing_tracker_lines(self) -> None:
         client = _client(
-            dependabot=[_dep(2)],
+            dependabot=[_dep(2), _dep(3)],
             issues=[_tracker(5, _body(_row("dependabot", 2), _row("code-scanning", 9)))],
-            singles={
-                "get_code_scanning_alert": {
-                    "state": "dismissed",
-                    "dismissed_reason": "false positive",
-                }
-            },
         )
         result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert (
-            "[dry-run] Tracker #5 の行を変える: code-scanning #9（要判断 → 結果: dismissed（理由: false_positive）"
-            "）" in result.output
-        )
+        assert "[dry-run] Tracker #5 に足す: dependabot #3" in result.output
+        assert "[dry-run] Tracker #5 から外す: code-scanning #9" in result.output
+        assert "行を変える" not in result.output
         client.update_issue_body.assert_not_called()
 
     def test_unchanged_line(self) -> None:

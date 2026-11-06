@@ -6,7 +6,6 @@ GitHubClient は I/O 境界として差し替える。
 from __future__ import annotations
 
 import re
-from dataclasses import replace
 from datetime import date
 from typing import Any
 from unittest.mock import MagicMock
@@ -17,11 +16,9 @@ import pytest
 from cli.core.dependabot import DependabotException
 from cli.core.github import GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError
 from cli.core.security_alerts import (
-    BODY_LIMIT,
     Alert,
     SecurityAlertError,
     TrackerEntry,
-    alert_result,
     build_tracker_title,
     fetch_code_scanning_status,
     fetch_secret_scanning_status,
@@ -44,7 +41,11 @@ def _dep(number: int = 7, severity: str | None = "high") -> dict[str, Any]:
         "number": number,
         "html_url": f"https://github.com/o/r/security/dependabot/{number}",
         "security_vulnerability": {"severity": severity},
-        "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc", "severity": "low"},
+        "security_advisory": {
+            "ghsa_id": "GHSA-aaaa-bbbb-cccc",
+            "severity": "low",
+            "summary": "Prototype Pollution in left-pad",
+        },
         "dependency": {"package": {"name": "left-pad"}},
     }
 
@@ -68,7 +69,17 @@ class TestNormalize:
             url="https://github.com/o/r/security/dependabot/7",
             package="left-pad",
             ghsa="GHSA-aaaa-bbbb-cccc",
+            summary="Prototype Pollution in left-pad",
         )
+
+    @pytest.mark.parametrize("ghsa", ["not-a-ghsa", "GHSA-AAAA-bbbb-cccc", "GHSA-aaaa-bbbb"])
+    def test_invalid_ghsa_is_dropped(self, ghsa: str) -> None:
+        raw = _dep()
+        raw["security_advisory"]["ghsa_id"] = ghsa
+        alert = normalize_dependabot(raw, H, OWNER, R)
+
+        assert alert is not None
+        assert alert.ghsa is None
 
     def test_dependabot_without_number_is_dropped(self) -> None:
         assert normalize_dependabot({"html_url": "x"}, H, OWNER, R) is None
@@ -109,8 +120,8 @@ def _a(kind: str, number: int, priority: str = "medium", package: str | None = N
     )
 
 
-def _e(kind: str, number: int, state: str = "open", **kw: Any) -> TrackerEntry:
-    return TrackerEntry(kind=kind, number=number, state=state, **kw)  # type: ignore[arg-type]
+def _e(kind: str, number: int, **kw: Any) -> TrackerEntry:
+    return TrackerEntry(kind=kind, number=number, **kw)  # type: ignore[arg-type]
 
 
 def _exc(alert: int, reevaluate: str = "v2 が出たら") -> DependabotException:
@@ -119,17 +130,17 @@ def _exc(alert: int, reevaluate: str = "v2 が出たら") -> DependabotException
     )
 
 
-def _states(plan: Any) -> dict[tuple[str, int], str]:
-    return {e.key: e.state for e in plan.entries}
+def _keys(plan: Any) -> list[tuple[str, int]]:
+    return [e.key for e in plan.entries]
 
 
 class TestPlanTracker:
-    def test_no_tracker_creates_with_open_alerts_only(self) -> None:
+    def test_no_tracker_creates_with_open_alerts_without_exceptions(self) -> None:
         alerts = {"dependabot": [_a("dependabot", 1), _a("dependabot", 2)]}
         plan = plan_tracker(alerts, [_exc(2)], None)
 
         assert plan.create is True
-        assert _states(plan) == {("dependabot", 1): "open"}
+        assert _keys(plan) == [("dependabot", 1)]
 
     def test_no_tracker_and_only_exceptions_does_not_create(self) -> None:
         plan = plan_tracker({"dependabot": [_a("dependabot", 2)]}, [_exc(2)], None)
@@ -143,95 +154,76 @@ class TestPlanTracker:
         assert plan.create is False
         assert [e.number for e in plan.added] == [1]
 
-    def test_open_alert_with_exception_becomes_exception_row(self) -> None:
-        old = [_e("dependabot", 1, "open")]
+    def test_open_alert_with_exception_leaves_the_table(self) -> None:
+        old = [_e("dependabot", 1)]
         plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [_exc(1)], old)
 
-        assert _states(plan) == {("dependabot", 1): "exception"}
-        assert plan.entries[0].reevaluate == "v2 が出たら"
-        assert [(o.state, n.state) for o, n in plan.changed] == [("open", "exception")]
+        assert plan.entries == []
+        assert [e.key for e in plan.removed] == [("dependabot", 1)]
+        assert plan.added == []
 
     def test_exception_alert_not_in_tracker_is_not_added(self) -> None:
         plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [_exc(1)], [])
 
         assert plan.entries == []
+        assert plan.added == []
 
-    def test_exception_removed_from_file_returns_to_open(self) -> None:
-        old = [_e("dependabot", 1, "exception")]
-        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [], old)
+    def test_exception_removed_from_file_returns_to_the_table(self) -> None:
+        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [], [])
 
-        assert _states(plan) == {("dependabot", 1): "open"}
+        assert _keys(plan) == [("dependabot", 1)]
+        assert [e.key for e in plan.added] == [("dependabot", 1)]
 
     def test_code_scanning_number_is_not_matched_to_dependabot_exception(self) -> None:
         plan = plan_tracker({"code-scanning": [_a("code-scanning", 1)]}, [_exc(1)], [])
 
-        assert _states(plan) == {("code-scanning", 1): "open"}
+        assert _keys(plan) == [("code-scanning", 1)]
 
-    def test_row_leaving_the_list_is_refetched_then_becomes_result(self) -> None:
-        old = [_e("dependabot", 1, "open"), _e("dependabot", 2, "exception")]
-        first = plan_tracker({"dependabot": []}, [_exc(2)], old)
+    def test_alert_that_is_no_longer_open_is_removed(self) -> None:
+        old = [_e("dependabot", 1), _e("dependabot", 2)]
+        plan = plan_tracker({"dependabot": [_a("dependabot", 2)]}, [], old)
 
-        assert first.refetch == [("dependabot", 1), ("dependabot", 2)]
-        assert _states(first) == {("dependabot", 1): "open", ("dependabot", 2): "exception"}
+        assert _keys(plan) == [("dependabot", 2)]
+        assert [e.key for e in plan.removed] == [("dependabot", 1)]
+        assert plan.added == []
 
-        results = {
-            ("dependabot", 1): ("fixed", None),
-            ("dependabot", 2): ("dismissed", "tolerable_risk"),
-        }
-        second = plan_tracker({"dependabot": []}, [_exc(2)], old, results=results)  # type: ignore[arg-type]
+    def test_new_values_win_and_only_missing_ones_fall_back_to_the_old_row(self) -> None:
+        old = [_e("dependabot", 1, priority="low", package="old", ghsa="GHSA-aaaa-bbbb-cccc")]
+        alerts = {"dependabot": [_a("dependabot", 1, "high", "new")]}
+        plan = plan_tracker(alerts, [], old)
 
-        # 例外ファイルに残っていても、結果を優先する
-        assert _states(second) == {("dependabot", 1): "fixed", ("dependabot", 2): "dismissed"}
-        assert second.entries[1].reason == "tolerable_risk"
-        assert second.entries[1].reevaluate is None
-
-    def test_failed_refetch_keeps_row(self) -> None:
-        old = [_e("code-scanning", 9, "open")]
-        plan = plan_tracker({"code-scanning": []}, [], old, results={})
-
-        assert _states(plan) == {("code-scanning", 9): "open"}
-        assert plan.changed == []
-
-    def test_result_row_is_not_refetched(self) -> None:
-        old = [_e("dependabot", 1, "fixed")]
-        plan = plan_tracker({"dependabot": []}, [], old)
-
-        assert plan.refetch == []
-        assert _states(plan) == {("dependabot", 1): "fixed"}
-
-    def test_result_row_returning_to_open_list_becomes_open_or_exception(self) -> None:
-        old = [_e("dependabot", 1, "fixed"), _e("dependabot", 2, "gone")]
-        alerts = {"dependabot": [_a("dependabot", 1), _a("dependabot", 2)]}
-        plan = plan_tracker(alerts, [_exc(2)], old)
-
-        assert _states(plan) == {("dependabot", 1): "open", ("dependabot", 2): "exception"}
+        assert plan.entries[0].priority == "high"
+        assert plan.entries[0].package == "new"
+        assert plan.entries[0].ghsa == "GHSA-aaaa-bbbb-cccc"
 
     def test_failed_kind_is_untouched_and_not_added(self) -> None:
-        old = [_e("secret-scanning", 1, "open")]
+        old = [_e("secret-scanning", 1)]
         alerts = {"dependabot": [_a("dependabot", 5)]}
         plan = plan_tracker(alerts, [], old, failed_kinds={"secret-scanning", "code-scanning"})
 
-        assert plan.refetch == []
-        assert _states(plan) == {("secret-scanning", 1): "open", ("dependabot", 5): "open"}
+        assert _keys(plan) == [("dependabot", 5), ("secret-scanning", 1)]
+        assert plan.removed == []
 
     def test_failed_kind_does_not_decide_creation(self) -> None:
         plan = plan_tracker({}, [], None, failed_kinds={"dependabot"})
 
         assert plan.create is False
 
-    def test_disabled_kind_is_untouched(self) -> None:
-        old = [_e("code-scanning", 1, "open")]
-        plan = plan_tracker({}, [], old, disabled_kinds={"code-scanning"})
+    def test_disabled_kind_has_no_rows_and_is_not_added(self) -> None:
+        old = [_e("code-scanning", 1), _e("dependabot", 2)]
+        plan = plan_tracker(
+            {"dependabot": [_a("dependabot", 2)]}, [], old, disabled_kinds={"code-scanning"}
+        )
 
-        assert plan.refetch == []
-        assert _states(plan) == {("code-scanning", 1): "open"}
+        assert _keys(plan) == [("dependabot", 2)]
+        assert [e.key for e in plan.removed] == [("code-scanning", 1)]
 
     def test_second_run_is_a_noop(self) -> None:
         alerts = {"dependabot": [_a("dependabot", 1)], "code-scanning": [_a("code-scanning", 3)]}
         first = plan_tracker(alerts, [], [])
         second = plan_tracker(alerts, [], first.entries)
 
-        assert second.added == [] and second.changed == [] and second.refetch == []
+        assert second.added == [] and second.removed == []
         assert second.entries == first.entries
 
     def test_entries_are_ordered_by_kind_then_number(self) -> None:
@@ -242,52 +234,21 @@ class TestPlanTracker:
         }
         plan = plan_tracker(alerts, [], [])
 
-        assert [e.key for e in plan.entries] == [
+        assert _keys(plan) == [
             ("dependabot", 2),
             ("dependabot", 10),
             ("code-scanning", 5),
             ("secret-scanning", 1),
         ]
 
-    def test_max_priority_uses_open_rows_only(self) -> None:
+    def test_max_priority_is_the_maximum_of_all_rows(self) -> None:
         entries = [
-            _e("dependabot", 1, "open", priority="low"),
-            _e("dependabot", 2, "open", priority="medium"),
-            _e("dependabot", 3, "exception", priority="high"),
+            _e("dependabot", 1, priority="low"),
+            _e("dependabot", 2, priority="high"),
+            _e("dependabot", 3, priority="medium"),
         ]
-        assert max_priority(entries) == "medium"
+        assert max_priority(entries) == "high"
         assert max_priority([]) is None
-
-
-class TestAlertResult:
-    def test_missing_alert(self) -> None:
-        assert alert_result("dependabot", None) == ("gone", None)
-
-    def test_fixed(self) -> None:
-        assert alert_result("dependabot", {"state": "fixed"}) == ("fixed", None)
-
-    def test_dismissed_reason_is_enum_only(self) -> None:
-        raw = {
-            "state": "dismissed",
-            "dismissed_reason": "tolerable_risk",
-            "dismissed_comment": "秘密",
-        }
-        assert alert_result("dependabot", raw) == ("dismissed", "tolerable_risk")
-
-    def test_reason_with_spaces_is_made_an_enum_value(self) -> None:
-        raw = {"state": "dismissed", "dismissed_reason": "won't fix"}
-        assert alert_result("code-scanning", raw) == ("dismissed", "won_t_fix")
-
-    def test_auto_dismissed(self) -> None:
-        assert alert_result("dependabot", {"state": "auto_dismissed"}) == ("dismissed", None)
-
-    def test_resolved_with_resolution(self) -> None:
-        raw = {"state": "resolved", "resolution": "false_positive"}
-        assert alert_result("secret-scanning", raw) == ("resolved", "false_positive")
-
-    @pytest.mark.parametrize("state", ["open", "weird", None])
-    def test_open_or_unknown_is_not_a_result(self, state: str | None) -> None:
-        assert alert_result("dependabot", {"state": state}) is None
 
 
 class TestTrackerBody:
@@ -296,60 +257,256 @@ class TestTrackerBody:
             _e(
                 "dependabot",
                 1,
-                "open",
                 priority="high",
                 package="@scope/left-pad",
                 ghsa="GHSA-aaaa-bbbb-cccc",
+                summary="Pollution -- in | [x] <b>\nnext",
             ),
-            _e("dependabot", 2, "exception", package="pkg", reevaluate="a | b\nc"),
-            _e("dependabot", 3, "dismissed", reason="tolerable_risk", package="a--b"),
-            _e("code-scanning", 4, "fixed", priority="low"),
-            _e("secret-scanning", 5, "gone"),
+            _e("dependabot", 3, package="a--b"),
+            _e("code-scanning", 4, priority="low"),
+            _e("secret-scanning", 5, priority="high"),
         ]
 
-    def _render(self, entries: list[TrackerEntry], folded: int = 0, body: str | None = None) -> str:
-        return render_tracker_body(entries, folded, H, OWNER, R, body)
+    def _render(
+        self,
+        entries: list[TrackerEntry],
+        body: str | None = None,
+        failed_kinds: frozenset[Any] | set[Any] = frozenset(),
+    ) -> str:
+        return render_tracker_body(entries, H, OWNER, R, body, failed_kinds=failed_kinds)
 
-    def test_roundtrip_keeps_state_priority_package_and_reason(self) -> None:
+    def test_roundtrip_keeps_priority_package_and_ghsa(self) -> None:
         entries = self._entries()
-        parsed, folded = parse_tracker_entries(self._render(entries))
 
-        assert folded == 0
-        # reevaluate は印に入れず、読み戻さない
-        assert parsed == [replace(e, reevaluate=None) for e in entries]
+        assert parse_tracker_entries(self._render(entries)) == entries
 
-    def test_marker_has_no_double_hyphen_inside(self) -> None:
+    def test_marker_has_no_state_and_no_double_hyphen_inside(self) -> None:
         body = self._render(self._entries())
+        markers = re.findall(r"<!-- pecot-alert: (.*?) -->", body)
+
+        assert any(m.startswith("dependabot/1 priority=high") for m in markers)
+        for m in markers:
+            assert "--" not in m
+            assert "state=" not in m
+
+    def test_new_body_is_marker_and_sections_only(self) -> None:
+        body = self._render(self._entries())
+
+        assert body.startswith(
+            "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot\n\n"
+        )
+        assert body.endswith("<!-- pecot-alert: list-end -->\n")
+        assert body.index("## Dependabot") < body.index("## code scanning")
+        assert body.index("## code scanning") < body.index("## secret scanning")
+        assert "| title | alert | Priority |\n|---|---|---|\n" in body
+        assert body.count("| title | alert | Priority |") == 3
+        assert "[#1](https://github.com/o/r/security/dependabot/1)" in body
+        assert "(https://github.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](" in body
+        assert "--> a--b |" in body
+        assert "SECURITY.md" not in body
+        assert "状態" not in body
+        assert "## code scanning\n\n| title | alert | Priority |" in body
+        assert "## secret scanning\n\n| title" in body
+        # 印・見出し・表の行だけ。説明の文は無い
+        for line in body.split("\n"):
+            assert line == "" or line.startswith(("<!--", "## ", "|"))
+
+    def test_code_scanning_row_has_masked_title_and_priority(self) -> None:
+        body = self._render([_e("code-scanning", 4, priority="low")])
+
+        assert "| <!-- pecot-alert: code-scanning/4 priority=low --> masked | [#4](" in body
+        assert body.count("| low |") == 1
+        assert parse_tracker_entries(body) == [_e("code-scanning", 4, priority="low")]
+
+    def test_secret_scanning_title_is_masked(self) -> None:
+        body = self._render([_e("secret-scanning", 5, priority="high")])
+
+        assert "| <!-- pecot-alert: secret-scanning/5 priority=high --> masked | [#5](" in body
+
+    def test_empty_kinds_show_none(self) -> None:
+        body = self._render([])
+
+        for label in ("Dependabot", "code scanning", "secret scanning"):
+            assert f"## {label}\n\nnone" in body
+        assert "|" not in body
+        assert parse_tracker_entries(body) == []
+
+    def test_disabled_kind_is_a_heading_only(self) -> None:
+        body = render_tracker_body(
+            [_e("dependabot", 1)], H, OWNER, R, disabled_kinds={"code-scanning"}
+        )
+
+        assert "## code scanning\n\ndisabled\n\n## secret scanning\n\nnone" in body
+        assert "## Dependabot\n\n| title" in body
+
+    def test_headings_and_none_lines_are_not_parsed_as_rows(self) -> None:
+        entries = self._entries()
+        body = self._render(entries)
+
+        assert parse_tracker_entries(body) == entries
+
+    def test_same_advisory_is_one_row_with_all_alerts(self) -> None:
+        g = "GHSA-aaaa-bbbb-cccc"
+        entries = [
+            _e("dependabot", 13, priority="medium", ghsa=g, summary="minimatch DoS"),
+            _e("dependabot", 9, priority="high", ghsa=g, summary="minimatch DoS"),
+            _e("dependabot", 1, priority="low", ghsa="GHSA-dddd-eeee-ffff", summary="Glob"),
+        ]
+        body = self._render(entries)
+
+        assert "## Dependabot\n\n| title" in body
+        assert "件" not in body
+        rows = [ln for ln in body.split("\n") if ln.startswith("| <!--")]
+        assert len(rows) == 2
+        # 並びは Priority の高い順。Priority は束ねた alert の最大
+        assert rows[0].endswith(
+            "[minimatch DoS](https://github.com/advisories/GHSA-aaaa-bbbb-cccc)"
+            " | [#9](https://github.com/o/r/security/dependabot/9)"
+            " [#13](https://github.com/o/r/security/dependabot/13) | high |"
+        )
+        assert rows[1].endswith("| low |")
+        assert rows[0].count("<!-- pecot-alert: dependabot/") == 2
+        assert parse_tracker_entries(body) == sorted(entries, key=lambda e: e.number)
+
+    def test_rows_with_equal_priority_are_ordered_by_first_alert(self) -> None:
+        entries = [
+            _e("dependabot", 5, ghsa="GHSA-aaaa-bbbb-cccc"),
+            _e("dependabot", 2, ghsa="GHSA-dddd-eeee-ffff"),
+        ]
+        body = self._render(entries)
+
+        assert body.index("dependabot/2 ") < body.index("dependabot/5 ")
+
+    def test_content_falls_back_to_ghsa_then_package(self) -> None:
+        body = self._render(
+            [
+                _e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc"),
+                _e("dependabot", 2, package="pkg"),
+                _e("dependabot", 3, package="pkg"),
+            ]
+        )
+
+        assert "[GHSA-aaaa-bbbb-cccc](https://github.com/advisories/GHSA-aaaa-bbbb-cccc)" in body
+        # GHSA の無い alert は束ねない
+        assert body.count("--> pkg |") == 2
+
+    def test_advisory_link_uses_the_given_host(self) -> None:
+        body = render_tracker_body(
+            [_e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc", summary="s")],
+            "ghes.example.com",
+            OWNER,
+            R,
+        )
+
+        assert "(https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc)" in body
+
+    def test_summary_roundtrips_and_cannot_forge_markers(self) -> None:
+        entry = _e(
+            "dependabot",
+            1,
+            ghsa="GHSA-aaaa-bbbb-cccc",
+            summary="a -- b | c --> <!-- pecot-alert: list-end --> d",
+        )
+        body = self._render([entry])
+
+        assert body.count("<!-- pecot-alert: list-end -->") == 1
         for m in re.finditer(r"<!-- pecot-alert: (.*?) -->", body):
             assert "--" not in m.group(1)
+        assert parse_tracker_entries(body) == [entry]
 
-    def test_new_body_has_tracker_marker_table_and_guides_without_alert_details(self) -> None:
-        body = self._render(self._entries())
+    def test_failed_kind_rows_keep_summary_of_every_alert_in_a_bundle(self) -> None:
+        g = "GHSA-aaaa-bbbb-cccc"
+        first = self._render(
+            [
+                _e("dependabot", 1, ghsa=g, summary="Glob | x"),
+                _e("dependabot", 5, ghsa=g, summary="Glob | x"),
+            ]
+        )
+        # summary は束の先頭の alert の印にだけ付く
+        assert first.count("sum=") == 1
+        old = parse_tracker_entries(first)
+        assert [e.summary for e in old] == ["Glob | x", "Glob | x"]
 
-        assert body.startswith("<!-- pecot-alert: tracker -->")
-        assert body.count("<!-- pecot-alert: list-begin -->") == 1
-        assert body.count("<!-- pecot-alert: list-end -->") == 1
-        assert "[#1](https://github.com/o/r/security/dependabot/1)" in body
-        assert "@scope/left-pad（GHSA-aaaa-bbbb-cccc）" in body
-        assert "SECURITY.md#alert-dependabot" in body
-        assert "SECURITY.md#alert-exceptions-review" in body
+        plan = plan_tracker({}, [], old, failed_kinds={"dependabot"})
+        again = self._render(plan.entries, failed_kinds={"dependabot"})
 
-    def test_cell_escapes_pipe_and_newline(self) -> None:
-        body = self._render(self._entries())
+        assert plan.entries == old
+        assert again == first
+        assert "Glob \\| x" in again
 
-        assert "例外（見直し: a \\| b c）" in body
+    def test_failed_kind_without_old_rows_is_unavailable(self) -> None:
+        plan = plan_tracker({}, [], [], failed_kinds={"code-scanning"})
+        body = self._render(plan.entries, failed_kinds={"code-scanning"})
 
-    def test_reevaluate_cannot_forge_markers(self) -> None:
-        entry = _e("dependabot", 2, "exception", reevaluate="<!-- pecot-alert: list-end -->")
+        assert "## code scanning\n\nunavailable" in body
+        assert "## Dependabot\n\nnone" in body
+
+    def test_failed_kind_that_was_disabled_is_unavailable(self) -> None:
+        before = render_tracker_body([], H, OWNER, R, disabled_kinds={"secret-scanning"})
+        old = parse_tracker_entries(before)
+        plan = plan_tracker({}, [], old, failed_kinds={"secret-scanning"})
+        after = self._render(plan.entries, before, failed_kinds={"secret-scanning"})
+
+        assert "## secret scanning\n\ndisabled" in before
+        assert "## secret scanning\n\nunavailable" in after
+
+    def test_failed_kind_with_old_rows_keeps_the_table(self) -> None:
+        body = self._render([_e("code-scanning", 3)], failed_kinds={"code-scanning"})
+
+        assert "unavailable" not in body
+        assert "pecot-alert: code-scanning/3" in body
+
+    def test_non_dependabot_rows_are_ordered_by_priority_then_number(self) -> None:
+        entries = [
+            _e("code-scanning", 1, priority="low"),
+            _e("code-scanning", 7, priority="high"),
+            _e("code-scanning", 3, priority="high"),
+            _e("secret-scanning", 2, priority="medium"),
+            _e("secret-scanning", 1, priority="high"),
+        ]
+        body = self._render(entries)
+
+        cs = [int(n) for n in re.findall(r"code-scanning/(\d+) ", body)]
+        ss = [int(n) for n in re.findall(r"secret-scanning/(\d+) ", body)]
+        assert cs == [3, 7, 1]
+        assert ss == [1, 2]
+
+    def test_title_with_brackets_backslash_and_pipe_stays_in_one_link(self) -> None:
+        entry = _e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc", summary="a ] b [ c \\ d | e \\| f")
         body = self._render([entry])
-        parsed, _ = parse_tracker_entries(body)
+        row = next(ln for ln in body.split("\n") if "dependabot/1 " in ln)
 
-        assert [e.key for e in parsed] == [("dependabot", 2)]
-        assert body.count("<!-- pecot-alert: list-end -->") == 1
+        assert (
+            "[a \\] b \\[ c \\\\ d \\| e \\\\\\| f]"
+            "(https://github.com/advisories/GHSA-aaaa-bbbb-cccc)"
+        ) in row
+        assert parse_tracker_entries(body) == [entry]
+
+    def test_partly_excepted_advisory_keeps_one_row_with_the_rest(self) -> None:
+        g = "GHSA-aaaa-bbbb-cccc"
+        alerts = {
+            "dependabot": [
+                Alert("dependabot", 1, "medium", "u", "glob", g, "Glob"),
+                Alert("dependabot", 5, "medium", "u", "glob", g, "Glob"),
+                Alert("dependabot", 9, "medium", "u", "glob", g, "Glob"),
+            ]
+        }
+        before = plan_tracker(alerts, [], [])
+        plan = plan_tracker(alerts, [_exc(1)], before.entries)
+        body = self._render(plan.entries)
+
+        assert [e.number for e in plan.removed] == [1]
+        rows = [ln for ln in body.split("\n") if ln.startswith("| <!--")]
+        assert len(rows) == 1
+        assert "dependabot/1 " not in rows[0]
+        assert "[#5](" in rows[0] and "[#9](" in rows[0]
+        assert "[Glob](https://github.com/advisories/GHSA-aaaa-bbbb-cccc)" in rows[0]
 
     def test_text_outside_the_table_is_kept(self) -> None:
         existing = self._render([_e("dependabot", 1)])
-        edited = existing.replace("手順:", "人が足した文\n\n手順:")
+        edited = existing.replace(
+            "<!-- pecot-alert: list-begin -->", "人が足した文\n\n<!-- pecot-alert: list-begin -->"
+        )
         out = self._render([_e("dependabot", 1), _e("dependabot", 2)], body=edited)
 
         assert "人が足した文" in out
@@ -367,11 +524,47 @@ class TestTrackerBody:
     def test_crlf_body_is_normalized(self) -> None:
         existing = self._render([_e("dependabot", 1)])
         crlf = existing.replace("\n", "\r\n")
-        entries, _ = parse_tracker_entries(crlf)
+        entries = parse_tracker_entries(crlf)
 
         assert [e.key for e in entries] == [("dependabot", 1)]
         assert "\r" not in self._render(entries, body=crlf)
         assert self._render(entries, body=crlf) == existing
+
+    def test_old_open_marker_is_read(self) -> None:
+        body = self._render([])
+        row = (
+            "| <!-- pecot-alert: dependabot/7 state=open priority=high pkg=left%2Dpad"
+            " ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#7](u) | high | left-pad | 要判断 |"
+        )
+        old = body.replace(
+            "<!-- pecot-alert: list-end -->", row + "\n<!-- pecot-alert: list-end -->"
+        )
+
+        assert parse_tracker_entries(old) == [
+            _e("dependabot", 7, priority="high", package="left-pad", ghsa="GHSA-aaaa-bbbb-cccc")
+        ]
+
+    @pytest.mark.parametrize(
+        "marker",
+        [
+            "dependabot/7 state=exception priority=high",
+            "dependabot/7 state=fixed priority=high",
+            "dependabot/7 state=dismissed priority=high reason=tolerable_risk",
+            "dependabot/7 state=gone priority=high",
+            "folded count=3",
+        ],
+    )
+    def test_old_non_open_and_folded_markers_are_discarded(self, marker: str) -> None:
+        body = self._render([])
+        row = f"| <!-- pecot-alert: {marker} --> x | | | | |"
+        old = body.replace(
+            "<!-- pecot-alert: list-end -->", row + "\n<!-- pecot-alert: list-end -->"
+        )
+
+        assert parse_tracker_entries(old) == []
+        # 読み捨てた行は、書き直しで表から消える
+        assert "pecot-alert: dependabot/7" not in self._render([], body=old)
+        assert "folded" not in self._render([], body=old)
 
     @pytest.mark.parametrize(
         "mutate",
@@ -396,31 +589,8 @@ class TestTrackerBody:
         with pytest.raises(SecurityAlertError):
             self._render([], body=broken)
 
-    def test_oversized_body_folds_oldest_results(self) -> None:
-        entries = [_e("dependabot", n, "fixed", package="p" * 200) for n in range(1, 400)]
-        entries.append(_e("code-scanning", 1, "open"))
-        body = self._render(entries)
-
-        assert len(body) < BODY_LIMIT
-        parsed, folded = parse_tracker_entries(body)
-        assert folded > 0
-        assert len(parsed) + folded == 400
-        # 要判断の行は畳まない。古い結果から畳む
-        assert ("code-scanning", 1) in {e.key for e in parsed}
-        assert ("dependabot", 1) not in {e.key for e in parsed}
-        assert "ほか" in body
-
-    def test_fold_count_accumulates_over_runs(self) -> None:
-        body = self._render([_e("dependabot", 1)], folded=3)
-        parsed, folded = parse_tracker_entries(body)
-
-        assert folded == 3
-        assert self._render(parsed, folded, body) == body
-
     def test_title_uses_utc_date(self) -> None:
-        assert (
-            build_tracker_title(date(2026, 11, 6)) == "[Tracker] security alert — 2026-11-06 から"
-        )
+        assert build_tracker_title(date(2026, 11, 6)) == "[Tracker] security alert — 2026-11-06"
 
 
 class TestFindTracker:

@@ -1,5 +1,5 @@
 {
-  "stdout": "Tracker を立てる: [Tracker] security alert — {{TODAY}} から（要判断 1 件・Priority: high）\nTracker に載せる: dependabot #7\n立てた: Tracker #12\n",
+  "stdout": "Tracker を立てる: [Tracker] security alert — {{TODAY}}（1 件・Priority: high）\nTracker に載せる: dependabot #7\n立てた: Tracker #12\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -51,8 +51,8 @@
       "path": "/repos/acme/demo/issues",
       "query": {},
       "body": {
-        "title": "[Tracker] security alert — {{TODAY}} から",
-        "body": "<!-- pecot-alert: tracker -->\n\nDependabot・code scanning・secret scanning の open の alert を束ねる Tracker。\n`pecot security sync` が毎時、下の表を書き直す。表の外の文は残る。\nalert の中身は公開の Issue に書かず、Security タブで確かめる。\n\n手順: [Dependabot](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-dependabot)・[code scanning](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-code-scanning)・[secret scanning](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-secret-scanning)\n例外の見直し: [手順](https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-exceptions-review)\n<!-- pecot-alert: list-begin -->\n| 種類 | alert | Priority | パッケージ | 状態 |\n|---|---|---|---|---|\n| <!-- pecot-alert: dependabot/7 state=open priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high | left-pad（GHSA-aaaa-bbbb-cccc） | 要判断 |\n<!-- pecot-alert: list-end -->\n",
+        "title": "[Tracker] security alert — {{TODAY}}",
+        "body": "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot\n\n| title | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc sum=Prototype%20Pollution%20in%20left%2Dpad --> [Prototype Pollution in left-pad](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high |\n\n## code scanning\n\nnone\n\n## secret scanning\n\nnone\n<!-- pecot-alert: list-end -->\n",
         "labels": [
           "security-alert"
         ]

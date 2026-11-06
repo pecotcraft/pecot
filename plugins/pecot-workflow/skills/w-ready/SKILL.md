@@ -10,7 +10,7 @@ when_to_use: "Epic または Tracker の次のサブタスクを 1 件作りた�
 # 作業準備：サブタスクIssueを作成してReadyに配置
 
 Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録してReadyに置く。
-親が Tracker（security alert など）のときは、GAP の代わりに一覧の要判断の行から1件を選んで計画する。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
+親が Tracker（security alert など）のときは、GAP の代わりに一覧の行から1件を選んで計画する。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
 
 > 注意: 既存サブタスクの完了状況をユーザーに報告したり、「Epicを閉じますか」等を提案してはならない。直前タスクが完了済みなのはこのスキルを呼ぶ前提であり、特筆事項ではない。
 
@@ -41,7 +41,7 @@ pecot issue read owner/repo/XXX
 
 ### Step 3: 次のサブタスクをAIが計画する
 
-親が Tracker のときは GAP が無い。本文の一覧のうち状態が「要判断」の行から1件を選び、その alert を直す作業を計画する。
+親が Tracker のときは GAP が無い。本文の一覧の行から1件を選び、その alert を直す作業を計画する。
 
 Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをもとに、AIが次に着手すべき1件を計画する。
 
