@@ -101,7 +101,7 @@ export function createProgram(): Command {
   return program
 }
 
-// commander 14 の addCommand は親の exitOverride を継承しない。
+// commander 14 の addCommand は親の exitOverride を継承しない。 確認用。
 // そのため group command (pptx / slide / drawio / evidence) は素のままだと自前で process.exit(1) してしまう。
 // program から辿れる全 command へ再帰適用して、想定内終了を必ず CommanderError として
 // main() の catch まで同期伝播させる。引数なしの exitOverride() は leaf の自前設定と同一で冪等。
