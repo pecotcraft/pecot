@@ -85,3 +85,5 @@ copilot plugin update pecot-t@pecot
 ## ライセンス
 
 MIT License です。全文は [LICENSE](LICENSE) にあります。
+
+確認用の行です。
