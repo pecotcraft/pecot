@@ -65,6 +65,11 @@ _ZERO_SHA = "0000000000000000000000000000000000000000"
 #                            task id は `lane-two:test-unit:ci`、args.target.target は test-unit。
 #   STUB_NX_SAME_PROJECT   : lane-two:test-unit を lane-one:test-hooks にする。
 #                            lane-one:test-unit と同じ project の別レーン。
+#   STUB_NX_STATIC         : `--output-style=static` 形式の疑似出力にする（task ごとの塊）。
+#                            塊は p:test-unit（成功）/ p:test-cli-x（成功）/ q:test-hooks（成功）と、
+#                            失敗の p:test-cli は、見出しを次の形にする。
+#                              ::group::❌ > nx run p:test-cli  [local cache]
+#                            `Failed tasks:` は `- p:test-cli` の 1 件。
 #   STUB_NX_AGGREGATOR     : レーンを束ねる起点 lane-one:test（nx:noop）を 9.0s で足す。
 #   STUB_NX_CALL2_LONGER   : 2 回目の呼び出しだけ lane-one:test-unit の dur を 4.0s にする。
 #
@@ -127,6 +132,42 @@ fi
 if [ -n "${STUB_NX_NO_SUMMARY:-}" ]; then
     echo "NO_SUMMARY_BODY: simulates nx exiting before task start"
     echo "Cannot find configuration for task"
+    exit "$rc"
+fi
+
+if [ -n "${STUB_NX_STATIC:-}" ]; then
+    cat <<'STATIC'
+
+ NX   Running target test for 3 projects
+
+
+> nx run p:test-unit
+
+STATIC_PASS_UNIT_BODY 3 passed, 2 skipped
+
+> nx run p:test-cli-x
+
+STATIC_PASS_CLIX_BODY 1 passed
+
+::group::❌ > nx run p:test-cli  [local cache]
+
+STATIC_FAIL_BODY AssertionError: expected 1 to be 2
+::endgroup::
+
+> nx run q:test-hooks
+
+STATIC_PASS_HOOKS_BODY 5 passed, 1 skipped
+
+
+
+ NX   Running target test for 3 projects failed
+
+Failed tasks:
+
+- p:test-cli
+
+Performance Profile: placeholder
+STATIC
     exit "$rc"
 fi
 
@@ -1452,3 +1493,148 @@ def test_multiple_tips_pick_longest_across_runs(
     assert len(lines) == 1
     assert "最長 lane-one:test-unit 4.0s" in lines[0]
     assert "レーン 2" in lines[0]
+
+
+# ====
+# CI モード（PECOT_NX_CI=1）: static 出力・bail なし・task の塊で失敗を切り出す
+# ====
+
+
+def test_ci_mode_affected_uses_static_without_bail(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """PECOT_NX_CI=1 → affected は --output-style=static で、--nxBail を付けない。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_CI": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0
+
+    affected = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("affected ")]
+    assert len(affected) == 1
+    assert "--output-style=static" in affected[0]
+    assert "--output-style=stream" not in affected[0]
+    assert "--nxBail" not in affected[0]
+    assert "--parallel=4" in affected[0]
+
+
+def test_ci_mode_run_many_uses_static_without_bail(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """PECOT_NX_CI=1 → run-many フォールバックも static で、--nxBail を付けない。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature_no_remote()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_CI": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0
+
+    run_many = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("run-many ")]
+    assert len(run_many) == 1
+    assert "--output-style=static" in run_many[0]
+    assert "--nxBail" not in run_many[0]
+
+
+@pytest.mark.parametrize("value", [None, "", "0", "true"])
+def test_ci_mode_unset_or_other_value_keeps_stream_and_bail(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, value: str | None
+) -> None:
+    """未設定・1 以外の値 → 今までどおり stream と --nxBail（affected と run-many の両方）。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+    env = {"PRE_COMMIT_TO_REF": at_repo.feature_sha}
+    if value is not None:
+        env["PECOT_NX_CI"] = value
+
+    result = _run(script_dir, at_repo, run_script, env=env)
+    assert result.returncode == 0
+    lines = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("affected ")]
+    assert len(lines) == 1
+    assert "--nxBail" in lines[0]
+    assert "--output-style=stream" in lines[0]
+    assert "static" not in lines[0]
+
+    # run-many（push 情報なし）も同じ。
+    at_repo.nx_log.write_text("")
+    result = _run(script_dir, at_repo, run_script, env=dict(env, PRE_COMMIT_TO_REF=""), stdin="")
+    assert result.returncode == 0
+    many = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("run-many ")]
+    assert len(many) == 1
+    assert "--nxBail" in many[0]
+    assert "--output-style=stream" in many[0]
+
+
+def test_ci_mode_failure_reports_only_the_failed_task_chunk(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """static の失敗 → 失敗レーンの塊だけを stderr へ出し、他のレーンの塊は出さない。
+
+    見出しは `::group::❌ > nx run p:test-cli  [local cache]` 形式。
+    `p:test-cli-x` は `p:test-cli` の前方一致だが、別の task なので出さない。
+    """
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={
+            "PECOT_NX_CI": "1",
+            "STUB_NX_STATIC": "1",
+            "STUB_NX_EXIT": "1",
+            "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+        },
+    )
+    assert result.returncode == 1
+    assert "nx exit code: 1" in result.stderr
+
+    # 失敗の単位は `<project>:<target>`。
+    assert "=== 失敗レーン: p:test-cli ===" in result.stderr
+    assert "=== 失敗レーン: p:" not in result.stderr.replace("=== 失敗レーン: p:test-cli ===", "")
+    assert "> nx run p:test-cli  [local cache]" in result.stderr
+    assert "STATIC_FAIL_BODY AssertionError: expected 1 to be 2" in result.stderr
+    # 他のレーンの塊は出さない（前方一致の p:test-cli-x も含む）。
+    assert "STATIC_PASS_UNIT_BODY" not in result.stderr
+    assert "STATIC_PASS_CLIX_BODY" not in result.stderr
+    assert "STATIC_PASS_HOOKS_BODY" not in result.stderr
+    # 要約は出る。
+    assert "Failed tasks:" in result.stderr
+    assert "Performance Profile" not in result.stderr
+    assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
+
+    # ログには全レーン分が残る。
+    log_text = _hook_log_path(at_repo).read_text()
+    assert "STATIC_PASS_UNIT_BODY" in log_text
+    assert "STATIC_PASS_HOOKS_BODY" in log_text
+
+
+def test_ci_mode_failure_normalizes_exit_130(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """static でも exit 130 → 1 の正規化は残る。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={
+            "PECOT_NX_CI": "1",
+            "STUB_NX_STATIC": "1",
+            "STUB_NX_EXIT": "130",
+            "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+        },
+    )
+    assert result.returncode == 1
+    assert "nx exit code: 130" in result.stderr

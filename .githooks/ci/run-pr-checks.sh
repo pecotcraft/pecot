@@ -1,0 +1,318 @@
+#!/usr/bin/env bash
+# CI（GitHub Actions）で PR と main への push の検証を動かす。
+#
+# 使い方: run-pr-checks.sh <base> <head>
+#
+# 手元の hook と同じ設定（.pre-commit-config.yaml）を、範囲指定で 3 つの stage に流す。
+#   pre-commit → pre-push → manual の順。どれかが落ちても最後まで動かす。
+#   1 つでも落ちていれば exit 1 で終える。
+# 範囲とレーンの選び方は、手元の lib/push-range.sh と lib/nx-lanes.sh を通る。
+# CI 用に `nx affected` を直に呼ぶ道は作らない。
+#
+# pre-push の stage では、テストの 2 つの hook（nx-affected-tests・githooks-tests）を SKIP する。
+# 同じ hook は manual の stage でも動くため、2 回動かさないための措置。
+# pre-push からテストを外す作業（#66）で、この SKIP は要らなくなる。
+# check-version-plan-required は全 stage で SKIP する。version plan の判定は CI の別の job が担う。
+#
+# 全レーンのモード（FR-029）:
+#   NO_PREV=true、または base が履歴に無いときは、範囲を決められない。
+#   3 stage とも --all-files で呼び、PRE_COMMIT_TO_REF=<head> を自分で渡す。
+#   PECOT_VERSION_PLAN_BASE には解決できない ref を入れる。
+#   resolve_push_range が 12 を返し、run-affected-tests.sh は run-many へ落ちる。
+#
+# 出力:
+#   - 完了の印 `.pecot/tmp/ci/done` に最終の exit code を書く。開始時に古い印を消す。
+#   - Step Summary（Markdown）を env PECOT_CI_SUMMARY のファイルへ書く。未設定なら stdout。
+#
+# 環境変数:
+#   PECOT_PRE_COMMIT : pre-commit の実行ファイル。未設定なら PATH、無ければ uv で入れる。
+#   PECOT_CI_SUMMARY : Summary の書き先。
+#   PECOT_CI_IMAGE   : Summary の環境の欄に出すイメージ名。
+#   NO_PREV          : true のとき全レーンのモード（nx-set-shas の noPreviousBuild）。
+
+set -euo pipefail
+
+# shellcheck source=../lib/timing.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
+
+if [ "$#" -lt 2 ] || [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
+    echo "使い方: run-pr-checks.sh <base> <head>" >&2
+    exit 2
+fi
+base="$1"
+head="$2"
+
+repo_root=$(git rev-parse --show-toplevel 2> /dev/null || echo "")
+if [ -z "$repo_root" ]; then
+    echo "ERROR: repo root を解決できません（git rev-parse --show-toplevel 失敗）。" >&2
+    exit 1
+fi
+cd "$repo_root"
+
+ci_dir="$repo_root/.pecot/tmp/ci"
+done_file="$ci_dir/done"
+nx_log="$repo_root/.pecot/tmp/pre-push/nx-affected-tests.log"
+timing_file="$repo_root/$TIMING_RELPATH"
+
+# 完了の印は成否によらず書く。buildx が無いと Action は警告だけで成功するため、
+# 呼び出し側は印の有無で、このスクリプトが最後まで動いたかを判定する。
+# shellcheck disable=SC2329  # trap から呼ばれる
+write_done() {
+    local rc="$1"
+    mkdir -p "$ci_dir" 2> /dev/null || return 0
+    printf '%s\n' "$rc" > "$done_file" 2> /dev/null || true
+}
+trap 'write_done "$?"' EXIT
+
+mkdir -p "$ci_dir"
+rm -f "$done_file" "$nx_log"
+
+# スクリプト開始時の tsv の行数。これより後ろの行だけを、この run のレーンとして読む。
+timing_start_lines=0
+if [ -f "$timing_file" ]; then
+    timing_start_lines=$(wc -l < "$timing_file")
+fi
+
+# pre-commit の実行ファイルを解決する。install-git-hooks.sh と同じ道で入れる。
+resolve_pre_commit() {
+    if [ -n "${PECOT_PRE_COMMIT:-}" ]; then
+        printf '%s\n' "$PECOT_PRE_COMMIT"
+        return 0
+    fi
+    if command -v pre-commit > /dev/null 2>&1; then
+        command -v pre-commit
+        return 0
+    fi
+    if ! command -v uv > /dev/null 2>&1; then
+        echo "ERROR: pre-commit と uv のどちらも見つかりません。" >&2
+        return 1
+    fi
+    uv tool install pre-commit >&2 || return 1
+    printf '%s/pre-commit\n' "$(uv tool dir --bin)"
+}
+pre_commit=$(resolve_pre_commit) || exit 1
+
+# モードを決める。
+mode="通常"
+if [ "${NO_PREV:-}" = "true" ] || ! git cat-file -e "${base}^{commit}" 2> /dev/null; then
+    mode="全レーン"
+fi
+base_sha=$(git rev-parse --verify --quiet "${base}^{commit}" 2> /dev/null || printf '%s' "$base")
+head_sha=$(git rev-parse --verify --quiet "${head}^{commit}" 2> /dev/null || printf '%s' "$head")
+
+export NX_SKIP_NX_CACHE=true
+export PECOT_NX_CI=1
+
+stages=(pre-commit pre-push manual)
+declare -A stage_rc=()
+
+# stage を 1 つ動かす。落ちても呼び出し元を止めず、終了コードを控える。
+run_stage() {
+    local stage="$1" skip="check-version-plan-required" plan_base=""
+    local -a range_args=() extra_env=()
+    case "$stage" in
+        pre-push) skip="$skip,nx-affected-tests,githooks-tests" ;;
+    esac
+    [ -z "${SKIP:-}" ] || skip="$SKIP,$skip"
+    if [ "$mode" = "全レーン" ]; then
+        range_args=(--all-files)
+        if [ "$stage" != "pre-commit" ]; then
+            extra_env+=("PRE_COMMIT_TO_REF=$head" "PECOT_VERSION_PLAN_BASE=refs/pecot/ci-no-base")
+        fi
+    else
+        range_args=(--from-ref "$base" --to-ref "$head")
+        [ "$stage" = "pre-commit" ] || plan_base="$base"
+        [ -z "$plan_base" ] || extra_env+=("PECOT_VERSION_PLAN_BASE=$plan_base")
+    fi
+    echo "=== stage: $stage ($mode) ==="
+    local rc=0
+    env "SKIP=$skip" "${extra_env[@]}" "$pre_commit" run --hook-stage "$stage" \
+        "${range_args[@]}" --show-diff-on-failure --color=never || rc=$?
+    stage_rc["$stage"]=$rc
+    echo "=== stage: $stage 終了 exit=$rc ==="
+}
+
+# tsv の task 行（この run の分）から、レーンの表の行を出す。
+# name は `<project>:<target>[:<config>]`。target が test-* の行だけを数える。
+# 成否は detail の status= から決める。success と cache 系は成功、failure は失敗、他は値のまま。
+print_lane_rows() {
+    [ -f "$timing_file" ] || return 0
+    local kind name sec detail target status label
+    while IFS=$'\t' read -r _ kind name sec detail; do
+        [ "$kind" = "task" ] || continue
+        target=$(cut -d: -f2 <<< "$name")
+        [[ $target == test-* ]] || continue
+        status=${detail#*status=}
+        status=${status%% *}
+        label=$status
+        case "$status" in
+            success | local-cache* | remote-cache) label="成功" ;;
+            failure) label="失敗" ;;
+        esac
+        printf '| %s | %s | %ss |\n' "$name" "$label" "$sec"
+    done < <(tail -n "+$((timing_start_lines + 1))" "$timing_file")
+}
+
+print_lane_table() {
+    local rows
+    rows=$(print_lane_rows)
+    if [ -z "$rows" ]; then
+        echo "対象なし（成功）"
+        return 0
+    fi
+    echo "| レーン | 成否 | 所要 |"
+    echo "|---|---|---|"
+    printf '%s\n' "$rows"
+}
+
+# nx のログの `Failed tasks:` 以降の `- <project>:<target>` 行を、重複なしで出す。
+print_failed_lanes() {
+    [ -f "$nx_log" ] || return 0
+    local line on=0 lane
+    local -A seen=()
+    while IFS= read -r line; do
+        if [[ $line =~ ^\ *NX\  ]]; then
+            on=0
+        fi
+        if [[ $line == *"Failed tasks:"* ]]; then
+            on=1
+            continue
+        fi
+        [ "$on" -eq 1 ] || continue
+        if [[ $line =~ ^[[:space:]]*-[[:space:]]+([^:[:space:]]+:[^[:space:]]+) ]]; then
+            lane=${BASH_REMATCH[1]}
+            if [ -z "${seen[$lane]:-}" ]; then
+                seen[$lane]=1
+                printf '%s\n' "$lane"
+            fi
+        fi
+    done < "$nx_log"
+}
+
+# static 出力の task の塊から、レーンごとの skip の件数を `<lane>\t<件数>` で出す。
+# 見出しは `> nx run <project>:<target>` の行。先頭に `::group::<名> `、後ろに `  [local cache]` が付き得る。
+# 塊は次の見出しか `^ *NX ` の行まで。target が test-* の塊だけを数える。
+# vitest は `Tests` 行の `N skipped`、pytest は `N skipped` を含む `in <秒>s` の行を足す。
+print_skip_counts() {
+    [ -f "$nx_log" ] || return 0
+    local line lane="" task_id target
+    local -a order=()
+    local -A skipped=()
+    local head_re='^(::group::[^ ]+ )?> nx run ([^ ]+)'
+    local vitest_re='^[[:space:]]*([^[:space:]]+: )?Tests[[:space:]].*[^0-9]([0-9]+) skipped'
+    local pytest_re='([0-9]+) skipped.* in [0-9.]+s'
+    while IFS= read -r line; do
+        if [[ $line =~ $head_re ]]; then
+            task_id=${BASH_REMATCH[2]}
+            target=$(cut -d: -f2 <<< "$task_id")
+            lane=""
+            if [[ $target == test-* ]]; then
+                lane=$(cut -d: -f1-2 <<< "$task_id")
+                if [ -z "${skipped[$lane]+set}" ]; then
+                    skipped[$lane]=0
+                    order+=("$lane")
+                fi
+            fi
+        elif [[ $line =~ ^\ *NX\  ]]; then
+            lane=""
+        elif [ -n "$lane" ]; then
+            if [[ $line =~ $vitest_re ]]; then
+                skipped[$lane]=$((skipped[$lane] + BASH_REMATCH[2]))
+            elif [[ $line =~ $pytest_re ]]; then
+                skipped[$lane]=$((skipped[$lane] + BASH_REMATCH[1]))
+            fi
+        fi
+    done < "$nx_log"
+    for lane in "${order[@]}"; do
+        printf '%s\t%d\n' "$lane" "${skipped[$lane]}"
+    done
+}
+
+first_line_of() {
+    local out
+    if command -v "$1" > /dev/null 2>&1 && out=$("$@" 2>&1 | head -n 1) && [ -n "$out" ]; then
+        printf '%s\n' "$out"
+    else
+        echo "なし"
+    fi
+}
+
+# Step Summary を stdout へ出す。
+emit_summary() {
+    local stage lane count failed overall="成功"
+    echo "## 検証の結果"
+    echo
+    echo "### 範囲"
+    echo
+    echo "- base: \`$base_sha\`"
+    echo "- head: \`$head_sha\`（PR では head は merge commit）"
+    echo "- モード: $mode"
+    echo
+    echo "| stage | 成否 |"
+    echo "|---|---|"
+    for stage in "${stages[@]}"; do
+        if [ "${stage_rc[$stage]:-1}" -eq 0 ]; then
+            echo "| $stage | 成功 |"
+        else
+            echo "| $stage | 失敗（exit ${stage_rc[$stage]:-1}） |"
+            overall="失敗"
+        fi
+    done
+    echo
+    echo "全体: $overall"
+    echo
+    echo "### レーン"
+    echo
+    print_lane_table
+    echo
+    echo "### 失敗"
+    echo
+    failed=$(print_failed_lanes)
+    if [ -n "$failed" ]; then
+        while IFS= read -r lane; do
+            echo "- $lane"
+        done <<< "$failed"
+        echo
+        echo "ログは artifact \`ci-logs\` と、検証の step のログの \`=== 失敗レーン: ... ===\` を見る。"
+    else
+        echo "なし"
+    fi
+    echo
+    echo "### skip"
+    echo
+    local skips
+    skips=$(print_skip_counts)
+    if [ -n "$skips" ]; then
+        echo "| レーン | skip |"
+        echo "|---|---|"
+        while IFS=$'\t' read -r lane count; do
+            echo "| $lane | $count |"
+        done <<< "$skips"
+    else
+        echo "なし"
+    fi
+    echo
+    echo "### 環境"
+    echo
+    echo "- イメージ: ${PECOT_CI_IMAGE:--}"
+    echo "- node: $(first_line_of node --version)"
+    echo "- aws: $(first_line_of aws --version)"
+    echo "- actionlint: $(first_line_of actionlint --version)"
+}
+
+for stage in "${stages[@]}"; do
+    run_stage "$stage"
+done
+
+if [ -n "${PECOT_CI_SUMMARY:-}" ]; then
+    mkdir -p "$(dirname "$PECOT_CI_SUMMARY")"
+    emit_summary > "$PECOT_CI_SUMMARY" || echo "WARN: Summary を書けませんでした。" >&2
+else
+    emit_summary || echo "WARN: Summary を出せませんでした。" >&2
+fi
+
+final=0
+for stage in "${stages[@]}"; do
+    [ "${stage_rc[$stage]:-1}" -eq 0 ] || final=1
+done
+exit "$final"

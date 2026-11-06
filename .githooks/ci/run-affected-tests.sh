@@ -57,6 +57,17 @@
 #     nx の exit code も端末へ出す。
 #     nx の bail 由来 exit 130 は SIGINT と誤読されるため、exit 1 に正規化する。
 #
+# CI モード (PECOT_NX_CI=1):
+#   - 専用 env `PECOT_NX_CI=1` のときだけ、nx を `--output-style=static` で起動し、`--nxBail` を外す。
+#     未設定・他の値では、手元の既定（stream と --nxBail）のまま。`CI` は手元でも他のツールが立てるため使わない。
+#   - stream の接頭辞は project 名だけで、同じ project のレーンが並列で交互に出る。
+#     static は task の終了時に task 単位でまとめて出すので、レーンごとの skip 件数と失敗の切り出しができる。
+#   - bail を外すのは、CI の 1 回の run で全レーンの結果を出すため。
+#   - 失敗の切り出しは、project でなく `<project>:<target>` を単位にする。
+#     見出しは `> nx run <project>:<target>` の行。前に `::group::<icon> ` が付く場合もある。
+#     見出しから、
+#     次の見出しか最後の要約（`^ *NX `）の手前までを、その task の塊として出す。
+#
 # レーン別の所要の取得 (#1083):
 #   - nx 起動時に `NX_PROFILE=.pecot/tmp/pre-push/nx-profile.json` を付ける。
 #     task ごとの所要（trace JSON の `ph:"X"` 要素）を書かせるため。
@@ -123,6 +134,17 @@ ERROR: nx 実行ファイルが見つからないため affected テストを実
        緊急で回避する場合のみ `git push --no-verify` を使ってください。
 EOF
     exit 1
+fi
+
+# CI モード（PECOT_NX_CI=1 のときだけ。理由は冒頭のコメントの「CI モード」）。
+# 既定（stream と --nxBail）は手元の pre-push のためで、変えない。
+nx_static=0
+nx_output_style="stream"
+declare -a nx_bail_args=(--nxBail)
+if [ "${PECOT_NX_CI:-}" = "1" ]; then
+    nx_static=1
+    nx_output_style="static"
+    nx_bail_args=()
 fi
 
 # nx 出力の退避先。最初の nx 呼び出しの直前に truncate し、以降の呼び出しは追記する。
@@ -241,9 +263,11 @@ truncate_body_tail() {
 
 # nx 非 0 終了時に、原因が読み切れる範囲だけを stderr へ出す。
 # 対象はこの nx 呼び出しがログへ書いた範囲（$nx_log_offset の次行以降）に限る。
-# 末尾要約は範囲内の最後の `^ *NX ` 行から EOF まで。失敗 project は要約内の
+# 末尾要約は範囲内の最後の `^ *NX ` 行から EOF まで。失敗の単位は要約内の
 # `Failed tasks:` 以降の `- <project>:<target>` 行から取る（`Tasks not run ...` の
-# 列挙は含めない）。project の並びは要約の順序を保つ。
+# 列挙は含めない）。並びは要約の順序を保つ。
+# stream のときの単位は project で、`<project>: ` 接頭辞の行を出す。
+# static（PECOT_NX_CI=1）のときの単位は `<project>:<target>` で、見出しで切った task の塊を出す。
 report_nx_failure() {
     local nx_rc="$1"
     local scope_start summary_offset summary_start failed_projects project
@@ -256,9 +280,16 @@ report_nx_failure() {
     failed_projects=""
     if [ -n "$summary_offset" ]; then
         summary_start=$((scope_start + summary_offset - 1))
-        failed_projects=$(tail -n "+$summary_start" "$nx_log" \
-            | awk '/Failed tasks:/ { on = 1; next } on && /^[[:space:]]*-[[:space:]]+[^:[:space:]]+:/ { sub(/^[[:space:]]*-[[:space:]]+/, ""); sub(/:.*$/, ""); print }' \
-            | awk '!seen[$0]++')
+        if [ "$nx_static" -eq 1 ]; then
+            # `- <project>:<target>`（configuration 付きは `:ci` まで含めて 1 件）。
+            failed_projects=$(tail -n "+$summary_start" "$nx_log" \
+                | awk '/Failed tasks:/ { on = 1; next } on && /^[[:space:]]*-[[:space:]]+[^:[:space:]]+:/ { sub(/^[[:space:]]*-[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print }' \
+                | awk '!seen[$0]++')
+        else
+            failed_projects=$(tail -n "+$summary_start" "$nx_log" \
+                | awk '/Failed tasks:/ { on = 1; next } on && /^[[:space:]]*-[[:space:]]+[^:[:space:]]+:/ { sub(/^[[:space:]]*-[[:space:]]+/, ""); sub(/:.*$/, ""); print }' \
+                | awk '!seen[$0]++')
+        fi
     fi
     {
         echo
@@ -267,9 +298,27 @@ report_nx_failure() {
             while IFS= read -r project; do
                 [ -n "$project" ] || continue
                 echo "=== 失敗レーン: $project ==="
-                # 接頭辞はリテラル一致で取る（project 名を正規表現として解釈しない）。
-                body=$(tail -n "+$scope_start" "$nx_log" \
-                    | awk -v p="$project" 'index($0, p ": ") == 1') || true
+                if [ "$nx_static" -eq 1 ]; then
+                    # 見出し（`> nx run <id>`、前に `::group::<icon> ` が付き得る）から、次の見出しか
+                    # 最後の要約の手前までが task の塊。id は文字列の一致で判定する（正規表現にしない）。
+                    body=$(tail -n "+$scope_start" "$nx_log" \
+                        | awk -v id="$project" -v stop="$summary_start" -v base="$scope_start" '
+                            {
+                                if (stop != "" && base + NR - 1 >= stop) exit
+                                line = $0
+                                sub(/^::group::[^ ]+ /, "", line)
+                                if (line ~ /^> nx run /) {
+                                    cur = substr(line, 10)
+                                    sub(/[ ].*$/, "", cur)
+                                    on = (cur == id)
+                                }
+                                if (on && $0 != "::endgroup::") print
+                            }') || true
+                else
+                    # 接頭辞はリテラル一致で取る（project 名を正規表現として解釈しない）。
+                    body=$(tail -n "+$scope_start" "$nx_log" \
+                        | awk -v p="$project" 'index($0, p ": ") == 1') || true
+                fi
                 body_lines=$(printf '%s\n' "$body" | wc -l)
                 shown=$(printf '%s\n' "$body" | truncate_body_tail)
                 shown_lines=$(printf '%s\n' "$shown" | wc -l)
@@ -332,7 +381,7 @@ run_nx() {
 # フォールバックへ落ちると、その値が run-many まで引き継がれてしまう。
 run_all_tests() {
     unset PECOTV_PM_GUARD_BEHAVIOR
-    run_nx "$nx_bin" run-many -t test --parallel="$NX_PARALLEL" --nxBail --output-style=stream
+    run_nx "$nx_bin" run-many -t test --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
 }
 
 # push される tip を列挙。何も得られなければ push 情報なしとして全 project へフォールバック。
@@ -418,7 +467,7 @@ for tip in "${tips[@]}"; do
     # 報告して exit 1 で即終了する（push ブロック）。
     # 複数 tip の push では tip ごとに nx を起動するため、install / build も tip の数だけ実行される。
     run_nx "$nx_bin" affected -t "$test_lanes" \
-        --base="$from" --head="$to" --parallel="$NX_PARALLEL" --nxBail --output-style=stream
+        --base="$from" --head="$to" --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
 done
 
 # 1 件以上の tip がフォールバック条件に該当していたら run-many を 1 回だけ実行。

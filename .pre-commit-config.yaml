@@ -103,7 +103,8 @@ repos:
         language: unsupported_script
         pass_filenames: false
         files: ^(\.githooks/|scripts/gen-runtime-lock\.mjs$|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
-        stages: [pre-push]
+        # manual は CI（run-pr-checks.sh）用。pre-push は #66 で外す。
+        stages: [pre-push, manual]
 
       - id: nx-env-inputs
         name: nx env inputs declared
@@ -139,7 +140,8 @@ repos:
         # 成功 push でも合計と最長レーンの 1 行を端末へ出すため（pre-commit は
         # verbose でない hook の成功時出力を捨てる）
         verbose: true
-        stages: [pre-push]
+        # manual は CI（run-pr-checks.sh）用。pre-push は #66 で外す。
+        stages: [pre-push, manual]
 
       - id: check-runtime-lock
         name: runtime-lock.yaml matches root pnpm-lock.yaml
