@@ -84,10 +84,8 @@ def test_pecot_dir_created_when_absent(init_script: Path, dir_init_env: Path):
     assert (pecot / "state" / ".plugin-sync-version").is_file()
 
     gitignore_lines = (pecot / ".gitignore").read_text().splitlines()
-    assert "config/hosts.json" in gitignore_lines
-    assert "config/hosts.json.sample" in gitignore_lines
-    assert "config/.env" in gitignore_lines
-    assert "config/.env.sample" in gitignore_lines
+    assert "*" in gitignore_lines
+    assert "/config/*" in gitignore_lines
 
 
 # CLAUDE_PROJECT_DIR ガード。

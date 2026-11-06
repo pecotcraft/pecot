@@ -79,8 +79,8 @@ def test_gitignore_absent_generates_then_mkdir(guard_script: Path, pecot_dir: Pa
     gitignore = pecot_dir / ".gitignore"
     assert gitignore.is_file()
     assert (pecot_dir / "state").is_dir()
-    # pecot-gitignore-ensure.sh の生成内容（state/ の ignore）が含まれる
-    assert "state/" in gitignore.read_text().splitlines()
+    # pecot-gitignore-ensure.sh の生成内容（許可の一覧）が含まれる
+    assert "*" in gitignore.read_text().splitlines()
 
 
 # .pecot あり・.gitignore あり: 既存 .gitignore の内容を変更しない

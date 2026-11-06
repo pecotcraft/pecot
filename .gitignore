@@ -1,5 +1,5 @@
 # Working directories
-# 注: `.pecot/tmp/` `.pecot/work/` は `.pecot/.gitignore` 側でカバーするため root では ignore しない。
+# 注: `.pecot/` 配下は、追跡している `.pecot/.gitignore`（許可の一覧）が除外するため root では ignore しない。
 # bare な `tmp/` はこのリポでは使わない（一時領域は `.pecot/tmp/`、作業ファイルは `.pecot/work/`）。
 
 # Environment / secrets
