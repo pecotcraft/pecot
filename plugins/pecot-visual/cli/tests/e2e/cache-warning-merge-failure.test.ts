@@ -39,12 +39,13 @@ import {
   deckMarkdown,
 } from '../_helpers/cache-warning.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
 // vitest.e2e.config.ts の maxWorkers 構成で、並列に計測した。N=6 の 7 run 全体から最悪を取る。
 // 本 CUJ の最悪は 7.5s。マージン倍率 4.4 倍（33.0s）を取り、35s へ切り上げる。
-const SINGLE_CONVERT_CEILING_MS = 35_000
+const SINGLE_CONVERT_CEILING_MS = durationCeilingMs(35_000)
 
 const temporaryRoot = useTemporaryDirectory('pecotv-cache-warning-c-', { hook: 'all' })
 const projectDirectory = (): string => temporaryRoot('cache-warning-deck')

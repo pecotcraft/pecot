@@ -25,11 +25,12 @@ import {
   createFixtureThemeSpec,
 } from '../_helpers/pecotv-e2e-run.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 // vitest.e2e.config.ts の maxWorkers 構成で、並列に計測した。N=6 の 7 run 全体から最悪を取る。
 // 本 CUJ の最悪は 8.9s。マージン倍率 4.4 倍（39.2s）を取り、40s へ切り上げる。
 // 性能目標ではなく、hang regression を spawnSync の SIGTERM kill (600s) より手前で落とすための上限。
-const DURATION_CEILING_MS = 40_000
+const DURATION_CEILING_MS = durationCeilingMs(40_000)
 
 const temporaryRoot = useTemporaryDirectory('pecotv-e2e-default-out-', { hook: 'all' })
 

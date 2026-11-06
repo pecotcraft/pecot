@@ -17,9 +17,14 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # lint・githooks・tests を 3 つの job に分けて同時に動かす。
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [lint, githooks, tests]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,6 +56,7 @@ jobs:
             NX_HEAD
             NO_PREV
             PECOT_NX_CI=1
+            PECOTV_E2E_CEILING_SCALE=3
             PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
             PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 
@@ -60,16 +66,19 @@ jobs:
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           NO_PREV: ${{ steps.shas.outputs.noPreviousBuild }}
+          CHECKS_PART: ${{ matrix.part }}
         with:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
-          runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh "$NX_BASE" "$NX_HEAD"
+          runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part="$CHECKS_PART" "$NX_BASE" "$NX_HEAD"
           env: |
             CI
             NX_BASE
             NX_HEAD
             NO_PREV
+            CHECKS_PART
             PECOT_NX_CI=1
+            PECOTV_E2E_CEILING_SCALE=3
             PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
             PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 
@@ -84,7 +93,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ci-logs
+          name: ci-logs-${{ matrix.part }}
           path: |
             .pecot/tmp/pre-push/
             .pecot/tmp/githooks-timing.tsv
@@ -97,9 +106,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      # 取り消された matrix の job があっても、needs.checks.result が success になる報告がある
+      # （community discussion #211624）。そのため、3 件の job の conclusion を直接確かめる。
       - name: Require checks to succeed
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "checks: $CHECKS_RESULT"
           [ "$CHECKS_RESULT" = "success" ]
+          jobs=$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --json jobs)
+          for part in lint githooks tests; do
+            conclusion=$(jq -r --arg name "checks ($part)" '[.jobs[] | select(.name == $name)] | if length == 1 then .[0].conclusion else "missing" end' <<< "$jobs")
+            echo "checks ($part): $conclusion"
+            [ "$conclusion" = "success" ]
+          done

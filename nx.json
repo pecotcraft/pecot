@@ -30,6 +30,7 @@
       { "env": "PECOTV_SINGLE_PASS_CONCURRENCY" },
       { "env": "PECOTV_AUTO_INSTALL_BROWSER" },
       { "env": "PECOTV_FORCE_PDF_FAIL" },
+      { "env": "PECOTV_E2E_CEILING_SCALE" },
       { "env": "PECOTV_DECK_LINT" },
       { "env": "PECOTV_CLI_DIST" },
       { "env": "PECOTV_PLAYWRIGHT_AVAILABLE" },

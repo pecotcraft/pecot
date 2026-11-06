@@ -32,6 +32,7 @@ import {
 } from '../_helpers/pecotv-e2e-run.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 // 他 8 ファイルと同じく、runner は bin/pecotv の bootstrap を通さない。
 // 本体ツリーの cli/dist を直接実行する。
@@ -39,7 +40,7 @@ import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 // 本 CUJ は、bootstrap 込みの計測から 45s の上限を引き継いでいる。
 // 計測では最悪が 9.2s で、マージン倍率 4.4 倍は 40.4s。
 // 性能目標ではなく、hang regression を SIGTERM kill (600s) より手前で落とすための上限。
-const DURATION_CEILING_MS = 45_000
+const DURATION_CEILING_MS = durationCeilingMs(45_000)
 
 const temporaryRoot = useTemporaryDirectory('pecotv-e2e-', { hook: 'all' })
 

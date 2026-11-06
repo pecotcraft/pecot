@@ -26,6 +26,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { assertCliBuilt, BIN_PECOTV, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
@@ -34,7 +35,7 @@ const ICONS_DIR = path.join(PLUGIN_ROOT, 'assets', 'drawio-icons')
 
 // hang regression を spawnSync の kill より手前で落とすための上限。性能目標ではない。
 // pdf.ts / screenshot.ts が自前で持つ 60s の timeout の外側に置く（drawio-png-chromium.test.ts と同じ）。
-const DURATION_CEILING_MS = 90_000
+const DURATION_CEILING_MS = durationCeilingMs(90_000)
 const SPAWN_TIMEOUT_MS = 120_000
 
 /**

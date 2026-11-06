@@ -18,6 +18,7 @@ import { BIN_PECOTV, assertCliBuilt, createPecotvRunner } from '../_helpers/peco
 import { isStraceAvailable, parsePythonExecves, runWithoutPython } from '../_helpers/no-python.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { copyFixtureTheme } from '../_helpers/theme-fixtures.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
@@ -26,7 +27,7 @@ const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
 // 並列計測（vitest.e2e.config.ts の maxWorkers 構成、N=6 の 7 run 全体から最悪を取る）で、最も重い it は 1.83s。
 // マージン倍率 4.4 倍は 8.1s なので、9s へ切り上げる。
 // 性能目標ではなく、hang regression を SIGTERM kill (600s) より手前で落とすための上限。
-const PER_IT_CEILING_MS = 9000
+const PER_IT_CEILING_MS = durationCeilingMs(9000)
 
 const temporaryRoot = useTemporaryDirectory('pecotv-e2e-errors-', { hook: 'all' })
 

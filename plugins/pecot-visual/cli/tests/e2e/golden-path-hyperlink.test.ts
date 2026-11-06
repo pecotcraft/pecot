@@ -29,6 +29,7 @@ import {
 import { aggregateCount, extractFromPptx } from '../_helpers/xpath-extract.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { FIXTURE_THEMES } from '../_helpers/theme-fixtures.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
@@ -37,7 +38,7 @@ const XPATH_CASES = path.join(CLI_TS_ROOT, 'tests', 'e2e', 'xpath-cases.yml')
 // 並列計測（vitest.e2e.config.ts の maxWorkers 構成、N=6 の 7 run 全体から最悪を取る）で、本 CUJ 最悪は 10.0s。
 // これにマージン倍率 4.4 倍（44.0s）を取り、45s へ切り上げる。
 // hang regression を SIGTERM kill (600s) より手前で落とす目的。
-const DURATION_CEILING_MS = 45_000
+const DURATION_CEILING_MS = durationCeilingMs(45_000)
 
 interface XPathCase {
   readonly id: string

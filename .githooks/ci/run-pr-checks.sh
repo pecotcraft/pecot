@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# CI で、pre-commit の 3 つの stage を <base>..<head> の範囲指定で流す（使い方: run-pr-checks.sh <base> <head>）。
+# CI で、pre-commit の 3 つの stage を <base>..<head> の範囲指定で流す（使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] <base> <head>）。
+# --part を付けると、その部分の stage だけを流す。オプションは位置引数の前後どちらにも置ける。
+#   lint: pre-commit と pre-push。githooks: manual（nx-affected-tests を除く）。tests: manual（githooks-tests を除く）。
 # 落ちても最後まで動かし、完了の印 .pecot/tmp/ci/done に exit code を書く。
 # NO_PREV=true または base が履歴に無いときは、全レーンのモード（--all-files）にする。
 
@@ -8,12 +10,29 @@ set -euo pipefail
 # shellcheck source=../lib/timing.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 
-if [ "$#" -lt 2 ] || [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
-    echo "使い方: run-pr-checks.sh <base> <head>" >&2
+usage="使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] <base> <head>"
+part=""
+positional=()
+for arg in "$@"; do
+    case "$arg" in
+        --part=*) part="${arg#--part=}" ;;
+        *) positional+=("$arg") ;;
+    esac
+done
+case "$part" in
+    "" | lint | githooks | tests) ;;
+    *)
+        echo "ERROR: --part は lint・githooks・tests のどれかです: $part" >&2
+        echo "$usage" >&2
+        exit 2
+        ;;
+esac
+if [ "${#positional[@]}" -ne 2 ] || [ -z "${positional[0]}" ] || [ -z "${positional[1]}" ]; then
+    echo "$usage" >&2
     exit 2
 fi
-base="$1"
-head="$2"
+base="${positional[0]}"
+head="${positional[1]}"
 
 repo_root=$(git rev-parse --show-toplevel 2> /dev/null || echo "")
 if [ -z "$repo_root" ]; then
@@ -75,6 +94,19 @@ export NX_SKIP_NX_CACHE=true
 export PECOT_NX_CI=1
 
 stages=(pre-commit pre-push manual)
+# part 指定時に、manual の stage で飛ばす hook。テストの 2 つの hook は manual の stage に載っている。
+part_skip=""
+case "$part" in
+    lint) stages=(pre-commit pre-push) ;;
+    githooks)
+        stages=(manual)
+        part_skip="nx-affected-tests"
+        ;;
+    tests)
+        stages=(manual)
+        part_skip="githooks-tests"
+        ;;
+esac
 declare -A stage_rc=()
 
 run_stage() {
@@ -85,6 +117,7 @@ run_stage() {
         # テストの 2 つの hook は manual の stage でも動くため、2 回動かさない。
         pre-push) skip="$skip,nx-affected-tests,githooks-tests" ;;
     esac
+    [ -z "$part_skip" ] || skip="$skip,$part_skip"
     [ -z "${SKIP:-}" ] || skip="$SKIP,$skip"
     if [ "$mode" = "全レーン" ]; then
         range_args=(--all-files)
@@ -205,8 +238,14 @@ first_line_of() {
 
 # Step Summary を stdout へ出す。
 emit_summary() {
-    local stage lane count failed overall="成功"
-    echo "## 検証の結果"
+    local stage overall="成功"
+    local ci_logs="ci-logs"
+    if [ -n "$part" ]; then
+        echo "## 検証の結果（$part）"
+        ci_logs="ci-logs-$part"
+    else
+        echo "## 検証の結果"
+    fi
     echo
     echo "### 範囲"
     echo
@@ -227,6 +266,20 @@ emit_summary() {
     echo
     echo "全体: $overall"
     echo
+    if [ -z "$part" ] || [ "$part" = "tests" ]; then
+        emit_lane_sections "$ci_logs"
+    fi
+    echo "### 環境"
+    echo
+    echo "- イメージ: ${PECOT_CI_IMAGE:--}"
+    echo "- node: $(first_line_of node --version)"
+    echo "- aws: $(first_line_of aws --version)"
+    echo "- actionlint: $(first_line_of actionlint --version)"
+}
+
+# レーン・失敗・skip の欄。レーンを動かす part（tests と省略時）だけ出す。
+emit_lane_sections() {
+    local ci_logs="$1" lane count failed
     echo "### レーン"
     echo
     print_lane_table
@@ -239,7 +292,7 @@ emit_summary() {
             echo "- $lane"
         done <<< "$failed"
         echo
-        echo "ログは artifact \`ci-logs\` と、\`Run checks\` の step のログの \`=== 失敗レーン: ... ===\` を見る。"
+        echo "ログは artifact \`$ci_logs\` と、\`Run checks\` の step のログの \`=== 失敗レーン: ... ===\` を見る。"
     else
         echo "なし"
     fi
@@ -258,12 +311,6 @@ emit_summary() {
         echo "なし"
     fi
     echo
-    echo "### 環境"
-    echo
-    echo "- イメージ: ${PECOT_CI_IMAGE:--}"
-    echo "- node: $(first_line_of node --version)"
-    echo "- aws: $(first_line_of aws --version)"
-    echo "- actionlint: $(first_line_of actionlint --version)"
 }
 
 for stage in "${stages[@]}"; do

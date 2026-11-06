@@ -11,7 +11,10 @@ bash "$root/setup.sh"
 (cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install --with-deps chromium)
 # pecot-visual の Playwright MCP は、端末の Google Chrome を使う（MCP の既定）。
 # Playwright の Chrome 導入は、arm64 Linux と Ubuntu・Debian 以外で失敗する。x86_64 のときだけ入れる。
-if [ "$(uname -m)" = "x86_64" ]; then
+# CI の job は Chrome を使わないため、CI=true では入れない。
+if [ "${CI:-}" = "true" ]; then
+  echo "post-create: CI では Chrome の導入を飛ばします。" >&2
+elif [ "$(uname -m)" = "x86_64" ]; then
   (cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install --with-deps chrome)
 else
   echo "post-create: $(uname -m) では Chrome の導入を飛ばします。" >&2
