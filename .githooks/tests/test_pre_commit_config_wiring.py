@@ -545,3 +545,10 @@ def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
         if str(path.relative_to(root)) not in referenced
     ]
     assert orphans == []
+
+
+@pytest.mark.parametrize("hook_id", ["nx-affected-tests", "githooks-tests"])
+def test_test_hooks_run_in_pre_push_and_manual(script_dir: Path, hook_id: str) -> None:
+    """テストの 2 つの hook は pre-push に加えて manual でも動く。manual は CI（run-pr-checks.sh）用。"""
+    block = _hook_entry_lines(_config_text(script_dir), hook_id)
+    assert _stages(block) == ["pre-push", "manual"]

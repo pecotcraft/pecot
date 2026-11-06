@@ -27,7 +27,7 @@ jobs:
     env:
       TAG: ${{ inputs.tag }}
     steps:
-      - name: tag からパッケージ名と版を決める
+      - name: Resolve package and version from tag
         id: resolve
         env:
           MSG_BAD_TAG: "tag の形が違います。pecot-visual-v<version> か pecot-tools-v<version> を渡してください。"
@@ -39,14 +39,16 @@ jobs:
           echo "package=@pecot/${BASH_REMATCH[1]}-mcp" >> "$GITHUB_OUTPUT"
           echo "version=${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: Set up Node.js
+
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
       # 未公開の版は E404 で非 0 になる。E404 は未公開として進み、ほかの失敗は止める。
-      - name: 公開済みか確かめる
+      - name: Check if already published
         id: published
         env:
           PACKAGE: ${{ steps.resolve.outputs.package }}
@@ -71,7 +73,7 @@ jobs:
 
       # private のリポからの --provenance は registry に拒まれる。
       # 拒まれる前に、透明性ログへリポ名が残る。
-      - name: リポが private なら止める
+      - name: Fail if repository is private
         if: steps.published.outputs.done == 'false'
         env:
           PRIVATE: ${{ github.event.repository.private }}
@@ -82,7 +84,7 @@ jobs:
             exit 1
           fi
 
-      - name: tgz を取る
+      - name: Download tgz from release
         if: steps.published.outputs.done == 'false'
         env:
           REPO: ${{ github.repository }}
@@ -91,7 +93,7 @@ jobs:
           gh release download "$TAG" --pattern '*.tgz' -R "$REPO"
           ls -l ./*.tgz
 
-      - name: publish
+      - name: Publish to npm
         if: steps.published.outputs.done == 'false'
         env:
           PACKAGE: ${{ steps.resolve.outputs.package }}

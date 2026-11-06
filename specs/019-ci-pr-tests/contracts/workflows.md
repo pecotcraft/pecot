@@ -11,7 +11,7 @@ Action はすべて SHA で固定し、版をコメントに書く（`publish-np
 | 権限 | `contents: read`・`actions: read`・`packages: read`・`pull-requests: read` |
 | concurrency | `ci-${{ github.event.pull_request.number \|\| github.ref }}`、PR のときだけ `cancel-in-progress` |
 | 時間の上限 | job ごとに `timeout-minutes: 45` |
-| push の範囲 | 直前に成功した `main` の run の commit から HEAD まで。その commit が履歴に無ければ全レーン（FR-029） |
+| push の範囲 | 直前に成功した `main` の run の commit から HEAD まで。成功した run が無い（`noPreviousBuild`）か、base の commit を読めなければ全レーン（FR-029） |
 | 秘密 | 使わない（FR-009） |
 
 job は次のとおり。必須チェックは `ci-result` と `version-plan` の 2 つにする。
