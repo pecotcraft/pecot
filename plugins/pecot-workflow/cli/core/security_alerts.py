@@ -201,15 +201,12 @@ def _cell(text: str) -> str:
 
 def _entry_row(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
     url = f"https://{host}/{owner}/{repo}/security/{e.kind}/{e.number}"
-    package = ""
-    if e.package:
-        package = e.package + (f"（{e.ghsa}）" if e.ghsa else "")
-    cells = [
-        f"{_entry_marker(e)} {KIND_LABELS[e.kind]}",
-        f"[#{e.number}]({url})",
-        e.priority,
-        _cell(package),
-    ]
+    cells = [f"{_entry_marker(e)} [#{e.number}]({url})", e.priority]
+    if e.kind == "dependabot":
+        package = ""
+        if e.package:
+            package = e.package + (f"（{e.ghsa}）" if e.ghsa else "")
+        cells.append(_cell(package))
     return "| " + " | ".join(cells) + " |"
 
 
@@ -265,13 +262,36 @@ def sorted_entries(entries: list[TrackerEntry]) -> list[TrackerEntry]:
     return sorted(entries, key=lambda e: (ALERT_KINDS.index(e.kind), e.number))
 
 
-def _table(entries: list[TrackerEntry], host: str, owner: str, repo: str) -> str:
+def _section(
+    kind: AlertKind, entries: list[TrackerEntry], disabled: bool, host: str, owner: str, repo: str
+) -> str:
+    """種類ごとの見出しと表。無効の種類は見出しだけ、0 件の種類は「なし」"""
+    label = KIND_LABELS[kind]
+    if disabled:
+        return f"## {label} — 無効"
+    rows = [e for e in entries if e.kind == kind]
+    head = f"## {label} — {len(rows)} 件\n\n"
+    if not rows:
+        return head + "なし"
+    columns = ["alert", "Priority"] + (["パッケージ"] if kind == "dependabot" else [])
     lines = [
-        "| 種類 | alert | Priority | パッケージ |",
-        "|---|---|---|---|",
-        *(_entry_row(e, host, owner, repo) for e in entries),
+        "| " + " | ".join(columns) + " |",
+        "|" + "---|" * len(columns),
+        *(_entry_row(e, host, owner, repo) for e in rows),
     ]
-    return "\n".join(lines)
+    return head + "\n".join(lines)
+
+
+def _sections(
+    entries: list[TrackerEntry],
+    disabled_kinds: set[AlertKind] | frozenset[AlertKind],
+    host: str,
+    owner: str,
+    repo: str,
+) -> str:
+    return "\n\n".join(
+        _section(kind, entries, kind in disabled_kinds, host, owner, repo) for kind in ALERT_KINDS
+    )
 
 
 def render_tracker_body(
@@ -280,8 +300,11 @@ def render_tracker_body(
     owner: str,
     repo: str,
     existing_body: str | None = None,
+    disabled_kinds: set[AlertKind] | frozenset[AlertKind] = frozenset(),
 ) -> str:
     """Tracker の本文を作る
+
+    一覧は種類ごとの見出しと表にする。無効の種類（``disabled_kinds``）は見出しだけにする。
 
     ``existing_body`` があれば、list-begin から list-end の間だけを書き直し、外の文は残す。
     無ければ、Tracker の印と一覧だけの本文を作る。
@@ -297,7 +320,7 @@ def render_tracker_body(
         begin, end = _list_region(text)
         head = text[:begin] + "\n"
         tail = "\n" + text[end:]
-    return head + _table(entries, host, owner, repo) + tail
+    return head + _sections(entries, disabled_kinds, host, owner, repo) + tail
 
 
 def build_tracker_title(today: date) -> str:
@@ -358,14 +381,14 @@ def plan_tracker(
 
     ``entries`` が None のときは open の Tracker が無い。表に載せる行があるときだけ立てる。
     取れた種類の行は、open の alert から例外（Dependabot）を引いたものにする。
-    一覧を取れなかった種類（``failed_kinds``）と無効の種類（``disabled_kinds``）は、
-    その種類の前の行をそのまま使い、足さない。
+    一覧を取れなかった種類（``failed_kinds``）は、その種類の前の行をそのまま使い、足さない。
+    無効の種類（``disabled_kinds``）は行を持たない（本文には見出しだけが出る）。
     """
     skipped = set(failed_kinds) | set(disabled_kinds)
     excepted = {e.alert for e in exceptions or []}
     old_by_key = {e.key: e for e in entries or []}
     rows: dict[tuple[AlertKind, int], TrackerEntry] = {
-        old.key: old for old in entries or [] if old.kind in skipped
+        old.key: old for old in entries or [] if old.kind in failed_kinds
     }
     for kind in ALERT_KINDS:
         if kind in skipped:

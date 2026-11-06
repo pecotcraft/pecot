@@ -195,12 +195,14 @@ class TestPlanTracker:
 
         assert plan.create is False
 
-    def test_disabled_kind_is_untouched(self) -> None:
-        old = [_e("code-scanning", 1)]
-        plan = plan_tracker({}, [], old, disabled_kinds={"code-scanning"})
+    def test_disabled_kind_has_no_rows_and_is_not_added(self) -> None:
+        old = [_e("code-scanning", 1), _e("dependabot", 2)]
+        plan = plan_tracker(
+            {"dependabot": [_a("dependabot", 2)]}, [], old, disabled_kinds={"code-scanning"}
+        )
 
-        assert _keys(plan) == [("code-scanning", 1)]
-        assert plan.removed == []
+        assert _keys(plan) == [("dependabot", 2)]
+        assert [e.key for e in plan.removed] == [("code-scanning", 1)]
 
     def test_second_run_is_a_noop(self) -> None:
         alerts = {"dependabot": [_a("dependabot", 1)], "code-scanning": [_a("code-scanning", 3)]}
@@ -267,31 +269,54 @@ class TestTrackerBody:
             assert "--" not in m
             assert "state=" not in m
 
-    def test_new_body_is_only_marker_and_table(self) -> None:
+    def test_new_body_is_marker_and_sections_only(self) -> None:
         body = self._render(self._entries())
-        lines = body.split("\n")
 
-        assert lines[:4] == [
-            "<!-- pecot-alert: tracker -->",
-            "",
-            "<!-- pecot-alert: list-begin -->",
-            "| 種類 | alert | Priority | パッケージ |",
-        ]
-        assert lines[-2:] == ["<!-- pecot-alert: list-end -->", ""]
+        assert body.startswith(
+            "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot — 2 件\n\n"
+        )
+        assert body.endswith("<!-- pecot-alert: list-end -->\n")
+        assert body.index("## Dependabot") < body.index("## code scanning")
+        assert body.index("## code scanning") < body.index("## secret scanning")
+        assert "| alert | Priority | パッケージ |\n|---|---|---|\n" in body
+        assert "| alert | Priority |\n|---|---|\n" in body
         assert "[#1](https://github.com/o/r/security/dependabot/1)" in body
         assert "@scope/left-pad（GHSA-aaaa-bbbb-cccc）" in body
         assert "SECURITY.md" not in body
         assert "状態" not in body
-        outside = body.replace(
-            body[body.index("| 種類") : body.index("<!-- pecot-alert: list-end")], ""
-        )
-        assert re.sub(r"<!--.*?-->|\s", "", outside) == ""
+        assert "## code scanning — 1 件\n\n| alert | Priority |" in body
+        assert "## secret scanning — 1 件" in body
+        # 印・見出し・表の行だけ。説明の文は無い
+        for line in body.split("\n"):
+            assert line == "" or line.startswith(("<!--", "## ", "|"))
 
-    def test_empty_table_has_header_only(self) -> None:
+    def test_code_scanning_row_has_no_package_cell(self) -> None:
+        body = self._render([_e("code-scanning", 4, priority="low")])
+
+        assert "| <!-- pecot-alert: code-scanning/4 priority=low --> [#4](" in body
+        assert body.count("| low |") == 1
+
+    def test_empty_kinds_show_none(self) -> None:
         body = self._render([])
 
-        assert "| 種類 | alert | Priority | パッケージ |" in body
-        assert "pecot-alert: dependabot/" not in body
+        for label in ("Dependabot", "code scanning", "secret scanning"):
+            assert f"## {label} — 0 件\n\nなし" in body
+        assert "|" not in body
+        assert parse_tracker_entries(body) == []
+
+    def test_disabled_kind_is_a_heading_only(self) -> None:
+        body = render_tracker_body(
+            [_e("dependabot", 1)], H, OWNER, R, disabled_kinds={"code-scanning"}
+        )
+
+        assert "## code scanning — 無効\n\n## secret scanning — 0 件\n\nなし" in body
+        assert "## Dependabot — 1 件" in body
+
+    def test_headings_and_none_lines_are_not_parsed_as_rows(self) -> None:
+        entries = self._entries()
+        body = self._render(entries)
+
+        assert parse_tracker_entries(body) == entries
 
     def test_text_outside_the_table_is_kept(self) -> None:
         existing = self._render([_e("dependabot", 1)])

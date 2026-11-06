@@ -206,7 +206,7 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
 
     today = datetime.now(timezone.utc).date()
     title = build_tracker_title(today)
-    body = render_tracker_body(plan.entries, config.host, owner, repo, existing_body)
+    body = render_tracker_body(plan.entries, config.host, owner, repo, existing_body, disabled)
     number = int(tracker["number"]) if tracker else None
     unchanged = number is not None and body == (existing_body or "").replace("\r\n", "\n")
     if number is not None and unchanged:

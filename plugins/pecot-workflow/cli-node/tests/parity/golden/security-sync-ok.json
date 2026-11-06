@@ -52,7 +52,7 @@
       "query": {},
       "body": {
         "title": "[Tracker] security alert — {{TODAY}}",
-        "body": "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n| 種類 | alert | Priority | パッケージ |\n|---|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high | left-pad（GHSA-aaaa-bbbb-cccc） |\n<!-- pecot-alert: list-end -->\n",
+        "body": "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot — 1 件\n\n| alert | Priority | パッケージ |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc --> [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high | left-pad（GHSA-aaaa-bbbb-cccc） |\n\n## code scanning — 0 件\n\nなし\n\n## secret scanning — 0 件\n\nなし\n<!-- pecot-alert: list-end -->\n",
         "labels": [
           "security-alert"
         ]

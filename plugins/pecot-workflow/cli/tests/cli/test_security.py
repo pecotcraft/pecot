@@ -139,7 +139,8 @@ class TestSync:
         assert body.startswith(
             "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n"
         )
-        assert "| 種類 | alert | Priority | パッケージ |" in body
+        assert "## Dependabot — 1 件\n\n| alert | Priority | パッケージ |" in body
+        assert "## code scanning — 0 件\n\nなし" in body
         assert "state=" not in body
         assert "SECURITY.md" not in body
 
@@ -310,18 +311,33 @@ class TestSync:
         assert result.exit_code == 1
         client.create_issue.assert_not_called()
 
-    def test_disabled_kind_is_untouched_with_exit_0(self) -> None:
-        entry = _row("secret-scanning", 1)
+    def test_disabled_kind_is_a_heading_only_with_exit_0(self) -> None:
         client = _client(
             secret_scanning=GitHubNotFoundError("nf", status_code=404, response_body="{}"),
-            issues=[_tracker(5, _body(entry))],
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body(_row("secret-scanning", 1)))],
         )
         client.get_secret_scanning_status.return_value = "disabled"
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
         assert "secret scanning: 無効のため飛ばします" in result.output
-        client.update_issue_body.assert_not_called()
+        body = client.update_issue_body.call_args.args[3]
+        assert "## secret scanning — 無効" in body
+        assert "pecot-alert: secret-scanning/" not in body
+
+    def test_failed_kind_keeps_rows_and_count(self) -> None:
+        entry = _row("secret-scanning", 1)
+        client = _client(
+            secret_scanning=GitHubAPIError("boom", status_code=500),
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body(entry))],
+        )
+        _invoke(client, ["sync"])
+
+        body = client.update_issue_body.call_args.args[3]
+        assert "## secret scanning — 1 件" in body
+        assert "pecot-alert: secret-scanning/1 priority=" in body
 
     def test_secret_scanning_404_without_disabled_status_fails(self) -> None:
         """権限不足の 404 を無効とみなさない。触れずに exit 1"""
