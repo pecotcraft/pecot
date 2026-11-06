@@ -1,34 +1,7 @@
 #!/usr/bin/env bash
-# CI（GitHub Actions）で PR と main への push の検証を動かす。
-#
-# 使い方: run-pr-checks.sh <base> <head>
-#
-# 手元の hook と同じ設定（.pre-commit-config.yaml）を、範囲指定で 3 つの stage に流す。
-#   pre-commit → pre-push → manual の順。どれかが落ちても最後まで動かす。
-#   1 つでも落ちていれば exit 1 で終える。
-# 範囲とレーンの選び方は、手元の lib/push-range.sh と lib/nx-lanes.sh を通る。
-# CI 用に `nx affected` を直に呼ぶ道は作らない。
-#
-# pre-push の stage では、テストの 2 つの hook（nx-affected-tests・githooks-tests）を SKIP する。
-# 同じ hook は manual の stage でも動くため、2 回動かさないための措置。
-# pre-push からテストを外す作業（#66）で、この SKIP は要らなくなる。
-# check-version-plan-required は全 stage で SKIP する。version plan の判定は CI の別の job が担う。
-#
-# 全レーンのモード（FR-029）:
-#   NO_PREV=true、または base が履歴に無いときは、範囲を決められない。
-#   3 stage とも --all-files で呼び、PRE_COMMIT_TO_REF=<head> を自分で渡す。
-#   PECOT_VERSION_PLAN_BASE には解決できない ref を入れる。
-#   resolve_push_range が 12 を返し、run-affected-tests.sh は run-many へ落ちる。
-#
-# 出力:
-#   - 完了の印 `.pecot/tmp/ci/done` に最終の exit code を書く。開始時に古い印を消す。
-#   - Step Summary（Markdown）を env PECOT_CI_SUMMARY のファイルへ書く。未設定なら stdout。
-#
-# 環境変数:
-#   PECOT_PRE_COMMIT : pre-commit の実行ファイル。未設定なら PATH、無ければ uv で入れる。
-#   PECOT_CI_SUMMARY : Summary の書き先。
-#   PECOT_CI_IMAGE   : Summary の環境の欄に出すイメージ名。
-#   NO_PREV          : true のとき全レーンのモード（nx-set-shas の noPreviousBuild）。
+# CI で、pre-commit の 3 つの stage を <base>..<head> の範囲指定で流す（使い方: run-pr-checks.sh <base> <head>）。
+# 落ちても最後まで動かし、完了の印 .pecot/tmp/ci/done に exit code を書く。
+# NO_PREV=true または base が履歴に無いときは、全レーンのモード（--all-files）にする。
 
 set -euo pipefail
 
@@ -54,8 +27,7 @@ done_file="$ci_dir/done"
 nx_log="$repo_root/.pecot/tmp/pre-push/nx-affected-tests.log"
 timing_file="$repo_root/$TIMING_RELPATH"
 
-# 完了の印は成否によらず書く。buildx が無いと Action は警告だけで成功するため、
-# 呼び出し側は印の有無で、このスクリプトが最後まで動いたかを判定する。
+# buildx が無いと Action は警告だけで成功するため、呼び出し側は印の有無で完了を判定する。
 # shellcheck disable=SC2329  # trap から呼ばれる
 write_done() {
     local rc="$1"
@@ -67,13 +39,12 @@ trap 'write_done "$?"' EXIT
 mkdir -p "$ci_dir"
 rm -f "$done_file" "$nx_log"
 
-# スクリプト開始時の tsv の行数。これより後ろの行だけを、この run のレーンとして読む。
+# この行数より後ろだけを、この run のレーンとして読む。
 timing_start_lines=0
 if [ -f "$timing_file" ]; then
     timing_start_lines=$(wc -l < "$timing_file")
 fi
 
-# pre-commit の実行ファイルを解決する。install-git-hooks.sh と同じ道で入れる。
 resolve_pre_commit() {
     if [ -n "${PECOT_PRE_COMMIT:-}" ]; then
         printf '%s\n' "$PECOT_PRE_COMMIT"
@@ -106,11 +77,12 @@ export PECOT_NX_CI=1
 stages=(pre-commit pre-push manual)
 declare -A stage_rc=()
 
-# stage を 1 つ動かす。落ちても呼び出し元を止めず、終了コードを控える。
 run_stage() {
+    # version plan の判定は CI の別の job が担う。
     local stage="$1" skip="check-version-plan-required" plan_base=""
     local -a range_args=() extra_env=()
     case "$stage" in
+        # テストの 2 つの hook は manual の stage でも動くため、2 回動かさない。
         pre-push) skip="$skip,nx-affected-tests,githooks-tests" ;;
     esac
     [ -z "${SKIP:-}" ] || skip="$SKIP,$skip"
@@ -132,9 +104,6 @@ run_stage() {
     echo "=== stage: $stage 終了 exit=$rc ==="
 }
 
-# tsv の task 行（この run の分）から、レーンの表の行を出す。
-# name は `<project>:<target>[:<config>]`。target が test-* の行だけを数える。
-# 成否は detail の status= から決める。success と cache 系は成功、failure は失敗、他は値のまま。
 print_lane_rows() {
     [ -f "$timing_file" ] || return 0
     local kind name sec detail target status label
@@ -189,10 +158,7 @@ print_failed_lanes() {
     done < "$nx_log"
 }
 
-# static 出力の task の塊から、レーンごとの skip の件数を `<lane>\t<件数>` で出す。
-# 見出しは `> nx run <project>:<target>` の行。先頭に `::group::<名> `、後ろに `  [local cache]` が付き得る。
-# 塊は次の見出しか `^ *NX ` の行まで。target が test-* の塊だけを数える。
-# vitest は `Tests` 行の `N skipped`、pytest は `N skipped` を含む `in <秒>s` の行を足す。
+# static 出力の task の塊（見出しは `> nx run <project>:<target>`）から、レーンごとの skip の件数を出す。
 print_skip_counts() {
     [ -f "$nx_log" ] || return 0
     local line lane="" task_id target

@@ -1,98 +1,6 @@
 #!/usr/bin/env bash
-# pre-push で nx affected の test target を実行する root 共通のチェック。
-#
-# Hook stage: pre-push
-#
-# テスト範囲の決定を nx project graph に一本化する。
-# 従来の path 正規表現ベースの `<plugin>-run-tests`（`files: ^plugins/<plugin>/`）は廃止した。
-# nx.json・ルート package.json 等の設定変更が plugin に波及するケースを取りこぼすため。
-# 本フック 1 本で `nx affected -t <test レーン名の列挙>` を実行する。
-# これにより project.json の test-* target 経由で dispatch する。
-#
-# 起点の `test`（nx:noop）ではなく、レーンを名前で要求する。
-# その理由とレーン名の集め方は lib/nx-lanes.sh を参照（#1232）。
-# nx 24 のタスク単位 affected は、起点を要求すると起点自身が affected になる。
-# その結果、全レーンを連れてくる。
-# 変更が届いたレーンだけを実行するには、レーンを要求する。
-# 全 project のフォールバック（run-many）は、起点の `test` を要求する。
-# これは全レーンを実行する流れで、affected の選択に左右されない。
-#
-# base/head の解決は、version-plan ガードと同一の共有 lib（lib/push-range.sh）を使う。
-# これにより、両チェックが同じ push range を評価することを構造で保証する。
-#
-# 起動方法は次の 2 通り。
-#   (a) pre-commit 経由 (env PRE_COMMIT_TO_REF / PRE_COMMIT_FROM_REF)。
-#   (b) git pre-push stdin 直接 (<local_ref> <local_sha> <remote_ref> <remote_sha>)。
-#   いずれも FROM は merge-base(base, local) で自前算出する（version-plan ガードと同じ）。
-#
-# 判定不能時の方針。ローカル pre-push が唯一のテストのチェックのため、fail-open は採らない。
-#   - base / merge-base / push 情報が解決不能 → WARN + `nx run-many -t test`（全 project）へフォールバック。
-#     フォールバックのテスト失敗（非 0）は握り潰さず、push をブロックする。
-#     複数 tip が全てフォールバック条件に該当しても、run-many は 1 回だけ実行する。
-#     フォールバック要求をフラグに集約し、tip ループ後にまとめて実行する。
-#   - nx / node が解決不能 → fail-closed（復旧手順入り ERROR + exit 1）。
-#     緊急回避は `git push --no-verify` が標準の逃げ道で、専用 skip env は設けない。
-#   - ブランチ削除 push (to=ZERO_SHA) / from==to / tip が commit へ peel 不能 (annotated tag 等)
-#     → exit 0（テスト実行なし）。
-#
-# lane は --parallel=N で並列に実行する（#1080）。
-# build / install の共有生成物は各 lane の test target の dependsOn へ寄せてある。
-# そのため、並列でも 1 push 1 回に収束する。
-#
-# 失敗時の出力方針 (#1079):
-#   - nx へ `--nxBail` を渡し、最初に失敗したレーンで未着手のレーンを打ち切る。
-#   - nx の stdout/stderr は端末に直接流さない。`<repo_root>/.pecot/tmp/pre-push/nx-affected-tests.log` へ書く。
-#     pre-commit は hook の出力を完了まで捕捉するため、stream 出力は実行中の端末に届かない。
-#     別端末から `tail -f` で進行を見られるように、ファイル名は固定にする。
-#     truncate は最初の nx 呼び出しの直前に行う。
-#     以降の tip ループとフォールバックは、同一ファイルへ追記する。
-#     nx を起動しない push では、前回のログを残す。
-#   - 非 0 終了時は、その nx 呼び出しがログへ書いた範囲だけを対象に報告する。
-#     複数 tip の push では、先行 nx 実行の同名レーンの行が混在するため。
-#     末尾要約（`Failed tasks:` 以降）から失敗 project を取る。
-#     その project の接頭辞（`<project>: `）を持つ行と要約を、stderr へ出す。
-#     並列実行でレーンの出力が交互に混在するため、位置でなく接頭辞で切り出す。
-#     本文は末尾から、行数と byte の両上限で切り詰める。
-#     失敗 project が取れなければ、最後の要約ブロック以降と、ログ末尾の一定行数を出す。
-#     nx の exit code も端末へ出す。
-#     nx の bail 由来 exit 130 は SIGINT と誤読されるため、exit 1 に正規化する。
-#
-# CI モード (PECOT_NX_CI=1):
-#   - 専用 env `PECOT_NX_CI=1` のときだけ、nx を `--output-style=static` で起動し、`--nxBail` を外す。
-#     未設定・他の値では、手元の既定（stream と --nxBail）のまま。`CI` は手元でも他のツールが立てるため使わない。
-#   - stream の接頭辞は project 名だけで、同じ project のレーンが並列で交互に出る。
-#     static は task の終了時に task 単位でまとめて出すので、レーンごとの skip 件数と失敗の切り出しができる。
-#   - bail を外すのは、CI の 1 回の run で全レーンの結果を出すため。
-#   - 失敗の切り出しは、project でなく `<project>:<target>` を単位にする。
-#     見出しは `> nx run <project>:<target>` の行。前に `::group::<icon> ` が付く場合もある。
-#     見出しから、
-#     次の見出しか最後の要約（`^ *NX `）の手前までを、その task の塊として出す。
-#
-# レーン別の所要の取得 (#1083):
-#   - nx 起動時に `NX_PROFILE=.pecot/tmp/pre-push/nx-profile.json` を付ける。
-#     task ごとの所要（trace JSON の `ph:"X"` 要素）を書かせるため。
-#     nx は値を `path.join(cwd, 値)` で解決するため、相対パスが必須となる。
-#     nx は repo root へ cd した subshell で起動する。
-#     nx は失敗時も profile を書く。起動ごとに前回分を削除してから起動する。
-#   - NX_PROFILE は task の子プロセスへ継承される。
-#     将来レーン内で nx を入れ子起動すると、その nx もレーンの cwd 基準（plugins/<plugin>/.pecot/tmp/...）へ profile を書く。
-#     入れ子起動を入れるときは、レーン側で NX_PROFILE を外す。
-#
-# 所要の記録 (#1083):
-#   - `<repo_root>/.pecot/tmp/githooks-timing.tsv`（lib/timing.sh）へ追記する。
-#     nx の task 1 件につき task 行を、nx の起動 1 回につき nx 行を書く。
-#     nx 行の内容は parallel / lanes / longest / 記録処理の秒 rec。
-#     profile が無い、または JSON として読めない場合は WARN を出し、nx 行は lanes=0 で残す。
-#     記録の成否は exit code を変えない。
-#     hook 行はラッパー（with-timing.sh）が書く。
-#   - nx を 1 回以上起動して成功した push では、stdout へ 1 行を出す。
-#     内容は合計秒・最長 test task・並列度・レーン数（重複除外のレーン名の数）。
-#     skip 系と失敗 push では出さない。
-#     先頭ラベルは、affected のみなら `nx affected tests:`、run-many を使ったなら `nx run-many tests:`。
-#   - レーンに数える task は、args.target.target（無ければ task id の 2 要素目）が `test-*` のもの。
-#     `test` は各 project のレーンを dependsOn で束ねる nx:noop の起点なので、数えない。
-#     configuration 付き（`<project>:test-cli:ci`）も数える。レーン名は `<project>:<target>`。
-#     所要は nx の壁時計差のため、負になり得る。その場合は 0 に丸める。
+# pre-push で nx affected の test レーンを実行する root 共通のチェック（Hook stage: pre-push）。
+# レーン名は lib/nx-lanes.sh で集めて要求する。起点の `test` を要求すると全レーンが選ばれる。
 
 set -euo pipefail
 
@@ -100,8 +8,6 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 hook_start_us=$(timing_now_us)
 
-# nx の lane 並列度。N=4 で確定 (#1225)。
-# 24 コアで N=2〜4 を各 3 回測り、中央値が最短（83.5 秒）だった。N=3 の 1 回は drawio export の flaky で失敗した。
 # 値を変えるときは test_run_affected_tests.py の `--parallel=` と「並列 N」も直す。
 NX_PARALLEL=4
 
@@ -136,8 +42,8 @@ EOF
     exit 1
 fi
 
-# CI モード（PECOT_NX_CI=1 のときだけ。理由は冒頭のコメントの「CI モード」）。
-# 既定（stream と --nxBail）は手元の pre-push のためで、変えない。
+# 失敗の切り出しと run-pr-checks.sh の skip 集計は、static の見出し `> nx run <project>:<target>` に依存する。
+# 見出しの前に `::group::<icon> ` を伴う場合もある。
 nx_static=0
 nx_output_style="stream"
 declare -a nx_bail_args=(--nxBail)
@@ -183,11 +89,7 @@ for (const e of data) {
 }
 '
 
-# nx 1 回分の profile を読み、task 行と nx 行を記録して push 全体の集計へ足す。
-# 引数は <nx サブコマンド（affected|run-many）>、<nx の所要秒>、<nx の exit code> の 3 つ。
-# 記録・解析の失敗は WARN に留め、呼び出し元の exit code を変えない。
-# nx が profile を書く前に終了した場合（exit code 非 0 かつ profile 無し）は、失敗報告に任せる。
-# この場合は WARN を出さない。
+# 記録・解析の失敗は WARN に留め、exit code を変えない。nx が profile を書く前に終了したときは WARN も出さない。
 record_lane_timings() {
     local subcmd="$1" nx_sec="$2" nx_rc="$3"
     local rec_start_us tasks name sec status target tenths
@@ -241,19 +143,12 @@ nx_log_from() {
     tail -n "+$1" "$nx_log" | grep -v '^ *Performance Profile: ' || true
 }
 
-# 失敗レーンの本文として stderr へ出す上限。行数上限を先に当ててから byte 上限を
-# 行境界で当てる（`tail -c` はマルチバイト文字を分断して端末を文字化けさせる）。
-# 400 行の根拠は #1079 の計測にある。
-# 最大の vitest レーン本文（pecot-visual の cli レーン, 351 行）は、丸ごと収まる。
-# pytest レーン（pecot-workflow の hooks レーン, 1,728 行）は、進捗ドットが `<project>: .` として 1 行ずつ出る。
-# そのため末尾の FAILURES 以降だけに切り詰まる。
+# 失敗レーンの本文の上限。byte は行境界で切る（`tail -c` はマルチバイト文字を分断する）。
 nx_log_tail_lines=400
 nx_log_tail_bytes=65536
 # 失敗 project が要約から取れないときに出すログ末尾の行数。
 nx_log_fallback_lines=80
 
-# stdin の本文を末尾から切り詰めて stdout へ出す。行数上限 → byte 上限の順で、
-# byte 上限も行境界で当てる（マルチバイト分断を避けるため）。
 truncate_body_tail() {
     tail -n "$nx_log_tail_lines" \
         | tac \
@@ -261,13 +156,8 @@ truncate_body_tail() {
         | tac
 }
 
-# nx 非 0 終了時に、原因が読み切れる範囲だけを stderr へ出す。
-# 対象はこの nx 呼び出しがログへ書いた範囲（$nx_log_offset の次行以降）に限る。
-# 末尾要約は範囲内の最後の `^ *NX ` 行から EOF まで。失敗の単位は要約内の
-# `Failed tasks:` 以降の `- <project>:<target>` 行から取る（`Tasks not run ...` の
-# 列挙は含めない）。並びは要約の順序を保つ。
-# stream のときの単位は project で、`<project>: ` 接頭辞の行を出す。
-# static（PECOT_NX_CI=1）のときの単位は `<project>:<target>` で、見出しで切った task の塊を出す。
+# 範囲は $nx_log_offset 以降（複数 tip の先行 run の行を混ぜない）。
+# 失敗の単位は stream が project、static が `<project>:<target>`。
 report_nx_failure() {
     local nx_rc="$1"
     local scope_start summary_offset summary_start failed_projects project
@@ -347,10 +237,7 @@ report_nx_failure() {
     } >&2
 }
 
-# nx を 1 回起動し、出力をログへ追記する。非 0 なら失敗レーンを報告して push をブロックする。
-# 初回呼び出しでログを truncate し、呼び出しごとに開始オフセットを控える（報告範囲の限定用）。
-# 色付けは NO_COLOR=1 と FORCE_COLOR の除去で止める（ANSI がログと端末の抽出を汚すため）。
-# 終了後は成否によらず所要を記録してから判定する（失敗レーンの所要も残すため）。
+# NX_PROFILE は repo root 相対で渡す（nx が cwd 基準で解決する）。
 run_nx() {
     local rc=0 nx_start_us nx_sec
     if [ "$nx_log_started" -eq 0 ]; then
@@ -373,12 +260,7 @@ run_nx() {
     fi
 }
 
-# 全 project の test target を実行するフォールバック。
-# nx の非 0（テスト失敗）は握り潰さず、報告のうえ exit 1 で push をブロックする。
-# フォールバックでは PECOTV_PM_GUARD_BEHAVIOR を未設定（= 静的チェック + 挙動チェックの両方）で
-# 起動する。push range が解決できていない以上、ガード対象の変更有無を判定できないため。
-# unset は必須: 複数 tip の push で先行 tip が =0 を export した後に後続 tip が
-# フォールバックへ落ちると、その値が run-many まで引き継がれてしまう。
+# 先行 tip が export した PECOTV_PM_GUARD_BEHAVIOR=0 を引き継がないよう unset する。
 run_all_tests() {
     unset PECOTV_PM_GUARD_BEHAVIOR
     run_nx "$nx_bin" run-many -t test --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
@@ -398,9 +280,7 @@ if [ "${#tips[@]}" -eq 0 ]; then
     exit 0
 fi
 
-# 複数 tip が全てフォールバック条件に該当しても run-many は 1 回だけ実行する。
-# フォールバック要求をフラグへ集約し、WARN は初回のみ出す。affected が解決できた
-# tip はその場で tip ごとに affected を実行する（従来どおり）。
+# 複数 tip がフォールバック条件に該当しても run-many は 1 回だけ実行する。
 fallback_requested=0
 warn_once() {
     if [ "$fallback_requested" -eq 0 ]; then
@@ -436,18 +316,13 @@ for tip in "${tips[@]}"; do
             continue ;;
     esac
 
-    # rc=0 なら range は "<from> <to>" の 2 トークン。万一空なら BUG として即終了
-    # （resolve_push_range の契約違反。空 range で affected を呼ぶと nx が全 project
-    # 評価へ暴走しうるため防衛する）。
+    # 空 range で affected を呼ぶと nx が全 project を評価するため止める。
     [ -n "$range" ] || { echo "BUG: resolve_push_range が rc=0 で空 range を返しました。" >&2; exit 1; }
 
     from="${range%% *}"
     to="${range##* }"
 
-    # pm-guard の挙動チェック（隔離 install と npx の確認、数秒）の結果は、
-    # ガードの保護対象が push range で変わらない限り不変。
-    # 対象は、各 package.json の devEngines / engines、.npmrc、pnpm-workspace.yaml のメンバー、チェックスクリプト自体。
-    # 変更が無い push では、静的チェックだけに絞る (#1080)。
+    # pm-guard の挙動チェック（数秒）は、保護対象のファイルが変わった push だけで動かす。
     # grep へはヒアストリングで渡す（パイプだと grep -q の早期終了が pipefail に拾われる）。
     changed_files=$(git -C "$repo_root" diff --name-only "$from" "$to" 2>/dev/null || true)
     if grep -qE '(^|/)(package\.json|\.npmrc|pnpm-workspace\.yaml)$|check-pm-guard\.sh$' \
@@ -457,15 +332,11 @@ for tip in "${tips[@]}"; do
         export PECOTV_PM_GUARD_BEHAVIOR=0
     fi
 
-    # レーン名が取れなければ fail-closed（空の -t で nx を起動すると全 target を評価しうる）。
-    # nx_lane_targets が ERROR を stderr へ出す。
+    # レーン名が取れなければ止める（空の -t は全 target を評価する）。
     if [ -z "$test_lanes" ]; then
         test_lanes=$(nx_lane_targets "$nx_bin" "$repo_root" test) || exit 1
     fi
 
-    # affected が 0 件なら nx は no-op で exit 0。テスト失敗時は失敗レーンの出力を
-    # 報告して exit 1 で即終了する（push ブロック）。
-    # 複数 tip の push では tip ごとに nx を起動するため、install / build も tip の数だけ実行される。
     run_nx "$nx_bin" affected -t "$test_lanes" \
         --base="$from" --head="$to" --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
 done
