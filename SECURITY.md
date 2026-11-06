@@ -29,23 +29,39 @@ GitHub の非公開の脆弱性報告で受け付けます。[Report a vulnerabi
 
 ## alert の Issue から始める手順（メンテナ向け）
 
-main の alert は、Actions の `security-alerts` が毎時、ボードの Issue にします。対象は Dependabot・code scanning・secret scanning です。
-Issue にはラベル `security-alert` が付き、Status は Ready です。alert が閉じると、次の実行で Issue も閉じます。
-Issue を手で閉じたり、Issue の中身を足したりしません。決めた結果は、alert の側（修正・dismiss・例外）に反映します。
+main の alert は、Actions の `security-alerts` が毎時、Tracker 1 件の一覧にそろえます。対象は Dependabot・code scanning・secret scanning です。
+Tracker は、ラベル `security-alert` の Issue で、題は `[Tracker] security alert — <日付> から` です。Status は Backlog です。
+open の Tracker が無く、判断の要る alert があるときだけ、新しい Tracker が立ちます。
 
-Issue の題と本文には、種類・番号・Priority・Security タブの alert の URL・この文書へのリンクだけを書きます。
+Tracker の本文には、alert の一覧の表があります。表の列は、種類・alert（Security タブへのリンク）・Priority・パッケージ（Dependabot のみ）・状態です。
+状態は次の 3 つです。
+
+| 状態 | 意味 |
+|---|---|
+| 要判断 | open で、例外に載っていない。下の種類ごとの節で決める |
+| 例外 | open で、`.github/dependabot-exceptions.json` に載る。見直しの条件（`reevaluate`）が添えられる |
+| 結果 | fixed・dismissed・resolved のいずれかで、理由が添えられる。alert が無くなった行もここに入る |
+
+直す作業は、`/pecot-w:w-ready` で Tracker の下にサブタスクとして切ります。一覧の要判断の行から 1 件を選びます。
+決めた結果は、alert の側（修正・dismiss・例外）に反映します。次の実行で、表の行が結果に変わります。
+
+Tracker は sync が閉じません。閉じる操作と、ボードの Archived へ移す操作は、人が行います。
+sync は、表の印のある行だけを読み、本文の表の部分を丸ごと置き換えます。人が表に足した行は、次の実行で消えます。
+表の外の文は残るので、メモは表の外に書きます。本文が前と同じなら、書き込みません。
+
+Tracker の題と本文には、種類・番号・Priority・Security タブの alert の URL・この文書へのリンクだけを書きます。
 Dependabot は公開の advisory なので、パッケージ名と GHSA の ID も書きます。
 code scanning の rule・パス・行や、secret の種類・場所は、公開の Issue に書きません。alert の中身は Security タブで読みます。
-Issue のコメントにも、alert の中身を書かないでください。
+Tracker のコメントやサブタスクにも、alert の中身を書かないでください。
 
-Issue の本文のリンクから、種類ごとの節へ進みます。
+Tracker の本文のリンクから、種類ごとの節へ進みます。
 
 | 種類 | 手順の節 |
 |---|---|
 | Dependabot | [Dependabot の alert](#alert-dependabot) |
 | code scanning | [code scanning の alert](#alert-code-scanning) |
 | secret scanning | [secret scanning の alert](#alert-secret-scanning) |
-| 月 1 回の例外の見直し | [例外の見直し](#alert-exceptions-review) |
+| 例外の見直し | [例外の見直し](#alert-exceptions-review) |
 
 ### 費用の前提
 
@@ -66,15 +82,15 @@ Issue の本文のリンクから、種類ごとの節へ進みます。
 
 ### Dependabot の alert
 
-Issue の alert の URL を開き、パッケージと、修正版の有無を確かめます。次の順で決めます。
+Tracker の行の alert の URL を開き、パッケージと、修正版の有無を確かめます。次の順で決めます。
 
-1. lock の更新で修正版に上がる。直す。依存を更新する PR を出す。マージすると alert が fixed になり、Issue が閉じる
+1. lock の更新で修正版に上がる。直す。依存を更新する PR を出す。マージすると alert が fixed になり、次の実行で行が結果に変わる
 2. 親の依存が修正版を許さず、上げられない。`.github/dependabot-exceptions.json` に例外を載せる。項目は次のとおりで、どれも空にできない
    - `alert`: alert 番号
    - `package`: パッケージ名
    - `reason`: 上げられない理由
    - `reevaluate`: 例外を外す条件（例: 親が修正版を許したら外す）
-   - alert は open のままで、`pecot release preflight` だけが例外として通す。Issue も open のままで、月 1 回の見直しの対象になる
+   - alert は open のままで、`pecot release preflight` だけが例外として通す。Tracker では例外の行になり、見直しの条件が添えられる
 3. canary など、配布物に入らない依存である。Security タブで `not_used` として dismiss する。コメントに理由を書く
 
 ```
@@ -89,7 +105,7 @@ gh api -X PATCH repos/pecotcraft/pecot/dependabot/alerts/<番号> \
 実害のある alert と、直すほうが安い alert は、dismiss せずに直します。
 直さない alert は、次の「誤検知の alert を閉じる」の手順で決めます。
 閉じてよいのは admin が認めたものだけで、エージェントは一覧と理由を示して承認を待ちます。
-閉じた alert の Issue は、次の実行で閉じます。
+閉じた alert は、次の実行で Tracker の行が結果に変わります。
 
 <a id="alert-secret-scanning"></a>
 
@@ -99,20 +115,24 @@ gh api -X PATCH repos/pecotcraft/pecot/dependabot/alerts/<番号> \
 値・種類・場所（ファイルパス・コミット）は、Issue・コメント・PR などの公開の場に書きません。
 場所は Security タブの alert で確かめます。
 テストのための合成の値など、直さない alert は、次の「誤検知の alert を閉じる」の手順で決めます。
-閉じた alert の Issue は、次の実行で閉じます。
+閉じた alert は、次の実行で Tracker の行が結果に変わります。
 
 <a id="alert-exceptions-review"></a>
 
 ### 例外の見直し
 
-`.github/dependabot-exceptions.json` に例外が 1 件以上ある間、月 1 回（毎月 1 日）に見直しの Issue ができます。
-本文には、例外ごとの alert 番号・パッケージ・見直し条件が並びます。
+例外は、2 か所で見直します。
+
+- Tracker の例外の行。行には `reevaluate` の条件が添えられる。作業の合間に、条件が満たされたかを確かめる
+- リリースのときの `pecot release preflight`。例外ごとに、理由と見直しの条件を表示する。リリースの前に、条件が満たされたかを確かめる
+
+見直しの手順は次のとおりです。
 
 1. 例外ごとに、`reevaluate` の条件が満たされたかを確かめる。親の依存の最新版を調べる
 2. 満たされた例外は、依存を更新して alert を fixed にし、例外を外す
 3. 満たされない例外は残す。`reason` が古ければ書き直す
 4. alert がすでに閉じている例外は、ファイルから外す
-5. 見直しの結果をコミットまたは PR にし、Issue を閉じる
+5. 見直しの結果をコミットまたは PR にする
 
 ## 誤検知の alert を閉じる（メンテナ向け）
 

@@ -10,12 +10,13 @@ AI は推測で埋めない。ここで定義される手順に従い、ユー�
 
 実装ファイル: `commands/issue.py::_resolve_epic_target_repo`
 
-Epic と通常 Issue（task / bug）で挙動が異なる。
+Epic と、task / bug / tracker で挙動が異なる。
 
 | 種類 | 投稿先の決まり方 |
 |------|-----------------|
 | Epic | `aggregation_repo` が設定済みなら **そこに集約する**。`--repo` 未指定 + `repository: ""` でも CLI が自動補完。例外時のみ `--repo <owner/repo>` で明示（CLI が stderr 警告を出して作成は続行） |
 | 通常 Issue（task / bug） | **実装が行われるリポ** を指定する。Epic が aggregation_repo に置かれていても、その配下のサブタスクは aggregation_repo に作らない |
+| Tracker | task と同じく `--repo` が必須で、aggregation_repo に寄せない。security alert の Tracker は `pecot security sync` が実装リポに立てる |
 
 Epic は「プロジェクト全体の進捗把握 / 親子追跡」のため集約リポに寄せる。一方サブタスクは
 実装コードが置かれるリポに作ることで、PR や branch と同じ場所で追跡できる。両者を混同すると
@@ -30,7 +31,7 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 CLI が exit 2 で失敗する代表ケース:
 
 - Epic で `--repo` 未指定かつ `aggregation_repo` も未設定（決定不能）
-- 通常 Issue で `repository: ""` のまま投稿（必須フィールド欠落）
+- 通常 Issue（task / bug / tracker）で `repository: ""` のまま投稿（必須フィールド欠落）
 
 ## 2. `parent_epic` の指定
 
@@ -95,19 +96,19 @@ CLI 受理後のフロントマター正規化（`_normalize_parent_epic`）は�
   一覧のタイトルには `#<Epic番号>-NN`（枝があれば `NNa`）が含まれる。確認してから次の番号を指定する。
   再利用はできない（CLOSED でも空き番号にしない）
 
-タイトル prefix（`[Task]` / `[Bug]` / `[Epic]`）は `_build_issue_title` が type から自動付与する。
+タイトル prefix（`[Task]` / `[Bug]` / `[Epic]` / `[Tracker]`）は `_build_issue_title` が type から自動付与する。
 ユーザー入力のタイトルに先頭で同じ prefix が入っていれば剥がしてから付け直す。
 
 ## 4. テンプレート選択
 
-実装ファイル: `cli/templates/issue/{task,bug,epic,task-implement}.md`
+実装ファイル: `cli/templates/issue/{task,bug,epic,tracker,task-implement}.md`
 
 スキル ↔ テンプレート対応:
 
 | スキル | テンプレート | 用途 |
 |--------|-------------|------|
 | `/pecot-w:w-backlog` | `epic.md` | Epic を 1 件作成し Backlog 配置 |
-| `/pecot-w:w-ready` | `task.md` / `bug.md` | Epic 配下のサブタスクを 1 件作成し Ready 配置 |
+| `/pecot-w:w-ready` | `task.md` / `bug.md` | Epic または Tracker 配下のサブタスクを 1 件作成し Ready 配置 |
 | `/pecot-w:w-issueize` | `task-implement.md`（または `task.md`） | 計画ファイル（speckit の tasks.md 等）の各フェーズを一括 Issue 化 |
 | `/pecot-w:w-quick` | `task.md` / `bug.md` | ユーザー指示が来た直後に小タスクを Issue 化 + ブランチ作成まで一気に進める |
 
@@ -115,6 +116,9 @@ CLI 受理後のフロントマター正規化（`_normalize_parent_epic`）は�
 
 - `task.md`: 新機能・改善・リファクタ・タスク追加など、**達成したい状態** が主軸
 - `bug.md`: 既存挙動が期待値と乖離している事象の修正。**Problem（Expected / Actual を対置する表 + Repro）** が主軸
+
+`tracker.md` は、複数の作業を束ねる Tracker を `issue create` で起こすときのテンプレで、Backlog に置く。
+security alert の Tracker は `pecot security sync` が本文を作るので、このテンプレを通らない。
 
 `task-implement.md` は w-issueize 固有の「実装フェーズを順に展開する」フォーマットで、
 通常の単発起票では使わない。
@@ -128,7 +132,7 @@ CLI が生成した prepared file を見れば、AI は判定基準に辿り着�
 本節は §4「テンプレート選択」の一部で、各テンプレで起票したときの既定 status を扱う。
 
 計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
-既定は task/bug=ready、epic=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
+既定は task/bug=ready、epic=backlog、tracker=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
 これらは未着手の置き場であり、着手時に `create-branch` がボード Status を active に設定する。
 
 `issue quick` は task/bug を active で起票する。

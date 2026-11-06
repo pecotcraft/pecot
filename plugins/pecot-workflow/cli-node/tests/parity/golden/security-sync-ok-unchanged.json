@@ -1,8 +1,39 @@
 {
-  "stdout": "作った: 例外の見直し（Issue #12）\n",
+  "stdout": "Tracker #20 は変わらない\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/dependabot/alerts",
+      "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/code-scanning/alerts",
+      "query": {
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "GET",
+      "path": "/repos/acme/demo/secret-scanning/alerts",
+      "query": {
+        "hide_secret": "true",
+        "per_page": "100",
+        "state": "open"
+      },
+      "auth": "token"
+    },
     {
       "type": "rest",
       "method": "GET",
@@ -15,26 +46,12 @@
       "auth": "token"
     },
     {
-      "type": "rest",
-      "method": "POST",
-      "path": "/repos/acme/demo/issues",
-      "query": {},
-      "body": {
-        "title": "[Task] Dependabot の例外を見直す",
-        "body": "<!-- pecot-alert: exceptions-review -->\n\nDependabot の例外を見直す時機です。\n\n- alert #1（minimatch）: 見直し条件: bump when the parent accepts the fix\n\n手順: https://ghes.example.com/acme/demo/blob/main/SECURITY.md#alert-exceptions-review\n",
-        "labels": [
-          "security-alert"
-        ]
-      },
-      "auth": "token"
-    },
-    {
       "type": "graphql",
       "operation": "GetIssueNodeId",
       "variables": {
         "owner": "acme",
         "repo": "demo",
-        "number": 12
+        "number": 20
       },
       "auth": "token"
     },
@@ -43,29 +60,27 @@
       "operation": "AddToProject",
       "variables": {
         "projectId": "PVT_1",
-        "contentId": "I_kwDO12"
+        "contentId": "I_kwDO20"
       },
       "auth": "token"
     },
     {
       "type": "graphql",
-      "operation": "UpdateProjectItemField",
+      "operation": "GetIssueProjectItems",
       "variables": {
-        "projectId": "PVT_1",
-        "itemId": "PVTI_12",
-        "fieldId": "PVTSSF_workflow",
-        "optionId": "o3"
+        "owner": "acme",
+        "repo": "demo",
+        "number": 20
       },
       "auth": "token"
     },
     {
       "type": "graphql",
-      "operation": "UpdateProjectItemField",
+      "operation": "GetIssueProjectItems",
       "variables": {
-        "projectId": "PVT_1",
-        "itemId": "PVTI_12",
-        "fieldId": "PVTSSF_priority",
-        "optionId": "p2"
+        "owner": "acme",
+        "repo": "demo",
+        "number": 20
       },
       "auth": "token"
     }

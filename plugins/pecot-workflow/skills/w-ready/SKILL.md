@@ -1,10 +1,10 @@
 ---
 name: w-ready
 description: |
-  Epicのサブタスクを1件作成しReadyに配置します。
-  Use when the user wants to create a single subtask Issue under an existing Epic in Ready status. Planning-only — no code, no branches. Picked up later with w-active.
+  EpicまたはTrackerのサブタスクを1件作成しReadyに配置します。
+  Use when the user wants to create a single subtask Issue under an existing Epic or Tracker in Ready status. Planning-only — no code, no branches. Picked up later with w-active.
   Do NOT use for batch creation (use w-issueize), Epics (use w-backlog), or immediate implementation (use w-quick).
-when_to_use: "Epic の次のサブタスクを 1 件作りたい、Ready に積みたい"
+when_to_use: "Epic または Tracker の次のサブタスクを 1 件作りたい、Ready に積みたい"
 ---
 
 # 作業準備：サブタスクIssueを作成してReadyに配置
@@ -27,7 +27,8 @@ PECOT="$HOME/.copilot/installed-plugins/pecot/pecot-w/bin/pecot"
 
 以降の pecot CLI コマンド例は必ず `$PECOT ...` として実行する。
 
-Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録してReadyに置く。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
+Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録してReadyに置く。
+親が Tracker（security alert など）のときは、GAP の代わりに一覧の要判断の行から1件を選んで計画する。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
 
 > 注意: 既存サブタスクの完了状況をユーザーに報告したり、「Epicを閉じますか」等を提案してはならない。直前タスクが完了済みなのはこのスキルを呼ぶ前提であり、特筆事項ではない。
 
@@ -35,28 +36,30 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 
 ### Step 1: ボードを確認する
 
-対象Epicの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。
+対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。
 
 ```bash
 $PECOT project info
 ```
 
-### Step 2: 対象Epicを特定
+### Step 2: 対象Epic・Trackerを特定
 
-ユーザーの指示から対象Epicを特定する。
+ユーザーの指示から対象Epicまたは Tracker を特定する。
 
 **Epicの特定方法:**
 
 1. ユーザーが明示的にEpic番号を指定している場合はその値を使用
 2. ユーザーがEpicタイトルを指定している場合はボードから検索
-3. 不明な場合は **AskUserQuestion** ツールでBacklog内のEpicをリストアップして選択させる
+3. 不明な場合は **AskUserQuestion** ツールでBacklog内のEpicとTrackerをリストアップして選択させる
 
 ```bash
-# Epic詳細を取得
+# Epic・Tracker詳細を取得
 $PECOT issue read owner/repo/XXX
 ```
 
 ### Step 3: 次のサブタスクをAIが計画する
+
+親が Tracker のときは GAP が無い。本文の一覧のうち状態が「要判断」の行から1件を選び、その alert を直す作業を計画する。
 
 Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをもとに、AIが次に着手すべき1件を計画する。
 

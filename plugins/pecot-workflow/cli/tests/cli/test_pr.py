@@ -4326,6 +4326,29 @@ class TestPrMergeEpicProtect:
         assert 600 not in closed
         assert "Epic保護でクローズをスキップ: #600" in result.output
 
+    def test_merge_keeps_tracker_with_subissues_open(self) -> None:
+        """sub-issue を持つ Tracker は、Closes で参照されても閉じない"""
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = self._make_pr(
+            body="Closes #650",
+            head_ref="feat/test/651",
+        )
+        mock_client.merge_pull_request.return_value = {"sha": "abc"}
+        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: (
+            _kind_epic_subissues(650, total=2) if n == 650 else _kind_task(n)
+        )
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=self._config()),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+
+        assert result.exit_code == 0
+        closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
+        assert 650 not in closed
+        assert "Epic保護でクローズをスキップ: #650" in result.output
+
     def test_merge_empty_epic_not_detected(self) -> None:
         """既知制約の回帰: Issue Type 未設定 + sub-issue 0 件は判定不能で close される"""
         mock_client = MagicMock()

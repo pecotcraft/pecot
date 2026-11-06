@@ -34,8 +34,8 @@ class FrontmatterError(PecotError):
 
 # 型定義
 
-IssueType = Literal["task", "bug", "epic"]
-IssueTemplateType = Literal["task", "bug", "epic", "task-implement"]
+IssueType = Literal["task", "bug", "epic", "tracker"]
+IssueTemplateType = Literal["task", "bug", "epic", "tracker", "task-implement"]
 CommentTemplate = Literal[
     "plan", "merge-diff", "review-findings", "review-resolution", "precede-notify"
 ]
@@ -91,7 +91,7 @@ class IssueFrontmatter(BaseModel):
 
     Attributes:
         title: Issueタイトル。
-        type: Issueタイプ（task / bug / epic）。
+        type: Issueタイプ（task / bug / epic / tracker）。
         repository: リポジトリ（owner/name形式）。
         status: ワークフローステータス（オプション）。
         priority: 優先度（オプション）。

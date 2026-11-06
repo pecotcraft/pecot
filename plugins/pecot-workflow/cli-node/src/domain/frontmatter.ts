@@ -96,13 +96,13 @@ function normalizeParentEpic(value: unknown): unknown {
 
 const IntegerSchema = z.number({ error: issue => integerMessage(issue.input) }).refine(Number.isSafeInteger, { error: issue => integerMessage(issue.input) })
 
-const IssueTypeSchema = z.enum(['task', 'bug', 'epic'], { error: choiceMessage })
+const IssueTypeSchema = z.enum(['task', 'bug', 'epic', 'tracker'], { error: choiceMessage })
 const WorkflowStatusSchema = z.enum(WORKFLOW_STATUSES, { error: choiceMessage })
 
 const IssueFrontmatterSchema = z.object({
   title: z.string({ error: stringMessage }),
   type: IssueTypeSchema,
-  template: z.preprocess(emptyStringToUndefined, z.enum(['task', 'bug', 'epic', 'task-implement'], { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
+  template: z.preprocess(emptyStringToUndefined, z.enum(['task', 'bug', 'epic', 'tracker', 'task-implement'], { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
   repository: z.string({ error: stringMessage }),
   status: WorkflowStatusSchema,
   priority: z.preprocess(emptyStringToUndefined, z.enum(PRIORITIES, { error: choiceMessage }).nullish().transform(value => value ?? undefined)),

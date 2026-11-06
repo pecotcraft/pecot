@@ -117,7 +117,7 @@ Phase内の全サブIssue完了後：
 
 | ステータス | 用途 |
 |-----------|------|
-| **Backlog** | Epic（Phase単位）置き場 |
+| **Backlog** | Epic（Phase単位）・Tracker置き場 |
 | **Pending** | 後回し・保留中のEpicまたはタスク。Ready／Backlog から手動で移動 |
 | **Ready** | 着手可能なサブIssue |
 | **Active** | 作業中（同時1-2個まで） |

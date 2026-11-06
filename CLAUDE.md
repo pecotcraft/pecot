@@ -49,7 +49,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 - GitHub Actions のワークフローは `.github/workflows/` の 3 本である。
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
-  - `security-alerts.yml`: main の security alert を毎時ボードの Issue にそろえ、毎月 1 日に Dependabot の例外の見直しの Issue を作る。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない。手順は `SECURITY.md`
+  - `security-alerts.yml`: main の security alert を毎時 Tracker 1 件の一覧にそろえる。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない。手順は `SECURITY.md`
 - commit 時の品質は、今までどおり author ローカル env で pre-commit が pass したことに依拠する
 
 ## ブランドの語の確認

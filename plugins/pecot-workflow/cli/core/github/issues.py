@@ -427,6 +427,29 @@ class IssuesAPI(GitHubClientBase):
             self._handle_http_error(response)
         return response.json()
 
+    def update_issue_body(self, owner: str, repo: str, number: int, body: str) -> dict[str, Any]:
+        """Issue の本文を丸ごと置き換える（REST の PATCH）
+
+        Args:
+            owner: リポジトリオーナー
+            repo: リポジトリ名
+            number: Issue番号
+            body: 新しい本文
+
+        Returns:
+            更新されたIssue情報の辞書
+
+        Raises:
+            GitHubNotFoundError: Issueが見つからない場合
+            GitHubAPIError: 更新に失敗した場合（本文が上限を超える 422 を含む）
+        """
+        response = self._rest_request(
+            "patch", f"/repos/{owner}/{repo}/issues/{number}", json={"body": body}
+        )
+        if not response.is_success:
+            self._handle_http_error(response)
+        return response.json()
+
     def reopen_issue(
         self,
         owner: str,
