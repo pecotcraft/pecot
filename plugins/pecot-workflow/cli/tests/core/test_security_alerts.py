@@ -41,7 +41,11 @@ def _dep(number: int = 7, severity: str | None = "high") -> dict[str, Any]:
         "number": number,
         "html_url": f"https://github.com/o/r/security/dependabot/{number}",
         "security_vulnerability": {"severity": severity},
-        "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc", "severity": "low"},
+        "security_advisory": {
+            "ghsa_id": "GHSA-aaaa-bbbb-cccc",
+            "severity": "low",
+            "summary": "Prototype Pollution in left-pad",
+        },
         "dependency": {"package": {"name": "left-pad"}},
     }
 
@@ -65,6 +69,7 @@ class TestNormalize:
             url="https://github.com/o/r/security/dependabot/7",
             package="left-pad",
             ghsa="GHSA-aaaa-bbbb-cccc",
+            summary="Prototype Pollution in left-pad",
         )
 
     def test_dependabot_without_number_is_dropped(self) -> None:
@@ -246,6 +251,7 @@ class TestTrackerBody:
                 priority="high",
                 package="@scope/left-pad",
                 ghsa="GHSA-aaaa-bbbb-cccc",
+                summary="Pollution -- in | [x] <b>\nnext",
             ),
             _e("dependabot", 3, package="a--b"),
             _e("code-scanning", 4, priority="low"),
@@ -278,10 +284,11 @@ class TestTrackerBody:
         assert body.endswith("<!-- pecot-alert: list-end -->\n")
         assert body.index("## Dependabot") < body.index("## code scanning")
         assert body.index("## code scanning") < body.index("## secret scanning")
-        assert "| alert | Priority | パッケージ |\n|---|---|---|\n" in body
+        assert "| 内容 | alert | Priority |\n|---|---|---|\n" in body
         assert "| alert | Priority |\n|---|---|\n" in body
         assert "[#1](https://github.com/o/r/security/dependabot/1)" in body
-        assert "@scope/left-pad（GHSA-aaaa-bbbb-cccc）" in body
+        assert "(https://github.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](" in body
+        assert "--> a--b |" in body
         assert "SECURITY.md" not in body
         assert "状態" not in body
         assert "## code scanning — 1 件\n\n| alert | Priority |" in body
@@ -317,6 +324,83 @@ class TestTrackerBody:
         body = self._render(entries)
 
         assert parse_tracker_entries(body) == entries
+
+    def test_same_advisory_is_one_row_with_all_alerts(self) -> None:
+        g = "GHSA-aaaa-bbbb-cccc"
+        entries = [
+            _e("dependabot", 13, priority="medium", ghsa=g, summary="minimatch DoS"),
+            _e("dependabot", 9, priority="high", ghsa=g, summary="minimatch DoS"),
+            _e("dependabot", 1, priority="low", ghsa="GHSA-dddd-eeee-ffff", summary="Glob"),
+        ]
+        body = self._render(entries)
+
+        assert "## Dependabot — 3 件" in body
+        rows = [ln for ln in body.split("\n") if ln.startswith("| <!--")]
+        assert len(rows) == 2
+        # 並びは Priority の高い順。Priority は束ねた alert の最大
+        assert rows[0].endswith(
+            "[minimatch DoS](https://github.com/advisories/GHSA-aaaa-bbbb-cccc)"
+            " | [#9](https://github.com/o/r/security/dependabot/9)"
+            " [#13](https://github.com/o/r/security/dependabot/13) | high |"
+        )
+        assert rows[1].endswith("| low |")
+        assert rows[0].count("<!-- pecot-alert: dependabot/") == 2
+        assert parse_tracker_entries(body) == sorted(entries, key=lambda e: e.number)
+
+    def test_rows_with_equal_priority_are_ordered_by_first_alert(self) -> None:
+        entries = [
+            _e("dependabot", 5, ghsa="GHSA-aaaa-bbbb-cccc"),
+            _e("dependabot", 2, ghsa="GHSA-dddd-eeee-ffff"),
+        ]
+        body = self._render(entries)
+
+        assert body.index("dependabot/2 ") < body.index("dependabot/5 ")
+
+    def test_content_falls_back_to_ghsa_then_package(self) -> None:
+        body = self._render(
+            [
+                _e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc"),
+                _e("dependabot", 2, package="pkg"),
+                _e("dependabot", 3, package="pkg"),
+            ]
+        )
+
+        assert "[GHSA-aaaa-bbbb-cccc](https://github.com/advisories/GHSA-aaaa-bbbb-cccc)" in body
+        # GHSA の無い alert は束ねない
+        assert body.count("--> pkg |") == 2
+
+    def test_advisory_link_uses_the_given_host(self) -> None:
+        body = render_tracker_body(
+            [_e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc", summary="s")],
+            "ghes.example.com",
+            OWNER,
+            R,
+        )
+
+        assert "(https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc)" in body
+
+    def test_summary_roundtrips_and_cannot_forge_markers(self) -> None:
+        entry = _e(
+            "dependabot",
+            1,
+            ghsa="GHSA-aaaa-bbbb-cccc",
+            summary="a -- b | c --> <!-- pecot-alert: list-end --> d",
+        )
+        body = self._render([entry])
+
+        assert body.count("<!-- pecot-alert: list-end -->") == 1
+        for m in re.finditer(r"<!-- pecot-alert: (.*?) -->", body):
+            assert "--" not in m.group(1)
+        assert parse_tracker_entries(body) == [entry]
+
+    def test_failed_kind_rows_keep_summary(self) -> None:
+        old = parse_tracker_entries(
+            self._render([_e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc", summary="Glob | x")])
+        )
+        plan = plan_tracker({}, [], old, failed_kinds={"dependabot"})
+
+        assert plan.entries == old
+        assert "Glob \\| x" in self._render(plan.entries)
 
     def test_text_outside_the_table_is_kept(self) -> None:
         existing = self._render([_e("dependabot", 1)])

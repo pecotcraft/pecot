@@ -18,7 +18,7 @@ github:
       query: {"state": "open", "per_page": "100"}
     respond:
       status: 200
-      body: [{"number": 7, "html_url": "https://ghes.example.com/acme/demo/security/dependabot/7", "security_vulnerability": {"severity": "high"}, "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc"}, "dependency": {"package": {"name": "left-pad"}}}]
+      body: [{"number": 7, "html_url": "https://ghes.example.com/acme/demo/security/dependabot/7", "security_vulnerability": {"severity": "high"}, "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc", "summary": "Prototype Pollution in left-pad"}, "dependency": {"package": {"name": "left-pad"}}}]
   - match:
       method: "GET"
       path: "/repos/acme/demo/code-scanning/alerts"
@@ -43,7 +43,7 @@ github:
         - number: 20
           title: '[Tracker] security alert — 2026-01-01'
           state: open
-          body: "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot \u2014 1 \u4ef6\n\n| alert | Priority | \u30d1\u30c3\u30b1\u30fc\u30b8 |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc --> [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high | left-pad\uff08GHSA-aaaa-bbbb-cccc\uff09 |\n\n## code scanning \u2014 0 \u4ef6\n\n\u306a\u3057\n\n## secret scanning \u2014 0 \u4ef6\n\n\u306a\u3057\n<!-- pecot-alert: list-end -->\n"
+          body: "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot \u2014 1 \u4ef6\n\n| \u5185\u5bb9 | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc sum=Prototype%20Pollution%20in%20left%2Dpad --> [Prototype Pollution in left-pad](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high |\n\n## code scanning \u2014 0 \u4ef6\n\n\u306a\u3057\n\n## secret scanning \u2014 0 \u4ef6\n\n\u306a\u3057\n<!-- pecot-alert: list-end -->\n"
           labels:
             - name: security-alert
   - match:

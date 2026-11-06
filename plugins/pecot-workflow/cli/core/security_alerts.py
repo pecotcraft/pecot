@@ -59,6 +59,7 @@ class Alert:
         url: Security タブの alert の URL。
         package: Dependabot のパッケージ名（ほかの種類は None）。
         ghsa: Dependabot の GHSA ID（ほかの種類は None）。
+        summary: Dependabot の advisory の題（公開の情報。ほかの種類は None）。
     """
 
     kind: AlertKind
@@ -67,6 +68,7 @@ class Alert:
     url: str
     package: str | None = None
     ghsa: str | None = None
+    summary: str | None = None
 
 
 def _dict(value: Any) -> dict[str, Any]:
@@ -102,6 +104,7 @@ def normalize_dependabot(raw: dict[str, Any], host: str, owner: str, repo: str) 
         url=_url(raw, host, owner, repo, "dependabot"),
         package=_str(_dict(_dict(raw.get("dependency")).get("package")).get("name")),
         ghsa=_str(advisory.get("ghsa_id")),
+        summary=_str(advisory.get("summary")),
     )
 
 
@@ -147,10 +150,12 @@ def normalize_secret_scanning(
 
 _PRIORITY_RANK = {"low": 0, "medium": 1, "high": 2}
 _GHSA_RE = re.compile(r"^GHSA(-[a-z0-9]{4}){3}$")
-_ROW_RE = re.compile(
-    r"^\|\s*<!--\s*pecot-alert:\s*(dependabot|code-scanning|secret-scanning)/(\d+)"
+_MARKER_RE = re.compile(
+    r"<!--\s*pecot-alert:\s*(dependabot|code-scanning|secret-scanning)/(\d+)"
     r"((?:\s+[a-z]+=\S+)*)\s*-->"
 )
+# 行の 1 列目の先頭に並ぶ印（1 行に複数あってよい）
+_ROW_MARKERS_RE = re.compile(r"^\|\s*((?:<!--[^>]*?-->\s*)+)")
 _LIST_BEGIN_RE = re.compile(r"<!--\s*pecot-alert:\s*list-begin\s*-->")
 _LIST_END_RE = re.compile(r"<!--\s*pecot-alert:\s*list-end\s*-->")
 _TRACKER_RE = re.compile(r"<!--\s*pecot-alert:\s*tracker\s*-->")
@@ -166,6 +171,7 @@ class TrackerEntry:
         priority: ``high`` / ``medium`` / ``low``。
         package: Dependabot のパッケージ名。
         ghsa: Dependabot の GHSA ID。
+        summary: Dependabot の advisory の題。
     """
 
     kind: AlertKind
@@ -173,6 +179,7 @@ class TrackerEntry:
     priority: str = "medium"
     package: str | None = None
     ghsa: str | None = None
+    summary: str | None = None
 
     @property
     def key(self) -> tuple[AlertKind, int]:
@@ -190,6 +197,8 @@ def _entry_marker(e: TrackerEntry) -> str:
         parts.append("pkg=" + quote(e.package, safe="").replace("-", "%2D"))
     if e.ghsa and _GHSA_RE.match(e.ghsa):
         parts.append(f"ghsa={e.ghsa}")
+    if e.summary:
+        parts.append("sum=" + quote(e.summary, safe="").replace("-", "%2D"))
     return f"<!-- pecot-alert: {' '.join(parts)} -->"
 
 
@@ -199,15 +208,47 @@ def _cell(text: str) -> str:
     return one_line.replace("<", "&lt;").replace("|", "\\|")
 
 
+def _alert_link(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
+    return f"[#{e.number}](https://{host}/{owner}/{repo}/security/{e.kind}/{e.number})"
+
+
 def _entry_row(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
-    url = f"https://{host}/{owner}/{repo}/security/{e.kind}/{e.number}"
-    cells = [f"{_entry_marker(e)} [#{e.number}]({url})", e.priority]
-    if e.kind == "dependabot":
-        package = ""
-        if e.package:
-            package = e.package + (f"（{e.ghsa}）" if e.ghsa else "")
-        cells.append(_cell(package))
-    return "| " + " | ".join(cells) + " |"
+    """code scanning・secret scanning の行（alert・Priority）"""
+    return f"| {_entry_marker(e)} {_alert_link(e, host, owner, repo)} | {e.priority} |"
+
+
+def _advisory_groups(entries: list[TrackerEntry]) -> list[list[TrackerEntry]]:
+    """Dependabot の行を GHSA ごとに束ねる。GHSA の無い alert は束ねず 1 件ずつにする
+
+    並びは Priority の高い順、同じなら先頭の alert 番号の小さい順。
+    """
+    by_ghsa: dict[str, list[TrackerEntry]] = {}
+    groups: list[list[TrackerEntry]] = []
+    for e in sorted(entries, key=lambda x: x.number):
+        if e.ghsa:
+            if e.ghsa not in by_ghsa:
+                by_ghsa[e.ghsa] = []
+                groups.append(by_ghsa[e.ghsa])
+            by_ghsa[e.ghsa].append(e)
+        else:
+            groups.append([e])
+    return sorted(
+        groups,
+        key=lambda g: (-max(_PRIORITY_RANK.get(e.priority, 1) for e in g), g[0].number),
+    )
+
+
+def _advisory_row(group: list[TrackerEntry], host: str, owner: str, repo: str) -> str:
+    """Dependabot の advisory 1 件の行（内容・alert・Priority）"""
+    first = group[0]
+    text = next((e.summary for e in group if e.summary), None) or first.ghsa
+    text = text or next((e.package for e in group if e.package), None) or "不明"
+    label = _cell(text).replace("[", "\\[").replace("]", "\\]")
+    content = f"[{label}](https://{host}/advisories/{first.ghsa})" if first.ghsa else _cell(text)
+    markers = " ".join(_entry_marker(e) for e in group)
+    links = " ".join(_alert_link(e, host, owner, repo) for e in group)
+    priority = max_priority(group) or "medium"
+    return f"| {markers} {content} | {links} | {priority} |"
 
 
 def _list_region(body: str) -> tuple[int, int]:
@@ -238,22 +279,24 @@ def parse_tracker_entries(body: str | None) -> list[TrackerEntry]:
     begin, end = _list_region(text)
     entries: dict[tuple[AlertKind, int], TrackerEntry] = {}
     for line in text[begin:end].split("\n"):
-        m = _ROW_RE.match(line.strip())
-        if m is None:
+        row = _ROW_MARKERS_RE.match(line.strip())
+        if row is None:
             continue
-        attrs = dict(re.findall(r"([a-z]+)=(\S+)", m.group(3)))
-        if attrs.get("state", "open") != "open":
-            continue
-        priority = attrs.get("priority", "medium")
-        ghsa = attrs.get("ghsa")
-        entry = TrackerEntry(
-            kind=cast("AlertKind", m.group(1)),
-            number=int(m.group(2)),
-            priority=priority if priority in _PRIORITY_RANK else "medium",
-            package=unquote(attrs["pkg"]) if "pkg" in attrs else None,
-            ghsa=ghsa if ghsa and _GHSA_RE.match(ghsa) else None,
-        )
-        entries.setdefault(entry.key, entry)
+        for m in _MARKER_RE.finditer(row.group(1)):
+            attrs = dict(re.findall(r"([a-z]+)=(\S+)", m.group(3)))
+            if attrs.get("state", "open") != "open":
+                continue
+            priority = attrs.get("priority", "medium")
+            ghsa = attrs.get("ghsa")
+            entry = TrackerEntry(
+                kind=cast("AlertKind", m.group(1)),
+                number=int(m.group(2)),
+                priority=priority if priority in _PRIORITY_RANK else "medium",
+                package=unquote(attrs["pkg"]) if "pkg" in attrs else None,
+                ghsa=ghsa if ghsa and _GHSA_RE.match(ghsa) else None,
+                summary=unquote(attrs["sum"]) if "sum" in attrs else None,
+            )
+            entries.setdefault(entry.key, entry)
     return sorted_entries(list(entries.values()))
 
 
@@ -273,12 +316,18 @@ def _section(
     head = f"## {label} — {len(rows)} 件\n\n"
     if not rows:
         return head + "なし"
-    columns = ["alert", "Priority"] + (["パッケージ"] if kind == "dependabot" else [])
-    lines = [
-        "| " + " | ".join(columns) + " |",
-        "|" + "---|" * len(columns),
-        *(_entry_row(e, host, owner, repo) for e in rows),
-    ]
+    if kind == "dependabot":
+        lines = [
+            "| 内容 | alert | Priority |",
+            "|---|---|---|",
+            *(_advisory_row(g, host, owner, repo) for g in _advisory_groups(rows)),
+        ]
+    else:
+        lines = [
+            "| alert | Priority |",
+            "|---|---|",
+            *(_entry_row(e, host, owner, repo) for e in rows),
+        ]
     return head + "\n".join(lines)
 
 
@@ -403,6 +452,7 @@ def plan_tracker(
                 priority=alert.priority,
                 package=alert.package or (old.package if old else None),
                 ghsa=alert.ghsa or (old.ghsa if old else None),
+                summary=alert.summary or (old.summary if old else None),
             )
     plan = TrackerPlan(entries=sorted_entries(list(rows.values())))
     plan.added = sorted_entries([e for k, e in rows.items() if k not in old_by_key])
