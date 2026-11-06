@@ -8,8 +8,12 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 hook_start_us=$(timing_now_us)
 
-# 値を変えるときは test_run_affected_tests.py の `--parallel=` と「並列 N」も直す。
-NX_PARALLEL=4
+# 既定値 4。値を変えるときは test_run_affected_tests.py の `--parallel=` と「並列 N」も直す。
+NX_PARALLEL="${PECOT_NX_PARALLEL:-4}"
+if ! [[ $NX_PARALLEL =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: PECOT_NX_PARALLEL は正の整数です: $NX_PARALLEL" >&2
+    exit 1
+fi
 
 # shellcheck source=../lib/push-range.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
@@ -156,6 +160,14 @@ truncate_body_tail() {
         | tac
 }
 
+# `Failed tasks:` の項目（列 0 の `- <id>`）だけを出す。字下げした性能レポートの推奨
+# （`    - Cache: ...`）は項目でない。入力は最後まで読む（早期 exit は上流の tail を SIGPIPE で落とす）。
+nx_failed_items_awk='
+/Failed tasks:/ { on = 1; n = 0; next }
+on == 1 && /^-[[:space:]]+[^:[:space:]]+:/ { n++; print; next }
+on == 1 && n == 0 && /^[[:space:]]*$/ { next }
+on == 1 { on = 2 }'
+
 # 範囲は $nx_log_offset 以降（複数 tip の先行 run の行を混ぜない）。
 # 失敗の単位は stream が project、static が `<project>:<target>`。
 report_nx_failure() {
@@ -173,11 +185,13 @@ report_nx_failure() {
         if [ "$nx_static" -eq 1 ]; then
             # `- <project>:<target>`（configuration 付きは `:ci` まで含めて 1 件）。
             failed_projects=$(tail -n "+$summary_start" "$nx_log" \
-                | awk '/Failed tasks:/ { on = 1; next } on && /^[[:space:]]*-[[:space:]]+[^:[:space:]]+:/ { sub(/^[[:space:]]*-[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print }' \
+                | awk "$nx_failed_items_awk" \
+                | sed -E 's/^-[[:space:]]+//; s/[[:space:]]+$//' \
                 | awk '!seen[$0]++')
         else
             failed_projects=$(tail -n "+$summary_start" "$nx_log" \
-                | awk '/Failed tasks:/ { on = 1; next } on && /^[[:space:]]*-[[:space:]]+[^:[:space:]]+:/ { sub(/^[[:space:]]*-[[:space:]]+/, ""); sub(/:.*$/, ""); print }' \
+                | awk "$nx_failed_items_awk" \
+                | sed -E 's/^-[[:space:]]+//; s/:.*$//' \
                 | awk '!seen[$0]++')
         fi
     fi

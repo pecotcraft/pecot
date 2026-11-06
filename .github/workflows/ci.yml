@@ -57,6 +57,7 @@ jobs:
             NO_PREV
             PECOT_NX_CI=1
             PECOTV_E2E_CEILING_SCALE=3
+            PECOT_NX_PARALLEL=2
             PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
             PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 
@@ -79,6 +80,7 @@ jobs:
             CHECKS_PART
             PECOT_NX_CI=1
             PECOTV_E2E_CEILING_SCALE=3
+            PECOT_NX_PARALLEL=2
             PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
             PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 

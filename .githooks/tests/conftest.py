@@ -44,6 +44,7 @@ _PUSH_RANGE_ENV = ("PECOT_VERSION_PLAN_BASE", "PRE_COMMIT_FROM_REF", "PRE_COMMIT
 # CI の run-pr-checks.sh が立てる env。引き継ぐと、手元の既定を確かめるテストが CI の動きで落ちる。
 _CI_ENV = (
     "PECOT_NX_CI",
+    "PECOT_NX_PARALLEL",
     "NX_SKIP_NX_CACHE",
     "NO_PREV",
     "PECOT_CI_SUMMARY",
