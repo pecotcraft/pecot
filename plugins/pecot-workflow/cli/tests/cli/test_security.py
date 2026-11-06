@@ -304,6 +304,18 @@ class TestSync:
         assert "pecot-alert: secret-scanning/1 priority=" in body
         assert "pecot-alert: dependabot/1" in body
 
+    def test_failed_kind_without_previous_rows_is_unavailable(self) -> None:
+        client = _client(
+            code_scanning=GitHubAPIError("boom", status_code=500),
+            dependabot=[_dep(1)],
+            issues=[_tracker(5, _body())],
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        body = client.update_issue_body.call_args.args[3]
+        assert "## code scanning\n\nunavailable" in body
+
     def test_failed_kind_does_not_create_a_tracker(self) -> None:
         client = _client(dependabot=GitHubAPIError("boom", status_code=500))
         result = _invoke(client, ["sync"])
@@ -326,7 +338,7 @@ class TestSync:
         assert "## secret scanning\n\ndisabled" in body
         assert "pecot-alert: secret-scanning/" not in body
 
-    def test_failed_kind_keeps_rows_and_count(self) -> None:
+    def test_failed_kind_keeps_its_previous_rows(self) -> None:
         entry = _row("secret-scanning", 1)
         client = _client(
             secret_scanning=GitHubAPIError("boom", status_code=500),

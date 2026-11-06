@@ -50,7 +50,15 @@ GitHub Copilot CLI では `pecot-visual-<ツール名>` です。
 Chrome が無い端末では、次のコマンドで入れます。
 
 ```bash
-npx -y playwright install chrome
+npx -y playwright@1.64.1 install chrome
+```
+
+このコマンドは、Linux では sudo が要ります。使えるのは、Ubuntu・Debian の x86_64 だけです。
+
+それ以外の端末（arm64 の Linux など）では、環境変数 `PLAYWRIGHT_MCP_BROWSER=chromium` を設定してから、次のコマンドで Chromium を取得します。Playwright の MCP サーバは、この環境変数でブラウザを選びます。
+
+```bash
+npx -y @playwright/mcp@0.0.83 install-browser chromium
 ```
 
 プラグインを入れずにツールだけ使う場合は、npm のパッケージ `@pecot/visual-mcp` の README を参照してください。

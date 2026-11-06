@@ -143,7 +143,7 @@ def _echo_plan(plan: TrackerPlan, tracker: int | None, title: str, dry_run: bool
     prefix = "[dry-run] " if dry_run else ""
     if tracker is None:
         if not plan.create:
-            typer.echo(f"{prefix}Tracker を立てません（判断の要る alert がありません）")
+            typer.echo(f"{prefix}Tracker を立てません（open で例外に無い alert がありません）")
             return
         typer.echo(
             f"{prefix}Tracker を立てる: {title}"
@@ -206,7 +206,9 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
 
     today = datetime.now(timezone.utc).date()
     title = build_tracker_title(today)
-    body = render_tracker_body(plan.entries, config.host, owner, repo, existing_body, disabled)
+    body = render_tracker_body(
+        plan.entries, config.host, owner, repo, existing_body, disabled, failed
+    )
     number = int(tracker["number"]) if tracker else None
     unchanged = number is not None and body == (existing_body or "").replace("\r\n", "\n")
     if number is not None and unchanged:
@@ -216,9 +218,9 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         if number is not None and not (plan.added or plan.removed):
             typer.echo(f"{'[dry-run] ' if dry_run else ''}Tracker #{number} の本文を書き直す")
 
-    failures = 0
-    if not dry_run:
-        failures += _apply(client, config, owner, repo, plan, number, title, body, unchanged)
+    failures = (
+        0 if dry_run else _apply(client, config, owner, repo, plan, number, title, body, unchanged)
+    )
     if failed or failures:
         raise typer.Exit(1)
 

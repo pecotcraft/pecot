@@ -72,6 +72,15 @@ class TestNormalize:
             summary="Prototype Pollution in left-pad",
         )
 
+    @pytest.mark.parametrize("ghsa", ["not-a-ghsa", "GHSA-AAAA-bbbb-cccc", "GHSA-aaaa-bbbb"])
+    def test_invalid_ghsa_is_dropped(self, ghsa: str) -> None:
+        raw = _dep()
+        raw["security_advisory"]["ghsa_id"] = ghsa
+        alert = normalize_dependabot(raw, H, OWNER, R)
+
+        assert alert is not None
+        assert alert.ghsa is None
+
     def test_dependabot_without_number_is_dropped(self) -> None:
         assert normalize_dependabot({"html_url": "x"}, H, OWNER, R) is None
 
@@ -178,7 +187,7 @@ class TestPlanTracker:
         assert [e.key for e in plan.removed] == [("dependabot", 1)]
         assert plan.added == []
 
-    def test_row_keeps_old_priority_package_only_as_fallback(self) -> None:
+    def test_new_values_win_and_only_missing_ones_fall_back_to_the_old_row(self) -> None:
         old = [_e("dependabot", 1, priority="low", package="old", ghsa="GHSA-aaaa-bbbb-cccc")]
         alerts = {"dependabot": [_a("dependabot", 1, "high", "new")]}
         plan = plan_tracker(alerts, [], old)
@@ -258,8 +267,13 @@ class TestTrackerBody:
             _e("secret-scanning", 5, priority="high"),
         ]
 
-    def _render(self, entries: list[TrackerEntry], body: str | None = None) -> str:
-        return render_tracker_body(entries, H, OWNER, R, body)
+    def _render(
+        self,
+        entries: list[TrackerEntry],
+        body: str | None = None,
+        failed_kinds: frozenset[Any] | set[Any] = frozenset(),
+    ) -> str:
+        return render_tracker_body(entries, H, OWNER, R, body, failed_kinds=failed_kinds)
 
     def test_roundtrip_keeps_priority_package_and_ghsa(self) -> None:
         entries = self._entries()
@@ -297,7 +311,7 @@ class TestTrackerBody:
         for line in body.split("\n"):
             assert line == "" or line.startswith(("<!--", "## ", "|"))
 
-    def test_code_scanning_row_has_no_package_cell(self) -> None:
+    def test_code_scanning_row_has_masked_title_and_priority(self) -> None:
         body = self._render([_e("code-scanning", 4, priority="low")])
 
         assert "| <!-- pecot-alert: code-scanning/4 priority=low --> masked | [#4](" in body
@@ -400,14 +414,93 @@ class TestTrackerBody:
             assert "--" not in m.group(1)
         assert parse_tracker_entries(body) == [entry]
 
-    def test_failed_kind_rows_keep_summary(self) -> None:
-        old = parse_tracker_entries(
-            self._render([_e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc", summary="Glob | x")])
+    def test_failed_kind_rows_keep_summary_of_every_alert_in_a_bundle(self) -> None:
+        g = "GHSA-aaaa-bbbb-cccc"
+        first = self._render(
+            [
+                _e("dependabot", 1, ghsa=g, summary="Glob | x"),
+                _e("dependabot", 5, ghsa=g, summary="Glob | x"),
+            ]
         )
+        # summary は束の先頭の alert の印にだけ付く
+        assert first.count("sum=") == 1
+        old = parse_tracker_entries(first)
+        assert [e.summary for e in old] == ["Glob | x", "Glob | x"]
+
         plan = plan_tracker({}, [], old, failed_kinds={"dependabot"})
+        again = self._render(plan.entries, failed_kinds={"dependabot"})
 
         assert plan.entries == old
-        assert "Glob \\| x" in self._render(plan.entries)
+        assert again == first
+        assert "Glob \\| x" in again
+
+    def test_failed_kind_without_old_rows_is_unavailable(self) -> None:
+        plan = plan_tracker({}, [], [], failed_kinds={"code-scanning"})
+        body = self._render(plan.entries, failed_kinds={"code-scanning"})
+
+        assert "## code scanning\n\nunavailable" in body
+        assert "## Dependabot\n\nnone" in body
+
+    def test_failed_kind_that_was_disabled_is_unavailable(self) -> None:
+        before = render_tracker_body([], H, OWNER, R, disabled_kinds={"secret-scanning"})
+        old = parse_tracker_entries(before)
+        plan = plan_tracker({}, [], old, failed_kinds={"secret-scanning"})
+        after = self._render(plan.entries, before, failed_kinds={"secret-scanning"})
+
+        assert "## secret scanning\n\ndisabled" in before
+        assert "## secret scanning\n\nunavailable" in after
+
+    def test_failed_kind_with_old_rows_keeps_the_table(self) -> None:
+        body = self._render([_e("code-scanning", 3)], failed_kinds={"code-scanning"})
+
+        assert "unavailable" not in body
+        assert "pecot-alert: code-scanning/3" in body
+
+    def test_non_dependabot_rows_are_ordered_by_priority_then_number(self) -> None:
+        entries = [
+            _e("code-scanning", 1, priority="low"),
+            _e("code-scanning", 7, priority="high"),
+            _e("code-scanning", 3, priority="high"),
+            _e("secret-scanning", 2, priority="medium"),
+            _e("secret-scanning", 1, priority="high"),
+        ]
+        body = self._render(entries)
+
+        cs = [int(n) for n in re.findall(r"code-scanning/(\d+) ", body)]
+        ss = [int(n) for n in re.findall(r"secret-scanning/(\d+) ", body)]
+        assert cs == [3, 7, 1]
+        assert ss == [1, 2]
+
+    def test_title_with_brackets_backslash_and_pipe_stays_in_one_link(self) -> None:
+        entry = _e("dependabot", 1, ghsa="GHSA-aaaa-bbbb-cccc", summary="a ] b [ c \\ d | e \\| f")
+        body = self._render([entry])
+        row = next(ln for ln in body.split("\n") if "dependabot/1 " in ln)
+
+        assert (
+            "[a \\] b \\[ c \\\\ d \\| e \\\\\\| f]"
+            "(https://github.com/advisories/GHSA-aaaa-bbbb-cccc)"
+        ) in row
+        assert parse_tracker_entries(body) == [entry]
+
+    def test_partly_excepted_advisory_keeps_one_row_with_the_rest(self) -> None:
+        g = "GHSA-aaaa-bbbb-cccc"
+        alerts = {
+            "dependabot": [
+                Alert("dependabot", 1, "medium", "u", "glob", g, "Glob"),
+                Alert("dependabot", 5, "medium", "u", "glob", g, "Glob"),
+                Alert("dependabot", 9, "medium", "u", "glob", g, "Glob"),
+            ]
+        }
+        before = plan_tracker(alerts, [], [])
+        plan = plan_tracker(alerts, [_exc(1)], before.entries)
+        body = self._render(plan.entries)
+
+        assert [e.number for e in plan.removed] == [1]
+        rows = [ln for ln in body.split("\n") if ln.startswith("| <!--")]
+        assert len(rows) == 1
+        assert "dependabot/1 " not in rows[0]
+        assert "[#5](" in rows[0] and "[#9](" in rows[0]
+        assert "[Glob](https://github.com/advisories/GHSA-aaaa-bbbb-cccc)" in rows[0]
 
     def test_text_outside_the_table_is_kept(self) -> None:
         existing = self._render([_e("dependabot", 1)])

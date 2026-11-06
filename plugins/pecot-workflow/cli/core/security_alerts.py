@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any, Literal, cast
 from urllib.parse import quote, unquote
@@ -97,13 +97,14 @@ def normalize_dependabot(raw: dict[str, Any], host: str, owner: str, repo: str) 
     severity = _str(_dict(raw.get("security_vulnerability")).get("severity")) or _str(
         advisory.get("severity")
     )
+    ghsa = _str(advisory.get("ghsa_id"))
     return Alert(
         kind="dependabot",
         number=number,
         priority=_SEVERITY_PRIORITY.get(severity or "", "medium"),
         url=_url(raw, host, owner, repo, "dependabot"),
         package=_str(_dict(_dict(raw.get("dependency")).get("package")).get("name")),
-        ghsa=_str(advisory.get("ghsa_id")),
+        ghsa=ghsa if ghsa and _GHSA_RE.match(ghsa) else None,
         summary=_str(advisory.get("summary")),
     )
 
@@ -163,7 +164,7 @@ _TRACKER_RE = re.compile(r"<!--\s*pecot-alert:\s*tracker\s*-->")
 
 @dataclass(frozen=True)
 class TrackerEntry:
-    """Tracker の表の 1 行（判断の要る open の alert）
+    """Tracker の表の 1 行（判断の要る alert。open で例外に無い alert）
 
     Attributes:
         kind: alert の種類。
@@ -208,6 +209,12 @@ def _cell(text: str) -> str:
     return one_line.replace("<", "&lt;").replace("|", "\\|")
 
 
+def _title_text(text: str) -> str:
+    """title の文。リンクの題に入れても表を壊さないよう ``\\`` ``[`` ``]`` ``|`` ``<`` を無害にする"""
+    raw = text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    return _cell(raw)
+
+
 def _alert_link(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
     return f"[#{e.number}](https://{host}/{owner}/{repo}/security/{e.kind}/{e.number})"
 
@@ -243,9 +250,13 @@ def _advisory_row(group: list[TrackerEntry], host: str, owner: str, repo: str) -
     first = group[0]
     text = next((e.summary for e in group if e.summary), None) or first.ghsa
     text = text or next((e.package for e in group if e.package), None) or "不明"
-    label = _cell(text).replace("[", "\\[").replace("]", "\\]")
-    content = f"[{label}](https://{host}/advisories/{first.ghsa})" if first.ghsa else _cell(text)
-    markers = " ".join(_entry_marker(e) for e in group)
+    label = _title_text(text)
+    content = f"[{label}](https://{host}/advisories/{first.ghsa})" if first.ghsa else label
+    # summary は束の先頭の alert の印にだけ付ける。読み戻しで束の残りに引き継ぐ
+    summary = next((e.summary for e in group if e.summary), None)
+    markers = " ".join(
+        _entry_marker(replace(e, summary=summary if i == 0 else None)) for i, e in enumerate(group)
+    )
     links = " ".join(_alert_link(e, host, owner, repo) for e in group)
     priority = max_priority(group) or "medium"
     return f"| {markers} {content} | {links} | {priority} |"
@@ -269,7 +280,10 @@ def _list_region(body: str) -> tuple[int, int]:
 def parse_tracker_entries(body: str | None) -> list[TrackerEntry]:
     """Tracker の本文から、一覧の行を読む
 
-    ``state=`` の無い行と ``state=open`` の行だけを読む。それ以外の state の行、
+    1 行に印が複数あってよい（Dependabot は advisory ごとに alert の印を並べる）。
+    ``sum=`` は束の先頭の alert の印にだけあるので、同じ GHSA の残りの alert に引き継ぐ。
+    旧い書式の本文を書き直せるように、互換として ``state=`` も読む。
+    ``state=`` の無い行と ``state=open`` の行だけを読み、それ以外の state の行、
     旧い ``folded count=`` の行、印の無い行、読めない行は読み捨てる。
 
     Raises:
@@ -297,6 +311,10 @@ def parse_tracker_entries(body: str | None) -> list[TrackerEntry]:
                 summary=unquote(attrs["sum"]) if "sum" in attrs else None,
             )
             entries.setdefault(entry.key, entry)
+    summaries = {e.ghsa: e.summary for e in entries.values() if e.ghsa and e.summary}
+    for key, e in entries.items():
+        if e.ghsa and not e.summary and e.ghsa in summaries:
+            entries[key] = replace(e, summary=summaries[e.ghsa])
     return sorted_entries(list(entries.values()))
 
 
@@ -305,41 +323,53 @@ def sorted_entries(entries: list[TrackerEntry]) -> list[TrackerEntry]:
     return sorted(entries, key=lambda e: (ALERT_KINDS.index(e.kind), e.number))
 
 
+def _by_priority(entries: list[TrackerEntry]) -> list[TrackerEntry]:
+    """Priority の高い順、同じなら番号順"""
+    return sorted(entries, key=lambda e: (-_PRIORITY_RANK.get(e.priority, 1), e.number))
+
+
 def _section(
-    kind: AlertKind, entries: list[TrackerEntry], disabled: bool, host: str, owner: str, repo: str
+    kind: AlertKind,
+    entries: list[TrackerEntry],
+    status: Literal["ok", "disabled", "failed"],
+    host: str,
+    owner: str,
+    repo: str,
 ) -> str:
-    """種類ごとの見出しと表。無効の種類は ``disabled``、0 件の種類は ``none``"""
-    label = KIND_LABELS[kind]
-    if disabled:
-        return f"## {label}\n\ndisabled"
+    """種類ごとの見出しと表
+
+    行が無いとき、本文には次の語を置く。無効の種類は ``disabled``、
+    一覧を取れず前の行も無い種類は ``unavailable``、0 件の種類は ``none``。
+    """
+    head = f"## {KIND_LABELS[kind]}\n\n"
+    if status == "disabled":
+        return head + "disabled"
     rows = [e for e in entries if e.kind == kind]
-    head = f"## {label}\n\n"
     if not rows:
-        return head + "none"
+        return head + ("unavailable" if status == "failed" else "none")
     if kind == "dependabot":
-        lines = [
-            "| title | alert | Priority |",
-            "|---|---|---|",
-            *(_advisory_row(g, host, owner, repo) for g in _advisory_groups(rows)),
-        ]
+        body_rows = [_advisory_row(g, host, owner, repo) for g in _advisory_groups(rows)]
     else:
-        lines = [
-            "| title | alert | Priority |",
-            "|---|---|---|",
-            *(_entry_row(e, host, owner, repo) for e in rows),
-        ]
+        body_rows = [_entry_row(e, host, owner, repo) for e in _by_priority(rows)]
+    lines = ["| title | alert | Priority |", "|---|---|---|", *body_rows]
     return head + "\n".join(lines)
 
 
 def _sections(
     entries: list[TrackerEntry],
     disabled_kinds: set[AlertKind] | frozenset[AlertKind],
+    failed_kinds: set[AlertKind] | frozenset[AlertKind],
     host: str,
     owner: str,
     repo: str,
 ) -> str:
+    def status(kind: AlertKind) -> Literal["ok", "disabled", "failed"]:
+        if kind in disabled_kinds:
+            return "disabled"
+        return "failed" if kind in failed_kinds else "ok"
+
     return "\n\n".join(
-        _section(kind, entries, kind in disabled_kinds, host, owner, repo) for kind in ALERT_KINDS
+        _section(kind, entries, status(kind), host, owner, repo) for kind in ALERT_KINDS
     )
 
 
@@ -350,10 +380,12 @@ def render_tracker_body(
     repo: str,
     existing_body: str | None = None,
     disabled_kinds: set[AlertKind] | frozenset[AlertKind] = frozenset(),
+    failed_kinds: set[AlertKind] | frozenset[AlertKind] = frozenset(),
 ) -> str:
     """Tracker の本文を作る
 
     一覧は種類ごとの見出しと表にする。無効の種類（``disabled_kinds``）は見出しの下に ``disabled`` だけを置く。
+    一覧を取れなかった種類（``failed_kinds``）に行が無ければ、見出しの下に ``unavailable`` を置く。
 
     ``existing_body`` があれば、list-begin から list-end の間だけを書き直し、外の文は残す。
     無ければ、Tracker の印と一覧だけの本文を作る。
@@ -369,7 +401,7 @@ def render_tracker_body(
         begin, end = _list_region(text)
         head = text[:begin] + "\n"
         tail = "\n" + text[end:]
-    return head + _sections(entries, disabled_kinds, host, owner, repo) + tail
+    return head + _sections(entries, disabled_kinds, failed_kinds, host, owner, repo) + tail
 
 
 def build_tracker_title(today: date) -> str:

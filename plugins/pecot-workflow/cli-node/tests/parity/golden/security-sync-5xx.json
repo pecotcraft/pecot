@@ -1,5 +1,5 @@
 {
-  "stdout": "Tracker を立てません（判断の要る alert がありません）\n",
+  "stdout": "Tracker を立てません（open で例外に無い alert がありません）\n",
   "stderr": "エラー: Dependabot の一覧を取得できません（その種類の行に触れません）: acme/demo: Dependabot: GitHub APIエラー: 502 Bad Gateway\n",
   "exitCode": 1,
   "requests": [
