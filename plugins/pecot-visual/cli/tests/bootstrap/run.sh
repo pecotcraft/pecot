@@ -365,11 +365,11 @@ if [ "$real_ms" -gt 1000 ]; then
 fi
 echo "[bootstrap-test] CUJ 2 pass (real=${real_ms}ms)"
 
-# CUJ 3: 依存（pnpm-lock.yaml）の更新時は、同じ deps-hash の donor が無いので install + build を行う
-echo "[bootstrap-test] CUJ 3: pnpm-lock update triggers install + build into a new mirror"
+# CUJ 3: 依存（runtime-lock.yaml）の更新時は、同じ deps-hash の donor が無いので install + build を行う
+echo "[bootstrap-test] CUJ 3: runtime-lock update triggers install + build into a new mirror"
 STDERR3="$WORK_DIR/cuj3.stderr"
 before_current="$(readlink -f "$DATA_DIR/runtime/current")"
-printf '\n# cuj3 lock change\n' >> "$PLUGIN_ROOT/pnpm-lock.yaml"
+printf '\n# cuj3 lock change\n' >> "$PLUGIN_ROOT/runtime-lock.yaml"
 set +e
 HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR3"
 code=$?

@@ -541,7 +541,6 @@ if [ "$(eslint_source_fingerprint)" = "$ESLINT_SOURCE_BEFORE" ]; then
 else
     fail "build を伴う dry-run が、本体ツリーの eslint プラグインの dist を変えた"
 fi
-# 依存の導入は repo root の frozen install 1 回だけ。lifecycle（assets/slidev の prepare）は install の中で動くので、明示の呼び出しは無い (#113)。
 assert_eq "1 回目の pnpm 呼び出しは frozen の install" "install --frozen-lockfile" \
     "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
 assert_eq "install の cwd はリポジトリルート" "$REPO_ROOT" \
@@ -550,7 +549,6 @@ assert_eq "2 回目の pnpm 呼び出しは cli の build" "--filter @pecot/peco
     "$(sed -n '2s/^[^\t]*\t//p' "$PNPM_CALLS")"
 assert_eq "3 回目の pnpm 呼び出しは eslint プラグインを含む build" "--filter @pecot/slidev-assets-dev run build" \
     "$(sed -n '3s/^[^\t]*\t//p' "$PNPM_CALLS")"
-# 配布ツリー用の text-rules の dist は、pnpm の filter で build だけを行う。
 assert_eq "4 回目の pnpm 呼び出しは text-rules の build" "--filter @pecot/text-rules-src run build" \
     "$(sed -n '4s/^[^\t]*\t//p' "$PNPM_CALLS")"
 assert_eq "text-rules の build の cwd はリポジトリルート" "$REPO_ROOT" \

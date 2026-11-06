@@ -91,10 +91,10 @@ assert_eq "複製したミラーの cli が動く: --version が plugin.json の
   "$(node -p 'require(process.argv[1]).version' "$ROOT/.claude-plugin/plugin.json")" "$(tail -n 1 "$BASE/version.out")"
 
 # 文面 lint が、ミラーに入れた @pecot/text-rules の dist で動く。
-# text-rules はリンクで載せたメンバー。ミラー内では、実ディレクトリの libs/text-rules/dist/index.js に build される。
+# text-rules はリンクで載せたメンバー。ミラー内では、実ディレクトリの vendor/text-rules/dist/index.js に build される。
 CURRENT_MIRROR="$(current)"
 assert_eq "ミラーに @pecot/text-rules の dist がある" yes \
-  "$([ -f "$CURRENT_MIRROR/libs/text-rules/dist/index.js" ] && echo yes || echo no)"
+  "$([ -f "$CURRENT_MIRROR/vendor/text-rules/dist/index.js" ] && echo yes || echo no)"
 assert_eq "ミラーに runtime の manifest がある" yes \
   "$([ -f "$CURRENT_MIRROR/assets/slidev/runtime/package.json" ] && echo yes || echo no)"
 

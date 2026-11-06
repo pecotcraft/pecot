@@ -14,10 +14,8 @@ import { describe, expect, it } from 'vitest'
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
-// 依存と lock は repo root の 1 つの pnpm workspace が持つ (#113)。
 const REPO_ROOT = path.resolve(PLUGIN_ROOT, '..', '..')
 const RUNTIME_MANIFEST = path.join(PLUGIN_ROOT, 'assets', 'slidev', 'runtime', 'package.json')
-// nodeLinker: hoisted なので workspace の依存は repo root の node_modules 直下に並ぶ。
 const DEPENDENCY_ROOT = path.join(REPO_ROOT, 'node_modules')
 
 /**

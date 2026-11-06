@@ -102,7 +102,7 @@ repos:
         entry: .githooks/lib/with-timing.sh githooks-tests .githooks/tests/run.sh
         language: unsupported_script
         pass_filenames: false
-        files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
+        files: ^(\.githooks/|scripts/gen-runtime-lock\.mjs$|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
         stages: [pre-push]
 
       - id: nx-env-inputs
@@ -140,6 +140,14 @@ repos:
         # verbose でない hook の成功時出力を捨てる）
         verbose: true
         stages: [pre-push]
+
+      - id: check-runtime-lock
+        name: runtime-lock.yaml matches root pnpm-lock.yaml
+        entry: node scripts/gen-runtime-lock.mjs --check
+        language: unsupported
+        pass_filenames: false
+        files: (^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|runtime-(lock|workspace)\.yaml)$|^scripts/gen-runtime-lock\.mjs$
+        stages: [pre-commit]
 
       - id: nx-affected-lint
         name: nx affected lint
@@ -203,13 +211,13 @@ repos:
       - id: end-of-file-fixer
         stages: [pre-commit]
       - id: check-yaml
-        exclude: (^|/)pnpm-lock\.yaml$
+        exclude: (^|/)(pnpm|runtime)-lock\.yaml$
       # pnpm 11 以降の lockfile は package manager 自身の記録と依存の記録の 2 ドキュメント構成のため、
       # lockfile だけ複数ドキュメントを許して構文を確認する。
       # 手書きの YAML は単一ドキュメントのまま確認する (#1217)。
       - id: check-yaml
         name: check yaml (pnpm-lock)
-        files: (^|/)pnpm-lock\.yaml$
+        files: (^|/)(pnpm|runtime)-lock\.yaml$
         args: ['--allow-multiple-documents']
       - id: check-added-large-files
         args: ['--maxkb=4096']

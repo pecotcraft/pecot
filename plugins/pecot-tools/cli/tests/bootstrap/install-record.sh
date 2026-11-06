@@ -49,6 +49,9 @@ assert_eq "初回: 本体に node_modules を作らない" no "$([ -e "$ROOT/nod
 assert_eq "初回: 本体に cli/dist を作らない" no "$([ -e "$ROOT/cli/dist" ] && echo yes || echo no)"
 assert_eq "初回: 本体に旧配置のロックを作らない" no "$([ -e "$ROOT/.pecot-tools-bootstrap.lock" ] && echo yes || echo no)"
 FIRST="$(mirrors | head -n 1)"
+assert_eq "初回: ミラーの pnpm-lock.yaml は runtime-lock.yaml の中身" "$(cat "$ROOT/runtime-lock.yaml")" "$(cat "$FIRST/pnpm-lock.yaml")"
+assert_eq "初回: ミラーの pnpm-workspace.yaml は runtime-workspace.yaml の中身" "$(cat "$ROOT/runtime-workspace.yaml")" "$(cat "$FIRST/pnpm-workspace.yaml")"
+assert_eq "初回: ミラーに runtime-*.yaml の名前を残さない" no "$([ -e "$FIRST/runtime-lock.yaml" ] || [ -e "$FIRST/runtime-workspace.yaml" ] && echo yes || echo no)"
 assert_eq "初回: build のとき --config.verify-deps-before-run=false を付ける" 1 "$(count_calls 'verify-deps-before-run=false --filter @pecot/pecot-tools-cli run build')"
 
 # --- 同一の 2 回目 ---
@@ -81,7 +84,7 @@ stub_run -- mcp
 check_counts "ソースだけの更新の 2 回目: install 0 / build 0" 0 0
 
 # --- 依存の変更（lock） ---
-printf 'lock: 2\n' > "$ROOT/pnpm-lock.yaml"
+printf 'lock: 2\n' > "$ROOT/runtime-lock.yaml"
 stub_run -- mcp
 check_counts "依存の変更: install 1 / build 1" 1 1
 stub_run -- mcp
@@ -125,7 +128,7 @@ check_counts "失敗した起動の後でも完成済みは 0 / 0" 0 0
 
 # --- install が失敗する依存の変更 ---
 before="$(current_target)"
-printf 'lock: 3\n' > "$ROOT/pnpm-lock.yaml"
+printf 'lock: 3\n' > "$ROOT/runtime-lock.yaml"
 stub_run STUB_NODE_MAJOR=26 STUB_FAIL_INSTALL=1 -- mcp
 if [ "$RC" != 0 ]; then ok "install が失敗: 非 0 で終わる (exit=$RC)"; else ng "install が失敗しても exit 0"; fi
 assert_eq "install が失敗: current は切り替えない" "$before" "$(current_target)"
@@ -191,7 +194,7 @@ fi
 
 # --- 同時起動 ---
 printf 'c0\n' > "$ROOT/cli/src/index.ts"
-printf 'lock: 4\n' > "$ROOT/pnpm-lock.yaml"
+printf 'lock: 4\n' > "$ROOT/runtime-lock.yaml"
 rm -rf "$DATA/runtime"
 : > "$CALLS"
 # stub pnpm の install / build に 1 秒の遅延を入れ、3 本の起動が必ず重なるようにする（ロックが無ければ二重になる）。

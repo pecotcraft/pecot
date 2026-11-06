@@ -634,8 +634,16 @@ _PECOTV_TEST_LANES = {
             "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",
             {"pecot-workflow:test-hooks"},
         ),
-        # root の lockfile は .nxignore で入力から外す。
+        # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
+        (
+            "plugins/pecot-workflow/runtime-lock.yaml",
+            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks"},
+        ),
+        (
+            "plugins/pecot-tools/runtime-lock.yaml",
+            {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+        ),
     ],
 )
 def test_gate_selects_only_the_lanes_the_change_reaches(

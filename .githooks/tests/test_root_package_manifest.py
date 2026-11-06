@@ -33,7 +33,6 @@ def test_root_is_a_private_nx_workspace(root: dict) -> None:
     assert root["private"] is True
     assert root["version"] == "0.0.0"
     assert "nx" in root["devDependencies"]
-    # undici の override は、npm の overrides ではなく pnpm-workspace.yaml が持つ。
     assert "overrides" not in root
     assert re.search(
         r"^  undici: \S+", (_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"), re.M
@@ -64,7 +63,6 @@ def test_package_manager_guard_is_kept(root: dict) -> None:
     assert pm["name"] == "pnpm"
     assert pm["onFail"] == "download"
     assert root["packageManager"].startswith(f"pnpm@{pm['version']}+")
-    # メンバー側は、版を持たず onFail: error にする（packageManager は置かない）。engines は node だけにする。
     lib = _load(_LIB_DIR / "package.json")
     assert lib["devEngines"]["packageManager"] == {"name": "pnpm", "onFail": "error"}
     assert "packageManager" not in lib

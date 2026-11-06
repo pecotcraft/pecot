@@ -9,10 +9,7 @@
 
 # --- data-dir: 3 本で逐語一致 ---
 
-# 値がデータ置き場として有効なら、末尾の改行と CR を落とした値を stdout に出して 0 を返す。無効なら 1 を返す。
-# 有効な値は、空でない絶対パスで、クライアントが展開しなかったプレースホルダ（先頭がドル記号と波括弧）ではないもの。
-# 実在は問わない。クライアントが渡す値はまだ作られていないことがあるため。
-# 作成は plugin_data_dir_ensure が行う。
+# 値が有効なデータ置き場（空でない絶対パスで、未展開のプレースホルダでないもの）なら、改行と CR を落として出し 0 を返す。実在は問わない。
 # 引数: $1 = 判定する値
 plugin_data_dir_normalize() {
     local value="${1:-}"
@@ -30,15 +27,8 @@ plugin_data_dir_normalize() {
     printf '%s\n' "$value"
 }
 
-# データ置き場を解決して stdout に出す。何も作らない。解決の順序は次のとおり。
-#   1. CLAUDE_PLUGIN_DATA。hook と MCP に、Claude Code と Copilot CLI が渡す。
-#   2. PLUGIN_DATA。Agent Plugins 1.0 の MCP に渡す env、または単体配布の登録の env。
-#   3. 既定の場所 ${XDG_DATA_HOME}/pecot/<project 名>。
-#      XDG_DATA_HOME が絶対パスでなければ未設定として扱い、HOME が絶対パスのときだけ ${HOME}/.local/share/pecot/<project 名> を使う。
-# HOME と XDG_DATA_HOME がどちらも有効でないときだけ、理由を stderr に 1 行出して 1 を返す。
-# SKIP（*_BOOTSTRAP_SKIP=1）の判定は呼び出し側が先に行う。
-# cli/src/infra/_shared/dependency-root.ts の解決と同じ結果になること（テストが固定する）。
-# 引数: $1 = project 名（pecot-workflow / pecot-visual / pecot-tools）
+# データ置き場を解決して出す（何も作らない）。順序は CLAUDE_PLUGIN_DATA、PLUGIN_DATA、${XDG_DATA_HOME}/pecot/<project>、${HOME}/.local/share/pecot/<project>。
+# dependency-root.ts の解決と同じ結果になること（テストが固定する）。引数: $1 = project 名
 plugin_data_dir_resolve() {
     local project="${1:-}" base home
     [ -n "$project" ] || { echo "plugin_data_dir_resolve: project 名が必要です" >&2; exit 127; }
@@ -73,15 +63,8 @@ plugin_data_dir_ensure() {
 
 # --- pnpm: Node 側（cli-node/）の依存導入に使う helper。scripts/ci/*.sh が source する ---
 
-# pnpm 起動コマンドを解決する。
-# 利用者環境に pnpm が無くても、corepack または npx 経由で透過的に起動できるようにする。
-# corepack は Node.js 16.9〜24 に同梱されていて、`corepack pnpm <args>` は enable 不要で透過的に起動できる。
-# Node.js 25 以降は corepack を同梱しない。
-# その場合は、npm 同梱の npx で、packageManager に固定したバージョンの pnpm を取得して起動する。
-# npx を使うときは、関数 plugin_npx_pnpm にバージョンを添えた文字列を返す。
-# 呼び出し側は `$pnpm install` のように展開する。
-# 引数: $1 = plugin root。package.json の packageManager から pnpm のバージョンを読む。
-# 戻り値: stdout に「pnpm」「corepack pnpm」「plugin_npx_pnpm <バージョン>」「（空文字列）」のいずれか
+# pnpm の起動コマンドを返す（pnpm / corepack pnpm / plugin_npx_pnpm <版> / 空）。Node.js 25 以降は corepack が無いため npx で版を固定して起動する。
+# 引数: $1 = plugin root（package.json の packageManager から版を読む）
 resolve_pnpm() {
     local plugin_root="${1:-}"
     if command -v pnpm >/dev/null 2>&1; then
@@ -101,31 +84,22 @@ resolve_pnpm() {
     fi
 }
 
-# npx 経由で pnpm を起動する。resolve_pnpm が npx を選んだときに返す。
-# npm 11 は、cwd の package.json が devEngines.packageManager に pnpm を宣言していると、npx も EBADDEVENGINES で止める。
-# そのため cwd を / にして npx を起動し、pnpm には --dir で対象の dir（呼び出し時の cwd）を指す。
-# --prefix=/ は、global の npmrc が /etc/npmrc に変わり、利用者が設定したレジストリを読まなくなるので採らない。
-# 引数: $1 = pnpm の版、残り = pnpm への引数。
+# npm 11 は devEngines.packageManager に pnpm があると npx も EBADDEVENGINES で止めるため、cwd を / にして --dir で対象を指す。
+# 引数: $1 = pnpm の版、残り = pnpm への引数
 plugin_npx_pnpm() {
     local version="$1" dir="$PWD"
     shift
     (cd / && npx --yes "pnpm@$version" --dir "$dir" "$@")
 }
 
-# package.json の packageManager（例: pnpm@12.15.0+sha512...）から pnpm のバージョンだけを返す。
-# manifest が無い、または宣言が無いときは、空文字列を返す。
-# `[^+"]*` で `+`（ビルドメタデータ区切り）または閉じる `"` の手前までを返す。
-# `[0-9.]*` だとプレリリース版（例: pnpm@10.0.0-beta.1+sha512...）の `-beta.1` を切り詰めてしまう。
+# packageManager から pnpm の版だけを返す（無ければ空）。`[0-9.]*` だと pnpm@10.0.0-beta.1 の `-beta.1` が落ちるため `[^+"]*` を使う。
 pnpm_version_from_manifest() {
     local manifest="${1:-}/package.json"
     [ -f "$manifest" ] || return 0
     sed -n 's/.*"packageManager": *"pnpm@\([^+"]*\).*/\1/p' "$manifest" | head -n 1
 }
 
-# resolve_pnpm が空文字列を返したとき、原因を呼び出し側の案内文言に反映するための補助関数。
-# 対象は、npx はあるが packageManager から pnpm のバージョンを読めないケース。
-# このケースを、pnpm / corepack / npx がどれも無いケースと区別して案内する。
-# 戻り値: npx があり、バージョンを読めないときはヒント文言。それ以外は空文字列。
+# resolve_pnpm が空のとき、npx はあるのに packageManager の版を読めないケースだけヒントを返す。それ以外は空。
 pnpm_resolution_hint() {
     local plugin_root="${1:-}"
     if command -v pnpm >/dev/null 2>&1 || command -v corepack >/dev/null 2>&1; then

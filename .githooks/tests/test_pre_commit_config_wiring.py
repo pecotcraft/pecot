@@ -160,6 +160,7 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
         "package.json",
         "libs/text-rules/package.json",
         "libs/text-rules/project.json",
+        "scripts/gen-runtime-lock.mjs",
     ],
 )
 def test_githooks_tests_runs_when_their_inputs_change(script_dir: Path, changed_path: str) -> None:
@@ -189,6 +190,38 @@ def test_githooks_tests_runs_when_their_inputs_change(script_dir: Path, changed_
 def test_githooks_tests_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
     pattern = _hook_files_pattern(script_dir, "githooks-tests")
     assert not pattern.search(changed_path), f"githooks-tests の files が {changed_path} に一致する"
+
+
+@pytest.mark.parametrize(
+    "changed_path",
+    [
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "package.json",
+        "plugins/pecot-tools/cli/package.json",
+        "plugins/pecot-visual/runtime-lock.yaml",
+        "libs/text-rules/runtime-workspace.yaml",
+        "scripts/gen-runtime-lock.mjs",
+    ],
+)
+def test_check_runtime_lock_runs_when_its_inputs_change(
+    script_dir: Path, changed_path: str
+) -> None:
+    pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
+    assert pattern.search(changed_path), (
+        f"check-runtime-lock の files が {changed_path} に一致しない"
+    )
+
+
+@pytest.mark.parametrize(
+    "changed_path",
+    ["README.md", "plugins/pecot-visual/cli/src/cli.ts", "plugins/pecot-tools/pnpm-lock.yml"],
+)
+def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
+    pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
+    assert not pattern.search(changed_path), (
+        f"check-runtime-lock の files が {changed_path} に一致する"
+    )
 
 
 @pytest.mark.parametrize(
@@ -438,7 +471,7 @@ def _entry_script(block: list[str]) -> str | None:
     words = entries[0].removeprefix("entry:").strip().split()
     if Path(words[0]).name == "with-timing.sh":
         return words[2]
-    if words[0] == "bash":
+    if words[0] in ("bash", "node"):
         return words[1]
     return words[0]
 
