@@ -1,5 +1,5 @@
 {
-  "stdout": "[dry-run] Tracker を立てる: [Tracker] security alert — {{TODAY}} から（要判断 1 件・Priority: high）\n[dry-run] Tracker に載せる: dependabot #7\n",
+  "stdout": "[dry-run] Tracker を立てる: [Tracker] security alert — {{TODAY}}（1 件・Priority: high）\n[dry-run] Tracker に載せる: dependabot #7\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

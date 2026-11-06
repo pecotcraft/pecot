@@ -30,31 +30,26 @@ GitHub の非公開の脆弱性報告で受け付けます。[Report a vulnerabi
 ## alert の Issue から始める手順（メンテナ向け）
 
 main の alert は、Actions の `security-alerts` が毎時、Tracker 1 件の一覧にそろえます。対象は Dependabot・code scanning・secret scanning です。
-Tracker は、ラベル `security-alert` の Issue で、題は `[Tracker] security alert — <日付> から` です。Status は Backlog です。
+Tracker は、ラベル `security-alert` の Issue で、題は `[Tracker] security alert — <立てた日>` です。Status は Backlog です。
 open の Tracker が無く、判断の要る alert があるときだけ、新しい Tracker が立ちます。
 
-Tracker の本文には、alert の一覧の表があります。表の列は、種類・alert（Security タブへのリンク）・Priority・パッケージ（Dependabot のみ）・状態です。
-状態は次の 3 つです。
+Tracker の本文には、Tracker の印と、alert の一覧の表だけがあります。表に載るのは、open で `.github/dependabot-exceptions.json` に載っていない、判断の要る alert だけです。
+表の列は、種類・alert（Security タブへのリンク）・Priority・パッケージ（Dependabot のみ）です。
+alert が直った・閉じられた・例外になったときは、次の実行で行が表から消えます。
 
-| 状態 | 意味 |
-|---|---|
-| 要判断 | open で、例外に載っていない。下の種類ごとの節で決める |
-| 例外 | open で、`.github/dependabot-exceptions.json` に載る。見直しの条件（`reevaluate`）が添えられる |
-| 結果 | fixed・dismissed・resolved のいずれかで、理由が添えられる。alert が無くなった行もここに入る |
-
-直す作業は、`/pecot-w:w-ready` で Tracker の下にサブタスクとして切ります。一覧の要判断の行から 1 件を選びます。
-決めた結果は、alert の側（修正・dismiss・例外）に反映します。次の実行で、表の行が結果に変わります。
+直す作業は、`/pecot-w:w-ready` で Tracker の下にサブタスクとして切ります。一覧の行から 1 件を選びます。
+決めた結果は、alert の側（修正・dismiss・例外）に反映します。次の実行で、その行が表から消えます。
 
 Tracker は sync が閉じません。閉じる操作と、ボードの Archived へ移す操作は、人が行います。
 sync は、表の印のある行だけを読み、本文の表の部分を丸ごと置き換えます。人が表に足した行は、次の実行で消えます。
 表の外の文は残るので、メモは表の外に書きます。本文が前と同じなら、書き込みません。
 
-Tracker の題と本文には、種類・番号・Priority・Security タブの alert の URL・この文書へのリンクだけを書きます。
+Tracker の題と本文には、種類・番号・Priority・Security タブの alert の URL だけを書きます。
 Dependabot は公開の advisory なので、パッケージ名と GHSA の ID も書きます。
 code scanning の rule・パス・行や、secret の種類・場所は、公開の Issue に書きません。alert の中身は Security タブで読みます。
 Tracker のコメントやサブタスクにも、alert の中身を書かないでください。
 
-Tracker の本文のリンクから、種類ごとの節へ進みます。
+種類ごとの手順は、次の節にあります。
 
 | 種類 | 手順の節 |
 |---|---|
@@ -82,15 +77,15 @@ Tracker の本文のリンクから、種類ごとの節へ進みます。
 
 ### Dependabot の alert
 
-Tracker の行の alert の URL を開き、パッケージと、修正版の有無を確かめます。次の順で決めます。
+Tracker の表の alert の URL を開き、パッケージと、修正版の有無を確かめます。次の順で決めます。
 
-1. lock の更新で修正版に上がる。直す。依存を更新する PR を出す。マージすると alert が fixed になり、次の実行で行が結果に変わる
+1. lock の更新で修正版に上がる。直す。依存を更新する PR を出す。マージすると alert が fixed になり、次の実行で行が表から消える
 2. 親の依存が修正版を許さず、上げられない。`.github/dependabot-exceptions.json` に例外を載せる。項目は次のとおりで、どれも空にできない
    - `alert`: alert 番号
    - `package`: パッケージ名
    - `reason`: 上げられない理由
    - `reevaluate`: 例外を外す条件（例: 親が修正版を許したら外す）
-   - alert は open のままで、`pecot release preflight` だけが例外として通す。Tracker では例外の行になり、見直しの条件が添えられる
+   - alert は open のままで、`pecot release preflight` だけが例外として通す。次の実行で、行は表から消える。見直しは下の「例外の見直し」で行う
 3. canary など、配布物に入らない依存である。Security タブで `not_used` として dismiss する。コメントに理由を書く
 
 ```
@@ -105,7 +100,7 @@ gh api -X PATCH repos/pecotcraft/pecot/dependabot/alerts/<番号> \
 実害のある alert と、直すほうが安い alert は、dismiss せずに直します。
 直さない alert は、次の「誤検知の alert を閉じる」の手順で決めます。
 閉じてよいのは admin が認めたものだけで、エージェントは一覧と理由を示して承認を待ちます。
-閉じた alert は、次の実行で Tracker の行が結果に変わります。
+閉じた alert は、次の実行で Tracker の行が表から消えます。
 
 <a id="alert-secret-scanning"></a>
 
@@ -115,16 +110,14 @@ gh api -X PATCH repos/pecotcraft/pecot/dependabot/alerts/<番号> \
 値・種類・場所（ファイルパス・コミット）は、Issue・コメント・PR などの公開の場に書きません。
 場所は Security タブの alert で確かめます。
 テストのための合成の値など、直さない alert は、次の「誤検知の alert を閉じる」の手順で決めます。
-閉じた alert は、次の実行で Tracker の行が結果に変わります。
+閉じた alert は、次の実行で Tracker の行が表から消えます。
 
 <a id="alert-exceptions-review"></a>
 
 ### 例外の見直し
 
-例外は、2 か所で見直します。
-
-- Tracker の例外の行。行には `reevaluate` の条件が添えられる。作業の合間に、条件が満たされたかを確かめる
-- リリースのときの `pecot release preflight`。例外ごとに、理由と見直しの条件を表示する。リリースの前に、条件が満たされたかを確かめる
+例外の alert は Tracker の表に載らないので、リリースのときの `pecot release preflight` で見直します。
+preflight は、例外ごとに、理由と見直しの条件（`reevaluate`）を表示します。リリースの前に、条件が満たされたかを確かめます。
 
 見直しの手順は次のとおりです。
 
