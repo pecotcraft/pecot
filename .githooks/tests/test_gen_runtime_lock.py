@@ -24,6 +24,34 @@ def _members() -> list[str]:
     return re.findall(r"^  - (\S+)$", text, flags=re.M)
 
 
+def _first_package(lock_text: str) -> str:
+    """runtime-lock の本体の文書で、integrity を持つ scope の無い先頭のキー（例: commander@15.0.0）。"""
+    entry = re.search(
+        r"^  ([a-z][\w.-]*@\d[\w.-]*):\n    resolution:\n      integrity: ",
+        lock_text.split("\n---\n")[-1],
+        flags=re.M,
+    )
+    assert entry, "runtime-lock に integrity を持つ package が無い"
+    return entry.group(1)
+
+
+def _drift_candidate(root_text: str, block: str) -> tuple[str, str, str]:
+    """importer の依存のうち、root の lock に別の版も実在するもの（名前・今の版・別の版）。"""
+    for name, version in re.findall(
+        r"^      '?([^'\s:]+)'?:\n        specifier: .+\n        version: (\d[\w.-]*)$",
+        block,
+        flags=re.M,
+    ):
+        others = {
+            v
+            for v in re.findall(rf"^  '?{re.escape(name)}@(\d[\w.-]*)'?:$", root_text, flags=re.M)
+            if v != version
+        }
+        if others:
+            return name, version, sorted(others)[0]
+    raise AssertionError("root の lock に別の版を持つ依存が無い")
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     """gen-runtime-lock.mjs が読むファイルだけを、作業ツリーから複製した repo。"""
@@ -101,26 +129,28 @@ def test_workspace_setting_drift_stops(repo: Path) -> None:
 def test_package_integrity_drift_stops(repo: Path) -> None:
     lock = repo / "plugins/pecot-tools/runtime-lock.yaml"
     text = lock.read_text(encoding="utf-8")
+    key = _first_package(text)
     entry = re.search(
-        r"^  commander@15\.0\.0:\n    resolution:\n      integrity: sha512-", text, flags=re.M
+        rf"^  {re.escape(key)}:\n    resolution:\n      integrity: sha512-", text, flags=re.M
     )
-    assert entry, "runtime-lock に commander が無い"
+    assert entry
     lock.write_text(text[: entry.end()] + "AAAA" + text[entry.end() :], encoding="utf-8")
     result = _check(repo)
     assert result.returncode == 1
-    assert "commander@15.0.0 の integrity が root の pnpm-lock.yaml と一致しません" in result.stderr
+    assert f"{key} の integrity が root の pnpm-lock.yaml と一致しません" in result.stderr
 
 
 def test_package_missing_in_root_lock_stops(repo: Path) -> None:
+    key = _first_package(
+        (repo / "plugins/pecot-tools/runtime-lock.yaml").read_text(encoding="utf-8")
+    )
     root_lock = repo / "pnpm-lock.yaml"
     text = root_lock.read_text(encoding="utf-8")
-    assert "\n  commander@15.0.0:\n" in text
-    root_lock.write_text(
-        text.replace("\n  commander@15.0.0:\n", "\n  commander@15.0.9:\n", 1), encoding="utf-8"
-    )
+    assert f"\n  {key}:\n" in text
+    root_lock.write_text(text.replace(f"\n  {key}:\n", f"\n  {key}-gone:\n", 1), encoding="utf-8")
     result = _check(repo)
     assert result.returncode == 1
-    assert "commander@15.0.0 が root の pnpm-lock.yaml にありません" in result.stderr
+    assert f"{key} が root の pnpm-lock.yaml にありません" in result.stderr
 
 
 def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
@@ -130,11 +160,14 @@ def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
     start = text.index("\n  plugins/pecot-tools/cli:\n")
     end = text.index("\n  plugins/", start + 1)
     block = text[start:end]
-    old = "      '@types/node':\n        specifier: ^26.6.6\n        version: 26.6.6\n"
-    assert old in block
-    assert "\n  '@types/node@25.9.9':\n" in text
-    new = old.replace("version: 26.6.6", "version: 25.9.9")
-    root_lock.write_text(text[:start] + block.replace(old, new) + text[end:], encoding="utf-8")
+    name, version, other = _drift_candidate(text, block)
+    pattern = re.compile(
+        rf"(^      '?{re.escape(name)}'?:\n        specifier: .+\n        version: ){re.escape(version)}$",
+        re.M,
+    )
+    assert pattern.search(block)
+    new_block = pattern.sub(rf"\g<1>{other}", block, count=1)
+    root_lock.write_text(text[:start] + new_block + text[end:], encoding="utf-8")
     result = _check(repo)
     assert result.returncode == 1
     assert (
