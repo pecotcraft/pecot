@@ -459,11 +459,14 @@ def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_pa
         ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
     ).stdout.strip()
 
-    # プローブ 2: root lockfile だけを変更する（transitive package の version を 1 件 bump）。
+    # プローブ 2: root lockfile だけを変更する（packages の 1 件の版を、キーと参照箇所の両方で書き換える）。
+    # 実際の依存の変更にしておく。末尾へのコメント追加では、projectsAffectedByDependencyUpdates が
+    # 'auto' でも通ってしまい、.nxignore を外した退行を検出できない。
     lockfile = probe / "pnpm-lock.yaml"
     lock = lockfile.read_text(encoding="utf-8")
-    # 先頭の packages の version を 1 件だけ変える代わりに、lock 全体の末尾へ 1 行足して内容を変える。
-    lockfile.write_text(lock + "# probe: bump transitive lockfile version\n", encoding="utf-8")
+    bumped = lock.replace("@antfu/install-pkg@1.1.0", "@antfu/install-pkg@1.1.0-probe")
+    assert bumped != lock
+    lockfile.write_text(bumped, encoding="utf-8")
     git("add", "-A")
     git("commit", "-q", "-m", "probe: bump transitive lockfile version")
     head = subprocess.run(
@@ -643,6 +646,35 @@ _PECOTV_TEST_LANES = {
         (
             "plugins/pecot-tools/runtime-lock.yaml",
             {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+        ),
+        # permissions・engineStrict・minimumReleaseAge・skills.dirs は lock に出ないので、workspace も入力にする。
+        (
+            "plugins/pecot-tools/runtime-workspace.yaml",
+            {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+        ),
+        (
+            "plugins/pecot-visual/runtime-workspace.yaml",
+            {
+                "pecot-visual:test-bootstrap",
+                "pecot-visual:test-cli",
+                "pecot-visual:test-compare",
+                "pecot-visual:test-hooks",
+                "pecot-visual:test-release",
+                "pecot-visual:test-skills",
+                "pecot-visual:test-slidev",
+            },
+        ),
+        (
+            "plugins/pecot-visual/runtime-lock.yaml",
+            {
+                "pecot-visual:test-bootstrap",
+                "pecot-visual:test-cli",
+                "pecot-visual:test-compare",
+                "pecot-visual:test-hooks",
+                "pecot-visual:test-release",
+                "pecot-visual:test-skills",
+                "pecot-visual:test-slidev",
+            },
         ),
     ],
 )

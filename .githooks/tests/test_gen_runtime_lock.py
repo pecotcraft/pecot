@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import shutil
@@ -103,7 +102,7 @@ def test_package_integrity_drift_stops(repo: Path) -> None:
     lock = repo / "plugins/pecot-tools/runtime-lock.yaml"
     text = lock.read_text(encoding="utf-8")
     entry = re.search(
-        r"^  commander@15\.0\.0:\n    resolution: {integrity: sha512-", text, flags=re.M
+        r"^  commander@15\.0\.0:\n    resolution:\n      integrity: sha512-", text, flags=re.M
     )
     assert entry, "runtime-lock に commander が無い"
     lock.write_text(text[: entry.end()] + "AAAA" + text[entry.end() :], encoding="utf-8")
@@ -124,17 +123,31 @@ def test_package_missing_in_root_lock_stops(repo: Path) -> None:
     assert "commander@15.0.0 が root の pnpm-lock.yaml にありません" in result.stderr
 
 
-def test_write_runs_every_target_with_the_root_pnpm_version(repo: Path, tmp_path: Path) -> None:
-    """生成で使う pnpm の版は、PATH 上の pnpm によらず、root の packageManager に揃う。"""
-    log = tmp_path / "pnpm-versions.log"
-    fake = tmp_path / "bin" / "pnpm"
-    fake.parent.mkdir()
-    fake.write_text(
-        f"#!/bin/sh\nnode -p \"const m = require('./package.json'); m.packageManager + ' ' + m.devEngines.packageManager.version\" >> {log}\n",
-        encoding="utf-8",
+def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
+    """root の lock で importer の版を別の実在する版に変えると、runtime-lock との差で止まる。"""
+    root_lock = repo / "pnpm-lock.yaml"
+    text = root_lock.read_text(encoding="utf-8")
+    start = text.index("\n  plugins/pecot-tools/cli:\n")
+    end = text.index("\n  plugins/", start + 1)
+    block = text[start:end]
+    old = "      '@types/node':\n        specifier: ^26.6.6\n        version: 26.6.6\n"
+    assert old in block
+    assert "\n  '@types/node@25.9.9':\n" in text
+    new = old.replace("version: 26.6.6", "version: 25.9.9")
+    root_lock.write_text(text[:start] + block.replace(old, new) + text[end:], encoding="utf-8")
+    result = _check(repo)
+    assert result.returncode == 1
+    assert (
+        "plugins/pecot-tools/runtime-lock.yaml: cli の importer の版が root の pnpm-lock.yaml と一致しません"
+        in result.stderr
     )
-    fake.chmod(0o755)
-    env = {**os.environ, "PATH": f"{fake.parent}:{os.environ['PATH']}"}
+
+
+def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
+    """--write は pnpm を呼ばず、commit 済みの生成物と同じものを作る。"""
+    empty_bin = repo / "empty-bin"
+    empty_bin.mkdir()
+    env = {**os.environ, "PATH": f"{empty_bin}:{Path(shutil.which('node') or '').parent}"}
     result = subprocess.run(
         ["node", "scripts/gen-runtime-lock.mjs", "--write"],
         cwd=repo,
@@ -144,6 +157,10 @@ def test_write_runs_every_target_with_the_root_pnpm_version(repo: Path, tmp_path
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    root = json.loads((repo / "package.json").read_text(encoding="utf-8"))
-    want = [root["packageManager"], root["devEngines"]["packageManager"]["version"]]
-    assert log.read_text(encoding="utf-8").split() == want * len(_TARGET_DIRS)
+    for d in _TARGET_DIRS:
+        for name in ("lock", "workspace"):
+            file = f"{d}/runtime-{name}.yaml"
+            assert (repo / file).read_text(encoding="utf-8") == (_REPO_ROOT / file).read_text(
+                encoding="utf-8"
+            ), file
+    assert _check(repo).returncode == 0

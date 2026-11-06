@@ -1,6 +1,5 @@
-# pecot-tools bin shared helpers — bin/pecot-tools・setup.sh・scripts/ci/*.sh が source する共通関数。shebang と `set -e` は付けない。
-# data-dir ブロックは pecot-workflow / pecot-visual、runtime-mirror ブロックは pecot-visual と逐語一致させる。
-# 確認は pecot-visual の lib-consistency.sh。
+# pecot-tools bin shared helpers — bin/pecot-tools・setup.sh・scripts/ci/*.sh が source する。shebang と `set -e` は付けない。
+# data-dir・runtime-mirror ブロックは他プラグインと逐語一致させる（pecot-visual の cli/tests/bootstrap/lib-consistency.sh）。
 
 # pnpm の起動コマンドを返す（pnpm / corepack pnpm / plugin_npx_pnpm <版> / 空）。Node.js 25 以降は corepack が無いため npx で版を固定して起動する。
 # 引数: $1 = plugin root（package.json の packageManager から版を読む）
@@ -56,7 +55,7 @@ pnpm_resolution_hint() {
     echo ""
 }
 
-# bootstrap 進捗を stderr に出す。`[pecotv bootstrap] ` は bash テストが grep するので変えない。
+# bootstrap 進捗を stderr に出す。`[pecot-tools bootstrap] ` は bash テストが grep するので変えない。
 pecot_tools_log() {
     echo "[pecot-tools bootstrap] $*" >&2
 }

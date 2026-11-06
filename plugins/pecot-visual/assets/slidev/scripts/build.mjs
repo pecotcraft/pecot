@@ -5,7 +5,6 @@
 // $npm_execpath が ELF を指して動かなくなる。
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -28,10 +27,8 @@ if (process.env.PECOTV_SKIP_LIB_BUILD !== "1") {
   if (textRulesBuild.status !== 0) process.exit(textRulesBuild.status ?? 1);
 }
 
-// hoist 先が開発とミラーで違うため、Node の解決で typescript7 を探す。
-const tscPackageJson = createRequire(import.meta.url).resolve("typescript7/package.json");
-const tsc = join(dirname(tscPackageJson), "bin", "tsc");
-const result = spawnSync(process.execPath, [tsc, "-b", "tsconfig.build.json"], {
+// typescript7 の解決は scripts/tsc.mjs に任せる。
+const result = spawnSync(process.execPath, [join(__dirname, "tsc.mjs"), "-b", "tsconfig.build.json"], {
   cwd: assetRoot,
   stdio: "inherit",
 });

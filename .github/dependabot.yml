@@ -2,6 +2,7 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
 # 対象は lock を持つ install 単位ごとに 1 エントリ。npm は root の pnpm workspace 1 つだけ。
+# 各 runtime-lock.yaml は .github/workflows/runtime-lock.yml が、npm の PR のブランチで作り直す。
 #
 # .pre-commit-config.yaml の外部 hook（ruff / markdownlint / gitlint 等）の rev は Dependabot の対象外。
 # pre-commit autoupdate で上げる。

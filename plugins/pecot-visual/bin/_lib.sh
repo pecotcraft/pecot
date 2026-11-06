@@ -1,6 +1,5 @@
 # pecotv bin shared helpers — bin/pecotv・setup.sh・hooks が source する共通関数。shebang と `set -e` は付けない。
-# data-dir ブロックは pecot-workflow / pecot-tools、runtime-mirror ブロックは pecot-tools と逐語一致させる。
-# 確認は cli/tests/bootstrap/lib-consistency.sh。
+# data-dir・runtime-mirror ブロックは他プラグインと逐語一致させる（確認は cli/tests/bootstrap/lib-consistency.sh）。
 
 # pnpm の起動コマンドを返す（pnpm / corepack pnpm / plugin_npx_pnpm <版> / 空）。Node.js 25 以降は corepack が無いため npx で版を固定して起動する。
 # 引数: $1 = plugin root（package.json の packageManager から版を読む）
@@ -513,9 +512,10 @@ plugin_runtime_slidev_packages() {
         assets/slidev/scripts/eslint/validate-references
 }
 
-# ソースの入力（build の入力でミラーへ同期する集合）。cli、v-slidev の ESLint プラグイン、vendor/text-rules、deck-lint の設定、build.mjs、runtime の manifest。テストと生成物は含めない。
+# ソースの入力（build の入力でミラーへ同期する集合）。cli、v-slidev の ESLint プラグイン、vendor/text-rules、deck-lint の設定、build.mjs・tsc.mjs、runtime の manifest。テストと生成物は含めない。
 plugin_runtime_src_files() {
     local root="$1" package file
+    local prune=( \( -name node_modules -o -name dist -o -name coverage -o -name build \) -prune -o )
     (
         cd "$root" || exit 0
         printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json cli/scripts/tsc.mjs
@@ -526,6 +526,7 @@ plugin_runtime_src_files() {
             assets/slidev/tsconfig.base.json \
             assets/slidev/tsconfig.build.json \
             assets/slidev/scripts/build.mjs \
+            assets/slidev/scripts/tsc.mjs \
             assets/slidev/deck-lint.config.js \
             assets/slidev/deck-lint.env.config.js \
             assets/slidev/runtime/package.json
@@ -533,13 +534,13 @@ plugin_runtime_src_files() {
             # vendor/text-rules はリンクなので -L で辿り、node_modules などは -prune する。*.md・package-lock.json・project.json は外す（リリースでハッシュを動かさないため）。
             case "$package" in
                 vendor/text-rules)
-                    find -L "$package" \( -name node_modules -o -name dist -o -name coverage -o -name build \) -prune -o \
+                    find -L "$package" "${prune[@]}" \
                         -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
                         ! -path '*/__pycache__/*' ! -path '*.egg-info/*' \
                         ! -name '*.md' ! -name package-lock.json ! -name project.json -print 2>/dev/null || true
                     ;;
                 *)
-                    find -L "$package" \( -name node_modules -o -name dist -o -name coverage -o -name build \) -prune -o \
+                    find -L "$package" "${prune[@]}" \
                         -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
                         ! -path '*/__pycache__/*' ! -path '*.egg-info/*' -print 2>/dev/null || true
                     ;;
@@ -554,7 +555,7 @@ plugin_runtime_src_files() {
 # 引数: $1 = ミラーのディレクトリ、$2 = pnpm の起動コマンド
 plugin_runtime_build() {
     local dir="$1" pnpm="$2"
-    # slidev を先に build する（build.mjs が text-rules を build し、cli の型解決が dist を読む。donor 複製では prepare が動かない）。
+    # slidev を先に build する（build.mjs が text-rules を build し、cli の型解決が dist を読む）。
     # `$pnpm` は "corepack pnpm" を 2 トークンに分けるため quote しない。
     # shellcheck disable=SC2086
     if ! ( cd "$dir" && $pnpm --config.verify-deps-before-run=false --filter @pecot/slidev-assets-dev run build ); then

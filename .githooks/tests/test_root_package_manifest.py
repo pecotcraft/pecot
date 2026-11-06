@@ -1,7 +1,7 @@
 """root package.json が nx workspace として成り立っていることを pin する。
 
 root は pnpm workspace の root で、依存と lock（pnpm-lock.yaml）を 1 つで管理する (#113)。
-libs/text-rules/dist は、assets/slidev の `prepare`（build.mjs）が `pnpm install` の lifecycle で build する。
+libs/text-rules/dist は、nx の text-rules:build と .githooks/lib/text-rules-ready.sh が build する。
 root フック（check-text.sh 等）は libs/text-rules/dist を起動する。
 root は外部へ配布しないので、exports / bin / dependencies は持たない。
 """
@@ -45,14 +45,14 @@ def test_root_does_not_distribute(root: dict) -> None:
 
 
 def test_root_has_no_prepare(root: dict) -> None:
-    """lib の build は assets/slidev の prepare が担う。root の prepare は npm ci を呼ぶため置かない。"""
+    """lib の build は nx の text-rules:build が担うので、root に prepare を置かない。"""
     assert "prepare" not in root.get("scripts", {})
 
 
 def test_root_install_target_is_a_frozen_pnpm_install(root: dict) -> None:
     install = root["nx"]["targets"]["install"]
     assert install["cache"] is False
-    assert install["options"]["command"].endswith("pnpm install --frozen-lockfile")
+    assert install["options"]["command"].endswith("scripts/run-pnpm.sh install --frozen-lockfile")
 
 
 def test_package_manager_guard_is_kept(root: dict) -> None:

@@ -9,7 +9,7 @@ echo "=== pecot setup ==="
 cd "$SCRIPT_DIR"
 
 # 1. Node の依存を導入する。root の pnpm workspace 1 つに lock も 1 つ。
-echo "[1/1] Installing Node dependencies (pnpm workspace)..."
+echo "Installing Node dependencies (pnpm workspace)..."
 # pnpm が無ければ corepack、それも無ければ npx で、packageManager の版を起動する。
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1

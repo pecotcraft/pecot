@@ -18,7 +18,6 @@
     "lint": "eslint --no-cache --max-warnings 0 scripts && node scripts/design-lint/lint-design.mjs",
     "lint:design": "node scripts/design-lint/lint-design.mjs",
     "build": "node scripts/build.mjs",
-    "prepare": "node scripts/build.mjs",
     "build:test": "node scripts/tsc.mjs -b --force tsconfig.test.json",
     "prelint": "node scripts/build.mjs",
     "test": "node scripts/test.mjs",

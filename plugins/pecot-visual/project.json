@@ -25,7 +25,7 @@
       "cache": false,
       "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
       "metadata": {
-        "description": "依存の導入は root の project の install が 1 回だけ行う (#1080, #113)。このターゲットは何もせず、install の後に動く順序だけをレーンに与える。"
+        "description": "依存の導入は root の project の install が 1 回だけ行う (#113)。このターゲットは、その後に動く順序だけをレーンに与える。"
       }
     },
     "check-pm-guard": {
@@ -73,7 +73,7 @@
         "^production"
       ],
       "metadata": {
-        "description": "assets/slidev/scripts/build.mjs が assets/slidev を build する。text-rules の build は text-rules:build に任せる。command が渡す PECOTV_SKIP_LIB_BUILD=1 で、build.mjs は飛ばす。同じ libs/text-rules/dist を並行して消さないため。ミラーの bootstrap は env を渡さず、build.mjs が text-rules も build する。開発環境では、node がリンク（vendor/text-rules）を実体の libs/text-rules に解決する。text-rules の依存は repo root の node_modules から読み、tsc は createRequire で解決する。順序は install、text-rules:build とする。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。"
+        "description": "assets/slidev を build.mjs で build する。text-rules の build は text-rules:build に任せ、PECOTV_SKIP_LIB_BUILD=1 で build.mjs の側は飛ばす。ミラーはこの env を渡さず、build.mjs が text-rules も build する。"
       },
       "options": {
         "command": "PECOTV_SKIP_LIB_BUILD=1 pnpm --filter @pecot/slidev-assets-dev run build",

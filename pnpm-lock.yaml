@@ -222,6 +222,9 @@ importers:
       nx:
         specifier: ^24.0.1
         version: 24.0.1
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   libs/text-rules:
     dependencies:

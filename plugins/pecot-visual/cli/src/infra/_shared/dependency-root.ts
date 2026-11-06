@@ -34,6 +34,8 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 
+import { parse as parseYaml } from 'yaml'
+
 const DATA_DIRECTORY_PROJECT = 'pecot-visual'
 
 /**
@@ -93,27 +95,57 @@ export function themeStoreRoot(): string | undefined {
 }
 
 /**
-`node_modules` を持つ側のディレクトリ。`root` 自身か、開発ツリーの workspace root。
+`node_modules` を持つ側のディレクトリ。`root` 自身か、`root` を `packages` に含む上位の workspace root。
 
-実行用ミラーと配布のディレクトリは、自分自身に `node_modules` を持つ。
-開発ツリーでは pnpm の hoisted で、共通の依存が repo root（`pnpm-workspace.yaml` のある dir）の `node_modules` に置かれる。
-プラグインの dir には、版がぶつかった分しか残らない。
-
-`root` に `pnpm-workspace.yaml` が無いときだけ、上の dir を最大 3 つまで遡る。
-ミラーは `pnpm-workspace.yaml` を `root` に置くので遡らない。
-配布先に workspace の定義は無いので、見つからなければ `root` のまま。
-開発ツリーは `<repo>/plugins/<プラグイン>` の深さなので、3 つあれば届く。
+`root` に `pnpm-workspace.yaml` が無いときだけ、上の dir を最大 3 つまで遡る。無関係な workspace は採らない。
 */
 function nodeModulesHolder(root: string): string {
   let current = root
   for (let level = 0; level <= 3; level += 1) {
+    const workspace = path.join(current, 'pnpm-workspace.yaml')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は pnpm-workspace.yaml のみ
-    if (existsSync(path.join(current, 'pnpm-workspace.yaml'))) return current
+    if (existsSync(workspace)) return level === 0 || isIncludedByWorkspace(workspace, path.relative(current, root)) ? current : root
     const parent = path.dirname(current)
     if (parent === current) break
     current = parent
   }
   return root
+}
+
+/**
+`pnpm-workspace.yaml` の `packages` が、workspace root からの相対パスを含むか。読めない・形が違うときは false。
+*/
+function isIncludedByWorkspace(workspaceFile: string, relative: string): boolean {
+  let packages: unknown
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 参照先は pnpm-workspace.yaml のみ
+    const parsed: unknown = parseYaml(readFileSync(workspaceFile, 'utf8'))
+    packages = typeof parsed === 'object' && parsed !== null && 'packages' in parsed ? parsed.packages : undefined
+  }
+  catch {
+    return false
+  }
+  if (!Array.isArray(packages)) return false
+  const target = relative.split(path.sep)
+  let isIncluded = false
+  for (const entry of packages) {
+    if (typeof entry !== 'string') continue
+    const isNegated = entry.startsWith('!')
+    const pattern = (isNegated ? entry.slice(1) : entry).replace(/^\.\//, '').replace(/\/$/, '').split('/')
+    if (isMatchingSegments(pattern, target)) isIncluded = !isNegated
+  }
+  return isIncluded
+}
+
+/**
+`*`（1 階層の任意の名前）と `**`（0 階層以上）だけを扱う glob の一致の判定。
+*/
+function isMatchingSegments(pattern: readonly string[], target: readonly string[]): boolean {
+  const [head, ...rest] = pattern
+  if (head === undefined) return target.length === 0
+  if (head === '**') return isMatchingSegments(rest, target) || (target.length > 0 && isMatchingSegments(pattern, target.slice(1)))
+  const [first, ...others] = target
+  return first !== undefined && (head === '*' || head === first) && isMatchingSegments(rest, others)
 }
 
 /**

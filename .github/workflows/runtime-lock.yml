@@ -1,0 +1,51 @@
+# Dependabot の PR で runtime-lock.yaml を作り直す。画面からの merge では pre-commit の確認が動かないため。
+# Dependabot の run の GITHUB_TOKEN は読み取りのみなので、contents: write を足す。
+name: runtime-lock
+
+on:
+  pull_request:
+    paths:
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: runtime-lock-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+
+      # pnpm の版は package.json の packageManager が決める。
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - run: node scripts/gen-runtime-lock.mjs --write
+
+      - name: 差分があれば同じブランチへ push する
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          COMMIT_MSG: "chore(repo): runtime-lock を root の lock から作り直す"
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "$COMMIT_MSG"
+          git push origin "HEAD:${HEAD_REF}"

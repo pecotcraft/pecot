@@ -8,11 +8,12 @@
 npm 11 以降は、`devEngines.packageManager` が pnpm の dir で `npx` が `EBADDEVENGINES` で止まる。
 対象は root に `pnpm-lock.yaml` がある pnpm のリポ。
 そのため、pnpm のリポは `pnpm exec nx`、それ以外は `npx nx` で起動する。
-Bash の呼び出し間で変数は残らないので、nx を使う呼び出しごとに、先頭で次を実行する。
-以降のコマンド例の `$NX` は、この変数を指す。
+Bash の呼び出し間で変数は残らないので、`$NX` を使うコマンド例は 1 行の中で判定まで行う。
+判定は `cd <project-root>/base/<repo>` の後に置き、リポの root の `pnpm-lock.yaml` を見る。
+以降のコマンド例の `$NX` は、この判定で決まる値を指す。
 
 ```bash
-if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX <subcommand>
 ```
 
 ## 前提
@@ -98,7 +99,7 @@ grep には出ないのに publish target が存在するリポ（= `@nx/js` の
 pecot は pecot-visual と pecot-tools の 2 本の publish target を持ち、どちらも動く。
 pecot-visual 側の配布スクリプトは次の順に実行する。
 
-1. `pnpm install --frozen-lockfile`
+1. `pnpm install --frozen-lockfile`（pecot は pnpm のリポ）
 2. cli / eslint プラグインのビルド（`prebuild` が `dist` を消すため毎回フルビルド）
 3. `npm install --package-lock-only`
 4. `npm pack`
@@ -116,7 +117,7 @@ publish だけが失敗した場合、リリース自体は成立しているの
 原因を除去してから、publish だけを再実行する。
 
 ```bash
-$NX release publish
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release publish
 ```
 
 再実行の安全性は publish target の実装が担保する。pecot では、pecot-visual と pecot-tools が
@@ -134,7 +135,7 @@ HEAD の `pecot-visual-v<version>` タグがあるため、version plan が消�
 
 ```bash
 bash plugins/pecot-visual/scripts/release/audit-mcp-dist.sh
-$NX release publish
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release publish
 ```
 
 ## 単一ブランチモード（develop == release）
@@ -160,11 +161,11 @@ git pull --ff-only origin main
 ```
 
 pecot では root フック（`check-text` / `check-commit-text`）が `libs/text-rules/dist` を使う。
-release commit は `--no-verify` なしでそのフックを通る。dist は依存の導入（pecot では `pnpm install --frozen-lockfile`）の lifecycle でしか作られないため、
-導入して作る。lockfile のずれで導入が止まったら、release を止めて報告する。
+release commit は `--no-verify` なしでそのフックを通る。dist は依存の導入の lifecycle でしか作られないため、導入して作る。
+pnpm のリポでは `pnpm install --frozen-lockfile`、npm のリポでは `npm ci` を使う。lockfile のずれで導入が止まったら、release を止めて報告する。
 
 ```bash
-cd <project-root>/base/<repo> && pnpm install --frozen-lockfile
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else npm ci; fi
 ```
 
 `main` 以外が checkout されている場合は実行しない（release commit が意図しない
@@ -194,7 +195,7 @@ version 整合・タグ・差分の検証は Nx Release が担う。
 ### 4. dry-run でプレビュー確認
 
 ```bash
-cd <project-root>/base/<repo> && $NX release --dry-run --verbose <publish-flag>
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --dry-run --verbose <publish-flag>
 ```
 
 Step 1 の `cd` とは別の Bash 呼び出しになるため、毎回 `cd` を先頭に付けて cwd の持続に
@@ -217,7 +218,7 @@ CHANGELOG 追記内容・GitHub Release 対象 URL）。想定と違う場合は
 ユーザー承認後に `main` 上で実行する。
 
 ```bash
-cd <project-root>/base/<repo> && $NX release --verbose <publish-flag>
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --verbose <publish-flag>
 ```
 
 `<publish-flag>` の選び方と mutually exclusive の制約は
@@ -291,7 +292,7 @@ version 整合・タグ・差分の検証は Nx Release が担う。
 ### 4. dry-run でプレビュー確認
 
 ```bash
-cd <project-root>/base/<repo> && $NX release --dry-run --verbose <publish-flag>
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --dry-run --verbose <publish-flag>
 ```
 
 dry-run も本実行と同条件にする。`<publish-flag>` は
@@ -334,7 +335,7 @@ Step 4 の dry-run 出力をもとに、ユーザーへ以下を提示して明�
 Step 5 でユーザー承認を得た後に実行する。
 
 ```bash
-cd <project-root>/base/<repo> && $NX release --verbose <publish-flag>
+cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --verbose <publish-flag>
 ```
 
 `<publish-flag>` は [publish フェーズの扱い](#publish-フェーズの扱い) で判定したもの。
