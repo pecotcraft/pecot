@@ -46,11 +46,11 @@ MCP サーバ `pecot-visual` が、スキルの実行部として次のツール
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-v_pecot-visual__<ツール名>` です。
 GitHub Copilot CLI では `pecot-visual-<ツール名>` です。
 ブラウザ操作用に Playwright の MCP サーバ `pecot-visual-playwright` も登録します。
-ブラウザは Playwright が取得する Chromium を使い、端末に入っているブラウザには依存しません。
-初めて使う前に、次のコマンドで同じ版の Chromium を取得します（約 120MB）。
+ブラウザは、端末に入っている Google Chrome を使います。
+Chrome が無い端末では、次のコマンドで入れます。
 
 ```bash
-npx -y @playwright/mcp@0.0.83 install-browser chromium
+npx -y playwright install chrome
 ```
 
 プラグインを入れずにツールだけ使う場合は、npm のパッケージ `@pecot/visual-mcp` の README を参照してください。

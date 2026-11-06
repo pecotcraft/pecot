@@ -9,6 +9,8 @@ if [ "${CI:-}" != "true" ]; then
 fi
 bash "$root/setup.sh"
 (cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install --with-deps chromium)
+# pecot-visual の Playwright MCP は、端末の Google Chrome を使う（MCP の既定）。
+(cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install --with-deps chrome)
 if [ "${CI:-}" != "true" ]; then
   cd "$root"
   git worktree prune
