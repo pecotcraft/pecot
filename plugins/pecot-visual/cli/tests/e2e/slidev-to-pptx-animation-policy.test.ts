@@ -38,6 +38,7 @@ import { parsePart } from '../_helpers/ooxml-parts.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
 import { readZipEntries } from '../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -48,7 +49,7 @@ import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 // 2 回目はキャッシュ全ヒットのはず。
 // 何も知らせず全 miss になると 2 回目が 1 回目と同じ所要時間になるため、
 // この上限は (e) の cache payload assert を所要時間の側からも支える。
-const TWO_CONVERT_CEILING_MS = 55_000
+const TWO_CONVERT_CEILING_MS = durationCeilingMs(55_000)
 
 /**
 presentationml 側の prefix。ooxml-parts の OOXML_NS は xlsx 用で p: を持たない。

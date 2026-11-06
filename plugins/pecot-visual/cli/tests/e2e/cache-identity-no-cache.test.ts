@@ -28,12 +28,13 @@ import {
 import { SLIDE_COUNT, deckMarkdown, resolveExternalPair } from '../_helpers/cache-identity.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
 // 並列計測（vitest.e2e.config.ts の maxWorkers 構成、N=6 の 7 run 全体から最悪を取る）で、本 CUJ 最悪は 17.3s。
 // これにマージン倍率 4.4 倍（76.1s）を取り、80s へ切り上げる。
-const NO_CACHE_DURATION_CEILING_MS = 80_000
+const NO_CACHE_DURATION_CEILING_MS = durationCeilingMs(80_000)
 
 const externalPair = resolveExternalPair()
 

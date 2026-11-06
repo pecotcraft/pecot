@@ -53,6 +53,7 @@ import {
 } from '../_helpers/pecotv-e2e-run.js'
 import { readZipEntries } from '../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 const PRERENDER_SELECTOR = '.point-number'
 const SLIDE_COUNT = 2
@@ -71,7 +72,7 @@ const CACHE_REUSE_SUFFIX = 'ステップはキャッシュ再利用のため要�
 //
 // vitest.e2e.config.ts の maxWorkers 構成で、並列に計測した。N=6 の 7 run 全体から最悪を取る。
 // 本 CUJ の最悪は 12.2s。マージン倍率 4.4 倍（53.7s）を取り、55s へ切り上げる。
-const ELEMENT_ERROR_CEILING_MS = 55_000
+const ELEMENT_ERROR_CEILING_MS = durationCeilingMs(55_000)
 
 const temporaryRoot = useTemporaryDirectory('pecotv-element-error-', { hook: 'all' })
 const projectDirectory = (): string => temporaryRoot('element-error-deck')

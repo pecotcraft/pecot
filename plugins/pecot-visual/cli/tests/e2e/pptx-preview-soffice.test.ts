@@ -33,6 +33,7 @@ import {
   createFixtureThemeSpec,
 } from '../_helpers/pecotv-e2e-run.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 const NS_PRESENTATIONML = 'http://schemas.openxmlformats.org/presentationml/2006/main'
 const NS_OFFICE_RELATIONSHIPS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
@@ -52,7 +53,7 @@ const FOOTER_TEXT_LEFT_PT = (FOOTER_OFFSET_X_EMU + DEFAULT_LEFT_INSET_EMU) / EMU
 // 計測では、本ファイル単独の 2 run が 8.1s / 8.1s、`pnpm test:e2e` の並列 2 run が 9.0s / 9.4s だった。
 // 最悪の 9.4s に、golden-path と同じ考え方のマージン倍率 4 倍強を掛けて、40s とする。
 // 性能目標ではなく、hang regression を spawnSync の SIGTERM kill (600s) より手前で落とすための上限。
-const DURATION_CEILING_MS = 40_000
+const DURATION_CEILING_MS = durationCeilingMs(40_000)
 
 /**
 実変換ケースの deck。slide create が置く初期ページ（cover・section・end）の順で、見出しを書き直す。

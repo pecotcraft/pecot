@@ -167,6 +167,94 @@ def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> Non
     assert {c["TO"] for c in by_stage.values()} == {"unset"}
 
 
+@pytest.mark.parametrize(
+    ("part", "stages", "skips"),
+    [
+        (
+            "lint",
+            ["pre-commit", "pre-push"],
+            [
+                "check-version-plan-required",
+                "check-version-plan-required,nx-affected-tests,githooks-tests",
+            ],
+        ),
+        ("githooks", ["manual"], ["check-version-plan-required,nx-affected-tests"]),
+        ("tests", ["manual"], ["check-version-plan-required,githooks-tests"]),
+    ],
+)
+def test_part_selects_stages_and_skip(
+    pr_repo: _PrChecksRepo, run_script, part: str, stages: list[str], skips: list[str]
+) -> None:
+    """--part は流す stage と、manual の stage で飛ばす hook を決める。"""
+    result = pr_repo.run(run_script, f"--part={part}", pr_repo.base, pr_repo.head)
+    assert result.returncode == 0, result.stderr
+
+    calls = pr_repo.calls()
+    assert [c["stage"] for c in calls] == stages
+    assert [c["SKIP"] for c in calls] == skips
+
+
+def test_part_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) -> None:
+    """--part は位置引数の後ろに置いてもよい。"""
+    result = pr_repo.run(run_script, pr_repo.base, pr_repo.head, "--part=lint")
+    assert result.returncode == 0, result.stderr
+    assert [c["stage"] for c in pr_repo.calls()] == ["pre-commit", "pre-push"]
+
+
+def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
+    """不明な --part は、使い方を stderr へ出して exit 2。pre-commit は呼ばない。"""
+    result = pr_repo.run(run_script, "--part=bogus", pr_repo.base, pr_repo.head)
+    assert result.returncode == 2
+    assert "使い方" in result.stderr
+    assert pr_repo.pc_log.read_text() == ""
+
+
+@pytest.mark.parametrize("part", ["lint", "githooks"])
+def test_summary_without_lane_sections_for_non_test_part(
+    pr_repo: _PrChecksRepo, run_script, part: str
+) -> None:
+    """lint と githooks の Summary は、見出しに part を書き、レーン・失敗・skip の欄を出さない。"""
+    result = pr_repo.run(run_script, f"--part={part}", pr_repo.base, pr_repo.head)
+    out = result.stdout
+    assert f"## 検証の結果（{part}）\n" in out
+    assert "### 範囲" in out
+    assert "### 環境" in out
+    for heading in ("### レーン", "### 失敗", "### skip"):
+        assert heading not in out
+
+
+def test_summary_with_lane_sections_for_tests_part(pr_repo: _PrChecksRepo, run_script) -> None:
+    """tests の Summary は見出しに part を書き、レーン・失敗・skip の欄を出す。"""
+    result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
+    out = result.stdout
+    assert "## 検証の結果（tests）\n" in out
+    for heading in ("### レーン", "### 失敗", "### skip"):
+        assert heading in out
+
+
+def test_summary_without_part_has_plain_heading_and_lane_sections(
+    pr_repo: _PrChecksRepo, run_script
+) -> None:
+    """--part を省くと、見出しは part なしで、全ての欄を出す。"""
+    out = pr_repo.run(run_script).stdout
+    assert "## 検証の結果\n" in out
+    for heading in ("### レーン", "### 失敗", "### skip"):
+        assert heading in out
+
+
+def test_failure_guide_names_part_artifact(pr_repo: _PrChecksRepo, run_script) -> None:
+    """--part=tests の失敗の案内は、artifact 名を ci-logs-tests にする。"""
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))},
+    )
+    assert "artifact `ci-logs-tests`" in result.stdout
+    assert "artifact `ci-logs`" not in result.stdout
+
+
 def test_existing_skip_is_kept(pr_repo: _PrChecksRepo, run_script) -> None:
     """env に SKIP があれば、連結して引き継ぐ。"""
     result = pr_repo.run(run_script, env={"SKIP": "other-hook"})

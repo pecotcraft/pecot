@@ -49,13 +49,14 @@ import {
   type PptxSnapshot,
 } from '../_helpers/pptx-compare.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // テスト末尾で経過時間を assert する事後チェックであり、性能目標でも SLA でもない
 // （所要時間そのものの合否は SC-002 の担当で、本テストは同一性のみを見る）。
 // 並列計測（vitest.e2e.config.ts の maxWorkers 構成、N=6 の 7 run 全体から最悪を取る）で本 CUJ 最悪 27.6s。
 // マージン倍率 4.4 倍は 121.4s だが、E2E 中で最も重い CUJ のため切り上げて 130s を採る。
-const DURATION_CEILING_MS = 130_000
+const DURATION_CEILING_MS = durationCeilingMs(130_000)
 
 const EDITED_SLIDE_KEY = '2'
 
