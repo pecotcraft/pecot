@@ -19,6 +19,14 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      - id: check-root-entries
+        name: block unlisted root entries
+        entry: .githooks/pre-commit/check-root-entries.sh
+        language: unsupported_script
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       - id: check-misplaced-pecot
         name: block misplaced nested .pecot/ directories
         entry: .githooks/pre-commit/check-misplaced-pecot.sh
