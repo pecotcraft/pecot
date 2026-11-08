@@ -130,6 +130,8 @@
         "{projectRoot}/skills/*/SKILL.md",
         "{workspaceRoot}/plugins/pecot-visual/skills/*/SKILL.md",
         "{projectRoot}/.claude-plugin/plugin.json",
+        "{projectRoot}/.mcp.json",
+        "{workspaceRoot}/plugins/pecot-visual/.mcp.json",
         "{projectRoot}/bin/pecot",
         "{projectRoot}/bin/_lib.sh",
         "{projectRoot}/skills/w-help/references/issue-flow-rules.md",

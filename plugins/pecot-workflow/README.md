@@ -43,6 +43,12 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 | w-tech-advisor | 技術調査。対象技術を解析し、計画・実装中の技術的な質問に回答する |
 | w-e2e-planner | E2E テスト。CUJ の設計・妥当性レビューと、実際の CUJ 実行による検証 |
 
+## MCP サーバ
+
+ブラウザ操作用に Playwright の MCP サーバ `pecot-workflow-playwright` を登録します。
+ブラウザは、端末に入っている Google Chrome を使います。
+Chrome が無い端末での入れ方は、[pecot-visual の README](../pecot-visual/README.md) を参照してください。
+
 ---
 
 ## 動作要件

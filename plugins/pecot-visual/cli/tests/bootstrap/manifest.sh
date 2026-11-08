@@ -9,7 +9,8 @@
 #   - 1.0 は閉じたスキーマなので、plugin.json に hooks・mcpServers などを書かない。
 #   - mcp.json の $schema が plugin.json と同じバージョン（agent-plugins.org/schemas/ 配下）になる。
 #   - mcp.json の command がプラグイン相対で実在する。stdio の command は 1.0 では展開されない。
-#   - 従来形式の .mcp.json と同じサーバ・同じ args を持つ。どちらも env を付けない。
+#   - 従来形式の .mcp.json と同じサーバ・同じ args を持つ（root の変数名の違いは除く）。どちらも env を付けない。
+#   - npx のサーバは --prefix に bin/ を渡し、cwd の package.json の devEngines を読ませない。
 #     データ置き場は両クライアントが CLAUDE_PLUGIN_DATA / PLUGIN_DATA で渡し、wrapper がその順で解決する。
 #   - MCP のサーバ名（キー）は pecot-visual / pecot-visual-playwright / pecot-tools。
 #     Copilot CLI はキーをそのままツール名の前置きにし、同名のキーは後から読んだものが勝つ。
@@ -74,11 +75,20 @@ for (const entry of servers.split(' ')) {
   if (server === undefined || legacy === undefined) continue
   check(`mcp.json(${name}): type が stdio`, server.type === 'stdio', server.type)
   check(`.mcp.json(${name}): env を付けない`, legacy.env === undefined)
-  check(`mcp.json(${name}): 従来形式の .mcp.json と args が同じ`, JSON.stringify(server.args) === JSON.stringify(legacy.args), `${JSON.stringify(server.args)} / ${JSON.stringify(legacy.args)}`)
+  // プラグイン root の変数は、.mcp.json が ${CLAUDE_PLUGIN_ROOT}、mcp.json が ${PLUGIN_ROOT}。同じものとして比べる。
+  const legacyArgs = (legacy.args ?? []).map((arg) => String(arg).split('${CLAUDE_PLUGIN_ROOT}').join('${PLUGIN_ROOT}'))
+  check(`mcp.json(${name}): 従来形式の .mcp.json と args が同じ`, JSON.stringify(server.args) === JSON.stringify(legacyArgs), `${JSON.stringify(server.args)} / ${JSON.stringify(legacy.args)}`)
   if (executable === 'npx') {
     check(`mcp.json(${name}): env を付けない`, server.env === undefined)
     check(`mcp.json(${name}): command が npx`, server.command === 'npx', server.command)
     check(`.mcp.json(${name}): command が npx`, legacy.command === 'npx', legacy.command)
+    // npm は cwd から上へたどって見つけた package.json の devEngines が npm 以外だと npx を止める。
+    // --prefix に package.json の無い bin/ を指すと、npm はそこから上へたどらない。
+    for (const [file, target, rootVar] of [['mcp.json', server, '${PLUGIN_ROOT}'], ['.mcp.json', legacy, '${CLAUDE_PLUGIN_ROOT}']]) {
+      check(`${file}(${name}): args の先頭が --prefix=${rootVar}/bin`, (target.args ?? [])[0] === `--prefix=${rootVar}/bin`, String((target.args ?? [])[0]))
+    }
+    check(`${name}: --prefix の bin/ が実在する`, fs.statSync(path.join(root, 'bin'), { throwIfNoEntry: false })?.isDirectory() === true)
+    check(`${name}: --prefix の bin/ に package.json が無い`, !fs.existsSync(path.join(root, 'bin', 'package.json')))
     // npx が取るパッケージは版まで固定する（@latest だと起動のたびに最新を取りに行く）。args のうちフラグでない最初の要素がパッケージ。
     // Claude Code 向けの .mcp.json と Copilot CLI 向けの mcp.json の両方を見る。
     for (const [file, target] of [['mcp.json', server], ['.mcp.json', legacy]]) {
