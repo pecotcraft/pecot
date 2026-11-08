@@ -80,11 +80,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# publish / audit はブランドの語の一覧を要求する。語は実在のものではなく人工の文字列にする。
-TERMS_FILE="$TMP/brand-terms.txt"
-printf '# synthetic terms for npm cache test\nzz-synthetic-brand-term\n' > "$TERMS_FILE"
-export PECOT_BRAND_TERMS_FILE="$TERMS_FILE"
-
 # 失敗の補足に使う。$TMP 配下のログの末尾 N 行を 1 行にまとめて返す。
 # 失敗メッセージの文字列に、引用符入りの $(...) を入れないよう、引数は $TMP からの相対名で渡す。
 log_tail() {

@@ -75,11 +75,6 @@ if [ ! -d "$TOOLS_ROOT/cli/dist" ]; then
     exit 1
 fi
 
-# ブランドの語の一覧は合成値で渡す。語は、配布ツリーに現れないものを選ぶ。
-TERMS_FILE="$TMP/brand-terms.txt"
-printf '# synthetic terms for publish test\nzz-synthetic-brand-term\n' > "$TERMS_FILE"
-export PECOT_BRAND_TERMS_FILE="$TERMS_FILE"
-
 # --- PATH 先頭のスタブ ---
 # gh: 呼び出しの引数を 1 行ずつ GH_STUB_LOG へ記録する。upload された tgz は GH_STUB_DIR/uploaded.tgz へ写す。
 #     GH_STUB_NO_RELEASE=1 のときは、release view が「release not found」で失敗する。
@@ -160,7 +155,6 @@ git -C "$TEST_REPO" remote add origin "https://github.com/$TEST_SLUG.git" || exi
     plugins/pecot-tools/cli/package.json \
     plugins/pecot-tools/scripts/release \
     LICENSE \
-    .githooks/pre-commit/check-brand-terms.sh \
     | tar --null -T - -cf -) | tar -xf - -C "$TEST_REPO" || exit 1
 # scripts/release だけは、作業ツリーから丸ごと上書きする。
 # git ls-files は未追跡ファイルを落とす。
@@ -265,40 +259,6 @@ if bash "$PUBLISH" --dry-run --skip-build --repo=acme-labs/example-repo --out-di
     fail "--repo が受け付けられた"
 else
     pass "--repo は未対応の引数として exit 1 になる"
-fi
-
-# ブランドの語の確認。一覧が無いときは build にも配布ツリーの構築にも入らず止まる。
-NOTERMS_RC=0
-env -u PECOT_BRAND_TERMS_FILE bash "$PUBLISH" --dry-run --skip-build \
-    --out-dir="$TMP/dist-noterms" > "$TMP/noterms.log" 2>&1 || NOTERMS_RC=$?
-assert_eq "語の一覧が無いと非ゼロ終了" "1" "$NOTERMS_RC"
-if grep -qF "ブランドの語の一覧が無い" "$TMP/noterms.log"; then
-    pass "語の一覧が無い理由を出す"
-else
-    fail "語の一覧が無い理由を出さない ($(log_tail noterms.log 2))"
-fi
-if [ ! -d "$TMP/dist-noterms" ]; then
-    pass "語の一覧が無いときは配布ツリーを構築しない"
-else
-    fail "語の一覧が無いのに配布ツリーを構築した"
-fi
-
-# 配布ツリーに語が残っていれば、dry-run でも pack へ進まず止まる。語は一覧に足して再現する。
-MATCH_TERMS="$TMP/brand-terms-match.txt"
-printf 'pecot-tools-mcp\n' > "$MATCH_TERMS"
-MATCH_RC=0
-PECOT_BRAND_TERMS_FILE="$MATCH_TERMS" bash "$PUBLISH" --dry-run --skip-build \
-    --out-dir="$TMP/dist-match" > "$TMP/match.log" 2>&1 || MATCH_RC=$?
-assert_eq "配布ツリーに語が残っていると非ゼロ終了" "1" "$MATCH_RC"
-if grep -qF "配布ツリーにブランドの語が残っている" "$TMP/match.log"; then
-    pass "語が残っている理由を出す"
-else
-    fail "語が残っている理由を出さない ($(log_tail match.log 3))"
-fi
-if grep -qF "tgz:" "$TMP/match.log"; then
-    fail "語が残っているのに npm pack へ進んだ"
-else
-    pass "語が残っているときは npm pack へ進まない"
 fi
 
 # --- 2. 配布ツリーの中身 ---

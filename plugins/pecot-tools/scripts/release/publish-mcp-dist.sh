@@ -143,14 +143,6 @@ if [ "$DRY_RUN" = false ]; then
     fi
 fi
 
-# ブランドの語の一覧が無いときは、build を始める前に止める。
-# 配布ツリーの語の確認（shrinkwrap の後）が一覧を要求するため、build の後で気付くと手戻りが大きい。
-if [ -z "${PECOT_BRAND_TERMS_FILE:-}" ] || [ ! -f "${PECOT_BRAND_TERMS_FILE:-}" ]; then
-    echo "ERROR: ブランドの語の一覧が無いため中止: PECOT_BRAND_TERMS_FILE が未設定か、指す先がありません（現在: ${PECOT_BRAND_TERMS_FILE:-未設定}）。" >&2
-    echo "       CLAUDE.md の「ブランドの語の確認」の節に従って、一覧ファイルの絶対パスを渡してください。" >&2
-    exit 1
-fi
-
 echo "==> @pecot/tools-mcp 配布ツリーを構築 (version=$VERSION / dry-run=$DRY_RUN)"
 
 # --- 2. build ---
@@ -268,14 +260,6 @@ mv "$DIST/package-lock.json" "$DIST/npm-shrinkwrap.json"
 
 DIST_SIZE="$(du -sh "$DIST" | cut -f1)" || DIST_SIZE=""
 echo "==> 配布ツリー: $DIST ($DIST_SIZE)"
-
-# 配布ツリーの全ファイル（cli/dist などの生成物を含む）の中身とパスの名前に、ブランドの語が無いことを確かめる。
-# git を使わずファイルを全部たどる。dry-run でも実行し、一致したら pack へ進まない。
-echo "==> ブランドの語の確認（配布ツリー）"
-if ! "$REPO_ROOT/.githooks/pre-commit/check-brand-terms.sh" --require-terms --dir "$DIST"; then
-    echo "ERROR: 配布ツリーにブランドの語が残っているか、語の確認を完了できませんでした。上の出力を確認してください。" >&2
-    exit 1
-fi
 
 # --- 4. 固めて、届ける ---
 # pack から gh の呼び出しまでは、リポジトリのルートの共通スクリプトが担う。

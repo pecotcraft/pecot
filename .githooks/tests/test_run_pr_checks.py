@@ -151,16 +151,13 @@ def test_stages_run_in_order_with_range(pr_repo: _PrChecksRepo, run_script) -> N
 
 
 def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> None:
-    """SKIP は全 stage に version plan の判定、pre-push だけにテストの 2 hook を足す。"""
+    """SKIP は全 stage に version plan の判定だけを入れる。"""
     result = pr_repo.run(run_script)
     assert result.returncode == 0, result.stderr
 
     by_stage = {c["stage"]: c for c in pr_repo.calls()}
     assert by_stage["pre-commit"]["SKIP"] == "check-version-plan-required"
-    assert (
-        by_stage["pre-push"]["SKIP"]
-        == "check-version-plan-required,nx-affected-tests,githooks-tests"
-    )
+    assert by_stage["pre-push"]["SKIP"] == "check-version-plan-required"
     assert by_stage["manual"]["SKIP"] == "check-version-plan-required"
     assert by_stage["pre-commit"]["PVB"] == "unset"
     assert by_stage["pre-push"]["PVB"] == pr_repo.base
@@ -175,10 +172,7 @@ def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> Non
         (
             "lint",
             ["pre-commit", "pre-push"],
-            [
-                "check-version-plan-required",
-                "check-version-plan-required,nx-affected-tests,githooks-tests",
-            ],
+            ["check-version-plan-required", "check-version-plan-required"],
         ),
         ("githooks", ["manual"], ["check-version-plan-required,nx-affected-tests"]),
         ("tests", ["manual"], ["check-version-plan-required,githooks-tests"]),

@@ -75,12 +75,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 配布ツリーのブランドの語の確認に渡す一覧。本テストの語は、実在の語ではなく人工の文字列にする。
-# 配布ツリーはこの語を含まないので、確認は「一致 0 件」で通る。
-TERMS_FILE="$TMP/brand-terms.txt"
-printf '# synthetic terms for publish test\nzz-synthetic-brand-term\n' > "$TERMS_FILE"
-export PECOT_BRAND_TERMS_FILE="$TERMS_FILE"
-
 # 監査記録は publish が読む。テストは全呼び出しを $TMP 配下へ向ける。
 export PECOTV_AUDIT_RECORD="$TMP/audit-record.json"
 
@@ -306,7 +300,6 @@ git -C "$TEST_REPO" commit --quiet --allow-empty -m base > /dev/null 2>&1 || exi
     plugins/pecot-visual/scripts/release \
     libs/text-rules/package.json \
     LICENSE \
-    .githooks/pre-commit/check-brand-terms.sh \
     | tar --null -T - -cf -) | tar -xf - -C "$TEST_REPO" || exit 1
 # scripts/release だけは、作業ツリーから丸ごと上書きする。
 # git ls-files は未追跡ファイルを落とす。
@@ -437,43 +430,6 @@ for needle in "gh release view pecot-visual-v$PLUGIN_VERSION -R" \
         fail "dry-run が実行予定の gh コマンドを表示しない: $needle"
     fi
 done
-
-# 配布ツリーのブランドの語の確認。一覧を渡した上の実行は、確認の結果を出して通る。
-if grep -qF "一致 0 件" "$TMP/dryrun.log"; then
-    pass "配布ツリーの語の確認が「一致 0 件」を出力する"
-else
-    fail "配布ツリーの語の確認の結果が出ていない ($(log_tail dryrun.log 4))"
-fi
-
-# 一覧が無いときは build にも配布ツリーの構築にも入らず止まる。
-NOTERMS_RC=0
-env -u PECOT_BRAND_TERMS_FILE bash "$PUBLISH" --dry-run --skip-build \
-    --out-dir="$TMP/dist-noterms" > "$TMP/noterms.log" 2>&1 || NOTERMS_RC=$?
-assert_eq "語の一覧が無いと非ゼロ終了" "1" "$NOTERMS_RC"
-if grep -qF "ブランドの語の一覧が無い" "$TMP/noterms.log"; then
-    pass "語の一覧が無い理由を出す"
-else
-    fail "語の一覧が無い理由を出さない ($(log_tail noterms.log 2))"
-fi
-if [ ! -d "$TMP/dist-noterms" ]; then
-    pass "語の一覧が無いときは配布ツリーを構築しない"
-else
-    fail "語の一覧が無いのに配布ツリーを構築した"
-fi
-
-# 配布ツリーに語が残っていれば、dry-run でも止まる。語は一覧に足して再現する（ツリーの側は変えない）。
-MATCH_TERMS="$TMP/brand-terms-match.txt"
-# 合成した語を使う。この語は package.json の bin の名前と shim のパスに入るので、配布ツリーから必ず見つかる。
-printf 'pecot-visual-mcp\n' > "$MATCH_TERMS"
-MATCH_RC=0
-PECOT_BRAND_TERMS_FILE="$MATCH_TERMS" bash "$PUBLISH" --dry-run --skip-build \
-    --out-dir="$TMP/dist-match" > "$TMP/match.log" 2>&1 || MATCH_RC=$?
-assert_eq "配布ツリーに語が残っていると非ゼロ終了" "1" "$MATCH_RC"
-if grep -qF "配布ツリーにブランドの語が残っている" "$TMP/match.log"; then
-    pass "語が残っている理由を出す"
-else
-    fail "語が残っている理由を出さない ($(log_tail match.log 3))"
-fi
 
 # --- 1-4. build を伴う場合の pnpm 呼び出し順 ---
 # publish は build を直接起動する。

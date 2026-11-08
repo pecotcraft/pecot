@@ -124,10 +124,6 @@ run_stage() {
     # version plan の判定は CI の別の job が担う。
     local stage="$1" skip="check-version-plan-required" plan_base=""
     local -a range_args=() extra_env=()
-    case "$stage" in
-        # テストの 2 つの hook は manual の stage でも動くため、2 回動かさない。
-        pre-push) skip="$skip,nx-affected-tests,githooks-tests" ;;
-    esac
     [ -z "$part_skip" ] || skip="$skip,$part_skip"
     [ -z "${SKIP:-}" ] || skip="$SKIP,$skip"
     if [ "$mode" = "全レーン" ]; then

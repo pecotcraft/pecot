@@ -1,7 +1,7 @@
 """`.pre-commit-config.yaml` の所要記録の配線テスト（#1083）。
 
-自前 hook は with-timing.sh で包んで所要を記録する。成功 push の合計行と一致 0 件の表示を
-端末へ出すため `verbose: true` は nx-affected-tests と check-brand-terms だけに付ける。いずれも
+自前 hook は with-timing.sh で包んで所要を記録する。成功時の合計行を端末へ出すため
+`verbose: true` は nx-affected-tests だけに付ける。
 スクリプト単体テストでは守れない配線のため、リポ実体の config を読んで pin する。
 yaml パーサに依存しない切り出しは test_check_release_group_changelog.py と同方式。
 """
@@ -18,7 +18,6 @@ _WRAPPED_HOOKS = [
     "check-text-push",
     "check-commit-text",
     "nx-affected-lint",
-    "check-brand-terms",
     "check-version-plan-required",
     "githooks-tests",
     "nx-env-inputs",
@@ -71,14 +70,14 @@ def test_entry_wrapped_with_timing(script_dir: Path, hook_id: str) -> None:
 
 
 def test_verbose_only_on_hooks_that_print_a_success_line(script_dir: Path) -> None:
-    """`verbose: true` を持つ hook は、成功時にも端末へ出す行がある 2 つだけ。"""
+    """`verbose: true` を持つ hook は、成功時にも端末へ出す行がある nx-affected-tests だけ。"""
     text = _config_text(script_dir)
     verbose = [
         hook_id
         for hook_id in _hook_ids(text)
         if "verbose: true" in [line.strip() for line in _hook_entry_lines(text, hook_id)]
     ]
-    assert verbose == ["check-brand-terms", "nx-affected-tests"]
+    assert verbose == ["nx-affected-tests"]
 
 
 def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
@@ -363,35 +362,15 @@ def test_check_commit_text_stage_and_always_run(script_dir: Path) -> None:
 
 
 def test_check_text_runs_before_heavy_hooks(script_dir: Path) -> None:
-    """check-text は重い nx-affected-lint と nx-affected-tests より前に置く。"""
+    """check-text は重い nx-affected-lint より前に置く。"""
     ids = _hook_ids(_config_text(script_dir))
     assert ids.index("check-text") < ids.index("nx-affected-lint")
-    assert ids.index("check-text") < ids.index("nx-affected-tests")
 
 
 def test_check_text_push_runs_before_heavy_hooks(script_dir: Path) -> None:
-    """check-text-push は version plan ガードと nx-affected-tests より前に置く。"""
+    """check-text-push は version plan ガードより前に置く。"""
     ids = _hook_ids(_config_text(script_dir))
     assert ids.index("check-text-push") < ids.index("check-version-plan-required")
-    assert ids.index("check-text-push") < ids.index("nx-affected-tests")
-
-
-def test_check_brand_terms_stage_and_flags(script_dir: Path) -> None:
-    """語の確認は pre-push で常に動き、飛ばしたことも端末へ出す。"""
-    block = [
-        line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-brand-terms")
-    ]
-    assert "stages: [pre-push]" in block
-    assert "always_run: true" in block
-    assert "pass_filenames: false" in block
-    assert "verbose: true" in block
-    assert "fail_fast: true" in block
-
-
-def test_check_brand_terms_runs_before_nx_affected_tests(script_dir: Path) -> None:
-    """語の確認は数分かかるテストより前に置き、一致があれば先に止める。"""
-    ids = _hook_ids(_config_text(script_dir))
-    assert ids.index("check-brand-terms") < ids.index("nx-affected-tests")
 
 
 def test_pages_build_hook_is_removed(script_dir: Path) -> None:
@@ -425,22 +404,9 @@ def test_local_hooks_use_unsupported_languages(script_dir: Path) -> None:
 #
 # hook の実体が `pre-commit/`・`commit-msg/`・`pre-push/` の直下にあるとき、
 # そのディレクトリ名がその hook の stages と一致する。
-# 例外は hook id をキーにした表で持つ。表の行は、hook が config に残り、実体が書いた場所にある間だけ通る。
-# #66 で hook を消したときに行が残ると落ちるため、消し忘れに気づける。
+# `.githooks/ci/` 直下に実体がある hook は manual で動く。
 
 _STAGE_DIRS = ("pre-commit", "commit-msg", "pre-push")
-
-# hook id -> (実体の相対パス, 例外の理由)
-_STAGE_DIR_EXCEPTIONS: dict[str, tuple[str, str]] = {
-    "check-brand-terms": (
-        ".githooks/pre-commit/check-brand-terms.sh",
-        "pre-push で動くが pre-commit/ に残す。#66 で消す",
-    ),
-    "nx-affected-tests": (
-        ".githooks/ci/run-affected-tests.sh",
-        "ci/ にあるが pre-push で動く。#66 で stage を変える",
-    ),
-}
 
 
 def _local_hook_blocks(config_text: str) -> dict[str, list[str]]:
@@ -518,8 +484,6 @@ def test_stage_dir_matches_stages(script_dir: Path) -> None:
     blocks = _local_hook_blocks(_config_text(script_dir))
     mismatched = []
     for hook_id, script in _local_scripts(script_dir).items():
-        if hook_id in _STAGE_DIR_EXCEPTIONS:
-            continue
         parts = Path(script).parts  # 直下 = (.githooks, <dir>, <file>) の 3 要素
         if len(parts) == 3 and parts[0] == ".githooks" and parts[1] in _STAGE_DIRS:
             if _stages(blocks[hook_id]) != [parts[1]]:
@@ -527,11 +491,18 @@ def test_stage_dir_matches_stages(script_dir: Path) -> None:
     assert mismatched == []
 
 
-@pytest.mark.parametrize("hook_id", sorted(_STAGE_DIR_EXCEPTIONS))
-def test_stage_dir_exception_rows_are_live(script_dir: Path, hook_id: str) -> None:
-    """例外の行は、hook が config にあり、実体が書いた場所にある間だけ有効。"""
-    expected_script, _reason = _STAGE_DIR_EXCEPTIONS[hook_id]
-    assert _local_scripts(script_dir).get(hook_id) == expected_script
+def test_ci_dir_hooks_run_only_in_manual(script_dir: Path) -> None:
+    """実体が `.githooks/ci/` 直下にある local hook は、stages が manual だけ。"""
+    blocks = _local_hook_blocks(_config_text(script_dir))
+    ci_hooks = {
+        hook_id: script
+        for hook_id, script in _local_scripts(script_dir).items()
+        if Path(script).parts[:2] == (".githooks", "ci") and len(Path(script).parts) == 3
+    }
+    assert ci_hooks
+    assert {hook_id: _stages(blocks[hook_id]) for hook_id in ci_hooks} == {
+        hook_id: ["manual"] for hook_id in ci_hooks
+    }
 
 
 def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
@@ -549,7 +520,7 @@ def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
 
 
 @pytest.mark.parametrize("hook_id", ["nx-affected-tests", "githooks-tests"])
-def test_test_hooks_run_in_pre_push_and_manual(script_dir: Path, hook_id: str) -> None:
-    """テストの 2 つの hook は pre-push に加えて manual でも動く。manual は CI（run-pr-checks.sh）用。"""
+def test_test_hooks_run_only_in_manual(script_dir: Path, hook_id: str) -> None:
+    """テストの 2 つの hook は manual だけで動く。manual は CI（run-pr-checks.sh）と手動用。"""
     block = _hook_entry_lines(_config_text(script_dir), hook_id)
-    assert _stages(block) == ["pre-push", "manual"]
+    assert _stages(block) == ["manual"]

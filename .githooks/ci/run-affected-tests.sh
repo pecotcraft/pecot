@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pre-push で nx affected の test レーンを実行する root 共通のチェック（Hook stage: pre-push）。
+# pre-push で nx affected の test レーンを実行する root 共通のチェック（Hook stage: manual。CI と手動で動かす）。
 # レーン名は lib/nx-lanes.sh で集めて要求する。起点の `test` を要求すると全レーンが選ばれる。
 
 # shellcheck disable=SC2154  # repo_root と nx_bin は require_repo_node_nx が設定する
