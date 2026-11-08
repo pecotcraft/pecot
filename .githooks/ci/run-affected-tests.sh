@@ -25,7 +25,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 require_repo_node_nx tests || exit 1
 
 # CI の lane モード: PECOT_NX_LANE=<project>:<target> のレーン 1 本だけを動かす。
-# PECOT_NX_CI=1 以外では無視する。手元の pre-push で、レーンが 1 本に狭まるのを防ぐ。
+# PECOT_NX_CI=1 以外では無視する。手元の manual の stage で、レーンが 1 本に狭まるのを防ぐ。
 lane="${PECOT_NX_LANE:-}"
 lane_project=""
 lane_target=""
@@ -62,7 +62,7 @@ if [ "${PECOT_NX_CI:-}" = "1" ]; then
 fi
 
 # nx 出力の退避先。最初の nx 呼び出しの直前に truncate し、以降の呼び出しは追記する。
-nx_log_dir="$repo_root/.pecot/tmp/pre-push"
+nx_log_dir="$repo_root/.pecot/tmp/nx-affected-tests"
 nx_log="$nx_log_dir/nx-affected-tests.log"
 # ログを初期化済みか（0 のあいだは nx 未起動 = 前回のログに触れていない）。
 nx_log_started=0
@@ -70,7 +70,7 @@ nx_log_started=0
 nx_log_offset=0
 
 # nx の trace profile（repo root 相対。nx が cwd 基準で解決するため絶対パスにしない）。
-nx_profile_rel=".pecot/tmp/pre-push/nx-profile.json"
+nx_profile_rel=".pecot/tmp/nx-affected-tests/nx-profile.json"
 nx_profile="$repo_root/$nx_profile_rel"
 # push 全体の集計: nx 起動回数・最長 test task（秒は 0.1 秒単位の整数でも保持）・
 # 重複除外のレーン名集合。

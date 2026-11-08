@@ -30,7 +30,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 
 ## テスト・lint の実行
 
-- テストの全量は PR の CI（`ci.yml`）が実行する。push 前に同じ全量を手で実行しない。
+- テストは PR の CI（`ci.yml`）が、変更の届いたレーンについて実行する。push 前にそのレーンの全量を手で実行しない。
   同じ結果を 2 回待つだけになる。手で実行するのは変更箇所に絞ったテストだけにする。
   絞り方は、vitest / pytest ならファイル・ケースを指定し、`*.test.sh` なら該当の 1 本を指定する。
 - 各プラグインの `scripts/ci/run-tests.sh` を lane 単位で手動実行するのは、チェックの失敗を

@@ -45,8 +45,8 @@ if [ "$stage" = "manual" ]; then
         cat "$STUB_TSV_APPEND" >> "$root/.pecot/tmp/githooks-timing.tsv"
     fi
     if [ -n "${STUB_NX_LOG_SRC:-}" ]; then
-        mkdir -p "$root/.pecot/tmp/pre-push"
-        cp "$STUB_NX_LOG_SRC" "$root/.pecot/tmp/pre-push/nx-affected-tests.log"
+        mkdir -p "$root/.pecot/tmp/nx-affected-tests"
+        cp "$STUB_NX_LOG_SRC" "$root/.pecot/tmp/nx-affected-tests/nx-affected-tests.log"
     fi
 fi
 if [ "${STUB_FAIL_STAGE:-}" = "$stage" ]; then
@@ -172,7 +172,7 @@ def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> Non
         (
             "lint",
             ["pre-commit", "pre-push"],
-            ["check-version-plan-required", "check-version-plan-required"],
+            ["check-version-plan-required"] * 2,
         ),
         ("githooks", ["manual"], ["check-version-plan-required,nx-affected-tests"]),
         ("tests", ["manual"], ["check-version-plan-required,githooks-tests"]),

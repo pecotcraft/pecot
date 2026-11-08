@@ -497,12 +497,36 @@ def test_ci_dir_hooks_run_only_in_manual(script_dir: Path) -> None:
     ci_hooks = {
         hook_id: script
         for hook_id, script in _local_scripts(script_dir).items()
-        if Path(script).parts[:2] == (".githooks", "ci") and len(Path(script).parts) == 3
+        if (parts := Path(script).parts)[:2] == (".githooks", "ci") and len(parts) == 3
     }
     assert ci_hooks
     assert {hook_id: _stages(blocks[hook_id]) for hook_id in ci_hooks} == {
         hook_id: ["manual"] for hook_id in ci_hooks
     }
+
+
+def test_pre_push_hooks_are_only_the_expected_local_ones(script_dir: Path) -> None:
+    """pre-push で動く hook は、明示の stages に pre-push を含む local hook の 3 本だけ。"""
+    text = _config_text(script_dir)
+    default = re.search(r"^default_stages:\s*\[(.*)\]", text, re.MULTILINE)
+    assert default is not None
+    assert "pre-push" not in [item.strip() for item in default.group(1).split(",")]
+
+    blocks = _local_hook_blocks(text)
+    local_pre_push = {
+        hook_id for hook_id, block in blocks.items() if "pre-push" in (_stages(block) or [])
+    }
+    assert local_pre_push == {"check-text-push", "check-version-plan-required", "nx-env-inputs"}
+
+    lines = text.splitlines()
+    local_start = next(i for i, line in enumerate(lines) if line.strip() == "- repo: local")
+    local_end = next(
+        (i for i in range(local_start + 1, len(lines)) if lines[i].strip().startswith("- repo:")),
+        len(lines),
+    )
+    external = lines[:local_start] + lines[local_end:]
+    stage_lines = [line for line in external if line.strip().startswith("stages:")]
+    assert all("pre-push" not in line for line in stage_lines)
 
 
 def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:

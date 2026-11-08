@@ -6,7 +6,9 @@
   - `.githooks/pre-commit/` : pre-commit stage の hook
   - `.githooks/commit-msg/` : commit-msg stage の hook
   - `.githooks/pre-push/` : pre-push stage の hook
-  - `.githooks/ci/` : manual の stage と CI だけが使う実行スクリプト（`run-affected-tests.sh`・`run-pr-checks.sh`）
+  - `.githooks/ci/` : 次の 2 種類のスクリプト
+    - manual の stage の hook の実体 : `run-affected-tests.sh`
+    - CI だけが呼ぶもの : `run-pr-checks.sh`・`list-test-lanes.sh`・`check-ci-result.sh`・`finish-ci-summary.sh`
   - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
   - `.githooks/scripts/` : hook の stage に属さず、リポ全体で使うスクリプト。install・CI・リリース・hook の entry から呼ぶ
   - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.test.sh` は `.githooks/scripts/tests/` に置く
@@ -33,16 +35,16 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
 | `trailing-whitespace`・`end-of-file-fixer`・`check-yaml`・`check-added-large-files`・`ruff-check`・`ruff-format`・`markdownlint-cli2`・`yamllint`・`actionlint-system`（外部 repo の hook） | pre-commit（CI でも動く） | 秒未満から数秒（記録なし） | 上流の hook で、staged のファイルだけを見る。commit の前に直せる |
 | `check-direct-commit`・`check-commit-text`・`gitlint` | commit-msg | 平均 0.4 秒・最大 0.5 秒（`check-commit-text`） | commit のメッセージは手元でしか見えない |
 | `check-text-push` | pre-push（CI でも動く） | 平均 0.6 秒・最大 0.8 秒 | push の範囲全体の文面を、秒未満で確かめられる |
-| `check-version-plan-required` | pre-push と、CI の `version-plan` の job（PR と merge queue だけ） | 平均 0.4 秒・最大 0.6 秒 | `main` への push では確かめない。dependabot の plan はリリース時に作るので、`main` には無くて正しい |
+| `check-version-plan-required` | pre-push だけ（CI の job は後のタスク（spec の T058）で足す予定） | 平均 0.4 秒・最大 0.6 秒 | `main` への push では確かめない。dependabot の plan はリリース時に作るので、`main` には無くて正しい。CI ではまだ確かめない |
 | `nx-env-inputs` | pre-push（CI でも動く） | 0.3 秒 | 秒未満で、宣言の不足を push の前に止められる |
-| `githooks-tests` | manual（CI） | 数十秒（記録なし） | テストで、数十秒かかる。CI の githooks の job が動かす |
+| `githooks-tests` | manual（CI） | 手元で約 17 秒・CI の githooks の job で約 160 秒 | テストで、手元でも十数秒かかる。CI の githooks の job が動かす |
 | `nx-affected-tests` | manual（CI） | 平均 24 秒・最大 123 秒 | 重いので CI に任せる。CI の tests の job がレーンごとに動かす |
 
 - 「CI でも動く」は、CI が pre-commit と pre-push の stage をそのまま実行することを指し、手元と二重になる。
   どれも秒単位なので、二重を受け入れる。
   二重にする理由は、`--no-verify` で手元を飛ばした push を PR で拾うこと。
-- 弱まる保証（FR-020）がある。push の時点ではテストが動かないので、落ちるテストを含むブランチも push できる。
-  そのブランチも、PR の必須チェックが `main` へのマージを止める。そのため受け入れる。
+- 弱まる保証がある。push の時点ではテストが動かないので、落ちるテストを含むブランチも push できる。
+  そのブランチは、#68 で入る必須チェックが `main` へのマージを止める。それまでは、マージの前に CI の結果を確かめる。そのため受け入れる。
 - 手元でレーンを動かすときは、manual の stage を指定する。
 
   ```bash
@@ -75,11 +77,11 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 >
 > - lint（pre-commit）は、`nx-affected-lint` が staged 変更ファイルを
 >   `nx affected -t <lint レーン名の列挙> --files=<csv>` に渡す。push range の解決は不要である。
-> - test（pre-push）は、`nx-affected-tests` が `nx affected -t <test レーン名の列挙>` を
+> - test（manual）は、`nx-affected-tests` が `nx affected -t <test レーン名の列挙>` を
 >   push range（merge-base..tip）で実行する。
 >   - base/head 解決は version-plan gate（`check-version-plan-required.sh`）と同一の共有 lib
 >     （`lib/push-range.sh`）を使い、両チェックが同じ範囲判定を構造的に共有する。
->   - nx の出力は `.pecot/tmp/pre-push/nx-affected-tests.log` に残る。
+>   - nx の出力は `.pecot/tmp/nx-affected-tests/nx-affected-tests.log` に残る。
 >     実行中の進行確認は `tail -f` で行い、失敗時は端末に失敗レーンの出力と nx の要約が出る。
 >   - 成功時は、合計秒・最長 test task・並列度・レーン数の 1 行が端末に出る。
 >     先頭は `nx affected tests:` で、run-many の予備手段を使った push は `nx run-many tests:` になる。
@@ -151,7 +153,7 @@ plugins/<plugin>/scripts/ci/run-tests.sh   # nx test target の被呼び出し�
 ```
 
 どちらも **pre-commit hook から直接発火しない**。`<plugin>-run-lint` / `<plugin>-run-tests` hook は廃止した。
-発火は root 共通フック `nx-affected-lint`（pre-commit）/ `nx-affected-tests`（pre-push）が行う。
+発火は root 共通フック `nx-affected-lint`（pre-commit）/ `nx-affected-tests`（manual）が行う。
 このフックは `nx affected -t <レーン名の列挙>` で各 `project.json` の target を起動する。
 target がプラグインの `run-{lint,tests}.sh` を呼ぶ。
 2 本は被呼び出し側スクリプトとして存続する。
