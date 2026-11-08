@@ -172,6 +172,17 @@ describe('startServer', () => {
     expect(r.status).toBe(404)
   })
 
+  it('dist 自身に正規化される要求 (`/.`・`//`) は 404 を返す', async () => {
+    server = await startServer(distDir, 0)
+    const address = server.address()
+    if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
+    for (const rawPath of ['/.', '/./', '//']) {
+      const r = await requestRawPath(address.port, rawPath)
+      expect(r.status).toBe(404)
+      expect(r.text).toBe('Not found')
+    }
+  })
+
   it('ループバック (127.0.0.1) だけで待ち受ける', async () => {
     server = await startServer(distDir, 0)
     const address = server.address()
