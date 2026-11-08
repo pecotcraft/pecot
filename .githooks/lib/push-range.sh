@@ -23,6 +23,8 @@
 # 提供する関数:
 #   resolve_base_branch              → base ref を stdout へ出す。解決不能で非 0。
 #   resolve_nx <repo_root>           → nx 実行ファイルパスを stdout へ出す。不能で非 0。
+#   needs_all_lanes <base>           → 全レーンのモードなら 0、通常なら 1 を return する。
+#                                      env NO_PREV=true、または base が commit として読めないとき全レーン。
 #   collect_push_tips                → push される local_sha を 1 行 1 件で stdout へ出す。
 #                                      元は env PRE_COMMIT_TO_REF または pre-push stdin。
 #   resolve_push_range <to_sha>      → "<from_sha> <to_sha>" を stdout へ出し、区分コードを return する。
@@ -44,6 +46,11 @@ resolve_base_branch() {
         return 0
     fi
     return 1
+}
+
+# 全レーンのモードか（CI の一覧づくりとレーンの実行が同じ判定を共有する）。
+needs_all_lanes() {
+    [ "${NO_PREV:-}" = "true" ] || ! git cat-file -e "${1}^{commit}" 2> /dev/null
 }
 
 # nx 実行ファイルのパスを stdout へ。見つからなければ非 0。

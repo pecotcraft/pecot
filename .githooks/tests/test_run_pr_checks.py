@@ -33,9 +33,10 @@ for a in "$@"; do
     if [ "$prev" = "--hook-stage" ]; then stage="$a"; fi
     prev="$a"
 done
-printf 'stage=%s|args=%s|SKIP=%s|PVB=%s|TO=%s|NXC=%s|NXCI=%s\n' \
+printf 'stage=%s|args=%s|SKIP=%s|PVB=%s|TO=%s|NXC=%s|NXCI=%s|LANE=%s\n' \
     "$stage" "$*" "${SKIP-unset}" "${PECOT_VERSION_PLAN_BASE-unset}" \
     "${PRE_COMMIT_TO_REF-unset}" "${NX_SKIP_NX_CACHE-unset}" "${PECOT_NX_CI-unset}" \
+    "${PECOT_NX_LANE-unset}" \
     >> "$STUB_PC_LOG"
 root=$(git rev-parse --show-toplevel)
 if [ "$stage" = "manual" ]; then
@@ -66,6 +67,7 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "PECOT_PRE_COMMIT",
         "NX_SKIP_NX_CACHE",
         "PECOT_NX_CI",
+        "PECOT_NX_LANE",
     ):
         monkeypatch.delenv(key, raising=False)
 
@@ -253,6 +255,65 @@ def test_failure_guide_names_part_artifact(pr_repo: _PrChecksRepo, run_script) -
     )
     assert "artifact `ci-logs-tests`" in result.stdout
     assert "artifact `ci-logs`" not in result.stdout
+
+
+def test_lane_is_passed_to_pre_commit_env(pr_repo: _PrChecksRepo, run_script) -> None:
+    """--lane は PECOT_NX_LANE として pre-commit へ渡る。--lane が無ければ渡らない。"""
+    lane = "pecot-visual:test-cli"
+    result = pr_repo.run(run_script, "--part=tests", f"--lane={lane}", pr_repo.base, pr_repo.head)
+    assert result.returncode == 0, result.stderr
+    assert [c["LANE"] for c in pr_repo.calls()] == [lane]
+
+    pr_repo.pc_log.write_text("")
+    pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
+    assert [c["LANE"] for c in pr_repo.calls()] == ["unset"]
+
+
+def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) -> None:
+    """--lane は位置引数の後ろに置いてもよい。"""
+    result = pr_repo.run(run_script, pr_repo.base, pr_repo.head, "--part=tests", "--lane=a:test-b")
+    assert result.returncode == 0, result.stderr
+    assert [c["LANE"] for c in pr_repo.calls()] == ["a:test-b"]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ("--lane=a:test-b",),
+        ("--part=lint", "--lane=a:test-b"),
+        ("--part=githooks", "--lane=a:test-b"),
+    ],
+)
+def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args: tuple) -> None:
+    """--lane は --part=tests と組み合わせたときだけ。違えば使い方を出して exit 2。"""
+    result = pr_repo.run(run_script, *args, pr_repo.base, pr_repo.head)
+    assert result.returncode == 2
+    assert "使い方" in result.stderr
+    assert pr_repo.pc_log.read_text() == ""
+
+
+def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_script) -> None:
+    """--lane 指定の Summary は見出しにレーンを書き、失敗の案内の artifact 名にレーンの slug を付ける。"""
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        "--lane=pecot-visual:test-cli",
+        pr_repo.base,
+        pr_repo.head,
+        env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))},
+    )
+    assert "## 検証の結果（tests: pecot-visual:test-cli）\n" in result.stdout
+    assert "artifact `ci-logs-tests-pecot-visual-test-cli`" in result.stdout
+
+
+def test_lane_summary_artifact_name_prefers_checks_slug(pr_repo: _PrChecksRepo, run_script) -> None:
+    """env CHECKS_SLUG があれば、それを artifact 名に使う。無ければ英数字と ._- 以外を - にする。"""
+    nx_log = {"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))}
+    args = ("--part=tests", "--lane=@scope/pkg:test-cli", pr_repo.base, pr_repo.head)
+    result = pr_repo.run(run_script, *args, env=nx_log)
+    assert "artifact `ci-logs-tests--scope-pkg-test-cli`" in result.stdout
+    result = pr_repo.run(run_script, *args, env={**nx_log, "CHECKS_SLUG": "custom-slug"})
+    assert "artifact `ci-logs-tests-custom-slug`" in result.stdout
 
 
 def test_existing_skip_is_kept(pr_repo: _PrChecksRepo, run_script) -> None:

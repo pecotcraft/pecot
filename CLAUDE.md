@@ -47,7 +47,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - lint は pre-commit の `nx-affected-lint` で、staged ファイルを `--files` で渡す。
   - test は pre-push の `nx-affected-tests` で評価する。範囲は version-plan ガードと同一の base/head 解決（`lib/push-range.sh`）による push range
 - GitHub Actions のワークフローは `.github/workflows/` の 5 本である。
-  - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。lint・githooks・tests の 3 job に分けて同時に動かす
+  - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。lint・githooks の 2 job と、変更が届いたレーンごとの tests の job に分けて同時に動かす
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直し、同じブランチへ push する
@@ -135,7 +135,7 @@ export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
   下限は `plugins/pecot-visual/cli/src/node-runtime.ts` の表にある。devcontainer の Node.js も同じ版に固定する。
   更新前から動いている Claude Code・MCP サーバ・端末は古い Node.js のままなので開き直す。
   Node.js のセキュリティリリースで下限を上げるときは、次の 2 つを同じ変更で更新する。
-  - `grep -rn <旧下限> plugins .githooks` で当たる箇所
+  - `grep -rn <旧下限> plugins .githooks .github` で当たる箇所
   - `.devcontainer/devcontainer.json` の `node` feature の `version`
 - devcontainer の Claude Code は、`.devcontainer/Dockerfile` でネイティブ版を vscode ユーザーの持ち物で入れている。
   セッション中の自動更新で最新に保つ。`npm install -g` や devcontainer の feature で入れ直さない。
