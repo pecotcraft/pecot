@@ -6,6 +6,7 @@ spec の Success Criteria を、公開の後に確かめる手順。値と形は
 
 - GitHub と npm に認証していない環境を 1 つ用意する。新しい devcontainer か、`gh auth logout` と `npm logout` を済ませたユーザー
 - 所有者の環境では、`gh` が `pecotcraft` に対して認証済み
+- `npm view`・`npm pack` は、pecot の clone の外で打つ。clone の中では `devEngines.packageManager`（pnpm）により `EBADDEVENGINES` で止まる
 
 ## 1. 名前（SC-001・SC-002）
 
@@ -18,7 +19,7 @@ npm view @pecot/tools-mcp name                   # @pecot/tools-mcp
 
 ```bash
 claude plugin list | grep -i aist                # 出力なし
-ls -a ~/.local/share | grep -i aist              # 出力なし（新しい環境の場合）
+ls -aR ~ "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" | grep -i aist   # 出力なし（導入した後の新しい環境の場合）
 ```
 
 ## 2. 認証なしの導入（SC-003・SC-004・SC-005）
@@ -30,7 +31,7 @@ ls -a ~/.local/share | grep -i aist              # 出力なし（新しい環�
 ## 3. リリース（SC-006・SC-011）
 
 1. 小さな変更で Issue を作り、ワークフローで PR をマージする
-2. `npx nx release --verbose --yes` を実行する
+2. `pnpm exec nx release --verbose --yes` を実行する
 3. ワークフロー `publish-npm.yml` が成功し、`npm view @pecot/tools-mcp version` が新しい版を返す
 4. ruleset に止められた操作が無いことを、リリースのログで確かめる
 
@@ -46,12 +47,12 @@ git -C <pecot の clone> grep -l -E 'aist-(visual|tools)-mcp'       # 出力な�
 
 ```bash
 git clone https://github.com/pecotcraft/pecot.git && cd pecot
-git rev-list --count HEAD                                      # 公開時点では 1
+git rev-list --max-parents=0 HEAD | wc -l                      # 1（root commit が 1 つ）
 git grep -l -i -E 'github\.dxc\.com|dxc|khayakawa|zscaler|社内'  # 例外の一覧のファイルだけ
-gh pr list -R pecotcraft/pecot --state all -q '.[].createdAt'   # 公開より前の PR が無い
+gh pr list -R pecotcraft/pecot --state all --json createdAt -q '.[].createdAt'   # root commit の日時より前の PR が無い
 ```
 
-npm の配布物も同じ語で確かめる。
+npm の配布物も同じ語で確かめる。clone の外で打つ。
 
 ```bash
 npm pack @pecot/visual-mcp && tar -tzf pecot-visual-mcp-*.tgz | grep -i -E 'cert|\.map$'   # 出力なし
