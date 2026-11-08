@@ -180,7 +180,6 @@ jobs:
           push: never
           runCmd: "true"
           env: &tests-env |
-            GITHUB_RUN_ATTEMPT
             CI
             NX_BASE
             NX_HEAD
