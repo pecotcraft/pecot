@@ -1,90 +1,28 @@
 #!/bin/bash
 # Require a version plan when a feature branch changes files of a release group.
-#
 # Hook stage: pre-push
-#
-# PR ごとに、変更した release group の version plan を同じブランチで足すことを強制する。
-# これはこのリポジトリのルールで、version plan 1 件が CHANGELOG の 1 行になる。
-# `nx release plan:check` は、未リリースの version plan が 1 件でもあれば group を合格にする。
-# ブランチで足したかどうかは見ない（nrwl/nx discussions #34719）。
-# そのため、このガードで補う。
-#
-# 評価対象は、push される commit range (remote_sha..local_sha) ではない。
-# branch 全体 (merge-base(default, local)..local) を評価する。
-# follow-up push でも同じ判定になる。
-# 最初の push で plan を同梱した後に追加 commit を push する場合を考える。
-# range に plan が含まれなくても、branch 全体に plan があれば pass する。
-#
-# 判定ロジック:
-#
-#   1. release commit (`chore(release):`) を含む range は release cycle として無条件 pass する。
-#      Nx Release が作る commit 群は素通しする。
-#   2. range 内の変更ファイルを、nx の project graph の project root との最長一致で、
-#      持ち主の project に割り当てる。
-#      この考え方は、`nx release plan:check` の「持ち主の project」と同じ。
-#      テストの inputs 経由で affected になるだけの project は数えない。
-#      nx と違い、.gitignore / .nxignore に当たる変更は除外しない（git diff の全件を対象にする）。
-#      README.md / CHANGELOG.md は数えない（version bump 不要な doc 変更を許容する）。
-#      project root は作業ツリーの nx graph から取る。
-#      そのため、作業ツリーが push 対象と食い違う場合は、作業ツリーの構成で判定される（nx graph の性質）。
-#      release group に属さない project が、group に属する project の root 配下にある場合を考える。
-#      その配下の変更は判定できない。
-#      この場合は構成の誤りとして ERROR で止める（1 プラグイン = 1 nx project）。
-#   3. touched な project を `release.groups[].projects` の membership で release group に割り当てる。
-#   4. range 内に追加または変更された `.nx/version-plans/*.md` の frontmatter を読む。
-#      その group の bump が宣言されているかを確かめる。
-#      frontmatter は group 名キー（`pecot-workflow` / `pecot-visual` 等）のみ受理する。
-#      宣言の無い group が 1 つでもあれば block する。
-#
-# 起動方法は次の 2 通り。
-#   (a) pre-commit 経由 (env PRE_COMMIT_FROM_REF / PRE_COMMIT_TO_REF)。
-#       → local_sha = PRE_COMMIT_TO_REF を使う（FROM は merge-base で再計算する）。
-#   (b) git pre-push stdin 直接 (<local_ref> <local_sha> <remote_ref> <remote_sha>)。
-#       → local_sha のみ使う（remote_sha は参照しない）。
-#
-# 上記以外の起動は、何を評価すべきか判らないため skip + warn とする。
-#
-# merge-base 計算用の base は、以下の順で解決する。
-#   1. env PECOT_VERSION_PLAN_BASE が指定されていれば、それを採用する。
-#   2. origin/HEAD が指す ref を使う。
-# いずれも得られなければ skip + warn とする。
-#
-# nx 実体 / node / nx.json が解決できない環境では skip + warn とする（exit 0）。
-# このファイルの他の解決失敗時と同じく、判定不能なら素通しする方針。
-#
-# 環境変数 PECOT_VERSION_PLAN_RELEASE_RE (既定 '^chore\(release\)') で、
-# release commit 判定の regex を上書きできる。
+# branch 全体 (merge-base(default, local)..local) の変更を判定する。
+# 判定は nx の「持ち主の project」と release group による。
+# 数えないファイルは nx.json の ignorePatternsForPlanCheck から読む。判定できない環境は WARN で skip する。
 
 set -e
 
-# base/head 解決の関数は、affected テストのチェックと共有する lib に切り出してある。
-# 対象は resolve_base_branch / resolve_nx / collect_push_tips / resolve_push_range。
-# 同一の解決ロジックを構造的に共有することで、両チェックが同じ push range を評価することを保証する。
-# 保証は複製でなく source で行う。
+# base/head 解決は affected テストのチェックと共有する lib を source する（同じ push range を評価するため）。
 # shellcheck source=../lib/push-range.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
-# project graph の取得（run-affected-* のレーン名収集と共通）。
 # shellcheck source=../lib/nx-lanes.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 
 RELEASE_RE="${PECOT_VERSION_PLAN_RELEASE_RE:-^chore\\(release\\)}"
 
-# 変更ファイルが触れた release group を判定する。
-#   $1: nx.json。
-#   $2: `nx graph --file=<file>` が書いた JSON。
-#   $3: 既知の release group 名一覧の書き出し先。
-#   stdin: 変更ファイル（NUL 区切り）。
-# stdout: 触れた release group（1 行 1 件）。
-# 終了コード: 0 = 判定できた、3 = 解析失敗、4 = 構成の誤り。
-#   4 は、group 所属 project の root 配下で、group 外の project が見つかったときの値。
-#   このとき stdout にその project 名を 1 行 1 件で出す。
-#   - 持ち主の project: project root との最長一致（nx の findProjectForPath と同じ）。
-#   - README.md / CHANGELOG.md は数えない。
-#   - group: nx.json の release.groups[].projects に project 名が含まれるもの。
-#   - 変更一覧は NUL 区切りの stdin で受ける。非 ASCII パスのクォートと引数長の上限を避けるため。
+# 変更ファイル（stdin, NUL 区切り）が触れた release group を stdout へ出す。
+# 引数は nx.json, graph JSON, group 名一覧の書き出し先, repo root。
+# 終了コード: 0 = 判定済み、3 = 解析失敗、5 = nx 配下の ignore を解決できない。
+# 4 = group 外 project が group 内に入れ子（stdout に project 名）。
 touched_release_groups() {
     node -e '
         const fs = require("fs");
+        const path = require("path");
         const chunks = [];
         process.stdin.on("data", (c) => { chunks.push(c); });
         process.stdin.on("end", () => {
@@ -112,13 +50,34 @@ touched_release_groups() {
                     const hit = roots.find(([, r]) => under(f, r));
                     return hit && hit[0];
                 };
+                const globsOf = (cfg) => {
+                    const vp = cfg.versionPlans ?? (nx.release || {}).versionPlans;
+                    const g = vp && typeof vp === "object" ? vp.ignorePatternsForPlanCheck : null;
+                    return Array.isArray(g) ? g : [];
+                };
+                const globs = Object.fromEntries(Object.entries(groups).map(([g, cfg]) => [g, globsOf(cfg)]));
+                const matchers = {};
+                if (Object.values(globs).some((g) => g.length)) {
+                    let ignore;
+                    try {
+                        const nxDir = path.dirname(require.resolve("nx/package.json", { paths: [process.argv[4]] }));
+                        ignore = require(require.resolve("ignore", { paths: [nxDir] }));
+                    } catch (e) {
+                        process.exit(5);
+                    }
+                    for (const [g, list] of Object.entries(globs)) {
+                        if (list.length) matchers[g] = ignore().add(list);
+                    }
+                }
                 const touched = new Set();
                 for (const f of Buffer.concat(chunks).toString("utf8").split("\0")) {
-                    if (!f || /(^|\/)(README|CHANGELOG)\.md$/.test(f)) continue;
+                    if (!f) continue;
                     const project = owner(f);
                     if (!project) continue;
                     for (const [g, cfg] of Object.entries(groups)) {
-                        if ((cfg.projects || []).includes(project)) touched.add(g);
+                        if (!(cfg.projects || []).includes(project)) continue;
+                        if (matchers[g] && matchers[g].ignores(f)) continue;
+                        touched.add(g);
                     }
                 }
                 if (touched.size) process.stdout.write([...touched].sort().join("\n") + "\n");
@@ -126,7 +85,7 @@ touched_release_groups() {
                 process.exit(3);
             }
         });
-    ' "$1" "$2" "$3"
+    ' "$1" "$2" "$3" "$4"
 }
 
 print_nested_error() {
@@ -251,11 +210,14 @@ check_branch() {
     # 既知の release group 名一覧（version plan の宣言キーの確認に使う）も同じ実行で
     # $work/groups に書かせる（nx.json は 1 回だけ読む）。
     local releasable trc=0
-    releasable=$(touched_release_groups "$nx_json" "$work/graph.json" "$work/groups" \
+    releasable=$(touched_release_groups "$nx_json" "$work/graph.json" "$work/groups" "$repo_root" \
         < "$work/changed") || trc=$?
     if [ "$trc" -eq 4 ]; then
         print_nested_error "$releasable"
         return 1
+    elif [ "$trc" -eq 5 ]; then
+        echo "WARN: nx 配下の ignore を解決できないため version plan check を skip" >&2
+        return 0
     elif [ "$trc" -ne 0 ]; then
         echo "WARN: nx graph 出力か nx.json の解析失敗のため version plan check を skip" >&2
         return 0

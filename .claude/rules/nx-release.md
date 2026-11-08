@@ -6,7 +6,8 @@ paths:
 
 # CHANGELOG / version-plans を編集する前に
 
-このリポは **nx release（`nx.json` の `versionPlans: true`）** で CHANGELOG を生成します。
+このリポは **nx release（`nx.json` の `release.versionPlans`）** で CHANGELOG を生成します。
+除外の glob は `ignorePatternsForPlanCheck` に書きます。
 
 ## CHANGELOG.md は手動編集しない
 

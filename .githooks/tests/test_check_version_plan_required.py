@@ -1,53 +1,40 @@
 """check-version-plan-required.sh のユニットテスト。
 
-hook は range 内の変更ファイルを、nx の project graph の project root との最長一致で持ち主の project に割り当てる。
-この割り当ては、`nx release plan:check` と同じ touched の定義を使う。
-`release.groups[].projects` の membership で release group を決める。
-その group の bump 宣言が、ブランチで足した version plan にあるかを確かめる。
-
-temp repo は実 nx ワークスペースではないため、PATH 先頭に nx スタブを置く。
-スタブは `nx graph --file=<path>` に、STUB_NX_ROOTS から組んだ graph を書かせる（stub_nx）。
-STUB_NX_ROOTS は、`<name>=<root>` を改行で区切った値を取る。
-スタブはすべて nx を差し替えるため、実 nx に対する判定は末尾の「実 nx」節で別に pin する。
-GIT_* 隔離は conftest の _isolate_git_env autouse に委譲する。
+temp repo は実 nx ワークスペースではないため、PATH 先頭の nx スタブが graph を返す（stub_nx）。
+実 nx に対する判定は末尾の「実 nx」節で pin する。
 """
 
 from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
 
-# 実 nx.json と同型の release.groups（1 プラグイン = 1 project）。
-_NX_JSON = """{
-  "release": {
-    "projectsRelationship": "independent",
-    "groups": {
-      "pecot-workflow": {
-        "projects": ["pecot-workflow"],
-        "projectsRelationship": "fixed"
-      },
-      "pecot-visual": {
-        "projects": ["pecot-visual"],
-        "projectsRelationship": "fixed"
-      },
-      "pecot-tools": {
-        "projects": ["pecot-tools"],
-        "projectsRelationship": "fixed"
-      },
-      "text-rules": {
-        "projects": ["text-rules"],
-        "projectsRelationship": "fixed"
-      }
-    },
-    "versionPlans": true
-  }
-}
-"""
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_IGNORE_GLOBS = ["README.md", "CHANGELOG.md"]
+
+
+def _nx_json(root_globs=_IGNORE_GLOBS, group_vp: dict | None = None) -> str:
+    """実 nx.json と同型の release.groups（1 プラグイン = 1 project）。
+
+    root_globs が None なら root の versionPlans は true。group_vp は group 名 → その group の versionPlans。
+    """
+    groups = {}
+    for name in ("pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"):
+        groups[name] = {"projects": [name], "projectsRelationship": "fixed"}
+        if group_vp and name in group_vp:
+            groups[name]["versionPlans"] = group_vp[name]
+    root_vp = True if root_globs is None else {"ignorePatternsForPlanCheck": root_globs}
+    release = {"projectsRelationship": "independent", "groups": groups, "versionPlans": root_vp}
+    return json.dumps({"release": release}, indent=2) + "\n"
+
+
+_NX_JSON = _nx_json()
 
 # project 名 → projectRoot の対応（nx スタブが graph の nodes として返す）。
 # pecot-workflowx は root の前方一致で plugins/pecot-workflow に吸われないことの確認用。
@@ -174,8 +161,17 @@ class _VprRepo:
 
 @pytest.fixture
 def vpr_repo(git_repo: Callable[..., Path], mock_bin, git, git_rev_parse) -> _VprRepo:
-    """init/初期コミット（nx.json 同梱）済みの temp repo を構築する（.bats setup 相当）。"""
+    """init/初期コミット（nx.json 同梱）済みの temp repo を構築する。nx は本体の node_modules/nx を借りる。"""
+    host_nx = _REPO_ROOT / "node_modules" / "nx"
+    if not host_nx.exists():
+        pytest.skip(
+            "node_modules/nx が無い（install 前）ため、hook が ignore を解決できず skip する"
+        )
     repo = git_repo("repo", initial_branch="main")
+    (repo / "node_modules").mkdir()
+    (repo / "node_modules" / "nx").symlink_to(host_nx)
+    with (repo / ".git" / "info" / "exclude").open("a") as f:
+        f.write("node_modules\n")
     for d in (
         "plugins/pecot-workflow/cli/pecot",
         "plugins/pecot-workflow/skills",
@@ -504,6 +500,81 @@ def test_19_pass_root_prefix_is_not_owner(script_dir: Path, vpr_repo: _VprRepo, 
     assert "release group [pecot-workflow]" not in (result.stdout + result.stderr)
 
 
+def _set_nx_json(h: _VprRepo, text: str) -> None:
+    """hook が読む作業ツリーの nx.json を差し替える（commit しない）。"""
+    (h.repo / "nx.json").write_text(text)
+
+
+def test_17b_block_readme_without_glob_in_nx_json(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """17b. nx.json に glob が無い（versionPlans: true）→ README.md だけでも block。"""
+    feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/README.md": "docs\n"})
+    _set_nx_json(vpr_repo, _nx_json(root_globs=None))
+    vpr_repo.stub_nx()
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert result.returncode == 1
+    assert "release group [pecot-workflow]" in (result.stdout + result.stderr)
+
+
+def test_17c_pass_txt_with_glob_added(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """17c. root の glob に *.txt を足す → .txt だけの変更は pass。足さなければ block。"""
+    feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/cli/a.txt": "x\n"})
+    vpr_repo.stub_nx()
+    blocked = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert blocked.returncode == 1
+    _set_nx_json(vpr_repo, _nx_json(root_globs=[*_IGNORE_GLOBS, "*.txt"]))
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_17d_group_true_cancels_root_glob(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """17d. group が versionPlans: true を書くと root の glob は使われない。ほかの group は継承する。"""
+    feature_sha = _commit_feature(
+        vpr_repo,
+        {
+            "plugins/pecot-workflow/README.md": "docs\n",
+            "plugins/pecot-visual/README.md": "docs\n",
+        },
+    )
+    _set_nx_json(vpr_repo, _nx_json(group_vp={"pecot-workflow": True}))
+    vpr_repo.stub_nx()
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert result.returncode == 1
+    out = result.stdout + result.stderr
+    assert "release group [pecot-workflow]" in out
+    assert "pecot-visual" not in out.split("release group [")[1].split("]")[0]
+
+
+def test_17e_pass_other_group_inherits_root_glob(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """17e. 17d と同じ nx.json で、ほかの group の README.md だけの変更は pass。"""
+    feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-visual/README.md": "docs\n"})
+    _set_nx_json(vpr_repo, _nx_json(group_vp={"pecot-workflow": True}))
+    vpr_repo.stub_nx()
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_17f_pass_readme_case_insensitive(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """17f. readme.md（小文字）も pass。nx の ignore() と同じく大文字小文字を区別しない。"""
+    feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/readme.md": "docs\n"})
+    vpr_repo.stub_nx()
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_17g_ignore_unresolved_skips(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """17g. nx 配下の ignore を解決できない → 専用の WARN を出して skip (exit 0)。"""
+    feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/cli/probe.py": "x = 1\n"})
+    (vpr_repo.repo / "node_modules" / "nx").unlink()
+    vpr_repo.stub_nx()
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha, env={"NODE_PATH": ""})
+    assert result.returncode == 0
+    assert "nx 配下の ignore を解決できないため version plan check を skip" in result.stderr
+
+
 # version plan の宣言
 
 
@@ -677,7 +748,6 @@ def test_28_error_nested_project_outside_group(
 # 使い捨て clone に実 nx（NX_DAEMON=false）を向け、ケースごとにブランチを切って hook を実行する。
 # clone は 1 回だけ作る。node_modules/.bin/nx が無ければ skip。
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
 _NX_BIN = _REPO_ROOT / "node_modules" / ".bin" / "nx"
 
 
@@ -776,6 +846,11 @@ def real_nx(tmp_path_factory: pytest.TempPathFactory) -> Iterator[_RealNx]:
     )
     (probe / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
     h = _RealNx(probe)
+    # clone は HEAD の commit から作るため、未 commit の nx.json の変更を作業ツリーから取り込む。
+    shutil.copyfile(_REPO_ROOT / "nx.json", probe / "nx.json")
+    h.git("add", "nx.json")
+    if h.git("diff", "--cached", "--name-only").strip():
+        h.git("commit", "-q", "-m", "chore: sync working-tree nx.json")
     h.git("branch", "-f", "base", "HEAD")
     # nx 24 は repo ごとの id で `~/.nx/<id>/` にキャッシュと索引 db を作る。一時 clone の分が
     # 残らないよう、module 単位の一時ディレクトリへ向ける（_clean_env が os.environ を引き継ぐ）。
@@ -846,3 +921,35 @@ def test_real_05_error_nested_project(real_nx: _RealNx) -> None:
     assert result.returncode == 1, result.stderr
     assert "ERROR:" in result.stderr
     assert "nested-probe" in result.stderr
+
+
+def test_real_06_pass_readme_only_and_plan_check_agrees(real_nx: _RealNx) -> None:
+    """実 nx (f): README.md だけの変更は pass し、plan:check も同じ glob で対象なしと判定する。"""
+    real_nx.case("real-06")
+    readme = real_nx.probe / "plugins/pecot-visual/README.md"
+    readme.write_text(readme.read_text() + "\nprobe\n")
+    real_nx.commit()
+    result = real_nx.run_hook()
+    assert result.returncode == 0, result.stderr
+    assert "WARN" not in result.stderr
+    # 未リリースの plan がある group を nx は判定せず飛ばすため、作業ツリーで外す（commit しない）。
+    plans = sorted((real_nx.probe / ".nx" / "version-plans").glob("*.md"))
+    try:
+        for plan in plans:
+            plan.unlink()
+        check = subprocess.run(
+            [str(_NX_BIN), "release", "plan:check", "--base=base", "--head=HEAD"],
+            cwd=real_nx.probe,
+            capture_output=True,
+            text=True,
+            timeout=300,
+            env=_clean_env(),
+        )
+    finally:
+        real_nx.git("checkout", "--", ".nx/version-plans")
+    out = check.stdout + check.stderr
+    assert check.returncode == 0, out
+    assert (
+        'No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-visual"'
+        in out
+    )

@@ -254,7 +254,9 @@
     "version": {
       "adjustSemverBumpsForZeroMajorVersion": false
     },
-    "versionPlans": true,
+    "versionPlans": {
+      "ignorePatternsForPlanCheck": ["README.md", "CHANGELOG.md"]
+    },
     "changelog": {
       "workspaceChangelog": false
     }
