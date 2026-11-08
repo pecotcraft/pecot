@@ -1,10 +1,5 @@
 {
   "features": {
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {
-      "version": "1.0.5",
-      "resolved": "ghcr.io/anthropics/devcontainer-features/claude-code@sha256:cfc2e7d3e9fd3b9b01f8d5cb158508a884c8c0ede2e23ed10f32dea5d4ffe69a",
-      "integrity": "sha256:cfc2e7d3e9fd3b9b01f8d5cb158508a884c8c0ede2e23ed10f32dea5d4ffe69a"
-    },
     "ghcr.io/devcontainers-extra/features/actionlint:1": {
       "version": "1.0.7",
       "resolved": "ghcr.io/devcontainers-extra/features/actionlint@sha256:6a3dde90cb31e366892f8f2ebb766d73d7293d6e79ed9ac4041014d31599fdda",
