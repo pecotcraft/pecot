@@ -7,8 +7,25 @@ set -euo pipefail
 
 echo "checks: $CHECKS_RESULT"
 echo "lanes: $LANES_RESULT"
-[ "$CHECKS_RESULT" = "success" ]
-[ "$LANES_RESULT" = "success" ]
+if [ "$CHECKS_RESULT" != "success" ]; then
+    echo "checks が success ではありません: $CHECKS_RESULT"
+    exit 1
+fi
+if [ "$LANES_RESULT" != "success" ]; then
+    echo "lanes が success ではありません: $LANES_RESULT"
+    exit 1
+fi
+
+# lanes が success のときだけ出力が意味を持つ。数と配列の長さが合わなければ、理由を出して止める。
+if ! [[ "${LANES_COUNT:-}" =~ ^[0-9]+$ ]]; then
+    echo "LANES_COUNT が数ではありません: '${LANES_COUNT:-}'"
+    exit 1
+fi
+lanes_len=$(jq -r 'if type == "array" then length else "not-array" end' <<< "${LANES_JSON:-}") || lanes_len="invalid"
+if [ "$lanes_len" != "$LANES_COUNT" ]; then
+    echo "LANES_JSON が配列でないか、長さ ($lanes_len) が LANES_COUNT ($LANES_COUNT) と一致しません。"
+    exit 1
+fi
 
 if [ -n "${CI_RESULT_JOBS_FILE:-}" ]; then
     jobs=$(cat "$CI_RESULT_JOBS_FILE")
@@ -32,15 +49,15 @@ if [ "$LANES_COUNT" = "0" ]; then
     # 飛ばした job は展開前の名前で出るため、名前で数えず needs.tests.result で確かめる。
     echo "tests: 0 レーン ($TESTS_RESULT)"
     [ "$TESTS_RESULT" = "skipped" ] || failed=1
-    [ "$failed" = "0" ]
-    exit
+    exit "$failed"
 fi
 
+lane_names=$(jq -r '.[].lane' <<< "$LANES_JSON")
 while IFS= read -r lane; do
     conclusion=$(conclusion_of "tests ($lane)")
     echo "tests ($lane): $conclusion"
     [ "$conclusion" = "success" ] || failed=1
-done < <(jq -r '.[].lane' <<< "$LANES_JSON")
+done <<< "$lane_names"
 
 # 一覧に無いレーンの job が success 以外で残っていないかを確かめる。
 extra=$(jq -r --argjson lanes "$LANES_JSON" '
@@ -54,4 +71,4 @@ if [ -n "$extra" ]; then
     echo "$extra"
     failed=1
 fi
-[ "$failed" = "0" ]
+exit "$failed"

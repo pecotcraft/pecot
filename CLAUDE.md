@@ -135,5 +135,5 @@ export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
   下限は `plugins/pecot-visual/cli/src/node-runtime.ts` の表にある。devcontainer の Node.js も同じ版に固定する。
   更新前から動いている Claude Code・MCP サーバ・端末は古い Node.js のままなので開き直す。
   Node.js のセキュリティリリースで下限を上げるときは、次の 2 つを同じ変更で更新する。
-  - `grep -rn <旧下限> plugins .githooks` で当たる箇所
+  - `grep -rn <旧下限> plugins .githooks .github` で当たる箇所
   - `.devcontainer/devcontainer.json` の `node` feature の `version`

@@ -23,6 +23,8 @@
 #     測定条件は 2026-10-26、nx 24.0.1 で、workspace-data を空にした場合も同じ。
 #
 # 提供する関数:
+#   require_repo_node_nx <ci|push>   → グローバル repo_root と nx_bin を設定する。
+#                                      解決できなければ引数に合わせた案内を stderr へ出し、非 0 を return する。
 #   nx_graph_json <nx_bin> <repo_root> <out_file> <log_file>
 #                                    → graph の JSON を out_file へ書く。
 #                                      nx の出力は log_file へ書く。失敗で非 0。
@@ -37,6 +39,38 @@
 #       - nx:run-script（package.json の scripts 由来。例: postinstall）は、名前が合っても
 #         チェックの対象ではないので除く。
 #       - 実体の `test` / `lint` target（pecot-tools の `lint` など）は集まる。
+
+# repo root・node・nx を fail-closed で解決する。呼び出し側は失敗で exit する。
+# 引数は案内の文言を決める（ci: CI の一覧づくり、push: pre-push のチェック）。
+require_repo_node_nx() {
+    local ctx="$1" what="レーンの一覧を作れません"
+    [ "$ctx" != "push" ] || what="affected テストを実行できません"
+    repo_root=$(git rev-parse --show-toplevel 2> /dev/null || echo "")
+    if [ -z "$repo_root" ]; then
+        echo "ERROR: repo root を解決できません（git rev-parse --show-toplevel 失敗）。" >&2
+        [ "$ctx" != "push" ] || echo "       git 管理下のディレクトリから push してください。" >&2
+        return 1
+    fi
+    if ! command -v node > /dev/null 2>&1; then
+        echo "ERROR: node が見つからないため${what}。" >&2
+        if [ "$ctx" = "push" ]; then
+            echo "       node をインストールしてから再度 push してください。" >&2
+            echo '       緊急で回避する場合のみ `git push --no-verify` を使ってください。' >&2
+        fi
+        return 1
+    fi
+    if ! nx_bin=$(resolve_nx "$repo_root"); then
+        echo "ERROR: nx 実行ファイルが見つからないため${what}。" >&2
+        if [ "$ctx" = "push" ]; then
+            echo "       リポジトリルートで依存を導入してください:" >&2
+            echo "         pnpm install --frozen-lockfile" >&2
+            echo '       緊急で回避する場合のみ `git push --no-verify` を使ってください。' >&2
+        else
+            echo "       pnpm install --frozen-lockfile を先に実行してください。" >&2
+        fi
+        return 1
+    fi
+}
 
 # project graph の JSON を out_file へ書く。nx の stdout / stderr は log_file へ。
 # パイプ（--file=stdout）は、大きな JSON を途中で切ることがある。

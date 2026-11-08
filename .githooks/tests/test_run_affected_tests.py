@@ -1921,6 +1921,29 @@ def test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any(
     assert _guard_values(at_repo) == ["1"]
 
 
+def test_lane_mode_mixed_guard_and_fallback_tips_run_lane_once_without_guard(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
+) -> None:
+    """guard=1 の tip とフォールバックの tip が並んでも、レーンは 1 回で pm-guard は unset。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature(changed_path="plugins/pecot-visual/cli/package.json")
+    # main と履歴がつながらない commit。merge-base を取れず、フォールバックになる。
+    git(at_repo.repo, "checkout", "-q", "--orphan", "orphan")
+    git(at_repo.repo, "commit", "-q", "--allow-empty", "-m", "chore: orphan")
+    unresolvable = git_rev_parse(at_repo.repo, "HEAD")
+
+    stdin = (
+        f"refs/heads/feature {at_repo.feature_sha} refs/heads/feature {at_repo.main_sha}\n"
+        f"refs/heads/orphan {unresolvable} refs/heads/orphan {at_repo.main_sha}\n"
+    )
+    result = _run(script_dir, at_repo, run_script, env=_LANE_ENV, stdin=stdin)
+    assert result.returncode == 0, result.stderr
+    assert "全 project の test を実行します" in result.stderr
+    assert len(_nx_calls(at_repo, "run-many")) == 1
+    assert _nx_calls(at_repo, "affected") == []
+    assert _guard_values(at_repo) == ["unset"]
+
+
 @pytest.mark.parametrize(
     "bad_lane",
     [

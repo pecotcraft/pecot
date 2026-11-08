@@ -282,14 +282,10 @@ def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) 
         ("--lane=a:test-b",),
         ("--part=lint", "--lane=a:test-b"),
         ("--part=githooks", "--lane=a:test-b"),
-        ("--part=tests", "--lane=a"),
-        ("--part=tests", "--lane=a:b:c"),
     ],
 )
-def test_lane_without_tests_part_or_with_bad_shape_exit_2(
-    pr_repo: _PrChecksRepo, run_script, args: tuple
-) -> None:
-    """--lane は --part=tests と <project>:<target> の形のときだけ。違えば使い方を出して exit 2。"""
+def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args: tuple) -> None:
+    """--lane は --part=tests と組み合わせたときだけ。違えば使い方を出して exit 2。"""
     result = pr_repo.run(run_script, *args, pr_repo.base, pr_repo.head)
     assert result.returncode == 2
     assert "使い方" in result.stderr
@@ -308,6 +304,16 @@ def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_scri
     )
     assert "## 検証の結果（tests: pecot-visual:test-cli）\n" in result.stdout
     assert "artifact `ci-logs-tests-pecot-visual-test-cli`" in result.stdout
+
+
+def test_lane_summary_artifact_name_prefers_checks_slug(pr_repo: _PrChecksRepo, run_script) -> None:
+    """env CHECKS_SLUG があれば、それを artifact 名に使う。無ければ英数字と ._- 以外を - にする。"""
+    nx_log = {"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))}
+    args = ("--part=tests", "--lane=@scope/pkg:test-cli", pr_repo.base, pr_repo.head)
+    result = pr_repo.run(run_script, *args, env=nx_log)
+    assert "artifact `ci-logs-tests--scope-pkg-test-cli`" in result.stdout
+    result = pr_repo.run(run_script, *args, env={**nx_log, "CHECKS_SLUG": "custom-slug"})
+    assert "artifact `ci-logs-tests-custom-slug`" in result.stdout
 
 
 def test_existing_skip_is_kept(pr_repo: _PrChecksRepo, run_script) -> None:

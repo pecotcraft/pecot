@@ -2,6 +2,7 @@
 # pre-push で nx affected の test レーンを実行する root 共通のチェック（Hook stage: pre-push）。
 # レーン名は lib/nx-lanes.sh で集めて要求する。起点の `test` を要求すると全レーンが選ばれる。
 
+# shellcheck disable=SC2154  # repo_root と nx_bin は require_repo_node_nx が設定する
 set -euo pipefail
 
 # shellcheck source=../lib/timing.sh
@@ -20,31 +21,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
 # shellcheck source=../lib/nx-lanes.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 
-repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-if [ -z "$repo_root" ]; then
-    echo "ERROR: repo root を解決できません（git rev-parse --show-toplevel 失敗）。" >&2
-    echo "       git 管理下のディレクトリから push してください。" >&2
-    exit 1
-fi
-
-# nx / node を fail-closed で解決（テストのチェックを素通しさせない）。
-if ! command -v node > /dev/null 2>&1; then
-    cat >&2 <<'EOF'
-ERROR: node が見つからないため affected テストを実行できません。
-       node をインストールしてから再度 push してください。
-       緊急で回避する場合のみ `git push --no-verify` を使ってください。
-EOF
-    exit 1
-fi
-if ! nx_bin=$(resolve_nx "$repo_root"); then
-    cat >&2 <<'EOF'
-ERROR: nx 実行ファイルが見つからないため affected テストを実行できません。
-       リポジトリルートで依存を導入してください:
-         pnpm install --frozen-lockfile
-       緊急で回避する場合のみ `git push --no-verify` を使ってください。
-EOF
-    exit 1
-fi
+# repo root・nx・node を fail-closed で解決（テストのチェックを素通しさせない）。
+require_repo_node_nx push || exit 1
 
 # CI の lane モード: PECOT_NX_LANE=<project>:<target> のレーン 1 本だけを動かす。
 # PECOT_NX_CI=1 以外では無視する。手元の pre-push で、レーンが 1 本に狭まるのを防ぐ。
@@ -332,6 +310,7 @@ while IFS= read -r tip; do
 done < <(collect_push_tips)
 
 if [ "${#tips[@]}" -eq 0 ] && [ -n "$lane" ]; then
+    # 判定を持たないと pm-guard は既定の動作になる（全 project の run と同じ）。
     echo "WARN: push 情報なしのため pm-guard の判定を省いて $lane を実行します。" >&2
     run_lane ""
     print_timing_summary
@@ -415,7 +394,7 @@ for tip in "${tips[@]}"; do
 done
 
 if [ -n "$lane" ]; then
-    # フォールバック条件の tip があれば、判定を持たない（全 project の run と同じ扱い）。
+    # フォールバック条件の tip があれば判定を空にする。判定を持たないと pm-guard は既定の動作になる。
     [ "$fallback_requested" -eq 0 ] || lane_guard=""
     run_lane "$lane_guard"
     print_timing_summary

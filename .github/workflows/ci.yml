@@ -12,6 +12,13 @@ permissions:
   packages: read
   pull-requests: read
 
+env:
+  PECOT_NX_CI: "1"
+  PECOTV_E2E_CEILING_SCALE: "3"
+  PECOT_NX_PARALLEL: "2"
+  PECOT_CI_IMAGE: ghcr.io/pecotcraft/pecot-devcontainer
+  PECOT_CI_SUMMARY: /workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -40,7 +47,8 @@ jobs:
           main-branch-name: main
 
       # push: never にする。省くと main の push で image を push しようとする。
-      # GITHUB_STEP_SUMMARY は Action が固定するため、GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
+      # GITHUB_STEP_SUMMARY は Action が固定するため、env に渡さない。
+      # GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
       - name: Start dev container
         id: up
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
@@ -50,16 +58,17 @@ jobs:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
           runCmd: "true"
-          env: |
+          env: &checks-env |
             CI
             NX_BASE
             NX_HEAD
             NO_PREV
-            PECOT_NX_CI=1
-            PECOTV_E2E_CEILING_SCALE=3
-            PECOT_NX_PARALLEL=2
-            PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
-            PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+            CHECKS_PART
+            PECOT_NX_CI
+            PECOTV_E2E_CEILING_SCALE
+            PECOT_NX_PARALLEL
+            PECOT_CI_IMAGE
+            PECOT_CI_SUMMARY
 
       # exec の cwd は /workspaces/base のため、cd してから動かす。
       - name: Run checks
@@ -72,17 +81,7 @@ jobs:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
           runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part="$CHECKS_PART" "$NX_BASE" "$NX_HEAD"
-          env: |
-            CI
-            NX_BASE
-            NX_HEAD
-            NO_PREV
-            CHECKS_PART
-            PECOT_NX_CI=1
-            PECOTV_E2E_CEILING_SCALE=3
-            PECOT_NX_PARALLEL=2
-            PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
-            PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+          env: *checks-env
 
       # buildx が無いと Action は警告だけで成功するため、完了の印が無ければ失敗にする。
       - name: Write job summary
@@ -102,7 +101,7 @@ jobs:
             .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore
 
-  # base・head・NO_PREV はここでだけ決め、tests の job に渡す。job ごとに決めると、その間に別の run が終わって base がずれる。
+  # tests の job が使う base・head・NO_PREV はここでだけ決める。job ごとに決めると、その間に別の run が終わって base がずれる。
   lanes:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -153,6 +152,12 @@ jobs:
     name: tests (${{ matrix.lane }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      NX_BASE: ${{ needs.lanes.outputs.base }}
+      NX_HEAD: ${{ needs.lanes.outputs.head }}
+      NO_PREV: ${{ needs.lanes.outputs.no_prev }}
+      CHECKS_LANE: ${{ matrix.lane }}
+      CHECKS_SLUG: ${{ matrix.slug }}
     strategy:
       fail-fast: false
       matrix:
@@ -165,55 +170,37 @@ jobs:
           persist-credentials: false
 
       # push: never にする。省くと main の push で image を push しようとする。
-      # GITHUB_STEP_SUMMARY は Action が固定するため、GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
+      # GITHUB_STEP_SUMMARY は Action が固定するため、env に渡さない。
+      # GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
       - name: Start dev container
         id: up
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
-        env:
-          NX_BASE: ${{ needs.lanes.outputs.base }}
-          NX_HEAD: ${{ needs.lanes.outputs.head }}
-          NO_PREV: ${{ needs.lanes.outputs.no_prev }}
-          CHECKS_LANE: ${{ matrix.lane }}
         with:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
           runCmd: "true"
-          env: |
+          env: &tests-env |
             CI
             NX_BASE
             NX_HEAD
             NO_PREV
             CHECKS_LANE
-            PECOT_NX_CI=1
-            PECOTV_E2E_CEILING_SCALE=3
-            PECOT_NX_PARALLEL=2
-            PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
-            PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+            CHECKS_SLUG
+            PECOT_NX_CI
+            PECOTV_E2E_CEILING_SCALE
+            PECOT_NX_PARALLEL
+            PECOT_CI_IMAGE
+            PECOT_CI_SUMMARY
 
       # exec の cwd は /workspaces/base のため、cd してから動かす。
       - name: Run checks
         id: verify
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
-        env:
-          NX_BASE: ${{ needs.lanes.outputs.base }}
-          NX_HEAD: ${{ needs.lanes.outputs.head }}
-          NO_PREV: ${{ needs.lanes.outputs.no_prev }}
-          CHECKS_LANE: ${{ matrix.lane }}
         with:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
           runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part=tests --lane="$CHECKS_LANE" "$NX_BASE" "$NX_HEAD"
-          env: |
-            CI
-            NX_BASE
-            NX_HEAD
-            NO_PREV
-            CHECKS_LANE
-            PECOT_NX_CI=1
-            PECOTV_E2E_CEILING_SCALE=3
-            PECOT_NX_PARALLEL=2
-            PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
-            PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+          env: *tests-env
 
       # buildx が無いと Action は警告だけで成功するため、完了の印が無ければ失敗にする。
       - name: Write job summary

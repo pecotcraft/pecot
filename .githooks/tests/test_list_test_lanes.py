@@ -165,6 +165,25 @@ def test_missing_base_uses_run_many(env: _Env) -> None:
     assert not any(c.startswith("affected") for c in env.calls())
 
 
+def test_slug_collision_fails_closed(env: _Env) -> None:
+    """a:test-b-test-c と a-test-b:test-c は slug が同じになるため、ERROR で非 0 にする。"""
+    graph = {
+        "graph": {
+            "nodes": {
+                "a": {"data": {"targets": {"test-b-test-c": {}}}},
+                "a-test-b": {"data": {"targets": {"test-c": {}}}},
+            }
+        }
+    }
+    env.project_graph.write_text(json.dumps(graph))
+    env.set_tasks("a:test-b-test-c", "a-test-b:test-c")
+    r = env.run()
+    assert r.returncode != 0
+    assert "ERROR" in r.stderr
+    assert "a-test-b-test-c" in r.stderr
+    assert r.stdout == ""
+
+
 def test_zero_lanes(env: _Env) -> None:
     env.set_tasks("p:install", "p:build-cli")
     r = env.run()
