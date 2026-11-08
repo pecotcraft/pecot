@@ -37,3 +37,11 @@ cat >/etc/fonts/local.conf <<'XML'
 XML
 fc-cache -f
 EOF
+
+# Claude Code はネイティブ版を vscode の持ち物で入れる。
+# root の持ち物だと、セッション中の自動更新が権限で止まる (#134)。
+USER vscode
+RUN bash -o pipefail -c 'curl -fsSL https://claude.ai/install.sh | bash' \
+  && /home/vscode/.local/bin/claude --version
+USER root
+ENV PATH="/home/vscode/.local/bin:${PATH}"

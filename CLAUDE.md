@@ -137,3 +137,6 @@ export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
   Node.js のセキュリティリリースで下限を上げるときは、次の 2 つを同じ変更で更新する。
   - `grep -rn <旧下限> plugins .githooks` で当たる箇所
   - `.devcontainer/devcontainer.json` の `node` feature の `version`
+- devcontainer の Claude Code は、`.devcontainer/Dockerfile` でネイティブ版を vscode ユーザーの持ち物で入れている。
+  セッション中の自動更新で最新に保つ。`npm install -g` や devcontainer の feature で入れ直さない。
+  root の持ち物になり、自動更新が権限で止まる。
