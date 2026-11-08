@@ -42,8 +42,8 @@ export function startServer(distDir: string, port: number): Promise<Server> {
         const safePath = urlPath ?? '/'
         const root = resolvePath(distDir)
         const filePath = resolvePath(root, '.' + (safePath === '/' ? '/index.html' : safePath))
-        // `..` を含む要求で dist の外を読ませない
-        if (filePath !== root && !filePath.startsWith(root + sep)) {
+        // `..` を含む要求で dist の外を読ませない。dist 自身を指す要求 (`/.` など) も同じ判定で 404 にする
+        if (!filePath.startsWith(root + sep)) {
           res.writeHead(404)
           res.end('Not found')
           return
