@@ -8,7 +8,8 @@
   - `.githooks/pre-push/` : pre-push stage の hook
   - `.githooks/ci/` : CI と共有する実行スクリプト（`run-affected-tests.sh`。stage は今のところ pre-push）
   - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
-  - `.githooks/tests/` : 上の hook と lib のテスト
+  - `.githooks/scripts/` : hook の stage に属さず、リポ全体で使うスクリプト。install・CI・リリース・hook の entry から呼ぶ
+  - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.test.sh` は `.githooks/scripts/tests/` に置く
   - 例外は、`pre-commit/check-brand-terms.sh`（pre-push で動く）と `ci/run-affected-tests.sh`（pre-push で動く）の 2 件。
     `tests/test_pre_commit_config_wiring.py` が、置き場のディレクトリと `stages:` の一致を確かめる
 - プラグイン固有 CI : `plugins/<plugin>/scripts/ci/run-{lint,tests}.sh`

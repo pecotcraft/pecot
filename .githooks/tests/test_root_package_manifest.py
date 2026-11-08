@@ -52,7 +52,10 @@ def test_root_has_no_prepare(root: dict) -> None:
 def test_root_install_target_is_a_frozen_pnpm_install(root: dict) -> None:
     install = root["nx"]["targets"]["install"]
     assert install["cache"] is False
-    assert install["options"]["command"].endswith("scripts/run-pnpm.sh install --frozen-lockfile")
+    command = install["options"]["command"]
+    assert command.endswith(".githooks/scripts/run-pnpm.sh install --frozen-lockfile")
+    script = next(word for word in command.split() if word.endswith("run-pnpm.sh"))
+    assert (_REPO_ROOT / script).is_file(), script
 
 
 def test_package_manager_guard_is_kept(root: dict) -> None:

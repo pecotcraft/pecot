@@ -1,4 +1,4 @@
-"""scripts/gen-runtime-lock.mjs の --check が、ずれを見つけて止まることを確かめる (#113)。"""
+""".githooks/scripts/gen-runtime-lock.mjs の --check が、ずれを見つけて止まることを確かめる (#113)。"""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def _drift_candidate(root_text: str, block: str) -> tuple[str, str, str]:
 def repo(tmp_path: Path) -> Path:
     """gen-runtime-lock.mjs が読むファイルだけを、作業ツリーから複製した repo。"""
     files = [
-        "scripts/gen-runtime-lock.mjs",
+        ".githooks/scripts/gen-runtime-lock.mjs",
         "package.json",
         "pnpm-workspace.yaml",
         "pnpm-lock.yaml",
@@ -73,7 +73,7 @@ def repo(tmp_path: Path) -> Path:
 
 def _check(repo: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["node", "scripts/gen-runtime-lock.mjs", "--check"],
+        ["node", ".githooks/scripts/gen-runtime-lock.mjs", "--check"],
         cwd=repo,
         capture_output=True,
         text=True,
@@ -176,13 +176,21 @@ def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
     )
 
 
+def test_runtime_lock_workflow_runs_an_existing_script() -> None:
+    """runtime-lock.yml は Dependabot の PR でしか動かない。run が指す script の実在をここで確かめる。"""
+    workflow = (_REPO_ROOT / ".github/workflows/runtime-lock.yml").read_text(encoding="utf-8")
+    paths = re.findall(r"run:\s*node\s+(\S+gen-runtime-lock\.mjs)", workflow)
+    assert paths == [".githooks/scripts/gen-runtime-lock.mjs"]
+    assert (_REPO_ROOT / paths[0]).is_file()
+
+
 def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
     """--write は pnpm を呼ばず、commit 済みの生成物と同じものを作る。"""
     empty_bin = repo / "empty-bin"
     empty_bin.mkdir()
     env = {**os.environ, "PATH": f"{empty_bin}:{Path(shutil.which('node') or '').parent}"}
     result = subprocess.run(
-        ["node", "scripts/gen-runtime-lock.mjs", "--write"],
+        ["node", ".githooks/scripts/gen-runtime-lock.mjs", "--write"],
         cwd=repo,
         env=env,
         capture_output=True,

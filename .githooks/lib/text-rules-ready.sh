@@ -45,9 +45,9 @@ require_text_rules_ready() {
 
     if [ "$rc" -eq 20 ]; then
         echo "==> libs/text-rules の依存が欠けているため、root で pnpm install --frozen-lockfile で戻します" >&2
-        # pnpm が PATH に無くても corepack・npx で動くよう、探し方は scripts/run-pnpm.sh に任せる。
+        # pnpm が PATH に無くても corepack・npx で動くよう、探し方は .githooks/scripts/run-pnpm.sh に任せる。
         local runner
-        runner="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts/run-pnpm.sh"
+        runner="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)/run-pnpm.sh"
         if ! (cd "$repo_root" && "$runner" install --frozen-lockfile) >&2; then
             echo "ERROR: libs/text-rules の依存が欠けているため文章規則を適用できません。root の pnpm install --frozen-lockfile が失敗しました。上の出力を確認してください" >&2
             return 1
