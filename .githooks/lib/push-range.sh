@@ -73,7 +73,8 @@ resolve_nx() {
 # push される評価対象の local_sha を 1 行 1 件で stdout へ。
 #   (a) env PRE_COMMIT_TO_REF（pre-commit 経由）→ それ 1 件。
 #   (b) pre-push stdin（<local_ref> <local_sha> <remote_ref> <remote_sha>）→ 各 local_sha。
-# どちらも無い場合は何も出力しない（all_files 経由 = stdin が tty）。
+# どちらも無い場合は何も出力しない（refs なしの pre-commit run など）。
+# pre-commit は git の stdin を自分で読み、hook には渡さない。(b) は pre-commit を経ない起動のためにある。
 # remote_sha は参照しない。
 # FROM は呼び出し側が merge-base で算出する（既存挙動）。
 # PRE_COMMIT_FROM_REF も参照しない。

@@ -36,7 +36,7 @@
       "cache": false,
       "dependsOn": ["test-cli", "test-bootstrap", "test-release"],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する起点の target。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する起点の target。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
     },
     "test-cli": {

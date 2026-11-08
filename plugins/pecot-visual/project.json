@@ -93,7 +93,7 @@
         "test-skills"
       ],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する、テスト全体の起点となる target。各レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する、テスト全体の起点となる target。各レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
     },
     "test-cli": {

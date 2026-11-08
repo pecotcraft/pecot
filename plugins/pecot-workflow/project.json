@@ -36,7 +36,7 @@
       "executor": "nx:noop",
       "dependsOn": ["test-py", "test-cli", "test-hooks", "test-skills"],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する起点。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する起点。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
     },
     "test-py": {

@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # nx affected の `-t` に渡すレーン名（target 名）を project graph から集める共通 lib。
 #
-# run-affected-tests.sh（pre-push）と run-affected-lint.sh（pre-commit）が source して使う。
+# run-affected-tests.sh（manual）と run-affected-lint.sh（pre-commit）が source して使う。
 #
 # なぜ `-t test` / `-t lint` でなくレーン名を並べるのか (#1232)。
 #   nx 24 のタスク単位 affected は、変更が届いた「要求 target のタスク」だけを選ぶ。
@@ -23,7 +23,7 @@
 #     測定条件は 2026-10-26、nx 24.0.1 で、workspace-data を空にした場合も同じ。
 #
 # 提供する関数:
-#   require_repo_node_nx <ci|push>   → グローバル repo_root と nx_bin を設定する。
+#   require_repo_node_nx <ci|tests>  → グローバル repo_root と nx_bin を設定する。
 #                                      解決できなければ引数に合わせた案内を stderr へ出し、非 0 を return する。
 #   nx_graph_json <nx_bin> <repo_root> <out_file> <log_file>
 #                                    → graph の JSON を out_file へ書く。
@@ -41,33 +41,22 @@
 #       - 実体の `test` / `lint` target（pecot-tools の `lint` など）は集まる。
 
 # repo root・node・nx を fail-closed で解決する。呼び出し側は失敗で exit する。
-# 引数は案内の文言を決める（ci: CI の一覧づくり、push: pre-push のチェック）。
+# 引数は案内の文言を決める（ci: CI の一覧づくり、tests: manual の stage のテスト）。
 require_repo_node_nx() {
     local ctx="$1" what="レーンの一覧を作れません"
-    [ "$ctx" != "push" ] || what="affected テストを実行できません"
+    [ "$ctx" != "tests" ] || what="affected テストを実行できません"
     repo_root=$(git rev-parse --show-toplevel 2> /dev/null || echo "")
     if [ -z "$repo_root" ]; then
         echo "ERROR: repo root を解決できません（git rev-parse --show-toplevel 失敗）。" >&2
-        [ "$ctx" != "push" ] || echo "       git 管理下のディレクトリから push してください。" >&2
         return 1
     fi
     if ! command -v node > /dev/null 2>&1; then
-        echo "ERROR: node が見つからないため${what}。" >&2
-        if [ "$ctx" = "push" ]; then
-            echo "       node をインストールしてから再度 push してください。" >&2
-            echo '       緊急で回避する場合のみ `git push --no-verify` を使ってください。' >&2
-        fi
+        echo "ERROR: node が見つからないため${what}。node をインストールしてから再実行してください。" >&2
         return 1
     fi
     if ! nx_bin=$(resolve_nx "$repo_root"); then
         echo "ERROR: nx 実行ファイルが見つからないため${what}。" >&2
-        if [ "$ctx" = "push" ]; then
-            echo "       リポジトリルートで依存を導入してください:" >&2
-            echo "         pnpm install --frozen-lockfile" >&2
-            echo '       緊急で回避する場合のみ `git push --no-verify` を使ってください。' >&2
-        else
-            echo "       pnpm install --frozen-lockfile を先に実行してください。" >&2
-        fi
+        echo "       pnpm install --frozen-lockfile を先に実行してください。" >&2
         return 1
     fi
 }
