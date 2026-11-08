@@ -1832,8 +1832,9 @@ def _issue_comment_from_file(ctx: typer.Context | None, file: Path) -> None:
             typer.echo(f"警告: comment_url をファイルに書き戻せませんでした: {e}", err=True)
 
 
+# PR へのコメントは GitHub が /pull/ の形で html_url を返すので、両方受ける
 _COMMENT_URL_RE = re.compile(
-    r"^https?://[^/]+/(?P<owner>[^/]+)/(?P<repo>[^/]+)/issues/(?P<number>\d+)#issuecomment-(?P<id>\d+)$"
+    r"^https?://[^/]+/(?P<owner>[^/]+)/(?P<repo>[^/]+)/(?:issues|pull)/(?P<number>\d+)#issuecomment-(?P<id>\d+)$"
 )
 
 
@@ -1843,7 +1844,8 @@ def _comment_id_for_issue(comment_url: str, owner: str, repo: str, issue_number:
     if match is None:
         typer.echo(
             f"エラー: comment_url の形が違います: {comment_url}"
-            "（https://<host>/<owner>/<repo>/issues/<番号>#issuecomment-<id> の形）",
+            "。https://<host>/<owner>/<repo>/issues/<番号>#issuecomment-<id>"
+            " か https://<host>/<owner>/<repo>/pull/<番号>#issuecomment-<id> の形にしてください",
             err=True,
         )
         raise typer.Exit(1)
