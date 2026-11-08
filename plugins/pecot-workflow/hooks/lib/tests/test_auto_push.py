@@ -52,6 +52,17 @@ if [ "$1" = "-C" ]; then
 fi
 if [ "$cmd" = "push" ]; then
     echo "$@" > "$PUSH_LOG"
+    for arg in "$@"; do
+        case "$arg" in
+            HEAD:refs/heads/*)
+                dst="${{arg#HEAD:refs/heads/}}"
+                if [ "$1" = "-C" ]; then
+                    "$REAL_GIT" -C "$2" update-ref "refs/remotes/origin/$dst" HEAD
+                else
+                    "$REAL_GIT" update-ref "refs/remotes/origin/$dst" HEAD
+                fi ;;
+        esac
+    done
 {stderr_line}    exit "$PUSH_EXIT"
 fi
 exec "$REAL_GIT" "$@"
@@ -109,6 +120,9 @@ exit 1
 """
 
 
+_DEFAULT_ORIGIN = "git@ghes.example.com:testowner/testrepo.git"
+
+
 @pytest.fixture
 def auto_push_script(project_root: Path) -> Path:
     return (
@@ -155,6 +169,14 @@ def env_setup(
     mock_bin.install("git", _mock_git_body(push_log))
     mock_bin.install("gh", _mock_gh_body(graphql_log))
     repo = git_repo()
+    subprocess.run(
+        ["git", "-C", str(repo), "remote", "add", "origin", _DEFAULT_ORIGIN],
+        check=True,
+        capture_output=True,
+    )
+    state_dir = claude_project_dir / ".pecot" / "state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
     return {
         "project": claude_project_dir,
         "repo": repo,
@@ -175,7 +197,7 @@ def _checkout(repo: Path, branch: str) -> None:
 
 def _set_remote(repo: Path, url: str) -> None:
     subprocess.run(
-        ["git", "-C", str(repo), "remote", "add", "origin", url],
+        ["git", "-C", str(repo), "remote", "set-url", "origin", url],
         check=True,
         capture_output=True,
     )
@@ -280,7 +302,7 @@ def test_compare_url_written_on_push_success_ssh(env_setup, run_post_script, aut
 
 def test_compare_url_written_for_https_remote(env_setup, run_post_script, auto_push_script):
     _checkout(env_setup["repo"], "feat/add-auth/1443")
-    _set_remote(env_setup["repo"], "https://github.com/myowner/myrepo.git")
+    _set_remote(env_setup["repo"], "https://github.com/testowner/testrepo.git")
 
     result = _run_auto_push(
         run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
@@ -292,7 +314,8 @@ def test_compare_url_written_for_https_remote(env_setup, run_post_script, auto_p
     flag_file = env_setup["state_dir"] / ".auto-push-urls"
     assert flag_file.exists()
     assert (
-        "github.com/myowner/myrepo/compare/main...wip/feat/add-auth/1443" in flag_file.read_text()
+        "github.com/testowner/testrepo/compare/main...wip/feat/add-auth/1443"
+        in flag_file.read_text()
     )
 
 
@@ -477,7 +500,7 @@ def test_wip_branch_linked_to_issue(env_setup, run_post_script, auto_push_script
 
     state_dir = env_setup["state_dir"]
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / ".pecot-active").write_text("testowner/testrepo/123\n")
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
 
     result = _run_auto_push(
         run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
@@ -503,7 +526,7 @@ def test_link_api_not_called_on_second_push(env_setup, run_post_script, auto_pus
 
     state_dir = env_setup["state_dir"]
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / ".pecot-active").write_text("testowner/testrepo/123\n")
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
     # 同一ブランチ名を事前記録。
     (state_dir / ".wip-branch-linked").write_text("wip/feat/add-auth/1443")
 
@@ -518,19 +541,17 @@ def test_link_api_not_called_on_second_push(env_setup, run_post_script, auto_pus
     assert env_setup["push_log"].exists()
 
 
-def test_link_skipped_without_pecot_active(env_setup, run_post_script, auto_push_script):
+def test_push_skipped_without_pecot_active(env_setup, run_post_script, auto_push_script):
     _checkout(env_setup["repo"], "feat/add-auth/1443")
-    _set_remote(env_setup["repo"], "git@ghes.example.com:testowner/testrepo.git")
-    # .pecot-active は作成しない（state_dir 自体未作成）。
+    (env_setup["state_dir"] / ".pecot-active").unlink()
 
     result = _run_auto_push(
         run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
     )
 
     assert result.returncode == 0
-    # push は成功。
-    assert env_setup["push_log"].exists()
-    # GraphQL ログが存在しないこと
+    assert result.stdout == ""
+    assert not env_setup["push_log"].exists()
     assert not env_setup["graphql_log"].exists()
 
 
@@ -540,7 +561,7 @@ def test_push_success_even_if_link_api_fails(env_setup, run_post_script, auto_pu
 
     state_dir = env_setup["state_dir"]
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / ".pecot-active").write_text("testowner/testrepo/123\n")
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
     # GraphQL API を失敗させる（終了コード非 0）。
     env_setup["mock_bin"].install("gh", _mock_gh_body(env_setup["graphql_log"], graphql_exit="1"))
 
@@ -562,7 +583,7 @@ def test_flag_written_when_mutation_linkedbranch_null(env_setup, run_post_script
 
     state_dir = env_setup["state_dir"]
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / ".pecot-active").write_text("testowner/testrepo/123\n")
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
     # mutation がエラーなしだが linkedBranch=null（既にリンク済みの場合）。
     env_setup["mock_bin"].install(
         "gh",
@@ -590,7 +611,7 @@ def test_flag_not_written_on_mutation_graphql_error(env_setup, run_post_script, 
 
     state_dir = env_setup["state_dir"]
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / ".pecot-active").write_text("testowner/testrepo/123\n")
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
     # mutation が GraphQL エラーを返す（終了コード 0 だが errors あり）。
     env_setup["mock_bin"].install(
         "gh",
@@ -616,7 +637,7 @@ def test_flag_written_on_already_exists_error(env_setup, run_post_script, auto_p
 
     state_dir = env_setup["state_dir"]
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / ".pecot-active").write_text("testowner/testrepo/123\n")
+    (state_dir / ".pecot-active").write_text("testowner/testrepo/1443\n")
     # mutation が "already exists" エラーを返す。
     env_setup["mock_bin"].install(
         "gh",
@@ -638,21 +659,220 @@ def test_flag_written_on_already_exists_error(env_setup, run_post_script, auto_p
     assert linked_file.read_text() == "wip/feat/add-auth/1443"
 
 
-def test_link_skipped_when_pecot_active_empty(env_setup, run_post_script, auto_push_script):
+def test_push_skipped_when_pecot_active_empty(env_setup, run_post_script, auto_push_script):
     _checkout(env_setup["repo"], "feat/add-auth/1443")
-    _set_remote(env_setup["repo"], "git@ghes.example.com:testowner/testrepo.git")
-
-    state_dir = env_setup["state_dir"]
-    state_dir.mkdir(parents=True, exist_ok=True)
-    # .pecot-active を空ファイルとして作成。
-    (state_dir / ".pecot-active").write_text("")
+    (env_setup["state_dir"] / ".pecot-active").write_text("")
 
     result = _run_auto_push(
         run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
     )
 
     assert result.returncode == 0
-    # push は成功。
-    assert env_setup["push_log"].exists()
-    # GraphQL ログが存在しないこと（パース失敗でスキップ）。
+    assert result.stdout == ""
+    assert not env_setup["push_log"].exists()
     assert not env_setup["graphql_log"].exists()
+
+
+def test_push_skipped_when_pecot_active_malformed(env_setup, run_post_script, auto_push_script):
+    _checkout(env_setup["repo"], "feat/add-auth/1443")
+    (env_setup["state_dir"] / ".pecot-active").write_text("testowner/testrepo\n")
+
+    result = _run_auto_push(
+        run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
+    )
+
+    assert result.returncode == 0
+    assert not env_setup["push_log"].exists()
+
+
+# active な Issue のブランチだけ対象にする。
+
+
+def test_push_skipped_on_other_issue_number(env_setup, run_post_script, auto_push_script):
+    _checkout(env_setup["repo"], "feat/add-auth/999")
+
+    result = _run_auto_push(
+        run_post_script,
+        auto_push_script,
+        env_setup["repo"],
+        _commit_success_json("feat/add-auth/999"),
+    )
+
+    assert result.returncode == 0
+    assert not env_setup["push_log"].exists()
+    assert not env_setup["graphql_log"].exists()
+
+
+def test_push_skipped_on_other_repo(env_setup, run_post_script, auto_push_script):
+    _checkout(env_setup["repo"], "feat/add-auth/1443")
+    _set_remote(env_setup["repo"], "git@ghes.example.com:testowner/otherrepo.git")
+
+    result = _run_auto_push(
+        run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
+    )
+
+    assert result.returncode == 0
+    assert not env_setup["push_log"].exists()
+    assert not env_setup["graphql_log"].exists()
+
+
+@pytest.mark.parametrize(
+    ("url", "host"),
+    [
+        ("ssh://git@ghes.example.com:2222/testowner/testrepo.git", "ghes.example.com"),
+        ("ssh://ghes.example.com/testowner/testrepo.git/", "ghes.example.com"),
+        ("https://user:token@ghes.example.com/testowner/testrepo.git", "ghes.example.com"),
+        ("https://ghes.example.com/testowner/testrepo/", "ghes.example.com"),
+        ("git@ghes.example.com:TestOwner/TestRepo.git", "ghes.example.com"),
+    ],
+)
+def test_push_for_url_forms_and_case(env_setup, run_post_script, auto_push_script, url, host):
+    _checkout(env_setup["repo"], "feat/add-auth/1443")
+    _set_remote(env_setup["repo"], url)
+
+    result = _run_auto_push(
+        run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
+    )
+
+    assert result.returncode == 0
+    assert env_setup["push_log"].exists()
+    flag = (env_setup["state_dir"] / ".auto-push-urls").read_text()
+    assert f"https://{host}/" in flag
+    assert "token" not in flag
+
+
+# 追跡 ref の削除と除外の refspec。
+
+
+def _list_refs(repo: Path, prefix: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), "for-each-ref", prefix],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
+def _fetch_refspecs(repo: Path) -> list[str]:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "config", "--get-all", "remote.origin.fetch"],
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.splitlines()
+
+
+def test_tracking_ref_removed_after_push(env_setup, run_post_script, auto_push_script):
+    _checkout(env_setup["repo"], "feat/add-auth/1443")
+
+    result = _run_auto_push(
+        run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
+    )
+
+    assert result.returncode == 0
+    assert _list_refs(env_setup["repo"], "refs/remotes/origin/wip/") == ""
+
+
+def test_tracking_ref_removed_even_if_push_fails(env_setup, run_post_script, auto_push_script):
+    _checkout(env_setup["repo"], "feat/add-auth/1443")
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(env_setup["repo"]),
+            "update-ref",
+            "refs/remotes/origin/wip/old/1",
+            "HEAD",
+        ],
+        check=True,
+    )
+    env_setup["mock_bin"].install(
+        "git", _mock_git_body(env_setup["push_log"], push_exit="1", push_stderr="fatal: x")
+    )
+
+    result = _run_auto_push(
+        run_post_script, auto_push_script, env_setup["repo"], _commit_success_json()
+    )
+
+    assert result.returncode == 0
+    assert "自動push失敗" in result.stdout
+    assert _list_refs(env_setup["repo"], "refs/remotes/origin/wip/") == ""
+
+
+def test_exclude_refspec_added_once(env_setup, run_post_script, auto_push_script):
+    repo = env_setup["repo"]
+    _checkout(repo, "feat/add-auth/1443")
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "config",
+            "remote.origin.fetch",
+            "+refs/heads/*:refs/remotes/origin/*",
+        ],
+        check=True,
+    )
+
+    for _ in range(2):
+        result = _run_auto_push(run_post_script, auto_push_script, repo, _commit_success_json())
+        assert result.returncode == 0
+
+    specs = _fetch_refspecs(repo)
+    assert specs.count("^refs/heads/wip/*") == 1
+    assert "+refs/heads/*:refs/remotes/origin/*" in specs
+
+
+def test_exclude_refspec_not_added_without_positive_refspec(
+    env_setup, run_post_script, auto_push_script
+):
+    repo = env_setup["repo"]
+    _checkout(repo, "feat/add-auth/1443")
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "--unset-all", "remote.origin.fetch"], check=True
+    )
+
+    result = _run_auto_push(run_post_script, auto_push_script, repo, _commit_success_json())
+
+    assert result.returncode == 0
+    assert "^refs/heads/wip/*" not in _fetch_refspecs(repo)
+
+
+def test_real_push_leaves_no_tracking_ref(env_setup, run_post_script, auto_push_script, tmp_path):
+    """mock git を使わず、pushInsteadOf で bare に向けた実 push で追跡 ref の有無を確かめる。"""
+    repo = env_setup["repo"]
+    bare = tmp_path / "bare.git"
+    subprocess.run(["git", "init", "--bare", "--quiet", str(bare)], check=True)
+    for args in (
+        ["config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"],
+        ["config", f"url.{bare}.pushInsteadOf", _DEFAULT_ORIGIN],
+    ):
+        subprocess.run(["git", "-C", str(repo), *args], check=True)
+    _checkout(repo, "feat/add-auth/1443")
+    env_setup["mock_bin"].install("git", f'#!/bin/bash\nexec {json.dumps(_REAL_GIT)} "$@"\n')
+
+    result = _run_auto_push(run_post_script, auto_push_script, repo, _commit_success_json())
+
+    assert result.returncode == 0
+    remote_refs = subprocess.run(
+        ["git", "-C", str(bare), "for-each-ref", "refs/heads/wip/"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    assert "refs/heads/wip/feat/add-auth/1443" in remote_refs
+    assert _list_refs(repo, "refs/remotes/origin/wip/") == ""
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            f"url.{bare}.insteadOf={_DEFAULT_ORIGIN}",
+            "fetch",
+            "origin",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    assert _list_refs(repo, "refs/remotes/origin/wip/") == ""

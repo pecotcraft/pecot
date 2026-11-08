@@ -1443,6 +1443,25 @@ class TestPRMergeFlagCleanup:
 
             mock_remove.assert_any_call(FLAG_PECOT_SESSION_TITLE)
 
+    def test_merge_removes_wip_branch_linked_flag(self) -> None:
+        """マージ成功時に .wip-branch-linked フラグが削除される"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_client = self._make_mock_client()
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.core.state.remove_flag") as mock_remove,
+        ):
+            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+
+            assert result.exit_code == 0
+            from cli.core.state import FLAG_WIP_BRANCH_LINKED
+
+            assert FLAG_WIP_BRANCH_LINKED == ".wip-branch-linked"
+            mock_remove.assert_any_call(FLAG_WIP_BRANCH_LINKED)
+
     def test_merge_skip_local_cleanup_does_not_remove_flags(self) -> None:
         """--skip-local-cleanup 時はフラグ削除されない"""
         mock_config = MagicMock()
@@ -1475,7 +1494,7 @@ class TestPRMergeFlagCleanup:
             result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
 
             assert result.exit_code == 0
-            assert mock_remove.call_count == 3
+            assert mock_remove.call_count == 4
 
 
 # pr merge ヘルプテスト

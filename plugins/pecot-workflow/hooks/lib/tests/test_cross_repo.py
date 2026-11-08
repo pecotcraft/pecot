@@ -130,6 +130,22 @@ def cross_repo_env(
 
     # 別リポジトリ（cross-repo）— PROJECT_ROOT とは異なるパス。
     cross_repo = git_repo("cross-repo")
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(cross_repo),
+            "remote",
+            "add",
+            "origin",
+            "git@github.com:otherorg/otherrepo.git",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    state_dir = project / ".pecot" / "state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / ".pecot-active").write_text("otherorg/otherrepo/999\n")
 
     mock_bin.install("git", _mock_git_body(push_log))
     mock_bin.install("gh", _mock_gh_body())
@@ -153,7 +169,7 @@ def _checkout(repo: Path, branch: str) -> None:
 
 def _set_remote(repo: Path, url: str) -> None:
     subprocess.run(
-        ["git", "-C", str(repo), "remote", "add", "origin", url],
+        ["git", "-C", str(repo), "remote", "set-url", "origin", url],
         check=True,
         capture_output=True,
     )
