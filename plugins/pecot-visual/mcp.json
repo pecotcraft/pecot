@@ -12,6 +12,7 @@
       "type": "stdio",
       "command": "npx",
       "args": [
+        "--prefix=${PLUGIN_ROOT}/bin",
         "-y",
         "@playwright/mcp@0.0.83",
         "--headless",

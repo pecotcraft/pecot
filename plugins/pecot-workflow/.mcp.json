@@ -3,6 +3,16 @@
     "context7": {
       "type": "http",
       "url": "https://mcp.context7.com/mcp/oauth"
+    },
+    "pecot-workflow-playwright": {
+      "command": "npx",
+      "args": [
+        "--prefix=${CLAUDE_PLUGIN_ROOT}/bin",
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--headless",
+        "--no-sandbox"
+      ]
     }
   }
 }

@@ -9,6 +9,7 @@
     "pecot-visual-playwright": {
       "command": "npx",
       "args": [
+        "--prefix=${CLAUDE_PLUGIN_ROOT}/bin",
         "-y",
         "@playwright/mcp@0.0.83",
         "--headless",
