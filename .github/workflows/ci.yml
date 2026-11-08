@@ -17,14 +17,14 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # lint・githooks・tests を 3 つの job に分けて同時に動かす。
+  # lint・githooks と、変更が届いたレーンごとの tests を別の job に分けて同時に動かす。
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        part: [lint, githooks, tests]
+        part: [lint, githooks]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -102,24 +102,156 @@ jobs:
             .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore
 
+  # base・head・NO_PREV はここでだけ決め、tests の job に渡す。job ごとに決めると、その間に別の run が終わって base がずれる。
+  lanes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      lanes: ${{ steps.list.outputs.lanes }}
+      count: ${{ steps.list.outputs.count }}
+      base: ${{ steps.shas.outputs.base }}
+      head: ${{ steps.shas.outputs.head }}
+      no_prev: ${{ steps.shas.outputs.noPreviousBuild }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # error-on-no-successful-workflow は書かない。成功した run が無いとき、noPreviousBuild=true で全レーンのモードに入る。
+      - name: Derive base and head SHAs
+        id: shas
+        uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
+        with:
+          main-branch-name: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+
+      # pnpm の版は package.json の packageManager が決める。
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter pecot
+
+      - name: List test lanes
+        id: list
+        env:
+          NX_BASE: ${{ steps.shas.outputs.base }}
+          NX_HEAD: ${{ steps.shas.outputs.head }}
+          NO_PREV: ${{ steps.shas.outputs.noPreviousBuild }}
+        run: .githooks/ci/list-test-lanes.sh "$NX_BASE" "$NX_HEAD" >> "$GITHUB_OUTPUT"
+
+  # レーンが 0 本のとき、空の matrix は GitHub がエラーにするため job ごと飛ばす。
+  tests:
+    needs: lanes
+    if: needs.lanes.outputs.count != '0'
+    name: tests (${{ matrix.lane }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.lanes.outputs.lanes) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # push: never にする。省くと main の push で image を push しようとする。
+      # GITHUB_STEP_SUMMARY は Action が固定するため、GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
+      - name: Start dev container
+        id: up
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          NX_BASE: ${{ needs.lanes.outputs.base }}
+          NX_HEAD: ${{ needs.lanes.outputs.head }}
+          NO_PREV: ${{ needs.lanes.outputs.no_prev }}
+          CHECKS_LANE: ${{ matrix.lane }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          runCmd: "true"
+          env: |
+            CI
+            NX_BASE
+            NX_HEAD
+            NO_PREV
+            CHECKS_LANE
+            PECOT_NX_CI=1
+            PECOTV_E2E_CEILING_SCALE=3
+            PECOT_NX_PARALLEL=2
+            PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
+            PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+
+      # exec の cwd は /workspaces/base のため、cd してから動かす。
+      - name: Run checks
+        id: verify
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          NX_BASE: ${{ needs.lanes.outputs.base }}
+          NX_HEAD: ${{ needs.lanes.outputs.head }}
+          NO_PREV: ${{ needs.lanes.outputs.no_prev }}
+          CHECKS_LANE: ${{ matrix.lane }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part=tests --lane="$CHECKS_LANE" "$NX_BASE" "$NX_HEAD"
+          env: |
+            CI
+            NX_BASE
+            NX_HEAD
+            NO_PREV
+            CHECKS_LANE
+            PECOT_NX_CI=1
+            PECOTV_E2E_CEILING_SCALE=3
+            PECOT_NX_PARALLEL=2
+            PECOT_CI_IMAGE=ghcr.io/pecotcraft/pecot-devcontainer
+            PECOT_CI_SUMMARY=/workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+
+      # buildx が無いと Action は警告だけで成功するため、完了の印が無ければ失敗にする。
+      - name: Write job summary
+        if: always()
+        env:
+          UP_OUTCOME: ${{ steps.up.outcome }}
+        run: .githooks/ci/finish-ci-summary.sh
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-logs-tests-${{ matrix.slug }}
+          path: |
+            .pecot/tmp/pre-push/
+            .pecot/tmp/githooks-timing.tsv
+            .pecot/tmp/ci/step-summary.md
+          if-no-files-found: ignore
+
   ci-result:
-    needs: checks
+    needs: [checks, lanes, tests]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       # 取り消された matrix の job があっても、needs.checks.result が success になる報告がある
-      # （community discussion #211624）。そのため、3 件の job の conclusion を直接確かめる。
+      # （community discussion #211624）。そのため、job の conclusion を直接確かめる。
       - name: Require checks to succeed
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
+          LANES_RESULT: ${{ needs.lanes.result }}
+          TESTS_RESULT: ${{ needs.tests.result }}
+          LANES_COUNT: ${{ needs.lanes.outputs.count }}
+          LANES_JSON: ${{ needs.lanes.outputs.lanes }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "checks: $CHECKS_RESULT"
-          [ "$CHECKS_RESULT" = "success" ]
-          jobs=$(gh run view "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --json jobs)
-          for part in lint githooks tests; do
-            conclusion=$(jq -r --arg name "checks ($part)" '[.jobs[] | select(.name == $name)] | if length == 1 then .[0].conclusion else "missing" end' <<< "$jobs")
-            echo "checks ($part): $conclusion"
-            [ "$conclusion" = "success" ]
-          done
+        run: .githooks/ci/check-ci-result.sh

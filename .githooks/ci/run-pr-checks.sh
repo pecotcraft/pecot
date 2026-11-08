@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # CI で、pre-commit の 3 つの stage を <base>..<head> の範囲指定で流す（使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] <base> <head>）。
+# --part=tests には --lane=<project>:<target> を足せる。そのレーン 1 本だけを動かす。
 # --part を付けると、その部分の stage だけを流す。オプションは位置引数の前後どちらにも置ける。
 #   lint: pre-commit と pre-push。githooks: manual（nx-affected-tests を除く）。tests: manual（githooks-tests を除く）。
 # 落ちても最後まで動かし、完了の印 .pecot/tmp/ci/done に exit code を書く。
@@ -10,12 +11,14 @@ set -euo pipefail
 # shellcheck source=../lib/timing.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 
-usage="使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] <base> <head>"
+usage="使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] [--lane=<project>:<target>] <base> <head>"
 part=""
+lane=""
 positional=()
 for arg in "$@"; do
     case "$arg" in
         --part=*) part="${arg#--part=}" ;;
+        --lane=*) lane="${arg#--lane=}" ;;
         *) positional+=("$arg") ;;
     esac
 done
@@ -27,6 +30,12 @@ case "$part" in
         exit 2
         ;;
 esac
+# lane は tests の part で 1 レーンだけ動かすときの指定。
+if [ -n "$lane" ] && { [ "$part" != "tests" ] || ! [[ $lane =~ ^[^:[:space:]]+:[^:[:space:]]+$ ]]; }; then
+    echo "ERROR: --lane は --part=tests と組み合わせ、<project>:<target> の形で指定します: $lane" >&2
+    echo "$usage" >&2
+    exit 2
+fi
 if [ "${#positional[@]}" -ne 2 ] || [ -z "${positional[0]}" ] || [ -z "${positional[1]}" ]; then
     echo "$usage" >&2
     exit 2
@@ -131,6 +140,7 @@ run_stage() {
     fi
     echo "=== stage: $stage ($mode) ==="
     local rc=0
+    [ -z "$lane" ] || extra_env+=("PECOT_NX_LANE=$lane")
     env "SKIP=$skip" "${extra_env[@]}" "$pre_commit" run --hook-stage "$stage" \
         "${range_args[@]}" --show-diff-on-failure --color=never || rc=$?
     stage_rc["$stage"]=$rc
@@ -240,7 +250,10 @@ first_line_of() {
 emit_summary() {
     local stage overall="成功"
     local ci_logs="ci-logs"
-    if [ -n "$part" ]; then
+    if [ -n "$lane" ]; then
+        echo "## 検証の結果（tests: $lane）"
+        ci_logs="ci-logs-tests-${lane//:/-}"
+    elif [ -n "$part" ]; then
         echo "## 検証の結果（$part）"
         ci_logs="ci-logs-$part"
     else

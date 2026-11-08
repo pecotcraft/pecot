@@ -47,7 +47,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - lint は pre-commit の `nx-affected-lint` で、staged ファイルを `--files` で渡す。
   - test は pre-push の `nx-affected-tests` で評価する。範囲は version-plan ガードと同一の base/head 解決（`lib/push-range.sh`）による push range
 - GitHub Actions のワークフローは `.github/workflows/` の 5 本である。
-  - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。lint・githooks・tests の 3 job に分けて同時に動かす
+  - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。lint・githooks の 2 job と、変更が届いたレーンごとの tests の job に分けて同時に動かす
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直し、同じブランチへ push する

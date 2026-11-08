@@ -1809,3 +1809,242 @@ def test_nx_parallel_invalid_fails_before_nx(
     assert result.returncode == 1
     assert f"ERROR: PECOT_NX_PARALLEL は正の整数です: {value}" in result.stderr
     assert at_repo.nx_log.read_text() == ""
+
+
+# ====
+# lane モード（PECOT_NX_LANE + PECOT_NX_CI=1）: レーン 1 本を run-many で 1 回だけ動かす
+# ====
+
+_LANE = "lane-one:test-unit"
+_LANE_ENV = {"PECOT_NX_CI": "1", "PECOT_NX_LANE": _LANE}
+
+
+def _nx_calls(h: _AffectedTestsRepo, sub: str) -> list[str]:
+    return [ln for ln in h.nx_log.read_text().splitlines() if ln.startswith(f"{sub} ")]
+
+
+def _guard_values(h: _AffectedTestsRepo) -> list[str]:
+    prefix = "ENV PECOTV_PM_GUARD_BEHAVIOR="
+    return [ln[len(prefix) :] for ln in h.nx_log.read_text().splitlines() if ln.startswith(prefix)]
+
+
+def test_lane_mode_runs_one_lane_with_run_many(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """lane モード → affected を呼ばず、run-many -t <target> -p <project> を 1 回だけ呼ぶ。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={**_LANE_ENV, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0, result.stderr
+
+    assert _nx_calls(at_repo, "affected") == []
+    calls = _nx_calls(at_repo, "run-many")
+    assert len(calls) == 1
+    assert calls[0].startswith("run-many -t test-unit -p lane-one ")
+    assert "--parallel=4" in calls[0]
+    assert "--output-style=static" in calls[0]
+    assert "--nxBail" not in calls[0]
+    assert _guard_values(at_repo) == ["0"]
+
+
+def test_lane_mode_skip_tip_still_runs_lane_without_guard(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """skip の tip（ブランチ削除）でもレーンは 1 回動かし、pm-guard の env は unset。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir, at_repo, run_script, env={**_LANE_ENV, "PRE_COMMIT_TO_REF": _ZERO_SHA}
+    )
+    assert result.returncode == 0, result.stderr
+    assert len(_nx_calls(at_repo, "run-many")) == 1
+    assert _nx_calls(at_repo, "affected") == []
+    assert _guard_values(at_repo) == ["unset"]
+
+
+def test_lane_mode_fallback_runs_lane_once_without_guard(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """base を解決できないフォールバックでも、レーンを 1 回だけ動かし、pm-guard は unset。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature_no_remote("feature", "plugins/pecot-visual/cli/package.json")
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={**_LANE_ENV, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0, result.stderr
+    calls = _nx_calls(at_repo, "run-many")
+    assert len(calls) == 1
+    assert calls[0].startswith("run-many -t test-unit -p lane-one ")
+    assert _guard_values(at_repo) == ["unset"]
+
+
+def test_lane_mode_without_push_info_runs_lane_once(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """push 情報が無くてもレーンを 1 回動かし、pm-guard は unset。"""
+    at_repo.install_nx_stub()
+
+    result = _run(script_dir, at_repo, run_script, env=_LANE_ENV)
+    assert result.returncode == 0, result.stderr
+    assert len(_nx_calls(at_repo, "run-many")) == 1
+    assert _guard_values(at_repo) == ["unset"]
+
+
+def test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
+) -> None:
+    """複数 tip でもレーンは 1 回。1 つでも pm-guard 対象の変更があれば 1。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature(changed_path="plugins/pecot-visual/cli/package.json")
+    feat1_sha = at_repo.feature_sha
+    feat2_sha, _ = _add_second_feature(at_repo, git, git_rev_parse)
+
+    stdin = (
+        f"refs/heads/feature {feat1_sha} refs/heads/feature {at_repo.main_sha}\n"
+        f"refs/heads/feature2 {feat2_sha} refs/heads/feature2 {at_repo.main_sha}\n"
+    )
+    result = _run(script_dir, at_repo, run_script, env=_LANE_ENV, stdin=stdin)
+    assert result.returncode == 0, result.stderr
+    assert len(_nx_calls(at_repo, "run-many")) == 1
+    assert _nx_calls(at_repo, "affected") == []
+    assert _guard_values(at_repo) == ["1"]
+
+
+@pytest.mark.parametrize(
+    "bad_lane",
+    [
+        "lane-one:test-nothing",  # 集合に無い target
+        "lane-one:test",  # まとめ役（nx:noop）
+        "lane-one:test-postinstall",  # nx:run-script 由来
+        "lane-one:lint",  # test のレーンではない
+        "lane-one",  # 不正な形
+        "lane-one:test-unit:ci",
+        ":test-unit",
+        "lane-one:",
+    ],
+)
+def test_lane_mode_rejects_invalid_lane_before_nx_run(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, bad_lane: str
+) -> None:
+    """集合に無い target・まとめ役・不正な形は ERROR で exit 1。run-many は呼ばない。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={
+            "PECOT_NX_CI": "1",
+            "PECOT_NX_LANE": bad_lane,
+            "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+        },
+    )
+    assert result.returncode == 1
+    assert "ERROR" in result.stderr
+    assert _nx_calls(at_repo, "run-many") == []
+    assert _nx_calls(at_repo, "affected") == []
+
+
+def test_lane_mode_fails_when_profile_has_no_task_of_the_lane(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """集合にある target でも、profile にそのレーンの task が無ければ（0 件で成功）exit 1。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={
+            "PECOT_NX_CI": "1",
+            "PECOT_NX_LANE": "lane-two:test-cli",
+            "PRE_COMMIT_TO_REF": at_repo.feature_sha,
+        },
+    )
+    assert result.returncode == 1
+    assert "lane-two:test-cli の task を nx の profile で見つけられません" in result.stderr
+
+
+@pytest.mark.parametrize("stub_env", ["STUB_NX_EMPTY_PROFILE", "STUB_NX_NO_PROFILE"])
+def test_lane_mode_fails_when_profile_is_empty_or_missing(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script, stub_env: str
+) -> None:
+    """profile が空配列・無いときも、レーンの task を確かめられないので exit 1。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={**_LANE_ENV, stub_env: "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 1
+    assert "task を nx の profile で見つけられません" in result.stderr
+
+
+def test_lane_mode_propagates_nx_failure(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """レーンの run-many が失敗したら exit 1。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={**_LANE_ENV, "STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 1
+
+
+def test_lane_is_ignored_with_warn_without_ci_mode(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """PECOT_NX_CI=1 が無いと PECOT_NX_LANE は WARN を出して無視し、これまでどおり affected を動かす。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_LANE": _LANE, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "WARN: PECOT_NX_LANE は PECOT_NX_CI=1 のときだけ読みます" in result.stderr
+    assert len(_nx_calls(at_repo, "affected")) == 1
+    assert _nx_calls(at_repo, "run-many") == []
+    assert "--nxBail" in _nx_calls(at_repo, "affected")[0]
+
+
+def test_empty_lane_env_is_not_lane_mode(
+    script_dir: Path, at_repo: _AffectedTestsRepo, run_script
+) -> None:
+    """PECOT_NX_LANE が空なら lane モードにならず、WARN も出さない。"""
+    at_repo.install_nx_stub()
+    at_repo.build_feature()
+
+    result = _run(
+        script_dir,
+        at_repo,
+        run_script,
+        env={"PECOT_NX_CI": "1", "PECOT_NX_LANE": "", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "PECOT_NX_LANE" not in result.stderr
+    assert len(_nx_calls(at_repo, "affected")) == 1

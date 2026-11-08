@@ -46,6 +46,32 @@ EOF
     exit 1
 fi
 
+# CI の lane モード: PECOT_NX_LANE=<project>:<target> のレーン 1 本だけを動かす。
+# PECOT_NX_CI=1 以外では無視する。手元の pre-push で、レーンが 1 本に狭まるのを防ぐ。
+lane="${PECOT_NX_LANE:-}"
+lane_project=""
+lane_target=""
+if [ -n "$lane" ] && [ "${PECOT_NX_CI:-}" != "1" ]; then
+    echo "WARN: PECOT_NX_LANE は PECOT_NX_CI=1 のときだけ読みます。無視して affected を実行します: $lane" >&2
+    lane=""
+fi
+if [ -n "$lane" ]; then
+    if ! [[ $lane =~ ^([^:[:space:]]+):([^:[:space:]]+)$ ]]; then
+        echo "ERROR: PECOT_NX_LANE は <project>:<target> の形です: $lane" >&2
+        exit 1
+    fi
+    lane_project="${BASH_REMATCH[1]}"
+    lane_target="${BASH_REMATCH[2]}"
+    # まとめ役（<project>:test）は nx:noop で集合に入らない。入れると project の全レーンが動く。
+    lane_set=$(nx_lane_targets "$nx_bin" "$repo_root" test) || exit 1
+    if [[ ",$lane_set," != *",$lane_target,"* ]]; then
+        echo "ERROR: PECOT_NX_LANE の target がテストのレーンにありません: $lane（レーン: $lane_set）" >&2
+        exit 1
+    fi
+fi
+# 直近の run の profile に lane の task があったか（record_lane_timings が立てる）。
+lane_seen=0
+
 # 失敗の切り出しと run-pr-checks.sh の skip 集計は、static の見出し `> nx run <project>:<target>` に依存する。
 # 見出しの前に `::group::<icon> ` を伴う場合もある。
 nx_static=0
@@ -104,6 +130,7 @@ record_lane_timings() {
             [ -n "$name" ] || continue
             [[ $sec =~ ^[0-9]+\.[0-9]$ ]] || continue
             timing_record "$repo_root" task "$name" "$sec" "status=$status"
+            [ -z "$lane" ] || [ "$(cut -d: -f1-2 <<< "$name")" != "$lane" ] || lane_seen=1
             if [[ $target == test-* ]]; then
                 lanes=$((lanes + 1))
                 push_lanes["$(cut -d: -f1-2 <<< "$name")"]=1
@@ -280,12 +307,36 @@ run_all_tests() {
     run_nx "$nx_bin" run-many -t test --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
 }
 
+# lane モードの本体。nx run-many は target が無い project で 0 件のまま成功するため、task の有無を確かめる。
+# $1 が空でなければ PECOTV_PM_GUARD_BEHAVIOR をその値で export し、空なら unset する。
+run_lane() {
+    if [ -n "$1" ]; then
+        export PECOTV_PM_GUARD_BEHAVIOR="$1"
+    else
+        unset PECOTV_PM_GUARD_BEHAVIOR
+    fi
+    lane_seen=0
+    run_nx "$nx_bin" run-many -t "$lane_target" -p "$lane_project" \
+        --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
+    if [ "$lane_seen" -eq 0 ]; then
+        echo "ERROR: $lane の task を nx の profile で見つけられません。project に target を定義したか確かめてください。" >&2
+        exit 1
+    fi
+}
+
 # push される tip を列挙。何も得られなければ push 情報なしとして全 project へフォールバック。
 declare -a tips=()
 while IFS= read -r tip; do
     [ -z "$tip" ] && continue
     tips+=("$tip")
 done < <(collect_push_tips)
+
+if [ "${#tips[@]}" -eq 0 ] && [ -n "$lane" ]; then
+    echo "WARN: push 情報なしのため pm-guard の判定を省いて $lane を実行します。" >&2
+    run_lane ""
+    print_timing_summary
+    exit 0
+fi
 
 if [ "${#tips[@]}" -eq 0 ]; then
     echo "WARN: push 情報なし（pre-commit env と pre-push stdin のどちらからも取得できず）のため全 project の test を実行します。" >&2
@@ -305,6 +356,8 @@ warn_once() {
 
 # affected に渡す test レーン名（nx graph から 1 回だけ集める。最初の affected の直前に埋める）。
 test_lanes=""
+# lane モードで tip を通した pm-guard の判定（空は判定なし）。1 つでも 1 なら 1。
+lane_guard=""
 
 for tip in "${tips[@]}"; do
     range=$(resolve_push_range "$tip") && rc=0 || rc=$?
@@ -341,10 +394,16 @@ for tip in "${tips[@]}"; do
     changed_files=$(git -C "$repo_root" diff --name-only "$from" "$to" 2>/dev/null || true)
     if grep -qE '(^|/)(package\.json|\.npmrc|pnpm-workspace\.yaml)$|check-pm-guard\.sh$' \
         <<< "$changed_files"; then
-        export PECOTV_PM_GUARD_BEHAVIOR=1
+        guard=1
     else
-        export PECOTV_PM_GUARD_BEHAVIOR=0
+        guard=0
     fi
+    if [ -n "$lane" ]; then
+        # レーンは繰り返しの外で 1 回だけ動かす。ここでは判定だけ残す。
+        if [ "$guard" = 1 ] || [ -z "$lane_guard" ]; then lane_guard=$guard; fi
+        continue
+    fi
+    export PECOTV_PM_GUARD_BEHAVIOR=$guard
 
     # レーン名が取れなければ止める（空の -t は全 target を評価する）。
     if [ -z "$test_lanes" ]; then
@@ -354,6 +413,14 @@ for tip in "${tips[@]}"; do
     run_nx "$nx_bin" affected -t "$test_lanes" \
         --base="$from" --head="$to" --parallel="$NX_PARALLEL" "${nx_bail_args[@]}" --output-style="$nx_output_style"
 done
+
+if [ -n "$lane" ]; then
+    # フォールバック条件の tip があれば、判定を持たない（全 project の run と同じ扱い）。
+    [ "$fallback_requested" -eq 0 ] || lane_guard=""
+    run_lane "$lane_guard"
+    print_timing_summary
+    exit 0
+fi
 
 # 1 件以上の tip がフォールバック条件に該当していたら run-many を 1 回だけ実行。
 if [ "$fallback_requested" -eq 1 ]; then
