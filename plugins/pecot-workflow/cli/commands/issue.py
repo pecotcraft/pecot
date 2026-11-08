@@ -1791,7 +1791,7 @@ def _issue_comment_from_file(ctx: typer.Context | None, file: Path) -> None:
     # 5. comment_url は、issue_ref と同じ Issue のコメントに限る
     comment_id = 0
     if fm.comment_url:
-        comment_id = _comment_id_for_issue(fm.comment_url, owner, repo, issue_number)
+        comment_id = _comment_id_for_issue(fm.comment_url, config.host, owner, repo, issue_number)
 
     # 6. クライアント初期化
     client = GitHubClient(host=config.host)
@@ -1834,18 +1834,25 @@ def _issue_comment_from_file(ctx: typer.Context | None, file: Path) -> None:
 
 # PR へのコメントは GitHub が /pull/ の形で html_url を返すので、両方受ける
 _COMMENT_URL_RE = re.compile(
-    r"^https?://[^/]+/(?P<owner>[^/]+)/(?P<repo>[^/]+)/(?:issues|pull)/(?P<number>\d+)#issuecomment-(?P<id>\d+)$"
+    r"^https?://(?P<host>[^/]+)/(?P<owner>[^/]+)/(?P<repo>[^/]+)/(?:issues|pull)/(?P<number>\d+)#issuecomment-(?P<id>\d+)$"
 )
 
 
-def _comment_id_for_issue(comment_url: str, owner: str, repo: str, issue_number: int) -> int:
+def _comment_id_for_issue(
+    comment_url: str, host: str, owner: str, repo: str, issue_number: int
+) -> int:
     """comment_url から comment id を取る。issue_ref と別の Issue を指していれば止める"""
     match = _COMMENT_URL_RE.match(comment_url.strip())
     if match is None:
         typer.echo(
             f"エラー: comment_url の形が違います: {comment_url}"
-            "。https://<host>/<owner>/<repo>/issues/<番号>#issuecomment-<id>"
-            " か https://<host>/<owner>/<repo>/pull/<番号>#issuecomment-<id> の形にしてください",
+            "。https://<host>/<owner>/<repo>/{issues|pull}/<番号>#issuecomment-<id> の形で指定してください",
+            err=True,
+        )
+        raise typer.Exit(1)
+    if match["host"].lower() != host.lower():
+        typer.echo(
+            f"エラー: comment_url のホスト（{match['host']}）が設定のホスト（{host}）と違います",
             err=True,
         )
         raise typer.Exit(1)
