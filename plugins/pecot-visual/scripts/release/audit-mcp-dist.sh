@@ -31,9 +31,6 @@
 #                      env PECOTV_AUDIT_RECORD でも指定できる。
 #                      publish がこの記録を読み、監査した依存ツリーと配布ツリーの指紋を突合する (#1059)。
 #
-# 監査の前に、ブランドの語の一覧（env PECOT_BRAND_TERMS_FILE のファイル）の有無を確かめる。
-# 無ければ監査も記録の作成もせず、非ゼロで止まる。
-#
 # 監査先は CLI の --registry で必ず明示する。~/.npmrc と npm_config_registry は、
 # 監査先を無断で差し替えてしまう。
 # `{}` を返す先に向くと、脆弱性 0 件の偽の pass になる。
@@ -136,17 +133,6 @@ fi
 # 前回の記録は、処理の先頭で必ず消す。
 # 監査が途中で中止したときに古い記録が残っていると、publish がそれを「今回の監査結果」として読んでしまう。
 rm -f "$AUDIT_RECORD"
-
-# ブランドの語の一覧が無いときは、監査を始める前に止める。
-# 前回の記録を消した後に確かめるので、止まった後に古い記録が残らない。
-# 一覧は本体の外にあり、環境変数 PECOT_BRAND_TERMS_FILE のファイルで渡す。
-# リリースの version より前の監査で確かめるのは、一覧が無いまま version commit・タグ・push へ進ませないため。
-# 配布ツリーの語の確認（publish-mcp-dist.sh）も、同じ一覧で行う。
-if [ -z "${PECOT_BRAND_TERMS_FILE:-}" ] || [ ! -f "${PECOT_BRAND_TERMS_FILE:-}" ]; then
-    echo "ERROR: ブランドの語の一覧が無いため中止: PECOT_BRAND_TERMS_FILE が未設定か、指す先がありません（現在: ${PECOT_BRAND_TERMS_FILE:-未設定}）。" >&2
-    echo "       CLAUDE.md の「ブランドの語の確認」の節に従って、一覧ファイルの絶対パスを渡してください。" >&2
-    exit 1
-fi
 
 PLUGIN_VERSION="$(node -e "process.stdout.write(require('$PECOTV_ROOT/.claude-plugin/plugin.json').version)")"
 RELEASE_TAG="pecot-visual-v$PLUGIN_VERSION"

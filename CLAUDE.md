@@ -30,7 +30,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 
 ## テスト・lint の実行
 
-- テストの全量は pre-push のチェック（下記）が実行する。push 前に同じ全量を手で実行しない。
+- テストは PR の CI（`ci.yml`）が、変更の届いたレーンについて実行する。push 前にそのレーンの全量を手で実行しない。
   同じ結果を 2 回待つだけになる。手で実行するのは変更箇所に絞ったテストだけにする。
   絞り方は、vitest / pytest ならファイル・ケースを指定し、`*.test.sh` なら該当の 1 本を指定する。
 - 各プラグインの `scripts/ci/run-tests.sh` を lane 単位で手動実行するのは、チェックの失敗を
@@ -45,7 +45,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 - lint / test のチェックは nx affected ベースの root 共通フック各 1 本が、
   レーン名の列挙を `nx affected -t` で要求して発火する。詳細は `.githooks/README.md` R1
   - lint は pre-commit の `nx-affected-lint` で、staged ファイルを `--files` で渡す。
-  - test は pre-push の `nx-affected-tests` で評価する。範囲は version-plan ガードと同一の base/head 解決（`lib/push-range.sh`）による push range
+  - test は manual の stage の `nx-affected-tests` を CI が動かす。pre-push では動かさない。手で動かすコマンドは `.githooks/README.md` の「検証の置き場」にある
 - GitHub Actions のワークフローは `.github/workflows/` の 5 本である。
   - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。lint・githooks の 2 job と、変更が届いたレーンごとの tests の job に分けて同時に動かす
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
@@ -53,25 +53,6 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直し、同じブランチへ push する
   - `security-alerts.yml`: main の security alert を毎時 Tracker 1 件の一覧にそろえる。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
 - commit 時の品質は、今までどおり author ローカル env で pre-commit が pass したことに依拠する
-
-## ブランドの語の確認
-
-このリポジトリと配布物には、特定の組織のブランドの語（名前・色・書体など）を置かない。
-語の一覧は本体の外にあり、`check-brand-terms.sh`（`.githooks/pre-commit/`）が一覧を読んで確かめる。
-開発者は、一覧の写しをリポジトリの外の手元に置き、その絶対パスを環境変数 `PECOT_BRAND_TERMS_FILE` に渡す。
-端末の起動時に読まれる設定（shell の rc ファイルなど）に書いておく。
-
-```
-export PECOT_BRAND_TERMS_FILE=<brand-terms.txt の絶対パス>
-```
-
-- pre-push の `check-brand-terms` は、push するコミットの中身とパスの名前を調べる。
-  一致があれば、ファイルと語を表示して止める。`PECOT_BRAND_TERMS_FILE` が無ければ、飛ばしたことを表示して通す
-- リリースは、`audit-mcp-dist.sh` が version より前に一覧の有無を確かめる。無ければ止まる。単体配布の公開は、配布ツリーの全ファイルを調べる
-- 一覧は 1 行 1 件の固定文字列で、大文字小文字を区別する。`#` の直後が空白か行末の行は注釈。`#abcdef` のような色の行は語として読む
-- `CHANGELOG.md` は対象から除く
-- 手元で確かめるには、`.githooks/pre-commit/check-brand-terms.sh --ref HEAD` を実行する。作業ツリーのディレクトリは `--dir <path>` で調べる
-- 新しく付ける識別子・ファイル名・文言・テストの値に、一覧の語を書かない。テストの語は合成した値にする
 
 ## 作業ファイルの置き場所
 

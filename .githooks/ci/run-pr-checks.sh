@@ -54,7 +54,7 @@ cd "$repo_root"
 
 ci_dir="$repo_root/.pecot/tmp/ci"
 done_file="$ci_dir/done"
-nx_log="$repo_root/.pecot/tmp/pre-push/nx-affected-tests.log"
+nx_log="$repo_root/.pecot/tmp/nx-affected-tests/nx-affected-tests.log"
 timing_file="$repo_root/$TIMING_RELPATH"
 
 # buildx が無いと Action は警告だけで成功するため、呼び出し側は印の有無で完了を判定する。
@@ -121,13 +121,9 @@ esac
 declare -A stage_rc=()
 
 run_stage() {
-    # version plan の判定は CI の別の job が担う。
+    # version plan の判定は CI では動かさない。CI の job は後で足す。
     local stage="$1" skip="check-version-plan-required" plan_base=""
     local -a range_args=() extra_env=()
-    case "$stage" in
-        # テストの 2 つの hook は manual の stage でも動くため、2 回動かさない。
-        pre-push) skip="$skip,nx-affected-tests,githooks-tests" ;;
-    esac
     [ -z "$part_skip" ] || skip="$skip,$part_skip"
     [ -z "${SKIP:-}" ] || skip="$SKIP,$skip"
     if [ "$mode" = "全レーン" ]; then

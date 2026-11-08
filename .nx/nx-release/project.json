@@ -8,7 +8,7 @@
       "executor": "nx:noop",
       "dependsOn": ["test-unit"],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する起点。プラグインの project と同じく、レーン（test-*）を dependsOn で束ねる。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する起点。プラグインの project と同じく、レーン（test-*）を dependsOn で束ねる。"
       }
     },
     "test-unit": {

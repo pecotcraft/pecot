@@ -82,14 +82,12 @@ assert_contains() {
     fi
 }
 
+# 語の一覧なしで通ることを確かめるため、開発者の shell の値を引き継がない。
+unset PECOT_BRAND_TERMS_FILE
 TMP=$(mktemp -d)
 # 監査記録の既定は <repo>/.nx/release-audit/pecotv-audit.json。テストは全ケースで
 # $TMP 配下へ向け、リポジトリ本体の記録に触れない。
 export PECOTV_AUDIT_RECORD="$TMP/audit-record.json"
-# ブランドの語の一覧。監査は一覧の有無だけを確かめる。語は実在のものではなく人工の文字列にする。
-TERMS_FILE="$TMP/brand-terms.txt"
-printf '# synthetic terms for audit test\nzz-synthetic-brand-term\n' > "$TERMS_FILE"
-export PECOT_BRAND_TERMS_FILE="$TERMS_FILE"
 # npm audit は advisory の評価結果を cacache へ `security-advisory:<name>:<id>` で保存し、
 # キーに severity は含まれない。共有キャッシュ (~/.npm/_cacache) のままだと、同じ id を
 # 別 severity で評価済みのマシンで判定が変わり、合否がホームディレクトリの状態に左右される。
@@ -431,32 +429,6 @@ assert_eq "記録の runtime.vulnerabilities.high が 0" "0" "$(record_field run
 assert_eq "記録の runtime.total が永続層 fixture のパッケージ数" "3" "$(record_field runtime.total)"
 assert_contains "要約行の指紋が記録と同じ値" "指紋 $FIXTURE_FP" "$OUT"
 stop_mock
-
-# --- 1b. 語の一覧が無いときは、監査の前で止める ---
-# 一覧が無いまま version commit・タグ・push へ進ませないための確認。レジストリには触れない。
-place_stale_record
-RC=0
-env -u PECOT_BRAND_TERMS_FILE bash "$AUDIT" --dist="$(new_dist case1b)" --runtime-dist="$(new_runtime_dist case1b)" \
-    --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" --registry="$CLOSED_REGISTRY" \
-    > "$TMP/case1b.out" 2> "$TMP/case1b.err" || RC=$?
-assert_eq "語の一覧が無いと exit 1" "1" "$RC"
-assert_contains "語の一覧が無い理由を出す" "ブランドの語の一覧が無いため中止" "$TMP/case1b.err"
-if grep -qF "監査未実施" "$TMP/case1b.err"; then
-    fail "語の一覧が無いのに監査に入った"
-else
-    pass "語の一覧が無いときは監査に入らない"
-fi
-if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "語の一覧が無くて中止したのに古い監査記録が残っている"
-else
-    pass "語の一覧が無くて中止したとき古い監査記録を消す"
-fi
-# 一覧のパスの先にファイルが無い場合も、同じく止める。
-RC=0
-PECOT_BRAND_TERMS_FILE="$TMP/no-such-terms.txt" bash "$AUDIT" --dist="$(new_dist case1c)" --runtime-dist="$(new_runtime_dist case1c)" \
-    --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" --registry="$CLOSED_REGISTRY" \
-    > "$TMP/case1c.out" 2> "$TMP/case1c.err" || RC=$?
-assert_eq "一覧のパスの先にファイルが無いと exit 1" "1" "$RC"
 
 # --- 2. high の advisory でリリースを止める ---
 

@@ -4,7 +4,7 @@
 # plugins/pecot-visual と plugins/pecot-tools の publish-mcp-dist.sh が、配布ツリーを組み立てた後に呼ぶ。
 # 2 本で同じ処理を持つと、片方だけ直して食い違う（#74 のレビューで gh release view の扱いが割れた）。
 # そのため pack から gh の 3 回の呼び出しまでを、ここに 1 本化している。
-# 配布ツリーの組み立て（build・shrinkwrap・語の確認）はプラグインごとに違うので、呼び出し側に残す。
+# 配布ツリーの組み立て（build・shrinkwrap）はプラグインごとに違うので、呼び出し側に残す。
 #
 #   --dist=<dir>      npm pack する配布ツリー。
 #   --tag=<tag>       Release のタグ。workflow の --ref にも使う。

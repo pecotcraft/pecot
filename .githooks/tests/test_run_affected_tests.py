@@ -6,9 +6,9 @@ hook は base/head を共有 lib（lib/push-range.sh）で解決し、tip ごと
 判定不能時は `nx run-many -t test --parallel=4 --nxBail` へフォールバックする。
 push range にパッケージマネージャガードの対象ファイルが含まれるかで、PECOTV_PM_GUARD_BEHAVIOR を 1 / 0 に決める。
 その値を nx へ export する（#1080）。
-nx の出力は端末でなく `<repo_root>/.pecot/tmp/pre-push/nx-affected-tests.log` へ書く。
+nx の出力は端末でなく `<repo_root>/.pecot/tmp/nx-affected-tests/nx-affected-tests.log` へ書く。
 失敗時だけ、要約の `Failed tasks:` に載った project の行を stderr へ出す（#1079）。
-nx は `NX_PROFILE=.pecot/tmp/pre-push/nx-profile.json`（repo root 相対）付きで起動する。
+nx は `NX_PROFILE=.pecot/tmp/nx-affected-tests/nx-profile.json`（repo root 相対）付きで起動する。
 profile の task 所要は、`<repo_root>/.pecot/tmp/githooks-timing.tsv` へ task 行・nx 行として追記する。
 成功 push では、合計秒・最長 test task・並列度・レーン数の 1 行を stdout へ出す（#1083）。
 
@@ -282,7 +282,7 @@ exit "$rc"
 """
 
 # hook が nx 出力を書く固定パス（repo root 相対）。
-_NX_LOG_RELPATH = Path(".pecot/tmp/pre-push/nx-affected-tests.log")
+_NX_LOG_RELPATH = Path(".pecot/tmp/nx-affected-tests/nx-affected-tests.log")
 
 
 def _hook_log_path(h: _AffectedTestsRepo) -> Path:
@@ -1144,7 +1144,7 @@ def test_failure_body_truncated_at_line_boundary_by_byte_limit(
 # ====
 
 _TIMING_RELPATH = Path(".pecot/tmp/githooks-timing.tsv")
-_PROFILE_RELPATH = Path(".pecot/tmp/pre-push/nx-profile.json")
+_PROFILE_RELPATH = Path(".pecot/tmp/nx-affected-tests/nx-profile.json")
 
 
 def _timing_rows(h: _AffectedTestsRepo) -> list[list[str]]:

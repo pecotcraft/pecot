@@ -36,7 +36,7 @@
       "executor": "nx:noop",
       "dependsOn": ["test-py", "test-cli", "test-hooks", "test-skills"],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する起点。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する起点。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
     },
     "test-py": {
@@ -83,7 +83,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "cli-node の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行する。そのため、本レーンの入力から tests/hooks/ を除く。hooks/ を変えた push で本レーンを動かさないため。install と build は dependsOn 経由で 1 push に 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。version.ts が plugin.json を読む。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/core/github/queries.py は偽サーバの operation 対応表の確認が読む。cli/commands/main.py は commands.ts の 33 個との一致の確認が読む。そのため、どちらも入力に置く。cli/templates/ は Issue・PR 本文のテンプレートで、template-store のテストが読む。hooks/lib/core/pecot-gitignore-ensure.sh は gitignore 補完のスクリプトで、worktree-links のテストが読む。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。"
+        "description": "cli-node の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行する。そのため、本レーンの入力から tests/hooks/ を除く。hooks/ の変更で本レーンを動かさないため。install と build は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。version.ts が plugin.json を読む。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/core/github/queries.py は偽サーバの operation 対応表の確認が読む。cli/commands/main.py は commands.ts の 33 個との一致の確認が読む。そのため、どちらも入力に置く。cli/templates/ は Issue・PR 本文のテンプレートで、template-store のテストが読む。hooks/lib/core/pecot-gitignore-ensure.sh は gitignore 補完のスクリプトで、worktree-links のテストが読む。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
@@ -147,7 +147,7 @@
       ],
       "dependsOn": ["install"],
       "metadata": {
-        "description": "hooks テスト（test_cuj_definition_single_source）が agents/w-e2e-planner.md を読む。strace で棚卸しした実際の読み込み (#1225) として、agents 全件・plugin.json・bin/pecot・issue-flow-rules.md を入れる。CI スコープの整合は test_ci_scope_consistency が確かめる。このテストは 3 プラグインの project.json と run-*.sh を読むため、それらも入れる。test_hooks_definitions が読む pecot-visual の hooks*.json も宣言する (#1229)。test_agent_definitions は、両プラグインの agents と skills/*/SKILL.md を読む。読むのは frontmatter（disallowedTools・argument-hint・when_to_use）で、これらも宣言する (#1231)。hooks scope は cli-node の vitest（project hooks）も実行する。読むのは cli-node/tests/hooks/ のテストと、vitest.config.ts、baseline.json、baseline.ts で、これらを宣言する。install は dependsOn 経由で 1 push に 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "hooks テスト（test_cuj_definition_single_source）が agents/w-e2e-planner.md を読む。strace で棚卸しした実際の読み込み (#1225) として、agents 全件・plugin.json・bin/pecot・issue-flow-rules.md を入れる。CI スコープの整合は test_ci_scope_consistency が確かめる。このテストは 3 プラグインの project.json と run-*.sh を読むため、それらも入れる。test_hooks_definitions が読む pecot-visual の hooks*.json も宣言する (#1229)。test_agent_definitions は、両プラグインの agents と skills/*/SKILL.md を読む。読むのは frontmatter（disallowedTools・argument-hint・when_to_use）で、これらも宣言する (#1231)。hooks scope は cli-node の vitest（project hooks）も実行する。読むのは cli-node/tests/hooks/ のテストと、vitest.config.ts、baseline.json、baseline.ts で、これらを宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
@@ -189,7 +189,7 @@
       ],
       "dependsOn": ["install"],
       "metadata": {
-        "description": "cli-node の tsc / eslint / knip。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で 1 push に 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli-node の tsc / eslint / knip。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-lint.sh --scope=cli",

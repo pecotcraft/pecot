@@ -121,9 +121,6 @@ exit 0
 STUB_GH
 chmod +x "$TMP/bin/npm" "$TMP/bin/gh"
 
-# ブランドの語の一覧は合成値で渡す。
-printf '# synthetic terms\nzz-synthetic-brand-term\n' > "$TMP/brand-terms.txt"
-export PECOT_BRAND_TERMS_FILE="$TMP/brand-terms.txt"
 export NPM_STUB_LOG="$TMP/npm-calls.log"
 export GH_STUB_LOG="$TMP/gh-calls.log"
 : > "$GH_STUB_LOG"

@@ -33,7 +33,7 @@
       "cache": false,
       "dependsOn": ["install"],
       "metadata": {
-        "description": "パッケージマネージャガード (#806) を確認する。test のレーンだけが dependsOn で参照し、1 push で 1 回にまとまる。挙動の確認（隔離 install）は 6 秒前後かかる。そのため、commit ごとに実行する lint のレーンには載せない。lint のレーンは従来から、この確認をしていない。cache: false は install と同じ理由で、ガードの回帰を見逃さないためとなる。"
+        "description": "パッケージマネージャガード (#806) を確認する。test のレーンだけが dependsOn で参照し、1 回の実行で 1 回にまとまる。挙動の確認（隔離 install）は 6 秒前後かかる。そのため、commit ごとに実行する lint のレーンには載せない。lint のレーンは従来から、この確認をしていない。cache: false は install と同じ理由で、ガードの回帰を見逃さないためとなる。"
       },
       "options": {
         "command": "bash scripts/ci/check-pm-guard.sh",
@@ -93,7 +93,7 @@
         "test-skills"
       ],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する、テスト全体の起点となる target。各レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する、テスト全体の起点となる target。各レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
     },
     "test-cli": {
@@ -127,7 +127,7 @@
         "build-cli"
       ],
       "metadata": {
-        "description": "cli の build / test / test:e2e。install と cli/dist の build は、dependsOn 経由で 1 push につき 1 回だけ実行する (#1080)。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 21 秒）は test-bootstrap に分けた。cli/src だけを変えた push では実行しない (#1235)。cli/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。bin/pecotv、plugin.json、.mcp.json は、E2E が起動する実体になる。assets は、drawio の E2E が読むアイコンと証明書になる。skills の references は drawio の E2E が読む。pecot-tools の 3 ファイルと drift の確認は、node-runtime の同期テストが読む。assets/slidev から inputs に入れるのは 3 つだけとする。deck-lint.config.js、deck-lint.env.config.js、scripts/eslint/**（テスト以外）。slide lint 系のテスト（slide-lint.test.ts と mcp-tools.test.ts の slide_lint）が、子プロセスで起動するファイルを指す。eslint plugin の dist は build-slidev が作るので、dependsOn へ載せる。これでソースを変えた push では、古い dist の成功が残らない。実行時依存の manifest は assets/slidev/runtime/package.json にある。runtime-install.test.ts と runtime-peers.test.ts が読む。pecotvPluginTestGlobals の **/package.json が拾うので、個別には入れない。上の 3 つ以外の assets/slidev（lint の補助スクリプトとそのテスト等）は、E2E が読まないので入れない。入れると、それらを変えるたびに本レーンが実行される（.claude/rules/nx-inputs.md）。"
+        "description": "cli の build / test / test:e2e。install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 21 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。cli/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。bin/pecotv、plugin.json、.mcp.json は、E2E が起動する実体になる。assets は、drawio の E2E が読むアイコンと証明書になる。skills の references は drawio の E2E が読む。pecot-tools の 3 ファイルと drift の確認は、node-runtime の同期テストが読む。assets/slidev から inputs に入れるのは 3 つだけとする。deck-lint.config.js、deck-lint.env.config.js、scripts/eslint/**（テスト以外）。slide lint 系のテスト（slide-lint.test.ts と mcp-tools.test.ts の slide_lint）が、子プロセスで起動するファイルを指す。eslint plugin の dist は build-slidev が作るので、dependsOn へ載せる。これでソースを変えた変更では、古い dist の成功が残らない。実行時依存の manifest は assets/slidev/runtime/package.json にある。runtime-install.test.ts と runtime-peers.test.ts が読む。pecotvPluginTestGlobals の **/package.json が拾うので、個別には入れない。上の 3 つ以外の assets/slidev（lint の補助スクリプトとそのテスト等）は、E2E が読まないので入れない。入れると、それらを変えるたびに本レーンが実行される（.claude/rules/nx-inputs.md）。"
       },
       "options": {
         "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
@@ -157,7 +157,7 @@
       ],
       "dependsOn": ["install", "check-pm-guard", "chromium-preflight"],
       "metadata": {
-        "description": "bin/pecotv の bootstrap と登録ファイルの bash テスト。対象は次の 7 本。host-deps-marker、install-record、data-dir、mirror-real-pnpm、manifest、lib-consistency、text-rules-link。約 21 秒かかる。test-cli から切り出し、cli/src だけを変えた push では実行しない (#1235)。重い CUJ 一式の run.sh は従来どおり手動で実行し、本レーンには含めない。pnpm は stub を使うか、ミラーを実 build する mirror-real-pnpm.sh の実 pnpm を使う。本体の cli/dist は使わない。そのため build-cli には依存しない。chromium-preflight には依存する。mirror-real-pnpm.sh の bin/pecotv --version が、MCP 以外の起動で Chromium の取得と host-deps を試みることがある。install と check-pm-guard は、dependsOn 経由で 1 push につき 1 回だけ実行する。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecotv の bootstrap と登録ファイルの bash テスト。対象は次の 7 本。host-deps-marker、install-record、data-dir、mirror-real-pnpm、manifest、lib-consistency、text-rules-link。約 21 秒かかる。test-cli から切り出し、cli/src だけを変えた変更では実行しない (#1235)。重い CUJ 一式の run.sh は従来どおり手動で実行し、本レーンには含めない。pnpm は stub を使うか、ミラーを実 build する mirror-real-pnpm.sh の実 pnpm を使う。本体の cli/dist は使わない。そのため build-cli には依存しない。chromium-preflight には依存する。mirror-real-pnpm.sh の bin/pecotv --version が、MCP 以外の起動で Chromium の取得と host-deps を試みることがある。install と check-pm-guard は、dependsOn 経由で実行ごとに 1 回だけ実行する。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
@@ -223,7 +223,7 @@
       ],
       "dependsOn": ["install", "check-pm-guard", "build-cli"],
       "metadata": {
-        "description": "依存更新の前後比較スクリプト (#1073) の検証。ページ画像を画素で比べる page-compare (#1341) の検証も同じレーンで実行する。pptx-compare の被テストスクリプトは cli/dist の archive・xml-engine・preview-normalize を import する。fixture の合成にも同じ writer を使う。そのため cliProduction を inputs に入れる。入れないと cli/src の変更でキャッシュがヒットし、古い cli/dist に対する判定のまま緑になる。compare-cx-measure のテストは、scripts/pptx-compare/tests/fixtures の汎用の config.yml を読む。install と cli/dist の build は、dependsOn 経由で 1 push につき 1 回だけ実行する。レーン内で cli を再 build すると、prebuild の dist 削除が並行する test-cli の E2E から CLI を奪う。この現象は #1084 で、実 push の間欠的な失敗として観測した。"
+        "description": "依存更新の前後比較スクリプト (#1073) の検証。ページ画像を画素で比べる page-compare (#1341) の検証も同じレーンで実行する。pptx-compare の被テストスクリプトは cli/dist の archive・xml-engine・preview-normalize を import する。fixture の合成にも同じ writer を使う。そのため cliProduction を inputs に入れる。入れないと cli/src の変更でキャッシュがヒットし、古い cli/dist に対する判定のまま緑になる。compare-cx-measure のテストは、scripts/pptx-compare/tests/fixtures の汎用の config.yml を読む。install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する。レーン内で cli を再 build すると、prebuild の dist 削除が並行する test-cli の E2E から CLI を奪う。この現象は #1084 で、実際の実行での間欠的な失敗として観測した。"
       },
       "options": {
         "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=compare",

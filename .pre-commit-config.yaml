@@ -101,7 +101,7 @@ repos:
         language: unsupported_script
         pass_filenames: false
         always_run: true
-        # ガード失敗が確定した時点で後続の nx affected tests（数分）を始めない
+        # ガード失敗が確定した時点で後続の pre-push の hook を始めない
         fail_fast: true
         stages: [pre-push]
 
@@ -111,8 +111,8 @@ repos:
         language: unsupported_script
         pass_filenames: false
         files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
-        # manual は CI（run-pr-checks.sh）用。pre-push は #66 で外す。
-        stages: [pre-push, manual]
+        # --from-ref/--to-ref の差分に当てる。削除だけの差分では動かない。
+        stages: [manual]
 
       - id: nx-env-inputs
         name: nx env inputs declared
@@ -127,18 +127,6 @@ repos:
         files: ^(nx\.json$|(plugins|libs)/.*\.(sh|ts|tsx|mts|cts|mjs|cjs|js|py)$|(plugins|libs)/([^/]+/)*package\.json$|plugins/[^/]+/bin/)
         stages: [pre-push]
 
-      # ブランドの語の一覧は本体の外にある。PECOT_BRAND_TERMS_FILE が無ければ飛ばしたことを表示して通す。
-      # 成功時も一致 0 件の表示を端末へ出すため verbose にする
-      - id: check-brand-terms
-        name: brand terms (push range)
-        entry: .githooks/lib/with-timing.sh check-brand-terms .githooks/pre-commit/check-brand-terms.sh
-        language: unsupported_script
-        pass_filenames: false
-        always_run: true
-        verbose: true
-        fail_fast: true
-        stages: [pre-push]
-
       - id: nx-affected-tests
         name: nx affected tests
         entry: .githooks/lib/with-timing.sh nx-affected-tests .githooks/ci/run-affected-tests.sh
@@ -148,8 +136,7 @@ repos:
         # 成功 push でも合計と最長レーンの 1 行を端末へ出すため（pre-commit は
         # verbose でない hook の成功時出力を捨てる）
         verbose: true
-        # manual は CI（run-pr-checks.sh）用。pre-push は #66 で外す。
-        stages: [pre-push, manual]
+        stages: [manual]
 
       - id: check-runtime-lock
         name: runtime-lock.yaml matches root pnpm-lock.yaml

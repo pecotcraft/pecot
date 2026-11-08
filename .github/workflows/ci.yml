@@ -96,7 +96,7 @@ jobs:
         with:
           name: ci-logs-${{ matrix.part }}
           path: |
-            .pecot/tmp/pre-push/
+            .pecot/tmp/nx-affected-tests/
             .pecot/tmp/githooks-timing.tsv
             .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore
@@ -215,7 +215,7 @@ jobs:
         with:
           name: ci-logs-tests-${{ matrix.slug }}
           path: |
-            .pecot/tmp/pre-push/
+            .pecot/tmp/nx-affected-tests/
             .pecot/tmp/githooks-timing.tsv
             .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore

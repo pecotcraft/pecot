@@ -36,7 +36,7 @@
       "cache": false,
       "dependsOn": ["test-cli", "test-bootstrap", "test-release"],
       "metadata": {
-        "description": "pre-push の nx-affected-tests が起動する起点の target。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
+        "description": "CI と manual の stage の nx-affected-tests が起動する起点の target。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
     },
     "test-cli": {
@@ -50,7 +50,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "install と cli/dist の build は、dependsOn 経由で 1 push に 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 25 秒）は test-bootstrap に分けた。cli/src だけを変えた push では実行しない (#1235)。plugin.json、.mcp.json、bin/ などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
+        "description": "install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 25 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。plugin.json、.mcp.json、bin/ などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
       },
       "options": {
         "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
@@ -68,7 +68,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "bin/pecot-tools の bootstrap と登録ファイルの bash テスト（run.sh、install-record、data-dir、manifest。約 25 秒）。test-cli から切り出した。cli/src だけを変えた push では実行しない (#1235)。登録ファイルと wrapper は pecotToolsPluginTestGlobals が引く。対象は bin/pecot-tools、bin/_lib.sh、setup.sh、.mcp.json、mcp.json、plugin.json の 2 本。本レーン固有の入力は、cli/tests/bootstrap/ のスクリプトと、cli/tsconfig.json、cli/tsconfig.build.json。後の 2 つは、ミラーへ複製され、run.sh の CUJ 4 の実 build が使う。cli/src は入れない。ミラーの build が使う cli/src の型の確認は、build-cli が担う。build-cli を dependsOn に置くのは、run.sh の CUJ 2 が、本体の cli/dist/cli.js を書き換えていないことを mtime で確かめるため。build-cli が並行して動くと、dist の再生成を本体への書き込みと誤判定する。dependsOn なら、build-cli が済んでから動く。cli/src が変わらなければ、build-cli はキャッシュから戻る。install は dependsOn 経由で 1 push に 1 回だけ実行し、run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecot-tools の bootstrap と登録ファイルの bash テスト（run.sh、install-record、data-dir、manifest。約 25 秒）。test-cli から切り出した。cli/src だけを変えた変更では実行しない (#1235)。登録ファイルと wrapper は pecotToolsPluginTestGlobals が引く。対象は bin/pecot-tools、bin/_lib.sh、setup.sh、.mcp.json、mcp.json、plugin.json の 2 本。本レーン固有の入力は、cli/tests/bootstrap/ のスクリプトと、cli/tsconfig.json、cli/tsconfig.build.json。後の 2 つは、ミラーへ複製され、run.sh の CUJ 4 の実 build が使う。cli/src は入れない。ミラーの build が使う cli/src の型の確認は、build-cli が担う。build-cli を dependsOn に置くのは、run.sh の CUJ 2 が、本体の cli/dist/cli.js を書き換えていないことを mtime で確かめるため。build-cli が並行して動くと、dist の再生成を本体への書き込みと誤判定する。dependsOn なら、build-cli が済んでから動く。cli/src が変わらなければ、build-cli はキャッシュから戻る。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
