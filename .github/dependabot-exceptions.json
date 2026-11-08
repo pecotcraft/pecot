@@ -1,3 +1,16 @@
 {
-  "exceptions": []
+  "exceptions": [
+    {
+      "alert": 14,
+      "package": "glob",
+      "reason": "修正版 14.0.2 は親の宣言範囲の外で、c8 12 → test-exclude 8.0.0 も textlint 15.8.0 も glob ^13.0.6 を宣言する。欠陥は、AbortSignal で中断した後も走査が続くこと。test-exclude（glob 10.5.0）は pecot-visual の利用環境に入るが、動くのは test:coverage だけ。text-rules は @textlint/kernel の lintText を直接呼ぶ。textlint（glob 13.0.6）は plugin-comments の peer を満たすためだけに入り、読み込まれないので、glob でファイルを探す処理を通らない",
+      "reevaluate": "c8（test-exclude）と textlint が glob 14 以上を宣言した版を出したら上げる。root の Dependabot の更新 PR で届く"
+    },
+    {
+      "alert": 15,
+      "package": "minimatch",
+      "reason": "修正版 11.0.1 では makeRe() が削除された。nx（10.2.5 固定）は release で makeRe() を使う。eslint・@eslint/config-array・typescript-estree・test-exclude・glob は ^10 以下を宣言する。欠陥が発動するのは optimizationLevel が 2 以上の場合だけ。eslint・@eslint/config-array・typescript-estree・nx は既定の 1 で使い、条件に当たらない。nx は利用環境に入らない。2 を指定するのは glob だけで、glob を呼ぶのは test-exclude（test:coverage だけ）。textlint は glob を呼ばない",
+      "reevaluate": "親（nx・eslint・@eslint/config-array・typescript-estree・test-exclude・glob）が minimatch 11 以上を宣言したら上げる。root の Dependabot の更新 PR で届く"
+    }
+  ]
 }
