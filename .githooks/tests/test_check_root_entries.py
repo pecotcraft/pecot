@@ -1,7 +1,7 @@
 """check-root-entries.sh のユニットテスト (#126)。
 
-追跡しているファイルの先頭の名前を許可の一覧と比べ、一覧に無い名前があれば exit 1 で止める。
-一覧は hook の ALLOWED と .claude/rules/repo-root-layout.md の表で同じにする。
+追跡しているファイルの先頭のディレクトリのうち、. で始まらないものを許可の一覧と比べる。
+一覧に無いディレクトリがあれば exit 1 で止める。一覧は hook の ALLOWED とルールファイルの表で同じにする。
 """
 
 from __future__ import annotations
@@ -31,6 +31,21 @@ def test_allowed_names_only_pass(script_dir: Path, git_repo, git, run_script) ->
     assert result.returncode == 0, result.stderr
 
 
+def test_dot_dirs_and_root_files_are_not_restricted(
+    script_dir: Path, git_repo, git, run_script
+) -> None:
+    repo = git_repo()
+    for name in ("setup.sh", "NEW-ROOT-FILE.md"):
+        (repo / name).write_text("x")
+    (repo / ".newtool").mkdir()
+    (repo / ".newtool" / "config").write_text("x")
+    git(repo, "add", "-A")
+
+    result = run_script(script_dir / "check-root-entries.sh", cwd=repo)
+
+    assert result.returncode == 0, result.stderr
+
+
 def test_unlisted_root_dir_blocks_with_name_and_guidance(
     script_dir: Path, git_repo, git, run_script
 ) -> None:
@@ -43,8 +58,9 @@ def test_unlisted_root_dir_blocks_with_name_and_guidance(
     result = run_script(script_dir / "check-root-entries.sh", cwd=repo)
 
     assert result.returncode == 1
-    assert "  - scripts" in result.stderr
-    assert "README.md" not in result.stderr.split("置き場所")[0]
+    assert "  - scripts/" in result.stderr
+    assert "README.md" not in result.stderr
+    assert "ユーザーの明示の同意" in result.stderr
     assert _RULE in result.stderr
     assert ".githooks/scripts/" in result.stderr
 
