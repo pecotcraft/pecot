@@ -1,5 +1,5 @@
 {
-  "description": "pecot-visual plugin hooks for GitHub Copilot CLI — v-slidev 生成プレゼンで MD/YAML 編集時に lint を自動実行。pecotv 利用検知時に .pecotv を初期化し README/CHANGELOG を同期。SessionStart で既存リポの .gitignore 鮮度を維持",
+  "description": "pecot-visual plugin hooks for GitHub Copilot CLI — v-slidev 生成プレゼンで MD/YAML 編集時に lint を自動実行。pecotv 利用検知時に .pecotv を初期化し README/CHANGELOG を同期。SessionStart で既存リポの .pecotv/.gitignore の追跡を案内",
   "hooks": {
     "SessionStart": [
       {
