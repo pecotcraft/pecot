@@ -57,7 +57,7 @@
         "description": "#133 の E2E の仮のレーン。revert する。"
       },
       "options": {
-        "command": "echo ok"
+        "command": "test -z \"$CI\""
       }
     }
   }
