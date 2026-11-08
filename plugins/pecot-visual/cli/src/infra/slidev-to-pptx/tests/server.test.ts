@@ -172,15 +172,14 @@ describe('startServer', () => {
     expect(r.status).toBe(404)
   })
 
-  it('dist 自身を指す要求 (`/.`) には、index.html を返さず 404 を返す', async () => {
+  it('dist 自身に正規化される要求 (`/.`・`//`) は 404 を返す', async () => {
     server = await startServer(distDir, 0)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
-    for (const rawPath of ['/.', '/./']) {
+    for (const rawPath of ['/.', '/./', '//']) {
       const r = await requestRawPath(address.port, rawPath)
       expect(r.status).toBe(404)
-      expect(r.text).not.toContain('index')
-      expect(r.text).not.toContain('<html>')
+      expect(r.text).toBe('Not found')
     }
   })
 
