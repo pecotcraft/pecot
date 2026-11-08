@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse, parseAllDocuments, stringify } from 'yaml';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 // vendor は、利用者側のミラーで libs/text-rules を指す symlink の置き場所。
 const TARGETS = [
@@ -284,7 +284,7 @@ function check() {
   const errors = TARGETS.flatMap((target) => checkTarget(root, target));
   if (errors.length === 0) return;
   console.error(errors.join('\n'));
-  console.error('node scripts/gen-runtime-lock.mjs --write で作り直してください。');
+  console.error('node .githooks/scripts/gen-runtime-lock.mjs --write で作り直してください。');
   process.exit(1);
 }
 

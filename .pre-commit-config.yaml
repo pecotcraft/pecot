@@ -102,7 +102,7 @@ repos:
         entry: .githooks/lib/with-timing.sh githooks-tests .githooks/tests/run.sh
         language: unsupported_script
         pass_filenames: false
-        files: ^(\.githooks/|scripts/gen-runtime-lock\.mjs$|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
+        files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
         # manual は CI（run-pr-checks.sh）用。pre-push は #66 で外す。
         stages: [pre-push, manual]
 
@@ -145,10 +145,10 @@ repos:
 
       - id: check-runtime-lock
         name: runtime-lock.yaml matches root pnpm-lock.yaml
-        entry: node scripts/gen-runtime-lock.mjs --check
+        entry: node .githooks/scripts/gen-runtime-lock.mjs --check
         language: unsupported
         pass_filenames: false
-        files: (^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|runtime-(lock|workspace)\.yaml)$|^scripts/gen-runtime-lock\.mjs$
+        files: (^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|runtime-(lock|workspace)\.yaml)$|^\.githooks/scripts/gen-runtime-lock\.mjs$
         stages: [pre-commit]
 
       - id: nx-affected-lint

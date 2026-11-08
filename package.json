@@ -25,7 +25,7 @@
           "description": "リポジトリ全体の依存導入を、1 回の nx 実行につき 1 回だけ行う。各 project の install が dependsOn で参照する。nx の task graph は同一の project:target を 1 タスクへ dedupe するので、実行するレーンが何本あっても 1 回にまとまる。cache: false は明示的な宣言。install は node_modules への副作用で outputs を宣言できず、cache 対象にできない。"
         },
         "options": {
-          "command": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 scripts/run-pnpm.sh install --frozen-lockfile"
+          "command": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 .githooks/scripts/run-pnpm.sh install --frozen-lockfile"
         }
       }
     }

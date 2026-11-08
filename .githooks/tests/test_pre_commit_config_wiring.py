@@ -160,7 +160,8 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
         "package.json",
         "libs/text-rules/package.json",
         "libs/text-rules/project.json",
-        "scripts/gen-runtime-lock.mjs",
+        ".githooks/scripts/gen-runtime-lock.mjs",
+        ".githooks/scripts/run-pnpm.sh",
     ],
 )
 def test_githooks_tests_runs_when_their_inputs_change(script_dir: Path, changed_path: str) -> None:
@@ -201,7 +202,7 @@ def test_githooks_tests_skips_unrelated_paths(script_dir: Path, changed_path: st
         "plugins/pecot-tools/cli/package.json",
         "plugins/pecot-visual/runtime-lock.yaml",
         "libs/text-rules/runtime-workspace.yaml",
-        "scripts/gen-runtime-lock.mjs",
+        ".githooks/scripts/gen-runtime-lock.mjs",
     ],
 )
 def test_check_runtime_lock_runs_when_its_inputs_change(

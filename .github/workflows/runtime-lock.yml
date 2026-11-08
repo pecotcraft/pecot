@@ -40,7 +40,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Regenerate runtime lock
-        run: node scripts/gen-runtime-lock.mjs --write
+        run: node .githooks/scripts/gen-runtime-lock.mjs --write
 
       - name: Push regenerated lock
         env:
