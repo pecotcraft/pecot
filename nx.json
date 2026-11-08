@@ -155,7 +155,7 @@
     "build-*": {
       "cache": false,
       "metadata": {
-        "description": "cache: false は明示的な宣言 (#1225)。#133 の E2E の一時の変更。build は 0.2〜0.8 秒で、devcontainer では daemon が無くヒットしても毎回 dist を削除して復元するため時間は変わらない。test は dependsOn の build を毎回実行しても、build の入力ハッシュが同じなら再利用される（計測で確認済み）。キャッシュすると、outputs の宣言を忘れたときに古い結果を誤って使う機会が増えるだけになる。"
+        "description": "cache: false は明示的な宣言 (#1225)。build は 0.2〜0.8 秒で、devcontainer では daemon が無くヒットしても毎回 dist を削除して復元するため時間は変わらない。test は dependsOn の build を毎回実行しても、build の入力ハッシュが同じなら再利用される（計測で確認済み）。キャッシュすると、outputs の宣言を忘れたときに古い結果を誤って使う機会が増えるだけになる。"
       }
     },
     "nx:noop": {
