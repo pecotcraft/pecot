@@ -2,11 +2,17 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": "nx-release",
   "projectType": "library",
-  "tags": ["type:release", "scope:repo"],
+  "tags": [
+    "type:release",
+    "scope:repo"
+  ],
   "targets": {
     "test": {
       "executor": "nx:noop",
-      "dependsOn": ["test-unit"],
+      "dependsOn": [
+        "test-unit",
+        "test-canary"
+      ],
       "metadata": {
         "description": "pre-push の nx-affected-tests が起動する起点。プラグインの project と同じく、レーン（test-*）を dependsOn で束ねる。"
       }
@@ -17,8 +23,12 @@
         "default",
         "runtime",
         "env",
-        { "runtime": "node -p \"require('nx/package.json').version\"" },
-        { "runtime": "node -p \"require('undici/package.json').version\"" },
+        {
+          "runtime": "node -p \"require('nx/package.json').version\""
+        },
+        {
+          "runtime": "node -p \"require('undici/package.json').version\""
+        },
         "{workspaceRoot}/package.json",
         "{workspaceRoot}/pnpm-workspace.yaml",
         "{workspaceRoot}/plugins/pecot-workflow/project.json",
@@ -39,6 +49,15 @@
       "options": {
         "command": "node --test tests/*.test.js",
         "cwd": ".nx/nx-release"
+      }
+    },
+    "test-canary": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "#133 の E2E の仮のレーン。revert する。"
+      },
+      "options": {
+        "command": "echo ok"
       }
     }
   }
