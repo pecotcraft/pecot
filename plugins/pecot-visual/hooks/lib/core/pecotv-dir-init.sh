@@ -31,9 +31,8 @@ if [[ -f "$_VFILE" && "$_VFILE" -nt "$_PJSON" ]]; then
     exit 0
 fi
 
-# .gitignore を最初に更新する（コピーより前）。
-# 既存リポの .gitignore が旧内容（README/CHANGELOG を含まない）の場合に、
-# コピー後・gitignore 更新前の失敗で untracked 汚染が残るのを防ぐ。
+# .gitignore を最初に書く（コピーより前）。ファイルが無いか追跡していないときだけ書く。
+# コピー後・gitignore 作成前の失敗で untracked 汚染が残るのを防ぐ。
 "${SCRIPT_DIR}/pecotv-gitignore-ensure.sh"
 
 # README.md を毎回同期

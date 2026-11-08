@@ -28,10 +28,12 @@ trap 'rm -rf "$TMP"' EXIT
 # リークとは、pre-push フックや GIT_DIR export 下で、一時リポへ向けたつもりの操作が親リポへ向くことを指す。
 # config 書き込み等で、実リポを汚染する。
 # 隔離のやり方は、pecotv-dir-init.test.sh の _git と同じ。
+# フックの起動も同じ隔離を通す。フックは内部で git ls-files を打ち、親リポの GIT_DIR が漏れると
+# このリポが追跡する .pecotv/.gitignore を、一時ディレクトリも追跡中と誤判定するためだ。
+_GIT_ISOLATE=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+    -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES)
 _git() {
-    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
-        -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
-        git "$@"
+    "${_GIT_ISOLATE[@]}" git "$@"
 }
 
 # --- UserPromptSubmit ---
@@ -40,7 +42,7 @@ _git() {
 PROJ="$TMP/p1"
 mkdir -p "$PROJ"
 echo '{"prompt": "/pecot-v:v-drawio"}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
 if [ -d "$PROJ/.pecotv/work" ]; then
     pass "user-prompt-submit: /pecot-v: プロンプトで init が呼ばれる"
 else
@@ -51,7 +53,7 @@ fi
 PROJ="$TMP/p2"
 mkdir -p "$PROJ"
 echo '{"prompt": "今日の天気は"}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
 if [ ! -d "$PROJ/.pecotv" ]; then
     pass "user-prompt-submit: 通常プロンプトでは init が呼ばれない"
 else
@@ -62,7 +64,7 @@ fi
 PROJ="$TMP/p3"
 mkdir -p "$PROJ"
 echo '{"prompt": "説明: `/pecot-v:v-drawio`"}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
 if [ ! -d "$PROJ/.pecotv" ]; then
     pass "user-prompt-submit: 行頭でない /pecot-v: は誤反応しない"
 else
@@ -73,7 +75,7 @@ fi
 PROJ="$TMP/p4"
 mkdir -p "$PROJ"
 echo '{"prompt": "/pecot-w:w-help"}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$UPS_SCRIPT" >/dev/null 2>&1
 if [ ! -d "$PROJ/.pecotv" ]; then
     pass "user-prompt-submit: /pecot-w: は pecotv 側ではスルー"
 else
@@ -86,7 +88,7 @@ fi
 PROJ="$TMP/p5"
 mkdir -p "$PROJ"
 echo '{"tool_input": {"skill": "pecot-v:v-drawio"}}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" >/dev/null 2>&1
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" >/dev/null 2>&1
 if [ -d "$PROJ/.pecotv/work" ]; then
     pass "pre-tool-use-skill: pecot-v: スキルで init が呼ばれる"
 else
@@ -97,7 +99,7 @@ fi
 PROJ="$TMP/p6"
 mkdir -p "$PROJ"
 echo '{"tool_input": {"skill": "pecot-w:w-help"}}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" >/dev/null 2>&1
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" >/dev/null 2>&1
 if [ ! -d "$PROJ/.pecotv" ]; then
     pass "pre-tool-use-skill: pecot-w: スキルは pecotv 側ではスルー"
 else
@@ -106,7 +108,7 @@ fi
 
 # ケース7: 非 pecotv スキルでは stdout が空
 OUT=$(echo '{"tool_input": {"skill": "claude-code-guide"}}' | \
-    CLAUDE_PROJECT_DIR="$TMP/p7" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" 2>/dev/null)
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$TMP/p7" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" 2>/dev/null)
 if [ -z "$OUT" ]; then
     pass "pre-tool-use-skill: 非 pecotv スキルで stdout 空"
 else
@@ -117,7 +119,7 @@ fi
 PROJ="$TMP/p8"
 mkdir -p "$PROJ"
 OUT=$(echo '{"tool_input": {"skill": "pecot-v:v-drawio"}}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" 2>/dev/null)
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" 2>/dev/null)
 if [ -z "$OUT" ] && [ -d "$PROJ/.pecotv/work" ]; then
     pass "pre-tool-use-skill: pecot-v: ヒット時も stdout は空（init は副作用のみ）"
 else
@@ -131,7 +133,7 @@ fi
 PROJ="$TMP/p8b"
 mkdir -p "$PROJ"
 OUT=$(echo '{"tool_name": "skill", "tool_input": {"skill": "v-drawio"}}' | \
-    CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" 2>/dev/null)
+    "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" 2>/dev/null)
 if [ -z "$OUT" ] && [ -d "$PROJ/.pecotv/work" ]; then
     pass "pre-tool-use-skill: 名前空間なしの自プラグインのスキル（Copilot）で init が呼ばれる"
 else
@@ -144,7 +146,7 @@ for SKILL in "w-help" "v-no-such-skill" "../hooks" ""; do
     rm -rf "$PROJ"
     mkdir -p "$PROJ"
     printf '{"tool_name": "skill", "tool_input": {"skill": "%s"}}' "$SKILL" | \
-        CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" >/dev/null 2>&1
+        "${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" bash "$PTUS_SCRIPT" >/dev/null 2>&1
     if [ ! -d "$PROJ/.pecotv" ]; then
         pass "pre-tool-use-skill: 自プラグインのスキルでない名前 '$SKILL' はスルー"
     else
@@ -152,13 +154,13 @@ for SKILL in "w-help" "v-no-such-skill" "../hooks" ""; do
     fi
 done
 
-# ケース9: SessionStart は存在し session-start.sh（既存リポの .gitignore 鮮度維持のみ）を指す（#676）。
+# ケース9: SessionStart は存在し session-start.sh（既存リポの .pecotv/.gitignore の追跡を案内するのみ）を指す（#676）。
 # 「.pecotv の新規作成をしない」という #662 の本質は session-start.test.sh のケース1 で保護する。
 HOOKS_JSON="$PLUGIN_ROOT/hooks/hooks.json"
 if jq -e '[.hooks.SessionStart[].hooks[].command] | any(test("session-start\\.sh$"))' "$HOOKS_JSON" >/dev/null 2>&1; then
-    pass "hooks.json: SessionStart が session-start.sh を指す（既存リポ鮮度維持 #676）"
+    pass "hooks.json: SessionStart が session-start.sh を指す（既存リポの追跡案内 #676）"
 else
-    fail "hooks.json: SessionStart が未配線（既存リポの .gitignore 鮮度維持が働かない）"
+    fail "hooks.json: SessionStart が未配線（既存リポの .pecotv/.gitignore の追跡案内が働かない）"
 fi
 
 # ケース9b: Copilot の hooks も、hooks.json と同じ hook 構成を持つ（Copilot CLI パリティ #662/#676）。
@@ -199,7 +201,7 @@ fi
 PROJ="$TMP/p10-gitrepo"
 mkdir -p "$PROJ"
 ( cd "$PROJ" && _git init -q && _git config user.email t@t && _git config user.name t )
-CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
     bash "$PLUGIN_ROOT/hooks/lib/core/pecotv-dir-init.sh"
 mkdir -p "$PROJ/.pecotv/work/drawio"
 touch "$PROJ/.pecotv/work/drawio/dummy.drawio"

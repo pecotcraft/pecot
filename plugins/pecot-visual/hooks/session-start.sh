@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SessionStart hook: .pecotv が既に存在するリポに限り、.gitignore を再生成する。
-# 再生成の元は、単一の出所（pecotv-gitignore-ensure.sh）とする。内容の鮮度を維持する。
+# SessionStart hook: .pecotv が既に存在するリポに限り、.gitignore を書く。
+# 書く元は、単一の出所（pecotv-gitignore-ensure.sh）とする。ファイルが無いか追跡していないときだけ書き、追跡しているファイルは書き換えない。
 # .pecotv/ の新規作成は利用検知側（pecotv-dir-init.sh）に一本化されており、ここでは行わない。
 # （#662 / #676。pecot の session-start-common.sh と対称。）
 #
@@ -77,24 +77,15 @@ _emit_session_start() {
 }
 trap _emit_session_start EXIT
 
-# tracked 検知 + untrack 案内。必ず gitignore-ensure の後に置く。
+# 追跡の案内。必ず gitignore-ensure の後に置く。
 # ブランチ跨ぎの直後は、.gitignore の実体が一時的に消えることがある。
 # ensure の後なら実体が必ず存在するため、判定が index のみに依存して安定する。
-# gitignore-untrack-notice を false にすると、この案内ブロックごと抑止される（pecot 側の同名フックと対称）。
+# gitignore-track-notice を false にすると、この案内ごと抑止される（pecot 側の同名フックと対称）。
 #
+# 案内は子プロセスで呼ぶ。source すると notice の `exit 0` で、後ろの plugin-update-notice が飛ぶため。
+# stdout は一時ファイルへ向けてあるので、案内は JSON の additionalContext にまとまる。
 # 検知は、読み取り（git ls-files）と stdout 出力のみで index を変異させない。
-# untrack はユーザーか AI に委ねる。SessionStart の stdout は、セッションコンテキストに注入される。
-#
-# 相対パス `-- .pecotv/.gitignore` は、`-C "$PROJECT_DIR"` 基準で解決される。
-# .pecotv は常に ${CLAUDE_PROJECT_DIR} 直下に生成される。
-# pecotv-dir-init と gitignore-ensure が、すべて同基準だからだ。
-# そのため、この基準で検知してよい。
-if pecotv_hook_enabled "gitignore-untrack-notice" true \
-    && command -v git >/dev/null 2>&1 \
-    && git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-    && git -C "$PROJECT_DIR" ls-files --error-unmatch -- .pecotv/.gitignore >/dev/null 2>&1; then
-    echo '`.pecotv/.gitignore` はフックが自動再生成するファイルです。untrack してください: `git rm --cached .pecotv/.gitignore`（commit すると以後 git 管理外になります）'
-fi
+"${SCRIPT_DIR}/lib/session-start/gitignore-track-notice.sh" || true
 
 # installed プラグインと marketplace clone のバージョン比較による更新案内。
 # set -euo pipefail 下のため非 0 exit でセッションを落とさないよう `|| true` を付ける。

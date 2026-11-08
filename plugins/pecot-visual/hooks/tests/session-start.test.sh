@@ -1,7 +1,10 @@
 #!/bin/bash
 # session-start.sh の単体テスト。
 # - .pecotv 不在のリポでは何も作らない（新規作成は利用検知側に一本化 #662/#676）
-# - .pecotv 既存のリポでは、.gitignore が元の内容（pecotv-gitignore-ensure.sh）へ再生成される。
+# - .pecotv 既存のリポでは、追跡していない .gitignore を定義へ書き直す。
+#   定義の出所は pecotv-gitignore-ensure.sh --print です。
+# - 追跡している .gitignore は書き換えません。
+# - 追跡していなければ追跡の手順を、追跡していて定義の行が欠ければ直す手順を案内する。
 # - CLAUDE_PROJECT_DIR 末尾スラッシュ付きでも正しく動く
 
 set -u
@@ -50,31 +53,50 @@ else
     fail ".pecotv 不在: exit=$EXIT created=$MSG_DETAIL_1"
 fi
 
-# --- ケース2: .pecotv 既存 + .gitignore 汚染 → 元の内容へ再生成される ---
+# 期待する定義。ensure の --print を単一の出所とする。
+DEFINITION="$(bash "$SCRIPT_DIR/../lib/core/pecotv-gitignore-ensure.sh" --print)"
+
+# --- ケース2: .pecotv 既存 + 追跡していない汚染 → 定義へ書き直される ---
 PROJ2="$TMP/p2"
 mkdir -p "$PROJ2/.pecotv"
 echo "汚染" > "$PROJ2/.pecotv/.gitignore"
 _run_hook CLAUDE_PROJECT_DIR="$PROJ2"
 EXIT=$?
-if [ $EXIT -eq 0 ] && grep -qx "tmp/" "$PROJ2/.pecotv/.gitignore" \
-    && grep -qx "state/" "$PROJ2/.pecotv/.gitignore" \
-    && grep -qx "README.md" "$PROJ2/.pecotv/.gitignore" \
-    && grep -qx "config/hooks-config.json" "$PROJ2/.pecotv/.gitignore" \
-    && grep -qx "/.gitignore" "$PROJ2/.pecotv/.gitignore"; then
-    pass ".pecotv 既存 + .gitignore 汚染: 元の内容へ再生成される"
+if [ $EXIT -eq 0 ] && [ "$(cat "$PROJ2/.pecotv/.gitignore")" = "$DEFINITION" ]; then
+    pass ".pecotv 既存 + 追跡していない汚染: 定義へ書き直される"
 else
     MSG_DETAIL_2="$(cat "$PROJ2/.pecotv/.gitignore" 2>/dev/null)"
     fail ".pecotv 既存 + 汚染: exit=$EXIT content='$MSG_DETAIL_2'"
 fi
 
-# --- ケース3: 非 git ディレクトリ（.pecotv 既存 + .gitignore 不在）→ 生成され、案内は出ない ---
+# --- ケース2b: 追跡している .gitignore は書き換えられない ---
+PROJ2B="$TMP/p2b"
+mkdir -p "$PROJ2B/.pecotv"
+_git -C "$PROJ2B" init -q
+_git -C "$PROJ2B" config user.email t@t
+_git -C "$PROJ2B" config user.name t
+printf '*\n# local\n' > "$PROJ2B/.pecotv/.gitignore"
+_git -C "$PROJ2B" add -f .pecotv/.gitignore
+_git -C "$PROJ2B" commit -q -m "track gitignore"
+_run_hook CLAUDE_PROJECT_DIR="$PROJ2B" >/dev/null
+EXIT=$?
+if [ $EXIT -eq 0 ] && [ "$(cat "$PROJ2B/.pecotv/.gitignore")" = "$(printf '*\n# local')" ] \
+    && _git -C "$PROJ2B" diff --quiet; then
+    pass "追跡している .gitignore: 書き換えられない（diff なし）"
+else
+    DETAIL_2B="$(cat "$PROJ2B/.pecotv/.gitignore")"
+    fail "追跡している .gitignore: exit=$EXIT content='$DETAIL_2B'"
+fi
+
+# --- ケース3: 非 git で .gitignore が無ければ書かれ、案内は出ない ---
+# 親ディレクトリの git を拾わないよう GIT_CEILING_DIRECTORIES を付ける。
 PROJ3="$TMP/p3"
 mkdir -p "$PROJ3/.pecotv"
-OUT3=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ3")
+OUT3=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ3" GIT_CEILING_DIRECTORIES="$TMP")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -f "$PROJ3/.pecotv/.gitignore" ] \
-    && ! printf '%s' "$OUT3" | grep -q 'git rm --cached'; then
-    pass "非 git: .gitignore は再生成され、untrack 案内は出ない（exit 0）"
+    && ! printf '%s' "$OUT3" | grep -q 'git add -f .pecotv/.gitignore'; then
+    pass "非 git: .gitignore は書かれ、追跡の案内は出ない（exit 0）"
 else
     MSG_DETAIL_3="$( [ -f "$PROJ3/.pecotv/.gitignore" ] && echo yes || echo no )"
     fail "非 git: exit=$EXIT gitignore=$MSG_DETAIL_3 out='$OUT3'"
@@ -92,13 +114,14 @@ else
     fail "末尾スラッシュ: exit=$EXIT gitignore=$MSG_DETAIL_4"
 fi
 
-# --- ケース5: tracked な実 git リポ → untrack 案内が出る / index は不変 ---
+# --- ケース5: 追跡していて `*` が欠けた実 git リポでは、直す手順が案内される ---
+# index と中身は変わらない。
 PROJ5="$TMP/p5"
 mkdir -p "$PROJ5/.pecotv"
 _git -C "$PROJ5" init -q
 _git -C "$PROJ5" config user.email t@t
 _git -C "$PROJ5" config user.name t
-# 旧内容（self-ignore 行なし）を tracked 状態で commit して再現
+# 旧内容（`*` なし）を追跡状態で commit して再現
 printf 'tmp/\n' > "$PROJ5/.pecotv/.gitignore"
 _git -C "$PROJ5" add -f .pecotv/.gitignore
 _git -C "$PROJ5" commit -q -m "track old gitignore"
@@ -107,12 +130,13 @@ OUT5=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ5")
 EXIT=$?
 LS_AFTER=$(_git -C "$PROJ5" ls-files -- .pecotv/.gitignore)
 if [ $EXIT -eq 0 ] \
-    && printf '%s' "$OUT5" | grep -q 'git rm --cached .pecotv/.gitignore' \
+    && printf '%s' "$OUT5" | grep -q -e '--print' \
+    && ! printf '%s' "$OUT5" | grep -q 'git add -f .pecotv/.gitignore' \
     && [ "$LS_BEFORE" = ".pecotv/.gitignore" ] && [ "$LS_AFTER" = ".pecotv/.gitignore" ] \
-    && grep -qx "/.gitignore" "$PROJ5/.pecotv/.gitignore"; then
-    pass "tracked リポ: untrack 案内が出て index 不変・.gitignore は self-ignore 入りに再生成"
+    && [ "$(cat "$PROJ5/.pecotv/.gitignore")" = "tmp/" ]; then
+    pass "追跡して * が欠けたリポ: 直す手順を案内し、index と中身は不変"
 else
-    fail "tracked リポ: exit=$EXIT out='$OUT5' before='$LS_BEFORE' after='$LS_AFTER'"
+    fail "追跡して * が欠けたリポ: exit=$EXIT out='$OUT5' before='$LS_BEFORE' after='$LS_AFTER'"
 fi
 
 # --- ケース5b: 出力は JSON 1 個 ---
@@ -123,7 +147,7 @@ fi
 # 素のテキストのままだと Copilot ではモデルに届かない。
 if printf '%s' "$OUT5" | jq -e '
         .hookSpecificOutput.hookEventName == "SessionStart"
-        and (.hookSpecificOutput.additionalContext | contains("git rm --cached .pecotv/.gitignore"))
+        and (.hookSpecificOutput.additionalContext | contains("--print"))
         and .additionalContext == .hookSpecificOutput.additionalContext
         and (has("systemMessage") | not)' >/dev/null 2>&1; then
     pass "SessionStart の出力は JSON 1 個（hookSpecificOutput とトップレベルの additionalContext が同じ）"
@@ -131,40 +155,49 @@ else
     fail "SessionStart の JSON 形式: out='$OUT5'"
 fi
 
-# --- ケース6: 案内に従い untrack + commit して再実行 → 無案内 / status clean ---
-_git -C "$PROJ5" rm --cached -q .pecotv/.gitignore
-_git -C "$PROJ5" commit -q -m "untrack gitignore"
-OUT6=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ5")
+# --- ケース6: 追跡していないリポ → 追跡の手順が案内され、従うと案内は消える ---
+PROJ6="$TMP/p6"
+mkdir -p "$PROJ6/.pecotv"
+_git -C "$PROJ6" init -q
+_git -C "$PROJ6" config user.email t@t
+_git -C "$PROJ6" config user.name t
+OUT6A=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ6")
 EXIT=$?
-STATUS6=$(_git -C "$PROJ5" status --porcelain)
 if [ $EXIT -eq 0 ] \
-    && ! printf '%s' "$OUT6" | grep -q 'git rm --cached' \
-    && [ -z "$STATUS6" ]; then
-    pass "untrack 後: 案内は出ず status clean（self-ignore で再生成が dirty にならない）"
+    && printf '%s' "$OUT6A" | grep -q 'git add -f .pecotv/.gitignore' \
+    && [ -z "$(_git -C "$PROJ6" ls-files -- .pecotv/.gitignore)" ]; then
+    pass "追跡していないリポ: git add -f の案内が出て index は不変"
 else
-    fail "untrack 後: exit=$EXIT out='$OUT6' status='$STATUS6'"
+    fail "追跡していないリポ: exit=$EXIT out='$OUT6A'"
+fi
+_git -C "$PROJ6" add -f .pecotv/.gitignore
+_git -C "$PROJ6" commit -q -m "track gitignore"
+OUT6=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ6")
+EXIT=$?
+STATUS6=$(_git -C "$PROJ6" status --porcelain)
+if [ $EXIT -eq 0 ] && [ -z "$OUT6" ] && [ -z "$STATUS6" ]; then
+    pass "追跡後: 案内は出ず status clean"
+else
+    fail "追跡後: exit=$EXIT out='$OUT6' status='$STATUS6'"
 fi
 
-# --- ケース7: tracked リポ + hooks-config で無効化 ---
+# --- ケース7: 未追跡リポ + hooks-config で無効化 ---
 # 期待は、案内なしで exit 0。
-# {"gitignore-untrack-notice": false} を PECOTV_HOOKS_CONFIG_PATH フィクスチャで渡す。
-# すると、tracked でも案内ブロックが抑止される（pecot 側 config-dispatcher.sh と対称）。
+# {"gitignore-track-notice": false} を PECOTV_HOOKS_CONFIG_PATH フィクスチャで渡す。
+# すると、未追跡でも案内が抑止される（pecot 側 config-dispatcher.sh と対称）。
 PROJ7="$TMP/p7"
 mkdir -p "$PROJ7/.pecotv"
 _git -C "$PROJ7" init -q
-_git -C "$PROJ7" config user.email t@t
-_git -C "$PROJ7" config user.name t
-printf 'tmp/\n' > "$PROJ7/.pecotv/.gitignore"
-_git -C "$PROJ7" add -f .pecotv/.gitignore
-_git -C "$PROJ7" commit -q -m "track old gitignore"
 HOOKS_CFG7="$TMP/hooks-config-7.json"
-printf '{"gitignore-untrack-notice": false}\n' > "$HOOKS_CFG7"
+printf '{"gitignore-track-notice": false}\n' > "$HOOKS_CFG7"
 OUT7=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ7" PECOTV_HOOKS_CONFIG_PATH="$HOOKS_CFG7")
 EXIT=$?
-if [ $EXIT -eq 0 ] && ! printf '%s' "$OUT7" | grep -q 'git rm --cached'; then
-    pass "hooks-config 無効化: tracked でも untrack 案内が抑止される（exit 0）"
+OUT7_ON=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ7")
+if [ $EXIT -eq 0 ] && [ -z "$OUT7" ] \
+    && printf '%s' "$OUT7_ON" | grep -q 'git add -f .pecotv/.gitignore'; then
+    pass "hooks-config 無効化: 未追跡でも追跡の案内が抑止される（設定なしなら出る、exit 0）"
 else
-    fail "hooks-config 無効化: exit=$EXIT out='$OUT7'"
+    fail "hooks-config 無効化: exit=$EXIT out='$OUT7' on='$OUT7_ON'"
 fi
 
 # --- ケース8: node-runtime-notice ---
@@ -195,14 +228,12 @@ else
     fail "node-runtime-notice: exit=$EXIT out='$OUT8'"
 fi
 
-# 他ブロックの stdout（tracked 案内）は additionalContext に畳まれ、出力全体が JSON 1 個のまま。
+# 他ブロックの stdout（追跡の案内）は additionalContext に畳まれ、出力全体が JSON 1 個のまま。
 PROJ8B="$TMP/p8b"
 mkdir -p "$PROJ8B/.pecotv"
 _git -C "$PROJ8B" init -q
-echo "x" > "$PROJ8B/.pecotv/.gitignore"
-_git -C "$PROJ8B" add -f .pecotv/.gitignore
 OUT8B=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ8B" PATH="$STUB_BLOCK:$PATH")
-if printf '%s' "$OUT8B" | jq -e '.hookSpecificOutput.additionalContext | contains("git rm --cached") and contains("Node.js 0.0.0")' >/dev/null 2>&1; then
+if printf '%s' "$OUT8B" | jq -e '.hookSpecificOutput.additionalContext | contains("git add -f .pecotv/.gitignore") and contains("Node.js 0.0.0")' >/dev/null 2>&1; then
     pass "node-runtime-notice: 他ブロックの stdout と束ねても JSON 1 個を保つ"
 else
     fail "node-runtime-notice: 束ね out='$OUT8B'"

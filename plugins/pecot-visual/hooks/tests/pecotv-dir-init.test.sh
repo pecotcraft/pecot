@@ -2,7 +2,7 @@
 # pecotv-dir-init.sh の単体テスト。
 # - CLAUDE_PROJECT_DIR が指す場所に .pecotv/{state,work} が作られる
 # - README.md / CHANGELOG.md がプラグイン（PLUGIN_HOOKS で偽装）から同期される
-# - .pecotv/.gitignore が state/ tmp/ README.md CHANGELOG.md を ignore する内容で生成される
+# - .pecotv/.gitignore が全部を除外する許可の一覧（*）で生成される
 # - mtime ガード: 同期マーカーが plugin.json より新しければ skip、plugin.json 更新で再同期
 # - CLAUDE_PROJECT_DIR 未定義時は何もせず exit 0（pecot-dir-init.sh と同じガード仕様）
 # - 移行: 旧 .gitignore（tmp/ のみ）の実 git リポで README/CHANGELOG が untracked に出ない
@@ -31,10 +31,12 @@ trap 'rm -rf "$TMP"' EXIT
 # 一時リポへの git 操作は、GIT_* 環境変数のリークを避けるため、env -u で除去して隔離する。
 # pre-push フック下では、GIT_DIR が親リポを指してリークし、一時リポの操作が親リポへ向く。
 # 隔離のやり方は、pecot 側 pytest conftest の _isolate_git_env 相当。
+# フックの起動も同じ隔離を通す。フックは内部で git ls-files を打ち、親リポの GIT_DIR が漏れると
+# このリポが追跡する .pecotv/.gitignore を、一時ディレクトリも追跡中と誤判定するためだ。
+_GIT_ISOLATE=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
+    -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES)
 _git() {
-    env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
-        -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
-        git "$@"
+    "${_GIT_ISOLATE[@]}" git "$@"
 }
 
 # 偽プラグイン root（同期元）: PLUGIN_HOOKS で pecotv-dir-init.sh に注入する
@@ -47,7 +49,7 @@ echo '{"version": "0.0.1"}' > "$FIXTURE/.claude-plugin/plugin.json"
 # --- ケース1: 初回実行で .pecotv 一式（state/tmp/README/CHANGELOG/.gitignore/マーカー）が作られる ---
 PROJ1="$TMP/proj1"
 mkdir -p "$PROJ1"
-CLAUDE_PROJECT_DIR="$PROJ1" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ1" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -d "$PROJ1/.pecotv/work" ] && [ -f "$PROJ1/.pecotv/state/.plugin-sync-version" ] \
     && [ -f "$PROJ1/.pecotv/README.md" ] && [ -f "$PROJ1/.pecotv/CHANGELOG.md" ]; then
@@ -57,13 +59,10 @@ else
     fail "初回実行: exit=$EXIT 生成物=$MSG_DETAIL_1"
 fi
 
-# --- ケース2: .gitignore が state/ tmp/ README.md CHANGELOG.md を ignore する内容で生成される ---
+# --- ケース2: .gitignore が全部を除外する許可の一覧（`*`）で生成される ---
 GI="$PROJ1/.pecotv/.gitignore"
-if [ -f "$GI" ] && grep -qx "tmp/" "$GI" && grep -qx "state/" "$GI" \
-    && grep -qx "README.md" "$GI" && grep -qx "CHANGELOG.md" "$GI" \
-    && grep -qx "config/hooks-config.json" "$GI" \
-    && grep -qx "/.gitignore" "$GI"; then
-    pass ".pecotv/.gitignore に state/ tmp/ README.md CHANGELOG.md config/hooks-config.json /.gitignore が記載される"
+if [ -f "$GI" ] && grep -qx '\*' "$GI"; then
+    pass ".pecotv/.gitignore に全部を除外する * が記載される"
 else
     MSG_DETAIL_2="$(cat "$GI" 2>/dev/null)"
     fail ".pecotv/.gitignore 不在 or 未記載 (content='$MSG_DETAIL_2')"
@@ -71,7 +70,7 @@ fi
 
 # --- ケース3: mtime ガード: マーカーが新しければ skip（README を消しても再コピーされない） ---
 rm -f "$PROJ1/.pecotv/README.md"
-CLAUDE_PROJECT_DIR="$PROJ1" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ1" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ ! -f "$PROJ1/.pecotv/README.md" ]; then
     pass "mtime ガード: マーカーが plugin.json より新しければ同期を skip する"
@@ -83,7 +82,7 @@ fi
 # --- ケース3b: plugin.json がマーカーより新しくなれば再同期される ---
 touch "$FIXTURE/.claude-plugin/plugin.json"
 echo "# fixture CHANGELOG v2" > "$FIXTURE/CHANGELOG.md"
-CLAUDE_PROJECT_DIR="$PROJ1" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ1" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -f "$PROJ1/.pecotv/README.md" ] \
     && grep -q "v2" "$PROJ1/.pecotv/CHANGELOG.md"; then
@@ -119,7 +118,7 @@ _git -C "$PROJ3" init -q
 _git -C "$PROJ3" config user.email t@t
 _git -C "$PROJ3" config user.name t
 printf '# 実行時生成ファイル (git管理外)\ntmp/\n' > "$PROJ3/.pecotv/.gitignore"
-CLAUDE_PROJECT_DIR="$PROJ3" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ3" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
 # .pecotv/.gitignore 自身も、self-ignore 行（/.gitignore）で ignore 対象にする設計。
 # pecot 側と同じで、フックが自動再生成するため git 管理外とする（#680）。
 # よって untracked な新規リポでは、README/CHANGELOG/state/tmp に加え、.gitignore 自身も untracked に出ない。
@@ -150,7 +149,7 @@ _git -C "$PROJ6" config user.email t@t
 _git -C "$PROJ6" config user.name t
 printf '# 実行時生成ファイル (git管理外)\ntmp/\n' > "$PROJ6/.pecotv/.gitignore"
 ln -s "$TMP/nonexistent/target" "$PROJ6/.pecotv/README.md"
-CLAUDE_PROJECT_DIR="$PROJ6" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ6" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
 EXIT=$?
 UNTRACKED=$(_git -C "$PROJ6" status --porcelain -uall -- .pecotv/)
 if [ $EXIT -ne 0 ] && [ -z "$UNTRACKED" ]; then
@@ -174,7 +173,7 @@ _git -C "$PROJ7" config user.email t@t
 _git -C "$PROJ7" config user.name t
 printf '# 実行時生成ファイル (git管理外)\ntmp/\n' > "$PROJ7/.pecotv/.gitignore"
 ln -s "$TMP/nonexistent/target" "$PROJ7/.pecotv/CHANGELOG.md"
-CLAUDE_PROJECT_DIR="$PROJ7" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
+"${_GIT_ISOLATE[@]}" CLAUDE_PROJECT_DIR="$PROJ7" PLUGIN_HOOKS="$FIXTURE/hooks" bash "$HOOK"
 EXIT=$?
 UNTRACKED=$(_git -C "$PROJ7" status --porcelain -uall -- .pecotv/)
 if [ $EXIT -ne 0 ] && [ -z "$UNTRACKED" ]; then
