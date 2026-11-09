@@ -37,6 +37,9 @@ node_modules
 plugins/pecot-visual/cli/tests/fixtures/*/pptx/
 plugins/pecot-visual/cli/tests/fixtures/*/index.html
 
+# playwright の MCP がセッションの cwd に書くログ
+.playwright-mcp/
+
 # IDE
 .vscode/
 .idea/
