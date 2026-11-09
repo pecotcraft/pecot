@@ -50,7 +50,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。lint・githooks の 2 job と、変更が届いたレーンごとの tests の job に分けて同時に動かす
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
-  - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直し、同じブランチへ push する
+  - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。同じブランチへ、リリースの App のトークンで push する
   - `security-alerts.yml`: main の security alert を毎時 Tracker 1 件の一覧にそろえる。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
 - commit 時の品質は、今までどおり author ローカル env で pre-commit が pass したことに依拠する
 

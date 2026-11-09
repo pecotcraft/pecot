@@ -75,3 +75,10 @@ def test_merge_queue_has_all_seven_keys(rules: dict[str, dict]) -> None:
     assert set(params) == _QUEUE_KEYS
     assert params["merge_method"] == "SQUASH"
     assert params["grouping_strategy"] == "ALLGREEN"
+
+
+def test_bypass_is_release_app_only(repo_root: Path) -> None:
+    data = json.loads((repo_root / ".github/rulesets/main.json").read_text())
+    assert data["bypass_actors"] == [
+        {"actor_id": 5676665, "actor_type": "Integration", "bypass_mode": "always"}
+    ]

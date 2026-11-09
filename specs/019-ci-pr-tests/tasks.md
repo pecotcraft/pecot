@@ -296,7 +296,7 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
   - 規則は contracts/workflows.md の「main の ruleset」の表のとおり
   - bypass には Phase 5 の App の id を入れる
 - [ ] T061 [US2] この PR がマージされた後に、ruleset を適用する（quickstart の「0. 準備」の注意）
-  - 適用は `gh api -X POST repos/pecotcraft/pecot/rulesets --input .github/rulesets/main.json`
+  - 適用は `gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 --input .github/rulesets/main.json`
   - 人の PR で、必須チェックの前にマージできないことを確かめる
   - 手元から `main` への直接 push が拒否されることを確かめる（quickstart の「4. リリース」の 5）
 

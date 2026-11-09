@@ -1,5 +1,6 @@
 # Dependabot の PR で runtime-lock.yaml を作り直す。画面からの merge では pre-commit の確認が動かないため。
-# Dependabot の run の GITHUB_TOKEN は読み取りのみなので、contents: write を足す。
+# push は App のトークンで行う。GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まり、必須チェックが出ない。
+# App の client id と鍵は Dependabot secrets から読む。dependabot の run では Actions secrets を読めないため。
 name: runtime-lock
 
 on:
@@ -9,7 +10,7 @@ on:
       - pnpm-workspace.yaml
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: runtime-lock-${{ github.event.pull_request.number }}
@@ -21,10 +22,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # App の push で起きる run は actor が App になり、Dependabot secrets を読めない。
+      # その run では lock の差分が無く push もしないので、トークンを作らない。
+      - name: Generate GitHub App token
+        id: app-token
+        if: ${{ github.actor == 'dependabot[bot]' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.PECOT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
+          permission-contents: write
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Set up Node.js
 
@@ -46,9 +59,15 @@ jobs:
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
           COMMIT_MSG: "chore(repo): runtime-lock を root の lock から作り直す"
+          HAS_APP_TOKEN: ${{ steps.app-token.outputs.token != '' }}
+          NO_TOKEN_MSG: "App のトークンが無く、lock を push できない。PR で @dependabot recreate を打つ"
         run: |
           if git diff --quiet; then
             exit 0
+          fi
+          if [ "$HAS_APP_TOKEN" = "false" ]; then
+            echo "::error::${NO_TOKEN_MSG}"
+            exit 1
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
