@@ -7,7 +7,9 @@
     "ghcr.io/devcontainers/features/node:2": { "version": "24.22.1" },
     "ghcr.io/devcontainers/features/copilot-cli:1": {},
     "ghcr.io/devcontainers/features/aws-cli:1": { "version": "2.39.4" },
-    "ghcr.io/devcontainers-extra/features/actionlint:1": { "version": "1.7.12" }
+    "ghcr.io/devcontainers-extra/features/actionlint:1": { "version": "1.7.12" },
+    // version は pnpm-lock.yaml の playwright の版にそろえる。
+    "./features/playwright-deps": { "version": "1.64.1" }
   },
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"

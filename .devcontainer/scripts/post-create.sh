@@ -8,7 +8,8 @@ if [ "${CI:-}" != "true" ]; then
   bash "$root/.devcontainer/scripts/install-git-hooks.sh"
 fi
 bash "$root/setup.sh"
-(cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install --with-deps chromium)
+# Chromium の依存パッケージは、イメージ（features/playwright-deps）に入っている。
+(cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install chromium)
 # pecot-visual の Playwright MCP は、端末の Google Chrome を使う（MCP の既定）。
 # Playwright の Chrome 導入は、arm64 Linux と Ubuntu・Debian 以外で失敗する。x86_64 のときだけ入れる。
 # CI の job は Chrome を使わないため、CI=true では入れない。
