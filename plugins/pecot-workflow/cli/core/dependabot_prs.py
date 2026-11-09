@@ -277,7 +277,8 @@ def _title_cell(title: str) -> str:
 def _row(e: PrEntry) -> str:
     marker = f"<!-- pecot-dependabot-pr: pr/{e.number} -->"
     return (
-        f"| {marker} [#{e.number}]({e.url}) {_title_cell(e.title)} | {cell('・'.join(e.reasons))} |"
+        f"| {marker} {_title_cell(e.title)} | [#{e.number}]({e.url}) "
+        f"| {cell('・'.join(e.reasons))} |"
     )
 
 
@@ -308,7 +309,10 @@ def render_tracker_body(entries: Sequence[PrEntry], existing_body: str | None = 
     Raises:
         DependabotPrError: ``existing_body`` の印が 1 組ではない場合
     """
-    table = "\n".join(["| PR | 待っている理由 |", "|---|---|", *(_row(e) for e in entries)])
+    if entries:
+        table = "\n".join(["| title | PR | reason |", "|---|---|---|", *(_row(e) for e in entries)])
+    else:
+        table = "none"
     if existing_body is None:
         head = TRACKER_MARKER + "\n\n" + LIST_BEGIN + "\n"
         tail = "\n" + LIST_END + "\n"

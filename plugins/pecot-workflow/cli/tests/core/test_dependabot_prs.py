@@ -5,12 +5,15 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import pytest
 
 from cli.core.dependabot_prs import (
+    LIST_BEGIN,
+    LIST_END,
     DependabotPrError,
     PrEntry,
     build_tracker_title,
@@ -20,6 +23,7 @@ from cli.core.dependabot_prs import (
     render_tracker_body,
     waiting_reasons,
 )
+from cli.tests._dependabot_tracker_body import OLD_FORM_BODY
 
 NOW = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
 
@@ -349,8 +353,8 @@ class TestTrackerBody:
         assert body == (
             "<!-- pecot-dependabot-pr: tracker -->\n\n"
             "<!-- pecot-dependabot-pr: list-begin -->\n"
-            "| PR | 待っている理由 |\n|---|---|\n"
-            "| <!-- pecot-dependabot-pr: pr/2 --> [#2](https://github.com/o/r/pull/2) `Bump a`"
+            "| title | PR | reason |\n|---|---|---|\n"
+            "| <!-- pecot-dependabot-pr: pr/2 --> `Bump a` | [#2](https://github.com/o/r/pull/2)"
             " | major・playwright |\n"
             "<!-- pecot-dependabot-pr: list-end -->\n"
         )
@@ -384,10 +388,27 @@ class TestTrackerBody:
         body = render_tracker_body([_entry(3, "a | b <!-- pecot-dependabot-pr: pr/99 -->")])
         assert parse_tracker_pr_numbers(body) == [3]
 
-    def test_empty_table_keeps_header(self) -> None:
+    def test_title_with_pipe_and_backtick_keeps_four_cell_separators(self) -> None:
+        body = render_tracker_body([_entry(3, "a | `b` | c")])
+        row = next(line for line in body.split("\n") if "pr/3 " in line)
+        assert len(re.findall(r"(?<!\\)\|", row)) == 4
+
+    def test_empty_list_is_none_only(self) -> None:
         body = render_tracker_body([])
-        assert "| PR | 待っている理由 |" in body
+        begin = body.index(LIST_BEGIN) + len(LIST_BEGIN)
+        assert body[begin : body.index(LIST_END)] == "\nnone\n"
         assert parse_tracker_pr_numbers(body) == []
+
+    def test_old_form_body_is_read(self) -> None:
+        assert parse_tracker_pr_numbers(OLD_FORM_BODY) == [120, 166]
+
+    def test_old_form_body_is_rewritten_keeping_text_outside_the_list(self) -> None:
+        existing = OLD_FORM_BODY + "\n\n人の注記\n"
+        body = render_tracker_body([_entry(120)], existing)
+        assert "| title | PR | reason |" in body
+        assert "待っている理由" not in body
+        assert "pr/166 " not in body
+        assert body.endswith("list-end -->\n\n人の注記\n")
 
     def test_missing_markers_raise(self) -> None:
         with pytest.raises(DependabotPrError):

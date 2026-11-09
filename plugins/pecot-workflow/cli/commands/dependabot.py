@@ -90,7 +90,7 @@ def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
     ラベル dependabot-pr の open の Tracker（本文に印がある Issue）を 1 件探し、
     その本文の list-begin から list-end の間の表を書き直す。
     open の Tracker が無く、載せる PR があるときだけ、Tracker を立ててボードの Backlog（Priority medium）に載せる。
-    載せる PR が無くなれば、表を空にして Tracker を閉じる。
+    載せる PR が無くなれば、一覧を `none` にして Tracker を閉じる。
     PR の一覧を取れなければ、本文に触らず終了コード 1 で終わる。
     open の Tracker が複数あれば、番号が最小のものを使い、ほかは閉じずに警告する。
     使う Tracker の list-begin / list-end の印が 1 組でなければ、終了コード 1 で止まる。
@@ -180,7 +180,7 @@ def _apply(
                 client.close_issue(owner, repo, number, state_reason="completed")
             except (GitHubAPIError, httpx.HTTPError) as e:
                 typer.echo(
-                    f"エラー: Tracker #{number} の本文は空にしたが閉じられませんでした。"
+                    f"エラー: Tracker #{number} の一覧を none にした後、閉じられませんでした。"
                     f"次の実行で再試行します: {api_error_detail(e)}",
                     err=True,
                 )
