@@ -803,7 +803,7 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
     (ws / "nx.json").write_text('{"targetDefaults": {"tgt": {"cache": true}}}')
     (ws / "package.json").write_text('{"name": "x", "version": "1.0.0"}')
     (ws / "p" / "project.json").write_text(
-        '{"name": "p", "targets": {"tgt": {"command": "echo ran-the-task", "cache": true}}}'
+        '{"name": "p", "targets": {"tgt": {"command": "touch ran-the-task", "cache": true}}}'
     )
     (ws / "node_modules").symlink_to(nx_bin.parents[1])
     with socket.socket() as sock:
@@ -823,7 +823,7 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
     )
     assert result.returncode != 0
     assert "Failed to send request" in result.stdout + result.stderr
-    assert "1 succeeded" not in result.stdout
+    assert not (ws / "ran-the-task").exists()
 
     env["NX_SKIP_NX_CACHE"] = "true"
     for key in ("NX_SELF_HOSTED_REMOTE_CACHE_SERVER", "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN"):
@@ -832,7 +832,7 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
         [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
     )
     assert skipped.returncode == 0, skipped.stderr
-    assert "1 task: 1 succeeded" in skipped.stdout
+    assert (ws / "ran-the-task").exists()
 
 
 def test_lane_option_emits_summary_with_environment(pr_repo: _PrChecksRepo, run_script) -> None:
