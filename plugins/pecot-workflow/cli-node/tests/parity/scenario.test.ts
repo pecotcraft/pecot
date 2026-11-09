@@ -1,9 +1,9 @@
 // 器の前提の確認。Node の build は要らない。
 // 「シナリオの網羅」は、次の 4 つを確かめる。
 //   - シナリオが全件読め、golden の id の集合とシナリオの id の集合が一致する。
-//   - 33 サブコマンドの path がすべてシナリオにある。
+//   - 34 サブコマンドの path がすべてシナリオにある。
 //   - 各 path に ok と ok 以外があり、全体で auth・4xx・5xx・usage の種類がそろう。
-//   - commands.ts の 33 個が cli/commands/main.py の登録と一致する。
+//   - commands.ts の 34 個が cli/commands/main.py の登録と一致する。
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -116,7 +116,7 @@ describe('シナリオの網羅', () => {
     expect(goldenIds).toEqual(ids)
   })
 
-  it('commands.ts の 33 個が cli/commands/main.py の登録と一致する', () => {
+  it('commands.ts の 34 個が cli/commands/main.py の登録と一致する', () => {
     const source = readFileSync(path.resolve(import.meta.dirname, '../../../cli/commands/main.py'), 'utf8')
     const groups = new Map<string, string>()
     for (const [, variable, name] of source.matchAll(/app\.add_typer\((\w+), name="([^"]+)"\)/gu)) {
@@ -132,10 +132,10 @@ describe('シナリオの網羅', () => {
     expect(registered.toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings))
   })
 
-  it('33 個の path と、シナリオの path の集合が一致する。グローバルオプションだけの path（空）は別に数える', () => {
+  it('34 個の path と、シナリオの path の集合が一致する。グローバルオプションだけの path（空）は別に数える', () => {
     const expected = COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings)
     const actual = [...new Set(ids.map(id => readScenario(id).command.path.join(' ')))].filter(key => key !== '').toSorted(compareStrings)
-    expect(COMMAND_PATHS).toHaveLength(33)
+    expect(COMMAND_PATHS).toHaveLength(34)
     expect(actual).toEqual(expected)
   })
 

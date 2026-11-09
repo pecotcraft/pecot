@@ -16,13 +16,13 @@ import pytest
 from cli.core.dependabot import DependabotException
 from cli.core.github import GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError
 from cli.core.security_alerts import (
+    TRACKER_RE,
     Alert,
     SecurityAlertError,
     TrackerEntry,
     build_tracker_title,
     fetch_code_scanning_status,
     fetch_secret_scanning_status,
-    find_tracker,
     list_open_alerts,
     max_priority,
     normalize_code_scanning,
@@ -32,6 +32,7 @@ from cli.core.security_alerts import (
     plan_tracker,
     render_tracker_body,
 )
+from cli.core.tracker_body import find_tracker as _find_tracker
 
 H, OWNER, R = "github.com", "o", "r"
 
@@ -591,6 +592,10 @@ class TestTrackerBody:
 
     def test_title_uses_utc_date(self) -> None:
         assert build_tracker_title(date(2026, 11, 6)) == "[Tracker] security alert — 2026-11-06"
+
+
+def find_tracker(issues: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[int]]:
+    return _find_tracker(issues, TRACKER_RE)
 
 
 class TestFindTracker:

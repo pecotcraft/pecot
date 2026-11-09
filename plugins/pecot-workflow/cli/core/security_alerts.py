@@ -27,6 +27,7 @@ from cli.core.dependabot import DependabotException
 from cli.core.errors import PecotError
 from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.github.errors import GitHubRateLimitError, describe_api_error
+from cli.core.tracker_body import cell, list_region, normalize_newlines
 
 AlertKind = Literal["dependabot", "code-scanning", "secret-scanning"]
 ALERT_KINDS: tuple[AlertKind, ...] = ("dependabot", "code-scanning", "secret-scanning")
@@ -159,7 +160,7 @@ _MARKER_RE = re.compile(
 _ROW_MARKERS_RE = re.compile(r"^\|\s*((?:<!--[^>]*?-->\s*)+)")
 _LIST_BEGIN_RE = re.compile(r"<!--\s*pecot-alert:\s*list-begin\s*-->")
 _LIST_END_RE = re.compile(r"<!--\s*pecot-alert:\s*list-end\s*-->")
-_TRACKER_RE = re.compile(r"<!--\s*pecot-alert:\s*tracker\s*-->")
+TRACKER_RE = re.compile(r"<!--\s*pecot-alert:\s*tracker\s*-->")
 
 
 @dataclass(frozen=True)
@@ -187,10 +188,6 @@ class TrackerEntry:
         return (self.kind, self.number)
 
 
-def _normalize_newlines(text: str) -> str:
-    return text.replace("\r\n", "\n").replace("\r", "\n")
-
-
 def _entry_marker(e: TrackerEntry) -> str:
     parts = [f"{e.kind}/{e.number}", f"priority={e.priority}"]
     if e.package:
@@ -203,16 +200,10 @@ def _entry_marker(e: TrackerEntry) -> str:
     return f"<!-- pecot-alert: {' '.join(parts)} -->"
 
 
-def _cell(text: str) -> str:
-    """表のセルに入る文。``|`` と改行と ``<`` を無害にする"""
-    one_line = re.sub(r"\s*[\r\n]+\s*", " ", text).strip()
-    return one_line.replace("<", "&lt;").replace("|", "\\|")
-
-
 def _title_text(text: str) -> str:
     """title の文。リンクの題に入れても表を壊さないよう ``\\`` ``[`` ``]`` ``|`` ``<`` を無害にする"""
     raw = text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
-    return _cell(raw)
+    return cell(raw)
 
 
 def _alert_link(e: TrackerEntry, host: str, owner: str, repo: str) -> str:
@@ -262,21 +253,6 @@ def _advisory_row(group: list[TrackerEntry], host: str, owner: str, repo: str) -
     return f"| {markers} {content} | {links} | {priority} |"
 
 
-def _list_region(body: str) -> tuple[int, int]:
-    """本文の一覧の範囲（begin の印の直後, end の印の先頭）。印の組が 1 組でなければエラー
-
-    Raises:
-        SecurityAlertError: 印の欠け・重なり・順序の逆転があるとき
-    """
-    begins = list(_LIST_BEGIN_RE.finditer(body))
-    ends = list(_LIST_END_RE.finditer(body))
-    if len(begins) != 1 or len(ends) != 1 or begins[0].end() > ends[0].start():
-        raise SecurityAlertError(
-            "Tracker の本文の list-begin / list-end の印が 1 組ではないため、一覧を書き直せません"
-        )
-    return begins[0].end(), ends[0].start()
-
-
 def parse_tracker_entries(body: str | None) -> list[TrackerEntry]:
     """Tracker の本文から、一覧の行を読む
 
@@ -289,8 +265,8 @@ def parse_tracker_entries(body: str | None) -> list[TrackerEntry]:
     Raises:
         SecurityAlertError: list-begin / list-end の印が 1 組ではない場合
     """
-    text = _normalize_newlines(body or "")
-    begin, end = _list_region(text)
+    text = normalize_newlines(body or "")
+    begin, end = list_region(text, _LIST_BEGIN_RE, _LIST_END_RE, SecurityAlertError)
     entries: dict[tuple[AlertKind, int], TrackerEntry] = {}
     for line in text[begin:end].split("\n"):
         row = _ROW_MARKERS_RE.match(line.strip())
@@ -397,8 +373,8 @@ def render_tracker_body(
         head = TRACKER_MARKER + "\n\n" + LIST_BEGIN + "\n"
         tail = "\n" + LIST_END + "\n"
     else:
-        text = _normalize_newlines(existing_body)
-        begin, end = _list_region(text)
+        text = normalize_newlines(existing_body)
+        begin, end = list_region(text, _LIST_BEGIN_RE, _LIST_END_RE, SecurityAlertError)
         head = text[:begin] + "\n"
         tail = "\n" + text[end:]
     return head + _sections(entries, disabled_kinds, failed_kinds, host, owner, repo) + tail
@@ -407,25 +383,6 @@ def render_tracker_body(
 def build_tracker_title(today: date) -> str:
     """Tracker の題。日付は立てた日（UTC）"""
     return f"[Tracker] security alert — {today.isoformat()}"
-
-
-def find_tracker(issues: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[int]]:
-    """ラベルで引いた Issue から、open の Tracker を探す
-
-    本文に Tracker の印があり、open のものを対象にする。複数あれば番号が最小のものを使い、
-    ほかの番号を返す（警告用。sync は閉じない）。
-    """
-    found = sorted(
-        (
-            i
-            for i in issues
-            if i.get("state") == "open" and _TRACKER_RE.search(_str(i.get("body")) or "")
-        ),
-        key=lambda i: cast("int", i["number"]),
-    )
-    if not found:
-        return None, []
-    return found[0], [cast("int", i["number"]) for i in found[1:]]
 
 
 def max_priority(entries: list[TrackerEntry]) -> str | None:

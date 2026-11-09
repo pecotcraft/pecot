@@ -36,8 +36,8 @@ const exported = new Map(Object.entries(queries))
 describe('queries.py との一致', () => {
   const python = readPythonQueries()
 
-  it('Python の 29 個の定数をすべて写している', () => {
-    expect(python.size).toBe(29)
+  it('Python の 30 個の定数をすべて写している', () => {
+    expect(python.size).toBe(30)
     expect(Object.keys(queries).toSorted(byName)).toEqual(Object.keys(Object.fromEntries(python)).toSorted(byName))
   })
 

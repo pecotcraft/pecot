@@ -10,13 +10,17 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated
 
 import httpx
 import typer
 
-from cli.commands.release import resolve_release_target_repo
-from cli.core.config import ProjectConfig, load_active_config
+from cli.commands._tracker_sync import (
+    DryRunOption,
+    api_error_detail,
+    load_target,
+    warn_extra_trackers,
+)
+from cli.core.config import ProjectConfig
 from cli.core.dependabot import (
     DependabotAlertError,
     DependabotException,
@@ -24,22 +28,17 @@ from cli.core.dependabot import (
 )
 from cli.core.git import git_toplevel
 from cli.core.github import GitHubAPIError, GitHubClient
-from cli.core.issue_board import (
-    add_issue_to_board,
-    create_issue,
-    item_has_field_value,
-    set_issue_field,
-)
+from cli.core.issue_board import create_issue, put_on_board
 from cli.core.security_alerts import (
     ALERT_KINDS,
     ALERT_LABEL,
     KIND_LABELS,
+    TRACKER_RE,
     Alert,
     AlertKind,
     SecurityAlertError,
     TrackerPlan,
     build_tracker_title,
-    find_tracker,
     list_open_alerts,
     max_priority,
     normalize_alerts,
@@ -47,25 +46,7 @@ from cli.core.security_alerts import (
     plan_tracker,
     render_tracker_body,
 )
-
-DryRunOption = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run", help="Tracker を立てる・書き直す予定を表示するだけで、何も変更しない"
-    ),
-]
-
-_BOARD_STATUS = "backlog"
-
-
-def _load_target(ctx: typer.Context) -> tuple[ProjectConfig, str, str]:
-    """対象リポ（git の origin、--repo 優先）とアクティブなプロジェクトを解決する"""
-    owner, repo = resolve_release_target_repo(ctx, Path.cwd())
-    config = load_active_config()
-    if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
-        raise typer.Exit(1)
-    return config, owner, repo
+from cli.core.tracker_body import find_tracker
 
 
 def _load_exceptions() -> list[DependabotException]:
@@ -111,34 +92,6 @@ def _fetch_open_alerts(
     return found, failed, disabled
 
 
-def _put_on_board(
-    client: GitHubClient,
-    config: ProjectConfig,
-    owner: str,
-    repo: str,
-    issue_number: int,
-    priority: str | None,
-    *,
-    only_if_empty: bool,
-) -> None:
-    """ボードへの追加と、Status（Backlog）・Priority の設定（何度やっても同じ結果になる）
-
-    ``only_if_empty`` なら、ボード項目のそのフィールドが空のときだけ入れる。
-    人が動かした Status や Priority を、次の実行が戻さない。
-    途中で失敗して空のままの項目は直る。
-    """
-    item_id, _ = add_issue_to_board(client, config, owner, repo, issue_number, None)
-    fields = [("workflow", _BOARD_STATUS)]
-    if priority is not None:
-        fields.append(("priority", priority))
-    for field_name, option in fields:
-        if only_if_empty and item_has_field_value(
-            client, config, owner, repo, issue_number, item_id, field_name
-        ):
-            continue
-        set_issue_field(client, config, item_id, field_name, option)
-
-
 def _echo_plan(plan: TrackerPlan, tracker: int | None, title: str, dry_run: bool) -> None:
     prefix = "[dry-run] " if dry_run else ""
     if tracker is None:
@@ -173,7 +126,7 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         $ pecot security sync --dry-run
         $ pecot security sync
     """
-    config, owner, repo = _load_target(ctx)
+    config, owner, repo = load_target(ctx)
     exceptions = _load_exceptions()
     client = GitHubClient(host=config.host)
 
@@ -181,19 +134,11 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
     try:
         issues = client.list_issues_by_label(owner, repo, ALERT_LABEL)
     except (GitHubAPIError, httpx.HTTPError) as e:
-        detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-        typer.echo(f"エラー: Issue の一覧を取得できません: {detail}", err=True)
+        typer.echo(f"エラー: Issue の一覧を取得できません: {api_error_detail(e)}", err=True)
         raise typer.Exit(1) from None
 
-    tracker, others = find_tracker(issues)
-    if others:
-        listed = "・".join(f"#{n}" for n in others)
-        used = f"#{tracker['number']}" if tracker else "なし"
-        typer.echo(
-            f"警告: open の Tracker が複数あります。番号が最小の {used}"
-            f" を使い、ほか（{listed}）は閉じません",
-            err=True,
-        )
+    tracker, others = find_tracker(issues, TRACKER_RE)
+    warn_extra_trackers(tracker, others)
     existing_body = (tracker.get("body") or "") if tracker else None
     try:
         entries = parse_tracker_entries(existing_body) if tracker else None
@@ -244,7 +189,7 @@ def _apply(
                 return 0
             issue = create_issue(client, owner, repo, title, body, [ALERT_LABEL])
             typer.echo(f"立てた: Tracker #{issue['number']}")
-            _put_on_board(
+            put_on_board(
                 client, config, owner, repo, issue["number"], priority, only_if_empty=False
             )
             return 0
@@ -256,12 +201,13 @@ def _apply(
             except (GitHubAPIError, httpx.HTTPError) as e:
                 # 422 を含む。本文は書き直されていないので、次の実行でやり直す
                 failures += 1
-                detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-                typer.echo(f"エラー: Tracker #{number} の本文を書き直せません: {detail}", err=True)
+                typer.echo(
+                    f"エラー: Tracker #{number} の本文を書き直せません: {api_error_detail(e)}",
+                    err=True,
+                )
         # 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
-        _put_on_board(client, config, owner, repo, number, priority, only_if_empty=True)
+        put_on_board(client, config, owner, repo, number, priority, only_if_empty=True)
         return failures
     except (GitHubAPIError, httpx.HTTPError) as e:
-        detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-        typer.echo(f"エラー: Tracker: {detail}", err=True)
+        typer.echo(f"エラー: Tracker: {api_error_detail(e)}", err=True)
         return 1
