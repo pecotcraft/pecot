@@ -1,17 +1,6 @@
-// pecotv 永続層（置き場の mcp-dist/） へ入る依存の package.json を組み立てる (#1071)。
-//
-// 永続層に何を入れるかの元データは、cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan()。
-// 監査は、cli のビルド成果物へ依存せず同じ依存集合を得たい。
-// そのため、同じ規則をここに写す。
-// 写し間違いは、scripts/release/tests/runtime-manifest.test.sh が止める。
-// このテストは、cli/dist の runtimeInstallPlan() と比べて検出する。
-//
-// 実 install は、`npm install --no-package-lock <specifier...>` で specifier の列を取る。
-// 監査は、`npm install --package-lock-only` で package.json の dependencies から解決する。
-// 同じ集合を map として組み直すのが、このモジュールの役目。
-// optionalDependencies（playwright）は実 install の対象外なので、ここにも入れない。
-// 監査範囲を、実 install に一致させるためだ。
-// 依存の元データは、本体が持つ実行時依存の manifest（assets/slidev/runtime/package.json）。
+// pecotv 永続層（置き場の mcp-dist/）へ入る依存の package.json を組み立てる (#1071)。
+// 規則は cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan() の写し。ずれは runtime-manifest.test.sh が止める。
+// optionalDependencies（playwright）は実 install の対象外なので入れない。
 //
 //   import: buildRuntimeManifest(pecotvRoot) -> オブジェクト
 //
@@ -21,9 +10,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { isSelfExecuted } from './self-exec.mjs'
 
-// 永続層でバージョンを固定する slidev 中核パッケージ（runtime-install.ts の SLIDEV_CORE_PACKAGES）。
-// 互いを完全一致のバージョンで要求する。
-// そのため、キャレット指定のまま渡すと、nested に別のバージョンが入る。
+// 版を固定する slidev 中核パッケージ（runtime-install.ts の SLIDEV_CORE_PACKAGES と同じ）。
 const SLIDEV_CORE_PACKAGES = new Set(['@slidev/cli', '@slidev/client', '@slidev/parser', '@slidev/types'])
 
 // ローカル参照の依存。パッケージとして解決できないため install と監査のどちらの対象にもしない。
@@ -47,14 +34,11 @@ export function buildRuntimeManifest(rawPecotvRoot) {
   const runtimeManifest = readJson(
     path.join(PECOTV_ROOT, 'assets/slidev/runtime/package.json')
   )
-  const cliManifest = readJson(path.join(PECOTV_ROOT, 'cli/package.json'))
 
-  // 中核パッケージの固定バージョンは、cli/package.json の @slidev/parser の pin から読む。
-  // runtime-install.ts は同じ値を SLIDEV_CORE_VERSION として持つ。
-  // cli の unit test が、両者の同値を固定している。
-  const coreVersion = dependencyMap(cliManifest.dependencies)['@slidev/parser']
+  // 中核パッケージの固定版は、runtime manifest の @slidev/cli の版（runtime-install.ts と同じ読み元）。
+  const coreVersion = dependencyMap(runtimeManifest.dependencies)['@slidev/cli']
   if (typeof coreVersion !== 'string' || coreVersion === '') {
-    throw new Error('cli/package.json dependencies に @slidev/parser の版指定がありません（依存の改名・削除の疑い）')
+    throw new Error('assets/slidev/runtime/package.json dependencies に @slidev/cli の版指定がありません（依存の改名・削除の疑い）')
   }
 
   const dependencies = {}

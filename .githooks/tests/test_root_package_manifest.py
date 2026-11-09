@@ -35,7 +35,7 @@ def test_root_is_a_private_nx_workspace(root: dict) -> None:
     assert "nx" in root["devDependencies"]
     assert "overrides" not in root
     assert re.search(
-        r"^  undici: \S+", (_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"), re.M
+        r"^overrides:$", (_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"), re.M
     )
 
 

@@ -8,8 +8,6 @@ minimumReleaseAge: 1440
 packages: []
 
 overrides:
-  # nx が undici を固定している。.nx/nx-release/tests/undici-override.test.js が値を固定する。
-  undici: 7.30.1
   # puppeteer の postinstall が Chrome を取得するのを避ける。pecotv は dom-to-pptx の bundle しか使わない (#1062)。
   puppeteer: npm:puppeteer-core@25.16.0
   # 単一版に固定する。版が割れると v1 SDK の tools/list が落ちた (#1061)。runtime-install.test.ts が固定する。
