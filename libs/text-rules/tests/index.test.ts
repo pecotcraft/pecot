@@ -14,3 +14,9 @@ describe('公開 API の定数', () => {
     expect([...EXCLUDED_RULE_IDS]).toEqual(['ja-no-mixed-period'])
   })
 })
+
+describe('CUJ 4 の確認', () => {
+  it('わざと落とす', () => {
+    expect(1).toBe(2)
+  })
+})
