@@ -149,47 +149,82 @@ push・GitHub Release の発行までが一括で完結する。**`develop` と 
 
 ### 手順の選び方（ランナーか手元か）
 
-リモートの default branch に `release.yml` があれば、ランナーの手順に従う。
-無ければ、手元の手順（下の 1〜8）に従う。次のコマンドが成功すれば、`release.yml` がある。
+次のコマンドで、リモートの default branch の `release.yml` を取る。
 
 ```bash
-gh workflow view release.yml -R <owner>/<repo>
+gh workflow view release.yml -R <owner>/<repo> --yaml
 ```
 
-失敗したときは、`release.yml` の無いリポとみなして手元の手順に進む。
+ランナーの手順に従うのは、次の 2 つをどちらも満たすときだけ。
+
+1. コマンドが成功する
+2. 出力の YAML に、job `plan`・`release` と `dependabot-plans.js` がある
+
+`release.yml` はよくある名前なので、別の目的のファイルを起動しないよう、2 を確かめる。
+手元の手順（下の 1〜8）に進むのは、`HTTP 404` のときと、2 を満たさないときだけ。
+認証切れ・ネットワークなど、それ以外の失敗では止めて、ユーザーに報告する。
 
 ### ランナーの手順（`release.yml` があるリポ）
 
-承認は GitHub の画面でユーザーが行う。エージェントは承認しない。
+承認は GitHub の画面でユーザーが行う。
+エージェントは、画面でも `pending_deployments` の API でも承認しない。
 
-1. 起動する。出力の URL の末尾が run の id になる。取れなければ `gh run list` で引く。
+1. 起動する。出力の URL の末尾が run の id になる。
 
    ```bash
    gh workflow run release.yml --ref main -R <owner>/<repo>
-   gh run list --workflow release.yml --event workflow_dispatch -L 1 -R <owner>/<repo>
+   ```
+
+   URL が取れなければ、次のコマンドで引く。
+   起動した時刻より後で、`headSha` が main の HEAD の run を選ぶ。
+
+   ```bash
+   gh run list --workflow release.yml --event workflow_dispatch --json databaseId,createdAt,headSha -L 5 -R <owner>/<repo>
    ```
 
 2. `plan` の job の結論を待つ。`gh run watch` は承認待ちで戻らないので使わない。
-   次のコマンドを、上限の時間（例: 30 分）を決めて間隔を空けて繰り返す。
-   `plan` の `conclusion` が `success` になれば次へ進む。`failure` なら
-   [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
+   次の 1 コマンドで、上限 30 分まで待つ。`plan` の結論が出たら、その値を表示して終わる。
 
    ```bash
-   gh run view <id> --json status,jobs -R <owner>/<repo>
+   timeout 1800 bash -c 'until c=$(gh run view <id> -R <owner>/<repo> --json jobs --jq ".jobs[]|select(.name==\"plan\").conclusion") && [ -n "$c" ]; do sleep 20; done; echo "$c"'
+   ```
+
+   `success` なら次へ進む。
+   `success` 以外（`failure`・`cancelled`・`skipped`）は止めて、
+   [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
+   `skipped` は、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える。
+   上限まで待っても結論が出ず、run の `status` が `pending` のままなら、承認待ちの別の run がある。
+   次のコマンドで確かめる。
+
+   ```bash
+   gh run list --workflow release.yml --status waiting -R <owner>/<repo>
    ```
 
 3. `plan` が残した案を読み、ユーザーに示す。
    観点は、2ブランチ手順の「5. bump 妥当性のユーザー確認」と同じ。
    案は `release-plan` という名前の artifact に入っている。
+   `nx.log` から bump・tag・CHANGELOG の案を読む。`plans.log` は plan の件数である。
 
    ```bash
-   gh run download <id> -n release-plan -D <作業ディレクトリ> -R <owner>/<repo>
+   gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
    ```
+
+   案が誤っていたら、承認を案内しない。
+   `gh run cancel <id> -R <owner>/<repo>` で止め、plan を直す PR を出し、マージしてから起動し直す。
 
 4. 案に問題が無ければ、承認の画面を開いて承認していただくようユーザーに案内する。
    承認を待つ間、エージェントは何もしない。ユーザーが承認したと伝えるまで、次へ進まない。
-5. `release` の job の完了を待つ。待ち方は 2 と同じ。
+5. `release` の job の完了を待つ。待ち方は 2 と同じで、job 名を `release` にする。
    完了したら、発行したタグ名と GitHub Release の URL を報告する。
+   タグ名と URL は、次のコマンドで取る。
+
+   ```bash
+   gh release list -L 4 -R <owner>/<repo>
+   ```
+
+   `plan` が preflight で止まったときは、open の Dependabot alert がある。
+   手元の手順の「3. open の Dependabot alert を確認（preflight）」に従う。
+   扱いは、解消・dismiss・exceptions の 3 つ。
 
 ### 手元の手順（`release.yml` が無いリポ）
 

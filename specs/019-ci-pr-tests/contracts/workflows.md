@@ -59,7 +59,7 @@ major のときは何もしない。PR にコメントも付けない（dependab
 | 項目 | 約束 |
 |---|---|
 | 起動 | `workflow_dispatch`。入力は無い。各 job に `if: github.ref == 'refs/heads/main' && vars.PECOT_BOT_CLIENT_ID != ''` を付ける |
-| concurrency | `release`、`cancel-in-progress: false`。承認待ちの run は group を持ち続け、後から起動した run が前の待ちを cancel する |
+| concurrency | `release`、`cancel-in-progress: false`。承認待ちの run は group を持ち続け、後から起動した run は pending で待つ。cancel されるのは、さらに後の起動で pending になった側である |
 | 権限 | `contents: read`・`packages: read` |
 | 秘密 | client id は `vars.PECOT_BOT_CLIENT_ID`。秘密鍵は Environment secret の `PECOT_BOT_PRIVATE_KEY` |
 | トークン | App のトークンはコンテナを起こす直前に作る。コンテナへは `GH_TOKEN`・`PECOT_GITHUB_COM_TOKEN` だけを渡し、`GITHUB_TOKEN` は渡さない |

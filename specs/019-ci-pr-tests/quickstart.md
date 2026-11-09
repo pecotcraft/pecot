@@ -7,7 +7,7 @@
 | 手順 | 操作 |
 |---|---|
 | App を作る | Organization に GitHub App を作る。権限は [research.md](research.md) の R6 の表のとおり。pecotcraft/pecot にだけ入れる |
-| 変数 | 変数 `PECOT_BOT_CLIENT_ID` に App の client id を置く |
+| 変数 | リポジトリの変数（Repository variables）`PECOT_BOT_CLIENT_ID` に App の client id を置く。job の `if` で読むため、Environment の変数では空になり、2 つの job が skipped になる |
 | Environment `release` | 作る。必須レビュアーにリリース担当者を入れ、deployment branch を `main` だけにする。起動者が承認者を兼ねるなら、「Prevent self-review」は切る |
 | Environment `release-plan` | 作る。承認者は置かず、deployment branch を `main` だけにする |
 | 秘密を置く | 2 つの Environment の secret に、秘密鍵を `PECOT_BOT_PRIVATE_KEY` で置く。Dependabot secrets への配置は、自動マージ（Phase 7）の作業として行う |

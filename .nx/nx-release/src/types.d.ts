@@ -8,9 +8,21 @@ export type Lock = {
     { dependencies?: Record<string, string>; optionalDependencies?: Record<string, string> }
   >;
 };
+export type Commit = { sha: string; subject: string; body: string };
+export type UvDep = { name: string; version: string | null; extras: string[] };
+export type UvPackage = {
+  name: string;
+  version: string;
+  project: boolean;
+  dependencies: UvDep[];
+  dev: UvDep[];
+  optional: Record<string, UvDep[]>;
+};
+export type UvLock = { packages: UvPackage[] };
 export type Context = {
   directory: string;
   uv: boolean;
+  uvLock: UvLock | null;
   declarations: Record<string, Declaration[]>;
   lock: Lock | null;
   distDeps: ReadonlySet<string>;

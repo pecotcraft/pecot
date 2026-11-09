@@ -69,15 +69,15 @@ jobs:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
           push: never
           runCmd: |
-            cd /workspaces/base/pecot
-            d=.pecot/tmp/release
+            cd /workspaces/base/pecot &&
+            d=.pecot/tmp/release &&
             run() { n=$1; shift; "$@" > "$d/$n.log" 2>&1; rc=$?; cat "$d/$n.log"; return $rc; }
             run plans node .nx/nx-release/src/dependabot-plans.js &&
             run preflight plugins/pecot-workflow/bin/pecot release preflight &&
             run nx pnpm exec nx release --dry-run --verbose --yes
           env: *release-env
 
-      # コンテナの中からは $GITHUB_STEP_SUMMARY に書けないため、ログをここで Summary にまとめる。
+      # GITHUB_STEP_SUMMARY は Action が固定するため、コンテナの中からは書かない。ログをここで Summary にまとめる。
       - name: Write job summary
         if: always()
         env:
@@ -99,7 +99,7 @@ jobs:
             fi
             if [ -f "$d/plans.log" ]; then
               echo
-              echo "$fence"text
+              printf '%s\n' "${fence}text"
               tail -c 100000 "$d/plans.log"
               echo "$fence"
             fi

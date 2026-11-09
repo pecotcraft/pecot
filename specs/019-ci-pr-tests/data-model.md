@@ -72,7 +72,7 @@ squash でマージした dependabot の commit の本文から読む。#113 の
 
 | 項目 | 読む場所 | 例 |
 |---|---|---|
-| 対象の commit | 本文に `updated-dependencies:` を含む commit。作者では選ばない | |
+| 対象の commit | 本文に `updated-dependencies:` だけの行を持つ commit。作者では選ばない | |
 | PR 番号 | 件名の末尾の `(#N)`。無ければコード 1 で止める | `(#5)` |
 | directory | 件名の `in /path`、group の PR では本文の `in the /path directory`。どちらも読めなければ `/` とみなす | `/plugins/pecot-tools` |
 | 依存名・新しい版・種類 | `updated-dependencies:` の YAML の `dependency-name`・`dependency-version`・`dependency-type`。本文のどこからでも探す | `commander`・`15.0.0`・`direct:production` |
@@ -90,8 +90,8 @@ group は directory ではなく、その commit の時点の `package.json` と
 |---|---|
 | direct（npm） | その commit で指定が変わった `package.json` を根拠にする。lock だけが変わったときは、その依存を宣言している `package.json` を探す |
 | `indirect`（npm） | root の lock で判定する。group の本番の依存から辿って `<名前>@<新版>` へ届けば、その group で作る。pecot-visual は配布物の依存名に入る devDependencies も起点にする。それ以外の devDependencies からしか届かなければ作らない |
-| uv（`/plugins/pecot-workflow/cli`） | YAML の `dependency-type` で決める。group は pecot-workflow |
-| github-actions・audit-canary | 作らない |
+| uv（`/plugins/pecot-workflow/cli`） | その commit で `<directory>/uv.lock` が変わったかで決める。group は pecot-workflow。`indirect` は、その commit の `uv.lock` でプロジェクトの本番の依存から辿って届くときだけ作る。dev からしか届かなければ「開発用」とする。`indirect` があるのに lock を読めないときは、コード 1 で止める |
+| github-actions・audit-canary | 作らない。`plugins/pecot-visual/scripts/release/audit-canary/` の宣言は数えない |
 
 direct の依存は、`package.json` の path の前方一致で group を決める。`tests/` を含む path は数えない。
 
@@ -112,6 +112,9 @@ direct の依存は、`package.json` の path の前方一致で group を決め
 | ファイル名の決め方 | `-<group>` の有無は、範囲で絞る前に、その commit が届く group の数で決める。実行ごとに名前が変わらないようにする |
 | frontmatter | `<group>: patch` の 1 行 |
 | 本文 | 「依存を更新した（名前 旧版 → 新版、…）。(#N)」の 1 文。100 字を超えるなら数件で切り「ほか N 件」で締める |
+| 出す順 | commit の古い順 |
+| 件数の行 | 作った件数と、作らなかった件数を理由ごとに 1 行ずつ出す。範囲外で除いた commit は数えない |
+| 失敗したとき | 例外で止まるときも、書いた plan を消す |
 | 検証 | 作った後に `check-version-plan-format.sh` と `check-text.sh` を通す。通らなければリリースを止める |
 
 本文の末尾に `(#N)` を置くのは、未追跡の plan では nx が commit を引けず、CHANGELOG に PR のリンクが付かない。

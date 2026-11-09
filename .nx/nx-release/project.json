@@ -18,11 +18,13 @@
         "runtime",
         "env",
         "{workspaceRoot}/package.json",
-        { "runtime": "node -p \"require('typescript7/package.json').version\"" }
+        { "runtime": "node -p \"require('typescript7/package.json').version\"" },
+        { "runtime": "node -p \"require('nx/package.json').version\"" },
+        { "runtime": "node -p \"require('@types/node/package.json').version\"" }
       ],
       "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
       "metadata": {
-        "description": "typescript7 の tsc で src/ の JSDoc 型を確かめる。"
+        "description": "typescript7 の tsc で src/ の JSDoc 型を確かめる。nx と @types/node の実体の版も runtime 入力で見る（root の lock は入力から外れるため）。"
       },
       "options": {
         "command": "node scripts/tsc.mjs -p .",

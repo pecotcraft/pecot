@@ -18,10 +18,15 @@
 /** @typedef {import("./types").MainOptions} MainOptions */
 /** @typedef {import("./types").RootFilter} RootFilter */
 /** @typedef {import("./types").Declarations} Declarations */
+/** @typedef {import("./types").UvLock} UvLock */
+/** @typedef {import("./types").UvDep} UvDep */
+/** @typedef {import("./types").UvPackage} UvPackage */
+/** @typedef {import("./types").Commit} Commit */
 
 const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const { parseAllDocuments } = require("yaml");
 
 const GROUP_PATHS = {
   "pecot-workflow": "plugins/pecot-workflow/",
@@ -33,6 +38,8 @@ const MAX_LINE_CHARS = 100;
 const PLANS_DIR = ".nx/version-plans";
 const SHIPPED_SECTIONS = ["dependencies", "optionalDependencies"];
 const SECTIONS = [...SHIPPED_SECTIONS, "devDependencies"];
+const AUDIT_CANARY = "plugins/pecot-visual/scripts/release/audit-canary/";
+const UV_DEV_EXTRAS = /^(dev|test|tests|lint|docs|typing)$/;
 
 /**
  * ファイルが属する release group。tests/ の下と、どの group にも属さない path は null。
@@ -40,7 +47,7 @@ const SECTIONS = [...SHIPPED_SECTIONS, "devDependencies"];
  * @returns {string | null}
  */
 function groupOf(file) {
-  if (/(^|\/)tests\//.test(file)) return null;
+  if (/(^|\/)tests\//.test(file) || file.startsWith(AUDIT_CANARY)) return null;
   for (const [group, prefix] of Object.entries(GROUP_PATHS)) {
     if (file.startsWith(prefix)) return group;
   }
@@ -144,6 +151,7 @@ function reachable(lock, roots) {
   /** @param {Record<string, string> | undefined} deps */
   const visit = (deps) => {
     for (const [name, version] of Object.entries(deps ?? {})) {
+      // link: は text-rules の group が自分で持ち、pecot-visual へは nx の updateDependents: always で bump が届く
       if (version.startsWith("link:")) continue;
       const key = [`${name}@${version}`, version].find((candidate) => candidate in lock.snapshots);
       if (key !== undefined && !seen.has(key)) {
@@ -184,6 +192,132 @@ function lockRoots(lock, group, pick) {
   return roots;
 }
 
+/** @param {string} name */
+const normalizeName = (name) => name.toLowerCase().replace(/[-_.]+/g, "-");
+
+/**
+ * uv.lock の `[[package]]` から、名前・版・依存だけを読む。TOML の全体は読まない。
+ * @param {string} text
+ * @returns {UvLock}
+ */
+function parseUvLock(text) {
+  /** @type {UvPackage[]} */
+  const packages = [];
+  /** @type {UvPackage | null} */
+  let pkg = null;
+  let section = "other";
+  /** @type {UvDep[] | null} */
+  let target = null;
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line === "[[package]]") {
+      pkg = { name: "", version: "", project: false, dependencies: [], dev: [], optional: {} };
+      packages.push(pkg);
+      section = "top";
+      target = null;
+    } else if (/^\[.*\]$/.test(line)) {
+      section = { "[package.dev-dependencies]": "dev", "[package.optional-dependencies]": "optional" }[line] ?? "other";
+      target = null;
+    } else if (pkg !== null) {
+      const array = /^([\w-]+) = \[$/.exec(line);
+      const scalar = /^(name|version) = "(.*)"$/.exec(line);
+      if (array?.[1] !== undefined) {
+        if (section === "top" && array[1] === "dependencies") target = pkg.dependencies;
+        else if (section === "dev") target = pkg.dev;
+        else if (section === "optional") target = pkg.optional[array[1]] = [];
+        else target = null;
+      } else if (line === "]") target = null;
+      else if (line.startsWith("{") && target !== null) target.push(parseUvDep(line));
+      else if (section === "top" && target === null && scalar?.[1] !== undefined) {
+        if (scalar[1] === "name") pkg.name = scalar[2] ?? "";
+        else pkg.version = scalar[2] ?? "";
+      } else if (section === "top" && /^source = \{ (editable|virtual) =/.test(line)) pkg.project = true;
+    }
+  }
+  return { packages };
+}
+
+/**
+ * @param {string} line uv.lock の依存の 1 行（例: `{ name = "x", version = "1" }`）
+ * @returns {UvDep}
+ */
+function parseUvDep(line) {
+  const text = line.replace(/marker = "[^"]*"/, "");
+  const extras = /extra = \[([^\]]*)\]/.exec(text)?.[1] ?? "";
+  return {
+    name: /name = "([^"]+)"/.exec(text)?.[1] ?? "",
+    version: /version = "([^"]+)"/.exec(text)?.[1] ?? null,
+    extras: [...extras.matchAll(/"([^"]+)"/g)].map((match) => match[1] ?? ""),
+  };
+}
+
+/**
+ * uv.lock の中で、roots から辿って届く `name@version` の集まり。依存先の extra の辺も辿る。
+ * @param {UvLock} lock
+ * @param {UvDep[]} roots
+ * @returns {Set<string>}
+ */
+function uvReachable(lock, roots) {
+  /** @type {Map<string, UvPackage[]>} */
+  const byName = new Map();
+  for (const pkg of lock.packages) {
+    const key = normalizeName(pkg.name);
+    byName.set(key, [...(byName.get(key) ?? []), pkg]);
+  }
+  /** @type {Set<string>} */
+  const reached = new Set();
+  /** @type {Set<string>} */
+  const visited = new Set();
+  /** @type {[UvPackage, string | null][]} */
+  const queue = [];
+  /** @param {UvDep[]} deps */
+  const visit = (deps) => {
+    for (const dep of deps) {
+      for (const pkg of byName.get(normalizeName(dep.name)) ?? []) {
+        if (dep.version !== null && pkg.version !== dep.version) continue;
+        reached.add(`${normalizeName(pkg.name)}@${pkg.version}`);
+        for (const extra of [null, ...dep.extras]) {
+          const key = `${pkg.name}@${pkg.version}#${extra}`;
+          if (!visited.has(key)) {
+            visited.add(key);
+            queue.push([pkg, extra]);
+          }
+        }
+      }
+    }
+  };
+  visit(roots);
+  for (let item = queue.pop(); item !== undefined; item = queue.pop()) {
+    const [pkg, extra] = item;
+    visit(extra === null ? pkg.dependencies : (pkg.optional[extra] ?? []));
+  }
+  return reached;
+}
+
+/**
+ * uv の indirect。プロジェクト自身の本番の依存から届けば対象、dev からだけ届けば「開発用」。
+ * @param {Update} update
+ * @param {Context} ctx
+ * @param {string} group
+ * @returns {Resolution}
+ */
+function resolveUvIndirect(update, ctx, group) {
+  if (ctx.uvLock === null) throw new Error(`${ctx.directory}/uv.lock を読めません`);
+  const projects = ctx.uvLock.packages.filter((pkg) => pkg.project);
+  const extras = projects.flatMap((pkg) => Object.entries(pkg.optional));
+  const production = [
+    ...projects.flatMap((pkg) => pkg.dependencies),
+    ...extras.filter(([name]) => !UV_DEV_EXTRAS.test(name)).flatMap(([, deps]) => deps),
+  ];
+  const development = [
+    ...projects.flatMap((pkg) => pkg.dev),
+    ...extras.filter(([name]) => UV_DEV_EXTRAS.test(name)).flatMap(([, deps]) => deps),
+  ];
+  const target = `${normalizeName(update.name)}@${update.version}`;
+  if (uvReachable(ctx.uvLock, production).has(target)) return { groups: [group], reason: null };
+  return { groups: [], reason: uvReachable(ctx.uvLock, development).has(target) ? "dev" : "none" };
+}
+
 /**
  * @param {Update} update
  * @param {Context} ctx
@@ -192,7 +326,9 @@ function lockRoots(lock, group, pick) {
 function resolveDirect(update, ctx) {
   const all = ctx.declarations[update.name] ?? [];
   const changed = all.filter((declaration) => declaration.changed);
-  const targets = (changed.length > 0 ? changed : all).filter((declaration) => groupOf(declaration.path) !== null);
+  const targets = (changed.length > 0 ? changed : all).filter(
+    (declaration) => groupOf(declaration.path) !== null,
+  );
   /** @type {Set<string>} */
   const groups = new Set();
   for (const { path: file, section } of targets) {
@@ -245,6 +381,7 @@ function resolveGroups(update, ctx) {
     const group = groupOf(`${ctx.directory.replace(/^\//, "")}/`);
     if (group === null) return { groups: [], reason: "none" };
     if (update.type === "direct:development") return { groups: [], reason: "dev" };
+    if (update.type === "indirect") return resolveUvIndirect(update, ctx, group);
     return { groups: [group], reason: null };
   }
   return update.type === "indirect" ? resolveIndirect(update, ctx) : resolveDirect(update, ctx);
@@ -258,11 +395,14 @@ function resolveGroups(update, ctx) {
  * @returns {string}
  */
 function renderPlan(group, deps, pr) {
-  const items = deps.map((dep) => (dep.from ? `${dep.name} ${dep.from} → ${dep.version}` : `${dep.name} → ${dep.version}`));
+  const items = deps.map((dep) =>
+    dep.from ? `${dep.name} ${dep.from} → ${dep.version}` : `${dep.name} → ${dep.version}`,
+  );
   /** @param {number} shown */
   const sentence = (shown) => {
     const rest = items.length - shown;
-    const parts = shown === 0 ? [`${items.length} 件`] : [...items.slice(0, shown), ...(rest > 0 ? [`ほか ${rest} 件`] : [])];
+    const parts =
+      shown === 0 ? [`${items.length} 件`] : [...items.slice(0, shown), ...(rest > 0 ? [`ほか ${rest} 件`] : [])];
     return `依存を更新した（${parts.join("、")}）。(#${pr})`;
   };
   let shown = items.length;
@@ -276,11 +416,17 @@ function renderPlan(group, deps, pr) {
  * @returns {string}
  */
 function git(cwd, args) {
-  return execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "pipe"] });
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 1 << 28,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 }
 
 /**
- * その commit で変わったファイルの path。root の uv.lock は ruff 用なので、uv の判定は「directory の uv.lock が変わったか」で行う。
+ * その commit で変わったファイルの path。root の uv.lock は ruff 用なので、
+ * uv の判定は「directory の uv.lock が変わったか」で行う。
  * @param {string} cwd
  * @param {string} sha
  * @returns {string[]}
@@ -309,14 +455,17 @@ function gitShow(cwd, spec) {
 const lastTag = (cwd, group) => git(cwd, ["tag", "--list", `${group}-v*`, "--sort=-v:refname"]).split("\n")[0] ?? "";
 
 /**
- * 範囲の commit を古い順に読む。tag の側と中身が同じ commit は除く（履歴を書き換えた後の重複を防ぐ）。
+ * 範囲の commit を古い順に読む。tag の側と中身が同じ commit は除く（履歴の書き換え後の重複を防ぐ）。
  * @param {string} cwd
  * @param {string} base 起点の ref。空なら全履歴
- * @returns {{ sha: string, subject: string, body: string }[]}
+ * @returns {Commit[]}
  */
 function readCommits(cwd, base) {
   const format = "--format=%H%x1f%s%x1f%b%x1e";
-  const args = base === "" ? ["log", "--reverse", format, "HEAD"] : ["log", "--cherry-pick", "--right-only", "--reverse", format, `${base}...HEAD`];
+  const args =
+    base === ""
+      ? ["log", "--reverse", format, "HEAD"]
+      : ["log", "--cherry-pick", "--right-only", "--reverse", format, `${base}...HEAD`];
   return git(cwd, args)
     .split("\x1e")
     .map((record) => record.replace(/^\n/, ""))
@@ -325,7 +474,7 @@ function readCommits(cwd, base) {
       const [sha = "", subject = "", body = ""] = record.split("\x1f");
       return { sha, subject, body };
     })
-    .filter((commit) => commit.body.includes("updated-dependencies:"));
+    .filter((commit) => /^\s*updated-dependencies:\s*$/m.test(commit.body));
 }
 
 /**
@@ -357,18 +506,34 @@ function readDeclarations(cwd, sha, parsed) {
 }
 
 /**
+ * indirect の判定に使う lock。読めないときは、plan から抜かずに throw する。
  * @param {string} cwd
  * @param {string} sha
- * @returns {Lock | null}
+ * @returns {Lock}
  */
 function readLock(cwd, sha) {
   const text = gitShow(cwd, `${sha}:pnpm-lock.yaml`);
-  if (text === null) return null;
-  const { parseAllDocuments } = require("yaml");
-  const docs = parseAllDocuments(text).map((doc) => doc.toJS());
+  if (text === null) throw new Error("pnpm-lock.yaml がありません");
+  const parsed = parseAllDocuments(text);
+  const error = parsed.flatMap((doc) => doc.errors)[0];
+  if (error !== undefined) throw new Error(`pnpm-lock.yaml を parse できません: ${error.message}`);
+  const docs = parsed.map((doc) => doc.toJS());
   const main = docs.find((doc) => doc?.settings) ?? docs[docs.length - 1];
-  if (!main?.importers) return null;
+  if (!main?.importers) throw new Error("pnpm-lock.yaml に importers がありません");
   return { importers: main.importers, snapshots: main.snapshots ?? {} };
+}
+
+/**
+ * @param {string} cwd
+ * @param {string} sha
+ * @param {string} directory
+ * @returns {UvLock}
+ */
+function readUvLock(cwd, sha, directory) {
+  const file = path.posix.join(directory, "uv.lock").replace(/^\//, "");
+  const text = gitShow(cwd, `${sha}:${file}`);
+  if (text === null) throw new Error(`${file} がありません`);
+  return parseUvLock(text);
 }
 
 /**
@@ -376,7 +541,8 @@ function readLock(cwd, sha) {
  * @returns {Promise<Set<string>>}
  */
 async function loadDistDepsDefault(toolsRoot) {
-  const url = require("node:url").pathToFileURL(path.join(toolsRoot, "plugins/pecot-visual/scripts/release/dist-manifest.mjs"));
+  const manifestPath = path.join(toolsRoot, "plugins/pecot-visual/scripts/release/dist-manifest.mjs");
+  const url = require("node:url").pathToFileURL(manifestPath);
   const { buildDistManifest } = await import(url.href);
   const manifest = buildDistManifest(path.join(toolsRoot, "plugins/pecot-visual"), "0.0.0", toolsRoot);
   return new Set(Object.keys(manifest.dependencies));
@@ -405,22 +571,26 @@ async function main(options = {}) {
     }
   }
 
+  /** @type {{ file: string, text: string }[]} */
+  const written = [];
   try {
     const repoDir = options.repoDir ?? git(process.cwd(), ["rev-parse", "--show-toplevel"]).trim();
     const distDeps = await (options.loadDistDeps ?? loadDistDepsDefault)(toolsRoot);
 
-    /** @type {Map<string, { sha: string, subject: string, body: string }>} */
-    const commits = new Map();
+    /** @type {Map<string, Commit>} */
+    const found = new Map();
     /** @type {Record<string, Set<string>>} */
     const inRange = {};
     for (const group of Object.keys(GROUP_PATHS)) {
       const base = sinceRef === "" ? lastTag(repoDir, group) : sinceRef;
       inRange[group] = new Set();
       for (const commit of readCommits(repoDir, base)) {
-        commits.set(commit.sha, commit);
+        found.set(commit.sha, commit);
         inRange[group].add(commit.sha);
       }
     }
+    const order = new Map(git(repoDir, ["rev-list", "--reverse", "HEAD"]).split("\n").map((sha, i) => [sha, i]));
+    const commits = [...found.values()].sort((a, b) => (order.get(a.sha) ?? 0) - (order.get(b.sha) ?? 0));
 
     const plansDir = path.join(repoDir, PLANS_DIR);
     const outDir = dryRun ? path.join(repoDir, ".pecot/tmp/dependabot-plans") : plansDir;
@@ -428,33 +598,43 @@ async function main(options = {}) {
       fs.rmSync(outDir, { recursive: true, force: true });
       fs.mkdirSync(outDir, { recursive: true });
     }
-    /** @type {{ file: string, text: string }[]} */
-    const written = [];
+    // dev・none は PR（commit）単位、exists は plan ファイル単位。範囲外の group の plan は数えない
     const skipped = { dev: 0, none: 0, exists: 0 };
 
-    for (const { sha, subject, body } of commits.values()) {
-      const parsed = parseCommit(subject, body);
-      const ctx = {
-        directory: parsed.directory,
-        uv: changedFiles(repoDir, sha).includes(path.posix.join(parsed.directory, "uv.lock").replace(/^\//, "")),
-        declarations: readDeclarations(repoDir, sha, parsed),
-        lock: parsed.updates.some((update) => update.type === "indirect") ? readLock(repoDir, sha) : null,
-        distDeps,
-      };
+    for (const { sha, subject, body } of commits) {
+      /** @type {ParsedCommit} */
+      let parsed;
       /** @type {Map<string, Dep[]>} */
       const byGroup = new Map();
       /** @type {SkipReason} */
       let reason = "none";
-      for (const update of parsed.updates) {
-        const resolution = resolveGroups(update, ctx);
-        if (resolution.reason === "dev") reason = "dev";
-        for (const group of resolution.groups) {
-          const deps = byGroup.get(group) ?? [];
-          if (!deps.some((dep) => dep.name === update.name && dep.version === update.version)) {
-            deps.push({ name: update.name, from: update.from, version: update.version });
+      try {
+        parsed = parseCommit(subject, body);
+        const hasIndirect = parsed.updates.some((update) => update.type === "indirect");
+        const uv = changedFiles(repoDir, sha).includes(
+          path.posix.join(parsed.directory, "uv.lock").replace(/^\//, ""),
+        );
+        const ctx = {
+          directory: parsed.directory,
+          uv,
+          declarations: readDeclarations(repoDir, sha, parsed),
+          uvLock: uv && hasIndirect ? readUvLock(repoDir, sha, parsed.directory) : null,
+          lock: !uv && hasIndirect ? readLock(repoDir, sha) : null,
+          distDeps,
+        };
+        for (const update of parsed.updates) {
+          const resolution = resolveGroups(update, ctx);
+          if (resolution.reason === "dev") reason = "dev";
+          for (const group of resolution.groups) {
+            const deps = byGroup.get(group) ?? [];
+            if (!deps.some((dep) => dep.name === update.name && dep.version === update.version)) {
+              deps.push({ name: update.name, from: update.from, version: update.version });
+            }
+            byGroup.set(group, deps);
           }
-          byGroup.set(group, deps);
         }
+      } catch (error) {
+        throw new Error(`${sha.slice(0, 7)}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
       }
       if (byGroup.size === 0) {
         skipped[reason] += 1;
@@ -478,27 +658,37 @@ async function main(options = {}) {
     if (written.length > 0) {
       const files = written.map((entry) => entry.file);
       for (const script of ["check-version-plan-format.sh", "check-text.sh"]) {
-        const result = spawnSync("bash", [path.join(toolsRoot, ".githooks/pre-commit", script), ...files], { cwd: toolsRoot, stdio: "inherit" });
+        const result = spawnSync("bash", [path.join(toolsRoot, ".githooks/pre-commit", script), ...files], {
+          cwd: toolsRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        if (result.stdout) out(result.stdout.trimEnd());
+        if (result.stderr) err(result.stderr.trimEnd());
         if (result.status !== 0) {
           if (!dryRun) for (const file of files) fs.rmSync(file, { force: true });
-          err(`${script} が plan を通しませんでした。書いた plan は消しました`);
+          err(
+            `${script} が plan を通しませんでした。` +
+              (dryRun ? `書いた plan は ${outDir} に残しました` : "書いた plan は消しました"),
+          );
           return 1;
         }
       }
     }
     if (dryRun) for (const { file, text } of written) out(`${file}\n${text}`);
-    out(`作った plan: ${written.length} 件`);
-    out(`作らなかった plan（開発用）: ${skipped.dev} 件`);
-    out(`作らなかった plan（どの package にも当たらない）: ${skipped.none} 件`);
-    out(`作らなかった plan（既にある）: ${skipped.exists} 件`);
+    out(`作った plan ファイル: ${written.length} 件`);
+    out(`作らなかった dependabot の PR（開発用）: ${skipped.dev} 件`);
+    out(`作らなかった dependabot の PR（どの package にも当たらない）: ${skipped.none} 件`);
+    out(`作らなかった plan ファイル（既にある）: ${skipped.exists} 件`);
     return 0;
   } catch (error) {
+    if (!dryRun) for (const { file } of written) fs.rmSync(file, { force: true });
     err(error instanceof Error ? error.message : String(error));
     return 1;
   }
 }
 
-module.exports = { GROUP_PATHS, groupOf, parseCommit, resolveGroups, renderPlan, main };
+module.exports = { GROUP_PATHS, groupOf, parseCommit, parseUvLock, resolveGroups, renderPlan, main };
 
 if (require.main === module) {
   main().then((code) => {

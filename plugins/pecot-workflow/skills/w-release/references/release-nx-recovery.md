@@ -51,6 +51,8 @@ gh run view <id> --log-failed -R <owner>/<repo>
 ```
 
 - `plan` の失敗: 原因を直してから、`release.yml` を起動し直す。
+  最も多い原因は preflight（open の Dependabot alert）である。
+  [release-nx.md](release-nx.md) の手元の手順の「3. open の Dependabot alert を確認（preflight）」の扱い（解消・dismiss・exceptions）に従う。
 - `release` の push の前の失敗: 同じく、直してから起動し直す。push の前なので、タグと commit は残らない。
 - SHA の不一致（「承認を待つ間に main が進みました」）: 起動し直す。
 - non-fast-forward: 起動し直す。
@@ -60,8 +62,17 @@ gh run view <id> --log-failed -R <owner>/<repo>
   gh workflow run publish-npm.yml -f tag=<tag> --ref <tag> -R <owner>/<repo>
   ```
 
+- push の後の 401: App のトークンは 1 時間で切れる。
+  push の後の Release の作成や publish の起動で 401 になっても、タグと release commit は残っている。
+  Release が無ければ作り、publish だけをやり直す（上の「publish だけの失敗」と同じ）。
+
 承認を待っている run は、concurrency の group を持ち続ける。
-後から起動した run は、前の待ちを cancel する。承認待ちの run が残っていたら、先に承認するか cancel する。
+後から起動した run は、pending で待つ。
+cancel されるのは、さらに後の起動で pending になった側。
+承認待ちの run が残っていたら、先に承認するか cancel する。
 
 限界として、履歴の書き換えで diff が変わった commit は、`--cherry-pick` で除けない。
-そのため、依存の更新の plan が重なる。重なった plan は、リリースの案を読むときに見つけて消す。
+そのため、依存の更新の plan が重なる。
+ランナーでは、重なった plan を消せない。plan は各 job のコンテナで毎回作り直されるため。
+同じ名前の plan（`<N>-dependabot-deps.md` など）を、中身を直して main に commit しておく。
+「既にある」と扱われ、作られない。

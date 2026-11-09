@@ -7,7 +7,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { parseCommit, resolveGroups, renderPlan, main } = require("../src/dependabot-plans");
+const { parseCommit, parseUvLock, resolveGroups, renderPlan, main } = require("../src/dependabot-plans");
 const realCommits = require("./_fixtures/dependabot-real.json");
 const squashCommits = require("./_fixtures/dependabot-squash.json");
 
@@ -33,6 +33,7 @@ const dependabotBody = (name, version, type, from) =>
 const emptyCtx = (overrides = {}) => ({
   directory: "/",
   uv: false,
+  uvLock: null,
   declarations: {},
   lock: null,
   distDeps: DIST_DEPS,
@@ -66,62 +67,27 @@ test("group の PR の本文から、directory と複数の依存を読む", () 
   );
 });
 
-// #120（単独）の実物の形。dependabot と runtime-lock の 2 commit の本文が連なる。
+const squashOf = (pr) => squashCommits.find((commit) => commit.pr === pr);
+
+// #120（単独）の実物。dependabot と runtime-lock の 2 commit の本文が連なる。
 test("#113 の後の squash の本文（単独）を読む。directory が無ければ / とみなす", () => {
-  const body = [
-    "* build(repo): bump ajv from 6.15.0 to 8.20.0",
-    "",
-    dependabotBody("ajv", "8.20.0", "direct:production", "6.15.0"),
-    "",
-    "* chore(repo): runtime-lock を root の lock から作り直す",
-  ].join("\n");
-  assert.deepEqual(parseCommit("build(repo): bump ajv from 6.15.0 to 8.20.0 (#120)", body), {
+  const real = squashOf(120);
+  assert.deepEqual(parseCommit(real.subject, real.body), {
     pr: 120,
     directory: "/",
     updates: [{ name: "ajv", version: "8.20.0", type: "direct:production", from: "6.15.0" }],
   });
 });
 
-// #151（group）の実物の形。依存名の引用符と、本文の in the / directory を読む。
+// #151（group）の実物。依存名の引用符と、本文の in the / directory を読む。
 test("#113 の後の squash の本文（group）を読む", () => {
-  const body = [
-    "* build(repo): bump the root-minor-patch group across 1 directory with …",
-    "",
-    "Bumps the root-minor-patch group with 2 updates in the / directory:",
-    "",
-    "Updates `nx` from 24.0.1 to 24.0.5",
-    "- [Release notes](https://github.com/nrwl/nx/releases)",
-    "",
-    "Updates `@types/estree` from 1.0.9 to 1.0.10",
-    "",
-    "---",
-    "updated-dependencies:",
-    "- dependency-name: nx",
-    "  dependency-version: 24.0.5",
-    "  dependency-type: direct:development",
-    "  update-type: version-update:semver-patch",
-    "  dependency-group: root-minor-patch",
-    '- dependency-name: "@types/estree"',
-    "  dependency-version: 1.0.10",
-    "  dependency-type: direct:development",
-    "  update-type: version-update:semver-patch",
-    "  dependency-group: root-minor-patch",
-    "...",
-    "",
-    "Signed-off-by: dependabot[bot] <support@github.com>",
-    "",
-    "* chore(repo): runtime-lock を root の lock から作り直す",
-  ].join("\n");
-  const parsed = parseCommit("build(repo): bump the root-minor-patch group across 1 directory with 2 updates (#151)", body);
+  const real = squashOf(151);
+  const parsed = parseCommit(real.subject, real.body);
   assert.equal(parsed.pr, 151);
   assert.equal(parsed.directory, "/");
-  assert.deepEqual(
-    parsed.updates.map((u) => [u.name, u.from, u.version]),
-    [
-      ["nx", "24.0.1", "24.0.5"],
-      ["@types/estree", "1.0.9", "1.0.10"],
-    ],
-  );
+  assert.equal(parsed.updates.length, 28);
+  assert.ok(parsed.updates.every((u) => u.from !== null && u.version !== ""));
+  assert.deepEqual(parsed.updates.slice(0, 1).map((u) => u.name), [real.body.match(/dependency-name: "?([^"\n]+)/)[1]]);
 });
 
 test("旧版が本文から読めないときは from を null にする", () => {
@@ -203,9 +169,102 @@ test("lock だけが変わったときは、宣言している package.json の�
 test("uv は directory の group と YAML の dependency-type で決める", () => {
   const ctx = emptyCtx({ uv: true, directory: "/plugins/pecot-workflow/cli" });
   assert.deepEqual(resolveGroups(update("typer"), ctx), { groups: ["pecot-workflow"], reason: null });
-  assert.deepEqual(resolveGroups(update("x", "indirect"), ctx), { groups: ["pecot-workflow"], reason: null });
   assert.deepEqual(resolveGroups(update("pytest", "direct:development"), ctx), { groups: [], reason: "dev" });
   assert.deepEqual(resolveGroups(update("typer"), emptyCtx({ uv: true, directory: "/tools" })), { groups: [], reason: "none" });
+});
+
+const UV_LOCK = `version = 1
+
+[[package]]
+name = "app"
+version = "0.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "gql", extra = ["httpx"] },
+    { name = "typer" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.optional-dependencies]
+docs = [
+    { name = "mkdocs" },
+]
+
+[[package]]
+name = "gql"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "graphql-core" },
+]
+
+[package.optional-dependencies]
+httpx = [
+    { name = "httpx", marker = "python_full_version < '3.11'" },
+]
+
+[[package]]
+name = "typer"
+version = "0.27.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+]
+
+[[package]]
+name = "pytest"
+version = "9.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pluggy" },
+]
+
+[[package]]
+name = "mkdocs"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "httpx"
+version = "0.28.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "graphql-core"
+version = "3.2.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "click"
+version = "8.3.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "pluggy"
+version = "1.6.0"
+source = { registry = "https://pypi.org/simple" }
+`;
+
+test("uv の indirect は、プロジェクトの本番の依存から届くときだけ作る。dev からだけなら「開発用」", () => {
+  const uvLock = parseUvLock(UV_LOCK);
+  assert.deepEqual(uvLock.packages.filter((pkg) => pkg.project).map((pkg) => pkg.name), ["app"]);
+  const ctx = emptyCtx({ uv: true, directory: "/plugins/pecot-workflow/cli", uvLock });
+  const resolve = (name, version) => resolveGroups(update(name, "indirect", version), ctx);
+  assert.deepEqual(resolve("click", "8.3.0"), { groups: ["pecot-workflow"], reason: null });
+  assert.deepEqual(resolve("graphql-core", "3.2.0"), { groups: ["pecot-workflow"], reason: null });
+  assert.deepEqual(resolve("httpx", "0.28.0"), { groups: ["pecot-workflow"], reason: null });
+  assert.deepEqual(resolve("pluggy", "1.6.0"), { groups: [], reason: "dev" });
+  assert.deepEqual(resolve("mkdocs", "1.0.0"), { groups: [], reason: "dev" });
+  assert.deepEqual(resolve("click", "9.0.0"), { groups: [], reason: "none" });
+});
+
+test("uv の indirect で uv.lock を読めていないときは throw する", () => {
+  const ctx = emptyCtx({ uv: true, directory: "/plugins/pecot-workflow/cli" });
+  assert.throws(() => resolveGroups(update("click", "indirect"), ctx), /uv\.lock/);
 });
 
 const lockOf = (importers, snapshots) => ({ importers, snapshots });
@@ -287,6 +346,8 @@ function makeRepo() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dependabot-plans-test-"));
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "commit.gpgsign", "false");
+  git(dir, "config", "user.name", "dependabot[bot]");
+  git(dir, "config", "user.email", "49699333+dependabot[bot]@users.noreply.github.com");
   return dir;
 }
 
@@ -366,15 +427,15 @@ test("実物の 11 件から作るのは #5・#6・#10・#16 の 4 件で、作�
     "---\npecot-workflow: patch\n---\n\n依存を更新した（typer 0.26.8 → 0.27.3、pydantic 2.14.1 → 2.14.2）。(#6)\n",
   );
   assert.deepEqual(summaryOf(result.lines), {
-    "作った plan": 4,
-    "作らなかった plan（開発用）": 7,
-    "作らなかった plan（どの package にも当たらない）": 0,
-    "作らなかった plan（既にある）": 0,
+    "作った plan ファイル": 4,
+    "作らなかった dependabot の PR（開発用）": 7,
+    "作らなかった dependabot の PR（どの package にも当たらない）": 0,
+    "作らなかった plan ファイル（既にある）": 0,
   });
 
   const again = await run(dir);
   assert.equal(again.code, 0);
-  assert.equal(summaryOf(again.lines)["作らなかった plan（既にある）"], 4);
+  assert.equal(summaryOf(again.lines)["作らなかった plan ファイル（既にある）"], 4);
   assert.equal(plansIn(dir).length, 4);
 });
 
@@ -389,7 +450,7 @@ test("--dry-run は .nx/version-plans に書かず、パスと中身を出す", 
   const printed = result.lines.join("\n");
   assert.match(printed, /5-dependabot-deps\.md\n---\npecot-tools: patch/);
   assert.match(printed, /依存を更新した（commander 14\.0\.3 → 15\.0\.0）。\(#5\)/);
-  assert.equal(summaryOf(result.lines)["作った plan"], 4);
+  assert.equal(summaryOf(result.lines)["作った plan ファイル"], 4);
 });
 
 test("引数の誤りはコード 2、読めない本文と (#N) の無い件名はコード 1", async (t) => {
@@ -466,7 +527,7 @@ test("FR-030: tag の後に履歴を書き換え、diff が同じ commit を作�
   const result = await run(dir);
   assert.equal(result.code, 0, result.errors.join("\n"));
   assert.deepEqual(plansIn(dir), []);
-  assert.equal(summaryOf(result.lines)["作った plan"], 0);
+  assert.equal(summaryOf(result.lines)["作った plan ファイル"], 0);
 
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^3.0.0") }, `build: bump commander in /plugins/pecot-tools (#41)\n\n${dependabotBody("commander", "3.0.0", "direct:production", "2.0.0")}\n`);
   assert.equal((await run(dir)).code, 0);
@@ -488,7 +549,7 @@ test("同じ名前の plan が既にあるときは上書きしない", async (t
   const result = await run(dir);
   assert.equal(result.code, 0, result.errors.join("\n"));
   assert.match(fs.readFileSync(path.join(dir, ".nx/version-plans/50-dependabot-deps.md"), "utf8"), /人が書いた本文/);
-  assert.equal(summaryOf(result.lines)["作らなかった plan（既にある）"], 1);
+  assert.equal(summaryOf(result.lines)["作らなかった plan ファイル（既にある）"], 1);
 });
 
 test("#113 の後の squash（#120・#151 の実物）から、root に uv.lock があっても group ごとの plan を作る", async (t) => {
@@ -509,4 +570,118 @@ test("#113 の後の squash（#120・#151 の実物）から、root に uv.lock 
     "151-dependabot-deps-text-rules.md",
   ]);
   assert.match(fs.readFileSync(path.join(dir, ".nx/version-plans/120-dependabot-deps.md"), "utf8"), /^pecot-visual: patch$/m);
+});
+
+const actionsBody = [
+  "Bumps [actions/checkout](https://github.com/actions/checkout) from 4.0.0 to 5.0.0.",
+  "",
+  "---",
+  "updated-dependencies:",
+  "- dependency-name: actions/checkout",
+  "  dependency-version: 5.0.0",
+  "  dependency-type: direct:production",
+  "  update-type: version-update:semver-major",
+  "...",
+].join("\n");
+
+test("github-actions の PR は plan を作らず、「どの package にも当たらない」に数える", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
+  commit(dir, { ".github/workflows/ci.yml": "name: x\n" }, `build(repo): bump actions/checkout from 4.0.0 to 5.0.0 in / (#60)\n\n${actionsBody}\n`);
+  const result = await run(dir);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.deepEqual(plansIn(dir), []);
+  const summary = summaryOf(result.lines);
+  assert.equal(summary["作った plan ファイル"], 0);
+  assert.equal(summary["作らなかった dependabot の PR（どの package にも当たらない）"], 1);
+});
+
+const indirectBody = dependabotBody("c", "3.0.0", "indirect", "2.0.0");
+
+test("lock を読めない indirect は、sha を添えて throw する（コード 1）", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
+  const sha = commit(dir, {}, `build(repo): bump c in / (#61)\n\n${indirectBody}\n`);
+  const result = await run(dir);
+  assert.equal(result.code, 1);
+  assert.match(result.errors.join("\n"), new RegExp(`${sha.slice(0, 7)}: pnpm-lock\\.yaml がありません`));
+
+  for (const [lock, pattern] of [
+    ["importers: [\n", /pnpm-lock\.yaml を parse できません/],
+    ["lockfileVersion: '9.0'\n", /importers がありません/],
+  ]) {
+    const other = makeRepo();
+    t.after(() => fs.rmSync(other, { recursive: true, force: true }));
+    commit(other, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
+    commit(other, { "pnpm-lock.yaml": lock }, `build(repo): bump c in / (#61)\n\n${indirectBody}\n`);
+    const broken = await run(other);
+    assert.equal(broken.code, 1);
+    assert.match(broken.errors.join("\n"), pattern);
+  }
+});
+
+test("例外のときは、書いた plan を残さない", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
+  commit(
+    dir,
+    { "plugins/pecot-tools/package.json": toolsPackage("^2.0.0") },
+    `build: bump commander in /plugins/pecot-tools (#62)\n\n${dependabotBody("commander", "2.0.0", "direct:production", "1.0.0")}\n`,
+  );
+  commit(dir, {}, `build(repo): bump c in / (#63)\n\n${indirectBody}\n`);
+  const result = await run(dir);
+  assert.equal(result.code, 1);
+  assert.deepEqual(plansIn(dir), []);
+});
+
+test("検証を通らない plan は消す。dry-run では .pecot/tmp に残した旨を出す", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
+  commit(
+    dir,
+    { "plugins/pecot-tools/package.json": toolsPackage("^2.0.0") },
+    `build: bump commander in /plugins/pecot-tools (#64)\n\n${dependabotBody("commander", "2.0.0", "direct:production", "1.0.0")}\n`,
+  );
+  process.env.PECOT_PLAN_MAX_LINE_CHARS = "10";
+  t.after(() => delete process.env.PECOT_PLAN_MAX_LINE_CHARS);
+
+  const result = await run(dir);
+  assert.equal(result.code, 1);
+  assert.deepEqual(plansIn(dir), []);
+  assert.match(result.errors.join("\n"), /書いた plan は消しました/);
+
+  const dry = await run(dir, ["--dry-run"]);
+  assert.equal(dry.code, 1);
+  assert.match(dry.errors.join("\n"), /\.pecot\/tmp\/dependabot-plans に残しました/);
+  assert.ok(fs.existsSync(path.join(dir, ".pecot/tmp/dependabot-plans/64-dependabot-deps.md")));
+});
+
+test("plan は commit の古い順に出す", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(
+    dir,
+    { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0"), "libs/text-rules/package.json": toolsPackage("^1.0.0") },
+    "chore: init",
+  );
+  const message = (pr) => `build: bump commander in / (#${pr})\n\n${dependabotBody("commander", "2.0.0", "direct:production", "1.0.0")}\n`;
+  commit(dir, { "libs/text-rules/package.json": toolsPackage("^2.0.0") }, message(71));
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^2.0.0") }, message(72));
+  const result = await run(dir, ["--dry-run", "--since-ref", "HEAD~2"]);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  const printed = result.lines.filter((line) => /dependabot-deps\.md$/.test(line.split("\n")[0]));
+  assert.deepEqual(printed.map((line) => path.basename(line.split("\n")[0])), ["71-dependabot-deps.md", "72-dependabot-deps.md"]);
+});
+
+test("updated-dependencies を文中で触れるだけの commit は、対象に選ばない", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, {}, "chore: init");
+  commit(dir, {}, "docs: note (#80)\n\nこの本文は updated-dependencies: の語に触れるだけです。\n");
+  const result = await run(dir);
+  assert.equal(result.code, 0, result.errors.join("\n"));
 });
