@@ -1,7 +1,5 @@
 # main の security alert（Dependabot・code scanning・secret scanning）を読み、ボードの Tracker の一覧にそろえる。
 # 毎時 17 分に sync を動かす。
-# 人の判断を待つ dependabot の PR も、別の Tracker の一覧にそろえる（pecot dependabot sync）。
-# PR の sync は別のトークンで動かす。App に PR とチェックの読み取りの権限が無くても、security alert の sync を止めない。
 # GITHUB_TOKEN は secret scanning の alert と org の Projects を扱えないため、GitHub App のトークンを使う。
 # 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。
 # 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
@@ -50,23 +48,3 @@ jobs:
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
         run: plugins/pecot-workflow/bin/pecot security sync
-
-      - name: Generate GitHub App token for dependabot PRs
-        id: app-token-prs
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.SECURITY_APP_CLIENT_ID }}
-          private-key: ${{ secrets.SECURITY_APP_PRIVATE_KEY }}
-          permission-issues: write
-          permission-organization-projects: write
-          permission-pull-requests: read
-          permission-checks: read
-          permission-statuses: read
-
-      - name: Sync dependabot PRs
-        if: ${{ !cancelled() && steps.app-token-prs.outcome == 'success' }}
-        env:
-          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token-prs.outputs.token }}
-        run: plugins/pecot-workflow/bin/pecot dependabot sync

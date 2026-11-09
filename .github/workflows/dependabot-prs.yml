@@ -1,0 +1,49 @@
+# 人の判断を待つ dependabot の PR を読み、ボードの Tracker の一覧にそろえる。
+# 毎時 47 分に sync を動かす。security-alerts.yml の 17 分とずらす。
+# GITHUB_TOKEN は org の Projects を扱えないため、GitHub App のトークンを使う。
+# App は security-alerts.yml と同じものを使う（変数と秘密の名前は SECURITY_APP_* のまま）。
+# 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。
+name: dependabot-prs
+
+on:
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-prs
+  cancel-in-progress: false
+
+jobs:
+  run:
+    if: ${{ vars.SECURITY_APP_CLIENT_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.SECURITY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SECURITY_APP_PRIVATE_KEY }}
+          permission-issues: write
+          permission-organization-projects: write
+          permission-pull-requests: read
+          permission-checks: read
+          permission-statuses: read
+
+      - name: Sync dependabot PRs
+        env:
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: plugins/pecot-workflow/bin/pecot dependabot sync
