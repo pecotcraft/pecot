@@ -33,6 +33,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['repository.issue.subIssues{nodes,pageInfo}|after,number,owner,repo', 'GetSubIssuesPage'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews}|number,owner,repo', 'GetPullRequestSlim'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews,reviewThreads}|number,owner,repo', 'GetPullRequestWithReviews'],
+  ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],
 ]
 
 export const OPERATION_NAMES: ReadonlySet<string> = new Set(OPERATION_TABLE.map(([, name]) => name))

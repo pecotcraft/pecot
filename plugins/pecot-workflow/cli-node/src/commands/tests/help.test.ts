@@ -36,7 +36,7 @@ describe('helpText', () => {
   const rootGolden = readGolden('global-ok-help')
   const groupGolden = readGolden('global-ok-help-group')
   const rootRows = commandRows(rootGolden.stdout)
-  const groupNames = new Set(['project', 'issue', 'pr', 'session', 'release', 'security', 'worktree'])
+  const groupNames = new Set(['project', 'issue', 'pr', 'session', 'release', 'security', 'dependabot', 'worktree'])
   const leaves = rootRows.filter(([name]) => !groupNames.has(name)).map(([name, description]) => define([name], description))
   const issueCommands = commandRows(groupGolden.stdout).map(([name, description]) => define(['issue', name], description))
   const groups = rootRows.filter(([name]) => groupNames.has(name)).flatMap(([name]) => name === 'issue' ? issueCommands : [define([name, 'dummy'], '')])
@@ -66,6 +66,7 @@ describe('helpText', () => {
       'session',
       'release',
       'security',
+      'dependabot',
       'worktree',
     ])
   })
