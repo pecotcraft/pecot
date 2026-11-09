@@ -41,7 +41,7 @@ Alternatives considered: CI で `nx affected` を直に呼ぶ案は採らない�
 
 Decision: CI の tests の job は、同じ PR の run の間でだけ nx のタスクキャッシュを受け渡す。job 内で nx のリモートキャッシュのサーバ（`.githooks/ci/nx-cache-server.mjs`）を動かす。
 置き場 `.pecot/tmp/ci/nx-remote` は、artifact `nx-cache-tests-{slug}` で渡す。
-取り込むのは、同じ repo の同じ PR の成功した run の artifact だけにする。
+取り込むのは、同じ repo の同じ PR の run が、成功したレーンだけで上げた artifact にする。
 
 Rationale: 宣言していない入力の変化を取りこぼさないため、共有の範囲を同じ PR に絞る。
 取りこぼしていた root の `pnpm-lock.yaml` は `.nxignore` で file map から外れる。

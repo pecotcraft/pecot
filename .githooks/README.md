@@ -164,7 +164,7 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 >   - サーバは `.githooks/ci/nx-cache-server.mjs` で、nx 公式の self-hosted HTTP の口を実装する。
 >   - 置き場は `.pecot/tmp/ci/nx-remote` で、artifact `nx-cache-tests-{slug}` として run の間で受け渡す。
 >     上げるのは、その run で使った成果物（GET で返したものと PUT で保存したもの）だけである。
->   - 取り込むのは、同じ repo の同じ PR の成功した run の artifact だけである。fork の PR は上げも取り込みもしない。
+>   - 取り込むのは、同じ repo の同じ PR の run が、成功したレーンだけで上げた artifact である。fork の PR は上げも取り込みもしない。
 >   - root の `pnpm-lock.yaml` は `.nxignore` で file map から外れ、どの task の hash にも入らない。
 >     そのため、namedInput `runtime` の `git hash-object pnpm-lock.yaml` で入れる。runtime 入力は affected の判定には使われない。
 >   - イメージの apt のパッケージの変化は、`runtime` の `dpkg-query -W` の出力で入れる。
