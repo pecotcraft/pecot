@@ -35,7 +35,7 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
 | `trailing-whitespace`・`end-of-file-fixer`・`check-yaml`・`check-added-large-files`・`ruff-check`・`ruff-format`・`markdownlint-cli2`・`yamllint`・`actionlint-system`（外部 repo の hook） | pre-commit（CI でも動く） | 秒未満から数秒（記録なし） | 上流の hook で、staged のファイルだけを見る。commit の前に直せる |
 | `check-direct-commit`・`check-commit-text`・`gitlint` | commit-msg | 平均 0.4 秒・最大 0.5 秒（`check-commit-text`） | commit のメッセージは手元でしか見えない |
 | `check-text-push` | pre-push（CI でも動く） | 平均 0.6 秒・最大 0.8 秒 | push の範囲全体の文面を、秒未満で確かめられる |
-| `check-version-plan-required` | pre-push だけ（CI の job は後のタスク（spec の T058）で足す予定） | 平均 0.4 秒・最大 0.6 秒 | `main` への push では確かめない。dependabot の plan はリリース時に作るので、`main` には無くて正しい。CI ではまだ確かめない |
+| `check-version-plan-required` | pre-push と CI の `version-plan` の job | 平均 0.4 秒・最大 0.6 秒 | `main` への push では確かめない。dependabot の commit だけの範囲は要求しない（plan はリリース時に作る） |
 | `nx-env-inputs` | pre-push（CI でも動く） | 0.3 秒 | 秒未満で、宣言の不足を push の前に止められる |
 | `githooks-tests` | manual（CI） | 手元で約 17 秒・CI の githooks の job で約 160 秒 | テストで、手元でも十数秒かかる。CI の githooks の job が動かす |
 | `nx-affected-tests` | manual（CI） | 平均 24 秒・最大 123 秒 | 重いので CI に任せる。CI の tests の job がレーンごとに動かす |

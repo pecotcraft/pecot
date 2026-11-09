@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize, reopened]
   push:
     branches: [main]
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -219,6 +221,38 @@ jobs:
             .pecot/tmp/githooks-timing.tsv
             .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore
+
+  # ci-result の needs には入れない。main の push で飛ばしても、ci-result の結果は変わらない。
+  version-plan:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+
+      # pnpm の版は package.json の packageManager が決める。
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter pecot
+
+      # 判定できないときも失敗にするため、PECOT_VERSION_PLAN_STRICT を渡す。
+      - name: Check version plan
+        env:
+          PRE_COMMIT_TO_REF: HEAD
+          PECOT_VERSION_PLAN_BASE: origin/main
+          PECOT_VERSION_PLAN_STRICT: "1"
+        run: .githooks/ci/check-version-plan.sh
 
   ci-result:
     needs: [checks, lanes, tests]

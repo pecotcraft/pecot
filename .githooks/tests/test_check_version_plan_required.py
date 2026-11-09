@@ -368,6 +368,146 @@ def test_10_nx_graph_failure_skips(script_dir: Path, vpr_repo: _VprRepo, run_scr
     assert "WARN" in (result.stdout + result.stderr)
 
 
+# author による素通しと strict
+
+
+_DEPENDABOT = "dependabot[bot]"
+_ACTIONS = "github-actions[bot]"
+_HUMAN = "Some Human"
+_STRICT = {"PECOT_VERSION_PLAN_STRICT": "1"}
+
+
+def _commit_as(h: _VprRepo, author: str, rel: str, message: str, *extra: str) -> None:
+    path = h.repo / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{message}\n")
+    h.git("add", rel)
+    h.git(
+        "-c", f"user.name={author}", "-c", f"user.email={author.replace(' ', '')}@example.com",
+        "commit", "-q", "-m", message, *extra,
+    )  # fmt: skip
+
+
+def _authored_feature(h: _VprRepo, authors: list[str]) -> str:
+    """main(既存 plan merge 済)→feature に、authors の順で 1 commit ずつ積み、feature の sha を返す。"""
+    h.build_base_with_plan()
+    h.git("checkout", "-q", "-b", "feature")
+    for i, author in enumerate(authors):
+        _commit_as(h, author, f"plugins/pecot-workflow/cli/pecot/a{i}.py", f"feat: change {i}")
+    h.fake_remote_ref("main", h.main_sha)
+    h.fake_origin_head("main")
+    h.stub_nx()
+    return h.head_sha()
+
+
+def test_30_pass_dependabot_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """30. dependabot だけの range → 理由を出して pass。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 0
+    assert "dependabot の更新の version plan はリリース時に作る" in result.stderr
+
+
+def test_31_pass_dependabot_and_actions(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """31. dependabot と github-actions（lock の commit）→ pass。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT, _ACTIONS])
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 0
+    assert "dependabot の更新の version plan はリリース時に作る" in result.stderr
+
+
+def test_32_block_dependabot_and_human(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """32. dependabot の PR に人が commit を足した → 今までどおり ERROR。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT, _HUMAN])
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 1
+    assert "ERROR:" in result.stderr
+
+
+def test_33_block_actions_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """33. github-actions だけ（dependabot が 0 件）→ ERROR。"""
+    sha = _authored_feature(vpr_repo, [_ACTIONS])
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 1
+    assert "ERROR:" in result.stderr
+
+
+def test_34_pass_human_merge_commit_is_not_counted(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """34. 人が作った merge commit を挟んでも、merge でない commit が dependabot だけなら pass。"""
+    h = vpr_repo
+    h.build_base_with_plan()
+    h.git("checkout", "-q", "-b", "feature")
+    _commit_as(h, _DEPENDABOT, "plugins/pecot-workflow/cli/pecot/a0.py", "feat: bump")
+    h.git("checkout", "-q", "-b", "side", h.main_sha)
+    _commit_as(h, _DEPENDABOT, "plugins/pecot-tools/cli/side.py", "feat: side")
+    h.git("checkout", "-q", "feature")
+    h.git(
+        "-c", f"user.name={_HUMAN}", "-c", "user.email=human@example.com",
+        "merge", "-q", "--no-ff", "-m", "Merge side", "side",
+    )  # fmt: skip
+    h.fake_remote_ref("main", h.main_sha)
+    h.fake_origin_head("main")
+    h.stub_nx()
+    result = _run(script_dir, h, run_script, to_ref=h.head_sha())
+    assert result.returncode == 0
+    assert "dependabot の更新の version plan はリリース時に作る" in result.stderr
+
+
+def test_35_pass_squash_commit_without_pr_env(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """35. squash の 1 commit（author が dependabot）→ PR の情報の env なしで pass。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 0
+
+
+def test_36_strict_fails_on_unresolved_base(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """36. strict では base が解決できないと失敗。env が無ければ今までどおり skip。"""
+    vpr_repo.build_feature()
+    vpr_repo.stub_nx()
+    env = {"PECOT_VERSION_PLAN_BASE": "refs/non-existent"}
+    strict = _run(script_dir, vpr_repo, run_script, to_ref=vpr_repo.feature_sha, env=env | _STRICT)
+    assert strict.returncode == 1
+    assert "PECOT_VERSION_PLAN_STRICT=1" in strict.stderr
+    loose = _run(script_dir, vpr_repo, run_script, to_ref=vpr_repo.feature_sha, env=env)
+    assert loose.returncode == 0
+
+
+def test_37_strict_fails_on_nx_graph_failure(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """37. strict では nx graph が失敗すると失敗。env が無ければ今までどおり skip。"""
+    vpr_repo.build_feature()
+    vpr_repo.stub_nx()
+    vpr_repo.nx_env["STUB_NX_GRAPH_FAIL"] = "1"
+    strict = _run(script_dir, vpr_repo, run_script, to_ref=vpr_repo.feature_sha, env=_STRICT)
+    assert strict.returncode == 1
+    loose = _run(script_dir, vpr_repo, run_script, to_ref=vpr_repo.feature_sha)
+    assert loose.returncode == 0
+
+
+def test_38_strict_keeps_normal_pass(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """38. strict でも、判定不能でない素通し（変更の無い場合）は 0 のまま。"""
+    sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/README.md": "docs\n"})
+    vpr_repo.stub_nx()
+    assert _run(script_dir, vpr_repo, run_script, to_ref=sha, env=_STRICT).returncode == 0
+
+
+def test_39_strict_fails_without_push_info(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """39. strict では push 情報なしも失敗。env が無ければ skip。"""
+    vpr_repo.build_feature()
+    vpr_repo.stub_nx()
+    assert _run(script_dir, vpr_repo, run_script, env=_STRICT).returncode == 1
+    assert _run(script_dir, vpr_repo, run_script).returncode == 0
+
+
 # touched の判定（持ち主の project と release group）
 
 

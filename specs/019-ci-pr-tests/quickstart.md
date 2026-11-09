@@ -11,7 +11,7 @@
 | Environment | `release` を作り、必須レビュアーにリリース担当者を入れる |
 | auto-merge | リポジトリの設定で Allow auto-merge を有効にする |
 | イメージ | `devcontainer-image.yml` を手で 1 回起動し、GHCR のパッケージを public にする |
-| ruleset | `gh api -X POST repos/pecotcraft/pecot/rulesets --input .github/rulesets/main.json` で適用する。bypass の App の id は適用の前に JSON に入れる |
+| ruleset | `gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 --input .github/rulesets/main.json` で適用する。bypass にリリースの App の id を入れるまで適用しない。適用後は `gh api repos/pecotcraft/pecot/rulesets/26538811` で規則を確かめる |
 
 ruleset は最後に入れる。先に入れると、ruleset を入れる PR 自身が必須チェックを待って止まる。
 

@@ -121,7 +121,7 @@ esac
 declare -A stage_rc=()
 
 run_stage() {
-    # version plan の判定は CI では動かさない。CI の job は後で足す。
+    # version plan の判定はここでは動かさない。CI では `version-plan` の job が判定する。
     local stage="$1" skip="check-version-plan-required" plan_base=""
     local -a range_args=() extra_env=()
     [ -z "$part_skip" ] || skip="$skip,$part_skip"
