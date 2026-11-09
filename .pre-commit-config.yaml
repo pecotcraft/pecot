@@ -134,7 +134,7 @@ repos:
         language: unsupported_script
         pass_filenames: false
         always_run: true
-        # 成功 push でも合計と最長レーンの 1 行を端末へ出すため（pre-commit は
+        # 成功時も合計と最長レーンの 1 行を端末へ出すため（pre-commit は
         # verbose でない hook の成功時出力を捨てる）
         verbose: true
         stages: [manual]

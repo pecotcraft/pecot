@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# pre-push チェック共通の base/head 解決ロジック。
+# pre-push と manual の stage の hook が共有する base/head 解決ロジック。
 #
 # version-plan ガード（check-version-plan-required.sh）が source して使う。
 # affected テストのチェック（run-affected-tests.sh）も同様に source して使う。

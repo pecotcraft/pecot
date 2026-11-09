@@ -59,6 +59,46 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
   - `githooks-tests` も、同じ形（`pre-commit run --hook-stage manual githooks-tests ...`）で動かせる。
     全量は `--all-files` で動く。
 
+## 緊急の force push
+
+`main` の履歴を書き換えるのは、個人情報や秘密の値を消すときなどの緊急時だけにする。
+`main` の ruleset（`.github/rulesets/main.json`、id 26538811）は force push を禁じるので、管理者が一時的に外す。
+手順は次の順にする。
+
+1. ruleset の enforcement を `disabled` にする。
+
+   ```bash
+   gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 -f enforcement=disabled
+   ```
+
+2. 書き換えた履歴を force push する。
+
+   ```bash
+   git push --force-with-lease origin HEAD:main
+   ```
+
+3. ruleset を JSON の内容で戻す。enforcement は JSON の `active` になる。
+
+   ```bash
+   gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 --input .github/rulesets/main.json
+   gh api repos/pecotcraft/pecot/rulesets/26538811 --jq .enforcement
+   ```
+
+4. push で動いた `main` の CI を確かめる。
+
+   ```bash
+   gh run list --workflow ci.yml --branch main --event push -L 1
+   ```
+
+   - 範囲の base の commit を読めないときは、全レーンが動く
+   - 成功した run が無い（`noPreviousBuild`）ときも、全レーンが動く
+
+- version plan は要らない。`main` への push では version plan を確かめない
+- 次のリリースは、書き換えた後の履歴で動く。dependabot の plan は、前回の tag の側に同じ中身の commit があれば作らない
+- この手順で消せるのは git の履歴だけである。次のものに情報が入っていた場合は、この手順の範囲外である
+  - GitHub Release の添付
+  - npm に publish した配布物
+
 ## 規約
 
 ### R1. CI スクリプトの dispatch 単位 = プラグイン (固定深さ)
@@ -67,6 +107,7 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
 
 - `plugins/pecot-workflow/`
 - `plugins/pecot-visual/`
+- `plugins/pecot-tools/`
 
 skill レベルの `scripts/ci/` は持たない。プラグイン直下の dispatcher が内部 skill の build / lint / test を呼び出す。
 
@@ -75,16 +116,16 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 > `nx affected` で各 `project.json` の lint / test target を dispatch する。
 > プラグイン単位の `<plugin>-run-lint` / `<plugin>-run-tests` hook は廃止した。
 >
-> - lint（pre-commit）は、`nx-affected-lint` が staged 変更ファイルを
->   `nx affected -t <lint レーン名の列挙> --files=<csv>` に渡す。push range の解決は不要である。
-> - test（manual）は、`nx-affected-tests` が `nx affected -t <test レーン名の列挙>` を
->   push range（merge-base..tip）で実行する。
+> - lint（pre-commit）は、`nx-affected-lint` が staged のファイル（CI では範囲の変更ファイル）を
+>   `nx affected -t <lint レーン名の列挙> --files=<csv>` に渡す。範囲の解決は不要である。
+> - test（manual の stage・CI）は、`nx-affected-tests` が `nx affected -t <test レーン名の列挙>` を
+>   範囲（merge-base..tip）で実行する。
 >   - base/head 解決は version-plan gate（`check-version-plan-required.sh`）と同一の共有 lib
 >     （`lib/push-range.sh`）を使い、両チェックが同じ範囲判定を構造的に共有する。
 >   - nx の出力は `.pecot/tmp/nx-affected-tests/nx-affected-tests.log` に残る。
 >     実行中の進行確認は `tail -f` で行い、失敗時は端末に失敗レーンの出力と nx の要約が出る。
 >   - 成功時は、合計秒・最長 test task・並列度・レーン数の 1 行が端末に出る。
->     先頭は `nx affected tests:` で、run-many の予備手段を使った push は `nx run-many tests:` になる。
+>     先頭は `nx affected tests:` で、run-many の予備手段で動いたときは `nx run-many tests:` になる。
 >     pre-commit の `verbose` により、その前に `- hook id:` / `- duration:` の 2 行が出る。
 >   - 「最長」は test task 単体の秒で、dependsOn の install / build は含まない。
 > - レーン名の列挙 (#1232) では、`-t` に起点の `test` / `lint`（nx:noop）ではなく、レーンの target 名をカンマ区切りで渡す。
@@ -166,7 +207,7 @@ target がプラグインの `run-{lint,tests}.sh` を呼ぶ。
 | `run-lint.sh` | lint / format check (サブパッケージにも dispatch) | test / build (重ければ) |
 | `run-tests.sh` | test / 型チェック / build / 統合検証 (サブパッケージにも dispatch) | **lint (pre-commit で実行済みの前提、保険でも入れない)** |
 
-pre-commit と pre-push の責務はそれぞれ排他に固定する。`run-tests.sh` で保険 lint を入れたり、`run-lint.sh` で test を呼んだりしない。
+lint（pre-commit）と test（manual の stage・CI）の責務はそれぞれ排他に固定する。`run-tests.sh` で保険 lint を入れたり、`run-lint.sh` で test を呼んだりしない。
 
 plugin 内のサブパッケージが複雑な build / test を持つ場合、plugin 側 dispatcher が `cd <サブパッケージ dir>/` する。
 その後で、そのサブパッケージの npm scripts を呼ぶ。
@@ -207,11 +248,11 @@ lint / test は root 共通フック各 1 本に一本化する。次のとお�
   pass_filenames: false
   always_run: true
   verbose: true
-  stages: [pre-push]
+  stages: [manual]
 ```
 
 自前 hook の `entry` は `with-timing.sh <hook id>` で包み、所要を記録する。
-`verbose: true` は成功 push の 1 行を端末へ出すため `nx-affected-tests` だけに付ける。
+`verbose: true` は成功時の 1 行を端末へ出すため `nx-affected-tests` だけに付ける。
 
 トップレベルの `default_stages: [pre-commit]` により、`stages` を明示しない hook
 （外部リポの標準 hook）は pre-commit stage だけで動く。
@@ -219,9 +260,9 @@ lint / test は root 共通フック各 1 本に一本化する。次のとお�
 `files:` は付けない（path 正規表現の並行判定系を再導入しない）。
 範囲の決定は `nx affected` の project graph に一本化する。
 `nx.json`・ルート package.json 等の設定変更が plugin に波及するケースも取りこぼさない。
-lint は pass_filenames（既定）で staged ファイルを受けて `--files=<csv>` に渡す。
+lint は pass_filenames（既定）で staged ファイルを受けて `--files=<csv>` に渡す。CI では範囲の変更ファイルを渡す。
 `require_serial: true` は、バッチ分割時の nx 並列起動（pnpm install 競合）を防ぐ。
-test は `always_run` + push range で評価する。
+test は `always_run` で評価する。手動の実行と CI は `--from-ref`/`--to-ref` を付け、merge-base..tip を範囲にする。
 
 `nx.json` の `pecot(v)PluginGlobals` は、lock / manifest / CI スクリプトを affected に乗せる。
 lint / test に分割して、各 target の `inputs` で宣言する。
@@ -263,3 +304,17 @@ for skill in skills/*/; do (cd "$skill" && npm ...); done
 
 プラグイン内部の構造は dispatcher
 責任で、規約は変えない (= `run-{lint,tests}.sh` が nx target の被呼び出し側である構造のまま)。
+
+### R10. commit メッセージの件名の例外
+
+件名には日本語を求める。commit-msg の `gitlint` の自前の規則 `title-requires-japanese`（`.githooks/gitlint/japanese_rule.py`）が確かめる。
+次の 3 つは、ツールが件名を作るので、日本語を求めない。`.gitlint` の `[title-requires-japanese]` の設定で外せる。
+
+| 件名の形 | 作るもの | `.gitlint` の設定 |
+|---|---|---|
+| `Revert "..."` | `git revert` | `allow-revert` |
+| `chore(release): ...` | `nx release`（`release.yml`） | `allow-release` |
+| `build(<scope>): bump ...` | dependabot。squash でそのまま `main` に残る | `allow-dependabot` |
+
+件名を書き換えるには、dependabot の PR に commit を積むことになる。
+積むと dependabot の rebase と自動マージが止まるので、dependabot の件名は例外にする。

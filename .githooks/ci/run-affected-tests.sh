@@ -132,7 +132,7 @@ record_lane_timings() {
         "parallel=$NX_PARALLEL lanes=$lanes longest=$longest rec=$(timing_elapsed_sec "$rec_start_us")"
 }
 
-# 成功 push の合計行を stdout へ出す。nx を起動していなければ何も出さない。
+# 成功時の合計行を stdout へ出す。nx を起動していなければ何も出さない。
 print_timing_summary() {
     [ "$nx_runs" -gt 0 ] || return 0
     local total label="nx affected tests:"
