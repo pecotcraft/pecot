@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# tests の job が nx のキャッシュを取り込む run を選ぶ。同じ repo の同じ PR の、成功した pull_request の run だけを対象にする。
-# env: EVENT_NAME・PR_NUMBER・HEAD_REF（merge_group のとき）・REPO・GH_TOKEN・GITHUB_RUN_ID・GITHUB_OUTPUT。
-# 見つかれば GITHUB_OUTPUT に run_id= を書く。API の失敗でも 0 で終える。
-# 結果は NX_SOURCE_FILE（既定は .pecot/tmp/ci/nx-source.txt）に key=value で書く。
+# tests の job が nx のキャッシュを取り込む run を選ぶ。同じ repo の同じ PR の run で、このレーンの artifact を持つ最新のものにする。
 # --download-failed: download の失敗時に、途中の物を消して理由を書き直す。
-# そのときの env: SRC_RUN_ID・ARTIFACT_NAME・NX_REMOTE_DIR。
 
 set -uo pipefail
 
@@ -12,7 +8,6 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 source_file="${NX_SOURCE_FILE:-$repo_root/.pecot/tmp/ci/nx-source.txt}"
 repo="${REPO:-}"
 own_run="${GITHUB_RUN_ID:-}"
-max_commits=30
 
 write_source() {
     mkdir -p "$(dirname "$source_file")"
@@ -29,18 +24,22 @@ if [ "${1:-}" = "--download-failed" ]; then
     rm -rf "${NX_REMOTE_DIR:-$repo_root/.pecot/tmp/ci/nx-remote}"
     count=$(gh api "repos/$repo/actions/runs/${SRC_RUN_ID:-}/artifacts?name=${ARTIFACT_NAME:-}" \
         | jq -r '.total_count') || count=""
+    [ -n "$count" ] || finish_none "取得の失敗"
     [ "$count" != "0" ] || finish_none "artifact なし"
-    finish_none "取得の失敗"
+    finish_none "download の失敗"
 fi
 
 case "${EVENT_NAME:-}" in
     pull_request) pr="${PR_NUMBER:-}" ;;
     merge_group)
-        pr=$(sed -nE 's#^(refs/heads/)?gh-readonly-queue/[^/]+/pr-([0-9]+)-[0-9a-f]+$#\2#p' <<< "${HEAD_REF:-}")
+        pr=$(sed -nE 's#^(refs/heads/)?gh-readonly-queue/.+/pr-([0-9]+)-[0-9a-f]+$#\2#p' <<< "${HEAD_REF:-}")
         ;;
     *) finish_none "対象外の event" ;;
 esac
-if ! [[ "$pr" =~ ^[0-9]+$ ]] || [ -z "$repo" ]; then
+if ! [[ "$pr" =~ ^[0-9]+$ ]]; then
+    finish_none "PR 番号不明"
+fi
+if [ -z "$repo" ]; then
     finish_none "取得の失敗"
 fi
 
@@ -50,30 +49,38 @@ pull_head_repo=$(jq -r '.head.repo.full_name // ""' <<< "$pull") || finish_none 
 if [ "$pull_head_repo" != "$repo" ]; then
     finish_none "fork の PR"
 fi
+repo_id=$(gh api "repos/$repo" | jq -r '.id // ""') || finish_none "取得の失敗"
+[ -n "$repo_id" ] || finish_none "取得の失敗"
 
 commits=$(gh api --paginate "repos/$repo/pulls/$pr/commits?per_page=100" \
-    | jq -s -r --argjson n "$max_commits" '(add // []) | map(.sha) | reverse | .[:$n][]') || finish_none "取得の失敗"
+    | jq -s -c '(add // []) | map(.sha)') || finish_none "取得の失敗"
 
-# head_repository が repo と一致するかを見る。ブランチ名で絞ると、同名ブランチの fork の run に当たる。
-candidates=""
-for sha in $commits; do
-    found=$(gh api "repos/$repo/actions/workflows/ci.yml/runs?event=pull_request&status=success&head_sha=$sha&per_page=20" \
-        | jq -c --arg repo "$repo" --arg own "$own_run" \
-            '.workflow_runs[] | select(.event == "pull_request" and .conclusion == "success" and .head_repository.full_name == $repo and (.id | tostring) != $own) | {id, head_sha, created_at}') \
-        || finish_none "取得の失敗"
-    [ -n "$found" ] && candidates+="$found"$'\n'
-done
+# artifact は job の成功時だけ上がる。head_repository_id で、同名ブランチの fork の run を除く。
+candidates=$(gh api "repos/$repo/actions/artifacts?name=${ARTIFACT_NAME:-}&per_page=100" \
+    | jq -c --argjson id "$repo_id" --argjson commits "$commits" --arg own "$own_run" \
+        '[.artifacts[] | select(.expired == false and .workflow_run.head_repository_id == $id and (.workflow_run.head_sha as $s | $commits | index($s)) and (.workflow_run.id | tostring) != $own) | {id: .workflow_run.id, head_sha: .workflow_run.head_sha, created_at}] | sort_by(.created_at) | reverse') \
+    || finish_none "取得の失敗"
 
-if [ -z "$candidates" ]; then
+if [ "$candidates" = "[]" ]; then
     finish_none "run なし"
 fi
 
 if [ "$EVENT_NAME" = "merge_group" ]; then
-    selected=$(jq -s -c --arg head "$pull_head_sha" 'map(select(.head_sha == $head)) | sort_by(.created_at) | last // empty' <<< "$candidates") || finish_none "取得の失敗"
-    [ -n "$selected" ] || finish_none "head 不一致"
-else
-    selected=$(jq -s -c 'sort_by(.created_at) | last' <<< "$candidates") || finish_none "取得の失敗"
+    candidates=$(jq -c --arg head "$pull_head_sha" 'map(select(.head_sha == $head))' <<< "$candidates") || finish_none "取得の失敗"
+    [ "$candidates" != "[]" ] || finish_none "head 不一致"
 fi
+
+# stacked PR などで同じ sha を持つ別の PR の run を除く。
+selected=""
+while IFS= read -r cand; do
+    cid=$(jq -r '.id' <<< "$cand")
+    info=$(gh api "repos/$repo/actions/runs/$cid") || finish_none "取得の失敗"
+    if jq -e --argjson pr "$pr" '.event == "pull_request" and ((.pull_requests // []) | map(.number) | index($pr) != null)' <<< "$info" > /dev/null; then
+        selected="$cand"
+        break
+    fi
+done < <(jq -c '.[]' <<< "$candidates")
+[ -n "$selected" ] || finish_none "run なし"
 
 run_id=$(jq -r '.id' <<< "$selected")
 run_head=$(jq -r '.head_sha' <<< "$selected")

@@ -50,6 +50,7 @@ Rationale: 宣言していない入力の変化を取りこぼさないため、
 - 同じ repo の PR（書き込み権限者・dependabot）は許容する。
   書き込み権限者は、main へ変更を入れられる信頼の範囲にいる。取り込み元は同じ PR に限る
 - fork の PR は、キャッシュを上げず、取り込まない。信頼できない変更の結果は、キャッシュに残さない
+- 同じ PR の途中の commit が置いた結果は、後の push と merge queue の run に引き継がれる。PR の作者はもともと ci.yml を書き換えられるので、信頼の境界は広がらない。そのため受け入れる
 - dependabot の PR の install で、依存の lifecycle スクリプトは動かない。`pnpm-workspace.yaml` の `permissions` で build を明示した依存だけが対象で、`build: true` は現在ない。宣言のない build は `ERR_PNPM_IGNORED_BUILDS` で止まる
 
 Alternatives considered:

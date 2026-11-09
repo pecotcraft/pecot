@@ -17,6 +17,9 @@ FR-029 のテストは、偽の nx で run-affected-tests.sh を動かす。
 
 from __future__ import annotations
 
+import os
+import shutil
+import socket
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -49,10 +52,36 @@ if [ "$stage" = "manual" ]; then
         cp "$STUB_NX_LOG_SRC" "$root/.pecot/tmp/nx-affected-tests/nx-affected-tests.log"
     fi
 fi
+if [ "${STUB_KILL_PARENT_STAGE:-}" = "$stage" ]; then
+    kill -TERM "$PPID"
+    sleep 1
+fi
 if [ "${STUB_FAIL_STAGE:-}" = "$stage" ]; then
     exit 1
 fi
 exit 0
+"""
+
+# 偽の node。port を書いて待ち続け、SIGTERM で env FAKE_USED の hash を used-file に書いて終わる。
+# 自分の pid を FAKE_NODE_PID のファイルへ書く。FAKE_NODE_MODE=exit は port を書いた直後に終わる。
+# FAKE_NODE_MODE=silent は port を書かずに待ち続ける。
+_FAKE_NODE = r"""#!/bin/bash
+[ "${1:-}" != "--version" ] || { echo v0.0.0; exit 0; }
+for a in "$@"; do
+    case "$a" in
+        --port-file=*) port_file="${a#--port-file=}" ;;
+        --used-file=*) used_file="${a#--used-file=}" ;;
+    esac
+done
+[ -z "${FAKE_NODE_PID:-}" ] || echo $$ > "$FAKE_NODE_PID"
+[ -z "${FAKE_NODE_ARGS:-}" ] || echo "$*" > "$FAKE_NODE_ARGS"
+case "${FAKE_NODE_MODE:-}" in
+    exit) echo 4242 > "$port_file"; exit 0 ;;
+    silent) ;;
+    *) echo 4242 > "$port_file" ;;
+esac
+trap 'printf "%s" "${FAKE_USED:-}" > "$used_file"; exit 0' TERM
+while :; do sleep 0.1; done
 """
 
 
@@ -497,6 +526,321 @@ def test_summary_reports_nx_cache_source(
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
     assert expected in result.stdout.splitlines()
+
+
+def _install_fake_node(mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, mode: str = ""):
+    mock_bin.install("node", _FAKE_NODE)
+    pid_file = tmp_path / "node.pid"
+    monkeypatch.setenv("FAKE_NODE_PID", str(pid_file))
+    monkeypatch.setenv("FAKE_NODE_MODE", mode)
+    return pid_file
+
+
+def _pid_alive(pid_file: Path) -> bool:
+    try:
+        os.kill(int(pid_file.read_text()), 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def test_missing_node_falls_back_to_skip(
+    pr_repo: _PrChecksRepo, run_script, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """node が無いときは警告を出し、キャッシュを使わずに動く。"""
+    only = tmp_path / "no-node-bin"
+    only.mkdir()
+    for name in (
+        "git",
+        "bash",
+        "env",
+        "head",
+        "od",
+        "tr",
+        "find",
+        "wc",
+        "sleep",
+        "dirname",
+        "mkdir",
+        "rm",
+        "cat",
+        "cut",
+        "tail",
+        "kill",
+        "sed",
+        "sort",
+        "sha256sum",
+        "cp",
+        "uname",
+        "pre-commit",
+    ):
+        found = shutil.which(name)
+        if found:
+            (only / name).symlink_to(found)
+    monkeypatch.setenv("PATH", str(only))
+    assert shutil.which("node") is None
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "WARN: node が無いため" in result.stderr
+    call = _manual_call(pr_repo)
+    assert (call["NXC"], call["SRV"]) == ("true", "unset")
+
+
+@pytest.mark.parametrize("mode", ["silent", "exit-before-port"])
+def test_server_without_port_falls_back_to_skip(
+    pr_repo: _PrChecksRepo,
+    run_script,
+    mock_bin,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    mode: str,
+) -> None:
+    """port を書かないサーバは待ち切って止め、キャッシュを使わずに動く。"""
+    if mode == "silent":
+        pid_file = _install_fake_node(mock_bin, monkeypatch, tmp_path, "silent")
+    else:
+        mock_bin.install("node", "exit 1\n")
+        pid_file = tmp_path / "node.pid"
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote"), "PECOT_CI_NX_CACHE_WAIT_TICKS": "5"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "WARN: nx のキャッシュサーバが起動しませんでした" in result.stderr
+    call = _manual_call(pr_repo)
+    assert (call["NXC"], call["SRV"]) == ("true", "unset")
+    if pid_file.exists():
+        assert not _pid_alive(pid_file)
+
+
+def test_server_dead_before_manual_stage_falls_back_to_skip(
+    pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """起動後に止まったサーバへは nx が接続できず task が失敗する（F-19）。manual の前に確かめ、キャッシュなしにする。"""
+    _install_fake_node(mock_bin, monkeypatch, tmp_path, "exit")
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    assert result.returncode == 0, result.stderr
+    call = _manual_call(pr_repo)
+    assert (call["NXC"], call["SRV"]) == ("true", "unset")
+    assert "キャッシュサーバが落ちている" in result.stderr
+
+
+def test_server_is_stopped_by_trap_when_script_is_terminated(
+    pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """stage の途中でスクリプトが SIGTERM を受けても、trap でサーバを止める。"""
+    pid_file = _install_fake_node(mock_bin, monkeypatch, tmp_path)
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote"), "STUB_KILL_PARENT_STAGE": "manual"},
+    )
+    assert result.returncode != 0
+    assert pid_file.exists()
+    assert not _pid_alive(pid_file)
+    assert pr_repo.done().exists()
+
+
+def test_failed_stage_stops_the_server(
+    pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """stage が失敗しても、サーバは止める。"""
+    pid_file = _install_fake_node(mock_bin, monkeypatch, tmp_path)
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote"), "STUB_FAIL_STAGE": "manual"},
+    )
+    assert result.returncode == 1
+    assert not _pid_alive(pid_file)
+
+
+def test_upload_dir_holds_only_used_artifacts(
+    pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """upload 用の場所には、nx-used.txt の hash の成果物だけが写る。hash は英数字だけを受ける。"""
+    _install_fake_node(mock_bin, monkeypatch, tmp_path)
+    monkeypatch.setenv("FAKE_USED", "abc1\n../evil\ndef2\nmissing\n")
+    cache = tmp_path / "nx-remote"
+    cache.mkdir()
+    for name in ("abc1", "def2", "old3"):
+        (cache / f"{name}.tar.gz").write_bytes(name.encode())
+    (tmp_path / "evil.tar.gz").write_bytes(b"x")
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(cache)},
+    )
+    assert result.returncode == 0, result.stderr
+    upload = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-upload"
+    assert sorted(p.name for p in upload.iterdir()) == ["abc1.tar.gz", "def2.tar.gz"]
+    assert (upload / "abc1.tar.gz").read_bytes() == b"abc1"
+
+
+def test_server_receives_used_file_path(
+    pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """サーバへ --used-file=<ci_dir>/nx-used.txt を渡す。"""
+    _install_fake_node(mock_bin, monkeypatch, tmp_path)
+    args_file = tmp_path / "node.args"
+    monkeypatch.setenv("FAKE_NODE_ARGS", str(args_file))
+    pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    used = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-used.txt"
+    assert f"--used-file={used}" in args_file.read_text()
+
+
+def test_upload_dir_is_empty_without_used_file(
+    pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """サーバが一覧を書かなかったときは、取り込み済みの成果物も上げない。"""
+    _install_fake_node(mock_bin, monkeypatch, tmp_path, "exit")
+    cache = tmp_path / "nx-remote"
+    cache.mkdir()
+    (cache / "abc1.tar.gz").write_bytes(b"x")
+    pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(cache)},
+    )
+    upload = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-upload"
+    assert list(upload.iterdir()) == []
+
+
+def test_cache_inputs_are_logged_and_summarized(
+    pr_repo: _PrChecksRepo, run_script, git_rev_parse, tmp_path: Path
+) -> None:
+    """取り込み元の tree と自分の tree、lock の hash、apt の一覧の hash を、ログと Summary に 1 行ずつ出す。"""
+    (pr_repo.repo / "pnpm-lock.yaml").write_text("lock\n")
+    own_tree = git_rev_parse(pr_repo.repo, "HEAD^{tree}")
+    lock_hash = subprocess.run(
+        ["git", "hash-object", "pnpm-lock.yaml"], cwd=pr_repo.repo, capture_output=True, text=True
+    ).stdout.strip()
+    _write_source(pr_repo, "status=imported\nrun_id=1\npr=2\nhead_sha=abc\ntree=srctree99\n")
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    expected = [
+        f"キャッシュの入力: 取り込み元の tree srctree99、自分の tree {own_tree}",
+        f"キャッシュの入力: pnpm-lock.yaml の hash {lock_hash}",
+    ]
+    for line in expected:
+        assert line in result.stderr.splitlines()
+        assert f"- {line}" in result.stdout.splitlines()
+    deb = [ln for ln in result.stdout.splitlines() if "apt のパッケージ一覧の hash" in ln]
+    assert len(deb) == 1
+    assert (
+        len([ln for ln in result.stderr.splitlines() if "apt のパッケージ一覧の hash" in ln]) == 1
+    )
+
+
+def test_cache_inputs_use_dash_without_sources(
+    pr_repo: _PrChecksRepo, run_script, tmp_path: Path
+) -> None:
+    """nx-source.txt に tree が無く lock も無いときは「-」を出す。"""
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    assert "- キャッシュの入力: pnpm-lock.yaml の hash -" in result.stdout.splitlines()
+    assert any(
+        ln.startswith("- キャッシュの入力: 取り込み元の tree -、自分の tree ")
+        for ln in result.stdout.splitlines()
+    )
+
+
+def test_cache_inputs_absent_without_nx_cache(pr_repo: _PrChecksRepo, run_script) -> None:
+    """PECOT_CI_NX_CACHE が無ければ、入力の行は出さない。"""
+    result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
+    assert "キャッシュの入力" not in result.stdout + result.stderr
+
+
+def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> None:
+    """F-19 の事実。誰も待ち受けない port を向けると、実 nx は task を実行せずに失敗する。
+
+    そのため run-pr-checks.sh は、manual の stage の前にサーバが生きているかを確かめる。
+    """
+    nx_bin = Path(__file__).resolve().parents[2] / "node_modules" / ".bin" / "nx"
+    if not nx_bin.exists():
+        pytest.skip("node_modules/.bin/nx が無い（npm ci 前）ため実 nx テストを skip する")
+    ws = tmp_path / "ws"
+    (ws / "p").mkdir(parents=True)
+    (ws / "nx.json").write_text('{"targetDefaults": {"tgt": {"cache": true}}}')
+    (ws / "package.json").write_text('{"name": "x", "version": "1.0.0"}')
+    (ws / "p" / "project.json").write_text(
+        '{"name": "p", "targets": {"tgt": {"command": "echo ran-the-task", "cache": true}}}'
+    )
+    (ws / "node_modules").symlink_to(nx_bin.parents[1])
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    env = {
+        **os.environ,
+        "NX_DAEMON": "false",
+        "NX_CACHE_DIRECTORY": str(tmp_path / "cache"),
+        "NX_WORKSPACE_DATA_DIRECTORY": str(tmp_path / "data"),
+        "NX_SELF_HOSTED_REMOTE_CACHE_SERVER": f"http://127.0.0.1:{port}",
+        "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": "x",
+    }
+    env.pop("NX_SKIP_NX_CACHE", None)
+    result = subprocess.run(
+        [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
+    )
+    assert result.returncode != 0
+    assert "Failed to send request" in result.stdout + result.stderr
+    assert "1 succeeded" not in result.stdout
+
+    env["NX_SKIP_NX_CACHE"] = "true"
+    for key in ("NX_SELF_HOSTED_REMOTE_CACHE_SERVER", "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN"):
+        env.pop(key)
+    skipped = subprocess.run(
+        [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
+    )
+    assert skipped.returncode == 0, skipped.stderr
+    assert "1 task: 1 succeeded" in skipped.stdout
+
+
+def test_lane_option_emits_summary_with_environment(pr_repo: _PrChecksRepo, run_script) -> None:
+    """--lane 付きでも、Summary に範囲・レーン・環境の欄が出る。"""
+    result = pr_repo.run(run_script, "--part=tests", "--lane=a:test-b", pr_repo.base, pr_repo.head)
+    assert result.returncode == 0, result.stderr
+    for heading in ("### 範囲", "### レーン", "### 失敗", "### skip", "### 環境"):
+        assert heading in result.stdout
 
 
 _TSV_OLD = "2026-11-06T00:00:00+0000\ttask\told-project:test-cli\t9.0\tstatus=success\n"

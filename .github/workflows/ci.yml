@@ -172,14 +172,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # 取り込むのは同じ repo の同じ PR の run の artifact だけにする。fork の PR では上げず、取り込まない。
+      # 取り込むのは同じ repo の同じ PR の run の artifact だけにする。fork の PR や対象外の event の判定はスクリプトに任せる。
       # 取り込めないときは、キャッシュなしで動かす。
       - name: Find nx cache source
         id: nxsrc
-        if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'merge_group'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: nx-cache-tests-${{ matrix.slug }}
           EVENT_NAME: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_REF: ${{ github.event.merge_group.head_ref }}
@@ -197,7 +197,7 @@ jobs:
           github-token: ${{ github.token }}
           path: .pecot/tmp/ci/nx-remote
 
-      - name: Record nx cache download failure
+      - name: Record nx cache download result
         if: steps.nxdl.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -261,10 +261,11 @@ jobs:
       # 取り込み元に選ばれるのは成功した run だけなので、always() を付けず成功時だけ上げる。
       - name: Upload nx cache
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nx-cache-tests-${{ matrix.slug }}
-          path: .pecot/tmp/ci/nx-remote/*.tar.gz
+          path: .pecot/tmp/ci/nx-upload/*.tar.gz
           retention-days: 7
           if-no-files-found: ignore
 

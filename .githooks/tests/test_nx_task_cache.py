@@ -806,7 +806,7 @@ _RUNTIME_OUTPUT_PATTERNS = {
 
 
 def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
-    """runtime の各コマンドが workspace root で exit 0 を返し、出力に版を含む。
+    """runtime の各コマンドが workspace root で exit 0 を返し、出力に版を含む（devcontainer の Debian 系が前提）。
 
     nx は終了コードを見ずに出力をハッシュする。失敗時のエラー文がハッシュされて版が変わっても
     同じ値になる誤再利用を防ぐため、実際に版が取れることを保証する。
