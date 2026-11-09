@@ -72,7 +72,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。`pecot issue quick` / `issue create` の使用を強制する | コアガード | `true` |
 | `pecot-pr-create-ask` | `pecot pr create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p`/`--dry-run`/`-n` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | コアガード（external-post-check） | `true` |
 | `pecot-issue-create-ask` | `pecot issue quick` / `issue create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p` は素通し。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | コアガード（external-post-check） | `true` |
-| `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。従来は無プロンプトだったが本ガードで ask に変わる。確認フラグ（`--dry-run`/`-n`）の免除は持たず無条件で ask し、`pecot pr merge` 経由を案内する | コアガード（external-post-check） | `true` |
+| `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグ（`--dry-run`/`-n`）の免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは `pecot pr cleanup`） | コアガード（external-post-check） | `true` |
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
 | `git-worktree-branch-check` | `wt*`/`develop-aist` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
@@ -85,9 +85,9 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 
 `pecot pr create`（実投稿）/ `gh pr merge` / `pecot issue quick`・`issue create`（実投稿）は、成果物を外部へ反映する操作。
 そのため実行前にガードを挟み、いずれもユーザー承認（ask）を要求する。
-`pecot pr merge` は検出対象外とする。
-PR 外部反映の起点である `pecot pr create` でガード済みのため。
+`pecot pr merge` は廃止した。マージは `gh pr merge`、片付けは `pecot pr cleanup`（検出対象外）で行う。
 w-merge スキル起動はユーザーのマージ指示であり、マージ直前の再承認は求めない（#911）。
+そのため `gh pr merge` は、`/pecot-w:w-merge` 起点のフラグ（`merge-slash-pending`）があれば素通しする。フラグが無ければ ask する。
 全チェックが `exit 11`（ask）を返し、`claude-bash-guards` が `permissionDecision: "ask"` に変換する。
 
 | エージェント | ask（exit 11）の変換 | クライアントでの扱い（実機記録） |
@@ -102,14 +102,15 @@ PostToolUse の `decision: "block"` は変えない。
 
 確認フラグによる素通しは `pecot pr create`（`--prepare`/`-p`/`--dry-run`/`-n`）と
 `pecot issue create`（`--prepare`/`-p`）に適用する。`gh pr merge` はこれらのフラグを
-免除せず無条件で ask する。`pecot pr read` / `pecot pr merge` / `pecot pr preflight` /
+免除しない。`pecot pr read` / `pecot pr cleanup` / `pecot pr preflight` /
 `pecot issue read` / `issue comment` はそもそも検出対象外。
 `gh pr create` / `gh issue create` の deny（`gh-pr-create-check` / `gh-issue-create-check`）は
 従来どおり温存する。
 
-スラッシュコマンド起点の免除フラグは、`pr-create-slash-pending` と `issue-create-slash-pending` の 2 つ。
+スラッシュコマンド起点の免除フラグは、`pr-create-slash-pending` / `issue-create-slash-pending` / `merge-slash-pending` の 3 つ。
 このフラグは「投稿成功まで生存する一発券」で、ライフサイクルは次のとおり。
 設置は `create-slash-flag.sh`（UserPromptSubmit）、消費は pecot CLI が実投稿成功時に削除する。
+`merge-slash-pending` だけは、`pecot pr cleanup` の成功時に削除する。
 残骸掃除は `create-slash-cleanup.sh`（SessionStart）が担う。
 ターンを跨ぐ聞き返しフロー（起票内容の確認質問にユーザーが地の文で補足するケース）でも、フラグは生存する。
 
@@ -129,7 +130,7 @@ ExitPlanMode の後のフック。
 |------|------|----------|-----------|
 | `session-start-common` | SessionStartのディスパッチャ（エントリ `session-start.sh` 1 本）。以下のサブスクリプトを順次呼び出す（`flock` があるときは多重実行防止ロック付き。標準の macOS には無いため、その環境ではロックを掛けずに実行する。Claude Code は matcher が startup・clear・resume・fork の 4 つ、Copilot CLI は matcher なし（`new` / `resume`） | SessionStart | `true` |
 | `issue-pending-cleanup` | セッション開始時に残存する `issue-pending` フラグを削除する（Issue 未起票のまま中断した w-quick / w-ready の stale フラグを掃除する） | SessionStart サブスクリプト | `true` |
-| `create-slash-cleanup` | セッション開始時に残存する `pr-create-slash-pending` / `issue-create-slash-pending` フラグを削除する（前セッションの未消費フラグで実投稿の ask が免除されるのを防ぐ） | SessionStart サブスクリプト | `true` |
+| `create-slash-cleanup` | セッション開始時に残存する `pr-create-slash-pending` / `issue-create-slash-pending` / `merge-slash-pending` フラグを削除する（前セッションの未消費フラグで実投稿の ask が免除されるのを防ぐ） | SessionStart サブスクリプト | `true` |
 | `session-title` | Claude Code のセッション名を作業対象 Issue に合わせる。pecot CLI が `.pecot-active` と同時に書く `.pecot/state/.pecot-session-title`（`#<番号> <Issue タイトル>`。種別接頭辞なし・全体 40 文字。旧版の CLI が書いた `.pecot-active` だけなら `#<番号>`）を `hookSpecificOutput.sessionTitle` で返す。SessionStart（`source` が startup / resume / fork のときだけ）と UserPromptSubmit（セッション途中の起票の次のプロンプト）の両方から同じ `lib/core/session-title.sh` を `merge-hook-outputs.sh` 経由で呼ぶ。`sessionTitle` は公式ドキュメント（hooks の「UserPromptSubmit decision control」「SessionStart decision control」）に記載があり、UserPromptSubmit は Claude Code 2.1.310 で適用も確認した。hook 入力に `transcript_path` が無いとき（Copilot CLI は SessionStart / UserPromptSubmit に送らない。1.0.103 で確認。Claude Code は `-p` でも対話でも送る。`session_title` は名前の無いセッションではキー自体が付かないため判別に使えない）、入力の `session_title` が題名と同じとき、`.pecot-active` の番号が数字でないときは出さない。題名ファイルが別 Issue のもの・空のときは `#<番号>`。直前に出した `<session_id>:<題名>` を `.pecot/state/session-title-sent` に残し、同じ題名は再送しない（利用者の `/rename` は Issue が変わるまで上書きしない）。Copilot CLI の hook 出力に `sessionTitle` は無いため `hooks-copilot.json` には載せない | SessionStart（`session-start.sh` が `session-start-common` と別のスクリプトとして merge に渡す） / UserPromptSubmit（`user-prompt-submit-title.sh`） | `true` |
 | `session-project-dir` | `$CLAUDE_ENV_FILE` に `PECOT_SESSION_PROJECT_DIR`（セッションを開始した worktree のルート。Claude Code が渡した元の `CLAUDE_PROJECT_DIR` の git toplevel）を追記する。worktree の `.pecot/work` は base への symlink で、そこへ `cd` した後に Bash から呼ぶ `pecot` CLI が worktree の `.pecot/state` を読むための起点になる（この変数は CLI 用。hooks 側は Claude Code が渡す `CLAUDE_PROJECT_DIR` を直接起点に使う）。Copilot CLI には `CLAUDE_ENV_FILE` が無く、この設定は使えない | SessionStart サブスクリプト | `true` |
 | `git-sync` | 未コミット変更がない場合にカレントブランチを `git pull` で最新化する。pull は 1 回だけ（`GIT_TERMINAL_PROMPT=0` と、`GIT_SSH_COMMAND` への `-o BatchMode=yes` の追加で認証の入力待ちをしない。既存の `GIT_SSH_COMMAND` は残す）で、失敗時は git の出力を stderr に出す | SessionStart サブスクリプト | `true` |
@@ -170,6 +171,7 @@ MCPツールやdraw.io等の外部ツールとの連携。
 | `pecot-issue-pending-state` | 先頭行が `/pecot-w:w-quick` / `/pecot-w:w-ready`（名前空間なしの短縮形 `/w-quick` / `/w-ready` を含む）で始まるプロンプトを検出し `issue-pending` フラグを作成する。pecot 未使用リポでは作成しない | UserPromptSubmit | `true` |
 | `pr-create-slash-flag` | プロンプトの先頭行が `/pecot-w:w-pr`（名前空間なしの短縮形 `/w-pr` を含む）のとき `pr-create-slash-pending` フラグを作成し、`pecot pr create`（実投稿）の ask を投稿成功（CLI 消費）まで免除する。フラグはエージェント側からも作成可能であり、免除は利便性であって防御境界ではない。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を issue 側と共用） | UserPromptSubmit | `true` |
 | `issue-create-slash-flag` | プロンプトの先頭行が `/pecot-w:w-quick` `/pecot-w:w-ready` `/pecot-w:w-backlog` `/pecot-w:w-issueize`（名前空間なしの短縮形 `/w-quick` 等を含む）のとき `issue-create-slash-pending` フラグ（内容 = 起点コマンド名）を作成し、`pecot issue quick` / `issue create`（実投稿）の ask を投稿成功（CLI 消費）まで免除する。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を pr 側と共用） | UserPromptSubmit | `true` |
+| `merge-slash-flag` | プロンプトの先頭行が `/pecot-w:w-merge`（短縮形 `/w-merge` を含む）のとき `merge-slash-pending` フラグを作成し、`gh pr merge` の ask を免除する。削除は `pecot pr cleanup` の成功時で、`gh pr merge` の時点では消さない（マージ待ちのあとに cleanup を打つため）。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を共用） | UserPromptSubmit | `true` |
 | `pecot-issue-pending-reminder` | `issue-pending` フラグ存在中の Edit/Write/MultiEdit/NotebookEdit/EnterPlanMode（`pre-tool-use.sh`）と Bash の `git checkout`/`git switch`（`pre-tool-use-bash.sh`）に `additionalContext` で起票リマインドを注入する（非ブロック）。`*/.pecot/tmp/output/*` 宛の編集は除外。Copilot の Read / Edit は `tool_input.path` で届く | PreToolUse | `true` |
 | `commit-info-display` | `git commit` 成功後にコミットメッセージとdiff統計を表示する。成功の判定は `bash-post-match.sh`（Claude の `tool_response.stdout` / Copilot の `tool_result.text_result_for_llm`）が 1 回だけ行う | PostToolUse (Bash) | `true` |
 | `auto-push` | `git commit` 成功後にWIPブランチへ自動pushし、IssueのDevelopment欄にリンクする。対象は、`.pecot-active` の Issue 番号で終わり、`origin` が同じ owner/repo のブランチだけ。push の後で `origin/wip/` の追跡 ref を消し、`remote.origin.fetch` に `^refs/heads/wip/*` を足す | PostToolUse (Bash) | **`false`** |

@@ -1,7 +1,7 @@
 {
-  "stdout": "",
-  "stderr": "エラー: PR #21 は既にマージ済みです\n",
-  "exitCode": 1,
+  "stdout": "\nEpic保護でクローズをスキップ: #12\n\n=== マージ後の片付け完了 ===\nPR: acme/demo/21\nタイトル: feat(demo): #12 見本の変更\n\n※マージ完了報告をIssueにコメントする必要はありません。\n",
+  "stderr": "",
+  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",
@@ -10,6 +10,16 @@
         "owner": "acme",
         "repo": "demo",
         "number": 21
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueKind",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 12
       },
       "auth": "token"
     }

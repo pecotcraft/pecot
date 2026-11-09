@@ -1,9 +1,10 @@
-# PR が既にマージ済み。exit 1 になる。
-id: pr-merge-state-merged
+# クローズ対象が Epic。片付けはするが Issue は閉じない（Epic 保護）。
+id: pr-cleanup-ok-epic-protected
 command:
-  path: [pr, merge]
+  path: [pr, cleanup]
   args:
     - "acme/demo/21"
+    - "--skip-local-cleanup"
 setup:
   repo:
     files:
@@ -65,3 +66,8 @@ github:
     respond:
       status: 200
       body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "MERGED", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
+  - match:
+      operation: "GetIssueKind"
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 3}}}}}

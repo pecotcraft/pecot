@@ -22,7 +22,7 @@ FLAG_PECOT_ACTIVE = ".pecot-active"
 FLAG_PECOT_SESSION_TITLE = ".pecot-session-title"
 FLAG_PECOT_QUICK_MODE = ".pecot-quick-mode"
 # auto-push が wip/ へ push して紐づけ済みであることを示す。
-# 設置は hooks の auto-push.sh。pecot pr merge の後片付けで削除する
+# 設置は hooks の auto-push.sh。pecot pr cleanup の後片付けで削除する
 FLAG_WIP_BRANCH_LINKED = ".wip-branch-linked"
 
 # スラッシュコマンド起点の外部反映免除フラグ。
@@ -30,6 +30,8 @@ FLAG_WIP_BRANCH_LINKED = ".wip-branch-linked"
 # CLI が実投稿成功時に削除する。
 FLAG_PR_CREATE_SLASH_PENDING = "pr-create-slash-pending"
 FLAG_ISSUE_CREATE_SLASH_PENDING = "issue-create-slash-pending"
+# /w-merge 起点の免除フラグ。gh pr merge の ask を免除する。pecot pr cleanup の成功時に削除する
+FLAG_MERGE_SLASH_PENDING = "merge-slash-pending"
 
 # 起票未完了のリマインド用フラグ。
 # 設置は hooks の pecot-issue-pending-state.sh と pecot-skill-reminder.sh。

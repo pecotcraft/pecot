@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: PR #21 にコンフリクトがあります。解消が必要です\n  ヒント: --admin オプションで強制マージを試行できます\n",
+  "stderr": "エラー: PR #21 はまだマージされていません（state: OPEN）\n  gh pr merge でマージし、main に入ってから打ち直してください\n",
   "exitCode": 1,
   "requests": [
     {

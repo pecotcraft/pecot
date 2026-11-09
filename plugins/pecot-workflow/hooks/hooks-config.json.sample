@@ -12,6 +12,7 @@
   "gh-pr-merge-ask": true,
   "pr-create-slash-flag": true,
   "issue-create-slash-flag": true,
+  "merge-slash-flag": true,
   "create-slash-cleanup": true,
   "git-checkout-check": true,
   "git-no-verify-check": true,

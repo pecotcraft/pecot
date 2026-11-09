@@ -1,9 +1,9 @@
-# PUT merge が 502 を返す。「マージに失敗しました」で exit 1 になる。
-id: pr-merge-5xx
+# PR 参照の形が不正。exit 2 になる。
+id: pr-cleanup-usage
 command:
-  path: [pr, merge]
+  path: [pr, cleanup]
   args:
-    - "acme/demo/21"
+    - "not-a-ref"
 setup:
   repo:
     files:
@@ -59,20 +59,4 @@ setup:
         ghes.example.com_acme_board_acme.json
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
-github:
-  - match:
-      operation: "GetPullRequestSlim"
-    respond:
-      status: 200
-      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "OPEN", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
-  - match:
-      operation: "GetIssueKind"
-    respond:
-      status: 200
-      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 0}}}}}
-  - match:
-      method: "PUT"
-      path: "/repos/acme/demo/pulls/21/merge"
-    respond:
-      status: 502
-      text: "Bad Gateway"
+github: []

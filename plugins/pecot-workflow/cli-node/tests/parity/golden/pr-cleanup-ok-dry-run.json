@@ -1,5 +1,5 @@
 {
-  "stdout": "✔ PR #21 をマージしました (SHA: abcdef1)\n\n関連Issueをクローズ中...\n  ✔ Issue #12 をクローズしました\n\nローカルクリーンアップ中...\n  ✔ git checkout main\n  ✔ git pull origin main\n  ✔ git branch -D feat/demo/12\n\n=== マージ完了 ===\nPR: acme/demo/21\nタイトル: feat(demo): #12 見本の変更\nマージ方法: squash\nクローズしたIssue: #12\n\n※マージ完了報告をIssueにコメントする必要はありません。\n",
+  "stdout": "=== ドライラン（実際には片付けません） ===\n\nPR: acme/demo/21\nタイトル: feat(demo): #12 見本の変更\nブランチ: feat/demo/12 → main\n\nクローズ予定: #12\n\n--- ローカルクリーンアップ（プレビュー） ---\n  git checkout main\n  git pull origin main\n  git branch -D feat/demo/12\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -20,27 +20,6 @@
         "owner": "acme",
         "repo": "demo",
         "number": 12
-      },
-      "auth": "token"
-    },
-    {
-      "type": "rest",
-      "method": "PUT",
-      "path": "/repos/acme/demo/pulls/21/merge",
-      "query": {},
-      "body": {
-        "merge_method": "squash"
-      },
-      "auth": "token"
-    },
-    {
-      "type": "rest",
-      "method": "PATCH",
-      "path": "/repos/acme/demo/issues/12",
-      "query": {},
-      "body": {
-        "state": "closed",
-        "state_reason": "completed"
       },
       "auth": "token"
     }

@@ -1122,21 +1122,21 @@ Resolves #789
         assert result == [123]
 
 
-# pr merge コマンドテスト
+# pr cleanup コマンドテスト
 
 
-class TestPRMergeCommand:
-    """pr merge コマンドのテスト"""
+class TestPRCleanupCommand:
+    """pr cleanup コマンドのテスト"""
 
-    def test_merge_success(self) -> None:
-        """正常系: PRマージ成功"""
+    def test_cleanup_success(self) -> None:
+        """正常系: マージ済みPRの片付け成功"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
 
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト機能追加",
             "body": "## Verified — テスト用本文\n\n- テスト追加\n\nCloses #123",
             "head_ref": "feat/test",
@@ -1146,11 +1146,6 @@ class TestPRMergeCommand:
             "comments": 0,
             "closing_issues": [{"number": 123, "title": "テストタスク"}],
             "reviews": [],
-        }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-            "message": "Pull Request successfully merged",
         }
         mock_client.close_issue.return_value = {
             "number": 123,
@@ -1162,14 +1157,13 @@ class TestPRMergeCommand:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
-            assert "マージ完了" in result.output or "#42" in result.output
-            mock_client.merge_pull_request.assert_called_once()
+            assert "マージ後の片付け完了" in result.output
             mock_client.close_issue.assert_called_once_with("owner", "repo", 123)
 
-    def test_merge_success_shows_no_report_message(self) -> None:
+    def test_cleanup_success_shows_no_report_message(self) -> None:
         """正常系: マージ成功時に報告不要メッセージが表示される"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1177,7 +1171,7 @@ class TestPRMergeCommand:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト機能追加",
             "body": "## Verified — テスト用本文\n\n- テスト追加",
             "head_ref": "feat/test",
@@ -1188,23 +1182,18 @@ class TestPRMergeCommand:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-            "message": "Pull Request successfully merged",
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             assert "マージ完了報告をIssueにコメントする必要はありません" in result.output
 
-    def test_merge_with_closing_issues_from_body(self) -> None:
+    def test_cleanup_with_closing_issues_from_body(self) -> None:
         """PR本文からClosing Issuesを抽出してクローズ"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1212,7 +1201,7 @@ class TestPRMergeCommand:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Closes #123, Fixes #456",
             "head_ref": "feat/test",
@@ -1223,10 +1212,6 @@ class TestPRMergeCommand:
             "closing_issues": [],  # closingIssuesReferences は空
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.close_issue.return_value = {"state": "closed"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
@@ -1234,13 +1219,13 @@ class TestPRMergeCommand:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # 両方のIssueがクローズされる
             assert mock_client.close_issue.call_count == 2
 
-    def test_merge_dry_run(self) -> None:
+    def test_cleanup_dry_run(self) -> None:
         """dry-runモード: 実際にはマージしない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1248,7 +1233,7 @@ class TestPRMergeCommand:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Closes #123",
             "head_ref": "feat/test",
@@ -1265,15 +1250,14 @@ class TestPRMergeCommand:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--dry-run"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--dry-run"])
 
             assert result.exit_code == 0
             assert "dry-run" in result.output or "ドライラン" in result.output
-            # 実際のマージ・クローズは呼ばれない
-            mock_client.merge_pull_request.assert_not_called()
+            # 実際のクローズは呼ばれない
             mock_client.close_issue.assert_not_called()
 
-    def test_merge_pr_not_found(self) -> None:
+    def test_cleanup_pr_not_found(self) -> None:
         """PRが見つからない場合"""
         from cli.core.github import GitHubNotFoundError
 
@@ -1287,90 +1271,69 @@ class TestPRMergeCommand:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/999"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/999"])
 
             assert result.exit_code == 1
             assert "見つかりません" in result.output
 
-    def test_merge_not_mergeable(self) -> None:
-        """PRがマージ不可の場合"""
+    @pytest.mark.parametrize("state", ["OPEN", "CLOSED"])
+    def test_cleanup_not_merged_exits_without_side_effects(self, state: str) -> None:
+        """MERGED 以外は exit 1 で、Issue クローズ・ブランチ削除・ローカル片付けをしない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
-
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": state,
             "title": "feat: テスト",
-            "body": "本文",
+            "body": "Closes #123",
             "head_ref": "feat/test",
             "base_ref": "develop-aist",
-            "is_draft": False,
-            "mergeable": "CONFLICTING",
-            "comments": 0,
-            "closing_issues": [],
-            "reviews": [],
+            "closing_issues": [{"number": 123}],
         }
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.commands.pr._local_cleanup_after_merge") as mock_local,
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
-            assert result.exit_code == 1
-            assert "コンフリクト" in result.output or "マージ不可" in result.output
+        assert result.exit_code == 1
+        assert f"PR #42 はまだマージされていません（state: {state}）" in result.stderr
+        assert "gh pr merge でマージし、main に入ってから打ち直してください" in result.stderr
+        mock_client.close_issue.assert_not_called()
+        mock_client.delete_branch.assert_not_called()
+        mock_local.assert_not_called()
 
-    def test_merge_already_merged(self) -> None:
-        """既にマージ済みの場合"""
-        mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
+    def test_pr_merge_command_is_removed(self) -> None:
+        """pecot pr merge は存在しない"""
+        result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
 
-        mock_client = MagicMock()
-        mock_client.get_pull_request_slim.return_value = {
-            "number": 42,
-            "state": "MERGED",
-            "title": "feat: テスト",
-            "body": "本文",
-            "head_ref": "feat/test",
-            "base_ref": "develop-aist",
-            "is_draft": False,
-            "mergeable": "UNKNOWN",
-            "comments": 0,
-            "closing_issues": [],
-            "reviews": [],
-        }
+        assert result.exit_code == 2
+        assert "No such command" in result.output
 
-        with (
-            patch("cli.commands.pr.load_active_config", return_value=mock_config),
-            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
-        ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
-
-            assert result.exit_code == 1
-            assert "マージ済み" in result.output
-
-    def test_merge_invalid_pr_ref(self) -> None:
+    def test_cleanup_invalid_pr_ref(self) -> None:
         """不正なPR参照形式"""
         mock_config = MagicMock()
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
-            result = runner.invoke(app, ["pr", "merge", "invalid-format"])
+            result = runner.invoke(app, ["pr", "cleanup", "invalid-format"])
 
             assert result.exit_code == 2
             assert "不正な参照形式" in result.output
 
 
-# pr merge フラグ削除テスト
+# pr cleanup フラグ削除テスト
 
 
-class TestPRMergeFlagCleanup:
-    """pr merge 完了時のフラグファイル削除テスト"""
+class TestPRCleanupFlagCleanup:
+    """pr cleanup 完了時のフラグファイル削除テスト"""
 
     def _make_mock_client(self) -> MagicMock:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "",
             "head_ref": "feat/test",
@@ -1381,15 +1344,10 @@ class TestPRMergeFlagCleanup:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-            "message": "Pull Request successfully merged",
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         return mock_client
 
-    def test_merge_removes_pecot_active_flag(self) -> None:
+    def test_cleanup_removes_pecot_active_flag(self) -> None:
         """マージ成功時に .pecot-active フラグが削除される"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1400,14 +1358,47 @@ class TestPRMergeFlagCleanup:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.core.state.remove_flag") as mock_remove,
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             from cli.core.state import FLAG_PECOT_ACTIVE
 
             mock_remove.assert_any_call(FLAG_PECOT_ACTIVE)
 
-    def test_merge_removes_pecot_quick_mode_flag(self) -> None:
+    def test_cleanup_consumes_merge_slash_flag(self) -> None:
+        """片付けの成功時に、w-merge 起点の merge-slash-pending を消費する"""
+        mock_client = self._make_mock_client()
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=MagicMock(host="h")),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.commands.pr._local_cleanup_after_merge"),
+            patch("cli.commands.pr._remove_active_flags"),
+            patch("cli.commands.pr.consume_flag") as mock_consume,
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
+
+            assert result.exit_code == 0
+            from cli.core.state import FLAG_MERGE_SLASH_PENDING
+
+            mock_consume.assert_called_once_with(FLAG_MERGE_SLASH_PENDING)
+
+    def test_unmerged_does_not_consume_merge_slash_flag(self) -> None:
+        """未マージで止まるときは merge-slash-pending を残す"""
+        mock_client = self._make_mock_client()
+        mock_client.get_pull_request_slim.return_value["state"] = "OPEN"
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=MagicMock(host="h")),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.commands.pr.consume_flag") as mock_consume,
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
+
+            assert result.exit_code == 1
+            mock_consume.assert_not_called()
+
+    def test_cleanup_removes_pecot_quick_mode_flag(self) -> None:
         """マージ成功時に .pecot-quick-mode フラグが削除される"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1418,14 +1409,14 @@ class TestPRMergeFlagCleanup:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.core.state.remove_flag") as mock_remove,
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             from cli.core.state import FLAG_PECOT_QUICK_MODE
 
             mock_remove.assert_any_call(FLAG_PECOT_QUICK_MODE)
 
-    def test_merge_removes_pecot_session_title_flag(self) -> None:
+    def test_cleanup_removes_pecot_session_title_flag(self) -> None:
         """マージ成功時に .pecot-session-title フラグが削除される"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1436,14 +1427,14 @@ class TestPRMergeFlagCleanup:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.core.state.remove_flag") as mock_remove,
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             from cli.core.state import FLAG_PECOT_SESSION_TITLE
 
             mock_remove.assert_any_call(FLAG_PECOT_SESSION_TITLE)
 
-    def test_merge_removes_wip_branch_linked_flag(self) -> None:
+    def test_cleanup_removes_wip_branch_linked_flag(self) -> None:
         """マージ成功時に .wip-branch-linked フラグが削除される"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1454,7 +1445,7 @@ class TestPRMergeFlagCleanup:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.core.state.remove_flag") as mock_remove,
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             from cli.core.state import FLAG_WIP_BRANCH_LINKED
@@ -1462,7 +1453,7 @@ class TestPRMergeFlagCleanup:
             assert FLAG_WIP_BRANCH_LINKED == ".wip-branch-linked"
             mock_remove.assert_any_call(FLAG_WIP_BRANCH_LINKED)
 
-    def test_merge_skip_local_cleanup_does_not_remove_flags(self) -> None:
+    def test_cleanup_skip_local_cleanup_does_not_remove_flags(self) -> None:
         """--skip-local-cleanup 時はフラグ削除されない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1473,12 +1464,12 @@ class TestPRMergeFlagCleanup:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.core.state.remove_flag") as mock_remove,
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--skip-local-cleanup"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--skip-local-cleanup"])
 
             assert result.exit_code == 0
             mock_remove.assert_not_called()
 
-    def test_merge_flag_removal_idempotent(self) -> None:
+    def test_cleanup_flag_removal_idempotent(self) -> None:
         """フラグが存在しなくてもエラーにならない（冪等）"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1491,30 +1482,17 @@ class TestPRMergeFlagCleanup:
         ):
             # remove_flag は missing_ok=True なので例外を投げない
             mock_remove.return_value = None
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
-            assert mock_remove.call_count == 4
+            assert mock_remove.call_count == 5
 
 
-# pr merge ヘルプテスト
+# pr cleanup ヘルプテスト
 
 
-class TestPRMergeHelp:
-    """pr merge コマンドのヘルプ表示テスト"""
-
-    def test_pr_merge_help(self) -> None:
-        """pr merge --help"""
-        result = runner.invoke(app, ["pr", "merge", "--help"])
-        assert result.exit_code == 0
-        assert "dry-run" in result.output or "ドライラン" in result.output
-
-
-# pr merge --delete-branch テスト
-
-
-class TestPRMergeDeleteBranch:
-    """pr merge --delete-branch オプションのテスト"""
+class TestPRCleanupDeleteBranch:
+    """pr cleanup --delete-branch オプションのテスト"""
 
     def test_delete_branch_after_merge(self) -> None:
         """マージ後にブランチを削除"""
@@ -1524,7 +1502,7 @@ class TestPRMergeDeleteBranch:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Closes #123",
             "head_ref": "feat/test-branch",
@@ -1535,10 +1513,6 @@ class TestPRMergeDeleteBranch:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.close_issue.return_value = {"state": "closed"}
         mock_client.get_issue_kind.return_value = _kind_task(123)
 
@@ -1546,7 +1520,7 @@ class TestPRMergeDeleteBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--delete-branch"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
             # featureブランチとWIPブランチの両方が削除される
@@ -1562,7 +1536,7 @@ class TestPRMergeDeleteBranch:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Closes #123",
             "head_ref": "feat/test-branch",
@@ -1573,17 +1547,13 @@ class TestPRMergeDeleteBranch:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.get_issue_kind.return_value = _kind_task(123)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--delete-branch"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
             assert "WIPブランチ 'wip/feat/test-branch' も削除しました" in result.output
@@ -1599,7 +1569,7 @@ class TestPRMergeDeleteBranch:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "",
             "head_ref": "feat/test-branch",
@@ -1609,10 +1579,6 @@ class TestPRMergeDeleteBranch:
             "comments": 0,
             "closing_issues": [],
             "reviews": [],
-        }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
         }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         # featureブランチ削除は成功、WIPブランチ削除は422
@@ -1625,10 +1591,10 @@ class TestPRMergeDeleteBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--delete-branch"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
-            assert "マージ完了" in result.output
+            assert "マージ後の片付け完了" in result.output
             # WIPブランチ削除のメッセージは出ない
             assert "WIPブランチ" not in result.output
 
@@ -1640,7 +1606,7 @@ class TestPRMergeDeleteBranch:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "",
             "head_ref": "feat/test-branch",
@@ -1651,17 +1617,13 @@ class TestPRMergeDeleteBranch:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             mock_client.delete_branch.assert_not_called()
@@ -1676,7 +1638,7 @@ class TestPRMergeDeleteBranch:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "",
             "head_ref": "feat/protected",
@@ -1687,10 +1649,6 @@ class TestPRMergeDeleteBranch:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         mock_client.delete_branch.side_effect = GitHubAPIError("削除失敗")
 
@@ -1698,11 +1656,11 @@ class TestPRMergeDeleteBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--delete-branch"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             # マージ自体は成功
             assert result.exit_code == 0
-            assert "マージ完了" in result.output
+            assert "マージ後の片付け完了" in result.output
             # 警告メッセージは stderr に出る
             assert "⚠ ブランチ削除に失敗: 削除失敗" in result.stderr
             assert "⚠" not in result.stdout
@@ -1720,7 +1678,7 @@ class TestPRMergeDeleteBranch:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "",
             "head_ref": "feat/test-branch",
@@ -1730,10 +1688,6 @@ class TestPRMergeDeleteBranch:
             "comments": 0,
             "closing_issues": [],
             "reviews": [],
-        }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
         }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         mock_client.delete_branch.side_effect = [
@@ -1749,7 +1703,7 @@ class TestPRMergeDeleteBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--delete-branch"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
             assert "ブランチ削除に失敗" not in result.output
@@ -1775,86 +1729,6 @@ def test_is_missing_ref_error(status_code: int, response_body: str | None, expec
 
     e = GitHubAPIError("err", status_code=status_code, response_body=response_body)
     assert _is_missing_ref_error(e) is expected
-
-
-# pr merge --admin テスト
-
-
-class TestPRMergeAdmin:
-    """pr merge --admin オプションのテスト"""
-
-    def test_admin_merge(self) -> None:
-        """管理者権限でマージ"""
-        mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
-
-        mock_client = MagicMock()
-        mock_client.get_pull_request_slim.return_value = {
-            "number": 42,
-            "state": "OPEN",
-            "title": "feat: テスト",
-            "body": "",
-            "head_ref": "feat/test",
-            "base_ref": "develop-aist",
-            "is_draft": False,
-            "mergeable": "UNKNOWN",  # CIが完了していない等
-            "comments": 0,
-            "closing_issues": [],
-            "reviews": [],
-        }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
-        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
-
-        with (
-            patch("cli.commands.pr.load_active_config", return_value=mock_config),
-            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
-        ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--admin"])
-
-            assert result.exit_code == 0
-            # adminモードでは CONFLICTING チェックをスキップ
-            mock_client.merge_pull_request.assert_called_once()
-
-    def test_admin_skip_mergeable_check(self) -> None:
-        """--adminではmergeableチェックをスキップ"""
-        mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
-
-        mock_client = MagicMock()
-        mock_client.get_pull_request_slim.return_value = {
-            "number": 42,
-            "state": "OPEN",
-            "title": "feat: テスト",
-            "body": "",
-            "head_ref": "feat/test",
-            "base_ref": "develop-aist",
-            "is_draft": False,
-            "mergeable": "CONFLICTING",  # 通常ならエラー
-            "comments": 0,
-            "closing_issues": [],
-            "reviews": [],
-        }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
-        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
-
-        with (
-            patch("cli.commands.pr.load_active_config", return_value=mock_config),
-            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
-        ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--admin"])
-
-            # --adminならCONFLICTINGでもマージ試行
-            assert result.exit_code == 0
-            mock_client.merge_pull_request.assert_called_once()
-
-
-# extract_issue_number_from_branch 関数テスト
 
 
 class TestExtractIssueNumberFromBranch:
@@ -1965,13 +1839,13 @@ class TestAppendIssueCloseIfNeeded:
         assert result == "## Verified — テスト用本文\n\nCloses #123"
 
 
-# pr merge Refs パターンクローズテスト
+# pr cleanup Refs パターンクローズテスト
 
 
-class TestPRMergeRefsPatternNotClosed:
-    """pr merge で Refs パターンがクローズ対象にならないことを検証するテスト"""
+class TestPRCleanupRefsPatternNotClosed:
+    """pr cleanup で Refs パターンがクローズ対象にならないことを検証するテスト"""
 
-    def test_merge_does_not_close_refs_issues(self) -> None:
+    def test_cleanup_does_not_close_refs_issues(self) -> None:
         """Refs #XXX パターンのIssueはクローズされない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -1979,7 +1853,7 @@ class TestPRMergeRefsPatternNotClosed:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "## 関連Issue\n\nRefs #123",
             "head_ref": "feat/test/42",
@@ -1990,17 +1864,13 @@ class TestPRMergeRefsPatternNotClosed:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # Refs #123 はクローズされない（ブランチ名由来の#42のみ）
@@ -2008,7 +1878,7 @@ class TestPRMergeRefsPatternNotClosed:
             for call in mock_client.close_issue.call_args_list:
                 assert call != (("owner", "repo", 123),)
 
-    def test_merge_does_not_close_refs_colon_issues(self) -> None:
+    def test_cleanup_does_not_close_refs_colon_issues(self) -> None:
         """Refs: #XXX パターンのIssueはクローズされない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2016,7 +1886,7 @@ class TestPRMergeRefsPatternNotClosed:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "## 関連Issue\n\nRefs: #456",
             "head_ref": "feat/test/42",
@@ -2027,24 +1897,20 @@ class TestPRMergeRefsPatternNotClosed:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # Refs: #456 はクローズされない
             for call in mock_client.close_issue.call_args_list:
                 assert call != (("owner", "repo", 456),)
 
-    def test_merge_closes_only_closing_keywords_not_refs(self) -> None:
+    def test_cleanup_closes_only_closing_keywords_not_refs(self) -> None:
         """Closes #100 のみクローズされ、Refs #200 はクローズされない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2052,7 +1918,7 @@ class TestPRMergeRefsPatternNotClosed:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Closes #100\n\n## 関連Issue\n\nRefs #200",
             "head_ref": "feat/test/100",
@@ -2063,10 +1929,6 @@ class TestPRMergeRefsPatternNotClosed:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.close_issue.return_value = {"state": "closed"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
@@ -2074,7 +1936,7 @@ class TestPRMergeRefsPatternNotClosed:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # Closes #100 とブランチ名由来の #100 のみ（重複排除で1回）
@@ -2084,7 +1946,7 @@ class TestPRMergeRefsPatternNotClosed:
             assert 100 in closed_issues
             assert 200 not in closed_issues
 
-    def test_merge_dry_run_does_not_show_refs_issues(self) -> None:
+    def test_cleanup_dry_run_does_not_show_refs_issues(self) -> None:
         """dry-run で Refs パターンのIssueはクローズ対象に含まれない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2092,7 +1954,7 @@ class TestPRMergeRefsPatternNotClosed:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Refs #789",
             "head_ref": "feat/test/42",
@@ -2109,7 +1971,7 @@ class TestPRMergeRefsPatternNotClosed:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--dry-run"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--dry-run"])
 
             assert result.exit_code == 0
             # Refs #789 はクローズ対象に含まれない
@@ -2117,10 +1979,10 @@ class TestPRMergeRefsPatternNotClosed:
             mock_client.close_issue.assert_not_called()
 
 
-class TestPRMergeBranchNameExtraction:
-    """pr merge でブランチ名からIssue番号を抽出してクローズするテスト"""
+class TestPRCleanupBranchNameExtraction:
+    """pr cleanup でブランチ名からIssue番号を抽出してクローズするテスト"""
 
-    def test_merge_closes_issue_from_branch_name(self) -> None:
+    def test_cleanup_closes_issue_from_branch_name(self) -> None:
         """ブランチ名末尾のIssue番号がクローズされる"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2128,7 +1990,7 @@ class TestPRMergeBranchNameExtraction:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "テスト本文",
             "head_ref": "feat/20260121-043000/687",
@@ -2139,10 +2001,6 @@ class TestPRMergeBranchNameExtraction:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.close_issue.return_value = {"state": "closed"}
         mock_client.get_issue_kind.return_value = _kind_task(687)
 
@@ -2150,13 +2008,13 @@ class TestPRMergeBranchNameExtraction:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # ブランチ名から抽出された #687 がクローズされる
             mock_client.close_issue.assert_called_once_with("owner", "repo", 687)
 
-    def test_merge_closes_branch_and_body_issues(self) -> None:
+    def test_cleanup_closes_branch_and_body_issues(self) -> None:
         """ブランチ名とPR本文の両方からIssue番号を抽出してクローズ"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2164,7 +2022,7 @@ class TestPRMergeBranchNameExtraction:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "Closes #100",
             "head_ref": "feat/description/200",
@@ -2175,10 +2033,6 @@ class TestPRMergeBranchNameExtraction:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.close_issue.return_value = {"state": "closed"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
@@ -2186,13 +2040,13 @@ class TestPRMergeBranchNameExtraction:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # #100 と #200 の両方がクローズされる
             assert mock_client.close_issue.call_count == 2
 
-    def test_merge_dry_run_shows_branch_issue(self) -> None:
+    def test_cleanup_dry_run_shows_branch_issue(self) -> None:
         """dry-run でブランチ名から抽出されたIssue番号が表示される"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2200,7 +2054,7 @@ class TestPRMergeBranchNameExtraction:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "テスト本文",
             "head_ref": "feat/bug-fix/999",
@@ -2217,14 +2071,14 @@ class TestPRMergeBranchNameExtraction:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--dry-run"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--dry-run"])
 
             assert result.exit_code == 0
             assert "#999" in result.output
             # 実際のクローズは呼ばれない
             mock_client.close_issue.assert_not_called()
 
-    def test_merge_no_issue_in_branch_name(self) -> None:
+    def test_cleanup_no_issue_in_branch_name(self) -> None:
         """ブランチ名にIssue番号がない場合は抽出されない"""
         mock_config = MagicMock()
         mock_config.host = "ghes.example.com"
@@ -2232,7 +2086,7 @@ class TestPRMergeBranchNameExtraction:
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: テスト",
             "body": "テスト本文",
             "head_ref": "feat/no-issue-number",
@@ -2243,17 +2097,13 @@ class TestPRMergeBranchNameExtraction:
             "closing_issues": [],
             "reviews": [],
         }
-        mock_client.merge_pull_request.return_value = {
-            "sha": "abc123",
-            "merged": True,
-        }
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
             # Issueクローズは呼ばれない
@@ -4159,11 +4009,11 @@ draft: false
         assert "Closes #100" in body_passed
 
 
-# pr merge Epic 保護テスト (#358)
+# pr cleanup Epic 保護テスト (#358)
 
 
-class TestPrMergeEpicProtect:
-    """pr merge の Epic フィルタ"""
+class TestPrCleanupEpicProtect:
+    """pr cleanup の Epic フィルタ"""
 
     @staticmethod
     def _make_pr(
@@ -4171,7 +4021,7 @@ class TestPrMergeEpicProtect:
     ) -> dict:
         return {
             "number": 42,
-            "state": "OPEN",
+            "state": "MERGED",
             "title": "feat: test",
             "body": body,
             "head_ref": head_ref,
@@ -4188,14 +4038,13 @@ class TestPrMergeEpicProtect:
         mock_config.host = "ghes.example.com"
         return mock_config
 
-    def test_merge_skips_epic_from_closing_issues_references(self) -> None:
+    def test_cleanup_skips_epic_from_closing_issues_references(self) -> None:
         """closingIssuesReferences に混入した Epic を除外"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/101",
             closing_issues=[{"number": 100}, {"number": 101}],
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: (
             _kind_epic_typed(100) if n == 100 else _kind_task(n)
         )
@@ -4204,7 +4053,7 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         # Epic は close されない
@@ -4213,14 +4062,13 @@ class TestPrMergeEpicProtect:
         assert 101 in closed
         assert "Epic保護でクローズをスキップ: #100" in result.output
 
-    def test_merge_skips_epic_from_body_closes(self) -> None:
+    def test_cleanup_skips_epic_from_body_closes(self) -> None:
         """PR 本文の Closes に Epic 番号が混入したケース"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             body="Closes #200",
             head_ref="feat/test/201",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: (
             _kind_epic_typed(200) if n == 200 else _kind_task(n)
         )
@@ -4229,59 +4077,56 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 200 not in closed
         assert "Epic保護でクローズをスキップ: #200" in result.output
 
-    def test_merge_skips_epic_from_branch_name(self) -> None:
+    def test_cleanup_skips_epic_from_branch_name(self) -> None:
         """ブランチ末尾番号が Epic のケース"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/epic/300",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.return_value = _kind_epic_typed(300)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_not_called()
         assert "Epic保護でクローズをスキップ: #300" in result.output
 
-    def test_merge_closes_non_epic_normally(self) -> None:
+    def test_cleanup_closes_non_epic_normally(self) -> None:
         """Task は通常通り close される"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/400",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.return_value = _kind_task(400)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_called_once_with("owner", "repo", 400)
         assert "Epic保護でクローズをスキップ" not in result.output
 
-    def test_merge_mixed_epic_and_task(self) -> None:
+    def test_cleanup_mixed_epic_and_task(self) -> None:
         """Epic + Task 混在: Task のみ close、Epic 保護メッセージあり"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             body="Closes #100",
             head_ref="feat/test/101",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: (
             _kind_epic_typed(100) if n == 100 else _kind_task(n)
         )
@@ -4290,14 +4135,14 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert closed == [101]
         assert "Epic保護でクローズをスキップ: #100" in result.output
 
-    def test_merge_dry_run_shows_epic_protected(self) -> None:
+    def test_cleanup_dry_run_shows_epic_protected(self) -> None:
         """dry-run 出力に Epic 保護表示が出る"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
@@ -4312,7 +4157,7 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--dry-run"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--dry-run"])
 
         assert result.exit_code == 0
         assert "Epic保護でクローズをスキップ: #500" in result.output
@@ -4322,14 +4167,13 @@ class TestPrMergeEpicProtect:
         # close_issue は呼ばれない
         mock_client.close_issue.assert_not_called()
 
-    def test_merge_phase1_fallback_subissues_only(self) -> None:
+    def test_cleanup_phase1_fallback_subissues_only(self) -> None:
         """Issue Type 未設定 + sub-issues>0 のみで Epic 判定（Phase1 フォールバック）"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             body="Closes #600",
             head_ref="feat/test/601",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: (
             _kind_epic_subissues(600, total=4) if n == 600 else _kind_task(n)
         )
@@ -4338,21 +4182,20 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 600 not in closed
         assert "Epic保護でクローズをスキップ: #600" in result.output
 
-    def test_merge_keeps_tracker_with_subissues_open(self) -> None:
+    def test_cleanup_keeps_tracker_with_subissues_open(self) -> None:
         """sub-issue を持つ Tracker は、Closes で参照されても閉じない"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             body="Closes #650",
             head_ref="feat/test/651",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: (
             _kind_epic_subissues(650, total=2) if n == 650 else _kind_task(n)
         )
@@ -4361,24 +4204,23 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 650 not in closed
         assert "Epic保護でクローズをスキップ: #650" in result.output
 
-    def test_merge_empty_epic_not_detected(self) -> None:
+    def test_cleanup_empty_epic_not_detected(self) -> None:
         """既知制約の回帰: Issue Type 未設定 + sub-issue 0 件は判定不能で close される"""
         mock_client = MagicMock()
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             body="Closes #700",
             head_ref="feat/test/701",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: {
             "number": n,
-            "state": "OPEN",
+            "state": "MERGED",
             "issue_type": None,
             "sub_issues_total": 0,
         }
@@ -4387,7 +4229,7 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
@@ -4395,7 +4237,7 @@ class TestPrMergeEpicProtect:
         assert 701 in closed
         assert "Epic保護でクローズをスキップ" not in result.output
 
-    def test_merge_kind_lookup_api_error_continues_close(self) -> None:
+    def test_cleanup_kind_lookup_api_error_continues_close(self) -> None:
         """get_issue_kind が API エラー → 警告 + 通常 close (フェイルオープン)"""
         from cli.core.github import GitHubAPIError
 
@@ -4403,21 +4245,20 @@ class TestPrMergeEpicProtect:
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/800",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = GitHubAPIError("transient", status_code=500)
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         # フェイルオープンで close 実行される
         mock_client.close_issue.assert_called_once_with("owner", "repo", 800)
         assert "種別判定に失敗" in result.output
 
-    def test_merge_kind_lookup_not_found_continues_close(self) -> None:
+    def test_cleanup_kind_lookup_not_found_continues_close(self) -> None:
         """get_issue_kind が GitHubNotFoundError → 保護せず close 候補に残る"""
         from cli.core.github import GitHubNotFoundError
 
@@ -4425,7 +4266,6 @@ class TestPrMergeEpicProtect:
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/900",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = GitHubNotFoundError("not found")
         mock_client.close_issue.side_effect = GitHubNotFoundError("not found")
 
@@ -4433,7 +4273,7 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_called_once_with("owner", "repo", 900)
@@ -4441,7 +4281,7 @@ class TestPrMergeEpicProtect:
         assert "⚠ Issue #900 が見つかりません（スキップ）" in result.stderr
         assert "⚠" not in result.stdout
 
-    def test_merge_close_issue_api_error_warns_on_stderr(self) -> None:
+    def test_cleanup_close_issue_api_error_warns_on_stderr(self) -> None:
         """close_issue が GitHubAPIError → ⚠ を stderr に出してマージは成功"""
         from cli.core.github import GitHubAPIError
 
@@ -4449,7 +4289,6 @@ class TestPrMergeEpicProtect:
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/901",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         mock_client.close_issue.side_effect = GitHubAPIError("権限不足")
 
@@ -4457,13 +4296,13 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         assert "⚠ Issue #901 のクローズに失敗: 権限不足" in result.stderr
         assert "⚠" not in result.stdout
 
-    def test_merge_close_issue_api_error_shows_github_message(self) -> None:
+    def test_cleanup_close_issue_api_error_shows_github_message(self) -> None:
         """close_issue の失敗の警告に、応答本文の GitHub の message を添える"""
         from cli.core.github import GitHubAPIError
 
@@ -4471,7 +4310,6 @@ class TestPrMergeEpicProtect:
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/902",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         mock_client.close_issue.side_effect = GitHubAPIError(
             "GitHub APIエラー: 422",
@@ -4483,7 +4321,7 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         assert (
@@ -4491,7 +4329,7 @@ class TestPrMergeEpicProtect:
             in result.stderr
         )
 
-    def test_merge_close_issue_closed_by_another_request_is_not_warned(self) -> None:
+    def test_cleanup_close_issue_closed_by_another_request_is_not_warned(self) -> None:
         """Closes の自動クローズと重なった 422 は、既にクローズ済みとして扱う
 
         本文は 2026-11-05 に pecotcraft/pecot で同時に PATCH を送って得た実物
@@ -4502,7 +4340,6 @@ class TestPrMergeEpicProtect:
         mock_client.get_pull_request_slim.return_value = self._make_pr(
             head_ref="feat/test/903",
         )
-        mock_client.merge_pull_request.return_value = {"sha": "abc"}
         mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
         mock_client.close_issue.side_effect = GitHubAPIError(
             "GitHub APIエラー: 422",
@@ -4518,7 +4355,7 @@ class TestPrMergeEpicProtect:
             patch("cli.commands.pr.load_active_config", return_value=self._config()),
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["pr", "merge", "owner/repo/42"])
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
         assert "✔ Issue #903 は既にクローズされています" in result.stdout

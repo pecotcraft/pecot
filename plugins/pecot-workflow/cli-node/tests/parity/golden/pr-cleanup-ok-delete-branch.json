@@ -1,7 +1,7 @@
 {
-  "stdout": "",
-  "stderr": "エラー: マージに失敗しました: GitHub APIエラー: 405\n",
-  "exitCode": 1,
+  "stdout": "\n関連Issueをクローズ中...\n  ✔ Issue #12 をクローズしました\n\nブランチ 'feat/demo/12' を削除中...\n  ✔ ブランチ 'feat/demo/12' を削除しました\n\n=== マージ後の片付け完了 ===\nPR: acme/demo/21\nタイトル: feat(demo): #12 見本の変更\nクローズしたIssue: #12\n削除したブランチ: feat/demo/12\n\n※マージ完了報告をIssueにコメントする必要はありません。\n",
+  "stderr": "",
+  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",
@@ -25,12 +25,27 @@
     },
     {
       "type": "rest",
-      "method": "PUT",
-      "path": "/repos/acme/demo/pulls/21/merge",
+      "method": "PATCH",
+      "path": "/repos/acme/demo/issues/12",
       "query": {},
       "body": {
-        "merge_method": "squash"
+        "state": "closed",
+        "state_reason": "completed"
       },
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "DELETE",
+      "path": "/repos/acme/demo/git/refs/heads/feat/demo/12",
+      "query": {},
+      "auth": "token"
+    },
+    {
+      "type": "rest",
+      "method": "DELETE",
+      "path": "/repos/acme/demo/git/refs/heads/wip/feat/demo/12",
+      "query": {},
       "auth": "token"
     }
   ],

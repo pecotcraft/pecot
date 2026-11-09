@@ -1,7 +1,7 @@
 """session-start/create-slash-cleanup.sh のユニットテスト。
 
 前セッションの未消費フラグを、セッション開始時に削除することを検証する。
-対象のフラグは、pr-create-slash-pending / issue-create-slash-pending。
+対象のフラグは、pr-create-slash-pending / issue-create-slash-pending / merge-slash-pending。
 config 無効時の残存も、あわせて検証する。
 """
 
@@ -36,6 +36,7 @@ def ctx(tmp_path: Path, hooks_config, monkeypatch: pytest.MonkeyPatch):
     return {
         "pr_flag": state_dir / "pr-create-slash-pending",
         "issue_flag": state_dir / "issue-create-slash-pending",
+        "merge_flag": state_dir / "merge-slash-pending",
         "config": hooks_config,
     }
 
@@ -57,6 +58,13 @@ def test_both_flags_deleted(ctx, hook_script):
     assert result.returncode == 0
     assert not ctx["pr_flag"].is_file()
     assert not ctx["issue_flag"].is_file()
+
+
+def test_merge_flag_deleted(ctx, hook_script):
+    ctx["merge_flag"].touch()
+    result = _run(hook_script)
+    assert result.returncode == 0
+    assert not ctx["merge_flag"].is_file()
 
 
 def test_no_flag_no_error(ctx, hook_script):

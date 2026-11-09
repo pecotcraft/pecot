@@ -2,6 +2,7 @@
 # create-slash-flag: ユーザープロンプトの先頭行がスラッシュコマンドのとき、
 # 対応する外部反映免除フラグを .pecot/state/ に設置する。
 #   /pecot-w:w-pr /w-pr → pr-create-slash-pending。
+#   /pecot-w:w-merge /w-merge → merge-slash-pending（gh pr merge の ask を免除。消費は pecot pr cleanup 成功時）。
 #   /pecot-w:w-quick|w-ready|w-backlog|w-issueize → issue-create-slash-pending。
 #   /w-quick|w-ready|w-backlog|w-issueize → issue-create-slash-pending。
 #     フラグの内容は起点コマンド名（名前空間なしの w-quick 等）で、デバッグ用。
@@ -38,6 +39,10 @@ if [[ "$FIRST_LINE" =~ ^/(pecot-w:)?w-pr([[:space:]]|$) ]]; then
     # pecot 未使用リポではフラグを立てない（gitignore-before-write #666）。
     pecot_state_dir_ensure "$STATE_DIR" || exit 0
     touch "$STATE_DIR/pr-create-slash-pending"
+elif [[ "$FIRST_LINE" =~ ^/(pecot-w:)?w-merge([[:space:]]|$) ]]; then
+    pecot_hook_enabled "merge-slash-flag" true || exit 0
+    pecot_state_dir_ensure "$STATE_DIR" || exit 0
+    touch "$STATE_DIR/merge-slash-pending"
 elif [[ "$FIRST_LINE" =~ ^/(pecot-w:)?(w-quick|w-ready|w-backlog|w-issueize)([[:space:]]|$) ]]; then
     ORIGIN="${BASH_REMATCH[2]}"
     pecot_hook_enabled "issue-create-slash-flag" true || exit 0

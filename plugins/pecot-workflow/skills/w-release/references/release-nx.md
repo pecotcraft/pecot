@@ -480,7 +480,7 @@ pecot release merge <owner>/<repo>/<PR番号>
 付けない理由も同じ。
 
 `pecot release merge` は **regular merge（merge commit）を強制** し、base が `release_branch`
-設定と一致することを検証する。**必ずこれを使い、`pecot pr merge` は使わない**。
+設定と一致することを検証する。**必ずこれを使い、`gh pr merge` は使わない**。
 squash merge だと tag が指す commit が `<release>` の履歴から到達不能になり、
 GitHub Release が孤児 commit を参照する状態になる。
 

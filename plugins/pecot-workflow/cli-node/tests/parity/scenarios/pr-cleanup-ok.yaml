@@ -1,12 +1,14 @@
-# クローズ対象が Epic。マージはするが Issue は閉じない（Epic 保護）。
-id: pr-merge-ok-epic-protected
+# マージ済みの PR を片付ける。Issue を閉じ、ローカルで main に戻って pull し、ブランチを消す。
+id: pr-cleanup-ok
 command:
-  path: [pr, merge]
+  path: [pr, cleanup]
   args:
     - "acme/demo/21"
-    - "--skip-local-cleanup"
 setup:
   repo:
+    branch: feat/demo/12
+    branches:
+      - name: feat/demo/12
     files:
       .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
           {
@@ -65,15 +67,15 @@ github:
       operation: "GetPullRequestSlim"
     respond:
       status: 200
-      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "OPEN", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
+      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "MERGED", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
   - match:
       operation: "GetIssueKind"
     respond:
       status: 200
-      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 3}}}}}
+      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 0}}}}}
   - match:
-      method: "PUT"
-      path: "/repos/acme/demo/pulls/21/merge"
+      method: "PATCH"
+      path: "/repos/acme/demo/issues/12"
     respond:
       status: 200
-      body: {"sha": "abcdef1234567890", "merged": true, "message": "merged"}
+      body: {"number": 12, "state": "closed"}

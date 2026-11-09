@@ -39,7 +39,7 @@
 |-------------|------|
 | `pr create` | PR（プルリクエスト）を作成 |
 | `pr read` | PR詳細を取得 |
-| `pr merge` | PRをマージし、関連Issueを自動クローズ |
+| `pr cleanup` | マージ済みPRの後片付け（関連Issueのクローズ、ブランチ削除、フラグ削除） |
 | `pr preflight` | PR作成前の事前確認情報を一括出力 |
 
 **`pr create` のワークフロー補足:**

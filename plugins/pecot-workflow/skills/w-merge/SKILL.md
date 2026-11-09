@@ -9,7 +9,7 @@ when_to_use: "PR をマージしたい、マージ後のブランチ削除と後
 
 # PRマージ
 
-PRをマージし、ブランチ削除とワークツリー環境の後処理を実行します。
+PRをマージし、マージ後にブランチ削除とワークツリー環境の後処理を実行します。
 
 ## 手順
 
@@ -29,25 +29,53 @@ pecot pr preflight -D .
 
 exit 1 なら出力を見て解決し、再実行してからマージに進む。
 
-### Step 2: マージ実行
+### Step 2: マージと片付け
+
+#### 2.1 マージ
 
 ```bash
-# PRをsquashマージし、リモートブランチを削除
-pecot pr merge <owner>/<repo>/<PR番号> --delete-branch
+gh pr merge <PR番号> --repo <owner>/<repo> --squash
 ```
 
-> 注意: `gh`コマンドやMCPツールではなく、必ず`pecot pr merge`を使用すること
+- merge queue のないリポでは、その場でマージされる
+- merge queue のあるリポでは、PR を queue に入れて終わる。マージはこの後に GitHub が行う
+- 必須チェックが終わっていないときは、auto-merge の予約になる
+
+#### 2.2 マージを待つ
+
+Claude Code では Monitor ツールで次の until ループを動かし、抜けるまで待つ。`<owner>` などは置き換える。
+
+```bash
+until s=$(gh api graphql -F o=<owner> -F r=<repo> -F n=<PR番号> \
+  -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){state isInMergeQueue autoMergeRequest{enabledAt}}}}' \
+  --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue) \(.autoMergeRequest != null)"'); \
+  case "$s" in MERGED*|CLOSED*|"OPEN false false") true ;; *) false ;; esac; do sleep 30; done; echo "$s"
+```
+
+- `MERGED ...` で抜けたら 2.3 へ進む
+- `OPEN false false` で抜けたら、queue から外れている（CI の失敗など）。`gh pr checks <PR番号> --repo <owner>/<repo>` で落ちたチェックを読んでユーザーに伝え、片付けをせずに止まる。直して push し、2.1 からやり直す
+- `CLOSED ...` で抜けたら、ユーザーに伝えて止まる
+- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を打ち直す。未マージなら exit 1 で何もしない
+
+#### 2.3 片付け
+
+```bash
+pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
+```
+
+> 注意: マージ後の片付けは必ず `pecot pr cleanup` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
+
+`pecot pr cleanup` は PR が MERGED のときだけ動く。それ以外は何もせず exit 1 で終わる。
 
 **オプション**:
 
-- `--delete-branch, -d`: マージ後にリモートブランチを削除（デフォルトで付与）
-- `--merge-method, -m`: マージ方法（squash/merge/rebase、デフォルト: squash）
-- `--admin`: 管理者権限でマージ（コンフリクト時に使用）
-- `--dry-run, -n`: ドライラン（実際にはマージしない）
+- `--delete-branch, -d`: リモートブランチを削除（デフォルトで付与）
+- `--dry-run, -n`: ドライラン（実際には片付けない）
+- `--skip-local-cleanup`: ローカルの後処理をスキップする
 
 ### Step 3: ローカルクリーンアップの確認
 
-`pr merge` コマンドが自動的に以下を実行する。
+`pr cleanup` コマンドが自動的に以下を実行する。
 
 - WT環境では、wtXブランチへ切替 → `git pull origin <開発ブランチ>` → ローカルフィーチャーブランチ削除
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
@@ -68,12 +96,12 @@ pecot pr merge <owner>/<repo>/<PR番号> --delete-branch
 
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
-- `pr merge` の出力に「クローズしたIssue」がない（Issue未紐付けPR）
+- `pr cleanup` の出力に「クローズしたIssue」がない（Issue未紐付けPR）
 - クローズしたIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-`pr merge` の出力からクローズしたIssue番号を取得し、Issueを読む。
+`pr cleanup` の出力からクローズしたIssue番号を取得し、Issueを読む。
 
 ```bash
 pecot issue read <owner>/<repo>/<issue_number>
@@ -87,7 +115,7 @@ pecot issue read <owner>/<repo>/<issue_number>
 （計画と実績の差分）を判断するために使う。変更ファイル一覧そのものはコメント本文に転記しない
 （PR の Files changed が見せる）。
 
-- PRの変更ファイル一覧（`pr merge` の出力やgit logから）
+- PRの変更ファイル一覧（`pr cleanup` の出力やgit logから）
 - 実際に変更されたモジュール・関数
 
 #### 4.3 差分サマリーの生成

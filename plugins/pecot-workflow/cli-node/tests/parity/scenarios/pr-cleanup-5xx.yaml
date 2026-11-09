@@ -1,7 +1,7 @@
-# PUT merge が 405 を返す。「マージに失敗しました」で exit 1 になる。
-id: pr-merge-4xx
+# PR の取得が 502 を返す。exit 1 になる。
+id: pr-cleanup-5xx
 command:
-  path: [pr, merge]
+  path: [pr, cleanup]
   args:
     - "acme/demo/21"
 setup:
@@ -63,16 +63,5 @@ github:
   - match:
       operation: "GetPullRequestSlim"
     respond:
-      status: 200
-      body: {"data": {"repository": {"pullRequest": {"number": 21, "state": "OPEN", "title": "feat(demo): #12 見本の変更", "body": "Closes #12\n", "headRefName": "feat/demo/12", "baseRefName": "main", "isDraft": false, "mergeable": "MERGEABLE", "comments": {"totalCount": 0}, "closingIssuesReferences": {"nodes": [{"number": 12, "title": "見本の Issue"}]}, "reviews": {"nodes": []}}}}}
-  - match:
-      operation: "GetIssueKind"
-    respond:
-      status: 200
-      body: {"data": {"repository": {"issue": {"number": 12, "state": "OPEN", "issueType": null, "subIssues": {"totalCount": 0}}}}}
-  - match:
-      method: "PUT"
-      path: "/repos/acme/demo/pulls/21/merge"
-    respond:
-      status: 405
-      body: {"message": "Pull Request is not mergeable"}
+      status: 502
+      body: {"message": "Bad Gateway"}
