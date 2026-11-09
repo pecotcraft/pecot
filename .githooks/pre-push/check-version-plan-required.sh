@@ -206,7 +206,7 @@ check_branch() {
         return 0
     fi
 
-    # 変更ファイルが触れた release group（README.md / CHANGELOG.md だけの group は含まない）。
+    # 変更ファイルが触れた release group（nx.json の glob に当たるファイルだけの group は含まない）。
     # 既知の release group 名一覧（version plan の宣言キーの確認に使う）も同じ実行で
     # $work/groups に書かせる（nx.json は 1 回だけ読む）。
     local releasable trc=0

@@ -255,7 +255,24 @@
       "adjustSemverBumpsForZeroMajorVersion": false
     },
     "versionPlans": {
-      "ignorePatternsForPlanCheck": ["README.md", "CHANGELOG.md"]
+      "ignorePatternsForPlanCheck": [
+        "README.md",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "tests/",
+        "conftest.py",
+        "vitest.config.ts",
+        "vitest.e2e.config.ts",
+        "project.json",
+        ".gitignore",
+        "plugins/*/scripts/ci/",
+        "plugins/pecot-visual/scripts/pptx-compare/",
+        "plugins/pecot-visual/scripts/page-compare/",
+        "plugins/*/cli/eslint.config.js",
+        "plugins/*/cli-node/eslint.config.js",
+        "libs/text-rules/eslint.config.js",
+        "plugins/pecot-visual/assets/slidev/tsconfig.test.json"
+      ]
     },
     "changelog": {
       "workspaceChangelog": false

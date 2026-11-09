@@ -16,7 +16,10 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_IGNORE_GLOBS = ["README.md", "CHANGELOG.md"]
+# stub の nx.json も、実 nx.json の glob を使う（除外の正は nx.json の 1 か所）。
+_IGNORE_GLOBS = json.loads((_REPO_ROOT / "nx.json").read_text())["release"]["versionPlans"][
+    "ignorePatternsForPlanCheck"
+]
 
 
 def _nx_json(root_globs=_IGNORE_GLOBS, group_vp: dict | None = None) -> str:
@@ -426,7 +429,7 @@ def test_14_block_nested_dir_maps_to_plugin(
 
 
 def test_15_block_skill_md_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """15. SKILL.md のみの変更 → block (doc 除外は README.md/CHANGELOG.md のみ)。"""
+    """15. SKILL.md のみの変更 → block (SKILL.md は nx.json の glob に当たらない)。"""
     feature_sha = _commit_feature(
         vpr_repo, {"plugins/pecot-workflow/skills/foo/SKILL.md": "skill doc\n"}
     )
@@ -758,6 +761,27 @@ def _clean_env(**extra: str) -> dict[str, str]:
     return env
 
 
+# nx の plan:check と同じ ignore（nx 配下の実体）で、nx.json の glob に当たるパスを返す。
+_NX_IGNORED_JS = """
+const path = require("path");
+const nxDir = path.dirname(require.resolve("nx/package.json", { paths: [process.argv[1]] }));
+const ig = require(require.resolve("ignore", { paths: [nxDir] }))().add(JSON.parse(process.argv[2]));
+const files = require("fs").readFileSync(0, "utf8").split("\\n").filter(Boolean);
+process.stdout.write(files.filter((f) => ig.ignores(f)).join("\\n"));
+"""
+
+
+def _nx_ignored(files: list[str]) -> set[str]:
+    out = subprocess.run(
+        ["node", "-e", _NX_IGNORED_JS, str(_REPO_ROOT), json.dumps(_IGNORE_GLOBS)],
+        input="\n".join(files),
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return set(out.split("\n")) - {""}
+
+
 class _RealNx:
     def __init__(self, probe: Path) -> None:
         self.probe = probe
@@ -782,10 +806,10 @@ class _RealNx:
         ).stdout
 
     def tracked(self, prefix: str, suffix: str = "") -> str:
-        files = self.git("ls-files", prefix).splitlines()
-        return next(
-            f for f in files if f.endswith(suffix) and not f.endswith(("README.md", "CHANGELOG.md"))
-        )
+        """prefix 配下で、nx.json の glob に当たらない（version plan を要する）追跡ファイルを 1 つ返す。"""
+        files = [f for f in self.git("ls-files", prefix).splitlines() if f.endswith(suffix)]
+        ignored = _nx_ignored(files)
+        return next(f for f in files if f not in ignored)
 
     def case(self, name: str) -> None:
         self.git("checkout", "-q", "-B", name, "base")
@@ -895,12 +919,11 @@ def test_real_03_block_delete_only(real_nx: _RealNx) -> None:
     assert "release group [pecot-tools]" in result.stderr
 
 
-def test_real_04_pass_project_json_with_own_plan(real_nx: _RealNx) -> None:
-    """実 nx (d): project.json の変更は他 project も affected にするが、触れた group の宣言だけで pass。"""
+def test_real_04_pass_project_json_without_plan(real_nx: _RealNx) -> None:
+    """実 nx (d): project.json の変更は他 project も affected にするが、nx.json の glob で数えず pass。"""
     real_nx.case("real-04")
     project_json = real_nx.probe / "plugins/pecot-visual/project.json"
     project_json.write_text(project_json.read_text() + "\n")
-    real_nx.plan("pecot-visual")
     real_nx.commit()
     # テストの前提: 同じ範囲の affected には pecot-workflow が含まれる（touched ではない）。
     assert "pecot-workflow" in real_nx.affected()
@@ -953,3 +976,34 @@ def test_real_06_pass_readme_only_and_plan_check_agrees(real_nx: _RealNx) -> Non
         'No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-visual"'
         in out
     )
+
+
+def test_real_07_pass_dev_only_files_without_plan(real_nx: _RealNx) -> None:
+    """実 nx (g): 利用環境で使わないファイル（テスト・CI・開発用の設定）だけの変更は pass。"""
+    real_nx.case("real-07")
+    for rel in (
+        real_nx.git("ls-files", "plugins/pecot-workflow/cli/tests").split()[0],
+        "plugins/pecot-tools/scripts/ci/probe.sh",
+        "plugins/pecot-visual/cli/eslint.config.js",
+        "plugins/pecot-visual/scripts/pptx-compare/probe.mjs",
+        "libs/text-rules/vitest.config.ts",
+        "plugins/pecot-workflow/hooks/conftest.py",
+    ):
+        path = real_nx.probe / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text((path.read_text() if path.exists() else "") + "\n// probe\n")
+    real_nx.commit()
+    result = real_nx.run_hook()
+    assert result.returncode == 0, result.stderr
+    assert "WARN" not in result.stderr
+
+
+def test_real_08_block_slidev_eslint_config(real_nx: _RealNx) -> None:
+    """実 nx (h): assets/slidev/eslint.config.js は利用者の talk-dir に写すので数える → block。"""
+    real_nx.case("real-08")
+    config = real_nx.probe / "plugins/pecot-visual/assets/slidev/eslint.config.js"
+    config.write_text(config.read_text() + "\n// probe\n")
+    real_nx.commit()
+    result = real_nx.run_hook()
+    assert result.returncode == 1, result.stderr
+    assert "release group [pecot-visual]" in result.stderr
