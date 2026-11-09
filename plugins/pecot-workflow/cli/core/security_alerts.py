@@ -27,6 +27,8 @@ from cli.core.dependabot import DependabotException
 from cli.core.errors import PecotError
 from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.github.errors import GitHubRateLimitError, describe_api_error
+from cli.core.tracker_body import find_tracker as _find_tracker
+from cli.core.tracker_body import list_region
 
 AlertKind = Literal["dependabot", "code-scanning", "secret-scanning"]
 ALERT_KINDS: tuple[AlertKind, ...] = ("dependabot", "code-scanning", "secret-scanning")
@@ -268,13 +270,7 @@ def _list_region(body: str) -> tuple[int, int]:
     Raises:
         SecurityAlertError: 印の欠け・重なり・順序の逆転があるとき
     """
-    begins = list(_LIST_BEGIN_RE.finditer(body))
-    ends = list(_LIST_END_RE.finditer(body))
-    if len(begins) != 1 or len(ends) != 1 or begins[0].end() > ends[0].start():
-        raise SecurityAlertError(
-            "Tracker の本文の list-begin / list-end の印が 1 組ではないため、一覧を書き直せません"
-        )
-    return begins[0].end(), ends[0].start()
+    return list_region(body, _LIST_BEGIN_RE, _LIST_END_RE, SecurityAlertError)
 
 
 def parse_tracker_entries(body: str | None) -> list[TrackerEntry]:
@@ -410,22 +406,8 @@ def build_tracker_title(today: date) -> str:
 
 
 def find_tracker(issues: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[int]]:
-    """ラベルで引いた Issue から、open の Tracker を探す
-
-    本文に Tracker の印があり、open のものを対象にする。複数あれば番号が最小のものを使い、
-    ほかの番号を返す（警告用。sync は閉じない）。
-    """
-    found = sorted(
-        (
-            i
-            for i in issues
-            if i.get("state") == "open" and _TRACKER_RE.search(_str(i.get("body")) or "")
-        ),
-        key=lambda i: cast("int", i["number"]),
-    )
-    if not found:
-        return None, []
-    return found[0], [cast("int", i["number"]) for i in found[1:]]
+    """ラベルで引いた Issue から、open の Tracker を探す（``tracker_body.find_tracker`` に委ねる）"""
+    return _find_tracker(issues, _TRACKER_RE)
 
 
 def max_priority(entries: list[TrackerEntry]) -> str | None:

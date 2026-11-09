@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 
 from cli import __version__
+from cli.commands.dependabot import dependabot_sync as dependabot_sync_command
 from cli.commands.issue import add_to_project as add_to_project_command
 from cli.commands.issue import issue_comment as issue_comment_command
 from cli.commands.issue import issue_create as issue_create_command
@@ -151,6 +152,11 @@ app.add_typer(release_app, name="release")
 security_app = typer.Typer(help="security alert の Tracker 化コマンド")
 security_app.command(name="sync")(security_sync_command)
 app.add_typer(security_app, name="security")
+
+# dependabot サブコマンドグループ
+dependabot_app = typer.Typer(help="人の判断を待つ dependabot の PR の Tracker 化コマンド")
+dependabot_app.command(name="sync")(dependabot_sync_command)
+app.add_typer(dependabot_app, name="dependabot")
 
 # worktree サブコマンドグループ
 worktree_app = typer.Typer(help="ワークツリー操作コマンド")

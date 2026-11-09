@@ -669,3 +669,72 @@ query($owner: String!, $repo: String!, $number: Int!) {
   }
 }
 """
+
+# open の PR の一覧（dependabot の PR の待ち状態の判定用。ページネーション対応）
+QUERY_LIST_OPEN_PULL_REQUESTS = """
+query($owner: String!, $repo: String!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(first: 50, states: OPEN, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        number
+        title
+        url
+        body
+        createdAt
+        author {
+          __typename
+          login
+        }
+        isInMergeQueue
+        autoMergeRequest {
+          enabledAt
+        }
+        mergeable
+        baseRef {
+          target {
+            ... on Commit {
+              committedDate
+            }
+          }
+        }
+        firstCommits: commits(first: 1) {
+          nodes {
+            commit {
+              message
+              author {
+                user {
+                  login
+                }
+              }
+            }
+          }
+        }
+        headCommits: commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
+                state
+              }
+            }
+          }
+        }
+        timelineItems(last: 5, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT, HEAD_REF_FORCE_PUSHED_EVENT]) {
+          nodes {
+            __typename
+            ... on RemovedFromMergeQueueEvent {
+              createdAt
+            }
+            ... on HeadRefForcePushedEvent {
+              createdAt
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""

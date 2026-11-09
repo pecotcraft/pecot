@@ -93,3 +93,37 @@ def item_has_field_value(
     return field_id in client.get_item_set_field_ids(
         config.project.id, owner, repo, issue_number, item_id
     )
+
+
+_BOARD_STATUS = "backlog"
+
+
+def put_on_board(
+    client: GitHubClient,
+    config: ProjectConfig,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    priority: str | None,
+    *,
+    only_if_empty: bool,
+) -> None:
+    """ボードへの追加と、Status（Backlog）・Priority の設定（何度やっても同じ結果になる）
+
+    ``only_if_empty`` なら、ボード項目のそのフィールドが空のときだけ入れる。
+    人が動かした Status や Priority を、次の実行が戻さない。
+    途中で失敗して空のままの項目は直る。
+
+    Raises:
+        GitHubAPIError: ボードへの追加か、フィールドの取得・設定に失敗した場合
+    """
+    item_id, _ = add_issue_to_board(client, config, owner, repo, issue_number, None)
+    fields = [("workflow", _BOARD_STATUS)]
+    if priority is not None:
+        fields.append(("priority", priority))
+    for field_name, option in fields:
+        if only_if_empty and item_has_field_value(
+            client, config, owner, repo, issue_number, item_id, field_name
+        ):
+            continue
+        set_issue_field(client, config, item_id, field_name, option)

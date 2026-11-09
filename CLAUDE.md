@@ -81,6 +81,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - `release.yml`: 人が手で起動し、`main` 上で `nx release` を動かす。案を出す `plan` の後、Environment `release` の承認を待ってから `main` へ push する
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。同じブランチへ、リリースの App のトークンで push する
   - `security-alerts.yml`: main の security alert を毎時 Tracker 1 件の一覧にそろえる。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
+    - 人の判断を待つ dependabot の PR も、別の Tracker 1 件の一覧にそろえる。トークンを分けるので、こちらが落ちても security alert の同期は止まらない
 - commit の前の検証は pre-commit が、メッセージの検証は commit-msg が、手元で行う。CI も pre-commit の stage と、pre-push の stage（version plan の確認を除く）を動かす
 
 ## 作業ファイルの置き場所

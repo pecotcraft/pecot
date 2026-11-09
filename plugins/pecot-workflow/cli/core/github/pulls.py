@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from cli.core.github.auth import as_dict
 from cli.core.github.client import GitHubClientBase
 from cli.core.github.errors import GitHubNotFoundError
 from cli.core.github.queries import (
     QUERY_GET_PULL_REQUEST_SLIM,
     QUERY_GET_PULL_REQUEST_WITH_REVIEWS,
+    QUERY_LIST_OPEN_PULL_REQUESTS,
 )
 from cli.core.ref_parser import extract_refs_issue_numbers
 from cli.core.repo_resolver import RepoRef
@@ -255,3 +257,40 @@ class PullsAPI(GitHubClientBase):
         if not response.is_success:
             self._handle_http_error(response)
         return response.json()
+
+    def list_open_dependabot_pull_requests(self, owner: str, repo: str) -> list[dict[str, Any]]:
+        """open の dependabot の PR を全件取得する（GraphQL）
+
+        ``pullRequests`` に author の引数が無いので、全件を辿ってから author が
+        ``Bot`` の ``dependabot`` のものに絞る。GraphQL のノードをそのまま返す。
+
+        Args:
+            owner: リポジトリオーナー
+            repo: リポジトリ名
+
+        Returns:
+            PR ノードのリスト。項目は次のとおり。
+            number・title・url・body・createdAt・author・isInMergeQueue・autoMergeRequest。
+            mergeable・baseRef・firstCommits・headCommits・timelineItems。
+
+        Raises:
+            GitHubAPIError: 一覧を取得できない場合
+        """
+        nodes: list[dict[str, Any]] = []
+        after: str | None = None
+        while True:
+            result = self._execute_graphql(
+                QUERY_LIST_OPEN_PULL_REQUESTS, {"owner": owner, "repo": repo, "after": after}
+            )
+            page = as_dict(as_dict(result.get("repository")).get("pullRequests"))
+            nodes.extend(n for n in page.get("nodes", []) if n)
+            page_info = as_dict(page.get("pageInfo"))
+            if not (page_info.get("hasNextPage") and page_info.get("endCursor")):
+                break
+            after = page_info["endCursor"]
+        return [n for n in nodes if _is_dependabot(n)]
+
+
+def _is_dependabot(node: dict[str, Any]) -> bool:
+    author = as_dict(node.get("author"))
+    return author.get("__typename") == "Bot" and author.get("login") == "dependabot"
