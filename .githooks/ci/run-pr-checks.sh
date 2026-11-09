@@ -152,7 +152,7 @@ start_nx_cache_server() {
 nx_diag_lines() {
     local own_tree src_tree lock deb
     own_tree=$(git rev-parse "HEAD^{tree}" 2> /dev/null || echo "-")
-    src_tree=$(sed -n 's/^tree=//p' "$ci_dir/nx-source.txt" 2> /dev/null | head -n 1 || true)
+    src_tree=$(head -n 1 "$nx_cache_dir/tested-tree.txt" 2> /dev/null || true)
     lock=$(git hash-object pnpm-lock.yaml 2> /dev/null || echo "-")
     deb="-"
     if command -v dpkg-query > /dev/null 2>&1; then
@@ -186,6 +186,9 @@ collect_nx_upload() {
             cp "$nx_cache_dir/$hash.tar.gz" "$upload/" || echo "WARN: $hash を写せませんでした。" >&2
         fi
     done < "$used"
+    compgen -G "$upload/*.tar.gz" > /dev/null || return 0
+    # 取り込む側が tree を比べられるよう、テストした tree（PR では merge commit の tree）を一緒に上げる。
+    git rev-parse "HEAD^{tree}" > "$upload/tested-tree.txt" 2> /dev/null || rm -f "$upload/tested-tree.txt"
 }
 
 nx_cache_dir=""

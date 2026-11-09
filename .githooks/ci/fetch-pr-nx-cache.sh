@@ -84,9 +84,8 @@ done < <(jq -c '.[]' <<< "$candidates")
 
 run_id=$(jq -r '.id' <<< "$selected")
 run_head=$(jq -r '.head_sha' <<< "$selected")
-tree=$(gh api "repos/$repo/git/commits/$run_head" 2> /dev/null | jq -r '.tree.sha // ""') || tree=""
 
-write_source "status=imported" "run_id=$run_id" "pr=$pr" "head_sha=$run_head" "tree=$tree"
+write_source "status=imported" "run_id=$run_id" "pr=$pr" "head_sha=$run_head"
 echo "nx キャッシュの取り込み元: run $run_id（PR #$pr、head $run_head）"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "run_id=$run_id" >> "$GITHUB_OUTPUT"

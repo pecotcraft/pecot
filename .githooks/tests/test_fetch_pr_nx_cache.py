@@ -85,9 +85,6 @@ class Env:
             {"id": run_id, "event": event, "pull_requests": [{"number": n} for n in prs]},
         )
 
-    def tree(self, sha: str, tree: str) -> None:
-        self.api(f"repos/{REPO}/git/commits/{sha}", {"tree": {"sha": tree}})
-
     def go(self, event: str, **extra: str) -> dict[str, str]:
         env = {
             **os.environ,
@@ -132,14 +129,12 @@ def test_pull_request_picks_latest_artifact(env: Env) -> None:
         _art(110, HEAD, "2026-11-02T00:00:00Z"),
     )
     env.run_info(120, [7])
-    env.tree(HEAD, "t" * 40)
     got = env.go("pull_request", PR_NUMBER="7")
     assert got == {
         "status": "imported",
         "run_id": "120",
         "pr": "7",
         "head_sha": HEAD,
-        "tree": "t" * 40,
     }
     assert env.run_id_output() == "120"
 
@@ -160,7 +155,6 @@ def test_falls_back_to_older_commit_artifact(env: Env) -> None:
     got = env.go("pull_request", PR_NUMBER="7")
     assert got["run_id"] == "100"
     assert got["head_sha"] == OLD
-    assert got["tree"] == ""
 
 
 def test_excludes_own_run(env: Env) -> None:
@@ -257,7 +251,6 @@ def test_merge_group_head_ref_forms(env: Env, prefix: str) -> None:
     env.pr(7, HEAD)
     env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
     env.run_info(110, [7])
-    env.tree(HEAD, "t" * 40)
     got = env.go("merge_group", HEAD_REF=_queue_ref(7, prefix))
     assert got["status"] == "imported"
     assert got["run_id"] == "110"

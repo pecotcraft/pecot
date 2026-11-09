@@ -694,8 +694,16 @@ def test_upload_dir_holds_only_used_artifacts(
     )
     assert result.returncode == 0, result.stderr
     upload = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-upload"
-    assert sorted(p.name for p in upload.iterdir()) == ["abc1.tar.gz", "def2.tar.gz"]
+    assert sorted(p.name for p in upload.iterdir()) == [
+        "abc1.tar.gz",
+        "def2.tar.gz",
+        "tested-tree.txt",
+    ]
     assert (upload / "abc1.tar.gz").read_bytes() == b"abc1"
+    own_tree = subprocess.run(
+        ["git", "rev-parse", "HEAD^{tree}"], cwd=pr_repo.repo, capture_output=True, text=True
+    ).stdout.strip()
+    assert (upload / "tested-tree.txt").read_text().strip() == own_tree
 
 
 def test_server_receives_used_file_path(
@@ -744,7 +752,10 @@ def test_cache_inputs_are_logged_and_summarized(
     lock_hash = subprocess.run(
         ["git", "hash-object", "pnpm-lock.yaml"], cwd=pr_repo.repo, capture_output=True, text=True
     ).stdout.strip()
-    _write_source(pr_repo, "status=imported\nrun_id=1\npr=2\nhead_sha=abc\ntree=srctree99\n")
+    _write_source(pr_repo, "status=imported\nrun_id=1\npr=2\nhead_sha=abc\n")
+    nx_remote = tmp_path / "nx-remote"
+    nx_remote.mkdir()
+    (nx_remote / "tested-tree.txt").write_text("srctree99\n")
     result = pr_repo.run(
         run_script,
         "--part=tests",
@@ -769,7 +780,7 @@ def test_cache_inputs_are_logged_and_summarized(
 def test_cache_inputs_use_dash_without_sources(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path
 ) -> None:
-    """nx-source.txt に tree が無く lock も無いときは「-」を出す。"""
+    """取り込んだ tested-tree.txt が無く lock も無いときは「-」を出す。"""
     result = pr_repo.run(
         run_script,
         "--part=tests",
