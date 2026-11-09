@@ -1,23 +1,22 @@
 # ワークツリー環境でのPRマージ後処理
 
-> WT後処理は `pecot pr merge` コマンドが自動実行します。
+> WT後処理は `pecot pr cleanup` コマンドが自動実行します。
 > 通常はこのドキュメントを参照する必要はありません。
 > `--skip-local-cleanup` を使用した場合や、自動処理でエラーが発生した場合のリファレンスです。
 
-## PRマージ（ブランチ削除込み）
+## PRマージ後の片付け（ブランチ削除込み）
 
-`pecot pr merge`コマンドを使用します。
+マージは `gh pr merge <番号> --repo <owner>/<repo> --squash` で行い、マージされたあとの片付けに `pecot pr cleanup` コマンドを使用します。
 
 ```bash
-pecot pr merge <owner>/<repo>/<番号> --delete-branch
+pecot pr cleanup <owner>/<repo>/<番号> --delete-branch
 ```
 
 **オプション**:
 
-- `--delete-branch, -d`: マージ後にリモートブランチを削除
-- `--merge-method, -m`: マージ方法（squash/merge/rebase、デフォルト: squash）
-- `--admin`: 管理者権限でマージ（コンフリクト時に使用）
-- `--dry-run, -n`: ドライラン（実際にはマージしない）
+- `--delete-branch, -d`: リモートブランチを削除
+- `--dry-run, -n`: ドライラン（実際には片付けない）
+- `--skip-local-cleanup`: ローカルの後処理をスキップ
 
 ## ワークツリー環境でのマージ後処理
 
@@ -76,7 +75,7 @@ git pull origin <開発ブランチ>
 git branch -D <マージしたブランチ>
 ```
 
-> **Note**: リモートブランチは `pecot pr merge --delete-branch` で自動削除される。
+> **Note**: リモートブランチは `pecot pr cleanup --delete-branch` で自動削除される。
 > 手動でリモートブランチを削除する場合は:
 >
 > ```bash

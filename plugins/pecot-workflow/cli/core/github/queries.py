@@ -597,12 +597,7 @@ QUERY_GET_PULL_REQUEST_SLIM = """
 query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
-      id
       number
-      headRefOid
-      isMergeQueueEnabled
-      isInMergeQueue
-      autoMergeRequest { enabledAt }
       state
       title
       body
@@ -666,58 +661,6 @@ query($owner: String!, $repo: String!, $number: Int!) {
               author { login }
               body
               createdAt
-            }
-          }
-        }
-      }
-    }
-  }
-}
-"""
-
-
-# マージキューへの投入
-MUTATION_ENQUEUE_PULL_REQUEST = """
-mutation($pullRequestId: ID!, $expectedHeadOid: GitObjectID) {
-  enqueuePullRequest(input: {pullRequestId: $pullRequestId, expectedHeadOid: $expectedHeadOid}) {
-    mergeQueueEntry { position state }
-  }
-}
-"""
-
-# マージキューの状況（キュー内の状態と、直近の投入・除外イベント）
-QUERY_GET_MERGE_QUEUE_STATUS = """
-query($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      state
-      mergeCommit { oid }
-      isInMergeQueue
-      mergeQueueEntry { state position headCommit { oid } }
-      timelineItems(last: 10, itemTypes: [ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
-        nodes {
-          __typename
-          ... on AddedToMergeQueueEvent { createdAt }
-          ... on RemovedFromMergeQueueEvent { createdAt reason }
-        }
-      }
-    }
-  }
-}
-"""
-
-# コミットの statusCheckRollup から失敗したチェックを取る
-QUERY_GET_COMMIT_CHECK_CONTEXTS = """
-query($owner: String!, $repo: String!, $oid: GitObjectID!) {
-  repository(owner: $owner, name: $repo) {
-    object(oid: $oid) {
-      ... on Commit {
-        statusCheckRollup {
-          contexts(first: 100) {
-            nodes {
-              __typename
-              ... on CheckRun { name conclusion }
-              ... on StatusContext { context state }
             }
           }
         }

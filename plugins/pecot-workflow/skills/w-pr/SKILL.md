@@ -63,7 +63,7 @@ gh pr edit <PR番号> --body-file <画像のディレクトリ>/body.md --attach
 - `pr create --prepare` 実行時、テンプレの `Closes #` には active タスク番号が自動で埋め込まれる
 - 自動埋め込みの番号を書き換えない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
 - ブランチ名末尾の `<num>` も sub-issue 番号にする
-- `pecot pr merge` は Issue Type=Epic / `sub-issues > 0` の Issue を自動でクローズ対象から除外する（保険）
+- `pecot pr cleanup` は Issue Type=Epic / `sub-issues > 0` の Issue を自動でクローズ対象から除外する（保険）
 - 既知制約: Issue Type 未設定かつ sub-issue 0 件の Epic は判定不能
 
 PR作成後、レビュー対応は `/pecot-w:w-revise`、マージは `/pecot-w:w-merge` を使用する。

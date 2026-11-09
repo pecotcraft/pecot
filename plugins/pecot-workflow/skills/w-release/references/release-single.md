@@ -112,7 +112,8 @@ CHANGELOG.md に <ver> のリリースノートを追加した。
 なし" \
   -b <develop>
 
-pecot pr merge <owner>/<repo>/<PR番号> --delete-branch
+gh pr merge <PR番号> --repo <owner>/<repo> --squash
+pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 ```
 
 #### 3-5. develop 最新化

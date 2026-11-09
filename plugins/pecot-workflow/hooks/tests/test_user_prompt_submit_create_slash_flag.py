@@ -47,6 +47,7 @@ def ctx(tmp_path: Path, hooks_config, monkeypatch: pytest.MonkeyPatch):
     return {
         "pr_flag": state_dir / "pr-create-slash-pending",
         "issue_flag": state_dir / "issue-create-slash-pending",
+        "merge_flag": state_dir / "merge-slash-pending",
         "config": hooks_config,
     }
 
@@ -80,6 +81,34 @@ def test_a_pr_with_args_creates_pr_flag(ctx, script, prompt):
     result = _run(script, prompt)
     assert result.returncode == 0
     assert ctx["pr_flag"].is_file()
+
+
+@pytest.mark.parametrize(
+    "prompt", ["/pecot-w:w-merge", "/w-merge", "/w-merge 123", "/pecot-w:w-merge 123"]
+)
+def test_merge_creates_merge_flag_only(ctx, script, prompt):
+    """/w-merge はフル修飾・短縮形のどちらでも merge フラグだけを立てる。"""
+    result = _run(script, prompt)
+    assert result.returncode == 0
+    assert ctx["merge_flag"].is_file()
+    assert not ctx["pr_flag"].is_file()
+    assert not ctx["issue_flag"].is_file()
+
+
+def test_merge_flag_disabled_via_config(ctx, script):
+    ctx["config"].write({"merge-slash-flag": False})
+    result = _run(script, "/pecot-w:w-merge")
+    assert result.returncode == 0
+    assert not ctx["merge_flag"].is_file()
+
+
+@pytest.mark.parametrize(
+    "prompt", ["/pecot-w:w-mergefoo", "/w-mergefoo", "手順:\n/w-merge", "PRをマージして"]
+)
+def test_merge_flag_not_created_for_non_target(ctx, script, prompt):
+    result = _run(script, prompt)
+    assert result.returncode == 0
+    assert not ctx["merge_flag"].is_file()
 
 
 @pytest.mark.parametrize("prefix", ["/pecot-w:", "/"])

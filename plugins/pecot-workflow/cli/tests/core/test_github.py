@@ -2558,7 +2558,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 42,
                     "state": "OPEN",
                     "title": "feat: 新機能追加",
@@ -2593,7 +2592,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 43,
                     "state": "OPEN",
                     "title": "WIP: 作業中",
@@ -2619,7 +2617,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 44,
                     "state": "OPEN",
                     "title": "fix: バグ修正",
@@ -2653,7 +2650,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 50,
                     "state": "OPEN",
                     "title": "feat: テスト",
@@ -2679,7 +2675,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 51,
                     "state": "OPEN",
                     "title": "fix: バグ修正",
@@ -2710,7 +2705,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 45,
                     "state": "OPEN",
                     "title": "feat: レビュー待ち",
@@ -2744,7 +2738,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 46,
                     "state": "MERGED",
                     "title": "feat: マージ済み機能",
@@ -2783,7 +2776,6 @@ class TestGetPullRequestSlim:
         client._graphql.execute.return_value = {
             "repository": {
                 "pullRequest": {
-                    "id": "PR_node",
                     "number": 47,
                     "state": "OPEN",
                     "title": "test",
@@ -3467,299 +3459,3 @@ class TestPecotGithubApiUrl:
             client = GitHubClient(host="ghes.example.com", token="t")
         assert client.api_url == "https://ghes.example.com/api/v3"
         assert client.graphql_url == "https://ghes.example.com/api/graphql"
-
-
-class TestMergeQueueAPI:
-    """マージキュー関連メソッドのテスト"""
-
-    @pytest.fixture
-    def client(self) -> GitHubClient:
-        with patch.object(GitHubClient, "_setup_clients"):
-            client = GitHubClient(host="github.com", token="test_token")
-            client._graphql = MagicMock()
-            client._rest = MagicMock()
-            client._used_fallback = True
-            return client
-
-    @staticmethod
-    def _slim_pr(**overrides: Any) -> dict[str, Any]:
-        pr: dict[str, Any] = {
-            "id": "PR_node",
-            "number": 5,
-            "state": "OPEN",
-            "title": "t",
-            "body": "b",
-            "headRefName": "feat/x",
-            "baseRefName": "main",
-            "isDraft": False,
-            "mergeable": "MERGEABLE",
-            "comments": {"totalCount": 0},
-            "closingIssuesReferences": {"nodes": []},
-            "reviews": {"nodes": []},
-            "headRefOid": "abc123",
-            "isMergeQueueEnabled": True,
-            "isInMergeQueue": False,
-            "autoMergeRequest": {"enabledAt": "2026-11-09T00:00:00Z"},
-        }
-        pr.update(overrides)
-        return {"repository": {"pullRequest": pr}}
-
-    def test_slim_new_fields(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._slim_pr()
-
-        result = client.get_pull_request_slim("o", "r", 5)
-
-        assert result["id"] == "PR_node"
-        assert result["head_oid"] == "abc123"
-        assert result["is_merge_queue_enabled"] is True
-        assert result["is_in_merge_queue"] is False
-        assert result["has_auto_merge_request"] is True
-
-    def test_slim_auto_merge_null(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._slim_pr(autoMergeRequest=None)
-
-        assert client.get_pull_request_slim("o", "r", 5)["has_auto_merge_request"] is False
-
-    def test_slim_merge_queue_flag_missing(self, client: GitHubClient) -> None:
-        data = self._slim_pr()
-        del data["repository"]["pullRequest"]["isMergeQueueEnabled"]
-        client._graphql.execute.return_value = data
-
-        assert client.get_pull_request_slim("o", "r", 5)["is_merge_queue_enabled"] is False
-
-    def test_enqueue_success(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = {
-            "enqueuePullRequest": {"mergeQueueEntry": {"position": 2, "state": "QUEUED"}}
-        }
-
-        result = client.enqueue_pull_request("PR_node", "abc123")
-
-        assert result == {"position": 2, "state": "QUEUED"}
-        request = client._graphql.execute.call_args[0][0]
-        assert request.variable_values == {
-            "pullRequestId": "PR_node",
-            "expectedHeadOid": "abc123",
-        }
-
-    def test_enqueue_entry_null(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = {"enqueuePullRequest": {"mergeQueueEntry": None}}
-
-        assert client.enqueue_pull_request("PR_node", None) == {"position": None, "state": None}
-
-    def test_enqueue_graphql_error(self, client: GitHubClient) -> None:
-        client._graphql.execute.side_effect = Exception("Pull request is not mergeable")
-
-        with pytest.raises(GitHubAPIError, match="Pull request is not mergeable"):
-            client.enqueue_pull_request("PR_node", "abc123")
-
-    @staticmethod
-    def _status(**overrides: Any) -> dict[str, Any]:
-        pr: dict[str, Any] = {
-            "state": "OPEN",
-            "mergeCommit": None,
-            "isInMergeQueue": False,
-            "mergeQueueEntry": None,
-            "timelineItems": {"nodes": []},
-        }
-        pr.update(overrides)
-        return {"repository": {"pullRequest": pr}}
-
-    def test_status_merged(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._status(
-            state="MERGED", mergeCommit={"oid": "m1"}
-        )
-
-        result = client.get_merge_queue_status("o", "r", 5)
-
-        assert result == {
-            "state": "MERGED",
-            "merge_commit_oid": "m1",
-            "is_in_merge_queue": False,
-            "entry": None,
-            "removed": False,
-            "removed_reason": None,
-        }
-
-    def test_status_with_entry(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._status(
-            isInMergeQueue=True,
-            mergeQueueEntry={
-                "state": "AWAITING_CHECKS",
-                "position": 1,
-                "headCommit": {"oid": "h1"},
-            },
-            timelineItems={
-                "nodes": [
-                    {"__typename": "AddedToMergeQueueEvent", "createdAt": "2026-11-09T01:00:00Z"}
-                ]
-            },
-        )
-
-        result = client.get_merge_queue_status("o", "r", 5)
-
-        assert result["is_in_merge_queue"] is True
-        assert result["entry"] == {"state": "AWAITING_CHECKS", "position": 1, "head_oid": "h1"}
-        assert result["removed"] is False
-
-    def test_status_ignores_earlier_removed(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._status(
-            timelineItems={
-                "nodes": [
-                    {"__typename": "AddedToMergeQueueEvent", "createdAt": "2026-11-09T01:00:00Z"},
-                    {
-                        "__typename": "RemovedFromMergeQueueEvent",
-                        "createdAt": "2026-11-09T02:00:00Z",
-                        "reason": "FAILED_CHECKS",
-                    },
-                    {"__typename": "AddedToMergeQueueEvent", "createdAt": "2026-11-09T03:00:00Z"},
-                ]
-            },
-        )
-
-        result = client.get_merge_queue_status("o", "r", 5)
-
-        assert result["removed"] is False
-        assert result["removed_reason"] is None
-
-    def test_status_current_removed_with_reason(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._status(
-            timelineItems={
-                "nodes": [
-                    {"__typename": "AddedToMergeQueueEvent", "createdAt": "2026-11-09T01:00:00Z"},
-                    {
-                        "__typename": "RemovedFromMergeQueueEvent",
-                        "createdAt": "2026-11-09T02:00:00Z",
-                        "reason": "FAILED_CHECKS",
-                    },
-                ]
-            },
-        )
-
-        result = client.get_merge_queue_status("o", "r", 5)
-
-        assert result["removed"] is True
-        assert result["removed_reason"] == "FAILED_CHECKS"
-
-    def test_status_removed_without_added(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = self._status(
-            timelineItems={
-                "nodes": [
-                    {
-                        "__typename": "RemovedFromMergeQueueEvent",
-                        "createdAt": "2026-11-09T02:00:00Z",
-                        "reason": None,
-                    }
-                ]
-            },
-        )
-
-        result = client.get_merge_queue_status("o", "r", 5)
-
-        assert result["removed"] is True
-        assert result["removed_reason"] is None
-
-    def test_status_pr_not_found(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = {"repository": {"pullRequest": None}}
-
-        with pytest.raises(GitHubNotFoundError):
-            client.get_merge_queue_status("o", "r", 5)
-
-    def test_failed_checks_mixed(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = {
-            "repository": {
-                "object": {
-                    "statusCheckRollup": {
-                        "contexts": {
-                            "nodes": [
-                                {"__typename": "CheckRun", "name": "lint", "conclusion": "FAILURE"},
-                                {"__typename": "CheckRun", "name": "ok", "conclusion": "SUCCESS"},
-                                {
-                                    "__typename": "CheckRun",
-                                    "name": "slow",
-                                    "conclusion": "TIMED_OUT",
-                                },
-                                {
-                                    "__typename": "StatusContext",
-                                    "context": "ci/x",
-                                    "state": "ERROR",
-                                },
-                                {
-                                    "__typename": "StatusContext",
-                                    "context": "ci/y",
-                                    "state": "SUCCESS",
-                                },
-                            ]
-                        }
-                    }
-                }
-            }
-        }
-
-        assert client.get_failed_checks("o", "r", "abc") == ["lint", "slow", "ci/x"]
-
-    def test_failed_checks_rollup_null(self, client: GitHubClient) -> None:
-        client._graphql.execute.return_value = {
-            "repository": {"object": {"statusCheckRollup": None}}
-        }
-
-        assert client.get_failed_checks("o", "r", "abc") == []
-
-    @staticmethod
-    def _response(payload: dict[str, Any]) -> MagicMock:
-        response = MagicMock()
-        response.status_code = 200
-        response.is_success = True
-        response.json.return_value = payload
-        return response
-
-    def test_merge_group_failed_jobs_picks_latest_run(self, client: GitHubClient) -> None:
-        runs = self._response(
-            {
-                "workflow_runs": [
-                    {
-                        "id": 1,
-                        "head_branch": "gh-readonly-queue/main/pr-5-aaa",
-                        "created_at": "2026-11-09T01:00:00Z",
-                    },
-                    {
-                        "id": 2,
-                        "head_branch": "gh-readonly-queue/main/pr-5-bbb",
-                        "created_at": "2026-11-09T03:00:00Z",
-                    },
-                    {
-                        "id": 3,
-                        "head_branch": "gh-readonly-queue/main/pr-50-ccc",
-                        "created_at": "2026-11-09T04:00:00Z",
-                    },
-                ]
-            }
-        )
-        jobs = self._response(
-            {
-                "jobs": [
-                    {"name": "lint", "conclusion": "failure"},
-                    {"name": "tests", "conclusion": "success"},
-                    {"name": "e2e", "conclusion": "cancelled"},
-                ]
-            }
-        )
-        client._rest.get.side_effect = [runs, jobs]
-
-        assert client.get_merge_group_failed_jobs("o", "r", "main", 5) == ["lint", "e2e"]
-        assert client._rest.get.call_args_list[1][0][0] == "/repos/o/r/actions/runs/2/jobs"
-
-    def test_merge_group_failed_jobs_no_run(self, client: GitHubClient) -> None:
-        client._rest.get.return_value = self._response(
-            {
-                "workflow_runs": [
-                    {
-                        "id": 9,
-                        "head_branch": "gh-readonly-queue/main/pr-6-zzz",
-                        "created_at": "2026-11-09T01:00:00Z",
-                    }
-                ]
-            }
-        )
-
-        assert client.get_merge_group_failed_jobs("o", "r", "main", 5) == []
-        assert client._rest.get.call_count == 1

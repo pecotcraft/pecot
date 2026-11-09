@@ -15,14 +15,14 @@
 # time / xargs / { …; } のように別語を前置した形は、セグメント先頭に一致せず捕捉できない（検出抜け）。
 #   - pecot issue quick / issue create（実投稿）→ ask  … pecot-issue-create-ask
 #   - pecot pr create <file> / -m 直接指定（実投稿）→ ask … pecot-pr-create-ask
-#   - gh pr merge → ask                              … gh-pr-merge-ask。
+#   - gh pr merge → ask（/w-merge 起点フラグ存在時は素通し） … gh-pr-merge-ask。
 #   pecot 起動形は pecot / $PECOT / "$PECOT" / フルパス / クオート付きパスを捕捉する。
 #   クオート付きパスは "${CLAUDE_PLUGIN_ROOT}/bin/pecot" を含む。${PECOT} 展開形は対象外。
 #
 # 検出しないパターンは次のとおり。
 #   - --prepare / -p（issue/pr 共通の確認用フラグ）、--dry-run / -n（pr create のみ）
 #     … 同一セグメント内にある場合。
-#   - pecot issue read / pr read / pr merge / pr preflight 等（対象外サブコマンド）
+#   - pecot issue read / pr read / pr cleanup / pr preflight 等（対象外サブコマンド）
 #   - echo "gh pr merge"（文字列内・区切り前置なし）
 #   - config キー false 時
 #   - スラッシュコマンド起点フラグ存在時。
@@ -30,7 +30,9 @@
 #     CLI が実投稿成功時に消費し、本スクリプトは存在確認のみで削除しない。
 #       pecot issue quick/create … HOOK_WORKING_DIR/.pecot/state/issue-create-slash-pending。
 #       pecot pr create          … HOOK_WORKING_DIR/.pecot/state/pr-create-slash-pending。
-#   gh pr merge は確認フラグ・スラッシュコマンドフラグの免除を持たない（無条件 ask）。
+#       gh pr merge              … HOOK_WORKING_DIR/.pecot/state/merge-slash-pending。
+#         消費は pecot pr cleanup の成功時。gh pr merge の時点では消さない（マージ待ちのあと cleanup を打つため）。
+#   gh pr merge は確認フラグの免除を持たない。
 #
 # 正規表現は POSIX ERE の [[:space:]] を使用する。
 
@@ -143,11 +145,11 @@ GH_MSG='【external-post-check ガード】
 gh pr merge は PR を外部へ反映する操作です。
 
 ユーザーが明示的に承認するまで実行しないでください。
-可能であれば pecot ワークフロー経由を使用してください。
-  pecot pr merge'
+マージの正規ルートは /pecot-w:w-merge です。
+マージは gh pr merge、片付けは pecot pr cleanup で行います。'
 
 # スラッシュコマンド起点の免除フラグ。
-# 設置は user-prompt-submit の create-slash-flag.sh、消費は CLI が実投稿成功時に削除する。
+# 設置は user-prompt-submit の create-slash-flag.sh、消費は CLI が実投稿成功時（merge は pecot pr cleanup 成功時）に削除する。
 # 残骸掃除は session-start の create-slash-cleanup.sh が担う。
 #
 # 設置側は CLAUDE_PROJECT_DIR を参照するが、本スクリプトは HOOK_WORKING_DIR を参照する。
@@ -156,12 +158,13 @@ gh pr merge は PR を外部へ反映する操作です。
 # 参照の統一はしない。
 PR_SLASH_FLAG="${HOOK_WORKING_DIR}/.pecot/state/pr-create-slash-pending"
 ISSUE_SLASH_FLAG="${HOOK_WORKING_DIR}/.pecot/state/issue-create-slash-pending"
+MERGE_SLASH_FLAG="${HOOK_WORKING_DIR}/.pecot/state/merge-slash-pending"
 
 # pecot issue quick / create（実投稿）: 確認フラグ免除・スラッシュコマンドフラグ免除あり。ask。
 _external_post_check "pecot-issue-create-ask" "$PECOT_ISSUE_CREATE_PATTERN" "$PECOT_ISSUE_SKIP_PATTERN" "$ISSUE_MSG" "$ISSUE_SLASH_FLAG"
 # pecot pr create（実投稿）: 確認フラグ免除・スラッシュコマンドフラグ免除あり。ask。
 _external_post_check "pecot-pr-create-ask" "$PECOT_PR_CREATE_PATTERN" "$PECOT_PR_SKIP_PATTERN" "$CREATE_MSG" "$PR_SLASH_FLAG"
-# gh pr merge: 免除なし（無条件 ask）。
-_external_post_check "gh-pr-merge-ask" "$GH_PR_MERGE_PATTERN" "" "$GH_MSG" ""
+# gh pr merge: 確認フラグ免除なし。/w-merge 起点フラグがあれば素通し（存在確認のみ・削除しない）。
+_external_post_check "gh-pr-merge-ask" "$GH_PR_MERGE_PATTERN" "" "$GH_MSG" "$MERGE_SLASH_FLAG"
 
 exit 0

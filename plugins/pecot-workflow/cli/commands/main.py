@@ -15,8 +15,8 @@ from cli.commands.issue import issue_quick_command, issue_reopen_command
 from cli.commands.issue import issue_read as issue_read_command
 from cli.commands.issue import update_issue_status as update_issue_status_command
 from cli.commands.options import RepoOption, ShowRepoOption
+from cli.commands.pr import pr_cleanup as pr_cleanup_command
 from cli.commands.pr import pr_create as pr_create_command
-from cli.commands.pr import pr_merge as pr_merge_command
 from cli.commands.pr import pr_preflight as pr_preflight_command
 from cli.commands.pr import pr_read as pr_read_command
 from cli.commands.project import create as create_command
@@ -129,7 +129,7 @@ app.add_typer(issue_app, name="issue")
 pr_app = typer.Typer(help="PR操作コマンド")
 pr_app.command(name="create")(pr_create_command)
 pr_app.command(name="read")(pr_read_command)
-pr_app.command(name="merge")(pr_merge_command)
+pr_app.command(name="cleanup")(pr_cleanup_command)
 pr_app.command(name="preflight")(pr_preflight_command)
 
 app.add_typer(pr_app, name="pr")

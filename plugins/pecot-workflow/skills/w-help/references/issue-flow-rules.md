@@ -148,7 +148,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 
 - 配置: `.pecot/state/.pecot-active`（`CLAUDE_PROJECT_DIR` 単位 = WT ごとに独立）
 - 書き手: `pecot create-branch` / `pecot issue quick` / `pecot session restore`（実行時に上書き）
-- `pecot pr merge` が消す。`pecot pr merge` を通さずにマージした場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
+- `pecot pr cleanup` が消す。`pecot pr cleanup` を通さずに片付けた場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
 
 CLI ガード（この表が最終の基準）は次のとおり。
 

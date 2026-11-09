@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from cli.core.github.client import GitHubClientBase
 from cli.core.github.errors import GitHubNotFoundError
 from cli.core.github.queries import (
-    MUTATION_ENQUEUE_PULL_REQUEST,
-    QUERY_GET_COMMIT_CHECK_CONTEXTS,
-    QUERY_GET_MERGE_QUEUE_STATUS,
     QUERY_GET_PULL_REQUEST_SLIM,
     QUERY_GET_PULL_REQUEST_WITH_REVIEWS,
 )
@@ -86,11 +83,6 @@ class PullsAPI(GitHubClientBase):
             - comments: コメント数
             - closing_issues: 関連Issueリスト（number, title）
             - reviews: レビューリスト（state, author）
-            - id: PR の node id
-            - head_oid: ヘッドコミットの SHA
-            - is_merge_queue_enabled: ベースブランチでマージキューが有効か
-            - is_in_merge_queue: マージキューに入っているか
-            - has_auto_merge_request: 自動マージが予約されているか
 
         Raises:
             GitHubNotFoundError: リポジトリまたはPRが見つからない場合
@@ -100,11 +92,6 @@ class PullsAPI(GitHubClientBase):
 
         return {
             **self._format_pull_request_base(pr, owner, repo),
-            "id": pr["id"],
-            "head_oid": pr.get("headRefOid"),
-            "is_merge_queue_enabled": pr.get("isMergeQueueEnabled") is True,
-            "is_in_merge_queue": pr.get("isInMergeQueue") is True,
-            "has_auto_merge_request": pr.get("autoMergeRequest") is not None,
             "reviews": [
                 {
                     "state": review["state"],
@@ -268,135 +255,3 @@ class PullsAPI(GitHubClientBase):
         if not response.is_success:
             self._handle_http_error(response)
         return response.json()
-
-    def enqueue_pull_request(self, pr_id: str, expected_head_oid: str | None) -> dict[str, Any]:
-        """PR をマージキューに入れる
-
-        Returns:
-            {"position": int | None, "state": str | None}。entry が無ければ両方 None。
-
-        Raises:
-            GitHubAPIError: キューへの投入に失敗した場合（メッセージに GitHub の理由を含む）
-        """
-        result = self._execute_graphql(
-            MUTATION_ENQUEUE_PULL_REQUEST,
-            {"pullRequestId": pr_id, "expectedHeadOid": expected_head_oid},
-        )
-        entry = _as_dict(_as_dict(result.get("enqueuePullRequest")).get("mergeQueueEntry"))
-        return {"position": entry.get("position"), "state": entry.get("state")}
-
-    def get_merge_queue_status(self, owner: str, repo: str, number: int) -> dict[str, Any]:
-        """PR のマージキューの状況を 1 回の GraphQL で取得する
-
-        Returns:
-            - state: OPEN / MERGED / CLOSED
-            - merge_commit_oid: マージコミットの SHA（未マージは None）
-            - is_in_merge_queue: キューに入っているか
-            - entry: {"state", "position", "head_oid"}（キューに無ければ None）
-            - removed: 最後の投入より後に除外されたか
-            - removed_reason: その除外の reason
-
-        Raises:
-            GitHubNotFoundError: リポジトリまたはPRが見つからない場合
-        """
-        pr = self._fetch_pull_request(QUERY_GET_MERGE_QUEUE_STATUS, owner, repo, number)
-
-        nodes = _as_dict_list(_as_dict(pr.get("timelineItems")).get("nodes"))
-        added_times: list[str] = [
-            str(n["createdAt"]) for n in nodes if n.get("__typename") == "AddedToMergeQueueEvent"
-        ]
-        last_added = max(added_times) if added_times else None
-        # ISO 8601 の UTC 文字列は辞書順で時刻順になる
-        removed_events = [
-            n
-            for n in nodes
-            if n.get("__typename") == "RemovedFromMergeQueueEvent"
-            and (last_added is None or str(n["createdAt"]) > last_added)
-        ]
-        latest_removed = max(removed_events, key=lambda n: str(n["createdAt"]), default=None)
-
-        raw_entry = pr.get("mergeQueueEntry")
-        entry = _as_dict(raw_entry)
-        return {
-            "state": pr["state"],
-            "merge_commit_oid": _as_dict(pr.get("mergeCommit")).get("oid"),
-            "is_in_merge_queue": pr.get("isInMergeQueue") is True,
-            "entry": (
-                {
-                    "state": entry.get("state"),
-                    "position": entry.get("position"),
-                    "head_oid": _as_dict(entry.get("headCommit")).get("oid"),
-                }
-                if raw_entry
-                else None
-            ),
-            "removed": latest_removed is not None,
-            "removed_reason": latest_removed.get("reason") if latest_removed else None,
-        }
-
-    def get_failed_checks(self, owner: str, repo: str, oid: str) -> list[str]:
-        """コミットの statusCheckRollup から、失敗したチェックの名前を返す"""
-        result = self._execute_graphql(
-            QUERY_GET_COMMIT_CHECK_CONTEXTS, {"owner": owner, "repo": repo, "oid": oid}
-        )
-        commit = _as_dict(_as_dict(result.get("repository")).get("object"))
-        rollup = _as_dict(commit.get("statusCheckRollup"))
-        nodes = _as_dict_list(_as_dict(rollup.get("contexts")).get("nodes"))
-
-        failed_runs = {"FAILURE", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED"}
-        failed: list[str] = []
-        for node in nodes:
-            kind = node.get("__typename")
-            if kind == "CheckRun" and node.get("conclusion") in failed_runs:
-                failed.append(str(node["name"]))
-            elif kind == "StatusContext" and node.get("state") in {"FAILURE", "ERROR"}:
-                failed.append(str(node["context"]))
-        return failed
-
-    def get_merge_group_failed_jobs(
-        self, owner: str, repo: str, base: str, number: int
-    ) -> list[str]:
-        """マージキューの検証ラン（merge_group）で失敗したジョブ名を返す
-
-        PR の最新の merge_group ラン（head_branch が gh-readonly-queue/{base}/pr-{number}- で
-        始まるもの）を選ぶ。該当ランが無ければ空リスト。
-        """
-        response = self._rest_request(
-            "get",
-            f"/repos/{owner}/{repo}/actions/runs",
-            params={"event": "merge_group", "per_page": 20},
-        )
-        if not response.is_success:
-            self._handle_http_error(response)
-        prefix = f"gh-readonly-queue/{base}/pr-{number}-"
-        runs = [
-            r
-            for r in _as_dict_list(_as_dict(response.json()).get("workflow_runs"))
-            if str(r.get("head_branch") or "").startswith(prefix)
-        ]
-        if not runs:
-            return []
-        latest = max(runs, key=lambda r: str(r.get("created_at") or ""))
-
-        response = self._rest_request(
-            "get",
-            f"/repos/{owner}/{repo}/actions/runs/{latest['id']}/jobs",
-            params={"per_page": 100},
-        )
-        if not response.is_success:
-            self._handle_http_error(response)
-        failed_conclusions = {"failure", "timed_out", "cancelled"}
-        return [
-            str(j["name"])
-            for j in _as_dict_list(_as_dict(response.json()).get("jobs"))
-            if j.get("conclusion") in failed_conclusions
-        ]
-
-
-def _as_dict(value: object) -> dict[str, Any]:
-    return cast("dict[str, Any]", value) if isinstance(value, dict) else {}
-
-
-def _as_dict_list(value: object) -> list[dict[str, Any]]:
-    items = cast("list[Any]", value) if isinstance(value, list) else []
-    return [cast("dict[str, Any]", v) for v in items if isinstance(v, dict)]

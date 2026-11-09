@@ -393,10 +393,10 @@ def test_pr_external_asks(external_post_script, command) -> None:
         "pecot pr create -p",
         "pecot pr create x.md --dry-run",
         "pecot pr create x.md -n",
-        # 検出対象外サブコマンド（pecot pr merge は #911 でガード撤去済み）。
-        "pecot pr merge 810",
-        "pecot pr merge 810 --delete-branch",
-        '"$PECOT" pr merge 810',
+        # 検出対象外サブコマンド（pecot pr cleanup は gh pr merge の後片付け）。
+        "pecot pr cleanup 810",
+        "pecot pr cleanup 810 --delete-branch",
+        '"$PECOT" pr cleanup 810',
         "pecot pr read acme-labs/aist-plugin/810",
         "pecot pr preflight",
         # 文字列内・ファイル名内。
@@ -422,10 +422,11 @@ def test_pr_external_passes(external_post_script, command) -> None:
     assert result.stdout == ""
 
 
-def test_pr_external_gh_merge_guides_to_pecot(external_post_script) -> None:
+def test_pr_external_gh_merge_guides_to_w_merge(external_post_script) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": "gh pr merge 810"})
     assert result.returncode == 11
-    assert "pecot pr merge" in result.stdout
+    assert "/pecot-w:w-merge" in result.stdout
+    assert "pecot pr cleanup" in result.stdout
 
 
 def test_pr_external_mixed_kinds_asks_by_gh_merge(external_post_script) -> None:
@@ -435,7 +436,8 @@ def test_pr_external_mixed_kinds_asks_by_gh_merge(external_post_script) -> None:
         env={"HOOK_COMMAND": "pecot pr create --prepare && gh pr merge 810"},
     )
     assert result.returncode == 11
-    assert "pecot pr merge" in result.stdout
+    assert "/pecot-w:w-merge" in result.stdout
+    assert "pecot pr cleanup" in result.stdout
 
 
 def test_pr_external_unset_command_exit_2(external_post_script) -> None:
@@ -522,15 +524,59 @@ def test_pr_external_slash_flag_passes_chained_create(external_post_script, pr_s
     assert pr_slash_flag["flag"].is_file()
 
 
-def test_pr_external_slash_flag_not_applied_to_gh_merge(
+def test_pr_external_pr_create_flag_not_applied_to_gh_merge(
     external_post_script, pr_slash_flag
 ) -> None:
+    """pr-create-slash-pending（/w-pr 起点）は gh pr merge を免除しない。"""
     result = _run_core(
         external_post_script,
         env={**pr_slash_flag["env"], "HOOK_COMMAND": "gh pr merge 810"},
     )
     assert result.returncode == 11
     assert pr_slash_flag["flag"].is_file()
+
+
+@pytest.fixture
+def merge_slash_flag(tmp_path: Path) -> dict:
+    """HOOK_WORKING_DIR 配下に merge-slash-pending を置いた環境。"""
+    project = tmp_path / "merge-slash-project"
+    state = project / ".pecot" / "state"
+    state.mkdir(parents=True)
+    flag = state / "merge-slash-pending"
+    flag.touch()
+    return {"env": {"HOOK_WORKING_DIR": str(project)}, "flag": flag}
+
+
+@pytest.mark.parametrize("command", ["gh pr merge 810", "gh pr merge 810 --squash --auto"])
+def test_gh_merge_passes_with_merge_slash_flag_and_flag_remains(
+    external_post_script, merge_slash_flag, command
+) -> None:
+    result = _run_core(
+        external_post_script, env={**merge_slash_flag["env"], "HOOK_COMMAND": command}
+    )
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert merge_slash_flag["flag"].is_file()
+
+
+def test_gh_merge_asks_without_merge_slash_flag(external_post_script, tmp_path) -> None:
+    project = tmp_path / "noflag-merge-project"
+    (project / ".pecot" / "state").mkdir(parents=True)
+    result = _run_core(
+        external_post_script,
+        env={"HOOK_WORKING_DIR": str(project), "HOOK_COMMAND": "gh pr merge 810"},
+    )
+    assert result.returncode == 11
+    assert "【external-post-check ガード】" in result.stdout
+
+
+def test_merge_slash_flag_not_applied_to_pr_create(external_post_script, merge_slash_flag) -> None:
+    """merge-slash-pending は pecot pr create を免除しない。"""
+    result = _run_core(
+        external_post_script,
+        env={**merge_slash_flag["env"], "HOOK_COMMAND": "pecot pr create x.md"},
+    )
+    assert result.returncode == 11
 
 
 def test_pr_external_no_slash_flag_still_asks(external_post_script, tmp_path) -> None:
