@@ -106,6 +106,9 @@ def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -
         ".markdownlint-cli2.jsonc",
         # プロジェクト外の一般ファイル。どの namedInputs にも載らない。
         ".pecot/config/.worktreeignore",
+        # CI で使わない .devcontainer のファイル。sharedGlobals に載せていない。
+        ".devcontainer/tmux/pecot-open.sh",
+        ".devcontainer/scripts/install-git-hooks.sh",
     ],
 )
 def test_outside_project_file_affects_only_the_root_project(
@@ -152,9 +155,18 @@ def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
     assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
 
 
-def test_devcontainer_change_affects_all_projects(nx_bin: Path) -> None:
-    """.devcontainer の変更は sharedGlobals で全 project に届く。CI のイメージが変わるため。"""
-    affected = set(_affected(nx_bin, _REPO_ROOT, "--files=.devcontainer/devcontainer.json"))
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        ".devcontainer/devcontainer.json",
+        ".devcontainer/features/playwright-deps/install.sh",
+        ".devcontainer/scripts/post-create.sh",
+    ],
+)
+def test_devcontainer_change_affects_all_projects(nx_bin: Path, changed_file: str) -> None:
+    """CI のイメージと起動に関わる .devcontainer のファイルは、sharedGlobals で全 project に届く。"""
+    assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
+    affected = set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
     assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
 
 

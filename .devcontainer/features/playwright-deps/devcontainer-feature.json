@@ -6,7 +6,8 @@
   "options": {
     "version": {
       "type": "string",
-      "description": "install-deps を取る playwright-core の版。pnpm-lock.yaml の playwright にそろえる。"
+      "default": "",
+      "description": "install-deps を実行する playwright-core の版。pnpm-lock.yaml の playwright にそろえる。"
     }
   },
   "installsAfter": ["ghcr.io/devcontainers/features/node"]
