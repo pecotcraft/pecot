@@ -2454,12 +2454,16 @@ _MERGE_DIFF_BODY = """## Merge — タスク1完了
 """
 
 
+def _host_of(url: str) -> str:
+    return url.split("/")[2]
+
+
 class TestIssueCommentUpdateByFile:
     """issue comment <file> の comment_url による書き戻しと更新"""
 
-    def _config(self) -> MagicMock:
+    def _config(self, host: str = "github.com") -> MagicMock:
         config = MagicMock()
-        config.host = "github.com"
+        config.host = host
         config.is_repo_in_project.return_value = True
         return config
 
@@ -2470,15 +2474,24 @@ class TestIssueCommentUpdateByFile:
         )
         return path
 
-    def test_new_post_writes_back_comment_url(self, tmp_path: Path) -> None:
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://github.com/owner/repo/issues/123#issuecomment-456",
+            "https://github.com/owner/repo/pull/123#issuecomment-456",
+            "https://ghes.example.com/owner/repo/pull/123#issuecomment-456",
+        ],
+    )
+    def test_new_post_writes_back_comment_url(self, tmp_path: Path, url: str) -> None:
         """新規投稿の後、frontmatter に comment_url を書き戻す。本文は変えない"""
         comment_file = self._write(tmp_path / "comment.md")
-        url = "https://github.com/owner/repo/issues/123#issuecomment-456"
         mock_client = MagicMock()
         mock_client.add_issue_comment.return_value = {"id": 456, "html_url": url}
 
         with (
-            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch(
+                "cli.commands.issue.load_active_config", return_value=self._config(_host_of(url))
+            ),
             patch("cli.commands.issue.GitHubClient", return_value=mock_client),
         ):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
@@ -2491,15 +2504,45 @@ class TestIssueCommentUpdateByFile:
         assert content.endswith(_MERGE_DIFF_BODY)
         mock_client.update_issue_comment.assert_not_called()
 
-    def test_comment_url_updates_existing_comment(self, tmp_path: Path) -> None:
+    def test_pr_comment_round_trip_updates_instead_of_posting_again(self, tmp_path: Path) -> None:
+        """PR へのコメントを 1 回目で投稿し、2 回目は書き戻された /pull/ の URL で書き換える"""
+        comment_file = self._write(tmp_path / "comment.md")
+        url = "https://github.com/owner/repo/pull/123#issuecomment-456"
+        mock_client = MagicMock()
+        mock_client.add_issue_comment.return_value = {"id": 456, "html_url": url}
+        mock_client.update_issue_comment.return_value = {"id": 456, "html_url": url}
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            first = runner.invoke(app, ["issue", "comment", str(comment_file)])
+            second = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert first.exit_code == 0, first.output
+        assert second.exit_code == 0, second.output
+        assert mock_client.add_issue_comment.call_count == 1
+        args = mock_client.update_issue_comment.call_args[0]
+        assert args[:3] == ("owner", "repo", 456)
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://github.com/owner/repo/issues/123#issuecomment-456",
+            "https://github.com/owner/repo/pull/123#issuecomment-456",
+            "https://ghes.example.com/owner/repo/pull/123#issuecomment-456",
+        ],
+    )
+    def test_comment_url_updates_existing_comment(self, tmp_path: Path, url: str) -> None:
         """comment_url があれば、新しく投稿せずにそのコメントを書き換える"""
-        url = "https://github.com/owner/repo/issues/123#issuecomment-456"
         comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
         mock_client = MagicMock()
         mock_client.update_issue_comment.return_value = {"id": 456, "html_url": url}
 
         with (
-            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch(
+                "cli.commands.issue.load_active_config", return_value=self._config(_host_of(url))
+            ),
             patch("cli.commands.issue.GitHubClient", return_value=mock_client),
         ):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
@@ -2517,11 +2560,11 @@ class TestIssueCommentUpdateByFile:
         [
             "https://github.com/other/repo/issues/123#issuecomment-456",
             "https://github.com/owner/repo/issues/124#issuecomment-456",
-            "https://github.com/owner/repo/issues/123",
+            "https://github.com/owner/repo/pull/124#issuecomment-456",
         ],
     )
     def test_comment_url_for_other_issue_is_rejected(self, tmp_path: Path, url: str) -> None:
-        """issue_ref と別の Issue を指す・形の違う comment_url では、API を呼ばずに止める"""
+        """issue_ref と別の Issue を指す comment_url では、API を呼ばずに止める"""
         comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
         mock_client = MagicMock()
 
@@ -2532,7 +2575,52 @@ class TestIssueCommentUpdateByFile:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 1
-        assert "comment_url" in result.output
+        assert "違う Issue を指しています" in result.output
+        mock_client.add_issue_comment.assert_not_called()
+        mock_client.update_issue_comment.assert_not_called()
+
+    def test_comment_url_for_other_host_is_rejected(self, tmp_path: Path) -> None:
+        """設定のホストと違うホストの comment_url では、API を呼ばずに止める"""
+        url = "https://ghes.example.com/owner/repo/pull/123#issuecomment-456"
+        comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config("github.com")),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 1
+        assert (
+            "comment_url のホスト（ghes.example.com）が設定のホスト（github.com）と違います"
+            in result.output
+        )
+        mock_client.add_issue_comment.assert_not_called()
+        mock_client.update_issue_comment.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://github.com/owner/repo/issues/123",
+            "https://github.com/owner/repo/pull/123/files#issuecomment-456",
+            "https://github.com/owner/repo/pull/123#discussion_r456",
+        ],
+    )
+    def test_malformed_comment_url_shows_expected_form(self, tmp_path: Path, url: str) -> None:
+        """形の違う comment_url では、API を呼ばずに期待する形を案内して止める"""
+        comment_file = self._write(tmp_path / "comment.md", f'comment_url: "{url}"\n')
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 1
+        assert "形が違います" in result.output
+        assert "/{issues|pull}/<番号>#issuecomment-<id>" in result.output
         mock_client.add_issue_comment.assert_not_called()
         mock_client.update_issue_comment.assert_not_called()
 
