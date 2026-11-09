@@ -39,6 +39,7 @@ jobs:
           private-key: ${{ secrets.DEPENDABOT_PRS_APP_PRIVATE_KEY }}
           permission-issues: write
           permission-organization-projects: write
+          permission-contents: read
           permission-pull-requests: read
           permission-checks: read
           permission-statuses: read

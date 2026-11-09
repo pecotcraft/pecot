@@ -11,6 +11,9 @@ from typing import Any
 from cli.core.config import ProjectConfig
 from cli.core.github import GitHubClient
 
+# 作ったボード項目の Status（Tracker はここから始める）
+_BOARD_STATUS = "backlog"
+
 
 def create_issue(
     client: GitHubClient,
@@ -93,9 +96,6 @@ def item_has_field_value(
     return field_id in client.get_item_set_field_ids(
         config.project.id, owner, repo, issue_number, item_id
     )
-
-
-_BOARD_STATUS = "backlog"
 
 
 def put_on_board(

@@ -12,9 +12,9 @@ import pytest
 
 from cli.core.dependabot_prs import (
     DependabotPrError,
-    TrackerEntry,
+    PrEntry,
     build_tracker_title,
-    parse_tracker_entries,
+    parse_tracker_pr_numbers,
     parse_update_metadata,
     plan_tracker,
     render_tracker_body,
@@ -38,10 +38,16 @@ def _message(*deps: tuple[str, str | None]) -> str:
     return "\n".join([*lines, "...", "", "Signed-off-by: dependabot[bot] <support@github.com>"])
 
 
+def _last(kind: str, events: list[tuple[str, timedelta]] | None) -> dict[str, Any]:
+    times = [d for k, d in events or [] if k == kind]
+    return {"nodes": [{"createdAt": _iso(min(times))}] if times else []}
+
+
 def _pr(
     *,
     deps: tuple[tuple[str, str | None], ...] = (("left-pad", "minor"),),
-    body: str = "",
+    message: str | None = None,
+    signature: dict[str, bool] | None = {"isValid": True},  # noqa: B006
     commit_author: str | None = "dependabot[bot]",
     age: timedelta = timedelta(hours=2),
     auto_merge: bool = True,
@@ -56,7 +62,6 @@ def _pr(
         "number": number,
         "title": "Bump left-pad",
         "url": f"https://github.com/o/r/pull/{number}",
-        "body": body,
         "createdAt": _iso(age),
         "author": {"__typename": "Bot", "login": "dependabot"},
         "isInMergeQueue": queue,
@@ -67,7 +72,8 @@ def _pr(
             "nodes": [
                 {
                     "commit": {
-                        "message": _message(*deps),
+                        "message": message if message is not None else _message(*deps),
+                        "signature": signature,
                         "author": {"user": {"login": commit_author} if commit_author else None},
                     }
                 }
@@ -76,9 +82,9 @@ def _pr(
         "headCommits": {
             "nodes": [{"commit": {"statusCheckRollup": {"state": rollup} if rollup else None}}]
         },
-        "timelineItems": {
-            "nodes": [{"__typename": k, "createdAt": _iso(d)} for k, d in events or []]
-        },
+        # 種類ごとに別名で最後の 1 件を取る（queries.py の lastForcePush・lastDequeue）
+        "lastForcePush": _last("HeadRefForcePushedEvent", events),
+        "lastDequeue": _last("RemovedFromMergeQueueEvent", events),
     }
 
 
@@ -90,10 +96,51 @@ class TestParseUpdateMetadata:
         got = parse_update_metadata(_message(("a", "patch"), ("b", "major")))
         assert got == [("a", "patch"), ("b", "major")]
 
-    def test_missing_update_type_is_computed_from_body(self) -> None:
-        body = "Updates `a` from 1.2.3 to 2.0.0\nUpdates `b` from v1.2.3 to v1.3.0"
-        got = parse_update_metadata(_message(("a", None), ("b", None)), body)
-        assert got == [("a", "major"), ("b", "minor")]
+    def test_missing_update_type_is_computed_from_group_message(self) -> None:
+        message = _message(("a", None), ("b", None)).replace(
+            "Signed-off-by",
+            "Updates `a` from 1.2.3 to 2.0.0\nUpdates `b` from v1.2.3 to v1.3.0\nSigned-off-by",
+        )
+        assert parse_update_metadata(message) == [("a", "major"), ("b", "minor")]
+
+    def test_missing_update_type_is_computed_from_bumps_line(self) -> None:
+        message = "Bumps [a](https://x) from 1.2.3 to 1.2.4.\n\n" + _message(("a", None))
+        assert parse_update_metadata(message) == [("a", "patch")]
+
+    def test_bumps_line_applies_to_the_first_dependency_only(self) -> None:
+        message = "Bumps [a](https://x) from 1.2.3 to 2.0.0.\n\n" + _message(
+            ("a", None), ("b", None)
+        )
+        assert parse_update_metadata(message) == [("a", "major"), ("b", None)]
+
+    def test_dependency_version_in_yaml_is_the_new_version(self) -> None:
+        message = "Bumps [a](https://x) from 1.2.3 to 1.2.4.\n\n" + _message(("a", None)).replace(
+            "  dependency-type", "  dependency-version: 1.3.0\n  dependency-type"
+        )
+        assert parse_update_metadata(message) == [("a", "minor")]
+
+    def test_updates_line_must_fill_the_line(self) -> None:
+        message = _message(("a", None)).replace(
+            "Signed-off-by", "see Updates `a` from 1.0.0 to 2.0.0 here\nSigned-off-by"
+        )
+        assert parse_update_metadata(message) == [("a", None)]
+
+    @pytest.mark.parametrize(
+        ("old", "new", "expected"),
+        [
+            ("1.2.3", "1.2.3", None),
+            ("1.2.3", "1.2.4", "patch"),
+            ("1.2.3", "1.3.0", "minor"),
+            ("1.2.3", "2.0.0", "major"),
+            ("1", "1.0", "minor"),
+            ("1.0.0-beta.1", "1.0.0", "patch"),
+        ],
+    )
+    def test_version_type_matches_fetch_metadata(
+        self, old: str, new: str, expected: str | None
+    ) -> None:
+        message = f"Bumps [a](https://x) from {old} to {new}.\n\n" + _message(("a", None))
+        assert parse_update_metadata(message) == [("a", expected)]
 
     def test_missing_update_type_and_no_versions_is_none_type(self) -> None:
         assert parse_update_metadata(_message(("a", None))) == [("a", None)]
@@ -130,6 +177,19 @@ class TestWaitingReasonsMetadata:
     def test_no_type_at_all_is_unknown(self) -> None:
         assert waiting_reasons(_pr(deps=(("a", None),)), NOW) == ["update-type 不明"]
 
+    @pytest.mark.parametrize("signature", [{"isValid": False}, {}, None])
+    def test_first_commit_without_valid_signature_is_unknown(
+        self, signature: dict[str, bool] | None
+    ) -> None:
+        assert waiting_reasons(_pr(signature=signature), NOW) == ["update-type 不明"]
+
+    def test_unquoted_scoped_name_in_yaml_is_unknown(self) -> None:
+        message = (
+            "Bump x\n\n---\nupdated-dependencies:\n- dependency-name: @scope/x\n"
+            "  update-type: version-update:semver-minor\n...\n"
+        )
+        assert waiting_reasons(_pr(message=message), NOW) == ["update-type 不明"]
+
     def test_non_target_pr_ignores_state_reasons(self) -> None:
         pr = _pr(deps=(("a", "major"),), rollup="FAILURE", mergeable="CONFLICTING")
         assert waiting_reasons(pr, NOW) == ["major"]
@@ -148,6 +208,72 @@ class TestWaitingReasonsState:
     def test_not_finishing_after_24h(self, rollup: str | None) -> None:
         pr = _pr(rollup=rollup, age=timedelta(hours=25))
         assert waiting_reasons(pr, NOW) == ["検証が終わらない"]
+
+    @pytest.mark.parametrize(
+        ("age", "expected"),
+        [
+            (timedelta(hours=24), []),
+            (timedelta(hours=24, seconds=1), ["検証が終わらない"]),
+        ],
+    )
+    def test_checks_timeout_boundary(self, age: timedelta, expected: list[str]) -> None:
+        assert waiting_reasons(_pr(rollup="PENDING", age=age), NOW) == expected
+
+    def test_not_finishing_applies_only_with_auto_merge(self) -> None:
+        pr = _pr(auto_merge=False, rollup="PENDING", age=timedelta(hours=25))
+        assert waiting_reasons(pr, NOW) == ["auto-merge が入っていない"]
+
+    @pytest.mark.parametrize(
+        ("age", "expected"),
+        [
+            (timedelta(minutes=30), []),
+            (timedelta(minutes=30, seconds=1), ["auto-merge が入っていない"]),
+        ],
+    )
+    def test_no_auto_merge_grace_boundary(self, age: timedelta, expected: list[str]) -> None:
+        assert waiting_reasons(_pr(auto_merge=False, age=age), NOW) == expected
+
+    @pytest.mark.parametrize(
+        ("base_age", "expected"),
+        [
+            (timedelta(minutes=30), []),
+            (timedelta(minutes=30, seconds=1), ["競合"]),
+        ],
+    )
+    def test_conflict_grace_boundary_after_base_moved(
+        self, base_age: timedelta, expected: list[str]
+    ) -> None:
+        pr = _pr(mergeable="CONFLICTING", age=timedelta(hours=2), base_age=base_age)
+        assert waiting_reasons(pr, NOW) == expected
+
+    @pytest.mark.parametrize(
+        ("age", "expected"),
+        [(timedelta(minutes=30), []), (timedelta(minutes=30, seconds=1), ["競合"])],
+    )
+    def test_conflict_grace_boundary_after_push(self, age: timedelta, expected: list[str]) -> None:
+        assert waiting_reasons(_pr(mergeable="CONFLICTING", age=age), NOW) == expected
+
+    def test_dequeue_before_rebase_inside_grace_is_not_listed(self) -> None:
+        pr = _pr(
+            auto_merge=False,
+            age=timedelta(hours=5),
+            events=[
+                ("RemovedFromMergeQueueEvent", timedelta(hours=4)),
+                ("HeadRefForcePushedEvent", timedelta(minutes=10)),
+            ],
+        )
+        assert waiting_reasons(pr, NOW) == []
+
+    def test_old_dequeue_with_auto_merge_back_is_not_listed(self) -> None:
+        pr = _pr(
+            auto_merge=True,
+            age=timedelta(hours=5),
+            events=[
+                ("RemovedFromMergeQueueEvent", timedelta(hours=4)),
+                ("HeadRefForcePushedEvent", timedelta(hours=1)),
+            ],
+        )
+        assert waiting_reasons(pr, NOW) == []
 
     def test_force_push_resets_the_24h_clock(self) -> None:
         pr = _pr(
@@ -208,8 +334,8 @@ class TestWaitingReasonsState:
         assert waiting_reasons(pr, NOW) == ["検証が落ちた", "競合"]
 
 
-def _entry(number: int, title: str = "Bump a", *reasons: str) -> TrackerEntry:
-    return TrackerEntry(
+def _entry(number: int, title: str = "Bump a", *reasons: str) -> PrEntry:
+    return PrEntry(
         number=number,
         title=title,
         url=f"https://github.com/o/r/pull/{number}",
@@ -224,14 +350,25 @@ class TestTrackerBody:
             "<!-- pecot-dependabot-pr: tracker -->\n\n"
             "<!-- pecot-dependabot-pr: list-begin -->\n"
             "| PR | 待っている理由 |\n|---|---|\n"
-            "| <!-- pecot-dependabot-pr: pr/2 --> [#2](https://github.com/o/r/pull/2) Bump a"
+            "| <!-- pecot-dependabot-pr: pr/2 --> [#2](https://github.com/o/r/pull/2) `Bump a`"
             " | major・playwright |\n"
             "<!-- pecot-dependabot-pr: list-end -->\n"
         )
 
+    def test_scoped_package_title_is_a_code_span_not_a_mention(self) -> None:
+        body = render_tracker_body([_entry(4, "Bump @vueuse/core from 1.0.0 to 1.1.0")])
+        assert "`Bump @vueuse/core from 1.0.0 to 1.1.0`" in body
+        assert parse_tracker_pr_numbers(body) == [4]
+
+    def test_title_with_backticks_uses_a_longer_fence(self) -> None:
+        body = render_tracker_body([_entry(4, "Bump `@scope/pkg` | x")])
+        assert "``Bump `@scope/pkg` \\| x``" in body
+        body = render_tracker_body([_entry(5, "`@scope/pkg`")])
+        assert "`` `@scope/pkg` ``" in body
+
     def test_round_trip_reads_numbers(self) -> None:
         body = render_tracker_body([_entry(5), _entry(2)])
-        assert parse_tracker_entries(body) == [2, 5]
+        assert parse_tracker_pr_numbers(body) == [2, 5]
 
     def test_only_the_list_is_rewritten(self) -> None:
         existing = render_tracker_body([_entry(1)]).replace(
@@ -245,16 +382,16 @@ class TestTrackerBody:
 
     def test_title_cannot_break_the_table(self) -> None:
         body = render_tracker_body([_entry(3, "a | b <!-- pecot-dependabot-pr: pr/99 -->")])
-        assert parse_tracker_entries(body) == [3]
+        assert parse_tracker_pr_numbers(body) == [3]
 
     def test_empty_table_keeps_header(self) -> None:
         body = render_tracker_body([])
         assert "| PR | 待っている理由 |" in body
-        assert parse_tracker_entries(body) == []
+        assert parse_tracker_pr_numbers(body) == []
 
     def test_missing_markers_raise(self) -> None:
         with pytest.raises(DependabotPrError):
-            parse_tracker_entries("no markers")
+            parse_tracker_pr_numbers("no markers")
         with pytest.raises(DependabotPrError):
             render_tracker_body([], "no markers")
 

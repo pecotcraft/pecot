@@ -9,67 +9,54 @@ Actions の schedule と手元の両方から同じコマンドで動かす。
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Any
 
 import httpx
 import typer
 
-from cli.commands.release import load_target
+from cli.commands._tracker_sync import (
+    DryRunOption,
+    api_error_detail,
+    load_target,
+    warn_extra_trackers,
+)
 from cli.core.config import ProjectConfig
 from cli.core.dependabot_prs import (
     PR_LABEL,
     PRIORITY,
     TRACKER_RE,
     DependabotPrError,
-    TrackerEntry,
-    TrackerPlan,
+    PrEntry,
+    PrPlan,
     build_tracker_title,
-    first_node,
-    parse_tracker_entries,
+    parse_tracker_pr_numbers,
     plan_tracker,
     render_tracker_body,
+    rollup_state,
     waiting_reasons,
 )
 from cli.core.github import GitHubAPIError, GitHubClient
-from cli.core.github.auth import as_dict
 from cli.core.issue_board import create_issue, put_on_board
 from cli.core.tracker_body import find_tracker
 
-DryRunOption = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run", help="Tracker を立てる・書き直す・閉じる予定を表示するだけで、何も変更しない"
-    ),
-]
+
+def _entries(waiting: list[tuple[dict[str, Any], list[str]]]) -> list[PrEntry]:
+    """待つ PR（PR と理由の組）を表の行にする"""
+    return [
+        PrEntry(
+            number=int(pr["number"]),
+            title=str(pr.get("title") or ""),
+            url=str(pr.get("url") or ""),
+            reasons=tuple(reasons),
+        )
+        for pr, reasons in waiting
+    ]
 
 
-def _detail(e: GitHubAPIError | httpx.HTTPError) -> str:
-    return e.message if isinstance(e, GitHubAPIError) else str(e)
-
-
-def _entries(prs: list[dict[str, Any]], now: datetime) -> list[TrackerEntry]:
-    """待つ PR だけを行にする。rollup が null の PR の件数をログに出す"""
-    entries: list[TrackerEntry] = []
-    no_rollup = 0
-    for pr in prs:
-        commit = as_dict(as_dict(first_node(pr.get("headCommits"))).get("commit"))
-        if commit.get("statusCheckRollup") is None:
-            no_rollup += 1
-        reasons = waiting_reasons(pr, now)
-        if reasons:
-            entries.append(
-                TrackerEntry(
-                    number=int(pr["number"]),
-                    title=str(pr.get("title") or ""),
-                    url=str(pr.get("url") or ""),
-                    reasons=tuple(reasons),
-                )
-            )
-    typer.echo(f"open の dependabot の PR: {len(prs)} 件（検証の結果が null: {no_rollup} 件）")
-    return entries
-
-
-def _echo_plan(plan: TrackerPlan, tracker: int | None, title: str, dry_run: bool) -> None:
+def _echo_plan(
+    plan: PrPlan, tracker: int | None, title: str, dry_run: bool, unchanged: bool
+) -> None:
+    """Tracker に対する予定を表示する。dry-run かどうかは行頭の印だけで切り替える"""
     prefix = "[dry-run] " if dry_run else ""
     if tracker is None:
         if not plan.create:
@@ -79,10 +66,17 @@ def _echo_plan(plan: TrackerPlan, tracker: int | None, title: str, dry_run: bool
         for e in plan.entries:
             typer.echo(f"{prefix}Tracker に載せる: PR #{e.number}（{'・'.join(e.reasons)}）")
         return
+    if unchanged and not plan.close:
+        typer.echo(f"{prefix}Tracker #{tracker} は変わらない")
+        return
     for e in plan.added:
         typer.echo(f"{prefix}Tracker #{tracker} に足す: PR #{e.number}（{'・'.join(e.reasons)}）")
     for n in plan.removed:
         typer.echo(f"{prefix}Tracker #{tracker} から外す: PR #{n}")
+    if not (plan.added or plan.removed or plan.close):
+        typer.echo(f"{prefix}Tracker #{tracker} の本文を書き直す")
+    if plan.close:
+        typer.echo(f"{prefix}Tracker #{tracker} を閉じる")
 
 
 def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
@@ -98,6 +92,9 @@ def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
     open の Tracker が無く、載せる PR があるときだけ、Tracker を立ててボードの Backlog（Priority medium）に載せる。
     載せる PR が無くなれば、表を空にして Tracker を閉じる。
     PR の一覧を取れなければ、本文に触らず終了コード 1 で終わる。
+    open の Tracker が複数あれば、番号が最小のものを使い、ほかは閉じずに警告する。
+    使う Tracker の list-begin / list-end の印が 1 組でなければ、終了コード 1 で止まる。
+    ほかの Tracker があっても使わない。security sync と同じで、印は人が直す。
 
     Examples:
         $ pecot dependabot sync --dry-run
@@ -110,41 +107,34 @@ def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         prs = client.list_open_dependabot_pull_requests(owner, repo)
         issues = client.list_issues_by_label(owner, repo, PR_LABEL)
     except (GitHubAPIError, httpx.HTTPError) as e:
-        typer.echo(f"エラー: PR または Issue の一覧を取得できません: {_detail(e)}", err=True)
+        typer.echo(
+            f"エラー: PR または Issue の一覧を取得できません: {api_error_detail(e)}", err=True
+        )
         raise typer.Exit(1) from None
 
     tracker, others = find_tracker(issues, TRACKER_RE)
-    if others:
-        listed = "・".join(f"#{n}" for n in others)
-        used = f"#{tracker['number']}" if tracker else "なし"
-        typer.echo(
-            f"警告: open の Tracker が複数あります。番号が最小の {used}"
-            f" を使い、ほか（{listed}）は閉じません",
-            err=True,
-        )
+    warn_extra_trackers(tracker, others)
     existing_body = (tracker.get("body") or "") if tracker else None
     try:
-        old_numbers = parse_tracker_entries(existing_body) if tracker else None
+        old_numbers = parse_tracker_pr_numbers(existing_body) if tracker else None
     except DependabotPrError as e:
         label = f"Tracker #{tracker['number']}" if tracker else "Tracker"
         typer.echo(f"エラー: {label}: {e}", err=True)
         raise typer.Exit(1) from None
 
     now = datetime.now(timezone.utc)
-    plan = plan_tracker(_entries(prs, now), old_numbers)
+    waiting = [(pr, reasons) for pr in prs if (reasons := waiting_reasons(pr, now))]
+    no_rollup = sum(1 for pr, _ in waiting if rollup_state(pr) is None)
+    typer.echo(
+        f"open の dependabot の PR: {len(prs)} 件、うち Tracker に載せる {len(waiting)} 件"
+        f"（検証の結果が null: {no_rollup} 件）"
+    )
+    plan = plan_tracker(_entries(waiting), old_numbers)
     title = build_tracker_title(now.date())
     body = render_tracker_body(plan.entries, existing_body)
     number = int(tracker["number"]) if tracker else None
     unchanged = number is not None and body == (existing_body or "").replace("\r\n", "\n")
-    prefix = "[dry-run] " if dry_run else ""
-    if number is not None and unchanged and not plan.close:
-        typer.echo(f"{prefix}Tracker #{number} は変わらない")
-    else:
-        _echo_plan(plan, number, title, dry_run)
-        if number is not None and not (plan.added or plan.removed or plan.close):
-            typer.echo(f"{prefix}Tracker #{number} の本文を書き直す")
-        if number is not None and plan.close and dry_run:
-            typer.echo(f"[dry-run] Tracker #{number} を閉じる")
+    _echo_plan(plan, number, title, dry_run, unchanged)
 
     if dry_run:
         return
@@ -157,7 +147,7 @@ def _apply(
     config: ProjectConfig,
     owner: str,
     repo: str,
-    plan: TrackerPlan,
+    plan: PrPlan,
     number: int | None,
     title: str,
     body: str,
@@ -181,16 +171,25 @@ def _apply(
             except (GitHubAPIError, httpx.HTTPError) as e:
                 # 本文が書き直されていないので、閉じずに次の実行でやり直す
                 typer.echo(
-                    f"エラー: Tracker #{number} の本文を書き直せません: {_detail(e)}", err=True
+                    f"エラー: Tracker #{number} の本文を書き直せません: {api_error_detail(e)}",
+                    err=True,
                 )
                 return 1
         if plan.close:
-            client.close_issue(owner, repo, number, state_reason="completed")
+            try:
+                client.close_issue(owner, repo, number, state_reason="completed")
+            except (GitHubAPIError, httpx.HTTPError) as e:
+                typer.echo(
+                    f"エラー: Tracker #{number} の本文は空にしたが閉じられませんでした。"
+                    f"次の実行で再試行します: {api_error_detail(e)}",
+                    err=True,
+                )
+                return 1
             typer.echo(f"閉じた: Tracker #{number}")
             return 0
         # 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
         put_on_board(client, config, owner, repo, number, PRIORITY, only_if_empty=True)
         return 0
     except (GitHubAPIError, httpx.HTTPError) as e:
-        typer.echo(f"エラー: Tracker: {_detail(e)}", err=True)
+        typer.echo(f"エラー: Tracker: {api_error_detail(e)}", err=True)
         return 1

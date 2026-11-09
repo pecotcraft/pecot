@@ -92,22 +92,6 @@ def resolve_release_target_repo(
     return owner, repo
 
 
-def load_target(ctx: typer.Context) -> tuple[ProjectConfig, str, str]:
-    """対象リポ（git の origin、--repo 優先）とアクティブなプロジェクトを解決する
-
-    ``pecot security sync`` と ``pecot dependabot sync`` が使う。
-
-    Raises:
-        typer.Exit(1): リポかアクティブなプロジェクトが解決できないとき
-    """
-    owner, repo = resolve_release_target_repo(ctx, Path.cwd())
-    config = load_active_config()
-    if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
-        raise typer.Exit(1)
-    return config, owner, repo
-
-
 def _resolve_package_context(
     repo_obj: Repository | None,
     package: str | None,

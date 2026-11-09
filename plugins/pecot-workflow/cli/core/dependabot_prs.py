@@ -6,6 +6,7 @@ Tracker の本文（PR の一覧の表）を読み書きする処理と、行の
 
 自動マージの対象かは ``dependabot/fetch-metadata`` v3.1.0 と同じ情報源・規則で決める。
 最初の commit の message の YAML を読み、各依存の ``update-type`` の最大を使う。
+最初の commit の author が ``dependabot[bot]`` で、署名が有効なものだけを読む（fetch-metadata と同じ）。
 対象は minor・patch で playwright を含まない PR とする。
 対象の PR は、検証・競合・queue の状態から理由を足す。理由が無い PR は載せない。
 
@@ -23,7 +24,7 @@ from typing import Any, cast
 import yaml
 
 from cli.core.errors import PecotError
-from cli.core.tracker_body import list_region
+from cli.core.tracker_body import cell, list_region, normalize_newlines
 
 PR_LABEL = "dependabot-pr"
 TRACKER_MARKER = "<!-- pecot-dependabot-pr: tracker -->"
@@ -49,10 +50,14 @@ _LIST_BEGIN_RE = re.compile(r"<!--\s*pecot-dependabot-pr:\s*list-begin\s*-->")
 _LIST_END_RE = re.compile(r"<!--\s*pecot-dependabot-pr:\s*list-end\s*-->")
 TRACKER_RE = re.compile(r"<!--\s*pecot-dependabot-pr:\s*tracker\s*-->")
 
-# fetch-metadata と同じ。commit の message から ``updated-dependencies:`` の YAML を抜く
+# fetch-metadata v3.1.0（src/dependabot/update_metadata.ts の ``parse``・``parseMetadataLinks``）と同じ。
+# commit の message から ``updated-dependencies:`` の YAML と、版の記述を抜く
 _YAML_RE = re.compile(r"^-{3}\n([\s\S]*?)\n^\.{3}\n", re.MULTILINE)
-_UPDATES_RE = re.compile(r"(?:Bumps|Updates) `?([^`\s]+)`? from (\S+) to (\S+)")
+_BUMP_RE = re.compile(r"^Bumps .* from (v?\d[^ ]*) to (v?\d[^ ]*)\.$", re.MULTILINE)
+_UPDATES_RE = re.compile(r"^Updates `(\S+)` (?:from (\S+) )?to (\S+)$", re.MULTILINE)
 _UPDATE_TYPES = ("patch", "minor", "major")
+# GraphQL の ``commit.author.user.login``。実 API の #166 の最初の commit で確認した値（2026-11-09）。
+# PR の ``author`` は ``{__typename: Bot, login: dependabot}`` で、``[bot]`` が付かない。
 _BOT_LOGIN = "dependabot[bot]"
 
 
@@ -61,35 +66,35 @@ class DependabotPrError(PecotError):
 
 
 def _version_type(old: str, new: str) -> str | None:
-    """版の変化の種類（major / minor / patch）。数字で読めなければ None"""
+    """版の変化の種類（major / minor / patch）。fetch-metadata の ``calculateUpdateType`` と同じ
 
-    def parts(v: str) -> list[int] | None:
-        m = re.match(r"^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?", v)
-        if m is None:
-            return None
-        return [int(g or 0) for g in m.groups()]
-
-    a, b = parts(old), parts(new)
-    if a is None or b is None:
+    前後のどちらかが空・両方が同じなら None。``v`` を除いて ``.`` で分け、先頭が違えば major、
+    要素が 2 つ未満か 2 番目が違えば minor、それ以外は patch にする。
+    pre-release（``1.0.0-beta.1`` → ``1.0.0``）も同じ近似で、数字だけの比較ではない。
+    """
+    if not old or not new or old == new:
         return None
+    a, b = old.replace("v", "", 1).split("."), new.replace("v", "", 1).split(".")
     if a[0] != b[0]:
         return "major"
-    if a[1] != b[1]:
+    if len(a) < 2 or len(b) < 2 or a[1] != b[1]:
         return "minor"
     return "patch"
 
 
-def parse_update_metadata(message: str, body: str = "") -> list[tuple[str, str | None]] | None:
+def parse_update_metadata(message: str) -> list[tuple[str, str | None]] | None:
     """commit の message から、依存ごとの (dependency-name, update-type) を読む
 
     ``update-type`` は ``major`` / ``minor`` / ``patch`` のどれか。
-    YAML に無いときは、``body``（PR 本文）の ``Updates `x` from a to b`` の版から計算する。
+    YAML に無いときは、message の版から計算する。先頭の依存は ``Bumps … from a to b.``、
+    ``Updates `name` (from a )?to b`` の行（group の PR）は依存名で引く。
     版も無いときは None にする。
 
     Returns:
         依存の並び。YAML の欠け・読めない YAML・依存の無い YAML では None。
     """
-    m = _YAML_RE.search(message.replace("\r\n", "\n"))
+    text = message.replace("\r\n", "\n")
+    m = _YAML_RE.search(text)
     if m is None:
         return None
     try:
@@ -99,20 +104,28 @@ def parse_update_metadata(message: str, body: str = "") -> list[tuple[str, str |
     if not isinstance(data, dict):
         return None
     deps = _list(_dict(data).get("updated-dependencies"))
-    computed = {name: _version_type(a, b) for name, a, b in _UPDATES_RE.findall(body)}
+    bump = _BUMP_RE.search(text)
+    links: dict[str, list[tuple[str, str]]] = {}
+    for name, old, new in _UPDATES_RE.findall(text):
+        links.setdefault(name, []).append((old, new))
+    seen: dict[str, int] = {}
     result: list[tuple[str, str | None]] = []
-    for item in deps:
+    for index, item in enumerate(deps):
         dep = _dict(item)
         name = dep.get("dependency-name")
         if not isinstance(name, str):
             continue
+        nth = seen.get(name, 0)
+        seen[name] = nth + 1
+        link = links.get(name, [])
+        old, new = link[nth] if nth < len(link) else ("", "")
+        old = old or (bump.group(1) if bump and index == 0 else "")
+        version = dep.get("dependency-version")
+        new = (version if isinstance(version, str) else "") or new
+        new = new or (bump.group(2) if bump and index == 0 else "")
         raw = dep.get("update-type")
-        update_type: str | None = None
-        if isinstance(raw, str) and raw.rpartition("semver-")[2] in _UPDATE_TYPES:
-            update_type = raw.rpartition("semver-")[2]
-        if update_type is None:
-            update_type = computed.get(name)
-        result.append((name, update_type))
+        raw_type = raw.rpartition("semver-")[2] if isinstance(raw, str) else ""
+        result.append((name, raw_type if raw_type in _UPDATE_TYPES else _version_type(old, new)))
     return result or None
 
 
@@ -133,20 +146,27 @@ def _list(value: Any) -> list[Any]:
     return cast("list[Any]", value) if isinstance(value, list) else []
 
 
-def first_node(value: Any) -> dict[str, Any]:
+def _first_node(value: Any) -> dict[str, Any]:
     nodes = _list(_dict(value).get("nodes"))
     return _dict(nodes[0]) if nodes else {}
 
 
+def rollup_state(pr: Mapping[str, Any]) -> str | None:
+    """最後の commit の検証（statusCheckRollup）の state。結果が無ければ None"""
+    rollup = _dict(_first_node(pr.get("headCommits")).get("commit")).get("statusCheckRollup")
+    state = _dict(rollup).get("state")
+    return state if isinstance(state, str) else None
+
+
 def _metadata_reasons(pr: Mapping[str, Any]) -> tuple[list[str], bool]:
     """(update-type と依存名から決まる理由, 自動マージの対象か)"""
-    commit = _dict(first_node(pr.get("firstCommits")).get("commit"))
+    commit = _dict(_first_node(pr.get("firstCommits")).get("commit"))
     author_login = _dict(_dict(commit.get("author")).get("user")).get("login")
+    # fetch-metadata は署名が有効でない commit の metadata を返さない（auto-merge も入らない）
+    signed = _dict(commit.get("signature")).get("isValid") is True
     metadata = None
-    if author_login == _BOT_LOGIN:
-        metadata = parse_update_metadata(
-            str(commit.get("message") or ""), str(pr.get("body") or "")
-        )
+    if author_login == _BOT_LOGIN and signed:
+        metadata = parse_update_metadata(str(commit.get("message") or ""))
     if metadata is None:
         return [REASON_UNKNOWN], False
     reasons: list[str] = []
@@ -172,18 +192,17 @@ def waiting_reasons(pr: Mapping[str, Any], now: datetime) -> list[str]:
         return reasons
 
     created = _parse_time(pr.get("createdAt"))
-    events = [_dict(n) for n in _list(_dict(pr.get("timelineItems")).get("nodes"))]
 
-    def event_times(kind: str) -> list[datetime]:
-        times = (_parse_time(e.get("createdAt")) for e in events if e.get("__typename") == kind)
+    def event_times(alias: str) -> list[datetime]:
+        nodes = _list(_dict(pr.get(alias)).get("nodes"))
+        times = (_parse_time(_dict(n).get("createdAt")) for n in nodes)
         return [t for t in times if t is not None]
 
-    pushes = event_times("HeadRefForcePushedEvent")
+    pushes = event_times("lastForcePush")
     last_push = max([t for t in [created, *pushes] if t is not None], default=None)
     if last_push is None:
         return reasons
-    rollup = _dict(first_node(pr.get("headCommits")).get("commit")).get("statusCheckRollup")
-    state = _dict(rollup).get("state")
+    state = rollup_state(pr)
     has_auto_merge = pr.get("autoMergeRequest") is not None
     in_queue = bool(pr.get("isInMergeQueue"))
 
@@ -192,14 +211,12 @@ def waiting_reasons(pr: Mapping[str, Any], now: datetime) -> list[str]:
     elif has_auto_merge and state != "SUCCESS" and now - last_push > CHECKS_TIMEOUT:
         reasons.append(REASON_STUCK)
     if pr.get("mergeable") == "CONFLICTING":
-        base = _parse_time(
-            _dict(_dict(_dict(pr.get("baseRef")).get("target"))).get("committedDate")
-        )
+        base = _parse_time(_dict(_dict(pr.get("baseRef")).get("target")).get("committedDate"))
         since = max([t for t in (last_push, base) if t is not None])
         if now - since > GRACE:
             reasons.append(REASON_CONFLICT)
     if not has_auto_merge and not in_queue:
-        if any(t > last_push for t in event_times("RemovedFromMergeQueueEvent")):
+        if any(t > last_push for t in event_times("lastDequeue")):
             reasons.append(REASON_DEQUEUED)
         elif now - last_push > GRACE:
             reasons.append(REASON_NO_AUTO_MERGE)
@@ -210,7 +227,7 @@ def waiting_reasons(pr: Mapping[str, Any], now: datetime) -> list[str]:
 
 
 @dataclass(frozen=True)
-class TrackerEntry:
+class PrEntry:
     """Tracker の表の 1 行（人の判断を待つ PR）
 
     Attributes:
@@ -227,7 +244,7 @@ class TrackerEntry:
 
 
 @dataclass
-class TrackerPlan:
+class PrPlan:
     """PR と Tracker の一覧の突き合わせの結果
 
     Attributes:
@@ -240,38 +257,38 @@ class TrackerPlan:
 
     create: bool = False
     close: bool = False
-    entries: list[TrackerEntry] = field(default_factory=list[TrackerEntry])
-    added: list[TrackerEntry] = field(default_factory=list[TrackerEntry])
+    entries: list[PrEntry] = field(default_factory=list[PrEntry])
+    added: list[PrEntry] = field(default_factory=list[PrEntry])
     removed: list[int] = field(default_factory=list[int])
 
 
-def _normalize_newlines(text: str) -> str:
-    return text.replace("\r\n", "\n").replace("\r", "\n")
+def _title_cell(title: str) -> str:
+    """PR の題のセル。``@scope/pkg`` をメンションとして読ませないため、コードスパンで囲む
+
+    囲いは、題のバッククォートの連なりより長くする。``|`` は ``\\|`` にして、セルの区切りと区別する。
+    """
+    one_line = re.sub(r"\s*[\r\n]+\s*", " ", title).strip().replace("|", "\\|")
+    longest = max((len(run) for run in re.findall(r"`+", one_line)), default=0)
+    fence = "`" * (longest + 1)
+    pad = " " if one_line.startswith("`") or one_line.endswith("`") else ""
+    return f"{fence}{pad}{one_line}{pad}{fence}"
 
 
-def _cell(text: str) -> str:
-    """表のセルに入る文。``|`` と改行と ``<`` を無害にする"""
-    one_line = re.sub(r"\s*[\r\n]+\s*", " ", text).strip()
-    return one_line.replace("<", "&lt;").replace("|", "\\|")
-
-
-def _row(e: TrackerEntry) -> str:
+def _row(e: PrEntry) -> str:
     marker = f"<!-- pecot-dependabot-pr: pr/{e.number} -->"
-    return f"| {marker} [#{e.number}]({e.url}) {_cell(e.title)} | {_cell('・'.join(e.reasons))} |"
+    return (
+        f"| {marker} [#{e.number}]({e.url}) {_title_cell(e.title)} | {cell('・'.join(e.reasons))} |"
+    )
 
 
-def _list_region(body: str) -> tuple[int, int]:
-    return list_region(body, _LIST_BEGIN_RE, _LIST_END_RE, DependabotPrError)
-
-
-def parse_tracker_entries(body: str | None) -> list[int]:
+def parse_tracker_pr_numbers(body: str | None) -> list[int]:
     """Tracker の本文から、一覧に載っている PR 番号を読む（番号順）
 
     Raises:
         DependabotPrError: list-begin / list-end の印が 1 組ではない場合
     """
-    text = _normalize_newlines(body or "")
-    begin, end = _list_region(text)
+    text = normalize_newlines(body or "")
+    begin, end = list_region(text, _LIST_BEGIN_RE, _LIST_END_RE, DependabotPrError)
     numbers = {
         int(m.group(1))
         for line in text[begin:end].split("\n")
@@ -282,7 +299,7 @@ def parse_tracker_entries(body: str | None) -> list[int]:
     return sorted(numbers)
 
 
-def render_tracker_body(entries: Sequence[TrackerEntry], existing_body: str | None = None) -> str:
+def render_tracker_body(entries: Sequence[PrEntry], existing_body: str | None = None) -> str:
     """Tracker の本文を作る
 
     ``existing_body`` があれば、list-begin から list-end の間だけを書き直し、外の文は残す。
@@ -296,8 +313,8 @@ def render_tracker_body(entries: Sequence[TrackerEntry], existing_body: str | No
         head = TRACKER_MARKER + "\n\n" + LIST_BEGIN + "\n"
         tail = "\n" + LIST_END + "\n"
     else:
-        text = _normalize_newlines(existing_body)
-        begin, end = _list_region(text)
+        text = normalize_newlines(existing_body)
+        begin, end = list_region(text, _LIST_BEGIN_RE, _LIST_END_RE, DependabotPrError)
         head = text[:begin] + "\n"
         tail = "\n" + text[end:]
     return head + table + tail
@@ -308,7 +325,7 @@ def build_tracker_title(today: date) -> str:
     return f"[Tracker] dependabot PR — {today.isoformat()}"
 
 
-def plan_tracker(entries: Sequence[TrackerEntry], old_numbers: list[int] | None) -> TrackerPlan:
+def plan_tracker(entries: Sequence[PrEntry], old_numbers: list[int] | None) -> PrPlan:
     """待つ PR と Tracker の今の行から、書き直した行を出す（純粋関数）
 
     ``old_numbers`` が None のときは open の Tracker が無い。載せる行があるときだけ立てる。
@@ -317,7 +334,7 @@ def plan_tracker(entries: Sequence[TrackerEntry], old_numbers: list[int] | None)
     rows = sorted(entries, key=lambda e: e.number)
     old = set(old_numbers or [])
     new = {e.number for e in rows}
-    return TrackerPlan(
+    return PrPlan(
         create=old_numbers is None and bool(rows),
         close=old_numbers is not None and not rows,
         entries=rows,

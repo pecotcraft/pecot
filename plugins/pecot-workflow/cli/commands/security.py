@@ -10,12 +10,16 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated
 
 import httpx
 import typer
 
-from cli.commands.release import load_target
+from cli.commands._tracker_sync import (
+    DryRunOption,
+    api_error_detail,
+    load_target,
+    warn_extra_trackers,
+)
 from cli.core.config import ProjectConfig
 from cli.core.dependabot import (
     DependabotAlertError,
@@ -29,12 +33,12 @@ from cli.core.security_alerts import (
     ALERT_KINDS,
     ALERT_LABEL,
     KIND_LABELS,
+    TRACKER_RE,
     Alert,
     AlertKind,
     SecurityAlertError,
     TrackerPlan,
     build_tracker_title,
-    find_tracker,
     list_open_alerts,
     max_priority,
     normalize_alerts,
@@ -42,13 +46,7 @@ from cli.core.security_alerts import (
     plan_tracker,
     render_tracker_body,
 )
-
-DryRunOption = Annotated[
-    bool,
-    typer.Option(
-        "--dry-run", help="Tracker を立てる・書き直す予定を表示するだけで、何も変更しない"
-    ),
-]
+from cli.core.tracker_body import find_tracker
 
 
 def _load_exceptions() -> list[DependabotException]:
@@ -136,19 +134,11 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
     try:
         issues = client.list_issues_by_label(owner, repo, ALERT_LABEL)
     except (GitHubAPIError, httpx.HTTPError) as e:
-        detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-        typer.echo(f"エラー: Issue の一覧を取得できません: {detail}", err=True)
+        typer.echo(f"エラー: Issue の一覧を取得できません: {api_error_detail(e)}", err=True)
         raise typer.Exit(1) from None
 
-    tracker, others = find_tracker(issues)
-    if others:
-        listed = "・".join(f"#{n}" for n in others)
-        used = f"#{tracker['number']}" if tracker else "なし"
-        typer.echo(
-            f"警告: open の Tracker が複数あります。番号が最小の {used}"
-            f" を使い、ほか（{listed}）は閉じません",
-            err=True,
-        )
+    tracker, others = find_tracker(issues, TRACKER_RE)
+    warn_extra_trackers(tracker, others)
     existing_body = (tracker.get("body") or "") if tracker else None
     try:
         entries = parse_tracker_entries(existing_body) if tracker else None
@@ -211,12 +201,13 @@ def _apply(
             except (GitHubAPIError, httpx.HTTPError) as e:
                 # 422 を含む。本文は書き直されていないので、次の実行でやり直す
                 failures += 1
-                detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-                typer.echo(f"エラー: Tracker #{number} の本文を書き直せません: {detail}", err=True)
+                typer.echo(
+                    f"エラー: Tracker #{number} の本文を書き直せません: {api_error_detail(e)}",
+                    err=True,
+                )
         # 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
         put_on_board(client, config, owner, repo, number, priority, only_if_empty=True)
         return failures
     except (GitHubAPIError, httpx.HTTPError) as e:
-        detail = e.message if isinstance(e, GitHubAPIError) else str(e)
-        typer.echo(f"エラー: Tracker: {detail}", err=True)
+        typer.echo(f"エラー: Tracker: {api_error_detail(e)}", err=True)
         return 1

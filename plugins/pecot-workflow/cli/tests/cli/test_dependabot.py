@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import typer.testing
 
 from cli.commands.main import app
-from cli.core.dependabot_prs import TrackerEntry, render_tracker_body
+from cli.core.dependabot_prs import PrEntry, render_tracker_body
 from cli.core.github import GitHubAPIError
 
 runner = typer.testing.CliRunner()
@@ -40,7 +40,6 @@ def _pr(number: int, name: str, kind: str, **kw: Any) -> dict[str, Any]:
         "number": number,
         "title": f"Bump {name}",
         "url": f"https://github.com/o/r/pull/{number}",
-        "body": "",
         "createdAt": _iso(timedelta(hours=3)),
         "author": {"__typename": "Bot", "login": "dependabot"},
         "isInMergeQueue": False,
@@ -49,11 +48,18 @@ def _pr(number: int, name: str, kind: str, **kw: Any) -> dict[str, Any]:
         "baseRef": {"target": {"committedDate": _iso(timedelta(days=2))}},
         "firstCommits": {
             "nodes": [
-                {"commit": {"message": message, "author": {"user": {"login": "dependabot[bot]"}}}}
+                {
+                    "commit": {
+                        "message": message,
+                        "signature": {"isValid": True},
+                        "author": {"user": {"login": "dependabot[bot]"}},
+                    }
+                }
             ]
         },
         "headCommits": {"nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]},
-        "timelineItems": {"nodes": []},
+        "lastForcePush": {"nodes": []},
+        "lastDequeue": {"nodes": []},
     }
     pr.update(kw)
     return pr
@@ -78,16 +84,14 @@ def _client(
 def _invoke(client: MagicMock, args: list[str]) -> Any:
     with (
         patch("cli.commands.dependabot.GitHubClient", return_value=client),
-        patch("cli.commands.release.load_active_config", return_value=_config()),
+        patch("cli.commands._tracker_sync.load_active_config", return_value=_config()),
         patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),
     ):
         return runner.invoke(app, ["dependabot", *args])
 
 
-def _entry(number: int) -> TrackerEntry:
-    return TrackerEntry(
-        number, f"Bump {number}", f"https://github.com/o/r/pull/{number}", ("major",)
-    )
+def _entry(number: int) -> PrEntry:
+    return PrEntry(number, f"Bump {number}", f"https://github.com/o/r/pull/{number}", ("major",))
 
 
 def _tracker(number: int, body: str, state: str = "open") -> dict[str, Any]:
@@ -121,7 +125,7 @@ class TestSync:
         client = _client([_pr(3, "lodash", "minor")])
         result = _invoke(client, ["sync"])
 
-        assert result.exit_code == 0
+        assert result.exit_code == 0, result.output
         client.create_issue.assert_not_called()
         assert "Tracker を立てません（人の判断を待つ PR がありません）" in result.output
 
@@ -144,7 +148,7 @@ class TestSync:
     def test_same_list_is_not_patched(self) -> None:
         pr = _pr(2, "a", "major")
         body = render_tracker_body(
-            [TrackerEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",))]
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",))]
         )
         client = _client([pr], [_tracker(9, body)])
         result = _invoke(client, ["sync"])
@@ -181,6 +185,8 @@ class TestSync:
 
         assert result.exit_code == 0, result.output
         client.create_issue.assert_not_called()
+        client.add_to_project.assert_not_called()
+        client.update_project_item_field.assert_not_called()
         assert "[dry-run] Tracker に載せる: PR #2（major）" in result.output
 
     def test_list_failure_exits_1_without_touching_body(self) -> None:
@@ -197,4 +203,82 @@ class TestSync:
         pr = _pr(2, "a", "major", headCommits={"nodes": [{"commit": {"statusCheckRollup": None}}]})
         result = _invoke(_client([pr]), ["sync", "--dry-run"])
 
+        assert result.exit_code == 0, result.output
         assert "検証の結果が null: 1 件" in result.output
+
+    def test_null_rollup_count_is_limited_to_listed_prs(self) -> None:
+        null = {"nodes": [{"commit": {"statusCheckRollup": None}}]}
+        prs = [
+            _pr(2, "a", "major", headCommits=null),
+            _pr(3, "b", "minor", headCommits=null, autoMergeRequest={"enabledAt": "x"}),
+        ]
+        result = _invoke(_client(prs), ["sync", "--dry-run"])
+
+        assert result.exit_code == 0, result.output
+        assert "うち Tracker に載せる 1 件（検証の結果が null: 1 件）" in result.output
+
+    def test_body_rewrite_failure_exits_1_and_does_not_close(self) -> None:
+        client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
+        client.update_issue_body.side_effect = GitHubAPIError("422", status_code=422)
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        client.close_issue.assert_not_called()
+        assert "Tracker #9 の本文を書き直せません" in result.output
+
+    def test_close_failure_after_rewrite_exits_1_with_retry_message(self) -> None:
+        client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
+        client.close_issue.side_effect = GitHubAPIError("boom", status_code=502)
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        client.update_issue_body.assert_called_once()
+        assert "本文は空にしたが閉じられませんでした。次の実行で再試行します" in result.output
+
+    def test_retry_closes_without_rewriting_an_already_empty_table(self) -> None:
+        client = _client([], [_tracker(9, render_tracker_body([]))])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_not_called()
+        client.close_issue.assert_called_once_with("o", "r", 9, state_reason="completed")
+        assert "Tracker #9 を閉じる" in result.output
+
+    def test_retry_dry_run_reports_the_close(self) -> None:
+        client = _client([], [_tracker(9, render_tracker_body([]))])
+        result = _invoke(client, ["sync", "--dry-run"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_not_called()
+        client.close_issue.assert_not_called()
+        assert "[dry-run] Tracker #9 を閉じる" in result.output
+
+    def test_broken_markers_exit_1_without_touching_anything(self) -> None:
+        client = _client(
+            [_pr(2, "a", "major")], [_tracker(9, "<!-- pecot-dependabot-pr: tracker -->")]
+        )
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        assert "Tracker #9" in result.output
+        client.update_issue_body.assert_not_called()
+        client.close_issue.assert_not_called()
+        client.create_issue.assert_not_called()
+
+    def test_multiple_open_trackers_warn_and_use_the_smallest(self) -> None:
+        body = render_tracker_body([_entry(2)])
+        client = _client([_pr(2, "a", "major")], [_tracker(12, body), _tracker(9, body)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        assert "番号が最小の #9 を使い、ほか（#12）は閉じません" in result.output
+        client.create_issue.assert_not_called()
+
+    def test_board_repair_failure_on_existing_tracker_exits_1(self) -> None:
+        body = render_tracker_body([_entry(2)])
+        client = _client([_pr(2, "a", "major")], [_tracker(9, body)])
+        client.add_to_project.side_effect = GitHubAPIError("boom", status_code=502)
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        assert "エラー: Tracker:" in result.output

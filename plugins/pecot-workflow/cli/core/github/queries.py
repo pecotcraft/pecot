@@ -670,11 +670,14 @@ query($owner: String!, $repo: String!, $number: Int!) {
 }
 """
 
-# open の PR の一覧（dependabot の PR の待ち状態の判定用。ページネーション対応）
+# open の PR の一覧。dependabot の PR の待ち状態の判定に使う。ページを辿る
+# 入れ子の connection が多く、ノード数の上限に近づくので first は 25 にしている。
+# timelineItems は、2 種のイベントを合わせて last: N だと force-push が多いときに片方が押し出されるため、
+# 種類ごとに別名で最後の 1 件だけを取る。
 QUERY_LIST_OPEN_PULL_REQUESTS = """
 query($owner: String!, $repo: String!, $after: String) {
   repository(owner: $owner, name: $repo) {
-    pullRequests(first: 50, states: OPEN, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
+    pullRequests(first: 25, states: OPEN, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
       pageInfo {
         hasNextPage
         endCursor
@@ -683,7 +686,6 @@ query($owner: String!, $repo: String!, $after: String) {
         number
         title
         url
-        body
         createdAt
         author {
           __typename
@@ -705,6 +707,9 @@ query($owner: String!, $repo: String!, $after: String) {
           nodes {
             commit {
               message
+              signature {
+                isValid
+              }
               author {
                 user {
                   login
@@ -722,13 +727,16 @@ query($owner: String!, $repo: String!, $after: String) {
             }
           }
         }
-        timelineItems(last: 5, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT, HEAD_REF_FORCE_PUSHED_EVENT]) {
+        lastForcePush: timelineItems(last: 1, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) {
           nodes {
-            __typename
-            ... on RemovedFromMergeQueueEvent {
+            ... on HeadRefForcePushedEvent {
               createdAt
             }
-            ... on HeadRefForcePushedEvent {
+          }
+        }
+        lastDequeue: timelineItems(last: 1, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+          nodes {
+            ... on RemovedFromMergeQueueEvent {
               createdAt
             }
           }

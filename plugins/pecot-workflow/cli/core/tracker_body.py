@@ -2,6 +2,7 @@
 
 security alert の Tracker（``pecot-alert``）と dependabot の PR の Tracker（``pecot-dependabot-pr``）が共有する。
 印の正規表現と、印が不正なときのエラー型は呼び出し側が渡す。
+種類によらない本文の処理（改行の正規化・表のセル）もここに置く。
 行の書式・本文の組み立て・差分の判定は、種類ごとに扱いが違うので共通にしない。
 """
 
@@ -10,14 +11,27 @@ from __future__ import annotations
 import re
 from typing import Any, cast
 
+from cli.core.errors import PecotError
+
+
+def normalize_newlines(text: str) -> str:
+    """改行を ``\\n`` にそろえる"""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def cell(text: str) -> str:
+    """表のセルに入る文。``|`` と改行と ``<`` を無害にする"""
+    one_line = re.sub(r"\s*[\r\n]+\s*", " ", text).strip()
+    return one_line.replace("<", "&lt;").replace("|", "\\|")
+
 
 def list_region(
-    body: str, begin_re: re.Pattern[str], end_re: re.Pattern[str], error: type[Exception]
+    body: str, begin_re: re.Pattern[str], end_re: re.Pattern[str], error: type[PecotError]
 ) -> tuple[int, int]:
     """本文の一覧の範囲（begin の印の直後, end の印の先頭）。印の組が 1 組でなければエラー
 
     Raises:
-        Exception: ``error`` で渡した型。印の欠け・重なり・順序の逆転があるとき
+        PecotError: ``error`` で渡した型（派生）。印の欠け・重なり・順序の逆転があるとき
     """
     begins = list(begin_re.finditer(body))
     ends = list(end_re.finditer(body))

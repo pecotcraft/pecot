@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from cli.core.github.auth import as_dict
 from cli.core.github.client import GitHubClientBase
-from cli.core.github.errors import GitHubNotFoundError
+from cli.core.github.errors import GitHubAPIError, GitHubNotFoundError
 from cli.core.github.queries import (
     QUERY_GET_PULL_REQUEST_SLIM,
     QUERY_GET_PULL_REQUEST_WITH_REVIEWS,
@@ -270,7 +270,7 @@ class PullsAPI(GitHubClientBase):
 
         Returns:
             PR ノードのリスト。項目は次のとおり。
-            number・title・url・body・createdAt・author・isInMergeQueue・autoMergeRequest。
+            number・title・url・createdAt・author・isInMergeQueue・autoMergeRequest。
             mergeable・baseRef・firstCommits・headCommits・timelineItems。
 
         Raises:
@@ -282,12 +282,27 @@ class PullsAPI(GitHubClientBase):
             result = self._execute_graphql(
                 QUERY_LIST_OPEN_PULL_REQUESTS, {"owner": owner, "repo": repo, "after": after}
             )
-            page = as_dict(as_dict(result.get("repository")).get("pullRequests"))
-            nodes.extend(n for n in page.get("nodes", []) if n)
+            repository = result.get("repository")
+            connection: Any = (
+                cast("dict[str, Any]", repository).get("pullRequests")
+                if isinstance(repository, dict)
+                else None
+            )
+            if not isinstance(connection, dict):
+                # null を PR 0 件と読むと、sync が待つ PR は無いと判断して Tracker を閉じてしまう
+                raise GitHubAPIError("PR の一覧の応答に repository.pullRequests がありません")
+            page = cast("dict[str, Any]", connection)
+            page_nodes = page.get("nodes")
+            if not isinstance(page_nodes, list):
+                raise GitHubAPIError("PR の一覧の応答の nodes が配列ではありません")
+            nodes.extend(n for n in cast("list[Any]", page_nodes) if n)
             page_info = as_dict(page.get("pageInfo"))
-            if not (page_info.get("hasNextPage") and page_info.get("endCursor")):
+            if not page_info.get("hasNextPage"):
                 break
-            after = page_info["endCursor"]
+            cursor = page_info.get("endCursor")
+            if not cursor:
+                raise GitHubAPIError("PR の一覧の次のページの endCursor がありません")
+            after = cursor
         return [n for n in nodes if _is_dependabot(n)]
 
 
