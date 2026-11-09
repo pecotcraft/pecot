@@ -55,7 +55,7 @@ class TitleRequiresJapanese(CommitRule):
     RELEASE_PREFIX = re.compile(r"^chore\(release\)!?:")
 
     # Dependabot title (auto-generated); commit-message prefix is build(<scope>).
-    DEPENDABOT_PREFIX = re.compile(r"^build\([^)]+\): bump")
+    DEPENDABOT_PREFIX = re.compile(r"^build\([^)]+\): bump\b")
 
     def validate(self, commit: GitCommit) -> list[RuleViolation] | None:
         """Validate that the commit title contains Japanese characters."""

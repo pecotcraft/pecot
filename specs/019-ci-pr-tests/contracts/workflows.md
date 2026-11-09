@@ -46,7 +46,7 @@ job は次のとおり。必須チェックは `ci-result` と `version-plan` �
 |---|---|
 | 起動 | `pull_request`（opened・synchronize・reopened） |
 | 動く条件 | `github.event.pull_request.user.login == 'dependabot[bot]'` かつ `github.actor == 'dependabot[bot]'`（App の push による synchronize では動かさない） |
-| 判定 | fetch-metadata の `update-type` が `version-update:semver-minor` か `version-update:semver-patch`。`dependency-names` に `playwright` を含まない。`gh pr view` の `isMergeQueueEnabled` が true |
+| 判定 | fetch-metadata の `update-type` が `version-update:semver-minor` か `version-update:semver-patch`。`dependency-names` に `playwright` を含まない。GraphQL の `PullRequest.isMergeQueueEnabled` が true |
 | 操作 | App のトークンで `gh pr merge --auto --squash "$PR_URL"` |
 | トークンの権限 | `permission-contents: write`・`permission-pull-requests: write` |
 | 権限 | `contents: read`・`pull-requests: read`（書き込みは App のトークンで行う） |
