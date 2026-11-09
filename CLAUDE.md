@@ -34,6 +34,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - `checks (lint)` と `checks (githooks)` を動かす
   - 変更が届いたレーンごとに `tests (<project>:<target>)` を動かす
   - 結果を `ci-result` にまとめる。`ci-result` と `version-plan` が、`main` の ruleset の必須チェックである
+  - tests の job は、job 内の nx リモートキャッシュのサーバを持つ。同じ repo の同じ PR の成功した run の artifact だけを取り込む。fork の PR と、ほかの PR・ブランチの結果は取り込まない
 - 手元で動かすのは、変更箇所に絞ったテストと、CI の失敗の再現だけにする。push 前にレーンの全量を手で動かさない。同じ結果を 2 回待つだけになる。
   - 絞り方は、vitest / pytest ならファイル・ケースを指定し、`*.test.sh` なら該当の 1 本を指定する
 - CI の失敗は、次の順で再現する。

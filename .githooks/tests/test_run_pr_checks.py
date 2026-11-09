@@ -33,11 +33,11 @@ for a in "$@"; do
     if [ "$prev" = "--hook-stage" ]; then stage="$a"; fi
     prev="$a"
 done
-printf 'stage=%s|args=%s|SKIP=%s|PVB=%s|TO=%s|NXC=%s|NXCI=%s|LANE=%s\n' \
+printf 'stage=%s|args=%s|SKIP=%s|PVB=%s|TO=%s|NXC=%s|NXCI=%s|LANE=%s|SRV=%s|NXCF=%s\n' \
     "$stage" "$*" "${SKIP-unset}" "${PECOT_VERSION_PLAN_BASE-unset}" \
     "${PRE_COMMIT_TO_REF-unset}" "${NX_SKIP_NX_CACHE-unset}" "${PECOT_NX_CI-unset}" \
-    "${PECOT_NX_LANE-unset}" \
-    >> "$STUB_PC_LOG"
+    "${PECOT_NX_LANE-unset}" "${NX_SELF_HOSTED_REMOTE_CACHE_SERVER-unset}" \
+    "${NX_CACHE_FAILURES-unset}" >> "$STUB_PC_LOG"
 root=$(git rev-parse --show-toplevel)
 if [ "$stage" = "manual" ]; then
     if [ -n "${STUB_TSV_APPEND:-}" ]; then
@@ -68,6 +68,10 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "NX_SKIP_NX_CACHE",
         "PECOT_NX_CI",
         "PECOT_NX_LANE",
+        "PECOT_CI_NX_CACHE",
+        "NX_SELF_HOSTED_REMOTE_CACHE_SERVER",
+        "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN",
+        "NX_CACHE_FAILURES",
     ):
         monkeypatch.delenv(key, raising=False)
 
@@ -368,6 +372,131 @@ def test_normal_mode_is_reported(pr_repo: _PrChecksRepo, run_script) -> None:
     assert f"- base: `{pr_repo.base}`" in result.stdout
     assert f"- head: `{pr_repo.head}`（PR では head は merge commit）" in result.stdout
     assert "モード: 通常" in result.stdout
+
+
+def test_lane_table_marks_cache_hits(pr_repo: _PrChecksRepo, run_script) -> None:
+    """キャッシュから返ったレーンは「成功（キャッシュ）」、実行したレーンは「成功」。"""
+    tsv = (
+        "2026-11-06T01:00:01+0000\ttask\tproj-a:test-cli\t1.0\tstatus=local-cache\n"
+        "2026-11-06T01:00:02+0000\ttask\tproj-a:test-hooks\t1.0\tstatus=remote-cache\n"
+        "2026-11-06T01:00:03+0000\ttask\tproj-a:test-py\t1.0\tstatus=local-cache-kept-existing\n"
+        "2026-11-06T01:00:04+0000\ttask\tproj-a:test-skills\t1.0\tstatus=success\n"
+    )
+    result = pr_repo.run(run_script, env={"STUB_TSV_APPEND": str(pr_repo.write("tsv", tsv))})
+    out = result.stdout
+    assert "| proj-a:test-cli | 成功（キャッシュ） | 1.0s |" in out
+    assert "| proj-a:test-hooks | 成功（キャッシュ） | 1.0s |" in out
+    assert "| proj-a:test-py | 成功（キャッシュ） | 1.0s |" in out
+    assert "| proj-a:test-skills | 成功 | 1.0s |" in out
+
+
+# ====
+# nx のリモートキャッシュ（PECOT_CI_NX_CACHE）
+# ====
+
+
+def _manual_call(pr_repo: _PrChecksRepo) -> dict[str, str]:
+    return next(c for c in pr_repo.calls() if c["stage"] == "manual")
+
+
+def test_tests_part_with_nx_cache_uses_remote_cache(
+    pr_repo: _PrChecksRepo, run_script, tmp_path: Path
+) -> None:
+    """tests の part で保存先があると、サーバを立ててキャッシュを使い、失敗の再生もしない。"""
+    cache = tmp_path / "nx-remote"
+    cache.mkdir()
+    (cache / "abc123.tar.gz").write_bytes(b"x")
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(cache)},
+    )
+    assert result.returncode == 0, result.stderr
+    call = _manual_call(pr_repo)
+    assert call["NXC"] == "unset"
+    assert call["NXCF"] == "unset"
+    assert call["SRV"].startswith("http://127.0.0.1:")
+    assert "取り込み済み 1 件" in result.stderr
+    assert "nx-cache-server: GET hit=0 miss=0 PUT=0" in result.stderr
+
+
+@pytest.mark.parametrize("part", ["lint", "githooks"])
+def test_other_parts_with_nx_cache_skip_the_cache(
+    pr_repo: _PrChecksRepo, run_script, tmp_path: Path, part: str
+) -> None:
+    result = pr_repo.run(
+        run_script,
+        f"--part={part}",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    assert result.returncode == 0, result.stderr
+    for call in pr_repo.calls():
+        assert call["NXC"] == "true"
+        assert call["SRV"] == "unset"
+        assert call["NXCF"] == "unset"
+    assert "キャッシュ:" not in result.stdout
+
+
+def test_tests_part_without_nx_cache_skips_the_cache(pr_repo: _PrChecksRepo, run_script) -> None:
+    result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
+    call = _manual_call(pr_repo)
+    assert (call["NXC"], call["SRV"], call["NXCF"]) == ("true", "unset", "unset")
+    assert "キャッシュ:" not in result.stdout
+
+
+def test_server_start_failure_falls_back_to_skip(
+    pr_repo: _PrChecksRepo, run_script, tmp_path: Path
+) -> None:
+    """保存先を作れずサーバが起動しないときは、警告を出して今までどおりキャッシュを使わない。"""
+    blocker = tmp_path / "blocker"
+    blocker.write_text("file\n")
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(blocker / "nx-remote")},
+    )
+    assert result.returncode == 0, result.stderr
+    call = _manual_call(pr_repo)
+    assert (call["NXC"], call["SRV"]) == ("true", "unset")
+    assert "WARN:" in result.stderr
+
+
+def _write_source(pr_repo: _PrChecksRepo, text: str) -> None:
+    path = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-source.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+_SOURCE_CASES = [
+    (
+        "status=imported\nrun_id=123\npr=45\nhead_sha=abcdef0\n",
+        "キャッシュ: run 123（PR #45、head abcdef0）から取り込み",
+    ),
+    ("status=none\nreason=artifact なし\n", "キャッシュ: 取り込みなし（artifact なし）"),
+    (None, "キャッシュ: 取り込みなし（記録なし）"),
+]
+
+
+@pytest.mark.parametrize(("source", "expected"), _SOURCE_CASES)
+def test_summary_reports_nx_cache_source(
+    pr_repo: _PrChecksRepo, run_script, tmp_path: Path, source: str | None, expected: str
+) -> None:
+    if source is not None:
+        _write_source(pr_repo, source)
+    result = pr_repo.run(
+        run_script,
+        "--part=tests",
+        pr_repo.base,
+        pr_repo.head,
+        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+    )
+    assert expected in result.stdout.splitlines()
 
 
 _TSV_OLD = "2026-11-06T00:00:00+0000\ttask\told-project:test-cli\t9.0\tstatus=success\n"

@@ -20,7 +20,11 @@
       "{workspaceRoot}/.devcontainer/scripts/post-create.sh",
       "{workspaceRoot}/.devcontainer/scripts/post-start.sh"
     ],
-    "runtime": [{ "runtime": "node --version" }],
+    "runtime": [
+      { "runtime": "node --version" },
+      { "runtime": "git hash-object pnpm-lock.yaml" },
+      { "runtime": "dpkg-query -W -f='${Package}=${Version}\\n'" }
+    ],
     "env": [
       { "env": "NODE_OPTIONS" },
       { "env": "NODE_V8_COVERAGE" },
@@ -62,6 +66,8 @@
       "env",
       "pecotPluginEnv",
       { "runtime": "uv --version" },
+      { "runtime": "git --version" },
+      { "runtime": "jq --version" },
       {
         "runtime": "bash -c '. plugins/pecot-workflow/scripts/ci/python-version.sh && uv python find --no-project --show-version \"$PY\"'"
       },
@@ -103,6 +109,8 @@
       "runtime",
       "env",
       "pecotvPluginEnv",
+      { "runtime": "git --version" },
+      { "runtime": "jq --version" },
       "{workspaceRoot}/plugins/pecot-visual/**/package.json",
       "{workspaceRoot}/plugins/pecot-visual/runtime-lock.yaml",
       "{workspaceRoot}/plugins/pecot-visual/runtime-workspace.yaml",

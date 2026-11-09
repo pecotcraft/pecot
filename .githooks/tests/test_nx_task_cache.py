@@ -798,6 +798,13 @@ def test_hooks_test_inputs_take_validate_references_source_but_not_its_tests(nx_
     assert not [f for f in files if f.endswith("utils/drawioGeometry.js")]
 
 
+# 版の文字列を出さない runtime コマンドの出力の形。lock のハッシュと、dpkg の「名前=版」の一覧。
+_RUNTIME_OUTPUT_PATTERNS = {
+    "git hash-object pnpm-lock.yaml": re.compile(r"^[0-9a-f]{40}\n$"),
+    "dpkg-query -W -f='${Package}=${Version}\\n'": re.compile(r"^\S+=\S+$", re.M),
+}
+
+
 def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
     """runtime の各コマンドが workspace root で exit 0 を返し、出力に版を含む。
 
@@ -819,8 +826,9 @@ def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
             env=_nx_env(),
         )
         assert result.returncode == 0, f"`{command}` が exit {result.returncode}: {result.stderr}"
-        assert _ANY_VERSION.search(result.stdout), (
-            f"`{command}` の出力にバージョンが無い: {repr(result.stdout)}"
+        pattern = _RUNTIME_OUTPUT_PATTERNS.get(command, _ANY_VERSION)
+        assert pattern.search(result.stdout), (
+            f"`{command}` の出力が期待の形でない: {repr(result.stdout[:200])}"
         )
 
 

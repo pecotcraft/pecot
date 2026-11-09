@@ -154,12 +154,19 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 >     `nx reset` は全 worktree の共有キャッシュを消す。
 >   - 実 nx を一時リポで動かすテストは、`NX_CACHE_DIRECTORY` / `NX_WORKSPACE_DATA_DIRECTORY` を
 >     テストごとの一時ディレクトリへ向けて、`~/.nx` を汚さない。
->   - 入力は、`nx.json` の namedInput `runtime`（`node --version`、レーン固有に `uv` / `aws`）、
+>   - 入力は、`nx.json` の namedInput `runtime`（`node --version`、lock のハッシュ、`dpkg-query` の一覧、レーン固有に `uv` / `git` / `jq` / `aws`）、
 >     `env`（結果に影響する環境変数）、各 Globals・project.json の file 入力である。
 >   - 宣言していない入力の変更は検知されない。
 >     レーンが読む環境変数は、`test_nx_env_inputs.py` が走査して `env` か理由つきの対象外に載っていることを要求する。
 >     リポ内ファイルの宣言の抜けは、strace で棚卸しする。
 >   - build・install・chromium-preflight と、レーンを束ねる起点（nx:noop）は `cache: false` である。
+> - CI の tests の job は、nx のリモートキャッシュを job 内のサーバで持つ。
+>   - サーバは `.githooks/ci/nx-cache-server.mjs` で、nx 公式の self-hosted HTTP の口を実装する。
+>   - 置き場は `.pecot/tmp/ci/nx-remote` で、artifact `nx-cache-tests-{slug}` として run の間で受け渡す。
+>   - 取り込むのは、同じ repo の同じ PR の成功した run の artifact だけである。fork の PR は上げも取り込みもしない。
+>   - root の `pnpm-lock.yaml` は `.nxignore` で file map から外れ、どの task の hash にも入らない。
+>     そのため、namedInput `runtime` の `git hash-object pnpm-lock.yaml` で入れる。runtime 入力は affected の判定には使われない。
+>   - イメージの変化は、`runtime` の `dpkg-query -W` の出力で入れる。
 >   - リリース系 test は外部レジストリの状態を入力に表せない。
 >     その変化はリリース時の dry-run と監査で拾う前提で、キャッシュする。
 >     `PECOT_RELEASE_TEST_NPM_CACHE` で依存解決の npm キャッシュも永続化する。
