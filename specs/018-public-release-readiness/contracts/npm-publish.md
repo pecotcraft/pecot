@@ -49,4 +49,4 @@ trusted publisher は、npm にパッケージがあることを設定の条件�
 |---|---|
 | `npm pack` まで | 今と同じく `npx nx release publish` を再実行する |
 | `gh release upload` | 同上（`--clobber` で上書きする） |
-| ワークフロー | `gh workflow run publish-npm.yml -f tag=<tag>` を再実行する。publish 済みの版は手順 2 で飛ばす |
+| ワークフロー | `gh workflow run publish-npm.yml -f tag=<tag> --ref <tag>` を再実行する。publish 済みの版は手順 2 で飛ばす |
