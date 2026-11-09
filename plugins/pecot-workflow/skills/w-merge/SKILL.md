@@ -44,6 +44,16 @@ pecot pr merge <owner>/<repo>/<PR番号> --delete-branch
 - `--merge-method, -m`: マージ方法（squash/merge/rebase、デフォルト: squash）
 - `--admin`: 管理者権限でマージ（コンフリクト時に使用）
 - `--dry-run, -n`: ドライラン（実際にはマージしない）
+- `--wait-timeout`: merge queue でマージされるまで待つ秒数（デフォルト: 480）
+
+**merge queue のあるリポ**:
+
+- base に merge queue があるリポでは、`pecot pr merge` が PR を queue に入れ、マージされるまで待つ
+- exit 4 は待ちの時間切れである。GitHub 側でマージは続いているので、同じコマンドを打ち直す
+- exit 1 で `落ちたチェック:` が出たら、そのチェックを直して push し、PR の CI が通ってから打ち直す。必須チェックが終わっていない PR は queue に入れられない
+- 長く待つコマンドの読み方は次のとおり
+  - Claude Code では、Bash の `timeout` を 600000 にする
+  - GitHub Copilot CLI では、`read_bash` で終了まで読む
 
 ### Step 3: ローカルクリーンアップの確認
 

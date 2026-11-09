@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
@@ -1949,9 +1950,15 @@ def _fetch_pr_for_merge(
     return client, pr
 
 
-def _check_pr_mergeable(pr: dict[str, Any], pr_number: int, admin: bool) -> None:
-    """4. PRの状態チェック（マージ済み・クローズ・コンフリクトなら exit 1）"""
+def _check_pr_mergeable(pr: dict[str, Any], pr_number: int, admin: bool) -> bool:
+    """4. PRの状態チェック。merge queue でマージ済みなら True を返す
+
+    queue の無いリポのマージ済み・クローズ・コンフリクトは exit 1。
+    """
     if pr["state"] == "MERGED":
+        if pr.get("is_merge_queue_enabled", False):
+            typer.echo(f"✔ PR #{pr_number} は merge queue でマージ済み。後片付けを行います")
+            return True
         typer.echo(f"エラー: PR #{pr_number} は既にマージ済みです", err=True)
         raise typer.Exit(1)
 
@@ -1963,6 +1970,7 @@ def _check_pr_mergeable(pr: dict[str, Any], pr_number: int, admin: bool) -> None
         typer.echo(f"エラー: PR #{pr_number} にコンフリクトがあります。解消が必要です", err=True)
         typer.echo("  ヒント: --admin オプションで強制マージを試行できます", err=True)
         raise typer.Exit(1)
+    return False
 
 
 def _collect_closing_issue_numbers(pr: dict[str, Any]) -> set[int]:
@@ -2009,19 +2017,24 @@ def _format_issue_numbers(numbers: set[int]) -> str:
     return ", ".join(f"#{n}" for n in sorted(numbers))
 
 
+def _merge_method_label(pr: dict[str, Any], merge_method: str, use_queue: bool) -> str:
+    return f"merge queue（{pr['base_ref']}）" if use_queue else merge_method
+
+
 def _echo_merge_dry_run(
     pr: dict[str, Any],
     pr_label: str,
     merge_method: str,
     closing_issue_numbers: set[int],
     epic_protected_numbers: set[int],
+    use_queue: bool = False,
 ) -> None:
     """6. dry-run のマージ内容表示"""
     typer.echo("=== ドライラン（実際にはマージしません） ===\n")
     typer.echo(f"PR: {pr_label}")
     typer.echo(f"タイトル: {pr['title']}")
     typer.echo(f"ブランチ: {pr['head_ref']} → {pr['base_ref']}")
-    typer.echo(f"マージ方法: {merge_method}")
+    typer.echo(f"マージ方法: {_merge_method_label(pr, merge_method, use_queue)}")
     if closing_issue_numbers:
         typer.echo(f"\n自動クローズ対象: {_format_issue_numbers(closing_issue_numbers)}")
     else:
@@ -2137,12 +2150,13 @@ def _echo_merge_summary(
     merge_method: str,
     closing_issue_numbers: set[int],
     deleted_branch: str | None,
+    use_queue: bool = False,
 ) -> None:
     """11〜12. サマリーとマージ報告不要メッセージ"""
     typer.echo("\n=== マージ完了 ===")
     typer.echo(f"PR: {pr_label}")
     typer.echo(f"タイトル: {pr['title']}")
-    typer.echo(f"マージ方法: {merge_method}")
+    typer.echo(f"マージ方法: {_merge_method_label(pr, merge_method, use_queue)}")
     if closing_issue_numbers:
         typer.echo(f"クローズしたIssue: {_format_issue_numbers(closing_issue_numbers)}")
     if deleted_branch:
@@ -2151,6 +2165,166 @@ def _echo_merge_summary(
     # 12. マージ報告不要メッセージ
     typer.echo("")
     typer.echo("※マージ完了報告をIssueにコメントする必要はありません。")
+
+
+QUEUE_POLL_INTERVAL_SECONDS = 15
+QUEUE_WAIT_EXIT_CODE = 4
+
+
+def _enqueue_pr(client: GitHubClient, pr: dict[str, Any], pr_number: int) -> None:
+    """merge queue に入れる（既に入っていれば入れない。失敗時は exit 1）"""
+    if pr.get("is_in_merge_queue", False) or pr.get("has_auto_merge_request", False):
+        typer.echo(f"✔ PR #{pr_number} は既に merge queue にあります。待ちを続けます")
+        return
+    try:
+        result = client.enqueue_pull_request(pr["id"], pr.get("head_oid"))
+    except GitHubAPIError as e:
+        typer.echo(f"エラー: merge queue に入れられませんでした: {e.message}", err=True)
+        typer.echo("  必須チェックが終わってから同じコマンドを打ち直してください", err=True)
+        raise typer.Exit(1) from None
+    position = result.get("position")
+    typer.echo(
+        f"✔ PR #{pr_number} を merge queue に入れました"
+        f"（位置 {position if position is not None else '不明'}）"
+    )
+
+
+def _echo_queue_removed(
+    client: GitHubClient,
+    owner: str,
+    repo: str,
+    pr: dict[str, Any],
+    pr_number: int,
+    reason: str | None,
+    head_oid: str | None,
+) -> NoReturn:
+    typer.echo(f"✖ PR #{pr_number} は merge queue から外れました: {reason or '理由不明'}", err=True)
+    names: list[str] = []
+    try:
+        if head_oid:
+            names = client.get_failed_checks(owner, repo, head_oid)
+        if not names:
+            names = client.get_merge_group_failed_jobs(owner, repo, pr["base_ref"], pr_number)
+    except GitHubAPIError as e:
+        typer.echo(f"  ⚠ 落ちたチェックを取得できませんでした: {e.message}", err=True)
+    for name in names:
+        typer.echo(f"  落ちたチェック: {name}", err=True)
+    raise typer.Exit(1)
+
+
+def _wait_for_queue_merge(
+    client: GitHubClient,
+    owner: str,
+    repo: str,
+    pr: dict[str, Any],
+    pr_number: int,
+    deadline: float,
+) -> None:
+    """マージされるまで待つ。除外・クローズは exit 1、時間切れは exit 4"""
+    head_oid: str | None = None
+    while True:
+        try:
+            status = client.get_merge_queue_status(owner, repo, pr_number)
+        except GitHubAPIError as e:
+            typer.echo(
+                f"  ⚠ merge queue の状態を読めませんでした（次の周期で読み直します）: {e.message}",
+                err=True,
+            )
+            status = None
+        if status is None:
+            _exit_if_queue_wait_expired(pr_number, deadline)
+            time.sleep(QUEUE_POLL_INTERVAL_SECONDS)
+            continue
+        entry = status.get("entry")
+        if entry and entry.get("head_oid"):
+            head_oid = entry["head_oid"]
+
+        if status["state"] == "MERGED":
+            sha = status.get("merge_commit_oid")
+            if sha is None:
+                # マージ直後は mergeCommit が未反映のことがあるため 1 回だけ読み直す
+                sha = client.get_merge_queue_status(owner, repo, pr_number).get("merge_commit_oid")
+            typer.echo(
+                f"✔ PR #{pr_number} は merge queue でマージされました (SHA: {sha[:7] if sha else 'N/A'})"
+            )
+            return
+        if status["state"] == "CLOSED":
+            typer.echo(f"エラー: PR #{pr_number} はクローズされました", err=True)
+            raise typer.Exit(1)
+        if (entry and entry.get("state") == "UNMERGEABLE") or status.get("removed"):
+            _echo_queue_removed(
+                client, owner, repo, pr, pr_number, status.get("removed_reason"), head_oid
+            )
+
+        _exit_if_queue_wait_expired(pr_number, deadline)
+        time.sleep(QUEUE_POLL_INTERVAL_SECONDS)
+
+
+def _exit_if_queue_wait_expired(pr_number: int, deadline: float) -> None:
+    if time.monotonic() >= deadline:
+        typer.echo(
+            f"⏳ PR #{pr_number} は merge queue で待機中です。"
+            "マージは GitHub 側で続いています。同じコマンドを打ち直すと待ちを続けます"
+        )
+        raise typer.Exit(QUEUE_WAIT_EXIT_CODE)
+
+
+def _merge_via_queue(
+    client: GitHubClient,
+    owner: str,
+    repo: str,
+    pr: dict[str, Any],
+    pr_number: int,
+    merge_method: str,
+    deadline: float,
+) -> None:
+    """7. merge queue に入れてマージまで待つ（成功以外は exit）"""
+    if merge_method != "squash":
+        typer.echo("merge queue ではマージ方法を ruleset が決めるため --merge-method は使いません")
+    _enqueue_pr(client, pr, pr_number)
+    _wait_for_queue_merge(client, owner, repo, pr, pr_number, deadline)
+
+
+def _finish_merge(
+    ctx: _MergeFinish,
+) -> None:
+    """8〜12. Issue クローズ・ブランチ削除・ローカル片付け・サマリー"""
+    _close_related_issues(
+        ctx.client, ctx.owner, ctx.repo, ctx.closing_issue_numbers, ctx.epic_protected_numbers
+    )
+    head_branch = ctx.pr["head_ref"]
+    branch_deleted = ctx.delete_branch and _delete_merged_branch(
+        ctx.client, ctx.owner, ctx.repo, head_branch
+    )
+    if not ctx.skip_local_cleanup:
+        _local_cleanup_after_merge(
+            head_branch=head_branch, config=ctx.config, owner=ctx.owner, repo=ctx.repo
+        )
+        _remove_active_flags()
+    _echo_merge_summary(
+        ctx.pr,
+        ctx.pr_label,
+        ctx.merge_method,
+        ctx.closing_issue_numbers,
+        head_branch if branch_deleted else None,
+        ctx.use_queue,
+    )
+
+
+@dataclass
+class _MergeFinish:
+    client: GitHubClient
+    config: ProjectConfig
+    owner: str
+    repo: str
+    pr: dict[str, Any]
+    pr_label: str
+    merge_method: str
+    closing_issue_numbers: set[int]
+    epic_protected_numbers: set[int]
+    delete_branch: bool
+    skip_local_cleanup: bool
+    use_queue: bool
 
 
 def pr_merge(
@@ -2179,6 +2353,13 @@ def pr_merge(
         bool,
         typer.Option("--skip-local-cleanup", help="ローカルのブランチ切り替え・削除をスキップ"),
     ] = False,
+    wait_timeout: Annotated[
+        int,
+        typer.Option(
+            "--wait-timeout",
+            help="merge queue でマージされるまで待つ秒数（コマンド開始から数える）",
+        ),
+    ] = 480,
 ) -> None:
     """PRをマージし、関連Issueを自動クローズ
 
@@ -2192,7 +2373,9 @@ def pr_merge(
         pecot pr merge owner/repo/123 --delete-branch
 
         pecot pr merge owner/repo/123 --admin
+        pecot pr merge owner/repo/123 --wait-timeout 300
     """
+    started_at = time.monotonic()
     # 1. 設定取得
     config = load_active_config()
     if config is None:
@@ -2214,7 +2397,8 @@ def pr_merge(
     client, pr = _fetch_pr_for_merge(config, owner, repo, pr_number)
 
     # 4. PRの状態チェック
-    _check_pr_mergeable(pr, pr_number, admin)
+    already_merged = _check_pr_mergeable(pr, pr_number, admin)
+    use_queue = pr.get("is_merge_queue_enabled", False)
 
     # 5. クローズ対象のIssue番号を収集し、Epic 保護分を除外
     closing_issue_numbers = _collect_closing_issue_numbers(pr)
@@ -2227,7 +2411,7 @@ def pr_merge(
     # 6. dry-runモード
     if dry_run:
         _echo_merge_dry_run(
-            pr, pr_label, merge_method, closing_issue_numbers, epic_protected_numbers
+            pr, pr_label, merge_method, closing_issue_numbers, epic_protected_numbers, use_queue
         )
         if not skip_local_cleanup:
             _local_cleanup_after_merge(
@@ -2235,21 +2419,30 @@ def pr_merge(
             )
         return
 
-    # 7. マージ実行
-    _execute_merge(client, owner, repo, pr_number, merge_method)
+    # 7. マージ実行（queue のあるリポは入れて待つ。マージ済みなら飛ばす）
+    if already_merged:
+        pass  # queue でマージ済みの打ち直しは、後片付けだけを行う
+    elif use_queue:
+        _merge_via_queue(
+            client, owner, repo, pr, pr_number, merge_method, started_at + wait_timeout
+        )
+    else:
+        _execute_merge(client, owner, repo, pr_number, merge_method)
 
-    # 8. 関連Issueをクローズ
-    _close_related_issues(client, owner, repo, closing_issue_numbers, epic_protected_numbers)
-
-    # 9. ブランチ削除（--delete-branch オプション）
-    branch_deleted = delete_branch and _delete_merged_branch(client, owner, repo, head_branch)
-
-    # 10. ローカルクリーンアップ
-    if not skip_local_cleanup:
-        _local_cleanup_after_merge(head_branch=head_branch, config=config, owner=owner, repo=repo)
-        _remove_active_flags()
-
-    # 11〜12. サマリー出力
-    _echo_merge_summary(
-        pr, pr_label, merge_method, closing_issue_numbers, head_branch if branch_deleted else None
+    # 8〜12. 後片付け・サマリー
+    _finish_merge(
+        _MergeFinish(
+            client=client,
+            config=config,
+            owner=owner,
+            repo=repo,
+            pr=pr,
+            pr_label=pr_label,
+            merge_method=merge_method,
+            closing_issue_numbers=closing_issue_numbers,
+            epic_protected_numbers=epic_protected_numbers,
+            delete_branch=delete_branch,
+            skip_local_cleanup=skip_local_cleanup,
+            use_queue=use_queue,
+        )
     )

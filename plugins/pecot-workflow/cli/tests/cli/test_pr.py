@@ -31,6 +31,7 @@ from cli.core.config import (
     ProjectFields,
     Repository,
 )
+from cli.core.github import GitHubAPIError
 from cli.core.nx_scope import NxProject
 
 runner = CliRunner()
@@ -5133,3 +5134,218 @@ class TestPrepareScopeGuidance:
 
         assert result.exit_code == 0, result.output
         assert "scope:" not in result.output
+
+
+def _queue_pr(**overrides: object) -> dict[str, object]:
+    pr: dict[str, object] = {
+        "id": "PR_node",
+        "head_oid": "headoid1",
+        "number": 42,
+        "state": "OPEN",
+        "title": "feat: キュー",
+        "body": "Closes #123",
+        "head_ref": "feat/queue/123",
+        "base_ref": "main",
+        "is_draft": False,
+        "mergeable": "MERGEABLE",
+        "comments": 0,
+        "closing_issues": [{"number": 123, "title": "t"}],
+        "reviews": [],
+        "is_merge_queue_enabled": True,
+        "is_in_merge_queue": False,
+        "has_auto_merge_request": False,
+    }
+    pr.update(overrides)
+    return pr
+
+
+def _queue_status(state: str = "OPEN", **overrides: object) -> dict[str, object]:
+    status: dict[str, object] = {
+        "state": state,
+        "merge_commit_oid": "abcdef1234567" if state == "MERGED" else None,
+        "is_in_merge_queue": state == "OPEN",
+        "entry": {"state": "QUEUED", "position": 1, "head_oid": "entryoid1"},
+        "removed": False,
+        "removed_reason": None,
+    }
+    status.update(overrides)
+    return status
+
+
+class TestPRMergeQueue:
+    """merge queue のあるリポでの pr merge"""
+
+    def _run(
+        self,
+        pr: dict[str, object],
+        statuses: list[dict[str, object]],
+        *,
+        enqueue_error: Exception | None = None,
+        checks_error: Exception | None = None,
+        monotonic: list[float] | None = None,
+        args: list[str] | None = None,
+    ) -> tuple[Any, MagicMock]:
+        client = MagicMock()
+        client.get_pull_request_slim.return_value = pr
+        client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+        if enqueue_error:
+            client.enqueue_pull_request.side_effect = enqueue_error
+        else:
+            client.enqueue_pull_request.return_value = {"position": 2, "state": "QUEUED"}
+        client.get_merge_queue_status.side_effect = statuses
+        client.get_failed_checks.return_value = ["lint-py"]
+        if checks_error:
+            client.get_failed_checks.side_effect = checks_error
+        client.get_merge_group_failed_jobs.return_value = ["test (cli)"]
+        patches = [
+            patch("cli.commands.pr.load_active_config", return_value=MagicMock(host="h")),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.time.sleep"),
+            patch("cli.commands.pr._local_cleanup_after_merge"),
+            patch("cli.commands.pr._remove_active_flags"),
+        ]
+        if monotonic is not None:
+            patches.append(patch("cli.commands.pr.time.monotonic", side_effect=monotonic))
+        from contextlib import ExitStack
+
+        with ExitStack() as stack:
+            mocks = [stack.enter_context(p) for p in patches]
+            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", *(args or [])])
+            client.local_cleanup = mocks[3]
+        return result, client
+
+    def test_enqueue_then_merged(self) -> None:
+        result, client = self._run(_queue_pr(), [_queue_status("OPEN"), _queue_status("MERGED")])
+        assert result.exit_code == 0
+        assert "merge queue に入れました（位置 2）" in result.output
+        assert "merge queue でマージされました (SHA: abcdef1)" in result.output
+        assert "マージ方法: merge queue（main）" in result.output
+        client.merge_pull_request.assert_not_called()
+        client.close_issue.assert_called_once_with("owner", "repo", 123)
+        client.local_cleanup.assert_called_once()
+
+    def test_status_read_error_retries_next_cycle(self) -> None:
+        result, client = self._run(
+            _queue_pr(), [GitHubAPIError("Bad gateway", 502), _queue_status("MERGED")]
+        )
+        assert result.exit_code == 0
+        assert "merge queue の状態を読めませんでした" in result.output
+        assert "merge queue でマージされました" in result.output
+        assert client.get_merge_queue_status.call_count == 2
+
+    def test_failed_checks_fetch_error_still_exits_1(self) -> None:
+        status = _queue_status(
+            "OPEN", entry={"state": "UNMERGEABLE", "position": 1, "head_oid": "entryoid1"}
+        )
+        result, client = self._run(
+            _queue_pr(), [status], checks_error=GitHubAPIError("Bad gateway", 502)
+        )
+        assert result.exit_code == 1
+        assert "落ちたチェックを取得できませんでした" in result.output
+        client.close_issue.assert_not_called()
+        client.local_cleanup.assert_not_called()
+
+    def test_unmergeable_shows_failed_checks(self) -> None:
+        status = _queue_status(
+            "OPEN", entry={"state": "UNMERGEABLE", "position": 1, "head_oid": "entryoid1"}
+        )
+        result, client = self._run(_queue_pr(), [status])
+        assert result.exit_code == 1
+        assert "merge queue から外れました: 理由不明" in result.output
+        assert "落ちたチェック: lint-py" in result.output
+        client.get_failed_checks.assert_called_once_with("owner", "repo", "entryoid1")
+        client.close_issue.assert_not_called()
+        client.delete_branch.assert_not_called()
+        client.local_cleanup.assert_not_called()
+
+    def test_removed_without_oid_uses_merge_group_jobs(self) -> None:
+        status = _queue_status("OPEN", entry=None, removed=True, removed_reason="FAILED_CHECKS")
+        result, client = self._run(_queue_pr(), [status])
+        assert result.exit_code == 1
+        assert "外れました: FAILED_CHECKS" in result.output
+        assert "落ちたチェック: test (cli)" in result.output
+        client.get_failed_checks.assert_not_called()
+        client.get_merge_group_failed_jobs.assert_called_once_with("owner", "repo", "main", 42)
+        client.close_issue.assert_not_called()
+        client.local_cleanup.assert_not_called()
+
+    def test_timeout_exits_4(self) -> None:
+        result, client = self._run(
+            _queue_pr(),
+            [_queue_status("OPEN")],
+            monotonic=[0.0, 1000.0],
+            args=["--wait-timeout", "480"],
+        )
+        assert result.exit_code == 4
+        assert "待機中です" in result.output
+        assert "打ち直す" in result.output
+        client.close_issue.assert_not_called()
+        client.delete_branch.assert_not_called()
+        client.local_cleanup.assert_not_called()
+
+    def test_enqueue_error_exits_1(self) -> None:
+        result, client = self._run(
+            _queue_pr(), [], enqueue_error=GitHubAPIError("Required status checks pending", 422)
+        )
+        assert result.exit_code == 1
+        assert "merge queue に入れられませんでした: Required status checks pending" in result.output
+        assert "同じコマンドを打ち直してください" in result.output
+        client.get_merge_queue_status.assert_not_called()
+        client.close_issue.assert_not_called()
+        client.local_cleanup.assert_not_called()
+
+    def test_open_outside_queue_without_removed_keeps_waiting(self) -> None:
+        outside = _queue_status("OPEN", entry=None, is_in_merge_queue=False)
+        result, _ = self._run(_queue_pr(), [outside, _queue_status("MERGED")])
+        assert result.exit_code == 0
+        assert "merge queue でマージされました" in result.output
+
+    def test_already_in_queue_does_not_enqueue(self) -> None:
+        result, client = self._run(_queue_pr(is_in_merge_queue=True), [_queue_status("MERGED")])
+        assert result.exit_code == 0
+        assert "既に merge queue にあります" in result.output
+        client.enqueue_pull_request.assert_not_called()
+
+    def test_rerun_on_merged_pr_only_cleans_up(self) -> None:
+        result, client = self._run(_queue_pr(state="MERGED"), [])
+        assert result.exit_code == 0
+        assert "merge queue でマージ済み。後片付けを行います" in result.output
+        client.enqueue_pull_request.assert_not_called()
+        client.get_merge_queue_status.assert_not_called()
+        client.close_issue.assert_called_once_with("owner", "repo", 123)
+        client.local_cleanup.assert_called_once()
+
+    def test_merged_without_commit_oid_shows_na(self) -> None:
+        merged = _queue_status("MERGED", merge_commit_oid=None)
+        result, client = self._run(_queue_pr(), [merged, merged])
+        assert result.exit_code == 0
+        assert "SHA: N/A" in result.output
+        assert client.get_merge_queue_status.call_count == 2
+
+    def test_non_squash_method_notice(self) -> None:
+        result, _ = self._run(
+            _queue_pr(), [_queue_status("MERGED")], args=["--merge-method", "rebase"]
+        )
+        assert result.exit_code == 0
+        assert "--merge-method は使いません" in result.output
+
+    def test_closed_pr_exits_1(self) -> None:
+        result, client = self._run(_queue_pr(), [_queue_status("CLOSED")])
+        assert result.exit_code == 1
+        assert "クローズされました" in result.output
+        client.close_issue.assert_not_called()
+
+    def test_flag_false_uses_direct_merge(self) -> None:
+        client = MagicMock()
+        client.get_pull_request_slim.return_value = _queue_pr(is_merge_queue_enabled=False)
+        client.merge_pull_request.return_value = {"sha": "abc1234567"}
+        client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=MagicMock(host="h")),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+        ):
+            result = runner.invoke(app, ["pr", "merge", "owner/repo/42", "--skip-local-cleanup"])
+        assert result.exit_code == 0
+        client.merge_pull_request.assert_called_once()
+        client.enqueue_pull_request.assert_not_called()
+        assert "マージ方法: squash" in result.output
