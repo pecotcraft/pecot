@@ -2118,6 +2118,7 @@ def _remove_active_flags() -> None:
         FLAG_PECOT_ACTIVE,
         FLAG_PECOT_QUICK_MODE,
         FLAG_PECOT_SESSION_TITLE,
+        FLAG_WIP_BRANCH_LINKED,
         remove_flag,
     )
 
@@ -2125,6 +2126,7 @@ def _remove_active_flags() -> None:
         remove_flag(FLAG_PECOT_ACTIVE)
         remove_flag(FLAG_PECOT_SESSION_TITLE)
         remove_flag(FLAG_PECOT_QUICK_MODE)
+        remove_flag(FLAG_WIP_BRANCH_LINKED)
     except Exception as e:
         typer.echo(f"  ⚠ フラグファイルの削除に失敗: {e}", err=True)
 

@@ -11,21 +11,11 @@ source "${SCRIPT_DIR%/*}/core/git-repo-resolver.sh"
 source "${SCRIPT_DIR%/*}/core/pecot-state-guard.sh"
 pecot_hook_enabled "auto-push" false || exit 0
 
-# WIPブランチをIssueのDevelopment欄にリンクする（ベストエフォート）
-# 呼び出し元で HOST, OWNER_REPO, WIP_BRANCH が定義済みであること
+# WIPブランチをIssueのDevelopment欄にリンクする（ベストエフォート）。
+# 呼び出し元で、HOST・WIP_BRANCH・ACTIVE_OWNER・ACTIVE_REPO・ACTIVE_NUMBER を定義しておく。
 _link_wip_branch_to_issue() {
     local state_dir="${CLAUDE_PROJECT_DIR}/.pecot/state"
-    local active_file="${state_dir}/.pecot-active"
-
-    # .pecot-active がなければスキップ。
-    [ -f "$active_file" ] || return 0
-
-    # owner/repo/number をパース。
-    local active_content
-    active_content=$(cat "$active_file")
-    local owner repo number
-    IFS='/' read -r owner repo number <<< "$active_content"
-    [ -n "$owner" ] && [ -n "$repo" ] && [ -n "$number" ] || return 0
+    local owner="$ACTIVE_OWNER" repo="$ACTIVE_REPO" number="$ACTIVE_NUMBER"
 
     # .wip-branch-linked フラグ確認（同一WIPブランチ名が記録済みならスキップ）。
     local linked_file="${state_dir}/.wip-branch-linked"
@@ -82,6 +72,49 @@ _link_wip_branch_to_issue() {
     # その他のエラー: フラグ書かない → 次回コミットでリトライ。
 }
 
+# リモート URL を HOST / OWNER / REPO に分ける（cli/core/git_url.py と同じ 3 形式）。
+# 読めなければ 1 を返す。https の userinfo は host から外す。
+_parse_remote_url() {
+    local url="$1"
+    url="${url%/}"
+    url="${url%.git}"
+    local https_re='^https?://([^/]+)/([^/]+)/([^/]+)$'
+    local scp_re='^git@([^:]+):([^/]+)/([^/]+)$'
+    local ssh_re='^ssh://([^@/]+@)?([^/:@]+)(:[0-9]+)?/([^/]+)/([^/]+)$'
+    if [[ "$url" =~ $https_re ]]; then
+        HOST="${BASH_REMATCH[1]##*@}"
+        OWNER="${BASH_REMATCH[2]}"
+        REPO="${BASH_REMATCH[3]}"
+    elif [[ "$url" =~ $scp_re ]]; then
+        HOST="${BASH_REMATCH[1]}"
+        OWNER="${BASH_REMATCH[2]}"
+        REPO="${BASH_REMATCH[3]}"
+    elif [[ "$url" =~ $ssh_re ]]; then
+        HOST="${BASH_REMATCH[2]}"
+        OWNER="${BASH_REMATCH[4]}"
+        REPO="${BASH_REMATCH[5]}"
+    else
+        return 1
+    fi
+    [ -n "$HOST" ] && [ -n "$OWNER" ] && [ -n "$REPO" ]
+}
+
+# fetch で wip/ の追跡 ref が戻らないよう、除外の refspec を足す（ベストエフォート）。
+# git 2.29 未満は除外の行で fetch が失敗し、正の refspec が無いと fetch が空になるため足さない。
+_exclude_wip_refspec() {
+    local major minor
+    read -r major minor < <(_git version 2>/dev/null | sed -n 's/^git version \([0-9]*\)\.\([0-9]*\).*/\1 \2/p')
+    [ -n "$major" ] && [ -n "$minor" ] || return 0
+    if [ "$major" -lt 2 ] || { [ "$major" -eq 2 ] && [ "$minor" -lt 29 ]; }; then
+        return 0
+    fi
+    local fetches
+    fetches=$(_git config --get-all remote.origin.fetch 2>/dev/null) || return 0
+    ! grep -qxF '^refs/heads/wip/*' <<< "$fetches" || return 0
+    grep -qE '^\+?refs/heads/' <<< "$fetches" || return 0
+    _git config --add remote.origin.fetch '^refs/heads/wip/*' >/dev/null 2>&1 || true
+}
+
 # bash-post-match.sh が成功した git commit と判定し、対象リポジトリを解決済み
 # （source 時に REPO_DIR が空になるため別名で受ける）。
 REPO_DIR="${PECOT_POST_REPO_DIR:-}"
@@ -91,42 +124,44 @@ if [ "${PECOT_POST_COMMIT:-}" = "1" ]; then
     # featureブランチでなければスキップ。
     is_feature_branch "${REPO_DIR:-.}" || exit 0
 
-    # WIPブランチ名構築: wip/<current-branch>。
     CURRENT_BRANCH=$(_git symbolic-ref --short HEAD 2>/dev/null)
-    WIP_BRANCH="wip/${CURRENT_BRANCH}"
 
-    # リモートURL解析（push前にHOSTが必要なためここで実行）。
+    # active な Issue のブランチだけ対象にする（.pecot-active は、ここで 1 回だけ読む）。
+    ACTIVE_CONTENT=$(cat "${CLAUDE_PROJECT_DIR}/.pecot/state/.pecot-active" 2>/dev/null)
+    IFS='/' read -r ACTIVE_OWNER ACTIVE_REPO ACTIVE_NUMBER <<< "$ACTIVE_CONTENT"
+    [ -n "$ACTIVE_OWNER" ] && [ -n "$ACTIVE_REPO" ] || exit 0
+    [[ "$ACTIVE_NUMBER" =~ ^[0-9]+$ ]] || exit 0
+    [[ "$CURRENT_BRANCH" =~ /([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" = "$ACTIVE_NUMBER" ] || exit 0
+
+    # リモートURL解析（owner/repo が .pecot-active と一致しなければ対象外）。
     REMOTE_URL=$(_git remote get-url origin 2>/dev/null)
-    if [ -n "$REMOTE_URL" ]; then
-        if echo "$REMOTE_URL" | grep -q '^git@'; then
-            HOST=$(echo "$REMOTE_URL" | sed 's/^git@\([^:]*\):.*/\1/')
-            OWNER_REPO=$(echo "$REMOTE_URL" | sed 's/^git@[^:]*:\(.*\)$/\1/' | sed 's/\.git$//')
-        elif echo "$REMOTE_URL" | grep -qE '^https?://'; then
-            HOST=$(echo "$REMOTE_URL" | sed 's|^https\?://\([^/]*\)/.*|\1|')
-            OWNER_REPO=$(echo "$REMOTE_URL" | sed 's|^https\?://[^/]*/\(.*\)$|\1|' | sed 's/\.git$//')
-        fi
-    fi
+    _parse_remote_url "$REMOTE_URL" || exit 0
+    OWNER_REPO="${OWNER}/${REPO}"
+    [ "${OWNER_REPO,,}" = "${ACTIVE_OWNER,,}/${ACTIVE_REPO,,}" ] || exit 0
+
+    # WIPブランチ名構築: wip/<current-branch>。
+    WIP_BRANCH="wip/${CURRENT_BRANCH}"
 
     # WIPブランチをIssueのDevelopment欄にリンクする（push前に実行）。
     # createLinkedBranchはブランチ作成+リンクを行うため、push前に呼ぶ必要がある。
     # pushの--forceがその後にブランチ内容を上書きする。
-    if [ -n "$HOST" ] && [ -n "$OWNER_REPO" ]; then
-        _link_wip_branch_to_issue
-    fi
+    _link_wip_branch_to_issue
 
     # WIPブランチへ自動push。
     PUSH_OUTPUT=$(_git push --no-verify --force origin "HEAD:refs/heads/${WIP_BRANCH}" 2>&1)
     PUSH_EXIT=$?
 
+    # push が作る wip/ の追跡 ref を消す（残ると pre-push の範囲が空になる）。成否に関係なく消す。
+    _git for-each-ref --format='delete %(refname)' refs/remotes/origin/wip/ 2>/dev/null \
+        | _git update-ref --stdin >/dev/null 2>&1 || true
+    _exclude_wip_refspec
+
     # 結果に応じたフィードバック。
     if [ $PUSH_EXIT -eq 0 ]; then
         # 比較URL構築。
-        COMPARE_URL=""
-        if [ -n "$HOST" ] && [ -n "$OWNER_REPO" ]; then
-            BASE_BRANCH=$(GH_HOST="$HOST" gh api "repos/${OWNER_REPO}" --jq '.default_branch' 2>/dev/null)
-            BASE_BRANCH="${BASE_BRANCH:-main}"
-            COMPARE_URL="https://${HOST}/${OWNER_REPO}/compare/${BASE_BRANCH}...${WIP_BRANCH}"
-        fi
+        BASE_BRANCH=$(GH_HOST="$HOST" gh api "repos/${OWNER_REPO}" --jq '.default_branch' 2>/dev/null)
+        BASE_BRANCH="${BASE_BRANCH:-main}"
+        COMPARE_URL="https://${HOST}/${OWNER_REPO}/compare/${BASE_BRANCH}...${WIP_BRANCH}"
 
         # Stop hookがsystemMessageでユーザーへ表示できるよう、フラグファイルへ追記する。
         if [ -n "$COMPARE_URL" ]; then

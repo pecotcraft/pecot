@@ -30,6 +30,7 @@ from pathlib import Path
 import pytest
 
 BRANCH = "feat/count/1229"
+_ORIGIN_URL = "git@github.com:testowner/testrepo.git"
 
 
 @pytest.fixture
@@ -42,14 +43,20 @@ def sandbox(
 ) -> tuple[Path, Path]:
     """(repo, bare) を返す。
 
-    条件は、feat ブランチ・.pecot あり・origin が bare・auto-push 有効・gh は常に失敗。
+    条件は、active な Issue の feat ブランチ・.pecot あり・auto-push 有効・gh は常に失敗。
+    auto-push は origin の URL を owner/repo として読むため、origin は GitHub 形式の URL にする。
+    push だけを pushInsteadOf で bare に向ける。
     """
     repo = git_repo("proj")
     bare = tmp_path / "remote.git"
     subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
-    subprocess.run(["git", "remote", "add", "origin", str(bare)], cwd=repo, check=True)
+    subprocess.run(["git", "remote", "add", "origin", _ORIGIN_URL], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "config", f"url.{bare}.pushInsteadOf", _ORIGIN_URL], cwd=repo, check=True
+    )
     subprocess.run(["git", "checkout", "-q", "-b", BRANCH], cwd=repo, check=True)
     (repo / ".pecot" / "state").mkdir(parents=True)
+    (repo / ".pecot" / "state" / ".pecot-active").write_text("testowner/testrepo/1229\n")
     hooks_config.write({"auto-push": True})
     mock_bin.install("gh", "exit 1\n")
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))

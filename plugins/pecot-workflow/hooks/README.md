@@ -172,7 +172,7 @@ MCPツールやdraw.io等の外部ツールとの連携。
 | `issue-create-slash-flag` | プロンプトの先頭行が `/pecot-w:w-quick` `/pecot-w:w-ready` `/pecot-w:w-backlog` `/pecot-w:w-issueize`（名前空間なしの短縮形 `/w-quick` 等を含む）のとき `issue-create-slash-pending` フラグ（内容 = 起点コマンド名）を作成し、`pecot issue quick` / `issue create`（実投稿）の ask を投稿成功（CLI 消費）まで免除する。pecot 未使用リポでは作成しない（設置スクリプトは `create-slash-flag.sh` を pr 側と共用） | UserPromptSubmit | `true` |
 | `pecot-issue-pending-reminder` | `issue-pending` フラグ存在中の Edit/Write/MultiEdit/NotebookEdit/EnterPlanMode（`pre-tool-use.sh`）と Bash の `git checkout`/`git switch`（`pre-tool-use-bash.sh`）に `additionalContext` で起票リマインドを注入する（非ブロック）。`*/.pecot/tmp/output/*` 宛の編集は除外。Copilot の Read / Edit は `tool_input.path` で届く | PreToolUse | `true` |
 | `commit-info-display` | `git commit` 成功後にコミットメッセージとdiff統計を表示する。成功の判定は `bash-post-match.sh`（Claude の `tool_response.stdout` / Copilot の `tool_result.text_result_for_llm`）が 1 回だけ行う | PostToolUse (Bash) | `true` |
-| `auto-push` | `git commit` 成功後にWIPブランチへ自動pushし、IssueのDevelopment欄にリンクする | PostToolUse (Bash) | **`false`** |
+| `auto-push` | `git commit` 成功後にWIPブランチへ自動pushし、IssueのDevelopment欄にリンクする。対象は、`.pecot-active` の Issue 番号で終わり、`origin` が同じ owner/repo のブランチだけ。push の後で `origin/wip/` の追跡 ref を消し、`remote.origin.fetch` に `^refs/heads/wip/*` を足す | PostToolUse (Bash) | **`false`** |
 | `branch-guard` | featureブランチ判定ロジックの制御。`false` にすると全ブランチでauto-push等が動作する | ライブラリ | `true` |
 
 ### アダプター

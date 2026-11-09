@@ -21,6 +21,9 @@ FLAG_PECOT_ACTIVE = ".pecot-active"
 # .pecot-active と同じタイミングで write_work_target が書く
 FLAG_PECOT_SESSION_TITLE = ".pecot-session-title"
 FLAG_PECOT_QUICK_MODE = ".pecot-quick-mode"
+# auto-push が wip/ へ push して紐づけ済みであることを示す。
+# 設置は hooks の auto-push.sh。pecot pr merge の後片付けで削除する
+FLAG_WIP_BRANCH_LINKED = ".wip-branch-linked"
 
 # スラッシュコマンド起点の外部反映免除フラグ。
 # 設置は hooks の create-slash-flag.sh、確認は external-post-check.sh。
