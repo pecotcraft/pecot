@@ -304,3 +304,17 @@ for skill in skills/*/; do (cd "$skill" && npm ...); done
 
 プラグイン内部の構造は dispatcher
 責任で、規約は変えない (= `run-{lint,tests}.sh` が nx target の被呼び出し側である構造のまま)。
+
+### R10. commit メッセージの件名の例外
+
+件名には日本語を求める。commit-msg の `gitlint` の自前の規則 `title-requires-japanese`（`.githooks/gitlint/japanese_rule.py`）が確かめる。
+次の 3 つは、ツールが件名を作るので、日本語を求めない。`.gitlint` の `[title-requires-japanese]` の設定で外せる。
+
+| 件名の形 | 作るもの | `.gitlint` の設定 |
+|---|---|---|
+| `Revert "..."` | `git revert` | `allow-revert` |
+| `chore(release): ...` | `nx release`（`release.yml`） | `allow-release` |
+| `build(<scope>): bump ...` | dependabot。squash でそのまま `main` に残る | `allow-dependabot` |
+
+件名を書き換えるには、dependabot の PR に commit を積むことになる。
+積むと dependabot の rebase と自動マージが止まるので、dependabot の件名は例外にする。

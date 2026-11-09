@@ -63,18 +63,19 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - 落ちたテストが特定できたら、以降はそのテストだけを再実行する。`plugins/<plugin>/scripts/ci/run-tests.sh --scope=<scope>` の `<scope>` は、レーン名 `test-<scope>` に当たる。`text-rules`・`nx-release` には `run-tests.sh` が無い。
 
     ```
-    plugins/pecot-workflow/scripts/ci/run-tests.sh --scope=<py|cli|hooks|skills|all>
-    plugins/pecot-visual/scripts/ci/run-tests.sh --scope=<cli|bootstrap|slidev|hooks|release|compare|skills|all>
-    plugins/pecot-tools/scripts/ci/run-tests.sh --scope=<cli|bootstrap|release|all>
+    plugins/pecot-workflow/scripts/ci/run-tests.sh --scope=<py|cli|hooks|skills>
+    plugins/pecot-visual/scripts/ci/run-tests.sh --scope=<cli|bootstrap|slidev|hooks|release|compare|skills>
+    plugins/pecot-tools/scripts/ci/run-tests.sh --scope=<cli|bootstrap|release>
     ```
 
 - lint / test のチェックは nx affected ベースの root 共通フック各 1 本が、レーン名の列挙を `nx affected -t` で要求して発火する。詳細は `.githooks/README.md` R1
   - lint は pre-commit の `nx-affected-lint` で、staged ファイルを `--files` で渡す
   - test は manual の stage の `nx-affected-tests` を CI が動かす。pre-push では動かさない
   - 手で動かすコマンドは `.githooks/README.md` の「検証の置き場」にある
-- GitHub Actions のワークフローは `.github/workflows/` の 6 本である。
+- GitHub Actions のワークフローは `.github/workflows/` の 7 本である。
   - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。`checks (lint)`・`checks (githooks)` と、レーンごとの `tests (<project>:<target>)` に分けて同時に動かし、`ci-result` にまとめる
     - PR と merge queue では `version-plan` の job も動かす
+  - `dependabot-auto-merge.yml`: dependabot の minor・patch の PR に、リリースの App のトークンで auto-merge を入れる。必須チェックが通ると merge queue でマージされる
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
   - `release.yml`: 人が手で起動し、`main` 上で `nx release` を動かす。案を出す `plan` の後、Environment `release` の承認を待ってから `main` へ push する
