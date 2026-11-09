@@ -29,6 +29,7 @@ from cli.core.dependabot_prs import (
     PrEntry,
     PrPlan,
     build_tracker_title,
+    checks_label,
     parse_tracker_pr_numbers,
     plan_tracker,
     render_tracker_body,
@@ -48,6 +49,7 @@ def _entries(waiting: list[tuple[dict[str, Any], list[str]]]) -> list[PrEntry]:
             title=str(pr.get("title") or ""),
             url=str(pr.get("url") or ""),
             reasons=tuple(reasons),
+            checks=checks_label(rollup_state(pr)),
         )
         for pr, reasons in waiting
     ]

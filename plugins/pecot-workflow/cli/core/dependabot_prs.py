@@ -24,7 +24,7 @@ from typing import Any, cast
 import yaml
 
 from cli.core.errors import PecotError
-from cli.core.tracker_body import cell, list_region, normalize_newlines
+from cli.core.tracker_body import list_region, normalize_newlines
 
 PR_LABEL = "dependabot-pr"
 TRACKER_MARKER = "<!-- pecot-dependabot-pr: tracker -->"
@@ -151,6 +151,15 @@ def _first_node(value: Any) -> dict[str, Any]:
     return _dict(nodes[0]) if nodes else {}
 
 
+def checks_label(state: str | None) -> str:
+    """検証の結果を表の語にする。結果が無ければ ``none``"""
+    if state == "SUCCESS":
+        return "passed"
+    if state in ("FAILURE", "ERROR"):
+        return "failed"
+    return "none" if state is None else "pending"
+
+
 def rollup_state(pr: Mapping[str, Any]) -> str | None:
     """最後の commit の検証（statusCheckRollup）の state。結果が無ければ None"""
     rollup = _dict(_first_node(pr.get("headCommits")).get("commit")).get("statusCheckRollup")
@@ -234,13 +243,15 @@ class PrEntry:
         number: PR 番号。
         title: PR の題。
         url: PR の URL。
-        reasons: 待っている理由。
+        reasons: 待っている理由。実行のログにだけ出し、表には出さない。
+        checks: 最後の commit の検証の結果（``passed`` / ``failed`` / ``pending`` / ``none``）。
     """
 
     number: int
     title: str
     url: str
     reasons: tuple[str, ...]
+    checks: str = "none"
 
 
 @dataclass
@@ -276,10 +287,7 @@ def _title_cell(title: str) -> str:
 
 def _row(e: PrEntry) -> str:
     marker = f"<!-- pecot-dependabot-pr: pr/{e.number} -->"
-    return (
-        f"| {marker} {_title_cell(e.title)} | [#{e.number}]({e.url}) "
-        f"| {cell('・'.join(e.reasons))} |"
-    )
+    return f"| {marker} {_title_cell(e.title)} | [#{e.number}]({e.url}) | {e.checks} |"
 
 
 def parse_tracker_pr_numbers(body: str | None) -> list[int]:
@@ -310,7 +318,7 @@ def render_tracker_body(entries: Sequence[PrEntry], existing_body: str | None = 
         DependabotPrError: ``existing_body`` の印が 1 組ではない場合
     """
     if entries:
-        table = "\n".join(["| title | PR | reason |", "|---|---|---|", *(_row(e) for e in entries)])
+        table = "\n".join(["| title | PR | checks |", "|---|---|---|", *(_row(e) for e in entries)])
     else:
         table = "none"
     if existing_body is None:

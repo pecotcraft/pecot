@@ -149,7 +149,7 @@ class TestSync:
     def test_same_list_is_not_patched(self) -> None:
         pr = _pr(2, "a", "major")
         body = render_tracker_body(
-            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",))]
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",), "passed")]
         )
         client = _client([pr], [_tracker(9, body)])
         result = _invoke(client, ["sync"])
@@ -173,8 +173,10 @@ class TestSync:
         assert "Tracker #179 から外す: PR #166" in result.output
         assert "PR #120" not in result.output
         body = client.update_issue_body.call_args.args[3]
-        assert "| title | PR | reason |" in body
+        assert "| title | PR | checks |" in body
         assert "待っている理由" not in body
+        assert "| [#200](https://github.com/o/r/pull/200) | passed |" in body
+        assert "major" not in body
 
     def test_empty_list_sets_none_and_closes(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])

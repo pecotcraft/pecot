@@ -17,6 +17,7 @@ from cli.core.dependabot_prs import (
     DependabotPrError,
     PrEntry,
     build_tracker_title,
+    checks_label,
     parse_tracker_pr_numbers,
     parse_update_metadata,
     plan_tracker,
@@ -344,7 +345,23 @@ def _entry(number: int, title: str = "Bump a", *reasons: str) -> PrEntry:
         title=title,
         url=f"https://github.com/o/r/pull/{number}",
         reasons=reasons or ("major",),
+        checks="failed",
     )
+
+
+@pytest.mark.parametrize(
+    ("state", "label"),
+    [
+        ("SUCCESS", "passed"),
+        ("FAILURE", "failed"),
+        ("ERROR", "failed"),
+        ("PENDING", "pending"),
+        ("EXPECTED", "pending"),
+        (None, "none"),
+    ],
+)
+def test_checks_label(state: str | None, label: str) -> None:
+    assert checks_label(state) == label
 
 
 class TestTrackerBody:
@@ -353,9 +370,9 @@ class TestTrackerBody:
         assert body == (
             "<!-- pecot-dependabot-pr: tracker -->\n\n"
             "<!-- pecot-dependabot-pr: list-begin -->\n"
-            "| title | PR | reason |\n|---|---|---|\n"
+            "| title | PR | checks |\n|---|---|---|\n"
             "| <!-- pecot-dependabot-pr: pr/2 --> `Bump a` | [#2](https://github.com/o/r/pull/2)"
-            " | major・playwright |\n"
+            " | failed |\n"
             "<!-- pecot-dependabot-pr: list-end -->\n"
         )
 
@@ -405,7 +422,7 @@ class TestTrackerBody:
     def test_old_form_body_is_rewritten_keeping_text_outside_the_list(self) -> None:
         existing = OLD_FORM_BODY + "\n\n人の注記\n"
         body = render_tracker_body([_entry(120)], existing)
-        assert "| title | PR | reason |" in body
+        assert "| title | PR | checks |" in body
         assert "待っている理由" not in body
         assert "pr/166 " not in body
         assert body.endswith("list-end -->\n\n人の注記\n")
