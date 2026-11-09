@@ -993,7 +993,9 @@ def test_real_06_pass_readme_only_and_plan_check_agrees(real_nx: _RealNx) -> Non
             env=_clean_env(),
         )
     finally:
-        real_nx.git("checkout", "--", ".nx/version-plans")
+        # plan が 0 件だと pathspec が一致せず落ちるため、消したファイルだけを戻す。
+        if plans:
+            real_nx.git("checkout", "--", *[str(p.relative_to(real_nx.probe)) for p in plans])
     out = check.stdout + check.stderr
     assert check.returncode == 0, out
     assert (
