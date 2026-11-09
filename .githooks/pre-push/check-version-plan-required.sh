@@ -4,6 +4,8 @@
 # branch 全体 (merge-base(default, local)..local) の変更を判定する。
 # 判定は nx の「持ち主の project」と release group による。
 # 数えないファイルは nx.json の ignorePatternsForPlanCheck から読む。判定できない環境は WARN で skip する。
+# range の author が dependabot[bot]（と github-actions[bot]）だけなら素通しする。
+# env PECOT_VERSION_PLAN_STRICT=1 では、判定できないときの WARN での skip を失敗にする。
 
 set -e
 
@@ -119,6 +121,16 @@ ERROR: 次の push は release group [${groups}] のファイルを変更して�
 EOF
 }
 
+# 判定不能のとき、通常は WARN を出して skip（0）、strict では失敗（1）にする。
+skip_or_fail() {
+    if [ "${PECOT_VERSION_PLAN_STRICT:-}" = 1 ]; then
+        echo "ERROR: $1。PECOT_VERSION_PLAN_STRICT=1 のため失敗にします" >&2
+        return 1
+    fi
+    echo "WARN: $1" >&2
+    return 0
+}
+
 check_branch() {
     local to_sha="$1"
 
@@ -129,22 +141,22 @@ check_branch() {
         0) ;;
         10) return 0 ;;  # ブランチ削除 push (to=zero): 変更なし扱い
         11)
-            echo "WARN: base 解決失敗のため version plan check を skip" >&2
-            return 0 ;;
+            skip_or_fail "base 解決失敗のため version plan check を skip"
+            return $? ;;
         12)
-            echo "WARN: base 未解決のため version plan check を skip" >&2
-            return 0 ;;
+            skip_or_fail "base 未解決のため version plan check を skip"
+            return $? ;;
         13)
-            echo "WARN: merge-base 計算失敗のため version plan check を skip" >&2
-            return 0 ;;
+            skip_or_fail "merge-base 計算失敗のため version plan check を skip"
+            return $? ;;
         14) return 0 ;;  # from==to（no-op or default そのもの）
         15)
-            echo "WARN: from/to sha が解決不能のため version plan check を skip" >&2
-            return 0 ;;
+            skip_or_fail "from/to sha が解決不能のため version plan check を skip"
+            return $? ;;
         16) return 0 ;;  # tip が commit へ peel 不能 (annotated tag 等): 変更なし扱い
         *)
-            echo "WARN: push range 解決不能のため version plan check を skip" >&2
-            return 0 ;;
+            skip_or_fail "push range 解決不能のため version plan check を skip"
+            return $? ;;
     esac
     from_sha="${range%% *}"
     to_sha="${range##* }"
@@ -156,27 +168,37 @@ check_branch() {
         return 0
     fi
 
+    # author 判定: dependabot の更新の version plan はリリース時に作るので素通しする。
+    local authors
+    authors=$(git log --no-merges --format=%an "${from_sha}..${to_sha}" 2>/dev/null || echo "")
+    if [ -n "$authors" ] \
+        && ! printf '%s\n' "$authors" | grep -qvxE 'dependabot\[bot\]|github-actions\[bot\]' \
+        && printf '%s\n' "$authors" | grep -qxF 'dependabot[bot]'; then
+        echo "dependabot の更新の version plan はリリース時に作るため、version plan check を skip" >&2
+        return 0
+    fi
+
     local repo_root
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
     if [ -z "$repo_root" ]; then
-        echo "WARN: repo root 解決失敗のため version plan check を skip" >&2
-        return 0
+        skip_or_fail "repo root 解決失敗のため version plan check を skip"
+        return $?
     fi
 
     # nx / node の解決。どちらか欠ければ判定不能なので skip + warn。
     local nx_bin
     if ! nx_bin=$(resolve_nx "$repo_root"); then
-        echo "WARN: nx 実行ファイルが見つからないため version plan check を skip" >&2
-        return 0
+        skip_or_fail "nx 実行ファイルが見つからないため version plan check を skip"
+        return $?
     fi
     if ! command -v node > /dev/null 2>&1; then
-        echo "WARN: node が見つからないため version plan check を skip" >&2
-        return 0
+        skip_or_fail "node が見つからないため version plan check を skip"
+        return $?
     fi
     local nx_json="$repo_root/nx.json"
     if [ ! -f "$nx_json" ]; then
-        echo "WARN: nx.json が見つからないため version plan check を skip" >&2
-        return 0
+        skip_or_fail "nx.json が見つからないため version plan check を skip"
+        return $?
     fi
 
     # graph JSON は途中で切れないよう、一時ファイルに受ける（CLI / hook 専用の .pecot/tmp に作り、終了時に消す）。
@@ -184,22 +206,22 @@ check_branch() {
     mkdir -p "$tmp_base" 2>/dev/null || true
     local work
     if ! work=$(mktemp -d "$tmp_base/version-plan.XXXXXX" 2>/dev/null); then
-        echo "WARN: 一時ディレクトリを作れないため version plan check を skip" >&2
-        return 0
+        skip_or_fail "一時ディレクトリを作れないため version plan check を skip"
+        return $?
     fi
     # shellcheck disable=SC2064
     trap "rm -rf '$work'" RETURN
 
     if ! nx_graph_json "$nx_bin" "$repo_root" "$work/graph.json" "$work/nx.log"; then
-        echo "WARN: nx graph 実行失敗のため version plan check を skip" >&2
-        return 0
+        skip_or_fail "nx graph 実行失敗のため version plan check を skip"
+        return $?
     fi
 
     # NUL 区切りで受け、非 ASCII パスがクォートされないようにする。
     if ! git -C "$repo_root" diff -z --name-only --no-renames "${from_sha}..${to_sha}" \
         > "$work/changed" 2>/dev/null; then
-        echo "WARN: git diff 失敗のため version plan check を skip" >&2
-        return 0
+        skip_or_fail "git diff 失敗のため version plan check を skip"
+        return $?
     fi
 
     # 触れた release group を得る（glob に当たるファイルだけの group は除く）。group 名一覧も $work/groups へ書かせる。
@@ -210,11 +232,11 @@ check_branch() {
         print_nested_error "$releasable"
         return 1
     elif [ "$trc" -eq 5 ]; then
-        echo "WARN: nx 配下の ignore を解決できないため version plan check を skip" >&2
-        return 0
+        skip_or_fail "nx 配下の ignore を解決できないため version plan check を skip"
+        return $?
     elif [ "$trc" -ne 0 ]; then
-        echo "WARN: nx graph 出力か nx.json の解析失敗のため version plan check を skip" >&2
-        return 0
+        skip_or_fail "nx graph 出力か nx.json の解析失敗のため version plan check を skip"
+        return $?
     fi
     local known_groups
     known_groups=$(cat "$work/groups")
@@ -278,7 +300,7 @@ while IFS= read -r tip; do
 done < <(collect_push_tips)
 
 if [ "${#TIPS[@]}" -eq 0 ]; then
-    echo "WARN: push 情報なし（pre-commit env と pre-push stdin のどちらからも取得できず）のため version plan check を skip" >&2
+    skip_or_fail "push 情報なし（pre-commit env と pre-push stdin のどちらからも取得できず）のため version plan check を skip" || exit 1
     exit 0
 fi
 

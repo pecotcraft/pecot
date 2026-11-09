@@ -19,7 +19,7 @@ job は次のとおり。必須チェックは `ci-result` と `version-plan` �
 | job | 中身 | 落ちる条件 |
 |---|---|---|
 | `checks` | コンテナで `setup.sh` と chromium を入れ、pre-commit・pre-push・manual の 3 stage を範囲指定で動かす。`SKIP=check-version-plan-required` を付ける | どれかの hook が非 0 |
-| `version-plan` | `check-version-plan-required.sh` を範囲指定で動かす。`push` では動かさない。bump の宣言はマージの前に確かめ終えているためである。範囲内の commit がすべて `dependabot[bot]` の作なら、スクリプトが要求せずに通し、その旨を Summary に書く | 宣言の無い release group がある |
+| `version-plan` | `check-version-plan-required.sh` を範囲指定で動かす。`push` では動かさない。bump の宣言はマージの前に確かめ終えているためである。範囲内の commit（merge を除く）の作者がすべて `dependabot[bot]` か `github-actions[bot]` で、`dependabot[bot]` が 1 つ以上なら、スクリプトが要求せずに通し、その旨を Summary に書く。判定できないときも失敗にするため、env `PECOT_VERSION_PLAN_STRICT=1` を渡す | 宣言の無い release group がある |
 | `ci-result` | `checks` の結果をまとめる。`checks` が skip・cancel・失敗なら落とす | 上のとおり |
 
 `checks` の Step Summary には次を書く。
@@ -79,7 +79,8 @@ Step Summary は `gh` で取れないため、同じ内容を artifact `release-
 
 ## main の ruleset
 
-ruleset は `.github/rulesets/main.json` に置き、`gh api` で適用する。適用の手順は quickstart に書く。
+ruleset は `.github/rulesets/main.json` に置き、既存の ruleset 26538811 を `gh api -X PUT` で置き換えて適用する。適用の手順は quickstart に書く。
+code scanning の規則は、merge queue の run と、default setup が解析する dependabot の PR を止めない。
 緊急の force push では、管理者が ruleset の enforcement を `disabled` にして押し、`active` に戻す（FR-028）。
 
 | 規則 | 値 |
@@ -88,5 +89,6 @@ ruleset は `.github/rulesets/main.json` に置き、`gh api` で適用する。
 | PR 経由を要求 | 必須レビュー数 0、squash のみ |
 | 必須チェック | `ci-result`・`version-plan`（どちらも GitHub Actions が出す） |
 | merge queue | 有効。方式は squash、グループの大きさは 1 |
+| code scanning | CodeQL。Alerts・Security alerts とも All |
 | 直接 push・force push・削除 | 禁止 |
 | bypass | リリースの App だけ（`Integration`、`always`） |
