@@ -18,7 +18,7 @@ set -euo pipefail
 
 # 次の 2 行は .pre-commit-config.yaml の check-text と一致させる（テストが固定する）
 TEXT_FILES_RE='\.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$'
-TEXT_EXCLUDE_RE='(^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli-node/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-'
+TEXT_EXCLUDE_RE='(^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli-node/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-|^\.nx/nx-release/tests/_fixtures/'
 
 here="$(dirname "${BASH_SOURCE[0]}")"
 # shellcheck source=../lib/push-range.sh

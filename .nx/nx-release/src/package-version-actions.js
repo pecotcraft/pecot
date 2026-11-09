@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 
 /**
@@ -14,12 +15,11 @@
 const { PecotVersionActions } = require("./version-actions");
 
 class PecotPackageVersionActions extends PecotVersionActions {
+  /** @param {ConstructorParameters<typeof PecotVersionActions>} args */
   constructor(...args) {
     super(...args);
     this.validManifestFilenames = ["package.json"];
   }
 }
 
-module.exports = PecotPackageVersionActions;
-module.exports.default = PecotPackageVersionActions;
-module.exports.PecotPackageVersionActions = PecotPackageVersionActions;
+module.exports = { PecotPackageVersionActions, default: PecotPackageVersionActions };

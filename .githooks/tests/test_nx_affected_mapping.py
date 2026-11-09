@@ -590,10 +590,12 @@ _PECOTV_TEST_LANES = {
         # pecot-visual は text-rules をリンク（vendor/text-rules）で載せていて、nx がリンク先の変更を検知しない。
         # そのため text-constraints を使う test-cli / test-hooks / test-slidev も inputs に持つ (#1297)。
         # ミラーを実 build する test-bootstrap も同じ。
+        # nx-release の dependabot-plans は、作った plan に check-text をかける (#67)。
         (
             "libs/text-rules/index.ts",
             {
                 "text-rules:test-unit",
+                "nx-release:test-unit",
                 "pecot-visual:test-release",
                 "pecot-visual:test-cli",
                 "pecot-visual:test-hooks",

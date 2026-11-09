@@ -38,3 +38,41 @@ publish prompt は Nx Release の最終段で出るため、prompt 到達時点�
 1. local commit + tag を破棄 (`git reset --hard HEAD~1` + `git tag -d <tag>`)
 2. base worktree (`base/<repo>`) に移動して `<develop>` ブランチを最新化し、release-nx.md
    の Step 1 からやり直す
+
+## ランナーが失敗した場合（`release.yml` の手順）
+
+[release-nx.md](release-nx.md) のランナーの手順で失敗したときの復旧手順。
+手元の `nx release` には戻らない。
+
+失敗の理由は、次のコマンドで確かめる。
+
+```bash
+gh run view <id> --log-failed -R <owner>/<repo>
+```
+
+- `plan` の失敗: 原因を直してから、`release.yml` を起動し直す。
+  最も多い原因は preflight（open の Dependabot alert）である。
+  [release-nx.md](release-nx.md) の手元の手順の「3. open の Dependabot alert を確認（preflight）」の扱い（解消・dismiss・exceptions）に従う。
+- `release` の push の前の失敗: 同じく、直してから起動し直す。push の前なので、タグと commit は残らない。
+- SHA の不一致（「承認を待つ間に main が進みました」）: 起動し直す。
+- non-fast-forward: 起動し直す。
+- publish だけの失敗: リリースは成立している。起動し直さず、publish だけをやり直す。
+
+  ```bash
+  gh workflow run publish-npm.yml -f tag=<tag> --ref <tag> -R <owner>/<repo>
+  ```
+
+- push の後の 401: App のトークンは 1 時間で切れる。
+  push の後の Release の作成や publish の起動で 401 になっても、タグと release commit は残っている。
+  Release が無ければ作り、publish だけをやり直す（上の「publish だけの失敗」と同じ）。
+
+承認を待っている run は、concurrency の group を持ち続ける。
+後から起動した run は、pending で待つ。
+cancel されるのは、さらに後の起動で pending になった側。
+承認待ちの run が残っていたら、先に承認するか cancel する。
+
+限界として、履歴の書き換えで diff が変わった commit は、`--cherry-pick` で除けない。
+そのため、依存の更新の plan が重なる。
+ランナーでは、重なった plan を消せない。plan は各 job のコンテナで毎回作り直されるため。
+同じ名前の plan（`<N>-dependabot-deps.md` など）を、中身を直して main に commit しておく。
+「既にある」と扱われ、作られない。

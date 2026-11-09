@@ -147,6 +147,89 @@ push・GitHub Release の発行までが一括で完結する。**`develop` と 
 
 以降、GitHub ホスト名を `<gh-host>` と表記。値は `pecot project info` の Host で決まる（例: `github.com`）。
 
+### 手順の選び方（ランナーか手元か）
+
+次のコマンドで、リモートの default branch の `release.yml` を取る。
+
+```bash
+gh workflow view release.yml -R <owner>/<repo> --yaml
+```
+
+ランナーの手順に従うのは、次の 2 つをどちらも満たすときだけ。
+
+1. コマンドが成功する
+2. 出力の YAML に、job `plan`・`release` と `dependabot-plans.js` がある
+
+`release.yml` はよくある名前なので、別の目的のファイルを起動しないよう、2 を確かめる。
+手元の手順（下の 1〜8）に進むのは、`HTTP 404` のときと、2 を満たさないときだけ。
+認証切れ・ネットワークなど、それ以外の失敗では止めて、ユーザーに報告する。
+
+### ランナーの手順（`release.yml` があるリポ）
+
+承認は GitHub の画面でユーザーが行う。
+エージェントは、画面でも `pending_deployments` の API でも承認しない。
+
+1. 起動する。出力の URL の末尾が run の id になる。
+
+   ```bash
+   gh workflow run release.yml --ref main -R <owner>/<repo>
+   ```
+
+   URL が取れなければ、次のコマンドで引く。
+   起動した時刻より後で、`headSha` が main の HEAD の run を選ぶ。
+
+   ```bash
+   gh run list --workflow release.yml --event workflow_dispatch --json databaseId,createdAt,headSha -L 5 -R <owner>/<repo>
+   ```
+
+2. `plan` の job の結論を待つ。`gh run watch` は承認待ちで戻らないので使わない。
+   次の 1 コマンドで、上限 30 分まで待つ。`plan` の結論が出たら、その値を表示して終わる。
+
+   ```bash
+   timeout 1800 bash -c 'until c=$(gh run view <id> -R <owner>/<repo> --json jobs --jq ".jobs[]|select(.name==\"plan\").conclusion") && [ -n "$c" ]; do sleep 20; done; echo "$c"'
+   ```
+
+   `success` なら次へ進む。
+   `success` 以外（`failure`・`cancelled`・`skipped`）は止めて、
+   [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
+   `skipped` は、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える。
+   上限まで待っても結論が出ず、run の `status` が `pending` のままなら、承認待ちの別の run がある。
+   次のコマンドで確かめる。
+
+   ```bash
+   gh run list --workflow release.yml --status waiting -R <owner>/<repo>
+   ```
+
+3. `plan` が残した案を読み、ユーザーに示す。
+   観点は、2ブランチ手順の「5. bump 妥当性のユーザー確認」と同じ。
+   案は `release-plan` という名前の artifact に入っている。
+   `nx.log` から bump・tag・CHANGELOG の案を読む。`plans.log` は plan の件数である。
+
+   ```bash
+   gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
+   ```
+
+   案が誤っていたら、承認を案内しない。
+   `gh run cancel <id> -R <owner>/<repo>` で止め、plan を直す PR を出し、マージしてから起動し直す。
+
+4. 案に問題が無ければ、承認の画面を開いて承認していただくようユーザーに案内する。
+   承認を待つ間、エージェントは何もしない。ユーザーが承認したと伝えるまで、次へ進まない。
+5. `release` の job の完了を待つ。待ち方は 2 と同じで、job 名を `release` にする。
+   完了したら、発行したタグ名と GitHub Release の URL を報告する。
+   タグ名と URL は、次のコマンドで取る。
+
+   ```bash
+   gh release list -L 4 -R <owner>/<repo>
+   ```
+
+   `plan` が preflight で止まったときは、open の Dependabot alert がある。
+   手元の手順の「3. open の Dependabot alert を確認（preflight）」に従う。
+   扱いは、解消・dismiss・exceptions の 3 つ。
+
+### 手元の手順（`release.yml` が無いリポ）
+
+以降の 1〜8 が、手元の手順になる。
+
 ### 1. base worktree で `main` を最新化
 
 **`base/<repo>` で実行する。** どの worktree から起動しても base へ移動して実行する。
@@ -193,6 +276,15 @@ open でなくなった alert の項目は、preflight が外すよう表示す�
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
+
+dry-run の前に、依存の更新の version plan を作る。
+`.nx/nx-release/src/dependabot-plans.js` があるリポだけで動かす。無いリポは飛ばす。
+
+```bash
+cd <project-root>/base/<repo> && if [ -f .nx/nx-release/src/dependabot-plans.js ]; then node .nx/nx-release/src/dependabot-plans.js; fi
+```
+
+作られた plan は、dry-run の結果と合わせてユーザーに示す。
 
 ```bash
 cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --dry-run --verbose <publish-flag>
