@@ -39,11 +39,26 @@ Alternatives considered: CI で `nx affected` を直に呼ぶ案は採らない�
 
 ## R3. CI でのタスクキャッシュ
 
-Decision: CI では nx のタスクキャッシュを使わない（`NX_SKIP_NX_CACHE=true`）。
+Decision: CI の tests の job は、同じ PR の run の間でだけ nx のタスクキャッシュを受け渡す。job 内で nx のリモートキャッシュのサーバ（`.githooks/ci/nx-cache-server.mjs`）を動かす。
+置き場 `.pecot/tmp/ci/nx-remote` は、artifact `nx-cache-tests-{slug}` で渡す。
+取り込むのは、同じ repo の同じ PR の run が、成功したレーンだけで上げた artifact にする。
 
-Rationale: キャッシュの置き場を PR 間で共有すると、宣言していない入力の変化を取りこぼす。spec の Edge Cases は、キャッシュで落ちるべきテストが通ることを禁じている。affected で範囲は十分に絞れる。
+Rationale: 宣言していない入力の変化を取りこぼさないため、共有の範囲を同じ PR に絞る。
+取りこぼしていた root の `pnpm-lock.yaml` は `.nxignore` で file map から外れる。
+これとイメージは、`runtime` 入力（`git hash-object`・`dpkg-query`）で hash に入れる。
 
-Alternatives considered: `actions/cache` で `~/.nx` を共有する案は、所要が問題になってから検討する。
+- 同じ repo の PR（書き込み権限者・dependabot）は許容する。
+  書き込み権限者は、main へ変更を入れられる信頼の範囲にいる。取り込み元は同じ PR に限る
+- fork の PR は、キャッシュを上げず、取り込まない。信頼できない変更の結果は、キャッシュに残さない
+- 同じ PR の途中の commit が置いた結果は、後の push と merge queue の run に引き継がれる。PR の作者はもともと ci.yml を書き換えられるので、信頼の境界は広がらない。そのため受け入れる
+- dependabot の PR の install で、依存の lifecycle スクリプトは動かない。`pnpm-workspace.yaml` の `permissions` で build を明示した依存だけが対象で、`build: true` は現在ない。宣言のない build は `ERR_PNPM_IGNORED_BUILDS` で止まる
+
+Alternatives considered:
+
+| 案 | 採らない理由 |
+|---|---|
+| `actions/cache` で `~/.nx` を共有する | `merge_group` の run は、PR の merge ref の cache を読めない sibling になる。ブランチをまたぐ共有は CREEP（CVE-2025-36852）の型で、信頼境界の外の cache を取り込む |
+| キャッシュを使わない（`NX_SKIP_NX_CACHE=true`） | 同じ PR の再実行に限れば、取りこぼしの危険を増やさずに所要を減らせる |
 
 ## R4. 自動マージと「最新の base で検証」
 

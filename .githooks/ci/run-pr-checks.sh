@@ -64,7 +64,21 @@ write_done() {
     mkdir -p "$ci_dir" 2> /dev/null || return 0
     printf '%s\n' "$rc" > "$done_file" 2> /dev/null || true
 }
-trap 'write_done "$?"' EXIT
+nx_cache_pid=""
+# shellcheck disable=SC2329  # trap から呼ばれる
+stop_nx_cache_server() {
+    [ -n "$nx_cache_pid" ] || return 0
+    kill -TERM "$nx_cache_pid" 2> /dev/null || true
+    wait "$nx_cache_pid" 2> /dev/null || true
+    nx_cache_pid=""
+}
+# shellcheck disable=SC2329  # trap から呼ばれる
+on_exit() {
+    local rc=$?
+    stop_nx_cache_server
+    write_done "$rc"
+}
+trap on_exit EXIT
 
 mkdir -p "$ci_dir"
 rm -f "$done_file" "$nx_log"
@@ -101,8 +115,91 @@ fi
 base_sha=$(git rev-parse --verify --quiet "${base}^{commit}" 2> /dev/null || printf '%s' "$base")
 head_sha=$(git rev-parse --verify --quiet "${head}^{commit}" 2> /dev/null || printf '%s' "$head")
 
-export NX_SKIP_NX_CACHE=true
 export PECOT_NX_CI=1
+
+# 取り込んだ成果物を返すサーバを立てる。立てられなければ今までどおりキャッシュを使わない。
+start_nx_cache_server() {
+    local dir="$1" port_file="$ci_dir/nx-cache-port" used_file="$ci_dir/nx-used.txt" token port="" i imported
+    local wait_ticks="${PECOT_CI_NX_CACHE_WAIT_TICKS:-100}"
+    rm -f "$port_file" "$port_file.tmp" "$used_file" "$used_file.tmp"
+    if ! command -v node > /dev/null 2>&1; then
+        echo "WARN: node が無いため nx のリモートキャッシュを使いません。" >&2
+        return 1
+    fi
+    token=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    mkdir -p "$dir" || { echo "WARN: 保存先 $dir を作れません。" >&2; return 1; }
+    NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$token" node "$(dirname "${BASH_SOURCE[0]}")/nx-cache-server.mjs" \
+        --dir="$dir" --port-file="$port_file" --used-file="$used_file" >&2 &
+    nx_cache_pid=$!
+    for ((i = 0; i < wait_ticks; i++)); do
+        [ ! -s "$port_file" ] || break
+        kill -0 "$nx_cache_pid" 2> /dev/null || break
+        sleep 0.1
+    done
+    port=$(cat "$port_file" 2> /dev/null || true)
+    if [ -z "$port" ]; then
+        echo "WARN: nx のキャッシュサーバが起動しませんでした。" >&2
+        stop_nx_cache_server
+        return 1
+    fi
+    export NX_SELF_HOSTED_REMOTE_CACHE_SERVER="http://127.0.0.1:$port"
+    export NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$token"
+    imported=$(find "$dir" -maxdepth 1 -name '*.tar.gz' | wc -l)
+    echo "nx のキャッシュサーバ: $NX_SELF_HOSTED_REMOTE_CACHE_SERVER、取り込み済み $imported 件" >&2
+}
+
+# 取り込み元の tree と自分の tree、lock の hash、apt のパッケージ一覧の hash を 3 行で出す。キャッシュが外れた原因の切り分けに使う。
+nx_diag_lines() {
+    local own_tree src_tree lock deb
+    own_tree=$(git rev-parse "HEAD^{tree}" 2> /dev/null || echo "-")
+    src_tree=$(head -n 1 "$nx_cache_dir/tested-tree.txt" 2> /dev/null || true)
+    lock=$(git hash-object pnpm-lock.yaml 2> /dev/null || echo "-")
+    deb="-"
+    if command -v dpkg-query > /dev/null 2>&1; then
+        deb=$(dpkg-query -W -f='${Package}=${Version}\n' 2> /dev/null | sha256sum | cut -c1-12)
+    fi
+    echo "キャッシュの入力: 取り込み元の tree ${src_tree:--}、自分の tree $own_tree"
+    echo "キャッシュの入力: pnpm-lock.yaml の hash $lock"
+    echo "キャッシュの入力: apt のパッケージ一覧の hash $deb"
+}
+
+# サーバが manual の stage の前に止まっていたら、nx が接続できず task が失敗するため、キャッシュなしに切り替える。
+check_nx_cache_alive() {
+    [ -n "$nx_cache_pid" ] || return 0
+    kill -0 "$nx_cache_pid" 2> /dev/null && return 0
+    echo "WARN: nx のキャッシュサーバが落ちているため、キャッシュを使いません。" >&2
+    stop_nx_cache_server
+    unset NX_SELF_HOSTED_REMOTE_CACHE_SERVER NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN
+    export NX_SKIP_NX_CACHE=true
+}
+
+# この run でサーバが使った hash の成果物だけを、upload 用の場所に写す。取り込んだだけの古い物は上げない。
+collect_nx_upload() {
+    local upload="$ci_dir/nx-upload" used="$ci_dir/nx-used.txt" hash
+    rm -rf "$upload"
+    [ -n "$nx_cache_dir" ] || return 0
+    mkdir -p "$upload"
+    [ -f "$used" ] || return 0
+    while IFS= read -r hash; do
+        [[ $hash =~ ^[A-Za-z0-9]+$ ]] || continue
+        if [ -f "$nx_cache_dir/$hash.tar.gz" ]; then
+            cp "$nx_cache_dir/$hash.tar.gz" "$upload/" || echo "WARN: $hash を写せませんでした。" >&2
+        fi
+    done < "$used"
+    compgen -G "$upload/*.tar.gz" > /dev/null || return 0
+    # 取り込む側が tree を比べられるよう、テストした tree（PR では merge commit の tree）を一緒に上げる。
+    git rev-parse "HEAD^{tree}" > "$upload/tested-tree.txt" 2> /dev/null || rm -f "$upload/tested-tree.txt"
+}
+
+nx_cache_dir=""
+if [ "$part" = "tests" ] && [ -n "${PECOT_CI_NX_CACHE:-}" ]; then
+    nx_cache_dir="$PECOT_CI_NX_CACHE"
+    unset NX_SKIP_NX_CACHE
+    start_nx_cache_server "$nx_cache_dir" || export NX_SKIP_NX_CACHE=true
+    nx_diag_lines >&2
+else
+    export NX_SKIP_NX_CACHE=true
+fi
 
 stages=(pre-commit pre-push manual)
 # part 指定時に、manual の stage で飛ばす hook。テストの 2 つの hook は manual の stage に載っている。
@@ -138,6 +235,7 @@ run_stage() {
     fi
     echo "=== stage: $stage ($mode) ==="
     local rc=0
+    [ "$stage" != "manual" ] || check_nx_cache_alive
     [ -z "$lane" ] || [ "$stage" != "manual" ] || extra_env+=("PECOT_NX_LANE=$lane")
     env "SKIP=$skip" "${extra_env[@]}" "$pre_commit" run --hook-stage "$stage" \
         "${range_args[@]}" --show-diff-on-failure --color=never || rc=$?
@@ -156,7 +254,8 @@ print_lane_rows() {
         status=${status%% *}
         label=$status
         case "$status" in
-            success | local-cache* | remote-cache) label="成功" ;;
+            success) label="成功" ;;
+            local-cache* | remote-cache) label="成功（キャッシュ）" ;;
             failure) label="失敗" ;;
         esac
         printf '| %s | %s | %ss |\n' "$name" "$label" "$sec"
@@ -173,6 +272,31 @@ print_lane_table() {
     echo "| レーン | 成否 | 所要 |"
     echo "|---|---|---|"
     printf '%s\n' "$rows"
+}
+
+# 取り込み元を 1 行で出す。入力は fetch-pr-nx-cache.sh が書く nx-source.txt（key=value の行）。
+print_nx_source_line() {
+    [ -n "$nx_cache_dir" ] || return 0
+    local file="$ci_dir/nx-source.txt" key value status="" run_id="" pr="" head_sha="" reason=""
+    if [ -f "$file" ]; then
+        while IFS='=' read -r key value; do
+            case "$key" in
+                status) status=$value ;;
+                run_id) run_id=$value ;;
+                pr) pr=$value ;;
+                head_sha) head_sha=$value ;;
+                reason) reason=$value ;;
+            esac
+        done < "$file"
+    fi
+    case "$status" in
+        imported) echo "キャッシュ: run $run_id（PR #$pr、head $head_sha）から取り込み" ;;
+        none) echo "キャッシュ: 取り込みなし（${reason:-記録なし}）" ;;
+        *) echo "キャッシュ: 取り込みなし（記録なし）" ;;
+    esac
+    echo
+    nx_diag_lines | sed 's/^/- /'
+    echo
 }
 
 # nx のログの `Failed tasks:` 以降の `- <project>:<target>` 行を、重複なしで出す。
@@ -296,6 +420,7 @@ emit_lane_sections() {
     echo
     print_lane_table
     echo
+    print_nx_source_line
     echo "### 失敗"
     echo
     failed=$(print_failed_lanes)
@@ -328,6 +453,9 @@ emit_lane_sections() {
 for stage in "${stages[@]}"; do
     run_stage "$stage"
 done
+
+stop_nx_cache_server
+collect_nx_upload
 
 if [ -n "${PECOT_CI_SUMMARY:-}" ]; then
     mkdir -p "$(dirname "$PECOT_CI_SUMMARY")"

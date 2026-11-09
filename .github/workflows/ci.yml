@@ -160,6 +160,7 @@ jobs:
       NO_PREV: ${{ needs.lanes.outputs.no_prev }}
       CHECKS_LANE: ${{ matrix.lane }}
       CHECKS_SLUG: ${{ matrix.slug }}
+      PECOT_CI_NX_CACHE: /workspaces/base/pecot/.pecot/tmp/ci/nx-remote
     strategy:
       fail-fast: false
       matrix:
@@ -170,6 +171,40 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      # 取り込むのは同じ repo の同じ PR の run の artifact だけにする。fork の PR や対象外の event の判定はスクリプトに任せる。
+      # 取り込めないときは、キャッシュなしで動かす。
+      - name: Find nx cache source
+        id: nxsrc
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: nx-cache-tests-${{ matrix.slug }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          REPO: ${{ github.repository }}
+        run: .githooks/ci/fetch-pr-nx-cache.sh
+
+      - name: Download nx cache
+        id: nxdl
+        if: steps.nxsrc.outputs.run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nx-cache-tests-${{ matrix.slug }}
+          run-id: ${{ steps.nxsrc.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: .pecot/tmp/ci/nx-remote
+
+      - name: Record nx cache download result
+        if: steps.nxdl.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SRC_RUN_ID: ${{ steps.nxsrc.outputs.run_id }}
+          ARTIFACT_NAME: nx-cache-tests-${{ matrix.slug }}
+        run: .githooks/ci/fetch-pr-nx-cache.sh --download-failed
 
       # push: never にする。省くと main の push で image を push しようとする。
       # GITHUB_STEP_SUMMARY は Action が固定するため、env に渡さない。
@@ -193,6 +228,7 @@ jobs:
             PECOT_NX_PARALLEL
             PECOT_CI_IMAGE
             PECOT_CI_SUMMARY
+            PECOT_CI_NX_CACHE
 
       # exec の cwd は /workspaces/base のため、cd してから動かす。
       - name: Run checks
@@ -220,6 +256,17 @@ jobs:
             .pecot/tmp/nx-affected-tests/
             .pecot/tmp/githooks-timing.tsv
             .pecot/tmp/ci/step-summary.md
+          if-no-files-found: ignore
+
+      # 失敗した job の結果を取り込み元にしないため、always() を付けず成功時だけ上げる。
+      - name: Upload nx cache
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nx-cache-tests-${{ matrix.slug }}
+          path: .pecot/tmp/ci/nx-upload/
+          retention-days: 7
           if-no-files-found: ignore
 
   # ci-result の needs には入れない。main の push で飛ばしても、ci-result の結果は変わらない。
