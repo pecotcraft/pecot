@@ -669,3 +669,80 @@ query($owner: String!, $repo: String!, $number: Int!) {
   }
 }
 `
+
+// open の PR の一覧。dependabot の PR の待ち状態の判定に使う。ページを辿る
+// 入れ子の connection が多く、ノード数の上限に近づくので first は 25 にしている。
+// timelineItems は、2 種のイベントを合わせて last: N だと force-push が多いときに片方が押し出されるため、
+// 種類ごとに別名で最後の 1 件だけを取る。
+export const QUERY_LIST_OPEN_PULL_REQUESTS = `
+query($owner: String!, $repo: String!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(first: 25, states: OPEN, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        number
+        title
+        url
+        createdAt
+        author {
+          __typename
+          login
+        }
+        isInMergeQueue
+        autoMergeRequest {
+          enabledAt
+        }
+        mergeable
+        baseRef {
+          target {
+            ... on Commit {
+              committedDate
+            }
+          }
+        }
+        firstCommits: commits(first: 1) {
+          nodes {
+            commit {
+              message
+              signature {
+                isValid
+              }
+              author {
+                user {
+                  login
+                }
+              }
+            }
+          }
+        }
+        headCommits: commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
+                state
+              }
+            }
+          }
+        }
+        lastForcePush: timelineItems(last: 1, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) {
+          nodes {
+            ... on HeadRefForcePushedEvent {
+              createdAt
+            }
+          }
+        }
+        lastDequeue: timelineItems(last: 1, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+          nodes {
+            ... on RemovedFromMergeQueueEvent {
+              createdAt
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`

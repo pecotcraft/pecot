@@ -63,7 +63,7 @@ def _invoke(
 ) -> Any:
     with (
         patch("cli.commands.security.GitHubClient", return_value=client),
-        patch("cli.commands.security.load_active_config", return_value=config or _config()),
+        patch("cli.commands._tracker_sync.load_active_config", return_value=config or _config()),
         patch("cli.commands.security.git_toplevel", return_value=Path("/repo")),
         patch("cli.commands.security.load_dependabot_exceptions", return_value=exceptions),
         patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),

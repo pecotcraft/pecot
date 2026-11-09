@@ -22,7 +22,7 @@ Node へ移植し終えたコマンドの path。registry の一覧から求め�
 const PORTED: readonly (readonly string[])[] = [[], ...COMMANDS.map(command => command.path)]
 
 /**
-help の一覧や「近いコマンド」の案内は、Python の全 33 コマンドの登録が前提になる。
+help の一覧や「近いコマンド」の案内は、Python の全 34 コマンドの登録が前提になる。
 全コマンドが registry に入るまでは、golden と一致しないことを確かめる
 */
 const SCENARIOS_NEEDING_ALL_COMMANDS: ReadonlySet<string> = new Set([

@@ -1381,6 +1381,84 @@ class TestGitHubClientGraphQL:
 
         assert len(result) == 2
 
+    @staticmethod
+    def _pr_page(nodes: list[dict[str, Any] | None], next_cursor: str | None) -> dict[str, Any]:
+        return {
+            "repository": {
+                "pullRequests": {
+                    "pageInfo": {"hasNextPage": bool(next_cursor), "endCursor": next_cursor},
+                    "nodes": nodes,
+                }
+            }
+        }
+
+    def test_list_open_dependabot_pull_requests_follows_end_cursor(
+        self, client: GitHubClient
+    ) -> None:
+        """list_open_dependabot_pull_requests: 2 ページ目の after は 1 ページ目の endCursor"""
+        bot = {"__typename": "Bot", "login": "dependabot"}
+        client._graphql.execute.side_effect = [
+            self._pr_page([{"number": 1, "author": bot}], "CUR1"),
+            self._pr_page([{"number": 2, "author": bot}], None),
+        ]
+
+        result = client.list_open_dependabot_pull_requests("owner", "repo")
+
+        assert [n["number"] for n in result] == [1, 2]
+        calls = client._graphql.execute.call_args_list
+        assert len(calls) == 2
+        assert calls[0].args[0].variable_values == {"owner": "owner", "repo": "repo", "after": None}
+        assert calls[1].args[0].variable_values == {
+            "owner": "owner",
+            "repo": "repo",
+            "after": "CUR1",
+        }
+
+    def test_list_open_dependabot_pull_requests_keeps_only_the_dependabot_bot(
+        self, client: GitHubClient
+    ) -> None:
+        """list_open_dependabot_pull_requests: 人の PR と User の dependabot は落とす"""
+        client._graphql.execute.return_value = self._pr_page(
+            [
+                {"number": 1, "author": {"__typename": "Bot", "login": "dependabot"}},
+                {"number": 2, "author": {"__typename": "User", "login": "dependabot"}},
+                {"number": 3, "author": {"__typename": "User", "login": "alice"}},
+                {"number": 4, "author": {"__typename": "Bot", "login": "renovate"}},
+                {"number": 5, "author": None},
+                None,
+            ],
+            None,
+        )
+
+        result = client.list_open_dependabot_pull_requests("owner", "repo")
+
+        assert [n["number"] for n in result] == [1]
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"repository": None},
+            {"repository": {"pullRequests": None}},
+            {"repository": {"pullRequests": {"pageInfo": {}, "nodes": None}}},
+            {
+                "repository": {
+                    "pullRequests": {
+                        "pageInfo": {"hasNextPage": True, "endCursor": None},
+                        "nodes": [],
+                    }
+                }
+            },
+        ],
+    )
+    def test_list_open_dependabot_pull_requests_rejects_a_broken_response(
+        self, client: GitHubClient, payload: dict[str, Any]
+    ) -> None:
+        """list_open_dependabot_pull_requests: 欠けた応答を PR 0 件と読まず、例外にする"""
+        client._graphql.execute.return_value = payload
+
+        with pytest.raises(GitHubAPIError):
+            client.list_open_dependabot_pull_requests("owner", "repo")
+
 
 # GitHubClientコンテキストマネージャテスト
 
