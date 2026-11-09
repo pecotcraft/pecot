@@ -45,12 +45,12 @@ job は次のとおり。必須チェックは `ci-result` と `version-plan` �
 | 項目 | 約束 |
 |---|---|
 | 起動 | `pull_request`（opened・synchronize・reopened） |
-| 動く条件 | `github.event.pull_request.user.login == 'dependabot[bot]'` |
-| 判定 | fetch-metadata の `update-type` が `version-update:semver-minor` か `version-update:semver-patch` |
+| 動く条件 | `github.event.pull_request.user.login == 'dependabot[bot]'` かつ `github.actor == 'dependabot[bot]'`（App の push による synchronize では動かさない） |
+| 判定 | fetch-metadata の `update-type` が `version-update:semver-minor` か `version-update:semver-patch`。`dependency-names` に `playwright` を含まない。`gh pr view` の `isMergeQueueEnabled` が true |
 | 操作 | App のトークンで `gh pr merge --auto --squash "$PR_URL"` |
-| トークンの権限 | `permission-pull-requests: write`。merge queue への投入に `contents: write` が要るかは実装時に確かめ、要らなければ付けない |
+| トークンの権限 | `permission-contents: write`・`permission-pull-requests: write` |
 | 権限 | `contents: read`・`pull-requests: read`（書き込みは App のトークンで行う） |
-| 秘密 | Dependabot secrets の `PECOT_BOT_CLIENT_ID`・`PECOT_BOT_PRIVATE_KEY` |
+| 秘密 | Dependabot secrets の `PECOT_BOT_CLIENT_ID`・`PECOT_BOT_PRIVATE_KEY`。無い間は notice を出して成功で終える |
 
 major のときは何もしない。PR にコメントも付けない（dependabot の PR 本文に更新の種類が出る）。
 
