@@ -258,7 +258,7 @@ jobs:
             .pecot/tmp/ci/step-summary.md
           if-no-files-found: ignore
 
-      # 取り込み元に選ばれるのは成功した run だけなので、always() を付けず成功時だけ上げる。
+      # 失敗した job の結果を取り込み元にしないため、always() を付けず成功時だけ上げる。
       - name: Upload nx cache
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
