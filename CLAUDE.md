@@ -33,7 +33,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 - PR ごとに CI（`ci.yml`）が検証を担う。
   - `checks (lint)` と `checks (githooks)` を動かす
   - 変更が届いたレーンごとに `tests (<project>:<target>)` を動かす
-  - 結果を `ci-result` にまとめる
+  - 結果を `ci-result` にまとめる。`ci-result` と `version-plan` が、`main` の ruleset の必須チェックである
 - 手元で動かすのは、変更箇所に絞ったテストと、CI の失敗の再現だけにする。push 前にレーンの全量を手で動かさない。同じ結果を 2 回待つだけになる。
   - 絞り方は、vitest / pytest ならファイル・ケースを指定し、`*.test.sh` なら該当の 1 本を指定する
 - CI の失敗は、次の順で再現する。
@@ -72,10 +72,12 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - lint は pre-commit の `nx-affected-lint` で、staged ファイルを `--files` で渡す
   - test は manual の stage の `nx-affected-tests` を CI が動かす。pre-push では動かさない
   - 手で動かすコマンドは `.githooks/README.md` の「検証の置き場」にある
-- GitHub Actions のワークフローは `.github/workflows/` の 5 本である。
+- GitHub Actions のワークフローは `.github/workflows/` の 6 本である。
   - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。`checks (lint)`・`checks (githooks)` と、レーンごとの `tests (<project>:<target>)` に分けて同時に動かし、`ci-result` にまとめる
+    - PR と merge queue では `version-plan` の job も動かす
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
+  - `release.yml`: 人が手で起動し、`main` 上で `nx release` を動かす。案を出す `plan` の後、Environment `release` の承認を待ってから `main` へ push する
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。同じブランチへ、リリースの App のトークンで push する
   - `security-alerts.yml`: main の security alert を毎時 Tracker 1 件の一覧にそろえる。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
 - commit の前の検証は pre-commit が、メッセージの検証は commit-msg が、手元で行う。CI も pre-commit の stage と、pre-push の stage（version plan の確認を除く）を動かす
@@ -93,11 +95,11 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 
 ## リリース・nx release group の規約
 
-- 単一ブランチ（`main`）trunk-based 運用。リリースは `base/pecot` の `main` 上で
-  `pnpm exec nx release` を実行する。詳細は w-release スキルにある。
-  どの worktree で起動したセッションでも base に移動して実行し、実行場所をユーザーに確認しない。
-  base で行うのは w-release の手順のコマンドだけで、復旧手順も含む。base のファイル編集・ブランチ切替はしない。
-  `base/pecot` は `main` を checkout した状態を維持する
+- 単一ブランチ（`main`）trunk-based 運用。リリースは `release.yml` を `gh workflow run release.yml --ref main` で起動して行う。手元で `nx release` を実行しない
+  - `plan` の job が dry-run の案を Summary と artifact `release-plan` に出す
+  - 承認は、ユーザーが GitHub の画面で Environment `release` に対して行う。エージェントは承認しない
+  - 承認の後、`release` の job がリリースの App のトークンで `main` へ push する。`main` に直接 push できるのは、ruleset の bypass にあるこの App だけである
+  - 手順と、失敗したときのやり直しは w-release スキルにある
 - `nx.json` の `release.groups[].projects` には、各 project を 1 つずつ列挙する。
   列挙するのは `["pecot-workflow"]` / `["pecot-visual"]` / `["pecot-tools"]` / `["text-rules"]` の 4 件である。
   1 group に複数 project を入れると、CHANGELOG が commit から脱落する（#624、nrwl/nx#35559）
@@ -114,7 +116,6 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   pnpm は store と install 先を同一 filesystem に要求する仕様なので、フォールバックとして生成される。
   gitignore 済み・正常
 - 自分が起動されたディレクトリの外の worktree を操作しない。
-  リリースは除き、「リリース・nx release group の規約」に従う。
   base で起動された場合はブランチ作業も base 上で行い、完了後に main へ戻す
 - pecot-visual の lint 結果が同一ソースで揺れた場合は、キャッシュ汚染を原因と決める前に、決定論化規約を守っているか確認する。
   確認する対象は次の 3 点である。

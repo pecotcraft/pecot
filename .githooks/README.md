@@ -59,6 +59,46 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
   - `githooks-tests` も、同じ形（`pre-commit run --hook-stage manual githooks-tests ...`）で動かせる。
     全量は `--all-files` で動く。
 
+## 緊急の force push
+
+`main` の履歴を書き換えるのは、個人情報や秘密の値を消すときなどの緊急時だけにする。
+`main` の ruleset（`.github/rulesets/main.json`、id 26538811）は force push を禁じるので、管理者が一時的に外す。
+手順は次の順にする。
+
+1. ruleset の enforcement を `disabled` にする。
+
+   ```bash
+   gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 -f enforcement=disabled
+   ```
+
+2. 書き換えた履歴を force push する。
+
+   ```bash
+   git push --force-with-lease origin HEAD:main
+   ```
+
+3. ruleset を JSON の内容で戻す。enforcement は JSON の `active` になる。
+
+   ```bash
+   gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 --input .github/rulesets/main.json
+   gh api repos/pecotcraft/pecot/rulesets/26538811 --jq .enforcement
+   ```
+
+4. push で動いた `main` の CI を確かめる。
+
+   ```bash
+   gh run list --workflow ci.yml --branch main --event push -L 1
+   ```
+
+   - 範囲の base の commit を読めないときは、全レーンが動く
+   - 成功した run が無い（`noPreviousBuild`）ときも、全レーンが動く
+
+- version plan は要らない。`main` への push では version plan を確かめない
+- 次のリリースは、書き換えた後の履歴で動く。dependabot の plan は、前回の tag の側に同じ中身の commit があれば作らない
+- この手順で消せるのは git の履歴だけである。次のものに情報が入っていた場合は、この手順の範囲外である
+  - GitHub Release の添付
+  - npm に publish した配布物
+
 ## 規約
 
 ### R1. CI スクリプトの dispatch 単位 = プラグイン (固定深さ)
