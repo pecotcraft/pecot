@@ -31,6 +31,8 @@ TRACKER_MARKER = "<!-- pecot-dependabot-pr: tracker -->"
 LIST_BEGIN = "<!-- pecot-dependabot-pr: list-begin -->"
 LIST_END = "<!-- pecot-dependabot-pr: list-end -->"
 PRIORITY = "medium"
+# security の Tracker の種類ごとの見出しと同じ形にする
+SECTION_HEADING = "## dependabot PR"
 
 REASON_UNKNOWN = "update-type 不明"
 REASON_MAJOR = "major"
@@ -321,6 +323,7 @@ def render_tracker_body(entries: Sequence[PrEntry], existing_body: str | None = 
         table = "\n".join(["| title | PR | checks |", "|---|---|---|", *(_row(e) for e in entries)])
     else:
         table = "none"
+    table = SECTION_HEADING + "\n\n" + table
     if existing_body is None:
         head = TRACKER_MARKER + "\n\n" + LIST_BEGIN + "\n"
         tail = "\n" + LIST_END + "\n"

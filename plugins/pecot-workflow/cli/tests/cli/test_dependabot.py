@@ -184,7 +184,7 @@ class TestSync:
 
         assert result.exit_code == 0, result.output
         body = client.update_issue_body.call_args.args[3]
-        assert body.split(LIST_BEGIN)[1].split(LIST_END)[0] == "\nnone\n"
+        assert body.split(LIST_BEGIN)[1].split(LIST_END)[0] == "\n## dependabot PR\n\nnone\n"
         client.close_issue.assert_called_once_with("o", "r", 9, state_reason="completed")
         assert "閉じた: Tracker #9" in result.output
 

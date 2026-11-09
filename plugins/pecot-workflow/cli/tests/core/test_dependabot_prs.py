@@ -370,6 +370,7 @@ class TestTrackerBody:
         assert body == (
             "<!-- pecot-dependabot-pr: tracker -->\n\n"
             "<!-- pecot-dependabot-pr: list-begin -->\n"
+            "## dependabot PR\n\n"
             "| title | PR | checks |\n|---|---|---|\n"
             "| <!-- pecot-dependabot-pr: pr/2 --> `Bump a` | [#2](https://github.com/o/r/pull/2)"
             " | failed |\n"
@@ -413,7 +414,7 @@ class TestTrackerBody:
     def test_empty_list_is_none_only(self) -> None:
         body = render_tracker_body([])
         begin = body.index(LIST_BEGIN) + len(LIST_BEGIN)
-        assert body[begin : body.index(LIST_END)] == "\nnone\n"
+        assert body[begin : body.index(LIST_END)] == "\n## dependabot PR\n\nnone\n"
         assert parse_tracker_pr_numbers(body) == []
 
     def test_old_form_body_is_read(self) -> None:
