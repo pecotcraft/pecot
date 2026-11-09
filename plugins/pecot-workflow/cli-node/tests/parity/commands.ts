@@ -22,7 +22,7 @@ export const COMMAND_PATHS: readonly (readonly string[])[] = [
   ['issue', 'reopen'],
   ['pr', 'create'],
   ['pr', 'read'],
-  ['pr', 'merge'],
+  ['pr', 'cleanup'],
   ['pr', 'preflight'],
   ['session', 'status'],
   ['session', 'restore'],

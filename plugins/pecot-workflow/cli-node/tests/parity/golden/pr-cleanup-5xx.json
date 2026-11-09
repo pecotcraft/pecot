@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: マージに失敗しました: GitHub APIエラー: 502\n",
+  "stderr": "エラー: GraphQLクエリ実行エラー: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\n",
   "exitCode": 1,
   "requests": [
     {
@@ -10,26 +10,6 @@
         "owner": "acme",
         "repo": "demo",
         "number": 21
-      },
-      "auth": "token"
-    },
-    {
-      "type": "graphql",
-      "operation": "GetIssueKind",
-      "variables": {
-        "owner": "acme",
-        "repo": "demo",
-        "number": 12
-      },
-      "auth": "token"
-    },
-    {
-      "type": "rest",
-      "method": "PUT",
-      "path": "/repos/acme/demo/pulls/21/merge",
-      "query": {},
-      "body": {
-        "merge_method": "squash"
       },
       "auth": "token"
     }

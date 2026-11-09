@@ -1,7 +1,7 @@
 # PR の取得が 401。認証エラーとして exit 1 になる。
-id: pr-merge-auth
+id: pr-cleanup-auth
 command:
-  path: [pr, merge]
+  path: [pr, cleanup]
   args:
     - "acme/demo/21"
 setup:
