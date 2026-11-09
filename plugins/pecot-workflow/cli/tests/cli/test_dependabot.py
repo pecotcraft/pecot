@@ -12,8 +12,9 @@ from unittest.mock import MagicMock, patch
 import typer.testing
 
 from cli.commands.main import app
-from cli.core.dependabot_prs import PrEntry, render_tracker_body
+from cli.core.dependabot_prs import LIST_BEGIN, LIST_END, PrEntry, render_tracker_body
 from cli.core.github import GitHubAPIError
+from cli.tests._dependabot_tracker_body import OLD_FORM_BODY
 
 runner = typer.testing.CliRunner()
 
@@ -148,7 +149,7 @@ class TestSync:
     def test_same_list_is_not_patched(self) -> None:
         pr = _pr(2, "a", "major")
         body = render_tracker_body(
-            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",))]
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",), "passed")]
         )
         client = _client([pr], [_tracker(9, body)])
         result = _invoke(client, ["sync"])
@@ -158,13 +159,32 @@ class TestSync:
         client.close_issue.assert_not_called()
         assert "Tracker #9 は変わらない" in result.output
 
-    def test_empty_list_empties_the_table_and_closes(self) -> None:
+    def test_old_form_tracker_is_rewritten_to_the_new_columns(self) -> None:
+        prs = [
+            _pr(120, "ajv", "major", title="build(repo): bump ajv from 6.15.0 to 8.20.0"),
+            _pr(200, "left-pad", "major"),
+        ]
+        client = _client(prs, [_tracker(179, OLD_FORM_BODY)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.create_issue.assert_not_called()
+        assert "Tracker #179 に足す: PR #200（major）" in result.output
+        assert "Tracker #179 から外す: PR #166" in result.output
+        assert "PR #120" not in result.output
+        body = client.update_issue_body.call_args.args[3]
+        assert "| title | PR | checks |" in body
+        assert "待っている理由" not in body
+        assert "| [#200](https://github.com/o/r/pull/200) | passed |" in body
+        assert "major" not in body
+
+    def test_empty_list_sets_none_and_closes(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0, result.output
         body = client.update_issue_body.call_args.args[3]
-        assert "pr/" not in body.replace("pecot-dependabot-pr: tracker", "")
+        assert body.split(LIST_BEGIN)[1].split(LIST_END)[0] == "\n## dependabot PR\n\nnone\n"
         client.close_issue.assert_called_once_with("o", "r", 9, state_reason="completed")
         assert "閉じた: Tracker #9" in result.output
 
@@ -233,9 +253,9 @@ class TestSync:
 
         assert result.exit_code == 1
         client.update_issue_body.assert_called_once()
-        assert "本文は空にしたが閉じられませんでした。次の実行で再試行します" in result.output
+        assert "一覧を none にした後、閉じられませんでした。次の実行で再試行します" in result.output
 
-    def test_retry_closes_without_rewriting_an_already_empty_table(self) -> None:
+    def test_retry_closes_without_rewriting_an_already_none_list(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([]))])
         result = _invoke(client, ["sync"])
 

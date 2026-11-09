@@ -24,13 +24,15 @@ from typing import Any, cast
 import yaml
 
 from cli.core.errors import PecotError
-from cli.core.tracker_body import cell, list_region, normalize_newlines
+from cli.core.tracker_body import list_region, normalize_newlines
 
 PR_LABEL = "dependabot-pr"
 TRACKER_MARKER = "<!-- pecot-dependabot-pr: tracker -->"
 LIST_BEGIN = "<!-- pecot-dependabot-pr: list-begin -->"
 LIST_END = "<!-- pecot-dependabot-pr: list-end -->"
 PRIORITY = "medium"
+# security の Tracker の種類ごとの見出しと同じ形にする
+SECTION_HEADING = "## dependabot PR"
 
 REASON_UNKNOWN = "update-type 不明"
 REASON_MAJOR = "major"
@@ -151,6 +153,15 @@ def _first_node(value: Any) -> dict[str, Any]:
     return _dict(nodes[0]) if nodes else {}
 
 
+def checks_label(state: str | None) -> str:
+    """検証の結果を表の語にする。結果が無ければ ``none``"""
+    if state == "SUCCESS":
+        return "passed"
+    if state in ("FAILURE", "ERROR"):
+        return "failed"
+    return "none" if state is None else "pending"
+
+
 def rollup_state(pr: Mapping[str, Any]) -> str | None:
     """最後の commit の検証（statusCheckRollup）の state。結果が無ければ None"""
     rollup = _dict(_first_node(pr.get("headCommits")).get("commit")).get("statusCheckRollup")
@@ -234,13 +245,15 @@ class PrEntry:
         number: PR 番号。
         title: PR の題。
         url: PR の URL。
-        reasons: 待っている理由。
+        reasons: 待っている理由。実行のログにだけ出し、表には出さない。
+        checks: 最後の commit の検証の結果（``passed`` / ``failed`` / ``pending`` / ``none``）。
     """
 
     number: int
     title: str
     url: str
     reasons: tuple[str, ...]
+    checks: str = "none"
 
 
 @dataclass
@@ -276,9 +289,7 @@ def _title_cell(title: str) -> str:
 
 def _row(e: PrEntry) -> str:
     marker = f"<!-- pecot-dependabot-pr: pr/{e.number} -->"
-    return (
-        f"| {marker} [#{e.number}]({e.url}) {_title_cell(e.title)} | {cell('・'.join(e.reasons))} |"
-    )
+    return f"| {marker} {_title_cell(e.title)} | [#{e.number}]({e.url}) | {e.checks} |"
 
 
 def parse_tracker_pr_numbers(body: str | None) -> list[int]:
@@ -308,7 +319,11 @@ def render_tracker_body(entries: Sequence[PrEntry], existing_body: str | None = 
     Raises:
         DependabotPrError: ``existing_body`` の印が 1 組ではない場合
     """
-    table = "\n".join(["| PR | 待っている理由 |", "|---|---|", *(_row(e) for e in entries)])
+    if entries:
+        table = "\n".join(["| title | PR | checks |", "|---|---|---|", *(_row(e) for e in entries)])
+    else:
+        table = "none"
+    table = SECTION_HEADING + "\n\n" + table
     if existing_body is None:
         head = TRACKER_MARKER + "\n\n" + LIST_BEGIN + "\n"
         tail = "\n" + LIST_END + "\n"
