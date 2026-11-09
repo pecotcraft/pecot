@@ -21,7 +21,6 @@
 
 const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 
 const GROUP_PATHS = {
@@ -414,7 +413,11 @@ async function main(options = {}) {
     }
 
     const plansDir = path.join(repoDir, PLANS_DIR);
-    const outDir = dryRun ? fs.mkdtempSync(path.join(os.tmpdir(), "dependabot-plans-")) : plansDir;
+    const outDir = dryRun ? path.join(repoDir, ".pecot/tmp/dependabot-plans") : plansDir;
+    if (dryRun) {
+      fs.rmSync(outDir, { recursive: true, force: true });
+      fs.mkdirSync(outDir, { recursive: true });
+    }
     /** @type {{ file: string, text: string }[]} */
     const written = [];
     const skipped = { dev: 0, none: 0, exists: 0 };

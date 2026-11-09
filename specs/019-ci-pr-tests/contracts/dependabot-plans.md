@@ -13,7 +13,7 @@ node .nx/nx-release/src/dependabot-plans.js [--dry-run] [--since-ref <ref>]
 |---|---|
 | なし | release group ごとに最新の tag（`<group>-v*`）から `HEAD` までを読み、plan を `.nx/version-plans/` に書く |
 | `--since-ref <ref>` | 全 group で同じ起点を使う（テスト用） |
-| `--dry-run` | 書かずに、作る plan のパスと中身を標準出力に出す |
+| `--dry-run` | `.nx/version-plans/` に書かず、`.pecot/tmp/dependabot-plans/` に書いて確認し、パスと中身を標準出力に出す |
 
 ## 入力
 
