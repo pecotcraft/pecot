@@ -147,6 +147,54 @@ push・GitHub Release の発行までが一括で完結する。**`develop` と 
 
 以降、GitHub ホスト名を `<gh-host>` と表記。値は `pecot project info` の Host で決まる（例: `github.com`）。
 
+### 手順の選び方（ランナーか手元か）
+
+リモートの default branch に `release.yml` があれば、ランナーの手順に従う。
+無ければ、手元の手順（下の 1〜8）に従う。次のコマンドが成功すれば、`release.yml` がある。
+
+```bash
+gh workflow view release.yml -R <owner>/<repo>
+```
+
+失敗したときは、`release.yml` の無いリポとみなして手元の手順に進む。
+
+### ランナーの手順（`release.yml` があるリポ）
+
+承認は GitHub の画面でユーザーが行う。エージェントは承認しない。
+
+1. 起動する。出力の URL の末尾が run の id になる。取れなければ `gh run list` で引く。
+
+   ```bash
+   gh workflow run release.yml --ref main -R <owner>/<repo>
+   gh run list --workflow release.yml --event workflow_dispatch -L 1 -R <owner>/<repo>
+   ```
+
+2. `plan` の job の結論を待つ。`gh run watch` は承認待ちで戻らないので使わない。
+   次のコマンドを、上限の時間（例: 30 分）を決めて間隔を空けて繰り返す。
+   `plan` の `conclusion` が `success` になれば次へ進む。`failure` なら
+   [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
+
+   ```bash
+   gh run view <id> --json status,jobs -R <owner>/<repo>
+   ```
+
+3. `plan` が残した案を読み、ユーザーに示す。
+   観点は、2ブランチ手順の「5. bump 妥当性のユーザー確認」と同じ。
+   案は `release-plan` という名前の artifact に入っている。
+
+   ```bash
+   gh run download <id> -n release-plan -D <作業ディレクトリ> -R <owner>/<repo>
+   ```
+
+4. 案に問題が無ければ、承認の画面を開いて承認していただくようユーザーに案内する。
+   承認を待つ間、エージェントは何もしない。ユーザーが承認したと伝えるまで、次へ進まない。
+5. `release` の job の完了を待つ。待ち方は 2 と同じ。
+   完了したら、発行したタグ名と GitHub Release の URL を報告する。
+
+### 手元の手順（`release.yml` が無いリポ）
+
+以降の 1〜8 が、手元の手順になる。
+
 ### 1. base worktree で `main` を最新化
 
 **`base/<repo>` で実行する。** どの worktree から起動しても base へ移動して実行する。
@@ -193,6 +241,15 @@ open でなくなった alert の項目は、preflight が外すよう表示す�
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
+
+dry-run の前に、依存の更新の version plan を作る。
+`.nx/nx-release/src/dependabot-plans.js` があるリポだけで動かす。無いリポは飛ばす。
+
+```bash
+cd <project-root>/base/<repo> && if [ -f .nx/nx-release/src/dependabot-plans.js ]; then node .nx/nx-release/src/dependabot-plans.js; fi
+```
+
+作られた plan は、dry-run の結果と合わせてユーザーに示す。
 
 ```bash
 cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --dry-run --verbose <publish-flag>

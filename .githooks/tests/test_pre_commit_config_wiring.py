@@ -298,10 +298,11 @@ def _hook_exclude_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
         "plugins/pecot-workflow/cli-node/tests/parity/golden/pr-create-ok.json",
         "plugins/pecot-workflow/cli-node/tests/python-output/sections.json",
         "plugins/pecot-workflow/cli-node/tests/python-output/record.py",
+        ".nx/nx-release/tests/_fixtures/dependabot-real.json",
     ],
 )
 def test_check_text_excludes_generated_files(script_dir: Path, changed_path: str) -> None:
-    """生成物の CHANGELOG.md、Python の出力の記録（golden・python-output）は exclude で対象から外れる。"""
+    """生成物の CHANGELOG.md、Python の出力の記録（golden・python-output）、dependabot の本文の写しは exclude で対象から外れる。"""
     assert _hook_exclude_pattern(script_dir, _TEXT_FILES_HOOK).search(changed_path)
 
 
@@ -312,6 +313,7 @@ def test_check_text_excludes_generated_files(script_dir: Path, changed_path: str
         "plugins/pecot-workflow/docs-guide.md",
         "plugins/pecot-workflow/cli-node/tests/parity/run.ts",
         "plugins/pecot-workflow/cli-node/src/python-output/x.ts",
+        ".nx/nx-release/tests/dependabot-plans.test.js",
     ],
 )
 def test_check_text_keeps_hand_written_files(script_dir: Path, changed_path: str) -> None:

@@ -67,40 +67,54 @@ major を 1 件でも含む group の PR は、自動マージの対象から外
 
 ## 4. dependabot の更新の記録（入力）
 
-squash でマージした dependabot の commit の本文から読む。
+squash でマージした dependabot の commit の本文から読む。#113 の後は、dependabot の commit と runtime-lock の commit が 1 つに squash される。
+本文は、2 つの commit の本文を `*` 付きで連ねた形になる。
 
 | 項目 | 読む場所 | 例 |
 |---|---|---|
-| PR 番号 | 件名の末尾の `(#N)` | `(#5)` |
-| directory | 件名の `in /path`、group の PR では本文の `in the /path directory` | `/plugins/pecot-tools` |
-| 依存名・新しい版・種類 | `updated-dependencies:` の YAML の `dependency-name`・`dependency-version`・`dependency-type` | `commander`・`15.0.0`・`direct:production` |
+| 対象の commit | 本文に `updated-dependencies:` を含む commit。作者では選ばない | |
+| PR 番号 | 件名の末尾の `(#N)`。無ければコード 1 で止める | `(#5)` |
+| directory | 件名の `in /path`、group の PR では本文の `in the /path directory`。どちらも読めなければ `/` とみなす | `/plugins/pecot-tools` |
+| 依存名・新しい版・種類 | `updated-dependencies:` の YAML の `dependency-name`・`dependency-version`・`dependency-type`。本文のどこからでも探す | `commander`・`15.0.0`・`direct:production` |
 | 古い版 | 本文の `Bumps [x](...) from A to B` か `Updates \`x\` from A to B` | `14.0.3` |
 
 古い版が読めないときは、文面を「名前 → 新しい版」にする。YAML が読めない commit は、エラーにしてリリースを止める。
 
 ## 5. 配布物に届くかの判定
 
-directory から release group を決め、依存の種類で plan を作るかを決める。
+group は directory ではなく、その commit の時点の `package.json` と lock で決める。
 
-| directory | release group | plan を作る種類 |
-|---|---|---|
-| `/plugins/pecot-visual` | pecot-visual | `direct:production`・`indirect`。`direct:development` のうち配布物の一覧（`dist-manifest.mjs` の `LINT_DEPS` など）にあるもの |
-| `/plugins/pecot-tools` | pecot-tools | `direct:production`・`indirect` |
-| `/plugins/pecot-workflow` | pecot-workflow | `direct:production`・`indirect` |
-| `/plugins/pecot-workflow/cli`（uv） | pecot-workflow | `direct:production`・`indirect` |
-| `/libs/text-rules` | text-rules | `direct:production`・`indirect` |
-| `/`（root）・github-actions・audit-canary | なし | 作らない |
+# 113 で npm の dependabot は root の `/` だけになり、directory は group を示さない。
 
-`indirect` は lock だけの更新を指す。pecot-visual・pecot-tools は lock から shrinkwrap を作って配るので、配布物に届く。
+| 依存の種類 | 判定 |
+|---|---|
+| direct（npm） | その commit で指定が変わった `package.json` を根拠にする。lock だけが変わったときは、その依存を宣言している `package.json` を探す |
+| `indirect`（npm） | root の lock で判定する。group の本番の依存から辿って `<名前>@<新版>` へ届けば、その group で作る。pecot-visual は配布物の依存名に入る devDependencies も起点にする。それ以外の devDependencies からしか届かなければ作らない |
+| uv（`/plugins/pecot-workflow/cli`） | YAML の `dependency-type` で決める。group は pecot-workflow |
+| github-actions・audit-canary | 作らない |
+
+direct の依存は、`package.json` の path の前方一致で group を決める。`tests/` を含む path は数えない。
+
+| 宣言の場所 | plan を作る条件 |
+|---|---|
+| `dependencies`・`optionalDependencies` | 常に作る |
+| `plugins/pecot-visual/` の下の `devDependencies` | pecot-visual の配布物の依存名に入るときだけ作る |
+| 上記以外の `devDependencies` | 作らない（開発用） |
+
+配布物の依存名は、`dist-manifest.mjs` の `buildDistManifest()` の戻り値のキーから取る。
+どの package にも当たらない依存は、plan を作らない。
 
 ## 6. 依存の更新の version plan（出力）
 
 | 項目 | 値 |
 |---|---|
-| ファイル | `.nx/version-plans/<PR 番号>-dependabot-deps.md`。1 PR が 2 つの group に届くときは `<PR 番号>-dependabot-deps-<group>.md` に分ける |
+| ファイル | `.nx/version-plans/<PR 番号>-dependabot-deps.md`。1 PR が 2 つ以上の group に届くときは `<PR 番号>-dependabot-deps-<group>.md` に分ける |
+| ファイル名の決め方 | `-<group>` の有無は、範囲で絞る前に、その commit が届く group の数で決める。実行ごとに名前が変わらないようにする |
 | frontmatter | `<group>: patch` の 1 行 |
-| 本文 | 「依存を更新した（名前 旧版 → 新版、…）。」の 1 文。100 字を超えるなら数件で切り「ほか N 件」で締める |
+| 本文 | 「依存を更新した（名前 旧版 → 新版、…）。(#N)」の 1 文。100 字を超えるなら数件で切り「ほか N 件」で締める |
 | 検証 | 作った後に `check-version-plan-format.sh` と `check-text.sh` を通す。通らなければリリースを止める |
+
+本文の末尾に `(#N)` を置くのは、未追跡の plan では nx が commit を引けず、CHANGELOG に PR のリンクが付かない。
 
 状態の移り方は次のとおり。
 
@@ -118,6 +132,8 @@ dependabot の PR がマージされる（main に commit が載る。plan は�
 | 項目 | 値 |
 |---|---|
 | 主体 | 専用の GitHub App（名前は quickstart の準備で決める） |
-| 秘密 | App の client id と秘密鍵。Actions secrets と Dependabot secrets の両方に置く |
+| 秘密 | 秘密鍵は Environment `release` と `release-plan` の secret `PECOT_BOT_PRIVATE_KEY` に置く。client id は変数 `vars.PECOT_BOT_CLIENT_ID` に置く |
+| 置き場所の理由 | Actions の secret に置くと、書き込み権のある人が任意のブランチから contents:write のトークンを作れる。Environment は deployment branch を `main` だけにして防ぐ |
+| Dependabot secrets | 自動マージ（Phase 7）の作業として置く。リリースでは使わない |
 | ruleset | bypass に `Integration`（App）を `always` で載せる |
 | git の作者 | `<app-slug>[bot]` と `<id>+<app-slug>[bot]@users.noreply.github.com` |

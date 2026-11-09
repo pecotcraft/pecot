@@ -76,8 +76,9 @@ repos:
         # CHANGELOG.md は nx release の生成物のため対象にしない。
         # parity の golden は Python の CLI の出力を記録した生成物のため対象にしない。
         # python-output の fixture も同じく Python の出力を逐語で置いた記録のため対象にしない。
+        # nx-release の fixture は dependabot の commit の本文を逐語で写した記録のため対象にしない。
         # speckit の配布物（.specify/ と speckit のスキル）は上流の文書で、speckit の更新で上書きされるため対象にしない
-        exclude: (^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli-node/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-
+        exclude: (^|/)CHANGELOG\.md$|^plugins/pecot-workflow/cli-node/tests/(parity/golden|python-output)/|^\.specify/|^\.claude/skills/speckit-|^\.nx/nx-release/tests/_fixtures/
         # 違反が確定した時点で、後続の重い hook を始めない
         fail_fast: true
         # 分割すると node の起動と形態素解析の初期化を分割数だけ払い、出力の順序も崩れる

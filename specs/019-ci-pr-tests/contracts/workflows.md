@@ -58,20 +58,24 @@ major のときは何もしない。PR にコメントも付けない（dependab
 
 | 項目 | 約束 |
 |---|---|
-| 起動 | `workflow_dispatch`。入力は無い。ref は `main` に限る |
-| concurrency | `release`、`cancel-in-progress: false` |
-| 秘密 | Actions secrets の `PECOT_BOT_CLIENT_ID`・`PECOT_BOT_PRIVATE_KEY` |
-| Environment | `release`。必須レビュアーはリリース担当者 |
-| トークンの権限 | `plan` は `permission-dependabot-alerts: read` だけ。`release` は research の R6 の表のとおり |
+| 起動 | `workflow_dispatch`。入力は無い。各 job に `if: github.ref == 'refs/heads/main' && vars.PECOT_BOT_CLIENT_ID != ''` を付ける |
+| concurrency | `release`、`cancel-in-progress: false`。承認待ちの run は group を持ち続け、後から起動した run が前の待ちを cancel する |
+| 権限 | `contents: read`・`packages: read` |
+| 秘密 | client id は `vars.PECOT_BOT_CLIENT_ID`。秘密鍵は Environment secret の `PECOT_BOT_PRIVATE_KEY` |
+| トークン | App のトークンはコンテナを起こす直前に作る。コンテナへは `GH_TOKEN`・`PECOT_GITHUB_COM_TOKEN` だけを渡し、`GITHUB_TOKEN` は渡さない |
+| 時間の上限 | job ごとに `timeout-minutes: 60` |
 
 job は次のとおり。
 
-| job | 中身 |
-|---|---|
-| `plan` | 依存の更新の version plan を作り（`dependabot-plans`）、`pecot release preflight` と `nx release --dry-run --verbose --yes` を動かす。bump と CHANGELOG の案を Summary に出す。commit しない |
-| `release` | `plan` の後に Environment の承認を待つ。承認されたら、同じ `main` の SHA で plan を作り直し、`nx release --verbose --yes` を動かす |
+| job | Environment | トークンの権限 | 中身 |
+|---|---|---|---|
+| `plan` | `release-plan`（承認者なし。deployment branch は `main` だけ） | `vulnerability-alerts`・`security-events`・`secret-scanning-alerts` の read（preflight が 3 種の alert を読むため） | 依存の更新の version plan を作り（`dependabot-plans`）、`pecot release preflight` と `nx release --dry-run --verbose --yes` を動かす。結果を `.pecot/tmp/release/summary.md` に書き、Step Summary と artifact `release-plan` に出す。commit しない |
+| `release` | `release`（必須レビュアーはリリース担当者。deployment branch は `main` だけ） | `contents: write`・`actions: write` | `needs: plan`。承認の後、`ref: main` で checkout し、HEAD が `github.sha` と違えば止める。続けて `gh auth setup-git`・git の作者の設定・`dependabot-plans`・`nx release --verbose --yes` を動かす |
 
-`release` は、`plan` の SHA と起動時の `main` の SHA が違えば、何もせずに失敗する。承認を待つあいだに `main` が進んだ場合を指す。
+Step Summary は `gh` で取れないため、同じ内容を artifact `release-plan` に残す。w-release は `gh run download` で読む。
+
+`release` は、HEAD が起動時の `github.sha` と違えば、何もせずに失敗する。承認を待つあいだに `main` が進んだ場合を指す。
+止めるときの文は env の `MSG_SHA` に置く。「承認を待つ間に main が進みました。release.yml を起動し直してください。」とする。
 
 ## main の ruleset
 

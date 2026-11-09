@@ -1,0 +1,213 @@
+# リリースを devcontainer のランナーで動かす。plan が案を出し、Environment release の承認の後に release が main へ push する。
+# 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
+name: release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: ${{ github.ref == 'refs/heads/main' && vars.PECOT_BOT_CLIENT_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: release-plan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
+          permission-vulnerability-alerts: read
+          permission-security-events: read
+          permission-secret-scanning-alerts: read
+
+      # コンテナが作る前にホストで作り、Summary を書く側の持ち主にそろえる。
+      - name: Prepare output directory
+        run: mkdir -p .pecot/tmp/release
+
+      # push: never にする。省くと main で image を push しようとする。
+      - name: Start dev container
+        id: up
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          CI: "true"
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          runCmd: "true"
+          env: &release-env |
+            CI
+            GH_TOKEN
+            PECOT_GITHUB_COM_TOKEN
+
+      # exec の cwd は /workspaces/base のため、cd してから動かす。
+      - name: Run release plan
+        id: verify
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          CI: "true"
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          runCmd: |
+            cd /workspaces/base/pecot
+            d=.pecot/tmp/release
+            run() { n=$1; shift; "$@" > "$d/$n.log" 2>&1; rc=$?; cat "$d/$n.log"; return $rc; }
+            run plans node .nx/nx-release/src/dependabot-plans.js &&
+            run preflight plugins/pecot-workflow/bin/pecot release preflight &&
+            run nx pnpm exec nx release --dry-run --verbose --yes
+          env: *release-env
+
+      # コンテナの中からは $GITHUB_STEP_SUMMARY に書けないため、ログをここで Summary にまとめる。
+      - name: Write job summary
+        if: always()
+        env:
+          UP_OUTCOME: ${{ steps.up.outcome }}
+          RUN_OUTCOME: ${{ steps.verify.outcome }}
+          MSG_UP_FAILED: "コンテナの取得・起動に失敗しました（基盤の失敗で、リリースの失敗ではありません）。"
+          MSG_RUN_FAILED: "案の作成に失敗しました。各ログを確かめてください。"
+        run: |
+          d=.pecot/tmp/release
+          fence='```'
+          mkdir -p "$d"
+          {
+            echo "## Release plan"
+            echo
+            if [ "$UP_OUTCOME" != "success" ]; then
+              echo "$MSG_UP_FAILED"
+            elif [ "$RUN_OUTCOME" != "success" ]; then
+              echo "$MSG_RUN_FAILED"
+            fi
+            if [ -f "$d/plans.log" ]; then
+              echo
+              echo "$fence"text
+              tail -c 100000 "$d/plans.log"
+              echo "$fence"
+            fi
+            for n in preflight nx; do
+              [ -f "$d/$n.log" ] || continue
+              echo
+              echo "<details><summary>$n</summary>"
+              echo
+              echo "$fence"text
+              tail -c 300000 "$d/$n.log"
+              echo "$fence"
+              echo
+              echo "</details>"
+            done
+          } > "$d/summary.md"
+          cat "$d/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # gh では Step Summary を取れないため、w-release が読む用に artifact にも残す。
+      - name: Upload release plan
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-plan
+          path: .pecot/tmp/release/
+          if-no-files-found: ignore
+
+  release:
+    needs: plan
+    if: ${{ github.ref == 'refs/heads/main' && vars.PECOT_BOT_CLIENT_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify main has not advanced
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          MSG_SHA: "承認を待つ間に main が進みました。release.yml を起動し直してください。"
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]; then
+            echo "::error::$MSG_SHA"
+            exit 1
+          fi
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-actions: write
+
+      - name: Resolve bot identity
+        id: bot
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+          echo "name=${APP_SLUG}[bot]" >> "$GITHUB_OUTPUT"
+          echo "email=${id}+${APP_SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
+
+      # push: never にする。省くと main で image を push しようとする。
+      - name: Start dev container
+        id: up
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          CI: "true"
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
+          BOT_NAME: ${{ steps.bot.outputs.name }}
+          BOT_EMAIL: ${{ steps.bot.outputs.email }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          runCmd: "true"
+          env: &release-run-env |
+            CI
+            GH_TOKEN
+            PECOT_GITHUB_COM_TOKEN
+            BOT_NAME
+            BOT_EMAIL
+
+      # exec の cwd は /workspaces/base のため、cd してから動かす。
+      - name: Run release
+        id: verify
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
+        env:
+          CI: "true"
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
+          BOT_NAME: ${{ steps.bot.outputs.name }}
+          BOT_EMAIL: ${{ steps.bot.outputs.email }}
+        with:
+          imageName: ghcr.io/pecotcraft/pecot-devcontainer
+          push: never
+          runCmd: |
+            cd /workspaces/base/pecot &&
+            gh auth setup-git &&
+            git config user.name "$BOT_NAME" &&
+            git config user.email "$BOT_EMAIL" &&
+            node .nx/nx-release/src/dependabot-plans.js &&
+            pnpm exec nx release --verbose --yes
+          env: *release-run-env

@@ -1,3 +1,4 @@
+// @ts-check
 "use strict";
 
 /**
@@ -24,12 +25,16 @@
 
 const { VersionActions } = require("nx/src/command-line/release/version/version-actions");
 
+/** @typedef {import("nx/src/generators/tree").Tree} Tree */
+
 class PecotVersionActions extends VersionActions {
+  /** @param {ConstructorParameters<typeof VersionActions>} args */
   constructor(...args) {
     super(...args);
     this.validManifestFilenames = ["plugin.json"];
   }
 
+  /** @param {Tree} tree */
   async readCurrentVersionFromSourceManifest(tree) {
     const [first] = this.manifestsToUpdate;
     if (!first) {
@@ -49,7 +54,8 @@ class PecotVersionActions extends VersionActions {
       data = JSON.parse(raw.toString());
     } catch (e) {
       throw new Error(
-        `[pecot-nx-release] JSON parse 失敗: ${first.manifestPath}: ${e.message}`,
+        `[pecot-nx-release] JSON parse 失敗: ${first.manifestPath}: ${/** @type {Error} */ (e).message}`,
+        { cause: e },
       );
     }
     if (typeof data.version !== 'string' || data.version === '') {
@@ -60,6 +66,7 @@ class PecotVersionActions extends VersionActions {
     return { currentVersion: data.version, manifestPath: first.manifestPath };
   }
 
+  /** @returns {Promise<never>} */
   async readCurrentVersionFromRegistry() {
     // currentVersionResolver: "disk" 固定。registry の処理に入ったら誤設定として明示 throw。
     throw new Error(
@@ -72,6 +79,10 @@ class PecotVersionActions extends VersionActions {
     return { currentVersion: null, dependencyCollection: null };
   }
 
+  /**
+   * @param {Tree} tree
+   * @param {string} newVersion
+   */
   async updateProjectVersion(tree, newVersion) {
     const logs = [];
     for (const { manifestPath } of this.manifestsToUpdate) {
@@ -88,7 +99,8 @@ class PecotVersionActions extends VersionActions {
         data = JSON.parse(original);
       } catch (e) {
         throw new Error(
-          `[pecot-nx-release] JSON parse 失敗: ${manifestPath}: ${e.message}`,
+          `[pecot-nx-release] JSON parse 失敗: ${manifestPath}: ${/** @type {Error} */ (e).message}`,
+          { cause: e },
         );
       }
       data.version = newVersion;
@@ -105,6 +117,4 @@ class PecotVersionActions extends VersionActions {
   }
 }
 
-module.exports = PecotVersionActions;
-module.exports.default = PecotVersionActions;
-module.exports.PecotVersionActions = PecotVersionActions;
+module.exports = { PecotVersionActions, default: PecotVersionActions };
