@@ -280,6 +280,16 @@ function git(cwd, args) {
 }
 
 /**
+ * その commit で変わったファイルの path。root の uv.lock は ruff 用なので、uv の判定は「directory の uv.lock が変わったか」で行う。
+ * @param {string} cwd
+ * @param {string} sha
+ * @returns {string[]}
+ */
+function changedFiles(cwd, sha) {
+  return git(cwd, ["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha]).split("\n").filter(Boolean);
+}
+
+/**
  * @param {string} cwd
  * @param {string} spec
  * @returns {string | null}
@@ -426,7 +436,7 @@ async function main(options = {}) {
       const parsed = parseCommit(subject, body);
       const ctx = {
         directory: parsed.directory,
-        uv: ["pyproject.toml", "uv.lock"].some((file) => gitShow(repoDir, `${sha}:${path.posix.join(parsed.directory, file).replace(/^\//, "")}`) !== null),
+        uv: changedFiles(repoDir, sha).includes(path.posix.join(parsed.directory, "uv.lock").replace(/^\//, "")),
         declarations: readDeclarations(repoDir, sha, parsed),
         lock: parsed.updates.some((update) => update.type === "indirect") ? readLock(repoDir, sha) : null,
         distDeps,

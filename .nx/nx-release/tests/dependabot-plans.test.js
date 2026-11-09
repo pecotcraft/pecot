@@ -9,6 +9,7 @@ const path = require("node:path");
 
 const { parseCommit, resolveGroups, renderPlan, main } = require("../src/dependabot-plans");
 const realCommits = require("./_fixtures/dependabot-real.json");
+const squashCommits = require("./_fixtures/dependabot-squash.json");
 
 const TOOLS_ROOT = path.resolve(__dirname, "../../..");
 const DIST_DEPS = new Set(["commander", "eslint", "@eslint/markdown"]);
@@ -330,8 +331,11 @@ const summaryOf = (lines) => Object.fromEntries(lines.filter((line) => /^作っ�
 const pkg = (deps) => `${JSON.stringify(deps, null, 2)}\n`;
 const toolsPackage = (version) => pkg({ name: "tools", dependencies: { commander: version } });
 
+// 実物のリポの root には、ruff 用の pyproject.toml と uv.lock がある。
+const ROOT_UV = { "pyproject.toml": "[project]\nname = 'root'\n", "uv.lock": "version = 1\n" };
+
 function replayRealCommits(dir) {
-  commit(dir, { "plugins/pecot-workflow/cli/pyproject.toml": "[project]\nname = 'x'\n" }, "chore: init");
+  commit(dir, { ...ROOT_UV, "plugins/pecot-workflow/cli/pyproject.toml": "[project]\nname = 'x'\n" }, "chore: init");
   for (const real of realCommits) {
     writeFiles(dir, Object.fromEntries(real.files.map((file) => [file.path, file.before])));
     git(dir, "add", "-A");
@@ -485,4 +489,24 @@ test("同じ名前の plan が既にあるときは上書きしない", async (t
   assert.equal(result.code, 0, result.errors.join("\n"));
   assert.match(fs.readFileSync(path.join(dir, ".nx/version-plans/50-dependabot-deps.md"), "utf8"), /人が書いた本文/);
   assert.equal(summaryOf(result.lines)["作らなかった plan（既にある）"], 1);
+});
+
+test("#113 の後の squash（#120・#151 の実物）から、root に uv.lock があっても group ごとの plan を作る", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  for (const real of squashCommits) {
+    commit(dir, { ...ROOT_UV, ...Object.fromEntries(real.files.map((file) => [file.path, file.before])) }, `chore: setup ${real.pr}`);
+    commit(dir, Object.fromEntries(real.files.map((file) => [file.path, file.after])), `${real.subject}\n\n${real.body}\n`);
+  }
+
+  const result = await run(dir);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.deepEqual(plansIn(dir), [
+    "120-dependabot-deps.md",
+    "151-dependabot-deps-pecot-tools.md",
+    "151-dependabot-deps-pecot-visual.md",
+    "151-dependabot-deps-pecot-workflow.md",
+    "151-dependabot-deps-text-rules.md",
+  ]);
+  assert.match(fs.readFileSync(path.join(dir, ".nx/version-plans/120-dependabot-deps.md"), "utf8"), /^pecot-visual: patch$/m);
 });
