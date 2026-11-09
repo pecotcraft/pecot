@@ -17,7 +17,6 @@
         "default",
         "runtime",
         "env",
-        "{workspaceRoot}/package.json",
         { "runtime": "node -p \"require('typescript7/package.json').version\"" },
         { "runtime": "node -p \"require('nx/package.json').version\"" },
         { "runtime": "node -p \"require('@types/node/package.json').version\"" }
@@ -37,7 +36,6 @@
         "default",
         "runtime",
         "env",
-        "{workspaceRoot}/package.json",
         { "runtime": "node -p \"require('eslint/package.json').version\"" }
       ],
       "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
