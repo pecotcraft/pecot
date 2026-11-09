@@ -76,12 +76,12 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。`checks (lint)`・`checks (githooks)` と、レーンごとの `tests (<project>:<target>)` に分けて同時に動かし、`ci-result` にまとめる
     - PR と merge queue では `version-plan` の job も動かす
   - `dependabot-auto-merge.yml`: dependabot の minor・patch の PR に、リリースの App のトークンで auto-merge を入れる。必須チェックが通ると merge queue でマージされる
-  - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を、毎時 Tracker 1 件の一覧にそろえる。専用の GitHub App のトークンを使い、変数 `DEPENDABOT_PRS_APP_CLIENT_ID` が空の間は動かない
+  - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件の一覧にそろえる。PR の変化を App の webhook で、時間で決まる理由を Scheduler で受けて起動し、cron は最後の補助である。専用の GitHub App のトークンを使い、変数 `DEPENDABOT_PRS_APP_CLIENT_ID` が空の間は動かない
   - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
   - `release.yml`: 人が手で起動し、`main` 上で `nx release` を動かす。案を出す `plan` の後、Environment `release` の承認を待ってから `main` へ push する
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。同じブランチへ、リリースの App のトークンで push する
-  - `security-alerts.yml`: main の security alert を Tracker 1 件の一覧にそろえる。alert の操作を App の webhook で受けて起動し、cron は最後の補助である。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
+  - `security-alerts.yml`: main の security alert を Tracker 1 件の一覧にそろえる。alert の操作を App の webhook で、取りこぼしを Scheduler で受けて起動し、cron は最後の補助である。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
 - commit の前の検証は pre-commit が、メッセージの検証は commit-msg が、手元で行う。CI も pre-commit の stage と、pre-push の stage（version plan の確認を除く）を動かす
 
 ## 作業ファイルの置き場所

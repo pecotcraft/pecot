@@ -162,8 +162,8 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
         ".githooks/scripts/gen-runtime-lock.mjs",
         ".githooks/scripts/run-pnpm.sh",
         # Lambda の webhook 受け口。関数本体の node:test を test_security_webhook.py が動かす。
-        ".github/security-webhook/handler.mjs",
-        ".github/security-webhook/template.yaml",
+        ".github/board-sync/handler.mjs",
+        ".github/board-sync/template.yaml",
     ],
 )
 def test_githooks_tests_runs_when_their_inputs_change(script_dir: Path, changed_path: str) -> None:

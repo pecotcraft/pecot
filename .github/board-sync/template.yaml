@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  App の webhook と Scheduler を受け、2 つの workflow を workflow_dispatch で起こす Lambda（#175）
+
+Parameters:
+  SecurityAppClientId:
+    Type: String
+    Description: security の GitHub App の Client ID（変数 SECURITY_APP_CLIENT_ID の値）
+  SecurityAppInstallationId:
+    Type: String
+    Description: 組織への security の App の installation id
+  DependabotPrsAppClientId:
+    Type: String
+    Description: dependabot-prs の GitHub App の Client ID（変数 DEPENDABOT_PRS_APP_CLIENT_ID の値）
+  DependabotPrsAppInstallationId:
+    Type: String
+    Description: 組織への dependabot-prs の App の installation id
+  GitHubRepositoryId:
+    Type: String
+    Description: pecot の repository id
+  GitHubRepository:
+    Type: String
+    Default: pecotcraft/pecot
+  DispatchRef:
+    Type: String
+    Default: main
+  SecurityWorkflowFile:
+    Type: String
+    Default: security-alerts.yml
+  DependabotPrsWorkflowFile:
+    Type: String
+    Default: dependabot-prs.yml
+  SecuritySsmPrivateKeyName:
+    Type: String
+    Default: /pecot/board-sync/security/app-private-key
+  SecuritySsmWebhookSecretName:
+    Type: String
+    Default: /pecot/board-sync/security/webhook-secret
+  DependabotPrsSsmPrivateKeyName:
+    Type: String
+    Default: /pecot/board-sync/dependabot-prs/app-private-key
+  DependabotPrsSsmWebhookSecretName:
+    Type: String
+    Default: /pecot/board-sync/dependabot-prs/webhook-secret
+  ConfigVersion:
+    Type: String
+    Default: "1"
+    Description: 値を変えると温まった実行環境が入れ替わる（deploy.sh --rotate が上げる）
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/pecot-board-sync
+      RetentionInDays: 14
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: pecot-board-sync
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  Fn::Sub: ${LogGroup.Arn}:*
+              - Effect: Allow
+                Action: ssm:GetParameters
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecuritySsmPrivateKeyName}
+                  - Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SecuritySsmWebhookSecretName}
+                  - Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DependabotPrsSsmPrivateKeyName}
+                  - Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DependabotPrsSsmWebhookSecretName}
+
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: pecot-board-sync
+      Runtime: nodejs24.x
+      Architectures:
+        - arm64
+      Handler: handler.handler
+      MemorySize: 256
+      Timeout: 9
+      Role:
+        Fn::GetAtt: [Role, Arn]
+      LoggingConfig:
+        LogGroup:
+          Ref: LogGroup
+      Environment:
+        Variables:
+          GITHUB_REPOSITORY_ID:
+            Ref: GitHubRepositoryId
+          GITHUB_REPOSITORY:
+            Ref: GitHubRepository
+          DISPATCH_REF:
+            Ref: DispatchRef
+          CONFIG_VERSION:
+            Ref: ConfigVersion
+          SECURITY_APP_CLIENT_ID:
+            Ref: SecurityAppClientId
+          SECURITY_APP_INSTALLATION_ID:
+            Ref: SecurityAppInstallationId
+          SECURITY_WORKFLOW_FILE:
+            Ref: SecurityWorkflowFile
+          SECURITY_SSM_PRIVATE_KEY_NAME:
+            Ref: SecuritySsmPrivateKeyName
+          SECURITY_SSM_WEBHOOK_SECRET_NAME:
+            Ref: SecuritySsmWebhookSecretName
+          DEPENDABOT_PRS_APP_CLIENT_ID:
+            Ref: DependabotPrsAppClientId
+          DEPENDABOT_PRS_APP_INSTALLATION_ID:
+            Ref: DependabotPrsAppInstallationId
+          DEPENDABOT_PRS_WORKFLOW_FILE:
+            Ref: DependabotPrsWorkflowFile
+          DEPENDABOT_PRS_SSM_PRIVATE_KEY_NAME:
+            Ref: DependabotPrsSsmPrivateKeyName
+          DEPENDABOT_PRS_SSM_WEBHOOK_SECRET_NAME:
+            Ref: DependabotPrsSsmWebhookSecretName
+      # 仮のコード。本物の handler.mjs は deploy.sh が update-function-code で載せる。
+      Code:
+        ZipFile: |
+          exports.handler = async () => ({ statusCode: 200, body: "placeholder" });
+
+  EventInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      FunctionName:
+        Ref: Function
+      Qualifier: $LATEST
+      MaximumRetryAttempts: 0
+
+  FunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn:
+        Fn::GetAtt: [Function, Arn]
+      AuthType: NONE
+
+  PermissionInvokeUrl:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: Function
+      Action: lambda:InvokeFunctionUrl
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  # 条件が無いと、誰でも Invoke API で任意の event を渡せる。
+  PermissionInvokeFunction:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: Function
+      Action: lambda:InvokeFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount:
+                  Ref: AWS::AccountId
+      Policies:
+        - PolicyName: pecot-board-sync-scheduler
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  Fn::GetAtt: [Function, Arn]
+
+  Schedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: pecot-board-sync
+      ScheduleExpression: rate(1 hour)
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn:
+          Fn::GetAtt: [Function, Arn]
+        RoleArn:
+          Fn::GetAtt: [SchedulerRole, Arn]
+        Input: '{"source":"pecot-scheduler"}'
+        RetryPolicy:
+          MaximumRetryAttempts: 0
+
+Outputs:
+  FunctionUrl:
+    Description: 各 App の Webhook URL は、この URL の末尾に security・dependabot-prs を足す
+    Value:
+      Fn::GetAtt: [FunctionUrl, FunctionUrl]
