@@ -152,6 +152,12 @@ def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
     assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
 
 
+def test_devcontainer_change_affects_all_projects(nx_bin: Path) -> None:
+    """.devcontainer の変更は sharedGlobals で全 project に届く。CI のイメージが変わるため。"""
+    affected = set(_affected(nx_bin, _REPO_ROOT, "--files=.devcontainer/devcontainer.json"))
+    assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
+
+
 # -----------------------------------------------------------------------------
 #
 # レーンの inputs ケース。どのファイルの変更でどのレーンが再実行されるかを見る

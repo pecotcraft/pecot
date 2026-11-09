@@ -10,7 +10,7 @@
       "!{projectRoot}/dist/**/*",
       "!{projectRoot}/build/**/*"
     ],
-    "sharedGlobals": ["{workspaceRoot}/nx.json"],
+    "sharedGlobals": ["{workspaceRoot}/nx.json", "{workspaceRoot}/.devcontainer/**"],
     "runtime": [{ "runtime": "node --version" }],
     "env": [
       { "env": "NODE_OPTIONS" },

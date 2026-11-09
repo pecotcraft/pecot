@@ -1,0 +1,13 @@
+{
+  "id": "playwright-deps",
+  "version": "1.0.0",
+  "name": "Playwright browser dependencies",
+  "description": "Chromium が動くための OS パッケージを、イメージの build 時に入れる。",
+  "options": {
+    "version": {
+      "type": "string",
+      "description": "install-deps を取る playwright-core の版。pnpm-lock.yaml の playwright にそろえる。"
+    }
+  },
+  "installsAfter": ["ghcr.io/devcontainers/features/node"]
+}
