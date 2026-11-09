@@ -111,7 +111,7 @@ repos:
         entry: .githooks/lib/with-timing.sh githooks-tests .githooks/tests/run.sh
         language: unsupported_script
         pass_filenames: false
-        files: ^(\.githooks/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
+        files: ^(\.githooks/|\.github/security-webhook/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$)
         # --from-ref/--to-ref の差分に当てる。削除だけの差分では動かない。
         stages: [manual]
 

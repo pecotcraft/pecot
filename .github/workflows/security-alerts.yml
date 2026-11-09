@@ -1,5 +1,7 @@
 # main の security alert（Dependabot・code scanning・secret scanning）を読み、ボードの Tracker の一覧にそろえる。
-# 毎時 17 分に sync を動かす。
+# security alert の操作を App の webhook で受けた Lambda（.github/security-webhook/）が、
+# workflow_dispatch で起動する。
+# schedule（毎時 17 分）は、配送の失敗も漏れたときの最後の補助で、1 時間は保証しない。
 # GITHUB_TOKEN は secret scanning の alert と org の Projects を扱えないため、GitHub App のトークンを使う。
 # 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。
 # 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
