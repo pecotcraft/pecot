@@ -55,6 +55,7 @@ jobs:
       - name: Regenerate runtime lock
         run: node .githooks/scripts/gen-runtime-lock.mjs --write
 
+      # commit の本文の [dependabot skip] が無いと、dependabot は他者の commit がある PR を rebase しなくなる。
       - name: Push regenerated lock
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
@@ -72,6 +73,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          # [dependabot skip] が無いと、dependabot は他者の commit がある PR を rebase しなくなる
           git commit -m "$COMMIT_MSG" -m "[dependabot skip]"
           git push origin "HEAD:${HEAD_REF}"
