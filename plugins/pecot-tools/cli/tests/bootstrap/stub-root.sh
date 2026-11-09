@@ -1,6 +1,6 @@
 # bin/pecot-tools の bash テストが共有する helper（source 専用。単体では実行しない）。
 #
-# 実 pnpm と実 build は使わない。
+# 実 pnpm・実 build は使わない。
 # pnpm を、呼び出しを記録するだけの stub に差し替える。
 # その最小の plugin root を一時ディレクトリに組む。
 # データ置き場（CLAUDE_PLUGIN_DATA）を別の一時ディレクトリに向けて、bin/pecot-tools を実行する。
