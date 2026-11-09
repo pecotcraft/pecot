@@ -219,9 +219,24 @@ importers:
 
   .:
     devDependencies:
+      '@eslint/js':
+        specifier: ^10.0.1
+        version: 10.0.1(eslint@10.14.0(jiti@2.7.0)(supports-color@7.2.0))
+      '@types/node':
+        specifier: ^25.9.9
+        version: 25.9.9
+      eslint:
+        specifier: ^10.13.0
+        version: 10.14.0(jiti@2.7.0)(supports-color@7.2.0)
+      globals:
+        specifier: ^17.13.0
+        version: 17.13.0
       nx:
         specifier: ^24.0.1
         version: 24.0.1
+      typescript7:
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

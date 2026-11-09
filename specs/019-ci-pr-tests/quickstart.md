@@ -7,8 +7,11 @@
 | 手順 | 操作 |
 |---|---|
 | App を作る | Organization に GitHub App を作る。権限は [research.md](research.md) の R6 の表のとおり。pecotcraft/pecot にだけ入れる |
-| 秘密を置く | App の client id と秘密鍵を、Actions secrets と Dependabot secrets の両方に `PECOT_BOT_CLIENT_ID`・`PECOT_BOT_PRIVATE_KEY` で置く |
-| Environment | `release` を作り、必須レビュアーにリリース担当者を入れる |
+| 変数 | リポジトリの変数（Repository variables）`PECOT_BOT_CLIENT_ID` に App の client id を置く。job の `if` で読むため、Environment の変数では空になり、2 つの job が skipped になる |
+| Environment `release` | 作る。必須レビュアーにリリース担当者を入れ、deployment branch を `main` だけにする。起動者が承認者を兼ねるなら、「Prevent self-review」は切る |
+| Environment `release-plan` | 作る。承認者は置かず、deployment branch を `main` だけにする |
+| 秘密を置く | 2 つの Environment の secret に、秘密鍵を `PECOT_BOT_PRIVATE_KEY` で置く。Dependabot secrets への配置は、自動マージ（Phase 7）の作業として行う |
+| merge の方式 | リポジトリの設定で merge commit と rebase merge を切り、squash だけにする。merge commit では、元の commit の件名に `(#N)` が無く、リリースが止まるため |
 | auto-merge | リポジトリの設定で Allow auto-merge を有効にする |
 | イメージ | `devcontainer-image.yml` を手で 1 回起動し、GHCR のパッケージを public にする |
 | ruleset | `gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 --input .github/rulesets/main.json` で適用する。bypass にリリースの App の id を入れるまで適用しない。適用後は `gh api repos/pecotcraft/pecot/rulesets/26538811` で規則を確かめる |

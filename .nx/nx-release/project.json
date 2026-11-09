@@ -4,6 +4,49 @@
   "projectType": "library",
   "tags": ["type:release", "scope:repo"],
   "targets": {
+    "lint": {
+      "executor": "nx:noop",
+      "dependsOn": ["lint-types", "lint-eslint"],
+      "metadata": {
+        "description": "pre-commit の nx-affected-lint が起動する起点。レーン（lint-*）を dependsOn で束ねる。"
+      }
+    },
+    "lint-types": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "runtime",
+        "env",
+        { "runtime": "node -p \"require('typescript7/package.json').version\"" },
+        { "runtime": "node -p \"require('nx/package.json').version\"" },
+        { "runtime": "node -p \"require('@types/node/package.json').version\"" }
+      ],
+      "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
+      "metadata": {
+        "description": "typescript7 の tsc で src/ の JSDoc 型を確かめる。nx と @types/node の実体の版も runtime 入力で見る（root の lock は入力から外れるため）。"
+      },
+      "options": {
+        "command": "node scripts/tsc.mjs -p .",
+        "cwd": ".nx/nx-release"
+      }
+    },
+    "lint-eslint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "runtime",
+        "env",
+        { "runtime": "node -p \"require('eslint/package.json').version\"" }
+      ],
+      "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
+      "metadata": {
+        "description": "eslint（警告も失敗）。"
+      },
+      "options": {
+        "command": "eslint --max-warnings=0 .",
+        "cwd": ".nx/nx-release"
+      }
+    },
     "test": {
       "executor": "nx:noop",
       "dependsOn": ["test-unit"],
@@ -13,6 +56,7 @@
     },
     "test-unit": {
       "executor": "nx:run-commands",
+      "dependsOn": [{ "projects": ["text-rules"], "target": "build" }],
       "inputs": [
         "default",
         "runtime",
@@ -26,6 +70,12 @@
         "{workspaceRoot}/plugins/pecot-tools/project.json",
         "{workspaceRoot}/libs/text-rules/project.json",
         "{workspaceRoot}/libs/text-rules/package.json",
+        "{workspaceRoot}/libs/text-rules/index.ts",
+        "{workspaceRoot}/libs/text-rules/lib/**/*",
+        "{workspaceRoot}/libs/text-rules/bin/**/*",
+        "{workspaceRoot}/.githooks/pre-commit/check-version-plan-format.sh",
+        "{workspaceRoot}/.githooks/pre-commit/check-text.sh",
+        "{workspaceRoot}/.githooks/lib/text-rules-ready.sh",
         "{workspaceRoot}/plugins/pecot-workflow/.claude-plugin/plugin.json",
         "{workspaceRoot}/plugins/pecot-workflow/.github/plugin/plugin.json",
         "{workspaceRoot}/plugins/pecot-visual/.claude-plugin/plugin.json",
@@ -34,7 +84,7 @@
         "{workspaceRoot}/plugins/pecot-tools/plugin.json"
       ],
       "metadata": {
-        "description": "PecotVersionActions（nx release の versionActions）の単体テスト。inputs は、nx の実体の版と undici の実体の版を runtime 入力（node -p）で見る。root の pnpm-lock.yaml は .nxignore で入力から外れるため、lock ではなく実体を見る (#1225)。"
+        "description": "PecotVersionActions と dependabot-plans の単体テスト。inputs は、nx の実体の版と undici の実体の版を runtime 入力（node -p）で見る。root の pnpm-lock.yaml は .nxignore で入力から外れるため、lock ではなく実体を見る (#1225)。"
       },
       "options": {
         "command": "node --test tests/*.test.js",
