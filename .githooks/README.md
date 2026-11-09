@@ -131,7 +131,7 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 > install・build は毎回実行する。
 > lint は pecot-visual と pecot-workflow が `lint-*` のレーンに分かれ、pecot-tools は `lint` 1 つである。
 > version-plan gate は affected ではなく、変更ファイルが属する project で release group を決める。
-> project の割り当ては `nx release plan:check` と同じ持ち主の割り当てで、ignore の除外はしない。
+> project の割り当ては `nx release plan:check` と同じ持ち主の割り当てで、`.gitignore` / `.nxignore` による除外はしない。nx.json の `ignorePatternsForPlanCheck` の glob に当たるファイルは数えない。
 > その group の宣言がブランチで足した version plan にあるかを見る。
 > path 正規表現で発火する plugin 関連 hook は、`check-engines-node-drift` 等の単機能チェックのみである。
 >

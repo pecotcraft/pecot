@@ -16,9 +16,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/nx-lanes.sh"
 RELEASE_RE="${PECOT_VERSION_PLAN_RELEASE_RE:-^chore\\(release\\)}"
 
 # 変更ファイル（stdin, NUL 区切り）が触れた release group を stdout へ出す。
-# 引数は nx.json, graph JSON, group 名一覧の書き出し先, repo root。
-# 終了コード: 0 = 判定済み、3 = 解析失敗、5 = nx 配下の ignore を解決できない。
-# 4 = group 外 project が group 内に入れ子（stdout に project 名）。
+# 引数: nx.json・graph JSON・group 名一覧の書き出し先・repo root・nx 実行ファイル。
+# 終了コードは 0 = 判定済み、3 = 解析失敗、4 = 入れ子の project（stdout に名前）、5 = ignore を解決できない。
 touched_release_groups() {
     node -e '
         const fs = require("fs");
@@ -60,7 +59,9 @@ touched_release_groups() {
                 if (Object.values(globs).some((g) => g.length)) {
                     let ignore;
                     try {
-                        const nxDir = path.dirname(require.resolve("nx/package.json", { paths: [process.argv[4]] }));
+                        let nxReal = null;
+                        try { nxReal = path.dirname(fs.realpathSync(process.argv[5])); } catch (e) {}
+                        const nxDir = path.dirname(require.resolve("nx/package.json", { paths: [process.argv[4], nxReal].filter(Boolean) }));
                         ignore = require(require.resolve("ignore", { paths: [nxDir] }));
                     } catch (e) {
                         process.exit(5);
@@ -85,7 +86,7 @@ touched_release_groups() {
                 process.exit(3);
             }
         });
-    ' "$1" "$2" "$3" "$4"
+    ' "$1" "$2" "$3" "$4" "$5"
 }
 
 print_nested_error() {
@@ -121,9 +122,7 @@ EOF
 check_branch() {
     local to_sha="$1"
 
-    # default branch との merge-base を from に取る（branch 全体 vs default）。
-    # 範囲解決は共有 lib に委譲し、区分コードを WARN+skip 方針へマップする
-    # （version-plan ガードは判定不能なら gate を素通しする fail-open 方針）。
+    # branch 全体 vs default の範囲は共有 lib で解決し、判定不能なら WARN して素通しする。
     local range from_sha rc
     range=$(resolve_push_range "$to_sha") && rc=0 || rc=$?
     case "$rc" in
@@ -180,10 +179,7 @@ check_branch() {
         return 0
     fi
 
-    # project root は nx の project graph から取る（touched の判定に使う）。
-    # パイプ（--file=stdout）は、大きな JSON を途中で切ることがある。
-    # そのため一時ファイルで受ける。
-    # 一時ファイルは CLI / hook 専用の .pecot/tmp に作り、終了時に消す。
+    # graph JSON は途中で切れないよう、一時ファイルに受ける（CLI / hook 専用の .pecot/tmp に作り、終了時に消す）。
     local tmp_base="$repo_root/.pecot/tmp"
     mkdir -p "$tmp_base" 2>/dev/null || true
     local work
@@ -206,11 +202,9 @@ check_branch() {
         return 0
     fi
 
-    # 変更ファイルが触れた release group（nx.json の glob に当たるファイルだけの group は含まない）。
-    # 既知の release group 名一覧（version plan の宣言キーの確認に使う）も同じ実行で
-    # $work/groups に書かせる（nx.json は 1 回だけ読む）。
+    # 触れた release group を得る（glob に当たるファイルだけの group は除く）。group 名一覧も $work/groups へ書かせる。
     local releasable trc=0
-    releasable=$(touched_release_groups "$nx_json" "$work/graph.json" "$work/groups" "$repo_root" \
+    releasable=$(touched_release_groups "$nx_json" "$work/graph.json" "$work/groups" "$repo_root" "$nx_bin" \
         < "$work/changed") || trc=$?
     if [ "$trc" -eq 4 ]; then
         print_nested_error "$releasable"

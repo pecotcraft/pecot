@@ -247,7 +247,9 @@ def test_broken_nx_json_skips(script_dir: Path, repo: Path, run_script) -> None:
 def test_no_release_groups_passes(script_dir: Path, git_repo, run_script) -> None:
     """release.groups が無い nx.json は検証対象ゼロで exit 0。"""
     r = git_repo("nogroups")
-    (r / "nx.json").write_text(json.dumps({"release": {"versionPlans": True}}))
+    (r / "nx.json").write_text(
+        json.dumps({"release": {"versionPlans": {"ignorePatternsForPlanCheck": ["README.md"]}}})
+    )
     result = run_script(script_dir / SCRIPT, cwd=r)
     assert result.returncode == 0, result.stdout + result.stderr
 
