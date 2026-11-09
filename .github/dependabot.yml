@@ -29,7 +29,8 @@ updates:
         update-types: ["minor", "patch"]
         # devcontainer の playwright-deps の版とそろえるため、手で上げる（test_devcontainer_playwright_version.py が固定）。
         exclude-patterns: ["playwright", "@playwright/*"]
-    # web-tree-sitter は comments plugin と同じ版に手で揃える（web-tree-sitter-version.test.ts が固定）。versions を書かないので security updates は立つ。
+    # text-rules の web-tree-sitter は comments plugin と同じ版にする（web-tree-sitter-version.test.ts が固定）。2 つは手で一緒に上げる。
+    # versions を書かないので security updates は立つ（dependabot-core の ignore_condition.rb）。
     ignore:
       - dependency-name: "web-tree-sitter"
       - dependency-name: "@cffnpwr/textlint-plugin-comments"

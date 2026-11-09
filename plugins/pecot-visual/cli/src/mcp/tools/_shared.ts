@@ -328,7 +328,17 @@ export function runtimeDefaultDependencies(): RuntimeDependencies {
   return {
     // 永続層は版を持たない固定パスなので、解決の可否だけでなく、install 対象の内容から導く
     // stamp も照らし合わせる (前の版で取得したツリーを、取得済みと誤判定させない)。
-    isInstalled: () => areRuntimeDependenciesInstalled(runtimeInstallStamp(manifestPath)),
+    // manifest が読めないか @slidev/cli の宣言を欠くと、stamp が throw する。未取得として install へ進め、失敗を応答に載せる。
+    isInstalled: () => {
+      let stamp: string
+      try {
+        stamp = runtimeInstallStamp(manifestPath)
+      }
+      catch {
+        return false
+      }
+      return areRuntimeDependenciesInstalled(stamp)
+    },
     root: runtimeDependencyRoot,
     install: signal => installRuntimeDependencies({ manifestPath, signal }),
   }

@@ -76,14 +76,30 @@ function caretRangeViolation(version: string, range: string): string | undefined
   return undefined
 }
 
+interface RuntimeManifest {
+  dependencies: Record<string, string>
+  devDependencies: Record<string, string>
+  overrides: Record<string, string>
+}
+
 /**
-manifest（本体の runtime 依存）の `@slidev/cli` の版。中核パッケージの固定版の読み元。
+本体の runtime manifest を読む。
+*/
+function readRuntimeManifest(): RuntimeManifest {
+  // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+  return JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as RuntimeManifest
+}
+
+/**
+manifest の `@slidev/cli` の版。中核パッケージの固定版の読み元。宣言が無ければ throw する。
 */
 function readCoreVersion(): string {
-  // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-  const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as { dependencies: Record<string, string> }
-  return manifest.dependencies['@slidev/cli'] ?? ''
+  const version = readRuntimeManifest().dependencies['@slidev/cli']
+  if (version === undefined) throw new Error('runtime manifest に @slidev/cli の宣言がありません')
+  return version
 }
+
+const CORE_VERSION = readCoreVersion()
 
 /**
 知らせのテストの修正版 F。pnpm-workspace.yaml の overrides の値（`^x.y.z`）の下限から読む。
@@ -93,8 +109,15 @@ function fixedVersionOf(overrideKey: string): string {
   const overrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides']) ? workspaceConfig['overrides'] : {}
   // eslint-disable-next-line security/detect-object-injection -- overrideKey はテスト内の定数
   const value = overrides[overrideKey]
+  return caretLowerBound(value, `pnpm-workspace.yaml の overrides.${overrideKey}`)
+}
+
+/**
+`^x.y.z` の下限 `x.y.z` を返す。その形でなければ throw する。
+*/
+function caretLowerBound(value: unknown, label: string): string {
   const match = typeof value === 'string' ? /^\^(\d+\.\d+\.\d+)$/.exec(value) : undefined
-  if (match?.[1] === undefined) throw new Error(`pnpm-workspace.yaml の overrides.${overrideKey} が ^x.y.z ではない: ${String(value)}`)
+  if (match?.[1] === undefined) throw new Error(`${label} が ^x.y.z ではない: ${String(value)}`)
   return match[1]
 }
 
@@ -103,6 +126,8 @@ override が要らなくなったときだけ false を返す（落とす）。�
 - 宣言なし: false
 - 完全一致: F 未満のときだけ true
 - `^L`: 範囲が F を含む、または L が F 以上なら false。それ以外は true
+
+`^0.0.x` は扱わない（caretRangeViolation が major 0 では minor の一致しか見ない）。
 */
 function isOverrideStillNeeded(declared: string | undefined, fixed: string): boolean {
   if (declared === undefined) return false
@@ -170,6 +195,19 @@ afterEach(() => {
   rmSync(temporaryRoot(), { recursive: true, force: true })
 })
 
+/**
+検証用の固定版。writeManifestWithCore が `@slidev/cli` に使う。
+*/
+const TEST_CORE = '99.0.0'
+
+/**
+dependencies に `@slidev/cli` を足した manifest を書く。
+*/
+function writeManifestWithCore(contents: Readonly<Record<string, unknown>>): string {
+  const dependencies = isRecord(contents['dependencies']) ? contents['dependencies'] : {}
+  return writeManifest({ ...contents, dependencies: { '@slidev/cli': TEST_CORE, ...dependencies } })
+}
+
 function writeManifest(contents: unknown): string {
   const directory = temporaryRoot('manifest')
   mkdirSync(directory, { recursive: true })
@@ -179,23 +217,21 @@ function writeManifest(contents: unknown): string {
 }
 
 describe('runtimeInstallSpecs', () => {
+  const coreSpecs = [`@slidev/cli@${TEST_CORE}`]
+  const tail = [`@slidev/parser@${TEST_CORE}`, `patch-package@${PATCH_PACKAGE_RANGE}`]
+
   it('manifest の dependencies を range 付きで並べる', () => {
-    const manifestPath = writeManifest({
+    const manifestPath = writeManifestWithCore({
       dependencies: { vue: '^3.5.13', echarts: '^5.5.0' },
     })
 
-    expect(runtimeInstallSpecs(manifestPath)).toEqual([
-      'vue@^3.5.13',
-      'echarts@^5.5.0',
-      '@slidev/parser',
-      `patch-package@${PATCH_PACKAGE_RANGE}`,
-    ])
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([...coreSpecs, 'vue@^3.5.13', 'echarts@^5.5.0', ...tail])
   })
 
   it('workspace: 等のローカル参照は落とす', () => {
     // 配布ツリーではパッケージとして解決できない。eslint プラグインは dist を同梱し、
     // publish スクリプトが specifier を相対パスへ書き換えて供給する。
-    const manifestPath = writeManifest({
+    const manifestPath = writeManifestWithCore({
       dependencies: {
         'vue': '^3.5.13',
         '@v-slidev/eslint-shared': 'workspace:*',
@@ -204,46 +240,46 @@ describe('runtimeInstallSpecs', () => {
       },
     })
 
-    expect(runtimeInstallSpecs(manifestPath)).toEqual([
-      'vue@^3.5.13',
-      '@slidev/parser',
-      `patch-package@${PATCH_PACKAGE_RANGE}`,
-    ])
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([...coreSpecs, 'vue@^3.5.13', ...tail])
   })
 
   it('devDependencies からは dom-to-pptx だけ取る', () => {
     // eslint / prettier は起動層 (配布 package.json の dependencies)
     // にあり、永続層へ二重に置かない。
-    const manifestPath = writeManifest({
+    const manifestPath = writeManifestWithCore({
       dependencies: {},
       devDependencies: { 'dom-to-pptx': '1.1.10', 'eslint': '^9.17.0', 'prettier': '^3.4.2' },
     })
 
-    expect(runtimeInstallSpecs(manifestPath)).toEqual([
-      'dom-to-pptx@1.1.10',
-      '@slidev/parser',
-      `patch-package@${PATCH_PACKAGE_RANGE}`,
-    ])
+    expect(runtimeInstallSpecs(manifestPath)).toEqual([...coreSpecs, 'dom-to-pptx@1.1.10', ...tail])
   })
 
-  it('manifest を読めない、または @slidev/cli の宣言を欠くときは、版なしの @slidev/parser を返す', () => {
-    // 空を返すと「install は成功したのに何も入らない」という判別しづらい状態になる。
-    expect(runtimeInstallSpecs(temporaryRoot('no-such-package.json')))
-      .toEqual(['@slidev/parser', `patch-package@${PATCH_PACKAGE_RANGE}`])
+  it('manifest を読めないときは配布の破損として throw する', () => {
+    expect(() => runtimeInstallSpecs(temporaryRoot('no-such-package.json'))).toThrow('@slidev/cli')
   })
 
-  it('依存フィールドが object でなくても例外を投げない', () => {
+  it('@slidev/cli の宣言が無いときは throw する（@slidev/client だけがあっても）', () => {
+    const manifestPath = writeManifest({ dependencies: { '@slidev/client': '^52.14.1' } })
+
+    expect(() => runtimeInstallSpecs(manifestPath)).toThrow('@slidev/cli')
+  })
+
+  it('@slidev/cli の宣言が空文字のときは throw する', () => {
+    const manifestPath = writeManifest({ dependencies: { '@slidev/cli': '' } })
+
+    expect(() => runtimeInstallSpecs(manifestPath)).toThrow('@slidev/cli')
+  })
+
+  it('依存フィールドが object でないときは throw する', () => {
     const manifestPath = writeManifest({ dependencies: 'nonsense', devDependencies: 42 })
 
-    expect(runtimeInstallSpecs(manifestPath)).toEqual(['@slidev/parser', `patch-package@${PATCH_PACKAGE_RANGE}`])
+    expect(() => runtimeInstallSpecs(manifestPath)).toThrow('@slidev/cli')
   })
 
-  it('manifest 自体が object でなくても例外を投げない', () => {
-    // JSON としては読めるが object ではない形 (配列・スカラ)。空 manifest 扱いに倒さないと
-    // 以降の dependencies 参照が throw し、install そのものが起動しない。
+  it('manifest 自体が object でないときは例外が @slidev/cli の欠落として出る', () => {
+    // JSON としては読めるが object ではない形 (配列・スカラ)。
     for (const contents of [[], 42, 'nonsense']) {
-      expect(runtimeInstallSpecs(writeManifest(contents)))
-        .toEqual(['@slidev/parser', `patch-package@${PATCH_PACKAGE_RANGE}`])
+      expect(() => runtimeInstallSpecs(writeManifest(contents))).toThrow('@slidev/cli')
     }
   })
 
@@ -265,36 +301,43 @@ describe('runtimeInstallSpecs', () => {
 describe('runtimeInstallPlan: overrides', () => {
   it('manifest の overrides をそのまま写す (入れ子も落とさない)', () => {
     const overrides = { 'lodash-es': '^4.17.23', 'foo': { bar: '1.0.0' } }
-    const manifestPath = writeManifest({ dependencies: {}, overrides })
+    const manifestPath = writeManifestWithCore({ dependencies: {}, overrides })
 
     expect(runtimeInstallPlan(manifestPath).overrides).toEqual(overrides)
   })
 
   it('overrides が無い / object でなければ空', () => {
-    expect(runtimeInstallPlan(writeManifest({ dependencies: {} })).overrides).toEqual({})
-    expect(runtimeInstallPlan(writeManifest({ overrides: 'nonsense' })).overrides).toEqual({})
+    expect(runtimeInstallPlan(writeManifestWithCore({ dependencies: {} })).overrides).toEqual({})
+    expect(runtimeInstallPlan(writeManifestWithCore({ overrides: 'nonsense' })).overrides).toEqual({})
   })
 })
 
 describe('runtimeInstallStamp', () => {
   it('install 対象が同じなら同じ印になる', () => {
-    const manifestPath = writeManifest({ dependencies: { vue: '^3.5.13' } })
+    const manifestPath = writeManifestWithCore({ dependencies: { vue: '^3.5.13' } })
 
     expect(runtimeInstallStamp(manifestPath)).toBe(runtimeInstallStamp(manifestPath))
   })
 
   it('依存が増えれば印が変わる (版上げで依存が増えた状態を検出する)', () => {
-    const before = runtimeInstallStamp(writeManifest({ dependencies: { vue: '^3.5.13' } }))
-    const after = runtimeInstallStamp(writeManifest({ dependencies: { vue: '^3.5.13', echarts: '^5.5.0' } }))
+    const before = runtimeInstallStamp(writeManifestWithCore({ dependencies: { vue: '^3.5.13' } }))
+    const after = runtimeInstallStamp(writeManifestWithCore({ dependencies: { vue: '^3.5.13', echarts: '^5.5.0' } }))
 
     expect(after).not.toBe(before)
   })
 
   it('overrides だけが変わっても印が変わる', () => {
-    const before = runtimeInstallStamp(writeManifest({ dependencies: {}, overrides: { 'lodash-es': '^4.17.23' } }))
-    const after = runtimeInstallStamp(writeManifest({ dependencies: {}, overrides: { 'lodash-es': '^4.18.0' } }))
+    const before = runtimeInstallStamp(writeManifestWithCore({ dependencies: {}, overrides: { 'lodash-es': '^4.17.23' } }))
+    const after = runtimeInstallStamp(writeManifestWithCore({ dependencies: {}, overrides: { 'lodash-es': '^4.18.0' } }))
 
     expect(after).not.toBe(before)
+  })
+})
+
+describe('caretLowerBound', () => {
+  it('^x.y.z の下限を返し、それ以外の形は throw する', () => {
+    expect(caretLowerBound('^2.0.3', 'x')).toBe('2.0.3')
+    expect(() => caretLowerBound('~2.0.3', 'x')).toThrow('x が ^x.y.z ではない: ~2.0.3')
   })
 })
 
@@ -352,17 +395,14 @@ describe('本体の runtime manifest との整合', () => {
     // talk-dir は依存ルートの node_modules へ symlink を張る。
     // その状態で slidev build を回すため、
     // manifest が宣言している runtime 依存はすべて永続層に要る。
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      dependencies: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
     const specs = runtimeInstallSpecs(RUNTIME_MANIFEST)
 
     for (const [name, range] of Object.entries(manifest.dependencies)) {
       if (range.startsWith('workspace:')) continue
       // slidev 中核パッケージだけは宣言 range ではなく固定版で入る (下のセルを参照)。
       const expected = name !== '@slidev/theme-default' && name.startsWith('@slidev/')
-        ? readCoreVersion()
+        ? CORE_VERSION
         : range
       expect(specs, `${name} が install 対象から漏れている`).toContain(`${name}@${expected}`)
     }
@@ -370,11 +410,7 @@ describe('本体の runtime manifest との整合', () => {
 
   it('manifest はコードが足す @slidev/parser と patch-package を宣言しない', () => {
     // 宣言すると、コードが足す spec と二重になり、版の食い違いが起きうる。
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      dependencies: Record<string, string>
-      devDependencies: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
     const declared = [...Object.keys(manifest.dependencies), ...Object.keys(manifest.devDependencies)]
 
     expect(declared).not.toContain('@slidev/parser')
@@ -389,15 +425,14 @@ describe('本体の runtime manifest との整合', () => {
     const specs = runtimeInstallSpecs(RUNTIME_MANIFEST)
 
     for (const name of ['@slidev/cli', '@slidev/client', '@slidev/parser']) {
-      expect(specs, `${name} が固定版で入っていない`).toContain(`${name}@${readCoreVersion()}`)
+      expect(specs, `${name} が固定版で入っていない`).toContain(`${name}@${CORE_VERSION}`)
     }
     // 別の版系列 (0.25.x) なので固定の対象に含めない。
     expect(specs).toContain('@slidev/theme-default@^0.25.0')
   })
 
   it('manifest の @slidev/cli は完全一致の版で、@slidev/client・@slidev/types が同じ値になる', () => {
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as { dependencies: Record<string, string> }
+    const manifest = readRuntimeManifest()
     const core = manifest.dependencies['@slidev/cli']
 
     expect(core).toMatch(/^\d+\.\d+\.\d+$/)
@@ -412,7 +447,7 @@ describe('本体の runtime manifest との整合', () => {
       dependencies: Record<string, string>
     }
 
-    expect(cliManifest.dependencies['@slidev/parser']).toBe(readCoreVersion())
+    expect(cliManifest.dependencies['@slidev/parser']).toBe(CORE_VERSION)
   })
 
   it('E2E fixture の @slidev/cli が manifest の @slidev/cli と一致する', () => {
@@ -424,7 +459,7 @@ describe('本体の runtime manifest との整合', () => {
       ) as { dependencies: Record<string, string> }
 
       expect(manifest.dependencies['@slidev/cli'], `${fixture} が manifest の版で宣言されていない`)
-        .toBe(readCoreVersion())
+        .toBe(CORE_VERSION)
     }
   })
 
@@ -451,10 +486,7 @@ describe('本体の runtime manifest との整合', () => {
   it('manifest の overrides を永続層へ引き継ぐ', () => {
     // install 対象を manifest から導く設計なので、解決の pin だけ落とすと
     // 永続層とプラグインとして動く側で別の推移依存を掴む。
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      overrides: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
 
     expect(runtimeInstallPlan(RUNTIME_MANIFEST).overrides).toEqual(manifest.overrides)
   })
@@ -463,10 +495,7 @@ describe('本体の runtime manifest との整合', () => {
     // puppeteer の Chrome 自動取得を止める override は、`npm:puppeteer-core@<version>` という alias 形式。
     // version だけを取り出す正規化を挟むと別名解決が失われる。
     // すると永続層の install が本物の puppeteer を入れ、postinstall で Chrome を取りに行く。
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      overrides: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
 
     const declared = manifest.overrides['puppeteer'] ?? ''
     expect(declared, 'manifest が puppeteer の alias override を宣言していない')
@@ -479,10 +508,7 @@ describe('本体の runtime manifest との整合', () => {
     // dom-to-pptx が puppeteer の要求範囲を上げても、pnpm / npm はエラーを出さず古いバージョンのまま残る。
     // 範囲外の puppeteer-core を掴むと、node exporter が参照する API が欠ける。
     // そのため両立の確認はここに置く。
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      overrides: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
     const declared = manifest.overrides['puppeteer'] ?? ''
     const overridden = declared.replace(/^npm:puppeteer-core@/, '')
     expect(overridden, `manifest の puppeteer override が版を持たない: ${declared}`)
@@ -522,10 +548,7 @@ describe('本体の runtime manifest との整合', () => {
     const overridden = workspaceOverrides['image-size']
     expect(overridden, 'pnpm-workspace.yaml が image-size の override を宣言していない').toMatch(/^\^\d+\.\d+\.\d+$/)
 
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      overrides: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
     expect(manifest.overrides['image-size'], `pnpm-workspace.yaml と ${RUNTIME_MANIFEST} で override 値が食い違う`)
       .toBe(overridden)
   })
@@ -555,10 +578,7 @@ describe('本体の runtime manifest との整合', () => {
     const overridden = workspaceOverrides['dompurify']
     expect(overridden, 'pnpm-workspace.yaml が dompurify の override を宣言していない').toMatch(/^\^\d+\.\d+\.\d+$/)
 
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as {
-      overrides: Record<string, string>
-    }
+    const manifest = readRuntimeManifest()
     expect(manifest.overrides['dompurify'], `pnpm-workspace.yaml と ${RUNTIME_MANIFEST} で override 値が食い違う`)
       .toBe(overridden)
   })
@@ -701,7 +721,7 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('data')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    const manifestPath = writeManifest({ dependencies: { vue: '^3.5.13' } })
+    const manifestPath = writeManifestWithCore({ dependencies: { vue: '^3.5.13' } })
 
     const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
 
@@ -710,7 +730,7 @@ describe('installRuntimeDependencies', () => {
     const { argv } = readStubNpmOutput(result.stdout)
     expect(argv.slice(0, 3)).toEqual(['install', '--prefix', runtimeRoot])
     expect(argv).toContain('vue@^3.5.13')
-    expect(argv).toContain('@slidev/parser')
+    expect(argv).toContain(`@slidev/parser@${TEST_CORE}`)
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const written = JSON.parse(readFileSync(path.join(runtimeRoot, 'package.json'), 'utf8')) as {
       name: string
@@ -723,7 +743,7 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('home2')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    const manifestPath = writeManifest({ dependencies: {} })
+    const manifestPath = writeManifestWithCore({ dependencies: {} })
     const npmCommand = writeStubNpm(temporaryRoot())
 
     await installRuntimeDependencies({ manifestPath, npmCommand })
@@ -735,7 +755,7 @@ describe('installRuntimeDependencies', () => {
   it('データ置き場を決められなければ取得先を決められないので起動失敗として返す', async () => {
     stubNoDataDirectory()
 
-    const result = await installRuntimeDependencies({ manifestPath: writeManifest({}) })
+    const result = await installRuntimeDependencies({ manifestPath: writeManifestWithCore({}) })
 
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
     expect(result.exitCode).toBe(null)
@@ -747,7 +767,7 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('data-overrides')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    const manifestPath = writeManifest({
+    const manifestPath = writeManifestWithCore({
       dependencies: {},
       overrides: { 'lodash-es': '^4.17.23', 'dompurify': '^3.3.3' },
     })
@@ -765,7 +785,7 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('data-stamp')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    const manifestPath = writeManifest({ dependencies: { vue: '^3.5.13' } })
+    const manifestPath = writeManifestWithCore({ dependencies: { vue: '^3.5.13' } })
 
     await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
 
@@ -776,7 +796,7 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('data-stamp-fail')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    const manifestPath = writeManifest({ dependencies: {} })
+    const manifestPath = writeManifestWithCore({ dependencies: {} })
     // 先に成功させて stamp を置き、次の install を失敗させる。
     await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
     expect(existsSync(stampPath(data))).toBe(true)
@@ -789,6 +809,23 @@ describe('installRuntimeDependencies', () => {
     expect(existsSync(stampPath(data))).toBe(false)
   })
 
+  it('manifest から plan を組めないときは npm を起動せず、起動失敗として返す', async () => {
+    const data = temporaryRoot('data-broken')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+
+    const result = await installRuntimeDependencies({
+      manifestPath: writeManifest({ dependencies: {} }),
+      npmCommand: writeStubNpm(temporaryRoot()),
+    })
+
+    // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+    expect(result.exitCode).toBe(null)
+    expect(result.failedStage).toBe('npm')
+    expect(result.stderr).toContain('@slidev/cli')
+    expect(existsSync(runtimePackageJson(data))).toBe(false)
+  })
+
   it('NODE_EXTRA_CA_CERTS が未設定なら未設定のまま npm へ渡す', async () => {
     // pecot は証明書を足さない。空文字とも区別するため、npm 代役は未設定を null で返す。
     const data = temporaryRoot('data-ca')
@@ -796,7 +833,7 @@ describe('installRuntimeDependencies', () => {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     vi.stubEnv('NODE_EXTRA_CA_CERTS', undefined)
-    const manifestPath = writeManifest({ dependencies: {} })
+    const manifestPath = writeManifestWithCore({ dependencies: {} })
 
     const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
 
@@ -810,7 +847,7 @@ describe('installRuntimeDependencies', () => {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     vi.stubEnv('NODE_EXTRA_CA_CERTS', '/etc/ssl/corp.pem')
-    const manifestPath = writeManifest({ dependencies: {} })
+    const manifestPath = writeManifestWithCore({ dependencies: {} })
 
     const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
 
@@ -826,7 +863,7 @@ describe('installRuntimeDependencies', () => {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
     const marker = temporaryRoot('in-flight')
     vi.stubEnv('PECOTV_TEST_IN_FLIGHT', marker)
-    const manifestPath = writeManifest({ dependencies: {} })
+    const manifestPath = writeManifestWithCore({ dependencies: {} })
     const npmCommand = writeOverlapDetectingNpm(temporaryRoot())
 
     const results = await Promise.all([

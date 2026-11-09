@@ -115,7 +115,7 @@ assert_eq "overrides が runtimeInstallPlan と一致" "$(compare plan-overrides
 # --- 3. 合成 root での同値 ---
 # 合成 root は runtime の manifest だけを持つ（固定版は @slidev/cli の版から読む）。
 # link: / file: / portal: の除外、overrides の入れ子、@slidev/parser の上書きと specs 重複畳み込みを含める。
-# @slidev/cli が無い manifest は、TS が版なしの parser を返し .mjs が throw する。意図した差なので比較しない。
+# @slidev/cli が無い manifest では、.mjs と TS の両方が失敗する。.mjs の失敗は下の NOCLI で確かめる。
 SYNTH_ROOT="$TMP/synthetic-root"
 mkdir -p "$SYNTH_ROOT/assets/slidev/runtime"
 cat > "$SYNTH_ROOT/assets/slidev/runtime/package.json" << SYNTH_RUNTIME_EOF
@@ -124,6 +124,8 @@ cat > "$SYNTH_ROOT/assets/slidev/runtime/package.json" << SYNTH_RUNTIME_EOF
   "dependencies": {
     "@slidev/cli": "99.0.0",
     "@slidev/parser": "^1.0.0",
+    "@slidev/client": "^1.0.0",
+    "@slidev/types": "^1.0.0",
     "some-lib": "^1.2.3",
     "local-thing": "link:../local-thing",
     "file-thing": "file:../file-thing",
@@ -158,12 +160,44 @@ if printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qxF '@slidev/parser@99.0.0' \
 else
     fail "合成 root で @slidev/parser が 99.0.0 に上書きされていない: $SYNTH_MANIFEST_DEPS"
 fi
+for CORE_PKG in '@slidev/client' '@slidev/types'; do
+    if printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qxF "${CORE_PKG}@99.0.0" \
+        && ! printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qF "${CORE_PKG}@^1.0.0"; then
+        pass "合成 root の .mjs で $CORE_PKG が @slidev/cli の版へ固定される"
+    else
+        fail "合成 root の .mjs で $CORE_PKG が 99.0.0 に固定されていない: $SYNTH_MANIFEST_DEPS"
+    fi
+    if printf '%s\n' "$SYNTH_PLAN_SPECS" | grep -qxF "${CORE_PKG}@99.0.0" \
+        && ! printf '%s\n' "$SYNTH_PLAN_SPECS" | grep -qF "${CORE_PKG}@^1.0.0"; then
+        pass "合成 root の TS で $CORE_PKG が @slidev/cli の版へ固定される"
+    else
+        fail "合成 root の TS で $CORE_PKG が 99.0.0 に固定されていない: $SYNTH_PLAN_SPECS"
+    fi
+done
 if [ -n "$SYNTH_PLAN_SPECS" ]; then
     pass "合成 root の specs が空でない（比較が無意味になっていない）"
 else
     fail "合成 root の specs が空（比較が無意味になっている）"
 fi
 assert_eq "合成 root でも overrides の入れ子が一致" "$(compare_synth plan-overrides)" "$(compare_synth manifest-overrides)"
+
+# @slidev/cli の無い manifest は、.mjs が非ゼロ終了し、版指定がない旨を stderr に出す。
+NOCLI_ROOT="$TMP/nocli-root"
+mkdir -p "$NOCLI_ROOT/assets/slidev/runtime"
+printf '%s\n' '{"name":"nocli","dependencies":{"some-lib":"^1.2.3"}}' > "$NOCLI_ROOT/assets/slidev/runtime/package.json"
+NOCLI_RC=0
+node "$MANIFEST_JS" "$NOCLI_ROOT" > "$TMP/nocli.out" 2> "$TMP/nocli.err" || NOCLI_RC=$?
+if [ "$NOCLI_RC" -ne 0 ]; then
+    pass "@slidev/cli が無い manifest で .mjs が非ゼロ終了"
+else
+    fail "@slidev/cli が無い manifest で .mjs が exit 0 になった"
+fi
+if grep -qF "@slidev/cli の版指定がありません" "$TMP/nocli.err"; then
+    pass "@slidev/cli が無い manifest で stderr に版指定なしを出す"
+else
+    NOCLI_TAIL="$(tail -3 "$TMP/nocli.err" | tr '\n' ' ')"
+    fail "@slidev/cli が無い manifest で stderr に版指定なしを出さない: $NOCLI_TAIL"
+fi
 
 # --- 4. runtime の manifest の物理パスが cli の RUNTIME_MANIFEST_DIRECTORY と一致する ---
 #

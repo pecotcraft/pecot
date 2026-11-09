@@ -97,7 +97,7 @@ def test_member_dependency_change_stops_with_hint(repo: Path) -> None:
     pkg = repo / "plugins/pecot-tools/cli/package.json"
     data = json.loads(pkg.read_text(encoding="utf-8"))
     data["dependencies"]["commander"] = "^0.0.1"
-    pkg.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    pkg.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result = _check(repo)
     assert result.returncode == 1
     assert (
