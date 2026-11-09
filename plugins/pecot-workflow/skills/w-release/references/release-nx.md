@@ -339,8 +339,9 @@ cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx
 ```
 
 `<publish-flag>` は [publish フェーズの扱い](#publish-フェーズの扱い) で判定したもの。
-`versionPlans: true` のリポは version bump 系 prompt が発生しないため、このフラグ 1 本で
-non-interactive 化できる。
+`versionPlans` を有効にしたリポは、version bump 系 prompt が発生しない。
+有効とは、`true` か `ignorePatternsForPlanCheck` を持つオブジェクトを指す。
+そのため、このフラグ 1 本で non-interactive 化できる。
 
 これで Nx Release が `<develop>` 上に release commit を作る。release commit には manifest 更新・
 CHANGELOG 追記・消費した version-plan の削除が入る。続けてタグ付け・remote への push・
