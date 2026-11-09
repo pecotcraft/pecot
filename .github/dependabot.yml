@@ -27,6 +27,8 @@ updates:
     groups:
       root-minor-patch:
         update-types: ["minor", "patch"]
+        # devcontainer の playwright-deps の版とそろえるため、手で上げる（test_devcontainer_playwright_version.py が固定）。
+        exclude-patterns: ["playwright", "@playwright/*"]
 
   # pecot-workflow CLI（uv / pyproject.toml + uv.lock）
   - package-ecosystem: "uv"

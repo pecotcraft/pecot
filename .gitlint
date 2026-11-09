@@ -28,3 +28,4 @@ types = feat,fix,docs,chore,refactor,test,ci,build,perf,revert
 [title-requires-japanese]
 allow-revert = true
 allow-release = true
+allow-dependabot = true

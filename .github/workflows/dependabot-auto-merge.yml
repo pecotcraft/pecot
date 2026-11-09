@@ -1,0 +1,68 @@
+# Dependabot の minor・patch の PR を、必須チェックが通ったら自動でマージする。
+# GITHUB_TOKEN で入れた auto-merge では、merge queue の merge_group の run が起きないため、App のトークンで入れる。
+name: dependabot-auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  auto-merge:
+    # fetch-metadata が head の commit を見ると、App の commit で失敗するため、App の push では動かさない。
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.actor == 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      HAS_APP: ${{ secrets.PECOT_BOT_CLIENT_ID != '' && secrets.PECOT_BOT_PRIVATE_KEY != '' }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+    steps:
+      - name: Check app credentials
+        if: ${{ env.HAS_APP != 'true' }}
+        run: echo "::notice::App の秘密（PECOT_BOT_CLIENT_ID・PECOT_BOT_PRIVATE_KEY）が無いので、自動マージを飛ばします。"
+
+      - name: Fetch Dependabot metadata
+        id: metadata
+        if: ${{ env.HAS_APP == 'true' }}
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      # queue が無いと gh が即座にマージするため、queue がある場合だけ進む。
+      # major は人が見る。playwright は devcontainer の版とそろえるため、部分一致で @playwright/* なども人に回す。
+      - name: Check merge queue
+        id: queue
+        if: >-
+          ${{ env.HAS_APP == 'true'
+          && contains(fromJSON('["version-update:semver-minor","version-update:semver-patch"]'), steps.metadata.outputs.update-type)
+          && !contains(steps.metadata.outputs.dependency-names, 'playwright') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUERY: "query($url:URI!){resource(url:$url){... on PullRequest{isMergeQueueEnabled}}}"
+        run: |
+          enabled=$(gh api graphql -f query="$QUERY" -f url="$PR_URL" --jq .data.resource.isMergeQueueEnabled)
+          case "$enabled" in
+            true) echo "enabled=true" >> "$GITHUB_OUTPUT" ;;
+            false) echo "::notice::merge queue is disabled, skipping auto-merge" ;;
+            *) echo "::error::unexpected isMergeQueueEnabled: ${enabled}"; exit 1 ;;
+          esac
+
+      - name: Generate GitHub App token
+        id: app-token
+        if: ${{ steps.queue.outputs.enabled == 'true' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.PECOT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Enable auto-merge
+        if: ${{ steps.queue.outputs.enabled == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh pr merge --auto --squash "$PR_URL"
