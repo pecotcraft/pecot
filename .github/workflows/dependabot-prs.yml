@@ -1,8 +1,8 @@
 # 人の判断を待つ dependabot の PR を読み、ボードの Tracker の一覧にそろえる。
 # 毎時 47 分に sync を動かす。security-alerts.yml の 17 分とずらす。
 # GITHUB_TOKEN は org の Projects を扱えないため、GitHub App のトークンを使う。
-# App は security-alerts.yml と同じものを使う（変数と秘密の名前は SECURITY_APP_* のまま）。
-# 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。
+# App は security alert 用とは分け、この用途専用のものを使う。
+# 変数 DEPENDABOT_PRS_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。
 name: dependabot-prs
 
 on:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   run:
-    if: ${{ vars.SECURITY_APP_CLIENT_ID != '' }}
+    if: ${{ vars.DEPENDABOT_PRS_APP_CLIENT_ID != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -35,8 +35,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.SECURITY_APP_CLIENT_ID }}
-          private-key: ${{ secrets.SECURITY_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.DEPENDABOT_PRS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DEPENDABOT_PRS_APP_PRIVATE_KEY }}
           permission-issues: write
           permission-organization-projects: write
           permission-pull-requests: read
