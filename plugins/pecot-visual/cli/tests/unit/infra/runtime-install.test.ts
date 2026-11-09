@@ -20,7 +20,6 @@ import {
   runtimeInstallSpecs,
   runtimeInstallStamp,
   PATCH_PACKAGE_RANGE,
-  SLIDEV_CORE_VERSION,
 } from '../../../src/infra/_shared/runtime-install.js'
 import { stubNoDataDirectory } from '../../_helpers/no-data-directory.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
@@ -75,6 +74,46 @@ function caretRangeViolation(version: string, range: string): string | undefined
   }
   if (compareVersionTriple(actual, lowerBound) < 0) return `${version} が ${range} の下限未満`
   return undefined
+}
+
+/**
+manifest（本体の runtime 依存）の `@slidev/cli` の版。中核パッケージの固定版の読み元。
+*/
+function readCoreVersion(): string {
+  // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+  const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as { dependencies: Record<string, string> }
+  return manifest.dependencies['@slidev/cli'] ?? ''
+}
+
+/**
+知らせのテストの修正版 F。pnpm-workspace.yaml の overrides の値（`^x.y.z`）の下限から読む。
+*/
+function fixedVersionOf(overrideKey: string): string {
+  const workspaceConfig: unknown = parseYaml(readFileSync(WORKSPACE_YAML, 'utf8'))
+  const overrides = isRecord(workspaceConfig) && isRecord(workspaceConfig['overrides']) ? workspaceConfig['overrides'] : {}
+  // eslint-disable-next-line security/detect-object-injection -- overrideKey はテスト内の定数
+  const value = overrides[overrideKey]
+  const match = typeof value === 'string' ? /^\^(\d+\.\d+\.\d+)$/.exec(value) : undefined
+  if (match?.[1] === undefined) throw new Error(`pnpm-workspace.yaml の overrides.${overrideKey} が ^x.y.z ではない: ${String(value)}`)
+  return match[1]
+}
+
+/**
+override が要らなくなったときだけ false を返す（落とす）。判定できない形は false にして人に見せる。
+- 宣言なし: false
+- 完全一致: F 未満のときだけ true
+- `^L`: 範囲が F を含む、または L が F 以上なら false。それ以外は true
+*/
+function isOverrideStillNeeded(declared: string | undefined, fixed: string): boolean {
+  if (declared === undefined) return false
+  if (/^\d+\.\d+\.\d+$/.test(declared)) {
+    return compareVersionTriple(parseVersionTriple(declared), parseVersionTriple(fixed)) < 0
+  }
+  if (/^\^\d+\.\d+\.\d+$/.test(declared)) {
+    return caretRangeViolation(fixed, declared) !== undefined
+      && compareVersionTriple(parseVersionTriple(declared.slice(1)), parseVersionTriple(fixed)) < 0
+  }
+  return false
 }
 
 /**
@@ -148,7 +187,7 @@ describe('runtimeInstallSpecs', () => {
     expect(runtimeInstallSpecs(manifestPath)).toEqual([
       'vue@^3.5.13',
       'echarts@^5.5.0',
-      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      '@slidev/parser',
       `patch-package@${PATCH_PACKAGE_RANGE}`,
     ])
   })
@@ -167,7 +206,7 @@ describe('runtimeInstallSpecs', () => {
 
     expect(runtimeInstallSpecs(manifestPath)).toEqual([
       'vue@^3.5.13',
-      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      '@slidev/parser',
       `patch-package@${PATCH_PACKAGE_RANGE}`,
     ])
   })
@@ -182,21 +221,21 @@ describe('runtimeInstallSpecs', () => {
 
     expect(runtimeInstallSpecs(manifestPath)).toEqual([
       'dom-to-pptx@1.1.10',
-      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      '@slidev/parser',
       `patch-package@${PATCH_PACKAGE_RANGE}`,
     ])
   })
 
-  it('manifest が読めなくても @slidev/parser だけは返す', () => {
+  it('manifest を読めない、または @slidev/cli の宣言を欠くときは、版なしの @slidev/parser を返す', () => {
     // 空を返すと「install は成功したのに何も入らない」という判別しづらい状態になる。
     expect(runtimeInstallSpecs(temporaryRoot('no-such-package.json')))
-      .toEqual([`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`])
+      .toEqual(['@slidev/parser', `patch-package@${PATCH_PACKAGE_RANGE}`])
   })
 
   it('依存フィールドが object でなくても例外を投げない', () => {
     const manifestPath = writeManifest({ dependencies: 'nonsense', devDependencies: 42 })
 
-    expect(runtimeInstallSpecs(manifestPath)).toEqual([`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`])
+    expect(runtimeInstallSpecs(manifestPath)).toEqual(['@slidev/parser', `patch-package@${PATCH_PACKAGE_RANGE}`])
   })
 
   it('manifest 自体が object でなくても例外を投げない', () => {
@@ -204,20 +243,20 @@ describe('runtimeInstallSpecs', () => {
     // 以降の dependencies 参照が throw し、install そのものが起動しない。
     for (const contents of [[], 42, 'nonsense']) {
       expect(runtimeInstallSpecs(writeManifest(contents)))
-        .toEqual([`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`])
+        .toEqual(['@slidev/parser', `patch-package@${PATCH_PACKAGE_RANGE}`])
     }
   })
 
-  it('slidev 中核パッケージは宣言 range を捨てて固定版にする', () => {
+  it('slidev 中核パッケージは宣言 range を捨てて manifest の @slidev/cli の版にする', () => {
     const manifestPath = writeManifest({
-      dependencies: { '@slidev/cli': '^52.14.1', '@slidev/client': '^52.14.1', '@slidev/theme-default': '^0.25.0' },
+      dependencies: { '@slidev/cli': '99.0.0', '@slidev/client': '^52.14.1', '@slidev/theme-default': '^0.25.0' },
     })
 
     expect(runtimeInstallSpecs(manifestPath)).toEqual([
-      `@slidev/cli@${SLIDEV_CORE_VERSION}`,
-      `@slidev/client@${SLIDEV_CORE_VERSION}`,
+      '@slidev/cli@99.0.0',
+      '@slidev/client@99.0.0',
       '@slidev/theme-default@^0.25.0',
-      `@slidev/parser@${SLIDEV_CORE_VERSION}`,
+      '@slidev/parser@99.0.0',
       `patch-package@${PATCH_PACKAGE_RANGE}`,
     ])
   })
@@ -259,6 +298,37 @@ describe('runtimeInstallStamp', () => {
   })
 })
 
+describe('isOverrideStillNeeded', () => {
+  it('宣言なしは要らない（落とす）', () => {
+    expect(isOverrideStillNeeded(undefined, '3.4.17')).toBe(false)
+  })
+
+  it('完全一致は F 未満なら要る、以上なら要らない', () => {
+    expect(isOverrideStillNeeded('3.4.15', '3.4.17')).toBe(true)
+    expect(isOverrideStillNeeded('3.4.17', '3.4.17')).toBe(false)
+    expect(isOverrideStillNeeded('3.5.0', '3.4.17')).toBe(false)
+  })
+
+  it('caret は範囲が F を含むか下限が F 以上なら要らない', () => {
+    expect(isOverrideStillNeeded('^3.4.0', '3.4.17')).toBe(false)
+    expect(isOverrideStillNeeded('^1.2.1', '2.0.3')).toBe(true)
+    expect(isOverrideStillNeeded('^2.0.3', '2.0.3')).toBe(false)
+    expect(isOverrideStillNeeded('^3.0.0', '2.0.3')).toBe(false)
+  })
+
+  it('0.x の caret は minor が互換の単位', () => {
+    expect(isOverrideStillNeeded('^0.16.0', '0.18.7')).toBe(true)
+    expect(isOverrideStillNeeded('^0.18.0', '0.18.7')).toBe(false)
+    expect(isOverrideStillNeeded('^0.19.0', '0.18.7')).toBe(false)
+  })
+
+  it('知らない形は要らない扱いにして人に見せる', () => {
+    for (const declared of ['~3.4.0', '>=3.0.0', '^3.4.0 || ^4.0.0', '3.4.15-beta.1', '*']) {
+      expect(isOverrideStillNeeded(declared, '3.4.17')).toBe(false)
+    }
+  })
+})
+
 describe('runtimeInstallLockPath', () => {
   // ロックは永続層の直下に置く (node_modules を作る側なので chromium 側とは場所が違う)。
   it('永続層直下の固定名を返す', () => {
@@ -292,7 +362,7 @@ describe('本体の runtime manifest との整合', () => {
       if (range.startsWith('workspace:')) continue
       // slidev 中核パッケージだけは宣言 range ではなく固定版で入る (下のセルを参照)。
       const expected = name !== '@slidev/theme-default' && name.startsWith('@slidev/')
-        ? SLIDEV_CORE_VERSION
+        ? readCoreVersion()
         : range
       expect(specs, `${name} が install 対象から漏れている`).toContain(`${name}@${expected}`)
     }
@@ -319,34 +389,42 @@ describe('本体の runtime manifest との整合', () => {
     const specs = runtimeInstallSpecs(RUNTIME_MANIFEST)
 
     for (const name of ['@slidev/cli', '@slidev/client', '@slidev/parser']) {
-      expect(specs, `${name} が固定版で入っていない`).toContain(`${name}@${SLIDEV_CORE_VERSION}`)
+      expect(specs, `${name} が固定版で入っていない`).toContain(`${name}@${readCoreVersion()}`)
     }
     // 別の版系列 (0.25.x) なので固定の対象に含めない。
     expect(specs).toContain('@slidev/theme-default@^0.25.0')
   })
 
-  it('固定版が cli/package.json の pin と一致する', () => {
-    // 別バージョンを掴むと、slides.md の分解結果 (= pptx 差分キャッシュの slideHash) が
-    // ビルド時の分解結果と食い違う。理由は cli/package.json の slidev-parser-pin-reason と同じ。
+  it('manifest の @slidev/cli は完全一致の版で、@slidev/client・@slidev/types が同じ値になる', () => {
+    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+    const manifest = JSON.parse(readFileSync(RUNTIME_MANIFEST, 'utf8')) as { dependencies: Record<string, string> }
+    const core = manifest.dependencies['@slidev/cli']
+
+    expect(core).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(manifest.dependencies['@slidev/client']).toBe(core)
+    expect(manifest.dependencies['@slidev/types']).toBe(core)
+  })
+
+  it('cli/package.json の @slidev/parser が manifest の @slidev/cli と一致する', () => {
+    // ずれると、pptx 差分キャッシュの slideHash を求める parser がビルド時とずれる（slidev-parser-pin-reason）。
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const cliManifest = JSON.parse(readFileSync(path.join(CLI_ROOT, 'package.json'), 'utf8')) as {
       dependencies: Record<string, string>
     }
 
-    expect(SLIDEV_CORE_VERSION).toBe(cliManifest.dependencies['@slidev/parser'])
+    expect(cliManifest.dependencies['@slidev/parser']).toBe(readCoreVersion())
   })
 
-  it('E2E fixture の @slidev/cli が固定版と一致する', () => {
-    // fixture が `*` のままだと、無関係な lock 更新で SLIDEV_CORE_VERSION から静かに離れ、
-    // E2E が配布物と別の slidev で回る。
+  it('E2E fixture の @slidev/cli が manifest の @slidev/cli と一致する', () => {
+    // fixture が `*` のままだと、無関係な lock 更新で配布物の slidev から静かに離れる。
     for (const fixture of ['hash-slidev', 'minimal-slidev']) {
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
       const manifest = JSON.parse(
         readFileSync(path.join(CLI_ROOT, 'tests', 'fixtures', fixture, 'package.json'), 'utf8'),
       ) as { dependencies: Record<string, string> }
 
-      expect(manifest.dependencies['@slidev/cli'], `${fixture} が固定版で宣言されていない`)
-        .toBe(SLIDEV_CORE_VERSION)
+      expect(manifest.dependencies['@slidev/cli'], `${fixture} が manifest の版で宣言されていない`)
+        .toBe(readCoreVersion())
     }
   })
 
@@ -452,10 +530,8 @@ describe('本体の runtime manifest との整合', () => {
       .toBe(overridden)
   })
 
-  it('pptxgenjs の image-size 宣言が override を入れた時点のままになっている', () => {
-    // image-size の override は pptxgenjs が修正版を含まない範囲を宣言していることが前提。
-    // 宣言が変わったら (依存から外れた・範囲が 2.0.3 以上を含むようになった等)、override の
-    // 撤去を判断する。形を問わず変化を検出するため、範囲判定ではなく文字列の一致で固定する。
+  it('pptxgenjs の image-size 宣言が、override を要する範囲のままになっている', () => {
+    // override が要らなくなったとき（宣言が修正版を含む・依存から外れた等）だけ落とす。
     expect(existsSync(PPTXGENJS_MANIFEST), `pptxgenjs が未 install: ${PPTXGENJS_MANIFEST}`).toBe(true)
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const pptxgenjs = JSON.parse(readFileSync(PPTXGENJS_MANIFEST, 'utf8')) as {
@@ -463,9 +539,9 @@ describe('本体の runtime manifest との整合', () => {
     }
 
     expect(
-      pptxgenjs.dependencies?.['image-size'],
-      'pptxgenjs の image-size 宣言が変わった。依存から外れたか宣言範囲が 2.0.3 以上を含むなら、pnpm-workspace.yaml・manifest の image-size override を撤去する',
-    ).toBe('^1.2.1')
+      isOverrideStillNeeded(pptxgenjs.dependencies?.['image-size'], fixedVersionOf('image-size')),
+      'pptxgenjs の image-size 宣言が修正版を含むようになった（または依存から外れた）。pnpm-workspace.yaml・manifest の image-size override の撤去を判断する',
+    ).toBe(true)
   })
 
   it('dompurify の override が workspace と manifest で一致する', () => {
@@ -487,10 +563,7 @@ describe('本体の runtime manifest との整合', () => {
       .toBe(overridden)
   })
 
-  it('monaco-editor の dompurify 宣言が override を入れた時点のままになっている', () => {
-    // dompurify の override は monaco-editor が脆弱な版を固定で宣言することが前提。
-    // 宣言が変わったら (3.4.17 以上になった等)、override の撤去を判断する。
-    // 形を問わず変化を検出するため、範囲判定ではなく文字列の一致で固定する。
+  it('monaco-editor の dompurify 宣言が、override を要する範囲のままになっている', () => {
     expect(existsSync(MONACO_EDITOR_MANIFEST), `monaco-editor が未 install: ${MONACO_EDITOR_MANIFEST}`).toBe(true)
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const monaco = JSON.parse(readFileSync(MONACO_EDITOR_MANIFEST, 'utf8')) as {
@@ -498,15 +571,12 @@ describe('本体の runtime manifest との整合', () => {
     }
 
     expect(
-      monaco.dependencies?.['dompurify'],
-      'monaco-editor の dompurify 宣言が変わった。3.4.17 以上になり @slidev/cli がそれを許すなら、2 か所の dompurify override を撤去する',
-    ).toBe('3.4.8')
+      isOverrideStillNeeded(monaco.dependencies?.['dompurify'], fixedVersionOf('dompurify')),
+      'monaco-editor の dompurify 宣言が修正版を含むようになった（または依存から外れた）。2 か所の dompurify override の撤去を判断する',
+    ).toBe(true)
   })
 
-  it('micromark-extension-math の katex 宣言が override を入れた時点のままになっている', () => {
-    // katex の override (micromark-extension-math>katex) は micromark-extension-math が 0.16 系に縛ることが前提。
-    // 宣言が変わったら (0.18.2 以上を許すようになった等)、override の撤去を判断する。
-    // 形を問わず変化を検出するため、範囲判定ではなく文字列の一致で固定する。
+  it('micromark-extension-math の katex 宣言が、override を要する範囲のままになっている', () => {
     expect(
       existsSync(MICROMARK_EXTENSION_MATH_MANIFEST),
       `micromark-extension-math が未 install: ${MICROMARK_EXTENSION_MATH_MANIFEST}`,
@@ -517,9 +587,9 @@ describe('本体の runtime manifest との整合', () => {
     }
 
     expect(
-      math.dependencies?.['katex'],
-      'micromark-extension-math の katex 宣言が変わった。0.18.2 以上を許すなら、pnpm-workspace.yaml の micromark-extension-math>katex override を撤去する',
-    ).toBe('^0.16.0')
+      isOverrideStillNeeded(math.dependencies?.['katex'], fixedVersionOf('micromark-extension-math>katex')),
+      'micromark-extension-math の katex 宣言が修正版を含むようになった（または依存から外れた）。micromark-extension-math>katex override の撤去を判断する',
+    ).toBe(true)
   })
 
   it('ワークスペースの package.json が URL 直指定の依存を持たない', () => {
@@ -640,7 +710,7 @@ describe('installRuntimeDependencies', () => {
     const { argv } = readStubNpmOutput(result.stdout)
     expect(argv.slice(0, 3)).toEqual(['install', '--prefix', runtimeRoot])
     expect(argv).toContain('vue@^3.5.13')
-    expect(argv).toContain(`@slidev/parser@${SLIDEV_CORE_VERSION}`)
+    expect(argv).toContain('@slidev/parser')
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const written = JSON.parse(readFileSync(path.join(runtimeRoot, 'package.json'), 'utf8')) as {
       name: string

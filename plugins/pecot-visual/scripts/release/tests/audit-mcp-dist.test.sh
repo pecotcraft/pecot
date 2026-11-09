@@ -1076,9 +1076,9 @@ else process.stdout.write(deps[query] === undefined ? "__MISSING__" : String(dep
 
 assert_eq "出力が有効な JSON で name は pecotv-runtime" "pecotv-runtime" "$(runtime_manifest_field name)"
 
-CORE_PIN="$(node -e 'const fs=require("node:fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependencies["@slidev/parser"]))' \
-    "$PECOTV_PLUGIN_ROOT/cli/package.json")"
-assert_eq "@slidev/cli は @slidev/parser の pin で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/cli)"
+CORE_PIN="$(node -e 'const fs=require("node:fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependencies["@slidev/cli"]))' \
+    "$PECOTV_PLUGIN_ROOT/assets/slidev/runtime/package.json")"
+assert_eq "中核パッケージは runtime manifest の @slidev/cli の版で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/cli)"
 assert_eq "@slidev/client も同じ pin で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/client)"
 assert_eq "@slidev/parser を明示的に含む" "$CORE_PIN" "$(runtime_manifest_field @slidev/parser)"
 assert_ne "dom-to-pptx を含む" "__MISSING__" "$(runtime_manifest_field dom-to-pptx)"

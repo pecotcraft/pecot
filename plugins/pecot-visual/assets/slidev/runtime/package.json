@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "license": "MIT",
-  "//peer-reason": "peer は slidev-theme-* の peerDependencies と同じ版に固定する。@slidev/* は SLIDEV_CORE_VERSION に合わせる。",
+  "//peer-reason": "peer は slidev-theme-* の peerDependencies と同じ版に固定する。@slidev/* は @slidev/cli と同じ版にする。",
   "//override-reason": "overrides は root の pnpm-workspace.yaml の写し。lodash-es は overrides に置くと EOVERRIDE になる。",
   "dependencies": {
     "@shikijs/langs": "4.6.0",

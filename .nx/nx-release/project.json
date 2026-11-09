@@ -62,7 +62,6 @@
         "runtime",
         "env",
         { "runtime": "node -p \"require('nx/package.json').version\"" },
-        { "runtime": "node -p \"require('undici/package.json').version\"" },
         "{workspaceRoot}/package.json",
         "{workspaceRoot}/pnpm-workspace.yaml",
         "{workspaceRoot}/plugins/pecot-workflow/project.json",
@@ -84,7 +83,7 @@
         "{workspaceRoot}/plugins/pecot-tools/plugin.json"
       ],
       "metadata": {
-        "description": "PecotVersionActions と dependabot-plans の単体テスト。inputs は、nx の実体の版と undici の実体の版を runtime 入力（node -p）で見る。root の pnpm-lock.yaml は .nxignore で入力から外れるため、lock ではなく実体を見る (#1225)。"
+        "description": "PecotVersionActions と dependabot-plans の単体テスト。inputs は、nx の実体の版を runtime 入力（node -p）で見る。root の pnpm-lock.yaml は .nxignore で入力から外れるため、lock ではなく実体を見る (#1225)。"
       },
       "options": {
         "command": "node --test tests/*.test.js",

@@ -43,28 +43,6 @@ chromium 取得（計測 33 秒に対し上限 300 秒）と同じだけの余�
 export const RUNTIME_INSTALL_TIMEOUT_MS = 600_000
 
 /**
-slidev 中核パッケージの固定版。
-
-manifest は `@slidev/cli` / `@slidev/client` を完全一致の版で宣言する。ただし、宣言が範囲に変わっても固定版で入れる。
-永続層は `--no-package-lock` で install するため、そのまま渡すと時点ごとに別の 53.x へ解決される。
-slidev の中核パッケージは、互いを完全一致の版で要求する。
-npm レジストリの `@slidev/cli@53.0.0` の dependencies で確認した。
-`@slidev/parser` / `@slidev/client` / `@slidev/types` を、いずれも `53.0.0` 固定で引く。
-そのため cli だけが上位版へ動くと、nested に別版の parser / client が入る。
-すると、pptx 差分キャッシュの slideHash を求める parser と、slidev build の parser がずれる。
-cli/package.json の slidev-parser-pin-reason と同じ理由。
-
-対処として lockfile を持たせる案もある。
-ただし lockfile は「解決結果を再現する」だけで、中核パッケージ同士の版一致は保証しない。
-初回解決が cli 52.16 / parser 52.15 なら、その食い違いを固定してしまう。
-よって中核パッケージを同一版に固定する方を採る。
-この値はプラグイン配布の構成と同じで、中核 4 本（cli / client / parser / types）とも 53.0.0 になる。
-cli/package.json の `@slidev/parser` の pin と同値であることを、unit test で固定する。
-`@slidev/theme-default` は別の版系列（0.25.x）なので対象に含めない。
-*/
-export const SLIDEV_CORE_VERSION = '53.0.0'
-
-/**
 固定版で install する slidev 中核パッケージ。
 */
 const SLIDEV_CORE_PACKAGES: ReadonlySet<string> = new Set([
@@ -75,19 +53,7 @@ const SLIDEV_CORE_PACKAGES: ReadonlySet<string> = new Set([
 ])
 
 /**
-永続層へ入れる patch-package の版。完全一致で固定する。
-
-本体の実行時依存は patch を持たない。
-patch-package を入れる理由は、テーマの置き場が使うことにある。
-使う箇所は infra/slidev-theme/store.ts の applyThemePatches の中。
-`resolveDependency('patch-package/package.json')` で解決する。
-
-永続層は `--no-package-lock` で install するため、caret のままだと時点ごとに別の 8.x へ解決される。
-slidev 中核パッケージと同じ理由で、検証した版だけを配る（Epic #152）。
-
-監査 manifest（scripts/release/runtime-manifest.mjs）は同じ規則を写して、同値比較で固定している。
-
-値は plugins/pecot-visual/package.json の devDependencies と同値にし、unit test で固定する。
+永続層へ入れる patch-package の版（完全一致）。テーマの patch 適用が使う。値は plugins/pecot-visual/package.json の devDependencies と同値で、unit test が固定する。
 */
 export const PATCH_PACKAGE_RANGE = '8.0.1'
 
@@ -137,28 +103,25 @@ specs には次を入れる。
 - `devDependencies` の `dom-to-pptx`。pptx 変換の bundle 供給元になる。
 - `@slidev/parser`。
 
-slidev 中核パッケージは、range ではなく `SLIDEV_CORE_VERSION` で固定する。
+slidev 中核パッケージは、manifest の `@slidev/cli` の版で固定する。
+overrides は manifest の `overrides` をそのまま写す。
 
-overrides には、manifest の `overrides` をそのまま写す。
-manifest は推移依存の版を overrides で pin している。
-install 対象を manifest から導く設計なので、解決の pin だけ落とすと、
-永続層とプラグイン配布で別の推移依存を掴む。
-
-manifest が読めないときも、取得は諦めない。
-最低限 `@slidev/parser` は返し、npm 側のエラーを呼び出し元へ見せる。
-ここで空を返すと、「install は成功したのに何も入らない」という判別しづらい状態になる。
+manifest が読めない、または `@slidev/cli` が無いときは、版なしの `@slidev/parser` を返す。空の install を避けるため。
 */
 export function runtimeInstallPlan(manifestPath: string): RuntimeInstallPlan {
   const manifest = readManifest(manifestPath)
 
-  const specs = Object.entries(dependencyMap(manifest['dependencies']))
+  const dependencies = dependencyMap(manifest['dependencies'])
+  const coreVersion = dependencies['@slidev/cli']
+
+  const specs = Object.entries(dependencies)
     .filter(([, range]) => !LOCAL_PROTOCOL_PATTERN.test(range))
-    .map(([name, range]) => `${name}@${pinnedRange(name, range)}`)
+    .map(([name, range]) => `${name}@${pinnedRange(name, range, coreVersion)}`)
 
   const domToPptx = dependencyMap(manifest['devDependencies'])['dom-to-pptx']
   if (domToPptx !== undefined) specs.push(`dom-to-pptx@${domToPptx}`)
 
-  specs.push(`@slidev/parser@${SLIDEV_CORE_VERSION}`, `patch-package@${PATCH_PACKAGE_RANGE}`)
+  specs.push(coreVersion === undefined ? '@slidev/parser' : `@slidev/parser@${coreVersion}`, `patch-package@${PATCH_PACKAGE_RANGE}`)
 
   const overrides = manifest['overrides']
   return {
@@ -170,8 +133,8 @@ export function runtimeInstallPlan(manifestPath: string): RuntimeInstallPlan {
 /**
 slidev 中核パッケージは宣言 range ではなく固定版で install する。
 */
-function pinnedRange(name: string, range: string): string {
-  return SLIDEV_CORE_PACKAGES.has(name) ? SLIDEV_CORE_VERSION : range
+function pinnedRange(name: string, range: string, coreVersion: string | undefined): string {
+  return coreVersion !== undefined && SLIDEV_CORE_PACKAGES.has(name) ? coreVersion : range
 }
 
 /**

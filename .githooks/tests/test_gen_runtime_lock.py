@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -93,11 +94,10 @@ def test_clean_tree_passes(repo: Path) -> None:
 
 
 def test_member_dependency_change_stops_with_hint(repo: Path) -> None:
-    _edit(
-        repo / "plugins/pecot-tools/cli/package.json",
-        '"commander": "^15.0.0"',
-        '"commander": "^15.0.1"',
-    )
+    pkg = repo / "plugins/pecot-tools/cli/package.json"
+    data = json.loads(pkg.read_text(encoding="utf-8"))
+    data["dependencies"]["commander"] = "^0.0.1"
+    pkg.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     result = _check(repo)
     assert result.returncode == 1
     assert (
