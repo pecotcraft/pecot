@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "pecot-v",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "pecot-v（pecot-visual）— 可視化・ドキュメント系スキル集(v-drawio, v-slidev, v-evidence)",
   "author": {
     "name": "pecot"

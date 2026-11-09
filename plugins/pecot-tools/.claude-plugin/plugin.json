@@ -1,6 +1,6 @@
 {
   "name": "pecot-t",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "pecot-t（pecot-tools）— 許可リストで限定した CLI コマンドを MCP ツールとして提供するプラグイン",
   "author": {
     "name": "pecot"

@@ -1,6 +1,6 @@
 {
   "name": "@pecot/text-rules-src",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "license": "MIT",
   "description": "テキスト規則ライブラリの実体。textlint の preset とカスタム規則を束ね、root フックと pecot-visual の同梱が使う。",
