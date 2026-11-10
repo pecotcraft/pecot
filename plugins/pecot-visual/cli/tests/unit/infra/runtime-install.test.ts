@@ -332,6 +332,11 @@ describe('isOverrideStillNeeded', () => {
     expect(isOverrideStillNeeded('^0.19.0', '0.18.7')).toBe(false)
   })
 
+  it('0.0.x の caret は patch まで一致が互換の単位', () => {
+    expect(isOverrideStillNeeded('^0.0.3', '0.0.5')).toBe(true)
+    expect(isOverrideStillNeeded('^0.0.5', '0.0.5')).toBe(false)
+  })
+
   it('知らない形は要らない扱いにして人に見せる', () => {
     for (const declared of ['~3.4.0', '>=3.0.0', '^3.4.0 || ^4.0.0', '3.4.15-beta.1', '*']) {
       expect(isOverrideStillNeeded(declared, '3.4.17')).toBe(false)

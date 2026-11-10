@@ -76,6 +76,11 @@ function readManifestField(file: string, field: ManifestField): ReadonlyMap<stri
   return new Map(Object.entries(section?.[1] ?? {}))
 }
 
+// 引数は (catalog.vite, @slidev/cli の宣言)。順を取り違えると判定が逆になる。
+function catalogViteOutside(catalogVite: string, slidevVite: string): string | undefined {
+  return caretRangeOutside(catalogVite, slidevVite)
+}
+
 describe('固定対象の単一版 (#1233)', () => {
   it('shiki / @shikijs/* / vite が lock でパッケージごとに 1 版', () => {
     const versions = pinnedVersionsByPackage()
@@ -146,10 +151,28 @@ describe('vite の範囲の一元化 (#170)', () => {
     const { catalogVite } = readWorkspace()
     expect(expected, '@slidev/cli が vite を宣言していない').toBeDefined()
     expect(typeof catalogVite, 'pnpm-workspace.yaml の catalog.vite が文字列ではない').toBe('string')
-    const reason = typeof catalogVite === 'string' && expected !== undefined ? caretRangeOutside(catalogVite, expected) : undefined
+    const reason = typeof catalogVite === 'string' && expected !== undefined ? catalogViteOutside(catalogVite, expected) : undefined
     expect(
       reason,
       `pnpm-workspace.yaml の catalog.vite=${String(catalogVite)} が @slidev/cli の vite=${expected ?? '(宣言なし)'} の範囲の外: ${reason ?? ''}`,
     ).toBeUndefined()
+  })
+})
+
+describe('catalogViteOutside', () => {
+  it('catalog.vite の下限が @slidev/cli の範囲以上なら中', () => {
+    expect(catalogViteOutside('^8.3.7', '^8.3.6')).toBeUndefined()
+  })
+
+  it('下限が同じなら中', () => {
+    expect(catalogViteOutside('^8.3.6', '^8.3.6')).toBeUndefined()
+  })
+
+  it('catalog.vite の下限が @slidev/cli より低いと外', () => {
+    expect(catalogViteOutside('^8.3.5', '^8.3.6')).toBeDefined()
+  })
+
+  it('引数を逆にすると外になる', () => {
+    expect(catalogViteOutside('^8.3.6', '^8.3.7')).toBeDefined()
   })
 })

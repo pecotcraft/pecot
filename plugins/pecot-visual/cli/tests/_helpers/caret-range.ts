@@ -1,15 +1,13 @@
 // caret range (`^x.y.z`) の最小判定。semver を依存へ足さず、2 つのテストが共有する。
 
-/**
-`1.2.3` を [1, 2, 3] にする。
-*/
+const NUMBER = '(?:0|[1-9]\\d*)'
+const EXACT_VERSION = new RegExp(`^${NUMBER}\\.${NUMBER}\\.${NUMBER}$`)
+const CARET_RANGE = new RegExp(`^\\^${NUMBER}\\.${NUMBER}\\.${NUMBER}$`)
+
 export function parseVersionTriple(version: string): readonly number[] {
   return version.split('.').map(part => Math.trunc(Number(part)))
 }
 
-/**
-semver triple の辞書順比較。a > b で正、a < b で負。
-*/
 export function compareVersionTriple(a: readonly number[], b: readonly number[]): number {
   for (let index = 0; index < 3; index++) {
     // eslint-disable-next-line security/detect-object-injection -- index は 0..2 の loop counter
@@ -20,13 +18,11 @@ export function compareVersionTriple(a: readonly number[], b: readonly number[])
 }
 
 /**
-caret range (`^x.y.z`) を version が満たさない理由を返す。満たすなら undefined。
-
-caret の互換の単位は左端の非 0 の桁。major・minor がともに 0 なら patch、major が 0 なら minor の一致も求める。
+version が caret range を満たさない理由を返す。左端の非 0 の桁が互換の単位なので、0.x は minor、0.0.x は patch の一致も求める。
 */
 export function caretRangeViolation(version: string, range: string): string | undefined {
-  if (!/^\^\d+\.\d+\.\d+$/.test(range)) return `宣言が caret range ではない: ${range}`
-  if (!/^\d+\.\d+\.\d+$/.test(version)) return `版が完全一致指定ではない: ${version}`
+  if (!CARET_RANGE.test(range)) return `宣言が caret range ではない: ${range}`
+  if (!EXACT_VERSION.test(version)) return `版が完全一致指定ではない: ${version}`
   const lowerBound = parseVersionTriple(range.slice(1))
   const actual = parseVersionTriple(version)
   if (actual[0] !== lowerBound[0]) return `${version} が ${range} と major 不一致`
@@ -45,7 +41,7 @@ export function caretRangeViolation(version: string, range: string): string | un
 inner の下限が outer を満たせば、inner の範囲全体が outer の中に入る。
 */
 export function caretRangeOutside(inner: string, outer: string): string | undefined {
-  return /^\^\d+\.\d+\.\d+$/.test(inner)
+  return CARET_RANGE.test(inner)
     ? caretRangeViolation(inner.slice(1), outer)
     : `宣言が caret range ではない: ${inner}`
 }
