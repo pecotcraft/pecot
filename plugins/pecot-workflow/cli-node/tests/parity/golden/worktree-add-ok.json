@@ -1,6 +1,6 @@
 {
-  "stdout": "ワークツリー: wt1\n  パス: {{TMP}}/wt1/demo\n  ブランチ: wt1\n  ベース: main\n  リンク: 1件\n  コピー: 1件\n",
-  "stderr": "",
+  "stdout": "{{TMP}}/wt1/demo\n",
+  "stderr": "created: worktree wt1 at {{TMP}}/wt1/demo (branch wt1 from main)\ncount: symlinks created: 1\ncount: files copied: 1\n",
   "exitCode": 0,
   "requests": [],
   "files": {

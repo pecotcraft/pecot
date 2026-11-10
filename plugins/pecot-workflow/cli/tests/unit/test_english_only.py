@@ -1,4 +1,4 @@
-"""Check that docstrings and ``help=`` in cli/commands/ have no Japanese characters (spec 021 FR-012)."""
+"""Check that string literals in cli/commands/ have no Japanese characters (spec 021 FR-012)."""
 
 from __future__ import annotations
 
@@ -17,45 +17,44 @@ JAPANESE = re.compile(
     "[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3000-\u303f\uff00-\uffef]"
 )
 
-_DOCSTRING_OWNERS = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+# Text written to GitHub keeps its language (research R10). Keyed by (file name, assigned name).
+GITHUB_TEXT: frozenset[tuple[str, str]] = frozenset({("issue.py", "_QUICK_BODY_FOOTER")})
 
 
-def _fixed_text(node: ast.expr) -> str:
-    """Return the fixed part of a string expression. Interpolated values are left out."""
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
-    if isinstance(node, ast.JoinedStr):
-        return "".join(_fixed_text(value) for value in node.values)
-    if isinstance(node, ast.BinOp):
-        return _fixed_text(node.left) + _fixed_text(node.right)
-    return ""
+def _assigned_names(node: ast.stmt) -> list[str]:
+    targets = node.targets if isinstance(node, ast.Assign) else [getattr(node, "target", None)]
+    return [target.id for target in targets if isinstance(target, ast.Name)]
 
 
-def _docstrings(tree: ast.Module) -> Iterator[tuple[int, str]]:
-    """Yield the line and text of each docstring, including private functions."""
+def _github_text_nodes(tree: ast.Module, file_name: str) -> tuple[set[int], set[str]]:
+    """Return the ids of the nodes under GITHUB_TEXT assignments, and the names found."""
+    excluded: set[int] = set()
+    found: set[str] = set()
     for node in ast.walk(tree):
-        if not isinstance(node, _DOCSTRING_OWNERS):
+        if not isinstance(node, ast.Assign | ast.AnnAssign) or node.value is None:
             continue
-        docstring = ast.get_docstring(node, clean=False)
-        if docstring is None:
-            continue
-        first = node.body[0]
-        yield first.lineno, docstring
+        for name in _assigned_names(node):
+            if (file_name, name) in GITHUB_TEXT:
+                found.add(name)
+                excluded.update(id(child) for child in ast.walk(node.value))
+    return excluded, found
 
 
-def _help_strings(tree: ast.Module) -> Iterator[tuple[int, str]]:
-    """Yield the line and fixed text of each ``help=`` keyword argument."""
+def _string_constants(tree: ast.Module, excluded: set[int]) -> Iterator[tuple[int, str]]:
+    """Yield each string constant once: docstrings, ``help=``, and fixed parts of f-strings."""
     for node in ast.walk(tree):
-        if isinstance(node, ast.keyword) and node.arg == "help":
-            yield node.value.lineno, _fixed_text(node.value)
+        if id(node) in excluded:
+            continue
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            yield node.lineno, node.value
 
 
 def _japanese_texts(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    found = [*_docstrings(tree), *_help_strings(tree)]
+    excluded, _ = _github_text_nodes(tree, path.name)
     return [
         f"{path.name}:{line}: {text.strip()[:40]!r}"
-        for line, text in sorted(found)
+        for line, text in sorted(_string_constants(tree, excluded))
         if JAPANESE.search(text)
     ]
 
@@ -65,9 +64,17 @@ def test_command_files_exist() -> None:
 
 
 @pytest.mark.parametrize("path", COMMAND_FILES, ids=lambda path: path.name)
-def test_no_japanese_in_docstrings_and_help(path: Path) -> None:
+def test_no_japanese_in_string_literals(path: Path) -> None:
     found = _japanese_texts(path)
-    assert not found, "Japanese text in docstrings or help=:\n" + "\n".join(found)
+    assert not found, "Japanese text in string literals:\n" + "\n".join(found)
+
+
+@pytest.mark.parametrize(("file_name", "name"), sorted(GITHUB_TEXT))
+def test_github_text_names_exist(file_name: str, name: str) -> None:
+    path = COMMANDS_DIR / file_name
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    _, found = _github_text_nodes(tree, file_name)
+    assert name in found, f"{file_name} has no assignment to {name}; update GITHUB_TEXT"
 
 
 @pytest.mark.parametrize(
@@ -78,12 +85,15 @@ def test_no_japanese_in_docstrings_and_help(path: Path) -> None:
         ('typer.Option(help="ひらがな")', 1),
         ('typer.Option(help=f"{x} 漢字")', 1),
         ('typer.Option(help="full-width （）")', 1),
+        ('typer.echo("行の出力")', 1),
+        ('raise typer.BadParameter(f"{value} は不正")', 1),
         ('"""English only — ok → §"""', 0),
         ('typer.Option(help=f"{日本}")', 0),
-        ('typer.echo("行の出力")', 0),
+        ('_QUICK_BODY_FOOTER = f"{x} 本文"', 0),
+        ('OTHER = f"{x} 本文"', 1),
     ],
 )
 def test_detector(source: str, expected: int, tmp_path: Path) -> None:
-    sample = tmp_path / "sample.py"
+    sample = tmp_path / "issue.py"
     sample.write_text(source, encoding="utf-8")
     assert len(_japanese_texts(sample)) == expected

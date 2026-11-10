@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: 作業対象 Issue のリポ (acme/other) と CWD git remote (acme/demo) が異なります。\n       対象リポの WT に移動してから再実行してください:\n         <project-root>/base/other/ または <project-root>/<wtN>/other/\n       対象リポの WT が無い場合のみ /pecot-w:w-worktree-add で作成してください。\n       スクリプト等で意図的に CWD 外から発行する場合は --allow-cross-repo を指定してください。\n",
+  "stderr": "error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n  to issue the command on purpose from outside the CWD (for example in a script), give --allow-cross-repo\n",
   "exitCode": 2,
   "requests": [],
   "files": {

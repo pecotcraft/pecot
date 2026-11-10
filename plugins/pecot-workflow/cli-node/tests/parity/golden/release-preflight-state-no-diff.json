@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n",
-  "stderr": "エラー: origin/release と origin/main に差分がありません。リリースする変更がありません。\n",
+  "stdout": "",
+  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\nerror: origin/release と origin/main に差分がありません。リリースする変更がありません。\n",
   "exitCode": 1,
   "requests": [
     {

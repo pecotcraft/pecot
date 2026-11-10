@@ -1,5 +1,5 @@
 {
-  "stdout": "=== フラグ状態 ===\n\nブランチ: main\nリポジトリ: acme/demo\n推定Issue: (none)\n\n| フラグ | 状態 | 内容 |\n|-------|------|------|\n| .pecot-active | - |  |\n",
+  "stdout": "# Session status\n\n- Branch: main\n- Repository: acme/demo\n- Inferred Issue: none\n\n| Flag | State | Content |\n|------|-------|---------|\n| .pecot-active | unset |  |\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [],

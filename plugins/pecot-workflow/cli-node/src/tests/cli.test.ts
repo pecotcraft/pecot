@@ -156,7 +156,7 @@ describe('PECOT_GITHUB_API_URL', () => {
     expect(await run(['--show-repo'])).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'PECOT_GITHUB_API_URL は http://127.0.0.1 か http://localhost の URL だけを受け付けます: https://x.com\n',
+      stderr: 'error: PECOT_GITHUB_API_URL は http://127.0.0.1 か http://localhost の URL だけを受け付けます: https://x.com\n',
     })
   })
 

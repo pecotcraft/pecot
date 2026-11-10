@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "ERROR: ブランチ名からIssue番号を推定できません: feat/no-number\nHINT: --issue owner/repo/number で手動指定してください\n",
+  "stderr": "error: cannot infer the Issue number from the branch name: feat/no-number\n  run: pecot session restore --issue <owner/repo/N>\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

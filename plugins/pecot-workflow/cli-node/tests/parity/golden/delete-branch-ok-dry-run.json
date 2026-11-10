@@ -1,6 +1,6 @@
 {
-  "stdout": "[dry-run] 削除対象: acme/demo のブランチ 'feat/7'\n[dry-run] 保護ブランチ: main\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "dry-run: would delete remote branch feat/7 in acme/demo\n",
   "exitCode": 0,
   "requests": [
     {

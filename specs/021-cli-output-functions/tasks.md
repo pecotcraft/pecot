@@ -152,21 +152,21 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Goal**: `release`・`worktree`・`repo`・`session` と、グループの無いコマンドがそろう。`cli/commands/` に日本語の固定の文言が残らない
 
-**Independent Test**: golden の全 224 件が一致する。`cli/tests/unit/test_english_only.py` が全リテラルで通る。`cli/commands/` の `_output.py` 以外で `typer.echo` が 0 か所
+**Independent Test**: golden の全 227 件が一致する。`cli/tests/unit/test_english_only.py` が全リテラルで通る。`cli/commands/` の `_output.py` 以外で `typer.echo` が 0 か所
 
-- [ ] T026 [US2] `cli/tests/unit/test_english_only.py` の対象を、`cli/commands/` の全文字列リテラル（f-string の固定部分を含む）に広げる。この時点では失敗する。
+- [x] T026 [US2] `cli/tests/unit/test_english_only.py` の対象を、`cli/commands/` の全文字列リテラル（f-string の固定部分を含む）に広げる。この時点では失敗する。
   `issue.py` の `_QUICK_BODY_FOOTER` は GitHub に書く本文である。`cli/templates/` へ移すか除外の一覧に入れ、テストから外す（research R10）
-- [ ] T027 [P] [US2] `cli/commands/release.py`（73 か所）を `Output` に移す。テストの期待値も直す
-- [ ] T028 [P] [US2] `cli/commands/worktree.py`（47 か所）を同じ形に移す
-- [ ] T029 [P] [US2] repo のコマンドを移す。対象は `cli/commands/repo.py`（47 か所）・`repo_display.py`（3 か所）・`_repo_policy.py`（5 か所）。
+- [x] T027 [P] [US2] `cli/commands/release.py`（73 か所）を `Output` に移す。テストの期待値も直す
+- [x] T028 [P] [US2] `cli/commands/worktree.py`（47 か所）を同じ形に移す
+- [x] T029 [P] [US2] repo のコマンドを移す。対象は `cli/commands/repo.py`（47 か所）・`repo_display.py`（3 か所）・`_repo_policy.py`（5 か所）。
   `repo.py` の `_print_checkout_guide` の `★` 案内は、`issue quick` と同じ形の行にする。形は `created: branch <name> in <owner/repo>` である。
   `skills/w-active/SKILL.md` の Step 5 も同じ PR で直す
-- [ ] T030 [P] [US2] `cli/commands/session.py`（27 か所）を移す
-- [ ] T031 [US2] `cli/commands/main.py`（4 か所）を移す。`add-to-project`・`update-issue-status` は Phase 4、`create-branch`・`delete-branch` は `repo.py` にあり T029 で移す
-- [ ] T032 [US2] 残りの golden を記録し直す。Phase 4 で記録し直した `issue-*`・`add-to-project-*`・`update-issue-status-*` は触らない。全 224 件で `✔`・`✓` が 0 個になることを確かめる
+- [x] T030 [P] [US2] `cli/commands/session.py`（27 か所）を移す
+- [x] T031 [US2] `cli/commands/main.py`（4 か所）を移す。`add-to-project`・`update-issue-status` は Phase 4、`create-branch`・`delete-branch` は `repo.py` にあり T029 で移す
+- [x] T032 [US2] 残りの golden を記録し直す。Phase 4 で記録し直した `issue-*`・`add-to-project-*`・`update-issue-status-*` は触らない。全 227 件で `✔`・`✓` が 0 個になることを確かめる
   - `release-*`・`worktree-*`・`session-*`・`global-ok-show-repo-*`
   - `add-to-*`・`create-branch-*`・`delete-branch-*`・`update-issue-*`
-- [ ] T033 [US2] T026 が通ることを確かめる
+- [x] T033 [US2] T026 が通ることを確かめる
 
 **Checkpoint**: quickstart.md の 3 が通る
 

@@ -1,6 +1,6 @@
 {
-  "stdout": "[DRY RUN] リリース作成プレビュー\n\n  リポジトリ: acme/demo\n  タグ: v0.2.0\n  ターゲット: release\n  リリース名: v0.2.0\n\n  リリースノート:\n    ### 追加\n    \n    - 新機能 A\n    - 新機能 B\n",
-  "stderr": "",
+  "stdout": "### 追加\n\n- 新機能 A\n- 新機能 B\n",
+  "stderr": "dry-run: would create release v0.2.0 on release\n",
   "exitCode": 0,
   "requests": [],
   "files": {

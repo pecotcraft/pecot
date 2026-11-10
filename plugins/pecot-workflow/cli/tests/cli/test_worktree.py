@@ -103,7 +103,7 @@ class TestWorktreeAdd:
         mock_create.side_effect = RuntimeError("boom")
         result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
         assert result.exit_code == 1
-        assert "エラー" in result.output or "boom" in result.output
+        assert "error: boom" in result.output
 
     def test_add_rejects_positional_name(self, tmp_path: Path) -> None:
         """NAME を位置引数で渡すと typer が拒否する"""
@@ -112,7 +112,7 @@ class TestWorktreeAdd:
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_success(self, mock_create: MagicMock, tmp_path: Path) -> None:
-        """setup_result が成功の場合 CLI 出力に ✓ (exit 0) が出る"""
+        """setup_result が成功の場合、setup の行は出ない"""
         mock_create.return_value = WorktreeCreateResult(
             name="wt1",
             path=tmp_path / "wt1" / "repo",
@@ -128,15 +128,12 @@ class TestWorktreeAdd:
         )
         result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
         assert result.exit_code == 0
-        assert "セットアップ" in result.output
-        assert "✓" in result.output
-        assert "exit 0" in result.output
-        assert "echo done" in result.output
-        assert "done" in result.output
+        assert "setup command" not in result.output
+        assert "echo done" not in result.output
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_failure(self, mock_create: MagicMock, tmp_path: Path) -> None:
-        """setup_result が失敗の場合 ✗ (exit N) が出力され、exit code は 0 のまま"""
+        """setup_result が失敗の場合 warning が出力され、exit code は 0 のまま"""
         mock_create.return_value = WorktreeCreateResult(
             name="wt1",
             path=tmp_path / "wt1" / "repo",
@@ -153,9 +150,8 @@ class TestWorktreeAdd:
         result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
         # 失敗でも WT 作成は成功扱い
         assert result.exit_code == 0
-        assert "✗" in result.output
-        assert "exit 42" in result.output
-        assert "oops" in result.output
+        assert "warning: setup command failed (exit 42): exit 42" in result.output
+        assert "err: oops" in result.output
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_passes_setup_option_to_core(self, mock_create: MagicMock, tmp_path: Path) -> None:
@@ -177,7 +173,7 @@ class TestWorktreeAdd:
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_timeout(self, mock_create: MagicMock, tmp_path: Path) -> None:
-        """config.setup_command_timeout 経由で timeout した際の CLI 出力は ⏱ (timeout) 表記"""
+        """timeout した際の CLI 出力は timed out の warning"""
         mock_create.return_value = WorktreeCreateResult(
             name="wt1",
             path=tmp_path / "wt1" / "repo",
@@ -193,9 +189,8 @@ class TestWorktreeAdd:
         )
         result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
         assert result.exit_code == 0
-        assert "⏱" in result.output
-        assert "timeout" in result.output
-        assert "sleep 600" in result.output
+        assert "warning: setup command timed out: sleep 600" in result.output
+        assert "err: timeout after 60 seconds" in result.output
 
 
 # worktree remove
@@ -293,7 +288,7 @@ class TestWorktreeInit:
         with patch("cli.core.worktree.find_main_worktree", return_value=tmp_path):
             result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
         assert result.exit_code == 1
-        assert "既に存在" in result.output
+        assert "error: worktree config already exists" in result.output
 
     def test_init_exists_ignore_only(self, tmp_path: Path) -> None:
         """.worktreeignore だけ既存でも exit 1"""
@@ -303,7 +298,7 @@ class TestWorktreeInit:
         with patch("cli.core.worktree.find_main_worktree", return_value=tmp_path):
             result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
         assert result.exit_code == 1
-        assert "既に存在" in result.output
+        assert "error: worktree config already exists" in result.output
         assert ".worktreeignore" in result.output
 
     def test_init_target_repo_fallbacks_to_self_when_no_project(self, tmp_path: Path) -> None:
@@ -381,7 +376,8 @@ class TestWorktreeLink:
         with patch("cli.core.worktree_links.find_config_file", return_value=None):
             result = runner.invoke(app, ["worktree", "link", "-D", str(tmp_path)])
         assert result.exit_code == 1
-        assert "設定ファイルが見つかりません" in result.output
+        assert "error: worktree config not found" in result.output
+        assert "run: pecot worktree init -D <directory>" in result.output
 
 
 # devcontainer 前提ガード

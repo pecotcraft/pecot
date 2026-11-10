@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n\n=== Preflight Check Passed ===\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
   "exitCode": 0,
   "requests": [
     {

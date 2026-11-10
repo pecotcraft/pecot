@@ -34,8 +34,12 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
 
 import typer
 
+from cli.commands._output import Output
+
 if TYPE_CHECKING:
     from cli.core.repo_resolver import RepoRef, ResolvedRepo
+
+_OUT = Output(dry_run=False)
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -119,8 +123,7 @@ def require_repo_match(mode: Mode) -> Callable[[F], F]:
 
             ctx = _find_typer_context(args, kwargs)
             if ctx is None:
-                # Typer 経由ではなく直接 Python 関数呼び出しされたケース
-                # (既存のユニットテスト互換性のため、ポリシー適用をスキップ)。
+                # Direct Python call, not through Typer: skip the policy
                 return func(*args, **kwargs)
 
             explicit = _extract_explicit_repo(ctx)
@@ -128,30 +131,22 @@ def require_repo_match(mode: Mode) -> Callable[[F], F]:
 
             if explicit is None:
                 if resolved is None:
-                    # --repo 無し + Git 外 → 曖昧。呼び出し側に任せず、
-                    # 統一メッセージで exit 1 (cli-commands.md §42-46 の
-                    # 「リポジトリが曖昧です」メッセージを再利用)。
-                    typer.echo(
-                        "error: リポジトリが曖昧です。--repo <owner/repo> を明示してください。",
-                        err=True,
-                    )
+                    # Without --repo and outside Git the repository is ambiguous: exit 1
+                    _OUT.error("the repository is ambiguous\ngive --repo <owner/repo>")
                     raise typer.Exit(1)
-                # Git 内で解決できたので従来挙動へ
+                # Resolved inside Git: run the body as before
                 return func(*args, **kwargs)
 
-            # 明示値あり
+            # An explicit value was given
             try:
                 explicit_ref = RepoRef.parse(explicit)
             except ValueError as e:
-                # options.py の validator で弾かれる想定だが念のため
-                typer.echo(
-                    f"error: --repo の形式が不正です: {repr(explicit)}",
-                    err=True,
-                )
+                # options.py rejects this first; kept as a guard
+                _OUT.error(f"--repo has an invalid form: {explicit!r}")
                 raise typer.Exit(1) from e
 
             if resolved is None or resolved.source is not ResolveSource.CURRENT_GIT:
-                # Git 外 / remote 不在 → 比較対象が無いので明示値を採用
+                # Outside Git or no remote: nothing to compare, so adopt the explicit value
                 _store_resolved_repo(ctx, explicit_ref)
                 return func(*args, **kwargs)
 
@@ -160,24 +155,18 @@ def require_repo_match(mode: Mode) -> Callable[[F], F]:
                 _store_resolved_repo(ctx, explicit_ref)
                 return func(*args, **kwargs)
 
-            # 不一致
+            # Mismatch
             if mode == "reject":
-                typer.echo(
-                    f"error: --repo {explicit_ref.full_name} とカレント Git remote "
-                    f"({current_ref.full_name}) が不一致です。",
-                    err=True,
-                )
-                typer.echo(
-                    "       worktree / branch はローカル Git 破壊防止のため拒否します。",
-                    err=True,
+                _OUT.error(
+                    f"--repo {explicit_ref.full_name} differs from the current Git remote "
+                    f"({current_ref.full_name})\n"
+                    "worktree and branch commands are rejected to protect the local Git state"
                 )
                 raise typer.Exit(1)
 
             # mode == "warn"
-            typer.echo(
-                f"warning: --repo {explicit_ref.full_name} を採用します "
-                f"(カレント Git remote: {current_ref.full_name})。",
-                err=True,
+            _OUT.warning(
+                f"using --repo {explicit_ref.full_name} (current Git remote: {current_ref.full_name})"
             )
             _store_resolved_repo(ctx, explicit_ref)
             return func(*args, **kwargs)

@@ -6645,8 +6645,8 @@ class TestOutputStreams:
         with (
             patch("cli.commands.issue.load_active_config", return_value=config),
             patch("cli.commands.issue.GitHubClient", return_value=client),
-            patch("cli.core.state.write_work_target"),
-            patch("cli.core.state.ensure_work_dir", return_value=Path("/x")),
+            patch("cli.commands._work_target.write_work_target"),
+            patch("cli.commands._work_target.ensure_work_dir", return_value=Path("/x")),
             patch("cli.core.state.touch_flag"),
         ):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "テスト"])

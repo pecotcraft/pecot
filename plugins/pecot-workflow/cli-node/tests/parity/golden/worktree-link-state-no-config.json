@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: 設定ファイルが見つかりません\n  → pecot worktree init -D <directory> で設定ファイルを作成してください\n",
+  "stderr": "error: worktree config not found\n  run: pecot worktree init -D <directory>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

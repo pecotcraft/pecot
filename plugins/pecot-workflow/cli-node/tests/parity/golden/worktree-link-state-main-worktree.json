@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: メインWTでは --all オプションを使用してください\n",
+  "stderr": "error: use --all in the main worktree\n",
   "exitCode": 1,
   "requests": [],
   "files": {

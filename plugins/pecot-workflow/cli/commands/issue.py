@@ -16,6 +16,7 @@ from typing import Annotated, Any, NoReturn, get_args
 import typer
 
 from cli.commands._output import Operation, Output, Verb
+from cli.commands._work_target import record_work_target
 from cli.core.config import ProjectConfig, load_active_config
 from cli.core.frontmatter import (
     CommentTemplate,
@@ -32,7 +33,6 @@ from cli.core.frontmatter import (
 from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.issue_board import add_issue_to_board, create_issue, set_issue_field
 from cli.core.paths import (
-    WORK_DIR,
     OutputPathReservationError,
     get_output_dir,
     reserved_output_path,
@@ -1285,23 +1285,6 @@ def _quick_fields(issue_type: IssueType) -> list[tuple[str, str, str]]:
     return fields
 
 
-def _record_work_target(
-    out: Output, owner: str, repo_name: str, issue_number: int, title: str
-) -> None:
-    """Write to .pecot-active and print the result line (a failure is only a warning)"""
-    from cli.core.state import ensure_work_dir, write_work_target
-
-    try:
-        issue_ref = f"{owner}/{repo_name}/{issue_number}"
-        write_work_target(issue_ref, title)
-        target = f"work target {issue_ref}"
-        if ensure_work_dir(issue_ref):
-            target += f" (work directory {WORK_DIR}/{issue_number}/)"
-        out.done(Operation(Verb.SET, target))
-    except Exception as e:
-        out.warning(f"could not record the work target: {e}")
-
-
 def _quick_branch_or_record(
     out: Output,
     config: ProjectConfig,
@@ -1315,7 +1298,7 @@ def _quick_branch_or_record(
 ) -> None:
     """9. Create a branch (with --no-branch, only record the work target)"""
     if no_branch:
-        _record_work_target(out, owner, repo_name, issue_number, title)
+        record_work_target(out, owner, repo_name, issue_number, title)
         return
     try:
         _create_branch_for_quick_issue(
@@ -1533,7 +1516,7 @@ def _create_branch_for_quick_issue(
     out.done(Operation(Verb.CREATE, f"branch {created_branch} in {owner}/{repo}"))
 
     # 5. .pecot-active と .pecot-session-title の書き込み
-    _record_work_target(out, owner, repo, issue_number, title)
+    record_work_target(out, owner, repo, issue_number, title)
 
 
 # --- issue comment コマンド ---

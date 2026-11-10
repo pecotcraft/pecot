@@ -31,7 +31,9 @@ def _patch_current_git(owner: str = "acme-labs", repo: str = "pecot-cli"):
     )
 
 
-WARN_MSG_SUBSTR = "warning: --repo acme-labs/aist-plugin を採用します (カレント Git remote: acme-labs/pecot-cli)。"
+WARN_MSG_SUBSTR = (
+    "warning: using --repo acme-labs/aist-plugin (current Git remote: acme-labs/pecot-cli)"
+)
 
 
 @pytest.mark.usefixtures("no_open_alerts")
@@ -110,4 +112,4 @@ class TestReleaseChangelogMatchNoWarn:
                 ],
             )
         # 不一致警告は出ない
-        assert "採用します" not in result.stderr
+        assert "using --repo" not in result.stderr

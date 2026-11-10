@@ -512,6 +512,6 @@ class TestInvalidRepoProjectInfoCliBadParameter:
         )
 
         assert result.exit_code != 0
-        assert "'owner/repo' 形式で指定してください" in result.output
+        assert "expected 'owner/repo'" in result.output
         # list_project_items (GraphQL POST) は呼ばれない
         assert route.call_count == 0

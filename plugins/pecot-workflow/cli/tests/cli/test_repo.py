@@ -51,7 +51,10 @@ class TestCreateBranchCommand:
         with patch("cli.commands.repo.load_active_config", return_value=None):
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert (
+                "error: no active project\n  run: pecot project activate <PROJECT>\n"
+                in result.output
+            )
 
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
@@ -79,7 +82,7 @@ class TestCreateBranchCommand:
         ):
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
             assert result.exit_code == 1
-            assert "プロジェクトに含まれていません" in result.output
+            assert "error: owner/repo is not in the project\n" in result.output
 
     def test_create_branch_success(self) -> None:
         """正常にブランチ作成（ブランチ名末尾にIssue番号が自動付与される）"""
@@ -103,8 +106,12 @@ class TestCreateBranchCommand:
 
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test-branch"])
             assert result.exit_code == 0
-            assert "feat/test-branch/123" in result.output
-            assert "作成完了" in result.output
+            assert "created: branch feat/test-branch/123 in owner/repo from develop\n" in (
+                result.output
+            )
+            assert "set: work target owner/repo/123" in result.output
+            assert "★" not in result.output
+            assert "git checkout" not in result.output
 
             # API呼び出し確認
             mock_client.get_issue_node_id_and_title.assert_called_once_with("owner", "repo", 123)
@@ -128,7 +135,7 @@ class TestCreateBranchCommand:
         with (
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
-            patch("cli.commands.repo.write_work_target") as mock_write,
+            patch("cli.commands._work_target.write_work_target") as mock_write,
             patch("subprocess.run") as mock_subprocess,
             patch("cli.core.state.get_project_root") as mock_get_root,
         ):
@@ -167,7 +174,7 @@ class TestCreateBranchCommand:
 
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test-branch"])
             assert result.exit_code == 0
-            assert "ステータスを 'active' に設定しました" in result.output
+            assert "set: Issue owner/repo/123 status active\n" in result.output
 
             # ステータス更新API呼び出し確認
             mock_client.get_item_id_by_issue.assert_called_once_with(
@@ -209,9 +216,10 @@ class TestCreateBranchCommand:
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test-branch"])
             # エラーが発生してもブランチ作成は成功
             assert result.exit_code == 0
-            assert "作成完了" in result.output
-            # ステータス更新のメッセージは表示されない
-            assert "ステータスを 'active' に設定しました" not in result.output
+            assert "created: branch" in result.output
+            # ステータス更新の失敗は warning になる
+            assert "warning: could not set Issue owner/repo/123 status active:" in result.output
+            assert "set: Issue" not in result.output
 
     def test_create_branch_handles_issue_not_in_project(self) -> None:
         """Issueがプロジェクトに存在しない場合でも処理続行する"""
@@ -237,7 +245,7 @@ class TestCreateBranchCommand:
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test-branch"])
             # ブランチ作成は成功
             assert result.exit_code == 0
-            assert "作成完了" in result.output
+            assert "created: branch" in result.output
             # ステータス更新は試みられない
             mock_client.update_project_item_field.assert_not_called()
 
@@ -267,7 +275,7 @@ class TestCreateBranchCommand:
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test-branch"])
             # ブランチ作成は成功
             assert result.exit_code == 0
-            assert "作成完了" in result.output
+            assert "created: branch" in result.output
             # ステータス更新は試みられない
             mock_client.update_project_item_field.assert_not_called()
 
@@ -348,7 +356,10 @@ class TestCreateBranchCommand:
         ):
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert (
+                "error: could not create branch feat/test/123 in owner/repo: Issue not found\n"
+                in result.output
+            )
 
     def test_no_develop_branch_raises_error(self) -> None:
         """develop_branchが未設定の場合はエラーを発生"""
@@ -364,7 +375,11 @@ class TestCreateBranchCommand:
         ):
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
             assert result.exit_code == 1
-            assert "develop_branch が設定されていません" in result.output
+            assert (
+                "error: develop_branch is not set for owner/repo\n"
+                "  set it with: pecot project set-repo owner/repo --develop-branch develop\n"
+                "  or give the base: pecot create-branch owner/repo/123 feat/test --base main\n"
+            ) in result.output
 
 
 # create-branch セッションスコープガード (#564)
@@ -387,8 +402,8 @@ class TestCreateBranchSessionScopeGuards:
         ):
             result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
             assert result.exit_code == 2
-            assert "作業対象 Issue のリポ (owner/repo)" in result.output
-            assert "CWD git remote (other-owner/other-repo)" in result.output
+            assert "error: the repository of the work Issue (owner/repo)" in result.output
+            assert "the CWD git remote (other-owner/other-repo)" in result.output
             assert "/pecot-w:w-worktree-add" in result.output
             assert "--allow-cross-repo" in result.output
 
@@ -405,7 +420,7 @@ class TestCreateBranchSessionScopeGuards:
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
             patch("cli.commands.repo.read_flag", return_value=None),
-            patch("cli.commands.repo.write_work_target"),
+            patch("cli.commands._work_target.write_work_target"),
             patch(
                 "cli.core.repo_resolver._detect_current_git_repo",
                 return_value=(RepoRef(owner="other-owner", repo="other-repo"), "origin"),
@@ -427,7 +442,7 @@ class TestCreateBranchSessionScopeGuards:
                 ],
             )
             assert result.exit_code == 0
-            assert "作成完了" in result.output
+            assert "created: branch" in result.output
 
     def test_create_branch_rejects_open_active_overwrite(self) -> None:
         """A-2: .pecot-active に OPEN な別 Issue があれば exit 2 + API 未呼び出し"""
@@ -468,7 +483,7 @@ class TestCreateBranchSessionScopeGuards:
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
             patch("cli.commands.repo.read_flag", return_value="owner/repo/999"),
-            patch("cli.commands.repo.write_work_target") as mock_write,
+            patch("cli.commands._work_target.write_work_target") as mock_write,
             patch("cli.core.state.get_project_root") as mock_get_root,
         ):
             mock_get_root.return_value = MagicMock()
@@ -477,9 +492,7 @@ class TestCreateBranchSessionScopeGuards:
                 app, ["create-branch", "owner/repo/123", "feat/test", "--no-checkout"]
             )
             assert result.exit_code == 0
-            assert "stale" in result.output
-            assert "CLOSED" in result.output
-            assert "owner/repo/999" in result.output
+            assert "warning: .pecot-active points to closed Issue owner/repo/999" in (result.output)
             mock_write.assert_called_once_with("owner/repo/123", "[Task] テスト")
 
     def test_create_branch_treats_unparseable_active_as_stale(self) -> None:
@@ -495,7 +508,7 @@ class TestCreateBranchSessionScopeGuards:
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
             patch("cli.commands.repo.read_flag", return_value="garbage-value"),
-            patch("cli.commands.repo.write_work_target") as mock_write,
+            patch("cli.commands._work_target.write_work_target") as mock_write,
             patch("cli.core.state.get_project_root") as mock_get_root,
         ):
             mock_get_root.return_value = MagicMock()
@@ -504,9 +517,8 @@ class TestCreateBranchSessionScopeGuards:
                 app, ["create-branch", "owner/repo/123", "feat/test", "--no-checkout"]
             )
             assert result.exit_code == 0
-            assert "note:" in result.output
-            assert "不正な形式" in result.output
-            assert "stale" in result.output
+            assert "warning: the content of .pecot-active" in result.output
+            assert "is malformed; overwriting it" in result.output
             mock_client.get_issue_slim.assert_not_called()
             mock_write.assert_called_once_with("owner/repo/123", "[Task] テスト")
 
@@ -523,7 +535,7 @@ class TestCreateBranchSessionScopeGuards:
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
             patch("cli.commands.repo.read_flag", return_value="owner/repo/999"),
-            patch("cli.commands.repo.write_work_target"),
+            patch("cli.commands._work_target.write_work_target"),
             patch("cli.core.state.get_project_root") as mock_get_root,
         ):
             mock_get_root.return_value = MagicMock()
@@ -539,7 +551,7 @@ class TestCreateBranchSessionScopeGuards:
                 ],
             )
             assert result.exit_code == 0
-            assert "作成完了" in result.output
+            assert "created: branch" in result.output
             mock_client.get_issue_slim.assert_not_called()
 
     def test_create_branch_no_check_when_active_matches(self) -> None:
@@ -555,7 +567,7 @@ class TestCreateBranchSessionScopeGuards:
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
             patch("cli.commands.repo.read_flag", return_value="owner/repo/123"),
-            patch("cli.commands.repo.write_work_target"),
+            patch("cli.commands._work_target.write_work_target"),
             patch("cli.core.state.get_project_root") as mock_get_root,
         ):
             mock_get_root.return_value = MagicMock()
@@ -579,7 +591,7 @@ class TestCreateBranchSessionScopeGuards:
             patch("cli.commands.repo.load_active_config", return_value=mock_config),
             patch("cli.commands.repo.GitHubClient", return_value=mock_client),
             patch("cli.commands.repo.read_flag", return_value=None),
-            patch("cli.commands.repo.write_work_target"),
+            patch("cli.commands._work_target.write_work_target"),
             patch("cli.core.state.get_project_root") as mock_get_root,
         ):
             mock_get_root.return_value = MagicMock()
@@ -589,83 +601,6 @@ class TestCreateBranchSessionScopeGuards:
             )
             assert result.exit_code == 0
             mock_client.get_issue_slim.assert_not_called()
-
-
-# create-branch WT環境メッセージテスト
-
-
-class TestCreateBranchWorktreeMessage:
-    """create-branch コマンドのWT環境向け案内メッセージのテスト"""
-
-    def test_worktree_env_shows_wt_message(self) -> None:
-        """WT環境ではWT名入りメッセージが表示される"""
-        mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
-        mock_config.is_repo_in_project.return_value = True
-        mock_config.find_repository.return_value = MagicMock(develop_branch="develop")
-
-        mock_client = _make_create_branch_client()
-
-        with (
-            patch("cli.commands.repo.load_active_config", return_value=mock_config),
-            patch("cli.commands.repo.GitHubClient", return_value=mock_client),
-            patch("cli.core.worktree.get_current_worktree_name", return_value="wt2"),
-            patch("cli.core.state.get_project_root") as mock_get_root,
-        ):
-            mock_get_root.return_value = MagicMock()
-
-            result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
-            assert result.exit_code == 0
-            assert "owner/repo のワークツリー(wt2)で以下を実行してください" in result.output
-
-    def test_non_worktree_env_shows_default_message(self) -> None:
-        """非WT環境では従来メッセージが表示される"""
-        mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
-        mock_config.is_repo_in_project.return_value = True
-        mock_config.find_repository.return_value = MagicMock(develop_branch="develop")
-
-        mock_client = _make_create_branch_client()
-
-        with (
-            patch("cli.commands.repo.load_active_config", return_value=mock_config),
-            patch("cli.commands.repo.GitHubClient", return_value=mock_client),
-            patch("cli.core.worktree.get_current_worktree_name", return_value=None),
-            patch("cli.core.state.get_project_root") as mock_get_root,
-        ):
-            mock_get_root.return_value = MagicMock()
-
-            result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
-            assert result.exit_code == 0
-            assert (
-                "owner/repo で以下のコマンドを実行してブランチを切り替えてください" in result.output
-            )
-
-    def test_worktree_detection_error_shows_default_message(self) -> None:
-        """WT判定エラー時は従来メッセージが表示される"""
-        mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
-        mock_config.is_repo_in_project.return_value = True
-        mock_config.find_repository.return_value = MagicMock(develop_branch="develop")
-
-        mock_client = _make_create_branch_client()
-
-        with (
-            patch("cli.commands.repo.load_active_config", return_value=mock_config),
-            patch("cli.commands.repo.GitHubClient", return_value=mock_client),
-            patch(
-                "cli.core.worktree.get_current_worktree_name",
-                side_effect=RuntimeError("git error"),
-            ),
-            patch("cli.core.state.get_project_root") as mock_get_root,
-        ):
-            mock_get_root.return_value = MagicMock()
-
-            result = runner.invoke(app, ["create-branch", "owner/repo/123", "feat/test"])
-            assert result.exit_code == 0
-            assert (
-                "owner/repo で以下のコマンドを実行してブランチを切り替えてください" in result.output
-            )
 
 
 # ヘルプ表示テスト
@@ -683,7 +618,7 @@ class TestDeleteBranchCommand:
         with patch("cli.commands.repo.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["delete-branch", "invalid-format", "feat/test"])
             assert result.exit_code == 2
-            assert "不正な" in result.output
+            assert result.output.startswith("error: ")
             assert "owner/repo" in result.output
 
     def test_no_active_config(self) -> None:
@@ -691,7 +626,10 @@ class TestDeleteBranchCommand:
         with patch("cli.commands.repo.load_active_config", return_value=None):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/test"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert (
+                "error: no active project\n  run: pecot project activate <PROJECT>\n"
+                in result.output
+            )
 
     def test_protected_branch_default(self) -> None:
         """デフォルトブランチの削除はブロック"""
@@ -708,7 +646,7 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "main"])
             assert result.exit_code == 1
-            assert "保護ブランチ" in result.output
+            assert "is a protected branch\n  protected: " in result.output
 
     def test_protected_branch_develop(self) -> None:
         """develop_branchの削除はブロック"""
@@ -728,7 +666,7 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "develop-aist"])
             assert result.exit_code == 1
-            assert "保護ブランチ" in result.output
+            assert "is a protected branch\n  protected: " in result.output
 
     def test_protected_branch_release(self) -> None:
         """release_branchの削除はブロック"""
@@ -748,7 +686,7 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "release"])
             assert result.exit_code == 1
-            assert "保護ブランチ" in result.output
+            assert "is a protected branch\n  protected: " in result.output
 
     def test_api_error_on_default_branch_fetch(self) -> None:
         """デフォルトブランチ取得時のAPIエラー"""
@@ -769,7 +707,10 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/test"])
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert (
+                "error: could not read the default branch of owner/repo: Not Found\n"
+                in result.output
+            )
 
     def test_api_error_on_delete(self) -> None:
         """ブランチ削除時のAPIエラー"""
@@ -791,7 +732,10 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/nonexistent"])
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert (
+                "error: could not delete remote branch feat/nonexistent in owner/repo: "
+                "Reference does not exist\n"
+            ) in result.output
 
     def test_delete_success(self) -> None:
         """正常にブランチ削除"""
@@ -808,8 +752,7 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/old-branch"])
             assert result.exit_code == 0
-            assert "削除しました" in result.output
-            assert "feat/old-branch" in result.output
+            assert "deleted: remote branch feat/old-branch in owner/repo\n" in result.output
             # featureブランチとWIPブランチの両方が削除される
             assert mock_client.delete_branch.call_count == 2
             mock_client.delete_branch.assert_any_call("owner", "repo", "feat/old-branch")
@@ -830,7 +773,7 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/my-feature"])
             assert result.exit_code == 0
-            assert "WIPブランチ 'wip/feat/my-feature' も削除しました" in result.output
+            assert "deleted: remote branch wip/feat/my-feature in owner/repo\n" in result.output
             assert mock_client.delete_branch.call_count == 2
             mock_client.delete_branch.assert_any_call("owner", "repo", "feat/my-feature")
             mock_client.delete_branch.assert_any_call("owner", "repo", "wip/feat/my-feature")
@@ -856,9 +799,9 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/my-feature"])
             assert result.exit_code == 0
-            assert "削除しました" in result.output
+            assert "deleted: remote branch feat/my-feature in owner/repo\n" in result.output
             # WIPブランチ削除のメッセージは出ない
-            assert "WIPブランチ" not in result.output
+            assert "wip/" not in result.output
 
     def test_delete_success_with_repo_config(self) -> None:
         """リポジトリ設定ありで正常にブランチ削除"""
@@ -878,7 +821,7 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/done-branch"])
             assert result.exit_code == 0
-            assert "削除しました" in result.output
+            assert "deleted: remote branch feat/done-branch in owner/repo\n" in result.output
 
     def test_dry_run(self) -> None:
         """--dry-run で削除せず情報表示"""
@@ -897,8 +840,10 @@ class TestDeleteBranchCommand:
                 app, ["delete-branch", "owner/repo", "feat/test-branch", "--dry-run"]
             )
             assert result.exit_code == 0
-            assert "[dry-run]" in result.output
-            assert "feat/test-branch" in result.output
+            assert (
+                "dry-run: would delete remote branch feat/test-branch in owner/repo\n"
+                in result.output
+            )
             mock_client.delete_branch.assert_not_called()
 
     def test_dry_run_short_option(self) -> None:
@@ -916,7 +861,9 @@ class TestDeleteBranchCommand:
         ):
             result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/test", "-n"])
             assert result.exit_code == 0
-            assert "[dry-run]" in result.output
+            assert "dry-run: would delete remote branch feat/test in owner/repo\n" in (
+                result.output
+            )
             mock_client.delete_branch.assert_not_called()
 
 

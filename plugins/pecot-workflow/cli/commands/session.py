@@ -10,21 +10,18 @@ from typing import Annotated
 
 import typer
 
+from cli.commands._output import Output
+from cli.commands._work_target import record_work_target
 from cli.commands.options import DirectoryOption
 from cli.commands.pr import extract_issue_number_from_branch
 from cli.core.config import load_active_config
 from cli.core.errors import PecotError
 from cli.core.git import git_current_branch, origin_repo
 from cli.core.github import GitHubAPIError, GitHubClient
-from cli.core.paths import WORK_DIR
 from cli.core.ref_parser import RefParseError, parse_issue_ref
-from cli.core.state import (
-    FLAG_PECOT_ACTIVE,
-    ensure_work_dir,
-    flag_exists,
-    read_flag,
-    write_work_target,
-)
+from cli.core.state import FLAG_PECOT_ACTIVE, flag_exists, read_flag
+
+_OUT = Output(dry_run=False)
 
 # データクラス
 
@@ -71,18 +68,18 @@ def flag_status(
 ) -> None:
     """Show the session flag state, branch information, and inferred Issue
 
-    This is a diagnostic tool, so it shows (unknown) / (none) instead of failing when a value cannot be read.
+    This is a diagnostic tool, so it shows ``unknown`` / ``none`` instead of failing when a value cannot be read.
     """
     # 1. ブランチ情報取得
     branch = git_current_branch(directory)
-    branch_display = branch if branch else "(unknown)"
+    branch_display = branch if branch else "unknown"
 
     # 2. リポジトリ情報取得
     origin = origin_repo(directory)
-    repo_display = f"{origin[1]}/{origin[2]}" if origin else "(unknown)"
+    repo_display = f"{origin[1]}/{origin[2]}" if origin else "unknown"
 
     # 3. Issue番号推定
-    issue_display = "(none)"
+    issue_display = "none"
     if branch:
         issue_number = extract_issue_number_from_branch(branch)
         if issue_number is not None:
@@ -92,28 +89,31 @@ def flag_status(
     flag_statuses = _collect_flag_statuses()
 
     # 5. 出力
-    typer.echo("=== フラグ状態 ===")
-    typer.echo("")
-    typer.echo(f"ブランチ: {branch_display}")
-    typer.echo(f"リポジトリ: {repo_display}")
-    typer.echo(f"推定Issue: {issue_display}")
-    typer.echo("")
-    typer.echo("| フラグ | 状態 | 内容 |")
-    typer.echo("|-------|------|------|")
+    lines = [
+        "# Session status",
+        "",
+        f"- Branch: {branch_display}",
+        f"- Repository: {repo_display}",
+        f"- Inferred Issue: {issue_display}",
+        "",
+        "| Flag | State | Content |",
+        "|------|-------|---------|",
+    ]
     for fs in flag_statuses:
-        mark = "✓" if fs.exists else "-"
-        typer.echo(f"| {fs.name} | {mark} | {fs.content} |")
+        state = "set" if fs.exists else "unset"
+        lines.append(f"| {fs.name} | {state} | {fs.content} |")
 
     # 6. アクティブIssue情報の表示
-    _show_active_issue(flag_statuses)
+    lines.extend(_active_issue_lines(flag_statuses))
+    _OUT.data("\n".join(lines))
 
 
-def _show_active_issue(flag_statuses: list[FlagStatus]) -> None:
-    """Fetch and show the active Issue through the GitHub API
+def _active_issue_lines(flag_statuses: list[FlagStatus]) -> list[str]:
+    """Fetch the active Issue through the GitHub API and return the Markdown lines
 
     Parses the Issue reference from the .pecot-active flag,
-    then fetches and shows the title and state through the GitHub API.
-    On an API failure, shows only a warning and continues.
+    then fetches the title and state through the GitHub API.
+    On a failure, prints only a warning and returns no lines.
 
     Args:
         flag_statuses: List of flag states
@@ -124,40 +124,35 @@ def _show_active_issue(flag_statuses: list[FlagStatus]) -> None:
         None,
     )
     if active_flag is None:
-        return
+        return []
 
     # Issue参照をパース（.pecot-active フラグは常に owner/repo/N 形式で書かれる）
     try:
         ref = parse_issue_ref(active_flag.content)
     except RefParseError:
-        return
+        return []
 
     owner, repo, number = ref.repo.owner, ref.repo.repo, ref.number
 
     # 設定からホスト情報を取得
     config = load_active_config()
     if config is None:
-        typer.echo("", err=True)
-        typer.echo("⚠ Issue情報の取得に失敗しました: アクティブ設定が見つかりません", err=True)
-        return
+        _OUT.warning("cannot read the active Issue: no active project")
+        return []
 
     # GitHub APIでIssue情報を取得
     try:
         client = GitHubClient(host=config.host)
         issue = client.get_issue_slim(owner, repo, number, comment_limit=0)
     except GitHubAPIError as e:
-        typer.echo("", err=True)
-        typer.echo(f"⚠ Issue情報の取得に失敗しました: {e}", err=True)
-        return
+        _OUT.warning(f"cannot read the active Issue: {e}")
+        return []
 
-    # Issue情報を表示
-    typer.echo("")
-    typer.echo("=== アクティブIssue ===")
-    typer.echo(f"#{issue['number']} {issue['title']} ({issue['state']})")
+    lines = ["", "## Active Issue", "", f"#{issue['number']} {issue['title']} ({issue['state']})"]
     body = issue.get("body", "")
     if body:
-        typer.echo("")
-        typer.echo(body)
+        lines.extend(["", body])
+    return lines
 
 
 # flag_restore コマンド
@@ -192,40 +187,32 @@ def flag_restore(
         try:
             ref = parse_issue_ref(issue)
         except RefParseError as e:
-            typer.echo(f"ERROR: {e.message}", err=True)
+            _OUT.error(e.message)
             raise typer.Exit(code=2) from e
-        issue_ref = f"{ref.repo.owner}/{ref.repo.repo}/{ref.number}"
+        owner, repo, number = ref.repo.owner, ref.repo.repo, ref.number
     else:
         # --issue 未指定 → ブランチから自動推定
         branch = git_current_branch(directory)
         if branch is None:
-            typer.echo("ERROR: ブランチ名を取得できません", err=True)
+            _OUT.error("cannot read the branch name")
             raise typer.Exit(code=1)
 
         extracted_number = extract_issue_number_from_branch(branch)
         if extracted_number is None:
-            typer.echo(
-                f"ERROR: ブランチ名からIssue番号を推定できません: {branch}",
-                err=True,
-            )
-            typer.echo(
-                "HINT: --issue owner/repo/number で手動指定してください",
-                err=True,
+            _OUT.error(
+                f"cannot infer the Issue number from the branch name: {branch}\n"
+                "run: pecot session restore --issue <owner/repo/N>"
             )
             raise typer.Exit(code=1)
 
         origin = origin_repo(directory)
         if origin is None:
-            typer.echo("ERROR: リポジトリ情報を取得できません", err=True)
+            _OUT.error("cannot read the repository information")
             raise typer.Exit(code=1)
 
         _host, owner, repo = origin
-        issue_ref = f"{owner}/{repo}/{extracted_number}"
-        typer.echo(f"ブランチ: {branch}")
-        typer.echo(f"推定Issue: {issue_ref}")
+        number = extracted_number
 
     # 2. フラグ復元（セッション名用のタイトルは取れたときだけ添える）
-    write_work_target(issue_ref, _fetch_issue_title(issue_ref))
-    typer.echo(f"復元完了: {FLAG_PECOT_ACTIVE} → {issue_ref}")
-    if ensure_work_dir(issue_ref):
-        typer.echo(f"作業ファイル置き場: {WORK_DIR}/{issue_ref.rsplit('/', 1)[-1]}/")
+    title = _fetch_issue_title(f"{owner}/{repo}/{number}")
+    record_work_target(_OUT, owner, repo, number, title, fail_with_exit=True)

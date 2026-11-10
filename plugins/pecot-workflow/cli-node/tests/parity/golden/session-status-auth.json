@@ -1,6 +1,6 @@
 {
-  "stdout": "=== フラグ状態 ===\n\nブランチ: feat/demo/7\nリポジトリ: acme/demo\n推定Issue: #7\n\n| フラグ | 状態 | 内容 |\n|-------|------|------|\n| .pecot-active | ✓ | acme/demo/7 |\n",
-  "stderr": "\n⚠ Issue情報の取得に失敗しました: GraphQL認証エラー: Client error '401 Unauthorized' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\n",
+  "stdout": "# Session status\n\n- Branch: feat/demo/7\n- Repository: acme/demo\n- Inferred Issue: #7\n\n| Flag | State | Content |\n|------|-------|---------|\n| .pecot-active | set | acme/demo/7 |\n",
+  "stderr": "warning: cannot read the active Issue: GraphQL認証エラー: Client error '401 Unauthorized' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\n",
   "exitCode": 0,
   "requests": [
     {

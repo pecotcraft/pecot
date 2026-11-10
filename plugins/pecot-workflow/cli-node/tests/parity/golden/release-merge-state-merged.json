@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: PR #31 は既にマージ済みです\n",
+  "stderr": "error: PR #31 is already merged\n",
   "exitCode": 1,
   "requests": [
     {

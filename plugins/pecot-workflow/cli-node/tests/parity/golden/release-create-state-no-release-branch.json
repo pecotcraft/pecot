@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: release_branchが設定されていません。\n→ pecot project set-repo acme/demo --release-branch <ブランチ名> で設定してください。\n",
+  "stderr": "error: release_branch is not set for acme/demo\n  set it with: pecot project set-repo acme/demo --release-branch <branch>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

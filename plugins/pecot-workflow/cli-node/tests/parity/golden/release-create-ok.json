@@ -1,6 +1,6 @@
 {
-  "stdout": "Creating GitHub release: v0.2.0...\n✓ GitHub release created: v0.2.0\n\nRelease URL: https://ghes.example.com/acme/demo/releases/tag/v0.2.0\n",
-  "stderr": "",
+  "stdout": "https://ghes.example.com/acme/demo/releases/tag/v0.2.0\n",
+  "stderr": "created: release v0.2.0 on release\n",
   "exitCode": 0,
   "requests": [
     {
