@@ -23,7 +23,7 @@ SLEEP_LIMIT = 10
 FAKE_GH = r"""#!/usr/bin/env python3
 import json, os, subprocess, sys
 argv = sys.argv[1:]
-queue = os.environ["FAKE_QUEUE_DIR"]
+queue = "__QUEUE__"
 jq_expr = argv[argv.index("--jq") + 1]
 n = [a for a in argv if a.startswith("n=")][0][2:]
 if not n.isdigit():
@@ -38,10 +38,10 @@ sys.exit(subprocess.run(["jq", "-r", jq_expr, src]).returncode)
 """
 
 FAKE_SLEEP = r"""#!/usr/bin/env bash
-f="$FAKE_QUEUE_DIR/sleeps"
+f="__QUEUE__/sleeps"
 n=$(( $(cat "$f" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$f"
-if [ "$n" -gt "$FAKE_SLEEP_LIMIT" ]; then kill -TERM "$PPID"; fi
+if [ "$n" -gt __LIMIT__ ]; then kill -TERM "$PPID"; fi
 """
 
 
@@ -93,14 +93,10 @@ def _run(tmp_path: Path, responses: list[dict]) -> tuple[subprocess.CompletedPro
         (queue / f"{i}.json").write_text(json.dumps(resp), encoding="utf-8")
     for name, body in (("gh", FAKE_GH), ("sleep", FAKE_SLEEP)):
         path = bindir / name
+        body = body.replace("__QUEUE__", str(queue)).replace("__LIMIT__", str(SLEEP_LIMIT))
         path.write_text(body, encoding="utf-8")
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
-    env = {
-        **os.environ,
-        "PATH": f"{bindir}:{os.environ['PATH']}",
-        "FAKE_QUEUE_DIR": str(queue),
-        "FAKE_SLEEP_LIMIT": str(SLEEP_LIMIT),
-    }
+    env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"}
     proc = subprocess.run(
         ["bash", "-c", _loop_block()], env=env, capture_output=True, text=True, timeout=30
     )
