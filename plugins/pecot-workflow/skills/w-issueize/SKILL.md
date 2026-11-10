@@ -20,7 +20,7 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 このとき、次の変数を確定する。確定した値は、後続 Step で Artifacts セクションに転記する。
 
 - `SPECKIT_DIR`: speckit 一式が置かれているディレクトリ（例: `specs/263-plan-mode-reminder/`）。aist-roadmap など外部リポにある場合は `owner/repo:specs/NNN-*/` 形式で表す。
-- `TASKS_PATH`: 受け取った tasks.md の実パス（Step 4 で削除する対象）
+- `TASKS_PATH`: 受け取った tasks.md の実パス
 
 ```bash
 pecot issue read owner/repo/EPIC_NUMBER
@@ -36,6 +36,8 @@ tasks.md を読み取り、Phase 1, Phase 2 ... の区切り・各フェーズ�
 親Epicの既存サブタスクから order 番号の続番を確認する（**番号決定のためだけに参照。Epic進捗の評価はしない**）。
 続番の起点は、既存サブタスクの最大の `order` + 1（無ければ 1）。枝つきの既存番号（`18a` など）は段の数値で数える。今回 Issue 化しない前提（Issue 化済み・範囲外）は段の計算に入れない。
 
+Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本文の Tasks（T 番号）を tasks.md の各フェーズと比べて見分ける。フェーズの Tasks が既存サブタスクの Tasks に写っていれば、そのフェーズは済とする。済のフェーズは、ユーザーが求めない限り対象から外す。全フェーズが済のときは、Issue 化せずにその旨を報告して終える。
+
 番号は次の手順で決める。
 
 1. 段を決める。前提が無いフェーズは最初の段、それ以外は 1 + 前提の段の最大値
@@ -49,6 +51,7 @@ tasks.md を読み取り、Phase 1, Phase 2 ... の区切り・各フェーズ�
 | Phase | tasks.md のフェーズ番号 |
 | 番号 | 例 `17a`（`order` と `parallel`） |
 | タイトル案 | Issue のタイトル |
+| 済 | 既存サブタスクの Tasks に写っているフェーズに「済」と書く。未なら空 |
 | 前提 | 着手を止める前提のフェーズ |
 | 一部だけの依存 | 一部のタスクだけが待つ依存 |
 
@@ -88,14 +91,6 @@ before / after の例を示す。
 pecot issue create <phase1のファイル> <phase2のファイル> ...
 ```
 
-### Step 4: tasks.md を削除する
-
-全フェーズのIssue投稿が成功したら、役目を終えた tasks.md を削除する。進捗管理はIssueに移譲したので不要。
-
-```bash
-rm <tasks.mdのパス>
-```
-
-### Step 5: 完了報告
+### Step 4: 完了報告
 
 作成した Phase と Issue 番号を表形式でユーザーに報告する。実装開始は `/pecot-w:w-active` を使う旨を案内する。
