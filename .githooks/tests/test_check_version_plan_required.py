@@ -40,6 +40,7 @@ pecot-visual=plugins/pecot-visual
 pecot-tools=plugins/pecot-tools
 text-rules=libs/text-rules
 nx-release=.nx/nx-release
+interface-spec=libs/interface-spec
 pecot-workflowx=plugins/pecot-workflowx"""
 
 # PATH 先頭に置く nx スタブ本体。`nx graph --file=<path>` だけに答える。
@@ -678,6 +679,16 @@ def test_12_pass_files_outside_projects(script_dir: Path, vpr_repo: _VprRepo, ru
 def test_13_pass_project_outside_groups(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
     """13. release group に入っていない project（nx-release）だけの変更 → pass。"""
     feature_sha = _commit_feature(vpr_repo, {".nx/nx-release/src/probe.js": "// probe\n"})
+    vpr_repo.stub_nx()
+    result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
+    assert result.returncode == 0
+
+
+def test_13b_pass_libs_project_outside_groups(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """13b. 配布しない libs/interface-spec だけの変更 → group に無い project なので plan を求めず pass。"""
+    feature_sha = _commit_feature(vpr_repo, {"libs/interface-spec/src/probe.ts": "export {};\n"})
     vpr_repo.stub_nx()
     result = _run(script_dir, vpr_repo, run_script, to_ref=feature_sha)
     assert result.returncode == 0

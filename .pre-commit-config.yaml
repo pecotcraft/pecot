@@ -214,7 +214,15 @@ repos:
       # v0.17 の ruff-format は初期設定で Markdown も対象にするため、従来どおり Python に限る
       - id: ruff-check
         types_or: [python, pyi]
+        exclude: ^libs/interface-spec/tests/fixtures/
         args: ['--fix', '--config', 'plugins/pecot-workflow/cli/pyproject.toml']
+      # interface-spec の fixture は、--fix で書き換えると期待の行番号が崩れるので、チェックだけにする
+      - id: ruff-check
+        alias: ruff-check-interface-spec-fixtures
+        name: ruff check (interface-spec fixtures, no fix)
+        files: ^libs/interface-spec/tests/fixtures/
+        types_or: [python, pyi]
+        args: ['--config', 'plugins/pecot-workflow/cli/pyproject.toml']
       - id: ruff-format
         types_or: [python, pyi]
         args: ['--config', 'plugins/pecot-workflow/cli/pyproject.toml']

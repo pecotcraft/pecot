@@ -1,0 +1,105 @@
+{
+  "format": 1,
+  "plugin": "pecot-tools",
+  "prefix": "PT",
+  "entries": [
+    {
+      "id": "PT-AWS-S3-CP",
+      "name": "aws_s3_cp",
+      "description": "Copy an object between S3 and the local file system.",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_s3_cp"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Source path or S3 URI."
+          },
+          "destination": {
+            "type": "string",
+            "description": "Destination path or S3 URI."
+          }
+        },
+        "required": [
+          "source",
+          "destination"
+        ],
+        "additionalProperties": false
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "copied": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "copied"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      }
+    },
+    {
+      "id": "PT-AWS-S3-LS",
+      "name": "aws_s3_ls",
+      "description": "List the objects under an S3 prefix.",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_s3_ls"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "S3 URI to list."
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "lines"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      }
+    }
+  ]
+}

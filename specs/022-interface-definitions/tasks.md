@@ -55,15 +55,15 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: `libs/interface-spec/tests/` の fixture の定義書に検証をかける。fixture は、正しいもの 1 つと、誤りを 1 つずつ入れたものだ。失敗の行が、contracts/definition-format.md の文字列と一致する
 
-- [ ] T001 `libs/interface-spec/` を nx の project として作る
+- [x] T001 `libs/interface-spec/` を nx の project として作る
   - 設定のファイルは `libs/text-rules/` と同じ作りで置く
   - 置くのは `package.json`・`project.json`・`tsconfig.json`・`eslint.config.js`・`vitest.config.ts` だ
   - レーンは `install`・`test-unit`・`lint`・`lint-defs`
   - `nx.json` の release の group には入れない
   - `lint` は、eslint・tsc に加えて、この project の下の Python に ruff と strict の型チェックをかける
-- [ ] T002 version plan の確認が、release の group に無い `libs/interface-spec/` の変更で plan を求めないことを確かめる。確認は `.githooks/pre-push/check-version-plan-required.sh` にある。求めるなら、対象から外す
-- [ ] T003 `lint-defs` と `test-unit` を、lint と test の hook のレーン名の列挙に足す（`.githooks/README.md` R1）。`.githooks/tests/` の該当のテストを直す
-- [ ] T004 [P] `libs/interface-spec/tests/fixtures/` に、定義書の fixture を作る。正しいもの 1 組と、次の誤りを 1 つずつ入れたものを置く
+- [x] T002 version plan の確認が、release の group に無い `libs/interface-spec/` の変更で plan を求めないことを確かめる。確認は `.githooks/pre-push/check-version-plan-required.sh` にある。求めるなら、対象から外す
+- [x] T003 `lint-defs` と `test-unit` を、lint と test の hook のレーン名の列挙に足す（`.githooks/README.md` R1）。`.githooks/tests/` の該当のテストを直す
+- [x] T004 [P] `libs/interface-spec/tests/fixtures/` に、定義書の fixture を作る。正しいもの 1 組と、次の誤りを 1 つずつ入れたものを置く
   - `authored.yaml` に項目が無い
   - 欄が 1 つ欠けている（`on_error`）
   - 知らない欄がある
@@ -74,21 +74,21 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
   - 振る舞いの項目の ID が重なる。ID の形が違う
   - `format` が知らない値
   - ソースが読む環境変数の名前が `environment` に無い（Python と TypeScript のソースの fixture を置く）
-- [ ] T005 `libs/interface-spec/tests/validate.test.ts` を書く。T004 の fixture ごとに、失敗の行を文字列で比べる。この時点で失敗することを確かめる
-- [ ] T006 `libs/interface-spec/src/domain/schema.ts` に、2 つのファイルの形式を zod で定義する。欄は data-model.md の表のとおりにする。人が書く側は、どの欄も省けない
-- [ ] T007 `libs/interface-spec/src/domain/validate.ts` に、data-model.md の「検証の規則」のうち形式の検証が担うものを実装する。失敗は 1 件 1 行で、ファイル・項目の ID・欄・理由を返す
-- [ ] T008 `libs/interface-spec/src/domain/ears.ts` に、`pattern` と日本語の文の形を比べる規則を実装する。形は contracts/definition-format.md の「振る舞いの項目の文の型」の表に従う
-- [ ] T009 `libs/interface-spec/src/domain/diff.ts` に、2 つの `generated.json` の差を出す関数を実装し、テストを書く。差は「項目の ID: 欄のパス: 変わり方」の行で出す。各プラグインの一致の確認がこれを使う
-- [ ] T010 `libs/interface-spec/src/infra/` に、`targets.json` と定義書の読み込みを実装する。`libs/interface-spec/src/cli.ts` に `validate` のコマンドを足し、`lint-defs` から呼ぶ。`targets.json` は、3 プラグインとも定義書が無い状態で通る
-- [ ] T011 `libs/interface-spec/tests/environment.test.ts` を書く。T004 のソースの fixture から名前を集め、`environment` に無い名前の失敗の行を文字列で比べる。`entries: partial` のプラグインでは確認を動かさないことも確かめる。この時点で失敗する
-- [ ] T012 環境変数の名前の確認を実装する
+- [x] T005 `libs/interface-spec/tests/validate.test.ts` を書く。T004 の fixture ごとに、失敗の行を文字列で比べる。この時点で失敗することを確かめる
+- [x] T006 `libs/interface-spec/src/domain/schema.ts` に、2 つのファイルの形式を zod で定義する。欄は data-model.md の表のとおりにする。人が書く側は、どの欄も省けない
+- [x] T007 `libs/interface-spec/src/domain/validate.ts` に、data-model.md の「検証の規則」のうち形式の検証が担うものを実装する。失敗は 1 件 1 行で、ファイル・項目の ID・欄・理由を返す
+- [x] T008 `libs/interface-spec/src/domain/ears.ts` に、`pattern` と日本語の文の形を比べる規則を実装する。形は contracts/definition-format.md の「振る舞いの項目の文の型」の表に従う
+- [x] T009 `libs/interface-spec/src/domain/diff.ts` に、2 つの `generated.json` の差を出す関数を実装し、テストを書く。差は「項目の ID: 欄のパス: 変わり方」の行で出す。各プラグインの一致の確認がこれを使う
+- [x] T010 `libs/interface-spec/src/infra/` に、`targets.json` と定義書の読み込みを実装する。`libs/interface-spec/src/cli.ts` に `validate` のコマンドを足し、`lint-defs` から呼ぶ。`targets.json` は、3 プラグインとも定義書が無い状態で通る
+- [x] T011 `libs/interface-spec/tests/environment.test.ts` を書く。T004 のソースの fixture から名前を集め、`environment` に無い名前の失敗の行を文字列で比べる。`entries: partial` のプラグインでは確認を動かさないことも確かめる。この時点で失敗する
+- [x] T012 環境変数の名前の確認を実装する
   - `entries: complete` のプラグインだけを対象にする
   - 対象のソースから、環境変数を読む箇所の名前を集め、`authored.yaml` の `environment` と比べる
   - 読む箇所は `os.environ`・`os.getenv`・`process.env` で探す
   - 取りこぼしが無いかを、3 プラグインのソースで確かめる（FR-028）
-- [ ] T013 層の依存（domain が infra・cli を import しない）を、`import-x/no-restricted-paths` で止める
-- [ ] T014 `libs/interface-spec/tests/field-map.test.ts` を書く。形式の定義の欄がすべて対応表にあり、表だけにある欄が無いことを確かめる。この時点で失敗する（FR-023、SC-010）
-- [ ] T015 `libs/interface-spec/src/domain/field-map.ts` に、欄と POSIX の節・借りた先の対応表を持つ。中身は contracts/definition-format.md の「欄が従う枠組み」の 2 つの表を移す
+- [x] T013 層の依存（domain が infra・cli を import しない）を、`import-x/no-restricted-paths` で止める
+- [x] T014 `libs/interface-spec/tests/field-map.test.ts` を書く。形式の定義の欄がすべて対応表にあり、表だけにある欄が無いことを確かめる。この時点で失敗する（FR-023、SC-010）
+- [x] T015 `libs/interface-spec/src/domain/field-map.ts` に、欄と POSIX の節・借りた先の対応表を持つ。中身は contracts/definition-format.md の「欄が従う枠組み」の 2 つの表を移す
 
 **Checkpoint**: T005 が通る。`pnpm exec nx run interface-spec:lint-defs` が通る
 
@@ -117,7 +117,8 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 - [ ] T019 [US1] typer の引数の型のうち、JSON Schema に写せないものが無いかを、34 コマンドの全引数で確かめる。写せないものがあれば、写し方を contracts/definition-format.md に足す
 - [ ] T020 [US1] `plugins/pecot-workflow/interface/generated.json` を `--write` で作る
 - [ ] T021 [US1] `test_interface_export.py` に、`--check` が今の実装で通ることのテストを足す。`plugins/pecot-workflow/project.json` の `test-py` の入力に `interface/**` と `scripts/interface/**` を足す
-- [ ] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く
+- [ ] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く。
+  `sources` の glob を `libs/interface-spec/project.json` の `lint-defs` の inputs に足す
 - [ ] T023 [US1] `plugins/pecot-workflow/cli-node/tests/interface-export.test.ts` を書く
   - 見本の `CommandSpec` を 2 つ組み、書き出した項目が形式の検証を通ることを確かめる
   - 同じ引数を持つ typer の見本から書き出した `input` と、差が 0 件であることも確かめる

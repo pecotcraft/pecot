@@ -10,12 +10,14 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 | `plugins/pecot-visual` | ビジュアル系スキル（Slidev / draw.io） | `pecot-visual` | `test-cli` / `test-bootstrap` / `test-slidev` / `test-hooks` / `test-compare` / `test-release` / `test-skills` |
 | `plugins/pecot-tools` | 許可リストで限定した awscli コマンドの MCP サーバ | `pecot-tools` | `test-cli` / `test-bootstrap` / `test-release` |
 | `libs/text-rules` | テキスト規則ライブラリ（pecot-visual への同梱と root フックが使う） | `text-rules` | `test-unit` |
+| `libs/interface-spec` | インタフェース定義書の形式と検証。配布しない | `interface-spec` | `test-unit` |
 | `.githooks` | root 共通の hook とそのテスト | `githooks` | `test-nx-cache` / `test-nx-affected` / `test-ci` / `test-checks` |
 
-1 プラグイン = 1 nx project（`libs/text-rules` と `.githooks` も 1 project）。`test` target は `nx run-many -t test` で全量を実行する起点で、dependsOn でレーン `test-*` を束ねる。
+1 プラグイン = 1 nx project（`libs/text-rules`・`libs/interface-spec`・`.githooks` も 1 project）。`test` target は `nx run-many -t test` で全量を実行する起点で、dependsOn でレーン `test-*` を束ねる。
 入力を持たないため、`nx affected -t test` では何も選ばれず 0 件で成功する。
 チェックはレーン名を列挙して `nx affected` で要求し、変更が届いたレーンだけを実行する。
-install・build は毎回実行する。lint は pecot-visual と pecot-workflow が `lint-*` のレーンに分かれ、pecot-tools・text-rules は `lint` 1 つ
+install・build は毎回実行する。lint は pecot-visual と pecot-workflow が `lint-*` のレーンに分かれ、pecot-tools・text-rules は `lint` 1 つ。
+interface-spec は `lint` と `lint-defs` の 2 つ。
 
 ## プラグイン製品としての前提
 

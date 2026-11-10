@@ -1,0 +1,66 @@
+format: 1
+plugin: pecot-tools
+environment:
+  - name: AWS_PROFILE
+    effect: Selects the AWS profile.
+entries:
+  PT-AWS-S3-CP:
+    constraints: []
+    details:
+      - Copies one object and returns whether it was copied.
+    stdin: none
+    output:
+      format: none
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: aws-error
+        when: The aws command exited with a non-zero status.
+    on_error: default
+    effects:
+      - target: aws
+        kind: write
+        what: Writes the destination object.
+    prerequisites:
+      - An AWS profile with S3 access is configured.
+    idempotent: true
+    examples:
+      - run: aws_s3_cp source=s3://bucket/a destination=./a
+        note: Download one object.
+    default_notes: {}
+    behaviors:
+      - id: PT-AWS-S3-CP-01
+        pattern: event
+        statement: コピー元とコピー先を渡すと、オブジェクトを 1 つコピーする
+  PT-AWS-S3-LS:
+    constraints: []
+    details:
+      - Lists the keys under a prefix, one per line.
+    stdin: none
+    output:
+      format: none
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: aws-error
+        when: The aws command exited with a non-zero status.
+    on_error: default
+    effects:
+      - target: aws
+        kind: read
+        what: Lists objects.
+    prerequisites:
+      - An AWS profile with S3 access is configured.
+    idempotent: true
+    examples:
+      - run: aws_s3_ls path=s3://bucket/
+        note: List a bucket.
+    default_notes: {}
+    behaviors:
+      - id: PT-AWS-S3-LS-01
+        pattern: unwanted
+        statement: もし認証が切れているなら、失敗の種別 auth-expired を返す
+common_behaviors:
+  - id: PW-COMMON-01
+    pattern: ubiquitous
+    statement: 常に、失敗を isError が真の結果で返す

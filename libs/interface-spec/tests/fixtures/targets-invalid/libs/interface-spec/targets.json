@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "plugins": {
+    "pecot-workflow": {
+      "entries": "all",
+      "sources": [],
+      "extra": 1
+    }
+  }
+}

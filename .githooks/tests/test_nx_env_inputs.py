@@ -308,7 +308,13 @@ def _tracked_plugin_files() -> list[str]:
         text=True,
         check=True,
     ).stdout
-    return [line for line in out.splitlines() if "/node_modules/" not in line]
+    # interface-spec の fixture のソースは検証にかけるデータで、どのレーンも実行しない。
+    return [
+        line
+        for line in out.splitlines()
+        if "/node_modules/" not in line
+        and not line.startswith("libs/interface-spec/tests/fixtures/")
+    ]
 
 
 # プラグインのディレクトリ名 → そのプラグインのレーンが使う env の namedInput。
