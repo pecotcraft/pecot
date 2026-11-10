@@ -34,14 +34,14 @@ PRIORITY = "medium"
 # security の Tracker の種類ごとの見出しと同じ形にする
 SECTION_HEADING = "## dependabot PR"
 
-REASON_UNKNOWN = "update-type 不明"
+REASON_UNKNOWN = "unknown update type"
 REASON_MAJOR = "major"
 REASON_PLAYWRIGHT = "playwright"
-REASON_FAILED = "検証が落ちた"
-REASON_STUCK = "検証が終わらない"
-REASON_CONFLICT = "競合"
-REASON_DEQUEUED = "queue から外れた"
-REASON_NO_AUTO_MERGE = "auto-merge が入っていない"
+REASON_FAILED = "checks failed"
+REASON_STUCK = "checks not finishing"
+REASON_CONFLICT = "conflict"
+REASON_DEQUEUED = "dequeued"
+REASON_NO_AUTO_MERGE = "no auto-merge"
 
 # dependabot-auto-merge.yml が auto-merge を入れるまでの猶予と、検証の待ち時間の上限
 GRACE = timedelta(minutes=30)

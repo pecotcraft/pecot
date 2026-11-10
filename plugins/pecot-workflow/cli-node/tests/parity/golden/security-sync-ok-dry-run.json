@@ -1,6 +1,6 @@
 {
-  "stdout": "[dry-run] Tracker を立てる: [Tracker] security alert — {{TODAY}}（1 件・Priority: high）\n[dry-run] Tracker に載せる: dependabot #7\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "dry-run: would create Tracker \"[Tracker] security alert — {{TODAY}}\" with priority high\ndry-run: would add dependabot #7 to new Tracker\n",
   "exitCode": 0,
   "requests": [
     {

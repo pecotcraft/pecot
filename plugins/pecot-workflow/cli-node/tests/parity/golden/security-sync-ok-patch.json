@@ -1,6 +1,6 @@
 {
-  "stdout": "Tracker #20 に足す: code-scanning #3\n書き直した: Tracker #20\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "added: code-scanning #3 to Tracker #20\n",
   "exitCode": 0,
   "requests": [
     {

@@ -9,11 +9,12 @@ Actions の schedule と手元の両方から同じコマンドで動かす。
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, NamedTuple
 
 import httpx
 import typer
 
+from cli.commands._output import Operation, Output, Verb
 from cli.commands._tracker_sync import (
     DryRunOption,
     api_error_detail,
@@ -55,30 +56,39 @@ def _entries(waiting: list[tuple[dict[str, Any], list[str]]]) -> list[PrEntry]:
     ]
 
 
-def _echo_plan(
-    plan: PrPlan, tracker: int | None, title: str, dry_run: bool, unchanged: bool
-) -> None:
-    """Tracker に対する予定を表示する。dry-run かどうかは行頭の印だけで切り替える"""
-    prefix = "[dry-run] " if dry_run else ""
+class _Stages(NamedTuple):
+    """Tracker に対する事柄を、実行の段ごとに分けた Operation の並び"""
+
+    create: list[Operation]
+    rewrite: list[Operation]
+    close: list[Operation]
+
+    def all(self) -> list[Operation]:
+        return [*self.create, *self.rewrite, *self.close]
+
+
+def _operations(plan: PrPlan, tracker: int | None, title: str, unchanged: bool) -> _Stages:
+    """Tracker に対する事柄を段ごとの Operation にする"""
     if tracker is None:
         if not plan.create:
-            typer.echo(f"{prefix}Tracker を立てません（人の判断を待つ PR がありません）")
-            return
-        typer.echo(f"{prefix}Tracker を立てる: {title}（{len(plan.entries)} 件）")
-        for e in plan.entries:
-            typer.echo(f"{prefix}Tracker に載せる: PR #{e.number}（{'・'.join(e.reasons)}）")
-        return
+            return _Stages([Operation(Verb.SKIP, "Tracker creation")], [], [])
+        created = [Operation(Verb.CREATE, f'Tracker "{title}"')]
+        created += [
+            Operation(Verb.ADD, f"PR #{e.number} to new Tracker ({', '.join(e.reasons)})")
+            for e in plan.entries
+        ]
+        return _Stages(created, [], [])
     if unchanged and not plan.close:
-        typer.echo(f"{prefix}Tracker #{tracker} は変わらない")
-        return
-    for e in plan.added:
-        typer.echo(f"{prefix}Tracker #{tracker} に足す: PR #{e.number}（{'・'.join(e.reasons)}）")
-    for n in plan.removed:
-        typer.echo(f"{prefix}Tracker #{tracker} から外す: PR #{n}")
-    if not (plan.added or plan.removed or plan.close):
-        typer.echo(f"{prefix}Tracker #{tracker} の本文を書き直す")
-    if plan.close:
-        typer.echo(f"{prefix}Tracker #{tracker} を閉じる")
+        return _Stages([], [Operation(Verb.UNCHANGED, f"Tracker #{tracker}")], [])
+    rewrite = [
+        Operation(Verb.ADD, f"PR #{e.number} to Tracker #{tracker} ({', '.join(e.reasons)})")
+        for e in plan.added
+    ]
+    rewrite += [Operation(Verb.REMOVE, f"PR #{n} from Tracker #{tracker}") for n in plan.removed]
+    if not rewrite and not unchanged:
+        rewrite = [Operation(Verb.UPDATE, f"Tracker #{tracker} body")]
+    close = [Operation(Verb.CLOSE, f"Tracker #{tracker}")] if plan.close else []
+    return _Stages([], rewrite, close)
 
 
 def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
@@ -102,66 +112,71 @@ def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         $ pecot dependabot sync --dry-run
         $ pecot dependabot sync
     """
-    config, owner, repo = load_target(ctx)
+    out = Output(dry_run)
+    config, owner, repo = load_target(ctx, out)
     client = GitHubClient(host=config.host)
 
     try:
         prs = client.list_open_dependabot_pull_requests(owner, repo)
         issues = client.list_issues_by_label(owner, repo, PR_LABEL)
     except (GitHubAPIError, httpx.HTTPError) as e:
-        typer.echo(
-            f"エラー: PR または Issue の一覧を取得できません: {api_error_detail(e)}", err=True
-        )
+        out.error(f"could not list pull requests or issues: {api_error_detail(e)}")
         raise typer.Exit(1) from None
 
     tracker, others = find_tracker(issues, TRACKER_RE)
-    warn_extra_trackers(tracker, others)
+    warn_extra_trackers(out, tracker, others)
     existing_body = (tracker.get("body") or "") if tracker else None
     try:
         old_numbers = parse_tracker_pr_numbers(existing_body) if tracker else None
     except DependabotPrError as e:
         label = f"Tracker #{tracker['number']}" if tracker else "Tracker"
-        typer.echo(f"エラー: {label}: {e}", err=True)
+        out.error(f"{label}: {e}")
         raise typer.Exit(1) from None
 
     now = datetime.now(timezone.utc)
     waiting = [(pr, reasons) for pr in prs if (reasons := waiting_reasons(pr, now))]
     no_rollup = sum(1 for pr, _ in waiting if rollup_state(pr) is None)
-    typer.echo(
-        f"open の dependabot の PR: {len(prs)} 件、うち Tracker に載せる {len(waiting)} 件"
-        f"（検証の結果が null: {no_rollup} 件）"
-    )
+    out.count("open dependabot PRs", len(prs))
+    out.count("PRs awaiting a decision", len(waiting))
+    out.count("PRs awaiting a decision without check results", no_rollup)
     plan = plan_tracker(_entries(waiting), old_numbers)
     title = build_tracker_title(now.date())
     body = render_tracker_body(plan.entries, existing_body)
     number = int(tracker["number"]) if tracker else None
     unchanged = number is not None and body == (existing_body or "").replace("\r\n", "\n")
-    _echo_plan(plan, number, title, dry_run, unchanged)
+    stages = _operations(plan, number, title, unchanged)
+    for op in stages.all():
+        out.planned(op)
 
     if dry_run:
         return
-    if _apply(client, config, owner, repo, plan, number, title, body, unchanged):
+    if _apply(out, client, config, owner, repo, plan, title, body, stages, number, unchanged):
         raise typer.Exit(1)
 
 
 def _apply(
+    out: Output,
     client: GitHubClient,
     config: ProjectConfig,
     owner: str,
     repo: str,
     plan: PrPlan,
-    number: int | None,
     title: str,
     body: str,
+    stages: _Stages,
+    number: int | None,
     unchanged: bool,
 ) -> int:
     """Tracker を立てる・書き直す・閉じる・ボードへ載せる。失敗した件数を返す"""
     try:
         if number is None:
             if not plan.create:
+                for op in stages.create:
+                    out.done(op)
                 return 0
             issue = create_issue(client, owner, repo, title, body, [PR_LABEL])
-            typer.echo(f"立てた: Tracker #{issue['number']}")
+            for op in stages.create:
+                out.done(op)
             put_on_board(
                 client, config, owner, repo, issue["number"], PRIORITY, only_if_empty=False
             )
@@ -169,29 +184,26 @@ def _apply(
         if not unchanged:
             try:
                 client.update_issue_body(owner, repo, number, body)
-                typer.echo(f"書き直した: Tracker #{number}")
             except (GitHubAPIError, httpx.HTTPError) as e:
                 # 本文が書き直されていないので、閉じずに次の実行でやり直す
-                typer.echo(
-                    f"エラー: Tracker #{number} の本文を書き直せません: {api_error_detail(e)}",
-                    err=True,
-                )
+                out.error(f"could not update Tracker #{number} body: {api_error_detail(e)}")
                 return 1
-        if plan.close:
+        for op in stages.rewrite:
+            out.done(op)
+        if stages.close:
             try:
                 client.close_issue(owner, repo, number, state_reason="completed")
             except (GitHubAPIError, httpx.HTTPError) as e:
-                typer.echo(
-                    f"エラー: Tracker #{number} の一覧を none にした後、閉じられませんでした。"
-                    f"次の実行で再試行します: {api_error_detail(e)}",
-                    err=True,
+                out.error(
+                    f"could not close Tracker #{number} after setting its list to none;"
+                    f" will retry on the next run: {api_error_detail(e)}"
                 )
                 return 1
-            typer.echo(f"閉じた: Tracker #{number}")
+            out.done(stages.close[0])
             return 0
         # 作った後にボード登録が失敗した実行を直す。Status・Priority は空のときだけ入れる
         put_on_board(client, config, owner, repo, number, PRIORITY, only_if_empty=True)
         return 0
     except (GitHubAPIError, httpx.HTTPError) as e:
-        typer.echo(f"エラー: Tracker: {api_error_detail(e)}", err=True)
+        out.error(f"Tracker: {api_error_detail(e)}")
         return 1

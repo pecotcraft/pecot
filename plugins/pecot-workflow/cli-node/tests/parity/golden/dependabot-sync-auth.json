@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: PR または Issue の一覧を取得できません: GraphQL認証エラー: Client error '401 Unauthorized' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\n",
+  "stderr": "error: could not list pull requests or issues: GraphQL認証エラー: Client error '401 Unauthorized' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\n",
   "exitCode": 1,
   "requests": [
     {

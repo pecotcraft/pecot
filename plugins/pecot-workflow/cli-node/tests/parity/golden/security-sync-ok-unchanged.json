@@ -1,6 +1,6 @@
 {
-  "stdout": "Tracker #20 は変わらない\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "unchanged: Tracker #20\n",
   "exitCode": 0,
   "requests": [
     {

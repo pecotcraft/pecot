@@ -12,6 +12,7 @@ from typing import Annotated, Any
 import httpx
 import typer
 
+from cli.commands._output import Operation, Output
 from cli.commands.release import resolve_release_target_repo
 from cli.core.config import ProjectConfig, load_active_config
 from cli.core.github import GitHubAPIError
@@ -22,7 +23,7 @@ DryRunOption = Annotated[
 ]
 
 
-def load_target(ctx: typer.Context) -> tuple[ProjectConfig, str, str]:
+def load_target(ctx: typer.Context, out: Output) -> tuple[ProjectConfig, str, str]:
     """対象リポ（git の origin、--repo 優先）とアクティブなプロジェクトを解決する
 
     ``pecot security sync`` と ``pecot dependabot sync`` が使う。
@@ -33,7 +34,7 @@ def load_target(ctx: typer.Context) -> tuple[ProjectConfig, str, str]:
     owner, repo = resolve_release_target_repo(ctx, Path.cwd())
     config = load_active_config()
     if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
+        out.error("no active project")
         raise typer.Exit(1)
     return config, owner, repo
 
@@ -43,14 +44,16 @@ def api_error_detail(e: GitHubAPIError | httpx.HTTPError) -> str:
     return e.message if isinstance(e, GitHubAPIError) else str(e)
 
 
-def warn_extra_trackers(tracker: dict[str, Any] | None, others: list[int]) -> None:
+def settle(out: Output, op: Operation) -> None:
+    """API を伴わない事柄の行を出す（dry-run は plan、そうでなければ result）"""
+    out.planned(op)
+    out.done(op)
+
+
+def warn_extra_trackers(out: Output, tracker: dict[str, Any] | None, others: list[int]) -> None:
     """open の Tracker が複数あるときの警告（番号が最小のものを使い、ほかは閉じない）"""
     if not others:
         return
-    listed = "・".join(f"#{n}" for n in others)
-    used = f"#{tracker['number']}" if tracker else "なし"
-    typer.echo(
-        f"警告: open の Tracker が複数あります。番号が最小の {used}"
-        f" を使い、ほか（{listed}）は閉じません",
-        err=True,
-    )
+    listed = ", ".join(f"#{n}" for n in others)
+    used = f"#{tracker['number']}" if tracker else "none"
+    out.warning(f"multiple open Trackers; using {used} (lowest number) and leaving {listed} open")

@@ -176,24 +176,24 @@ class TestWaitingReasonsMetadata:
         assert waiting_reasons(pr, NOW) == ["major", "playwright"]
 
     def test_first_commit_not_by_dependabot_is_unknown(self) -> None:
-        assert waiting_reasons(_pr(commit_author="someone"), NOW) == ["update-type 不明"]
-        assert waiting_reasons(_pr(commit_author=None), NOW) == ["update-type 不明"]
+        assert waiting_reasons(_pr(commit_author="someone"), NOW) == ["unknown update type"]
+        assert waiting_reasons(_pr(commit_author=None), NOW) == ["unknown update type"]
 
     def test_no_type_at_all_is_unknown(self) -> None:
-        assert waiting_reasons(_pr(deps=(("a", None),)), NOW) == ["update-type 不明"]
+        assert waiting_reasons(_pr(deps=(("a", None),)), NOW) == ["unknown update type"]
 
     @pytest.mark.parametrize("signature", [{"isValid": False}, {}, None])
     def test_first_commit_without_valid_signature_is_unknown(
         self, signature: dict[str, bool] | None
     ) -> None:
-        assert waiting_reasons(_pr(signature=signature), NOW) == ["update-type 不明"]
+        assert waiting_reasons(_pr(signature=signature), NOW) == ["unknown update type"]
 
     def test_unquoted_scoped_name_in_yaml_is_unknown(self) -> None:
         message = (
             "Bump x\n\n---\nupdated-dependencies:\n- dependency-name: @scope/x\n"
             "  update-type: version-update:semver-minor\n...\n"
         )
-        assert waiting_reasons(_pr(message=message), NOW) == ["update-type 不明"]
+        assert waiting_reasons(_pr(message=message), NOW) == ["unknown update type"]
 
     def test_non_target_pr_ignores_state_reasons(self) -> None:
         pr = _pr(deps=(("a", "major"),), rollup="FAILURE", mergeable="CONFLICTING")
@@ -202,8 +202,8 @@ class TestWaitingReasonsMetadata:
 
 class TestWaitingReasonsState:
     def test_failed_checks(self) -> None:
-        assert waiting_reasons(_pr(rollup="FAILURE"), NOW) == ["検証が落ちた"]
-        assert waiting_reasons(_pr(rollup="ERROR"), NOW) == ["検証が落ちた"]
+        assert waiting_reasons(_pr(rollup="FAILURE"), NOW) == ["checks failed"]
+        assert waiting_reasons(_pr(rollup="ERROR"), NOW) == ["checks failed"]
 
     def test_pending_within_24h_is_not_listed(self) -> None:
         pr = _pr(rollup="PENDING", age=timedelta(hours=23))
@@ -212,13 +212,13 @@ class TestWaitingReasonsState:
     @pytest.mark.parametrize("rollup", ["PENDING", "EXPECTED", None])
     def test_not_finishing_after_24h(self, rollup: str | None) -> None:
         pr = _pr(rollup=rollup, age=timedelta(hours=25))
-        assert waiting_reasons(pr, NOW) == ["検証が終わらない"]
+        assert waiting_reasons(pr, NOW) == ["checks not finishing"]
 
     @pytest.mark.parametrize(
         ("age", "expected"),
         [
             (timedelta(hours=24), []),
-            (timedelta(hours=24, seconds=1), ["検証が終わらない"]),
+            (timedelta(hours=24, seconds=1), ["checks not finishing"]),
         ],
     )
     def test_checks_timeout_boundary(self, age: timedelta, expected: list[str]) -> None:
@@ -226,13 +226,13 @@ class TestWaitingReasonsState:
 
     def test_not_finishing_applies_only_with_auto_merge(self) -> None:
         pr = _pr(auto_merge=False, rollup="PENDING", age=timedelta(hours=25))
-        assert waiting_reasons(pr, NOW) == ["auto-merge が入っていない"]
+        assert waiting_reasons(pr, NOW) == ["no auto-merge"]
 
     @pytest.mark.parametrize(
         ("age", "expected"),
         [
             (timedelta(minutes=30), []),
-            (timedelta(minutes=30, seconds=1), ["auto-merge が入っていない"]),
+            (timedelta(minutes=30, seconds=1), ["no auto-merge"]),
         ],
     )
     def test_no_auto_merge_grace_boundary(self, age: timedelta, expected: list[str]) -> None:
@@ -242,7 +242,7 @@ class TestWaitingReasonsState:
         ("base_age", "expected"),
         [
             (timedelta(minutes=30), []),
-            (timedelta(minutes=30, seconds=1), ["競合"]),
+            (timedelta(minutes=30, seconds=1), ["conflict"]),
         ],
     )
     def test_conflict_grace_boundary_after_base_moved(
@@ -253,7 +253,7 @@ class TestWaitingReasonsState:
 
     @pytest.mark.parametrize(
         ("age", "expected"),
-        [(timedelta(minutes=30), []), (timedelta(minutes=30, seconds=1), ["競合"])],
+        [(timedelta(minutes=30), []), (timedelta(minutes=30, seconds=1), ["conflict"])],
     )
     def test_conflict_grace_boundary_after_push(self, age: timedelta, expected: list[str]) -> None:
         assert waiting_reasons(_pr(mergeable="CONFLICTING", age=age), NOW) == expected
@@ -294,7 +294,7 @@ class TestWaitingReasonsState:
 
     def test_conflict_after_grace(self) -> None:
         pr = _pr(mergeable="CONFLICTING", age=timedelta(hours=2))
-        assert waiting_reasons(pr, NOW) == ["競合"]
+        assert waiting_reasons(pr, NOW) == ["conflict"]
 
     def test_conflict_right_after_base_moved_is_not_listed(self) -> None:
         pr = _pr(mergeable="CONFLICTING", age=timedelta(hours=2), base_age=timedelta(minutes=5))
@@ -309,7 +309,7 @@ class TestWaitingReasonsState:
             events=[("RemovedFromMergeQueueEvent", timedelta(minutes=5))],
             age=timedelta(hours=2),
         )
-        assert waiting_reasons(pr, NOW) == ["queue から外れた"]
+        assert waiting_reasons(pr, NOW) == ["dequeued"]
 
     def test_old_dequeue_before_rebase_falls_through_to_no_auto_merge(self) -> None:
         pr = _pr(
@@ -320,7 +320,7 @@ class TestWaitingReasonsState:
                 ("HeadRefForcePushedEvent", timedelta(hours=1)),
             ],
         )
-        assert waiting_reasons(pr, NOW) == ["auto-merge が入っていない"]
+        assert waiting_reasons(pr, NOW) == ["no auto-merge"]
 
     def test_no_auto_merge_inside_grace_is_not_listed(self) -> None:
         pr = _pr(auto_merge=False, age=timedelta(minutes=10), rollup=None)
@@ -328,7 +328,7 @@ class TestWaitingReasonsState:
 
     def test_no_auto_merge_after_grace(self) -> None:
         pr = _pr(auto_merge=False, age=timedelta(hours=1))
-        assert waiting_reasons(pr, NOW) == ["auto-merge が入っていない"]
+        assert waiting_reasons(pr, NOW) == ["no auto-merge"]
 
     def test_in_merge_queue_is_not_listed(self) -> None:
         pr = _pr(auto_merge=False, queue=True, age=timedelta(hours=1))
@@ -336,7 +336,7 @@ class TestWaitingReasonsState:
 
     def test_failed_and_conflict_are_both_listed(self) -> None:
         pr = _pr(rollup="FAILURE", mergeable="CONFLICTING", age=timedelta(hours=2))
-        assert waiting_reasons(pr, NOW) == ["検証が落ちた", "競合"]
+        assert waiting_reasons(pr, NOW) == ["checks failed", "conflict"]
 
 
 def _entry(number: int, title: str = "Bump a", *reasons: str) -> PrEntry:

@@ -116,6 +116,14 @@ class TestSync:
         updates = [c.args for c in client.update_project_item_field.call_args_list]
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_high") in updates
+        lines = result.stderr.splitlines()
+        assert lines[0].startswith('created: Tracker "[Tracker] security alert')
+        assert lines[0].endswith('" with priority high')
+        assert lines[1:] == [
+            "added: dependabot #1 to new Tracker",
+            "added: dependabot #2 to new Tracker",
+            "added: code-scanning #10 to new Tracker",
+        ]
 
     def test_dependabot_exceptions_file_does_not_hide_alerts(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -141,7 +149,8 @@ class TestSync:
         result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert "Tracker を立てません（open の alert がありません）" in result.output
+        assert result.stdout == ""
+        assert result.stderr == "dry-run: would skip Tracker creation\n"
         client.create_issue.assert_not_called()
 
     def test_new_tracker_body_is_marker_and_table_only(self) -> None:
@@ -163,6 +172,8 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
+        assert result.stdout == ""
+        assert result.stderr == "skipped: Tracker creation\n"
         client.create_issue.assert_not_called()
 
     def test_existing_tracker_is_patched_without_new_issue(self) -> None:
@@ -178,7 +189,8 @@ class TestSync:
         args = client.update_issue_body.call_args.args
         assert args[:3] == ("o", "r", 5)
         assert "pecot-alert: dependabot/2" in args[3]
-        assert "Tracker #5 に足す: dependabot #2" in result.output
+        assert result.stdout == ""
+        assert result.stderr == "added: dependabot #2 to Tracker #5\n"
 
     def test_same_body_is_not_patched(self) -> None:
         entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
@@ -187,7 +199,8 @@ class TestSync:
 
         assert result.exit_code == 0, result.output
         client.update_issue_body.assert_not_called()
-        assert "Tracker #5 は変わらない" in result.output
+        assert result.stdout == ""
+        assert result.stderr == "unchanged: Tracker #5\n"
 
     def test_crlf_body_counts_as_the_same(self) -> None:
         entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
@@ -209,7 +222,7 @@ class TestSync:
         body = client.update_issue_body.call_args.args[3]
         assert "pecot-alert: code-scanning/9" not in body
         assert "pecot-alert: dependabot/1" in body
-        assert "Tracker #5 から外す: code-scanning #9" in result.output
+        assert result.stderr == "removed: code-scanning #9 from Tracker #5\n"
         client.close_issue.assert_not_called()
 
     def test_old_format_body_is_rewritten_in_place(self) -> None:
@@ -228,9 +241,22 @@ class TestSync:
         result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert "Tracker #5 の本文を書き直す" in result.output
-        assert "から外す" not in result.output
-        assert "に足す" not in result.output
+        assert result.stderr == "dry-run: would update Tracker #5 body\n"
+
+    def test_body_only_change_prints_one_result_line(self) -> None:
+        old_row = (
+            "| <!-- pecot-alert: dependabot/1 state=open priority=medium pkg=pkg"
+            " ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#1](u) | medium | pkg | 要判断 |"
+        )
+        body = _body().replace(
+            "<!-- pecot-alert: list-end -->", f"{old_row}\n<!-- pecot-alert: list-end -->"
+        )
+        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, body)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == ""
+        assert result.stderr == "updated: Tracker #5 body\n"
 
     def test_patch_422_is_a_failure(self) -> None:
         client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body())])
@@ -238,7 +264,8 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
-        assert "本文を書き直せません" in result.stderr
+        assert result.stderr.startswith("error: could not update Tracker #5 body:")
+        assert "updated:" not in result.stderr
 
     def test_broken_markers_exit_1_without_writing(self) -> None:
         broken = _body().replace("<!-- pecot-alert: list-end -->", "")
@@ -255,7 +282,10 @@ class TestSync:
 
         assert result.exit_code == 0, result.output
         assert client.update_issue_body.call_args.args[2] == 5
-        assert "#9" in result.stderr
+        assert (
+            "warning: multiple open Trackers; using #5 (lowest number) and leaving #9 open\n"
+            in result.stderr
+        )
         client.close_issue.assert_not_called()
 
     def test_closed_tracker_is_not_reused(self) -> None:
@@ -296,7 +326,7 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
-        assert "secret scanning の一覧を取得できません" in result.stderr
+        assert "error: could not list secret scanning alerts" in result.stderr
         body = client.update_issue_body.call_args.args[3]
         assert "pecot-alert: secret-scanning/1 priority=" in body
         assert "pecot-alert: dependabot/1" in body
@@ -330,7 +360,7 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
-        assert "secret scanning: 無効のため飛ばします" in result.output
+        assert "skipped: secret scanning alerts (feature disabled)\n" in result.stderr
         body = client.update_issue_body.call_args.args[3]
         assert "## secret scanning\n\ndisabled" in body
         assert "pecot-alert: secret-scanning/" not in body
@@ -381,7 +411,7 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0
-        assert "code scanning: 無効のため飛ばします" in result.output
+        assert "skipped: code scanning alerts (feature disabled)\n" in result.stderr
 
     def test_dependabot_forbidden_while_enabled_fails(self) -> None:
         client = _client(dependabot=GitHubAPIError("denied", status_code=403, response_body="{}"))
@@ -402,12 +432,13 @@ class TestDryRun:
         result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
+        assert result.stdout == ""
         assert re.search(
-            r"\[dry-run\] Tracker を立てる: \[Tracker\] security alert — \d{4}-\d\d-\d\d"
-            r"（2 件・Priority: high）",
-            result.output,
+            r'dry-run: would create Tracker "\[Tracker\] security alert — \d{4}-\d\d-\d\d"'
+            r" with priority high\n",
+            result.stderr,
         )
-        assert "[dry-run] Tracker に載せる: dependabot #1" in result.output
+        assert "dry-run: would add dependabot #1 to new Tracker\n" in result.stderr
         client.create_issue.assert_not_called()
         client.update_issue_body.assert_not_called()
         client.add_to_project.assert_not_called()
@@ -421,9 +452,10 @@ class TestDryRun:
         result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert "[dry-run] Tracker #5 に足す: dependabot #3" in result.output
-        assert "[dry-run] Tracker #5 から外す: code-scanning #9" in result.output
-        assert "行を変える" not in result.output
+        assert result.stderr == (
+            "dry-run: would add dependabot #3 to Tracker #5\n"
+            "dry-run: would remove code-scanning #9 from Tracker #5\n"
+        )
         client.update_issue_body.assert_not_called()
 
     def test_unchanged_line(self) -> None:
@@ -431,7 +463,7 @@ class TestDryRun:
         client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(entry))])
         result = _invoke(client, ["sync", "--dry-run"])
 
-        assert "[dry-run] Tracker #5 は変わらない" in result.output
+        assert result.stderr == "dry-run: would leave Tracker #5 unchanged\n"
 
 
 class TestCommands:
