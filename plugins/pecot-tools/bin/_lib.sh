@@ -80,7 +80,7 @@ pecot_tools_fail_if_node_runtime_blocked() {
     local message
     message="$(pecot_tools_node_runtime_message "$1")"
     [ -n "$message" ] || return 0
-    printf 'pecot-tools: %s\n' "$message" >&2
+    printf 'error: %s\n' "$message" >&2
     exit 1
 }
 

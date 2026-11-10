@@ -32,10 +32,10 @@ const LEADING_WORD = /^\s*[A-Z]+/i
 export type AthenaQueryRejectionReason = 'empty' | 'multi-statement' | 'not-read-only' | 'unterminated'
 
 const REJECTION_MESSAGES: Record<AthenaQueryRejectionReason, string> = {
-  'empty': 'query_string が空です。参照クエリを指定してください',
-  'multi-statement': '複数の文は実行できません。; の後ろに文を続けず 1 文だけ指定してください',
-  'not-read-only': '参照クエリ（SELECT / WITH / SHOW / DESCRIBE / EXPLAIN）だけを実行できます',
-  'unterminated': '引用符またはコメントが閉じていないため、参照クエリだと判定できません',
+  'empty': 'query_string is empty. Specify a read-only query',
+  'multi-statement': 'Multiple statements are not allowed. Specify a single statement with nothing after the ;',
+  'not-read-only': 'Only read-only queries (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) can be executed',
+  'unterminated': 'Cannot confirm the query is read-only because a quote or comment is not closed',
 }
 
 export type AthenaQueryClassification

@@ -58,7 +58,7 @@ MCP ツールの文言（FR-015）は、各プラグインの英語のテスト�
 
 ```bash
 pnpm -C plugins/pecot-visual/cli exec vitest run tests/english-only.test.ts
-pnpm -C plugins/pecot-tools/cli exec vitest run tests/english-only.test.ts
+pnpm -C plugins/pecot-tools/cli exec vitest run src/tests/english-only.test.ts
 ```
 
 期待: `src/` の文字列リテラル（結果の `message`・エラーの文言・ツールの説明文）に、日本語の文字が 0 個。

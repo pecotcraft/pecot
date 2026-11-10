@@ -18,21 +18,21 @@ import {
 JSON Schema では `items.additionalProperties: false` になり、SDK が入力検証エラーで拒否する。
 */
 const FILTER_ELEMENT = z.strictObject({
-  name: z.string().describe('フィルタ名（instance-state-name・tag:Name 等）'),
-  values: z.array(z.string()).min(1).describe('いずれかに一致すれば対象になる値'),
+  name: z.string().describe('Filter name (e.g. instance-state-name, tag:Name)'),
+  values: z.array(z.string()).min(1).describe('Values; an instance matches if any one matches'),
 })
 
-const INSTANCE_IDS_INPUT = z.array(z.string()).min(1).optional().describe('取得するインスタンス ID（i-… の形式）')
+const INSTANCE_IDS_INPUT = z.array(z.string()).min(1).optional().describe('Instance IDs to get (i-... form)')
 
 export function ec2Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefinition[] {
   return [
     allowlistedTool({
       entry: EC2_DESCRIBE_INSTANCES,
-      title: 'EC2 インスタンスの一覧',
-      description: 'インスタンスの状態・タイプ・タグ・ネットワーク構成を返す。出力が大きいので max_items か filters で絞る',
+      title: 'List EC2 instances',
+      description: 'Returns instance state, type, tags, and network configuration. Output is large, so narrow it with max_items or filters',
       inputSchema: z.object({
         instance_ids: INSTANCE_IDS_INPUT,
-        filters: z.array(FILTER_ELEMENT).optional().describe('絞り込み条件。複数指定すると全てに一致するものが返る'),
+        filters: z.array(FILTER_ELEMENT).optional().describe('Filter conditions. With several, only instances matching all are returned'),
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),

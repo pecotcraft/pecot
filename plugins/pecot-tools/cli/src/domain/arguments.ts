@@ -164,17 +164,17 @@ string 系 1 値の検証。制御文字・先頭 '-' 拒否と kind 固有の�
 */
 function validateStringValue(spec: Readonly<InputSpec>, value: string): InvalidInput | undefined {
   if (hasControlCharacter(value)) {
-    return invalid(`${spec.name} は制御文字を含まない値で指定してください`)
+    return invalid(`${spec.name} must not contain control characters`)
   }
   if (value.startsWith('-') && !doesAllowLeadingDash(spec)) {
-    return invalid(`${spec.name} の値は '-' で始められません: ${value}`)
+    return invalid(`${spec.name} must not start with '-': ${value}`)
   }
   const predicate = kindPredicate(spec.kind, value)
   if (predicate !== undefined) {
     return invalid(`${spec.name} ${predicate}: ${value}`)
   }
   if (spec.pattern !== undefined && !spec.pattern.test(value)) {
-    return invalid(`${spec.name} の形式が不正です: ${value}`)
+    return invalid(`${spec.name} has an invalid format: ${value}`)
   }
   return undefined
 }
@@ -193,7 +193,7 @@ function validateShorthandParts(
   for (const part of declaredParts) {
     const value = readInput(input, part.from)
     if (typeof value === 'string' && SHORTHAND_SYNTAX.test(value)) {
-      return invalid(`${part.from} に , = { } は含められません: ${value}`)
+      return invalid(`${part.from} must not contain , = { }: ${value}`)
     }
   }
   return undefined
@@ -212,9 +212,9 @@ function validateElementTexts(
   texts: readonly string[],
 ): InvalidInput | undefined {
   for (const text of texts) {
-    if (text === '') return invalid(`${spec.name} の ${field} に空文字は指定できません`)
+    if (text === '') return invalid(`${spec.name} ${field} must not be empty`)
     if (hasControlCharacter(text)) {
-      return invalid(`${spec.name} の ${field} は制御文字を含まない値で指定してください`)
+      return invalid(`${spec.name} ${field} must not contain control characters`)
     }
   }
   return undefined
@@ -235,7 +235,7 @@ function validateShorthandListElement(
   /* c8 ignore start -- inputSchema の z.strictObject が入力検証エラーで先に落とすため到達しない（二重防御） */
   for (const key of Object.keys(element)) {
     if (parts.every(part => part.field !== key)) {
-      return invalid(`${spec.name} の要素に指定できないキーです: ${key}`)
+      return invalid(`${spec.name} element has an unsupported key: ${key}`)
     }
   }
   /* c8 ignore stop */
@@ -248,16 +248,16 @@ function validateShorthandListElement(
     let texts: readonly string[]
     if (part.list === true) {
       if (!isStringArray(value)) {
-        return invalid(`${spec.name} の ${part.field} は文字列の配列で指定してください`)
+        return invalid(`${spec.name} ${part.field} must be an array of strings`)
       }
       if (value.length === 0) {
-        return invalid(`${spec.name} の ${part.field} は 1 つ以上の値で指定してください`)
+        return invalid(`${spec.name} ${part.field} must have at least one value`)
       }
       texts = value
     }
     else {
       if (typeof value !== 'string') {
-        return invalid(`${spec.name} の ${part.field} は文字列で指定してください`)
+        return invalid(`${spec.name} ${part.field} must be a string`)
       }
       texts = [value]
     }
@@ -266,7 +266,7 @@ function validateShorthandListElement(
     filled += 1
   }
 
-  return filled === 0 ? invalid(`${spec.name} の要素は ${parts.map(part => part.field).join(' / ')} のいずれかで指定してください`) : undefined
+  return filled === 0 ? invalid(`${spec.name} element must have at least one of ${parts.map(part => part.field).join(' / ')}`) : undefined
 }
 
 /**
@@ -276,10 +276,10 @@ function validateShorthandList(
   spec: Readonly<InputSpec>,
   value: unknown,
 ): InvalidInput | undefined {
-  if (!Array.isArray(value)) return invalid(`${spec.name} はオブジェクトの配列で指定してください`)
+  if (!Array.isArray(value)) return invalid(`${spec.name} must be an array of objects`)
   for (const element of value) {
     if (!isElementRecord(element)) {
-      return invalid(`${spec.name} の要素はオブジェクトで指定してください`)
+      return invalid(`${spec.name} element must be an object`)
     }
     const rejected = validateShorthandListElement(spec, element)
     if (rejected !== undefined) return rejected
@@ -293,40 +293,40 @@ function validateValue(spec: Readonly<InputSpec>, value: unknown): InvalidInput 
     case 'abs-path':
     case 's3-uri':
     case 's3-list-uri': {
-      return typeof value === 'string' ? validateStringValue(spec, value) : invalid(`${spec.name} は文字列で指定してください`)
+      return typeof value === 'string' ? validateStringValue(spec, value) : invalid(`${spec.name} must be a string`)
     }
     case 'string-list': {
-      if (!isStringArray(value)) return invalid(`${spec.name} は文字列の配列で指定してください`)
+      if (!isStringArray(value)) return invalid(`${spec.name} must be an array of strings`)
       for (const element of value) {
         const rejected = validateStringValue(spec, element)
         if (rejected !== undefined) return rejected
         // 列挙を持つ string-list（--statistics 等）は要素ごとに比較する。awscli は列挙を
         // クライアント側で検証しないため、ここを抜くと綴り違いがそのまま API へ届く。
         if (spec.values !== undefined && !spec.values.includes(element)) {
-          return invalid(`${spec.name} に指定できない値です: ${element}`)
+          return invalid(`${spec.name} has an unsupported value: ${element}`)
         }
       }
       return undefined
     }
     case 'integer': {
       if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
-        return invalid(`${spec.name} は整数で指定してください`)
+        return invalid(`${spec.name} must be an integer`)
       }
       if (spec.min !== undefined && value < spec.min) {
-        return invalid(`${spec.name} は ${String(spec.min)} 以上で指定してください: ${String(value)}`)
+        return invalid(`${spec.name} must be at least ${String(spec.min)}: ${String(value)}`)
       }
       if (spec.max !== undefined && value > spec.max) {
-        return invalid(`${spec.name} は ${String(spec.max)} 以下で指定してください: ${String(value)}`)
+        return invalid(`${spec.name} must be at most ${String(spec.max)}: ${String(value)}`)
       }
       return undefined
     }
     case 'boolean': {
-      return typeof value === 'boolean' ? undefined : invalid(`${spec.name} は true / false で指定してください`)
+      return typeof value === 'boolean' ? undefined : invalid(`${spec.name} must be true or false`)
     }
     case 'enum': {
-      if (typeof value !== 'string') return invalid(`${spec.name} は文字列で指定してください`)
+      if (typeof value !== 'string') return invalid(`${spec.name} must be a string`)
       if (spec.values?.includes(value) !== true) {
-        return invalid(`${spec.name} に指定できない値です: ${value}`)
+        return invalid(`${spec.name} has an unsupported value: ${value}`)
       }
       return undefined
     }
@@ -335,7 +335,7 @@ function validateValue(spec: Readonly<InputSpec>, value: unknown): InvalidInput 
     }
     /* c8 ignore start -- shorthand は validateInput が先に分岐するため到達しない。switch の網羅性のために置く */
     case 'shorthand': {
-      return invalid(`${spec.name} は直接指定できません`)
+      return invalid(`${spec.name} cannot be specified directly`)
     }
     /* c8 ignore stop */
   }
@@ -359,7 +359,7 @@ export function validateInput(
 
     const value = readInput(input, spec.name)
     if (value === undefined) {
-      if (spec.required) return invalid(`${spec.name} は必須です`)
+      if (spec.required) return invalid(`${spec.name} is required`)
       continue
     }
     const rejected = validateValue(spec, value)
@@ -370,7 +370,7 @@ export function validateInput(
   for (const group of exclusiveGroups) {
     const specified = group.filter(name => readInput(input, name) !== undefined)
     if (specified.length > 1) {
-      return invalid(`${specified.join(' と ')} は同時に指定できません`)
+      return invalid(`${specified.join(' and ')} cannot be combined`)
     }
   }
 

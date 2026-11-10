@@ -52,7 +52,7 @@ function rejectCatalogWithoutDatabase(
 
   return {
     category: 'invalid-input',
-    message: 'catalog は database と併せて指定してください',
+    message: 'Specify catalog together with database',
   }
 }
 
@@ -69,33 +69,33 @@ export function athenaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
   return [
     allowlistedTool({
       entry: ATHENA_START_QUERY_EXECUTION,
-      title: 'クエリの実行開始',
-      description: '参照クエリ（SELECT / WITH / SHOW / DESCRIBE / EXPLAIN）の実行を開始し query_execution_id を返す。変更系と複数文は実行前に拒否する。結果は aws_athena_get_query_execution で完了を待ってから aws_athena_get_query_results で取る',
+      title: 'Start query execution',
+      description: 'Starts a read-only query (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) and returns query_execution_id. Mutating queries and multiple statements are rejected before running. Wait for completion with aws_athena_get_query_execution, then fetch results with aws_athena_get_query_results',
       inputSchema: z.object({
-        query_string: z.string().describe('実行する参照クエリ。1 文だけを指定し、先頭は SELECT / WITH / SHOW / DESCRIBE / EXPLAIN のいずれかにする（括弧で囲まない）'),
-        work_group: z.string().optional().describe('ワークグループ名'),
-        database: z.string().optional().describe('既定のデータベース名'),
-        catalog: z.string().optional().describe('データカタログ名。database と併せて指定する（単独指定はしない）'),
-        output_location: z.string().optional().describe('結果の出力先（s3:// で始まる）'),
+        query_string: z.string().describe('Read-only query to run. Give a single statement that starts with SELECT / WITH / SHOW / DESCRIBE / EXPLAIN (no enclosing parentheses)'),
+        work_group: z.string().optional().describe('Workgroup name'),
+        database: z.string().optional().describe('Default database name'),
+        catalog: z.string().optional().describe('Data catalog name. Specify together with database (not on its own)'),
+        output_location: z.string().optional().describe('Output location for results (starts with s3://)'),
         ...COMMON_INPUT_SHAPE,
       }),
       reject: rejectStartQueryExecution,
     }, options),
     allowlistedTool({
       entry: ATHENA_GET_QUERY_EXECUTION,
-      title: 'クエリ実行状態の取得',
-      description: 'クエリ実行の状態（QUEUED / RUNNING / SUCCEEDED / FAILED / CANCELLED）と統計を返す',
+      title: 'Get query execution status',
+      description: 'Returns the query execution state (QUEUED / RUNNING / SUCCEEDED / FAILED / CANCELLED) and statistics',
       inputSchema: z.object({
-        query_execution_id: z.string().describe('aws_athena_start_query_execution が返した ID'),
+        query_execution_id: z.string().describe('ID returned by aws_athena_start_query_execution'),
         ...COMMON_INPUT_SHAPE,
       }),
     }, options),
     allowlistedTool({
       entry: ATHENA_GET_QUERY_RESULTS,
-      title: 'クエリ結果の取得',
-      description: '完了したクエリの結果行を返す。件数が多い場合は max_items と starting_token で分割する',
+      title: 'Get query results',
+      description: 'Returns the result rows of a completed query. For many rows, split with max_items and starting_token',
       inputSchema: z.object({
-        query_execution_id: z.string().describe('aws_athena_start_query_execution が返した ID'),
+        query_execution_id: z.string().describe('ID returned by aws_athena_start_query_execution'),
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),

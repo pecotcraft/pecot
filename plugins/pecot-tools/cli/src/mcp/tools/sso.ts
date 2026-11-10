@@ -36,21 +36,21 @@ SSO 専用の失敗種別ごとの再試行方法。
 「aws_sso_login を実行してください」と案内する。SSO 自身の失敗に使うと、案内が循環する。
 */
 const SSO_FAILURE_HINTS: Record<FailureCategory, string> = {
-  'not-allowed': '許可されていない操作です。公開しているツールの範囲で実行してください',
-  'invalid-input': 'profile を修正して再実行してください',
-  'awscli-missing': 'awscli v2 (2.22 以上) を導入して PATH を通してください',
-  'auth-missing': 'profile に SSO の設定がありません。端末で aws configure sso を実行してください',
-  'auth-expired': 'トークンのキャッシュを読めませんでした。profile の SSO 設定を確認してください',
-  'permission-denied': 'SSO の許可セットに対象アカウントが含まれているか確認してください',
-  'resource-not-found': 'profile の sso_start_url / sso_region を確認してください',
-  'timeout': '制限時間内に認証が完了しませんでした。aws_sso_login を再度呼び出してください',
-  'other': 'awscli が失敗しました。stderr を確認してください',
+  'not-allowed': 'Operation not allowed. Use only the exposed tools',
+  'invalid-input': 'Fix the profile and run again',
+  'awscli-missing': 'Install awscli v2 (2.22 or later) and add it to PATH',
+  'auth-missing': 'The profile has no SSO configuration. Run aws configure sso in a terminal',
+  'auth-expired': 'Could not read the token cache. Check the SSO settings of the profile',
+  'permission-denied': 'Check that the SSO permission set includes the target account',
+  'resource-not-found': 'Check sso_start_url / sso_region of the profile',
+  'timeout': 'Authentication did not complete within the time limit. Call aws_sso_login again',
+  'other': 'awscli failed. Check stderr',
 }
 
 /**
 出力が上限で切り詰められたときに message へ足す注記。
 */
-const OUTPUT_TRUNCATION_NOTE = '（出力は上限を超えたため先頭のみ載せています）'
+const OUTPUT_TRUNCATION_NOTE = '(Output exceeded the limit, so only the beginning is included)'
 
 /**
 annotations（判断の根拠は契約書の共通規約）。
@@ -89,10 +89,10 @@ autofill 行は URL・コードより後の chunk で届くことがあり、揃
 */
 function pendingMessage(session: Readonly<SsoLoginSession>): string {
   return (session.verificationUrlComplete === undefined
-    ? 'デバイス認証を開始しました。verificationUrl をブラウザで開き、userCode を入力してください。'
-    : 'デバイス認証を開始しました。verificationUrlComplete をブラウザで開けば'
-      + 'コード入力は要りません（verificationUrl を開いた場合は userCode を入力します）。')
-    + '承認後に aws_sso_login_status で完了を確認してください'
+    ? 'Device authorization started. Open verificationUrl in a browser and enter userCode. '
+    : 'Device authorization started. Open verificationUrlComplete in a browser; '
+      + 'no code entry is needed (if you open verificationUrl, enter userCode). ')
+    + 'After approval, check completion with aws_sso_login_status.'
 }
 
 function hintOf(category: FailureCategory): string {
@@ -124,7 +124,7 @@ function failureResult(
     category,
     data: { ...data },
     artifacts: [],
-    message: `SSO 認証が失敗しました (${category})。${hintOf(category)}`
+    message: `SSO authentication failed (${category}). ${hintOf(category)}`
       + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
     stderr: limited.text,
   }
@@ -140,7 +140,7 @@ function timedOutResult(data: Readonly<Record<string, unknown>>): ExecutionResul
     category: 'timeout',
     data: { ...data },
     artifacts: [],
-    message: `SSO 認証が時間切れになりました。${hintOf('timeout')}`,
+    message: `SSO authentication timed out. ${hintOf('timeout')}`,
   }
 }
 
@@ -181,7 +181,7 @@ async function startLogin(
         exitCode: 0,
         data: { ...promptData(session), ...base },
         artifacts: [],
-        message: 'デバイス認証を始める前から認証済みでした',
+        message: 'Already authenticated before device authorization started',
       }
     }
     case 'timed-out': {
@@ -205,7 +205,7 @@ function loginStatus(
       category: 'invalid-input',
       data: {},
       artifacts: [],
-      message: '開始済みの SSO ログインがありません。aws_sso_login を先に呼んでください',
+      message: 'No SSO login in progress. Call aws_sso_login first',
     }
   }
 
@@ -218,7 +218,7 @@ function loginStatus(
         exitCode: 0,
         data: { ...promptData(session), ...base },
         artifacts: [],
-        message: 'まだ承認されていません。案内した URL での承認後に再度呼び出してください',
+        message: 'Not approved yet. Approve at the given URL, then call again',
       }
     }
     case 'completed': {
@@ -228,7 +228,7 @@ function loginStatus(
         exitCode: 0,
         data: { ...promptData(session), ...base, output: limited.text },
         artifacts: [],
-        message: 'SSO 認証が完了しました'
+        message: 'SSO authentication completed'
           + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
       }
     }
@@ -257,9 +257,9 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     {
       name: 'aws_sso_login',
       config: {
-        title: 'SSO ログインの開始',
-        description: 'AWS SSO のデバイス認証を開始し、認証 URL とコードを即時に返す。完了は待たないため、'
-          + '利用者の承認後に aws_sso_login_status で確認する',
+        title: 'Start SSO login',
+        description: 'Starts AWS SSO device authorization and returns the verification URL and code immediately. It does not wait for completion, so '
+          + 'check with aws_sso_login_status after the user approves',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),
         outputSchema: TOOL_OUTPUT_SCHEMA,
         annotations: LOGIN_ANNOTATIONS,
@@ -270,9 +270,9 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     {
       name: 'aws_sso_login_status',
       config: {
-        title: 'SSO ログインの完了確認',
-        description: 'aws_sso_login で開始した認証の状態（pending / completed / failed / timed-out）を返す。'
-          + 'awscli は起動しない',
+        title: 'Check SSO login status',
+        description: 'Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. '
+          + 'Does not run awscli',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),
         outputSchema: TOOL_OUTPUT_SCHEMA,
         annotations: STATUS_ANNOTATIONS,

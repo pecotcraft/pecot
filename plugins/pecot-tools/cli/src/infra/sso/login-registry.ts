@@ -378,7 +378,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
         profile: key,
         state: 'failed',
         startedAt: Date.now(),
-        output: 'サーバ終了中のため新しいログインを開始できません',
+        output: 'Cannot start a new login because the server is shutting down',
         category: 'other',
       }
     }

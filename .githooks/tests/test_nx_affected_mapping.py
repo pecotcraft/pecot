@@ -288,7 +288,16 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         # 出力の行の期待値は、Python と Node の出力の一致のテストが両方読む (#205)。
         (
             "plugins/pecot-workflow/cli-node/tests/output/cases.json",
-            {"pecot-workflow:test-py", "pecot-workflow:test-cli"},
+            {"pecot-workflow:test-py", "pecot-workflow:test-cli", "githooks:test-checks"},
+        ),
+        # 診断行の期待は、3 プラグインの一致のテストが読む (#215)。
+        (
+            "plugins/pecot-visual/cli/tests/diagnostics-cases.json",
+            {"pecot-visual:test-cli", "githooks:test-checks"},
+        ),
+        (
+            "plugins/pecot-tools/cli/tests/diagnostics-cases.json",
+            {"pecot-tools:test-cli", "githooks:test-checks"},
         ),
     ],
 )

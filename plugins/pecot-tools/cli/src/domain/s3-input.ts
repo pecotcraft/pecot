@@ -33,14 +33,14 @@ const S3_SCHEME = /^s3:\/\//i
 別オプションには化けない（research R3）。
 */
 export function validateS3Uri(value: string): string | undefined {
-  return S3_OBJECT_URI.test(value) ? undefined : 'は s3://<bucket>/<key> の形式で指定してください'
+  return S3_OBJECT_URI.test(value) ? undefined : 'must be in the form s3://<bucket>/<key>'
 }
 
 /**
 `s3 ls` の位置引数として妥当か（バケット一覧・prefix 指定の双方を許す）。
 */
 export function validateS3ListUri(value: string): string | undefined {
-  return S3_LIST_URI.test(value) ? undefined : 'は s3://<bucket>[/<prefix>] の形式で指定してください'
+  return S3_LIST_URI.test(value) ? undefined : 'must be in the form s3://<bucket>[/<prefix>]'
 }
 
 /**
@@ -50,6 +50,6 @@ export function validateS3ListUri(value: string): string | undefined {
 取得元と書き出し先を取り違えた利用者に誤った直し方を促すため。
 */
 export function validateLocalPath(value: string): string | undefined {
-  if (S3_SCHEME.test(value)) return 'はローカルの絶対パスで指定してください（s3:// は書き出し先にできません）'
-  return path.isAbsolute(value) ? undefined : 'は絶対パスで指定してください'
+  if (S3_SCHEME.test(value)) return 'must be a local absolute path (s3:// cannot be a destination)'
+  return path.isAbsolute(value) ? undefined : 'must be an absolute path'
 }

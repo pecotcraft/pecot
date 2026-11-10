@@ -57,7 +57,7 @@ SSO の 2 件は region を取らない（contracts/mcp-tools.md §SSO 認証）
 */
 export const PROFILE_INPUT_SHAPE = {
   profile: z.string().regex(PROFILE_PATTERN).optional()
-    .describe('AWS プロファイル名。未指定なら awscli の既定解決に従う'),
+    .describe('AWS profile name. If omitted, the awscli default resolution applies'),
 }
 
 /**
@@ -65,73 +65,73 @@ export const PROFILE_INPUT_SHAPE = {
 
 書式の定義は domain/allowlist.ts の PROFILE_PATTERN / REGION_PATTERN にある。
 ここはその定数をそのまま inputSchema へ載せる（契約書の共通規約を tools/list で見せるため）。
-値を書き写さないので、定義は 1 箇所のまま。書式違反はハンドラ到達前に入力検証エラーとなる。awscli は起動しない。
+値を書き写さないので、定義は 1 箇所のまま。書式違反はハンドラ到達前に入力検証エラーとなる。Does not run awscli。
 */
 export const COMMON_INPUT_SHAPE = {
   ...PROFILE_INPUT_SHAPE,
   region: z.string().regex(REGION_PATTERN).optional()
-    .describe('AWS リージョン（ap-northeast-1 等）。未指定なら awscli の既定解決に従う'),
+    .describe('AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies'),
 }
 
 /**
 クライアント側ページング（`--max-items` / `--starting-token`）を持つツールの入力。
 */
 export const MAX_ITEMS_PAGINATION_SHAPE = {
-  max_items: z.number().int().min(1).optional().describe('1 回の応答に含める最大件数'),
-  starting_token: z.string().optional().describe('前回応答の nextToken。続きを取得する'),
+  max_items: z.number().int().min(1).optional().describe('Maximum number of items in one response'),
+  starting_token: z.string().optional().describe('nextToken from the previous response. Fetches the next page'),
 }
 
 /**
 API 固有ページング（`logs get-log-events`）を持つツールの入力。
 */
 export const LIMIT_NEXT_TOKEN_PAGINATION_SHAPE = {
-  limit: z.number().int().min(1).max(10_000).optional().describe('取得するイベント数の上限（1〜10000）'),
-  next_token: z.string().optional().describe('前回応答の nextForwardToken / nextBackwardToken'),
-  start_from_head: z.boolean().default(false).describe('true なら古いイベントから返す'),
+  limit: z.number().int().min(1).max(10_000).optional().describe('Maximum number of events to return (1-10000)'),
+  next_token: z.string().optional().describe('nextForwardToken / nextBackwardToken from the previous response'),
+  start_from_head: z.boolean().default(false).describe('If true, returns the oldest events first'),
 }
 
 /**
 ExecutionResult と同形の outputSchema。全ツールで共有する。
 */
 export const TOOL_OUTPUT_SCHEMA = z.object({
-  ok: z.boolean().describe('awscli の実行が成功したか'),
-  exitCode: z.number().describe('終了コード (0 = success、実行前拒否 2、時間切れ 124、未導入 127)'),
-  category: z.string().optional().describe('失敗種別（成功時は省略）'),
-  data: z.record(z.string(), z.unknown()).describe('awscli の JSON 出力、または行配列'),
-  artifacts: z.array(z.string()).describe('書き出したローカルファイルの絶対パス'),
-  message: z.string().describe('呼び出し元エージェント向けの 1 行サマリ'),
-  stderr: z.string().optional().describe('秘匿化済みの awscli stderr（失敗時のみ）'),
+  ok: z.boolean().describe('Whether the awscli run succeeded'),
+  exitCode: z.number().describe('Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)'),
+  category: z.string().optional().describe('Failure category (omitted on success)'),
+  data: z.record(z.string(), z.unknown()).describe('awscli JSON output, or an array of lines'),
+  artifacts: z.array(z.string()).describe('Absolute paths of the local files written'),
+  message: z.string().describe('One-line summary for the calling agent'),
+  stderr: z.string().optional().describe('Redacted awscli stderr (only on failure)'),
 })
 
 /**
 失敗種別ごとの再試行方法。message の後半に載せる。
 */
 const FAILURE_HINTS: Record<FailureCategory, string> = {
-  'not-allowed': '許可されていない操作です。公開しているツールの範囲で実行してください',
-  'invalid-input': '入力を修正して再実行してください',
-  'awscli-missing': 'awscli v2 (2.22 以上) を導入して PATH を通してください',
-  'auth-missing': '認証設定がありません。aws_sso_login を実行するか profile を指定してください',
-  'auth-expired': '認証の有効期限が切れています。aws_sso_login で再認証してください',
-  'permission-denied': '権限が不足しています。profile / role を確認してください',
-  'resource-not-found': '対象が見つかりません。名前・リージョンを確認してください',
-  'timeout': '時間切れです。取得範囲を狭めて再実行してください',
-  'other': 'awscli が失敗しました。stderr を確認してください',
+  'not-allowed': 'Operation not allowed. Use only the exposed tools',
+  'invalid-input': 'Fix the input and run again',
+  'awscli-missing': 'Install awscli v2 (2.22 or later) and add it to PATH',
+  'auth-missing': 'Not authenticated. Run aws_sso_login or specify a profile',
+  'auth-expired': 'Authentication has expired. Run aws_sso_login to sign in again',
+  'permission-denied': 'Permission denied. Check the profile / role',
+  'resource-not-found': 'Resource not found. Check the name and region',
+  'timeout': 'Timed out. Narrow the range and run again',
+  'other': 'awscli failed. Check stderr',
 }
 
 /**
 出力が上限を超えたときの案内。
 */
 const TRUNCATION_MESSAGE
-  = `出力が上限 ${String(OUTPUT_LIMIT_BYTES)} バイトを超えたため先頭のみ返しました。`
-    + 'max_items を減らすか starting_token で分割して再取得してください'
+  = `Output exceeded the limit of ${String(OUTPUT_LIMIT_BYTES)} bytes, so only the beginning is returned. `
+    + 'Reduce max_items or split the request with starting_token.'
 
 /**
 stderr が上限で切り詰められたときに message へ足す注記。
 */
-const STDERR_TRUNCATION_NOTE = '（stderr は上限を超えたため先頭のみ載せています）'
+const STDERR_TRUNCATION_NOTE = '(stderr exceeded the limit, so only the beginning is included)'
 
 /**
-実行前に拒否したときの理由。awscli は起動しない。
+実行前に拒否したときの理由。Does not run awscli。
 */
 export interface PreExecutionRejection {
   readonly category: 'not-allowed' | 'invalid-input'
@@ -222,7 +222,7 @@ export function resolveExitCode(category: FailureCategory, exitCode?: number | n
 
 function failureMessage(toolName: string, category: FailureCategory): string {
   // eslint-disable-next-line security/detect-object-injection -- category は FailureCategory の列挙値
-  return `${toolName} が失敗しました (${category})。${FAILURE_HINTS[category]}`
+  return `${toolName} failed (${category}). ${FAILURE_HINTS[category]}`
 }
 
 /**
@@ -330,7 +330,7 @@ export async function executeAllowlisted(
     exitCode: 0,
     data: successData(entry, limited.text),
     artifacts,
-    message: `${entry.toolName} が成功しました`,
+    message: `${entry.toolName} succeeded`,
   }
 }
 

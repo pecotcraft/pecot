@@ -38,7 +38,7 @@ if [ "${PECOT_TOOLS_BOOTSTRAP_SKIP:-}" = "1" ]; then
   unset PECOT_TOOLS_RUNTIME_DIR
   CLI_DIST="${PLUGIN_ROOT}/cli/dist/cli.js"
   if [ ! -f "$CLI_DIST" ]; then
-    echo "pecot-tools: ${CLI_DIST} が無い。先に build する (PECOT_TOOLS_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
+    echo "error: ${CLI_DIST} が無い。先に build する (PECOT_TOOLS_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
     exit 1
   fi
   exec node "$CLI_DIST" "$@"

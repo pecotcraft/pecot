@@ -263,7 +263,7 @@ async function probeAwscli(): Promise<AwscliProbe> {
     return {
       ok: false,
       category: 'awscli-missing',
-      message: `awscli が見つかりません。awscli v2 (${MINIMUM_VERSION_TEXT} 以上) を導入して PATH を通してください`,
+      message: `awscli not found. Install awscli v2 (${MINIMUM_VERSION_TEXT} or later) and add it to PATH`,
     }
   }
 
@@ -272,7 +272,7 @@ async function probeAwscli(): Promise<AwscliProbe> {
     return {
       ok: false,
       category: 'awscli-missing',
-      message: `awscli の版を判定できませんでした: ${result.stdout.trim()}`,
+      message: `Could not determine the awscli version: ${result.stdout.trim()}`,
     }
   }
 
@@ -286,7 +286,7 @@ async function probeAwscli(): Promise<AwscliProbe> {
     : {
         ok: false,
         category: 'awscli-missing',
-        message: `awscli ${MINIMUM_VERSION_TEXT} 以上が必要です（検出: ${version}）`,
+        message: `awscli ${MINIMUM_VERSION_TEXT} or later is required (detected: ${version})`,
       }
 }
 

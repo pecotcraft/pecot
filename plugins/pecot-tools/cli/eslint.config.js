@@ -11,6 +11,19 @@ import security from 'eslint-plugin-security'
 import vitest from '@vitest/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
 
+const baseRestrictedSyntax = [
+  { selector: 'TSEnumDeclaration', message: 'enum 禁止: const オブジェクト + as const か discriminated union を使う' },
+  { selector: 'TSModuleDeclaration', message: 'namespace 禁止: ESM モジュールを使う' },
+  { selector: 'TSAsExpression', message: 'as キャスト禁止: satisfies か型ガードを使う。unknown から絞り込む場合は、説明を付けて eslint-disable-next-line を使う。' },
+]
+
+// stdout・stderr への直接の書き込みを止める。行は src/diagnostics.ts の関数を通す。
+const outputWriteMessage = 'stdout・stderr へ直接書かない: src/diagnostics.ts の createDiagnostics・writeData・passthrough を使う'
+const outputWriteSyntax = [
+  { selector: 'CallExpression[callee.property.name=\'write\'][callee.object.name=/^(stdout|stderr)$/]', message: outputWriteMessage },
+  { selector: 'CallExpression[callee.property.name=\'write\'][callee.object.property.name=/^(stdout|stderr)$/]', message: outputWriteMessage },
+]
+
 export default defineConfig(
   { ignores: ['dist/**', 'coverage/**', 'node_modules/**'] },
   js.configs.recommended,
@@ -55,11 +68,7 @@ export default defineConfig(
         'minimumDescriptionLength': 10,
       }],
       'unicorn/no-null': 'error',
-      'no-restricted-syntax': ['error',
-        { selector: 'TSEnumDeclaration', message: 'enum 禁止: const オブジェクト + as const か discriminated union を使う' },
-        { selector: 'TSModuleDeclaration', message: 'namespace 禁止: ESM モジュールを使う' },
-        { selector: 'TSAsExpression', message: 'as キャスト禁止: satisfies か型ガードを使う。unknown から絞り込む場合は、説明を付けて eslint-disable-next-line を使う。' },
-      ],
+      'no-restricted-syntax': ['error', ...baseRestrictedSyntax],
       'unused-imports/no-unused-imports': 'error',
       // DDD レイヤ依存方向: domain ← infra ← mcp の一方向のみ許す。
       'import-x/no-restricted-paths': ['error', {
@@ -69,6 +78,15 @@ export default defineConfig(
           { target: './src/infra', from: './src/mcp', message: 'infra から mcp への import 禁止 (依存方向違反)' },
         ],
       }],
+    },
+  },
+  {
+    // flat config は options 付きの同じ規則を丸ごと置き換えるので、既存の配列と合わせて置く。
+    files: ['src/**/*.ts'],
+    ignores: ['src/diagnostics.ts', 'src/**/tests/**'],
+    rules: {
+      'no-console': 'error',
+      'no-restricted-syntax': ['error', ...baseRestrictedSyntax, ...outputWriteSyntax],
     },
   },
   {

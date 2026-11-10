@@ -115,7 +115,7 @@ function startProgressHeartbeat(toolName: string, serverContext: ServerContext, 
   if (progressToken === undefined) return undefined
 
   let progress = 0
-  let phase = '順番待ち中'
+  let phase = 'queued'
 
   const send = (): void => {
     progress += 1
@@ -145,7 +145,7 @@ function startProgressHeartbeat(toolName: string, serverContext: ServerContext, 
   }
 
   return {
-    markRunning: () => { phase = '実行中' },
+    markRunning: () => { phase = 'running' },
     stop,
   }
 }
