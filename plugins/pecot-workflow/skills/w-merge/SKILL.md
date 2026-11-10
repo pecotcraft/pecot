@@ -47,14 +47,22 @@ Claude Code では Monitor ツールで次の until ループを動かし、抜�
 
 ```bash
 until s=$(gh api graphql -F o=<owner> -F r=<repo> -F n=<PR番号> \
-  -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){state isInMergeQueue autoMergeRequest{enabledAt}}}}' \
-  --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue) \(.autoMergeRequest != null)"'); \
-  case "$s" in MERGED*|CLOSED*|"OPEN false false") true ;; *) false ;; esac; do sleep 30; done; echo "$s"
+  -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){state isInMergeQueue mergeable autoMergeRequest{enabledAt} commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{... on CheckRun{conclusion isRequired(pullRequestNumber:$n)} ... on StatusContext{state isRequired(pullRequestNumber:$n)}}}}}}}}}}' \
+  --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue) \(.autoMergeRequest != null) \(.mergeable) \(if ([.commits.nodes[]?.commit.statusCheckRollup.contexts.nodes[]? | select(.isRequired) | (.conclusion // .state)] | any(IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE"))) then "required-failed" else "-" end)"'); \
+  case "$s" in MERGED*|CLOSED*|"OPEN false false "*|*" CONFLICTING "*|*" required-failed") true ;; *) false ;; esac; do sleep 30; done; echo "$s"
 ```
 
-- `MERGED ...` で抜けたら 2.3 へ進む
-- `OPEN false false` で抜けたら、queue から外れている（CI の失敗など）。`gh pr checks <PR番号> --repo <owner>/<repo>` で落ちたチェックを読んでユーザーに伝え、片付けをせずに止まる。直して push し、2.1 からやり直す
-- `CLOSED ...` で抜けたら、ユーザーに伝えて止まる
+出力は次の 5 語になる。state、queue に入っているか、auto-merge の予約の有無、mergeable、必須チェックの結果の順に並ぶ。必須チェックの結果は、落ちたものがあれば `required-failed`、なければ `-` になる。判定の対象は、最新の commit の先頭 100 件のチェックだけになる。
+
+抜けたら、次の項目を上から順に見て、合った最初の項目を実行する。片付けをするのは `MERGED` のときだけで、ほかは止まる。
+
+1. `MERGED ...` なら 2.3 へ進む
+2. `CLOSED ...` なら、ユーザーに伝えて止まる
+3. 4 語目が `CONFLICTING` なら、ユーザーに伝える。`git fetch origin main` の後に `git merge origin/main` で取り込み直し、コンフリクトを直して push する
+4. 5 語目が `required-failed` なら、`gh pr checks <PR番号> --repo <owner>/<repo> --required` で落ちたチェックを読んでユーザーに伝える。直して push する
+5. `OPEN false false ...` なら、queue から外れている。`gh pr checks <PR番号> --repo <owner>/<repo>` で落ちたチェックを読んでユーザーに伝える。直して push する
+
+- 3〜5 で push した後は、抜けた行の 3 語目が `true`（auto-merge の予約が残っている）なら 2.2 から、`false` なら 2.1 からやり直す
 - GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を打ち直す。未マージなら exit 1 で何もしない
 
 #### 2.3 片付け
