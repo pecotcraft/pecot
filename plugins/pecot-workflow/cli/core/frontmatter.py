@@ -81,9 +81,9 @@ OptionalParallel = Annotated[
 OptionalParentEpic = Annotated[int | str | None, BeforeValidator(_normalize_parent_epic)]
 
 
-def normalize_optional_text(v: str | None) -> str | None:
-    """前後の空白を落とし、空なら None にする。"""
-    return v.strip() or None if isinstance(v, str) else v
+def normalize_optional_text(v: object) -> object:
+    """前後の空白を落とし、空なら None にする。str 以外はそのまま返す。"""
+    return (v.strip() or None) if isinstance(v, str) else v
 
 
 OptionalText = Annotated[str | None, BeforeValidator(normalize_optional_text)]

@@ -11,7 +11,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any, NoReturn, cast
+from typing import Annotated, Any, NoReturn
 
 import typer
 
@@ -19,7 +19,6 @@ from cli.commands.options import DirectoryOption
 from cli.core.config import ProjectConfig, load_active_config
 from cli.core.frontmatter import (
     FrontmatterError,
-    normalize_optional_text,
     parse_pr_file,
 )
 from cli.core.git import git_current_branch, git_remote_url, git_toplevel, origin_repo, run_git
@@ -275,9 +274,14 @@ SCREENSHOT_MISSING_ERROR = (
 
 
 def _exit_on_unset_branch(
-    is_release: bool, develop_branch: str | None, release_branch: str | None
+    template: str,
+    base: str,
+    head: str | None,
+    develop_branch: str | None,
+    release_branch: str | None,
 ) -> None:
     """base の突き合わせに要るブランチ設定が無ければ、検証の前に exit 1"""
+    is_release = _is_release_pr(template, base, head, develop_branch, release_branch)
     if is_release and not release_branch:
         typer.echo(
             "release_branchが設定されていません。\n"
@@ -323,6 +327,9 @@ def _validate_pr_content(
 
     Returns:
         エラーメッセージのリスト（エラーがなければ空）
+
+    Note:
+        ブランチ未設定（develop_branch / release_branch）は呼び出し側が先に止める前提。
     """
     errors: list[str] = []
 
@@ -543,13 +550,14 @@ def pr_create(
     if prepare:
         _pr_create_prepare(directory, template=template)
     elif file is not None:
+        _exit_on_screenshot_option(screenshot)
         _pr_create_from_file(file, dry_run, no_issue_ref, directory, template=template)
     elif message is not None:
-        _require_title_and_base(title, base)
+        title, base = _require_title_and_base(title, base)
         _pr_create_direct(
             message=message,
-            title=cast(str, title),
-            base=cast(str, base),
+            title=title,
+            base=base,
             head=head,
             draft=draft,
             dry_run=dry_run,
@@ -557,20 +565,32 @@ def pr_create(
             no_issue_ref=no_issue_ref,
             directory=directory,
             template=template,
-            screenshot=normalize_optional_text(screenshot),
+            screenshot=(screenshot or "").strip() or None,
         )
     else:
         _exit_with_pr_create_usage()
 
 
-def _require_title_and_base(title: str | None, base: str | None) -> None:
-    """-m 使用時に -t と -b が無ければ exit 1"""
+def _exit_on_screenshot_option(screenshot: str | None) -> None:
+    """ファイル形式に --screenshot が渡されたら、フロントマターに書くよう示して exit 1"""
+    if screenshot is not None:
+        typer.echo(
+            "--screenshot is for -m; write the reason in the `screenshot` "
+            "frontmatter field instead",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+
+def _require_title_and_base(title: str | None, base: str | None) -> tuple[str, str]:
+    """-m 使用時に -t と -b が無ければ exit 1、あれば (title, base) を返す"""
     if not title or not base:
         typer.echo(
             "エラー: -m オプション使用時は -t (タイトル) と -b (baseブランチ) が必須です",
             err=True,
         )
         raise typer.Exit(1)
+    return title, base
 
 
 def _validate_template_option(template: str) -> None:
@@ -896,11 +916,7 @@ def _pr_create_from_file(
 
     # 6. バリデーション
     # 免除は `--no-issue-ref` と release テンプレだけ（release は _validate_pr_content が判定）
-    _exit_on_unset_branch(
-        _is_release_pr(template, fm.base, head_branch, develop_branch, release_branch),
-        develop_branch,
-        release_branch,
-    )
+    _exit_on_unset_branch(template, fm.base, head_branch, develop_branch, release_branch)
     errors = _validate_pr_content(
         body,
         fm.title,
@@ -1006,11 +1022,7 @@ def _pr_create_direct(
     release_branch = config.get_release_branch(owner, repo)
 
     # 6. バリデーション
-    _exit_on_unset_branch(
-        _is_release_pr(template, base, head_branch, develop_branch, release_branch),
-        develop_branch,
-        release_branch,
-    )
+    _exit_on_unset_branch(template, base, head_branch, develop_branch, release_branch)
     errors = _validate_pr_content(
         body,
         title,

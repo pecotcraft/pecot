@@ -361,15 +361,19 @@ def _masked_lines(body: str) -> tuple[list[str], bool]:
     return masked.split("\n"), unclosed
 
 
-_SUMMARY_HEADING_RE = re.compile(r"^##\s+Summary(\s|$)")
-_H1_H2_RE = re.compile(r"^#{1,2}\s")
-_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)|!\[[^\]]*\]\[[^\]]*\]|<img\b", re.IGNORECASE)
+_SUMMARY_HEADING_RE = re.compile(r"^ {0,3}##\s+Summary(\s|$)")
+_H1_H2_RE = re.compile(r"^ {0,3}#{1,2}(\s|$)")
+_IMAGE_ALT = r"(?:[^\[\]]|\[[^\[\]]*\])*"
+_IMAGE_RE = re.compile(
+    rf"!\[{_IMAGE_ALT}\]\([^)]+\)|!\[{_IMAGE_ALT}\]\[[^\]]*\]|<img\b", re.IGNORECASE
+)
 
 
 def has_summary_image(body: str) -> bool:
     """Summary セクションに画像の参照（Markdown 記法または `<img`）があるか。
 
     マスク後の行で探すので、フェンス・インラインコード・HTML コメント内は数えない。
+    記法の網羅は目的ではなく、取りこぼしは screenshot の理由で回避できる。
     """
     lines, _ = _masked_lines(body)
     start = next((i for i, ln in enumerate(lines) if _SUMMARY_HEADING_RE.match(ln)), None)

@@ -37,6 +37,9 @@ from cli.core.nx_scope import NxProject
 
 runner = CliRunner()
 
+# Summary に置く画像の行（日本語を含まない）
+_IMG_LINE = '<img src="./x.png">'
+
 
 # parse_pr_ref テストは tests/core/test_ref_parser.py に移動
 
@@ -80,12 +83,12 @@ class TestValidatePRContent:
 
     def test_valid_content(self) -> None:
         """有効なPR内容"""
-        body = """
+        body = f"""
 ## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -110,14 +113,14 @@ Refs #123
 
     def test_missing_heading_is_reported_by_its_name(self) -> None:
         """PR テンプレの見出しは名前だけなので、不足は名前で返り、見出しの後ろの文は問わない"""
-        body = '## Summary\n\n<img src="./x.png">\n\n## Changes\n\nなし\n\n## Verified\n\n- pytest\n\nRefs #123\n'
+        body = f"## Summary\n\n{_IMG_LINE}\n\n## Changes\n\nなし\n\n## Verified\n\n- pytest\n\nRefs #123\n"
         errors = _validate_pr_content(body, "タイトル", "develop-aist", "develop-aist")
         assert errors == ["不足セクション: ## Risks"]
 
     def test_missing_issue_reference_names_the_exemption(self) -> None:
         """Issue 参照なしのエラー文は免除手段（--no-issue-ref）を示す"""
         body = (
-            '## Summary — 検証を追加\n\n<img src="./x.png">\n\n'
+            f"## Summary — 検証を追加\n\n{_IMG_LINE}\n\n"
             "## Changes\n\nなし\n\n"
             "## Verified — テスト通過\n\n- pytest\n\n"
             "## Risks — なし\n\n- なし\n"
@@ -168,7 +171,7 @@ Refs #123
     def test_base_branch_error_when_no_develop(self, capsys: pytest.CaptureFixture[str]) -> None:
         """開発ブランチ未設定時は検証の前に exit 1 で止め、設定を誘導する"""
         with pytest.raises(typer.Exit) as exc:
-            _exit_on_unset_branch(False, None, "main")
+            _exit_on_unset_branch("default", "main", None, None, None)
         assert exc.value.exit_code == 1
         err = capsys.readouterr().err
         assert "develop_branchが設定されていません" in err
@@ -176,8 +179,8 @@ Refs #123
 
     def test_set_branches_do_not_exit(self) -> None:
         """ブランチが設定されていれば止めない"""
-        _exit_on_unset_branch(False, "develop", None)
-        _exit_on_unset_branch(True, None, "main")
+        _exit_on_unset_branch("default", "main", None, "develop", None)
+        _exit_on_unset_branch("release", "main", None, None, "main")
 
 
 # pr create --prepare コマンドテスト
@@ -300,7 +303,7 @@ class TestPRCreateFromFileCommand:
         """正常系: ファイルからPR作成（ブランチ名からIssue参照を自動追加）"""
         pr_file = tmp_path / "pr.md"
         pr_file.write_text(
-            """---
+            f"""---
 title: "feat: テスト機能追加"
 repository: "owner/repo"
 base: "develop-aist"
@@ -312,7 +315,7 @@ draft: false
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -373,7 +376,7 @@ draft: false
         """dry-run モード"""
         pr_file = tmp_path / "pr.md"
         pr_file.write_text(
-            """---
+            f"""---
 title: "feat: テスト機能追加"
 repository: "owner/repo"
 base: "develop-aist"
@@ -385,7 +388,7 @@ draft: false
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -424,7 +427,7 @@ draft: false
         """ブランチ名から番号を補えなくても本文の Issue 参照を要求する（免除は --no-issue-ref のみ）"""
         pr_file = tmp_path / "pr.md"
         pr_file.write_text(
-            """---
+            f"""---
 title: "feat: テスト機能追加"
 repository: "owner/repo"
 base: "develop-aist"
@@ -436,7 +439,7 @@ draft: false
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -540,11 +543,11 @@ class TestPRCreateDirectCommand:
             "html_url": "https://ghes.example.com/owner/repo/pull/789",
         }
 
-        body = """## Summary — テスト用サマリ
+        body = f"""## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -605,11 +608,11 @@ class TestPRCreateDirectCommand:
         mock_config.get_develop_branch.return_value = "develop-aist"
         mock_config.get_release_branch.return_value = None
 
-        body = """## Summary — テスト用サマリ
+        body = f"""## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -2408,11 +2411,11 @@ class TestPRPreflightCommand:
 
         mock_client = MagicMock()
 
-        body = """## Summary — テスト用サマリ
+        body = f"""## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -2470,11 +2473,11 @@ class TestPRPreflightCommand:
 
         mock_client = MagicMock()
 
-        body = """## Summary — テスト用サマリ
+        body = f"""## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -3342,10 +3345,8 @@ Refs #123
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """--template release でrelease_branch未設定なら検証の前に exit 1 で設定を誘導"""
-        body = self._make_release_body()
-        del body
         with pytest.raises(typer.Exit) as exc:
-            _exit_on_unset_branch(True, "develop-aist", None)
+            _exit_on_unset_branch("release", "main", None, "develop-aist", None)
         assert exc.value.exit_code == 1
         err = capsys.readouterr().err
         assert "release_branchが設定されていません" in err
@@ -3928,7 +3929,7 @@ class TestPrCreatePrepareCloses:
 class TestPrCreateAppendClosesEpicGuard:
     """_pr_create_from_file 保険ロジックの Epic 除外"""
 
-    PR_FILE_BODY = """---
+    PR_FILE_BODY = f"""---
 title: "feat: テスト機能追加"
 repository: "owner/repo"
 base: "develop-aist"
@@ -3940,7 +3941,7 @@ draft: false
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -4539,11 +4540,11 @@ class TestPreparedPRRoundtrip:
 # 投稿本文の記法チェック（#962）
 
 
-_VALID_PR_BODY = """## Summary — テスト用サマリ
+_VALID_PR_BODY = f"""## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -4644,11 +4645,11 @@ _SCOPE_ROOTS = {
     "pecot-visual": NxProject("plugins/pecot-visual", "p-v"),
 }
 
-_SCOPE_BODY = """## Summary — テスト用サマリ
+_SCOPE_BODY = f"""## Summary — テスト用サマリ
 
 テストのための変更内容。
 
-<img src="./x.png">
+{_IMG_LINE}
 
 ## Changes
 
@@ -4991,8 +4992,8 @@ class TestPrepareScopeGuidance:
 
 # Summary の画像か screenshot の理由を求める検証（#183）
 
-_NO_IMAGE_BODY = _VALID_PR_BODY.replace('<img src="./x.png">\n', "", 1)
-_HINT = "`screenshot`"
+_NO_IMAGE_BODY = _VALID_PR_BODY.replace(f"{_IMG_LINE}\n", "", 1)
+assert _NO_IMAGE_BODY != _VALID_PR_BODY
 
 
 class TestScreenshotDecision:
@@ -5027,7 +5028,7 @@ class TestScreenshotDecision:
         assert result.exit_code == 3, result.output
         assert "Summary has no image" in result.output
         assert "`![alt](./<file>.png)`" in result.output
-        assert _HINT in result.output
+        assert "`screenshot`" in result.output
 
     @pytest.mark.parametrize(
         "image",
@@ -5081,17 +5082,25 @@ class TestScreenshotDecision:
     def test_release_template_is_exempt(self) -> None:
         body = TestValidatePRContentRelease()._make_release_body()
         errors = _validate_pr_content(
-            body, "release: v0.5.0", "main", "develop-aist",
-            template="release", release_branch="main",
-        )  # fmt: skip
+            body,
+            "release: v0.5.0",
+            "main",
+            "develop-aist",
+            template="release",
+            release_branch="main",
+        )
         assert SCREENSHOT_MISSING_ERROR not in errors
 
     def test_develop_to_release_default_template_is_exempt(self) -> None:
         body = TestValidatePRContentRelease()._make_release_body()
         errors = _validate_pr_content(
-            body, "release: v0.5.0", "main", "develop-aist",
-            release_branch="main", head="develop-aist",
-        )  # fmt: skip
+            body,
+            "release: v0.5.0",
+            "main",
+            "develop-aist",
+            release_branch="main",
+            head="develop-aist",
+        )
         assert SCREENSHOT_MISSING_ERROR not in errors
 
     def test_ordinary_pr_without_image_gets_the_error(self) -> None:
@@ -5100,7 +5109,7 @@ class TestScreenshotDecision:
         )
         assert errors == [SCREENSHOT_MISSING_ERROR]
 
-    def test_release_accepts_screenshot_option(self, tmp_path: Path) -> None:
+    def test_release_accepts_screenshot_frontmatter(self, tmp_path: Path) -> None:
         body = TestValidatePRContentRelease()._make_release_body()
         file = tmp_path / "pr.md"
         file.write_text(
@@ -5111,6 +5120,67 @@ class TestScreenshotDecision:
         result = self._run([str(file), "--template", "release"])
 
         assert result.exit_code == 0, result.output
+
+    def test_release_accepts_screenshot_option(self) -> None:
+        body = TestValidatePRContentRelease()._make_release_body()
+        result = self._run(
+            [
+                "-m",
+                body,
+                "-t",
+                "release: v0.5.0",
+                "-b",
+                "main",
+                "-r",
+                "owner/repo",
+                "--template",
+                "release",
+                "--screenshot",
+                "不要",
+            ]
+        )
+
+        assert result.exit_code == 0, result.output
+
+    def test_file_form_rejects_screenshot_option(self, tmp_path: Path) -> None:
+        result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY)), "--screenshot", "不要"])
+
+        assert result.exit_code == 1, result.output
+        assert "--screenshot is for -m" in result.output
+        assert "`screenshot`" in result.output
+
+    def test_release_with_unset_release_branch_exits_1(self) -> None:
+        config = _pr_config()
+        config.get_release_branch.return_value = None
+        body = TestValidatePRContentRelease()._make_release_body()
+        result = self._run(
+            [
+                "-m",
+                body,
+                "-t",
+                "release: v0.5.0",
+                "-b",
+                "main",
+                "-r",
+                "owner/repo",
+                "--template",
+                "release",
+            ],
+            config,
+        )
+
+        assert result.exit_code == 1, result.output
+        assert "release_branchが設定されていません" in result.output
+        assert "Summary has no image" not in result.output
+
+    def test_direct_with_unset_develop_branch_exits_1(self) -> None:
+        config = _pr_config()
+        config.get_develop_branch.return_value = None
+        result = self._run(self._direct(_NO_IMAGE_BODY), config)
+
+        assert result.exit_code == 1, result.output
+        assert "develop_branchが設定されていません" in result.output
+        assert "Summary has no image" not in result.output
 
     def test_missing_section_and_missing_image_are_listed_together(self, tmp_path: Path) -> None:
         body = _NO_IMAGE_BODY.replace("## Risks", "## Other", 1)

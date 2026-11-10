@@ -1030,14 +1030,33 @@ class TestHasSummaryImage:
 
     @pytest.mark.parametrize(
         "image",
-        ["![x](./x.png)", "![x][ref]", "<img src=\"a.png\">", "<IMG src=\"a.png\">",
-         "![](https://github.com/user-attachments/assets/1)"],
-    )  # fmt: skip
+        [
+            "![x](./x.png)",
+            "![x][ref]",
+            '<img src="a.png">',
+            '<IMG src="a.png">',
+            "![](https://github.com/user-attachments/assets/1)",
+            "![a [x]](./a.png)",
+        ],
+    )
     def test_counts_image_forms(self, image: str) -> None:
         assert has_summary_image(f"## Summary — 要点\n\n{image}\n\n## Changes\n\nなし\n")
 
     def test_no_image(self) -> None:
         assert not has_summary_image("## Summary — 要点\n\n本文。\n\n## Changes\n\nなし\n")
+
+    def test_empty_destination_is_not_an_image(self) -> None:
+        assert not has_summary_image("## Summary\n\n![a]()\n")
+
+    def test_shortcut_reference_is_not_counted(self) -> None:
+        assert not has_summary_image("## Summary\n\n![x]\n")
+
+    def test_indented_headings_are_recognized(self) -> None:
+        assert has_summary_image("  ## Summary\n\n" + _IMG + "\n")
+        assert not has_summary_image("## Summary\n\n  ## Changes\n\n" + _IMG + "\n")
+
+    def test_bare_h2_ends_summary(self) -> None:
+        assert not has_summary_image("## Summary\n\n##\n\n" + _IMG + "\n")
 
     def test_plain_link_is_not_an_image(self) -> None:
         assert not has_summary_image("## Summary\n\n[x](./x.png)\n")
