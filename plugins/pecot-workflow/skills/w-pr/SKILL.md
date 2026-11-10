@@ -71,7 +71,8 @@ Summary に画像があれば `screenshot` は空のままにする。画像と�
    Playwright MCP は初期設定で `file://` を開けないので、http で配信する
 4. `http://localhost:<port>/<file>.html` を Playwright MCP で開く。
    Playwright MCP の screenshot のツールで撮る。ツール名は Claude Code と GitHub Copilot CLI で違う
-5. 画像は Playwright MCP の既定の保存先（`.playwright-mcp/`）に相対名で保存する。`git add` に混ぜない
+5. screenshot のツールの保存名は、`.playwright-mcp/<名前>.png` と書く。
+   名前だけを渡すとリポジトリのルートに保存される。`git add` に混ぜない
 
 画像は、本文から `![説明](./画像のファイル名)` で参照し、PR を作った後に gh で載せる。
 gh v2.99.0 以上が要る。GHES のリポでは使えない。
