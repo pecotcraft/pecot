@@ -24,11 +24,7 @@ BUILD_FAILED=0
 
 # image に入るファイルだけの hash にする（README などの変更で tag を変えない）。
 tag_key() {
-    key_of HEAD
-}
-
-key_of() {
-    git -C "$GITHUB_WORKSPACE" ls-tree "$1" -- .devcontainer/Dockerfile .devcontainer/devcontainer.json \
+    git -C "$GITHUB_WORKSPACE" ls-tree "${1:-HEAD}" -- .devcontainer/Dockerfile .devcontainer/devcontainer.json \
         .devcontainer/devcontainer-lock.json .devcontainer/features | git hash-object --stdin
 }
 
@@ -211,15 +207,19 @@ cmd_exec() {
 
 # ci の key は PR の merge commit の tree から出る。base が進んでずれると tag が当たらず、ci は build に回る。
 warn_merged_key_drift() {
-    local base=$1 tree merged
-    tree=$(git -C "$GITHUB_WORKSPACE" merge-tree --write-tree "origin/$base" HEAD 2> /dev/null) || return 0
-    merged=$(key_of "${tree%%$'\n'*}") || return 0
-    if [ "$merged" != "$(tag_key)" ]; then
-        echo "::warning::origin/$base との merge 後の key が def-$merged で、載せる def-$(tag_key) と違う。ci はこの tag を使えない"
+    local base=$1 tree merged own
+    own=$(tag_key)
+    tree=$(git -C "$GITHUB_WORKSPACE" merge-tree --write-tree "origin/$base" HEAD 2> /dev/null) || {
+        echo "origin/$base との merge に失敗したため、key のずれの確認を飛ばす"
+        return 0
+    }
+    merged=$(tag_key "${tree%%$'\n'*}") || return 0
+    if [ "$merged" != "$own" ]; then
+        echo "::warning::origin/$base との merge 後の key が def-$merged で、載せる def-$own と違う。ci はこの tag を使えない"
     fi
 }
 
-# --push と --latest の無い呼び出しは build だけにする。--push だけのときは、既存の tag を上書きしない。
+# --push だけのとき、既存の tag があれば build と push を省く。
 cmd_publish() {
     local push=0 latest=0 no_cache=0 base="" ref
     while [ $# -gt 0 ]; do
@@ -228,7 +228,11 @@ cmd_publish() {
             --latest) latest=1 ;;
             --no-cache) no_cache=1 ;;
             --base)
-                base=${2:?--base に値が要る}
+                [ $# -ge 2 ] || {
+                    echo "--base に値が要る" >&2
+                    exit 2
+                }
+                base=$2
                 shift
                 ;;
             *)
@@ -243,7 +247,9 @@ cmd_publish() {
         echo "$ref already exists. Skip build and push."
         return 0
     fi
-    [ -n "$base" ] && warn_merged_key_drift "$base"
+    if [ -n "$base" ]; then
+        warn_merged_key_drift "$base"
+    fi
     # buildx は何も指定しないと unknown/unknown の attestation manifest を付け、GHCR の一覧に余計な行が出る。
     export BUILDX_NO_DEFAULT_ATTESTATIONS=1
     local args=(--workspace-folder "$GITHUB_WORKSPACE" --image-name "$ref" --cache-from "$REPO:latest")
@@ -269,8 +275,8 @@ case "$sub" in
     tag) image_ref ;;
     publish) cmd_publish "$@" ;;
     *)
-        echo "使い方: dev-container.sh prefetch|up|exec -- <cmd>|restore-owner|install-cli|tag" >&2
-        echo "        dev-container.sh publish [--push] [--latest] [--no-cache] [--base <branch>]" >&2
+        echo "使い方: dev-container.sh prefetch|up|exec -- <cmd>|restore-owner|install-cli|tag|publish" >&2
+        echo "        publish の引数: [--push] [--latest] [--no-cache] [--base <branch>]" >&2
         exit 2
         ;;
 esac

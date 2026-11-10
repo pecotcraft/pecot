@@ -27,7 +27,7 @@ updates:
     groups:
       root-minor-patch:
         update-types: ["minor", "patch"]
-        # devcontainer のイメージを作り直す PR を、ほかの依存と分ける（dependabot-commit.yml が playwright-deps の版を上げる）。
+        # イメージを作り直す playwright の PR を、ほかの依存と分ける。
         exclude-patterns: ["playwright", "@playwright/*"]
     # text-rules の web-tree-sitter は comments plugin と同じ版にする（web-tree-sitter-version.test.ts が固定）。2 つは手で一緒に上げる。
     # versions を書かないので security updates は立つ（dependabot-core の ignore_condition.rb）。

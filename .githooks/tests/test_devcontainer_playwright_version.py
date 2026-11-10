@@ -15,6 +15,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def _lock_playwright_versions() -> list[str]:
     text = (_REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    # sync-playwright-deps.mjs と同じ正規表現。
     return sorted(set(re.findall(r"^  playwright@(\d[^\s:]*):$", text, re.M)))
 
 

@@ -167,11 +167,11 @@ class TestWaitingReasonsMetadata:
     def test_group_with_major_is_major(self) -> None:
         assert waiting_reasons(_pr(deps=(("a", "patch"), ("b", "major"))), NOW) == ["major"]
 
-    def test_playwright_minor_is_not_waiting(self) -> None:
+    def test_dependency_name_does_not_add_reason_to_minor(self) -> None:
         pr = _pr(deps=(("@Playwright/test", "minor"),))
         assert waiting_reasons(pr, NOW) == []
 
-    def test_playwright_major_lists_major_only(self) -> None:
+    def test_dependency_name_does_not_add_reason_to_major(self) -> None:
         pr = _pr(deps=(("playwright", "major"),))
         assert waiting_reasons(pr, NOW) == ["major"]
 

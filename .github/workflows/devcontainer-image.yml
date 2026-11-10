@@ -31,9 +31,10 @@ concurrency:
 
 jobs:
   build:
-    # dependabot の PR は dependabot-commit.yml が同じ定義を build して載せる。
-    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]') }}
+    # App の push の run は dependabot-commit.yml が載せたイメージを使うので飛ばす。
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && github.actor != 'dependabot[bot]') }}
     runs-on: ubuntu-latest
+    # build を含む。
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -52,7 +53,7 @@ jobs:
       - name: Install devcontainer CLI
         run: .githooks/ci/dev-container.sh install-cli
 
-      # PR では push せず build だけにする。latest は main のときだけ付け、feature ブランチの実行は既存の def-<key> を上書きしない。
+      # latest は main のときだけ付け、feature ブランチの実行は既存の def-<key> を上書きしない。
       - name: Build and push image
         env:
           PECOT_CI_IMAGE_REPO: ghcr.io/pecotcraft/pecot-devcontainer

@@ -1,6 +1,5 @@
 # Dependabot の PR に、runtime-lock・version plan・playwright-deps の版の commit を足す。
-# devcontainer のイメージは push の前に載せる。
-# push は App のトークンで行う。GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる。client id と鍵は Dependabot secrets から読む。
+# push は App のトークンで行う（GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる）。
 name: dependabot-commit
 
 on:
@@ -17,6 +16,7 @@ jobs:
   regenerate:
     if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
+    # イメージの build を含むため長く取る。
     timeout-minutes: 60
     permissions:
       contents: read
@@ -56,6 +56,8 @@ jobs:
         run: node .githooks/scripts/gen-runtime-lock.mjs --write
 
       - name: Sync playwright-deps version
+        id: sync
+        continue-on-error: true
         run: node .githooks/scripts/sync-playwright-deps.mjs
 
       - name: Create version plans
@@ -83,13 +85,13 @@ jobs:
             echo "::error::${NO_TOKEN_MSG}"
             exit 1
           fi
+          if git diff --cached --name-only | grep -qx '.devcontainer/devcontainer.json'; then
+            echo "image=true" >> "$GITHUB_OUTPUT"
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "$COMMIT_MSG" -m "[dependabot skip]"
           echo "committed=true" >> "$GITHUB_OUTPUT"
-          if git diff --name-only HEAD~1 HEAD | grep -qx '.devcontainer/devcontainer.json'; then
-            echo "image=true" >> "$GITHUB_OUTPUT"
-          fi
 
       # push で起きる ci の job が def-<key> を pull できるよう、push の前にイメージを載せる。
       - name: Log in to GHCR
@@ -104,8 +106,9 @@ jobs:
 
       - name: Publish devcontainer image
         id: publish
-        if: ${{ steps.commit.outputs.image == 'true' }}
+        if: ${{ steps.commit.outputs.image == 'true' && steps.login.outcome == 'success' }}
         continue-on-error: true
+        timeout-minutes: 40
         env:
           PECOT_CI_IMAGE_REPO: ghcr.io/pecotcraft/pecot-devcontainer
           BASE_REF: ${{ github.event.pull_request.base.ref }}
@@ -115,7 +118,7 @@ jobs:
 
       # 載せられなくても push は続ける。ci は PR の定義から build して通る。
       - name: Warn when image was not published
-        if: ${{ steps.commit.outputs.image == 'true' && (steps.login.outcome == 'failure' || steps.publish.outcome == 'failure') }}
+        if: ${{ steps.commit.outputs.image == 'true' && steps.publish.outcome != 'success' }}
         run: |
           msg="イメージを載せられなかった。ci は build に回る"
           echo "::warning::${msg}"
@@ -133,4 +136,12 @@ jobs:
           PLANS_FAILED_MSG: "version plan を作れなかった。runtime-lock は push した。ログを見て、PR で @dependabot recreate を打つ"
         run: |
           echo "::error::${PLANS_FAILED_MSG}"
+          exit 1
+
+      - name: Fail when playwright-deps was not synced
+        if: ${{ steps.sync.outcome == 'failure' }}
+        env:
+          SYNC_FAILED_MSG: "playwright-deps の版を同期できなかった。runtime-lock と version plan は push した。ログを見て、PR で @dependabot recreate を打つ"
+        run: |
+          echo "::error::${SYNC_FAILED_MSG}"
           exit 1

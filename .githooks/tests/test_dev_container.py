@@ -440,8 +440,20 @@ def test_publish_rejects_unknown_argument(env: Env) -> None:
     assert env.calls_of("devcontainer build") == []
 
 
+def test_publish_base_without_value_exits_2(env: Env) -> None:
+    result = env.run("publish", "--base")
+    assert result.returncode == 2
+    assert "--base に値が要る" in result.stderr
+    assert env.calls_of("devcontainer build") == []
+
+
 def test_publish_propagates_build_failure(env: Env) -> None:
     assert env.run("publish", "--push", STUB_BUILD_RC="1").returncode == 1
+
+
+def _commit_all(env: Env, git: Callable[..., object], message: str) -> None:
+    git(env.work, "add", "-A")
+    git(env.work, "commit", "-q", "-m", message)
 
 
 def _drift_setup(env: Env, git: Callable[..., object], *, drift: bool) -> None:
@@ -449,15 +461,13 @@ def _drift_setup(env: Env, git: Callable[..., object], *, drift: bool) -> None:
     git(env.work, "update-ref", "refs/remotes/origin/main", "HEAD")
     git(env.work, "checkout", "-q", "-b", "pr")
     (env.work / "f.txt").write_text("pr\n")
-    git(env.work, "add", "-A")
-    git(env.work, "commit", "-q", "-m", "pr")
+    _commit_all(env, git, "pr")
     git(env.work, "checkout", "-q", "main")
     if drift:
         (env.work / ".devcontainer" / "Dockerfile").write_text("FROM scratch\n")
     else:
         (env.work / "g.txt").write_text("main\n")
-    git(env.work, "add", "-A")
-    git(env.work, "commit", "-q", "-m", "main moves")
+    _commit_all(env, git, "main moves")
     git(env.work, "update-ref", "refs/remotes/origin/main", "HEAD")
     git(env.work, "checkout", "-q", "pr")
 
@@ -481,4 +491,5 @@ def test_publish_skips_drift_check_when_base_ref_is_missing(env: Env) -> None:
     result = env.run("publish", "--base", "nonexistent")
     assert result.returncode == 0, result.stderr
     assert "::warning::" not in result.stdout
+    assert "key のずれの確認を飛ばす" in result.stdout
     assert len(env.calls_of("devcontainer build")) == 1

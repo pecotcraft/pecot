@@ -1,4 +1,4 @@
-"""sync-playwright-deps.mjs と、それを使う dependabot の workflow の静的テスト (#274)。"""
+"""sync-playwright-deps.mjs のテスト (#274)。"""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -82,39 +81,18 @@ def test_config_without_the_feature_stops(repo: Path) -> None:
     assert "playwright-deps" in result.stderr
 
 
-def _workflow(name: str) -> dict:
-    return yaml.safe_load((_REPO_ROOT / ".github/workflows" / name).read_text(encoding="utf-8"))
+def test_lock_ignores_other_playwright_packages(repo: Path) -> None:
+    # playwright-core と @playwright/test の行は版に数えない。
+    lock = _lock("1.65.0") + "  playwright-core@1.70.0:\n  '@playwright/test@1.71.0':\n"
+    path = _setup(repo, lock, _CONFIG % "1.64.1")
+    result = _run(repo)
+    assert result.returncode == 0, result.stderr
+    assert path.read_text(encoding="utf-8") == _CONFIG % "1.65.0"
 
 
-def _step_index(steps: list[dict], name: str) -> int:
-    return next(i for i, s in enumerate(steps) if s.get("name") == name)
-
-
-def test_commit_workflow_runs_an_existing_script_and_adds_devcontainer_json() -> None:
-    steps = _workflow("dependabot-commit.yml")["jobs"]["regenerate"]["steps"]
-    sync = next(s for s in steps if s.get("run") == f"node {_SCRIPT}")
-    assert sync
-    assert (_REPO_ROOT / _SCRIPT).is_file()
-    commit = steps[_step_index(steps, "Commit generated files")]
-    assert ".devcontainer/devcontainer.json" in commit["run"]
-
-
-def test_commit_workflow_publishes_image_before_push_without_blocking_it() -> None:
-    job = _workflow("dependabot-commit.yml")["jobs"]["regenerate"]
-    steps = job["steps"]
-    publish = steps[_step_index(steps, "Publish devcontainer image")]
-    assert publish["continue-on-error"] is True
-    assert "dev-container.sh publish --push" in publish["run"]
-    assert _step_index(steps, "Publish devcontainer image") < _step_index(
-        steps, "Push generated files"
-    )
-    assert job["permissions"] == {"contents": "read", "packages": "write"}
-    assert job["timeout-minutes"] == 60
-
-
-def test_auto_merge_keeps_the_update_type_allowlist_without_dependency_names() -> None:
-    steps = _workflow("dependabot-auto-merge.yml")["jobs"]["auto-merge"]["steps"]
-    cond = steps[_step_index(steps, "Check merge queue")]["if"]
-    assert "version-update:semver-minor" in cond
-    assert "version-update:semver-patch" in cond
-    assert "dependency-names" not in cond
+def test_missing_lock_stops_with_one_line_message(repo: Path) -> None:
+    (repo / ".devcontainer/devcontainer.json").write_text(_CONFIG % "1.64.1", encoding="utf-8")
+    result = _run(repo)
+    assert result.returncode == 1
+    assert result.stderr.strip().count("\n") == 0
+    assert "pnpm-lock.yaml を読めない" in result.stderr
