@@ -113,3 +113,12 @@ def test_both_roles_carry_the_permissions_boundary() -> None:
     for name in ("Role", "SchedulerRole"):
         boundary = resources[name]["Properties"]["PermissionsBoundary"]
         assert boundary["Fn::Sub"].endswith(":policy/pecot-board-sync-boundary"), name
+
+
+def test_scheduler_trust_source_arn_is_the_schedule_group() -> None:
+    # Scheduler は aws:SourceArn に schedule ではなく schedule group の ARN を渡す
+    resources = _template()["Resources"]
+    group = resources["Schedule"]["Properties"].get("GroupName", "default")
+    statement = resources["SchedulerRole"]["Properties"]["AssumeRolePolicyDocument"]["Statement"][0]
+    source_arn = statement["Condition"]["ArnEquals"]["aws:SourceArn"]["Fn::Sub"]
+    assert source_arn.endswith(f":schedule-group/{group}")

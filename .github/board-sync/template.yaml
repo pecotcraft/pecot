@@ -189,7 +189,7 @@ Resources:
                   Ref: AWS::AccountId
               ArnEquals:
                 aws:SourceArn:
-                  Fn::Sub: arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/pecot-board-sync
+                  Fn::Sub: arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule-group/default
       Policies:
         - PolicyName: pecot-board-sync-scheduler
           PolicyDocument:
