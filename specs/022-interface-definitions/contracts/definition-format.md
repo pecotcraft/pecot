@@ -10,15 +10,15 @@
 
 | POSIX の節 | 定義書の欄 | 書き手 | MCP ツールでの読み替え |
 |---|---|---|---|
-| NAME | `name`・`description` | 書き出し | Tool の `name`・`description` |
-| SYNOPSIS | `cli.path`・`cli.positional`・`cli.flags`・`constraints` | 書き出し。`constraints` は人 | `surfaces.mcp.tool` |
+| NAME | `id`・`name`・`description` | 書き出し | Tool の `name`・`description` |
+| SYNOPSIS | `surfaces.cli.path`・`cli.positional`・`cli.flags`・`constraints` | 書き出し。`constraints` は人 | `surfaces.mcp.tool` |
 | DESCRIPTION | `details` | 人 | 同じ |
 | OPTIONS・OPERANDS | `input`・`default_notes` | 書き出し。`default_notes` は人 | Tool の `inputSchema` |
 | STDIN | `stdin` | 人 | 常に `none` |
 | INPUT FILES・OUTPUT FILES | `effects` のうち相手が `file` のもの | 人 | 同じ |
 | ENVIRONMENT VARIABLES | `environment` | 人。ソースの文字列と比べる | 同じ |
 | ASYNCHRONOUS EVENTS | 欄にしない。全項目が既定の扱い | — | — |
-| STDOUT | `output` | CLI は人。MCP ツールは書き出し（`mcp.output`） | Tool の `outputSchema` と結果の構造 |
+| STDOUT | `output`・`mcp.output` | CLI は人。MCP ツールは書き出し（`mcp.output`） | Tool の `outputSchema` と結果の構造 |
 | STDERR | `diagnostics` | 人 | 失敗の結果に入る文言 |
 | EXIT STATUS | `exit_status` | 人 | 失敗の種別（`isError` が真になる条件） |
 | CONSEQUENCES OF ERRORS | `on_error` | 人 | 同じ |
@@ -28,7 +28,7 @@
 
 | POSIX に節の無い欄 | 借りた先 |
 |---|---|
-| `effects`（相手が `github`・`aws`・`git`・`process` のもの）・`idempotent` | MCP の Tool の annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
+| `effects`（相手が `github`・`aws`・`git`・`process` のもの）・`idempotent`・`mcp.annotations` | MCP の Tool の annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
 | `prerequisites` | 設計契約の事前条件。呼ぶ側が満たす |
 | `behaviors` | 要件の書き方（EARS）と、要件とテストの双方向の追跡 |
 | `hidden` | このリポの決め。利用者の一覧に出さない項目を表す |
@@ -173,6 +173,47 @@ error: plugins/pecot-tools/interface/authored.yaml: PT-AWS-S3-LS-01: statement d
 error: plugins/pecot-tools/interface/authored.yaml: PT-AWS-S3-CP: effects has kind "write" but annotations.readOnlyHint is true
 error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSION_PROJECT_DIR is read by cli/core/session.py but not listed
 ```
+
+形の誤りと意味の誤りは、同じ実行でそろえて出す。欄が足りない項目でも、その項目の振る舞いの項目は確認する。
+
+実装が出す行は、次の形だ。`<file>` はリポジトリのルートからのパス。
+
+| 場合 | 行 |
+|---|---|
+| 知らない欄 | `error: <file>: PW-ISSUE-CREATE: owner: unknown field` |
+| 欄が無い | `error: <file>: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`。「使わないときの値」がある欄だけ括弧を付ける |
+| 型が違う（YAML の `null` を含む） | `error: <file>: PW-ISSUE-CREATE: on_error: expected string but got null` |
+| 列挙の値が違う | `error: <file>: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")` |
+| 知らない `format` | `error: <file>: format: unknown value 2 (expected 1)` |
+| 英語の欄に日本語 | `error: <file>: PW-ISSUE-CREATE: details[1]: contains Japanese text (write English)` |
+| `statement` に日本語が無い | `error: <file>: PW-ISSUE-CREATE-01: statement: has no Japanese text (write Japanese)` |
+| 振る舞いの項目の ID の形 | `error: <file>: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 digits)`。共通の項目は `PT-COMMON-NN` |
+| ID が重なる（同じファイル） | `error: <file>: PW-ISSUE-CREATE-01: id: is defined more than once` |
+| ID が重なる（別のプラグイン） | `error: <file>: PW-COMMON-01: id: is also defined in <先に定義したファイル>` |
+| `generated.json` に無い項目 | `error: <file>: PW-ISSUE-OLD: entry is not in generated.json (remove it)` |
+| ファイルが無い | `error: <file>: file is missing` |
+| `interface/` が無い | `error: plugins/<plugin>/interface: directory is missing (listed in libs/interface-spec/targets.json)` |
+| JSON の構文 | `error: <file>: is not valid JSON` |
+| YAML の構文 | `error: <file>: line 17: map keys must be unique` |
+| 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: unknown validation issue (too_big): Too big: expected number to be <=255` |
+
+並べ方は、ファイル・行・項目の ID・欄・理由の順で、同じ入力からはいつも同じ順になる。
+
+### 環境変数の確認の決め
+
+| 決め | 内容 |
+|---|---|
+| 読みに数えるもの | Python は `os.environ[...]`・`os.environ.get(...)`・`os.getenv(...)`・`from os import environ, getenv` の後の同じ形。TypeScript は `process.env.NAME`・`process.env["NAME"]`・`const { NAME } = process.env`・`import { env } from "node:process"` の後の `env`。代入や削除は読みに数えない |
+| 対象にするソース | `git ls-files` が返すファイルのうち、`targets.json` のプラグインごとの `sources` の glob に合うもの。コメントだけの行は読まない。行の後ろのコメントは外さない |
+| 名前が決まらない読み | 名前が文字列のリテラルでない読みには、直前の行に `interface-env: NAME` を書く。複数の名前は空白かカンマで区切る。名前を読まない場合は `interface-env: none` と書く。無いと、`<file>:<line>: environment: reads an environment variable by a name that is not a literal; write "interface-env: NAME" on the line before it, or "interface-env: none" if it reads no name` で止める |
+| `*` | `environment` の名前には 1 つだけ書ける。両側に固定の文字が要る。`PECOT_GITHUB_*_TOKEN` は使え、`PECOT_*` は使えない。`*` は 1 文字以上の `A-Z`・`0-9`・`_` に合う |
+| 対象のプラグイン | `targets.json` で `entries` が `complete` のプラグインだけ。`partial` のプラグインの環境変数は確かめない |
+
+検出の限界は次のとおり。
+
+- `interface-env:` のコメントが古くなっても見つけられない
+- `const e = process.env` のように別名に入れてからの読みは見つけられない
+- 名前を変数で組み立てる読みは、`interface-env:` に頼る
 
 ## 一致の確認が出す失敗
 

@@ -1,0 +1,80 @@
+format: 1
+plugin: pecot-workflow
+environment:
+  - name: PECOT_GITHUB_API_URL
+    effect: Sends GitHub API requests to this URL instead of api.github.com.
+  - name: PECOT_GITHUB_*_TOKEN
+    effect: Authenticates GitHub API requests to the host in the middle of the name.
+entries:
+  PW-ISSUE-CREATE:
+    constraints:
+      - conflicts: [message, files]
+      - requires: {message: [title]}
+    details:
+      - Creates one issue per file and adds each to the project board.
+      - Prints the URL of each created issue.
+    stdin: none
+    output:
+      format: text
+      description: One line per created issue, with its URL.
+    diagnostics: default
+    environment: []
+    exit_status:
+      - code: 0
+        when: Every issue was created.
+      - code: 1
+        when: The front matter is invalid, or the GitHub API returned an error.
+    on_error:
+    effects:
+      - target: github
+        kind: write
+        what: Creates an issue and adds it to the project board.
+      - target: file
+        kind: read
+        what: Reads the Markdown files given as arguments.
+    prerequisites:
+      - gh is authenticated for the target repository.
+    idempotent: false
+    examples:
+      - run: pecot issue create .pecot/work/199/issue.md
+        note: Create one issue from a file.
+    default_notes:
+      issue_type: The task type unless the front matter says otherwise.
+    behaviors:
+      - id: PW-ISSUE-CREATE-01
+        pattern: unwanted
+        statement: もしフロントマターが不正なら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-02
+        pattern: event
+        statement: 複数のファイルを渡すと、渡した順に 1 件ずつ Issue を作る
+  PW-ISSUE-QUICK:
+    constraints: []
+    details:
+      - Creates an issue and a branch named after it.
+    stdin: none
+    output:
+      format: none
+    diagnostics: default
+    environment: []
+    exit_status:
+      - code: 0
+        when: The issue and the branch were created.
+    on_error: default
+    effects:
+      - target: git
+        kind: write
+        what: Creates and checks out a branch.
+    prerequisites: []
+    idempotent: false
+    examples:
+      - run: pecot issue quick "Fix typo"
+        note: Create an issue and its branch.
+    default_notes: {}
+    behaviors:
+      - id: PW-ISSUE-QUICK-01
+        pattern: ubiquitous
+        statement: 常に、作ったブランチに切り替えて終わる
+common_behaviors:
+  - id: PW-COMMON-01
+    pattern: unwanted
+    statement: もし知らないオプションを渡したなら、使い方のエラーを出して終了コード 2 で終わる

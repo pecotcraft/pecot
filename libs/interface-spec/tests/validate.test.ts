@@ -1,0 +1,71 @@
+import { describe, expect, it } from 'vitest'
+import { readFile, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import { validateRepository } from '../src/validate-repository.js'
+import { materialize } from './helpers/repository.js'
+
+const PW = 'plugins/pecot-workflow/interface'
+const PT = 'plugins/pecot-tools/interface'
+
+// 失敗の行の文字列は contracts/definition-format.md の「形式の検証が出す失敗」と同じ形。
+const CASES: readonly (readonly [string, readonly string[]])[] = [
+  ['valid', []],
+  ['entry-missing', [`error: ${PW}/authored.yaml: PW-ISSUE-QUICK: entry is missing (present in generated.json)`]],
+  ['entry-extra', [`error: ${PW}/authored.yaml: PW-ISSUE-OLD: entry is not in generated.json (remove it)`]],
+  ['field-missing', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`]],
+  ['field-null', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: expected string but got null`]],
+  ['unknown-field', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: owner: unknown field`]],
+  ['constraint-name', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: constraints[0].conflicts: unknown input name "mesage"`]],
+  ['language', [
+    `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: details[1]: contains Japanese text (write English)`,
+    `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement: has no Japanese text (write Japanese)`,
+  ]],
+  ['pattern-mismatch', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement does not match pattern "unwanted"`]],
+  ['annotations', [`error: ${PT}/authored.yaml: PT-AWS-S3-CP: effects has kind "write" but annotations.readOnlyHint is true`]],
+  ['behavior-id', [
+    `error: ${PT}/authored.yaml: common_behaviors[0].id: "PW-COMMON-01" must be "PT-COMMON-NN" (NN is 2 digits)`,
+    `error: ${PW}/authored.yaml: PW-COMMON-01: id: is also defined in ${PT}/authored.yaml`,
+    `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: id: is defined more than once`,
+    `error: ${PW}/authored.yaml: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 digits)`,
+  ]],
+  ['format-unknown', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")`]],
+  ['file-format', [`error: ${PW}/authored.yaml: format: unknown value 2 (expected 1)`]],
+  ['unknown-issue', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: exit_status[1].code: unknown validation issue (too_big): Too big: expected number to be <=255`]],
+  ['yaml-duplicate-key', [`error: ${PW}/authored.yaml: line 17: map keys must be unique`]],
+  ['invalid-json', [`error: ${PW}/generated.json: is not valid JSON`]],
+  ['interface-missing', [`error: ${PW}: directory is missing (listed in libs/interface-spec/targets.json)`]],
+  ['targets-invalid', [
+    'error: libs/interface-spec/targets.json: pecot-workflow: entries: unknown value "all" (expected one of "complete", "partial")',
+    'error: libs/interface-spec/targets.json: pecot-workflow: coverage: field is missing',
+    'error: libs/interface-spec/targets.json: pecot-workflow: extra: unknown field',
+  ]],
+]
+
+describe('validateRepository', () => {
+  it.each(CASES)('%s', async (name, expected) => {
+    expect(await validateRepository(await materialize(name))).toEqual(expected)
+  })
+
+  it('returns the same lines in the same order on every run', async () => {
+    const root = await materialize('behavior-id')
+    expect(await validateRepository(root)).toEqual(await validateRepository(root))
+  })
+
+  it('reports a shape error and a pattern mismatch in the same run', async () => {
+    const root = await materialize('valid')
+    const file = path.join(root, PW, 'authored.yaml')
+    const original = await readFile(file, 'utf8')
+    const text = original
+      .replace('    on_error: Issues created before the failing file remain on GitHub.\n', '')
+      .replace('もしフロントマターが不正なら、終了コード 1 で終わる', 'フロントマターが不正だと、終了コード 1 で終わる')
+    await writeFile(file, text)
+    expect(await validateRepository(root)).toEqual([
+      `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`,
+      `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement does not match pattern "unwanted"`,
+    ])
+  })
+
+  it('reports a targets.json that does not exist', async () => {
+    expect(await validateRepository(await materialize('empty'))).toEqual(['error: libs/interface-spec/targets.json: file is missing'])
+  })
+})

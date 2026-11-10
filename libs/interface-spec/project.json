@@ -1,0 +1,97 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "interface-spec",
+  "projectType": "library",
+  "tags": [
+    "type:lib",
+    "scope:libs"
+  ],
+  "targets": {
+    "install": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": [
+            "pecot"
+          ],
+          "target": "install"
+        }
+      ],
+      "metadata": {
+        "description": "依存の導入は、root の project の install（pnpm install --frozen-lockfile）が行う。このターゲットは何もせず、root の install の後に動く順序だけを lint / lint-defs / test-unit に与える。"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "runtime",
+        "env",
+        {
+          "runtime": "uv --version"
+        },
+        "{projectRoot}/pyrightconfig.json",
+        "{projectRoot}/scripts/lint-py.sh"
+      ],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "型チェック（typescript7 の tsc --noEmit）と eslint（警告も失敗）と、fixture の Python への ruff・pyright strict。"
+      },
+      "options": {
+        "command": "pnpm run lint",
+        "cwd": "libs/interface-spec"
+      }
+    },
+    "lint-defs": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "runtime",
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/targets.json",
+        "{projectRoot}/package.json",
+        "{workspaceRoot}/plugins/*/interface/**/*"
+      ],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソースは、glob を targets.json へ書く段階で inputs に足す。"
+      },
+      "options": {
+        "command": "pnpm exec tsx src/cli.ts validate",
+        "cwd": "libs/interface-spec"
+      }
+    },
+    "test": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        "test-unit"
+      ],
+      "metadata": {
+        "description": "CI と manual の stage の nx-affected-tests が起動するターゲット。レーン（test-*）を dependsOn で束ねる。"
+      }
+    },
+    "test-unit": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "runtime",
+        "env"
+      ],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。"
+      },
+      "options": {
+        "command": "pnpm exec vitest run --coverage",
+        "cwd": "libs/interface-spec"
+      }
+    }
+  }
+}
