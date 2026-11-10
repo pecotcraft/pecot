@@ -1,4 +1,4 @@
-# --dry-run（-n）。片付けず、クローズ対象とローカルの後片付けのプレビューを出す。
+# --dry-run（-n）。片付けず、クローズ対象とローカルの後片付けの予定の行だけを出す。
 id: pr-cleanup-ok-dry-run
 command:
   path: [pr, cleanup]

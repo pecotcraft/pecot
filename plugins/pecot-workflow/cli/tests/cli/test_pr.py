@@ -15,6 +15,7 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
+from cli.commands._output import Output
 from cli.commands.main import app
 from cli.commands.pr import (
     SCREENSHOT_MISSING_ERROR,
@@ -115,7 +116,7 @@ Refs #123
         """PR テンプレの見出しは名前だけなので、不足は名前で返り、見出しの後ろの文は問わない"""
         body = f"## Summary\n\n{_IMG_LINE}\n\n## Changes\n\nなし\n\n## Verified\n\n- pytest\n\nRefs #123\n"
         errors = _validate_pr_content(body, "タイトル", "develop-aist", "develop-aist")
-        assert errors == ["不足セクション: ## Risks"]
+        assert errors == ["missing sections: ## Risks"]
 
     def test_missing_issue_reference_names_the_exemption(self) -> None:
         """Issue 参照なしのエラー文は免除手段（--no-issue-ref）を示す"""
@@ -127,7 +128,7 @@ Refs #123
         )
         errors = _validate_pr_content(body, "タイトル", "develop-aist", "develop-aist")
         assert errors == [
-            "PR 本文に Issue 参照 `#N` がありません（Issue 起点でない PR は `--no-issue-ref`）"
+            "PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)"
         ]
 
     def test_missing_issue_reference(self) -> None:
@@ -146,7 +147,7 @@ Refs #123
 - なし
 """
         errors = _validate_pr_content(body, "タイトル", "develop-aist", "develop-aist")
-        assert any("Issue 参照 `#N` がありません" in e for e in errors)
+        assert any("no Issue reference `#N`" in e for e in errors)
 
     def test_base_branch_restriction(self) -> None:
         """mainブランチへの直接PRはエラー"""
@@ -166,21 +167,21 @@ Refs #123
 Refs #123
 """
         errors = _validate_pr_content(body, "タイトル", "main", "develop-aist")
-        assert any("baseブランチが不正" in e for e in errors)
+        assert any("base branch must be" in e for e in errors)
 
     def test_base_branch_error_when_no_develop(self, capsys: pytest.CaptureFixture[str]) -> None:
         """開発ブランチ未設定時は検証の前に exit 1 で止め、設定を誘導する"""
         with pytest.raises(typer.Exit) as exc:
-            _exit_on_unset_branch("default", "main", None, None, None)
+            _exit_on_unset_branch("default", "main", None, None, None, Output(False))
         assert exc.value.exit_code == 1
         err = capsys.readouterr().err
-        assert "develop_branchが設定されていません" in err
+        assert "develop_branch is not set" in err
         assert "project set-repo" in err
 
     def test_set_branches_do_not_exit(self) -> None:
         """ブランチが設定されていれば止めない"""
-        _exit_on_unset_branch("default", "main", None, "develop", None)
-        _exit_on_unset_branch("release", "main", None, None, "main")
+        _exit_on_unset_branch("default", "main", None, "develop", None, Output(False))
+        _exit_on_unset_branch("release", "main", None, None, "main", Output(False))
 
 
 # pr create --prepare コマンドテスト
@@ -282,7 +283,7 @@ class TestPRCreatePrepareCommand:
         result = runner.invoke(app, ["pr", "create", "--prepare"])
 
         assert result.exit_code == 1
-        assert f"エラー: {message}" in result.output
+        assert f"error: {message}" in result.output
         assert not (tmp_path / "pecot").exists()
 
     def test_no_args_shows_error(self) -> None:
@@ -290,7 +291,7 @@ class TestPRCreatePrepareCommand:
         result = runner.invoke(app, ["pr", "create"])
 
         assert result.exit_code == 1
-        assert "引数が不足しています" in result.output
+        assert "error: missing arguments" in result.output
 
 
 # pr create ファイルからの作成テスト
@@ -356,7 +357,7 @@ draft: false
         ):
             result = runner.invoke(app, ["pr", "create", str(pr_file)])
             assert result.exit_code == 0
-            assert "#456" in result.output
+            assert result.stdout == "https://ghes.example.com/owner/repo/pull/456\n"
             assert "https://ghes.example.com/owner/repo/pull/456" in result.output
 
             # API呼び出し確認
@@ -418,7 +419,7 @@ draft: false
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["pr", "create", str(pr_file), "--dry-run"])
             assert result.exit_code == 0
-            assert "バリデーション成功" in result.output
+            assert "dry-run: would create PR" in result.stderr
             assert "dry-run" in result.output
 
     def test_create_from_file_requires_issue_ref_when_branch_has_no_number(
@@ -465,14 +466,14 @@ draft: false
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["pr", "create", str(pr_file), "--dry-run"])
             assert result.exit_code == 3
-            assert "Issue 参照 `#N` がありません" in result.output
+            assert "no Issue reference `#N`" in result.output
             assert "`--no-issue-ref`" in result.output
 
             result = runner.invoke(
                 app, ["pr", "create", str(pr_file), "--dry-run", "--no-issue-ref"]
             )
             assert result.exit_code == 0
-            assert "バリデーション成功" in result.output
+            assert "dry-run: would create PR" in result.stderr
 
     def test_create_validation_error(self, tmp_path: Path) -> None:
         """バリデーションエラー"""
@@ -499,7 +500,7 @@ head: "feat/test"
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["pr", "create", str(pr_file)])
             assert result.exit_code == 3
-            assert "バリデーションエラー" in result.output
+            assert "error: " in result.stderr
 
     def test_create_no_active_config(self, tmp_path: Path) -> None:
         """アクティブ設定がない場合はエラー"""
@@ -519,7 +520,7 @@ body
         with patch("cli.commands.pr.load_active_config", return_value=None):
             result = runner.invoke(app, ["pr", "create", str(pr_file)])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "error: no active project" in result.stderr
 
 
 # pr create -m オプションテスト
@@ -575,7 +576,7 @@ class TestPRCreateDirectCommand:
                 ["pr", "create", "-m", body, "-t", "feat: テスト", "-b", "develop-aist"],
             )
             assert result.exit_code == 0
-            assert "#789" in result.output
+            assert result.stdout == "https://ghes.example.com/owner/repo/pull/789\n"
 
             # Issue参照が自動追加される（Closes形式）
             call_kwargs = mock_client.create_pull_request.call_args[1]
@@ -588,7 +589,7 @@ class TestPRCreateDirectCommand:
             ["pr", "create", "-m", "本文", "-b", "develop-aist"],
         )
         assert result.exit_code == 1
-        assert "タイトル" in result.output
+        assert "-t (title)" in result.stderr
 
     def test_create_direct_missing_base(self) -> None:
         """-m 使用時に -b がないとエラー"""
@@ -597,7 +598,7 @@ class TestPRCreateDirectCommand:
             ["pr", "create", "-m", "本文", "-t", "タイトル"],
         )
         assert result.exit_code == 1
-        assert "baseブランチ" in result.output
+        assert "-b (base branch)" in result.stderr
 
     def test_create_direct_dry_run(self) -> None:
         """dry-run モード"""
@@ -649,7 +650,7 @@ class TestPRCreateDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "バリデーション成功" in result.output
+            assert "dry-run: would create PR" in result.stderr
 
 
 # pr read コマンドテスト
@@ -819,7 +820,7 @@ class TestPRReadCommand:
         with patch("cli.commands.pr.load_active_config", return_value=None):
             result = runner.invoke(app, ["pr", "read", "owner/repo/456"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクト" in result.output
+            assert "error: no active project" in result.stderr
 
     def test_read_invalid_pr_ref(self) -> None:
         """異常系: 不正なpr_ref形式はエラー"""
@@ -1168,7 +1169,7 @@ class TestPRCleanupCommand:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
-            assert "マージ後の片付け完了" in result.output
+            assert "count: Issues to close:" in result.stderr
             mock_client.close_issue.assert_called_once_with("owner", "repo", 123)
 
     def test_cleanup_success_shows_no_report_message(self) -> None:
@@ -1199,7 +1200,7 @@ class TestPRCleanupCommand:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
             assert result.exit_code == 0
-            assert "マージ完了報告をIssueにコメントする必要はありません" in result.output
+            assert result.stdout == ""
 
     def test_cleanup_with_closing_issues_from_body(self) -> None:
         """PR本文からClosing Issuesを抽出してクローズ"""
@@ -1282,7 +1283,7 @@ class TestPRCleanupCommand:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/999"])
 
             assert result.exit_code == 1
-            assert "見つかりません" in result.output
+            assert "error: PR not found" in result.stderr
 
     @pytest.mark.parametrize("state", ["OPEN", "CLOSED"])
     def test_cleanup_not_merged_exits_without_side_effects(self, state: str) -> None:
@@ -1308,8 +1309,10 @@ class TestPRCleanupCommand:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
         assert result.exit_code == 1
-        assert f"PR #42 はまだマージされていません（state: {state}）" in result.stderr
-        assert "gh pr merge でマージし、main に入ってから打ち直してください" in result.stderr
+        assert (
+            f"error: PR #42 is not merged yet (state: {state}); merge it with gh pr merge first"
+            in result.stderr
+        )
         mock_client.close_issue.assert_not_called()
         mock_client.delete_branch.assert_not_called()
         mock_local.assert_not_called()
@@ -1564,7 +1567,7 @@ class TestPRCleanupDeleteBranch:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
-            assert "WIPブランチ 'wip/feat/test-branch' も削除しました" in result.output
+            assert "deleted: remote branch wip/feat/test-branch" in result.stderr
             assert mock_client.delete_branch.call_count == 2
 
     def test_delete_branch_wip_not_found_silently_skipped(self) -> None:
@@ -1602,9 +1605,9 @@ class TestPRCleanupDeleteBranch:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
-            assert "マージ後の片付け完了" in result.output
+            assert "count: Issues to close:" in result.stderr
             # WIPブランチ削除のメッセージは出ない
-            assert "WIPブランチ" not in result.output
+            assert "wip/" not in result.output
 
     def test_delete_branch_not_called_without_flag(self) -> None:
         """--delete-branchなしではブランチ削除しない"""
@@ -1668,13 +1671,15 @@ class TestPRCleanupDeleteBranch:
 
             # マージ自体は成功
             assert result.exit_code == 0
-            assert "マージ後の片付け完了" in result.output
+            assert "count: Issues to close:" in result.stderr
             # 警告メッセージは stderr に出る
-            assert "⚠ ブランチ削除に失敗: 削除失敗" in result.stderr
-            assert "⚠" not in result.stdout
+            assert (
+                "warning: deleting remote branch feat/protected failed: 削除失敗" in result.stderr
+            )
+            _assert_no_symbols(result)
             # head 削除失敗では WIP 削除に進まず、削除したブランチとして報告しない
             assert mock_client.delete_branch.call_count == 1
-            assert "削除したブランチ" not in result.stdout
+            assert "deleted: remote branch wip/" not in result.stderr
 
     def test_delete_branch_head_already_deleted_treated_as_deleted(self) -> None:
         """head が既に消えている(422 Reference does not exist)場合は削除済みとして WIP も削除する"""
@@ -1714,11 +1719,11 @@ class TestPRCleanupDeleteBranch:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
 
             assert result.exit_code == 0
-            assert "ブランチ削除に失敗" not in result.output
-            assert "ブランチ 'feat/test-branch' は既に削除されています" in result.output
+            assert "failed" not in result.output
+            assert "unchanged: remote branch feat/test-branch (already deleted)" in result.stderr
             mock_client.delete_branch.assert_any_call("owner", "repo", "wip/feat/test-branch")
             assert mock_client.delete_branch.call_count == 2
-            assert "削除したブランチ: feat/test-branch" in result.output
+            assert "deleted: remote branch wip/feat/test-branch" in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -2132,7 +2137,9 @@ class TestDeterminBaseBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr._branch_exists", return_value=True),
         ):
-            result = _determine_base_branch("github.com", "owner", "repo", Path.cwd())
+            result = _determine_base_branch(
+                "github.com", "owner", "repo", Path.cwd(), Output(False)
+            )
             assert result == "origin/develop-aist"
 
     def test_no_config_raises_error(self) -> None:
@@ -2143,7 +2150,7 @@ class TestDeterminBaseBranch:
             patch("cli.commands.pr.load_active_config", return_value=None),
         ):
             with pytest.raises(typer.Exit):
-                _determine_base_branch("github.com", "owner", "repo", Path.cwd())
+                _determine_base_branch("github.com", "owner", "repo", Path.cwd(), Output(False))
 
     def test_develop_branch_not_set_raises_error(self) -> None:
         """develop_branchが設定されていない場合はエラーを発生"""
@@ -2156,7 +2163,7 @@ class TestDeterminBaseBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
         ):
             with pytest.raises(typer.Exit):
-                _determine_base_branch("github.com", "owner", "repo", Path.cwd())
+                _determine_base_branch("github.com", "owner", "repo", Path.cwd(), Output(False))
 
 
 class TestPRPreflightCommand:
@@ -2176,7 +2183,10 @@ class TestPRPreflightCommand:
             patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr._branch_exists", return_value=True),
-            patch("cli.commands.pr._get_push_status", return_value=(True, "リモートと同期済み")),
+            patch(
+                "cli.commands.pr._get_push_status",
+                return_value=(True, "in sync with origin/feat/test/123"),
+            ),
             patch(
                 "cli.commands.pr._get_git_status",
                 return_value="On branch feat/test/123\nnothing to commit, working tree clean\n",
@@ -2196,13 +2206,12 @@ class TestPRPreflightCommand:
             assert "Current Branch" in result.output
             assert "feat/test/123" in result.output
             assert "Push Status" in result.output
-            assert "リモートと同期済み" in result.output
+            assert "in sync with origin/feat/test/123" in result.output
             assert "Base Branch" in result.output
             assert "origin/develop-aist" in result.output
-            assert "=== Summary ===" in result.stdout
-            assert "✔ All checks passed" in result.stdout
-            assert "⚠" not in result.stdout
-            assert "⚠" not in result.stderr
+            assert "=== Summary ===" not in result.stdout
+            assert result.stderr == "count: preflight warnings: 0\n"
+            _assert_no_symbols(result)
 
     def test_preflight_unpushed_commits_warning(self, tmp_path: Path) -> None:
         """未プッシュコミットがある場合の警告表示"""
@@ -2219,7 +2228,7 @@ class TestPRPreflightCommand:
             patch("cli.commands.pr._branch_exists", return_value=True),
             patch(
                 "cli.commands.pr._get_push_status",
-                return_value=(False, "未プッシュのコミットが 3 件あります → git push が必要"),
+                return_value=(False, "3 unpushed commits"),
             ),
             patch(
                 "cli.commands.pr._get_git_status",
@@ -2238,14 +2247,11 @@ class TestPRPreflightCommand:
             assert result.exit_code == 2
             # 節見出しと事実は stdout、警告は stderr
             assert "=== Push Status ===" in result.stdout
-            assert "未プッシュのコミットが 3 件あります" in result.stderr
-            assert "★ PR作成前に git push を実行してください ★" in result.stderr
-            assert "★ PR作成前に git push を実行してください ★" not in result.stdout
-            # 末尾の Summary セクションは警告ありなので見出しごと stderr
-            assert "=== Summary ===" in result.stderr
+            assert "warning: Push Status: 3 unpushed commits (fix: git push)" in result.stderr
             assert "=== Summary ===" not in result.stdout
-            assert "⚠ Push Status" in result.stderr
-            assert "⚠" not in result.stdout
+            assert "=== Summary ===" not in result.stderr
+            assert "count: preflight warnings: 1" in result.stderr
+            _assert_no_symbols(result)
 
     def test_preflight_not_in_git_repo(self, tmp_path: Path) -> None:
         """gitリポジトリ外での実行はエラー"""
@@ -2253,7 +2259,7 @@ class TestPRPreflightCommand:
             result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
 
             assert result.exit_code == 1
-            assert "gitリポジトリではありません" in result.output
+            assert "error: not a git repository" in result.stderr
 
     def test_preflight_no_remote(self, tmp_path: Path) -> None:
         """originリモートがない場合はエラー"""
@@ -2264,7 +2270,7 @@ class TestPRPreflightCommand:
             result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
 
             assert result.exit_code == 1
-            assert "origin リモートが見つかりません" in result.output
+            assert "error: origin remote not found" in result.stderr
 
     def test_preflight_no_current_branch(self, tmp_path: Path) -> None:
         """現在のブランチを取得できない場合はエラー"""
@@ -2278,7 +2284,7 @@ class TestPRPreflightCommand:
             result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
 
             assert result.exit_code == 1
-            assert "現在のブランチを取得できません" in result.output
+            assert "error: cannot determine the current branch" in result.stderr
 
     def test_preflight_success_with_summary(self, tmp_path: Path) -> None:
         """警告ゼロ時、末尾に Summary が出力され exit 0"""
@@ -2293,7 +2299,10 @@ class TestPRPreflightCommand:
             patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
             patch("cli.commands.pr._branch_exists", return_value=True),
-            patch("cli.commands.pr._get_push_status", return_value=(True, "リモートと同期済み")),
+            patch(
+                "cli.commands.pr._get_push_status",
+                return_value=(True, "in sync with origin/feat/test/123"),
+            ),
             patch(
                 "cli.commands.pr._get_git_status",
                 return_value="On branch feat/test/123\nnothing to commit, working tree clean\n",
@@ -2308,12 +2317,9 @@ class TestPRPreflightCommand:
             result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
 
             assert result.exit_code == 0
-            summary_idx = result.stdout.index("=== Summary ===")
-            tail = result.stdout[summary_idx:]
-            assert "✔ All checks passed" in tail
-            assert "=== Summary ===" not in result.stderr
-            assert "⚠" not in result.stdout
-            assert "⚠" not in result.stderr
+            assert result.stderr == "count: preflight warnings: 0\n"
+            assert "=== Summary ===" not in result.stdout
+            _assert_no_symbols(result)
 
     def test_preflight_push_warning_summary_and_exit2(self, tmp_path: Path) -> None:
         """push 未同期時、Summary に警告が再掲され exit 2"""
@@ -2332,7 +2338,7 @@ class TestPRPreflightCommand:
                 "cli.commands.pr._get_push_status",
                 return_value=(
                     False,
-                    "リモートブランチ origin/feat/test/123 が存在しません（未プッシュ）",
+                    "origin/feat/test/123 does not exist (not pushed)",
                 ),
             ),
             patch(
@@ -2350,13 +2356,9 @@ class TestPRPreflightCommand:
 
             assert result.exit_code == 2
             assert "=== Summary ===" not in result.stdout
-            # Summary セクション内に Push Status の警告が含まれる（stderr の末尾で見える）
-            summary_idx = result.stderr.index("=== Summary ===")
-            tail = result.stderr[summary_idx:]
-            assert "⚠ Push Status" in tail
-            assert "git push" in tail
-            assert "⚠" in result.stderr
-            assert "⚠" not in result.stdout
+            assert "warning: Push Status:" in result.stderr
+            assert "(fix: git push)" in result.stderr
+            _assert_no_symbols(result)
 
     def test_preflight_multiple_warnings_all_listed(self, tmp_path: Path) -> None:
         """push + stash の複数警告が Summary に全列挙される"""
@@ -2373,7 +2375,7 @@ class TestPRPreflightCommand:
             patch("cli.commands.pr._branch_exists", return_value=True),
             patch(
                 "cli.commands.pr._get_push_status",
-                return_value=(False, "未プッシュのコミットが 2 件あります → git push が必要"),
+                return_value=(False, "2 unpushed commits"),
             ),
             patch(
                 "cli.commands.pr._get_git_status",
@@ -2392,14 +2394,12 @@ class TestPRPreflightCommand:
             result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
 
             assert result.exit_code == 2
-            summary_idx = result.stderr.index("=== Summary ===")
-            tail = result.stderr[summary_idx:]
-            assert "⚠ Push Status" in tail
-            assert "⚠ Stash List" in tail
-            # Stash List 節の見出しは stdout、stash 一覧の警告行は stderr
+            assert "warning: Push Status:" in result.stderr
+            assert "warning: Stash List:" in result.stderr
+            # Stash List 節（見出しと一覧）は stdout、警告は stderr
             assert "=== Stash List ===" in result.stdout
-            assert "⚠ stash@{0}: WIP on feat/test/123: abc wip" in result.stderr
-            assert "⚠" not in result.stdout
+            assert "stash@{0}: WIP on feat/test/123: abc wip" in result.stdout
+            _assert_no_symbols(result)
 
     def test_pr_create_aborts_on_preflight_warnings(self, tmp_path: Path) -> None:
         """preflight 警告検出時、pr create は API コール前に exit 2"""
@@ -2443,7 +2443,7 @@ class TestPRPreflightCommand:
                 "cli.commands.pr._get_push_status",
                 return_value=(
                     False,
-                    "リモートブランチ origin/feat/test/123 が存在しません（未プッシュ）",
+                    "origin/feat/test/123 does not exist (not pushed)",
                 ),
             ),
             patch(
@@ -2508,7 +2508,7 @@ class TestPRPreflightCommand:
                 "cli.commands.pr._get_push_status",
                 return_value=(
                     False,
-                    "リモートブランチ origin/feat/test/123 が存在しません（未プッシュ）",
+                    "origin/feat/test/123 does not exist (not pushed)",
                 ),
             ),
             patch(
@@ -2534,7 +2534,7 @@ class TestPRPreflightCommand:
 
             assert result.exit_code == 0
             mock_client.create_pull_request.assert_not_called()
-            assert "バリデーション成功" in result.output
+            assert "dry-run: would create PR" in result.stderr
 
 
 class TestHelperFunctionsWithMocks:
@@ -2752,13 +2752,13 @@ class TestNoIssueRefOption:
         # skip_issue_ref_check=False の場合はエラーになる
         errors = _validate_pr_content(body, title, base, develop_branch, skip_issue_ref_check=False)
         assert len(errors) > 0
-        assert any("Issue 参照 `#N` がありません" in err for err in errors)
+        assert any("no Issue reference `#N`" in err for err in errors)
 
         # skip_issue_ref_check=True の場合はエラーにならない
         errors = _validate_pr_content(body, title, base, develop_branch, skip_issue_ref_check=True)
         # Issue参照チェックはスキップされるが、他のチェックは実行される
         # baseブランチチェックでエラーになる可能性がある
-        assert not any("Issue 参照 `#N` がありません" in err for err in errors)
+        assert not any("no Issue reference `#N`" in err for err in errors)
 
     def test_append_issue_close_not_called_with_no_issue_ref(self, tmp_path: Path) -> None:
         """--no-issue-ref 使用時に _append_issue_close_if_needed が呼ばれないことを確認"""
@@ -2878,7 +2878,7 @@ class TestUpdateIssueStatusToInReview:
         config.get_option_id.return_value = in_review_option_id
         return config
 
-    def test_success(self) -> None:
+    def test_success(self, capsys: pytest.CaptureFixture[str]) -> None:
         """正常系: ステータスをIn Reviewに更新"""
         config = self._make_config()
         client = MagicMock()
@@ -2891,6 +2891,7 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/add-feature/123",
+            out=Output(False),
         )
 
         client.get_item_id_by_issue.assert_called_once_with(
@@ -2905,6 +2906,7 @@ class TestUpdateIssueStatusToInReview:
             field_id="PVTSSF_workflow",
             option_id="option_in_review",
         )
+        assert capsys.readouterr().err == "set: Issue #123 status to In Review\n"
 
     def test_no_issue_number_in_branch(self, capsys: pytest.CaptureFixture[str]) -> None:
         """ブランチ名にIssue番号がない場合はスキップ"""
@@ -2917,6 +2919,7 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/no-issue-number",
+            out=Output(False),
         )
 
         # APIは呼ばれない
@@ -2935,10 +2938,11 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/test/456",
+            out=Output(False),
         )
 
         captured = capsys.readouterr()
-        assert "ボードに登録されていません" in captured.err
+        assert "warning: Issue #456 is not on the board; status not updated" in captured.err
         client.update_project_item_field.assert_not_called()
 
     def test_in_review_status_not_configured(self, capsys: pytest.CaptureFixture[str]) -> None:
@@ -2953,10 +2957,11 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/test/456",
+            out=Output(False),
         )
 
         captured = capsys.readouterr()
-        assert "in_reviewステータスが設定されていません" in captured.err
+        assert "warning: workflow field has no in_review status" in captured.err
         client.update_project_item_field.assert_not_called()
 
     def test_workflow_field_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
@@ -2972,10 +2977,11 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/test/456",
+            out=Output(False),
         )
 
         captured = capsys.readouterr()
-        assert "ワークフローフィールドが見つかりません" in captured.err
+        assert "warning: workflow field not found" in captured.err
         client.update_project_item_field.assert_not_called()
 
     def test_api_error_on_get_item(self, capsys: pytest.CaptureFixture[str]) -> None:
@@ -2990,10 +2996,11 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/test/789",
+            out=Output(False),
         )
 
         captured = capsys.readouterr()
-        assert "ボードアイテム取得に失敗" in captured.err
+        assert "warning: board item lookup for Issue #789 failed: API error" in captured.err
         client.update_project_item_field.assert_not_called()
 
     def test_api_error_on_update(self, capsys: pytest.CaptureFixture[str]) -> None:
@@ -3009,10 +3016,11 @@ class TestUpdateIssueStatusToInReview:
             owner="owner",
             repo="repo",
             head_branch="feat/test/456",
+            out=Output(False),
         )
 
         captured = capsys.readouterr()
-        assert "ステータス更新に失敗" in captured.err
+        assert "warning: status update of Issue #456 failed: Update failed" in captured.err
 
 
 class TestGetPushStatus:
@@ -3028,7 +3036,7 @@ class TestGetPushStatus:
         with patch("subprocess.run", return_value=mock_result):
             is_pushed, message = _get_push_status("feat/test", Path.cwd())
             assert is_pushed is False
-            assert "未プッシュ" in message
+            assert "not pushed" in message
 
     def test_synced_with_remote(self) -> None:
         """リモートと完全同期している場合"""
@@ -3046,7 +3054,7 @@ class TestGetPushStatus:
         with patch("subprocess.run", side_effect=mock_run):
             is_pushed, message = _get_push_status("feat/test", Path.cwd())
             assert is_pushed is True
-            assert "同期済み" in message
+            assert "in sync" in message
 
     def test_unpushed_commits(self) -> None:
         """未プッシュのコミットがある場合"""
@@ -3074,9 +3082,7 @@ class TestGetPushStatus:
         with patch("subprocess.run", side_effect=mock_run):
             is_pushed, message = _get_push_status("feat/test", Path.cwd())
             assert is_pushed is False
-            assert "未プッシュ" in message
-            assert "3 件" in message
-            assert "git push" in message
+            assert message == "3 unpushed commits"
 
     def test_remote_ahead(self) -> None:
         """リモートが先行している場合（pullが必要）"""
@@ -3104,8 +3110,8 @@ class TestGetPushStatus:
         with patch("subprocess.run", side_effect=mock_run):
             is_pushed, message = _get_push_status("feat/test", Path.cwd())
             assert is_pushed is True  # PRは作成可能
-            assert "先行" in message
-            assert "pull推奨" in message
+            assert "commits ahead" in message
+            assert "pull recommended" in message
 
     def test_diverged_branches(self) -> None:
         """ブランチが分岐している場合"""
@@ -3180,7 +3186,7 @@ class TestValidatePRContentRelease:
             head="develop-aist",
         )
         # mainブロックエラーがないことを確認
-        assert not any("baseブランチが不正" in e for e in errors)
+        assert not any("base branch must be" in e for e in errors)
 
     def test_release_template_allows_main_base(self) -> None:
         """--template release でmain許可"""
@@ -3192,7 +3198,7 @@ class TestValidatePRContentRelease:
             "develop-aist",
             template="release",
         )
-        assert not any("baseブランチが不正" in e for e in errors)
+        assert not any("base branch must be" in e for e in errors)
 
     def test_release_pr_skips_issue_ref_check(self) -> None:
         """リリースPRではIssue参照チェックをスキップ"""
@@ -3205,7 +3211,7 @@ class TestValidatePRContentRelease:
             release_branch="main",
             head="develop-aist",
         )
-        assert not any("Issue 参照 `#N` がありません" in e for e in errors)
+        assert not any("no Issue reference `#N`" in e for e in errors)
 
     def test_normal_pr_still_blocks_main(self) -> None:
         """通常PR（headとdevelopが別）でmainブロック（退行テスト）"""
@@ -3231,7 +3237,7 @@ Refs #123
             release_branch="main",
             head="feat/something/123",
         )
-        assert any("baseブランチが不正" in e for e in errors)
+        assert any("base branch must be" in e for e in errors)
 
     def test_normal_pr_blocks_arbitrary_base(self) -> None:
         """通常PR: develop_branch以外の任意のbaseをブロック"""
@@ -3256,7 +3262,7 @@ Refs #123
             "develop-aist",
             head="feat/something/123",
         )
-        assert any("baseブランチが不正" in e for e in errors)
+        assert any("base branch must be" in e for e in errors)
 
     def test_normal_pr_allows_develop_branch(self) -> None:
         """通常PR: develop_branchへのPRは許可"""
@@ -3281,7 +3287,7 @@ Refs #123
             "develop-aist",
             head="feat/something/123",
         )
-        assert not any("baseブランチが不正" in e for e in errors)
+        assert not any("base branch must be" in e for e in errors)
 
     def test_release_template_uses_release_sections(self) -> None:
         """--template release でリリーステンプレートのセクションを検証"""
@@ -3295,7 +3301,7 @@ Refs #123
             template="release",
         )
         # リリーステンプレートの不足セクションエラーがあることを確認
-        assert any("不足セクション" in e for e in errors)
+        assert any("missing sections" in e for e in errors)
 
     def test_release_template_blocks_wrong_base(self) -> None:
         """--template release でrelease_branchと異なるbaseをブロック"""
@@ -3308,7 +3314,7 @@ Refs #123
             template="release",
             release_branch="main",
         )
-        assert any("リリースPRのbaseブランチが不正" in e for e in errors)
+        assert any("release PR base branch must be" in e for e in errors)
 
     def test_release_auto_detect_blocks_wrong_base(self) -> None:
         """自動判定リリースPR（headがdevelopで、baseがrelease_branchでない）をブロック"""
@@ -3325,7 +3331,7 @@ Refs #123
         )
         # baseがrelease_branchとdevelop_branchのどちらとも違うので、
         # mainブロックは発動しない。リリースPRとしても認められない
-        assert not any("リリースPRのbaseブランチが不正" in e for e in errors)
+        assert not any("release PR base branch must be" in e for e in errors)
 
     def test_release_template_allows_correct_release_branch(self) -> None:
         """--template release でrelease_branchと一致するbaseを許可"""
@@ -3338,18 +3344,18 @@ Refs #123
             template="release",
             release_branch="main",
         )
-        assert not any("リリースPRのbaseブランチが不正" in e for e in errors)
-        assert not any("baseブランチが不正" in e for e in errors)
+        assert not any("release PR base branch must be" in e for e in errors)
+        assert not any("base branch must be" in e for e in errors)
 
     def test_release_template_no_release_branch_errors(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """--template release でrelease_branch未設定なら検証の前に exit 1 で設定を誘導"""
         with pytest.raises(typer.Exit) as exc:
-            _exit_on_unset_branch("release", "main", None, "develop-aist", None)
+            _exit_on_unset_branch("release", "main", None, "develop-aist", None, Output(False))
         assert exc.value.exit_code == 1
         err = capsys.readouterr().err
-        assert "release_branchが設定されていません" in err
+        assert "release_branch is not set" in err
         assert "project set-repo" in err
 
     def test_release_template_invalid_value(self) -> None:
@@ -3420,8 +3426,8 @@ class TestPRCreateDirectRelease:
                 ],
             )
             assert result.exit_code == 0
-            assert "バリデーション成功" in result.output
-            assert "template: release" in result.output
+            assert "dry-run: would create PR" in result.stderr
+            assert "(release template)" in result.stderr
 
 
 # _local_cleanup_after_merge テスト
@@ -3465,6 +3471,7 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
 
         # checkout wt3, pull develop-aist, branch -D
@@ -3500,6 +3507,7 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
 
         assert any(cmd == ["git", "checkout", "develop-aist"] for cmd in run_calls)
@@ -3526,15 +3534,17 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
-                dry_run=True,
+                out=Output(True),
             )
             mock_run.assert_not_called()
 
         captured = capsys.readouterr()
-        assert "ローカルクリーンアップ（プレビュー）" in captured.out
-        assert "git checkout develop-aist" in captured.out
-        assert "git pull origin develop-aist" in captured.out
-        assert "git branch -D feat/test-branch" in captured.out
+        assert captured.out == ""
+        assert captured.err.splitlines() == [
+            "dry-run: would set current branch to develop-aist",
+            "dry-run: would update develop-aist from origin/develop-aist",
+            "dry-run: would delete local branch feat/test-branch",
+        ]
 
     def test_already_on_target_skip_checkout(self) -> None:
         """既にターゲットブランチにいる場合checkoutスキップ"""
@@ -3564,6 +3574,7 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
 
         # checkout should NOT be called
@@ -3600,12 +3611,14 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
 
         captured = capsys.readouterr()
-        assert "git checkout develop-aist に失敗" in captured.err
-        assert "⚠" in captured.err
-        assert "⚠" not in captured.out
+        assert "warning: checking out develop-aist failed" in captured.err
+        assert "origin/develop-aist" not in captured.err
+        assert "local branch" not in captured.err
+        assert captured.out == ""
 
     def test_no_develop_branch_config(self, capsys: pytest.CaptureFixture[str]) -> None:
         """configにdevelop_branchがない場合スキップ"""
@@ -3627,12 +3640,13 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
             mock_run.assert_not_called()
 
         captured = capsys.readouterr()
-        assert "開発ブランチが設定されていない" in captured.err
-        assert "⚠" not in captured.out
+        assert "warning: develop_branch is not set; skipped local cleanup" in captured.err
+        assert captured.out == ""
 
     def test_cross_repo_skips_cleanup(self, capsys: pytest.CaptureFixture[str]) -> None:
         """現在リポとPRリポが異なる場合、ローカル操作を一切行わずスキップ"""
@@ -3652,14 +3666,15 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
             mock_run.assert_not_called()
 
         captured = capsys.readouterr()
         assert "other-owner/other-repo" in captured.err
         assert "owner/repo" in captured.err
-        assert "スキップ" in captured.err
-        assert "⚠" not in captured.out
+        assert "skipped local cleanup" in captured.err
+        assert captured.out == ""
 
     def test_remote_url_failure_skips(self, capsys: pytest.CaptureFixture[str]) -> None:
         """リモートURL取得失敗時もスキップ"""
@@ -3676,15 +3691,16 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
             mock_run.assert_not_called()
 
         captured = capsys.readouterr()
-        assert "リモートURL取得に失敗" in captured.err
-        assert "⚠" not in captured.out
+        assert "warning: cannot read the remote URL" in captured.err
+        assert captured.out == ""
 
     def test_unparsable_remote_url_skips(self, capsys: pytest.CaptureFixture[str]) -> None:
-        """リモートURLの形式が想定外ならスキップし、⚠ は stderr に出る"""
+        """リモートURLの形式が想定外ならスキップし、warning は stderr に出る"""
         from cli.commands.pr import _local_cleanup_after_merge
 
         config = self._make_config("develop-aist")
@@ -3698,15 +3714,16 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
             mock_run.assert_not_called()
 
         captured = capsys.readouterr()
-        assert "リモートURLからリポジトリ情報を抽出できない" in captured.err
-        assert "⚠" not in captured.out
+        assert "warning: cannot read the repository from the remote URL" in captured.err
+        assert captured.out == ""
 
     def test_repo_detection_exception_skips(self, capsys: pytest.CaptureFixture[str]) -> None:
-        """リポジトリ判定中の想定外例外はスキップし、⚠ は stderr に出る"""
+        """リポジトリ判定中の想定外例外はスキップし、warning は stderr に出る"""
         from cli.commands.pr import _local_cleanup_after_merge
 
         config = self._make_config("develop-aist")
@@ -3717,14 +3734,15 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
 
         captured = capsys.readouterr()
-        assert "リポジトリ判定に失敗" in captured.err
-        assert "⚠" not in captured.out
+        assert "warning: cannot determine the repository" in captured.err
+        assert captured.out == ""
 
     def test_worktree_detection_failure_skips(self, capsys: pytest.CaptureFixture[str]) -> None:
-        """ワークツリー判定に失敗したらスキップし、⚠ は stderr に出る"""
+        """ワークツリー判定に失敗したらスキップし、warning は stderr に出る"""
         from cli.commands.pr import _local_cleanup_after_merge
 
         config = self._make_config("develop-aist")
@@ -3743,17 +3761,18 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
             mock_run.assert_not_called()
 
         captured = capsys.readouterr()
-        assert "ワークツリー判定に失敗" in captured.err
-        assert "⚠" not in captured.out
+        assert "warning: cannot determine the worktree" in captured.err
+        assert captured.out == ""
 
     def test_pull_and_branch_delete_failure_warn_on_stderr(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        """pull / branch -D の失敗は ⚠ を stderr に出し、✔ 行は stdout のまま"""
+        """pull / branch -D の失敗は warning の行になり、stdout は空のまま"""
         from cli.commands.pr import _local_cleanup_after_merge
 
         config = self._make_config("develop-aist")
@@ -3780,13 +3799,14 @@ class TestLocalCleanupAfterMerge:
                 config=config,
                 owner="owner",
                 repo="repo",
+                out=Output(False),
             )
 
         captured = capsys.readouterr()
-        assert "✔ git checkout develop-aist" in captured.out
-        assert "⚠ git pull origin develop-aist に失敗" in captured.err
-        assert "⚠ git branch -D feat/test-branch に失敗" in captured.err
-        assert "⚠" not in captured.out
+        assert "set: current branch to develop-aist" in captured.err
+        assert "warning: pulling develop-aist failed" in captured.err
+        assert "warning: deleting local branch feat/test-branch failed" in captured.err
+        assert captured.out == ""
 
 
 # pr create --prepare の Closes #N 自動埋め込みテスト (#358)
@@ -3869,7 +3889,7 @@ class TestPrCreatePrepareCloses:
         assert "Closes #100" not in content
         # テンプレ末尾の空欄が維持されている
         assert content.rstrip().endswith("Closes #")
-        assert "Epic と判定されたため" in result.output
+        assert "is an Epic; Closes left empty" in result.output
 
     def test_prepare_falls_back_to_branch_when_no_active(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -3920,7 +3940,7 @@ class TestPrCreatePrepareCloses:
         content = next(output_dir.glob("pr-create-*.md")).read_text(encoding="utf-8")
         assert "Closes #789" not in content
         assert content.rstrip().endswith("Closes #")
-        assert "種別判定に失敗" in result.output
+        assert "warning: kind check of Issue #789 failed" in result.output
 
 
 # pr create 保険ロジックの Epic 除外テスト (#358)
@@ -3995,7 +4015,7 @@ draft: false
         assert result.exit_code == 0
         body_passed = mock_client.create_pull_request.call_args[1]["body"]
         assert "Closes #100" not in body_passed
-        assert "Epic と判定されたため Closes 自動付与をスキップ" in result.output
+        assert "is an Epic; Closes not added" in result.output
 
     def test_create_appends_closes_when_branch_is_task(self, tmp_path: Path) -> None:
         """ブランチ末尾の番号が Task → 従来通り Closes 自動付与"""
@@ -4072,7 +4092,7 @@ class TestPrCleanupEpicProtect:
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 100 not in closed
         assert 101 in closed
-        assert "Epic保護でクローズをスキップ: #100" in result.output
+        assert "skipped: closing Issue #100 (Epic)" in result.stderr
 
     def test_cleanup_skips_epic_from_body_closes(self) -> None:
         """PR 本文の Closes に Epic 番号が混入したケース"""
@@ -4094,7 +4114,7 @@ class TestPrCleanupEpicProtect:
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 200 not in closed
-        assert "Epic保護でクローズをスキップ: #200" in result.output
+        assert "skipped: closing Issue #200 (Epic)" in result.stderr
 
     def test_cleanup_skips_epic_from_branch_name(self) -> None:
         """ブランチ末尾番号が Epic のケース"""
@@ -4112,7 +4132,7 @@ class TestPrCleanupEpicProtect:
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_not_called()
-        assert "Epic保護でクローズをスキップ: #300" in result.output
+        assert "skipped: closing Issue #300 (Epic)" in result.stderr
 
     def test_cleanup_closes_non_epic_normally(self) -> None:
         """Task は通常通り close される"""
@@ -4130,7 +4150,7 @@ class TestPrCleanupEpicProtect:
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_called_once_with("owner", "repo", 400)
-        assert "Epic保護でクローズをスキップ" not in result.output
+        assert "(Epic)" not in result.stderr
 
     def test_cleanup_mixed_epic_and_task(self) -> None:
         """Epic + Task 混在: Task のみ close、Epic 保護メッセージあり"""
@@ -4152,7 +4172,7 @@ class TestPrCleanupEpicProtect:
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert closed == [101]
-        assert "Epic保護でクローズをスキップ: #100" in result.output
+        assert "skipped: closing Issue #100 (Epic)" in result.stderr
 
     def test_cleanup_dry_run_shows_epic_protected(self) -> None:
         """dry-run 出力に Epic 保護表示が出る"""
@@ -4172,10 +4192,10 @@ class TestPrCleanupEpicProtect:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--dry-run"])
 
         assert result.exit_code == 0
-        assert "Epic保護でクローズをスキップ: #500" in result.output
+        assert "dry-run: would skip closing Issue #500 (Epic)" in result.stderr
         # dry-run の自動クローズ対象から #500 が除外されている
         # （501 のみ残る）
-        assert "#501" in result.output
+        assert "dry-run: would close Issue #501" in result.stderr
         # close_issue は呼ばれない
         mock_client.close_issue.assert_not_called()
 
@@ -4199,7 +4219,7 @@ class TestPrCleanupEpicProtect:
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 600 not in closed
-        assert "Epic保護でクローズをスキップ: #600" in result.output
+        assert "skipped: closing Issue #600 (Epic)" in result.stderr
 
     def test_cleanup_keeps_tracker_with_subissues_open(self) -> None:
         """sub-issue を持つ Tracker は、Closes で参照されても閉じない"""
@@ -4221,7 +4241,7 @@ class TestPrCleanupEpicProtect:
         assert result.exit_code == 0
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 650 not in closed
-        assert "Epic保護でクローズをスキップ: #650" in result.output
+        assert "skipped: closing Issue #650 (Epic)" in result.stderr
 
     def test_cleanup_empty_epic_not_detected(self) -> None:
         """既知制約の回帰: Issue Type 未設定 + sub-issue 0 件は判定不能で close される"""
@@ -4247,7 +4267,7 @@ class TestPrCleanupEpicProtect:
         closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
         assert 700 in closed
         assert 701 in closed
-        assert "Epic保護でクローズをスキップ" not in result.output
+        assert "(Epic)" not in result.stderr
 
     def test_cleanup_kind_lookup_api_error_continues_close(self) -> None:
         """get_issue_kind が API エラー → 警告 + 通常 close (フェイルオープン)"""
@@ -4268,7 +4288,7 @@ class TestPrCleanupEpicProtect:
         assert result.exit_code == 0
         # フェイルオープンで close 実行される
         mock_client.close_issue.assert_called_once_with("owner", "repo", 800)
-        assert "種別判定に失敗" in result.output
+        assert "warning: kind check of Issue #800 failed" in result.stderr
 
     def test_cleanup_kind_lookup_not_found_continues_close(self) -> None:
         """get_issue_kind が GitHubNotFoundError → 保護せず close 候補に残る"""
@@ -4289,12 +4309,12 @@ class TestPrCleanupEpicProtect:
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_called_once_with("owner", "repo", 900)
-        assert "Epic保護でクローズをスキップ" not in result.output
-        assert "⚠ Issue #900 が見つかりません（スキップ）" in result.stderr
-        assert "⚠" not in result.stdout
+        assert "(Epic)" not in result.stderr
+        assert "warning: Issue #900 not found; skipped" in result.stderr
+        _assert_no_symbols(result)
 
     def test_cleanup_close_issue_api_error_warns_on_stderr(self) -> None:
-        """close_issue が GitHubAPIError → ⚠ を stderr に出してマージは成功"""
+        """close_issue が GitHubAPIError → warning を stderr に出してマージは成功"""
         from cli.core.github import GitHubAPIError
 
         mock_client = MagicMock()
@@ -4311,8 +4331,8 @@ class TestPrCleanupEpicProtect:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
-        assert "⚠ Issue #901 のクローズに失敗: 権限不足" in result.stderr
-        assert "⚠" not in result.stdout
+        assert "warning: closing Issue #901 failed: 権限不足" in result.stderr
+        _assert_no_symbols(result)
 
     def test_cleanup_close_issue_api_error_shows_github_message(self) -> None:
         """close_issue の失敗の警告に、応答本文の GitHub の message を添える"""
@@ -4337,7 +4357,7 @@ class TestPrCleanupEpicProtect:
 
         assert result.exit_code == 0
         assert (
-            "⚠ Issue #902 のクローズに失敗: GitHub APIエラー: 422 Validation Failed"
+            "warning: closing Issue #902 failed: GitHub APIエラー: 422 Validation Failed"
             in result.stderr
         )
 
@@ -4370,8 +4390,8 @@ class TestPrCleanupEpicProtect:
             result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
 
         assert result.exit_code == 0
-        assert "✔ Issue #903 は既にクローズされています" in result.stdout
-        assert "クローズに失敗" not in result.stderr
+        assert "unchanged: Issue #903 (already closed)" in result.stderr
+        assert "failed" not in result.stderr
 
 
 # pr 雛形ラウンドトリップテスト（#958 F-02 / F-03 / F-06）
@@ -4469,7 +4489,7 @@ class TestPreparedPRRoundtrip:
             result = runner.invoke(app, argv)
 
         assert result.exit_code == 3, result.output
-        assert "使用できない記法" in result.output
+        assert "error: disallowed syntax" in result.output
         assert "未編集プレースホルダ" in result.output
 
     @pytest.mark.parametrize(
@@ -4503,7 +4523,7 @@ class TestPreparedPRRoundtrip:
             result = runner.invoke(app, argv)
 
         assert result.exit_code == 0, result.output
-        assert "バリデーション成功" in result.output
+        assert "dry-run: would create PR" in result.stderr
 
     def test_posted_body_has_no_leading_guide_comment(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -4594,7 +4614,7 @@ class TestPrBodyStyleRejection:
         result = self._invoke_dry_run(file)
 
         assert result.exit_code == 3, result.output
-        assert "使用できない記法" in result.output
+        assert "error: disallowed syntax" in result.output
         assert "チェックボックス記法" in result.output
 
     def test_placeholder_is_rejected(self, tmp_path: Path) -> None:
@@ -4609,7 +4629,7 @@ class TestPrBodyStyleRejection:
         result = self._invoke_dry_run(file)
 
         assert result.exit_code == 0, result.output
-        assert "バリデーション成功" in result.output
+        assert "dry-run: would create PR" in result.stderr
 
     def test_changelog_transcription_passes(self, tmp_path: Path) -> None:
         """release PR の Changes 転記にある `"<0.0.0"` 等が誤検知されない"""
@@ -4752,10 +4772,10 @@ class TestTitleScopeCheck:
 
         assert result.exit_code == 3
         assert (
-            "PR タイトルの scope を `p-w` にしてください"
-            "（指定: `pecot`。変更した nx プロジェクトの tag から算出）"
-        ) in result.output
-        assert "バリデーション成功" not in result.output
+            "error: PR title scope must be p-w "
+            "(given: pecot; computed from the tags of the changed nx projects)"
+        ) in result.stderr
+        assert "dry-run: would create PR" not in result.stderr
         files_mock.assert_called_once_with(toplevel, "origin/develop-aist", "feat/x/123")
 
     @pytest.mark.parametrize("direct", [False, True], ids=["file", "message"])
@@ -4763,23 +4783,23 @@ class TestTitleScopeCheck:
         result, _, _ = self._invoke(tmp_path, toplevel, "feat: #123 テスト", direct=direct)
 
         assert result.exit_code == 3
-        assert "scope を `p-w` にしてください" in result.output
-        assert "指定: `なし`" in result.output
+        assert "PR title scope must be p-w" in result.output
+        assert "(given: none;" in result.output
 
     @pytest.mark.parametrize("direct", [False, True], ids=["file", "message"])
     def test_matching_scope_passes(self, tmp_path: Path, toplevel: Path, direct: bool) -> None:
         result, _, _ = self._invoke(tmp_path, toplevel, "feat(p-w): #123 テスト", direct=direct)
 
         assert result.exit_code == 0, result.output
-        assert "バリデーション成功" in result.output
-        assert "scope" not in result.output.replace("バリデーション", "")
+        assert "dry-run: would create PR" in result.stderr
+        assert "scope" not in result.output
 
     def test_full_project_name_is_rejected(self, tmp_path: Path, toplevel: Path) -> None:
         result, _, _ = self._invoke(tmp_path, toplevel, "feat(pecot-workflow): #123 テスト")
 
         assert result.exit_code == 3
-        assert "PR タイトルの scope を `p-w` にしてください" in result.output
-        assert "指定: `pecot-workflow`" in result.output
+        assert "PR title scope must be p-w" in result.output
+        assert "(given: pecot-workflow;" in result.output
 
     def test_multiple_projects_match_in_any_order(self, tmp_path: Path, toplevel: Path) -> None:
         files = ["plugins/pecot-workflow/a.py", "plugins/pecot-visual/b.ts"]
@@ -4788,7 +4808,7 @@ class TestTitleScopeCheck:
 
         assert ok.exit_code == 0, ok.output
         assert ng.exit_code == 3
-        assert "`p-v,p-w`" in ng.output
+        assert "must be p-v,p-w" in ng.output
 
     def test_file_outside_projects_requires_repo(self, tmp_path: Path, toplevel: Path) -> None:
         files = ["plugins/pecot-workflow/a.py", "CLAUDE.md"]
@@ -4796,7 +4816,7 @@ class TestTitleScopeCheck:
         ok, _, _ = self._invoke(tmp_path, toplevel, "feat(p-w,repo): #123 x", files=files)
 
         assert ng.exit_code == 3
-        assert "`p-w,repo`" in ng.output
+        assert "must be p-w,repo" in ng.output
         assert ok.exit_code == 0, ok.output
 
     @pytest.mark.parametrize(
@@ -4820,7 +4840,7 @@ class TestTitleScopeCheck:
         assert result.exit_code == 0, result.output
         roots_mock.assert_not_called()
         files_mock.assert_not_called()
-        assert "⚠" not in result.output
+        _assert_no_symbols(result)
 
     def test_unresolvable_nx_warns_and_passes(self, tmp_path: Path, toplevel: Path) -> None:
         result, roots_mock, _ = self._invoke(tmp_path, toplevel, "feat(pecot): #123 x")
@@ -4842,7 +4862,7 @@ class TestTitleScopeCheck:
             skipped = runner.invoke(app, ["pr", "create", str(pr_file), "--dry-run"])
 
         assert skipped.exit_code == 0, skipped.output
-        assert "⚠ nx のプロジェクトまたは差分を取得できないため" in skipped.output
+        assert "warning: cannot read nx projects or the diff" in skipped.output
         files_mock.assert_not_called()
         assert roots_mock.call_count == 1
 
@@ -4863,7 +4883,7 @@ class TestTitleScopeCheck:
             result = runner.invoke(app, ["pr", "create", str(pr_file), "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert "⚠ nx のプロジェクトまたは差分を取得できないため" in result.output
+        assert "warning: cannot read nx projects or the diff" in result.output
 
     def test_release_template_is_not_checked(self, toplevel: Path) -> None:
         from cli.commands.pr import _title_scope_errors
@@ -4875,7 +4895,7 @@ class TestTitleScopeCheck:
         ):
             errors = _title_scope_errors(
                 _nx_config(), "owner", "repo", "release: v1", "main", "develop-aist",
-                toplevel, template="release",
+                toplevel, Output(False), template="release",
             )  # fmt: skip
 
         assert errors == []
@@ -4886,7 +4906,14 @@ class TestTitleScopeCheck:
 
         with patch("cli.commands.pr.nx_projects") as roots_mock:
             errors = _title_scope_errors(
-                _nx_config(), "owner", "repo", "release: v1", "main", "develop-aist", toplevel
+                _nx_config(),
+                "owner",
+                "repo",
+                "release: v1",
+                "main",
+                "develop-aist",
+                toplevel,
+                Output(False),
             )
 
         assert errors == []
@@ -4897,7 +4924,7 @@ class TestTitleScopeCheck:
             tmp_path, toplevel, "feat(pecot): #123 x", base="some-other"
         )
 
-        assert "scope を" not in result.output
+        assert "PR title scope" not in result.output
         roots_mock.assert_not_called()
 
     def test_origin_mismatch_is_not_checked(self, tmp_path: Path, toplevel: Path) -> None:
@@ -4934,7 +4961,14 @@ class TestTitleScopeCheck:
             patch("cli.commands.pr.nx_projects") as roots_mock,
         ):
             errors = _title_scope_errors(
-                config, "owner", "repo", "feat: x", "develop-aist", "feat/x/1", tmp_path
+                config,
+                "owner",
+                "repo",
+                "feat: x",
+                "develop-aist",
+                "feat/x/1",
+                tmp_path,
+                Output(False),
             )
 
         assert errors == []
@@ -4943,7 +4977,7 @@ class TestTitleScopeCheck:
 
 
 class TestPrepareScopeGuidance:
-    """--prepare は比較の条件を満たすとき、算出した scope を stderr に案内する"""
+    """--prepare は比較の条件を満たすとき、算出した scope を title の行のコメントに書く"""
 
     def _prepare(
         self,
@@ -4979,7 +5013,7 @@ class TestPrepareScopeGuidance:
         result = self._prepare(tmp_path, monkeypatch, _nx_config())
 
         assert result.exit_code == 0, result.output
-        assert "scope: p-v,p-w（変更した nx プロジェクトの tag から算出）" in result.output
+        assert "set: title scope hint to p-v,p-w" in result.output
 
     def test_no_scope_line_for_non_nx_repo(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -5170,7 +5204,7 @@ class TestScreenshotDecision:
         )
 
         assert result.exit_code == 1, result.output
-        assert "release_branchが設定されていません" in result.output
+        assert "release_branch is not set" in result.output
         assert "Summary has no image" not in result.output
 
     def test_direct_with_unset_develop_branch_exits_1(self) -> None:
@@ -5179,7 +5213,7 @@ class TestScreenshotDecision:
         result = self._run(self._direct(_NO_IMAGE_BODY), config)
 
         assert result.exit_code == 1, result.output
-        assert "develop_branchが設定されていません" in result.output
+        assert "develop_branch is not set" in result.output
         assert "Summary has no image" not in result.output
 
     def test_missing_section_and_missing_image_are_listed_together(self, tmp_path: Path) -> None:
@@ -5187,7 +5221,7 @@ class TestScreenshotDecision:
         result = self._run([str(self._file(tmp_path, body))])
 
         assert result.exit_code == 3, result.output
-        assert "不足セクション" in result.output
+        assert "missing sections" in result.output
         assert "Summary has no image" in result.output
 
     def test_unset_develop_branch_exits_1_before_validation(self, tmp_path: Path) -> None:
@@ -5196,5 +5230,342 @@ class TestScreenshotDecision:
         result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY))], config)
 
         assert result.exit_code == 1, result.output
-        assert "develop_branchが設定されていません" in result.output
+        assert "develop_branch is not set" in result.output
         assert "Summary has no image" not in result.output
+
+
+# 出力の行（#211）。stdout はデータだけ、それ以外は stderr の英語の行
+
+
+_SYMBOLS = ("✔", "⚠", "★")
+
+
+def _assert_no_symbols(result: Any) -> None:
+    for symbol in _SYMBOLS:
+        assert symbol not in result.stdout
+        assert symbol not in result.stderr
+
+
+def _line_config() -> MagicMock:
+    config = _pr_config()
+    config.get_release_branch.return_value = None
+    return config
+
+
+class TestPrCreateOutputLines:
+    """pr create の行が、共通の関数を通った英語の 1 事柄 1 行になる"""
+
+    def _file(self, tmp_path: Path) -> Path:
+        return _write_pr_file(tmp_path, _VALID_PR_BODY + "\nCloses #12\n")
+
+    def test_dry_run_prints_plan_lines_only_on_stderr(self, tmp_path: Path) -> None:
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_line_config()),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(self._file(tmp_path)), "--dry-run"])
+
+        assert result.exit_code == 0, result.stderr
+        assert result.stdout == ""
+        assert result.stderr.splitlines() == [
+            "dry-run: would create PR owner/repo feat/demo/12 -> develop-aist: feat: 記法チェック",
+            "dry-run: would set Issue #12 status to In Review",
+        ]
+
+    def test_dry_run_of_release_pr_does_not_plan_the_status_update(self, tmp_path: Path) -> None:
+        config = _line_config()
+        config.get_release_branch.return_value = "main"
+        body = _VALID_PR_BODY.replace("## Risks", "## Migration", 1)
+        file = _write_pr_file(tmp_path, body, base="main")
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr.git_current_branch", return_value="develop-aist"),
+        ):
+            result = runner.invoke(
+                app, ["pr", "create", str(file), "--dry-run", "--template", "release"]
+            )
+
+        assert result.stdout == ""
+        lines = result.stderr.splitlines()
+        assert lines[-1].startswith("dry-run: would create PR owner/repo develop-aist -> main:")
+        assert lines[-1].endswith("(release template)")
+        assert not any("status" in line for line in lines)
+
+    def test_validation_errors_are_one_error_line_each(self, tmp_path: Path) -> None:
+        body = _VALID_PR_BODY.replace("## Risks", "## Other", 1) + "\nCloses #12\n"
+        file = _write_pr_file(tmp_path, body, base="develop")
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_line_config()),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(file), "--dry-run"])
+
+        assert result.exit_code == 3
+        assert result.stdout == ""
+        assert "error: missing sections: ## Risks" in result.stderr.splitlines()
+        assert "error: base branch must be develop-aist (given: develop)" in result.stderr
+        _assert_no_symbols(result)
+
+    def test_submit_prints_url_on_stdout_and_created_before_set(self, tmp_path: Path) -> None:
+        client = MagicMock()
+        client.create_pull_request.return_value = {
+            "number": 21,
+            "html_url": "https://github.com/owner/repo/pull/21",
+        }
+        client.get_item_id_by_issue.return_value = "ITEM"
+        config = _line_config()
+        config.get_option_id.return_value = "OPT"
+        config.get_field_id.return_value = "FIELD"
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr._run_preflight_checks_or_exit"),
+            patch("cli.commands.pr.consume_flag"),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(self._file(tmp_path))])
+
+        assert result.exit_code == 0, result.stderr
+        assert result.stdout == "https://github.com/owner/repo/pull/21\n"
+        assert result.stderr.splitlines() == [
+            "created: PR owner/repo feat/demo/12 -> develop-aist: feat: 記法チェック",
+            "set: Issue #12 status to In Review",
+        ]
+
+    def test_missing_board_item_is_a_warning_and_exit_stays_0(self, tmp_path: Path) -> None:
+        client = MagicMock()
+        client.create_pull_request.return_value = {"number": 21, "html_url": "https://x/pull/21"}
+        client.get_item_id_by_issue.return_value = None
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_line_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr._run_preflight_checks_or_exit"),
+            patch("cli.commands.pr.consume_flag"),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(self._file(tmp_path))])
+
+        assert result.exit_code == 0
+        assert "warning: Issue #12 is not on the board; status not updated" in result.stderr
+        assert result.stdout == "https://x/pull/21\n"
+
+
+class TestPrPrepareOutputLines:
+    def test_scope_hint_is_a_yaml_comment_on_the_title_line(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from cli.core.frontmatter import parse_pr_content
+
+        monkeypatch.setenv("PECOT_WORK_DIR", str(tmp_path))
+        config = _line_config()
+        with (
+            patch("cli.commands.pr.origin_repo", return_value=("github.com", "owner", "repo")),
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr._nx_scope_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr._expected_title_scope", return_value=["p-w", "repo"]),
+            patch("cli.commands.pr._fill_closes_in_template", side_effect=lambda c, *_a: c),
+            patch("cli.commands.pr.get_output_dir", return_value=tmp_path),
+        ):
+            result = runner.invoke(app, ["pr", "create", "--prepare"])
+
+        assert result.exit_code == 0, result.stderr
+        path = Path(result.stdout.strip())
+        assert result.stdout == f"{path}\n"
+        assert result.stderr.splitlines() == [
+            "set: base to develop-aist",
+            "set: title scope hint to p-w,repo",
+        ]
+        content = path.read_text(encoding="utf-8")
+        assert re.search(r'^title: ""  # expected scope: p-w,repo$', content, re.MULTILINE)
+        assert len(re.findall(r"^title:.*# expected scope:", content, re.MULTILINE)) == 1
+        assert parse_pr_content(content).frontmatter.title == ""
+
+
+def _merged_pr(head: str = "feat/demo/12") -> dict[str, Any]:
+    return {
+        "number": 21,
+        "state": "MERGED",
+        "title": "feat: demo",
+        "body": "Closes #12",
+        "head_ref": head,
+        "base_ref": "develop-aist",
+        "closing_issues": [],
+    }
+
+
+def _cleanup_client(head: str = "feat/demo/12") -> MagicMock:
+    client = MagicMock()
+    client.get_pull_request_slim.return_value = _merged_pr(head)
+    client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+    return client
+
+
+class TestPrCleanupOutputLines:
+    def _run(self, args: list[str], client: MagicMock, **patches: Any) -> Any:
+        config = _line_config()
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("cli.core.worktree.is_worktree_env", return_value=True),
+            patch("cli.core.worktree.get_current_worktree_name", return_value="wt7"),
+            patch("cli.commands.pr.run_git") as run_git,
+            patch("cli.commands.pr._remove_active_flags") as remove_flags,
+            patch("cli.commands.pr.consume_flag") as consume,
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/21", *args])
+        result.run_git = run_git
+        result.remove_flags = remove_flags
+        result.consume = consume
+        return result
+
+    def test_dry_run_lists_plans_and_touches_nothing(self) -> None:
+        client = _cleanup_client()
+        result = self._run(["--dry-run", "--delete-branch"], client)
+
+        assert result.exit_code == 0, result.stderr
+        assert result.stdout == ""
+        assert result.stderr.splitlines() == [
+            "count: Issues to close: 1",
+            "dry-run: would close Issue #12",
+            "dry-run: would delete remote branch feat/demo/12",
+            "dry-run: would set current branch to wt7",
+            "dry-run: would update wt7 from origin/develop-aist",
+            "dry-run: would delete local branch feat/demo/12",
+        ]
+        client.close_issue.assert_not_called()
+        client.delete_branch.assert_not_called()
+        result.run_git.assert_not_called()
+        result.remove_flags.assert_not_called()
+        result.consume.assert_not_called()
+
+    def test_real_run_prints_results_in_execution_order(self) -> None:
+        client = _cleanup_client()
+        result = self._run(["--delete-branch"], client)
+
+        assert result.exit_code == 0, result.stderr
+        assert result.stdout == ""
+        assert result.stderr.splitlines() == [
+            "count: Issues to close: 1",
+            "closed: Issue #12",
+            "deleted: remote branch feat/demo/12",
+            "deleted: remote branch wip/feat/demo/12",
+            "set: current branch to wt7",
+            "updated: wt7 from origin/develop-aist",
+            "deleted: local branch feat/demo/12",
+        ]
+        assert "dry-run:" not in result.stderr
+        _assert_no_symbols(result)
+
+    def test_checkout_failure_stops_pull_and_branch_delete_but_exit_stays_0(self) -> None:
+        client = _cleanup_client()
+        config = _line_config()
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("cli.core.worktree.is_worktree_env", return_value=True),
+            patch("cli.core.worktree.get_current_worktree_name", return_value="wt7"),
+            patch(
+                "cli.commands.pr.run_git",
+                side_effect=subprocess.CalledProcessError(1, "git checkout"),
+            ),
+            patch("cli.commands.pr._remove_active_flags"),
+            patch("cli.commands.pr.consume_flag"),
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/21"])
+
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        assert any(line.startswith("warning: checking out wt7 failed:") for line in lines)
+        assert not any("origin/" in line and line.startswith("updated:") for line in lines)
+        assert not any("local branch" in line for line in lines)
+        assert not any(line.startswith("set: current branch") for line in lines)
+
+    def test_already_closed_issue_is_unchanged(self) -> None:
+        from cli.core.github import GitHubAPIError
+
+        client = _cleanup_client()
+        client.close_issue.side_effect = GitHubAPIError(
+            "x", status_code=422, response_body="closed by another request"
+        )
+        result = self._run(["--skip-local-cleanup"], client)
+
+        assert "unchanged: Issue #12 (already closed)" in result.stderr.splitlines()
+
+    def test_epic_is_skipped_and_judged_before_dry_run(self) -> None:
+        client = _cleanup_client()
+        client.get_issue_kind.side_effect = lambda _o, _r, n: {
+            "number": n,
+            "state": "OPEN",
+            "issue_type": "Epic",
+            "sub_issues_total": 0,
+        }
+        result = self._run(["--dry-run", "--skip-local-cleanup"], client)
+
+        assert result.stderr.splitlines() == [
+            "count: Issues to close: 0",
+            "dry-run: would skip closing Issue #12 (Epic)",
+        ]
+        client.get_issue_kind.assert_called()
+
+    def test_not_merged_is_one_error_line(self) -> None:
+        client = _cleanup_client()
+        client.get_pull_request_slim.return_value["state"] = "OPEN"
+        result = self._run([], client)
+
+        assert result.exit_code == 1
+        assert result.stderr.splitlines() == [
+            "error: PR #21 is not merged yet (state: OPEN); merge it with gh pr merge first"
+        ]
+
+
+class TestPrPreflightOutputLines:
+    def _run(self, tmp_path: Path, *, pushed: bool, push_message: str, stash: str) -> Any:
+        config = MagicMock()
+        config.get_develop_branch.return_value = "develop-aist"
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr._branch_exists", return_value=True),
+            patch("cli.commands.pr._get_push_status", return_value=(pushed, push_message)),
+            patch(
+                "cli.commands.pr._get_git_status",
+                return_value="On branch x\nmodified: a.py\n",
+            ),
+            patch("cli.commands.pr._read_gitignore", return_value="*.pyc"),
+            patch("cli.commands.pr._read_git_exclude", return_value="# exclude"),
+            patch("cli.commands.pr._get_commits_vs_base", return_value="abc test"),
+            patch("cli.commands.pr._get_diff_summary", return_value="1 file changed"),
+            patch("cli.commands.pr._get_worktree_info", return_value="worktree info"),
+            patch("cli.commands.pr._get_stash_list", return_value=stash),
+        ):
+            return runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
+
+    def test_warnings_go_to_stderr_and_sections_stay_on_stdout(self, tmp_path: Path) -> None:
+        result = self._run(
+            tmp_path, pushed=False, push_message="2 unpushed commits", stash="stash@{0}: WIP"
+        )
+
+        assert result.exit_code == 2
+        assert result.stderr.splitlines() == [
+            "count: preflight warnings: 3",
+            "warning: Push Status: 2 unpushed commits (fix: git push)",
+            "warning: Git Status: modified or untracked files (fix: commit)",
+            "warning: Stash List: 1 stash entries (fix: check them)",
+        ]
+        assert "=== Push Status ===\n2 unpushed commits\n" in result.stdout
+        assert "=== Stash List ===\nstash@{0}: WIP\n" in result.stdout
+        assert "=== Summary ===" not in result.stdout
+        _assert_no_symbols(result)

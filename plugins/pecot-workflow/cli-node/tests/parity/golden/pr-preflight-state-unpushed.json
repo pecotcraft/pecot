@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n\n=== Current Branch ===\nfeat/demo/12\n\n=== Push Status ===\n\n=== Base Branch ===\norigin/main\n\n=== Git Status ===\nOn branch feat/demo/12\nnothing to commit, working tree clean\n\n\n=== .gitignore ===\n.pecot/\n\n\n=== Git Exclude ===\n# parity fixed exclude\n\n\n=== Commits (vs origin/main) ===\n(no commits)\n\n=== Diff Summary (vs origin/main) ===\n(no diff)\n\n=== Worktree Info ===\n{{TMP}}/base/demo dd06359 [feat/demo/12]\n\nCurrent directory name: demo\nIs worktree environment: false\n\n=== Stash List ===\n✔ (no stash)\n",
-  "stderr": "⚠ リモートブランチ origin/feat/demo/12 が存在しません（未プッシュ）\n\n  ★ PR作成前に git push を実行してください ★\n\n=== Summary ===\n⚠ Push Status: リモートブランチ origin/feat/demo/12 が存在しません（未プッシュ）（git push してください）\n",
+  "stdout": "=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n\n=== Current Branch ===\nfeat/demo/12\n\n=== Push Status ===\norigin/feat/demo/12 does not exist (not pushed)\n\n=== Base Branch ===\norigin/main\n\n=== Git Status ===\nOn branch feat/demo/12\nnothing to commit, working tree clean\n\n\n=== .gitignore ===\n.pecot/\n\n\n=== Git Exclude ===\n# parity fixed exclude\n\n\n=== Commits (vs origin/main) ===\n(no commits)\n\n=== Diff Summary (vs origin/main) ===\n(no diff)\n\n=== Worktree Info ===\n{{TMP}}/base/demo dd06359 [feat/demo/12]\n\nCurrent directory name: demo\nIs worktree environment: false\n\n=== Stash List ===\n(no stash)\n",
+  "stderr": "count: preflight warnings: 1\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n",
   "exitCode": 2,
   "requests": [],
   "files": {

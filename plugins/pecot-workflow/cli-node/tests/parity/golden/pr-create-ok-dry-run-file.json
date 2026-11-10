@@ -1,6 +1,6 @@
 {
-  "stdout": "バリデーション成功（dry-run）\n  タイトル: feat(demo): #12 見本の変更\n  リポジトリ: acme/demo\n  base: main\n  head: feat/demo/12\n  draft: False\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "dry-run: would create PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更\ndry-run: would set Issue #12 status to In Review\n",
   "exitCode": 0,
   "requests": [
     {

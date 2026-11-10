@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: preflight が警告を返しています。PR作成前に修正してください:\n  ⚠ Push Status: リモートブランチ origin/feat/demo/12 が存在しません（未プッシュ）（git push してください）\n詳細確認: pecot pr preflight\n",
+  "stderr": "error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n",
   "exitCode": 2,
   "requests": [],
   "files": {

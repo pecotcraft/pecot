@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: PR #21 はまだマージされていません（state: OPEN）\n  gh pr merge でマージし、main に入ってから打ち直してください\n",
+  "stderr": "error: PR #21 is not merged yet (state: OPEN); merge it with gh pr merge first\n",
   "exitCode": 1,
   "requests": [
     {
