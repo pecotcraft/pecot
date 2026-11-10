@@ -78,12 +78,13 @@ Summary に画像があれば `screenshot` は空のままにする。画像と�
 gh v2.99.0 以上が要る。GHES のリポでは使えない。
 
 ```bash
-gh pr view <PR番号> --json body -q .body > <画像のディレクトリ>/body.md
-gh pr edit <PR番号> --body-file <画像のディレクトリ>/body.md --attach <画像のパス>
+gh pr view <PR番号> --json body -q .body > .playwright-mcp/body.md
+gh pr edit <PR番号> --body-file .playwright-mcp/body.md --attach .playwright-mcp/<名前>.png
 ```
 
-`--attach` は画像ごとに繰り返す。`--attach` に渡すパスは、保存先の `.playwright-mcp/` の画像にする。
-本文の画像のパスは、アップロード後の URL に書き換わる。
+`--attach` は画像ごとに繰り返す。本文の画像のパスは、アップロード後の URL に書き換わる。
+body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<名前>.png` を body.md のディレクトリを起点に解く。
+置き場所が違うと参照が書き換わらず、画像は本文の末尾に足される。
 
 ### Closing Issue キーワードと Epic
 
