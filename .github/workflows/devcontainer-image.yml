@@ -1,5 +1,6 @@
 # .devcontainer/ の定義から CI 用のイメージを build し、GHCR へ push する。
-# push するのは main への push・schedule・workflow_dispatch のときだけにする。
+# tag は .devcontainer/ の tree hash の def-<tree> で、main のときだけ latest も付ける。
+# push するのは push・schedule・workflow_dispatch のときだけにする。
 # PR では build だけを動かし、マージ前に Dockerfile が通ることを確かめる。
 # 週 1 回の schedule は noCache で動かす。自分のイメージを cache に使うため、
 # noCache が無いと apt のパッケージと features が新しくならない。
@@ -45,17 +46,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute image tags
+        id: tags
+        run: |
+          tree=$(git rev-parse HEAD:.devcontainer)
+          tags="def-$tree"
+          if [ "$GITHUB_REF" = refs/heads/main ] && [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            tags="$tags,latest"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+
       # runCmd を書かない。省くと devcontainer build だけが動き、lifecycle は動かない。
-      # cacheFrom を書かない。imageName:imageTag が 1 つのとき、action が自動で足す。
-      # refFilterForPush で main だけに絞る。workflow_dispatch は feature ブランチからも起動できるため。
+      # devcontainers/ci は post 処理で push するため、latest を後の step で付け直せない。tag が複数だと cacheFrom を自動で足さないため、明示する。
       # eventFilterForPush は 1 行に 1 件で書く。カンマ区切りは 1 件として読まれ、push されない。
       - name: Build and push image
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         with:
           imageName: ghcr.io/pecotcraft/pecot-devcontainer
-          imageTag: latest
+          imageTag: ${{ steps.tags.outputs.tags }}
+          cacheFrom: ghcr.io/pecotcraft/pecot-devcontainer:latest
           push: filter
-          refFilterForPush: refs/heads/main
           eventFilterForPush: |
             push
             schedule

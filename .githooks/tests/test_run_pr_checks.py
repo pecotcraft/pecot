@@ -1158,3 +1158,22 @@ def test_finish_reports_infra_failure(githooks_dir: Path, tmp_path: Path) -> Non
     result = _run_finish(githooks_dir, tmp_path, "failure")
     assert result.returncode == 1
     assert "基盤の失敗" in (tmp_path / "summary.md").read_text()
+
+
+def test_finish_reports_image_on_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
+    _write_ci_files(tmp_path, summary=None, done=None)
+    result = subprocess.run(
+        [str(githooks_dir / "ci" / "finish-ci-summary.sh")],
+        cwd=tmp_path,
+        env={
+            "PATH": "/usr/bin:/bin",
+            "UP_OUTCOME": "failure",
+            "PECOT_CI_IMAGE": "img:def-abc@sha256:123",
+            "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 1
+    assert "- イメージ: img:def-abc@sha256:123" in (tmp_path / "summary.md").read_text()
