@@ -56,6 +56,7 @@ jobs:
         run: node .githooks/scripts/gen-runtime-lock.mjs --write
 
       # commit の本文の [dependabot skip] が無いと、dependabot は他者の commit がある PR を rebase しなくなる。
+      # 固定するテスト: test_runtime_lock_workflow_marks_commit_for_dependabot_rebase
       - name: Push regenerated lock
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
