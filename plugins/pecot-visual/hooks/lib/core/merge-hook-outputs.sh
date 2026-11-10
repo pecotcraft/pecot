@@ -96,7 +96,8 @@ ${RESULT}"
 done
 
 # 連結後の合計を上限で切る。ライブラリを解決できなければ切らない。
-CONTEXT_CAP_LIB="$(dirname "${BASH_SOURCE[0]}")/context-cap.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONTEXT_CAP_LIB="${SCRIPT_DIR}/context-cap.sh"
 if [ -n "$MERGED_ADDITIONAL_CONTEXT" ] && [ -f "$CONTEXT_CAP_LIB" ]; then
     # shellcheck source=context-cap.sh
     . "$CONTEXT_CAP_LIB"
