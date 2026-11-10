@@ -4,7 +4,7 @@
 # branch 全体 (merge-base(default, local)..local) の変更を判定する。
 # 判定は nx の「持ち主の project」と release group による。
 # 数えないファイルは nx.json の ignorePatternsForPlanCheck から読む。判定できない環境は WARN で skip する。
-# range の author が dependabot[bot]（と github-actions[bot]）だけなら、dependabot-plans.js --check が通れば素通しする。
+# author が dependabot[bot]（と github-actions[bot]）だけの range は、dependabot-plans.js --check が通れば素通しする。
 # env PECOT_VERSION_PLAN_STRICT=1 では、判定できないときの WARN での skip を失敗にする。
 
 set -e
@@ -176,10 +176,15 @@ check_branch() {
         && printf '%s\n' "$authors" | grep -qxF 'dependabot[bot]'; then
         local plans_root
         plans_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-        if [ -n "$plans_root" ] && [ -f "$plans_root/.nx/nx-release/src/dependabot-plans.js" ] \
-            && command -v node > /dev/null 2>&1; then
-            (cd "$plans_root" && node .nx/nx-release/src/dependabot-plans.js --check --base "$from_sha") || return 1
+        if [ -z "$plans_root" ] || [ ! -f "$plans_root/.nx/nx-release/src/dependabot-plans.js" ]; then
+            skip_or_fail "dependabot-plans.js が見つからないため version plan check を skip"
+            return $?
         fi
+        if ! command -v node > /dev/null 2>&1; then
+            skip_or_fail "node が見つからないため version plan check を skip"
+            return $?
+        fi
+        (cd "$plans_root" && node .nx/nx-release/src/dependabot-plans.js --check --base "$from_sha" --head "$to_sha") || return 1
         echo "dependabot の更新の version plan は PR の commit で作るため、version plan check を skip" >&2
         return 0
     fi

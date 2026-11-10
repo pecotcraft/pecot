@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TARGET_DIRS = (
@@ -270,4 +271,52 @@ def test_workflow_creates_version_plans_before_commit() -> None:
         r'run:\s*node\s+\.nx/nx-release/src/dependabot-plans\.js --pr "\$PR_NUMBER"', workflow
     )
     assert (_REPO_ROOT / ".nx/nx-release/src/dependabot-plans.js").is_file()
-    assert workflow.index("git add -A") < workflow.index("git diff --cached --quiet")
+    add = "git add -A -- ':(glob)**/runtime-*.yaml' .nx/version-plans"
+    assert workflow.index(add) < workflow.index("git diff --cached --quiet")
+
+
+def _workflow() -> dict:
+    return yaml.safe_load(
+        (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(encoding="utf-8")
+    )
+
+
+def _steps() -> list[dict]:
+    return _workflow()["jobs"]["regenerate"]["steps"]
+
+
+def test_workflow_runs_on_every_pull_request_path() -> None:
+    """paths で絞ると、lock の変更を含まない更新で plan が作られない。"""
+    on = _workflow()[True]  # YAML 1.1 では on が True になる
+    assert on["pull_request"] is None or "paths" not in on["pull_request"]
+
+
+def test_workflow_checks_out_full_history() -> None:
+    checkout = next(s for s in _steps() if s.get("name") == "Checkout")
+    assert checkout["with"]["fetch-depth"] == 0
+
+
+def test_workflow_passes_origin_base_to_plans() -> None:
+    plans = next(s for s in _steps() if s.get("id") == "plans")
+    assert '--base "origin/$BASE_REF"' in plans["run"]
+    assert plans["continue-on-error"] is True
+
+
+def test_workflow_fails_after_push_when_plans_failed() -> None:
+    steps = _steps()
+    names = [s.get("name") for s in steps]
+    push = names.index("Push generated files")
+    fail = next(
+        i for i, s in enumerate(steps) if s.get("if") == "${{ steps.plans.outcome == 'failure' }}"
+    )
+    assert push < fail
+    assert "exit 1" in steps[fail]["run"]
+
+
+def test_workflow_adds_only_generated_paths() -> None:
+    """生成物の path に絞る。pathspec が runtime-lock.yaml の置き場に当たることも確かめる。"""
+    listed = subprocess.run(
+        ["git", "ls-files", "--", ":(glob)**/runtime-*.yaml"],
+        cwd=_REPO_ROOT, capture_output=True, text=True, check=True,
+    ).stdout.split()  # fmt: skip
+    assert {f"{d}/runtime-lock.yaml" for d in _TARGET_DIRS} <= set(listed)

@@ -1,5 +1,5 @@
 export type Update = { name: string; version: string; type: string; from: string | null };
-export type ParsedCommit = { pr: number; directory: string; updates: Update[] };
+export type ParsedCommit = { directory: string; updates: Update[] };
 export type Declaration = { path: string; section: string; changed: boolean };
 export type Lock = {
   importers: Record<string, Record<string, Record<string, { version: string }> | undefined>>;

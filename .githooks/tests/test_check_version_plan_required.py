@@ -403,48 +403,146 @@ def _authored_feature(h: _VprRepo, authors: list[str]) -> str:
     return h.head_sha()
 
 
-_PLANS_STUB = "\n".join(
-    [
-        'const fs = require("node:fs");',
-        'const d = ".nx/version-plans";',
-        "const found = fs.existsSync(d) && fs.readdirSync(d).some((f) => f.includes('dependabot-deps'));",
-        "if (found === false) {",
-        '  console.error("dependabot の更新の version plan が足されていません");',
-        "  process.exit(1);",
-        "}",
-    ]
+_DIST_FILES = (
+    "plugins/pecot-visual/scripts/release/dist-manifest.mjs",
+    "plugins/pecot-visual/scripts/release/self-exec.mjs",
+    "plugins/pecot-visual/cli/package.json",
+    "plugins/pecot-visual/assets/slidev/package.json",
+    "plugins/pecot-visual/assets/slidev/scripts/eslint/_shared/package.json",
+    "plugins/pecot-visual/assets/slidev/scripts/eslint/text-constraints/package.json",
+    "plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references/package.json",
+    "libs/text-rules/package.json",
 )
+_DEPENDABOT_BODY = """Bumps lodash from 4.17.20 to 4.17.21.
+
+---
+updated-dependencies:
+- dependency-name: lodash
+  dependency-version: 4.17.21
+  dependency-type: direct:production
+...
+"""
 
 
-def _stub_dependabot_plans(h: _VprRepo) -> None:
-    """本物の dependabot-plans.js の代わりに、--check の成否だけを plan の有無で返すスタブを置く。"""
+def _install_real_plans(h: _VprRepo) -> None:
+    """本物の dependabot-plans.js と、その依存（dist-manifest と package.json）を temp repo へ写す。"""
+    shutil.copytree(
+        _REPO_ROOT / ".nx/nx-release/src", h.repo / ".nx/nx-release/src", dirs_exist_ok=True
+    )
+    for rel in _DIST_FILES:
+        dst = h.repo / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(_REPO_ROOT / rel, dst)
+    (h.repo / "node_modules" / "yaml").symlink_to(_REPO_ROOT / "node_modules" / "yaml")
+
+
+def _dependabot_bump(h: _VprRepo) -> str:
+    """tools の package.json の版を dependabot の author で上げた feature を作り、sha を返す。"""
+    pkg = "plugins/pecot-tools/package.json"
+    (h.repo / "plugins/pecot-tools").mkdir(parents=True, exist_ok=True)
+    (h.repo / pkg).write_text('{"dependencies": {"lodash": "^4.17.20"}}\n')
+    h.git("add", pkg)
+    h.git("commit", "-q", "-m", "chore: tools manifest")
+    h.build_base_with_plan()
+    h.git("checkout", "-q", "-b", "feature")
+    (h.repo / pkg).write_text('{"dependencies": {"lodash": "^4.17.21"}}\n')
+    h.git("add", pkg)
+    h.git(
+        "-c", f"user.name={_DEPENDABOT}", "-c", "user.email=d@example.com",
+        "commit", "-q", "-m", "build(deps): bump lodash from 4.17.20 to 4.17.21 in /plugins/pecot-tools",
+        "-m", _DEPENDABOT_BODY,
+    )  # fmt: skip
+    h.fake_remote_ref("main", h.main_sha)
+    h.fake_origin_head("main")
+    h.stub_nx()
+    _install_real_plans(h)
+    return h.head_sha()
+
+
+def _commit_plan_as_actions(h: _VprRepo) -> str:
+    _commit_as(
+        h, _ACTIONS, ".nx/version-plans/9-dependabot-deps.md", "chore: plans"
+    )  # 中身は次行で上書きして amend する
+    plan = h.repo / ".nx/version-plans/9-dependabot-deps.md"
+    plan.write_text(_plan("pecot-tools"))
+    h.git("add", str(plan.relative_to(h.repo)))
+    h.git(
+        "-c",
+        f"user.name={_ACTIONS}",
+        "-c",
+        "user.email=a@example.com",
+        "commit",
+        "-q",
+        "--amend",
+        "--no-edit",
+    )
+    return h.head_sha()
+
+
+def _stub_plans_ok(h: _VprRepo) -> None:
+    """--check が常に通るスタブ。author 判定の分岐だけを見るテストで使う。"""
     src = h.repo / ".nx/nx-release/src"
     src.mkdir(parents=True, exist_ok=True)
-    (src / "dependabot-plans.js").write_text(_PLANS_STUB)
+    (src / "dependabot-plans.js").write_text("process.exit(0);\n")
 
 
 def test_37_block_dependabot_without_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """37. dependabot だけの range で、作るべき plan が無い → 理由を出して止める（strict でなくても）。"""
-    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
-    _stub_dependabot_plans(vpr_repo)
+    """37. dependabot の更新が group へ届くのに plan の commit が無い → 理由を出して止める（strict でなくても）。"""
+    sha = _dependabot_bump(vpr_repo)
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
     assert result.returncode == 1
-    assert "version plan が足されていません" in (result.stdout + result.stderr)
+    assert "pecot-tools の version plan がありません" in result.stderr
+
+
+def test_37b_block_uncommitted_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """37b. 作業ツリーに置いただけの plan（未 commit）では通らない。"""
+    sha = _dependabot_bump(vpr_repo)
+    (vpr_repo.repo / ".nx/version-plans/9-dependabot-deps.md").write_text(_plan("pecot-tools"))
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 1
+    assert "version plan がありません" in result.stderr
 
 
 def test_38_pass_dependabot_with_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """38. dependabot だけの range で、plan がある → pass。"""
-    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
-    _stub_dependabot_plans(vpr_repo)
-    (vpr_repo.repo / ".nx/version-plans/9-dependabot-deps.md").write_text("---\n---\n")
+    """38. github-actions[bot] が plan を commit した後 → pass。"""
+    _dependabot_bump(vpr_repo)
+    sha = _commit_plan_as_actions(vpr_repo)
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stderr
     assert "PR の commit で作る" in result.stderr
+
+
+def test_38b_check_receives_base_and_head(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """38b. --check には --base <from> --head <to> が渡る（スタブで argv を記録）。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    src = vpr_repo.repo / ".nx/nx-release/src"
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "dependabot-plans.js").write_text(
+        'require("node:fs").writeFileSync("argv.txt", process.argv.slice(2).join(" "));'
+    )
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 0, result.stderr
+    argv = (vpr_repo.repo / "argv.txt").read_text()
+    assert argv == f"--check --base {vpr_repo.main_sha} --head {sha}"
+
+
+def test_38c_strict_fails_without_plans_script(
+    script_dir: Path, vpr_repo: _VprRepo, run_script
+) -> None:
+    """38c. dependabot-plans.js が無い tmp repo は、通常は WARN で通し、strict では失敗にする。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    normal = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert normal.returncode == 0
+    assert "dependabot-plans.js が見つからない" in normal.stderr
+    strict = _run(script_dir, vpr_repo, run_script, to_ref=sha, env=_STRICT)
+    assert strict.returncode == 1
+    assert "PECOT_VERSION_PLAN_STRICT=1" in strict.stderr
 
 
 def test_30_pass_dependabot_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
     """30. dependabot だけの range → 理由を出して pass。"""
     sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    _stub_plans_ok(vpr_repo)
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
     assert result.returncode == 0
     assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
@@ -453,6 +551,7 @@ def test_30_pass_dependabot_only(script_dir: Path, vpr_repo: _VprRepo, run_scrip
 def test_31_pass_dependabot_and_actions(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
     """31. dependabot と github-actions（lock の commit）→ pass。"""
     sha = _authored_feature(vpr_repo, [_DEPENDABOT, _ACTIONS])
+    _stub_plans_ok(vpr_repo)
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
     assert result.returncode == 0
     assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
@@ -492,6 +591,7 @@ def test_34_pass_human_merge_commit_is_not_counted(
     h.fake_remote_ref("main", h.main_sha)
     h.fake_origin_head("main")
     h.stub_nx()
+    _stub_plans_ok(h)
     result = _run(script_dir, h, run_script, to_ref=h.head_sha())
     assert result.returncode == 0
     assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr

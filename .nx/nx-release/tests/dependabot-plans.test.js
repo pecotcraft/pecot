@@ -43,10 +43,9 @@ const emptyCtx = (overrides = {}) => ({
 const decl = (file, section, changed = true) => ({ path: file, section, changed });
 const update = (name, type = "direct:production", version = "2.0.0") => ({ name, version, type, from: "1.0.0" });
 
-test("単独の PR の本文から、PR 番号・directory・依存と旧版を読む", () => {
+test("単独の PR の本文から、directory・依存と旧版を読む", () => {
   const real = realCommits.find((commit) => commit.subject.endsWith("(#5)"));
-  assert.deepEqual(parseCommit(real.subject, real.body, PRN(real)), {
-    pr: 5,
+  assert.deepEqual(parseCommit(real.subject, real.body), {
     directory: "/plugins/pecot-tools",
     updates: [{ name: "commander", version: "15.0.0", type: "direct:production", from: "14.0.3" }],
   });
@@ -54,7 +53,7 @@ test("単独の PR の本文から、PR 番号・directory・依存と旧版を�
 
 test("group の PR の本文から、directory と複数の依存を読む", () => {
   const real = realCommits.find((commit) => commit.subject.endsWith("(#6)"));
-  const parsed = parseCommit(real.subject, real.body, PRN(real));
+  const parsed = parseCommit(real.subject, real.body);
   assert.equal(parsed.directory, "/plugins/pecot-workflow/cli");
   assert.deepEqual(
     parsed.updates.map((u) => [u.name, u.from, u.version, u.type]),
@@ -73,8 +72,7 @@ const squashOf = (pr) => squashCommits.find((commit) => commit.pr === pr);
 // #120（単独）の実物。dependabot と runtime-lock の 2 commit の本文が連なる。
 test("#113 の後の squash の本文（単独）を読む。directory が無ければ / とみなす", () => {
   const real = squashOf(120);
-  assert.deepEqual(parseCommit(real.subject, real.body, PRN(real)), {
-    pr: 120,
+  assert.deepEqual(parseCommit(real.subject, real.body), {
     directory: "/",
     updates: [{ name: "ajv", version: "8.20.0", type: "direct:production", from: "6.15.0" }],
   });
@@ -83,8 +81,7 @@ test("#113 の後の squash の本文（単独）を読む。directory が無け
 // #151（group）の実物。依存名の引用符と、本文の in the / directory を読む。
 test("#113 の後の squash の本文（group）を読む", () => {
   const real = squashOf(151);
-  const parsed = parseCommit(real.subject, real.body, PRN(real));
-  assert.equal(parsed.pr, 151);
+  const parsed = parseCommit(real.subject, real.body);
   assert.equal(parsed.directory, "/");
   assert.equal(parsed.updates.length, 28);
   assert.ok(parsed.updates.every((u) => u.from !== null && u.version !== ""));
@@ -93,14 +90,14 @@ test("#113 の後の squash の本文（group）を読む", () => {
 
 test("旧版が本文から読めないときは from を null にする", () => {
   const body = "---\nupdated-dependencies:\n- dependency-name: foo\n  dependency-version: 2.0.0\n  dependency-type: direct:production\n...";
-  assert.equal(parseCommit("build: bump foo", body, 9).updates[0].from, null);
+  assert.equal(parseCommit("build: bump foo", body).updates[0].from, null);
 });
 
 test("updated-dependencies が読めない本文は throw する", () => {
-  assert.throws(() => parseCommit("build: bump foo", "本文なし", 9), /updated-dependencies/);
-  assert.throws(() => parseCommit("build: bump foo", "updated-dependencies:\n...", 9), /項目がありません/);
+  assert.throws(() => parseCommit("build: bump foo", "本文なし"), /updated-dependencies/);
+  assert.throws(() => parseCommit("build: bump foo", "updated-dependencies:\n..."), /項目がありません/);
   assert.throws(
-    () => parseCommit("build: bump foo", "updated-dependencies:\n- dependency-name: foo\n...", 9),
+    () => parseCommit("build: bump foo", "updated-dependencies:\n- dependency-name: foo\n..."),
     /項目が読めません/,
   );
 });
@@ -470,6 +467,10 @@ test("引数の誤りはコード 2、読めない本文はコード 1", async (
     ["--pr", "3", "--base", "HEAD", "--check"],
     ["--check", "--base", "HEAD", "--dry-run"],
     ["--check"],
+    ["--base", "--dry-run", "--pr", "3"],
+    ["--pr", "3", "--base", "HEAD", "--head"],
+    ["--pr", "3", "--base", "HEAD", "--head", "--dry-run"],
+    ["--check", "--base", "HEAD", "--pr", "3"],
   ]) {
     const result = await run(dir, argv);
     assert.equal(result.code, 2, argv.join(" "));
@@ -657,18 +658,41 @@ test("検証を通らない plan は消す。dry-run では .pecot/tmp に残し
   assert.ok(fs.existsSync(path.join(dir, ".pecot/tmp/dependabot-plans/64-dependabot-deps.md")));
 });
 
-test("同じ PR の 2 commit が同じ名前になるときは、古い方の 1 件だけ作る", async (t) => {
+test("同じ PR の同じ group に届く 2 commit は、1 つの plan に集約する", async (t) => {
   const dir = makeRepo();
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
   const message = (version, from) => `build: bump commander in /plugins/pecot-tools\n\n${dependabotBody("commander", version, "direct:production", from)}\n`;
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^2.0.0") }, message("2.0.0", "1.0.0"));
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^2.0.0") }, message("2.0.0", "1.0.0"));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^3.0.0") }, message("3.0.0", "2.0.0"));
-  const result = await runPr(dir, 71, "HEAD~2");
+  const result = await runPr(dir, 71, "HEAD~3");
   assert.equal(result.code, 0, result.errors.join("\n"));
   assert.deepEqual(plansIn(dir), ["71-dependabot-deps.md"]);
-  assert.match(fs.readFileSync(path.join(dir, ".nx/version-plans/71-dependabot-deps.md"), "utf8"), /commander 1\.0\.0 → 2\.0\.0/);
-  assert.equal(summaryOf(result.lines)["作らなかった plan ファイル（既にある）"], 1);
+  assert.match(
+    fs.readFileSync(path.join(dir, ".nx/version-plans/71-dependabot-deps.md"), "utf8"),
+    /commander 1\.0\.0 → 2\.0\.0、commander 2\.0\.0 → 3\.0\.0/,
+  );
+  assert.equal(summaryOf(result.lines)["作らなかった plan ファイル（既にある）"], 0);
+});
+
+test("同じ PR で別の group に届く 2 commit は、group ごとの名前で 1 つずつ作る", async (t) => {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(
+    dir,
+    {
+      "plugins/pecot-tools/package.json": toolsPackage("^1.0.0"),
+      "libs/text-rules/package.json": toolsPackage("^1.0.0"),
+    },
+    "chore: init",
+  );
+  const message = (directory) => `build: bump commander in ${directory}\n\n${dependabotBody("commander", "2.0.0", "direct:production", "1.0.0")}\n`;
+  commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^2.0.0") }, message("/plugins/pecot-tools"));
+  commit(dir, { "libs/text-rules/package.json": toolsPackage("^2.0.0") }, message("/libs/text-rules"));
+  const result = await runPr(dir, 72, "HEAD~2");
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.deepEqual(plansIn(dir), ["72-dependabot-deps-pecot-tools.md", "72-dependabot-deps-text-rules.md"]);
 });
 
 // --check は、PR が足した plan が、dependabot の commit の届く group を覆うかを見る。
@@ -725,4 +749,40 @@ test("updated-dependencies を文中で触れるだけの commit は、対象に
   commit(dir, {}, "docs: note (#80)\n\nこの本文は updated-dependencies: の語に触れるだけです。\n");
   const result = await runPr(dir, 80);
   assert.equal(result.code, 0, result.errors.join("\n"));
+});
+
+test("--check: --head の範囲だけを見る。HEAD が先へ進んでいて plan がそこにあっても、head に無ければ 1", async (t) => {
+  const dir = await checkRepo(t, "---\npecot-tools: patch\n---\n\n依存を更新した。\n");
+  assert.equal((await run(dir, ["--check", "--base", "HEAD~2", "--head", "HEAD~1"])).code, 1);
+  assert.equal((await run(dir, ["--check", "--base", "HEAD~2", "--head", "HEAD"])).code, 0);
+});
+
+test("--check: CRLF の frontmatter と、引用符付きのキーを読む。bump の種類は問わない", async (t) => {
+  const dir = await checkRepo(t, '---\r\n"pecot-tools": minor\r\n---\r\n\r\n依存を更新した。\r\n');
+  const result = await run(dir, ["--check", "--base", "HEAD~2"]);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+});
+
+// merge queue の squash は、依存の更新と plan が 1 commit に入り、本文に dependabot の本文が連なる。
+async function squashCheckRepo(t, withPlan) {
+  const dir = makeRepo();
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const real = squashOf(120);
+  commit(dir, { ...ROOT_UV, ...Object.fromEntries(real.files.map((file) => [file.path, file.before])) }, "chore: setup");
+  const extra = withPlan ? { ".nx/version-plans/120-dependabot-deps.md": "---\npecot-visual: patch\n---\n\n依存を更新した。\n" } : {};
+  commit(dir, { ...extra, ...Object.fromEntries(real.files.map((file) => [file.path, file.after])) }, `${stripPr(real.subject)}\n\n${real.body}\n`);
+  return dir;
+}
+
+test("--check: merge queue の squash に plan が入っていれば 0", async (t) => {
+  const dir = await squashCheckRepo(t, true);
+  const result = await run(dir, ["--check", "--base", "HEAD~1"]);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+});
+
+test("--check: merge queue の squash に plan が無ければ 1", async (t) => {
+  const dir = await squashCheckRepo(t, false);
+  const result = await run(dir, ["--check", "--base", "HEAD~1"]);
+  assert.equal(result.code, 1);
+  assert.match(result.errors.join("\n"), /pecot-visual の version plan がありません/);
 });

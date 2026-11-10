@@ -1,6 +1,5 @@
-# Dependabot の PR に、runtime-lock.yaml と version plan を作る commit を足す。画面からの merge では pre-commit の確認が動かないため。
-# push は App のトークンで行う。GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まり、必須チェックが出ない。
-# App の client id と鍵は Dependabot secrets から読む。dependabot の run では Actions secrets を読めないため。
+# Dependabot の PR に、runtime-lock.yaml と version plan を作る commit を足す。
+# push は App のトークンで行う。GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる。client id と鍵は Dependabot secrets から読む。
 name: dependabot-commit
 
 on:
@@ -38,7 +37,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Set up Node.js
-
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.22.1"
@@ -54,6 +52,8 @@ jobs:
         run: node .githooks/scripts/gen-runtime-lock.mjs --write
 
       - name: Create version plans
+        id: plans
+        continue-on-error: true
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
@@ -68,7 +68,7 @@ jobs:
           HAS_APP_TOKEN: ${{ steps.app-token.outputs.token != '' }}
           NO_TOKEN_MSG: "App のトークンが無く、lock と plan を push できない。PR で @dependabot recreate を打つ"
         run: |
-          git add -A
+          git add -A -- ':(glob)**/runtime-*.yaml' .nx/version-plans
           if git diff --cached --quiet; then
             exit 0
           fi
@@ -80,3 +80,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "$COMMIT_MSG" -m "[dependabot skip]"
           git push origin "HEAD:${HEAD_REF}"
+
+      - name: Fail when version plans were not created
+        if: ${{ steps.plans.outcome == 'failure' }}
+        env:
+          PLANS_FAILED_MSG: "version plan を作れなかった。runtime-lock は push した。ログを見て、PR で @dependabot recreate を打つ"
+        run: |
+          echo "::error::${PLANS_FAILED_MSG}"
+          exit 1
