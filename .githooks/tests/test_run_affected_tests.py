@@ -10,7 +10,7 @@ nx の出力は端末でなく `<repo_root>/.pecot/tmp/nx-affected-tests/nx-affe
 失敗時だけ、要約の `Failed tasks:` に載った project の行を stderr へ出す（#1079）。
 nx は `NX_PROFILE=.pecot/tmp/nx-affected-tests/nx-profile.json`（repo root 相対）付きで起動する。
 profile の task 所要は、`<repo_root>/.pecot/tmp/githooks-timing.tsv` へ task 行・nx 行として追記する。
-成功 push では、合計秒・最長 test task・並列度・レーン数の 1 行を stdout へ出す（#1083）。
+成功時には、合計秒・最長 test task・並列度・レーン数の 1 行を stdout へ出す（#1083）。
 
 bats の temp repo は実 nx ワークスペースではない。
 そのため、PATH 先頭ではなく repo の node_modules/.bin に記録型 nx スタブを置く。
@@ -1165,7 +1165,7 @@ def _rows_of(h: _AffectedTestsRepo, kind: str) -> list[list[str]]:
 def test_success_prints_one_summary_line(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """26. 成功 push → stdout は合計行 1 行だけ。profile は repo root 相対の固定パスに書かれる。"""
+    """26. 成功時 → stdout は合計行 1 行だけ。profile は repo root 相対の固定パスに書かれる。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1186,7 +1186,7 @@ def test_success_prints_one_summary_line(
 def test_success_records_task_and_nx_rows(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """27. 成功 push → task 行 3 本（install を含む）と nx 行 1 本を記録する。"""
+    """27. 成功時 → task 行 3 本（install を含む）と nx 行 1 本を記録する。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 

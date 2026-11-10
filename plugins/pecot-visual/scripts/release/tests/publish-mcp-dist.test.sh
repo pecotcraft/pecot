@@ -68,8 +68,6 @@ pass() {
     PASS=$((PASS + 1))
 }
 
-# 語の一覧なしで通ることを確かめるため、開発者の shell の値を引き継がない。
-unset PECOT_BRAND_TERMS_FILE
 TMP=$(mktemp -d)
 cleanup() {
     rm -rf "$TMP"

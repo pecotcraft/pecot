@@ -12,7 +12,7 @@ const domainTestFile = path.join(projectDirectory, 'src', 'domain', 'tests', 'gi
 const infraFile = path.join(projectDirectory, 'src', 'infra', 'git.ts')
 
 // 型情報付きの ESLint は、最初の lintText がプロジェクト全体の読み込みで重い（単体で約 1.5 秒）。
-// pre-push では他のテストと並列に動き、その数倍になる。重い処理は beforeAll の 1 回に寄せ、
+// CI では他のレーンと並列に動き、その数倍になる。重い処理は beforeAll の 1 回に寄せ、
 // 並列実行の負荷を見込んで時間切れを長くとる。各テストは読み込み済みの状態で動く。
 const WARM_UP_TIMEOUT_MS = 120_000
 const eslint = new ESLint({ cwd: projectDirectory })
