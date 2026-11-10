@@ -26,8 +26,8 @@ export function validateSchema(data: unknown): SchemaValidationResult {
   if (valid) {
     return { valid: true, errors: [] };
   }
-  const errors: SchemaError[] = (validate.errors || []).map((err: { dataPath?: string; schemaPath?: string; message?: string }) => ({
-    path: err.dataPath || err.schemaPath || '',
+  const errors: SchemaError[] = (validate.errors || []).map((err) => ({
+    path: err.instancePath || err.schemaPath,
     message: err.message || '',
   }));
   return { valid: false, errors };

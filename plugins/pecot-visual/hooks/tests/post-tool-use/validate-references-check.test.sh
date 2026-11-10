@@ -83,7 +83,7 @@ ctx_of() {
     printf '%s\n' "$1" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
 }
 
-# schema 違反 YAML（トップレベルが object でない → `[#/type] should be object`）
+# schema 違反 YAML（トップレベルが object でない → `[#/type] must be object`）
 BAD_YAML='- title: x
   bogus_key: 1
 '
@@ -242,7 +242,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
         fail "実 assets: ERR_MODULE_NOT_FOUND が出ている stdout='$OUT' stderr='$ERR'"
     elif ! echo "$CTX" | grep -q "【references YAML schema 違反検出】"; then
         fail "実 assets: 違反見出しが無い stdout='$OUT' stderr='$ERR'"
-    elif ! echo "$CTX" | grep -q "should be object"; then
+    elif ! echo "$CTX" | grep -q "must be object"; then
         fail "実 assets: 違反内容が additionalContext に含まれない ctx='$CTX'"
     elif ! printf '%s\n' "$OUT" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' > /dev/null 2>&1; then
         fail "実 assets: hookSpecificOutput.hookEventName が PostToolUse でない stdout='$OUT'"
@@ -400,7 +400,7 @@ STUB_EXIT3_FOOTER=$(make_stub_plugin stub-exit3-footer 3 \
     "Validating: /somewhere
 
   ✗ 00.yaml
-    [#/type] should be object
+    [#/type] must be object
 
 1 files checked, 1 error(s) found." "")
 assert_not_linted "exit 3 + フッターあり" "$STUB_EXIT3_FOOTER" "exit 3"
@@ -411,7 +411,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     mkdir -p "$BIG/references" "$BIG/pages"
     touch "$BIG/slides.md"
     # 300 文字のキー名 × 60 件 × 12 ファイル。ajv のエラーメッセージにはキー名を含む
-    # dataPath が載るので、1 件あたり数百文字・全体で数百 KB の出力になる。
+    # instancePath が載るので、1 件あたり数百文字・全体で数百 KB の出力になる。
     LONG_KEY=$(printf 'k%.0s' $(seq 1 300))
     PROPS=""
     for j in $(seq 1 60); do
@@ -614,7 +614,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     STUB_THEME_REFERENCES="$THEME_SIDE/references,$THEME_SIDE/theme-refs" \
         run_hook "second-reference-dir" "$THEME_SIDE/theme-refs/plain.yaml" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "【references YAML schema 違反検出】" && echo "$CTX" | grep -q "should be object"; then
+    if echo "$CTX" | grep -q "【references YAML schema 違反検出】" && echo "$CTX" | grep -q "must be object"; then
         pass "2 つ目の参照 dir: その dir の yaml を検証して違反を検出"
     else
         fail "2 つ目の参照 dir: 違反が報告されない stdout='$OUT' stderr='$ERR'"
@@ -714,7 +714,7 @@ if [ "$HAVE_VALIDATOR" = true ] && [ -f "$REAL_CLI_DIST/commands/slidev-project/
     printf '%s' "$BAD_YAML" > "$REAL_CLI_TALK/references/bad.yaml"
     MIRROR_REAL_CLI_DIST="$REAL_CLI_DIST" run_hook "real-cli" "$REAL_CLI_TALK/references/bad.yaml" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "【references YAML schema 違反検出】" && echo "$CTX" | grep -q "should be object"; then
+    if echo "$CTX" | grep -q "【references YAML schema 違反検出】" && echo "$CTX" | grep -q "must be object"; then
         pass "実 CLI: talk-dir の references/ の不正な yaml を検証して違反を検出"
     else
         fail "実 CLI: 違反が報告されない stdout='$OUT' stderr='$ERR'"
