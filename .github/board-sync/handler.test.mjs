@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { createHmac, createPublicKey, generateKeyPairSync, verify } from "node:crypto";
 import { test } from "node:test";
 
-import { createAppJwt, createHandler, normalizeRequest, verifySignature } from "./handler.mjs";
+import {
+  createAppJwt,
+  createHandler,
+  loadSecretsFromSsm,
+  normalizeRequest,
+  verifySignature,
+} from "./handler.mjs";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -503,11 +509,10 @@ test("requestContext.http があれば、Scheduler の値でも webhook とし�
   assert.equal(calls.length, 0);
 });
 
-test("Scheduler の起動は片方が失敗しても、もう片方を起こし、例外を投げない", async () => {
+test("Scheduler の起動は片方が失敗しても、もう片方を起こしてから throw する", async () => {
   for (const failWorkflow of ["security-alerts.yml", "dependabot-prs.yml"]) {
     const { deps, calls, logs } = makeDeps({ failWorkflow });
-    const res = await createHandler(deps)(SCHEDULER_EVENT);
-    assert.equal(res.statusCode, 502);
+    await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
     assert.equal(dispatchCalls(calls).length, 2);
     assert.equal(logs.filter((l) => l.result === "dispatch-error").length, 1);
     assert.equal(logs.filter((l) => l.result === "dispatched").length, 1);
@@ -516,8 +521,7 @@ test("Scheduler の起動は片方が失敗しても、もう片方を起こし�
 
 test("Scheduler の起動で片方の App の SSM が未設定でも、もう片方は起こす", async () => {
   const { deps, calls } = makeDeps({ failSecretsFor: "security" });
-  const res = await createHandler(deps)(SCHEDULER_EVENT);
-  assert.equal(res.statusCode, 502);
+  await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
   assert.deepEqual(
     dispatchCalls(calls).map((c) => c.url),
     [DEPENDABOT_WORKFLOW_URL],
@@ -536,6 +540,209 @@ test("Scheduler でも webhook でもない event は、何もせずログだけ
 
 test("Scheduler のログにも token が出ない", async () => {
   const { deps, logs } = makeDeps({ dispatchStatus: 500 });
-  await createHandler(deps)(SCHEDULER_EVENT);
+  await assert.rejects(createHandler(deps)(SCHEDULER_EVENT));
   assert.ok(!JSON.stringify(logs).includes("ghs_secret_token"));
+});
+
+const timeoutError = () => new DOMException("The operation timed out.", "TimeoutError");
+
+test("Scheduler は 2 つの App を並列に起こす", async () => {
+  const { deps } = makeDeps();
+  let active = 0;
+  let peak = 0;
+  const inner = deps.fetch;
+  deps.fetch = async (url, init) => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    try {
+      return await inner(url, init);
+    } finally {
+      active -= 1;
+    }
+  };
+  const res = await createHandler(deps)(SCHEDULER_EVENT);
+  assert.equal(res.statusCode, 200);
+  assert.equal(peak, 2);
+});
+
+test("失敗のログに stage と数値の status が出て、token と message は出ない", async () => {
+  const dispatch = makeDeps({ dispatchStatus: 500 });
+  await createHandler(dispatch.deps)(makeEvent("dependabot_alert", alertPayload()));
+  assert.deepEqual(dispatch.logs.at(-1), {
+    via: "url",
+    app: "security",
+    event: "dependabot_alert",
+    action: "created",
+    alert: 12,
+    result: "dispatch-error",
+    stage: "dispatch",
+    status: 500,
+  });
+
+  const token = makeDeps({ tokenStatus: 403 });
+  await createHandler(token.deps)(makeEvent("dependabot_alert", alertPayload()));
+  assert.equal(token.logs.at(-1).stage, "token");
+  assert.equal(token.logs.at(-1).status, 403);
+
+  const secrets = makeDeps({ failSecretsFor: "security" });
+  await createHandler(secrets.deps)(makeEvent("dependabot_alert", alertPayload()));
+  assert.deepEqual(secrets.logs.at(-1), {
+    via: "url",
+    app: "security",
+    event: "dependabot_alert",
+    result: "secrets-error",
+    stage: "secrets",
+  });
+
+  for (const { logs } of [dispatch, token, secrets]) {
+    const text = JSON.stringify(logs);
+    assert.ok(!text.includes("ghs_secret_token"));
+    assert.ok(!text.includes("ssm unset"));
+    assert.ok(!text.includes("dispatch failed:"));
+  }
+});
+
+test("Scheduler の失敗のログにも stage と status が出る", async () => {
+  const { deps, logs } = makeDeps({ failWorkflow: "dependabot-prs.yml", failSecretsFor: "security" });
+  await assert.rejects(createHandler(deps)(SCHEDULER_EVENT));
+  assert.deepEqual(logs, [
+    { via: "scheduler", app: "security", result: "dispatch-error", stage: "secrets" },
+    { via: "scheduler", app: "dependabot-prs", result: "dispatch-error", stage: "dispatch", status: 500 },
+  ]);
+});
+
+test("fetch の時間切れは 502 で、stage だけをログに残す", async () => {
+  const { deps, logs } = makeDeps();
+  deps.fetch = async () => {
+    throw timeoutError();
+  };
+  const res = await createHandler(deps)(makeEvent("dependabot_alert", alertPayload()));
+  assert.equal(res.statusCode, 502);
+  assert.equal(logs.at(-1).result, "dispatch-error");
+  assert.equal(logs.at(-1).stage, "token");
+  assert.ok(!("status" in logs.at(-1)));
+});
+
+test("不正な JSON は署名が合っていても 400 で、dispatch しない", async () => {
+  const { deps, calls, logs } = makeDeps();
+  const raw = "{not json";
+  const res = await createHandler(deps)({
+    rawPath: "/security",
+    requestContext: { http: { method: "POST" } },
+    headers: { "x-github-event": "dependabot_alert", "x-hub-signature-256": sign(raw) },
+    body: raw,
+  });
+  assert.equal(res.statusCode, 400);
+  assert.equal(calls.length, 0);
+  assert.equal(logs.at(-1).result, "bad-json");
+});
+
+test("createPrivateKey が失敗したら 500 で、次の呼び出しで読み直す", async () => {
+  const { deps, secretsLoads } = makeDeps();
+  let first = true;
+  const inner = deps.loadSecrets;
+  deps.loadSecrets = async (env, appName) => {
+    if (first) {
+      first = false;
+      secretsLoads.push(appName);
+      return { privateKeyPem: "not a pem", webhookSecret: SECRET };
+    }
+    return inner(env, appName);
+  };
+  const handler = createHandler(deps);
+  assert.equal((await handler(makeEvent("dependabot_alert", alertPayload()))).statusCode, 500);
+  assert.equal((await handler(makeEvent("dependabot_alert", alertPayload()))).statusCode, 202);
+  assert.deepEqual(secretsLoads, ["security", "security"]);
+});
+
+test("code_scanning_alert の closed_by_user と reopened_by_user は ref なしで dispatch する", async () => {
+  for (const action of ["closed_by_user", "reopened_by_user"]) {
+    const { deps, calls } = makeDeps();
+    const res = await createHandler(deps)(
+      makeEvent("code_scanning_alert", alertPayload({ action, ref: "" })),
+    );
+    assert.equal(res.statusCode, 202, action);
+    assert.equal(dispatchCalls(calls).length, 1, action);
+  }
+  const { deps, calls } = makeDeps();
+  const res = await createHandler(deps)(
+    makeEvent("code_scanning_alert", alertPayload({ action: "created", ref: "" })),
+  );
+  assert.equal(res.statusCode, 202);
+  assert.equal(calls.length, 0);
+});
+
+test("dispatch が 401 なら token を取り直して 1 回だけやり直す", async () => {
+  const { deps, calls } = makeDeps();
+  const inner = deps.fetch;
+  let dispatches = 0;
+  deps.fetch = async (url, init) => {
+    if (url.endsWith("/dispatches")) {
+      dispatches += 1;
+      if (dispatches === 1) return jsonResponse(401, {});
+    }
+    return inner(url, init);
+  };
+  const res = await createHandler(deps)(makeEvent("dependabot_alert", alertPayload()));
+  assert.equal(res.statusCode, 202);
+  assert.equal(dispatches, 2);
+  assert.equal(calls.filter((c) => c.url.endsWith("/access_tokens")).length, 2);
+});
+
+test("dispatch が 401 を返し続けても、やり直すのは 1 回だけで 502", async () => {
+  const { deps, calls, logs } = makeDeps({ dispatchStatus: 401 });
+  const res = await createHandler(deps)(makeEvent("dependabot_alert", alertPayload()));
+  assert.equal(res.statusCode, 502);
+  assert.equal(dispatchCalls(calls).length, 2);
+  assert.equal(logs.at(-1).status, 401);
+});
+
+function fakeSsm({ parameters, fail } = {}) {
+  const seen = { configs: [], inputs: [] };
+  class SSMClient {
+    constructor(config) {
+      seen.configs.push(config);
+    }
+    async send(command) {
+      seen.inputs.push(command.input);
+      if (fail) throw fail;
+      return { Parameters: parameters };
+    }
+  }
+  class GetParametersCommand {
+    constructor(input) {
+      this.input = input;
+    }
+  }
+  return { sdk: { SSMClient, GetParametersCommand }, seen };
+}
+
+const SSM_ENV = {
+  SECURITY_SSM_PRIVATE_KEY_NAME: "/pecot/sec/key",
+  SECURITY_SSM_WEBHOOK_SECRET_NAME: "/pecot/sec/secret",
+};
+
+test("loadSecretsFromSsm は 2 つの値を読み、時間と再試行に上限を付ける", async () => {
+  const { sdk, seen } = fakeSsm({
+    parameters: [
+      { Name: "/pecot/sec/secret", Value: "whsec" },
+      { Name: "/pecot/sec/key", Value: "PEM" },
+    ],
+  });
+  const result = await loadSecretsFromSsm(SSM_ENV, "security", sdk);
+  assert.deepEqual(result, { privateKeyPem: "PEM", webhookSecret: "whsec" });
+  assert.deepEqual(seen.inputs, [
+    { Names: ["/pecot/sec/key", "/pecot/sec/secret"], WithDecryption: true },
+  ]);
+  assert.deepEqual(seen.configs, [
+    { requestHandler: { requestTimeout: 3000, connectionTimeout: 1000 }, maxAttempts: 2 },
+  ]);
+});
+
+test("loadSecretsFromSsm は値が欠けたら reject し、SDK の失敗はそのまま伝える", async () => {
+  const missing = fakeSsm({ parameters: [{ Name: "/pecot/sec/key", Value: "PEM" }] });
+  await assert.rejects(loadSecretsFromSsm(SSM_ENV, "security", missing.sdk), /ssm parameters missing/);
+  const failing = fakeSsm({ fail: new Error("throttled") });
+  await assert.rejects(loadSecretsFromSsm(SSM_ENV, "security", failing.sdk), /throttled/);
 });

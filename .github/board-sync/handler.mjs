@@ -23,7 +23,12 @@ const SCHEDULER_SOURCE = "pecot-scheduler";
 const DEPENDABOT_EVENTS = new Set(["pull_request", "workflow_run"]);
 const API_BASE = "https://api.github.com";
 const FETCH_TIMEOUT_MS = 4000;
+const SSM_TIMEOUT_MS = 3000;
+const SSM_CONNECT_TIMEOUT_MS = 1000;
+const SSM_MAX_ATTEMPTS = 2;
 const TOKEN_MARGIN_MS = 60_000;
+// GitHub の文書上、この 2 つの action では code_scanning_alert の ref が空になる。
+const REF_LESS_ACTIONS = new Set(["closed_by_user", "reopened_by_user"]);
 
 const respond = (statusCode, body) => ({ statusCode, body });
 
@@ -59,7 +64,11 @@ export function selectEvent(appName, eventName, payload, config) {
     return ignored("ignored-repository");
   }
   if (appName === "security") {
-    if (eventName === "code_scanning_alert" && payload?.ref !== `refs/heads/${config.dispatchRef}`) {
+    if (
+      eventName === "code_scanning_alert" &&
+      !REF_LESS_ACTIONS.has(payload?.action) &&
+      payload?.ref !== `refs/heads/${config.dispatchRef}`
+    ) {
       return ignored("ignored-ref");
     }
     return { dispatch: true };
@@ -103,7 +112,11 @@ export async function requestInstallationToken({ fetchFn, jwt, installationId, r
     body: JSON.stringify({ repositories: [repoName], permissions: { actions: "write" } }),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
-  if (!response.ok) throw new Error(`token request failed: ${response.status}`);
+  if (!response.ok) {
+    throw Object.assign(new Error(`token request failed: ${response.status}`), {
+      status: response.status,
+    });
+  }
   const data = await response.json();
   return { token: data.token, expiresAtMs: Date.parse(data.expires_at) };
 }
@@ -119,7 +132,11 @@ export async function dispatchWorkflow({ fetchFn, token, repository, workflowFil
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     },
   );
-  if (!response.ok) throw new Error(`dispatch failed: ${response.status}`);
+  if (!response.ok) {
+    throw Object.assign(new Error(`dispatch failed: ${response.status}`), {
+      status: response.status,
+    });
+  }
   try {
     const data = await response.json();
     return data?.workflow_run_id ?? null;
@@ -129,11 +146,15 @@ export async function dispatchWorkflow({ fetchFn, token, repository, workflowFil
 }
 
 /** SSM から App の鍵と webhook の secret を読む。SDK は読み出すときに初めて import する。 */
-export async function loadSecretsFromSsm(env, appName) {
-  const { SSMClient, GetParametersCommand } = await import("@aws-sdk/client-ssm");
+export async function loadSecretsFromSsm(env, appName, sdk) {
+  const { SSMClient, GetParametersCommand } = sdk ?? (await import("@aws-sdk/client-ssm"));
   const { prefix } = APPS[appName];
   const names = [env[`${prefix}SSM_PRIVATE_KEY_NAME`], env[`${prefix}SSM_WEBHOOK_SECRET_NAME`]];
-  const result = await new SSMClient({}).send(
+  const client = new SSMClient({
+    requestHandler: { requestTimeout: SSM_TIMEOUT_MS, connectionTimeout: SSM_CONNECT_TIMEOUT_MS },
+    maxAttempts: SSM_MAX_ATTEMPTS,
+  });
+  const result = await client.send(
     new GetParametersCommand({ Names: names, WithDecryption: true }),
   );
   const values = new Map((result.Parameters ?? []).map((p) => [p.Name, p.Value]));
@@ -142,6 +163,21 @@ export async function loadSecretsFromSsm(env, appName) {
   if (!privateKeyPem || !webhookSecret) throw new Error("ssm parameters missing");
   return { privateKeyPem, webhookSecret };
 }
+
+/** ログに出す失敗の情報は stage と数値の status だけにする。message は出さない。 */
+const failureFields = (stage, error) => {
+  const status = error?.status ?? error?.$metadata?.httpStatusCode;
+  return Number.isInteger(status) ? { stage, status } : { stage };
+};
+
+const withStage = async (stage, work) => {
+  try {
+    return await work();
+  } catch (error) {
+    if (error && typeof error === "object" && !error.stage) error.stage = stage;
+    throw error;
+  }
+};
 
 const readConfig = (env, appName) => {
   const { prefix } = APPS[appName];
@@ -201,30 +237,55 @@ export function createHandler(deps = {}) {
 
   const dispatchFor = async (appName, secrets) => {
     const config = readConfig(env, appName);
-    const token = await getInstallationToken(appName, config, secrets.privateKey);
-    return dispatchWorkflow({
-      fetchFn,
-      token,
-      repository: config.repository,
-      workflowFile: config.workflowFile,
-      ref: config.dispatchRef,
-    });
+    const send = async () => {
+      const token = await withStage("token", () =>
+        getInstallationToken(appName, config, secrets.privateKey),
+      );
+      return withStage("dispatch", () =>
+        dispatchWorkflow({
+          fetchFn,
+          token,
+          repository: config.repository,
+          workflowFile: config.workflowFile,
+          ref: config.dispatchRef,
+        }),
+      );
+    };
+    try {
+      return await send();
+    } catch (error) {
+      // 失効した token の 401 は、キャッシュを捨てて 1 回だけやり直す。
+      if (error?.stage !== "dispatch" || error.status !== 401) throw error;
+      cachedTokens.delete(appName);
+      return send();
+    }
   };
 
-  // 2 つの workflow を両方起こす。片方が失敗してももう片方は起こし、結果は返り値で示す。
+  // 2 つの workflow を並列に起こす。片方が失敗してももう片方は起こし、
+  // 非同期の起動では返り値が Errors に数えられないので、両方終えてから throw する。
   const handleScheduler = async () => {
-    let failed = false;
-    for (const appName of Object.keys(APPS)) {
-      try {
-        const secrets = await getSecrets(appName);
+    const results = await Promise.allSettled(
+      Object.keys(APPS).map(async (appName) => {
+        const secrets = await withStage("secrets", () => getSecrets(appName));
         const runId = await dispatchFor(appName, secrets);
         log({ via: "scheduler", app: appName, run: runId, result: "dispatched" });
-      } catch {
-        failed = true;
-        log({ via: "scheduler", app: appName, result: "dispatch-error" });
-      }
-    }
-    return failed ? respond(502, "dispatch failed") : respond(200, "dispatched");
+      }),
+    );
+    let failed = false;
+    results.forEach((outcome, i) => {
+      if (outcome.status === "fulfilled") return;
+      failed = true;
+      const appName = Object.keys(APPS)[i];
+      const { reason } = outcome;
+      log({
+        via: "scheduler",
+        app: appName,
+        result: "dispatch-error",
+        ...failureFields(reason?.stage ?? "dispatch", reason),
+      });
+    });
+    if (failed) throw new Error("dispatch failed");
+    return respond(200, "dispatched");
   };
 
   const handleWebhook = async (event) => {
@@ -241,8 +302,8 @@ export function createHandler(deps = {}) {
     let secrets;
     try {
       secrets = await getSecrets(appName);
-    } catch {
-      log({ ...base, result: "secrets-error" });
+    } catch (error) {
+      log({ ...base, result: "secrets-error", ...failureFields("secrets", error) });
       return respond(500, "internal error");
     }
 
@@ -271,8 +332,14 @@ export function createHandler(deps = {}) {
       const runId = await dispatchFor(appName, secrets);
       log({ ...base, action, alert, run: runId, result: "dispatched" });
       return respond(202, "dispatched");
-    } catch {
-      log({ ...base, action, alert, result: "dispatch-error" });
+    } catch (error) {
+      log({
+        ...base,
+        action,
+        alert,
+        result: "dispatch-error",
+        ...failureFields(error?.stage ?? "dispatch", error),
+      });
       return respond(502, "dispatch failed");
     }
   };

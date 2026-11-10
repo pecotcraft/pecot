@@ -54,9 +54,12 @@ Resources:
       LogGroupName: /aws/lambda/pecot-board-sync
       RetentionInDays: 14
 
+  # 境界のポリシー pecot-board-sync-boundary は、スタックの外で人が先に作る。
   Role:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary:
+        Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/pecot-board-sync-boundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -74,7 +77,7 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
-                  Fn::Sub: ${LogGroup.Arn}:*
+                  Fn::GetAtt: [LogGroup, Arn]
               - Effect: Allow
                 Action: ssm:GetParameters
                 Resource:
@@ -92,7 +95,8 @@ Resources:
         - arm64
       Handler: handler.handler
       MemorySize: 256
-      Timeout: 9
+      # Scheduler は非同期の起動で、GitHub の 10 秒の期限は webhook だけに掛かる（1 App 分は 10 秒以内に返る）。
+      Timeout: 20
       Role:
         Fn::GetAtt: [Role, Arn]
       LoggingConfig:
@@ -128,7 +132,7 @@ Resources:
             Ref: DependabotPrsSsmPrivateKeyName
           DEPENDABOT_PRS_SSM_WEBHOOK_SECRET_NAME:
             Ref: DependabotPrsSsmWebhookSecretName
-      # 仮のコード。本物の handler.mjs は deploy.sh が update-function-code で載せる。
+      # 仮のコード。deploy.sh が直後に handler.mjs へ差し替える前提で、これ自体は呼ばれない。
       Code:
         ZipFile: |
           exports.handler = async () => ({ statusCode: 200, body: "placeholder" });
@@ -170,6 +174,8 @@ Resources:
   SchedulerRole:
     Type: AWS::IAM::Role
     Properties:
+      PermissionsBoundary:
+        Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/pecot-board-sync-boundary
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -181,6 +187,9 @@ Resources:
               StringEquals:
                 aws:SourceAccount:
                   Ref: AWS::AccountId
+              ArnEquals:
+                aws:SourceArn:
+                  Fn::Sub: arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/pecot-board-sync
       Policies:
         - PolicyName: pecot-board-sync-scheduler
           PolicyDocument:

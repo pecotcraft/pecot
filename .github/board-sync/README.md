@@ -12,7 +12,7 @@ Actions のトリガーには security alert のイベントが無く、dependab
 GitHub App の webhook ---> Lambda function URL (認証なし。署名の確認で弾く)
   POST /security          security の App (dependabot_alert / code_scanning_alert / secret_scanning_alert)
   POST /dependabot-prs    dependabot-prs の App (pull_request / workflow_run)
-EventBridge Scheduler (rate(1 hour)) ---> Lambda を直接起動 (署名なし。固定の Input だけ受ける)
+EventBridge Scheduler (rate(1 hour)) ---> Lambda を直接起動 (署名なし。source で判定し、Invoke の権限で守る)
 
 Lambda (handler.mjs)
   -> App の installation token を発行
@@ -35,7 +35,7 @@ Lambda (handler.mjs)
   - ほかのリージョンは、組織の SCP で拒否される
 - 関数のコードは `deploy.sh` が `update-function-code` で載せる。CloudFormation の `ZipFile` は仮のコードである
 - 非同期呼び出しの再試行は 0 回にしている。sync は冪等で、`concurrency` が重なりを畳むため、再試行は要らない
-- 課金の歯止めとして、署名で弾くこと、`deploy.sh` による同時実行の予約（2）、AWS Budgets のアラートの 3 つを置く
+- 課金の歯止めとして、署名で弾くこと、`deploy.sh` による同時実行の予約（5）、AWS Budgets のアラートの 3 つを置く
 
 ### Scheduler の役割
 
@@ -89,19 +89,20 @@ aws lambda get-policy --function-name pecot-board-sync \
 
 4. エージェント用の IAM ロール `claude-agent` を作り、既定のプロファイルにする。詳しくは「エージェントの権限」を参照
 5. AWS Budgets で、月 $1 を超えたらメールで知らせるアラートを作る。実際の費用と予測の両方で知らせる
-6. ログインの期限が切れたら、3 のコマンドを打ち直す。更新は 12 時間ごとに自動で行われ、最長 90 日続く
+6. ログインの期限が切れたら、3 のコマンドを打ち直す。認証情報は 15 分ごとに自動で更新され、最長 12 時間で切れる
 7. 2 つの App で、それぞれ秘密鍵をもう 1 本作り、ダウンロードする。Actions の鍵とは別に失効できる
    - security の App（変数 `SECURITY_APP_CLIENT_ID`）
    - dependabot-prs の App（変数 `DEPENDABOT_PRS_APP_CLIENT_ID`）
 8. `deploy.sh` を打つ。App ごとに `--put-secrets` を 1 回ずつ打つ。1 回目で関数と Scheduler を置き、2 回目は前回の installation id を使う
+   - `--profile` を省くと、既定のプロファイル（`claude-agent`）で打つ。人のログインで打つときは `--profile pecot` を付ける
 
    ```bash
    openssl rand -hex 32   # security の webhook の secret。控えておく
-   .github/board-sync/deploy.sh --profile <profile> \
+   .github/board-sync/deploy.sh \
      --security-installation-id <id> --dependabot-prs-installation-id <id> \
      --put-secrets security <security の鍵のファイル>
    openssl rand -hex 32   # dependabot-prs の webhook の secret。上と別の値にする
-   .github/board-sync/deploy.sh --profile <profile> --put-secrets dependabot-prs <dependabot-prs の鍵のファイル>
+   .github/board-sync/deploy.sh --put-secrets dependabot-prs <dependabot-prs の鍵のファイル>
    ```
 
    - installation id は、org の Settings → GitHub Apps → Configure の URL の末尾の数字である。初回は 2 つとも要る
@@ -137,21 +138,30 @@ git checkout .claude/settings.json   # install が整形し直すため、元の
 
 - 読み取りは `ReadOnlyAccess` で、アカウント全体を読める
 - 書き込みは `pecot-board-sync` のスタック・関数・ロール・Scheduler・ロググループと、`/pecot/board-sync/*` の SSM に限る
-- SSM と Secrets Manager の secret は読めない。鍵は入れられるが、読み返せない
+- エージェントが作る・変えるロールには、権限の境界 `pecot-board-sync-boundary` を必ず付けさせる
+  - 境界の中身は、関数のロールと Scheduler のロールが使う権限だけである（`agent-role-boundary.json`）
+  - 境界を外す操作と、境界のポリシーを書き換える操作は拒否する
+  - そのため、エージェントがロールを作って引き受けても、境界の外の権限は得られない
+- エージェント本人は、SSM と Secrets Manager の secret を API で読めない
+  - ただし、関数のコードを差し替えるか、関数のロールを引き受ければ、関数を通して鍵に届く。エージェントにデプロイを任せる以上、この余地は残る
 
-ロールは、次で作る。`<ACCOUNT_ID>` には、プロジェクトのアカウントの ID を入れる。
+境界とロールは、人のログイン（`pecot`）で次のとおり作る。`<ACCOUNT_ID>` には、プロジェクトのアカウントの ID を入れる。
+境界は、スタックの外で人が作る。エージェントには、境界を書き換えさせない。
 
 ```bash
 A=<ACCOUNT_ID>; R=ap-southeast-2; D=.github/board-sync
 sed "s/<ACCOUNT_ID>/$A/g" $D/agent-role-trust.json > trust.json
+sed "s/<ACCOUNT_ID>/$A/g; s/<REGION>/$R/g" $D/agent-role-boundary.json > boundary.json
 sed "s/<ACCOUNT_ID>/$A/g; s/<REGION>/$R/g" $D/agent-role-policy.json > policy.json
-aws iam create-role --profile pecot --role-name claude-agent --max-session-duration 43200 \
+aws iam create-policy --profile pecot --policy-name pecot-board-sync-boundary \
+  --policy-document file://boundary.json
+aws iam create-role --profile pecot --role-name claude-agent \
   --assume-role-policy-document file://trust.json
 aws iam attach-role-policy --profile pecot --role-name claude-agent \
   --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
 aws iam put-role-policy --profile pecot --role-name claude-agent \
   --policy-name board-sync-deploy --policy-document file://policy.json
-rm trust.json policy.json
+rm trust.json boundary.json policy.json
 ```
 
 既定のプロファイルは、次で `claude-agent` にする。
@@ -195,10 +205,13 @@ GitHub は、失敗した配送を自動で再送しない。
 1. 該当する App の設定の Advanced → Recent Deliveries で、失敗した配送を探す
 2. 3 日以内なら Redeliver する
 3. 関数のログ（CloudWatch Logs の `/aws/lambda/pecot-board-sync`）を見る
-   - 呼び出し元（`url` / `scheduler`）、path、イベント、action、番号、run の id だけが残る
+   - 呼び出し元（`url` / `scheduler`）、App、イベント、action、番号、run の id だけが残る
+   - 失敗した行には、失敗した段（`secrets` / `token` / `dispatch`）と HTTP の番号が残る
+4. 予約を超えた配送には、function URL が 429 を返す。alert が一度にまとめて作られると起こる
 
 Redeliver が間に合わなくても、Scheduler が最大 1 時間で拾う。
 Scheduler の起動は、ログの呼び出し元が `scheduler` の行で確かめる。
+Scheduler の起動で dispatch に失敗すると、関数は例外で終わり、Lambda の `Errors` に数えられる。
 
 ## 同時実行の上限
 

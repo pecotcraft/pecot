@@ -1,3 +1,8 @@
+---
+paths:
+  - ".github/board-sync/**"
+---
+
 <!-- 出典: https://github.com/aws/agent-toolkit-for-aws/blob/fe004f4aa06867e5a9bb66f9d8dce7723924fc50/rules/aws-agent-rules.md -->
 <!-- AWS の推奨のルールファイルを逐語で置く。更新は出典から取り直す。食い違いは CLAUDE.md が優先する -->
 

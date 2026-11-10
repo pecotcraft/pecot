@@ -15,6 +15,9 @@ set -euo pipefail
 
 STACK="pecot-board-sync"
 FUNCTION="pecot-board-sync"
+REPO="pecotcraft/pecot"
+SSM_PREFIX="/pecot/board-sync"
+RESERVED_CONCURRENCY=5
 REGION="ap-southeast-2"
 PROFILE=""
 SECURITY_INSTALLATION_ID=""
@@ -43,7 +46,7 @@ while [ $# -gt 0 ]; do
             exit 0
             ;;
         --profile | --region | --security-installation-id | --dependabot-prs-installation-id | --security-client-id | --dependabot-prs-client-id | --repository-id)
-            [ $# -ge 2 ] || die "$1 には値が要ります"
+            { [ $# -ge 2 ] && [[ "$2" != --* ]]; } || die "$1 には値が要ります"
             case "$1" in
                 --profile) PROFILE="$2" ;;
                 --region) REGION="$2" ;;
@@ -56,7 +59,7 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         --put-secrets)
-            [ $# -ge 3 ] || die "--put-secrets には <security|dependabot-prs> と鍵のファイルが要ります"
+            { [ $# -ge 3 ] && [[ "$2" != --* ]] && [[ "$3" != --* ]]; } || die "--put-secrets には <security|dependabot-prs> と鍵のファイルが要ります"
             PUT_APP="$2"
             KEY_FILE="$3"
             shift 3
@@ -92,20 +95,39 @@ if [ -n "$PROFILE" ]; then
     AWS+=(--profile "$PROFILE")
 fi
 
+# SSM へ書く前、gh の値とスタックの有無を済ませる。途中で止まっても、SSM だけが変わった状態を残さない。
+if [ -z "$SECURITY_CLIENT_ID" ]; then
+    SECURITY_CLIENT_ID="$(gh variable get SECURITY_APP_CLIENT_ID -R "$REPO")"
+fi
+if [ -z "$DEPENDABOT_CLIENT_ID" ]; then
+    DEPENDABOT_CLIENT_ID="$(gh variable get DEPENDABOT_PRS_APP_CLIENT_ID -R "$REPO")"
+fi
+if [ -z "$REPOSITORY_ID" ]; then
+    REPOSITORY_ID="$(gh api "repos/$REPO" --jq .id)"
+fi
+[ -n "$SECURITY_CLIENT_ID" ] || die "security の App の Client ID が空です（--security-client-id か変数 SECURITY_APP_CLIENT_ID）"
+[ -n "$DEPENDABOT_CLIENT_ID" ] || die "dependabot-prs の App の Client ID が空です（--dependabot-prs-client-id か変数 DEPENDABOT_PRS_APP_CLIENT_ID）"
+[ -n "$REPOSITORY_ID" ] || die "repository id が空です（--repository-id か gh api）"
+if [ -z "$SECURITY_INSTALLATION_ID" ] || [ -z "$DEPENDABOT_INSTALLATION_ID" ]; then
+    if ! "${AWS[@]}" cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
+        die "初回は --security-installation-id と --dependabot-prs-installation-id が要ります（Configure の URL の末尾の数字）"
+    fi
+fi
+
+umask 077
 SCRATCH="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH"' EXIT
 
 # 1. SSM に指定した App の鍵と secret を書く。secret は引数に出さず、一時ファイルの file:// で渡す。
 if [ -n "$KEY_FILE" ]; then
     printf 'webhook の secret を入力してください（表示されません）: ' >&2
-    IFS= read -rs WEBHOOK_SECRET
+    IFS= read -rs WEBHOOK_SECRET || die "webhook の secret を読めません"
     echo >&2
     [ -n "$WEBHOOK_SECRET" ] || die "webhook の secret が空です"
-    umask 077
     printf '%s' "$WEBHOOK_SECRET" >"$SCRATCH/secret"
     unset WEBHOOK_SECRET
-    KEY_PARAM="/pecot/board-sync/$PUT_APP/app-private-key"
-    SECRET_PARAM="/pecot/board-sync/$PUT_APP/webhook-secret"
+    KEY_PARAM="$SSM_PREFIX/$PUT_APP/app-private-key"
+    SECRET_PARAM="$SSM_PREFIX/$PUT_APP/webhook-secret"
     "${AWS[@]}" ssm put-parameter --name "$KEY_PARAM" --type SecureString --overwrite \
         --value "file://$KEY_FILE" >/dev/null
     "${AWS[@]}" ssm put-parameter --name "$SECRET_PARAM" --type SecureString --overwrite \
@@ -114,27 +136,12 @@ if [ -n "$KEY_FILE" ]; then
 fi
 
 # 2. スタックを作る・更新する。
-OVERRIDES=()
-if [ -z "$SECURITY_CLIENT_ID" ]; then
-    SECURITY_CLIENT_ID="$(gh variable get SECURITY_APP_CLIENT_ID -R pecotcraft/pecot)"
-fi
-if [ -z "$DEPENDABOT_CLIENT_ID" ]; then
-    DEPENDABOT_CLIENT_ID="$(gh variable get DEPENDABOT_PRS_APP_CLIENT_ID -R pecotcraft/pecot)"
-fi
-if [ -z "$REPOSITORY_ID" ]; then
-    REPOSITORY_ID="$(gh api repos/pecotcraft/pecot --jq .id)"
-fi
-OVERRIDES+=("SecurityAppClientId=$SECURITY_CLIENT_ID" "DependabotPrsAppClientId=$DEPENDABOT_CLIENT_ID" "GitHubRepositoryId=$REPOSITORY_ID")
+OVERRIDES=("SecurityAppClientId=$SECURITY_CLIENT_ID" "DependabotPrsAppClientId=$DEPENDABOT_CLIENT_ID" "GitHubRepositoryId=$REPOSITORY_ID")
 if [ -n "$SECURITY_INSTALLATION_ID" ]; then
     OVERRIDES+=("SecurityAppInstallationId=$SECURITY_INSTALLATION_ID")
 fi
 if [ -n "$DEPENDABOT_INSTALLATION_ID" ]; then
     OVERRIDES+=("DependabotPrsAppInstallationId=$DEPENDABOT_INSTALLATION_ID")
-fi
-if [ -z "$SECURITY_INSTALLATION_ID" ] || [ -z "$DEPENDABOT_INSTALLATION_ID" ]; then
-    if ! "${AWS[@]}" cloudformation describe-stacks --stack-name "$STACK" >/dev/null 2>&1; then
-        die "初回は --security-installation-id と --dependabot-prs-installation-id が要ります（Configure の URL の末尾の数字）"
-    fi
 fi
 if [ "$ROTATE" = true ]; then
     OVERRIDES+=("ConfigVersion=$(date +%s)")
@@ -154,13 +161,15 @@ fi
 "${AWS[@]}" lambda wait function-updated --function-name "$FUNCTION"
 echo "handler.mjs を載せました"
 
-# 4. 同時実行の予約。予約していない枠が 100 未満にならないときだけ置ける。
+# 4. 同時実行の予約。アカウントは予約していない枠を 100 以上残す必要がある。
 UNRESERVED="$("${AWS[@]}" lambda get-account-settings \
     --query 'AccountLimit.UnreservedConcurrentExecutions' --output text)"
-if [ "$UNRESERVED" -ge 101 ]; then
+if ! [[ "$UNRESERVED" =~ ^[0-9]+$ ]]; then
+    echo "WARN: 予約していない同時実行の枠を読めず（${UNRESERVED}）、予約を飛ばします。" >&2
+elif [ "$UNRESERVED" -ge $((100 + RESERVED_CONCURRENCY)) ]; then
     "${AWS[@]}" lambda put-function-concurrency --function-name "$FUNCTION" \
-        --reserved-concurrent-executions 2 >/dev/null
-    echo "同時実行の予約を 2 に置きました"
+        --reserved-concurrent-executions "$RESERVED_CONCURRENCY" >/dev/null
+    echo "同時実行の予約を ${RESERVED_CONCURRENCY} に置きました"
 else
     echo "WARN: 予約していない同時実行の枠が ${UNRESERVED} で、予約を置けません。" >&2
     echo "上限が上がったら、このスクリプトを打ち直してください" >&2
