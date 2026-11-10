@@ -11,5 +11,5 @@ source "$TESTS_DIR/../lib/text-rules-ready.sh"
 require_text_rules_ready "$(cd "$TESTS_DIR/../.." && pwd)" || exit 1
 
 echo "==> pytest (.githooks/tests/)"
-uvx --python 3.12 --with pytest-xdist --with packaging \
+uvx --python 3.12 --with pytest-xdist --with packaging --with pyyaml \
     pytest "$TESTS_DIR" -q --import-mode=importlib -n auto -p no:cacheprovider

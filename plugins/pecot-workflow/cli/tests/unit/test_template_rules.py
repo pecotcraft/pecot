@@ -202,3 +202,17 @@ def test_pr_create_states_changes_and_closes_rules() -> None:
     assert "Changes には振る舞いの変化を書く" in rules
     assert "どのファイル・関数をどう直したかは書かない" in rules
     assert "`Closes #` には sub-issue の番号だけを入れる" in rules
+
+
+def test_pr_create_has_screenshot_field_and_rules() -> None:
+    """pr/create.md は、フロントマターに screenshot があり、撮る変更と理由の書き方を書く"""
+    text = PR_CREATE_TEMPLATE.read_text(encoding="utf-8")
+    frontmatter = text.split("---\n", 2)[1]
+    comment = _comment(PR_CREATE_TEMPLATE)
+
+    assert 'screenshot: ""' in frontmatter.splitlines()
+    assert "- screenshot: 画像を Summary に入れたら空のまま" in comment
+    assert "入れない理由を" in comment
+    rules = _writing_rules(PR_CREATE_TEMPLATE)
+    assert "ツールが生成して利用者が GitHub で見る Markdown" in rules
+    assert "CHANGELOG・README・SKILL.md の文の変更は含めない" in rules

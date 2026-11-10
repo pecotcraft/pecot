@@ -66,6 +66,7 @@ setup:
         base: "main"
         head: ""
         draft: false
+        screenshot: "CLI の出力の文を変えない変更のため撮らない"
         ---
 
         ## Summary — 見本の変更を取り込む

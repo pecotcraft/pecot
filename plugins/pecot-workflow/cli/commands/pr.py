@@ -32,6 +32,7 @@ from cli.core.ref_parser import RefParseError, parse_pr_ref
 from cli.core.repo_resolver import AmbiguousRepoError, RepoRef, resolve_repo
 from cli.core.sections import (
     extract_sections_from_template,
+    has_summary_image,
     validate_body_style,
     validate_heading_summaries,
     validate_sections,
@@ -264,6 +265,41 @@ def _is_release_pr(
     )
 
 
+SCREENSHOT_MISSING_ERROR = (
+    "Summary has no image and `screenshot` gives no reason to omit one. "
+    "If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, "
+    "take a screenshot and add it to Summary as `![alt](./<file>.png)`. "
+    "Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `-m`)"
+)
+
+
+def _exit_on_unset_branch(
+    template: str,
+    base: str,
+    head: str | None,
+    develop_branch: str | None,
+    release_branch: str | None,
+) -> None:
+    """base の突き合わせに要るブランチ設定が無ければ、検証の前に exit 1"""
+    is_release = _is_release_pr(template, base, head, develop_branch, release_branch)
+    if is_release and not release_branch:
+        typer.echo(
+            "release_branchが設定されていません。\n"
+            "    → `pecot project set-repo owner/repo "
+            "--release-branch main` で設定してください。",
+            err=True,
+        )
+        raise typer.Exit(1)
+    if not is_release and not develop_branch:
+        typer.echo(
+            "develop_branchが設定されていません。\n"
+            "    → `pecot project set-repo owner/repo "
+            "--develop-branch develop` で設定してください。",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+
 def _validate_pr_content(
     body: str,
     title: str,
@@ -274,6 +310,7 @@ def _validate_pr_content(
     release_branch: str | None = None,
     head: str | None = None,
     template: str = "default",
+    screenshot: str | None = None,
 ) -> list[str]:
     """PR内容をバリデーション
 
@@ -286,9 +323,13 @@ def _validate_pr_content(
         release_branch: リリースブランチ（設定から取得）。
         head: headブランチ。
         template: テンプレート種別（"default" or "release"）。
+        screenshot: Summary に画像を入れない理由（正規化済み、無ければ None）。
 
     Returns:
         エラーメッセージのリスト（エラーがなければ空）
+
+    Note:
+        ブランチ未設定（develop_branch / release_branch）は呼び出し側が先に止める前提。
     """
     errors: list[str] = []
 
@@ -319,15 +360,13 @@ def _validate_pr_content(
     if style_errors:
         errors.append(f"使用できない記法: {', '.join(style_errors)}")
 
-    # baseブランチチェック（開発ブランチ運用）
+    # 画像チェック（リリースPRは対象外）
+    if not is_release and not screenshot and not has_summary_image(body):
+        errors.append(SCREENSHOT_MISSING_ERROR)
+
+    # baseブランチチェック（開発ブランチ運用。ブランチ未設定は呼び出し側で先に止める）
     if is_release:
-        if not release_branch:
-            errors.append(
-                "release_branchが設定されていません。\n"
-                "    → `pecot project set-repo owner/repo "
-                "--release-branch main` で設定してください。"
-            )
-        elif base != release_branch:
+        if release_branch and base != release_branch:
             errors.append(
                 f"★ 警告 ★ リリースPRのbaseブランチが不正です。\n"
                 f"    正しいbase: {release_branch}\n"
@@ -335,13 +374,7 @@ def _validate_pr_content(
                 f"    → baseブランチを '{release_branch}' に変更してください。"
             )
     else:
-        if not develop_branch:
-            errors.append(
-                "develop_branchが設定されていません。\n"
-                "    → `pecot project set-repo owner/repo "
-                "--develop-branch develop` で設定してください。"
-            )
-        elif base != develop_branch:
+        if develop_branch and base != develop_branch:
             errors.append(
                 f"★ 警告 ★ baseブランチが不正です。\n"
                 f"    正しいbase: {develop_branch}\n"
@@ -489,6 +522,10 @@ def pr_create(
         str,
         typer.Option("--template", help="PRテンプレート種別（default / release）"),
     ] = "default",
+    screenshot: Annotated[
+        str | None,
+        typer.Option("--screenshot", help="Reason to omit an image from Summary (with -m)"),
+    ] = None,
 ) -> None:
     """PR（プルリクエスト）を作成
 
@@ -513,14 +550,10 @@ def pr_create(
     if prepare:
         _pr_create_prepare(directory, template=template)
     elif file is not None:
+        _exit_on_screenshot_option(screenshot)
         _pr_create_from_file(file, dry_run, no_issue_ref, directory, template=template)
     elif message is not None:
-        if not title or not base:
-            typer.echo(
-                "エラー: -m オプション使用時は -t (タイトル) と -b (baseブランチ) が必須です",
-                err=True,
-            )
-            raise typer.Exit(1)
+        title, base = _require_title_and_base(title, base)
         _pr_create_direct(
             message=message,
             title=title,
@@ -532,9 +565,32 @@ def pr_create(
             no_issue_ref=no_issue_ref,
             directory=directory,
             template=template,
+            screenshot=(screenshot or "").strip() or None,
         )
     else:
         _exit_with_pr_create_usage()
+
+
+def _exit_on_screenshot_option(screenshot: str | None) -> None:
+    """ファイル形式に --screenshot が渡されたら、フロントマターに書くよう示して exit 1"""
+    if screenshot is not None:
+        typer.echo(
+            "--screenshot is for -m; write the reason in the `screenshot` "
+            "frontmatter field instead",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+
+def _require_title_and_base(title: str | None, base: str | None) -> tuple[str, str]:
+    """-m 使用時に -t と -b が無ければ exit 1、あれば (title, base) を返す"""
+    if not title or not base:
+        typer.echo(
+            "エラー: -m オプション使用時は -t (タイトル) と -b (baseブランチ) が必須です",
+            err=True,
+        )
+        raise typer.Exit(1)
+    return title, base
 
 
 def _validate_template_option(template: str) -> None:
@@ -727,13 +783,17 @@ def _append_close_unless_epic(
     return body
 
 
+# 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
+PR_VALIDATION_EXIT_CODE = 3
+
+
 def _exit_on_validation_errors(errors: list[str]) -> None:
-    """バリデーションエラーがあれば stderr に列挙して exit 1"""
+    """バリデーションエラーがあれば stderr に列挙して exit 3"""
     if errors:
         typer.echo("バリデーションエラー:", err=True)
         for error in errors:
             typer.echo(f"  - {error}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(PR_VALIDATION_EXIT_CODE)
 
 
 @dataclass(frozen=True)
@@ -856,6 +916,7 @@ def _pr_create_from_file(
 
     # 6. バリデーション
     # 免除は `--no-issue-ref` と release テンプレだけ（release は _validate_pr_content が判定）
+    _exit_on_unset_branch(template, fm.base, head_branch, develop_branch, release_branch)
     errors = _validate_pr_content(
         body,
         fm.title,
@@ -865,6 +926,7 @@ def _pr_create_from_file(
         release_branch=release_branch,
         head=head_branch,
         template=template,
+        screenshot=fm.screenshot,
     )
     errors += _title_scope_errors(
         config, owner, repo, fm.title, fm.base, head_branch, directory, template=template
@@ -916,6 +978,7 @@ def _pr_create_direct(
     directory: Path,
     *,
     template: str = "default",
+    screenshot: str | None = None,
 ) -> None:
     """直接指定でPRを作成
 
@@ -930,6 +993,7 @@ def _pr_create_direct(
         no_issue_ref: Issue参照の自動設定をスキップするか。
         directory: 対象ディレクトリ。
         template: テンプレート種別（"default" or "release"）。
+        screenshot: Summary に画像を入れない理由（正規化済み）。
     """
     # 1. 設定取得
     config = load_active_config()
@@ -958,6 +1022,7 @@ def _pr_create_direct(
     release_branch = config.get_release_branch(owner, repo)
 
     # 6. バリデーション
+    _exit_on_unset_branch(template, base, head_branch, develop_branch, release_branch)
     errors = _validate_pr_content(
         body,
         title,
@@ -967,6 +1032,7 @@ def _pr_create_direct(
         release_branch=release_branch,
         head=head_branch,
         template=template,
+        screenshot=screenshot,
     )
     errors += _title_scope_errors(
         config, owner, repo, title, base, head_branch, directory, template=template

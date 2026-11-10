@@ -46,6 +46,15 @@
 
 - `--template release`: リリースPR用。`release_branch`へのPR作成を許可、Issue参照チェックをスキップ
 - `--no-issue-ref`: Issue起点でないPR用。Issue番号の自動抽出・追加をスキップ
+- `--screenshot <理由>`: `-m` で本文を渡すときに、画像を入れない理由を渡す（ファイル形式ではフロントマターの `screenshot`）。Summary に画像があれば不要。release の PR では見ない
+
+終了コード:
+
+| 終了コード | 意味 |
+|-----------|------|
+| 1 | 通信・設定・引数の失敗 |
+| 2 | preflight の警告 |
+| 3 | 本文の検証の失敗（Issue 参照・必須セクション・記法・base・title の scope・画像） |
 
 ## その他
 
