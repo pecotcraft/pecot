@@ -1,6 +1,6 @@
 {
-  "stdout": "GitHub Projectにリポジトリをリンク中: acme/other\nGitHub Projectにリンクしました: acme/other\n新規リポジトリを追加しました: acme/other\n設定ファイルを更新: {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "added: acme/other to project #1\nadded: acme/other to {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n",
   "exitCode": 0,
   "requests": [
     {

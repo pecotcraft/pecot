@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n\n=== Current Branch ===\nfeat/demo/12\n\n=== Push Status ===\n✔ リモートと同期済み\n\n=== Base Branch ===\norigin/main\n\n=== Git Status ===\nOn branch feat/demo/12\nUntracked files:\n\tmemo.txt\n\nnothing added to commit but untracked files present\n\n\n=== .gitignore ===\n.pecot/\n\n\n=== Git Exclude ===\n# parity fixed exclude\n\n\n=== Commits (vs origin/main) ===\n(no commits)\n\n=== Diff Summary (vs origin/main) ===\n(no diff)\n\n=== Worktree Info ===\n{{TMP}}/base/demo dd06359 [feat/demo/12]\n\nCurrent directory name: demo\nIs worktree environment: false\n\n=== Stash List ===\n✔ (no stash)\n",
-  "stderr": "\n=== Summary ===\n⚠ Git Status: modified/untracked ファイルがあります（commit してください）\n",
+  "stdout": "=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n\n=== Current Branch ===\nfeat/demo/12\n\n=== Push Status ===\nin sync with origin/feat/demo/12\n\n=== Base Branch ===\norigin/main\n\n=== Git Status ===\nOn branch feat/demo/12\nUntracked files:\n\tmemo.txt\n\nnothing added to commit but untracked files present\n\n\n=== .gitignore ===\n.pecot/\n\n\n=== Git Exclude ===\n# parity fixed exclude\n\n\n=== Commits (vs origin/main) ===\n(no commits)\n\n=== Diff Summary (vs origin/main) ===\n(no diff)\n\n=== Worktree Info ===\n{{TMP}}/base/demo dd06359 [feat/demo/12]\n\nCurrent directory name: demo\nIs worktree environment: false\n\n=== Stash List ===\n(no stash)\n",
+  "stderr": "count: preflight warnings: 1\nwarning: Git Status: modified or untracked files (fix: commit)\n",
   "exitCode": 2,
   "requests": [],
   "files": {

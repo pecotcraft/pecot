@@ -1581,10 +1581,9 @@ class TestGitHubClientLinkRepository:
             },  # link mutation
         ]
 
-        success, message = client.link_repository_to_project("owner", 1, "owner", "repo")
-        assert success is True
-        assert "リンクしました" in message
-        assert "owner/repo" in message
+        outcome, detail = client.link_repository_to_project("owner", 1, "owner", "repo")
+        assert outcome == "linked"
+        assert detail == ""
 
     def test_link_repository_to_project_already_linked(self) -> None:
         """既にリンク済み"""
@@ -1598,9 +1597,25 @@ class TestGitHubClientLinkRepository:
             Exception("already linked"),  # mutation fails with already linked
         ]
 
-        success, message = client.link_repository_to_project("owner", 1, "owner", "repo")
-        assert success is True
-        assert "リンク済み" in message
+        outcome, detail = client.link_repository_to_project("owner", 1, "owner", "repo")
+        assert outcome == "already_linked"
+        assert detail.endswith("already linked")
+
+    def test_link_repository_to_project_null_repository(self) -> None:
+        """mutation の応答に repository が無い"""
+        with patch.object(GitHubClient, "_setup_clients"):
+            client = GitHubClient(host="github.com", token="test")
+            client._graphql = MagicMock()
+
+        client._graphql.execute.side_effect = [
+            {"user": {"projectV2": {"id": "PVT_proj"}}},
+            {"repository": {"id": "R_repo"}},
+            {"linkProjectV2ToRepository": {"repository": None}},
+        ]
+
+        outcome, detail = client.link_repository_to_project("owner", 1, "owner", "repo")
+        assert outcome == "failed"
+        assert detail == "unexpected response"
 
     def test_link_repository_to_project_project_not_found(self) -> None:
         """プロジェクトが見つからない"""
@@ -1613,9 +1628,9 @@ class TestGitHubClientLinkRepository:
             {"organization": None},
         ]
 
-        success, message = client.link_repository_to_project("owner", 1, "owner", "repo")
-        assert success is False
-        assert "失敗" in message
+        outcome, detail = client.link_repository_to_project("owner", 1, "owner", "repo")
+        assert outcome == "failed"
+        assert detail.endswith("owner/projects/1")
 
     def test_link_repository_to_project_repo_not_found(self) -> None:
         """リポジトリが見つからない"""
@@ -1628,9 +1643,9 @@ class TestGitHubClientLinkRepository:
             {"repository": None},
         ]
 
-        success, message = client.link_repository_to_project("owner", 1, "owner", "nonexistent")
-        assert success is False
-        assert "失敗" in message
+        outcome, detail = client.link_repository_to_project("owner", 1, "owner", "nonexistent")
+        assert outcome == "failed"
+        assert detail.endswith("owner/nonexistent")
 
     def test_link_repository_to_project_api_error(self) -> None:
         """APIエラー"""
@@ -1644,9 +1659,9 @@ class TestGitHubClientLinkRepository:
             Exception("Some API error"),
         ]
 
-        success, message = client.link_repository_to_project("owner", 1, "owner", "repo")
-        assert success is False
-        assert "失敗" in message
+        outcome, detail = client.link_repository_to_project("owner", 1, "owner", "repo")
+        assert outcome == "failed"
+        assert detail.endswith("Some API error")
 
 
 # GitHubClient get_item_id_by_issue テスト

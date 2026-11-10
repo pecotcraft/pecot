@@ -1,6 +1,6 @@
 {
-  "stdout": "# プロジェクト情報\n\n## 基本情報\n- プロジェクト: ghes.example.com_acme_board_acme\n- Host: ghes.example.com\n- Owner: acme\n- ロードマップリポ: 未設定\n\n## 登録済みリポジトリ\n- (なし)\n\n## ボード状況\n\n### Active (1件)\n| Ref | タイトル |\n|-----|----------|\n| acme/demo#2 | 作業中の課題 |\n\n### Ready (1件)\n| Ref | タイトル |\n|-----|----------|\n| acme/demo#1 | 準備済みの課題 |\n",
-  "stderr": "プロジェクト情報を取得中...\n",
+  "stdout": "# Project info\n\n## Overview\n- Project: ghes.example.com_acme_board_acme\n- Host: ghes.example.com\n- Owner: acme\n- Roadmap repo: none\n\n## Registered repositories\n- none\n\n## Board status\n\n### Active (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#2 | 作業中の課題 |\n\n### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 準備済みの課題 |\n",
+  "stderr": "",
   "exitCode": 0,
   "requests": [
     {

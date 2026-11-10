@@ -215,7 +215,7 @@ dependabot の自動マージ（US2）
 | FR-014 | dependabot の件名（`build(<scope>): bump ...`）を、commit メッセージの日本語の規則の例外にする。例外は `chore(release)` と同じ扱いで、規約の文書にも書く |
 | FR-015 | version plan の要否のガードを CI でも PR ごとに動かし、必須チェックにする。範囲内の commit がすべて `dependabot[bot]` の作なら、FR-015a で作るので要求しない。判定は commit の author で行い、PR と merge queue で同じに動く |
 | FR-015a | リリースの workflow は、`nx release` の前に、前回のリリース以降にマージされた dependabot の commit を読む。配布物に届く更新（実行時の依存・配布物に同梱される lock）には、その release group の patch の version plan を作り、release commit に含める。dependabot の PR ブランチと `main` には commit を積まない |
-| FR-015b | FR-015a で作る version plan は、PR ごと・group ごとに 1 ファイルにする。ファイル名は `<PR 番号>-dependabot-deps.md` とする。本文は「依存を更新した（名前 旧版 → 新版、…）。」の 1 文で、commit の本文の依存の記録から作る。100 字を超えるときは数件で切り「ほか N 件」で締める。足す前に文言規則と version plan の形の確認を通す |
+| FR-015b | FR-015a で作る version plan は、PR ごと・group ごとに 1 ファイルにする。ファイル名は `<PR 番号>-dependabot-deps.md` とする。本文は、依存 1 件なら「`名前` を 旧版 から 新版 に更新。」の 1 行で、commit の本文の依存の記録から作る。2 件以上なら 1 行目を「依存パッケージを N 件更新。」にし、2 行目から 1 件 1 行で 2 件まで並べる。version plan の形の上限に収まらない分は「、ほか N 件。」で締める。足す前に文言規則と version plan の形の確認を通す |
 
 役割の再整理（US3）
 

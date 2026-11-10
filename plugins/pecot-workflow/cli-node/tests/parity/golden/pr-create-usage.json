@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: 引数が不足しています\n\n使用方法:\n  テンプレート準備: pecot pr create --prepare\n  ファイルから: pecot pr create <path>\n  直接指定: pecot pr create -m \"本文\" -t \"タイトル\" -b <base-branch>\n",
+  "stderr": "error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create -m \"<body>\" -t \"<title>\" -b <base-branch>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

@@ -1,6 +1,6 @@
 {
-  "stdout": "=== ドライラン（実際には片付けません） ===\n\nPR: acme/demo/21\nタイトル: feat(demo): #12 見本の変更\nブランチ: feat/demo/12 → main\n\nクローズ予定: #12\n\n--- ローカルクリーンアップ（プレビュー） ---\n  git checkout main\n  git pull origin main\n  git branch -D feat/demo/12\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "count: Issues to close: 1\ndry-run: would close Issue #12\ndry-run: would set current branch to main\ndry-run: would update main from origin/main\ndry-run: would delete local branch feat/demo/12\n",
   "exitCode": 0,
   "requests": [
     {

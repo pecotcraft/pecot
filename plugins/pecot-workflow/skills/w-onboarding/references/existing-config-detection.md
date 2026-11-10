@@ -8,7 +8,7 @@
 pecot project list
 ```
 
-`(プロジェクト設定がありません)` が出力されなければ設定あり。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。
+`=== Projects ===` の次の行が `none` でなければ設定あり。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。
 
 ```bash
 pecot project activate <設定ファイル名>

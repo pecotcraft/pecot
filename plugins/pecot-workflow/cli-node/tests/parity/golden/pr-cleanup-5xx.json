@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: GraphQLクエリ実行エラー: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\n",
+  "stderr": "error: GraphQLクエリ実行エラー: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\n",
   "exitCode": 1,
   "requests": [
     {

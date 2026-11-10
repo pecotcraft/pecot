@@ -1,4 +1,4 @@
-# 未設定のまま実行する。未設定ですと出して exit 0。
+# 未設定のまま実行する。`unchanged: aggregation_repo (not set)` と出して exit 0。
 id: project-unset-aggregation-repo-ok-unset
 command:
   path: [project, unset-aggregation-repo]

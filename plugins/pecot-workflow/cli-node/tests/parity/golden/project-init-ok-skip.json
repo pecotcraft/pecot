@@ -1,6 +1,6 @@
 {
-  "stdout": "プロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\npecot-workflow-acmeフィールドは既に存在します。スキップします。\npecot-priorityフィールドは既に存在します。スキップします。\npecot-sizeフィールドは既に存在します。スキップします。\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n",
   "exitCode": 0,
   "requests": [
     {

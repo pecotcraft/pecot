@@ -1,6 +1,6 @@
 {
-  "stdout": "Creating pull request...\n  Issue #12 のステータスを In Review に更新しました\n  Created: #21\n\nhttps://ghes.example.com/acme/demo/pull/21\n",
-  "stderr": "",
+  "stdout": "https://ghes.example.com/acme/demo/pull/21\n",
+  "stderr": "created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更\nset: Issue #12 status to In Review\n",
   "exitCode": 0,
   "requests": [
     {

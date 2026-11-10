@@ -1,6 +1,6 @@
 {
-  "stdout": "オーナー情報を取得中: acme\n",
-  "stderr": "オーナーが見つかりません: acme\n",
+  "stdout": "",
+  "stderr": "error: owner not found: acme\n",
   "exitCode": 1,
   "requests": [
     {

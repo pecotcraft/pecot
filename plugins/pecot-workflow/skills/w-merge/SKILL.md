@@ -27,7 +27,7 @@ PRがマージ可能な状態であることを確認する。続いて、ロー
 pecot pr preflight -D .
 ```
 
-exit 1 なら出力を見て解決し、再実行してからマージに進む。
+exit 1・2 なら出力を見て解決し、再実行してからマージに進む。
 
 ### Step 2: マージと片付け
 
@@ -81,7 +81,7 @@ pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
 - クロスリポでは、現在のリポとPRのリポが異なる場合、ローカルクリーンアップはスキップされる
 
-出力を確認し、エラーがあれば以下で手動対応:
+stderr の `warning:` の行があれば以下で手動対応:
 
 - ワーキングツリーが汚れている場合: `git stash` してから再実行
 - `--skip-local-cleanup` でローカル後処理をスキップし、手動で対応
@@ -96,12 +96,12 @@ pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
-- `pr cleanup` の出力に「クローズしたIssue」がない（Issue未紐付けPR）
-- クローズしたIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
+- `pr cleanup` の出力に `closed: Issue #<n>` の行がない（Issue未紐付けPR）
+- `closed:` の行のIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-`pr cleanup` の出力からクローズしたIssue番号を取得し、Issueを読む。
+`pr cleanup` の出力の `closed: Issue #<n>` の行からIssue番号を取得し、Issueを読む。
 
 ```bash
 pecot issue read <owner>/<repo>/<issue_number>
@@ -115,7 +115,7 @@ pecot issue read <owner>/<repo>/<issue_number>
 （計画と実績の差分）を判断するために使う。変更ファイル一覧そのものはコメント本文に転記しない
 （PR の Files changed が見せる）。
 
-- PRの変更ファイル一覧（`pr cleanup` の出力やgit logから）
+- PRの変更ファイル一覧（git logから）
 - 実際に変更されたモジュール・関数
 
 #### 4.3 差分サマリーの生成

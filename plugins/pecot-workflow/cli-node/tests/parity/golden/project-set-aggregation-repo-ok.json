@@ -1,6 +1,6 @@
 {
-  "stdout": "aggregation_repo を設定しました: acme/roadmap\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "set: aggregation_repo to acme/roadmap\n",
   "exitCode": 0,
   "requests": [],
   "files": {

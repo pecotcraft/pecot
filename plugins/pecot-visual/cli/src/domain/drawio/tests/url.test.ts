@@ -76,6 +76,14 @@ describe('stripComments', () => {
   it('連続するコメントを全て除去する', () => {
     expect(stripComments('a<!--x--><!--y-->b')).toBe('ab')
   })
+
+  it('除去の跡で新しくできるコメントも除去する', () => {
+    expect(stripComments('a<!-<!-- x -->- y -->b')).toBe('ab')
+  })
+
+  it('終端のないコメントはそのまま返す', () => {
+    expect(stripComments('a<!-- x')).toBe('a<!-- x')
+  })
 })
 
 describe('validateHtml', () => {

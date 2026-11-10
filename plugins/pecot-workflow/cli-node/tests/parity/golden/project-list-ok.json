@@ -1,5 +1,5 @@
 {
-  "stdout": "=== 利用可能なプロジェクト ===\n  ghes.example.com_acme_board_acme [ACTIVE]\n  ghes.example.com_acme_other_acme\n",
+  "stdout": "=== Projects ===\n  ghes.example.com_acme_board_acme [ACTIVE]\n  ghes.example.com_acme_other_acme\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [],

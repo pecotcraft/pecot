@@ -1,6 +1,6 @@
 {
-  "stdout": "\nGitHub.com の場合:\n  pecot project activate --host github.com --owner example-org\n\nGitHub Enterprise の場合:\n  pecot project activate --host ghes.example.com --owner example-org\n\n設定ファイル名で指定する場合（--host不要）:\n  pecot project activate ghes.example.com_example-org_example-project_example-org\n",
-  "stderr": "エラー: --host オプションは必須です\n",
+  "stdout": "",
+  "stderr": "error: --host is required\n  example: pecot project activate --host github.com --owner example-org\n  example: pecot project activate --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_example-project_example-org\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

@@ -35,7 +35,10 @@ const GROUP_PATHS = {
   "pecot-tools": "plugins/pecot-tools/",
   "text-rules": "libs/text-rules/",
 };
+// 上限は .githooks/pre-commit/check-version-plan-format.sh と同じ値
 const MAX_LINE_CHARS = 100;
+const MAX_BODY_LINES = 3;
+const MAX_BODY_CHARS = 200;
 const PLANS_DIR = ".nx/version-plans";
 const SHIPPED_SECTIONS = ["dependencies", "optionalDependencies"];
 const SECTIONS = [...SHIPPED_SECTIONS, "devDependencies"];
@@ -387,25 +390,29 @@ function resolveGroups(update, ctx) {
 }
 
 /**
- * plan の中身。本文は 1 行で、100 字を超えるなら件を減らして「ほか N 件」で締める。
+ * plan の中身。依存 1 件を「`名前` を 旧版 から 新版 に更新。」の 1 行で書く。
+ * 2 件以上は件数の行を先頭に置き、check-version-plan-format.sh の上限に収まらない分は「ほか N 件」で締める。
  * @param {string} group
  * @param {Dep[]} deps
  * @returns {string}
  */
 function renderPlan(group, deps) {
   const items = deps.map((dep) =>
-    dep.from ? `${dep.name} ${dep.from} → ${dep.version}` : `${dep.name} → ${dep.version}`,
+    dep.from ? `\`${dep.name}\` を ${dep.from} から ${dep.version} に更新` : `\`${dep.name}\` を ${dep.version} に更新`,
   );
   /** @param {number} shown */
-  const sentence = (shown) => {
+  const linesOf = (shown) => {
+    if (items.length === 1) return [`${items[0]}。`];
     const rest = items.length - shown;
-    const parts =
-      shown === 0 ? [`${items.length} 件`] : [...items.slice(0, shown), ...(rest > 0 ? [`ほか ${rest} 件`] : [])];
-    return `依存を更新した（${parts.join("、")}）。`;
+    const body = items.slice(0, shown).map((item, i) => (i === shown - 1 && rest > 0 ? `${item}、ほか ${rest} 件。` : `${item}。`));
+    return [`依存パッケージを ${items.length} 件更新。`, ...body];
   };
-  let shown = items.length;
-  while (shown > 0 && [...sentence(shown)].length > MAX_LINE_CHARS) shown -= 1;
-  return `---\n${group}: patch\n---\n\n${sentence(shown)}\n`;
+  /** @param {string[]} lines */
+  const fits = (lines) =>
+    lines.every((line) => [...line].length <= MAX_LINE_CHARS) && [...lines.join("")].length <= MAX_BODY_CHARS;
+  let shown = Math.min(items.length, MAX_BODY_LINES - 1);
+  while (shown > 0 && !fits(linesOf(shown))) shown -= 1;
+  return `---\n${group}: patch\n---\n\n${linesOf(shown).join("\n")}\n`;
 }
 
 /**

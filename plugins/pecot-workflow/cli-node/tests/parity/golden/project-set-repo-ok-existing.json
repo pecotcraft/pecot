@@ -1,6 +1,6 @@
 {
-  "stdout": "acme/demo の設定を更新しました\n設定ファイルを更新: {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "updated: acme/demo in {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n",
   "exitCode": 0,
   "requests": [],
   "files": {

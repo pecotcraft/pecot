@@ -1,6 +1,6 @@
 {
-  "stdout": "\nヒント: --owner オプションで明示的に指定してください\n",
-  "stderr": "認証ユーザーの取得に失敗しました: リソースが見つかりません: {{GITHUB_API}}/user\n",
+  "stdout": "",
+  "stderr": "error: could not read the authenticated user: リソースが見つかりません: {{GITHUB_API}}/user\n  pass --owner to give the owner explicitly\n",
   "exitCode": 1,
   "requests": [
     {

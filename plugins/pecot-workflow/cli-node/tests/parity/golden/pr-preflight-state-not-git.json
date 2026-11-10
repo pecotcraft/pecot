@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: gitリポジトリではありません\n",
+  "stderr": "error: not a git repository\n",
   "exitCode": 1,
   "requests": [],
   "files": {

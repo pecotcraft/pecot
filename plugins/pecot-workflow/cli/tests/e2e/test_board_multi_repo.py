@@ -1,6 +1,6 @@
 """tests/e2e/test_board_multi_repo.py - Phase 7 US5 マルチリポ一貫表示 E2E。
 
-``pecot project info`` が ``| Ref | タイトル |`` 2 カラムのボードを描画することを検証する。
+``pecot project info`` が ``| Ref | Title |`` 2 カラムのボードを描画することを検証する。
 ``owner/repo#N`` 形式で Ref を表示すること。
 ``--repo`` オプション (local / global) でリポジトリ絞り込みが発火すること。
 後方互換として ``--repo`` 未指定で全 items が表示されること。
@@ -201,7 +201,7 @@ class TestHeaderRefColumn:
     def test_header_has_ref_column_no_repository_column(
         self, mock_config, mock_graphql_route, mock_dependabot_alerts_route
     ) -> None:
-        """`pecot project info` が ``| Ref | タイトル |`` ヘッダを出し、旧カラムを出さない。"""
+        """`pecot project info` が ``| Ref | Title |`` ヘッダを出し、旧カラムを出さない。"""
         route = mock_graphql_route(SAMPLE_RAW_ITEMS)
 
         result = _run_with_patches(
@@ -210,9 +210,9 @@ class TestHeaderRefColumn:
         )
 
         assert result.exit_code == 0, result.output
-        assert "| Ref | タイトル |" in result.stdout
+        assert "| Ref | Title |" in result.stdout
         # 旧「リポジトリ」カラムが消えていること (ボード状況セクション内)
-        assert "リポジトリ" not in result.stdout.split("## ボード状況")[-1]
+        assert "Repository" not in result.stdout.split("## Board status")[-1]
         # 旧 `| # |` 先頭カラムが無いこと
         assert "| # |" not in result.stdout
         assert route.call_count >= 1
@@ -251,7 +251,7 @@ class TestLocalRepoFilterMarkdown:
 
         assert result.exit_code == 0, result.output
         # フィルタ表示ヘッダ (見出しに統合)
-        assert "## ボード状況 (フィルタ: ownerA/repoA)" in result.stdout
+        assert "## Board status (filter: ownerA/repoA)" in result.stdout
         # ownerA/repoA の Ref は残る
         assert "ownerA/repoA#1" in result.stdout
         assert "ownerA/repoA#2" in result.stdout
@@ -295,7 +295,7 @@ class TestGlobalRepoFilter:
         )
 
         assert result.exit_code == 0, result.output
-        assert "## ボード状況 (フィルタ: ownerA/repoA)" in result.stdout
+        assert "## Board status (filter: ownerA/repoA)" in result.stdout
         assert "ownerA/repoA#1" in result.stdout
         assert "ownerB/repoB#" not in result.stdout
 
@@ -315,7 +315,7 @@ class TestLocalOverridesGlobal:
         )
 
         assert result.exit_code == 0, result.output
-        assert "## ボード状況 (フィルタ: ownerB/repoB)" in result.stdout
+        assert "## Board status (filter: ownerB/repoB)" in result.stdout
         assert "ownerB/repoB#10" in result.stdout
         assert "ownerB/repoB#11" in result.stdout
         # global 値の ownerA は Ref として残らない
@@ -361,9 +361,9 @@ class TestUnknownRepoEmptyResult:
 
         assert result.exit_code == 0, result.output
         # フィルタヘッダは出る
-        assert "## ボード状況 (フィルタ: unknown/nonexistent)" in result.stdout
+        assert "## Board status (filter: unknown/nonexistent)" in result.stdout
         # 該当アイテムなしのプレースホルダが出る
-        assert "_該当アイテムなし_" in result.stdout
+        assert "_No items_" in result.stdout
         # 0 件セクションは出ない
         assert "### Archived" not in result.stdout
         # エラーメッセージが stderr に出ていない
@@ -388,10 +388,10 @@ class TestInfoSectionOrder:
 
         assert result.exit_code == 0, result.output
         out = result.stdout
-        idx_top = out.find("# プロジェクト情報")
-        idx_basic = out.find("## 基本情報")
-        idx_repos = out.find("## 登録済みリポジトリ")
-        idx_board = out.find("## ボード状況")
+        idx_top = out.find("# Project info")
+        idx_basic = out.find("## Overview")
+        idx_repos = out.find("## Registered repositories")
+        idx_board = out.find("## Board status")
 
         assert idx_top != -1
         assert idx_basic != -1
@@ -417,8 +417,8 @@ class TestInfoEmptyItemsPlaceholder:
 
         assert result.exit_code == 0, result.output
         out = result.stdout
-        idx_board = out.find("## ボード状況")
-        idx_placeholder = out.find("_該当アイテムなし_")
+        idx_board = out.find("## Board status")
+        idx_placeholder = out.find("_No items_")
         assert idx_board != -1
         assert idx_placeholder != -1
         # ボード状況見出しの直後に該当アイテムなし

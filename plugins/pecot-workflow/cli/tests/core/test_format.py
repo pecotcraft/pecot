@@ -301,9 +301,9 @@ class TestFormatBoardOutput:
         assert "| test/repo#103 |" in output
 
         # 2 カラムヘッダ
-        assert "| Ref | タイトル |" in output
+        assert "| Ref | Title |" in output
         # 旧 3 カラムヘッダ/旧カラムは残っていない
-        assert "| # | タイトル | リポジトリ |" not in output
+        assert "| # | Title | Repository |" not in output
 
     def test_format_board_output_status_mapping(self) -> None:
         """ステータスごとにグループ化される"""
@@ -311,10 +311,10 @@ class TestFormatBoardOutput:
         output = format_board_output(items)
 
         # Readyセクションに表示
-        assert "### Ready (1件)" in output
+        assert "### Ready (1)" in output
 
         # Archivedセクションに表示
-        assert "### Archived (1件)" in output
+        assert "### Archived (1)" in output
 
     def test_format_board_output_empty_status(self) -> None:
         """空のステータスがある場合はスキップされる"""
@@ -330,7 +330,7 @@ class TestFormatBoardOutput:
         output = format_board_output(items)
 
         # 件数のあるステータスのみが見出しに出る
-        assert "### Active (1件)" in output
+        assert "### Active (1)" in output
         assert "### Backlog" not in output
         assert "### Archived" not in output
         # 「(なし)」は廃止
@@ -354,7 +354,7 @@ class TestFormatBoardOutput:
         output = format_board_output(items)
 
         # 10件中直近5件と表示
-        assert "### Archived (10件中 直近5件)" in output
+        assert "### Archived (latest 5 of 10)" in output
 
         # 最新の5件（番号 9 / 8 / 7 / 6 / 5）が含まれる (repository 未設定 → #N)
         assert "| #9 |" in output
@@ -409,7 +409,7 @@ class TestFormatBoardOutput:
         output = format_board_output(items)
 
         # 全ステータス 0 件なら 1 行のプレースホルダのみ
-        assert output == "_該当アイテムなし_"
+        assert output == "_No items_"
 
 
 # format_items_json テスト

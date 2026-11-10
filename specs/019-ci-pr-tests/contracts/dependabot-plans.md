@@ -63,7 +63,7 @@ plan は、範囲の全 commit の更新を group ごとにまとめて 1 ファ
 - group の PR で、production と development が両方あるとき、production だけが本文に載る
 - development だけの PR、どの package にも当たらない PR、github-actions の PR では plan を作らない
 - 2 つの group に届く PR では、group ごとに別のファイルができる
-- 依存が多くて 100 字を超えるとき、「ほか N 件」で締めて 100 字以内に収まる
+- 依存が 3 件以上のとき、2 件まで載せて「ほか N 件」で締め、3 行・各行 100 字・計 200 字に収まる
 - 同じ名前の plan が既にあるときは上書きしない
 - `updated-dependencies:` が欠けた本文ではコード 1 で止まる
 - `--pr` か `--base` が無いときはコード 2 で止まる
