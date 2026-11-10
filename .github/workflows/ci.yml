@@ -18,7 +18,6 @@ env:
   PECOT_NX_CI: "1"
   PECOTV_E2E_CEILING_SCALE: "3"
   PECOT_NX_PARALLEL: "2"
-  PECOT_CI_IMAGE: ghcr.io/pecotcraft/pecot-devcontainer
   PECOT_CI_SUMMARY: /workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
 
 concurrency:
@@ -30,6 +29,11 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      CHECKS_PART: ${{ matrix.part }}
+      # 共通の名前は dev-container.sh が渡す。ここには job 固有の名前だけを書く。
+      DEVCONTAINER_ENV: |
+        CHECKS_PART
     strategy:
       fail-fast: false
       matrix:
@@ -41,6 +45,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - &prefetch
+        name: Start pulling dev container image
+        run: .githooks/ci/dev-container.sh prefetch
+
       # error-on-no-successful-workflow は書かない。成功した run が無いとき、noPreviousBuild=true で全レーンのモードに入る。
       - name: Derive base and head SHAs
         id: shas
@@ -48,48 +56,35 @@ jobs:
         with:
           main-branch-name: main
 
-      # push: never にする。省くと main の push で image を push しようとする。
-      # GITHUB_STEP_SUMMARY は Action が固定するため、env に渡さない。
       # GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
       - name: Start dev container
         id: up
-        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           NO_PREV: ${{ steps.shas.outputs.noPreviousBuild }}
-        with:
-          imageName: ghcr.io/pecotcraft/pecot-devcontainer
-          push: never
-          runCmd: "true"
-          env: &checks-env |
-            CI
-            NX_BASE
-            NX_HEAD
-            NO_PREV
-            CHECKS_PART
-            PECOT_NX_CI
-            PECOTV_E2E_CEILING_SCALE
-            PECOT_NX_PARALLEL
-            PECOT_CI_IMAGE
-            PECOT_CI_SUMMARY
+        run: .githooks/ci/dev-container.sh up
 
       # exec の cwd は /workspaces/base のため、cd してから動かす。
       - name: Run checks
         id: verify
-        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           NO_PREV: ${{ steps.shas.outputs.noPreviousBuild }}
-          CHECKS_PART: ${{ matrix.part }}
-        with:
-          imageName: ghcr.io/pecotcraft/pecot-devcontainer
-          push: never
-          runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part="$CHECKS_PART" "$NX_BASE" "$NX_HEAD"
-          env: *checks-env
+          PECOT_CI_IMAGE: ${{ steps.up.outputs.image }}
+        run: |
+          # shellcheck disable=SC2016
+          .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part="$CHECKS_PART" "$NX_BASE" "$NX_HEAD"'
 
-      # buildx が無いと Action は警告だけで成功するため、完了の印が無ければ失敗にする。
-      - name: Write job summary
+      - &restore-owner
+        name: Restore workspace owner
+        if: always()
+        run: .githooks/ci/dev-container.sh restore-owner
+
+      # チェックが途中で止まると完了の印が付かないため、印が無ければ失敗にする。
+      - &job-summary
+        name: Write job summary
         if: always()
         env:
           UP_OUTCOME: ${{ steps.up.outcome }}
+          PECOT_CI_IMAGE: ${{ steps.up.outputs.image }}
         run: .githooks/ci/finish-ci-summary.sh
 
       - name: Upload logs
@@ -161,6 +156,14 @@ jobs:
       CHECKS_LANE: ${{ matrix.lane }}
       CHECKS_SLUG: ${{ matrix.slug }}
       PECOT_CI_NX_CACHE: /workspaces/base/pecot/.pecot/tmp/ci/nx-remote
+      # Chromium を使うテストは pecot-visual だけにある。別のレーンに足すときは、この条件も直す。
+      PECOT_CI_BROWSER: ${{ startsWith(matrix.lane, 'pecot-visual:') && '1' || '0' }}
+      # 共通の名前は dev-container.sh が渡す。ここには job 固有の名前だけを書く。
+      DEVCONTAINER_ENV: |
+        CHECKS_LANE
+        CHECKS_SLUG
+        PECOT_CI_NX_CACHE
+        PECOT_CI_BROWSER
     strategy:
       fail-fast: false
       matrix:
@@ -171,6 +174,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - *prefetch
 
       # 取り込むのは同じ repo の同じ PR の run の artifact だけにする。fork の PR や対象外の event の判定はスクリプトに任せる。
       # 取り込めないときは、キャッシュなしで動かす。
@@ -206,46 +211,24 @@ jobs:
           ARTIFACT_NAME: nx-cache-tests-${{ matrix.slug }}
         run: .githooks/ci/fetch-pr-nx-cache.sh --download-failed
 
-      # push: never にする。省くと main の push で image を push しようとする。
-      # GITHUB_STEP_SUMMARY は Action が固定するため、env に渡さない。
       # GITHUB_ACTIONS は nx の ::group:: で切り出しが崩れるため、env に渡さない。
       - name: Start dev container
         id: up
-        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
-        with:
-          imageName: ghcr.io/pecotcraft/pecot-devcontainer
-          push: never
-          runCmd: "true"
-          env: &tests-env |
-            CI
-            NX_BASE
-            NX_HEAD
-            NO_PREV
-            CHECKS_LANE
-            CHECKS_SLUG
-            PECOT_NX_CI
-            PECOTV_E2E_CEILING_SCALE
-            PECOT_NX_PARALLEL
-            PECOT_CI_IMAGE
-            PECOT_CI_SUMMARY
-            PECOT_CI_NX_CACHE
+        run: .githooks/ci/dev-container.sh up
 
       # exec の cwd は /workspaces/base のため、cd してから動かす。
       - name: Run checks
         id: verify
-        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
-        with:
-          imageName: ghcr.io/pecotcraft/pecot-devcontainer
-          push: never
-          runCmd: cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part=tests --lane="$CHECKS_LANE" "$NX_BASE" "$NX_HEAD"
-          env: *tests-env
-
-      # buildx が無いと Action は警告だけで成功するため、完了の印が無ければ失敗にする。
-      - name: Write job summary
-        if: always()
         env:
-          UP_OUTCOME: ${{ steps.up.outcome }}
-        run: .githooks/ci/finish-ci-summary.sh
+          PECOT_CI_IMAGE: ${{ steps.up.outputs.image }}
+        run: |
+          # shellcheck disable=SC2016
+          .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part=tests --lane="$CHECKS_LANE" "$NX_BASE" "$NX_HEAD"'
+
+      - *restore-owner
+
+      # チェックが途中で止まると完了の印が付かないため、印が無ければ失敗にする。
+      - *job-summary
 
       - name: Upload logs
         if: always()

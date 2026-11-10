@@ -9,7 +9,10 @@ if [ "${CI:-}" != "true" ]; then
 fi
 bash "$root/setup.sh"
 # Chromium の依存パッケージは、イメージ（features/playwright-deps）に入っている。
-(cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install chromium)
+# CI では、Chromium を使うレーンだけが取得する。その条件（PECOT_CI_BROWSER=1）は ci.yml にある。
+if [ "${CI:-}" != "true" ] || [ "${PECOT_CI_BROWSER:-}" = "1" ]; then
+  (cd "$root/plugins/pecot-visual" && pnpm --filter @pecot/pecotv-cli exec playwright install chromium)
+fi
 # pecot-visual の Playwright MCP は、端末の Google Chrome を使う（MCP の既定）。
 # Playwright の Chrome 導入は、arm64 Linux と Ubuntu・Debian 以外で失敗する。x86_64 のときだけ入れる。
 # CI の job は Chrome を使わないため、CI=true では入れない。

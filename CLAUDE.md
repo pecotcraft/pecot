@@ -78,7 +78,12 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
     - PR と merge queue では `version-plan` の job も動かす
   - `dependabot-auto-merge.yml`: dependabot の minor・patch の PR に、リリースの App のトークンで auto-merge を入れる。必須チェックが通ると merge queue でマージされる
   - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件の一覧にそろえる。PR の変化を App の webhook で、時間で決まる理由を Scheduler で受けて起動し、cron は最後の補助である。専用の GitHub App のトークンを使い、変数 `DEPENDABOT_PRS_APP_CLIENT_ID` が空の間は動かない
-  - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる
+  - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる。tag は `def-<key>` と、main だけの `latest` である
+    - `<key>` は、イメージに入るファイルの hash で、`.githooks/ci/dev-container.sh tag` が出す。ファイルは `Dockerfile`・`devcontainer.json`・`devcontainer-lock.json`・`features/` である
+    - CI の job は `def-<key>` を pull する。tag が無ければ、job ごとに PR の定義から build し、1 本 5〜29 分かかる
+    - イメージに入るファイルを変える PR では、merge queue の前に tag を載せる。打つのは `gh workflow run devcontainer-image.yml --ref <ブランチ>` である
+    - main 以外の ref の dispatch は、既にある tag を上書きしない
+    - devcontainer CLI の版は `dev-container.sh` の 1 か所にあり、dependabot は追わない。手で上げる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
   - `release.yml`: 人が手で起動し、`main` 上で `nx release` を動かす。案を出す `plan` の後、Environment `release` の承認を待ってから `main` へ push する
   - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。同じブランチへ、リリースの App のトークンで push する

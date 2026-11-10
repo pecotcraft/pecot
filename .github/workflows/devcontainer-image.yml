@@ -1,8 +1,10 @@
 # .devcontainer/ の定義から CI 用のイメージを build し、GHCR へ push する。
-# push するのは main への push・schedule・workflow_dispatch のときだけにする。
+# tag は dev-container.sh tag が出す def-<key>（.devcontainer/ の定義の hash）で、main のときだけ latest を付ける。
+# main 以外の ref では、def-<key> が既にあれば build と push を飛ばす。
+# push するのは push・schedule・workflow_dispatch のときだけにする。
 # PR では build だけを動かし、マージ前に Dockerfile が通ることを確かめる。
-# 週 1 回の schedule は noCache で動かす。自分のイメージを cache に使うため、
-# noCache が無いと apt のパッケージと features が新しくならない。
+# 週 1 回の schedule は --no-cache で動かす。自分のイメージを cache に使うため、
+# --no-cache が無いと apt のパッケージと features が新しくならない。
 name: devcontainer-image
 
 on:
@@ -45,19 +47,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # runCmd を書かない。省くと devcontainer build だけが動き、lifecycle は動かない。
-      # cacheFrom を書かない。imageName:imageTag が 1 つのとき、action が自動で足す。
-      # refFilterForPush で main だけに絞る。workflow_dispatch は feature ブランチからも起動できるため。
-      # eventFilterForPush は 1 行に 1 件で書く。カンマ区切りは 1 件として読まれ、push されない。
+      - name: Install devcontainer CLI
+        run: .githooks/ci/dev-container.sh install-cli
+
+      # 層は zstd で push する。gzip だと、CI の job の pull で展開に 20 秒以上かかる。
+      # PR では push せず build だけにする。latest は main のときだけ付ける。
+      # feature ブランチの実行で、main が使う def-<key> を上書きしない。
       - name: Build and push image
-        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
-        with:
-          imageName: ghcr.io/pecotcraft/pecot-devcontainer
-          imageTag: latest
-          push: filter
-          refFilterForPush: refs/heads/main
-          eventFilterForPush: |
-            push
-            schedule
-            workflow_dispatch
-          noCache: ${{ github.event_name == 'schedule' }}
+        env:
+          REPO: ghcr.io/pecotcraft/pecot-devcontainer
+          PECOT_CI_IMAGE_REPO: ghcr.io/pecotcraft/pecot-devcontainer
+          NO_CACHE: ${{ github.event_name == 'schedule' }}
+          # buildx は何も指定しないと unknown/unknown の attestation manifest を付け、GHCR の一覧に余計な行が出る。
+          BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
+        run: |
+          ref=$(.githooks/ci/dev-container.sh tag)
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$GITHUB_REF" != refs/heads/main ] \
+            && docker buildx imagetools inspect "$ref" > /dev/null 2>&1; then
+            echo "$ref already exists. Skip build and push."
+            exit 0
+          fi
+          args=(--workspace-folder . --image-name "$ref" --cache-from "$REPO:latest")
+          if [ "$GITHUB_REF" = refs/heads/main ] && [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            args+=(--image-name "$REPO:latest")
+          fi
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            args+=(--output "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true")
+          fi
+          if [ "$NO_CACHE" = true ]; then
+            args+=(--no-cache)
+          fi
+          devcontainer build "${args[@]}"

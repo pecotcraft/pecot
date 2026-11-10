@@ -4,6 +4,12 @@ set -euo pipefail
 sudo chown vscode:vscode /workspaces /home/vscode/.claude /home/vscode/.aws /commandhistory
 touch /commandhistory/.bash_history /commandhistory/.zsh_history
 
+# CI では copilot の自動更新を止める。postStart が毎回 download し、/usr/local の権限で失敗するため。
+# このファイルは feature copilot-cli 1.1.3（devcontainer-lock.json の版）の install.sh が置く。
+if [ "${CI:-}" = "true" ]; then
+  sudo rm -f /etc/devcontainer-copilot-cli/auto-update
+fi
+
 if ! grep -q 'HISTFILE=/commandhistory' /home/vscode/.bashrc; then
   cat <<'EOF' >> /home/vscode/.bashrc
 
