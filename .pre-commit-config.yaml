@@ -106,15 +106,6 @@ repos:
         fail_fast: true
         stages: [pre-push]
 
-      - id: githooks-tests
-        name: githooks tests
-        entry: .githooks/lib/with-timing.sh githooks-tests .githooks/tests/run.sh
-        language: unsupported_script
-        pass_filenames: false
-        files: ^(\.githooks/|\.github/board-sync/|nx\.json$|\.nxignore$|package\.json$|pnpm-workspace\.yaml$|pyproject\.toml$|uv\.lock$|libs/[^/]+/(package|project)\.json$|plugins/pecot-workflow/cli/(pyproject\.toml|uv\.lock)$|plugins/pecot-workflow/scripts/ci/(run-(tests|lint)|python-version)\.sh$|\.github/workflows/runtime-lock\.yml$)
-        # --from-ref/--to-ref の差分に当てる。削除だけの差分では動かない。
-        stages: [manual]
-
       - id: nx-env-inputs
         name: nx env inputs declared
         entry: .githooks/lib/with-timing.sh nx-env-inputs .githooks/pre-push/check-nx-env-inputs.sh
@@ -124,7 +115,7 @@ repos:
         # 範囲は plugins と libs 配下の ci スクリプト、bin、setup.sh、tests 配下のシェル、
         # package.json、vitest 設定、ts、js、py。
         # 未宣言の変数を足しただけの push でも確認を起動する。nx のタスクキャッシュ越しでも宣言の不足を検知できる (#1225)。
-        # 確認は約 0.3 秒のため githooks-tests とは別にし、広い範囲で起動する。
+        # 確認は約 0.3 秒の hook で、レーンのテスト（githooks:test-checks）の入力には plugins と libs の全体を入れない。
         files: ^(nx\.json$|(plugins|libs)/.*\.(sh|ts|tsx|mts|cts|mjs|cjs|js|py)$|(plugins|libs)/([^/]+/)*package\.json$|plugins/[^/]+/bin/)
         stages: [pre-push]
 

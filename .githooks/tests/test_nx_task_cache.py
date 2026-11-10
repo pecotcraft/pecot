@@ -21,6 +21,8 @@ nx が mtime の秒単位でファイルハッシュを使い回すため。
 
 from __future__ import annotations
 
+import atexit
+import functools
 import json
 import os
 import re
@@ -82,6 +84,20 @@ def _nx_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     return env
 
 
+@functools.cache
+def _real_repo_nx_state() -> dict[str, str]:
+    """実リポの cwd で起動する nx のキャッシュと索引 db の置き場（worker ごとに 1 つ）。
+
+    外の nx の索引 db と graph の lock を共有しない。片方だけ向けるとキャッシュが実リポの .nx/cache に戻る。
+    """
+    root = Path(tempfile.mkdtemp(prefix="nx-real-repo-"))
+    atexit.register(shutil.rmtree, root, ignore_errors=True)
+    return {
+        "NX_CACHE_DIRECTORY": str(root / "cache"),
+        "NX_WORKSPACE_DATA_DIRECTORY": str(root / "workspace-data"),
+    }
+
+
 def _nx_output(nx_bin: Path, *args: str) -> str:
     # stdout はパイプでなくファイルで受ける。nx は stdout がパイプのとき大きな JSON を書き切る前に
     # 終了することがあり、64 KiB 前後で切れた出力を受け取って JSONDecodeError になる (#1217)。
@@ -93,7 +109,7 @@ def _nx_output(nx_bin: Path, *args: str) -> str:
             stderr=subprocess.PIPE,
             text=True,
             timeout=180,
-            env=_nx_env(),
+            env=_nx_env(_real_repo_nx_state()),
         )
         assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         out.seek(0)
@@ -558,7 +574,12 @@ def _declared_env(nx_json: dict, input_name: str = "env") -> list[str]:
 
 
 def _project_jsons() -> list[Path]:
-    roots = [_REPO_ROOT / "plugins", _REPO_ROOT / "libs", _REPO_ROOT / ".nx"]
+    roots = [
+        _REPO_ROOT / "plugins",
+        _REPO_ROOT / "libs",
+        _REPO_ROOT / ".nx",
+        _REPO_ROOT / ".githooks",
+    ]
     found: list[Path] = []
     for root in roots:
         for path in sorted(root.rglob("project.json")):
@@ -801,6 +822,9 @@ def test_hooks_test_inputs_take_validate_references_source_but_not_its_tests(nx_
 # 版の文字列を出さない runtime コマンドの出力の形。lock のハッシュと、dpkg の「名前=版」の一覧。
 _RUNTIME_OUTPUT_PATTERNS = {
     "git hash-object pnpm-lock.yaml": re.compile(r"^[0-9a-f]{40}\n$"),
+    "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin": (
+        re.compile(r"^[0-9a-f]{40}\n$")
+    ),
     "dpkg-query -W -f='${Package}=${Version}\\n'": re.compile(r"^\S+=\S+$", re.M),
 }
 

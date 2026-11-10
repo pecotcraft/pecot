@@ -39,11 +39,9 @@ conclusion_of() {
 }
 
 failed=0
-for part in lint githooks; do
-    conclusion=$(conclusion_of "checks ($part)")
-    echo "checks ($part): $conclusion"
-    [ "$conclusion" = "success" ] || failed=1
-done
+conclusion=$(conclusion_of "checks (lint)")
+echo "checks (lint): $conclusion"
+[ "$conclusion" = "success" ] || failed=1
 
 if [ "$LANES_COUNT" = "0" ]; then
     # 飛ばした job は展開前の名前で出るため、名前で数えず needs.tests.result で確かめる。

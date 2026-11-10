@@ -207,8 +207,7 @@ def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> Non
             ["pre-commit", "pre-push"],
             ["check-version-plan-required"] * 2,
         ),
-        ("githooks", ["manual"], ["check-version-plan-required,nx-affected-tests"]),
-        ("tests", ["manual"], ["check-version-plan-required,githooks-tests"]),
+        ("tests", ["manual"], ["check-version-plan-required"]),
     ],
 )
 def test_part_selects_stages_and_skip(
@@ -238,11 +237,11 @@ def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
     assert pr_repo.pc_log.read_text() == ""
 
 
-@pytest.mark.parametrize("part", ["lint", "githooks"])
+@pytest.mark.parametrize("part", ["lint"])
 def test_summary_without_lane_sections_for_non_test_part(
     pr_repo: _PrChecksRepo, run_script, part: str
 ) -> None:
-    """lint と githooks の Summary は、見出しに part を書き、レーン・失敗・skip の欄を出さない。"""
+    """lint の Summary は、見出しに part を書き、レーン・失敗・skip の欄を出さない。"""
     result = pr_repo.run(run_script, f"--part={part}", pr_repo.base, pr_repo.head)
     out = result.stdout
     assert f"## 検証の結果（{part}）\n" in out
@@ -308,7 +307,6 @@ def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) 
     [
         ("--lane=a:test-b",),
         ("--part=lint", "--lane=a:test-b"),
-        ("--part=githooks", "--lane=a:test-b"),
     ],
 )
 def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args: tuple) -> None:
@@ -451,7 +449,7 @@ def test_tests_part_with_nx_cache_uses_remote_cache(
     assert "nx-cache-server: GET hit=0 miss=0 PUT=0" in result.stderr
 
 
-@pytest.mark.parametrize("part", ["lint", "githooks"])
+@pytest.mark.parametrize("part", ["lint"])
 def test_other_parts_with_nx_cache_skip_the_cache(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path, part: str
 ) -> None:

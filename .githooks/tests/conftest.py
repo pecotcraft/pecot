@@ -56,10 +56,36 @@ _CI_ENV = (
 )
 
 
+# 外の nx の task が渡す変数。引き継ぐと、テストの中で起動する nx が外の task の中と見なされる。
+# NX_DAEMON はテストが付け、NX_TUI と NX_INVOCATION_ANCESTOR_PIDS は残す（再検出は workspace-data の隔離で避ける）。
+_NX_TASK_ENV = (
+    "NX_TASK_TARGET_PROJECT",
+    "NX_TASK_TARGET_TARGET",
+    "NX_TASK_TARGET_CONFIGURATION",
+    "NX_TASK_HASH",
+    "LERNA_PACKAGE_NAME",
+    "NX_WORKSPACE_ROOT",
+    "NX_TERMINAL_OUTPUT_PATH",
+    "NX_TERMINAL_CAPTURE_STDERR",
+    "NX_STREAM_OUTPUT",
+    "NX_PREFIX_OUTPUT",
+    "NX_FORKED_TASK_EXECUTOR",
+    "NX_PROFILE",
+    "NX_LOAD_DOT_ENV_FILES",
+    "NX_BASE",
+    "NX_HEAD",
+)
+
+
 @pytest.fixture(autouse=True)
 def _isolate_git_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for key in list(os.environ):
-        if key.startswith("GIT_") or key in _PUSH_RANGE_ENV or key in _CI_ENV:
+        if (
+            key.startswith("GIT_")
+            or key in _PUSH_RANGE_ENV
+            or key in _CI_ENV
+            or key in _NX_TASK_ENV
+        ):
             monkeypatch.delenv(key, raising=False)
 
 

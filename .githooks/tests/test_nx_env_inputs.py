@@ -36,7 +36,7 @@ PECOT_HOOKS_CONFIG_PATH、PECOTV_HOOKS_CONFIG_PATH、CLAUDE_CONFIG_DIR 等がそ
 対象を変えたときにこのテストが起動するよう、.pre-commit-config.yaml の nx-env-inputs に同じ範囲を載せている。
 この範囲は test_pre_commit_config_wiring.py が固定する。
 このテストは約 0.3 秒で終わる。
-githooks-tests 全体（約 9 秒）とは別の hook にして、plugins のソースを変えた push で全体を動かさない。
+githooks のレーンの入力には plugins と libs の全体を入れず、この確認を nx-env-inputs の hook が受け持つ。
 """
 
 from __future__ import annotations

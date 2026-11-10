@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# CI で、pre-commit の 3 つの stage を <base>..<head> の範囲指定で流す（使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] <base> <head>）。
+# CI で、pre-commit の 3 つの stage を <base>..<head> の範囲指定で流す（使い方: run-pr-checks.sh [--part=<lint|tests>] <base> <head>）。
 # --part=tests には --lane=<project>:<target> を足せる。そのレーン 1 本だけを動かす。
 # --part を付けると、その部分の stage だけを流す。オプションは位置引数の前後どちらにも置ける。
-#   lint: pre-commit と pre-push。githooks: manual（nx-affected-tests を除く）。tests: manual（githooks-tests を除く）。
+#   lint: pre-commit と pre-push。tests: manual。
 # 落ちても最後まで動かし、完了の印 .pecot/tmp/ci/done に exit code を書く。
 # NO_PREV=true または base が履歴に無いときは、全レーンのモード（--all-files）にする。
 
@@ -13,7 +13,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../lib/timing.sh"
 # shellcheck source=../lib/push-range.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/push-range.sh"
 
-usage="使い方: run-pr-checks.sh [--part=<lint|githooks|tests>] [--lane=<project>:<target>] <base> <head>"
+usage="使い方: run-pr-checks.sh [--part=<lint|tests>] [--lane=<project>:<target>] <base> <head>"
 part=""
 lane=""
 positional=()
@@ -25,9 +25,9 @@ for arg in "$@"; do
     esac
 done
 case "$part" in
-    "" | lint | githooks | tests) ;;
+    "" | lint | tests) ;;
     *)
-        echo "ERROR: --part は lint・githooks・tests のどれかです: $part" >&2
+        echo "ERROR: --part は lint・tests のどれかです: $part" >&2
         echo "$usage" >&2
         exit 2
         ;;
@@ -202,18 +202,9 @@ else
 fi
 
 stages=(pre-commit pre-push manual)
-# part 指定時に、manual の stage で飛ばす hook。テストの 2 つの hook は manual の stage に載っている。
-part_skip=""
 case "$part" in
     lint) stages=(pre-commit pre-push) ;;
-    githooks)
-        stages=(manual)
-        part_skip="nx-affected-tests"
-        ;;
-    tests)
-        stages=(manual)
-        part_skip="githooks-tests"
-        ;;
+    tests) stages=(manual) ;;
 esac
 declare -A stage_rc=()
 
@@ -221,7 +212,6 @@ run_stage() {
     # version plan の判定はここでは動かさない。CI では `version-plan` の job が判定する。
     local stage="$1" skip="check-version-plan-required" plan_base=""
     local -a range_args=() extra_env=()
-    [ -z "$part_skip" ] || skip="$skip,$part_skip"
     [ -z "${SKIP:-}" ] || skip="$SKIP,$skip"
     if [ "$mode" = "全レーン" ]; then
         range_args=(--all-files)

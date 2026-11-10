@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+import atexit
+import functools
 import json
 import os
 import re
@@ -35,6 +37,7 @@ _NX_CONFIG_FILES = (".nxignore", "nx.json", "pnpm-workspace.yaml", "pnpm-lock.ya
 
 # nx が認識する project の集合。入れ子のメンバーは `nx.root` / `nx.name` でプラグインの project へ束ねる (#113)。
 _EXPECTED_PROJECTS = {
+    "githooks",
     "nx-release",
     "pecot",
     "pecot-tools",
@@ -42,6 +45,24 @@ _EXPECTED_PROJECTS = {
     "pecot-workflow",
     "text-rules",
 }
+
+
+@functools.cache
+def _real_repo_nx_state() -> dict[str, str]:
+    """実リポの cwd で起動する nx のキャッシュと索引 db の置き場（worker ごとに 1 つ）。
+
+    外の nx の索引 db と graph の lock を共有しない。片方だけ向けるとキャッシュが実リポの .nx/cache に戻る。
+    """
+    root = Path(tempfile.mkdtemp(prefix="nx-real-repo-"))
+    atexit.register(shutil.rmtree, root, ignore_errors=True)
+    return {
+        "NX_CACHE_DIRECTORY": str(root / "cache"),
+        "NX_WORKSPACE_DATA_DIRECTORY": str(root / "workspace-data"),
+    }
+
+
+def _nx_env(isolation: dict[str, str] | None = None) -> dict[str, str]:
+    return {**os.environ, "NX_DAEMON": "false", **(isolation or _real_repo_nx_state())}
 
 
 @pytest.fixture(scope="session")
@@ -58,6 +79,7 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
 
     nx_state を渡すと、キャッシュと索引 db をそこへ向ける。一時 clone など `_REPO_ROOT` 以外で
     動かすときに渡す（nx 24 は repo ごとの id で `~/.nx/<id>/` を作り、一時リポの分が残るため）。
+    省くと、worker ごとの置き場へ向ける。
     """
     isolation = (
         {
@@ -65,7 +87,7 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
             "NX_WORKSPACE_DATA_DIRECTORY": str(nx_state / "workspace-data"),
         }
         if nx_state
-        else {}
+        else None
     )
     result = subprocess.run(
         [str(nx_bin), "show", "projects", "--affected", "--json", *args],
@@ -73,7 +95,7 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
         capture_output=True,
         text=True,
         timeout=180,
-        env={**os.environ, "NX_DAEMON": "false", **isolation},
+        env=_nx_env(isolation),
     )
     assert result.returncode == 0, f"nx 失敗: {result.stderr}"
     return json.loads(result.stdout.strip().splitlines()[-1])
@@ -126,7 +148,7 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
         capture_output=True,
         text=True,
         timeout=180,
-        env={**os.environ, "NX_DAEMON": "false"},
+        env=_nx_env(),
     )
     assert result.returncode == 0, f"nx 失敗: {result.stderr}"
     assert set(json.loads(result.stdout.strip().splitlines()[-1])) == _EXPECTED_PROJECTS
@@ -193,7 +215,7 @@ def _nx(nx_bin: Path, *args: str) -> str:
             stderr=subprocess.PIPE,
             text=True,
             timeout=180,
-            env={**os.environ, "NX_DAEMON": "false"},
+            env=_nx_env(),
         )
         assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         out.seek(0)
@@ -554,6 +576,10 @@ def _selected_lanes(nx_bin: Path, tmp_path: Path, lanes: list[str], changed_file
     return {task for task in tasks if task.split(":")[1] in wanted}
 
 
+# githooks のレーンのうち、graph を作るファイル（package.json など）に反応する 3 本と、hook・設定のテストの 1 本。
+_GITHOOKS_CHECKS = {"githooks:test-checks"}
+_GITHOOKS_GRAPH = _GITHOOKS_CHECKS | {"githooks:test-nx-cache", "githooks:test-nx-affected"}
+
 _PECOTV_TEST_LANES = {
     f"pecot-visual:test-{lane}"
     for lane in ("cli", "bootstrap", "slidev", "hooks", "compare", "release", "skills")
@@ -584,7 +610,7 @@ _PECOTV_TEST_LANES = {
         ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
         ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
         # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
-        ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"}),
+        ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"} | _GITHOOKS_GRAPH),
         # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
         # ソースの変更は、配布ツリーに同梱する dist の元になるので、pecot-visual の release レーンにも届く (#1281)。
         # pecot-visual は text-rules をリンク（vendor/text-rules）で載せていて、nx がリンク先の変更を検知しない。
@@ -601,6 +627,7 @@ _PECOTV_TEST_LANES = {
                 "pecot-visual:test-hooks",
                 "pecot-visual:test-slidev",
                 "pecot-visual:test-bootstrap",
+                *_GITHOOKS_CHECKS,
             },
         ),
         # 依存だけの変更も同じ。root の lock が libs/text-rules の importer を持つため、
@@ -615,13 +642,14 @@ _PECOTV_TEST_LANES = {
                 "pecot-visual:test-hooks",
                 "pecot-visual:test-slidev",
                 "pecot-visual:test-bootstrap",
+                *_GITHOOKS_GRAPH,
             },
         ),
         ("libs/text-rules/tests/index.test.ts", {"text-rules:test-unit"}),
         # project root の外を読む入力（check-engines-node-drift.sh は 2 つの cli のテストが起動する）。
         (
             ".githooks/pre-commit/check-engines-node-drift.sh",
-            {"pecot-tools:test-cli", "pecot-visual:test-cli"},
+            {"pecot-tools:test-cli", "pecot-visual:test-cli", *_GITHOOKS_CHECKS},
         ),
         # plugins/pecot-tools/package.json は pecot-visual:test-cli も読む（projectRoot の外）。
         (
@@ -631,6 +659,7 @@ _PECOTV_TEST_LANES = {
                 "pecot-tools:test-bootstrap",
                 "pecot-tools:test-release",
                 "pecot-visual:test-cli",
+                *_GITHOOKS_GRAPH,
             },
         ),
         # 検証対象の wrapper の変更は、bootstrap のレーンに届く。
@@ -661,16 +690,26 @@ _PECOTV_TEST_LANES = {
         ("pnpm-lock.yaml", set()),
         (
             "plugins/pecot-workflow/runtime-lock.yaml",
-            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks"},
+            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks", *_GITHOOKS_CHECKS},
         ),
         (
             "plugins/pecot-tools/runtime-lock.yaml",
-            {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+            {
+                "pecot-tools:test-cli",
+                "pecot-tools:test-bootstrap",
+                "pecot-tools:test-release",
+                *_GITHOOKS_CHECKS,
+            },
         ),
         # permissions・engineStrict・minimumReleaseAge・skills.dirs は lock に出ないので、workspace も入力にする。
         (
             "plugins/pecot-tools/runtime-workspace.yaml",
-            {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+            {
+                "pecot-tools:test-cli",
+                "pecot-tools:test-bootstrap",
+                "pecot-tools:test-release",
+                *_GITHOOKS_CHECKS,
+            },
         ),
         (
             "plugins/pecot-visual/runtime-workspace.yaml",
@@ -682,6 +721,7 @@ _PECOTV_TEST_LANES = {
                 "pecot-visual:test-release",
                 "pecot-visual:test-skills",
                 "pecot-visual:test-slidev",
+                *_GITHOOKS_CHECKS,
             },
         ),
         (
@@ -694,6 +734,7 @@ _PECOTV_TEST_LANES = {
                 "pecot-visual:test-release",
                 "pecot-visual:test-skills",
                 "pecot-visual:test-slidev",
+                *_GITHOOKS_CHECKS,
             },
         ),
     ],
@@ -703,6 +744,48 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
 ) -> None:
     lanes = _graph_lane_names(nx_bin, tmp_path, "test")
     assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
+
+
+@pytest.mark.parametrize(
+    ("changed_file", "expected"),
+    [
+        # 当たる側。.githooks/ の外のファイルも、テストが読むなら、それを読むレーンが動く。
+        (".githooks/ci/run-pr-checks.sh", {"githooks:test-ci"}),
+        (".githooks/scripts/gen-runtime-lock.mjs", _GITHOOKS_CHECKS),
+        (".githooks/scripts/run-pnpm.sh", _GITHOOKS_CHECKS),
+        (".github/board-sync/handler.mjs", _GITHOOKS_CHECKS),
+        (".github/board-sync/template.yaml", _GITHOOKS_CHECKS),
+        (".github/workflows/runtime-lock.yml", _GITHOOKS_CHECKS),
+        (
+            "plugins/pecot-workflow/scripts/ci/python-version.sh",
+            _GITHOOKS_CHECKS | {"githooks:test-nx-cache"},
+        ),
+        ("plugins/pecot-workflow/scripts/ci/run-tests.sh", _GITHOOKS_CHECKS),
+        ("plugins/pecot-workflow/scripts/ci/run-lint.sh", _GITHOOKS_CHECKS),
+        ("plugins/pecot-workflow/cli/uv.lock", _GITHOOKS_CHECKS),
+        ("plugins/pecot-workflow/cli/pyproject.toml", _GITHOOKS_CHECKS),
+        ("pyproject.toml", _GITHOOKS_CHECKS),
+        ("uv.lock", _GITHOOKS_CHECKS),
+        ("pnpm-workspace.yaml", _GITHOOKS_GRAPH),
+        ("nx.json", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
+        (".nxignore", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
+        ("libs/text-rules/project.json", _GITHOOKS_GRAPH),
+        # 当たらない側。githooks のレーンは選ばれない。
+        ("README.md", set()),
+        ("plugins/pecot-workflow/skills/w-pr/SKILL.md", set()),
+        ("plugins/pecot-visual/CHANGELOG.md", set()),
+        ("plugins/pecot-visual/cli/src/infra/drawio/pdf.ts", set()),
+        ("plugins/pecot-tools/cli/tests/bootstrap/run.sh", set()),
+        ("plugins/pecot-workflow/cli/core/paths.py", set()),
+    ],
+)
+def test_gate_selects_the_githooks_lanes_that_read_the_change(
+    nx_bin: Path, tmp_path: Path, changed_file: str, expected: set[str]
+) -> None:
+    """githooks のレーンだけを見る。ほかの project も読むファイルは、そちらのレーンも選ぶため。"""
+    lanes = _graph_lane_names(nx_bin, tmp_path, "test")
+    selected = _selected_lanes(nx_bin, tmp_path, lanes, changed_file)
+    assert {lane for lane in selected if lane.startswith("githooks:")} == expected
 
 
 @pytest.mark.parametrize(
@@ -759,7 +842,38 @@ def test_gate_lane_names_match_the_lib(nx_bin: Path, tmp_path: Path, kind: str) 
         capture_output=True,
         text=True,
         timeout=180,
-        env={**os.environ, "NX_DAEMON": "false"},
+        env=_nx_env(),
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip().split(",") == _graph_lane_names(nx_bin, tmp_path, kind)
+
+
+def _parametrized_changed_files() -> set[str]:
+    """このファイルの parametrize が `changed_file` に渡す代表ファイルの全部。"""
+    found: set[str] = set()
+    for obj in globals().values():
+        for mark in getattr(obj, "pytestmark", []):
+            if mark.name != "parametrize":
+                continue
+            raw = mark.args[0]
+            names = [n.strip() for n in raw.split(",")] if isinstance(raw, str) else list(raw)
+            if "changed_file" not in names:
+                continue
+            index = names.index("changed_file")
+            for value in mark.args[1]:
+                found.add(value if len(names) == 1 else value[index])
+    return found
+
+
+# 追跡されないか、runtime 入力（pnpm-lock.yaml の hash）が見るため、一覧に載せないもの。
+_NOT_LISTED = {"pnpm-lock.yaml", ".pecot/config/.worktreeignore"}
+
+
+def test_representative_files_list_matches_the_parametrized_ones() -> None:
+    """githooks:test-nx-affected の runtime 入力が実在を見る一覧は、このファイルの代表ファイルと一致する。"""
+    listed = set(
+        (_REPO_ROOT / ".githooks/tests/representative-files.txt")
+        .read_text(encoding="utf-8")
+        .split()
+    )
+    assert _parametrized_changed_files() - _NOT_LISTED == listed
