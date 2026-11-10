@@ -78,6 +78,7 @@
       {"runtime": "node -p \"require('nx/package.json').version\""},
       "{workspaceRoot}/.nxignore",
       "{workspaceRoot}/.gitignore",
+      "{workspaceRoot}/libs/interface-spec/.gitignore",
       "{workspaceRoot}/libs/text-rules/.gitignore",
       "{workspaceRoot}/plugins/pecot-tools/.gitignore",
       "{workspaceRoot}/plugins/pecot-visual/.gitignore",
