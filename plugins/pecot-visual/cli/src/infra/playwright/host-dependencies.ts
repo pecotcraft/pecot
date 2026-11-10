@@ -211,7 +211,7 @@ export function hostDependenciesDefaultDependencies(): HostDependencies {
 
 function spawnDetail(result: Readonly<SpawnResult>): string {
   const output = `${result.stderr}\n${result.stdout}`.trim()
-  return result.timedOut ? `時間内に終わりませんでした: ${output}` : output
+  return result.timedOut ? `did not finish in time: ${output}` : output
 }
 
 /**
@@ -242,7 +242,7 @@ export async function ensureChromiumHostDependencies(
     status: 'missing',
     libraries,
     packages,
-    detail: `Chromium の起動に要る OS のライブラリが足りません${libraryList}。${reason}`,
+    detail: `OS libraries required to launch Chromium are missing${libraryList}; ${reason}`,
   })
 
   // -n: パスワードを求めずに使えるときだけ通す (devcontainer 等)。対話で止めない。
@@ -260,10 +260,10 @@ export async function ensureChromiumHostDependencies(
   ]
   const update: { done: boolean, failure: string | undefined } = { done: false, failure: undefined }
   const runUpdate = async (): Promise<void> => {
-    if (!update.done) dependencies.notify('Chromium の起動に要る OS のライブラリが足りないため、apt-get で入れます (数分かかることがあります)。')
+    if (!update.done) dependencies.notify('OS libraries required to launch Chromium are missing; installing them with apt-get (this can take a few minutes)')
     update.done = true
     const result = await dependencies.run(command, [...aptGet, 'update'], APT_TIMEOUT_MS, signal)
-    update.failure = result.exitCode === 0 ? undefined : `apt-get update が失敗しました: ${spawnDetail(result)}`
+    update.failure = result.exitCode === 0 ? undefined : `apt-get update failed: ${spawnDetail(result)}`
   }
   const dryRun = async (): Promise<{ result: SpawnResult, packages: string[] }> => {
     const result = await dependencies.run(dependencies.nodePath, [dependencies.playwrightCli(), 'install-deps', '--dry-run', 'chromium'], SHORT_TIMEOUT_MS, signal)
@@ -278,23 +278,23 @@ export async function ensureChromiumHostDependencies(
   const { packages } = found
   if (packages.length === 0) {
     const reasons = [spawnDetail(found.result), update.failure].filter(text => text !== undefined && text !== '').join('\n')
-    return missing([], `この OS では入れるパッケージを割り出せませんでした。OS のパッケージ管理で上記のライブラリを入れてください: ${reasons}`)
+    return missing([], `cannot determine the packages to install on this OS; install the libraries above with the OS package manager: ${reasons}`)
   }
   if (!canElevate) {
-    return missing(packages, `root 権限が無いため自動では入れられません。次を実行してください: ${aptInstallCommand(packages)}`)
+    return missing(packages, `cannot install automatically without root privileges; run: ${aptInstallCommand(packages)}`)
   }
 
   if (!update.done) await runUpdate()
   const install = await dependencies.run(command, [...aptGet, 'install', '-y', '--no-install-recommends', ...packages], APT_TIMEOUT_MS, signal)
   if (install.exitCode !== 0) {
     const reasons = [spawnDetail(install), update.failure].filter(text => text !== undefined && text !== '').join('\n')
-    return missing(packages, `apt-get install に失敗しました。ネットワークとプロキシ設定を確認し、次を実行してください: ${aptInstallCommand(packages)}\n${reasons}`)
+    return missing(packages, `apt-get install failed; check the network and proxy settings, then run: ${aptInstallCommand(packages)}\n${reasons}`)
   }
 
   const retry = await dependencies.probe()
   if (retry === undefined) return { status: 'installed', packages }
   if (!isMissingHostDependencies(retry)) return { status: 'launch-failed', detail: retry }
-  return missing(packages, `${packages.join(' ')} を入れましたが、まだ起動できません: ${retry}`)
+  return missing(packages, `installed ${packages.join(' ')}, but Chromium still cannot launch: ${retry}`)
 }
 
 /**

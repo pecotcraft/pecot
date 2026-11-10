@@ -148,7 +148,7 @@ export async function ensureTalkThemeLinked(
   const storeRoot = dependencies.storeRoot()
   if (storeRoot === undefined) {
     throw new ThemeFetchError(
-      'テーマの置き場を決められません。データ置き場（CLAUDE_PLUGIN_DATA）を確認してください',
+      'cannot determine the theme location (fix: check the data directory CLAUDE_PLUGIN_DATA)',
       'unknown',
     )
   }
@@ -161,8 +161,8 @@ export async function ensureTalkThemeLinked(
   })
   if (fetched.name !== reference.name) {
     throw new SlideCreateRuntimeError(
-      `package.json の dependencies には ${reference.name} と書かれていますが、取得したテーマの name は ${fetched.name} です。`
-      + 'dependencies のキーをテーマの name に合わせてください',
+      `package.json dependencies lists ${reference.name} but the fetched theme name is ${fetched.name} `
+      + '(fix: set the dependencies key to the theme name)',
       'theme-name-mismatch',
     )
   }
@@ -172,8 +172,8 @@ export async function ensureTalkThemeLinked(
   const isRegenerated = regeneratedFiles.length > 0
   if (isRegenerated) {
     dependencies.warn?.(
-      `本体の今の内容に合わせて ${regeneratedFiles.join('・')} を書き直しました。`
-      + '本体が生成するファイルなので、手での編集は残りません。Vite の追加設定は setup/vite-plugins.ts に置いてください',
+      `rewrote ${regeneratedFiles.join(', ')} to match the current plugin output; `
+      + 'these files are generated, so manual edits are not kept (fix: put extra Vite settings in setup/vite-plugins.ts)',
     )
   }
 

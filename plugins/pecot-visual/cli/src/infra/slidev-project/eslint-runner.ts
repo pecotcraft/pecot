@@ -57,8 +57,8 @@ export function resolveEslintBin(assetsDirectory: string): string {
   }
   catch (error: unknown) {
     throw new SlideLintRuntimeError(
-      `'${assetsRoot}' から eslint を解決できませんでした`
-      + `（本体の依存が未 install の可能性があります）: ${formatError(error)}`,
+      `cannot resolve eslint from ${assetsRoot}`
+      + ` (the core dependencies may not be installed): ${formatError(error)}`,
       'eslint-not-launched',
     )
   }
@@ -101,8 +101,8 @@ function assetsEslintRange(
   }
   catch (error: unknown) {
     throw new SlideLintRuntimeError(
-      `'${assetsRoot}' の package.json を読めませんでした`
-      + `（どの eslint で lint すべきか決められないため中止します）: ${formatError(error)}`,
+      `cannot read package.json in ${assetsRoot}`
+      + ` (aborting because the eslint to lint with cannot be decided): ${formatError(error)}`,
       'eslint-not-launched',
     )
   }
@@ -122,8 +122,8 @@ function assertEslintMatchesAssets(
 ): void {
   if (context.wantRange === '') {
     throw new SlideLintRuntimeError(
-      `'${context.assetsRoot}' の package.json が devDependencies.eslint を宣言していません。`
-      + ' どの eslint で lint すべきか決められないため中止します。',
+      `package.json in ${context.assetsRoot} does not declare devDependencies.eslint;`
+      + ' aborting because the eslint to lint with cannot be decided',
       'eslint-not-launched',
     )
   }
@@ -133,9 +133,9 @@ function assertEslintMatchesAssets(
   const resolvedMajor = majorText === '' ? NaN : Number(majorText)
   if (Number.isNaN(resolvedMajor) || !doesRangeAllowMajor(context.wantRange, resolvedMajor)) {
     throw new SlideLintRuntimeError(
-      `eslint bin '${context.binPath}' のバージョン '${context.resolvedVersion}' が`
-      + ` assets/slidev の要求 '${context.wantRange}' とメジャー違いです。`
-      + ' 本体が想定する eslint 以外では lint 結果が保証できないため中止します。',
+      `eslint bin ${context.binPath} is version ${context.resolvedVersion},`
+      + ` a different major from ${context.wantRange} required by assets/slidev;`
+      + ' aborting because lint results are not guaranteed with an eslint other than the one the core expects',
       'eslint-not-launched',
     )
   }

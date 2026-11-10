@@ -136,8 +136,8 @@ export async function waitForCssAnimations(
 
   logger.verbose(
     result.timedOut
-      ? `  CSSアニメーション待機: タイムアウト (${timeout.toString()}ms)`
-      : `  CSSアニメーション待機: ${result.waited.toString()}件完了, ${result.skipped.toString()}件スキップ (infinite)`,
+      ? `  CSS animation wait: timed out (${timeout.toString()}ms)`
+      : `  CSS animation wait: ${result.waited.toString()} done, ${result.skipped.toString()} skipped (infinite)`,
   )
   return result
 }
@@ -216,10 +216,10 @@ export async function waitForDataWaitfor(
     { visibleFn: slideVisibleFunctionSource, scopeSel: scopeSelector, ms: timeoutMs },
   )
   if (result.ready) {
-    logger.verbose(`  data-waitfor 待機: ${String(result.count)}件完了 (${(Date.now() - startedAt).toString()}ms)`)
+    logger.verbose(`  data-waitfor wait: ${String(result.count)} done (${(Date.now() - startedAt).toString()}ms)`)
   }
   else {
-    logger.warn(`  data-waitfor 待機: タイムアウト (${timeoutMs.toString()}ms)。描画完了を確認できないまま続行します`)
+    logger.warn(`  data-waitfor wait: timed out (${timeoutMs.toString()}ms); continuing without confirming render completion`)
   }
 }
 
@@ -231,10 +231,10 @@ export async function waitForIframeLoad(
 ): Promise<void> {
   const count = await page.evaluate((sel: string) => globalThis.document.querySelectorAll(sel).length, selector)
   if (count === 0) {
-    logger.verbose(`  iframe待機: ${selector} — 0件、スキップ`)
+    logger.verbose(`  iframe wait: ${selector}: none found, skipped`)
     return
   }
-  logger.verbose(`  iframe待機: ${selector} — ${count.toString()}件のロード完了を待機`)
+  logger.verbose(`  iframe wait: ${selector}: waiting for ${count.toString()} to finish loading`)
   try {
     await page.waitForFunction(
       (sel: string) => {
@@ -244,10 +244,10 @@ export async function waitForIframeLoad(
       selector,
       { timeout },
     )
-    logger.verbose(`  iframe待機: ${selector} — ロード完了`)
+    logger.verbose(`  iframe wait: ${selector}: loaded`)
   }
   catch {
-    logger.verbose(`  iframe待機: ${selector} — タイムアウト (${timeout.toString()}ms)`)
+    logger.verbose(`  iframe wait: ${selector}: timed out (${timeout.toString()}ms)`)
   }
 }
 /* eslint-enable unicorn/name-replacements, no-restricted-syntax */

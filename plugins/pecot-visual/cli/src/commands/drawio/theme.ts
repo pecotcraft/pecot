@@ -134,7 +134,7 @@ async function hasTheme(files: ThemeFiles, directory: string, names: readonly st
 }
 
 function invalidTheme(option: string, detail: string): DrawioUrlUsageError {
-  return new DrawioUrlUsageError(`option --theme '${option}' ${detail}`, 'invalid-theme')
+  return new DrawioUrlUsageError(`invalid --theme (${detail}): ${option}`, 'invalid-theme')
 }
 
 async function themeFromOption(
@@ -151,7 +151,7 @@ async function themeFromOption(
     const storeRoot = (dependencies.themeStoreRoot ?? themeStoreRoot)()
     if (storeRoot === undefined) {
       throw new DrawioUrlRuntimeError(
-        'テーマの置き場を決められません。データ置き場（CLAUDE_PLUGIN_DATA）を確認してください',
+        'cannot determine the theme location (fix: check the data directory CLAUDE_PLUGIN_DATA)',
         'theme-unknown',
       )
     }
@@ -168,10 +168,10 @@ async function themeFromOption(
   if (option.startsWith(FILE_PREFIX)) {
     const spec = parseThemeSpec(option)
     /* c8 ignore next 3 -- FILE_PREFIX で始まる指定は parseThemeSpec が必ず file kind にする */
-    if (spec.kind !== 'file') throw invalidTheme(option, 'を解釈できません')
+    if (spec.kind !== 'file') throw invalidTheme(option, 'cannot be parsed')
     const directory = path.resolve(currentDirectory, spec.path)
     if (!(await hasTheme(files, directory, [THEME_DECLARATION_FILE_NAME, 'package.json']))) {
-      throw invalidTheme(option, `のテーマ ${directory} に ${THEME_DECLARATION_FILE_NAME} も package.json もありません`)
+      throw invalidTheme(option, `theme ${directory} has neither ${THEME_DECLARATION_FILE_NAME} nor package.json`)
     }
     return await themeFromRoot(files, 'option', await packageNameOf(files, directory), directory, info)
   }
@@ -184,8 +184,8 @@ async function themeFromOption(
     }
     throw invalidTheme(
       option,
-      `は talk-dir とテーマ root のどちらでもありません（${directory} に ${SLIDES_FILE_NAME} と ${THEME_DECLARATION_FILE_NAME} が無い）。`
-      + 'git+https://<host>/<owner>/<repo>.git#<tag>・file:<path>・talk-dir のパスのどれかで指定してください',
+      `neither a talk-dir nor a theme root: ${directory} has no ${SLIDES_FILE_NAME} or ${THEME_DECLARATION_FILE_NAME}; `
+      + '(fix: pass git+https://<host>/<owner>/<repo>.git#<tag>, file:<path>, or a talk-dir path)',
     )
   }
   const resolved = await resolveTalkTheme(files, directory)
@@ -223,7 +223,7 @@ export async function resolveDrawioTheme(
     // 移行前の talk-dir は、今は動いている図の作成を止めず、既定値で続ける。
     if (error instanceof ThemeResolveError && error.reason === 'theme-none') {
       info(
-        `${talk} はテーマを参照していないため、本体の既定の書体で確かめます。${MIGRATE_ADVICE}`,
+        `${talk} does not reference a theme; checking with the plugin default fonts. ${MIGRATE_ADVICE}`,
       )
       return FALLBACK_THEME
     }

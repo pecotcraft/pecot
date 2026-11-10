@@ -25,7 +25,7 @@ export function resolveBoundPort(server: Server, fallbackPort: number): number {
   const address = server.address()
   if (address !== null && typeof address === 'object') return address.port
   if (fallbackPort === 0) {
-    throw new Error('dist 配信サーバの bind ポートを解決できません (address() が AddressInfo を返さず、要求ポートも 0 (ephemeral))')
+    throw new Error('cannot resolve the bind port of the dist server (address() did not return AddressInfo and the requested port is 0 (ephemeral))')
   }
   return fallbackPort
 }
@@ -89,7 +89,7 @@ export function startServer(distDir: string, port: number, logger: Pick<Logger, 
       // 以後のサーバエラー (配信中の socket error 等) は通知なしで捨てず、変換ログから観測できるようにする。
       server.removeListener('error', reject)
       server.on('error', (error: Readonly<Error>) => {
-        logger.error(`dist 配信サーバ error: ${error.message}`)
+        logger.error(`dist server error: ${error.message}`)
       })
       // 起動ログは呼び出し元 (pipeline.ts) が logger 経由で出す。ここで console.log すると
       // `slide convert --json` の stdout (JSON 行専用) に混在する。

@@ -97,7 +97,7 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
   // stdout の相手が消えた後の書き込み (EPIPE) は Writable の 'error' として上がる。
   // 拾わないと uncaught 例外でスタックトレースごと落ちるため、1 行報告して終了コードを立てる。
   protocolStdout.on('error', (error: Readonly<Error>) => {
-    createDiagnostics(stderr).error(`stdout への書き込みに失敗しました: ${error.message}`)
+    createDiagnostics(stderr).error(`stdout write failed: ${error.message}`)
     process.exitCode = 1
   })
 

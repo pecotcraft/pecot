@@ -19,16 +19,16 @@ export function chromiumLaunchError(message: string, cause: unknown): Error | un
     const libraries = missingSharedLibraries(message)
     const libraryList = libraries.length > 0 ? ` (${libraries.join(', ')})` : ''
     return new Error(
-      `Playwright Chromium の起動に要る OS のライブラリが足りません${libraryList}: ${message}\n`
-      + '  pecotv の setup (plugins/pecot-visual/setup.sh、MCP では setup ツール) を実行すると、sudo を使える環境では自動で入ります。'
-      + ' sudo を使えない環境では、setup が示すコマンドを管理者に実行してもらってください。',
+      `Playwright Chromium cannot launch because OS libraries are missing${libraryList}: ${message}\n`
+      + '  run the pecotv setup (plugins/pecot-visual/setup.sh, or the setup tool in MCP); it installs them automatically where sudo is available;'
+      + ' where sudo is not available, ask an administrator to run the command that setup shows',
       { cause },
     )
   }
   return /Executable doesn't exist|browserType\.launch|playwright\S*chromium/i.test(message)
     ? new Error(
-        `Playwright Chromium が起動できません: ${message}\n`
-        + '  pnpm --filter @pecot/pecotv-cli exec playwright install chromium を実行してください。',
+        `Playwright Chromium cannot launch: ${message}\n`
+        + '  run: pnpm --filter @pecot/pecotv-cli exec playwright install chromium',
         { cause },
       )
     : undefined

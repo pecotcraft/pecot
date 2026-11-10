@@ -32,9 +32,9 @@ hasNext を読めなかった場合と、読めているのに URL が動かな�
 function logNavigationStall(logger: Logger | null, hasNext: boolean | null, stepCount: number): void {
   if (!logger) return
   const reason = hasNext === null
-    ? 'hasNext を読めず URL も変わらず timeout'
-    : 'hasNext は true だが URL が変わらず timeout（例: navViaArrowKeys 無効デッキ、nav 状態の遅延）'
-  logger.verbose(`  ${stepCount.toString()}ステップで終端: ${reason}`)
+    ? 'cannot read hasNext and the URL did not change before timeout'
+    : 'hasNext is true but the URL did not change before timeout (e.g. a deck with navViaArrowKeys disabled, or delayed nav state)'
+  logger.verbose(`  ended at ${stepCount.toString()} steps: ${reason}`)
 }
 
 /**
@@ -54,7 +54,7 @@ async function advanceToNextStep(
   // これで convert 1 回あたり 5 秒の固定待ちが消える。
   const hasNext = await readSlidevHasNext(page)
   if (hasNext === false) {
-    if (logger) logger.verbose(`  ${stepCount.toString()}ステップで終端: hasNext=false`)
+    if (logger) logger.verbose(`  ended at ${stepCount.toString()} steps: hasNext=false`)
     return null
   }
   const previousUrl = page.url()
@@ -87,18 +87,18 @@ export async function scanSlideSteps(
 ): Promise<SlideStep[]> {
   const steps: SlideStep[] = []
   steps.push(parseSlideUrl(page.url()))
-  onProgress?.('スキャン: ステップ1 検出')
+  onProgress?.('scan: step 1 detected')
 
   for (let i = 1; i < maxSteps; i++) {
     const currentUrl = await advanceToNextStep(page, logger, steps.length)
     if (currentUrl === null) break
     const parsed = parseSlideUrl(currentUrl)
-    logger.verbose(`  ステップ${(steps.length + 1).toString()}: slide ${parsed.slideNumber.toString()}, click ${parsed.clickStep === null ? '-' : parsed.clickStep.toString()}`)
+    logger.verbose(`  step ${(steps.length + 1).toString()}: slide ${parsed.slideNumber.toString()}, click ${parsed.clickStep === null ? '-' : parsed.clickStep.toString()}`)
     steps.push(parsed)
-    onProgress?.(`スキャン: ステップ${steps.length.toString()} 検出`)
+    onProgress?.(`scan: step ${steps.length.toString()} detected`)
   }
 
-  logger.info(`${steps.length.toString()}ステップをスキャン完了`)
+  logger.info(`scanned ${steps.length.toString()} steps`)
   return steps
 }
 
@@ -154,7 +154,7 @@ export async function buildOnlySteps(
     const parsed = parseSlideUrl(currentUrl)
     if (parsed.slideNumber !== slide) break
 
-    if (logger) logger.verbose(`  click ${parsed.clickStep === null ? '-' : parsed.clickStep.toString()} 検出`)
+    if (logger) logger.verbose(`  click ${parsed.clickStep === null ? '-' : parsed.clickStep.toString()} detected`)
     steps.push(parsed)
   }
 
@@ -163,7 +163,7 @@ export async function buildOnlySteps(
   }
 
   if (logger) {
-    logger.info(`スライド${slide.toString()}の${steps.length.toString()}ステップをスキャン完了`)
+    logger.info(`scanned ${steps.length.toString()} steps of slide ${slide.toString()}`)
   }
   return steps
 }

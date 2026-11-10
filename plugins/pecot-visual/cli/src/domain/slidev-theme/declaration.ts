@@ -16,7 +16,7 @@ export const SUPPORTED_SCHEMA = 1
 
 // 誤りの文言に添える、契約の節の案内。
 const CONTRACT_FILE = 'contracts/theme-declaration.md'
-const SHAPE_SECTION = `${CONTRACT_FILE} の「\`${THEME_DECLARATION_FILE_NAME}\`」の節`
+const SHAPE_SECTION = `the \`${THEME_DECLARATION_FILE_NAME}\` section of ${CONTRACT_FILE}`
 
 export type LintSeverity = 'error' | 'warn' | 'off'
 
@@ -75,7 +75,7 @@ const fontSizesSchema = z.object({
 })
 const pptxSchema = z.object({
   eastAsianFont: name.optional(),
-  linkColor: z.string().regex(/^[\da-f]{6}$/iu, '6 桁の 16 進で書く').optional(),
+  linkColor: z.string().regex(/^[\da-f]{6}$/iu, 'must be 6 hex digits').optional(),
 })
 const lintSchema = z.object({ rules: z.record(z.string(), severity).optional() })
 const layoutsSchema = z.object({ references: name.optional() })
@@ -107,7 +107,7 @@ JSON を読んだ unknown 値を宣言として検証し、省いた項目を既
 */
 export function parseThemeDeclaration(raw: unknown): ThemeDeclarationResult {
   if (!isRecord(raw)) {
-    throw new ThemeDeclarationError(`${THEME_DECLARATION_FILE_NAME} がオブジェクトではありません。${SHAPE_SECTION}を参照してください`, 'invalid-shape')
+    throw new ThemeDeclarationError(`${THEME_DECLARATION_FILE_NAME} must be an object (see ${SHAPE_SECTION})`, 'invalid-shape')
   }
 
   const { schema } = raw
@@ -115,7 +115,7 @@ export function parseThemeDeclaration(raw: unknown): ThemeDeclarationResult {
     return {
       declaration: DEFAULT_THEME_DECLARATION,
       warnings: [
-        `${THEME_DECLARATION_FILE_NAME} の schema ${String(schema)} は、この pecot では読めません（読めるのは ${String(SUPPORTED_SCHEMA)}）。宣言を使わず、本体の既定値で続けます`,
+        `${THEME_DECLARATION_FILE_NAME} schema ${String(schema)} is not supported (supported: ${String(SUPPORTED_SCHEMA)}); ignoring the declaration and continuing with the defaults`,
       ],
     }
   }
@@ -123,15 +123,15 @@ export function parseThemeDeclaration(raw: unknown): ThemeDeclarationResult {
   const parsed = declarationSchema.safeParse(raw)
   if (!parsed.success) {
     const detail = parsed.error.issues
-      .map(issue => `${issue.path.map(String).join('.') || '(最上位)'}: ${issue.message}`)
+      .map(issue => `${issue.path.map(String).join('.') || '(top level)'}: ${issue.message}`)
       .join('; ')
-    throw new ThemeDeclarationError(`${THEME_DECLARATION_FILE_NAME} の形が誤っています: ${detail}。${SHAPE_SECTION}を参照してください`, 'invalid-shape')
+    throw new ThemeDeclarationError(`invalid shape of ${THEME_DECLARATION_FILE_NAME}: ${detail} (see ${SHAPE_SECTION})`, 'invalid-shape')
   }
 
   const unknownRules = Object.keys(parsed.data.lint?.rules ?? {}).filter(id => !KNOWN_RULES.has(id))
   if (unknownRules.length > 0) {
     throw new ThemeDeclarationError(
-      `${THEME_DECLARATION_FILE_NAME} の lint.rules に、本体の deck lint が持たない規則があります: ${unknownRules.join(', ')}。${SHAPE_SECTION}の「lint.rules」の項を参照してください`,
+      `lint.rules in ${THEME_DECLARATION_FILE_NAME} has rules the deck lint does not have: ${unknownRules.join(', ')} (see the "lint.rules" part of ${SHAPE_SECTION})`,
       'unknown-rule',
     )
   }
@@ -148,7 +148,7 @@ export async function readThemeDeclaration(files: ThemeFiles, themeRoot: string)
   if (text === undefined) {
     return {
       declaration: DEFAULT_THEME_DECLARATION,
-      warnings: [`テーマ ${themeRoot} に ${THEME_DECLARATION_FILE_NAME} の宣言が無いため、本体の既定値で続けます`],
+      warnings: [`theme ${themeRoot} has no ${THEME_DECLARATION_FILE_NAME} declaration; continuing with the defaults`],
     }
   }
 
@@ -158,7 +158,7 @@ export async function readThemeDeclaration(files: ThemeFiles, themeRoot: string)
   }
   catch (error: unknown) {
     const reason = error instanceof Error ? error.message : String(error)
-    throw new ThemeDeclarationError(`${filePath} を JSON として読めません: ${reason}。${SHAPE_SECTION}を参照してください`, 'invalid-shape')
+    throw new ThemeDeclarationError(`cannot read ${filePath} as JSON: ${reason} (see ${SHAPE_SECTION})`, 'invalid-shape')
   }
   return parseThemeDeclaration(raw)
 }

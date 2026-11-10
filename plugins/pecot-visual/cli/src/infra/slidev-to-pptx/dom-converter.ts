@@ -74,7 +74,7 @@ slides.md の frontmatter から title を読み取る。取得できない場�
 export async function readSlidesTitle(distDir: string, logger: Logger): Promise<string | null> {
   const slidesPath = join(dirname(distDir), 'slides.md')
   const title = await readSlidesTitleFromFile(slidesPath, (error) => {
-    logger.warn(`slides.md の読み取りをスキップ (${slidesPath}): ${errorMessage(error)}`)
+    logger.warn(`skipped reading slides.md: ${slidesPath}: ${errorMessage(error)}`)
   })
   return title ?? null
 }
@@ -89,7 +89,7 @@ export async function injectDomToPptx(page: Readonly<Page>, libPath: string): Pr
   let timer: NodeJS.Timeout | undefined
   const timedOut = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
-      reject(new Error(`dom-to-pptx の注入が ${(timeouts.domToPptxInject / 1000).toString()} 秒以内に終わりません`))
+      reject(new Error(`dom-to-pptx injection did not finish within ${(timeouts.domToPptxInject / 1000).toString()} s`))
     }, timeouts.domToPptxInject)
   })
   const isDomToPptxInjected = async (): Promise<boolean> => {
@@ -99,7 +99,7 @@ export async function injectDomToPptx(page: Readonly<Page>, libPath: string): Pr
   try {
     const isDefined = await Promise.race([isDomToPptxInjected(), timedOut])
     if (!isDefined) {
-      throw new Error('dom-to-pptx を注入しましたが window.domToPptx が定義されません（script 内の例外か AMD の define に登録された可能性）')
+      throw new Error('dom-to-pptx was injected but window.domToPptx is not defined (an exception in the script, or it was registered through AMD define)')
     }
   }
   finally {
@@ -135,7 +135,7 @@ export async function convertSlide(
   exportOptions: Readonly<ExportToPptxOptions>,
   options: Readonly<ConvertSlideOptions> = {},
 ): Promise<ConvertSlideResult> {
-  logger.debug(`  DOM→PPTX変換開始: slideNum=${slideNum.toString()}`)
+  logger.debug(`  DOM to PPTX conversion started: slideNum=${slideNum.toString()}`)
   const targetSelector = options.targetSelector ?? null
   const { pptxData, letterSpacingMap, hasExplicitAnimation } = await page.evaluate(async ({ slideNum: slideNumInner, prefix, visibleFn, exportOptions: exportOptionsInner, knownNames, targetSel }) => {
     // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
@@ -155,8 +155,8 @@ export async function convertSlide(
 
     if (!slide) {
       throw new Error(targetSel === null
-        ? `スライド #${slideNumInner.toString()}: 表示中のスライドが見つかりません`
-        : `スライド #${slideNumInner.toString()}: 対象のスライドが見つかりません (${targetSel})`)
+        ? `slide #${slideNumInner.toString()}: no visible slide found`
+        : `slide #${slideNumInner.toString()}: target slide not found: ${targetSel}`)
     }
 
     const letterSpacingMap: Record<string, { letterSpacing: string, fontSize: string }> = {}
@@ -308,29 +308,29 @@ export async function convertSlide(
   }, { visibleFn: slideVisibleFunctionSource, targetSel: targetSelector })
 
   const buffer = Buffer.from(pptxData, 'base64')
-  logger.debug(`  PPTXデータ: ${(buffer.length / 1024).toFixed(0)} KB (base64: ${pptxData.length.toString()} chars)`)
+  logger.debug(`  PPTX data: ${(buffer.length / 1024).toFixed(0)} KB (base64: ${pptxData.length.toString()} chars)`)
   const slidePath = join(slidesDir, `${slidePrefix}${slideNum.toString()}.pptx`)
   await writeFile(slidePath, buffer)
   logger.verbose(`  slides/${slidePrefix}${slideNum.toString()}.pptx (${(buffer.length / 1024).toFixed(2)} KB)`)
 
   const spacingCount = Object.keys(letterSpacingMap).length
   if (spacingCount > 0) {
-    logger.verbose(`  letter-spacing: ${spacingCount.toString()}件`)
+    logger.verbose(`  letter-spacing: ${spacingCount.toString()} entries`)
     const entries = Object.entries(letterSpacingMap)
     const preview = entries.slice(0, 5)
-    logger.debug(`  letter-spacing詳細: ${JSON.stringify(Object.fromEntries(preview))}${entries.length > 5 ? ` ... (${entries.length.toString()}件中5件)` : ''}`)
+    logger.debug(`  letter-spacing details: ${JSON.stringify(Object.fromEntries(preview))}${entries.length > 5 ? ` ... (5 of ${entries.length.toString()})` : ''}`)
   }
 
   const hrefCount = Object.keys(hrefMap).length
   if (hrefCount > 0) {
-    logger.verbose(`  href-map: ${hrefCount.toString()}件`)
+    logger.verbose(`  href-map: ${hrefCount.toString()} entries`)
     const hrefEntries = Object.entries(hrefMap)
     const hrefPreview = hrefEntries.slice(0, 5)
-    logger.debug(`  href-map詳細: ${JSON.stringify(Object.fromEntries(hrefPreview))}${hrefEntries.length > 5 ? ` ... (${hrefEntries.length.toString()}件中5件)` : ''}`)
+    logger.debug(`  href-map details: ${JSON.stringify(Object.fromEntries(hrefPreview))}${hrefEntries.length > 5 ? ` ... (5 of ${hrefEntries.length.toString()})` : ''}`)
   }
 
   if (hasExplicitAnimation) {
-    logger.verbose('  明示指定のアニメーション: あり（このスライドの p:timing は残す）')
+    logger.verbose('  explicit animation present (keeping p:timing of this slide)')
   }
 
   return { pptxPath: slidePath, letterSpacingMap, hrefMap, hasExplicitAnimation }

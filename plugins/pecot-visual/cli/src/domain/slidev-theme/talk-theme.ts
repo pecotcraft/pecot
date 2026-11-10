@@ -36,15 +36,15 @@ const NO_THEME = 'none'
 
 // 失敗の文言に添える、復旧の案内。CLI と MCP のどちらから呼ばれても読めるよう、両方の手順を 1 か所で持つ。
 function relinkAdvice(talkDirectory: string): string {
-  return `slide sync --dir ${talkDirectory} --node-modules-only で張り直してください`
-    + `（MCP では slide_sync の dir: ${talkDirectory}, node_modules_only: true）`
+  return `run slide sync --dir ${talkDirectory} --node-modules-only to relink`
+    + ` (MCP: slide_sync with dir: ${talkDirectory}, node_modules_only: true)`
 }
 
 /**
 移行前の talk-dir を止めるときの案内。CLI と MCP のどちらから読んでも打てるよう、両方の手順を持つ。
 */
-export const MIGRATE_ADVICE = 'テーマを参照する形へ移行するには slide sync --theme <theme-spec> を実行してください'
-  + '（MCP では slide_sync の theme に <theme-spec> を渡します）'
+export const MIGRATE_ADVICE = 'to migrate to a theme reference, run slide sync --theme <theme-spec>'
+  + ' (MCP: slide_sync with theme: <theme-spec>)'
 
 /**
 `<talk>/slides.md` の frontmatter `theme:` を読む。
@@ -72,7 +72,7 @@ async function readDependencies(files: ThemeFiles, talkDirectory: string): Promi
   const text = await files.readText(file)
   if (text === undefined) {
     throw new ThemeResolveError(
-      `${file} がありません。talk-dir の package.json の dependencies にテーマが要ります。`
+      `file not found: ${file}; the theme must be in dependencies of the talk-dir package.json; `
       + relinkAdvice(talkDirectory),
       'theme-unlinked',
     )
@@ -83,7 +83,7 @@ async function readDependencies(files: ThemeFiles, talkDirectory: string): Promi
   }
   catch (error: unknown) {
     const reason = error instanceof Error ? error.message : String(error)
-    throw new ThemeResolveError(`${file} を JSON として読めません: ${reason}。${relinkAdvice(talkDirectory)}`, 'theme-unlinked')
+    throw new ThemeResolveError(`cannot read ${file} as JSON: ${reason}; ${relinkAdvice(talkDirectory)}`, 'theme-unlinked')
   }
   const record = isRecord(raw) ? raw : {}
   const rawDependencies = isRecord(record['dependencies']) ? record['dependencies'] : {}
@@ -141,7 +141,7 @@ async function requireThemeDependency(
 ): Promise<{ readonly name: string, readonly spec: string }> {
   if (isPathTheme(theme)) {
     throw new ThemeResolveError(
-      `slides.md の theme: ${theme} はパス形式です。パス形式のテーマは pecotv では未対応です。${MIGRATE_ADVICE}`,
+      `theme in slides.md is a path: ${theme}; path themes are not supported by pecotv; ${MIGRATE_ADVICE}`,
       'theme-none',
     )
   }
@@ -150,8 +150,8 @@ async function requireThemeDependency(
   const spec = name === undefined ? undefined : dependencies.get(name)
   if (name === undefined || spec === undefined) {
     throw new ThemeResolveError(
-      `slides.md の theme: ${theme} に当たるパッケージが package.json の dependencies にありません`
-      + `（探した名前: ${candidateNames(theme).join(', ')}）。dependencies にテーマを足し、`
+      `no package for the theme in slides.md is in dependencies of package.json: ${theme} `
+      + `(searched names: ${candidateNames(theme).join(', ')}); add the theme to dependencies, then `
       + relinkAdvice(talkDirectory),
       'theme-unlinked',
     )
@@ -193,7 +193,7 @@ export async function resolveTalkTheme(files: ThemeFiles, talkDirectory: string)
   const directory = await findThemeRoot(files, talkDirectory, name)
   if (directory === undefined) {
     throw new ThemeResolveError(
-      `テーマ ${name} が ${path.join(talkDirectory, 'node_modules', name)} にも、上位の node_modules にも見つかりません。`
+      `theme not found in ${path.join(talkDirectory, 'node_modules', name)} or in any parent node_modules: ${name}; `
       + relinkAdvice(talkDirectory),
       'theme-unlinked',
     )
@@ -217,7 +217,7 @@ async function hasThemeDeclaration(files: ThemeFiles, directory: string): Promis
 export async function themeNoneError(files: ThemeFiles, talkDirectory: string): Promise<ThemeResolveError> {
   const message = await hasThemeDeclaration(files, talkDirectory)
     ? themeRootMessage(talkDirectory)
-    : `${talkDirectory} はテーマを参照していません（slides.md の theme: が none か未指定です）。${MIGRATE_ADVICE}`
+    : `${talkDirectory} does not reference a theme (theme in slides.md is none or unset); ${MIGRATE_ADVICE}`
   return new ThemeResolveError(message, 'theme-none')
 }
 
@@ -226,8 +226,8 @@ export async function themeNoneError(files: ThemeFiles, talkDirectory: string): 
 テーマの dir を移行前の talk-dir と取り違えると、sync が layouts・components を消しうるため、文言を分けて止める。
 */
 export function themeRootMessage(directory: string): string {
-  return `${directory} は ${THEME_DECLARATION_FILE_NAME} を持つテーマの dir です。talk-dir ではないため、talk-dir として扱いません。`
-    + 'テーマを参照する talk-dir を別に作り、その dir を指定してください'
+  return `not a talk-dir (it is a theme dir with ${THEME_DECLARATION_FILE_NAME}): ${directory}; `
+    + 'create a separate talk-dir that references the theme and specify that dir'
 }
 
 /**

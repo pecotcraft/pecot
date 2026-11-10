@@ -82,14 +82,14 @@ const YAML_COMMENT_REGEX = /^[ \t]*#/
 
 const slidePageInput = z.object({
   layout: z.string()
-    .describe('レイアウト名。slide_create / slide_sync 応答の見せ方の分類 (data.categories) で'
-      + '見せ方を決め、その分類に属する data.layouts の名前から選ぶ'),
+    .describe('Layout name. Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, '
+      + 'then choose from the names in data.layouts that belong to that category'),
   dir: z.string()
-    .describe('ページを生成する talk-dir の絶対パス。相対パスは受け付けない。' + WINDOWS_PATH_NOTE),
+    .describe('Absolute path of the talk-dir to generate the page in. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
   file: z.string()
-    .describe('pages/ 直下に生成するファイル名 (.md は省略可)。パス区切りと数字始まりの名前は受け付けない'),
+    .describe('File name to generate directly under pages/ (.md may be omitted). Names with path separators or starting with a digit are not accepted'),
   force: z.boolean().default(false)
-    .describe('同名のページが既にある場合に上書きする'),
+    .describe('Overwrite when a page with the same name already exists'),
 })
 
 /**
@@ -127,7 +127,7 @@ export function normalizePageFileName(file: string): PageFileName {
     return {
       ok: false,
       reason: 'invalid-file-name',
-      detail: `file にパス区切りを含められません: ${file}。ページは talk-dir の pages/ 直下にだけ生成します。`,
+      detail: `file must not contain a path separator: ${file}; pages are generated only directly under pages/ of the talk-dir`,
     }
   }
 
@@ -137,25 +137,25 @@ export function normalizePageFileName(file: string): PageFileName {
     return {
       ok: false,
       reason: 'invalid-file-name',
-      detail: 'file が空です。生成するページのファイル名を指定してください。',
+      detail: 'file is empty; specify the file name of the page to generate',
     }
   }
   if (!PAGE_STEM_REGEX.test(stem)) {
     return {
       ok: false,
       reason: 'invalid-file-name',
-      detail: `file にファイル名として使えない文字が含まれています: ${file}。`
-        + '英数字で始まり、英数字・アンダースコア・ハイフン・ドットだけからなる名前 '
-        + '(例: cover.md) を指定してください。',
+      detail: `file contains characters that cannot be used in a file name: ${file}`
+        + '; use a name that starts with an alphanumeric character and consists only of alphanumerics, underscores, hyphens and dots '
+        + '(e.g. cover.md)',
     }
   }
   if (LEADING_DIGIT_REGEX.test(stem)) {
     return {
       ok: false,
       reason: 'numeric-filename-prefix',
-      detail: `file を数字で始められません: ${filename}。`
-        + 'スライドの順序は slides.md の src: エントリの並びだけで管理するため、'
-        + '数字で始まらない英語名 (例: cover.md) を指定してください。',
+      detail: `file must not start with a digit: ${filename}`
+        + '; slide order is managed only by the order of src: entries in slides.md, '
+        + 'so use an English name that does not start with a digit (e.g. cover.md)',
     }
   }
   return { ok: true, filename }
@@ -256,16 +256,16 @@ async function generatePage(
   if (entry === undefined || reference === undefined) {
     return failure(
       'unknown-layout',
-      `レイアウト '${input.layout}' は ${input.dir} が参照するテーマ ${theme.theme.name} にありません。`
-      + 'data.categories で見せ方を決め、その分類の data.layouts の中から選んでください。',
+      `layout not found in theme ${theme.theme.name} referenced by ${input.dir}: ${input.layout}`
+      + '; decide the presentation style from data.categories, then choose from data.layouts of that category',
       { categories: theme.categories, layouts: theme.layouts },
     )
   }
   if (!reference.file.endsWith('.yaml')) {
     return failure(
       'skeleton-unavailable',
-      `テーマ ${theme.theme.name} は ${entry.layout} の参照 yaml（references/${entry.layout}.yaml）を持たないため、`
-      + '雛形を書き出せません。テーマに参照 yaml を足すか、talk-dir の references/ に置いてください。',
+      `cannot write a skeleton: theme ${theme.theme.name} has no reference yaml for ${entry.layout} (references/${entry.layout}.yaml)`
+      + '; add the reference yaml to the theme or place it in references/ of the talk-dir',
     )
   }
 
@@ -277,22 +277,22 @@ async function generatePage(
   catch (error: unknown) {
     return failure(
       'reference-read-failed',
-      `参照 yaml を読めませんでした (${reference.file}): ${formatError(error)}`,
+      `could not read the reference yaml (${reference.file}): ${formatError(error)}`,
     )
   }
   const skeleton = extractSkeleton(referenceText)
   if (skeleton === undefined) {
     return failure(
       'skeleton-unavailable',
-      `${entry.filename} から雛形フロントマターを取り出せません (examples が空です)。`
-      + `参照 yaml が破損しています。テーマ ${theme.theme.name} の ${reference.file} を直してください。`,
+      `cannot extract skeleton frontmatter from ${entry.filename} (examples is empty)`
+      + `; the reference yaml is corrupted (fix: repair ${reference.file} of theme ${theme.theme.name})`,
     )
   }
   if (!isFrontmatterBlock(skeleton)) {
     return failure(
       'skeleton-unavailable',
-      `${entry.filename} の examples が \`---\` で囲まれていないため、雛形として書き出せません。`
-      + `参照 yaml が破損しています。テーマ ${theme.theme.name} の ${reference.file} を直してください。`,
+      `cannot write a skeleton: examples in ${entry.filename} is not enclosed in \`---\``
+      + `; the reference yaml is corrupted (fix: repair ${reference.file} of theme ${theme.theme.name})`,
     )
   }
 
@@ -300,8 +300,8 @@ async function generatePage(
   if (!included.ok) {
     return failure(
       'broken-reference',
-      `${entry.filename} が include する ${included.missing} が ${theme.lint.referencesDirectories.join(' , ')} にありません。`
-      + `テーマ ${theme.theme.name} の references/ に ${included.missing} を足してください。`,
+      `${included.missing} included by ${entry.filename} not found in ${theme.lint.referencesDirectories.join(' , ')}`
+      + `; add ${included.missing} to references/ of theme ${theme.theme.name}`,
     )
   }
 
@@ -315,7 +315,7 @@ async function generatePage(
     if (!isAlreadyExistsError(error)) throw error
     return failure(
       'file-exists',
-      `${target} は既にあります。上書きするなら force: true を、別ページを作るなら別の file を指定してください。`,
+      `file already exists: ${target}; pass force: true to overwrite, or specify a different file`,
     )
   }
 
@@ -333,9 +333,9 @@ async function generatePage(
       reference: referenceText,
       includes: included.includes,
     },
-    message: `slide page: 生成しました (${target})。`
-      + 'data.reference の props / text_constraints に従って中身を埋めたうえで、'
-      + `slides.md へ "src: ./pages/${file.filename}" の登録が別途必要です`,
+    message: `slide page: generated (${target})`
+      + '; fill in the content following props / text_constraints in data.reference, '
+      + `then register "src: ./pages/${file.filename}" in slides.md separately`,
   }
 }
 
@@ -373,14 +373,14 @@ export function slidePageTool(
   return {
     name: 'slide_page',
     config: {
-      title: 'Slidev ページ生成',
-      description: '指定した 1 レイアウトのスケルトンページを talk-dir の pages/ 配下に生成し、'
-        + 'そのレイアウトの仕様 (props / text_constraints / clicks / best_practices / anti_patterns / examples) を返す。'
-        + '返却先は data.reference と data.includes。'
-        + 'レイアウト名は slide_create / slide_sync 応答の見せ方の分類 (data.categories) で'
-        + '見せ方を決めてから、その分類の data.layouts の中から選ぶ'
-        + ' (未知の名前を渡すと data.categories と data.layouts が応答に載る)。'
-        + '生成したページは slides.md への src: 登録が別途必要。',
+      title: 'Generate a Slidev page',
+      description: 'Generates a skeleton page for one layout under pages/ of the talk-dir, '
+        + 'and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). '
+        + 'The specification is returned in data.reference and data.includes. '
+        + 'Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, '
+        + 'then choose the layout name from data.layouts of that category '
+        + '(passing an unknown name returns data.categories and data.layouts in the response). '
+        + 'The generated page must be registered separately as a src: entry in slides.md.',
       inputSchema: slidePageInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
       // talk-dir 配下の読み取りと 1 ファイルの書き込みだけで、ネットワークには到達しない。

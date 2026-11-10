@@ -48,6 +48,6 @@ export async function collectTextViolations(
 違反を人が読む形に整える。
 */
 export function formatTextViolations(violations: readonly TextViolation[]): string {
-  const lines = violations.map(violation => `  - ${violation.item}: ${violation.message}（${violation.ruleId}）`)
-  return `文面の違反 ${violations.length.toString()} 件\n${lines.join('\n')}`
+  const lines = violations.map(violation => `  - ${violation.item}: ${violation.message} (${violation.ruleId})`)
+  return `${violations.length.toString()} text violation(s)\n${lines.join('\n')}`
 }

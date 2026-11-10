@@ -132,7 +132,7 @@ export function validateHtml(xml: string): readonly DrawioFinding[] {
     // ルール2: シングルクォート属性値検出（生 XML 値で確認）
     for (const sq of rawValue.matchAll(SINGLE_QUOTE_ATTR_REGEX)) {
       warn(
-        `mxCell id=${cellId}: シングルクォート属性値を検出 — ${sq[0]}。&quot; によるダブルクォートを使用してください`,
+        `mxCell id=${cellId}: single-quoted attribute value: ${sq[0]} (fix: use double quotes as &quot;)`,
       )
     }
 
@@ -150,7 +150,7 @@ export function validateHtml(xml: string): readonly DrawioFinding[] {
         if (FONT_ALLOWED_ATTRS.has(attributeName)) continue
         const sortedAllowed = [...FONT_ALLOWED_ATTRS].toSorted((a, b) => a.localeCompare(b)).join(', ')
         warn(
-          `mxCell id=${cellId}: <font> の非対応属性 '${attributeName}' を検出。対応属性: ${sortedAllowed}`,
+          `mxCell id=${cellId}: unsupported <font> attribute: ${attributeName} (supported: ${sortedAllowed})`,
         )
       }
     }
@@ -172,7 +172,7 @@ export function validateHtml(xml: string): readonly DrawioFinding[] {
         const htmlColor = (colorMatch[1] ?? '').trim().toLowerCase()
         if (htmlColor === fontColorStyle) {
           note(
-            `mxCell id=${cellId}: <font color="${htmlColor}"> と style fontColor=${fontColorStyle} が同一値で二重指定されています`,
+            `mxCell id=${cellId}: <font color="${htmlColor}"> and style fontColor=${fontColorStyle} specify the same value twice`,
           )
         }
       }
@@ -215,7 +215,7 @@ export function validateWhitespaceWrap(xml: string): readonly DrawioFinding[] {
       .replaceAll('\n', String.raw`\n`)
     const ellipsis = graphemes.length > 20 ? '…' : ''
     warn(
-      `mxCell id=${cellId}: 折り返しが必要な value (日本語/改行を含む) ですが style に whiteSpace=wrap がありません — value 先頭: "${preview}${ellipsis}"。style に whiteSpace=wrap を付けてください`,
+      `mxCell id=${cellId}: value needs wrapping (contains Japanese text or line breaks) but style has no whiteSpace=wrap; value starts with: "${preview}${ellipsis}" (fix: add whiteSpace=wrap to style)`,
     )
   }
 
@@ -261,7 +261,7 @@ export interface ThemeFontSizes {
 文言に書く確認元。テーマ名があれば「テーマの書体（名前）」、無ければ「既定の書体」。
 */
 function fontSourceLabel(themeName: string | undefined): string {
-  return themeName === undefined ? '既定の書体' : `テーマの書体（${themeName}）`
+  return themeName === undefined ? 'the default font' : `the theme font (${themeName})`
 }
 
 /**
@@ -284,9 +284,9 @@ function fontFamilyAdvice(fonts: Readonly<ThemeFonts>): string {
 
 function fontSizeGuide(sizes: Readonly<ThemeFontSizes>): string {
   const values = [sizes.heading, sizes.headingSm, sizes.body, sizes.bodySm, sizes.label]
-  const roles = `見出し ${String(sizes.heading)}・小見出し ${String(sizes.headingSm)}・本文 ${String(sizes.body)}`
-    + `・補足 ${String(sizes.bodySm)}・ラベル ${String(sizes.label)}`
-  return `使えるサイズは ${values.map(String).join('・')}px の 5 つだけです（${roles}）`
+  const roles = `heading ${String(sizes.heading)}, subheading ${String(sizes.headingSm)}, body ${String(sizes.body)}`
+    + `, caption ${String(sizes.bodySm)}, label ${String(sizes.label)}`
+  return `only these 5 sizes are allowed: ${values.map(String).join(', ')} px (${roles})`
 }
 // draw.io は fontSize 未指定のセルを 11px で描く
 const DRAWIO_DEFAULT_FONT_SIZE = 11
@@ -521,7 +521,7 @@ function initialState(style: string): TextState {
   }
 }
 
-const SHORTHAND_WARNING = 'CSS の font 一括指定の書体とサイズを読み取れません。使わずに font-family と font-size を個別に指定してください'
+const SHORTHAND_WARNING = 'cannot read the font and size from the CSS font shorthand (fix: specify font-family and font-size separately)'
 
 /**
 図の文字の書体がテーマの宣言の書体から外れる
@@ -557,22 +557,22 @@ export function validateSlideFonts(xml: string, fonts: Readonly<ThemeFonts>, the
     }
     const offTheme = runs.find(run => run.font?.[0] === undefined || !allowed.has(run.font[0]))
     if (offTheme !== undefined) {
-      const actual = offTheme.font?.[0] === undefined ? '書体指定なし（draw.io 既定の Helvetica）' : `先頭書体「${offTheme.font[0]}」`
+      const actual = offTheme.font?.[0] === undefined ? 'no font specified (draw.io default is Helvetica)' : `first font ${offTheme.font[0]}`
       const fix = offTheme.fontSource === 'html'
-        ? `value 内の font-family 指定（<font face> や style の font-family）を消してください。書体はセルの style の fontFamily=${advice} に任せます`
-        : `style に fontFamily=${advice} を付けてください`
+        ? `remove font-family in value (<font face> or style font-family) and leave the font to fontFamily=${advice} in the cell style`
+        : `add fontFamily=${advice} to style`
       warn(
-        `${prefix} ${actual}の文字列が${label}ではありません — "${offTheme.text}"。図の文字は${label}で組みます。${fix}`,
+        `${prefix} ${actual} is not in ${label}: "${offTheme.text}"; diagram text is set in ${label} (fix: ${fix})`,
       )
     }
     if (eastAsian === undefined || fonts.eastAsian === undefined) continue
     const missingJapanese = runs.find(run => JAPANESE_REGEX.test(run.text) && !(run.font?.includes(eastAsian) ?? false))
     if (missingJapanese === undefined) continue
     const fix = missingJapanese.fontSource === 'html'
-      ? `value 内の font-family 指定（<font face> や style の font-family）を消すか ${advice} にしてください`
-      : `fontFamily を ${advice} にしてください`
+      ? `remove font-family in value (<font face> or style font-family) or set it to ${advice}`
+      : `set fontFamily to ${advice}`
     warn(
-      `${prefix} 和文を含む文字列の書体の並びに ${fonts.eastAsian} がありません — "${missingJapanese.text}"。和文が代替書体で描かれます。${fix}`,
+      `${prefix} font list for text containing Japanese has no ${fonts.eastAsian}: "${missingJapanese.text}"; Japanese is drawn in a fallback font (fix: ${fix})`,
     )
   }
 
@@ -594,10 +594,10 @@ function offSlideSizes(runs: readonly TextRun[], steps: ReadonlySet<number>): re
 }
 
 function sizeCause(label: string, run: TextRun): string {
-  if (run.fontSizeAttribute !== undefined) return `${label} は使えません`
-  if (Number.isNaN(run.size.px)) return `文字サイズ ${label} は px 以外の指定です。px で指定してください`
-  if (run.sizeSource === 'none') return 'fontSize 未指定（draw.io 既定の 11px）です'
-  return `文字サイズ ${label} はテーマの規定外です`
+  if (run.fontSizeAttribute !== undefined) return `${label} is not allowed`
+  if (Number.isNaN(run.size.px)) return `font size ${label} is not in px (fix: specify it in px)`
+  if (run.sizeSource === 'none') return 'fontSize is not set (draw.io default is 11px)'
+  return `font size ${label} is not a theme size`
 }
 
 /**
@@ -622,10 +622,10 @@ export function validateSlideFontSizes(xml: string, sizes: Readonly<ThemeFontSiz
     const { runs } = walkText(cell.text, initialState(cell.style))
     for (const [label, run] of offSlideSizes(runs, steps)) {
       const fix = run.sizeSource === 'html' || run.fontSizeAttribute !== undefined
-        ? 'value 内の font-size 指定（<font size> や style の font-size）を消し、セルの style に fontSize=<サイズ> を付けてください'
-        : 'style に fontSize=<サイズ> を付けてください'
+        ? 'remove font-size in value (<font size> or style font-size) and add fontSize=<size> to the cell style'
+        : 'add fontSize=<size> to style'
       warn(
-        `mxCell id=${cell.id}: ${sizeCause(label, run)} — "${run.text}"。${guide}。${fix}`,
+        `mxCell id=${cell.id}: ${sizeCause(label, run)}: "${run.text}"; ${guide} (fix: ${fix})`,
       )
     }
   }
@@ -782,15 +782,15 @@ export function renderRedirectHtml(url: string): string {
   const escaped = escapeHtmlAttribute(url)
   return [
     '<!doctype html>',
-    '<html lang="ja">',
+    '<html lang="en">',
     '<head>',
     '<meta charset="utf-8">',
     `<meta http-equiv="refresh" content="0;url=${escaped}">`,
-    '<title>draw.io ダイアグラム</title>',
+    '<title>draw.io diagram</title>',
     '</head>',
     '<body>',
-    '<p>draw.io でダイアグラムを開いています。自動で開かない場合は次のリンクをクリックしてください。</p>',
-    `<p><a id="target" href="${escaped}">draw.io でダイアグラムを開く</a></p>`,
+    '<p>Opening the diagram in draw.io. If it does not open automatically, click the link below.</p>',
+    `<p><a id="target" href="${escaped}">Open the diagram in draw.io</a></p>`,
     `<script>location.replace(document.getElementById('target').href)</script>`,
     '</body>',
     '</html>',

@@ -169,7 +169,7 @@ PDF の用紙寸法に使う。属性が無い・px 以外の単位 (%, pt, mm �
 export function readSvgPixelSize(svg: string): SvgPixelSize {
   const match = ROOT_SVG_TAG_REGEX.exec(svg)
   if (match === null) {
-    throw new Error('export された内容に SVG ルート要素がありません')
+    throw new Error('no SVG root element in the exported content')
   }
   return {
     width: readPixelAttribute(match[0], 'width'),
@@ -181,12 +181,12 @@ function readPixelAttribute(tag: string, name: 'width' | 'height'): number {
   const attribute = (name === 'width' ? WIDTH_ATTRIBUTE_REGEX : HEIGHT_ATTRIBUTE_REGEX).exec(tag)
   const raw = attribute?.groups?.['value']
   if (raw === undefined) {
-    throw new Error(`SVG ルート要素に ${name} 属性がありません`)
+    throw new Error(`SVG root element has no ${name} attribute`)
   }
   const pixel = PIXEL_LENGTH_REGEX.exec(raw.trim())?.groups?.['number']
   const value = pixel === undefined ? NaN : Number(pixel)
   if (!(value > 0)) {
-    throw new Error(`SVG ルート要素の ${name} が px の正の値ではありません: ${raw}`)
+    throw new Error(`SVG root element ${name} is not a positive px value: ${raw}`)
   }
   return value
 }
@@ -214,7 +214,7 @@ export function readSourceHash(svg: string): string | undefined {
 function replaceRootSvgTag(svg: string, transform: (tag: string) => string): string {
   const match = ROOT_SVG_TAG_REGEX.exec(svg)
   if (match === null) {
-    throw new Error('export された内容に SVG ルート要素がありません')
+    throw new Error('no SVG root element in the exported content')
   }
   // replacement は data URI や style 値をそのまま含むため、`$&` 等の展開が起きない
   // 関数形式で渡す。

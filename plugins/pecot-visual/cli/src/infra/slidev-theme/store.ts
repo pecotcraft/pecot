@@ -159,10 +159,10 @@ function parseManifest(text: string): PackageManifest {
 
 function requireName(manifest: Readonly<PackageManifest>, directory: string): string {
   if (manifest.name === undefined) {
-    throw new ThemeFetchError(`テーマの package.json に name がありません (${directory})`, 'unknown')
+    throw new ThemeFetchError(`theme package.json has no name: ${directory}`, 'unknown')
   }
   if (!isPackageName(manifest.name)) {
-    throw new ThemeFetchError(`テーマの package.json の name がパッケージ名として使えません (${manifest.name})`, 'unknown')
+    throw new ThemeFetchError(`theme package.json name is not a valid package name: ${manifest.name}`, 'unknown')
   }
   return manifest.name
 }
@@ -178,11 +178,11 @@ async function referenceLocalTheme(themePath: string, options: Readonly<FetchThe
     text = await readFile(path.join(directory, 'package.json'), 'utf8')
   }
   catch {
-    throw new ThemeFetchError(`テーマのディレクトリに package.json がありません (${directory})`, 'unknown')
+    throw new ThemeFetchError(`theme directory has no package.json: ${directory}`, 'unknown')
   }
   const manifest = parseManifest(text)
   if (manifest.dependencyNames.length > 0 && !existsSync(path.join(directory, 'node_modules'))) {
-    throw new ThemeFetchError(`テーマのディレクトリで install を実行してください (${directory} に node_modules がありません)`, 'install')
+    throw new ThemeFetchError(`node_modules not found in the theme directory: ${directory} (fix: run install there)`, 'install')
   }
   return { name: requireName(manifest, directory), directory, reused: false }
 }
@@ -332,7 +332,7 @@ async function populate(
     pnpm.cwd,
   )
   assertStarted(installed, 'pnpm', 'install')
-  if (installed.exitCode !== 0) throw installFailure('テーマの依存を pnpm で取得できませんでした', installed)
+  if (installed.exitCode !== 0) throw installFailure('failed to fetch the theme dependencies with pnpm', installed)
 
   const patchesDirectory = path.join(packageDirectory, 'patches')
   const scan = scanPatchDigests(patchesDirectory)
@@ -381,7 +381,7 @@ async function readManifestText(packageDirectory: string): Promise<string> {
     return await readFile(path.join(packageDirectory, 'package.json'), 'utf8')
   }
   catch {
-    throw new ThemeFetchError('テーマのリポジトリ直下に package.json がありません', 'install')
+    throw new ThemeFetchError('theme repository has no package.json at its root', 'install')
   }
 }
 
@@ -395,14 +395,14 @@ timedOutReason は時間切れの分類。git は接続の待ちなので connec
 */
 function assertStarted(result: Readonly<SpawnResult>, tool: string, timedOutReason: ThemeFetchErrorReason): void {
   if (result.exitCode === LOCK_CONFLICT_EXIT_CODE) {
-    throw new ThemeFetchError('別のプロセスが同じテーマを取得中です。完了を待って再実行してください', 'install')
+    throw new ThemeFetchError('another process is fetching the same theme; wait for it to finish and run again', 'install')
   }
   if (result.timedOut) {
-    throw new ThemeFetchError(`${tool} が時間切れで中断しました。ネットワークを確認して再実行してください`, timedOutReason)
+    throw new ThemeFetchError(`${tool} timed out; check the network and run again`, timedOutReason)
   }
   if (result.exitCode !== null) return
   const detail = result.stderr.trim()
-  throw new ThemeFetchError(`${tool} を起動できません。導入を確認してください${detail === '' ? '' : `\n${detail}`}`, 'install')
+  throw new ThemeFetchError(`cannot start ${tool}; check that it is installed${detail === '' ? '' : `\n${detail}`}`, 'install')
 }
 
 /**
@@ -421,7 +421,7 @@ async function applyThemePatches(
   const manifestPath = resolveDependency('patch-package/package.json', import.meta.url)
   /* c8 ignore start -- 本体の依存に patch-package を同梱しているため、テストでは再現できない防御網 */
   if (manifestPath === undefined) {
-    throw new ThemeFetchError('patch-package を本体の依存から解決できないため、テーマの patch を当てられません', 'install')
+    throw new ThemeFetchError('cannot apply the theme patches because patch-package cannot be resolved from the core dependencies', 'install')
   }
   /* c8 ignore stop */
   const result = await applyPatches({
@@ -434,7 +434,7 @@ async function applyThemePatches(
     signal: options.signal,
   })
   if (result !== undefined) assertStarted(result, 'patch-package', 'install')
-  if (result !== undefined && result.exitCode !== 0) throw installFailure('テーマの patch を当てられませんでした', result)
+  if (result !== undefined && result.exitCode !== 0) throw installFailure('failed to apply the theme patches', result)
 }
 
 /**
@@ -481,8 +481,8 @@ async function warnSameNameDependencies(
   const overlapping = declared.filter(name => base.has(name)).toSorted((left, right) => compareStrings(left, right))
   if (overlapping.length === 0) return
   options.warn(
-    `テーマの dependencies に本体と同名のパッケージがあります: ${overlapping.join(', ')}。`
-    + '本体の 1 つに寄せるには、テーマの package.json で peerDependencies へ移してください。',
+    `theme dependencies contain packages with the same names as the core: ${overlapping.join(', ')}`
+    + ' (fix: move them to peerDependencies in the theme package.json so that only the core copy is used)',
   )
 }
 
@@ -515,7 +515,7 @@ async function place(
     /* c8 ignore start -- 消した直後に別プロセスが置く競合で、テストでは再現できない */
     catch {
       // 消した直後に別プロセスが置いた。読めない置き場として止め、利用者の再実行に任せる。
-      throw new ThemeFetchError(`テーマの置き場を置き直せません。${directory} を削除してやり直してください`, 'unknown')
+      throw new ThemeFetchError(`cannot recreate the theme directory: ${directory} (fix: delete it and run again)`, 'unknown')
     }
     /* c8 ignore stop */
   }

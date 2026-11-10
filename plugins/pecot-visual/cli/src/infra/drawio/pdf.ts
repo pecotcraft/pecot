@@ -66,7 +66,7 @@ async function withTimeout<T>(promise: Readonly<Promise<T>>, milliseconds: numbe
   let timer: NodeJS.Timeout | undefined
   const timeout = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(
-      () => { reject(new Error(`PDF 印刷が ${(milliseconds / 1000).toString()}s 以内に終わりませんでした`)) },
+      () => { reject(new Error(`PDF printing did not finish within ${(milliseconds / 1000).toString()}s`)) },
       milliseconds,
     )
   })

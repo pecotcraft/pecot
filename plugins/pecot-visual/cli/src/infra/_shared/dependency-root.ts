@@ -309,8 +309,8 @@ function resolveFrom(bases: readonly string[], specifier: string): string | unde
 判定できるのは依存ルートの実在だけで、配布形態そのものではない。
 */
 export const DEPENDENCY_RECOVERY_HINT
-  = 'プラグイン配布ではデータ置き場の runtime/ を削除して pecotv を起動し直してください（依存の準備がやり直されます）。'
-    + '単体配布では `setup` ツールを実行してください（実行時依存を取得します）。'
+  = 'for the plugin distribution, delete runtime/ in the data directory and restart pecotv (the dependencies are prepared again); '
+    + 'for the standalone distribution, call the `setup` tool (it fetches the runtime dependencies)'
 
 /**
 実行時依存が揃っているかの判定に使う specifier。
