@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # webhook と Scheduler を受ける Lambda（#175）を、CloudFormation で作り、handler.mjs を載せる。
 #
-#   --profile <name>                       AWS の SSO プロファイル。
-#   --region <region>                      既定は ap-northeast-1。
+#   --profile <name>                       AWS のプロファイル。省くと既定のプロファイルを使う。
+#   --region <region>                      既定は ap-southeast-2。
 #   --security-installation-id <id>        security の App の installation id。初回は必須。2 回目以降は省くと前回の値を使う。
 #   --dependabot-prs-installation-id <id>  dependabot-prs の App の installation id。扱いは同上。
 #   --security-client-id <id>              security の App の Client ID。省くと変数 SECURITY_APP_CLIENT_ID を gh で読む。
@@ -15,7 +15,7 @@ set -euo pipefail
 
 STACK="pecot-board-sync"
 FUNCTION="pecot-board-sync"
-REGION="ap-northeast-1"
+REGION="ap-southeast-2"
 PROFILE=""
 SECURITY_INSTALLATION_ID=""
 DEPENDABOT_INSTALLATION_ID=""

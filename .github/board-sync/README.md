@@ -30,7 +30,9 @@ Lambda (handler.mjs)
   - `/pecot/board-sync/security/webhook-secret`
   - `/pecot/board-sync/dependabot-prs/app-private-key`
   - `/pecot/board-sync/dependabot-prs/webhook-secret`
-- 構成は `template.yaml`（CloudFormation）である。スタック名と関数名は `pecot-board-sync`、リージョンは `ap-northeast-1` である
+- 構成は `template.yaml`（CloudFormation）である。スタック名と関数名は `pecot-board-sync`、リージョンは `ap-southeast-2` である
+  - アカウントは、新しい AWS エクスペリエンスのプロジェクトのアカウントである。リージョンは連絡先の国で決まり、日本はシドニーになる
+  - ほかのリージョンは、組織の SCP で拒否される
 - 関数のコードは `deploy.sh` が `update-function-code` で載せる。CloudFormation の `ZipFile` は仮のコードである
 - 非同期呼び出しの再試行は 0 回にしている。sync は冪等で、`concurrency` が重なりを畳むため、再試行は要らない
 - 課金の歯止めとして、署名で弾くこと、`deploy.sh` による同時実行の予約（2）、AWS Budgets のアラートの 3 つを置く
@@ -62,7 +64,7 @@ Scheduler は毎時 1 回、関数に固定の Input（`{"source":"pecot-schedul
 デプロイの後、次で条件を確かめる。
 
 ```bash
-aws lambda get-policy --function-name pecot-board-sync --profile <profile> --region ap-northeast-1 \
+aws lambda get-policy --function-name pecot-board-sync \
   --query Policy --output text | jq '.Statement[] | {Action: .Action, Condition: .Condition}'
 ```
 
@@ -73,15 +75,21 @@ aws lambda get-policy --function-name pecot-board-sync --profile <profile> --reg
 
 次の順で行う。1 から 6 は AWS の準備、7 以降が App と `deploy.sh`。
 
-1. AWS アカウントを新しく作る
-   - プランは Paid plan を選ぶ
+1. AWS アカウントを、GitHub のログインで作る（新しい AWS エクスペリエンス）
+   - root ユーザーは作られない。サインインの強さは GitHub の 2 要素認証で決まる
+   - 最初のプロジェクトのアカウントが自動で作られる。関数はこのアカウントに置く
+2. プランを Paid plan にする
    - Free plan は 6 か月で終わり、アカウントが自動で閉じて、受け口が消える
    - この用途なら、費用は無料の利用枠に収まる。Scheduler は毎時 1 回で月に約 720 回、無料枠は月 1,400 万回である
-2. root ユーザーに MFA を付ける
-3. AWS Organizations を有効にする。IAM Identity Center で権限セットを使うのに要る
-4. IAM Identity Center を有効にし、管理者の権限セットを作って、自分のユーザーに割り当てる
-5. devcontainer で `aws configure sso` を打ち、プロファイルを作る
-6. AWS Budgets で、月 $1 を超えたらメールで知らせるアラートを作る
+3. devcontainer で、プロジェクトのアカウントにログインする。ブラウザでプロジェクトのアカウントを選び、表示されたコードを貼る
+
+   ```bash
+   aws login --remote --profile pecot --region ap-southeast-2
+   ```
+
+4. エージェント用の IAM ロール `claude-agent` を作り、既定のプロファイルにする。詳しくは「エージェントの権限」を参照
+5. AWS Budgets で、月 $1 を超えたらメールで知らせるアラートを作る。実際の費用と予測の両方で知らせる
+6. ログインの期限が切れたら、3 のコマンドを打ち直す。更新は 12 時間ごとに自動で行われ、最長 90 日続く
 7. 2 つの App で、それぞれ秘密鍵をもう 1 本作り、ダウンロードする。Actions の鍵とは別に失効できる
    - security の App（変数 `SECURITY_APP_CLIENT_ID`）
    - dependabot-prs の App（変数 `DEPENDABOT_PRS_APP_CLIENT_ID`）
@@ -113,6 +121,43 @@ aws lambda get-policy --function-name pecot-board-sync --profile <profile> --reg
 
 2 回目以降は、installation id を省くと CloudFormation の前回の値を使う。
 `--security-client-id`・`--dependabot-prs-client-id`・`--repository-id` は、省くと `gh` で読む。
+
+## エージェントの権限
+
+このリポで Claude Code を起動すると、AWS 公式のプラグイン `aws-core` が有効になる（`.claude/settings.json`）。
+プラグインの MCP サーバは、既定のプロファイルの認証情報で AWS を呼ぶ。
+既定のプロファイルを、権限を絞った IAM ロール `claude-agent` にする。人のログイン（`pecot`）の全権限を、エージェントに渡さない。
+
+- 読み取りは `ReadOnlyAccess` で、アカウント全体を読める
+- 書き込みは `pecot-board-sync` のスタック・関数・ロール・Scheduler・ロググループと、`/pecot/board-sync/*` の SSM に限る
+- SSM と Secrets Manager の secret は読めない。鍵は入れられるが、読み返せない
+
+ロールは、次で作る。`<ACCOUNT_ID>` には、プロジェクトのアカウントの ID を入れる。
+
+```bash
+A=<ACCOUNT_ID>; R=ap-southeast-2; D=.github/board-sync
+sed "s/<ACCOUNT_ID>/$A/g" $D/agent-role-trust.json > trust.json
+sed "s/<ACCOUNT_ID>/$A/g; s/<REGION>/$R/g" $D/agent-role-policy.json > policy.json
+aws iam create-role --profile pecot --role-name claude-agent --max-session-duration 43200 \
+  --assume-role-policy-document file://trust.json
+aws iam attach-role-policy --profile pecot --role-name claude-agent \
+  --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+aws iam put-role-policy --profile pecot --role-name claude-agent \
+  --policy-name board-sync-deploy --policy-document file://policy.json
+rm trust.json policy.json
+```
+
+既定のプロファイルは、次で `claude-agent` にする。
+
+```bash
+aws configure set role_arn arn:aws:iam::<ACCOUNT_ID>:role/claude-agent --profile default
+aws configure set source_profile pecot --profile default
+aws configure set role_session_name claude-code --profile default
+aws configure set region ap-southeast-2 --profile default
+aws sts get-caller-identity   # Arn が assumed-role/claude-agent/ で始まれば正しい
+```
+
+`~/.aws` は devcontainer のボリュームに置いている。devcontainer を作り直しても、プロファイルとログインは残る。
 
 ## 鍵の入れ替え
 

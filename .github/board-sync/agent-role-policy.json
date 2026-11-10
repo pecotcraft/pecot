@@ -1,0 +1,102 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Stack",
+      "Effect": "Allow",
+      "Action": "cloudformation:*",
+      "Resource": [
+        "arn:aws:cloudformation:<REGION>:<ACCOUNT_ID>:stack/pecot-board-sync/*",
+        "arn:aws:cloudformation:<REGION>:<ACCOUNT_ID>:changeSet/*/*"
+      ]
+    },
+    {
+      "Sid": "StackGlobal",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:ValidateTemplate",
+        "cloudformation:GetTemplateSummary"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "Function",
+      "Effect": "Allow",
+      "Action": "lambda:*",
+      "Resource": [
+        "arn:aws:lambda:<REGION>:<ACCOUNT_ID>:function:pecot-board-sync",
+        "arn:aws:lambda:<REGION>:<ACCOUNT_ID>:function:pecot-board-sync:*"
+      ]
+    },
+    {
+      "Sid": "Roles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PassRole"
+      ],
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/pecot-board-sync-*"
+    },
+    {
+      "Sid": "Schedule",
+      "Effect": "Allow",
+      "Action": "scheduler:*",
+      "Resource": "arn:aws:scheduler:<REGION>:<ACCOUNT_ID>:schedule/default/pecot-board-sync"
+    },
+    {
+      "Sid": "Logs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:TagResource",
+        "logs:UntagResource",
+        "logs:TagLogGroup"
+      ],
+      "Resource": "arn:aws:logs:<REGION>:<ACCOUNT_ID>:log-group:/aws/lambda/pecot-board-sync*"
+    },
+    {
+      "Sid": "SecretsWriteOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:PutParameter",
+        "ssm:DeleteParameter",
+        "ssm:AddTagsToResource"
+      ],
+      "Resource": "arn:aws:ssm:<REGION>:<ACCOUNT_ID>:parameter/pecot/board-sync/*"
+    },
+    {
+      "Sid": "Budgets",
+      "Effect": "Allow",
+      "Action": [
+        "budgets:ModifyBudget",
+        "budgets:ViewBudget"
+      ],
+      "Resource": "arn:aws:budgets::<ACCOUNT_ID>:budget/*"
+    },
+    {
+      "Sid": "NoSecretReads",
+      "Effect": "Deny",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "ssm:GetParameterHistory",
+        "secretsmanager:GetSecretValue",
+        "kms:Decrypt"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
