@@ -89,4 +89,4 @@ def test_hook_and_cli_resolve_to_tool_cwd_toplevel(
         env=cli_env,
     )
     assert status.returncode == 0, status.stderr
-    assert "| .pecot-active | ✓ | org/repo/123 |" in status.stdout
+    assert "| .pecot-active | set | org/repo/123 |" in status.stdout
