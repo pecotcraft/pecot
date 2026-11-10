@@ -33,7 +33,8 @@ class TestProjectListNewCommand:
         with patch("cli.commands.project.get_projects_dir", return_value=tmp_path):
             result = runner.invoke(app, ["project", "list"])
             assert result.exit_code == 0
-            assert "利用可能なプロジェクト" in result.output
+            assert result.stdout == "=== Projects ===\n  none\n"
+            assert result.stderr == ""
 
     def test_project_list_multiple(self, tmp_path: Path) -> None:
         """複数プロジェクト設定がある場合"""
@@ -77,7 +78,10 @@ class TestSetRepoCommand:
         with patch("cli.commands.project.load_active_config", return_value=None):
             result = runner.invoke(app, ["project", "set-repo", "owner/repo"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert result.stdout == ""
+            assert result.stderr == (
+                "error: no active project\n  run: pecot project activate <PROJECT>\n"
+            )
 
     def test_set_repo_invalid_format(self) -> None:
         """owner/repo形式でない場合はエラー"""
@@ -88,7 +92,10 @@ class TestSetRepoCommand:
             # owner/repo形式でない
             result = runner.invoke(app, ["project", "set-repo", "invalid"])
             assert result.exit_code == 1
-            assert "owner/repo" in result.output.lower()
+            assert result.stderr == (
+                "error: give the repository as owner/repo\n"
+                "  example: pecot project set-repo example-org/my-repo\n"
+            )
 
     def test_set_repo_owner_mismatch(self) -> None:
         """リポジトリオーナーとプロジェクトオーナーが異なる場合はエラー"""
@@ -98,7 +105,11 @@ class TestSetRepoCommand:
         with patch("cli.commands.project.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["project", "set-repo", "different-owner/repo"])
             assert result.exit_code == 1
-            assert "オーナー" in result.output
+            assert result.stderr == (
+                "error: repository owner different-owner differs from project owner "
+                "project-owner\n"
+                "  GitHub Projects V2 links only repositories of the project owner\n"
+            )
 
     def test_set_repo_new_add(self, tmp_path: Path) -> None:
         """新規リポジトリ追加（リンク成功時）"""
@@ -117,7 +128,7 @@ class TestSetRepoCommand:
             patch("cli.commands.project.get_active_config_path", return_value=mock_config_path),
             patch(
                 "cli.commands.project._link_project_repository",
-                return_value=(True, "GitHub Projectにリンクしました"),
+                return_value=("linked", ""),
             ),
             patch("cli.commands.project.save_config") as mock_save,
         ):
@@ -125,8 +136,11 @@ class TestSetRepoCommand:
                 app, ["project", "set-repo", "test-owner/new-repo", "--develop-branch", "main"]
             )
             assert result.exit_code == 0
-            assert "追加" in result.output
-            assert "リンク" in result.output
+            assert result.stdout == ""
+            assert result.stderr == (
+                "added: test-owner/new-repo to project #1\n"
+                f"added: test-owner/new-repo to {mock_config_path}\n"
+            )
             mock_save.assert_called_once()
 
     def test_set_repo_link_failure(self, tmp_path: Path) -> None:
@@ -146,13 +160,16 @@ class TestSetRepoCommand:
             patch("cli.commands.project.get_active_config_path", return_value=mock_config_path),
             patch(
                 "cli.commands.project._link_project_repository",
-                return_value=(False, "リポジトリが見つかりません"),
+                return_value=("failed", "Repository not found"),
             ),
             patch("cli.commands.project.save_config") as mock_save,
         ):
             result = runner.invoke(app, ["project", "set-repo", "test-owner/nonexistent-repo"])
             assert result.exit_code == 1
-            assert "リポジトリが見つかりません" in result.output
+            assert result.stderr == (
+                "error: could not link test-owner/nonexistent-repo to project #1: "
+                "Repository not found\n"
+            )
             mock_save.assert_not_called()
 
     def test_set_repo_update_existing(self, tmp_path: Path) -> None:
@@ -186,7 +203,8 @@ class TestSetRepoCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "更新" in result.output
+            assert result.stdout == ""
+            assert result.stderr == f"updated: test-owner/existing-repo in {mock_config_path}\n"
             mock_save.assert_called_once()
 
     def test_set_repo_default_develop_branch(self, tmp_path: Path) -> None:
@@ -206,7 +224,7 @@ class TestSetRepoCommand:
             patch("cli.commands.project.get_active_config_path", return_value=mock_config_path),
             patch(
                 "cli.commands.project._link_project_repository",
-                return_value=(True, "GitHub Projectにリンクしました"),
+                return_value=("linked", ""),
             ),
             patch("cli.commands.project.save_config") as mock_save,
         ):
@@ -288,7 +306,9 @@ class TestSetRepoCommand:
                 ],
             )
             assert result.exit_code == 1
-            assert "同時指定" in result.output
+            assert (
+                result.stderr == "error: --package and --changelog-file cannot be used together\n"
+            )
 
     def test_set_repo_package_duplicate_name(self) -> None:
         """--package の NAME 重複はエラー"""
@@ -308,7 +328,7 @@ class TestSetRepoCommand:
                 ],
             )
             assert result.exit_code == 1
-            assert "重複" in result.output
+            assert result.stderr == "error: --package NAME is duplicated: 'foo'\n"
 
     def test_set_repo_clear_packages(self, tmp_path: Path) -> None:
         """--clear-packages で既存 packages を削除"""
@@ -352,19 +372,14 @@ class TestLinkProjectRepository:
     def test_link_success(self) -> None:
         """リンク成功"""
         mock_client = MagicMock()
-        mock_client.link_repository_to_project.return_value = (
-            True,
-            "GitHub Projectにリンクしました: owner/repo",
-        )
+        mock_client.link_repository_to_project.return_value = ("linked", "")
 
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             from cli.commands.project import _link_project_repository
 
-            success, message = _link_project_repository(
-                "ghes.example.com", 1, "owner", "owner/repo"
-            )
-            assert success is True
-            assert "リンク" in message
+            outcome, detail = _link_project_repository("ghes.example.com", 1, "owner", "owner/repo")
+            assert outcome == "linked"
+            assert detail == ""
             mock_client.link_repository_to_project.assert_called_once_with(
                 "owner", 1, "owner", "repo"
             )
@@ -372,29 +387,29 @@ class TestLinkProjectRepository:
     def test_link_already_linked(self) -> None:
         """既にリンク済み"""
         mock_client = MagicMock()
-        mock_client.link_repository_to_project.return_value = (True, "既にリンク済みです")
-
-        with patch("cli.commands.project.GitHubClient", return_value=mock_client):
-            from cli.commands.project import _link_project_repository
-
-            success, message = _link_project_repository("github.com", 1, "owner", "owner/repo")
-            assert success is True
-            assert "リンク済み" in message
-
-    def test_link_failure(self) -> None:
-        """リンク失敗"""
-        mock_client = MagicMock()
         mock_client.link_repository_to_project.return_value = (
-            False,
-            "リンクに失敗しました: Repository not found",
+            "already_linked",
+            "already linked",
         )
 
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             from cli.commands.project import _link_project_repository
 
-            success, message = _link_project_repository("github.com", 1, "owner", "owner/repo")
-            assert success is False
-            assert "失敗" in message
+            outcome, detail = _link_project_repository("github.com", 1, "owner", "owner/repo")
+            assert outcome == "already_linked"
+            assert detail == "already linked"
+
+    def test_link_failure(self) -> None:
+        """リンク失敗"""
+        mock_client = MagicMock()
+        mock_client.link_repository_to_project.return_value = ("failed", "Repository not found")
+
+        with patch("cli.commands.project.GitHubClient", return_value=mock_client):
+            from cli.commands.project import _link_project_repository
+
+            outcome, detail = _link_project_repository("github.com", 1, "owner", "owner/repo")
+            assert outcome == "failed"
+            assert detail == "Repository not found"
 
     def test_link_api_error(self) -> None:
         """GitHubAPIErrorが発生した場合"""
@@ -406,23 +421,20 @@ class TestLinkProjectRepository:
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             from cli.commands.project import _link_project_repository
 
-            success, message = _link_project_repository("github.com", 1, "owner", "owner/repo")
-            assert success is False
-            assert "失敗" in message
+            outcome, detail = _link_project_repository("github.com", 1, "owner", "owner/repo")
+            assert outcome == "failed"
+            assert detail == "API Error"
 
     def test_link_repo_name_without_owner(self) -> None:
         """repo名にownerが含まれない場合"""
         mock_client = MagicMock()
-        mock_client.link_repository_to_project.return_value = (
-            True,
-            "GitHub Projectにリンクしました: owner/repo",
-        )
+        mock_client.link_repository_to_project.return_value = ("linked", "")
 
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             from cli.commands.project import _link_project_repository
 
-            success, message = _link_project_repository("github.com", 1, "owner", "repo")
-            assert success is True
+            outcome, _detail = _link_project_repository("github.com", 1, "owner", "repo")
+            assert outcome == "linked"
             # owner引数がrepo_ownerとして使われる
             mock_client.link_repository_to_project.assert_called_once_with(
                 "owner", 1, "owner", "repo"
@@ -683,9 +695,11 @@ class TestProjectSearchCommand:
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             result = runner.invoke(app, ["project", "search", "test-owner"])
             assert result.exit_code == 0
-            assert "test-owner のプロジェクト一覧" in result.output
-            assert "Project One" in result.output
-            assert "Project Two" in result.output
+            assert result.stderr == ""
+            assert result.stdout.startswith("=== Projects of test-owner (github.com) ===\n")
+            assert "Title" in result.stdout
+            assert "Project One" in result.stdout
+            assert "Project Two" in result.stdout
 
     def test_project_search_with_host(self) -> None:
         """--hostオプション指定"""
@@ -700,8 +714,8 @@ class TestProjectSearchCommand:
             )
             assert result.exit_code == 0
             mock_cls.assert_called_with(host="ghes.example.com")
-            expected = "=== test-owner のプロジェクト一覧 (ghes.example.com) ==="
-            assert result.output.splitlines().count(expected) == 1
+            expected = "=== Projects of test-owner (ghes.example.com) ==="
+            assert result.stdout.splitlines().count(expected) == 1
 
     def test_project_search_empty(self) -> None:
         """プロジェクトがない場合"""
@@ -711,7 +725,8 @@ class TestProjectSearchCommand:
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             result = runner.invoke(app, ["project", "search", "test-owner"])
             assert result.exit_code == 1
-            assert "見つかりません" in result.output
+            assert result.stdout == ""
+            assert result.stderr == "error: no projects found for test-owner\n"
 
     def test_project_search_api_error(self) -> None:
         """GitHub APIエラー"""
@@ -723,7 +738,8 @@ class TestProjectSearchCommand:
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             result = runner.invoke(app, ["project", "search", "test-owner"])
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert result.stdout == ""
+            assert result.stderr == "error: could not list projects (status 500): API Error\n"
 
     def test_project_search_long_title_truncated(self) -> None:
         """長いタイトルは省略される"""
@@ -784,10 +800,12 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "pecot-workflow-test" in result.output
-            assert "pecot-priority" in result.output
-            assert "pecot-size" in result.output
-            assert "作成" in result.output
+            assert result.stdout == ""
+            assert result.stderr == (
+                "created: field pecot-workflow-test (ID: new-workflow-field-id)\n"
+                "created: field pecot-priority (ID: new-priority-field-id)\n"
+                "created: field pecot-size (ID: new-size-field-id)\n"
+            )
             assert mock_client.create_project_field.call_count == 3
 
     def test_init_already_exists(self) -> None:
@@ -827,8 +845,11 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "pecot-workflow-testフィールドは既に存在します" in result.output
-            assert "2件のフィールドを作成" in result.output
+            assert result.stderr == (
+                "skipped: field pecot-workflow-test (already exists)\n"
+                "created: field pecot-priority (ID: priority-id)\n"
+                "created: field pecot-size (ID: size-id)\n"
+            )
             assert mock_client.create_project_field.call_count == 2
 
     def test_init_project_not_found(self) -> None:
@@ -843,7 +864,10 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Nonexistent", "--suffix", "test"]
             )
             assert result.exit_code == 1
-            assert "見つかりません" in result.output
+            assert result.stdout == ""
+            assert result.stderr == (
+                "error: project not found: Nonexistent\n  available projects:\n  - Other Project\n"
+            )
 
     def test_init_with_host_option(self) -> None:
         """--hostオプション指定"""
@@ -891,7 +915,7 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert result.stderr == "error: could not initialize project fields: API Error\n"
 
     def test_init_field_creation_error(self) -> None:
         """フィールド作成時のAPIエラー"""
@@ -912,7 +936,9 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 1
-            assert "エラー" in result.output
+            assert result.stderr == (
+                "error: could not initialize project fields: Field creation failed\n"
+            )
 
     def test_init_creates_all_three_fields(self) -> None:
         """3フィールドすべて作成"""
@@ -937,10 +963,11 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "pecot-workflow-test" in result.output
-            assert "pecot-priority" in result.output
-            assert "pecot-size" in result.output
-            assert "3件のフィールドを作成" in result.output
+            assert result.stderr == (
+                "created: field pecot-workflow-test (ID: workflow-id)\n"
+                "created: field pecot-priority (ID: priority-id)\n"
+                "created: field pecot-size (ID: size-id)\n"
+            )
             assert mock_client.create_project_field.call_count == 3
 
     def test_init_skips_existing_priority_field(self) -> None:
@@ -969,8 +996,11 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "pecot-priorityフィールドは既に存在します" in result.output
-            assert "2件のフィールドを作成" in result.output
+            assert result.stderr == (
+                "created: field pecot-workflow-test (ID: workflow-id)\n"
+                "skipped: field pecot-priority (already exists)\n"
+                "created: field pecot-size (ID: size-id)\n"
+            )
             assert mock_client.create_project_field.call_count == 2
 
     def test_init_skips_existing_size_field(self) -> None:
@@ -999,8 +1029,11 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "pecot-sizeフィールドは既に存在します" in result.output
-            assert "2件のフィールドを作成" in result.output
+            assert result.stderr == (
+                "created: field pecot-workflow-test (ID: workflow-id)\n"
+                "created: field pecot-priority (ID: priority-id)\n"
+                "skipped: field pecot-size (already exists)\n"
+            )
             assert mock_client.create_project_field.call_count == 2
 
     def test_init_all_fields_exist(self) -> None:
@@ -1025,13 +1058,13 @@ class TestProjectInitCommand:
                 app, ["project", "init", "test-owner", "Test Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "pecot-workflow-testフィールドは既に存在します" in result.output
-            assert "pecot-priorityフィールドは既に存在します" in result.output
-            assert "pecot-sizeフィールドは既に存在します" in result.output
+            assert result.stderr == (
+                "skipped: field pecot-workflow-test (already exists)\n"
+                "skipped: field pecot-priority (already exists)\n"
+                "skipped: field pecot-size (already exists)\n"
+            )
             # フィールド作成は呼ばれない
             mock_client.create_project_field.assert_not_called()
-            # 「〇件のフィールドを作成」は表示されない
-            assert "件のフィールドを作成" not in result.output
 
 
 # _has_field ヘルパー関数テスト
@@ -1157,7 +1190,16 @@ class TestProjectCreateCommand:
                 app, ["project", "create", "test-owner", "New Project", "--suffix", "test"]
             )
             assert result.exit_code == 0
-            assert "プロジェクトを作成しました" in result.output
+            config_name = "github.com_test-owner_new-project_test"
+            assert result.stdout == ""
+            assert result.stderr == (
+                "created: project #42 https://github.com/users/test-owner/projects/42\n"
+                "created: field pecot-workflow-test (ID: new-workflow-id)\n"
+                "created: field pecot-priority (ID: new-workflow-id)\n"
+                "created: field pecot-size (ID: new-workflow-id)\n"
+                f"created: config file {tmp_path / (config_name + '.json')}\n"
+                f"set: active project to {config_name}\n"
+            )
             mock_client.get_owner_node_id.assert_called_once_with("test-owner")
             mock_client.create_project.assert_called_once()
             mock_save.assert_called()
@@ -1265,7 +1307,7 @@ class TestProjectCreateCommand:
                 app, ["project", "create", "nonexistent", "Project", "--suffix", "test"]
             )
             assert result.exit_code == 1
-            assert "オーナーが見つかりません" in result.output
+            assert result.stderr == "error: owner not found: nonexistent\n"
 
     def test_create_project_api_error(self) -> None:
         """プロジェクト作成時のAPIエラー"""
@@ -1279,7 +1321,7 @@ class TestProjectCreateCommand:
                 app, ["project", "create", "test-owner", "Project", "--suffix", "test"]
             )
             assert result.exit_code == 1
-            assert "エラー" in result.output
+            assert result.stderr == "error: could not create project: プロジェクト作成失敗\n"
 
     def test_create_duplicate_title(self) -> None:
         """同名プロジェクトが既に存在する場合"""
@@ -1300,7 +1342,10 @@ class TestProjectCreateCommand:
                 app, ["project", "create", "test-owner", "Existing Project", "--suffix", "test"]
             )
             assert result.exit_code == 1
-            assert "同名のプロジェクトが既に存在します" in result.output
+            assert result.stderr == (
+                "error: project already exists: Existing Project\n"
+                "  url: https://github.com/users/test-owner/projects/1\n"
+            )
 
 
 # activate コマンドテスト
@@ -1326,8 +1371,8 @@ class TestActivateCommand:
         ):
             result = runner.invoke(app, ["project", "activate", "--host", "github.com"])
             assert result.exit_code == 0
-            assert "認証ユーザー: auth-user" in result.output
-            assert "github.com/auth-user" in result.output
+            assert result.stderr == ""
+            assert result.stdout.startswith("=== Initialized projects (github.com/auth-user) ===\n")
 
     def test_activate_auth_error_shows_hint(self) -> None:
         """認証エラー時はヒントを表示"""
@@ -1337,8 +1382,11 @@ class TestActivateCommand:
         with patch("cli.commands.project.GitHubClient", return_value=mock_client):
             result = runner.invoke(app, ["project", "activate", "--host", "github.com"])
             assert result.exit_code == 1
-            assert "認証ユーザーの取得に失敗しました" in result.output
-            assert "--owner オプション" in result.output
+            assert result.stdout == ""
+            assert result.stderr == (
+                "error: could not read the authenticated user: Auth failed\n"
+                "  pass --owner to give the owner explicitly\n"
+            )
 
     def test_activate_by_name_success(self, tmp_path: Path) -> None:
         """プロジェクト名でアクティベート成功"""
@@ -1387,7 +1435,12 @@ class TestActivateCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "アクティベート" in result.output
+            config_name = "github.com_test-owner_test-project_test"
+            assert result.stdout == ""
+            assert result.stderr == (
+                f"created: config file {tmp_path / (config_name + '.json')}\n"
+                f"set: active project to {config_name}\n"
+            )
 
     def test_activate_by_name_not_found(self) -> None:
         """存在しないプロジェクト名を指定"""
@@ -1410,8 +1463,10 @@ class TestActivateCommand:
                 ],
             )
             assert result.exit_code == 1
-            assert "見つかりません" in result.output
-            assert "Other Project" in result.output  # 利用可能なプロジェクト一覧
+            assert result.stdout == ""
+            assert result.stderr == (
+                "error: project not found: Non Existent\n  available projects:\n  - Other Project\n"
+            )
 
     def test_activate_list_initialized_projects(self) -> None:
         """init済みプロジェクト一覧を表示"""
@@ -1453,10 +1508,11 @@ class TestActivateCommand:
                 app, ["project", "activate", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 0
-            assert "init済みプロジェクト" in result.output
-            assert "#1: Project One" in result.output
+            assert result.stderr == ""
+            assert "=== Initialized projects (github.com/test-owner) ===" in result.stdout
+            assert "#1: Project One" in result.stdout
             # Project Two はinit未済みなので表示されない
-            assert "#2: Project Two" not in result.output
+            assert "#2: Project Two" not in result.stdout
 
     def test_activate_no_initialized_projects(self) -> None:
         """init済みプロジェクトがない場合"""
@@ -1473,7 +1529,8 @@ class TestActivateCommand:
                 app, ["project", "activate", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 0
-            assert "init済みプロジェクトがありません" in result.output
+            assert result.stdout == "=== Initialized projects (github.com/test-owner) ===\n  none\n"
+            assert result.stderr == ""
 
     def test_activate_with_active_marker(self) -> None:
         """アクティブなプロジェクトにマーカー表示"""
@@ -1501,7 +1558,7 @@ class TestActivateCommand:
                 app, ["project", "activate", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 0
-            assert "[ACTIVE]" in result.output
+            assert "[ACTIVE]" in result.stdout
 
     def test_activate_project_success(self, tmp_path: Path) -> None:
         """プロジェクトのアクティベート成功"""
@@ -1541,7 +1598,11 @@ class TestActivateCommand:
                 app, ["project", "activate", "1", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 0
-            assert "アクティベート" in result.output
+            config_name = "github.com_test-owner_test-project_test"
+            assert result.stderr == (
+                f"created: config file {tmp_path / (config_name + '.json')}\n"
+                f"set: active project to {config_name}\n"
+            )
 
     def test_activate_project_not_found(self) -> None:
         """存在しないプロジェクト番号を指定"""
@@ -1553,7 +1614,7 @@ class TestActivateCommand:
                 app, ["project", "activate", "999", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 1
-            assert "見つかりません" in result.output
+            assert result.stderr == "error: project #999 not found\n"
 
     def test_activate_project_not_initialized(self) -> None:
         """init未済みのプロジェクトを指定"""
@@ -1568,7 +1629,11 @@ class TestActivateCommand:
                 app, ["project", "activate", "1", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 1
-            assert "init済みではありません" in result.output
+            assert result.stderr == (
+                'error: project "Not Initialized Project" is not initialized\n'
+                "  run: pecot project init --host github.com --suffix <suffix> test-owner "
+                '"Not Initialized Project"\n'
+            )
 
     def test_activate_with_host_option(self) -> None:
         """--host オプションでGHE指定"""
@@ -1589,8 +1654,8 @@ class TestActivateCommand:
                 ["project", "activate", "--host", "ghes.example.com", "--owner", "test-owner"],
             )
             assert result.exit_code == 0
-            expected = "=== init済みプロジェクト (ghes.example.com/test-owner) ==="
-            assert result.output.splitlines().count(expected) == 1
+            expected = "=== Initialized projects (ghes.example.com/test-owner) ==="
+            assert result.stdout.splitlines().count(expected) == 1
 
     def test_activate_api_error(self) -> None:
         """GitHub APIエラー"""
@@ -1602,13 +1667,14 @@ class TestActivateCommand:
                 app, ["project", "activate", "--host", "github.com", "--owner", "test-owner"]
             )
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert result.stderr == "error: could not activate project: API Error\n"
 
     def test_activate_host_option_required(self) -> None:
         """--hostオプションが必須であることを確認"""
         result = runner.invoke(app, ["project", "activate", "--owner", "test-owner"])
         assert result.exit_code == 1
-        assert "エラー: --host オプションは必須です" in result.output
+        assert result.stderr.startswith("error: --host is required\n  example: pecot project")
+        assert result.stdout == ""
 
     def test_activate_with_config_filepath(self, tmp_path: Path) -> None:
         """設定ファイルパス（相対パス）で同期してアクティベート"""
@@ -1682,7 +1748,7 @@ class TestActivateCommand:
                 app, ["project", "activate", str(config_file), "--host", "ghes.example.com"]
             )
             assert result.exit_code == 0
-            assert "同期" in result.output or "アクティベート" in result.output
+            assert "set: active project to " in result.stderr
 
     def test_activate_keeps_repository_order_of_existing_config(self, tmp_path: Path) -> None:
         """リンク順が既存設定と違っても、保存される repositories は既存設定の並びを保つ"""
@@ -1793,16 +1859,14 @@ class TestActivateCommand:
         result = self._invoke_activate_from_file(tmp_path, None)
 
         assert result.exit_code == 1
-        assert "プロジェクト #1 が見つかりません" in result.output
-        assert "設定ファイルの読み込みに失敗しました" not in result.output
+        assert result.stderr == "error: project #1 not found\n"
 
     def test_activate_config_file_empty_title(self, tmp_path: Path) -> None:
         """タイトルが取れなくても読み込み失敗の行は付かない"""
         result = self._invoke_activate_from_file(tmp_path, {"title": ""})
 
         assert result.exit_code == 1
-        assert "プロジェクトタイトルの取得に失敗しました" in result.output
-        assert "設定ファイルの読み込みに失敗しました" not in result.output
+        assert result.stderr == "error: could not read the title of project #1\n"
 
     def test_activate_config_file_load_error(self, tmp_path: Path) -> None:
         """設定ファイルの読み込みに失敗したときは読み込み失敗を案内する"""
@@ -1818,7 +1882,7 @@ class TestActivateCommand:
             )
 
         assert result.exit_code == 1
-        assert "設定ファイルの読み込みに失敗しました: broken" in result.output
+        assert result.stderr == "error: could not load config file test_config.json: broken\n"
 
     def test_activate_with_config_filename(self, tmp_path: Path) -> None:
         """設定ファイル名で同期してアクティベート"""
@@ -1875,7 +1939,7 @@ class TestActivateCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "同期" in result.output or "アクティベート" in result.output
+            assert "set: active project to " in result.stderr
 
     def test_activate_config_filename_without_json_extension(self, tmp_path: Path) -> None:
         """設定ファイル名（.json拡張子なし）で同期してアクティベート"""
@@ -1932,7 +1996,7 @@ class TestActivateCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "同期" in result.output or "アクティベート" in result.output
+            assert "set: active project to " in result.stderr
 
     def test_activate_config_filename_without_host_option(self, tmp_path: Path) -> None:
         """設定ファイル名で--hostなしで同期してアクティベート可能"""
@@ -1983,7 +2047,7 @@ class TestActivateCommand:
                 app, ["project", "activate", "ghes.example.com_test-owner_project"]
             )
             assert result.exit_code == 0
-            assert "同期" in result.output or "アクティベート" in result.output
+            assert "set: active project to " in result.stderr
 
     def test_activate_config_filepath_without_host_option(self, tmp_path: Path) -> None:
         """設定ファイルパスで--hostなしで同期してアクティベート可能"""
@@ -2032,15 +2096,18 @@ class TestActivateCommand:
             # --host オプションなしでファイルパスを指定
             result = runner.invoke(app, ["project", "activate", str(config_file)])
             assert result.exit_code == 0
-            assert "同期" in result.output or "アクティベート" in result.output
+            assert "set: active project to " in result.stderr
 
     def test_activate_name_without_host_shows_error(self) -> None:
         """名前指定時に--hostなしだとエラー（設定ファイルに一致しない場合）"""
         result = runner.invoke(app, ["project", "activate", "NonexistentProject"])
         assert result.exit_code == 1
-        assert "エラー: --host オプションは必須です" in result.output
-        # ファイル指定で回避できることをヒントとして表示
-        assert "設定ファイル名で指定する場合（--host不要）" in result.output
+        assert result.stderr.startswith("error: --host is required\n")
+        # ファイル指定で回避できることを例として表示
+        assert (
+            "  example: pecot project activate "
+            "ghes.example.com_example-org_example-project_example-org\n"
+        ) in result.stderr
 
     def test_activate_preserves_release_type_and_packages(self, tmp_path: Path) -> None:
         """既存設定の release_type と packages が _sync_project_config で保持される"""
@@ -2249,7 +2316,7 @@ class TestSetRepoReleaseBranch:
             patch("cli.commands.project.get_active_config_path", return_value=mock_config_path),
             patch(
                 "cli.commands.project._link_project_repository",
-                return_value=(True, "GitHub Projectにリンクしました"),
+                return_value=("linked", ""),
             ),
             patch("cli.commands.project.save_config") as mock_save,
         ):
@@ -2266,7 +2333,7 @@ class TestSetRepoReleaseBranch:
                 ],
             )
             assert result.exit_code == 0
-            assert "追加" in result.output
+            assert result.stderr.endswith(f"added: test-owner/new-repo to {mock_config_path}\n")
             mock_save.assert_called_once()
 
     def test_set_repo_update_release_branch(self, tmp_path: Path) -> None:
@@ -2295,7 +2362,7 @@ class TestSetRepoReleaseBranch:
                 ["project", "set-repo", "test-owner/existing-repo", "--release-branch", "main"],
             )
             assert result.exit_code == 0
-            assert "更新" in result.output
+            assert result.stderr == f"updated: test-owner/existing-repo in {mock_config_path}\n"
             mock_save.assert_called_once()
             # release_branchが設定されたことを確認
             assert mock_repo.release_branch == "main"
@@ -2353,7 +2420,7 @@ class TestSetRepoChangelogFile:
             patch("cli.commands.project.get_active_config_path", return_value=mock_config_path),
             patch(
                 "cli.commands.project._link_project_repository",
-                return_value=(True, "GitHub Projectにリンクしました"),
+                return_value=("linked", ""),
             ),
             patch("cli.commands.project.save_config") as mock_save,
         ):
@@ -2370,7 +2437,7 @@ class TestSetRepoChangelogFile:
                 ],
             )
             assert result.exit_code == 0
-            assert "追加" in result.output
+            assert result.stderr.endswith(f"added: test-owner/new-repo to {mock_config_path}\n")
             mock_save.assert_called_once()
 
     def test_set_repo_update_changelog_file(self, tmp_path: Path) -> None:
@@ -2406,7 +2473,7 @@ class TestSetRepoChangelogFile:
                 ],
             )
             assert result.exit_code == 0
-            assert "更新" in result.output
+            assert result.stderr == f"updated: test-owner/existing-repo in {mock_config_path}\n"
             mock_save.assert_called_once()
             # changelog_fileが設定されたことを確認
             assert mock_repo.changelog_file == "AIST-CHANGELOG.md"
@@ -2472,8 +2539,9 @@ class TestInfoAggregationRepoDisplay:
             result = runner.invoke(app, ["project", "info"])
 
         assert result.exit_code == 0, result.output
-        assert "ロードマップリポ: `test-owner/agg-repo`" in result.stdout
-        assert "ロードマップリポ: 未設定" not in result.stdout
+        assert "- Roadmap repo: `test-owner/agg-repo`" in result.stdout
+        assert "- Roadmap repo: none" not in result.stdout
+        assert result.stderr == ""
 
     def test_info_markdown_shows_unset_when_not_configured(self) -> None:
         config = self._build_config(None)
@@ -2489,7 +2557,7 @@ class TestInfoAggregationRepoDisplay:
             result = runner.invoke(app, ["project", "info"])
 
         assert result.exit_code == 0, result.output
-        assert "ロードマップリポ: 未設定" in result.stdout
+        assert "- Roadmap repo: none" in result.stdout
 
     def test_info_json_includes_aggregation_repo_when_set(self) -> None:
         config = self._build_config("test-owner/agg-repo")
@@ -2577,7 +2645,7 @@ class TestInfoDependabotAlerts:
         a = lines.index("    release_type: nx")
         assert lines[a + 1] == "    dependabot_alerts: open 0"
         b = lines.index("    release_type: single")
-        assert lines[b + 1] == "    dependabot_alerts: 無効"
+        assert lines[b + 1] == "    dependabot_alerts: disabled"
 
     def test_failure_is_shown_and_does_not_stop(self) -> None:
         fetch = MagicMock(
@@ -2591,10 +2659,10 @@ class TestInfoDependabotAlerts:
 
         assert result.exit_code == 0, result.output
         assert (
-            "    dependabot_alerts: 取得失敗 (test-owner/repo-a: GitHub APIエラー: 500)"
+            "    dependabot_alerts: fetch failed (test-owner/repo-a: GitHub APIエラー: 500)"
             in result.stdout
         )
-        assert "    dependabot_alerts: 無効" in result.stdout
+        assert "    dependabot_alerts: disabled" in result.stdout
 
     def test_json_includes_dependabot_alerts(self) -> None:
         fetch = MagicMock(side_effect=[self.ENABLED, DependabotAlertError("理由")])
@@ -2632,7 +2700,7 @@ class TestInfoDependabotAlerts:
             for line in result.stdout.splitlines()
             if line.strip().startswith("dependabot_alerts")
         ]
-        assert lines == ["dependabot_alerts: open 0", "dependabot_alerts: 無効"]
+        assert lines == ["dependabot_alerts: open 0", "dependabot_alerts: disabled"]
 
 
 # project info コマンドのエラー時のテスト
@@ -2647,10 +2715,11 @@ class TestInfoErrorPaths:
             result = runner.invoke(app, ["project", "info"])
 
         assert result.exit_code == 1
-        assert "アクティブなプロジェクト設定が見つかりません" in result.output
-        # 案内の 2 行だけが出て、握り直しの「予期しないエラー: 1」は付かない
-        assert len(result.stderr.splitlines()) == 2
-        assert "予期しないエラー" not in result.stderr
+        # 案内の 2 行だけが出て、握り直しの「unexpected error: 1」は付かない
+        assert result.stdout == ""
+        assert result.stderr == (
+            "error: no active project\n  run: pecot project activate <PROJECT>\n"
+        )
 
     def test_info_github_api_error(self) -> None:
         """GitHub APIエラー時"""
@@ -2670,4 +2739,5 @@ class TestInfoErrorPaths:
             result = runner.invoke(app, ["project", "info"])
 
         assert result.exit_code == 1
-        assert "GitHub APIエラー" in result.output
+        assert result.stdout == ""
+        assert result.stderr == "error: could not read project board (status 500): API error\n"

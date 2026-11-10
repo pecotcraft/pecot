@@ -1,6 +1,6 @@
 {
-  "stdout": "設定ファイル「ghes.example.com_acme_board_acme.json」から同期中...\nプロジェクト「board」を同期中...\nプロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\nリンク済みリポジトリを取得中...\n設定ファイルを生成しました: {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n生成した設定をアクティベートしました\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "updated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\nset: active project to ghes.example.com_acme_board_acme\n",
   "exitCode": 0,
   "requests": [
     {

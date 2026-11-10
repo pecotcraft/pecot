@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: aggregation_repo は 'owner/repo' 形式で指定してください: 'roadmap'\n",
+  "stderr": "error: give aggregation_repo as owner/repo: 'roadmap'\n",
   "exitCode": 1,
   "requests": [],
   "files": {

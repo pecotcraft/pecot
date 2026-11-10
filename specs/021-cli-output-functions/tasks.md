@@ -134,12 +134,12 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: golden の `project-*` が記録し直した値と一致する。`cli/commands/project.py` に `typer.echo` が 0 か所
 
-- [ ] T023 [US2] `cli/tests/cli/` と `cli/tests/e2e/` の project のテストの期待値を書き換える。`project info` の表はデータとして stdout に出ることを確かめる
-- [ ] T024 [US2] `cli/commands/project.py` の `typer.echo` 141 か所を `Output` に移す
+- [x] T023 [US2] `cli/tests/cli/` と `cli/tests/e2e/` の project のテストの期待値を書き換える。`project info` の表はデータとして stdout に出ることを確かめる
+- [x] T024 [US2] `cli/commands/project.py` の `typer.echo` 141 か所を `Output` に移す
   - `プロジェクト情報を取得中...` などの進捗の行は消す
   - Archived の削除は `deleted: <n> archived items` の結果の行にする
   - CLI が組み立てる見出しと項目名（`基本情報`・`ロードマップリポ`・`登録済みリポジトリ`・`ボード状況` など）を英語にする。GitHub から読んだ値は変えない
-- [ ] T025 [US2] golden の `project-*` を記録し直す。`project info` の出力を引くスキルを、新しい英語の見出しと項目名に直す
+- [x] T025 [US2] golden の `project-*` を記録し直す。`project info` の出力を引くスキルを、新しい英語の見出しと項目名に直す
   - `skills/w-breakdown/SKILL.md` の Step 2（`ロードマップリポ: ...` の行で判定している）
   - `skills/w-repo-add/SKILL.md`（`登録済みリポジトリ` の節を見ている）
   - 他のスキルと hooks の session-start も `grep` で確かめる

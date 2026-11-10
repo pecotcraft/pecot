@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "プロジェクト情報を取得中...\nGitHub APIエラー: GraphQLクエリ実行エラー: Server error '500 Internal Server Error' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\n",
+  "stderr": "error: could not read project board: GraphQLクエリ実行エラー: Server error '500 Internal Server Error' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\n",
   "exitCode": 1,
   "requests": [
     {

@@ -29,7 +29,7 @@ pecot project show-aggregation-repo
 
 ## 4.2a 既存リポを指定
 
-`pecot project info` の「登録済みリポジトリ」から候補を取得:
+`pecot project info` の `Registered repositories` の節から候補を取得:
 
 ```bash
 pecot project info

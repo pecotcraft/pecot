@@ -139,7 +139,7 @@ export function transformItems(rawItems: readonly JsonObject[], workflowFieldNam
 }
 
 /**
-1 アイテムを Markdown 表の行 `| Ref | タイトル |` にする。
+1 アイテムを Markdown 表の行 `| Ref | Title |` にする。
 Ref は GitHub 慣習に倣い `owner/repo#N` で合成する。
 リポジトリ情報または番号が欠落している場合は可能な範囲で埋め、両方欠落しているときは `-` を表示する
 */
@@ -182,11 +182,11 @@ export function formatBoardOutput(items: readonly BoardItem[]): string {
 
     const isTruncated = status === 'Archived' && totalCount > ARCHIVED_DISPLAY_LIMIT
     const displayItems = isTruncated ? statusItems.toSorted(newestFirst).slice(0, ARCHIVED_DISPLAY_LIMIT) : statusItems
-    const heading = isTruncated ? `### ${status} (${String(totalCount)}件中 直近${String(ARCHIVED_DISPLAY_LIMIT)}件)` : `### ${status} (${String(totalCount)}件)`
-    sections.push([heading, '| Ref | タイトル |', '|-----|----------|', ...displayItems.map(item => formatTableRow(item))])
+    const heading = isTruncated ? `### ${status} (latest ${String(ARCHIVED_DISPLAY_LIMIT)} of ${String(totalCount)})` : `### ${status} (${String(totalCount)})`
+    sections.push([heading, '| Ref | Title |', '|-----|----------|', ...displayItems.map(item => formatTableRow(item))])
   }
 
-  return sections.length === 0 ? '_該当アイテムなし_' : sections.map(section => section.join('\n')).join('\n\n')
+  return sections.length === 0 ? '_No items_' : sections.map(section => section.join('\n')).join('\n\n')
 }
 
 /**

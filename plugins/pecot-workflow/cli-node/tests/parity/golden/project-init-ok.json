@@ -1,6 +1,6 @@
 {
-  "stdout": "プロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\npecot-workflow-acmeフィールドを作成中...\npecot-workflow-acmeフィールドを作成しました (ID: PVTSSF_w)\npecot-priorityフィールドを作成中...\npecot-priorityフィールドを作成しました (ID: PVTSSF_p)\npecot-sizeフィールドを作成中...\npecot-sizeフィールドを作成しました (ID: PVTSSF_s)\n\n3件のフィールドを作成しました\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "created: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\n",
   "exitCode": 0,
   "requests": [
     {
@@ -72,17 +72,17 @@
           {
             "name": "High",
             "color": "RED",
-            "description": "優先度: 高"
+            "description": "Priority: high"
           },
           {
             "name": "Medium",
             "color": "YELLOW",
-            "description": "優先度: 中"
+            "description": "Priority: medium"
           },
           {
             "name": "Low",
             "color": "GREEN",
-            "description": "優先度: 低"
+            "description": "Priority: low"
           }
         ]
       },
@@ -98,22 +98,22 @@
           {
             "name": "XS",
             "color": "GREEN",
-            "description": "サイズ: 極小"
+            "description": "Size: extra small"
           },
           {
             "name": "S",
             "color": "BLUE",
-            "description": "サイズ: 小"
+            "description": "Size: small"
           },
           {
             "name": "M",
             "color": "YELLOW",
-            "description": "サイズ: 中"
+            "description": "Size: medium"
           },
           {
             "name": "L",
             "color": "RED",
-            "description": "サイズ: 大"
+            "description": "Size: large"
           }
         ]
       },

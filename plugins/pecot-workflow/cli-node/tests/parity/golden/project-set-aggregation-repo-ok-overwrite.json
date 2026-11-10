@@ -1,6 +1,6 @@
 {
-  "stdout": "aggregation_repo を設定しました: acme/new\n",
-  "stderr": "警告: aggregation_repo を上書きします: acme/roadmap → acme/new\n",
+  "stdout": "",
+  "stderr": "warning: overwriting aggregation_repo: acme/roadmap -> acme/new\nset: aggregation_repo to acme/new\n",
   "exitCode": 0,
   "requests": [],
   "files": {

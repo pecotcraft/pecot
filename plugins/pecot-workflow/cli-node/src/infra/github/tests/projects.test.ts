@@ -289,20 +289,20 @@ describe('linkRepositoryToProject', () => {
   const projectFound = graphqlData('GetProjectIdUser', { user: { projectV2: { id: 'PVT_proj' } } })
   const repositoryFound = graphqlData('GetRepositoryId', { repository: { id: 'R_repo' } })
 
-  it('リンクに成功したら、リポジトリ名つきのメッセージを返す', async () => {
+  it('リンクに成功したら linked を返す', async () => {
     const { client, server } = await startClient([
       projectFound,
       repositoryFound,
       graphqlData('LinkProjectRepository', { linkProjectV2ToRepository: { repository: { id: 'R_repo', nameWithOwner: 'owner/repo' } } }),
     ])
-    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ success: true, message: 'GitHub Projectにリンクしました: owner/repo' })
+    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ status: 'linked', detail: '' })
     expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetProjectIdUser', 'GetRepositoryId', 'LinkProjectRepository'])
     expect(graphqlRequests(server).at(2)?.variables).toEqual({ projectId: 'PVT_proj', repositoryId: 'R_repo' })
   })
 
-  it.each(['already linked', 'Repository already exists in project'])('「%s」の失敗は、リンク済みとして成功にする', async (message) => {
+  it.each(['already linked', 'Repository already exists in project'])('「%s」の失敗は、already_linked にして GitHub の message を detail に入れる', async (message) => {
     const { client } = await startClient([projectFound, repositoryFound, graphqlError('LinkProjectRepository', message)])
-    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ success: true, message: '既にリンク済みです' })
+    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ status: 'already_linked', detail: `GraphQLクエリ実行エラー: {'message': '${message}'}` })
   })
 
   it('プロジェクトが無ければ失敗（メッセージは GitHubNotFoundError の文）', async () => {
@@ -311,35 +311,35 @@ describe('linkRepositoryToProject', () => {
       graphqlData('GetProjectIdOrg', { organization: JSON_NULL }),
     ])
     expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({
-      success: false,
-      message: 'リンクに失敗しました: プロジェクトが見つかりません: owner/projects/1',
+      status: 'failed',
+      detail: 'プロジェクトが見つかりません: owner/projects/1',
     })
   })
 
   it('リポジトリが無ければ失敗', async () => {
     const { client } = await startClient([projectFound, graphqlData('GetRepositoryId', { repository: JSON_NULL })])
     expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'nonexistent')).toEqual({
-      success: false,
-      message: 'リンクに失敗しました: リポジトリが見つかりません: owner/nonexistent',
+      status: 'failed',
+      detail: 'リポジトリが見つかりません: owner/nonexistent',
     })
   })
 
   it('その他の API エラーは失敗（メッセージに GraphQL の文を含める）', async () => {
     const { client } = await startClient([projectFound, repositoryFound, graphqlError('LinkProjectRepository', 'Some API error')])
     expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({
-      success: false,
-      message: 'リンクに失敗しました: GraphQLクエリ実行エラー: {\'message\': \'Some API error\'}',
+      status: 'failed',
+      detail: 'GraphQLクエリ実行エラー: {\'message\': \'Some API error\'}',
     })
   })
 
-  it('repository が null のレスポンスは「レスポンスが不正です」', async () => {
+  it('repository が null のレスポンスはunexpected response', async () => {
     const { client } = await startClient([projectFound, repositoryFound, graphqlData('LinkProjectRepository', { linkProjectV2ToRepository: { repository: JSON_NULL } })])
-    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ success: false, message: 'リンクに失敗しました: レスポンスが不正です' })
+    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ status: 'failed', detail: 'unexpected response' })
   })
 
-  it('nameWithOwner が無ければ空文字をつなぐ', async () => {
+  it('nameWithOwner が無くても linked', async () => {
     const { client } = await startClient([projectFound, repositoryFound, graphqlData('LinkProjectRepository', { linkProjectV2ToRepository: { repository: { id: 'R_repo' } } })])
-    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ success: true, message: 'GitHub Projectにリンクしました: ' })
+    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ status: 'linked', detail: '' })
   })
 })
 

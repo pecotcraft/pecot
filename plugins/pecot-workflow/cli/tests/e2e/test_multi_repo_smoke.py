@@ -339,8 +339,8 @@ def test_project_info_repo_filter(respx_mock: respx.MockRouter) -> None:
         result = runner.invoke(app, ["project", "info", "--repo", "ownerA/repoA"])
 
     assert result.exit_code == 0, result.stdout + result.stderr
-    assert "| Ref | タイトル |" in result.stdout
-    assert "## ボード状況 (フィルタ: ownerA/repoA)" in result.stdout
+    assert "| Ref | Title |" in result.stdout
+    assert "## Board status (filter: ownerA/repoA)" in result.stdout
     # ownerA/repoA# で始まる Ref が 2 件現れる
     assert result.stdout.count("ownerA/repoA#") == 2
     assert "ownerB/repoB#" not in result.stdout

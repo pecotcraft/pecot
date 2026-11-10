@@ -1,5 +1,5 @@
 {
-  "stdout": "=== 利用可能なプロジェクト ===\n  (プロジェクト設定がありません)\n",
+  "stdout": "=== Projects ===\n  none\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [],

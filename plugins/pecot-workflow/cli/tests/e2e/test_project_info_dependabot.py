@@ -4,7 +4,7 @@
 本物の ``GitHubClient`` を respx に通して検証する。
 
 - repoA: 一覧が Link ヘッダの ``rel="next"`` で 2 ページ → ``open 3``
-- repoB: 一覧 403 + vulnerability-alerts 404 → ``無効``
+- repoB: 一覧 403 + vulnerability-alerts 404 → ``disabled``
 """
 
 from __future__ import annotations
@@ -120,7 +120,7 @@ def test_markdown_shows_open_count_and_disabled(respx_mock: respx.MockRouter) ->
     a = lines.index("    release_type: nx")
     assert lines[a + 1] == "    dependabot_alerts: open 3"
     b = lines.index("    release_type: single")
-    assert lines[b + 1] == "    dependabot_alerts: 無効"
+    assert lines[b + 1] == "    dependabot_alerts: disabled"
     assert page1.call_count == 1
     assert page2.call_count == 1
     assert list_b.call_count == 1

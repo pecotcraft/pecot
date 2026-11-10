@@ -28,7 +28,7 @@ pecot project info
 
 ### Step 2: 成果物作成先の決定（ロードマップリポチェック）
 
-Step 1 の `pecot project info` 出力にある「ロードマップリポ: ...」行と CWD のリポを比べる。
+Step 1 の `pecot project info` 出力にある `Roadmap repo: ...` 行と CWD のリポを比べる。
 
 CWD のリポを取得:
 
@@ -40,9 +40,9 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 
 判定:
 
-- **ロードマップリポ: 未設定** → CWD のリポで成果物を作る前提で進む
-- **ロードマップリポ: <owner/repo>** かつ **CWD == その値** → そのまま進む
-- **ロードマップリポ: <owner/repo>** かつ **CWD が異なる** → 中止し、次の文をユーザーに案内する
+- **`Roadmap repo: none`** → CWD のリポで成果物を作る前提で進む
+- **`Roadmap repo: <owner/repo>`** かつ **CWD == その値** → そのまま進む
+- **`Roadmap repo: <owner/repo>`** かつ **CWD が異なる** → 中止し、次の文をユーザーに案内する
 
   > このプロジェクトではロードマップリポ `<owner/repo>` が設定されている。
   > w-breakdown はロードマップリポでのみ実行できる。`<owner/repo>` のワークツリーで再実行すること。

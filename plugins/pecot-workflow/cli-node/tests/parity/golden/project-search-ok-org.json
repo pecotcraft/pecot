@@ -1,5 +1,5 @@
 {
-  "stdout": "=== acme のプロジェクト一覧 (ghes.example.com) ===\n\n#    タイトル                                     URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1\n",
+  "stdout": "=== Projects of acme (ghes.example.com) ===\n\n#    Title                                    URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

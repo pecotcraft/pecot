@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "acme のプロジェクトが見つかりません\n",
+  "stderr": "error: no projects found for acme\n",
   "exitCode": 1,
   "requests": [
     {

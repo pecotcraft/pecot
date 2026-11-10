@@ -51,11 +51,11 @@ SingleSelect フィールドの選択肢
 export type ProjectFieldOption = Readonly<{ name: string, color: string, description: string }>
 
 /**
-プロジェクトへのリンクの結果。success が false のとき message は失敗の理由
+プロジェクトへのリンクの結果。detail は GitHub の message をそのまま入れる（成功時は空文字列）
 */
 export interface LinkResult {
-  readonly success: boolean
-  readonly message: string
+  readonly status: 'linked' | 'already_linked' | 'failed'
+  readonly detail: string
 }
 
 const MAX_ARCHIVED_CONSECUTIVE = 50
@@ -247,7 +247,7 @@ export class ProjectsApi extends ReposApi {
 
   /**
   プロジェクトにリポジトリをリンクする。
-  成功、既にリンク済み（success は true）、失敗（success は false）のいずれも例外にせず結果で返す
+  リンクした（linked）、既にリンク済み（already_linked）、失敗（failed）のいずれも例外にせず結果で返す
   */
   async linkRepositoryToProject(owner: string, projectNumber: number, repositoryOwner: string, repositoryName: string): Promise<LinkResult> {
     try {
@@ -256,18 +256,14 @@ export class ProjectsApi extends ReposApi {
       const result = await this.executeGraphql(MUTATION_LINK_PROJECT_REPOSITORY, { projectId, repositoryId })
 
       const linked = jsonField(jsonField(result, 'linkProjectV2ToRepository'), 'repository')
-      if (isTruthy(linked)) {
-        const nameWithOwner = jsonField(linked, 'nameWithOwner')
-        return { success: true, message: `GitHub Projectにリンクしました: ${typeof nameWithOwner === 'string' ? nameWithOwner : ''}` }
-      }
-      return { success: false, message: 'リンクに失敗しました: レスポンスが不正です' }
+      return isTruthy(linked) ? { status: 'linked', detail: '' } : { status: 'failed', detail: 'unexpected response' }
     }
     catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) return { success: false, message: `リンクに失敗しました: ${error.message}` }
+      if (error instanceof GitHubNotFoundError) return { status: 'failed', detail: error.message }
       if (error instanceof GitHubAPIError) {
         const lowered = error.message.toLowerCase()
         const isAlreadyLinked = lowered.includes('already linked') || lowered.includes('already exists')
-        return isAlreadyLinked ? { success: true, message: '既にリンク済みです' } : { success: false, message: `リンクに失敗しました: ${error.message}` }
+        return { status: isAlreadyLinked ? 'already_linked' : 'failed', detail: error.message }
       }
       throw error
     }
