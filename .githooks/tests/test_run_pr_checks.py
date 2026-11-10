@@ -237,14 +237,13 @@ def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
     assert pr_repo.pc_log.read_text() == ""
 
 
-@pytest.mark.parametrize("part", ["lint"])
 def test_summary_without_lane_sections_for_non_test_part(
-    pr_repo: _PrChecksRepo, run_script, part: str
+    pr_repo: _PrChecksRepo, run_script
 ) -> None:
     """lint の Summary は、見出しに part を書き、レーン・失敗・skip の欄を出さない。"""
-    result = pr_repo.run(run_script, f"--part={part}", pr_repo.base, pr_repo.head)
+    result = pr_repo.run(run_script, "--part=lint", pr_repo.base, pr_repo.head)
     out = result.stdout
-    assert f"## 検証の結果（{part}）\n" in out
+    assert "## 検証の結果（lint）\n" in out
     assert "### 範囲" in out
     assert "### 環境" in out
     for heading in ("### レーン", "### 失敗", "### skip"):
@@ -449,13 +448,12 @@ def test_tests_part_with_nx_cache_uses_remote_cache(
     assert "nx-cache-server: GET hit=0 miss=0 PUT=0" in result.stderr
 
 
-@pytest.mark.parametrize("part", ["lint"])
 def test_other_parts_with_nx_cache_skip_the_cache(
-    pr_repo: _PrChecksRepo, run_script, tmp_path: Path, part: str
+    pr_repo: _PrChecksRepo, run_script, tmp_path: Path
 ) -> None:
     result = pr_repo.run(
         run_script,
-        f"--part={part}",
+        "--part=lint",
         pr_repo.base,
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},

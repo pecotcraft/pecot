@@ -22,37 +22,12 @@
     "test-nx-cache": {
       "executor": "nx:run-commands",
       "inputs": [
-        "runtime",
-        "env",
-        {
-          "runtime": "uv --version"
-        },
-        {
-          "runtime": "uv python find --no-project --show-version 3.12"
-        },
-        {
-          "runtime": "git --version"
-        },
-        {
-          "runtime": "jq --version"
-        },
-        "sharedGlobals",
-        "{projectRoot}/project.json",
-        "{projectRoot}/tests/conftest.py",
-        "{projectRoot}/tests/run.sh",
-        "{projectRoot}/lib/**/*",
+        "githooksTestGlobals",
+        "githooksGraphInputs",
         "{projectRoot}/tests/test_nx_task_cache.py",
         {
-          "runtime": "node -p \"require('nx/package.json').version\""
+          "runtime": "git ls-files -- plugins/pecot-visual/assets/slidev/deck-lint.config.js plugins/pecot-visual/assets/slidev/deck-lint.env.config.js plugins/pecot-visual/assets/slidev/scripts/eslint/slidev-pages-lint/index.ts plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references/index.ts plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references/lib/schema-validator.ts plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/references/plain.yaml | git hash-object --stdin"
         },
-        "{workspaceRoot}/.nxignore",
-        "{workspaceRoot}/package.json",
-        "{workspaceRoot}/pnpm-workspace.yaml",
-        "{workspaceRoot}/plugins/**/project.json",
-        "{workspaceRoot}/libs/**/project.json",
-        "{workspaceRoot}/.nx/nx-release/project.json",
-        "{workspaceRoot}/plugins/**/package.json",
-        "{workspaceRoot}/libs/**/package.json",
         "{projectRoot}/ci/run-affected-tests.sh",
         "{projectRoot}/pre-commit/run-affected-lint.sh",
         "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/python-version.sh"
@@ -66,7 +41,7 @@
         }
       ],
       "metadata": {
-        "description": "実 nx の graph と、フィクスチャでのキャッシュの再利用を確かめる。入力は graph を作るファイル全体。"
+        "description": "実 nx の graph と、フィクスチャでのキャッシュの再利用を確かめる。実リポの特定のファイルの実在は runtime 入力で見る。それ以外の実リポのファイルを読む確認は入力に無い。"
       },
       "options": {
         "command": ".githooks/tests/run.sh .githooks/tests/test_nx_task_cache.py",
@@ -76,37 +51,9 @@
     "test-nx-affected": {
       "executor": "nx:run-commands",
       "inputs": [
-        "runtime",
-        "env",
-        {
-          "runtime": "uv --version"
-        },
-        {
-          "runtime": "uv python find --no-project --show-version 3.12"
-        },
-        {
-          "runtime": "git --version"
-        },
-        {
-          "runtime": "jq --version"
-        },
-        "sharedGlobals",
-        "{projectRoot}/project.json",
-        "{projectRoot}/tests/conftest.py",
-        "{projectRoot}/tests/run.sh",
-        "{projectRoot}/lib/**/*",
+        "githooksTestGlobals",
+        "githooksGraphInputs",
         "{projectRoot}/tests/test_nx_affected_mapping.py",
-        {
-          "runtime": "node -p \"require('nx/package.json').version\""
-        },
-        "{workspaceRoot}/.nxignore",
-        "{workspaceRoot}/package.json",
-        "{workspaceRoot}/pnpm-workspace.yaml",
-        "{workspaceRoot}/plugins/**/project.json",
-        "{workspaceRoot}/libs/**/project.json",
-        "{workspaceRoot}/.nx/nx-release/project.json",
-        "{workspaceRoot}/plugins/**/package.json",
-        "{workspaceRoot}/libs/**/package.json",
         {
           "runtime": "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin"
         },
@@ -131,25 +78,7 @@
     "test-ci": {
       "executor": "nx:run-commands",
       "inputs": [
-        "runtime",
-        "env",
-        {
-          "runtime": "uv --version"
-        },
-        {
-          "runtime": "uv python find --no-project --show-version 3.12"
-        },
-        {
-          "runtime": "git --version"
-        },
-        {
-          "runtime": "jq --version"
-        },
-        "sharedGlobals",
-        "{projectRoot}/project.json",
-        "{projectRoot}/tests/conftest.py",
-        "{projectRoot}/tests/run.sh",
-        "{projectRoot}/lib/**/*",
+        "githooksTestGlobals",
         "{projectRoot}/tests/test_run_pr_checks.py",
         "{projectRoot}/tests/test_run_affected_tests.py",
         "{projectRoot}/tests/test_run_affected_lint.py",
@@ -183,48 +112,10 @@
     "test-checks": {
       "executor": "nx:run-commands",
       "inputs": [
-        "runtime",
-        "env",
-        {
-          "runtime": "uv --version"
-        },
-        {
-          "runtime": "uv python find --no-project --show-version 3.12"
-        },
-        {
-          "runtime": "git --version"
-        },
-        {
-          "runtime": "jq --version"
-        },
-        "sharedGlobals",
-        "{projectRoot}/project.json",
-        "{projectRoot}/tests/conftest.py",
-        "{projectRoot}/tests/run.sh",
-        "{projectRoot}/lib/**/*",
-        "{projectRoot}/tests/test_board_sync.py",
-        "{projectRoot}/tests/test_check_direct_commit.py",
-        "{projectRoot}/tests/test_check_engines_node_drift.py",
-        "{projectRoot}/tests/test_check_misplaced_pecot.py",
-        "{projectRoot}/tests/test_check_release_group_changelog.py",
-        "{projectRoot}/tests/test_check_root_entries.py",
-        "{projectRoot}/tests/test_check_skill_doc_direct_call.py",
-        "{projectRoot}/tests/test_check_text.py",
-        "{projectRoot}/tests/test_check_version_plan_format.py",
-        "{projectRoot}/tests/test_devcontainer_playwright_version.py",
-        "{projectRoot}/tests/test_entry_point_linter.py",
-        "{projectRoot}/tests/test_gen_runtime_lock.py",
-        "{projectRoot}/tests/test_githooks_lanes.py",
-        "{projectRoot}/tests/test_gitlint_japanese_rule.py",
-        "{projectRoot}/tests/test_marketplace_parity.py",
-        "{projectRoot}/tests/test_nx_env_inputs.py",
-        "{projectRoot}/tests/test_plugin_update_notice_parity.py",
-        "{projectRoot}/tests/test_plugin_validate.py",
-        "{projectRoot}/tests/test_pre_commit_config_wiring.py",
-        "{projectRoot}/tests/test_python_range_parity.py",
-        "{projectRoot}/tests/test_root_package_manifest.py",
-        "{projectRoot}/tests/test_ruleset_main.py",
-        "{projectRoot}/tests/test_run_pnpm.py",
+        "githooksTestGlobals",
+        "githooksGraphInputs",
+        "{projectRoot}/tests/test_*.py",
+        "{projectRoot}/ci/run-affected-tests.sh",
         "{projectRoot}/commit-msg/**/*",
         "{projectRoot}/pre-commit/**/*",
         "{projectRoot}/pre-push/**/*",
@@ -232,7 +123,6 @@
         "{projectRoot}/scripts/gen-runtime-lock.mjs",
         "{projectRoot}/scripts/run-lint.sh",
         "{projectRoot}/scripts/run-pnpm.sh",
-        "{projectRoot}/ci/run-affected-tests.sh",
         {
           "input": "production",
           "projects": [
@@ -248,8 +138,6 @@
         "{workspaceRoot}/.github/plugin/marketplace.json",
         "{workspaceRoot}/.claude-plugin/marketplace.json",
         "{workspaceRoot}/.claude/rules/repo-root-layout.md",
-        "{workspaceRoot}/package.json",
-        "{workspaceRoot}/pnpm-workspace.yaml",
         "{workspaceRoot}/pyproject.toml",
         "{workspaceRoot}/uv.lock",
         "{workspaceRoot}/plugins/pecot-workflow/cli/pyproject.toml",
@@ -261,18 +149,7 @@
         "{workspaceRoot}/plugins/*/runtime-lock.yaml",
         "{workspaceRoot}/plugins/*/runtime-workspace.yaml",
         "{workspaceRoot}/libs/*/runtime-lock.yaml",
-        "{workspaceRoot}/libs/*/runtime-workspace.yaml",
-        "{workspaceRoot}/plugins/**/package.json",
-        "{workspaceRoot}/libs/**/package.json",
-        "{projectRoot}/tests/test_check_version_plan_required.py",
-        "{projectRoot}/pre-push/check-version-plan-required.sh",
-        {
-          "runtime": "node -p \"require('nx/package.json').version\""
-        },
-        "{workspaceRoot}/.nxignore",
-        "{workspaceRoot}/plugins/**/project.json",
-        "{workspaceRoot}/libs/**/project.json",
-        "{workspaceRoot}/.nx/nx-release/project.json"
+        "{workspaceRoot}/libs/*/runtime-workspace.yaml"
       ],
       "dependsOn": [
         {
@@ -289,7 +166,7 @@
         }
       ],
       "metadata": {
-        "description": "hook と設定の整合のテスト。test_nx_env_inputs.py の走査範囲（plugins・libs 全体）は、pre-push の nx-env-inputs が受け持つので入力に入れない。"
+        "description": "hook と設定の整合のテスト。実リポ全体を読む test_check_root_entries と test_plugin_validate は、入力に入れない。checks (lint) の check-root-entries と plugin-validate が受け持つため。test_nx_env_inputs の走査範囲も nx-env-inputs が受け持つ。"
       },
       "options": {
         "command": ".githooks/tests/run.sh .githooks/tests/test_board_sync.py .githooks/tests/test_check_direct_commit.py .githooks/tests/test_check_engines_node_drift.py .githooks/tests/test_check_misplaced_pecot.py .githooks/tests/test_check_release_group_changelog.py .githooks/tests/test_check_root_entries.py .githooks/tests/test_check_skill_doc_direct_call.py .githooks/tests/test_check_text.py .githooks/tests/test_check_version_plan_format.py .githooks/tests/test_devcontainer_playwright_version.py .githooks/tests/test_entry_point_linter.py .githooks/tests/test_gen_runtime_lock.py .githooks/tests/test_githooks_lanes.py .githooks/tests/test_gitlint_japanese_rule.py .githooks/tests/test_marketplace_parity.py .githooks/tests/test_nx_env_inputs.py .githooks/tests/test_plugin_update_notice_parity.py .githooks/tests/test_plugin_validate.py .githooks/tests/test_pre_commit_config_wiring.py .githooks/tests/test_python_range_parity.py .githooks/tests/test_root_package_manifest.py .githooks/tests/test_ruleset_main.py .githooks/tests/test_run_pnpm.py .githooks/tests/test_check_version_plan_required.py",

@@ -15,7 +15,6 @@
 
 from __future__ import annotations
 
-import functools
 import json
 import os
 import re
@@ -25,6 +24,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import yaml
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -46,21 +46,9 @@ _EXPECTED_PROJECTS = {
 }
 
 
-@functools.cache
-def _real_repo_nx_state() -> dict[str, str]:
-    """実リポの cwd で起動する nx のキャッシュと索引 db の置き場。conftest.py が 1 回の実行に 1 つ作る。
-
-    外の nx の索引 db と graph の lock を共有しない。片方だけ向けるとキャッシュが実リポの .nx/cache に戻る。
-    """
-    root = Path(os.environ["PECOT_TEST_NX_REAL_REPO_STATE"])
-    return {
-        "NX_CACHE_DIRECTORY": str(root / "cache"),
-        "NX_WORKSPACE_DATA_DIRECTORY": str(root / "workspace-data"),
-    }
-
-
 def _nx_env(isolation: dict[str, str] | None = None) -> dict[str, str]:
-    return {**os.environ, "NX_DAEMON": "false", **(isolation or _real_repo_nx_state())}
+    # キャッシュと索引 db の置き場は、conftest.py が立てた env を引き継ぐ。
+    return {**os.environ, "NX_DAEMON": "false", **(isolation or {})}
 
 
 @pytest.fixture(scope="session")
@@ -77,7 +65,7 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
 
     nx_state を渡すと、キャッシュと索引 db をそこへ向ける。一時 clone など `_REPO_ROOT` 以外で
     動かすときに渡す（nx 24 は repo ごとの id で `~/.nx/<id>/` を作り、一時リポの分が残るため）。
-    省くと、worker ごとの置き場へ向ける。
+    省くと、conftest.py が 1 回の実行に 1 つ作り、worker で共有する置き場に向く。
     """
     isolation = (
         {
@@ -768,7 +756,38 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         ("nx.json", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
         (".nxignore", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
         ("libs/text-rules/project.json", _GITHOOKS_GRAPH),
+        # test-checks が読む設定。外れると、整合の確認が古い成功を返す。
+        (".pre-commit-config.yaml", _GITHOOKS_CHECKS),
+        (".github/workflows/ci.yml", _GITHOOKS_CHECKS),
+        (".github/rulesets/main.json", _GITHOOKS_CHECKS),
+        (".gitlint", _GITHOOKS_CHECKS),
+        (".github/plugin/marketplace.json", _GITHOOKS_CHECKS),
+        (".claude-plugin/marketplace.json", _GITHOOKS_CHECKS),
+        (".claude/rules/repo-root-layout.md", _GITHOOKS_CHECKS),
+        (
+            "plugins/pecot-workflow/hooks/lib/session-start/plugin-update-notice.sh",
+            _GITHOOKS_CHECKS,
+        ),
+        ("libs/text-rules/index.ts", _GITHOOKS_CHECKS),
+        (
+            ".githooks/ci/run-affected-tests.sh",
+            _GITHOOKS_CHECKS | {"githooks:test-ci", "githooks:test-nx-cache"},
+        ),
+        ("libs/text-rules/package.json", _GITHOOKS_GRAPH),
+        # 新しいテストのファイルは tests/test_*.py の glob で test-checks に届く。自分のレーンの入力にも載る。
+        (".githooks/tests/test_ruleset_main.py", _GITHOOKS_CHECKS),
+        (".githooks/tests/test_nx_task_cache.py", _GITHOOKS_CHECKS | {"githooks:test-nx-cache"}),
+        # graph を作るファイル。nx は .gitignore に従ってファイルの一覧を作る。
+        (".gitignore", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
+        ("plugins/pecot-visual/.gitignore", _GITHOOKS_GRAPH),
+        # pnpm-workspace.yaml の packages にある package.json だけが graph を作る。
+        ("plugins/pecot-visual/cli/tests/fixtures/minimal-slidev/package.json", _GITHOOKS_GRAPH),
+        ("plugins/pecot-visual/assets/slidev/scripts/eslint/2layer/package.json", _GITHOOKS_GRAPH),
         # 当たらない側。githooks のレーンは選ばれない。
+        ("plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/package.json", set()),
+        ("plugins/pecot-visual/scripts/release/audit-canary/package.json", set()),
+        ("plugins/pecot-visual/bin/pecotv", set()),
+        ("plugins/pecot-visual/scripts/ci/run-lint.sh", set()),
         ("README.md", set()),
         ("plugins/pecot-workflow/skills/w-pr/SKILL.md", set()),
         ("plugins/pecot-visual/CHANGELOG.md", set()),
@@ -784,6 +803,26 @@ def test_gate_selects_the_githooks_lanes_that_read_the_change(
     lanes = _graph_lane_names(nx_bin, tmp_path, "test")
     selected = _selected_lanes(nx_bin, tmp_path, lanes, changed_file)
     assert {lane for lane in selected if lane.startswith("githooks:")} == expected
+
+
+@pytest.mark.parametrize(
+    "lane", ["githooks:test-nx-cache", "githooks:test-nx-affected", "githooks:test-checks"]
+)
+def test_graph_lanes_read_every_workspace_package_json(
+    lane_input_files: dict[str, set[str]], lane: str
+) -> None:
+    """graph を作る package.json は pnpm-workspace.yaml の packages で決まる。入力が過不足なく追随する。"""
+    workspace = yaml.safe_load((_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"))
+    expected = {f"{package}/package.json" for package in workspace["packages"]} | {"package.json"}
+    tracked = subprocess.run(
+        ["git", "ls-files", "--", "*package.json"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    read = {f for f in lane_input_files[lane] if f in set(tracked)}
+    assert read == expected & set(tracked), sorted(read ^ expected)
 
 
 @pytest.mark.parametrize(

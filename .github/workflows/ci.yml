@@ -37,6 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # 要素は 1 つ。job 名 `checks (lint)` と artifact 名 `ci-logs-lint` を保つために matrix を残す。
         part: [lint]
     steps:
       - name: Checkout

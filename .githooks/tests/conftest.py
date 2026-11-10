@@ -21,26 +21,10 @@ from pathlib import Path
 
 import pytest
 
-# グローバル環境隔離（pre-push フック配下の GIT_* リーク対策）
-#
-# pre-push フック内では git が GIT_DIR / GIT_INDEX_FILE 等を子プロセスへ export する。
-# 各テストは temp repo を git init/config/commit する。
-# これらが残ると、親リポの index/working tree/.git/config を巻き込んで失敗・破壊する。
-#
-# bats 版 run.sh は `unset $(git rev-parse --local-env-vars)` でプロセス単位に一括解除していた。
-# その 15 変数はすべて GIT_ プレフィックスを持つ。
-# そのためここでは、os.environ を走査して GIT_ プレフィックスを一括 delenv する（上位集合）。
-#
-# hooks/conftest.py は 7 キー限定にしている。
-# run-tests.sh pass2 が export する GIT_CONFIG_GLOBAL=/dev/null まで剥がさない理由があるため。
-# .githooks 側は pass2 を持たないため、一括 delenv で問題ない。
+# pre-push 配下の GIT_* が temp repo の git 操作へ漏れるのを防ぐため、autouse の fixture が GIT_ 始まりを一括で剥がす。
+# hooks/conftest.py と違い、.githooks 側は GIT_CONFIG_GLOBAL を足す pass2 を持たないので、7 キー限定にしない。
 
-
-# push の範囲（base / tip）を決める env。lib/push-range.sh が読む。
-# pre-push 配下では pre-commit が PRE_COMMIT_* を渡す。
-# 計測や検証では PECOT_VERSION_PLAN_BASE を付けて push する。
-# これらが pytest に引き継がれると、temp repo の base 解決（merge-base）が実リポの値で上書きされて落ちる (#1225)。
-# 各テストが必要な値を env= で渡す。
+# push の範囲を決める env（lib/push-range.sh が読む）。引き継ぐと temp repo の base 解決が実リポの値で上書きされる (#1225)。
 _PUSH_RANGE_ENV = ("PECOT_VERSION_PLAN_BASE", "PRE_COMMIT_FROM_REF", "PRE_COMMIT_TO_REF")
 
 # CI の run-pr-checks.sh が立てる env。引き継ぐと、手元の既定を確かめるテストが CI の動きで落ちる。
@@ -64,8 +48,7 @@ _CI_ENV = (
 )
 
 
-# 外の nx の task が渡す変数。引き継ぐと、テストの中で起動する nx が外の task の中と見なされる。
-# NX_DAEMON はテストが付け、NX_TUI と NX_INVOCATION_ANCESTOR_PIDS は残す（再検出は workspace-data の隔離で避ける）。
+# 外の nx の task が渡す変数。引き継ぐと、テストの nx が外の task の中と見なされる。
 _NX_TASK_ENV = (
     "NX_TASK_TARGET_PROJECT",
     "NX_TASK_TARGET_TARGET",
@@ -85,23 +68,24 @@ _NX_TASK_ENV = (
 )
 
 
-# 実リポの cwd で起動する nx の置き場。外の nx と分け、xdist の worker 同士では共有して graph の作り直しを 1 回にする。
-REAL_REPO_NX_STATE_ENV = "PECOT_TEST_NX_REAL_REPO_STATE"
-_created_nx_state: list[str] = []
+_nx_state_roots: list[str] = []
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    if os.environ.get(REAL_REPO_NX_STATE_ENV):
+    # 外の nx の索引 db と分けた置き場を、実行ごとに 1 つ作る。worker は controller の env を引き継いで共有する。
+    if hasattr(config, "workerinput"):
         return
     root = tempfile.mkdtemp(prefix="nx-real-repo-")
-    os.environ[REAL_REPO_NX_STATE_ENV] = root
-    _created_nx_state.append(root)
+    _nx_state_roots.append(root)
+    os.environ["NX_CACHE_DIRECTORY"] = f"{root}/cache"
+    os.environ["NX_WORKSPACE_DATA_DIRECTORY"] = f"{root}/workspace-data"
+    for key in _NX_TASK_ENV:
+        os.environ.pop(key, None)
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
-    for root in _created_nx_state:
+    for root in _nx_state_roots:
         shutil.rmtree(root, ignore_errors=True)
-        os.environ.pop(REAL_REPO_NX_STATE_ENV, None)
 
 
 @pytest.fixture(autouse=True)

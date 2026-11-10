@@ -21,7 +21,6 @@ nx が mtime の秒単位でファイルハッシュを使い回すため。
 
 from __future__ import annotations
 
-import functools
 import json
 import os
 import re
@@ -83,17 +82,10 @@ def _nx_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     return env
 
 
-@functools.cache
-def _real_repo_nx_state() -> dict[str, str]:
-    """実リポの cwd で起動する nx のキャッシュと索引 db の置き場。conftest.py が 1 回の実行に 1 つ作る。
-
-    外の nx の索引 db と graph の lock を共有しない。片方だけ向けるとキャッシュが実リポの .nx/cache に戻る。
-    """
-    root = Path(os.environ["PECOT_TEST_NX_REAL_REPO_STATE"])
-    return {
-        "NX_CACHE_DIRECTORY": str(root / "cache"),
-        "NX_WORKSPACE_DATA_DIRECTORY": str(root / "workspace-data"),
-    }
+# 実リポの cwd で起動する nx の置き場。conftest.py が立てた env を、_nx_env が剥がす前に控える。
+_REAL_REPO_NX_STATE = {
+    key: os.environ[key] for key in ("NX_CACHE_DIRECTORY", "NX_WORKSPACE_DATA_DIRECTORY")
+}
 
 
 def _nx_output(nx_bin: Path, *args: str) -> str:
@@ -107,7 +99,7 @@ def _nx_output(nx_bin: Path, *args: str) -> str:
             stderr=subprocess.PIPE,
             text=True,
             timeout=180,
-            env=_nx_env(_real_repo_nx_state()),
+            env=_nx_env(_REAL_REPO_NX_STATE),
         )
         assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         out.seek(0)
@@ -818,11 +810,9 @@ def test_hooks_test_inputs_take_validate_references_source_but_not_its_tests(nx_
 
 
 # 版の文字列を出さない runtime コマンドの出力の形。lock のハッシュと、dpkg の「名前=版」の一覧。
+_HASH = re.compile(r"^[0-9a-f]{40}\n$")
 _RUNTIME_OUTPUT_PATTERNS = {
-    "git hash-object pnpm-lock.yaml": re.compile(r"^[0-9a-f]{40}\n$"),
-    "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin": (
-        re.compile(r"^[0-9a-f]{40}\n$")
-    ),
+    "git hash-object pnpm-lock.yaml": _HASH,
     "dpkg-query -W -f='${Package}=${Version}\\n'": re.compile(r"^\S+=\S+$", re.M),
 }
 
@@ -848,7 +838,12 @@ def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
             env=_nx_env(),
         )
         assert result.returncode == 0, f"`{command}` が exit {result.returncode}: {result.stderr}"
-        pattern = _RUNTIME_OUTPUT_PATTERNS.get(command, _ANY_VERSION)
+        # `git ls-files ... | git hash-object --stdin` の形の入力（ファイルの実在）も、hash を出す。
+        pattern = (
+            _HASH
+            if command.endswith("| git hash-object --stdin")
+            else _RUNTIME_OUTPUT_PATTERNS.get(command, _ANY_VERSION)
+        )
         assert pattern.search(result.stdout), (
             f"`{command}` の出力が期待の形でない: {repr(result.stdout[:200])}"
         )
