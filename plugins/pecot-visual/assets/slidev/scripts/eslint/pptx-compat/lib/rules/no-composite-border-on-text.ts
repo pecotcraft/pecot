@@ -156,9 +156,10 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       compositeBorder:
-        'テキスト要素（<{{tag}}>）にcomposite border（border-left等の個別辺指定）が検出されました。' +
-        'PPTXではborder幅がtext insetに加算されず、テキストがborder幅ぶんborder側へ寄ります（paddingがborder幅未満の辺では文字がborderに重なります）。' +
-        'borderを独立した着色divに分離し、テキストはmargin-leftで配置してください。',
+        'composite border (per-side border such as border-left) on a text element (<{{tag}}>); ' +
+        'in PPTX the border width is not added to the text inset, so the text shifts toward the border by its width ' +
+        '(on a side whose padding is smaller than the border width, the text overlaps the border) ' +
+        '(fix: split the border into a separate colored div and position the text with margin-left)',
     },
   },
 

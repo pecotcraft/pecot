@@ -199,5 +199,5 @@ test('recommended 設定の ESLint 出力は「項目名: 指摘（規則名）�
     { filename: path.join(pagesDir, 'case.md') },
   );
   assert.equal(messages.length, 1, JSON.stringify(messages));
-  assert.match(messages[0]!.message, /^title: .+（no-ai-hype-expressions）$/);
+  assert.match(messages[0]!.message, /^title: .+ \(no-ai-hype-expressions\)$/);
 });

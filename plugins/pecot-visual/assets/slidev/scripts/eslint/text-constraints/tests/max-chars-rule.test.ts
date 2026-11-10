@@ -570,13 +570,13 @@ test('min_items 未満を minItems で報告し note を添える', () => {
         fieldPath: 'table.rows',
         actual: '1',
         limit: '3',
-        note: '。2 行以下は表にしない',
+        note: '; 2 行以下は表にしない',
       },
     ],
   );
   assert.equal(
     formatMessage(reports[0]),
-    'table.rows: 配列要素数が1です（最小3）。2 行以下は表にしない',
+    'table.rows: 1 array items (min: 3); 2 行以下は表にしない',
   );
 });
 
@@ -607,13 +607,13 @@ test('max_items 超過の maxItems にも note を添える', () => {
         fieldPath: 'table.rows',
         actual: '7',
         limit: '6',
-        note: '。2 行以下は表にしない',
+        note: '; 2 行以下は表にしない',
       },
     ],
   );
   assert.equal(
     formatMessage(reports[0]),
-    'table.rows: 配列要素数が7です（最大6）。2 行以下は表にしない',
+    'table.rows: 7 array items (max: 6); 2 行以下は表にしない',
   );
 });
 
@@ -627,9 +627,9 @@ test('note が無い制約は句点も付けずに終わる', () => {
   const low = itemReports(runRule(rows(2)));
   assert.equal(low.length, 1);
   assert.equal(low[0].data.note, '');
-  assert.equal(formatMessage(low[0]), 'table.rows: 配列要素数が2です（最小3）');
+  assert.equal(formatMessage(low[0]), 'table.rows: 2 array items (min: 3)');
   const high = itemReports(runRule(rows(5)));
-  assert.equal(formatMessage(high[0]), 'table.rows: 配列要素数が5です（最大4）');
+  assert.equal(formatMessage(high[0]), 'table.rows: 5 array items (max: 4)');
 });
 
 test('min_items だけを宣言した制約は上限判定をしない', () => {

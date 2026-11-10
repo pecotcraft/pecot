@@ -129,7 +129,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       requireImageBorderRadius:
-        'img要素にborder-radiusがありません。dom-to-pptxは親要素の角丸を継承しない場合があります。imgに直接border-radiusを追加するか、CSSで設定してください。',
+        'img element has no border-radius; dom-to-pptx may not inherit the rounded corners of the parent (fix: add border-radius directly to the img, or set it in CSS)',
     },
   },
 

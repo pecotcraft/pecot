@@ -194,8 +194,8 @@ describe('runSlideLintFromCli (実 eslint)', () => {
       { file: path.join('pages', 'body-note.md'), line: 6 },
       { file: path.join('pages', 'body-note.md'), line: 9 },
     ])
-    expect(body[0]?.message).toMatch(/^本文 L6: .+（no-ai-hype-expressions）$/)
-    expect(body[1]?.message).toMatch(/^発表者ノート L9: .+（no-ai-hype-expressions）$/)
+    expect(body[0]?.message).toMatch(/^body L6: .+ \(no-ai-hype-expressions\)$/)
+    expect(body[1]?.message).toMatch(/^speaker notes L9: .+ \(no-ai-hype-expressions\)$/)
   })
 
   it('pages/*.md を全削除しても eslint は exit 2 で失敗せず、slides.md を lint し続ける', async () => {
@@ -567,8 +567,8 @@ describe('createSlideLintCommand', () => {
       expect(parsed.event).toBe('slide.lint.violations')
       const body = parsed.violations.filter(v => v.rule === 'text-constraints/textlint-body')
       expect(body.map(v => v.line)).toStrictEqual([6, 9])
-      expect(body[0]?.message).toMatch(/^本文 L6: /)
-      expect(body[1]?.message).toMatch(/^発表者ノート L9: /)
+      expect(body[0]?.message).toMatch(/^body L6: /)
+      expect(body[1]?.message).toMatch(/^speaker notes L9: /)
       expect(process.exitCode).toBe(1)
     }
     finally {

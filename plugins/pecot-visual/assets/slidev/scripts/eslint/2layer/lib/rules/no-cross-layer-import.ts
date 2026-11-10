@@ -18,7 +18,7 @@ const rule: Rule.RuleModule = {
       illegalImport:
         'Layer {{fromLayer}} ({{fromName}}) cannot import from Layer {{toLayer}} ({{toName}}). Allowed imports: {{allowed}}',
       l1ToL1:
-        'Layout 同士の import は禁止です（{{fromName}} → {{toName}}）。共通要素は Component に切り出してください。',
+        'import between Layouts is not allowed ({{fromName}} -> {{toName}}) (fix: extract shared parts into a Component)',
     },
   },
 

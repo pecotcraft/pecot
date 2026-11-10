@@ -37,7 +37,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       noInsetShadow:
-        'box-shadow: inset はPPTX変換で内側の影にならず、外側の影として出力されます（テキストのみの要素では文字の影になります）。外部シャドウを使うか、画像として書き出してください。',
+        'box-shadow: inset does not become an inner shadow in PPTX conversion; it is output as an outer shadow (a text-only element gets a text shadow) (fix: use an outer shadow, or export it as an image)',
     },
   },
 

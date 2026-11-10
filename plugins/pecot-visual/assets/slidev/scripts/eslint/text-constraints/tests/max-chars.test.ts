@@ -14,7 +14,7 @@ describe('max-chars ルール構造', () => {
   it('meta.messages.maxItems が定義されている', () => {
     const meta = maxCharsRule.meta as { messages: Record<string, string> };
     assert.ok(meta.messages.maxItems);
-    assert.ok(meta.messages.maxItems.includes('配列要素数'));
+    assert.ok(meta.messages.maxItems.includes('array items'));
   });
 
   it('create が関数を返す', () => {

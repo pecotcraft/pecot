@@ -73,8 +73,8 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       absoluteBeforeSibling:
-        'position:absoluteの要素（.{{className}}）が非absolute兄弟より前に配置されています。' +
-        'PPTXではDOM順序がz-orderになるため、absolute要素を兄弟の末尾に移動してください。',
+        'position:absolute element (.{{className}}) is placed before non-absolute siblings; ' +
+        'in PPTX the DOM order is the z-order (fix: move the absolute element to the end of its siblings)',
     },
   },
 

@@ -29,8 +29,8 @@ const rule: Rule.RuleModule = {
         'Maximum allowed: {{maxDepth}}',
 
       l2DirectoryForbidden:
-        '`layouts/{{subdir}}/` ディレクトリは廃止されました（旧 Container 層）。\n' +
-        'Layout ({{subdir}}.vue) に直接インライン化するか、Component (components/) として切り出してください。',
+        'the `layouts/{{subdir}}/` directory is obsolete (former Container layer)\n' +
+        '(fix: inline it into the Layout ({{subdir}}.vue), or extract it as a Component (components/))',
     },
   },
 

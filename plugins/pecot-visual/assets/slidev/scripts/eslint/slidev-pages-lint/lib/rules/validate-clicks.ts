@@ -18,19 +18,19 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       missingClicks:
-        '{{sourceProp}} が {{count}} 件（{{perPage}} 件/ページ）あるため、clicks: {{expected}} が必要です。設定しないとPPTX変換時にページが欠落します。',
+        '{{count}} {{sourceProp}} ({{perPage}} per page) require clicks: {{expected}}; without it, pages are dropped in PPTX conversion',
       incorrectClicks:
-        'clicks: {{actual}} は正しくありません。{{sourceProp}} が {{count}} 件（{{perPage}} 件/ページ）のため、clicks: {{expected}} にしてください。',
+        'clicks: {{actual}} is incorrect; {{count}} {{sourceProp}} ({{perPage}} per page) (fix: set clicks: {{expected}})',
       unnecessaryClicks:
-        'clicks: {{actual}} が設定されていますが、{{sourceProp}} が {{count}} 件（{{perPage}} 件/ページ）のためページングは不要です。clicks を削除するか 0 に設定してください。',
+        'clicks: {{actual}} is set, but {{count}} {{sourceProp}} ({{perPage}} per page) need no paging (fix: remove clicks or set it to 0)',
       missingClicksCount:
-        '{{sourceProp}} が {{count}} 件あるため、clicks: {{expected}} が必要です。',
+        '{{count}} {{sourceProp}} require clicks: {{expected}}',
       incorrectClicksCount:
-        'clicks: {{actual}} は正しくありません。{{sourceProp}} が {{count}} 件のため、clicks: {{expected}} にしてください。',
+        'clicks: {{actual}} is incorrect; {{count}} {{sourceProp}} (fix: set clicks: {{expected}})',
       missingClicksRequired:
-        '{{matchedProps}} レイアウトでは clicks: {{minClicks}} 以上が必要です。',
+        'the {{matchedProps}} layout requires clicks: {{minClicks}} or more',
       insufficientClicks:
-        'clicks: {{actual}} は不足しています。{{matchedProps}} レイアウトでは clicks: {{minClicks}} 以上にしてください。',
+        'clicks: {{actual}} is too small; the {{matchedProps}} layout requires clicks: {{minClicks}} or more (fix: raise clicks to at least {{minClicks}})',
     },
   },
 

@@ -10,13 +10,13 @@ const ENV_NAME = 'PECOTV_DECK_LINT'
 function readLintFromEnvironment() {
   const text = process.env[ENV_NAME]
   if (text === undefined || text === '') {
-    throw new Error(`${ENV_NAME} が未設定です。slide theme --json の lint を JSON で渡してください`)
+    throw new Error(`${ENV_NAME} is not set (fix: pass the lint value of slide theme --json as JSON)`)
   }
   try {
     return JSON.parse(text)
   }
   catch (error) {
-    throw new Error(`${ENV_NAME} を JSON として読めません: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(`${ENV_NAME} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 

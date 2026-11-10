@@ -340,9 +340,9 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       noOverflowHiddenWithBgChildren:
-        'overflow:hidden + border-radius を持つコンテナの子要素に非透明な背景があり、border-radiusがありません。' +
-        'dom-to-pptxでは親のoverflowクリッピングが失われるため、' +
-        '子要素の背景を削除するか、親に統合するか、子要素にborder-radiusを設定してください。',
+        'a child of a container with overflow:hidden + border-radius has a non-transparent background but no border-radius; ' +
+        'dom-to-pptx loses the clipping of the parent overflow ' +
+        '(fix: remove the child background, merge it into the parent, or set border-radius on the child)',
     },
   },
 

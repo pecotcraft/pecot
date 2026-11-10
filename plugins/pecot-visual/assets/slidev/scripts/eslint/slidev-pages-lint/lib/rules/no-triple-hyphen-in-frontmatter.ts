@@ -37,9 +37,9 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       tripleHyphenInFrontmatter:
-        'フロントマター内に余分な `---` が含まれています（{{line}}行目）。' +
-        'Slidevがスライド区切りと誤認し、表示が崩れる原因になります。' +
-        'YAML値から `---` を除去するか、別の表現に置き換えてください。',
+        'extra `---` in the frontmatter (line {{line}}); ' +
+        'Slidev mistakes it for a slide separator and the display breaks ' +
+        '(fix: remove `---` from the YAML value or rephrase it)',
     },
   },
 

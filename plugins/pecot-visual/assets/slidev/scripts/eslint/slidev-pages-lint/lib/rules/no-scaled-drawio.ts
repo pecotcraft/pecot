@@ -24,9 +24,9 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       scaled:
-        '図 {{xmlSrc}} の外接矩形（線幅を含む）は {{width}}×{{height}}px です。' +
-        '{{layout}} の上限は {{maxWidth}}×{{maxHeight}}px のため、{{percent}}% に縮小されます。' +
-        'ページでは直せません。v-diagram-creator で図を描き直してください',
+        'bounding box of diagram {{xmlSrc}} (including stroke width) is {{width}}×{{height}}px; ' +
+        'the limit for {{layout}} is {{maxWidth}}×{{maxHeight}}px, so it is scaled down to {{percent}}% ' +
+        '(fix: this cannot be fixed on the page; redraw the diagram with v-diagram-creator)',
     },
   },
 

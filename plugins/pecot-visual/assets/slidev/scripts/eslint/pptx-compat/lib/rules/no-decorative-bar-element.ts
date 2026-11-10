@@ -276,10 +276,10 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       decorativeBarElement:
-        'position:absoluteの装飾バー要素が角丸（border-radius）祖先内で検出されました' +
-        '（セレクタ: {{selector}}）。dom-to-pptx変換では小さなabsolute要素が独立図形（geom=rect）に' +
-        'なり、親の角丸クリップが継承されず角を侵食します。' +
-        'CSS border-top/border-left/border-rightで親要素に統合してください。',
+        'position:absolute decorative bar inside a border-radius ancestor (selector: {{selector}}); ' +
+        'dom-to-pptx turns a small absolute element into a separate shape (geom=rect), ' +
+        'which does not inherit the rounded clip of its parent and cuts into the corners ' +
+        '(fix: merge it into the parent with CSS border-top/border-left/border-right)',
     },
   },
 

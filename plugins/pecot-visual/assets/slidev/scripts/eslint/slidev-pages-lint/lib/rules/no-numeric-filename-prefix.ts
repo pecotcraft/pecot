@@ -14,7 +14,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       numericFilenamePrefix:
-        'ページファイル名が数字で始まっています: {{fileName}}。スライドの順序は slides.md の src: エントリの並びだけで管理するため、ページファイル名を数字で始めないでください。数字で始まらない英語名（例: cover.md）にリネームし、slides.md の src: を更新してください。',
+        'page file name starts with a digit: {{fileName}}; the slide order is managed only by the order of the src: entries in slides.md (fix: rename it to an English name that does not start with a digit, such as cover.md, and update src: in slides.md)',
     },
   },
 

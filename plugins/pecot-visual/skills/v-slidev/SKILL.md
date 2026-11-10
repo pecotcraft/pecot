@@ -128,8 +128,8 @@ lint は PostToolUse hook が `pages/**/*.md` および `slides.md` / `reference
 編集時に自動実行します。違反は hook 出力（`additionalContext`）として流れるので、それに従って修正します。
 表示文言（reference yaml の `text_constraints` に載る項目）は、文字数のほかに textlint でも確認されます。
 AI 臭い言い回し・冗長表現・助詞の連続・文体の混在などは、`text-constraints/textlint` 違反として項目名付きで届きます。
-本文と発表者ノートは `text-constraints/textlint-body` が判定し、`本文 L<n>` / `発表者ノート L<n>` の形で返します。n は slides や page ファイルの行番号です。
-判定器が動かないときは `textlint を実行できませんでした:` が返ります。
+本文と発表者ノートは `text-constraints/textlint-body` が判定し、`body L<n>` / `speaker notes L<n>` の形で返します。n は slides や page ファイルの行番号です。
+判定器が動かないときは `textlint failed to run:` が返ります。
 HTML ブロックの中の文は確かめられません。タグの行の直後と閉じタグの前に空行を入れると、中の文が Markdown として判定されます。
 空行を入れて Markdown にできない生 HTML の文だけは、ブロックの外に出します。
 規則・除外は変えないでください。

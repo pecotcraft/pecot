@@ -376,8 +376,8 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       requireChildBorderRadius:
-        'overflow:hidden + border-radius を持つコンテナの子要素に背景色がありますが、border-radiusがありません。' +
-        'dom-to-pptxでは親のoverflowクリッピングが失われるため、子要素にも直接border-radiusを設定してください。',
+        'a child of a container with overflow:hidden + border-radius has a background color but no border-radius; ' +
+        'dom-to-pptx loses the clipping of the parent overflow (fix: set border-radius directly on the child)',
     },
   },
 

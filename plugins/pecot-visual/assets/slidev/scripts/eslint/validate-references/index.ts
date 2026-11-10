@@ -74,7 +74,7 @@ function main(): void {
   const dirIndex = args.indexOf('--dir');
   const dirArgument = dirIndex === -1 ? undefined : args[dirIndex + 1];
   if (!dirArgument) {
-    console.error('Usage: validate-references --dir <references のディレクトリ>');
+    console.error('Usage: validate-references --dir <references directory>');
     process.exitCode = 1;
     return;
   }
