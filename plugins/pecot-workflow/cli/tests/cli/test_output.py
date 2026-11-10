@@ -1,0 +1,63 @@
+"""tests/cli/test_output.py - cli/commands/_output.py のユニットテスト
+
+Node 側と共有する期待の行 (``cli-node/tests/output/cases.json``) を 1 要素 1 ケースで確かめる。
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+from cli.commands._output import Operation, Output, Verb
+
+CASES_PATH = Path(__file__).resolve().parents[3] / "cli-node/tests/output/cases.json"
+CASES: list[dict[str, Any]] = json.loads(CASES_PATH.read_text(encoding="utf-8"))
+
+
+def _case_id(case: dict[str, Any]) -> str:
+    inp = case["input"]
+    detail = "-".join(str(v) for v in inp.values()).replace("\n", "\\n")
+    mode = "dry" if case["dryRun"] else "real"
+    return f"{case['kind']}-{mode}-{detail}"
+
+
+def _call(out: Output, case: dict[str, Any]) -> None:
+    kind, inp = case["kind"], case["input"]
+    if kind == "plan":
+        out.planned(Operation(Verb(inp["verb"]), inp["target"]))
+    elif kind == "result":
+        out.done(Operation(Verb(inp["verb"]), inp["target"]))
+    elif kind == "error":
+        out.error(inp["message"])
+    elif kind == "warning":
+        out.warning(inp["message"])
+    elif kind == "count":
+        out.count(inp["label"], inp["value"])
+    elif kind == "data":
+        out.data(inp["text"])
+    else:  # pragma: no cover
+        raise AssertionError(f"未知の kind: {kind}")
+
+
+def test_case_count_matches_cases_json() -> None:
+    assert len(CASES) == 59
+
+
+@pytest.mark.parametrize("case", CASES, ids=[_case_id(c) for c in CASES])
+def test_output_line(case: dict[str, Any], capsys: pytest.CaptureFixture[str]) -> None:
+    _call(Output(dry_run=case["dryRun"]), case)
+    captured = capsys.readouterr()
+    expected = {"stdout": "", "stderr": ""}
+    if case["stream"] is not None:
+        expected[case["stream"]] = case["line"]
+    assert (captured.out, captured.err) == (expected["stdout"], expected["stderr"])
+
+
+def test_verb_values_are_names() -> None:
+    assert [v.value for v in Verb] == [
+        "create", "update", "delete", "add", "remove", "close",
+        "merge", "move", "set", "skip", "unchanged",
+    ]  # fmt: skip

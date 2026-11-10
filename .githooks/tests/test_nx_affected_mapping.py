@@ -285,6 +285,11 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         ),
         ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
         ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
+        # 出力の行の期待値は、Python と Node の出力の一致のテストが両方読む (#205)。
+        (
+            "plugins/pecot-workflow/cli-node/tests/output/cases.json",
+            {"pecot-workflow:test-py", "pecot-workflow:test-cli"},
+        ),
     ],
 )
 def test_out_of_lane_input_reruns_only_consumer_lane(

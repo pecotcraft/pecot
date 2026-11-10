@@ -44,22 +44,22 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Goal**: Python と Node に共通の関数がそろい、同じ入力で同じ行を出す。コマンドの出力はまだ変えない
 
-**Independent Test**: Python と Node の出力のテストが、`cases.json` の全件で一致する。テストは `cli/tests/unit/test_output.py` と `cli-node/tests/output/output.test.ts`
+**Independent Test**: Python と Node の出力のテストが、`cases.json` の全件で一致する。テストは `cli/tests/cli/test_output.py` と `cli-node/tests/output/output.test.ts`
 
-- [ ] T001 [US4] `cli-node/tests/output/cases.json` を作る。contracts/output-lines.md の「期待の行の一覧」の形で、次の要素を全部入れる
+- [x] T001 [US4] `cli-node/tests/output/cases.json` を作る。contracts/output-lines.md の「期待の行の一覧」の形で、次の要素を全部入れる
   - 7 つの種類それぞれ
   - 動詞の表の全 11 語について、dry-run の有無の両方
   - count の値の `null`（`unknown`）と `0`
   - 複数行の message（2 行目以降に空白 2 つ）と、末尾に改行のある message
   - dry-run のときの error（前置きを変えない）
-- [ ] T002 [P] [US4] `cli/tests/unit/test_output.py` を書く。`cases.json` を読み、各要素について `Output` の書き込み先を差し替えて、出た行と出先を比べる。この時点で失敗することを確かめる
-- [ ] T003 [P] [US4] `cli-node/tests/output/output.test.ts` を同じ考えで書き、失敗することを確かめる
-- [ ] T004 [US4] `cli/commands/_output.py` に `Verb`（列挙型）・`Operation`・`Output` を実装する。data-model.md の型に従う
+- [x] T002 [P] [US4] `cli/tests/cli/test_output.py` を書く。`cases.json` を読み、各要素について `Output` の書き込み先を差し替えて、出た行と出先を比べる。この時点で失敗することを確かめる
+- [x] T003 [P] [US4] `cli-node/tests/output/output.test.ts` を同じ考えで書き、失敗することを確かめる
+- [x] T004 [US4] `cli/commands/_output.py` に `Verb`（列挙型）・`Operation`・`Output` を実装する。data-model.md の型に従う
   - `Output(dry_run)` は `planned`・`done`・`warning`・`error`・`count`・`data` を持つ。note は pecot-workflow では持たない
   - 書き込み先は呼ぶたびに `sys.stdout`・`sys.stderr` から解決する。import の時点で固定すると、typer の `CliRunner` が出力を捕まえられない
   - 「動詞は列挙型で持ち、自由な文字列を受け取らない」を型で守る
-- [ ] T005 [US4] `cli-node/src/commands/output.ts` に、T004 と同じ型と関数を実装する。書き込み先は引数で受け取る
-- [ ] T006 [US4] `core/` が `commands/_output.py` を import しないことを確かめる。確かめるのは `cli/tests/unit/test_architecture.py` の層の決まり。決まりに無ければ足す
+- [x] T005 [US4] `cli-node/src/commands/output.ts` に、T004 と同じ型と関数を実装する。書き込み先は引数で受け取る
+- [x] T006 [US4] `core/` が `commands/_output.py` を import しないことを確かめる。確かめるのは `cli/tests/unit/test_architecture.py` の層の決まり。決まりに無ければ足す
 
 **Checkpoint**: T002・T003 が通る。golden は変わらない
 

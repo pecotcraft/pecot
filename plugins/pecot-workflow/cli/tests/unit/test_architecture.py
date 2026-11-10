@@ -3,7 +3,7 @@
 規則 1〜6 は commands/ と core/ の本番コード、規則 7〜8 は tests/ を対象にする
 （build/ は走査しない）。
 
-1. core/ は cli.commands を import しない（関数内の遅延 import も含む）
+1. core/ は cli.commands を import しない（関数内の遅延 import と相対 import も含む）
 2. git の subprocess 呼び出しは core/git.py にしか無い
 3. ⚠ を含む文字列を出す echo / print はすべて stderr に出す
 4. 100 行超の関数・メソッドが無い
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import importlib.util
 import inspect
 import re
 from collections.abc import Iterator
@@ -172,24 +173,63 @@ def _str_constants(node: ast.AST) -> Iterator[ast.Constant]:
 # 1. core → commands の逆依存
 
 
-def test_core_does_not_import_commands() -> None:
+def _core_import_violations(src: SourceFile) -> list[str]:
+    """core/ のファイルが cli.commands を import している箇所（相対 import は絶対名に解決して判定）"""
+    if not src.rel.startswith("core/"):
+        return []
+    package = "cli." + ".".join(Path(src.rel).parent.parts)
     violations: list[str] = []
-    for src in SOURCES:
-        if not src.rel.startswith("core/"):
+    for node in ast.walk(src.tree):
+        if isinstance(node, ast.Import):
+            modules = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            base = importlib.util.resolve_name("." * node.level + (node.module or ""), package)
+            # `from cli import commands` / `from .. import commands` は名前まで連結して判定する
+            modules = [base, *(f"{base}.{alias.name}" for alias in node.names)]
+        else:
             continue
-        for node in ast.walk(src.tree):
-            if isinstance(node, ast.Import):
-                modules = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.module is not None:
-                modules = [node.module]
-                if node.module == "cli":
-                    modules += [f"cli.{alias.name}" for alias in node.names]
-            else:
-                continue
-            for module in modules:
-                if module == "cli.commands" or module.startswith("cli.commands."):
-                    violations.append(f"{src.rel}:{node.lineno} imports {module}")
+        for module in modules:
+            if module == "cli.commands" or module.startswith("cli.commands."):
+                violations.append(f"{src.rel}:{node.lineno} imports {module}")
+                break
+    return violations
+
+
+def test_core_does_not_import_commands() -> None:
+    violations = [v for src in SOURCES for v in _core_import_violations(src)]
     assert violations == []
+
+
+def test_core_import_rule_detects_every_import_form() -> None:
+    def check(rel: str, code: str) -> list[str]:
+        return _core_import_violations(SourceFile(rel, ast.parse(code)))
+
+    assert check(
+        "core/x.py",
+        "from cli.commands.x import y\n"
+        "import cli.commands\n"
+        "from cli import commands\n"
+        "from ..commands._output import Output\n"
+        "from .. import commands\n",
+    ) == [
+        "core/x.py:1 imports cli.commands.x",
+        "core/x.py:2 imports cli.commands",
+        "core/x.py:3 imports cli.commands",
+        "core/x.py:4 imports cli.commands._output",
+        "core/x.py:5 imports cli.commands",
+    ]
+    assert check("core/github/x.py", "from ...commands import x\n") == [
+        "core/github/x.py:1 imports cli.commands",
+    ]
+    assert (
+        check(
+            "core/x.py",
+            "from .repo_resolver import RepoRef\nfrom ..core import x\nfrom . import y\n",
+        )
+        == []
+    )
+    assert check("core/github/x.py", "from ..repo_resolver import RepoRef\n") == []
+    assert check("commands/x.py", "from ..commands import y\n") == []
 
 
 # 2. git subprocess は core/git.py のみ
