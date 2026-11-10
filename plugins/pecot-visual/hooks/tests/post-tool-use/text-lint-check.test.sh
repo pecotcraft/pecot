@@ -230,6 +230,20 @@ STUB=$(make_stub_bin "exit1empty" 1 "" "")
 MIRROR_TEXT_LINT_BIN="$STUB" run_hook "exit1empty" "$MD"
 expect_not_checked "bin が exit 1 で出力が空" "pecot-text-lint failed (exit 1):" "$MD"
 
+# --- 違反が多いとき: バイトの上限で切り、残りの件数を最後の行に書く ---
+MANY_MD="$TMP/many.md"
+{ printf '# 見出し\n\n'; for _ in $(seq 1 120); do printf '%s\n\n' "$VIOLATION_LINE"; done; } > "$MANY_MD"
+MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "many-violations" "$MANY_MD"
+CTX=$(ctx_of "$OUT")
+SHOWN=$(printf '%s\n' "$CTX" | grep -c "^  $MANY_MD:")
+REST=$(printf '%s\n' "$CTX" | tail -n 1 | sed -nE 's/^ *Truncated at 3000 bytes: ([0-9]+) more violations not shown\.$/\1/p')
+if [ "$(printf '%s' "$CTX" | wc -c)" -le 3600 ] && [ -n "$REST" ] && [ $((SHOWN + REST)) -eq 120 ]; then
+    pass "違反 120 件: 上限に収まり、最後の行の N が残りの件数と合う 表示 $SHOWN 残り $REST"
+else
+    LAST=$(printf '%s\n' "$CTX" | tail -n 1)
+    fail "違反 120 件: shown=$SHOWN rest='$REST' last='$LAST'"
+fi
+
 # --- ガードレール: 全ケースで stdout が「空または妥当な JSON」 ---
 if [ -z "$BAD_STDOUT" ]; then
     pass "ガードレール: 全ケースの stdout が空または妥当な JSON"

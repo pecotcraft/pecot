@@ -880,6 +880,20 @@ else
     echo "SKIP: cli/dist に slide theme が無い（build 前か古い build）か eslint を解決できないので、実 CLI のケースを skip"
 fi
 
+# --- 違反が多いとき: バイトの上限で切り、残りの件数を最後の行に書く ---
+MANY_OUT=$(printf '/x/01.md\n'; for i in $(seq 1 120); do printf '  %d:1  error  violation number %d of the page  slidev/rule\n' "$i" "$i"; done)
+STUB_MANY=$(make_stub_plugin stub-many 1 "$MANY_OUT")
+run_hook "many-violations" "$TALK/pages/01.md" "$STUB_MANY"
+CTX=$(ctx_of "$OUT")
+SHOWN=$(printf '%s\n' "$CTX" | grep -cE '^ +[0-9]+:[0-9]+ ')
+REST=$(printf '%s\n' "$CTX" | tail -n 1 | sed -nE 's/^ *Truncated at 3500 bytes: ([0-9]+) more violations not shown\.$/\1/p')
+if [ "$(printf '%s' "$CTX" | wc -c)" -le 4000 ] && [ -n "$REST" ] && [ $((SHOWN + REST)) -eq 120 ]; then
+    pass "違反 120 件: 上限に収まり、最後の行の N が残りの件数と合う 表示 $SHOWN 残り $REST"
+else
+    LAST=$(printf '%s\n' "$CTX" | tail -n 1)
+    fail "違反 120 件: shown=$SHOWN rest='$REST' last='$LAST'"
+fi
+
 # --- ガードレール: 全ケースで stdout が「空または妥当な JSON」 ---
 if [ -z "$BAD_STDOUT" ]; then
     pass "ガードレール: 全ケースの stdout が空または妥当な JSON"

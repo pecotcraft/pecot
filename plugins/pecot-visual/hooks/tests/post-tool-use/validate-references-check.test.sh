@@ -456,12 +456,15 @@ if [ "$HAVE_VALIDATOR" = true ]; then
         pass "大出力: hook 経由で違反として報告され件数フッターが先頭行に残る"
     fi
 
-    # 通知本文が head -n 100 で頭打ちになっていること（数百 KB を丸ごと model に流さない）。
-    if [ "$(echo "$CTX" | wc -l)" -le 110 ]; then
-        pass "大出力: additionalContext が head -n 100 で頭打ちになっている"
+    # 通知本文が 3000 バイトで頭打ちになり、最後の行が残りの違反数を示すこと。
+    BIG_SHOWN=$(echo "$CTX" | grep -cE '^ +\[')
+    BIG_REST=$(echo "$CTX" | tail -n 1 | sed -nE 's/^ *Truncated at 3000 bytes: ([0-9]+) more violations not shown\.$/\1/p')
+    BIG_TOTAL=$(echo "$BIG_OUT" | grep -cE '^    \[')
+    if [ "$(printf '%s' "$CTX" | wc -c)" -le 3600 ] && [ -n "$BIG_REST" ] && [ $((BIG_SHOWN + BIG_REST)) -eq "$BIG_TOTAL" ]; then
+        pass "大出力: 3000 バイトで頭打ちになり、末尾の行の N が残りの違反数と合う 表示 $BIG_SHOWN 残り $BIG_REST 全体 $BIG_TOTAL"
     else
-        MSG_DETAIL_4="$(echo "$CTX" | wc -l)"
-        fail "大出力: additionalContext が切り詰められていない ($MSG_DETAIL_4 行)"
+        BIG_LAST=$(echo "$CTX" | tail -n 1)
+        fail "大出力: 切り詰めが合わない shown=$BIG_SHOWN rest='$BIG_REST' total=$BIG_TOTAL last='$BIG_LAST'"
     fi
 else
     echo "SKIP: $VALIDATOR が無いので大出力ケースを skip"

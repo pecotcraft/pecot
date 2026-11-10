@@ -74,6 +74,18 @@ else
     fail "deny の理由: out='$OUT'"
 fi
 
+# 合計の上限を超える文脈は、末尾を切って Truncated の行を付ける
+for n in 1 2; do
+    printf '#!/bin/bash\ncat >/dev/null\njq -n --arg c "$(for i in $(seq 1 120); do echo "line %s-$i xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; done)" %s\n' "$n" "'{hookSpecificOutput:{additionalContext:\$c}}'" > "$TMP/big$n.sh"
+    chmod +x "$TMP/big$n.sh"
+done
+OUT=$(printf '{"hook_event_name":"PostToolUse"}' | bash "$MERGE" "$TMP/big1.sh" "$TMP/big2.sh")
+if printf '%s' "$OUT" | jq -e '(.additionalContext | utf8bytelength) <= 8100 and .additionalContext == .hookSpecificOutput.additionalContext and (.additionalContext | split("\n") | last | test("^Truncated at 8000 bytes: [0-9]+ more lines not shown\\.$"))' >/dev/null 2>&1; then
+    pass "合計の上限を超えると切って最後の行が Truncated になる"
+else
+    fail "合計超過: out='${OUT:0:300}'"
+fi
+
 echo
 echo "==================================="
 echo "Passed: $PASS / Failed: $FAIL"
