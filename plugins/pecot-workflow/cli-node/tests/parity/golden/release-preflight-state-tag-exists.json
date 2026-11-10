@@ -1,6 +1,6 @@
 {
   "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n",
-  "stderr": "エラー: タグ v0.2.0 はローカルに既に存在します\n",
+  "stderr": "エラー: tag already exists locally: v0.2.0\n",
   "exitCode": 1,
   "requests": [
     {

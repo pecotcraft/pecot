@@ -50,7 +50,7 @@ class RepoRef(BaseModel):
     @classmethod
     def _validate_segment(cls, v: str) -> str:
         if not _SEGMENT_PATTERN.fullmatch(v):
-            raise ValueError(f"不正な owner/repo セグメント: {repr(v)} (許容: [A-Za-z0-9_.-]+)")
+            raise ValueError(f"invalid owner/repo segment: {repr(v)} (allowed: [A-Za-z0-9_.-]+)")
         return v
 
     @property
@@ -65,7 +65,7 @@ class RepoRef(BaseModel):
         """
         parts = s.split("/")
         if len(parts) != 2:
-            raise ValueError(f"不正な owner/repo 形式: {repr(s)} (期待: 'owner/repo')")
+            raise ValueError(f"invalid owner/repo form: {repr(s)} (expected: 'owner/repo')")
         owner, repo = parts
         return cls(owner=owner, repo=repo)
 
@@ -87,9 +87,9 @@ class ResolvedRepo(BaseModel):
     @model_validator(mode="after")
     def _check_remote_name_consistency(self) -> ResolvedRepo:
         if self.source is ResolveSource.CURRENT_GIT and not self.remote_name:
-            raise ValueError("source=CURRENT_GIT では remote_name が必須")
+            raise ValueError("remote_name is required when source=CURRENT_GIT")
         if self.source is ResolveSource.EXPLICIT and self.remote_name is not None:
-            raise ValueError("source=EXPLICIT では remote_name は None でなければならない")
+            raise ValueError("remote_name must be None when source=EXPLICIT")
         return self
 
 
@@ -147,4 +147,4 @@ def resolve_repo(
             remote_name=remote_name,
         )
 
-    raise AmbiguousRepoError("リポジトリが曖昧です。--repo <owner/repo> を明示してください。")
+    raise AmbiguousRepoError("repository is ambiguous: pass --repo <owner/repo>")

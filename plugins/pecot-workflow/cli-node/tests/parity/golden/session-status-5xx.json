@@ -1,6 +1,6 @@
 {
   "stdout": "=== フラグ状態 ===\n\nブランチ: feat/demo/7\nリポジトリ: acme/demo\n推定Issue: #7\n\n| フラグ | 状態 | 内容 |\n|-------|------|------|\n| .pecot-active | ✓ | acme/demo/7 |\n",
-  "stderr": "\n⚠ Issue情報の取得に失敗しました: GraphQLクエリ実行エラー: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\n",
+  "stderr": "\n⚠ Issue情報の取得に失敗しました: GraphQL query error: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\n",
   "exitCode": 0,
   "requests": [
     {

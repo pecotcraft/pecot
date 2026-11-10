@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: リポジトリ acme/demo は現在アクティブな pecot プロジェクトに登録されていません。\n\n登録済みリポジトリ:\n  - acme/other\n\nこのリポジトリを pecot プロジェクトに追加するには:\n  pecot project set-repo acme/demo\n\n別のプロジェクトに切り替えるには:\n  pecot project activate <PROJECT>\n",
+  "stderr": "エラー: repository acme/demo is not registered in the active pecot project\n\nregistered repositories:\n  - acme/other\n\nto add this repository to the pecot project:\n  pecot project set-repo acme/demo\n\nto switch to another project:\n  pecot project activate <PROJECT>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

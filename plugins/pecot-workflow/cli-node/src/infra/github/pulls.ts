@@ -106,9 +106,9 @@ export class PullsApi extends IssuesApi {
   private async fetchPullRequest(query: string, owner: string, repository: string, number: number): Promise<JsonValue> {
     const result = await this.executeGraphql(query, { owner, repo: repository, number })
     const repositoryNode = jsonField(result, 'repository')
-    if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`リポジトリが見つかりません: ${owner}/${repository}`)
+    if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`)
     const pullRequest = jsonField(repositoryNode, 'pullRequest')
-    if (!isTruthy(pullRequest)) throw new GitHubNotFoundError(`PRが見つかりません: ${owner}/${repository}/${String(number)}`)
+    if (!isTruthy(pullRequest)) throw new GitHubNotFoundError(`PR not found: ${owner}/${repository}/${String(number)}`)
     return requireValue(pullRequest, 'pullRequest')
   }
 

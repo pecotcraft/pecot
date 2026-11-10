@@ -181,11 +181,11 @@ class PullsAPI(GitHubClientBase):
 
         repository = result.get("repository")
         if not repository:
-            raise GitHubNotFoundError(f"リポジトリが見つかりません: {owner}/{repo}")
+            raise GitHubNotFoundError(f"repository not found: {owner}/{repo}")
 
         pr = repository.get("pullRequest")
         if not pr:
-            raise GitHubNotFoundError(f"PRが見つかりません: {owner}/{repo}/{number}")
+            raise GitHubNotFoundError(f"PR not found: {owner}/{repo}/{number}")
         return pr
 
     @staticmethod
@@ -290,18 +290,18 @@ class PullsAPI(GitHubClientBase):
             )
             if not isinstance(connection, dict):
                 # null を PR 0 件と読むと、sync が待つ PR は無いと判断して Tracker を閉じてしまう
-                raise GitHubAPIError("PR の一覧の応答に repository.pullRequests がありません")
+                raise GitHubAPIError("the PR list response has no repository.pullRequests")
             page = cast("dict[str, Any]", connection)
             page_nodes = page.get("nodes")
             if not isinstance(page_nodes, list):
-                raise GitHubAPIError("PR の一覧の応答の nodes が配列ではありません")
+                raise GitHubAPIError("nodes in the PR list response is not an array")
             nodes.extend(n for n in cast("list[Any]", page_nodes) if n)
             page_info = as_dict(page.get("pageInfo"))
             if not page_info.get("hasNextPage"):
                 break
             cursor = page_info.get("endCursor")
             if not cursor:
-                raise GitHubAPIError("PR の一覧の次のページの endCursor がありません")
+                raise GitHubAPIError("the next page of the PR list has no endCursor")
             after = cursor
         return [n for n in nodes if _is_dependabot(n)]
 

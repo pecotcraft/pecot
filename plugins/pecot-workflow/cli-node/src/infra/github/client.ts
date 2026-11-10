@@ -45,6 +45,10 @@ import { asObject, isTruthy } from './payload.js'
 const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['127.0.0.1', 'localhost'])
 const MAX_PORT = 65_535
 
+// Python の TOKEN_FALLBACK_WARNING と同じ文。前置きと字下げを含まない
+const TOKEN_FALLBACK_WARNING = 'the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n'
+  + 'update or remove the token in .env'
+
 function isControlOrSpace(character: string): boolean {
   return (character.codePointAt(0) ?? 0) <= 0x20
 }
@@ -97,7 +101,7 @@ export function resolveApiUrlOverride(): string | undefined {
   const raw = process.env['PECOT_GITHUB_API_URL'] ?? ''
   if (raw === '') return undefined
   if (!isLoopbackHttpUrl(raw)) {
-    throw new InvalidValueError(`PECOT_GITHUB_API_URL は http://127.0.0.1 か http://localhost の URL だけを受け付けます: ${raw}`)
+    throw new InvalidValueError(`PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${raw}`)
   }
   return trimTrailingSlashes(raw)
 }
@@ -424,17 +428,17 @@ export class GitHubClientBase {
   private authErrorMessage(host: string): string {
     const file = ensureEnvironmentFile(host)
     const scopes = scopesFor(host)
-    const scopesLine = scopes.length > 0 ? `   必要なスコープ: ${scopes.join(', ')}` : ''
-    return `認証エラー: GitHub APIのトークンを取得できませんでした。
+    const scopesLine = scopes.length > 0 ? `   required scopes: ${scopes.join(', ')}` : ''
+    return `authentication error: could not get a GitHub API token
 
-${file} を生成しました。以下の手順でトークンを設定してください:
+${file} was generated. Set the token as follows:
 
-1. トークンを取得: ${tokenUrlFor(host)}
+1. get a token: ${tokenUrlFor(host)}
 ${scopesLine}
 
-2. ${file} を編集して ${getEnvironmentVariableName(host)} にトークンを設定
+2. edit ${file} and set the token in ${getEnvironmentVariableName(host)}
 
-または GitHub CLI で認証:
+or authenticate with the GitHub CLI:
    gh auth login -h ${host}`
   }
 
@@ -462,10 +466,8 @@ ${scopesLine}
       throw error
     }
     if (newToken === this.token) return false
-    process.stderr.write(
-      '⚠ 環境変数のトークンが無効です（401 Unauthorized）。gh auth token にフォールバックしました。\n'
-      + '  → .env のトークンを更新するか削除してください。\n',
-    )
+    // Output.warning と同じ出力にする（前置き `warning: `、2 行目以降は空白 2 つで字下げ）
+    process.stderr.write(`warning: ${TOKEN_FALLBACK_WARNING.replaceAll('\n', '\n  ')}\n`)
     this.token = newToken
     return true
   }
@@ -551,11 +553,11 @@ ${scopesLine}
   private classifyGraphqlFailure(failure: Readonly<GraphqlFailure>): GitHubAPIError {
     const { message } = failure
     const detail = { cause: failure }
-    if (isUnauthorized(failure)) return new GitHubAuthError(`GraphQL認証エラー: ${message}`, detail)
+    if (isUnauthorized(failure)) return new GitHubAuthError(`GraphQL authentication error: ${message}`, detail)
     if (isRateLimited({ statusCode: failure.statusCode, errorType: failure.errorType, text: message })) {
-      return new GitHubRateLimitError(`GraphQLレート制限エラー: ${message}`, detail)
+      return new GitHubRateLimitError(`GraphQL rate limit error: ${message}`, detail)
     }
-    return new GitHubAPIError(`GraphQLクエリ実行エラー: ${message}`, detail)
+    return new GitHubAPIError(`GraphQL query error: ${message}`, detail)
   }
 
   // 絶対 URL（Link ヘッダの next など）は、API と同じ origin だけを辿る。
@@ -563,7 +565,7 @@ ${scopesLine}
   private assertSameOrigin(target: string): void {
     if (!ABSOLUTE_URL.test(target)) return
     if (URL.canParse(target) && new URL(target).origin === new URL(this.apiUrl).origin) return
-    throw new GitHubAPIError(`API と異なるホストの URL は辿りません: ${target}`)
+    throw new GitHubAPIError(`refusing to follow a URL on a different host than the API: ${target}`)
   }
 
   /**
@@ -601,18 +603,18 @@ ${scopesLine}
   handleHttpError(response: RestResponse): never {
     const detail = { statusCode: response.statusCode, responseBody: response.text }
     if (response.statusCode === 401) {
-      throw new GitHubAuthError('認証に失敗しました。トークンを確認してください。', detail)
+      throw new GitHubAuthError('authentication failed: check the token', detail)
     }
     if (response.statusCode === 404) {
-      throw new GitHubNotFoundError(`リソースが見つかりません: ${response.url}`, detail)
+      throw new GitHubNotFoundError(`resource not found: ${response.url}`, detail)
     }
     if (response.statusCode === 429 || (response.statusCode === 403 && isRateLimited({ statusCode: 403, text: response.text }))) {
-      throw new GitHubRateLimitError('APIレート制限に達しました。', detail)
+      throw new GitHubRateLimitError('API rate limit reached', detail)
     }
     if (response.statusCode === 403) {
-      throw new GitHubAPIError('アクセスが拒否されました。', detail)
+      throw new GitHubAPIError('access denied', detail)
     }
-    throw new GitHubAPIError(`GitHub APIエラー: ${String(response.statusCode)}`, detail)
+    throw new GitHubAPIError(`GitHub API error: ${String(response.statusCode)}`, detail)
   }
 
   /**
@@ -627,7 +629,7 @@ ${scopesLine}
     catch (error: unknown) {
       const failure = toGraphqlFailure(error)
       if (!isUnauthorized(failure)) throw this.classifyGraphqlFailure(failure)
-      if (!this.retryWithFallbackToken()) throw new GitHubAuthError(`GraphQL認証エラー: ${failure.message}`, { cause: failure })
+      if (!this.retryWithFallbackToken()) throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure })
       try {
         return await this.sendGraphql(query, variables)
       }

@@ -1,6 +1,6 @@
 {
   "stdout": "ワークツリー: wt1\n  パス: {{TMP}}/wt1/demo\n  ブランチ: wt1\n  ベース: main\n  リンク: 2件\n  リンクスキップ: 4件\n  コピー: 1件\n",
-  "stderr": "ターゲットが存在しません: {{TMP}}/base/demo/.env\nターゲットが存在しません: {{TMP}}/base/demo/.claude/settings.local.json\nターゲットが存在しません: {{TMP}}/base/demo/.pecot/config/hooks-config.json\nターゲットが存在しません: {{TMP}}/base/demo/.pecot/work\n",
+  "stderr": "target does not exist: {{TMP}}/base/demo/.env\ntarget does not exist: {{TMP}}/base/demo/.claude/settings.local.json\ntarget does not exist: {{TMP}}/base/demo/.pecot/config/hooks-config.json\ntarget does not exist: {{TMP}}/base/demo/.pecot/work\n",
   "exitCode": 0,
   "requests": [],
   "files": {

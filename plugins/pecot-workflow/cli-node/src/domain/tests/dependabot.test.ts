@@ -27,14 +27,14 @@ function ok(alerts: readonly DependabotAlert[]): AlertList {
 }
 
 const FORBIDDEN: DependabotFailure = {
-  message: 'アクセスが拒否されました。',
+  message: 'access denied',
   statusCode: 403,
   responseBody: '{"message":"Dependabot alerts are disabled for this repository."}\nextra',
 }
 
 const FORBIDDEN_RESULT: DependabotResult<never> = { kind: 'forbidden', failure: FORBIDDEN }
 
-const RATE_LIMITED: DependabotFailure = { message: 'APIレート制限に達しました。', statusCode: 403, responseBody: 'rate limit' }
+const RATE_LIMITED: DependabotFailure = { message: 'API rate limit reached', statusCode: 403, responseBody: 'rate limit' }
 
 interface FakeSource {
   readonly source: DependabotSource
@@ -148,44 +148,44 @@ describe('一覧が 403', () => {
   it('有効なのに一覧が取れなければエラー（権限不足の可能性）', async () => {
     const error = await fetchError(fakeSource(FORBIDDEN_RESULT, { kind: 'ok', value: true }))
     expect(error).toBeInstanceOf(DependabotAlertError)
-    expect(error).toHaveProperty('message', 'owner/repo: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）')
+    expect(error).toHaveProperty('message', 'owner/repo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)')
   })
 
   it('有効判定が失敗したら、応答本文の message を添えたエラー', async () => {
-    const failure: DependabotFailure = { message: 'GitHub APIエラー: 500', statusCode: 500, responseBody: '{"message":"boom"}' }
+    const failure: DependabotFailure = { message: 'GitHub API error: 500', statusCode: 500, responseBody: '{"message":"boom"}' }
     const error = await fetchError(fakeSource(FORBIDDEN_RESULT, { kind: 'failure', failure }))
-    expect(error).toHaveProperty('message', 'owner/repo: GitHub APIエラー: 500 boom')
+    expect(error).toHaveProperty('message', 'owner/repo: GitHub API error: 500 boom')
   })
 
   it('有効判定も 403 なら API エラーとして包む', async () => {
     const failure: DependabotFailure = { ...FORBIDDEN, responseBody: '{"message":"Resource not accessible"}' }
     const error = await fetchError(fakeSource(FORBIDDEN_RESULT, { kind: 'forbidden', failure }))
-    expect(error).toHaveProperty('message', 'owner/repo: アクセスが拒否されました。 Resource not accessible')
+    expect(error).toHaveProperty('message', 'owner/repo: access denied Resource not accessible')
   })
 
   it('有効判定がレート制限ならエラー', async () => {
     const error = await fetchError(fakeSource(FORBIDDEN_RESULT, { kind: 'rateLimited', failure: RATE_LIMITED }))
-    expect(error).toHaveProperty('message', 'owner/repo: APIレート制限に達しました。')
+    expect(error).toHaveProperty('message', 'owner/repo: API rate limit reached')
   })
 
   it('一覧のレート制限は分類せずエラー（有効判定を呼ばない）', async () => {
     const fake = fakeSource({ kind: 'rateLimited', failure: RATE_LIMITED })
     const error = await fetchError(fake)
     expect(error).toBeInstanceOf(DependabotAlertError)
-    expect(error).toHaveProperty('message', expect.stringContaining('レート制限'))
+    expect(error).toHaveProperty('message', expect.stringContaining('rate limit'))
     expect(fake.enabledCalls).toStrictEqual([])
   })
 
   it('有効判定の通信失敗は「通信に失敗しました」', async () => {
     const error = await fetchError(fakeSource(FORBIDDEN_RESULT, { kind: 'network', message: 'down' }))
-    expect(error).toHaveProperty('message', 'owner/repo: 通信に失敗しました: down')
+    expect(error).toHaveProperty('message', 'owner/repo: request failed: down')
   })
 })
 
 describe('エラー', () => {
   it('JSON の本文は message だけを添える', async () => {
     const body = '{"message":"Server Error","documentation_url":"https://docs"}'
-    expect(await messageForFailure({ message: 'GitHub APIエラー: 500', statusCode: 500, responseBody: body })).toBe('owner/repo: GitHub APIエラー: 500 Server Error')
+    expect(await messageForFailure({ message: 'GitHub API error: 500', statusCode: 500, responseBody: body })).toBe('owner/repo: GitHub API error: 500 Server Error')
   })
 
   it('message は前後の空白を落として添える', async () => {
@@ -193,8 +193,8 @@ describe('エラー', () => {
   })
 
   it('HTML の本文は何も添えない', async () => {
-    const failure: DependabotFailure = { message: 'GitHub APIエラー: 502', statusCode: 502, responseBody: '<html><body>Bad Gateway</body></html>' }
-    expect(await messageForFailure(failure)).toBe('owner/repo: GitHub APIエラー: 502')
+    const failure: DependabotFailure = { message: 'GitHub API error: 502', statusCode: 502, responseBody: '<html><body>Bad Gateway</body></html>' }
+    expect(await messageForFailure(failure)).toBe('owner/repo: GitHub API error: 502')
   })
 
   it('本文が無ければ何も添えない', async () => {
@@ -215,6 +215,6 @@ describe('エラー', () => {
   it('通信の失敗は「通信に失敗しました」に包む', async () => {
     const error = await fetchError(fakeSource({ kind: 'network', message: 'connection refused' }))
     expect(error).toBeInstanceOf(DependabotAlertError)
-    expect(error).toHaveProperty('message', 'owner/repo: 通信に失敗しました: connection refused')
+    expect(error).toHaveProperty('message', 'owner/repo: request failed: connection refused')
   })
 })

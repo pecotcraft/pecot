@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: マージに失敗しました: GitHub APIエラー: 502\n",
+  "stderr": "エラー: マージに失敗しました: GitHub API error: 502\n",
   "exitCode": 1,
   "requests": [
     {

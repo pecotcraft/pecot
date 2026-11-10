@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: ワークツリーが見つかりません: wt9\n",
+  "stderr": "エラー: worktree not found: wt9\n",
   "exitCode": 1,
   "requests": [],
   "files": {

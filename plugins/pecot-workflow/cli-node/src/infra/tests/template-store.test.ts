@@ -44,7 +44,7 @@ function epicBodyWith(heading: string): string {
   return `${heading}\n\n現状の事実\n\n## TO-BE — 完了時の状態\n\n完了時にどうなっているか\n\n## GAP — 埋めるべき差分\n\nAS-IS と TO-BE の差\n`
 }
 
-// (level, "名前 — <サマリ>") から em-dash サマリを落として (level, 名前) にする
+// (level, "名前 — <summary>") から em-dash サマリを落として (level, 名前) にする
 function sectionNames(sections: readonly SectionHeading[]): readonly (readonly [number, string])[] {
   return sections.map(({ level, name }) => [level, name.split(' — ', 1)[0] ?? name])
 }
@@ -110,7 +110,7 @@ describe('pr/create.md の実体と検証器の結合', () => {
 
     expect(validateSections(body, createSections())).toEqual([])
     expect(validateHeadingSummaries(body, createSections())).toEqual([])
-    expect(validateBodyStyle(body).some(message => message.includes('未編集プレースホルダ'))).toBe(true)
+    expect(validateBodyStyle(body).some(message => message.includes('unedited placeholder'))).toBe(true)
   })
 })
 
@@ -145,13 +145,13 @@ describe('issue/epic.md の実体（AS-IS / TO-BE / GAP）と検証器の結合'
   })
 
   it('区切りが半角ハイフンの見出しは不足として報告される', () => {
-    expect(validateSections(epicBodyWith('## AS-IS - 現状'), epicSections())).toEqual(['## AS-IS — <サマリ>'])
+    expect(validateSections(epicBodyWith('## AS-IS - 現状'), epicSections())).toEqual(['## AS-IS — <summary>'])
   })
 
   it('サマリの上限超過は不足ではなくサマリの規則違反として報告される', () => {
     const body = epicBodyWith(`## AS-IS — ${'あ'.repeat(51)}`)
     expect(validateSections(body, epicSections())).toEqual([])
-    expect(validateHeadingSummaries(body, epicSections())).toEqual(['## AS-IS — サマリが51文字です（上限50文字）'])
+    expect(validateHeadingSummaries(body, epicSections())).toEqual(['## AS-IS — the summary is 51 characters (limit: 50)'])
   })
 })
 

@@ -68,7 +68,7 @@ class TestGitHubNotFoundError:
 
     def test_inheritance(self) -> None:
         """GitHubAPIErrorを継承"""
-        error = GitHubNotFoundError("リソースが見つかりません")
+        error = GitHubNotFoundError("resource not found")
         assert isinstance(error, GitHubAPIError)
 
 
@@ -77,7 +77,7 @@ class TestGitHubRateLimitError:
 
     def test_inheritance(self) -> None:
         """GitHubAPIErrorを継承"""
-        error = GitHubRateLimitError("レート制限")
+        error = GitHubRateLimitError("rate limit")
         assert isinstance(error, GitHubAPIError)
 
 
@@ -793,7 +793,7 @@ class TestGitHubClientErrorHandling:
         response.status_code = 401
         response.text = "Unauthorized"
 
-        with pytest.raises(GitHubAuthError, match="認証に失敗"):
+        with pytest.raises(GitHubAuthError, match="authentication failed"):
             client._handle_http_error(response)
 
     def test_handle_404_error(self, client: GitHubClient) -> None:
@@ -803,7 +803,7 @@ class TestGitHubClientErrorHandling:
         response.text = "Not Found"
         response.url = "https://api.github.com/repos/test/test"
 
-        with pytest.raises(GitHubNotFoundError, match="リソースが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="resource not found"):
             client._handle_http_error(response)
 
     def test_handle_403_rate_limit(self, client: GitHubClient) -> None:
@@ -812,7 +812,7 @@ class TestGitHubClientErrorHandling:
         response.status_code = 403
         response.text = "API rate limit exceeded"
 
-        with pytest.raises(GitHubRateLimitError, match="レート制限"):
+        with pytest.raises(GitHubRateLimitError, match="rate limit"):
             client._handle_http_error(response)
 
     def test_handle_403_other(self, client: GitHubClient) -> None:
@@ -821,7 +821,7 @@ class TestGitHubClientErrorHandling:
         response.status_code = 403
         response.text = "Forbidden"
 
-        with pytest.raises(GitHubAPIError, match="アクセスが拒否"):
+        with pytest.raises(GitHubAPIError, match="access denied"):
             client._handle_http_error(response)
 
     def test_handle_500_error(self, client: GitHubClient) -> None:
@@ -830,7 +830,7 @@ class TestGitHubClientErrorHandling:
         response.status_code = 500
         response.text = "Internal Server Error"
 
-        with pytest.raises(GitHubAPIError, match="GitHub APIエラー: 500"):
+        with pytest.raises(GitHubAPIError, match="GitHub API error: 500"):
             client._handle_http_error(response)
 
 
@@ -1114,21 +1114,21 @@ class TestGitHubClientGraphQL:
         """_execute_graphql: 認証エラー"""
         client._graphql.execute.side_effect = Exception("401 Unauthorized")
 
-        with pytest.raises(GitHubAuthError, match="GraphQL認証エラー"):
+        with pytest.raises(GitHubAuthError, match="GraphQL authentication error"):
             client._execute_graphql("query { test }")
 
     def test_execute_graphql_rate_limit(self, client: GitHubClient) -> None:
-        """_execute_graphql: レート制限"""
+        """_execute_graphql: rate limit"""
         client._graphql.execute.side_effect = Exception("API rate limit exceeded")
 
-        with pytest.raises(GitHubRateLimitError, match="GraphQLレート制限"):
+        with pytest.raises(GitHubRateLimitError, match="GraphQL rate limit"):
             client._execute_graphql("query { test }")
 
     def test_execute_graphql_other_error(self, client: GitHubClient) -> None:
         """_execute_graphql: その他のエラー"""
         client._graphql.execute.side_effect = Exception("Some other error")
 
-        with pytest.raises(GitHubAPIError, match="GraphQLクエリ実行エラー"):
+        with pytest.raises(GitHubAPIError, match="GraphQL query error"):
             client._execute_graphql("query { test }")
 
     def test_get_issue_node_id_success(self, client: GitHubClient) -> None:
@@ -1154,21 +1154,21 @@ class TestGitHubClientGraphQL:
         """get_issue_node_id_and_title: Issueが見つからない"""
         client._graphql.execute.return_value = {"repository": {"issue": None}}
 
-        with pytest.raises(GitHubNotFoundError, match="Issueが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="Issue not found"):
             client.get_issue_node_id_and_title("owner", "repo", 999)
 
     def test_get_issue_node_id_repo_not_found(self, client: GitHubClient) -> None:
         """get_issue_node_id: リポジトリが見つからない"""
         client._graphql.execute.return_value = {"repository": None}
 
-        with pytest.raises(GitHubNotFoundError, match="リポジトリが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="repository not found"):
             client.get_issue_node_id("owner", "nonexistent", 123)
 
     def test_get_issue_node_id_issue_not_found(self, client: GitHubClient) -> None:
         """get_issue_node_id: Issueが見つからない"""
         client._graphql.execute.return_value = {"repository": {"issue": None}}
 
-        with pytest.raises(GitHubNotFoundError, match="Issueが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="Issue not found"):
             client.get_issue_node_id("owner", "repo", 999)
 
     def test_list_project_items_single_page(self, client: GitHubClient) -> None:
@@ -1251,7 +1251,7 @@ class TestGitHubClientGraphQL:
         """add_to_project: 失敗"""
         client._graphql.execute.return_value = {"addProjectV2ItemById": {"item": None}}
 
-        with pytest.raises(GitHubAPIError, match="プロジェクトへの追加に失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to add the item to the project"):
             client.add_to_project("PVT_proj", "I_issue")
 
     def test_update_project_item_field_success(self, client: GitHubClient) -> None:
@@ -1270,7 +1270,7 @@ class TestGitHubClientGraphQL:
             "updateProjectV2ItemFieldValue": {"projectV2Item": None}
         }
 
-        with pytest.raises(GitHubAPIError, match="フィールドの更新に失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to update the field"):
             client.update_project_item_field("PVT_proj", "PVTI_item", "FIELD_id", "OPT_id")
 
     def test_add_sub_issue_success(self, client: GitHubClient) -> None:
@@ -1291,7 +1291,7 @@ class TestGitHubClientGraphQL:
         """add_sub_issue: 失敗"""
         client._graphql.execute.return_value = {"addSubIssue": {"issue": None, "subIssue": None}}
 
-        with pytest.raises(GitHubAPIError, match="サブIssueの紐づけに失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to link the sub-issue"):
             client.add_sub_issue("I_parent", "I_child")
 
     def test_delete_project_item_success(self, client: GitHubClient) -> None:
@@ -1308,7 +1308,7 @@ class TestGitHubClientGraphQL:
         """delete_project_item: 失敗"""
         client._graphql.execute.return_value = {"deleteProjectV2Item": {"deletedItemId": None}}
 
-        with pytest.raises(GitHubAPIError, match="プロジェクトアイテムの削除に失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to delete the project item"):
             client.delete_project_item("PVT_proj", "PVTI_item")
 
     def test_get_linked_repositories_user(self, client: GitHubClient) -> None:
@@ -1533,7 +1533,7 @@ class TestGitHubClientProjectRepositoryID:
 
         with pytest.raises(GitHubNotFoundError) as exc_info:
             client.get_project_id("unknown", 1)
-        assert "プロジェクトが見つかりません" in str(exc_info.value)
+        assert "project not found" in str(exc_info.value)
 
     def test_get_repository_id_success(self) -> None:
         """リポジトリID取得成功"""
@@ -1556,7 +1556,7 @@ class TestGitHubClientProjectRepositoryID:
 
         with pytest.raises(GitHubNotFoundError) as exc_info:
             client.get_repository_id("owner", "nonexistent")
-        assert "リポジトリが見つかりません" in str(exc_info.value)
+        assert "repository not found" in str(exc_info.value)
 
 
 # GitHubClient リポジトリリンクテスト
@@ -1805,7 +1805,7 @@ class TestGitHubClientBranchOperations:
         mock_response.url = "https://api.github.com/repos/owner/repo/git/ref/heads/nonexistent"
         client._rest.get.return_value = mock_response
 
-        with pytest.raises(GitHubNotFoundError, match="リソースが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="resource not found"):
             client.get_branch_sha("owner", "repo", "nonexistent")
 
     # create_linked_branch テスト
@@ -1857,7 +1857,7 @@ class TestGitHubClientBranchOperations:
         """create_linked_branch: 失敗（linkedBranchがNone）"""
         client._graphql.execute.return_value = {"createLinkedBranch": {"linkedBranch": None}}
 
-        with pytest.raises(GitHubAPIError, match="リンクブランチの作成に失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to create the linked branch"):
             client.create_linked_branch(
                 issue_id="I_kwDOtest123",
                 oid="abc123def456",
@@ -1870,7 +1870,7 @@ class TestGitHubClientBranchOperations:
             "A branch named 'feat/existing-branch' already exists"
         )
 
-        with pytest.raises(GitHubAPIError, match="GraphQLクエリ実行エラー"):
+        with pytest.raises(GitHubAPIError, match="GraphQL query error"):
             client.create_linked_branch(
                 issue_id="I_kwDOtest123",
                 oid="abc123def456",
@@ -1928,7 +1928,7 @@ class TestCreateProjectField:
         """create_project_field: 失敗（レスポンスがNone）"""
         client._graphql.execute.return_value = {"createProjectV2Field": {"projectV2Field": None}}
 
-        with pytest.raises(GitHubAPIError, match="フィールドの作成に失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to create the field"):
             client.create_project_field(
                 project_id="PVT_test123",
                 name="pecot-workflow",
@@ -1939,7 +1939,7 @@ class TestCreateProjectField:
         """create_project_field: APIエラー"""
         client._graphql.execute.side_effect = Exception("GraphQL error")
 
-        with pytest.raises(GitHubAPIError, match="GraphQLクエリ実行エラー"):
+        with pytest.raises(GitHubAPIError, match="GraphQL query error"):
             client.create_project_field(
                 project_id="PVT_test123",
                 name="pecot-workflow",
@@ -1987,7 +1987,7 @@ class TestGetOwnerNodeId:
             {"organization": None},
         ]
 
-        with pytest.raises(GitHubNotFoundError, match="オーナーが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="owner not found"):
             client.get_owner_node_id("nonexistent")
 
     def test_org_query_error_propagates(self, client: GitHubClient) -> None:
@@ -2040,7 +2040,7 @@ class TestCreateProject:
         """プロジェクト作成失敗"""
         client._graphql.execute.return_value = {"createProjectV2": {"projectV2": None}}
 
-        with pytest.raises(GitHubAPIError, match="プロジェクトの作成に失敗"):
+        with pytest.raises(GitHubAPIError, match="failed to create the project"):
             client.create_project("U_owner123", "New Project")
 
     def test_create_api_error(self, client: GitHubClient) -> None:
@@ -2130,7 +2130,7 @@ class TestGetIssueKind:
         with patch.object(client, "_execute_graphql") as mock_exec:
             mock_exec.side_effect = [
                 GitHubAPIError(
-                    "GraphQLクエリ実行エラー: Cannot query field 'issueType' on type 'Issue'"
+                    "GraphQL query error: Cannot query field 'issueType' on type 'Issue'"
                 ),
                 {
                     "repository": {
@@ -2362,14 +2362,14 @@ class TestGetIssueSlim:
         """Issueが見つからない場合"""
         client._graphql.execute.return_value = {"repository": {"issue": None}}
 
-        with pytest.raises(GitHubNotFoundError, match="Issueが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="Issue not found"):
             client.get_issue_slim("owner", "repo", 999)
 
     def test_repository_not_found(self, client: GitHubClient) -> None:
         """リポジトリが見つからない場合"""
         client._graphql.execute.return_value = {"repository": None}
 
-        with pytest.raises(GitHubNotFoundError, match="リポジトリが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="repository not found"):
             client.get_issue_slim("owner", "nonexistent", 435)
 
     def test_with_linked_prs(self, client: GitHubClient) -> None:
@@ -2854,14 +2854,14 @@ class TestGetPullRequestSlim:
         """PRが見つからない場合"""
         client._graphql.execute.return_value = {"repository": {"pullRequest": None}}
 
-        with pytest.raises(GitHubNotFoundError, match="PRが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="PR not found"):
             client.get_pull_request_slim("owner", "repo", 999)
 
     def test_repository_not_found(self, client: GitHubClient) -> None:
         """リポジトリが見つからない場合"""
         client._graphql.execute.return_value = {"repository": None}
 
-        with pytest.raises(GitHubNotFoundError, match="リポジトリが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="repository not found"):
             client.get_pull_request_slim("owner", "nonexistent", 42)
 
     def test_null_author_in_review(self, client: GitHubClient) -> None:
@@ -2972,7 +2972,7 @@ class TestMergePullRequest:
         mock_response.url = "https://api.github.com/repos/owner/repo/pulls/999/merge"
         client._rest.put.return_value = mock_response
 
-        with pytest.raises(GitHubNotFoundError, match="リソースが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="resource not found"):
             client.merge_pull_request("owner", "repo", 999)
 
     def test_merge_conflict(self, client: GitHubClient) -> None:
@@ -3059,7 +3059,7 @@ class TestCloseIssue:
         mock_response.url = "https://api.github.com/repos/owner/repo/issues/999"
         client._rest.patch.return_value = mock_response
 
-        with pytest.raises(GitHubNotFoundError, match="リソースが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="resource not found"):
             client.close_issue("owner", "repo", 999)
 
     def test_close_already_closed(self, client: GitHubClient) -> None:
@@ -3172,7 +3172,7 @@ class TestReopenIssue:
         mock_response.url = "https://api.github.com/repos/owner/repo/issues/999"
         client._rest.patch.return_value = mock_response
 
-        with pytest.raises(GitHubNotFoundError, match="リソースが見つかりません"):
+        with pytest.raises(GitHubNotFoundError, match="resource not found"):
             client.reopen_issue("owner", "repo", 999)
 
     def test_reopen_issue_ghes(self, client: GitHubClient) -> None:
@@ -3248,7 +3248,7 @@ class TestDeleteBranch:
         mock_response.text = "Cannot delete a protected branch"
         client._rest.delete.return_value = mock_response
 
-        with pytest.raises(GitHubAPIError, match="アクセスが拒否"):
+        with pytest.raises(GitHubAPIError, match="access denied"):
             client.delete_branch("owner", "repo", "main")
 
 
@@ -3456,9 +3456,9 @@ class TestTokenFallback:
         assert client._used_fallback is True
 
         captured = capsys.readouterr()
-        assert "環境変数のトークンが無効です" in captured.err
-        assert "gh auth token にフォールバック" in captured.err
-        assert ".env のトークンを更新するか削除" in captured.err
+        assert "the token in the environment variable is invalid" in captured.err
+        assert "fell back to gh auth token" in captured.err
+        assert "update or remove the token in .env" in captured.err
         client.close()
 
     def test_no_retry_if_already_fallen_back(self) -> None:
@@ -3535,7 +3535,7 @@ class TestPecotGithubApiUrl:
     )
     def test_rejects_other_values(self, monkeypatch: pytest.MonkeyPatch, value: str) -> None:
         monkeypatch.setenv("PECOT_GITHUB_API_URL", value)
-        with pytest.raises(ValueError, match="http://127.0.0.1 か http://localhost") as exc:
+        with pytest.raises(ValueError, match="http://127.0.0.1 or http://localhost") as exc:
             resolve_api_url_override()
         assert str(exc.value).endswith(f": {value}")
 

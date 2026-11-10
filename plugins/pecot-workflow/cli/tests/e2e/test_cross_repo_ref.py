@@ -163,7 +163,7 @@ class TestIssueReadCrossRepo:
     def test_invalid_ref_exit2_with_accepted_forms_in_stderr(
         self, respx_mock: respx.MockRouter, mock_config
     ) -> None:
-        """CUJ4 相当: 不正形式 ``owner//5`` で exit=2、stderr に受理形式2種が含まれること。"""
+        """CUJ4 相当: 不正形式 ``owner//5`` で exit=2、stderr にaccepted forms2種が含まれること。"""
         route = respx_mock.post(GRAPHQL_URL).mock(
             return_value=httpx.Response(200, json=ISSUE_GRAPHQL_PAYLOAD)
         )
@@ -177,8 +177,8 @@ class TestIssueReadCrossRepo:
 
         assert result.exit_code == 2
         assert route.call_count == 0
-        # stderr に受理形式2種類が列挙されること
-        assert "受理形式" in result.output or "受理形式" in (
+        # stderr にaccepted forms2種類が列挙されること
+        assert "accepted forms" in result.output or "accepted forms" in (
             result.stderr if hasattr(result, "stderr") else ""
         )
         # typer の CliRunner は stderr を output に混ぜるため output でも確認

@@ -109,21 +109,21 @@ describe('loadConfig / saveConfig', () => {
   it('設定ファイルが無ければ WorktreeConfigError', () => {
     const file = path.join(makeTemporaryDirectory(), 'missing.json')
     expect(() => loadConfig(file)).toThrow(WorktreeConfigError)
-    expect(() => loadConfig(file)).toThrow(`設定ファイルが見つかりません: ${file}`)
+    expect(() => loadConfig(file)).toThrow(`config file not found: ${file}`)
   })
 
   it('JSON が不正なら WorktreeConfigError（パースエラー）', () => {
     const file = path.join(makeTemporaryDirectory(), 'bad.json')
     writeFileSync(file, '{ not json')
     expect(() => loadConfig(file)).toThrow(WorktreeConfigError)
-    expect(() => loadConfig(file)).toThrow(`JSONパースエラー: ${file}: `)
+    expect(() => loadConfig(file)).toThrow(`JSON parse error: ${file}: `)
   })
 
   it('旧 v2 は受理しない。検証エラーの文は pydantic のもの', () => {
     const file = path.join(makeTemporaryDirectory(), 'old.json')
     writeFileSync(file, JSON.stringify({ version: 2, links: [{ path: '.env', target_repo: 'r', target_path: '.env' }] }))
     expect(() => loadConfig(file)).toThrow(WorktreeConfigError)
-    const expected = [`設定ファイルの検証に失敗しました: ${file}: 1 validation error for WorktreeConfig`, 'version', '  Input should be 3 [type=literal_error, input_value=2, input_type=int]'].join('\n')
+    const expected = [`config file validation failed: ${file}: 1 validation error for WorktreeConfig`, 'version', '  Input should be 3 [type=literal_error, input_value=2, input_type=int]'].join('\n')
     expect(() => loadConfig(file)).toThrow(expected)
   })
 
@@ -135,7 +135,7 @@ describe('loadConfig / saveConfig', () => {
 
   it('メッセージのパスは Python の Path と同じく正規化する', () => {
     const directory = makeTemporaryDirectory()
-    expect(() => loadConfig(`${directory}//./missing.json`)).toThrow(`設定ファイルが見つかりません: ${directory}/missing.json`)
+    expect(() => loadConfig(`${directory}//./missing.json`)).toThrow(`config file not found: ${directory}/missing.json`)
   })
 })
 
@@ -222,8 +222,8 @@ describe('createSymlinks', () => {
     const stderr = captureStderr()
     const results = createSymlinks(configOf([linkOf('.env', 'aist-roadmap', '.env')]), root, 'wt1', 'myrepo')
     const target = path.join(root, 'base', 'aist-roadmap', '.env')
-    expect(results[0]).toMatchObject({ action: 'skipped', message: `ターゲットが存在しません: ${target}` })
-    expect(stderr.text()).toBe(`ターゲットが存在しません: ${target}\n`)
+    expect(results[0]).toMatchObject({ action: 'skipped', message: `target does not exist: ${target}` })
+    expect(stderr.text()).toBe(`target does not exist: ${target}\n`)
   })
 
   it('ターゲットが dangling symlink でも skipped で、識別できる message になる', () => {
@@ -232,7 +232,7 @@ describe('createSymlinks', () => {
     symlinkSync('/nonexistent/target', dangling)
     const stderr = captureStderr()
     const results = createSymlinks(configOf([linkOf('dangling.md', 'aist-roadmap', 'dangling.md')]), root, 'wt1', 'myrepo')
-    expect(results[0]).toMatchObject({ action: 'skipped', message: `ターゲットが dangling symlink です: ${dangling}` })
+    expect(results[0]).toMatchObject({ action: 'skipped', message: `target is a dangling symlink: ${dangling}` })
     expect(stderr.text()).toContain('dangling')
   })
 
@@ -265,7 +265,7 @@ describe('createSymlinks', () => {
     const results = createSymlinks(configOf([linkOf('sub/file', 'shared', 'f')]), root, 'wt1', 'myrepo')
     const message = `[Errno 17] File exists: '${path.join(repository, 'sub')}'`
     expect(results[0]).toMatchObject({ action: 'error', message })
-    expect(stderr.text()).toBe(`シンボリックリンク作成失敗: ${path.join(repository, 'sub', 'file')} -> ../../../base/shared/f: ${message}\n`)
+    expect(stderr.text()).toBe(`failed to create the symlink: ${path.join(repository, 'sub', 'file')} -> ../../../base/shared/f: ${message}\n`)
   })
 })
 
@@ -282,10 +282,10 @@ describe('git 管理対象のガード', () => {
     const { root, repository } = setupTracked({ 'README.md': 'TRACKED-CANARY-12345' })
     const stderr = captureStderr()
     const results = createSymlinks(configOf([linkOf('README.md', 'aist-roadmap', 'README.md')]), root, 'wt1', 'myrepo')
-    expect(results[0]).toMatchObject({ action: 'error', message: 'git 管理対象のため symlink 作成を中止: README.md' })
+    expect(results[0]).toMatchObject({ action: 'error', message: 'symlink creation aborted because the path is tracked by git: README.md' })
     expect(lstatSync(path.join(repository, 'README.md')).isSymbolicLink()).toBe(false)
     expect(readFileSync(path.join(repository, 'README.md'), 'utf8')).toBe('TRACKED-CANARY-12345')
-    expect(stderr.text()).toBe(`git 管理対象のため symlink 作成をスキップ: ${path.join(repository, 'README.md')}\n`)
+    expect(stderr.text()).toBe(`symlink creation skipped because the path is tracked by git: ${path.join(repository, 'README.md')}\n`)
   })
 
   it('tracked ディレクトリにも symlink を作らない', () => {
@@ -352,7 +352,7 @@ describe('createSymlinksSafe', () => {
   it('force なし・confirm なしなら skipped で、リアルファイルを残す', () => {
     const { root, existing } = setupRealFile()
     const results = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo')
-    expect(results[0]).toMatchObject({ action: 'skipped', message: `リアルファイルが存在します: ${existing}` })
+    expect(results[0]).toMatchObject({ action: 'skipped', message: `a real file exists: ${existing}` })
     expect(lstatSync(existing).isSymbolicLink()).toBe(false)
   })
 
@@ -408,7 +408,7 @@ describe('.pecot/.gitignore の生成スクリプトの探索', () => {
     const { root, config } = setupPecotLinks()
     const stderr = captureStderr()
     createSymlinks(config, root, 'wt1', 'myrepo')
-    expect(stderr.text()).toBe(`.pecot/.gitignore の生成スクリプトが見つかりません: ${path.join(pluginDirectory, ENSURE_SCRIPT)}\n`)
+    expect(stderr.text()).toBe(`generation script for .pecot/.gitignore not found: ${path.join(pluginDirectory, ENSURE_SCRIPT)}\n`)
   })
 
   it('env が無ければ、ソースツリーの plugin ルートのスクリプトを返す', () => {
@@ -440,7 +440,7 @@ describe('.pecot/.gitignore の生成スクリプトの探索', () => {
     const stderr = captureStderr()
     const results = createSymlinks(config, root, 'wt1', 'myrepo')
     expect(results.map(result => result.action)).toEqual(['created', 'created'])
-    expect(stderr.text()).toBe('.pecot/.gitignore を生成できませんでした: oops\n')
+    expect(stderr.text()).toBe('could not generate .pecot/.gitignore: oops\n')
   })
 
   it('bash が見つからなければ例外', () => {
@@ -485,7 +485,7 @@ describe('loadCopyExcludeSpec', () => {
   it('.worktreeignore が無ければ WorktreeConfigError', () => {
     const main = makeTemporaryDirectory()
     expect(() => loadCopyExcludeSpec(main)).toThrow(WorktreeConfigError)
-    expect(() => loadCopyExcludeSpec(main)).toThrow(`コピー除外設定が見つかりません: ${WORKTREE_IGNORE_FILENAME}\n  pecot worktree init でテンプレートを生成してください。`)
+    expect(() => loadCopyExcludeSpec(main)).toThrow(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
   })
 
   it('基本の gitignore パターンが当たる', () => {
@@ -544,7 +544,7 @@ describe('loadCopyExcludeSpec', () => {
     const stderr = captureStderr()
     const spec = loadCopyExcludeSpec(main)
     expect(spec.matchFile('anything')).toBe(false)
-    expect(stderr.text()).toBe(`${file} の全パターンが無効です (有効行 1 本を silent ignore)。 gitignore 構文を確認してください。\n`)
+    expect(stderr.text()).toBe(`all patterns in ${file} are invalid (1 effective lines silently ignored): check the gitignore syntax\n`)
   })
 
   it('コメントと空行だけ（有効行 0）なら警告しない', () => {

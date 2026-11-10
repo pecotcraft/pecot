@@ -63,11 +63,10 @@ devcontainer 外（host 直接）での実行はサポート外。プロジェ�
 export function ensureDevcontainerEnvironment(dockerEnvironmentFile = '/.dockerenv'): void {
   if (existsSync(dockerEnvironmentFile) || isSet(process.env['REMOTE_CONTAINERS']) || isSet(process.env['CODESPACES']) || isSet(process.env['DEVCONTAINER'])) return
   throw new WorktreeRuntimeError(
-    'このコマンドは devcontainer 内で実行してください。\n'
-    + '現在の環境では pecot の想定するマウント構造'
-    + '（/workspaces/<project>/base/<repo>）が満たされません。\n'
-    + 'プロジェクトの .devcontainer/ を用意し、'
-    + 'VS Code で Reopen in Container してから再実行してください。',
+    'this command must run inside a devcontainer\n'
+    + 'the current environment does not have the mount layout pecot expects '
+    + '(/workspaces/<project>/base/<repo>)\n'
+    + 'prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and run it again',
   )
 }
 
@@ -132,7 +131,7 @@ export function getWorktreeList(cwd?: string): readonly WorktreeInfo[] {
 export function findMainWorktree(cwd: string): string {
   const result = runGit(['worktree', 'list'], { cwd })
   const output = pythonStrip(result.stdout)
-  if (output === '' || result.exitCode !== 0) throw new WorktreeRuntimeError(`ワークツリー一覧を取得できません: ${result.stderr}`)
+  if (output === '' || result.exitCode !== 0) throw new WorktreeRuntimeError(`cannot get the worktree list: ${result.stderr}`)
   // 空でない出力の先頭は空白でない文字なので、最初の空白までが必ずパスになる
   return normalizePath(/^\S+/u.exec(output)?.[0] ?? '')
 }
@@ -166,7 +165,7 @@ export function isWorktreeEnvironment(cwd: string): boolean {
     commonDirectory = runGit(['rev-parse', '--git-common-dir'], { cwd, check: true }).stdout
   }
   catch (error: unknown) {
-    if (error instanceof GitCommandError) throw new WorktreeRuntimeError(`Gitリポジトリではありません: ${error.stderr.trim()}`, { cause: error })
+    if (error instanceof GitCommandError) throw new WorktreeRuntimeError(`not a git repository: ${error.stderr.trim()}`, { cause: error })
     throw error
   }
   // 相対パスは、cwd ではなくこのプロセスの作業ディレクトリ基準で解決する（Python の Path.resolve() と同じ）
@@ -179,7 +178,7 @@ export function isWorktreeEnvironment(cwd: string): boolean {
 */
 export function getWorktreeDirectories(cwd: string): readonly string[] {
   const entries = getWorktreeList(cwd)
-  if (entries.length === 0) throw new WorktreeRuntimeError('ワークツリー一覧を取得できません')
+  if (entries.length === 0) throw new WorktreeRuntimeError('cannot get the worktree list')
   return entries.slice(1).map(entry => normalizePath(entry.path))
 }
 
@@ -205,21 +204,21 @@ export function detectProjectRoot(cwd: string): string {
   if (path.basename(parent) !== 'base') {
     const expected = path.join(parent, 'base', path.basename(resolved))
     throw new WorktreeRuntimeError(
-      'このリポジトリは pecot プロジェクトの期待構造に配置されていません。\n'
+      'this repository is not placed in the layout pecot expects for a project\n'
       + '\n'
-      + `  現在: ${resolved}\n`
-      + `  期待: ${expected}\n`
+      + `  current: ${resolved}\n`
+      + `  expected: ${expected}\n`
       + '\n'
-      + 'なぜ base/ が必要か:\n'
-      + '  devcontainer が並行作業セット（wt1, wt2...）を選択的にマウントするため、\n'
-      + '  「常駐セット」と「並行セット」を base/ で分離しています。\n'
+      + 'why base/ is needed:\n'
+      + '  the devcontainer mounts the parallel sets (wt1, wt2...) selectively, so base/ '
+      + 'separates the resident set from the parallel sets\n'
       + '\n'
-      + '移行手順（cwd が消えるため、本 CLI セッションを必ず終了してから実行）:\n'
-      + '  1. この CLI セッションを閉じる\n'
-      + '  2. 別ターミナルで実行:\n'
+      + 'migration steps (the cwd goes away, so close this CLI session first):\n'
+      + '  1. close this CLI session\n'
+      + '  2. in another terminal, run:\n'
       + `       mkdir -p ${parent}/base\n`
       + `       mv ${resolved} ${parent}/base/\n`
-      + `  3. ${parent}/base/${path.basename(resolved)}/ で CLI を再起動`,
+      + `  3. restart the CLI in ${parent}/base/${path.basename(resolved)}/`,
     )
   }
   return path.dirname(parent)
@@ -268,7 +267,7 @@ export function getNextSetName(projectRoot: string, repositoryDirectoryName: str
   if (joinable !== undefined) return `${prefix}${String(joinable)}`
 
   // 全セットに参加済み → 新セット
-  if (last + 1 > maxNumber) throw new WorktreeRuntimeError(`${prefix}1〜${prefix}${String(maxNumber)} は全て使用済みです。空きがありません。`)
+  if (last + 1 > maxNumber) throw new WorktreeRuntimeError(`all of ${prefix}1 to ${prefix}${String(maxNumber)} are in use: no free set`)
   return `${prefix}${String(last + 1)}`
 }
 
@@ -302,14 +301,14 @@ function getRepositoryInfo(cwd: string): RepositoryReference {
       if (!(error instanceof ValidationFailure)) throw error
     }
   }
-  throw new WorktreeRuntimeError('リポジトリ情報を取得できません。git remote originが設定されているか確認してください。')
+  throw new WorktreeRuntimeError('cannot get the repository information: check that the git remote origin is set')
 }
 
 // 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）。(ワークツリー設定ファイルのパス, コピー除外 spec) を返す
 function loadCopyExcludeSpecOrRaise(mainWorktree: string): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
   const configPath = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
   if (!existsSync(configPath)) {
-    throw new WorktreeRuntimeError(`ワークツリー設定が見つかりません: ${WORKTREE_CONFIG_FILENAME}\n  pecot worktree init でテンプレートを生成してください。`)
+    throw new WorktreeRuntimeError(`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run pecot worktree init to generate the template`)
   }
   try {
     return { configPath, spec: loadCopyExcludeSpec(mainWorktree) }
@@ -325,23 +324,23 @@ function requireRegisteredRepository(cwd: string): { readonly repository: Reposi
   const repository = getRepositoryInfo(cwd)
   const config = loadActiveConfig()
   if (config === undefined) {
-    throw new WorktreeRuntimeError('プロジェクト設定が見つかりません。\n  ヒント: pecot project activate <PROJECT> でプロジェクトを設定')
+    throw new WorktreeRuntimeError('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
   }
   if (findRepository(config, repository.owner, repository.repository) === undefined) {
     const registered = config.repositories.length > 0
       ? config.repositories.map(item => `  - ${item.owner}/${item.name}`).join('\n')
-      : '  (登録なし)'
+      : '  (none registered)'
     throw new WorktreeRuntimeError(
-      `リポジトリ ${repository.owner}/${repository.repository} は現在アクティブな `
-      + 'pecot プロジェクトに登録されていません。\n'
+      `repository ${repository.owner}/${repository.repository} is not registered in the `
+      + 'active pecot project\n'
       + '\n'
-      + '登録済みリポジトリ:\n'
+      + 'registered repositories:\n'
       + `${registered}\n`
       + '\n'
-      + 'このリポジトリを pecot プロジェクトに追加するには:\n'
+      + 'to add this repository to the pecot project:\n'
       + `  pecot project set-repo ${repository.owner}/${repository.repository}\n`
       + '\n'
-      + '別のプロジェクトに切り替えるには:\n'
+      + 'to switch to another project:\n'
       + '  pecot project activate <PROJECT>',
     )
   }
@@ -353,10 +352,9 @@ function defaultBaseBranch(config: ProjectConfig, repository: RepositoryReferenc
   const developBranch = getDevelopBranch(config, repository.owner, repository.repository)
   if (developBranch === undefined || developBranch === '') {
     throw new WorktreeRuntimeError(
-      `リポジトリ ${repository.owner}/${repository.repository} の develop_branch が設定されていません。\n`
-      + '  プロジェクト設定ファイルの repositories に'
-      + ' develop_branch を追加してください。\n'
-      + '  または --base オプションで明示的に指定してください。',
+      `develop_branch is not set for repository ${repository.owner}/${repository.repository}\n`
+      + '  add develop_branch to repositories in the project config file\n'
+      + '  or pass --base explicitly',
     )
   }
   return developBranch
@@ -369,7 +367,7 @@ function loadWorktreeConfigOrRaise(configPath: string): WorktreeConfig {
   }
   catch (error: unknown) {
     if (error instanceof WorktreeConfigError) {
-      throw new WorktreeRuntimeError(`ワークツリー設定の読み込みに失敗しました: ${normalizePath(configPath)}: ${error.message}\n  設定ファイルを修正してから再実行してください。`, { cause: error })
+      throw new WorktreeRuntimeError(`failed to load the worktree config: ${normalizePath(configPath)}: ${error.message}\n  fix the config file and run it again`, { cause: error })
     }
     throw error
   }
@@ -402,7 +400,7 @@ function runEffectiveSetup(setupCommand: string | undefined, config: WorktreeCon
   const effective = setupCommand ?? config.setup_command
   if (effective === undefined || effective === '') return undefined
   const result = runSetupCommand(effective, worktreePath, config.setup_command_timeout)
-  if (result.exitCode !== 0) logMessage(`setup_command が非ゼロ終了しました (exit ${String(result.exitCode)}): ${effective}`)
+  if (result.exitCode !== 0) logMessage(`setup_command exited with a non-zero status (exit ${String(result.exitCode)}): ${effective}`)
   return result
 }
 
@@ -503,9 +501,9 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, baseBra
     const expectedUpstream = baseBranch === '' ? undefined : `origin/${baseBranch}`
     if ((currentUpstream === '' ? undefined : currentUpstream) !== expectedUpstream) {
       throw new WorktreeRuntimeError(
-        `ブランチ '${name}' は既に存在し、upstream が想定と異なります `
-        + `(現在: ${currentUpstream === '' ? '(未設定)' : currentUpstream}, 期待: ${expectedUpstream ?? 'None'})。`
-        + ' 再利用する場合は --allow-existing-branch を指定してください。',
+        `branch '${name}' already exists and its upstream differs from the expected one `
+        + `(current: ${currentUpstream === '' ? '(unset)' : currentUpstream}, expected: ${expectedUpstream ?? 'None'}): `
+        + 'pass --allow-existing-branch to reuse it',
       )
     }
 
@@ -521,7 +519,7 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, baseBra
   if (!hasBranch && baseBranch !== '') gitArguments.push('--track', `origin/${baseBranch}`)
 
   const result = runGit(gitArguments, { cwd })
-  if (result.exitCode !== 0) throw new WorktreeRuntimeError(`ワークツリーの作成に失敗しました: ${result.stderr}`)
+  if (result.exitCode !== 0) throw new WorktreeRuntimeError(`failed to create the worktree: ${result.stderr}`)
 }
 
 /**
@@ -532,13 +530,13 @@ export function removeWorktree(cwd: string, name: string, options: Readonly<{ re
   // 1. WTパスを特定
   const listing = runGit(['worktree', 'list'], { cwd })
   const worktreePath = outputLines(listing.stdout).map(line => parseWorktreeLine(line)).find(info => info?.branch === name)?.path
-  if (worktreePath === undefined) throw new WorktreeRuntimeError(`ワークツリーが見つかりません: ${name}`)
+  if (worktreePath === undefined) throw new WorktreeRuntimeError(`worktree not found: ${name}`)
 
   // 2. git worktree remove
   const gitArguments = ['worktree', 'remove', worktreePath]
   if (options.isForced === true) gitArguments.push('--force')
   const removed = runGit(gitArguments, { cwd })
-  if (removed.exitCode !== 0) throw new WorktreeRuntimeError(`ワークツリーの削除に失敗しました: ${removed.stderr}`)
+  if (removed.exitCode !== 0) throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
 
   // 3. ブランチ削除（ローカルブランチ）
   if (options.shouldKeepBranch !== true) runGit(['branch', '-D', name], { cwd })
@@ -563,6 +561,6 @@ function removeEmptySetDirectory(cwd: string, name: string): void {
   }
   catch (error: unknown) {
     const converted = toOsError(error)
-    logMessage(`セットディレクトリの削除に失敗: ${groupDirectory}: ${converted instanceof Error ? converted.message : String(converted)}`)
+    logMessage(`failed to remove the set directory: ${groupDirectory}: ${converted instanceof Error ? converted.message : String(converted)}`)
   }
 }

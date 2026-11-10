@@ -82,7 +82,7 @@ describe('projectRoot', () => {
   it('git の外で環境変数も無ければ ProjectRootNotFoundError', () => {
     const directory = makeTemporaryDirectory()
     expect(() => projectRoot({ cwd: directory })).toThrow(ProjectRootNotFoundError)
-    expect(() => projectRoot({ cwd: directory })).toThrow('プロジェクトルートが見つかりません。gitリポジトリ内で実行するか、CLAUDE_PROJECT_DIR環境変数を設定してください。')
+    expect(() => projectRoot({ cwd: directory })).toThrow('project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable')
   })
 
   it('作業ディレクトリが消えていたら git のルートは得られず ProjectRootNotFoundError', () => {
@@ -279,7 +279,7 @@ describe('reserveOutputPath', () => {
     writeFileSync(path.join(output, 'fixed.md'), '先客')
     expect(() => reserveOutputPath(output, () => 'fixed.md', { maxAttempts: 3, now: FIXED_NOW })).toThrow(OutputPathReservationError)
     expect(() => reserveOutputPath(output, () => 'fixed.md', { maxAttempts: 3, now: FIXED_NOW }))
-      .toThrow(`出力パスを予約できませんでした（3 件の候補名がすべて使用済み。最後の候補: ${path.join(output, 'fixed.md')}）`)
+      .toThrow(`could not reserve an output path: all 3 candidate names are in use (last candidate: ${path.join(output, 'fixed.md')})`)
     expect(readFileSync(path.join(output, 'fixed.md'), 'utf8')).toBe('先客')
   })
 

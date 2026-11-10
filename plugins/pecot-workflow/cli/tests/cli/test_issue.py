@@ -462,7 +462,7 @@ class TestAddToProjectCommand:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["add-to-project", "invalid-format"])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
@@ -633,7 +633,7 @@ class TestUpdateIssueStatusCommand:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["update-issue-status", "invalid-format", "active"])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
@@ -770,7 +770,7 @@ class TestIssueReopenCommand:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "reopen", "invalid-format"])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
@@ -2369,7 +2369,7 @@ body
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_create_missing_required_sections(self, tmp_path: Path) -> None:
         """異常系: 必須セクションが不足している場合はエラー"""
@@ -2745,7 +2745,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_direct_github_api_error(self) -> None:
         """異常系: GitHub APIエラー"""
@@ -3081,7 +3081,7 @@ class TestCommentDirectCommand:
             )
             assert result.exit_code == 3
             assert "heading summary rule violations" not in result.output
-            assert "未編集プレースホルダ" in result.output
+            assert "unedited placeholder" in result.output
 
     def test_direct_merge_diff_h3_summary_51_chars_rejected(self) -> None:
         """異常系: merge-diff の h3 サマリが51文字だと comment コマンドで reject される。
@@ -3118,7 +3118,7 @@ class TestCommentDirectCommand:
             )
             assert result.exit_code == 3
             assert (
-                "heading summary rule violations: ### Variance — サマリが51文字です"
+                "heading summary rule violations: ### Variance — the summary is 51 characters"
                 in result.output
             )
             assert "missing sections" not in result.output
@@ -3277,7 +3277,7 @@ CUJ 1
         result, client = self._invoke_direct("plan", message)
         assert result.exit_code == 3
         assert (
-            f"collapse rule violations: <summary>理由</summary> は {PLAN_FOLD_SUMMARY} にしてください"
+            f"collapse rule violations: <summary>理由</summary> must be {PLAN_FOLD_SUMMARY}"
             in result.output
         )
         client.add_issue_comment.assert_not_called()
@@ -3321,7 +3321,7 @@ CUJ 1
         result, client = self._invoke_direct("plan", message)
         assert result.exit_code == 3
         assert "headings not in the template: ### 指示との差分" in result.output
-        assert "### Notes に書いてください" in result.output
+        assert "under ### Notes" in result.output
         client.add_issue_comment.assert_not_called()
 
     def test_direct_plan_legacy_headings_rejected(self) -> None:
@@ -3452,8 +3452,8 @@ CUJ 1
             )
             assert result.exit_code == 3
             assert "missing sections" in result.output
-            assert "### Variance — <サマリ>" in result.output
-            assert "### Impact — <サマリ>" in result.output
+            assert "### Variance — <summary>" in result.output
+            assert "### Impact — <summary>" in result.output
 
     def test_direct_help(self) -> None:
         """issue comment --help"""
@@ -3691,7 +3691,7 @@ class TestIssueReadCommand:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "read", "invalid-format"])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_read_issue_not_found(self) -> None:
         """異常系: Issueが見つからない場合"""
@@ -6422,7 +6422,7 @@ class TestBodyStyleRejectionRoutes:
         lines = result.output.splitlines()
         assert lines[0].startswith("error: the body does not follow the template ")
         assert any(line.startswith("  missing sections: ") for line in lines)
-        assert "  unusable notation: 絵文字は使用できません" in lines
+        assert "  unusable notation: emoji are not allowed" in lines
         mock_gh_class.assert_not_called()
 
     def test_comment_direct_validation_failure_exits_3(self) -> None:

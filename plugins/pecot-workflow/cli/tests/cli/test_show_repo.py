@@ -41,7 +41,7 @@ class TestShowRepoAmbiguous:
         ):
             result = runner.invoke(app, ["--show-repo"])
         assert result.exit_code == 2
-        assert "リポジトリが曖昧です" in result.stderr
+        assert "repository is ambiguous" in result.stderr
 
 
 class TestShowRepoInvalid:

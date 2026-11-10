@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not link acme/other to project #1: GraphQLクエリ実行エラー: {'type': 'NOT_FOUND', 'message': 'Could not resolve to a Repository with the name acme/other.'}\n",
+  "stderr": "error: could not link acme/other to project #1: GraphQL query error: {'type': 'NOT_FOUND', 'message': 'Could not resolve to a Repository with the name acme/other.'}\n",
   "exitCode": 1,
   "requests": [
     {

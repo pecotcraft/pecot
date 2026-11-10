@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not create an Issue in acme/demo: GitHub APIエラー: 422\n",
+  "stderr": "error: could not create an Issue in acme/demo: GitHub API error: 422\n",
   "exitCode": 1,
   "requests": [
     {

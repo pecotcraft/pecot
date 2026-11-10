@@ -91,9 +91,9 @@ function stringOrEmpty(value: JsonValue | undefined): string {
 // 見つからないときは GitHubNotFoundError。repository と issue の 2 段で確かめる
 function issueNode(result: JsonObject, owner: string, repository: string, number: number): JsonValue {
   const repositoryNode = jsonField(result, 'repository')
-  if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`リポジトリが見つかりません: ${owner}/${repository}`)
+  if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`)
   const issue = jsonField(repositoryNode, 'issue')
-  if (!isTruthy(issue)) throw new GitHubNotFoundError(`Issueが見つかりません: ${owner}/${repository}/${String(number)}`)
+  if (!isTruthy(issue)) throw new GitHubNotFoundError(`Issue not found: ${owner}/${repository}/${String(number)}`)
   return requireValue(issue, 'issue')
 }
 
@@ -197,7 +197,7 @@ export class IssuesApi extends ProjectsApi {
     const linkResult = jsonField(result, 'addSubIssue')
     const parent = jsonField(linkResult, 'issue')
     const child = jsonField(linkResult, 'subIssue')
-    if (!isTruthy(parent) || !isTruthy(child)) throw new GitHubAPIError('サブIssueの紐づけに失敗しました')
+    if (!isTruthy(parent) || !isTruthy(child)) throw new GitHubAPIError('failed to link the sub-issue')
     return {
       parent_number: requireNumber(jsonField(parent, 'number'), 'issue.number'),
       child_number: requireNumber(jsonField(child, 'number'), 'subIssue.number'),

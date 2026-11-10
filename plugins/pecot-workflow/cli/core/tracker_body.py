@@ -37,7 +37,7 @@ def list_region(
     ends = list(end_re.finditer(body))
     if len(begins) != 1 or len(ends) != 1 or begins[0].end() > ends[0].start():
         raise error(
-            "Tracker の本文の list-begin / list-end の印が 1 組ではないため、一覧を書き直せません"
+            "cannot rewrite the list: the Tracker body does not have exactly one pair of list-begin / list-end markers"
         )
     return begins[0].end(), ends[0].start()
 

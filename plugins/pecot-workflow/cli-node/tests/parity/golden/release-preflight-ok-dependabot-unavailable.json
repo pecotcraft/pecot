@@ -1,5 +1,5 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\nWarning: Could not check Dependabot alerts. The release is not blocked.\n  Reason: acme/demo: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）\n✓ code scanning: open 0\n✓ secret scanning: open 0\n\n=== Preflight Check Passed ===\n",
+  "stdout": "=== Release Preflight Check ===\n\nWarning: Could not check Dependabot alerts. The release is not blocked.\n  Reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)\n✓ code scanning: open 0\n✓ secret scanning: open 0\n\n=== Preflight Check Passed ===\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

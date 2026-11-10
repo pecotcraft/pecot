@@ -142,7 +142,7 @@ export class ProjectsApi extends ReposApi {
       if (!isTruthy(pageInfo['hasNextPage'])) break
       // 次のページがあるのに cursor が無いと、先頭から取り直して終わらない
       const endCursor = pageInfo['endCursor']
-      if (typeof endCursor !== 'string') throw new GitHubAPIError('ページ送りの cursor が得られませんでした')
+      if (typeof endCursor !== 'string') throw new GitHubAPIError('could not get the cursor for the next page')
       cursor = endCursor
     }
     return objectsOf(allItems)
@@ -154,7 +154,7 @@ export class ProjectsApi extends ReposApi {
   async addToProject(projectId: string, contentId: string): Promise<string> {
     const result = await this.executeGraphql(MUTATION_ADD_TO_PROJECT, { projectId, contentId })
     const item = jsonField(jsonField(result, 'addProjectV2ItemById'), 'item')
-    if (!isTruthy(item)) throw new GitHubAPIError('プロジェクトへの追加に失敗しました')
+    if (!isTruthy(item)) throw new GitHubAPIError('failed to add the item to the project')
     return requireString(jsonField(item, 'id'), 'item.id')
   }
 
@@ -164,7 +164,7 @@ export class ProjectsApi extends ReposApi {
   async updateProjectItemField(projectId: string, itemId: string, fieldId: string, optionId: string): Promise<string> {
     const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId, optionId })
     const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item')
-    if (!isTruthy(item)) throw new GitHubAPIError('フィールドの更新に失敗しました')
+    if (!isTruthy(item)) throw new GitHubAPIError('failed to update the field')
     return requireString(jsonField(item, 'id'), 'projectV2Item.id')
   }
 
@@ -174,7 +174,7 @@ export class ProjectsApi extends ReposApi {
   async deleteProjectItem(projectId: string, itemId: string): Promise<string> {
     const result = await this.executeGraphql(MUTATION_DELETE_PROJECT_ITEM, { projectId, itemId })
     const deletedId = jsonField(jsonField(result, 'deleteProjectV2Item'), 'deletedItemId')
-    if (!isTruthy(deletedId)) throw new GitHubAPIError('プロジェクトアイテムの削除に失敗しました')
+    if (!isTruthy(deletedId)) throw new GitHubAPIError('failed to delete the project item')
     return requireString(deletedId, 'deletedItemId')
   }
 
@@ -224,7 +224,7 @@ export class ProjectsApi extends ReposApi {
     const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2')
     if (isTruthy(organizationProject)) return requireString(jsonField(organizationProject, 'id'), 'projectV2.id')
 
-    throw new GitHubNotFoundError(`プロジェクトが見つかりません: ${owner}/projects/${String(projectNumber)}`)
+    throw new GitHubNotFoundError(`project not found: ${owner}/projects/${String(projectNumber)}`)
   }
 
   /**
@@ -303,7 +303,7 @@ export class ProjectsApi extends ReposApi {
   async createProjectField(projectId: string, name: string, options: readonly ProjectFieldOption[]): Promise<JsonObject> {
     const result = await this.executeGraphql(MUTATION_CREATE_PROJECT_FIELD, { projectId, name, options })
     const created = jsonField(jsonField(result, 'createProjectV2Field'), 'projectV2Field')
-    if (!isTruthy(created)) throw new GitHubAPIError('フィールドの作成に失敗しました')
+    if (!isTruthy(created)) throw new GitHubAPIError('failed to create the field')
     return asObject(created)
   }
 
@@ -319,7 +319,7 @@ export class ProjectsApi extends ReposApi {
     const organizationId = jsonField(jsonField(orgResult, 'organization'), 'id')
     if (isTruthy(organizationId)) return requireString(organizationId, 'organization.id')
 
-    throw new GitHubNotFoundError(`オーナーが見つかりません: ${owner}`)
+    throw new GitHubNotFoundError(`owner not found: ${owner}`)
   }
 
   /**
@@ -328,7 +328,7 @@ export class ProjectsApi extends ReposApi {
   async createProject(ownerId: string, title: string): Promise<JsonObject> {
     const result = await this.executeGraphql(MUTATION_CREATE_PROJECT, { ownerId, title })
     const project = jsonField(jsonField(result, 'createProjectV2'), 'projectV2')
-    if (!isTruthy(project)) throw new GitHubAPIError('プロジェクトの作成に失敗しました')
+    if (!isTruthy(project)) throw new GitHubAPIError('failed to create the project')
     return asObject(project)
   }
 }

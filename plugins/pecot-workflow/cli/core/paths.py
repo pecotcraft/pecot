@@ -109,8 +109,8 @@ def get_project_root() -> Path:
         return git_root
 
     raise ProjectRootNotFoundError(
-        "プロジェクトルートが見つかりません。"
-        "gitリポジトリ内で実行するか、CLAUDE_PROJECT_DIR環境変数を設定してください。"
+        "project root not found: "
+        "run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable"
     )
 
 
@@ -161,7 +161,7 @@ def reserve_output_path(
             continue
         return path
     raise OutputPathReservationError(
-        f"出力パスを予約できませんでした（{max_attempts} 件の候補名がすべて使用済み。最後の候補: {path}）"
+        f"could not reserve an output path: all {max_attempts} candidate names are in use (last candidate: {path})"
     )
 
 

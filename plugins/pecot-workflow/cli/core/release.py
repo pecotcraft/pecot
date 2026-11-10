@@ -71,7 +71,7 @@ def _run_git(args: list[str], cwd: Path | None = None) -> str:
     try:
         result = run_git(args, cwd, check=True)
     except subprocess.CalledProcessError as e:
-        raise ReleaseError(f"git コマンド失敗: git {' '.join(args)}\n{e.stderr.strip()}") from e
+        raise ReleaseError(f"git command failed: git {' '.join(args)}\n{e.stderr.strip()}") from e
     return result.stdout.strip()
 
 
@@ -112,7 +112,7 @@ def run_preflight(
     """
     # 1. CHANGELOG.md の存在確認
     if not changelog_path.exists():
-        raise ReleaseError(f"CHANGELOG.mdが見つかりません: {changelog_path}")
+        raise ReleaseError(f"CHANGELOG.md not found: {changelog_path}")
 
     # 2. バージョンの決定
     if version is None:
@@ -127,13 +127,13 @@ def run_preflight(
     tag_name = f"{tag_prefix}-v{version}" if tag_prefix else f"v{version}"
     local_tags = _run_git(["tag", "-l", tag_name], cwd=cwd)
     if tag_name in local_tags.splitlines():
-        raise ReleaseError(f"タグ {tag_name} はローカルに既に存在します")
+        raise ReleaseError(f"tag already exists locally: {tag_name}")
 
     # タグ不存在確認（リモート）
     try:
         remote_tags = _run_git(["ls-remote", "--tags", "origin", f"refs/tags/{tag_name}"], cwd=cwd)
         if remote_tags:
-            raise ReleaseError(f"タグ {tag_name} はリモートに既に存在します")
+            raise ReleaseError(f"tag already exists on the remote: {tag_name}")
     except ReleaseError:
         # ls-remote自体が失敗した場合は再raise
         # ただし「タグが存在する」エラーはそのまま上げる
@@ -150,8 +150,8 @@ def run_preflight(
 
     if diff_count == 0:
         raise ReleaseError(
-            f"origin/{release_branch} と origin/{develop_branch} に差分がありません。"
-            "リリースする変更がありません。"
+            f"no difference between origin/{release_branch} and origin/{develop_branch}: "
+            "there is nothing to release"
         )
 
     # 5. リリースノート抽出

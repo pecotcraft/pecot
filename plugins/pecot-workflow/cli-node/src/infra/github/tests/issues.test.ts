@@ -35,7 +35,7 @@ describe('createIssue', () => {
   it('失敗の状態コードは例外にする', async () => {
     const { client } = await startClient([restResponse('POST', '/repos/owner/repo/issues', { status: 401, text: 'Bad credentials' })])
     expect(await rejection(client.createIssue('owner', 'repo', 'T'))).toMatchObject(
-      failure(GitHubAuthError, '認証に失敗しました。トークンを確認してください。', { statusCode: 401 }),
+      failure(GitHubAuthError, 'authentication failed: check the token', { statusCode: 401 }),
     )
   })
 })
@@ -53,7 +53,7 @@ describe('addIssueComment の失敗', () => {
   it('404 は GitHubNotFoundError', async () => {
     const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/issues/999/comments', { status: 404, text: 'Not Found' })])
     expect(await rejection(client.addIssueComment('owner', 'repo', 999, 'x'))).toMatchObject(
-      failure(GitHubNotFoundError, `リソースが見つかりません: ${server.url}/repos/owner/repo/issues/999/comments`, { statusCode: 404 }),
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/issues/999/comments`, { statusCode: 404 }),
     )
   })
 })
@@ -78,17 +78,17 @@ describe('getIssueNodeId / getIssueNodeIdAndTitle', () => {
 
   it('リポジトリが無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetIssueNodeId', { repository: JSON_NULL })])
-    expect(await rejection(client.getIssueNodeId('owner', 'nonexistent', 123))).toMatchObject(failure(GitHubNotFoundError, 'リポジトリが見つかりません: owner/nonexistent'))
+    expect(await rejection(client.getIssueNodeId('owner', 'nonexistent', 123))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/nonexistent'))
   })
 
   it('Issue が無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetIssueNodeId', { repository: { issue: JSON_NULL } })])
-    expect(await rejection(client.getIssueNodeId('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'Issueが見つかりません: owner/repo/999'))
+    expect(await rejection(client.getIssueNodeId('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'Issue not found: owner/repo/999'))
   })
 
   it('id が文字列でなければ GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('GetIssueNodeId', { repository: { issue: { id: 5 } } })])
-    expect(await rejection(client.getIssueNodeId('owner', 'repo', 1))).toMatchObject(failure(GitHubAPIError, 'GitHub の応答の形式が不正です: issue.id'))
+    expect(await rejection(client.getIssueNodeId('owner', 'repo', 1))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: issue.id'))
   })
 })
 
@@ -101,12 +101,12 @@ describe('addSubIssue', () => {
 
   it('issue と subIssue が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('AddSubIssue', { addSubIssue: { issue: JSON_NULL, subIssue: JSON_NULL } })])
-    expect(await rejection(client.addSubIssue('I_parent', 'I_child'))).toMatchObject(failure(GitHubAPIError, 'サブIssueの紐づけに失敗しました'))
+    expect(await rejection(client.addSubIssue('I_parent', 'I_child'))).toMatchObject(failure(GitHubAPIError, 'failed to link the sub-issue'))
   })
 
   it('addSubIssue が無くても GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('AddSubIssue', {})])
-    expect(await rejection(client.addSubIssue('I_parent', 'I_child'))).toMatchObject(failure(GitHubAPIError, 'サブIssueの紐づけに失敗しました'))
+    expect(await rejection(client.addSubIssue('I_parent', 'I_child'))).toMatchObject(failure(GitHubAPIError, 'failed to link the sub-issue'))
   })
 })
 
@@ -137,12 +137,12 @@ describe('getIssueKind', () => {
 
   it('Issue が無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetIssueKind', { repository: { issue: JSON_NULL } })])
-    expect(await rejection(client.getIssueKind('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'Issueが見つかりません: owner/repo/999'))
+    expect(await rejection(client.getIssueKind('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'Issue not found: owner/repo/999'))
   })
 
   it('リポジトリが無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetIssueKind', { repository: JSON_NULL })])
-    expect(await rejection(client.getIssueKind('owner', 'nonexistent', 1))).toMatchObject(failure(GitHubNotFoundError, 'リポジトリが見つかりません: owner/nonexistent'))
+    expect(await rejection(client.getIssueKind('owner', 'nonexistent', 1))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/nonexistent'))
   })
 
   it('issueType 非対応の GHES は、スキーマの失敗の後に Phase1 のクエリで判定する', async () => {
@@ -183,7 +183,7 @@ describe('getIssueKind', () => {
       graphqlError('GetIssueKind', 'Cannot query field \'issueType\''),
       graphqlData('GetIssueKindPhase1', { repository: { issue: JSON_NULL } }),
     ])
-    expect(await rejection(client.getIssueKind('owner', 'repo', 7))).toMatchObject(failure(GitHubNotFoundError, 'Issueが見つかりません: owner/repo/7'))
+    expect(await rejection(client.getIssueKind('owner', 'repo', 7))).toMatchObject(failure(GitHubNotFoundError, 'Issue not found: owner/repo/7'))
   })
 
   it('Phase1 でリポジトリが無ければ GitHubNotFoundError', async () => {
@@ -191,7 +191,7 @@ describe('getIssueKind', () => {
       graphqlError('GetIssueKind', 'Cannot query field \'issueType\''),
       graphqlData('GetIssueKindPhase1', { repository: JSON_NULL }),
     ])
-    expect(await rejection(client.getIssueKind('owner', 'repo', 7))).toMatchObject(failure(GitHubNotFoundError, 'リポジトリが見つかりません: owner/repo'))
+    expect(await rejection(client.getIssueKind('owner', 'repo', 7))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/repo'))
   })
 })
 
@@ -297,17 +297,17 @@ describe('getIssueSlim', () => {
 
   it('Issue が無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetIssueSlim', { repository: { issue: JSON_NULL } })])
-    expect(await rejection(client.getIssueSlim('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'Issueが見つかりません: owner/repo/999'))
+    expect(await rejection(client.getIssueSlim('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'Issue not found: owner/repo/999'))
   })
 
   it('リポジトリが無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetIssueSlim', { repository: JSON_NULL })])
-    expect(await rejection(client.getIssueSlim('owner', 'nonexistent', 435))).toMatchObject(failure(GitHubNotFoundError, 'リポジトリが見つかりません: owner/nonexistent'))
+    expect(await rejection(client.getIssueSlim('owner', 'nonexistent', 435))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/nonexistent'))
   })
 
   it('必須の値が無ければ、無かった場所を示す GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('GetIssueSlim', { repository: { issue: { number: 1, state: 'OPEN', title: 't', body: 'b' } } })])
-    expect(await rejection(client.getIssueSlim('owner', 'repo', 1))).toMatchObject(failure(GitHubAPIError, 'GitHub の応答の形式が不正です: issue.comments.totalCount'))
+    expect(await rejection(client.getIssueSlim('owner', 'repo', 1))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: issue.comments.totalCount'))
   })
 })
 
@@ -342,7 +342,7 @@ describe('closeIssue / reopenIssue', () => {
   ])('%s の 404 は GitHubNotFoundError', async (_name, call) => {
     const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/999', { status: 404, text: 'Not Found' })])
     expect(await rejection(call(client))).toMatchObject(
-      failure(GitHubNotFoundError, `リソースが見つかりません: ${server.url}/repos/owner/repo/issues/999`, { statusCode: 404 }),
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/issues/999`, { statusCode: 404 }),
     )
   })
 })

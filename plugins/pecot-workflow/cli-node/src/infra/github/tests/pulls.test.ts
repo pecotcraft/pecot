@@ -49,7 +49,7 @@ describe('createPullRequest', () => {
   ])('422（%s）は GitHubAPIError', async (_label, text) => {
     const { client } = await startClient([restResponse('POST', '/repos/owner/repo/pulls', { status: 422, text })])
     expect(await rejection(client.createPullRequest('owner', 'repo', 'Test', 'body', 'feat/test', 'nonexistent'))).toMatchObject(
-      failure(GitHubAPIError, 'GitHub APIエラー: 422', { statusCode: 422, responseBody: text }),
+      failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: text }),
     )
   })
 })
@@ -133,22 +133,22 @@ describe('getPullRequestSlim', () => {
 
   it('PR が無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestSlim', { repository: { pullRequest: JSON_NULL } })])
-    expect(await rejection(client.getPullRequestSlim('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'PRが見つかりません: owner/repo/999'))
+    expect(await rejection(client.getPullRequestSlim('owner', 'repo', 999))).toMatchObject(failure(GitHubNotFoundError, 'PR not found: owner/repo/999'))
   })
 
   it('リポジトリが無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestSlim', { repository: JSON_NULL })])
-    expect(await rejection(client.getPullRequestSlim('owner', 'nonexistent', 42))).toMatchObject(failure(GitHubNotFoundError, 'リポジトリが見つかりません: owner/nonexistent'))
+    expect(await rejection(client.getPullRequestSlim('owner', 'nonexistent', 42))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/nonexistent'))
   })
 
   it('本文が無ければ GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestSlim', { repository: { pullRequest: pullRequest({ body: JSON_NULL }) } })])
-    expect(await rejection(client.getPullRequestSlim('owner', 'repo', 42))).toMatchObject(failure(GitHubAPIError, 'GitHub の応答の形式が不正です: pullRequest.body'))
+    expect(await rejection(client.getPullRequestSlim('owner', 'repo', 42))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.body'))
   })
 
   it('isDraft が真偽値でなければ GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestSlim', { repository: { pullRequest: pullRequest({ isDraft: 'no' }) } })])
-    expect(await rejection(client.getPullRequestSlim('owner', 'repo', 42))).toMatchObject(failure(GitHubAPIError, 'GitHub の応答の形式が不正です: pullRequest.isDraft'))
+    expect(await rejection(client.getPullRequestSlim('owner', 'repo', 42))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.isDraft'))
   })
 })
 
@@ -212,7 +212,7 @@ describe('getPullRequestWithReviews', () => {
 
   it('PR が無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestWithReviews', { repository: { pullRequest: JSON_NULL } })])
-    expect(await rejection(client.getPullRequestWithReviews('owner', 'repo', 5))).toMatchObject(failure(GitHubNotFoundError, 'PRが見つかりません: owner/repo/5'))
+    expect(await rejection(client.getPullRequestWithReviews('owner', 'repo', 5))).toMatchObject(failure(GitHubNotFoundError, 'PR not found: owner/repo/5'))
   })
 })
 
@@ -227,7 +227,7 @@ describe('mergePullRequest', () => {
   it('404 は GitHubNotFoundError', async () => {
     const { client, server } = await startClient([restResponse('PUT', '/repos/owner/repo/pulls/999/merge', { status: 404, text: 'Not Found' })])
     expect(await rejection(client.mergePullRequest('owner', 'repo', 999))).toMatchObject(
-      failure(GitHubNotFoundError, `リソースが見つかりません: ${server.url}/repos/owner/repo/pulls/999/merge`, { statusCode: 404 }),
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/pulls/999/merge`, { statusCode: 404 }),
     )
   })
 
@@ -237,7 +237,7 @@ describe('mergePullRequest', () => {
   ])('%i は GitHubAPIError', async (status, text) => {
     const { client } = await startClient([restResponse('PUT', '/repos/owner/repo/pulls/42/merge', { status, text })])
     expect(await rejection(client.mergePullRequest('owner', 'repo', 42))).toMatchObject(
-      failure(GitHubAPIError, `GitHub APIエラー: ${String(status)}`, { statusCode: status, responseBody: text }),
+      failure(GitHubAPIError, `GitHub API error: ${String(status)}`, { statusCode: status, responseBody: text }),
     )
   })
 })

@@ -63,7 +63,7 @@ export function changelogFileName(changelogPath: string): string {
 CHANGELOG が無いときの文
 */
 export function changelogNotFoundMessage(changelogPath: string): string {
-  return `${changelogFileName(changelogPath)}が見つかりません: ${changelogPath}`
+  return `${changelogFileName(changelogPath)} not found: ${changelogPath}`
 }
 
 /**
@@ -72,8 +72,8 @@ export function changelogNotFoundMessage(changelogPath: string): string {
 export function validateSemver(version: string): void {
   if (!SEMVER_PATTERN.test(version)) {
     throw new InvalidVersionError(
-      `無効なバージョン形式: ${version}\n`
-      + 'セマンティックバージョニング形式（X.Y.Z）を使用してください',
+      `invalid version format: ${version}\n`
+      + 'use semantic versioning (X.Y.Z)',
     )
   }
 }
@@ -88,8 +88,8 @@ export function getLatestVersion(content: string, fileName = DEFAULT_CHANGELOG_F
     if (version !== undefined) return version
   }
   throw new VersionNotFoundError(
-    `${fileName}にバージョンが見つかりません\n`
-    + '最初のリリースの場合は手動でバージョンを指定してください',
+    `no version found in ${fileName}\n`
+    + 'for a first release, specify the version manually',
   )
 }
 
@@ -113,6 +113,6 @@ export function extractVersionReleaseNotes(content: string, version: string, fil
     versionLines.push(line)
   }
 
-  if (!isInVersion) throw new VersionNotFoundError(`バージョン ${version} が${fileName}に見つかりません`)
+  if (!isInVersion) throw new VersionNotFoundError(`version not found in ${fileName}: ${version}`)
   return pythonStrip(versionLines.join('\n'))
 }
