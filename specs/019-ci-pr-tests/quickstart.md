@@ -53,7 +53,7 @@ pre-commit run --hook-stage manual nx-affected-tests --from-ref origin/main --to
 1. `pecot-tools` の実行時の依存を上げた dependabot の PR がマージされた状態で、`release.yml` を起動する
 2. `plan` の Summary に、`<PR 番号>-dependabot-deps.md` の案と pecot-tools の patch の bump が出る
 3. Environment の承認をすると `release` が動き、release commit・tag・Release・npm の publish がそろう
-4. pecot-tools の CHANGELOG に「依存を更新した（…）。」の行がある
+4. pecot-tools の CHANGELOG に「`名前` を 旧版 から 新版 に更新。」の行がある
 5. 手元から `git push origin HEAD:main` を試すと、ruleset に拒否される
 
 ## 5. 文書（US5）
