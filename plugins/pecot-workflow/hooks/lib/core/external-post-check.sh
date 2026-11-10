@@ -131,7 +131,7 @@ ISSUE_MSG='external-post-check: pecot issue quick / pecot issue create (a real p
 Do not run it until the user has explicitly approved.
 The canonical routes for filing are these skills:
 /pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.
-To only generate a template, use pecot issue create --prepare / -p.
+To only generate a template, add --prepare (or -p) to pecot issue create
 The quick subcommand has no --prepare / -p.'
 
 CREATE_MSG='external-post-check: pecot pr create (a real post) publishes a PR externally.

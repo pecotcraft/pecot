@@ -67,7 +67,7 @@ def test_pre_injects_workflow_notes_for_own_skill(pre_entry, project, skill) -> 
     assert result.returncode == 0
     hso = json.loads(result.stdout)["hookSpecificOutput"]
     assert hso["hookEventName"] == "PreToolUse"
-    assert "pecot workflow notes" in hso["additionalContext"]
+    assert "note: notes for the pecot-workflow skills" in hso["additionalContext"]
 
 
 def test_pre_initializes_pecot_dir_for_namespaceless_own_skill(pre_entry, project) -> None:

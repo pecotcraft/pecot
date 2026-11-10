@@ -32,7 +32,7 @@ FIRST_LINE="${USER_PROMPT%%$'\n'*}"
 
 if [[ "$FIRST_LINE" =~ ^/(pecot-w:)?w- ]]; then
     MESSAGE=$(cat <<'EOF'
-pecot workflow notes
+notes for the pecot-workflow skills
 
 While running a pecot skill/command:
 

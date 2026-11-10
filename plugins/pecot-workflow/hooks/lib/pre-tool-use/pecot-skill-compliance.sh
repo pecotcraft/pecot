@@ -15,7 +15,7 @@ SKILL_NAME=$(pecot_normalize_skill_name "${PECOT_HOOK_SKILL_NAME:-}")
 case "$SKILL_NAME" in
     pecot-w|pecot-w:?*)
         MESSAGE=$(cat <<'EOF'
-pecot workflow notes
+notes for the pecot-workflow skills
 
 While running a pecot skill/command:
 
