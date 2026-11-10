@@ -25,6 +25,9 @@ packages:
   - plugins/pecot-visual/assets/slidev/scripts/eslint/text-constraints
   - plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references
 
+catalog:
+  # 4 つの package.json が catalog: で参照する。lockfile-single-version.test.ts が @slidev/cli の vite との一致を見る。
+  vite: ^8.3.6
 
 overrides:
   # puppeteer の postinstall が Chrome を取得するのを避ける。pecotv は dom-to-pptx の bundle しか使わない (#1062)。

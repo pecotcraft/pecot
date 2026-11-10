@@ -140,7 +140,24 @@ function prune(rootMain, importers) {
   return { packages: ordered, snapshots };
 }
 
-const KNOWN_KEYS = new Set(['lockfileVersion', 'settings', 'overrides', 'importers', 'packages', 'snapshots']);
+const KNOWN_KEYS = new Set(['lockfileVersion', 'settings', 'catalogs', 'overrides', 'importers', 'packages', 'snapshots']);
+
+// importer が `catalog:` で参照する名前だけを root の catalogs から残す。参照が無ければ null。
+function pruneCatalogs(rootMain, importers) {
+  const result = {};
+  for (const importer of Object.values(importers)) {
+    for (const section of SECTIONS) {
+      for (const [name, dep] of Object.entries(importer[section] ?? {})) {
+        if (!dep.specifier.startsWith('catalog:')) continue;
+        const catalogName = dep.specifier.slice('catalog:'.length) || 'default';
+        const entry = rootMain.catalogs?.[catalogName]?.[name];
+        if (!entry) throw new Error(`${name} の ${dep.specifier} が root の pnpm-lock.yaml の catalogs にありません`);
+        result[catalogName] = { ...result[catalogName], [name]: entry };
+      }
+    }
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
 
 // 対象の lock の文書の並び。main 以外の文書 (pnpm 自身の lock) は root のものを写す。
 function generate(root, target) {
@@ -149,9 +166,11 @@ function generate(root, target) {
   }
   const importers = convertImporters(root, target);
   const { packages, snapshots } = prune(root.main, importers);
+  const catalogs = pruneCatalogs(root.main, importers);
   const main = {
     lockfileVersion: root.main.lockfileVersion,
     settings: root.main.settings,
+    ...(catalogs ? { catalogs } : {}),
     ...(root.main.overrides ? { overrides: root.main.overrides } : {}),
     importers,
     packages,
@@ -236,7 +255,7 @@ function checkTarget(root, target) {
   if (docs.length !== expectedDocs.length || canonical(docs.filter((d) => d !== lock)) !== canonical(expectedDocs.filter((d) => d !== want))) {
     errors.push(`${lockFile}: pnpm 自身の lock の文書が root の pnpm-lock.yaml と一致しません`);
   }
-  for (const key of ['lockfileVersion', 'settings', 'overrides']) {
+  for (const key of ['lockfileVersion', 'settings', 'catalogs', 'overrides']) {
     if (canonical(lock[key] ?? null) !== canonical(want[key] ?? null)) {
       errors.push(`${lockFile}: ${key} が root の pnpm-lock.yaml と一致しません`);
     }

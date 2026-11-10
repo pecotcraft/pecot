@@ -309,6 +309,10 @@ git -C "$REPO_ROOT" archive HEAD \
     plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references \
     | tar -x -C "$DIST" --strip-components=2
 
+# 単体配布の npm install は catalog: を解決できない。配布ツリーと同じ HEAD の catalog で範囲へ置き換える。
+git -C "$REPO_ROOT" show HEAD:pnpm-workspace.yaml \
+    | node "$SCRIPT_DIR/catalog.mjs" "$DIST/assets/slidev/runtime/package.json" -
+
 # eslint プラグインの dist は git 管理外のため実体をコピーする。
 for pkg in _shared slidev-pages-lint text-constraints validate-references; do
     src="$ESLINT_PLUGINS_DIR/$pkg/dist"

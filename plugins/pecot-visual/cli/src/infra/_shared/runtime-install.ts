@@ -218,6 +218,21 @@ export async function installRuntimeDependencies(
     }
   }
 
+  // 配布時に catalog: は範囲へ置き換わる。残っていれば npm は解決できないので、起動せずに配布物の破損として返す。
+  const unresolved = plan.specs.filter(spec => /^.+@catalog:/u.test(spec))
+  if (unresolved.length > 0) {
+    return {
+      // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+      exitCode: null,
+      // eslint-disable-next-line unicorn/no-null -- 同上
+      signal: null,
+      stdout: '',
+      stderr: `${options.manifestPath} の依存が catalog: のままです: ${unresolved.join(', ')}（配布物の破損。配布時に範囲へ置き換わっていません）`,
+      timedOut: false,
+      failedStage: 'npm',
+    }
+  }
+
   await mkdir(root, { recursive: true })
   await writeFile(path.join(root, 'package.json'), `${JSON.stringify({
     name: 'pecotv-runtime',

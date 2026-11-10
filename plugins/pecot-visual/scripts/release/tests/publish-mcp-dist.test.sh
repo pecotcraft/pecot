@@ -302,6 +302,7 @@ git -C "$TEST_REPO" commit --quiet --allow-empty -m base > /dev/null 2>&1 || exi
     plugins/pecot-visual/scripts/release \
     libs/text-rules/package.json \
     LICENSE \
+    pnpm-workspace.yaml \
     | tar --null -T - -cf -) | tar -xf - -C "$TEST_REPO" || exit 1
 # scripts/release だけは、作業ツリーから丸ごと上書きする。
 # git ls-files は未追跡ファイルを落とす。
@@ -327,6 +328,8 @@ cp -a "$TEXT_RULES_DIST" "$TEST_REPO/libs/text-rules/dist" || exit 1
 git -C "$TEST_REPO" add -A > /dev/null 2>&1 || exit 1
 git -C "$TEST_REPO" commit --quiet -m "test fixture" > /dev/null 2>&1 || exit 1
 git -C "$TEST_REPO" tag "$TEST_TAG" HEAD || exit 1
+# catalog.mjs が使う yaml の解決元。commit の後に置き、fixture の内容に含めない。
+ln -s "$REPO_ROOT/node_modules" "$TEST_REPO/node_modules" || exit 1
 TAGGED_PUBLISH="$TEST_PECOTV/scripts/release/publish-mcp-dist.sh"
 
 # --- 1. dry-run: 監査記録の確認と配布ツリーの構築 ---
@@ -676,11 +679,31 @@ assert_eq "smoke で使う icon カタログが配布ツリーに同梱される
 # 期待値はソースツリーの manifest から読む。
 # 配布ツリー側から読むと、期待値と被検証物が同じ git archive の出力になり、比較として成り立たない。
 DIST_RUNTIME="$DIST/assets/slidev/runtime"
-if [ -f "$DIST_RUNTIME/package.json" ] && cmp -s "$RUNTIME_SOURCE/package.json" "$DIST_RUNTIME/package.json"; then
-    pass "runtime の manifest がソースと同じ内容で配布ツリーに同梱される"
+# 配布ツリーの catalog: は HEAD の pnpm-workspace.yaml の範囲へ置き換わる。置き換え以外はソースと同じ内容になる。
+RUNTIME_DIFF="$(node -e "
+const fs = require('node:fs')
+const { readDefaultCatalog, resolveCatalog } = require(process.argv[4])
+const source = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+const dist = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'))
+const catalog = readDefaultCatalog(fs.readFileSync(process.argv[5], 'utf8'))
+for (const field of ['dependencies', 'devDependencies']) {
+  if (source[field]) source[field] = resolveCatalog(source[field], catalog)
+}
+process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 'different')
+" _ "$RUNTIME_SOURCE/package.json" "$DIST_RUNTIME/package.json" "$RELEASE_DIR/catalog.mjs" "$REPO_ROOT/pnpm-workspace.yaml" 2> /dev/null || echo error)"
+if [ -f "$DIST_RUNTIME/package.json" ] && [ "$RUNTIME_DIFF" = "same" ]; then
+    pass "runtime の manifest が catalog: の解決だけソースと違う内容で配布ツリーに同梱される"
 else
-    fail "runtime の manifest が配布ツリーに無い、またはソースと異なる（git archive の対象から落ちた疑い）"
+    fail "runtime の manifest が配布ツリーに無い、または catalog: の解決以外でソースと異なる ($RUNTIME_DIFF)"
 fi
+assert_eq "配布ツリーの runtime manifest に catalog: が残らない" "0" \
+    "$(grep -c 'catalog:' "$DIST_RUNTIME/package.json" | tr -d ' ')"
+assert_eq "配布ツリーの runtime manifest の vite が catalog の範囲になる" \
+    "$(node -e "
+const { readDefaultCatalog } = require(process.argv[2])
+process.stdout.write(readDefaultCatalog(require('node:fs').readFileSync(process.argv[3], 'utf8')).vite)
+" _ "$RELEASE_DIR/catalog.mjs" "$REPO_ROOT/pnpm-workspace.yaml")" \
+    "$(node -e "process.stdout.write(require('$DIST_RUNTIME/package.json').dependencies.vite)" 2> /dev/null)"
 
 # pecot は証明書を同梱しない。プロキシの CA は利用者が NODE_EXTRA_CA_CERTS で渡す（§8 で受け渡しを見る）。
 if [ ! -e "$DIST/assets/certs" ]; then
