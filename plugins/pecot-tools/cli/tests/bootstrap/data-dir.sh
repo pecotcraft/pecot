@@ -102,7 +102,7 @@ default_run XDG_DATA_HOME= HOME=
 assert_eq "解決できない: 非 0 で終わる" yes "$([ "$RC" != 0 ] && echo yes || echo no)"
 assert_eq "解決できない: stdout は空" 0 "$(wc -c < "$OUT" | tr -d ' ')"
 assert_eq "解決できない: stderr は 1 行" 1 "$(wc -l < "$ERR" | tr -d ' ')"
-assert_eq "解決できない: 理由に project 名と HOME がある" 1 "$(grep -c -F "$PROJECT: HOME が設定されておらず" "$ERR" || true)"
+assert_eq "解決できない: 理由に project 名と HOME がある" 1 "$(grep -c -F "$PROJECT: cannot decide the data directory because HOME is unset" "$ERR" || true)"
 assert_eq "解決できない: install / build をしない" 0 "$(wc -l < "$CALLS" | tr -d ' ')"
 assert_eq "解決できない: 本体配下とデータ置き場のどちらにも何も作らない" "$before" "$(tree_of_base)"
 
@@ -111,7 +111,7 @@ assert_eq "解決できない: 本体配下とデータ置き場のどちらに�
 before="$(tree_of_base)"
 default_run XDG_DATA_HOME= HOME=relative/home
 assert_eq "相対パスの HOME: 非 0 で終わる" yes "$([ "$RC" != 0 ] && echo yes || echo no)"
-assert_eq "相対パスの HOME: 理由に project 名と HOME がある" 1 "$(grep -c -F "$PROJECT: HOME が設定されておらず" "$ERR" || true)"
+assert_eq "相対パスの HOME: 理由に project 名と HOME がある" 1 "$(grep -c -F "$PROJECT: cannot decide the data directory because HOME is unset" "$ERR" || true)"
 assert_eq "相対パスの HOME: 何も作らない" "$before" "$(tree_of_base)"
 
 # HOME が無くても有効な XDG_DATA_HOME があれば動く

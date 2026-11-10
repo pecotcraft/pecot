@@ -1,6 +1,7 @@
 ---
 pecot-visual: minor
 pecot-tools: patch
+pecot-workflow: patch
 ---
 
 pecot-visual の MCP ツールの説明文・結果・エラー、slide_lint の規則の文言、CLI の行を英語にする。

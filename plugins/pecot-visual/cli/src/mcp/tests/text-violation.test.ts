@@ -262,7 +262,7 @@ const PARITY_RULES = new Set(['no-ai-hype-expressions', 'ai-tech-writing-guideli
 
 // 「…（ruleId）」で終わるメッセージから規則名を取り出す。
 function ruleIdOfMessage(message: string): string {
-  const matched = /（([^（）]+)）$/.exec(message)
+  const matched = /\(([^()]+)\)$/.exec(message)
   if (matched?.[1] === undefined) throw new Error(`末尾に（規則名）がありません: ${message}`)
   return matched[1]
 }

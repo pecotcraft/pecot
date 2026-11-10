@@ -36,7 +36,7 @@ ENV_KEYS_CLEARED = (
     "UV_PROJECT_ENVIRONMENT",
 )
 
-MSG_NO_HOME = "pecot-workflow: HOME が設定されておらず"
+MSG_NO_HOME = "pecot-workflow: cannot decide the data directory because HOME is unset"
 BUILDING = "pecot: building"
 INSTALLING = "pecot: installing dependencies"
 
