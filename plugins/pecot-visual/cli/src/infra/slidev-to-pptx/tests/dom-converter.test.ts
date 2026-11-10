@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { readSlidesTitle } from '../dom-converter.js'
 
 describe('readSlidesTitle', () => {
+  const logger = { info: vi.fn(), verbose: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() }
   let workDir: string
 
   beforeAll(async () => {
@@ -30,44 +31,31 @@ describe('readSlidesTitle', () => {
 
   it('frontmatter の title を取得する', async () => {
     const distDir = await writeSlidesMd('---\ntitle: Hello World\n---\n\n# Hi')
-    expect(await readSlidesTitle(distDir)).toBe('Hello World')
+    expect(await readSlidesTitle(distDir, logger)).toBe('Hello World')
   })
 
   it('quoted title はクォートを取り除く', async () => {
     const distDir = await writeSlidesMd('---\ntitle: \'Quoted Title\'\n---\n')
-    expect(await readSlidesTitle(distDir)).toBe('Quoted Title')
+    expect(await readSlidesTitle(distDir, logger)).toBe('Quoted Title')
   })
 
   it('frontmatter が無ければ null を返す', async () => {
     const distDir = await writeSlidesMd('# No frontmatter\n')
-    expect(await readSlidesTitle(distDir)).toBeNull()
+    expect(await readSlidesTitle(distDir, logger)).toBeNull()
   })
 
   it('frontmatter に title が無ければ null を返す', async () => {
     const distDir = await writeSlidesMd('---\ntheme: default\n---\n# Hi')
-    expect(await readSlidesTitle(distDir)).toBeNull()
+    expect(await readSlidesTitle(distDir, logger)).toBeNull()
   })
 
   it('slides.md が存在しなければ logger.warn してから null を返す', async () => {
     const missingDist = path.join(workDir, 'no-such-dir', 'dist')
     const warn = vi.fn()
-    const logger = { info: vi.fn(), verbose: vi.fn(), debug: vi.fn(), warn, error: vi.fn() }
-    const result = await readSlidesTitle(missingDist, logger)
+    const warnLogger = { ...logger, warn }
+    const result = await readSlidesTitle(missingDist, warnLogger)
     expect(result).toBeNull()
     expect(warn).toHaveBeenCalledOnce()
-  })
-
-  it('logger 省略時は console.warn にフォールバックする', async () => {
-    const missingDist = path.join(workDir, 'no-such-dir-2', 'dist')
-    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => { /* silence */ })
-    try {
-      const result = await readSlidesTitle(missingDist)
-      expect(result).toBeNull()
-      expect(consoleWarn).toHaveBeenCalledOnce()
-    }
-    finally {
-      consoleWarn.mockRestore()
-    }
   })
 })
 /* eslint-enable unicorn/name-replacements */

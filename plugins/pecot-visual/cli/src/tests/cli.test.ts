@@ -105,7 +105,7 @@ describe('pecotv CLI', () => {
     try {
       main('24.20.0')
       expect(process.exitCode).toBe(1)
-      expect(writes.join('')).toContain('pecotv: Node.js 24.20.0 は既知の脆弱性の修正を含まない')
+      expect(writes.join('')).toContain('error: Node.js 24.20.0 は既知の脆弱性の修正を含まない')
       expect(isStdoutSpy).not.toHaveBeenCalled()
     }
     finally {

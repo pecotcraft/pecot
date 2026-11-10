@@ -8,6 +8,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { resolveBoundPort, startServer } from '../server.js'
 
+const silentLogger = { error: vi.fn() }
+
 async function fetchText(port: number, urlPath: string): Promise<{ status: number, text: string, contentType: string }> {
   const response = await fetch(`http://127.0.0.1:${port.toString()}${urlPath}`)
   return {
@@ -61,7 +63,7 @@ describe('startServer', () => {
 
   it('ルート / は index.html を text/html で返す', async () => {
     port = 39_001
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     const r = await fetchText(port, '/')
     expect(r.status).toBe(200)
     expect(r.text).toContain('index')
@@ -70,7 +72,7 @@ describe('startServer', () => {
 
   it('実在ファイルは mime-types ルックアップの結果を Content-Type として返す', async () => {
     port = 39_002
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     const js = await fetchText(port, '/main.js')
     expect(js.status).toBe(200)
     expect(js.contentType).toContain('javascript')
@@ -80,14 +82,14 @@ describe('startServer', () => {
 
   it('クエリ文字列は除去してファイル解決する', async () => {
     port = 39_003
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     const r = await fetchText(port, '/main.js?v=2')
     expect(r.status).toBe(200)
   })
 
   it('拡張子なしの未存在パス (SPA) は index.html を返す', async () => {
     port = 39_004
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     const r = await fetchText(port, '/5/3')
     expect(r.status).toBe(200)
     expect(r.text).toContain('index')
@@ -96,7 +98,7 @@ describe('startServer', () => {
 
   it('拡張子付きの未存在パスは 404', async () => {
     port = 39_005
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     const r = await fetchText(port, '/missing.png')
     expect(r.status).toBe(404)
     expect(r.text).toBe('Not found')
@@ -106,7 +108,7 @@ describe('startServer', () => {
     const emptyDir = path.join(workDir, 'empty-dist')
     await mkdir(emptyDir, { recursive: true })
     port = 39_006
-    server = await startServer(emptyDir, port)
+    server = await startServer(emptyDir, port, silentLogger)
     const r = await fetchText(port, '/whatever')
     expect(r.status).toBe(404)
   })
@@ -115,7 +117,7 @@ describe('startServer', () => {
     const unknownExtPath = path.join(distDir, 'data.zzz')
     await writeFile(unknownExtPath, 'binary', 'utf8')
     port = 39_007
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     const r = await fetchText(port, '/data.zzz')
     expect(r.status).toBe(200)
     expect(r.contentType).toContain('application/octet-stream')
@@ -123,7 +125,7 @@ describe('startServer', () => {
 
   it('request.url が undefined のときは / にフォールバック', async () => {
     port = 39_008
-    server = await startServer(distDir, port)
+    server = await startServer(distDir, port, silentLogger)
     // raw socket request で、HTTP/1.0 の URL 無し相当を再現するのは難しい。
     // そのため、root request が動くことだけを確認する。
     // null 合体の既定値 '/' の分岐は、単体で coverage を達成する。
@@ -132,7 +134,7 @@ describe('startServer', () => {
   })
 
   it('port 0 (ephemeral) は OS 採番の実ポートで配信し address() から取得できる', async () => {
-    server = await startServer(distDir, 0)
+    server = await startServer(distDir, 0, silentLogger)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
     expect(address.port).toBeGreaterThan(0)
@@ -143,18 +145,18 @@ describe('startServer', () => {
   it('ポートが占有済みのときは EADDRINUSE で reject する (無限 pending にしない)', async () => {
     // 占有ポートは固定値でなく ephemeral bind の実ポートを使う (固定値だと他プロセスの
     // 先行占有でテスト自体が落ちる)。
-    server = await startServer(distDir, 0)
+    server = await startServer(distDir, 0, silentLogger)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
     // listen 失敗を reject で完結させる設計の回帰テスト。
     // プロセスに uncaughtException リスナーが居るかで、挙動が変わらない。
     // リスナーは dom-to-pptx の Emscripten ランタイムが登録する。
-    await expect(startServer(distDir, address.port)).rejects.toMatchObject({ code: 'EADDRINUSE' })
+    await expect(startServer(distDir, address.port, silentLogger)).rejects.toMatchObject({ code: 'EADDRINUSE' })
   })
 
   it('`..` を含む要求には、dist の外のファイルを返さず 404 を返す', async () => {
     await writeFile(path.join(workDir, 'outside.txt'), 'outside-secret', 'utf8')
-    server = await startServer(distDir, 0)
+    server = await startServer(distDir, 0, silentLogger)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
     for (const rawPath of ['/../outside.txt', '/a/../../outside.txt', '/../dist/../outside.txt']) {
@@ -165,7 +167,7 @@ describe('startServer', () => {
   })
 
   it('拡張子の無い `..` の要求にも、index.html を返さず 404 を返す', async () => {
-    server = await startServer(distDir, 0)
+    server = await startServer(distDir, 0, silentLogger)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
     const r = await requestRawPath(address.port, '/../../etc')
@@ -173,7 +175,7 @@ describe('startServer', () => {
   })
 
   it('dist 自身に正規化される要求 (`/.`・`//`) は 404 を返す', async () => {
-    server = await startServer(distDir, 0)
+    server = await startServer(distDir, 0, silentLogger)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
     for (const rawPath of ['/.', '/./', '//']) {
@@ -184,7 +186,7 @@ describe('startServer', () => {
   })
 
   it('ループバック (127.0.0.1) だけで待ち受ける', async () => {
-    server = await startServer(distDir, 0)
+    server = await startServer(distDir, 0, silentLogger)
     const address = server.address()
     if (address === null || typeof address !== 'object') throw new Error('AddressInfo が取れません')
     expect(address.address).toBe('127.0.0.1')
@@ -193,7 +195,7 @@ describe('startServer', () => {
   it('起動時に console.log へ書かない (起動ログは pipeline が logger 経由で出す。--json の stdout を JSON 行だけに保つ)', async () => {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => { /* noop */ })
     try {
-      server = await startServer(distDir, 0)
+      server = await startServer(distDir, 0, silentLogger)
       expect(spy).not.toHaveBeenCalled()
     }
     finally {
@@ -201,16 +203,11 @@ describe('startServer', () => {
     }
   })
 
-  it('listen 成功後のサーバエラーは stderr へ 1 行出して握り潰さない', async () => {
-    server = await startServer(distDir, 0)
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => { /* noop */ })
-    try {
-      server.emit('error', new Error('socket boom'))
-      expect(spy).toHaveBeenCalledWith(expect.stringContaining('socket boom'))
-    }
-    finally {
-      spy.mockRestore()
-    }
+  it('listen 成功後のサーバエラーは logger.error へ 1 行出して握り潰さない', async () => {
+    const logger = { error: vi.fn() }
+    server = await startServer(distDir, 0, logger)
+    server.emit('error', new Error('socket boom'))
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('socket boom'))
   })
 })
 

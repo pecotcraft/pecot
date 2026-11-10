@@ -11,6 +11,19 @@ import security from 'eslint-plugin-security'
 import vitest from '@vitest/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
 
+const baseRestrictedSyntax = [
+  { selector: 'TSEnumDeclaration', message: 'enum 禁止: const オブジェクト + as const か discriminated union を使う' },
+  { selector: 'TSModuleDeclaration', message: 'namespace 禁止: ESM モジュールを使う' },
+  { selector: 'TSAsExpression', message: 'as キャスト禁止: satisfies か型ガードを使う。unknown から絞り込む場合は、説明を付けて eslint-disable-next-line を使う。' },
+]
+
+// stdout・stderr への直接の書き込みを止める。行は src/diagnostics.ts の関数を通す。
+const outputWriteMessage = 'stdout・stderr へ直接書かない: src/diagnostics.ts の createDiagnostics・writeData・passthrough を使う'
+const outputWriteSyntax = [
+  { selector: 'CallExpression[callee.property.name=\'write\'][callee.object.name=/^(stdout|stderr)$/]', message: outputWriteMessage },
+  { selector: 'CallExpression[callee.property.name=\'write\'][callee.object.property.name=/^(stdout|stderr)$/]', message: outputWriteMessage },
+]
+
 export default defineConfig(
   { ignores: ['dist/**', 'coverage/**', 'node_modules/**'] },
   js.configs.recommended,
@@ -63,11 +76,7 @@ export default defineConfig(
       // `dev` は本パッケージの語彙。MCP ツール名 `slide_dev` と、Slidev / Vite 自身が
       // 「dev サーバ」と呼ぶ対象がそのまま識別子・ファイル名に出るため、この置換だけ外す。
       'unicorn/name-replacements': ['error', { replacements: { dev: false } }],
-      'no-restricted-syntax': ['error',
-        { selector: 'TSEnumDeclaration', message: 'enum 禁止: const オブジェクト + as const か discriminated union を使う' },
-        { selector: 'TSModuleDeclaration', message: 'namespace 禁止: ESM モジュールを使う' },
-        { selector: 'TSAsExpression', message: 'as キャスト禁止: satisfies か型ガードを使う。unknown から絞り込む場合は、説明を付けて eslint-disable-next-line を使う。' },
-      ],
+      'no-restricted-syntax': ['error', ...baseRestrictedSyntax],
       'unused-imports/no-unused-imports': 'error',
       // DDD レイヤの依存方向。domain は infra と commands を import できない。
       // 向きは commands → domain ← infra。
@@ -82,6 +91,15 @@ export default defineConfig(
           { target: './src/commands', from: './src/mcp', message: 'commands から mcp への import 禁止 (依存方向違反)' },
         ],
       }],
+    },
+  },
+  {
+    // flat config は options 付きの同じ規則を丸ごと置き換えるので、既存の配列と合わせて置く。
+    files: ['src/**/*.ts'],
+    ignores: ['src/diagnostics.ts', 'src/**/tests/**'],
+    rules: {
+      'no-console': 'error',
+      'no-restricted-syntax': ['error', ...baseRestrictedSyntax, ...outputWriteSyntax],
     },
   },
   {

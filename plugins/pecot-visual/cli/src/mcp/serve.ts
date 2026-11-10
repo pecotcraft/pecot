@@ -23,6 +23,7 @@ import { serveStdio, StdioServerTransport, type StdioServerHandle } from '@model
 import { devServerRegistry } from './dev-server-registry.js'
 import { createMcpServer } from './server.js'
 import { allTools } from './tools/index.js'
+import { createDiagnostics } from '../diagnostics.js'
 import { ignoreRejection } from '../domain/_shared/ignore-rejection.js'
 
 /**
@@ -73,6 +74,7 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
     // ここで扱うのは console 系が書く utf8 文字列か Buffer に限られる。encoding を
     // 引き回すと BufferEncoding への narrowing のために型アサーションが必要になる。
     const done = typeof encodingOrCallback === 'function' ? encodingOrCallback : callback
+    // eslint-disable-next-line no-restricted-syntax -- console 系が stdout へ書いた生のチャンクを、そのまま stderr へ逃がす
     const isWritten = stderr.write(chunk)
     done?.()
     return isWritten
@@ -95,7 +97,7 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
   // stdout の相手が消えた後の書き込み (EPIPE) は Writable の 'error' として上がる。
   // 拾わないと uncaught 例外でスタックトレースごと落ちるため、1 行報告して終了コードを立てる。
   protocolStdout.on('error', (error: Readonly<Error>) => {
-    stderr.write(`pecotv mcp: stdout への書き込みに失敗しました: ${error.message}\n`)
+    createDiagnostics(stderr).error(`stdout への書き込みに失敗しました: ${error.message}`)
     process.exitCode = 1
   })
 
@@ -180,7 +182,7 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
   const report = (error: Readonly<Error>): void => {
     if (reported.has(error)) return
     reported.add(error)
-    dependencies.stderr.write(`pecotv mcp: ${error.message}\n`)
+    createDiagnostics(dependencies.stderr).error(error.message)
   }
 
   const handle: StdioServerHandle = serveStdio(() => {
@@ -225,7 +227,7 @@ export function executeMcpServe(buildDependencies: () => McpServeDependencies): 
     runMcpServe(dependencies)
   }
   catch (error: unknown) {
-    dependencies.stderr.write(`pecotv mcp: ${formatError(error)}\n`)
+    createDiagnostics(dependencies.stderr).error(formatError(error))
     process.exitCode = 1
   }
 }

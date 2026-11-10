@@ -5,7 +5,7 @@
 //   0 = success (warnings なし)。
 //   1 = RuntimeError (input/output IO failure、文面の違反、文章規則の判定の失敗、解けないテーマ)。
 //   2 = UsageError (invalid option / -o の拡張子が .html でない / テーマの指定の誤り)。
-//   3 = warnings present (validateHtml [warn] or icon resolver warn が 1 件以上)。
+//   3 = warnings present (validateHtml の warning or icon resolver warn が 1 件以上)。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- input は CLI 引数として受理する想定。信頼境界外だが open API 仕様 */
 import { performance } from 'node:perf_hooks'
@@ -18,6 +18,7 @@ import { collectTextViolations, formatTextViolations } from '../../domain/_share
 import type { LintText, TextViolation } from '../../domain/_shared/text-check.js'
 import { siblingPath } from '../../domain/drawio/export.js'
 import { labelTexts } from '../../domain/drawio/label-text.js'
+import type { DrawioFinding } from '../../domain/drawio/url.js'
 import { generateDrawioUrl, generateDrawioViewerUrl, prepareDrawioXml, renderRedirectHtml, validateHtml, validateSlideFonts, validateSlideFontSizes, validateWhitespaceWrap } from '../../domain/drawio/url.js'
 import { themeErrorReason } from '../../domain/slidev-theme/error-reason.js'
 import type { ThemeFiles } from '../../domain/slidev-theme/ports.js'
@@ -27,6 +28,7 @@ import { createIconResolver, defaultIconRoot } from '../../infra/drawio/icons.js
 import { capturePng } from '../../infra/drawio/screenshot.js'
 import type { fetchTheme } from '../../infra/slidev-theme/store.js'
 import { defaultLintText } from '../../infra/text-lint.js'
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import { DrawioUrlRuntimeError, DrawioUrlUsageError } from './errors.js'
 import { resolveDrawioTheme, themeData, themeFontNames } from './theme.js'
 import type { DrawioTheme } from './theme.js'
@@ -115,6 +117,7 @@ export async function runDrawioUrl(
   dependencies: DrawioUrlDependencies,
 ): Promise<DrawioUrlResultSummary> {
   const start = dependencies.now()
+  const diagnostics = createDiagnostics(dependencies.stderr)
   const absolute = path.resolve(inputFile)
 
   let xml: string
@@ -135,7 +138,7 @@ export async function runDrawioUrl(
     absolute,
     options.theme,
     dependencies,
-    (message) => { dependencies.stderr.write(`[info] ${message}\n`) },
+    (message) => { diagnostics.note(message) },
   )
 
   // 文面の違反があれば、警告の確認や成果物の生成より前に止める
@@ -143,20 +146,25 @@ export async function runDrawioUrl(
 
   let warningCount = 0
 
-  // HTML バリデーション結果のうち、exit code に反映するのは [warn] プレフィックスだけ。
-  // [info] (fontColor 二重指定など) は stderr に流すが、exit code には影響させない。
+  // 診断のうち、exit code に反映するのは warning だけ。
+  // note (fontColor 二重指定など) は stderr に流すが、exit code には影響させない。
   // 書体は常に確かめる。5 段のサイズは、テーマが決まったとき（talk-dir の中か --theme 指定）だけ確かめる。
   const { fontSizes } = theme
-  const validators: readonly ((xml: string) => readonly string[])[] = [
+  const validators: readonly ((xml: string) => readonly DrawioFinding[])[] = [
     validateHtml,
     validateWhitespaceWrap,
     value => validateSlideFonts(value, theme.fonts, theme.name),
     ...(fontSizes === undefined ? [] : [(value: string) => validateSlideFontSizes(value, fontSizes)]),
   ]
   for (const validate of validators) {
-    for (const message of validate(trimmed)) {
-      dependencies.stderr.write(`${message}\n`)
-      if (message.startsWith('[warn]')) warningCount += 1
+    for (const finding of validate(trimmed)) {
+      if (finding.severity === 'warning') {
+        diagnostics.warning(finding.message)
+        warningCount += 1
+      }
+      else {
+        diagnostics.note(finding.message)
+      }
     }
   }
 
@@ -173,7 +181,7 @@ export async function runDrawioUrl(
     warn: (message: string) => {
       if (reportedIconWarnings.has(message)) return
       reportedIconWarnings.add(message)
-      dependencies.stderr.write(`[warn] ${message}\n`)
+      diagnostics.warning(message)
       warningCount += 1
     },
   })
@@ -271,6 +279,7 @@ export async function executeDrawioUrl(
   }
 
   const summary = await runDrawioUrl(inputFile, options, dependencies)
+  const diagnostics = createDiagnostics(dependencies.stderr)
   let warningCount = summary.warningCount
   const artifacts: string[] = []
 
@@ -300,7 +309,7 @@ export async function executeDrawioUrl(
         artifacts.push(pngPath)
       }
       catch (error: unknown) {
-        dependencies.stderr.write(`[warn] PNG 生成失敗: ${formatError(error)}\n`)
+        diagnostics.warning(`PNG 生成失敗: ${formatError(error)}`)
         warningCount += 1
         isPngFailed = true
       }
@@ -395,16 +404,17 @@ export function createDrawioUrlCommand(buildDependencies: () => DrawioUrlDepende
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'drawio.url.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
+      writeOut: (string_: string) => { writeData(buildDependencies().stdout, string_) },
     })
     .action(async (input: string, raw: Readonly<Record<string, unknown>>) => {
       const dependencies = buildDependencies()
@@ -420,10 +430,10 @@ export function createDrawioUrlCommand(buildDependencies: () => DrawioUrlDepende
       }
       catch (error: unknown) {
         if (raw['json'] === true) {
-          dependencies.stdout.write(`${JSON.stringify(errorData(error))}\n`)
+          writeData(dependencies.stdout, JSON.stringify(errorData(error)))
         }
         else {
-          dependencies.stderr.write(`pecotv drawio url: ${formatError(error)}\n`)
+          createDiagnostics(dependencies.stderr).error(formatError(error))
         }
         process.exitCode = 2
         return
@@ -432,13 +442,13 @@ export function createDrawioUrlCommand(buildDependencies: () => DrawioUrlDepende
       try {
         const execution = await executeDrawioUrl(input, options, dependencies)
         if (options.json) {
-          dependencies.stdout.write(`${JSON.stringify(execution.data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(execution.data))
         }
         else if (execution.outputFile === undefined) {
-          dependencies.stdout.write(`${execution.url}\n`)
+          writeData(dependencies.stdout, execution.url)
         }
         else {
-          dependencies.stderr.write(`wrote HTML to ${execution.outputFile}\n`)
+          createDiagnostics(dependencies.stderr).done({ verb: 'create', target: execution.outputFile })
         }
         if (execution.exitCode !== 0) {
           process.exitCode = execution.exitCode
@@ -446,10 +456,10 @@ export function createDrawioUrlCommand(buildDependencies: () => DrawioUrlDepende
       }
       catch (error: unknown) {
         if (options.json) {
-          dependencies.stdout.write(`${JSON.stringify(errorData(error))}\n`)
+          writeData(dependencies.stdout, JSON.stringify(errorData(error)))
         }
         else {
-          dependencies.stderr.write(`pecotv drawio url: ${formatError(error)}\n`)
+          createDiagnostics(dependencies.stderr).error(formatError(error))
         }
         process.exitCode = toExitCode(error)
       }

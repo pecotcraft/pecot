@@ -19,6 +19,7 @@ import {
   THEME_DECLARATION_FILE_NAME,
   readThemeDeclaration,
 } from '../../domain/slidev-theme/declaration.js'
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import type { ResolvedThemeDeclaration } from '../../domain/slidev-theme/declaration.js'
 import type { DeckLintInput } from '../../domain/slidev-theme/deck-lint-input.js'
 import { themeErrorReason } from '../../domain/slidev-theme/error-reason.js'
@@ -158,19 +159,19 @@ function writeHumanReport(
   stderr: NodeJS.WritableStream,
 ): void {
   const { theme } = data
-  stdout.write(`slide theme: ${theme.name} (${theme.spec})\n`)
-  stdout.write(`  テーマ root: ${theme.directory}\n`)
-  stdout.write(`  宣言: ${theme.declared ? 'あり' : 'なし'}\n`)
-  stdout.write(`  レイアウト ${String(data.layouts.length)} 件\n`)
+  writeData(stdout, `slide theme: ${theme.name} (${theme.spec})`)
+  writeData(stdout, `  テーマ root: ${theme.directory}`)
+  writeData(stdout, `  宣言: ${theme.declared ? 'あり' : 'なし'}`)
+  writeData(stdout, `  レイアウト ${String(data.layouts.length)} 件`)
   for (const category of data.categories) {
-    stdout.write(`  --- ${category.label}: ${category.question} ---\n`)
+    writeData(stdout, `  --- ${category.label}: ${category.question} ---`)
     const members = data.layouts.filter(entry => entry.category === category.id)
     for (const layout of members) {
-      stdout.write(`    - ${layout.deprecated ? '[deprecated] ' : ''}${layout.layout}: ${layout.description}\n`)
+      writeData(stdout, `    - ${layout.deprecated ? '[deprecated] ' : ''}${layout.layout}: ${layout.description}`)
     }
   }
   for (const warning of data.warnings) {
-    stderr.write(`[warn] ${warning}\n`)
+    createDiagnostics(stderr).warning(warning)
   }
 }
 
@@ -195,14 +196,14 @@ export function createSlideThemeCommand(
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.theme.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -214,7 +215,7 @@ export function createSlideThemeCommand(
       try {
         const { data } = await executeSlideTheme({ dir: directory }, dependencies)
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify(data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(data))
         }
         else {
           writeHumanReport(data, dependencies.stdout, dependencies.stderr)
@@ -224,10 +225,10 @@ export function createSlideThemeCommand(
         const reason = errorToReason(error)
         const detail = formatError(error)
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify({ event: 'slide.theme.error', reason, detail })}\n`)
+          writeData(dependencies.stdout, JSON.stringify({ event: 'slide.theme.error', reason, detail }))
         }
         else {
-          dependencies.stderr.write(`pecotv slide theme 失敗: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(`slide theme 失敗: ${detail}`)
         }
         process.exitCode = 1
       }

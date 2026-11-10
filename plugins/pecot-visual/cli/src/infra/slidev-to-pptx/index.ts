@@ -22,7 +22,7 @@ import {
   PipelineTimeoutError,
 } from '../../domain/slidev-to-pptx/errors.js'
 import type { PipelineResult } from '../../domain/slidev-to-pptx/types.js'
-import { createLogger, type LoggerSink } from './console-logger.js'
+import { createLogger } from './console-logger.js'
 import { convertToPptx, type PipelineDependencies } from './pipeline.js'
 
 export type { PipelineDependencies } from './pipeline.js'
@@ -94,15 +94,7 @@ export class InProcessSlidevPptxPipeline implements SlidevPptxPipeline {
         },
       }),
     }
-    // stdout は呼び出し元が明示したときだけ使う。
-    // `slide convert --json` は stdout を JSON 行だけにするため、stdout を渡さない。
-    // そのため人間可読ログは stderr 側へ寄せる。process.stdout へフォールバックすると JSON イベントと混在する。
-    const stderr = arguments_.stderr ?? process.stderr
-    const sink: LoggerSink = {
-      stdout: arguments_.stdout ?? stderr,
-      stderr,
-    }
-    const logger = createLogger(config.logLevel, sink)
+    const logger = createLogger(config.logLevel, { stderr: arguments_.stderr ?? process.stderr })
 
     const controller = new AbortController()
     const startedAt = performance.now()

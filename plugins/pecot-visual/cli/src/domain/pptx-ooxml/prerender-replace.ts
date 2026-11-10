@@ -202,7 +202,10 @@ export async function applyPrerenderImageReplace(
   rels: XmlDocument,
   partMap: Map<string, Buffer>,
   entries: readonly PrerenderEntry[],
-  io: { readonly readFile: (path: string) => Promise<Buffer> },
+  io: {
+    readonly readFile: (path: string) => Promise<Buffer>
+    readonly warn: (message: string) => void
+  },
 ): Promise<{ readonly replaced: number }> {
   if (entries.length === 0) return { replaced: 0 }
 
@@ -221,7 +224,7 @@ export async function applyPrerenderImageReplace(
       highResolutionBuffer = await io.readFile(entry.imagePath)
     }
     catch (error) {
-      console.warn(`prerender image read failed: ${entry.imagePath}: ${String(error)}`)
+      io.warn(`prerender image read failed: ${entry.imagePath}: ${String(error)}`)
       continue
     }
 
@@ -279,7 +282,10 @@ function applyAllPngFallback(
 
 async function loadMeta(
   metaPath: string,
-  io: { readonly readFile: (path: string) => Promise<Buffer> },
+  io: {
+    readonly readFile: (path: string) => Promise<Buffer>
+    readonly warn: (message: string) => void
+  },
 ): Promise<PrerenderMeta | undefined> {
   let raw: Buffer
   try {
@@ -296,13 +302,13 @@ async function loadMeta(
     return undefined
   }
   if (!isRecord(parsed)) {
-    console.warn(`prerender meta unrecognized: ${metaPath} (not a JSON object)`)
+    io.warn(`prerender meta unrecognized: ${metaPath} (not a JSON object)`)
     return undefined
   }
   const width = parsed['width']
   const height = parsed['height']
   if (typeof width !== 'number' || typeof height !== 'number') {
-    console.warn(`prerender meta unrecognized: ${metaPath} (width/height missing or non-numeric)`)
+    io.warn(`prerender meta unrecognized: ${metaPath} (width/height missing or non-numeric)`)
     return undefined
   }
   const meta: { width: number, height: number, left?: number, top?: number, selector?: string }

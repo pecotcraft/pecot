@@ -395,6 +395,9 @@ describe('START_SCRIPT_SOURCE', () => {
     expect(START_SCRIPT_SOURCE).toContain('pecotv slide sync --dir')
     expect(START_SCRIPT_SOURCE).toContain('--node-modules-only')
     expect(START_SCRIPT_SOURCE).toContain('console.error')
+    expect(START_SCRIPT_SOURCE).toContain('console.error(\'error: @slidev/cli not found')
+    expect(START_SCRIPT_SOURCE).toContain('console.error(\'  pecotv slide sync --dir')
+    expect(START_SCRIPT_SOURCE).toContain('console.error(\'error: Failed to start Slidev:\'')
     expect(START_SCRIPT_SOURCE).toContain('process.exit(1)')
   })
 

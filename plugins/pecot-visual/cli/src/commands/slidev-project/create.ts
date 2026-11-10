@@ -13,6 +13,7 @@ import path from 'node:path'
 
 import { Command } from 'commander'
 
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import { SlideCreateRuntimeError, SlideCreateUsageError } from '../../domain/slidev-project/errors.js'
 import { buildInitialPages, nameToTitle } from '../../domain/slidev-project/initial-pages.js'
 import { talkPackageJsonSource } from '../../domain/slidev-project/package-json.js'
@@ -134,7 +135,7 @@ export async function runSlideCreate(
   }
   catch (error: unknown) {
     // 成功したときの警告は executeSlideCreate が流す。失敗したときは、ここで流さないと捨てられる。
-    for (const warning of warnings) dependencies.stderr.write(`[warn] ${warning}\n`)
+    for (const warning of warnings) createDiagnostics(dependencies.stderr).warning(warning)
     throw error
   }
 }
@@ -260,7 +261,7 @@ export async function executeSlideCreate(
   onCreated?: (summary: Readonly<SlideCreateResultSummary>) => void,
 ): Promise<SlideCreateExecution> {
   const { catalog, warnings, ...summary } = await runSlideCreate(projectDirectory, options, dependencies)
-  for (const warning of warnings) dependencies.stderr.write(`[warn] ${warning}\n`)
+  for (const warning of warnings) createDiagnostics(dependencies.stderr).warning(warning)
   if (options.emitCatalog) emitLayoutCatalog(catalog, dependencies.stdout)
   onCreated?.(summary)
   // 生成直後のデッキ全体 lint。違反があっても create の成否は変えない。
@@ -293,21 +294,21 @@ export function emitLayoutCatalog(
 ): void {
   const { categories, layouts } = catalog
 
-  stdout.write(`${'='.repeat(60)}\n`)
-  stdout.write('Layout Catalog (Step 2 のプランモード前に必ず読み切ること)\n')
-  stdout.write(`${'='.repeat(60)}\n\n`)
+  writeData(stdout, '='.repeat(60))
+  writeData(stdout, 'Layout Catalog (Step 2 のプランモード前に必ず読み切ること)')
+  writeData(stdout, `${'='.repeat(60)}\n\n`)
 
   for (const category of categories) {
-    stdout.write(`--- ${category.label}: ${category.question} ---\n\n`)
+    writeData(stdout, `--- ${category.label}: ${category.question} ---\n\n`)
     const members = layouts.filter(entry => entry.category === category.id)
     if (members.length === 0) {
-      stdout.write('(該当レイアウトなし)\n\n')
+      writeData(stdout, '(該当レイアウトなし)\n\n')
       continue
     }
     for (const { layout, description, deprecated } of members) {
-      stdout.write(`- ${deprecated ? '[deprecated] ' : ''}${layout}: ${description}\n`)
+      writeData(stdout, `- ${deprecated ? '[deprecated] ' : ''}${layout}: ${description}`)
     }
-    stdout.write('\n')
+    writeData(stdout, '')
   }
 }
 
@@ -351,14 +352,14 @@ export function createSlideCreateCommand(
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.create.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -374,11 +375,11 @@ export function createSlideCreateCommand(
       try {
         const execution = await executeSlideCreate(projectDirectory, options, dependencies, (summary) => {
           if (isWantsJson) return
-          dependencies.stdout.write(`slide create: 成功 (${summary.projectDirectory})\n`)
-          dependencies.stdout.write(`  theme=${summary.theme.name}, ${String(Math.round(summary.durationMs))}ms\n`)
+          writeData(dependencies.stdout, `slide create: 成功 (${summary.projectDirectory})`)
+          writeData(dependencies.stdout, `  theme=${summary.theme.name}, ${String(Math.round(summary.durationMs))}ms`)
         })
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify(execution.data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(execution.data))
         }
         else {
           writeAutoDeckLintReport(execution.lint, execution.summary.projectDirectory, dependencies)
@@ -388,14 +389,14 @@ export function createSlideCreateCommand(
         const reason = errorToReason(error)
         const detail = formatError(error)
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.create.error',
             reason,
             detail,
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(`pecotv slide create 失敗: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(`slide create 失敗: ${detail}`)
         }
         process.exitCode = toExitCode(error)
       }

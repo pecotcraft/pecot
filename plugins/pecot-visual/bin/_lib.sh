@@ -80,7 +80,7 @@ pecotv_fail_if_node_runtime_blocked() {
     local message
     message="$(pecotv_node_runtime_message "$1")"
     [ -n "$message" ] || return 0
-    printf 'pecotv: %s\n' "$message" >&2
+    printf 'error: %s\n' "$message" >&2
     exit 1
 }
 

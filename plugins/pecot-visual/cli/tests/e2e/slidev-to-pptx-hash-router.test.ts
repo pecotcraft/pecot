@@ -200,7 +200,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     const outputPath = temporaryRoot('hash.pptx')
-    const result = spawnSync(BIN_PECOTV, ['slide', 'convert', FIXTURE_DIR, '--out', outputPath, '--json'], {
+    const result = spawnSync(BIN_PECOTV, ['slide', 'convert', FIXTURE_DIR, '--out', outputPath, '--json', '--log-level', 'verbose'], {
       env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
       encoding: 'utf8',
       timeout: 240_000,
@@ -221,8 +221,8 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
     expect(existsSync(outputPath)).toBe(true)
 
     // stale dist 由来の false pass を防ぐ: hash と判定できていない run は不合格。
-    // pipeline の人間可読ログは --json でも process.stdout/stderr へ出るため両方を見る。
-    expect(`${stdout}\n${stderr}`).toContain('router=hash')
+    // 進捗の行は --log-level verbose のとき stderr に note: で出る。
+    expect(stderr).toContain('note: ルータ判定: router=hash')
 
     const events = parseJsonEvents(stdout)
     const doneEvent = events.find(event => event.event === 'slide.convert.done')

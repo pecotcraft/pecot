@@ -24,6 +24,7 @@ import {
   detectPreviewDivergence,
   type PreviewDivergenceFinding,
 } from '../../domain/pptx-ooxml/preview-normalize.js'
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import type { PdfConverter, PptxArchive, XmlEngine } from '../../domain/_shared/ports.js'
 import { XmldomXmlEngine } from '../../infra/pptx-ooxml/xml-engine.js'
 import { YauzlYazlPptxArchive } from '../../infra/pptx-ooxml/archive.js'
@@ -488,14 +489,14 @@ export function createPptxPreviewCommand(
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'pptx.preview.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:\s*/i, '').trim(),
-          }) + '\n')
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -515,14 +516,14 @@ export function createPptxPreviewCommand(
       catch (error: unknown) {
         const detail = formatError(error)
         if (isJson) {
-          dependencies.stdout.write(JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'pptx.preview.error',
             reason: errorToReason(error),
             detail,
-          }) + '\n')
+          }))
         }
         else {
-          dependencies.stderr.write(`pecotv pptx preview: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(`pptx preview: ${detail}`)
         }
         process.exitCode = PPTX_PREVIEW_FAILURE_EXIT_CODE
       }
@@ -538,26 +539,20 @@ function emitSuccess(
   data: Readonly<PptxPreviewResultData>,
 ): void {
   if (isJson) {
-    dependencies.stdout.write(JSON.stringify(data) + '\n')
+    writeData(dependencies.stdout, JSON.stringify(data))
     return
   }
 
   for (const finding of data.findings) {
-    dependencies.stdout.write(formatFindingLine(finding) + '\n')
+    writeData(dependencies.stdout, formatFindingLine(finding))
   }
-  if (data.detectOnly) {
-    dependencies.stdout.write(
-      `pptx preview (detect-only): ${data.input}`
-      + ` (${String(data.findings.length)} findings)\n`,
-    )
-  }
-  else {
-    dependencies.stdout.write(
-      `pptx preview: ${data.input} -> ${data.output ?? ''}`
-      + ` (${String(data.findings.length)} findings,`
-      + ` ${String(data.normalized)} normalized)\n`,
-    )
-  }
+  writeData(
+    dependencies.stdout,
+    data.detectOnly
+      ? `pptx preview (detect-only): ${data.input} (${String(data.findings.length)} findings)`
+      : `pptx preview: ${data.input} -> ${data.output ?? ''}`
+        + ` (${String(data.findings.length)} findings, ${String(data.normalized)} normalized)`,
+  )
 }
 
 export function pptxPreviewDefaultDependencies(): PreviewDependencies {

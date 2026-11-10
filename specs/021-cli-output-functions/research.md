@@ -72,11 +72,12 @@ spec の Clarifications（2026-11-09）で決めた 4 点を前提にする。�
 | CLI | 設定 | 対象から外すファイル |
 |---|---|---|
 | Python | ruff の `T20`（`print`・`pprint`）と、`TID251` の banned-api（`typer.echo`・`typer.secho`・`click.echo`・`sys.stdout`・`sys.stderr`・`rich.print`） | `cli/commands/_output.py`、`cli/tests/` |
-| Node（3 つ） | `no-console`、`no-restricted-properties`（`process.stdout.write`・`process.stderr.write`）、`no-restricted-syntax`（`stdout`・`stderr` という名前のものへの `.write` 呼び出し） | 共通の関数のファイル、pecot-tools と pecot-visual の `mcp/serve.ts` の stdout のガード、テスト |
+| Node（3 つ） | `no-console`、`no-restricted-syntax`（`stdout`・`stderr` という名前の識別子・プロパティへの `.write` 呼び出し。`process.stdout.write` も含む） | 共通の関数のファイル、pecot-tools と pecot-visual の `mcp/serve.ts` の stdout のガード、テスト |
 
 - Decision: Python と `cli-node/` の lint は、全コマンドを移した後の 1 つの PR で有効にする。pecot-visual・pecot-tools は、診断行を移す PR で有効にする
 - Rationale: 有効にした時点で違反が 0 でないと、pre-commit が全ファイルで止まる
 - Alternatives considered: 最初から有効にし、未移行のファイルを除外の一覧へ並べる形。除外の一覧と移行の進み具合を、二重で持つことになる
+- Alternatives considered: `no-restricted-properties` で `process.stdout.write` を止める形。この規則は `識別子.プロパティ` の 1 段だけを見るので、2 段の `process.stdout.write` に当たらない
 
 ## R9. 英語の文言を機械で確かめる
 

@@ -670,7 +670,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(errorToReason(new SlideCreateRuntimeError('名前が違う', 'theme-name-mismatch'))).toBe('theme-name-mismatch')
   })
 
-  it('宣言の警告と、pptx の値を省いたことの警告を stderr に [warn] で流す', async () => {
+  it('宣言の警告と、pptx の値を省いたことの警告を stderr に warning: で流す', async () => {
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'warnings.pptx')
     const infra = realInfra()
@@ -697,9 +697,9 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )
 
     const written = stderr.chunks.join('')
-    expect(written).toContain('[warn] テーマ /theme-root に pecot-theme.json の宣言が無いため')
-    expect(written).toContain('[warn] pptx.linkColor を省いたため')
-    expect(written).toContain('[warn] pptx.eastAsianFont を省いたため')
+    expect(written).toContain('warning: テーマ /theme-root に pecot-theme.json の宣言が無いため')
+    expect(written).toContain('warning: pptx.linkColor を省いたため')
+    expect(written).toContain('warning: pptx.eastAsianFont を省いたため')
   })
 
   it('pptx の値が揃っていれば、省略の警告は出さない', async () => {
@@ -756,7 +756,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
       },
     )
 
-    expect(stderr.chunks.join('')).toContain('[warn] 取得中の警告')
+    expect(stderr.chunks.join('')).toContain('warning: 取得中の警告')
   })
 
   it('テーマを張れなければ、slidev build に入らず、theme-<reason> で止まる', async () => {
@@ -1961,7 +1961,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         // 実 InProcessSlidevPptxPipeline を通し、runner が logger.info で人間可読ログを書く
         pptxConverter: new InProcessSlidevPptxPipeline({
           convertToPptxRunner: async (config, pipelineDependencies) => {
-            pipelineDependencies.logger?.info('pipeline-human-log')
+            pipelineDependencies.logger?.warn('pipeline-human-log')
             mkdirSync(config.outputDir, { recursive: true })
             await placeFakeSlides(config.outputDir, 1)
             return pipelineSuccess()
@@ -1978,12 +1978,50 @@ describe('createSlideConvertCommand (commander 経由)', () => {
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
       expect(stdoutLines.map(line => (JSON.parse(line) as { event?: string }).event))
         .toStrictEqual(['slide.convert.start', 'slide.convert.done'])
-      expect(stderr.chunks.join('')).toContain('pipeline-human-log\n')
+      expect(stderr.chunks.join('')).toContain('warning: pipeline-human-log\n')
       expect(isProcessStdoutWrite).not.toHaveBeenCalled()
     }
     finally {
       isProcessStdoutWrite.mockRestore()
     }
+  })
+
+  it('--log-level verbose で進捗の行が stderr に note: で出て、stdout には出ない', async () => {
+    const projectDirectory = makeProjectDirectory(temporaryRoot())
+    const out = temporaryRoot('cmd-out-log-level.pptx')
+    const stdout = makeStream()
+    const stderr = makeStream()
+    const dependencies = {
+      ...buildFakeDependencies(stdout, stderr),
+      pptxConverter: new InProcessSlidevPptxPipeline({
+        convertToPptxRunner: async (config, pipelineDependencies) => {
+          pipelineDependencies.logger?.info('pipeline-progress')
+          mkdirSync(config.outputDir, { recursive: true })
+          await placeFakeSlides(config.outputDir, 1)
+          return pipelineSuccess()
+        },
+      }),
+    }
+    const command = createSlideConvertCommand(() => dependencies)
+
+    await command.parseAsync([projectDirectory, '--out', out, '--log-level', 'verbose'], { from: 'user' })
+
+    expect(stderr.chunks.join('')).toContain('note: pipeline-progress\n')
+    expect(stdout.chunks.join('')).not.toContain('pipeline-progress')
+  })
+
+  it('--log-level の値が不正なら使い方エラーになる', async () => {
+    const projectDirectory = makeProjectDirectory(temporaryRoot())
+    const stdout = makeStream()
+    const stderr = makeStream()
+    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+
+    await expect(
+      command.parseAsync([projectDirectory, '--log-level', 'loud'], { from: 'user' }),
+    ).rejects.toThrow()
+
+    expect(stderr.chunks.join('')).toMatch(/^error: .*--log-level/)
+    expect(stdout.chunks.join('')).toBe('')
   })
 
   it('--json なし成功で stdout にテキスト 1 行を出す', async () => {
@@ -2104,7 +2142,8 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const previousExitCode = process.exitCode
     try {
       await command.parseAsync([temporaryRoot('nonexistent'), '--out', out], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv slide convert')
+      expect(stderr.chunks.join('')).toContain('error: ')
+      expect(stderr.chunks.join('')).not.toContain('pecotv slide convert')
       expect(process.exitCode).toBe(1)
     }
     finally {
@@ -2124,8 +2163,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         [projectDirectory, '--out', out, '--transition-type', 'spin'],
         { from: 'user' },
       )
-      expect(stderr.chunks.join('')).toContain('pecotv slide convert')
-      expect(stderr.chunks.join('')).toContain('--transition-type')
+      expect(stderr.chunks.join('')).toMatch(/^error: .*--transition-type/)
       expect(stdout.chunks.length).toBe(0)
       expect(process.exitCode).toBe(2)
     }
