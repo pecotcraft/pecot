@@ -29,6 +29,7 @@ pecot-workflow（Python と Node）・pecot-visual・pecot-tools の共通の関
 | add | added |
 | remove | removed |
 | close | closed |
+| reopen | reopened |
 | merge | merged |
 | move | moved |
 | set | set |

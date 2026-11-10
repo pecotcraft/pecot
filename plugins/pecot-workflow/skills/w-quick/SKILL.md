@@ -16,7 +16,7 @@ argument-hint: "[タスクの内容]"
 
 ### Step 1: Issue作成（pecot issue quick）
 
-> **ガード**: Issue 番号 `#NNN`（`#\d+` 形式）を出力で確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
+> **ガード**: Issue 番号が入った `created: Issue <owner/repo/N>` の行を出力で確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
 >
 > このステップは絶対にスキップしてはならない。Issue作成コマンドを実行し、Issue番号が出力されたことを確認してから次に進むこと。Issue作成前にコードを編集することは禁止。
 
@@ -27,7 +27,7 @@ pecot issue quick -r owner/repo -m "ユーザー指示の要約"
 
 **`-m` の書き方:** テンプレを経由しないため `-m` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
 
-**成功確認:** コマンド出力にIssue番号（`#XXX`）が含まれていること。
+**成功確認:** stderr に `created: Issue <owner/repo/N>` の行があること。`N` が Issue 番号になる。
 
 **特徴:**
 
@@ -47,7 +47,7 @@ pecot issue quick -r owner/repo -m "ユーザー指示の要約"
 
 **前提: Step 1でIssueが作成済みであること。**
 
-CLIの案内メッセージに従ってブランチを切り替える。
+Step 1 の出力にある `created: branch <ブランチ名> in <owner/repo>` の行から、ブランチ名とリポを読み、ブランチを切り替える。
 
 ```bash
 git fetch origin
@@ -56,10 +56,9 @@ git checkout feat/{YYYYMMDD-HHMMSS}/{issue_number}
 
 **ワークツリー環境の場合:**
 
-CLIがWT名を含む案内メッセージ（例: `作業対象リポジトリのワークツリー(wt2)で以下を実行してください`）を表示する。
-案内メッセージに表示されたWT名と同名のワークツリーで `git checkout` を実行する。
+`<owner/repo>` のワークツリーのうち、今のワークツリーと同じ WT 名のもので `git checkout` を実行する。
 
-案内されたWT名が作業対象リポジトリに存在しない場合は、
+同じ WT 名のワークツリーが `<owner/repo>` に存在しない場合は、
 `/pecot-w:w-worktree-add` コマンドでWT作成を案内するか、作業を中止する。
 
 ### Step 3: 調査

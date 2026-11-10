@@ -1,6 +1,6 @@
 {
-  "stdout": "[1/2] first.md\nCreating issue...\n  Created: #12\nAdding to board...\n  Added to board\n  Set fields: status: ready, priority: high, size: s\nLinking to parent epic acme/demo/3...\n  Linked to acme/demo/3\n\nhttps://ghes.example.com/acme/demo/issues/12\n[2/2] second.md\nCreating issue...\n  Created: #13\nAdding to board...\n  Added to board\n  Set fields: status: ready, priority: high, size: s\nLinking to parent epic acme/demo/3...\n  Linked to acme/demo/3\n\nhttps://ghes.example.com/acme/demo/issues/13\n",
-  "stderr": "",
+  "stdout": "https://ghes.example.com/acme/demo/issues/12\nhttps://ghes.example.com/acme/demo/issues/13\n",
+  "stderr": "created: Issue acme/demo/12 from first.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size s\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\ncreated: Issue acme/demo/13 from second.md\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status ready, priority high, size s\nadded: Issue acme/demo/13 as sub-issue of acme/demo/3\n",
   "exitCode": 0,
   "requests": [
     {

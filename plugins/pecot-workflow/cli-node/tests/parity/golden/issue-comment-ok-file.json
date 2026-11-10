@@ -1,6 +1,6 @@
 {
-  "stdout": "コメント投稿完了: acme/demo/7\nhttps://ghes.example.com/acme/demo/issues/7#issuecomment-1\n",
-  "stderr": "",
+  "stdout": "https://ghes.example.com/acme/demo/issues/7#issuecomment-1\n",
+  "stderr": "created: comment on acme/demo/7\n",
   "exitCode": 0,
   "requests": [
     {

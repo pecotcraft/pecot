@@ -1,6 +1,6 @@
 {
-  "stdout": "ステータスを更新: active\nIssue再オープン完了: acme/demo/7\nコメントを投稿しました\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "set: Issue acme/demo/7 status active\nreopened: Issue acme/demo/7\ncreated: comment on acme/demo/7\n",
   "exitCode": 0,
   "requests": [
     {

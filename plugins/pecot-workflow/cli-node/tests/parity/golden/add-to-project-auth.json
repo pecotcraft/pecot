@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: 認証エラー: GitHub APIのトークンを取得できませんでした。\n\n{{TMP}}/base/demo/.pecot/config/.env を生成しました。以下の手順でトークンを設定してください:\n\n1. トークンを取得: https://ghes.example.com/settings/tokens\n\n\n2. {{TMP}}/base/demo/.pecot/config/.env を編集して PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN にトークンを設定\n\nまたは GitHub CLI で認証:\n   gh auth login -h ghes.example.com\n",
+  "stderr": "error: could not add Issue acme/demo/7 to project: 認証エラー: GitHub APIのトークンを取得できませんでした。\n  \n  {{TMP}}/base/demo/.pecot/config/.env を生成しました。以下の手順でトークンを設定してください:\n  \n  1. トークンを取得: https://ghes.example.com/settings/tokens\n  \n  \n  2. {{TMP}}/base/demo/.pecot/config/.env を編集して PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN にトークンを設定\n  \n  または GitHub CLI で認証:\n     gh auth login -h ghes.example.com\n",
   "exitCode": 1,
   "requests": [],
   "files": {

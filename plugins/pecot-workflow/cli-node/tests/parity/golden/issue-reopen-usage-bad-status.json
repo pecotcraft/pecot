@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "不正なステータス: done\n有効な値: backlog/pending/ready/active/in_review/archived\n",
+  "stderr": "error: invalid status: done\n  valid values: backlog/pending/ready/active/in_review/archived\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

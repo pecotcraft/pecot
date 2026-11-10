@@ -1,6 +1,6 @@
 {
-  "stdout": "更新完了: acme/demo/7 → active\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "set: Issue acme/demo/7 status active\n",
   "exitCode": 0,
   "requests": [
     {

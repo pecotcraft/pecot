@@ -102,13 +102,13 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 ## Phase 4: User Story 2 — issue のコマンドをそろえる (Priority: P1)
 
-**Goal**: `issue` の 5 コマンドの出力が、共通の関数を通った英語になる
+**Goal**: `issue` の 5 コマンドと、同じ `issue.py` にある `add-to-project`・`update-issue-status` の出力が、共通の関数を通った英語になる
 
-**Independent Test**: golden の `issue-*` が記録し直した値と一致する。`cli/commands/issue.py` に `typer.echo` が 0 か所
+**Independent Test**: golden の `issue-*`・`add-to-project-*`・`update-issue-status-*`（39 件）が記録し直した値と一致する。`cli/commands/issue.py` に `typer.echo` が 0 か所
 
-- [ ] T017 [US2] `cli/tests/cli/` の issue のテストの期待値を、新しい行に書き換える。データ（Issue の本文）は stdout、それ以外の行は stderr に出ることを確かめる
-- [ ] T018 [US2] `cli/commands/issue.py` の `typer.echo` 141 か所を `Output` に移す。進捗の行は消す（research R4）
-- [ ] T019 [US2] golden の `issue-*` を記録し直す。スキル（`skills/*/SKILL.md`）が issue の出力の文言を引いていれば直す
+- [x] T017 [US2] `cli/tests/cli/` の issue のテストの期待値を、新しい行に書き換える。データ（Issue の本文）は stdout、それ以外の行は stderr に出ることを確かめる
+- [x] T018 [US2] `cli/commands/issue.py` の `typer.echo` 141 か所を `Output` に移す。進捗の行は消す（research R4）
+- [x] T019 [US2] golden の `issue-*`・`add-to-project-*`・`update-issue-status-*` を記録し直す。スキル（`skills/*/SKILL.md`）が issue の出力の文言を引いていれば直す
 
 **Checkpoint**: `record:parity:check` の差が 0 件
 
@@ -154,13 +154,16 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: golden の全 224 件が一致する。`cli/tests/unit/test_english_only.py` が全リテラルで通る。`cli/commands/` の `_output.py` 以外で `typer.echo` が 0 か所
 
-- [ ] T026 [US2] `cli/tests/unit/test_english_only.py` の対象を、`cli/commands/` の全文字列リテラル（f-string の固定部分を含む）に広げる。この時点では失敗する
+- [ ] T026 [US2] `cli/tests/unit/test_english_only.py` の対象を、`cli/commands/` の全文字列リテラル（f-string の固定部分を含む）に広げる。この時点では失敗する。
+  `issue.py` の `_QUICK_BODY_FOOTER` は GitHub に書く本文である。`cli/templates/` へ移すか除外の一覧に入れ、テストから外す（research R10）
 - [ ] T027 [P] [US2] `cli/commands/release.py`（73 か所）を `Output` に移す。テストの期待値も直す
 - [ ] T028 [P] [US2] `cli/commands/worktree.py`（47 か所）を同じ形に移す
-- [ ] T029 [P] [US2] repo のコマンドを移す。対象は `cli/commands/repo.py`（47 か所）・`repo_display.py`（3 か所）・`_repo_policy.py`（5 か所）
+- [ ] T029 [P] [US2] repo のコマンドを移す。対象は `cli/commands/repo.py`（47 か所）・`repo_display.py`（3 か所）・`_repo_policy.py`（5 か所）。
+  `repo.py` の `_print_checkout_guide` の `★` 案内は、`issue quick` と同じ形の行にする。形は `created: branch <name> in <owner/repo>` である。
+  `skills/w-active/SKILL.md` の Step 5 も同じ PR で直す
 - [ ] T030 [P] [US2] `cli/commands/session.py`（27 か所）を移す
-- [ ] T031 [US2] `cli/commands/main.py`（4 か所）を移す。グループの無いコマンド（`add-to-project`・`create-branch`・`delete-branch`・`update-issue-status`）も含める
-- [ ] T032 [US2] 残りの golden を記録し直す。全 224 件で `✔`・`✓` が 0 個になることを確かめる
+- [ ] T031 [US2] `cli/commands/main.py`（4 か所）を移す。`add-to-project`・`update-issue-status` は Phase 4、`create-branch`・`delete-branch` は `repo.py` にあり T029 で移す
+- [ ] T032 [US2] 残りの golden を記録し直す。Phase 4 で記録し直した `issue-*`・`add-to-project-*`・`update-issue-status-*` は触らない。全 224 件で `✔`・`✓` が 0 個になることを確かめる
   - `release-*`・`worktree-*`・`session-*`・`global-ok-show-repo-*`
   - `add-to-*`・`create-branch-*`・`delete-branch-*`・`update-issue-*`
 - [ ] T033 [US2] T026 が通ることを確かめる

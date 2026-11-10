@@ -1,6 +1,6 @@
 {
-  "stdout": "追加完了: acme/demo/7 → プロジェクト\nステータス設定: ready\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "added: Issue acme/demo/7 to project\nset: Issue acme/demo/7 status ready\n",
   "exitCode": 0,
   "requests": [
     {

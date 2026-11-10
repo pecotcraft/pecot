@@ -227,11 +227,11 @@ def test_epic_aggregation_routing(respx_mock: respx.MockRouter) -> None:
         )
 
     assert result.exit_code == 0, result.stdout + result.stderr
-    assert "Created: #100" in result.stdout
+    assert "created: Issue ownerA/hub-repo/100" in result.stderr
     assert f"https://{HOST}/ownerA/hub-repo/issues/100" in result.stdout
     assert "warning: --repo" not in result.stderr
     # status 既定値 backlog がボードに設定される (#669)
-    assert "status: backlog" in result.stdout
+    assert "status backlog" in result.stderr
     # aggregation_repo へルーティングされたこと (REST URL パスに hub-repo が含まれる)
     assert rest_route.call_count == 1
     # GraphQL は add_to_project と workflow フィールド設定 (status=backlog) の 2 回到達する。

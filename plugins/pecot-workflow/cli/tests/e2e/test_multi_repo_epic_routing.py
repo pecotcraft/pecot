@@ -249,7 +249,7 @@ class TestEpicRoutingDirect:
         assert "acme-labs/pecot-cli" in result.stderr
         assert "aggregation_repo" in result.stderr
         assert "acme-labs/aist-roadmap" in result.stderr
-        assert "実装リポ運用 Epic の例外として作成を続行します" in result.stderr
+        assert "continuing as an exception for an Epic in an implementation repo" in result.stderr
 
     def test_D_aggregation_unset_repo_omitted_exits_2(self, respx_mock: respx.MockRouter) -> None:
         """(D) aggregation_repo なし + --repo 省略 → exit 2、API 到達なし。"""
@@ -274,7 +274,7 @@ class TestEpicRoutingDirect:
 
         assert result.exit_code == 2, result.output
         # cli-commands.md §117-122 の固定文言
-        assert "Epic の作成先が決定できません" in result.stderr
+        assert "cannot decide where to create the Epic" in result.stderr
         assert "aggregation_repo" in result.stderr
         assert "--repo" in result.stderr
         # API には到達していない
@@ -361,9 +361,9 @@ class TestEpicRoutingFromFile:
         # title を REST body から追加検証（フロー再現）
         body = json.loads(rest_route.calls[0].request.content.decode("utf-8"))
         assert body["title"].endswith("Fallback Epic") or "Fallback Epic" in body["title"]
-        # 警告は出ない
-        assert "warning:" not in result.stderr
-        assert "実装リポ運用 Epic の例外" not in result.stderr
+        # 例外ルーティングの警告は出ない
+        assert "differs from aggregation_repo" not in result.stderr
+        assert "continuing as an exception" not in result.stderr
 
 
 # --prepare 雛形の見出しは全て `## 名前 — <サマリ>` 形式。利用者が最初にやる編集を模す。

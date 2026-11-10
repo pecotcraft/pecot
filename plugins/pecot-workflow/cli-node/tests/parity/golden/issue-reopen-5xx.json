@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: GitHub APIエラー: 500\n",
+  "stderr": "error: could not reopen Issue acme/demo/7: GitHub APIエラー: 500\n",
   "exitCode": 1,
   "requests": [
     {

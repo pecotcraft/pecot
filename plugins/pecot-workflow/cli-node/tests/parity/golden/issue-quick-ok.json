@@ -1,6 +1,6 @@
 {
-  "stdout": "Creating issue...\n  Created: #12\nAdding to board...\n  Added to board\n  Set fields: status: active, priority: medium, size: s\nCreating linked branch...\n  Created branch: feat/{{TIMESTAMP}}/12\n\n  ★ 以下のコマンドを即座に実行してブランチを切り替えてください:\n    git fetch origin\n    git checkout feat/{{TIMESTAMP}}/12\n  Saved work target: acme/demo/12\n  作業ファイル置き場: .pecot/work/12/\n\nhttps://ghes.example.com/acme/demo/issues/12\n",
-  "stderr": "",
+  "stdout": "https://ghes.example.com/acme/demo/issues/12\n",
+  "stderr": "created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status active, priority medium, size s\ncreated: branch feat/{{TIMESTAMP}}/12 in acme/demo\nset: work target acme/demo/12 (work directory .pecot/work/12/)\n",
   "exitCode": 0,
   "requests": [
     {

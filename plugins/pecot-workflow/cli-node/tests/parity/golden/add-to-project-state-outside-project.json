@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "リポジトリ acme/demo はプロジェクトに含まれていません\n",
+  "stderr": "error: repository acme/demo is not in the project\n",
   "exitCode": 1,
   "requests": [
     {
