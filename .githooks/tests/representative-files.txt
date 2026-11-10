@@ -17,7 +17,7 @@
 .github/plugin/marketplace.json
 .github/rulesets/main.json
 .github/workflows/ci.yml
-.github/workflows/runtime-lock.yml
+.github/workflows/dependabot-commit.yml
 .gitignore
 .gitlint
 .markdownlint-cli2.jsonc

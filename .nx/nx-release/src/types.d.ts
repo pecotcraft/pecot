@@ -30,6 +30,7 @@ export type Context = {
 export type SkipReason = "dev" | "none";
 export type Resolution = { groups: string[]; reason: SkipReason | null };
 export type Dep = { name: string; from: string | null; version: string };
+export type Analysis = { parsed: ParsedCommit; byGroup: Map<string, Dep[]>; reason: SkipReason };
 export type MainOptions = {
   argv?: string[];
   repoDir?: string;

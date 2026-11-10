@@ -403,12 +403,51 @@ def _authored_feature(h: _VprRepo, authors: list[str]) -> str:
     return h.head_sha()
 
 
+_PLANS_STUB = "\n".join(
+    [
+        'const fs = require("node:fs");',
+        'const d = ".nx/version-plans";',
+        "const found = fs.existsSync(d) && fs.readdirSync(d).some((f) => f.includes('dependabot-deps'));",
+        "if (found === false) {",
+        '  console.error("dependabot の更新の version plan が足されていません");',
+        "  process.exit(1);",
+        "}",
+    ]
+)
+
+
+def _stub_dependabot_plans(h: _VprRepo) -> None:
+    """本物の dependabot-plans.js の代わりに、--check の成否だけを plan の有無で返すスタブを置く。"""
+    src = h.repo / ".nx/nx-release/src"
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "dependabot-plans.js").write_text(_PLANS_STUB)
+
+
+def test_37_block_dependabot_without_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """37. dependabot だけの range で、作るべき plan が無い → 理由を出して止める（strict でなくても）。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    _stub_dependabot_plans(vpr_repo)
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 1
+    assert "version plan が足されていません" in (result.stdout + result.stderr)
+
+
+def test_38_pass_dependabot_with_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
+    """38. dependabot だけの range で、plan がある → pass。"""
+    sha = _authored_feature(vpr_repo, [_DEPENDABOT])
+    _stub_dependabot_plans(vpr_repo)
+    (vpr_repo.repo / ".nx/version-plans/9-dependabot-deps.md").write_text("---\n---\n")
+    result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
+    assert result.returncode == 0
+    assert "PR の commit で作る" in result.stderr
+
+
 def test_30_pass_dependabot_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
     """30. dependabot だけの range → 理由を出して pass。"""
     sha = _authored_feature(vpr_repo, [_DEPENDABOT])
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
     assert result.returncode == 0
-    assert "dependabot の更新の version plan はリリース時に作る" in result.stderr
+    assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
 
 
 def test_31_pass_dependabot_and_actions(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
@@ -416,7 +455,7 @@ def test_31_pass_dependabot_and_actions(script_dir: Path, vpr_repo: _VprRepo, ru
     sha = _authored_feature(vpr_repo, [_DEPENDABOT, _ACTIONS])
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
     assert result.returncode == 0
-    assert "dependabot の更新の version plan はリリース時に作る" in result.stderr
+    assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
 
 
 def test_32_block_dependabot_and_human(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
@@ -455,7 +494,7 @@ def test_34_pass_human_merge_commit_is_not_counted(
     h.stub_nx()
     result = _run(script_dir, h, run_script, to_ref=h.head_sha())
     assert result.returncode == 0
-    assert "dependabot の更新の version plan はリリース時に作る" in result.stderr
+    assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
 
 
 def test_35_pass_squash_commit_without_pr_env(

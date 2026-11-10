@@ -92,6 +92,16 @@ Rationale: PR ブランチに CI が commit を積むと、`fetch-metadata` は 
 
 Alternatives considered: clarify で示した 3 案のうち、残り 2 案（main へ足す・PR に積む）は上の理由で採らない。
 
+Update (#220): PR に `[dependabot skip]` の commit で積む形へ変えた。
+`dependabot-commit.yml` が、runtime-lock の作り直しと plan の作成を 1 つの commit にして PR のブランチへ push する。
+理由は次の 3 点。
+
+- PR に plan の commit が無いと、nx の CHANGELOG の行に PR へのリンクが付かず、空になる
+- #187 以降は、commit の件名に `[dependabot skip]` があれば dependabot が rebase できる
+- `fetch-metadata` は PR の最初の commit を読むので、後から積んでも author は dependabot のままである
+
+リリースの workflow は plan を作らない。plan の欠けは必須チェック `version-plan` の `--check` が止める。
+
 ## R6. リリースの actor と ruleset の bypass
 
 Decision: 専用の GitHub App を作り、ruleset の bypass（`bypass_mode: always`）に載せる。

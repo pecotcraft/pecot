@@ -70,9 +70,3 @@ gh run view <id> --log-failed -R <owner>/<repo>
 後から起動した run は、pending で待つ。
 cancel されるのは、さらに後の起動で pending になった側。
 承認待ちの run が残っていたら、先に承認するか cancel する。
-
-限界として、履歴の書き換えで diff が変わった commit は、`--cherry-pick` で除けない。
-そのため、依存の更新の plan が重なる。
-ランナーでは、重なった plan を消せない。plan は各 job のコンテナで毎回作り直されるため。
-同じ名前の plan（`<N>-dependabot-deps.md` など）を、中身を直して main に commit しておく。
-「既にある」と扱われ、作られない。

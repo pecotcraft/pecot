@@ -746,7 +746,7 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         (".githooks/scripts/run-pnpm.sh", _GITHOOKS_CHECKS),
         (".github/board-sync/handler.mjs", _GITHOOKS_CHECKS),
         (".github/board-sync/template.yaml", _GITHOOKS_CHECKS),
-        (".github/workflows/runtime-lock.yml", _GITHOOKS_CHECKS),
+        (".github/workflows/dependabot-commit.yml", _GITHOOKS_CHECKS),
         (
             "plugins/pecot-workflow/scripts/ci/python-version.sh",
             _GITHOOKS_CHECKS | {"githooks:test-nx-cache"},

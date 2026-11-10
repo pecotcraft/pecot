@@ -245,7 +245,7 @@ dependabot の自動マージ（US2）
 |---|---|
 | FR-028 | `main` を force push する緊急時の手順を文書に書く。ruleset を一時的に外す・force push する・ruleset を戻す・CI の結果を確かめる、の順にする |
 | FR-029 | `main` への push の CI は、成功した run が無い（`noPreviousBuild`）か、範囲の base の commit を読めないとき、全レーンを動かす |
-| FR-030 | `dependabot-plans.js` は、前回の tag の側に中身が同じ commit があるものを数えない |
+| FR-030 | #220 で廃止した。`dependabot-plans.js` は tag を起点にせず、PR の差分から plan を作るため、重なりを除く処理が要らない |
 
 文書（US5）
 
