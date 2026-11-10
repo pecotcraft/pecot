@@ -10,7 +10,7 @@ import type { CommandIo } from './registry.js'
 /**
 操作の動詞。自由な文字列を受け取らない
 */
-export const VerbSchema = z.enum(['create', 'update', 'delete', 'add', 'remove', 'close', 'merge', 'move', 'set', 'skip', 'unchanged'])
+export const VerbSchema = z.enum(['create', 'update', 'delete', 'add', 'remove', 'close', 'reopen', 'merge', 'move', 'set', 'skip', 'unchanged'])
 
 export type Verb = z.infer<typeof VerbSchema>
 
@@ -25,6 +25,7 @@ function pastOf(verb: Verb): string {
     case 'add': { return 'added' }
     case 'remove': { return 'removed' }
     case 'close': { return 'closed' }
+    case 'reopen': { return 'reopened' }
     case 'merge': { return 'merged' }
     case 'move': { return 'moved' }
     case 'set': { return 'set' }

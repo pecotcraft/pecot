@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: Epic #3 に order=02a と重複するIssue（02）が既に存在します（OPEN）\n  #9 #3-02: 枝なしの子\n  次に使用可能なorder: 3\n",
+  "stderr": "error: Epic #3 already has an Issue (02) that conflicts with order=02a (OPEN)\n  #9 #3-02: 枝なしの子\n  next available order: 3\n",
   "exitCode": 1,
   "requests": [
     {

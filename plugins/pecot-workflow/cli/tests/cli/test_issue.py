@@ -15,6 +15,7 @@ import pytest
 import typer
 from typer.testing import CliRunner, Result
 
+from cli.commands._output import Output
 from cli.commands.issue import (
     _ORDER_PATTERN,
     TYPE_DEFAULT_STATUS,
@@ -167,7 +168,7 @@ class TestCheckDuplicateOrder:
             ],
         }
         # order=3 は重複しない
-        _check_duplicate_order(mock_client, "owner", "repo", 353, 3)
+        _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 3)
 
     def test_duplicate_open_issue_raises_error(self) -> None:
         """同じorderのオープンIssueがある場合はエラー"""
@@ -179,7 +180,7 @@ class TestCheckDuplicateOrder:
             ],
         }
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(mock_client, "owner", "repo", 353, 2)
+            _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 2)
 
     def test_closed_issue_also_duplicate(self) -> None:
         """クローズされたIssueも重複とみなす（orderは再利用不可）"""
@@ -190,7 +191,7 @@ class TestCheckDuplicateOrder:
             ],
         }
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(mock_client, "owner", "repo", 353, 1)
+            _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 1)
 
     def test_error_message_shows_next_available_order(
         self, capsys: pytest.CaptureFixture[str]
@@ -205,9 +206,9 @@ class TestCheckDuplicateOrder:
             ],
         }
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(mock_client, "owner", "repo", 353, 2)
+            _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 2)
         captured = capsys.readouterr()
-        assert "次に使用可能なorder: 4" in captured.err
+        assert "next available order: 4" in captured.err
 
     def test_different_epic_not_duplicate(self) -> None:
         """異なるEpicのorderは重複とみなさない"""
@@ -218,7 +219,7 @@ class TestCheckDuplicateOrder:
             ],
         }
         # parent_epic=353 で検索しているが、サブIssueのタイトルは #999
-        _check_duplicate_order(mock_client, "owner", "repo", 353, 1)
+        _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 1)
 
     def test_no_sub_issues(self) -> None:
         """サブIssueがない場合は正常終了"""
@@ -226,7 +227,7 @@ class TestCheckDuplicateOrder:
         mock_client.get_issue_slim.return_value = {
             "sub_issues": [],
         }
-        _check_duplicate_order(mock_client, "owner", "repo", 353, 1)
+        _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 1)
 
     def test_api_error_continues(self) -> None:
         """API取得失敗時は警告のみで続行"""
@@ -235,7 +236,7 @@ class TestCheckDuplicateOrder:
         mock_client = MagicMock()
         mock_client.get_issue_slim.side_effect = GitHubAPIError("Not found", 404)
         # エラーにならず正常終了
-        _check_duplicate_order(mock_client, "owner", "repo", 353, 1)
+        _check_duplicate_order(Output(False), mock_client, "owner", "repo", 353, 1)
 
     @pytest.mark.parametrize(
         ("title", "expected"),
@@ -267,29 +268,29 @@ class TestCheckDuplicateOrder:
         """同じ段・同じ枝は重複"""
         client = self._client_with("[Task] #353-04a: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
 
     def test_same_order_different_parallel_is_not_duplicate(self) -> None:
         """同じ段で枝が違えば重複ではない"""
         client = self._client_with("[Task] #353-04a: A", "[Task] #353-04b: B")
-        _check_duplicate_order(client, "owner", "repo", 353, 4, "c")
+        _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "c")
 
     def test_new_branchless_conflicts_with_existing_branch(self) -> None:
         """枝なしの新規は、同じ段の枝ありの既存と衝突する"""
         client = self._client_with("[Task] #353-04a: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4)
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4)
 
     def test_new_branch_conflicts_with_existing_branchless(self) -> None:
         """枝ありの新規は、同じ段の枝なしの既存と衝突する"""
         client = self._client_with("[Task] #353-04: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
 
     def test_different_order_with_parallel_is_not_duplicate(self) -> None:
         """段が違えば枝が同じでも重複ではない"""
         client = self._client_with("[Task] #353-04a: A")
-        _check_duplicate_order(client, "owner", "repo", 353, 5, "a")
+        _check_duplicate_order(Output(False), client, "owner", "repo", 353, 5, "a")
 
     def test_error_message_shows_number_with_letter(
         self, capsys: pytest.CaptureFixture[str]
@@ -297,11 +298,11 @@ class TestCheckDuplicateOrder:
         """エラーメッセージに NNa の形で番号が出る"""
         client = self._client_with("[Task] #353-04a: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
         err = capsys.readouterr().err
         assert "order=04a" in err
         assert "#10 [Task] #353-04a: A" in err
-        assert "次に使用可能な番号: 04b" in err
+        assert "next available number: 04b" in err
 
     def test_error_message_aligns_both_sides_with_two_digits(
         self, capsys: pytest.CaptureFixture[str]
@@ -309,15 +310,15 @@ class TestCheckDuplicateOrder:
         """枝が絡む重複は、両側を NN と枝の文字の形でそろえて表示する"""
         client = self._client_with("[Task] #353-04: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
         err = capsys.readouterr().err
-        assert "order=04a と重複するIssue（04）が既に存在します" in err
+        assert "an Issue (04) that conflicts with order=04a" in err
 
     def test_multiple_duplicates_show_first_match(self, capsys: pytest.CaptureFixture[str]) -> None:
         """重複が複数あるときは最初の一致を表示する"""
         client = self._client_with("[Task] #353-04a: A", "[Task] #353-04b: B")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4)
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4)
         err = capsys.readouterr().err
         assert "#10 [Task] #353-04a: A" in err
         assert "#11" not in err
@@ -328,8 +329,8 @@ class TestCheckDuplicateOrder:
         """枝の衝突では、その段で使われていない最初の枝の文字を案内する"""
         client = self._client_with("[Task] #353-04a: A", "[Task] #353-04c: C")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
-        assert "次に使用可能な番号: 04b" in capsys.readouterr().err
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
+        assert "next available number: 04b" in capsys.readouterr().err
 
     def test_branch_conflict_with_branchless_existing_suggests_next_order(
         self, capsys: pytest.CaptureFixture[str]
@@ -337,8 +338,8 @@ class TestCheckDuplicateOrder:
         """枝なしの既存と衝突するときは、最大の段の次を案内する"""
         client = self._client_with("[Task] #353-04: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
-        assert "次に使用可能なorder: 5" in capsys.readouterr().err
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
+        assert "next available order: 5" in capsys.readouterr().err
 
     def test_branch_conflict_without_unused_letter_suggests_next_order(
         self, capsys: pytest.CaptureFixture[str]
@@ -347,8 +348,8 @@ class TestCheckDuplicateOrder:
         titles = [f"[Task] #353-04{c}: {c}" for c in "abcdefghijklmnopqrstuvwxyz"]
         client = self._client_with(*titles)
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4, "a")
-        assert "次に使用可能なorder: 5" in capsys.readouterr().err
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4, "a")
+        assert "next available order: 5" in capsys.readouterr().err
 
     def test_error_message_without_letters_is_same_as_before(
         self, capsys: pytest.CaptureFixture[str]
@@ -356,10 +357,10 @@ class TestCheckDuplicateOrder:
         """枝なし同士の重複は従来と同じ文言になる"""
         client = self._client_with("[Task] #353-04: A")
         with pytest.raises(typer.Exit):
-            _check_duplicate_order(client, "owner", "repo", 353, 4)
+            _check_duplicate_order(Output(False), client, "owner", "repo", 353, 4)
         err = capsys.readouterr().err
-        assert "エラー: Epic #353 に order=4 のIssueが既に存在します" in err
-        assert "重複するIssue" not in err
+        assert "error: Epic #353 already has an Issue with order=4" in err
+        assert "conflicts with" not in err
 
 
 # --- _resolve_parent_epic_ref テスト ---
@@ -391,10 +392,7 @@ class TestResolveParentEpicRef:
         assert ref.repo.owner == "acme-labs"
         assert ref.repo.repo == "aist-roadmap"
         assert ref.number == 21
-        captured = capsys.readouterr()
-        assert "note:" in captured.err
-        assert "aggregation_repo" in captured.err
-        assert "acme-labs/aist-roadmap" in captured.err
+        assert capsys.readouterr().err == ""
 
     def test_int_without_aggregation_repo_falls_back_to_task_repo(
         self, capsys: pytest.CaptureFixture[str]
@@ -441,7 +439,7 @@ class TestResolveParentEpicRef:
         from cli.commands.issue import _resolve_parent_epic_ref
 
         config = self._make_config("agg/repo")
-        with pytest.raises(typer.BadParameter, match="parent_epic 解決失敗"):
+        with pytest.raises(typer.BadParameter, match="could not resolve parent_epic"):
             _resolve_parent_epic_ref("invalid-format", config, "owner", "repo")
 
 
@@ -456,7 +454,7 @@ class TestAddToProjectCommand:
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["add-to-project", "owner/repo/123"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
@@ -482,7 +480,7 @@ class TestAddToProjectCommand:
         ):
             result = runner.invoke(app, ["add-to-project", "owner/repo/123"])
             assert result.exit_code == 1
-            assert "プロジェクトに含まれていません" in result.output
+            assert "is not in the project" in result.output
 
     def test_add_success(self) -> None:
         """正常にプロジェクトに追加"""
@@ -501,7 +499,7 @@ class TestAddToProjectCommand:
         ):
             result = runner.invoke(app, ["add-to-project", "owner/repo/123"])
             assert result.exit_code == 0
-            assert "追加完了" in result.output
+            assert "added: Issue owner/repo/123 to project" in result.output
             assert "owner/repo/123" in result.output
 
             # API呼び出し確認
@@ -527,8 +525,8 @@ class TestAddToProjectCommand:
         ):
             result = runner.invoke(app, ["add-to-project", "owner/repo/123", "--status", "active"])
             assert result.exit_code == 0
-            assert "追加完了" in result.output
-            assert "ステータス設定: active" in result.output
+            assert "added: Issue owner/repo/123 to project" in result.output
+            assert "set: Issue owner/repo/123 status active" in result.output
 
             # ステータス更新API呼び出し確認
             mock_client.update_project_item_field.assert_called_once_with(
@@ -554,8 +552,8 @@ class TestAddToProjectCommand:
         ):
             result = runner.invoke(app, ["add-to-project", "owner/repo/123", "--status", "invalid"])
             assert result.exit_code == 0
-            assert "追加完了" in result.output
-            assert "警告" in result.output
+            assert "added: Issue owner/repo/123 to project" in result.output
+            assert "warning:" in result.output
             assert "invalid" in result.output
 
     def test_github_api_error(self) -> None:
@@ -577,7 +575,7 @@ class TestAddToProjectCommand:
         ):
             result = runner.invoke(app, ["add-to-project", "owner/repo/123"])
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert "error: could not" in result.output
 
     def test_add_with_default_status(self) -> None:
         """--status 未指定時にデフォルトで ready が設定される"""
@@ -599,9 +597,9 @@ class TestAddToProjectCommand:
             # --status を指定しない
             result = runner.invoke(app, ["add-to-project", "owner/repo/123"])
             assert result.exit_code == 0
-            assert "追加完了" in result.output
+            assert "added: Issue owner/repo/123 to project" in result.output
             # デフォルトで ready が設定される
-            assert "ステータス設定: ready" in result.output
+            assert "set: Issue owner/repo/123 status ready" in result.output
 
             # ステータス更新API呼び出し確認（デフォルト ready）
             mock_config.get_option_id.assert_called_with("workflow", "ready")
@@ -627,7 +625,7 @@ class TestUpdateIssueStatusCommand:
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["update-issue-status", "owner/repo/123", "active"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
@@ -653,7 +651,7 @@ class TestUpdateIssueStatusCommand:
         ):
             result = runner.invoke(app, ["update-issue-status", "owner/repo/123", "active"])
             assert result.exit_code == 1
-            assert "プロジェクトに含まれていません" in result.output
+            assert "is not in the project" in result.output
 
     def test_invalid_status(self) -> None:
         """不正なステータスはエラー"""
@@ -681,7 +679,7 @@ class TestUpdateIssueStatusCommand:
         ):
             result = runner.invoke(app, ["update-issue-status", "owner/repo/123", "active"])
             assert result.exit_code == 1
-            assert "ボードに存在しません" in result.output
+            assert "is not on the project board" in result.output
 
     def test_update_success(self) -> None:
         """正常にステータス更新"""
@@ -701,7 +699,7 @@ class TestUpdateIssueStatusCommand:
         ):
             result = runner.invoke(app, ["update-issue-status", "owner/repo/123", "active"])
             assert result.exit_code == 0
-            assert "更新完了" in result.output
+            assert "set: Issue owner/repo/123 status active" in result.output
             assert "active" in result.output
 
             # API呼び出し確認
@@ -750,7 +748,7 @@ class TestUpdateIssueStatusCommand:
         ):
             result = runner.invoke(app, ["update-issue-status", "owner/repo/123", "active"])
             assert result.exit_code == 1
-            assert "GitHub APIエラー" in result.output
+            assert "error: could not" in result.output
 
 
 # --- issue reopen コマンドテスト ---
@@ -764,7 +762,7 @@ class TestIssueReopenCommand:
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["issue", "reopen", "owner/repo/123"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
@@ -788,7 +786,7 @@ class TestIssueReopenCommand:
         ):
             result = runner.invoke(app, ["issue", "reopen", "owner/repo/123"])
             assert result.exit_code == 1
-            assert "プロジェクトに含まれていません" in result.output
+            assert "is not in the project" in result.output
 
     def test_reopen_success(self) -> None:
         """基本的な再オープン成功"""
@@ -806,7 +804,7 @@ class TestIssueReopenCommand:
         ):
             result = runner.invoke(app, ["issue", "reopen", "owner/repo/123"])
             assert result.exit_code == 0
-            assert "Issue再オープン完了" in result.output
+            assert "reopened: Issue" in result.output
             assert "owner/repo/123" in result.output
 
             # API呼び出し確認（1回目: ステータス更新前、2回目: Automation対策）
@@ -833,8 +831,8 @@ class TestIssueReopenCommand:
         ):
             result = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--status", "active"])
             assert result.exit_code == 0
-            assert "Issue再オープン完了" in result.output
-            assert "ステータスを更新: active" in result.output
+            assert "reopened: Issue" in result.output
+            assert "set: Issue owner/repo/123 status active" in result.output
 
             # API呼び出し確認（1回目: ステータス更新前、2回目: Automation対策）
             assert mock_client.reopen_issue.call_count == 2
@@ -866,8 +864,8 @@ class TestIssueReopenCommand:
                 ["issue", "reopen", "owner/repo/123", "--comment", "追加対応が必要"],
             )
             assert result.exit_code == 0
-            assert "Issue再オープン完了" in result.output
-            assert "コメントを投稿しました" in result.output
+            assert "reopened: Issue" in result.output
+            assert "created: comment on owner/repo/123" in result.output
 
             # API呼び出し確認（1回目: ステータス更新前、2回目: Automation対策）
             assert mock_client.reopen_issue.call_count == 2
@@ -893,8 +891,8 @@ class TestIssueReopenCommand:
         ):
             result = runner.invoke(app, ["issue", "reopen", "owner/repo/123"])
             assert result.exit_code == 0
-            assert "Issue再オープン完了" in result.output
-            assert "警告: Issue #123 はプロジェクトボードに存在しません" in result.output
+            assert "reopened: Issue" in result.output
+            assert "warning: Issue owner/repo/123 is not on the project board" in result.output
 
             # Issue再オープンは2回実行されるが、ステータス更新は行われない
             assert mock_client.reopen_issue.call_count == 2
@@ -920,7 +918,7 @@ class TestIssueReopenCommand:
         ):
             result = runner.invoke(app, ["issue", "reopen", "owner/repo/123"])
             assert result.exit_code == 1
-            assert "警告: Issueのstateが 'open' になりませんでした" in result.output
+            assert "error: Issue owner/repo/123 did not become open" in result.output
 
     def test_invalid_status(self) -> None:
         """不正なステータス値はエラー"""
@@ -1080,9 +1078,9 @@ class TestIssueCreatePrepareCommand:
         result = runner.invoke(app, ["issue", "create"])
 
         assert result.exit_code == 1
-        assert "引数が不足しています" in result.output
-        assert "テンプレート準備" in result.output
-        assert "直接投稿" in result.output
+        assert "missing arguments" in result.output
+        assert "prepare a template" in result.output
+        assert "direct posting" in result.output
 
     def test_prepare_with_suffix(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """--suffix 指定時はファイル名へ反映される"""
@@ -1243,7 +1241,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 1
-        assert f"エラー: {message}" in result.output
+        assert f"error: {message}" in result.output
         assert not (tmp_path / "pecot").exists()
 
     def test_prepare_task_requires_repo(
@@ -1259,7 +1257,7 @@ class TestIssueCreatePrepareCommand:
 
         assert result.exit_code == 2
         assert "--repo owner/repo" in result.output
-        assert "必須" in result.output
+        assert "is required" in result.output
 
     def test_prepare_bug_requires_repo(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1274,7 +1272,7 @@ class TestIssueCreatePrepareCommand:
 
         assert result.exit_code == 2
         assert "--repo owner/repo" in result.output
-        assert "必須" in result.output
+        assert "is required" in result.output
 
     def test_prepare_task_implement_requires_repo(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1291,7 +1289,7 @@ class TestIssueCreatePrepareCommand:
 
         assert result.exit_code == 2
         assert "--repo owner/repo" in result.output
-        assert "必須" in result.output
+        assert "is required" in result.output
 
     def test_prepare_repo_invalid_format_no_slash(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1308,7 +1306,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 2
-        assert "不正なリポジトリ形式" in result.output
+        assert "invalid repository format" in result.output
 
     def test_prepare_repo_invalid_format_too_many_segments(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1324,7 +1322,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 2
-        assert "不正なリポジトリ形式" in result.output
+        assert "invalid repository format" in result.output
 
     def test_prepare_repo_invalid_format_empty(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1340,7 +1338,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 2
-        assert "不正なリポジトリ形式" in result.output
+        assert "invalid repository format" in result.output
 
     def test_prepare_repo_invalid_format_empty_repo_segment(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1356,7 +1354,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 2
-        assert "不正なリポジトリ形式" in result.output
+        assert "invalid repository format" in result.output
 
     def test_prepare_repo_invalid_format_empty_owner_segment(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1372,7 +1370,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 2
-        assert "不正なリポジトリ形式" in result.output
+        assert "invalid repository format" in result.output
 
     def test_prepare_repo_invalid_format_whitespace_segments(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1388,7 +1386,7 @@ class TestIssueCreatePrepareCommand:
         )
 
         assert result.exit_code == 2
-        assert "不正なリポジトリ形式" in result.output
+        assert "invalid repository format" in result.output
 
     def test_prepare_repo_written_into_frontmatter(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1746,7 +1744,7 @@ body
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_create_direct_invalid_repo_shape(self) -> None:
         """異常系: 直接投稿で --repo が不正形式 (foo/) なら exit 2"""
@@ -1768,7 +1766,7 @@ body
                 ],
             )
             assert result.exit_code == 2
-            assert "不正なリポジトリ形式" in result.output
+            assert "invalid repository format" in result.output
 
     def test_create_file_not_found(self) -> None:
         """異常系: ファイルが存在しない場合はエラー"""
@@ -1776,7 +1774,7 @@ body
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "create", "/nonexistent/file.md"])
             assert result.exit_code == 1
-            assert "ファイルが見つかりません" in result.output
+            assert "file not found" in result.output
 
     def test_create_validation_error(self, tmp_path: Path) -> None:
         """異常系: フロントマターバリデーションエラー"""
@@ -1826,7 +1824,7 @@ status: ready
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 1
-            assert "プロジェクトに紐づいていません" in result.output
+            assert "is not linked to the project" in result.output
 
     def test_create_github_api_error(self, tmp_path: Path) -> None:
         """異常系: GitHub APIエラー（Issue作成失敗）"""
@@ -1860,7 +1858,7 @@ status: ready
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 1
-            assert "Issue作成失敗" in result.output
+            assert "could not create an Issue in" in result.output
 
     def test_create_board_add_failure_partial_success(self, tmp_path: Path) -> None:
         """異常系: ボード追加失敗時は警告を出してIssue URLを返す（部分成功）"""
@@ -1902,8 +1900,8 @@ status: ready
             # 部分成功なのでexit_code=0
             assert result.exit_code == 0
             # 警告メッセージ
-            assert "警告" in result.output
-            assert "ボード追加失敗" in result.output
+            assert "warning:" in result.output
+            assert "could not add Issue" in result.output
             # Issue URLは出力される
             assert "https://ghes.example.com/owner/repo/issues/456" in result.output
 
@@ -1957,7 +1955,7 @@ order: 1
             # 手動修復のため、URL を先に stdout へ出している
             assert "https://ghes.example.com/owner/repo/issues/456" in result.output
             # エラーメッセージ（stderr 含め mix されて output に入る）
-            assert "サブIssue紐づけ失敗" in result.output
+            assert "as sub-issue of" in result.output
 
     # --- プレフィックス自動付与テスト ---
 
@@ -2149,8 +2147,8 @@ class TestIssueCommentTemplateRequired:
 
         assert result.exit_code == 1
         assert (
-            "エラー: -t でテンプレートを指定してください"
-            "（plan / merge-diff / review-findings / review-resolution / precede-notify）"
+            "error: specify a template with -t "
+            "(plan / merge-diff / review-findings / review-resolution / precede-notify)"
         ) in result.output
 
     def test_file_without_template_exits_1(self, tmp_path: Path) -> None:
@@ -2163,7 +2161,7 @@ class TestIssueCommentTemplateRequired:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 1
-        assert "エラー: frontmatter の template を指定してください" in result.output
+        assert "error: specify template in the frontmatter" in result.output
 
 
 class TestIssueCommentPrepareCommand:
@@ -2255,7 +2253,7 @@ class TestIssueCommentPrepareCommand:
         result = runner.invoke(app, ["issue", "comment", "-t", "merge-diff", "--prepare"])
 
         assert result.exit_code == 1
-        assert f"エラー: {message}" in result.output
+        assert f"error: {message}" in result.output
         assert not (tmp_path / "pecot").exists()
 
     def test_prepare_template_not_found(
@@ -2274,7 +2272,7 @@ class TestIssueCommentPrepareCommand:
         result = runner.invoke(app, ["issue", "comment", "-t", "merge-diff", "--prepare"])
 
         assert result.exit_code == 1
-        assert "テンプレートが見つかりません" in result.output
+        assert "template not found" in result.output
 
     def test_prepare_help(self) -> None:
         """issue comment --help"""
@@ -2324,7 +2322,7 @@ class TestIssueCommentCreateCommand:
         ):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
             assert "owner/repo/123" in result.output
 
             # API呼び出し確認
@@ -2352,7 +2350,7 @@ body
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_create_invalid_issue_ref(self, tmp_path: Path) -> None:
         """異常系: 不正なissue_ref形式はエラー"""
@@ -2393,7 +2391,7 @@ template: merge-diff
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
             assert result.exit_code == 3
-            assert "不足セクション" in result.output
+            assert "missing sections" in result.output
 
     def test_create_github_api_error(self, tmp_path: Path) -> None:
         """異常系: GitHub APIエラー"""
@@ -2433,7 +2431,7 @@ template: merge-diff
         ):
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
             assert result.exit_code == 1
-            assert "コメント投稿失敗" in result.output
+            assert "could not create a comment" in result.output
 
     def test_create_help(self) -> None:
         """issue comment --help で位置引数FILEが表示される"""
@@ -2548,7 +2546,7 @@ class TestIssueCommentUpdateByFile:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 0, result.output
-        assert "コメント更新完了: owner/repo/123" in result.output
+        assert "updated: comment on owner/repo/123" in result.output
         assert url in result.output
         mock_client.add_issue_comment.assert_not_called()
         args = mock_client.update_issue_comment.call_args[0]
@@ -2575,7 +2573,7 @@ class TestIssueCommentUpdateByFile:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 1
-        assert "違う Issue を指しています" in result.output
+        assert "points to a different Issue than issue_ref" in result.output
         mock_client.add_issue_comment.assert_not_called()
         mock_client.update_issue_comment.assert_not_called()
 
@@ -2593,7 +2591,7 @@ class TestIssueCommentUpdateByFile:
 
         assert result.exit_code == 1
         assert (
-            "comment_url のホスト（ghes.example.com）が設定のホスト（github.com）と違います"
+            "the host of comment_url (ghes.example.com) differs from the configured host (github.com)"
             in result.output
         )
         mock_client.add_issue_comment.assert_not_called()
@@ -2619,8 +2617,8 @@ class TestIssueCommentUpdateByFile:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 1
-        assert "形が違います" in result.output
-        assert "/{issues|pull}/<番号>#issuecomment-<id>" in result.output
+        assert "has the wrong form" in result.output
+        assert "/{issues|pull}/<number>#issuecomment-<id>" in result.output
         mock_client.add_issue_comment.assert_not_called()
         mock_client.update_issue_comment.assert_not_called()
 
@@ -2638,7 +2636,7 @@ class TestIssueCommentUpdateByFile:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 1
-        assert "コメント更新失敗" in result.output
+        assert "could not update the comment" in result.output
 
 
 # --- issue comment 直接投稿コマンドテスト ---
@@ -2686,7 +2684,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
 
     def test_direct_validation_missing_sections(self) -> None:
         """異常系: 必須セクション不足でエラー"""
@@ -2708,7 +2706,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 3
-            assert "不足セクション" in result.output
+            assert "missing sections" in result.output
 
     def test_direct_no_active_config(self) -> None:
         """異常系: アクティブ設定がない場合はエラー"""
@@ -2727,7 +2725,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_direct_invalid_issue_ref(self) -> None:
         """異常系: 不正なissue_ref形式はエラー"""
@@ -2789,7 +2787,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 1
-            assert "コメント投稿失敗" in result.output
+            assert "could not create a comment" in result.output
 
     def test_direct_missing_issue_option(self) -> None:
         """異常系: -m指定時に--issueがないとエラー"""
@@ -2797,7 +2795,7 @@ class TestCommentDirectCommand:
             app, ["issue", "comment", "-t", "merge-diff", "--message", "## test"]
         )
         assert result.exit_code == 1
-        assert "-m使用時は --issue (Issue参照) が必須です" in result.output
+        assert "--issue (Issue reference) is required with -m" in result.output
 
     def test_direct_review_findings_template_success(self) -> None:
         """正常系: review-findings テンプレートでのコメント投稿"""
@@ -2837,7 +2835,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
 
             mock_client.add_issue_comment.assert_called_once()
             call_args = mock_client.add_issue_comment.call_args
@@ -2887,7 +2885,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
 
             mock_client.add_issue_comment.assert_called_once()
             call_args = mock_client.add_issue_comment.call_args
@@ -2953,7 +2951,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
 
             mock_client.add_issue_comment.assert_called_once()
             call_args = mock_client.add_issue_comment.call_args
@@ -3001,7 +2999,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
 
             mock_client.add_issue_comment.assert_called_once()
             call_args = mock_client.add_issue_comment.call_args
@@ -3044,7 +3042,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 3
-            assert "不足セクション" in result.output
+            assert "missing sections" in result.output
             assert "Variance" in result.output
 
     def test_direct_merge_diff_template_h2_placeholder_rejected(self) -> None:
@@ -3082,7 +3080,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 3
-            assert "見出しサマリの規則違反" not in result.output
+            assert "heading summary rule violations" not in result.output
             assert "未編集プレースホルダ" in result.output
 
     def test_direct_merge_diff_h3_summary_51_chars_rejected(self) -> None:
@@ -3120,9 +3118,10 @@ class TestCommentDirectCommand:
             )
             assert result.exit_code == 3
             assert (
-                "エラー: 見出しサマリの規則違反: ### Variance — サマリが51文字です" in result.output
+                "heading summary rule violations: ### Variance — サマリが51文字です"
+                in result.output
             )
-            assert "不足セクション" not in result.output
+            assert "missing sections" not in result.output
 
     def test_direct_plan_template_success(self) -> None:
         """正常系: plan テンプレートの記入例本文が validation を通る"""
@@ -3155,7 +3154,7 @@ class TestCommentDirectCommand:
                 ],
             )
             assert result.exit_code == 0
-            assert "コメント投稿完了" in result.output
+            assert "created: comment on" in result.output
 
             mock_client.add_issue_comment.assert_called_once()
             call_args = mock_client.add_issue_comment.call_args
@@ -3261,7 +3260,7 @@ CUJ 1
         """正常系: 折りたたみの外が 8000 文字を超えても plan は通る（#1330）"""
         result, client = self._invoke_direct("plan", self._plan_body(folded=False))
         assert result.exit_code == 0, result.output
-        assert "折りたたみの規則違反" not in result.output
+        assert "collapse rule violations" not in result.output
         client.add_issue_comment.assert_called_once()
 
     def test_direct_plan_visible_folded_passes(self) -> None:
@@ -3278,7 +3277,7 @@ CUJ 1
         result, client = self._invoke_direct("plan", message)
         assert result.exit_code == 3
         assert (
-            f"エラー: 折りたたみの規則違反: <summary>理由</summary> は {PLAN_FOLD_SUMMARY} にしてください"
+            f"collapse rule violations: <summary>理由</summary> は {PLAN_FOLD_SUMMARY} にしてください"
             in result.output
         )
         client.add_issue_comment.assert_not_called()
@@ -3297,7 +3296,7 @@ CUJ 1
 """
         result, client = self._invoke_direct("merge-diff", message)
         assert result.exit_code == 0
-        assert "折りたたみの規則違反" not in result.output
+        assert "collapse rule violations" not in result.output
         client.add_issue_comment.assert_called_once()
 
     def test_file_plan_leading_guide_comment_headings_not_counted(self, tmp_path: Path) -> None:
@@ -3321,7 +3320,7 @@ CUJ 1
         )
         result, client = self._invoke_direct("plan", message)
         assert result.exit_code == 3
-        assert "エラー: テンプレに無い見出し: ### 指示との差分" in result.output
+        assert "headings not in the template: ### 指示との差分" in result.output
         assert "### Notes に書いてください" in result.output
         client.add_issue_comment.assert_not_called()
 
@@ -3345,9 +3344,9 @@ CUJ 1
 """
         result, client = self._invoke_direct("plan", legacy)
         assert result.exit_code == 3
-        assert "エラー: 不足セクション:" in result.output
+        assert "missing sections:" in result.output
         assert "### Context" in result.output
-        assert "エラー: テンプレに無い見出し: ### Goal, ### Steps, ### Risks, ### Tests" in (
+        assert "headings not in the template: ### Goal, ### Steps, ### Risks, ### Tests" in (
             result.output
         )
         client.add_issue_comment.assert_not_called()
@@ -3380,7 +3379,7 @@ CUJ 1
 """
         result, client = self._invoke_direct("merge-diff", message)
         assert result.exit_code == 0, result.output
-        assert "テンプレに無い見出し" not in result.output
+        assert "headings not in the template" not in result.output
         client.add_issue_comment.assert_called_once()
 
     def test_direct_plan_unclosed_details_rejected(self) -> None:
@@ -3392,7 +3391,7 @@ CUJ 1
         )
         result, client = self._invoke_direct("plan", message)
         assert result.exit_code == 3
-        assert "エラー: 折りたたみの規則違反:" in result.output
+        assert "collapse rule violations:" in result.output
         client.add_issue_comment.assert_not_called()
 
     def test_direct_merge_diff_legacy_japanese_headings_rejected(self) -> None:
@@ -3452,7 +3451,7 @@ CUJ 1
                 ],
             )
             assert result.exit_code == 3
-            assert "不足セクション" in result.output
+            assert "missing sections" in result.output
             assert "### Variance — <サマリ>" in result.output
             assert "### Impact — <サマリ>" in result.output
 
@@ -3684,7 +3683,7 @@ class TestIssueReadCommand:
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["issue", "read", "owner/repo/435"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクト" in result.output
+            assert "no active project" in result.output
 
     def test_read_invalid_issue_ref(self) -> None:
         """異常系: 不正なissue_ref形式はエラー"""
@@ -3765,7 +3764,7 @@ class TestFormatIssueMarkdown:
         result = _format_issue_markdown(issue)
 
         assert "**Linked PRs:**" in result
-        assert "[✓] #455 feat: 新機能追加 (MERGED)" in result
+        assert "#455 feat: 新機能追加 (MERGED)" in result
 
     def test_with_linked_prs_open(self) -> None:
         """リンクPR（OPEN）の表示"""
@@ -3785,7 +3784,7 @@ class TestFormatIssueMarkdown:
         result = _format_issue_markdown(issue)
 
         assert "**Linked PRs:**" in result
-        assert "[○] #456 fix: バグ修正 (OPEN)" in result
+        assert "#456 fix: バグ修正 (OPEN)" in result
 
     def test_with_multiple_linked_prs(self) -> None:
         """複数のリンクPR表示"""
@@ -3807,11 +3806,9 @@ class TestFormatIssueMarkdown:
         result = _format_issue_markdown(issue)
 
         assert "**Linked PRs:**" in result
-        # MERGEDは✓
-        assert "[✓] #455 feat: 新機能追加 (MERGED)" in result
-        # OPEN/CLOSEDは○
-        assert "[○] #456 fix: バグ修正 (OPEN)" in result
-        assert "[○] #457 docs: ドキュメント更新 (CLOSED)" in result
+        assert "#455 feat: 新機能追加 (MERGED)" in result
+        assert "#456 fix: バグ修正 (OPEN)" in result
+        assert "#457 docs: ドキュメント更新 (CLOSED)" in result
 
     def test_without_linked_prs(self) -> None:
         """リンクPRがない場合はセクションを表示しない"""
@@ -3923,7 +3920,7 @@ status: ready
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 1
-            assert "エラー: 不足セクション:" in result.output
+            assert "missing sections:" in result.output
             # GitHubClientが呼ばれていないことを確認（バリデーションで早期終了）
             mock_gh_class.assert_not_called()
 
@@ -4050,7 +4047,7 @@ class TestValidateIssueTemplate:
 - **条件1** — 確認: pytest
 """
         # 例外が発生しないことを確認
-        _validate_issue_template("task", body)
+        _validate_issue_template(Output(False), "task", body)
 
     def test_missing_sections(self, tmp_path: Path) -> None:
         """異常系: 必須セクション不足"""
@@ -4059,7 +4056,7 @@ class TestValidateIssueTemplate:
 テスト本文
 """
         with pytest.raises(typer.Exit) as exc_info:
-            _validate_issue_template("task", body)
+            _validate_issue_template(Output(False), "task", body)
         assert exc_info.value.exit_code == 1
 
     def test_empty_required_sections(self, tmp_path: Path) -> None:
@@ -4069,7 +4066,7 @@ class TestValidateIssueTemplate:
         # テンプレートが存在しない場合、バリデーションはスキップされる
         # 例外が発生しないことを確認
         with patch("cli.commands.issue.extract_sections_from_template", return_value=[]):
-            _validate_issue_template("task", body)
+            _validate_issue_template(Output(False), "task", body)
 
     def test_valid_task_implement_template(self) -> None:
         """正常系: task-implementテンプレートに準拠した本文"""
@@ -4089,7 +4086,7 @@ class TestValidateIssueTemplate:
 
 `.specify/feature/`
 """
-        _validate_issue_template("task-implement", body)
+        _validate_issue_template(Output(False), "task-implement", body)
 
     def test_task_implement_missing_sections(self) -> None:
         """異常系: task-implementテンプレートの必須セクション不足"""
@@ -4098,7 +4095,7 @@ class TestValidateIssueTemplate:
 テスト本文
 """
         with pytest.raises(typer.Exit) as exc_info:
-            _validate_issue_template("task-implement", body)
+            _validate_issue_template(Output(False), "task-implement", body)
         assert exc_info.value.exit_code == 1
 
     def test_task_missing_em_dash_summary(self) -> None:
@@ -4112,7 +4109,7 @@ class TestValidateIssueTemplate:
 - **条件1** — 確認: pytest
 """
         with pytest.raises(typer.Exit) as exc_info:
-            _validate_issue_template("task", body)
+            _validate_issue_template(Output(False), "task", body)
         assert exc_info.value.exit_code == 1
 
     def test_task_unedited_placeholder_in_heading(self) -> None:
@@ -4126,7 +4123,7 @@ class TestValidateIssueTemplate:
 - **条件1** — 確認: pytest
 """
         with pytest.raises(typer.Exit) as exc_info:
-            _validate_issue_template("task", body)
+            _validate_issue_template(Output(False), "task", body)
         assert exc_info.value.exit_code == 1
 
     def test_task_summary_exactly_50_chars_passes(self) -> None:
@@ -4141,7 +4138,7 @@ class TestValidateIssueTemplate:
 - **条件1** — 確認: pytest
 """
         # 例外が発生しないことを確認
-        _validate_issue_template("task", body)
+        _validate_issue_template(Output(False), "task", body)
 
     def test_task_summary_51_chars_fails(self) -> None:
         """異常系: em-dash サマリが51文字だと不足扱いになる"""
@@ -4155,7 +4152,7 @@ class TestValidateIssueTemplate:
 - **条件1** — 確認: pytest
 """
         with pytest.raises(typer.Exit) as exc_info:
-            _validate_issue_template("task", body)
+            _validate_issue_template(Output(False), "task", body)
         assert exc_info.value.exit_code == 1
 
 
@@ -4181,7 +4178,7 @@ class TestIssueQuickCommandErrors:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", ""])
             assert result.exit_code == 1
-            assert "メッセージが空です" in result.output
+            assert "the message is empty" in result.output
 
     def test_quick_whitespace_only_message_error(self) -> None:
         """メッセージが空白のみの場合はエラー"""
@@ -4190,7 +4187,7 @@ class TestIssueQuickCommandErrors:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "   "])
             assert result.exit_code == 1
-            assert "メッセージが空です" in result.output
+            assert "the message is empty" in result.output
 
     def test_quick_invalid_repository_format(self) -> None:
         """リポジトリ形式が不正（owner/repo以外）"""
@@ -4200,7 +4197,7 @@ class TestIssueQuickCommandErrors:
             # owner/repoではなくowner形式
             result = runner.invoke(app, ["issue", "quick", "-r", "invalid", "-m", "test"])
             assert result.exit_code == 1
-            assert "不正なリポジトリ形式" in result.output
+            assert "invalid repository format" in result.output
 
     def test_quick_invalid_repository_format_three_parts(self) -> None:
         """リポジトリ形式が不正（owner/repo/extra）"""
@@ -4209,14 +4206,14 @@ class TestIssueQuickCommandErrors:
         with patch("cli.commands.issue.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo/extra", "-m", "test"])
             assert result.exit_code == 1
-            assert "不正なリポジトリ形式" in result.output
+            assert "invalid repository format" in result.output
 
     def test_quick_no_project_config(self) -> None:
         """プロジェクト設定がない場合"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
     def test_quick_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合"""
@@ -4232,7 +4229,7 @@ class TestIssueQuickCommandErrors:
         ):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
             assert result.exit_code == 1
-            assert "プロジェクトに紐づいていません" in result.output
+            assert "is not linked to the project" in result.output
 
     def test_quick_issue_creation_failure(self) -> None:
         """Issue作成失敗時のエラーハンドリング"""
@@ -4253,7 +4250,7 @@ class TestIssueQuickCommandErrors:
         ):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
             assert result.exit_code == 1
-            assert "Issue作成失敗" in result.output
+            assert "could not create an Issue in" in result.output
 
     def test_quick_board_addition_failure(self) -> None:
         """ボード追加失敗時の警告表示"""
@@ -4280,7 +4277,7 @@ class TestIssueQuickCommandErrors:
         ):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
             assert result.exit_code == 0  # 警告だが成功扱い
-            assert "ボード追加失敗" in result.output
+            assert "could not add Issue" in result.output
             assert "https://ghes.example.com/owner/repo/issues/123" in result.output
 
     def test_quick_with_parent_epic_option(self) -> None:
@@ -4323,8 +4320,7 @@ class TestIssueQuickCommandErrors:
                 ],
             )
             assert result.exit_code == 0
-            assert "Linking to parent epic owner/repo/353" in result.output
-            assert "Linked to owner/repo/353" in result.output
+            assert "added: Issue owner/repo/123 as sub-issue of owner/repo/353" in result.output
 
             # Epic紐づけAPI呼び出し確認（task repo にフォールバック）
             mock_client.get_issue_node_id.assert_any_call("owner", "repo", 353)
@@ -4371,7 +4367,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             # URL を先に stdout へ出している
             assert "https://ghes.example.com/owner/repo/issues/123" in result.output
-            assert "サブIssue紐づけ失敗" in result.output
+            assert "as sub-issue of" in result.output
 
     def test_quick_with_no_branch_option(self) -> None:
         """--no-branch オプション時はブランチ作成しない"""
@@ -4510,7 +4506,7 @@ class TestIssueQuickCommandErrors:
         ):
             result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
             assert result.exit_code == 1
-            assert "develop_branch が設定されていません" in result.output
+            assert "develop_branch is not set for repository" in result.output
 
 
 # --- issue comment コマンドテスト ---
@@ -4523,7 +4519,7 @@ class TestIssueCommentDirect:
         """-m未指定（引数なし）でエラー"""
         result = runner.invoke(app, ["issue", "comment"])
         assert result.exit_code == 1
-        assert "引数が不足しています" in result.output
+        assert "missing arguments" in result.output
 
     def test_comment_direct_missing_issue_ref(self) -> None:
         """--issue未指定でエラー"""
@@ -4533,7 +4529,7 @@ class TestIssueCommentDirect:
             result = runner.invoke(app, ["issue", "comment", "-t", "merge-diff", "-m", "test"])
             assert result.exit_code == 1
             assert "--issue" in result.output
-            assert "必須です" in result.output
+            assert "is required" in result.output
 
     def test_comment_direct_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
@@ -4543,7 +4539,7 @@ class TestIssueCommentDirect:
                 ["issue", "comment", "-t", "merge-diff", "-m", "test", "--issue", "owner/repo/123"],
             )
             assert result.exit_code == 1
-            assert "アクティブなプロジェクトがありません" in result.output
+            assert "no active project" in result.output
 
 
 # --- issue quick コマンド拡張機能のテスト ---
@@ -4610,7 +4606,9 @@ class TestIssueQuickEnhancements:
 
             # quick（task 既定）の Set fields 表示形式が enum 値（active/medium/s）
             # で出力されること（#670、direct/file と 3 方式で一致）。
-            assert "Set fields: status: active, priority: medium, size: s" in result.output
+            assert (
+                "set: Issue owner/repo/123 status active, priority medium, size s" in result.output
+            )
 
     def test_issue_quick_body_preserves_message_and_appends_footer(self) -> None:
         """body はフリーフォーマット本文を保持し、末尾に規約参照フッターを付加する（#682）"""
@@ -4881,8 +4879,8 @@ class TestIssueQuickEnhancements:
 
         assert result.exit_code == 0
         assert mock_client.create_issue.call_args[1]["title"] == "[Tracker] 束ねる対象"
-        assert "Set fields: status: backlog, priority: medium" in result.output
-        assert "size" not in result.output.split("Set fields:", 1)[1].splitlines()[0]
+        assert "set: Issue owner/repo/126 status backlog, priority medium" in result.output
+        assert "size" not in result.output.split("set: Issue owner/repo/126", 1)[1].splitlines()[0]
         field_ids = [c[0][2] for c in mock_client.update_project_item_field.call_args_list]
         assert "field_size" not in field_ids
 
@@ -5024,7 +5022,7 @@ class TestIssueQuickEnhancements:
             assert result.exit_code == 0
 
             # 警告メッセージが出力されたことを確認
-            assert "警告: Epicに親Epicを指定することは推奨されません" in result.output
+            assert "warning: giving a parent Epic to an Epic is not recommended" in result.output
 
     def test_issue_quick_touches_quick_mode_flag(self) -> None:
         """taskタイプでクイックモードフラグが作成される"""
@@ -5192,9 +5190,7 @@ class TestParentEpicCrossRepo:
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 0
-            # stderr に note
-            assert "note:" in result.output
-            assert "aggregation_repo" in result.output
+            assert "as sub-issue of roadmap_owner/roadmap/21" in result.output
 
             # aggregation_repo (roadmap_owner/roadmap) #21 として解決されている
             mock_client.get_issue_node_id.assert_any_call("roadmap_owner", "roadmap", 21)
@@ -5275,7 +5271,7 @@ class TestParentEpicCrossRepo:
             assert result.exit_code == 1
             # URL が先に出る（手動修復のため）
             url_idx = result.output.find("https://ghes.example.com/task_owner/task_repo/issues/700")
-            err_idx = result.output.find("サブIssue紐づけ失敗")
+            err_idx = result.output.find("as sub-issue of")
             assert url_idx >= 0
             assert err_idx >= 0
             assert url_idx < err_idx
@@ -5383,23 +5379,23 @@ class TestIssueCreateStatusValidation:
         ("issue_type", "body", "status", "expected_msg"),
         [
             # 別テンプレートの配置値（enum 内・型に矛盾）
-            ("bug", MINIMAL_BUG_BODY, "backlog", "type 'bug' の起票時 status は 'ready' のみです"),
+            ("bug", MINIMAL_BUG_BODY, "backlog", "for type 'bug' is only 'ready'"),
             # 実害 #665 の回帰防止
             (
                 "task",
                 MINIMAL_TASK_BODY,
                 "backlog",
-                "type 'task' の起票時 status は 'ready' のみです",
+                "for type 'task' is only 'ready'",
             ),
             # F-01: enum 内だが型既定外（active）も拒否する
             (
                 "task",
                 MINIMAL_TASK_BODY,
                 "active",
-                "type 'task' の起票時 status は 'ready' のみです",
+                "for type 'task' is only 'ready'",
             ),
             # enum 外の値は不正ステータスとして拒否
-            ("task", MINIMAL_TASK_BODY, "foo", "不正なステータス: foo"),
+            ("task", MINIMAL_TASK_BODY, "foo", "invalid status: foo"),
         ],
     )
     def test_direct_status_type_mismatch_rejected(
@@ -5455,8 +5451,8 @@ class TestIssueCreateStatusValidation:
                 ],
             )
             assert result.exit_code == 1
-            assert "type 'epic' の起票時 status は 'backlog' のみです" in result.output
-            assert "指定: pending" in result.output
+            assert "for type 'epic' is only 'backlog'" in result.output
+            assert "given: pending" in result.output
             mock_client.create_issue.assert_not_called()
 
     def test_direct_task_default_status_ready_applied(self) -> None:
@@ -5487,7 +5483,7 @@ class TestIssueCreateStatusValidation:
             mock_client.update_project_item_field.assert_called_once_with(
                 "PVT_123", "PVTI_789", "PVTF_workflow", "opt_ready"
             )
-            assert "status: ready" in result.output
+            assert "status ready" in result.output
 
     def test_direct_epic_default_status_backlog_applied(self) -> None:
         """direct: --type epic で status 未指定（-r 無し、aggregation_repo ルーティング）
@@ -5516,7 +5512,7 @@ class TestIssueCreateStatusValidation:
             mock_client.update_project_item_field.assert_called_once_with(
                 "PVT_123", "PVTI_789", "PVTF_workflow", "opt_backlog"
             )
-            assert "status: backlog" in result.output
+            assert "status backlog" in result.output
 
     def test_direct_tracker_title_prefix_and_backlog_status(self) -> None:
         """direct: --type tracker は題が [Tracker] で始まり、Status が backlog になる"""
@@ -5547,7 +5543,7 @@ class TestIssueCreateStatusValidation:
             mock_client.update_project_item_field.assert_called_once_with(
                 "PVT_123", "PVTI_789", "PVTF_workflow", "opt_backlog"
             )
-            assert "status: backlog" in result.output
+            assert "status backlog" in result.output
 
     def test_direct_tracker_status_ready_rejected(self) -> None:
         """direct: --type tracker --status ready は型既定でないので exit 1"""
@@ -5571,8 +5567,8 @@ class TestIssueCreateStatusValidation:
                 ],
             )
         assert result.exit_code == 1
-        assert "type 'tracker' の起票時 status は 'backlog' のみです" in result.output
-        assert "指定: ready" in result.output
+        assert "for type 'tracker' is only 'backlog'" in result.output
+        assert "given: ready" in result.output
         mock_client.create_issue.assert_not_called()
 
     def test_direct_task_status_ready_explicit_success(self) -> None:
@@ -5607,7 +5603,7 @@ class TestIssueCreateStatusValidation:
             )
             # direct（-m）でも Set fields 行が enum 値で表示されること
             # （#670、quick/file と 3 方式で一致）。
-            assert "Set fields: status: ready" in result.output
+            assert "status ready" in result.output
 
     # --- file 指定 ---
 
@@ -5632,7 +5628,7 @@ class TestIssueCreateStatusValidation:
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 1
-            assert "type 'bug' の起票時 status は 'ready' のみです" in result.output
+            assert "for type 'bug' is only 'ready'" in result.output
             mock_client.create_issue.assert_not_called()
 
     def test_file_epic_status_ready_rejected(self, tmp_path: Path) -> None:
@@ -5651,7 +5647,7 @@ class TestIssueCreateStatusValidation:
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 1
-            assert "type 'epic' の起票時 status は 'backlog' のみです" in result.output
+            assert "for type 'epic' is only 'backlog'" in result.output
             mock_client.create_issue.assert_not_called()
 
     def test_file_task_status_ready_success(self, tmp_path: Path) -> None:
@@ -5676,7 +5672,7 @@ class TestIssueCreateStatusValidation:
             )
             # Set fields: の表示は enum repr（WorkflowStatus.READY）ではなく
             # enum 値（ready）であること（#670）。
-            assert "Set fields: status: ready" in result.output
+            assert "status ready" in result.output
             assert "WorkflowStatus." not in result.output
 
     def test_file_set_fields_uses_enum_values_not_repr(self, tmp_path: Path) -> None:
@@ -5712,9 +5708,9 @@ class TestIssueCreateStatusValidation:
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
             assert result.exit_code == 0
             set_fields_line = next(
-                line for line in result.output.splitlines() if "Set fields:" in line
+                line for line in result.output.splitlines() if line.startswith("set: ")
             )
-            assert set_fields_line.strip() == "Set fields: status: ready, priority: high, size: s"
+            assert set_fields_line.endswith("status ready, priority high, size s")
             assert "WorkflowStatus." not in result.output
             assert "Priority." not in result.output
             assert "Size." not in result.output
@@ -5973,7 +5969,7 @@ status: ready
         ):
             result = runner.invoke(app, ["issue", "create", str(f1), str(f1)])
             assert result.exit_code == 1
-            assert "重複" in result.output
+            assert "file specified more than once" in result.output
         mock_client.create_issue.assert_not_called()
         assert flag.is_file()
 
@@ -6166,7 +6162,7 @@ status: ready
                 app, ["issue", "quick", "-r", "owner/repo", "-m", "テスト", "--no-branch"]
             )
         assert result.exit_code == 0, result.output
-        assert "Created: #123" in result.output
+        assert "created: Issue owner/repo/123" in result.output
         assert not flag.exists()
 
     def test_create_file_success_consumes_issue_pending(self, tmp_path: Path, flag: Path) -> None:
@@ -6178,7 +6174,7 @@ status: ready
         ):
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
         assert result.exit_code == 0, result.output
-        assert "Created: #123" in result.output
+        assert "created: Issue owner/repo/123" in result.output
         assert not flag.exists()
 
     def test_create_direct_success_consumes_issue_pending(self, flag: Path) -> None:
@@ -6201,7 +6197,7 @@ status: ready
                 ],
             )
         assert result.exit_code == 0, result.output
-        assert "Created: #123" in result.output
+        assert "created: Issue owner/repo/123" in result.output
         assert not flag.exists()
 
     def test_template_validation_error_keeps_issue_pending(
@@ -6242,7 +6238,7 @@ status: ready
                 ],
             )
         assert result.exit_code == 1
-        assert "サブIssue紐づけ失敗" in result.output
+        assert "as sub-issue of" in result.output
         assert not flag.exists()
 
 
@@ -6310,8 +6306,8 @@ class TestBodyStyleRejectionRoutes:
             result = runner.invoke(app, ["issue", "create", str(issue_file)])
 
         assert result.exit_code == 1
-        assert "使用できない記法" in result.output
-        assert "チェックボックス記法" in result.output
+        assert "unusable notation" in result.output
+        assert "unusable notation" in result.output
         mock_gh_class.assert_not_called()
 
     def test_issue_create_rejects_placeholder(self, tmp_path: Path) -> None:
@@ -6377,7 +6373,7 @@ class TestBodyStyleRejectionRoutes:
             result = runner.invoke(app, ["issue", "comment", str(comment_file)])
 
         assert result.exit_code == 3
-        assert "使用できない記法" in result.output
+        assert "unusable notation" in result.output
         mock_gh_class.assert_not_called()
 
     def test_comment_direct_rejects_placeholder(self) -> None:
@@ -6424,8 +6420,9 @@ class TestBodyStyleRejectionRoutes:
 
         assert result.exit_code == 3
         lines = result.output.splitlines()
-        assert any(line.startswith("エラー: 不足セクション: ") for line in lines)
-        assert "エラー: 使用できない記法: 絵文字は使用できません" in lines
+        assert lines[0].startswith("error: the body does not follow the template ")
+        assert any(line.startswith("  missing sections: ") for line in lines)
+        assert "  unusable notation: 絵文字は使用できません" in lines
         mock_gh_class.assert_not_called()
 
     def test_comment_direct_validation_failure_exits_3(self) -> None:
@@ -6455,8 +6452,10 @@ class TestBodyStyleRejectionRoutes:
 
         assert result.exit_code == 3
         lines = result.output.splitlines()
-        assert any(line.startswith("エラー: 見出しサマリの規則違反: ## Merge — ") for line in lines)
-        assert not any(line.startswith("エラー: 不足セクション:") for line in lines)
+        assert any(
+            line.startswith("  heading summary rule violations: ## Merge — ") for line in lines
+        )
+        assert not any(line.startswith("  missing sections:") for line in lines)
         mock_gh_class.assert_not_called()
 
     def test_comment_api_failure_keeps_exit_1(self) -> None:
@@ -6487,7 +6486,7 @@ class TestBodyStyleRejectionRoutes:
             )
 
         assert result.exit_code == 1
-        assert "コメント投稿失敗" in result.output
+        assert "could not create a comment" in result.output
 
     def test_issue_create_summary_violation_has_its_own_line(self, tmp_path: Path) -> None:
         """issue create: サマリ規則違反は「不足セクション」と別の行で報告し exit 1"""
@@ -6506,8 +6505,10 @@ class TestBodyStyleRejectionRoutes:
 
         assert result.exit_code == 1
         lines = result.output.splitlines()
-        assert any(line.startswith("エラー: 見出しサマリの規則違反: ## Goal — ") for line in lines)
-        assert not any(line.startswith("エラー: 不足セクション:") for line in lines)
+        assert any(
+            line.startswith("  heading summary rule violations: ## Goal — ") for line in lines
+        )
+        assert not any(line.startswith("  missing sections:") for line in lines)
         mock_gh_class.assert_not_called()
 
 
@@ -6595,3 +6596,195 @@ class TestPreparedCommentRoundtrip:
         assert "<!--" not in posted_body, f"{template}: 冒頭ガイドコメントが投稿された"
         leftover = _HEADING_PLACEHOLDER_RE.search(posted_body)
         assert leftover is None, f"{template}: 見出しに未編集プレースホルダ {leftover}"
+
+
+class TestOutputStreams:
+    """成功するコマンドの出力: stdout は data だけ、stderr は契約の前置きの行だけ"""
+
+    _PREFIXES = ("created: ", "added: ", "set: ", "updated: ", "reopened: ", "warning: ")
+
+    @staticmethod
+    def _config() -> MagicMock:
+        config = MagicMock()
+        config.host = "ghes.example.com"
+        config.project.id = "PVT_123"
+        config.is_repo_in_project.return_value = True
+        config.aggregation_repo_ref = None
+        config.get_field_id.return_value = "PVTF_workflow"
+        config.get_option_id.return_value = "opt_ready"
+        return config
+
+    @staticmethod
+    def _client(numbers: list[int]) -> MagicMock:
+        client = MagicMock()
+        client.create_issue.side_effect = [
+            {
+                "number": n,
+                "html_url": f"https://ghes.example.com/owner/repo/issues/{n}",
+                "node_id": f"I_{n}",
+            }
+            for n in numbers
+        ]
+        client.get_issue_node_id.return_value = "I_parent"
+        client.get_issue_slim.return_value = {"sub_issues": []}
+        client.add_to_project.return_value = "PVTI_item"
+        client.get_branch_sha.return_value = "sha"
+        client.create_linked_branch.return_value = "feat/20260101-000000/12"
+        return client
+
+    def _assert_stderr_lines(self, stderr: str) -> None:
+        for line in stderr.splitlines():
+            assert line.startswith(self._PREFIXES), line
+        for progress in ("Creating", "Adding to board", "Linking", "Created:", "★"):
+            assert progress not in stderr
+
+    def test_quick_with_branch_success_streams(self) -> None:
+        client = self._client([12])
+        config = self._config()
+        config.find_repository.return_value.develop_branch = "develop"
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=config),
+            patch("cli.commands.issue.GitHubClient", return_value=client),
+            patch("cli.core.state.write_work_target"),
+            patch("cli.core.state.ensure_work_dir", return_value=Path("/x")),
+            patch("cli.core.state.touch_flag"),
+        ):
+            result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "テスト"])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == "https://ghes.example.com/owner/repo/issues/12\n"
+        assert result.stderr.splitlines() == [
+            "created: Issue owner/repo/12",
+            "added: Issue owner/repo/12 to project",
+            "set: Issue owner/repo/12 status active, priority medium, size s",
+            "created: branch feat/20260101-000000/12 in owner/repo",
+            "set: work target owner/repo/12 (work directory .pecot/work/12/)",
+        ]
+
+    def test_create_multiple_files_prints_urls_in_argument_order(self, tmp_path: Path) -> None:
+        body = "## Goal \u2014 \u9054\u6210\n\n\u72b6\u614b\n\n## Acceptance \u2014 \u5224\u5b9a\n\n- **a** \u2014 \u78ba\u8a8d: pytest\n"
+        files = []
+        for name in ("first", "second"):
+            f = tmp_path / f"{name}.md"
+            f.write_text(
+                f"---\ntype: task\ntitle: {name}\nrepository: owner/repo\nstatus: ready\n---\n{body}",
+                encoding="utf-8",
+            )
+            files.append(f)
+        client = self._client([1, 2])
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=client),
+            patch("cli.commands.issue._validate_issue_template"),
+        ):
+            result = runner.invoke(app, ["issue", "create", str(files[0]), str(files[1])])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout.splitlines() == [
+            "https://ghes.example.com/owner/repo/issues/1",
+            "https://ghes.example.com/owner/repo/issues/2",
+        ]
+        assert "created: Issue owner/repo/1 from first.md" in result.stderr
+        assert "created: Issue owner/repo/2 from second.md" in result.stderr
+        assert "[1/2]" not in result.output
+        self._assert_stderr_lines(result.stderr)
+
+    def test_reopen_success_streams(self) -> None:
+        client = MagicMock()
+        client.reopen_issue.return_value = {"state": "open"}
+        client.get_item_id_by_issue.return_value = "PVTI_item"
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=client),
+            patch("cli.commands.issue.time.sleep"),
+        ):
+            result = runner.invoke(app, ["issue", "reopen", "owner/repo/7"])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == ""
+        assert result.stderr.splitlines() == [
+            "set: Issue owner/repo/7 status ready",
+            "reopened: Issue owner/repo/7",
+        ]
+
+    def test_reopen_state_not_open_is_error(self) -> None:
+        client = MagicMock()
+        client.reopen_issue.return_value = {"state": "closed"}
+        client.get_item_id_by_issue.return_value = None
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=client),
+            patch("cli.commands.issue.time.sleep"),
+        ):
+            result = runner.invoke(app, ["issue", "reopen", "owner/repo/7"])
+
+        assert result.exit_code == 1
+        assert "error: Issue owner/repo/7 did not become open (state: closed)" in result.stderr
+
+    def test_missing_arguments_usage_lines_are_indented(self) -> None:
+        result = runner.invoke(app, ["issue", "create"])
+
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        lines = result.stderr.splitlines()
+        assert lines[0] == "error: missing arguments"
+        assert all(line.startswith("  ") for line in lines[1:])
+        assert "" not in lines
+
+    def test_invalid_status_lists_valid_values(self) -> None:
+        result = runner.invoke(app, ["issue", "reopen", "owner/repo/7", "--status", "done"])
+
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        lines = result.stderr.splitlines()
+        assert lines[0] == "error: invalid status: done"
+        assert lines[1].startswith("  valid values: ")
+        assert result.stderr.isascii()
+
+    def test_read_sub_issues_show_state_suffix(self) -> None:
+        client = MagicMock()
+        client.get_issue_slim.return_value = {
+            "number": 3,
+            "title": "[Epic] x",
+            "state": "OPEN",
+            "body": "body",
+            "comments": {"total_count": 0, "nodes": []},
+            "parent": None,
+            "linked_branches": [],
+            "linked_prs": [],
+            "sub_issues": [
+                {"number": 4, "title": "a", "state": "OPEN"},
+                {"number": 5, "title": "b", "state": "CLOSED"},
+            ],
+        }
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=client),
+        ):
+            result = runner.invoke(app, ["issue", "read", "owner/repo/3"])
+
+        assert result.exit_code == 0, result.output
+        assert result.stderr == ""
+        assert "  - #4 a (OPEN)" in result.stdout
+        assert "  - #5 b (CLOSED)" in result.stdout
+        assert "\u2713" not in result.stdout
+        assert "\u25cb" not in result.stdout
+
+    def test_comment_post_url_on_stdout(self, tmp_path: Path) -> None:
+        client = MagicMock()
+        client.add_issue_comment.return_value = {
+            "html_url": "https://ghes.example.com/owner/repo/issues/7#issuecomment-1"
+        }
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=client),
+            patch("cli.commands.issue._report_template_violations", return_value=False),
+        ):
+            result = runner.invoke(
+                app,
+                ["issue", "comment", "-m", "x", "-t", "plan", "--issue", "owner/repo/7"],
+            )
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == "https://ghes.example.com/owner/repo/issues/7#issuecomment-1\n"
+        assert result.stderr == "created: comment on owner/repo/7\n"

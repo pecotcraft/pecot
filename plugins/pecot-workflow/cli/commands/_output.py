@@ -18,6 +18,7 @@ _PAST: dict[str, str] = {
     "add": "added",
     "remove": "removed",
     "close": "closed",
+    "reopen": "reopened",
     "merge": "merged",
     "move": "moved",
     "set": "set",
@@ -35,6 +36,7 @@ class Verb(enum.Enum):
     ADD = "add"
     REMOVE = "remove"
     CLOSE = "close"
+    REOPEN = "reopen"
     MERGE = "merge"
     MOVE = "move"
     SET = "set"

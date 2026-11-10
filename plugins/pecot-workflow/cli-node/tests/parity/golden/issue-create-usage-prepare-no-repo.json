@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: --repo owner/repo は --template task|bug|tracker|task-implement では必須です\n",
+  "stderr": "error: --repo owner/repo is required with --template task|bug|tracker|task-implement\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

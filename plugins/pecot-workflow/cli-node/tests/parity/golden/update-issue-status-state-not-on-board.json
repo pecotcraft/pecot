@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Issue #7 はプロジェクトボードに存在しません\nHINT: まず add-to-project でボードに追加してください\n",
+  "stderr": "error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with add-to-project\n",
   "exitCode": 1,
   "requests": [
     {

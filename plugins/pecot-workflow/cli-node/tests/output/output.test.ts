@@ -91,8 +91,8 @@ function titleOf(item: Case, index: number): string {
 const named = cases.map((item, index) => ({ item, name: titleOf(item, index) }))
 
 describe('共通の出力関数', () => {
-  it('期待の行の一覧は 59 件ある', () => {
-    expect(cases.length).toBe(59)
+  it('期待の行の一覧は 63 件ある', () => {
+    expect(cases.length).toBe(63)
   })
 
   it.each(named)('$name', ({ item }) => {

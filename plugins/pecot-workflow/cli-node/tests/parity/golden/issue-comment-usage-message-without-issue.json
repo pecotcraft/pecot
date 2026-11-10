@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: -m使用時は --issue (Issue参照) が必須です\n",
+  "stderr": "error: --issue (Issue reference) is required with -m\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

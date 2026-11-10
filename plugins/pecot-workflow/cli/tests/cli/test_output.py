@@ -43,7 +43,7 @@ def _call(out: Output, case: dict[str, Any]) -> None:
 
 
 def test_case_count_matches_cases_json() -> None:
-    assert len(CASES) == 59
+    assert len(CASES) == 63
 
 
 @pytest.mark.parametrize("case", CASES, ids=[_case_id(c) for c in CASES])
@@ -58,6 +58,6 @@ def test_output_line(case: dict[str, Any], capsys: pytest.CaptureFixture[str]) -
 
 def test_verb_values_are_names() -> None:
     assert [v.value for v in Verb] == [
-        "create", "update", "delete", "add", "remove", "close",
+        "create", "update", "delete", "add", "remove", "close", "reopen",
         "merge", "move", "set", "skip", "unchanged",
     ]  # fmt: skip

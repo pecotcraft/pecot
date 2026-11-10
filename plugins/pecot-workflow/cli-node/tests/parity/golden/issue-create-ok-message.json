@@ -1,6 +1,6 @@
 {
-  "stdout": "Creating issue...\n  Created: #12\nAdding to board...\n  Added to board\n  Set fields: status: ready, priority: high, size: s\n\nhttps://ghes.example.com/acme/demo/issues/12\n",
-  "stderr": "",
+  "stdout": "https://ghes.example.com/acme/demo/issues/12\n",
+  "stderr": "created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready, priority high, size s\n",
   "exitCode": 0,
   "requests": [
     {

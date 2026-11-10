@@ -243,6 +243,46 @@
     "kind": "plan",
     "dryRun": true,
     "input": {
+      "verb": "reopen",
+      "target": "Issue acme/demo/7"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would reopen Issue acme/demo/7\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "reopen",
+      "target": "Issue acme/demo/7"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "reopen",
+      "target": "Issue acme/demo/7"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "reopen",
+      "target": "Issue acme/demo/7"
+    },
+    "stream": "stderr",
+    "line": "reopened: Issue acme/demo/7\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
       "verb": "merge",
       "target": "Tracker #179 body"
     },

@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: 不足セクション: ## Acceptance — <サマリ>\nヒント: em-dash は U+2014 (—) 必須。半角ハイフン (-)・EN DASH (–) は不可\nテンプレート: {{PLUGIN_ROOT}}/cli/templates/issue/task.md\n",
+  "stderr": "error: the body does not follow the template {{PLUGIN_ROOT}}/cli/templates/issue/task.md\n  missing sections: ## Acceptance — <サマリ>\n  hint: the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed\n",
   "exitCode": 1,
   "requests": [],
   "files": {
