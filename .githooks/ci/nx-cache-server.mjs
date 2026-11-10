@@ -83,11 +83,15 @@ const server = createServer(async (req, res) => {
         if (won) {
           counts.put++;
           used.add(hash);
-        } else counts.conflict++;
-        status = won ? 200 : 409;
+          status = 200;
+        } else {
+          counts.conflict++;
+          status = 409;
+        }
       } finally {
         await unlink(tmp).catch(() => {});
       }
+      // 応答を受けた側がストアを見るので、tmp を消してから応答する。
       return reply(res, status);
     }
     req.resume();
