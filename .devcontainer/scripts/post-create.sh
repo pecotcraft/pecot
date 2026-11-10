@@ -7,7 +7,6 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 if [ "${CI:-}" != "true" ]; then
   bash "$root/.devcontainer/scripts/install-git-hooks.sh"
 fi
-echo "probe=${PECOT_CI_PROBE:-unset}"
 bash "$root/setup.sh"
 # Chromium の依存パッケージは、イメージ（features/playwright-deps）に入っている。
 # CI では、Chromium を使うレーン（PECOT_CI_BROWSER=1）だけが取得する。
