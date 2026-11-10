@@ -691,15 +691,15 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
         ensureThemeLinked: () => Promise.resolve({ theme: { directory: '/theme-root' } }),
         readThemeDeclaration: () => Promise.resolve({
           declaration: { ...DEFAULT_THEME_DECLARATION, pptx: {} },
-          warnings: ['テーマ /theme-root に pecot-theme.json の宣言が無いため、本体の既定値で続けます'],
+          warnings: ['theme /theme-root has no pecot-theme.json declaration; continuing with the defaults'],
         }),
       },
     )
 
     const written = stderr.chunks.join('')
-    expect(written).toContain('warning: テーマ /theme-root に pecot-theme.json の宣言が無いため')
-    expect(written).toContain('warning: pptx.linkColor を省いたため')
-    expect(written).toContain('warning: pptx.eastAsianFont を省いたため')
+    expect(written).toContain('warning: theme /theme-root has no pecot-theme.json declaration')
+    expect(written).toContain('warning: pptx.linkColor is omitted, so links are not converted')
+    expect(written).toContain('warning: pptx.eastAsianFont is omitted, so no East Asian font is written')
   })
 
   it('pptx の値が揃っていれば、省略の警告は出さない', async () => {
@@ -724,7 +724,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
       },
     )
 
-    expect(stderr.chunks.join('')).not.toContain('を省いたため')
+    expect(stderr.chunks.join('')).not.toContain('is omitted, so')
   })
 
   it('取得の signal と警告の出力先を、ensureThemeLinked の文脈として渡す', async () => {
@@ -1451,7 +1451,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
         pluginVersion: () => 'test-plugin',
         ...THEME_PORTS,
       },
-    )).rejects.toThrow(/ディレクトリではありません/)
+    )).rejects.toThrow(/not a directory/)
   })
 
   it('slides.md 不在で SlideConvertRuntimeError(project-not-found)', async () => {
@@ -1475,7 +1475,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
         pluginVersion: () => 'test-plugin',
         ...THEME_PORTS,
       },
-    )).rejects.toThrow(/slides\.md が見つかりません/)
+    )).rejects.toThrow(/slides\.md not found/)
   })
 
   it('SlidevRunner が exit≠0 で SlideConvertRuntimeError(slidev-build-failed)', async () => {
@@ -2387,7 +2387,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const expectedOut = path.join(projectDirectory, 'pptx', `${path.basename(projectDirectory)}.pptx`)
     expect(existsSync(expectedOut)).toBe(true)
     // 読取失敗の診断が stderr に出る (stdout の JSON/人間向けメッセージは汚さない)
-    expect(stderr.chunks.join('')).toContain('slides.md を読み取れないため')
+    expect(stderr.chunks.join('')).toContain('cannot read slides.md')
   })
 
   it('--out 省略 + title の禁止文字は _ に正規化される', async () => {
@@ -3363,7 +3363,7 @@ describe('slide convert の差分キャッシュ', () => {
     expect(text).toContain('cache: 1 hits / 1 misses')
     // miss（今回変換したステップ）のみを列挙し、hit は件数集約する（全ステップ列挙だと
     // 多スライドデッキで 500 文字を超えるため）。
-    expect(text).toContain('cache steps: miss #2 (他 1 件 hit)')
+    expect(text).toContain('cache steps: miss #2 (1 more hit)')
   })
 
   it('全ヒットなら miss 列挙なしで件数のみ出す (F-14)', async () => {
@@ -3380,7 +3380,7 @@ describe('slide convert の差分キャッシュ', () => {
 
     const text = secondStdout.chunks.join('')
     expect(text).toContain('cache: 2 hits / 0 misses')
-    expect(text).toContain('cache steps: 2 件 hit\n')
+    expect(text).toContain('cache steps: 2 hit\n')
   })
 
   it('全ミスなら hit 件数の付記なしで miss を列挙する (F-14)', async () => {
@@ -3394,7 +3394,7 @@ describe('slide convert の差分キャッシュ', () => {
     const text = stdout.chunks.join('')
     expect(text).toContain('cache: 0 hits / 2 misses')
     expect(text).toContain('cache steps: miss #1, #2')
-    expect(text).not.toContain('件 hit')
+    expect(text).not.toContain('more hit')
   })
 
   it('全ヒット run の出力 pptx は初回 run と同じ slide xml / ppt/media 件数を持つ (F-02)', async () => {
@@ -3534,7 +3534,7 @@ describe('slide convert の差分キャッシュ', () => {
     const out = temporaryRoot('warnings-1.pptx')
     const stdout = makeStream()
     const stderr = makeStream()
-    const warning = 'キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）'
+    const warning = 'cannot read the cache manifest; cleaning existing artifacts and rebuilding'
     const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr, [warning]))
 
     await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
@@ -3562,7 +3562,7 @@ describe('slide convert の差分キャッシュ', () => {
 // 警告は「変換が成功した run」だけの情報ではない。失敗の原因診断にこそ要るため、
 // slide.convert.error にも done と同型（常時掲載・不在＝旧版）で載せる。
 
-const CACHE_WARNING = 'キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）'
+const CACHE_WARNING = 'cannot read the cache manifest; cleaning existing artifacts and rebuilding'
 
 /**
 pipeline が指定の結果を返す（または throw する）deps を組む。
@@ -3747,7 +3747,7 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
     const { done, calls } = await runSinglePassConvertJson(project, [], { fallbackKeys: ['2'] })
 
     expect(calls).toStrictEqual({ worker: [200], singlePass: [100] })
-    expect(done?.warnings).toStrictEqual(['1 パス変換を使わず現行方式で変換します: スライド #2: export failed'])
+    expect(done?.warnings).toStrictEqual(['not using single-pass conversion; converting with the current method: スライド #2: export failed'])
     // 退避したステップの成果物も同じ run のキャッシュに入る
     const second = await runSinglePassConvertJson(project)
     expect(second.done?.cache).toMatchObject({ hits: 2, misses: 0, invalidated: 'none' })
@@ -3755,14 +3755,14 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
 
   it('print ルートの無い build は warning 1 件で run 全体を現行ルートに任せ、timings.singlePass に理由と判定時間を載せる', async () => {
     const project = makeCacheProject(temporaryRoot(), 'single-pass-deck', ['# スライド1', '# スライド2'])
-    const missing: SinglePassFallbackTiming = { kind: 'printRouteMissing', fallback: 'デッキの build に print ルートがありません', detectMs: 40 }
+    const missing: SinglePassFallbackTiming = { kind: 'printRouteMissing', fallback: 'the deck build has no print route', detectMs: 40 }
 
     const { done, calls } = await runSinglePassConvertJson(project, [], { outcome: { kind: 'printRouteMissing', timing: missing } })
 
     expect(calls).toStrictEqual({ worker: [100, 200], singlePass: [] })
     expect(done?.timings?.singlePass).toStrictEqual(missing)
     expect(done?.warnings).toStrictEqual([
-      '1 パス変換を使わず現行方式で変換します: デッキの build に print ルートがありません。`slide_sync` で deck を同期すると print ルートが入ります',
+      'not using single-pass conversion; converting with the current method: the deck build has no print route; run `slide_sync` to add the print route to the deck',
     ])
   })
 
@@ -3993,8 +3993,8 @@ describe('slide.convert.error の detail (idle timeout) (#1097 F-05)', () => {
 
     const error = parseEvents(stdout).find(event => event.event === 'slide.convert.error')
     expect(error?.reason).toBe('pptx-convert-timeout')
-    expect(error?.detail).toContain('進捗なし')
-    expect(error?.detail).toContain('最終進捗: スライド #7 変換完了')
+    expect(error?.detail).toContain('no progress for')
+    expect(error?.detail).toContain('last progress: スライド #7 変換完了')
   })
 })
 
@@ -5203,7 +5203,7 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
 
     expect(calls).toStrictEqual([100, 200])
     expect(existsSync(secondOut)).toBe(true)
-    expect(commandStderr.chunks.join('')).toContain('キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）')
+    expect(commandStderr.chunks.join('')).toContain('cannot read the cache manifest; cleaning existing artifacts and rebuilding')
     expect(commandStdout.chunks.join('')).toContain('cache: 0 hits / 2 misses (enabled: true, invalidated: all:manifest)')
     expect(manifestEntryKeysOf(project)).toStrictEqual(['100', '200'])
     expect(await readSlideMarkers(secondOut)).toStrictEqual([slideMarkerOf('# A'), slideMarkerOf('# B')])
@@ -5238,10 +5238,10 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     expect(summary.cache).toMatchObject({ enabled: true, hits: 0, misses: 2, invalidated: 'all:manifest' })
     const stderrText = secondStderr.chunks.join('')
     expect(stderrText).toContain(
-      `キャッシュ manifest のスキーマ版が異なるため使いません`
-      + `（manifest v${String(OUTDATED_SCHEMA_VERSION)} / 現行 v${String(CACHE_SCHEMA_VERSION)}）。既存の成果物を掃除して作り直します`,
+      `cache manifest schema version differs, so it is not used`
+      + ` (manifest v${String(OUTDATED_SCHEMA_VERSION)}, current v${String(CACHE_SCHEMA_VERSION)}); cleaning existing artifacts and rebuilding`,
     )
-    expect(stderrText).not.toContain('キャッシュ manifest が読めません')
+    expect(stderrText).not.toContain('cannot read the cache manifest')
     // 掃除して作り直すため、次の run から再びヒットする状態に戻っている。
     expect(manifestEntryKeysOf(project)).toStrictEqual(['100', '200'])
   })
@@ -5312,7 +5312,7 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     expect(text).toContain('cache: 0 hits / 2 misses (enabled: false, invalidated: none)')
     // 全 miss になるため hit 件数の付記は出ず、変換したステップが全件並ぶ。
     expect(text).toContain('cache steps: miss #1, #2')
-    expect(text).not.toContain('件 hit')
+    expect(text).not.toContain('more hit')
   })
 
   it('manifest が破損していても孤児を掃除して exit 0 で完走する', async () => {
@@ -5354,7 +5354,7 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     expect(existsSync(noCacheOut)).toBe(true)
     // manifest 破損は all:manifest だが、判定していない run では種別を報告しない。
     expect(stdout.chunks.join('')).toContain('(enabled: false, invalidated: none)')
-    expect(commandStderr.chunks.join('')).toContain('キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）')
+    expect(commandStderr.chunks.join('')).toContain('cannot read the cache manifest; cleaning existing artifacts and rebuilding')
     expect(readdirSync(cacheDirectory).some(name => name.includes('999'))).toBe(false)
     expect(manifestEntryKeysOf(project)).toStrictEqual(['100', '200'])
   })

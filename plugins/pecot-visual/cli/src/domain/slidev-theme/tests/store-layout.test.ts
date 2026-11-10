@@ -93,7 +93,7 @@ describe('gitFailureAdvice', () => {
   })
 
   it('認証の失敗は認証情報の設定を示す', () => {
-    expect(gitFailureAdvice('auth', SPEC)).toContain('認証情報')
+    expect(gitFailureAdvice('auth', SPEC)).toContain('set up git credentials')
   })
 
   it('タグの失敗はタグ名を示す', () => {

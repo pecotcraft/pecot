@@ -141,7 +141,7 @@ describe('runDrawioUrl', () => {
         readFile: () => Promise.resolve(`<root><mxCell id="x" style="fontFamily=sans-serif;" value="&lt;font weight=&quot;bold&quot;&gt;X&lt;/font&gt;"/></root>`),
       }),
     )
-    expect(stderr.chunks.join('')).toContain('非対応属性')
+    expect(stderr.chunks.join('')).toContain('unsupported <font> attribute')
     expect(summary.warningCount).toBe(1)
   })
 
@@ -184,7 +184,7 @@ describe('runDrawioUrl', () => {
       buildDependencies({ stderr: asStream(stderr) }),
     )
     const stderrText = stderr.chunks.join('')
-    expect(stderrText.match(/アイコンが見つかりません/g)).toHaveLength(1)
+    expect(stderrText.match(/icon not found/g)).toHaveLength(1)
     expect(summary.warningCount).toBe(1)
   })
 
@@ -196,7 +196,7 @@ describe('runDrawioUrl', () => {
       buildDependencies({ stderr: asStream(stderr) }),
     )
     const stderrText = stderr.chunks.join('')
-    expect(stderrText.match(/アイコンが見つかりません/g)).toHaveLength(2)
+    expect(stderrText.match(/icon not found/g)).toHaveLength(2)
     expect(summary.warningCount).toBe(2)
   })
 
@@ -352,7 +352,7 @@ describe('createDrawioUrlCommand', () => {
       const command = createDrawioUrlCommand(() => buildDependencies({ stderr: asStream(stderr) }))
       await command.parseAsync([input], { from: 'user' })
       const written = stderr.chunks.join('')
-      expect(written).toContain('error: 文面の違反 1 件')
+      expect(written).toContain('error: 1 text violation(s)')
       expect(written).toContain('mxCell id="n1"')
       expect(process.exitCode).toBe(1)
     }
@@ -593,7 +593,7 @@ describe('createDrawioUrlCommand', () => {
       expect(stdout.chunks.join('')).toBe('')
       expect(stderr.chunks.join('')).toBe(`created: ${outPath}\n`)
       const written = readFileSync(outPath, 'utf8')
-      expect(written.startsWith('<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
+      expect(written.startsWith('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
       for (const url of extractUrls(written)) {
         expect(url.startsWith('https://app.diagrams.net/?viewbox=')).toBe(true)
       }
@@ -876,7 +876,7 @@ describe('createDrawioUrlCommand', () => {
         for (const url of extractUrls(written)) {
           expect(url.startsWith('https://app.diagrams.net/')).toBe(true)
         }
-        expect(stderr.chunks.join('')).toContain('warning: PNG 生成失敗')
+        expect(stderr.chunks.join('')).toContain('warning: PNG export failed')
         expect(stderr.chunks.join('')).toContain('chromium 未インストール')
         const last = stdout.chunks.join('').trim().split('\n').findLast(l => l.length > 0) ?? ''
         // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
@@ -1078,7 +1078,7 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
     )
     expect(summary.warningCount).toBe(1)
     expect(stderr.chunks.join('')).toContain('Helvetica')
-    expect(stderr.chunks.join('')).toContain('既定の書体')
+    expect(stderr.chunks.join('')).toContain('the default font')
   })
 
   it('同梱の poster swimlane-flow 見本は警告 0', async () => {

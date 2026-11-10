@@ -1,6 +1,7 @@
 #!/bin/bash
-# hooks がエージェントへ返す固定の文言が英語であることを確かめる（spec 021 FR-014 / SC-007）。
+# hooks と bin が返す固定の文言が英語であることを確かめる（spec 021 FR-014 / SC-007）。
 # 範囲は hooks/**/*.sh・hooks/**/*.mjs・hooks/hooks.json・com.github.copilot/hooks/hooks.json。
+# bin/pecotv・bin/_lib.sh も調べる。
 # hooks/tests/ は外す。
 #
 # 調べる文字は U+3000-U+30FF・U+3400-U+9FFF・U+F900-U+FAFF・U+FF00-U+FFEF。
@@ -101,6 +102,7 @@ FILES_SH="$TMP/files.sh.txt"
 FILES_MJS="$TMP/files.mjs.txt"
 FILES_JSON="$TMP/files.json.txt"
 find hooks -path hooks/tests -prune -o -type f -name '*.sh' -print | LC_ALL=C sort >"$FILES_SH"
+printf '%s\n' bin/pecotv bin/_lib.sh >>"$FILES_SH"
 find hooks -path hooks/tests -prune -o -type f -name '*.mjs' -print | LC_ALL=C sort >"$FILES_MJS"
 printf '%s\n' hooks/hooks.json com.github.copilot/hooks/hooks.json >"$FILES_JSON"
 
@@ -109,7 +111,7 @@ for f in "$FILES_SH" "$FILES_MJS" "$FILES_JSON"; do
         fail "調べるファイルの一覧が空: ${f##*/}"
     fi
 done
-for f in hooks/hooks.json com.github.copilot/hooks/hooks.json; do
+for f in hooks/hooks.json com.github.copilot/hooks/hooks.json bin/pecotv bin/_lib.sh; do
     [ -f "$f" ] || fail "範囲のファイルが無い: $f"
 done
 
@@ -157,11 +159,11 @@ elif [ "$ERR" -eq 0 ]; then
 
     if [ -s "$FILTERED" ]; then
         HIT_COUNT=$(wc -l <"$FILTERED")
-        fail "hooks の非コメント行に日本語が残っている (${HIT_COUNT} 行)"
+        fail "hooks と bin の非コメント行に日本語が残っている (${HIT_COUNT} 行)"
         # path:line: text の形で並べる
         sed -E 's/^([^:]*):([0-9]+):/    \1:\2: /' "$FILTERED"
     else
-        pass "hooks の非コメント行に日本語が無い"
+        pass "hooks と bin の非コメント行に日本語が無い"
     fi
 fi
 

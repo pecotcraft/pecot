@@ -150,7 +150,7 @@ interface ViewerGlobal {
 function processViewerElements(): void {
   // eslint-disable-next-line no-restricted-syntax -- viewer-static が window に生やす GraphViewer を narrowing
   const viewer = (globalThis as unknown as ViewerGlobal).GraphViewer
-  if (viewer === undefined) throw new Error('GraphViewer が読み込まれていません')
+  if (viewer === undefined) throw new Error('GraphViewer is not loaded')
   viewer.processElements()
 }
 
@@ -205,7 +205,7 @@ export async function exportViaEmbed(
     let handshakeSeconds: number | undefined
     // 完了した段だけ「<動詞> <秒>s」と書く。未完了の段は単位を付けない。
     const describeStage = (name: string, done: string, seconds: number | undefined): string => (
-      seconds === undefined ? `${name} 未完了` : `${name} ${done} ${seconds.toFixed(1)}s`
+      seconds === undefined ? `${name} not done` : `${name} ${done} ${seconds.toFixed(1)}s`
     )
     // 時間切れは export の応答待ちだけでなく、setContent / evaluate などの各段も打ち切る。
     // `expired` は reject 専用で、各段と Promise.race で競わせる。
@@ -218,12 +218,12 @@ export async function exportViaEmbed(
     const withinDeadline = async <T>(stage: Promise<T>): Promise<T> => await Promise.race([stage, expired])
     const timer = setTimeout(
       () => {
-        const last = progress.at(-1) ?? 'なし'
+        const last = progress.at(-1) ?? 'none'
         expire(new Error(
           `embed protocol timeout (${(EXPORT_TIMEOUT_MS / 1000).toString()}s)`
-          + `: 最後に受けたイベント=${last}`
-          + ` (${describeStage('setContent', '完了', contentLoadSeconds)} / ${describeStage('handshake', '設置', handshakeSeconds)}`
-          + ` / 受信 ${progress.join(' → ') || 'なし'})`,
+          + `; last event: ${last}`
+          + ` (${describeStage('setContent', 'done', contentLoadSeconds)} / ${describeStage('handshake', 'ready', handshakeSeconds)}`
+          + ` / received: ${progress.join(' → ') || 'none'})`,
         ))
       },
       EXPORT_TIMEOUT_MS,
@@ -293,7 +293,7 @@ async function headedUserAgent(browser: Readonly<Browser>): Promise<string> {
 function decodeExportDataUri(dataUri: string): Buffer {
   const match = /^data:[^;,]+;base64,(?<payload>.*)$/s.exec(dataUri)
   if (match?.groups?.['payload'] === undefined) {
-    throw new Error(`embed export の応答が base64 data URI ではありません: ${dataUri.slice(0, 60)}`)
+    throw new Error(`embed export response is not a base64 data URI: ${dataUri.slice(0, 60)}`)
   }
   return Buffer.from(match.groups['payload'], 'base64')
 }

@@ -74,8 +74,8 @@ describe('pecotv help snapshot', () => {
     const result = runPecotv(['slide', 'convert', '--help'])
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('--out')
-    expect(result.stdout).toMatch(/--no-cache\s+キャッシュを読まずに全スライドを変換する/)
-    expect(result.stdout).toMatch(/--no-single-pass\s+1 パスのルートを使わず/)
+    expect(result.stdout).toMatch(/--no-cache\s+convert all slides without reading the cache/)
+    expect(result.stdout).toMatch(/--no-single-pass\s+convert with the per-step route/)
   })
 
   it('pecotv evidence create --help が exit 0 + --input/--out/--json', () => {

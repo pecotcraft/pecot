@@ -242,7 +242,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     // eslint-disable-next-line unicorn/no-null -- JSON の契約が `pdf: null`
     expect(done.pdf).toBe(null)
     expect(done.warnings).toBe(1)
-    expect(run.stderr).toContain('warning: PDF 生成失敗')
+    expect(run.stderr).toContain('warning: PDF export failed')
     expect(existsSync(path.join(caseDirectory, 'out.svg'))).toBe(true)
     expect(existsSync(path.join(caseDirectory, 'out.pdf'))).toBe(false)
 

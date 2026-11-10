@@ -31,7 +31,7 @@ plugin_data_dir_normalize() {
 # dependency-root.ts の解決と同じ結果になること（テストが固定する）。引数: $1 = project 名
 plugin_data_dir_resolve() {
     local project="${1:-}" base home
-    [ -n "$project" ] || { echo "plugin_data_dir_resolve: project 名が必要です" >&2; exit 127; }
+    [ -n "$project" ] || { echo "plugin_data_dir_resolve: project name is required" >&2; exit 127; }
     plugin_data_dir_normalize "${CLAUDE_PLUGIN_DATA:-}" && return 0
     plugin_data_dir_normalize "${PLUGIN_DATA:-}" && return 0
     if base="$(plugin_data_dir_normalize "${XDG_DATA_HOME:-}")"; then
@@ -42,7 +42,7 @@ plugin_data_dir_resolve() {
         printf '%s\n' "${home}/.local/share/pecot/${project}"
         return 0
     fi
-    echo "${project}: HOME が設定されておらず（または絶対パスでなく）、データ置き場を決められません。HOME か XDG_DATA_HOME を設定してください。" >&2
+    echo "${project}: cannot decide the data directory because HOME is unset or not an absolute path (fix: set HOME or XDG_DATA_HOME)" >&2
     return 1
 }
 
@@ -50,10 +50,10 @@ plugin_data_dir_resolve() {
 # 引数: $1 = project 名
 plugin_data_dir_ensure() {
     local project="${1:-}" data
-    [ -n "$project" ] || { echo "plugin_data_dir_ensure: project 名が必要です" >&2; exit 127; }
+    [ -n "$project" ] || { echo "plugin_data_dir_ensure: project name is required" >&2; exit 127; }
     data="$(plugin_data_dir_resolve "$project")" || return 1
     if ! mkdir -p "$data" 2>/dev/null; then
-        echo "${project}: データ置き場を作れません（${data}）。" >&2
+        echo "${project}: cannot create the data directory: ${data}" >&2
         return 1
     fi
     printf '%s\n' "$data"

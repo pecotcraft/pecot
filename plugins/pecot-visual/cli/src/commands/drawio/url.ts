@@ -126,7 +126,7 @@ export async function runDrawioUrl(
   }
   catch (error: unknown) {
     throw new DrawioUrlRuntimeError(
-      `入力ファイルが読めません: ${absolute} (${formatError(error)})`,
+      `cannot read input file: ${absolute}: ${formatError(error)}`,
       'input-not-found',
     )
   }
@@ -213,7 +213,7 @@ async function assertLabelsClean(xml: string, lintText: LintText): Promise<void>
   }
   catch (error: unknown) {
     throw new DrawioUrlRuntimeError(
-      `文章規則を確認できませんでした: ${formatError(error)}`,
+      `text rules check failed: ${formatError(error)}`,
       'text-lint-failed',
     )
   }
@@ -273,7 +273,7 @@ export async function executeDrawioUrl(
   // 入力の読み込みより先に確認し、UsageError のときは成果物と警告を残さない。
   if (outputFile !== undefined && path.extname(outputFile).toLowerCase() !== '.html') {
     throw new DrawioUrlUsageError(
-      `-o は拡張子 .html のみ受理します (got: ${outputFile})`,
+      `-o accepts only the .html extension: ${outputFile}`,
       'invalid-output-extension',
     )
   }
@@ -294,7 +294,7 @@ export async function executeDrawioUrl(
     }
     catch (error: unknown) {
       throw new DrawioUrlRuntimeError(
-        `出力ファイルに書き込めません: ${outputFile} (${formatError(error)})`,
+        `cannot write output file: ${outputFile}: ${formatError(error)}`,
         'output-write-failed',
       )
     }
@@ -309,7 +309,7 @@ export async function executeDrawioUrl(
         artifacts.push(pngPath)
       }
       catch (error: unknown) {
-        diagnostics.warning(`PNG 生成失敗: ${formatError(error)}`)
+        diagnostics.warning(`PNG export failed: ${formatError(error)}`)
         warningCount += 1
         isPngFailed = true
       }
@@ -383,7 +383,7 @@ function doesArgvWantJson(argv: readonly string[]): boolean {
 function parseMode(raw: unknown): 'view' | 'edit' {
   if (typeof raw !== 'string' || !VALID_MODES.has(raw)) {
     throw new DrawioUrlUsageError(
-      `option --mode は view または edit のみ受理します (got: ${String(raw)})`,
+      `option --mode accepts only view or edit: ${String(raw)}`,
       'invalid-mode',
     )
   }
@@ -392,13 +392,13 @@ function parseMode(raw: unknown): 'view' | 'edit' {
 
 export function createDrawioUrlCommand(buildDependencies: () => DrawioUrlDependencies): Command {
   const command = new Command('url')
-    .description('drawio XML をブラウザでそのまま開ける成果物 (表示用 HTML / 実描画 PNG) にする')
-    .argument('<input>', '入力 .drawio ファイルパス')
-    .option('--mode <mode>', 'view または edit (cli-surface §2.4 受理。生成 URL は同一)', 'view')
-    .option('-o, --output <path>', '表示用 HTML の出力先パス (.html のみ受理。指定時は stdout に URL を出さない)')
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
-    .option('--theme <spec>', '書体と文字サイズを確かめるテーマ (git+https://<host>/<owner>/<repo>.git#<tag>・file:<path>・talk-dir かテーマ root のパス)。省略時は図の祖先の talk-dir、無ければ本体の既定値')
-    .option('--no-png', '-o 指定時の PNG 同時出力を抑止する (既定: PNG 出力)', true)
+    .description('turn drawio XML into artifacts that open directly in a browser (viewer HTML / rendered PNG)')
+    .argument('<input>', 'input .drawio file path')
+    .option('--mode <mode>', 'view or edit (cli-surface §2.4; the generated URL is the same)', 'view')
+    .option('-o, --output <path>', 'output path of the viewer HTML (.html only; when given, no URL is printed to stdout)')
+    .option('--json', 'print machine-readable JSON to stdout', false)
+    .option('--theme <spec>', 'theme used to check fonts and font sizes (git+https://<host>/<owner>/<repo>.git#<tag>, file:<path>, or a talk-dir or theme root path); default: the diagram\'s ancestor talk-dir, else the plugin default')
+    .option('--no-png', 'do not write the PNG alongside -o (default: write the PNG)', true)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {
@@ -471,7 +471,7 @@ export function drawioUrlDefaultDependencies(): DrawioUrlDependencies {
   const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
   /* c8 ignore next 3 -- bin/pecotv が CLAUDE_PLUGIN_ROOT を必ず export する。未設定は実運用で発生しない */
   if (pluginRoot === undefined || pluginRoot === '') {
-    throw new DrawioUrlRuntimeError('CLAUDE_PLUGIN_ROOT が未設定です', 'unknown')
+    throw new DrawioUrlRuntimeError('CLAUDE_PLUGIN_ROOT is not set', 'unknown')
   }
   const dependencyRoot = pluginDependencyRoot()
   return {

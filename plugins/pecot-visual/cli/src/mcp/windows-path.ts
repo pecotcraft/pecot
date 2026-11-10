@@ -86,8 +86,8 @@ export function toPosixPath(
   if (DRIVE_RELATIVE_REGEX.test(value)) {
     return {
       kind: 'unsupported',
-      reason: `ドライブ相対パス '${value}' は cwd 依存のため解決できません`
-        + ' (ドライブレターの直後に区切りを置いた絶対パスで指定してください)',
+      reason: `cannot resolve drive-relative path (depends on cwd): ${value}`
+        + ' (fix: put a separator right after the drive letter to make it absolute)',
     }
   }
 
@@ -97,8 +97,8 @@ export function toPosixPath(
   if (UNC_PREFIX_REGEX.test(value)) {
     return {
       kind: 'unsupported',
-      reason: `UNC パス '${value}' は解決できません`
-        + ' (WSL から見える絶対パス、またはドライブレター形式で指定してください)',
+      reason: `cannot resolve UNC path: ${value}`
+        + ' (fix: use an absolute path visible from WSL, or a drive-letter path)',
     }
   }
 
@@ -121,8 +121,7 @@ function fromWslUnc(
   if (current?.toLowerCase() !== distro.toLowerCase()) {
     return {
       kind: 'unsupported',
-      reason: `このサーバは distro '${current ?? '(WSL_DISTRO_NAME 未設定)'}' で動作しており、`
-        + `distro '${distro}' のパスは解決できません`,
+      reason: `cannot resolve a path on distro ${distro}: this server runs on distro ${current ?? '(WSL_DISTRO_NAME unset)'}`,
     }
   }
   return { kind: 'converted', path: path.posix.normalize(`/${toPosixSeparators(rest)}`) }

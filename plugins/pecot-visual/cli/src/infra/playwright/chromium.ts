@@ -182,7 +182,7 @@ export async function installChromium(options: InstallChromiumOptions = {}): Pro
       // eslint-disable-next-line unicorn/no-null -- 同上
       signal: null,
       stdout: '',
-      stderr: `playwright パッケージを解決できません: ${detail}`,
+      stderr: `cannot resolve the playwright package: ${detail}`,
       timedOut: false,
     }
   }

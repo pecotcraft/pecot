@@ -190,7 +190,7 @@ describe('executeSlideTheme（宣言のあるテーマ）', () => {
     const { dependencies } = makeDependencies()
     const { data } = await executeSlideTheme({ dir: talk }, dependencies)
     expect(data.warnings).toEqual([
-      'pptx.linkColor を省いたため、PPTX ではリンクは変換されません（ハイパーリンクが付きません）。リンクを変換するには pecot-theme.json の pptx.linkColor に 6 桁の 16 進で書いてください',
+      'pptx.linkColor is omitted, so links are not converted in PPTX (no hyperlinks are added) (fix: set pptx.linkColor in pecot-theme.json to a 6-digit hex value to convert links)',
     ])
   })
 
@@ -219,11 +219,11 @@ describe('executeSlideTheme（宣言の無いテーマ）', () => {
       { layout: 'two', description: '', category: 'uncategorized', deprecated: false, filename: 'two.vue' },
     ])
     expect(data.categories).toEqual([
-      expect.objectContaining({ id: 'uncategorized', label: '未分類' }),
+      expect.objectContaining({ id: 'uncategorized', label: 'Uncategorized' }),
     ])
     const { warnings } = data
-    expect(warnings[0]).toContain('pecot-theme.json の宣言が無い')
-    expect(warnings.some(warning => warning.includes('見せ方の分類を読み取れませんでした'))).toBe(true)
+    expect(warnings[0]).toContain('has no pecot-theme.json declaration')
+    expect(warnings.some(warning => warning.includes('cannot read the layout categories'))).toBe(true)
     expect(warnings.some(warning => warning.includes('pptx.linkColor'))).toBe(true)
   })
 })
@@ -280,7 +280,7 @@ describe('createSlideThemeCommand', () => {
     await runCommand(['--dir', talk], dependencies)
     const text = captured.stdout.join('')
     expect(text).toContain('slide theme: slidev-theme-pecotv-test-bare')
-    expect(text).toContain('宣言: なし')
+    expect(text).toContain('declaration: absent')
     expect(text).toContain('one')
     // 警告は結果と分けて stderr に出る
     expect(text).not.toContain('warning:')
@@ -328,7 +328,7 @@ describe('createSlideThemeCommand', () => {
     const { dependencies, captured } = makeDependencies()
     expect(await runCommand(['--dir', talk], dependencies)).toBe(1)
     expect(captured.stdout).toEqual([])
-    expect(captured.stderr.join('')).toContain('error: slide theme 失敗:')
+    expect(captured.stderr.join('')).toContain('error: slide theme failed:')
   })
 
   it('未知のオプションは exit 2 の usage error。--json なら invalid-option を stdout に出す', async () => {

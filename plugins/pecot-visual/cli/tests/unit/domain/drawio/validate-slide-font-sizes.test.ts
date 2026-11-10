@@ -45,15 +45,15 @@ describe('validateSlideFontSizes', () => {
     expect(warnings[0]?.severity).toBe('warning')
     expect(warnings[0]?.message).toContain('mxCell id=x')
     expect(warnings[0]?.message).toContain('14px')
-    expect(warnings[0]?.message).toContain('16・13・12・10・9px')
-    expect(warnings[0]?.message).toContain('見出し 16・小見出し 13・本文 12・補足 10・ラベル 9')
-    expect(warnings[0]?.message).toContain('テーマの規定外')
+    expect(warnings[0]?.message).toContain('16, 13, 12, 10, 9 px')
+    expect(warnings[0]?.message).toContain('heading 16, subheading 13, body 12, caption 10, label 9')
+    expect(warnings[0]?.message).toContain('is not a theme size')
   })
 
   it('fontSize 未指定 → 警告 1（draw.io 既定の 11px）', () => {
     const warnings = check(wrap('rounded=1;', 'Hello'))
     expect(warnings.length).toBe(1)
-    expect(warnings[0]?.message).toContain('fontSize 未指定')
+    expect(warnings[0]?.message).toContain('fontSize is not set')
   })
 
   it('HTML 内の font-size:15px → 警告 1', () => {
@@ -103,7 +103,7 @@ describe('validateSlideFontSizes', () => {
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain(raw)
       expect(warnings[0]?.message).not.toContain('NaN')
-      expect(warnings[0]?.message).toContain('px で指定してください')
+      expect(warnings[0]?.message).toContain('specify it in px')
     })
 
     it('HTML 内の font-size:1.2em も同様', () => {
@@ -111,7 +111,7 @@ describe('validateSlideFontSizes', () => {
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain('1.2em')
       expect(warnings[0]?.message).not.toContain('NaN')
-      expect(warnings[0]?.message).toContain('px で指定してください')
+      expect(warnings[0]?.message).toContain('specify it in px')
     })
   })
 
@@ -130,14 +130,14 @@ describe('validateSlideFontSizes', () => {
   describe('直し方の案内 (F-07)', () => {
     it('value の HTML 由来は value 内の指定を消すよう案内する', () => {
       const warnings = check(wrap('fontSize=12;', '&lt;span style=&quot;font-size:15px&quot;&gt;Big&lt;/span&gt;'))
-      expect(warnings[0]?.message).toContain('value 内の font-size 指定')
-      expect(warnings[0]?.message).toContain('消し')
+      expect(warnings[0]?.message).toContain('remove font-size in value')
+      expect(warnings[0]?.message).toContain('add fontSize=<size> to the cell style')
     })
 
     it('セル style 由来は style を直すよう案内する', () => {
       const warnings = check(wrap('fontSize=14;', 'Hello'))
-      expect(warnings[0]?.message).toContain('style に fontSize=<サイズ> を付けてください')
-      expect(warnings[0]?.message).not.toContain('value 内の font-size')
+      expect(warnings[0]?.message).toContain('add fontSize=<size> to style')
+      expect(warnings[0]?.message).not.toContain('remove font-size in value')
     })
   })
 
@@ -181,9 +181,9 @@ describe('validateSlideFontSizes', () => {
       const warnings = check(wrap('fontSize=16;', 'Hello'), TEST_SANS_STEPS)
       expect(warnings).toHaveLength(1)
       expect(warnings[0]?.message).toContain('16px')
-      expect(warnings[0]?.message).toContain('18・15・14・11・10px')
-      expect(warnings[0]?.message).toContain('見出し 18・小見出し 15・本文 14・補足 11・ラベル 10')
-      expect(warnings[0]?.message).not.toContain('16・13・12・10・9px')
+      expect(warnings[0]?.message).toContain('18, 15, 14, 11, 10 px')
+      expect(warnings[0]?.message).toContain('heading 18, subheading 15, body 14, caption 11, label 10')
+      expect(warnings[0]?.message).not.toContain('16, 13, 12, 10, 9 px')
     })
 
     it('同じ図でも宣言が違えば結果が変わる（14px は 5 段の宣言では外れ、18/15/14 の宣言では収まる）', () => {
@@ -198,7 +198,7 @@ describe('validateSlideFontSizes', () => {
 
     it('スライドと書かず、テーマの規定外と書く', () => {
       const warnings = check(wrap('fontSize=14;', 'Hello'))
-      expect(warnings[0]?.message).not.toContain('スライドの規定外')
+      expect(warnings[0]?.message).not.toContain('slide size')
     })
   })
 })

@@ -123,7 +123,7 @@ export async function writeEvidenceWorkbook(
 
   if (loaded.length === 0) {
     throw new EvidenceWorkbookError(
-      `配置できる画像がありません (${spec.items.length.toString()} 件すべて除外)`,
+      `no images can be placed (all ${spec.items.length.toString()} items excluded)`,
       'no-valid-images',
     )
   }
@@ -162,7 +162,7 @@ export async function writeEvidenceWorkbook(
   }
   catch (error: unknown) {
     throw new EvidenceWorkbookError(
-      `xlsx を書き出せません: ${outPath} (${formatError(error)})`,
+      `cannot write xlsx: ${outPath} (${formatError(error)})`,
       'output-write-failed',
     )
   }

@@ -132,7 +132,7 @@ describe('evidence_create ツール', () => {
     expect(structured['ok']).toBe(false)
     expect(structured['exitCode']).toBe(2)
     expect(structured['artifacts']).toEqual([])
-    expect(structured['message']).toContain('絶対パス')
+    expect(structured['message']).toContain('must be an absolute path')
     expect(dataOf(result)['invalidPaths']).toEqual(['input_path=spec.json'])
   })
 

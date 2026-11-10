@@ -13,7 +13,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       missingEntry:
-        'このページファイルは slides.md に含まれていません。slides.md に src: エントリを追加してください。',
+        'this page file is not in slides.md (fix: add a src: entry to slides.md)',
     },
   },
 

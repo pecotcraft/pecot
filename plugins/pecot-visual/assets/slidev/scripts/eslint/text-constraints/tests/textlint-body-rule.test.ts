@@ -53,7 +53,7 @@ test('本文の違反は「本文 L<ファイル行>」で、ファイル行の�
   assert.equal(reported.length, 1, JSON.stringify(reported));
   assert.equal(reported[0]!.messageId, 'textlintBody');
   assert.equal(reported[0]!.line, 7);
-  assert.match(reported[0]!.message, new RegExp(`^本文 L7: .+（${HYPE_ID}）$`));
+  assert.match(reported[0]!.message, new RegExp(`^body L7: .+ \\(${HYPE_ID}\\)$`));
 });
 
 test('発表者ノートの違反は「発表者ノート L<ファイル行>」で報告する', () => {
@@ -61,7 +61,7 @@ test('発表者ノートの違反は「発表者ノート L<ファイル行>」�
   assert.equal(reported.length, 1, JSON.stringify(reported));
   assert.equal(reported[0]!.messageId, 'textlintNotes');
   assert.equal(reported[0]!.line, 7);
-  assert.match(reported[0]!.message, new RegExp(`^発表者ノート L7: .+（${HYPE_ID}）$`));
+  assert.match(reported[0]!.message, new RegExp(`^speaker notes L7: .+ \\(${HYPE_ID}\\)$`));
 });
 
 test('1 行のコメントの違反は、桁にコメント開始記号の分を加える', () => {
@@ -88,7 +88,7 @@ test('frontmatter の違反は確認しない（結果として。除外その�
 
 test('本文は markdown モードで確認し、箇条書きの書式規則を本文行で報告する', () => {
   const reported = lint([...FM, CLEAN, '', ...LIST_LINES]);
-  const list = reported.filter((r) => r.message.includes(`（${LIST_ID}）`));
+  const list = reported.filter((r) => r.message.includes(` (${LIST_ID})`));
   assert.ok(list.length > 0, JSON.stringify(reported));
   assert.ok(list.every((r) => r.messageId === 'textlintBody' && r.line >= 6 && r.line <= 7), JSON.stringify(list));
 });
@@ -153,7 +153,7 @@ test('worker を起動できないときは実行不能を 1 件だけ報告す�
   try {
     const reported = lint([...FM, CLEAN, '', `<!-- ${CLEAN} -->`]);
     assert.deepEqual(reported.map((r) => r.messageId), ['textlintFailed']);
-    assert.match(reported[0]!.message, /^textlint を実行できませんでした: .+/);
+    assert.match(reported[0]!.message, /^textlint failed to run: .+/);
   } finally {
     useWorkerForTest();
   }

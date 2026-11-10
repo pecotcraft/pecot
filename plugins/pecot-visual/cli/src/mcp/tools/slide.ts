@@ -85,14 +85,14 @@ function failureResult(
 
 const slideCreateInput = z.object({
   project_dir: z.string()
-    .describe('生成先ディレクトリの絶対パス。呼び出し元エージェントが後続の編集で書き込み権限を持つ場所'
-      + ' (作業ディレクトリ配下など) を指定する。相対パスは受け付けない。' + WINDOWS_PATH_NOTE),
+    .describe('Absolute path of the destination directory. Specify a place where the calling agent has write permission for later edits'
+      + ' (e.g. under the working directory). Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
   theme: z.string()
-    .describe('参照するテーマの指定（必須）。`git+https://<host>/<owner>/<repo>.git#<tag>` か `file:<絶対パス>`。'
-      + 'タグの無い git URL は受け付けない。'),
+    .describe('Theme to reference (required): `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. '
+      + 'A git URL without a tag is not accepted.'),
   force: z.boolean()
     .default(false)
-    .describe('生成先が既に存在する場合に削除して上書きする'),
+    .describe('Delete and overwrite when the destination already exists'),
 })
 
 /**
@@ -106,12 +106,12 @@ export function slideCreateTool(
   return {
     name: 'slide_create',
     config: {
-      title: 'Slidev プロジェクト生成',
-      description: '`theme` で指定した Slidev テーマを参照する talk-dir を新規生成する。'
-        + 'テーマは git URL とタグ（`git+https://<host>/<owner>/<repo>.git#<tag>`）か、'
-        + 'ローカルのパス（`file:<path>`）で指定する。'
-        + '見せ方の分類（data.categories）と選択可能なレイアウト一覧（data.layouts）を返す。'
-        + '生成直後のデッキ全体 lint 結果も返す（lint 違反があっても生成は成功扱い）。',
+      title: 'Generate a Slidev project',
+      description: 'Generates a new talk-dir that references the Slidev theme given by `theme`. '
+        + 'The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) '
+        + 'or a local path (`file:<path>`). '
+        + 'Returns the presentation categories (data.categories) and the list of selectable layouts (data.layouts). '
+        + 'Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).',
       inputSchema: slideCreateInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
       // git でテーマを取得するため、ネットワークに到達しうる。openWorldHint は明示しない（SDK の既定）。
@@ -155,7 +155,7 @@ export function slideCreateTool(
           exitCode: 0,
           artifacts: [execution.summary.projectDirectory],
           data: execution.data,
-          message: `slide create: 成功 (${execution.summary.projectDirectory})`,
+          message: `slide create: succeeded (${execution.summary.projectDirectory})`,
           ...output.part(),
         })
       }
@@ -176,26 +176,26 @@ export function slideCreateTool(
 
 const slideConvertInput = z.object({
   project_dir: z.string()
-    .describe('Slidev プロジェクトディレクトリの絶対パス。相対パスは受け付けない。' + WINDOWS_PATH_NOTE),
+    .describe('Absolute path of the Slidev project directory. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
   out_path: z.string().optional()
-    .describe('出力 .pptx の絶対パス。省略時は <project_dir>/pptx/<slides.md の title | basename>.pptx。'
+    .describe('Absolute path of the output .pptx. If omitted, <project_dir>/pptx/<title of slides.md | basename>.pptx. '
       + WINDOWS_PATH_NOTE),
   theme: z.string().optional()
-    .describe('slidev の --theme に渡す名前 (許容文字 [a-zA-Z0-9@/_.-])'),
+    .describe('Name passed to slidev --theme (allowed characters: [a-zA-Z0-9@/_.-])'),
   spacing_json_path: z.string().optional()
-    .describe('letter-spacing JSON の絶対パス。省略時は staging/slides/letter-spacing.json を auto-detect。'
+    .describe('Absolute path of the letter-spacing JSON. If omitted, staging/slides/letter-spacing.json is auto-detected. '
       + WINDOWS_PATH_NOTE),
   href_json_path: z.string().optional()
-    .describe('hyperlink JSON の絶対パス。省略時は staging/slides/href-map.json を auto-detect。'
+    .describe('Absolute path of the hyperlink JSON. If omitted, staging/slides/href-map.json is auto-detected. '
       + WINDOWS_PATH_NOTE),
   transition_type: z.enum(['fade', 'morph']).optional()
-    .describe('スライド遷移の種別 (既定: fade)'),
+    .describe('Slide transition type (default: fade)'),
   transition_duration_ms: z.number().int().positive().optional()
-    .describe('スライド遷移の duration。正の整数のミリ秒で指定する (既定: 500)'),
+    .describe('Slide transition duration, as a positive integer in milliseconds (default: 500)'),
   morph_option: z.enum(['byObject', 'byWord', 'byChar']).optional()
-    .describe('morph 遷移の粒度。transition_type=morph のときだけ意味を持つ'),
+    .describe('Granularity of the morph transition. Only meaningful when transition_type=morph'),
   cache: z.boolean().default(true)
-    .describe('差分キャッシュを読むか。false でも変換完了時のキャッシュ再構築は行う'),
+    .describe('Whether to read the diff cache. Even with false, the cache is rebuilt when the conversion completes'),
 })
 
 /**
@@ -209,8 +209,8 @@ export function slideConvertTool(
   return {
     name: 'slide_convert',
     config: {
-      title: 'Slidev → PPTX 変換',
-      description: 'Slidev プロジェクトを PPTX に変換する。所要はスライド枚数に比例する（55 枚で 30 秒弱）。',
+      title: 'Convert Slidev to PPTX',
+      description: 'Converts a Slidev project to PPTX. The duration is proportional to the number of slides (just under 30 seconds for 55 slides).',
       inputSchema: slideConvertInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
     },
@@ -296,13 +296,13 @@ export function slideConvertTool(
 
 const slideSyncInput = z.object({
   dir: z.string()
-    .describe('同期対象 talk-dir の絶対パス。相対パスは受け付けない。' + WINDOWS_PATH_NOTE),
+    .describe('Absolute path of the talk-dir to sync. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
   theme: z.string().optional()
-    .describe('移行前の talk-dir が参照するテーマの指定。`git+https://<host>/<owner>/<repo>.git#<tag>` か `file:<絶対パス>`。'
-      + '移行前の talk-dir（テンプレートのコピーを持つ形）では必須。移行済みの talk-dir では使われない'),
+    .describe('Theme the pre-migration talk-dir should reference: `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. '
+      + 'Required for a pre-migration talk-dir (one that holds a copy of the template). Not used for a migrated talk-dir'),
   node_modules_only: z.boolean().default(false)
-    .describe('node_modules の張り直しのみ実行する。package.json のテーマを取得してから張る (取得済みならネットワークには出ない)。'
-      + 'テーマを参照する移行済みの talk-dir は、省略しても同じ動き。生成ファイル (vite.config.ts・start.mjs) も本体の今の内容にそろえる。theme とは同時に指定できない'),
+    .describe('Only relink node_modules. The theme in package.json is fetched first, then linked (no network access if it is already fetched). '
+      + 'A migrated talk-dir that references a theme behaves the same even when this is omitted. The generated files (vite.config.ts, start.mjs) are also aligned with the current content of the plugin. Cannot be specified together with theme'),
 })
 
 /**
@@ -318,17 +318,17 @@ export function slideSyncTool(
   return {
     name: 'slide_sync',
     config: {
-      title: 'Slidev 同期',
-      description: '既存 talk-dir を同期する。'
-        + '移行前の talk-dir (テンプレートのコピーを持つ形。slide_dev などが theme-none で止まる) は、'
-        + '`theme` で指定したテーマを参照する形へ移す。テンプレート由来のファイルを消し、'
-        + '作品領域 (slides.md / pages/*.md / public/slides/) は残す。消した名前は data.migration.removed に返す。'
-        + 'テーマを参照する移行済みの talk-dir (slides.md の theme: が package.json の dependencies のテーマを指す) は、'
-        + '依存の版でテーマを取得して node_modules を張り直し、'
-        + '本体の生成ファイル (vite.config.ts・start.mjs) を本体の今の内容にそろえる。ほかのファイルは変えない。'
-        + 'テーマの版を上げるときは、package.json の依存の #<tag> を書き換えてから呼ぶ。'
-        + '見せ方の分類 (data.categories) と選択可能なレイアウト一覧 (data.layouts)、'
-        + '同期後のデッキ全体 lint 結果を返す。起動済みの slide_dev は、stop: true で止めてから起動し直す。',
+      title: 'Sync a Slidev talk-dir',
+      description: 'Syncs an existing talk-dir. '
+        + 'A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) '
+        + 'is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, '
+        + 'and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in data.migration.removed. '
+        + 'A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) '
+        + 'fetches the theme at the version in the dependency and relinks node_modules, '
+        + 'and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. '
+        + 'To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. '
+        + 'Returns the presentation categories (data.categories), the list of selectable layouts (data.layouts), '
+        + 'and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.',
       inputSchema: slideSyncInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
       // theme を渡したときと、node_modules_only・移行済みの talk-dir の通常の sync は、テーマを git で取得しうるため、ネットワークに到達しうる。
@@ -394,17 +394,17 @@ export function slideSyncTool(
 }
 
 function syncSuccessMessage(summary: Readonly<SlideSyncResultSummary>): string {
-  const base = `slide sync: 成功 (${summary.directory})`
+  const base = `slide sync: succeeded (${summary.directory})`
   if (summary.theme === undefined) return base
-  const themeText = `${base} テーマ: ${summary.theme.name} (${summary.theme.spec})`
+  const themeText = `${base}; theme: ${summary.theme.name} (${summary.theme.spec})`
   return summary.mode === 'migrate'
-    ? `${themeText} 移行: テンプレート由来の ${String(summary.removed.length)} 件を消しました (${summary.removed.join(', ')})`
+    ? `${themeText}; migration: removed ${String(summary.removed.length)} files from the template (${summary.removed.join(', ')})`
     : themeText
 }
 
 const slideLintInput = z.object({
   dir: z.string()
-    .describe('lint 対象 talk-dir の絶対パス。相対パスは受け付けない。' + WINDOWS_PATH_NOTE),
+    .describe('Absolute path of the talk-dir to lint. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
 })
 
 /**
@@ -417,9 +417,9 @@ export function slideLintTool(
   return {
     name: 'slide_lint',
     config: {
-      title: 'Slidev デッキ lint',
-      description: 'talk-dir 全体 (pages/**/*.md と slides.md) を lint し、'
-        + '違反一覧を返す。違反があっても呼び出し自体は成功 (exitCode 1) として返る。',
+      title: 'Lint a Slidev deck',
+      description: 'Lints the whole talk-dir (pages/**/*.md and slides.md) '
+        + 'and returns the list of violations. The call itself succeeds (exitCode 1) even with violations.',
       inputSchema: slideLintInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
       // 読み取りのみで何も書き換えず、ネットワークにも到達しない。
@@ -445,9 +445,9 @@ export function slideLintTool(
           artifacts: [],
           data,
           message: hasViolations
-            ? `slide lint: 違反あり (${summary.directory}) エラー ${String(summary.errorCount)} 件`
-            + ` / 警告 ${String(summary.warningCount)} 件`
-            : `slide lint: 成功 (${summary.directory}) lint 対象 ${String(summary.lintedFileCount)} 件`,
+            ? `slide lint: violations found (${summary.directory}); ${String(summary.errorCount)} errors`
+            + `; ${String(summary.warningCount)} warnings`
+            : `slide lint: succeeded (${summary.directory}); ${String(summary.lintedFileCount)} files linted`,
           ...output.part(),
         })
       }

@@ -50,8 +50,8 @@ function isAtLeast(actual: ParsedVersion, minimum: VersionTuple): boolean {
 
 function requiredVersionsText(): string {
   return Object.entries(MINIMUM_NODE_VERSIONS)
-    .map(([major, minimum]) => `${major} 系は ${minimum} 以上`)
-    .join('、')
+    .map(([major, minimum]) => `${major}.x: ${minimum} or later`)
+    .join(', ')
 }
 
 /**
@@ -65,9 +65,9 @@ export function suggestedNodeVersion(): string {
 
 function guidance(version: string): string {
   return [
-    `Node.js ${version} は既知の脆弱性の修正を含まないため起動しません。`,
-    `  必要な版: ${requiredVersionsText()}`,
-    `  Node.js を更新して再実行してください（nvm の例: nvm install ${suggestedNodeVersion()}）。`,
+    `Node.js ${version} does not include fixes for known vulnerabilities; not starting`,
+    `  required: ${requiredVersionsText()}`,
+    `  (fix: update Node.js and run again; with nvm: nvm install ${suggestedNodeVersion()})`,
   ].join('\n')
 }
 

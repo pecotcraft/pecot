@@ -59,9 +59,9 @@ describe('slide_theme の定義', () => {
   it('名前・description の 3 文・注釈を持つ', () => {
     expect(tool.name).toBe('slide_theme')
     expect(tool.config.description).toBe(
-      'talk-dir が参照するテーマの宣言とレイアウトの一覧を返す。'
-      + '宣言は書体・文字サイズ・PPTX の書体とリンク色・lint の規則。'
-      + 'スキルがテーマの値を得るのに使う。',
+      'Returns the theme declaration referenced by a talk-dir and the list of layouts. '
+      + 'The declaration covers fonts, font sizes, PPTX fonts and link colors, and lint rules. '
+      + 'Skills use it to obtain theme values.',
     )
     expect(tool.config.annotations).toEqual({ readOnlyHint: true, openWorldHint: false })
   })
@@ -76,7 +76,7 @@ describe('slide_theme の成功', () => {
     expect(structured['ok']).toBe(true)
     expect(structured['exitCode']).toBe(0)
     expect(structured['artifacts']).toEqual([])
-    expect(structured['message']).toBe(`slide theme: ${THEME_NAME}（レイアウト 8 件）`)
+    expect(structured['message']).toBe(`slide theme: ${THEME_NAME} (8 layouts)`)
     expect(result.isError).toBeUndefined()
 
     const data = dataOf(result)

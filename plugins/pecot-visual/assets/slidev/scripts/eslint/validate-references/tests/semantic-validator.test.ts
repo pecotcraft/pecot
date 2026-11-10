@@ -431,7 +431,7 @@ describe('semantic-validator', () => {
         );
         const categoryErrors = errors.filter((e) => e.rule === 'category/known');
         assert.equal(categoryErrors.length, 1);
-        assert.ok(categoryErrors[0].message.includes('重複'));
+        assert.ok(categoryErrors[0].message.includes('duplicate'));
       });
     });
 

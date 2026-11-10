@@ -83,7 +83,7 @@ function collectPatchDigests(root: string, relative: string, digests: PatchDiges
     entries = readdirSync(directory, { withFileTypes: true })
   }
   catch (error) {
-    return isNotFound(error) ? undefined : `patches ディレクトリを読めません (${directory}): ${describeError(error)}`
+    return isNotFound(error) ? undefined : `cannot read the patches directory: ${directory} (${describeError(error)})`
   }
 
   for (const entry of entries) {
@@ -100,7 +100,7 @@ function collectPatchDigests(root: string, relative: string, digests: PatchDiges
     }
     catch (error) {
       if (isNotFound(error)) continue
-      return `パッチファイルを読めません (${path.join(root, child)}): ${describeError(error)}`
+      return `cannot read the patch file: ${path.join(root, child)} (${describeError(error)})`
     }
   }
   return undefined
@@ -178,7 +178,7 @@ export async function applyPatches(
   const resolvedPatches = realpathOrUndefined(options.patchesDirectory)
   if (resolvedRoot === undefined || resolvedPatches === undefined) {
     return startFailure(
-      `パッチ適用の基準パスを解決できません (${resolvedRoot === undefined ? options.root : options.patchesDirectory})`)
+      `cannot resolve the base path for applying patches: ${resolvedRoot === undefined ? options.root : options.patchesDirectory}`)
   }
 
   const locked = withFlock(options.lockPath, options.nodeCommand ?? process.execPath, [
@@ -211,10 +211,10 @@ patch-dir が実体を指さないときは、`No patch files found` だけを�
 */
 function patchAppShortfall(stdout: string, expected: number): string | undefined {
   if (stdout.includes('No patch files found')) {
-    return `patch-package がパッチを 1 件も見つけませんでした (期待 ${String(expected)} 件)。--patch-dir の指す先が違います。`
+    return `patch-package found no patches (expected ${String(expected)}); --patch-dir points to the wrong directory`
   }
   const applied = (stdout.match(/✔/gu) ?? []).length
-  return applied >= expected ? undefined : `patch-package の適用が ${String(applied)} 件で、期待の ${String(expected)} 件に足りません。`
+  return applied >= expected ? undefined : `patch-package applied ${String(applied)} patches, fewer than the expected ${String(expected)}`
 }
 
 /**

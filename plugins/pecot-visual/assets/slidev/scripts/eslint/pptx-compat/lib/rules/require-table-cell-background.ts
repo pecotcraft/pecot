@@ -140,9 +140,9 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       requireTableCellBackground:
-        'テーブルセル({{tag}})にbackground-colorが無く、<{{ancestor}}>に背景があります。' +
-        'PPTXではtr / thead / tbody / tfoot / col / colgroupの背景は出力されず、セルは透明になります。' +
-        '各セルに同じbackground-colorを明示してください。',
+        'table cell ({{tag}}) has no background-color while <{{ancestor}}> has a background; ' +
+        'PPTX does not output backgrounds of tr / thead / tbody / tfoot / col / colgroup, so the cell becomes transparent ' +
+        '(fix: set the same background-color on each cell)',
     },
   },
 

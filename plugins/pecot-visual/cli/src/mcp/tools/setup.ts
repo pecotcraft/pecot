@@ -94,7 +94,7 @@ async function runRuntimeStage(
   const detail = isInstalled
     ? undefined
     : (spawned.exitCode === 0
-        ? `取得コマンドは成功しましたが ${location ?? '永続層'} から実行時依存を解決できません。`
+        ? `download command succeeded, but runtime dependencies cannot be resolved from ${location ?? 'the persistent location'}`
         : runtimeInstallFailureDetail(spawned))
   return { installed: isInstalled, downloaded: isInstalled, durationMs, location, detail, spawned }
 }
@@ -112,18 +112,18 @@ function runtimeInstallFailureDetail(result: Readonly<RuntimeInstallResult>): st
 */
 function runtimeFailureReason(result: Readonly<RuntimeInstallResult>): string {
   if (result.exitCode === LOCK_CONFLICT_EXIT_CODE) {
-    return `別のプロセスが実行時依存を取得中です (ロック待ちが ${String(LOCK_WAIT_SECONDS)} 秒を超えました)。`
-      + '取得の完了を待ってから再実行してください。'
+    return `another process is downloading runtime dependencies (lock wait exceeded ${String(LOCK_WAIT_SECONDS)} seconds)`
+      + '; wait for it to finish, then run again'
   }
   if (result.timedOut) {
-    return '取得がタイムアウトしました。ネットワーク到達性 / プロキシ設定を確認のうえ再実行してください。'
+    return 'download timed out; check network reachability and the proxy settings, then run again'
   }
   if (result.exitCode === null) {
     return result.signal === null
-      ? 'npm を起動できませんでした (理由は stderr を参照)。'
-      : `取得コマンドが ${result.signal} で中断されました。取得が外部から打ち切られています。`
+      ? 'could not start npm (see stderr for the reason)'
+      : `download command was interrupted by ${result.signal}; the download was cut off externally`
   }
-  return `npm install が exit ${String(result.exitCode)} で終了しました (理由は stderr を参照)。`
+  return `npm install exited with ${String(result.exitCode)} (see stderr for the reason)`
 }
 
 /**
@@ -149,7 +149,7 @@ async function runChromiumStage(
   const detail = isInstalled
     ? undefined
     : (spawned.exitCode === 0
-        ? `取得コマンドは成功しましたが ${location ?? 'browsers ディレクトリ'} に chromium がありません。`
+        ? `download command succeeded, but chromium is not in ${location ?? 'the browsers directory'}`
         : chromiumInstallFailureDetail(spawned))
   return { installed: isInstalled, downloaded: isInstalled && !isInstalledBefore, durationMs, location, detail, spawned }
 }
@@ -179,7 +179,7 @@ async function runHostDependenciesStage(
     }
     case 'installed': {
       dependencies.record('ok')
-      return { ...base, installed: true, downloaded: true, detail: `入れたパッケージ: ${outcome.packages.join(' ')}` }
+      return { ...base, installed: true, downloaded: true, detail: `installed packages: ${outcome.packages.join(' ')}` }
     }
     case 'missing': {
       dependencies.record('missing')
@@ -190,7 +190,7 @@ async function runHostDependenciesStage(
       // 実行ファイルは runChromiumStage が揃えており、起動の失敗は各ツールが案内付きで返す。
       // そのためここでは理由を残して通す (bin/pecotv の `pecotv chromium host-deps` と同じ扱い)。
       dependencies.record('launch-failed')
-      return { ...base, installed: true, downloaded: false, detail: `Chromium を起動できませんでした (OS のライブラリ以外の原因): ${outcome.detail}` }
+      return { ...base, installed: true, downloaded: false, detail: `could not launch Chromium (cause other than OS libraries): ${outcome.detail}` }
     }
   }
 }
@@ -225,12 +225,12 @@ function successMessage(
 ): string {
   const parts = [
     runtime.downloaded
-      ? `実行時依存を取得しました (${String(Math.round(runtime.durationMs / 1000))}s)`
-      : '実行時依存は取得済みです',
+      ? `runtime dependencies downloaded (${String(Math.round(runtime.durationMs / 1000))}s)`
+      : 'runtime dependencies already installed',
     chromium.downloaded
-      ? `Playwright Chromium を取得しました (${String(Math.round(chromium.durationMs / 1000))}s)`
-      : 'Playwright Chromium は取得済みです',
-    ...(hostDependencies.downloaded ? [`Chromium の起動に要る OS のライブラリを入れました (${hostDependencies.detail ?? ''})`] : []),
+      ? `Playwright Chromium downloaded (${String(Math.round(chromium.durationMs / 1000))}s)`
+      : 'Playwright Chromium already installed',
+    ...(hostDependencies.downloaded ? [`OS libraries required to launch Chromium installed (${hostDependencies.detail ?? ''})`] : []),
     // 起動できなかったが OS のライブラリ以外が原因 (launch-failed)。成功のまま理由を伝える。
     ...(hostDependencies.downloaded || hostDependencies.detail === undefined ? [] : [hostDependencies.detail]),
   ]
@@ -295,11 +295,11 @@ export function setupTool(
     // 片方だけを見ると、もう片方の理由が data.<系統>.detail にしか残らず message から
     // 消えるため、失敗した系統を全て畳んで載せる。
     const failures = [
-      ...(runtime.installed ? [] : [{ label: '実行時依存', reason: 'runtime-install-failed', stage: runtime }]),
+      ...(runtime.installed ? [] : [{ label: 'runtime dependencies', reason: 'runtime-install-failed', stage: runtime }]),
       ...(chromium.installed ? [] : [{ label: 'Playwright Chromium', reason: 'chromium-install-failed', stage: chromium }]),
       ...(hostDependencies === undefined || hostDependencies.installed
         ? []
-        : [{ label: 'Chromium の OS ライブラリ', reason: 'chromium-host-deps-missing', stage: hostDependencies }]),
+        : [{ label: 'Chromium OS libraries', reason: 'chromium-host-deps-missing', stage: hostDependencies }]),
     ]
     const detail = failures.map(failure => `${failure.label}: ${failure.stage.detail ?? ''}`).join(' / ')
     // OS ライブラリの失敗は「取得」ではなく「足りない」ことを案内するため、取得の失敗と分ける。
@@ -309,7 +309,7 @@ export function setupTool(
     const message = [
       ...(acquisitionFailures.length === 0
         ? []
-        : [`${acquisitionFailures.map(failure => failure.label).join(' / ')} の取得に失敗しました: `
+        : [`download failed for ${acquisitionFailures.map(failure => failure.label).join(' / ')}: `
           + acquisitionFailures.map(failure => `${failure.label}: ${failure.stage.detail ?? ''}`).join(' / ')]),
       ...(hostDependenciesDetail === undefined ? [] : [hostDependenciesDetail]),
     ].join(' / ')
@@ -332,14 +332,14 @@ export function setupTool(
   return {
     name: 'setup',
     config: {
-      title: '実行環境の準備 (実行時依存 / Chromium 取得と OS ライブラリ)',
-      description: 'pecotv が使う実行時依存 (@slidev/cli / dom-to-pptx / @slidev/parser 等) と Playwright Chromium をダウンロードする。'
-        + 'slide_create / slide_convert / slide_sync が「実行時依存が未取得」で失敗したとき、'
-        + 'また drawio_export / slide_convert / drawio_create の PNG 出力が「Chromium が未取得」で失敗したときに呼ぶ。'
-        + '初回は実行時依存 約 600MB と Chromium 約 120MB をダウンロードするため完了まで数十秒かかる。'
-        + 'Chromium の起動に要る OS のライブラリが足りなければ、sudo を使える環境では apt-get で入れ、'
-        + '使えない環境では入れるコマンドを返す。'
-        + '取得済みなら skip するため短時間で終わる (何度呼んでも安全)。',
+      title: 'Prepare the runtime (runtime dependencies / Chromium download and OS libraries)',
+      description: 'Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. '
+        + 'Call it when slide_create / slide_convert / slide_sync fail with "runtime dependencies are not installed", '
+        + 'or when drawio_export / slide_convert / drawio_create PNG output fails with "Playwright Chromium is not installed". '
+        + 'The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium, so it takes tens of seconds. '
+        + 'If OS libraries needed to launch Chromium are missing, it installs them with apt-get where sudo is available, '
+        + 'and otherwise returns the command to install them. '
+        + 'It skips what is already installed, so it finishes quickly and is safe to call repeatedly.',
       // 引数を取らないツールは空の z.object を渡す (src/mcp/server.ts の ToolConfig)。
       inputSchema: z.object({}),
       outputSchema: TOOL_OUTPUT_SCHEMA,

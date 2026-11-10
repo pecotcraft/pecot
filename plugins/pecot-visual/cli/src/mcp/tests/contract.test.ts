@@ -508,7 +508,7 @@ describe('MCP ツール契約 (tools/list)', () => {
   it.each(TOOL_CONTRACTS)('$name のパス型パラメータが絶対パス必須だと description に書いてある', (contract) => {
     const properties = toolOf(contract.name).inputSchema.properties
     for (const name of contract.pathParameters) {
-      expect(propertyOf(properties, name)['description']).toContain('絶対パス')
+      expect(propertyOf(properties, name)['description']).toContain('Absolute path')
       // 受理する形は description が唯一の手掛かりなので、Windows 形式も同じ行に書く (#1094)。
       expect(propertyOf(properties, name)['description']).toContain('Windows')
     }
@@ -658,7 +658,7 @@ describe('MCP ツール契約 (tools/list)', () => {
 
   it.each(['drawio_create', 'evidence_create'])('%s は生成前に文言を文章規則で確認すると description に書いてある', (name) => {
     // 違反で生成されないことを、呼び出す側が description から読み取れるようにする。
-    expect(toolOf(name).description).toContain('文章規則で確認し、違反があれば生成しない')
+    expect(toolOf(name).description).toContain('against the text rules and generates nothing if there is a violation')
   })
 
   it('即失敗テーブルが setup 以外の全ツールを覆う', () => {

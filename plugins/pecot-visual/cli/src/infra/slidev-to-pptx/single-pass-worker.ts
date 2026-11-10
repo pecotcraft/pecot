@@ -388,7 +388,7 @@ async function waitForGroupRendered(page: Page, groupScope: string): Promise<str
   }
   catch (error) {
     // 時間切れのほか、ページの close / crash もここに来る。原因を理由に残す。
-    return `スライドの読み込みが ${(timeouts.slideVisibility / 1000).toString()} 秒以内に終わりません: ${errorMessage(error)}`
+    return `slide did not finish loading within ${(timeouts.slideVisibility / 1000).toString()} s: ${errorMessage(error)}`
   }
 }
 
@@ -426,11 +426,11 @@ async function detectPrintRoute(page: Page): Promise<PrintRouteProbe> {
   catch {
     return {
       kind: 'undetermined',
-      reason: `print ルートを判定できません（${(CONTAINER_APPEAR_TIMEOUT_MS / 1000).toString()} 秒以内に ${PRINT_ROUTE_PROBE_SELECTOR} が出ません）`,
+      reason: `cannot detect the print route; ${PRINT_ROUTE_PROBE_SELECTOR} did not appear within ${(CONTAINER_APPEAR_TIMEOUT_MS / 1000).toString()} s`,
     }
   }
   const isPresent = await page.evaluate((selector: string) => globalThis.document.querySelector(selector) !== null, PRINT_ROOT_SELECTOR)
-  return isPresent ? { kind: 'present' } : { kind: 'missing', reason: 'デッキの build に print ルートがありません' }
+  return isPresent ? { kind: 'present' } : { kind: 'missing', reason: 'the deck build has no print route' }
 }
 
 /**
@@ -446,7 +446,7 @@ async function waitForContainers(page: Page, totalSteps: number, groupIds: reado
     )
   }
   catch {
-    return `print コンテナが ${(CONTAINER_APPEAR_TIMEOUT_MS / 1000).toString()} 秒以内に出ません`
+    return `print container did not appear within ${(CONTAINER_APPEAR_TIMEOUT_MS / 1000).toString()} s`
   }
   try {
     // コンテナは Vue の描画に合わせて段階的に増えるため、期待数に届くまで待つ。
@@ -464,11 +464,11 @@ async function waitForContainers(page: Page, totalSteps: number, groupIds: reado
     PRINT_CONTAINER_SELECTOR,
   )
   if (ids.length !== totalSteps) {
-    return `print コンテナ数が全走査のステップ数と一致しません（コンテナ ${ids.length.toString()} / ステップ ${totalSteps.toString()}）`
+    return `print container count does not match the step count of the full scan: ${ids.length.toString()} containers, ${totalSteps.toString()} steps`
   }
   const present = new Set(ids)
   const missing = groupIds.filter(id => !present.has(id))
-  return missing.length > 0 ? `ステップに対応する print コンテナが見つかりません（${missing.slice(0, 5).join(', ')}）` : undefined
+  return missing.length > 0 ? `print container not found for steps: ${missing.slice(0, 5).join(', ')}` : undefined
 }
 
 /**
@@ -575,7 +575,7 @@ async function waitSelectorGroupsInContainer(
       })
     }
     catch (error) {
-      unresolved.push(`${group.targetSelector} の ${group.strategySelector} が ${(timeout / 1000).toString()} 秒以内に消えません（${errorMessage(error)}）`)
+      unresolved.push(`${group.targetSelector}: ${group.strategySelector} did not disappear within ${(timeout / 1000).toString()} s: ${errorMessage(error)}`)
     }
   }
   return unresolved
@@ -611,8 +611,8 @@ async function warmupPageB(
       if (groups.length === 0) return
       const unresolved = await waitSelectorGroupsInContainer(page, groups, containerId)
       if (unresolved.length > 0) timedOut.push(containerId)
-      for (const description of unresolved) logger.warn(`  警告: コンテナ ${containerId} のレンダリング待機がタイムアウト: ${description}`)
-      if (unresolved.length === 0) logger.info(`  コンテナ ${containerId}: ${groups.map(group => group.targetSelector).join(', ')} のレンダリング完了を検出`)
+      for (const description of unresolved) logger.warn(`  container ${containerId}: render wait timed out: ${description}`)
+      if (unresolved.length === 0) logger.info(`  container ${containerId}: render completion detected: ${groups.map(group => group.targetSelector).join(', ')}`)
     })
     waitMs += waited
   }
@@ -642,11 +642,11 @@ async function openPageB(
   await hideOtherContainers(pageB, prepared.groupIds)
   const [, gotoB] = await timed(async () => pageB.goto(prepared.url, { waitUntil: 'load' }))
   const notReadyB = await awaitPrintPageReady(pageB, request.totalSteps, prepared.groupIds, prepared.groupScope, logger)
-  if (notReadyB !== undefined) return { reason: `高解像度ページ: ${notReadyB}` }
+  if (notReadyB !== undefined) return { reason: `hiRes page: ${notReadyB}` }
   const warmup = await warmupPageB(pageB, prepared.groupIds, targets, config, logger)
   for (const containerId of warmup.timedOut) prepared.warmupTimedOut.add(containerId)
-  logger.info(`1 パス: 高解像度ページを用意しました（prerender 対象 ${targets.map(target => target.selector).join(', ')}）`)
-  request.onProgress?.('1 パス: 高解像度ページの用意完了')
+  logger.info(`single-pass: hiRes page prepared; prerender targets: ${targets.map(target => target.selector).join(', ')}`)
+  request.onProgress?.('single-pass: hiRes page prepared')
   prepared.pageB = pageB
   prepared.pageBTiming = { goto: gotoB, wait: warmup.waitMs, scrollWarmup: warmup.scrollMs }
   return { page: pageB }
@@ -670,10 +670,10 @@ async function tryOpenPageB(
     reason = openedB.reason
   }
   catch (error) {
-    reason = `高解像度ページを用意できません: ${errorMessage(error)}`
+    reason = `cannot prepare the hiRes page: ${errorMessage(error)}`
   }
   prepared.pageBFailure = reason
-  request.logger.warn(`1 パス: ${reason}（prerender 対象を含むステップは現行方式で変換します）`)
+  request.logger.warn(`single-pass: ${reason}; steps with prerender targets are converted with the current method`)
   return { reason }
 }
 
@@ -721,8 +721,8 @@ async function preparePages(
   const [, cssSettleA] = await timed(async () => waitForCssAnimations(pageA, timeouts.cssAnimationSettle, logger))
   const [, iframeLoadA] = await timed(async () => waitForIframeLoad(pageA, '.artifact-iframe', timeouts.iframeLoad, logger))
   const [, injectA] = await timed(async () => injectDomToPptx(pageA, request.workerConfig.libPath))
-  logger.info(`1 パス: 変換ページを用意しました（${steps.length.toString()} ステップ）`)
-  request.onProgress?.('1 パス: 変換ページの用意完了')
+  logger.info(`single-pass: conversion page prepared for ${steps.length.toString()} steps`)
+  request.onProgress?.('single-pass: conversion page prepared')
 
   const prepared: PreparedPages = {
     kind: 'ready',
@@ -760,7 +760,7 @@ async function ensurePageB(
 ): Promise<Page> {
   if (prepared.pageB !== undefined) return prepared.pageB
   if (prepared.pageBFailure !== undefined) throw new Error(prepared.pageBFailure)
-  request.logger.warn(`1 パス: コンテナ ${containerId} に prerender 対象があるため高解像度ページを開きます（用意の時点では未検出）`)
+  request.logger.warn(`single-pass: container ${containerId} has prerender targets, so opening the hiRes page (not detected at preparation)`)
   const groupTargets = await findPresentTargets(prepared.pageA, config.targets, prepared.groupScope)
   const openedB = await tryOpenPageB(request, config, prepared, groupTargets)
   if ('reason' in openedB) throw new Error(openedB.reason)
@@ -776,7 +776,7 @@ async function containerOrigin(page: Page, containerId: string): Promise<{ x: nu
     const rect = globalThis.document.querySelector(selector)?.getBoundingClientRect()
     return rect === undefined ? undefined : { x: rect.x, y: rect.y }
   }, containerScopeSelector(containerId))
-  if (origin === undefined) throw new Error(`ステップに対応する print コンテナが見つかりません（${containerId}）`)
+  if (origin === undefined) throw new Error(`print container not found for step: ${containerId}`)
   return origin
 }
 
@@ -816,7 +816,7 @@ async function prerenderInContainer(request: Readonly<ContainerPrerenderRequest>
     let hiResElements: Awaited<ReturnType<typeof locateTargetsInVisibleSlides>> = []
     // ページ A / B はグループ全体で使い続けるため、ターゲットごとにハンドルを解放する
     try {
-      logger.verbose(`  ${target.selector}: ${elements.length.toString()}件検出`)
+      logger.verbose(`  ${target.selector}: ${elements.length.toString()} found`)
       if (elements.length === 0) continue
       origin ??= await containerOrigin(pageA, containerId)
       if (!isScrolled) {
@@ -835,13 +835,13 @@ async function prerenderInContainer(request: Readonly<ContainerPrerenderRequest>
         const recheckCap = warmupTimedOut.has(containerId) ? PRE_CAPTURE_RECHECK_TIMEOUT_MS : undefined
         const unresolved = await waitSelectorGroupsInContainer(pageB, selectorWaitGroups(targets, config), containerId, recheckCap)
         if (unresolved.length > 0) {
-          throw new Error(`高解像度ページで prerender 対象の読み込みが終わりません（コンテナ ${containerId}: ${unresolved.join(' / ')}）`)
+          throw new Error(`prerender targets did not finish loading on the hiRes page: container ${containerId}: ${unresolved.join(' / ')}`)
         }
       }
       hiResElements = await locateTargetsInVisibleSlides(pageB, target.selector, scope)
-      logger.verbose(`  ${target.selector}: ${hiResElements.length.toString()}件検出 (hiRes)`)
+      logger.verbose(`  ${target.selector}: ${hiResElements.length.toString()} found (hiRes)`)
       if (elements.length !== hiResElements.length) {
-        logger.warn(`  警告: ${target.selector} の検出数が不一致 (page: ${elements.length.toString()}, hiRes: ${hiResElements.length.toString()})`)
+        logger.warn(`  ${target.selector}: detected count mismatch (page: ${elements.length.toString()}, hiRes: ${hiResElements.length.toString()})`)
       }
       const capture = await captureAndReplaceElements({
         hiResPage: pageB,
@@ -858,10 +858,10 @@ async function prerenderInContainer(request: Readonly<ContainerPrerenderRequest>
       results.push(...capture.results)
       globalIndex += capture.processedCount
       if (capture.count > 0) {
-        logger.info(`  プリレンダリング: ${target.selector} → ${capture.count.toString()}件を画像化 (${config.deviceScaleFactor.toString()}x)`)
+        logger.info(`  prerender: ${target.selector} → ${capture.count.toString()} rendered to images (${config.deviceScaleFactor.toString()}x)`)
       }
       if (capture.errors.length > 0) {
-        logger.warn(`  警告: ${target.selector} で ${capture.errors.length.toString()}件のエラー`)
+        logger.warn(`  ${target.selector}: ${capture.errors.length.toString()} errors`)
         for (const error of capture.errors) logger.warn(`    - ${error}`)
       }
     }
@@ -897,7 +897,7 @@ async function cleanupBestEffort(logger: Logger, label: string, cleanup: () => P
     await cleanup()
   }
   catch (error) {
-    logger.warn(`1 パス: ${label}に失敗しました: ${errorMessage(error)}`)
+    logger.warn(`single-pass: ${label} failed: ${errorMessage(error)}`)
   }
 }
 
@@ -915,7 +915,7 @@ async function convertStepInPrintPage(
   const containerId = printContainerId(step)
   const scope = containerScopeSelector(containerId)
   const stepIndex = stepIndexOf(step)
-  logger.info(`\nスライド #${stepKeyOf(step)} を変換中（1 パス、コンテナ ${containerId}）...`)
+  logger.info(`\nconverting slide #${stepKeyOf(step)} (single-pass, container ${containerId})...`)
 
   let prerenderMs: number
   let convertMs: number
@@ -956,8 +956,8 @@ async function convertStepInPrintPage(
   finally {
     // 2 つの後始末は互いに独立させ、失敗しても try 内の元の例外を優先する
     ;[, restoreMs] = await timed(async () => {
-      await cleanupBestEffort(logger, `除外目印の解除（コンテナ ${containerId}）`, async () => setIgnoredMarks(prepared.pageA))
-      await cleanupBestEffort(logger, `prerender 差し替えの復元（コンテナ ${containerId}）`, async () => restorePrerenderElements(prepared.pageA, logger, scope))
+      await cleanupBestEffort(logger, `clearing exclusion marks (container ${containerId})`, async () => setIgnoredMarks(prepared.pageA))
+      await cleanupBestEffort(logger, `restoring prerender replacements (container ${containerId})`, async () => restorePrerenderElements(prepared.pageA, logger, scope))
     })
   }
 
@@ -1033,11 +1033,11 @@ async function runFallbackSteps(
     try {
       const value = await request.fallbackRunner(request.browser, step, request.workerConfig, request.slidesDir, request.logger)
       settled.set(index, { status: 'fulfilled', value })
-      request.onProgress?.(`スライド #${stepKeyOf(step)} 変換完了`)
+      request.onProgress?.(`slide #${stepKeyOf(step)} converted`)
     }
     catch (error) {
       settled.set(index, { status: 'rejected', reason: error })
-      request.onProgress?.(`スライド #${stepKeyOf(step)} 変換失敗`)
+      request.onProgress?.(`slide #${stepKeyOf(step)} conversion failed`)
     }
     request.onStepDone?.(step)
   }
@@ -1053,7 +1053,7 @@ function orderedSettled(
   return steps.map((step, index): PromiseSettledResult<SlideConvertResult> =>
     settled.get(index)
     /* c8 ignore next -- 全ステップは 1 パス変換か現行 worker の結果を必ず持つ。防御網 */
-    ?? { status: 'rejected', reason: new Error(`スライド #${stepKeyOf(step)} が未変換です`) },
+    ?? { status: 'rejected', reason: new Error(`slide #${stepKeyOf(step)} was not converted`) },
   )
 }
 
@@ -1087,7 +1087,7 @@ async function convertGroup(
       prepared = await preparePages(request, steps, config, contexts, opened)
     }
     catch (error) {
-      prepared = { kind: 'notReady', reason: `print ページを用意できません: ${errorMessage(error)}` }
+      prepared = { kind: 'notReady', reason: `cannot prepare the print page: ${errorMessage(error)}` }
     }
     if (prepared.kind === 'printRouteMissing') {
       printRouteMissing = prepared.reason
@@ -1103,14 +1103,14 @@ async function convertGroup(
         try {
           const value = await convertStepInPrintPage(prepared, step, request, config)
           settled.set(index, { status: 'fulfilled', value })
-          request.onProgress?.(`スライド #${stepKeyOf(step)} 変換完了`)
+          request.onProgress?.(`slide #${stepKeyOf(step)} converted`)
           request.onStepDone?.(step)
         }
         catch (error) {
-          logger.warn(`1 パス: スライド #${stepKeyOf(step)} の変換に失敗したため現行方式で変換し直します: ${errorMessage(error)}`)
+          logger.warn(`single-pass: slide #${stepKeyOf(step)} conversion failed, so converting again with the current method: ${errorMessage(error)}`)
           failed.push({ index, step })
-          stepFallbacks.push(`スライド #${stepKeyOf(step)}: ${errorMessage(error)}`)
-          request.onProgress?.(`スライド #${stepKeyOf(step)} 1 パス変換失敗`)
+          stepFallbacks.push(`slide #${stepKeyOf(step)}: ${errorMessage(error)}`)
+          request.onProgress?.(`slide #${stepKeyOf(step)} single-pass conversion failed`)
         }
       }
       // 高解像度ページはステップ処理中に開くことがあるため、ループの後で載せる
@@ -1167,7 +1167,7 @@ export async function convertStepsSinglePass(request: SinglePassRequest): Promis
   const startedAt = performance.now()
   const config = request.prerenderConfig ?? defaultPrerenderConfig
   const groups = partitionStepsBySlide(request.steps, request.concurrency)
-  request.logger.info(`1 パス: ${request.steps.length.toString()} ステップを ${groups.length.toString()} グループに分けて変換します`)
+  request.logger.info(`single-pass: converting ${request.steps.length.toString()} steps in ${groups.length.toString()} groups`)
   const contexts = createRunContexts(request.browser, config)
   let settledGroups: PromiseSettledResult<GroupOutcome>[]
   // 全グループの settle までの経過時間。print ルートの不在で退避する run の detectMs に使う
@@ -1213,14 +1213,14 @@ export async function convertStepsSinglePass(request: SinglePassRequest): Promis
     }
     groupTimings.push(timing)
     for (const step of fallbackSteps) fallbackStepSet.add(step)
-    if (timing.fallback !== undefined) fallbacks.push(`スライド ${timing.slides.join(',')}: ${timing.fallback}`)
+    if (timing.fallback !== undefined) fallbacks.push(`slide ${timing.slides.join(',')}: ${timing.fallback}`)
     fallbacks.push(...stepFallbacks)
   }
 
   const results = request.steps.map((step): PromiseSettledResult<SlideConvertResult> =>
     resultOf.get(step)
     /* c8 ignore next -- 各ステップはちょうど 1 つのグループに属し結果を持つ。防御網 */
-    ?? { status: 'rejected', reason: new Error(`スライド #${stepKeyOf(step)} が未変換です`) },
+    ?? { status: 'rejected', reason: new Error(`slide #${stepKeyOf(step)} was not converted`) },
   )
   return {
     kind: 'converted',

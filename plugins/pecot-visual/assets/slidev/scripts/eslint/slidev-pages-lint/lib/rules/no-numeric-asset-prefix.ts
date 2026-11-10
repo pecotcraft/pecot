@@ -59,7 +59,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       numericAssetPrefix:
-        '画像ファイル名が数字で始まっています: {{fileName}}。スライドを入れ替えると番号が実態からずれるため、画像ファイル名を数字で始めないでください。場面ベースの英語名（例: lib-circleci-success.png）にリネームし、参照パスを更新してください。',
+        'image file name starts with a digit: {{fileName}}; the number drifts from the real order when slides are swapped (fix: rename it to a scene-based English name such as lib-circleci-success.png and update the reference paths)',
     },
   },
 

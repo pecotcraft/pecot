@@ -213,7 +213,7 @@ function stripXmlComments(xml: string): string {
  */
 function scanCells(xml: string): Cell[] {
   if (typeof xml !== 'string' || xml.trim() === '') {
-    throw new DrawioGeometryError('empty-xml', 'draw.io の XML が空です')
+    throw new DrawioGeometryError('empty-xml', 'draw.io XML is empty')
   }
   const source = stripXmlComments(xml)
 
@@ -238,7 +238,7 @@ function scanCells(xml: string): Cell[] {
       if (top?.name === 'diagram' && !top.hasChild && between.trim() !== '') {
         throw new DrawioGeometryError(
           'compressed',
-          '圧縮形式の <diagram> は非対応です。draw.io の「ファイル → プロパティ → 圧縮」を外して保存してください'
+          'compressed <diagram> is not supported (fix: turn off File > Properties > Compressed in draw.io and save)'
         )
       }
       if (name === 'mxCell') current = null
@@ -253,7 +253,7 @@ function scanCells(xml: string): Cell[] {
     if (name === 'object' || name === 'UserObject') {
       throw new DrawioGeometryError(
         'wrapped-cell',
-        `<${name}> で包んだセルは非対応です（セルにプロパティやリンクを付けると生成されます）。プロパティを外した mxCell にしてください`
+        `cell wrapped in <${name}> is not supported; it is generated when a cell has properties or a link (fix: remove the properties so the cell is a plain mxCell)`
       )
     }
     if (name === 'diagram') {
@@ -261,7 +261,7 @@ function scanCells(xml: string): Cell[] {
       if (diagramCount > 1) {
         throw new DrawioGeometryError(
           'multi-page',
-          '複数ページの draw.io ファイルは非対応です。1 ページだけのファイルにしてください'
+          'multi-page draw.io file is not supported (fix: use a file with one page)'
         )
       }
     }
@@ -307,7 +307,7 @@ function scanCells(xml: string): Cell[] {
   }
 
   if (modelCount === 0) {
-    throw new DrawioGeometryError('no-model', 'draw.io の XML に <mxGraphModel> がありません')
+    throw new DrawioGeometryError('no-model', 'draw.io XML has no <mxGraphModel>')
   }
   return cells
 }
@@ -424,28 +424,28 @@ export function parseDrawio(xml: string): DrawioModel {
 export function resolveCellRect(model: DrawioModel, cellId: string): CellRect {
   const cell = model.byId.get(cellId)
   if (!cell) {
-    throw new DrawioGeometryError('unknown-cell', `セル "${cellId}" が図にありません`)
+    throw new DrawioGeometryError('unknown-cell', `cell not found in the diagram: ${cellId}`)
   }
   if (cell.edge) {
     throw new DrawioGeometryError(
       'edge-cell',
-      `セル "${cellId}" は線（edge）です。マーカーは図形（vertex）の ID を指定してください`
+      `cell is an edge: ${cellId} (fix: give the ID of a vertex for the marker)`
     )
   }
   if (!cell.vertex) {
     throw new DrawioGeometryError(
       'not-vertex',
-      `セル "${cellId}" はレイヤ等の図形でないセルです。図形（vertex）の ID を指定してください`
+      `cell is not a vertex, such as a layer: ${cellId} (fix: give the ID of a vertex)`
     )
   }
   if (model.isHidden(cell)) {
-    throw new DrawioGeometryError('hidden-cell', `セル "${cellId}" は非表示（visible="0"）です`)
+    throw new DrawioGeometryError('hidden-cell', `cell is hidden (visible="0"): ${cellId}`)
   }
   const rect = model.vertexRect(cell)
   if (!rect) {
     throw new DrawioGeometryError(
       'relative-cell',
-      `セル "${cellId}" は親に対する相対配置（relative="1"）のため位置を決められません`
+      `cell is placed relative to its parent (relative="1"), so its position cannot be determined: ${cellId}`
     )
   }
   return { ...rect, crisp: crispOffsetOf(strokeOf(cell.style).width) }

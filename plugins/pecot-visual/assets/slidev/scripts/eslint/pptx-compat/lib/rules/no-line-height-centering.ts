@@ -58,15 +58,13 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       lineHeightCentering:
-        'heightと同値のline-height（{{value}}）で縦中央寄せしていますが、' +
-        'vertical-align:middle が無いため PPTX 変換では anchor が top のままとなり縦中央寄せになりません。' +
-        'vertical-align:middle を併用して縦中央寄せを成立させるか、' +
-        'line-heightを相対値（1.15等）にしてください。',
+        'line-height equal to height ({{value}}) is used for vertical centering; ' +
+        'without vertical-align:middle the PPTX anchor stays top, so the text is not vertically centered ' +
+        '(fix: add vertical-align:middle, or use a relative line-height such as 1.15)',
       parentDependentLineHeight:
-        '親依存サイズ（width:100%; height:100%）の要素で絶対line-height（{{value}}）が検出されました。' +
-        'vertical-align:middle が無いため PPTX 変換では anchor が top のままとなり縦中央寄せになりません。' +
-        'vertical-align:middle を併用して縦中央寄せを成立させるか、' +
-        'line-heightを相対値（1.5等）にしてください。',
+        'absolute line-height ({{value}}) on an element sized by its parent (width:100%; height:100%); ' +
+        'without vertical-align:middle the PPTX anchor stays top, so the text is not vertically centered ' +
+        '(fix: add vertical-align:middle, or use a relative line-height such as 1.5)',
     },
   },
 

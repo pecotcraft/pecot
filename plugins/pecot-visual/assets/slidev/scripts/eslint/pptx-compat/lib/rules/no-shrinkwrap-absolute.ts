@@ -135,9 +135,9 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       shrinkwrapHorizontal:
-        'position:{{position}}で水平方向がshrink-wrapされています（セレクタ: {{selector}}）。' +
-        'PPTX変換ではテキストボックス幅がテキスト実寸になり、フォント差で折り返しが発生します。' +
-        'right:0 または width を追加するか、white-space:nowrap で折り返しを禁止してください。',
+        'position:{{position}} is shrink-wrapped horizontally (selector: {{selector}}); ' +
+        'in PPTX conversion the text box width becomes the measured text width, so font differences cause line wraps ' +
+        '(fix: add right:0 or a width, or prevent wrapping with white-space:nowrap)',
     },
   },
 

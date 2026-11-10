@@ -192,7 +192,7 @@ describe('executeSlideCreate (smoke)', () => {
       .toBeLessThan(figureSection.indexOf('[deprecated] legacy-panel:'))
 
     // 分類を読み取れなかったときだけ出る warn が出ていないこと。
-    expect(stderr.chunks.join('')).not.toContain('見せ方の分類を読み取れませんでした')
+    expect(stderr.chunks.join('')).not.toContain('cannot read the layout categories')
   })
 
   it('fixture テーマ: 宣言の examples から初期ページを作り、生成する vite.config.ts はテーマの name だけで決まる', async () => {
@@ -379,7 +379,7 @@ describe('executeSlideCreate (smoke)', () => {
       dependencies,
     )
 
-    expect(data['warnings']).toEqual(expect.arrayContaining([expect.stringContaining('pptx.linkColor を省いた')]))
+    expect(data['warnings']).toEqual(expect.arrayContaining([expect.stringContaining('pptx.linkColor is omitted')]))
   })
 
   it('emitCatalog: false では layout catalog を stdout に流さない', async () => {
@@ -419,7 +419,7 @@ describe('createSlideCreateCommand', () => {
 
     await command.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
     const written = stdout.chunks.join('')
-    expect(written).toContain(`slide create: 成功 (${projectDirectory})`)
+    expect(written).toContain(`slide create: success (${projectDirectory})`)
     expect(written).toContain(`  theme=${DECLARED_THEME_NAME}, 0ms`)
     expect(written).toContain('Layout Catalog')
   })
@@ -456,7 +456,7 @@ describe('createSlideCreateCommand', () => {
     const previousExitCode = process.exitCode
     try {
       await command2.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide create 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide create failed:')
     }
     finally {
       process.exitCode = previousExitCode

@@ -37,7 +37,7 @@ export function fullWidthEquivalent(text: string): number {
 const STRONG_TAG_PATTERN = /<strong(?:\s[^>]*)?>([\s\S]*?)<\/strong\s*>/gi;
 
 export const BOLD_REQUIRED_MESSAGE =
-  '要点の太字強調がありません（要点だけを <strong>…</strong> で囲んでください。全文を囲むと強調になりません。<b> と Markdown の ** は不可）';
+  'no bold emphasis on the key point (fix: wrap only the key point in <strong>…</strong>; wrapping the whole text is not emphasis; <b> and Markdown ** are not allowed)';
 
 // 全文が strong に覆われていると強調の対比が消えるため、強調とみなさない。
 // 複数の strong で分割して全文を覆うケースも同じ扱いにする。
@@ -64,7 +64,7 @@ export function hasBoldEmphasis(text: string): boolean {
 const EM_TAG_PATTERN = /<em(?:\s[^>]*)?>/i;
 
 export const EM_DISALLOWED_MESSAGE =
-  '<em> は使えません（強調は <strong> のみ。<em> は削除して語句だけ残してください）';
+  '<em> is not allowed; use <strong> for emphasis only (fix: remove <em> and keep the words)';
 
 export function hasDisallowedEmTag(text: string): boolean {
   if (typeof text !== 'string') {
@@ -107,7 +107,7 @@ export function validateText(
   if (minChars != null && fwe < minChars) {
     errors.push({
       type: 'minChars',
-      message: `${fwe}文字です（最小${minChars}文字）`,
+      message: `${fwe} chars (min: ${minChars})`,
       actual: fwe,
       limit: minChars,
     });
@@ -117,7 +117,7 @@ export function validateText(
   if (maxChars != null && fwe > maxChars) {
     errors.push({
       type: 'maxChars',
-      message: `${fwe}文字です（最大${maxChars}文字）`,
+      message: `${fwe} chars (max: ${maxChars})`,
       actual: fwe,
       limit: maxChars,
     });

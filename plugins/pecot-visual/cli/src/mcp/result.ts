@@ -29,7 +29,7 @@ const OUTPUT_CAPTURE_LIMIT_BYTES = 64 * 1024
 /**
 切り詰めが起きたことを text() の先頭に 1 行で明示するマーカー。
 */
-const TRUNCATION_MARKER = `[pecotv] 出力が上限 ${String(OUTPUT_CAPTURE_LIMIT_BYTES)} バイトを超えたため、先頭を切り詰めました\n`
+const TRUNCATION_MARKER = `[pecotv] output exceeded the ${String(OUTPUT_CAPTURE_LIMIT_BYTES)}-byte limit; the beginning was truncated\n`
 
 export interface ToolResult {
   /**
@@ -175,8 +175,8 @@ export function parsePathArguments<Output extends Readonly<Record<string, unknow
 
   if (invalidPaths.length > 0) {
     const messages = [
-      ...(unsupportedDetails.length > 0 ? [`Windows 形式のパスを解決できません: ${unsupportedDetails.join(' / ')}`] : []),
-      ...(relativePaths.length > 0 ? [`パスは絶対パスで指定してください: ${relativePaths.join(', ')}`] : []),
+      ...(unsupportedDetails.length > 0 ? [`cannot resolve Windows-style path: ${unsupportedDetails.join(' / ')}`] : []),
+      ...(relativePaths.length > 0 ? [`must be an absolute path: ${relativePaths.join(', ')}`] : []),
     ]
     return {
       rejected: {
@@ -184,7 +184,7 @@ export function parsePathArguments<Output extends Readonly<Record<string, unknow
         exitCode: USAGE_ERROR_EXIT_CODE,
         artifacts: [],
         data: { invalidPaths, ...convertedPart },
-        message: messages.join(' / '),
+        message: messages.join('; '),
       },
     }
   }

@@ -137,7 +137,7 @@ export async function assertTalkDirectory(
 ): Promise<void> {
   if (!path.isAbsolute(directory)) {
     throw new SlideLintUsageError(
-      `--dir には絶対パスを指定してください (受け取った値: '${directory}')`,
+      `--dir must be an absolute path: ${directory}`,
       'relative-dir',
     )
   }
@@ -145,13 +145,13 @@ export async function assertTalkDirectory(
   const info = await fs.talkDirectoryExists(directory)
   if (!info.exists) {
     throw new SlideLintRuntimeError(
-      `'${directory}' はディレクトリとして存在しません`,
+      `directory not found: ${directory}`,
       'dir-not-found',
     )
   }
   if (!info.isDirectory) {
     throw new SlideLintRuntimeError(
-      `'${directory}' はディレクトリではありません`,
+      `not a directory: ${directory}`,
       'not-a-directory',
     )
   }
@@ -159,8 +159,8 @@ export async function assertTalkDirectory(
   const hasSlidesMd = await fs.doesSlidesMdExist(directory)
   if (!hasSlidesMd) {
     throw new SlideLintRuntimeError(
-      `'${directory}' に slides.md が無いため talk-dir として扱えません。`
-      + ' pecotv slide create で作成された talk-dir を指定してください。',
+      `not a talk-dir (no slides.md): ${directory}; `
+      + 'specify a talk-dir created by pecotv slide create',
       'not-talk-dir',
     )
   }
@@ -191,19 +191,19 @@ export async function runSlideLint(
   // timedOut 時も SIGTERM で exitCode は null になるため、起動失敗より先に判定する。
   if (result.timedOut) {
     throw new SlideLintRuntimeError(
-      `eslint が時間内に終了しませんでした: ${summarizeStderr(result.stderr)}`,
+      `eslint did not finish in time: ${summarizeStderr(result.stderr)}`,
       'eslint-timeout',
     )
   }
   if (result.exitCode === null) {
     throw new SlideLintRuntimeError(
-      `eslint の起動に失敗しました: ${summarizeStderr(result.stderr)}`,
+      `eslint failed to start: ${summarizeStderr(result.stderr)}`,
       'eslint-not-launched',
     )
   }
   if (result.exitCode !== 0 && result.exitCode !== 1) {
     throw new SlideLintRuntimeError(
-      `eslint が異常終了しました (exit ${String(result.exitCode)}): ${summarizeStderr(result.stderr)}`,
+      `eslint exited abnormally (exit ${String(result.exitCode)}): ${summarizeStderr(result.stderr)}`,
       'eslint-failed',
     )
   }
@@ -240,13 +240,13 @@ function parseEslintReport(stdout: string): readonly EslintJsonFileReport[] {
   }
   catch (error: unknown) {
     throw new SlideLintRuntimeError(
-      `eslint の JSON 出力を解析できませんでした: ${formatError(error)}`,
+      `cannot parse the eslint JSON output: ${formatError(error)}`,
       'invalid-report',
     )
   }
   if (!Array.isArray(parsed)) {
     throw new SlideLintRuntimeError(
-      'eslint の JSON 出力が配列ではありません',
+      'eslint JSON output is not an array',
       'invalid-report',
     )
   }
@@ -310,7 +310,7 @@ const STDERR_EXCERPT_LIMIT = 400
 
 function summarizeStderr(stderr: string): string {
   const trimmed = stderr.trim()
-  if (trimmed === '') return '(stderr なし)'
+  if (trimmed === '') return '(no stderr)'
   if (trimmed.length <= STDERR_EXCERPT_LIMIT) return trimmed
   return `${trimmed.slice(0, STDERR_EXCERPT_LIMIT)}...`
 }

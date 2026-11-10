@@ -159,8 +159,8 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
     }
     catch (error) {
       const message = sanitizeErrorMessage(error)
-      logger.warn(`  警告: ${target.selector}[${i.toString()}] (スライド${slideNum.toString()}): boundingBox取得失敗 — ${message}`)
-      recordFailure(i, `boundingBox取得失敗: ${message}`)
+      logger.warn(`  ${target.selector}[${i.toString()}] (slide ${slideNum.toString()}): boundingBox lookup failed: ${message}`)
+      recordFailure(i, `boundingBox lookup failed: ${message}`)
       boxes.push(null)
     }
   }
@@ -177,9 +177,9 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
   記録の形（warn 文言・error 接頭辞・3 配列への push）は下の catch と揃える。
   */
   const recordInvisible = (index: number): void => {
-    const reason = '要素が不可視（boundingBox が null）'
-    logger.warn(`  警告: ${target.selector}[${index.toString()}] (スライド${slideNum.toString()}): hiResスクリーンショット失敗 — ${reason}`)
-    recordFailure(index, `hiResスクリーンショット失敗: ${reason}`)
+    const reason = 'element is not visible (boundingBox is null)'
+    logger.warn(`  ${target.selector}[${index.toString()}] (slide ${slideNum.toString()}): hiRes screenshot failed: ${reason}`)
+    recordFailure(index, `hiRes screenshot failed: ${reason}`)
     screenshots.push(null)
     hiResBoxes.push(null)
   }
@@ -193,7 +193,7 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
         const offscreen = hiResBox && viewportSize && isElementOffscreen(hiResBox, viewportSize)
 
         if (offscreen) {
-          logger.debug(`  [${i.toString()}] ビューポート外 — hiResで一時移動してキャプチャ`)
+          logger.debug(`  [${i.toString()}] outside the viewport; moving temporarily to capture at hiRes`)
           const savedTransforms = await hiResElement.evaluate((element_: HTMLElement) => {
             const saved: SavedTransformEntry[] = []
             let ancestor: HTMLElement | null = element_.parentElement
@@ -225,7 +225,7 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
           try {
             await hiResPage.waitForTimeout(100)
             hiResBox = await hiResElement.boundingBox()
-            logger.debug(`  [${i.toString()}] 一時移動後 hiRes boundingBox: ${hiResBox ? `w=${hiResBox.width.toFixed(1)} h=${hiResBox.height.toFixed(1)}` : 'null'}`)
+            logger.debug(`  [${i.toString()}] hiRes boundingBox after temporary move: ${hiResBox ? `w=${hiResBox.width.toFixed(1)} h=${hiResBox.height.toFixed(1)}` : 'null'}`)
 
             // 一時移動しても box が返らない要素は、撮らずに失敗とする（screenshot の可視化待ちを回避）。
             if (hiResBox === null) {
@@ -288,8 +288,8 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
       }
       catch (error) {
         const message = sanitizeErrorMessage(error)
-        logger.warn(`  警告: ${target.selector}[${i.toString()}] (スライド${slideNum.toString()}): hiResスクリーンショット失敗 — ${message}`)
-        recordFailure(i, `hiResスクリーンショット失敗: ${message}`)
+        logger.warn(`  ${target.selector}[${i.toString()}] (slide ${slideNum.toString()}): hiRes screenshot failed: ${message}`)
+        recordFailure(i, `hiRes screenshot failed: ${message}`)
         screenshots.push(null)
         hiResBoxes.push(null)
       }
@@ -308,14 +308,14 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
       const fileIndex = globalIndex + i
       const hiResPath = join(slidesDir, `prerender-slide${slideNum.toString()}-${fileIndex.toString()}.png`)
       await writeFile(hiResPath, screenshot)
-      logger.info(`  高解像度画像: prerender-slide${slideNum.toString()}-${fileIndex.toString()}.png (${(screenshot.length / 1024).toFixed(0)} KB)`)
+      logger.info(`  hiRes image: prerender-slide${slideNum.toString()}-${fileIndex.toString()}.png (${(screenshot.length / 1024).toFixed(0)} KB)`)
 
       const base64 = screenshot.toString('base64')
       const dataUrl = `data:image/png;base64,${base64}`
 
       const box = boxes[i]
       if (!box) {
-        logger.warn(`  警告: ${target.selector}[${i.toString()}] (スライド${slideNum.toString()}): boundingBox が null — 要素が不可視またはサイズゼロ`)
+        logger.warn(`  ${target.selector}[${i.toString()}] (slide ${slideNum.toString()}): boundingBox is null; element is not visible or has zero size`)
         recordFailure(i, 'boundingBox is null')
         continue
       }
@@ -334,14 +334,14 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
 
       const hiResBox = hiResBoxes[i]
       if (!hiResBox) {
-        logger.warn(`  警告: ${target.selector}[${i.toString()}] (スライド${slideNum.toString()}): hiRes boundingBox が null`)
+        logger.warn(`  ${target.selector}[${i.toString()}] (slide ${slideNum.toString()}): hiRes boundingBox is null`)
         recordFailure(i, 'hiRes boundingBox is null')
         continue
       }
       const actualWidth = Math.round(hiResBox.width * config.deviceScaleFactor)
       const actualHeight = Math.round(hiResBox.height * config.deviceScaleFactor)
 
-      logger.debug(`  DOM置換: ${target.selector}[${i.toString()}] → img (${actualWidth.toString()}x${actualHeight.toString()})`)
+      logger.debug(`  DOM replaced: ${target.selector}[${i.toString()}] → img (${actualWidth.toString()}x${actualHeight.toString()})`)
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- elements[i] は上限内で non-null
       await elements[i]!.evaluate((element_: HTMLElement, { dataUrl: dataUrlInner, cssWidth, cssHeight, actualWidth: actualW, actualHeight: actualH, clipPadding }) => {
         const cs = window.getComputedStyle(element_)
@@ -377,7 +377,7 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
     }
     catch (error) {
       const message = sanitizeErrorMessage(error)
-      logger.warn(`  警告: ${target.selector}[${i.toString()}] (スライド${slideNum.toString()}): ${message}`)
+      logger.warn(`  ${target.selector}[${i.toString()}] (slide ${slideNum.toString()}): ${message}`)
       recordFailure(i, message)
       errors.push(message)
     }

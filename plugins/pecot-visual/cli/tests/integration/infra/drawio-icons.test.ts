@@ -53,7 +53,7 @@ describe('createIconResolver', () => {
       },
     })
     expect(resolve('missing')).toBeUndefined()
-    expect(warnings.some(w => w.includes('アイコンが見つかりません'))).toBe(true)
+    expect(warnings.some(w => w.includes('icon not found'))).toBe(true)
   })
 
   it('iconRoot 外への path traversal は undefined を返し warn を呼ぶ', () => {
@@ -64,7 +64,7 @@ describe('createIconResolver', () => {
     })
     // ../foo は sub の親に出る (許可されない)
     expect(resolve('../foo')).toBeUndefined()
-    expect(warnings.some(w => w.includes('iconRoot 外'))).toBe(true)
+    expect(warnings.some(w => w.includes('outside iconRoot'))).toBe(true)
   })
 
   it('warn 未指定の場合は警告を捨てる（throw しない）', () => {
@@ -82,7 +82,7 @@ describe('createIconResolver', () => {
       },
     })
     expect(resolve('')).toBeUndefined()
-    expect(warnings.some(w => w.includes('空のアイコンパス'))).toBe(true)
+    expect(warnings.some(w => w.includes('empty icon path'))).toBe(true)
   })
 
   it('/ 単独 relativePath も早期 reject', () => {

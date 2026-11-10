@@ -193,7 +193,7 @@ describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', ()
 
     await runCli(['--input', specPath, '--out', out])
 
-    expect(stdout.chunks.join('')).toBe(`生成しました: ${out}\n項目数: 1 / 注記数: 0\n`)
+    expect(stdout.chunks.join('')).toBe(`created: ${out}\nitems: 1 / annotations: 0\n`)
     expect(existsSync(out)).toBe(true)
   })
 
@@ -278,7 +278,7 @@ describe('pecotv evidence create — 混在入力 (FR-006)', () => {
     await runCli(['--input', specPath, '--out', out])
 
     expect(stdout.chunks.join('')).toBe(
-      `生成しました: ${out}\n項目数: 1 / 注記数: 0\n除外: 1 件\n  - ${missing} (not-found)\n`,
+      `created: ${out}\nitems: 1 / annotations: 0\nskipped: 1\n  - ${missing} (not-found)\n`,
     )
   })
 })
@@ -407,7 +407,7 @@ describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
 
     await runCli(['--input', specPath, '--out', out])
 
-    expect(stdout.chunks.join('')).toBe(`生成しました: ${out}\n項目数: 1 / 注記数: 2\n`)
+    expect(stdout.chunks.join('')).toBe(`created: ${out}\nitems: 1 / annotations: 2\n`)
   })
 })
 
@@ -545,8 +545,8 @@ describe('pecotv evidence create — 失敗系', () => {
     }
 
     const written = stderr.chunks.join('')
-    expect(written).toContain('items[0].annotations[0].box.w: x + w が 1 を超えます')
-    expect(written).toContain('items[0].annotations[1]: arrow の from と to が同一座標です')
+    expect(written).toContain('items[0].annotations[0].box.w: x + w exceeds 1')
+    expect(written).toContain('items[0].annotations[1]: arrow from and to must not be the same point')
     expect(existsSync(out)).toBe(false)
   })
 

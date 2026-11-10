@@ -123,7 +123,7 @@ function checkTextConstraintKeys(data: ReferenceData): SemanticError[] {
       if (!ALLOWED_CONSTRAINT_KEYS.has(key)) {
         errors.push({
           rule: 'text-constraints/allowed-keys',
-          message: `${field}: 許可されていないキー "${key}" が含まれています（許可: ${[...ALLOWED_CONSTRAINT_KEYS].join(', ')}）`,
+          message: `${field}: key not allowed: ${key} (allowed: ${[...ALLOWED_CONSTRAINT_KEYS].join(', ')})`,
         });
       }
     }
@@ -134,7 +134,7 @@ function checkTextConstraintKeys(data: ReferenceData): SemanticError[] {
 
 // テンプレート未同期の talk-dir で分類違反が出たときの復旧導線。分類まわりの
 // 違反は「語彙を覚え違えた」より「テンプレートが古い」ほうが多いため必ず添える。
-const CATEGORY_SYNC_HINT = '（`slide_sync` でテンプレートを同期すると解消します）';
+const CATEGORY_SYNC_HINT = ' (fix: sync the templates with `slide_sync`)';
 
 /**
  * `_common.yaml` が宣言する見せ方の分類語彙そのものを確認する。
@@ -150,7 +150,7 @@ function checkCategoryVocabulary(data: ReferenceData): SemanticError[] {
     return [
       {
         rule: 'category/known',
-        message: `_common.yaml に layout_categories が定義されていません${CATEGORY_SYNC_HINT}`,
+        message: `_common.yaml has no layout_categories${CATEGORY_SYNC_HINT}`,
       },
     ];
   }
@@ -162,7 +162,7 @@ function checkCategoryVocabulary(data: ReferenceData): SemanticError[] {
   for (const id of duplicated) {
     errors.push({
       rule: 'category/known',
-      message: `_common.yaml の layout_categories に id "${id}" が重複しています`,
+      message: `duplicate id in layout_categories of _common.yaml: ${id}`,
     });
   }
 
@@ -191,8 +191,8 @@ function checkCategoryKnown(data: ReferenceData, filePath: string): SemanticErro
     {
       rule: 'category/known',
       message:
-        `category "${data.category}" が _common.yaml の layout_categories にありません` +
-        `（定義済み: ${ids.join(', ')}）${CATEGORY_SYNC_HINT}`,
+        `category not in layout_categories of _common.yaml: ${data.category}` +
+        ` (defined: ${ids.join(', ')})${CATEGORY_SYNC_HINT}`,
     },
   ];
 }
@@ -232,7 +232,7 @@ function checkIncludesExist(data: ReferenceData, filePath: string): SemanticErro
     if (!existsSync(targetPath)) {
       errors.push({
         rule: 'includes/file-exists',
-        message: `includes "${name}" → ${name}.yaml が見つかりません`,
+        message: `includes target not found: ${name} (${name}.yaml)`,
       });
     }
   }
@@ -263,7 +263,7 @@ function checkIncludesPropsCollision(data: ReferenceData, filePath: string): Sem
       if (layoutPropKeys.has(key)) {
         errors.push({
           rule: 'includes/props-collision',
-          message: `prop "${key}" がレイアウトとincludes先 "${name}" で重複しています`,
+          message: `prop defined in both the layout and its includes target ${name}: ${key}`,
         });
       }
     }
@@ -289,7 +289,7 @@ function checkSameLengthAsTargets(data: ReferenceData, filePath: string): Semant
 
     errors.push({
       rule: 'same-length-as/target-exists',
-      message: `${declaration.path} の same_length_as が指す "${declaration.target}" という prop が見つかりません`,
+      message: `same_length_as of ${declaration.path} points to a prop that does not exist: ${declaration.target}`,
     });
   }
 
@@ -487,7 +487,7 @@ function checkGanttchartMaxTasks(data: ReferenceData): SemanticError[] {
     if (rowCount > maxRows) {
       errors.push({
         rule: 'ganttchart/max-tasks',
-        message: `examples[${i}]${example.name ? `(${example.name})` : ''}: タスク行数 ${rowCount} が上限 ${maxRows} を超えています`,
+        message: `examples[${i}]${example.name ? `(${example.name})` : ''}: task row count ${rowCount} exceeds the limit ${maxRows}`,
       });
     }
   }
@@ -548,7 +548,7 @@ function checkSlideFilesGanttchartMaxTasks(data: ReferenceData, filePath: string
           : file;
         errors.push({
           rule: 'ganttchart/max-tasks',
-          message: `${relPath}: タスク行数 ${rowCount} が上限 ${maxRows} を超えています`,
+          message: `${relPath}: task row count ${rowCount} exceeds the limit ${maxRows}`,
         });
       }
     }
@@ -564,7 +564,7 @@ function checkLayoutFilenameMatch(data: ReferenceData, filePath: string): Semant
   if (data.layout !== fileName) {
     errors.push({
       rule: 'layout/filename-match',
-      message: `layout "${data.layout}" がファイル名 "${fileName}.yaml" と一致しません`,
+      message: `layout does not match the file name ${fileName}.yaml: ${data.layout}`,
     });
   }
 

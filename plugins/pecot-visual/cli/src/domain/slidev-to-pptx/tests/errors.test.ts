@@ -14,7 +14,7 @@ describe('PipelineTimeoutError', () => {
     expect(error.idleTimeoutMs).toBe(5000)
     expect(error.elapsedMs).toBe(12_345)
     expect(error.lastProgress).toBe('スライド #3 変換完了')
-    expect(error.message).toBe('5000ms 進捗なし (経過 12345ms, 最終進捗: スライド #3 変換完了)')
+    expect(error.message).toBe('no progress for 5000ms (elapsed 12345ms, last progress: スライド #3 変換完了)')
     expect(error.name).toBe('PipelineTimeoutError')
   })
 
@@ -22,7 +22,7 @@ describe('PipelineTimeoutError', () => {
     const error = new PipelineTimeoutError(5000, { elapsedMs: 5000 })
     expect(error.elapsedMs).toBe(5000)
     expect(error.lastProgress).toBeUndefined()
-    expect(error.message).toBe('5000ms 進捗なし (経過 5000ms, 最終進捗: 進捗なし (スキャン開始前))')
+    expect(error.message).toBe('no progress for 5000ms (elapsed 5000ms, last progress: no progress (before the scan started))')
   })
 
   it('options.errors を保持する (#945)', () => {

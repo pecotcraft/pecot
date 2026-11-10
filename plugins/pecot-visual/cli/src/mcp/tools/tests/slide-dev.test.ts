@@ -270,7 +270,7 @@ describe('createDevServerRegistry', () => {
 
     const started = await registry.start(TALK_DIRECTORY)
 
-    expect(started.ok ? '' : started.detail).toContain('確認してから呼び直して')
+    expect(started.ok ? '' : started.detail).toContain('ask the user whether any preview may be stopped')
   })
 
   it('指定されたポートで起動する', async () => {
@@ -310,7 +310,7 @@ describe('createDevServerRegistry', () => {
 
     const started = await registry.start(TALK_DIRECTORY, { port: 5000 })
 
-    expect(started.ok ? '' : started.detail).toContain('確認してから呼び直して')
+    expect(started.ok ? '' : started.detail).toContain('ask which port to use')
   })
 
   it('指定されたポートを起動直前に奪われたら、捕捉した出力を添えて失敗を返す', async () => {

@@ -323,9 +323,9 @@ if [ "$HAVE_ESLINT" = true ]; then
     CTX=$(ctx_of "$OUT")
     if ! echo "$CTX" | grep -q "text-constraints/textlint-body"; then
         fail "本文・ノートの文面違反: text-constraints/textlint-body が出ない stdout='$OUT' stderr='$ERR'"
-    elif ! echo "$CTX" | grep -q "本文 L6:"; then
+    elif ! echo "$CTX" | grep -q "body L6:"; then
         fail "本文・ノートの文面違反: 本文の違反がファイル行 6 で出ない ctx='$CTX'"
-    elif ! echo "$CTX" | grep -q "発表者ノート L9:"; then
+    elif ! echo "$CTX" | grep -q "speaker notes L9:"; then
         fail "本文・ノートの文面違反: ノートの違反がファイル行 9 で出ない ctx='$CTX'"
     elif echo "$CTX" | grep -q "warning: eslint not run:"; then
         fail "本文・ノートの文面違反: 未実施に化けている ctx='$CTX'"

@@ -43,10 +43,10 @@ export class PipelineTimeoutError extends Error {
     }>,
   ) {
     const { elapsedMs } = options
-    const lastProgress = options.lastProgress ?? '進捗なし (スキャン開始前)'
+    const lastProgress = options.lastProgress ?? 'no progress (before the scan started)'
     super(
-      `${idleTimeoutMs.toString()}ms 進捗なし`
-      + ` (経過 ${elapsedMs.toString()}ms, 最終進捗: ${lastProgress})`,
+      `no progress for ${idleTimeoutMs.toString()}ms`
+      + ` (elapsed ${elapsedMs.toString()}ms, last progress: ${lastProgress})`,
     )
     this.name = 'PipelineTimeoutError'
     this.idleTimeoutMs = idleTimeoutMs

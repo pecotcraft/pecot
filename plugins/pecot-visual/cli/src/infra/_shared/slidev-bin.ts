@@ -29,7 +29,7 @@ dev サーバ (mcp/dev-server-registry.ts) は、起動試行の try/catch が `
 export function resolveSlidevBin(): string {
   const packageJsonPath = resolveDependency('@slidev/cli/package.json', import.meta.url)
   if (packageJsonPath === undefined) {
-    throw new Error(`@slidev/cli が解決できません。${DEPENDENCY_RECOVERY_HINT}`)
+    throw new Error(`cannot resolve @slidev/cli; ${DEPENDENCY_RECOVERY_HINT}`)
   }
   // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻り値の narrowing
   const packageJson = requireFromHere(packageJsonPath) as Readonly<{ bin?: Readonly<Record<string, string>> | string }>

@@ -321,10 +321,10 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     // 退避はグループ数（K）でなく run 全体で 1 回。対処（slide_sync）を案内する
     const fallbackWarnings = singlePassFallbackWarnings(doneEvent)
     expect(fallbackWarnings).toHaveLength(1)
-    expect(fallbackWarnings[0]).toContain('print ルートがありません')
+    expect(fallbackWarnings[0]).toContain('the deck build has no print route')
     expect(fallbackWarnings[0]).toContain('slide_sync')
     expect(doneEvent?.timings?.singlePass).toHaveProperty('kind', 'printRouteMissing')
-    expect(doneEvent?.timings?.singlePass).toHaveProperty('fallback', 'デッキの build に print ルートがありません')
+    expect(doneEvent?.timings?.singlePass).toHaveProperty('fallback', 'the deck build has no print route')
     // `#page-root` の出現で即時に判定する。判定の時間切れ（5 s）を待つ形に戻る退行を弾く
     const singlePass = doneEvent?.timings?.singlePass
     const detectMs = typeof singlePass === 'object' && singlePass !== null && 'detectMs' in singlePass ? singlePass.detectMs : undefined

@@ -196,7 +196,7 @@ interface StepPlan {
 /**
 判定箇所と末尾サマリーで同一文言を使うための定数。
 */
-const CACHE_MANIFEST_INVALID_WARNING = 'キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）'
+const CACHE_MANIFEST_INVALID_WARNING = 'cannot read the cache manifest; cleaning existing artifacts and rebuilding'
 
 /**
 スキーマ版が合わない manifest の警告。
@@ -204,9 +204,9 @@ const CACHE_MANIFEST_INVALID_WARNING = 'キャッシュ manifest が読めませ
 ただしこちらは、プラグイン更新後の初回 run で必ず起きる正常な事象なので、破損を思わせる文言にしない。
 */
 function cacheManifestOutdatedWarning(found: number): string {
-  return `キャッシュ manifest のスキーマ版が異なるため使いません`
-    + `（manifest v${found.toString()} / 現行 v${CACHE_SCHEMA_VERSION.toString()}）。`
-    + `既存の成果物を掃除して作り直します`
+  return `cache manifest schema version differs, so it is not used`
+    + ` (manifest v${found.toString()}, current v${CACHE_SCHEMA_VERSION.toString()});`
+    + ` cleaning existing artifacts and rebuilding`
 }
 
 /**
@@ -216,7 +216,7 @@ convertToPptx が成功した場合と、途中で throw した場合の双方�
 */
 function emitWarningSummary(logger: Logger, warnings: readonly string[]): void {
   if (warnings.length === 0) return
-  logger.info(`警告: ${warnings.length.toString()}件`)
+  logger.info(`${warnings.length.toString()} warnings`)
   for (const w of warnings) {
     logger.warn(`  ${w}`)
   }
@@ -235,18 +235,18 @@ function emitErrorSummary(logger: Logger, errors: readonly PipelineError[]): voi
   const slideErrors = errors.filter(e => e.level === 'slide')
   const elementErrors = errors.filter(e => e.level === 'element')
   if (slideErrors.length > 0) {
-    logger.info(`失敗: ${slideErrors.length.toString()}スライド`)
+    logger.info(`${slideErrors.length.toString()} slides failed`)
     for (const error of slideErrors) {
-      logger.warn(`  [slide] スライド${error.slideNumber?.toString() ?? '?'}: ${error.message}`)
+      logger.warn(`  [slide] slide ${error.slideNumber?.toString() ?? '?'}: ${error.message}`)
     }
   }
   if (elementErrors.length === 0) {
     return
   }
 
-  logger.info(`要素エラー: ${elementErrors.length.toString()}件`)
+  logger.info(`${elementErrors.length.toString()} element errors`)
   for (const error of elementErrors) {
-    logger.warn(`  [element] スライド${error.slideNumber?.toString() ?? '?'} ${error.selector ?? ''}: ${error.message}`)
+    logger.warn(`  [element] slide ${error.slideNumber?.toString() ?? '?'} ${error.selector ?? ''}: ${error.message}`)
   }
 }
 
@@ -299,7 +299,7 @@ async function prepareCache(
     route: options.route,
   })
   if (!keyResult.ok) {
-    warnings.push(`キャッシュキーを算出できないため全変換します: ${keyResult.message}`)
+    warnings.push(`cannot compute the cache key, so converting everything: ${keyResult.message}`)
     return undefined
   }
 
@@ -402,10 +402,10 @@ async function decideSteps(
       )
     }
     catch (error) {
-      warnings.push(`キャッシュの復元に失敗しました (#${plan.key}): ${errorMessage(error)}`)
+      warnings.push(`cache restore failed: #${plan.key}: ${errorMessage(error)}`)
     }
     // 成否によらず、await 自体が idle timeout の計時対象になる時間を使う。そのためここで報告する。
-    options.onProgress?.(`キャッシュ復元 #${plan.key}`)
+    options.onProgress?.(`cache restore: #${plan.key}`)
     if (materialized === undefined) {
       invalidated = escalateToPartial(invalidated)
       continue
@@ -493,12 +493,12 @@ interface SinglePassAttempt {
 /**
 print ルートが無い deck の退避 warning に添える対処。
 */
-const PRINT_ROUTE_REMEDY = '`slide_sync` で deck を同期すると print ルートが入ります'
+const PRINT_ROUTE_REMEDY = 'run `slide_sync` to add the print route to the deck'
 
 /**
 1 パス変換を使わなかった（一部を現行方式へ回した場合を含む）ときの warning の接頭辞。E2E も参照する
 */
-export const SINGLE_PASS_FALLBACK_PREFIX = '1 パス変換を使わず現行方式で変換します'
+export const SINGLE_PASS_FALLBACK_PREFIX = 'not using single-pass conversion; converting with the current method'
 
 /**
 1 パス変換（#1141 で試作、#1147 で既定 on）を試す。
@@ -518,7 +518,7 @@ async function runSinglePassOrFallback(request: Readonly<SinglePassAttemptReques
     warnings.push(message)
   }
   if (!request.usedFullScan) {
-    reportFallback('全走査でない run（--only 等）は対象外です')
+    reportFallback('not a full-scan run (e.g. --only)')
     return {}
   }
   try {
@@ -543,7 +543,7 @@ async function runSinglePassOrFallback(request: Readonly<SinglePassAttemptReques
       // この kind は、`#page-root` が出て `#print-container` が無い build に限られる。
       // 判定の時間切れは、グループ単位の退避として下の fallbacks に来る。
       // そのため `slide_sync` の案内は、ここでだけ付ける
-      reportFallback(`${outcome.timing.fallback}。${PRINT_ROUTE_REMEDY}`)
+      reportFallback(`${outcome.timing.fallback}; ${PRINT_ROUTE_REMEDY}`)
       return { timing: outcome.timing }
     }
     // グループ単位・ステップ単位の退避（それぞれ現行 worker で変換済み。案内は付けない）
@@ -552,7 +552,7 @@ async function runSinglePassOrFallback(request: Readonly<SinglePassAttemptReques
   }
   catch (error) {
     if (deps.signal?.aborted === true) throw error
-    reportFallback(`1 パス変換が失敗しました: ${errorMessage(error)}`)
+    reportFallback(`single-pass conversion failed: ${errorMessage(error)}`)
     // 途中まで書いた成果物を消してから、現行方式で変換し直す。
     // キャッシュ保存は staging を readdir で拾うため、残すと別方式の prerender が紛れ込む。
     await removeStepArtifacts(slidesDir, missPlans.map(plan => plan.stepIndex), slidePrefix)
@@ -586,14 +586,14 @@ export async function convertToPptx(
   const outDir = isAbsolute(outputDir) ? outputDir : join(presDir, outputDir)
   const slidesDir = join(outDir, 'slides')
 
-  logger.info('Slidev → PPTX変換パイプライン開始...')
-  logger.verbose(`  テンプレート: ${distDir} | 出力先: ${outDir} | プレフィックス: ${slidePrefix} | 並列度: ${config.concurrency.toString()}`)
+  logger.info('Slidev to PPTX pipeline started...')
+  logger.verbose(`  template: ${distDir} | output: ${outDir} | prefix: ${slidePrefix} | concurrency: ${config.concurrency.toString()}`)
 
   await mkdir(outDir, { recursive: true })
   await rm(slidesDir, { recursive: true, force: true })
   await mkdir(slidesDir, { recursive: true })
 
-  logger.info('=== Phase 1: DOM → PPTX変換 ===')
+  logger.info('=== Phase 1: DOM to PPTX conversion ===')
 
   // chromium.launch が失敗すると server だけが残る。
   // これを防ぐため、両者を 1 つの try-finally でくくる。
@@ -604,7 +604,7 @@ export async function convertToPptx(
   // port=0 (ephemeral、既定) では OS が空きポートを採番する。
   // そのため、並行する別プロセスの convert と衝突しない。
   const baseUrl = `http://${LOOPBACK_HOST}:${resolveBoundPort(server, port).toString()}`
-  logger.info(`HTTPサーバー起動: ${baseUrl}`)
+  logger.info(`HTTP server started: ${baseUrl}`)
   let browser: Browser
   try {
     browser = await (deps.createBrowser ?? (() => chromium.launch({ headless: true })))()
@@ -655,7 +655,7 @@ export async function convertToPptx(
         await routerPage.waitForFunction(`(${slidevReadyFunctionSource})()`, { timeout: timeouts.slidevReady })
         const urlFormat: SlideUrlFormat = { hash: new URL(routerPage.url()).hash.startsWith('#/') }
         routerUrlFormat = urlFormat
-        logger.info(`ルータ判定: router=${urlFormat.hash ? 'hash' : 'history'}`)
+        logger.info(`router detection: router=${urlFormat.hash ? 'hash' : 'history'}`)
 
         if (config.onlySteps && config.onlySteps.length > 0) {
           steps = config.onlySteps.map(slideNumber => ({
@@ -663,7 +663,7 @@ export async function convertToPptx(
             clickStep: null,
             url: buildSlideUrl(baseUrl, slideNumber, urlFormat),
           }))
-          logger.info(`onlySteps指定: ${steps.length.toString()}ステップを変換 (slides=${config.onlySteps.join(',')})`)
+          logger.info(`onlySteps given: converting ${steps.length.toString()} steps (slides=${config.onlySteps.join(',')})`)
         }
         else if (config.onlySlide) {
           if (config.onlySlide.click === null) {
@@ -675,7 +675,7 @@ export async function convertToPptx(
           else {
             steps = await buildOnlySteps(config.onlySlide, baseUrl, urlFormat)
           }
-          logger.info(`--only指定: ${steps.length.toString()}ステップを変換`)
+          logger.info(`--only given: converting ${steps.length.toString()} steps`)
         }
         else {
           // 判定用の goto がそのまま全走査の起点になるため、ページを使い回す。
@@ -689,7 +689,7 @@ export async function convertToPptx(
       }
 
       timing.scan = performance.now() - scanStart
-      logger.verbose(`スキャン時間: ${(timing.scan / 1000).toFixed(1)}s`)
+      logger.verbose(`scan time: ${(timing.scan / 1000).toFixed(1)}s`)
       throwIfAborted(deps.signal)
 
       const phase1Start = performance.now()
@@ -701,14 +701,14 @@ export async function convertToPptx(
             const entry = resolveDependency('dom-to-pptx', import.meta.url)
             if (entry === undefined) {
               throw new Error(
-                'dom-to-pptx.bundle.js が解決できません: dom-to-pptx パッケージが見つかりません\n'
+                'cannot resolve dom-to-pptx.bundle.js: dom-to-pptx package not found\n'
                 + `  ${DEPENDENCY_RECOVERY_HINT}`,
               )
             }
             const resolved = join(dirname(entry), 'dom-to-pptx.bundle.js')
             if (!existsSync(resolved)) {
               throw new Error(
-                `dom-to-pptx.bundle.js が解決できません: ${resolved}\n  ${DEPENDENCY_RECOVERY_HINT}`,
+                `cannot resolve dom-to-pptx.bundle.js: ${resolved}\n  ${DEPENDENCY_RECOVERY_HINT}`,
               )
             }
             return resolved
@@ -786,7 +786,7 @@ export async function convertToPptx(
           }
         }
         catch (error) {
-          warnings.push(`キャッシュを利用できないため全変換します: ${errorMessage(error)}`)
+          warnings.push(`cannot use the cache, so converting everything: ${errorMessage(error)}`)
           setup = undefined
           for (const plan of plans) plan.cache = 'miss'
           // 例外による退避であることを all:error で報告する。
@@ -812,12 +812,12 @@ export async function convertToPptx(
           if (deps.signal?.aborted === true) throw new Phase1TaskAbortedError()
           try {
             const result = await runSlide(browser, plan.step, workerConfig, slidesDir, logger)
-            deps.onProgress?.(`スライド #${plan.key} 変換完了`)
+            deps.onProgress?.(`slide #${plan.key} converted`)
             stepDone(plan.key)
             return result
           }
           catch (error) {
-            deps.onProgress?.(`スライド #${plan.key} 変換失敗`)
+            deps.onProgress?.(`slide #${plan.key} conversion failed`)
             stepDone(plan.key)
             throw error
           }
@@ -845,7 +845,7 @@ export async function convertToPptx(
       singlePassTiming = singlePass.timing
       const results = singlePass.results ?? await runWithConcurrency<SlideConvertResult>(tasks, config.concurrency)
       timing.phase1 = performance.now() - phase1Start
-      logger.verbose(`Phase 1変換結果: ${results.filter(r => r.status === 'fulfilled').length.toString()}/${results.length.toString()} 成功`)
+      logger.verbose(`Phase 1 result: ${results.filter(r => r.status === 'fulfilled').length.toString()}/${results.length.toString()} succeeded`)
 
       const resultOf = new Map(missPlans.map((plan, index) => [plan, results[index]]))
       const allLetterSpacingMap: Record<string, { letterSpacing: string, fontSize: string }> = {}
@@ -907,10 +907,10 @@ export async function convertToPptx(
               if (entry !== undefined) newEntries.set(plan.stepIndex, entry)
             }
             catch (error) {
-              warnings.push(`キャッシュへの保存に失敗しました (#${plan.key}): ${errorMessage(error)}`)
+              warnings.push(`cache save failed: #${plan.key}: ${errorMessage(error)}`)
             }
             // 成否によらず、await 自体が idle timeout の計時対象になる時間を使う。そのためここで報告する。
-            deps.onProgress?.(`キャッシュ保存 #${plan.key}`)
+            deps.onProgress?.(`cache save: #${plan.key}`)
           }
         }
         else {
@@ -919,7 +919,7 @@ export async function convertToPptx(
           // この run は、後段の throwIfAborted(deps.signal) で最終的に PipelineRuntimeError として打ち切られる。
           if (!(result.reason instanceof Phase1TaskAbortedError)) {
             const message = errorMessage(result.reason)
-            logger.warn(`スライド変換失敗: ${message}`)
+            logger.warn(`slide conversion failed: ${message}`)
             errors.push({ level: 'slide', slideNumber: plan.step.slideNumber, message })
           }
           // 変換に失敗した (または abort で未実行の) ステップは、新エントリを作らない。
@@ -936,7 +936,7 @@ export async function convertToPptx(
 
       if (setup !== undefined && isManifestWritable) {
         // prune と manifest 書き込みの区間は、複数の fs I/O を直列に伴う。そのため前後 1 回ずつ報告する。
-        deps.onProgress?.('キャッシュ整理: prune/manifest 開始')
+        deps.onProgress?.('cache cleanup: prune/manifest started')
         try {
           const stepIndexes = plans.map(plan => plan.stepIndex)
           if (setup.previous !== undefined) {
@@ -948,10 +948,10 @@ export async function convertToPptx(
           await writeCacheManifest(cacheDirectory, createCacheManifest(setup.keys.envHash, newEntries))
         }
         catch (error) {
-          warnings.push(`キャッシュの更新に失敗しました: ${errorMessage(error)}`)
+          warnings.push(`cache update failed: ${errorMessage(error)}`)
         }
         finally {
-          deps.onProgress?.('キャッシュ整理: prune/manifest 完了')
+          deps.onProgress?.('cache cleanup: prune/manifest done')
         }
       }
 
@@ -965,21 +965,21 @@ export async function convertToPptx(
           invalidated,
           perStep: plans.map(plan => ({ stepIndex: plan.stepIndex, key: plan.key, cache: plan.cache })),
         }
-        logger.verbose(`キャッシュ: ${hits.toString()} hit / ${(plans.length - hits).toString()} miss (invalidated: ${invalidated})`)
+        logger.verbose(`cache: ${hits.toString()} hit / ${(plans.length - hits).toString()} miss (invalidated: ${invalidated})`)
         // hit したステップは prerender / worker を再実行しない。そのため要素エラーが再検出されない。
         // 何も出さないと、再実行のたびに「エラー・警告なし」と誤認させる。1 行で明示する。
         if (hits > 0) {
-          warnings.push(`${hits.toString()}ステップはキャッシュ再利用のため要素診断を再実行していません`)
+          warnings.push(`element diagnostics were not re-run for ${hits.toString()} steps because their cache was reused`)
         }
       }
 
       const letterSpacingPath = join(slidesDir, 'letter-spacing.json')
       await writeFile(letterSpacingPath, JSON.stringify(allLetterSpacingMap, null, 2))
-      logger.verbose(`letter-spacing.json: ${Object.keys(allLetterSpacingMap).length.toString()}エントリ`)
+      logger.verbose(`letter-spacing.json: ${Object.keys(allLetterSpacingMap).length.toString()} entries`)
 
       const hrefMapPath = join(slidesDir, 'href-map.json')
       await writeFile(hrefMapPath, JSON.stringify(allHrefMap, null, 2))
-      logger.verbose(`href-map.json: ${Object.keys(allHrefMap).length.toString()}エントリ`)
+      logger.verbose(`href-map.json: ${Object.keys(allHrefMap).length.toString()} entries`)
 
       // #1070: p:timing を残すステップだけを cli 側へ渡す。
       // ここに載らないスライドは、後処理で p:timing を落とし、装飾 CSS animation 由来のクリック待ちを消す。
@@ -999,9 +999,9 @@ export async function convertToPptx(
           keepTimingSteps: keepTimingSteps.toSorted((a, b) => a - b),
         }, null, 2),
       )
-      logger.verbose(`animation-policy.json: timing を残すステップ ${keepTimingSteps.length.toString()}件`)
+      logger.verbose(`animation-policy.json: ${keepTimingSteps.length.toString()} steps keep timing`)
 
-      logger.info(`\nPhase 1完了: ${slideCount.toString()}枚のPPTX生成 → slides/`)
+      logger.info(`\nPhase 1 done: ${slideCount.toString()} PPTX files generated in slides/`)
     }
     finally {
       await browser.close()
@@ -1017,32 +1017,32 @@ export async function convertToPptx(
     // title は log には残す (debug 目的)
     const title = await readSlidesTitle(distDir, logger)
     if (title) {
-      logger.verbose(`Phase 2 候補出力名 (debug, cli 側 merge では使用しない): ${sanitizeFilename(title)}.pptx`)
+      logger.verbose(`Phase 2 candidate output name (debug; not used by the cli-side merge): ${sanitizeFilename(title)}.pptx`)
     }
 
-    logger.info('\nPhase 2+3 を skip: slides/<prefix><N>.pptx のみ生成')
+    logger.info('\nPhase 2+3 skipped: only slides/<prefix><N>.pptx generated')
 
     timing.phase2 = performance.now() - phase2Start
     timing.total = performance.now() - totalStart
 
     const hasSlideFailures = errors.some(e => e.level === 'slide')
 
-    logger.info('\n=== タイミングサマリー ===')
-    logger.info(`スキャン: ${(timing.scan / 1000).toFixed(1)}s`)
-    logger.info(`Phase 1 (DOM→PPTX): ${(timing.phase1 / 1000).toFixed(1)}s (並列度: ${config.concurrency.toString()})`)
-    logger.info(`合計: ${(timing.total / 1000).toFixed(1)}s`)
+    logger.info('\n=== timing summary ===')
+    logger.info(`scan: ${(timing.scan / 1000).toFixed(1)}s`)
+    logger.info(`Phase 1 (DOM→PPTX): ${(timing.phase1 / 1000).toFixed(1)}s (concurrency: ${config.concurrency.toString()})`)
+    logger.info(`total: ${(timing.total / 1000).toFixed(1)}s`)
     const perSlideEntries = Object.entries(timing.perSlide)
     if (perSlideEntries.length > 0) {
       const perSlideString = perSlideEntries.map(([k, v]) => `#${k}: ${(v / 1000).toFixed(1)}s`).join(', ')
-      logger.verbose(`スライドごと: ${perSlideString}`)
+      logger.verbose(`per slide: ${perSlideString}`)
     }
 
-    logger.info('\n=== 変換結果サマリー ===')
-    logger.info(`成功: ${slideCount.toString()}スライド`)
+    logger.info('\n=== conversion summary ===')
+    logger.info(`${slideCount.toString()} slides succeeded`)
     emitErrorSummary(logger, errors)
     emitWarningSummary(logger, warnings)
     if (errors.length === 0 && warnings.length === 0) {
-      logger.info('エラー・警告なし')
+      logger.info('no errors or warnings')
     }
 
     return {
@@ -1067,7 +1067,7 @@ export async function convertToPptx(
     // そのため、内訳だけが見出しなしで現れる。
     // 読み手が直前の進捗ログと区別できるよう、内訳があるときだけ見出しを添える。
     // emitErrorSummary 内に置くと、成功した場合に見出しが二重になる。
-    if (errors.length > 0) logger.info('\n=== 変換エラー ===')
+    if (errors.length > 0) logger.info('\n=== conversion errors ===')
     emitErrorSummary(logger, errors)
     emitWarningSummary(logger, warnings)
     throw new PipelineRuntimeError(errorMessage(error), { cause: error, warnings, errors })

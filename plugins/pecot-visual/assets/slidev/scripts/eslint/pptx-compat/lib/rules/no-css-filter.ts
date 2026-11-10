@@ -48,7 +48,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       noCssFilter:
-        'CSS filter はPPTX変換で無視されます。SVGアイコンの色変更はインラインSVG + fill="currentColor" + CSS colorで代替してください。',
+        'CSS filter is ignored in PPTX conversion (fix: to recolor an SVG icon, use inline SVG with fill="currentColor" and CSS color)',
     },
   },
 

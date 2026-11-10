@@ -340,7 +340,7 @@ describe('slide_create', () => {
     expect(result.isError).toBe(true)
     expect(structured['ok']).toBe(false)
     expect(structured['exitCode']).toBe(2)
-    expect(structured['message']).toContain('絶対パス')
+    expect(structured['message']).toContain('must be an absolute path')
     expect(dataOf(result)['invalidPaths']).toEqual(['project_dir=relative/deck'])
   })
 
@@ -403,7 +403,7 @@ describe('slide_create', () => {
     expect(result.isError).toBe(true)
     expect(structured['exitCode']).toBe(2)
     expect(dataOf(result)).toMatchObject({ event: 'slide.create.error', reason: 'invalid-option' })
-    expect(textOf(structured['message'])).toContain('絶対パス')
+    expect(textOf(structured['message'])).toContain('must be an absolute path')
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -416,7 +416,7 @@ describe('slide_create', () => {
 
     expect(structuredOf(result)['exitCode']).toBe(2)
     expect(dataOf(result)['reason']).toBe('invalid-option')
-    expect(textOf(structuredOf(result)['message'])).toContain('ドライブ相対')
+    expect(textOf(structuredOf(result)['message'])).toContain('drive-relative')
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -512,7 +512,7 @@ describe('slide_sync', () => {
     const structured = structuredOf(result)
 
     expect(structured['ok']).toBe(true)
-    expect(textOf(structured['message'])).toBe(`slide sync: 成功 (${talk}) テーマ: ${THEME_NAME} (${spec})`)
+    expect(textOf(structured['message'])).toBe(`slide sync: succeeded (${talk}); theme: ${THEME_NAME} (${spec})`)
     expect(dataOf(result)).toMatchObject({
       event: 'slide.sync.done',
       nodeModulesOnly: false,
@@ -537,8 +537,8 @@ describe('slide_sync', () => {
       migration: { removed: ['layouts'] },
       theme: { name: THEME_NAME },
     })
-    expect(textOf(structured['message'])).toContain(`テーマ: ${THEME_NAME}`)
-    expect(textOf(structured['message'])).toContain('テンプレート由来の 1 件を消しました (layouts)')
+    expect(textOf(structured['message'])).toContain(`theme: ${THEME_NAME}`)
+    expect(textOf(structured['message'])).toContain('migration: removed 1 files from the template (layouts)')
     expect(existsSync(path.join(talk, 'layouts'))).toBe(false)
     expect(readFileSync(path.join(talk, 'pages', 'cover.md'), 'utf8')).toBe('COVER')
     expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
@@ -597,7 +597,7 @@ describe('slide_lint', () => {
     const result = await call(createLintTool(fakeEslint(0, [])), { dir: 'relative/talk' })
 
     expect(structuredOf(result)['exitCode']).toBe(2)
-    expect(textOf(structuredOf(result)['message'])).toContain('絶対パス')
+    expect(textOf(structuredOf(result)['message'])).toContain('must be an absolute path')
   })
 
   it('違反なしは slide.lint.done / exitCode 0 で返す', async () => {
@@ -633,7 +633,7 @@ describe('slide_lint', () => {
     expect(result.isError).toBeUndefined()
     expect(structured['ok']).toBe(true)
     expect(structured['exitCode']).toBe(1)
-    expect(textOf(structured['message'])).toContain('違反あり')
+    expect(textOf(structured['message'])).toContain('violations found')
     expect(dataOf(result)).toMatchObject({
       event: 'slide.lint.violations',
       outcome: 'violations',
@@ -723,12 +723,12 @@ describe('slide_convert', () => {
     expect(structuredOf(result)['ok']).toBe(true)
     // 割合は切り捨て (2/3 なら 66%)。
     expect(messages).toEqual([
-      'slidev build 中',
-      'スライド走査中',
-      '変換 0/3 (0%)',
-      '変換 2/3 (66%)',
-      '変換 3/3 (100%)',
-      'PPTX 結合中',
+      'running slidev build',
+      'scanning slides',
+      'converting 0/3 (0%)',
+      'converting 2/3 (66%)',
+      'converting 3/3 (100%)',
+      'merging PPTX',
     ])
   })
 

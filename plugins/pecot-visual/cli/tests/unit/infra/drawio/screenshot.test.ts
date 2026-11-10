@@ -409,10 +409,10 @@ describe('capturePng / exportViaEmbed', () => {
           const message = String(await outcome)
 
           expect(message).toMatch(/embed protocol timeout \(60s\)/)
-          expect(message).toMatch(/最後に受けたイベント=なし/)
+          expect(message).toMatch(/last event: none/)
           // 未完了の段には単位の「s」を付けない
-          expect(message).not.toMatch(/未完了s/)
-          expect(message).toContain(stage === 'setContent' ? 'setContent 未完了' : 'handshake 未完了')
+          expect(message).not.toMatch(/not dones/)
+          expect(message).toContain(stage === 'setContent' ? 'setContent not done' : 'handshake not done')
           vi.useRealTimers()
           await new Promise<void>((resolve) => {
             setImmediate(resolve)
@@ -435,7 +435,7 @@ describe('capturePng / exportViaEmbed', () => {
 
         const outcome = rejectionOf(exportViaEmbed('<root/>', { format: 'svg' }))
         await vi.advanceTimersByTimeAsync(60_000)
-        expect(String(await outcome)).toMatch(/setContent 完了 \d+\.\ds \/ handshake 未完了 \//)
+        expect(String(await outcome)).toMatch(/setContent done \d+\.\ds \/ handshake not done \//)
       }
       finally {
         vi.useRealTimers()
@@ -456,7 +456,7 @@ describe('capturePng / exportViaEmbed', () => {
         progress?.('init')
         progress?.('load')
         await vi.advanceTimersByTimeAsync(60_000)
-        expect(String(await outcome)).toMatch(/embed protocol timeout \(60s\).*最後に受けたイベント=load/s)
+        expect(String(await outcome)).toMatch(/embed protocol timeout \(60s\).*last event: load/s)
       }
       finally {
         vi.useRealTimers()
@@ -473,7 +473,7 @@ describe('capturePng / exportViaEmbed', () => {
         const pending = exportViaEmbed('<root/>', { format: 'svg' })
         const outcome = rejectionOf(pending)
         await vi.advanceTimersByTimeAsync(60_000)
-        expect(String(await outcome)).toMatch(/最後に受けたイベント=なし/)
+        expect(String(await outcome)).toMatch(/last event: none/)
       }
       finally {
         vi.useRealTimers()
@@ -488,7 +488,7 @@ describe('capturePng / exportViaEmbed', () => {
     const { exportViaEmbed } = await import('../../../../src/infra/drawio/screenshot.js')
 
     await expect(exportViaEmbed('<root/>', { format: 'svg' })).rejects.toThrow(
-      /base64 data URI ではありません/,
+      /is not a base64 data URI/,
     )
   })
 

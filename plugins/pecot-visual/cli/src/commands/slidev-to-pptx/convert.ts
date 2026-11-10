@@ -154,7 +154,7 @@ export interface SlideConvertDependencies {
 */
 export function formatConvertProgress(completed: number, total: number): string {
   const percent = total === 0 ? 0 : Math.floor((completed / total) * 100)
-  return `変換 ${String(completed)}/${String(total)} (${String(percent)}%)`
+  return `converting ${String(completed)}/${String(total)} (${String(percent)}%)`
 }
 
 export interface SlideConvertResultSummary {
@@ -246,7 +246,7 @@ const THEME_PATTERN = /^[\w@/.-]+$/
 export function validateTheme(theme: string): void {
   if (!THEME_PATTERN.test(theme)) {
     throw new SlideConvertUsageError(
-      `--theme: 許容文字 [a-zA-Z0-9@/_.-] のみ受理 (指定値: ${theme})`,
+      `--theme accepts only [a-zA-Z0-9@/_.-]: ${theme}`,
       'invalid-theme',
     )
   }
@@ -257,7 +257,7 @@ export function validateTheme(theme: string): void {
 */
 function throwIfCancelled(signal: Readonly<AbortSignal> | undefined): void {
   if (signal?.aborted === true) {
-    throw new SlideConvertRuntimeError('キャンセルされました', 'cancelled')
+    throw new SlideConvertRuntimeError('cancelled', 'cancelled')
   }
 }
 
@@ -268,13 +268,13 @@ async function ensureProjectDirectory(projectDirectory: string): Promise<void> {
   }
   catch {
     throw new SlideConvertRuntimeError(
-      `project-dir が存在しません: ${projectDirectory}`,
+      `directory not found: ${projectDirectory}`,
       'project-not-found',
     )
   }
   if (!stats.isDirectory()) {
     throw new SlideConvertRuntimeError(
-      `project-dir はディレクトリではありません: ${projectDirectory}`,
+      `not a directory: ${projectDirectory}`,
       'project-not-found',
     )
   }
@@ -284,7 +284,7 @@ async function ensureProjectDirectory(projectDirectory: string): Promise<void> {
   }
   catch {
     throw new SlideConvertRuntimeError(
-      `slides.md が見つかりません: ${slidesMd}`,
+      `slides.md not found: ${slidesMd}`,
       'project-not-found',
     )
   }
@@ -396,19 +396,19 @@ export async function runSlideConvert(
     buildOptions.stderr = dependencies.stderr
   }
   const buildStart = dependencies.now()
-  dependencies.onProgress?.('slidev build 中')
+  dependencies.onProgress?.('running slidev build')
   const buildResult = await dependencies.slidevRunner.build(projectAbs, buildOptions)
   const slidevBuildMs = dependencies.now() - buildStart
   throwIfCancelled(dependencies.signal)
   if (buildResult.timedOut) {
     throw new SlideConvertRuntimeError(
-      `slidev build がタイムアウトしました (${String(SLIDEV_BUILD_TIMEOUT_MS)}ms): ${formatStderrTail(buildResult.stderr)}`,
+      `slidev build timed out after ${String(SLIDEV_BUILD_TIMEOUT_MS)}ms: ${formatStderrTail(buildResult.stderr)}`,
       'slidev-build-timeout',
     )
   }
   if (didExitNonZero(buildResult)) {
     throw new SlideConvertRuntimeError(
-      `slidev build が失敗しました (exit ${String(buildResult.exitCode)}): ${formatStderrTail(buildResult.stderr)}`,
+      `slidev build failed (exit ${String(buildResult.exitCode)}): ${formatStderrTail(buildResult.stderr)}`,
       'slidev-build-failed',
     )
   }
@@ -460,7 +460,7 @@ export async function runSlideConvert(
     }
   }
   // スキャンが終わるまでステップ総数は決まらないため、それまでは工程名だけを出す。
-  report?.('スライド走査中')
+  report?.('scanning slides')
   let pipelineResult
   const pipelineStart = dependencies.now()
   try {
@@ -471,7 +471,7 @@ export async function runSlideConvert(
     if (error instanceof PipelineTimeoutError) {
       throw withPipelineDiagnostics(
         new SlideConvertRuntimeError(
-          `pptx convert がタイムアウトしました: ${error.message}`,
+          `pptx convert timed out: ${error.message}`,
           'pptx-convert-timeout',
         ),
         { warnings: error.warnings, errors: error.errors },
@@ -483,7 +483,7 @@ export async function runSlideConvert(
     if (error instanceof PipelineRuntimeError) {
       throw withPipelineDiagnostics(
         new SlideConvertRuntimeError(
-          `pptx convert が失敗しました: ${error.message}`,
+          `pptx convert failed: ${error.message}`,
           'pptx-convert-failed',
         ),
         { warnings: error.warnings, errors: error.errors },
@@ -491,7 +491,7 @@ export async function runSlideConvert(
     }
     /* c8 ignore start -- defensive: SlidevPptxPipeline 契約上、上 2 例外型以外は到達不能。test fake が直 throw した場合の最終 net。 */
     throw new SlideConvertRuntimeError(
-      `pptx convert が失敗しました: ${formatError(error)}`,
+      `pptx convert failed: ${formatError(error)}`,
       'pptx-convert-failed',
     )
     /* c8 ignore stop */
@@ -500,13 +500,13 @@ export async function runSlideConvert(
   throwIfCancelled(dependencies.signal)
   const mergeStart = dependencies.now()
   const pipelineMs = mergeStart - pipelineStart
-  report?.('PPTX 結合中')
+  report?.('merging PPTX')
   // pipeline が完走している以降の失敗でも、pipeline が積んだ警告・エラーは失われないよう
   // catch で error へ引き継ぐ。
   try {
     if (!pipelineResult.success) {
       throw new SlideConvertRuntimeError(
-        `pptx convert が失敗しました: ${formatPipelineErrors(pipelineResult.errors)}`,
+        `pptx convert failed: ${formatPipelineErrors(pipelineResult.errors)}`,
         'pptx-convert-failed',
       )
     }
@@ -566,7 +566,7 @@ export async function runSlideConvert(
     const converted = error instanceof SlideConvertRuntimeError
       ? error
       : new SlideConvertRuntimeError(
-          `PPTX の生成に失敗しました: ${formatError(error)}`,
+          `PPTX generation failed: ${formatError(error)}`,
           'merge-failed',
         )
     throw withPipelineDiagnostics(converted, {
@@ -624,7 +624,7 @@ async function readSidecarObject(
   }
   catch (error: unknown) {
     throw new SlideConvertRuntimeError(
-      `${label} を読み込めません (path: ${sourcePath}): ${formatError(error)}`,
+      `cannot read ${label}: ${sourcePath}: ${formatError(error)}`,
       'invalid-staging-json',
     )
   }
@@ -635,13 +635,13 @@ async function readSidecarObject(
   }
   catch (error: unknown) {
     throw new SlideConvertRuntimeError(
-      `${label} が parse できません (path: ${sourcePath}): ${formatError(error)}`,
+      `cannot parse ${label}: ${sourcePath}: ${formatError(error)}`,
       'invalid-staging-json',
     )
   }
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new SlideConvertRuntimeError(
-      `${label} は plain object である必要があります (path: ${sourcePath})`,
+      `${label} must be a plain object: ${sourcePath}`,
       'invalid-staging-json',
     )
   }
@@ -664,7 +664,7 @@ async function resolveLetterSpacingMap(
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       throw new SlideConvertRuntimeError(
-        `letter-spacing JSON の entry は object である必要があります (key: ${key})`,
+        `letter-spacing JSON entry must be an object: ${key}`,
         'invalid-staging-json',
       )
     }
@@ -674,7 +674,7 @@ async function resolveLetterSpacingMap(
     const fontSize = entry['fontSize']
     if (typeof letterSpacing !== 'string' || typeof fontSize !== 'string') {
       throw new SlideConvertRuntimeError(
-        `letter-spacing JSON の entry は { letterSpacing: string, fontSize: string } である必要があります (key: ${key})`,
+        `letter-spacing JSON entry must be { letterSpacing: string, fontSize: string }: ${key}`,
         'invalid-staging-json',
       )
     }
@@ -698,7 +698,7 @@ async function resolveHrefMap(
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value !== 'string') {
       throw new SlideConvertRuntimeError(
-        `href JSON の entry は string である必要があります (key: ${key})`,
+        `href JSON entry must be a string: ${key}`,
         'invalid-staging-json',
       )
     }
@@ -725,16 +725,16 @@ async function resolveKeepTimingSteps(stagingPath: string): Promise<ReadonlySet<
   const raw = await readSidecarObject(sourcePath, 'animation-policy JSON')
   const schemaVersion = raw['schemaVersion']
   if (schemaVersion !== ANIMATION_POLICY_SCHEMA_VERSION) {
-    const mismatch = `期待: ${String(ANIMATION_POLICY_SCHEMA_VERSION)}, 実際: ${String(schemaVersion)}, path: ${sourcePath}`
+    const mismatch = `expected ${String(ANIMATION_POLICY_SCHEMA_VERSION)}, got ${String(schemaVersion)}, path ${sourcePath}`
     throw new SlideConvertRuntimeError(
-      `animation-policy JSON の schemaVersion が一致しません (${mismatch})`,
+      `animation-policy JSON schemaVersion mismatch: ${mismatch}`,
       'invalid-staging-json',
     )
   }
   const steps = raw['keepTimingSteps']
   if (!Array.isArray(steps)) {
     throw new SlideConvertRuntimeError(
-      `animation-policy JSON の keepTimingSteps は配列である必要があります (path: ${sourcePath})`,
+      `animation-policy JSON keepTimingSteps must be an array: ${sourcePath}`,
       'invalid-staging-json',
     )
   }
@@ -742,7 +742,7 @@ async function resolveKeepTimingSteps(stagingPath: string): Promise<ReadonlySet<
   for (const step of steps) {
     if (typeof step !== 'number' || !Number.isSafeInteger(step)) {
       throw new SlideConvertRuntimeError(
-        `animation-policy JSON の keepTimingSteps は整数の配列である必要があります (path: ${sourcePath})`,
+        `animation-policy JSON keepTimingSteps must be an array of integers: ${sourcePath}`,
         'invalid-staging-json',
       )
     }
@@ -807,7 +807,7 @@ async function mergeSingleSlidePptxesTo(
   const { inputs, originalSlideNumbers } = await loadSingleSlidePptxes(slidesDirectory, dependencies.archive)
   if (inputs.length === 0) {
     throw new SlideConvertRuntimeError(
-      `pptx convert は成功扱いですが ${slidesDirectory} に slide-<N>.pptx が存在しません`,
+      `pptx convert reported success but no slide-<N>.pptx exists in ${slidesDirectory}`,
       'pptx-convert-failed',
     )
   }
@@ -818,7 +818,7 @@ async function mergeSingleSlidePptxesTo(
   /* c8 ignore start -- mergePptxFiles 内部の throw は事前に inputs.length>0 で防御済 */
   catch (error: unknown) {
     throw new SlideConvertRuntimeError(
-      `PPTX merge に失敗しました: ${formatError(error)}`,
+      `PPTX merge failed: ${formatError(error)}`,
       'merge-failed',
     )
   }
@@ -1064,10 +1064,10 @@ function formatCacheSummary(cache: Readonly<PipelineCacheSummary>): string {
   const missSteps = cache.perStep.filter(entry => entry.cache === 'miss')
   const hitCount = cache.perStep.length - missSteps.length
   if (missSteps.length === 0) {
-    return `${summaryLine}cache steps: ${String(hitCount)} 件 hit\n`
+    return `${summaryLine}cache steps: ${String(hitCount)} hit\n`
   }
   const missList = missSteps.map(entry => `#${entry.key}`).join(', ')
-  const hitSuffix = hitCount === 0 ? '' : ` (他 ${String(hitCount)} 件 hit)`
+  const hitSuffix = hitCount === 0 ? '' : ` (${String(hitCount)} more hit)`
   return `${summaryLine}cache steps: miss ${missList}${hitSuffix}\n`
 }
 
@@ -1107,7 +1107,7 @@ async function readSlidesTitleForDefault(
     // それ以外の読取失敗 (permission 等) は診断を stderr に残す (stdout の JSON イベント契約を汚さない)。
     if (error.code !== 'ENOENT') {
       createDiagnostics(stderr).warning(
-        `slides.md を読み取れないため既定出力名を basename から決定します`
+        `cannot read slides.md; deriving the default output name from the basename`
         + ` (${slidesPath}): ${error.message}`,
       )
     }
@@ -1202,18 +1202,18 @@ export function createSlideConvertCommand(
   buildDependencies: () => SlideConvertDependencies,
 ): Command {
   const command = new Command('convert')
-    .description('Slidev プロジェクトを PPTX に変換する')
-    .argument('<project-dir>', 'Slidev プロジェクトディレクトリ')
-    .option('--out <path>', 'output .pptx path (省略時: <project-dir>/pptx/<slides.md の title | basename>.pptx)')
-    .option('--theme <name>', 'slidev の --theme に渡す名前 (許容文字 [a-zA-Z0-9@/_.-])')
-    .option('--spacing-json <path>', 'letter-spacing JSON path (省略時は staging/slides/letter-spacing.json を auto-detect)')
-    .option('--href-json <path>', 'hyperlink JSON path (省略時は staging/slides/href-map.json を auto-detect)')
-    .option('--transition-type <type>', 'transition 種別 (fade|morph)')
-    .option('--transition-duration-ms <ms>', 'transition の duration (ms)')
+    .description('convert a Slidev project to PPTX')
+    .argument('<project-dir>', 'Slidev project directory')
+    .option('--out <path>', 'output .pptx path (default: <project-dir>/pptx/<slides.md title | basename>.pptx)')
+    .option('--theme <name>', 'name passed to slidev --theme (allowed characters: [a-zA-Z0-9@/_.-])')
+    .option('--spacing-json <path>', 'letter-spacing JSON path (default: auto-detect staging/slides/letter-spacing.json)')
+    .option('--href-json <path>', 'hyperlink JSON path (default: auto-detect staging/slides/href-map.json)')
+    .option('--transition-type <type>', 'transition type (fade|morph)')
+    .option('--transition-duration-ms <ms>', 'transition duration (ms)')
     .option('--morph-option <option>', 'morph option (byObject|byWord|byChar)')
-    .option('--no-cache', 'キャッシュを読まずに全スライドを変換する（完了時にキャッシュは再構築される）')
-    .option('--no-single-pass', '1 パスのルートを使わず、スライドのステップごとにページを開く従来ルートで変換する')
-    .addOption(new Option('--log-level <level>', '進捗の詳しさ（verbose・debug は進捗を stderr に出す）').choices(['normal', 'verbose', 'debug']))
+    .option('--no-cache', 'convert all slides without reading the cache (the cache is rebuilt on completion)')
+    .option('--no-single-pass', 'convert with the per-step route that opens a page for each slide step, not the single-pass route')
+    .addOption(new Option('--log-level <level>', 'progress detail (verbose and debug write progress to stderr)').choices(['normal', 'verbose', 'debug']))
     .option('--json', 'emit machine-readable progress on stdout', false)
     .exitOverride()
     .configureOutput({
@@ -1322,8 +1322,8 @@ export function createSlideConvertCommand(
           if (summary.animationTimingRemovedSlides > 0) {
             writeData(
               dependencies.stdout,
-              `animation: ${String(summary.animationTimingRemovedSlides)} 枚のスライドから`
-              + ` p:timing を除去しました (明示指定のあるスライドは保持)`,
+              `animation: removed p:timing from ${String(summary.animationTimingRemovedSlides)} slides`
+              + ` (slides with an explicit setting are kept)`,
             )
           }
           if (summary.cache !== undefined) {
@@ -1381,7 +1381,7 @@ function optionalTransitionType(
   if (value === undefined) return undefined
   if (!isTransitionType(value)) {
     throw new SlideConvertUsageError(
-      `option --${kebab(key)}: 受理可能なのは ${TRANSITION_TYPES.join('|')} のみ (指定値: ${value})`,
+      `option --${kebab(key)} accepts only ${TRANSITION_TYPES.join('|')}: ${value}`,
       'invalid-transition-type',
     )
   }
@@ -1396,7 +1396,7 @@ function optionalMorphOption(
   if (value === undefined) return undefined
   if (!isMorphOption(value)) {
     throw new SlideConvertUsageError(
-      `option --${kebab(key)}: 受理可能なのは ${MORPH_OPTIONS.join('|')} のみ (指定値: ${value})`,
+      `option --${kebab(key)} accepts only ${MORPH_OPTIONS.join('|')}: ${value}`,
       'invalid-morph-option',
     )
   }
@@ -1413,7 +1413,7 @@ function optionalPositiveInt(
   const parsed = Math.trunc(Number(value))
   if (!Number.isFinite(parsed) || parsed <= 0 || String(parsed) !== value.trim()) {
     throw new SlideConvertUsageError(
-      `option --${kebab(key)}: 正の整数のみ (指定値: ${value})`,
+      `option --${kebab(key)} must be a positive integer: ${value}`,
       reason,
     )
   }

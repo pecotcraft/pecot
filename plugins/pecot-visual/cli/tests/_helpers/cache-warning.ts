@@ -9,10 +9,10 @@ import { FIXTURE_THEME_NAME } from './pecotv-e2e-run.js'
 
 export const SLIDE_COUNT = 2
 
-export const MANIFEST_INVALID_PREFIX = 'キャッシュ manifest が読めません'
-export const CACHE_UNUSABLE_PREFIX = 'キャッシュを利用できないため全変換します'
-export const SAVE_FAILED_PREFIX = 'キャッシュへの保存に失敗しました'
-export const UPDATE_FAILED_PREFIX = 'キャッシュの更新に失敗しました'
+export const MANIFEST_INVALID_PREFIX = 'cannot read the cache manifest'
+export const CACHE_UNUSABLE_PREFIX = 'cannot use the cache, so converting everything'
+export const SAVE_FAILED_PREFIX = 'cache save failed'
+export const UPDATE_FAILED_PREFIX = 'cache update failed'
 
 export function cacheDirectoryOf(project: string): string {
   return path.join(project, 'pptx', 'cache')

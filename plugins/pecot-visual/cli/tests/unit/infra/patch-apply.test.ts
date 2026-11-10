@@ -36,7 +36,7 @@ describe('scanPatchDigests', () => {
 
     const scan = scanPatchDigests(temporaryRoot('patches'))
     expect(scan.digests).toEqual([])
-    expect(scan.error).toContain('パッチファイルを読めません')
+    expect(scan.error).toContain('cannot read the patch file')
   })
 })
 
@@ -61,7 +61,7 @@ describe('applyPatches', () => {
     })
     expect(result).toMatchObject({ timedOut: false, stdout: '' })
     expect(result?.exitCode).toBeNull()
-    expect(result?.stderr).toContain('基準パスを解決できません')
+    expect(result?.stderr).toContain('cannot resolve the base path for applying patches')
     expect(result?.stderr).toContain('missing-patches')
   })
 

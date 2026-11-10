@@ -38,8 +38,8 @@ const HYPE = ['ゲーム', 'チェンジャー', 'となる基盤です。'].joi
 const HYPE_2 = ['ゲーム', 'チェンジャー', 'となる仕組みです。'].join('')
 const HYPE_3 = ['ゲーム', 'チェンジャー', 'となる設計です。'].join('')
 const CLEAN = '処理の流れを説明します。'
-const VIOLATION_MESSAGE_1 = '文面の違反 1 件。規則は緩めず文面を直して再実行してください'
-const VIOLATION_MESSAGE_3 = '文面の違反 3 件。規則は緩めず文面を直して再実行してください'
+const VIOLATION_MESSAGE_1 = '1 text violations; fix the text without loosening the rules, then run again'
+const VIOLATION_MESSAGE_3 = '3 text violations; fix the text without loosening the rules, then run again'
 
 const workDirectory = useTemporaryDirectory('pecotv-test-text-violation-')
 
@@ -262,7 +262,7 @@ const PARITY_RULES = new Set(['no-ai-hype-expressions', 'ai-tech-writing-guideli
 
 // 「…（ruleId）」で終わるメッセージから規則名を取り出す。
 function ruleIdOfMessage(message: string): string {
-  const matched = /（([^（）]+)）$/.exec(message)
+  const matched = /\(([^()]+)\)$/.exec(message)
   if (matched?.[1] === undefined) throw new Error(`末尾に（規則名）がありません: ${message}`)
   return matched[1]
 }

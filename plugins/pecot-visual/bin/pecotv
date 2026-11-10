@@ -46,7 +46,7 @@ if [ "${PECOTV_BOOTSTRAP_SKIP:-}" = "1" ]; then
   unset PECOTV_RUNTIME_DIR PECOTV_DEPENDENCY_ROOT
   CLI_DIST="${PLUGIN_ROOT}/cli/dist/cli.js"
   if [ ! -f "$CLI_DIST" ]; then
-    echo "error: ${CLI_DIST} が無い。先に build する (PECOTV_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
+    echo "error: missing: ${CLI_DIST} (fix: build first; PECOTV_BOOTSTRAP_SKIP=1 runs the source tree directly)" >&2
     exit 1
   fi
   exec node "$CLI_DIST" "$@"
@@ -100,7 +100,7 @@ PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
     fi
     attempt=$((attempt + 1))
     if [ "$attempt" -ge 3 ]; then
-      pecotv_log "error: 実行用ミラーを用意できませんでした: ${RUNTIME_DIR}"
+      pecotv_log "error: could not prepare the runtime mirror: ${RUNTIME_DIR}"
       exit 1
     fi
   done
@@ -182,23 +182,23 @@ PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
   if [ "$PECOTV_MCP_INVOCATION" != "1" ] && ! _pecotv_has_chromium; then
     PNPM_FOR_CHROMIUM="$(resolve_pnpm "$PLUGIN_ROOT")"
     if [ -z "$PNPM_FOR_CHROMIUM" ]; then
-      pecotv_log "error: chromium が未取得ですが pnpm / corepack / npx が見つからないため取得できません。"
-      pecotv_log "  Node.js 24.22.1 以上の 24 系または 26.12.1 以上 (npm / npx 同梱) を入れて再実行してください。"
+      pecotv_log "error: chromium is not installed and cannot be fetched because pnpm / corepack / npx was not found"
+      pecotv_log "  (fix: install Node.js 24.22.1 or later in the 24 line, or 26.12.1 or later (npm / npx included), then rerun)"
       HINT="$(pnpm_resolution_hint "$PLUGIN_ROOT")"
       [ -n "$HINT" ] && pecotv_log "  $HINT"
       exit 1
     fi
     # shellcheck disable=SC2086
     if ! ( cd "$RUNTIME_DIR" && $PNPM_FOR_CHROMIUM $MIRROR_PNPM_FLAGS --filter @pecot/pecotv-cli exec playwright --version >/dev/null 2>&1 ); then
-      pecotv_log "error: playwright CLI を解決できません。依存の準備が破損している可能性があります。"
-      pecotv_log "  PECOTV_BOOTSTRAP_FORCE=1 で再 bootstrap するか、データ置き場の runtime/ を削除して再実行してください。"
+      pecotv_log "error: cannot resolve the playwright CLI; the prepared dependencies may be broken"
+      pecotv_log "  (fix: rebootstrap with PECOTV_BOOTSTRAP_FORCE=1, or delete runtime/ in the data directory and rerun)"
       exit 1
     fi
     pecotv_log "running playwright install chromium ..."
     # shellcheck disable=SC2086
     if ! ( cd "$RUNTIME_DIR" && $PNPM_FOR_CHROMIUM $MIRROR_PNPM_FLAGS --filter @pecot/pecotv-cli exec playwright install chromium ); then
-      pecotv_log "error: chromium のダウンロードに失敗しました。pecotv drawio url / slide convert は chromium が必須です。"
-      pecotv_log "  ネットワーク到達性 / プロキシ設定 (HTTPS_PROXY / HTTP_PROXY) / PLAYWRIGHT_DOWNLOAD_HOST を確認のうえ再実行してください。"
+      pecotv_log "error: chromium download failed; pecotv drawio url / slide convert require chromium"
+      pecotv_log "  (fix: check network reachability, the proxy settings (HTTPS_PROXY / HTTP_PROXY) and PLAYWRIGHT_DOWNLOAD_HOST, then rerun)"
       exit 1
     fi
   fi
@@ -217,7 +217,7 @@ PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
   # ブラウザ側に同梱するため確認しない。
   if [ "$PECOTV_MCP_INVOCATION" != "1" ] && [ "$(uname -s)" = "Linux" ] && ! _pecotv_has_host_deps; then
     if ! node "$RUNTIME_DIR/cli/dist/cli.js" chromium host-deps; then
-      pecotv_log "warning: Chromium の起動に要る OS のライブラリが足りないため、drawio url / export の PNG・PDF と slide convert は使えません (上の案内を参照)。"
+      pecotv_log "warning: OS libraries needed to launch Chromium are missing; PNG/PDF output of drawio url / export and slide convert are unavailable (see the guidance above)"
       if [ "${PECOTV_REQUIRE_HOST_DEPS:-}" = "1" ]; then
         exit 2
       fi
@@ -248,12 +248,12 @@ PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
     && ! _pecotv_has_chromium; then
     PNPM_FOR_CHROMIUM="$(resolve_pnpm "$PLUGIN_ROOT")"
     if [ -z "$PNPM_FOR_CHROMIUM" ]; then
-      pecotv_log "chromium 未取得だが pnpm / corepack / npx が無いため取得できません。drawio export / drawio url (PNG) / slide convert は setup ツールの案内を返します。"
+      pecotv_log "note: chromium is not installed and cannot be fetched because pnpm / corepack / npx is missing; drawio export / drawio url (PNG) / slide convert return the setup tool guidance"
       HINT="$(pnpm_resolution_hint "$PLUGIN_ROOT")"
       [ -n "$HINT" ] && pecotv_log "  $HINT"
     else
-      pecotv_log "chromium 未取得。PECOTV_AUTO_INSTALL_BROWSER=1 のためバックグラウンドで取得します: $CHROMIUM_INSTALL_LOG"
-      pecotv_log "  取得完了までの間、drawio export / drawio url (PNG) / slide convert は setup ツールの案内を返します。"
+      pecotv_log "note: chromium is not installed; fetching it in the background because PECOTV_AUTO_INSTALL_BROWSER=1: $CHROMIUM_INSTALL_LOG"
+      pecotv_log "  until the fetch finishes, drawio export / drawio url (PNG) / slide convert return the setup tool guidance"
       # 子プロセスの stdout / stderr は MCP の stdio から完全に切り離してログファイルへ
       # 落とす（stdout は JSON-RPC 専有、stderr もクライアントが読む）。stdin は /dev/null。
       # 外側の /dev/null は、専有ロックを取れずに何もせず抜けるときに既存ログを

@@ -129,7 +129,7 @@ function startProgressHeartbeat(toolName: string, context: ServerContext, interv
 
   const { signal } = context.mcpReq
   let progress = 0
-  let phase = 'キュー待機中'
+  let phase = 'waiting in queue'
   let isStopped = false
 
   // 周期送出と reportProgress のどちらも通る関門。停止後・キャンセル後は何も送らない。
@@ -160,7 +160,7 @@ function startProgressHeartbeat(toolName: string, context: ServerContext, interv
   }
 
   return {
-    markRunning: () => { phase = '実行中' },
+    markRunning: () => { phase = 'running' },
     report: (message) => {
       phase = message
       send()

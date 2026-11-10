@@ -37,7 +37,7 @@ describe('launchChromium', () => {
 
     expect(rejected).toBeInstanceOf(Error)
     if (!(rejected instanceof Error)) return
-    expect(rejected.message).toContain('Playwright Chromium が起動できません')
+    expect(rejected.message).toContain('Playwright Chromium cannot launch')
     expect(rejected.message).toContain('playwright install chromium')
     expect(rejected.cause).toBe(original)
   })
@@ -55,7 +55,7 @@ describe('launchChromium', () => {
 
     expect(rejected).toBeInstanceOf(Error)
     if (!(rejected instanceof Error)) return
-    expect(rejected.message).toContain('OS のライブラリが足りません (libatk-1.0.so.0)')
+    expect(rejected.message).toContain('OS libraries are missing (libatk-1.0.so.0)')
     expect(rejected.message).toContain('setup')
     expect(rejected.message).not.toContain('playwright install chromium')
     expect(rejected.cause).toBe(original)
@@ -78,7 +78,7 @@ describe('launchChromium', () => {
 
     expect(rejected).toBeInstanceOf(Error)
     if (!(rejected instanceof Error)) return
-    expect(rejected.message).toContain('OS のライブラリが足りません (libatk-1.0.so.0)')
+    expect(rejected.message).toContain('OS libraries are missing (libatk-1.0.so.0)')
     expect(rejected.message).not.toContain('playwright install chromium')
     expect(rejected.cause).toBe(original)
   })
@@ -92,7 +92,7 @@ describe('launchChromium', () => {
 
     expect(rejected).toBeInstanceOf(Error)
     if (!(rejected instanceof Error)) return
-    expect(rejected.message).toContain('OS のライブラリが足りません:')
+    expect(rejected.message).toContain('OS libraries are missing:')
     expect(rejected.message).toContain('setup')
   })
 
@@ -114,7 +114,7 @@ describe('launchChromium', () => {
 
     expect(rejected).toBeInstanceOf(Error)
     if (!(rejected instanceof Error)) return
-    expect(rejected.message).toContain(`Playwright Chromium が起動できません: ${original}`)
+    expect(rejected.message).toContain(`Playwright Chromium cannot launch: ${original}`)
     expect(rejected.message).toContain('playwright install chromium')
     expect(rejected.cause).toBe(original)
   })

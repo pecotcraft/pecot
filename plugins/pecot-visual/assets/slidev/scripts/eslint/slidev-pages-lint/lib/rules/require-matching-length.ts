@@ -20,7 +20,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       lengthMismatch:
-        "'{{path}}'（{{pathCount}} 件）と '{{target}}'（{{targetCount}} 件）の件数が一致しません。同じ件数・同じ順で対応させてください。",
+        'item counts do not match: {{path}} ({{pathCount}} items) and {{target}} ({{targetCount}} items) (fix: use the same count and the same order)',
     },
   },
 

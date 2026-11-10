@@ -32,7 +32,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       contentBeforeFrontmatter:
-        'frontmatter（---）の前にコンテンツがあります。Slidevが白画面になる原因となるため、frontmatterをファイル先頭に配置してください。',
+        'content before the frontmatter (---); Slidev shows a blank screen (fix: place the frontmatter at the top of the file)',
     },
   },
 

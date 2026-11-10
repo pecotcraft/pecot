@@ -116,7 +116,7 @@ export function assertOutputExtension(
 ): void {
   if (output === undefined || output === '' || options.printHash || (path.extname(output).toLowerCase() !== PDF_EXTENSION)) return
   throw new DrawioExportUsageError(
-    `-o に拡張子 ${PDF_EXTENSION} は使えません (got: ${path.resolve(output)})。出力は SVG のため ${OUTPUT_SUFFIX} 等の拡張子を指定してください`,
+    `-o cannot use the ${PDF_EXTENSION} extension: ${path.resolve(output)} (fix: the output is SVG, so use an extension such as ${OUTPUT_SUFFIX})`,
     'invalid-output-extension',
   )
 }
@@ -145,7 +145,7 @@ export async function runDrawioExport(
   }
   catch (error: unknown) {
     throw new DrawioExportRuntimeError(
-      `入力ファイルが読めません: ${absoluteInput} (${formatError(error)})`,
+      `cannot read input file: ${absoluteInput}: ${formatError(error)}`,
       'input-not-found',
     )
   }
@@ -174,7 +174,7 @@ export async function runDrawioExport(
   const resolved = resolveIconsForExport(xml, resolveIcon)
   if (resolved.unresolved.length > 0) {
     throw new DrawioExportRuntimeError(
-      `icon:// 参照を解決できません (icons root: ${iconRoot}): ${resolved.unresolved.join(', ')}`,
+      `cannot resolve icon:// references (icons root: ${iconRoot}): ${resolved.unresolved.join(', ')}`,
       'icon-unresolved',
     )
   }
@@ -184,7 +184,7 @@ export async function runDrawioExport(
   }
   catch (error: unknown) {
     throw new DrawioExportRuntimeError(
-      `SVG export に失敗しました: ${formatError(error)}`,
+      `SVG export failed: ${formatError(error)}`,
       'export-failed',
     )
   }
@@ -196,7 +196,7 @@ export async function runDrawioExport(
   }
   catch (error: unknown) {
     throw new DrawioExportRuntimeError(
-      `出力ファイルに書き込めません: ${absoluteOutput} (${formatError(error)})`,
+      `cannot write output file: ${absoluteOutput}: ${formatError(error)}`,
       'output-write-failed',
     )
   }
@@ -233,7 +233,7 @@ async function writeSiblingPdf(
     return { pdfFile: pdfPath, pdfFailed: false }
   }
   catch (error: unknown) {
-    createDiagnostics(dependencies.stderr).warning(`PDF 生成失敗: ${formatError(error)}`)
+    createDiagnostics(dependencies.stderr).warning(`PDF export failed: ${formatError(error)}`)
     // 古い PDF の削除失敗は独立した警告として数えない。今回の PDF 失敗 1 件（pdfFailed /
     // warnings: 1 / exit 3）に集約し、JSON と exit code には出さず stderr の行だけで知らせる。
     // 呼び出し側は `pdf: null` を見て隣の PDF を今回の出力として扱わない前提にする。
@@ -241,7 +241,7 @@ async function writeSiblingPdf(
       await dependencies.removeFile(pdfPath)
     }
     catch (removeError: unknown) {
-      createDiagnostics(dependencies.stderr).warning(`前回の PDF を削除できません: ${pdfPath} (${formatError(removeError)})`)
+      createDiagnostics(dependencies.stderr).warning(`cannot remove the previous PDF: ${pdfPath}: ${formatError(removeError)}`)
     }
     return { pdfFile: undefined, pdfFailed: true }
   }
@@ -362,7 +362,7 @@ function parseIcons(raw: unknown): string {
   const value = String(raw)
   if (value === '') {
     throw new DrawioExportUsageError(
-      'option --icons に icon:// の解決 root ディレクトリを指定してください',
+      'option --icons requires the root directory that resolves icon:// (fix: pass --icons <dir>)',
       'missing-icons-root',
     )
   }
@@ -371,16 +371,16 @@ function parseIcons(raw: unknown): string {
 
 export function createDrawioExportCommand(buildDependencies: () => DrawioExportDependencies): Command {
   const command = new Command('export')
-    .description('drawio XML を静的 SVG と兄弟の PDF に export する')
-    .argument('<input>', '入力 .drawio ファイルパス')
+    .description('export drawio XML to a static SVG and a sibling PDF')
+    .argument('<input>', 'input .drawio file path')
     // CLI 側は required に据え置く（既定を持つのは MCP の drawio_export だけ）。
     // 呼び出し側が talk-dir 相対の public/assets/icons など、解決の root を明示して渡す。
     // プラグイン同梱カタログを既定にすると、誤った root で通知なしに解決されうる。
-    .requiredOption('--icons <dir>', 'icon:// を解決する root ディレクトリ')
-    .option('-o, --output <path>', `出力 SVG パス (既定: <input>${OUTPUT_SUFFIX})`)
-    .option('--no-pdf', 'SVG の兄弟ファイル (拡張子を .pdf に置換) として PDF を同時出力しない')
-    .option('--print-hash', 'export せず、陳腐化判定用の合成ハッシュのみを stdout に出す', false)
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
+    .requiredOption('--icons <dir>', 'root directory that resolves icon://')
+    .option('-o, --output <path>', `output SVG path (default: <input>${OUTPUT_SUFFIX})`)
+    .option('--no-pdf', 'do not write the sibling PDF (extension replaced with .pdf)')
+    .option('--print-hash', 'print only the composite hash for staleness checks to stdout, without exporting', false)
+    .option('--json', 'print machine-readable JSON to stdout', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {

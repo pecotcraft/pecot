@@ -33,7 +33,7 @@ describe('scanSlideSteps', () => {
     expect(page.keyboardPresses).toStrictEqual([])
     expect(steps).toHaveLength(1)
     // 正常終端も verbose に残す（走査の早期終了を後から追える一次情報）
-    expect(logger.verbose).toHaveBeenCalledWith('  1ステップで終端: hasNext=false')
+    expect(logger.verbose).toHaveBeenCalledWith('  ended at 1 steps: hasNext=false')
   })
 
   it('page.evaluate を持たない page でも従来どおり URL 変化で走査する', async () => {
@@ -48,7 +48,7 @@ describe('scanSlideSteps', () => {
     const logger = makeLogger()
     const steps = await scanSlideSteps(withoutEvaluate, 10, logger)
     expect(steps.map(step => step.slideNumber)).toStrictEqual([1, 2, 3])
-    expect(logger.verbose).toHaveBeenCalledWith('  3ステップで終端: hasNext を読めず URL も変わらず timeout')
+    expect(logger.verbose).toHaveBeenCalledWith('  ended at 3 steps: cannot read hasNext and the URL did not change before timeout')
   })
 
   it('Slidev context が無いページは従来どおり URL 変化で走査する', async () => {
@@ -57,7 +57,7 @@ describe('scanSlideSteps', () => {
     const logger = makeLogger()
     const steps = await scanSlideSteps(page.asPage(), 10, logger)
     expect(steps.map(step => step.slideNumber)).toStrictEqual([1, 2])
-    expect(logger.verbose).toHaveBeenCalledWith('  2ステップで終端: hasNext を読めず URL も変わらず timeout')
+    expect(logger.verbose).toHaveBeenCalledWith('  ended at 2 steps: cannot read hasNext and the URL did not change before timeout')
   })
 
   it('ArrowRight で URL が変化するたびにステップを追加する', async () => {
@@ -70,7 +70,7 @@ describe('scanSlideSteps', () => {
     expect(steps[1]?.slideNumber).toBe(2)
     expect(steps[2]?.clickStep).toBe(1)
     expect(steps[3]?.slideNumber).toBe(3)
-    expect(logger.info).toHaveBeenCalledWith('4ステップをスキャン完了')
+    expect(logger.info).toHaveBeenCalledWith('scanned 4 steps')
   })
 
   it('onProgress は 1 ステップ検出するごとに呼ばれる (#1097)', async () => {
@@ -80,9 +80,9 @@ describe('scanSlideSteps', () => {
     const steps = await scanSlideSteps(page.asPage(), 10, makeLogger(), (label) => { labels.push(label) })
     expect(steps).toHaveLength(3)
     expect(labels).toStrictEqual([
-      'スキャン: ステップ1 検出',
-      'スキャン: ステップ2 検出',
-      'スキャン: ステップ3 検出',
+      'scan: step 1 detected',
+      'scan: step 2 detected',
+      'scan: step 3 detected',
     ])
   })
 
@@ -171,7 +171,7 @@ describe('buildOnlySteps', () => {
     const steps = await buildOnlySteps({ slide: 5, click: null }, 'http://localhost:3002', HISTORY, page.asPage(), logger)
     expect(steps.length).toBeGreaterThanOrEqual(1)
     expect(steps.every(s => s.slideNumber === 5)).toBe(true)
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('スライド5'))
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('of slide 5'))
   })
 
   it('hash ルータの click=null + page あり: フラグメント URL で click step を収集', async () => {

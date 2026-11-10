@@ -174,7 +174,7 @@ describe('resolveEslintBin', () => {
     const fakeAssets = path.join(state.temporaryRoot, 'no-deps-assets')
     mkdirSync(fakeAssets, { recursive: true })
     writeFileSync(path.join(fakeAssets, 'package.json'), '{"name":"fake"}', 'utf8')
-    expect(() => resolveEslintBin(fakeAssets)).toThrow(/eslint を解決できませんでした/)
+    expect(() => resolveEslintBin(fakeAssets)).toThrow(/cannot resolve eslint from/)
   })
 
   // 以下 3 セルは assert の判定方式の全域。
@@ -196,14 +196,14 @@ describe('resolveEslintBin', () => {
     // プラグイン側で hoist 構成が変わり CLI 側の eslint 10 系が引かれた場合。
     const { inner } = writeHoistedEslint({ version: '10.2.1', wantRange: '^9.17.0' })
 
-    expect(() => resolveEslintBin(inner)).toThrow(/メジャー違い/)
+    expect(() => resolveEslintBin(inner)).toThrow(/a different major from/)
   })
 
   it('assets が eslint を宣言していなければ中止する', () => {
     // 宣言が無いまま通すと「どのメジャーでもよい」ことになり、assert が無効になる (fail-closed)。
     const { inner } = writeHoistedEslint({ version: '9.39.4' })
 
-    expect(() => resolveEslintBin(inner)).toThrow(/devDependencies.eslint を宣言していません/)
+    expect(() => resolveEslintBin(inner)).toThrow(/does not declare devDependencies\.eslint/)
   })
 
   it('eslint の version が読めなければ中止する (fail-closed)', () => {
@@ -212,13 +212,13 @@ describe('resolveEslintBin', () => {
     // その結果、違反の検出結果が変わる。
     const { inner } = writeHoistedEslint({ wantRange: '^9.17.0' })
 
-    expect(() => resolveEslintBin(inner)).toThrow(/メジャー違い/)
+    expect(() => resolveEslintBin(inner)).toThrow(/a different major from/)
   })
 
   it('version が数字で始まらない場合も中止する', () => {
     const { inner } = writeHoistedEslint({ version: 'next', wantRange: '^9.17.0' })
 
-    expect(() => resolveEslintBin(inner)).toThrow(/メジャー違い/)
+    expect(() => resolveEslintBin(inner)).toThrow(/a different major from/)
   })
 
   it('assets の package.json が無ければ eslint-not-launched で中止する', () => {
@@ -228,7 +228,7 @@ describe('resolveEslintBin', () => {
     const { inner } = writeHoistedEslint({ version: '9.39.4', templateManifest: 'missing' })
 
     expect(() => resolveEslintBin(inner)).toThrow(SlideLintRuntimeError)
-    expect(() => resolveEslintBin(inner)).toThrow(/package.json を読めませんでした/)
+    expect(() => resolveEslintBin(inner)).toThrow(/cannot read package\.json in/)
   })
 
   it('assets の package.json が不正 JSON でも SlideLintRuntimeError になる', () => {

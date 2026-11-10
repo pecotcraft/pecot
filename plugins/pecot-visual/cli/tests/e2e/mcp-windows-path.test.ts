@@ -111,7 +111,7 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
       expect(rejected.isError, `子プロセス stderr: ${readStderr()}`).toBe(true)
       const rejectedStructured = structuredOf(rejected)
       expect(rejectedStructured['exitCode']).toBe(2)
-      expect(rejectedStructured['message']).toContain('Windows 形式のパスを解決できません')
+      expect(rejectedStructured['message']).toContain('cannot resolve Windows-style path')
       expect(rejectedStructured['message']).toContain(otherDistro)
     }
     finally {

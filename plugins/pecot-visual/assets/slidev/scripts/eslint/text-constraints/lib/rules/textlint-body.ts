@@ -55,9 +55,9 @@ const rule: MarkdownRuleDefinition = {
     },
     schema: [],
     messages: {
-      textlintBody: '本文 L{{line}}: {{message}}（{{ruleId}}）',
-      textlintNotes: '発表者ノート L{{line}}: {{message}}（{{ruleId}}）',
-      textlintFailed: 'textlint を実行できませんでした: {{reason}}',
+      textlintBody: 'body L{{line}}: {{message}} ({{ruleId}})',
+      textlintNotes: 'speaker notes L{{line}}: {{message}} ({{ruleId}})',
+      textlintFailed: 'textlint failed to run: {{reason}}',
     },
   },
 

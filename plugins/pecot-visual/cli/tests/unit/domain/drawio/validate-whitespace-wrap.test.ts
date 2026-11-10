@@ -143,6 +143,6 @@ describe('XML 名前空間を含む drawio XML の扱い', () => {
 
   it('警告文に直し方（style に whiteSpace=wrap を付ける）が入っている (F-17)', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '日本語テキスト')
-    expect(validateWhitespaceWrap(xml)[0]?.message).toContain('style に whiteSpace=wrap を付けてください')
+    expect(validateWhitespaceWrap(xml)[0]?.message).toContain('add whiteSpace=wrap to style')
   })
 })

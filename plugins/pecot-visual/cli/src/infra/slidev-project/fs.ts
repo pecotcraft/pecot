@@ -55,7 +55,7 @@ function requireDependencyNodeModules(dependencyRoot: string): string {
   const resolved = resolveTalkDirectoryNodeModules(dependencyRoot)
   if (resolved === undefined) {
     throw new SlideCreateRuntimeError(
-      `実行時依存の node_modules が見つかりません (探索先: ${dependencyRoot})。${DEPENDENCY_RECOVERY_HINT}`,
+      `runtime dependencies node_modules not found (searched: ${dependencyRoot}); ${DEPENDENCY_RECOVERY_HINT}`,
       'symlink-failed',
     )
   }
@@ -489,7 +489,7 @@ async function lstatIfExists(target: string): Promise<Awaited<ReturnType<typeof 
     /* c8 ignore start -- ENOENT 以外で lstat が失敗するのは EACCES 等の防御網 */
     if (!isNotFound(error)) {
       throw new SlideCreateRuntimeError(
-        `node_modules の lstat に失敗しました: ${formatError(error)}`,
+        `lstat of node_modules failed: ${formatError(error)}`,
         'symlink-failed',
       )
     }
@@ -512,7 +512,7 @@ export async function talkDirectoryExists(
     /* c8 ignore start -- ENOENT 以外で stat が失敗するのは EACCES 等の防御網 */
     if (!isNotFound(error)) {
       throw new SlideCreateRuntimeError(
-        `talk-dir の確認に失敗しました: ${formatError(error)}`,
+        `checking the talk-dir failed: ${formatError(error)}`,
         'copy-failed',
       )
     }
@@ -534,7 +534,7 @@ export async function hasSlidesMd(talkDirectory: string): Promise<boolean> {
     /* c8 ignore start -- ENOENT 以外で stat が失敗するのは EACCES 等の防御網 */
     if (!isNotFound(error)) {
       throw new SlideCreateRuntimeError(
-        `slides.md の確認に失敗しました: ${formatError(error)}`,
+        `checking slides.md failed: ${formatError(error)}`,
         'copy-failed',
       )
     }
@@ -587,7 +587,7 @@ async function collectSymlinkedDirectories(
     /* c8 ignore start -- ENOENT 以外で readdir が失敗するのは EACCES 等の防御網 */
     if (!isNotFound(error)) {
       throw new SlideCreateRuntimeError(
-        `pages 配下の走査に失敗しました: ${formatError(error)}`,
+        `scanning under pages failed: ${formatError(error)}`,
         'copy-failed',
       )
     }
@@ -620,7 +620,7 @@ async function isDirectoryTarget(target: string): Promise<boolean> {
     /* c8 ignore start -- ENOENT 以外で stat が失敗するのは EACCES 等の防御網 */
     if (!isNotFound(error)) {
       throw new SlideCreateRuntimeError(
-        `pages 配下の symlink 解決に失敗しました: ${formatError(error)}`,
+        `resolving symlinks under pages failed: ${formatError(error)}`,
         'copy-failed',
       )
     }

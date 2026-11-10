@@ -239,14 +239,14 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Goal**: pecot-visual の MCP ツールが返す結果の `message`・エラーの文言・ツールと引数の説明文が英語になる
 
-**Independent Test**: `plugins/pecot-visual/cli/tests/english-only.test.ts` が通る。ツールの一覧の説明文と、依存が未取得のときの結果の `message` が英語
+**Independent Test**: `plugins/pecot-visual/cli/tests/unit/english-only.test.ts` が通る。ツールの一覧の説明文と、依存が未取得のときの結果の `message` が英語
 
-- [ ] T046 [US5] `plugins/pecot-visual/cli/tests/english-only.test.ts` を書く。`src/` の文字列リテラル（テンプレートリテラルの固定部分を含む）に日本語の文字が無いことを確かめる。この時点では失敗する
-- [ ] T047 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の各ツールの説明文（`description`、35 か所）と引数の説明を英語にする
-- [ ] T048 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の結果の `message` とエラーの文言を英語にする。`_shared.ts` の依存が未取得のときの文言を含める
-- [ ] T049 [P] [US5] `plugins/pecot-visual/cli/src/domain/`・`src/infra/` の、エラーとして結果に入る文言を英語にする。例は `cache-store.ts`・`image-dimensions.ts`
-- [ ] T050 [US5] `plugins/pecot-visual/cli/tests/` の日本語の文言を期待しているテストを書き換える。`plugins/pecot-visual/skills/*/SKILL.md` がツールの文言を引いていれば直す
-- [ ] T051 [US5] T046 が通ることを確かめる
+- [x] T046 [US5] `plugins/pecot-visual/cli/tests/unit/english-only.test.ts` を書く。`src/` の文字列リテラル（テンプレートリテラルの固定部分を含む）に日本語の文字が無いことを確かめる。この時点では失敗する
+- [x] T047 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の各ツールの説明文（`description`、35 か所）と引数の説明を英語にする
+- [x] T048 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の結果の `message` とエラーの文言を英語にする。`_shared.ts` の依存が未取得のときの文言を含める
+- [x] T049 [P] [US5] `plugins/pecot-visual/cli/src/domain/`・`src/infra/` の、エラーとして結果に入る文言を英語にする。例は `cache-store.ts`・`image-dimensions.ts`
+- [x] T050 [US5] `plugins/pecot-visual/cli/tests/` の日本語の文言を期待しているテストを書き換える。`plugins/pecot-visual/skills/*/SKILL.md` がツールの文言を引いていれば直す
+- [x] T051 [US5] T046 が通ることを確かめる
 
 **Checkpoint**: quickstart.md の 5 の MCP の文言の部分が、pecot-visual で通る
 

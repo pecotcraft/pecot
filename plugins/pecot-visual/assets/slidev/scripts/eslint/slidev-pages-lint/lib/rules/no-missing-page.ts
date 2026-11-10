@@ -14,7 +14,7 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      missingPage: 'src: で参照されたファイルが存在しません: {{filePath}}',
+      missingPage: 'file referenced by src: does not exist: {{filePath}}',
     },
   },
 

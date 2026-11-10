@@ -57,7 +57,7 @@ pnpm -C plugins/pecot-tools/cli exec vitest run tests -t "runtime"
 MCP ツールの文言（FR-015）は、各プラグインの英語のテストで確かめる。
 
 ```bash
-pnpm -C plugins/pecot-visual/cli exec vitest run tests/english-only.test.ts
+pnpm -C plugins/pecot-visual/cli exec vitest run tests/unit/english-only.test.ts
 pnpm -C plugins/pecot-tools/cli exec vitest run tests/english-only.test.ts
 ```
 

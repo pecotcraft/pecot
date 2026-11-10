@@ -73,7 +73,7 @@ test('no-missing-marker-cell: 存在しない ID を指摘する（陰性対照 
   assert.strictEqual(reports[0].messageId, 'invalidCell');
   assert.strictEqual(reports[0].data?.index, '1');
   assert.strictEqual(reports[0].data?.cell, 'no-such-cell');
-  assert.match(reports[0].data?.reason ?? '', /図にありません/);
+  assert.match(reports[0].data?.reason ?? '', /not found in the diagram/);
   // 指摘行は該当セルの行（frontmatter の 1 行目は '---'）
   assert.strictEqual(reports[0].loc?.line, 9);
 });
@@ -82,7 +82,7 @@ test('no-missing-marker-cell: edge の ID を指摘する（陰性対照 2）', 
   const reports = run(page(diagramPage(['e-gw-auth'])));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'invalidCell');
-  assert.match(reports[0].data?.reason ?? '', /線（edge）/);
+  assert.match(reports[0].data?.reason ?? '', /is an edge/);
 });
 
 test('no-missing-marker-cell: xmlSrc の図が無ければ図ごとに 1 回だけ指摘する（陰性対照 3）', () => {
@@ -130,7 +130,7 @@ test('no-missing-marker-cell: 解析できない図（圧縮形式）を指摘�
     );
     assert.strictEqual(reports.length, 1);
     assert.strictEqual(reports[0].messageId, 'invalidDiagram');
-    assert.match(reports[0].data?.reason ?? '', /圧縮形式/);
+    assert.match(reports[0].data?.reason ?? '', /compressed <diagram>/);
   } finally {
     fs.rmSync(talkDir, { recursive: true, force: true });
   }

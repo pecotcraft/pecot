@@ -357,13 +357,13 @@ function isDeckLoader(value: unknown): value is typeof load {
 const slidevParserLoad = memoizeAsync(async (): Promise<typeof load> => {
   const entry = resolveDependency('@slidev/parser/fs', import.meta.url)
   if (entry === undefined) {
-    throw new Error(`@slidev/parser が解決できません。${DEPENDENCY_RECOVERY_HINT}`)
+    throw new Error(`cannot resolve @slidev/parser; ${DEPENDENCY_RECOVERY_HINT}`)
   }
   const module_: unknown = await import(pathToFileURL(entry).href)
   const loader = isRecord(module_) ? module_['load'] : undefined
   /* c8 ignore next 3 -- 解決できた @slidev/parser/fs が load を持たないのは防御網 */
   if (!isDeckLoader(loader)) {
-    throw new Error(`@slidev/parser/fs が load を公開していません (${entry})`)
+    throw new Error(`@slidev/parser/fs does not export load: ${entry}`)
   }
   return loader
 })
@@ -415,7 +415,7 @@ export async function computeDeckCacheKeys(
     return {
       ok: false,
       failure: 'invalid-environment',
-      message: 'Chromium / プラグインのバージョンが空のためキャッシュキーを算出できません',
+      message: 'cannot compute the cache key because the Chromium or plugin version is empty',
     }
   }
 
@@ -439,7 +439,7 @@ export async function computeDeckCacheKeys(
     return {
       ok: false,
       failure: 'slides-load-failed',
-      message: `slides.md を分解できません (${options.slidesPath}): ${errorMessage(error)}`,
+      message: `cannot parse slides.md: ${options.slidesPath}: ${errorMessage(error)}`,
     }
   }
 
@@ -450,7 +450,7 @@ export async function computeDeckCacheKeys(
     return {
       ok: false,
       failure: 'slides-has-errors',
-      message: `slides.md に解析エラーがあります: ${deckErrors}`,
+      message: `slides.md has parse errors: ${deckErrors}`,
     }
   }
 
@@ -459,7 +459,7 @@ export async function computeDeckCacheKeys(
     return {
       ok: false,
       failure: 'bundle-unreadable',
-      message: `dom-to-pptx.bundle.js を読めません: ${options.domToPptxBundlePath}`,
+      message: `cannot read dom-to-pptx.bundle.js: ${options.domToPptxBundlePath}`,
     }
   }
 

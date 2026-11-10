@@ -126,7 +126,7 @@ describe('installStdoutGuard', () => {
 
     protocolStdout.write('{"jsonrpc":"2.0"}\n')
     await vi.waitFor(() => {
-      expect(stderr.chunks.join('')).toContain('error: stdout への書き込みに失敗しました: EPIPE 相当')
+      expect(stderr.chunks.join('')).toContain('error: stdout write failed: EPIPE 相当')
     })
     expect(process.exitCode).toBe(1)
     process.exitCode = undefined

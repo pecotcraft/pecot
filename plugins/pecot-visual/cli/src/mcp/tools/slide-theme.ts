@@ -25,7 +25,7 @@ const SLIDE_THEME_EXIT_CODE = 1
 
 const slideThemeInput = z.object({
   dir: z.string()
-    .describe('テーマを調べる talk-dir の絶対パス。相対パスは受け付けない。' + WINDOWS_PATH_NOTE),
+    .describe('Absolute path of the talk-dir whose theme to inspect. Relative paths are not accepted. ' + WINDOWS_PATH_NOTE),
 })
 
 /**
@@ -38,10 +38,10 @@ export function slideThemeTool(
   return {
     name: 'slide_theme',
     config: {
-      title: 'Slidev テーマの宣言',
-      description: 'talk-dir が参照するテーマの宣言とレイアウトの一覧を返す。'
-        + '宣言は書体・文字サイズ・PPTX の書体とリンク色・lint の規則。'
-        + 'スキルがテーマの値を得るのに使う。',
+      title: 'Slidev theme declaration',
+      description: 'Returns the theme declaration referenced by a talk-dir and the list of layouts. '
+        + 'The declaration covers fonts, font sizes, PPTX fonts and link colors, and lint rules. '
+        + 'Skills use it to obtain theme values.',
       inputSchema: slideThemeInput,
       outputSchema: TOOL_OUTPUT_SCHEMA,
       // 読み取りのみで何も書き換えず、ネットワークにも到達しない。
@@ -59,7 +59,7 @@ export function slideThemeTool(
           exitCode: 0,
           artifacts: [],
           data: { ...data },
-          message: `slide theme: ${data.theme.name}（レイアウト ${String(data.layouts.length)} 件）`,
+          message: `slide theme: ${data.theme.name} (${String(data.layouts.length)} layouts)`,
         })
       }
       catch (error: unknown) {

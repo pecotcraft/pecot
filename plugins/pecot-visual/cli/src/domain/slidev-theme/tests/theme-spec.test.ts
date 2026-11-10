@@ -49,7 +49,7 @@ describe('parseThemeSpec', () => {
 
   it('タグの書式でないものは文言を統一する', () => {
     for (const tag of ['main', 'a1b2c3d', '0123456789abcdef0123456789abcdef01234567']) {
-      expect(() => parseThemeSpec(`git+https://git.example.com/acme/theme.git#${tag}`)).toThrow('タグの書式でない')
+      expect(() => parseThemeSpec(`git+https://git.example.com/acme/theme.git#${tag}`)).toThrow('invalid tag format')
     }
   })
 

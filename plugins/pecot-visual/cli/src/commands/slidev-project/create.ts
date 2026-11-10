@@ -161,7 +161,7 @@ async function generateTalk(
   const destination = await talkDirectoryExists(projectAbsolute)
   if (!options.force && destination.exists) {
     throw new SlideCreateUsageError(
-      `dest dir '${projectAbsolute}' は既に存在します (--force 未指定)`,
+      `destination already exists (use --force to overwrite): ${projectAbsolute}`,
       'dest-exists',
     )
   }
@@ -170,7 +170,7 @@ async function generateTalk(
   const storeRoot = (dependencies.themeStoreRoot ?? themeStoreRoot)()
   if (storeRoot === undefined) {
     throw new SlideCreateRuntimeError(
-      'テーマの置き場を決められません。データ置き場（CLAUDE_PLUGIN_DATA）を確認してください',
+      'cannot determine the theme location (fix: check the data directory CLAUDE_PLUGIN_DATA)',
       'theme-unknown',
     )
   }
@@ -295,14 +295,14 @@ export function emitLayoutCatalog(
   const { categories, layouts } = catalog
 
   writeData(stdout, '='.repeat(60))
-  writeData(stdout, 'Layout Catalog (Step 2 のプランモード前に必ず読み切ること)')
+  writeData(stdout, 'Layout Catalog (read it fully before plan mode in Step 2)')
   writeData(stdout, `${'='.repeat(60)}\n\n`)
 
   for (const category of categories) {
     writeData(stdout, `--- ${category.label}: ${category.question} ---\n\n`)
     const members = layouts.filter(entry => entry.category === category.id)
     if (members.length === 0) {
-      writeData(stdout, '(該当レイアウトなし)\n\n')
+      writeData(stdout, '(no matching layouts)\n\n')
       continue
     }
     for (const { layout, description, deprecated } of members) {
@@ -342,11 +342,11 @@ export function createSlideCreateCommand(
   buildDependencies: () => SlideCreateDependencies,
 ): Command {
   const command = new Command('create')
-    .description('テーマを参照する Slidev プレゼンテーションを生成する')
-    .argument('<project-dir>', '生成先ディレクトリ')
-    .requiredOption('--theme <spec>', 'テーマの指定 (git+https://<host>/<owner>/<repo>.git#<tag> か file:<path>)')
-    .option('--force', '既存ディレクトリを上書きする', false)
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
+    .description('create a Slidev presentation that references a theme')
+    .argument('<project-dir>', 'destination directory')
+    .requiredOption('--theme <spec>', 'theme spec (git+https://<host>/<owner>/<repo>.git#<tag> or file:<path>)')
+    .option('--force', 'overwrite an existing directory', false)
+    .option('--json', 'print machine-readable JSON to stdout', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {
@@ -375,7 +375,7 @@ export function createSlideCreateCommand(
       try {
         const execution = await executeSlideCreate(projectDirectory, options, dependencies, (summary) => {
           if (isWantsJson) return
-          writeData(dependencies.stdout, `slide create: 成功 (${summary.projectDirectory})`)
+          writeData(dependencies.stdout, `slide create: success (${summary.projectDirectory})`)
           writeData(dependencies.stdout, `  theme=${summary.theme.name}, ${String(Math.round(summary.durationMs))}ms`)
         })
         if (isWantsJson) {
@@ -396,7 +396,7 @@ export function createSlideCreateCommand(
           }))
         }
         else {
-          createDiagnostics(dependencies.stderr).error(`slide create 失敗: ${detail}`)
+          createDiagnostics(dependencies.stderr).error(`slide create failed: ${detail}`)
         }
         process.exitCode = toExitCode(error)
       }
@@ -418,7 +418,7 @@ export function slideCreateDefaultDependencies(): SlideCreateDependencies {
   const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
   /* c8 ignore next 3 -- bin/pecotv が CLAUDE_PLUGIN_ROOT を必ず export するため未設定ルートは実運用で発生しない */
   if (pluginRoot === undefined || pluginRoot === '') {
-    throw new SlideCreateRuntimeError('CLAUDE_PLUGIN_ROOT が未設定です', 'unknown')
+    throw new SlideCreateRuntimeError('CLAUDE_PLUGIN_ROOT is not set', 'unknown')
   }
   const dependencyRoot = pluginDependencyRoot()
   return {

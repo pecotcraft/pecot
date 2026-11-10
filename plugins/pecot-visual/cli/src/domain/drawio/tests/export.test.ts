@@ -152,7 +152,7 @@ describe('forceLightColorScheme', () => {
   })
 
   it('SVG ルート要素が無ければ明示エラーにする', () => {
-    expect(() => forceLightColorScheme('<html><body/></html>')).toThrow(/SVG ルート要素がありません/)
+    expect(() => forceLightColorScheme('<html><body/></html>')).toThrow(/no SVG root element in the exported content/)
   })
 
   it('自己終了タグでも /> を保ったまま属性を足す', () => {
@@ -217,19 +217,19 @@ describe('readSvgPixelSize', () => {
   })
 
   it('width が無ければエラーにする (既定の A4 で出力しない)', () => {
-    expect(() => readSvgPixelSize('<svg stroke-width="2" height="30px"/>')).toThrow(/width 属性がありません/)
+    expect(() => readSvgPixelSize('<svg stroke-width="2" height="30px"/>')).toThrow(/SVG root element has no width attribute/)
   })
 
   it('height が無ければエラーにする', () => {
-    expect(() => readSvgPixelSize('<svg width="30px"/>')).toThrow(/height 属性がありません/)
+    expect(() => readSvgPixelSize('<svg width="30px"/>')).toThrow(/SVG root element has no height attribute/)
   })
 
   it.each(['100%', '10pt', '5mm', '0px', 'auto', '1.2.3px'])('px 以外・0 の値 (%s) はエラーにする', (value) => {
-    expect(() => readSvgPixelSize(`<svg width="${value}" height="30px"/>`)).toThrow(/px の正の値ではありません/)
+    expect(() => readSvgPixelSize(`<svg width="${value}" height="30px"/>`)).toThrow(/is not a positive px value/)
   })
 
   it('SVG ルート要素が無ければエラーにする', () => {
-    expect(() => readSvgPixelSize('<html/>')).toThrow(/SVG ルート要素がありません/)
+    expect(() => readSvgPixelSize('<html/>')).toThrow(/no SVG root element in the exported content/)
   })
 })
 
