@@ -1,19 +1,15 @@
-# Dependabot の PR で runtime-lock.yaml を作り直す。画面からの merge では pre-commit の確認が動かないため。
-# push は App のトークンで行う。GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まり、必須チェックが出ない。
-# App の client id と鍵は Dependabot secrets から読む。dependabot の run では Actions secrets を読めないため。
-name: runtime-lock
+# Dependabot の PR に、runtime-lock.yaml と version plan を作る commit を足す。
+# push は App のトークンで行う。GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる。client id と鍵は Dependabot secrets から読む。
+name: dependabot-commit
 
 on:
   pull_request:
-    paths:
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
 
 permissions:
   contents: read
 
 concurrency:
-  group: runtime-lock-${{ github.event.pull_request.number }}
+  group: dependabot-commit-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -23,7 +19,7 @@ jobs:
     timeout-minutes: 15
     steps:
       # App の push で起きる run は actor が App になり、Dependabot secrets を読めない。
-      # その run では lock の差分が無く push もしないので、トークンを作らない。
+      # その run では lock と plan の差分が無く push もしないので、トークンを作らない。
       - name: Generate GitHub App token
         id: app-token
         if: ${{ github.actor == 'dependabot[bot]' }}
@@ -37,10 +33,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
           token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Set up Node.js
-
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.22.1"
@@ -55,16 +51,25 @@ jobs:
       - name: Regenerate runtime lock
         run: node .githooks/scripts/gen-runtime-lock.mjs --write
 
+      - name: Create version plans
+        id: plans
+        continue-on-error: true
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: node .nx/nx-release/src/dependabot-plans.js --pr "$PR_NUMBER" --base "origin/$BASE_REF"
+
       # commit の本文の [dependabot skip] が無いと、dependabot は他者の commit がある PR を rebase しなくなる。
       # 固定するテスト: .githooks/tests/test_gen_runtime_lock.py
-      - name: Push regenerated lock
+      - name: Push generated files
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          COMMIT_MSG: "chore(repo): runtime-lock を root の lock から作り直す"
+          COMMIT_MSG: "chore(repo): runtime-lock と version plan を dependabot の更新から作る"
           HAS_APP_TOKEN: ${{ steps.app-token.outputs.token != '' }}
-          NO_TOKEN_MSG: "App のトークンが無く、lock を push できない。PR で @dependabot recreate を打つ"
+          NO_TOKEN_MSG: "App のトークンが無く、lock と plan を push できない。PR で @dependabot recreate を打つ"
         run: |
-          if git diff --quiet; then
+          git add -A -- ':(glob)**/runtime-*.yaml' .nx/version-plans
+          if git diff --cached --quiet; then
             exit 0
           fi
           if [ "$HAS_APP_TOKEN" = "false" ]; then
@@ -73,6 +78,13 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
           git commit -m "$COMMIT_MSG" -m "[dependabot skip]"
           git push origin "HEAD:${HEAD_REF}"
+
+      - name: Fail when version plans were not created
+        if: ${{ steps.plans.outcome == 'failure' }}
+        env:
+          PLANS_FAILED_MSG: "version plan を作れなかった。runtime-lock は push した。ログを見て、PR で @dependabot recreate を打つ"
+        run: |
+          echo "::error::${PLANS_FAILED_MSG}"
+          exit 1

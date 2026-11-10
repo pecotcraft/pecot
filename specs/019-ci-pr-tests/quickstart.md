@@ -10,7 +10,7 @@
 | 変数 | リポジトリの変数（Repository variables）`PECOT_BOT_CLIENT_ID` に App の client id を置く。job の `if` で読むため、Environment の変数では空になり、2 つの job が skipped になる |
 | Environment `release` | 作る。必須レビュアーにリリース担当者を入れ、deployment branch を `main` だけにする。起動者が承認者を兼ねるなら、「Prevent self-review」は切る |
 | Environment `release-plan` | 作る。承認者は置かず、deployment branch を `main` だけにする |
-| 秘密を置く | 2 つの Environment の secret に、秘密鍵を `PECOT_BOT_PRIVATE_KEY` で置く。Dependabot secrets にも、client id を `PECOT_BOT_CLIENT_ID`、秘密鍵を `PECOT_BOT_PRIVATE_KEY` で置く。`runtime-lock.yml` が dependabot の run で読むため |
+| 秘密を置く | 2 つの Environment の secret に、秘密鍵を `PECOT_BOT_PRIVATE_KEY` で置く。Dependabot secrets にも、client id を `PECOT_BOT_CLIENT_ID`、秘密鍵を `PECOT_BOT_PRIVATE_KEY` で置く。`dependabot-commit.yml` が dependabot の run で読むため |
 | merge の方式 | リポジトリの設定で merge commit と rebase merge を切り、squash だけにする。merge commit では、元の commit の件名に `(#N)` が無く、リリースが止まるため |
 | auto-merge | リポジトリの設定で Allow auto-merge を有効にする |
 | イメージ | `devcontainer-image.yml` を手で 1 回起動し、GHCR のパッケージを public にする |

@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TARGET_DIRS = (
@@ -224,8 +225,8 @@ def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
 
 
 def test_runtime_lock_workflow_runs_an_existing_script() -> None:
-    """runtime-lock.yml は Dependabot の PR でしか動かない。run が指す script の実在をここで確かめる。"""
-    workflow = (_REPO_ROOT / ".github/workflows/runtime-lock.yml").read_text(encoding="utf-8")
+    """dependabot-commit.yml は Dependabot の PR でしか動かない。run が指す script の実在をここで確かめる。"""
+    workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(encoding="utf-8")
     paths = re.findall(r"run:\s*node\s+(\S+gen-runtime-lock\.mjs)", workflow)
     assert paths == [".githooks/scripts/gen-runtime-lock.mjs"]
     assert (_REPO_ROOT / paths[0]).is_file()
@@ -233,7 +234,7 @@ def test_runtime_lock_workflow_runs_an_existing_script() -> None:
 
 def test_runtime_lock_workflow_marks_commit_for_dependabot_rebase() -> None:
     """印が無いと、dependabot は他者の commit がある PR を rebase しない。"""
-    workflow = (_REPO_ROOT / ".github/workflows/runtime-lock.yml").read_text(encoding="utf-8")
+    workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(encoding="utf-8")
     commits = re.findall(r"^\s*(git commit\b.*)$", workflow, re.M)
     assert commits == ['git commit -m "$COMMIT_MSG" -m "[dependabot skip]"'], (
         f"git commit の行: {commits}"
@@ -261,3 +262,61 @@ def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
                 encoding="utf-8"
             ), file
     assert _check(repo).returncode == 0
+
+
+def test_workflow_creates_version_plans_before_commit() -> None:
+    """version plan は dependabot-plans.js --pr で作り、add -A を先にして staged の差分で判定する。"""
+    workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(encoding="utf-8")
+    assert re.search(
+        r'run:\s*node\s+\.nx/nx-release/src/dependabot-plans\.js --pr "\$PR_NUMBER"', workflow
+    )
+    assert (_REPO_ROOT / ".nx/nx-release/src/dependabot-plans.js").is_file()
+    add = "git add -A -- ':(glob)**/runtime-*.yaml' .nx/version-plans"
+    assert workflow.index(add) < workflow.index("git diff --cached --quiet")
+
+
+def _workflow() -> dict:
+    return yaml.safe_load(
+        (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(encoding="utf-8")
+    )
+
+
+def _steps() -> list[dict]:
+    return _workflow()["jobs"]["regenerate"]["steps"]
+
+
+def test_workflow_runs_on_every_pull_request_path() -> None:
+    """paths で絞ると、lock の変更を含まない更新で plan が作られない。"""
+    on = _workflow()[True]  # YAML 1.1 では on が True になる
+    assert on["pull_request"] is None or "paths" not in on["pull_request"]
+
+
+def test_workflow_checks_out_full_history() -> None:
+    checkout = next(s for s in _steps() if s.get("name") == "Checkout")
+    assert checkout["with"]["fetch-depth"] == 0
+
+
+def test_workflow_passes_origin_base_to_plans() -> None:
+    plans = next(s for s in _steps() if s.get("id") == "plans")
+    assert '--base "origin/$BASE_REF"' in plans["run"]
+    assert plans["continue-on-error"] is True
+
+
+def test_workflow_fails_after_push_when_plans_failed() -> None:
+    steps = _steps()
+    names = [s.get("name") for s in steps]
+    push = names.index("Push generated files")
+    fail = next(
+        i for i, s in enumerate(steps) if s.get("if") == "${{ steps.plans.outcome == 'failure' }}"
+    )
+    assert push < fail
+    assert "exit 1" in steps[fail]["run"]
+
+
+def test_workflow_adds_only_generated_paths() -> None:
+    """生成物の path に絞る。pathspec が runtime-lock.yaml の置き場に当たることも確かめる。"""
+    listed = subprocess.run(
+        ["git", "ls-files", "--", ":(glob)**/runtime-*.yaml"],
+        cwd=_REPO_ROOT, capture_output=True, text=True, check=True,
+    ).stdout.split()  # fmt: skip
+    assert {f"{d}/runtime-lock.yaml" for d in _TARGET_DIRS} <= set(listed)

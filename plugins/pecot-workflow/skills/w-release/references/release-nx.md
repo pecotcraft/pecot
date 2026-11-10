@@ -158,7 +158,7 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
 ランナーの手順に従うのは、次の 2 つをどちらも満たすときだけ。
 
 1. コマンドが成功する
-2. 出力の YAML に、job `plan`・`release` と `dependabot-plans.js` がある
+2. 出力の YAML に、job `plan`・`release` がある
 
 `release.yml` はよくある名前なので、別の目的のファイルを起動しないよう、2 を確かめる。
 手元の手順（下の 1〜8）に進むのは、`HTTP 404` のときと、2 を満たさないときだけ。
@@ -280,15 +280,6 @@ alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx の�
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
-
-dry-run の前に、依存の更新の version plan を作る。
-`.nx/nx-release/src/dependabot-plans.js` があるリポだけで動かす。無いリポは飛ばす。
-
-```bash
-cd <project-root>/base/<repo> && if [ -f .nx/nx-release/src/dependabot-plans.js ]; then node .nx/nx-release/src/dependabot-plans.js; fi
-```
-
-作られた plan は、dry-run の結果と合わせてユーザーに示す。
 
 ```bash
 cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx"; else NX="npx nx"; fi && $NX release --dry-run --verbose <publish-flag>

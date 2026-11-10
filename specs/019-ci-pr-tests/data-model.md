@@ -67,13 +67,13 @@ major を 1 件でも含む group の PR は、自動マージの対象から外
 
 ## 4. dependabot の更新の記録（入力）
 
-squash でマージした dependabot の commit の本文から読む。#113 の後は、dependabot の commit と runtime-lock の commit が 1 つに squash される。
-本文は、2 つの commit の本文を `*` 付きで連ねた形になる。
+dependabot の PR の最初の commit の本文から読む（#220 以降）。`dependabot-commit.yml` が PR ごとに動かし、`--pr <N>` で PR 番号を受ける。
+PR 番号は引数で受けるので、件名の `(#N)` には頼らない。
 
 | 項目 | 読む場所 | 例 |
 |---|---|---|
 | 対象の commit | 本文に `updated-dependencies:` だけの行を持つ commit。作者では選ばない | |
-| PR 番号 | 件名の末尾の `(#N)`。無ければコード 1 で止める | `(#5)` |
+| PR 番号 | `--pr` の引数 | `5` |
 | directory | 件名の `in /path`、group の PR では本文の `in the /path directory`。どちらも読めなければ `/` とみなす | `/plugins/pecot-tools` |
 | 依存名・新しい版・種類 | `updated-dependencies:` の YAML の `dependency-name`・`dependency-version`・`dependency-type`。本文のどこからでも探す | `commander`・`15.0.0`・`direct:production` |
 | 古い版 | 本文の `Bumps [x](...) from A to B` か `Updates \`x\` from A to B` | `14.0.3` |

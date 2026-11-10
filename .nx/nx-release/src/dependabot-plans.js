@@ -2,7 +2,7 @@
 "use strict";
 
 /**
- * dependabot の更新から、リリース直前に version plan を作る。
+ * dependabot の PR の commit から version plan を作る（--check は足りているかの確認だけ）。
  * 入力は commit の本文と、その時点の package.json・root の pnpm-lock.yaml を使う。
  * 契約は specs/019-ci-pr-tests/contracts/dependabot-plans.md を参照。
  */
@@ -22,6 +22,7 @@
 /** @typedef {import("./types").UvDep} UvDep */
 /** @typedef {import("./types").UvPackage} UvPackage */
 /** @typedef {import("./types").Commit} Commit */
+/** @typedef {import("./types").Analysis} Analysis */
 
 const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -109,14 +110,12 @@ function readFromVersion(body, name) {
 }
 
 /**
- * dependabot の commit の件名と本文を読む。#113 の後の squash は、2 commit の本文を連ねた形になる。
+ * dependabot の commit の件名と本文を読む。
  * @param {string} subject
  * @param {string} body
  * @returns {ParsedCommit}
  */
 function parseCommit(subject, body) {
-  const pr = /\(#(\d+)\)\s*$/.exec(subject)?.[1];
-  if (pr === undefined) throw new Error(`件名の末尾に (#N) がありません: ${subject}`);
   const directory =
     /\bin (\/\S*)(?: \(#\d+\))?$/.exec(subject)?.[1] ??
     /\bin the (\/\S*) directory/.exec(body)?.[1] ??
@@ -126,7 +125,7 @@ function parseCommit(subject, body) {
     ...update,
     from: readFromVersion(body, update.name),
   }));
-  return { pr: Number(pr), directory, updates };
+  return { directory, updates };
 }
 
 /** @type {WeakMap<Lock, Map<string, Set<string>>>} */
@@ -391,10 +390,9 @@ function resolveGroups(update, ctx) {
  * plan の中身。本文は 1 行で、100 字を超えるなら件を減らして「ほか N 件」で締める。
  * @param {string} group
  * @param {Dep[]} deps
- * @param {number} pr
  * @returns {string}
  */
-function renderPlan(group, deps, pr) {
+function renderPlan(group, deps) {
   const items = deps.map((dep) =>
     dep.from ? `${dep.name} ${dep.from} → ${dep.version}` : `${dep.name} → ${dep.version}`,
   );
@@ -403,7 +401,7 @@ function renderPlan(group, deps, pr) {
     const rest = items.length - shown;
     const parts =
       shown === 0 ? [`${items.length} 件`] : [...items.slice(0, shown), ...(rest > 0 ? [`ほか ${rest} 件`] : [])];
-    return `依存を更新した（${parts.join("、")}）。(#${pr})`;
+    return `依存を更新した（${parts.join("、")}）。`;
   };
   let shown = items.length;
   while (shown > 0 && [...sentence(shown)].length > MAX_LINE_CHARS) shown -= 1;
@@ -425,8 +423,7 @@ function git(cwd, args) {
 }
 
 /**
- * その commit で変わったファイルの path。root の uv.lock は ruff 用なので、
- * uv の判定は「directory の uv.lock が変わったか」で行う。
+ * その commit で変わったファイルの path。root の uv.lock は ruff 用なので、uv は directory 側の uv.lock で判定する。
  * @param {string} cwd
  * @param {string} sha
  * @returns {string[]}
@@ -449,23 +446,14 @@ function gitShow(cwd, spec) {
 }
 
 /**
+ * base..head の dependabot の commit を古い順に読む。
  * @param {string} cwd
- * @param {string} group
- */
-const lastTag = (cwd, group) => git(cwd, ["tag", "--list", `${group}-v*`, "--sort=-v:refname"]).split("\n")[0] ?? "";
-
-/**
- * 範囲の commit を古い順に読む。tag の側と中身が同じ commit は除く（履歴の書き換え後の重複を防ぐ）。
- * @param {string} cwd
- * @param {string} base 起点の ref。空なら全履歴
+ * @param {string} base 起点の ref
+ * @param {string} head 終点の ref
  * @returns {Commit[]}
  */
-function readCommits(cwd, base) {
-  const format = "--format=%H%x1f%s%x1f%b%x1e";
-  const args =
-    base === ""
-      ? ["log", "--reverse", format, "HEAD"]
-      : ["log", "--cherry-pick", "--right-only", "--reverse", format, `${base}...HEAD`];
+function readCommits(cwd, base, head) {
+  const args = ["log", "--reverse", "--format=%H%x1f%s%x1f%b%x1e", `${base}..${head}`];
   return git(cwd, args)
     .split("\x1e")
     .map((record) => record.replace(/^\n/, ""))
@@ -549,6 +537,88 @@ async function loadDistDepsDefault(toolsRoot) {
 }
 
 /**
+ * commit 1 件が届く group と、届かない理由を調べる。
+ * @param {string} cwd
+ * @param {Commit} commit
+ * @param {Set<string>} distDeps
+ * @returns {Analysis}
+ */
+function analyze(cwd, { sha, subject, body }, distDeps) {
+  try {
+    const parsed = parseCommit(subject, body);
+    /** @type {Map<string, Dep[]>} */
+    const byGroup = new Map();
+    /** @type {SkipReason} */
+    let reason = "none";
+    const hasIndirect = parsed.updates.some((update) => update.type === "indirect");
+    const uv = changedFiles(cwd, sha).includes(path.posix.join(parsed.directory, "uv.lock").replace(/^\//, ""));
+    const ctx = {
+      directory: parsed.directory,
+      uv,
+      declarations: readDeclarations(cwd, sha, parsed),
+      uvLock: uv && hasIndirect ? readUvLock(cwd, sha, parsed.directory) : null,
+      lock: !uv && hasIndirect ? readLock(cwd, sha) : null,
+      distDeps,
+    };
+    for (const update of parsed.updates) {
+      const resolution = resolveGroups(update, ctx);
+      if (resolution.reason === "dev") reason = "dev";
+      for (const group of resolution.groups) {
+        const deps = byGroup.get(group) ?? [];
+        if (!deps.some((dep) => dep.name === update.name && dep.version === update.version)) {
+          deps.push({ name: update.name, from: update.from, version: update.version });
+        }
+        byGroup.set(group, deps);
+      }
+    }
+    return { parsed, byGroup, reason };
+  } catch (error) {
+    throw new Error(`${sha.slice(0, 7)}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+  }
+}
+
+const USAGE =
+  "使い方: dependabot-plans.js --pr <N> --base <ref> [--head <ref>] [--dry-run] | " +
+  "dependabot-plans.js --check --base <ref> [--head <ref>]";
+
+/**
+ * base..head で足された dependabot の plan が覆う group。plan の中身は head の commit から読む。
+ * @param {string} repoDir
+ * @param {string} base
+ * @param {string} head
+ * @returns {Set<string>}
+ */
+function coveredGroups(repoDir, base, head) {
+  const added = git(repoDir, ["diff", "--name-only", "--diff-filter=A", `${base}..${head}`, "--", `${PLANS_DIR}/`])
+    .split("\n")
+    .filter((file) => /-dependabot-deps[^/]*\.md$/.test(file));
+  const headSha = git(repoDir, ["rev-parse", head]).trim();
+  /** @type {Set<string>} */
+  const covered = new Set();
+  for (const file of added) {
+    const text = gitShow(repoDir, `${headSha}:${file}`);
+    if (text === null) throw new Error(`${headSha.slice(0, 7)}:${file} を git show で読めません`);
+    const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? "";
+    for (const line of front.split(/\r?\n/)) {
+      const group = /^["']?([^:"'\s]+)["']?\s*:\s*\S+\s*$/.exec(line)?.[1];
+      if (group !== undefined) covered.add(group);
+    }
+  }
+  return covered;
+}
+
+/**
+ * オプションの値を返す。無いか、次のオプションなら undefined。
+ * @param {string[]} argv
+ * @param {number} i オプションの位置
+ * @returns {string | undefined}
+ */
+function optionValue(argv, i) {
+  const value = argv[i + 1];
+  return value === undefined || value.startsWith("--") ? undefined : value;
+}
+
+/**
  * @param {MainOptions} [options]
  * @returns {Promise<number>} 終了コード
  */
@@ -558,39 +628,54 @@ async function main(options = {}) {
   const err = options.stderr ?? ((line) => console.error(line));
   const argv = options.argv ?? process.argv.slice(2);
   let dryRun = false;
-  let sinceRef = "";
+  let check = false;
+  let base = "";
+  let head = "HEAD";
+  /** @type {string | undefined} */
+  let prArg;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+    const value = optionValue(argv, i);
     if (arg === "--dry-run") dryRun = true;
-    else if (arg === "--since-ref" && argv[i + 1] !== undefined) {
-      sinceRef = /** @type {string} */ (argv[i + 1]);
+    else if (arg === "--check") check = true;
+    else if ((arg === "--pr" || arg === "--base" || arg === "--head") && value !== undefined) {
+      if (arg === "--pr") prArg = value;
+      else if (arg === "--base") base = value;
+      else head = value;
       i += 1;
     } else {
-      err(`引数が誤っています: ${arg}\n使い方: dependabot-plans.js [--dry-run] [--since-ref <ref>]`);
+      err(`引数が誤っています: ${arg}\n${USAGE}`);
       return 2;
     }
   }
+  const invalid = () => {
+    err(`引数が誤っています: ${argv.join(" ")}\n${USAGE}`);
+    return 2;
+  };
+  if (base === "") return invalid();
+  if (check && (prArg !== undefined || dryRun)) return invalid();
+  if (!check && (prArg === undefined || !/^\d+$/.test(prArg))) return invalid();
+  const pr = Number(prArg ?? 0);
 
   /** @type {{ file: string, text: string }[]} */
   const written = [];
   try {
     const repoDir = options.repoDir ?? git(process.cwd(), ["rev-parse", "--show-toplevel"]).trim();
     const distDeps = await (options.loadDistDeps ?? loadDistDepsDefault)(toolsRoot);
+    const commits = readCommits(repoDir, base, head);
 
-    /** @type {Map<string, Commit>} */
-    const found = new Map();
-    /** @type {Record<string, Set<string>>} */
-    const inRange = {};
-    for (const group of Object.keys(GROUP_PATHS)) {
-      const base = sinceRef === "" ? lastTag(repoDir, group) : sinceRef;
-      inRange[group] = new Set();
-      for (const commit of readCommits(repoDir, base)) {
-        found.set(commit.sha, commit);
-        inRange[group].add(commit.sha);
+    if (check) {
+      const covered = coveredGroups(repoDir, base, head);
+      let missing = 0;
+      for (const commit of commits) {
+        for (const group of analyze(repoDir, commit, distDeps).byGroup.keys()) {
+          if (covered.has(group)) continue;
+          missing += 1;
+          err(`${commit.sha.slice(0, 7)}: ${group} の version plan がありません`);
+        }
       }
+      return missing === 0 ? 0 : 1;
     }
-    const order = new Map(git(repoDir, ["rev-list", "--reverse", "HEAD"]).split("\n").map((sha, i) => [sha, i]));
-    const commits = [...found.values()].sort((a, b) => (order.get(a.sha) ?? 0) - (order.get(b.sha) ?? 0));
 
     const plansDir = path.join(repoDir, PLANS_DIR);
     const outDir = dryRun ? path.join(repoDir, ".pecot/tmp/dependabot-plans") : plansDir;
@@ -598,61 +683,33 @@ async function main(options = {}) {
       fs.rmSync(outDir, { recursive: true, force: true });
       fs.mkdirSync(outDir, { recursive: true });
     }
-    // dev・none は PR（commit）単位、exists は plan ファイル単位。範囲外の group の plan は数えない
+    // dev・none は commit 単位、exists は plan ファイル単位
     const skipped = { dev: 0, none: 0, exists: 0 };
-
-    for (const { sha, subject, body } of commits) {
-      /** @type {ParsedCommit} */
-      let parsed;
-      /** @type {Map<string, Dep[]>} */
-      const byGroup = new Map();
-      /** @type {SkipReason} */
-      let reason = "none";
-      try {
-        parsed = parseCommit(subject, body);
-        const hasIndirect = parsed.updates.some((update) => update.type === "indirect");
-        const uv = changedFiles(repoDir, sha).includes(
-          path.posix.join(parsed.directory, "uv.lock").replace(/^\//, ""),
-        );
-        const ctx = {
-          directory: parsed.directory,
-          uv,
-          declarations: readDeclarations(repoDir, sha, parsed),
-          uvLock: uv && hasIndirect ? readUvLock(repoDir, sha, parsed.directory) : null,
-          lock: !uv && hasIndirect ? readLock(repoDir, sha) : null,
-          distDeps,
-        };
-        for (const update of parsed.updates) {
-          const resolution = resolveGroups(update, ctx);
-          if (resolution.reason === "dev") reason = "dev";
-          for (const group of resolution.groups) {
-            const deps = byGroup.get(group) ?? [];
-            if (!deps.some((dep) => dep.name === update.name && dep.version === update.version)) {
-              deps.push({ name: update.name, from: update.from, version: update.version });
-            }
-            byGroup.set(group, deps);
-          }
+    /** @type {Map<string, Dep[]>} */
+    const merged = new Map();
+    for (const commit of commits) {
+      const { byGroup, reason } = analyze(repoDir, commit, distDeps);
+      if (byGroup.size === 0) skipped[reason] += 1;
+      for (const [group, deps] of byGroup) {
+        const all = merged.get(group) ?? [];
+        for (const dep of deps) {
+          if (!all.some((entry) => entry.name === dep.name && entry.version === dep.version)) all.push(dep);
         }
-      } catch (error) {
-        throw new Error(`${sha.slice(0, 7)}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+        merged.set(group, all);
       }
-      if (byGroup.size === 0) {
-        skipped[reason] += 1;
+    }
+
+    for (const [group, deps] of merged) {
+      const name = `${pr}-dependabot-deps${merged.size >= 2 ? `-${group}` : ""}.md`;
+      if (fs.existsSync(path.join(plansDir, name))) {
+        skipped.exists += 1;
         continue;
       }
-      for (const [group, deps] of byGroup) {
-        if (!inRange[group]?.has(sha)) continue;
-        const name = `${parsed.pr}-dependabot-deps${byGroup.size >= 2 ? `-${group}` : ""}.md`;
-        if (fs.existsSync(path.join(plansDir, name)) || written.some((entry) => path.basename(entry.file) === name)) {
-          skipped.exists += 1;
-          continue;
-        }
-        fs.mkdirSync(outDir, { recursive: true });
-        const file = path.join(outDir, name);
-        const text = renderPlan(group, deps, parsed.pr);
-        fs.writeFileSync(file, text);
-        written.push({ file, text });
-      }
+      fs.mkdirSync(outDir, { recursive: true });
+      const file = path.join(outDir, name);
+      const text = renderPlan(group, deps);
+      fs.writeFileSync(file, text);
+      written.push({ file, text });
     }
 
     if (written.length > 0) {

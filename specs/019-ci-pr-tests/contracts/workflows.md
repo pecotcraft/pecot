@@ -69,8 +69,8 @@ job は次のとおり。
 
 | job | Environment | トークンの権限 | 中身 |
 |---|---|---|---|
-| `plan` | `release-plan`（承認者なし。deployment branch は `main` だけ） | `vulnerability-alerts`・`security-events`・`secret-scanning-alerts` の read（preflight が 3 種の alert を読むため） | 依存の更新の version plan を作り（`dependabot-plans`）、`pecot release preflight` と `nx release --dry-run --verbose --yes` を動かす。結果を `.pecot/tmp/release/summary.md` に書き、Step Summary と artifact `release-plan` に出す。commit しない |
-| `release` | `release`（必須レビュアーはリリース担当者。deployment branch は `main` だけ） | `contents: write`・`actions: write` | `needs: plan`。承認の後、`ref: main` で checkout し、HEAD が `github.sha` と違えば止める。続けて `gh auth setup-git`・git の作者の設定・`dependabot-plans`・`nx release --verbose --yes` を動かす |
+| `plan` | `release-plan`（承認者なし。deployment branch は `main` だけ） | `vulnerability-alerts`・`security-events`・`secret-scanning-alerts` の read（preflight が 3 種の alert を読むため） | `pecot release preflight` と `nx release --dry-run --verbose --yes` を動かす。結果を `.pecot/tmp/release/summary.md` に書き、Step Summary と artifact `release-plan` に出す。commit しない |
+| `release` | `release`（必須レビュアーはリリース担当者。deployment branch は `main` だけ） | `contents: write`・`actions: write` | `needs: plan`。承認の後、`ref: main` で checkout し、HEAD が `github.sha` と違えば止める。続けて `gh auth setup-git`・git の作者の設定・`nx release --verbose --yes` を動かす |
 
 Step Summary は `gh` で取れないため、同じ内容を artifact `release-plan` に残す。w-release は `gh run download` で読む。
 

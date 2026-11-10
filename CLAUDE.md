@@ -84,7 +84,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
     - devcontainer CLI の版は `dev-container.sh` の 1 か所にあり、dependabot は追わない。手で上げる
   - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
   - `release.yml`: 人が手で起動し、`main` 上で `nx release` を動かす。案を出す `plan` の後、Environment `release` の承認を待ってから `main` へ push する
-  - `runtime-lock.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。同じブランチへ、リリースの App のトークンで push する
+  - `dependabot-commit.yml`: Dependabot の PR で、各 `runtime-lock.yaml` を root の lock から作り直す。あわせて更新の version plan を作る。同じブランチへ、リリースの App のトークンで push する
   - `security-alerts.yml`: main の security alert を Tracker 1 件の一覧にそろえる。alert の操作を App の webhook で、取りこぼしを Scheduler で受けて起動し、cron は最後の補助である。GitHub App のトークンを使い、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
 - commit の前の検証は pre-commit が、メッセージの検証は commit-msg が、手元で行う。CI も pre-commit の stage と、pre-push の stage（version plan の確認を除く）を動かす
 

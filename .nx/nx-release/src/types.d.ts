@@ -1,5 +1,5 @@
 export type Update = { name: string; version: string; type: string; from: string | null };
-export type ParsedCommit = { pr: number; directory: string; updates: Update[] };
+export type ParsedCommit = { directory: string; updates: Update[] };
 export type Declaration = { path: string; section: string; changed: boolean };
 export type Lock = {
   importers: Record<string, Record<string, Record<string, { version: string }> | undefined>>;
@@ -30,6 +30,7 @@ export type Context = {
 export type SkipReason = "dev" | "none";
 export type Resolution = { groups: string[]; reason: SkipReason | null };
 export type Dep = { name: string; from: string | null; version: string };
+export type Analysis = { parsed: ParsedCommit; byGroup: Map<string, Dep[]>; reason: SkipReason };
 export type MainOptions = {
   argv?: string[];
   repoDir?: string;

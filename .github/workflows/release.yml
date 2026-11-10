@@ -72,7 +72,6 @@ jobs:
             cd /workspaces/base/pecot &&
             d=.pecot/tmp/release &&
             run() { n=$1; shift; "$@" > "$d/$n.log" 2>&1; rc=$?; cat "$d/$n.log"; return $rc; }
-            run plans node .nx/nx-release/src/dependabot-plans.js &&
             run preflight plugins/pecot-workflow/bin/pecot release preflight &&
             run nx pnpm exec nx release --dry-run --verbose --yes
           env: *release-env
@@ -96,12 +95,6 @@ jobs:
               echo "$MSG_UP_FAILED"
             elif [ "$RUN_OUTCOME" != "success" ]; then
               echo "$MSG_RUN_FAILED"
-            fi
-            if [ -f "$d/plans.log" ]; then
-              echo
-              printf '%s\n' "${fence}text"
-              tail -c 100000 "$d/plans.log"
-              echo "$fence"
             fi
             if [ -f "$d/preflight.log" ]; then
               warn="$(awk '/^Warning:/ {on=1; print; next} on && /^[[:space:]]/ {print; next} {on=0}' "$d/preflight.log")"
@@ -219,6 +212,5 @@ jobs:
             gh auth setup-git &&
             git config user.name "$BOT_NAME" &&
             git config user.email "$BOT_EMAIL" &&
-            node .nx/nx-release/src/dependabot-plans.js &&
             pnpm exec nx release --verbose --yes
           env: *release-run-env
