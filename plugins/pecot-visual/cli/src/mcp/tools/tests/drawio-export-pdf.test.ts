@@ -130,7 +130,7 @@ describe('drawio_export の兄弟 PDF', () => {
       data: { event: 'drawio.export.done', file: svgPath, pdf: null, pdfFailed: true, warnings: 1 },
       message: `SVG を ${svgPath} に書き出しました (警告 1 件、詳細は stderr)`,
     })
-    expect(String(structured['stderr'])).toContain('[warn] PDF 生成失敗: forced PDF failure')
+    expect(String(structured['stderr'])).toContain('warning: PDF 生成失敗: forced PDF failure')
     expect(existsSync(svgPath)).toBe(true)
     expect(existsSync(pdfPath)).toBe(false)
   })

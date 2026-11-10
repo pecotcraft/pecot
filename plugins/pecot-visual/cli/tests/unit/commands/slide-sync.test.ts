@@ -209,7 +209,7 @@ describe('createSlideSyncCommand エラーマッピング', () => {
     }
   })
 
-  it('相対パス + --json なしは stderr に "pecotv slide sync 失敗:" が出る', async () => {
+  it('相対パス + --json なしは stderr に "error: slide sync 失敗:" が出る', async () => {
     const stderr = makeStream()
     const command = createSlideSyncCommand(() => ({
       pluginRoot: temporaryRoot(),
@@ -219,7 +219,7 @@ describe('createSlideSyncCommand エラーマッピング', () => {
     const previousExitCode = process.exitCode
     try {
       await command.parseAsync(['--dir', 'relative/p'], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv slide sync 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide sync 失敗:')
       expect(process.exitCode).toBe(2)
     }
     finally {
@@ -559,7 +559,7 @@ describe('slide sync --theme (移行前の talk-dir)', () => {
       },
     })
 
-    expect(stderr.chunks.join('')).toContain('[warn] 取得の警告')
+    expect(stderr.chunks.join('')).toContain('warning: 取得の警告')
   })
 })
 

@@ -93,17 +93,28 @@ export function stripComments(xml: string): string {
   return xml.replaceAll(XML_COMMENT_REGEX, '')
 }
 
+export interface DrawioFinding {
+  readonly severity: 'warning' | 'note'
+  readonly message: string
+}
+
 /**
-mxCell の value 属性内 HTML を確認し、警告メッセージ配列を返す。
+mxCell の value 属性内 HTML を確認し、診断の配列を返す。
 Python 版の `_validate_html` と同等の検出ルールは次の 3 つ。
   1. `<font>` の属性が face/size/color/style 以外 → warn。
   2. value 内 HTML でシングルクォート属性値を使用 → warn。
-  3. `<font color>` と mxCell style の fontColor が同一値で二重指定 → info。
+  3. `<font color>` と mxCell style の fontColor が同一値で二重指定 → note。
 */
-export function validateHtml(xml: string): readonly string[] {
-  const warnings: string[] = []
+export function validateHtml(xml: string): readonly DrawioFinding[] {
+  const findings: DrawioFinding[] = []
+  const warn = (message: string): void => {
+    findings.push({ severity: 'warning', message })
+  }
+  const note = (message: string): void => {
+    findings.push({ severity: 'note', message })
+  }
   const document = parseDrawioXml(xml)
-  if (document === undefined) return warnings
+  if (document === undefined) return findings
 
   for (const cell of elementsByTagName(document, 'mxCell')) {
     const rawValue = attributeValue(cell, 'value')
@@ -113,8 +124,8 @@ export function validateHtml(xml: string): readonly string[] {
 
     // ルール2: シングルクォート属性値検出（生 XML 値で確認）
     for (const sq of rawValue.matchAll(SINGLE_QUOTE_ATTR_REGEX)) {
-      warnings.push(
-        `[warn] mxCell id=${cellId}: シングルクォート属性値を検出 — ${sq[0]}。&quot; によるダブルクォートを使用してください`,
+      warn(
+        `mxCell id=${cellId}: シングルクォート属性値を検出 — ${sq[0]}。&quot; によるダブルクォートを使用してください`,
       )
     }
 
@@ -131,8 +142,8 @@ export function validateHtml(xml: string): readonly string[] {
         const attributeName = (attributeMatch[1] ?? '').toLowerCase()
         if (FONT_ALLOWED_ATTRS.has(attributeName)) continue
         const sortedAllowed = [...FONT_ALLOWED_ATTRS].toSorted((a, b) => a.localeCompare(b)).join(', ')
-        warnings.push(
-          `[warn] mxCell id=${cellId}: <font> の非対応属性 '${attributeName}' を検出。対応属性: ${sortedAllowed}`,
+        warn(
+          `mxCell id=${cellId}: <font> の非対応属性 '${attributeName}' を検出。対応属性: ${sortedAllowed}`,
         )
       }
     }
@@ -153,26 +164,29 @@ export function validateHtml(xml: string): readonly string[] {
         /* c8 ignore next -- FONT_COLOR_VALUE_REGEX は group(1) を必ずキャプチャする。空文字の右辺は到達不能 */
         const htmlColor = (colorMatch[1] ?? '').trim().toLowerCase()
         if (htmlColor === fontColorStyle) {
-          warnings.push(
-            `[info] mxCell id=${cellId}: <font color="${htmlColor}"> と style fontColor=${fontColorStyle} が同一値で二重指定されています`,
+          note(
+            `mxCell id=${cellId}: <font color="${htmlColor}"> と style fontColor=${fontColorStyle} が同一値で二重指定されています`,
           )
         }
       }
     }
   }
 
-  return warnings
+  return findings
 }
 
 /**
 mxCell の style と value を確認し、警告メッセージ配列を返す。
 対象は、折り返し必須 (日本語/改行/<br>) なのに `whiteSpace=wrap` が style に無い、box 系 vertex。
-v-diagram-creator が stderr の [warn] を読んで該当 mxCell に追記できる粒度で、id を入れる。
+v-diagram-creator が stderr の warning を読んで該当 mxCell に追記できる粒度で、id を入れる。
 */
-export function validateWhitespaceWrap(xml: string): readonly string[] {
-  const warnings: string[] = []
+export function validateWhitespaceWrap(xml: string): readonly DrawioFinding[] {
+  const findings: DrawioFinding[] = []
+  const warn = (message: string): void => {
+    findings.push({ severity: 'warning', message })
+  }
   const document = parseDrawioXml(xml)
-  if (document === undefined) return warnings
+  if (document === undefined) return findings
 
   for (const cell of elementsByTagName(document, 'mxCell')) {
     if (attributeValue(cell, 'vertex') !== '1') continue
@@ -193,12 +207,12 @@ export function validateWhitespaceWrap(xml: string): readonly string[] {
       .replaceAll('\r', String.raw`\r`)
       .replaceAll('\n', String.raw`\n`)
     const ellipsis = graphemes.length > 20 ? '…' : ''
-    warnings.push(
-      `[warn] mxCell id=${cellId}: 折り返しが必要な value (日本語/改行を含む) ですが style に whiteSpace=wrap がありません — value 先頭: "${preview}${ellipsis}"。style に whiteSpace=wrap を付けてください`,
+    warn(
+      `mxCell id=${cellId}: 折り返しが必要な value (日本語/改行を含む) ですが style に whiteSpace=wrap がありません — value 先頭: "${preview}${ellipsis}"。style に whiteSpace=wrap を付けてください`,
     )
   }
 
-  return warnings
+  return findings
 }
 
 const JAPANESE_REGEX = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u
@@ -514,10 +528,13 @@ value の HTML（`<font face>`・`style="font-family:..."`・`style="font:..."`�
 `<object label>` / `<UserObject label>` に包まれたセルは、label を文字列として確認する。
 themeName は文言に書くテーマの名前。省くと「既定の書体」と書く。
 */
-export function validateSlideFonts(xml: string, fonts: Readonly<ThemeFonts>, themeName?: string): readonly string[] {
-  const warnings: string[] = []
+export function validateSlideFonts(xml: string, fonts: Readonly<ThemeFonts>, themeName?: string): readonly DrawioFinding[] {
+  const findings: DrawioFinding[] = []
+  const warn = (message: string): void => {
+    findings.push({ severity: 'warning', message })
+  }
   const document = parseDrawioXml(xml)
-  if (document === undefined) return warnings
+  if (document === undefined) return findings
 
   const eastAsian = fonts.eastAsian === undefined ? undefined : parseFontList(fonts.eastAsian)[0]
   const allowed: ReadonlySet<string> = new Set([...fonts.body.flatMap(name => parseFontList(name)), ...(eastAsian === undefined ? [] : [eastAsian])])
@@ -527,9 +544,9 @@ export function validateSlideFonts(xml: string, fonts: Readonly<ThemeFonts>, the
   for (const cell of textCells(document)) {
     const { runs: allRuns, unreadableShorthands } = walkText(cell.text, initialState(cell.style))
     const runs = allRuns.filter(run => !(run.font?.includes(MONOSPACE_FONT) ?? false))
-    const prefix = `[warn] mxCell id=${cell.id}:`
+    const prefix = `mxCell id=${cell.id}:`
     for (const shorthand of unreadableShorthands) {
-      warnings.push(`${prefix} font: ${shorthand} — ${SHORTHAND_WARNING}`)
+      warn(`${prefix} font: ${shorthand} — ${SHORTHAND_WARNING}`)
     }
     const offTheme = runs.find(run => run.font?.[0] === undefined || !allowed.has(run.font[0]))
     if (offTheme !== undefined) {
@@ -537,7 +554,7 @@ export function validateSlideFonts(xml: string, fonts: Readonly<ThemeFonts>, the
       const fix = offTheme.fontSource === 'html'
         ? `value 内の font-family 指定（<font face> や style の font-family）を消してください。書体はセルの style の fontFamily=${advice} に任せます`
         : `style に fontFamily=${advice} を付けてください`
-      warnings.push(
+      warn(
         `${prefix} ${actual}の文字列が${label}ではありません — "${offTheme.text}"。図の文字は${label}で組みます。${fix}`,
       )
     }
@@ -547,12 +564,12 @@ export function validateSlideFonts(xml: string, fonts: Readonly<ThemeFonts>, the
     const fix = missingJapanese.fontSource === 'html'
       ? `value 内の font-family 指定（<font face> や style の font-family）を消すか ${advice} にしてください`
       : `fontFamily を ${advice} にしてください`
-    warnings.push(
+    warn(
       `${prefix} 和文を含む文字列の書体の並びに ${fonts.eastAsian} がありません — "${missingJapanese.text}"。和文が代替書体で描かれます。${fix}`,
     )
   }
 
-  return warnings
+  return findings
 }
 
 /**
@@ -583,10 +600,13 @@ value の HTML（`style="font-size:..."`・`style="font:..."`）の入れ子の�
 `<font size>` は使わない前提で、出たら警告する。px 以外の単位は指定文字列を出して px での指定を案内する。
 文字を持たないセルは対象外。
 */
-export function validateSlideFontSizes(xml: string, sizes: Readonly<ThemeFontSizes>): readonly string[] {
-  const warnings: string[] = []
+export function validateSlideFontSizes(xml: string, sizes: Readonly<ThemeFontSizes>): readonly DrawioFinding[] {
+  const findings: DrawioFinding[] = []
+  const warn = (message: string): void => {
+    findings.push({ severity: 'warning', message })
+  }
   const document = parseDrawioXml(xml)
-  if (document === undefined) return warnings
+  if (document === undefined) return findings
 
   const steps: ReadonlySet<number> = new Set([sizes.heading, sizes.headingSm, sizes.body, sizes.bodySm, sizes.label])
   const guide = fontSizeGuide(sizes)
@@ -597,13 +617,13 @@ export function validateSlideFontSizes(xml: string, sizes: Readonly<ThemeFontSiz
       const fix = run.sizeSource === 'html' || run.fontSizeAttribute !== undefined
         ? 'value 内の font-size 指定（<font size> や style の font-size）を消し、セルの style に fontSize=<サイズ> を付けてください'
         : 'style に fontSize=<サイズ> を付けてください'
-      warnings.push(
-        `[warn] mxCell id=${cell.id}: ${sizeCause(label, run)} — "${run.text}"。${guide}。${fix}`,
+      warn(
+        `mxCell id=${cell.id}: ${sizeCause(label, run)} — "${run.text}"。${guide}。${fix}`,
       )
     }
   }
 
-  return warnings
+  return findings
 }
 
 function isBoxShape(style: string): boolean {

@@ -283,8 +283,8 @@ describe('createSlideThemeCommand', () => {
     expect(text).toContain('宣言: なし')
     expect(text).toContain('one')
     // 警告は結果と分けて stderr に出る
-    expect(text).not.toContain('[warn]')
-    expect(captured.stderr.join('')).toContain('[warn] ')
+    expect(text).not.toContain('warning:')
+    expect(captured.stderr.join('')).toContain('warning: ')
   })
 
   it('theme-unlinked では exit 1 で、--json は reason と detail を出す', async () => {
@@ -328,7 +328,7 @@ describe('createSlideThemeCommand', () => {
     const { dependencies, captured } = makeDependencies()
     expect(await runCommand(['--dir', talk], dependencies)).toBe(1)
     expect(captured.stdout).toEqual([])
-    expect(captured.stderr.join('')).toContain('pecotv slide theme 失敗:')
+    expect(captured.stderr.join('')).toContain('error: slide theme 失敗:')
   })
 
   it('未知のオプションは exit 2 の usage error。--json なら invalid-option を stdout に出す', async () => {

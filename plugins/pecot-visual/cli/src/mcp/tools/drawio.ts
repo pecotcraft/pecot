@@ -25,6 +25,7 @@ import {
   toExitCode as drawioUrlToExitCode,
   type DrawioUrlExecution,
 } from '../../commands/drawio/url.js'
+import { createDiagnostics } from '../../diagnostics.js'
 import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import { defaultIconRoot } from '../../infra/drawio/icons.js'
 import { parsePathArguments, toCallToolResult, type ToolResult } from '../result.js'
@@ -137,7 +138,7 @@ const handleDrawioCreate = async (
   const output = captureCommandOutput()
   // CLI は capturePng の失敗を stderr へ書いてから warning に数える。
   // 同じ行を残して、「警告 N 件、詳細は stderr」という message を CLI と MCP で同じ意味にする。
-  if (unavailable !== undefined) output.stderr.write(`[warn] PNG 生成失敗: ${unavailable.message}\n`)
+  if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG 生成失敗: ${unavailable.message}`)
   try {
     const execution = await executeDrawioUrl(
       input.input_path,

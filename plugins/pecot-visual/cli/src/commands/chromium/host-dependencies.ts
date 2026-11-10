@@ -8,6 +8,7 @@
 
 import { Command } from 'commander'
 
+import { createDiagnostics } from '../../diagnostics.js'
 import {
   ensureChromiumHostDependencies,
   hostDependenciesDefaultDependencies,
@@ -50,11 +51,12 @@ export function createChromiumHostDependenciesCommand(buildDependencies: () => H
     .option('--require-launch', 'OS のライブラリ以外の原因で起動できないときも失敗にする (テストの前提確認用)')
     .action(async (options: Readonly<HostDependenciesOptions>) => {
       const dependencies = buildDependencies()
+      const diagnostics = createDiagnostics(dependencies.stderr)
       // apt-get は数分かかり得るため、始める前に何を入れるかを stderr に出す。
       const hostDependencies: HostDependencies = {
         ...dependencies.hostDeps(),
         notify: (message) => {
-          dependencies.stderr.write(`${message}\n`)
+          diagnostics.note(message)
         },
       }
       const outcome = await ensureChromiumHostDependencies(hostDependencies)
@@ -64,12 +66,12 @@ export function createChromiumHostDependenciesCommand(buildDependencies: () => H
           return
         }
         case 'installed': {
-          dependencies.stderr.write(`Chromium の起動に要る OS のライブラリを入れました: ${outcome.packages.join(' ')}\n`)
+          diagnostics.done({ verb: 'add', target: outcome.packages.join(' ') })
           hostDependencies.record('ok')
           return
         }
         case 'missing': {
-          dependencies.stderr.write(`${outcome.detail}\n`)
+          diagnostics.error(outcome.detail)
           hostDependencies.record('missing')
           dependencies.setExitCode(HOST_DEPS_MISSING_EXIT_CODE)
           return
@@ -77,8 +79,14 @@ export function createChromiumHostDependenciesCommand(buildDependencies: () => H
         case 'launch-failed': {
           // 実行ファイル未取得等。取得は bin/pecotv の別の段が担うため、記録だけして通す。
           hostDependencies.record('launch-failed')
-          dependencies.stderr.write(`Chromium を起動できませんでした (OS のライブラリ以外の原因): ${outcome.detail}\n`)
-          if (options.requireLaunch === true) dependencies.setExitCode(LAUNCH_FAILED_EXIT_CODE)
+          const message = `Chromium を起動できませんでした (OS のライブラリ以外の原因): ${outcome.detail}`
+          if (options.requireLaunch === true) {
+            diagnostics.error(message)
+            dependencies.setExitCode(LAUNCH_FAILED_EXIT_CODE)
+          }
+          else {
+            diagnostics.warning(message)
+          }
           return
         }
       }

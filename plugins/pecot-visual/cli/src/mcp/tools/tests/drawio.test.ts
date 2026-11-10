@@ -260,7 +260,7 @@ describe('drawio_create', () => {
       warnings: 1,
       theme: { source: 'default', fonts: { body: ['sans-serif'] } },
     })
-    expect(structured['stderr']).toContain('[warn] PNG 生成失敗')
+    expect(structured['stderr']).toContain('warning: PNG 生成失敗')
   })
 })
 

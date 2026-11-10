@@ -241,7 +241,9 @@ export function slideConvertTool(
 
       const output = captureCommandOutput()
       try {
-        // json: false 相当で呼び、人間可読ログを含む出力を output の stdout / stderr へ集める。
+        // json: false 相当で呼び、output の stdout / stderr へ集める。
+        // 進捗の人間可読ログは stderr の診断行 (note / warning / error) で出るので、ToolResult の stderr に入る。
+        // stdout には変換結果の要約だけが入る。
         // MCP サーバの process.stdout は JSON-RPC 専有なので、実 stdout へは何も書かせない。
         const dependencies: SlideConvertDependencies = {
           ...buildDependencies(),

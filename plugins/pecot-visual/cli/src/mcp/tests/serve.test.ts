@@ -126,7 +126,7 @@ describe('installStdoutGuard', () => {
 
     protocolStdout.write('{"jsonrpc":"2.0"}\n')
     await vi.waitFor(() => {
-      expect(stderr.chunks.join('')).toContain('pecotv mcp: stdout への書き込みに失敗しました: EPIPE 相当')
+      expect(stderr.chunks.join('')).toContain('error: stdout への書き込みに失敗しました: EPIPE 相当')
     })
     expect(process.exitCode).toBe(1)
     process.exitCode = undefined
@@ -335,7 +335,7 @@ describe('runMcpServe', () => {
     await harness.client.connect(harness.clientTransport)
     try {
       harness.servers[0]?.server.onerror?.(new Error('Unknown message type'))
-      expect(harness.stderr.chunks.join('')).toContain('pecotv mcp: Unknown message type')
+      expect(harness.stderr.chunks.join('')).toContain('error: Unknown message type')
     }
     finally {
       await harness.client.close()
@@ -353,7 +353,7 @@ describe('runMcpServe', () => {
       harness.stdin.write('{"jsonrpc":"2.0","foo":1}\n')
 
       await vi.waitFor(() => {
-        expect(harness.stderr.chunks.join('')).toContain('pecotv mcp: ')
+        expect(harness.stderr.chunks.join('')).toContain('error: ')
       })
     }
     finally {
@@ -384,7 +384,7 @@ describe('runMcpServe (実 stdio transport)', () => {
 
       harness.stdin.write('{"jsonrpc":"2.0","foo":1}\n')
       await vi.waitFor(() => {
-        expect(harness.stderr.chunks.join('')).toContain('pecotv mcp: ')
+        expect(harness.stderr.chunks.join('')).toContain('error: ')
       })
       // 重複があれば直後の同期区間で 2 件目が届く。macrotask を数回回して取りこぼしを防ぐ。
       for (let turn = 0; turn < 5; turn += 1) {
@@ -393,7 +393,7 @@ describe('runMcpServe (実 stdio transport)', () => {
         })
       }
 
-      expect(harness.stderr.chunks.filter(chunk => chunk.startsWith('pecotv mcp: '))).toHaveLength(1)
+      expect(harness.stderr.chunks.filter(chunk => chunk.startsWith('error: '))).toHaveLength(1)
     }
     finally {
       await handle.close()
@@ -429,7 +429,7 @@ describe('executeMcpServe', () => {
 
     executeMcpServe(() => harness.deps)
 
-    expect(harness.stderr.chunks.join('')).toContain('pecotv mcp: transport 生成に失敗')
+    expect(harness.stderr.chunks.join('')).toContain('error: transport 生成に失敗')
     expect(process.exitCode).toBe(1)
   })
 
@@ -443,7 +443,7 @@ describe('executeMcpServe', () => {
 
     executeMcpServe(() => harness.deps)
 
-    expect(harness.stderr.chunks.join('')).toContain('pecotv mcp: plain string failure')
+    expect(harness.stderr.chunks.join('')).toContain('error: plain string failure')
     expect(process.exitCode).toBe(1)
   })
 
@@ -459,7 +459,7 @@ describe('executeMcpServe', () => {
 
     await expect(connecting).resolves.toBeInstanceOf(Error)
     await vi.waitFor(() => {
-      expect(harness.stderr.chunks.join('')).toContain('pecotv mcp: インスタンス生成に失敗')
+      expect(harness.stderr.chunks.join('')).toContain('error: インスタンス生成に失敗')
     })
     expect(harness.stderr.chunks.filter(chunk => chunk.includes('インスタンス生成に失敗'))).toHaveLength(1)
     expect(process.exitCode).toBe(1)

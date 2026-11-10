@@ -183,8 +183,8 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 - [ ] T035 [US3] T034 で見つかる違反を直す。`cli/core/` などコマンドの外の出力は、`Output` に移すか、呼ぶ側のコマンドへ返す形にする
 - [ ] T036 [US3] `cli-node/eslint.config.js` に、直接の出力を止める規則を足す
   - `no-console`
-  - `no-restricted-properties` で `process.stdout.write`・`process.stderr.write`
-  - `no-restricted-syntax` で、`stdout`・`stderr` という名前のものへの `.write` 呼び出し
+  - `no-restricted-syntax` で、`stdout`・`stderr` という名前の識別子・プロパティへの `.write` 呼び出し。`process.stdout.write` も含む
+  - 既存の `no-restricted-syntax` の配列を定数にし、出力のセレクタと合わせた配列を `src/**/*.ts` のブロックに置く。形は `plugins/pecot-visual/cli/eslint.config.js` に合わせる
   - `src/commands/output.ts` とテストは外す
 - [ ] T037 [US3] `cli-node/` の直接の出力を、共通の関数を使うか、呼ぶ側へ返す形に直す。対象は `src/cli.ts`・`src/infra/worktree-links.ts`・`src/infra/github/client.ts`
 - [ ] T038 [US3] quickstart.md の 4 を実行し、両方で止まること、`_output.py`・`output.ts` では止まらないことを確かめる
@@ -199,18 +199,18 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: PNG の生成に失敗する入力で、ツールの結果の stderr が `warning:` で始まる。`[warn]`・`[info]`・`pecotv:` が出ない
 
-- [ ] T039 [US5] `plugins/pecot-visual/cli/tests/` の期待値を書き換え、失敗することを確かめる。`[warn]`・`[info]`・`pecotv:` を、`warning:`・`note:`・`error:` にする
-- [ ] T040 [US5] `plugins/pecot-visual/cli/tests/diagnostics-cases.json` に、error・warning・note の期待の行を置く。error・warning は、`cli-node/tests/output/cases.json` の該当の要素と同じ値にする
-- [ ] T041 [US5] `plugins/pecot-visual/cli/src/diagnostics.ts` に、error・warning・note の関数を実装する。書き込み先は引数で受け取る。T040 の全件と一致することをテストで確かめる
-- [ ] T042 [US5] `plugins/pecot-visual/cli/src/` の直接の出力を `diagnostics.ts` に移す
+- [x] T039 [US5] `plugins/pecot-visual/cli/tests/` の期待値を書き換え、失敗することを確かめる。`[warn]`・`[info]`・`pecotv:` を、`warning:`・`note:`・`error:` にする
+- [x] T040 [US5] `plugins/pecot-visual/cli/tests/diagnostics-cases.json` に、error・warning・note の期待の行を置く。error・warning は、`cli-node/tests/output/cases.json` の該当の要素と同じ値にする
+- [x] T041 [US5] `plugins/pecot-visual/cli/src/diagnostics.ts` に、error・warning・note の関数を実装する。書き込み先は引数で受け取る。T040 の全件と一致することをテストで確かめる
+- [x] T042 [US5] `plugins/pecot-visual/cli/src/` の直接の出力を `diagnostics.ts` に移す
   - `cli.ts`
   - `infra/slidev-to-pptx/server.ts`
   - `infra/slidev-to-pptx/console-logger.ts`
-- [ ] T043 [US5] pecot-visual の domain 層で直接書いている箇所を、出力先のインターフェースを受け取る形に直す。今の `Logger` と同じ形にし、実装は infra 層に置く
+- [x] T043 [US5] pecot-visual の domain 層で直接書いている箇所を、出力先のインターフェースを受け取る形に直す。今の `Logger` と同じ形にし、実装は infra 層に置く
   - `plugins/pecot-visual/cli/src/domain/slidev-project/generated-files.ts`
   - `plugins/pecot-visual/cli/src/domain/pptx-ooxml/prerender-replace.ts`
-- [ ] T044 [US5] `plugins/pecot-visual/cli/eslint.config.js` に、T036 と同じ規則を足す。`src/diagnostics.ts`・`src/mcp/serve.ts` の stdout のガード・テストは外す
-- [ ] T045 [US5] MCP サーバとして動かし、stdout に JSON-RPC 以外の行が出ないことを、既存の serve のテストで確かめる
+- [x] T044 [US5] `plugins/pecot-visual/cli/eslint.config.js` に、T036 と同じ規則を足す。`src/diagnostics.ts`・`src/mcp/serve.ts` の stdout のガード・テストは外す
+- [x] T045 [US5] MCP サーバとして動かし、stdout に JSON-RPC 以外の行が出ないことを、既存の serve のテストで確かめる
 
 **Checkpoint**: quickstart.md の 5 の pecot-visual の部分が通る
 

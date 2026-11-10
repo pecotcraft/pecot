@@ -397,7 +397,7 @@ describe('createSlideSyncCommand (smoke)', () => {
     const previousExitCode = process.exitCode
     try {
       await command.parseAsync(['--dir', path.join(state.temporaryRoot, 'never-exists')], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv slide sync 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide sync 失敗:')
       expect(process.exitCode).toBe(1)
     }
     finally {

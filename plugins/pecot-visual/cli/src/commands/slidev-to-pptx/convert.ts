@@ -13,7 +13,7 @@ import { performance } from 'node:perf_hooks'
 import { access, readFile, mkdir, readdir, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 
-import { Command } from 'commander'
+import { Command, Option } from 'commander'
 
 import type {
   PptxArchive,
@@ -49,6 +49,7 @@ import type { FontPolicy } from '../../domain/pptx-ooxml/font-policy.js'
 import { readThemeDeclaration } from '../../domain/slidev-theme/declaration.js'
 import type { ResolvedThemeDeclaration, ThemeDeclarationResult } from '../../domain/slidev-theme/declaration.js'
 import { sanitizeFilename } from '../../domain/slidev-to-pptx/slides-title.js'
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import { readSlidesTitleFromFile } from '../../infra/slidev-to-pptx/slides-title-reader.js'
 import { ChildProcessSlidevRunner } from '../../infra/slidev-to-pptx/runner.js'
 import { InProcessSlidevPptxPipeline } from '../../infra/slidev-to-pptx/index.js'
@@ -90,6 +91,10 @@ export interface SlideConvertOptions {
   readonly transitionType?: TransitionType
   readonly transitionDurationMs?: number
   readonly morphOption?: MorphOption
+  /**
+  進捗の詳しさ。省略時は infra の既定 (normal)。verbose・debug は進捗を stderr に note: で出す
+  */
+  readonly logLevel?: 'normal' | 'verbose' | 'debug'
 }
 
 interface ChainOptions {
@@ -329,16 +334,17 @@ async function resolveFontPolicy(
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   dependencies: SlideConvertDependencies,
 ): Promise<FontPolicy> {
+  const diagnostics = createDiagnostics(dependencies.stderr)
   const { theme } = await dependencies.ensureThemeLinked(projectAbs, {
     signal: dependencies.signal,
-    warn: (message) => { dependencies.stderr.write(`[warn] ${message}\n`) },
+    warn: (message) => { diagnostics.warning(message) },
   })
   if (theme === undefined) return {}
   const { declaration, warnings } = await dependencies.readThemeDeclaration(theme.directory)
-  for (const warning of warnings) dependencies.stderr.write(`[warn] ${warning}\n`)
+  for (const warning of warnings) diagnostics.warning(warning)
   // 書体とリンク色を宣言から取るため、省いた deck は書き込みが無くなる。変化に気付けるよう知らせる。
-  if (declaration.pptx.linkColor === undefined) dependencies.stderr.write(`[warn] ${LINK_COLOR_OMITTED_WARNING}\n`)
-  if (declaration.pptx.eastAsianFont === undefined) dependencies.stderr.write(`[warn] ${EAST_ASIAN_FONT_OMITTED_WARNING}\n`)
+  if (declaration.pptx.linkColor === undefined) diagnostics.warning(LINK_COLOR_OMITTED_WARNING)
+  if (declaration.pptx.eastAsianFont === undefined) diagnostics.warning(EAST_ASIAN_FONT_OMITTED_WARNING)
   return fontPolicyOf(declaration.pptx)
 }
 
@@ -373,10 +379,8 @@ export async function runSlideConvert(
   const cleanBuildMs = dependencies.now() - start
 
   // capture/relay 切替: slidev build 子プロセスの stdout/stderr は --json 時に破棄する
-  // (tech-advisor B2)。
-  // in-process pipeline へは、--json 時に stdout を渡さず stderr だけを渡す。
-  // 対象は InProcessSlidevPptxPipeline (infra/slidev-to-pptx/index.ts)。
-  // 同 pipeline は stdout 未指定なら人間可読ログを stderr へ出すため、stdout は JSON 行だけになる。
+  // (tech-advisor B2)。--json でないときは、どちらも stderr へ中継する (stdout はデータだけ)。
+  // in-process pipeline の人間可読ログは、常に stderr の診断行 (note / warning / error) で出る。
   const isRelayEnabled = options.json !== true
   const buildOptions: {
     theme?: string
@@ -388,7 +392,7 @@ export async function runSlideConvert(
   if (options.theme !== undefined) buildOptions.theme = options.theme
   if (dependencies.signal !== undefined) buildOptions.signal = dependencies.signal
   if (isRelayEnabled) {
-    buildOptions.stdout = dependencies.stdout
+    buildOptions.stdout = dependencies.stderr
     buildOptions.stderr = dependencies.stderr
   }
   const buildStart = dependencies.now()
@@ -424,10 +428,10 @@ export async function runSlideConvert(
     skipPostprocess: boolean
     cachePluginVersion: string
     cacheSkipRead: boolean
+    logLevel?: string
     singlePass?: false
     theme?: string
     signal?: AbortSignal
-    stdout?: NodeJS.WritableStream
     stderr?: NodeJS.WritableStream
     onStepProgress?: (completed: number, total: number) => void
   } = {
@@ -444,10 +448,10 @@ export async function runSlideConvert(
   // --theme は envHash の材料にもなる (F-01)。テーマ切替後に旧描画のキャッシュが
   // 通知なしにヒットしないよう、slidev build に渡した値をそのまま pptxConverter にも渡す。
   if (options.theme !== undefined) convertOptions.theme = options.theme
+  if (options.logLevel !== undefined) convertOptions.logLevel = options.logLevel
   if (dependencies.signal !== undefined) convertOptions.signal = dependencies.signal
   // --no-single-pass は現行ルートを強制する。未指定はキーを置かず、pipeline 側が env に従う。
   if (options.singlePass === false) convertOptions.singlePass = false
-  if (isRelayEnabled) convertOptions.stdout = dependencies.stdout
   convertOptions.stderr = dependencies.stderr
   const report = dependencies.onProgress
   if (report !== undefined) {
@@ -915,7 +919,7 @@ async function mergeSingleSlidePptxesTo(
       relsDocument,
       partMap,
       entries,
-      { readFile },
+      { readFile, warn: createDiagnostics(dependencies.stderr).warning },
     )
 
     partMap.set(slidePart, dependencies.engine.serialize(slideDocument))
@@ -1102,9 +1106,9 @@ async function readSlidesTitleForDefault(
     // slides.md 不在 (ENOENT) は basename fallback の正常系のため警告しない。
     // それ以外の読取失敗 (permission 等) は診断を stderr に残す (stdout の JSON イベント契約を汚さない)。
     if (error.code !== 'ENOENT') {
-      stderr.write(
-        `pecotv slide convert: slides.md を読み取れないため既定出力名を basename から決定します`
-        + ` (${slidesPath}): ${error.message}\n`,
+      createDiagnostics(stderr).warning(
+        `slides.md を読み取れないため既定出力名を basename から決定します`
+        + ` (${slidesPath}): ${error.message}`,
       )
     }
   })
@@ -1209,23 +1213,27 @@ export function createSlideConvertCommand(
     .option('--morph-option <option>', 'morph option (byObject|byWord|byChar)')
     .option('--no-cache', 'キャッシュを読まずに全スライドを変換する（完了時にキャッシュは再構築される）')
     .option('--no-single-pass', '1 パスのルートを使わず、スライドのステップごとにページを開く従来ルートで変換する')
+    .addOption(new Option('--log-level <level>', '進捗の詳しさ（verbose・debug は進捗を stderr に出す）').choices(['normal', 'verbose', 'debug']))
     .option('--json', 'emit machine-readable progress on stdout', false)
     .exitOverride()
     .configureOutput({
+      writeOut: (string_: string) => {
+        writeData(buildDependencies().stdout, string_)
+      },
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.convert.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:\s*/i, '').trim(),
             // done payload と同じく常時載せる。option 解析で落ちた run は pipeline 未到達のため空配列。
             warnings: [],
             errors: [],
-          }) + '\n')
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -1241,6 +1249,7 @@ export function createSlideConvertCommand(
         const transitionType = optionalTransitionType(raw, 'transitionType')
         const transitionDurationMs = optionalPositiveInt(raw, 'transitionDurationMs', 'invalid-transition-duration-ms')
         const morphOption = optionalMorphOption(raw, 'morphOption')
+        const logLevel = optionalLogLevel(raw, 'logLevel')
         const optionalsPart: {
           theme?: string
           spacingJson?: string
@@ -1248,6 +1257,7 @@ export function createSlideConvertCommand(
           transitionType?: TransitionType
           transitionDurationMs?: number
           morphOption?: MorphOption
+          logLevel?: 'normal' | 'verbose' | 'debug'
         } = {}
         if (theme !== undefined) optionalsPart.theme = theme
         if (spacingJson !== undefined) optionalsPart.spacingJson = spacingJson
@@ -1255,6 +1265,7 @@ export function createSlideConvertCommand(
         if (transitionType !== undefined) optionalsPart.transitionType = transitionType
         if (transitionDurationMs !== undefined) optionalsPart.transitionDurationMs = transitionDurationMs
         if (morphOption !== undefined) optionalsPart.morphOption = morphOption
+        if (logLevel !== undefined) optionalsPart.logLevel = logLevel
         const outOption = optionalString(raw, 'out')
         const resolvedProject = path.resolve(projectDirectory)
         const out = outOption ?? await resolveDefaultOut(resolvedProject, dependencies.stderr)
@@ -1272,16 +1283,16 @@ export function createSlideConvertCommand(
         const reason = errorToReason(error)
         const detail = formatError(error)
         if (isWantsJson) {
-          dependencies.stdout.write(JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.convert.error',
             reason,
             detail,
             warnings: [],
             errors: [],
-          }) + '\n')
+          }))
         }
         else {
-          dependencies.stderr.write(`pecotv slide convert: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(detail)
         }
         process.exitCode = toExitCode(error)
         return
@@ -1291,30 +1302,32 @@ export function createSlideConvertCommand(
         if (options.json === true) {
           // event 順序保証: start → done (失敗時は start → error)。tooling 側 stream parser
           // は start を進捗開始の signal として待つことができる。
-          dependencies.stdout.write(JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.convert.start',
             input: path.resolve(projectDirectory),
             output: path.resolve(options.out),
-          }) + '\n')
+          }))
         }
         const { summary, data } = await executeSlideConvert(projectDirectory, options, dependencies)
         if (options.json === true) {
-          dependencies.stdout.write(JSON.stringify(data) + '\n')
+          writeData(dependencies.stdout, JSON.stringify(data))
         }
         else {
-          dependencies.stdout.write(
+          writeData(
+            dependencies.stdout,
             `slide convert: ${summary.inputAbs} -> ${summary.outputAbs}`
-            + ` (${String(Math.round(summary.durationMs))}ms)\n`,
+            + ` (${String(Math.round(summary.durationMs))}ms)`,
           )
           // 0 件のときは出さない（除去が起きなかった run で行数を増やさない）。
           if (summary.animationTimingRemovedSlides > 0) {
-            dependencies.stdout.write(
+            writeData(
+              dependencies.stdout,
               `animation: ${String(summary.animationTimingRemovedSlides)} 枚のスライドから`
-              + ` p:timing を除去しました (明示指定のあるスライドは保持)\n`,
+              + ` p:timing を除去しました (明示指定のあるスライドは保持)`,
             )
           }
           if (summary.cache !== undefined) {
-            dependencies.stdout.write(formatCacheSummary(summary.cache))
+            writeData(dependencies.stdout, formatCacheSummary(summary.cache))
           }
         }
       }
@@ -1322,7 +1335,7 @@ export function createSlideConvertCommand(
         const reason = errorToReason(error)
         const detail = formatError(error)
         if (options.json === true) {
-          dependencies.stdout.write(JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.convert.error',
             reason,
             detail,
@@ -1330,15 +1343,23 @@ export function createSlideConvertCommand(
             // pipeline 未到達なら空配列（done payload と同じく「不在＝旧版」と区別する）。
             // detail 側 (formatPipelineErrors) は先頭 3 件に丸めるが、機械可読側は全件載せる。
             ...convertErrorDiagnostics(error),
-          }) + '\n')
+          }))
         }
         else {
-          dependencies.stderr.write(`pecotv slide convert: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(detail)
         }
         process.exitCode = toExitCode(error)
       }
     })
   return command
+}
+
+const LOG_LEVELS: readonly ('normal' | 'verbose' | 'debug')[] = ['normal', 'verbose', 'debug']
+
+function optionalLogLevel(raw: Readonly<Record<string, unknown>>, key: string): 'normal' | 'verbose' | 'debug' | undefined {
+  // eslint-disable-next-line security/detect-object-injection -- key は本ファイル内の固定文字列のみ
+  const value = raw[key]
+  return LOG_LEVELS.find(level => level === value)
 }
 
 function optionalString(raw: Readonly<Record<string, unknown>>, key: string): string | undefined {

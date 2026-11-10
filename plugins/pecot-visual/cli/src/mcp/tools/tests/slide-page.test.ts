@@ -397,7 +397,7 @@ describe('slide_page のテーマの失敗', () => {
 
     const result = await tool.handler({ layout: 'one', dir: directory, file: 'page' }, CALL)
 
-    expect(textOf(structuredOf(result)['stderr'])).toContain('[warn] ')
+    expect(textOf(structuredOf(result)['stderr'])).toContain('warning: ')
   })
 })
 

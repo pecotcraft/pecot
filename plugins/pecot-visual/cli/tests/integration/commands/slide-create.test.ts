@@ -230,7 +230,7 @@ describe('executeSlideCreate (smoke)', () => {
       { layout: 'panel', description: '見出しと画像の枠を置くレイアウト。図を 1 つ見せる場面に使う。', category: 'figure', deprecated: false, filename: 'panel.yaml' },
       { layout: 'legacy-panel', description: '【非推奨】品質が水準に達していないため選ばない、見出しだけの枠。', category: 'figure', deprecated: true, filename: 'legacy-panel.yaml' },
     ])
-    expect(stderr.chunks.join('')).not.toContain('[warn]')
+    expect(stderr.chunks.join('')).not.toContain('warning:')
   })
 
   it('宣言の無いテーマ: layout だけの初期ページ 1 つと警告', async () => {
@@ -249,7 +249,7 @@ describe('executeSlideCreate (smoke)', () => {
     expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8'))
       .toContain(`theme: ${BARE_THEME_NAME}\n`)
     const warnings = stderr.chunks.join('')
-    expect(warnings).toContain('[warn]')
+    expect(warnings).toContain('warning: ')
     expect(warnings).toContain('examples')
     expect(data['warnings']).toEqual(expect.arrayContaining([expect.stringContaining('examples')]))
   })
@@ -274,8 +274,8 @@ describe('executeSlideCreate (smoke)', () => {
 
     expect(data['warnings']).toEqual(expect.arrayContaining(['取得中の警告']))
     // 接頭辞は create が 1 回だけ付ける。
-    expect(stderr.chunks.join('')).toContain('[warn] 取得中の警告\n')
-    expect(stderr.chunks.join('')).not.toContain('[warn] [warn]')
+    expect(stderr.chunks.join('')).toContain('warning: 取得中の警告\n')
+    expect(stderr.chunks.join('')).not.toContain('warning: warning:')
     expect(readFileSync(path.join(projectDirectory, 'vite.config.ts'), 'utf8'))
       .toBe(viteConfigSource({ themeName: BARE_THEME_NAME }))
   })
@@ -456,7 +456,7 @@ describe('createSlideCreateCommand', () => {
     const previousExitCode = process.exitCode
     try {
       await command2.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv slide create 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide create 失敗:')
     }
     finally {
       process.exitCode = previousExitCode

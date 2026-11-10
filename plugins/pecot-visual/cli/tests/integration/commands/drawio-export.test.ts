@@ -254,7 +254,7 @@ describe('createDrawioExportCommand', () => {
       { from: 'user' },
     )
 
-    expect(stderr.chunks.join('')).toContain(`wrote SVG to ${outputPath}`)
+    expect(stderr.chunks.join('')).toContain(`created: ${outputPath}`)
   })
 
   it('--print-hash は stdout にハッシュ 1 行だけを出す（フックが変数に取る前提）', async () => {
@@ -324,7 +324,7 @@ describe('createDrawioExportCommand', () => {
       { from: 'user' },
     )
 
-    expect(stderr.chunks.join('')).toContain('pecotv drawio export:')
+    expect(stderr.chunks.join('')).toContain('error: ')
     expect(process.exitCode).toBe(1)
   })
 
@@ -428,7 +428,7 @@ describe('兄弟 PDF', () => {
     expect(execution.pdfFile).toBeUndefined()
     expect(execution.warningCount).toBe(1)
     expect(execution.exitCode).toBe(3)
-    expect(stderr.chunks.join('')).toContain('[warn] PDF 生成失敗: chromium crashed')
+    expect(stderr.chunks.join('')).toContain('warning: PDF 生成失敗: chromium crashed')
   })
 
   it('PDF 生成に失敗したら前回の兄弟 PDF を削除する', async () => {
@@ -580,7 +580,7 @@ describe('createDrawioExportCommand (PDF)', () => {
     await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath], { from: 'user' })
 
     const pdfPath = path.join(path.dirname(outputPath), 'out.pdf')
-    expect(stderr.chunks.join('')).toBe(`wrote SVG to ${outputPath}\nwrote PDF to ${pdfPath}\n`)
+    expect(stderr.chunks.join('')).toBe(`created: ${outputPath}\ncreated: ${pdfPath}\n`)
   })
 
   it('--no-pdf は exportPdf を呼ばず PDF の案内も出さない', async () => {
@@ -592,11 +592,11 @@ describe('createDrawioExportCommand (PDF)', () => {
     await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath, '--no-pdf'], { from: 'user' })
 
     expect(exportPdf).not.toHaveBeenCalled()
-    expect(stderr.chunks.join('')).toBe(`wrote SVG to ${outputPath}\n`)
+    expect(stderr.chunks.join('')).toBe(`created: ${outputPath}\n`)
     expect(process.exitCode).toBe(0)
   })
 
-  it('PDF 失敗は stderr に [warn] を出して exit 3 にする', async () => {
+  it('PDF 失敗は stderr に warning を出して exit 3 にする', async () => {
     const stderr = makeStream()
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({
@@ -607,9 +607,9 @@ describe('createDrawioExportCommand (PDF)', () => {
     await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath], { from: 'user' })
 
     const written = stderr.chunks.join('')
-    expect(written).toContain('[warn] PDF 生成失敗: forced PDF failure')
-    expect(written).toContain(`wrote SVG to ${outputPath}`)
-    expect(written).not.toContain('wrote PDF to')
+    expect(written).toContain('warning: PDF 生成失敗: forced PDF failure')
+    expect(written).toContain(`created: ${outputPath}`)
+    expect(written).not.toContain('.pdf')
     expect(process.exitCode).toBe(3)
   })
 

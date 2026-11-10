@@ -15,6 +15,7 @@ import path from 'node:path'
 
 import { Command } from 'commander'
 
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import { collectTextViolations, formatTextViolations } from '../../domain/_shared/text-check.js'
 import type { LintText, TextViolation } from '../../domain/_shared/text-check.js'
 import type { EvidenceSpec, NormalizedEvidenceSpec, SpecValidationError } from '../../domain/evidence-xlsx/spec-schema.js'
@@ -196,14 +197,14 @@ export function createEvidenceCreateCommand(buildDependencies: () => EvidenceCre
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: ERROR_EVENT,
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -217,7 +218,7 @@ export function createEvidenceCreateCommand(buildDependencies: () => EvidenceCre
           out: optionString(raw['out'], DEFAULT_OUT),
         }, dependencies)
         if (isJson) {
-          dependencies.stdout.write(`${JSON.stringify(data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(data))
         }
         else {
           writeHumanSummary(dependencies.stdout, data)
@@ -225,10 +226,10 @@ export function createEvidenceCreateCommand(buildDependencies: () => EvidenceCre
       }
       catch (error: unknown) {
         if (isJson) {
-          dependencies.stdout.write(`${JSON.stringify(errorData(error))}\n`)
+          writeData(dependencies.stdout, JSON.stringify(errorData(error)))
         }
         else {
-          dependencies.stderr.write(`pecotv evidence create: ${formatError(error)}\n`)
+          createDiagnostics(dependencies.stderr).error(`evidence create: ${formatError(error)}`)
         }
         process.exitCode = EVIDENCE_CREATE_FAILURE_EXIT_CODE
       }
@@ -253,15 +254,15 @@ function writeHumanSummary(
   stdout: NodeJS.WritableStream,
   data: Readonly<EvidenceCreateResultData>,
 ): void {
-  stdout.write(`生成しました: ${data.outPath}\n`)
-  stdout.write(`項目数: ${data.items.toString()} / 注記数: ${data.annotations.toString()}\n`)
+  writeData(stdout, `生成しました: ${data.outPath}`)
+  writeData(stdout, `項目数: ${data.items.toString()} / 注記数: ${data.annotations.toString()}`)
   if (data.skipped.length === 0) {
     return
   }
 
-  stdout.write(`除外: ${data.skipped.length.toString()} 件\n`)
+  writeData(stdout, `除外: ${data.skipped.length.toString()} 件`)
   for (const entry of data.skipped) {
-    stdout.write(`  - ${entry.path} (${entry.reason})\n`)
+    writeData(stdout, `  - ${entry.path} (${entry.reason})`)
   }
 }
 

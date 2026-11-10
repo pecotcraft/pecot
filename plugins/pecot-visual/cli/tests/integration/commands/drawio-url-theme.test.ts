@@ -139,7 +139,7 @@ async function run(input: string, options: { readonly theme?: string } = {}, ove
 }
 
 function warnLines(stderr: string): readonly string[] {
-  return stderr.split('\n').filter(line => line.startsWith('[warn]'))
+  return stderr.split('\n').filter(line => line.startsWith('warning:'))
 }
 
 describe('宣言の値が違う 2 つのテーマの talk-dir', () => {
@@ -264,7 +264,7 @@ describe('talk-dir の外', () => {
     expect(passedSpec).toEqual({ kind: 'git', url: 'file:///themes/test-sans.git', tag: 'v1.0.0' })
     expect(passedOptions).toMatchObject({ storeRoot: path.join(state.root, 'store'), dependencyRoot: PLUGIN_ROOT, signal: controller.signal })
     expect(theme).toMatchObject({ source: 'option', name: TEST_THEME_NAME, fontSizes: TEST_SANS.fontSizes })
-    expect(stderr).toContain('[info] キャッシュを使います')
+    expect(stderr).toContain('note: キャッシュを使います')
     expect(warnLines(stderr).every(line => !line.includes('キャッシュ'))).toBe(true)
     expect(execution.warningCount).toBe(warnLines(stderr).length)
   })
@@ -285,7 +285,7 @@ describe('talk-dir の外', () => {
     const { theme, stderr, execution } = await run(input, { theme: `file:${themeRoot}` })
 
     expect(theme).toMatchObject({ source: 'option', name: TEST_THEME_NAME, fonts: { body: ['sans-serif'] }, fontSizes: { heading: 16, headingSm: 13, body: 12, bodySm: 10, label: 9 } })
-    expect(stderr).toContain('[info]')
+    expect(stderr).toContain('note:')
     expect(stderr).toContain('pecot-theme.json')
     expect(warnLines(stderr)).toEqual([])
     expect(execution.exitCode).toBe(0)
@@ -296,7 +296,7 @@ describe('talk-dir の外', () => {
     const xml = diagram(cell('a', 'Alpha', 12, 'html=1;fontFamily=sans-serif;'))
     const input = writeDiagram(path.join(state.root, 'outside'), xml, 'a.drawio')
     const { stderr, execution } = await run(input, { theme: themeRoot })
-    expect(stderr).toContain('[info]')
+    expect(stderr).toContain('note:')
     expect(warnLines(stderr)).toEqual([])
     expect(execution.exitCode).toBe(0)
   })
@@ -317,7 +317,7 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
     })
     const { theme, stderr, execution } = await run(input, {}, { capturePng })
     expect(theme).toEqual({ source: 'default', fonts: { body: ['sans-serif'] } })
-    expect(stderr).toContain('[info]')
+    expect(stderr).toContain('note:')
     expect(stderr).toContain('slide sync --theme')
     expect(execution.exitCode).toBe(0)
 

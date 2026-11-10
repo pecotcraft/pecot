@@ -290,7 +290,7 @@ describe('createMcpServer', () => {
         artifacts: ['/tmp/out.png'],
         data: { warnings: 1 },
         message: '警告あり',
-        stderr: '[warn] icon not found',
+        stderr: 'warning: icon not found',
       })),
     }
 
@@ -301,7 +301,7 @@ describe('createMcpServer', () => {
       artifacts: ['/tmp/out.png'],
       data: { warnings: 1 },
       message: '警告あり',
-      stderr: '[warn] icon not found',
+      stderr: 'warning: icon not found',
     }
 
     const connected = await connectMcp([failing])

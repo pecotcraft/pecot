@@ -35,16 +35,17 @@ describe('validateWhitespaceWrap', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', 'line1&#10;line2')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('mxCell id=x')
-    expect(warnings[0]).toContain('whiteSpace=wrap')
-    expect(warnings[0]).toContain(String.raw`line1\nline2`)
+    expect(warnings[0]?.severity).toBe('warning')
+    expect(warnings[0]?.message).toContain('mxCell id=x')
+    expect(warnings[0]?.message).toContain('whiteSpace=wrap')
+    expect(warnings[0]?.message).toContain(String.raw`line1\nline2`)
   })
 
   it('<br/> のみ + ellipse + wrap 無し → 警告 1', () => {
     const xml = wrap('vertex="1" style="ellipse;fillColor=#fff;"', 'a&lt;br/&gt;b')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('mxCell id=x')
+    expect(warnings[0]?.message).toContain('mxCell id=x')
   })
 
   it('日本語あり + whiteSpace=wrap あり → 警告 0', () => {
@@ -56,14 +57,14 @@ describe('validateWhitespaceWrap', () => {
     const xml = wrap('vertex="1" style="shape=ellipse;fillColor=#fff;"', '円のラベル')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('円のラベル')
+    expect(warnings[0]?.message).toContain('円のラベル')
   })
 
   it('日本語あり + shape=mxgraph.aws4.lambda + wrap 無し → 警告 1 (AWS shape を捕捉)', () => {
     const xml = wrap('vertex="1" style="sketch=0;points=[[0,0,0]];shape=mxgraph.aws4.lambda;"', 'AWS ラムダ')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('AWS ラムダ')
+    expect(warnings[0]?.message).toContain('AWS ラムダ')
   })
 
   it('日本語あり + edgeStyle=orthogonalEdgeStyle (edge) → 警告 0', () => {
@@ -89,21 +90,21 @@ describe('validateWhitespaceWrap', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '※注意')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('※注意')
+    expect(warnings[0]?.message).toContain('※注意')
   })
 
   it('半角カナ value + rounded=1 + wrap 無し → 警告 1 (非 ASCII 拡張カバレッジ)', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', HANKAKU_KANA)
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain(HANKAKU_KANA)
+    expect(warnings[0]?.message).toContain(HANKAKU_KANA)
   })
 
   it('絵文字含む value + rounded=1 + wrap 無し → 警告 1 (非 ASCII 拡張カバレッジ)', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '✓done')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('✓done')
+    expect(warnings[0]?.message).toContain('✓done')
   })
 
   it('preview が 20 code point 超で … が付き、surrogate pair も文字単位で切れる', () => {
@@ -113,10 +114,10 @@ describe('validateWhitespaceWrap', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', rocket)
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain('…')
+    expect(warnings[0]?.message).toContain('…')
     // preview 部分に 🚀 が 20 個含まれること (surrogate pair の中途切断が起きていない)
     const expectedPreview = '🚀'.repeat(20)
-    expect(warnings[0]).toContain(`"${expectedPreview}…"`)
+    expect(warnings[0]?.message).toContain(`"${expectedPreview}…"`)
   })
 
   it('CRLF 含む value + rounded=1 + wrap 無し → 警告 1 + preview に CRLF がエスケープされる', () => {
@@ -124,7 +125,7 @@ describe('validateWhitespaceWrap', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', 'a&#13;&#10;b')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
-    expect(warnings[0]).toContain(String.raw`a\r\nb`)
+    expect(warnings[0]?.message).toContain(String.raw`a\r\nb`)
   })
 })
 
@@ -142,6 +143,6 @@ describe('XML 名前空間を含む drawio XML の扱い', () => {
 
   it('警告文に直し方（style に whiteSpace=wrap を付ける）が入っている (F-17)', () => {
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '日本語テキスト')
-    expect(validateWhitespaceWrap(xml)[0]).toContain('style に whiteSpace=wrap を付けてください')
+    expect(validateWhitespaceWrap(xml)[0]?.message).toContain('style に whiteSpace=wrap を付けてください')
   })
 })

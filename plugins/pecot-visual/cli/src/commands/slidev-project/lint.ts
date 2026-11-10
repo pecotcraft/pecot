@@ -13,6 +13,7 @@ import path from 'node:path'
 
 import { Command } from 'commander'
 
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import {
   SlideLintRuntimeError,
   SlideLintUsageError,
@@ -83,14 +84,14 @@ export function createSlideLintCommand(
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.lint.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -102,13 +103,13 @@ export function createSlideLintCommand(
       try {
         const { summary, data } = await executeSlideLint(options, dependencies)
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify(data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(data))
         }
         else {
           // 件数行を読まずに成否が分かるよう見出し行に結果を載せる（no-target は exit 0 側）。
           const outcomeLabel = summary.outcome === 'violations' ? '違反あり' : '成功'
-          dependencies.stdout.write(`slide lint: ${outcomeLabel} (${summary.directory})\n`)
-          writeSummaryLines(summary, dependencies.stdout)
+          writeData(dependencies.stdout, `slide lint: ${outcomeLabel} (${summary.directory})`)
+          writeSummaryLines(summary, dependencies)
         }
         if (summary.outcome === 'violations') {
           process.exitCode = 1
@@ -118,14 +119,14 @@ export function createSlideLintCommand(
         const reason = errorToReason(error)
         const detail = formatError(error)
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.lint.error',
             reason,
             detail,
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(`pecotv slide lint 失敗: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(`slide lint 失敗: ${detail}`)
         }
         process.exitCode = toExitCode(error)
       }
@@ -196,28 +197,31 @@ async function runActionLint(
 */
 function writeSummaryLines(
   summary: Readonly<SlideLintSummary>,
-  // WritableStream の write は mutate。
+  // DI 経由の write は mutate メソッド。
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-  stdout: NodeJS.WritableStream): void {
+  dependencies: SlideLintDependencies): void {
   // 走査抜けの警告は lint 対象 0 件でも出す必要があるため no-target の早期 return より前に置く。
+  const diagnostics = createDiagnostics(dependencies.stderr)
   for (const skipped of summary.skippedSymlinkDirectories) {
-    stdout.write(
-      `  [warn] ${skipped} は symlink のため eslint の走査対象になりません`
-      + '（配下は lint されていない可能性があります）\n',
+    diagnostics.warning(
+      `${skipped} は symlink のため eslint の走査対象になりません`
+      + '（配下は lint されていない可能性があります）',
     )
   }
   if (summary.outcome === 'no-target') {
-    stdout.write(`  lint 対象 0 件（pages/**/*.md と slides.md が見つかりません）\n`)
+    writeData(dependencies.stdout, `  lint 対象 0 件（pages/**/*.md と slides.md が見つかりません）`)
     return
   }
-  stdout.write(
+  writeData(
+    dependencies.stdout,
     `  lint 対象 ${String(summary.lintedFileCount)} 件 / エラー ${String(summary.errorCount)} 件`
-    + ` / 警告 ${String(summary.warningCount)} 件\n`,
+    + ` / 警告 ${String(summary.warningCount)} 件`,
   )
   for (const violation of summary.violations) {
-    stdout.write(
+    writeData(
+      dependencies.stdout,
       `    ${violation.file}:${String(violation.line)}:${String(violation.column)}`
-      + `  ${violation.rule}  ${violation.message}\n`,
+      + `  ${violation.rule}  ${violation.message}`,
     )
   }
 }
@@ -266,14 +270,15 @@ export function writeAutoDeckLintReport(
 ): void {
   const { summary } = report
   if (summary === undefined) {
-    dependencies.stderr.write(`[warn] deck lint をスキップしました: ${report.failure ?? ''}\n`)
+    createDiagnostics(dependencies.stderr).warning(`deck lint をスキップしました: ${report.failure ?? ''}`)
     return
   }
-  dependencies.stdout.write('deck lint:\n')
-  writeSummaryLines(summary, dependencies.stdout)
+  writeData(dependencies.stdout, 'deck lint:')
+  writeSummaryLines(summary, dependencies)
   if (summary.outcome === 'violations') {
-    dependencies.stdout.write(
-      `  上記の違反はこのコマンドの成否には影響しません。修正後 pecotv slide lint --dir ${talkDirectory} で再確認してください。\n`,
+    writeData(
+      dependencies.stdout,
+      `  上記の違反はこのコマンドの成否には影響しません。修正後 pecotv slide lint --dir ${talkDirectory} で再確認してください。`,
     )
   }
 }

@@ -276,7 +276,7 @@ describe('createDrawioUrlCommand', () => {
     const previousExit = process.exitCode
     try {
       await command.parseAsync([MINIMAL_FIXTURE, '--mode', 'preview'], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv drawio url:')
+      expect(stderr.chunks.join('')).toContain('error: ')
       expect(process.exitCode).toBe(2)
     }
     finally {
@@ -308,7 +308,7 @@ describe('createDrawioUrlCommand', () => {
     const previousExit = process.exitCode
     try {
       await command.parseAsync(['/no/such/file.drawio'], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv drawio url:')
+      expect(stderr.chunks.join('')).toContain('error: ')
       expect(process.exitCode).toBe(1)
     }
     finally {
@@ -352,7 +352,7 @@ describe('createDrawioUrlCommand', () => {
       const command = createDrawioUrlCommand(() => buildDependencies({ stderr: asStream(stderr) }))
       await command.parseAsync([input], { from: 'user' })
       const written = stderr.chunks.join('')
-      expect(written).toContain('pecotv drawio url: 文面の違反 1 件')
+      expect(written).toContain('error: 文面の違反 1 件')
       expect(written).toContain('mxCell id="n1"')
       expect(process.exitCode).toBe(1)
     }
@@ -434,7 +434,7 @@ describe('createDrawioUrlCommand', () => {
         await command.parseAsync([MINIMAL_FIXTURE], { from: 'user' })
         expect(process.exitCode).toBe(3)
         expect(stdout.chunks.join('').startsWith('https://app.diagrams.net/')).toBe(true)
-        expect(stderr.chunks.join('')).toContain('[warn]')
+        expect(stderr.chunks.join('')).toContain('warning:')
       }
       finally {
         process.exitCode = previousExit
@@ -503,7 +503,7 @@ describe('createDrawioUrlCommand', () => {
       try {
         await command.parseAsync([MINIMAL_FIXTURE], { from: 'user' })
         expect(process.exitCode).toBe(3)
-        expect(stderr.chunks.join('')).toContain('[warn]')
+        expect(stderr.chunks.join('')).toContain('warning:')
         expect(stderr.chunks.join('')).toContain('whiteSpace=wrap')
       }
       finally {
@@ -580,7 +580,7 @@ describe('createDrawioUrlCommand', () => {
       workDirectory = ''
     })
 
-    it('-o 指定時 stdout は空、stderr に wrote HTML、ファイルは表示用 HTML', async () => {
+    it('-o 指定時 stdout は空、stderr に created、ファイルは表示用 HTML', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
       const stdout = makeStream()
@@ -591,7 +591,7 @@ describe('createDrawioUrlCommand', () => {
       }))
       await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath], { from: 'user' })
       expect(stdout.chunks.join('')).toBe('')
-      expect(stderr.chunks.join('')).toBe(`wrote HTML to ${outPath}\n`)
+      expect(stderr.chunks.join('')).toBe(`created: ${outPath}\n`)
       const written = readFileSync(outPath, 'utf8')
       expect(written.startsWith('<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
       for (const url of extractUrls(written)) {
@@ -629,7 +629,7 @@ describe('createDrawioUrlCommand', () => {
       process.exitCode = undefined
       try {
         await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath, '--no-png'], { from: 'user' })
-        expect(stderr.chunks.join('')).toContain('pecotv drawio url:')
+        expect(stderr.chunks.join('')).toContain('error: ')
         expect(stderr.chunks.join('')).toContain('.html')
         expect(process.exitCode).toBe(2)
         expect(existsSync(outPath)).toBe(false)
@@ -703,7 +703,7 @@ describe('createDrawioUrlCommand', () => {
       process.exitCode = undefined
       try {
         await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath, '--no-png'], { from: 'user' })
-        expect(stderr.chunks.join('')).not.toContain('[warn]')
+        expect(stderr.chunks.join('')).not.toContain('warning:')
         expect(process.exitCode).toBe(undefined)
       }
       finally {
@@ -876,7 +876,7 @@ describe('createDrawioUrlCommand', () => {
         for (const url of extractUrls(written)) {
           expect(url.startsWith('https://app.diagrams.net/')).toBe(true)
         }
-        expect(stderr.chunks.join('')).toContain('[warn] PNG 生成失敗')
+        expect(stderr.chunks.join('')).toContain('warning: PNG 生成失敗')
         expect(stderr.chunks.join('')).toContain('chromium 未インストール')
         const last = stdout.chunks.join('').trim().split('\n').findLast(l => l.length > 0) ?? ''
         // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing

@@ -72,7 +72,7 @@ convertToPptx の依存注入。test 時に Browser / Server / dom-to-pptx の�
 export interface PipelineDependencies {
   readonly logger?: Logger
   readonly createBrowser?: () => Promise<Browser>
-  readonly createServer?: (distDir: string, port: number) => Promise<Server>
+  readonly createServer?: (distDir: string, port: number, logger: Pick<Logger, 'error'>) => Promise<Server>
   /**
   dom-to-pptx.bundle.js の絶対パスを返す関数。省略時は依存ルート経由で解決
   */
@@ -569,7 +569,7 @@ export async function convertToPptx(
   config: Readonly<PipelineConfig>,
   deps: PipelineDependencies = {},
 ): Promise<PipelineResult> {
-  const logger = deps.logger ?? createLogger(config.logLevel || 'normal')
+  const logger = deps.logger ?? createLogger(config.logLevel || 'normal', { stderr: process.stderr })
   const { templatePath, outputDir, slidePrefix, port, presDir } = config
 
   if (!isAbsolute(presDir)) {
@@ -599,7 +599,7 @@ export async function convertToPptx(
   // これを防ぐため、両者を 1 つの try-finally でくくる。
   // chromium.launch の失敗時は、利用者誘導メッセージで wrap する。
   throwIfAborted(deps.signal)
-  const server = await (deps.createServer ?? startServer)(distDir, port)
+  const server = await (deps.createServer ?? startServer)(distDir, port, logger)
   // baseUrl は、要求ポートでなく実際に bind されたポートで組む。
   // port=0 (ephemeral、既定) では OS が空きポートを採番する。
   // そのため、並行する別プロセスの convert と衝突しない。

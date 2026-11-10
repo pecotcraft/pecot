@@ -319,32 +319,34 @@ describe('symlink 経由の talk-dir', () => {
     expect(summary.outcome).toBe('clean')
   })
 
-  it('警告行は人間向け出力に出る（トポロジ E）', async () => {
+  it('警告行は stderr に出る（トポロジ E）', async () => {
     const talk = await setupTalkDirectory('topo-e-cli')
     const external = path.join(state.temporaryRoot, 'topo-e-cli-external')
     mkdirSync(external)
     symlinkSync(external, path.join(talk, 'pages', 'sub'), 'dir')
 
     const stdout = makeStream()
-    const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
+    const stderr = makeStream()
+    const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
     await command.parseAsync(['--dir', talk], { from: 'user' })
-    const written = stdout.chunks.join('')
     // 文言も lock する。symlink 先が talk-dir 内実体・空 dir・md 非対象のケースでは、
     // 「lint されていない」と言い切ると誤りになる。可能性を示す表現から後退させない。
-    expect(written).toContain(
-      `[warn] ${path.join('pages', 'sub')} は symlink のため eslint の走査対象になりません`
+    expect(stderr.chunks.join('')).toContain(
+      `warning: ${path.join('pages', 'sub')} は symlink のため eslint の走査対象になりません`
       + '（配下は lint されていない可能性があります）',
     )
-    expect(written).toContain('lint 対象 5 件')
+    expect(stdout.chunks.join('')).not.toContain('symlink')
+    expect(stdout.chunks.join('')).toContain('lint 対象 5 件')
   })
 
-  it('lint 対象 0 件でも symlink 警告が先に出る（警告ループの位置ロック）', () => {
+  it('lint 対象 0 件でも symlink 警告を出す（警告ループの位置ロック）', () => {
     // no-target と symlink 警告が同時に成り立つ状況は、実 pipeline では作れない。
     // slides.md は、assertTalkDirectory が必須とするマーカー。
     // eslint に 0 件を返させるには、slides.md を md を含まないディレクトリにするしかない。
     // それではテストが検知すべき eslint の引数展開仕様を、前提に使ってしまう。
-    // そこで summary を直接組んで、出力順だけ固定する。
+    // そこで summary を直接組んで、警告が no-target の早期 return より前にあることを固定する。
     const stdout = makeStream()
+    const stderr = makeStream()
     writeAutoDeckLintReport(
       {
         summary: {
@@ -359,14 +361,11 @@ describe('symlink 経由の talk-dir', () => {
         failure: undefined,
       },
       '/talk',
-      lintDependencies(stdout, makeStream()),
+      lintDependencies(stdout, stderr),
     )
 
-    const written = stdout.chunks.join('')
-    const warnIndex = written.indexOf(`[warn] ${path.join('pages', 'sub')} は symlink のため`)
-    const noTargetIndex = written.indexOf('lint 対象 0 件')
-    expect(warnIndex).toBeGreaterThanOrEqual(0)
-    expect(noTargetIndex).toBeGreaterThan(warnIndex)
+    expect(stderr.chunks.join('')).toContain(`warning: ${path.join('pages', 'sub')} は symlink のため`)
+    expect(stdout.chunks.join('')).toContain('lint 対象 0 件')
   })
 
   it('--json は skippedSymlinkDirectories を載せる（トポロジ E）', async () => {
@@ -395,12 +394,12 @@ describe('symlink 経由の talk-dir', () => {
     mkdirSync(external)
     symlinkSync(external, path.join(talk, 'pages', 'sub'), 'dir')
 
-    const stdout = makeStream()
-    const dependencies = lintDependencies(stdout, makeStream())
+    const stderr = makeStream()
+    const dependencies = lintDependencies(makeStream(), stderr)
     const report = await runAutoDeckLint(talk, dependencies)
     writeAutoDeckLintReport(report, talk, dependencies)
 
-    expect(stdout.chunks.join('')).toContain(`[warn] ${path.join('pages', 'sub')} は symlink のため`)
+    expect(stderr.chunks.join('')).toContain(`warning: ${path.join('pages', 'sub')} は symlink のため`)
     expect(autoDeckLintJsonField(report))
       .toMatchObject({ skippedSymlinkDirectories: [path.join('pages', 'sub')] })
   })
@@ -605,14 +604,14 @@ describe('createSlideLintCommand', () => {
     }
   })
 
-  it('相対 --dir + --json なしは stderr に "pecotv slide lint 失敗:" が出る（exit 2 は据え置き）', async () => {
+  it('相対 --dir + --json なしは stderr に "error: slide lint 失敗:" が出る（exit 2 は据え置き）', async () => {
     const stdout = makeStream()
     const stderr = makeStream()
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
       await command.parseAsync(['--dir', 'relative/talk'], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv slide lint 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide lint 失敗:')
       expect(stdout.chunks.length).toBe(0)
       expect(process.exitCode).toBe(2)
     }
@@ -628,7 +627,7 @@ describe('createSlideLintCommand', () => {
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
       await command.parseAsync(['--dir', state.temporaryRoot], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('pecotv slide lint 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide lint 失敗:')
       expect(stderr.chunks.join('')).toContain('slides.md')
       expect(process.exitCode).toBe(1)
     }

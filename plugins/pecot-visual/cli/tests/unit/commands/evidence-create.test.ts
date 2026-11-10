@@ -339,7 +339,7 @@ describe('createEvidenceCreateCommand — 失敗時の出力', () => {
     try {
       await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
       expect(stderr.chunks.join('')).toBe(
-        'pecotv evidence create: 配置できる画像がありません (2 件すべて除外)\n',
+        'error: evidence create: 配置できる画像がありません (2 件すべて除外)\n',
       )
       expect(stdout.chunks.join('')).toBe('')
       expect(process.exitCode).toBe(1)

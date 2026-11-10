@@ -18,80 +18,79 @@ class CollectingStream extends Writable {
   }
 }
 
-function makeSink(): { sink: LoggerSink, stdout: CollectingStream, stderr: CollectingStream } {
-  const stdout = new CollectingStream()
+function makeSink(): { sink: LoggerSink, stderr: CollectingStream } {
   const stderr = new CollectingStream()
-  return { sink: { stdout, stderr }, stdout, stderr }
+  return { sink: { stderr }, stderr }
 }
 
 describe('createLogger', () => {
-  it('level=normal は info のみ出力し、verbose / debug は捨てる', () => {
-    const { sink, stdout, stderr } = makeSink()
+  it('level=normal は warn / error だけを出し、info / verbose / debug は捨てる', () => {
+    const { sink, stderr } = makeSink()
     const logger = createLogger('normal', sink)
 
     logger.info('info-msg')
     logger.verbose('verbose-msg')
     logger.debug('debug-msg')
+    logger.warn('warn-msg')
+    logger.error('error-msg')
 
-    expect(stdout.text()).toBe('info-msg\n')
-    expect(stderr.text()).toBe('')
+    expect(stderr.text()).toBe('warning: warn-msg\nerror: error-msg\n')
   })
 
-  it('level=verbose は info / verbose を出力し、debug は捨てる', () => {
-    const { sink, stdout } = makeSink()
+  it('level=verbose は info / verbose を note として stderr に出し、debug は捨てる', () => {
+    const { sink, stderr } = makeSink()
     const logger = createLogger('verbose', sink)
 
     logger.info('a')
     logger.verbose('b')
     logger.debug('c')
 
-    expect(stdout.text()).toBe('a\nb\n')
+    expect(stderr.text()).toBe('note: a\nnote: b\n')
   })
 
-  it('level=debug は info / verbose / debug をすべて stdout に出力する', () => {
-    const { sink, stdout } = makeSink()
+  it('level=debug は info / verbose / debug をすべて note として stderr に出す', () => {
+    const { sink, stderr } = makeSink()
     const logger = createLogger('debug', sink)
 
     logger.info('a')
     logger.verbose('b')
     logger.debug('c')
 
-    expect(stdout.text()).toBe('a\nb\nc\n')
-  })
-
-  it('warn / error は level を問わず stderr に出力する', () => {
-    const { sink, stdout, stderr } = makeSink()
-    const logger = createLogger('normal', sink)
-
-    logger.warn('warn-msg')
-    logger.error('error-msg')
-
-    expect(stdout.text()).toBe('')
-    expect(stderr.text()).toBe('warn-msg\nerror-msg\n')
+    expect(stderr.text()).toBe('note: a\nnote: b\nnote: c\n')
   })
 
   it('未知の level は normal 扱いになる', () => {
-    const { sink, stdout } = makeSink()
+    const { sink, stderr } = makeSink()
     const logger = createLogger('unknown-level', sink)
 
-    logger.info('shown')
+    logger.info('hidden')
     logger.verbose('hidden')
 
-    expect(stdout.text()).toBe('shown\n')
+    expect(stderr.text()).toBe('')
   })
 
-  it('level / sink を省略した場合は process.stdout / process.stderr を sink にする', () => {
+  it('level / sink を省略した場合は process.stderr を sink にする', () => {
     const logger = createLogger()
     expect(typeof logger.info).toBe('function')
     expect(typeof logger.warn).toBe('function')
   })
 
   it('複数引数は util.format でスペース区切り連結される', () => {
-    const { sink, stdout } = makeSink()
+    const { sink, stderr } = makeSink()
     const logger = createLogger('debug', sink)
 
     logger.info('count', 3, { k: 'v' })
 
-    expect(stdout.text()).toBe('count 3 { k: \'v\' }\n')
+    expect(stderr.text()).toBe('note: count 3 { k: \'v\' }\n')
+  })
+
+  it('先頭の改行は落とし、空の note の行を出さない', () => {
+    const { sink, stderr } = makeSink()
+    const logger = createLogger('verbose', sink)
+
+    logger.info('\nPhase 1完了')
+    logger.warn('\n\nslow')
+
+    expect(stderr.text()).toBe('note: Phase 1完了\nwarning: slow\n')
   })
 })

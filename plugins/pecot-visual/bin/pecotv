@@ -46,7 +46,7 @@ if [ "${PECOTV_BOOTSTRAP_SKIP:-}" = "1" ]; then
   unset PECOTV_RUNTIME_DIR PECOTV_DEPENDENCY_ROOT
   CLI_DIST="${PLUGIN_ROOT}/cli/dist/cli.js"
   if [ ! -f "$CLI_DIST" ]; then
-    echo "pecotv: ${CLI_DIST} が無い。先に build する (PECOTV_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
+    echo "error: ${CLI_DIST} が無い。先に build する (PECOTV_BOOTSTRAP_SKIP=1 は本体ツリーを直接実行する)" >&2
     exit 1
   fi
   exec node "$CLI_DIST" "$@"

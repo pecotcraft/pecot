@@ -7,6 +7,8 @@ import { join, resolve as resolvePath, sep } from 'node:path'
 
 import * as mimeTypes from 'mime-types'
 
+import type { Logger } from '../../domain/slidev-to-pptx/logger.js'
+
 const lookup = mimeTypes.lookup.bind(mimeTypes)
 
 export const LOOPBACK_HOST = '127.0.0.1'
@@ -34,7 +36,7 @@ routerMode: history のデッキではスライド URL がパス (/2, /5/3 等) 
 そのため拡張子を持たないパスは、index.html を返してクライアントサイドルータに委譲する。
 routerMode: hash のデッキはスライド番号がフラグメントに載り、サーバーには常に / だけが要求される。
 */
-export function startServer(distDir: string, port: number): Promise<Server> {
+export function startServer(distDir: string, port: number, logger: Pick<Logger, 'error'>): Promise<Server> {
   return new Promise((resolve, reject) => {
     const server = createServer((request, res) => {
       void (async () => {
@@ -87,7 +89,7 @@ export function startServer(distDir: string, port: number): Promise<Server> {
       // 以後のサーバエラー (配信中の socket error 等) は通知なしで捨てず、変換ログから観測できるようにする。
       server.removeListener('error', reject)
       server.on('error', (error: Readonly<Error>) => {
-        console.error(`dist 配信サーバ error: ${error.message}`)
+        logger.error(`dist 配信サーバ error: ${error.message}`)
       })
       // 起動ログは呼び出し元 (pipeline.ts) が logger 経由で出す。ここで console.log すると
       // `slide convert --json` の stdout (JSON 行専用) に混在する。

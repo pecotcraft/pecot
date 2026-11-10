@@ -27,6 +27,7 @@ import path from 'node:path'
 import { Command } from 'commander'
 
 import { collectIconReferences, computeSourceHash, embedSourceHash, forceLightColorScheme, resolveIconsForExport, siblingPath } from '../../domain/drawio/export.js'
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import { createIconResolver } from '../../infra/drawio/icons.js'
 import { exportPdf } from '../../infra/drawio/pdf.js'
 import { exportViaEmbed } from '../../infra/drawio/screenshot.js'
@@ -232,7 +233,7 @@ async function writeSiblingPdf(
     return { pdfFile: pdfPath, pdfFailed: false }
   }
   catch (error: unknown) {
-    dependencies.stderr.write(`[warn] PDF 生成失敗: ${formatError(error)}\n`)
+    createDiagnostics(dependencies.stderr).warning(`PDF 生成失敗: ${formatError(error)}`)
     // 古い PDF の削除失敗は独立した警告として数えない。今回の PDF 失敗 1 件（pdfFailed /
     // warnings: 1 / exit 3）に集約し、JSON と exit code には出さず stderr の行だけで知らせる。
     // 呼び出し側は `pdf: null` を見て隣の PDF を今回の出力として扱わない前提にする。
@@ -240,7 +241,7 @@ async function writeSiblingPdf(
       await dependencies.removeFile(pdfPath)
     }
     catch (removeError: unknown) {
-      dependencies.stderr.write(`[warn] 前回の PDF を削除できません: ${pdfPath} (${formatError(removeError)})\n`)
+      createDiagnostics(dependencies.stderr).warning(`前回の PDF を削除できません: ${pdfPath} (${formatError(removeError)})`)
     }
     return { pdfFile: undefined, pdfFailed: true }
   }
@@ -385,16 +386,17 @@ export function createDrawioExportCommand(buildDependencies: () => DrawioExportD
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'drawio.export.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
+      writeOut: (string_: string) => { writeData(buildDependencies().stdout, string_) },
     })
     .action(async (input: string, raw: Readonly<Record<string, unknown>>) => {
       const dependencies = buildDependencies()
@@ -417,17 +419,18 @@ export function createDrawioExportCommand(buildDependencies: () => DrawioExportD
       try {
         const execution = await executeDrawioExport(input, options, dependencies)
         if (isJson) {
-          dependencies.stdout.write(`${JSON.stringify(execution.data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(execution.data))
         }
         else if (execution.outputFile === undefined) {
           // 呼び出し側（公開フック）が値をそのまま変数に取れるよう、素の出力は
           // ハッシュ 1 行だけにする。
-          dependencies.stdout.write(`${execution.sourceSha256}\n`)
+          writeData(dependencies.stdout, execution.sourceSha256)
         }
         else {
-          dependencies.stderr.write(`wrote SVG to ${execution.outputFile}\n`)
+          const diagnostics = createDiagnostics(dependencies.stderr)
+          diagnostics.done({ verb: 'create', target: execution.outputFile })
           if (execution.pdfFile !== undefined) {
-            dependencies.stderr.write(`wrote PDF to ${execution.pdfFile}\n`)
+            diagnostics.done({ verb: 'create', target: execution.pdfFile })
           }
         }
         if (execution.exitCode !== 0) {
@@ -451,10 +454,10 @@ function writeFailure(
   detail: string,
 ): void {
   if (isJson) {
-    dependencies.stdout.write(`${JSON.stringify({ event: 'drawio.export.error', reason, detail })}\n`)
+    writeData(dependencies.stdout, JSON.stringify({ event: 'drawio.export.error', reason, detail }))
   }
   else {
-    dependencies.stderr.write(`pecotv drawio export: ${detail}\n`)
+    createDiagnostics(dependencies.stderr).error(detail)
   }
 }
 

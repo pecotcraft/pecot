@@ -440,25 +440,7 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(receivedConfig?.logLevel).toBe('verbose')
   })
 
-  it('stdout を渡したときは人間可読ログを stdout、警告を stderr に出す', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
-    const pipeline = new InProcessSlidevPptxPipeline({ convertToPptxRunner: loggingRunner })
-
-    await pipeline.convert({
-      presDirectory: '/tmp/pres',
-      targetDirectory: '/tmp/dist',
-      outputDirectory: '/tmp/out',
-      idleTimeoutMs: 60_000,
-      stdout: stdout.stream,
-      stderr: stderr.stream,
-    })
-
-    expect(stdout.chunks).toStrictEqual(['info-line\n'])
-    expect(stderr.chunks).toStrictEqual(['warn-line\n'])
-  })
-
-  it('stdout を渡さないときは人間可読ログを process.stdout ではなく stderr に出す (slide convert --json の stdout を JSON 行だけにする)', async () => {
+  it('警告を process.stdout ではなく stderr の warning: 行に出す (slide convert --json の stdout を JSON 行だけにする)', async () => {
     const stderr = makeStream()
     const isProcessStdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
@@ -472,7 +454,7 @@ describe('InProcessSlidevPptxPipeline', () => {
         stderr: stderr.stream,
       })
 
-      expect(stderr.chunks).toStrictEqual(['info-line\n', 'warn-line\n'])
+      expect(stderr.chunks).toStrictEqual(['warning: warn-line\n'])
       expect(isProcessStdoutWrite).not.toHaveBeenCalled()
     }
     finally {
@@ -480,7 +462,7 @@ describe('InProcessSlidevPptxPipeline', () => {
     }
   })
 
-  it('stdout と stderr のどちらも渡さないときは、人間可読ログを process.stderr に出す', async () => {
+  it('stderr を渡さないときは、警告を process.stderr の warning: 行に出す', async () => {
     const isProcessStdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     const isProcessStderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     try {
@@ -493,7 +475,7 @@ describe('InProcessSlidevPptxPipeline', () => {
         idleTimeoutMs: 60_000,
       })
 
-      expect(isProcessStderrWrite.mock.calls.map(call => call[0])).toStrictEqual(['info-line\n', 'warn-line\n'])
+      expect(isProcessStderrWrite.mock.calls.map(call => call[0])).toStrictEqual(['warning: warn-line\n'])
       expect(isProcessStdoutWrite).not.toHaveBeenCalled()
     }
     finally {

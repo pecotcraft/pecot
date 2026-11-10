@@ -12,6 +12,7 @@ import path from 'node:path'
 
 import { Command } from 'commander'
 
+import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import type { LayoutCatalog } from '../../domain/slidev-theme/references.js'
 import { classifyTalkTheme } from '../../domain/slidev-theme/talk-theme.js'
 import { readThemeDeclaration } from '../../domain/slidev-theme/declaration.js'
@@ -149,14 +150,14 @@ export function createSlideSyncCommand(
       writeErr: (string_: string) => {
         const dependencies = buildDependencies()
         if (doesArgvWantJson(process.argv)) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.sync.error',
             reason: 'invalid-option',
             detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(string_)
+          passthrough(dependencies.stderr, string_)
         }
       },
     })
@@ -177,7 +178,7 @@ export function createSlideSyncCommand(
           writeSyncSummary(summary, dependencies.stdout)
         })
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify(execution.data)}\n`)
+          writeData(dependencies.stdout, JSON.stringify(execution.data))
         }
         else {
           writeAutoDeckLintReport(execution.lint, execution.summary.directory, dependencies)
@@ -187,14 +188,14 @@ export function createSlideSyncCommand(
         const reason = errorToReason(error)
         const detail = formatError(error)
         if (isWantsJson) {
-          dependencies.stdout.write(`${JSON.stringify({
+          writeData(dependencies.stdout, JSON.stringify({
             event: 'slide.sync.error',
             reason,
             detail,
-          })}\n`)
+          }))
         }
         else {
-          dependencies.stderr.write(`pecotv slide sync 失敗: ${detail}\n`)
+          createDiagnostics(dependencies.stderr).error(`slide sync 失敗: ${detail}`)
         }
         process.exitCode = toExitCode(error)
       }
@@ -215,24 +216,24 @@ function writeSyncSummary(
   stdout: NodeJS.WritableStream,
 ): void {
   const { theme } = summary
-  const themeLine = theme === undefined ? undefined : `  テーマ: ${theme.name} (${theme.spec})\n`
+  const themeLine = theme === undefined ? undefined : `  テーマ: ${theme.name} (${theme.spec})`
   if (summary.nodeModulesOnly) {
-    stdout.write(`slide sync (node_modules のみ): 成功 (${summary.directory})\n`)
-    if (themeLine !== undefined) stdout.write(themeLine)
-    stdout.write(`  node_modules → ${summary.nodeModulesTarget}\n`)
+    writeData(stdout, `slide sync (node_modules のみ): 成功 (${summary.directory})`)
+    if (themeLine !== undefined) writeData(stdout, themeLine)
+    writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
     return
   }
-  stdout.write(`slide sync: 成功 (${summary.directory})\n`)
-  if (themeLine !== undefined) stdout.write(themeLine)
+  writeData(stdout, `slide sync: 成功 (${summary.directory})`)
+  if (themeLine !== undefined) writeData(stdout, themeLine)
   if (summary.mode === 'relink') {
-    if (theme !== undefined) stdout.write(`  置き場: ${theme.directory}\n`)
-    stdout.write(`  node_modules → ${summary.nodeModulesTarget}\n`)
-    stdout.write('  node_modules のほかは変えていません。\n')
+    if (theme !== undefined) writeData(stdout, `  置き場: ${theme.directory}`)
+    writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
+    writeData(stdout, '  node_modules のほかは変えていません。')
     return
   }
-  stdout.write(`  node_modules → ${summary.nodeModulesTarget}\n`)
-  stdout.write(`  消した名前 (${String(summary.removed.length)} 件): ${summary.removed.join(', ')}\n`)
-  stdout.write('  作品領域（slides.md / pages/*.md / public/slides/）は残しました。slides.md の theme: と package.json の依存を書き換えています。\n')
+  writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
+  writeData(stdout, `  消した名前 (${String(summary.removed.length)} 件): ${summary.removed.join(', ')}`)
+  writeData(stdout, '  作品領域（slides.md / pages/*.md / public/slides/）は残しました。slides.md の theme: と package.json の依存を書き換えています。')
 }
 
 export interface SlideSyncExecution {
@@ -258,7 +259,7 @@ export async function executeSlideSync(
   onSynced?: (summary: Readonly<SlideSyncResultSummary>) => void,
 ): Promise<SlideSyncExecution> {
   const summary = await runSyncCore(options, dependencies)
-  for (const warning of summary.warnings) dependencies.stderr.write(`[warn] ${warning}\n`)
+  for (const warning of summary.warnings) createDiagnostics(dependencies.stderr).warning(warning)
   onSynced?.(summary)
   // 同期後のデッキ全体 lint。違反があっても sync の成否は変えない。
   const lint = await runAutoDeckLint(summary.directory, dependencies)
@@ -300,12 +301,12 @@ async function layoutCatalogOrEmpty(
 ): Promise<Pick<LayoutCatalog, 'categories' | 'layouts'>> {
   try {
     const { data } = await executeSlideTheme({ dir: directory }, { files: new NodeThemeFiles() })
-    for (const warning of data.warnings) stderr.write(`[warn] ${warning}\n`)
+    for (const warning of data.warnings) createDiagnostics(stderr).warning(warning)
     return { categories: data.categories, layouts: data.layouts }
   }
   catch (error: unknown) {
     // 移行前の形 (theme: none) もここに来る。一覧を空にして、同期の成否は変えない。
-    stderr.write(`[warn] layout catalog を読み取れませんでした: ${directory} (${formatError(error)})\n`)
+    createDiagnostics(stderr).warning(`layout catalog を読み取れませんでした: ${directory} (${formatError(error)})`)
     return { categories: [], layouts: [] }
   }
 }
@@ -333,14 +334,14 @@ async function runSyncCore(
         storeRoot: dependencies.themeStoreRoot ?? themeStoreRoot,
         currentDirectory: dependencies.currentDirectory ?? process.cwd(),
         dependencyRoot,
-        warn: (message) => { dependencies.stderr.write(`[warn] ${message}\n`) },
+        warn: (message) => { createDiagnostics(dependencies.stderr).warning(message) },
       }),
       ensureThemeLinked: dependencies.ensureThemeLinked ?? (directory => ensureTalkThemeLinked(
         directory,
         linkedThemeDefaultDependencies(
           dependencyRoot,
           /* c8 ignore next -- 実 git の取得中に出る警告の出力先。テストは実 git に出ない */
-          { warn: (message) => { dependencies.stderr.write(`[warn] ${message}\n`) } },
+          { warn: (message) => { createDiagnostics(dependencies.stderr).warning(message) } },
         ),
       )),
     },

@@ -79,10 +79,10 @@ draw.io 公式の「XML 埋め込み PNG (`.drawio.png`)」形式になってい
 
 `exitCode: 3` は失敗ではないが原因が分かれるので、`data.pngFailed` と応答の `stderr` で判別する。
 
-- `data.pngFailed` が `true`（`data.png` が `null`）: 表示用 HTML は生成済みだが、PNG を生成できていない。原因は `stderr` の `[warn] PNG 生成失敗: ...` の本文で判別する。
+- `data.pngFailed` が `true`（`data.png` が `null`）: 表示用 HTML は生成済みだが、PNG を生成できていない。原因は `stderr` の `warning: PNG 生成失敗: ...` の本文で判別する。
   Chromium 未取得なら `pecot-visual` サーバの `setup` を呼んで取得してから `drawio_create` を再実行する。それ以外（描画タイムアウト等）は `drawio_create` の再実行を 1 回だけ試し、それでも失敗するなら PNG 無しの旨を報告に含める
 - `data.pngFailed` が `false`: 通常の警告で、表示用 HTML と PNG の生成は成功している。応答の `stderr` にある警告内容を確認したうえで処理を継続する（失敗扱いにしない）。
-  `[warn]` が名指しした mxCell を警告文の指示どおりに直し、ステップ 2-3 を再実行する
+  `warning:` が名指しした mxCell を警告文の指示どおりに直し、ステップ 2-3 を再実行する
 
 **Read してよいのは常に `.drawio.png` の方。** 表示用 HTML（`.drawio.html`）は巨大な base64 URL の器なので Read しない（コンテキストを消費する）。PNG は次のステップで `Read` する。
 

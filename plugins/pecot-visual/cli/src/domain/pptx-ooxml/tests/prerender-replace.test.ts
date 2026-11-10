@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   applyPrerenderImageReplace,
@@ -524,8 +524,9 @@ function relsEmpty(): ReturnType<typeof parseTestXml> {
 
 function ioStub(
   files: ReadonlyMap<string, Buffer>,
-): { readonly readFile: (path: string) => Promise<Buffer> } {
+): { readonly readFile: (path: string) => Promise<Buffer>, readonly warn: (message: string) => void } {
   return {
+    warn: () => { /* 警告の検証が要るテストは自前の io を使う */ },
     readFile: (path: string) => {
       const data = files.get(path)
       return data === undefined ? Promise.reject(new Error(`ENOENT: ${path}`)) : Promise.resolve(data)
@@ -534,17 +535,6 @@ function ioStub(
 }
 
 describe('applyPrerenderImageReplace', () => {
-  // loadMeta / image readFile は不正入力時に console.warn を呼ぶ。
-  // テスト出力を汚さないため一律 spy で吸収する (個別検証が必要なテストは spy を上書きする)。
-  beforeEach(() => {
-    vi.spyOn(console, 'warn').mockImplementation(() => {
-      // suppress
-    })
-  })
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
   it('1 段目ヒットで partMap が高解像度版に差し替わる', async () => {
     const slide = slide1Pic()
     const rels = rels1()
@@ -682,7 +672,7 @@ describe('applyPrerenderImageReplace', () => {
       relsEmpty(),
       new Map(),
       [],
-      { readFile: () => { throw new Error('should not be called') } },
+      { readFile: () => { throw new Error('should not be called') }, warn: () => { /* noop */ } },
     )
     expect(result).toStrictEqual({ replaced: 0 })
   })
@@ -724,7 +714,7 @@ describe('applyPrerenderImageReplace', () => {
       rels,
       partMap,
       [{ imagePath: '/tmp/missing.png', metaPath: '/tmp/missing.meta.json' }],
-      { readFile: () => Promise.reject(new Error('ENOENT')) },
+      { readFile: () => Promise.reject(new Error('ENOENT')), warn: () => { /* noop */ } },
     )
 
     expect(result).toStrictEqual({ replaced: 0 })
@@ -736,13 +726,13 @@ describe('applyPrerenderImageReplace', () => {
     const partMap = new Map<string, Buffer>([['ppt/media/image1.png', makePng(800, 600)]])
     const goodMeta = JSON.stringify({ width: 800, height: 600, left: 0, top: 0 })
     // meta path のみ resolve、image path は reject
+    const warnSpy = vi.fn()
     const io = {
+      warn: warnSpy,
       readFile: (filePath: string) => {
         return filePath.endsWith('.meta.json') ? Promise.resolve(Buffer.from(goodMeta, 'utf8')) : Promise.reject(new Error('ENOENT (race)'))
       },
     }
-    // beforeEach で console.warn は spy 済みなので呼び出し検証のみ取り直す
-    const warnSpy = vi.mocked(console.warn)
     const result = await applyPrerenderImageReplace(
       slide,
       rels,

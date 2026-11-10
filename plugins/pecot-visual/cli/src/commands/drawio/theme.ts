@@ -7,7 +7,7 @@
 // - talk-dir: 祖先 D が slides.md を持ち、図が D/public/ の下にあるときだけ。
 // 書体は常に確かめる。5 段のサイズは、talk-dir の中か `--theme` 指定のときだけ確かめる。
 // 移行前の talk-dir（theme-none）は既定値で続ける。解けないテーマ（theme-unlinked・取得や宣言の失敗）は止める。
-// 宣言の欠落や schema の違いの警告は、図の作者には直せない。[info] で出し、exit 3 の件数に数えない。
+// 宣言の欠落や schema の違いの警告は、図の作者には直せない。note で出し、exit 3 の件数に数えない。
 
 import path from 'node:path'
 

@@ -74,19 +74,20 @@ describe('pecotv chromium host-deps', () => {
 
   it('入れたら入れたパッケージを出して記録する', async () => {
     const result = await runCommand({ probes: [LIBATK_FAILURE, undefined] })
-    expect(result.stderr).toContain('OS のライブラリを入れました: libatk1.0-0t64')
+    expect(result.stderr).toContain('added: libatk1.0-0t64\n')
     expect(result.exitCode).toBeUndefined()
     expect(result.records).toEqual(['ok'])
   })
 
   it('apt-get を始める前に、何を入れるかを stderr に出す', async () => {
     const result = await runCommand({ probes: [LIBATK_FAILURE, undefined] })
-    expect(result.stderr.indexOf('apt-get で入れます')).toBeGreaterThanOrEqual(0)
-    expect(result.stderr.indexOf('apt-get で入れます')).toBeLessThan(result.stderr.indexOf('入れました'))
+    expect(result.stderr).toMatch(/^note: .*apt-get で入れます/)
+    expect(result.stderr.indexOf('apt-get で入れます')).toBeLessThan(result.stderr.indexOf('added: '))
   })
 
   it('入れられなければ入れるコマンドを出し、exit 2 で失敗として記録する', async () => {
     const result = await runCommand({ probes: [LIBATK_FAILURE], sudoExitCode: 1 })
+    expect(result.stderr).toMatch(/^error: /)
     expect(result.stderr).toContain('sudo apt-get install -y --no-install-recommends libatk1.0-0t64')
     expect(result.exitCode).toBe(HOST_DEPS_MISSING_EXIT_CODE)
     expect(result.records).toEqual(['missing'])
@@ -94,13 +95,14 @@ describe('pecotv chromium host-deps', () => {
 
   it('OS ライブラリ以外の起動失敗は理由を出して通し、失敗として記録する', async () => {
     const result = await runCommand({ probes: ['browserType.launch: Executable doesn\'t exist at /x/chrome'] })
-    expect(result.stderr).toContain('OS のライブラリ以外の原因')
+    expect(result.stderr).toMatch(/^warning: .*OS のライブラリ以外の原因/)
     expect(result.exitCode).toBeUndefined()
     expect(result.records).toEqual(['launch-failed'])
   })
 
   it('--require-launch では OS ライブラリ以外の起動失敗も exit 3 にする', async () => {
     const result = await runCommand({ probes: ['browserType.launch: Executable doesn\'t exist at /x/chrome'], arguments_: ['--require-launch'] })
+    expect(result.stderr).toMatch(/^error: .*OS のライブラリ以外の原因/)
     expect(result.exitCode).toBe(LAUNCH_FAILED_EXIT_CODE)
     expect(result.records).toEqual(['launch-failed'])
   })

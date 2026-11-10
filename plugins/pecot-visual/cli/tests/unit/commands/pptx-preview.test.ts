@@ -582,7 +582,7 @@ describe('createPptxPreviewCommand', () => {
         [temporaryRoot('missing.pptx'), '--out', temporaryRoot('x.pdf')],
         { from: 'user' },
       )
-      expect(stderr.chunks.join('')).toContain('pecotv pptx preview:')
+      expect(stderr.chunks.join('')).toContain('error: pptx preview:')
       expect(process.exitCode).toBe(1)
     }
     finally {

@@ -42,6 +42,7 @@ import {
   createSlideSyncCommand,
   slideSyncDefaultDependencies,
 } from './commands/slidev-project/sync.js'
+import { createDiagnostics, writeData } from './diagnostics.js'
 import { checkNodeRuntime } from './node-runtime.js'
 import { readVersion } from './version.js'
 
@@ -53,7 +54,7 @@ export function createProgram(): Command {
     .command('hello')
     .description('greet from TS runtime')
     .action(() => {
-      process.stdout.write('hello from pecotv (ts)\n')
+      writeData(process.stdout, 'hello from pecotv (ts)')
     })
 
   const pptx = new Command('pptx').description('PPTX に対する操作')
@@ -115,7 +116,7 @@ export function applyExitOverrideRecursively(command: Command): void {
 export function main(nodeVersion: string = process.versions.node): void {
   const runtimeError = checkNodeRuntime(nodeVersion)
   if (runtimeError !== undefined) {
-    process.stderr.write(`pecotv: ${runtimeError}\n`)
+    createDiagnostics(process.stderr).error(runtimeError)
     process.exitCode = 1
     return
   }

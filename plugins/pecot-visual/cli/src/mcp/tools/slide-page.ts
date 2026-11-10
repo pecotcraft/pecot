@@ -25,6 +25,7 @@ import {
   executeSlideTheme,
 } from '../../commands/slidev-project/theme.js'
 import { NodeThemeFiles } from '../../infra/slidev-theme/fs.js'
+import { createDiagnostics } from '../../diagnostics.js'
 import { extractSkeleton, isFrontmatterBlock } from '../../domain/slidev-theme/skeleton.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
 import type { ToolResult } from '../result.js'
@@ -245,7 +246,8 @@ async function generatePage(
     return themeFailure(error)
   }
   const { data: theme, references } = execution
-  for (const warning of theme.warnings) output.stderr.write(`[warn] ${warning}\n`)
+  const diagnostics = createDiagnostics(output.stderr)
+  for (const warning of theme.warnings) diagnostics.warning(warning)
 
   // 一致確認はファイルを開く前に済ませる。layout は利用者入力なので、パストラバーサル・
   // hidden 名・大文字違いはここで構造的に落とす (一致確認を後ろに回すと任意ファイル読みになる)。

@@ -218,7 +218,7 @@ describe('slide create の失敗 (FR-013)', () => {
       dependencies,
     )).rejects.toBeInstanceOf(ThemeFetchError)
 
-    expect(stderr.chunks.join('')).toBe('[warn] 取得中の警告\n')
+    expect(stderr.chunks.join('')).toBe('warning: 取得中の警告\n')
   })
 
   it('テーマの置き場を決められなければ、取得に入らず theme-unknown で止まる', async () => {

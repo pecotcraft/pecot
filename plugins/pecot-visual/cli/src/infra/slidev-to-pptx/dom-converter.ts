@@ -71,10 +71,10 @@ slides.md の frontmatter から title を読み取る。取得できない場�
 ファイル読取 + title 抽出は、共通ヘルパー readSlidesTitleFromFile に委譲する。
 ここでは、読取失敗時の warn と自契約 (undefined → null 写像) のみを担う。
 */
-export async function readSlidesTitle(distDir: string, logger?: Logger): Promise<string | null> {
+export async function readSlidesTitle(distDir: string, logger: Logger): Promise<string | null> {
   const slidesPath = join(dirname(distDir), 'slides.md')
   const title = await readSlidesTitleFromFile(slidesPath, (error) => {
-    (logger ?? console).warn(`slides.md の読み取りをスキップ (${slidesPath}): ${errorMessage(error)}`)
+    logger.warn(`slides.md の読み取りをスキップ (${slidesPath}): ${errorMessage(error)}`)
   })
   return title ?? null
 }

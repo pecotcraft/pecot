@@ -174,7 +174,6 @@ export interface SlidevPptxConvertArguments {
   */
   readonly signal?: AbortSignal
   readonly skipPostprocess?: boolean
-  readonly stdout?: NodeJS.WritableStream
   readonly stderr?: NodeJS.WritableStream
   /**
   既定 0 (ephemeral)。dist/ を serve する HTTP server の port。0 のときは OS が空き
