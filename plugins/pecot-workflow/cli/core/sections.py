@@ -305,8 +305,8 @@ def _mask_fenced_code(body: str) -> tuple[list[str], bool]:
     return lines, bool(fence_char)
 
 
-def _mask_inline_code(line: str) -> str:
-    """インラインコードスパンを同じ長さの空白へ置換する。
+def _mask_inline_code(line: str, fill: str = " ") -> str:
+    """インラインコードスパンを同じ長さの fill（既定は空白）へ置換する。
 
     CommonMark のバッククォート・ラン規則（同じ長さのランで閉じる）に従い、
     ``` `- [ ]` ``` や二重バッククォートのスパンを検証対象から外す。
@@ -339,25 +339,25 @@ def _mask_inline_code(line: str) -> str:
             continue
 
         out.append(line[pos : opener.start()])
-        out.append(" " * (closer.end() - opener.start()))
+        out.append(fill * (closer.end() - opener.start()))
         pos = closer.end()
 
 
-def _blank_keeping_newlines(text: str) -> str:
-    return "".join("\n" if ch == "\n" else " " for ch in text)
+def _blank_keeping_newlines(text: str, fill: str = " ") -> str:
+    return "".join("\n" if ch == "\n" else fill for ch in text)
 
 
-def _masked_lines(body: str) -> tuple[list[str], bool]:
+def _masked_lines(body: str, fill: str = " ") -> tuple[list[str], bool]:
     """フェンス・インラインコード・HTML コメントの中身を消した行リストを返す。
 
-    フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの空白になる。
+    フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの fill になる。
 
     Returns:
         (マスク済みの行リスト, 未閉じフェンスがあるか)
     """
     lines, unclosed = _mask_fenced_code(body)
-    masked = "\n".join(_mask_inline_code(line) for line in lines)
-    masked = _HTML_COMMENT_RE.sub(lambda m: _blank_keeping_newlines(m.group(0)), masked)
+    masked = "\n".join(_mask_inline_code(line, fill) for line in lines)
+    masked = _HTML_COMMENT_RE.sub(lambda m: _blank_keeping_newlines(m.group(0), fill), masked)
     return masked.split("\n"), unclosed
 
 
@@ -519,13 +519,15 @@ def validate_body_style(body: str) -> list[str]:
     errors: list[str] = []
     seen: set[str] = set()
 
-    line_rules: tuple[tuple[str, Callable[[str], bool]], ...] = (
-        (CHECKBOX_ERROR, _has_checkbox),
-        (HORIZONTAL_RULE_ERROR, _has_horizontal_rule),
-        (EMOJI_ERROR, _has_emoji),
+    # 水平線は記号と空白だけの行なので、コード・コメントは記号でない "`" で埋めて判定する
+    rule_lines, _ = _masked_lines(body, fill="`")
+    line_rules: tuple[tuple[str, Callable[[str], bool], list[str]], ...] = (
+        (CHECKBOX_ERROR, _has_checkbox, masked_lines),
+        (HORIZONTAL_RULE_ERROR, _has_horizontal_rule, rule_lines),
+        (EMOJI_ERROR, _has_emoji, masked_lines),
     )
-    for message, matches in line_rules:
-        if any(matches(line) for line in masked_lines):
+    for message, matches, target in line_rules:
+        if any(matches(line) for line in target):
             errors.append(message)
     if _has_soft_break(masked_lines, body.split("\n")):
         errors.append(SOFT_BREAK_ERROR)

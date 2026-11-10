@@ -590,6 +590,25 @@ class TestValidateBodyStyleHorizontalRule:
         """引用・リストの中の水平線とタブ区切りの水平線も GitHub は描画する"""
         assert validate_body_style(f"本文\n\n{line}\n\n続き\n") == [HORIZONTAL_RULE_ERROR]
 
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "**`targets.json`**",
+            "***`x`***",
+            "__`x`__",
+            "> **`targets.json`**",
+            "- **`targets.json`**",
+            "> - ***`x`***",
+            "*** <!-- c -->",
+        ],
+    )
+    def test_code_span_or_comment_on_rule_chars_line_passes(self, line: str) -> None:
+        """コードスパンや HTML コメントを含む行は水平線ではない（#267）"""
+        assert validate_body_style(f"本文\n\n{line}\n\n続き\n") == []
+
+    def test_setext_underline_after_bold_code_is_rejected(self) -> None:
+        assert HORIZONTAL_RULE_ERROR in validate_body_style("**`x`**\n---\n")
+
     @pytest.mark.parametrize("line", ["- 項目", "> 引用文", "- -- の扱い", "> | a | b |"])
     def test_ordinary_quote_and_list_lines_pass(self, line: str) -> None:
         assert validate_body_style(f"{line}\n") == []
