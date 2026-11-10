@@ -21,7 +21,6 @@ nx が mtime の秒単位でファイルハッシュを使い回すため。
 
 from __future__ import annotations
 
-import atexit
 import functools
 import json
 import os
@@ -86,12 +85,11 @@ def _nx_env(extra: dict[str, str] | None = None) -> dict[str, str]:
 
 @functools.cache
 def _real_repo_nx_state() -> dict[str, str]:
-    """実リポの cwd で起動する nx のキャッシュと索引 db の置き場（worker ごとに 1 つ）。
+    """実リポの cwd で起動する nx のキャッシュと索引 db の置き場。conftest.py が 1 回の実行に 1 つ作る。
 
     外の nx の索引 db と graph の lock を共有しない。片方だけ向けるとキャッシュが実リポの .nx/cache に戻る。
     """
-    root = Path(tempfile.mkdtemp(prefix="nx-real-repo-"))
-    atexit.register(shutil.rmtree, root, ignore_errors=True)
+    root = Path(os.environ["PECOT_TEST_NX_REAL_REPO_STATE"])
     return {
         "NX_CACHE_DIRECTORY": str(root / "cache"),
         "NX_WORKSPACE_DATA_DIRECTORY": str(root / "workspace-data"),

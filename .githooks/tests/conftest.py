@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -81,6 +83,25 @@ _NX_TASK_ENV = (
     "NX_BASE",
     "NX_HEAD",
 )
+
+
+# 実リポの cwd で起動する nx の置き場。外の nx と分け、xdist の worker 同士では共有して graph の作り直しを 1 回にする。
+REAL_REPO_NX_STATE_ENV = "PECOT_TEST_NX_REAL_REPO_STATE"
+_created_nx_state: list[str] = []
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    if os.environ.get(REAL_REPO_NX_STATE_ENV):
+        return
+    root = tempfile.mkdtemp(prefix="nx-real-repo-")
+    os.environ[REAL_REPO_NX_STATE_ENV] = root
+    _created_nx_state.append(root)
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    for root in _created_nx_state:
+        shutil.rmtree(root, ignore_errors=True)
+        os.environ.pop(REAL_REPO_NX_STATE_ENV, None)
 
 
 @pytest.fixture(autouse=True)
