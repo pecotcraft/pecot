@@ -4,17 +4,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 PECOTV_PLUGIN_ROOT="$REPO_ROOT/plugins/pecot-visual"
 cd "$PECOTV_PLUGIN_ROOT"
 
-# --scope で実行範囲を絞る。nx のレーン（pecot-visual:lint-<scope>）から呼び分けるためのパラメータ。
-# install は scope に関係なく常に実行する。ただし PECOTV_SKIP_INSTALL=1 のときは除く。
-# env PECOTV_SKIP_INSTALL=1 のとき、install を飛ばす。nx 経由（lint-* target）専用のスイッチ。
-# install は、nx の別 target（pecot-visual:install）が dependsOn 経由で 1 回だけ実行する。
-# env 無しの手動実行では、従来どおり本スクリプトが install する。
+# --scope で実行範囲を絞る。nx のレーン（pecot-visual:lint-<scope>）から呼び分ける。
+# PECOTV_SKIP_INSTALL=1 のとき、install と text-rules の build を飛ばす。nx の target が先に済ませている。
 #   --scope=slidev : v-slidev の lint。
 #   --scope=cli    : cli の lint。
-#   --scope=skills : v-drawio の references/**/DESIGN.md を公式 linter に掛ける。lint:design が担う。
-#   引数なし       : slidev と cli。手動実行用の既定。slidev の lint が lint:design を含むため、skills は重ねない。
-# lock / manifest / 本 CI スクリプトを追加・改名したときは、nx.json の pecotvPluginLintGlobals にも追記すること。
-# JSON はコメントを書けないため、この注意を本ファイルに残す。
+#   --scope=skills : v-drawio の DESIGN.md を公式 linter に掛ける（lint:design）。
+#   引数なし       : slidev と cli。slidev の lint が lint:design を含むため、skills は重ねない。
+# lock / manifest / 本スクリプトを追加・改名したときは、nx.json の pecotvPluginLintGlobals にも追記すること。
 SCOPE="all"
 for arg in "$@"; do
     case "$arg" in
@@ -64,12 +60,19 @@ if [ "${PECOTV_SKIP_INSTALL:-0}" != "1" ]; then
     # shellcheck source=dev-install-lib.sh
     . "$PECOTV_PLUGIN_ROOT/scripts/ci/dev-install-lib.sh"
     pecotv_dev_install "$PECOTV_PLUGIN_ROOT" "$PNPM"
+
+    # cli の tsc は libs/text-rules/dist の型を読むので、先に build する。
+    if [ "$RUN_CLI" = true ] || [ "$RUN_SLIDEV" = true ]; then
+        echo "==> $PNPM --filter @pecot/text-rules-src run build"
+        # shellcheck disable=SC2086
+        ( cd "$REPO_ROOT" && $PNPM --filter @pecot/text-rules-src run build )
+    fi
 fi
 
 if [ "$RUN_SLIDEV" = true ]; then
-    # v-slidev (skill) の lint を dispatch
+    # v-slidev (skill) の lint を dispatch。prelint の build.mjs が text-rules を消し直さないよう、build を飛ばす。
     # shellcheck disable=SC2086
-    ( cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run lint )
+    ( cd "$PECOTV_PLUGIN_ROOT" && PECOTV_SKIP_LIB_BUILD=1 $PNPM --filter @pecot/slidev-assets-dev run lint )
 fi
 
 if [ "$RUN_SKILLS" = true ]; then

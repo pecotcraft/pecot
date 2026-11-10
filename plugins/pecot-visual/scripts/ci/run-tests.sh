@@ -132,16 +132,19 @@ trap cleanup EXIT
 
 # pecot-visual plugin は、自己完結した pnpm workspace のルート。
 # 1 回の install で、cli / v-slidev / runtime を全て解決する。
-# パッケージマネージャガード (#806) は、install の直後に確認する。この確認はオフラインで完結する。
-# 違うパッケージマネージャの混入を、各 package.json の devEngines.packageManager で止められているか。
-# これを静的な面と挙動の面の両方で確認する。
-# nx 経由では、pecot-visual:install と pecot-visual:check-pm-guard の target が実行済み。
+# nx 経由では、install・text-rules:build・check-pm-guard の target が担う。
 if [ "$SKIP_SHARED" = false ]; then
     # 導入の手順は dev-install-lib.sh を参照。
     # shellcheck source=dev-install-lib.sh
     . "$SCRIPT_DIR/dev-install-lib.sh"
     pecotv_dev_install "$PECOTV_PLUGIN_ROOT" "$PNPM"
 
+    # cli の tsc は libs/text-rules/dist の型を読むので、cli より先に build する。nx 経由では text-rules:build が先に動く。
+    echo "==> $PNPM --filter @pecot/text-rules-src run build"
+    # shellcheck disable=SC2086
+    ( cd "$REPO_ROOT" && $PNPM --filter @pecot/text-rules-src run build )
+
+    # パッケージマネージャガード (#806)。devEngines.packageManager が、違うパッケージマネージャの混入を止めているか、オフラインで確認する。
     echo "==> bash $SCRIPT_DIR/check-pm-guard.sh"
     bash "$SCRIPT_DIR/check-pm-guard.sh"
 
@@ -158,9 +161,9 @@ if [ "$RUN_SLIDEV" = true ]; then
     # nx 経由では、pecot-visual:build-slidev target が同じ build を 1 push 1 回だけ実行する。
     if [ "$SKIP_SHARED" = false ]; then
         echo "==> $PNPM --filter @pecot/slidev-assets-dev run build"
-        echo "    tsc -b で全 sub-project を build する。incremental で、schema.json を dist へコピーする。"
+        echo "    tsc -b で全 sub-project を build する。text-rules は build 済みなので PECOTV_SKIP_LIB_BUILD=1 で省く。"
         # shellcheck disable=SC2086
-        ( cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run build )
+        ( cd "$PECOTV_PLUGIN_ROOT" && PECOTV_SKIP_LIB_BUILD=1 $PNPM --filter @pecot/slidev-assets-dev run build )
     fi
 
     echo "==> $PNPM --filter @pecot/slidev-assets-dev run build:test"
@@ -251,10 +254,8 @@ if [ "$RUN_HOOKS" = true ]; then
 fi
 
 if [ "$RUN_RELEASE" = true ]; then
-    # 配布ツリーの構築には、cli と eslint プラグインの dist が要る。
-    # テスト側は build を持たず、publish を全て --skip-build で呼ぶため、dist はこのレーンで用意する。
-    # cli レーンと slidev レーンが同じ build を持つので、それらを実行しない scope のときだけ補う。
-    # nx 経由では、pecot-visual:build-cli と pecot-visual:build-slidev の target が dependsOn 経由で先に実行される。
+    # publish を全て --skip-build で呼ぶため、cli と eslint プラグインの dist はここで用意する。
+    # cli・slidev レーンが持たない scope のときだけ補う。nx 経由では build-cli・build-slidev が先に動く。
     if [ "$SKIP_SHARED" = false ]; then
         if [ "$RUN_CLI" = false ]; then
             echo "==> $PNPM --filter @pecot/pecotv-cli run build (配布ツリー用の cli/dist)"
@@ -264,7 +265,7 @@ if [ "$RUN_RELEASE" = true ]; then
         if [ "$RUN_SLIDEV" = false ]; then
             echo "==> $PNPM --filter @pecot/slidev-assets-dev run build (配布ツリー用の eslint プラグイン dist)"
             # shellcheck disable=SC2086
-            ( cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run build )
+            ( cd "$PECOTV_PLUGIN_ROOT" && PECOTV_SKIP_LIB_BUILD=1 $PNPM --filter @pecot/slidev-assets-dev run build )
         fi
     fi
 
@@ -286,11 +287,8 @@ fi
 
 if [ "$RUN_COMPARE" = true ]; then
     # pptx 前後比較スクリプト (#1073) のテスト。
-    # 被テストスクリプトは cli/dist の archive / xml-engine / preview-normalize を import する。
-    # fixture の合成にも同じ writer を使うため、dist が要る。
-    # cli レーンが同じ build を持つので、それを実行しない scope のときだけ補う。release レーンと同じ形。
-    # nx 経由では、pecot-visual:build-cli target が dependsOn 経由で先に実行される。
-    # ここで build を重ねると、prebuild の dist 削除が、並行する test-cli レーンの E2E から CLI を奪う。
+    # 被テストスクリプトと fixture の合成が cli/dist を使う。cli レーンを持たない scope のときだけ補う。
+    # nx 経由で重ねて build すると、prebuild の dist 削除が並行する test-cli レーンの E2E から CLI を奪う。
     if [ "$SKIP_SHARED" = false ] && [ "$RUN_CLI" = false ]; then
         echo "==> $PNPM --filter @pecot/pecotv-cli run build (pptx 比較スクリプト用の cli/dist)"
         # shellcheck disable=SC2086
