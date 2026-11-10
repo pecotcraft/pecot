@@ -73,7 +73,7 @@ Summary に画像があれば `screenshot` は空のままにする。画像と�
 4. `http://localhost:<port>/<file>.html` を Playwright MCP で開く。
    Playwright MCP の screenshot のツールで撮る。ツール名は Claude Code と GitHub Copilot CLI で違う
 5. screenshot のツールの `filename` に相対名を渡すと、workspace root（セッションの作業ディレクトリ）を起点に解かれる。
-   `.playwright-mcp/<名前>.png` と書く。名前だけを渡すとリポジトリのルートに保存される。`git add` に混ぜない
+   `.playwright-mcp/<名前>.png` と書く。名前だけを渡すと、作業ディレクトリの直下に保存される。`git add` に混ぜない
 
 画像は、本文から `![説明](./画像のファイル名)` で参照し、PR を作った後に gh で載せる。
 gh v2.99.0 以上が要る。GHES のリポでは `--attach` が使えない。`screenshot` に理由を書くか、Web の画面で画像を貼る。
