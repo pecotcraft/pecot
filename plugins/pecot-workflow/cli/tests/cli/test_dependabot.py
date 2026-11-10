@@ -5,6 +5,7 @@ GitHubClient（I/O 境界）を差し替え、ボード設定は MagicMock に�
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -115,9 +116,18 @@ class TestSync:
         assert args["title"].startswith("[Tracker] dependabot PR — ")
         assert "pr/2 " in args["body"] and "pr/5 " in args["body"]
         assert "pr/3 " not in args["body"]
-        assert "Tracker に載せる: PR #2（major）" in result.output
-        assert "Tracker に載せる: PR #5（playwright）" in result.output
-        assert "検証の結果が null: 0 件" in result.output
+        assert result.stdout == ""
+        lines = result.stderr.splitlines()
+        assert lines[:3] == [
+            "count: open dependabot PRs: 3",
+            "count: PRs awaiting a decision: 2",
+            "count: PRs awaiting a decision without check results: 0",
+        ]
+        assert lines[3].startswith('created: Tracker "[Tracker] dependabot PR — ')
+        assert lines[4:] == [
+            "added: PR #2 to new Tracker (major)",
+            "added: PR #5 to new Tracker (playwright)",
+        ]
         updates = [c.args for c in client.update_project_item_field.call_args_list]
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_medium") in updates
@@ -128,7 +138,7 @@ class TestSync:
 
         assert result.exit_code == 0, result.output
         client.create_issue.assert_not_called()
-        assert "Tracker を立てません（人の判断を待つ PR がありません）" in result.output
+        assert result.stderr.splitlines()[-1] == "skipped: Tracker creation"
 
     def test_rewrites_existing_tracker(self) -> None:
         client = _client(
@@ -142,8 +152,11 @@ class TestSync:
         client.update_issue_body.assert_called_once()
         body = client.update_issue_body.call_args.args[3]
         assert "pr/2 " in body and "pr/5 " in body and "pr/1 " not in body
-        assert "Tracker #9 から外す: PR #1" in result.output
-        assert "Tracker #9 に足す: PR #5（playwright）" in result.output
+        assert result.stdout == ""
+        assert result.stderr.splitlines()[3:] == [
+            "added: PR #5 to Tracker #9 (playwright)",
+            "removed: PR #1 from Tracker #9",
+        ]
         client.close_issue.assert_not_called()
 
     def test_same_list_is_not_patched(self) -> None:
@@ -157,7 +170,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.update_issue_body.assert_not_called()
         client.close_issue.assert_not_called()
-        assert "Tracker #9 は変わらない" in result.output
+        assert result.stderr.splitlines()[-1] == "unchanged: Tracker #9"
 
     def test_old_form_tracker_is_rewritten_to_the_new_columns(self) -> None:
         prs = [
@@ -169,9 +182,9 @@ class TestSync:
 
         assert result.exit_code == 0, result.output
         client.create_issue.assert_not_called()
-        assert "Tracker #179 に足す: PR #200（major）" in result.output
-        assert "Tracker #179 から外す: PR #166" in result.output
-        assert "PR #120" not in result.output
+        assert "added: PR #200 to Tracker #179 (major)\n" in result.stderr
+        assert "removed: PR #166 from Tracker #179\n" in result.stderr
+        assert "PR #120" not in result.stderr
         body = client.update_issue_body.call_args.args[3]
         assert "| title | PR | checks |" in body
         assert "待っている理由" not in body
@@ -186,7 +199,11 @@ class TestSync:
         body = client.update_issue_body.call_args.args[3]
         assert body.split(LIST_BEGIN)[1].split(LIST_END)[0] == "\n## dependabot PR\n\nnone\n"
         client.close_issue.assert_called_once_with("o", "r", 9, state_reason="completed")
-        assert "閉じた: Tracker #9" in result.output
+        assert result.stderr.splitlines()[3:] == [
+            "removed: PR #1 from Tracker #9",
+            "closed: Tracker #9",
+        ]
+        assert "unchanged" not in result.stderr
 
     def test_dry_run_changes_nothing(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
@@ -196,8 +213,11 @@ class TestSync:
         client.update_issue_body.assert_not_called()
         client.close_issue.assert_not_called()
         client.create_issue.assert_not_called()
-        assert "[dry-run] Tracker #9 から外す: PR #1" in result.output
-        assert "[dry-run] Tracker #9 を閉じる" in result.output
+        assert result.stdout == ""
+        assert result.stderr.splitlines()[3:] == [
+            "dry-run: would remove PR #1 from Tracker #9",
+            "dry-run: would close Tracker #9",
+        ]
 
     def test_dry_run_create_changes_nothing(self) -> None:
         client = _client([_pr(2, "a", "major")])
@@ -207,7 +227,13 @@ class TestSync:
         client.create_issue.assert_not_called()
         client.add_to_project.assert_not_called()
         client.update_project_item_field.assert_not_called()
-        assert "[dry-run] Tracker に載せる: PR #2（major）" in result.output
+        assert result.stdout == ""
+        lines = result.stderr.splitlines()
+        assert re.fullmatch(
+            r'dry-run: would create Tracker "\[Tracker\] dependabot PR — \d{4}-\d\d-\d\d"',
+            lines[3],
+        )
+        assert lines[4:] == ["dry-run: would add PR #2 to new Tracker (major)"]
 
     def test_list_failure_exits_1_without_touching_body(self) -> None:
         client = _client(
@@ -224,7 +250,9 @@ class TestSync:
         result = _invoke(_client([pr]), ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert "検証の結果が null: 1 件" in result.output
+        assert "count: PRs awaiting a decision without check results: 1\n" in result.stderr
+        assert "null" not in result.stderr
+        assert "None" not in result.stderr
 
     def test_null_rollup_count_is_limited_to_listed_prs(self) -> None:
         null = {"nodes": [{"commit": {"statusCheckRollup": None}}]}
@@ -235,7 +263,8 @@ class TestSync:
         result = _invoke(_client(prs), ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
-        assert "うち Tracker に載せる 1 件（検証の結果が null: 1 件）" in result.output
+        assert "count: PRs awaiting a decision: 1\n" in result.stderr
+        assert "count: PRs awaiting a decision without check results: 1\n" in result.stderr
 
     def test_body_rewrite_failure_exits_1_and_does_not_close(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
@@ -244,7 +273,8 @@ class TestSync:
 
         assert result.exit_code == 1
         client.close_issue.assert_not_called()
-        assert "Tracker #9 の本文を書き直せません" in result.output
+        assert result.stderr.splitlines()[-1].startswith("error: could not update Tracker #9 body:")
+        assert "removed:" not in result.stderr
 
     def test_close_failure_after_rewrite_exits_1_with_retry_message(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
@@ -253,7 +283,13 @@ class TestSync:
 
         assert result.exit_code == 1
         client.update_issue_body.assert_called_once()
-        assert "一覧を none にした後、閉じられませんでした。次の実行で再試行します" in result.output
+        lines = result.stderr.splitlines()
+        assert lines[3] == "removed: PR #1 from Tracker #9"
+        assert lines[4].startswith(
+            "error: could not close Tracker #9 after setting its list to none;"
+            " will retry on the next run:"
+        )
+        assert "closed:" not in result.stderr
 
     def test_retry_closes_without_rewriting_an_already_none_list(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([]))])
@@ -262,7 +298,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.update_issue_body.assert_not_called()
         client.close_issue.assert_called_once_with("o", "r", 9, state_reason="completed")
-        assert "Tracker #9 を閉じる" in result.output
+        assert result.stderr.splitlines()[3:] == ["closed: Tracker #9"]
 
     def test_retry_dry_run_reports_the_close(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([]))])
@@ -271,7 +307,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.update_issue_body.assert_not_called()
         client.close_issue.assert_not_called()
-        assert "[dry-run] Tracker #9 を閉じる" in result.output
+        assert result.stderr.splitlines()[3:] == ["dry-run: would close Tracker #9"]
 
     def test_broken_markers_exit_1_without_touching_anything(self) -> None:
         client = _client(
@@ -280,7 +316,7 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
-        assert "Tracker #9" in result.output
+        assert result.stderr.startswith("error: Tracker #9:")
         client.update_issue_body.assert_not_called()
         client.close_issue.assert_not_called()
         client.create_issue.assert_not_called()
@@ -291,7 +327,10 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 0, result.output
-        assert "番号が最小の #9 を使い、ほか（#12）は閉じません" in result.output
+        assert (
+            "warning: multiple open Trackers; using #9 (lowest number) and leaving #12 open\n"
+            in result.stderr
+        )
         client.create_issue.assert_not_called()
 
     def test_board_repair_failure_on_existing_tracker_exits_1(self) -> None:
@@ -301,4 +340,4 @@ class TestSync:
         result = _invoke(client, ["sync"])
 
         assert result.exit_code == 1
-        assert "エラー: Tracker:" in result.output
+        assert "error: Tracker:" in result.stderr

@@ -1,6 +1,6 @@
 {
-  "stdout": "Tracker を立てる: [Tracker] security alert — {{TODAY}}（1 件・Priority: high）\nTracker に載せる: dependabot #7\n立てた: Tracker #12\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "created: Tracker \"[Tracker] security alert — {{TODAY}}\" with priority high\nadded: dependabot #7 to new Tracker\n",
   "exitCode": 0,
   "requests": [
     {

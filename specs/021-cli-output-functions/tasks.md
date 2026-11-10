@@ -71,15 +71,15 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: 偽の GitHub で 2 つの sync を dry-run あり・なしで動かし、期待の行と一致する。dry-run なしで `dry-run:` の行と `null`・`None` が 0 行
 
-- [ ] T007 [P] [US1] `cli/tests/cli/test_dependabot.py` の期待値を、新しい行に書き換える。次を含める
+- [x] T007 [P] [US1] `cli/tests/cli/test_dependabot.py` の期待値を、新しい行に書き換える。次を含める
   - dry-run なしで、Tracker の書き換えが `updated: Tracker #<n> body` の 1 行だけになる
   - dry-run ありで、同じ事柄が `dry-run: would update Tracker #<n> body` になる
   - 検証の結果が未設定の PR を含む件数の行が `count: <label>: <n>` で、`null` を含まない
-- [ ] T008 [P] [US1] `cli/tests/cli/test_security.py` の期待値を、同じ考えで書き換える
-- [ ] T009 [US1] `cli/commands/_tracker_sync.py` の出力を `Output` に移し、英語にする
-- [ ] T010 [US1] `cli/commands/dependabot.py` の `_echo_plan` を消す。各事柄を `Operation` にして、`planned` を実行の前に、`done` を実行の後に呼ぶ。件数の行の名前は英語で渡し、API のフィールド名を使わない
-- [ ] T011 [US1] `cli/commands/security.py` を同じ形に移す
-- [ ] T012 [US1] golden の `security-sync-*`・`dependabot-sync-*` を記録し直し、`record:parity:check` で差が 0 件になることを確かめる
+- [x] T008 [P] [US1] `cli/tests/cli/test_security.py` の期待値を、同じ考えで書き換える
+- [x] T009 [US1] `cli/commands/_tracker_sync.py` の出力を `Output` に移し、英語にする
+- [x] T010 [US1] `cli/commands/dependabot.py` の `_echo_plan` を消す。各事柄を `Operation` にして、`planned` を実行の前に、`done` を実行の後に呼ぶ。件数の行の名前は英語で渡し、API のフィールド名を使わない
+- [x] T011 [US1] `cli/commands/security.py` を同じ形に移す
+- [x] T012 [US1] golden の `security-sync-*`・`dependabot-sync-*` を記録し直し、`record:parity:check` で差が 0 件になることを確かめる
 
 **Checkpoint**: quickstart.md の 2 が通る。マージ後、Actions の `security-alerts.yml`・`dependabot-prs.yml` の次の run のログを読み、SC-003 を確かめる
 

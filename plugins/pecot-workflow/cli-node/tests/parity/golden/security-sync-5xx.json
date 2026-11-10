@@ -1,6 +1,6 @@
 {
-  "stdout": "Tracker を立てません（open の alert がありません）\n",
-  "stderr": "エラー: Dependabot の一覧を取得できません（その種類の行に触れません）: acme/demo: Dependabot: GitHub APIエラー: 502 Bad Gateway\n",
+  "stdout": "",
+  "stderr": "error: could not list Dependabot alerts (leaving its rows untouched): acme/demo: Dependabot: GitHub APIエラー: 502 Bad Gateway\nskipped: Tracker creation\n",
   "exitCode": 1,
   "requests": [
     {

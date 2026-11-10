@@ -1,6 +1,6 @@
 {
-  "stdout": "open の dependabot の PR: 0 件、うち Tracker に載せる 0 件（検証の結果が null: 0 件）\n[dry-run] Tracker を立てません（人の判断を待つ PR がありません）\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "count: open dependabot PRs: 0\ncount: PRs awaiting a decision: 0\ncount: PRs awaiting a decision without check results: 0\ndry-run: would skip Tracker creation\n",
   "exitCode": 0,
   "requests": [
     {
