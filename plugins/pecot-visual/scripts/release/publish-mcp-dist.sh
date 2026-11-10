@@ -18,12 +18,7 @@
 # 環境変数 NX_DRY_RUN=true|1 でも dry-run になる。nx release --dry-run からの伝播を受ける。
 set -euo pipefail
 
-# git hook (pre-push 等) から起動されると、git が GIT_DIR / GIT_INDEX_FILE を export する。
-# その状態では `git -C <dir>` の -C が無視され、**呼び出し元リポの index** が書き換わる。
-# 手元で確認した例では、GIT_DIR を設定して `git -C <別リポ> add -A` を実行すると、
-# 呼び出し元の ls-files が 8173 件から 1 件になった。
-# 本スクリプトは REPO_ROOT と一時ディレクトリの双方へ git を発行し得る。
-# そのため、継承した git env は先頭で必ず捨てる。
+# git hook から継承した GIT_DIR 等は、`git -C` を無視させ呼び出し元リポの index を壊すので先頭で捨てる。
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
     GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_COMMON_DIR GIT_NAMESPACE
 
@@ -31,8 +26,7 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 PECOTV_ROOT="$REPO_ROOT/plugins/pecot-visual"
-# eslint プラグインの置き場所。build の前に dist を消し、配布ツリーへ dist を写す元になる。
-# 既定は実ツリー。テストは偽の build と組み合わせて一時の写しを指し、並行する別のテストが読む実ツリーの dist を消さない。
+# eslint プラグインの置き場所。テストは一時の写しを指し、並行するテストが読む実ツリーの dist を消さない。
 ESLINT_PLUGINS_DIR="${PECOTV_ESLINT_PLUGINS_DIR:-$PECOTV_ROOT/assets/slidev/scripts/eslint}"
 
 VERSION=""
@@ -60,11 +54,7 @@ for arg in "$@"; do
     esac
 done
 
-# 依存解決の npm キャッシュを永続化する、検証用の opt-in (#1225)。
-# リリース系の test が 2 回目以降も、レジストリへアクセスせずに依存を解決するための設定になる。
-# 未設定（本番）は従来どおり使い捨てキャッシュを使う。
-# 実配布では使わせない: 古い packument のまま shrinkwrap を解決して配布しかねない。
-# dry-run でない実行を実配布とみなし、拒否する。
+# 検証用の opt-in (#1225): 依存解決の npm キャッシュを永続化する。実配布（dry-run でない実行）では拒否する。
 NPM_CACHE_OPT_IN="${PECOT_RELEASE_TEST_NPM_CACHE:-}"
 if [ -n "$NPM_CACHE_OPT_IN" ]; then
     case "$NPM_CACHE_OPT_IN" in
@@ -81,11 +71,7 @@ if [ -n "$NPM_CACHE_OPT_IN" ]; then
     fi
 fi
 
-# --out-dir は構築の直前に rm -rf する。誤指定で既存資産を消さないよう、引数解釈の直後に
-# 正規化し、次の 2 条件を満たすことを要求する。build を待たずに弾くため、この位置で確認する。
-#   (a) REPO_ROOT の外にあること。リポ配下は .git の有無に関わらず、全域を対象外にする。
-#   (b) 不在または空であること。$HOME やリポ外のサブディレクトリなど、
-#       既存の内容を持つ場所は rm -rf の対象にしない。`/` もここで落ちる。
+# --out-dir は構築前に rm -rf するため、リポジトリの外の不在か空のディレクトリだけを許す。
 if [ -n "$OUT_DIR" ]; then
     if [ -e "$OUT_DIR" ] && [ ! -d "$OUT_DIR" ]; then
         echo "ERROR: --out-dir がディレクトリではありません: $OUT_DIR" >&2
@@ -121,20 +107,13 @@ fi
 RELEASE_TAG="pecot-visual-v$VERSION"
 
 # --- 1. 冪等性の確認 ---
-# この確認は、dry-run 判定より後には置けない。nx release --dry-run は tag を作らない。
-# そのため先にこの確認を通すと、dry-run が常に早期 return し、配布ツリーの構築を一度も検証しない。
-# remote を照会せずローカル tag で判定するので、オフラインでも成立する。
-# pecot-workflow 単独のリリースで、GitHub への到達性と認証がリリースの成否に結びつくことも避けられる。
+# dry-run は tag を作らないので、dry-run 判定の後には置けない。remote を照会せずローカル tag で判定する。
 if [ "$DRY_RUN" = false ]; then
     if ! git -C "$REPO_ROOT" tag --points-at HEAD | grep -Fxq "$RELEASE_TAG"; then
         echo "==> スキップ: HEAD に $RELEASE_TAG が無いため pecot-visual のリリースではありません"
         exit 0
     fi
-    # 配布ツリーは、テンプレートを HEAD (git archive) から、dist を作業ツリーから取る。
-    # 作業ツリーが HEAD と乖離していると、$RELEASE_TAG が指すコミットに対応しない dist を
-    # 配布するおそれがある。--skip-build を付けた場合は、build による上書きも起きない。
-    # 混在を防ぐため、plugins/pecot-visual、libs/text-rules が
-    # HEAD と一致していることを、publish の前提にする。
+    # 配布ツリーは HEAD 由来のテンプレートと作業ツリー由来の dist を混ぜるので、両者の一致を publish の前提にする。
     DIRTY="$(git -C "$REPO_ROOT" status --porcelain -- plugins/pecot-visual libs/text-rules)"
     if [ -n "$DIRTY" ]; then
         echo "ERROR: plugins/pecot-visual / libs/text-rules に未コミットの変更があります。" >&2
@@ -146,31 +125,17 @@ if [ "$DRY_RUN" = false ]; then
 fi
 
 # --- 2. 監査記録の確認 ---
-# audit-mcp-dist.sh が version 作成前に書いた記録を読み、
-# 監査したツリーと、これから配布するツリーが対応することを確かめる (#1059)。
-# ここで見るのは記録の素性だけで、対象は存在・スキップ有無・監査時 HEAD・severity になる。
-# 指紋の突合は shrinkwrap の生成後（セクション 4）に行う。
-# 確認はいずれも pack / upload より前に行うので、止まった時点で Release には何も残らない。
-#
-# この突合は、監査したツリーと配布ツリーの取り違えやドリフトを見つける検出器にとどまる。
-# 改竄の防止にはならない。記録は git 管理外の平文で置かれている。
-#
-# 記録の解釈は audit-record.mjs に委ねる。スキーマはこのモジュールだけが定義し、
-# audit-mcp-dist.sh の書き手も同じモジュールを使う。
-# 存在しない記録、読めない記録、スキーマを満たさない記録は、止めずに通すことをしない。
-# 出力は status / fingerprint / head / blocking の 1 フィールド 1 行とする。
-# 監査は配布ツリーと永続層の 2 ツリーを見る。publish が突合できるのは配布ツリーだけなので、
-# fingerprint は記録にある配布ツリーの指紋を、blocking は両ツリーの合計を受ける。
-# タブ区切りの read は、タブが IFS の空白に当たるため、空フィールドが畳まれて値が 1 つずれる。
-# mapfile は IFS を使わず空行を保持するので、こちらを使う。
+# audit-mcp-dist.sh が書いた記録の素性を、pack / upload の前に確かめる (#1059)。
+# 見るのは、存在・スキップ・監査時 HEAD・severity。
+# 指紋の突合はセクション 4。検出器にとどまり、改竄は防げない。記録の解釈は audit-record.mjs に委ねる。
+# 出力は 1 フィールド 1 行で、タブ区切りの read だと空フィールドが畳まれるため mapfile を使う。
 mapfile -t RECORD_FIELDS < <(node "$SCRIPT_DIR/audit-record.mjs" read "$AUDIT_RECORD")
 RECORD_STATUS="${RECORD_FIELDS[0]:-}"
 RECORD_FP="${RECORD_FIELDS[1]:-}"
 RECORD_HEAD="${RECORD_FIELDS[2]:-}"
 RECORD_BLOCKING="${RECORD_FIELDS[3]:-0}"
 
-# 監査がスキップされたリリース（pecot-visual 非対象）。dry-run は突合対象が無い状態の
-# プレビューとして続行し、本実行は配布しない。
+# 監査スキップ（pecot-visual 非対象）のリリース。dry-run は突合なしで続行し、本実行は配布しない。
 AUDIT_SKIPPED=false
 case "$RECORD_STATUS" in
     OK) ;;
@@ -219,12 +184,8 @@ echo "==> @pecot/visual-mcp 配布ツリーを構築 (version=$VERSION / dry-run
 # shellcheck source=../../bin/_lib.sh
 . "$PECOTV_ROOT/bin/_lib.sh"
 
-# 以下の 2 つは、scripts/ci/install.sh:20-25 と同じ理由で置く。
-# 1 つ目は playwright postinstall のブラウザ DL (~180MB) を抑止する。
-# 2 つ目は nx run-commands が注入する FORCE_COLOR=true を除去し、
-# nx 経由の実行と直接の実行で挙動が割れるのを防ぐ。
-# build 時の `npm install --package-lock-only` にも作用する。
-# `--skip-build` を付けた場合と env を揃えるため、if の外に置く。
+# scripts/ci/install.sh と同じ理由で置く: playwright のブラウザ DL を抑止し、nx が注入する FORCE_COLOR を除く。
+# --skip-build でも env を揃えるため、if の外に置く。
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 unset FORCE_COLOR
 
@@ -237,28 +198,22 @@ if [ "$SKIP_BUILD" = false ]; then
         exit 1
     fi
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-    # run-tests.sh は build の前に install する。
-    # 一方 publish は build を直接起動するため、node_modules が未導入の環境や、
-    # リリースコミットで依存が変わった直後の環境では、install を経ずに build が落ちる。
-    # そこで build の直前に install を固定する。
-    # 導入の手順は scripts/ci/dev-install-lib.sh を参照。
+    # build の直前に install を固定する (#1087)。導入の手順は scripts/ci/dev-install-lib.sh。
     # shellcheck source=../ci/dev-install-lib.sh
     . "$PECOTV_ROOT/scripts/ci/dev-install-lib.sh"
     pecotv_dev_install "$PECOTV_ROOT" "$PNPM"
-    echo "==> $PNPM --filter @pecot/pecotv-cli run build"
-    # shellcheck disable=SC2086
-    (cd "$PECOTV_ROOT" && $PNPM --filter @pecot/pecotv-cli run build)
-    # build は tsc -b で、削除したソースに対応する dist を掃除しない。
-    # 古い dist が残ると、消したモジュールが配布へそのまま同梱される。
-    # tsbuildinfo も dist の中にあるので、dist ごと消せば全部作り直される。
-    rm -rf "${ESLINT_PLUGINS_DIR:?}"/*/dist
-    echo "==> $PNPM --filter @pecot/slidev-assets-dev run build (eslint プラグイン dist を含む)"
-    # shellcheck disable=SC2086
-    (cd "$PECOTV_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run build)
-    # 同梱する text-rules の dist。依存は済んでいるので build だけ行う。
+    # cli の tsc は libs/text-rules/dist の型を読むので、text-rules を cli より先に build する (#245)。
     echo "==> $PNPM --filter @pecot/text-rules-src run build"
     # shellcheck disable=SC2086
     (cd "$REPO_ROOT" && $PNPM --filter @pecot/text-rules-src run build)
+    echo "==> $PNPM --filter @pecot/pecotv-cli run build"
+    # shellcheck disable=SC2086
+    (cd "$PECOTV_ROOT" && $PNPM --filter @pecot/pecotv-cli run build)
+    # tsc -b は削除したソースの dist を掃除しない。dist ごと消して作り直す。
+    rm -rf "${ESLINT_PLUGINS_DIR:?}"/*/dist
+    echo "==> $PNPM --filter @pecot/slidev-assets-dev run build (eslint プラグイン dist を含む)"
+    # shellcheck disable=SC2086
+    (cd "$PECOTV_ROOT" && PECOTV_SKIP_LIB_BUILD=1 $PNPM --filter @pecot/slidev-assets-dev run build)
 fi
 
 if [ ! -d "$PECOTV_ROOT/cli/dist" ]; then
@@ -273,8 +228,7 @@ fi
 
 # --- 4. 配布ツリーの構築 ---
 CLEANUP_DIRS=()
-# set -e 下の EXIT trap は、最後に実行したコマンドの非ゼロがそのまま終了コードになる。
-# 元の rc を退避して明示 exit する（空配列時の判定失敗で成功実行が失敗扱いになるのを防ぐ）。
+# EXIT trap は最後のコマンドの非ゼロが終了コードになるため、元の rc を退避して明示 exit する。
 cleanup() {
     local rc=$?
     if [ "${#CLEANUP_DIRS[@]}" -gt 0 ]; then
@@ -294,9 +248,7 @@ else
 fi
 mkdir -p "$DIST"
 
-# working tree の生成物を混ぜないため、HEAD の内容を起点にする。
-# --strip-components=2 で `plugins/pecot-visual/` を落とし、プラグインツリーと同じ深さを保つ。
-# assets/slidev が深さ 2、assets/slidev/runtime が深さ 3 で、cli/dist/version.js から ../.. が配布ルートになる。
+# working tree の生成物を混ぜないよう HEAD を起点にし、--strip-components=2 でプラグインツリーと同じ深さにする。
 git -C "$REPO_ROOT" archive HEAD \
     plugins/pecot-visual/assets/drawio-icons \
     plugins/pecot-visual/assets/slidev/runtime \
@@ -372,12 +324,8 @@ BIN_SHIM
 chmod +x "$DIST/bin/pecot-visual-mcp.mjs"
 
 echo "==> npm-shrinkwrap.json を生成"
-# 依存解決は使い捨てキャッシュに閉じる（audit-mcp-dist.sh と同条件）。共有キャッシュに
-# 残った古いメタデータで解決結果が監査時とずれるのを防ぐ。
-# PECOT_RELEASE_TEST_NPM_CACHE があるときだけ（検証用。冒頭で実配布を拒否済み）そのディレクトリを
-# 使い、prefer-offline で解決する (#1225)。
-# 設定は環境変数でなく CLI フラグで渡す。npm は npm_config_* を大文字小文字を区別せず読み、
-# 環境の NPM_CONFIG_* と競合し得るが、CLI フラグは常に環境変数に勝つ。
+# 依存解決は使い捨てキャッシュに閉じる (audit-mcp-dist.sh と同条件)。検証用の PECOT_RELEASE_TEST_NPM_CACHE のときだけ prefer-offline (#1225)。
+# 設定は CLI フラグで渡す。環境の NPM_CONFIG_* と競合しても、フラグが勝つ。
 NPM_FLAGS=()
 if [ -n "$NPM_CACHE_OPT_IN" ]; then
     NPM_CACHE="$NPM_CACHE_OPT_IN"
@@ -390,9 +338,7 @@ fi
     --cache="$NPM_CACHE" ${NPM_FLAGS[@]+"${NPM_FLAGS[@]}"} > /dev/null)
 mv "$DIST/package-lock.json" "$DIST/npm-shrinkwrap.json"
 
-# 監査した依存ツリーとの突合。dry-run の早期 return より前に置く（dry-run でも
-# 指紋の一致を出力に残すため）。突合相手は記録の配布ツリー指紋 (dist)。永続層 (runtime) は
-# publish の対象外で、記録に残る指紋は監査時点の証跡でしかない。
+# 監査した依存ツリーとの突合。dry-run でも一致を出力に残すため、早期 return より前に置く。
 DIST_FP="$(node "$SCRIPT_DIR/dist-fingerprint.mjs" "$DIST/npm-shrinkwrap.json")"
 echo "==> 配布ツリーの指紋: $DIST_FP"
 if [ "$AUDIT_SKIPPED" = false ]; then
