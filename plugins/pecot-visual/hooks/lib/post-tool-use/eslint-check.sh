@@ -316,9 +316,11 @@ echo "$ESLINT_OUTPUT" | grep -q "$CRASH_BANNER" && ESLINT_CRASHED=true
 # これらは未実施として扱う。
 if [ $ESLINT_EXIT -eq 1 ] && [ -n "$ESLINT_OUTPUT" ] && [ "$ESLINT_CRASHED" = false ]; then
     trace "violation: violations found ($REL_FILE)"
+    # stylish の出力は空行で始まるので、見出しの後の空行が重ならないよう先頭の空行を落とす。
+    ESLINT_BODY=$(printf '%s\n' "$ESLINT_OUTPUT" | sed '/./,$!d')
     VIOLATION_MESSAGE=$(hook_message warning "eslint violations: $FILE_PATH
 
-$ESLINT_OUTPUT
+$ESLINT_BODY
 
 The output above lists the eslint violations in this file.")
     jq -n --arg message "$VIOLATION_MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'

@@ -24,7 +24,8 @@ fi
 
 MESSAGE=$(hook_message note "commit complete
 message: ${COMMIT_MSG}
-changes: ${DIFF_STAT}")
+changes:${DIFF_STAT:+
+${DIFF_STAT}}")
 
 jq -n --arg msg "$MESSAGE" '{
   "hookSpecificOutput": {
