@@ -1,7 +1,7 @@
 {
   "stdout": "",
   "stderr": "バリデーションエラー:\n  - 不足セクション: ## Summary, ## Changes, ## Verified, ## Risks\n",
-  "exitCode": 1,
+  "exitCode": 3,
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

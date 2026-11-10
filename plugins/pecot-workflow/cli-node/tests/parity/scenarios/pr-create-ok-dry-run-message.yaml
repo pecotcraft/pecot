@@ -11,6 +11,8 @@ command:
     - "main"
     - "-r"
     - "acme/demo"
+    - "--screenshot"
+    - "CLI の出力の文を変えない変更のため撮らない"
     - "--dry-run"
 setup:
   repo:
