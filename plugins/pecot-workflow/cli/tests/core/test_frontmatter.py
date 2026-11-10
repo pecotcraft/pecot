@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from cli.core.frontmatter import PRFrontmatter
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -740,8 +742,6 @@ class TestPRFrontmatterModel:
 
     def test_minimal_frontmatter(self) -> None:
         """最小限のフィールドでインスタンス化できる"""
-        from cli.core.frontmatter import PRFrontmatter
-
         fm = PRFrontmatter(
             title="機能追加",
             repository="owner/repo",
@@ -755,8 +755,6 @@ class TestPRFrontmatterModel:
 
     def test_full_frontmatter(self) -> None:
         """すべてのフィールドを持つインスタンス"""
-        from cli.core.frontmatter import PRFrontmatter
-
         fm = PRFrontmatter(
             title="バグ修正PR",
             repository="org/project",
@@ -770,11 +768,37 @@ class TestPRFrontmatterModel:
         assert fm.head == "feat/issue-123-fix-bug"
         assert fm.draft is True
 
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (None, None),
+            ("", None),
+            ("   \n", None),
+            ("表示は変わらない", "表示は変わらない"),
+            ("  表示は変わらない \n", "表示は変わらない"),
+        ],
+    )
+    def test_screenshot_is_stripped_and_empty_is_none(
+        self, raw: str | None, expected: str | None
+    ) -> None:
+        """screenshot は前後の空白を落とし、空なら None（未記入）"""
+        fm = PRFrontmatter(title="t", repository="o/r", base="b", screenshot=raw)
+        assert fm.screenshot == expected
+
+    @pytest.mark.parametrize("raw", [False, True, 123])
+    def test_screenshot_non_string_is_rejected(self, raw: object) -> None:
+        """YAML の no・yes・数値は str にならず、型エラーで止まる（"..." で囲めば通る）"""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="valid string"):
+            PRFrontmatter(title="t", repository="o/r", base="b", screenshot=raw)
+
+    def test_screenshot_defaults_to_none(self) -> None:
+        assert PRFrontmatter(title="t", repository="o/r", base="b").screenshot is None
+
     def test_missing_title_raises_error(self) -> None:
         """titleがない場合はエラー"""
         from pydantic import ValidationError
-
-        from cli.core.frontmatter import PRFrontmatter
 
         with pytest.raises(ValidationError):
             PRFrontmatter(
@@ -786,8 +810,6 @@ class TestPRFrontmatterModel:
         """repositoryがない場合はエラー"""
         from pydantic import ValidationError
 
-        from cli.core.frontmatter import PRFrontmatter
-
         with pytest.raises(ValidationError):
             PRFrontmatter(
                 title="テストPR",
@@ -797,8 +819,6 @@ class TestPRFrontmatterModel:
     def test_missing_base_raises_error(self) -> None:
         """baseがない場合はエラー"""
         from pydantic import ValidationError
-
-        from cli.core.frontmatter import PRFrontmatter
 
         with pytest.raises(ValidationError):
             PRFrontmatter(

@@ -33,24 +33,24 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 **Purpose**: CI と手元が同じ定義のコンテナを使う下地を作る（FR-004、research R1）
 
-- [ ] T001 `.devcontainer/Dockerfile` を作り、今 `post-create.sh` が入れている apt のパッケージを入れる
+- [x] T001 `.devcontainer/Dockerfile` を作り、今 `post-create.sh` が入れている apt のパッケージを入れる
   - `FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04` とする
   - パッケージは shellcheck・fontconfig・fonts-noto-cjk・fonts-inter・fonts-crosextra-carlito
   - 続けて libreoffice-impress・libreoffice-calc・poppler-utils
   - `--no-install-recommends` は付けない（poppler-data が recommends で入るため）
-- [ ] T002 `.devcontainer/Dockerfile` に、fontconfig の strong alias と `fc-cache -f` を移す
+- [x] T002 `.devcontainer/Dockerfile` に、fontconfig の strong alias と `fc-cache -f` を移す
   - alias は Noto Sans JP → Noto Sans CJK JP と、Calibri Light → Carlito の 2 つ
   - コメントの理由（#165・#728）も一緒に移す
-- [ ] T003 `.devcontainer/devcontainer.json` の `image` を `build: { dockerfile: "Dockerfile" }` に替える。features・mounts・lifecycle は変えない
-- [ ] T004 `.devcontainer/scripts/post-create.sh` から apt と fontconfig の処理を消す
+- [x] T003 `.devcontainer/devcontainer.json` の `image` を `build: { dockerfile: "Dockerfile" }` に替える。features・mounts・lifecycle は変えない
+- [x] T004 `.devcontainer/scripts/post-create.sh` から apt と fontconfig の処理を消す
   - `CI=true` のときは、`install-git-hooks.sh` と `pecot worktree add` を飛ばす
   - `setup.sh` と `playwright install --with-deps chromium` は CI でも動かす
-- [ ] T005 `.github/workflows/devcontainer-image.yml` を作る
+- [x] T005 `.github/workflows/devcontainer-image.yml` を作る
   - 約束は contracts/workflows.md の「devcontainer-image.yml」にある
   - `devcontainers/ci` で build する
   - push するのは、`main` への push・schedule・`workflow_dispatch` のときだけにする
   - push 先は `ghcr.io/pecotcraft/pecot-devcontainer:latest`
-- [ ] T006 手元で devcontainer を作り直し、全テスト（`nx run-many -t test`）が通ることを確かめる。結果を PR 本文に書く
+- [x] T006 手元で devcontainer を作り直し、全テスト（`nx run-many -t test`）が通ることを確かめる。結果を PR 本文に書く
 
 **Checkpoint**: 作り直した devcontainer で全テストが通る。`main` に入った後、GHCR にイメージが載る
 
@@ -62,41 +62,41 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 **⚠️ CRITICAL**: Phase 3 の `run-pr-checks.sh` は、移した後のパスを前提にする
 
-- [ ] T007 wiring テストに、ディレクトリと stage の一致を確かめるテストを足す
+- [x] T007 wiring テストに、ディレクトリと stage の一致を確かめるテストを足す
   - ファイルは `.githooks/pre-commit/tests/test_pre_commit_config_wiring.py`（T008 で `.githooks/tests/` に移る）
   - `.githooks/pre-commit/` の hook は `stages: [pre-commit]` であること
   - `commit-msg/` は `[commit-msg]`、`pre-push/` は `[pre-push]` であること
   - この時点では落ちることを確かめる
-- [ ] T008 `git mv` で共有のファイルとテストを移す
+- [x] T008 `git mv` で共有のファイルとテストを移す
   - `.githooks/pre-commit/lib/*` と `with-timing.sh` → `.githooks/lib/`
   - `.githooks/pre-commit/tests/` → `.githooks/tests/`
-- [ ] T009 `git mv` で commit-msg と pre-push の hook を移す
+- [x] T009 `git mv` で commit-msg と pre-push の hook を移す
   - `check-direct-commit.sh`・`check-commit-text.sh` → `.githooks/commit-msg/`
   - `check-text-push.sh`・`check-version-plan-required.sh` → `.githooks/pre-push/`
   - `check-nx-env-inputs.sh` → `.githooks/pre-push/`
-- [ ] T010 `git mv` で `run-affected-tests.sh` を `.githooks/ci/` へ移す。stage はこの phase では pre-push のままにし、Phase 4 で変える
-- [ ] T011 移したスクリプトの `source` のパスを直す
+- [x] T010 `git mv` で `run-affected-tests.sh` を `.githooks/ci/` へ移す。stage はこの phase では pre-push のままにし、Phase 4 で変える
+- [x] T011 移したスクリプトの `source` のパスを直す
   - 対象は `lib/push-range.sh`・`lib/nx-lanes.sh`・`lib/timing.sh`・`lib/text-rules-ready.sh`
-- [ ] T012 `.pre-commit-config.yaml` の `entry` と `files` のパスと、`.markdownlint-cli2.jsonc` を直す
-- [ ] T013 [P] plugin の設定と bin の参照を直す
+- [x] T012 `.pre-commit-config.yaml` の `entry` と `files` のパスと、`.markdownlint-cli2.jsonc` を直す
+- [x] T013 [P] plugin の設定と bin の参照を直す
   - `plugins/pecot-visual/project.json`・`plugins/pecot-tools/project.json`
   - `plugins/pecot-workflow/project.json`
   - `plugins/pecot-visual/bin/pecotv`・`plugins/pecot-tools/bin/pecot-tools`
-- [ ] T014 [P] plugin のリリースと CI のスクリプトの参照を直す
+- [x] T014 [P] plugin のリリースと CI のスクリプトの参照を直す
   - 両プラグインの `scripts/release/audit-mcp-dist.sh`・`publish-mcp-dist.sh` とそのテスト
   - `plugins/pecot-workflow/scripts/ci/python-version.sh`
-- [ ] T015 [P] pecot-workflow のコードとテストの参照を直す
+- [x] T015 [P] pecot-workflow のコードとテストの参照を直す
   - `cli-node/src/infra/nx-scope.ts`・`cli-node/src/infra/github/auth.ts`
   - `cli-node/src/infra/tests/nx-scope.test.ts`
   - `cli/core/nx_scope.py`・`cli/tests/core/test_nx_scope.py`
   - `hooks/lib/core/project-root.sh`・`hooks/lib/tests/test_entry_point_linter.py`
-- [ ] T016 [P] 両プラグインの `cli/src/tests/node-runtime.test.ts` と、CLAUDE.md・`.githooks/README.md` のパスを直す
-- [ ] T017 移したファイルへの古いパスが残っていないことを確かめる
+- [x] T016 [P] 両プラグインの `cli/src/tests/node-runtime.test.ts` と、CLAUDE.md・`.githooks/README.md` のパスを直す
+- [x] T017 移したファイルへの古いパスが残っていないことを確かめる
   - コマンドは `grep -rn 'githooks/pre-commit/' . --exclude-dir=node_modules --exclude-dir=specs`
-- [ ] T018 version plan を足す
+- [x] T018 version plan を足す
   - pecot-workflow・pecot-visual・pecot-tools の各 patch
   - 本文は「hook のスクリプトの置き場を変えた参照を直した。」とする
-- [ ] T019 T007 のテストと githooks-tests が通ることを確かめる。全量は pre-push のチェックに任せ、手では動かさない
+- [x] T019 T007 のテストと githooks-tests が通ることを確かめる。全量は pre-push のチェックに任せ、手では動かさない
 
 **Checkpoint**: hook の動きは変わらず、スクリプトの置き場だけが stage ごとになる
 
@@ -110,7 +110,7 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ### Tests for User Story 1
 
-- [ ] T020 [P] [US1] `.githooks/tests/test_run_pr_checks.py` を書く
+- [x] T020 [P] [US1] `.githooks/tests/test_run_pr_checks.py` を書く
   - 一時リポに base と head の commit を作り、pre-commit と nx は偽物で置き換える
   - 各 stage が `--from-ref <base> --to-ref <head>` で呼ばれること
   - レーンが 0 件なら、Summary に「対象なし（成功）」と書くこと
@@ -119,7 +119,7 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] `.githooks/ci/run-pr-checks.sh` を作る。引数は base と head の SHA にする
+- [x] T021 [US1] `.githooks/ci/run-pr-checks.sh` を作る。引数は base と head の SHA にする
   - 1 つ目に `pre-commit run --hook-stage pre-commit --from-ref --to-ref` を動かす
   - 続けて `--hook-stage pre-push`、最後に `--hook-stage manual` を動かす
   - pre-push と manual では、`PECOT_VERSION_PLAN_BASE=<base>` を渡す
@@ -127,16 +127,16 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
   - `SKIP=check-version-plan-required` を付ける。version plan は `version-plan` の job だけが確かめる
   - この phase の間は、pre-push の stage に `SKIP=nx-affected-tests,githooks-tests` も足す
   - テストを pre-push と manual の両方で 2 回動かさないための措置とし、Phase 4 で外す
-- [ ] T022 [US1] `run-pr-checks.sh` に Step Summary の書き出しを足す
+- [x] T022 [US1] `run-pr-checks.sh` に Step Summary の書き出しを足す
   - 欄は contracts/workflows.md の「checks の Step Summary」の 4 つ（範囲・レーン・失敗・環境）
   - `$GITHUB_STEP_SUMMARY` が無ければ標準出力に出す
   - レーン名と成否は、`.pecot/tmp/pre-push/nx-affected-tests.log` から読む
   - 所要は `githooks-timing.tsv` から読む
   - レーンごとの skip の件数も出す（SC-002）
-- [ ] T023 [US1] `run-pr-checks.sh` で `NX_SKIP_NX_CACHE=true` を立てる（research R3）
-- [ ] T024 [US1] `.pre-commit-config.yaml` の `nx-affected-tests` と `githooks-tests` に、`manual` の stage を足す
+- [x] T023 [US1] `run-pr-checks.sh` で `NX_SKIP_NX_CACHE=true` を立てる（research R3）
+- [x] T024 [US1] `.pre-commit-config.yaml` の `nx-affected-tests` と `githooks-tests` に、`manual` の stage を足す
   - この phase では pre-push にも残し、Phase 4 で pre-push から外す
-- [ ] T025 [US1] `.github/workflows/ci.yml` を作る。約束は contracts/workflows.md の「ci.yml」にある
+- [x] T025 [US1] `.github/workflows/ci.yml` を作る。約束は contracts/workflows.md の「ci.yml」にある
   - step は `checkout`（`fetch-depth: 0`）、`nx-set-shas`、`devcontainers/ci` の順にする
   - `devcontainers/ci` は `cacheFrom: ghcr.io/pecotcraft/pecot-devcontainer`・`push: never` にする
   - `runCmd` は `.githooks/ci/run-pr-checks.sh "$NX_BASE" "$NX_HEAD"` にする
@@ -144,17 +144,17 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
   - `concurrency` は contracts のとおり、PR のときだけ `cancel-in-progress` にする（FR-007）
   - job ごとに `timeout-minutes: 45` を付ける（FR-008）
   - push では、nx-set-shas の `main-branch-name: main` で直前に成功した run を base にする
-- [ ] T026 [US1] 書き換え後の履歴での範囲を確かめる（FR-029）
+- [x] T026 [US1] 書き換え後の履歴での範囲を確かめる（FR-029）
   - `.githooks/tests/test_run_pr_checks.py` に、base の SHA が履歴に無いときのテストを足す
   - そのとき `run-affected-tests.sh` が全量（`run-many`）へ切り替わることを確かめる
   - `ci.yml` の nx-set-shas は、成功した run が見つからなくても止めない設定にする
-- [ ] T027 [US1] `ci.yml` に `ci-result` の job を足す。`needs: checks`・`if: always()` にし、`checks` が success でなければ落とす
-- [ ] T028 [US1] `ci.yml` で、コンテナの取得・起動の step と、検証の step を分ける。基盤の失敗は step 名で見分けられるようにする
-- [ ] T029 [US1] 手元と CI の skip の件数を比べる（SC-002）
+- [x] T027 [US1] `ci.yml` に `ci-result` の job を足す。`needs: checks`・`if: always()` にし、`checks` が success でなければ落とす
+- [x] T028 [US1] `ci.yml` で、コンテナの取得・起動の step と、検証の step を分ける。基盤の失敗は step 名で見分けられるようにする
+- [x] T029 [US1] 手元と CI の skip の件数を比べる（SC-002）
   - pecot-visual と pecot-tools の全レーンを、手元の devcontainer と CI の両方で動かす
   - レーンごとの skip の件数が同じことを確かめ、違えば原因を直す
   - 比べた表を PR 本文に書く
-- [ ] T030 [US1] この PR 自身で quickstart の「1. PR の検証」を確かめる
+- [x] T030 [US1] この PR 自身で quickstart の「1. PR の検証」を確かめる
   - 下書きの PR に、テストをわざと落とした commit とその revert を積む
   - 結果と所要を PR 本文に書く
 
@@ -170,36 +170,36 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ### Tests for User Story 3
 
-- [ ] T031 [P] [US3] `.githooks/tests/test_pre_commit_config_wiring.py` を先に直す
+- [x] T031 [P] [US3] `.githooks/tests/test_pre_commit_config_wiring.py` を先に直す
   - `nx-affected-tests`・`githooks-tests` の stage が `[manual]` だけであること
   - verbose の組から `check-brand-terms` を外す
   - `check-brand-terms` の stage と並び順の 2 テストを消す
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] `.pre-commit-config.yaml` の `nx-affected-tests` と `githooks-tests` を `stages: [manual]` にする
+- [x] T032 [US3] `.pre-commit-config.yaml` の `nx-affected-tests` と `githooks-tests` を `stages: [manual]` にする
   - `githooks-tests` の `files` の条件を manual でどう扱うか決め、コメントに書く
   - `run-pr-checks.sh` の pre-push の stage から、Phase 3 で足した `SKIP=nx-affected-tests,githooks-tests` を外す
-- [ ] T033 [US3] `.githooks/ci/run-affected-tests.sh` の、pre-push の stdin を読む分岐を残すか決める。`--hook-stage manual` から手で呼べることを確かめる
-- [ ] T034 [P] [US3] ブランドの語の hook を消す
+- [x] T033 [US3] `.githooks/ci/run-affected-tests.sh` の、pre-push の stdin を読む分岐を残すか決める。`--hook-stage manual` から手で呼べることを確かめる
+- [x] T034 [P] [US3] ブランドの語の hook を消す
   - `.githooks/pre-commit/check-brand-terms.sh` と `.githooks/tests/test_check_brand_terms.py` を削除する
   - `.pre-commit-config.yaml` の `check-brand-terms` を削除する
-- [ ] T035 [P] [US3] pecot-visual のリリースから語の確認を消す
+- [x] T035 [P] [US3] pecot-visual のリリースから語の確認を消す
   - `plugins/pecot-visual/scripts/release/audit-mcp-dist.sh` の一覧の確認
   - 同じディレクトリの `publish-mcp-dist.sh` の 2 か所
-- [ ] T036 [P] [US3] `plugins/pecot-tools/scripts/release/publish-mcp-dist.sh` の語の確認 2 か所を消す
-- [ ] T037 [US3] リリースのテストから語の確認を消す
+- [x] T036 [P] [US3] `plugins/pecot-tools/scripts/release/publish-mcp-dist.sh` の語の確認 2 か所を消す
+- [x] T037 [US3] リリースのテストから語の確認を消す
   - 対象は `audit-mcp-dist.test.sh`・両 `publish-mcp-dist.test.sh`・両 `npm-cache-opt-in.test.sh`
   - 一覧の export と、写すファイルの一覧の `check-brand-terms.sh` を消す
   - 語の確認のケースを消す
-- [ ] T038 [US3] `.githooks/scripts/attach-mcp-tgz.sh` のコメントと、CLAUDE.md の「ブランドの語の確認」節を消す
-- [ ] T039 [US3] `.githooks/README.md` に役割の表を書く
+- [x] T038 [US3] `.githooks/scripts/attach-mcp-tgz.sh` のコメントと、CLAUDE.md の「ブランドの語の確認」節を消す
+- [x] T039 [US3] `.githooks/README.md` に役割の表を書く
   - 列と行は data-model.md の 1 節のとおりにする
   - 二重にする hook の理由と、弱まる保証（FR-020）も書く
   - 手で 1 レーンを動かすコマンドも書く
   - コマンドは `pre-commit run --hook-stage manual nx-affected-tests --from-ref origin/main --to-ref HEAD`
-- [ ] T040 [US3] version plan を足す。pecot-visual・pecot-tools の各 patch で、本文は「リリースのブランドの語の確認を外した。」とする
-- [ ] T041 [US3] quickstart の「2. 手元のフック」を確かめ、`time git push` の結果を PR 本文に書く（SC-004 の 5 秒以内）
+- [x] T040 [US3] version plan を足す。pecot-visual・pecot-tools の各 patch で、本文は「リリースのブランドの語の確認を外した。」とする
+- [x] T041 [US3] quickstart の「2. 手元のフック」を確かめ、`time git push` の結果を PR 本文に書く（SC-004 の 5 秒以内）
 
 **Checkpoint**: pre-push は秒単位で終わる。テストは CI と manual だけで動く
 
@@ -213,58 +213,58 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ### Setup for User Story 4（憲法 III）
 
-- [ ] T042 [US4] `.nx/nx-release/` に型の確認のレーンを足す
+- [x] T042 [US4] `.nx/nx-release/` に型の確認のレーンを足す
   - `tsconfig.json` は `checkJs: true`・`strict: true`・`noEmit: true`、対象は `src/`
   - `project.json` に `typecheck` の target（`tsc -p .nx/nx-release`）を足す
   - 既存の `version-actions.js`・`package-version-actions.js` で出た型の誤りは、同じ PR で直す
-- [ ] T043 [US4] `.nx/nx-release/` に lint のレーン（eslint）を足す
+- [x] T043 [US4] `.nx/nx-release/` に lint のレーン（eslint）を足す
   - `project.json` の `lint` の target と `eslint.config.js` を置く
   - nx-affected-lint の対象になることを確かめる
 
 ### Tests for User Story 4
 
-- [ ] T044 [US4] `.nx/nx-release/tests/dependabot-plans.test.js` を書く
+- [x] T044 [US4] `.nx/nx-release/tests/dependabot-plans.test.js` を書く
   - 観点は contracts/dependabot-plans.md の「テストの観点」の 7 つ
   - 入力の本文は、`git log -1 --format=%B ab704e0` などの実物から写す
-- [ ] T045 [US4] 同じテストに、作った plan が `check-version-plan-format.sh` を通ることを足す
+- [x] T045 [US4] 同じテストに、作った plan が `check-version-plan-format.sh` を通ることを足す
   - ファイル名は Rule 0 の `^[0-9]+-[a-z0-9]+(-[a-z0-9]+)*\.md$` に合うこと
   - 本文は「各行 100 字以内・空でない行 3 行以内・総文字数 200 以内」に合うこと
 
 ### Implementation for User Story 4
 
-- [ ] T046 [US4] 同じテストに、force push 後の重複を除くことを足す（FR-030）
+- [x] T046 [US4] 同じテストに、force push 後の重複を除くことを足す（FR-030）
   - 一時リポで、tag の後に履歴を書き換え、同じ中身の dependabot の commit を作る
   - その commit の plan を作らないことを確かめる
-- [ ] T047 [US4] `.nx/nx-release/src/dependabot-plans.js` を作る
+- [x] T047 [US4] `.nx/nx-release/src/dependabot-plans.js` を作る
   - ファイルの先頭に `// @ts-check` を置き、関数の引数と戻り値に JSDoc の型を付ける
   - commit の本文を読む関数、配布物に届くかを決める関数、plan の文面を作る関数を分ける
   - git と fs の呼び出しは、CLI として起動された部分にだけ置く
   - 判定は data-model.md の 4・5 節、出力は 6 節に従う
-- [ ] T048 [US4] `dependabot-plans.js` の CLI を、contracts/dependabot-plans.md の「呼び方」「終了コード」どおりにする
+- [x] T048 [US4] `dependabot-plans.js` の CLI を、contracts/dependabot-plans.md の「呼び方」「終了コード」どおりにする
   - 作った後に `check-version-plan-format.sh` と `check-text.sh` を呼ぶ
   - 通らなければコード 1 で止める
-- [ ] T049 [US4] quickstart の「0. 準備」のうち 3 つを済ませる
+- [x] T049 [US4] quickstart の「0. 準備」のうち 3 つを済ませる
   - GitHub App を作り、secrets を登録し、Environment `release` を作る
   - 管理者の作業なので、手順と結果（App の slug と id）を PR 本文に書く
-- [ ] T050 [US4] `.github/workflows/release.yml` を作る。約束は contracts/workflows.md の「release.yml」にある
+- [x] T050 [US4] `.github/workflows/release.yml` を作る。約束は contracts/workflows.md の「release.yml」にある
   - `plan` の job では、devcontainer で `dependabot-plans.js` と `pecot release preflight` を動かす
   - 続けて `nx release --dry-run --verbose --yes` を動かし、案を Summary に出す
-- [ ] T051 [US4] `release.yml` に `release` の job を足す
+- [x] T051 [US4] `release.yml` に `release` の job を足す
   - `environment: release` で承認を待つ
   - `plan` の SHA と `main` の SHA が違えば止める
   - App のトークンを `GH_TOKEN` に入れ、コンテナで `gh auth setup-git` を実行する
   - git の作者を `<app-slug>[bot]` に設定してから、`nx release --verbose --yes` を動かす
-- [ ] T052 [US4] `release.yml` の設定を足す
+- [x] T052 [US4] `release.yml` の設定を足す
   - concurrency は `group: release`・`cancel-in-progress: false`
   - `checkout` は `persist-credentials: false`
-- [ ] T053 [US4] w-release をランナーでのリリースの手順に書き換える
+- [x] T053 [US4] w-release をランナーでのリリースの手順に書き換える
   - 対象は `plugins/pecot-workflow/skills/w-release/SKILL.md` と、同じスキルの次の 2 つ
   - `references/release-nx.md`・`references/release-nx-recovery.md`
   - 単一ブランチの nx の手順を、`gh workflow run release.yml` の起動に替える
   - 起動の後は、plan の Summary を確かめ、Environment で承認する
   - 失敗時の確かめ方とやり直し方（FR-027）も書く
-- [ ] T054 [US4] version plan を足す。pecot-workflow の patch で、本文は「w-release のリリースを workflow から起動する手順にした。」とする
-- [ ] T055 [US4] `main` に入った後、quickstart の「4. リリース」の 1〜4 を確かめる。結果を PR のコメントに書く
+- [x] T054 [US4] version plan を足す。pecot-workflow の patch で、本文は「w-release のリリースを workflow から起動する手順にした。」とする
+- [x] T055 [US4] `main` に入った後、quickstart の「4. リリース」の 1〜4 を確かめる。結果を PR のコメントに書く
 
 **Checkpoint**: ランナーでリリースが終わる。ruleset はまだ無いので、手元のリリースも動く
 
@@ -314,24 +314,24 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ### Tests for User Story 2
 
-- [ ] T062 [P] [US2] gitlint の日本語の規則のテストを足す
+- [x] T062 [P] [US2] gitlint の日本語の規則のテストを足す
   - `build(pecot-tools): bump commander in /plugins/pecot-tools` が通ること
   - `build(repo): bump the root-minor-patch group ...` のような group の件名も通ること
   - `build(pecot-tools): update deps` のような、人が書いた英語の件名は今までどおり落ちること
 
 ### Implementation for User Story 2
 
-- [ ] T063 [US2] `.githooks/gitlint/japanese_rule.py` に、dependabot の件名の例外を足す
+- [x] T063 [US2] `.githooks/gitlint/japanese_rule.py` に、dependabot の件名の例外を足す
   - `allow-release` と同じ形の `allow-dependabot` の option にする
   - 件名の形は `^build\([^)]+\): bump` とする
-- [ ] T064 [US2] `.github/workflows/dependabot-auto-merge.yml` を作る
+- [x] T064 [US2] `.github/workflows/dependabot-auto-merge.yml` を作る
   - 約束は contracts/workflows.md の「dependabot-auto-merge.yml」にある
   - fetch-metadata の `update-type` が minor か patch のときだけ動く
   - App のトークンで `gh pr merge --auto --squash` を呼ぶ
   - トークンは `permission-pull-requests: write` に絞る
   - merge queue への投入に `contents: write` が要るかを確かめ、要るときだけ足す。結果を PR 本文に書く
-- [ ] T065 [US2] リポジトリの Allow auto-merge を有効にする。この PR がマージされた後に行う
-- [ ] T066 [US2] quickstart の「3. 自動マージ」を確かめる
+- [x] T065 [US2] リポジトリの Allow auto-merge を有効にする。この PR がマージされた後に行う
+- [x] T066 [US2] quickstart の「3. 自動マージ」を確かめる
   - 溜まっている dependabot の PR は `@dependabot recreate` で作り直す
   - マージされた件数と、残った件数（major・失敗）を Epic にコメントする
 
@@ -345,22 +345,22 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 **Independent Test**: quickstart の「5. 文書」
 
-- [ ] T067 [US5] CLAUDE.md の「テスト・lint の実行」を書き直す
+- [x] T067 [US5] CLAUDE.md の「テスト・lint の実行」を書き直す
   - PR ごとに CI が担うことを書く
   - 手元で動かすのは、変更箇所に絞ったテストと、CI の失敗の再現だけだと書く
   - 再現の手順は `pre-commit run --hook-stage manual ...` と `run-tests.sh --scope` にする
-- [ ] T068 [US5] CLAUDE.md の古い記述を消し、4 つの workflow の役割を 1 行ずつ書く
+- [x] T068 [US5] CLAUDE.md の古い記述を消し、4 つの workflow の役割を 1 行ずつ書く
   - 消すのは「GitHub Actions は publish だけ」と「commit 時の品質は pre-commit に依拠」
-- [ ] T069 [US5] CLAUDE.md の「リリース・nx release group の規約」を直す
+- [x] T069 [US5] CLAUDE.md の「リリース・nx release group の規約」を直す
   - `base/pecot` で実行する記述を消し、`release.yml` を起動することを書く
   - 「環境の既知事項」の base の扱いも合わせて直す
-- [ ] T070 [P] [US5] `.githooks/README.md` の「配置」と R1・R2・R5 を、stage ごとのディレクトリと manual の stage に合わせる
-- [ ] T071 [US5] commit の規約の文書に、dependabot の件名の例外を書く。場所は `.githooks/README.md` の規約の節
-- [ ] T072 [US5] `.githooks/README.md` に、緊急の force push の手順を書く（FR-028）
+- [x] T070 [P] [US5] `.githooks/README.md` の「配置」と R1・R2・R5 を、stage ごとのディレクトリと manual の stage に合わせる
+- [x] T071 [US5] commit の規約の文書に、dependabot の件名の例外を書く。場所は `.githooks/README.md` の規約の節
+- [x] T072 [US5] `.githooks/README.md` に、緊急の force push の手順を書く（FR-028）
   - ruleset の enforcement を `disabled` にする `gh api` のコマンドと、`active` に戻すコマンド
   - version plan は要らないこと、押した後の `main` の CI を確かめること
   - Release の添付や npm の配布物に情報が入っていた場合は、この手順の範囲外と書く
-- [ ] T073 [US5] quickstart の「5. 文書」を確かめる
+- [x] T073 [US5] quickstart の「5. 文書」を確かめる
 
 **Checkpoint**: 文書と役割の表と設定が一致する
 

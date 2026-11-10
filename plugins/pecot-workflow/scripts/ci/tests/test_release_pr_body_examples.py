@@ -47,3 +47,13 @@ def test_docs_pr_body_example_matches_create_template(reference_name: str) -> No
 
     assert validate_sections(body, sections) == []
     assert validate_body_style(body) == []
+
+
+@pytest.mark.parametrize("reference_name", ["release-single.md", "release-multi.md"])
+def test_docs_pr_example_has_screenshot_reason_before_message(reference_name: str) -> None:
+    """`-m` の CHANGELOG PR の例は画像を入れない理由を `--screenshot` で渡す（#183）"""
+    text = (SKILLS_ROOT / "w-release" / "references" / reference_name).read_text(encoding="utf-8")
+    match = re.search(r'pecot pr create \\.*?-m "', text, re.DOTALL)
+    assert match, f"{reference_name} に pecot pr create の -m の例が見つからない"
+    assert '--screenshot "' in match.group(0)
+    assert _PR_CREATE_BODY_RE.search(text) is not None

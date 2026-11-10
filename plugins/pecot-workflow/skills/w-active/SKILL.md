@@ -99,6 +99,9 @@ CWDが別リポジトリであっても、案内に表示されたリポジト�
 pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
 ```
 
+w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。
+tasks.md のチェックはタスクの単位の進捗で、並行で進められるタスクを探すときに読む。この PR のマージでフェーズの Issue が閉じるのと同時に、tasks.md のチェックもそろう。
+
 変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 
 ### Step 8: レビュー（通常モード・一巡 1 回）

@@ -100,6 +100,7 @@ pecot pr create \
   --no-issue-ref \
   -r <owner>/<repo> \
   -t "docs(changelog): <package> <ver> リリースノートを追加" \
+  --screenshot "CHANGELOG の追記だけで、画面・生成する Markdown・CLI の出力は変わらない" \
   -m "## Summary
 
 <package> の CHANGELOG.md に <ver> のリリースノートを追加した。
