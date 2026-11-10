@@ -25,10 +25,16 @@ function commandRows(stdout: string): readonly (readonly [string, string])[] {
   const lines = stdout.split('\n')
   const start = lines.findIndex(line => line.startsWith('╭─ Commands'))
   const end = lines.findIndex((line, index) => index > start && line.startsWith('╰'))
-  return lines.slice(start + 1, end).map((line) => {
-    const [name = '', ...rest] = line.slice(2, -2).trimEnd().split(/ {2,}/u)
-    return [name, rest.join('  ')]
-  })
+  const rows: (readonly [string, string])[] = []
+  const frameLines = lines.slice(start + 1, end)
+  for (const line of frameLines) {
+    const [name = '', ...rest] = line.slice(2, -2).trim().split(/ {2,}/u)
+    const previous = rows.at(-1)
+    // 説明が折り返した続きの行は、名前の列が空になる
+    if (previous !== undefined && rest.length === 0) rows[rows.length - 1] = [previous[0], `${previous[1]} ${name}`]
+    else rows.push([name, rest.join('  ')])
+  }
+  return rows
 }
 
 // 期待値は Python の CLI の実出力（golden）。コマンドの説明も golden から読む

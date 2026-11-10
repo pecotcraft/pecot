@@ -1,4 +1,4 @@
-"""CLI サブパッケージ"""
+"""CLI subpackage"""
 
 from cli.commands.options import DirectoryOption
 

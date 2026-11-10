@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot worktree remove [OPTIONS] NAME\nTry 'pecot worktree remove --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'NAME'.                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot worktree remove [OPTIONS] {name}\nTry 'pecot worktree remove --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'name'.                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

@@ -1,9 +1,9 @@
-"""cli/security.py - security alert をボードの Tracker に載せるコマンド
+"""cli/security.py - command that puts security alerts into a board Tracker
 
-``pecot security sync`` は open の Tracker 1 件の本文の一覧を、alert の今の状態で書き直す。
-Tracker は、open のものが無く、表に載せる alert があるときだけ立てる。
-閉じる操作と Archived へ移す操作は人が行う。
-Actions の schedule と手元の両方から同じコマンドで動かす。
+``pecot security sync`` rewrites the list in the body of one open Tracker to the current state of the alerts.
+A Tracker is created only when none is open and there are alerts to list.
+A human closes the Tracker and moves it to Archived.
+The same command runs from the Actions schedule and by hand.
 """
 
 from __future__ import annotations
@@ -48,11 +48,11 @@ from cli.core.tracker_body import find_tracker
 def _fetch_open_alerts(
     out: Output, client: GitHubClient, host: str, owner: str, repo: str
 ) -> tuple[dict[AlertKind, list[Alert]], set[AlertKind], set[AlertKind]]:
-    """3 種の open の alert を取る
+    """Fetch the open alerts of the three kinds
 
     Returns:
-        (種類ごとの alert, 一覧を取れなかった種類, 機能が無効の種類)。
-        どちらの種類も行に触れず、足さない。取れなかった種類だけが終了コード 1 に数えられる。
+        (alerts per kind, kinds whose list could not be fetched, kinds whose feature is disabled).
+        Rows of either kind are left alone and nothing is added. Only the kinds that could not be fetched count toward exit code 1.
     """
     found: dict[AlertKind, list[Alert]] = {}
     failed: set[AlertKind] = set()
@@ -75,7 +75,7 @@ def _fetch_open_alerts(
 
 
 class _Stages(NamedTuple):
-    """Tracker に対する事柄を、実行の段ごとに分けた Operation の並び"""
+    """Operations on the Tracker, grouped by execution stage"""
 
     create: list[Operation]
     rewrite: list[Operation]
@@ -85,7 +85,7 @@ class _Stages(NamedTuple):
 
 
 def _operations(plan: TrackerPlan, tracker: int | None, title: str, unchanged: bool) -> _Stages:
-    """Tracker に対する事柄を段ごとの Operation にする"""
+    """Turn the operations on the Tracker into Operations per stage"""
     if tracker is None:
         if not plan.create:
             return _Stages([Operation(Verb.SKIP, "Tracker creation")], [])
@@ -114,14 +114,14 @@ def _operations(plan: TrackerPlan, tracker: int | None, title: str, unchanged: b
 
 
 def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
-    """open の security alert を、open の Tracker の一覧に書き直す
+    """Rewrite the open Tracker's list of open security alerts
 
-    対象: Dependabot・code scanning（main）・secret scanning の open の alert。
-    ラベル security-alert の open の Tracker（本文に印がある Issue）を 1 件探す。
-    その本文の list-begin から list-end の間の表を、open の alert の行で書き直す。
-    open の Tracker が無く、表に載せる行があるときだけ、Tracker を立ててボードの Backlog に載せる。
-    閉じる操作と Archived へ移す操作は人が行う。
-    一覧を取れなかった種類は行に触れず、最後に終了コード 1 で終わる。
+    Targets: open alerts from Dependabot, code scanning (main), and secret scanning.
+    Finds one open Tracker labeled security-alert (an Issue whose body has the markers).
+    Rewrites the table between list-begin and list-end in its body with the rows of open alerts.
+    Only when no Tracker is open and there are rows to list, creates a Tracker and puts it on the board in Backlog.
+    A human closes the Tracker and moves it to Archived.
+    Kinds whose list could not be fetched are left alone, and the command ends with exit code 1.
 
     Examples:
         $ pecot security sync --dry-run
@@ -183,7 +183,7 @@ def _apply(
     number: int | None,
     unchanged: bool,
 ) -> int:
-    """Tracker を立てる・書き直す・ボードへ載せる。失敗した件数を返す"""
+    """Create and rewrite the Tracker and put it on the board. Return the number of failures"""
     priority = max_priority(plan.entries)
     try:
         if number is None:

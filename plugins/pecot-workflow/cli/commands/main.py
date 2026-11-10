@@ -1,6 +1,6 @@
-"""pecot メインCLIアプリケーション
+"""Main pecot CLI application
 
-Typerを使用したCLI定義。
+CLI definition built with Typer.
 """
 
 from pathlib import Path
@@ -53,13 +53,13 @@ from cli.core.repo_resolver import AmbiguousRepoError, resolve_repo
 # メインアプリケーション
 app = typer.Typer(
     name="pecot",
-    help="pecot-workflow CLI - GitHub Projectsベースの作業追跡ツール",
+    help="pecot-workflow CLI - work tracking on GitHub Projects",
     no_args_is_help=True,
 )
 
 
 def version_callback(value: bool) -> None:
-    """バージョン表示コールバック"""
+    """Callback that shows the version"""
     if value:
         typer.echo(f"pecot version {__version__}")
         raise typer.Exit()
@@ -74,12 +74,12 @@ def main(
         "-v",
         callback=version_callback,
         is_eager=True,
-        help="バージョン表示",
+        help="Show the version",
     ),
     repo: RepoOption = None,
     show_repo: ShowRepoOption = False,
 ) -> None:
-    """pecot-workflow CLI - GitHub Projectsベースの作業追跡ツール"""
+    """pecot-workflow CLI - work tracking on GitHub Projects"""
     try:
         resolve_api_url_override()
     except ValueError as e:
@@ -103,7 +103,7 @@ def main(
 
 
 # サブコマンドグループ
-project_app = typer.Typer(help="プロジェクト管理コマンド（GitHub API経由）")
+project_app = typer.Typer(help="Manage projects through the GitHub API")
 project_app.command(name="list")(project_list_command)
 project_app.command(name="search")(search_github_projects_command)
 project_app.command(name="init")(init_command)
@@ -117,7 +117,7 @@ project_app.command(name="show-aggregation-repo")(show_aggregation_repo_command)
 app.add_typer(project_app, name="project")
 
 # issue サブコマンドグループ
-issue_app = typer.Typer(help="Issue操作コマンド")
+issue_app = typer.Typer(help="Work with Issues")
 issue_app.command(name="create")(issue_create_command)
 issue_app.command(name="quick")(issue_quick_command)
 issue_app.command(name="read")(issue_read_command)
@@ -127,7 +127,7 @@ issue_app.command(name="reopen")(issue_reopen_command)
 app.add_typer(issue_app, name="issue")
 
 # pr サブコマンドグループ
-pr_app = typer.Typer(help="PR操作コマンド")
+pr_app = typer.Typer(help="Work with PRs")
 pr_app.command(name="create")(pr_create_command)
 pr_app.command(name="read")(pr_read_command)
 pr_app.command(name="cleanup")(pr_cleanup_command)
@@ -136,30 +136,30 @@ pr_app.command(name="preflight")(pr_preflight_command)
 app.add_typer(pr_app, name="pr")
 
 # session サブコマンドグループ
-session_app = typer.Typer(help="セッション管理コマンド")
+session_app = typer.Typer(help="Manage the session")
 session_app.command(name="status")(flag_status_command)
 session_app.command(name="restore")(flag_restore_command)
 app.add_typer(session_app, name="session")
 
 # release サブコマンドグループ
-release_app = typer.Typer(help="リリース操作コマンド")
+release_app = typer.Typer(help="Work with releases")
 release_app.command(name="preflight")(release_preflight_command)
 release_app.command(name="create")(release_create_command)
 release_app.command(name="merge")(release_merge_command)
 app.add_typer(release_app, name="release")
 
 # security サブコマンドグループ
-security_app = typer.Typer(help="security alert の Tracker 化コマンド")
+security_app = typer.Typer(help="Put security alerts into a Tracker")
 security_app.command(name="sync")(security_sync_command)
 app.add_typer(security_app, name="security")
 
 # dependabot サブコマンドグループ
-dependabot_app = typer.Typer(help="人の判断を待つ dependabot の PR の Tracker 化コマンド")
+dependabot_app = typer.Typer(help="Put Dependabot PRs waiting for a human decision into a Tracker")
 dependabot_app.command(name="sync")(dependabot_sync_command)
 app.add_typer(dependabot_app, name="dependabot")
 
 # worktree サブコマンドグループ
-worktree_app = typer.Typer(help="ワークツリー操作コマンド")
+worktree_app = typer.Typer(help="Work with worktrees")
 worktree_app.command(name="init")(worktree_init)
 worktree_app.command(name="add")(worktree_add)
 worktree_app.command(name="link")(worktree_link)

@@ -6,7 +6,7 @@
   "files": {
     "../../wt1/demo/.env.local": "TOKEN=sample\n",
     "../../wt1/demo/.gitignore": ".pecot/\n.env.local\n",
-    "../../wt1/demo/.pecot/.gitignore": "# 実行時生成ファイル（git管理外）。\nstate/\ntmp/\n# work は WT 側で symlink になるため trailing slash なし（work/ は symlink にマッチしない）。\nwork\n# プラグインからコピーされるファイル（git管理外）。\nREADME.md\nCHANGELOG.md\nconfig/hooks-config.json\nconfig/hooks-config.json.sample\nconfig/projects/.active\nconfig/hosts.json\nconfig/hosts.json.sample\nconfig/.env\nconfig/.env.sample\n# このファイル自身（フックが自動再生成するため git 管理外）。\n/.gitignore\n",
+    "../../wt1/demo/.pecot/.gitignore": "# pecot の設定だけを追跡し、生成物は管理外にする許可の一覧。\n*\n!/config/\n/config/*\n!/config/worktree-config.json\n!/config/.worktreeignore\n!/config/projects/\n/config/projects/*\n!/config/projects/*.json\n",
     "../../wt1/demo/.pecot/config/projects/.active": {
       "symlink": "../../../../../base/demo/.pecot/config/projects/.active"
     },

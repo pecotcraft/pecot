@@ -1,28 +1,28 @@
-"""cli/_repo_policy.py - ``--repo`` 不一致方針 decorator (FR-009a / FR-009b)。
+"""cli/_repo_policy.py - decorator for the ``--repo`` mismatch policy
 
-``pecot worktree`` / ``pecot create-branch`` / ``pecot delete-branch`` などは「ローカル Git を破壊する操作系」に当たる。
-``pecot release`` などは「GitHub API 側への操作中心」に当たる。
-両者では、``--repo`` とカレント Git remote が食い違ったときの扱いを分ける必要がある (research.md Decision 6)。
+Commands such as ``pecot worktree`` / ``pecot create-branch`` / ``pecot delete-branch`` are "operations that destroy local Git state".
+Commands such as ``pecot release`` are "mostly operations against the GitHub API".
+The two need different handling when ``--repo`` and the current Git remote disagree.
 
-この decorator は両パターンを統一的に宣言できるようにするためのもの。
-``mode="reject"`` は不一致で ``typer.Exit(1)``、``mode="warn"`` は stderr 警告を
-出して ``--repo`` 値を採用して処理を続行する。
+This decorator declares both patterns in one way.
+``mode="reject"`` exits with ``typer.Exit(1)`` on a mismatch. ``mode="warn"`` prints a
+warning to stderr, adopts the ``--repo`` value, and continues.
 
-決定木 (FR-009a / FR-009b):
+Decision tree:
 
-1. ``ctx.obj["repo"]`` (グローバル ``--repo``) が None の場合。
-   - カレント Git remote を解決できれば後続処理へ制御移譲 (従来挙動)
-   - Git 外で解決できなければ ``typer.Exit(1)`` + "リポジトリが曖昧です" stderr
-     → 操作系コマンドは ``--repo`` か Git コンテキストの少なくとも一方が必須。
-2. ``ctx.obj["repo"]`` が指定ありの場合。
-   - カレント Git remote が取得できない (Git 外 / remote 無し) → 明示値をそのまま採用して後続処理へ。
-     (比較対象が無い = 不一致と見なさない)
-   - Git remote 取得成功 && 明示値と一致 → 何もせず後続処理へ
-   - Git remote 取得成功 && 不一致 && mode="reject" → ``typer.Exit(1)``
-   - Git remote 取得成功 && 不一致 && mode="warn"   → stderr に警告出力 + 後続処理へ
+1. ``ctx.obj["repo"]`` (the global ``--repo``) is None.
+   - If the current Git remote resolves, hand control to the body (existing behavior).
+   - If it cannot be resolved outside Git, ``typer.Exit(1)`` with an "ambiguous repository" message on stderr.
+     Such commands need ``--repo`` or a Git context, at least one of them.
+2. ``ctx.obj["repo"]`` is given.
+   - The current Git remote cannot be obtained (outside Git / no remote): adopt the explicit value and continue.
+     (Nothing to compare against, so it is not a mismatch.)
+   - Git remote obtained and matches the explicit value: do nothing and continue.
+   - Git remote obtained, mismatch, mode="reject": ``typer.Exit(1)``.
+   - Git remote obtained, mismatch, mode="warn": warn on stderr and continue.
 
-エラー／警告メッセージは ``contracts/cli-commands.md`` §76-79 / §94-96 の固定文言と厳密に一致させる。
-(後続の e2e テストで stderr を確認するため)
+The error and warning messages must match the fixed text in ``contracts/cli-commands.md`` §76-79 / §94-96 exactly.
+(Later e2e tests check stderr.)
 """
 
 from __future__ import annotations
@@ -43,11 +43,11 @@ Mode = Literal["reject", "warn"]
 
 
 def _extract_explicit_repo(ctx: typer.Context | None) -> str | None:
-    """グローバル ``--repo`` 値を ctx.obj から安全に取り出す。
+    """Safely read the global ``--repo`` value from ctx.obj.
 
-    Typer は親 callback で ``ctx.obj["repo"]`` にグローバル ``--repo`` 値を
-    格納している (cli/main.py:89-90)。callback 側で ``ctx.obj`` が
-    ``dict`` でない場合や、``ctx`` 自身が None の場合は None を返す。
+    The parent callback stores the global ``--repo`` value in ``ctx.obj["repo"]``
+    (cli/main.py:89-90). Return None when ``ctx.obj`` is not a ``dict``
+    or ``ctx`` itself is None.
     """
     if ctx is None or ctx.obj is None:
         return None
@@ -59,7 +59,7 @@ def _extract_explicit_repo(ctx: typer.Context | None) -> str | None:
 
 
 def _detect_current_via_resolver(cwd: Path) -> ResolvedRepo | None:
-    """カレント Git remote からのリポ解決 (未検出時は None)。"""
+    """Resolve the repository from the current Git remote (None when not found)."""
     from cli.core.repo_resolver import AmbiguousRepoError, resolve_repo
 
     try:
@@ -69,13 +69,13 @@ def _detect_current_via_resolver(cwd: Path) -> ResolvedRepo | None:
 
 
 def _store_resolved_repo(ctx: typer.Context | None, ref: RepoRef) -> None:
-    """decorator が explicit ``--repo`` パスで採用した ``RepoRef`` を ctx に格納。
+    """Store in ctx the ``RepoRef`` the decorator adopted on the explicit ``--repo`` path.
 
-    body 側 (release.py など) が二重解決せずに済むよう、
-    decorator 採用値を ``ctx.obj["_policy_resolved_repo"]`` に載せる。
-    body は ``read_resolved_repo`` 経由で読み出す。
-    このキー名と duck-typing 契約は本モジュール内に閉じ込める。
-    ``ctx.obj`` が dict でなければ書き込みをスキップする (body 側で None fallback)。
+    So that the body (release.py etc.) does not resolve twice, put the value
+    the decorator adopted in ``ctx.obj["_policy_resolved_repo"]``.
+    The body reads it through ``read_resolved_repo``.
+    The key name and the duck-typing contract stay inside this module.
+    Skip the write when ``ctx.obj`` is not a dict (the body falls back to None).
     """
     obj: Any = ctx.obj if ctx is not None else None
     if ctx is None or not isinstance(obj, dict):
@@ -84,11 +84,11 @@ def _store_resolved_repo(ctx: typer.Context | None, ref: RepoRef) -> None:
 
 
 def read_resolved_repo(ctx: typer.Context | None) -> tuple[str, str] | None:
-    """body 側から decorator 採用済みの (owner, repo) を読み出す。
+    """Read the (owner, repo) the decorator adopted, from the body side.
 
-    ``_store_resolved_repo`` の対。キー名と duck-typing 規約は
-    ``_repo_policy.py`` に閉じ込める。decorator 未経由 (直接呼び出し) や
-    explicit ``--repo`` 未指定で populate されなかったケースは ``None``。
+    Pair of ``_store_resolved_repo``. The key name and duck-typing rule stay in
+    ``_repo_policy.py``. Returns ``None`` when the decorator was not used
+    (direct call) or no explicit ``--repo`` was given, so nothing was populated.
     """
     obj: Any = ctx.obj if ctx is not None else None
     if ctx is None or not isinstance(obj, dict):
@@ -102,14 +102,14 @@ def read_resolved_repo(ctx: typer.Context | None) -> tuple[str, str] | None:
 
 
 def require_repo_match(mode: Mode) -> Callable[[F], F]:
-    """FR-009a / FR-009b: ``--repo`` とカレント Git remote の不一致時ポリシー。
+    """Policy for a mismatch between ``--repo`` and the current Git remote.
 
     Args:
-        mode: ``"reject"`` で exit 1、``"warn"`` で stderr 警告 + 続行。
+        mode: ``"reject"`` exits with 1; ``"warn"`` warns on stderr and continues.
 
     Returns:
-        Typer コマンド関数を包むデコレータ。対象関数は第 1 引数として
-        ``ctx: typer.Context`` を受け取る形に揃えておくこと。
+        A decorator that wraps a Typer command function. The target function
+        must take ``ctx: typer.Context`` as its first argument.
     """
 
     def decorator(func: F) -> F:
@@ -188,16 +188,16 @@ def require_repo_match(mode: Mode) -> Callable[[F], F]:
 
 
 def _is_context(obj: object) -> bool:
-    """click/typer Context かどうかを判定する。
+    """Tell whether the object is a click/typer Context.
 
-    isinstance を fast-path として先に試し、外れた場合のみ duck-typing にフォールバックする。
+    Try isinstance first as a fast path and fall back to duck-typing only when it misses.
 
-    typer 0.26.0+ は click を vendored モジュール (typer._click) に格納しており、
-    外部 click とは型が分離する。
-    isinstance(x, typer.Context) は、runner 経由の Context（typer._click.core.Context 直接）で False になる。
-    そのため private API を参照せず duck-typing で補完する。
-    判定には属性の組み合わせ（obj / info_name / params）を使う。
-    Typer コマンドの通常引数型（str / int / Path / Pydantic モデル等）には、この 3 つが同時に存在しない。
+    typer 0.26.0+ keeps click as a vendored module (typer._click), so its types
+    are separate from the external click.
+    isinstance(x, typer.Context) is False for a Context created via the runner (typer._click.core.Context directly).
+    So duck-typing fills the gap without touching a private API.
+    The check uses a combination of attributes (obj / info_name / params).
+    Ordinary Typer argument types (str / int / Path / Pydantic models, etc.) never have all three.
     """
     return isinstance(obj, typer.Context) or (
         hasattr(obj, "obj") and hasattr(obj, "info_name") and hasattr(obj, "params")
@@ -207,10 +207,10 @@ def _is_context(obj: object) -> bool:
 def _find_typer_context(
     args: tuple[object, ...], kwargs: dict[str, object]
 ) -> typer.Context | None:
-    """関数呼び出し引数の中から click/typer Context を見つけ出す。
+    """Find the click/typer Context among the call arguments.
 
-    Typer 0.26.0+ では vendored click のため isinstance(x, typer.Context) が
-    runner 経由で False になる場合がある。duck-typing (_is_context) で判定する。
+    With Typer 0.26.0+ and its vendored click, isinstance(x, typer.Context) can be
+    False via the runner, so use duck-typing (_is_context).
     """
     for name in ("ctx", "context"):
         candidate = kwargs.get(name)

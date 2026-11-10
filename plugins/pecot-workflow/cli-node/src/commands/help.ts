@@ -6,17 +6,17 @@
 import type { CommandDefinition } from './registry.js'
 import { cellLength, framePanel, padCells, wrapText } from './rich-panel.js'
 
-export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - GitHub Projectsベースの作業追跡ツール'
+export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - work tracking on GitHub Projects'
 
 const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
-  ['project', 'プロジェクト管理コマンド（GitHub API経由）'],
-  ['issue', 'Issue操作コマンド'],
-  ['pr', 'PR操作コマンド'],
-  ['session', 'セッション管理コマンド'],
-  ['release', 'リリース操作コマンド'],
-  ['security', 'security alert の Tracker 化コマンド'],
-  ['dependabot', '人の判断を待つ dependabot の PR の Tracker 化コマンド'],
-  ['worktree', 'ワークツリー操作コマンド'],
+  ['project', 'Manage projects through the GitHub API'],
+  ['issue', 'Work with Issues'],
+  ['pr', 'Work with PRs'],
+  ['session', 'Manage the session'],
+  ['release', 'Work with releases'],
+  ['security', 'Put security alerts into a Tracker'],
+  ['dependabot', 'Put Dependabot PRs waiting for a human decision into a Tracker'],
+  ['worktree', 'Work with worktrees'],
 ])
 
 /**
@@ -34,9 +34,9 @@ function optionRow(long: string, short: string, metavar: string, help: string): 
 const HELP_ROW = optionRow('--help', '', '', 'Show this message and exit.')
 
 const ROOT_OPTION_ROWS: readonly OptionRow[] = [
-  optionRow('--version', '-v', '', 'バージョン表示'),
-  optionRow('--repo', '', 'TEXT', '操作対象リポジトリを \'owner/repo\' 形式で明示指定 (FR-001)'),
-  optionRow('--show-repo', '', '', '解決されたリポジトリと解決元を表示して終了 (FR-002)'),
+  optionRow('--version', '-v', '', 'Show the version'),
+  optionRow('--repo', '', '<str>', 'Target repository, given explicitly as \'owner/repo\''),
+  optionRow('--show-repo', '', '', 'Show the resolved repository and where it came from, then exit'),
   optionRow('--install-completion', '', '', 'Install completion for the current shell.'),
   optionRow('--show-completion', '', '', 'Show completion for the current shell, to copy it or customize the installation.'),
   HELP_ROW,

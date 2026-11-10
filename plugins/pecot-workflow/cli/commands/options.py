@@ -1,6 +1,6 @@
-"""cli/options.py - 共通CLIオプション型定義
+"""cli/options.py - shared CLI option type definitions
 
-複数コマンドで再利用される --directory / -D オプションを一箇所に集約。
+Gathers the --directory / -D option reused by several commands in one place.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ DirectoryOption = Annotated[
     typer.Option(
         "--directory",
         "-D",
-        help="対象Gitリポジトリ（絶対パスまたは相対パス）",
+        help="Target Git repository (absolute or relative path)",
         exists=True,
         file_okay=False,
         dir_okay=True,
@@ -31,7 +31,7 @@ DirectoryOption = Annotated[
 
 
 def _validate_repo_option(value: str | None) -> str | None:
-    """``--repo`` の値を検証する typer callback。"""
+    """Typer callback that validates the ``--repo`` value."""
     if value is None:
         return None
     from cli.core.repo_resolver import RepoRef
@@ -47,7 +47,7 @@ RepoOption = Annotated[
     str | None,
     typer.Option(
         "--repo",
-        help="操作対象リポジトリを 'owner/repo' 形式で明示指定 (FR-001)",
+        help="Target repository, given explicitly as 'owner/repo'",
         callback=_validate_repo_option,
     ),
 ]
@@ -56,6 +56,6 @@ ShowRepoOption = Annotated[
     bool,
     typer.Option(
         "--show-repo",
-        help="解決されたリポジトリと解決元を表示して終了 (FR-002)",
+        help="Show the resolved repository and where it came from, then exit",
     ),
 ]

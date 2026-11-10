@@ -1,9 +1,9 @@
-"""cli/dependabot.py - 人の判断を待つ dependabot の PR をボードの Tracker に載せるコマンド
+"""cli/dependabot.py - command that puts Dependabot PRs waiting for a human decision into a board Tracker
 
-``pecot dependabot sync`` は open の Tracker 1 件の本文の一覧を、待つ PR の今の状態で書き直す。
-Tracker は、open のものが無く、載せる PR があるときだけ立てる。
-載せる PR が無くなれば、Tracker を閉じる（security alert の Tracker とは別で、閉じる操作もこのコマンドが行う）。
-Actions の schedule と手元の両方から同じコマンドで動かす。
+``pecot dependabot sync`` rewrites the list in the body of one open Tracker to the current state of the waiting PRs.
+A Tracker is created only when none is open and there are PRs to list.
+When no PR is left to list, the Tracker is closed (unlike the security alert Tracker, this command also does the closing).
+The same command runs from the Actions schedule and by hand.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from cli.core.tracker_body import find_tracker
 
 
 def _entries(waiting: list[tuple[dict[str, Any], list[str]]]) -> list[PrEntry]:
-    """待つ PR（PR と理由の組）を表の行にする"""
+    """Turn the waiting PRs (pairs of PR and reasons) into table rows"""
     return [
         PrEntry(
             number=int(pr["number"]),
@@ -57,7 +57,7 @@ def _entries(waiting: list[tuple[dict[str, Any], list[str]]]) -> list[PrEntry]:
 
 
 class _Stages(NamedTuple):
-    """Tracker に対する事柄を、実行の段ごとに分けた Operation の並び"""
+    """Operations on the Tracker, grouped by execution stage"""
 
     create: list[Operation]
     rewrite: list[Operation]
@@ -68,7 +68,7 @@ class _Stages(NamedTuple):
 
 
 def _operations(plan: PrPlan, tracker: int | None, title: str, unchanged: bool) -> _Stages:
-    """Tracker に対する事柄を段ごとの Operation にする"""
+    """Turn the operations on the Tracker into Operations per stage"""
     if tracker is None:
         if not plan.create:
             return _Stages([Operation(Verb.SKIP, "Tracker creation")], [], [])
@@ -92,21 +92,21 @@ def _operations(plan: PrPlan, tracker: int | None, title: str, unchanged: bool) 
 
 
 def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
-    """人の判断を待つ dependabot の PR を、open の Tracker の一覧に書き直す
+    """Rewrite the open Tracker's list of Dependabot PRs waiting for a human decision
 
-    対象は open の dependabot の PR で、次のどちらかに当たるもの。理由の無い PR は載せない。
+    Targets open Dependabot PRs that match either of the following. A PR with no reason is not listed.
 
-    - 自動マージの対象外（major・playwright・update-type 不明）
-    - 自動マージの対象で、検証・競合・queue の状態が止まっている
+    - Not eligible for auto-merge (major, playwright, unknown update-type)
+    - Eligible for auto-merge, but stopped on checks, conflicts, or the queue
 
-    ラベル dependabot-pr の open の Tracker（本文に印がある Issue）を 1 件探し、
-    その本文の list-begin から list-end の間の表を書き直す。
-    open の Tracker が無く、載せる PR があるときだけ、Tracker を立ててボードの Backlog（Priority medium）に載せる。
-    載せる PR が無くなれば、一覧を `none` にして Tracker を閉じる。
-    PR の一覧を取れなければ、本文に触らず終了コード 1 で終わる。
-    open の Tracker が複数あれば、番号が最小のものを使い、ほかは閉じずに警告する。
-    使う Tracker の list-begin / list-end の印が 1 組でなければ、終了コード 1 で止まる。
-    ほかの Tracker があっても使わない。security sync と同じで、印は人が直す。
+    Finds one open Tracker labeled dependabot-pr (an Issue whose body has the markers)
+    and rewrites the table between list-begin and list-end in its body.
+    Only when no Tracker is open and there are PRs to list, creates a Tracker and puts it on the board in Backlog (Priority medium).
+    When no PR is left to list, sets the list to `none` and closes the Tracker.
+    If the PR list cannot be fetched, leaves the body untouched and exits with code 1.
+    If several Trackers are open, uses the lowest number and warns without closing the others.
+    If the Tracker in use does not have exactly one pair of list-begin / list-end markers, stops with exit code 1.
+    Other Trackers are not used. As with security sync, a human fixes the markers.
 
     Examples:
         $ pecot dependabot sync --dry-run
@@ -167,7 +167,7 @@ def _apply(
     number: int | None,
     unchanged: bool,
 ) -> int:
-    """Tracker を立てる・書き直す・閉じる・ボードへ載せる。失敗した件数を返す"""
+    """Create, rewrite, close the Tracker and put it on the board. Return the number of failures"""
     try:
         if number is None:
             if not plan.create:

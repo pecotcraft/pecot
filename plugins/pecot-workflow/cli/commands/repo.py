@@ -1,6 +1,6 @@
-"""cli/repo.py - リポジトリ操作コマンド実装
+"""cli/repo.py - repository commands
 
-create-branch, delete-branch コマンドを提供。
+Provides the create-branch and delete-branch commands.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from cli.core.state import FLAG_PECOT_ACTIVE, ensure_work_dir, read_flag, write_
 
 
 def _reject_cwd_repo_mismatch(owner: str, repo: str) -> None:
-    """A-1. CWD の git remote と Issue ref のリポが異なれば exit 2 で止める"""
+    """A-1. Stop with exit 2 if the repository of the CWD git remote differs from the Issue ref"""
     try:
         cwd_resolved = resolve_repo(None, cwd=Path.cwd())
     except AmbiguousRepoError:
@@ -61,7 +61,7 @@ def _resolve_base_branch(
     branch_name: str,
     base: str | None,
 ) -> str:
-    """3. ベースブランチ決定（--base 優先、無ければ設定の develop_branch）"""
+    """3. Decide the base branch (--base first, otherwise develop_branch from the config)"""
     if base:
         # ユーザーが明示的に指定した場合はそれを使用
         return base
@@ -87,7 +87,7 @@ def _resolve_base_branch(
 
 
 def _guard_active_overwrite(client: GitHubClient, issue_ref_full: str) -> None:
-    """A-2. .pecot-active が別の OPEN Issue を指していれば exit 2 で止める"""
+    """A-2. Stop with exit 2 if .pecot-active points to another OPEN Issue"""
     existing = read_flag(FLAG_PECOT_ACTIVE) or ""
     if not existing or existing == issue_ref_full:
         return
@@ -139,7 +139,7 @@ def _guard_active_overwrite(client: GitHubClient, issue_ref_full: str) -> None:
 def _set_issue_status_active(
     client: GitHubClient, config: ProjectConfig, owner: str, repo: str, issue_number: int
 ) -> None:
-    """7.5. プロジェクトアイテムのステータスを active に更新（失敗は無視）"""
+    """7.5. Set the status of the project item to active (failures are ignored)"""
     try:
         item_id = client.get_item_id_by_issue(
             project_id=config.project.id,
@@ -159,7 +159,7 @@ def _set_issue_status_active(
 
 
 def _print_checkout_guide(owner: str, repo: str, created_branch: str) -> None:
-    """8. ブランチ切り替え案内（具体的なコマンドを表示）"""
+    """8. Guide the branch switch (show the concrete commands)"""
     from cli.core.worktree import get_current_worktree_name
 
     typer.echo("")
@@ -179,32 +179,32 @@ def _print_checkout_guide(owner: str, repo: str, created_branch: str) -> None:
 @require_repo_match(mode="reject")
 def create_branch(
     ctx: typer.Context,
-    issue_ref: str = typer.Argument(..., help="Issue参照 (owner/repo/123 形式)"),
-    branch_name: str = typer.Argument(..., help="作成するブランチ名"),
+    issue_ref: str = typer.Argument(..., help="Issue reference (owner/repo/123)"),
+    branch_name: str = typer.Argument(..., help="Name of the branch to create"),
     base: str | None = typer.Option(
-        None, "--base", "-b", help="ベースブランチ（デフォルト: 設定のdevelop_branch）"
+        None, "--base", "-b", help="Base branch (default: develop_branch from the config)"
     ),
     checkout: bool = typer.Option(
-        True, "--checkout/--no-checkout", help="作成後にチェックアウトする"
+        True, "--checkout/--no-checkout", help="Check out the branch after creating it"
     ),
     allow_cross_repo: bool = typer.Option(
         False,
         "--allow-cross-repo",
         "-X",
-        help="CWD と Issue ref のリポ不一致を許容（スクリプト/CWD 外発行用）",
+        help="Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)",
     ),
     force_overwrite_active: bool = typer.Option(
         False,
         "--force-overwrite-active",
         "-F",
-        help=".pecot-active 上書きガードを無効化（stale 確信時用）",
+        help="Disable the .pecot-active overwrite guard (when sure it is stale)",
     ),
 ) -> None:
-    """Issueに紐づいたブランチを作成
+    """Create a branch linked to an Issue
 
-    GitHub GraphQL API (createLinkedBranch) を使用して、
-    Issueの「Development」セクションにリンクされたブランチを作成します。
-    gh issue develop と同等の機能を提供します。
+    Uses the GitHub GraphQL API (createLinkedBranch) to create a branch
+    linked in the Development section of the Issue.
+    Provides the same function as gh issue develop.
     """
     # 1. 設定取得
     config = load_active_config()
@@ -282,24 +282,24 @@ def delete_branch(
     ctx: typer.Context,
     repo_ref: str = typer.Argument(
         ...,
-        help="リポジトリ参照 (owner/repo 形式)",
+        help="Repository reference (owner/repo)",
     ),
     branch: str = typer.Argument(
         ...,
-        help="削除するブランチ名",
+        help="Name of the branch to delete",
     ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
         "-n",
-        help="実際には削除せず、削除対象を表示する",
+        help="Show what would be deleted without deleting anything",
     ),
 ) -> None:
-    """リモートブランチを削除
+    """Delete a remote branch
 
-    PreToolUseフックによる git push / gh CLI ブロック環境下でも、
-    GitHub REST API 経由でリモートブランチを安全に削除できます。
-    保護ブランチ（デフォルト・develop・release）の削除はブロックされます。
+    Deletes the remote branch safely through the GitHub REST API,
+    even where a PreToolUse hook blocks git push and the gh CLI.
+    Deleting a protected branch (default, develop, release) is blocked.
     """
     # 1. repo_ref をパース
     try:

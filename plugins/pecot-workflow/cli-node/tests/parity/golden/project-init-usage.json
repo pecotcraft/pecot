@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot project init [OPTIONS] OWNER NAME\nTry 'pecot project init --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing option '--suffix' / '-s'.                                            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot project init [OPTIONS] {owner} {name}\nTry 'pecot project init --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing option '--suffix' / '-s'.                                            │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}
