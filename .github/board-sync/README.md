@@ -125,6 +125,13 @@ aws lambda get-policy --function-name pecot-board-sync \
 ## エージェントの権限
 
 このリポで Claude Code を起動すると、AWS 公式のプラグイン `aws-core` が有効になる（`.claude/settings.json`）。
+プラグインが入っていない環境では、このリポで次を 1 回打ち、Claude Code を起動し直す。
+
+```bash
+claude plugin install aws-core@claude-plugins-official --scope project
+git checkout .claude/settings.json   # install が整形し直すため、元の形に戻す
+```
+
 プラグインの MCP サーバは、既定のプロファイルの認証情報で AWS を呼ぶ。
 既定のプロファイルを、権限を絞った IAM ロール `claude-agent` にする。人のログイン（`pecot`）の全権限を、エージェントに渡さない。
 
