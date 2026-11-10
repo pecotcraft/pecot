@@ -1,3 +1,78 @@
+# 4.0.0 (2026-11-10)
+
+### 🚀 Features
+
+- `pecot pr create`・`read`・`preflight`・`cleanup` の行を英語の共通の形にし、1 事柄 1 行で stderr に出す。 ([#242](https://github.com/pecotcraft/pecot/pull/242), [#211](https://github.com/pecotcraft/pecot/issues/211))
+  stdout に出るのは PR の URL・`--prepare` のパス・preflight の節・`pr read` の本文だけになる。
+
+- `pecot project` のコマンドの行を英語にし、データ以外の行を stderr に移す。 ([#241](https://github.com/pecotcraft/pecot/pull/241), [#212](https://github.com/pecotcraft/pecot/issues/212))
+  `project info` の見出しも英語になる。
+
+- コマンドが `error:` の後ろに出す例外の文言と、テンプレ・フロントマター・参照の検証の文言を英語にする。 ([#266](https://github.com/pecotcraft/pecot/pull/266), [#239](https://github.com/pecotcraft/pecot/issues/239))
+  トークンのフォールバックの警告は `warning:` の行で出す。
+
+- `pecot dependabot sync` を足し、人の判断を待つ dependabot の PR を Tracker 1 件の一覧にそろえる。 ([#176](https://github.com/pecotcraft/pecot/pull/176), [#174](https://github.com/pecotcraft/pecot/issues/174))
+- `pecot release preflight` は、open の Dependabot alert があっても止まらず、件数・severity・一覧を警告に出す。 ([#217](https://github.com/pecotcraft/pecot/pull/217), [#202](https://github.com/pecotcraft/pecot/issues/202))
+  例外ファイル `.github/dependabot-exceptions.json` は読まなくなった。
+
+- `pecot security sync`・`pecot dependabot sync` の行を英語にし、すべて stderr に出す。 ([#223](https://github.com/pecotcraft/pecot/pull/223), [#206](https://github.com/pecotcraft/pecot/issues/206))
+  dry-run なら `dry-run: would ...`、そうでなければ `<past>: ...` の 1 事柄 1 行になる。
+
+- `pecot issue` 系・`add-to-project`・`update-issue-status` の行を英語にする。 ([#243](https://github.com/pecotcraft/pecot/pull/243), [#210](https://github.com/pecotcraft/pecot/issues/210))
+  data だけを stdout に出し、ほかは `error:`・`warning:`・`<past>:` の行で stderr に出す。
+
+
+### 🩹 Fixes
+
+- w-release の手順から、依存の更新の version plan を作る段を外した。 ([#224](https://github.com/pecotcraft/pecot/pull/224), [#220](https://github.com/pecotcraft/pecot/issues/220))
+  plan は dependabot の PR で作られる。
+
+- vite の catalog の範囲の確認を、@slidev/cli の宣言との一致ではなく、その範囲に入るかで見るようにした。入る vite の版と配布物の挙動は変わらない。 ([#240](https://github.com/pecotcraft/pecot/pull/240), [#236](https://github.com/pecotcraft/pecot/issues/236))
+- w-issueize が Issue 化の後に tasks.md を削除する手順を外し、Issue 化済みのフェーズを対象から外す。 ([#194](https://github.com/pecotcraft/pecot/pull/194), [#62](https://github.com/pecotcraft/pecot/issues/62))
+  w-active が、フェーズの Issue の計画に tasks.md のチェックの更新を入れる。
+
+- w-release のリリースを workflow から起動する手順にした。 ([#161](https://github.com/pecotcraft/pecot/pull/161), [#67](https://github.com/pecotcraft/pecot/issues/67))
+- nx が undici の修正版を宣言したので、`runtime-workspace.yaml` から **undici の override** を外した。 ([#169](https://github.com/pecotcraft/pecot/pull/169), [#168](https://github.com/pecotcraft/pecot/issues/168))
+  lock の作り直しで、推移依存の patch 更新も入った。
+
+- vite の版を、pnpm の catalog の 1 か所で決めるようにした。実行用の依存の lock は catalog の項目を持つ。入る vite の版は変わらない。 ([#196](https://github.com/pecotcraft/pecot/pull/196), [#170](https://github.com/pecotcraft/pecot/issues/170))
+  単体配布の `setup` は、配布物の実行時依存の manifest に `catalog:` が残っていると、npm を起動せずに配布物の破損として止まる。
+
+- `commander` を 15.0.0 から 15.1.0 に更新。(#172) ([#224](https://github.com/pecotcraft/pecot/pull/224), [#220](https://github.com/pecotcraft/pecot/issues/220))
+- `pecot dependabot sync` の Tracker の表を、security alert の Tracker と同じ形にする。 ([#182](https://github.com/pecotcraft/pecot/pull/182), [#180](https://github.com/pecotcraft/pecot/issues/180))
+  列は `title | PR | checks` で、3 列目は最後の commit の検証の結果を書く。0 件では `none` と書く。
+
+- jsdom を 31 に上げた（テスト用の devDependency）。 ([#203](https://github.com/pecotcraft/pecot/pull/203), [#198](https://github.com/pecotcraft/pecot/issues/198))
+  lock の作り直しで、推移依存も変わった。
+
+- CLI の出力の行を作る共通の関数を、Python と Node に足した。 ([#219](https://github.com/pecotcraft/pecot/pull/219), [#205](https://github.com/pecotcraft/pecot/issues/205))
+  コマンドの出力はまだ変わらない。
+
+- `pecot` の全コマンドの `--help` の文言を英語にした。 ([#227](https://github.com/pecotcraft/pecot/pull/227), [#207](https://github.com/pecotcraft/pecot/issues/207))
+  コマンドが出す行の文言は変わらない。
+
+- hooks がエージェントへ返すメッセージを英語にした。行の頭は `error:`・`warning:`・`note:` のどれかになる。 ([#228](https://github.com/pecotcraft/pecot/pull/228), [#209](https://github.com/pecotcraft/pecot/issues/209))
+  eslint・validator・textlint が出す文言と、参照の YAML の抜粋は変わらない。
+
+- auto-push は、active な Issue のブランチだけを wip/ へ push する。 ([#152](https://github.com/pecotcraft/pecot/pull/152), [#147](https://github.com/pecotcraft/pecot/issues/147))
+  push の後で wip/ の追跡 ref を消すので、最初の push でも pre-push の hook が動く。
+
+- 依存パッケージを 2 件更新。(#150) ([#224](https://github.com/pecotcraft/pecot/pull/224), [#220](https://github.com/pecotcraft/pecot/issues/220))
+  `pydantic` を 2.14.2 から 2.14.3 に更新。
+  `typer` を 0.27.3 から 0.28.0 に更新。
+
+### ⚠️  Breaking Changes
+
+- `pecot pr create` が、Summary に画像も `screenshot` の理由も無い本文を止める。 ([#190](https://github.com/pecotcraft/pecot/pull/190), [#183](https://github.com/pecotcraft/pecot/issues/183))
+  本文の検証の失敗の終了コードが、1 から 3 に変わる。
+
+- `pecot pr merge` を廃止し、マージ後の片付けを `pecot pr cleanup` に分けた。 ([#163](https://github.com/pecotcraft/pecot/pull/163), [#162](https://github.com/pecotcraft/pecot/issues/162))
+  マージは `gh pr merge` で行い、merge queue のあるリポでも w-merge が queue のマージを待ってから片付ける。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 3.1.0 (2026-11-09)
 
 ### 🚀 Features
