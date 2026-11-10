@@ -6,14 +6,12 @@ GitHubClient（I/O 境界）を差し替え、ボード設定は MagicMock に�
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import typer.testing
 
 from cli.commands.main import app
-from cli.core.dependabot import DependabotException
 from cli.core.github import GitHubAPIError, GitHubNotFoundError
 from cli.core.security_alerts import TrackerEntry, render_tracker_body
 
@@ -59,13 +57,10 @@ def _invoke(
     client: MagicMock,
     args: list[str],
     config: MagicMock | None = None,
-    exceptions: list[DependabotException] | None = None,
 ) -> Any:
     with (
         patch("cli.commands.security.GitHubClient", return_value=client),
         patch("cli.commands._tracker_sync.load_active_config", return_value=config or _config()),
-        patch("cli.commands.security.git_toplevel", return_value=Path("/repo")),
-        patch("cli.commands.security.load_dependabot_exceptions", return_value=exceptions),
         patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),
     ):
         return runner.invoke(app, ["security", *args])
@@ -83,10 +78,6 @@ def _dep(number: int, severity: str = "medium") -> dict[str, Any]:
 
 def _cs(number: int) -> dict[str, Any]:
     return {"number": number, "rule": {"id": "js/xss", "severity": "error"}}
-
-
-def _exc(alert: int) -> DependabotException:
-    return DependabotException(alert=alert, package="pkg", reason="理由", reevaluate="v2 が出たら")
 
 
 def _body(*entries: TrackerEntry) -> str:
@@ -122,13 +113,13 @@ class TestSync:
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_high") in updates
 
-    def test_exceptions_only_creates_nothing(self) -> None:
-        client = _client(dependabot=[_dep(1)])
-        result = _invoke(client, ["sync"], exceptions=[_exc(1)])
+    def test_no_open_alerts_creates_nothing(self) -> None:
+        client = _client()
+        result = _invoke(client, ["sync", "--dry-run"])
 
         assert result.exit_code == 0, result.output
+        assert "Tracker を立てません（open の alert がありません）" in result.output
         client.create_issue.assert_not_called()
-        client.update_issue_body.assert_not_called()
 
     def test_new_tracker_body_is_marker_and_table_only(self) -> None:
         client = _client(dependabot=[_dep(1)])
@@ -143,15 +134,6 @@ class TestSync:
         assert "## code scanning\n\nnone" in body
         assert "state=" not in body
         assert "SECURITY.md" not in body
-
-    def test_exceptions_are_left_out_of_a_new_tracker(self) -> None:
-        client = _client(code_scanning=[_cs(10)], dependabot=[_dep(1)])
-        result = _invoke(client, ["sync"], exceptions=[_exc(1)])
-
-        assert result.exit_code == 0, result.output
-        body = client.create_issue.call_args.kwargs["body"]
-        assert "pecot-alert: dependabot/" not in body
-        assert "pecot-alert: code-scanning/10" in body
 
     def test_no_alerts_no_tracker(self) -> None:
         client = _client()
@@ -206,14 +188,6 @@ class TestSync:
         assert "pecot-alert: dependabot/1" in body
         assert "Tracker #5 から外す: code-scanning #9" in result.output
         client.close_issue.assert_not_called()
-
-    def test_exception_row_leaves_the_table(self) -> None:
-        client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(_row("dependabot", 1)))])
-        result = _invoke(client, ["sync"], exceptions=[_exc(1)])
-
-        assert result.exit_code == 0, result.output
-        assert "pecot-alert: dependabot/1" not in client.update_issue_body.call_args.args[3]
-        assert "Tracker #5 から外す: dependabot #1" in result.output
 
     def test_old_format_body_is_rewritten_in_place(self) -> None:
         old_row = (

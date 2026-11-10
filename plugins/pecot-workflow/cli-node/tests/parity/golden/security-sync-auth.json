@@ -1,5 +1,5 @@
 {
-  "stdout": "Tracker を立てません（open で例外に無い alert がありません）\n",
+  "stdout": "Tracker を立てません（open の alert がありません）\n",
   "stderr": "エラー: Dependabot の一覧を取得できません（その種類の行に触れません）: acme/demo: Dependabot: 認証に失敗しました。トークンを確認してください。 Bad credentials\n",
   "exitCode": 1,
   "requests": [

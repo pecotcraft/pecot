@@ -1,5 +1,5 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n警告: 例外として通す Dependabot alert #1（minimatch）\n    理由: parent pins the vulnerable major\n    見直し: bump when the parent accepts the fix\n警告: 例外の Dependabot alert #3（glob）は open ではありません。.github/dependabot-exceptions.json から外してください。\n✓ Dependabot alerts: open 1（すべて例外）\n✓ code scanning: open 0\n✓ secret scanning: open 0\n\n=== Preflight Check Passed ===\n",
+  "stdout": "=== Release Preflight Check ===\n\nWarning: 2 open Dependabot alerts (highest severity: medium). The release is not blocked.\n  #1 (minimatch, medium)\n  #3 (glob, medium)\n→ https://ghes.example.com/acme/demo/security/dependabot\n✓ code scanning: open 0\n✓ secret scanning: open 0\n\n=== Preflight Check Passed ===\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

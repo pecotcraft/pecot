@@ -222,9 +222,9 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    gh release list -L 4 -R <owner>/<repo>
    ```
 
-   `plan` が preflight で止まったときは、open の Dependabot alert がある。
-   手元の手順の「3. open の Dependabot alert を確認（preflight）」に従う。
-   扱いは、解消・dismiss・exceptions の 3 つ。
+   `plan` が preflight で止まったときは、open の code scanning・secret scanning の alert がある。
+   手元の手順の「3. open の security alert を確認（preflight）」に従う。
+   扱いは、解消か理由付きの dismiss である。
 
 ### 手元の手順（`release.yml` が無いリポ）
 
@@ -260,19 +260,17 @@ cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then pnpm install --f
 export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 ```
 
-### 3. open の Dependabot alert を確認（preflight）
+### 3. open の security alert を確認（preflight）
 
 ```bash
 cd <project-root>/base/<repo> && pecot release preflight
 ```
 
-open の Dependabot alert が 1 件でもあると、件数・最高 severity・一覧 URL を出して失敗する。
-解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。
-修正版に上げられない alert は、`.github/dependabot-exceptions.json` に理由と見直し条件を書いて載せると通る。
-dismiss と違って alert は open のまま残り、修正版が入れば GitHub が閉じる。
-preflight は例外で通す alert を毎回表示する。リリースのたびに見直し条件を読み、満たしていれば依存を上げて項目を外す。
-open でなくなった alert の項目は、preflight が外すよう表示する。alerts 無効のリポは
-`Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
+Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
+一覧を取得できないときも警告にとどめる。
+止めるのは code scanning・secret scanning の open の alert だけ。
+解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
+alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
@@ -366,19 +364,17 @@ Nx Release が GitHub API を叩くため必要。
 export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 ```
 
-### 3. open の Dependabot alert を確認（preflight）
+### 3. open の security alert を確認（preflight）
 
 ```bash
 cd <project-root>/base/<repo> && pecot release preflight
 ```
 
-open の Dependabot alert が 1 件でもあると、件数・最高 severity・一覧 URL を出して失敗する。
-解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。
-修正版に上げられない alert は、`.github/dependabot-exceptions.json` に理由と見直し条件を書いて載せると通る。
-dismiss と違って alert は open のまま残り、修正版が入れば GitHub が閉じる。
-preflight は例外で通す alert を毎回表示する。リリースのたびに見直し条件を読み、満たしていれば依存を上げて項目を外す。
-open でなくなった alert の項目は、preflight が外すよう表示する。alerts 無効のリポは
-`Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
+Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
+一覧を取得できないときも警告にとどめる。
+止めるのは code scanning・secret scanning の open の alert だけ。
+解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
+alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認

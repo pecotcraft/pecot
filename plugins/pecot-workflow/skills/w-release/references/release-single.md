@@ -131,8 +131,8 @@ git pull --ff-only origin <develop>
 pecot release preflight <ver>
 ```
 
-open の Dependabot alert があると失敗する。解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。
-修正版に上げられない alert は、`.github/dependabot-exceptions.json` に理由と見直し条件を書いて載せると通る。
+Dependabot の open の alert は警告を出すだけで止めない。
+止めるのは code scanning・secret scanning の open の alert で、解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。
 扱いは [release-nx.md](release-nx.md) の preflight の説明と同じ。
 
 ### 5. リリース PR 作成

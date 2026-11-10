@@ -1,4 +1,4 @@
-# Dependabot の一覧が 401。exit 1。
+# Dependabot は成功し、code scanning の一覧が 401。exit 1。
 id: release-preflight-auth
 command:
   path: [release, preflight]
@@ -80,15 +80,15 @@ github:
       path: "/repos/acme/demo/dependabot/alerts"
       query: {"state": "open", "per_page": "100"}
     respond:
-      status: 401
-      body: {"message": "Bad credentials"}
+      status: 200
+      body: []
   - match:
       method: "GET"
       path: "/repos/acme/demo/code-scanning/alerts"
       query: {"state": "open", "per_page": "100"}
     respond:
-      status: 200
-      body: []
+      status: 401
+      body: {"message": "Bad credentials"}
   - match:
       method: "GET"
       path: "/repos/acme/demo/secret-scanning/alerts"

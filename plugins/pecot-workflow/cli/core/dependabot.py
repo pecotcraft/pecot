@@ -2,17 +2,14 @@
 
 ``release preflight`` と ``project info`` が同じ判定を共有する。
 有効 / 無効・open 件数・最高 severity・一覧 URL を ``DependabotAlertStatus`` にまとめて返す。
-``release preflight`` が通す例外は、リポの ``.github/dependabot-exceptions.json`` から読む。
 """
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Any, cast
 
 import httpx
-from pydantic import BaseModel, Field, StringConstraints, ValidationError
+from pydantic import BaseModel, Field
 
 from cli.core.errors import PecotError
 from cli.core.github import GitHubAPIError, GitHubClient
@@ -20,11 +17,6 @@ from cli.core.github.errors import GitHubRateLimitError, describe_api_error
 
 # severity の強さ順（大きいほど重い）。未知の値は順位 -1 として扱い落とさない
 SEVERITY_ORDER: dict[str, int] = {"low": 0, "medium": 1, "high": 2, "critical": 3}
-
-# 修正版に上げられない alert を、理由と見直し条件つきで載せる例外ファイル（リポのルートから）
-EXCEPTIONS_PATH = Path(".github/dependabot-exceptions.json")
-
-NonBlankStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class DependabotAlertError(PecotError):
@@ -66,34 +58,8 @@ class DependabotAlertStatus(BaseModel):
     open_alerts: list[OpenAlert] = Field(default_factory=list[OpenAlert], exclude=True)
 
 
-class DependabotException(BaseModel):
-    """例外ファイルの 1 項目。直せない alert を open のまま release preflight に通す
-
-    Attributes:
-        alert: alert 番号。
-        package: 依存パッケージ名。
-        reason: 修正版に上げられない理由。
-        reevaluate: 例外を外す条件（見直しの観点）。
-    """
-
-    alert: int
-    package: NonBlankStr
-    reason: NonBlankStr
-    reevaluate: NonBlankStr
-
-
-class _ExceptionsFile(BaseModel):
-    exceptions: list[DependabotException]
-
-
 def _severity_rank(severity: str | None) -> int:
     return SEVERITY_ORDER.get(severity or "", -1)
-
-
-def max_severity_of(alerts: list[OpenAlert]) -> str | None:
-    """alert の要点の並びから最高 severity を返す"""
-    values = [a.severity for a in alerts if a.severity is not None]
-    return max(values, key=_severity_rank, default=None)
 
 
 def _open_alert(alert: dict[str, Any]) -> OpenAlert | None:
@@ -119,22 +85,6 @@ def _open_alert(alert: dict[str, Any]) -> OpenAlert | None:
         package=package if isinstance(package, str) else None,
         severity=severity if isinstance(severity, str) else None,
     )
-
-
-def load_dependabot_exceptions(git_root: Path) -> list[DependabotException] | None:
-    """リポの例外ファイルを読む。ファイルが無ければ None
-
-    Raises:
-        DependabotAlertError: JSON として読めない、または項目が欠けている場合
-    """
-    path = git_root / EXCEPTIONS_PATH
-    if not path.is_file():
-        return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return _ExceptionsFile.model_validate(data).exceptions
-    except (ValueError, ValidationError) as e:
-        raise DependabotAlertError(f"{EXCEPTIONS_PATH} を読めません: {e}") from e
 
 
 def _max_severity(alerts: list[dict[str, Any]]) -> str | None:
