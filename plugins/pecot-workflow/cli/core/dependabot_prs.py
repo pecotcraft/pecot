@@ -7,7 +7,7 @@ Tracker の本文（PR の一覧の表）を読み書きする処理と、行の
 自動マージの対象かは ``dependabot/fetch-metadata`` v3.1.0 と同じ情報源・規則で決める。
 最初の commit の message の YAML を読み、各依存の ``update-type`` の最大を使う。
 最初の commit の author が ``dependabot[bot]`` で、署名が有効なものだけを読む（fetch-metadata と同じ）。
-対象は minor・patch で playwright を含まない PR とする。
+対象は minor・patch の PR とする。
 対象の PR は、検証・競合・queue の状態から理由を足す。理由が無い PR は載せない。
 
 PR の題は dependabot が付ける公開の情報なので、表に出してよい。
@@ -36,7 +36,6 @@ SECTION_HEADING = "## dependabot PR"
 
 REASON_UNKNOWN = "unknown update type"
 REASON_MAJOR = "major"
-REASON_PLAYWRIGHT = "playwright"
 REASON_FAILED = "checks failed"
 REASON_STUCK = "checks not finishing"
 REASON_CONFLICT = "conflict"
@@ -170,7 +169,7 @@ def rollup_state(pr: Mapping[str, Any]) -> str | None:
 
 
 def _metadata_reasons(pr: Mapping[str, Any]) -> tuple[list[str], bool]:
-    """(update-type と依存名から決まる理由, 自動マージの対象か)"""
+    """(update-type から決まる理由, 自動マージの対象か)"""
     commit = _dict(_first_node(pr.get("firstCommits")).get("commit"))
     author_login = _dict(_dict(commit.get("author")).get("user")).get("login")
     # fetch-metadata は署名が有効でない commit の metadata を返さない（auto-merge も入らない）
@@ -186,8 +185,6 @@ def _metadata_reasons(pr: Mapping[str, Any]) -> tuple[list[str], bool]:
         reasons.append(REASON_UNKNOWN)
     elif max(types, key=_UPDATE_TYPES.index) == "major":
         reasons.append(REASON_MAJOR)
-    if any("playwright" in name.lower() for name, _ in metadata):
-        reasons.append(REASON_PLAYWRIGHT)
     return reasons, not reasons
 
 

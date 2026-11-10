@@ -167,13 +167,13 @@ class TestWaitingReasonsMetadata:
     def test_group_with_major_is_major(self) -> None:
         assert waiting_reasons(_pr(deps=(("a", "patch"), ("b", "major"))), NOW) == ["major"]
 
-    def test_playwright_minor(self) -> None:
+    def test_dependency_name_does_not_add_reason_to_minor(self) -> None:
         pr = _pr(deps=(("@Playwright/test", "minor"),))
-        assert waiting_reasons(pr, NOW) == ["playwright"]
+        assert waiting_reasons(pr, NOW) == []
 
-    def test_playwright_major_lists_both(self) -> None:
+    def test_dependency_name_does_not_add_reason_to_major(self) -> None:
         pr = _pr(deps=(("playwright", "major"),))
-        assert waiting_reasons(pr, NOW) == ["major", "playwright"]
+        assert waiting_reasons(pr, NOW) == ["major"]
 
     def test_first_commit_not_by_dependabot_is_unknown(self) -> None:
         assert waiting_reasons(_pr(commit_author="someone"), NOW) == ["unknown update type"]
@@ -366,7 +366,7 @@ def test_checks_label(state: str | None, label: str) -> None:
 
 class TestTrackerBody:
     def test_new_body_has_markers_and_table(self) -> None:
-        body = render_tracker_body([_entry(2, "Bump a", "major", "playwright")])
+        body = render_tracker_body([_entry(2, "Bump a", "major", "conflict")])
         assert body == (
             "<!-- pecot-dependabot-pr: tracker -->\n\n"
             "<!-- pecot-dependabot-pr: list-begin -->\n"
