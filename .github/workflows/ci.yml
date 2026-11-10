@@ -161,6 +161,8 @@ jobs:
       CHECKS_LANE: ${{ matrix.lane }}
       CHECKS_SLUG: ${{ matrix.slug }}
       PECOT_CI_NX_CACHE: /workspaces/base/pecot/.pecot/tmp/ci/nx-remote
+      # Chromium を使うテストは pecot-visual だけにある。
+      PECOT_CI_BROWSER: ${{ startsWith(matrix.lane, 'pecot-visual:') && '1' || '0' }}
       DEVCONTAINER_ENV: |
         CI
         NX_BASE
@@ -174,6 +176,7 @@ jobs:
         PECOT_CI_IMAGE
         PECOT_CI_SUMMARY
         PECOT_CI_NX_CACHE
+        PECOT_CI_BROWSER
     strategy:
       fail-fast: false
       matrix:
