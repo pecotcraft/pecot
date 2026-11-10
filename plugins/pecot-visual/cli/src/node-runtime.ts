@@ -6,7 +6,8 @@
 // enum・namespace・パラメータプロパティを使わず、他モジュールを import しない。
 // ランチャーと hook が node から直接読み込んで checkNodeRuntime を呼ぶため。
 //
-// 判定は cli.ts の main() で行う。静的 import の評価後に動くため、import の段階で落ちる
+// 判定は cli.ts の main() で行う。CLI は nodeRuntimeGuidance の結果を診断行の共通の関数に渡す
+// （続きの行の字下げは共通の関数が付ける）。静的 import の評価後に動くため、import の段階で落ちる
 // 古い major（23 以前）では案内を出せないことがある。判定だけのエントリモジュールには分けない。
 
 /**
@@ -66,17 +67,18 @@ export function suggestedNodeVersion(): string {
 function guidance(version: string): string {
   return [
     `Node.js ${version} does not include fixes for known vulnerabilities; not starting`,
-    `  required: ${requiredVersionsText()}`,
-    `  (fix: update Node.js and run again; with nvm: nvm install ${suggestedNodeVersion()})`,
+    `required: ${requiredVersionsText()}`,
+    `(fix: update Node.js and run again; with nvm: nvm install ${suggestedNodeVersion()})`,
   ].join('\n')
 }
 
 /**
-起動してよい版なら undefined、止めるべき版なら利用者向けの案内文を返す。
+起動してよい版なら undefined、止めるべき版なら字下げ無しの複数行の案内文を返す。
+CLI は診断行の共通の関数に渡し、続きの行の字下げはそちらが付ける。
 表に無い major は、表の最大 major より新しければ修正後のリリースとみなして許可し、
 それ以外（24 未満・サポート終了の 25 系）は止める。
 */
-export function checkNodeRuntime(version: string): string | undefined {
+export function nodeRuntimeGuidance(version: string): string | undefined {
   const actual = parseVersion(version)
   if (actual === undefined) return guidance(version)
   const minimum = MINIMUM_NODE_VERSIONS[actual.tuple[0]]
@@ -87,4 +89,11 @@ export function checkNodeRuntime(version: string): string | undefined {
   const minimumVersion = parseVersion(minimum)
   if (minimumVersion === undefined) return guidance(version)
   return isAtLeast(actual, minimumVersion.tuple) ? undefined : guidance(version)
+}
+
+/**
+launcher と hook がそのまま書く形。続きの行の先頭に空白 2 つを付けた案内文を返す。
+*/
+export function checkNodeRuntime(version: string): string | undefined {
+  return nodeRuntimeGuidance(version)?.split('\n').join('\n  ')
 }
