@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot project search [OPTIONS] OWNER\nTry 'pecot project search --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'OWNER'.                                                    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot project search [OPTIONS] {owner}\nTry 'pecot project search --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'owner'.                                                    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

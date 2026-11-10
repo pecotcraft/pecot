@@ -927,10 +927,10 @@ class TestRepoCommandsHelp:
         """create-branch --help"""
         result = runner.invoke(app, ["create-branch", "--help"])
         assert result.exit_code == 0
-        assert "Issue" in result.output or "ブランチ" in result.output
+        assert "Create a branch linked to an Issue" in result.output
 
     def test_delete_branch_help(self) -> None:
         """delete-branch --help"""
         result = runner.invoke(app, ["delete-branch", "--help"])
         assert result.exit_code == 0
-        assert "ブランチ" in result.output or "削除" in result.output
+        assert "Delete a remote branch" in result.output

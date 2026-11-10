@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot release create [OPTIONS] VERSION\nTry 'pecot release create --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'VERSION'.                                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot release create [OPTIONS] {version}\nTry 'pecot release create --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'version'.                                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

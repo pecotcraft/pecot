@@ -1,8 +1,8 @@
-"""cli/project.py - プロジェクト関連コマンド実装
+"""cli/project.py - Project commands.
 
-project サブコマンドグループを定義する。
-対象は list / search / init / create / info / activate / set-repo。
-ほかに set-aggregation-repo / unset-aggregation-repo / show-aggregation-repo がある。
+Defines the project subcommand group.
+It covers list / search / init / create / info / activate / set-repo.
+It also has set-aggregation-repo / unset-aggregation-repo / show-aggregation-repo.
 """
 
 from __future__ import annotations
@@ -43,10 +43,10 @@ _ALERT_FETCH_MAX_WORKERS = 8
 
 
 def project_list() -> None:
-    """利用可能なプロジェクト一覧を表示
+    """List available projects
 
-    config/projects/ 配下の設定ファイルを列挙し、
-    アクティブなプロジェクトには [ACTIVE] マーカーを付ける。
+    Lists the config files under config/projects/
+    and marks the active project with [ACTIVE].
     """
     typer.echo("=== 利用可能なプロジェクト ===")
 
@@ -71,21 +71,21 @@ def project_list() -> None:
 def _link_project_repository(
     host: str, project_number: int, owner: str, repo: str
 ) -> tuple[bool, str]:
-    """GitHub Projectにリポジトリをリンク
+    """Link a repository to a GitHub Project.
 
-    GraphQL APIを使用してプロジェクトにリポジトリをリンクする。
+    Uses the GraphQL API to link the repository to the project.
 
     Args:
-        host: GitHubホスト
-        project_number: プロジェクト番号
-        owner: プロジェクトオーナー
-        repo: owner/repo形式のリポジトリ名
+        host: GitHub host
+        project_number: Project number
+        owner: Project owner
+        repo: Repository name in owner/repo form
 
     Returns:
-        (成功フラグ, メッセージ) のタプル。
-        成功時: (True, "リンク成功メッセージ")。
-        既にリンク済み: (True, "既にリンク済みメッセージ")。
-        失敗時: (False, "エラーメッセージ")。
+        A tuple of (success flag, message).
+        On success: (True, "link success message").
+        Already linked: (True, "already linked message").
+        On failure: (False, "error message").
     """
     # owner/repo形式からowner, repoを分離
     if "/" in repo:
@@ -102,7 +102,7 @@ def _link_project_repository(
 
 
 def _validate_release_type(release_type: str | None) -> None:
-    """--release-type 検証（single / multi / nx 以外は exit 1）"""
+    """Validate --release-type (exit 1 unless single / multi / nx)"""
     valid_release_types = {"single", "multi", "nx"}
     if release_type is not None and release_type not in valid_release_types:
         typer.echo(
@@ -116,7 +116,7 @@ def _validate_release_type(release_type: str | None) -> None:
 def _parse_package_specs(
     package: list[str] | None, changelog_file: str | None, clear_packages: bool
 ) -> list[Package] | None:
-    """--package パース・検証（未指定なら None）"""
+    """Parse and validate --package (None when unspecified)"""
     if not package:
         return None
     if changelog_file is not None:
@@ -162,7 +162,7 @@ def _parse_package_specs(
 
 
 def _parse_set_repo_target(owner_repo: str, config: ProjectConfig) -> tuple[str, str]:
-    """owner/repo 形式とプロジェクトオーナー一致を検証して (owner, repo_name) を返す"""
+    """Validate the owner/repo form and the project owner match, and return (owner, repo_name)"""
     # owner/repo形式の検証
     if "/" not in owner_repo or owner_repo.count("/") != 1:
         typer.echo("エラー: 引数は owner/repo 形式で指定してください", err=True)
@@ -184,7 +184,7 @@ def _parse_set_repo_target(owner_repo: str, config: ProjectConfig) -> tuple[str,
 
 
 def _link_repository_or_exit(config: ProjectConfig, owner_repo: str) -> None:
-    """新規リポジトリを GitHub Project にリンクする（失敗は exit 1）"""
+    """Link a new repository to the GitHub Project (exit 1 on failure)"""
     typer.echo(f"GitHub Projectにリポジトリをリンク中: {owner_repo}")
     success, message = _link_project_repository(
         config.host, config.project.number, config.owner, owner_repo
@@ -195,7 +195,7 @@ def _link_repository_or_exit(config: ProjectConfig, owner_repo: str) -> None:
 
 
 def _load_set_repo_context(owner_repo: str) -> tuple[ProjectConfig, str, str, Path]:
-    """アクティブ設定・(owner, repo_name)・設定ファイルパスを取得（取れなければ exit 1）"""
+    """Get the active config, (owner, repo_name) and the config file path (exit 1 if unavailable)"""
     # アクティブ設定確認
     config = load_active_config()
     if config is None:
@@ -223,7 +223,7 @@ def _update_existing_repository(
     clear_packages: bool,
     release_type: str | None,
 ) -> None:
-    """既存エントリの更新（明示的に指定された場合のみ）"""
+    """Update an existing entry (only for explicitly specified options)"""
     if develop_branch is not None:
         existing_repo.develop_branch = develop_branch
     if release_branch is not None:
@@ -248,50 +248,50 @@ def _update_existing_repository(
 
 
 def project_set_repo(
-    owner_repo: str = typer.Argument(..., help="owner/repo形式のリポジトリ名"),
+    owner_repo: str = typer.Argument(..., help="Repository name in owner/repo form"),
     develop_branch: str | None = typer.Option(
-        None, "--develop-branch", "-b", help="開発ブランチ名"
+        None, "--develop-branch", "-b", help="Development branch name"
     ),
-    release_branch: str | None = typer.Option(None, "--release-branch", help="リリースブランチ名"),
-    changelog_file: str | None = typer.Option(None, "--changelog-file", help="CHANGELOGファイル名"),
+    release_branch: str | None = typer.Option(None, "--release-branch", help="Release branch name"),
+    changelog_file: str | None = typer.Option(None, "--changelog-file", help="CHANGELOG file name"),
     package: list[str] | None = typer.Option(  # noqa: B008
         None,
         "--package",
         help=(
-            "monorepo の package 登録。NAME:PATH 形式で指定。複数回指定可。"
-            "例: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
+            "Register a monorepo package as NAME:PATH. Can be repeated. "
+            "Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
         ),
     ),
     clear_packages: bool = typer.Option(
         False,
         "--clear-packages",
         help=(
-            "既存の packages 設定をクリア。"
-            "clear 後の CHANGELOG は --changelog-file または CHANGELOG.md デフォルトに戻る"
+            "Clear the existing packages setting. "
+            "After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
         ),
     ),
     release_type: str | None = typer.Option(
         None,
         "--release-type",
         help=(
-            "リリース方式を明示宣言。w-release スキルがこの値で進め方を選ぶ。"
-            "single (1 CHANGELOG) / multi (packages 方式) / nx (Nx Release 方式)。"
-            "未指定 (None) なら packages 有無から自動推測 (有→multi、無→single)"
+            "Declare the release method explicitly; the w-release skill picks its procedure from it. "
+            "single (1 CHANGELOG) / multi (packages) / nx (Nx Release). "
+            "When omitted, it is inferred from the packages (with packages: multi, without: single)"
         ),
     ),
 ) -> None:
-    """リポジトリをプロジェクト設定に追加/更新
+    """Add or update a repository in the project config
 
-    GitHub Projectにリポジトリをリンクし、設定ファイルに登録する。
-    リンクに成功した場合のみ設定ファイルを更新する。
-    既存リポジトリの場合はdevelop_branch/release_branchを更新する。
+    Links the repository to the GitHub Project and registers it in the config file.
+    The config file is updated only when the link succeeds.
+    For an existing repository, develop_branch / release_branch are updated.
 
-    GitHub Projects V2は同一オーナーのリポジトリのみリンク可能なため、
-    リポジトリオーナーとプロジェクトオーナーの一致を確認する。
+    GitHub Projects V2 can only link repositories with the same owner,
+    so the repository owner must match the project owner.
 
-    monorepo 構成（1 リポ複数 CHANGELOG）の場合は ``--package NAME:PATH`` を
-    複数回指定して packages を登録する。``--package`` と ``--changelog-file``
-    は排他。
+    For a monorepo (one repository with several CHANGELOGs), pass ``--package NAME:PATH``
+    several times to register packages. ``--package`` and ``--changelog-file``
+    are mutually exclusive.
     """
     # --release-type 検証
     _validate_release_type(release_type)
@@ -342,7 +342,7 @@ def project_set_repo(
 
 
 def _load_active_config_with_path() -> tuple[ProjectConfig, Path]:
-    """アクティブ設定とそのパスを取得 (両方無ければ exit 1)。
+    """Get the active config and its path (exit 1 if neither exists).
 
     Returns:
         ``(config, config_path)``
@@ -362,19 +362,19 @@ def _load_active_config_with_path() -> tuple[ProjectConfig, Path]:
 
 
 def set_aggregation_repo_command(
-    value: str = typer.Argument(..., help="集約リポジトリ (owner/repo 形式)"),
+    value: str = typer.Argument(..., help="Aggregation repository (owner/repo form)"),
     yes: bool = typer.Option(
         False,
         "--yes",
         "-y",
-        help="既存値があっても確認せずに上書き (警告は stderr に出力)",
+        help="Overwrite an existing value without confirmation (a warning goes to stderr)",
     ),
 ) -> None:
-    """Epic 集約リポジトリ (``aggregation_repo``) を設定
+    """Set the Epic aggregation repository (``aggregation_repo``)
 
-    ``pecot issue create --type epic`` の作成先として使われる。
-    既存値を上書きする場合は常に stderr に警告を出し、``--yes`` が無ければ
-    確認用ヒント行も併せて出力する (``--yes`` 時はヒントのみ抑制)。
+    It is used as the destination of ``pecot issue create --type epic``.
+    When overwriting an existing value, a warning is always written to stderr,
+    and a confirmation hint line is printed too (``--yes`` suppresses only the hint).
     """
     if not _AGGREGATION_REPO_PATTERN.fullmatch(value):
         typer.echo(
@@ -399,7 +399,7 @@ def set_aggregation_repo_command(
 
 
 def unset_aggregation_repo_command() -> None:
-    """Epic 集約リポジトリ (``aggregation_repo``) をクリア"""
+    """Clear the Epic aggregation repository (``aggregation_repo``)"""
     config, config_path = _load_active_config_with_path()
 
     if config.aggregation_repo is None:
@@ -413,7 +413,7 @@ def unset_aggregation_repo_command() -> None:
 
 
 def show_aggregation_repo_command() -> None:
-    """Epic 集約リポジトリ (``aggregation_repo``) を表示"""
+    """Show the Epic aggregation repository (``aggregation_repo``)"""
     config = load_active_config()
     if config is None:
         typer.echo("アクティブなプロジェクトがありません", err=True)
@@ -429,13 +429,13 @@ def show_aggregation_repo_command() -> None:
 
 
 def _slugify(text: str) -> str:
-    """テキストをファイル名用にslug化
+    """Convert text to a slug for file names.
 
     Args:
-        text: 変換するテキスト
+        text: Text to convert
 
     Returns:
-        slug化されたテキスト
+        The slugified text
 
     Example:
         >>> _slugify("AI Starter Kit Development")
@@ -447,13 +447,13 @@ def _slugify(text: str) -> str:
 
 
 def search_github_projects(
-    owner: str = typer.Argument(..., help="プロジェクトオーナー"),
-    host: str = typer.Option("github.com", "--host", "-h", help="GitHubホスト"),
+    owner: str = typer.Argument(..., help="Project owner"),
+    host: str = typer.Option("github.com", "--host", "-h", help="GitHub host"),
 ) -> None:
-    """GitHub APIでプロジェクトを検索
+    """Search projects through the GitHub API
 
-    指定されたオーナーのGitHub Projects V2一覧を表示する。
-    user/organization両対応。
+    Lists the GitHub Projects V2 of the given owner.
+    Both users and organizations are supported.
     """
     try:
         client = GitHubClient(host=host)
@@ -486,18 +486,18 @@ _WORKFLOW_FIELD_PREFIX = "pecot-workflow-"
 
 
 def _extract_workflow_suffix(field_name: str) -> str:
-    """ワークフローフィールド名からサフィックスを抽出
+    """Extract the suffix from a workflow field name.
 
-    "pecot-workflow-xxx" 形式 → "xxx"
+    "pecot-workflow-xxx" form -> "xxx"
 
     Args:
-        field_name: フィールド名（例: "pecot-workflow-abc"）
+        field_name: Field name (e.g. "pecot-workflow-abc")
 
     Returns:
-        サフィックス部分（例: "abc"）
+        The suffix part (e.g. "abc")
 
     Raises:
-        ValueError: "pecot-workflow-" プレフィックスで始まらない場合
+        ValueError: If the name does not start with the "pecot-workflow-" prefix
     """
     if field_name.startswith(_WORKFLOW_FIELD_PREFIX):
         return field_name[len(_WORKFLOW_FIELD_PREFIX) :]
@@ -506,15 +506,15 @@ def _extract_workflow_suffix(field_name: str) -> str:
 
 
 def _is_workflow_field(field_name: str) -> bool:
-    """ワークフローフィールド名かどうかを判定
+    """Return whether a field name is a workflow field.
 
-    "pecot-workflow-{suffix}" 形式のみに対応。
+    Only the "pecot-workflow-{suffix}" form is supported.
 
     Args:
-        field_name: フィールド名
+        field_name: Field name
 
     Returns:
-        ワークフローフィールドの場合True
+        True for a workflow field
     """
     return field_name.startswith(_WORKFLOW_FIELD_PREFIX)
 
@@ -522,19 +522,19 @@ def _is_workflow_field(field_name: str) -> bool:
 def _validate_workflow_field(
     fields: list[dict[str, Any]],
 ) -> tuple[dict[str, Any] | None, list[str]]:
-    """Workflowフィールドを検証
+    """Validate the Workflow field.
 
-    pecot-workflow準拠のプロジェクトかどうかを確認する。
-    Workflowフィールドには次のオプションが必要。
-    Backlog / Pending / Ready / Active / In Review / Archived。
-    "pecot-workflow-{suffix}" 形式に対応する。
+    Checks whether the project conforms to pecot-workflow.
+    The Workflow field needs these options:
+    Backlog / Pending / Ready / Active / In Review / Archived.
+    The "pecot-workflow-{suffix}" form is supported.
 
     Args:
-        fields: プロジェクトのフィールド一覧
+        fields: Field list of the project
 
     Returns:
-        (Workflowフィールド, 不足オプションリスト) のタプル
-        Workflowフィールドがない場合は (None, [])
+        A tuple of (Workflow field, list of missing options).
+        (None, []) when there is no Workflow field
     """
     required_options = {"Backlog", "Pending", "Ready", "Active", "In Review", "Archived"}
 
@@ -550,7 +550,7 @@ def _validate_workflow_field(
 
 
 def _find_project_by_title(client: GitHubClient, owner: str, name: str) -> dict[str, Any]:
-    """1. プロジェクト一覧からタイトル一致のプロジェクトを返す（無ければ一覧を出して exit 1）"""
+    """1. Return the project whose title matches from the project list (print the list and exit 1 if none)"""
     typer.echo(f"プロジェクト情報を取得中: {owner}/{name}")
     projects = client.list_projects(owner)
 
@@ -569,8 +569,8 @@ def _find_project_by_title(client: GitHubClient, owner: str, name: str) -> dict[
 def _fetch_validated_fields(
     client: GitHubClient, owner: str, name: str, host: str, project_number: int
 ) -> tuple[dict[str, Any], list[dict[str, Any]], int | None]:
-    """2〜3. フィールド情報を取得し Workflow フィールドを検証して
-    (workflow_field, fields, view_number) を返す。view_number は先頭ビューの番号（無ければ None）"""
+    """2-3. Fetch field info, validate the Workflow field and return
+    (workflow_field, fields, view_number). view_number is the number of the first view (None if none)"""
     typer.echo("フィールド情報を取得中...")
     project_info = client.get_project_fields(owner, project_number)
 
@@ -609,7 +609,7 @@ def _fetch_validated_fields(
 
 
 def _load_existing_repo_meta(config_path: Path) -> tuple[dict[str, Repository], str | None]:
-    """5. 既存設定からリポ単位のメタデータと aggregation_repo を取り出す"""
+    """5. Extract per-repository metadata and aggregation_repo from the existing config"""
     existing_repo_meta: dict[str, Repository] = {}
     existing_aggregation_repo: str | None = None
 
@@ -625,9 +625,9 @@ def _load_existing_repo_meta(config_path: Path) -> tuple[dict[str, Repository], 
 def _build_repositories(
     linked_repos: list[dict[str, Any]], existing_repo_meta: dict[str, Repository]
 ) -> list[Repository]:
-    """6. リンク済みリポジトリに既存のリポ単位メタデータを引き継いだ Repository 一覧
+    """6. Build the Repository list for linked repositories, carrying over existing per-repository metadata
 
-    並びは既存設定の順を先頭にし、リンクされていないものは落とし、新規は linked_repos の順で末尾に足す。
+    The existing config order comes first, unlinked entries are dropped, and new ones are appended in linked_repos order.
     """
     linked_by_key: dict[str, dict[str, Any]] = {}
     for linked_repo in linked_repos:
@@ -656,7 +656,7 @@ def _build_repositories(
 
 
 def _field_options_config(field: dict[str, Any], keys: dict[str, str]) -> FieldOptions:
-    """フィールドのオプション ID を設定キーに対応付けた FieldOptions（keys は 設定キー→小文字名）"""
+    """Build FieldOptions mapping field option IDs to config keys (keys map config key -> lowercase name)"""
     field_options: list[dict[str, Any]] = field.get("options", [])
     options_by_name = {opt["name"].lower(): opt["id"] for opt in field_options}
     return FieldOptions(
@@ -668,7 +668,7 @@ def _field_options_config(field: dict[str, Any], keys: dict[str, str]) -> FieldO
 def _build_project_fields(
     workflow_field: dict[str, Any], fields: list[dict[str, Any]]
 ) -> ProjectFields:
-    """4・7・8. Workflow / pecot-priority / pecot-size のフィールド構造を構築"""
+    """4, 7, 8. Build the field structures of Workflow / pecot-priority / pecot-size"""
     # pecot-priority/pecot-size フィールドを取得（存在する場合のみ）
     priority_field = None
     size_field = None
@@ -698,10 +698,10 @@ def _build_project_fields(
 def _build_board_url(
     project_url: str, workflow_field: dict[str, Any], view_number: int | None
 ) -> str:
-    """9. ボードURL構築（Workflowフィールドでグループ化）
+    """9. Build the board URL (grouped by the Workflow field).
 
-    GitHub API が返すプロジェクト URL・フィールドの databaseId・先頭ビュー番号を使う。
-    databaseId かビュー番号が取れないときは layout を付けない。
+    Uses the project URL, the field databaseId and the first view number returned by the GitHub API.
+    layout is omitted when the databaseId or the view number is unavailable.
     """
     workflow_db_id = workflow_field.get("databaseId")
 
@@ -730,22 +730,22 @@ def _sync_project_config(
     name: str,
     host: str,
 ) -> Path:
-    """プロジェクト設定ファイルを生成・更新
+    """Generate or update the project config file.
 
-    GitHub Projects V2から情報を取得し、ローカル設定ファイルを生成する。
-    pecot-workflow準拠（Workflowフィールド必須）のプロジェクトのみ対応。
+    Fetches info from GitHub Projects V2 and generates the local config file.
+    Only pecot-workflow conforming projects (with a Workflow field) are supported.
 
     Args:
-        client: GitHubClient インスタンス
-        owner: プロジェクトオーナー
-        name: プロジェクトタイトル
-        host: GitHubホスト
+        client: GitHubClient instance
+        owner: Project owner
+        name: Project title
+        host: GitHub host
 
     Returns:
-        生成した設定ファイルのパス
+        Path of the generated config file
 
     Raises:
-        typer.Exit: プロジェクトが見つからない、またはpecot-workflow非準拠の場合
+        typer.Exit: If the project is not found or does not conform to pecot-workflow
     """
     # 1. プロジェクト一覧から番号を取得
     target_project = _find_project_by_title(client, owner, name)
@@ -862,14 +862,14 @@ SIZE_FIELD_OPTIONS = [
 
 
 def _has_field(fields: list[dict[str, Any]], field_name: str) -> bool:
-    """指定名のフィールドが存在するかチェック
+    """Check whether a field with the given name exists.
 
     Args:
-        fields: プロジェクトのフィールド一覧
-        field_name: 検索するフィールド名
+        fields: Field list of the project
+        field_name: Field name to look for
 
     Returns:
-        指定名のフィールドが存在すればTrue
+        True if a field with the given name exists
     """
     for field in fields:
         if field.get("name") == field_name:
@@ -878,19 +878,19 @@ def _has_field(fields: list[dict[str, Any]], field_name: str) -> bool:
 
 
 def init(
-    owner: str = typer.Argument(..., help="プロジェクトオーナー"),
-    name: str = typer.Argument(..., help="プロジェクトタイトル"),
-    host: str = typer.Option("github.com", "--host", "-h", help="GitHubホスト"),
-    suffix: str = typer.Option(..., "--suffix", "-s", help="ワークフローフィールドのサフィックス"),
+    owner: str = typer.Argument(..., help="Project owner"),
+    name: str = typer.Argument(..., help="Project title"),
+    host: str = typer.Option("github.com", "--host", "-h", help="GitHub host"),
+    suffix: str = typer.Option(..., "--suffix", "-s", help="Suffix of the workflow field"),
 ) -> None:
-    """既存プロジェクトにpecot-workflow関連フィールドを追加
+    """Add pecot-workflow fields to an existing project
 
-    pecot-workflow準拠のプロジェクトにするため、以下のフィールドを追加する。
+    Adds these fields so that the project conforms to pecot-workflow.
     - pecot-workflow-<suffix>: Backlog/Pending/Ready/Active/In Review/Archived
     - pecot-priority: High/Medium/Low
     - pecot-size: XS/S/M/L
 
-    既にフィールドが存在する場合は個別にスキップする。
+    A field that already exists is skipped individually.
     """
     try:
         client = GitHubClient(host=host)
@@ -959,15 +959,15 @@ def init(
 
 
 def create(
-    owner: str = typer.Argument(..., help="プロジェクトオーナー"),
-    title: str = typer.Argument(..., help="プロジェクトタイトル"),
-    host: str = typer.Option("github.com", "--host", "-h", help="GitHubホスト"),
-    suffix: str = typer.Option(..., "--suffix", "-s", help="ワークフローフィールドのサフィックス"),
+    owner: str = typer.Argument(..., help="Project owner"),
+    title: str = typer.Argument(..., help="Project title"),
+    host: str = typer.Option("github.com", "--host", "-h", help="GitHub host"),
+    suffix: str = typer.Option(..., "--suffix", "-s", help="Suffix of the workflow field"),
 ) -> None:
-    """新規プロジェクトを作成
+    """Create a new project
 
-    GitHub Projects V2を新規作成し、pecot-workflow準拠のフィールドを自動設定する。
-    作成後、init（フィールド追加）とactivate（設定ファイル生成・アクティベート）を実行する。
+    Creates a new GitHub Projects V2 and sets up the pecot-workflow fields automatically.
+    After creation, it runs init (add fields) and activate (generate the config file and activate).
     """
     from cli.core.github import GitHubNotFoundError
 
@@ -1016,15 +1016,15 @@ def create(
 
 
 def _has_pecot_workflow_field(fields: list[dict[str, Any]]) -> bool:
-    """pecot-workflowフィールドが存在するか確認
+    """Check whether a pecot-workflow field exists.
 
-    "pecot-workflow-{suffix}" 形式に対応。
+    The "pecot-workflow-{suffix}" form is supported.
 
     Args:
-        fields: プロジェクトのフィールド一覧
+        fields: Field list of the project
 
     Returns:
-        pecot-workflowフィールドが存在すればTrue
+        True if a pecot-workflow field exists
     """
     for field in fields:
         if _is_workflow_field(field.get("name", "")):
@@ -1033,15 +1033,15 @@ def _has_pecot_workflow_field(fields: list[dict[str, Any]]) -> bool:
 
 
 def _list_initialized_projects(client: GitHubClient, owner: str) -> list[dict[str, Any]]:
-    """init済みプロジェクト（pecot-workflowフィールドあり）を取得
+    """Get initialized projects (with a pecot-workflow field).
 
     Args:
-        client: GitHubClient インスタンス
-        owner: プロジェクトオーナー
+        client: GitHubClient instance
+        owner: Project owner
 
     Returns:
-        init済みプロジェクト情報のリスト
-        各プロジェクトには number, title, url, id を含む
+        A list of initialized project info.
+        Each project contains number, title, url and id
     """
     initialized: list[dict[str, Any]] = []
     projects = client.list_projects(owner)
@@ -1064,7 +1064,7 @@ def _list_initialized_projects(client: GitHubClient, owner: str) -> list[dict[st
 
 
 def _find_config_file_arg(project: str) -> Path | None:
-    """ステップ1: 引数を設定ファイルパス/ファイル名として解釈できればそのパスを返す"""
+    """Step 1: return the path if the argument can be read as a config file path or file name"""
     # 1-1: パスとして解釈（相対/絶対パス）
     path_as_path = Path(project)
     if path_as_path.exists() and path_as_path.is_file():
@@ -1080,7 +1080,7 @@ def _find_config_file_arg(project: str) -> Path | None:
 
 
 def _activate_from_config_file(config_path: Path, host: str | None) -> None:
-    """設定ファイルの host/owner/number で GitHub API から最新情報を同期してアクティベート"""
+    """Sync the latest info from the GitHub API using host/owner/number in the config file and activate"""
     typer.echo(f"設定ファイル「{config_path.name}」から同期中...")
 
     try:
@@ -1126,7 +1126,7 @@ def _activate_from_config_file(config_path: Path, host: str | None) -> None:
 
 
 def _exit_host_required() -> NoReturn:
-    """--host 未指定時の案内を出して exit 1"""
+    """Print guidance for a missing --host and exit 1"""
     typer.echo("エラー: --host オプションは必須です", err=True)
     typer.echo()
     typer.echo("GitHub.com の場合:")
@@ -1141,7 +1141,7 @@ def _exit_host_required() -> NoReturn:
 
 
 def _resolve_activate_owner(client: GitHubClient, owner: str | None) -> str:
-    """owner 省略時は認証ユーザーを取得"""
+    """Use the authenticated user when owner is omitted"""
     if owner is not None:
         return owner
     try:
@@ -1160,7 +1160,7 @@ def _resolve_activate_owner(client: GitHubClient, owner: str | None) -> str:
 
 
 def _echo_initialized_projects(client: GitHubClient, host: str, owner: str) -> None:
-    """一覧表示モード: init済みプロジェクトを [ACTIVE] 付きで表示"""
+    """List mode: show initialized projects with [ACTIVE]"""
     typer.echo(f"=== init済みプロジェクト ({host}/{owner}) ===")
     initialized = _list_initialized_projects(client, owner)
 
@@ -1196,7 +1196,7 @@ def _echo_initialized_projects(client: GitHubClient, host: str, owner: str) -> N
 
 
 def _fetch_project_info_by_ref(client: GitHubClient, owner: str, project: str) -> dict[str, Any]:
-    """番号/名前指定のプロジェクト情報を取得（見つからなければ exit 1）"""
+    """Fetch project info by number or name (exit 1 if not found)"""
     if project.isdigit():
         project_number = int(project)
         typer.echo(f"プロジェクト #{project_number} を確認中...")
@@ -1234,7 +1234,7 @@ def _fetch_project_info_by_ref(client: GitHubClient, owner: str, project: str) -
 
 
 def _activate_by_project_ref(client: GitHubClient, host: str, owner: str, project: str) -> None:
-    """アクティベートモード（番号/名前検索）"""
+    """Activate mode (search by number or name)"""
     project_info = _fetch_project_info_by_ref(client, owner, project)
     fields = project_info.get("fields", {}).get("nodes", [])
 
@@ -1260,39 +1260,38 @@ def _activate_by_project_ref(client: GitHubClient, host: str, owner: str, projec
 
 def project_activate(
     project: str | None = typer.Argument(
-        None, help="プロジェクト番号または名前、設定ファイルパス/ファイル名"
+        None, help="Project number or name, or config file path/file name"
     ),
     owner: str | None = typer.Option(
-        None, "--owner", "-o", help="プロジェクトオーナー（省略時は認証ユーザー）"
+        None, "--owner", "-o", help="Project owner (defaults to the authenticated user)"
     ),
-    host: str | None = typer.Option(None, "--host", "-h", help="GitHubホスト"),
+    host: str | None = typer.Option(None, "--host", "-h", help="GitHub host"),
 ) -> None:
-    """init済みプロジェクトをアクティベート
+    """Activate an initialized project
 
-    引数なしの場合はinit済みプロジェクト一覧を表示。
-    プロジェクト番号または名前を指定するとアクティベートする。
-    設定ファイルパス/ファイル名でも指定可能（この場合--host不要）。
-    --owner を省略すると認証ユーザーのプロジェクトを対象にする。
+    Without an argument, lists the initialized projects.
+    Give a project number or name to activate it.
+    A config file path or file name also works (--host is not needed then).
+    Without --owner, the authenticated user's projects are targeted.
 
-    \b
-    使用例:
+    Examples:
       pecot project activate --host github.com
-          # 認証ユーザーのinit済み一覧
+          # List initialized projects of the authenticated user
 
       pecot project activate --host github.com --owner example-org
-          # owner指定でinit済み一覧
+          # List initialized projects of the given owner
 
       pecot project activate 1 --host github.com --owner example-org
-          # 番号で指定
+          # By number
 
       pecot project activate "Example Project" --host github.com --owner example-org
-          # 名前で指定
+          # By name
 
       pecot project activate ghes.example.com_example-org_example-project_example-org
-          # 設定ファイル名で指定
+          # By config file name
 
       pecot project activate ghes.example.com_example-org_example-project_suffix
-          # パスで指定（--host不要）
+          # By path (--host not needed)
     """
     # ステップ1: 設定ファイルパス/ファイル名かチェック（--host不要モード）
     if project is not None:
@@ -1326,7 +1325,7 @@ def project_activate(
 
 
 def _load_info_config() -> tuple[ProjectConfig, str]:
-    """設定とプロジェクト名を取得（設定が無ければ exit 1）"""
+    """Get the config and the project name (exit 1 if there is no config)"""
     config = load_active_config()
     if config is None:
         typer.echo("エラー: アクティブなプロジェクト設定が見つかりません", err=True)
@@ -1347,7 +1346,7 @@ def _load_info_config() -> tuple[ProjectConfig, str]:
 def _prune_archived_items(
     client: GitHubClient, config: ProjectConfig, all_items: list[dict[str, Any]]
 ) -> None:
-    """Archivedアイテムを updatedAt 降順で並べ、最新20件以外をボードから削除する"""
+    """Sort Archived items by updatedAt descending and delete all but the latest 20 from the board"""
     archived_items = [item for item in all_items if item.get("workflow") == "Archived"]
     archived_items.sort(key=lambda x: x.get("updatedAt", ""), reverse=True)
 
@@ -1371,15 +1370,15 @@ def _prune_archived_items(
 def _collect_dependabot_alert_statuses(
     client: GitHubClient, config: ProjectConfig
 ) -> dict[str, DependabotAlertStatus | str]:
-    """登録リポごとの Dependabot alert の状態を集める（キーは full_name、登録順）
+    """Collect the Dependabot alert status of each registered repository (keyed by full_name, in registration order).
 
-    取得に失敗したリポは理由の文字列を入れる。ボード表示の用途で
-    1 リポの失敗が全体を止めないよう、DependabotAlertError はここで握る。
+    A repository whose fetch failed gets the reason string. For the board display,
+    DependabotAlertError is caught here so one repository failure does not stop the whole.
 
-    取得はリポ間で並列に行う。
-    前提: client は 401 フォールバックが並列中に起きない状態で渡すこと
-    （フォールバックは httpx クライアントを作り直すため、並列中に起きると競合する）。
-    info は同じトークンで list_project_items を先に通しているため、ここで 401 は想定しない。
+    Fetching runs in parallel across repositories.
+    Precondition: pass a client that will not hit the 401 fallback during the parallel run
+    (the fallback recreates the httpx client, so it would race in parallel).
+    info already ran list_project_items with the same token, so no 401 is expected here.
     """
 
     def fetch_one(repo_entry: Repository) -> DependabotAlertStatus | str:
@@ -1421,7 +1420,7 @@ def _info_json(
     board: dict[str, Any],
     statuses: dict[str, DependabotAlertStatus | str],
 ) -> dict[str, Any]:
-    """info --json の出力データ"""
+    """Output data of info --json"""
     return {
         "project": {
             "name": project_name,
@@ -1448,7 +1447,7 @@ def _info_json(
 def _info_repository_lines(
     config: ProjectConfig, statuses: dict[str, DependabotAlertStatus | str]
 ) -> list[str]:
-    """「登録済みリポジトリ」節の行"""
+    """Lines of the "Registered repositories" section"""
     lines: list[str] = ["## 登録済みリポジトリ"]
     if not config.repositories:
         lines.append("- (なし)")
@@ -1480,7 +1479,7 @@ def _info_markdown(
     board_output: str,
     statuses: dict[str, DependabotAlertStatus | str],
 ) -> str:
-    """info の Markdown 出力"""
+    """Markdown output of info"""
     lines: list[str] = []
 
     lines.append("# プロジェクト情報")
@@ -1514,20 +1513,20 @@ def info(
         False,
         "--json",
         "-j",
-        help="JSON形式で出力",
+        help="Output as JSON",
     ),
     repo: RepoOption = None,
 ) -> None:
-    """プロジェクト情報ダッシュボードを表示
+    """Show the project info dashboard
 
-    アクティブなプロジェクトの総合情報を表示する。
-    - プロジェクト基本情報（名前、host、owner）
-    - 登録済みリポジトリ一覧（develop-branch設定含む）
-    - ボード状況（デフォルトでBacklog/Ready/Activeのみ、高速表示）
+    Shows overall info of the active project.
+    - Basic project info (name, host, owner)
+    - Registered repositories (including the develop-branch setting)
+    - Board status (only Backlog/Ready/Active by default, for fast display)
 
-    ``--repo owner/repo`` 指定時はボード items を当該リポのみに絞り込む。
-    local (サブコマンド) 未指定時は global ``pecot --repo ...`` の値を採用し、
-    どちらも未指定なら絞り込みを行わず全 items を表示する (FR-013)。
+    With ``--repo owner/repo``, the board items are narrowed to that repository only.
+    When the local (subcommand) option is unset, the global ``pecot --repo ...`` value is used.
+    When neither is set, all items are shown without narrowing.
     """
     from cli.core.format import (
         format_board_output,

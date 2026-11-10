@@ -1,8 +1,8 @@
-"""cli/release.py - リリース操作コマンド実装
+"""cli/release.py - release commands
 
-release preflight / release create コマンドを提供。
-シェルスクリプト (release-preflight.sh, create-github-release.sh) を
-Python CLIに置き換える。
+Provides the release preflight / release create commands.
+Replaces the shell scripts (release-preflight.sh, create-github-release.sh)
+with the Python CLI.
 """
 
 from __future__ import annotations
@@ -45,17 +45,17 @@ from cli.core.security_alerts import (
 def resolve_release_target_repo(
     ctx: typer.Context | None, cwd: Path | None = None
 ) -> tuple[str, str]:
-    """release系コマンドの操作対象 (owner, repo) を決定する (FR-009b)。
+    """Decide the target (owner, repo) of the release commands.
 
-    decorator ``@require_repo_match`` 経由なら、
-    ``ctx.obj["_policy_resolved_repo"]`` に ``RepoRef`` が入っている。
-    そのため、``.owner`` / ``.repo`` を duck-typing で読んで即採用する (二重解決の回避)。
+    When the call goes through the ``@require_repo_match`` decorator,
+    ``ctx.obj["_policy_resolved_repo"]`` holds a ``RepoRef``.
+    So read ``.owner`` / ``.repo`` by duck-typing and adopt them at once (avoids resolving twice).
 
-    decorator 未経由 (unit test で直接呼ばれるケース等) は従来の決定順:
+    Without the decorator (a direct call from a unit test, for example), the order is as before:
 
-    1. グローバル ``--repo`` (``ctx.obj["repo"]``) が明示されていればその値を採用する。
-    2. それ以外は git remote (origin) から自動検出する。
-    3. いずれも取れなければ ``typer.Exit(1)`` とする。
+    1. If the global ``--repo`` (``ctx.obj["repo"]``) is given, adopt that value.
+    2. Otherwise detect it from the git remote (origin).
+    3. If neither works, raise ``typer.Exit(1)``.
     """
     resolved = read_resolved_repo(ctx)
     if resolved is not None:
@@ -94,14 +94,14 @@ def _resolve_package_context(
     owner: str,
     repo: str,
 ) -> tuple[Path, str | None]:
-    """packages 有無 × --package 有無の 4 分岐を解決する。
+    """Resolve the 4 branches of packages present or not x --package given or not.
 
     Returns:
-        (changelog_path, tag_prefix) — tag_prefix は monorepo 時のみ
-        package 名、単一モード時は None。
+        (changelog_path, tag_prefix) - tag_prefix is the package name
+        in monorepo mode and None in single mode.
 
     Raises:
-        typer.Exit(1): 不整合（packages 未設定で --package 指定など）時。
+        typer.Exit(1): on an inconsistency (--package given without packages configured, etc.).
     """
     if repo_obj and repo_obj.packages:
         if package is None:
@@ -136,7 +136,7 @@ def _resolve_package_context(
 
 
 def _require_branch_setting(branch: str | None, kind: str, owner: str, repo: str) -> str:
-    """develop_branch / release_branch が未設定なら設定方法を出して exit 1"""
+    """If develop_branch / release_branch is not set, show how to set it and exit 1"""
     if not branch:
         typer.echo(
             f"エラー: {kind}_branchが設定されていません。\n"
@@ -150,7 +150,7 @@ def _require_branch_setting(branch: str | None, kind: str, owner: str, repo: str
 
 @dataclass(frozen=True)
 class _ReleaseContext:
-    """release preflight / create が共通で解決する対象"""
+    """What release preflight / create both resolve"""
 
     config: ProjectConfig
     owner: str
@@ -168,10 +168,10 @@ def _load_release_context(
     version: str | None = None,
     nx_alerts_only: bool = False,
 ) -> _ReleaseContext:
-    """git root・対象リポ・プロジェクト設定・CHANGELOG パスを解決する（失敗時は exit 1）
+    """Resolve the git root, target repository, project config, and CHANGELOG path (exit 1 on failure)
 
-    ``nx_alerts_only`` が真で対象リポが nx のときは、version 引数と ``--package`` を拒否する。
-    package の解決も飛ばす（packages 設定があっても nx では使わないため）。
+    When ``nx_alerts_only`` is true and the target repository is nx, reject the version argument and ``--package``.
+    Also skip package resolution (nx does not use packages even if they are configured).
     """
     # git root 取得
     git_root = git_toplevel(cwd)
@@ -199,7 +199,7 @@ def _load_release_context(
 
 
 def _reject_nx_arguments(version: str | None, package: str | None) -> None:
-    """nx のリポでは version 引数と --package を受け付けない（指定されていれば exit 1）"""
+    """An nx repository accepts neither the version argument nor --package (exit 1 if given)"""
     if version is not None or package is not None:
         typer.echo(
             "エラー: release_type が nx のリポでは version 引数と --package を指定できません。"
@@ -215,7 +215,7 @@ def _alert_label(number: int, package: str | None, severity: str | None = None) 
 
 
 def _warn_alerts_unavailable(reason: str) -> None:
-    """Dependabot alert を取得できなかった警告を 2 行で出す。理由は 1 行目だけを使う"""
+    """Print the warning that Dependabot alerts could not be fetched, in 2 lines. Only the first line of the reason is used"""
     lines = reason.strip().splitlines()
     first = lines[0].strip().rstrip("。.").rstrip() if lines else ""
     typer.echo("Warning: Could not check Dependabot alerts. The release is not blocked.")
@@ -223,9 +223,9 @@ def _warn_alerts_unavailable(reason: str) -> None:
 
 
 def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str) -> None:
-    """open の Dependabot alert は警告を出すだけで、リリースを止めない
+    """Open Dependabot alerts only produce a warning and do not stop the release
 
-    alerts が無効のリポ・open 0 件は ✓ を出す。一覧を取得できないときも警告にとどめる。
+    A repository with alerts disabled, or with 0 open alerts, prints a check mark. Failing to fetch the list is also only a warning.
     """
     try:
         client = GitHubClient(host=config.host)
@@ -263,9 +263,9 @@ def _check_scanning_alerts(
     owner: str,
     repo: str,
 ) -> None:
-    """code scanning / secret scanning の open の alert があれば exit 1。無効のリポは通す
+    """Exit 1 if there is an open code scanning / secret scanning alert. A repository with the feature disabled passes
 
-    この 2 種は Dependabot と違い、open の alert でリリースを止める。dismiss が閉じる手段になる。
+    Unlike Dependabot, these two kinds stop the release on an open alert. Dismissing is the way to close one.
     """
     try:
         status: ScanAlertStatus = fetch(GitHubClient(host=config.host), config.host, owner, repo)
@@ -290,10 +290,10 @@ def _check_scanning_alerts(
 
 
 def _check_alerts(config: ProjectConfig, owner: str, repo: str) -> None:
-    """Dependabot・code scanning・secret scanning の 3 つを確かめる。Dependabot は警告だけで、
-    code scanning・secret scanning のどちらかが失敗なら exit 1
+    """Check Dependabot, code scanning, and secret scanning. Dependabot only warns;
+    exit 1 if either code scanning or secret scanning fails
 
-    先に失敗した種類があっても残りを確かめてから終了コードを決める（一度で全部が分かる）。
+    Even if one kind fails first, the rest are still checked before the exit code is decided (everything shows up in one run).
     """
     checks: list[Callable[[], None]] = [
         lambda: _check_dependabot_alerts(config, owner, repo),
@@ -326,31 +326,31 @@ def release_preflight(
     version: Annotated[
         str | None,
         typer.Argument(
-            help="リリースバージョン（省略時はCHANGELOGから自動検出）",
+            help="Release version (detected from the CHANGELOG when omitted)",
         ),
     ] = None,
     package: Annotated[
         str | None,
         typer.Option(
             "--package",
-            help="monorepo 時のパッケージ名（packages 設定済リポで必須）",
+            help="Package name in a monorepo (required for repositories with packages configured)",
         ),
     ] = None,
 ) -> None:
-    """リリース前チェック（preflight）
+    """Run the pre-release checks (preflight)
 
-    open の Dependabot・code scanning・secret scanning の alert を確かめる。
-    code scanning・secret scanning は 1 件でもあれば失敗する。
-    Dependabot は警告だけで止めない。
-    あわせて、CHANGELOG.md確認、バージョン検証、タグ不存在確認、
-    ブランチ差分確認、リリースノート抽出をまとめて行う。
-    release_type が nx のリポでは alert の確認だけを行う。
+    Checks the open Dependabot, code scanning, and secret scanning alerts.
+    A single open code scanning or secret scanning alert fails the check.
+    Dependabot only warns and does not stop.
+    Also checks CHANGELOG.md, validates the version, confirms the tag does not exist,
+    checks the branch diff, and extracts the release notes.
+    For a repository whose release_type is nx, only the alerts are checked.
 
     Examples:
-        # バージョン自動検出
+        # Detect the version automatically
         $ pecot release preflight
 
-        # バージョン指定
+        # Give the version
         $ pecot release preflight 0.6.1
     """
     cwd = Path.cwd()
@@ -402,7 +402,7 @@ def release_preflight(
 
 
 def _read_release_notes(changelog_path: Path, version: str) -> str:
-    """CHANGELOG から該当バージョンのリリースノートを取得（無ければ exit 1）"""
+    """Get the release notes for the version from the CHANGELOG (exit 1 if missing)"""
     try:
         return extract_version_release_notes(changelog_path, version)
     except FileNotFoundError:
@@ -421,7 +421,7 @@ def _echo_release_dry_run(
     release_name: str,
     release_notes: str,
 ) -> None:
-    """release create --dry-run のプレビュー"""
+    """Preview for release create --dry-run"""
     typer.echo("[DRY RUN] リリース作成プレビュー\n")
     typer.echo(f"  リポジトリ: {owner}/{repo}")
     typer.echo(f"  タグ: {tag_name}")
@@ -438,35 +438,35 @@ def release_create(
     version: Annotated[
         str,
         typer.Argument(
-            help="リリースバージョン（例: 0.6.1）",
+            help="Release version (for example 0.6.1)",
         ),
     ],
     dry_run: Annotated[
         bool,
         typer.Option(
             "--dry-run",
-            help="実行せずにプレビューのみ表示",
+            help="Show what would happen without changing anything",
         ),
     ] = False,
     package: Annotated[
         str | None,
         typer.Option(
             "--package",
-            help="monorepo 時のパッケージ名（packages 設定済リポで必須）",
+            help="Package name in a monorepo (required for repositories with packages configured)",
         ),
     ] = None,
 ) -> None:
-    """GitHubリリースとタグを作成
+    """Create a GitHub release and its tag
 
-    CHANGELOG.mdからリリースノートを取得し、
-    GitHub APIでリリースとタグを同時作成する。
-    git tag + git push が不要。
+    Gets the release notes from CHANGELOG.md
+    and creates the release and the tag together through the GitHub API.
+    No git tag or git push is needed.
 
     Examples:
-        # リリース作成
+        # Create a release
         $ pecot release create 0.6.1
 
-        # ドライラン
+        # Dry-run
         $ pecot release create 0.6.1 --dry-run
     """
     cwd = Path.cwd()
@@ -523,7 +523,7 @@ def release_create(
 def _fetch_release_pr(
     config: ProjectConfig, owner: str, repo: str, pr_number: int
 ) -> tuple[GitHubClient, dict[str, Any]]:
-    """3. クライアント初期化・PR情報取得（失敗時は exit 1）"""
+    """3. Initialize the client and get the PR information (exit 1 on failure)"""
     try:
         client = GitHubClient(host=config.host)
         pr = client.get_pull_request_slim(owner, repo, pr_number)
@@ -539,7 +539,7 @@ def _fetch_release_pr(
 def _check_release_pr(
     pr: dict[str, Any], config: ProjectConfig, owner: str, repo: str, pr_number: int, admin: bool
 ) -> None:
-    """4〜5. PRの状態チェックと base ブランチ検証（release_branch と一致すること）"""
+    """4-5. Check the PR state and verify the base branch (it must equal release_branch)"""
     if pr["state"] == "MERGED":
         typer.echo(f"エラー: PR #{pr_number} は既にマージ済みです", err=True)
         raise typer.Exit(1)
@@ -570,7 +570,7 @@ def _check_release_pr(
 def _delete_release_head_branch(
     client: GitHubClient, owner: str, repo: str, head_branch: str
 ) -> bool:
-    """8. head ブランチを削除し、削除できたかを返す"""
+    """8. Delete the head branch and return whether it was deleted"""
     typer.echo(f"\nブランチ '{head_branch}' を削除中...")
     try:
         client.delete_branch(owner, repo, head_branch)
@@ -586,14 +586,14 @@ def release_merge(
     ctx: typer.Context,
     pr_ref: Annotated[
         str,
-        typer.Argument(help="PR参照 (owner/repo/123形式)"),
+        typer.Argument(help="PR reference (owner/repo/123)"),
     ],
     dry_run: Annotated[
         bool,
         typer.Option(
             "--dry-run",
             "-n",
-            help="ドライラン（実際にはマージしない）",
+            help="Show what would happen without merging",
         ),
     ] = False,
     delete_branch: Annotated[
@@ -601,24 +601,24 @@ def release_merge(
         typer.Option(
             "--delete-branch",
             "-d",
-            help="マージ後にブランチを削除",
+            help="Delete the branch after merging",
         ),
     ] = False,
     admin: Annotated[
         bool,
         typer.Option(
             "--admin",
-            help="管理者権限でマージ（マージ可能性チェックをスキップ）",
+            help="Merge with admin rights (skip the mergeability check)",
         ),
     ] = False,
 ) -> None:
-    """リリースPRをregular mergeでマージ
+    """Merge a release PR with a regular merge
 
-    merge method を merge (regular) に固定し、
-    squash merge による merge-base 破壊を防止する。
+    Fixes the merge method to merge (regular)
+    to prevent squash merge from breaking the merge-base.
 
-    リリースPR（develop-aist → main 等）専用。
-    base ブランチが release_branch と一致することを検証する。
+    For release PRs only (develop-aist -> main, etc.).
+    Verifies that the base branch equals release_branch.
 
     Examples:
         pecot release merge owner/repo/123

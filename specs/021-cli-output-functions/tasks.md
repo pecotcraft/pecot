@@ -91,10 +91,10 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: `cli/tests/unit/test_english_only.py` が通る。`pecot --help` と各グループの `--help` が英語
 
-- [ ] T013 [US2] `cli/tests/unit/test_english_only.py` を書く。`cli/commands/` の docstring と `help=` に日本語の文字が無いことを、ast で確かめる。この時点では失敗する
-- [ ] T014 [US2] `cli/commands/` の全ファイルの docstring と `help=`（118 か所）を英語にする。`main.py`・`options.py` を含める
-- [ ] T015 [US2] `cli/tests/` で help の文言を期待しているテストを書き換える
-- [ ] T016 [US2] help を記録している golden を、全部記録し直す。`global-ok-help*`・`global-usage-no-args` のほか、`Options ─` か `Commands ─` を含むものを `grep` で探す
+- [x] T013 [US2] `cli/tests/unit/test_english_only.py` を書く。`cli/commands/` の docstring と `help=` に日本語の文字が無いことを、ast で確かめる。この時点では失敗する
+- [x] T014 [US2] `cli/commands/` の全ファイルの docstring と `help=`（118 か所）を英語にする。`main.py`・`options.py` を含める
+- [x] T015 [US2] `cli/tests/` で help の文言を期待しているテストを書き換える
+- [x] T016 [US2] help を記録している golden を、全部記録し直す。`global-ok-help*`・`global-usage-no-args` のほか、`Options ─` か `Commands ─` を含むものを `grep` で探す
 
 **Checkpoint**: T013 が通り、`record:parity:check` の差が 0 件。これ以降のフェーズは help の golden を触らない
 

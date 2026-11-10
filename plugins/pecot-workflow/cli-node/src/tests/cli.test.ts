@@ -128,7 +128,7 @@ describe('引数なしと --help', () => {
     const result = await run(['issue', '--help'])
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('Usage: pecot issue [OPTIONS] COMMAND [ARGS]...')
-    expect(result.stdout).toContain('Issue操作コマンド')
+    expect(result.stdout).toContain('Work with Issues')
     expect(result.stdout).toContain('read  Issue を読む')
   })
 })

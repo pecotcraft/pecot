@@ -1,6 +1,6 @@
-"""cli/worktree.py - ワークツリー操作コマンド実装
+"""cli/worktree.py - worktree commands
 
-ワークツリー関連のユーティリティ関数とCLIコマンドを提供。
+Provides worktree utility functions and CLI commands.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 def _echo_link_results(linked_files: list[SymlinkResult]) -> None:
-    """シンボリックリンク作成結果の件数とエラー"""
+    """Print the counts and errors of symlink creation"""
     link_created = [r for r in linked_files if r.action == "created"]
     link_skipped = [r for r in linked_files if r.action == "skipped"]
     link_errors = [r for r in linked_files if r.action == "error"]
@@ -35,7 +35,7 @@ def _echo_link_results(linked_files: list[SymlinkResult]) -> None:
 
 
 def _echo_copy_results(copied_files: list[CopyResult]) -> None:
-    """未追跡ファイルコピー結果の件数とエラー"""
+    """Print the counts and errors of copying untracked files"""
     copied = [r for r in copied_files if r.action == "copied"]
     skipped = [r for r in copied_files if r.action == "skipped"]
     errors = [r for r in copied_files if r.action == "error"]
@@ -49,7 +49,7 @@ def _echo_copy_results(copied_files: list[CopyResult]) -> None:
 
 
 def _echo_setup_result(sr: SetupResult) -> None:
-    """セットアップコマンド実行結果"""
+    """Print the result of the setup command"""
     if sr.returncode == 0:
         typer.echo(f"  セットアップ: ✓ (exit 0) {sr.command}")
     elif sr.returncode == -1:
@@ -72,14 +72,14 @@ def worktree_add(
         str | None,
         typer.Option(
             "--base",
-            help="ベースブランチ（デフォルト: 現在のブランチ）",
+            help="Base branch (default: the current branch)",
         ),
     ] = None,
     path: Annotated[
         Path | None,
         typer.Option(
             "--path",
-            help="WT作成先パス（デフォルト: <project_root>/<自動採番>/<リポ名>）",
+            help="Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)",
             resolve_path=True,
         ),
     ] = None,
@@ -87,28 +87,28 @@ def worktree_add(
         bool,
         typer.Option(
             "--no-copy",
-            help="未追跡ファイルコピーをスキップ",
+            help="Skip copying untracked files",
         ),
     ] = False,
     no_link: Annotated[
         bool,
         typer.Option(
             "--no-link",
-            help="シンボリックリンク作成をスキップ",
+            help="Skip creating symlinks",
         ),
     ] = False,
     setup: Annotated[
         str | None,
         typer.Option(
             "--setup",
-            help="作成後に実行するコマンド",
+            help="Command to run after creation",
         ),
     ] = None,
     dry_run: Annotated[
         bool,
         typer.Option(
             "--dry-run",
-            help="実行せずプレビューのみ",
+            help="Show what would happen without changing anything",
         ),
     ] = False,
     allow_existing_branch: Annotated[
@@ -116,11 +116,11 @@ def worktree_add(
         typer.Option(
             "--allow-existing-branch",
             "--force",
-            help="既存ブランチの upstream が develop_branch と違っても再利用を許可",
+            help="Allow reusing an existing branch even if its upstream differs from develop_branch",
         ),
     ] = False,
 ) -> None:
-    """新しいワークツリーを作成する"""
+    """Create a new worktree"""
     from cli.core.worktree import create_worktree, ensure_devcontainer_environment
 
     ensure_devcontainer_environment()
@@ -166,7 +166,7 @@ def worktree_remove(
     name: Annotated[
         str,
         typer.Argument(
-            help="削除するWT名（ブランチ名）",
+            help="Name of the worktree to remove (the branch name)",
         ),
     ],
     directory: DirectoryOption = ...,  # type: ignore[assignment]
@@ -174,18 +174,18 @@ def worktree_remove(
         bool,
         typer.Option(
             "--force",
-            help="変更があっても強制削除",
+            help="Force removal even if there are changes",
         ),
     ] = False,
     keep_branch: Annotated[
         bool,
         typer.Option(
             "--keep-branch",
-            help="ブランチを残す",
+            help="Keep the branch",
         ),
     ] = False,
 ) -> None:
-    """ワークツリーを削除する"""
+    """Remove a worktree"""
     from cli.core.worktree import ensure_devcontainer_environment, remove_worktree
 
     ensure_devcontainer_environment()
@@ -211,11 +211,11 @@ def worktree_init(
     ctx: typer.Context,
     directory: DirectoryOption = ...,  # type: ignore[assignment]
 ) -> None:
-    """ワークツリー設定ファイルをメインWTに作成する
+    """Create the worktree config files in the main worktree
 
-    デフォルトテンプレートを以下の 2 ファイルとして書き出す。
+    Writes the default template as the following 2 files.
       - .pecot/config/worktree-config.json  (symlink / setup_command)
-      - .pecot/config/.worktreeignore       (コピー除外パターン)
+      - .pecot/config/.worktreeignore       (patterns excluded from copying)
     """
     from cli.core.config import load_active_config
     from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
@@ -271,7 +271,7 @@ def worktree_init(
 
 
 def _resolve_link_targets(directory: Path, main_wt: Path, all_worktrees: bool) -> list[Path]:
-    """対象WT決定（--all なら全サブWT、それ以外は CWD の WT。メインWTでの単発指定は exit 1）"""
+    """Decide the target worktrees (all sub-worktrees with --all, otherwise the worktree of the CWD; a single target in the main worktree exits 1)"""
     from cli.core.worktree import get_worktree_dirs
 
     if all_worktrees:
@@ -291,7 +291,7 @@ def _resolve_link_targets(directory: Path, main_wt: Path, all_worktrees: bool) -
 def _echo_link_preview(
     targets: list[Path], config: WorktreeConfig, project_root: Path, repo_dir_name: str
 ) -> None:
-    """dry-run モードのリンク計画表示"""
+    """Show the link plan in dry-run mode"""
     typer.echo("--- dry-run モード（実行されません）---")
     for target_wt in targets:
         set_name = target_wt.parent.name
@@ -324,7 +324,7 @@ def _apply_links_to_worktree(
     force: bool,
     all_worktrees: bool,
 ) -> tuple[int, int, int]:
-    """1 WT にリンクを作成し、結果を表示して (作成, スキップ, エラー) 件数を返す"""
+    """Create links in one worktree, show the result, and return the (created, skipped, error) counts"""
     from cli.core.worktree_links import create_symlinks_safe
 
     set_name = target_wt.parent.name
@@ -366,25 +366,25 @@ def worktree_link(
         bool,
         typer.Option(
             "--force",
-            help="リアルファイル/ディレクトリを確認なしで上書き",
+            help="Overwrite real files and directories without asking",
         ),
     ] = False,
     all_worktrees: Annotated[
         bool,
         typer.Option(
             "--all",
-            help="全サブワークツリーに適用",
+            help="Apply to all sub-worktrees",
         ),
     ] = False,
     dry_run: Annotated[
         bool,
         typer.Option(
             "--dry-run",
-            help="実行せずプレビューのみ",
+            help="Show what would happen without changing anything",
         ),
     ] = False,
 ) -> None:
-    """既存ワークツリーにシンボリックリンクを適用/更新する"""
+    """Apply or update symlinks in existing worktrees"""
     from cli.core.worktree import (
         detect_project_root,
         ensure_devcontainer_environment,

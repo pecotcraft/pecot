@@ -1,7 +1,7 @@
-"""commands/_tracker_sync.py - Tracker に載せる sync コマンド（security・dependabot）で共通に使う処理
+"""commands/_tracker_sync.py - shared code for the sync commands that feed a Tracker (security, dependabot)
 
-対象リポとアクティブなプロジェクトの解決、``--dry-run`` の option、API エラーの文言、複数 Tracker の警告を置く。
-種類ごとに違う処理（一覧の取得・行の組み立て・書き直しの手順）は各コマンドに置く。
+Holds target repository and active project resolution, the ``--dry-run`` option, the API error text, and the multiple-Tracker warning.
+Per-kind code (fetching the list, building rows, rewrite steps) stays in each command.
 """
 
 from __future__ import annotations
@@ -19,17 +19,17 @@ from cli.core.github import GitHubAPIError
 
 DryRunOption = Annotated[
     bool,
-    typer.Option("--dry-run", help="Tracker への変更の予定を表示するだけで、何も変更しない"),
+    typer.Option("--dry-run", help="Show the planned Tracker changes without changing anything"),
 ]
 
 
 def load_target(ctx: typer.Context, out: Output) -> tuple[ProjectConfig, str, str]:
-    """対象リポ（git の origin、--repo 優先）とアクティブなプロジェクトを解決する
+    """Resolve the target repository (git origin, ``--repo`` first) and the active project
 
-    ``pecot security sync`` と ``pecot dependabot sync`` が使う。
+    Used by ``pecot security sync`` and ``pecot dependabot sync``.
 
     Raises:
-        typer.Exit(1): リポかアクティブなプロジェクトが解決できないとき
+        typer.Exit(1): when the repository or the active project cannot be resolved
     """
     owner, repo = resolve_release_target_repo(ctx, Path.cwd())
     config = load_active_config()
@@ -40,18 +40,18 @@ def load_target(ctx: typer.Context, out: Output) -> tuple[ProjectConfig, str, st
 
 
 def api_error_detail(e: GitHubAPIError | httpx.HTTPError) -> str:
-    """API エラーの表示用の文言"""
+    """Text to show for an API error"""
     return e.message if isinstance(e, GitHubAPIError) else str(e)
 
 
 def settle(out: Output, op: Operation) -> None:
-    """API を伴わない事柄の行を出す（dry-run は plan、そうでなければ result）"""
+    """Print the line for an operation without an API call (plan in dry-run, result otherwise)"""
     out.planned(op)
     out.done(op)
 
 
 def warn_extra_trackers(out: Output, tracker: dict[str, Any] | None, others: list[int]) -> None:
-    """open の Tracker が複数あるときの警告（番号が最小のものを使い、ほかは閉じない）"""
+    """Warn when several Trackers are open (use the lowest number, leave the others open)"""
     if not others:
         return
     listed = ", ".join(f"#{n}" for n in others)

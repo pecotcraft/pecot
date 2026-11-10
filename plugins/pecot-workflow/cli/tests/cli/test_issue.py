@@ -2127,7 +2127,7 @@ status: backlog
         """issue create --help"""
         result = runner.invoke(app, ["issue", "create", "--help"])
         assert result.exit_code == 0
-        assert "create" in result.output.lower() or "作成" in result.output
+        assert "create" in result.output.lower()
 
 
 # --- issue comment prepare コマンドテスト ---
@@ -2280,7 +2280,7 @@ class TestIssueCommentPrepareCommand:
         """issue comment --help"""
         result = runner.invoke(app, ["issue", "comment", "--help"])
         assert result.exit_code == 0
-        assert "テンプレート" in result.output or "template" in result.output.lower()
+        assert "template" in result.output.lower()
 
 
 # --- issue comment --file コマンドテスト ---
@@ -3460,7 +3460,7 @@ CUJ 1
         """issue comment --help"""
         result = runner.invoke(app, ["issue", "comment", "--help"])
         assert result.exit_code == 0
-        assert "message" in result.output.lower() or "コメント" in result.output
+        assert "message" in result.output.lower()
 
 
 # --- issue read コマンドテスト ---

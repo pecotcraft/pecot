@@ -1,6 +1,6 @@
-"""cli/session.py - セッション管理コマンド実装
+"""cli/session.py - session management commands
 
-フラグ状態・ブランチ情報・Issue推定結果を一覧表示する。
+Shows the flag state, branch information, and the inferred Issue.
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from cli.core.state import (
 
 @dataclass
 class FlagStatus:
-    """フラグの状態"""
+    """State of a flag"""
 
     name: str
     exists: bool
@@ -47,10 +47,10 @@ ALL_FLAGS = [
 
 
 def _collect_flag_statuses() -> list[FlagStatus]:
-    """全フラグの存在有無・内容を収集
+    """Collect whether each flag exists and what it contains
 
     Returns:
-        FlagStatusのリスト
+        List of FlagStatus
     """
     statuses: list[FlagStatus] = []
     for flag_name in ALL_FLAGS:
@@ -69,9 +69,9 @@ def _collect_flag_statuses() -> list[FlagStatus]:
 def flag_status(
     directory: DirectoryOption = ...,  # type: ignore[assignment]
 ) -> None:
-    """セッションのフラグ状態・ブランチ情報・Issue推定結果を表示
+    """Show the session flag state, branch information, and inferred Issue
 
-    診断ツールのため、取得失敗時もエラー終了せず (unknown) / (none) で表示する。
+    This is a diagnostic tool, so it shows (unknown) / (none) instead of failing when a value cannot be read.
     """
     # 1. ブランチ情報取得
     branch = git_current_branch(directory)
@@ -109,14 +109,14 @@ def flag_status(
 
 
 def _show_active_issue(flag_statuses: list[FlagStatus]) -> None:
-    """アクティブIssueの情報をGitHub APIで取得・表示
+    """Fetch and show the active Issue through the GitHub API
 
-    .pecot-activeフラグの内容からIssue参照をパースし、
-    GitHub APIでタイトル・状態を取得して表示する。
-    API失敗時は警告のみ表示して続行する。
+    Parses the Issue reference from the .pecot-active flag,
+    then fetches and shows the title and state through the GitHub API.
+    On an API failure, shows only a warning and continues.
 
     Args:
-        flag_statuses: フラグ状態のリスト
+        flag_statuses: List of flag states
     """
     # .pecot-active フラグを探す
     active_flag = next(
@@ -164,7 +164,7 @@ def _show_active_issue(flag_statuses: list[FlagStatus]) -> None:
 
 
 def _fetch_issue_title(issue_ref: str) -> str:
-    """セッション名用に Issue タイトルを取る。設定が無い・読めない・API 失敗なら空文字（復元は止めない）"""
+    """Fetch the Issue title for the session name. Return an empty string when the config is missing or unreadable or the API fails (restore goes on)."""
     try:
         config = load_active_config()
         if config is None:
@@ -181,11 +181,11 @@ def _fetch_issue_title(issue_ref: str) -> str:
 def flag_restore(
     issue: Annotated[
         str | None,
-        typer.Option("--issue", "-i", help="Issue参照 (owner/repo/number)"),
+        typer.Option("--issue", "-i", help="Issue reference (owner/repo/number)"),
     ] = None,
     directory: DirectoryOption = ...,  # type: ignore[assignment]
 ) -> None:
-    """消失したセッションフラグ(.pecot-active等)をブランチ情報から復元"""
+    """Restore lost session flags (such as .pecot-active) from the branch information"""
     # 1. issue_ref を確定
     if issue is not None:
         # --issue 指定あり → パース（フル形式必須）

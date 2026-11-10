@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot issue read [OPTIONS] ISSUE_REF\nTry 'pecot issue read --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'ISSUE_REF'.                                                │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot issue read [OPTIONS] {issue_ref}\nTry 'pecot issue read --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'issue_ref'.                                                │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

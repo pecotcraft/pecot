@@ -1,7 +1,7 @@
-"""cli/issue.py - Issue操作コマンド実装
+"""cli/issue.py - Issue command implementation
 
-add-to-project と update-issue-status のコマンドを提供する。
-issue サブコマンドグループ（create / quick / read / comment / reopen）も提供する。
+Provides the add-to-project and update-issue-status commands.
+Also provides the issue subcommand group (create / quick / read / comment / reopen).
 """
 
 from __future__ import annotations
@@ -84,26 +84,26 @@ def _resolve_epic_target_repo(
     repo: str | None,
     config: ProjectConfig,
 ) -> tuple[str, bool]:
-    """Epic 作成先リポジトリを ``aggregation_repo`` 方針に従って決定する (FR-017-019)。
+    """Decide the repository to create an Epic in, following the ``aggregation_repo`` policy (FR-017-019).
 
-    cli-commands.md §挙動マトリクス (L107-115) を実装する。
+    Implements the behavior matrix in cli-commands.md (L107-115).
 
-    - ``repo`` 未指定 + ``aggregation_repo`` あり → (aggregation_repo, False)。
-    - ``repo`` 未指定 + ``aggregation_repo`` なし → exit 2 (決定不能エラー)。
-    - ``repo`` = aggregation_repo → (repo, False)。
-    - ``repo`` ≠ aggregation_repo → (repo, True)。警告ありの場合。
-    - ``repo`` 明示 + aggregation_repo なし → (repo, False)。
+    - ``repo`` omitted + ``aggregation_repo`` set -> (aggregation_repo, False).
+    - ``repo`` omitted + ``aggregation_repo`` unset -> exit 2 (cannot decide).
+    - ``repo`` = aggregation_repo -> (repo, False).
+    - ``repo`` != aggregation_repo -> (repo, True). A warning is needed.
+    - ``repo`` given + aggregation_repo unset -> (repo, False).
 
     Args:
-        repo: 関数引数またはフロントマターから渡された明示的な owner/repo。
-              ``None`` または空文字を「未指定」とみなす。
-        config: プロジェクト設定 (aggregation_repo 判定に利用)
+        repo: Explicit owner/repo from a function argument or the frontmatter.
+              ``None`` or an empty string counts as omitted.
+        config: Project config (used to look up aggregation_repo)
 
     Returns:
-        決定した ``owner/repo`` と、警告が必要かどうかのフラグ。
+        The decided ``owner/repo`` and a flag for whether a warning is needed.
 
     Raises:
-        typer.Exit: ``repo`` 未指定かつ ``aggregation_repo`` 未設定の場合 (exit code 2)
+        typer.Exit: When ``repo`` is omitted and ``aggregation_repo`` is unset (exit code 2)
     """
     explicit = repo.strip() if isinstance(repo, str) and repo.strip() else None
     aggregation = config.aggregation_repo
@@ -129,12 +129,12 @@ def _resolve_epic_target_repo(
 
 
 def _resolve_base_repo(ctx: typer.Context | None) -> RepoRef | None:
-    """CLI Context から ``--repo`` / カレント git を base_repo として解決する。
+    """Resolve base_repo from ``--repo`` or the current git repository in the CLI context.
 
-    - Context は主軸形式ユーザー（``owner/repo/N``）を想定する。
-      そのため ``AmbiguousRepoError`` は握りつぶして ``None`` を返す（FR-001/FR-003）。
-    - ``ValueError``（``--repo`` 形式不正）は呼び出し側で BadParameter に
-      変換されるようそのまま伝播する
+    - The context assumes users of the primary form (``owner/repo/N``).
+      So ``AmbiguousRepoError`` is swallowed and ``None`` is returned (FR-001/FR-003).
+    - ``ValueError`` (malformed ``--repo``) propagates unchanged so the caller
+      can convert it to BadParameter
     """
     if ctx is None or ctx.obj is None:
         return None
@@ -145,10 +145,10 @@ def _resolve_base_repo(ctx: typer.Context | None) -> RepoRef | None:
 
 
 def _parse_issue_ref_from_ctx(ctx: typer.Context | None, raw: str) -> tuple[str, str, int]:
-    """``ctx`` 経由で base_repo を解決しつつ Issue 参照を ``(owner, repo, number)`` に分解する。
+    """Resolve base_repo through ``ctx`` and split an Issue reference into ``(owner, repo, number)``.
 
     Raises:
-        typer.BadParameter: 形式不正、または短縮形で base_repo 解決不能
+        typer.BadParameter: Malformed reference, or a short form with unresolvable base_repo
     """
     base = _resolve_base_repo(ctx)
     try:
@@ -159,9 +159,9 @@ def _parse_issue_ref_from_ctx(ctx: typer.Context | None, raw: str) -> tuple[str,
 
 
 def _normalize_parent_epic_cli(raw: str | None) -> int | str | None:
-    """CLI オプション経由の parent_epic 入力を正規化する。
+    """Normalize a parent_epic value that came in through a CLI option.
 
-    空文字 / 空白のみ → None、数字文字列 → int、それ以外の文字列 → str のまま返す。
+    Empty or whitespace-only -> None, digit string -> int, any other string -> returned as str.
     """
     if raw is None:
         return None
@@ -179,12 +179,12 @@ def _resolve_parent_epic_ref(
     task_owner: str,
     task_repo: str,
 ) -> IssueRef:
-    """parent_epic 値を IssueRef に解決する。
+    """Resolve a parent_epic value to an IssueRef.
 
-    - 整数 → aggregation_repo の Issue。aggregation_repo 未設定なら task repo にフォールバック。
-    - "owner/repo/N" → そのまま（base_repo 無視）。
-    - パース失敗時は typer.BadParameter を投げる。
-    - aggregation_repo と task repo が異なる整数指定時は stderr に note を出力。
+    - Integer -> an Issue in aggregation_repo. Falls back to the task repo when aggregation_repo is unset.
+    - "owner/repo/N" -> used as is (base_repo is ignored).
+    - Raises typer.BadParameter on a parse failure.
+    - Writes a note to stderr for an integer when aggregation_repo differs from the task repo.
     """
     base = config.aggregation_repo_ref or RepoRef(owner=task_owner, repo=task_repo)
     try:
@@ -215,17 +215,17 @@ def _build_issue_title(
     order: int | None = None,
     parallel: str | None = None,
 ) -> str:
-    """タイトルにプレフィックスとEpic番号+order(+枝)を付与する。
+    """Add the prefix and the Epic number + order (+ branch letter) to a title.
 
     Args:
-        issue_type: Issueタイプ（task, bug, epic, tracker）。
-        title: 元のタイトル。
-        parent_epic: 親EpicのIssue番号。
-        order: サブタスクの順序番号（段）。
-        parallel: 同じ段の枝の文字（a〜z）。
+        issue_type: Issue type (task, bug, epic, tracker).
+        title: Original title.
+        parent_epic: Issue number of the parent Epic.
+        order: Order number of the subtask (stage).
+        parallel: Branch letter within the same stage (a-z).
 
     Returns:
-        プレフィックス付きタイトル。
+        The title with the prefix.
     """
     prefix = TYPE_PREFIX_MAP.get(issue_type, "")
 
@@ -252,7 +252,7 @@ _ORDER_PATTERN = re.compile(r"#(\d+)-(\d+)([a-z])?:")
 
 
 def _order_label(order: int, parallel: str | None) -> str:
-    """エラー表示用の番号。常に ``NN`` に枝の文字を付けた形にする。"""
+    """Number shown in error messages. Always ``NN`` followed by the branch letter."""
     return f"{order:02d}{parallel or ''}"
 
 
@@ -264,21 +264,22 @@ def _check_duplicate_order(
     order: int,
     parallel: str | None = None,
 ) -> None:
-    """同じEpicの同じ (段, 枝) を持つIssueがないかチェックする。
+    """Check that no Issue in the same Epic has the same (stage, branch letter).
 
-    状態（OPEN/CLOSED）に関わらず、番号は一度使用されたら再利用不可とする。
-    同じ段で、枝なしと枝ありは（どちらが既存でも）重複とする。同じ段でも枝が違えば重複ではない。
+    A number cannot be reused once used, whether the Issue is OPEN or CLOSED.
+    Within the same stage, with and without a branch letter count as duplicates (whichever exists).
+    Different branch letters in the same stage are not duplicates.
 
     Args:
-        client: GitHubクライアント。
-        owner: リポジトリオーナー。
-        repo: リポジトリ名。
-        parent_epic: 親EpicのIssue番号。
-        order: チェック対象のorder番号（段）。
-        parallel: チェック対象の枝の文字。
+        client: GitHub client.
+        owner: Repository owner.
+        repo: Repository name.
+        parent_epic: Issue number of the parent Epic.
+        order: Order number (stage) to check.
+        parallel: Branch letter to check.
 
     Raises:
-        typer.Exit: 重複する番号のIssueが存在する場合
+        typer.Exit: When an Issue with a duplicate number exists
     """
     try:
         epic = client.get_issue_slim(owner, repo, parent_epic, comment_limit=0)
@@ -341,16 +342,16 @@ def add_to_project(
     ctx: typer.Context,
     issue_ref: str = typer.Argument(
         ...,
-        help="Issue参照 (owner/repo/N または 短縮形 N、`--repo` 指定時のみ短縮形可)",
+        help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)",
     ),
     status: str | None = typer.Option(
         "ready",
         "--status",
         "-s",
-        help="初期ステータス (backlog/pending/ready/active/in_review/archived) [default: ready]",
+        help="Initial status (backlog/pending/ready/active/in_review/archived)",
     ),
 ) -> None:
-    """IssueをプロジェクトボードにGraphQL Mutationで追加"""
+    """Add an Issue to the project board with a GraphQL mutation"""
     # 1. 設定取得
     config = load_active_config()
     if config is None:
@@ -411,14 +412,14 @@ BACKLOG_TYPES: frozenset[str] = frozenset({"epic", "tracker"})
 
 
 def _validate_status_for_type(issue_type: IssueType, status: str) -> None:
-    """起票時の status が型対応テンプレートの既定値と一致するか検証する（#669）。
+    """Check that the status at creation matches the default of the type's template (#669).
 
-    enum 外の値（例: ``--status foo``）と、型に矛盾する別テンプレートの既定値を区別する。
-    後者の例は ``--type bug --status backlog`` で、どちらも exit 1 で拒否する。
+    Tells apart a value outside the enum (e.g. ``--status foo``) from the default of another template that conflicts with the type.
+    An example of the latter is ``--type bug --status backlog``. Both are rejected with exit 1.
 
-    step 1（enum 外チェック）は direct 指定専用。
-    file 指定では ``WorkflowStatus.value`` が渡るため、必ず ``VALID_STATUSES`` に含まれる。
-    enum 外の値が届くのは、``--status`` を直接受ける direct 指定に限られる。
+    Step 1 (the enum check) is for direct input only.
+    For file input, ``WorkflowStatus.value`` is passed, so it is always in ``VALID_STATUSES``.
+    A value outside the enum can arrive only through direct input, which takes ``--status`` as is.
     """
     # 1) enum 外の値は不正ステータスとして拒否（現状の silent skip を明示エラー化）
     if status not in VALID_STATUSES:
@@ -444,14 +445,14 @@ def update_issue_status(
     ctx: typer.Context,
     issue_ref: str = typer.Argument(
         ...,
-        help="Issue参照 (owner/repo/N または 短縮形 N、`--repo` 指定時のみ短縮形可)",
+        help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)",
     ),
     status: str = typer.Argument(
         ...,
-        help="ステータス (backlog/pending/ready/active/in_review/archived)",
+        help="Status (backlog/pending/ready/active/in_review/archived)",
     ),
 ) -> None:
-    """Issue番号を指定してプロジェクトボードのステータスを更新"""
+    """Update the status of an Issue on the project board by Issue number"""
     # 1. ステータスバリデーション
     if status not in VALID_STATUSES:
         typer.echo(
@@ -513,22 +514,22 @@ def issue_reopen_command(
     ctx: typer.Context,
     issue_ref: str = typer.Argument(
         ...,
-        help="Issue参照 (owner/repo/N または 短縮形 N、`--repo` 指定時のみ短縮形可)",
+        help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)",
     ),
     status: str = typer.Option(
         "ready",
         "--status",
         "-s",
-        help="再オープン後のステータス (backlog/pending/ready/active/in_review/archived)",
+        help="Status after reopening (backlog/pending/ready/active/in_review/archived)",
     ),
     comment: str | None = typer.Option(
         None,
         "--comment",
         "-c",
-        help="再オープン理由（コメントとして投稿）",
+        help="Reason for reopening (posted as a comment)",
     ),
 ) -> None:
-    """クローズされたIssueを再オープン"""
+    """Reopen a closed Issue"""
     # 1. ステータスバリデーション
     if status not in VALID_STATUSES:
         typer.echo(
@@ -609,86 +610,86 @@ def issue_create(
     ctx: typer.Context,
     files: Annotated[
         list[Path] | None,
-        typer.Argument(help="フロントマター付きMarkdownファイルのパス（複数指定で一括投稿）"),
+        typer.Argument(help="Path of a Markdown file with frontmatter (several for a batch post)"),
     ] = None,
     message: Annotated[
         str | None,
-        typer.Option("--message", "-m", help="Issue本文（直接投稿モード）"),
+        typer.Option("--message", "-m", help="Issue body (direct posting mode)"),
     ] = None,
     title: Annotated[
         str | None,
-        typer.Option("--title", "-t", help="Issueタイトル（直接投稿モード、-m使用時は必須）"),
+        typer.Option("--title", "-t", help="Issue title (direct posting mode, required with -m)"),
     ] = None,
     repo: Annotated[
         str | None,
         typer.Option(
-            "--repo", "-r", help="リポジトリ (owner/repo形式、-m / --prepare 非epic で必須)"
+            "--repo",
+            "-r",
+            help="Repository (owner/repo form; required with -m / --prepare unless epic)",
         ),
     ] = None,
     issue_type: Annotated[
         IssueType,
-        typer.Option("--type", help="Issueタイプ (task/bug/epic/tracker)"),
+        typer.Option("--type", help="Issue type (task/bug/epic/tracker)"),
     ] = "task",
     status: Annotated[
         str | None,
-        typer.Option(
-            "--status", help="ステータス (backlog/pending/ready/active/in_review/archived)"
-        ),
+        typer.Option("--status", help="Status (backlog/pending/ready/active/in_review/archived)"),
     ] = None,
     priority: Annotated[
         str | None,
-        typer.Option("--priority", help="優先度 (high/medium/low)"),
+        typer.Option("--priority", help="Priority (high/medium/low)"),
     ] = None,
     size: Annotated[
         str | None,
-        typer.Option("--size", help="サイズ (xs/s/m/l)"),
+        typer.Option("--size", help="Size (xs/s/m/l)"),
     ] = None,
     parent_epic: Annotated[
         str | None,
         typer.Option(
             "--parent-epic",
-            help="親Epic参照: 整数 (aggregation_repo 基準) または 'owner/repo/N' 主軸形式",
+            help="Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'",
         ),
     ] = None,
     order: Annotated[
         int | None,
-        typer.Option("--order", help="サブタスクの順序番号（parent_epic指定時に使用）"),
+        typer.Option("--order", help="Order number of the subtask (used with parent_epic)"),
     ] = None,
     labels: Annotated[
         list[str] | None,
-        typer.Option("--label", "-l", help="ラベル（複数指定可）"),
+        typer.Option("--label", "-l", help="Label (can be given several times)"),
     ] = None,
     prepare: Annotated[
         bool,
-        typer.Option("--prepare", "-p", help="テンプレートを作業ディレクトリにコピー"),
+        typer.Option("--prepare", "-p", help="Copy a template to the work directory"),
     ] = False,
     template: Annotated[
         IssueTemplateType,
         typer.Option(
             "--template",
-            help="テンプレートタイプ (prepare時: task/bug/epic/tracker/task-implement)",
+            help="Template type (with --prepare: task/bug/epic/tracker/task-implement)",
         ),
     ] = "task",
     suffix: Annotated[
         str | None,
-        typer.Option("--suffix", "-s", help="出力ファイル名のサフィックス（--prepare時のみ有効）"),
+        typer.Option("--suffix", "-s", help="Suffix of the output file name (only with --prepare)"),
     ] = None,
 ) -> None:
-    """フロントマター付きMarkdownファイルからIssueを作成する。
+    """Create Issues from Markdown files with frontmatter
 
-    3つのモードがあります。
+    There are three modes.
 
-    1. 直接投稿（-mオプション）。
-       $ pecot issue create -t "タスク名" -r owner/repo -m "## 概要..."
+    1. Direct posting (the -m option).
+       $ pecot issue create -t "Task name" -r owner/repo -m "## Overview..."
 
-    2. テンプレート準備。
+    2. Template preparation.
        $ pecot issue create --prepare --template task --repo owner/repo
 
-    3. ファイルから作成。複数指定すると一括投稿します。
-       本文中の {{issue:<suffix>}} は、先行ファイルで作成された Issue 番号に展開されます。
+    3. Create from files. Several files are posted in a batch.
+       ``{{issue:<suffix>}}`` in a body expands to the number of an Issue created from an earlier file.
        $ pecot issue create ./tmp/pecot/issue-task-20260116-123456.md
 
-       複数ファイルを一括投稿する場合。
+       To post several files in a batch.
        $ pecot issue create phase1.md phase2.md phase3.md
     """
     # モード判定
@@ -717,7 +718,7 @@ def _issue_create_message_mode(
     labels: list[str] | None,
     order: int | None,
 ) -> None:
-    """直接投稿モード（-m）: 引数検証と作成先決定のうえ _issue_create_direct へ委譲"""
+    """Direct posting mode (-m): validate arguments, decide the target, then delegate to _issue_create_direct"""
     # 直接投稿モード: -t は必須。-r は epic 以外で必須。
     if not title:
         typer.echo("エラー: -m使用時は -t (タイトル) が必須です", err=True)
@@ -739,7 +740,7 @@ def _issue_create_message_mode(
 
 
 def _resolve_message_mode_repo(issue_type: IssueType, repo: str | None) -> str:
-    """直接投稿モードの作成先リポジトリ決定（-r は epic 以外で必須、epic は aggregation_repo）"""
+    """Decide the target repository in direct posting mode (-r is required except for epic; epic uses aggregation_repo)"""
     if issue_type != "epic" and not repo:
         typer.echo("エラー: -m使用時は -r (リポジトリ) が必須です", err=True)
         raise typer.Exit(1)
@@ -765,7 +766,7 @@ def _resolve_message_mode_repo(issue_type: IssueType, repo: str | None) -> str:
 
 
 def _exit_with_issue_create_usage() -> NoReturn:
-    """引数不足時の使用方法を stderr に出して exit 1"""
+    """Print usage to stderr when arguments are missing, then exit 1"""
     typer.echo("エラー: 引数が不足しています", err=True)
     typer.echo("", err=True)
     typer.echo("使用方法:", err=True)
@@ -782,7 +783,7 @@ _REPO_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 def _validate_repo_shape(repo: str) -> None:
-    """``owner/repo`` 形式を検証（不正なら exit 2）。"""
+    """Validate the ``owner/repo`` form (exit 2 if invalid)."""
     parts = repo.split("/")
     if len(parts) != 2 or not all(_REPO_SEGMENT_RE.match(p) for p in parts):
         typer.echo(f"エラー: 不正なリポジトリ形式: {repo}\n期待: owner/repo", err=True)
@@ -792,7 +793,7 @@ def _validate_repo_shape(repo: str) -> None:
 def _issue_create_prepare(
     template: IssueTemplateType, repo: str | None, suffix: str | None = None
 ) -> None:
-    """テンプレートを作業ディレクトリにコピー（内部関数）"""
+    """Copy a template to the work directory (internal function)"""
     # 0. --repo 必須チェック（epic 以外は必須）
     if template != "epic":
         if repo is None:
@@ -838,7 +839,7 @@ _PREPARED_FILENAME_RE = re.compile(r"^issue-.+-\d{8}-\d{6}-(?P<suffix>.+)$")
 
 
 def _issue_file_keys(file: Path) -> set[str]:
-    """ファイルを指すプレースホルダキー（stem と --suffix 由来サフィックス）"""
+    """Placeholder keys that point to a file (the stem and the suffix from --suffix)"""
     keys = {file.stem}
     m = _PREPARED_FILENAME_RE.match(file.stem)
     if m:
@@ -847,11 +848,11 @@ def _issue_file_keys(file: Path) -> set[str]:
 
 
 def _validate_issue_placeholders(files: list[Path]) -> None:
-    """一括投稿前の検証（1 件も投稿せず失敗させる）
+    """Validate before a batch post (fail without posting any).
 
-    - ファイルの重複指定・不在
-    - プレースホルダキーの衝突
-    - 前方参照・未知キー（依存先は引数の前方に並んでいる必要がある）
+    - Duplicate or missing files
+    - Placeholder key collisions
+    - Forward references and unknown keys (a dependency must come earlier in the arguments)
     """
     seen: set[Path] = set()
     available: set[str] = set()
@@ -888,11 +889,11 @@ def _validate_issue_placeholders(files: list[Path]) -> None:
 
 
 def _issue_create_from_files(files: list[Path]) -> None:
-    """複数ファイルを引数順に一括投稿する（内部関数）
+    """Post several files in a batch, in argument order (internal function)
 
-    先行ファイルで作成した Issue 番号を後続ファイルの {{issue:<key>}} に
-    展開してから投稿する。全件成功でスラッシュコマンド免除フラグを消費する
-    （途中失敗時は消費せず、ユーザー指示フロー内での残件リトライを許す）。
+    Expands Issue numbers created from earlier files into ``{{issue:<key>}}`` in later files
+    before posting. When all succeed, consumes the slash-command exemption flag
+    (on a mid-way failure it is not consumed, so the rest can be retried within the user-instructed flow).
     """
     _validate_issue_placeholders(files)
     created: dict[str, tuple[str, int]] = {}
@@ -907,7 +908,7 @@ def _issue_create_from_files(files: list[Path]) -> None:
 
 
 def _warn_epic_repo_exception(resolved_repo: str, config: ProjectConfig) -> None:
-    """Epic 作成先が aggregation_repo と異なるときの警告"""
+    """Warning for when the Epic target differs from aggregation_repo"""
     typer.echo(
         f"warning: --repo {resolved_repo} は aggregation_repo "
         f"({config.aggregation_repo}) と異なります。\n"
@@ -924,7 +925,7 @@ def _create_issue_or_exit(
     body: str,
     labels: list[str] | None,
 ) -> dict[str, Any]:
-    """Issue作成（失敗時は exit 1）"""
+    """Create an Issue (exit 1 on failure)"""
     typer.echo("Creating issue...")
     try:
         return create_issue(client, owner, repo, title, body, labels)
@@ -942,7 +943,7 @@ def _add_issue_to_board(
     issue_node_id: str | None,
     issue_url: str,
 ) -> tuple[str, str] | None:
-    """ボード追加。成功時は (item_id, issue_node_id) を返し、失敗時は警告と URL を出して None を返す。"""
+    """Add to the board. Returns (item_id, issue_node_id) on success; on failure prints a warning and the URL and returns None."""
     typer.echo("Adding to board...")
     try:
         added = add_issue_to_board(client, config, owner, repo, issue_number, issue_node_id)
@@ -960,7 +961,7 @@ def _set_issue_fields(
     item_id: str,
     fields: list[tuple[str, str, str]],
 ) -> None:
-    """カスタムフィールド設定。fields は (フィールド名, オプション名, 表示ラベル)。失敗は無視"""
+    """Set custom fields. fields is (field name, option name, display label). Failures are ignored"""
     fields_set: list[str] = []
     for field_name, option_name, label in fields:
         try:
@@ -976,7 +977,7 @@ def _set_issue_fields(
 def _link_to_parent_epic(
     client: GitHubClient, parent_ref: IssueRef, issue_node_id: str, issue_url: str
 ) -> None:
-    """サブIssue紐づけ（失敗時は URL を出してから exit 1）"""
+    """Link as a sub-issue (on failure, print the URL and then exit 1)"""
     typer.echo(f"Linking to parent epic {parent_ref.to_cli_ref()}...")
     try:
         parent_node_id = client.get_issue_node_id(
@@ -993,7 +994,7 @@ def _link_to_parent_epic(
 def _ensure_repo_in_project(
     config: ProjectConfig, client: GitHubClient, owner: str, repo: str, display: str
 ) -> None:
-    """リポジトリがプロジェクトに紐づいていなければ exit 1"""
+    """Exit 1 if the repository is not linked to the project"""
     if not config.is_repo_in_project(owner, repo, client):
         typer.echo(f"エラー: {display} はプロジェクトに紐づいていません", err=True)
         raise typer.Exit(1)
@@ -1008,7 +1009,7 @@ def _client_for_issue_create(
     order: int | None,
     parallel: str | None = None,
 ) -> GitHubClient:
-    """クライアント初期化・リポジトリ確認・order 重複チェック（親 Epic の repo に対して実施）"""
+    """Initialize the client, check the repository, and check for duplicate order (against the parent Epic's repo)"""
     client = GitHubClient(host=config.host)
     _ensure_repo_in_project(config, client, owner, repo, display)
     if parent_ref is not None and order is not None:
@@ -1019,10 +1020,10 @@ def _client_for_issue_create(
 
 
 def _resolve_file_target_repo(fm: IssueFrontmatter, config: ProjectConfig) -> tuple[str, str]:
-    """2.5. ファイル指定の作成先 (owner, repo) を決める。
+    """2.5. Decide the target (owner, repo) for file input.
 
-    Epic 作成時は aggregation_repo ルーティングを適用する (FR-017-019)。
-    フロントマター ``repository`` が空文字なら「未指定」扱い。
+    When creating an Epic, applies aggregation_repo routing (FR-017-019).
+    An empty frontmatter ``repository`` counts as omitted.
     """
     if fm.type == "epic":
         explicit_repo = fm.repository.strip() if fm.repository else None
@@ -1044,7 +1045,7 @@ def _resolve_file_target_repo(fm: IssueFrontmatter, config: ProjectConfig) -> tu
 def _expand_issue_placeholders(
     body: str, substitutions: dict[str, tuple[str, int]], owner: str, repo: str
 ) -> str:
-    """2.7. 一括投稿時のプレースホルダ展開（同一リポは #N、クロスリポは owner/repo#N）"""
+    """2.7. Expand placeholders in a batch post (#N for the same repo, owner/repo#N across repos)"""
 
     def _sub(m: re.Match[str]) -> str:
         ref = substitutions.get(m.group(1))
@@ -1059,10 +1060,10 @@ def _expand_issue_placeholders(
 def _issue_create_from_file(
     file: Path, substitutions: dict[str, tuple[str, int]] | None = None
 ) -> tuple[str, int]:
-    """ファイルからIssueを作成（内部関数）
+    """Create an Issue from a file (internal function)
 
     Returns:
-        (repository "owner/repo", 作成した Issue 番号)
+        (repository "owner/repo", created Issue number)
     """
     # 1. 設定取得
     config = load_active_config()
@@ -1162,18 +1163,18 @@ def _issue_create_direct(
     labels: list[str] | None,
     order: int | None = None,
 ) -> None:
-    """直接指定でIssueを作成する（内部関数）。
+    """Create an Issue from direct input (internal function).
 
-    _issue_create_from_file の処理フローを踏襲する。
+    Follows the processing flow of _issue_create_from_file.
 
-    1. 設定取得。
-    2. リポジトリ確認。
-    3. タイトルにプレフィックス付与。
-    4. テンプレート準拠チェック。
-    5. Issue作成。
-    6. ボード追加。
-    7. カスタムフィールド設定。
-    8. サブIssue紐づけ。
+    1. Get the config.
+    2. Check the repository.
+    3. Add the prefix to the title.
+    4. Check template conformance.
+    5. Create the Issue.
+    6. Add to the board.
+    7. Set custom fields.
+    8. Link as a sub-issue.
     """
     # 0. status の検証・既定値適用（#669）。
     #    I/O 不要の純粋判定なので、設定取得・副作用の前に拒否する。
@@ -1251,7 +1252,7 @@ def _issue_create_direct(
 
 
 def _parse_quick_args(message: str, repo: str) -> tuple[str, str]:
-    """1. 引数バリデーション（空メッセージ・不正リポジトリ形式は exit 1）"""
+    """1. Validate arguments (an empty message or a malformed repository form exits 1)"""
     if not message or not message.strip():
         typer.echo("エラー: メッセージが空です", err=True)
         raise typer.Exit(1)
@@ -1264,9 +1265,9 @@ def _parse_quick_args(message: str, repo: str) -> tuple[str, str]:
 
 
 def _quick_fields(issue_type: IssueType) -> list[tuple[str, str, str]]:
-    """7. quick の固定フィールド。
+    """7. Fixed fields of quick.
 
-    status は epic のとき backlog、それ以外は active。priority は medium、size は s。
+    status is backlog for epic and active otherwise. priority is medium and size is s.
     """
     # status: epic なら "backlog"、それ以外なら "active"
     default_status = "backlog" if issue_type in BACKLOG_TYPES else "active"
@@ -1282,7 +1283,7 @@ def _quick_fields(issue_type: IssueType) -> list[tuple[str, str, str]]:
 
 
 def _record_quick_work_target(owner: str, repo_name: str, issue_number: int, title: str) -> None:
-    """--no-branch でも .pecot-active に書き込む（失敗は警告のみ）"""
+    """Write to .pecot-active even with --no-branch (a failure is only a warning)"""
     from cli.core.state import ensure_work_dir, write_work_target
 
     try:
@@ -1305,7 +1306,7 @@ def _quick_branch_or_record(
     title: str,
     no_branch: bool,
 ) -> None:
-    """9. ブランチ作成（--no-branch なら作業対象の記録のみ）"""
+    """9. Create a branch (with --no-branch, only record the work target)"""
     if no_branch:
         _record_quick_work_target(owner, repo_name, issue_number, title)
         return
@@ -1328,57 +1329,57 @@ def _quick_branch_or_record(
 def issue_quick_command(
     message: Annotated[
         str,
-        typer.Option("--message", "-m", help="Issueメッセージ（フリーフォーマット）"),
+        typer.Option("--message", "-m", help="Issue message (free format)"),
     ],
     repo: Annotated[
         str,
-        typer.Option("--repo", "-r", help="リポジトリ（owner/repo形式）"),
+        typer.Option("--repo", "-r", help="Repository (owner/repo form)"),
     ],
     parent_epic: Annotated[
         str | None,
         typer.Option(
             "--parent-epic",
-            help="親Epic参照: 整数 (aggregation_repo 基準) または 'owner/repo/N' 主軸形式",
+            help="Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'",
         ),
     ] = None,
     order: Annotated[
         int | None,
-        typer.Option("--order", help="サブタスクの順序番号（parent_epic指定時に使用）"),
+        typer.Option("--order", help="Order number of the subtask (used with parent_epic)"),
     ] = None,
     no_branch: Annotated[
         bool,
-        typer.Option("--no-branch", help="ブランチ作成をスキップ"),
+        typer.Option("--no-branch", help="Skip creating a branch"),
     ] = False,
     issue_type: Annotated[
         IssueType,
-        typer.Option("--type", help="Issueタイプ (task/bug/epic/tracker)"),
+        typer.Option("--type", help="Issue type (task/bug/epic/tracker)"),
     ] = "task",
 ) -> None:
-    """フリーフォーマットメッセージからIssueを即座に作成
+    """Create an Issue at once from a free-format message
 
-    小さな作業でも記録を残すためのクイック作成コマンド。
-    タイトルは自動生成され、テンプレート検証はスキップされます。
+    A quick-create command for keeping a record even of small tasks.
+    The title is generated automatically and template validation is skipped.
 
-    固定設定。
+    Fixed settings.
 
-      - type: --type オプションで指定（デフォルト: task）。
-      - status: epic なら "backlog"、それ以外なら "active"。
-        quick は起票時点が作業開始時点なので active にする（issue-flow-rules.md §4 参照）。
-      - priority: medium。
-      - size: s（epic の場合は設定なし）。
-      - ブランチ名: feat/{YYYYMMDD-HHMMSS}/{issue_number}。
+      - type: set with the --type option (default: task).
+      - status: "backlog" for epic, "active" otherwise.
+        For quick, creating the Issue is the start of the work, so it is active (see issue-flow-rules.md §4).
+      - priority: medium.
+      - size: s (not set for epic).
+      - Branch name: feat/{YYYYMMDD-HHMMSS}/{issue_number}.
 
-    例。
-      $ pecot issue quick -r owner/repo -m "APIエンドポイントを追加"
+    Example.
+      $ pecot issue quick -r owner/repo -m "Add an API endpoint"
 
-    親 Epic を指定する例。
-      $ pecot issue quick -r owner/repo -m "バグ修正" --parent-epic 353
+    With a parent Epic.
+      $ pecot issue quick -r owner/repo -m "Fix a bug" --parent-epic 353
 
-    ブランチを作らない例。
-      $ pecot issue quick -r owner/repo -m "ドキュメント更新" --no-branch
+    Without creating a branch.
+      $ pecot issue quick -r owner/repo -m "Update the docs" --no-branch
 
-    Epic を起票する例。
-      $ pecot issue quick -r owner/repo --type epic -m "認証機能" --no-branch
+    To create an Epic.
+      $ pecot issue quick -r owner/repo --type epic -m "Authentication" --no-branch
     """
     # 1. 引数バリデーション
     owner, repo_name = _parse_quick_args(message, repo)
@@ -1428,7 +1429,7 @@ def _finish_quick_issue(
     parent_ref: IssueRef | None,
     no_branch: bool,
 ) -> None:
-    """quick で作成した Issue の後処理（ボード追加失敗時はそこで終了）"""
+    """Post-process an Issue created by quick (stop there if adding to the board failed)"""
     issue_number = issue["number"]
     issue_url = issue["html_url"]
 
@@ -1481,16 +1482,16 @@ def _create_branch_for_quick_issue(
     issue_node_id: str,
     title: str,
 ) -> None:
-    """Issue作成後にブランチを作成する（内部関数）。
+    """Create a branch after the Issue is created (internal function).
 
     Args:
-        config: プロジェクト設定。
-        client: GitHubクライアント。
-        owner: リポジトリオーナー。
-        repo: リポジトリ名。
-        issue_number: Issue番号。
-        issue_node_id: Issue Node ID。
-        title: Issue タイトル（セッション名の材料）。
+        config: Project config.
+        client: GitHub client.
+        owner: Repository owner.
+        repo: Repository name.
+        issue_number: Issue number.
+        issue_node_id: Issue node ID.
+        title: Issue title (material for the session name).
     """
     from cli.core.state import ensure_work_dir, write_work_target
 
@@ -1553,19 +1554,19 @@ def _create_branch_for_quick_issue(
 def _report_template_violations(
     body: str, template_path: Path, *, em_dash_hint: bool = False
 ) -> bool:
-    """本文をテンプレートで検証し、違反をエラー行として stderr に出す（共通関数）。
+    """Validate a body against a template and print violations as error lines to stderr (shared function).
 
-    エラー行は次の 5 種で、違反があった種別だけ 1 行ずつ出す。
-    不足セクション、見出しサマリの規則違反、使用できない記法、折りたたみの規則違反、
-    テンプレに無い見出し（見出しを閉じたテンプレだけ）。
+    There are five kinds of error line, and one line is printed for each kind that has a violation:
+    missing sections, heading summary rule violations, unusable notation, collapse rule violations,
+    and headings not in the template (only for templates with closed headings).
 
     Args:
-        body: 投稿本文。
-        template_path: 検証に使うテンプレートのパス。
-        em_dash_hint: em-dash 見出しの不足時に U+2014 のヒントを出すか。
+        body: Body to post.
+        template_path: Path of the template used for validation.
+        em_dash_hint: Whether to print the U+2014 hint when an em-dash heading is missing.
 
     Returns:
-        違反があれば True。
+        True if there is a violation.
     """
     required_sections = extract_sections_from_template(template_path)
     missing = validate_sections(body, required_sections) if required_sections else []
@@ -1611,14 +1612,14 @@ def _report_template_violations(
 
 
 def _validate_issue_template(template_type: IssueTemplateType, body: str) -> None:
-    """Issueテンプレート準拠チェック（共通関数）。
+    """Check an Issue against its template (shared function).
 
     Args:
-        template_type: テンプレートタイプ (task/bug/epic/tracker/task-implement)。
-        body: Issue本文。
+        template_type: Template type (task/bug/epic/tracker/task-implement).
+        body: Issue body.
 
     Raises:
-        typer.Exit: バリデーションエラー時（exit code 1）。
+        typer.Exit: On a validation error (exit code 1).
     """
     template_path = TEMPLATES_DIR / f"{template_type}.md"
     if _report_template_violations(body, template_path, em_dash_hint=True):
@@ -1632,14 +1633,14 @@ def issue_comment(
     ctx: typer.Context,
     file: Annotated[
         Path | None,
-        typer.Argument(help="フロントマター付きMarkdownファイルのパス"),
+        typer.Argument(help="Path of a Markdown file with frontmatter"),
     ] = None,
     message: Annotated[
         str | None,
         typer.Option(
             "--message",
             "-m",
-            help="コメント本文",
+            help="Comment body",
         ),
     ] = None,
     issue: Annotated[
@@ -1647,7 +1648,7 @@ def issue_comment(
         typer.Option(
             "--issue",
             "-i",
-            help="Issue参照 (owner/repo/123形式、-m使用時は必須)",
+            help="Issue reference (owner/repo/123 form, required with -m)",
         ),
     ] = None,
     prepare: Annotated[
@@ -1655,7 +1656,7 @@ def issue_comment(
         typer.Option(
             "--prepare",
             "-p",
-            help="テンプレートを作業ディレクトリにコピー",
+            help="Copy a template to the work directory",
         ),
     ] = False,
     template: Annotated[
@@ -1664,32 +1665,31 @@ def issue_comment(
             "--template",
             "-t",
             help=(
-                "テンプレートタイプ（--prepare と -m では必須）"
-                "(plan/merge-diff/review-findings/review-resolution/precede-notify)"
+                "Template type (required with --prepare and -m; plan/merge-diff/review-findings/review-resolution/precede-notify)"
             ),
         ),
     ] = None,
 ) -> None:
-    """Issueにコメントを投稿する。
+    """Post a comment on an Issue
 
-    3つのモードがあります。
+    There are three modes.
 
-    1. 直接投稿（-mオプション）。
+    1. Direct posting (the -m option).
        $ pecot issue comment -m "## Merge — ..." -t merge-diff --issue owner/repo/123
 
-    2. テンプレート準備。
+    2. Template preparation.
        $ pecot issue comment --prepare -t plan [--issue owner/repo/123]
 
-    3. ファイルから投稿（frontmatter の template でテンプレートを決める）。
+    3. Post from a file (the template is decided by the template in the frontmatter).
        $ pecot issue comment ./tmp/pecot/comment-plan-xxx.md
 
-       投稿すると、コメントの URL を同じファイルの frontmatter の comment_url に書き戻します。
-       comment_url があるファイルを渡すと、新しく投稿せず、そのコメントを書き換えます。
+       After posting, the comment URL is written back to comment_url in the frontmatter of the same file.
+       Given a file that has comment_url, it rewrites that comment instead of posting a new one.
 
-    終了コードは、テンプレ検証の失敗が 3 です。
-    失敗とは不足セクション、見出しサマリの規則違反、使用できない記法、
-    折りたたみの規則違反、テンプレに無い見出しを指します。
-    通信失敗・設定なし・引数不足は 1 です。
+    Exit codes: a template validation failure is 3.
+    A failure means a missing section, a heading summary rule violation, unusable notation,
+    a collapse rule violation, or a heading not in the template.
+    A network failure, a missing config, or missing arguments is 1.
     """
     # モード判定
     if (prepare or (file is None and message is not None)) and template is None:
@@ -1725,7 +1725,7 @@ _COMMENT_TEMPLATE_CHOICES = " / ".join(get_args(CommentTemplate))
 
 
 def _issue_comment_prepare(template: CommentTemplate, issue_ref: str | None) -> None:
-    """テンプレートを作業ディレクトリにコピー（内部関数）"""
+    """Copy a template to the work directory (internal function)"""
     # 1. テンプレートファイルのパス
     template_path = COMMENT_TEMPLATES_DIR / f"{template}.md"
 
@@ -1754,7 +1754,7 @@ def _issue_comment_prepare(template: CommentTemplate, issue_ref: str | None) -> 
 
 
 def _issue_comment_from_file(ctx: typer.Context | None, file: Path) -> None:
-    """ファイルからコメントを投稿（内部関数）"""
+    """Post a comment from a file (internal function)"""
     # 1. 設定取得
     config = load_active_config()
     if config is None:
@@ -1841,7 +1841,7 @@ _COMMENT_URL_RE = re.compile(
 def _comment_id_for_issue(
     comment_url: str, host: str, owner: str, repo: str, issue_number: int
 ) -> int:
-    """comment_url から comment id を取る。issue_ref と別の Issue を指していれば止める"""
+    """Get the comment id from comment_url. Stop if it points to an Issue other than issue_ref"""
     match = _COMMENT_URL_RE.match(comment_url.strip())
     if match is None:
         typer.echo(
@@ -1873,13 +1873,13 @@ def _issue_comment_direct(
     message: str,
     template: CommentTemplate,
 ) -> None:
-    """直接コメントを投稿する（内部関数）。
+    """Post a comment directly (internal function).
 
     Args:
-        ctx: Typer Context（``--repo`` 指定の base_repo 解決に使用）。
-        issue_ref: Issue参照（owner/repo/N または 短縮形 N）。
-        message: コメント本文。
-        template: テンプレートタイプ。
+        ctx: Typer Context (used to resolve base_repo for ``--repo``).
+        issue_ref: Issue reference (owner/repo/N, or the short form N).
+        message: Comment body.
+        template: Template type.
     """
     # 1. 設定取得
     config = load_active_config()
@@ -1917,13 +1917,13 @@ def _issue_comment_direct(
 
 
 def _format_issue_markdown(issue: dict[str, Any]) -> str:
-    """Issue情報をMarkdown形式にフォーマット
+    """Format Issue information as Markdown
 
     Args:
-        issue: get_issue_slimの戻り値
+        issue: Return value of get_issue_slim
 
     Returns:
-        Markdown形式の文字列
+        A string in Markdown
     """
     lines: list[str] = []
 
@@ -2015,7 +2015,7 @@ def issue_read(
     issue_ref: Annotated[
         str,
         typer.Argument(
-            help="Issue参照 (owner/repo/N または 短縮形 N、`--repo` 指定時のみ短縮形可)"
+            help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
         ),
     ],
     json_output: Annotated[
@@ -2023,7 +2023,7 @@ def issue_read(
         typer.Option(
             "--json",
             "-j",
-            help="JSON形式で出力",
+            help="Output as JSON",
         ),
     ] = False,
     comment_limit: Annotated[
@@ -2031,18 +2031,18 @@ def issue_read(
         typer.Option(
             "--comment-limit",
             "-c",
-            help="表示するコメント数（0-20、0で非表示）",
+            help="Number of comments to show (0-20; 0 hides them)",
             min=0,
             max=20,
         ),
     ] = 5,
 ) -> None:
-    """Issue詳細を効率的に取得する（GraphQL、必要なフィールドのみ）。
+    """Fetch Issue details efficiently (GraphQL, only the needed fields)
 
-    REST APIやMCPと比較して、以下の利点がある。
+    Compared with the REST API and MCP, it has these advantages.
 
-    - 不要なフィールドを除外してトークン消費を削減する。
-    - 親Issue、サブIssue、リンクブランチを1クエリで取得する。
+    - Cuts token use by leaving out unneeded fields.
+    - Fetches the parent Issue, sub-issues, and linked branches in one query.
     """
     import json
 
