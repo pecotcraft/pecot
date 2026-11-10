@@ -332,11 +332,11 @@ describe('symlink 経由の talk-dir', () => {
     // 文言も lock する。symlink 先が talk-dir 内実体・空 dir・md 非対象のケースでは、
     // 「lint されていない」と言い切ると誤りになる。可能性を示す表現から後退させない。
     expect(stderr.chunks.join('')).toContain(
-      `warning: ${path.join('pages', 'sub')} は symlink のため eslint の走査対象になりません`
-      + '（配下は lint されていない可能性があります）',
+      `warning: ${path.join('pages', 'sub')} is a symlink and is not scanned by eslint`
+      + ' (files under it may not be linted)',
     )
     expect(stdout.chunks.join('')).not.toContain('symlink')
-    expect(stdout.chunks.join('')).toContain('lint 対象 5 件')
+    expect(stdout.chunks.join('')).toContain('linted 5 files')
   })
 
   it('lint 対象 0 件でも symlink 警告を出す（警告ループの位置ロック）', () => {
@@ -364,8 +364,8 @@ describe('symlink 経由の talk-dir', () => {
       lintDependencies(stdout, stderr),
     )
 
-    expect(stderr.chunks.join('')).toContain(`warning: ${path.join('pages', 'sub')} は symlink のため`)
-    expect(stdout.chunks.join('')).toContain('lint 対象 0 件')
+    expect(stderr.chunks.join('')).toContain(`warning: ${path.join('pages', 'sub')} is a symlink and is not scanned by eslint`)
+    expect(stdout.chunks.join('')).toContain('linted 0 files')
   })
 
   it('--json は skippedSymlinkDirectories を載せる（トポロジ E）', async () => {
@@ -399,7 +399,7 @@ describe('symlink 経由の talk-dir', () => {
     const report = await runAutoDeckLint(talk, dependencies)
     writeAutoDeckLintReport(report, talk, dependencies)
 
-    expect(stderr.chunks.join('')).toContain(`warning: ${path.join('pages', 'sub')} は symlink のため`)
+    expect(stderr.chunks.join('')).toContain(`warning: ${path.join('pages', 'sub')} is a symlink and is not scanned by eslint`)
     expect(autoDeckLintJsonField(report))
       .toMatchObject({ skippedSymlinkDirectories: [path.join('pages', 'sub')] })
   })
@@ -483,7 +483,7 @@ describe('テーマの宣言で動く lint (実 eslint)', () => {
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n\n---\nsrc: ./pages/cover.md\n---\n', 'utf8')
     writeFileSync(path.join(talk, 'pages', 'cover.md'), INITIAL_PAGES[0]?.[1] ?? '', 'utf8')
     const dependencies = lintDependencies(makeStream(), makeStream())
-    await expect(runSlideLintFromCli(talk, dependencies)).rejects.toThrow('テーマの dir')
+    await expect(runSlideLintFromCli(talk, dependencies)).rejects.toThrow('it is a theme dir')
   })
 })
 
@@ -496,9 +496,9 @@ describe('createSlideLintCommand', () => {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
       await command.parseAsync(['--dir', talk], { from: 'user' })
       const written = stdout.chunks.join('')
-      expect(written.split('\n', 1)[0]).toBe(`slide lint: 成功 (${talk})`)
-      expect(written).toContain('lint 対象 5 件')
-      expect(written).toContain('エラー 0 件')
+      expect(written.split('\n', 1)[0]).toBe(`slide lint: success (${talk})`)
+      expect(written).toContain('linted 5 files')
+      expect(written).toContain('0 errors')
       expect(process.exitCode).toBe(previousExitCode)
     }
     finally {
@@ -515,7 +515,7 @@ describe('createSlideLintCommand', () => {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
       await command.parseAsync(['--dir', talk], { from: 'user' })
       const written = stdout.chunks.join('')
-      expect(written.split('\n', 1)[0]).toBe(`slide lint: 違反あり (${talk})`)
+      expect(written.split('\n', 1)[0]).toBe(`slide lint: violations (${talk})`)
       expect(written).toContain('slidev-pages-lint/no-missing-page')
       expect(written).toContain('slides.md:')
       expect(process.exitCode).toBe(1)
@@ -611,7 +611,7 @@ describe('createSlideLintCommand', () => {
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
       await command.parseAsync(['--dir', 'relative/talk'], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide lint 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide lint failed:')
       expect(stdout.chunks.length).toBe(0)
       expect(process.exitCode).toBe(2)
     }
@@ -627,7 +627,7 @@ describe('createSlideLintCommand', () => {
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
       await command.parseAsync(['--dir', state.temporaryRoot], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide lint 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide lint failed:')
       expect(stderr.chunks.join('')).toContain('slides.md')
       expect(process.exitCode).toBe(1)
     }
@@ -685,7 +685,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
     await command.parseAsync([projectDirectory, '--theme', copyThemeForTalk(state.temporaryRoot, 'theme-src').spec], { from: 'user' })
     const written = stdout.chunks.join('')
     expect(written).toContain('deck lint:')
-    expect(written).toContain('lint 対象 4 件')
+    expect(written).toContain('linted 4 files')
   })
 
   it('slide create の成功行は deck lint 要約より先に出る', async () => {
@@ -701,10 +701,10 @@ describe('create / sync 末尾の自動 deck lint', () => {
     const written = stdout.chunks.join('')
     // lint がスキップされると deck lint 要約は stderr へ回るため、順序比較の前に
     // 両方が stdout に出ていることを確かめる。
-    expect(written).toContain('slide create: 成功')
+    expect(written).toContain('slide create: success')
     expect(written).toContain('deck lint:')
-    const successIndex = written.indexOf('slide create: 成功')
-    const countIndex = written.indexOf('lint 対象 ')
+    const successIndex = written.indexOf('slide create: success')
+    const countIndex = written.indexOf('linted ')
     expect(countIndex).toBeGreaterThan(successIndex)
   })
 
@@ -740,13 +740,13 @@ describe('create / sync 末尾の自動 deck lint', () => {
       await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
       const written = stdout.chunks.join('')
       // 違反一覧が続いても、sync の成否は先頭行で読める。
-      expect(written.split('\n', 1)[0]).toBe(`slide sync (node_modules のみ): 成功 (${talk})`)
+      expect(written.split('\n', 1)[0]).toBe(`slide sync (node_modules only): success (${talk})`)
       expect(written).toContain('deck lint:')
       expect(written).toContain('slidev-pages-lint/no-missing-page')
       expect(written).toContain(`pecotv slide lint --dir ${talk}`)
       // 成否行 → 件数行 → 違反行の順序を固定する。
-      const successIndex = written.indexOf('slide sync (node_modules のみ): 成功')
-      const countIndex = written.indexOf('lint 対象 ')
+      const successIndex = written.indexOf('slide sync (node_modules only): success')
+      const countIndex = written.indexOf('linted ')
       const violationIndex = written.indexOf('slidev-pages-lint/no-missing-page')
       expect(successIndex).toBeGreaterThanOrEqual(0)
       expect(countIndex).toBeGreaterThan(successIndex)
@@ -765,7 +765,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
     const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, makeStream()))
     await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
     const written = stdout.chunks.join('')
-    expect(written.split('\n', 1)[0]).toBe(`slide sync (node_modules のみ): 成功 (${talk})`)
+    expect(written.split('\n', 1)[0]).toBe(`slide sync (node_modules only): success (${talk})`)
     expect(written).toContain('deck lint:')
   })
 
@@ -783,8 +783,8 @@ describe('create / sync 末尾の自動 deck lint', () => {
       const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, stderr, brokenRoot))
       await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
       expect(stdout.chunks.join('').split('\n', 1)[0])
-        .toBe(`slide sync (node_modules のみ): 成功 (${talk})`)
-      expect(stderr.chunks.join('')).toContain('deck lint をスキップしました')
+        .toBe(`slide sync (node_modules only): success (${talk})`)
+      expect(stderr.chunks.join('')).toContain('deck lint skipped')
       expect(process.exitCode).toBe(previousExitCode)
     }
     finally {
@@ -806,7 +806,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
     expect(report.failure).toBeTruthy()
 
     writeAutoDeckLintReport(report, talk, brokenDependencies)
-    expect(stderr.chunks.join('')).toContain('deck lint をスキップしました')
+    expect(stderr.chunks.join('')).toContain('deck lint skipped')
     expect(autoDeckLintJsonField(report)).toMatchObject({ skipped: true })
   })
 })

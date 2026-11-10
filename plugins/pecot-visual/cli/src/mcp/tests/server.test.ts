@@ -319,8 +319,8 @@ describe('createMcpServer', () => {
 })
 
 describe('createMcpServer の progress ハートビート', () => {
-  const QUEUED = 'gated: キュー待機中'
-  const RUNNING = 'gated: 実行中'
+  const QUEUED = 'gated: waiting in queue'
+  const RUNNING = 'gated: running'
 
   /**
   周期は 5ms に縮め、進行条件を「経過時間」ではなく「受信数」に置いて決定論化する。
@@ -364,7 +364,7 @@ describe('createMcpServer の progress ハートビート', () => {
 
   it('キュー待機中もハートビートを送り続ける (デキュー前に無音区間を作らない)', async () => {
     const received: Progress[] = []
-    const queuedCount = (): number => received.filter(item => item.message === 'waiter: キュー待機中').length
+    const queuedCount = (): number => received.filter(item => item.message === 'waiter: waiting in queue').length
     const occupied: PromiseWithResolvers<void> = Promise.withResolvers()
 
     // occupier がキューを占有し、waiter はデキュー待ちに回る。待機中の通知が 2 発届いた

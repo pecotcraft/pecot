@@ -428,7 +428,7 @@ describe('兄弟 PDF', () => {
     expect(execution.pdfFile).toBeUndefined()
     expect(execution.warningCount).toBe(1)
     expect(execution.exitCode).toBe(3)
-    expect(stderr.chunks.join('')).toContain('warning: PDF 生成失敗: chromium crashed')
+    expect(stderr.chunks.join('')).toContain('warning: PDF export failed: chromium crashed')
   })
 
   it('PDF 生成に失敗したら前回の兄弟 PDF を削除する', async () => {
@@ -467,7 +467,7 @@ describe('兄弟 PDF', () => {
     expect(Object.keys(execution.data).toSorted(compareStrings)).toEqual(['event', 'file', 'icons', 'pdf', 'pdfFailed', 'sourceSha256', 'warnings'])
     expect(execution.warningCount).toBe(1)
     expect(execution.exitCode).toBe(3)
-    expect(stderr.chunks.join('')).toContain('前回の PDF を削除できません')
+    expect(stderr.chunks.join('')).toContain('cannot remove the previous PDF')
   })
 
   it('多重拡張子は末尾だけを置換する (diagram.drawio.svg → diagram.drawio.pdf)', async () => {
@@ -531,7 +531,7 @@ describe('兄弟 PDF', () => {
     )
 
     await expect(rejected).rejects.toMatchObject({ name: 'DrawioExportUsageError', reason: 'invalid-output-extension' })
-    await expect(rejected).rejects.toThrow('.svg 等の拡張子を指定してください')
+    await expect(rejected).rejects.toThrow('so use an extension such as .svg')
     await expect(rejected).rejects.not.toThrow('--no-pdf')
     expect(existsSync(outputPath)).toBe(false)
   })
@@ -607,7 +607,7 @@ describe('createDrawioExportCommand (PDF)', () => {
     await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath], { from: 'user' })
 
     const written = stderr.chunks.join('')
-    expect(written).toContain('warning: PDF 生成失敗: forced PDF failure')
+    expect(written).toContain('warning: PDF export failed: forced PDF failure')
     expect(written).toContain(`created: ${outputPath}`)
     expect(written).not.toContain('.pdf')
     expect(process.exitCode).toBe(3)

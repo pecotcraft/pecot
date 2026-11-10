@@ -164,8 +164,8 @@ describe('drawio_create', () => {
     expect(structured['ok']).toBe(true)
     expect(structured['exitCode']).toBe(3)
     expect(dataOf(result)['warnings']).toBe(1)
-    expect(structured['stderr']).toContain('アイコンが見つかりません')
-    expect(structured['message']).toContain('警告')
+    expect(structured['stderr']).toContain('icon not found')
+    expect(structured['message']).toContain('1 warnings')
   })
 
   describe('theme', () => {
@@ -217,7 +217,7 @@ describe('drawio_create', () => {
     const written = readFileSync(outPath, 'utf8')
     expect(written.startsWith('<!doctype html>\n')).toBe(true)
     expect(written).toContain('<a id="target" href="https://app.diagrams.net/')
-    expect(structured['message']).toContain('表示用 HTML')
+    expect(structured['message']).toContain('wrote drawio viewer HTML')
     expect(structured['message']).toContain(outPath)
   })
 
@@ -260,7 +260,7 @@ describe('drawio_create', () => {
       warnings: 1,
       theme: { source: 'default', fonts: { body: ['sans-serif'] } },
     })
-    expect(structured['stderr']).toContain('warning: PNG 生成失敗')
+    expect(structured['stderr']).toContain('warning: PNG export failed')
   })
 })
 
@@ -368,7 +368,7 @@ describe('drawio_export', () => {
     expect(data['file']).toBe(ICON_RESOLVABLE)
     expect(data['icons']).toBe(2)
     expect(data['sourceSha256']).toMatch(/^[\da-f]{64}$/)
-    expect(structured['message']).toContain('合成ハッシュ')
+    expect(structured['message']).toContain('computed composite hash')
   })
 
   it('解決できない icon:// があれば reason icon-unresolved + exitCode 1 で返す', async () => {

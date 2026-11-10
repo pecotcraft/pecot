@@ -134,7 +134,7 @@ describe('resolveTalkTheme の上位の node_modules', () => {
     state.talk = talk
     const error = await rejection()
     expect(error.reason).toBe('theme-unlinked')
-    expect(error.message).toContain('上位の node_modules')
+    expect(error.message).toContain('any parent node_modules')
   })
 })
 
@@ -143,7 +143,7 @@ describe('resolveTalkTheme の候補名とパス形式', () => {
     writeTalk('theme: slidev-theme-x', { other: '1' })
     const error = await rejection()
     expect(error.reason).toBe('theme-unlinked')
-    expect(error.message).toContain('探した名前: slidev-theme-x）')
+    expect(error.message).toContain('searched names: slidev-theme-x)')
     expect(error.message).not.toContain('@slidev/theme-slidev-theme-x')
     expect(error.message).not.toContain('slidev-theme-slidev-theme-x')
   })
@@ -151,13 +151,13 @@ describe('resolveTalkTheme の候補名とパス形式', () => {
   it('@ 始まりの名前も候補 1 つ', async () => {
     writeTalk('theme: \'@pecot/missing\'', { other: '1' })
     const error = await rejection()
-    expect(error.message).toContain('探した名前: @pecot/missing）')
+    expect(error.message).toContain('searched names: @pecot/missing)')
   })
 
   it('短い名前は 3 つの候補を順に列挙する', async () => {
     writeTalk('theme: x', { other: '1' })
     const error = await rejection()
-    expect(error.message).toContain('探した名前: @slidev/theme-x, slidev-theme-x, x）')
+    expect(error.message).toContain('searched names: @slidev/theme-x, slidev-theme-x, x)')
   })
 
   it.each(['./theme', '../theme', '/abs/theme', '@/theme', 'dir/theme'])(
@@ -166,9 +166,9 @@ describe('resolveTalkTheme の候補名とパス形式', () => {
       writeTalk(`theme: '${theme}'`, { [theme]: 'file:../x' })
       const error = await rejection()
       expect(error.reason).toBe('theme-none')
-      expect(error.message).toContain('パス形式')
+      expect(error.message).toContain('is a path')
       expect(error.message).toContain('slide sync --theme <theme-spec>')
-      expect(error.message).not.toContain('dependencies にテーマを足し')
+      expect(error.message).not.toContain('add the theme to dependencies')
     },
   )
 
@@ -187,7 +187,7 @@ describe('resolveTalkTheme の失敗', () => {
     expect(error.reason).toBe('theme-unlinked')
     expect(error.message).toContain(`slide sync --dir ${state.talk} --node-modules-only`)
     // MCP から読む場合の手順も、同じ文言に含める
-    expect(error.message).toContain(`slide_sync の dir: ${state.talk}, node_modules_only: true`)
+    expect(error.message).toContain(`slide_sync with dir: ${state.talk}, node_modules_only: true`)
     expect(error.message).toContain(path.join(state.talk, 'node_modules', 'slidev-theme-acme'))
   })
 
@@ -246,7 +246,7 @@ describe('resolveTalkTheme: pecot-theme.json を持つ dir', () => {
     writeFileSync(path.join(state.talk, 'pecot-theme.json'), '{"schema":1}')
     const error = await rejection()
     expect(error.reason).toBe('theme-none')
-    expect(error.message, 'テーマの dir だと伝えていない').toContain('テーマの dir')
+    expect(error.message, 'テーマの dir だと伝えていない').toContain('it is a theme dir')
     expect(error.message, '移行の案内を出している').not.toContain('slide sync --theme')
   })
 

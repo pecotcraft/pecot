@@ -380,7 +380,7 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([])
     expect(Object.keys(outcome.timing.groups[0]?.pageA ?? {}).toSorted(compareStrings)).toStrictEqual(['cssSettle', 'goto', 'iframeLoad', 'inject', 'visible'])
     expect(outcome.timing.fallbackSteps).toStrictEqual([])
-    expect(progress).toContain('スライド #2/1 変換完了')
+    expect(progress).toContain('slide #2/1 converted')
     expect(request.fallbackRunner).not.toHaveBeenCalled()
   })
 
@@ -468,11 +468,11 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(request)
 
-    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^スライド 1,2: print コンテナが 5 秒以内に出ません/)])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^slide 1,2: print container did not appear within 5 s/)])
     expect(pageA.closed).toBe(true)
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual(steps)
     expect(outcome.results.map(r => r.status)).toStrictEqual(['fulfilled', 'fulfilled', 'fulfilled'])
-    expect(outcome.timing.groups[0]).toMatchObject({ slides: [1, 2], steps: 3, fallback: expect.stringContaining('print コンテナが') })
+    expect(outcome.timing.groups[0]).toMatchObject({ slides: [1, 2], steps: 3, fallback: expect.stringContaining('print container did not appear') })
     expect(outcome.timing.groups[0]?.pageA).toBeUndefined()
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1', '2', '2/1'])
   })
@@ -483,7 +483,7 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(makeRequest(browser))
 
-    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('コンテナ 2 / ステップ 3')])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('2 containers, 3 steps')])
   })
 
   it('コンテナの id がステップと対応しなければ退避する', async () => {
@@ -504,7 +504,7 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(makeRequest(browser))
 
-    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('スライドの読み込みが')])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('slide did not finish loading within')])
   })
 
   it('高解像度ページでコンテナが揃わなければ、prerender 対象を持つステップだけ現行 worker に回し、両ページを閉じる', async () => {
@@ -518,7 +518,7 @@ describe('convertStepsSinglePass', () => {
     const outcome = await convertExpectingConverted(request)
 
     // グループは退避せず、対象の無いステップは 1 パスのまま。ページ B は開き直さない
-    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^スライド #1: 高解像度ページ: print コンテナが/)])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^slide #1: hiRes page: print container did not appear/)])
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[0]])
     expect(exportCalls.map(call => call.container)).toStrictEqual(['002-01', '002-02'])
     expect(browser.createdPages).toHaveLength(2)
@@ -539,9 +539,9 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(request)
 
-    expect(outcome.fallbacks).toStrictEqual(['スライド #2: 高解像度ページを用意できません: page crashed'])
+    expect(outcome.fallbacks).toStrictEqual(['slide #2: cannot prepare the hiRes page: page crashed'])
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[1]])
-    expect(logger.warn).toHaveBeenCalledWith('1 パス: 高解像度ページを用意できません: page crashed（prerender 対象を含むステップは現行方式で変換します）')
+    expect(logger.warn).toHaveBeenCalledWith('single-pass: cannot prepare the hiRes page: page crashed; steps with prerender targets are converted with the current method')
   })
 
   it('ページの用意で例外が出たら退避する', async () => {
@@ -551,7 +551,7 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(makeRequest(browser))
 
-    expect(outcome.fallbacks).toStrictEqual(['スライド 1,2: print ページを用意できません: net::ERR_CONNECTION_REFUSED'])
+    expect(outcome.fallbacks).toStrictEqual(['slide 1,2: cannot prepare the print page: net::ERR_CONNECTION_REFUSED'])
     expect(pageA.closed).toBe(true)
   })
 
@@ -612,7 +612,7 @@ describe('convertStepsSinglePass', () => {
     ])
     expect(outcome.fallbacks).toStrictEqual([])
     expect(request.fallbackRunner).not.toHaveBeenCalled()
-    expect(request.logger.info).toHaveBeenCalledWith('1 パス: 3 ステップを 2 グループに分けて変換します')
+    expect(request.logger.info).toHaveBeenCalledWith('single-pass: converting 3 steps in 2 groups')
   })
 
   it('1 グループが退避しても、他のグループは 1 パスで変換を続ける', async () => {
@@ -629,8 +629,8 @@ describe('convertStepsSinglePass', () => {
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[0]])
     expect(exportCalls.map(call => call.container)).toStrictEqual(['002-01', '002-02'])
     expect(outcome.results.map(r => r.status)).toStrictEqual(['fulfilled', 'fulfilled', 'fulfilled'])
-    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^スライド 1: print コンテナが 5 秒以内に出ません/)])
-    expect(outcome.timing.groups[0]?.fallback).toContain('print コンテナが')
+    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^slide 1: print container did not appear within 5 s/)])
+    expect(outcome.timing.groups[0]?.fallback).toContain('print container did not appear')
     expect(outcome.timing.groups[1]?.pageA).toBeDefined()
     expect(outcome.timing.groups[1]?.fallback).toBeUndefined()
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1'])
@@ -658,7 +658,7 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(makeRequest(browser, { totalSteps: 4 }))
 
-    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('全走査のステップ数と一致しません（コンテナ 3 / ステップ 4）')])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('print container count does not match the step count of the full scan: 3 containers, 4 steps')])
   })
 
   it('自グループのステップの id が欠けたグループだけ退避し、他のグループは続ける', async () => {
@@ -669,7 +669,7 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(request)
 
-    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^スライド 2: ステップに対応する print コンテナが見つかりません（002-02）/)])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringMatching(/^slide 2: print container not found for steps: 002-02/)])
     expect(exportCalls.map(call => call.container)).toStrictEqual(['001-01'])
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[1], steps[2]])
     expect(outcome.timing.fallbackSteps).toStrictEqual(['2', '2/1'])
@@ -686,7 +686,7 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(makeRequest(browser))
 
-    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('スライドの読み込みが')])
+    expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('slide did not finish loading within')])
     // 検出（selectors を渡す evaluate）は実行されず、ページ B も開かない
     expect(pageA.evaluateCalls.some(call => (call.arg as { selectors?: unknown } | undefined)?.selectors !== undefined)).toBe(false)
     expect(browser.createdPages).toHaveLength(1)
@@ -716,7 +716,7 @@ describe('convertStepsSinglePass', () => {
     const outcome = await convertExpectingConverted(makeRequest(browser))
 
     expect(outcome.fallbacks).toStrictEqual([
-      expect.stringMatching(/^スライド #1: 高解像度ページ: スライドの読み込みが .* 秒以内に終わりません: waitForFunction timed out \(fake, queued\)$/),
+      expect.stringMatching(/^slide #1: hiRes page: slide did not finish loading within .* s: waitForFunction timed out \(fake, queued\)$/),
     ])
   })
 
@@ -735,7 +735,7 @@ describe('convertStepsSinglePass', () => {
     expect(browser.newContextCalls[1]).toStrictEqual({ viewport: { width: 960, height: 540 }, deviceScaleFactor: 5 })
     expect(browser.contexts[1]?.pages).toStrictEqual([pageB])
     expect(pageB.gotoCalls).toHaveLength(1)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('コンテナ 002-01 に prerender 対象があるため高解像度ページを開きます'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('container 002-01 has prerender targets, so opening the hiRes page'))
     const second = outcome.results[1]
     expect(second?.status === 'fulfilled' ? second.value.prerenderResults.map(r => r.success) : []).toStrictEqual([true])
     expect(existsSync(path.join(slidesDir, 'prerender-slide200-0.meta.json'))).toBe(true)
@@ -765,8 +765,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.results.map(r => r.status)).toStrictEqual(['fulfilled', 'fulfilled', 'fulfilled'])
     // ステップ単位の退避も利用者向けの警告に載る
     expect(outcome.fallbacks).toStrictEqual([
-      expect.stringMatching(/^スライド #2: 高解像度ページ: print コンテナが/),
-      expect.stringMatching(/^スライド #2\/1: 高解像度ページ: print コンテナが/),
+      expect.stringMatching(/^slide #2: hiRes page: print container did not appear/),
+      expect.stringMatching(/^slide #2\/1: hiRes page: print container did not appear/),
     ])
   })
 
@@ -800,8 +800,8 @@ describe('convertStepsSinglePass', () => {
     expect(document.querySelectorAll('[data-html2canvas-ignore]')).toHaveLength(0)
     expect(document.querySelectorAll('[data-prerender-img], [data-prerender-hidden]')).toHaveLength(0)
     expect(exportCalls.map(call => call.container)).toStrictEqual(['001-01', '002-01', '002-02'])
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('スライド #2 の変換に失敗したため現行方式で変換し直します'))
-    expect(outcome.fallbacks).toStrictEqual(['スライド #2: export failed: 002-01'])
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('slide #2 conversion failed, so converting again with the current method'))
+    expect(outcome.fallbacks).toStrictEqual(['slide #2: export failed: 002-01'])
   })
 
   it('後始末が失敗しても残りの後始末をし、元の失敗を退避理由にする', async () => {
@@ -823,8 +823,8 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(makeRequest(browser, { logger }))
 
-    expect(outcome.fallbacks).toStrictEqual(['スライド #2: export failed: 002-01'])
-    expect(logger.warn).toHaveBeenCalledWith('1 パス: 除外目印の解除（コンテナ 002-01）に失敗しました: target closed')
+    expect(outcome.fallbacks).toStrictEqual(['slide #2: export failed: 002-01'])
+    expect(logger.warn).toHaveBeenCalledWith('single-pass: clearing exclusion marks (container 002-01) failed: target closed')
     // 差し替えの復元は、除外目印の解除の失敗とは無関係に実行される
     expect(document.querySelectorAll('[data-prerender-img]')).toHaveLength(0)
   })
@@ -839,7 +839,7 @@ describe('convertStepsSinglePass', () => {
     const outcome = await convertExpectingConverted(makeRequest(browser, { fallbackRunner, onProgress: (label) => { progress.push(label) } }))
 
     expect(outcome.results[2]).toStrictEqual({ status: 'rejected', reason: new Error('worker-failed') })
-    expect(progress).toContain('スライド #2/1 変換失敗')
+    expect(progress).toContain('slide #2/1 conversion failed')
   })
 
   it('onStepDone は 1 パスで終えたステップと現行 worker で終えたステップを 1 回ずつ報告し、1 パスでの失敗では呼ばない (#1160)', async () => {
@@ -878,7 +878,7 @@ describe('convertStepsSinglePass', () => {
 
     expect(outcome).toStrictEqual({
       kind: 'printRouteMissing',
-      timing: { kind: 'printRouteMissing', fallback: 'デッキの build に print ルートがありません', detectMs: expect.any(Number) },
+      timing: { kind: 'printRouteMissing', fallback: 'the deck build has no print route', detectMs: expect.any(Number) },
     })
     // 判定は各グループで 1 回ずつ（並列）。コンテナ待ち・注入・現行 worker には進まない
     for (const page of [pageGroup1, pageGroup2]) {
@@ -901,8 +901,8 @@ describe('convertStepsSinglePass', () => {
 
     const outcome = await convertExpectingConverted(request)
 
-    const reason = 'print ルートを判定できません（5 秒以内に #print-container, #page-root が出ません）'
-    expect(outcome.fallbacks).toStrictEqual([`スライド 1,2: ${reason}`])
+    const reason = 'cannot detect the print route; #print-container, #page-root did not appear within 5 s'
+    expect(outcome.fallbacks).toStrictEqual([`slide 1,2: ${reason}`])
     expect(outcome.timing.groups[0]).toMatchObject({ slides: [1, 2], steps: 3, fallback: reason })
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1', '2', '2/1'])
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual(steps)
@@ -924,8 +924,8 @@ describe('convertStepsSinglePass', () => {
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[0]])
     expect(exportCalls.map(call => call.container)).toStrictEqual(['002-01', '002-02'])
     expect(outcome.results.map(r => r.status)).toStrictEqual(['fulfilled', 'fulfilled', 'fulfilled'])
-    expect(outcome.fallbacks).toStrictEqual(['スライド 1: デッキの build に print ルートがありません'])
-    expect(outcome.timing.groups[0]).toMatchObject({ slides: [1], steps: 1, fallback: 'デッキの build に print ルートがありません' })
+    expect(outcome.fallbacks).toStrictEqual(['slide 1: the deck build has no print route'])
+    expect(outcome.timing.groups[0]).toMatchObject({ slides: [1], steps: 1, fallback: 'the deck build has no print route' })
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1'])
   })
 
@@ -958,8 +958,8 @@ describe('convertStepsSinglePass', () => {
       'scroll 002-02',
       'wait [id="002-02"] .slidev-page',
     ])
-    expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('タイムアウト'))
-    expect(logger.info).toHaveBeenCalledWith('  コンテナ 002-01: .diagram-block のレンダリング完了を検出')
+    expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('timed out'))
+    expect(logger.info).toHaveBeenCalledWith('  container 002-01: render completion detected: .diagram-block')
     expect(request.fallbackRunner).not.toHaveBeenCalled()
     expect(outcome.fallbacks).toStrictEqual([])
     expect(exportCalls.map(call => call.container)).toStrictEqual(['001-01', '002-01', '002-02'])
@@ -981,16 +981,16 @@ describe('convertStepsSinglePass', () => {
     const outcome = await convertExpectingConverted(request)
 
     // ウォームアップの時間切れはどのコンテナで残ったかを示す
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}警告: コンテナ 002-01 のレンダリング待機がタイムアウト: \.diagram-block の \.loading-overlay が 1 秒以内に消えません/))
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}警告: コンテナ 002-02 のレンダリング待機がタイムアウト/))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}container 002-01: render wait timed out: \.diagram-block: \.loading-overlay did not disappear within 1 s/))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}container 002-02: render wait timed out/))
     // Loading 状態を撮影・変換せず、該当ステップだけ現行 worker に回す
     expect(exportCalls.map(call => call.container)).toStrictEqual(['001-01'])
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[1], steps[2]])
     expect(outcome.results.map(r => r.status)).toStrictEqual(['fulfilled', 'fulfilled', 'fulfilled'])
     expect(outcome.timing.fallbackSteps).toStrictEqual(['2', '2/1'])
     expect(outcome.fallbacks).toStrictEqual([
-      expect.stringMatching(/^スライド #2: 高解像度ページで prerender 対象の読み込みが終わりません（コンテナ 002-01: \.diagram-block の \.loading-overlay が 1 秒以内に消えません/),
-      expect.stringMatching(/^スライド #2\/1: 高解像度ページで prerender 対象の読み込みが終わりません（コンテナ 002-02: /),
+      expect.stringMatching(/^slide #2: prerender targets did not finish loading on the hiRes page: container 002-01: \.diagram-block: \.loading-overlay did not disappear within 1 s/),
+      expect.stringMatching(/^slide #2\/1: prerender targets did not finish loading on the hiRes page: container 002-02: /),
     ])
     expect(readdirSyncSafe(slidesDir).filter(name => /^prerender-slide20[01]-/.test(name))).toStrictEqual([])
   })
@@ -1018,8 +1018,8 @@ describe('convertStepsSinglePass', () => {
     expect(events.filter(event => event.startsWith('wait '))).toHaveLength(4)
     expect(timeouts).toStrictEqual([15_000, 15_000, 2000, 2000])
     expect(outcome.fallbacks).toStrictEqual([
-      expect.stringMatching(/^スライド #2: 高解像度ページで prerender 対象の読み込みが終わりません（コンテナ 002-01: \.diagram-block の \.loading-overlay が 2 秒以内に消えません/),
-      expect.stringMatching(/^スライド #2\/1: 高解像度ページで prerender 対象の読み込みが終わりません（コンテナ 002-02: \.diagram-block の \.loading-overlay が 2 秒以内に消えません/),
+      expect.stringMatching(/^slide #2: prerender targets did not finish loading on the hiRes page: container 002-01: \.diagram-block: \.loading-overlay did not disappear within 2 s/),
+      expect.stringMatching(/^slide #2\/1: prerender targets did not finish loading on the hiRes page: container 002-02: \.diagram-block: \.loading-overlay did not disappear within 2 s/),
     ])
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[1], steps[2]])
   })
@@ -1044,8 +1044,8 @@ describe('convertStepsSinglePass', () => {
     const outcome = await convertExpectingConverted(request)
 
     expect(events.filter(event => event.startsWith('wait '))).toStrictEqual(['wait [id="002-01"] .slidev-page', 'wait [id="002-01"] .slidev-page'])
-    const timeoutWarnings = logger.warn.mock.calls.filter(call => String(call[0]).includes('タイムアウト'))
-    expect(timeoutWarnings).toStrictEqual([[expect.stringMatching(/^ {2}警告: コンテナ 002-01 のレンダリング待機がタイムアウト/)]])
+    const timeoutWarnings = logger.warn.mock.calls.filter(call => String(call[0]).includes('timed out'))
+    expect(timeoutWarnings).toStrictEqual([[expect.stringMatching(/^ {2}container 002-01: render wait timed out/)]])
     expect(request.fallbackRunner).not.toHaveBeenCalled()
     expect(outcome.fallbacks).toStrictEqual([])
     expect(outcome.timing.fallbackSteps).toStrictEqual([])
@@ -1096,7 +1096,7 @@ describe('convertStepsSinglePass', () => {
     await expect(convertStepsSinglePass(makeRequest(browser, {
       signal: controller.signal,
       fallbackRunner,
-      onProgress: (label) => { if (label.includes('1 パス変換失敗')) controller.abort() },
+      onProgress: (label) => { if (label.includes('single-pass conversion failed')) controller.abort() },
     }))).rejects.toThrow('aborted')
     expect(fallbackRunner).not.toHaveBeenCalled()
   })

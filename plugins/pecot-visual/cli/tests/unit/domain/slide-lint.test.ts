@@ -193,7 +193,7 @@ describe('runSlideLint の eslint 実行失敗の分岐', () => {
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
       .rejects.toThrow(SlideLintRuntimeError)
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
-      .rejects.toThrow('(stderr なし)')
+      .rejects.toThrow('(no stderr)')
   })
 
   it('起動失敗 (exitCode:null) は eslint-not-launched', async () => {

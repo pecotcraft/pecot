@@ -313,7 +313,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     expect(second.mode).toBe('relink')
     expect(second.removed).toStrictEqual([])
     expect(second.warnings).toHaveLength(1)
-    expect(second.warnings[0]).toContain('--theme は使いませんでした')
+    expect(second.warnings[0]).toContain('--theme was not used')
     expect(snapshotOutsideNodeModules(talk)).toStrictEqual(afterFirst)
     expect(readlinkSync(path.join(talk, 'node_modules', 'vue'))).toBe(symlinkAfterFirst)
     const themeLink = path.join(talk, 'node_modules', ...THEME_NAME.split('/'))
@@ -362,10 +362,10 @@ describe('createSlideSyncCommand (smoke)', () => {
       await command.parseAsync(['--dir', talk, '--theme', themeSpec()], { from: 'user' })
       const written = stdout.chunks.join('')
       // deck lint の出力量に関わらず先頭行で成否が読めることを固定する。
-      expect(written.split('\n', 1)[0]).toBe(`slide sync: 成功 (${talk})`)
-      expect(written).toContain(`テーマ: ${THEME_NAME} (file:${path.relative(talk, state.themeDirectory)})`)
+      expect(written.split('\n', 1)[0]).toBe(`slide sync: success (${talk})`)
+      expect(written).toContain(`theme: ${THEME_NAME} (file:${path.relative(talk, state.themeDirectory)})`)
       expect(written).toContain('node_modules →')
-      expect(written).toContain('消した名前')
+      expect(written).toContain('removed (')
       expect(written).toContain('layouts')
       expect(process.exitCode).toBe(previousExitCode)
     }
@@ -384,7 +384,7 @@ describe('createSlideSyncCommand (smoke)', () => {
     }))
     await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
     expect(stdout.chunks.join('').split('\n', 1)[0])
-      .toBe(`slide sync (node_modules のみ): 成功 (${talk})`)
+      .toBe(`slide sync (node_modules only): success (${talk})`)
   })
 
   it('失敗時は stderr に成否語を出し exit code 1 になる', async () => {
@@ -397,7 +397,7 @@ describe('createSlideSyncCommand (smoke)', () => {
     const previousExitCode = process.exitCode
     try {
       await command.parseAsync(['--dir', path.join(state.temporaryRoot, 'never-exists')], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide sync 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide sync failed:')
       expect(process.exitCode).toBe(1)
     }
     finally {
@@ -436,8 +436,8 @@ describe('createSlideSyncCommand (smoke)', () => {
     expect(parsed['categories']).toEqual([])
     expect(parsed['layouts']).toEqual([])
     expect(parsed['migration']).toBeNull()
-    expect(stderr.chunks.join('')).toContain('layout catalog を読み取れませんでした')
-    expect(stderr.chunks.join('')).toContain('テーマを参照していません')
+    expect(stderr.chunks.join('')).toContain('cannot read layout catalog')
+    expect(stderr.chunks.join('')).toContain('does not reference a theme')
   })
 })
 
@@ -487,7 +487,7 @@ describe('slide sync --node-modules-only (テーマを参照する talk-dir)', (
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
       stderr: asStream(makeStream()),
-      ensureThemeLinked: () => Promise.reject(new ThemeFetchError('テーマの取得元にタグ \'v9.9.9\' がありません。タグ名を確認してください。', 'tag')),
+      ensureThemeLinked: () => Promise.reject(new ThemeFetchError('tag not found in the theme source: v9.9.9 (fix: check the tag name)', 'tag')),
     }))
     const previousExitCode = process.exitCode
     try {
@@ -496,7 +496,7 @@ describe('slide sync --node-modules-only (テーマを参照する talk-dir)', (
       const parsed = JSON.parse(stdout.chunks.join('').trim()) as { event: string, reason: string, detail: string }
       expect(parsed.event).toBe('slide.sync.error')
       expect(parsed.reason).toBe('theme-tag')
-      expect(parsed.detail).toContain('タグ名を確認してください')
+      expect(parsed.detail).toContain('check the tag name')
       expect(process.exitCode).toBe(1)
     }
     finally {

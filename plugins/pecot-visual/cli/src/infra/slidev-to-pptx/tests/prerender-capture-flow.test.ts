@@ -146,13 +146,13 @@ describe('captureAndReplaceElements', () => {
       globalIndex: 0,
       logger,
     })
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('boundingBox取得失敗'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('boundingBox lookup failed'))
     // box が null + screenshot は成功するが phase 3 で「boundingBox is null」となり成功カウント 0
-    expect(result.results.some(r => r.error?.includes('boundingBox取得失敗'))).toBe(true)
+    expect(result.results.some(r => r.error?.includes('boundingBox lookup failed'))).toBe(true)
     // 同一要素に失敗を二重計上しない。Phase 1 の catch が理由を確定させ、hiRes screenshot が
     // 成功して Phase 3 の `!box` 分岐へ落ちても、results は増やさない。
     expect(result.results).toHaveLength(1)
-    expect(result.results[0]?.error).toBe('boundingBox取得失敗: bbox-fail')
+    expect(result.results[0]?.error).toBe('boundingBox lookup failed: bbox-fail')
   })
 
   it('hiRes screenshot 失敗で警告、screenshots[i] = null で skip される', async () => {
@@ -174,7 +174,7 @@ describe('captureAndReplaceElements', () => {
       globalIndex: 0,
       logger,
     })
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('hiResスクリーンショット失敗'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('hiRes screenshot failed'))
     expect(result.count).toBe(0)
   })
 
@@ -315,8 +315,8 @@ describe('captureAndReplaceElements', () => {
     expect(screenshotCalls).toBe(0)
     expect(hiResPage.screenshotCalls).toHaveLength(0)
     expect(result.count).toBe(0)
-    expect(result.results.some(r => r.error === 'hiResスクリーンショット失敗: 要素が不可視（boundingBox が null）')).toBe(true)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('hiResスクリーンショット失敗'))
+    expect(result.results.some(r => r.error === 'hiRes screenshot failed: element is not visible (boundingBox is null)')).toBe(true)
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('hiRes screenshot failed'))
   })
 
   it('オフスクリーン要素の再計測が null でも savedTransforms を復元してから失敗にする', async () => {
@@ -359,7 +359,7 @@ describe('captureAndReplaceElements', () => {
     expect(screenshotCalls).toBe(0)
     // 復元を飛ばすと同一 hiResPage 上の後続要素が transform 解除のまま破損する
     expect(restoreArguments).toHaveLength(1)
-    expect(result.results.some(r => r.error === 'hiResスクリーンショット失敗: 要素が不可視（boundingBox が null）')).toBe(true)
+    expect(result.results.some(r => r.error === 'hiRes screenshot failed: element is not visible (boundingBox is null)')).toBe(true)
   })
 
   it('オフスクリーン要素の screenshot が throw しても savedTransforms を復元する', async () => {

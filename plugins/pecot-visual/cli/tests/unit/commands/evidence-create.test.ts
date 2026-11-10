@@ -130,9 +130,9 @@ describe('runEvidenceCreate', () => {
     expect(caught).toBeInstanceOf(EvidenceCreateError)
     expect(caught).toMatchObject({ reason: 'invalid-spec' })
     const message = caught instanceof Error ? caught.message : ''
-    expect(message).toContain('- title: 空文字列は許可されていません')
-    expect(message).toContain('- createdDate: 暦に存在しない日付です (値: 2026-02-31)')
-    expect(message).toContain('- items[0].annotations[0].box.w: x + w が 1 を超えます')
+    expect(message).toContain('- title: must not be empty')
+    expect(message).toContain('- createdDate: not a valid calendar date: 2026-02-31')
+    expect(message).toContain('- items[0].annotations[0].box.w: x + w exceeds 1')
   })
 
   it('ルート自身のエラーはパスを (root) と表示する', async () => {
@@ -149,7 +149,7 @@ describe('runEvidenceCreate', () => {
       caught = error
     }
     const message = caught instanceof Error ? caught.message : ''
-    expect(message).toContain('- (root): EvidenceSpec は object である必要があります')
+    expect(message).toContain('- (root): EvidenceSpec must be an object')
   })
 
   it('文面の違反は text-violation で全件を載せ、writeWorkbook を呼ばない', async () => {
@@ -174,7 +174,7 @@ describe('runEvidenceCreate', () => {
       '/abs/spec.json',
       '/abs/out.xlsx',
       buildDependencies({ readFile: () => Promise.resolve(JSON.stringify(spec)), writeWorkbook }),
-    )).rejects.toThrow('文面の違反 2 件')
+    )).rejects.toThrow('2 text violation(s)')
     expect(writeWorkbook).not.toHaveBeenCalled()
   })
 
@@ -243,7 +243,7 @@ describe('createEvidenceCreateCommand — 成功時の出力', () => {
     try {
       await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
       expect(stdout.chunks.join('')).toBe(
-        '生成しました: /abs/evidence.xlsx\n項目数: 1 / 注記数: 0\n',
+        'created: /abs/evidence.xlsx\nitems: 1 / annotations: 0\n',
       )
       // 成功時は exitCode を触らない。
       expect(process.exitCode).toBe(undefined)
@@ -262,7 +262,7 @@ describe('createEvidenceCreateCommand — 成功時の出力', () => {
     await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
 
     expect(stdout.chunks.join('')).toBe(
-      '生成しました: /abs/evidence.xlsx\n項目数: 2 / 注記数: 5\n',
+      'created: /abs/evidence.xlsx\nitems: 2 / annotations: 5\n',
     )
   })
 
@@ -280,9 +280,9 @@ describe('createEvidenceCreateCommand — 成功時の出力', () => {
     await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
 
     expect(stdout.chunks.join('')).toBe(
-      '生成しました: /abs/evidence.xlsx\n'
-      + '項目数: 1 / 注記数: 0\n'
-      + '除外: 2 件\n'
+      'created: /abs/evidence.xlsx\n'
+      + 'items: 1 / annotations: 0\n'
+      + 'skipped: 2\n'
       + '  - /img/missing.png (not-found)\n'
       + '  - /img/note.png (unsupported-format)\n',
     )
@@ -331,7 +331,7 @@ describe('createEvidenceCreateCommand — 失敗時の出力', () => {
       stdout: asStream(stdout),
       stderr: asStream(stderr),
       writeWorkbook: () => Promise.reject(
-        new EvidenceWorkbookError('配置できる画像がありません (2 件すべて除外)', 'no-valid-images'),
+        new EvidenceWorkbookError('no images can be placed (all 2 items excluded)', 'no-valid-images'),
       ),
     }))
     const previousExit = process.exitCode
@@ -339,7 +339,7 @@ describe('createEvidenceCreateCommand — 失敗時の出力', () => {
     try {
       await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
       expect(stderr.chunks.join('')).toBe(
-        'error: evidence create: 配置できる画像がありません (2 件すべて除外)\n',
+        'error: evidence create: no images can be placed (all 2 items excluded)\n',
       )
       expect(stdout.chunks.join('')).toBe('')
       expect(process.exitCode).toBe(1)
@@ -366,7 +366,7 @@ describe('createEvidenceCreateCommand — 失敗時の出力', () => {
       const parsed = JSON.parse(last) as { event: string, reason: string, detail: string }
       expect(parsed.event).toBe('evidence.create.error')
       expect(parsed.reason).toBe('input-not-found')
-      expect(parsed.detail).toContain('spec JSON が読めません')
+      expect(parsed.detail).toContain('cannot read spec JSON')
       expect(stderr.chunks).toHaveLength(0)
       expect(process.exitCode).toBe(1)
     }
@@ -388,7 +388,7 @@ describe('createEvidenceCreateCommand — 失敗時の出力', () => {
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを narrowing
       const parsed = JSON.parse(stdout.chunks.join('').trim()) as { reason: string, detail: string }
       expect(parsed.reason).toBe('invalid-spec')
-      expect(parsed.detail).toContain('- items: 1 件以上必要です')
+      expect(parsed.detail).toContain('- items: must have at least one item')
       expect(process.exitCode).toBe(1)
     }
     finally {

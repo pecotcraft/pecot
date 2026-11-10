@@ -108,7 +108,7 @@ describe('MCP ツールの異常系応答', () => {
     expect(structured['ok']).toBe(false)
     expect(structured['exitCode']).toBe(2)
     expect(structured['artifacts']).toEqual([])
-    expect(structured['message']).toContain('絶対パス')
+    expect(structured['message']).toContain('must be an absolute path')
   })
 
   it('入力ファイル不在は実行失敗として exitCode 1 で返す', async () => {

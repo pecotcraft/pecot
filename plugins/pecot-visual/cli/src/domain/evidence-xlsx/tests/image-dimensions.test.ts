@@ -94,7 +94,7 @@ describe('readImageDimensions — PNG', () => {
     expect(readImageDimensions(truncated)).toStrictEqual({
       ok: false,
       reason: 'unreadable',
-      message: 'PNG の IHDR まで届きません (20 バイト)',
+      message: 'PNG ends before IHDR (20 bytes)',
     })
   })
 
@@ -231,7 +231,7 @@ describe('readImageDimensions — JPEG', () => {
     expect(readImageDimensions(jpeg)).toStrictEqual({
       ok: false,
       reason: 'unreadable',
-      message: 'JPEG に SOF セグメントがありません (SOS に到達)',
+      message: 'no SOF segment in JPEG (reached SOS)',
     })
   })
 
@@ -332,6 +332,6 @@ describe('readImageDimensions — 非対応形式', () => {
   it('空バッファの message は (空) を含む', () => {
     const result = readImageDimensions(new Uint8Array(0))
 
-    expect(result.ok ? '' : result.message).toContain('(空)')
+    expect(result.ok ? '' : result.message).toContain('(empty)')
   })
 })

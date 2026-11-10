@@ -92,7 +92,7 @@ describe('exportPdf', () => {
 
     const outputPath = path.join(makeTemporaryDirectory(), 'out.pdf')
     await expect(exportPdf('<svg width="100%" height="10px"/>', outputPath))
-      .rejects.toThrow(/px の正の値ではありません/)
+      .rejects.toThrow(/is not a positive px value/)
     expect(launch).not.toHaveBeenCalled()
   })
 
@@ -124,7 +124,7 @@ describe('exportPdf', () => {
     })()
     await vi.advanceTimersByTimeAsync(60_000)
 
-    await expect(settled).resolves.toMatch(/60s 以内に終わりませんでした/)
+    await expect(settled).resolves.toMatch(/did not finish within 60s/)
 
     expect(close).toHaveBeenCalledTimes(1)
     expect(existsSync(outputPath)).toBe(false)

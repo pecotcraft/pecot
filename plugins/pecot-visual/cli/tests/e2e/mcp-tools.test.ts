@@ -676,7 +676,7 @@ describe('pecotv mcp のツール (stdio)', () => {
           reason: 'chromium-not-installed',
           expectedAt: emptyBrowsersRoot,
         })
-        expect(String(dataOf(blocked)['detail'])).toContain('`setup` ツール')
+        expect(String(dataOf(blocked)['detail'])).toContain('`setup` tool')
 
         // chromium を要さない呼び出しは同じプロセスでそのまま通る (サーバは落ちていない)。
         const succeeded = await client.callTool(

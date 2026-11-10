@@ -113,7 +113,7 @@ describe('prerenderComplexElements', () => {
     }
     await prerenderComplexElements(page.asPage(), browser.asBrowser(), config, 1, outDir, logger)
     expect(hiResPage.waitForTimeoutCalls).toContain(50)
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('レンダリング完了を検出'))
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('render completion detected'))
   })
 
   it('selectorState で waitForFunction が throw すると logger.warn でタイムアウト警告', async () => {
@@ -137,7 +137,7 @@ describe('prerenderComplexElements', () => {
       }],
     }
     await prerenderComplexElements(page.asPage(), browser.asBrowser(), config, 1, outDir, logger)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('タイムアウト'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('timed out'))
   })
 
   it('hiRes と page で elements 数が異なれば mismatch 警告を出す', async () => {
@@ -157,7 +157,7 @@ describe('prerenderComplexElements', () => {
     const logger = makeLogger()
     const config: PrerenderConfig = { ...baseConfig, targets: [{ selector: '.target' }] }
     await prerenderComplexElements(page.asPage(), browser.asBrowser(), config, 1, outDir, logger)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('検出数が不一致'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('detected count mismatch'))
   })
 
   it('deviceScaleFactor が falsy のとき 5 にフォールバック', async () => {
@@ -193,7 +193,7 @@ describe('restorePrerenderElements', () => {
     await restorePrerenderElements(page.asPage(), logger)
     expect(document.querySelectorAll('[data-prerender-hidden]')).toHaveLength(0)
     expect(document.querySelectorAll('[data-prerender-img]')).toHaveLength(0)
-    expect(logger.verbose).toHaveBeenCalledWith('プリレンダリング要素を復元')
+    expect(logger.verbose).toHaveBeenCalledWith('prerender elements restored')
   })
 
   it('scopeSelector 指定時はその要素の内側だけを戻す (#1141)', async () => {
@@ -221,6 +221,6 @@ describe('restorePrerenderElements', () => {
     }
     const logger = makeLogger()
     await restorePrerenderElements(page.asPage(), logger)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('DOM復元が不完全'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('DOM restore incomplete'))
   })
 })

@@ -117,7 +117,7 @@ describe('convertSingleSlideWithRetry', () => {
         logger,
       )
       expect(result.step.slideNumber).toBe(1)
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('変換失敗（試行1/2）'))
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('conversion failed (attempt 1/2)'))
     }
     finally {
       vi.unstubAllGlobals()

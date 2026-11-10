@@ -219,7 +219,7 @@ describe('createSlideSyncCommand エラーマッピング', () => {
     const previousExitCode = process.exitCode
     try {
       await command.parseAsync(['--dir', 'relative/p'], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide sync 失敗:')
+      expect(stderr.chunks.join('')).toContain('error: slide sync failed:')
       expect(process.exitCode).toBe(2)
     }
     finally {
@@ -275,11 +275,11 @@ describe('createSlideSyncCommand 成否行とテーマ', () => {
 
     const lines = stdout.chunks.join('').split('\n')
     expect(lines.slice(0, 5)).toStrictEqual([
-      `slide sync: 成功 (${talk})`,
-      `  テーマ: ${THEME_NAME} (${THEME_SPEC})`,
-      `  置き場: ${THEME_DIRECTORY}`,
+      `slide sync: success (${talk})`,
+      `  theme: ${THEME_NAME} (${THEME_SPEC})`,
+      `  location: ${THEME_DIRECTORY}`,
       '  node_modules → /runtime/current/node_modules',
-      '  node_modules のほかは変えていません。',
+      '  nothing changed except node_modules',
     ])
   })
 
@@ -290,8 +290,8 @@ describe('createSlideSyncCommand 成否行とテーマ', () => {
     await buildCommand(stdout, relinkedTheme).parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
 
     expect(stdout.chunks.join('').split('\n').slice(0, 3)).toStrictEqual([
-      `slide sync (node_modules のみ): 成功 (${talk})`,
-      `  テーマ: ${THEME_NAME} (${THEME_SPEC})`,
+      `slide sync (node_modules only): success (${talk})`,
+      `  theme: ${THEME_NAME} (${THEME_SPEC})`,
       '  node_modules → /runtime/current/node_modules',
     ])
   })
@@ -311,9 +311,9 @@ describe('createSlideSyncCommand 成否行とテーマ', () => {
     await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
 
     const lines = stdout.chunks.join('').split('\n')
-    expect(lines[0]).toBe(`slide sync (node_modules のみ): 成功 (${talk})`)
+    expect(lines[0]).toBe(`slide sync (node_modules only): success (${talk})`)
     expect(lines[1]).toBe(`  node_modules → ${path.join(pluginRoot, 'node_modules')}`)
-    expect(stdout.chunks.join('')).not.toContain('テーマ:')
+    expect(stdout.chunks.join('')).not.toContain('theme:')
   })
 
   it('--json の slide.sync.done は theme を { name, spec, directory } で載せる', async () => {
@@ -486,9 +486,9 @@ describe('slide sync --theme (移行前の talk-dir)', () => {
     const { command, stdout: human } = buildCommand(pluginRoot)
     await command.parseAsync(['--dir', talk, '--theme', `file:${THEME_FIXTURE}`], { from: 'user' })
     const lines = human.chunks.join('').split('\n')
-    expect(lines[0]).toBe(`slide sync: 成功 (${talk})`)
-    expect(lines[1]).toBe(`  テーマ: ${THEME_NAME} (file:${path.relative(talk, THEME_FIXTURE)})`)
-    expect(lines).toContain('  消した名前 (3 件): layouts, pages/_references, public/assets')
+    expect(lines[0]).toBe(`slide sync: success (${talk})`)
+    expect(lines[1]).toBe(`  theme: ${THEME_NAME} (file:${path.relative(talk, THEME_FIXTURE)})`)
+    expect(lines).toContain('  removed (3): layouts, pages/_references, public/assets')
   })
 
   it('--json の slide.sync.done は migration.removed と warnings を載せる', async () => {

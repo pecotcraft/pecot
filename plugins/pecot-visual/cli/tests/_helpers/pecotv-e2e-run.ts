@@ -225,13 +225,4 @@ export function warningsStartingWith(
   return (warnings ?? []).filter(warning => warning.startsWith(prefix))
 }
 
-/**
-接尾辞一致で警告を絞る（先頭に件数が入る警告向け）。
-*/
-export function warningsEndingWith(
-  warnings: readonly string[] | undefined,
-  suffix: string,
-): readonly string[] {
-  return (warnings ?? []).filter(warning => warning.endsWith(suffix))
-}
 /* eslint-enable security/detect-non-literal-fs-filename */

@@ -112,7 +112,7 @@ describe('ensureTalkThemeLinked', () => {
     expect(syncGeneratedFiles).toHaveBeenCalledWith(TALK, { themeName: THEME_NAME })
     expect(linkNodeModules).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('vite.config.ts・start.mjs'))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('vite.config.ts, start.mjs'))
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('setup/vite-plugins.ts'))
   })
 
@@ -179,7 +179,7 @@ describe('ensureTalkThemeLinked', () => {
     const failure = await rejectionOf(ensureTalkThemeLinked(TALK, dependencies, { requireTheme: true }))
 
     expect(failure).toMatchObject({ reason: 'theme-none' })
-    expect(String(failure), 'テーマの dir だと伝えていない').toContain('テーマの dir')
+    expect(String(failure), 'テーマの dir だと伝えていない').toContain('it is a theme dir')
     expect(fetchTheme).not.toHaveBeenCalled()
     expect(linkNodeModules).not.toHaveBeenCalled()
     expect(syncGeneratedFiles).not.toHaveBeenCalled()

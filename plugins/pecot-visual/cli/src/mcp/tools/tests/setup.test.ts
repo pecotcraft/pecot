@@ -264,7 +264,7 @@ describe('setup: chromium', () => {
       install: () => Promise.resolve(spawnResult({ exitCode: 1, timedOut: true })),
     })
 
-    expect(await setupDetail(deps)).toContain('タイムアウト')
+    expect(await setupDetail(deps)).toContain('download timed out')
   })
 
   it('exit 0 でも実体が置かれていなければ失敗として扱う', async () => {
@@ -348,7 +348,7 @@ describe('setup: 実行時依存 (永続層)', () => {
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['exitCode']).toBe(1)
     expect(dataOf(result)).toMatchObject({ event: 'setup.error', reason: 'runtime-install-failed' })
-    expect(String(dataOf(result)['detail'])).toContain('exit 1')
+    expect(String(dataOf(result)['detail'])).toContain('exited with 1')
     expect(structuredOf(result)['stderr']).toBe('ERR_PNPM')
     // npm が破損している環境で chromium 取得まで巻き添えにしない。
     expect(chromium.installCalls()).toBe(1)
@@ -365,7 +365,7 @@ describe('setup: 実行時依存 (永続層)', () => {
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, runtime.deps)
 
-    expect(String(dataOf(result)['detail'])).toContain('npm を起動できませんでした')
+    expect(String(dataOf(result)['detail'])).toContain('could not start npm')
   })
 
   it('exit 0 でも解決できなければ失敗として扱う', async () => {
@@ -393,7 +393,7 @@ describe('setup: 実行時依存 (永続層)', () => {
     })
 
     expect(await setupDetail(fakeDependencies({ installed: true }).deps, timedOut.deps))
-      .toContain('タイムアウト')
+      .toContain('download timed out')
     expect(await setupDetail(fakeDependencies({ installed: true }).deps, aborted.deps))
       .toContain('SIGTERM')
   })
@@ -422,7 +422,7 @@ describe('setup: 実行時依存 (永続層)', () => {
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, runtime.deps)
 
-    expect(String(dataOf(result)['detail'])).toContain('別のプロセスが実行時依存を取得中')
+    expect(String(dataOf(result)['detail'])).toContain('another process is downloading runtime dependencies')
   })
 })
 
@@ -460,10 +460,10 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
 
     const detail = await setupDetail(fakeDependencies({ installed: true }).deps, runtime.deps)
 
-    expect(detail, '既存の理由は残す').toContain('npm install が exit 1')
-    expect(detail).toContain('TLS 証明書の検証で失敗しています')
+    expect(detail, '既存の理由は残す').toContain('npm install exited with 1')
+    expect(detail).toContain('TLS certificate verification failed')
     expect(detail).toContain(TLS_HINT)
-    expect(detail, '同梱の証明書は無い').not.toContain('同梱')
+    expect(detail, '同梱の証明書は無い').not.toContain('bundled')
   })
 
   it('実行時依存側: TLS と無関係な失敗には誘導が付かない', async () => {
@@ -474,7 +474,7 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
 
     const detail = await setupDetail(fakeDependencies({ installed: true }).deps, runtime.deps)
 
-    expect(detail).toContain('npm install が exit 1')
+    expect(detail).toContain('npm install exited with 1')
     expect(detail).not.toContain(TLS_HINT)
   })
 
@@ -490,7 +490,7 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
     const detail = await setupDetail(deps)
 
     expect(detail, '既存の理由は残す').toContain('PLAYWRIGHT_DOWNLOAD_HOST')
-    expect(detail).toContain('TLS 証明書の検証で失敗しています')
+    expect(detail).toContain('TLS certificate verification failed')
     expect(detail).toContain(TLS_HINT)
   })
 
@@ -529,10 +529,10 @@ describe('setup: 両系統が失敗した場合', () => {
 
     expect(result.isError).toBe(true)
     const detail = String(dataOf(result)['detail'])
-    expect(detail, '実行時依存側の理由').toContain('npm install が exit 1')
+    expect(detail, '実行時依存側の理由').toContain('npm install exited with 1')
     expect(detail, 'chromium 側の理由').toContain('PLAYWRIGHT_DOWNLOAD_HOST')
     const message = String(structuredOf(result)['message'])
-    expect(message).toContain('実行時依存')
+    expect(message).toContain('runtime dependencies')
     expect(message).toContain('Playwright Chromium')
   })
 
@@ -575,7 +575,7 @@ describe('setup: Chromium の OS ライブラリ', () => {
 
     const structured = structuredOf(result)
     expect(structured['ok']).toBe(true)
-    expect(String(structured['message'])).toContain('OS のライブラリを入れました')
+    expect(String(structured['message'])).toContain('OS libraries required to launch Chromium installed')
     expect(String(structured['message'])).toContain('libatk1.0-0t64')
     expect(stageOf(result, 'hostDeps')).toMatchObject({ installed: true, downloaded: true })
     expect(host.records()).toEqual(['ok'])
@@ -608,8 +608,8 @@ describe('setup: Chromium の OS ライブラリ', () => {
     expect(dataOf(result)['reason']).toBe('chromium-host-deps-missing')
     expect(String(structured['message'])).toContain('sudo apt-get install -y --no-install-recommends libatk1.0-0t64')
     expect(String(structured['message']), '取得の失敗ではなく不足として、前置きなしで 1 回だけ案内する')
-      .toMatch(/^Chromium の起動に要る OS のライブラリが足りません \(libatk-1\.0\.so\.0\)。(?!.*足りません)/)
-    expect(String(structured['message'])).not.toContain('の取得に失敗しました')
+      .toMatch(/^OS libraries required to launch Chromium are missing \(libatk-1\.0\.so\.0\); (?!.*OS libraries required)/)
+    expect(String(structured['message'])).not.toContain('download failed for')
     expect(host.records()).toEqual(['missing'])
   })
 

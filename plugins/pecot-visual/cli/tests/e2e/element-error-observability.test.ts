@@ -47,7 +47,6 @@ import {
   createPecotvRunner,
   isChromiumCached,
   lastEvent,
-  warningsEndingWith,
   createFixtureThemeSpec,
   FIXTURE_THEME_NAME,
 } from '../_helpers/pecotv-e2e-run.js'
@@ -59,9 +58,14 @@ const PRERENDER_SELECTOR = '.point-number'
 const SLIDE_COUNT = 2
 
 /**
-pipeline がキャッシュヒット時に積む警告。先頭にヒット数が付くため、接尾辞で判定する。
+pipeline がキャッシュヒット時に積む警告。途中にヒット数が入るため、前後で判定する。
 */
-const CACHE_REUSE_SUFFIX = 'ステップはキャッシュ再利用のため要素診断を再実行していません'
+const CACHE_REUSE_PREFIX = 'element diagnostics were not re-run for'
+const CACHE_REUSE_SUFFIX = 'steps because their cache was reused'
+
+function cacheReuseWarnings(warnings: readonly string[] | undefined): readonly string[] {
+  return (warnings ?? []).filter(warning => warning.startsWith(CACHE_REUSE_PREFIX) && warning.endsWith(CACHE_REUSE_SUFFIX))
+}
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -164,13 +168,13 @@ describe.skipIf(!isChromiumReady)('CUJ: element エラーが成功 run の done 
     // 接頭辞だけでは、screenshot() の 30 秒 timeout へ戻った場合と区別できない。
     // 所要の 12 + 30 秒は、ceiling 55 秒に収まる。
     // そのため、理由まで含めて実 CLI で固定する。
-    expect(elementErrors[0]?.message).toBe('hiResスクリーンショット失敗: 要素が不可視（boundingBox が null）')
+    expect(elementErrors[0]?.message).toBe('hiRes screenshot failed: element is not visible (boundingBox is null)')
     // 値は構成依存なので型だけ見る（不在のまま JSON 化されていないことの確認）
     expect(typeof elementErrors[0]?.slideNumber).toBe('number')
     // Playwright の call log は message に載せない（機械可読 payload としての可読性）
     expect(elementErrors[0]?.message).not.toContain('Call log:')
     // 今回の errors は計測した値（キャッシュ再利用で診断を飛ばした run ではない）
-    expect(warningsEndingWith(done?.warnings, CACHE_REUSE_SUFFIX)).toStrictEqual([])
+    expect(cacheReuseWarnings(done?.warnings)).toStrictEqual([])
 
     // 2 回目は `--no-cache` を外し、1 回目が残したキャッシュにヒットさせる。
     const cached = runPecotv('convert-cached', [
@@ -186,8 +190,8 @@ describe.skipIf(!isChromiumReady)('CUJ: element エラーが成功 run の done 
     // 意味しない」（convert.ts）を実 CLI で固定する。
     expect(cachedDone?.errors).toStrictEqual([])
     // 代わりに、診断を再実行していない旨がヒット数つきで警告に出る
-    expect(warningsEndingWith(cachedDone?.warnings, CACHE_REUSE_SUFFIX))
-      .toStrictEqual([`${String(SLIDE_COUNT)}${CACHE_REUSE_SUFFIX}`])
+    expect(cacheReuseWarnings(cachedDone?.warnings))
+      .toStrictEqual([`${CACHE_REUSE_PREFIX} ${String(SLIDE_COUNT)} ${CACHE_REUSE_SUFFIX}`])
 
     const totalMs = performance.now() - itT0
     console.info(`[element-error] CUJ 合計 ${(totalMs / 1000).toFixed(1)}s (ceiling ${String(ELEMENT_ERROR_CEILING_MS / 1000)}s)`)

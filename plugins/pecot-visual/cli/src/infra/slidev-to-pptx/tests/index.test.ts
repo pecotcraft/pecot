@@ -302,8 +302,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(timeoutError.lastProgress).toBe('スライド #6 変換完了')
     // 経過は「6 回の進捗 (約 300ms) + 最後の idle (200ms)」で、idle 上限単独より長い。
     expect(timeoutError.elapsedMs).toBeGreaterThan(200)
-    expect(timeoutError.message).toContain('200ms 進捗なし')
-    expect(timeoutError.message).toContain('最終進捗: スライド #6 変換完了')
+    expect(timeoutError.message).toContain('no progress for 200ms')
+    expect(timeoutError.message).toContain('last progress: スライド #6 変換完了')
   })
 
   it('abort 後に遅れて届く onProgress は無視され、タイマーが再武装されない (#1097 F-04)', async () => {
@@ -354,7 +354,7 @@ describe('InProcessSlidevPptxPipeline', () => {
 
     expect(error).toBeInstanceOf(PipelineTimeoutError)
     expect((error as PipelineTimeoutError).lastProgress).toBeUndefined()
-    expect((error as PipelineTimeoutError).message).toContain('スキャン開始前')
+    expect((error as PipelineTimeoutError).message).toContain('before the scan started')
   })
 
   it('timeout で打ち切っても pipeline が積んだ警告を PipelineTimeoutError に引き継ぐ (#931)', async () => {

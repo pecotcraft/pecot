@@ -579,7 +579,7 @@ HOME="$ISO_HOME" "$BIN_PECOTV" drawio url "$DRAWIO_FIXTURE" --output "$CUJ9A_HTM
 code=$?
 set -e
 assert_exit_zero "$code" "CUJ 9a exit"
-assert_no_grep 'Playwright Chromium が起動できません' "$STDERR9A" "CUJ 9a no chromium launch failure"
+assert_no_grep 'Playwright Chromium cannot launch' "$STDERR9A" "CUJ 9a no chromium launch failure"
 if [ ! -s "$CUJ9A_HTML" ]; then
   echo "[bootstrap-test] FAIL: CUJ 9a HTML not generated at $CUJ9A_HTML" >&2
   exit 1
@@ -633,7 +633,7 @@ HOME="$ISO_HOME" "$BIN_PECOTV" slide convert "$SLIDEV_DST" --out "$CUJ9B_PPTX" >
 code=$?
 set -e
 assert_exit_zero "$code" "CUJ 9b exit"
-assert_no_grep 'Playwright Chromium が起動できません' "$STDERR9B" "CUJ 9b no chromium launch failure"
+assert_no_grep 'Playwright Chromium cannot launch' "$STDERR9B" "CUJ 9b no chromium launch failure"
 if [ ! -s "$CUJ9B_PPTX" ]; then
   echo "[bootstrap-test] FAIL: CUJ 9b PPTX not generated at $CUJ9B_PPTX" >&2
   exit 1

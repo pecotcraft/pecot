@@ -224,6 +224,6 @@ describe('resolveBoundPort', () => {
 
   it('要求ポートが 0 (ephemeral) で実ポートも取れないときは throw する', () => {
     const fake = { address: () => null } as unknown as Server
-    expect(() => resolveBoundPort(fake, 0)).toThrow('bind ポートを解決できません')
+    expect(() => resolveBoundPort(fake, 0)).toThrow('cannot resolve the bind port of the dist server')
   })
 })

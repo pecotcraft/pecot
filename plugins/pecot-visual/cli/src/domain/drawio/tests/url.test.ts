@@ -99,25 +99,25 @@ describe('validateHtml', () => {
   it('シングルクォート属性値を検出する', () => {
     const xml = `<root><mxCell id="a" value="&lt;font color='red'&gt;X&lt;/font&gt;"/></root>`
     const warnings = validateHtml(xml)
-    expect(warnings.some(w => w.message.includes('シングルクォート属性値'))).toBe(true)
+    expect(warnings.some(w => w.message.includes('single-quoted attribute value'))).toBe(true)
   })
 
   it('font の不正属性を検出する', () => {
     const xml = `<root><mxCell id="b" value="&lt;font weight=&quot;bold&quot;&gt;X&lt;/font&gt;"/></root>`
     const warnings = validateHtml(xml)
-    expect(warnings.some(w => w.severity === 'warning' && w.message.includes('非対応属性'))).toBe(true)
+    expect(warnings.some(w => w.severity === 'warning' && w.message.includes('unsupported <font> attribute'))).toBe(true)
   })
 
   it('font color と style fontColor の二重指定を info で出す', () => {
     const xml = `<root><mxCell id="c" value="&lt;font color=&quot;#ff0000&quot;&gt;X&lt;/font&gt;" style="fontColor=#FF0000;"/></root>`
     const warnings = validateHtml(xml)
-    expect(warnings.some(w => w.severity === 'note' && w.message.includes('二重指定'))).toBe(true)
+    expect(warnings.some(w => w.severity === 'note' && w.message.includes('specify the same value twice'))).toBe(true)
   })
 
   it('font color と style fontColor が異なる時は info を出さない', () => {
     const xml = `<root><mxCell id="d" value="&lt;font color=&quot;#00ff00&quot;&gt;X&lt;/font&gt;" style="fontColor=#FF0000;"/></root>`
     const warnings = validateHtml(xml)
-    expect(warnings.some(w => w.severity === 'note' && w.message.includes('二重指定'))).toBe(false)
+    expect(warnings.some(w => w.severity === 'note' && w.message.includes('specify the same value twice'))).toBe(false)
   })
 
   it('id 属性が無い mxCell は cellId のフォールバックに疑問符を使う', () => {
@@ -130,7 +130,7 @@ describe('validateHtml', () => {
   it('style fontColor 指定があっても <font> に color 属性が無い場合は info を出さない', () => {
     const xml = `<root><mxCell id="e" value="&lt;font face=&quot;Inter&quot;&gt;X&lt;/font&gt;" style="fontColor=#FF0000;"/></root>`
     const warnings = validateHtml(xml)
-    expect(warnings.some(w => w.severity === 'note' && w.message.includes('二重指定'))).toBe(false)
+    expect(warnings.some(w => w.severity === 'note' && w.message.includes('specify the same value twice'))).toBe(false)
   })
 
   it('rootless でも throw しない', () => {
@@ -140,7 +140,7 @@ describe('validateHtml', () => {
   it('先頭に BOM (U+FEFF) があっても parse に成功し警告を検出する（0 件で済ませない）', () => {
     const xml = '\u{FEFF}<root><mxCell id="a" value="&lt;font weight=&quot;bold&quot;&gt;X&lt;/font&gt;"/></root>'
     const warnings = validateHtml(xml)
-    expect(warnings.some(w => w.message.includes('非対応属性'))).toBe(true)
+    expect(warnings.some(w => w.message.includes('unsupported <font> attribute'))).toBe(true)
   })
 })
 
