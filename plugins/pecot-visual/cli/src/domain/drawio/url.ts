@@ -89,8 +89,15 @@ function attributeValue(element: XmldomElement, name: string): string | undefine
   return element.getAttribute(name) ?? undefined
 }
 
+// 消した跡の前後がつながって新しいコメントになる入力があるため、変化しなくなるまで繰り返す。
 export function stripComments(xml: string): string {
-  return xml.replaceAll(XML_COMMENT_REGEX, '')
+  let current = xml
+  let previous: string
+  do {
+    previous = current
+    current = current.replaceAll(XML_COMMENT_REGEX, '')
+  } while (current !== previous)
+  return current
 }
 
 export interface DrawioFinding {
