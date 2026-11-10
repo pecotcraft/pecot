@@ -53,6 +53,12 @@ _CI_ENV = (
     "NX_SELF_HOSTED_REMOTE_CACHE_SERVER",
     "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN",
     "SKIP",
+    # tests の job が 1 レーンを動かすときに渡す。
+    "PECOT_NX_LANE",
+    "CHECKS_LANE",
+    "CHECKS_SLUG",
+    "CHECKS_PART",
+    "PECOT_CI_BROWSER",
 )
 
 
