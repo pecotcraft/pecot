@@ -23,6 +23,7 @@ _DOCKER = r"""#!/bin/bash
 echo "docker $*" >> "$STUB_LOG"
 case "$1" in
     pull) exit "${STUB_PULL_RC:-0}" ;;
+    buildx) exit "${STUB_TAG_EXISTS_RC:-1}" ;;
     image)
         case "$*" in
             *RepoDigests*) echo "${!#%%:*}@sha256:beef" ;;
@@ -376,3 +377,108 @@ def test_tag_prints_ref_and_ignores_files_outside_the_image(
     git(env.work, "add", "-A")
     git(env.work, "commit", "-q", "-m", "image")
     assert env.run("tag").stdout != first.stdout
+
+
+_ZSTD = "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true"
+
+
+def _build_args(env: Env) -> list[str]:
+    builds = env.calls_of("devcontainer build")
+    assert len(builds) == 1
+    return shlex.split(builds[0])[2:]
+
+
+def test_publish_without_flags_builds_only(env: Env) -> None:
+    result = env.run("publish")
+    assert result.returncode == 0, result.stderr
+    assert _build_args(env) == [
+        "--workspace-folder", str(env.work),
+        "--image-name", f"{_REPO}:def-{env.key}",
+        "--cache-from", f"{_REPO}:latest",
+    ]  # fmt: skip
+
+
+def test_publish_without_push_builds_even_if_tag_exists(env: Env) -> None:
+    assert env.run("publish", STUB_TAG_EXISTS_RC="0").returncode == 0
+    assert env.calls_of("docker buildx") == []
+    assert "--output" not in _build_args(env)
+
+
+def test_publish_push_uses_zstd_registry_output(env: Env) -> None:
+    assert env.run("publish", "--push").returncode == 0
+    args = _build_args(env)
+    assert args[args.index("--output") + 1] == _ZSTD
+    assert args.count("--image-name") == 1
+
+
+def test_publish_push_skips_build_when_tag_exists(env: Env) -> None:
+    result = env.run("publish", "--push", STUB_TAG_EXISTS_RC="0")
+    assert result.returncode == 0, result.stderr
+    assert "already exists" in result.stdout
+    assert env.calls_of("devcontainer build") == []
+    assert env.calls_of("docker buildx") == [
+        f"docker buildx imagetools inspect {_REPO}:def-{env.key}"
+    ]
+
+
+def test_publish_latest_builds_even_if_tag_exists(env: Env) -> None:
+    assert env.run("publish", "--push", "--latest", STUB_TAG_EXISTS_RC="0").returncode == 0
+    args = _build_args(env)
+    assert args.count("--image-name") == 2
+    assert f"{_REPO}:latest" in args
+    assert "--output" in args
+
+
+def test_publish_no_cache_is_passed(env: Env) -> None:
+    assert env.run("publish", "--push", "--latest", "--no-cache").returncode == 0
+    assert "--no-cache" in _build_args(env)
+
+
+def test_publish_rejects_unknown_argument(env: Env) -> None:
+    result = env.run("publish", "--bogus")
+    assert result.returncode == 2
+    assert env.calls_of("devcontainer build") == []
+
+
+def test_publish_propagates_build_failure(env: Env) -> None:
+    assert env.run("publish", "--push", STUB_BUILD_RC="1").returncode == 1
+
+
+def _drift_setup(env: Env, git: Callable[..., object], *, drift: bool) -> None:
+    git(env.work, "branch", "-M", "main")
+    git(env.work, "update-ref", "refs/remotes/origin/main", "HEAD")
+    git(env.work, "checkout", "-q", "-b", "pr")
+    (env.work / "f.txt").write_text("pr\n")
+    git(env.work, "add", "-A")
+    git(env.work, "commit", "-q", "-m", "pr")
+    git(env.work, "checkout", "-q", "main")
+    if drift:
+        (env.work / ".devcontainer" / "Dockerfile").write_text("FROM scratch\n")
+    else:
+        (env.work / "g.txt").write_text("main\n")
+    git(env.work, "add", "-A")
+    git(env.work, "commit", "-q", "-m", "main moves")
+    git(env.work, "update-ref", "refs/remotes/origin/main", "HEAD")
+    git(env.work, "checkout", "-q", "pr")
+
+
+def test_publish_warns_when_merged_key_differs(env: Env, git: Callable[..., object]) -> None:
+    _drift_setup(env, git, drift=True)
+    result = env.run("publish", "--base", "main")
+    assert result.returncode == 0, result.stderr
+    assert "::warning::origin/main との merge 後の key" in result.stdout
+    assert len(env.calls_of("devcontainer build")) == 1
+
+
+def test_publish_is_silent_when_merged_key_matches(env: Env, git: Callable[..., object]) -> None:
+    _drift_setup(env, git, drift=False)
+    result = env.run("publish", "--base", "main")
+    assert result.returncode == 0, result.stderr
+    assert "::warning::" not in result.stdout
+
+
+def test_publish_skips_drift_check_when_base_ref_is_missing(env: Env) -> None:
+    result = env.run("publish", "--base", "nonexistent")
+    assert result.returncode == 0, result.stderr
+    assert "::warning::" not in result.stdout
+    assert len(env.calls_of("devcontainer build")) == 1

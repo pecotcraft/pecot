@@ -33,13 +33,12 @@ jobs:
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
 
       # queue が無いと gh が即座にマージするため、queue がある場合だけ進む。
-      # major は人が見る。playwright は devcontainer の版とそろえるため、部分一致で @playwright/* なども人に回す。
+      # major は人が見る。
       - name: Check merge queue
         id: queue
         if: >-
           ${{ env.HAS_APP == 'true'
-          && contains(fromJSON('["version-update:semver-minor","version-update:semver-patch"]'), steps.metadata.outputs.update-type)
-          && !contains(steps.metadata.outputs.dependency-names, 'playwright') }}
+          && contains(fromJSON('["version-update:semver-minor","version-update:semver-patch"]'), steps.metadata.outputs.update-type) }}
         env:
           GH_TOKEN: ${{ github.token }}
           QUERY: "query($url:URI!){resource(url:$url){... on PullRequest{isMergeQueueEnabled}}}"

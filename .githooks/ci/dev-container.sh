@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ci.yml と devcontainer-image.yml が、ホストの runner で dev container の取得・起動・実行を担う。
-# サブコマンド: prefetch / up / exec -- <cmd> / restore-owner / install-cli / tag
+# サブコマンド: prefetch / up / exec -- <cmd> / restore-owner / install-cli / tag / publish。
 # 状態は $RUNNER_TEMP/pecot-dc/ に置く。コンテナに渡す env は COMMON_ENV と、job 固有の追加分 DEVCONTAINER_ENV（空白か改行区切り）。
 
 set -euo pipefail
@@ -24,7 +24,11 @@ BUILD_FAILED=0
 
 # image に入るファイルだけの hash にする（README などの変更で tag を変えない）。
 tag_key() {
-    git -C "$GITHUB_WORKSPACE" ls-tree HEAD -- .devcontainer/Dockerfile .devcontainer/devcontainer.json \
+    key_of HEAD
+}
+
+key_of() {
+    git -C "$GITHUB_WORKSPACE" ls-tree "$1" -- .devcontainer/Dockerfile .devcontainer/devcontainer.json \
         .devcontainer/devcontainer-lock.json .devcontainer/features | git hash-object --stdin
 }
 
@@ -205,6 +209,51 @@ cmd_exec() {
         --container-id "$(cat "$STATE/container-id")" "${REMOTE_ENV[@]}" bash -c "$*"
 }
 
+# ci の key は PR の merge commit の tree から出る。base が進んでずれると tag が当たらず、ci は build に回る。
+warn_merged_key_drift() {
+    local base=$1 tree merged
+    tree=$(git -C "$GITHUB_WORKSPACE" merge-tree --write-tree "origin/$base" HEAD 2> /dev/null) || return 0
+    merged=$(key_of "${tree%%$'\n'*}") || return 0
+    if [ "$merged" != "$(tag_key)" ]; then
+        echo "::warning::origin/$base との merge 後の key が def-$merged で、載せる def-$(tag_key) と違う。ci はこの tag を使えない"
+    fi
+}
+
+# --push と --latest の無い呼び出しは build だけにする。--push だけのときは、既存の tag を上書きしない。
+cmd_publish() {
+    local push=0 latest=0 no_cache=0 base="" ref
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --push) push=1 ;;
+            --latest) latest=1 ;;
+            --no-cache) no_cache=1 ;;
+            --base)
+                base=${2:?--base に値が要る}
+                shift
+                ;;
+            *)
+                echo "publish の引数が不正: $1" >&2
+                exit 2
+                ;;
+        esac
+        shift
+    done
+    ref=$(image_ref)
+    if [ "$push" = 1 ] && [ "$latest" = 0 ] && docker buildx imagetools inspect "$ref" > /dev/null 2>&1; then
+        echo "$ref already exists. Skip build and push."
+        return 0
+    fi
+    [ -n "$base" ] && warn_merged_key_drift "$base"
+    # buildx は何も指定しないと unknown/unknown の attestation manifest を付け、GHCR の一覧に余計な行が出る。
+    export BUILDX_NO_DEFAULT_ATTESTATIONS=1
+    local args=(--workspace-folder "$GITHUB_WORKSPACE" --image-name "$ref" --cache-from "$REPO:latest")
+    [ "$latest" = 1 ] && args+=(--image-name "$REPO:latest")
+    # 層は zstd で push する。gzip だと、CI の job の pull で展開に 20 秒以上かかる。
+    [ "$push" = 1 ] && args+=(--output "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true")
+    [ "$no_cache" = 1 ] && args+=(--no-cache)
+    devcontainer build "${args[@]}"
+}
+
 cmd_restore_owner() {
     sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE"
 }
@@ -218,8 +267,10 @@ case "$sub" in
     restore-owner) cmd_restore_owner ;;
     install-cli) cmd_install_cli ;;
     tag) image_ref ;;
+    publish) cmd_publish "$@" ;;
     *)
         echo "使い方: dev-container.sh prefetch|up|exec -- <cmd>|restore-owner|install-cli|tag" >&2
+        echo "        dev-container.sh publish [--push] [--latest] [--no-cache] [--base <branch>]" >&2
         exit 2
         ;;
 esac

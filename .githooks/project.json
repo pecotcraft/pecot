@@ -121,6 +121,7 @@
         "{projectRoot}/pre-push/**/*",
         "{projectRoot}/gitlint/**/*",
         "{projectRoot}/scripts/gen-runtime-lock.mjs",
+        "{projectRoot}/scripts/sync-playwright-deps.mjs",
         "{projectRoot}/scripts/run-lint.sh",
         "{projectRoot}/scripts/run-pnpm.sh",
         {
@@ -133,6 +134,7 @@
         "{workspaceRoot}/.gitlint",
         "{workspaceRoot}/.github/workflows/ci.yml",
         "{workspaceRoot}/.github/workflows/dependabot-commit.yml",
+        "{workspaceRoot}/.github/workflows/dependabot-auto-merge.yml",
         "{workspaceRoot}/.nx/nx-release/src/dependabot-plans.js",
         "{workspaceRoot}/.github/rulesets/main.json",
         "{workspaceRoot}/.github/board-sync/**/*",
@@ -170,7 +172,7 @@
         "description": "hook と設定の整合のテスト。実リポ全体を読む test_check_root_entries と test_plugin_validate は、入力に入れない。checks (lint) の check-root-entries と plugin-validate が受け持つため。test_nx_env_inputs の走査範囲も nx-env-inputs が受け持つ。"
       },
       "options": {
-        "command": ".githooks/tests/run.sh .githooks/tests/test_board_sync.py .githooks/tests/test_check_direct_commit.py .githooks/tests/test_check_engines_node_drift.py .githooks/tests/test_check_misplaced_pecot.py .githooks/tests/test_check_release_group_changelog.py .githooks/tests/test_check_root_entries.py .githooks/tests/test_check_skill_doc_direct_call.py .githooks/tests/test_check_text.py .githooks/tests/test_check_version_plan_format.py .githooks/tests/test_devcontainer_playwright_version.py .githooks/tests/test_entry_point_linter.py .githooks/tests/test_gen_runtime_lock.py .githooks/tests/test_githooks_lanes.py .githooks/tests/test_gitlint_japanese_rule.py .githooks/tests/test_marketplace_parity.py .githooks/tests/test_nx_env_inputs.py .githooks/tests/test_plugin_update_notice_parity.py .githooks/tests/test_plugin_validate.py .githooks/tests/test_pre_commit_config_wiring.py .githooks/tests/test_python_range_parity.py .githooks/tests/test_root_package_manifest.py .githooks/tests/test_ruleset_main.py .githooks/tests/test_run_pnpm.py .githooks/tests/test_check_version_plan_required.py",
+        "command": ".githooks/tests/run.sh .githooks/tests/test_board_sync.py .githooks/tests/test_check_direct_commit.py .githooks/tests/test_check_engines_node_drift.py .githooks/tests/test_check_misplaced_pecot.py .githooks/tests/test_check_release_group_changelog.py .githooks/tests/test_check_root_entries.py .githooks/tests/test_check_skill_doc_direct_call.py .githooks/tests/test_check_text.py .githooks/tests/test_check_version_plan_format.py .githooks/tests/test_devcontainer_playwright_version.py .githooks/tests/test_entry_point_linter.py .githooks/tests/test_gen_runtime_lock.py .githooks/tests/test_githooks_lanes.py .githooks/tests/test_gitlint_japanese_rule.py .githooks/tests/test_marketplace_parity.py .githooks/tests/test_nx_env_inputs.py .githooks/tests/test_plugin_update_notice_parity.py .githooks/tests/test_plugin_validate.py .githooks/tests/test_pre_commit_config_wiring.py .githooks/tests/test_python_range_parity.py .githooks/tests/test_root_package_manifest.py .githooks/tests/test_ruleset_main.py .githooks/tests/test_run_pnpm.py .githooks/tests/test_check_version_plan_required.py .githooks/tests/test_sync_playwright_deps.py",
         "cwd": "."
       }
     }

@@ -31,6 +31,8 @@ concurrency:
 
 jobs:
   build:
+    # dependabot の PR は dependabot-commit.yml が同じ定義を build して載せる。
+    if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -50,31 +52,20 @@ jobs:
       - name: Install devcontainer CLI
         run: .githooks/ci/dev-container.sh install-cli
 
-      # 層は zstd で push する。gzip だと、CI の job の pull で展開に 20 秒以上かかる。
-      # PR では push せず build だけにする。latest は main のときだけ付ける。
-      # feature ブランチの実行で、main が使う def-<key> を上書きしない。
+      # PR では push せず build だけにする。latest は main のときだけ付け、feature ブランチの実行は既存の def-<key> を上書きしない。
       - name: Build and push image
         env:
-          REPO: ghcr.io/pecotcraft/pecot-devcontainer
           PECOT_CI_IMAGE_REPO: ghcr.io/pecotcraft/pecot-devcontainer
           NO_CACHE: ${{ github.event_name == 'schedule' }}
-          # buildx は何も指定しないと unknown/unknown の attestation manifest を付け、GHCR の一覧に余計な行が出る。
-          BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
         run: |
-          ref=$(.githooks/ci/dev-container.sh tag)
-          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$GITHUB_REF" != refs/heads/main ] \
-            && docker buildx imagetools inspect "$ref" > /dev/null 2>&1; then
-            echo "$ref already exists. Skip build and push."
-            exit 0
-          fi
-          args=(--workspace-folder . --image-name "$ref" --cache-from "$REPO:latest")
-          if [ "$GITHUB_REF" = refs/heads/main ] && [ "$GITHUB_EVENT_NAME" != pull_request ]; then
-            args+=(--image-name "$REPO:latest")
-          fi
+          args=()
           if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
-            args+=(--output "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true")
+            args+=(--push)
+            if [ "$GITHUB_REF" = refs/heads/main ]; then
+              args+=(--latest)
+            fi
           fi
           if [ "$NO_CACHE" = true ]; then
             args+=(--no-cache)
           fi
-          devcontainer build "${args[@]}"
+          .githooks/ci/dev-container.sh publish "${args[@]}"
