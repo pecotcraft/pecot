@@ -49,7 +49,8 @@
         "{projectRoot}/src/**/*",
         "{projectRoot}/targets.json",
         "{projectRoot}/package.json",
-        "{workspaceRoot}/plugins/*/interface/**/*"
+        "{workspaceRoot}/plugins/*/interface/**/*",
+        "env"
       ],
       "dependsOn": [
         "install"
