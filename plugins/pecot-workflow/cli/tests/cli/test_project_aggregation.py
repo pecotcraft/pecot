@@ -78,7 +78,8 @@ class TestSetAggregationRepo:
         """未設定状態から初回 set で書き込みできる。"""
         result = runner.invoke(app, ["project", "set-aggregation-repo", "acme-labs/aist-roadmap"])
         assert result.exit_code == 0, result.stderr
-        assert "acme-labs/aist-roadmap" in result.stdout
+        assert result.stdout == ""
+        assert result.stderr == "set: aggregation_repo to acme-labs/aist-roadmap\n"
         # 永続化確認
         saved = load_config(patched_config)
         assert saved.aggregation_repo == "acme-labs/aist-roadmap"
@@ -92,9 +93,11 @@ class TestSetAggregationRepo:
 
         result = runner.invoke(app, ["project", "set-aggregation-repo", "acme-labs/new-repo"])
         assert result.exit_code == 0
-        assert "上書きします" in result.stderr
-        assert "acme-labs/old-repo" in result.stderr
-        assert "acme-labs/new-repo" in result.stderr
+        assert result.stderr == (
+            "warning: overwriting aggregation_repo: acme-labs/old-repo -> acme-labs/new-repo\n"
+            "  pass --yes to omit this hint\n"
+            "set: aggregation_repo to acme-labs/new-repo\n"
+        )
         saved = load_config(patched_config)
         assert saved.aggregation_repo == "acme-labs/new-repo"
 
@@ -109,10 +112,23 @@ class TestSetAggregationRepo:
             ["project", "set-aggregation-repo", "acme-labs/new-repo", "--yes"],
         )
         assert result.exit_code == 0
-        assert "上書きします" in result.stderr
-        assert "--yes を付けてください" not in result.stderr
+        assert result.stderr == (
+            "warning: overwriting aggregation_repo: acme-labs/old-repo -> acme-labs/new-repo\n"
+            "set: aggregation_repo to acme-labs/new-repo\n"
+        )
         saved = load_config(patched_config)
         assert saved.aggregation_repo == "acme-labs/new-repo"
+
+    def test_set_same_value_is_unchanged(self, patched_config: Path) -> None:
+        """同じ値なら、警告と保存をせずに unchanged を出す。"""
+        cfg = load_config(patched_config)
+        cfg.aggregation_repo = "acme-labs/aist-roadmap"
+        save_config(cfg, patched_config)
+
+        result = runner.invoke(app, ["project", "set-aggregation-repo", "acme-labs/aist-roadmap"])
+        assert result.exit_code == 0
+        assert result.stdout == ""
+        assert result.stderr == "unchanged: aggregation_repo acme-labs/aist-roadmap\n"
 
     def test_invalid_format_rejected(self, patched_config: Path) -> None:
         """ "a" のような不正値は非ゼロ終了 + エラー表示。"""
@@ -138,8 +154,8 @@ class TestUnsetAggregationRepo:
 
         result = runner.invoke(app, ["project", "unset-aggregation-repo"])
         assert result.exit_code == 0
-        assert "クリア" in result.stdout
-        assert "acme-labs/aist-roadmap" in result.stdout
+        assert result.stdout == ""
+        assert result.stderr == "removed: aggregation_repo (was acme-labs/aist-roadmap)\n"
         saved = load_config(patched_config)
         assert saved.aggregation_repo is None
 
@@ -147,15 +163,16 @@ class TestUnsetAggregationRepo:
         """未設定なら no-op メッセージのみ。"""
         result = runner.invoke(app, ["project", "unset-aggregation-repo"])
         assert result.exit_code == 0
-        assert "未設定" in result.stdout
+        assert result.stdout == ""
+        assert result.stderr == "unchanged: aggregation_repo (not set)\n"
 
 
 class TestShowAggregationRepo:
     def test_show_unset(self, patched_config: Path) -> None:
-        """未設定時は "未設定" を stdout に出す。"""
+        """未設定時は "none" を stdout に出す。"""
         result = runner.invoke(app, ["project", "show-aggregation-repo"])
         assert result.exit_code == 0
-        assert result.stdout.strip() == "未設定"
+        assert result.stdout == "none\n"
 
     def test_show_with_value(self, patched_config: Path) -> None:
         """設定済みはそのまま stdout に値を出す。"""
@@ -176,11 +193,15 @@ class TestNoActiveProject:
                 app, ["project", "set-aggregation-repo", "acme-labs/aist-roadmap"]
             )
         assert result.exit_code == 1
-        assert "アクティブなプロジェクトがありません" in result.stderr
+        assert result.stderr == (
+            "error: no active project\n  run: pecot project activate <PROJECT>\n"
+        )
 
     def test_show_without_active(self) -> None:
         """アクティブ設定が無ければ show も exit 1。"""
         with patch("cli.commands.project.load_active_config", return_value=None):
             result = runner.invoke(app, ["project", "show-aggregation-repo"])
         assert result.exit_code == 1
-        assert "アクティブなプロジェクトがありません" in result.stderr
+        assert result.stderr == (
+            "error: no active project\n  run: pecot project activate <PROJECT>\n"
+        )

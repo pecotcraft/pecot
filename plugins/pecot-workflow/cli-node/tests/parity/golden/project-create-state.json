@@ -1,6 +1,6 @@
 {
-  "stdout": "オーナー情報を取得中: acme\n既存プロジェクトを確認中...\n",
-  "stderr": "同名のプロジェクトが既に存在します: board\nURL: https://ghes.example.com/users/acme/projects/1\n",
+  "stdout": "",
+  "stderr": "error: project already exists: board\n  url: https://ghes.example.com/users/acme/projects/1\n",
   "exitCode": 1,
   "requests": [
     {

@@ -1,6 +1,6 @@
 {
-  "stdout": "オーナー情報を取得中: acme\n既存プロジェクトを確認中...\nプロジェクトを作成中: board\nプロジェクトを作成しました: https://ghes.example.com/users/acme/projects/1\n  番号: 1\n\npecot-workflowフィールドを追加中...\nプロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\npecot-workflow-acmeフィールドを作成中...\npecot-workflow-acmeフィールドを作成しました (ID: PVTSSF_w)\npecot-priorityフィールドを作成中...\npecot-priorityフィールドを作成しました (ID: PVTSSF_p)\npecot-sizeフィールドを作成中...\npecot-sizeフィールドを作成しました (ID: PVTSSF_s)\n\n3件のフィールドを作成しました\n\n設定ファイルを生成中...\nプロジェクト情報を取得中: acme/board\nフィールド情報を取得中...\nリンク済みリポジトリを取得中...\n設定ファイルを生成しました: {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n生成した設定をアクティベートしました\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "created: project #1 https://ghes.example.com/users/acme/projects/1\ncreated: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\nset: active project to ghes.example.com_acme_board_acme\n",
   "exitCode": 0,
   "requests": [
     {
@@ -98,17 +98,17 @@
           {
             "name": "High",
             "color": "RED",
-            "description": "優先度: 高"
+            "description": "Priority: high"
           },
           {
             "name": "Medium",
             "color": "YELLOW",
-            "description": "優先度: 中"
+            "description": "Priority: medium"
           },
           {
             "name": "Low",
             "color": "GREEN",
-            "description": "優先度: 低"
+            "description": "Priority: low"
           }
         ]
       },
@@ -124,22 +124,22 @@
           {
             "name": "XS",
             "color": "GREEN",
-            "description": "サイズ: 極小"
+            "description": "Size: extra small"
           },
           {
             "name": "S",
             "color": "BLUE",
-            "description": "サイズ: 小"
+            "description": "Size: small"
           },
           {
             "name": "M",
             "color": "YELLOW",
-            "description": "サイズ: 中"
+            "description": "Size: medium"
           },
           {
             "name": "L",
             "color": "RED",
-            "description": "サイズ: 大"
+            "description": "Size: large"
           }
         ]
       },

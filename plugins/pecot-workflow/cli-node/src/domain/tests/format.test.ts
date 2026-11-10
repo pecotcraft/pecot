@@ -228,30 +228,30 @@ describe('formatBoardOutput', () => {
     for (const number of [100, 101, 102, 103]) expect(output).toContain(`| test/repo#${String(number)} |`)
 
     // 2 カラムヘッダ
-    expect(output).toContain('| Ref | タイトル |')
+    expect(output).toContain('| Ref | Title |')
     // 旧 3 カラムヘッダ/旧カラムは残っていない
     expect(output).not.toContain('| # | タイトル | リポジトリ |')
   })
 
   it('出力全体は Python と同じ（見出し・表・空行）', () => {
     expect(formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test'))).toBe([
-      '### Active (1件)',
-      '| Ref | タイトル |',
+      '### Active (1)',
+      '| Ref | Title |',
       '|-----|----------|',
       '| test/repo#100 | Active Issue |',
       '',
-      '### Ready (1件)',
-      '| Ref | タイトル |',
+      '### Ready (1)',
+      '| Ref | Title |',
       '|-----|----------|',
       '| test/repo#101 | Ready Issue |',
       '',
-      '### Backlog (1件)',
-      '| Ref | タイトル |',
+      '### Backlog (1)',
+      '| Ref | Title |',
       '|-----|----------|',
       '| test/repo#102 | Backlog Issue |',
       '',
-      '### Archived (1件)',
-      '| Ref | タイトル |',
+      '### Archived (1)',
+      '| Ref | Title |',
       '|-----|----------|',
       '| test/repo#103 | Done Issue |',
     ].join('\n'))
@@ -259,15 +259,15 @@ describe('formatBoardOutput', () => {
 
   it('ステータスごとにグループ化される', () => {
     const output = formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test'))
-    expect(output).toContain('### Ready (1件)')
-    expect(output).toContain('### Archived (1件)')
+    expect(output).toContain('### Ready (1)')
+    expect(output).toContain('### Archived (1)')
   })
 
   it('空のステータスがある場合はスキップされる', () => {
     const items: readonly BoardItem[] = [{ id: 'item1', workflow: 'Active', title: 'Test', updatedAt: '2026-01-14T10:00:00Z', content: { number: 1, labels: [] } }]
     const output = formatBoardOutput(items)
     // 件数のあるステータスのみが見出しに出る
-    expect(output).toContain('### Active (1件)')
+    expect(output).toContain('### Active (1)')
     expect(output).not.toContain('### Backlog')
     expect(output).not.toContain('### Archived')
     // 「(なし)」は廃止
@@ -282,7 +282,7 @@ describe('formatBoardOutput', () => {
     const output = formatBoardOutput(items)
 
     // 10 件中直近 5 件と表示
-    expect(output).toContain('### Archived (10件中 直近5件)')
+    expect(output).toContain('### Archived (latest 5 of 10)')
     // 最新の 5 件（番号 9 / 8 / 7 / 6 / 5）が含まれ、新しい順に並ぶ (repository 未設定 → #N)
     expect(output.split('\n').filter(line => line.startsWith('| #'))).toEqual(['| #9 | Archived Issue 9 |', '| #8 | Archived Issue 8 |', '| #7 | Archived Issue 7 |', '| #6 | Archived Issue 6 |', '| #5 | Archived Issue 5 |'])
     // 古い 5 件（番号 4 / 3 / 2 / 1 / 0）は含まれない
@@ -292,7 +292,7 @@ describe('formatBoardOutput', () => {
 
   it('Archived が 5 件ちょうどなら絞らない', () => {
     const items: readonly BoardItem[] = Array.from({ length: 5 }, (_value, index) => ({ id: String(index), workflow: 'Archived', title: 't', updatedAt: String(index), content: { number: index, labels: [] } }))
-    expect(formatBoardOutput(items)).toContain('### Archived (5件)')
+    expect(formatBoardOutput(items)).toContain('### Archived (5)')
   })
 
   it('updatedAt が同じ Archived は元の順序を保つ', () => {
@@ -319,11 +319,11 @@ describe('formatBoardOutput', () => {
   it('workflow が未設定で全ステータスが空ならプレースホルダのみ', () => {
     const items: readonly BoardItem[] = [{ id: 'item1', workflow: undefined, title: 'No Workflow Item', updatedAt: '2026-01-14T10:00:00Z', content: { number: 99, labels: [] } }]
     // 全ステータス 0 件なら 1 行のプレースホルダのみ
-    expect(formatBoardOutput(items)).toBe('_該当アイテムなし_')
+    expect(formatBoardOutput(items)).toBe('_No items_')
   })
 
   it('アイテムが無ければプレースホルダのみ', () => {
-    expect(formatBoardOutput([])).toBe('_該当アイテムなし_')
+    expect(formatBoardOutput([])).toBe('_No items_')
   })
 
   it('表示順は Active・In Review・Ready・Pending・Backlog・Archived', () => {

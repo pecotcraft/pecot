@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "アクティブなプロジェクトがありません\n",
+  "stderr": "error: no active project\n  run: pecot project activate <PROJECT>\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

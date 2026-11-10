@@ -11,10 +11,12 @@ import re
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, NoReturn, cast
+from typing import Any, Literal, NoReturn, cast
 
 import typer
 
+from cli.commands._output import Operation, Output, Verb
+from cli.commands._tracker_sync import api_error_detail
 from cli.commands.options import RepoOption
 from cli.core.config import (
     FieldOptions,
@@ -41,6 +43,33 @@ _AGGREGATION_REPO_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 # Dependabot alert 取得の並列数の上限（GitHub の同時リクエスト制限 100 より十分小さい）
 _ALERT_FETCH_MAX_WORKERS = 8
 
+_OUT = Output(dry_run=False)
+
+
+def _fail(message: str) -> NoReturn:
+    """Print an error line and exit 1"""
+    _OUT.error(message)
+    raise typer.Exit(1)
+
+
+def _fail_api(action: str, e: GitHubAPIError) -> NoReturn:
+    """Print "could not <action>" with the API error detail (and status code) and exit 1"""
+    detail = api_error_detail(e)
+    if e.status_code:
+        _fail(f"could not {action} (status {e.status_code}): {detail}")
+    _fail(f"could not {action}: {detail}")
+
+
+def _fail_no_active_project() -> NoReturn:
+    """Print the no-active-project error with the command to fix it and exit 1"""
+    _fail("no active project\nrun: pecot project activate <PROJECT>")
+
+
+def _fail_project_not_found(label: str, projects: list[dict[str, Any]]) -> NoReturn:
+    """Print "project not found" with the available project titles and exit 1"""
+    titles = "\n".join(f"- {p.get('title')}" for p in projects)
+    _fail(f"project not found: {label}\navailable projects:\n{titles}")
+
 
 def project_list() -> None:
     """List available projects
@@ -48,7 +77,7 @@ def project_list() -> None:
     Lists the config files under config/projects/
     and marks the active project with [ACTIVE].
     """
-    typer.echo("=== 利用可能なプロジェクト ===")
+    lines = ["=== Projects ==="]
 
     projects_dir = get_projects_dir()
     active_config_path = get_active_config_path()
@@ -57,7 +86,8 @@ def project_list() -> None:
     config_files = sorted(projects_dir.glob("*.json"))
 
     if not config_files:
-        typer.echo("  (プロジェクト設定がありません)")
+        lines.append("  none")
+        _OUT.data("\n".join(lines))
         return
 
     for config_file in config_files:
@@ -65,12 +95,13 @@ def project_list() -> None:
         active_marker = ""
         if active_config_path and config_file.resolve() == active_config_path.resolve():
             active_marker = " [ACTIVE]"
-        typer.echo(f"  {project_name}{active_marker}")
+        lines.append(f"  {project_name}{active_marker}")
+    _OUT.data("\n".join(lines))
 
 
 def _link_project_repository(
     host: str, project_number: int, owner: str, repo: str
-) -> tuple[bool, str]:
+) -> tuple[Literal["linked", "already_linked", "failed"], str]:
     """Link a repository to a GitHub Project.
 
     Uses the GraphQL API to link the repository to the project.
@@ -82,10 +113,9 @@ def _link_project_repository(
         repo: Repository name in owner/repo form
 
     Returns:
-        A tuple of (success flag, message).
-        On success: (True, "link success message").
-        Already linked: (True, "already linked message").
-        On failure: (False, "error message").
+        A tuple of (outcome, detail).
+        The outcome is "linked", "already_linked" or "failed".
+        The detail is the GitHub message (empty on success).
     """
     # owner/repo形式からowner, repoを分離
     if "/" in repo:
@@ -98,19 +128,17 @@ def _link_project_repository(
         client = GitHubClient(host=host)
         return client.link_repository_to_project(owner, project_number, repo_owner, repo_name)
     except GitHubAPIError as e:
-        return (False, f"リンクに失敗しました: {e.message}")
+        return ("failed", e.message)
 
 
 def _validate_release_type(release_type: str | None) -> None:
     """Validate --release-type (exit 1 unless single / multi / nx)"""
     valid_release_types = {"single", "multi", "nx"}
     if release_type is not None and release_type not in valid_release_types:
-        typer.echo(
-            f"エラー: --release-type は {sorted(valid_release_types)} から選んでください "
-            f"(指定値: {repr(release_type)})",
-            err=True,
+        _fail(
+            f"--release-type must be one of {sorted(valid_release_types)} "
+            f"(got: {repr(release_type)})"
         )
-        raise typer.Exit(1)
 
 
 def _parse_package_specs(
@@ -120,42 +148,22 @@ def _parse_package_specs(
     if not package:
         return None
     if changelog_file is not None:
-        typer.echo(
-            "エラー: --package と --changelog-file は同時指定できません",
-            err=True,
-        )
-        raise typer.Exit(1)
+        _fail("--package and --changelog-file cannot be used together")
     if clear_packages:
-        typer.echo(
-            "エラー: --package と --clear-packages は同時指定できません",
-            err=True,
-        )
-        raise typer.Exit(1)
+        _fail("--package and --clear-packages cannot be used together")
 
     parsed_packages: list[Package] = []
     seen_names: set[str] = set()
     for spec in package:
         if ":" not in spec:
-            typer.echo(
-                f"エラー: --package は NAME:PATH 形式で指定してください: {repr(spec)}",
-                err=True,
-            )
-            raise typer.Exit(1)
+            _fail(f"give --package as NAME:PATH: {repr(spec)}")
         name, _, path = spec.partition(":")
         name = name.strip()
         path = path.strip()
         if not name or not path:
-            typer.echo(
-                f"エラー: --package の NAME と PATH は空にできません: {repr(spec)}",
-                err=True,
-            )
-            raise typer.Exit(1)
+            _fail(f"--package NAME and PATH must not be empty: {repr(spec)}")
         if name in seen_names:
-            typer.echo(
-                f"エラー: --package の NAME が重複しています: {repr(name)}",
-                err=True,
-            )
-            raise typer.Exit(1)
+            _fail(f"--package NAME is duplicated: {repr(name)}")
         seen_names.add(name)
         parsed_packages.append(Package(name=name, changelog=path))
     return parsed_packages
@@ -165,33 +173,31 @@ def _parse_set_repo_target(owner_repo: str, config: ProjectConfig) -> tuple[str,
     """Validate the owner/repo form and the project owner match, and return (owner, repo_name)"""
     # owner/repo形式の検証
     if "/" not in owner_repo or owner_repo.count("/") != 1:
-        typer.echo("エラー: 引数は owner/repo 形式で指定してください", err=True)
-        typer.echo("例: pecot project set-repo example-org/my-repo", err=True)
-        raise typer.Exit(1)
+        _fail(
+            "give the repository as owner/repo\nexample: pecot project set-repo example-org/my-repo"
+        )
 
     owner, repo_name = owner_repo.split("/")
 
     # オーナーチェック
     if owner != config.owner:
-        typer.echo(
-            f"エラー: リポジトリオーナー({owner})が"
-            f"プロジェクトオーナー({config.owner})と異なります",
-            err=True,
+        _fail(
+            f"repository owner {owner} differs from project owner {config.owner}\n"
+            "GitHub Projects V2 links only repositories of the project owner"
         )
-        typer.echo("GitHub Projects V2は同一オーナーのリポジトリのみリンク可能です", err=True)
-        raise typer.Exit(1)
     return owner, repo_name
 
 
 def _link_repository_or_exit(config: ProjectConfig, owner_repo: str) -> None:
     """Link a new repository to the GitHub Project (exit 1 on failure)"""
-    typer.echo(f"GitHub Projectにリポジトリをリンク中: {owner_repo}")
-    success, message = _link_project_repository(
-        config.host, config.project.number, config.owner, owner_repo
-    )
-    typer.echo(message)
-    if not success:
-        raise typer.Exit(1)
+    number = config.project.number
+    outcome, detail = _link_project_repository(config.host, number, config.owner, owner_repo)
+    if outcome == "failed":
+        _fail(f"could not link {owner_repo} to project #{number}: {detail}")
+    if outcome == "already_linked":
+        _OUT.done(Operation(Verb.UNCHANGED, f"{owner_repo} in project #{number}"))
+    else:
+        _OUT.done(Operation(Verb.ADD, f"{owner_repo} to project #{number}"))
 
 
 def _load_set_repo_context(owner_repo: str) -> tuple[ProjectConfig, str, str, Path]:
@@ -199,9 +205,7 @@ def _load_set_repo_context(owner_repo: str) -> tuple[ProjectConfig, str, str, Pa
     # アクティブ設定確認
     config = load_active_config()
     if config is None:
-        typer.echo("アクティブなプロジェクトがありません", err=True)
-        typer.echo("ヒント: pecot project activate <PROJECT> でプロジェクトを設定", err=True)
-        raise typer.Exit(1)
+        _fail_no_active_project()
 
     # owner/repo形式とオーナーの検証
     owner, repo_name = _parse_set_repo_target(owner_repo, config)
@@ -209,8 +213,7 @@ def _load_set_repo_context(owner_repo: str) -> tuple[ProjectConfig, str, str, Pa
     # 設定ファイルパス取得
     config_path = get_active_config_path()
     if config_path is None:
-        typer.echo("エラー: 設定ファイルパスを取得できません", err=True)
-        raise typer.Exit(1)
+        _fail("cannot determine the config file path")
     return config, owner, repo_name, config_path
 
 
@@ -236,12 +239,10 @@ def _update_existing_repository(
         existing_repo.packages = None
     if changelog_file is not None:
         if existing_repo.packages:
-            typer.echo(
-                "エラー: このリポジトリには packages が設定されています。"
-                "--changelog-file に切り替えるには先に --clear-packages を実行してください",
-                err=True,
+            _fail(
+                "this repository has packages set\n"
+                "run with --clear-packages before switching to --changelog-file"
             )
-            raise typer.Exit(1)
         existing_repo.changelog_file = changelog_file
     if release_type is not None:
         existing_repo.release_type = release_type  # type: ignore[assignment]
@@ -320,7 +321,7 @@ def project_set_repo(
             release_type=release_type,  # type: ignore[arg-type]
         )
         config.repositories.append(new_repo)
-        typer.echo(f"新規リポジトリを追加しました: {owner}/{repo_name}")
+        saved_op = Operation(Verb.ADD, f"{owner}/{repo_name} to {config_path}")
     else:
         _update_existing_repository(
             existing_repo,
@@ -331,11 +332,11 @@ def project_set_repo(
             clear_packages,
             release_type,
         )
-        typer.echo(f"{owner}/{repo_name} の設定を更新しました")
+        saved_op = Operation(Verb.UPDATE, f"{owner}/{repo_name} in {config_path}")
 
     # 設定保存
     save_config(config, config_path)
-    typer.echo(f"設定ファイルを更新: {config_path}")
+    _OUT.done(saved_op)
 
 
 # aggregation_repo 管理コマンド (FR-017-019)
@@ -349,14 +350,11 @@ def _load_active_config_with_path() -> tuple[ProjectConfig, Path]:
     """
     config = load_active_config()
     if config is None:
-        typer.echo("アクティブなプロジェクトがありません", err=True)
-        typer.echo("ヒント: pecot project activate <PROJECT> でプロジェクトを設定", err=True)
-        raise typer.Exit(1)
+        _fail_no_active_project()
 
     config_path = get_active_config_path()
     if config_path is None:
-        typer.echo("エラー: 設定ファイルパスを取得できません", err=True)
-        raise typer.Exit(1)
+        _fail("cannot determine the config file path")
 
     return config, config_path
 
@@ -377,25 +375,22 @@ def set_aggregation_repo_command(
     and a confirmation hint line is printed too (``--yes`` suppresses only the hint).
     """
     if not _AGGREGATION_REPO_PATTERN.fullmatch(value):
-        typer.echo(
-            f"エラー: aggregation_repo は 'owner/repo' 形式で指定してください: {repr(value)}",
-            err=True,
-        )
-        raise typer.Exit(1)
+        _fail(f"give aggregation_repo as owner/repo: {repr(value)}")
 
     config, config_path = _load_active_config_with_path()
 
     if config.aggregation_repo and config.aggregation_repo != value:
-        typer.echo(
-            f"警告: aggregation_repo を上書きします: {config.aggregation_repo} → {value}",
-            err=True,
-        )
+        message = f"overwriting aggregation_repo: {config.aggregation_repo} -> {value}"
         if not yes:
-            typer.echo("       上書きを抑制するには --yes を付けてください", err=True)
+            message += "\npass --yes to omit this hint"
+        _OUT.warning(message)
+    elif config.aggregation_repo == value:
+        _OUT.done(Operation(Verb.UNCHANGED, f"aggregation_repo {value}"))
+        return
 
     config.aggregation_repo = value
     save_config(config, config_path)
-    typer.echo(f"aggregation_repo を設定しました: {value}")
+    _OUT.done(Operation(Verb.SET, f"aggregation_repo to {value}"))
 
 
 def unset_aggregation_repo_command() -> None:
@@ -403,26 +398,22 @@ def unset_aggregation_repo_command() -> None:
     config, config_path = _load_active_config_with_path()
 
     if config.aggregation_repo is None:
-        typer.echo("aggregation_repo は未設定です")
+        _OUT.done(Operation(Verb.UNCHANGED, "aggregation_repo (not set)"))
         return
 
     previous = config.aggregation_repo
     config.aggregation_repo = None
     save_config(config, config_path)
-    typer.echo(f"aggregation_repo をクリアしました (以前の値: {previous})")
+    _OUT.done(Operation(Verb.REMOVE, f"aggregation_repo (was {previous})"))
 
 
 def show_aggregation_repo_command() -> None:
     """Show the Epic aggregation repository (``aggregation_repo``)"""
     config = load_active_config()
     if config is None:
-        typer.echo("アクティブなプロジェクトがありません", err=True)
-        raise typer.Exit(1)
+        _fail_no_active_project()
 
-    if config.aggregation_repo is None:
-        typer.echo("未設定")
-    else:
-        typer.echo(config.aggregation_repo)
+    _OUT.data("none" if config.aggregation_repo is None else config.aggregation_repo)
 
 
 # project サブコマンドグループ
@@ -460,26 +451,27 @@ def search_github_projects(
         projects = client.list_projects(owner)
 
         if not projects:
-            typer.echo(f"{owner} のプロジェクトが見つかりません", err=True)
-            raise typer.Exit(1)
+            _fail(f"no projects found for {owner}")
 
-        typer.echo(f"=== {owner} のプロジェクト一覧 ({host}) ===")
-        typer.echo()
-        typer.echo(f"{'#':<4} {'タイトル':<40} URL")
-        typer.echo("-" * 80)
+        lines = [
+            f"=== Projects of {owner} ({host}) ===",
+            "",
+            f"{'#':<4} {'Title':<40} URL",
+            "-" * 80,
+        ]
 
         for project in projects:
             number = project.get("number", "?")
-            title = project.get("title", "(無題)")
+            title = project.get("title", "(untitled)")
             url = project.get("url", "")
             # タイトルが長い場合は省略
             if len(title) > 38:
                 title = title[:35] + "..."
-            typer.echo(f"{number:<4} {title:<40} {url}")
+            lines.append(f"{number:<4} {title:<40} {url}")
+        _OUT.data("\n".join(lines))
 
     except GitHubAPIError as e:
-        typer.echo(f"GitHub APIエラー: {e.message}", err=True)
-        raise typer.Exit(1) from None
+        _fail_api("list projects", e)
 
 
 _WORKFLOW_FIELD_PREFIX = "pecot-workflow-"
@@ -551,19 +543,13 @@ def _validate_workflow_field(
 
 def _find_project_by_title(client: GitHubClient, owner: str, name: str) -> dict[str, Any]:
     """1. Return the project whose title matches from the project list (print the list and exit 1 if none)"""
-    typer.echo(f"プロジェクト情報を取得中: {owner}/{name}")
     projects = client.list_projects(owner)
 
     for p in projects:
         if p.get("title") == name:
             return p
 
-    typer.echo(f"プロジェクトが見つかりません: {name}", err=True)
-    typer.echo()
-    typer.echo("利用可能なプロジェクト:")
-    for p in projects:
-        typer.echo(f"  - {p.get('title')}")
-    raise typer.Exit(1)
+    _fail_project_not_found(name, projects)
 
 
 def _fetch_validated_fields(
@@ -571,35 +557,28 @@ def _fetch_validated_fields(
 ) -> tuple[dict[str, Any], list[dict[str, Any]], int | None]:
     """2-3. Fetch field info, validate the Workflow field and return
     (workflow_field, fields, view_number). view_number is the number of the first view (None if none)"""
-    typer.echo("フィールド情報を取得中...")
     project_info = client.get_project_fields(owner, project_number)
 
     if not project_info:
-        typer.echo("プロジェクト情報の取得に失敗しました", err=True)
-        raise typer.Exit(1)
+        _fail(f"could not read project fields: {name}")
 
     fields: list[dict[str, Any]] = project_info.get("fields", {}).get("nodes", [])
 
     workflow_field, missing_options = _validate_workflow_field(fields)
 
     if not workflow_field:
-        typer.echo(f"プロジェクト「{name}」にpecot-workflow-*フィールドがありません", err=True)
-        typer.echo()
-        typer.echo("pecot-workflowでは以下のフィールドが必要です:")
-        typer.echo("  - pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)")
-        typer.echo()
-        typer.echo("解決方法:")
-        typer.echo(f'  pecot project init --host {host} --suffix <suffix> {owner} "{name}"')
-        raise typer.Exit(1)
+        _fail(
+            f'project "{name}" has no pecot-workflow-* field\n'
+            "required field: pecot-workflow-<suffix> "
+            "(Backlog/Pending/Ready/Active/In Review/Archived)\n"
+            f'run: pecot project init --host {host} --suffix <suffix> {owner} "{name}"'
+        )
 
     if missing_options:
-        typer.echo(
-            f"pecot-workflowフィールドに必要なオプションがありません: {', '.join(missing_options)}",
-            err=True,
+        _fail(
+            f"pecot-workflow field is missing options: {', '.join(missing_options)}\n"
+            "required options: Backlog / Pending / Ready / Active / In Review / Archived"
         )
-        typer.echo()
-        typer.echo("必要なオプション: Backlog / Pending / Ready / Active / In Review / Archived")
-        raise typer.Exit(1)
     views: dict[str, Any] = project_info.get("views") or {}
     view_nodes: list[dict[str, Any]] = views.get("nodes") or []
     view_number: int | None = None
@@ -765,7 +744,6 @@ def _sync_project_config(
     existing_repo_meta, existing_aggregation_repo = _load_existing_repo_meta(config_path)
 
     # 6. リンク済みリポジトリを取得
-    typer.echo("リンク済みリポジトリを取得中...")
     linked_repos = client.get_linked_repositories(owner, project_number)
     repositories = _build_repositories(linked_repos, existing_repo_meta)
 
@@ -785,12 +763,13 @@ def _sync_project_config(
     )
 
     # 11. 設定ファイル保存
+    config_verb = Verb.UPDATE if config_path.exists() else Verb.CREATE
     save_config(project_config, config_path)
-    typer.echo(f"設定ファイルを生成しました: {config_path}")
+    _OUT.done(Operation(config_verb, f"config file {config_path}"))
 
     # 12. アクティベート
     set_active_config(config_path)
-    typer.echo("生成した設定をアクティベートしました")
+    _OUT.done(Operation(Verb.SET, f"active project to {config_path.stem}"))
 
     return config_path
 
@@ -847,17 +826,17 @@ WORKFLOW_FIELD_OPTIONS = [
 
 # pecot-priority フィールドのオプション定義
 PRIORITY_FIELD_OPTIONS = [
-    {"name": "High", "color": "RED", "description": "優先度: 高"},
-    {"name": "Medium", "color": "YELLOW", "description": "優先度: 中"},
-    {"name": "Low", "color": "GREEN", "description": "優先度: 低"},
+    {"name": "High", "color": "RED", "description": "Priority: high"},
+    {"name": "Medium", "color": "YELLOW", "description": "Priority: medium"},
+    {"name": "Low", "color": "GREEN", "description": "Priority: low"},
 ]
 
 # pecot-size フィールドのオプション定義
 SIZE_FIELD_OPTIONS = [
-    {"name": "XS", "color": "GREEN", "description": "サイズ: 極小"},
-    {"name": "S", "color": "BLUE", "description": "サイズ: 小"},
-    {"name": "M", "color": "YELLOW", "description": "サイズ: 中"},
-    {"name": "L", "color": "RED", "description": "サイズ: 大"},
+    {"name": "XS", "color": "GREEN", "description": "Size: extra small"},
+    {"name": "S", "color": "BLUE", "description": "Size: small"},
+    {"name": "M", "color": "YELLOW", "description": "Size: medium"},
+    {"name": "L", "color": "RED", "description": "Size: large"},
 ]
 
 
@@ -896,33 +875,15 @@ def init(
         client = GitHubClient(host=host)
 
         # 1. プロジェクト一覧から対象を検索
-        typer.echo(f"プロジェクト情報を取得中: {owner}/{name}")
-        projects = client.list_projects(owner)
-
-        target_project = None
-        for p in projects:
-            if p.get("title") == name:
-                target_project = p
-                break
-
-        if not target_project:
-            typer.echo(f"プロジェクトが見つかりません: {name}", err=True)
-            typer.echo()
-            typer.echo("利用可能なプロジェクト:")
-            for p in projects:
-                typer.echo(f"  - {p.get('title')}")
-            raise typer.Exit(1)
-
+        target_project = _find_project_by_title(client, owner, name)
         project_id = target_project["id"]
         project_number = target_project["number"]
 
         # 2. フィールド情報を取得
-        typer.echo("フィールド情報を取得中...")
         project_info = client.get_project_fields(owner, project_number)
 
         if not project_info:
-            typer.echo("プロジェクト情報の取得に失敗しました", err=True)
-            raise typer.Exit(1)
+            _fail(f"could not read project fields: {name}")
 
         fields = project_info.get("fields", {}).get("nodes", [])
 
@@ -934,28 +895,20 @@ def init(
             ("pecot-size", SIZE_FIELD_OPTIONS),
         ]
 
-        created_count = 0
         for field_name, field_options in fields_to_create:
             if _has_field(fields, field_name):
-                typer.echo(f"{field_name}フィールドは既に存在します。スキップします。")
+                _OUT.done(Operation(Verb.SKIP, f"field {field_name} (already exists)"))
                 continue
 
-            typer.echo(f"{field_name}フィールドを作成中...")
             result = client.create_project_field(
                 project_id=project_id,
                 name=field_name,
                 options=field_options,
             )
-            typer.echo(f"{field_name}フィールドを作成しました (ID: {result['id']})")
-            created_count += 1
-
-        if created_count > 0:
-            typer.echo()
-            typer.echo(f"{created_count}件のフィールドを作成しました")
+            _OUT.done(Operation(Verb.CREATE, f"field {field_name} (ID: {result['id']})"))
 
     except GitHubAPIError as e:
-        typer.echo(f"GitHub APIエラー: {e.message}", err=True)
-        raise typer.Exit(1) from None
+        _fail_api("initialize project fields", e)
 
 
 def create(
@@ -975,41 +928,29 @@ def create(
         client = GitHubClient(host=host)
 
         # 1. オーナーのNode IDを取得
-        typer.echo(f"オーナー情報を取得中: {owner}")
         try:
             owner_id = client.get_owner_node_id(owner)
         except GitHubNotFoundError:
-            typer.echo(f"オーナーが見つかりません: {owner}", err=True)
-            raise typer.Exit(1) from None
+            _fail(f"owner not found: {owner}")
 
         # 2. 同名プロジェクトの存在確認
-        typer.echo("既存プロジェクトを確認中...")
         projects = client.list_projects(owner)
         for p in projects:
             if p.get("title") == title:
-                typer.echo(f"同名のプロジェクトが既に存在します: {title}", err=True)
-                typer.echo(f"URL: {p.get('url')}", err=True)
-                raise typer.Exit(1)
+                _fail(f"project already exists: {title}\nurl: {p.get('url')}")
 
         # 3. プロジェクト作成
-        typer.echo(f"プロジェクトを作成中: {title}")
         project = client.create_project(owner_id, title)
-        typer.echo(f"プロジェクトを作成しました: {project['url']}")
-        typer.echo(f"  番号: {project['number']}")
-        typer.echo()
+        _OUT.done(Operation(Verb.CREATE, f"project #{project['number']} {project['url']}"))
 
         # 4. pecot-workflowフィールドを追加（init相当）
-        typer.echo("pecot-workflowフィールドを追加中...")
         init(owner=owner, name=title, host=host, suffix=suffix)
-        typer.echo()
 
         # 5. 設定ファイル生成とアクティベート
-        typer.echo("設定ファイルを生成中...")
         _sync_project_config(client, owner, title, host)
 
     except GitHubAPIError as e:
-        typer.echo(f"GitHub APIエラー: {e.message}", err=True)
-        raise typer.Exit(1) from None
+        _fail_api("create project", e)
 
 
 # activateコマンド
@@ -1081,14 +1022,11 @@ def _find_config_file_arg(project: str) -> Path | None:
 
 def _activate_from_config_file(config_path: Path, host: str | None) -> None:
     """Sync the latest info from the GitHub API using host/owner/number in the config file and activate"""
-    typer.echo(f"設定ファイル「{config_path.name}」から同期中...")
-
     try:
         # 設定ファイルを読み込んでhost/owner/numberを取得
         config = load_config(config_path)
     except Exception as e:
-        typer.echo(f"設定ファイルの読み込みに失敗しました: {e}", err=True)
-        raise typer.Exit(1) from None
+        _fail(f"could not load config file {config_path.name}: {e}")
 
     config_host = config.host
     config_owner = config.owner
@@ -1097,47 +1035,36 @@ def _activate_from_config_file(config_path: Path, host: str | None) -> None:
     try:
         # hostパラメータと設定ファイルのhostが一致するか確認
         if host is not None and config_host != host:
-            typer.echo(
-                f"警告: --host オプション ({host}) と"
-                f"設定ファイルのhost ({config_host}) が一致しません",
-                err=True,
+            _OUT.warning(
+                f"--host ({host}) differs from the config file host ({config_host})\n"
+                "using the config file host"
             )
-            typer.echo("設定ファイルのhostを使用します", err=True)
 
         # GitHub APIからプロジェクト情報を取得してタイトルを得る
         client = GitHubClient(host=config_host)
         project_info = client.get_project_fields(config_owner, config_number)
         if not project_info:
-            typer.echo(f"プロジェクト #{config_number} が見つかりません", err=True)
-            raise typer.Exit(1)
+            _fail(f"project #{config_number} not found")
 
         title = project_info.get("title", "")
         if not title:
-            typer.echo("プロジェクトタイトルの取得に失敗しました", err=True)
-            raise typer.Exit(1)
+            _fail(f"could not read the title of project #{config_number}")
 
         # GitHub APIから最新情報を同期してアクティベート
-        typer.echo(f"プロジェクト「{title}」を同期中...")
         _sync_project_config(client, config_owner, title, config_host)
 
     except GitHubAPIError as e:
-        typer.echo(f"GitHub APIエラー: {e.message}", err=True)
-        raise typer.Exit(1) from None
+        _fail_api("sync project", e)
 
 
 def _exit_host_required() -> NoReturn:
     """Print guidance for a missing --host and exit 1"""
-    typer.echo("エラー: --host オプションは必須です", err=True)
-    typer.echo()
-    typer.echo("GitHub.com の場合:")
-    typer.echo("  pecot project activate --host github.com --owner example-org")
-    typer.echo()
-    typer.echo("GitHub Enterprise の場合:")
-    typer.echo("  pecot project activate --host ghes.example.com --owner example-org")
-    typer.echo()
-    typer.echo("設定ファイル名で指定する場合（--host不要）:")
-    typer.echo("  pecot project activate ghes.example.com_example-org_example-project_example-org")
-    raise typer.Exit(1)
+    _fail(
+        "--host is required\n"
+        "example: pecot project activate --host github.com --owner example-org\n"
+        "example: pecot project activate --host ghes.example.com --owner example-org\n"
+        "example: pecot project activate ghes.example.com_example-org_example-project_example-org"
+    )
 
 
 def _resolve_activate_owner(client: GitHubClient, owner: str | None) -> str:
@@ -1148,26 +1075,23 @@ def _resolve_activate_owner(client: GitHubClient, owner: str | None) -> str:
         user_info = client.get_authenticated_user()
         login = user_info.get("login")
         if not login:
-            typer.echo("認証ユーザーの取得に失敗しました", err=True)
-            raise typer.Exit(1)
-        typer.echo(f"認証ユーザー: {login}")
+            _fail("could not read the authenticated user")
     except GitHubAPIError as e:
-        typer.echo(f"認証ユーザーの取得に失敗しました: {e.message}", err=True)
-        typer.echo()
-        typer.echo("ヒント: --owner オプションで明示的に指定してください")
-        raise typer.Exit(1) from None
+        _fail(
+            f"could not read the authenticated user: {api_error_detail(e)}\n"
+            "pass --owner to give the owner explicitly"
+        )
     return login
 
 
 def _echo_initialized_projects(client: GitHubClient, host: str, owner: str) -> None:
     """List mode: show initialized projects with [ACTIVE]"""
-    typer.echo(f"=== init済みプロジェクト ({host}/{owner}) ===")
+    lines = [f"=== Initialized projects ({host}/{owner}) ==="]
     initialized = _list_initialized_projects(client, owner)
 
     if not initialized:
-        typer.echo("  (init済みプロジェクトがありません)")
-        typer.echo()
-        typer.echo("ヒント: pecot project init でプロジェクトを初期化してください")
+        lines.append("  none")
+        _OUT.data("\n".join(lines))
         return
 
     # アクティブプロジェクトの取得
@@ -1183,32 +1107,25 @@ def _echo_initialized_projects(client: GitHubClient, host: str, owner: str) -> N
 
     for proj in initialized:
         number = proj.get("number")
-        title = proj.get("title", "(無題)")
+        title = proj.get("title", "(untitled)")
         active_marker = ""
         if active_project_number == number:
             active_marker = " [ACTIVE]"
-        typer.echo(f"  #{number}: {title}{active_marker}")
-
-    typer.echo()
-    typer.echo(
-        "アクティベート: pecot project activate <PROJECT> --host " + host + " --owner " + owner
-    )
+        lines.append(f"  #{number}: {title}{active_marker}")
+    _OUT.data("\n".join(lines))
 
 
 def _fetch_project_info_by_ref(client: GitHubClient, owner: str, project: str) -> dict[str, Any]:
     """Fetch project info by number or name (exit 1 if not found)"""
     if project.isdigit():
         project_number = int(project)
-        typer.echo(f"プロジェクト #{project_number} を確認中...")
         # 番号で直接取得
         project_info = client.get_project_fields(owner, project_number)
         if not project_info:
-            typer.echo(f"プロジェクト #{project_number} が見つかりません", err=True)
-            raise typer.Exit(1)
+            _fail(f"project #{project_number} not found")
         return project_info
 
     project_name = project
-    typer.echo(f"プロジェクト「{project_name}」を検索中...")
     # 名前で検索
     projects = client.list_projects(owner)
     target_project = None
@@ -1218,18 +1135,12 @@ def _fetch_project_info_by_ref(client: GitHubClient, owner: str, project: str) -
             break
 
     if not target_project:
-        typer.echo(f"プロジェクト「{project_name}」が見つかりません", err=True)
-        typer.echo()
-        typer.echo("利用可能なプロジェクト:")
-        for p in projects:
-            typer.echo(f"  - {p.get('title')}")
-        raise typer.Exit(1)
+        _fail_project_not_found(project_name, projects)
 
     project_number = int(target_project["number"])
     project_info = client.get_project_fields(owner, project_number)
     if not project_info:
-        typer.echo("プロジェクト情報の取得に失敗しました", err=True)
-        raise typer.Exit(1)
+        _fail(f"could not read project fields: {project_name}")
     return project_info
 
 
@@ -1241,18 +1152,13 @@ def _activate_by_project_ref(client: GitHubClient, host: str, owner: str, projec
     # init済みか確認
     if not _has_pecot_workflow_field(fields):
         title = project_info.get("title", "")
-        typer.echo(
-            f"プロジェクト「{title}」はinit済みではありません",
-            err=True,
+        _fail(
+            f'project "{title}" is not initialized\n'
+            f'run: pecot project init --host {host} --suffix <suffix> {owner} "{title}"'
         )
-        typer.echo()
-        typer.echo("ヒント: まず以下のコマンドでプロジェクトを初期化してください:")
-        typer.echo(f'  pecot project init --host {host} --suffix <suffix> {owner} "{title}"')
-        raise typer.Exit(1)
 
     # 設定ファイルを生成/更新してアクティベート
     title = project_info.get("title", "")
-    typer.echo(f"プロジェクト「{title}」をアクティベート中...")
 
     # _sync_project_config で設定ファイル生成＆アクティベート
     _sync_project_config(client, owner, title, host)
@@ -1320,19 +1226,14 @@ def project_activate(
             _activate_by_project_ref(client, host, owner, project)
 
     except GitHubAPIError as e:
-        typer.echo(f"GitHub APIエラー: {e.message}", err=True)
-        raise typer.Exit(1) from None
+        _fail_api("activate project", e)
 
 
 def _load_info_config() -> tuple[ProjectConfig, str]:
     """Get the config and the project name (exit 1 if there is no config)"""
     config = load_active_config()
     if config is None:
-        typer.echo("エラー: アクティブなプロジェクト設定が見つかりません", err=True)
-        typer.echo(
-            "ヒント: pecot project activate <PROJECT> でプロジェクトを設定してください", err=True
-        )
-        raise typer.Exit(1)
+        _fail_no_active_project()
 
     # プロジェクト名を取得
     config_path = get_active_config_path()
@@ -1352,10 +1253,6 @@ def _prune_archived_items(
 
     if len(archived_items) > 20:
         items_to_delete = archived_items[20:]
-        typer.echo(
-            f"古いArchivedアイテムを削除中... ({len(items_to_delete)}件)",
-            err=True,
-        )
         deleted_count = 0
         for item in items_to_delete:
             try:
@@ -1364,7 +1261,11 @@ def _prune_archived_items(
             except GitHubAPIError:
                 # 削除失敗は無視して続行
                 pass
-        typer.echo(f"削除完了: {deleted_count}件", err=True)
+        if deleted_count:
+            _OUT.done(Operation(Verb.DELETE, f"{deleted_count} archived items"))
+        failed_count = len(items_to_delete) - deleted_count
+        if failed_count:
+            _OUT.warning(f"failed to delete {failed_count} archived items")
 
 
 def _collect_dependabot_alert_statuses(
@@ -1408,9 +1309,9 @@ def _dependabot_alerts_json(status: DependabotAlertStatus | str) -> dict[str, An
 
 def _dependabot_alerts_line(status: DependabotAlertStatus | str) -> str:
     if isinstance(status, str):
-        return f"    dependabot_alerts: 取得失敗 ({status})"
+        return f"    dependabot_alerts: fetch failed ({status})"
     if not status.enabled:
-        return "    dependabot_alerts: 無効"
+        return "    dependabot_alerts: disabled"
     return f"    dependabot_alerts: open {status.open_count}"
 
 
@@ -1448,9 +1349,9 @@ def _info_repository_lines(
     config: ProjectConfig, statuses: dict[str, DependabotAlertStatus | str]
 ) -> list[str]:
     """Lines of the "Registered repositories" section"""
-    lines: list[str] = ["## 登録済みリポジトリ"]
+    lines: list[str] = ["## Registered repositories"]
     if not config.repositories:
-        lines.append("- (なし)")
+        lines.append("- none")
         return lines
     for repo_entry in config.repositories:
         branch_info: list[str] = []
@@ -1482,26 +1383,26 @@ def _info_markdown(
     """Markdown output of info"""
     lines: list[str] = []
 
-    lines.append("# プロジェクト情報")
+    lines.append("# Project info")
     lines.append("")
 
-    lines.append("## 基本情報")
-    lines.append(f"- プロジェクト: {project_name}")
+    lines.append("## Overview")
+    lines.append(f"- Project: {project_name}")
     lines.append(f"- Host: {config.host}")
     lines.append(f"- Owner: {config.owner}")
     if config.aggregation_repo:
-        lines.append(f"- ロードマップリポ: `{config.aggregation_repo}`")
+        lines.append(f"- Roadmap repo: `{config.aggregation_repo}`")
     else:
-        lines.append("- ロードマップリポ: 未設定")
+        lines.append("- Roadmap repo: none")
     lines.append("")
 
     lines.extend(_info_repository_lines(config, statuses))
     lines.append("")
 
     if effective_repo:
-        lines.append(f"## ボード状況 (フィルタ: {effective_repo})")
+        lines.append(f"## Board status (filter: {effective_repo})")
     else:
-        lines.append("## ボード状況")
+        lines.append("## Board status")
     lines.append("")
     lines.append(board_output)
     return "\n".join(lines)
@@ -1548,7 +1449,6 @@ def info(
         client = GitHubClient(host=config.host)
 
         # プロジェクトボードから全アイテムを取得
-        typer.echo("プロジェクト情報を取得中...", err=True)
         raw_items = client.list_project_items(
             config.project.id,
             workflow_field_name=config.workflow_field_name,
@@ -1578,10 +1478,10 @@ def info(
             output_data = _info_json(config, project_name, format_items_json(items), alert_statuses)
             import json
 
-            typer.echo(json.dumps(output_data, ensure_ascii=False, indent=2))
+            _OUT.data(json.dumps(output_data, ensure_ascii=False, indent=2))
         else:
             # Markdown形式
-            typer.echo(
+            _OUT.data(
                 _info_markdown(
                     config,
                     project_name,
@@ -1592,10 +1492,6 @@ def info(
             )
 
     except GitHubAPIError as e:
-        typer.echo(f"GitHub APIエラー: {e.message}", err=True)
-        if e.status_code:
-            typer.echo(f"ステータスコード: {e.status_code}", err=True)
-        raise typer.Exit(1) from None
+        _fail_api("read project board", e)
     except Exception as e:
-        typer.echo(f"予期しないエラー: {e}", err=True)
-        raise typer.Exit(1) from None
+        _fail(f"unexpected error: {e}")

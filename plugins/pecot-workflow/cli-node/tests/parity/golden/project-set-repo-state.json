@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: 引数は owner/repo 形式で指定してください\n例: pecot project set-repo example-org/my-repo\n",
+  "stderr": "error: give the repository as owner/repo\n  example: pecot project set-repo example-org/my-repo\n",
   "exitCode": 1,
   "requests": [],
   "files": {

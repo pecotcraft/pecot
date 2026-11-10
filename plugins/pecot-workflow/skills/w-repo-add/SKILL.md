@@ -21,7 +21,7 @@ pecot project info
 ```
 
 プロジェクト情報が表示された場合は Step 2 へ。
-`アクティブなプロジェクト設定が見つかりません` が出力された場合は以下を案内して終了:
+`error: no active project` が出力された場合は以下を案内して終了:
 
 ```text
 アクティブなプロジェクトがありません。
@@ -130,7 +130,7 @@ pecot project set-repo <owner/repo> --develop-branch <branch>
 pecot project info
 ```
 
-「登録済みリポジトリ」セクションに追加したリポジトリが表示されれば成功。
+`Registered repositories` セクションに追加したリポジトリが表示されれば成功。
 
 ### Step 5: 完了案内
 

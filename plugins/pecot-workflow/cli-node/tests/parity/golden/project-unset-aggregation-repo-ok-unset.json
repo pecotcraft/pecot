@@ -1,6 +1,6 @@
 {
-  "stdout": "aggregation_repo は未設定です\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "unchanged: aggregation_repo (not set)\n",
   "exitCode": 0,
   "requests": [],
   "files": {

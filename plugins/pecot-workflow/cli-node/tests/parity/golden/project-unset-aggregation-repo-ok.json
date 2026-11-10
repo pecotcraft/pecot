@@ -1,6 +1,6 @@
 {
-  "stdout": "aggregation_repo をクリアしました (以前の値: acme/roadmap)\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "removed: aggregation_repo (was acme/roadmap)\n",
   "exitCode": 0,
   "requests": [],
   "files": {

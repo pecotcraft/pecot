@@ -121,7 +121,7 @@ def _match_status(workflow: str | None, patterns: list[str]) -> bool:
 
 
 def _format_table_row(item: dict[str, Any]) -> str:
-    """1アイテムをMarkdown表の行 ``| Ref | タイトル |`` に変換
+    """1アイテムをMarkdown表の行 ``| Ref | Title |`` に変換
 
     Ref カラムは GitHub 慣習に倣い ``owner/repo#N`` 形式で合成する。
     リポジトリ情報または番号が欠落している場合は可能な範囲で埋め、
@@ -175,17 +175,17 @@ def format_board_output(items: list[dict[str, Any]]) -> str:
                 reverse=True,
             )
             display_items = sorted_items[:5]
-            heading = f"### {status} ({total_count}件中 直近5件)"
+            heading = f"### {status} (latest 5 of {total_count})"
         else:
-            heading = f"### {status} ({total_count}件)"
+            heading = f"### {status} ({total_count})"
 
-        section: list[str] = [heading, "| Ref | タイトル |", "|-----|----------|"]
+        section: list[str] = [heading, "| Ref | Title |", "|-----|----------|"]
         for item in display_items:
             section.append(_format_table_row(item))
         sections.append(section)
 
     if not sections:
-        return "_該当アイテムなし_"
+        return "_No items_"
 
     lines: list[str] = []
     for i, section in enumerate(sections):

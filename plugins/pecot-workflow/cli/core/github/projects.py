@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from cli.core.github.auth import as_dict
 from cli.core.github.errors import GitHubAPIError, GitHubNotFoundError
@@ -395,7 +395,7 @@ class ProjectsAPI(ReposAPI):
 
     def link_repository_to_project(
         self, owner: str, project_number: int, repo_owner: str, repo_name: str
-    ) -> tuple[bool, str]:
+    ) -> tuple[Literal["linked", "already_linked", "failed"], str]:
         """プロジェクトにリポジトリをリンク
 
         GraphQL APIを使用してプロジェクトにリポジトリをリンクする。
@@ -407,10 +407,9 @@ class ProjectsAPI(ReposAPI):
             repo_name: リポジトリ名
 
         Returns:
-            (成功フラグ, メッセージ) のタプル。
-            成功時: (True, "リンク成功メッセージ")。
-            既にリンク済み: (True, "既にリンク済みメッセージ")。
-            失敗時: (False, "エラーメッセージ")。
+            (結果, 詳細) のタプル。
+            結果は "linked"（リンクした）・"already_linked"（既にリンク済み）・"failed"（失敗）。
+            詳細は GitHub の message（成功時は空文字列）。
         """
         try:
             # プロジェクトIDを取得
@@ -428,21 +427,18 @@ class ProjectsAPI(ReposAPI):
             link_result = result.get("linkProjectV2ToRepository", {})
             repository = link_result.get("repository")
             if repository:
-                return (
-                    True,
-                    f"GitHub Projectにリンクしました: {repository.get('nameWithOwner', '')}",
-                )
+                return ("linked", "")
 
-            return (False, "リンクに失敗しました: レスポンスが不正です")
+            return ("failed", "unexpected response")
 
         except GitHubNotFoundError as e:
-            return (False, f"リンクに失敗しました: {e.message}")
+            return ("failed", e.message)
         except GitHubAPIError as e:
             # 既にリンク済みの場合のエラーハンドリング
             error_msg = str(e.message).lower()
             if "already linked" in error_msg or "already exists" in error_msg:
-                return (True, "既にリンク済みです")
-            return (False, f"リンクに失敗しました: {e.message}")
+                return ("already_linked", e.message)
+            return ("failed", e.message)
 
     def list_projects(self, owner: str, limit: int = 20) -> list[dict[str, Any]]:
         """オーナーのプロジェクト一覧を取得

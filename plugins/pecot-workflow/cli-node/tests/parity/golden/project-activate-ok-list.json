@@ -1,5 +1,5 @@
 {
-  "stdout": "=== init済みプロジェクト (ghes.example.com/acme) ===\n  #1: board [ACTIVE]\n\nアクティベート: pecot project activate <PROJECT> --host ghes.example.com --owner acme\n",
+  "stdout": "=== Initialized projects (ghes.example.com/acme) ===\n  #1: board [ACTIVE]\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

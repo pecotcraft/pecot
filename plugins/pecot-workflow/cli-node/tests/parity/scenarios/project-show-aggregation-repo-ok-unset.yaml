@@ -1,4 +1,4 @@
-# 未設定のとき「未設定」と出す。
+# 未設定のとき `none` と出す。
 id: project-show-aggregation-repo-ok-unset
 command:
   path: [project, show-aggregation-repo]

@@ -43,7 +43,7 @@ pecot project show-aggregation-repo
 ```
 
 - **設定済み**（`owner/repo` が返る）→ Step 4 へ進む
-- **未設定**（`未設定` が返る）→ AskUserQuestion で分岐:
+- **未設定**（`none` が返る）→ AskUserQuestion で分岐:
   - 「先に集約リポを設定する（推奨）」→ `/pecot-w:w-onboarding` を案内してこのスキルを中断
   - 「このまま個別リポに Epic を作る（分散運用）」→ Step 4 へ進む（作成時 `repository` 必須）
 
