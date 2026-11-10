@@ -21,6 +21,7 @@ import {
   runtimeInstallStamp,
   PATCH_PACKAGE_RANGE,
 } from '../../../src/infra/_shared/runtime-install.js'
+import { caretRangeViolation, compareVersionTriple, parseVersionTriple } from '../../_helpers/caret-range.js'
 import { stubNoDataDirectory } from '../../_helpers/no-data-directory.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 
@@ -35,46 +36,6 @@ const MONACO_EDITOR_MANIFEST = path.join(REPO_ROOT, 'node_modules', 'monaco-edit
 const MICROMARK_EXTENSION_MATH_MANIFEST = path.join(REPO_ROOT, 'node_modules', 'micromark-extension-math', 'package.json')
 const WORKSPACE_YAML = path.join(REPO_ROOT, 'pnpm-workspace.yaml')
 const LOCKFILE = path.join(REPO_ROOT, 'pnpm-lock.yaml')
-
-/**
-`1.2.3` を [1, 2, 3] にする。semver を依存に足さないための最小 parser。
-*/
-function parseVersionTriple(version: string): readonly number[] {
-  return version.split('.').map(part => Math.trunc(Number(part)))
-}
-
-/**
-semver triple の辞書順比較。a > b で正、a < b で負。
-*/
-function compareVersionTriple(a: readonly number[], b: readonly number[]): number {
-  for (let index = 0; index < 3; index++) {
-    // eslint-disable-next-line security/detect-object-injection -- index は 0..2 の loop counter
-    const difference = (a[index] ?? 0) - (b[index] ?? 0)
-    if (difference !== 0) return difference
-  }
-  return 0
-}
-
-/**
-caret range (`^x.y.z`) を version が満たさない理由を返す。満たすなら undefined。
-
-semver を依存に足さないための最小判定。
-0.x の caret では minor が互換の単位で、`^0.20.3` の範囲に 0.21.0 は入らない。
-そのため下限の major が 0 のときは minor の一致も要求する。
-この条件が無いと、0.x の peer 範囲を誤って「満たす」と判定する。
-*/
-function caretRangeViolation(version: string, range: string): string | undefined {
-  if (!/^\^\d+\.\d+\.\d+$/.test(range)) return `宣言が caret range ではない: ${range}`
-  if (!/^\d+\.\d+\.\d+$/.test(version)) return `版が完全一致指定ではない: ${version}`
-  const lowerBound = parseVersionTriple(range.slice(1))
-  const actual = parseVersionTriple(version)
-  if (actual[0] !== lowerBound[0]) return `${version} が ${range} と major 不一致`
-  if (lowerBound[0] === 0 && actual[1] !== lowerBound[1]) {
-    return `${version} が ${range} と minor 不一致 (0.x の caret は minor が互換の単位)`
-  }
-  if (compareVersionTriple(actual, lowerBound) < 0) return `${version} が ${range} の下限未満`
-  return undefined
-}
 
 interface RuntimeManifest {
   dependencies: Record<string, string>
@@ -126,8 +87,6 @@ override が要らなくなったときだけ false を返す（落とす）。�
 - 宣言なし: false
 - 完全一致: F 未満のときだけ true
 - `^L`: 範囲が F を含む、または L が F 以上なら false。それ以外は true
-
-`^0.0.x` は扱わない（caretRangeViolation が major 0 では minor の一致しか見ない）。
 */
 function isOverrideStillNeeded(declared: string | undefined, fixed: string): boolean {
   if (declared === undefined) return false
@@ -371,6 +330,11 @@ describe('isOverrideStillNeeded', () => {
     expect(isOverrideStillNeeded('^0.16.0', '0.18.7')).toBe(true)
     expect(isOverrideStillNeeded('^0.18.0', '0.18.7')).toBe(false)
     expect(isOverrideStillNeeded('^0.19.0', '0.18.7')).toBe(false)
+  })
+
+  it('0.0.x の caret は patch まで一致が互換の単位', () => {
+    expect(isOverrideStillNeeded('^0.0.3', '0.0.5')).toBe(true)
+    expect(isOverrideStillNeeded('^0.0.5', '0.0.5')).toBe(false)
   })
 
   it('知らない形は要らない扱いにして人に見せる', () => {
