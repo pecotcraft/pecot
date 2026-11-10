@@ -185,11 +185,12 @@ def test_runtime_lock_workflow_runs_an_existing_script() -> None:
 
 
 def test_runtime_lock_workflow_marks_commit_for_dependabot_rebase() -> None:
-    """印が無いと dependabot は他者の commit がある PR を rebase しない。runtime-lock.yml は Dependabot の PR でしか動かないので、ここで固定する。"""
+    """印が無いと、dependabot は他者の commit がある PR を rebase しない。"""
     workflow = (_REPO_ROOT / ".github/workflows/runtime-lock.yml").read_text(encoding="utf-8")
-    assert re.findall(r"^\s*(git commit\b.*)$", workflow, re.M) == [
-        'git commit -m "$COMMIT_MSG" -m "[dependabot skip]"'
-    ]
+    commits = re.findall(r"^\s*(git commit\b.*)$", workflow, re.M)
+    assert commits == ['git commit -m "$COMMIT_MSG" -m "[dependabot skip]"'], (
+        f"git commit の行: {commits}"
+    )
 
 
 def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:

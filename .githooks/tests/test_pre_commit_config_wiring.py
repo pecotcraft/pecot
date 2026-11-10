@@ -158,6 +158,7 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
         # libs/<name>/ の package.json と project.json は、nx のグラフ確認も読む。
         "package.json",
         "libs/text-rules/package.json",
+        ".github/workflows/runtime-lock.yml",
         "libs/text-rules/project.json",
         ".githooks/scripts/gen-runtime-lock.mjs",
         ".githooks/scripts/run-pnpm.sh",
@@ -185,6 +186,7 @@ def test_githooks_tests_runs_when_their_inputs_change(script_dir: Path, changed_
         "plugins/pecot-visual/package.json",
         "libs/text-rules/index.ts",
         "libs/text-rules/tests/index.test.ts",
+        ".github/workflows/ci.yml",
     ],
 )
 def test_githooks_tests_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
