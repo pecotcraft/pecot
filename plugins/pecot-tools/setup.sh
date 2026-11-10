@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== pecot-tools plugin setup ==="
 if ! plugin_data_dir_ensure pecot-tools >/dev/null; then
-  echo "=== pecot-tools plugin setup failed (データ置き場を用意できません) ===" >&2
+  echo "=== pecot-tools plugin setup failed (cannot prepare the data directory) ===" >&2
   exit 1
 fi
 PECOT_TOOLS_BOOTSTRAP_FORCE=1 "$SCRIPT_DIR/bin/pecot-tools" --help >/dev/null

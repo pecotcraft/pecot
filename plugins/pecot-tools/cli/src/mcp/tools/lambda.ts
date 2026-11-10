@@ -19,27 +19,27 @@ export function lambdaTools(options: Readonly<ToolOptions> = {}): readonly ToolD
   return [
     allowlistedTool({
       entry: LAMBDA_LIST_FUNCTIONS,
-      title: 'Lambda 関数の一覧',
-      description: 'リージョン内の Lambda 関数を一覧する。件数が多い場合は max_items と starting_token で分割する',
+      title: 'List Lambda functions',
+      description: 'Lists Lambda functions in the region. For many functions, split with max_items and starting_token',
       inputSchema: z.object({ ...MAX_ITEMS_PAGINATION_SHAPE, ...COMMON_INPUT_SHAPE }),
     }, options),
     allowlistedTool({
       entry: LAMBDA_GET_FUNCTION_CONFIGURATION,
-      title: 'Lambda 関数の構成取得',
-      description: '関数 1 件の構成（ランタイム・ハンドラ・環境変数・タイムアウト等）を返す',
+      title: 'Get Lambda function configuration',
+      description: 'Returns the configuration of one function (runtime, handler, environment variables, timeout, etc.)',
       inputSchema: z.object({
-        function_name: z.string().describe('関数名・部分 ARN・完全 ARN のいずれか'),
-        qualifier: z.string().optional().describe('バージョン番号またはエイリアス名。未指定なら $LATEST'),
+        function_name: z.string().describe('Function name, partial ARN, or full ARN'),
+        qualifier: z.string().optional().describe('Version number or alias name. If omitted, $LATEST'),
         ...COMMON_INPUT_SHAPE,
       }),
     }, options),
     allowlistedTool({
       entry: LAMBDA_LIST_EVENT_SOURCE_MAPPINGS,
-      title: 'イベントソースマッピングの一覧',
-      description: '関数とイベントソース（SQS キュー・DynamoDB ストリーム等）の対応を一覧する。event_source_arn と function_name のどちらでも絞れる',
+      title: 'List event source mappings',
+      description: 'Lists the mappings between functions and event sources (SQS queues, DynamoDB streams, etc.). Filter by event_source_arn or function_name',
       inputSchema: z.object({
-        event_source_arn: z.string().optional().describe('イベントソースの ARN（arn: で始まる）'),
-        function_name: z.string().optional().describe('関数名・部分 ARN・完全 ARN のいずれか'),
+        event_source_arn: z.string().optional().describe('ARN of the event source (starts with arn:)'),
+        function_name: z.string().optional().describe('Function name, partial ARN, or full ARN'),
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),

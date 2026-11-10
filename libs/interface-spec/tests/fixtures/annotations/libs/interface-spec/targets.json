@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "plugins": {
+    "pecot-tools": {
+      "entries": "partial",
+      "coverage": "off",
+      "sources": []
+    }
+  }
+}

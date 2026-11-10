@@ -37,6 +37,7 @@ _NX_CONFIG_FILES = (".nxignore", "nx.json", "pnpm-workspace.yaml", "pnpm-lock.ya
 # nx が認識する project の集合。入れ子のメンバーは `nx.root` / `nx.name` でプラグインの project へ束ねる (#113)。
 _EXPECTED_PROJECTS = {
     "githooks",
+    "interface-spec",
     "nx-release",
     "pecot",
     "pecot-tools",
@@ -288,7 +289,16 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         # 出力の行の期待値は、Python と Node の出力の一致のテストが両方読む (#205)。
         (
             "plugins/pecot-workflow/cli-node/tests/output/cases.json",
-            {"pecot-workflow:test-py", "pecot-workflow:test-cli"},
+            {"pecot-workflow:test-py", "pecot-workflow:test-cli", "githooks:test-checks"},
+        ),
+        # 診断行の期待は、3 プラグインの一致のテストが読む (#215)。
+        (
+            "plugins/pecot-visual/cli/tests/diagnostics-cases.json",
+            {"pecot-visual:test-cli", "githooks:test-checks"},
+        ),
+        (
+            "plugins/pecot-tools/cli/tests/diagnostics-cases.json",
+            {"pecot-tools:test-cli", "githooks:test-checks"},
         ),
     ],
 )
@@ -677,6 +687,8 @@ _PECOTV_TEST_LANES = {
             "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",
             {"pecot-workflow:test-hooks"},
         ),
+        # interface-spec の単体テストはソースの変更で動く。
+        ("libs/interface-spec/src/cli.ts", {"interface-spec:test-unit"}),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
         (
@@ -866,6 +878,12 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "pecot-visual:lint-cli",
             },
         ),
+        # interface-spec のソースは lint と lint-defs の両方、定義書（plugins/*/interface/）は lint-defs だけに届く。
+        ("libs/interface-spec/src/cli.ts", {"interface-spec:lint", "interface-spec:lint-defs"}),
+        (
+            "libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml",
+            {"interface-spec:lint"},
+        ),
     ],
 )
 def test_lint_gate_selects_only_the_lanes_the_change_reaches(
@@ -919,3 +937,28 @@ def test_representative_files_list_matches_the_parametrized_ones() -> None:
         .split()
     )
     assert _parametrized_changed_files() - _NOT_LISTED == listed
+
+
+def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
+    """plugins/*/interface/ はまだ無いので、実在を要る選び方のテストでなく、入力の宣言で固定する。"""
+    project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
+    inputs = project["targets"]["lint-defs"]["inputs"]
+    assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs
+
+
+def test_lint_defs_inputs_cover_the_sources_of_every_plugin() -> None:
+    """targets.json の各プラグインの sources の glob が、lint-defs の inputs に覆われる。
+
+    覆われないと、ソースの環境変数の読みが増えても nx affected が lint-defs を選ばず、キャッシュも当たる。
+    plugins が空の間は何も確かめない。
+    """
+    targets = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))
+    project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
+    inputs = {
+        entry.removeprefix("{workspaceRoot}/")
+        for entry in project["targets"]["lint-defs"]["inputs"]
+        if isinstance(entry, str) and entry.startswith("{workspaceRoot}/")
+    }
+    for name, plugin in targets["plugins"].items():
+        for glob in plugin["sources"]:
+            assert glob in inputs, f"{name} の sources の {glob} が lint-defs の inputs に無い"

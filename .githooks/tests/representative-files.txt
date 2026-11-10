@@ -26,6 +26,8 @@
 .nxignore
 .pre-commit-config.yaml
 README.md
+libs/interface-spec/src/cli.ts
+libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml
 libs/text-rules/index.ts
 libs/text-rules/package.json
 libs/text-rules/project.json
@@ -40,6 +42,7 @@ plugins/pecot-tools/cli/src/version.ts
 plugins/pecot-tools/cli/tests/_fixtures/fake-aws/aws
 plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-tools/cli/tests/bootstrap/run.sh
+plugins/pecot-tools/cli/tests/diagnostics-cases.json
 plugins/pecot-tools/package.json
 plugins/pecot-tools/plugin.json
 plugins/pecot-tools/runtime-lock.yaml
@@ -55,6 +58,7 @@ plugins/pecot-visual/cli/src/infra/drawio/pdf.ts
 plugins/pecot-visual/cli/src/version.ts
 plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-visual/cli/tests/bootstrap/install-record.sh
+plugins/pecot-visual/cli/tests/diagnostics-cases.json
 plugins/pecot-visual/cli/tests/fixtures/minimal-slidev/package.json
 plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/package.json
 plugins/pecot-visual/com.github.copilot/hooks/hooks.json

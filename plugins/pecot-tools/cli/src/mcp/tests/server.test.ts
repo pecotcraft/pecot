@@ -272,8 +272,8 @@ describe('createMcpServer の progress ハートビート', () => {
       })
 
       // 1 発目は実行枠を取る前に送るため必ず「順番待ち中」、以降は枠を得ていて「実行中」。
-      expect(received[0]).toMatchObject({ progress: 1, message: 'gated: 順番待ち中' })
-      expect(received[1]).toMatchObject({ progress: 2, message: 'gated: 実行中' })
+      expect(received[0]).toMatchObject({ progress: 1, message: 'gated: queued' })
+      expect(received[1]).toMatchObject({ progress: 2, message: 'gated: running' })
       expect(received.map(item => item.progress)).toEqual(received.map((_item, index) => index + 1))
     }
     finally {

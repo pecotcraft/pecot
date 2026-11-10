@@ -88,7 +88,7 @@ describe('ssoTools', () => {
     expect(Buffer.byteLength(String(output), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
     expect(result.structuredContent).toMatchObject({ ok: true, exitCode: 0 })
     expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
-      .toContain('上限')
+      .toContain('exceeded the limit')
   })
 
   it('確定待ちより先にタイムアウトが来ると timed-out を返す', async () => {
@@ -108,7 +108,7 @@ describe('ssoTools', () => {
       category: 'timeout',
     })
     expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
-      .toContain('aws_sso_login を再度呼び出してください')
+      .toContain('Call aws_sso_login again')
   })
 
   it('開始に失敗して出力が上限を超えると注記を message に残す', async () => {
@@ -129,6 +129,6 @@ describe('ssoTools', () => {
     expect(typeof stderr).toBe('string')
     expect(Buffer.byteLength(String(stderr), 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
     expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
-      .toContain('上限')
+      .toContain('exceeded the limit')
   })
 })

@@ -1,7 +1,4 @@
-// S3 系のツール定義。
-//
-// 取得方向（S3 → ローカル）は入力の型で固定されており、逆方向は表現できない（research R7）。
-// 残る上書き規則だけを実行前拒否（reject）で見て、書き出し先を artifacts に載せる。
+// S3 系のツール定義。取得方向は入力の型で固定され（research R7）、残る上書き規則だけを実行前拒否で見る。
 
 import { z } from 'zod'
 
@@ -30,14 +27,7 @@ function targetOf(
 }
 
 /**
-書き出し先を実行前に見る（research R7 の Edge Case）。
-
-ディレクトリは overwrite に依らず拒否する。
-`aws s3 cp s3://b/k /dir` は `/dir/k` を書く。
-「上書きするなら overwrite に true を」の案内どおりに再実行しても、artifacts に載る書き出し先（`/dir`）と実体がずれたまま成功してしまう。
-
-既存ファイルは overwrite が無ければ拒否する。書き出し先が未指定・非文字列のときは undefined を
-返し、必須入力の検証へ委ねる。
+書き出し先を実行前に見る（research R7）。ディレクトリは overwrite に依らず拒否する。`/dir/k` に書かれ、artifacts の `/dir` とずれるため。
 */
 function rejectExistingTarget(
   name: TargetName,
@@ -49,7 +39,7 @@ function rejectExistingTarget(
     if (isDirectory(target)) {
       return {
         category: 'invalid-input',
-        message: `${name} にディレクトリは指定できません。書き出すファイルの絶対パスを指定してください: ${target}`,
+        message: `${name} must not be a directory. Specify the absolute path of the file to write: ${target}`,
       }
     }
 
@@ -57,7 +47,7 @@ function rejectExistingTarget(
 
     return {
       category: 'invalid-input',
-      message: `${name} は既に存在します。上書きするなら overwrite に true を指定してください: ${target}`,
+      message: `${name} already exists. To overwrite, set overwrite to true: ${target}`,
     }
   }
 }
@@ -75,26 +65,26 @@ function artifactsOfTarget(
 }
 
 const OVERWRITE_INPUT = z.boolean().default(false)
-  .describe('true なら書き出し先が既にあっても上書きする')
+  .describe('If true, overwrites the destination even if it already exists')
 
 export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefinition[] {
   return [
     allowlistedTool({
       entry: S3_LS,
-      title: 'S3 の一覧',
-      description: 'バケットまたは prefix の直下を一覧する。s3_uri を省略するとバケット一覧を返す。JSON 出力を持たないコマンドのため data.lines に行単位で返る',
+      title: 'List S3',
+      description: 'Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in data.lines',
       inputSchema: z.object({
-        s3_uri: z.string().optional().describe('一覧する対象（s3://bucket または s3://bucket/prefix/）。省略時はバケット一覧'),
+        s3_uri: z.string().optional().describe('Target to list (s3://bucket or s3://bucket/prefix/). If omitted, lists buckets'),
         ...COMMON_INPUT_SHAPE,
       }),
     }, options),
     allowlistedTool({
       entry: S3_CP,
-      title: 'S3 オブジェクトの取得',
-      description: 'S3 のオブジェクト 1 件をローカルの絶対パスへ取得する。アップロード方向と再帰コピーは公開していない',
+      title: 'Get S3 object',
+      description: 'Downloads one S3 object to a local absolute path. Uploads and recursive copy are not exposed',
       inputSchema: z.object({
-        s3_uri: z.string().describe('取得元（s3://bucket/key の形式）'),
-        local_path: z.string().describe('書き出し先のローカル絶対パス'),
+        s3_uri: z.string().describe('Source (s3://bucket/key)'),
+        local_path: z.string().describe('Local absolute path to write to'),
         overwrite: OVERWRITE_INPUT,
         ...COMMON_INPUT_SHAPE,
       }),
@@ -103,14 +93,14 @@ export function s3Tools(options: Readonly<ToolOptions> = {}): readonly ToolDefin
     }, options),
     allowlistedTool({
       entry: S3API_GET_OBJECT,
-      title: 'S3 オブジェクトの取得（メタデータ付き）',
-      description: 'バケットとキーを指定してオブジェクトを取得し、メタデータを JSON で返す。version_id でバージョン指定、range で部分取得ができる',
+      title: 'Get S3 object (with metadata)',
+      description: 'Gets an object by bucket and key and returns its metadata as JSON. Use version_id to pick a version and range for a partial download',
       inputSchema: z.object({
-        bucket: z.string().describe('バケット名'),
-        key: z.string().describe('オブジェクトキー'),
-        outfile: z.string().describe('書き出し先のローカル絶対パス'),
-        version_id: z.string().optional().describe('取得するバージョン ID'),
-        range: z.string().optional().describe('取得するバイト範囲（bytes=0-1023 の形式）'),
+        bucket: z.string().describe('Bucket name'),
+        key: z.string().describe('Object key'),
+        outfile: z.string().describe('Local absolute path to write to'),
+        version_id: z.string().optional().describe('Version ID to get'),
+        range: z.string().optional().describe('Byte range to get (bytes=0-1023)'),
         overwrite: OVERWRITE_INPUT,
         ...COMMON_INPUT_SHAPE,
       }),

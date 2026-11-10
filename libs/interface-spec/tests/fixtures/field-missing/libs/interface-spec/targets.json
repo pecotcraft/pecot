@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "plugins": {
+    "pecot-workflow": {
+      "entries": "complete",
+      "coverage": "off",
+      "sources": [
+        "cli/**/*.py"
+      ]
+    }
+  }
+}

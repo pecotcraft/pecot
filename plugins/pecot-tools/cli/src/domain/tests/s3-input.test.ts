@@ -48,8 +48,8 @@ describe('validateLocalPath', () => {
   })
 
   it('相対パスを拒否する', () => {
-    expect(validateLocalPath('data/report.json')).toContain('絶対パス')
-    expect(validateLocalPath('./report.json')).toContain('絶対パス')
+    expect(validateLocalPath('data/report.json')).toContain('must be an absolute path')
+    expect(validateLocalPath('./report.json')).toContain('must be an absolute path')
   })
 
   it('S3 URI を書き出し先にできない（大小文字を問わない）', () => {

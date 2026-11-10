@@ -6,6 +6,7 @@ engineStrict: true
 minimumReleaseAge: 1440
 
 packages:
+  - libs/interface-spec
   - libs/text-rules
   - plugins/pecot-workflow
   - plugins/pecot-tools

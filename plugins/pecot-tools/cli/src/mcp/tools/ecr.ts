@@ -1,7 +1,4 @@
-// ECR 系のツール定義。
-//
-// tag_status は awscli の `--filter tagStatus=<値>` へ合成する（許可リスト側の shorthand）。
-// 利用者に shorthand の文字列そのものを書かせないのは Athena と同じ理由。
+// ECR 系のツール定義。tag_status は awscli の `--filter tagStatus=<値>` へ合成する（Athena と同じく shorthand を書かせない）。
 
 import { z } from 'zod'
 
@@ -15,29 +12,26 @@ import {
 } from './_shared.js'
 
 /**
-取得するイメージの指定 1 件。タグとダイジェストのどちらか一方だけでも指定できる。
-
-`z.object` は宣言外のキーを通知せず削るため strictObject を使う。
-JSON Schema では `items.additionalProperties: false` になり、SDK が入力検証エラーで拒否する。
+取得するイメージの指定 1 件。タグとダイジェストのどちらか一方でよい。strictObject は宣言外のキーを SDK に拒否させるため。
 */
 const IMAGE_ID_ELEMENT = z.strictObject({
-  image_tag: z.string().optional().describe('イメージタグ'),
-  image_digest: z.string().optional().describe('イメージダイジェスト（sha256:… の形式）'),
+  image_tag: z.string().optional().describe('Image tag'),
+  image_digest: z.string().optional().describe('Image digest (sha256:... form)'),
 })
 
 export function ecrTools(options: Readonly<ToolOptions> = {}): readonly ToolDefinition[] {
   return [
     allowlistedTool({
       entry: ECR_DESCRIBE_IMAGES,
-      title: 'コンテナイメージの一覧',
-      description: 'リポジトリ内のイメージのタグ・ダイジェスト・push 時刻を返す。デプロイ時刻の確認に使う。未指定時は ACTIVE のイメージのみが返る',
+      title: 'List container images',
+      description: 'Returns tags, digests, and push times of images in a repository. Use it to check deploy times. Only ACTIVE images are returned unless specified otherwise',
       inputSchema: z.object({
-        repository_name: z.string().describe('リポジトリ名'),
-        registry_id: z.string().optional().describe('レジストリの AWS アカウント ID（12 桁）。未指定なら既定のレジストリ'),
+        repository_name: z.string().describe('Repository name'),
+        registry_id: z.string().optional().describe('AWS account ID of the registry (12 digits). If omitted, the default registry'),
         image_ids: z.array(IMAGE_ID_ELEMENT).max(100).optional()
-          .describe('取得するイメージの指定。要素ごとに image_tag と image_digest の少なくとも一方が必要。starting_token とは併用できない'),
+          .describe('Images to get. Each element needs at least one of image_tag and image_digest. Cannot be combined with starting_token'),
         tag_status: z.enum(['TAGGED', 'UNTAGGED', 'ANY']).optional()
-          .describe('タグの有無で絞り込む。未指定なら絞り込まない'),
+          .describe('Filter by whether the image is tagged. If omitted, no filtering'),
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
