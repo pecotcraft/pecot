@@ -303,24 +303,49 @@ test("pecot-visual の配布物の dev 依存から届く indirect は作る", (
   assert.deepEqual(resolveGroups(update("g", "indirect", "1.0.0"), ctx), { groups: [], reason: "dev" });
 });
 
-test("本文は 1 文で、(#N) は付けない。旧版が無い依存は「名前 → 新版」にする", () => {
-  const text = renderPlan(
-    "pecot-tools",
-    [
-      { name: "commander", from: "14.0.3", version: "15.0.0" },
-      { name: "foo", from: null, version: "2.0.0" },
-    ],
+test("1 件は「`名前` を 旧版 から 新版 に更新。」の 1 行で、(#N) は付けない", () => {
+  assert.equal(
+    renderPlan("pecot-tools", [{ name: "commander", from: "14.0.3", version: "15.0.0" }]),
+    "---\npecot-tools: patch\n---\n\n`commander` を 14.0.3 から 15.0.0 に更新。\n",
   );
-  assert.equal(text, "---\npecot-tools: patch\n---\n\n依存を更新した（commander 14.0.3 → 15.0.0、foo → 2.0.0）。\n");
+  assert.equal(
+    renderPlan("pecot-tools", [{ name: "foo", from: null, version: "2.0.0" }]),
+    "---\npecot-tools: patch\n---\n\n`foo` を 2.0.0 に更新。\n",
+  );
 });
 
-test("100 字を超えるときは「ほか N 件」で締めて 100 字以内に収める", () => {
-  const deps = Array.from({ length: 12 }, (_, i) => ({ name: `package-${i}`, from: "1.0.0", version: "1.1.0" }));
-  const body = renderPlan("pecot-visual", deps).split("\n").at(-2);
-  assert.ok([...body].length <= 100, body);
-  assert.match(body, /^依存を更新した（package-0 1\.0\.0 → 1\.1\.0、.*、ほか \d+ 件）。$/);
-  const shown = (body.match(/package-/g) ?? []).length;
-  assert.match(body, new RegExp(`ほか ${12 - shown} 件`));
+test("2 件は件数の行の後に 1 件 1 行で並べる", () => {
+  const text = renderPlan("pecot-tools", [
+    { name: "commander", from: "14.0.3", version: "15.0.0" },
+    { name: "foo", from: null, version: "2.0.0" },
+  ]);
+  assert.equal(
+    text,
+    "---\npecot-tools: patch\n---\n\n依存パッケージを 2 件更新。\n`commander` を 14.0.3 から 15.0.0 に更新。\n`foo` を 2.0.0 に更新。\n",
+  );
+});
+
+test("3 件以上は 2 件まで載せ「ほか N 件」で締め、形式の上限に収める", () => {
+  const short = renderPlan(
+    "pecot-visual",
+    ["a", "b", "c", "d", "e"].map((name) => ({ name, from: "1.0.0", version: "1.1.0" })),
+  );
+  assert.equal(
+    short,
+    "---\npecot-visual: patch\n---\n\n依存パッケージを 5 件更新。\n`a` を 1.0.0 から 1.1.0 に更新。\n`b` を 1.0.0 から 1.1.0 に更新、ほか 3 件。\n",
+  );
+  const deps = Array.from({ length: 12 }, (_, i) => ({
+    name: `@long-scope/package-with-a-very-long-name-${i}`,
+    from: "10.100.1000",
+    version: "11.200.2000",
+  }));
+  const lines = renderPlan("pecot-visual", deps).split("---\n\n")[1].trimEnd().split("\n");
+  assert.ok(lines.length <= 3, lines.join("\n"));
+  assert.ok(lines.every((line) => [...line].length <= 100), lines.join("\n"));
+  assert.ok([...lines.join("")].length <= 200, lines.join("\n"));
+  assert.equal(lines[0], "依存パッケージを 12 件更新。");
+  const shown = lines.slice(1).length;
+  assert.match(lines.at(-1), new RegExp(`、ほか ${12 - shown} 件。$`));
 });
 
 // 結合のテスト。一時の git リポに commit を並べ、main() を通す。
@@ -426,12 +451,12 @@ test("実物の 11 件から作るのは #5・#6・#10・#16 の 4 件で、作�
     "6-dependabot-deps.md",
   ]);
   const read = (name) => fs.readFileSync(path.join(dir, ".nx/version-plans", name), "utf8");
-  assert.equal(read("5-dependabot-deps.md"), "---\npecot-tools: patch\n---\n\n依存を更新した（commander 14.0.3 → 15.0.0）。\n");
-  assert.equal(read("10-dependabot-deps.md"), "---\npecot-workflow: patch\n---\n\n依存を更新した（commander 14.0.3 → 15.0.0）。\n");
-  assert.equal(read("16-dependabot-deps.md"), "---\npecot-visual: patch\n---\n\n依存を更新した（commander 14.0.3 → 15.0.0）。\n");
+  assert.equal(read("5-dependabot-deps.md"), "---\npecot-tools: patch\n---\n\n`commander` を 14.0.3 から 15.0.0 に更新。\n");
+  assert.equal(read("10-dependabot-deps.md"), "---\npecot-workflow: patch\n---\n\n`commander` を 14.0.3 から 15.0.0 に更新。\n");
+  assert.equal(read("16-dependabot-deps.md"), "---\npecot-visual: patch\n---\n\n`commander` を 14.0.3 から 15.0.0 に更新。\n");
   assert.equal(
     read("6-dependabot-deps.md"),
-    "---\npecot-workflow: patch\n---\n\n依存を更新した（typer 0.26.8 → 0.27.3、pydantic 2.14.1 → 2.14.2）。\n",
+    "---\npecot-workflow: patch\n---\n\n依存パッケージを 2 件更新。\n`typer` を 0.26.8 から 0.27.3 に更新。\n`pydantic` を 2.14.1 から 2.14.2 に更新。\n",
   );
   assert.deepEqual(sumSummary(results), {
     "作った plan ファイル": 4,
@@ -449,7 +474,7 @@ test("--dry-run は .nx/version-plans に書かず、パスと中身を出す", 
   assert.deepEqual(plansIn(dir), []);
   const printed = results.flatMap(({ lines }) => lines).join("\n");
   assert.match(printed, /5-dependabot-deps\.md\n---\npecot-tools: patch/);
-  assert.match(printed, /依存を更新した（commander 14\.0\.3 → 15\.0\.0）。\n/);
+  assert.match(printed, /`commander` を 14\.0\.3 から 15\.0\.0 に更新。\n/);
   assert.doesNotMatch(printed, /\(#\d+\)/);
   assert.equal(sumSummary(results)["作った plan ファイル"], 4);
 });
@@ -493,7 +518,7 @@ test("件名に (#N) が無い commit からも、--pr の番号で plan を作�
   assert.deepEqual(plansIn(dir), ["12-dependabot-deps.md"]);
   assert.equal(
     fs.readFileSync(path.join(dir, ".nx/version-plans/12-dependabot-deps.md"), "utf8"),
-    "---\npecot-tools: patch\n---\n\n依存を更新した（commander 1.0.0 → 2.0.0）。\n",
+    "---\npecot-tools: patch\n---\n\n`commander` を 1.0.0 から 2.0.0 に更新。\n",
   );
 });
 
@@ -671,7 +696,7 @@ test("同じ PR の同じ group に届く 2 commit は、1 つの plan に集約
   assert.deepEqual(plansIn(dir), ["71-dependabot-deps.md"]);
   assert.match(
     fs.readFileSync(path.join(dir, ".nx/version-plans/71-dependabot-deps.md"), "utf8"),
-    /commander 1\.0\.0 → 2\.0\.0、commander 2\.0\.0 → 3\.0\.0/,
+    /`commander` を 1\.0\.0 から 2\.0\.0 に更新。\n`commander` を 2\.0\.0 から 3\.0\.0 に更新。/,
   );
   assert.equal(summaryOf(result.lines)["作らなかった plan ファイル（既にある）"], 0);
 });

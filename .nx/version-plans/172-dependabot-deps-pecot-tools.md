@@ -2,4 +2,4 @@
 pecot-tools: patch
 ---
 
-依存を更新した（commander 15.0.0 → 15.1.0）。(#172)
+`commander` を 15.0.0 から 15.1.0 に更新。(#172)
