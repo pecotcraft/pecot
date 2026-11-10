@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { Command, CommanderError } from 'commander'
 
 import { createDiagnostics } from './diagnostics.js'
-import { checkNodeRuntime } from './node-runtime.js'
+import { nodeRuntimeGuidance } from './node-runtime.js'
 import { readVersion } from './version.js'
 
 export function createProgram(): Command {
@@ -36,7 +36,7 @@ export function applyExitOverrideRecursively(command: Command): void {
 }
 
 export function main(nodeVersion: string = process.versions.node): void {
-  const runtimeError = checkNodeRuntime(nodeVersion)
+  const runtimeError = nodeRuntimeGuidance(nodeVersion)
   if (runtimeError !== undefined) {
     createDiagnostics(process.stderr).error(runtimeError)
     process.exitCode = 1

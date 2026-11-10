@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import { checkNodeRuntime, MINIMUM_NODE_VERSIONS, suggestedNodeVersion } from '../node-runtime.js'
+import { checkNodeRuntime, MINIMUM_NODE_VERSIONS, nodeRuntimeGuidance, suggestedNodeVersion } from '../node-runtime.js'
 
 function readRelative(relativePath: string): string {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- import.meta.url 相対で組んだパス
@@ -25,6 +25,7 @@ describe('checkNodeRuntime', () => {
     '%s は起動を許可する',
     (version) => {
       expect(checkNodeRuntime(version)).toBeUndefined()
+      expect(nodeRuntimeGuidance(version)).toBeUndefined()
     },
   )
 
@@ -48,6 +49,26 @@ describe('checkNodeRuntime', () => {
       expect(message).toContain(`nvm install ${suggestedNodeVersion()}`)
     },
   )
+
+  it.each(['23.11.0', '24.20.0', '25.9.0', '26.12.0', 'unknown'])(
+    '%s の nodeRuntimeGuidance は字下げ無しで、checkNodeRuntime は続きの行に空白 2 つを付ける',
+    (version) => {
+      const guidance = nodeRuntimeGuidance(version) ?? ''
+      expect(guidance).not.toBe('')
+      for (const line of guidance.split('\n')) expect(line).not.toMatch(/^\s/)
+      expect(checkNodeRuntime(version)).toBe(guidance.replaceAll('\n', '\n  '))
+    },
+  )
+
+  it('24.20.0 の案内は 3 行で、launcher と hook が書く形のまま変わらない', () => {
+    expect(checkNodeRuntime('24.20.0')).toBe(
+      [
+        'Node.js 24.20.0 does not include fixes for known vulnerabilities; not starting',
+        '  required: 24.x: 24.22.1 or later, 26.x: 26.12.1 or later',
+        '  (fix: update Node.js and run again; with nvm: nvm install 24.22.1)',
+      ].join('\n'),
+    )
+  })
 
   it('案内用の版は表の最小 major の最低版で、その版は許可される', () => {
     expect(suggestedNodeVersion()).toBe('24.22.1')

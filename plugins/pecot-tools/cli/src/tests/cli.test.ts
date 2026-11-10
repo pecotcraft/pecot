@@ -67,6 +67,30 @@ describe('main', () => {
     }
   })
 
+  it('修正版未満の Node.js では案内の 2 行目以降が空白 2 つで始まる', () => {
+    const previousArgv = process.argv
+    const previousExit = process.exitCode
+    process.argv = ['node', 'cli', '--version']
+    const writes: string[] = []
+    const isStderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      writes.push(String(chunk))
+      return true
+    })
+    const isStdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    try {
+      main('24.20.0')
+      const lines = writes.join('').trimEnd().split('\n')
+      expect(lines.length).toBeGreaterThanOrEqual(3)
+      for (const line of lines.slice(1)) expect(line).toMatch(/^ {2}\S/)
+    }
+    finally {
+      isStderrSpy.mockRestore()
+      isStdoutSpy.mockRestore()
+      process.exitCode = previousExit
+      process.argv = previousArgv
+    }
+  })
+
   it('未知オプションを exitCode 2 にする', () => {
     const previousArgv = process.argv
     process.argv = ['node', 'cli', '--unknown']
