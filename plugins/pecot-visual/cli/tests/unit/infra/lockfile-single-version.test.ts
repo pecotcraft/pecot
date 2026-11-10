@@ -1,4 +1,5 @@
-// lock の shiki / @shikijs/* / vite が各 1 版であること (#1233) と、vite の範囲が catalog の 1 か所にあること (#170) を見る。
+// lock の shiki / @shikijs/* / vite が各 1 版であること (#1233) を見る。
+// vite の範囲が catalog の 1 か所にあり、@slidev/cli の範囲の中にあること (#170) も見る。
 // 永続層 (npm install) の単一版は実取得を伴うので、ここでは lock と宣言の範囲一致だけを見る。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはリポジトリ内の追跡ファイルと install 済み manifest のみ */
@@ -10,6 +11,7 @@ import { parse, parseAllDocuments } from 'yaml'
 
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { isRecord } from '../../../src/domain/_shared/json.js'
+import { caretRangeOutside, caretRangeViolation } from '../../_helpers/caret-range.js'
 
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -72,22 +74,6 @@ function readManifestField(file: string, field: ManifestField): ReadonlyMap<stri
   const manifest = JSON.parse(readFileSync(file, 'utf8')) as Partial<Record<ManifestField, Record<string, string>>>
   const section = Object.entries(manifest).find(([key]) => key === field)
   return new Map(Object.entries(section?.[1] ?? {}))
-}
-
-/**
-完全一致の版が caret range (`^x.y.z`) を満たさない理由を返す。満たすなら undefined。
-semver を依存に足さないための最小判定で、major が 1 以上の範囲だけを扱う。
-*/
-function caretRangeViolation(version: string, range: string): string | undefined {
-  const lower = /^\^(\d+)\.(\d+)\.(\d+)$/u.exec(range)
-  if (lower === null) return `宣言が caret range ではない: ${range}`
-  const actual = /^(\d+)\.(\d+)\.(\d+)$/u.exec(version)
-  if (actual === null) return `版が完全一致指定ではない: ${version}`
-  const [lowerMajor = 0, lowerMinor = 0, lowerPatch = 0] = lower.slice(1).map(Number)
-  const [major = 0, minor = 0, patch = 0] = actual.slice(1).map(Number)
-  if (major !== lowerMajor) return `${version} が ${range} と major 不一致`
-  if (minor !== lowerMinor) return minor > lowerMinor ? undefined : `${version} が ${range} の下限未満`
-  return patch >= lowerPatch ? undefined : `${version} が ${range} の下限未満`
 }
 
 describe('固定対象の単一版 (#1233)', () => {
@@ -154,11 +140,16 @@ describe('vite の範囲の一元化 (#170)', () => {
     expect(violations, `vite の範囲は pnpm-workspace.yaml の catalog.vite に置き、ここは catalog: とする:\n${violations.join('\n')}`).toEqual([])
   })
 
-  it('catalog.vite が @slidev/cli の宣言と同じ文字列', () => {
-    // 期待側が未宣言のときも不一致として扱う。
+  it('catalog.vite が @slidev/cli の vite の範囲の中', () => {
+    // 期待側が未宣言、または catalog.vite が文字列でないときは落とす。
     const expected = readManifestField(SLIDEV_CLI_MANIFEST, 'dependencies').get('vite')
     const { catalogVite } = readWorkspace()
     expect(expected, '@slidev/cli が vite を宣言していない').toBeDefined()
-    expect(catalogVite, `pnpm-workspace.yaml の catalog.vite を ${expected ?? '(宣言なし)'} に直す (@slidev/cli の vite)`).toBe(expected)
+    expect(typeof catalogVite, 'pnpm-workspace.yaml の catalog.vite が文字列ではない').toBe('string')
+    const reason = typeof catalogVite === 'string' && expected !== undefined ? caretRangeOutside(catalogVite, expected) : undefined
+    expect(
+      reason,
+      `pnpm-workspace.yaml の catalog.vite=${String(catalogVite)} が @slidev/cli の vite=${expected ?? '(宣言なし)'} の範囲の外: ${reason ?? ''}`,
+    ).toBeUndefined()
   })
 })

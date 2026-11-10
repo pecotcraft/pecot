@@ -9,7 +9,7 @@ packages:
   - cli
 
 catalog:
-  # vite の範囲の唯一の定義。lockfile-single-version.test.ts が @slidev/cli の vite との一致を見る。
+  # vite の範囲の唯一の定義。lockfile-single-version.test.ts が @slidev/cli の vite の範囲の中にあるかを見る。
   vite: ^8.3.6
 
 overrides:
