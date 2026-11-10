@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "不正な参照形式: not-a-ref\n受理形式:\n  - 主軸: 'owner/repo/N'\n  - 短縮形: 'N'（基準リポと併用）\n",
+  "stderr": "error: 不正な参照形式: not-a-ref\n  受理形式:\n    - 主軸: 'owner/repo/N'\n    - 短縮形: 'N'（基準リポと併用）\n",
   "exitCode": 2,
   "requests": [],
   "files": {

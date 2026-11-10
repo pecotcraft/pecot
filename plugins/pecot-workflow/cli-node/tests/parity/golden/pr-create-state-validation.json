@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "バリデーションエラー:\n  - 不足セクション: ## Summary, ## Changes, ## Verified, ## Risks\n",
+  "stderr": "error: missing sections: ## Summary, ## Changes, ## Verified, ## Risks\n",
   "exitCode": 3,
   "requests": [],
   "files": {

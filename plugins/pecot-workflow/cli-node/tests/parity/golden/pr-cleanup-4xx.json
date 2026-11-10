@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: PRが見つかりません: acme/demo/21\n",
+  "stderr": "error: PR not found: acme/demo/21\n",
   "exitCode": 1,
   "requests": [
     {

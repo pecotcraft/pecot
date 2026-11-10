@@ -15,6 +15,8 @@ from typing import Annotated, Any, NoReturn
 
 import typer
 
+from cli.commands._output import Operation, Output, Verb
+from cli.commands._tracker_sync import settle
 from cli.commands.options import DirectoryOption
 from cli.core.config import ProjectConfig, load_active_config
 from cli.core.frontmatter import (
@@ -115,25 +117,17 @@ def _update_issue_status_to_in_review(
     owner: str,
     repo: str,
     head_branch: str,
+    out: Output,
 ) -> None:
     """After a PR is created, set the related Issue's status to In Review
 
-    Extracts the Issue number from the branch name and sets the board status to In Review.
-    Every error is printed as a warning and does not affect the PR creation result.
-
-    Args:
-        config: Project config
-        client: GitHub client
-        owner: Repository owner
-        repo: Repository name
-        head_branch: Head branch name
+    The Issue number comes from the end of the branch name. Every failure is a warning
+    and does not affect the PR creation result.
     """
-    # 1. ブランチ名からIssue番号を抽出
     issue_number = extract_issue_number_from_branch(head_branch)
     if issue_number is None:
         return
 
-    # 2. ボード上のアイテムIDを取得
     try:
         item_id = client.get_item_id_by_issue(
             project_id=config.project.id,
@@ -142,32 +136,21 @@ def _update_issue_status_to_in_review(
             issue_number=issue_number,
         )
     except Exception as e:
-        typer.echo(f"  ⚠ Issue #{issue_number} のボードアイテム取得に失敗: {e}", err=True)
+        out.warning(f"board item lookup for Issue #{issue_number} failed: {e}")
         return
 
     if item_id is None:
-        typer.echo(
-            f"  ⚠ Issue #{issue_number} はボードに登録されていません（ステータス更新スキップ）",
-            err=True,
-        )
+        out.warning(f"Issue #{issue_number} is not on the board; status not updated")
         return
 
-    # 3. In ReviewオプションIDを取得
     option_id = config.get_option_id("workflow", "in_review")
     if option_id is None:
-        typer.echo(
-            "  ⚠ ワークフローにin_reviewステータスが設定されていません（ステータス更新スキップ）",
-            err=True,
-        )
+        out.warning("workflow field has no in_review status; status not updated")
         return
 
-    # 4. ステータスを更新
     field_id = config.get_field_id("workflow")
     if field_id is None:
-        typer.echo(
-            "  ⚠ ワークフローフィールドが見つかりません（ステータス更新スキップ）",
-            err=True,
-        )
+        out.warning("workflow field not found; status not updated")
         return
 
     try:
@@ -177,9 +160,14 @@ def _update_issue_status_to_in_review(
             field_id=field_id,
             option_id=option_id,
         )
-        typer.echo(f"  Issue #{issue_number} のステータスを In Review に更新しました")
     except Exception as e:
-        typer.echo(f"  ⚠ Issue #{issue_number} のステータス更新に失敗: {e}", err=True)
+        out.warning(f"status update of Issue #{issue_number} failed: {e}")
+        return
+    out.done(_in_review_op(issue_number))
+
+
+def _in_review_op(issue_number: int) -> Operation:
+    return Operation(Verb.SET, f"Issue #{issue_number} status to In Review")
 
 
 def _extract_closing_issue_numbers(body: str) -> list[int]:
@@ -279,23 +267,20 @@ def _exit_on_unset_branch(
     head: str | None,
     develop_branch: str | None,
     release_branch: str | None,
+    out: Output,
 ) -> None:
     """Exit 1 before validation if a branch setting needed to check base is missing"""
     is_release = _is_release_pr(template, base, head, develop_branch, release_branch)
     if is_release and not release_branch:
-        typer.echo(
-            "release_branchが設定されていません。\n"
-            "    → `pecot project set-repo owner/repo "
-            "--release-branch main` で設定してください。",
-            err=True,
+        out.error(
+            "release_branch is not set\n"
+            "set it with: pecot project set-repo owner/repo --release-branch main"
         )
         raise typer.Exit(1)
     if not is_release and not develop_branch:
-        typer.echo(
-            "develop_branchが設定されていません。\n"
-            "    → `pecot project set-repo owner/repo "
-            "--develop-branch develop` で設定してください。",
-            err=True,
+        out.error(
+            "develop_branch is not set\n"
+            "set it with: pecot project set-repo owner/repo --develop-branch develop"
         )
         raise typer.Exit(1)
 
@@ -338,7 +323,7 @@ def _validate_pr_content(
     # Issue参照チェック（リリースPR・skip_issue_ref_check=Trueならスキップ）
     if not is_release and not skip_issue_ref_check and not _validate_issue_reference(body):
         errors.append(
-            "PR 本文に Issue 参照 `#N` がありません（Issue 起点でない PR は `--no-issue-ref`）"
+            "PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)"
         )
 
     # 必須セクションチェック（テンプレートから動的に抽出）
@@ -350,15 +335,15 @@ def _validate_pr_content(
     if required_sections:
         missing_sections = validate_sections(body, required_sections)
         if missing_sections:
-            errors.append(f"不足セクション: {', '.join(missing_sections)}")
+            errors.append(f"missing sections: {', '.join(missing_sections)}")
         summary_errors = validate_heading_summaries(body, required_sections)
         if summary_errors:
-            errors.append(f"見出しサマリの規則違反: {', '.join(summary_errors)}")
+            errors.append(f"heading summary rule violations: {', '.join(summary_errors)}")
 
     # 記法チェック（テンプレート抽出の成否に依らず掛ける）
     style_errors = validate_body_style(body)
     if style_errors:
-        errors.append(f"使用できない記法: {', '.join(style_errors)}")
+        errors.append(f"disallowed syntax: {', '.join(style_errors)}")
 
     # 画像チェック（リリースPRは対象外）
     if not is_release and not screenshot and not has_summary_image(body):
@@ -367,20 +352,10 @@ def _validate_pr_content(
     # baseブランチチェック（開発ブランチ運用。ブランチ未設定は呼び出し側で先に止める）
     if is_release:
         if release_branch and base != release_branch:
-            errors.append(
-                f"★ 警告 ★ リリースPRのbaseブランチが不正です。\n"
-                f"    正しいbase: {release_branch}\n"
-                f"    指定されたbase: {base}\n"
-                f"    → baseブランチを '{release_branch}' に変更してください。"
-            )
+            errors.append(f"release PR base branch must be {release_branch} (given: {base})")
     else:
         if develop_branch and base != develop_branch:
-            errors.append(
-                f"★ 警告 ★ baseブランチが不正です。\n"
-                f"    正しいbase: {develop_branch}\n"
-                f"    指定されたbase: {base}\n"
-                f"    → baseブランチを '{develop_branch}' に変更してください。"
-            )
+            errors.append(f"base branch must be {develop_branch} (given: {base})")
 
     return errors
 
@@ -414,7 +389,7 @@ def _nx_scope_toplevel(
     return toplevel
 
 
-def _expected_title_scope(toplevel: Path, base: str, head: str) -> list[str] | None:
+def _expected_title_scope(toplevel: Path, base: str, head: str, out: Output) -> list[str] | None:
     """Return the scope expected from the changed nx projects
 
     If it cannot be determined, warns and returns None (the comparison is skipped).
@@ -423,11 +398,7 @@ def _expected_title_scope(toplevel: Path, base: str, head: str) -> list[str] | N
     projects = nx_projects(toplevel)
     files = changed_files(toplevel, f"origin/{base}", head) if projects else None
     if projects is None or files is None:
-        typer.echo(
-            "⚠ nx のプロジェクトまたは差分を取得できないため、"
-            "PR タイトルの scope の比較を飛ばしました",
-            err=True,
-        )
+        out.warning("cannot read nx projects or the diff; skipped the PR title scope check")
         return None
     return expected_scope(files, projects)
 
@@ -440,6 +411,7 @@ def _title_scope_errors(
     base: str,
     head: str,
     directory: Path,
+    out: Output,
     *,
     template: str = "default",
 ) -> list[str]:
@@ -454,16 +426,16 @@ def _title_scope_errors(
     toplevel = _nx_scope_toplevel(config, owner, repo, base, directory)
     if toplevel is None:
         return []
-    expected = _expected_title_scope(toplevel, base, head)
+    expected = _expected_title_scope(toplevel, base, head, out)
     if not expected:
         return []
     given = parse_title_scope(title)
     if given is not None and set(given) == set(expected):
         return []
-    shown = ",".join(given) if given else "なし"
+    shown = ",".join(given) if given else "none"
     return [
-        f"PR タイトルの scope を `{','.join(expected)}` にしてください"
-        f"（指定: `{shown}`。変更した nx プロジェクトの tag から算出）"
+        f"PR title scope must be {','.join(expected)} "
+        f"(given: {shown}; computed from the tags of the changed nx projects)"
     ]
 
 
@@ -542,18 +514,17 @@ def pr_create(
        (e.g. develop-aist, develop, main)
     """
     directory = Path.cwd()
+    out = Output(dry_run)
 
-    # template バリデーション
-    _validate_template_option(template)
+    _validate_template_option(template, out)
 
-    # モード判定
     if prepare:
-        _pr_create_prepare(directory, template=template)
+        _pr_create_prepare(directory, Output(False), template=template)
     elif file is not None:
-        _exit_on_screenshot_option(screenshot)
+        _exit_on_screenshot_option(screenshot, out)
         _pr_create_from_file(file, dry_run, no_issue_ref, directory, template=template)
     elif message is not None:
-        title, base = _require_title_and_base(title, base)
+        title, base = _require_title_and_base(title, base, out)
         _pr_create_direct(
             message=message,
             title=title,
@@ -568,69 +539,76 @@ def pr_create(
             screenshot=(screenshot or "").strip() or None,
         )
     else:
-        _exit_with_pr_create_usage()
+        _exit_with_pr_create_usage(out)
 
 
-def _exit_on_screenshot_option(screenshot: str | None) -> None:
+def _exit_on_screenshot_option(screenshot: str | None, out: Output) -> None:
     """If --screenshot is passed in file mode, say to put it in the front matter and exit 1"""
     if screenshot is not None:
-        typer.echo(
-            "--screenshot is for -m; write the reason in the `screenshot` "
-            "frontmatter field instead",
-            err=True,
+        out.error(
+            "--screenshot is for -m; write the reason in the `screenshot` frontmatter field instead"
         )
         raise typer.Exit(1)
 
 
-def _require_title_and_base(title: str | None, base: str | None) -> tuple[str, str]:
+def _require_title_and_base(title: str | None, base: str | None, out: Output) -> tuple[str, str]:
     """Exit 1 if -t or -b is missing with -m, otherwise return (title, base)"""
     if not title or not base:
-        typer.echo(
-            "エラー: -m オプション使用時は -t (タイトル) と -b (baseブランチ) が必須です",
-            err=True,
-        )
+        out.error("-t (title) and -b (base branch) are required with -m")
         raise typer.Exit(1)
     return title, base
 
 
-def _validate_template_option(template: str) -> None:
+def _validate_template_option(template: str, out: Output) -> None:
     """Exit 1 if --template is anything other than default / release"""
     if template not in ("default", "release"):
-        typer.echo(
-            "エラー: --template は 'default' または 'release' を指定してください"
-            f"（指定値: {template}）",
-            err=True,
-        )
+        out.error(f"--template must be 'default' or 'release' (given: {template})")
         raise typer.Exit(1)
 
 
-def _exit_with_pr_create_usage() -> NoReturn:
-    """Print usage to stderr for missing arguments and exit 1"""
-    typer.echo("エラー: 引数が不足しています", err=True)
-    typer.echo("", err=True)
-    typer.echo("使用方法:", err=True)
-    typer.echo("  テンプレート準備: pecot pr create --prepare", err=True)
-    typer.echo("  ファイルから: pecot pr create <path>", err=True)
-    typer.echo('  直接指定: pecot pr create -m "本文" -t "タイトル" -b <base-branch>', err=True)
+def _exit_with_pr_create_usage(out: Output) -> NoReturn:
+    """Print usage as one error and exit 1 for missing arguments"""
+    out.error(
+        "missing arguments\n"
+        "usage:\n"
+        "pecot pr create --prepare\n"
+        "pecot pr create <path>\n"
+        'pecot pr create -m "<body>" -t "<title>" -b <base-branch>'
+    )
     raise typer.Exit(1)
 
 
-def _echo_expected_scope(
-    config: ProjectConfig, owner: str, repo: str, base: str, directory: Path
-) -> None:
-    """When the comparison condition holds, show the scope computed from the changed nx projects"""
+def _add_scope_hint(
+    content: str,
+    config: ProjectConfig,
+    owner: str,
+    repo: str,
+    base: str,
+    directory: Path,
+    out: Output,
+) -> str:
+    """Write the scope computed from the changed nx projects as a comment on the title line"""
     toplevel = _nx_scope_toplevel(config, owner, repo, base, directory)
     if toplevel is None:
-        return
+        return content
     head = git_current_branch(directory)
-    expected = _expected_title_scope(toplevel, base, head) if head else None
-    if expected:
-        typer.echo(
-            f"scope: {','.join(expected)}（変更した nx プロジェクトの tag から算出）", err=True
-        )
+    expected = _expected_title_scope(toplevel, base, head, out) if head else None
+    if not expected:
+        return content
+    scope = ",".join(expected)
+    # The comment goes after the closing quote so the YAML title stays "".
+    content = re.sub(
+        r'^(title:\s*"[^"]*")',
+        lambda m: f"{m.group(1)}  # expected scope: {scope}",
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    out.done(Operation(Verb.SET, f"title scope hint to {scope}"))
+    return content
 
 
-def _pr_create_prepare(directory: Path, *, template: str = "default") -> None:
+def _pr_create_prepare(directory: Path, out: Output, *, template: str = "default") -> None:
     """Copy the template to the work directory
 
     Gets develop_branch from the project config and sets it as the template's base.
@@ -638,6 +616,7 @@ def _pr_create_prepare(directory: Path, *, template: str = "default") -> None:
 
     Args:
         directory: Target directory
+        out: Output functions
         template: Template kind ("default" or "release")
     """
     if template == "release":
@@ -646,7 +625,7 @@ def _pr_create_prepare(directory: Path, *, template: str = "default") -> None:
         template_path = TEMPLATES_DIR / "create.md"
 
     if not template_path.exists():
-        typer.echo(f"テンプレートが見つかりません: {template_path}", err=True)
+        out.error(f"template not found: {template_path}")
         raise typer.Exit(1)
 
     # テンプレートを読み込み
@@ -670,11 +649,13 @@ def _pr_create_prepare(directory: Path, *, template: str = "default") -> None:
                         count=1,
                         flags=re.MULTILINE,
                     )
-                    typer.echo(f"baseブランチを自動設定: {develop_branch}", err=True)
-                    _echo_expected_scope(config, owner, repo, develop_branch, directory)
+                    out.done(Operation(Verb.SET, f"base to {develop_branch}"))
+                    content = _add_scope_hint(
+                        content, config, owner, repo, develop_branch, directory, out
+                    )
 
         # Closes #N 自動埋め込み (#358)
-        content = _fill_closes_in_template(content, directory, repo_info)
+        content = _fill_closes_in_template(content, directory, repo_info, out)
 
     # 出力パス予約（同名があれば ts を 1 秒進めて再試行）。
     # 書き込み前に失敗した場合は予約を撤去する。
@@ -682,9 +663,9 @@ def _pr_create_prepare(directory: Path, *, template: str = "default") -> None:
     try:
         with reserved_output_path(get_output_dir(), lambda ts: f"{prefix}-{ts}.md") as output_path:
             output_path.write_text(content, encoding="utf-8")
-            typer.echo(str(output_path))
+            out.data(str(output_path))
     except OutputPathReservationError as e:
-        typer.echo(f"エラー: {e}", err=True)
+        out.error(str(e))
         raise typer.Exit(1) from None
 
 
@@ -692,6 +673,7 @@ def _fill_closes_in_template(
     content: str,
     directory: Path,
     repo_info: tuple[str, str, str] | None,
+    out: Output,
 ) -> str:
     """Fill the empty `Closes #` at the end of the template with the active task number.
 
@@ -728,17 +710,11 @@ def _fill_closes_in_template(
         kind = client.get_issue_kind(target_owner, target_repo, target_number)
     except (GitHubAPIError, GitHubNotFoundError) as e:
         msg = getattr(e, "message", str(e))
-        typer.echo(
-            f"⚠ Issue #{target_number} の種別判定に失敗: {msg}（Closes は手動で埋めてください）",
-            err=True,
-        )
+        out.warning(f"kind check of Issue #{target_number} failed: {msg}; fill Closes by hand")
         return content
 
     if is_epic_issue(kind):
-        typer.echo(
-            f"⚠ Issue #{target_number} は Epic と判定されたため Closes 自動埋め込みをスキップしました",
-            err=True,
-        )
+        out.warning(f"Issue #{target_number} is an Epic; Closes left empty")
         return content
 
     new_content, n_subs = re.subn(
@@ -749,32 +725,31 @@ def _fill_closes_in_template(
         flags=re.MULTILINE,
     )
     if n_subs > 0:
-        typer.echo(f"Closes 自動埋め込み: #{target_number}", err=True)
+        out.done(Operation(Verb.SET, f"Closes to #{target_number}"))
     return new_content
 
 
-def _resolve_head_branch(head: str | None, directory: Path) -> str:
+def _resolve_head_branch(head: str | None, directory: Path, out: Output) -> str:
     """Decide the head branch (the current branch if unspecified, exit 1 if it cannot be determined)"""
     if head:
         return head
     head_branch = git_current_branch(directory)
     if not head_branch:
-        typer.echo("エラー: headブランチを特定できません", err=True)
+        out.error("cannot determine the head branch")
         raise typer.Exit(1)
     return head_branch
 
 
 def _append_close_unless_epic(
-    config: ProjectConfig, owner: str, repo: str, body: str, issue_number: int
+    config: ProjectConfig, owner: str, repo: str, body: str, issue_number: int, out: Output
 ) -> str:
     """Add Closes to the body unless the Issue at the end of the branch is an Epic (added if the judgment fails)"""
     try:
         _kind_client = GitHubClient(host=config.host)
         kind = _kind_client.get_issue_kind(owner, repo, issue_number)
         if is_epic_issue(kind):
-            typer.echo(
-                f"⚠ ブランチ末尾の #{issue_number} は Epic と判定されたため Closes 自動付与をスキップ",
-                err=True,
+            out.warning(
+                f"Issue #{issue_number} at the end of the branch is an Epic; Closes not added"
             )
         else:
             body = _append_issue_close_if_needed(body, issue_number)
@@ -787,12 +762,11 @@ def _append_close_unless_epic(
 PR_VALIDATION_EXIT_CODE = 3
 
 
-def _exit_on_validation_errors(errors: list[str]) -> None:
-    """If there are validation errors, list them on stderr and exit 3"""
+def _exit_on_validation_errors(errors: list[str], out: Output) -> None:
+    """If there are validation errors, print one error line each and exit 3"""
     if errors:
-        typer.echo("バリデーションエラー:", err=True)
         for error in errors:
-            typer.echo(f"  - {error}", err=True)
+            out.error(error)
         raise typer.Exit(PR_VALIDATION_EXIT_CODE)
 
 
@@ -809,29 +783,29 @@ class _PrDraft:
     draft: bool
     is_release: bool
 
-
-def _echo_dry_run_summary(pr: _PrDraft) -> None:
-    """Show the validation success for dry-run"""
-    typer.echo("バリデーション成功（dry-run）")
-    typer.echo(f"  タイトル: {pr.title}")
-    typer.echo(f"  リポジトリ: {pr.owner}/{pr.repo}")
-    typer.echo(f"  base: {pr.base}")
-    typer.echo(f"  head: {pr.head}")
-    typer.echo(f"  draft: {pr.draft}")
-    if pr.is_release:
-        typer.echo("  template: release")
+    def create_op(self) -> Operation:
+        kind = "draft PR" if self.draft else "PR"
+        suffix = " (release template)" if self.is_release else ""
+        target = f"{kind} {self.owner}/{self.repo} {self.head} -> {self.base}: {self.title}{suffix}"
+        return Operation(Verb.CREATE, target)
 
 
-def _submit_pull_request(config: ProjectConfig, directory: Path, pr_draft: _PrDraft) -> None:
-    """Early preflight check -> create the PR -> update to In Review -> print the result"""
-    # 7. preflight 早期チェック（警告あれば API コール前に exit 2）
-    _run_preflight_checks_or_exit(directory)
+def _plan_dry_run(pr: _PrDraft, out: Output) -> None:
+    """Print the plan lines of a validated dry-run (the status update only for a regular PR)"""
+    out.planned(pr.create_op())
+    issue_number = extract_issue_number_from_branch(pr.head)
+    if not pr.is_release and issue_number is not None:
+        out.planned(_in_review_op(issue_number))
 
-    # 8. クライアント初期化
+
+def _submit_pull_request(
+    config: ProjectConfig, directory: Path, pr_draft: _PrDraft, out: Output
+) -> None:
+    """Early preflight check -> create the PR -> update to In Review -> print the URL"""
+    _run_preflight_checks_or_exit(directory, out)
+
     client = GitHubClient(host=config.host)
 
-    # 9. PR作成
-    typer.echo("Creating pull request...")
     try:
         pr = client.create_pull_request(
             owner=pr_draft.owner,
@@ -843,21 +817,17 @@ def _submit_pull_request(config: ProjectConfig, directory: Path, pr_draft: _PrDr
             draft=pr_draft.draft,
         )
     except GitHubAPIError as e:
-        typer.echo(f"エラー: PR作成失敗: {e.message}", err=True)
+        out.error(f"PR creation failed: {e.message}")
         raise typer.Exit(1) from None
+    out.done(pr_draft.create_op())
 
-    # 10. Issue ステータスを In Review に更新（リリースPRではスキップ）
     if not pr_draft.is_release:
         _update_issue_status_to_in_review(
-            config, client, pr_draft.owner, pr_draft.repo, pr_draft.head
+            config, client, pr_draft.owner, pr_draft.repo, pr_draft.head, out
         )
 
-    # 11. 結果出力
-    pr_number = pr["number"]
-    pr_url = pr["html_url"]
-    typer.echo(f"  Created: #{pr_number}")
     consume_flag(FLAG_PR_CREATE_SLASH_PENDING)
-    typer.echo(f"\n{pr_url}")
+    out.data(pr["html_url"])
 
 
 def _pr_create_from_file(
@@ -877,27 +847,26 @@ def _pr_create_from_file(
         directory: Target directory.
         template: Template kind ("default" or "release").
     """
-    # 1. 設定取得
+    out = Output(dry_run)
+
     config = load_active_config()
     if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
+        out.error("no active project")
         raise typer.Exit(1)
 
-    # 2. ファイル読み込み・パース
     try:
         parsed = parse_pr_file(file)
     except FrontmatterError as e:
-        typer.echo(f"エラー: {e}", err=True)
+        out.error(str(e))
         raise typer.Exit(1) from None
 
     fm = parsed.frontmatter
     if not fm.repository or "/" not in fm.repository:
-        typer.echo("エラー: repositoryを指定してください（例: owner/repo）", err=True)
+        out.error("repository is required (e.g. owner/repo)")
         raise typer.Exit(1)
     owner, repo = fm.repository.split("/")
 
-    # 3. headブランチ決定（未指定時は現在のブランチ）
-    head_branch = _resolve_head_branch(fm.head, directory)
+    head_branch = _resolve_head_branch(fm.head, directory, out)
 
     # リリースPR判定
     is_release = template == "release"
@@ -908,7 +877,7 @@ def _pr_create_from_file(
     if not is_release and not no_issue_ref:
         issue_number = extract_issue_number_from_branch(head_branch)
         if issue_number:
-            body = _append_close_unless_epic(config, owner, repo, body, issue_number)
+            body = _append_close_unless_epic(config, owner, repo, body, issue_number, out)
 
     # 5. 開発ブランチ・リリースブランチを取得（バリデーション用）
     develop_branch = config.get_develop_branch(owner, repo)
@@ -916,7 +885,7 @@ def _pr_create_from_file(
 
     # 6. バリデーション
     # 免除は `--no-issue-ref` と release テンプレだけ（release は _validate_pr_content が判定）
-    _exit_on_unset_branch(template, fm.base, head_branch, develop_branch, release_branch)
+    _exit_on_unset_branch(template, fm.base, head_branch, develop_branch, release_branch, out)
     errors = _validate_pr_content(
         body,
         fm.title,
@@ -929,9 +898,9 @@ def _pr_create_from_file(
         screenshot=fm.screenshot,
     )
     errors += _title_scope_errors(
-        config, owner, repo, fm.title, fm.base, head_branch, directory, template=template
+        config, owner, repo, fm.title, fm.base, head_branch, directory, out, template=template
     )
-    _exit_on_validation_errors(errors)
+    _exit_on_validation_errors(errors, out)
 
     pr_draft = _PrDraft(
         owner=owner,
@@ -944,25 +913,26 @@ def _pr_create_from_file(
         is_release=is_release,
     )
     if dry_run:
-        _echo_dry_run_summary(pr_draft)
+        _plan_dry_run(pr_draft, out)
         return
 
-    # 7〜11. preflight → PR作成 → ステータス更新 → 結果出力
-    _submit_pull_request(config, directory, pr_draft)
+    _submit_pull_request(config, directory, pr_draft, out)
 
 
-def _resolve_direct_repository(config: ProjectConfig, repository: str | None) -> tuple[str, str]:
+def _resolve_direct_repository(
+    config: ProjectConfig, repository: str | None, out: Output
+) -> tuple[str, str]:
     """2. Decide the repository (-r if given, otherwise the single repository in the config)"""
     if repository:
         parts = repository.split("/")
         if len(parts) != 2:
-            typer.echo(f"不正なリポジトリ形式: {repository}\n期待: owner/repo", err=True)
+            out.error(f"invalid repository format: {repository} (expected: owner/repo)")
             raise typer.Exit(1)
         return parts[0], parts[1]
     # 設定から取得を試みる
     if config.repositories and len(config.repositories) == 1:
         return config.repositories[0].owner, config.repositories[0].name
-    typer.echo("エラー: リポジトリを指定してください（-r owner/repo）", err=True)
+    out.error("specify the repository (-r owner/repo)")
     raise typer.Exit(1)
 
 
@@ -995,17 +965,16 @@ def _pr_create_direct(
         template: Template kind ("default" or "release").
         screenshot: Reason the Summary has no image (normalized).
     """
-    # 1. 設定取得
+    out = Output(dry_run)
+
     config = load_active_config()
     if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
+        out.error("no active project")
         raise typer.Exit(1)
 
-    # 2. リポジトリ決定
-    owner, repo = _resolve_direct_repository(config, repository)
+    owner, repo = _resolve_direct_repository(config, repository, out)
 
-    # 3. headブランチ決定
-    head_branch = _resolve_head_branch(head, directory)
+    head_branch = _resolve_head_branch(head, directory, out)
 
     # リリースPR判定
     is_release = template == "release"
@@ -1022,7 +991,7 @@ def _pr_create_direct(
     release_branch = config.get_release_branch(owner, repo)
 
     # 6. バリデーション
-    _exit_on_unset_branch(template, base, head_branch, develop_branch, release_branch)
+    _exit_on_unset_branch(template, base, head_branch, develop_branch, release_branch, out)
     errors = _validate_pr_content(
         body,
         title,
@@ -1035,9 +1004,9 @@ def _pr_create_direct(
         screenshot=screenshot,
     )
     errors += _title_scope_errors(
-        config, owner, repo, title, base, head_branch, directory, template=template
+        config, owner, repo, title, base, head_branch, directory, out, template=template
     )
-    _exit_on_validation_errors(errors)
+    _exit_on_validation_errors(errors, out)
 
     pr_draft = _PrDraft(
         owner=owner,
@@ -1050,11 +1019,10 @@ def _pr_create_direct(
         is_release=is_release,
     )
     if dry_run:
-        _echo_dry_run_summary(pr_draft)
+        _plan_dry_run(pr_draft, out)
         return
 
-    # 7〜11. preflight → PR作成 → ステータス更新 → 結果出力
-    _submit_pull_request(config, directory, pr_draft)
+    _submit_pull_request(config, directory, pr_draft, out)
 
 
 # PR読み取りコマンド
@@ -1301,18 +1269,18 @@ def pr_read(
 
     With the --reviews option, it also gets the review bodies and line comments.
     """
-    # 1. 設定取得
+    out = Output(False)
+
     config = load_active_config()
     if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
+        out.error("no active project")
         raise typer.Exit(1)
 
-    # 2. pr_ref をパース
     try:
         base = _resolve_base_repo(ctx)
         ref = parse_pr_ref(pr_ref, base_repo=base)
     except RefParseError as e:
-        typer.echo(e.message, err=True)
+        out.error(e.message)
         raise typer.Exit(2) from None
 
     owner, repo, pr_number = ref.repo.owner, ref.repo.repo, ref.number
@@ -1325,16 +1293,16 @@ def pr_read(
         else:
             pr = client.get_pull_request_slim(owner, repo, pr_number)
     except GitHubAPIError as e:
-        typer.echo(f"エラー: {e.message}", err=True)
+        out.error(e.message)
         raise typer.Exit(1) from None
 
-    # 4. 出力
+    # The extra newline keeps the bytes the body had before the move to Output.
     if json_output:
-        typer.echo(json.dumps(pr, ensure_ascii=False, indent=2))
+        out.data(json.dumps(pr, ensure_ascii=False, indent=2) + "\n")
     elif reviews:
-        typer.echo(_format_pr_with_reviews_markdown(pr, owner, repo))
+        out.data(_format_pr_with_reviews_markdown(pr, owner, repo) + "\n")
     else:
-        typer.echo(_format_pr_markdown(pr))
+        out.data(_format_pr_markdown(pr) + "\n")
 
 
 # PR事前確認コマンド
@@ -1449,7 +1417,7 @@ def _read_git_exclude(cwd: Path) -> str:
         return "(read error)"
 
 
-def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path) -> str:
+def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path, out: Output) -> str:
     """Decide the base branch
 
     Gets it from projectConfig.develop_branch.
@@ -1460,6 +1428,7 @@ def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path) -> str:
         owner: Repository owner
         repo: Repository name
         cwd: Target directory
+        out: Output functions
 
     Returns:
         Base branch name (origin/xxx form)
@@ -1469,27 +1438,24 @@ def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path) -> str:
     """
     config = load_active_config()
     if not config:
-        typer.echo("エラー: プロジェクト設定が見つかりません", err=True)
-        typer.echo("ヒント: pecot project activate <PROJECT> でプロジェクトを設定", err=True)
+        out.error(
+            "project config not found\nactivate a project with: pecot project activate <PROJECT>"
+        )
         raise typer.Exit(1)
 
     develop_branch = config.get_develop_branch(owner, repo)
     if not develop_branch:
-        typer.echo(
-            f"エラー: リポジトリ {owner}/{repo} の develop_branch が設定されていません", err=True
+        out.error(
+            f"develop_branch is not set for {owner}/{repo}\n"
+            f"set it with: pecot project set-repo {owner}/{repo} --develop-branch develop"
         )
-        typer.echo("", err=True)
-        typer.echo("以下のコマンドで設定してください:", err=True)
-        typer.echo(f"  pecot project set-repo {owner}/{repo} --develop-branch develop", err=True)
-        typer.echo("  # または: --develop-branch develop-aist, --develop-branch main", err=True)
         raise typer.Exit(1)
 
     branch_name = f"origin/{develop_branch}"
     if not _branch_exists(branch_name, cwd):
-        typer.echo(f"エラー: ブランチ {branch_name} が存在しません", err=True)
-        typer.echo("", err=True)
-        typer.echo("以下のコマンドでブランチを確認してください:", err=True)
-        typer.echo("  git branch -r", err=True)
+        out.error(
+            f"branch {branch_name} does not exist\ncheck the remote branches with: git branch -r"
+        )
         raise typer.Exit(1)
 
     return branch_name
@@ -1535,43 +1501,33 @@ def _get_worktree_info(cwd: Path) -> str:
     return "\n".join(lines)
 
 
-def _is_same_repo_for_cleanup(cwd: Path, owner: str, repo: str) -> bool:
-    """Cross-repository check. If the CWD's repository differs from the PR's, show a warning and return False"""
+def _is_same_repo_for_cleanup(cwd: Path, owner: str, repo: str, out: Output) -> bool:
+    """Cross-repository check. If the CWD's repository differs from the PR's, warn and return False"""
+    skipped = "skipped local cleanup"
     try:
         remote_url = git_remote_url(cwd)
         if remote_url is None:
-            typer.echo(
-                "  ⚠ リモートURL取得に失敗したため、ローカルクリーンアップをスキップします",
-                err=True,
-            )
+            out.warning(f"cannot read the remote URL; {skipped}")
             return False
         try:
             _host, local_owner, local_repo = parse_remote_url(remote_url)
         except ValueError:
-            typer.echo(
-                "  ⚠ リモートURLからリポジトリ情報を抽出できないため、"
-                "ローカルクリーンアップをスキップします",
-                err=True,
-            )
+            out.warning(f"cannot read the repository from the remote URL; {skipped}")
             return False
         if local_owner != owner or local_repo != repo:
-            typer.echo(
-                f"  ⚠ 現在のリポジトリ({local_owner}/{local_repo})と"
-                f"PRのリポジトリ({owner}/{repo})が異なるため、"
-                "ローカルクリーンアップをスキップします",
-                err=True,
+            out.warning(
+                f"current repository ({local_owner}/{local_repo}) differs from the PR's "
+                f"({owner}/{repo}); {skipped}"
             )
             return False
     except Exception:
-        typer.echo(
-            "  ⚠ リポジトリ判定に失敗したため、ローカルクリーンアップをスキップします", err=True
-        )
+        out.warning(f"cannot determine the repository; {skipped}")
         return False
     return True
 
 
 def _resolve_cleanup_checkout_target(
-    cwd: Path, config: ProjectConfig, owner: str, repo: str
+    cwd: Path, config: ProjectConfig, owner: str, repo: str, out: Output
 ) -> str | None:
     """Decide the checkout target (the worktree name in a worktree, otherwise the development branch). None if undecided"""
     from cli.core.worktree import get_current_worktree_name, is_worktree_env
@@ -1583,71 +1539,25 @@ def _resolve_cleanup_checkout_target(
         develop_branch = config.get_develop_branch(owner, repo)
         if develop_branch:
             return develop_branch
-        typer.echo(
-            "  ⚠ 開発ブランチが設定されていないため、ローカルクリーンアップをスキップします",
-            err=True,
-        )
+        out.warning("develop_branch is not set; skipped local cleanup")
         return None
     except Exception:
-        typer.echo(
-            "  ⚠ ワークツリー判定に失敗したため、ローカルクリーンアップをスキップします", err=True
-        )
+        out.warning("cannot determine the worktree; skipped local cleanup")
         return None
 
 
-def _echo_cleanup_preview(
-    current_branch: str | None, checkout_target: str, develop_branch: str, head_branch: str
-) -> None:
-    """Preview of the local cleanup for dry_run"""
-    typer.echo("\n--- ローカルクリーンアップ（プレビュー） ---")
-    if current_branch != checkout_target:
-        typer.echo(f"  git checkout {checkout_target}")
-    else:
-        typer.echo(f"  (既に {checkout_target} ブランチにいるためcheckoutスキップ)")
-    typer.echo(f"  git pull origin {develop_branch}")
-    if head_branch != checkout_target:
-        typer.echo(f"  git branch -D {head_branch}")
-    else:
-        typer.echo("  (head_branchがcheckout先と同じためブランチ削除スキップ)")
-
-
-def _run_cleanup_commands(
-    cwd: Path,
-    current_branch: str | None,
-    checkout_target: str,
-    develop_branch: str,
-    head_branch: str,
-) -> None:
-    """Run checkout -> pull -> branch -D in order (stop if checkout fails)"""
-    typer.echo("\nローカルクリーンアップ中...")
-
-    # git checkout
-    if current_branch != checkout_target:
-        try:
-            run_git(["checkout", checkout_target], cwd, check=True)
-            typer.echo(f"  ✔ git checkout {checkout_target}")
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            typer.echo(f"  ⚠ git checkout {checkout_target} に失敗: {e}", err=True)
-            return
-    else:
-        typer.echo(f"  ✔ 既に {checkout_target} ブランチにいるためcheckoutスキップ")
-
-    # git pull
+def _run_local_step(out: Output, op: Operation, cwd: Path, args: list[str], failure: str) -> bool:
+    """Plan the step in dry-run, otherwise run git and print the result. False if git failed"""
+    out.planned(op)
+    if out.dry_run:
+        return True
     try:
-        run_git(["pull", "origin", develop_branch], cwd, check=True)
-        typer.echo(f"  ✔ git pull origin {develop_branch}")
+        run_git(args, cwd, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        typer.echo(f"  ⚠ git pull origin {develop_branch} に失敗: {e}", err=True)
-
-    # git branch -D
-    if head_branch != checkout_target:
-        try:
-            run_git(["branch", "-D", head_branch], cwd, check=True)
-            typer.echo(f"  ✔ git branch -D {head_branch}")
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            typer.echo(f"  ⚠ git branch -D {head_branch} に失敗: {e}", err=True)
-    else:
-        typer.echo("  ✔ head_branchがcheckout先と同じためブランチ削除スキップ")
+        out.warning(f"{failure} failed: {e}")
+        return False
+    out.done(op)
+    return True
 
 
 def _local_cleanup_after_merge(
@@ -1655,47 +1565,52 @@ def _local_cleanup_after_merge(
     config: ProjectConfig,
     owner: str,
     repo: str,
-    dry_run: bool = False,
+    out: Output,
 ) -> None:
     """Local cleanup after a merge (switch branch, pull, delete branch)
 
-    Args:
-        head_branch: Head branch name of the merged PR.
-        config: Project config.
-        owner: Repository owner of the PR.
-        repo: Repository name of the PR.
-        dry_run: If True, only show the preview.
+    In dry-run, only the plan lines are printed and git is not run.
     """
     cwd = Path.cwd()
 
-    # クロスリポ判定
-    if not _is_same_repo_for_cleanup(cwd, owner, repo):
+    if not _is_same_repo_for_cleanup(cwd, owner, repo, out):
         return
 
-    # 現在のブランチ取得
     current_branch = git_current_branch(cwd)
 
-    # checkout先の決定
-    checkout_target = _resolve_cleanup_checkout_target(cwd, config, owner, repo)
+    checkout_target = _resolve_cleanup_checkout_target(cwd, config, owner, repo, out)
     if checkout_target is None:
         return
 
-    # 開発ブランチ名を取得（pull用）
     develop_branch = config.get_develop_branch(owner, repo)
     if not develop_branch:
-        typer.echo(
-            "  ⚠ 開発ブランチが設定されていないため、ローカルクリーンアップをスキップします",
-            err=True,
+        out.warning("develop_branch is not set; skipped local cleanup")
+        return
+
+    if current_branch != checkout_target:
+        checkout = Operation(Verb.SET, f"current branch to {checkout_target}")
+        # A failed checkout stops the rest: pull and branch -D would hit the wrong branch.
+        if not _run_local_step(
+            out, checkout, cwd, ["checkout", checkout_target], f"checking out {checkout_target}"
+        ):
+            return
+    else:
+        settle(out, Operation(Verb.UNCHANGED, f"current branch {checkout_target}"))
+
+    pull = Operation(Verb.UPDATE, f"{checkout_target} from origin/{develop_branch}")
+    _run_local_step(out, pull, cwd, ["pull", "origin", develop_branch], f"pulling {develop_branch}")
+
+    if head_branch != checkout_target:
+        delete = Operation(Verb.DELETE, f"local branch {head_branch}")
+        _run_local_step(
+            out, delete, cwd, ["branch", "-D", head_branch], f"deleting local branch {head_branch}"
         )
-        return
-
-    # dry_run プレビュー
-    if dry_run:
-        _echo_cleanup_preview(current_branch, checkout_target, develop_branch, head_branch)
-        return
-
-    # 実行
-    _run_cleanup_commands(cwd, current_branch, checkout_target, develop_branch, head_branch)
+    else:
+        skip = Operation(
+            Verb.SKIP,
+            f"deleting local branch {head_branch} (it is the checkout target)",
+        )
+        settle(out, skip)
 
 
 def _get_push_status(branch: str, cwd: Path) -> tuple[bool, str]:
@@ -1714,7 +1629,7 @@ def _get_push_status(branch: str, cwd: Path) -> tuple[bool, str]:
     try:
         result = run_git(["rev-parse", "--verify", f"origin/{branch}"], cwd, check=False)
         if result.returncode != 0:
-            return False, f"リモートブランチ origin/{branch} が存在しません（未プッシュ）"
+            return False, f"origin/{branch} does not exist (not pushed)"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False, "(git rev-parse failed)"
 
@@ -1729,15 +1644,15 @@ def _get_push_status(branch: str, cwd: Path) -> tuple[bool, str]:
         behind_count = int(result.stdout.strip())
 
         if ahead_count == 0 and behind_count == 0:
-            return True, "リモートと同期済み"
+            return True, f"in sync with origin/{branch}"
         elif ahead_count > 0 and behind_count == 0:
-            return False, f"未プッシュのコミットが {ahead_count} 件あります → git push が必要"
+            return False, f"{ahead_count} unpushed commits"
         elif ahead_count == 0 and behind_count > 0:
-            return True, f"リモートが {behind_count} コミット先行（pull推奨）"
+            return True, f"origin/{branch} is {behind_count} commits ahead (pull recommended)"
         else:
             return (
                 False,
-                f"ローカルが {ahead_count} 件先行、リモートが {behind_count} 件先行（diverged）",
+                f"diverged: local is {ahead_count} commits ahead, origin/{branch} is {behind_count} ahead",
             )
 
     except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
@@ -1780,7 +1695,7 @@ def _stash_has_entries(stash_list: str) -> bool:
 
 
 def _validate_pr_context(
-    directory: Path,
+    directory: Path, out: Output
 ) -> tuple[Path, str, str, tuple[str, str, str]]:
     """Validate the preconditions shared by the PR commands, and return the context if they hold.
 
@@ -1788,26 +1703,23 @@ def _validate_pr_context(
     """
     git_root = git_toplevel(directory)
     if git_root is None:
-        typer.echo("エラー: gitリポジトリではありません", err=True)
+        out.error("not a git repository")
         raise typer.Exit(1)
 
     remote_url = git_remote_url(directory)
     if remote_url is None:
-        typer.echo("エラー: origin リモートが見つかりません", err=True)
+        out.error("origin remote not found")
         raise typer.Exit(1)
 
     current_branch = git_current_branch(directory)
     if current_branch is None:
-        typer.echo("エラー: 現在のブランチを取得できません", err=True)
+        out.error("cannot determine the current branch")
         raise typer.Exit(1)
 
     try:
         repo_info = parse_remote_url(remote_url)
     except ValueError:
-        typer.echo("エラー: リポジトリ情報を取得できません", err=True)
-        typer.echo("", err=True)
-        typer.echo("リモートURLを確認してください:", err=True)
-        typer.echo("  git remote -v", err=True)
+        out.error("cannot read repository info from the remote URL\ncheck it with: git remote -v")
         raise typer.Exit(1) from None
 
     return git_root, remote_url, current_branch, repo_info
@@ -1828,7 +1740,7 @@ def _collect_preflight_warnings(
             PreflightWarning(
                 label="Push Status",
                 message=push_message,
-                fix_hint="git push してください",
+                fix_hint="git push",
             )
         )
 
@@ -1836,8 +1748,8 @@ def _collect_preflight_warnings(
         warnings.append(
             PreflightWarning(
                 label="Git Status",
-                message="modified/untracked ファイルがあります",
-                fix_hint="commit してください",
+                message="modified or untracked files",
+                fix_hint="commit",
             )
         )
 
@@ -1846,21 +1758,26 @@ def _collect_preflight_warnings(
         warnings.append(
             PreflightWarning(
                 label="Stash List",
-                message=f"{stash_count} 件のstashがあります",
-                fix_hint="確認してください",
+                message=f"{stash_count} stash entries",
+                fix_hint="check them",
             )
         )
 
     return warnings
 
 
-def _run_preflight_checks_or_exit(directory: Path) -> None:
+def _print_preflight_warnings(out: Output, warnings: list[PreflightWarning]) -> None:
+    for w in warnings:
+        out.warning(f"{w.label}: {w.message} (fix: {w.fix_hint})")
+
+
+def _run_preflight_checks_or_exit(directory: Path, out: Output) -> None:
     """Shared helper called from pr create.
 
     Fatal cases (outside a git repository, no origin, branch undetermined, repository undetermined) end with Exit(1).
     When a warning is found, fail early with Exit(2). With no warnings, do nothing and return.
     """
-    _, _, current_branch, _ = _validate_pr_context(directory)
+    _, _, current_branch, _ = _validate_pr_context(directory, out)
 
     is_pushed, push_message = _get_push_status(current_branch, directory)
     git_status = _get_git_status(directory)
@@ -1875,52 +1792,14 @@ def _run_preflight_checks_or_exit(directory: Path) -> None:
         stash_has_entries=stash_has_entries,
     )
     if warnings:
-        typer.echo(
-            "エラー: preflight が警告を返しています。PR作成前に修正してください:",
-            err=True,
-        )
-        for w in warnings:
-            typer.echo(f"  ⚠ {w.label}: {w.message}（{w.fix_hint}）", err=True)
-        typer.echo("詳細確認: pecot pr preflight", err=True)
+        out.error("preflight found warnings; fix them before creating a PR")
+        _print_preflight_warnings(out, warnings)
         raise typer.Exit(2)
 
 
-def _echo_push_status_section(is_pushed: bool, push_message: str) -> None:
-    """Push Status section (heading and ✔ to stdout, ⚠ and ★ to stderr)"""
-    typer.echo("")
-    typer.echo("=== Push Status ===")
-    if is_pushed:
-        typer.echo(f"✔ {push_message}")
-    else:
-        typer.echo(f"⚠ {push_message}", err=True)
-        typer.echo("", err=True)
-        typer.echo("  ★ PR作成前に git push を実行してください ★", err=True)
-
-
-def _echo_stash_list_section(stash_list: str, stash_has_entries: bool) -> None:
-    """Stash List section (heading and ✔ to stdout, ⚠ to stderr)"""
-    typer.echo("")
-    typer.echo("=== Stash List ===")
-    if stash_has_entries:
-        typer.echo(f"⚠ {stash_list}", err=True)
-    else:
-        typer.echo(f"✔ {stash_list}")
-
-
-def _echo_preflight_summary_or_exit(warnings: list[PreflightWarning]) -> None:
-    """Summary section. With no warnings, ✔ to stdout; with warnings, the whole section to stderr and exit 2"""
-    if not warnings:
-        typer.echo("")
-        typer.echo("=== Summary ===")
-        typer.echo("✔ All checks passed")
-        return
-
-    # 警告ありの Summary は節ごと stderr に出す（同じ節を 2 ストリームに割らない）
-    typer.echo("", err=True)
-    typer.echo("=== Summary ===", err=True)
-    for w in warnings:
-        typer.echo(f"⚠ {w.label}: {w.message}（{w.fix_hint}）", err=True)
-    raise typer.Exit(2)
+def _emit(out: Output, text: str) -> None:
+    """Print stdout data with the trailing newline the old output added (git output may already end with one)"""
+    out.data(text + "\n")
 
 
 def pr_preflight(
@@ -1931,7 +1810,7 @@ def pr_preflight(
     Prints the following information.
     - Git Remote (origin URL)
     - Current Branch (current branch name)
-    - Push Status (push state to the remote) ★
+    - Push Status (push state to the remote)
     - Base Branch (branch to compare against)
     - Git Status
     - .gitignore
@@ -1946,12 +1825,13 @@ def pr_preflight(
     - 1: fatal error (cannot create a PR: outside a git repository / no origin / branch undetermined / repository undetermined)
     - 2: fixable warning (not pushed / uncommitted / non-empty stash)
 
-    A `=== Summary ===` section is printed at the end and repeats the warnings.
+    The sections go to stdout. The warning count and each warning go to stderr.
     """
+    out = Output(False)
 
-    _, remote_url, current_branch, repo_info = _validate_pr_context(directory)
+    _, remote_url, current_branch, repo_info = _validate_pr_context(directory, out)
     host, owner, repo = repo_info
-    base_branch = _determine_base_branch(host, owner, repo, directory)
+    base_branch = _determine_base_branch(host, owner, repo, directory, out)
 
     # 5. 各種情報収集
     git_status = _get_git_status(directory)
@@ -1961,19 +1841,14 @@ def pr_preflight(
     diff_summary = _get_diff_summary(base_branch, directory)
     worktree_info = _get_worktree_info(directory)
 
-    # 6. 出力
-    typer.echo("=== Git Remote ===")
-    typer.echo(remote_url)
-
-    typer.echo("")
-    typer.echo("=== Current Branch ===")
-    typer.echo(current_branch)
-
-    # プッシュ状態チェック
     is_pushed, push_message = _get_push_status(current_branch, directory)
-    _echo_push_status_section(is_pushed, push_message)
+    stash_list = _get_stash_list(directory)
+    stash_has_entries = _stash_has_entries(stash_list)
 
-    for heading, content in (
+    sections = (
+        ("=== Git Remote ===", remote_url),
+        ("=== Current Branch ===", current_branch),
+        ("=== Push Status ===", push_message),
         ("=== Base Branch ===", base_branch),
         ("=== Git Status ===", git_status),
         ("=== .gitignore ===", gitignore_content),
@@ -1981,17 +1856,14 @@ def pr_preflight(
         (f"=== Commits (vs {base_branch}) ===", commits),
         (f"=== Diff Summary (vs {base_branch}) ===", diff_summary),
         ("=== Worktree Info ===", worktree_info),
-    ):
-        typer.echo("")
-        typer.echo(heading)
-        typer.echo(content)
+        ("=== Stash List ===", stash_list),
+    )
+    for index, (heading, content) in enumerate(sections):
+        if index:
+            _emit(out, "")
+        _emit(out, heading)
+        _emit(out, content)
 
-    # Stash List
-    stash_list = _get_stash_list(directory)
-    stash_has_entries = _stash_has_entries(stash_list)
-    _echo_stash_list_section(stash_list, stash_has_entries)
-
-    # Summary セクション（末尾 tail で見逃し防止）
     warnings = _collect_preflight_warnings(
         git_status=git_status,
         stash_list=stash_list,
@@ -1999,52 +1871,51 @@ def pr_preflight(
         push_message=push_message,
         stash_has_entries=stash_has_entries,
     )
-    _echo_preflight_summary_or_exit(warnings)
+    out.count("preflight warnings", len(warnings))
+    _print_preflight_warnings(out, warnings)
+    if warnings:
+        raise typer.Exit(2)
 
 
 # PRマージ後の片付けコマンド
 
 
 def _fetch_pr_for_cleanup(
-    config: ProjectConfig, owner: str, repo: str, pr_number: int
+    config: ProjectConfig, owner: str, repo: str, pr_number: int, out: Output
 ) -> tuple[GitHubClient, dict[str, Any]]:
-    """3. Initialize the client and get the PR info (exit 1 on failure)"""
+    """Initialize the client and get the PR info (exit 1 on failure)"""
     try:
         client = GitHubClient(host=config.host)
         pr = client.get_pull_request_slim(owner, repo, pr_number)
     except GitHubNotFoundError:
-        typer.echo(f"エラー: PRが見つかりません: {owner}/{repo}/{pr_number}", err=True)
+        out.error(f"PR not found: {owner}/{repo}/{pr_number}")
         raise typer.Exit(1) from None
     except GitHubAPIError as e:
-        typer.echo(f"エラー: {e.message}", err=True)
+        out.error(e.message)
         raise typer.Exit(1) from None
     return client, pr
 
 
-def _require_merged(pr: dict[str, Any], pr_number: int) -> None:
-    """4. If the PR is not MERGED, do nothing and exit 1"""
+def _require_merged(pr: dict[str, Any], pr_number: int, out: Output) -> None:
+    """If the PR is not MERGED, do nothing and exit 1"""
     if pr["state"] != "MERGED":
-        typer.echo(
-            f"エラー: PR #{pr_number} はまだマージされていません（state: {pr['state']}）",
-            err=True,
+        out.error(
+            f"PR #{pr_number} is not merged yet (state: {pr['state']}); "
+            "merge it with gh pr merge first"
         )
-        typer.echo("  gh pr merge でマージし、main に入ってから打ち直してください", err=True)
         raise typer.Exit(1)
 
 
 def _collect_closing_issue_numbers(pr: dict[str, Any]) -> set[int]:
-    """5.1-5.3 Collect the Issue numbers to close"""
+    """Collect the Issue numbers to close"""
     closing_issue_numbers: set[int] = set()
 
-    # 5.1 closingIssuesReferences から取得
     for issue in pr.get("closing_issues", []):
         closing_issue_numbers.add(issue["number"])
 
-    # 5.2 PR本文からClosing Issueパターンを抽出
     body_issue_numbers = _extract_closing_issue_numbers(pr.get("body", "") or "")
     closing_issue_numbers.update(body_issue_numbers)
 
-    # 5.3 ブランチ名からIssue番号を抽出
     branch_issue_number = extract_issue_number_from_branch(pr["head_ref"])
     if branch_issue_number:
         closing_issue_numbers.add(branch_issue_number)
@@ -2052,9 +1923,9 @@ def _collect_closing_issue_numbers(pr: dict[str, Any]) -> set[int]:
 
 
 def _find_epic_protected_numbers(
-    client: GitHubClient, owner: str, repo: str, issue_numbers: set[int]
+    client: GitHubClient, owner: str, repo: str, issue_numbers: set[int], out: Output
 ) -> set[int]:
-    """5.4 Epic protection: return the Issue numbers with Issue Type=Epic or sub-issues>0 (#358)"""
+    """Epic protection: return the Issue numbers with Issue Type=Epic or sub-issues>0 (#358)"""
     epic_protected_numbers: set[int] = set()
     for issue_number in sorted(issue_numbers):
         try:
@@ -2062,69 +1933,40 @@ def _find_epic_protected_numbers(
         except GitHubNotFoundError:
             continue
         except GitHubAPIError as e:
-            typer.echo(
-                f"  ⚠ Issue #{issue_number} の種別判定に失敗: {e.message}（保護せず続行）",
-                err=True,
-            )
+            out.warning(f"kind check of Issue #{issue_number} failed: {e.message}; not protected")
             continue
         if is_epic_issue(kind):
             epic_protected_numbers.add(issue_number)
     return epic_protected_numbers
 
 
-def _format_issue_numbers(numbers: set[int]) -> str:
-    return ", ".join(f"#{n}" for n in sorted(numbers))
-
-
-def _echo_cleanup_dry_run(
-    pr: dict[str, Any],
-    pr_label: str,
-    closing_issue_numbers: set[int],
-    epic_protected_numbers: set[int],
-    delete_branch: bool,
-) -> None:
-    """6. Show what the dry-run would clean up"""
-    typer.echo("=== ドライラン（実際には片付けません） ===\n")
-    typer.echo(f"PR: {pr_label}")
-    typer.echo(f"タイトル: {pr['title']}")
-    typer.echo(f"ブランチ: {pr['head_ref']} → {pr['base_ref']}")
-    if closing_issue_numbers:
-        typer.echo(f"\nクローズ予定: {_format_issue_numbers(closing_issue_numbers)}")
-    else:
-        typer.echo("\nクローズ予定: なし")
-    if epic_protected_numbers:
-        typer.echo(f"Epic保護でクローズをスキップ: {_format_issue_numbers(epic_protected_numbers)}")
-    if delete_branch:
-        typer.echo(f"削除予定ブランチ: {pr['head_ref']}")
-
-
 def _close_related_issues(
+    out: Output,
     client: GitHubClient,
     owner: str,
     repo: str,
     closing_issue_numbers: set[int],
     epic_protected_numbers: set[int],
 ) -> None:
-    """8. Close the related Issues (show the Epic-protected ones as skipped)"""
-    if epic_protected_numbers:
-        typer.echo(
-            f"\nEpic保護でクローズをスキップ: {_format_issue_numbers(epic_protected_numbers)}"
-        )
-    if closing_issue_numbers:
-        typer.echo("\n関連Issueをクローズ中...")
-        for issue_number in sorted(closing_issue_numbers):
-            try:
-                client.close_issue(owner, repo, issue_number)
-                typer.echo(f"  ✔ Issue #{issue_number} をクローズしました")
-            except GitHubNotFoundError:
-                typer.echo(f"  ⚠ Issue #{issue_number} が見つかりません（スキップ）", err=True)
-            except GitHubAPIError as e:
-                if _is_closed_by_another_request(e):
-                    typer.echo(f"  ✔ Issue #{issue_number} は既にクローズされています")
-                    continue
-                typer.echo(
-                    f"  ⚠ Issue #{issue_number} のクローズに失敗: {describe_api_error(e)}", err=True
-                )
+    """Skip the Epic-protected Issues and close the others in number order (plans only in dry-run)"""
+    for issue_number in sorted(epic_protected_numbers):
+        settle(out, Operation(Verb.SKIP, f"closing Issue #{issue_number} (Epic)"))
+    for issue_number in sorted(closing_issue_numbers):
+        op = Operation(Verb.CLOSE, f"Issue #{issue_number}")
+        out.planned(op)
+        if out.dry_run:
+            continue
+        try:
+            client.close_issue(owner, repo, issue_number)
+        except GitHubNotFoundError:
+            out.warning(f"Issue #{issue_number} not found; skipped")
+        except GitHubAPIError as e:
+            if _is_closed_by_another_request(e):
+                out.done(Operation(Verb.UNCHANGED, f"Issue #{issue_number} (already closed)"))
+                continue
+            out.warning(f"closing Issue #{issue_number} failed: {describe_api_error(e)}")
+        else:
+            out.done(op)
 
 
 def _is_closed_by_another_request(e: GitHubAPIError) -> bool:
@@ -2143,31 +1985,35 @@ def _is_missing_ref_error(e: GitHubAPIError) -> bool:
     return e.response_body is not None and "Reference does not exist" in e.response_body
 
 
-def _delete_merged_branch(client: GitHubClient, owner: str, repo: str, head_branch: str) -> bool:
-    """9. Delete the head branch and the WIP branch, and return whether the head was deleted
+def _delete_merged_branch(
+    out: Output, client: GitHubClient, owner: str, repo: str, head_branch: str
+) -> None:
+    """Delete the head branch and then the WIP branch (plans only the head in dry-run)
 
-    If the head is already gone (such as GitHub's auto-delete), treat it as deleted and also delete the WIP.
+    If the head is already gone (such as GitHub's auto-delete), the WIP branch is still tried.
+    A failure other than a missing ref skips the WIP branch.
     """
-    typer.echo(f"\nブランチ '{head_branch}' を削除中...")
+    op = Operation(Verb.DELETE, f"remote branch {head_branch}")
+    out.planned(op)
+    if out.dry_run:
+        return
     try:
         client.delete_branch(owner, repo, head_branch)
-        typer.echo(f"  ✔ ブランチ '{head_branch}' を削除しました")
+        out.done(op)
     except GitHubAPIError as e:
         if not _is_missing_ref_error(e):
-            typer.echo(f"  ⚠ ブランチ削除に失敗: {describe_api_error(e)}", err=True)
-            return False
-        typer.echo(f"  ✔ ブランチ '{head_branch}' は既に削除されています")
-    # WIPブランチも連動削除
+            out.warning(f"deleting remote branch {head_branch} failed: {describe_api_error(e)}")
+            return
+        out.done(Operation(Verb.UNCHANGED, f"remote branch {head_branch} (already deleted)"))
     wip_branch = f"wip/{head_branch}"
     try:
         client.delete_branch(owner, repo, wip_branch)
-        typer.echo(f"  ✔ WIPブランチ '{wip_branch}' も削除しました")
+        out.done(Operation(Verb.DELETE, f"remote branch {wip_branch}"))
     except GitHubAPIError:
-        pass  # 存在しない場合は無視
-    return True
+        pass  # The WIP branch usually does not exist.
 
 
-def _remove_active_flags() -> None:
+def _remove_active_flags(out: Output) -> None:
     """Clean up the flag files"""
     from cli.core.state import (
         FLAG_PECOT_ACTIVE,
@@ -2183,63 +2029,7 @@ def _remove_active_flags() -> None:
         remove_flag(FLAG_PECOT_QUICK_MODE)
         remove_flag(FLAG_WIP_BRANCH_LINKED)
     except Exception as e:
-        typer.echo(f"  ⚠ フラグファイルの削除に失敗: {e}", err=True)
-
-
-def _echo_cleanup_summary(
-    pr: dict[str, Any],
-    pr_label: str,
-    closing_issue_numbers: set[int],
-    deleted_branch: str | None,
-) -> None:
-    """11-12. Summary and the message that no merge report is needed"""
-    typer.echo("\n=== マージ後の片付け完了 ===")
-    typer.echo(f"PR: {pr_label}")
-    typer.echo(f"タイトル: {pr['title']}")
-    if closing_issue_numbers:
-        typer.echo(f"クローズしたIssue: {_format_issue_numbers(closing_issue_numbers)}")
-    if deleted_branch:
-        typer.echo(f"削除したブランチ: {deleted_branch}")
-
-    typer.echo("")
-    typer.echo("※マージ完了報告をIssueにコメントする必要はありません。")
-
-
-@dataclass
-class _CleanupContext:
-    client: GitHubClient
-    config: ProjectConfig
-    owner: str
-    repo: str
-    pr: dict[str, Any]
-    pr_label: str
-    closing_issue_numbers: set[int]
-    epic_protected_numbers: set[int]
-    delete_branch: bool
-    skip_local_cleanup: bool
-
-
-def _finish_cleanup(ctx: _CleanupContext) -> None:
-    """8-12. Close Issues, delete branches, local cleanup, summary"""
-    _close_related_issues(
-        ctx.client, ctx.owner, ctx.repo, ctx.closing_issue_numbers, ctx.epic_protected_numbers
-    )
-    head_branch = ctx.pr["head_ref"]
-    branch_deleted = ctx.delete_branch and _delete_merged_branch(
-        ctx.client, ctx.owner, ctx.repo, head_branch
-    )
-    if not ctx.skip_local_cleanup:
-        _local_cleanup_after_merge(
-            head_branch=head_branch, config=ctx.config, owner=ctx.owner, repo=ctx.repo
-        )
-        _remove_active_flags()
-        consume_flag(FLAG_MERGE_SLASH_PENDING)
-    _echo_cleanup_summary(
-        ctx.pr,
-        ctx.pr_label,
-        ctx.closing_issue_numbers,
-        head_branch if branch_deleted else None,
-    )
+        out.warning(f"removing flag files failed: {e}")
 
 
 def pr_cleanup(
@@ -2270,52 +2060,39 @@ def pr_cleanup(
         pecot pr cleanup owner/repo/123 --delete-branch
         pecot pr cleanup owner/repo/123 --dry-run
     """
+    out = Output(dry_run)
+
     config = load_active_config()
     if config is None:
-        typer.echo("エラー: アクティブなプロジェクトがありません", err=True)
+        out.error("no active project")
         raise typer.Exit(1)
 
     try:
         base = _resolve_base_repo(ctx)
         ref = parse_pr_ref(pr_ref, base_repo=base)
     except RefParseError as e:
-        typer.echo(f"エラー: {e.message}", err=True)
+        out.error(e.message)
         raise typer.Exit(2) from None
 
     owner, repo, pr_number = ref.repo.owner, ref.repo.repo, ref.number
-    pr_label = f"{owner}/{repo}/{pr_number}"
 
-    client, pr = _fetch_pr_for_cleanup(config, owner, repo, pr_number)
-    _require_merged(pr, pr_number)
+    client, pr = _fetch_pr_for_cleanup(config, owner, repo, pr_number, out)
+    _require_merged(pr, pr_number, out)
 
     closing_issue_numbers = _collect_closing_issue_numbers(pr)
     epic_protected_numbers = _find_epic_protected_numbers(
-        client, owner, repo, closing_issue_numbers
+        client, owner, repo, closing_issue_numbers, out
     )
     closing_issue_numbers -= epic_protected_numbers
     head_branch = pr["head_ref"]
 
-    if dry_run:
-        _echo_cleanup_dry_run(
-            pr, pr_label, closing_issue_numbers, epic_protected_numbers, delete_branch
-        )
-        if not skip_local_cleanup:
-            _local_cleanup_after_merge(
-                head_branch=head_branch, config=config, owner=owner, repo=repo, dry_run=True
-            )
+    out.count("Issues to close", len(closing_issue_numbers))
+    _close_related_issues(out, client, owner, repo, closing_issue_numbers, epic_protected_numbers)
+    if delete_branch:
+        _delete_merged_branch(out, client, owner, repo, head_branch)
+    if skip_local_cleanup:
         return
-
-    _finish_cleanup(
-        _CleanupContext(
-            client=client,
-            config=config,
-            owner=owner,
-            repo=repo,
-            pr=pr,
-            pr_label=pr_label,
-            closing_issue_numbers=closing_issue_numbers,
-            epic_protected_numbers=epic_protected_numbers,
-            delete_branch=delete_branch,
-            skip_local_cleanup=skip_local_cleanup,
-        )
-    )
+    _local_cleanup_after_merge(head_branch, config, owner, repo, out)
+    if not dry_run:
+        _remove_active_flags(out)
+        consume_flag(FLAG_MERGE_SLASH_PENDING)

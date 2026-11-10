@@ -120,9 +120,9 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: golden の `pr-*` が記録し直した値と一致する。`cli/commands/pr.py` に `typer.echo` が 0 か所
 
-- [ ] T020 [US2] `cli/tests/cli/` の pr のテストの期待値を、新しい行に書き換える。`pr create --dry-run` の予定の行が `dry-run: would ...` になることを含める
-- [ ] T021 [US2] `cli/commands/pr.py` の `typer.echo` 151 か所を `Output` に移す
-- [ ] T022 [US2] golden の `pr-*` を記録し直す。スキルと hooks が pr の出力の文言を引いていれば直す
+- [x] T020 [US2] `cli/tests/cli/` の pr のテストの期待値を、新しい行に書き換える。`pr create --dry-run` の予定の行が `dry-run: would ...` になることを含める
+- [x] T021 [US2] `cli/commands/pr.py` の `typer.echo` 151 か所を `Output` に移す
+- [x] T022 [US2] golden の `pr-*` を記録し直す。スキルと hooks が pr の出力の文言を引いていれば直す
 
 **Checkpoint**: `record:parity:check` の差が 0 件
 

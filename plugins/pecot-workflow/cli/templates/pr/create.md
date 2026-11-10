@@ -21,11 +21,11 @@ screenshot: ""
 - repository: 必須。PR 先の `owner/repo`（`git remote get-url origin`）
 - screenshot: 画像を Summary に入れたら空のまま。入れないなら、入れない理由を `"..."` で囲んで書く
   - 例: `"CLI の内部の整理だけで、画面・生成する Markdown・出力の文は変わらない"`
-- title: `type(scope): #ISSUE タイトル`。type は feat / fix / docs / chore / refactor / test / ci / build / perf / revert
+- title: `"type(scope): #ISSUE タイトル"` の形で `"..."` で囲む（囲まないと ` #ISSUE` 以降が YAML のコメントになる）。type は feat / fix / docs / chore / refactor / test / ci / build / perf / revert
 - title の scope（nx を使うリポ = config の `release_type` が `nx`）: 変更した nx プロジェクトの scope
   - scope は、プロジェクトの `project.json` の `tags` にある `scope:<名前>` の値。tag が無ければプロジェクト名
   - 複数は空白なしの `,` 区切り。どのプロジェクトにも属さないファイルがあれば `repo` を加える（`.nx/version-plans/` は数えない）
-  - `pr create --prepare` が算出した scope を表示し、`pecot pr create` が食い違いを止める
+  - `pr create --prepare` が算出した scope を title の行のコメント（`# expected scope: ...`）に書き、`pecot pr create` が食い違いを止める
 - title の scope（nx を使わないリポ）: 付けない（`type: #ISSUE タイトル`）
 
 例:
