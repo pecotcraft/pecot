@@ -1,13 +1,9 @@
 // pecotv 永続層（置き場の mcp-dist/）へ入る依存の package.json を組み立てる (#1071)。
 // 規則は cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan() の写し。ずれは runtime-manifest.test.sh が止める。
-// optionalDependencies（playwright）は実 install の対象外なので入れない。
-//
-//   import: buildRuntimeManifest(pecotvRoot) -> オブジェクト
-//
-//   直接起動: node runtime-manifest.mjs <pecotv-plugin-root> -> JSON を stdout
 
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { DEPENDENCY_FIELDS, readDefaultCatalog, resolveManifest } from './catalog.mjs'
 import { isSelfExecuted } from './self-exec.mjs'
 
 // 版を固定する slidev 中核パッケージ（runtime-install.ts の SLIDEV_CORE_PACKAGES と同じ）。
@@ -29,26 +25,36 @@ const dependencyMap = (value) =>
     ? Object.fromEntries(Object.entries(value).filter(([, range]) => typeof range === 'string'))
     : {}
 
-export function buildRuntimeManifest(rawPecotvRoot) {
+export function buildRuntimeManifest(rawPecotvRoot, workspaceYamlPath) {
   const PECOTV_ROOT = path.resolve(rawPecotvRoot)
-  const runtimeManifest = readJson(
+  const rawManifest = readJson(
     path.join(PECOTV_ROOT, 'assets/slidev/runtime/package.json')
   )
 
+  // catalog: の解決元は省略時 <pecotvRoot>/../../pnpm-workspace.yaml。catalog: が無ければ読まない。
+  const usesCatalog = DEPENDENCY_FIELDS
+    .some((field) => Object.values(dependencyMap(rawManifest[field])).some((range) => range.startsWith('catalog:')))
+  const catalog = usesCatalog
+    ? readDefaultCatalog(readFileSync(workspaceYamlPath ?? path.join(PECOTV_ROOT, '../../pnpm-workspace.yaml'), 'utf8'))
+    : {}
+  const runtimeManifest = resolveManifest(rawManifest, catalog)
+  const resolvedDependencies = dependencyMap(runtimeManifest.dependencies)
+  const resolvedDevDependencies = dependencyMap(runtimeManifest.devDependencies)
+
   // 中核パッケージの固定版は、runtime manifest の @slidev/cli の版（runtime-install.ts と同じ読み元）。
-  const coreVersion = dependencyMap(runtimeManifest.dependencies)['@slidev/cli']
+  const coreVersion = resolvedDependencies['@slidev/cli']
   if (typeof coreVersion !== 'string' || coreVersion === '') {
     throw new Error('assets/slidev/runtime/package.json dependencies に @slidev/cli の版指定がありません（依存の改名・削除の疑い）')
   }
 
   const dependencies = {}
-  for (const [name, range] of Object.entries(dependencyMap(runtimeManifest.dependencies))) {
+  for (const [name, range] of Object.entries(resolvedDependencies)) {
     if (LOCAL_PROTOCOL_PATTERN.test(range)) continue
     dependencies[name] = SLIDEV_CORE_PACKAGES.has(name) ? coreVersion : range
   }
 
   // pptx 変換の bundle 供給元。manifest では devDependencies だが永続層には要る。
-  const domToPptx = dependencyMap(runtimeManifest.devDependencies)['dom-to-pptx']
+  const domToPptx = resolvedDevDependencies['dom-to-pptx']
   if (domToPptx !== undefined) dependencies['dom-to-pptx'] = domToPptx
 
   dependencies['@slidev/parser'] = coreVersion
@@ -68,10 +74,10 @@ export function buildRuntimeManifest(rawPecotvRoot) {
 }
 
 if (isSelfExecuted(import.meta.url)) {
-  const [rawPecotvRoot] = process.argv.slice(2)
+  const [rawPecotvRoot, workspaceYamlPath] = process.argv.slice(2)
   if (!rawPecotvRoot) {
-    console.error('usage: runtime-manifest.mjs <pecotv-plugin-root>')
+    console.error('usage: runtime-manifest.mjs <pecotv-plugin-root> [pnpm-workspace.yaml]')
     process.exit(1)
   }
-  process.stdout.write(`${JSON.stringify(buildRuntimeManifest(rawPecotvRoot), null, 2)}\n`)
+  process.stdout.write(`${JSON.stringify(buildRuntimeManifest(rawPecotvRoot, workspaceYamlPath), null, 2)}\n`)
 }

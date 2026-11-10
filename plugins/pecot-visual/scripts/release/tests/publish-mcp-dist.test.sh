@@ -302,6 +302,7 @@ git -C "$TEST_REPO" commit --quiet --allow-empty -m base > /dev/null 2>&1 || exi
     plugins/pecot-visual/scripts/release \
     libs/text-rules/package.json \
     LICENSE \
+    pnpm-workspace.yaml \
     | tar --null -T - -cf -) | tar -xf - -C "$TEST_REPO" || exit 1
 # scripts/release だけは、作業ツリーから丸ごと上書きする。
 # git ls-files は未追跡ファイルを落とす。
@@ -327,7 +328,19 @@ cp -a "$TEXT_RULES_DIST" "$TEST_REPO/libs/text-rules/dist" || exit 1
 git -C "$TEST_REPO" add -A > /dev/null 2>&1 || exit 1
 git -C "$TEST_REPO" commit --quiet -m "test fixture" > /dev/null 2>&1 || exit 1
 git -C "$TEST_REPO" tag "$TEST_TAG" HEAD || exit 1
+# catalog.mjs が使う yaml の解決元。commit の後に置き、fixture の内容に含めない。
+ln -s "$REPO_ROOT/node_modules" "$TEST_REPO/node_modules" || exit 1
 TAGGED_PUBLISH="$TEST_PECOTV/scripts/release/publish-mcp-dist.sh"
+# 作業ツリーの catalog.vite だけを HEAD と違う値にする（commit しない）。
+# publish-mcp-dist.sh が作業ツリーの pnpm-workspace.yaml を読む誤りに変わったら、配布ツリーの vite がこの値になって落ちる。
+# pnpm-workspace.yaml は publish の乖離判定（plugins/pecot-visual・libs/text-rules）の対象外なので、後続の項目に影響しない。
+WORKTREE_VITE="^0.0.0-worktree"
+sed -i "s|^\(  vite: \).*|\1$WORKTREE_VITE|" "$TEST_REPO/pnpm-workspace.yaml" || exit 1
+if [ "$(git -C "$TEST_REPO" show HEAD:pnpm-workspace.yaml)" = "$(cat "$TEST_REPO/pnpm-workspace.yaml")" ] \
+    || ! grep -qF "vite: $WORKTREE_VITE" "$TEST_REPO/pnpm-workspace.yaml"; then
+    echo "fixture の作業ツリーの catalog.vite を書き換えられません" >&2
+    exit 1
+fi
 
 # --- 1. dry-run: 監査記録の確認と配布ツリーの構築 ---
 
@@ -676,11 +689,32 @@ assert_eq "smoke で使う icon カタログが配布ツリーに同梱される
 # 期待値はソースツリーの manifest から読む。
 # 配布ツリー側から読むと、期待値と被検証物が同じ git archive の出力になり、比較として成り立たない。
 DIST_RUNTIME="$DIST/assets/slidev/runtime"
-if [ -f "$DIST_RUNTIME/package.json" ] && cmp -s "$RUNTIME_SOURCE/package.json" "$DIST_RUNTIME/package.json"; then
-    pass "runtime の manifest がソースと同じ内容で配布ツリーに同梱される"
+# 配布ツリーの catalog: は HEAD の pnpm-workspace.yaml の範囲へ置き換わる（作業ツリーの値ではない）。
+# 期待値は実装の resolveCatalog を使わず、ソースの dependencies.vite だけを HEAD の catalog.vite に差し替えて作る。
+# 差し替え以外はソースと同じ内容になる。
+HEAD_YAML="$TMP/head-pnpm-workspace.yaml"
+git -C "$TEST_REPO" show HEAD:pnpm-workspace.yaml > "$HEAD_YAML" || exit 1
+HEAD_VITE="$(node -e "
+const { readDefaultCatalog } = require(process.argv[2])
+process.stdout.write(readDefaultCatalog(require('node:fs').readFileSync(process.argv[3], 'utf8')).vite)
+" _ "$RELEASE_DIR/catalog.mjs" "$HEAD_YAML")"
+RUNTIME_DIFF="$(node -e "
+const fs = require('node:fs')
+const source = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+const dist = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'))
+source.dependencies.vite = process.argv[4]
+process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 'different')
+" _ "$RUNTIME_SOURCE/package.json" "$DIST_RUNTIME/package.json" "$HEAD_VITE" 2> /dev/null || echo error)"
+if [ -f "$DIST_RUNTIME/package.json" ] && [ "$RUNTIME_DIFF" = "same" ]; then
+    pass "runtime の manifest が catalog: の解決だけソースと違う内容で配布ツリーに同梱される"
 else
-    fail "runtime の manifest が配布ツリーに無い、またはソースと異なる（git archive の対象から落ちた疑い）"
+    fail "runtime の manifest が配布ツリーに無い、または catalog: の解決以外でソースと異なる ($RUNTIME_DIFF)"
 fi
+assert_eq "配布ツリーの runtime manifest に catalog: が残らない" "0" \
+    "$(grep -c 'catalog:' "$DIST_RUNTIME/package.json" | tr -d ' ')"
+DIST_VITE="$(node -e "process.stdout.write(require('$DIST_RUNTIME/package.json').dependencies.vite)" 2> /dev/null)"
+assert_eq "配布ツリーの runtime manifest の vite が HEAD の catalog の範囲になる" "$HEAD_VITE" "$DIST_VITE"
+assert_ne "配布ツリーの runtime manifest の vite が作業ツリーの catalog の値ではない" "$WORKTREE_VITE" "$DIST_VITE"
 
 # pecot は証明書を同梱しない。プロキシの CA は利用者が NODE_EXTRA_CA_CERTS で渡す（§8 で受け渡しを見る）。
 if [ ! -e "$DIST/assets/certs" ]; then
@@ -1531,6 +1565,13 @@ assert_eq "指紋の不一致では gh を呼ばない" "0" "$(gh_call_count)"
 TEST_FP="$(fingerprint_from_log "$TMP/mismatch.log")"
 assert_eq "不一致でも配布ツリーの指紋を出力する" "1" \
     "$(printf '%s' "$TEST_FP" | grep -cE '^[0-9a-f]{64}$' | tr -d ' ')"
+
+# 使い捨てリポ側のスクリプトで作った配布ツリーも、HEAD の catalog を使う。
+# 作業ツリーの pnpm-workspace.yaml は書き換え済み（fixture の作成直後）で、HEAD と値が違う。
+# §3 の配布ツリーは本体リポ側のスクリプトで作るため、この値の違いを見られるのはここだけになる。
+TAGGED_VITE="$(node -e "process.stdout.write(require('$TMP/dist-mismatch/assets/slidev/runtime/package.json').dependencies.vite)" 2> /dev/null)"
+assert_eq "使い捨てリポ側の配布ツリーの vite が HEAD の catalog の範囲になる" "$HEAD_VITE" "$TAGGED_VITE"
+assert_ne "使い捨てリポ側の配布ツリーの vite が作業ツリーの catalog の値ではない" "$WORKTREE_VITE" "$TAGGED_VITE"
 
 # 9-4. 監査時 HEAD が現在の HEAD の親（nx が作る release commit の分）でも通る。
 #      タグを立てた使い捨てリポ側のスクリプトを起動する（リポジトリ本体に ref を作らない）。

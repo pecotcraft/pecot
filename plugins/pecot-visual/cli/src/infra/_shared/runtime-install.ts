@@ -72,6 +72,23 @@ function readManifest(manifestPath: string): Record<string, unknown> {
 }
 
 /**
+`catalog:` が残っていないかを見る依存フィールド。scripts/release/catalog.mjs が置き換える対象と同じ。
+*/
+const CATALOG_CHECKED_FIELDS: ReadonlySet<string> = new Set(['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'])
+
+/**
+manifest の依存の range が `catalog:` で始まる依存の名前。配布時に置き換わるはずのものが残っているかを見る。
+*/
+function unresolvedCatalogNames(manifestPath: string): readonly string[] {
+  const manifest = readManifest(manifestPath)
+  return Object.entries(manifest)
+    .filter(([field]) => CATALOG_CHECKED_FIELDS.has(field))
+    .flatMap(([, section]) => Object.entries(dependencyMap(section)))
+    .filter(([, range]) => range.startsWith('catalog:'))
+    .map(([name]) => name)
+}
+
+/**
 永続層へ書く内容。specs は npm の引数、overrides は install 先 package.json へ写す。
 */
 export interface RuntimeInstallPlan {
@@ -213,6 +230,21 @@ export async function installRuntimeDependencies(
       signal: null,
       stdout: '',
       stderr: error instanceof Error ? error.message : String(error),
+      timedOut: false,
+      failedStage: 'npm',
+    }
+  }
+
+  // 配布時に catalog: は範囲へ置き換わる。残っていれば npm は解決できないので、起動せずに返す。
+  const unresolved = unresolvedCatalogNames(options.manifestPath)
+  if (unresolved.length > 0) {
+    return {
+      // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+      exitCode: null,
+      // eslint-disable-next-line unicorn/no-null -- 同上
+      signal: null,
+      stdout: '',
+      stderr: `${options.manifestPath} に、配布時に置き換わるはずの catalog: が残っています: ${unresolved.join(', ')}`,
       timedOut: false,
       failedStage: 'npm',
     }

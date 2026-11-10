@@ -176,6 +176,53 @@ def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
     )
 
 
+def _write(repo: Path) -> None:
+    result = subprocess.run(
+        ["node", ".githooks/scripts/gen-runtime-lock.mjs", "--write"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_write_copies_referenced_catalog_only(repo: Path) -> None:
+    # どの importer も参照しない項目を root の catalogs.default に足す。--write はこれを落とす。
+    _edit(
+        repo / "pnpm-lock.yaml",
+        "catalogs:\n  default:\n",
+        "catalogs:\n  default:\n    unreferenced-sample:\n      specifier: ^1.0.0\n      version: 1.0.0\n",
+    )
+    _write(repo)
+    expected = "catalogs:\n  default:\n    vite:\n      specifier: ^"
+    for d in ("plugins/pecot-visual", "plugins/pecot-tools", "plugins/pecot-workflow"):
+        text = (repo / d / "runtime-lock.yaml").read_text(encoding="utf-8")
+        assert expected in text, d
+        assert "unreferenced-sample" not in text, d
+
+
+def test_write_omits_catalogs_for_target_without_reference(repo: Path) -> None:
+    _write(repo)
+    assert "catalogs:" not in (repo / "libs/text-rules/runtime-lock.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
+    lock = repo / "plugins/pecot-tools/runtime-lock.yaml"
+    text = lock.read_text(encoding="utf-8")
+    start = text.index("catalogs:\n")
+    end = text.index("overrides:\n", start)
+    lock.write_text(text[:start] + text[end:], encoding="utf-8")
+    result = _check(repo)
+    assert result.returncode == 1
+    assert (
+        "plugins/pecot-tools/runtime-lock.yaml: catalogs が root の pnpm-lock.yaml と一致しません"
+        in result.stderr
+    )
+
+
 def test_runtime_lock_workflow_runs_an_existing_script() -> None:
     """runtime-lock.yml は Dependabot の PR でしか動かない。run が指す script の実在をここで確かめる。"""
     workflow = (_REPO_ROOT / ".github/workflows/runtime-lock.yml").read_text(encoding="utf-8")

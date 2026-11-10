@@ -326,6 +326,14 @@ describe('runtimeInstallStamp', () => {
     expect(after).not.toBe(before)
   })
 
+  it('catalog: を含む manifest でも throw せず、版の違う catalog: でない manifest とは印が変わる', () => {
+    const withCatalog = runtimeInstallStamp(writeManifestWithCore({ dependencies: { vite: 'catalog:' } }))
+    const withRange = runtimeInstallStamp(writeManifestWithCore({ dependencies: { vite: '^8.3.6' } }))
+
+    expect(withCatalog).toMatch(/^[0-9a-f]{64}$/u)
+    expect(withCatalog).not.toBe(withRange)
+  })
+
   it('overrides だけが変わっても印が変わる', () => {
     const before = runtimeInstallStamp(writeManifestWithCore({ dependencies: {}, overrides: { 'lodash-es': '^4.17.23' } }))
     const after = runtimeInstallStamp(writeManifestWithCore({ dependencies: {}, overrides: { 'lodash-es': '^4.18.0' } }))
@@ -716,6 +724,39 @@ function readStubNpmOutput(stdout: string): { argv: string[], extraCaCerts: stri
 }
 
 describe('installRuntimeDependencies', () => {
+  it.each(['catalog:', 'catalog:named'])('dependencies に %s が残る manifest では npm を起動せず失敗を返す', async (range) => {
+    const data = temporaryRoot('data-catalog')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifestWithCore({ dependencies: { vite: range, vue: '^3.5.13' } })
+
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    // stub npm は起動すると argv を stdout に吐く。空なら起動していない。
+    expect(result.stdout).toBe('')
+    // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+    expect(result.exitCode).toBe(null)
+    expect(result.failedStage).toBe('npm')
+    expect(result.stderr).toContain('配布時に置き換わるはずの catalog: が残っています: vite')
+    expect(result.stderr).not.toContain('vue')
+    expect(existsSync(runtimePackageJson(data))).toBe(false)
+  })
+
+  it('optionalDependencies の catalog: でも npm を起動せず失敗を返す', async () => {
+    const data = temporaryRoot('data-catalog-optional')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifestWithCore({ optionalDependencies: { fsevents: 'catalog:' } })
+
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    expect(result.stdout).toBe('')
+    // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+    expect(result.exitCode).toBe(null)
+    expect(result.stderr).toContain('配布時に置き換わるはずの catalog: が残っています: fsevents')
+    expect(existsSync(runtimePackageJson(data))).toBe(false)
+  })
+
   it('永続層へ package.json を置いてから --prefix 付きで install する', async () => {
     // package.json が無いと npm は上位へ遡り、置き場の外など意図しない場所へ書き込む。
     const data = temporaryRoot('data')

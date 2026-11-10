@@ -1,8 +1,4 @@
-// pnpm-lock.yaml の shiki / @shikijs/* / vite が各 1 版であることのチェック (#1233)。
-//
-// なぜ単一版を守るのか: テーマの LCodeBlock などが @shikijs/* を直接 import する。
-// shiki 本体と兄弟パッケージの版が割れると、文法・テーマが二重に同梱され、利用者デッキで
-// shiki 本体と langs / themes の版がずれる。vite も Slidev 本体と本体の実行時依存の manifest が別の版を引くと割れるため、同じ網に入れる。
+// lock の shiki / @shikijs/* / vite が各 1 版であること (#1233) と、vite の範囲が catalog の 1 か所にあること (#170) を見る。
 // 永続層 (npm install) の単一版は実取得を伴うので、ここでは lock と宣言の範囲一致だけを見る。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはリポジトリ内の追跡ファイルと install 済み manifest のみ */
@@ -10,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
-import { parseAllDocuments } from 'yaml'
+import { parse, parseAllDocuments } from 'yaml'
 
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { isRecord } from '../../../src/domain/_shared/json.js'
@@ -24,7 +20,7 @@ const LOCKFILE = path.join(REPO_ROOT, 'pnpm-lock.yaml')
 // nodeLinker: hoisted なので workspace の依存は repo root の node_modules 直下に並ぶ。
 const SLIDEV_CLI_MANIFEST = path.join(REPO_ROOT, 'node_modules', '@slidev', 'cli', 'package.json')
 const RUNTIME_MANIFEST = path.join(PLUGIN_ROOT, 'assets', 'slidev', 'runtime', 'package.json')
-const CLI_MANIFEST = path.join(CLI_ROOT, 'package.json')
+const WORKSPACE = path.join(REPO_ROOT, 'pnpm-workspace.yaml')
 
 /**
 固定の対象。`vite` は完全一致で、`vite-plugin-*` / `vitefu` / `vitest` を巻き込まない。
@@ -65,13 +61,15 @@ function pinnedVersionsByPackage(): ReadonlyMap<string, ReadonlySet<string>> {
   return versions
 }
 
+type ManifestField = 'dependencies' | 'devDependencies' | 'optionalDependencies'
+
 /**
-manifest の `field` (`dependencies` / `devDependencies`) を読む。ファイルが無い場合は未 install として明示的に失敗させる。
+manifest の `field`（`ManifestField`）の欄を読む。ファイルが無い場合は未 install として明示的に失敗させる。
 */
-function readManifestField(file: string, field: 'dependencies' | 'devDependencies'): ReadonlyMap<string, string> {
+function readManifestField(file: string, field: ManifestField): ReadonlyMap<string, string> {
   expect(existsSync(file), `未 install または不在: ${file}`).toBe(true)
   // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-  const manifest = JSON.parse(readFileSync(file, 'utf8')) as Record<'dependencies' | 'devDependencies', Record<string, string>>
+  const manifest = JSON.parse(readFileSync(file, 'utf8')) as Partial<Record<ManifestField, Record<string, string>>>
   const section = Object.entries(manifest).find(([key]) => key === field)
   return new Map(Object.entries(section?.[1] ?? {}))
 }
@@ -106,7 +104,7 @@ describe('固定対象の単一版 (#1233)', () => {
     expect(split, `版が割れているパッケージ:\n${split.join('\n')}`).toEqual([])
   })
 
-  it('固定した shiki 系の版が @slidev/cli の宣言範囲を満たし、vite の範囲は同じ文字列', () => {
+  it('固定した shiki 系の版が @slidev/cli の宣言範囲を満たす', () => {
     // 永続層は lock なしの npm install で、shiki と兄弟は互いを同版の完全一致で引く。
     // manifest はテーマの peer に合わせて完全一致で固定するため、Slidev の宣言範囲の外へ出ると版が割れる。
     // 期待側が未宣言なら不一致として扱い、undefined 同士の比較で通らないようにする。
@@ -120,27 +118,47 @@ describe('固定対象の単一版 (#1233)', () => {
       .filter(({ pinned }) => shikiRange === undefined || pinned === undefined || caretRangeViolation(pinned, shikiRange) !== undefined)
       .map(({ name, pinned = '(宣言なし)' }) =>
         `${name}: manifest=${pinned} / @slidev/cli の shiki=${shikiRange ?? '(宣言なし)'}`)
-    const viteExpected = slidev.get('vite')
-    const viteActual = runtime.get('vite')
-    if (viteExpected === undefined || viteActual !== viteExpected) {
-      mismatches.push(`vite: manifest=${viteActual ?? '(宣言なし)'} / @slidev/cli の vite=${viteExpected ?? '(宣言なし)'}`)
-    }
     expect(mismatches, `範囲が食い違っている:\n${mismatches.join('\n')}`).toEqual([])
   })
 })
 
-describe('cli の vite の追従 (#1234)', () => {
-  it('pecot-visual cli の devDependencies の vite が @slidev/cli の宣言と同じ文字列', () => {
-    // cli の vite は、Vitest の peer を満たすために明示する。
-    // 同じ lock で Slidev の vite と並ぶため、Slidev 側が範囲を変えたとき、cli 側の追従抜けで割れる余地を残さない。
-    // そのためのチェック。lock の分割そのものは 1 件目が検出する。
-    // 期待側が未宣言なら不一致として扱う。
-    const slidev = readManifestField(SLIDEV_CLI_MANIFEST, 'dependencies')
-    const cli = readManifestField(CLI_MANIFEST, 'devDependencies')
+/**
+pnpm-workspace.yaml を読み、`packages` と `catalog.vite` を生の値で返す。検証は呼び出し側の it で行う。
+*/
+function readWorkspace(): { readonly packages: unknown, readonly catalogVite: unknown } {
+  const workspace: unknown = parse(readFileSync(WORKSPACE, 'utf8'))
+  const catalog = isRecord(workspace) ? workspace['catalog'] : undefined
+  return {
+    packages: isRecord(workspace) ? workspace['packages'] : undefined,
+    catalogVite: isRecord(catalog) ? catalog['vite'] : undefined,
+  }
+}
 
-    const expected = slidev.get('vite')
-    const actual = cli.get('vite')
+describe('vite の範囲の一元化 (#170)', () => {
+  it('workspace の全メンバーで vite は catalog: 参照', () => {
+    const { packages } = readWorkspace()
+    expect(Array.isArray(packages), 'pnpm-workspace.yaml に packages がない').toBe(true)
+    const members = Array.isArray(packages) ? packages : []
+    const nonStrings = members.filter(entry => typeof entry !== 'string')
+    expect(nonStrings, 'pnpm-workspace.yaml の packages に文字列以外がある').toEqual([])
+    const sections: readonly ManifestField[] = ['dependencies', 'devDependencies', 'optionalDependencies']
+    const violations: string[] = []
+    for (const member of ['.', ...members.filter((entry): entry is string => typeof entry === 'string')]) {
+      const file = path.join(REPO_ROOT, member, 'package.json')
+      if (!existsSync(file)) continue
+      for (const section of sections) {
+        const range = readManifestField(file, section).get('vite')
+        if (range !== undefined && range !== 'catalog:') violations.push(`${member} の ${section}: vite=${range}`)
+      }
+    }
+    expect(violations, `vite の範囲は pnpm-workspace.yaml の catalog.vite に置き、ここは catalog: とする:\n${violations.join('\n')}`).toEqual([])
+  })
+
+  it('catalog.vite が @slidev/cli の宣言と同じ文字列', () => {
+    // 期待側が未宣言のときも不一致として扱う。
+    const expected = readManifestField(SLIDEV_CLI_MANIFEST, 'dependencies').get('vite')
+    const { catalogVite } = readWorkspace()
     expect(expected, '@slidev/cli が vite を宣言していない').toBeDefined()
-    expect(actual, `cli の vite=${actual ?? '(宣言なし)'} / @slidev/cli の vite=${expected ?? '(宣言なし)'}`).toBe(expected)
+    expect(catalogVite, `pnpm-workspace.yaml の catalog.vite を ${expected ?? '(宣言なし)'} に直す (@slidev/cli の vite)`).toBe(expected)
   })
 })

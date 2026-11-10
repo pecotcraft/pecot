@@ -22,6 +22,8 @@ PECOTV_ROOT="$(cd "$RELEASE_DIR/../.." && pwd)"
 MANIFEST_JS="$RELEASE_DIR/runtime-manifest.mjs"
 RUNTIME_INSTALL_JS="$PECOTV_ROOT/cli/dist/infra/_shared/runtime-install.js"
 RUNTIME_MANIFEST="$PECOTV_ROOT/assets/slidev/runtime/package.json"
+CATALOG_JS="$RELEASE_DIR/catalog.mjs"
+REPO_WORKSPACE_YAML="$(cd "$PECOTV_ROOT/../.." && pwd)/pnpm-workspace.yaml"
 
 PASS=0
 FAIL=0
@@ -73,16 +75,22 @@ cat > "$TMP/compare.mjs" << 'COMPARE_EOF'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-const [runtimeInstallPath, manifestJsonPath, runtimeManifestPath, field] = process.argv.slice(2)
+const [runtimeInstallPath, manifestJsonPath, runtimeManifestPath, field, catalogModulePath, workspaceYamlPath] = process.argv.slice(2)
 const { runtimeInstallPlan } = await import(pathToFileURL(runtimeInstallPath).href)
+const { readDefaultCatalog, resolveCatalog } = await import(pathToFileURL(catalogModulePath).href)
 const plan = runtimeInstallPlan(runtimeManifestPath)
+// runtimeInstallPlan は catalog: を解決しない。.mjs と同じ resolveCatalog() を通してから比べる。
+const catalog = readDefaultCatalog(readFileSync(workspaceYamlPath, 'utf8'))
+const splitSpec = (spec) => [spec.slice(0, spec.lastIndexOf('@')), spec.slice(spec.lastIndexOf('@') + 1)]
+const resolvedSpecs = Object.entries(resolveCatalog(Object.fromEntries(plan.specs.map(splitSpec)), catalog))
+  .map(([name, range]) => `${name}@${range}`)
 const manifest = JSON.parse(readFileSync(manifestJsonPath, 'utf8'))
 
 if (field === 'specs') {
   // @slidev/parser が dependencies に明示されている場合、runtimeInstallPlan は
   // 依存ループ由来の固定版エントリと末尾の明示 push で同一 specifier を 2 度積む。
   // .mjs 側は plain object へ書くため自然に 1 件へ畳まれるので、比較前に畳む (#1071 F-10)。
-  process.stdout.write([...new Set(plan.specs)].sort().join('\n'))
+  process.stdout.write([...new Set(resolvedSpecs)].sort().join('\n'))
 } else if (field === 'deps') {
   process.stdout.write(
     Object.entries(manifest.dependencies)
@@ -98,7 +106,7 @@ if (field === 'specs') {
 COMPARE_EOF
 
 compare() {
-    node "$TMP/compare.mjs" "$RUNTIME_INSTALL_JS" "$TMP/manifest.json" "$RUNTIME_MANIFEST" "$1"
+    node "$TMP/compare.mjs" "$RUNTIME_INSTALL_JS" "$TMP/manifest.json" "$RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$REPO_WORKSPACE_YAML"
 }
 
 PLAN_SPECS="$(compare specs)"
@@ -129,7 +137,8 @@ cat > "$SYNTH_ROOT/assets/slidev/runtime/package.json" << SYNTH_RUNTIME_EOF
     "some-lib": "^1.2.3",
     "local-thing": "link:../local-thing",
     "file-thing": "file:../file-thing",
-    "portal-thing": "portal:../portal-thing"
+    "portal-thing": "portal:../portal-thing",
+    "vite": "catalog:"
   },
   "devDependencies": {
     "dom-to-pptx": "^2.1.1"
@@ -142,13 +151,15 @@ cat > "$SYNTH_ROOT/assets/slidev/runtime/package.json" << SYNTH_RUNTIME_EOF
 }
 SYNTH_RUNTIME_EOF
 SYNTH_RUNTIME_MANIFEST="$SYNTH_ROOT/assets/slidev/runtime/package.json"
+SYNTH_WORKSPACE_YAML="$TMP/synth-workspace.yaml"
+printf '%s\n' 'catalog:' '  vite: ^8.0.0' > "$SYNTH_WORKSPACE_YAML"
 
 SYNTH_MANIFEST_RC=0
-node "$MANIFEST_JS" "$SYNTH_ROOT" > "$TMP/synth-manifest.json" 2> "$TMP/synth-manifest.err" || SYNTH_MANIFEST_RC=$?
+node "$MANIFEST_JS" "$SYNTH_ROOT" "$SYNTH_WORKSPACE_YAML" > "$TMP/synth-manifest.json" 2> "$TMP/synth-manifest.err" || SYNTH_MANIFEST_RC=$?
 assert_eq "合成 root への直接起動が exit 0" "0" "$SYNTH_MANIFEST_RC"
 
 compare_synth() {
-    node "$TMP/compare.mjs" "$RUNTIME_INSTALL_JS" "$TMP/synth-manifest.json" "$SYNTH_RUNTIME_MANIFEST" "$1"
+    node "$TMP/compare.mjs" "$RUNTIME_INSTALL_JS" "$TMP/synth-manifest.json" "$SYNTH_RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$SYNTH_WORKSPACE_YAML"
 }
 SYNTH_PLAN_SPECS="$(compare_synth specs)"
 SYNTH_MANIFEST_DEPS="$(compare_synth deps)"
@@ -174,12 +185,52 @@ for CORE_PKG in '@slidev/client' '@slidev/types'; do
         fail "合成 root の TS で $CORE_PKG が 99.0.0 に固定されていない: $SYNTH_PLAN_SPECS"
     fi
 done
+if printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qxF 'vite@^8.0.0' \
+    && ! printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qF 'catalog:'; then
+    pass "合成 root で catalog: の vite が catalog の範囲に解決され、catalog: が残らない"
+else
+    fail "合成 root で catalog: の vite が範囲に解決されていない: $SYNTH_MANIFEST_DEPS"
+fi
 if [ -n "$SYNTH_PLAN_SPECS" ]; then
     pass "合成 root の specs が空でない（比較が無意味になっていない）"
 else
     fail "合成 root の specs が空（比較が無意味になっている）"
 fi
 assert_eq "合成 root でも overrides の入れ子が一致" "$(compare_synth plan-overrides)" "$(compare_synth manifest-overrides)"
+
+# catalog: の異常系。合成 root の vite だけを差し替え、非ゼロ終了と stderr の文言を見る。
+expect_manifest_failure() {
+    local label="$1" vite_range="$2" workspace_yaml="$3" expected="$4"
+    local root="$TMP/abnormal-root-$label"
+    mkdir -p "$root/assets/slidev/runtime"
+    node -e '
+const fs = require("node:fs")
+const [src, dst, range] = process.argv.slice(1)
+const manifest = JSON.parse(fs.readFileSync(src, "utf8"))
+manifest.dependencies.vite = range
+fs.writeFileSync(dst, JSON.stringify(manifest))
+' "$SYNTH_ROOT/assets/slidev/runtime/package.json" "$root/assets/slidev/runtime/package.json" "$vite_range"
+    local rc=0
+    node "$MANIFEST_JS" "$root" "$workspace_yaml" > "$TMP/abnormal-$label.out" 2> "$TMP/abnormal-$label.err" || rc=$?
+    if [ "$rc" -ne 0 ]; then
+        pass "$label で .mjs が非ゼロ終了"
+    else
+        fail "$label で .mjs が exit 0 になった"
+    fi
+    if grep -qF "$expected" "$TMP/abnormal-$label.err"; then
+        pass "$label で stderr に期待の文言を出す"
+    else
+        local tail_text
+        tail_text="$(tail -3 "$TMP/abnormal-$label.err" | tr '\n' ' ')"
+        fail "$label の stderr に期待の文言が無い。期待: $expected 実際: $tail_text"
+    fi
+}
+
+expect_manifest_failure "名前付き catalog" "catalog:named" "$SYNTH_WORKSPACE_YAML" "名前付き catalog"
+expect_manifest_failure "catalog に無い名前" "catalog:" <(printf '%s\n' 'catalog:' '  other: ^1.0.0') "catalog にありません"
+BOTH_YAML="$TMP/both-workspace.yaml"
+printf '%s\n' 'catalog:' '  vite: ^8.0.0' 'catalogs:' '  default:' '    vite: ^7.0.0' > "$BOTH_YAML"
+expect_manifest_failure "default catalog の両方定義" "catalog:" "$BOTH_YAML" "defined multiple times"
 
 # @slidev/cli の無い manifest は、.mjs が非ゼロ終了し、版指定がない旨を stderr に出す。
 NOCLI_ROOT="$TMP/nocli-root"
