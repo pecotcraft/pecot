@@ -111,7 +111,7 @@ describe('convertSlide', () => {
     expect(result.pptxPath).toBe(path.join(outDir, 'slide-100.pptx'))
     const written = await readFile(result.pptxPath)
     expect(written.length).toBeGreaterThan(0)
-    expect(result.letterSpacingMap['spaced text']).toBeDefined()
+    expect(result.letterSpacingMap['spaced text']).toEqual({ letterSpacing: '1.4px', fontSize: '14px' })
     expect(result.hrefMap['EXAMPLE']).toBe('https://example.com')
     expect(result.hrefMap['SKIP']).toBeUndefined()
     expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('letter-spacing'))
