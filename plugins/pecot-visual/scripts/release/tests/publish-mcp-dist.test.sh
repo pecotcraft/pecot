@@ -446,9 +446,8 @@ for needle in "gh release view pecot-visual-v$PLUGIN_VERSION -R" \
 done
 
 # --- 1-4. build を伴う場合の pnpm 呼び出し順 ---
-# 偽 pnpm で、build の呼び出しの順と cwd を固定する (#1087, #245)。
-# 順は install → text-rules → cli → eslint プラグインになる。
-# あわせて、各呼び出しの PECOTV_SKIP_LIB_BUILD の値を固定する。
+# resolve_pnpm は `command -v pnpm` を最優先するので、PATH 先頭の偽 pnpm が採られる。
+# dist が無い状態は本体の dist を消せないのでここでは作らず、手元の Repro で確かめる。build の順・cwd・PECOTV_SKIP_LIB_BUILD を固定する (#1087, #245)。
 echo "==> dry-run で pnpm 呼び出し順を検証（偽 pnpm）"
 mkdir -p "$TMP/bin"
 PNPM_CALLS="$TMP/pnpm-calls.txt"
@@ -521,17 +520,17 @@ assert_eq "3 回目の pnpm 呼び出しは cli の build" "--filter @pecot/peco
 assert_eq "4 回目の pnpm 呼び出しは eslint プラグインを含む build" "--filter @pecot/slidev-assets-dev run build" \
     "$(sed -n '4p' "$PNPM_CALLS" | cut -f2)"
 assert_eq "pnpm 呼び出しは 4 回だけ" "4" "$(wc -l < "$PNPM_CALLS" | tr -d ' ')"
-TEXT_RULES_LINE="$(grep -n "run build" "$PNPM_CALLS" | grep -F "text-rules-src" | cut -d: -f1)"
-CLI_LINE="$(grep -n "run build" "$PNPM_CALLS" | grep -F "pecotv-cli" | cut -d: -f1)"
+TEXT_RULES_LINE="$(awk -F'\t' '$2 ~ /text-rules-src run build/ { print NR; exit }' "$PNPM_CALLS")"
+CLI_LINE="$(awk -F'\t' '$2 ~ /pecotv-cli run build/ { print NR; exit }' "$PNPM_CALLS")"
 if [ -n "$TEXT_RULES_LINE" ] && [ -n "$CLI_LINE" ] && [ "$TEXT_RULES_LINE" -lt "$CLI_LINE" ]; then
     pass "text-rules の build は cli の build より前"
 else
     fail "text-rules の build が cli の build より前にない (text-rules=$TEXT_RULES_LINE cli=$CLI_LINE)"
 fi
 assert_eq "PECOTV_SKIP_LIB_BUILD=1 は eslint プラグインの build の行だけ" "4" \
-    "$(awk -F'\t' '$3 == "1" { print NR }' "$PNPM_CALLS")"
-assert_eq "それ以外の呼び出しでは PECOTV_SKIP_LIB_BUILD が unset" "3" \
-    "$(awk -F'\t' '$3 == "unset"' "$PNPM_CALLS" | wc -l | tr -d ' ')"
+    "$(awk -F'\t' '$3 == "1" { print NR }' "$PNPM_CALLS" | paste -sd, -)"
+assert_eq "それ以外の呼び出しでは PECOTV_SKIP_LIB_BUILD が unset" "1,2,3" \
+    "$(awk -F'\t' '$3 == "unset" { print NR }' "$PNPM_CALLS" | paste -sd, -)"
 
 # install が失敗したときに build へ進まず非ゼロで止まることを固定する。
 # install は lockfile と package.json の乖離でも落ちるため、そのまま build に進むと lockfile を

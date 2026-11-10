@@ -108,6 +108,7 @@ RELEASE_TAG="pecot-visual-v$VERSION"
 
 # --- 1. 冪等性の確認 ---
 # dry-run は tag を作らないので、dry-run 判定の後には置けない。remote を照会せずローカル tag で判定する。
+# remote を照会しないのは、オフラインでも成立し、他プラグイン単独のリリースで GitHub への到達性と認証を成否に結びつけないため。
 if [ "$DRY_RUN" = false ]; then
     if ! git -C "$REPO_ROOT" tag --points-at HEAD | grep -Fxq "$RELEASE_TAG"; then
         echo "==> スキップ: HEAD に $RELEASE_TAG が無いため pecot-visual のリリースではありません"
@@ -125,10 +126,8 @@ if [ "$DRY_RUN" = false ]; then
 fi
 
 # --- 2. 監査記録の確認 ---
-# audit-mcp-dist.sh が書いた記録の素性を、pack / upload の前に確かめる (#1059)。
-# 見るのは、存在・スキップ・監査時 HEAD・severity。
-# 指紋の突合はセクション 4。検出器にとどまり、改竄は防げない。記録の解釈は audit-record.mjs に委ねる。
-# 出力は 1 フィールド 1 行で、タブ区切りの read だと空フィールドが畳まれるため mapfile を使う。
+# 存在しない・読めない・スキーマを満たさない記録は通さない (fail-closed, #1059)。
+# タブ区切りの read は空フィールドを畳むため、1 フィールド 1 行の出力を mapfile で読む。
 mapfile -t RECORD_FIELDS < <(node "$SCRIPT_DIR/audit-record.mjs" read "$AUDIT_RECORD")
 RECORD_STATUS="${RECORD_FIELDS[0]:-}"
 RECORD_FP="${RECORD_FIELDS[1]:-}"
@@ -209,7 +208,8 @@ if [ "$SKIP_BUILD" = false ]; then
     echo "==> $PNPM --filter @pecot/pecotv-cli run build"
     # shellcheck disable=SC2086
     (cd "$PECOTV_ROOT" && $PNPM --filter @pecot/pecotv-cli run build)
-    # tsc -b は削除したソースの dist を掃除しない。dist ごと消して作り直す。
+    # tsc -b は削除したソースの dist を掃除せず、古い dist が残ると消したモジュールが配布へ同梱される。
+    # tsbuildinfo も dist の中にあるので、dist ごと消せば足りる。
     rm -rf "${ESLINT_PLUGINS_DIR:?}"/*/dist
     echo "==> $PNPM --filter @pecot/slidev-assets-dev run build (eslint プラグイン dist を含む)"
     # shellcheck disable=SC2086

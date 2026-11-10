@@ -132,10 +132,7 @@ trap cleanup EXIT
 
 # pecot-visual plugin は、自己完結した pnpm workspace のルート。
 # 1 回の install で、cli / v-slidev / runtime を全て解決する。
-# パッケージマネージャガード (#806) は、install の直後に確認する。この確認はオフラインで完結する。
-# 違うパッケージマネージャの混入を、各 package.json の devEngines.packageManager で止められているか。
-# これを静的な面と挙動の面の両方で確認する。
-# nx 経由では、pecot-visual:install と pecot-visual:check-pm-guard の target が実行済み。
+# nx 経由では、install・text-rules:build・check-pm-guard の target が担う。
 if [ "$SKIP_SHARED" = false ]; then
     # 導入の手順は dev-install-lib.sh を参照。
     # shellcheck source=dev-install-lib.sh
@@ -147,6 +144,7 @@ if [ "$SKIP_SHARED" = false ]; then
     # shellcheck disable=SC2086
     ( cd "$REPO_ROOT" && $PNPM --filter @pecot/text-rules-src run build )
 
+    # パッケージマネージャガード (#806)。devEngines.packageManager が、違うパッケージマネージャの混入を止めているか、オフラインで確認する。
     echo "==> bash $SCRIPT_DIR/check-pm-guard.sh"
     bash "$SCRIPT_DIR/check-pm-guard.sh"
 
