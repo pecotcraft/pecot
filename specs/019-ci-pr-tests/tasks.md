@@ -368,13 +368,13 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T074 CI の記録から、典型的な 1 プラグインの PR の所要を 3 件分集める
+- [x] T074 CI の記録から、典型的な 1 プラグインの PR の所要を 3 件分集める
   - SC-005（手元の最大の約 2 分の 2 倍以内）を満たすかを Epic にコメントする
-  - 超えるなら、install のキャッシュを別の Issue に起こす
-- [ ] T075 `.pre-commit-config.yaml` の actionlint のコメントを直す
+  - pecot-visual の PR は test-cli のテストの本体で超えた。レーンを分けると同時実行の上限の 20 本を超えるので、超えたまま受け入れる
+- [x] T075 `.pre-commit-config.yaml` の actionlint のコメントを直す
   - 「導入は post-create.sh」を、devcontainer の feature で入るという事実に合わせる
   - あわせて `.nx/nx-release/project.json` の `test` の説明（「pre-push の nx-affected-tests が起動する起点」）を直す
-- [ ] T076 quickstart.md の全節を通しで確かめ、spec の SC-001〜008 の達成を Epic にまとめる
+- [x] T076 quickstart.md の全節を通しで確かめ、spec の SC-001〜008 の達成を Epic にまとめる
 
 ---
 
