@@ -2,5 +2,4 @@
 pecot-workflow: patch
 ---
 
-w-issueize が tasks.md を消さずに残し、Issue 化済みのフェーズを対象から外す。
-w-breakdown が tasks.md の冒頭に、進捗の置き場を示す印を書く。
+w-issueize が Issue 化の後に tasks.md を削除する手順を外し、Issue 化済みのフェーズを対象から外す。

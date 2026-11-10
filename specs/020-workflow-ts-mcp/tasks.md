@@ -5,10 +5,6 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 
 # Tasks: pecot-workflow の TypeScript 化と MCP 化（再設計）
 
-> [!NOTE]
-> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
-> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
-
 **Input**: `specs/020-workflow-ts-mcp/` の設計文書
 
 **Prerequisites**: plan.md、spec.md、research.md、data-model.md、contracts/、quickstart.md

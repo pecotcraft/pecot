@@ -5,10 +5,6 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 # Tasks: PR ごとのテストとリリースを CI で動かし、ローカルフックと CI の役割を分け直す
 
-> [!NOTE]
-> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
-> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
-
 **Input**: `specs/019-ci-pr-tests/` の設計文書
 
 **Prerequisites**: plan.md・spec.md・research.md・data-model.md・contracts/・quickstart.md

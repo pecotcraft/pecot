@@ -91,22 +91,6 @@ before / after の例を示す。
 pecot issue create <phase1のファイル> <phase2のファイル> ...
 ```
 
-### Step 4: tasks.md の印を確かめる
+### Step 4: 完了報告
 
-tasks.md の冒頭（`# Tasks:` の直後）に、次の印があるかを読んで確かめる。印の文言は `/pecot-w:w-breakdown` の Step 6 と同じにする。
-
-```markdown
-> [!NOTE]
-> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
-> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
-```
-
-次の 3 つがそろうときだけ、Step 5 で「tasks.md の冒頭へ印を足す PR が要る」と伝える。
-
-- 印が無い
-- tasks.md が作業ディレクトリのリポの中にある
-- パスが `specs/NNN-*/tasks.md` で終わる
-
-### Step 5: 完了報告
-
-作成した Phase と Issue 番号を表形式でユーザーに報告する。Step 4 で印を足す PR が要ると判定したときは、その案内を添える。実装開始は `/pecot-w:w-active` を使う旨を案内する。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。実装開始は `/pecot-w:w-active` を使う旨を案内する。
