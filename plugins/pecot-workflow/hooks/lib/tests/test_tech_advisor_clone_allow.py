@@ -66,7 +66,7 @@ def test_envelope_https_allows(allow_script, hooks_config):
     hooks_config.write({})
     result = _run_core(allow_script, ENVELOPE_CMD)
     assert result.returncode == 10
-    assert "自動許可" in result.stdout
+    assert "allowed automatically" in result.stdout
 
 
 def test_envelope_git_at_allows(allow_script, hooks_config):

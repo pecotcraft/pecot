@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/config-dispatcher.sh"
 
 if [ -z "$HOOK_COMMAND" ]; then
-  echo "HOOK_COMMAND environment variable is required" >&2
+  hook_message error "HOOK_COMMAND environment variable is required" >&2
   exit 2
 fi
 
@@ -45,28 +45,26 @@ GH_PR_CREATE_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:s
 GH_ISSUE_CREATE_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*(/[^ ]*/)?gh[[:space:]]+issue[[:space:]]+create([[:space:]]|$)'
 
 if pecot_hook_enabled "gh-pr-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_PR_CREATE_PATTERN ]]; then
-  echo "【gh-pr-create-check ガード】"
-  echo "gh pr create は許可されていません。"
-  echo ""
-  echo "理由: gh pr create を直接使うと、Issue参照の自動付与・PRテンプレートのバリデーション・"
-  echo "トレーサビリティ記録が行われず、ワークフローの一貫性が失われます。"
-  echo ""
-  echo "代わりに以下を使用してください:"
-  echo '  pecot pr create'
+  hook_message error "gh-pr-create-check: gh pr create is not allowed.
+
+Reason: using gh pr create directly skips the automatic Issue reference, the PR template validation,
+and the traceability record, which breaks the consistency of the workflow.
+
+Use this instead:
+  pecot pr create"
   exit 1
 fi
 
 if pecot_hook_enabled "gh-issue-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_ISSUE_CREATE_PATTERN ]]; then
-  echo "【gh-issue-create-check ガード】"
-  echo "gh issue create は許可されていません。"
-  echo ""
-  echo "理由: gh issue create を直接使うと、pecot プロジェクトボードへの自動登録・"
-  echo "ステータス/優先度/サイズ等のフィールド設定・テンプレート検証が行われず、"
-  echo "ワークフローの一貫性とトレーサビリティが失われます。"
-  echo ""
-  echo "代わりに以下のいずれかを使用してください:"
-  echo '  pecot issue quick   # フリーフォーマット即起票'
-  echo '  pecot issue create  # フロントマター付きMarkdownから'
+  hook_message error "gh-issue-create-check: gh issue create is not allowed.
+
+Reason: using gh issue create directly skips the automatic registration on the pecot project board,
+the status/priority/size field settings, and the template validation, which breaks the consistency
+and traceability of the workflow.
+
+Use one of these instead:
+  pecot issue quick   (free-form quick filing)
+  pecot issue create  (from Markdown with frontmatter)"
   exit 1
 fi
 

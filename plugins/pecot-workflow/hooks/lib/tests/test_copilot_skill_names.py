@@ -67,7 +67,7 @@ def test_pre_injects_workflow_notes_for_own_skill(pre_entry, project, skill) -> 
     assert result.returncode == 0
     hso = json.loads(result.stdout)["hookSpecificOutput"]
     assert hso["hookEventName"] == "PreToolUse"
-    assert "pecot workflow notes" in hso["additionalContext"]
+    assert "note: notes for the pecot-workflow skills" in hso["additionalContext"]
 
 
 def test_pre_initializes_pecot_dir_for_namespaceless_own_skill(pre_entry, project) -> None:
@@ -108,13 +108,13 @@ def test_post_a_quick_without_namespace_sets_issue_pending_and_reminds(post_entr
     assert result.returncode == 0
     assert (project / ".pecot" / "state" / "issue-pending").read_text().strip() == "w-quick"
     assert (
-        "pecot-workflowスキル起動"
+        "note: pecot-workflow skill started"
         in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
     )
     # Copilot CLI の PostToolUse はトップレベルの additionalContext だけをモデルに渡す。
     out = json.loads(result.stdout)
     assert out["additionalContext"] == out["hookSpecificOutput"]["additionalContext"]
-    assert "pecot-workflowスキル起動" in out["additionalContext"]
+    assert "note: pecot-workflow skill started" in out["additionalContext"]
 
 
 def test_post_a_help_without_namespace_has_no_output(post_entry, project) -> None:
@@ -147,6 +147,6 @@ def test_post_exit_plan_mode_emits_top_level_additional_context(hooks_dir, proje
     )
     assert result.returncode == 0
     out = json.loads(result.stdout)
-    assert "計画のコメントの更新" in out["additionalContext"]
+    assert "Plan comment update" in out["additionalContext"]
     assert out["hookSpecificOutput"]["additionalContext"] == out["additionalContext"]
     assert out["hookSpecificOutput"]["hookEventName"] == "PostToolUse"

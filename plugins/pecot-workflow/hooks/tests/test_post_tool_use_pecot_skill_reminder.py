@@ -89,4 +89,4 @@ def test_quick_then_ready_overwrites_content(flag, script):
 def test_a_quick_keeps_reminder_output(flag, script):
     result = _run(script, '{"tool_input":{"skill":"pecot-w:w-quick"}}')
     assert result.returncode == 0
-    assert "pecot-workflowスキル起動" in result.stdout
+    assert "note: pecot-workflow skill started" in result.stdout

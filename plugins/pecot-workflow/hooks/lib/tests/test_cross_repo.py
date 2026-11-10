@@ -295,7 +295,7 @@ def test_dash_c_flag_commit_info_display(cross_repo_env, commit_info_script):
 
     result = _run(commit_info_script, _commit_success_json(repo_dir=str(repo)))
     assert result.returncode == 0
-    assert "コミット完了" in result.stdout
+    assert "note: commit complete" in result.stdout
     # cross-repo のコミットメッセージ（initial commit）が表示される。
     assert "initial commit" in result.stdout
 
@@ -384,5 +384,5 @@ def test_cd_chain_commit_info_display(cross_repo_env, commit_info_script):
 
     result = _run(commit_info_script, _cd_chain_json(repo, " &&"), cwd=repo)
     assert result.returncode == 0
-    assert "コミット完了" in result.stdout
+    assert "note: commit complete" in result.stdout
     assert "initial commit" in result.stdout

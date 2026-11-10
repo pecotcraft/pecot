@@ -16,6 +16,7 @@ pecot-workflow（Python と Node）・pecot-visual・pecot-tools の共通の関
 
 - plan と result は、同じ「操作」（動詞と対象）から作る。コマンドは操作を 1 つ作り、実行の前に plan を、実行の後に result を呼ぶ
 - note は、pecot-visual と pecot-tools の情報の診断（今の `[info]`）だけに使う。pecot-workflow は進捗の行を出さない
+- hooks（pecot-workflow・pecot-visual）がエージェントへ返す情報の案内も note を使う。hooks の案内は進捗の行ではない
 - 前置きにプログラム名（`pecotv:`・`pecot-tools:`）を付けない
 
 ## 動詞
@@ -44,6 +45,7 @@ pecot-workflow（Python と Node）・pecot-visual・pecot-tools の共通の関
 | count の値が未設定（`None`・`null`・`undefined`） | `unknown` |
 | count の値が 0 | `0` |
 | message が複数行 | 2 行目以降の先頭に空白 2 つを付ける |
+| hooks の message の空行 | 空のまま残す。`.sh` の行末の空白は pre-commit が消すため |
 | message の末尾の改行 | 取り除いてから 1 つだけ付ける |
 
 ## 決まりの外に置くもの

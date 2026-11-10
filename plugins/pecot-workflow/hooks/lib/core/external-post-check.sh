@@ -40,7 +40,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/config-dispatcher.sh"
 
 if [ -z "$HOOK_COMMAND" ]; then
-  echo "HOOK_COMMAND environment variable is required" >&2
+  hook_message error "HOOK_COMMAND environment variable is required" >&2
   exit 2
 fi
 
@@ -120,33 +120,30 @@ _external_post_check() {
     if [ -n "$flag_file" ] && [ -f "$flag_file" ]; then
       return 0
     fi
-    printf '%s\n' "$message"
+    hook_message warning "$message"
     exit 11
   done <<< "$(_split_segments "$HOOK_COMMAND")"
   return 0
 }
 
-ISSUE_MSG='【external-post-check ガード】
-pecot issue quick / pecot issue create（実投稿）は Issue を外部へ反映する操作です。
+ISSUE_MSG='external-post-check: pecot issue quick / pecot issue create (a real post) publishes an Issue externally.
 
-ユーザーが明示的に承認するまで実行しないでください。
-起票の正規ルートは、次のスキルです。
-/pecot-w:w-quick・/pecot-w:w-ready・/pecot-w:w-backlog・/pecot-w:w-issueize。
-テンプレート生成のみの場合は pecot issue create --prepare / -p を使用してください。
-quick サブコマンドには --prepare / -p がありません。'
+Do not run it until the user has explicitly approved.
+The canonical routes for filing are these skills:
+/pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.
+To only generate a template, add --prepare (or -p) to pecot issue create
+The quick subcommand has no --prepare / -p.'
 
-CREATE_MSG='【external-post-check ガード】
-pecot pr create（実投稿）は PR を外部へ反映する操作です。
+CREATE_MSG='external-post-check: pecot pr create (a real post) publishes a PR externally.
 
-ユーザーが明示的に承認するまで実行しないでください。
-内容確認だけの場合は --prepare / -p（テンプレ生成）または --dry-run / -n を使用してください。'
+Do not run it until the user has explicitly approved.
+To only review the content, use --prepare / -p (template generation) or --dry-run / -n.'
 
-GH_MSG='【external-post-check ガード】
-gh pr merge は PR を外部へ反映する操作です。
+GH_MSG='external-post-check: gh pr merge publishes a PR merge externally.
 
-ユーザーが明示的に承認するまで実行しないでください。
-マージの正規ルートは /pecot-w:w-merge です。
-マージは gh pr merge、片付けは pecot pr cleanup で行います。'
+Do not run it until the user has explicitly approved.
+The canonical route for merging is /pecot-w:w-merge.
+Merge with gh pr merge, then clean up with pecot pr cleanup.'
 
 # スラッシュコマンド起点の免除フラグ。
 # 設置は user-prompt-submit の create-slash-flag.sh、消費は CLI が実投稿成功時（merge は pecot pr cleanup 成功時）に削除する。

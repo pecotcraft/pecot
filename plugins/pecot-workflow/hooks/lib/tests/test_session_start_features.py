@@ -86,8 +86,8 @@ def test_git_sync_clean_pull_success(ss_script_dir, tmp_path) -> None:
 
     result = _run_with_path(ss_script_dir / "git-sync.sh", stub_dir, env)
     assert result.returncode == 0
-    assert "# Git Sync" in result.stdout
-    assert "同期完了" in result.stdout
+    assert "note: synced the branch with the remote" in result.stdout
+    assert "synced the branch with the remote" in result.stdout
     assert "feature/test" in result.stdout
 
 
@@ -150,7 +150,7 @@ def test_git_sync_pull_failure_exit_0(ss_script_dir, tmp_path) -> None:
 
     result = _run_with_path(ss_script_dir / "git-sync.sh", stub_dir, env)
     assert result.returncode == 0
-    assert "同期完了" not in result.stdout
+    assert "synced the branch with the remote" not in result.stdout
 
 
 def test_git_sync_unreachable_remote_pulls_once_and_reports_reason(
@@ -178,7 +178,7 @@ def test_git_sync_unreachable_remote_pulls_once_and_reports_reason(
 
     assert result.returncode == 0
     assert git_call_log.count("pull") == 1
-    assert "同期完了" not in result.stdout
+    assert "synced the branch with the remote" not in result.stdout
     assert "fatal:" in result.stderr
     assert str(unreachable) in result.stderr
 
@@ -255,7 +255,7 @@ def test_vscode_workspace_detected(ss_script_dir, tmp_path) -> None:
         {"CLAUDE_PROJECT_DIR": str(repo_root)},
     )
     assert result.returncode == 0
-    assert "# VSCode Workspace Context" in result.stdout
+    assert "note: VSCode workspace context" in result.stdout
     assert "**Workspace:** MyProject" in result.stdout
 
 
@@ -319,7 +319,7 @@ def test_vscode_code_workspace_file_lists_folders(ss_script_dir, tmp_path) -> No
         {"CLAUDE_PROJECT_DIR": str(repo_root)},
     )
     assert result.returncode == 0
-    assert "# VSCode Workspace Context" in result.stdout
+    assert "note: VSCode workspace context" in result.stdout
     assert "**Workspace:** MyProject" in result.stdout
     assert "**Folders:**" in result.stdout
     assert "frontend" in result.stdout
@@ -426,8 +426,8 @@ def test_session_start_entry_output_is_json_with_both_additional_contexts(
     data = json.loads(result.stdout)
     context = data["hookSpecificOutput"]["additionalContext"]
     assert data["hookSpecificOutput"]["hookEventName"] == "SessionStart"
-    assert "# Git Sync" in context
-    assert "同期完了" in context
+    assert "note: synced the branch with the remote" in context
+    assert "synced the branch with the remote" in context
     assert data["additionalContext"] == context
 
 
@@ -480,7 +480,7 @@ def test_session_start_entry_keeps_session_title_out_of_additional_context(
     data = json.loads(result.stdout)
     hook_output = data["hookSpecificOutput"]
     assert hook_output["sessionTitle"] == "#1253 題名"
-    assert "# Git Sync" in hook_output["additionalContext"]
+    assert "note: synced the branch with the remote" in hook_output["additionalContext"]
     assert "sessionTitle" not in hook_output["additionalContext"]
     assert "sessionTitle" not in data["additionalContext"]
 

@@ -15,7 +15,7 @@ SKILL_NAME=$(pecot_normalize_skill_name "${PECOT_HOOK_SKILL_NAME:-}")
 case "$SKILL_NAME" in
     pecot-w|pecot-w:?*)
         MESSAGE=$(cat <<'EOF'
-# pecot workflow notes
+notes for the pecot-workflow skills
 
 While running a pecot skill/command:
 
@@ -24,6 +24,7 @@ While running a pecot skill/command:
 - Ask when unclear; do not guess
 EOF
 )
+        MESSAGE=$(hook_message note "$MESSAGE")
         jq -n --arg msg "$MESSAGE" '{
           "hookSpecificOutput": {
             "hookEventName": "PreToolUse",

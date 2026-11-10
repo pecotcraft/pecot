@@ -360,7 +360,7 @@ def test_error_message_on_push_failure(env_setup, run_post_script, auto_push_scr
     )
 
     assert result.returncode == 0
-    assert "自動push失敗" in result.stdout
+    assert "auto-push failed" in result.stdout
 
 
 # hooks-config.json 制御。
@@ -417,9 +417,9 @@ def test_flag_file_url_content(env_setup, run_post_script, auto_push_script):
     flag_file = env_setup["state_dir"] / ".auto-push-urls"
     assert flag_file.exists()
     content = flag_file.read_text()
-    assert "自動push完了: wip/feat/add-auth/1443" in content
+    assert "auto-push complete: wip/feat/add-auth/1443" in content
     assert (
-        "比較: https://ghes.example.com/testowner/testrepo/compare/main...wip/feat/add-auth/1443"
+        "  compare: https://ghes.example.com/testowner/testrepo/compare/main...wip/feat/add-auth/1443"
         in content
     )
 
@@ -433,8 +433,8 @@ def test_flag_file_appended_on_multiple_commits(env_setup, run_post_script, auto
 
     flag_file = env_setup["state_dir"] / ".auto-push-urls"
     assert flag_file.exists()
-    # 2 エントリ分の「自動push完了」が含まれる。
-    assert flag_file.read_text().count("自動push完了") == 2
+    # 2 エントリ分の「auto-push complete」が含まれる。
+    assert flag_file.read_text().count("auto-push complete") == 2
 
 
 # Stop hook: auto-push URL 表示。
@@ -442,8 +442,8 @@ def test_flag_file_appended_on_multiple_commits(env_setup, run_post_script, auto
 
 def test_stop_outputs_system_message(auto_push_flag_file, run_script, stop_script):
     auto_push_flag_file.write(
-        "自動push完了: wip/feat/test/123\n"
-        "比較: https://ghes.example.com/owner/repo/compare/main...wip/feat/test/123\n"
+        "note: auto-push complete: wip/feat/test/123\n"
+        "  compare: https://ghes.example.com/owner/repo/compare/main...wip/feat/test/123\n"
         "\n"
     )
 
@@ -451,12 +451,14 @@ def test_stop_outputs_system_message(auto_push_flag_file, run_script, stop_scrip
 
     assert result.returncode == 0
     assert '"systemMessage"' in result.stdout
-    assert "自動push完了: wip/feat/test/123" in result.stdout
+    assert "auto-push complete: wip/feat/test/123" in result.stdout
     assert "https://ghes.example.com/owner/repo/compare/main...wip/feat/test/123" in result.stdout
 
 
 def test_stop_removes_flag_file_after_display(auto_push_flag_file, run_script, stop_script):
-    auto_push_flag_file.write("自動push完了: wip/feat/test/123\n比較: https://example.com\n\n")
+    auto_push_flag_file.write(
+        "note: auto-push complete: wip/feat/test/123\n  compare: https://example.com\n\n"
+    )
 
     result = run_script(stop_script, stdin="")
 
@@ -476,11 +478,11 @@ def test_stop_no_output_without_flag_file(auto_push_flag_file, run_script, stop_
 
 def test_stop_includes_all_accumulated_urls(auto_push_flag_file, run_script, stop_script):
     auto_push_flag_file.write(
-        "自動push完了: wip/feat/a/1\n"
-        "比較: https://ghes.example.com/o/r/compare/main...wip/feat/a/1\n"
+        "note: auto-push complete: wip/feat/a/1\n"
+        "  compare: https://ghes.example.com/o/r/compare/main...wip/feat/a/1\n"
         "\n"
-        "自動push完了: wip/feat/b/2\n"
-        "比較: https://ghes.example.com/o/r/compare/main...wip/feat/b/2\n"
+        "note: auto-push complete: wip/feat/b/2\n"
+        "  compare: https://ghes.example.com/o/r/compare/main...wip/feat/b/2\n"
         "\n"
     )
 
@@ -795,7 +797,7 @@ def test_tracking_ref_removed_even_if_push_fails(env_setup, run_post_script, aut
     )
 
     assert result.returncode == 0
-    assert "自動push失敗" in result.stdout
+    assert "auto-push failed" in result.stdout
     assert _list_refs(env_setup["repo"], "refs/remotes/origin/wip/") == ""
 
 

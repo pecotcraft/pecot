@@ -20,18 +20,14 @@ if ! echo "${PECOT_HOOK_TOOL_NAME:-}" | grep -qE '^(mcp__github.*__create_pull_r
 fi
 
 # pecotフラグ立時 → ブロック。
-MESSAGE='【pecot-workflow PR保護】
+MESSAGE=$(hook_message error "pr-create-block: creating a PR with an MCP tool is not allowed while pecot-workflow is running.
 
-pecot-workflow実行中はMCPツールによるPR作成は禁止されています。
+How to proceed:
+When the user has explicitly asked for a PR, use the /pecot-w:w-pr skill.
 
-## 対応方法。
-
-**ユーザーが明示的にPR作成を指示した場合:**
-  /pecot-w:w-pr スキルを使用してください
-
-詳細は次のとおりです。
-- pecot-w:w-prスキルは所定のテンプレート・検証を適用します。
-- 直接MCPツールを呼ぶとトレーサビリティが失われます。'
+Details:
+- The pecot-w:w-pr skill applies the required template and validation.
+- Calling the MCP tool directly loses traceability.")
 
 jq -n --arg msg "$MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": $msg}}'
 exit 0

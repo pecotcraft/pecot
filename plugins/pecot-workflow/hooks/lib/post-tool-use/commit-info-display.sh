@@ -11,7 +11,7 @@ pecot_hook_enabled "commit-info-display" true || exit 0
 
 [ "${PECOT_POST_COMMIT:-}" = "1" ] || exit 0
 
-# bash-post-match.sh が解決した対象リポジトリ（source 時に REPO_DIR が空になるため別名で受ける）
+# bash-post-match.sh が解決した対象リポジトリ（source 時に REPO_DIR が空になるため別名で受ける）。
 REPO_DIR="${PECOT_POST_REPO_DIR:-}"
 
 # === コミット情報取得（全コミット対象） ===
@@ -22,9 +22,10 @@ else
     DIFF_STAT=$(_git diff --stat --cached HEAD 2>/dev/null || echo "")
 fi
 
-MESSAGE="【コミット完了】
-メッセージ: ${COMMIT_MSG}
-変更: ${DIFF_STAT}"
+MESSAGE=$(hook_message note "commit complete
+message: ${COMMIT_MSG}
+changes:${DIFF_STAT:+
+${DIFF_STAT}}")
 
 jq -n --arg msg "$MESSAGE" '{
   "hookSpecificOutput": {

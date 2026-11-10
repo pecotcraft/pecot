@@ -37,29 +37,30 @@ trace() {
 SCRIPT_DIR="$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_PATHS_LIB="${SCRIPT_DIR%/*}/core/hook-paths.sh"
 if [ ! -f "$HOOK_PATHS_LIB" ]; then
-    trace "skip: 共有ライブラリを解決できない ($HOOK_PATHS_LIB)"
+    trace "skip: shared library cannot be resolved ($HOOK_PATHS_LIB)"
     exit 0
 fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-paths.sh
 . "$HOOK_PATHS_LIB"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/hook-message.sh
+. "${SCRIPT_DIR%/*}/core/hook-message.sh"
 
 # 未実施の通知。$1 = 理由（1 行以上）
 notify_not_checked() {
-    jq -n --arg path "$FILE_PATH" --arg reason "$1" '{
-      "hookSpecificOutput": {
-        "hookEventName": "PostToolUse",
-        "additionalContext": ("[text-lint] Not checked: " + $path + "\n" + $reason
-          + "\nThe writing rules were not applied to this file, so no violations were detected.")
-      }
-    }'
+    local message
+    message=$(hook_message warning "text lint not run: $FILE_PATH
+$1
+The writing rules were not applied to this file, so no violations were detected.")
+    jq -n --arg message "$message" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
 }
 
 INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 if [ -z "$FILE_PATH" ]; then
-    trace "skip: tool_input.file_path が空"
+    trace "skip: tool_input.file_path is empty"
     exit 0
 fi
 
@@ -67,27 +68,27 @@ fi
 ORIG_DIR=$(CDPATH= cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)
 TALK_ROOT=$(find_talk_root "$ORIG_DIR" "pages")
 if [ -n "$TALK_ROOT" ] && is_talk_lint_target "$(talk_relative_path "$TALK_ROOT" "$ORIG_DIR" "$FILE_PATH")"; then
-    trace "skip: talk-dir の lint 対象は eslint-check が担当 ($FILE_PATH)"
+    trace "skip: eslint-check handles talk-dir lint targets ($FILE_PATH)"
     exit 0
 fi
 
 # plugin の hooks root を解決。逆算が成立しない配置（別所へコピーされた等）は対象外に落とす。
 HOOKS_ROOT=$(resolve_hooks_root "$SCRIPT_DIR" "/lib/post-tool-use")
 if [ -z "$HOOKS_ROOT" ]; then
-    trace "skip: plugin root を解決できない (PLUGIN_HOOKS / CLAUDE_PLUGIN_ROOT 未設定 かつ SCRIPT_DIR=$SCRIPT_DIR から逆算不能)"
+    trace "skip: plugin root cannot be resolved (PLUGIN_HOOKS and CLAUDE_PLUGIN_ROOT are unset, and SCRIPT_DIR=$SCRIPT_DIR does not lead back to it)"
     exit 0
 fi
 
 # 依存は bin/pecotv が作る実行用ミラーにしか無い。ミラーが無い（初回の build 中など）ときは未実施に倒す。
 if ! RUNTIME_DIR="$(resolve_runtime_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"; then
-    trace "not-checked: 実行用ミラーが無い"
+    trace "not-checked: runtime mirror is missing"
     notify_not_checked "The runtime mirror is not ready yet. Run the pecotv command once to set it up."
     exit 0
 fi
 
 BIN="$RUNTIME_DIR/node_modules/.bin/pecot-text-lint"
 if [ ! -e "$BIN" ]; then
-    trace "not-checked: ミラーに bin が無い ($BIN)"
+    trace "not-checked: bin is missing from the mirror ($BIN)"
     notify_not_checked "pecot-text-lint is missing from the runtime mirror. Run the pecotv command once to set it up."
     exit 0
 fi
@@ -101,19 +102,18 @@ BIN_EXIT=$?
 OUTPUT=$(echo "$OUTPUT" | head -n 100)
 
 if [ $BIN_EXIT -eq 0 ]; then
-    trace "pass: 違反なし ($FILE_PATH / bin: $BIN)"
+    trace "pass: no violations ($FILE_PATH / bin: $BIN)"
     exit 0
 fi
 
 if [ $BIN_EXIT -eq 1 ] && [ -n "$OUTPUT" ]; then
-    trace "violation: 違反検出 ($FILE_PATH / bin: $BIN)"
-    jq -n --arg path "$FILE_PATH" --arg output "$OUTPUT" '{
-      "hookSpecificOutput": {
-        "hookEventName": "PostToolUse",
-        "additionalContext": ("[text-lint] Writing-rule violations in " + $path + ":\n\n" + $output
-          + "\n\nRewrite the text above to satisfy the rules. Do not relax or disable the rules.")
-      }
-    }'
+    trace "violation: violations found ($FILE_PATH / bin: $BIN)"
+    VIOLATION_MESSAGE=$(hook_message warning "text lint violations: $FILE_PATH
+
+$OUTPUT
+
+The text above does not satisfy the writing rules. The rules stay enabled.")
+    jq -n --arg message "$VIOLATION_MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
     exit 0
 fi
 
@@ -127,5 +127,5 @@ else
 $STDERR_HEAD"
     fi
 fi
-trace "not-checked: bin が正常に終わらなかった (exit $BIN_EXIT / bin: $BIN)"
+trace "not-checked: bin did not finish normally (exit $BIN_EXIT / bin: $BIN)"
 notify_not_checked "$REASON"

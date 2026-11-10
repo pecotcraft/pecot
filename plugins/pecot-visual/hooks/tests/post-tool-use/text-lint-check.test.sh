@@ -106,7 +106,7 @@ expect_not_checked() {
     local ctx
     ctx=$(ctx_of "$OUT")
     local want
-    want=$(printf '[text-lint] Not checked: %s\n%s\nThe writing rules were not applied to this file, so no violations were detected.' "$3" "$2")
+    want=$(printf 'warning: text lint not run: %s\n%s\nThe writing rules were not applied to this file, so no violations were detected.' "$3" "$2" | sed '2,$s/^/  /')
     if [ $EXIT -ne 0 ]; then
         fail "$1: exit=$EXIT"
     elif [ "$ctx" != "$want" ]; then
@@ -130,11 +130,11 @@ MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "md-violation" "$MD"
 CTX=$(ctx_of "$OUT")
 FIRST=$(printf '%s\n' "$CTX" | head -n 1)
 LAST=$(printf '%s\n' "$CTX" | tail -n 1)
-if [ "$FIRST" != "[text-lint] Writing-rule violations in $MD:" ]; then
+if [ "$FIRST" != "warning: text lint violations: $MD" ]; then
     fail ".md の違反: 先頭行が違う first='$FIRST' stdout='$OUT'"
-elif ! printf '%s\n' "$CTX" | grep -q "^$MD:3:1 no-ai-words "; then
+elif ! printf '%s\n' "$CTX" | grep -q "^  $MD:3:1 no-ai-words "; then
     fail ".md の違反: bin の出力の行（3 行目・規則名）が無い ctx='$CTX'"
-elif [ "$LAST" != "Rewrite the text above to satisfy the rules. Do not relax or disable the rules." ]; then
+elif [ "$LAST" != "  The text above does not satisfy the writing rules. The rules stay enabled." ]; then
     fail ".md の違反: 結びの一文が違う last='$LAST'"
 elif ! printf '%s\n' "$ERR" | grep -q "\[text-lint-check\] violation"; then
     fail ".md の違反: stderr に violation trace が無い stderr='$ERR'"
@@ -152,7 +152,7 @@ expect_silent "違反の無い .md" "[text-lint-check] pass"
 mkdir -p "$TMP/outside/pages"
 write_md "$TMP/outside/pages/x.md" "$VIOLATION_LINE"
 MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "outside-pages" "$TMP/outside/pages/x.md"
-if printf '%s\n' "$(ctx_of "$OUT")" | head -n 1 | grep -q "^\[text-lint\] Writing-rule violations in $TMP/outside/pages/x.md:\$"; then
+if printf '%s\n' "$(ctx_of "$OUT")" | head -n 1 | grep -q "^warning: text lint violations: $TMP/outside/pages/x.md\$"; then
     pass "talk-dir の外の pages/x.md の違反: 検出する"
 else
     fail "talk-dir の外の pages/x.md の違反: stdout='$OUT' stderr='$ERR'"
@@ -164,7 +164,7 @@ mkdir -p "$DECK/pages"
 touch "$DECK/slides.md"
 write_md "$DECK/README.md" "$VIOLATION_LINE"
 MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "deck-readme" "$DECK/README.md"
-if printf '%s\n' "$(ctx_of "$OUT")" | head -n 1 | grep -q "^\[text-lint\] Writing-rule violations in $DECK/README.md:\$"; then
+if printf '%s\n' "$(ctx_of "$OUT")" | head -n 1 | grep -q "^warning: text lint violations: $DECK/README.md\$"; then
     pass "talk-dir の README.md の違反: 検出する"
 else
     fail "talk-dir の README.md の違反: stdout='$OUT' stderr='$ERR'"
@@ -195,9 +195,9 @@ for CASE in "$TS_FILE:1:22" "$VUE_FILE:2:6" "$SETUP_FILE:2:15"; do
     POSITION="${CASE#"$CASE_FILE":}"
     MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "string-violation" "$CASE_FILE"
     CTX=$(ctx_of "$OUT")
-    if [ "$(printf '%s\n' "$CTX" | head -n 1)" != "[text-lint] Writing-rule violations in $CASE_FILE:" ]; then
+    if [ "$(printf '%s\n' "$CTX" | head -n 1)" != "warning: text lint violations: $CASE_FILE" ]; then
         fail "${CASE_FILE##*/} の文字列の違反: 先頭行が違う stdout='$OUT'"
-    elif ! printf '%s\n' "$CTX" | grep -q "^$CASE no-ai-words "; then
+    elif ! printf '%s\n' "$CTX" | grep -q "^  $CASE no-ai-words "; then
         fail "${CASE_FILE##*/} の文字列の違反: 位置と規則名の行が無い ctx='$CTX'"
     else
         pass "${CASE_FILE##*/} の文字列の違反: ${POSITION} の no-ai-words を返す"

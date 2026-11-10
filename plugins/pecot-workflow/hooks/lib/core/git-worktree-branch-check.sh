@@ -27,7 +27,7 @@ source "${SCRIPT_DIR}/config-dispatcher.sh"
 pecot_hook_enabled "git-worktree-branch-check" true || exit 0
 
 if [ -z "$HOOK_COMMAND" ]; then
-    echo "HOOK_COMMAND environment variable is required" >&2
+    hook_message error "HOOK_COMMAND environment variable is required" >&2
     exit 2
 fi
 
@@ -70,20 +70,21 @@ fi
 PROTECTED_BRANCH_PATTERN='^(wt[0-9]+|develop-aist)$'
 
 if [[ "$CURRENT_BRANCH" =~ $PROTECTED_BRANCH_PATTERN ]]; then
-    echo "【git-worktree-branch-check ガード】"
-    echo "保護ブランチ '${CURRENT_BRANCH}' への直接 ${OPERATION} は禁止されています。"
-    echo ""
-    echo "理由: 保護ブランチはPR経由でのみ変更を受け入れます。直接commitすると"
-    echo "レビューなしの変更がマージされ、他のワークツリーとの競合が発生します。"
-    echo ""
-    echo "作業は feature ブランチで行ってください:"
-    echo "  1. feature branch を作成: git checkout -b feat/your-feature-name"
-    echo "  2. feature branch でコミット・PRを作成"
+    MSG="git-worktree-branch-check: direct ${OPERATION} to the protected branch '${CURRENT_BRANCH}' is not allowed.
+
+Reason: a protected branch accepts changes only through a PR. A direct commit would merge
+changes without review and cause conflicts with other worktrees.
+
+Work on a feature branch:
+  1. Create a feature branch: git checkout -b feat/your-feature-name
+  2. Commit and create the PR on the feature branch"
     if [ "$OPERATION" = "push" ]; then
-        echo ""
-        echo "リモートブランチ削除が目的の場合:"
-        echo '  "${CLAUDE_PLUGIN_ROOT}/bin/pecot" delete-branch <owner/repo> <branch>'
+        MSG="${MSG}
+
+To delete a remote branch:
+  \"\${CLAUDE_PLUGIN_ROOT}/bin/pecot\" delete-branch <owner/repo> <branch>"
     fi
+    hook_message error "$MSG"
     exit 1
 fi
 

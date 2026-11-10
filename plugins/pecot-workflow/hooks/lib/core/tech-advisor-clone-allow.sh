@@ -16,7 +16,7 @@ pecot_hook_enabled "tech-advisor-clone-allow" true || exit 0
 
 CMD="${HOOK_COMMAND:-}"
 if [ -z "$CMD" ]; then
-    echo "HOOK_COMMAND environment variable is required" >&2
+    hook_message error "HOOK_COMMAND environment variable is required" >&2
     exit 2
 fi
 
@@ -70,7 +70,7 @@ if [[ "$CMD" =~ $PREFIX_RE ]]; then
     fi
 
     if [[ "$rel_dest" =~ ^${DEST_BODY}[[:space:]]*$ ]]; then
-        echo ".pecot/work/<Issue番号>/tech-advisor/ 宛の定型 git clone のため自動許可（tech-advisor-clone-allow）"
+        hook_message note "tech-advisor-clone-allow: allowed automatically because this is a standard git clone into .pecot/work/<Issue number>/tech-advisor/"
         exit 10
     fi
 fi

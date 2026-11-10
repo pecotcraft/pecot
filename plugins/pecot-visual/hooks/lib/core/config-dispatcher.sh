@@ -39,7 +39,8 @@ pecotv_hook_enabled() {
 
     # jq エラー（構文エラー等）の場合は警告 + デフォルト値で動作
     if [[ $jq_exit -ne 0 ]]; then
-        echo "[pecotv-hooks] WARNING: hooks-config.json のパースに失敗しました。デフォルト値（$default）で動作します。" >&2
+        # 1 行なので字下げは要らない。caller が hook_message を source していなくても動くよう、頭は直に付ける。
+        echo "warning: hooks-config.json could not be parsed. The default ($default) is in effect." >&2
         [[ "$default" == "true" ]]
         return $?
     fi

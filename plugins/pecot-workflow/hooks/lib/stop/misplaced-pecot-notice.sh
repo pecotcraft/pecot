@@ -16,7 +16,8 @@ pecot_hook_enabled "misplaced-pecot-notice" true || exit 0
 # 倒して検知せず終了する。
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
 [ -z "$PROJECT_DIR" ] && exit 0
-PROJECT_DIR="${PROJECT_DIR%/}"  # 末尾スラッシュを除去
+# 末尾スラッシュを除去
+PROJECT_DIR="${PROJECT_DIR%/}"
 
 # ルート直下の正規 .pecot は prune で除外（配下の work 残骸内に fixture 由来の
 # .pecot があっても誤検知しない）。.git / node_modules / .pnpm-store / .venv も
@@ -32,10 +33,10 @@ MISPLACED=$(find "$PROJECT_DIR" -mindepth 1 \
 
 [ -z "$MISPLACED" ] && exit 0
 
-SYS_MESSAGE="【誤配置検知】リポジトリルート以外に .pecot/ ディレクトリが生成されています。
+SYS_MESSAGE=$(hook_message warning "misplaced .pecot/ directories were created outside the repository root.
 
 ${MISPLACED}
 
-必要なファイルはリポジトリルートの .pecot/work/<Issue番号>/ へ移動し、不要なら削除してください。"
+Move the files you need to .pecot/work/<Issue number>/ at the repository root, and delete the rest.")
 
 jq -n --arg sys "$SYS_MESSAGE" '{"systemMessage": $sys}'

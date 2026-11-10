@@ -16,7 +16,8 @@ _PECOT_STATE_GUARD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pecot_state_dir_ensure() {
     local dir="$1"
     local pecot_dir="${CLAUDE_PROJECT_DIR}/.pecot"
-    [ -d "$pecot_dir" ] || return 1          # pecot 未使用リポ → 書き込みスキップ
+    # pecot 未使用リポ → 書き込みスキップ
+    [ -d "$pecot_dir" ] || return 1
     if [ ! -f "${pecot_dir}/.gitignore" ]; then
         "${_PECOT_STATE_GUARD_DIR}/pecot-gitignore-ensure.sh" || true
     fi

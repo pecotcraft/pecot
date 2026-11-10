@@ -64,7 +64,7 @@ def test_issue_pending_reminder_is_returned(ctx, hook_script, tool_name, tool_in
     assert result.returncode == 0
     hso = json.loads(result.stdout)["hookSpecificOutput"]
     assert hso["hookEventName"] == "PreToolUse"
-    assert "Issue 起票が未完了" in hso["additionalContext"]
+    assert "warning: Issue filing is not complete" in hso["additionalContext"]
 
 
 def test_edit_under_pecot_tmp_output_is_exempt(ctx, hook_script):
@@ -82,7 +82,8 @@ def test_apply_patch_string_tool_input_does_not_break(ctx, hook_script):
     result = _run(hook_script, {"tool_name": "Edit", "tool_input": "*** Begin Patch\n..."})
     assert result.returncode == 0
     assert (
-        "Issue 起票が未完了" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+        "warning: Issue filing is not complete"
+        in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
     )
 
 
@@ -124,4 +125,4 @@ def test_edit_in_base_work_with_base_session_still_reminds(
         },
     )
     hso = json.loads(result.stdout)["hookSpecificOutput"]
-    assert "サブタスク Issue の起票が未完了です。" in hso["additionalContext"]
+    assert "warning: Subtask Issue filing is not complete." in hso["additionalContext"]

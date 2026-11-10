@@ -29,6 +29,7 @@
 # 特に set -u は、config-dispatcher.sh 内の ${CLAUDE_PROJECT_DIR} 未設定参照で不具合を起こしうるため付けない。
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
+source "${SCRIPT_DIR%/*}/core/hook-message.sh"
 pecot_hook_enabled "plugin-update-notice" true || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 ROOT="${CLAUDE_PLUGIN_ROOT:-}"; ROOT="${ROOT%/}"; [ -n "$ROOT" ] || exit 0
@@ -41,7 +42,7 @@ case "$ROOT" in
     mp="${mp_dir##*/}"; name="${name_dir##*/}"
     mp_clone=$(jq -r --arg mp "$mp" '.[$mp].installLocation // empty' "${plugins_dir}/known_marketplaces.json" 2>/dev/null)
     [ -d "$mp_clone" ] || mp_clone="${plugins_dir}/marketplaces/${mp}"
-    update_hint="\`claude plugin update ${name}@${mp}\`（project スコープ導入時は -s project を付与）"
+    update_hint="\`claude plugin update ${name}@${mp}\` (add -s project for a project-scope install)"
     ;;
 */installed-plugins/*/*)
     cop_home="${ROOT%/installed-plugins/*}"
@@ -63,7 +64,8 @@ case "$ROOT" in
     fi
     update_hint="\`copilot plugin update ${name}@${mp}\`"
     ;;
-*) exit 0 ;;  # dev 環境・直パス install は対象外
+# dev 環境・直パス install は対象外
+*) exit 0 ;;
 esac
 installed=$(jq -r '.version // empty' "${ROOT}/.claude-plugin/plugin.json" 2>/dev/null)
 # dir 名とプラグイン名は一致しない（pecot-w → plugins/pecot-workflow）。marketplace.json の
@@ -80,6 +82,6 @@ latest=$(jq -r '.version // empty' "${mp_clone}/${src#./}/.claude-plugin/plugin.
 # 順序が逆転するが現行の pecot-w/pecot-v は発行しない。
 if [ "$installed" != "$latest" ] \
     && [ "$(printf '%s\n%s\n' "$installed" "$latest" | sort -V 2>/dev/null | head -1)" = "$installed" ]; then
-    echo "${name} プラグインに更新があります（installed: ${installed} / latest: ${latest}）。更新: ${update_hint}"
+    hook_message note "plugin update available: ${name} ${latest} (installed: ${installed}). Update: ${update_hint}"
 fi
 exit 0

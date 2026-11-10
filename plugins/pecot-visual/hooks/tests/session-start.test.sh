@@ -131,6 +131,7 @@ EXIT=$?
 LS_AFTER=$(_git -C "$PROJ5" ls-files -- .pecotv/.gitignore)
 if [ $EXIT -eq 0 ] \
     && printf '%s' "$OUT5" | grep -q -e '--print' \
+    && printf '%s' "$OUT5" | grep -q 'note: The tracked' \
     && ! printf '%s' "$OUT5" | grep -q 'git add -f .pecotv/.gitignore' \
     && [ "$LS_BEFORE" = ".pecotv/.gitignore" ] && [ "$LS_AFTER" = ".pecotv/.gitignore" ] \
     && [ "$(cat "$PROJ5/.pecotv/.gitignore")" = "tmp/" ]; then
@@ -164,6 +165,7 @@ _git -C "$PROJ6" config user.name t
 OUT6A=$(_run_hook CLAUDE_PROJECT_DIR="$PROJ6")
 EXIT=$?
 if [ $EXIT -eq 0 ] \
+    && printf '%s' "$OUT6A" | grep -q 'note: `.pecotv/.gitignore` is not tracked' \
     && printf '%s' "$OUT6A" | grep -q 'git add -f .pecotv/.gitignore' \
     && [ -z "$(_git -C "$PROJ6" ls-files -- .pecotv/.gitignore)" ]; then
     pass "追跡していないリポ: git add -f の案内が出て index は不変"

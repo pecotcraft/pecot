@@ -3,7 +3,7 @@
 # hooks/lib/core/hook-paths.sh の resolve_slidev_assets_dir も対象にする。
 # - 自分のバージョンのハッシュのミラーが完成していれば、それを優先する（`current` が別セッションの新バージョンを指していても）。
 # - 自分のバージョンのミラーが無いときだけ `current`。
-# - どちらも完成していなければ失敗する（hook は【ESLint 未実施】に倒す）。
+# - どちらも完成していなければ失敗する（hook は eslint の未実施の通知に倒す）。
 # - 解決順は CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所（XDG_DATA_HOME → HOME）。
 #   実在しない置き場は失敗する（作らない）。
 # - 解決しても何も作らない（hook が既定の場所を作らない）

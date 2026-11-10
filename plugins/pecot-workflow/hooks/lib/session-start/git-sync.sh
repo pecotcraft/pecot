@@ -12,7 +12,7 @@ REPO_ROOT="${CLAUDE_PROJECT_DIR:-}"
 
 # リポジトリルートの検証（.gitはworktreeではファイル、通常はディレクトリ）。
 if [ ! -d "$REPO_ROOT/.git" ] && [ ! -f "$REPO_ROOT/.git" ]; then
-    echo "Warning: リポジトリルートが見つかりません: $REPO_ROOT" >&2
+    hook_message warning "repository root not found: $REPO_ROOT" >&2
     exit 0
 fi
 
@@ -30,10 +30,7 @@ if command -v uvx >/dev/null 2>&1; then
         # SSH のパスフレーズ・ホスト鍵確認は BatchMode=yes で止める。
         # 利用者が設定済みの GIT_SSH_COMMAND は残す。
         if PULL_OUTPUT=$(cd "$REPO_ROOT" && GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes" git pull 2>&1); then
-            echo "# Git Sync"
-            echo ""
-            echo "ブランチと同期完了（ブランチ: $CURRENT_BRANCH）"
-            echo ""
+            hook_message note "synced the branch with the remote (branch: $CURRENT_BRANCH)"
         else
             # エラー時は保持した出力を stderr に表示。
             printf '%s\n' "$PULL_OUTPUT" >&2

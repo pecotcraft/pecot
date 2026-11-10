@@ -79,7 +79,8 @@ pecot_hook_input_load() {
         PECOT_HOOK_SOURCE="${10}" PECOT_HOOK_SESSION_TITLE="${11}"
     fi
     PECOT_HOOK_COMMAND_OVERSIZE=""
-    local LC_ALL=C # バイト数で測る（日本語は 1 文字 3 バイト）
+    # バイト数で測る（日本語は 1 文字 3 バイト）
+    local LC_ALL=C
     size=${#PECOT_HOOK_COMMAND}
     if [ "$size" -gt "$PECOT_HOOK_COMMAND_MAX_BYTES" ]; then
         PECOT_HOOK_COMMAND_OVERSIZE=1

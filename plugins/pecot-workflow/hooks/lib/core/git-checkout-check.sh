@@ -17,7 +17,7 @@ source "${SCRIPT_DIR}/config-dispatcher.sh"
 pecot_hook_enabled "git-checkout-check" true || exit 0
 
 if [ -z "$HOOK_COMMAND" ]; then
-  echo "HOOK_COMMAND environment variable is required" >&2
+  hook_message error "HOOK_COMMAND environment variable is required" >&2
   exit 2
 fi
 
@@ -37,24 +37,23 @@ _resolve_repo_dir_with_session_default "$HOOK_COMMAND"
 
 # untrackedファイルを確認。
 if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "Warning: Not a git repository: $REPO_DIR" >&2
+  hook_message warning "not a git repository: $REPO_DIR" >&2
   exit 0
 fi
 UNTRACKED=$(git -C "$REPO_DIR" status --porcelain 2>/dev/null | grep '^??' | head -10)
 
 if [ -n "$UNTRACKED" ]; then
-  echo "【git-checkout-check 警告】"
-  echo "以下のuntrackedファイルが存在します。ブランチ切り替え後に消失する可能性があります:"
-  echo ""
-  echo "$UNTRACKED"
-  echo ""
-  echo "理由: Gitはuntrackedファイルをブランチ管理しないため、切り替え先に同名ファイルがある場合や"
-  echo ".gitignoreの差異でファイルが失われます。"
-  echo ""
-  echo "対処方法（優先順位順）:"
-  echo "1. git add でコミット対象に含める（作業成果の場合）"
-  echo "2. git stash --include-untracked で退避（一時的に保存する場合）"
-  echo "3. 不要なら git clean で削除"
+  hook_message warning "git-checkout-check: untracked files exist and may be lost after switching branches:
+
+$UNTRACKED
+
+Reason: Git does not manage untracked files per branch, so files are lost when the target branch has
+a file with the same name or a different .gitignore.
+
+What to do (in order of preference):
+1. git add to include them in a commit (if they are work products)
+2. git stash --include-untracked to set them aside (if they are temporary)
+3. git clean to delete them (if unneeded)"
 fi
 
 exit 0

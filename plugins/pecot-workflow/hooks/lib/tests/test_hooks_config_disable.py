@@ -108,7 +108,7 @@ def test_commit_info_display_true_has_output(
 
     result = _run(["bash", str(script)], _COMMIT_SUCCESS_JSON, cwd=repo)
     assert result.returncode == 0
-    assert "コミット完了" in result.stdout
+    assert "note: commit complete" in result.stdout
 
 
 # claude-bash-guards: false / true
@@ -186,7 +186,7 @@ def test_pecot_skill_reminder_true_has_warning(disable_env: Path, core_dir: Path
 
     result = _run(["bash", str(script)], _pecot_skill_json("pecot-w"))
     assert result.returncode == 0
-    assert "pecot-workflowスキル起動" in result.stdout
+    assert "note: pecot-workflow skill started" in result.stdout
 
 
 def test_pecot_skill_reminder_false_a_quick_no_warning(disable_env: Path, core_dir: Path):
@@ -247,4 +247,4 @@ def test_external_post_key_true_asks(
 
     result = _run(["bash", str(script)], "")
     assert result.returncode == expected_exit
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout

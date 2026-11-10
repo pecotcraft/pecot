@@ -80,7 +80,7 @@ def test_post_bash_commit_success_includes_commit_done(test_repo, entry_bash):
     )
     result = _run_entry(entry_bash, input_json, test_repo)
     assert result.returncode == 0
-    assert "コミット完了" in result.stdout
+    assert "note: commit complete" in result.stdout
     assert "hookSpecificOutput" in result.stdout
 
 
@@ -106,7 +106,7 @@ def test_post_skill_pecot_skill_includes_workflow_message(test_repo, entry_skill
     input_json = '{"tool_input":{"skill":"pecot-w"}}'
     result = _run_entry(entry_skill, input_json, test_repo)
     assert result.returncode == 0
-    assert "pecot-workflowスキル起動" in result.stdout
+    assert "note: pecot-workflow skill started" in result.stdout
     assert "hookSpecificOutput" in result.stdout
 
 

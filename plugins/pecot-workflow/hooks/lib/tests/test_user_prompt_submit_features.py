@@ -70,7 +70,7 @@ def test_workflow_injector_pecot_command_outputs_notes(ups_env, run_script, prom
         f'{{"prompt": "{prompt}"}}',
     )
     assert result.returncode == 0
-    assert "pecot workflow notes" in result.stdout
+    assert "note: notes for the pecot-workflow skills" in result.stdout
 
 
 @pytest.mark.parametrize(

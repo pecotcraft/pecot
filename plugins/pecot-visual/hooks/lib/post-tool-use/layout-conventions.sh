@@ -51,7 +51,7 @@ trace() {
 # そのため、明示的に対象外として扱う。
 HOOK_PATHS_LIB="${SCRIPT_DIR%/*}/core/hook-paths.sh"
 if [ ! -f "$HOOK_PATHS_LIB" ]; then
-    trace "skip: 共有ライブラリを解決できない ($HOOK_PATHS_LIB)"
+    trace "skip: shared library cannot be resolved ($HOOK_PATHS_LIB)"
     exit 0
 fi
 # shellcheck source-path=SCRIPTDIR
@@ -62,14 +62,14 @@ INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 if [ -z "$FILE_PATH" ]; then
-    trace "skip: tool_input.file_path が空"
+    trace "skip: tool_input.file_path is empty"
     exit 0
 fi
 
 case "$FILE_PATH" in
     *.md) ;;
     *)
-        trace "skip: .md 以外 ($FILE_PATH)"
+        trace "skip: not a .md file ($FILE_PATH)"
         exit 0
         ;;
 esac
@@ -83,7 +83,7 @@ ORIG_DIR=$(CDPATH= cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)
 TALK_ROOT=$(find_talk_root "$ORIG_DIR" "pages")
 
 if [ -z "$TALK_ROOT" ]; then
-    trace "skip: talk-dir マーカー (slides.md + pages/) が見つからない ($FILE_PATH)"
+    trace "skip: talk-dir marker (slides.md + pages/) not found ($FILE_PATH)"
     exit 0
 fi
 
@@ -101,7 +101,7 @@ REL_FILE="${REL_DIR:+$REL_DIR/}$(basename "$FILE_PATH")"
 case "$REL_FILE" in
     pages/*.md) ;;
     *)
-        trace "skip: pages 配下の MD でない ($REL_FILE)"
+        trace "skip: not an md file under pages ($REL_FILE)"
         exit 0
         ;;
 esac
@@ -111,7 +111,7 @@ esac
 HOOKS_ROOT=$(resolve_hooks_root "$SCRIPT_DIR" "/lib/post-tool-use")
 
 if [ -z "$HOOKS_ROOT" ]; then
-    trace "skip: plugin root を解決できない (PLUGIN_HOOKS / CLAUDE_PLUGIN_ROOT 未設定 かつ SCRIPT_DIR=$SCRIPT_DIR から逆算不能)"
+    trace "skip: plugin root cannot be resolved (PLUGIN_HOOKS and CLAUDE_PLUGIN_ROOT are unset, and SCRIPT_DIR=$SCRIPT_DIR does not lead back to it)"
     exit 0
 fi
 
@@ -119,7 +119,7 @@ fi
 # ミラーが無いときは何も出さない。
 # 本 hook は判定装置ではないので、提示できなかったことを通知しても model の判断材料にならない。
 if ! RUNTIME_DIR="$(resolve_runtime_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"; then
-    trace "skip: 実行用ミラーが無い"
+    trace "skip: runtime mirror is missing"
     exit 0
 fi
 ASSETS_DIR="$(resolve_slidev_assets_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"
@@ -136,7 +136,7 @@ if ! command -v node > /dev/null 2>&1; then
     MISSING="${MISSING:+$MISSING, }node"
 fi
 if [ -n "$MISSING" ]; then
-    trace "skip: 実行環境が不足 ($MISSING / assets: $ASSETS_DIR)"
+    trace "skip: runtime environment is incomplete ($MISSING / assets: $ASSETS_DIR)"
     exit 0
 fi
 
@@ -149,7 +149,7 @@ THEME_EXIT=$?
 THEME_ERR=$(head -n 1 "$THEME_ERR_FILE")
 if [ $THEME_EXIT -ne 0 ]; then
     THEME_REASON=$(printf '%s\n' "$THEME_JSON" | jq -r '.reason // empty' 2>/dev/null)
-    trace "skip: テーマを引けない (reason: ${THEME_REASON:-なし} / exit $THEME_EXIT)${THEME_ERR:+ / stderr: $THEME_ERR}"
+    trace "skip: theme cannot be resolved (reason: ${THEME_REASON:-none} / exit $THEME_EXIT)${THEME_ERR:+ / stderr: $THEME_ERR}"
     exit 0
 fi
 REFERENCES_DIRS=()
@@ -157,7 +157,7 @@ while IFS= read -r reference_dir; do
     [ -n "$reference_dir" ] && REFERENCES_DIRS+=("$reference_dir")
 done < <(printf '%s\n' "$THEME_JSON" | jq -r '.lint.referencesDirectories[]? // empty' 2>/dev/null)
 if [ ${#REFERENCES_DIRS[@]} -eq 0 ]; then
-    trace "skip: slide theme の出力に referencesDirectories が無い"
+    trace "skip: slide theme output has no referencesDirectories"
     exit 0
 fi
 
@@ -165,7 +165,7 @@ fi
 PHYSICAL_DIR=$(CDPATH= cd -P "$ORIG_DIR" 2>/dev/null && pwd -P)
 for reference_dir in "${REFERENCES_DIRS[@]}"; do
     if [ "$PHYSICAL_DIR" = "$(CDPATH= cd -P "$reference_dir" 2>/dev/null && pwd -P)" ]; then
-        trace "skip: 参照 YAML の dir 配下 ($REL_FILE)"
+        trace "skip: under a references YAML dir ($REL_FILE)"
         exit 0
     fi
 done
@@ -186,20 +186,20 @@ BODY=$(echo "$BODY" | head -n 200)
 
 if [ $HELPER_EXIT -ne 0 ] || [ -z "$BODY" ]; then
     case $HELPER_EXIT in
-        10) REASON="frontmatter か layout が無い" ;;
-        11) REASON="layout 値が参照 YAML のファイル名として不正" ;;
-        12) REASON="対応する参照 YAML が無い (${REFERENCES_DIRS[*]})" ;;
-        13) REASON="参照 YAML に status / best_practices / anti_patterns のいずれも無い" ;;
-        14) REASON="参照 YAML を読めない (パース不能・読み取り不可。${REFERENCES_DIRS[*]})" ;;
-        124) REASON="helper が timeout した (10 秒超過)" ;;
-        0)  REASON="helper が exit 0 で何も出力しなかった" ;;
-        *)  REASON="helper が異常終了した (exit $HELPER_EXIT)" ;;
+        10) REASON="frontmatter or layout is missing" ;;
+        11) REASON="layout value is invalid as a references YAML file name" ;;
+        12) REASON="no matching references YAML (${REFERENCES_DIRS[*]})" ;;
+        13) REASON="references YAML has none of status / best_practices / anti_patterns" ;;
+        14) REASON="references YAML cannot be read (unparsable or unreadable; ${REFERENCES_DIRS[*]})" ;;
+        124) REASON="helper timed out (over 10 seconds)" ;;
+        0)  REASON="helper exited with 0 and printed nothing" ;;
+        *)  REASON="helper exited abnormally (exit $HELPER_EXIT)" ;;
     esac
     trace "skip: $REASON ($REL_FILE)${HELPER_ERR:+ / stderr: $HELPER_ERR}"
     exit 0
 fi
 
-trace "present: 参照 YAML の抜粋を提示 ($REL_FILE)"
+trace "present: references YAML excerpt presented ($REL_FILE)"
 jq -n --arg body "$BODY" '{
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",

@@ -55,9 +55,9 @@ def test_nested_misplaced_pecot_detected(project: Path, script: Path):
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     sys_msg = payload["systemMessage"]
-    assert "誤配置検知" in sys_msg
+    assert "misplaced .pecot/" in sys_msg
     assert str(project / "plugins" / "pecot-workflow" / ".pecot") in sys_msg
-    assert ".pecot/work/<Issue番号>/" in sys_msg
+    assert ".pecot/work/<Issue number>/" in sys_msg
 
 
 def test_root_pecot_only_no_output(project: Path, script: Path):
@@ -182,7 +182,7 @@ def test_stop_entry_merges_auto_push_and_misplaced(
     project: Path,
     hooks_config,
 ):
-    """stop.sh エントリ経由で auto-push と誤配置検知の両 systemMessage が連結される。"""
+    """stop.sh エントリ経由で auto-push とmisplaced .pecot/の両 systemMessage が連結される。"""
     stop_sh = project_root / "plugins" / "pecot-workflow" / "hooks" / "stop.sh"
 
     # auto-push フラグを用意（auto-push.sh が読み取り systemMessage 化する）。
@@ -204,6 +204,6 @@ def test_stop_entry_merges_auto_push_and_misplaced(
     payload = json.loads(result.stdout)
     sys_msg = payload["systemMessage"]
     assert "pushed: https://example/pr/1" in sys_msg
-    assert "誤配置検知" in sys_msg
+    assert "misplaced .pecot/" in sys_msg
     # systemMessage のみのため hookSpecificOutput は出ない（F-06）。
     assert "hookSpecificOutput" not in payload

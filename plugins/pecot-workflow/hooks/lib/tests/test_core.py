@@ -143,9 +143,9 @@ def test_no_verify_block_message_contains_flag(no_verify_script) -> None:
 def test_no_verify_block_message_content(no_verify_script) -> None:
     result = _run_core(no_verify_script, env={"HOOK_COMMAND": "git commit --no-verify"})
     assert result.returncode == 1
-    assert "【git-no-verify-check ガード】" in result.stdout
-    assert "フックがエラーを出す場合:" in result.stdout
-    assert "違反の根本原因を修正してください" in result.stdout
+    assert "error: git-no-verify-check:" in result.stdout
+    assert "When a hook reports an error:" in result.stdout
+    assert "Fix the root cause of the violation" in result.stdout
 
 
 def test_no_verify_unset_command_exit_2(no_verify_script) -> None:
@@ -382,7 +382,7 @@ def test_gh_command_unset_command_exit_2(gh_script) -> None:
 def test_pr_external_asks(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -567,7 +567,7 @@ def test_gh_merge_asks_without_merge_slash_flag(external_post_script, tmp_path) 
         env={"HOOK_WORKING_DIR": str(project), "HOOK_COMMAND": "gh pr merge 810"},
     )
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
 
 
 def test_merge_slash_flag_not_applied_to_pr_create(external_post_script, merge_slash_flag) -> None:
@@ -587,7 +587,7 @@ def test_pr_external_no_slash_flag_still_asks(external_post_script, tmp_path) ->
         env={"HOOK_WORKING_DIR": str(project), "HOOK_COMMAND": "pecot pr create x.md"},
     )
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
 
 
 def test_pr_external_slash_flag_passes_even_when_ask_disabled_via_config(
@@ -623,7 +623,7 @@ def test_pr_external_slash_flag_passes_even_when_ask_disabled_via_config(
 def test_pr_external_bypass_regressions(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
 
 
 # F-04: 別セグメントの --dry-run/-n を同一コマンドの確認フラグと誤認せず ask のまま。
@@ -637,7 +637,7 @@ def test_pr_external_bypass_regressions(external_post_script, command) -> None:
 def test_pr_external_other_segment_flag_still_asks(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
 
 
 # F-06: gh pr merge は確認フラグ免除を持たない（--dry-run/-n でも無条件 ask）。
@@ -651,7 +651,7 @@ def test_pr_external_other_segment_flag_still_asks(external_post_script, command
 def test_pr_external_gh_merge_ignores_skip_flags(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
 
 
 # external-post-check: pecot issue quick / create（実投稿）の ask（exit 11）。
@@ -685,8 +685,8 @@ def test_pr_external_gh_merge_ignores_skip_flags(external_post_script, command) 
 def test_issue_create_asks(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
-    assert "【external-post-check ガード】" in result.stdout
-    assert "正規ルート" in result.stdout
+    assert "warning: external-post-check:" in result.stdout
+    assert "canonical route" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -792,7 +792,7 @@ def test_issue_ask_precedes_pr_ask(external_post_script) -> None:
         env={"HOOK_COMMAND": "pecot issue quick -m x && pecot pr create x.md"},
     )
     assert result.returncode == 11
-    assert "正規ルート" in result.stdout
+    assert "canonical route" in result.stdout
 
 
 # git-worktree-branch-check
@@ -984,6 +984,7 @@ def test_claude_bash_guards_blocks_no_verify_in_plugin_env(
         "git-no-verify-check.sh",
         "external-post-check.sh",
         "config-dispatcher.sh",
+        "hook-message.sh",
     ):
         dest = plugin_core / name
         dest.write_bytes((core_dir / name).read_bytes())

@@ -66,7 +66,7 @@ def test_quick_flag_edit_shows_quick_reminder(ctx, script):
     ctx["flag"].write_text("w-quick\n")
     result = _run(script, '{"tool_name":"Edit","tool_input":{}}')
     assert result.returncode == 0
-    assert "Issue 起票が未完了" in result.stdout
+    assert "warning: Issue filing is not complete" in result.stdout
     assert "pecot issue quick" in result.stdout
     assert "PreToolUse" in result.stdout
 
@@ -75,7 +75,7 @@ def test_ready_flag_enter_plan_mode_shows_ready_reminder(ctx, script):
     ctx["flag"].write_text("w-ready\n")
     result = _run(script, '{"tool_name":"EnterPlanMode","tool_input":{}}')
     assert result.returncode == 0
-    assert "サブタスク Issue" in result.stdout
+    assert "warning: Subtask Issue" in result.stdout
     assert "pecot issue create --prepare" in result.stdout
 
 
@@ -86,7 +86,7 @@ def test_flag_bash_git_checkout_shows_reminder(ctx, script):
         '{"tool_name":"Bash","tool_input":{"command":"git checkout feat/foo"}}',
     )
     assert result.returncode == 0
-    assert "Issue 起票が未完了" in result.stdout
+    assert "warning: Issue filing is not complete" in result.stdout
 
 
 def test_flag_bash_git_switch_shows_reminder(ctx, script):
@@ -96,7 +96,7 @@ def test_flag_bash_git_switch_shows_reminder(ctx, script):
         '{"tool_name":"Bash","tool_input":{"command":"git switch feat/foo"}}',
     )
     assert result.returncode == 0
-    assert "Issue 起票が未完了" in result.stdout
+    assert "warning: Issue filing is not complete" in result.stdout
 
 
 def test_flag_bash_unrelated_no_output(ctx, script):
@@ -124,7 +124,7 @@ def test_unknown_flag_value_fallback_message(ctx, script):
     ctx["flag"].write_text("w-unknown\n")
     result = _run(script, '{"tool_name":"Edit","tool_input":{}}')
     assert result.returncode == 0
-    assert "Issue 起票が未完了" in result.stdout
+    assert "warning: Issue filing is not complete" in result.stdout
     assert "pecot issue quick" in result.stdout
     assert "pecot issue create" in result.stdout
 
@@ -136,7 +136,7 @@ def test_flag_multiedit_shows_reminder(ctx, script):
         '{"tool_name":"MultiEdit","tool_input":{"file_path":"/tmp/foo.py"}}',
     )
     assert result.returncode == 0
-    assert "Issue 起票が未完了" in result.stdout
+    assert "warning: Issue filing is not complete" in result.stdout
 
 
 def test_edit_on_pecot_tmp_output_no_reminder(ctx, script):

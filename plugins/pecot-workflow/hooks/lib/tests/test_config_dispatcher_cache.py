@@ -78,14 +78,14 @@ def test_parse_failure_warns_and_uses_default(dispatcher, hooks_config, claude_p
     hooks_config.path.write_text("{ not json")
     result = _run(dispatcher, "a")
     assert result.stdout.strip() == "a=1"
-    assert "パースに失敗" in result.stderr
+    assert "failed to parse" in result.stderr
 
 
 def test_non_object_json_is_a_parse_failure(dispatcher, hooks_config, claude_project_dir) -> None:
     hooks_config.path.write_text(json.dumps(["a"]))
     result = _run(dispatcher, "a")
     assert result.stdout.strip() == "a=1"
-    assert "パースに失敗" in result.stderr
+    assert "failed to parse" in result.stderr
 
 
 def test_no_associative_arrays_for_bash_3_2(dispatcher) -> None:
