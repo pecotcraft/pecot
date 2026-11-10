@@ -1,17 +1,9 @@
 // pecotv 永続層（置き場の mcp-dist/）へ入る依存の package.json を組み立てる (#1071)。
 // 規則は cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan() の写し。ずれは runtime-manifest.test.sh が止める。
-// catalog: の解決だけは runtimeInstallPlan() と違い、こちらで行う。
-// optionalDependencies（playwright）は実 install の対象外なので入れない。
-//
-//   import: buildRuntimeManifest(pecotvRoot, [workspaceYamlPath]) を渡してオブジェクトを得る。
-//   catalog: の解決元は省略時 <pecotvRoot>/../../pnpm-workspace.yaml。catalog: が無ければ読まない。
-//
-//   直接起動: node runtime-manifest.mjs <pecotv-plugin-root> [pnpm-workspace.yaml]
-//   JSON を stdout へ出す。
 
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { readDefaultCatalog, resolveCatalog } from './catalog.mjs'
+import { DEPENDENCY_FIELDS, readDefaultCatalog, resolveManifest } from './catalog.mjs'
 import { isSelfExecuted } from './self-exec.mjs'
 
 // 版を固定する slidev 中核パッケージ（runtime-install.ts の SLIDEV_CORE_PACKAGES と同じ）。
@@ -35,17 +27,19 @@ const dependencyMap = (value) =>
 
 export function buildRuntimeManifest(rawPecotvRoot, workspaceYamlPath) {
   const PECOTV_ROOT = path.resolve(rawPecotvRoot)
-  const runtimeManifest = readJson(
+  const rawManifest = readJson(
     path.join(PECOTV_ROOT, 'assets/slidev/runtime/package.json')
   )
 
-  const usesCatalog = [runtimeManifest.dependencies, runtimeManifest.devDependencies]
-    .some((field) => Object.values(dependencyMap(field)).some((range) => range.startsWith('catalog:')))
+  // catalog: の解決元は省略時 <pecotvRoot>/../../pnpm-workspace.yaml。catalog: が無ければ読まない。
+  const usesCatalog = DEPENDENCY_FIELDS
+    .some((field) => Object.values(dependencyMap(rawManifest[field])).some((range) => range.startsWith('catalog:')))
   const catalog = usesCatalog
     ? readDefaultCatalog(readFileSync(workspaceYamlPath ?? path.join(PECOTV_ROOT, '../../pnpm-workspace.yaml'), 'utf8'))
     : {}
-  const resolvedDependencies = resolveCatalog(dependencyMap(runtimeManifest.dependencies), catalog)
-  const resolvedDevDependencies = resolveCatalog(dependencyMap(runtimeManifest.devDependencies), catalog)
+  const runtimeManifest = resolveManifest(rawManifest, catalog)
+  const resolvedDependencies = dependencyMap(runtimeManifest.dependencies)
+  const resolvedDevDependencies = dependencyMap(runtimeManifest.devDependencies)
 
   // 中核パッケージの固定版は、runtime manifest の @slidev/cli の版（runtime-install.ts と同じ読み元）。
   const coreVersion = resolvedDependencies['@slidev/cli']

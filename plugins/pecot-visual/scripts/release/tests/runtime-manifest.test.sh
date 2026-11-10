@@ -198,6 +198,40 @@ else
 fi
 assert_eq "合成 root でも overrides の入れ子が一致" "$(compare_synth plan-overrides)" "$(compare_synth manifest-overrides)"
 
+# catalog: の異常系。合成 root の vite だけを差し替え、非ゼロ終了と stderr の文言を見る。
+expect_manifest_failure() {
+    local label="$1" vite_range="$2" workspace_yaml="$3" expected="$4"
+    local root="$TMP/abnormal-root-$label"
+    mkdir -p "$root/assets/slidev/runtime"
+    node -e '
+const fs = require("node:fs")
+const [src, dst, range] = process.argv.slice(1)
+const manifest = JSON.parse(fs.readFileSync(src, "utf8"))
+manifest.dependencies.vite = range
+fs.writeFileSync(dst, JSON.stringify(manifest))
+' "$SYNTH_ROOT/assets/slidev/runtime/package.json" "$root/assets/slidev/runtime/package.json" "$vite_range"
+    local rc=0
+    node "$MANIFEST_JS" "$root" "$workspace_yaml" > "$TMP/abnormal-$label.out" 2> "$TMP/abnormal-$label.err" || rc=$?
+    if [ "$rc" -ne 0 ]; then
+        pass "$label で .mjs が非ゼロ終了"
+    else
+        fail "$label で .mjs が exit 0 になった"
+    fi
+    if grep -qF "$expected" "$TMP/abnormal-$label.err"; then
+        pass "$label で stderr に期待の文言を出す"
+    else
+        local tail_text
+        tail_text="$(tail -3 "$TMP/abnormal-$label.err" | tr '\n' ' ')"
+        fail "$label の stderr に期待の文言が無い。期待: $expected 実際: $tail_text"
+    fi
+}
+
+expect_manifest_failure "名前付き catalog" "catalog:named" "$SYNTH_WORKSPACE_YAML" "名前付き catalog"
+expect_manifest_failure "catalog に無い名前" "catalog:" <(printf '%s\n' 'catalog:' '  other: ^1.0.0') "catalog にありません"
+BOTH_YAML="$TMP/both-workspace.yaml"
+printf '%s\n' 'catalog:' '  vite: ^8.0.0' 'catalogs:' '  default:' '    vite: ^7.0.0' > "$BOTH_YAML"
+expect_manifest_failure "default catalog の両方定義" "catalog:" "$BOTH_YAML" "defined multiple times"
+
 # @slidev/cli の無い manifest は、.mjs が非ゼロ終了し、版指定がない旨を stderr に出す。
 NOCLI_ROOT="$TMP/nocli-root"
 mkdir -p "$NOCLI_ROOT/assets/slidev/runtime"

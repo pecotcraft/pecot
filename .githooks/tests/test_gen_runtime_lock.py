@@ -188,10 +188,18 @@ def _write(repo: Path) -> None:
 
 
 def test_write_copies_referenced_catalog_only(repo: Path) -> None:
+    # どの importer も参照しない項目を root の catalogs.default に足す。--write はこれを落とす。
+    _edit(
+        repo / "pnpm-lock.yaml",
+        "catalogs:\n  default:\n",
+        "catalogs:\n  default:\n    unreferenced-sample:\n      specifier: ^1.0.0\n      version: 1.0.0\n",
+    )
     _write(repo)
     expected = "catalogs:\n  default:\n    vite:\n      specifier: ^"
     for d in ("plugins/pecot-visual", "plugins/pecot-tools", "plugins/pecot-workflow"):
-        assert expected in (repo / d / "runtime-lock.yaml").read_text(encoding="utf-8"), d
+        text = (repo / d / "runtime-lock.yaml").read_text(encoding="utf-8")
+        assert expected in text, d
+        assert "unreferenced-sample" not in text, d
 
 
 def test_write_omits_catalogs_for_target_without_reference(repo: Path) -> None:

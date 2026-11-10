@@ -21,7 +21,7 @@ packages:
   - assets/slidev/scripts/eslint/validate-references
 
 catalog:
-  # 4 つの package.json が catalog: で参照する。lockfile-single-version.test.ts が @slidev/cli の vite との一致を見る。
+  # vite の範囲の唯一の定義。lockfile-single-version.test.ts が @slidev/cli の vite との一致を見る。
   vite: ^8.3.6
 
 overrides:

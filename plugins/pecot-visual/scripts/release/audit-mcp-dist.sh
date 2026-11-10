@@ -452,7 +452,10 @@ if [ -n "$RUNTIME_DIST" ]; then
 else
     RUNTIME_DIST="$WORK/runtime"
     mkdir -p "$RUNTIME_DIST"
-    node "$SCRIPT_DIR/runtime-manifest.mjs" "$PECOTV_ROOT" > "$RUNTIME_DIST/package.json"
+    # catalog は publish と同じ HEAD の pnpm-workspace.yaml から読む（作業ツリーの未コミットの変更を拾わない）。
+    HEAD_WORKSPACE_YAML="$WORK/pnpm-workspace.head.yaml"
+    git -C "$REPO_ROOT" show HEAD:pnpm-workspace.yaml > "$HEAD_WORKSPACE_YAML"
+    node "$SCRIPT_DIR/runtime-manifest.mjs" "$PECOTV_ROOT" "$HEAD_WORKSPACE_YAML" > "$RUNTIME_DIST/package.json"
     resolve_tree "$LABEL_RUNTIME" "$RUNTIME_DIST" runtime
 fi
 

@@ -1089,6 +1089,18 @@ RUNTIME_OVERRIDES="$(node -e 'const fs=require("node:fs");process.stdout.write(J
     "$PECOTV_PLUGIN_ROOT/assets/slidev/runtime/package.json")"
 assert_eq "overrides が runtime の manifest の写しになっている" "$RUNTIME_OVERRIDES" "$(runtime_manifest_field overrides)"
 
+# vite は catalog: で参照される。直接起動の出力では catalog の範囲に解決され、catalog: が残らない。
+CATALOG_VITE="$(cd "$REPO_ROOT" && node -e '
+const { parse } = require("yaml")
+const w = parse(require("node:fs").readFileSync("pnpm-workspace.yaml", "utf8"))
+process.stdout.write(String((w.catalog ?? w.catalogs?.default ?? {}).vite))')"
+assert_eq "vite が catalog の範囲に解決される" "$CATALOG_VITE" "$(runtime_manifest_field vite)"
+if grep -qF 'catalog:' "$TMP/runtime-manifest.json"; then
+    fail "直接起動の出力に catalog: が残っている"
+else
+    pass "直接起動の出力に catalog: が残らない"
+fi
+
 RUNTIME_USAGE_RC=0
 node "$RUNTIME_MANIFEST_JS" > "$TMP/runtime-manifest-usage.out" 2> "$TMP/runtime-manifest-usage.err" \
     || RUNTIME_USAGE_RC=$?

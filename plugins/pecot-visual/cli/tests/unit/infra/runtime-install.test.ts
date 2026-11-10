@@ -724,11 +724,11 @@ function readStubNpmOutput(stdout: string): { argv: string[], extraCaCerts: stri
 }
 
 describe('installRuntimeDependencies', () => {
-  it('catalog: が残る manifest では npm を起動せず、配布物の破損として失敗を返す', async () => {
+  it.each(['catalog:', 'catalog:named'])('dependencies に %s が残る manifest では npm を起動せず失敗を返す', async (range) => {
     const data = temporaryRoot('data-catalog')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    const manifestPath = writeManifestWithCore({ dependencies: { vite: 'catalog:', vue: '^3.5.13' } })
+    const manifestPath = writeManifestWithCore({ dependencies: { vite: range, vue: '^3.5.13' } })
 
     const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
 
@@ -737,9 +737,23 @@ describe('installRuntimeDependencies', () => {
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
     expect(result.exitCode).toBe(null)
     expect(result.failedStage).toBe('npm')
-    expect(result.stderr).toContain('vite@catalog:')
-    expect(result.stderr).not.toContain('vue@')
-    expect(result.stderr).toContain('配布物の破損')
+    expect(result.stderr).toContain('配布時に置き換わるはずの catalog: が残っています: vite')
+    expect(result.stderr).not.toContain('vue')
+    expect(existsSync(runtimePackageJson(data))).toBe(false)
+  })
+
+  it('optionalDependencies の catalog: でも npm を起動せず失敗を返す', async () => {
+    const data = temporaryRoot('data-catalog-optional')
+    mkdirSync(data, { recursive: true })
+    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
+    const manifestPath = writeManifestWithCore({ optionalDependencies: { fsevents: 'catalog:' } })
+
+    const result = await installRuntimeDependencies({ manifestPath, npmCommand: writeStubNpm(temporaryRoot()) })
+
+    expect(result.stdout).toBe('')
+    // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
+    expect(result.exitCode).toBe(null)
+    expect(result.stderr).toContain('配布時に置き換わるはずの catalog: が残っています: fsevents')
     expect(existsSync(runtimePackageJson(data))).toBe(false)
   })
 

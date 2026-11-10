@@ -64,7 +64,7 @@ function pinnedVersionsByPackage(): ReadonlyMap<string, ReadonlySet<string>> {
 type ManifestField = 'dependencies' | 'devDependencies' | 'optionalDependencies'
 
 /**
-manifest の `field`  を読む。ファイルが無い場合は未 install として明示的に失敗させる。
+manifest の `field`（`ManifestField`）の欄を読む。ファイルが無い場合は未 install として明示的に失敗させる。
 */
 function readManifestField(file: string, field: ManifestField): ReadonlyMap<string, string> {
   expect(existsSync(file), `未 install または不在: ${file}`).toBe(true)
@@ -123,15 +123,13 @@ describe('固定対象の単一版 (#1233)', () => {
 })
 
 /**
-pnpm-workspace.yaml を読み、`packages` と `catalog.vite` を返す。
+pnpm-workspace.yaml を読み、`packages` と `catalog.vite` を生の値で返す。検証は呼び出し側の it で行う。
 */
-function readWorkspace(): { readonly packages: readonly string[], readonly catalogVite: unknown } {
+function readWorkspace(): { readonly packages: unknown, readonly catalogVite: unknown } {
   const workspace: unknown = parse(readFileSync(WORKSPACE, 'utf8'))
-  const packages = isRecord(workspace) ? workspace['packages'] : undefined
   const catalog = isRecord(workspace) ? workspace['catalog'] : undefined
-  expect(Array.isArray(packages), 'pnpm-workspace.yaml に packages がない').toBe(true)
   return {
-    packages: Array.isArray(packages) ? packages.filter((entry): entry is string => typeof entry === 'string') : [],
+    packages: isRecord(workspace) ? workspace['packages'] : undefined,
     catalogVite: isRecord(catalog) ? catalog['vite'] : undefined,
   }
 }
@@ -139,9 +137,13 @@ function readWorkspace(): { readonly packages: readonly string[], readonly catal
 describe('vite の範囲の一元化 (#170)', () => {
   it('workspace の全メンバーで vite は catalog: 参照', () => {
     const { packages } = readWorkspace()
+    expect(Array.isArray(packages), 'pnpm-workspace.yaml に packages がない').toBe(true)
+    const members = Array.isArray(packages) ? packages : []
+    const nonStrings = members.filter(entry => typeof entry !== 'string')
+    expect(nonStrings, 'pnpm-workspace.yaml の packages に文字列以外がある').toEqual([])
     const sections: readonly ManifestField[] = ['dependencies', 'devDependencies', 'optionalDependencies']
     const violations: string[] = []
-    for (const member of packages) {
+    for (const member of ['.', ...members.filter((entry): entry is string => typeof entry === 'string')]) {
       const file = path.join(REPO_ROOT, member, 'package.json')
       if (!existsSync(file)) continue
       for (const section of sections) {
