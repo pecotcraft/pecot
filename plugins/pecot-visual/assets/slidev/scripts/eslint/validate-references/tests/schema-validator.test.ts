@@ -428,6 +428,17 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
       assert.ok(result.errors.length > 0);
     });
+
+    it('should report nested prop violations at the YAML key path', () => {
+      const data = {
+        ...baseLayout,
+        props: { title: { type: 'Str' } },
+      };
+      const result = validateSchema(data);
+      assert.equal(result.valid, false);
+      assert.ok(result.errors.some((e) => e.path === '/props/title'));
+      assert.ok(result.errors.some((e) => e.path === '/props/title/type'));
+    });
   });
 
   describe('text_constraints validation', () => {
