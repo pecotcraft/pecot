@@ -5025,8 +5025,8 @@ class TestScreenshotDecision:
         result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY))])
 
         assert result.exit_code == 3, result.output
-        assert "Summary に画像がなく" in result.output
-        assert "`![説明](./ファイル名)`" in result.output
+        assert "Summary has no image" in result.output
+        assert "`![alt](./<file>.png)`" in result.output
         assert _HINT in result.output
 
     @pytest.mark.parametrize(
@@ -5057,7 +5057,7 @@ class TestScreenshotDecision:
         result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY, value))])
 
         assert result.exit_code == 3, result.output
-        assert "Summary に画像がなく" in result.output
+        assert "Summary has no image" in result.output
 
     def _direct(self, body: str, *extra: str) -> list[str]:
         return ["-m", body, "-t", "feat: 画像", "-b", "develop-aist", "-r", "owner/repo", *extra]
@@ -5118,7 +5118,7 @@ class TestScreenshotDecision:
 
         assert result.exit_code == 3, result.output
         assert "不足セクション" in result.output
-        assert "Summary に画像がなく" in result.output
+        assert "Summary has no image" in result.output
 
     def test_unset_develop_branch_exits_1_before_validation(self, tmp_path: Path) -> None:
         config = _pr_config()
@@ -5127,4 +5127,4 @@ class TestScreenshotDecision:
 
         assert result.exit_code == 1, result.output
         assert "develop_branchが設定されていません" in result.output
-        assert "Summary に画像がなく" not in result.output
+        assert "Summary has no image" not in result.output

@@ -267,11 +267,10 @@ def _is_release_pr(
 
 
 SCREENSHOT_MISSING_ERROR = (
-    "Summary に画像がなく、`screenshot` に入れない理由もありません。"
-    "画面・ツールが生成して GitHub で見る Markdown・利用者が読む CLI の出力の文が"
-    "変わる変更は、画像を撮って Summary に `![説明](./ファイル名)` で入れてください。"
-    "入れないときは、フロントマターの `screenshot`（`-m` では `--screenshot`）に"
-    "入れない理由を書いてください"
+    "Summary has no image and `screenshot` gives no reason to omit one. "
+    "If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, "
+    "take a screenshot and add it to Summary as `![alt](./<file>.png)`. "
+    "Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `-m`)"
 )
 
 
@@ -518,7 +517,7 @@ def pr_create(
     ] = "default",
     screenshot: Annotated[
         str | None,
-        typer.Option("--screenshot", help="Summary に画像を入れない理由（-m使用時）"),
+        typer.Option("--screenshot", help="Reason to omit an image from Summary (with -m)"),
     ] = None,
 ) -> None:
     """PR（プルリクエスト）を作成
