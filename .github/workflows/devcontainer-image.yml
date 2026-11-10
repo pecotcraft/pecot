@@ -1,5 +1,6 @@
 # .devcontainer/ の定義から CI 用のイメージを build し、GHCR へ push する。
-# tag は .devcontainer/ の tree hash の def-<tree> で、main のときだけ latest も付ける。
+# tag は dev-container.sh tag が出す def-<key>（.devcontainer/ の定義の hash）で、main のときだけ latest を付ける。
+# main 以外の ref では、def-<key> が既にあれば build と push を飛ばす。
 # push するのは push・schedule・workflow_dispatch のときだけにする。
 # PR では build だけを動かし、マージ前に Dockerfile が通ることを確かめる。
 # 週 1 回の schedule は --no-cache で動かす。自分のイメージを cache に使うため、
@@ -46,19 +47,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # npm は repo の devEngines で止まるため、cwd を / にして入れる。
       - name: Install devcontainer CLI
-        run: cd / && npm install -g @devcontainers/cli@0.90.0
+        run: .githooks/ci/dev-container.sh install-cli
 
       # 層は zstd で push する。gzip だと、CI の job の pull で展開に 20 秒以上かかる。
       # PR では push せず build だけにする。latest は main のときだけ付ける。
+      # feature ブランチの実行で、main が使う def-<key> を上書きしない。
       - name: Build and push image
         env:
           REPO: ghcr.io/pecotcraft/pecot-devcontainer
+          PECOT_CI_IMAGE_REPO: ghcr.io/pecotcraft/pecot-devcontainer
           NO_CACHE: ${{ github.event_name == 'schedule' }}
+          # buildx は何も指定しないと unknown/unknown の attestation manifest を付け、GHCR の一覧に余計な行が出る。
+          BUILDX_NO_DEFAULT_ATTESTATIONS: "1"
         run: |
-          tree=$(git rev-parse HEAD:.devcontainer)
-          args=(--workspace-folder . --image-name "$REPO:def-$tree" --cache-from "$REPO:latest")
+          ref=$(.githooks/ci/dev-container.sh tag)
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ "$GITHUB_REF" != refs/heads/main ] \
+            && docker buildx imagetools inspect "$ref" > /dev/null 2>&1; then
+            echo "$ref already exists. Skip build and push."
+            exit 0
+          fi
+          args=(--workspace-folder . --image-name "$ref" --cache-from "$REPO:latest")
           if [ "$GITHUB_REF" = refs/heads/main ] && [ "$GITHUB_EVENT_NAME" != pull_request ]; then
             args+=(--image-name "$REPO:latest")
           fi

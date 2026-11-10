@@ -31,17 +31,9 @@ jobs:
     timeout-minutes: 45
     env:
       CHECKS_PART: ${{ matrix.part }}
+      # 共通の名前は dev-container.sh が渡す。ここには job 固有の名前だけを書く。
       DEVCONTAINER_ENV: |
-        CI
-        NX_BASE
-        NX_HEAD
-        NO_PREV
         CHECKS_PART
-        PECOT_NX_CI
-        PECOTV_E2E_CEILING_SCALE
-        PECOT_NX_PARALLEL
-        PECOT_CI_IMAGE
-        PECOT_CI_SUMMARY
     strategy:
       fail-fast: false
       matrix:
@@ -53,7 +45,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Pull dev container image
+      - &prefetch
+        name: Start pulling dev container image
         run: .githooks/ci/dev-container.sh prefetch
 
       # error-on-no-successful-workflow は書かない。成功した run が無いとき、noPreviousBuild=true で全レーンのモードに入る。
@@ -80,12 +73,14 @@ jobs:
           # shellcheck disable=SC2016
           .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part="$CHECKS_PART" "$NX_BASE" "$NX_HEAD"'
 
-      - name: Restore workspace owner
+      - &restore-owner
+        name: Restore workspace owner
         if: always()
         run: .githooks/ci/dev-container.sh restore-owner
 
       # チェックが途中で止まると完了の印が付かないため、印が無ければ失敗にする。
-      - name: Write job summary
+      - &job-summary
+        name: Write job summary
         if: always()
         env:
           UP_OUTCOME: ${{ steps.up.outcome }}
@@ -161,20 +156,12 @@ jobs:
       CHECKS_LANE: ${{ matrix.lane }}
       CHECKS_SLUG: ${{ matrix.slug }}
       PECOT_CI_NX_CACHE: /workspaces/base/pecot/.pecot/tmp/ci/nx-remote
-      # Chromium を使うテストは pecot-visual だけにある。
+      # Chromium を使うテストは pecot-visual だけにある。別のレーンに足すときは、この条件も直す。
       PECOT_CI_BROWSER: ${{ startsWith(matrix.lane, 'pecot-visual:') && '1' || '0' }}
+      # 共通の名前は dev-container.sh が渡す。ここには job 固有の名前だけを書く。
       DEVCONTAINER_ENV: |
-        CI
-        NX_BASE
-        NX_HEAD
-        NO_PREV
         CHECKS_LANE
         CHECKS_SLUG
-        PECOT_NX_CI
-        PECOTV_E2E_CEILING_SCALE
-        PECOT_NX_PARALLEL
-        PECOT_CI_IMAGE
-        PECOT_CI_SUMMARY
         PECOT_CI_NX_CACHE
         PECOT_CI_BROWSER
     strategy:
@@ -188,8 +175,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Pull dev container image
-        run: .githooks/ci/dev-container.sh prefetch
+      - *prefetch
 
       # 取り込むのは同じ repo の同じ PR の run の artifact だけにする。fork の PR や対象外の event の判定はスクリプトに任せる。
       # 取り込めないときは、キャッシュなしで動かす。
@@ -239,17 +225,10 @@ jobs:
           # shellcheck disable=SC2016
           .githooks/ci/dev-container.sh exec -- 'cd /workspaces/base/pecot && .githooks/ci/run-pr-checks.sh --part=tests --lane="$CHECKS_LANE" "$NX_BASE" "$NX_HEAD"'
 
-      - name: Restore workspace owner
-        if: always()
-        run: .githooks/ci/dev-container.sh restore-owner
+      - *restore-owner
 
       # チェックが途中で止まると完了の印が付かないため、印が無ければ失敗にする。
-      - name: Write job summary
-        if: always()
-        env:
-          UP_OUTCOME: ${{ steps.up.outcome }}
-          PECOT_CI_IMAGE: ${{ steps.up.outputs.image }}
-        run: .githooks/ci/finish-ci-summary.sh
+      - *job-summary
 
       - name: Upload logs
         if: always()
