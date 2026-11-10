@@ -1,0 +1,581 @@
+[
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "create",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would create Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "create",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "create",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "create",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "created: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "update",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would update Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "update",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "update",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "update",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "updated: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "delete",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would delete Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "delete",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "delete",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "delete",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "deleted: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "add",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would add Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "add",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "add",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "add",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "added: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "remove",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would remove Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "remove",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "remove",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "remove",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "removed: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "close",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would close Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "close",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "close",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "close",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "closed: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "merge",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would merge Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "merge",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "merge",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "merge",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "merged: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "move",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would move Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "move",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "move",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "move",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "moved: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "set",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would set Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "set",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "set",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "set",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "set: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "skip",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would skip Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "skip",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "skip",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "skip",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "skipped: Tracker #179 body\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": true,
+    "input": {
+      "verb": "unchanged",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "dry-run: would leave Tracker #179 body unchanged\n"
+  },
+  {
+    "kind": "plan",
+    "dryRun": false,
+    "input": {
+      "verb": "unchanged",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": true,
+    "input": {
+      "verb": "unchanged",
+      "target": "Tracker #179 body"
+    },
+    "stream": null,
+    "line": ""
+  },
+  {
+    "kind": "result",
+    "dryRun": false,
+    "input": {
+      "verb": "unchanged",
+      "target": "Tracker #179 body"
+    },
+    "stream": "stderr",
+    "line": "unchanged: Tracker #179 body\n"
+  },
+  {
+    "kind": "error",
+    "dryRun": false,
+    "input": {
+      "message": "no active project"
+    },
+    "stream": "stderr",
+    "line": "error: no active project\n"
+  },
+  {
+    "kind": "error",
+    "dryRun": true,
+    "input": {
+      "message": "no active project"
+    },
+    "stream": "stderr",
+    "line": "error: no active project\n"
+  },
+  {
+    "kind": "error",
+    "dryRun": false,
+    "input": {
+      "message": "first line\nsecond line\nthird line"
+    },
+    "stream": "stderr",
+    "line": "error: first line\n  second line\n  third line\n"
+  },
+  {
+    "kind": "error",
+    "dryRun": false,
+    "input": {
+      "message": "trailing newline\n"
+    },
+    "stream": "stderr",
+    "line": "error: trailing newline\n"
+  },
+  {
+    "kind": "warning",
+    "dryRun": false,
+    "input": {
+      "message": "no active project"
+    },
+    "stream": "stderr",
+    "line": "warning: no active project\n"
+  },
+  {
+    "kind": "warning",
+    "dryRun": true,
+    "input": {
+      "message": "no active project"
+    },
+    "stream": "stderr",
+    "line": "warning: no active project\n"
+  },
+  {
+    "kind": "warning",
+    "dryRun": false,
+    "input": {
+      "message": "first line\nsecond line\nthird line"
+    },
+    "stream": "stderr",
+    "line": "warning: first line\n  second line\n  third line\n"
+  },
+  {
+    "kind": "warning",
+    "dryRun": false,
+    "input": {
+      "message": "trailing newline\n"
+    },
+    "stream": "stderr",
+    "line": "warning: trailing newline\n"
+  },
+  {
+    "kind": "count",
+    "dryRun": false,
+    "input": {
+      "label": "PRs awaiting review",
+      "value": 3
+    },
+    "stream": "stderr",
+    "line": "count: PRs awaiting review: 3\n"
+  },
+  {
+    "kind": "count",
+    "dryRun": true,
+    "input": {
+      "label": "PRs awaiting review",
+      "value": 3
+    },
+    "stream": "stderr",
+    "line": "count: PRs awaiting review: 3\n"
+  },
+  {
+    "kind": "count",
+    "dryRun": false,
+    "input": {
+      "label": "PRs with unknown checks",
+      "value": null
+    },
+    "stream": "stderr",
+    "line": "count: PRs with unknown checks: unknown\n"
+  },
+  {
+    "kind": "count",
+    "dryRun": false,
+    "input": {
+      "label": "open alerts",
+      "value": 0
+    },
+    "stream": "stderr",
+    "line": "count: open alerts: 0\n"
+  },
+  {
+    "kind": "data",
+    "dryRun": false,
+    "input": {
+      "text": "| title | PR |\n| --- | --- |"
+    },
+    "stream": "stdout",
+    "line": "| title | PR |\n| --- | --- |\n"
+  },
+  {
+    "kind": "data",
+    "dryRun": true,
+    "input": {
+      "text": "| title | PR |\n| --- | --- |"
+    },
+    "stream": "stdout",
+    "line": "| title | PR |\n| --- | --- |\n"
+  },
+  {
+    "kind": "data",
+    "dryRun": false,
+    "input": {
+      "text": "{\"number\": 179}\n"
+    },
+    "stream": "stdout",
+    "line": "{\"number\": 179}\n"
+  }
+]

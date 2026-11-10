@@ -72,6 +72,7 @@ plugins/pecot-visual/skills/v-slidev/SKILL.md
 plugins/pecot-workflow/agents/w-e2e-planner.md
 plugins/pecot-workflow/cli-node/src/cli.ts
 plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts
+plugins/pecot-workflow/cli-node/tests/output/cases.json
 plugins/pecot-workflow/cli-node/tests/parity/baseline.json
 plugins/pecot-workflow/cli/core/paths.py
 plugins/pecot-workflow/cli/core/state.py

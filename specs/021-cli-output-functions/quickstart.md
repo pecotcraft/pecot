@@ -10,7 +10,7 @@
 ## 1. 共通の関数が契約どおりの行を出す（US4）
 
 ```bash
-cd plugins/pecot-workflow/cli && uv run pytest tests/unit/test_output.py
+cd plugins/pecot-workflow/cli && uv run pytest tests/cli/test_output.py
 pnpm -C plugins/pecot-workflow/cli-node exec vitest run tests/output
 ```
 
