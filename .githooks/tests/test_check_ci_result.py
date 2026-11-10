@@ -17,7 +17,7 @@ _LANES = [
 
 def _jobs(**overrides: str | None) -> list[dict]:
     """既定は全部 success。overrides の値が None なら job を省く。"""
-    names = ["checks (lint)", "checks (githooks)", "tests (p:test-cli)", "tests (q:test-hooks)"]
+    names = ["checks (lint)", "tests (p:test-cli)", "tests (q:test-hooks)"]
     out = []
     for n in names:
         c = overrides.pop(n, "success")

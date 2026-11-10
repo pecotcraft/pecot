@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # lint・githooks と、変更が届いたレーンごとの tests を別の job に分けて同時に動かす。
+  # lint と、変更が届いたレーンごとの tests を別の job に分けて同時に動かす。
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -37,7 +37,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [lint, githooks]
+        # 要素は 1 つ。job 名 `checks (lint)` と artifact 名 `ci-logs-lint` を保つために matrix を残す。
+        part: [lint]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

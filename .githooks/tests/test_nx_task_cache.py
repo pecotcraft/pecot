@@ -82,6 +82,12 @@ def _nx_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     return env
 
 
+# 実リポの cwd で起動する nx の置き場。conftest.py が立てた env を、_nx_env が剥がす前に控える。
+_REAL_REPO_NX_STATE = {
+    key: os.environ[key] for key in ("NX_CACHE_DIRECTORY", "NX_WORKSPACE_DATA_DIRECTORY")
+}
+
+
 def _nx_output(nx_bin: Path, *args: str) -> str:
     # stdout はパイプでなくファイルで受ける。nx は stdout がパイプのとき大きな JSON を書き切る前に
     # 終了することがあり、64 KiB 前後で切れた出力を受け取って JSONDecodeError になる (#1217)。
@@ -93,7 +99,7 @@ def _nx_output(nx_bin: Path, *args: str) -> str:
             stderr=subprocess.PIPE,
             text=True,
             timeout=180,
-            env=_nx_env(),
+            env=_nx_env(_REAL_REPO_NX_STATE),
         )
         assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         out.seek(0)
@@ -558,7 +564,12 @@ def _declared_env(nx_json: dict, input_name: str = "env") -> list[str]:
 
 
 def _project_jsons() -> list[Path]:
-    roots = [_REPO_ROOT / "plugins", _REPO_ROOT / "libs", _REPO_ROOT / ".nx"]
+    roots = [
+        _REPO_ROOT / "plugins",
+        _REPO_ROOT / "libs",
+        _REPO_ROOT / ".nx",
+        _REPO_ROOT / ".githooks",
+    ]
     found: list[Path] = []
     for root in roots:
         for path in sorted(root.rglob("project.json")):
@@ -799,8 +810,9 @@ def test_hooks_test_inputs_take_validate_references_source_but_not_its_tests(nx_
 
 
 # 版の文字列を出さない runtime コマンドの出力の形。lock のハッシュと、dpkg の「名前=版」の一覧。
+_HASH = re.compile(r"^[0-9a-f]{40}\n$")
 _RUNTIME_OUTPUT_PATTERNS = {
-    "git hash-object pnpm-lock.yaml": re.compile(r"^[0-9a-f]{40}\n$"),
+    "git hash-object pnpm-lock.yaml": _HASH,
     "dpkg-query -W -f='${Package}=${Version}\\n'": re.compile(r"^\S+=\S+$", re.M),
 }
 
@@ -826,7 +838,12 @@ def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
             env=_nx_env(),
         )
         assert result.returncode == 0, f"`{command}` が exit {result.returncode}: {result.stderr}"
-        pattern = _RUNTIME_OUTPUT_PATTERNS.get(command, _ANY_VERSION)
+        # `git ls-files ... | git hash-object --stdin` の形の入力（ファイルの実在）も、hash を出す。
+        pattern = (
+            _HASH
+            if command.endswith("| git hash-object --stdin")
+            else _RUNTIME_OUTPUT_PATTERNS.get(command, _ANY_VERSION)
+        )
         assert pattern.search(result.stdout), (
             f"`{command}` の出力が期待の形でない: {repr(result.stdout[:200])}"
         )

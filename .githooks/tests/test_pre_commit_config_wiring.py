@@ -19,7 +19,6 @@ _WRAPPED_HOOKS = [
     "check-commit-text",
     "nx-affected-lint",
     "check-version-plan-required",
-    "githooks-tests",
     "nx-env-inputs",
     "nx-affected-tests",
     "plugin-validate",
@@ -138,63 +137,6 @@ def test_nx_env_inputs_runs_when_env_scan_inputs_change(
 def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
     pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
     assert not pattern.search(changed_path)
-
-
-@pytest.mark.parametrize(
-    "changed_path",
-    [
-        ".githooks/ci/run-affected-tests.sh",
-        ".githooks/tests/test_nx_env_inputs.py",
-        "nx.json",
-        ".nxignore",
-        "pyproject.toml",
-        "uv.lock",
-        "plugins/pecot-workflow/cli/pyproject.toml",
-        "plugins/pecot-workflow/cli/uv.lock",
-        "plugins/pecot-workflow/scripts/ci/run-tests.sh",
-        "plugins/pecot-workflow/scripts/ci/run-lint.sh",
-        "plugins/pecot-workflow/scripts/ci/python-version.sh",
-        # root の package.json は nx workspace の形を test_root_package_manifest.py が読む。
-        # libs/<name>/ の package.json と project.json は、nx のグラフ確認も読む。
-        "package.json",
-        "libs/text-rules/package.json",
-        ".github/workflows/runtime-lock.yml",
-        "libs/text-rules/project.json",
-        ".githooks/scripts/gen-runtime-lock.mjs",
-        ".githooks/scripts/run-pnpm.sh",
-        # Lambda の webhook 受け口。関数本体の node:test を test_board_sync.py が動かす。
-        ".github/board-sync/handler.mjs",
-        ".github/board-sync/template.yaml",
-    ],
-)
-def test_githooks_tests_runs_when_their_inputs_change(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, "githooks-tests")
-    assert pattern.search(changed_path), f"githooks-tests の files が {changed_path} に一致しない"
-
-
-@pytest.mark.parametrize(
-    "changed_path",
-    [
-        "README.md",
-        "plugins/pecot-workflow/skills/w-pr/SKILL.md",
-        "plugins/pecot-visual/CHANGELOG.md",
-        # 環境変数の宣言不足の確認は nx-env-inputs が受け持つ。
-        # plugins のソースを変えた push で、githooks の pytest 全体（約 9 秒）を実行しない。
-        "plugins/pecot-visual/cli/src/infra/drawio/pdf.ts",
-        "plugins/pecot-visual/bin/pecotv",
-        "plugins/pecot-visual/scripts/ci/run-lint.sh",
-        "plugins/pecot-tools/cli/tests/bootstrap/run.sh",
-        "plugins/pecot-visual/cli/package.json",
-        "plugins/pecot-workflow/cli/core/paths.py",
-        "plugins/pecot-visual/package.json",
-        "libs/text-rules/index.ts",
-        "libs/text-rules/tests/index.test.ts",
-        ".github/workflows/ci.yml",
-    ],
-)
-def test_githooks_tests_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, "githooks-tests")
-    assert not pattern.search(changed_path), f"githooks-tests の files が {changed_path} に一致する"
 
 
 @pytest.mark.parametrize(
@@ -550,8 +492,8 @@ def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
     assert orphans == []
 
 
-@pytest.mark.parametrize("hook_id", ["nx-affected-tests", "githooks-tests"])
+@pytest.mark.parametrize("hook_id", ["nx-affected-tests"])
 def test_test_hooks_run_only_in_manual(script_dir: Path, hook_id: str) -> None:
-    """テストの 2 つの hook は manual だけで動く。manual は CI（run-pr-checks.sh）と手動用。"""
+    """テストの hook は manual だけで動く。manual は CI（run-pr-checks.sh）と手動用。"""
     block = _hook_entry_lines(_config_text(script_dir), hook_id)
     assert _stages(block) == ["manual"]

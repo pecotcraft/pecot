@@ -10,8 +10,9 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 | `plugins/pecot-visual` | ビジュアル系スキル（Slidev / draw.io） | `pecot-visual` | `test-cli` / `test-bootstrap` / `test-slidev` / `test-hooks` / `test-compare` / `test-release` / `test-skills` |
 | `plugins/pecot-tools` | 許可リストで限定した awscli コマンドの MCP サーバ | `pecot-tools` | `test-cli` / `test-bootstrap` / `test-release` |
 | `libs/text-rules` | テキスト規則ライブラリ（pecot-visual への同梱と root フックが使う） | `text-rules` | `test-unit` |
+| `.githooks` | root 共通の hook とそのテスト | `githooks` | `test-nx-cache` / `test-nx-affected` / `test-ci` / `test-checks` |
 
-1 プラグイン = 1 nx project（`libs/text-rules` も 1 project）。`test` target は `nx run-many -t test` で全量を実行する起点で、dependsOn でレーン `test-*` を束ねる。
+1 プラグイン = 1 nx project（`libs/text-rules` と `.githooks` も 1 project）。`test` target は `nx run-many -t test` で全量を実行する起点で、dependsOn でレーン `test-*` を束ねる。
 入力を持たないため、`nx affected -t test` では何も選ばれず 0 件で成功する。
 チェックはレーン名を列挙して `nx affected` で要求し、変更が届いたレーンだけを実行する。
 install・build は毎回実行する。lint は pecot-visual と pecot-workflow が `lint-*` のレーンに分かれ、pecot-tools・text-rules は `lint` 1 つ
@@ -31,7 +32,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
 ## テスト・lint の実行
 
 - PR ごとに CI（`ci.yml`）が検証を担う。
-  - `checks (lint)` と `checks (githooks)` を動かす
+  - `checks (lint)` を動かす
   - 変更が届いたレーンごとに `tests (<project>:<target>)` を動かす
   - 結果を `ci-result` にまとめる。`ci-result` と `version-plan` が、`main` の ruleset の必須チェックである
   - tests の job は、job 内の nx リモートキャッシュのサーバを持つ。同じ repo の同じ PR の run が、成功したレーンだけで上げた artifact を取り込む。fork の PR と、ほかの PR・ブランチの結果は取り込まない
@@ -55,13 +56,10 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
     SKIP=check-version-plan-required pre-commit run --hook-stage pre-push --from-ref origin/main --to-ref HEAD
     ```
 
-  - `checks (githooks)` は、次で再現する
+  - `tests (githooks:<target>)` は、他のレーンと同じ `NX_SKIP_NX_CACHE=true pnpm exec nx run githooks:<target>` で再現する。1 ファイルは `.githooks/tests/run.sh <file>` で動かす
 
-    ```
-    pre-commit run --hook-stage manual githooks-tests --from-ref origin/main --to-ref HEAD
-    ```
-
-  - 落ちたテストが特定できたら、以降はそのテストだけを再実行する。`plugins/<plugin>/scripts/ci/run-tests.sh --scope=<scope>` の `<scope>` は、レーン名 `test-<scope>` に当たる。`text-rules`・`nx-release` には `run-tests.sh` が無い。
+  - 落ちたテストが特定できたら、以降はそのテストだけを再実行する。`plugins/<plugin>/scripts/ci/run-tests.sh --scope=<scope>` の `<scope>` は、レーン名 `test-<scope>` に当たる。`text-rules`・`nx-release`・`githooks` には `run-tests.sh` が無い。
+    `githooks` は `.githooks/tests/run.sh` を使う。
 
     ```
     plugins/pecot-workflow/scripts/ci/run-tests.sh --scope=<py|cli|hooks|skills>
@@ -74,7 +72,7 @@ install・build は毎回実行する。lint は pecot-visual と pecot-workflow
   - test は manual の stage の `nx-affected-tests` を CI が動かす。pre-push では動かさない
   - 手で動かすコマンドは `.githooks/README.md` の「検証の置き場」にある
 - GitHub Actions のワークフローは `.github/workflows/` の 8 本である。
-  - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。`checks (lint)`・`checks (githooks)` と、レーンごとの `tests (<project>:<target>)` に分けて同時に動かし、`ci-result` にまとめる
+  - `ci.yml`: PR と main への push で、変更が届いたレーンを devcontainer で検証する。`checks (lint)` と、レーンごとの `tests (<project>:<target>)` に分けて同時に動かし、`ci-result` にまとめる
     - PR と merge queue では `version-plan` の job も動かす
   - `dependabot-auto-merge.yml`: dependabot の minor・patch の PR に、リリースの App のトークンで auto-merge を入れる。必須チェックが通ると merge queue でマージされる
   - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件の一覧にそろえる。PR の変化を App の webhook で、時間で決まる理由を Scheduler で受けて起動し、cron は最後の補助である。専用の GitHub App のトークンを使い、変数 `DEPENDABOT_PRS_APP_CLIENT_ID` が空の間は動かない

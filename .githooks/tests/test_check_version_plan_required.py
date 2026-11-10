@@ -352,8 +352,11 @@ def test_08_block_plan_declares_wrong_group(
 def test_09_nx_unresolved_skips(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
     """9. nx 解決不能 (nx 未インストール) → skip (exit 0 / WARN)。"""
     vpr_repo.build_feature()
-    # stub_nx を呼ばない。PATH 上と node_modules のどちらにも nx は無い。
-    result = _run(script_dir, vpr_repo, run_script, to_ref=vpr_repo.feature_sha)
+    # stub_nx を呼ばない。nx の task の中では PATH に node_modules/.bin が入るため、nx を持つ dir を外す。
+    path = os.pathsep.join(
+        d for d in os.environ["PATH"].split(os.pathsep) if not (Path(d) / "nx").exists()
+    )
+    result = _run(script_dir, vpr_repo, run_script, to_ref=vpr_repo.feature_sha, env={"PATH": path})
     assert result.returncode == 0
     assert "WARN" in (result.stdout + result.stderr)
 

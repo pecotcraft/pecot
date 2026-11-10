@@ -38,8 +38,8 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
 | `check-text-push` | pre-push（CI でも動く） | 平均 0.6 秒・最大 0.8 秒 | push の範囲全体の文面を、秒未満で確かめられる |
 | `check-version-plan-required` | pre-push と CI の `version-plan` の job | 平均 0.4 秒・最大 0.6 秒 | `main` への push では確かめない。dependabot の commit だけの範囲は要求しない（plan はリリース時に作る） |
 | `nx-env-inputs` | pre-push（CI でも動く） | 0.3 秒 | 秒未満で、宣言の不足を push の前に止められる |
-| `githooks-tests` | manual（CI） | 手元で約 17 秒・CI の githooks の job で約 160 秒 | テストで、手元でも十数秒かかる。CI の githooks の job が動かす |
 | `nx-affected-tests` | manual（CI） | 平均 24 秒・最大 123 秒 | 重いので CI に任せる。CI の tests の job がレーンごとに動かす |
+| `githooks:test-*`（4 レーン） | CI の `tests (githooks:<target>)` の job | 各レーン約 25〜55 秒（手元の直列） | 実 nx を起動するテストが重いので、レーンに分けて CI に任せる。`nx-affected-tests` が選ぶ |
 
 - 「CI でも動く」は、CI が pre-commit と pre-push の stage をそのまま実行することを指し、手元と二重になる。
   どれも秒単位なので、二重を受け入れる。
@@ -57,8 +57,9 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
     `--from-ref` の値は、nx の範囲を変えない。
   - refs 付きの実行は、未 staged の変更を退避し、index の内容で動く。
   - `.pre-commit-config.yaml` が未 staged だと止まる。
-  - `githooks-tests` も、同じ形（`pre-commit run --hook-stage manual githooks-tests ...`）で動かせる。
-    全量は `--all-files` で動く。
+  - `.githooks/tests/` のテストは、nx の project `githooks` の 4 レーンで動く。
+    レーンは `test-nx-cache`・`test-nx-affected`・`test-ci`・`test-checks` である。
+    1 レーンは `pnpm exec nx run githooks:<target>`、1 ファイルは `.githooks/tests/run.sh <file>` で動かす。
 
 ## 緊急の force push
 
@@ -280,7 +281,7 @@ build target は hook から単独で起動されないため、PluginGlobals �
 
 ### R6. `repo: local` 内の並び順 (固定)
 
-1. root 共通 hook (`check-*` / `githooks-tests` / `nx-affected-{lint,tests}`) — 既存順を
+1. root 共通 hook (`check-*` / `nx-affected-{lint,tests}`) — 既存順を
    保持。pre-push に残る hook は、`check-text-push` → `check-version-plan-required` →
    `nx-env-inputs` の順（config の順）
 2. plugin 関連の単機能チェック hook（`check-engines-node-drift` 等）を続ける
