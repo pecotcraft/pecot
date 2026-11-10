@@ -154,16 +154,16 @@ function valueError(location: readonly (string | number)[], message: string, inp
 }
 
 function validateRelativePath(value: string, fieldName: string): string | undefined {
-  if (value === '' || pythonStrip(value) === '') return `${fieldName} は空にできません`
-  if (value.startsWith('/')) return `絶対パスは使用できません: ${value}`
-  if (value.split('/').includes('..')) return `親ディレクトリ参照は使用できません: ${value}`
+  if (value === '' || pythonStrip(value) === '') return `${fieldName} must not be empty`
+  if (value.startsWith('/')) return `absolute paths are not allowed: ${value}`
+  if (value.split('/').includes('..')) return `parent directory references are not allowed: ${value}`
   return undefined
 }
 
 function validateTargetRepository(value: string): string | undefined {
-  if (value === '' || pythonStrip(value) === '') return 'target_repo は空にできません'
-  if (value.includes('/')) return `target_repo にスラッシュは含められません: ${value}`
-  if (value === '..' || value === '.') return `target_repo が不正です: ${value}`
+  if (value === '' || pythonStrip(value) === '') return 'target_repo must not be empty'
+  if (value.includes('/')) return `target_repo must not contain a slash: ${value}`
+  if (value === '..' || value === '.') return `invalid target_repo: ${value}`
   return undefined
 }
 
@@ -228,7 +228,7 @@ function parseTimeout(value: JsonValue | undefined): { readonly issues: readonly
   const location = ['setup_command_timeout']
   const converted = convertToInteger(value)
   if ('type' in converted) return { issues: [issueOf(converted.type, location, converted.message, value)], value: undefined }
-  if (converted.value <= 0) return { issues: [valueError(location, `setup_command_timeout は正の整数で指定してください: ${String(converted.value)}`, value)], value: undefined }
+  if (converted.value <= 0) return { issues: [valueError(location, `setup_command_timeout must be a positive integer: ${String(converted.value)}`, value)], value: undefined }
   return { issues: [], value: converted.value }
 }
 
@@ -258,7 +258,7 @@ JSON ファイルから WorktreeConfig を読む。ファイルが無い・JSON 
 */
 export function loadConfig(file: string): WorktreeConfig {
   const shown = normalizePath(file)
-  if (!existsSync(file)) throw new WorktreeConfigError(`設定ファイルが見つかりません: ${shown}`)
+  if (!existsSync(file)) throw new WorktreeConfigError(`config file not found: ${shown}`)
 
   let data: JsonValue
   try {
@@ -266,7 +266,7 @@ export function loadConfig(file: string): WorktreeConfig {
   }
   catch (error: unknown) {
     // 文言は JSON パーサーのもので、Python の JSONDecodeError の文とは違う
-    if (error instanceof InvalidValueError) throw new WorktreeConfigError(`JSONパースエラー: ${shown}: ${error.message}`, { cause: error })
+    if (error instanceof InvalidValueError) throw new WorktreeConfigError(`JSON parse error: ${shown}: ${error.message}`, { cause: error })
     throw error
   }
 
@@ -274,7 +274,7 @@ export function loadConfig(file: string): WorktreeConfig {
     return parseWorktreeConfig(data)
   }
   catch (error: unknown) {
-    if (error instanceof InvalidValueError) throw new WorktreeConfigError(`設定ファイルの検証に失敗しました: ${shown}: ${error.message}`, { cause: error })
+    if (error instanceof InvalidValueError) throw new WorktreeConfigError(`config file validation failed: ${shown}: ${error.message}`, { cause: error })
     throw error
   }
 }
@@ -318,7 +318,7 @@ function splitLines(text: string): readonly string[] {
 export function loadCopyExcludeSpec(mainWorktree: string): GitIgnoreSpec {
   const file = path.join(mainWorktree, WORKTREE_IGNORE_FILENAME)
   if (!existsSync(file)) {
-    throw new WorktreeConfigError(`コピー除外設定が見つかりません: ${WORKTREE_IGNORE_FILENAME}\n  pecot worktree init でテンプレートを生成してください。`)
+    throw new WorktreeConfigError(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
   }
 
   const rawLines = splitLines(readTextFile(file))
@@ -327,7 +327,7 @@ export function loadCopyExcludeSpec(mainWorktree: string): GitIgnoreSpec {
 
   // `/` 単体や空白のみの行などは、何にも当たらないパターンになる。それしか残らなかったら意図通りではない可能性が高い
   if (effectiveLines.length > 0 && spec.matchablePatternCount === 0) {
-    logMessage(`${normalizePath(file)} の全パターンが無効です (有効行 ${String(effectiveLines.length)} 本を silent ignore)。 gitignore 構文を確認してください。`)
+    logMessage(`all patterns in ${normalizePath(file)} are invalid (${String(effectiveLines.length)} effective lines silently ignored): check the gitignore syntax`)
   }
   return spec
 }
@@ -409,7 +409,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
   const targetPath = resolveAbsoluteTarget(projectRoot, link)
 
   if (!existsSync(targetPath)) {
-    const message = isSymbolicLink(targetPath) ? `ターゲットが dangling symlink です: ${targetPath}` : `ターゲットが存在しません: ${targetPath}`
+    const message = isSymbolicLink(targetPath) ? `target is a dangling symlink: ${targetPath}` : `target does not exist: ${targetPath}`
     logMessage(message)
     return { symlinkPath, targetPath, action: 'skipped', message }
   }
@@ -423,11 +423,11 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     }
     else if (existsSync(symlinkPath)) {
       if (isTrackedInRepository(path.join(projectRoot, worktreeSet, repositoryName), link.path)) {
-        logMessage(`git 管理対象のため symlink 作成をスキップ: ${symlinkPath}`)
-        return { symlinkPath, targetPath, action: 'error', message: `git 管理対象のため symlink 作成を中止: ${link.path}` }
+        logMessage(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
+        return { symlinkPath, targetPath, action: 'error', message: `symlink creation aborted because the path is tracked by git: ${link.path}` }
       }
       if (!canOverwrite(symlinkPath, targetPath)) {
-        return { symlinkPath, targetPath, action: 'skipped', message: `リアルファイルが存在します: ${symlinkPath}` }
+        return { symlinkPath, targetPath, action: 'skipped', message: `a real file exists: ${symlinkPath}` }
       }
       if (isDirectory(symlinkPath)) rmSync(symlinkPath, { recursive: true })
       else unlinkSync(symlinkPath)
@@ -440,7 +440,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     if (!hasErrorCode(error)) throw error
     const converted = toOsError(error)
     const message = converted instanceof Error ? converted.message : String(converted)
-    logMessage(`シンボリックリンク作成失敗: ${symlinkPath} -> ${relativeTarget}: ${message}`)
+    logMessage(`failed to create the symlink: ${symlinkPath} -> ${relativeTarget}: ${message}`)
     return { symlinkPath, targetPath, action: 'error', message }
   }
 }
@@ -463,7 +463,7 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
   if (config.links.every(link => !link.path.startsWith(`${PECOT_DIR}/`))) return
   const script = pecotGitignoreEnsureScript()
   if (!isFile(script)) {
-    logMessage(`${PECOT_GITIGNORE_FILENAME} の生成スクリプトが見つかりません: ${script}`)
+    logMessage(`generation script for ${PECOT_GITIGNORE_FILENAME} not found: ${script}`)
     return
   }
   const result = spawnSync('bash', [script], {
@@ -472,7 +472,7 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
     stdio: ['inherit', 'pipe', 'pipe'],
   })
   if (result.error !== undefined) throw toOsError(result.error)
-  if (result.status !== 0) logMessage(`${PECOT_GITIGNORE_FILENAME} を生成できませんでした: ${result.stderr.trim()}`)
+  if (result.status !== 0) logMessage(`could not generate ${PECOT_GITIGNORE_FILENAME}: ${result.stderr.trim()}`)
 }
 
 /**

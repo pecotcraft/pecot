@@ -112,11 +112,11 @@ class WorktreeConfigError(PecotError):
 
 def _validate_relative_path(v: str, field_name: str) -> str:
     if not v or not v.strip():
-        raise ValueError(f"{field_name} は空にできません")
+        raise ValueError(f"{field_name} must not be empty")
     if v.startswith("/"):
-        raise ValueError(f"絶対パスは使用できません: {v}")
+        raise ValueError(f"absolute paths are not allowed: {v}")
     if ".." in v.split("/"):
-        raise ValueError(f"親ディレクトリ参照は使用できません: {v}")
+        raise ValueError(f"parent directory references are not allowed: {v}")
     return v
 
 
@@ -149,11 +149,11 @@ class WorktreeLinkItem(BaseModel):
     @classmethod
     def _v_target_repo(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("target_repo は空にできません")
+            raise ValueError("target_repo must not be empty")
         if "/" in v:
-            raise ValueError(f"target_repo にスラッシュは含められません: {v}")
+            raise ValueError(f"target_repo must not contain a slash: {v}")
         if v in ("..", "."):
-            raise ValueError(f"target_repo が不正です: {v}")
+            raise ValueError(f"invalid target_repo: {v}")
         return v
 
 
@@ -178,7 +178,7 @@ class WorktreeConfig(BaseModel):
     @classmethod
     def _v_setup_command_timeout(cls, v: int | None) -> int | None:
         if v is not None and v <= 0:
-            raise ValueError(f"setup_command_timeout は正の整数で指定してください: {v}")
+            raise ValueError(f"setup_command_timeout must be a positive integer: {v}")
         return v
 
 
@@ -189,18 +189,18 @@ def load_config(path: Path | str) -> WorktreeConfig:
     """JSONファイルから WorktreeConfig を読み込み"""
     path = Path(path)
     if not path.exists():
-        raise WorktreeConfigError(f"設定ファイルが見つかりません: {path}")
+        raise WorktreeConfigError(f"config file not found: {path}")
 
     try:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        raise WorktreeConfigError(f"JSONパースエラー: {path}: {e}") from e
+        raise WorktreeConfigError(f"JSON parse error: {path}: {e}") from e
 
     try:
         return WorktreeConfig.model_validate(data)
     except Exception as e:
-        raise WorktreeConfigError(f"設定ファイルの検証に失敗しました: {path}: {e}") from e
+        raise WorktreeConfigError(f"config file validation failed: {path}: {e}") from e
 
 
 def save_config(config: WorktreeConfig, path: Path | str) -> None:
@@ -250,8 +250,8 @@ def load_copy_exclude_spec(main_wt: Path) -> pathspec.GitIgnoreSpec:
     path = main_wt / WORKTREE_IGNORE_FILENAME
     if not path.exists():
         raise WorktreeConfigError(
-            f"コピー除外設定が見つかりません: {WORKTREE_IGNORE_FILENAME}\n"
-            "  pecot worktree init でテンプレートを生成してください。"
+            f"copy exclude config not found: {WORKTREE_IGNORE_FILENAME}\n"
+            "  run pecot worktree init to generate the template"
         )
 
     raw_lines = path.read_text(encoding="utf-8").splitlines()
@@ -266,8 +266,8 @@ def load_copy_exclude_spec(main_wt: Path) -> pathspec.GitIgnoreSpec:
     matchable = [p for p in spec.patterns if getattr(p, "regex", None) is not None]
     if effective_lines and not matchable:
         logger.warning(
-            "%s の全パターンが無効です (有効行 %d 本を silent ignore)。"
-            " gitignore 構文を確認してください。",
+            "all patterns in %s are invalid (%d effective lines silently ignored): "
+            "check the gitignore syntax",
             path,
             len(effective_lines),
         )
@@ -407,19 +407,19 @@ def _process_link(
 
     if not abs_target.exists():
         if abs_target.is_symlink():
-            logger.warning("ターゲットが dangling symlink です: %s", abs_target)
+            logger.warning("target is a dangling symlink: %s", abs_target)
             return SymlinkResult(
                 symlink_path=symlink_path,
                 target_path=abs_target,
                 action="skipped",
-                message=f"ターゲットが dangling symlink です: {abs_target}",
+                message=f"target is a dangling symlink: {abs_target}",
             )
-        logger.warning("ターゲットが存在しません: %s", abs_target)
+        logger.warning("target does not exist: %s", abs_target)
         return SymlinkResult(
             symlink_path=symlink_path,
             target_path=abs_target,
             action="skipped",
-            message=f"ターゲットが存在しません: {abs_target}",
+            message=f"target does not exist: {abs_target}",
         )
 
     try:
@@ -430,19 +430,21 @@ def _process_link(
         elif symlink_path.exists():
             repo_root = project_root / set_name / repo_name
             if _is_tracked_in_repo(repo_root, link.path):
-                logger.error("git 管理対象のため symlink 作成をスキップ: %s", symlink_path)
+                logger.error(
+                    "symlink creation skipped because the path is tracked by git: %s", symlink_path
+                )
                 return SymlinkResult(
                     symlink_path=symlink_path,
                     target_path=abs_target,
                     action="error",
-                    message=f"git 管理対象のため symlink 作成を中止: {link.path}",
+                    message=f"symlink creation aborted because the path is tracked by git: {link.path}",
                 )
             if not overwrite_strategy(symlink_path, abs_target):
                 return SymlinkResult(
                     symlink_path=symlink_path,
                     target_path=abs_target,
                     action="skipped",
-                    message=f"リアルファイルが存在します: {symlink_path}",
+                    message=f"a real file exists: {symlink_path}",
                 )
             if symlink_path.is_dir():
                 shutil.rmtree(symlink_path)
@@ -457,7 +459,7 @@ def _process_link(
         )
     except OSError as e:
         logger.error(
-            "シンボリックリンク作成失敗: %s -> %s: %s",
+            "failed to create the symlink: %s -> %s: %s",
             symlink_path,
             rel_target,
             e,
@@ -505,7 +507,7 @@ def _ensure_pecot_gitignore(config: WorktreeConfig, wt_root: Path) -> None:
     script = _pecot_gitignore_ensure_script()
     if not script.is_file():
         logger.warning(
-            "%s の生成スクリプトが見つかりません: %s",
+            "generation script for %s not found: %s",
             PECOT_GITIGNORE_FILENAME,
             script,
         )
@@ -518,9 +520,7 @@ def _ensure_pecot_gitignore(config: WorktreeConfig, wt_root: Path) -> None:
         check=False,
     )
     if result.returncode != 0:
-        logger.warning(
-            "%s を生成できませんでした: %s", PECOT_GITIGNORE_FILENAME, result.stderr.strip()
-        )
+        logger.warning("could not generate %s: %s", PECOT_GITIGNORE_FILENAME, result.stderr.strip())
 
 
 def create_symlinks(

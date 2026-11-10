@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "warning: could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: GitHub APIエラー: 502 Bad Gateway\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
+  "stderr": "warning: could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: GitHub API error: 502 Bad Gateway\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
   "exitCode": 0,
   "requests": [
     {

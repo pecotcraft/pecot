@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not read the default branch of acme/demo: リソースが見つかりません: {{GITHUB_API}}/repos/acme/demo\n",
+  "stderr": "error: could not read the default branch of acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo\n",
   "exitCode": 1,
   "requests": [
     {

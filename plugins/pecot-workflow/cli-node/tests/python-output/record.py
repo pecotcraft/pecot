@@ -78,7 +78,7 @@ def record_frontmatter(data: Json) -> Json:
     # YAML の構文エラーは、文言を比べない（接頭辞だけ）。入力が失敗することだけを確かめる
     for yaml_text in data["yamlFailures"]:
         result = frontmatter_result(parse_frontmatter, yaml_text)
-        prefix = "YAMLのパースに失敗しました: "
+        prefix = "failed to parse YAML: "
         if not result.get("error", "").startswith(prefix):
             raise SystemExit(f"YAML の失敗にならない入力: {yaml_text!r}")
     out["yamlFailures"] = data["yamlFailures"]

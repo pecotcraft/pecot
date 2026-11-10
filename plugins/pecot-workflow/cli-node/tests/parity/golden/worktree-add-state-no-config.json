@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: ワークツリー設定が見つかりません: .pecot/config/worktree-config.json\n    pecot worktree init でテンプレートを生成してください。\n",
+  "stderr": "error: worktree config not found: .pecot/config/worktree-config.json\n    run pecot worktree init to generate the template\n",
   "exitCode": 1,
   "requests": [],
   "files": {

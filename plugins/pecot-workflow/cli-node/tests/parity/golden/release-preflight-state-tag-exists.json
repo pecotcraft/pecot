@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\nerror: タグ v0.2.0 はローカルに既に存在します\n",
+  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\nerror: tag already exists locally: v0.2.0\n",
   "exitCode": 1,
   "requests": [
     {

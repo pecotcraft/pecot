@@ -1,6 +1,6 @@
 {
   "stdout": " ",
-  "stderr": "real file exists: {{TMP}}/wt1/demo/CLAUDE.local.md\noverwrite it? [y/N]:count: symlinks created in {{TMP}}/wt1/demo: 0\nskipped: symlink {{TMP}}/wt1/demo/CLAUDE.local.md (リアルファイルが存在します: {{TMP}}/wt1/demo/CLAUDE.local.md)\n",
+  "stderr": "real file exists: {{TMP}}/wt1/demo/CLAUDE.local.md\noverwrite it? [y/N]:count: symlinks created in {{TMP}}/wt1/demo: 0\nskipped: symlink {{TMP}}/wt1/demo/CLAUDE.local.md (a real file exists: {{TMP}}/wt1/demo/CLAUDE.local.md)\n",
   "exitCode": 0,
   "requests": [],
   "files": {

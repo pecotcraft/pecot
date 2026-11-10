@@ -109,7 +109,7 @@ def _classify_forbidden(
     """
     if client.is_dependabot_alerts_enabled(owner, repo):
         raise DependabotAlertError(
-            f"{owner}/{repo}: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）"
+            f"{owner}/{repo}: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)"
         )
     return DependabotAlertStatus(
         enabled=False, open_count=0, max_severity=None, alerts_url=alerts_url
@@ -149,15 +149,17 @@ def fetch_dependabot_alert_status(
     except GitHubAPIError as e:
         raise DependabotAlertError(f"{owner}/{repo}: {describe_api_error(e)}") from e
     except httpx.HTTPError as e:
-        raise DependabotAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
+        raise DependabotAlertError(f"{owner}/{repo}: request failed: {e}") from e
     except (ValueError, TypeError) as e:
-        raise DependabotAlertError(f"{owner}/{repo}: 応答を読めません: {e}") from e
+        raise DependabotAlertError(f"{owner}/{repo}: cannot read the response: {e}") from e
 
     if isinstance(alerts, DependabotAlertStatus):
         return alerts
     # 応答は検証されていない JSON なので、型が dict[str, Any] でも要素を確かめる
     if not all(isinstance(a, dict) for a in cast("list[Any]", alerts)):
-        raise DependabotAlertError(f"{owner}/{repo}: 応答を読めません: alert の一覧ではありません")
+        raise DependabotAlertError(
+            f"{owner}/{repo}: cannot read the response: not a list of alerts"
+        )
     return DependabotAlertStatus(
         enabled=True,
         open_count=len(alerts),

@@ -39,7 +39,7 @@ def _validate_repo_option(value: str | None) -> str | None:
     try:
         RepoRef.parse(value)
     except ValueError as e:
-        raise typer.BadParameter(f"expected 'owner/repo' ({e})") from None
+        raise typer.BadParameter(f"must be in 'owner/repo' form: {e}") from None
     return value
 
 

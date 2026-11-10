@@ -5,11 +5,8 @@
 # 届け先の gh は PATH 先頭の偽 gh に差し替え、引数を記録する。GitHub にも npm の registry の公開先にも書き込まない。
 # ただし npm-shrinkwrap.json の生成だけは、npm のメタデータ解決を伴う。
 #
-# 前提は、cli・eslint プラグイン・text-rules の dist が build 済みであること。
-# build 自体は cli / slidev レーンと nx の text-rules:build が担当するので、本テストでは実行しない。
-# publish は原則 --skip-build を付けて実行する。
-# build を伴う場合（セクション 1-4）だけは、偽 pnpm を PATH に被せて、呼び出し順だけを検証する。
-# run-tests.sh --scope=release が事前に build する。
+# 前提は cli・eslint プラグイン・text-rules の dist が build 済みであること（run-tests.sh --scope=release が事前に build する）。
+# publish は原則 --skip-build で実行し、セクション 1-4 だけ偽 pnpm で build の呼び出し順と env を見る。
 #
 # `set -e` は使わない。早期 return の検証で、非ゼロ終了を意図的に発生させる。
 set -u
@@ -23,6 +20,8 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
 # nx release --dry-run の親から起動されると NX_DRY_RUN が届き、非 dry-run の検証まで dry-run になる。
 # 本テストは dry-run の有無を引数で作り分けるので、継承した値は先頭で捨てる。
 unset NX_DRY_RUN
+# 親の値を継ぐと、publish が渡さなくても 1-4 の env の assert が通る。
+unset PECOTV_SKIP_LIB_BUILD
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 RELEASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -447,12 +446,8 @@ for needle in "gh release view pecot-visual-v$PLUGIN_VERSION -R" \
 done
 
 # --- 1-4. build を伴う場合の pnpm 呼び出し順 ---
-# publish は build を直接起動する。
-# node_modules が lockfile と乖離した環境では、install を経ずに build が落ちる (#1087)。
-# build の直前に、lock の確認と install が入ることを、呼び出しの順序と cwd で固定する。
-# 実 build はレーンの担当なので、この 1 ケースだけ、PATH の先頭に偽 pnpm を被せて呼び出しを記録する。
-# resolve_pnpm は `command -v pnpm` を最優先するので、shim が採られる。
-# build は偽装するので、配布ツリーの cli/dist は既存の build 済みツリーがそのまま使われる。
+# resolve_pnpm は `command -v pnpm` を最優先するので、PATH 先頭の偽 pnpm が採られる。
+# dist が無い状態は本体の dist を消せないのでここでは作らず、手元の Repro で確かめる。build の順・cwd・PECOTV_SKIP_LIB_BUILD を固定する (#1087, #245)。
 echo "==> dry-run で pnpm 呼び出し順を検証（偽 pnpm）"
 mkdir -p "$TMP/bin"
 PNPM_CALLS="$TMP/pnpm-calls.txt"
@@ -477,9 +472,9 @@ eslint_source_fingerprint() {
 ESLINT_SOURCE_BEFORE="$(eslint_source_fingerprint)"
 cat > "$TMP/bin/pnpm" << 'FAKE_PNPM'
 #!/bin/bash
-# 呼び出しごとに「cwd<TAB>引数」を 1 行追記する。build はしない。
+# 呼び出しごとに「cwd<TAB>引数<TAB>PECOTV_SKIP_LIB_BUILD の値」を 1 行追記する。build はしない。
 # eslint プラグインの build 呼び出しだけは、build の時点で残っていた dist を記録し、退避した dist を戻す。
-printf '%s\t%s\n' "$PWD" "$*" >> "$PNPM_CALLS"
+printf '%s\t%s\t%s\n' "$PWD" "$*" "${PECOTV_SKIP_LIB_BUILD-unset}" >> "$PNPM_CALLS"
 case "$*" in
     "--filter @pecot/slidev-assets-dev run build")
         for pkg in $ESLINT_PKGS; do
@@ -513,18 +508,29 @@ else
     fail "build を伴う dry-run が、本体ツリーの eslint プラグインの dist を変えた"
 fi
 assert_eq "1 回目の pnpm 呼び出しは frozen の install" "install --frozen-lockfile" \
-    "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
+    "$(sed -n '1p' "$PNPM_CALLS" | cut -f2)"
 assert_eq "install の cwd はリポジトリルート" "$REPO_ROOT" \
-    "$(sed -n '1s/\t.*//p' "$PNPM_CALLS")"
-assert_eq "2 回目の pnpm 呼び出しは cli の build" "--filter @pecot/pecotv-cli run build" \
-    "$(sed -n '2s/^[^\t]*\t//p' "$PNPM_CALLS")"
-assert_eq "3 回目の pnpm 呼び出しは eslint プラグインを含む build" "--filter @pecot/slidev-assets-dev run build" \
-    "$(sed -n '3s/^[^\t]*\t//p' "$PNPM_CALLS")"
-assert_eq "4 回目の pnpm 呼び出しは text-rules の build" "--filter @pecot/text-rules-src run build" \
-    "$(sed -n '4s/^[^\t]*\t//p' "$PNPM_CALLS")"
+    "$(sed -n '1p' "$PNPM_CALLS" | cut -f1)"
+assert_eq "2 回目の pnpm 呼び出しは text-rules の build" "--filter @pecot/text-rules-src run build" \
+    "$(sed -n '2p' "$PNPM_CALLS" | cut -f2)"
 assert_eq "text-rules の build の cwd はリポジトリルート" "$REPO_ROOT" \
-    "$(sed -n '4s/\t.*//p' "$PNPM_CALLS")"
+    "$(sed -n '2p' "$PNPM_CALLS" | cut -f1)"
+assert_eq "3 回目の pnpm 呼び出しは cli の build" "--filter @pecot/pecotv-cli run build" \
+    "$(sed -n '3p' "$PNPM_CALLS" | cut -f2)"
+assert_eq "4 回目の pnpm 呼び出しは eslint プラグインを含む build" "--filter @pecot/slidev-assets-dev run build" \
+    "$(sed -n '4p' "$PNPM_CALLS" | cut -f2)"
 assert_eq "pnpm 呼び出しは 4 回だけ" "4" "$(wc -l < "$PNPM_CALLS" | tr -d ' ')"
+TEXT_RULES_LINE="$(awk -F'\t' '$2 ~ /text-rules-src run build/ { print NR; exit }' "$PNPM_CALLS")"
+CLI_LINE="$(awk -F'\t' '$2 ~ /pecotv-cli run build/ { print NR; exit }' "$PNPM_CALLS")"
+if [ -n "$TEXT_RULES_LINE" ] && [ -n "$CLI_LINE" ] && [ "$TEXT_RULES_LINE" -lt "$CLI_LINE" ]; then
+    pass "text-rules の build は cli の build より前"
+else
+    fail "text-rules の build が cli の build より前にない (text-rules=$TEXT_RULES_LINE cli=$CLI_LINE)"
+fi
+assert_eq "PECOTV_SKIP_LIB_BUILD=1 は eslint プラグインの build の行だけ" "4" \
+    "$(awk -F'\t' '$3 == "1" { print NR }' "$PNPM_CALLS" | paste -sd, -)"
+assert_eq "それ以外の呼び出しでは PECOTV_SKIP_LIB_BUILD が unset" "1,2,3" \
+    "$(awk -F'\t' '$3 == "unset" { print NR }' "$PNPM_CALLS" | paste -sd, -)"
 
 # install が失敗したときに build へ進まず非ゼロで止まることを固定する。
 # install は lockfile と package.json の乖離でも落ちるため、そのまま build に進むと lockfile を
@@ -532,7 +538,7 @@ assert_eq "pnpm 呼び出しは 4 回だけ" "4" "$(wc -l < "$PNPM_CALLS" | tr -
 echo "==> install の失敗で publish が止まることを検証（偽 pnpm）"
 cat > "$TMP/bin/pnpm" << 'FAKE_PNPM_FAIL'
 #!/bin/bash
-printf '%s\t%s\n' "$PWD" "$*" >> "$PNPM_CALLS"
+printf '%s\t%s\t%s\n' "$PWD" "$*" "${PECOTV_SKIP_LIB_BUILD-unset}" >> "$PNPM_CALLS"
 case "$*" in
     "install --frozen-lockfile") exit 1 ;;
 esac
@@ -551,7 +557,7 @@ else
 fi
 # 記録が空だと下の build 不在は自明に成立するため、install が実際に呼ばれた印を先に置く。
 assert_eq "失敗ケースでも 1 回目は install" "install --frozen-lockfile" \
-    "$(sed -n '1s/^[^\t]*\t//p' "$PNPM_CALLS")"
+    "$(sed -n '1p' "$PNPM_CALLS" | cut -f2)"
 assert_eq "install 失敗後に build を呼ばない" "0" \
     "$(grep -c 'run build' "$PNPM_CALLS" | tr -d ' ')"
 

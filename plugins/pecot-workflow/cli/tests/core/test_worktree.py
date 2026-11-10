@@ -81,7 +81,7 @@ class TestFindMainWorktree:
     def test_command_failure_raises(self) -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
-            with pytest.raises(RuntimeError, match="ワークツリー一覧を取得できません"):
+            with pytest.raises(RuntimeError, match="cannot get the worktree list"):
                 find_main_worktree(Path("/tmp/nonexistent"))
 
 
@@ -118,10 +118,10 @@ class TestDetectProjectRoot:
                 detect_project_root(repo)
         msg = str(exc_info.value)
         # 4ブロック構成を検証
-        assert "現在:" in msg
-        assert "期待:" in msg
-        assert "なぜ base/" in msg
-        assert "移行手順" in msg
+        assert "current:" in msg
+        assert "expected:" in msg
+        assert "why base/" in msg
+        assert "migration steps" in msg
 
     def test_symlink_resolution(self, tmp_path: Path) -> None:
         """シンボリックリンク経由: resolve() で正規化してから確認"""
@@ -182,7 +182,7 @@ class TestGetNextSetName:
         """全セットに参加済み + max_n まで埋まっている → RuntimeError"""
         for i in range(1, 10):
             (tmp_path / f"wt{i}" / "myrepo").mkdir(parents=True)
-        with pytest.raises(RuntimeError, match="全て使用済み"):
+        with pytest.raises(RuntimeError, match="are in use"):
             get_next_set_name(tmp_path, "myrepo")
 
     def test_ignores_base_dir(self, tmp_path: Path) -> None:
@@ -308,7 +308,7 @@ class TestCreateWorktree:
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
-            with pytest.raises(RuntimeError, match="upstream が想定と異なります"):
+            with pytest.raises(RuntimeError, match="upstream differs from the expected one"):
                 create_worktree(
                     cwd=repo,
                     name="wt1",
@@ -474,7 +474,7 @@ class TestCreateWorktree:
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
-            with pytest.raises(RuntimeError, match="upstream が想定と異なります"):
+            with pytest.raises(RuntimeError, match="upstream differs from the expected one"):
                 create_worktree(
                     cwd=repo,
                     name="wt1",
@@ -777,7 +777,7 @@ class TestCreateWorktree:
                 )
 
         msg = str(exc_info.value)
-        assert "登録されていません" in msg
+        assert "is not registered" in msg
         assert "pecot project set-repo myowner/myrepo" in msg
         assert "pecot project activate <PROJECT>" in msg
 
@@ -889,9 +889,9 @@ class TestCreateWorktree:
                 )
 
         msg = str(exc_info.value)
-        assert "設定の読み込みに失敗" in msg
+        assert "failed to load the worktree config" in msg
         assert "worktree-config.json" in msg
-        assert "修正してから再実行" in msg
+        assert "fix the config file and run it again" in msg
 
 
 # _run_setup_command のテスト
@@ -1144,7 +1144,7 @@ class TestIsWorktreeEnv:
             mock_run.side_effect = subprocess.CalledProcessError(
                 returncode=128, cmd="git", stderr="fatal: not a git repository"
             )
-            with pytest.raises(RuntimeError, match="Gitリポジトリではありません"):
+            with pytest.raises(RuntimeError, match="not a git repository"):
                 is_worktree_env(Path("/tmp"))
 
 
@@ -1243,7 +1243,7 @@ class TestEnsureDevcontainerEnvironment:
                 ensure_devcontainer_environment()
         msg = str(exc_info.value)
         assert "devcontainer" in msg
-        assert "プロジェクトの .devcontainer/ を用意し" in msg
+        assert "prepare .devcontainer/ in the project" in msg
         assert "Reopen in Container" in msg
         assert "a-dcgen" not in msg
 

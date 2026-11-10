@@ -134,7 +134,7 @@ export function projectRoot(options: Readonly<ProjectRootOptions> = {}): string 
   const toplevel = gitToplevel({ cwd, stripGitEnvironment: true })
   if (toplevel !== undefined) return toplevel
 
-  throw new ProjectRootNotFoundError('プロジェクトルートが見つかりません。gitリポジトリ内で実行するか、CLAUDE_PROJECT_DIR環境変数を設定してください。')
+  throw new ProjectRootNotFoundError('project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable')
 }
 
 /**
@@ -185,7 +185,7 @@ export function reserveOutputPath(output: string, nameFor: (timestamp: string) =
     }
     return candidate
   }
-  throw new OutputPathReservationError(`出力パスを予約できませんでした（${String(maxAttempts)} 件の候補名がすべて使用済み。最後の候補: ${candidate}）`)
+  throw new OutputPathReservationError(`could not reserve an output path: all ${String(maxAttempts)} candidate names are in use (last candidate: ${candidate})`)
 }
 
 /**

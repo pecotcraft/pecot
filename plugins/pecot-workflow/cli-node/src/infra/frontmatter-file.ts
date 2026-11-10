@@ -10,7 +10,7 @@ import { normalizePath } from './paths.js'
 import { readTextFile } from './text-file.js'
 
 function readFrontmatterFile(file: string): string {
-  if (!existsSync(file)) throw new FrontmatterError(`ファイルが見つかりません: ${normalizePath(file)}`)
+  if (!existsSync(file)) throw new FrontmatterError(`file not found: ${normalizePath(file)}`)
   return readTextFile(file)
 }
 

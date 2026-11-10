@@ -172,6 +172,21 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 ---
 
+## Phase 7a: User Story 2 — core の文言を英語にする (Priority: P1)
+
+**Goal**: `cli/core/` が作る例外・検証・警告・ログの文言が英語になり、どのコマンドの `error:` の行にも core 由来の日本語が残らない
+
+**Independent Test**: `cli/tests/unit/test_english_only.py` の `cli/core/` の走査が通る。記録し直した golden の stdout・stderr に core 由来の日本語が 0 文字
+
+- [x] T065 [US2] `cli/tests/unit/test_english_only.py` に、`cli/core/` の全文字列リテラル（f-string の固定部分を含む）を走査するテストを足す。GitHub やファイルに書く中身と判定の材料は、理由つきの除外の一覧に載せる
+- [x] T066 [US2] `cli/core/` の例外・検証・logger・警告の文言と、それを包む `cli/commands/options.py` の文言を英語にする。テストの期待値も直す
+- [x] T067 [US2] `cli-node/src/` の対応する文言を同じ英語にする。`cli-node/tests/python-output/` の fixture は `record.py` で記録し直す（spec 020 の FR-007）
+- [x] T068 [US2] core の文言が出る golden を記録し直す
+
+**Checkpoint**: `record.py --check` と `record:parity:check` の差が 0 件
+
+---
+
 ## Phase 8: User Story 3 — 直接の出力を lint で止める (Priority: P2)
 
 **Goal**: pecot-workflow の Python と `cli-node/` で、共通の関数の外の直接の出力を lint が止める
@@ -184,6 +199,7 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
   - banned-api の理由の文言で、`cli/commands/_output.py` を使うよう示す
   - `per-file-ignores` で `commands/_output.py` と `tests/` を外す
 - [ ] T035 [US3] T034 で見つかる違反を直す。`cli/core/` などコマンドの外の出力は、`Output` に移すか、呼ぶ側のコマンドへ返す形にする
+  - `cli/core/worktree.py`・`worktree_links.py` の logger も対象にする。handler が無く、Python の `lastResort` が前置きの無い行を stderr に出している。T034 の禁止の対象に logging は入らないので、ここで移す
 - [ ] T036 [US3] `cli-node/eslint.config.js` に、直接の出力を止める規則を足す
   - `no-console`
   - `no-restricted-syntax` で、`stdout`・`stderr` という名前の識別子・プロパティへの `.write` 呼び出し。`process.stdout.write` も含む

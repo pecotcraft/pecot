@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "warning: could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
+  "stderr": "warning: could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
   "exitCode": 0,
   "requests": [
     {

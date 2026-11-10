@@ -126,13 +126,13 @@ class IssueFrontmatter(BaseModel):
     def validate_order_with_parent_epic(self) -> IssueFrontmatter:
         """parent_epicとorderの相互依存バリデーション"""
         if self.parent_epic is not None and self.order is None:
-            raise ValueError("parent_epicが指定されている場合、orderは必須です")
+            raise ValueError("order is required when parent_epic is set")
         if self.parent_epic is None and self.order is not None:
-            raise ValueError("orderを指定する場合、parent_epicも指定してください")
+            raise ValueError("parent_epic is required when order is set")
         if self.order is not None and self.order <= 0:
-            raise ValueError(f"orderは1以上の整数である必要があります（現在: {self.order}）")
+            raise ValueError(f"order must be an integer of 1 or more: {self.order}")
         if self.parallel is not None and self.order is None:
-            raise ValueError("parallelを指定する場合、orderも指定してください")
+            raise ValueError("order is required when parallel is set")
         return self
 
 
@@ -269,12 +269,12 @@ def parse_frontmatter(content: str) -> ParsedIssue:
     """
     # フロントマターの存在確認
     if not content.startswith("---"):
-        raise FrontmatterError("フロントマターが見つかりません（---で始まっていない）")
+        raise FrontmatterError("frontmatter not found (does not start with ---)")
 
     # フロントマターの終端確認
     match = FRONTMATTER_PATTERN.match(content)
     if not match:
-        raise FrontmatterError("フロントマターが閉じられていません（終端の---がない）")
+        raise FrontmatterError("frontmatter is not closed (missing closing ---)")
 
     yaml_content = match.group(1)
     body = strip_leading_html_comment(content[match.end() :].strip()).strip()
@@ -283,10 +283,10 @@ def parse_frontmatter(content: str) -> ParsedIssue:
     try:
         data = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
-        raise FrontmatterError(f"YAMLのパースに失敗しました: {e}") from e
+        raise FrontmatterError(f"failed to parse YAML: {e}") from e
 
     if not isinstance(data, dict):
-        raise FrontmatterError("フロントマターはマッピング（key: value）形式である必要があります")
+        raise FrontmatterError("frontmatter must be a mapping (key: value)")
 
     # Pydanticモデルへの変換
     try:
@@ -299,7 +299,7 @@ def parse_frontmatter(content: str) -> ParsedIssue:
             msg = error["msg"]
             errors.append(f"  - {field}: {msg}")
         error_detail = "\n".join(errors)
-        raise FrontmatterError(f"バリデーションエラー:\n{error_detail}") from e
+        raise FrontmatterError(f"validation error:\n{error_detail}") from e
 
     return ParsedIssue(frontmatter=frontmatter, body=body)
 
@@ -319,7 +319,7 @@ def parse_issue_file(path: Path | str) -> ParsedIssue:
     path = Path(path)
 
     if not path.exists():
-        raise FrontmatterError(f"ファイルが見つかりません: {path}")
+        raise FrontmatterError(f"file not found: {path}")
 
     content = path.read_text(encoding="utf-8")
     return parse_frontmatter(content)
@@ -339,12 +339,12 @@ def parse_comment_content(content: str) -> ParsedComment:
     """
     # フロントマターの存在確認
     if not content.startswith("---"):
-        raise FrontmatterError("フロントマターが見つかりません（---で始まっていない）")
+        raise FrontmatterError("frontmatter not found (does not start with ---)")
 
     # フロントマターの終端確認
     match = FRONTMATTER_PATTERN.match(content)
     if not match:
-        raise FrontmatterError("フロントマターが閉じられていません（終端の---がない）")
+        raise FrontmatterError("frontmatter is not closed (missing closing ---)")
 
     yaml_content = match.group(1)
     body = strip_leading_html_comment(content[match.end() :].strip()).strip()
@@ -353,10 +353,10 @@ def parse_comment_content(content: str) -> ParsedComment:
     try:
         data = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
-        raise FrontmatterError(f"YAMLのパースに失敗しました: {e}") from e
+        raise FrontmatterError(f"failed to parse YAML: {e}") from e
 
     if not isinstance(data, dict):
-        raise FrontmatterError("フロントマターはマッピング（key: value）形式である必要があります")
+        raise FrontmatterError("frontmatter must be a mapping (key: value)")
 
     # Pydanticモデルへの変換
     try:
@@ -369,7 +369,7 @@ def parse_comment_content(content: str) -> ParsedComment:
             msg = error["msg"]
             errors.append(f"  - {field}: {msg}")
         error_detail = "\n".join(errors)
-        raise FrontmatterError(f"バリデーションエラー:\n{error_detail}") from e
+        raise FrontmatterError(f"validation error:\n{error_detail}") from e
 
     return ParsedComment(frontmatter=frontmatter, body=body)
 
@@ -390,7 +390,7 @@ def set_frontmatter_value(content: str, key: str, value: str) -> str:
     """
     match = FRONTMATTER_PATTERN.match(content)
     if not match:
-        raise FrontmatterError("フロントマターが見つかりません")
+        raise FrontmatterError("frontmatter not found")
     lines = match.group(1).split("\n")
     entry = f'{key}: "{value}"'
     key_re = re.compile(rf"^{re.escape(key)}\s*:")
@@ -416,7 +416,7 @@ def parse_comment_file(path: Path | str) -> ParsedComment:
     path = Path(path)
 
     if not path.exists():
-        raise FrontmatterError(f"ファイルが見つかりません: {path}")
+        raise FrontmatterError(f"file not found: {path}")
 
     content = path.read_text(encoding="utf-8")
     return parse_comment_content(content)
@@ -436,12 +436,12 @@ def parse_pr_content(content: str) -> ParsedPR:
     """
     # フロントマターの存在確認
     if not content.startswith("---"):
-        raise FrontmatterError("フロントマターが見つかりません（---で始まっていない）")
+        raise FrontmatterError("frontmatter not found (does not start with ---)")
 
     # フロントマターの終端確認
     match = FRONTMATTER_PATTERN.match(content)
     if not match:
-        raise FrontmatterError("フロントマターが閉じられていません（終端の---がない）")
+        raise FrontmatterError("frontmatter is not closed (missing closing ---)")
 
     yaml_content = match.group(1)
     body = strip_leading_html_comment(content[match.end() :].strip()).strip()
@@ -450,10 +450,10 @@ def parse_pr_content(content: str) -> ParsedPR:
     try:
         data = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
-        raise FrontmatterError(f"YAMLのパースに失敗しました: {e}") from e
+        raise FrontmatterError(f"failed to parse YAML: {e}") from e
 
     if not isinstance(data, dict):
-        raise FrontmatterError("フロントマターはマッピング（key: value）形式である必要があります")
+        raise FrontmatterError("frontmatter must be a mapping (key: value)")
 
     # Pydanticモデルへの変換
     try:
@@ -466,7 +466,7 @@ def parse_pr_content(content: str) -> ParsedPR:
             msg = error["msg"]
             errors.append(f"  - {field}: {msg}")
         error_detail = "\n".join(errors)
-        raise FrontmatterError(f"バリデーションエラー:\n{error_detail}") from e
+        raise FrontmatterError(f"validation error:\n{error_detail}") from e
 
     return ParsedPR(frontmatter=frontmatter, body=body)
 
@@ -486,7 +486,7 @@ def parse_pr_file(path: Path | str) -> ParsedPR:
     path = Path(path)
 
     if not path.exists():
-        raise FrontmatterError(f"ファイルが見つかりません: {path}")
+        raise FrontmatterError(f"file not found: {path}")
 
     content = path.read_text(encoding="utf-8")
     return parse_pr_content(content)

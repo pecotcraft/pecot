@@ -94,7 +94,7 @@ function captureStderr(): { readonly text: () => string } {
   return { text: () => chunks.join('') }
 }
 
-const FALLBACK_WARNING = '⚠ 環境変数のトークンが無効です（401 Unauthorized）。gh auth token にフォールバックしました。\n  → .env のトークンを更新するか削除してください。\n'
+const FALLBACK_WARNING = 'warning: the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n  update or remove the token in .env\n'
 
 interface RawRequest {
   readonly method: string
@@ -197,7 +197,7 @@ describe('resolveApiUrlOverride', () => {
     'http://127.0.0.1.evil.example',
   ])('%j は ValueError と同じ文で拒否する', (value) => {
     setEnvironment({ PECOT_GITHUB_API_URL: value })
-    expect(() => resolveApiUrlOverride()).toThrow(new InvalidValueError(`PECOT_GITHUB_API_URL は http://127.0.0.1 か http://localhost の URL だけを受け付けます: ${value}`))
+    expect(() => resolveApiUrlOverride()).toThrow(new InvalidValueError(`PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${value}`))
   })
 
   it('不正な値はクライアントの構築で InvalidValueError になる', () => {
@@ -340,9 +340,9 @@ describe('トークンの取得', () => {
     }
     expect(thrown).toBeInstanceOf(GitHubAuthError)
     expect(thrown).toHaveProperty('message',
-      `認証エラー: GitHub APIのトークンを取得できませんでした。\n\n${file} を生成しました。以下の手順でトークンを設定してください:\n\n`
-      + `1. トークンを取得: https://ghes.example.com/settings/tokens\n   必要なスコープ: repo, read:org, project\n\n`
-      + `2. ${file} を編集して PECOT_GITHUB_GHES_TOKEN にトークンを設定\n\nまたは GitHub CLI で認証:\n   gh auth login -h ghes.example.com`,
+      `authentication error: could not get a GitHub API token\n\n${file} was generated. Set the token as follows:\n\n`
+      + `1. get a token: https://ghes.example.com/settings/tokens\n   required scopes: repo, read:org, project\n\n`
+      + `2. edit ${file} and set the token in PECOT_GITHUB_GHES_TOKEN\n\nor authenticate with the GitHub CLI:\n   gh auth login -h ghes.example.com`,
     )
     expect(readFileSync(file, 'utf8')).toBe(
       '# pecot-cli 認証設定\n# 各トークンの値を設定してください\n#\n# トークン作成時は必要なスコープを付与してください\n\n'
@@ -355,9 +355,9 @@ describe('トークンの取得', () => {
     useFakeGh()
     const file = path.join(config, '.env')
     expect(() => new GitHubClientBase({ host: 'gitlab.example.com' })).toThrow(
-      `認証エラー: GitHub APIのトークンを取得できませんでした。\n\n${file} を生成しました。以下の手順でトークンを設定してください:\n\n`
-      + `1. トークンを取得: https://gitlab.example.com/settings/tokens\n\n\n`
-      + `2. ${file} を編集して PECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN にトークンを設定\n\nまたは GitHub CLI で認証:\n   gh auth login -h gitlab.example.com`,
+      `authentication error: could not get a GitHub API token\n\n${file} was generated. Set the token as follows:\n\n`
+      + `1. get a token: https://gitlab.example.com/settings/tokens\n\n\n`
+      + `2. edit ${file} and set the token in PECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN\n\nor authenticate with the GitHub CLI:\n   gh auth login -h gitlab.example.com`,
     )
   })
 
@@ -377,7 +377,7 @@ describe('トークンの取得', () => {
     installFakeGh(bin, { token: '' })
     prependToPath(bin)
     expect(() => new GitHubClientBase({ host: 'github.com' })).toThrow(GitHubAuthError)
-    expect(() => new GitHubClientBase({ host: 'github.com' })).toThrow('認証エラー: GitHub APIのトークンを取得できませんでした。')
+    expect(() => new GitHubClientBase({ host: 'github.com' })).toThrow('authentication error: could not get a GitHub API token')
     expect(existsSync(path.join(config, '.env'))).toBe(true)
   })
 
@@ -421,44 +421,44 @@ describe('handleHttpError', () => {
   it('401 は GitHubAuthError', () => {
     const error = failure(responseOf(401, 'Unauthorized'))
     expect(error).toBeInstanceOf(GitHubAuthError)
-    expect(error).toMatchObject({ message: '認証に失敗しました。トークンを確認してください。', statusCode: 401, responseBody: 'Unauthorized' })
+    expect(error).toMatchObject({ message: 'authentication failed: check the token', statusCode: 401, responseBody: 'Unauthorized' })
   })
 
   it('404 は URL を含む GitHubNotFoundError', () => {
     const error = failure(responseOf(404, 'Not Found'))
     expect(error).toBeInstanceOf(GitHubNotFoundError)
-    expect(error).toMatchObject({ message: 'リソースが見つかりません: https://api.github.com/repos/test/test', statusCode: 404, responseBody: 'Not Found' })
+    expect(error).toMatchObject({ message: 'resource not found: https://api.github.com/repos/test/test', statusCode: 404, responseBody: 'Not Found' })
   })
 
   it('403 で本文に rate limit があれば GitHubRateLimitError。大文字小文字は区別しない', () => {
     const error = failure(responseOf(403, 'API Rate Limit exceeded'))
     expect(error).toBeInstanceOf(GitHubRateLimitError)
-    expect(error).toMatchObject({ message: 'APIレート制限に達しました。', statusCode: 403 })
+    expect(error).toMatchObject({ message: 'API rate limit reached', statusCode: 403 })
   })
 
   it('429 は GitHubRateLimitError（本文は問わない）', () => {
     const error = failure(responseOf(429, 'Too Many Requests'))
     expect(error).toBeInstanceOf(GitHubRateLimitError)
-    expect(error).toMatchObject({ message: 'APIレート制限に達しました。', statusCode: 429, responseBody: 'Too Many Requests' })
+    expect(error).toMatchObject({ message: 'API rate limit reached', statusCode: 429, responseBody: 'Too Many Requests' })
   })
 
   it('403 以外の状態で本文に rate limit があっても、レート制限にはしない', () => {
     const error = failure(responseOf(500, 'rate limit'))
     expect(error).not.toBeInstanceOf(GitHubRateLimitError)
-    expect(error).toMatchObject({ message: 'GitHub APIエラー: 500' })
+    expect(error).toMatchObject({ message: 'GitHub API error: 500' })
   })
 
   it('403 のそれ以外は GitHubAPIError（サブクラスではない）', () => {
     const error = failure(responseOf(403, 'Forbidden'))
     expect(error).toBeInstanceOf(GitHubAPIError)
     expect(error).not.toBeInstanceOf(GitHubRateLimitError)
-    expect(error).toMatchObject({ message: 'アクセスが拒否されました。', statusCode: 403, responseBody: 'Forbidden' })
+    expect(error).toMatchObject({ message: 'access denied', statusCode: 403, responseBody: 'Forbidden' })
   })
 
-  it.each([500, 301, 422])('%i は GitHub APIエラー: <状態コード>', (statusCode) => {
+  it.each([500, 301, 422])('%i は GitHub API error: <status code>', (statusCode) => {
     const error = failure(responseOf(statusCode, 'x'))
     expect(error).toBeInstanceOf(GitHubAPIError)
-    expect(error).toMatchObject({ message: `GitHub APIエラー: ${String(statusCode)}`, statusCode, responseBody: 'x' })
+    expect(error).toMatchObject({ message: `GitHub API error: ${String(statusCode)}`, statusCode, responseBody: 'x' })
   })
 })
 
@@ -531,7 +531,7 @@ describe('REST の要求', () => {
     const server = await serve([])
     const client = new GitHubClientBase({ token: 't' })
     await expect(client.restRequest('GET', target)).rejects.toThrow(
-      new GitHubAPIError(`API と異なるホストの URL は辿りません: ${target}`),
+      new GitHubAPIError(`refusing to follow a URL on a different host than the API: ${target}`),
     )
     expect(server.requests()).toEqual([])
   })
@@ -591,14 +591,14 @@ describe('REST の要求', () => {
     expect(response.header('location')).toBe('/new')
     expect(() => {
       client.handleHttpError(response)
-    }).toThrow('GitHub APIエラー: 301')
+    }).toThrow('GitHub API error: 301')
     expect(server.requests()).toHaveLength(1)
   })
 
   it.each([
-    [401, GitHubAuthError, '認証に失敗しました。トークンを確認してください。'],
-    [404, GitHubNotFoundError, 'リソースが見つかりません: {{URL}}/repos/test/test'],
-    [500, GitHubAPIError, 'GitHub APIエラー: 500'],
+    [401, GitHubAuthError, 'authentication failed: check the token'],
+    [404, GitHubNotFoundError, 'resource not found: {{URL}}/repos/test/test'],
+    [500, GitHubAPIError, 'GitHub API error: 500'],
   ])('%i の応答を handleHttpError に渡すと対応する例外になる', async (status, errorClass, message) => {
     const server = await serve([rule({ path: '/repos/test/test' }, { status, text: 'body text' })])
     // 401 でも gh には切り替えない
@@ -762,9 +762,9 @@ describe('401 のときの gh auth token への切り替え', () => {
   })
 
   it.each([
-    ['401 のまま', { status: 401, text: 'nope' }, GitHubAuthError, `GraphQL認証エラー: ${statusSentence('Client error', 401, 'Unauthorized')}`],
-    ['500', { status: 500, text: 'boom' }, GitHubAPIError, `GraphQLクエリ実行エラー: ${statusSentence('Server error', 500, 'Internal Server Error')}`],
-    ['rate limit', { status: 200, body: { errors: [{ message: 'API rate limit exceeded' }] } }, GitHubRateLimitError, 'GraphQLレート制限エラー: {\'message\': \'API rate limit exceeded\'}'],
+    ['401 のまま', { status: 401, text: 'nope' }, GitHubAuthError, `GraphQL authentication error: ${statusSentence('Client error', 401, 'Unauthorized')}`],
+    ['500', { status: 500, text: 'boom' }, GitHubAPIError, `GraphQL query error: ${statusSentence('Server error', 500, 'Internal Server Error')}`],
+    ['rate limit', { status: 200, body: { errors: [{ message: 'API rate limit exceeded' }] } }, GitHubRateLimitError, 'GraphQL rate limit error: {\'message\': \'API rate limit exceeded\'}'],
   ])('GraphQL: 再試行の失敗（%s）も同じ規則で分類する', async (_name, retry, errorClass, message) => {
     useProject()
     useFakeGh('gh_new_token')
@@ -795,7 +795,7 @@ describe('401 のときの gh auth token への切り替え', () => {
     useFakeGh()
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' })])
     await expect(new GitHubClientBase({ token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toThrow(
-      new GitHubAuthError(`GraphQL認証エラー: ${statusSentence('Client error', 401, 'Unauthorized').replace('{{GRAPHQL}}', () => `${server.url}/graphql`)}`),
+      new GitHubAuthError(`GraphQL authentication error: ${statusSentence('Client error', 401, 'Unauthorized').replace('{{GRAPHQL}}', () => `${server.url}/graphql`)}`),
     )
   })
 })
@@ -830,34 +830,34 @@ const GRAPHQL_SUCCESSES: readonly GraphqlSuccess[] = [
   { name: 'errors が null なら data を返す', respond: { status: 200, text: '{"errors":null,"data":{"k":"v"}}' }, data: { k: 'v' } },
 ]
 
-const NO_RESULT = 'GraphQLクエリ実行エラー: Server did not return a GraphQL result: '
+const NO_RESULT = 'GraphQL query error: Server did not return a GraphQL result: '
 const GRAPHQL_FAILURES: readonly GraphqlFailureCase[] = [
-  { name: 'data が null で errors が無い', respond: { status: 200, text: '{"data":null}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: Transport returned an ExecutionResult without data or errors' } },
-  { name: '500 で JSON でない本文は httpx の状態の文', respond: { status: 500, text: 'boom' }, expected: { error: GitHubAPIError, message: `GraphQLクエリ実行エラー: ${statusSentence('Server error', 500, 'Internal Server Error')}` } },
-  { name: '502', respond: { status: 502, text: '' }, expected: { error: GitHubAPIError, message: `GraphQLクエリ実行エラー: ${statusSentence('Server error', 502, 'Bad Gateway')}` } },
-  { name: '401 で JSON でない本文は認証エラー（文言に 401）', respond: { status: 401, text: 'nope' }, expected: { error: GitHubAuthError, message: `GraphQL認証エラー: ${statusSentence('Client error', 401, 'Unauthorized')}` } },
-  { name: '404 で JSON だが data と errors が無い', respond: { status: 404, text: '{"message":"Not Found"}' }, expected: { error: GitHubAPIError, message: `GraphQLクエリ実行エラー: ${statusSentence('Client error', 404, 'Not Found')}` } },
-  { name: '301 は Location つき', respond: { status: 301, text: '', headers: { Location: '/new' } }, expected: { error: GitHubAPIError, message: `GraphQLクエリ実行エラー: ${statusSentence('Redirect response', 301, 'Moved Permanently', REDIRECT_LOCATION)}` } },
+  { name: 'data が null で errors が無い', respond: { status: 200, text: '{"data":null}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: Transport returned an ExecutionResult without data or errors' } },
+  { name: '500 で JSON でない本文は httpx の状態の文', respond: { status: 500, text: 'boom' }, expected: { error: GitHubAPIError, message: `GraphQL query error: ${statusSentence('Server error', 500, 'Internal Server Error')}` } },
+  { name: '502', respond: { status: 502, text: '' }, expected: { error: GitHubAPIError, message: `GraphQL query error: ${statusSentence('Server error', 502, 'Bad Gateway')}` } },
+  { name: '401 で JSON でない本文は認証エラー（文言に 401）', respond: { status: 401, text: 'nope' }, expected: { error: GitHubAuthError, message: `GraphQL authentication error: ${statusSentence('Client error', 401, 'Unauthorized')}` } },
+  { name: '404 で JSON だが data と errors が無い', respond: { status: 404, text: '{"message":"Not Found"}' }, expected: { error: GitHubAPIError, message: `GraphQL query error: ${statusSentence('Client error', 404, 'Not Found')}` } },
+  { name: '301 は Location つき', respond: { status: 301, text: '', headers: { Location: '/new' } }, expected: { error: GitHubAPIError, message: `GraphQL query error: ${statusSentence('Redirect response', 301, 'Moved Permanently', REDIRECT_LOCATION)}` } },
   { name: '2xx で JSON でない', respond: { status: 200, text: 'hello' }, expected: { error: GitHubAPIError, message: `${NO_RESULT}Not a JSON answer: hello` } },
   { name: '2xx で本文が空', respond: { status: 200, text: '' }, expected: { error: GitHubAPIError, message: `${NO_RESULT}Not a JSON answer: ` } },
   { name: '2xx で JSON にキーが無い', respond: { status: 200, text: '{"x":1}' }, expected: { error: GitHubAPIError, message: `${NO_RESULT}No "data" or "errors" keys in answer: {"x":1}` } },
   { name: '2xx で JSON が配列', respond: { status: 200, text: '[1]' }, expected: { error: GitHubAPIError, message: `${NO_RESULT}No "data" or "errors" keys in answer: [1]` } },
   { name: '2xx で JSON が文字列', respond: { status: 200, text: '"abc"' }, expected: { error: GitHubAPIError, message: `${NO_RESULT}No "data" or "errors" keys in answer: "abc"` } },
-  { name: '2xx で JSON が null', respond: { status: 200, text: 'null' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: argument of type \'NoneType\' is not a container or iterable' } },
-  { name: '2xx で JSON が整数', respond: { status: 200, text: '5' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: argument of type \'int\' is not a container or iterable' } },
-  { name: '500 でも errors があれば errors[0] の repr', respond: { status: 500, text: '{"errors":[{"message":"bad","type":"X"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: {\'message\': \'bad\', \'type\': \'X\'}' } },
-  { name: 'errors に rate limit', respond: { status: 200, text: '{"errors":[{"message":"API rate limit exceeded","type":"RATE_LIMITED"}]}' }, expected: { error: GitHubRateLimitError, message: 'GraphQLレート制限エラー: {\'message\': \'API rate limit exceeded\', \'type\': \'RATE_LIMITED\'}' } },
-  { name: 'errors の文言に 401 があっても、状態が 401 でなければ認証エラーにしない', respond: { status: 200, text: '{"errors":[{"message":"Issue 401 not found","type":"NOT_FOUND"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: {\'message\': \'Issue 401 not found\', \'type\': \'NOT_FOUND\'}' } },
-  { name: 'errors の文言に Unauthorized があっても、種類が UNAUTHORIZED でなければ認証エラーにしない', respond: { status: 200, text: '{"errors":[{"message":"Unauthorized thing"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: {\'message\': \'Unauthorized thing\'}' } },
-  { name: 'errors の type が UNAUTHORIZED なら認証エラー', respond: { status: 200, text: '{"errors":[{"message":"nope","type":"UNAUTHORIZED"}]}' }, expected: { error: GitHubAuthError, message: 'GraphQL認証エラー: {\'message\': \'nope\', \'type\': \'UNAUTHORIZED\'}' } },
-  { name: '429 はレート制限', respond: { status: 429, text: 'slow down' }, expected: { error: GitHubRateLimitError, message: `GraphQLレート制限エラー: ${statusSentence('Client error', 429, 'Too Many Requests')}` } },
-  { name: '403 で errors に rate limit', respond: { status: 403, text: '{"errors":[{"message":"secondary rate limit"}]}' }, expected: { error: GitHubRateLimitError, message: 'GraphQLレート制限エラー: {\'message\': \'secondary rate limit\'}' } },
-  { name: 'errors が文字列なら先頭の 1 文字', respond: { status: 200, text: '{"errors":"oops"}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: o' } },
-  { name: 'errors がオブジェクトなら全体の repr（float・true・null も Python の書式）', respond: { status: 200, text: '{"errors":{"message":"x","n":1.5,"t":true,"z":null}}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: {\'message\': \'x\', \'n\': 1.5, \'t\': True, \'z\': None}' } },
-  { name: 'errors の文字列の repr は引用符を切り替える', respond: { status: 200, text: '{"errors":[{"message":"it\'s \\"q\\""}]}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: {\'message\': \'it\\\'s "q"\'}' } },
-  { name: 'errors[0] が文字列ならそのまま', respond: { status: 200, text: '{"errors":["plain", "second"]}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: plain' } },
-  { name: 'errors の日本語と改行', respond: { status: 200, text: '{"errors":[{"message":"日本語\\n改行"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: {\'message\': \'日本語\\n改行\'}' } },
-  { name: 'errors が数', respond: { status: 200, text: '{"errors":5}' }, expected: { error: GitHubAPIError, message: 'GraphQLクエリ実行エラー: 5' } },
+  { name: '2xx で JSON が null', respond: { status: 200, text: 'null' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: argument of type \'NoneType\' is not a container or iterable' } },
+  { name: '2xx で JSON が整数', respond: { status: 200, text: '5' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: argument of type \'int\' is not a container or iterable' } },
+  { name: '500 でも errors があれば errors[0] の repr', respond: { status: 500, text: '{"errors":[{"message":"bad","type":"X"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: {\'message\': \'bad\', \'type\': \'X\'}' } },
+  { name: 'errors に rate limit', respond: { status: 200, text: '{"errors":[{"message":"API rate limit exceeded","type":"RATE_LIMITED"}]}' }, expected: { error: GitHubRateLimitError, message: 'GraphQL rate limit error: {\'message\': \'API rate limit exceeded\', \'type\': \'RATE_LIMITED\'}' } },
+  { name: 'errors の文言に 401 があっても、状態が 401 でなければ認証エラーにしない', respond: { status: 200, text: '{"errors":[{"message":"Issue 401 not found","type":"NOT_FOUND"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: {\'message\': \'Issue 401 not found\', \'type\': \'NOT_FOUND\'}' } },
+  { name: 'errors の文言に Unauthorized があっても、種類が UNAUTHORIZED でなければ認証エラーにしない', respond: { status: 200, text: '{"errors":[{"message":"Unauthorized thing"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: {\'message\': \'Unauthorized thing\'}' } },
+  { name: 'errors の type が UNAUTHORIZED なら認証エラー', respond: { status: 200, text: '{"errors":[{"message":"nope","type":"UNAUTHORIZED"}]}' }, expected: { error: GitHubAuthError, message: 'GraphQL authentication error: {\'message\': \'nope\', \'type\': \'UNAUTHORIZED\'}' } },
+  { name: '429 はレート制限', respond: { status: 429, text: 'slow down' }, expected: { error: GitHubRateLimitError, message: `GraphQL rate limit error: ${statusSentence('Client error', 429, 'Too Many Requests')}` } },
+  { name: '403 で errors に rate limit', respond: { status: 403, text: '{"errors":[{"message":"secondary rate limit"}]}' }, expected: { error: GitHubRateLimitError, message: 'GraphQL rate limit error: {\'message\': \'secondary rate limit\'}' } },
+  { name: 'errors が文字列なら先頭の 1 文字', respond: { status: 200, text: '{"errors":"oops"}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: o' } },
+  { name: 'errors がオブジェクトなら全体の repr（float・true・null も Python の書式）', respond: { status: 200, text: '{"errors":{"message":"x","n":1.5,"t":true,"z":null}}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: {\'message\': \'x\', \'n\': 1.5, \'t\': True, \'z\': None}' } },
+  { name: 'errors の文字列の repr は引用符を切り替える', respond: { status: 200, text: '{"errors":[{"message":"it\'s \\"q\\""}]}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: {\'message\': \'it\\\'s "q"\'}' } },
+  { name: 'errors[0] が文字列ならそのまま', respond: { status: 200, text: '{"errors":["plain", "second"]}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: plain' } },
+  { name: 'errors の日本語と改行', respond: { status: 200, text: '{"errors":[{"message":"日本語\\n改行"}]}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: {\'message\': \'日本語\\n改行\'}' } },
+  { name: 'errors が数', respond: { status: 200, text: '{"errors":5}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: 5' } },
 ]
 
 describe('executeGraphql', () => {
@@ -917,7 +917,7 @@ describe('executeGraphql', () => {
     setEnvironment({ PECOT_GITHUB_API_URL: closed.url })
     const execution = new GitHubClientBase({ token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
     await expect(execution).rejects.toBeInstanceOf(GitHubAPIError)
-    await expect(execution).rejects.toMatchObject({ message: 'GraphQLクエリ実行エラー: [Errno 111] Connection refused' })
+    await expect(execution).rejects.toMatchObject({ message: 'GraphQL query error: [Errno 111] Connection refused' })
   })
 
   it('時間切れは Python と同じ文（timed out）で GraphQLクエリ実行エラー', async () => {
@@ -926,6 +926,6 @@ describe('executeGraphql', () => {
     })
     setEnvironment({ PECOT_GITHUB_API_URL: raw.url })
     const client = new GitHubClientBase({ token: 't', timeoutMilliseconds: 50 })
-    await expect(client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toMatchObject({ message: 'GraphQLクエリ実行エラー: timed out' })
+    await expect(client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toMatchObject({ message: 'GraphQL query error: timed out' })
   })
 })

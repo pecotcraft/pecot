@@ -121,7 +121,7 @@ class TestForbidden:
     def test_enabled_but_list_forbidden_is_error(self) -> None:
         client = _client(_forbidden(), enabled=True)
 
-        with pytest.raises(DependabotAlertError, match="有効ですが一覧を取得できません"):
+        with pytest.raises(DependabotAlertError, match="enabled but the list cannot be fetched"):
             fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
 
     def test_check_failure_is_error(self) -> None:
@@ -186,13 +186,13 @@ class TestErrors:
     def test_connect_error_is_wrapped(self) -> None:
         client = _client(httpx.ConnectError("connection refused"))
 
-        with pytest.raises(DependabotAlertError, match="通信に失敗しました: connection refused"):
+        with pytest.raises(DependabotAlertError, match="request failed: connection refused"):
             fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
 
     def test_connect_error_during_check_is_wrapped(self) -> None:
         client = _client(_forbidden(), enabled=httpx.ConnectError("down"))
 
-        with pytest.raises(DependabotAlertError, match="通信に失敗しました: down"):
+        with pytest.raises(DependabotAlertError, match="request failed: down"):
             fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
 
     def test_invalid_json_is_error(self) -> None:
@@ -202,7 +202,7 @@ class TestErrors:
             fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
 
         assert str(exc_info.value) == (
-            "owner/repo: 応答を読めません: Expecting value: line 1 column 1 (char 0)"
+            "owner/repo: cannot read the response: Expecting value: line 1 column 1 (char 0)"
         )
 
     @pytest.mark.parametrize("items", [["number"], [1, 2], [None]])
@@ -212,7 +212,7 @@ class TestErrors:
         with pytest.raises(DependabotAlertError) as exc_info:
             fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
 
-        assert str(exc_info.value) == "owner/repo: 応答を読めません: alert の一覧ではありません"
+        assert str(exc_info.value) == "owner/repo: cannot read the response: not a list of alerts"
 
 
 def test_alerts_url_uses_host_owner_repo() -> None:

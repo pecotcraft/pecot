@@ -17,7 +17,7 @@ import {
 --repo の値が不正なときの文。detail は owner/repo の解析が投げた例外の文
 */
 export function invalidRepositoryMessage(detail: string): string {
-  return invalidValueMessage('--repo', `expected 'owner/repo' (${detail})`)
+  return invalidValueMessage('--repo', `must be in 'owner/repo' form: ${detail}`)
 }
 
 export const ROOT_USAGE: UsageContext = { commandPath: [], synopsis: COMMAND_SYNOPSIS }

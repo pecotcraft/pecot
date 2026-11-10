@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "count: open Dependabot alerts: 0\nerror: could not check code scanning: acme/demo: code scanning: GitHub APIエラー: 502 Bad Gateway\ncount: open secret scanning alerts: 0\n",
+  "stderr": "count: open Dependabot alerts: 0\nerror: could not check code scanning: acme/demo: code scanning: GitHub API error: 502 Bad Gateway\ncount: open secret scanning alerts: 0\n",
   "exitCode": 1,
   "requests": [
     {

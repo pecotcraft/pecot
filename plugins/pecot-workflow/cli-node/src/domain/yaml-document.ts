@@ -54,7 +54,7 @@ const DECIMAL_NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/u
 /* eslint-enable security/detect-unsafe-regex */
 
 function invalid(type: string, text: string): never {
-  throw new Error(`${type} として読めない値です: ${text}`)
+  throw new Error(`invalid ${type} value: ${text}`)
 }
 
 // `1:30.5` のような 60 進。各部は数でなければならない
@@ -137,11 +137,11 @@ function execFirst(patterns: readonly Readonly<RegExp>[], text: string): RegExpE
 
 function resolveTimestamp(text: string): Date {
   const match = execFirst(TIMESTAMP_PATTERNS, text)
-  if (match === undefined) throw new Error('timestamp の形式ではありません')
+  if (match === undefined) throw new Error('not a timestamp')
   const [, year, month, day, hour, minute, second, fraction, zone] = match
   const [y = 0, mo = 0, d = 0, h = 0, mi = 0, s = 0] = [year, month, day, hour, minute, second].map(part => numberOrZero(part))
   const isValidDate = d >= 1 && d <= (DAYS_IN_MONTH[mo - 1] ?? 0) && new Date(Date.UTC(y, mo - 1, d)).getUTCDate() === d
-  if (!isValidDate || h > 23 || mi > 59 || s > 59) throw new Error(`日付または時刻の範囲が不正です: ${text}`)
+  if (!isValidDate || h > 23 || mi > 59 || s > 59) throw new Error(`date or time out of range: ${text}`)
   return new Date(Date.UTC(y, mo - 1, d, h, mi, s, milliseconds(fraction)) - timeZoneMinutes(zone) * 60_000)
 }
 

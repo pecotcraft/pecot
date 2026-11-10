@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: アクセスが拒否されました。 Resource not accessible by integration\nskipped: Tracker creation\n",
+  "stderr": "error: could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: access denied Resource not accessible by integration\nskipped: Tracker creation\n",
   "exitCode": 1,
   "requests": [
     {

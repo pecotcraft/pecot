@@ -25,6 +25,11 @@ if TYPE_CHECKING:
 
 _LOOPBACK_HOSTS = ("127.0.0.1", "localhost")
 
+TOKEN_FALLBACK_WARNING = (
+    "the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n"
+    "update or remove the token in .env"
+)
+
 
 def resolve_api_url_override() -> str | None:
     """PECOT_GITHUB_API_URL を検証して返す。未設定・空文字なら None。
@@ -35,7 +40,9 @@ def resolve_api_url_override() -> str | None:
     raw = os.environ.get("PECOT_GITHUB_API_URL", "")
     if raw == "":
         return None
-    message = f"PECOT_GITHUB_API_URL は http://127.0.0.1 か http://localhost の URL だけを受け付けます: {raw}"
+    message = (
+        f"PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: {raw}"
+    )
     try:
         parts = urlsplit(raw)
         # port は参照したときに不正な値を検出する
@@ -209,18 +216,18 @@ class GitHubClientBase:
         token_url = host_config["token_url"] if host_config else f"https://{host}/settings/tokens"
         scopes: list[str] = host_config.get("scopes", []) if host_config else []
 
-        scopes_line = f"   必要なスコープ: {', '.join(scopes)}" if scopes else ""
+        scopes_line = f"   required scopes: {', '.join(scopes)}" if scopes else ""
 
-        return f"""認証エラー: GitHub APIのトークンを取得できませんでした。
+        return f"""authentication error: could not get a GitHub API token
 
-{env_file} を生成しました。以下の手順でトークンを設定してください:
+{env_file} was generated. Set the token as follows:
 
-1. トークンを取得: {token_url}
+1. get a token: {token_url}
 {scopes_line}
 
-2. {env_file} を編集して {env_var_name} にトークンを設定
+2. edit {env_file} and set the token in {env_var_name}
 
-または GitHub CLI で認証:
+or authenticate with the GitHub CLI:
    gh auth login -h {host}"""
 
     def _setup_urls(self) -> None:
@@ -274,12 +281,8 @@ class GitHubClientBase:
             return False
         if new_token == self.token:
             return False
-        print(
-            "⚠ 環境変数のトークンが無効です（401 Unauthorized）。"
-            "gh auth token にフォールバックしました。\n"
-            "  → .env のトークンを更新するか削除してください。",
-            file=sys.stderr,
-        )
+        # Same output as Output.warning (core cannot import Output). The constant has no prefix or indent.
+        print("warning: " + TOKEN_FALLBACK_WARNING.replace("\n", "\n  "), file=sys.stderr)
         self.token = new_token
         self.close()
         self._setup_clients()
@@ -317,31 +320,31 @@ class GitHubClientBase:
         """
         if response.status_code == 401:
             raise GitHubAuthError(
-                "認証に失敗しました。トークンを確認してください。",
+                "authentication failed: check the token",
                 status_code=401,
                 response_body=response.text,
             )
         elif response.status_code == 404:
             raise GitHubNotFoundError(
-                f"リソースが見つかりません: {response.url}",
+                f"resource not found: {response.url}",
                 status_code=404,
                 response_body=response.text,
             )
         elif response.status_code == 403:
             if "rate limit" in response.text.lower():
                 raise GitHubRateLimitError(
-                    "APIレート制限に達しました。",
+                    "API rate limit reached",
                     status_code=403,
                     response_body=response.text,
                 )
             raise GitHubAPIError(
-                "アクセスが拒否されました。",
+                "access denied",
                 status_code=403,
                 response_body=response.text,
             )
         else:
             raise GitHubAPIError(
-                f"GitHub APIエラー: {response.status_code}",
+                f"GitHub API error: {response.status_code}",
                 status_code=response.status_code,
                 response_body=response.text,
             )
@@ -376,16 +379,18 @@ class GitHubClientBase:
                     except Exception as retry_e:
                         error_msg = str(retry_e)
                         if "401" in error_msg or "Unauthorized" in error_msg:
-                            raise GitHubAuthError(f"GraphQL認証エラー: {error_msg}") from retry_e
+                            raise GitHubAuthError(
+                                f"GraphQL authentication error: {error_msg}"
+                            ) from retry_e
                         if "rate limit" in error_msg.lower():
                             raise GitHubRateLimitError(
-                                f"GraphQLレート制限エラー: {error_msg}"
+                                f"GraphQL rate limit error: {error_msg}"
                             ) from retry_e
-                        raise GitHubAPIError(f"GraphQLクエリ実行エラー: {error_msg}") from retry_e
-                raise GitHubAuthError(f"GraphQL認証エラー: {error_msg}") from e
+                        raise GitHubAPIError(f"GraphQL query error: {error_msg}") from retry_e
+                raise GitHubAuthError(f"GraphQL authentication error: {error_msg}") from e
             if "rate limit" in error_msg.lower():
-                raise GitHubRateLimitError(f"GraphQLレート制限エラー: {error_msg}") from e
-            raise GitHubAPIError(f"GraphQLクエリ実行エラー: {error_msg}") from e
+                raise GitHubRateLimitError(f"GraphQL rate limit error: {error_msg}") from e
+            raise GitHubAPIError(f"GraphQL query error: {error_msg}") from e
 
     def get_authenticated_user(self) -> dict[str, Any]:
         """認証ユーザー情報を取得

@@ -156,7 +156,7 @@ describe('PECOT_GITHUB_API_URL', () => {
     expect(await run(['--show-repo'])).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'error: PECOT_GITHUB_API_URL は http://127.0.0.1 か http://localhost の URL だけを受け付けます: https://x.com\n',
+      stderr: 'error: PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://x.com\n',
     })
   })
 
@@ -189,7 +189,7 @@ describe('--show-repo', () => {
     expect(await run(['--show-repo'], outsideGit())).toEqual({
       code: 2,
       stdout: '',
-      stderr: 'error: リポジトリが曖昧です。--repo <owner/repo> を明示してください。\n',
+      stderr: 'error: repository is ambiguous: pass --repo <owner/repo>\n',
     })
   })
 

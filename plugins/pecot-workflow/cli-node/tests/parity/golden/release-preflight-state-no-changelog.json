@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\nerror: CHANGELOG.mdが見つかりません: {{TMP}}/base/demo/CHANGELOG.md\n",
+  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\nerror: CHANGELOG.md not found: {{TMP}}/base/demo/CHANGELOG.md\n",
   "exitCode": 1,
   "requests": [
     {

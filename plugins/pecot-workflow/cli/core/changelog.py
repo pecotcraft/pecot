@@ -68,8 +68,7 @@ def validate_semver(version: str) -> None:
     """
     if not SEMVER_PATTERN.match(version):
         raise InvalidVersionError(
-            f"無効なバージョン形式: {version}\n"
-            "セマンティックバージョニング形式（X.Y.Z）を使用してください"
+            f"invalid version format: {version}\nuse semantic versioning (X.Y.Z)"
         )
 
 
@@ -138,7 +137,7 @@ def get_latest_version(changelog_path: Path) -> str:
         '0.3.1'
     """
     if not changelog_path.exists():
-        raise FileNotFoundError(f"CHANGELOG.mdが見つかりません: {changelog_path}")
+        raise FileNotFoundError(f"CHANGELOG.md not found: {changelog_path}")
 
     content = changelog_path.read_text(encoding="utf-8")
 
@@ -148,8 +147,7 @@ def get_latest_version(changelog_path: Path) -> str:
             return match.group(1)
 
     raise VersionNotFoundError(
-        "CHANGELOG.mdにバージョンが見つかりません\n"
-        "最初のリリースの場合は手動でバージョンを指定してください"
+        "no version found in CHANGELOG.md\nfor a first release, specify the version manually"
     )
 
 
@@ -185,7 +183,7 @@ def extract_version_release_notes(changelog_path: Path, version: str) -> str:
         '### 追加\\n\\n- 新機能A'
     """
     if not changelog_path.exists():
-        raise FileNotFoundError(f"CHANGELOG.mdが見つかりません: {changelog_path}")
+        raise FileNotFoundError(f"CHANGELOG.md not found: {changelog_path}")
 
     content = changelog_path.read_text(encoding="utf-8")
     lines = content.splitlines()
@@ -206,6 +204,6 @@ def extract_version_release_notes(changelog_path: Path, version: str) -> str:
             version_lines.append(line)
 
     if not in_version:
-        raise VersionNotFoundError(f"バージョン {version} がCHANGELOG.mdに見つかりません")
+        raise VersionNotFoundError(f"version not found in CHANGELOG.md: {version}")
 
     return "\n".join(version_lines).strip()

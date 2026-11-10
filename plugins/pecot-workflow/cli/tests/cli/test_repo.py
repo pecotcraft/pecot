@@ -62,7 +62,7 @@ class TestCreateBranchCommand:
         with patch("cli.commands.repo.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["create-branch", "invalid-format", "feat/test"])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
@@ -619,6 +619,7 @@ class TestDeleteBranchCommand:
             result = runner.invoke(app, ["delete-branch", "invalid-format", "feat/test"])
             assert result.exit_code == 2
             assert result.output.startswith("error: ")
+            assert "invalid owner/repo form" in result.output
             assert "owner/repo" in result.output
 
     def test_no_active_config(self) -> None:
