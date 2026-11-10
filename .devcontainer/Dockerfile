@@ -46,4 +46,3 @@ RUN bash -o pipefail -c 'curl -fsSL https://claude.ai/install.sh | bash' \
 USER root
 ENV PATH="/home/vscode/.local/bin:${PATH}"
 ENV PECOT_CI_PROBE=184
-RUN false
