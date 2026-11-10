@@ -1,12 +1,5 @@
 // Athena に投げるクエリが参照専用かの判定（FR-008 / research R6）。
-//
-// 完全な SQL パーサは持たない。目的は「変更系と複文を awscli 起動前に落とす」ことなので、
-// 判定できない入力（未終端の引用符・コメント）は許可側ではなく拒否側へ倒す。
-// 判定は Trino 構文を前提にする。Athena では `WITH` で始まる文は必ず問い合わせで、
-// `INSERT INTO … WITH` / `CREATE TABLE … AS WITH` の `WITH` は先頭に来ない。
-// STG1 での確認（2026-09-07）: `WITH … INSERT` は StartQueryExecution 自体が失敗する。
-// 失敗の内容は InvalidRequestException / MALFORMED_QUERY で、実行に至らない。
-// 例外は内側の文を実際に実行する `EXPLAIN ANALYZE` だけで、これは `EXPLAIN` を剥がす反復で塞ぐ。
+// 判定できない入力は拒否側へ倒す。`EXPLAIN ANALYZE` は内側の文を実行するので、`EXPLAIN` を剥がす反復で塞ぐ。
 
 /**
 参照専用として受け付ける先頭キーワード。判定は大小文字を区別しない。
@@ -24,10 +17,7 @@ const EXPLAIN_MODIFIERS: ReadonlySet<string> = new Set(['ANALYZE', 'VERBOSE'])
 const LEADING_WORD = /^\s*[A-Z]+/i
 
 /**
-拒否理由。message は呼び出し元エージェントへそのまま返す。
-
-`unterminated`（引用符・コメントが閉じていない）を `not-read-only` と分けるのは、reason だけを
-見る呼び出し元が「変更系だから拒否」と誤読しないようにするため。倒す先はどちらも拒否で同じ。
+拒否理由。message は呼び出し元へそのまま返す。unterminated を分けるのは、変更系と誤読させないため。
 */
 export type AthenaQueryRejectionReason = 'empty' | 'multi-statement' | 'not-read-only' | 'unterminated'
 
@@ -75,11 +65,7 @@ function skipBlockComment(query: string, start: number): number | undefined {
 }
 
 /**
-引用の終端（閉じ引用符の次）。start は開き引用符の次を指す。
-
-`'…'` 文字列リテラルと `"…"` 引用識別子のエスケープは、同じ引用符の 2 重化だけ。
-Trino では `\` は文字列リテラル中でも普通の文字なので、`'\'` は「閉じていない」ではなく
-「バックスラッシュ 1 文字のリテラル」になる。
+引用の終端（閉じ引用符の次）。エスケープは引用符の 2 重化だけで、Trino では `\` は普通の文字。
 */
 function skipQuoted(query: string, start: number, quote: string): number | undefined {
   let index = start
@@ -98,11 +84,7 @@ function skipQuoted(query: string, start: number, quote: string): number | undef
 }
 
 /**
-コメントを空白へ、引用の中身を空の引用へ均す。
-
-中身を捨てるのは、後段が見るのは「リテラル外の `;`」と「先頭キーワード」だけだから。
-リテラルの内容は判定材料にならない。均しておけばリテラル内の `;` や `--` が
-後段の単純な文字列走査に引っ掛からない。
+コメントを空白へ、引用の中身を空の引用へ均す。リテラル内の `;` や `--` を後段の走査に拾わせないため。
 */
 function scan(query: string): ScanResult {
   let code = ''
@@ -166,10 +148,7 @@ function afterLeadingWord(text: string): string {
 }
 
 /**
-先頭が `(` ならその対応括弧までを剥がす（`EXPLAIN (TYPE DISTRIBUTED) SELECT …`）。
-
-対応する `)` が無い場合は剥がさずに返す。剥がせないと、後段の語判定は左括弧を見て
-語を取れず、拒否側へ倒れる。
+先頭が `(` ならその対応括弧までを剥がす。対応する `)` が無ければ剥がさず、拒否側へ倒す。
 */
 function afterOptionGroup(text: string): string {
   const trimmed = text.trimStart()
@@ -188,11 +167,7 @@ function afterOptionGroup(text: string): string {
 }
 
 /**
-1 文が参照専用か。
-
-`EXPLAIN` は修飾語とオプション群を剥がして内側を見直す。1 周ごとに必ず `EXPLAIN` の 1 語を
-消費するので停止する。再帰ではなくループにするのは、`EXPLAIN` を数万段重ねた入力で
-コールスタックを溢れさせないため（溢れると失敗種別の外の例外になる）。
+1 文が参照専用か。再帰でなくループなのは、`EXPLAIN` を重ねた入力でコールスタックを溢れさせないため。
 */
 function isReadOnlyStatement(statement: string): boolean {
   let current = statement
@@ -211,10 +186,7 @@ function isReadOnlyStatement(statement: string): boolean {
 }
 
 /**
-クエリを参照専用 / 拒否に分類する。
-
-判定順は 未終端 → 複文 → 空 → 先頭キーワード。複文を空より先に見るのは、
-`; SELECT 1` のように 1 文目が空の入力を「空」ではなく「複文」と伝えるため。
+クエリを参照専用 / 拒否に分類する。複文を空より先に見るのは、`; SELECT 1` を「複文」と伝えるため。
 */
 export function classifyAthenaQuery(query: string): AthenaQueryClassification {
   const scanned = scan(query)

@@ -1,19 +1,8 @@
-// `aws sso login` の子プロセスを預かるレジストリ（research R5 / FR-007 / data-model §SsoLoginSession）。
-//
-// `sso login` はデバイス認証が終わるまで戻らないため、close まで全量を溜める runAwscli では
-// URL とコードを即時に返せない。ここでは自前で spawn し、stdout が届くたびに累積出力を
-// parseSsoLoginOutput へ掛けて、URL とコードが揃った時点で start() を resolve する。
-// 子はそのまま生かし、完了・失敗・時間切れは close とタイマで拾う。
-//
-// 子は spawn 直後に生存集合へ登録する。URL / コードの確定前も後始末の対象で、登録が遅れると
-// サーバ終了時に PPID 1 へ再親付けされた子が最大 10 分動き続ける。
-//
-// 出力に対する加工の分担は「秘匿化はここ、応答の上限はツール層」。infra から mcp を import
-// できないため、limitOutput は mcp/tools/sso.ts が掛ける。
+// `aws sso login` の子プロセスを預かるレジストリ（research R5 / FR-007）。
+// URL とコードが揃った時点で start() を resolve し、子は生かしたまま close とタイマで拾う。
+// 秘匿化はここで、応答の上限はツール層で掛ける（infra から mcp は import できない）。
 
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- LoginProcess は mutable。
-   Node 由来の型を抱える。中身は ChildProcess・出力 capture・タイマ配列。
-   Readonly<T> では deep readonly の要求を満たせない。読み取りしかしない関数として扱う。 */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- LoginProcess は mutable */
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
@@ -30,15 +19,7 @@ import { AWSCLI_COMMAND, createCapture, mergeStderr, type OutputCapture } from '
 export const SSO_LOGIN_TIMEOUT_MS = 600_000
 
 /**
-URL とコードが確定するまでの上限。
-
-research R5 と契約書が定めるのは 10 分だけ。
-だが `sso login` が何も出さずに生き続けると、呼び出し元の tools/call が 10 分ブロックする。
-応答を返せない状態を早く畳むための上限で、契約書側には未反映の差分。
-
-確定までの計測値は 0.65 秒。
-この待ちは、mcp/executor.ts の createBoundedExecutor(4) の実行枠を占有し続ける。
-そのため `aws --version` の待ち時間（infra/awscli.ts の PROBE_TIMEOUT_MS）と同じ上限に揃える。
+URL とコードが確定するまでの上限。実行枠を占有し続けないよう、`aws --version` の PROBE_TIMEOUT_MS と揃える。
 */
 export const SSO_PROMPT_TIMEOUT_MS = 15_000
 
@@ -75,10 +56,7 @@ export interface SsoLoginSession {
   */
   readonly category?: FailureCategory
   /**
-  awscli の終了コード。子がまだ終わっていなければキーごと無い。
-
-  応答の exitCode は許可リストの呼び出しと同じく、awscli の終了コードをそのまま返す規約。
-  ここで持たないと、ツール層が値を作れない。シグナルで終わった子は null になる。
+  awscli の終了コード。子がまだ終わっていなければキーごと無い。シグナルで終わった子は null。
   */
   readonly exitCode?: number | null
 }
@@ -171,14 +149,7 @@ function outputOf(record: Readonly<LoginProcess>): string {
 }
 
 /**
-子プロセスの stdio が閉じた（close / error）ら呼ぶ。
-
-sessions は終端状態のレコードを次の start か shutdown() まで保持し続ける。
-capture（最大 CAPTURE_LIMIT_BYTES 分の Buffer）を持たせたままにすると、
-常駐する profile 数に比例して解放されない領域が積み上がる。output を確定させた時点で capture を手放す。
-
-Node は 'error' の後に 'close' も発火する（awscli.ts の finalize と同じ）。
-そのため二重呼び出しは finalOutput の有無で防ぐ（2 回目は capture が既に無く output が痩せるため）。
+子の stdio が閉じた（close / error）ら呼ぶ。output を確定させた時点で capture を手放し、二重呼び出しは finalOutput の有無で防ぐ。
 */
 function finalizeOutput(record: LoginProcess): void {
   if (record.finalOutput !== undefined) return
@@ -204,10 +175,7 @@ function snapshotOf(record: Readonly<LoginProcess>): SsoLoginSession {
 }
 
 /**
-ログインレジストリを作る。
-
-MCP サーバは 1 プロセスなので実運用のインスタンスは 1 つ（loginRegistry）だが、
-テストが状態を持ち越さずに検証できるようファクトリとして公開する。
+ログインレジストリを作る。実運用は loginRegistry の 1 つだが、テストが状態を持ち越さないようファクトリで公開する。
 */
 export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}): LoginRegistry {
   const timeoutMs = options.timeoutMs ?? SSO_LOGIN_TIMEOUT_MS
@@ -226,11 +194,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
   */
   const running = new Set<LoginProcess>()
   /**
-  shutdown() 済みの印。
-
-  startLogin は registry.start() の前に ensureAwscli()（最長 15 秒）を await する。
-  その待ち中に stdin の EOF が来て runShutdown が先に実行されると、再開した start() が誰も回収しない子を spawn する。
-  子の stdio パイプがイベントループを保持し、親は loginTimer が最長 10 分後に発火するまで終了できない。start() の冒頭でここを見て spawn 自体をしない。
+  shutdown() 済みの印。ensureAwscli() の待ち中に終了処理が先に動くと、start() が回収されない子を spawn するため、冒頭で見る。
   */
   let isStopped = false
 
@@ -294,13 +258,9 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
 
       child.stdout.on('data', (chunk: Readonly<Buffer>) => {
         record.stdout?.push(chunk)
-        // 出力は chunk 単位で届く。累積した全文をそのつど掛け、URL とコードが揃った時点で応答する。
-        // autofill URL はその後の行に届き得るので、揃うまでは再 parse を続けて prompt を差し替える
-        // （確定そのものは遅らせない）。全部そろえば以後の chunk では何もしない。
+        // 累積全文をそのつど掛ける。autofill URL は後の行に届き得るので、揃うまで再 parse して prompt を差し替える。
         if (record.prompt?.verificationUrlComplete !== undefined) return
-        // 基本の URL / コードが確定した後は、autofill 行を含む chunk が来たときだけ再 parse する。
-        // 含まない awscli（確認結果: 2.36.40 は含む）では、以後の chunk を処理せず返す。
-        // 累積全文（最大 CAPTURE_LIMIT_BYTES）の split と走査を、毎 chunk 実行しないため。
+        // URL / コード確定後は、autofill 行を含む chunk だけ再 parse する。毎 chunk の split と走査を避けるため。
         if (record.prompt !== undefined && !chunk.toString('utf8').includes(AUTOFILL_MARKER)) return
         const prompt = parseSsoLoginOutput(record.stdout?.text() ?? '')
         if (prompt === undefined) return
@@ -339,10 +299,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
         // 時間切れ・prompt 待ちの打ち切りで既に終端なら、その理由を SIGTERM 由来の失敗で
         // 上書きしない。
         if (!isTerminal(record.state)) {
-          // 確定前の exit 0 は「デバイスフローを経ず成功した」場合。
-          // awscli 2.36.40 で確認したところ、--use-device-code を指定するとキャッシュトークンの有無に依らず
-          // 毎回デバイスフローへ入る。そのため未観測で、ここは防御として completed に倒している。
-          // research R5 の「抽出できずに終了 = failed」は、SSO 設定なし（exit ≠ 0）を想定した記述。
+          // 確定前の exit 0 は防御として completed に倒す。2.36.40 は --use-device-code で毎回デバイスフローに入り、未観測。
           if (code === 0) record.state = 'completed'
           else fail(code)
         }
@@ -422,10 +379,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
 const sharedRegistry: { current?: LoginRegistry } = {}
 
 /**
-MCP サーバプロセスで共有するレジストリ。
-
-ツール（mcp/tools/sso.ts）と終了配線（mcp/serve.ts）が同じインスタンスを見ないと、
-開始したフローを status が引けず、終了時に子も落ちない。
+MCP サーバプロセスで共有するレジストリ。ツールと終了配線が同じインスタンスを見ないと、status が引けず子も落ちない。
 */
 export function loginRegistry(): LoginRegistry {
   sharedRegistry.current ??= createLoginRegistry()

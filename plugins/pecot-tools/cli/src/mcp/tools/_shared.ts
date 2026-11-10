@@ -1,11 +1,7 @@
 // 全ツール共通の入出力スキーマと、許可リストのエントリを 1 本の実行手順へ通す処理。
-//
-// 系統別のツール定義（`mcp/tools/{sts,lambda,logs,sqs,athena,s3}.ts`）が宣言するのは、使うエントリと入力スキーマだけ。
-// 検証 → 実行前拒否 → 引数組み立て → awscli 起動 → 失敗種別判定 → 秘匿化 → 切り詰め、という手順はここに 1 本だけ置く。
-// 手順をツール側へ複製すると、秘匿化や上限の適用を忘れるおそれがある。
+// 秘匿化と上限の掛け忘れを防ぐため、検証から切り詰めまでの手順はここに 1 本だけ置く。
 
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- call.signal は mutable なメンバを持つ。
-   readonly 化すると、SDK 側の型と適合しなくなる。 */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- call.signal は mutable */
 
 import { z } from 'zod'
 
@@ -50,10 +46,7 @@ export const COMMAND_NOT_FOUND_EXIT_CODE = 127
 export const UNKNOWN_FAILURE_EXIT_CODE = 1
 
 /**
-`profile` だけの入力。
-
-SSO の 2 件は region を取らない（contracts/mcp-tools.md §SSO 認証）。
-そのため共通入力から profile だけを切り出し、両方が同じ書式・同じ説明文を公開できるようにする。
+`profile` だけの入力。SSO の 2 件は region を取らないので、共通入力から切り出す。
 */
 export const PROFILE_INPUT_SHAPE = {
   profile: z.string().regex(PROFILE_PATTERN).optional()
@@ -61,11 +54,7 @@ export const PROFILE_INPUT_SHAPE = {
 }
 
 /**
-全ツール共通の任意入力。
-
-書式の定義は domain/allowlist.ts の PROFILE_PATTERN / REGION_PATTERN にある。
-ここはその定数をそのまま inputSchema へ載せる（契約書の共通規約を tools/list で見せるため）。
-値を書き写さないので、定義は 1 箇所のまま。書式違反はハンドラ到達前に入力検証エラーとなる。Does not run awscli。
+全ツール共通の任意入力。書式は allowlist.ts の PROFILE_PATTERN / REGION_PATTERN を載せ、tools/list で契約を見せる。
 */
 export const COMMON_INPUT_SHAPE = {
   ...PROFILE_INPUT_SHAPE,
@@ -131,7 +120,7 @@ stderr が上限で切り詰められたときに message へ足す注記。
 const STDERR_TRUNCATION_NOTE = '(stderr exceeded the limit, so only the beginning is included)'
 
 /**
-実行前に拒否したときの理由。Does not run awscli。
+実行前に拒否したときの理由。awscli は起動しない。
 */
 export interface PreExecutionRejection {
   readonly category: 'not-allowed' | 'invalid-input'
@@ -144,10 +133,7 @@ export interface ExecuteOptions {
   */
   readonly timeoutMs?: number
   /**
-  許可リストの静的宣言だけでは表せない拒否条件（Athena の変更系クエリ、既存ファイルの上書き）。
-
-  validateInput の直後・awscli の存在確認より前に評価する。存在確認を先にすると、
-  awscli 未導入の環境で「拒否されるはずの呼び出し」が awscli-missing に化ける。
+  静的宣言で表せない拒否条件。awscli 未導入で拒否が awscli-missing に化けないよう、存在確認より前に評価する。
   */
   readonly reject?: (arguments_: Readonly<Record<string, unknown>>) => PreExecutionRejection | undefined
   /**
@@ -209,10 +195,7 @@ function toLines(text: string): string[] {
 }
 
 /**
-失敗種別と awscli の終了コードから応答の exitCode を決める。
-
-exitCode を持たない失敗（シグナル終了・awscli を起動していない SSO の状態遷移）は
-省略するか null で渡し、1 以上へ畳む。ok: false と exitCode 0 が同居しないようにする。
+失敗種別と awscli の終了コードから応答の exitCode を決める。exitCode を持たない失敗は 1 以上へ畳む。
 */
 export function resolveExitCode(category: FailureCategory, exitCode?: number | null): number {
   if (category === 'timeout') return TIMEOUT_EXIT_CODE
@@ -237,10 +220,7 @@ function successData(entry: Readonly<AllowlistEntry>, stdout: string): Record<st
 }
 
 /**
-許可リストのエントリ 1 件を実行し、ExecutionResult を返す。
-
-検証で弾いた場合は awscli を起動しない（exitCode 2）。awscli の失敗は種別判定にかけ、
-応答へ載せる stdout / stderr は必ず秘匿化と上限を通す。
+許可リストのエントリ 1 件を実行し、ExecutionResult を返す。検証で弾けば awscli を起動せず（exitCode 2）、出力は秘匿化と上限を通す。
 */
 export async function executeAllowlisted(
   entry: Readonly<AllowlistEntry>,
@@ -335,14 +315,7 @@ export async function executeAllowlisted(
 }
 
 /**
-annotations を許可リストの kind から導く。
-
-契約表の「読取専用」列は read だけが true で、fetch（ローカルへ書き出す）と
-execute（Athena のクエリ起動）は false。destructiveHint は fetch だけ true にする:
-`overwrite: true` の呼び出しはローカルの既存ファイルを上書きして戻せない。
-openWorldHint は AWS API へ到達するので全件 true。
-
-契約書の共通規約も destructiveHint を fetch 2 件だけ true と定めており、ここはそれと一致する。
+annotations を許可リストの kind から導く。destructiveHint は fetch だけ true（`overwrite: true` で既存ファイルを上書きするため）。
 */
 function annotationsOf(entry: Readonly<AllowlistEntry>): ToolAnnotations {
   return {
@@ -353,12 +326,7 @@ function annotationsOf(entry: Readonly<AllowlistEntry>): ToolAnnotations {
 }
 
 /**
-許可リストのエントリ 1 件を MCP ツール定義にする。
-
-入力の検証は 2 段になる。
-inputSchema（型・列挙・書式）は SDK がハンドラ到達前に見て、入力検証エラーを返す。
-許可リスト側の規則（先頭 '-'・排他・shorthand の構成要素）は、executeAllowlisted が見て isError の応答にする。ハンドラで再度 zod parse はしない
-（SDK が既に未知キーの除去と default の適用を済ませている）。
+許可リストのエントリ 1 件を MCP ツール定義にする。zod の検証は SDK が済ませるので、ハンドラで再 parse しない。
 */
 export function allowlistedTool(
   spec: Readonly<AllowlistedToolSpec>,

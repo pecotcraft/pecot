@@ -1,7 +1,4 @@
-// ECR 系のツール定義。
-//
-// tag_status は awscli の `--filter tagStatus=<値>` へ合成する（許可リスト側の shorthand）。
-// 利用者に shorthand の文字列そのものを書かせないのは Athena と同じ理由。
+// ECR 系のツール定義。tag_status は awscli の `--filter tagStatus=<値>` へ合成する（Athena と同じく shorthand を書かせない）。
 
 import { z } from 'zod'
 
@@ -15,10 +12,7 @@ import {
 } from './_shared.js'
 
 /**
-取得するイメージの指定 1 件。タグとダイジェストのどちらか一方だけでも指定できる。
-
-`z.object` は宣言外のキーを通知せず削るため strictObject を使う。
-JSON Schema では `items.additionalProperties: false` になり、SDK が入力検証エラーで拒否する。
+取得するイメージの指定 1 件。タグとダイジェストのどちらか一方でよい。strictObject は宣言外のキーを SDK に拒否させるため。
 */
 const IMAGE_ID_ELEMENT = z.strictObject({
   image_tag: z.string().optional().describe('Image tag'),

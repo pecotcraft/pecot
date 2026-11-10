@@ -1,11 +1,5 @@
-// S3 の入力値（オブジェクト URI・一覧 URI・ローカル出力先）の書式検証。
-//
-// research R7 の方向制約は「入力の形で表現できない」ことで担保しているが、値そのものが
-// 期待どおりの形かはここで見る。書式は contracts/mcp-tools.md の正規表現を逐語で写す。
-//
-// 戻り値は「入力名に続く述部」で、入力名と値の連結は arguments.ts が行う（`<name> <述部>: <value>`）。
-// 述部に助詞まで含めるのは、`s3://…` のような欧文始まりの語で助詞との間に空白が要るかどうかが
-// 語ごとに変わるため。文言の組み立てを 1 箇所に寄せると、規則を足したときに書式が割れない。
+// S3 の入力値（オブジェクト URI・一覧 URI・ローカル出力先）の書式検証。書式は contracts/mcp-tools.md の正規表現を写す。
+// 戻り値は入力名に続く述部で、助詞の前の空白の要否を 1 箇所に寄せるため、連結は arguments.ts が行う。
 
 import path from 'node:path'
 
@@ -26,11 +20,7 @@ const S3_LIST_URI = /^s3:\/\/[^/]*(?:\/.*)?$/
 const S3_SCHEME = /^s3:\/\//i
 
 /**
-`s3://<bucket>/<key>` 形式か。
-
-空白を含む値は拒否しない。引数は shell を介さず、1 要素 1 値で awscli へ渡る。
-そのため `s3://b/k --recursive` のような値は「そういう名前のキー」として扱われ、
-別オプションには化けない（research R3）。
+`s3://<bucket>/<key>` 形式か。空白を含む値は、shell を介さず 1 値で渡るので拒否しない（research R3）。
 */
 export function validateS3Uri(value: string): string | undefined {
   return S3_OBJECT_URI.test(value) ? undefined : 'must be in the form s3://<bucket>/<key>'
@@ -44,10 +34,7 @@ export function validateS3ListUri(value: string): string | undefined {
 }
 
 /**
-書き出し先のローカルパスとして妥当か。
-
-`s3://…` を先に見るのは、絶対パスの検証だけでも弾けるが「相対パスだ」という案内になり、
-取得元と書き出し先を取り違えた利用者に誤った直し方を促すため。
+書き出し先のローカルパスとして妥当か。`s3://…` を先に弾くのは、取得元と取り違えた利用者に誤案内しないため。
 */
 export function validateLocalPath(value: string): string | undefined {
   if (S3_SCHEME.test(value)) return 'must be a local absolute path (s3:// cannot be a destination)'

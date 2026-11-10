@@ -131,7 +131,7 @@ describe('installStdoutGuard', () => {
 
     protocolStdout.write('{"jsonrpc":"2.0"}\n')
     await vi.waitFor(() => {
-      expect(stderr.chunks.join('')).toContain('pecot-tools mcp: stdout への書き込みに失敗しました: EPIPE 相当')
+      expect(stderr.chunks.join('')).toContain('error: failed to write to stdout: EPIPE 相当')
     })
     expect(process.exitCode).toBe(1)
   })
@@ -349,7 +349,7 @@ describe('runMcpServe', () => {
     const handle = await startAndConnect(harness)
     try {
       serverOf(harness).server.onerror?.(new Error('Unknown message type'))
-      expect(harness.stderr.chunks.join('')).toContain('pecot-tools mcp: Unknown message type')
+      expect(harness.stderr.chunks.join('')).toContain('error: Unknown message type')
     }
     finally {
       await harness.client.close()
@@ -362,7 +362,7 @@ describe('runMcpServe', () => {
     const handle = await startAndConnect(harness)
     try {
       harness.serverTransport.onerror?.(new Error('transport failure'))
-      expect(harness.stderr.chunks.join('')).toContain('pecot-tools mcp: transport failure')
+      expect(harness.stderr.chunks.join('')).toContain('error: transport failure')
     }
     finally {
       await harness.client.close()
@@ -401,11 +401,11 @@ describe('runMcpServe', () => {
 
       await vi.waitFor(() => {
         const reported = harness.stderr.chunks.join('')
-        expect(reported).toContain('pecot-tools mcp: ')
+        expect(reported).toContain('error: ')
         expect(reported).toContain('Unrecognized key')
       })
       // transport とインスタンスの両方へ同じ Error が流れても、診断は 1 件。
-      expect(harness.stderr.chunks.filter(chunk => chunk.startsWith('pecot-tools mcp: '))).toHaveLength(1)
+      expect(harness.stderr.chunks.filter(chunk => chunk.startsWith('error: '))).toHaveLength(1)
       expect(harness.servers).toHaveLength(1)
     }
     finally {
@@ -427,7 +427,7 @@ describe('runMcpServe', () => {
       await vi.waitFor(() => {
         expect(closeSpy).toHaveBeenCalled()
       })
-      expect(harness.stderr.chunks.join('')).toContain('pecot-tools mcp: factory failure')
+      expect(harness.stderr.chunks.join('')).toContain('error: factory failure')
       expect(process.exitCode).toBe(1)
     }
     finally {
@@ -464,7 +464,7 @@ describe('executeMcpServe', () => {
 
     executeMcpServe(() => harness.deps)
 
-    expect(harness.stderr.chunks.join('')).toContain('pecot-tools mcp: transport 生成に失敗')
+    expect(harness.stderr.chunks.join('')).toContain('error: transport 生成に失敗')
     expect(process.exitCode).toBe(1)
   })
 
@@ -478,7 +478,7 @@ describe('executeMcpServe', () => {
 
     executeMcpServe(() => harness.deps)
 
-    expect(harness.stderr.chunks.join('')).toContain('pecot-tools mcp: plain string failure')
+    expect(harness.stderr.chunks.join('')).toContain('error: plain string failure')
     expect(process.exitCode).toBe(1)
   })
 })

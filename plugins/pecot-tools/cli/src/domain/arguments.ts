@@ -1,32 +1,16 @@
 // 入力の検証と awscli 引数配列の組み立て。
-//
-// shell を介さず spawn するため、利用者の値は必ず 1 要素 1 値で配列へ入れる。
-// 値が '-' で始まると awscli の引数解析でオプションと解釈され得るので、原則として先頭 '-' を
-// 拒否する（research R3）。例外はフラグで渡す 1 値の string だけで、こちらは
-// `--flag=value` の 1 トークン形にして渡す（doesAllowLeadingDash / flagTokens）。
-//
-// shorthand-list（`--dimensions` / `--filters` / `--image-ids`）は JSON.stringify で 1 トークンに
-// する。awscli はこれらのフラグを shorthand と JSON の双方で受ける。
-// JSON を選べば区切り文字の解釈がエスケープに閉じ、利用者の値が構文へ漏れる余地が無くなる（`,` を含むタグ値も渡せる）。
+// 先頭 '-' の値は原則拒否し、例外の string は `--flag=value` の 1 トークンで渡す（research R3）。
 
 import { PROFILE_INPUT, REGION_INPUT, type AllowlistEntry, type InputSpec } from './allowlist.js'
 import { validateLocalPath, validateS3ListUri, validateS3Uri } from './s3-input.js'
 
 /**
-shorthand の構成要素の値に混入すると構文として解釈される文字。
-
-awscli の shorthand は `Key=value,Key=value` の書式。
-構成要素の値に `,` や `=` を含めると、契約に無いキー（`ExpectedBucketOwner` 等）を後ろに足せる。
-実 awscli が受理することを動作確認済みなので、組み立て前に弾く。対象は文字列を連結する `shorthand`（Athena / ECR の
-`--filter`）だけで、JSON で組み立てる `shorthand-list` には要らない。
+shorthand の値に混入すると構文になる文字。`,` や `=` で契約外のキーを足せるため、組み立て前に弾く。
 */
 const SHORTHAND_SYNTAX = /[,={}]/
 
 /**
-制御文字（U+0000〜U+001F と U+007F）を含むか。
-
-argv に NUL を載せると spawn が同期 throw し、ExecutionResult を伴わない応答になる。
-他の制御文字も awscli の解釈が値ごとに変わるため、検証の段階で invalid-input にする。
+制御文字（U+0000〜U+001F と U+007F）を含むか。NUL は spawn が同期 throw するため、検証で弾く。
 */
 function hasControlCharacter(text: string): boolean {
   for (const character of text) {
@@ -37,10 +21,7 @@ function hasControlCharacter(text: string): boolean {
 }
 
 /**
-共通入力として末尾で付与するフラグ。
-
-エントリ側が同じフラグを inputs に宣言していても、付与箇所は末尾の 1 本に絞る
-（フラグ列挙でも出すと `--profile x --profile x` が並ぶ）。
+共通入力として末尾で付与するフラグ。inputs 側の宣言と重複して並ばないよう、付与は末尾の 1 本に絞る。
 */
 const COMMON_FLAGS: ReadonlySet<string> = new Set(
   [PROFILE_INPUT.awsFlag, REGION_INPUT.awsFlag].filter(flag => flag !== undefined),
@@ -143,17 +124,7 @@ function kindPredicate(kind: InputSpec['kind'], value: string): string | undefin
 }
 
 /**
-値の先頭 '-' を許す入力か。
-
-対象はフラグで渡す `kind: 'string'` の 1 値だけ。CloudWatch Logs の除外パターン（`-INFO`）の
-ように、先頭 '-' に意味を持つ値が実在する。
-実 awscli 2.36.40 では `--filter-pattern=-INFO` が受理される（`--filter-pattern -INFO` は 252）。組み立ては buildArguments が
-`--flag=value` の 1 トークン形で行うため、オプション注入にはならない。
-
-string-list は nargs が貪欲で、1 トークン形へ畳めない。
-位置引数には `--flag=value` の逃がし先が無い。
-そのため、いずれも従来どおり拒否する（enum は許容値が許可リストの静的宣言なので、
-そもそも利用者の値が本判定に届かない）。
+値の先頭 '-' を許す入力か。対象はフラグで渡す string の 1 値だけで、`--flag=value` の 1 トークンで組み立てる。
 */
 function doesAllowLeadingDash(spec: Readonly<InputSpec>): boolean {
   return spec.kind === 'string' && spec.awsFlag !== undefined && spec.positional === undefined
@@ -180,10 +151,7 @@ function validateStringValue(spec: Readonly<InputSpec>, value: string): InvalidI
 }
 
 /**
-shorthand の構成要素として載る値を検証する。
-
-shorthand 自身は入力レコードから読まない（利用者は指定できない）。見るのは構成要素の
-取得元入力の値だけで、取得元自体の型・書式は通常の入力として別途検証されている。
+shorthand の構成要素の値を検証する。shorthand 自身は読まず、取得元入力の値だけを見る。
 */
 function validateShorthandParts(
   spec: Readonly<InputSpec>,
@@ -200,11 +168,7 @@ function validateShorthandParts(
 }
 
 /**
-shorthand-list の構成要素の値 1 つずつを検証する。
-
-区切り文字（`, = { }`）は見ない。組み立てが JSON.stringify で、値はエスケープされて JSON の
-文字列リテラルに収まるため、要素の中へ契約外のキーを足す手段が無い。
-空文字は awscli が空値として解釈するので弾く。制御文字は spawn へ届く前にここで拒否する。
+shorthand-list の構成要素の値を検証する。JSON.stringify がエスケープするので、区切り文字は見ない。
 */
 function validateElementTexts(
   spec: Readonly<InputSpec>,
@@ -221,10 +185,7 @@ function validateElementTexts(
 }
 
 /**
-shorthand-list の要素 1 件を検証する。
-
-値を持つ構成要素が 1 つも無い要素は拒否する。`--filters` に空の要素を渡すと awscli が
-空トークンを受け取り、意図しない絞り込みになるため。
+shorthand-list の要素 1 件を検証する。値を持つ構成要素が無い要素は、意図しない絞り込みになるので拒否する。
 */
 function validateShorthandListElement(
   spec: Readonly<InputSpec>,
@@ -342,9 +303,7 @@ function validateValue(spec: Readonly<InputSpec>, value: unknown): InvalidInput 
 }
 
 /**
-入力を検証する。問題があれば invalid-input を、無ければ undefined を返す。
-
-profile / region も同じ処理で検証する（別扱いにすると書式検証が抜ける）。
+入力を検証する。問題があれば invalid-input を、無ければ undefined を返す。profile / region も同じ処理で検証する。
 */
 export function validateInput(
   entry: Readonly<AllowlistEntry>,
@@ -389,9 +348,7 @@ function effectiveValue(
 }
 
 /**
-shorthand フラグに載せる `Key=value,…` を組み立てる。
-
-値を持つ構成要素だけを並べ、1 つも無ければ undefined（= フラグごと省く）。
+shorthand フラグに載せる `Key=value,…` を組み立てる。値を持つ構成要素が無ければ undefined（フラグごと省く）。
 */
 function shorthandValue(
   spec: Readonly<InputSpec>,
@@ -407,11 +364,7 @@ function shorthandValue(
 }
 
 /**
-shorthand-list フラグに載せる JSON 1 トークンを組み立てる。
-
-配列全体が `[{"Name":"…","Value":"…"}]` の 1 トークンになり、`list` の構成要素は JSON の配列のまま載せる。
-値を持つ構成要素が無い要素は落とす。要素が 1 つも残らなければ undefined
-（= フラグごと省く）。
+shorthand-list フラグに載せる JSON 1 トークンを組み立てる。要素が 1 つも残らなければ undefined。
 */
 function shorthandListToken(
   spec: Readonly<InputSpec>,
@@ -447,28 +400,14 @@ function valueTexts(value: InputValue): string[] {
 }
 
 /**
-フラグ 1 つ分のトークン列。値が '-' で始まる string のときだけ `--flag=value` の 1 トークンにする。
-
-別トークンで渡すと awscli の argparse が値をオプションとして読む。`=` 連結は shell を
-介さない配列渡しなので、別トークンへ割れることも別コマンドへ委譲されることも無い。
+フラグ 1 つ分のトークン列。値が '-' で始まる string は、argparse の誤読を避けて `--flag=value` の 1 トークンにする。
 */
 function flagTokens(flag: string, value: InputValue): string[] {
   return typeof value === 'string' && value.startsWith('-') ? [`${flag}=${value}`] : [flag, ...valueTexts(value)]
 }
 
 /**
-awscli へ渡す引数配列を組み立てる。
-
-並びは `<service> <subcommand> <位置引数…> <フラグ…> --output json --no-cli-pager
---profile <p> --region <r>`。位置引数を先・フラグを後に置くと、string-list（nargs が貪欲）と
-位置引数が同居しても awscli v2 の argparse が取り違えない（動作確認済み）。
-
-`--no-cli-pager` は jsonOutput の有無に依らず常に付ける（非 tty では無害で、分岐を持たない方が単純）。
-
-`--profile` / `--region` は末尾で 1 度だけ付ける。エントリ側が inputs に同名を宣言していても
-フラグ列挙では飛ばす。
-
-値が '-' で始まる string は `--flag=value` の 1 トークンにする（flagTokens）。
+awscli へ渡す引数配列を組み立てる。位置引数を先・フラグを後に置くと、nargs が貪欲な string-list と同居しても取り違えない。
 */
 export function buildArguments(
   entry: Readonly<AllowlistEntry>,

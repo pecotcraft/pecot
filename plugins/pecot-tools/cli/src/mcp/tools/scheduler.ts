@@ -12,10 +12,7 @@ import {
 } from './_shared.js'
 
 /**
-一覧の絞り込みに使うスケジュールグループ名。
-
-`list-schedules` の `--group-name` は未指定なら全グループが対象で、`get-schedule` の
-既定（default グループ）とは意味が違うので定数を分ける。
+一覧の絞り込みに使うスケジュールグループ名。未指定なら全グループが対象で、get-schedule の default とは意味が違う。
 */
 const LIST_GROUP_NAME_INPUT = z.string().optional()
   .describe('Schedule group name to filter by. If omitted, lists all groups')

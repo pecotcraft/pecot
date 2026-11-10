@@ -200,7 +200,7 @@ describe('executeAllowlisted', () => {
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, { timeoutMs: 500 })
 
     expect(result).toMatchObject({ ok: false, exitCode: 124, category: 'timeout' })
-    expect(result.message).toContain('取得範囲')
+    expect(result.message).toContain('Narrow the range')
   })
 
   it('awscli 未導入は exitCode 127 の awscli-missing にする', async () => {
@@ -292,7 +292,7 @@ describe('executeAllowlisted', () => {
 
       expect(result.ok).toBe(false)
       expect(Buffer.byteLength(result.stderr ?? '', 'utf8')).toBe(OUTPUT_LIMIT_BYTES)
-      expect(result.message).toContain('stderr は上限')
+      expect(result.message).toContain('stderr exceeded the limit')
     })
   })
 

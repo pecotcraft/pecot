@@ -1,7 +1,4 @@
-// Athena 系のツール定義。
-//
-// start-query-execution だけは許可リストの静的宣言でクエリ内容を縛れないため、
-// 実行前拒否（reject）で参照専用クエリ以外を落とす。
+// Athena 系のツール定義。start-query-execution は静的宣言でクエリを縛れないため、実行前拒否で参照専用以外を落とす。
 
 import { z } from 'zod'
 
@@ -21,10 +18,7 @@ import {
 } from './_shared.js'
 
 /**
-参照専用でないクエリを not-allowed で落とす。
-
-query_string が文字列でない場合は undefined を返し、必須入力の検証（invalid-input）へ委ねる。
-ここで別種別を返すと「必須入力の欠落」が「許可されていない操作」に化ける。
+参照専用でないクエリを not-allowed で落とす。文字列でなければ undefined を返し、必須入力の検証へ委ねる。
 */
 function rejectNonReadOnlyQuery(
   arguments_: Readonly<Record<string, unknown>>,
@@ -39,11 +33,7 @@ function rejectNonReadOnlyQuery(
 }
 
 /**
-catalog の単独指定を invalid-input で落とす。
-
-契約書は catalog を「database と併用」と定めている。
-組み立て自体は `--query-execution-context Catalog=…` を作れてしまう。
-ただし Database を欠いた QueryExecutionContext を実 Athena API が受けるかは未確認なので、契約の範囲へ寄せる。
+catalog の単独指定を invalid-input で落とす。契約は「database と併用」で、Database 無しを Athena API が受けるかは未確認。
 */
 function rejectCatalogWithoutDatabase(
   arguments_: Readonly<Record<string, unknown>>,

@@ -12,10 +12,7 @@ import {
 } from './_shared.js'
 
 /**
-絞り込み条件 1 件。`values` のいずれかに一致すれば対象になる。
-
-`z.object` は宣言外のキーを通知せず削るため strictObject を使う。
-JSON Schema では `items.additionalProperties: false` になり、SDK が入力検証エラーで拒否する。
+絞り込み条件 1 件。`values` のいずれかに一致すれば対象になる。strictObject は宣言外のキーを SDK に拒否させるため。
 */
 const FILTER_ELEMENT = z.strictObject({
   name: z.string().describe('Filter name (e.g. instance-state-name, tag:Name)'),

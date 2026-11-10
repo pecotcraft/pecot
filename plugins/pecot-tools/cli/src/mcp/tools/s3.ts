@@ -1,7 +1,4 @@
-// S3 系のツール定義。
-//
-// 取得方向（S3 → ローカル）は入力の型で固定されており、逆方向は表現できない（research R7）。
-// 残る上書き規則だけを実行前拒否（reject）で見て、書き出し先を artifacts に載せる。
+// S3 系のツール定義。取得方向は入力の型で固定され（research R7）、残る上書き規則だけを実行前拒否で見る。
 
 import { z } from 'zod'
 
@@ -30,14 +27,7 @@ function targetOf(
 }
 
 /**
-書き出し先を実行前に見る（research R7 の Edge Case）。
-
-ディレクトリは overwrite に依らず拒否する。
-`aws s3 cp s3://b/k /dir` は `/dir/k` を書く。
-「上書きするなら overwrite に true を」の案内どおりに再実行しても、artifacts に載る書き出し先（`/dir`）と実体がずれたまま成功してしまう。
-
-既存ファイルは overwrite が無ければ拒否する。書き出し先が未指定・非文字列のときは undefined を
-返し、必須入力の検証へ委ねる。
+書き出し先を実行前に見る（research R7）。ディレクトリは overwrite に依らず拒否する。`/dir/k` に書かれ、artifacts の `/dir` とずれるため。
 */
 function rejectExistingTarget(
   name: TargetName,

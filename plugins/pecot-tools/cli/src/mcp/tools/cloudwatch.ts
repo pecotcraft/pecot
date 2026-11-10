@@ -1,6 +1,4 @@
-// CloudWatch（メトリクス）系のツール定義。
-//
-// ログ系は logs.ts が持つ。こちらはメトリクスの統計取得だけを公開する。
+// CloudWatch（メトリクス）系のツール定義。ログ系は logs.ts が持つ。
 
 import { z } from 'zod'
 

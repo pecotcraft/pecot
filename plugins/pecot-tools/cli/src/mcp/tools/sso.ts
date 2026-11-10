@@ -1,12 +1,5 @@
-// SSO 認証の 2 段構成（contracts/mcp-tools.md §SSO 認証 / research R5 / FR-007）。
-//
-// `aws sso login` は認証が終わるまで戻らないため、開始（URL とコードを即時に返す）と
-// 完了確認を別のツールに分ける。子プロセスの保持と状態遷移は infra/sso/login-registry.ts が持ち、
-// ここは応答の組み立て（ヒント・上限・annotations）だけを持つ。
-//
-// この 2 件は許可リスト（domain/allowlist.ts）に入れない。許可リストは「awscli を 1 回起動して
-// 出力を返す」形のコマンド表で、tests/integration/real-awscli.test.ts が全件を実 awscli へ通す。
-// そのため、入れると実行のたびに本物のデバイス認証が発行される。
+// SSO 認証の 2 段構成（contracts/mcp-tools.md §SSO 認証 / research R5）。開始と完了確認を別ツールに分け、子の保持は login-registry.ts が持つ。
+// 許可リストに入れない。実 awscli テストが全件を通すため、入れると実行のたびに本物のデバイス認証が発行される。
 
 import { z } from 'zod'
 
@@ -30,10 +23,7 @@ import {
 } from './_shared.js'
 
 /**
-SSO 専用の失敗種別ごとの再試行方法。
-
-共通表（_shared.ts の FAILURE_HINTS）は auth-missing / auth-expired で、
-「aws_sso_login を実行してください」と案内する。SSO 自身の失敗に使うと、案内が循環する。
+SSO 専用の失敗種別ごとの再試行方法。共通表は「aws_sso_login を実行」と案内するので、SSO 自身の失敗に使うと循環する。
 */
 const SSO_FAILURE_HINTS: Record<FailureCategory, string> = {
   'not-allowed': 'Operation not allowed. Use only the exposed tools',
@@ -53,12 +43,7 @@ const SSO_FAILURE_HINTS: Record<FailureCategory, string> = {
 const OUTPUT_TRUNCATION_NOTE = '(Output exceeded the limit, so only the beginning is included)'
 
 /**
-annotations（判断の根拠は契約書の共通規約）。
-
-`aws_sso_login` は AWS 側に新しいトークンを発行させるので readOnlyHint は false。
-`aws_sso_login_status` はレジストリを読むだけなので true。壊す対象を持たないため
-destructiveHint は 2 件とも false。openWorldHint は共通規約に合わせて 2 件とも true にする
-（status は awscli を起動しないが、返す内容は外界での承認の進み具合に依存する）。
+annotations。status は awscli を起動しないが、返す内容は外界の承認の進み具合に依存するので openWorldHint は 2 件とも true。
 */
 const LOGIN_ANNOTATIONS = { readOnlyHint: false, destructiveHint: false, openWorldHint: true }
 const STATUS_ANNOTATIONS = { readOnlyHint: true, destructiveHint: false, openWorldHint: true }
@@ -80,12 +65,7 @@ function promptData(session: Readonly<SsoLoginSession>): Record<string, unknown>
 }
 
 /**
-pending 応答の案内文。
-
-`promptData` は未確定の項目をキーごと data から落とす。
-autofill URL（verificationUrlComplete）が未確定のときに、それを第一候補として案内すると、
-応答に無い項目を案内することになる。
-autofill 行は URL・コードより後の chunk で届くことがあり、揃うまでの間はこの分岐に入る。
+pending 応答の案内文。autofill URL は後の chunk で届くことがあり、未確定の間は応答に無い項目を案内しない。
 */
 function pendingMessage(session: Readonly<SsoLoginSession>): string {
   return (session.verificationUrlComplete === undefined
@@ -110,9 +90,7 @@ function failureResult(
   /* c8 ignore next -- レジストリは failed に必ず category を付ける。既定値は型を閉じるための防御網 */
   const category = session.category ?? 'other'
   const limited = limitOutput(session.output)
-  // awscli の終了コードをそのまま返す（許可リストのツールと同じ規約。SSO 設定なしなら 253）。
-  // シグナル終了・未終了は resolveExitCode が 1 へ畳む。0 以下は ok: false と同居させられないので、
-  // ここでも 1 にする。
+  // awscli の終了コードをそのまま返す（SSO 設定なしなら 253）。ok: false と同居できないので、0 以下とシグナル終了は 1 にする。
   const resolved = resolveExitCode(category, session.exitCode)
 
   return {
@@ -242,11 +220,7 @@ function loginStatus(
 }
 
 /**
-SSO の 2 件を組み立てる。
-
-ハンドラは ToolCallContext（signal）を使わない。tools/call のキャンセルで子を落とすと、
-「開始だけして後で確認する」という 2 段構成の趣旨に反する。
-クライアントの接続断は serve.ts の stdin end の処理が子を片付けるため、孤児は残らない。
+SSO の 2 件を組み立てる。signal を使わないのは、キャンセルで子を落とすと 2 段構成の趣旨に反するため（接続断は serve.ts が片付ける）。
 */
 export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefinition[] {
   // 既定の解決はここで済ませる。ハンドラ内で遅延解決すると、テストが注入したレジストリと
