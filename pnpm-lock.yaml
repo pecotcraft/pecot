@@ -540,8 +540,8 @@ importers:
   plugins/pecot-visual/assets/slidev/scripts/eslint/_shared:
     dependencies:
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
 
   plugins/pecot-visual/assets/slidev/scripts/eslint/asset-path:
     devDependencies:
@@ -567,8 +567,8 @@ importers:
         specifier: workspace:*
         version: link:../_shared
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
     devDependencies:
       eslint:
         specifier: ^10.14.0
@@ -583,8 +583,8 @@ importers:
         specifier: workspace:*
         version: link:../_shared
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
       synckit:
         specifier: ^0.12.3
         version: 0.12.3
@@ -605,8 +605,8 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
       js-yaml:
-        specifier: ^4.3.2
-        version: 4.3.2
+        specifier: ^5.5.0
+        version: 5.5.0
 
   plugins/pecot-visual/cli:
     dependencies:
