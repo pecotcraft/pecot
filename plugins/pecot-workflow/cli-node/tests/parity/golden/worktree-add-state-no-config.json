@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: worktree config not found: .pecot/config/worktree-config.json\n  run pecot worktree init to generate the template\n",
+  "stderr": "error: worktree config not found: .pecot/config/worktree-config.json\n    run pecot worktree init to generate the template\n",
   "exitCode": 1,
   "requests": [],
   "files": {

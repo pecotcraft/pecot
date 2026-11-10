@@ -156,10 +156,10 @@ CLI ガード（この表が最終の基準）は次のとおり。
 |------|----------|----------|----------|
 | CWD と Issue ref の owner/repo 不一致 | `pecot create-branch` の冒頭 | exit 2 + 対象リポ WT への移動誘導 | `--allow-cross-repo` / `-X` |
 | `.pecot-active` に OPEN な別 Issue ref | `pecot create-branch` ブランチ作成前 | exit 2 + WT 分離誘導 | `--force-overwrite-active` / `-F` |
-| `.pecot-active` の Issue が CLOSED | 同上 | stale note + 続行 | （バイパス不要） |
+| `.pecot-active` の Issue が CLOSED | 同上 | stale の warning + 続行 | （バイパス不要） |
 
 状況を着手前に把握したいときは、ユーザー / AI が `pecot session status -D .` を実行する。
-`.pecot-active` の内容と `=== アクティブIssue ===` の OPEN/CLOSED が表示される。
+`.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が表示される。
 
 未コミット差分の扱いは CLI ガード対象外（git status の判断は AI / 人間に委ねられる）。`git status` で前 Issue 由来の差分が残っていれば commit / stash / 破棄で clean にしてから着手する。
 

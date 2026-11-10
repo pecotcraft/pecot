@@ -1,6 +1,6 @@
 {
-  "stdout": "\n対象: {{TMP}}/wt1/demo\n  リンク作成: 1件\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "count: symlinks created in {{TMP}}/wt1/demo: 1\n",
   "exitCode": 0,
   "requests": [],
   "files": {

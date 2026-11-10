@@ -1,6 +1,6 @@
 {
-  "stdout": "=== ドライラン（実際にはマージしません） ===\n\nPR: acme/demo/31\nタイトル: release: v0.2.0 を出す\nブランチ: develop → release\nマージ方法: merge (regular)\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "dry-run: would merge PR acme/demo/31 (develop -> release, merge commit)\n",
   "exitCode": 0,
   "requests": [
     {

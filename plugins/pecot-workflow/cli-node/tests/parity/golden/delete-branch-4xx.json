@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: resource not found: {{GITHUB_API}}/repos/acme/demo\n",
+  "stderr": "error: could not read the default branch of acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo\n",
   "exitCode": 1,
   "requests": [
     {

@@ -1,6 +1,6 @@
 {
-  "stdout": "ブランチ: feat/demo/7\n推定Issue: acme/demo/7\n復元完了: .pecot-active → acme/demo/7\n作業ファイル置き場: .pecot/work/7/\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "set: work target acme/demo/7 (work directory .pecot/work/7/)\n",
   "exitCode": 0,
   "requests": [
     {

@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: invalid version format: v0.2\nuse semantic versioning (X.Y.Z)\n",
+  "stderr": "error: invalid version format: v0.2\n  use semantic versioning (X.Y.Z)\n",
   "exitCode": 1,
   "requests": [],
   "files": {

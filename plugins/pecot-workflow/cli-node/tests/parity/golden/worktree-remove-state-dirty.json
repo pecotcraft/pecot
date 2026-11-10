@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: failed to remove the worktree: fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n\n",
+  "stderr": "error: failed to remove the worktree: fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n",
   "exitCode": 1,
   "requests": [],
   "files": {

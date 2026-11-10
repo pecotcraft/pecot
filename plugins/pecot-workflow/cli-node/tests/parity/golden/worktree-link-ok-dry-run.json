@@ -1,6 +1,6 @@
 {
-  "stdout": "--- dry-run モード（実行されません）---\n\n対象: {{TMP}}/wt1/demo\n  {{TMP}}/wt1/demo/CLAUDE.local.md -> {{TMP}}/base/demo/CLAUDE.local.md\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "dry-run: would create symlink {{TMP}}/wt1/demo/CLAUDE.local.md -> {{TMP}}/base/demo/CLAUDE.local.md\n",
   "exitCode": 0,
   "requests": [],
   "files": {

@@ -67,7 +67,7 @@ class TestApiUrlOverrideGuard:
         result = runner.invoke(app, ["session", "status"])
         assert result.exit_code == 1
         assert result.output.strip() == (
-            "PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: "
+            "error: PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: "
             "https://example.com"
         )
         assert result.exception is None or isinstance(result.exception, SystemExit)

@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\nWarning: 2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n  #1 (medium)\n  #2 (critical)\n→ https://ghes.example.com/acme/demo/security/dependabot\n✓ secret scanning: open 0\n",
-  "stderr": "エラー: code scanning の alert が open 1 件\n  #10\n→ https://ghes.example.com/acme/demo/security/code-scanning\n  解消（fixed）か理由付きの dismiss で 0 件にしてから再実行してください。\n",
+  "stdout": "",
+  "stderr": "warning: 2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n  #1 (medium)\n  #2 (critical)\n  → https://ghes.example.com/acme/demo/security/dependabot\nerror: code scanning has 1 open alert\n  #10\n  → https://ghes.example.com/acme/demo/security/code-scanning\n  close them (fixed, or dismissed with a reason) and run again\ncount: open secret scanning alerts: 0\n",
   "exitCode": 1,
   "requests": [
     {

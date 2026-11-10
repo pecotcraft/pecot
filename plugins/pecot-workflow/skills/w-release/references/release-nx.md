@@ -209,9 +209,9 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
    ```
 
-   `preflight.log` に `Warning:` で始まる行があれば、その行と続く行をユーザーに示す。
+   `preflight.log` に `warning:` で始まる行があれば、その行と続く行をユーザーに示す。
    Summary の「preflight warnings」にも同じ行が出る。
-   `Could not check Dependabot alerts` が出たときは、App の権限（Dependabot alerts の read）とトークンを確かめていただく。
+   `warning: could not check Dependabot alerts` が出たときは、App の権限（Dependabot alerts の read）とトークンを確かめていただく。
 
    案が誤っていたら、承認を案内しない。
    `gh run cancel <id> -R <owner>/<repo>` で止め、plan を直す PR を出し、マージしてから起動し直す。
@@ -276,7 +276,7 @@ Dependabot の open の alert は、件数・最高 severity・一覧 URL を警
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
-alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
+alerts 無効のリポは `skipped: Dependabot alerts (feature disabled)` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
@@ -373,7 +373,7 @@ Dependabot の open の alert は、件数・最高 severity・一覧 URL を警
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
-alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
+alerts 無効のリポは `skipped: Dependabot alerts (feature disabled)` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認

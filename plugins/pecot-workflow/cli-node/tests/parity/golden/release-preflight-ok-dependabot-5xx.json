@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\nWarning: Could not check Dependabot alerts. The release is not blocked.\n  Reason: acme/demo: GitHub API error: 502 Bad Gateway\n✓ code scanning: open 0\n✓ secret scanning: open 0\n\n=== Preflight Check Passed ===\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "warning: could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: GitHub API error: 502 Bad Gateway\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
   "exitCode": 0,
   "requests": [
     {

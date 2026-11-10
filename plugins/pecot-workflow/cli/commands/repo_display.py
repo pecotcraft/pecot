@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import typer
-
+from cli.commands._output import Output
 from cli.core.repo_resolver import ResolvedRepo, ResolveSource
+
+_OUT = Output(dry_run=False)
 
 
 def print_resolved_repo(resolved: ResolvedRepo) -> None:
     """Write the result of ``resolve_repo`` to stdout in the ``--show-repo`` format."""
-    typer.echo(f"resolved: {resolved.repo.owner}/{resolved.repo.repo}")
+    lines = [f"resolved: {resolved.repo.owner}/{resolved.repo.repo}"]
     if resolved.source is ResolveSource.EXPLICIT:
-        typer.echo("source:   explicit")
+        lines.append("source:   explicit")
     else:
-        typer.echo(f"source:   current-git ({resolved.remote_name})")
+        lines.append(f"source:   current-git ({resolved.remote_name})")
+    _OUT.data("\n".join(lines))

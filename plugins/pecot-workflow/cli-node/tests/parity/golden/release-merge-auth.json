@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: GraphQL authentication error: Client error '401 Unauthorized' for url '{{GITHUB_API}}/graphql'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\n",
+  "stderr": "error: could not read PR acme/demo/31: GraphQL authentication error: Client error '401 Unauthorized' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\n",
   "exitCode": 1,
   "requests": [
     {

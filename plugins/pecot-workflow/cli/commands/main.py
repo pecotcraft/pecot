@@ -8,6 +8,7 @@ from pathlib import Path
 import typer
 
 from cli import __version__
+from cli.commands._output import Output
 from cli.commands.dependabot import dependabot_sync as dependabot_sync_command
 from cli.commands.issue import add_to_project as add_to_project_command
 from cli.commands.issue import issue_comment as issue_comment_command
@@ -50,6 +51,8 @@ from cli.commands.worktree import (
 from cli.core.github.client import resolve_api_url_override
 from cli.core.repo_resolver import AmbiguousRepoError, resolve_repo
 
+_OUT = Output(dry_run=False)
+
 # メインアプリケーション
 app = typer.Typer(
     name="pecot",
@@ -61,7 +64,7 @@ app = typer.Typer(
 def version_callback(value: bool) -> None:
     """Callback that shows the version"""
     if value:
-        typer.echo(f"pecot version {__version__}")
+        _OUT.data(f"pecot version {__version__}")
         raise typer.Exit()
 
 
@@ -83,7 +86,7 @@ def main(
     try:
         resolve_api_url_override()
     except ValueError as e:
-        typer.echo(str(e), err=True)
+        _OUT.error(str(e))
         raise typer.Exit(1) from e
 
     ctx.ensure_object(dict)
@@ -93,10 +96,10 @@ def main(
         try:
             resolved = resolve_repo(repo, cwd=Path.cwd())
         except ValueError as e:
-            typer.echo(f"error: --repo: {e}", err=True)
+            _OUT.error(f"--repo: {e}")
             raise typer.Exit(2) from e
         except AmbiguousRepoError as e:
-            typer.echo(f"error: {e}", err=True)
+            _OUT.error(str(e))
             raise typer.Exit(2) from e
         print_resolved_repo(resolved)
         raise typer.Exit(0)

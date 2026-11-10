@@ -1,5 +1,5 @@
 {
-  "stdout": "## PR #21 feat(demo): #12 見本の変更\n\n**State:** OPEN | **Mergeable:** MERGEABLE\n\n**Branch:** `feat/demo/12` → `main`\n\n**Closing Issues:**\n  - #12 見本の Issue\n    → 詳細: pecot issue read acme/demo/12\n\n---\n\nCloses #12\n\n\n---\n\n## Reviews\n\n### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n\n---\n\n## Line Comments\n\n### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02):\n> 名前を直す\n\n",
+  "stdout": "## PR #21 feat(demo): #12 見本の変更\n\n**State:** OPEN | **Mergeable:** MERGEABLE\n\n**Branch:** `feat/demo/12` → `main`\n\n**Closing Issues:**\n  - #12 見本の Issue\n    → details: pecot issue read acme/demo/12\n\n---\n\nCloses #12\n\n\n---\n\n## Reviews\n\n### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n\n---\n\n## Line Comments\n\n### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02):\n> 名前を直す\n\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

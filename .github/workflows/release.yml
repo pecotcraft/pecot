@@ -97,7 +97,7 @@ jobs:
               echo "$MSG_RUN_FAILED"
             fi
             if [ -f "$d/preflight.log" ]; then
-              warn="$(awk '/^Warning:/ {on=1; print; next} on && /^[[:space:]]/ {print; next} {on=0}' "$d/preflight.log")"
+              warn="$(awk '/^warning:/ {on=1; print; next} on && /^[[:space:]]/ {print; next} {on=0}' "$d/preflight.log")"
               if [ -n "$warn" ]; then
                 echo
                 echo "### preflight warnings"

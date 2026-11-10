@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: resource not found: {{GITHUB_API}}/repos/acme/demo/git/ref/heads/main\n",
+  "stderr": "error: could not create branch feat/7 in acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo/git/ref/heads/main\n",
   "exitCode": 1,
   "requests": [
     {

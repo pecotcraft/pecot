@@ -156,7 +156,7 @@ describe('PECOT_GITHUB_API_URL', () => {
     expect(await run(['--show-repo'])).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://x.com\n',
+      stderr: 'error: PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://x.com\n',
     })
   })
 

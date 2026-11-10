@@ -1,6 +1,6 @@
 {
-  "stdout": "✔ PR #31 をマージしました (SHA: abcdef0)\n\n=== マージ完了 ===\nPR: acme/demo/31\nタイトル: release: v0.2.0 を出す\nマージ方法: merge (regular)\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "merged: PR acme/demo/31 (develop -> release, merge commit)\n",
   "exitCode": 0,
   "requests": [
     {

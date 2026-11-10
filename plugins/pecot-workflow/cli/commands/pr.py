@@ -1203,7 +1203,7 @@ def _format_pr_with_reviews_markdown(pr: dict[str, Any], owner: str, repo: str) 
         lines.append("**Closing Issues:**")
         for issue in pr["closing_issues"]:
             lines.append(f"  - #{issue['number']} {issue['title']}")
-            lines.append(f"    → 詳細: pecot issue read {owner}/{repo}/{issue['number']}")
+            lines.append(f"    → details: pecot issue read {owner}/{repo}/{issue['number']}")
         lines.append("")
 
     # 参照Issue（Refs #XXX、詳細確認コマンド付き）
@@ -1212,7 +1212,7 @@ def _format_pr_with_reviews_markdown(pr: dict[str, Any], owner: str, repo: str) 
         for issue in pr["referenced_issues"]:
             title_suffix = f" {issue['title']}" if issue.get("title") else ""
             lines.append(f"  - #{issue['number']}{title_suffix}")
-            lines.append(f"    → 詳細: pecot issue read {owner}/{repo}/{issue['number']}")
+            lines.append(f"    → details: pecot issue read {owner}/{repo}/{issue['number']}")
         lines.append("")
 
     # 本文

@@ -1,6 +1,6 @@
 {
-  "stdout": "ワークツリー 'wt1' を削除しました。\n  ブランチ 'wt1' も削除しました。\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "removed: worktree wt1\ndeleted: local branch wt1\n",
   "exitCode": 0,
   "requests": [],
   "files": {

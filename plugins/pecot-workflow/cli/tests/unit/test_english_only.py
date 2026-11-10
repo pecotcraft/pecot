@@ -1,6 +1,6 @@
 """Check that Japanese text stays out of the CLI sources (spec 021).
 
-- ``cli/commands/``: docstrings and ``help=`` (FR-012).
+- ``cli/commands/``: docstrings, and every string literal except ``COMMANDS_JAPANESE_ALLOWED`` (FR-012).
 - ``cli/core/``: every string literal, except the ones listed in ``CORE_JAPANESE_ALLOWED`` (FR-007, SC-007).
 """
 
@@ -94,7 +94,7 @@ def test_detector(source: str, expected: int, tmp_path: Path) -> None:
     assert len(_japanese_texts(sample)) == expected
 
 
-# Every string literal under a source tree. It is used for cli/core/ and can be reused for cli/commands/.
+# Every string literal under a source tree. It is used for cli/core/ and cli/commands/.
 
 CORE_DIR = Path(__file__).resolve().parents[2] / "core"
 CORE_FILES = sorted(CORE_DIR.rglob("*.py"))
@@ -279,3 +279,29 @@ def test_core_literal_detector_scope(tmp_path: Path) -> None:
     sample.write_text('X = "日"\ndef f():\n    return "本"\n', encoding="utf-8")
     scopes = {lit.scope for lit in string_literals(sample)}
     assert scopes == {"X", "f"}
+
+
+# The Japanese that stays in cli/commands/. It is a body written to GitHub (research R10).
+COMMANDS_JAPANESE_ALLOWED: tuple[Allowed, ...] = (
+    # The footer of the Issue body that `issue quick` creates.
+    Allowed(
+        "issue.py",
+        "_QUICK_BODY_FOOTER",
+        " pecot issue quick で起票（テンプレ検証スキップ）。起票ルール: "
+        "skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->",
+    ),
+)
+
+
+@pytest.mark.parametrize("path", COMMAND_FILES, ids=lambda path: path.name)
+def test_no_japanese_in_command_literals(path: Path) -> None:
+    found = japanese_literals(path, COMMANDS_DIR, COMMANDS_JAPANESE_ALLOWED)
+    assert not found, "Japanese string literals in cli/commands/:\n" + "\n".join(found)
+
+
+@pytest.mark.parametrize("allowed", COMMANDS_JAPANESE_ALLOWED, ids=lambda a: f"{a.path}:{a.scope}")
+def test_commands_allowed_entry_still_in_source(allowed: Allowed) -> None:
+    literals = string_literals(COMMANDS_DIR / allowed.path)
+    assert any(lit.scope == allowed.scope and lit.text == allowed.text for lit in literals), (
+        f"{allowed.path}: {allowed.scope} no longer holds this text; remove it from COMMANDS_JAPANESE_ALLOWED"
+    )

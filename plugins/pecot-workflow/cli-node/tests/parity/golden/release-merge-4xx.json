@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: マージに失敗しました: GitHub API error: 405\n",
+  "stderr": "error: could not merge PR acme/demo/31: GitHub API error: 405 Pull Request is not mergeable\n",
   "exitCode": 1,
   "requests": [
     {

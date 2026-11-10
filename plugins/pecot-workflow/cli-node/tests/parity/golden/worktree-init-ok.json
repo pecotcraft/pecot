@@ -1,6 +1,6 @@
 {
-  "stdout": "設定ファイルを作成しました: {{TMP}}/base/demo/.pecot/config/worktree-config.json\n設定ファイルを作成しました: {{TMP}}/base/demo/.pecot/config/.worktreeignore\n\n設定ファイルを編集して環境に合わせて調整してください:\n  {{TMP}}/base/demo/.pecot/config/worktree-config.json\n  {{TMP}}/base/demo/.pecot/config/.worktreeignore\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "created: worktree config {{TMP}}/base/demo/.pecot/config/worktree-config.json\ncreated: worktree ignore file {{TMP}}/base/demo/.pecot/config/.worktreeignore\n",
   "exitCode": 0,
   "requests": [],
   "files": {
