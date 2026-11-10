@@ -46,7 +46,7 @@ const SELF_EXIT_BUDGET_MS = 2000
 /**
 serve.ts が stderr へ出す診断行の接頭辞。
 */
-const LOG_PREFIX = 'pecot-tools mcp:'
+const LOG_PREFIX = 'error:'
 
 /**
 serveStdio が 2025 系とは別に応答する世代のプロトコル版。

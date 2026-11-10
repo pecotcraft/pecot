@@ -110,7 +110,7 @@ pnpm_resolution_hint() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -z "$version" ]; then
-            echo "npx はありますが、${plugin_root}/package.json の packageManager から pnpm のバージョンを読めませんでした。plugin root と packageManager の記述を確認してください。"
+            echo "npx is available but the pnpm version could not be read from packageManager in ${plugin_root}/package.json (fix: check the plugin root and the packageManager field)"
             return
         fi
     fi

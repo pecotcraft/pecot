@@ -244,7 +244,7 @@ describe('ensureAwscli', () => {
     const probe = await ensureAwscli()
 
     expect(probe).toMatchObject({ ok: false, category: 'awscli-missing' })
-    expect(probe.ok ? '' : probe.message).toContain('判定できませんでした')
+    expect(probe.ok ? '' : probe.message).toContain('Could not determine the awscli version')
   })
 
   it('awscli が PATH に無ければ導入を促す message を返す', async () => {
@@ -253,7 +253,7 @@ describe('ensureAwscli', () => {
     const probe = await ensureAwscli()
 
     expect(probe).toMatchObject({ ok: false, category: 'awscli-missing' })
-    expect(probe.ok ? '' : probe.message).toContain('見つかりません')
+    expect(probe.ok ? '' : probe.message).toContain('awscli not found')
   })
 
   it('失敗した判定は memo せず、次の呼び出しで再判定する', async () => {

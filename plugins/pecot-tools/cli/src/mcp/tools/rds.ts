@@ -1,7 +1,4 @@
-// RDS 系のツール定義。
-//
-// 3 件とも `--filters` は公開しない。API が受ける属性はバージョンで変わるため、契約に固定できる
-// 引数だけに絞っている。
+// RDS 系のツール定義。`--filters` は公開しない。API の受ける属性がバージョンで変わるため。
 
 import { z } from 'zod'
 
@@ -28,24 +25,24 @@ const SOURCE_TYPE_ENUM = z.enum(RDS_SOURCE_TYPE_VALUES)
 絞り込むイベントカテゴリ。
 */
 const EVENT_CATEGORIES_INPUT = z.array(z.string()).min(1).optional()
-  .describe('絞り込むイベントカテゴリ（availability・failover 等）')
+  .describe('Event categories to filter by (e.g. availability, failover)')
 
 export function rdsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefinition[] {
   return [
     allowlistedTool({
       entry: RDS_DESCRIBE_EVENTS,
-      title: 'RDS イベントの取得',
-      description: 'DB インスタンス・クラスタのイベント履歴（停止・起動・フェイルオーバー等）を返す。指定しない場合は直近 1 時間ぶんで、保持期間は 14 日',
+      title: 'Get RDS events',
+      description: 'Returns the event history of DB instances and clusters (stop, start, failover, etc.). Without a range, covers the last 1 hour; events are retained for 14 days',
       inputSchema: z.object({
         source_identifier: z.string().optional()
-          .describe('イベントの発生元の識別子。指定するときは source_type も併せて指定する'),
-        source_type: SOURCE_TYPE_ENUM.optional().describe('イベントの発生元の種別'),
+          .describe('Identifier of the event source. When specified, also specify source_type'),
+        source_type: SOURCE_TYPE_ENUM.optional().describe('Type of the event source'),
         start_time: z.string().optional()
-          .describe('取得開始時刻。ISO 8601 形式で、タイムゾーン（Z か +09:00 形式）必須（2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00）'),
+          .describe('Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00'),
         end_time: z.string().optional()
-          .describe('取得終了時刻。ISO 8601 形式で、タイムゾーン（Z か +09:00 形式）必須（start_time と同じ書式）'),
+          .describe('End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time'),
         duration: z.number().int().min(1).optional()
-          .describe('現在から遡る分数。start_time / end_time とは併用できない'),
+          .describe('Number of minutes back from now. Cannot be combined with start_time / end_time'),
         event_categories: EVENT_CATEGORIES_INPUT,
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
@@ -53,20 +50,20 @@ export function rdsTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     }, options),
     allowlistedTool({
       entry: RDS_DESCRIBE_DB_CLUSTERS,
-      title: 'DB クラスタの一覧',
-      description: 'Aurora / Multi-AZ DB クラスタの構成と状態を返す。db_cluster_identifier で 1 本に絞れる',
+      title: 'List DB clusters',
+      description: 'Returns the configuration and state of Aurora / Multi-AZ DB clusters. Narrow to one with db_cluster_identifier',
       inputSchema: z.object({
-        db_cluster_identifier: z.string().optional().describe('クラスタ識別子または ARN。未指定なら全件'),
+        db_cluster_identifier: z.string().optional().describe('Cluster identifier or ARN. If omitted, all clusters'),
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),
     }, options),
     allowlistedTool({
       entry: RDS_DESCRIBE_DB_INSTANCES,
-      title: 'DB インスタンスの一覧',
-      description: 'DB インスタンスの構成と状態（DBInstanceStatus・エンドポイント等）を返す。db_instance_identifier で 1 台に絞れる',
+      title: 'List DB instances',
+      description: 'Returns the configuration and state of DB instances (DBInstanceStatus, endpoint, etc.). Narrow to one with db_instance_identifier',
       inputSchema: z.object({
-        db_instance_identifier: z.string().optional().describe('インスタンス識別子または ARN。未指定なら全件'),
+        db_instance_identifier: z.string().optional().describe('Instance identifier or ARN. If omitted, all instances'),
         ...MAX_ITEMS_PAGINATION_SHAPE,
         ...COMMON_INPUT_SHAPE,
       }),

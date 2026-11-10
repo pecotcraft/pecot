@@ -258,16 +258,16 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: Node の版が下限より古いときの起動のエラーが `error:` で始まる。`plugins/pecot-tools/cli/tests/english-only.test.ts` と root のテストが通る
 
-- [ ] T052 [US5] `plugins/pecot-tools/cli/tests/english-only.test.ts` を T046 と同じ考えで書き、失敗することを確かめる。`pecot-tools:` を期待しているテストを `error:` に書き換える
-- [ ] T053 [US5] `plugins/pecot-tools/cli/tests/diagnostics-cases.json` を T040 と同じ値で置く。`plugins/pecot-tools/cli/src/diagnostics.ts` に error・warning・note の関数を実装し、全件と一致することをテストで確かめる
-- [ ] T054 [US5] `.githooks/tests/test_cli_output_lines_match.py` を書く。3 つの期待の行のファイルで、error・warning・note の要素が同じであることを確かめる
+- [x] T052 [US5] `plugins/pecot-tools/cli/src/tests/english-only.test.ts` を T046 と同じ考えで書き、失敗することを確かめる。`pecot-tools:` を期待しているテストを `error:` に書き換える
+- [x] T053 [US5] `plugins/pecot-tools/cli/tests/diagnostics-cases.json` を T040 と同じ値で置く。`plugins/pecot-tools/cli/src/diagnostics.ts` に error・warning・note の関数を実装し、全件と一致することをテストで確かめる
+- [x] T054 [US5] `.githooks/tests/test_cli_output_lines_match.py` を書く。3 つの期待の行のファイルで、error・warning の要素が同じであることを確かめる。note は、note の要素を持つファイルどうしで比べる
   - `plugins/pecot-workflow/cli-node/tests/output/cases.json`
   - `plugins/pecot-visual/cli/tests/diagnostics-cases.json`
   - `plugins/pecot-tools/cli/tests/diagnostics-cases.json`
-- [ ] T055 [US5] `plugins/pecot-tools/cli/src/cli.ts` と `src/mcp/serve.ts` の直接の出力を `diagnostics.ts` に移す。stdout のガードは残す
-- [ ] T056 [US5] `plugins/pecot-tools/cli/src/` のツールの説明文・結果の文言・エラーの文言を英語にする（日本語を含むファイル 32）。awscli から読んだ出力は変えない
-- [ ] T057 [US5] `plugins/pecot-tools/cli/eslint.config.js` に T036 と同じ規則を足す。`src/diagnostics.ts`・`src/mcp/serve.ts` の stdout のガード・テストは外す
-- [ ] T058 [US5] T052・T054 のテストと、`plugins/pecot-tools/cli/tests/integration/real-awscli.test.ts` が通ることを確かめる
+- [x] T055 [US5] `plugins/pecot-tools/cli/src/cli.ts` と `src/mcp/serve.ts` の直接の出力を `diagnostics.ts` に移す。stdout のガードは残す
+- [x] T056 [US5] `plugins/pecot-tools/cli/src/` のツールの説明文・結果の文言・エラーの文言を英語にする（日本語を含むファイル 32）。awscli から読んだ出力は変えない
+- [x] T057 [US5] `plugins/pecot-tools/cli/eslint.config.js` に T036 と同じ規則を足す。`src/diagnostics.ts` とテストは外す。`src/mcp/serve.ts` の stdout のガードは、その行の disable で外す
+- [x] T058 [US5] T052・T054 のテストと、`plugins/pecot-tools/cli/tests/integration/real-awscli.test.ts` が通ることを確かめる
 
 **Checkpoint**: quickstart.md の 5 が、pecot-tools でも通る
 

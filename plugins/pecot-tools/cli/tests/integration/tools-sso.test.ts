@@ -134,7 +134,7 @@ describe('SSO の 2 段構成', () => {
     const structured = await call('aws_sso_login')
 
     expect(structured).toMatchObject({ ok: false, exitCode: 127, category: 'awscli-missing' })
-    expect(String(structured['message'])).toContain('2.22.0 以上')
+    expect(String(structured['message'])).toContain('2.22.0 or later')
     expect(commandCallCount(instance)).toBe(0)
   })
 
@@ -176,7 +176,7 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login_status')
     expect(structured).toMatchObject({ ok: false, exitCode: 124, category: 'timeout' })
-    expect(String(structured['message'])).toContain('aws_sso_login を再度呼び出してください')
+    expect(String(structured['message'])).toContain('Call aws_sso_login again')
   })
 
   it('region と未知キーを渡しても拒否されず通常応答を返し、awscli の引数にも現れない', async () => {

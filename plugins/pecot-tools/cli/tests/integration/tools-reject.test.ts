@@ -137,7 +137,7 @@ describe('S3 の方向（research R7）', () => {
       outfile: 'data/report.json',
     })
 
-    expect(structured['message']).toContain('絶対パス')
+    expect(structured['message']).toContain('absolute path')
   })
 })
 
@@ -285,7 +285,7 @@ describe('shorthand-list の項目値', () => {
     })
 
     expect(normal['category']).toBe('invalid-input')
-    expect(normal['message']).toContain('空文字')
+    expect(normal['message']).toContain('must not be empty')
   })
 
   it('項目を 1 つも持たない要素は invalid-input で拒否する', async () => {
@@ -372,7 +372,7 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
     })
 
     expect(structured['category']).toBe('invalid-input')
-    expect(structured['message']).toContain('ディレクトリ')
+    expect(structured['message']).toContain('must not be a directory')
   })
 
   it('書き出し先が存在しなければ実行する', async () => {
@@ -397,7 +397,7 @@ describe('排他指定', () => {
     })
 
     expect(structured['category']).toBe('invalid-input')
-    expect(structured['message']).toContain('同時に指定できません')
+    expect(structured['message']).toContain('cannot be combined')
   })
 
   it('image_ids と starting_token の併用を拒否する', async () => {
@@ -409,7 +409,7 @@ describe('排他指定', () => {
     })
 
     expect(structured['category']).toBe('invalid-input')
-    expect(structured['message']).toContain('同時に指定できません')
+    expect(structured['message']).toContain('cannot be combined')
   })
 
   it('start_time と duration の併用を拒否する', async () => {
@@ -420,7 +420,7 @@ describe('排他指定', () => {
     })
 
     expect(structured['category']).toBe('invalid-input')
-    expect(structured['message']).toContain('同時に指定できません')
+    expect(structured['message']).toContain('cannot be combined')
   })
 })
 

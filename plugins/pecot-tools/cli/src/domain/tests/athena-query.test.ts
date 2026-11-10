@@ -94,7 +94,7 @@ describe('classifyAthenaQuery', () => {
       .toMatchObject({ allowed: false, reason: 'unterminated' })
 
     const rejected = classifyAthenaQuery('SELECT \'abc')
-    expect(rejected.allowed ? '' : rejected.message).toContain('閉じていない')
+    expect(rejected.allowed ? '' : rejected.message).toContain('not closed')
   })
 
   it('EXPLAIN の修飾語とオプション群を剥がして内側を判定する', () => {

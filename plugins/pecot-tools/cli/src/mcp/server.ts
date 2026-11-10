@@ -1,15 +1,8 @@
 // MCP サーバのファクトリ。ツール登録シームと上限付き並行実行器の所有をここで持つ。
-//
-// ツール 1 件以上のときは McpServer.registerTool だけを使う。
-// 低レベルの setRequestHandler('tools/list', ...) で一覧ハンドラを先に張る。
-// すると、後から registerTool したときに SDK が「handler already exists」で throw する。
-// 一方でツール 0 件の McpServer は、tools capability と一覧ハンドラを持たない。
-// そのため tools/list に -32601 を返す。
-// 0 件のときだけ明示登録する。両者は排他。
+// 1 件以上は registerTool だけを使う（先に一覧ハンドラを張ると SDK が throw する）。
+// 0 件のときだけ一覧ハンドラを明示登録する。
 
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- ツールハンドラの第 2 引数は mutable。
-   SDK の ServerContext が signal / notify 等のメンバを持つ。
-   readonly 化すると、registerTool のコールバック型と適合しなくなる。 */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- ツールハンドラの第 2 引数は mutable */
 
 import { McpServer } from '@modelcontextprotocol/server'
 import type { CallToolResult, ServerContext, ToolAnnotations } from '@modelcontextprotocol/server'
@@ -20,11 +13,7 @@ import { createBoundedExecutor } from './executor.js'
 import { ignoreRejection } from '../infra/ignore-rejection.js'
 
 /**
-progress ハートビートの送出周期 (ms)。
-
-守る相手は MCP クライアントの「無音タイムアウト」。
-Claude Code で計測した値は、30 分の idle watchdog (progress 受信でリセット・判定周期 30s)。
-10s はそこから十分な余裕があり、かつ長時間ツール 1 件で通知が積み上がりすぎない粒度になる。
+progress ハートビートの送出周期 (ms)。クライアントの無音タイムアウト（Claude Code で 30 分）に十分な余裕を取る。
 */
 const PROGRESS_HEARTBEAT_INTERVAL_MS = 10_000
 
@@ -34,19 +23,12 @@ tools/call の同時実行数の上限 (research R9)。
 const CONCURRENCY_LIMIT = 4
 
 /**
-MCP サーバ名。initialize の serverInfo.name として返る値。
-
-`.mcp.json` の `mcpServers` の登録キーと必ず揃える。食い違うとクライアント側の表示と
-ツール名の名前空間（`mcp__plugin_pecot-t_<サーバ名>__*`）が噛み合わなくなる。
+MCP サーバ名。`.mcp.json` の `mcpServers` の登録キーと揃える。食い違うとツール名の名前空間が噛み合わない。
 */
 export const MCP_SERVER_NAME = 'pecot-tools'
 
 /**
-registerTool に渡すツールのメタ情報。
-
-inputSchema / outputSchema は自前の zod の `z.object()` で書く。SDK は渡されたスキーマ自身から JSON Schema を作る。
-そのため SDK 同梱の zod と混在しない。引数を取らないツールは inputSchema に
-`z.object({})` を渡す。
+registerTool に渡すツールのメタ情報。スキーマは自前の zod で書き、SDK 同梱の zod と混在させない。
 */
 export interface ToolConfig {
   readonly title?: string
@@ -63,10 +45,7 @@ export interface ToolConfig {
 }
 
 /**
-tools/call ハンドラの第 2 引数。ハンドラが使う面だけを SDK の ServerContext から切り出す。
-
-signal はクライアントのキャンセル (notifications/cancelled) と stdin の EOF で abort される。
-SDK の型を直接渡さないのは、ツール側とテストのフェイクを SDK の型から切り離すため。
+tools/call ハンドラの第 2 引数。使う面だけを切り出し、ツール側とテストのフェイクを SDK の型から切り離す。
 */
 export interface ToolCallContext {
   readonly signal: AbortSignal
@@ -101,13 +80,7 @@ interface ProgressHeartbeat {
 }
 
 /**
-tools/call 1 件分の progress 通知を開始し、即座に 1 発目 (順番待ち中) を送る。
-
-MCP では progressToken を伴わないリクエストに notifications/progress を返せない。
-そのためクライアントが token を付けてこなかった場合は、何も送らず undefined を返す。
-
-送出は run() の前から始める。守りたいのは実行中だけでなく「上限に掛かって順番待ちしている
-間も無音時計が進む」区間で、ハンドラ内に置くラッパーでは待機中を守れない。
+tools/call 1 件分の progress 通知を開始する。token が無ければ undefined。順番待ちの間も守るため、run() の前から始める。
 */
 function startProgressHeartbeat(toolName: string, serverContext: ServerContext, intervalMs: number): ProgressHeartbeat | undefined {
   const { signal } = serverContext.mcpReq
@@ -115,7 +88,7 @@ function startProgressHeartbeat(toolName: string, serverContext: ServerContext, 
   if (progressToken === undefined) return undefined
 
   let progress = 0
-  let phase = '順番待ち中'
+  let phase = 'queued'
 
   const send = (): void => {
     progress += 1
@@ -145,7 +118,7 @@ function startProgressHeartbeat(toolName: string, serverContext: ServerContext, 
   }
 
   return {
-    markRunning: () => { phase = '実行中' },
+    markRunning: () => { phase = 'running' },
     stop,
   }
 }
@@ -158,13 +131,7 @@ interface McpServerOptions {
 }
 
 /**
-MCP サーバを生成し、渡されたツール定義を登録する。
-
-各ハンドラは登録時に実行器で包む。tools/call が並行に届いても、同時に実行されるのは 4 件までになる
-(上限はここで構造的に保証し、ツール実装側には依存しない)。
-あわせて progress ハートビートもここで包む。全ツールに一律で適用され、ツール実装側の適用判断が要らなくなる。
-
-呼び出しごとに新しい McpServer と実行器を生成する (singleton にしない)。
+MCP サーバを生成し、ツール定義を登録する。ハンドラは実行器と progress ハートビートで包み、呼び出しごとに新しく作る。
 */
 export function createMcpServer(tools: readonly ToolDefinition[] = [], options: McpServerOptions = {}): McpServer {
   const server = new McpServer({ name: MCP_SERVER_NAME, version: readVersion() })

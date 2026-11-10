@@ -48,7 +48,7 @@ pnpm_resolution_hint() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -z "$version" ]; then
-            echo "npx はありますが、${plugin_root}/package.json の packageManager から pnpm の版を読めませんでした。plugin root と packageManager の記述を確認してください。"
+            echo "npx is available but the pnpm version could not be read from packageManager in ${plugin_root}/package.json (fix: check the plugin root and the packageManager field)"
             return
         fi
     fi
@@ -80,7 +80,7 @@ pecot_tools_fail_if_node_runtime_blocked() {
     local message
     message="$(pecot_tools_node_runtime_message "$1")"
     [ -n "$message" ] || return 0
-    printf 'pecot-tools: %s\n' "$message" >&2
+    printf 'error: %s\n' "$message" >&2
     exit 1
 }
 

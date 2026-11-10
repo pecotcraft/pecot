@@ -56,7 +56,7 @@ describe('main', () => {
     try {
       main('24.20.0')
       expect(process.exitCode).toBe(1)
-      expect(writes.join('')).toContain('pecot-tools: Node.js 24.20.0 does not include fixes for known vulnerabilities')
+      expect(writes.join('')).toContain('error: Node.js 24.20.0 does not include fixes for known vulnerabilities')
       expect(isStdoutSpy).not.toHaveBeenCalled()
     }
     finally {

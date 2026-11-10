@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== pecot-visual plugin setup ==="
 if ! plugin_data_dir_ensure pecot-visual >/dev/null; then
-  echo "=== pecot-visual plugin setup failed (データ置き場を用意できません) ===" >&2
+  echo "=== pecot-visual plugin setup failed (cannot prepare the data directory) ===" >&2
   exit 1
 fi
 # PECOTV_REQUIRE_HOST_DEPS=1: Chromium の OS ライブラリを入れられなかったとき bin/pecotv が
@@ -27,7 +27,7 @@ PECOTV_BOOTSTRAP_FORCE=1 PECOTV_REQUIRE_HOST_DEPS=1 "$SCRIPT_DIR/bin/pecotv" --h
 if [ "$rc" -ne 0 ]; then
   echo "=== pecot-visual plugin setup failed (exit $rc) ===" >&2
   if [ "$rc" -eq 2 ]; then
-    echo "Chromium の起動に要る OS のライブラリを入れられませんでした。上の案内のコマンドを管理者権限で実行し、setup を再実行してください。" >&2
+    echo "Could not install the OS libraries that Chromium needs to start. Run the command in the guidance above with administrator privileges, then run setup again." >&2
   fi
   exit "$rc"
 fi

@@ -1,12 +1,5 @@
-// SSO 認証の 2 段構成（contracts/mcp-tools.md §SSO 認証 / research R5 / FR-007）。
-//
-// `aws sso login` は認証が終わるまで戻らないため、開始（URL とコードを即時に返す）と
-// 完了確認を別のツールに分ける。子プロセスの保持と状態遷移は infra/sso/login-registry.ts が持ち、
-// ここは応答の組み立て（ヒント・上限・annotations）だけを持つ。
-//
-// この 2 件は許可リスト（domain/allowlist.ts）に入れない。許可リストは「awscli を 1 回起動して
-// 出力を返す」形のコマンド表で、tests/integration/real-awscli.test.ts が全件を実 awscli へ通す。
-// そのため、入れると実行のたびに本物のデバイス認証が発行される。
+// SSO 認証の 2 段構成（contracts/mcp-tools.md §SSO 認証 / research R5）。開始と完了確認を別ツールに分け、子の保持は login-registry.ts が持つ。
+// 許可リストに入れない。実 awscli テストが全件を通すため、入れると実行のたびに本物のデバイス認証が発行される。
 
 import { z } from 'zod'
 
@@ -30,35 +23,27 @@ import {
 } from './_shared.js'
 
 /**
-SSO 専用の失敗種別ごとの再試行方法。
-
-共通表（_shared.ts の FAILURE_HINTS）は auth-missing / auth-expired で、
-「aws_sso_login を実行してください」と案内する。SSO 自身の失敗に使うと、案内が循環する。
+SSO 専用の失敗種別ごとの再試行方法。共通表は「aws_sso_login を実行」と案内するので、SSO 自身の失敗に使うと循環する。
 */
 const SSO_FAILURE_HINTS: Record<FailureCategory, string> = {
-  'not-allowed': '許可されていない操作です。公開しているツールの範囲で実行してください',
-  'invalid-input': 'profile を修正して再実行してください',
-  'awscli-missing': 'awscli v2 (2.22 以上) を導入して PATH を通してください',
-  'auth-missing': 'profile に SSO の設定がありません。端末で aws configure sso を実行してください',
-  'auth-expired': 'トークンのキャッシュを読めませんでした。profile の SSO 設定を確認してください',
-  'permission-denied': 'SSO の許可セットに対象アカウントが含まれているか確認してください',
-  'resource-not-found': 'profile の sso_start_url / sso_region を確認してください',
-  'timeout': '制限時間内に認証が完了しませんでした。aws_sso_login を再度呼び出してください',
-  'other': 'awscli が失敗しました。stderr を確認してください',
+  'not-allowed': 'Operation not allowed. Use only the exposed tools',
+  'invalid-input': 'Fix the profile and run again',
+  'awscli-missing': 'Install awscli v2 (2.22 or later) and add it to PATH',
+  'auth-missing': 'The profile has no SSO configuration. Run aws configure sso in a terminal',
+  'auth-expired': 'Could not read the token cache. Check the SSO settings of the profile',
+  'permission-denied': 'Check that the SSO permission set includes the target account',
+  'resource-not-found': 'Check sso_start_url / sso_region of the profile',
+  'timeout': 'Authentication did not complete within the time limit. Call aws_sso_login again',
+  'other': 'awscli failed. Check stderr',
 }
 
 /**
 出力が上限で切り詰められたときに message へ足す注記。
 */
-const OUTPUT_TRUNCATION_NOTE = '（出力は上限を超えたため先頭のみ載せています）'
+const OUTPUT_TRUNCATION_NOTE = '(Output exceeded the limit, so only the beginning is included)'
 
 /**
-annotations（判断の根拠は契約書の共通規約）。
-
-`aws_sso_login` は AWS 側に新しいトークンを発行させるので readOnlyHint は false。
-`aws_sso_login_status` はレジストリを読むだけなので true。壊す対象を持たないため
-destructiveHint は 2 件とも false。openWorldHint は共通規約に合わせて 2 件とも true にする
-（status は awscli を起動しないが、返す内容は外界での承認の進み具合に依存する）。
+annotations。status は awscli を起動しないが、返す内容は外界の承認の進み具合に依存するので openWorldHint は 2 件とも true。
 */
 const LOGIN_ANNOTATIONS = { readOnlyHint: false, destructiveHint: false, openWorldHint: true }
 const STATUS_ANNOTATIONS = { readOnlyHint: true, destructiveHint: false, openWorldHint: true }
@@ -80,19 +65,14 @@ function promptData(session: Readonly<SsoLoginSession>): Record<string, unknown>
 }
 
 /**
-pending 応答の案内文。
-
-`promptData` は未確定の項目をキーごと data から落とす。
-autofill URL（verificationUrlComplete）が未確定のときに、それを第一候補として案内すると、
-応答に無い項目を案内することになる。
-autofill 行は URL・コードより後の chunk で届くことがあり、揃うまでの間はこの分岐に入る。
+pending 応答の案内文。autofill URL は後の chunk で届くことがあり、未確定の間は応答に無い項目を案内しない。
 */
 function pendingMessage(session: Readonly<SsoLoginSession>): string {
   return (session.verificationUrlComplete === undefined
-    ? 'デバイス認証を開始しました。verificationUrl をブラウザで開き、userCode を入力してください。'
-    : 'デバイス認証を開始しました。verificationUrlComplete をブラウザで開けば'
-      + 'コード入力は要りません（verificationUrl を開いた場合は userCode を入力します）。')
-    + '承認後に aws_sso_login_status で完了を確認してください'
+    ? 'Device authorization started. Open verificationUrl in a browser and enter userCode. '
+    : 'Device authorization started. Open verificationUrlComplete in a browser; '
+      + 'no code entry is needed (if you open verificationUrl, enter userCode). ')
+    + 'After approval, check completion with aws_sso_login_status.'
 }
 
 function hintOf(category: FailureCategory): string {
@@ -110,9 +90,7 @@ function failureResult(
   /* c8 ignore next -- レジストリは failed に必ず category を付ける。既定値は型を閉じるための防御網 */
   const category = session.category ?? 'other'
   const limited = limitOutput(session.output)
-  // awscli の終了コードをそのまま返す（許可リストのツールと同じ規約。SSO 設定なしなら 253）。
-  // シグナル終了・未終了は resolveExitCode が 1 へ畳む。0 以下は ok: false と同居させられないので、
-  // ここでも 1 にする。
+  // awscli の終了コードをそのまま返す（SSO 設定なしなら 253）。ok: false と同居できないので、0 以下とシグナル終了は 1 にする。
   const resolved = resolveExitCode(category, session.exitCode)
 
   return {
@@ -124,7 +102,7 @@ function failureResult(
     category,
     data: { ...data },
     artifacts: [],
-    message: `SSO 認証が失敗しました (${category})。${hintOf(category)}`
+    message: `SSO authentication failed (${category}). ${hintOf(category)}`
       + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
     stderr: limited.text,
   }
@@ -140,7 +118,7 @@ function timedOutResult(data: Readonly<Record<string, unknown>>): ExecutionResul
     category: 'timeout',
     data: { ...data },
     artifacts: [],
-    message: `SSO 認証が時間切れになりました。${hintOf('timeout')}`,
+    message: `SSO authentication timed out. ${hintOf('timeout')}`,
   }
 }
 
@@ -181,7 +159,7 @@ async function startLogin(
         exitCode: 0,
         data: { ...promptData(session), ...base },
         artifacts: [],
-        message: 'デバイス認証を始める前から認証済みでした',
+        message: 'Already authenticated before device authorization started',
       }
     }
     case 'timed-out': {
@@ -205,7 +183,7 @@ function loginStatus(
       category: 'invalid-input',
       data: {},
       artifacts: [],
-      message: '開始済みの SSO ログインがありません。aws_sso_login を先に呼んでください',
+      message: 'No SSO login in progress. Call aws_sso_login first',
     }
   }
 
@@ -218,7 +196,7 @@ function loginStatus(
         exitCode: 0,
         data: { ...promptData(session), ...base },
         artifacts: [],
-        message: 'まだ承認されていません。案内した URL での承認後に再度呼び出してください',
+        message: 'Not approved yet. Approve at the given URL, then call again',
       }
     }
     case 'completed': {
@@ -228,7 +206,7 @@ function loginStatus(
         exitCode: 0,
         data: { ...promptData(session), ...base, output: limited.text },
         artifacts: [],
-        message: 'SSO 認証が完了しました'
+        message: 'SSO authentication completed'
           + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
       }
     }
@@ -242,11 +220,7 @@ function loginStatus(
 }
 
 /**
-SSO の 2 件を組み立てる。
-
-ハンドラは ToolCallContext（signal）を使わない。tools/call のキャンセルで子を落とすと、
-「開始だけして後で確認する」という 2 段構成の趣旨に反する。
-クライアントの接続断は serve.ts の stdin end の処理が子を片付けるため、孤児は残らない。
+SSO の 2 件を組み立てる。signal を使わないのは、キャンセルで子を落とすと 2 段構成の趣旨に反するため（接続断は serve.ts が片付ける）。
 */
 export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefinition[] {
   // 既定の解決はここで済ませる。ハンドラ内で遅延解決すると、テストが注入したレジストリと
@@ -257,9 +231,9 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     {
       name: 'aws_sso_login',
       config: {
-        title: 'SSO ログインの開始',
-        description: 'AWS SSO のデバイス認証を開始し、認証 URL とコードを即時に返す。完了は待たないため、'
-          + '利用者の承認後に aws_sso_login_status で確認する',
+        title: 'Start SSO login',
+        description: 'Starts AWS SSO device authorization and returns the verification URL and code immediately. It does not wait for completion, so '
+          + 'check with aws_sso_login_status after the user approves',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),
         outputSchema: TOOL_OUTPUT_SCHEMA,
         annotations: LOGIN_ANNOTATIONS,
@@ -270,9 +244,9 @@ export function ssoTools(options: Readonly<ToolOptions> = {}): readonly ToolDefi
     {
       name: 'aws_sso_login_status',
       config: {
-        title: 'SSO ログインの完了確認',
-        description: 'aws_sso_login で開始した認証の状態（pending / completed / failed / timed-out）を返す。'
-          + 'awscli は起動しない',
+        title: 'Check SSO login status',
+        description: 'Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. '
+          + 'Does not run awscli',
         inputSchema: z.object({ ...PROFILE_INPUT_SHAPE }),
         outputSchema: TOOL_OUTPUT_SCHEMA,
         annotations: STATUS_ANNOTATIONS,

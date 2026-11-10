@@ -1,6 +1,4 @@
-// CloudWatch（メトリクス）系のツール定義。
-//
-// ログ系は logs.ts が持つ。こちらはメトリクスの統計取得だけを公開する。
+// CloudWatch（メトリクス）系のツール定義。ログ系は logs.ts が持つ。
 
 import { z } from 'zod'
 
@@ -13,8 +11,8 @@ import { allowlistedTool, COMMON_INPUT_SHAPE, type ToolOptions } from './_shared
 JSON Schema では `items.additionalProperties: false` になり、SDK が入力検証エラーで拒否する。
 */
 const DIMENSION_ELEMENT = z.strictObject({
-  name: z.string().describe('ディメンション名（QueueName・FunctionName 等）'),
-  value: z.string().describe('ディメンション値'),
+  name: z.string().describe('Dimension name (e.g. QueueName, FunctionName)'),
+  value: z.string().describe('Dimension value'),
 })
 
 /**
@@ -31,20 +29,20 @@ export function cloudwatchTools(options: Readonly<ToolOptions> = {}): readonly T
   return [
     allowlistedTool({
       entry: CLOUDWATCH_GET_METRIC_STATISTICS,
-      title: 'メトリクス統計の取得',
-      description: 'メトリクス 1 本の統計値を期間指定で取得する。dimensions はメトリクス作成時と同じ組み合わせを全て指定しないと空の結果になる',
+      title: 'Get metric statistics',
+      description: 'Gets statistics of one metric over a time range. Specify all dimensions exactly as when the metric was published, or the result is empty',
       inputSchema: z.object({
-        namespace: z.string().describe('メトリクスの名前空間（AWS/SQS・AWS/Lambda 等）'),
-        metric_name: z.string().describe('メトリクス名（NumberOfMessagesSent 等）'),
+        namespace: z.string().describe('Metric namespace (e.g. AWS/SQS, AWS/Lambda)'),
+        metric_name: z.string().describe('Metric name (e.g. NumberOfMessagesSent)'),
         dimensions: z.array(DIMENSION_ELEMENT).max(30).optional()
-          .describe('絞り込むディメンション。メトリクスが持つ組み合わせを過不足なく指定する'),
-        start_time: z.string().describe('取得開始時刻。ISO 8601 形式で、タイムゾーン（Z か +09:00 形式）必須（2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00）'),
-        end_time: z.string().describe('取得終了時刻。ISO 8601 形式で、タイムゾーン（Z か +09:00 形式）必須（start_time と同じ書式）'),
-        period: z.number().int().min(1).describe('集計間隔（秒）。60 の倍数で指定する'),
+          .describe('Dimensions to filter by. Specify exactly the combination the metric has'),
+        start_time: z.string().describe('Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00'),
+        end_time: z.string().describe('End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time'),
+        period: z.number().int().min(1).describe('Aggregation period in seconds. Must be a multiple of 60'),
         statistics: z.array(STATISTIC_ENUM).min(1).max(5)
-          .describe('取得する統計値。1〜5 件を指定する'),
+          .describe('Statistics to get. Specify 1 to 5'),
         unit: UNIT_ENUM.optional()
-          .describe('絞り込む単位。データの単位と一致しないと結果が空になる'),
+          .describe('Unit to filter by. The result is empty if it does not match the unit of the data'),
         ...COMMON_INPUT_SHAPE,
       }),
     }, options),

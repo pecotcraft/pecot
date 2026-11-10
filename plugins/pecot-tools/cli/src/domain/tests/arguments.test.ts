@@ -355,7 +355,7 @@ describe('validateInput', () => {
     const entry = entryOf({ inputs: [inputOf({ name: 'outfile', kind: 'abs-path' })] })
 
     expect(validateInput(entry, { outfile: '/var/data/a.json' })).toBeUndefined()
-    expect(validateInput(entry, { outfile: 'relative/a.json' })?.message).toContain('絶対パス')
+    expect(validateInput(entry, { outfile: 'relative/a.json' })?.message).toContain('must be an absolute path')
   })
 
   it('s3-uri はバケットとキーの双方を求める', () => {
@@ -370,10 +370,10 @@ describe('validateInput', () => {
     const entry = entryOf({ inputs: [inputOf({ name: 'limit', kind: 'integer', min: 1, max: 10_000 })] })
 
     expect(validateInput(entry, { limit: 100 })).toBeUndefined()
-    expect(validateInput(entry, { limit: 1.5 })?.message).toContain('整数')
-    expect(validateInput(entry, { limit: 0 })?.message).toContain('1 以上')
-    expect(validateInput(entry, { limit: 10_001 })?.message).toContain('10000 以下')
-    expect(validateInput(entry, { limit: '10' })?.message).toContain('整数')
+    expect(validateInput(entry, { limit: 1.5 })?.message).toContain('must be an integer')
+    expect(validateInput(entry, { limit: 0 })?.message).toContain('must be at least 1')
+    expect(validateInput(entry, { limit: 10_001 })?.message).toContain('must be at most 10000')
+    expect(validateInput(entry, { limit: '10' })?.message).toContain('must be an integer')
   })
 
   it('enum は values の中だけを受ける', () => {
@@ -383,7 +383,7 @@ describe('validateInput', () => {
 
     expect(validateInput(entry, { order_by: 'LastEventTime' })).toBeUndefined()
     expect(validateInput(entry, { order_by: 'Other' })?.message).toContain('order_by')
-    expect(validateInput(entry, { order_by: 7 })?.message).toContain('文字列')
+    expect(validateInput(entry, { order_by: 7 })?.message).toContain('must be a string')
   })
 
   it('values を持たない enum は全て拒否する', () => {
@@ -396,22 +396,22 @@ describe('validateInput', () => {
     const entry = entryOf({ inputs: [inputOf({ name: 'overwrite', kind: 'boolean' })] })
 
     expect(validateInput(entry, { overwrite: false })).toBeUndefined()
-    expect(validateInput(entry, { overwrite: 'true' })?.message).toContain('true / false')
+    expect(validateInput(entry, { overwrite: 'true' })?.message).toContain('must be true or false')
   })
 
   it('string 系に非文字列を渡すと拒否する', () => {
     const stringEntry = entryOf({ inputs: [inputOf()] })
     const listEntry = entryOf({ inputs: [inputOf({ name: 'names', kind: 'string-list' })] })
-    expect(validateInput(stringEntry, { value: 1 })?.message).toContain('文字列')
-    expect(validateInput(listEntry, { names: 'a' })?.message).toContain('配列')
-    expect(validateInput(listEntry, { names: [1] })?.message).toContain('配列')
+    expect(validateInput(stringEntry, { value: 1 })?.message).toContain('must be a string')
+    expect(validateInput(listEntry, { names: 'a' })?.message).toContain('must be an array of strings')
+    expect(validateInput(listEntry, { names: [1] })?.message).toContain('must be an array of strings')
   })
 
   it('pattern 付き string は書式を見る', () => {
     const entry = entryOf({ inputs: [inputOf({ name: 'queue_url', pattern: /^https:\/\// })] })
 
     expect(validateInput(entry, { queue_url: 'https://sqs.example/q' })).toBeUndefined()
-    expect(validateInput(entry, { queue_url: 'http://sqs.example/q' })?.message).toContain('形式')
+    expect(validateInput(entry, { queue_url: 'http://sqs.example/q' })?.message).toContain('invalid format')
   })
 
   it('exclusive の同時指定を拒否する', () => {
@@ -421,7 +421,7 @@ describe('validateInput', () => {
     })
 
     expect(validateInput(entry, { names: ['a'] })).toBeUndefined()
-    expect(validateInput(entry, { names: ['a'], prefix: 'p' })?.message).toContain('同時に指定できません')
+    expect(validateInput(entry, { names: ['a'], prefix: 'p' })?.message).toContain('cannot be combined')
   })
 
   it('s3-list-uri はバケット指定と prefix 指定を受ける', () => {
@@ -467,28 +467,28 @@ describe('validateInput', () => {
     const entry = shorthandListEntry()
 
     expect(validateInput(entry, { filters: [{ name: 'state', values: ['running'] }] })).toBeUndefined()
-    expect(validateInput(entry, { filters: 'Name=state' })?.message).toContain('オブジェクトの配列')
-    expect(validateInput(entry, { filters: ['Name=state'] })?.message).toContain('オブジェクト')
-    expect(validateInput(entry, { filters: [['state']] })?.message).toContain('オブジェクト')
+    expect(validateInput(entry, { filters: 'Name=state' })?.message).toContain('must be an array of objects')
+    expect(validateInput(entry, { filters: ['Name=state'] })?.message).toContain('must be an object')
+    expect(validateInput(entry, { filters: [['state']] })?.message).toContain('must be an object')
   })
 
   it('shorthand-list の項目の型を見る', () => {
     const entry = shorthandListEntry()
 
-    expect(validateInput(entry, { filters: [{ name: 7, values: ['a'] }] })?.message).toContain('文字列')
+    expect(validateInput(entry, { filters: [{ name: 7, values: ['a'] }] })?.message).toContain('must be a string')
     expect(validateInput(entry, { filters: [{ name: 'state', values: 'a' }] })?.message)
-      .toContain('文字列の配列')
+      .toContain('must be an array of strings')
     expect(validateInput(entry, { filters: [{ name: 'state', values: [] }] })?.message)
-      .toContain('1 つ以上')
+      .toContain('at least one value')
   })
 
   it('shorthand-list の項目値に空文字を許さない', () => {
     // 空文字は awscli が空値として解釈する。通常項目と list 項目の双方で弾く。
     const entry = shorthandListEntry()
 
-    expect(validateInput(entry, { filters: [{ name: '' }] })?.message).toContain('空文字')
+    expect(validateInput(entry, { filters: [{ name: '' }] })?.message).toContain('must not be empty')
     expect(validateInput(entry, { filters: [{ name: 'state', values: [''] }] })?.message)
-      .toContain('空文字')
+      .toContain('must not be empty')
   })
 
   it('shorthand-list の項目値の , = { } は受理する', () => {
@@ -506,12 +506,12 @@ describe('validateInput', () => {
     const listEntry = entryOf({ inputs: [inputOf({ name: 'names', kind: 'string-list' })] })
     const listValue = shorthandListEntry()
 
-    expect(validateInput(stringEntry, { log_group_name: `g${NUL}x` })?.message).toContain('制御文字')
+    expect(validateInput(stringEntry, { log_group_name: `g${NUL}x` })?.message).toContain('control characters')
     expect(validateInput(listEntry, { names: [`a${NUL}b`] })?.category).toBe('invalid-input')
     expect(validateInput(listValue, { filters: [{ name: `state${NUL}` }] })?.message)
-      .toContain('制御文字')
+      .toContain('control characters')
     expect(validateInput(listValue, { filters: [{ name: 'state', values: [`a${NUL}`] }] })?.message)
-      .toContain('制御文字')
+      .toContain('control characters')
   })
 
   it('shorthand-list の要素は 1 項目以上を求める', () => {
@@ -525,8 +525,8 @@ describe('validateInput', () => {
 
     expect(validateInput(entry, { start_time: '2026-09-01T00:00:00Z' })).toBeUndefined()
     expect(validateInput(entry, { start_time: '2026-09-01T09:00:00+09:00' })).toBeUndefined()
-    expect(validateInput(entry, { start_time: '2026-09-01T00:00:00' })?.message).toContain('形式が不正')
-    expect(validateInput(entry, { start_time: '1756684800000' })?.message).toContain('形式が不正')
+    expect(validateInput(entry, { start_time: '2026-09-01T00:00:00' })?.message).toContain('invalid format')
+    expect(validateInput(entry, { start_time: '1756684800000' })?.message).toContain('invalid format')
   })
 
   it('profile / region も同じ手順で検証する', () => {
