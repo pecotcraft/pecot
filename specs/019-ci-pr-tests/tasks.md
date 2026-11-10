@@ -5,6 +5,10 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 # Tasks: PR ごとのテストとリリースを CI で動かし、ローカルフックと CI の役割を分け直す
 
+> [!NOTE]
+> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
+> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
+
 **Input**: `specs/019-ci-pr-tests/` の設計文書
 
 **Prerequisites**: plan.md・spec.md・research.md・data-model.md・contracts/・quickstart.md
@@ -278,24 +282,24 @@ description: "PR ごとのテストとリリースを CI で動かし、ロー�
 
 ### Tests for User Story 2
 
-- [x] T056 [P] [US2] `.githooks/tests/test_check_version_plan_required.py` にテストを足す
+- [ ] T056 [P] [US2] `.githooks/tests/test_check_version_plan_required.py` にテストを足す
   - 範囲内の commit がすべて `dependabot[bot]` の作なら、要求せずに通すこと
   - 人の commit が 1 つでも混じれば、今までどおり要求すること
   - PR のイベントの情報を使わずに判定すること（merge queue の範囲でも同じに動く）
 
 ### Implementation for User Story 2
 
-- [x] T057 [US2] `.githooks/pre-push/check-version-plan-required.sh` に、author による判定を足す
+- [ ] T057 [US2] `.githooks/pre-push/check-version-plan-required.sh` に、author による判定を足す
   - 範囲の commit の author 名がすべて `dependabot[bot]` なら、理由を出して exit 0 にする
   - 出す理由は「dependabot の更新の version plan はリリース時に作る」
-- [x] T058 [US2] `ci.yml` に `version-plan` の job を足す
+- [ ] T058 [US2] `ci.yml` に `version-plan` の job を足す
   - `check-version-plan-required.sh` を範囲指定で動かし、結果を Summary に書く
   - `main` への push では動かさない
-- [x] T059 [US2] `ci.yml` の起動に `merge_group` を足す。`nx-set-shas` が queue の commit で範囲を出すことを確かめる
-- [x] T060 [US2] `.github/rulesets/main.json` を作る
+- [ ] T059 [US2] `ci.yml` の起動に `merge_group` を足す。`nx-set-shas` が queue の commit で範囲を出すことを確かめる
+- [ ] T060 [US2] `.github/rulesets/main.json` を作る
   - 規則は contracts/workflows.md の「main の ruleset」の表のとおり
   - bypass には Phase 5 の App の id を入れる
-- [x] T061 [US2] この PR がマージされた後に、ruleset を適用する（quickstart の「0. 準備」の注意）
+- [ ] T061 [US2] この PR がマージされた後に、ruleset を適用する（quickstart の「0. 準備」の注意）
   - 適用は `gh api -X PUT repos/pecotcraft/pecot/rulesets/26538811 --input .github/rulesets/main.json`
   - 人の PR で、必須チェックの前にマージできないことを確かめる
   - 手元から `main` への直接 push が拒否されることを確かめる（quickstart の「4. リリース」の 5）

@@ -20,7 +20,7 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 このとき、次の変数を確定する。確定した値は、後続 Step で Artifacts セクションに転記する。
 
 - `SPECKIT_DIR`: speckit 一式が置かれているディレクトリ（例: `specs/263-plan-mode-reminder/`）。aist-roadmap など外部リポにある場合は `owner/repo:specs/NNN-*/` 形式で表す。
-- `TASKS_PATH`: 受け取った tasks.md の実パス（Step 4 で削除する対象）
+- `TASKS_PATH`: 受け取った tasks.md の実パス
 
 ```bash
 pecot issue read owner/repo/EPIC_NUMBER
@@ -36,6 +36,8 @@ tasks.md を読み取り、Phase 1, Phase 2 ... の区切り・各フェーズ�
 親Epicの既存サブタスクから order 番号の続番を確認する（**番号決定のためだけに参照。Epic進捗の評価はしない**）。
 続番の起点は、既存サブタスクの最大の `order` + 1（無ければ 1）。枝つきの既存番号（`18a` など）は段の数値で数える。今回 Issue 化しない前提（Issue 化済み・範囲外）は段の計算に入れない。
 
+Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本文の Tasks（T 番号）を tasks.md の各フェーズと比べて見分ける。フェーズの Tasks が既存サブタスクの Tasks に写っていれば、そのフェーズは済とする。済のフェーズは、ユーザーが求めない限り対象から外す。全フェーズが済のときは、Issue 化せずにその旨を報告して終える。
+
 番号は次の手順で決める。
 
 1. 段を決める。前提が無いフェーズは最初の段、それ以外は 1 + 前提の段の最大値
@@ -49,6 +51,7 @@ tasks.md を読み取り、Phase 1, Phase 2 ... の区切り・各フェーズ�
 | Phase | tasks.md のフェーズ番号 |
 | 番号 | 例 `17a`（`order` と `parallel`） |
 | タイトル案 | Issue のタイトル |
+| 済 | 既存サブタスクの Tasks に写っているフェーズに「済」と書く。未なら空 |
 | 前提 | 着手を止める前提のフェーズ |
 | 一部だけの依存 | 一部のタスクだけが待つ依存 |
 
@@ -88,14 +91,26 @@ before / after の例を示す。
 pecot issue create <phase1のファイル> <phase2のファイル> ...
 ```
 
-### Step 4: tasks.md を削除する
+### Step 4: tasks.md を残す
 
-全フェーズのIssue投稿が成功したら、役目を終えた tasks.md を削除する。進捗管理はIssueに移譲したので不要。
+tasks.md は消さない。書き換えない。チェックも付けない。進捗管理は Epic の sub-issue に移譲している。
 
-```bash
-rm <tasks.mdのパス>
+tasks.md の冒頭（`# Tasks:` の直後）に、次の印があるかを読んで確かめる。印の文言は `/pecot-w:w-breakdown` の Step 6 と同じにする。
+
+```markdown
+> [!NOTE]
+> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
+> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
 ```
+
+次の 3 つがそろうときだけ、Step 5 で「tasks.md の冒頭へ印を足す PR が要る」と伝える。外部のリポの計画と speckit 以外の計画には伝えない。
+
+- 印が無い
+- tasks.md が作業ディレクトリのリポの中にある
+- パスが `specs/NNN-*/tasks.md` で終わる
+
+ここで印を書かない。計画の PR のマージ後に Issue 化すると、書いた変更が commit できないまま手元に残る。
 
 ### Step 5: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。実装開始は `/pecot-w:w-active` を使う旨を案内する。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。tasks.md を残したことも報告する。Step 4 で印を足す PR が要ると判定したときは、その案内を添える。実装開始は `/pecot-w:w-active` を使う旨を案内する。

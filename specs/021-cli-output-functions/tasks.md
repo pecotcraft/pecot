@@ -5,6 +5,10 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 # Tasks: CLI の出力を共通の関数だけが書き、行の形がコマンドによらずそろう
 
+> [!NOTE]
+> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
+> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
+
 **Input**: `specs/021-cli-output-functions/` の設計文書
 
 **Prerequisites**: plan.md、spec.md、research.md、data-model.md、contracts/output-lines.md、quickstart.md

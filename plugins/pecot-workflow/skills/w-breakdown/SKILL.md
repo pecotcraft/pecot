@@ -92,4 +92,15 @@ main が各工程を順に実行する。各工程完了後に AskUserQuestion �
 
 analyze（`/speckit.analyze`）は読み取り専用工程のため任意。成果物の確認・検証が要るときに実行する。
 
+`/speckit.tasks` の承認（次に進む）を得た後、tasks.md の `# Tasks:` の見出しの直後へ、次の印を書く。
+
+```markdown
+> [!NOTE]
+> このファイルは計画の記録である。各フェーズは `/pecot-w:w-issueize` で Epic の sub-issue にし、進捗は sub-issue で管理する。
+> このファイルのチェックボックスは付けない。実装は `/pecot-w:w-active` で行い、speckit の implement は使わない。
+```
+
+- `/speckit.tasks` は tasks.md を全体から作り直すので、作り直したら印を書き直す
+- 印の差分は commit し、計画の PR に含める。`/pecot-w:w-issueize` の時点で書くと、計画の PR のマージ後に commit できない変更が手元に残る
+
 tasks.md 完成後は `/pecot-w:w-issueize` で各フェーズを Issue として一括登録できる。
