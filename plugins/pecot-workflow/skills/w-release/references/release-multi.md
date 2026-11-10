@@ -136,8 +136,9 @@ git pull --ff-only origin <develop>
 pecot release preflight --package <package> <ver>
 ```
 
-Dependabot の open の alert は警告を出すだけで止めない。
-止めるのは code scanning・secret scanning の open の alert で、解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。
+Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
+止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
+alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから再実行する。取得できないときは、トークンと権限を直して再実行する。
 扱いは [release-nx.md](release-nx.md) の preflight の説明と同じ。
 
 ### 5. リリース PR 作成

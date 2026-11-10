@@ -195,6 +195,25 @@ class TestErrors:
         with pytest.raises(DependabotAlertError, match="通信に失敗しました: down"):
             fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
 
+    def test_invalid_json_is_error(self) -> None:
+        client = _client(ValueError("Expecting value: line 1 column 1 (char 0)"))
+
+        with pytest.raises(DependabotAlertError) as exc_info:
+            fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
+
+        assert str(exc_info.value) == (
+            "owner/repo: 応答を読めません: Expecting value: line 1 column 1 (char 0)"
+        )
+
+    @pytest.mark.parametrize("items", [["number"], [1, 2], [None]])
+    def test_non_dict_items_are_error(self, items: list[Any]) -> None:
+        client = _client(items)
+
+        with pytest.raises(DependabotAlertError) as exc_info:
+            fetch_dependabot_alert_status(client, "ghes.example.com", "owner", "repo")
+
+        assert str(exc_info.value) == "owner/repo: 応答を読めません: alert の一覧ではありません"
+
 
 def test_alerts_url_uses_host_owner_repo() -> None:
     status = fetch_dependabot_alert_status(_client([]), "ghe.example.com", "org", "proj")

@@ -1043,9 +1043,10 @@ class TestReleasePreflightDependabot:
 
         assert result.exit_code == 0
         assert (
-            f"Warning: Could not check Dependabot alerts: {reason}. The release is not blocked."
-            in result.output
+            "Warning: Could not check Dependabot alerts. The release is not blocked."
+            in result.output.splitlines()
         )
+        assert f"  Reason: {reason}" in result.output.splitlines()
         assert "✓ code scanning: open 0" in result.output
         assert "Preflight Check Passed" in result.output
         run_pf.assert_called_once()
@@ -1054,8 +1055,18 @@ class TestReleasePreflightDependabot:
         result, _ = _invoke_preflight(_alert_config(), alert_error=GitHubAuthError("bad token"))
 
         assert result.exit_code == 0
-        assert "Warning: Could not check Dependabot alerts:" in result.output
-        assert "The release is not blocked." in result.output
+        lines = result.output.splitlines()
+        assert "Warning: Could not check Dependabot alerts. The release is not blocked." in lines
+        assert "  Reason: bad token" in lines
+
+    def test_reason_uses_first_line_without_trailing_period(self) -> None:
+        result, _ = _invoke_preflight(
+            _alert_config(), alert_error=GitHubAuthError("認証に失敗しました。\n1. gh auth login")
+        )
+
+        lines = result.output.splitlines()
+        assert "  Reason: 認証に失敗しました" in lines
+        assert not any("gh auth login" in line for line in lines)
 
     def test_release_branch_unset_fails_after_alert_line(self) -> None:
         result, _ = _invoke_preflight(_alert_config(release_branch=None))
@@ -1138,8 +1149,6 @@ class TestReleasePreflightNx:
 
         assert result.exit_code == 1
         assert "Traceback" not in result.output
-        assert (
-            "Warning: Could not check Dependabot alerts: トークンが見つかりません" in result.output
-        )
+        assert "  Reason: トークンが見つかりません" in result.output.splitlines()
         assert "エラー: alert の状態を確認できません: トークンが見つかりません" in result.stderr
         assert "Preflight Check Passed" not in result.output

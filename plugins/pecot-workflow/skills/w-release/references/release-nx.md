@@ -209,6 +209,10 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
    ```
 
+   `preflight.log` に `Warning:` で始まる行があれば、その行と続く行をユーザーに示す。
+   Summary の「preflight warnings」にも同じ行が出る。
+   `Could not check Dependabot alerts` が出たときは、App の権限（Dependabot alerts の read）とトークンを確かめていただく。
+
    案が誤っていたら、承認を案内しない。
    `gh run cancel <id> -R <owner>/<repo>` で止め、plan を直す PR を出し、マージしてから起動し直す。
 
@@ -222,7 +226,7 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    gh release list -L 4 -R <owner>/<repo>
    ```
 
-   `plan` が preflight で止まったときは、open の code scanning・secret scanning の alert がある。
+   `plan` が preflight で止まったときは、open の code scanning・secret scanning の alert があるか、その一覧を取得できない。
    手元の手順の「3. open の security alert を確認（preflight）」に従う。
    扱いは、解消か理由付きの dismiss である。
 
@@ -267,9 +271,11 @@ cd <project-root>/base/<repo> && pecot release preflight
 ```
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
-一覧を取得できないときも警告にとどめる。
-止めるのは code scanning・secret scanning の open の alert だけ。
-解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
+その一覧を取得できないときも警告にとどめる。
+後で対応する open の Dependabot alert は、`pecot security sync` が立てる security alert の Tracker で追う。
+止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
+alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
+一覧を取得できないときは、トークンと権限を直して再実行する。
 alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
@@ -371,9 +377,11 @@ cd <project-root>/base/<repo> && pecot release preflight
 ```
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
-一覧を取得できないときも警告にとどめる。
-止めるのは code scanning・secret scanning の open の alert だけ。
-解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
+その一覧を取得できないときも警告にとどめる。
+後で対応する open の Dependabot alert は、`pecot security sync` が立てる security alert の Tracker で追う。
+止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
+alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
+一覧を取得できないときは、トークンと権限を直して再実行する。
 alerts 無効のリポは `Dependabot alerts: 無効` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 

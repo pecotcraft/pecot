@@ -158,7 +158,6 @@ class _ReleaseContext:
     repo_obj: Repository | None
     changelog_path: Path
     tag_prefix: str | None
-    git_root: Path
 
 
 def _load_release_context(
@@ -194,9 +193,9 @@ def _load_release_context(
     if nx_alerts_only and repo_obj is not None and repo_obj.effective_release_type == "nx":
         _reject_nx_arguments(version, package)
         changelog_path = resolve_changelog_path(git_root, repo_obj.changelog_file)
-        return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, None, git_root)
+        return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, None)
     changelog_path, tag_prefix = _resolve_package_context(repo_obj, package, git_root, owner, repo)
-    return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, tag_prefix, git_root)
+    return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, tag_prefix)
 
 
 def _reject_nx_arguments(version: str | None, package: str | None) -> None:
@@ -215,6 +214,14 @@ def _alert_label(number: int, package: str | None, severity: str | None = None) 
     return f"#{number} ({detail})" if detail else f"#{number}"
 
 
+def _warn_alerts_unavailable(reason: str) -> None:
+    """Dependabot alert を取得できなかった警告を 2 行で出す。理由は 1 行目だけを使う"""
+    lines = reason.strip().splitlines()
+    first = lines[0].strip().rstrip("。.").rstrip() if lines else ""
+    typer.echo("Warning: Could not check Dependabot alerts. The release is not blocked.")
+    typer.echo(f"  Reason: {first}")
+
+
 def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str) -> None:
     """open の Dependabot alert は警告を出すだけで、リリースを止めない
 
@@ -224,12 +231,10 @@ def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str) -> No
         client = GitHubClient(host=config.host)
         status = fetch_dependabot_alert_status(client, config.host, owner, repo)
     except DependabotAlertError as e:
-        typer.echo(f"Warning: Could not check Dependabot alerts: {e}. The release is not blocked.")
+        _warn_alerts_unavailable(str(e))
         return
     except GitHubAPIError as e:
-        typer.echo(
-            f"Warning: Could not check Dependabot alerts: {e.message}. The release is not blocked."
-        )
+        _warn_alerts_unavailable(e.message)
         return
 
     if not status.enabled:

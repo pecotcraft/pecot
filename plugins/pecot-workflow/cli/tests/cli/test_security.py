@@ -5,10 +5,14 @@ GitHubClient（I/O 境界）を差し替え、ボード設定は MagicMock に�
 
 from __future__ import annotations
 
+import json
 import re
+import subprocess
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 import typer.testing
 
 from cli.commands.main import app
@@ -112,6 +116,25 @@ class TestSync:
         updates = [c.args for c in client.update_project_item_field.call_args_list]
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_high") in updates
+
+    def test_dependabot_exceptions_file_does_not_hide_alerts(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # 廃止した例外ファイルが残っていても、open の alert は Tracker に載る
+        subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+        exceptions = tmp_path / ".github" / "dependabot-exceptions.json"
+        exceptions.parent.mkdir()
+        exceptions.write_text(json.dumps({"exceptions": [{"number": 1}]}), encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+        client = _client(dependabot=[_dep(1), _dep(2)])
+
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        body = client.create_issue.call_args.kwargs["body"]
+        assert "pecot-alert: dependabot/1 " in body
+        assert "pecot-alert: dependabot/2 " in body
+        assert "例外" not in body
 
     def test_no_open_alerts_creates_nothing(self) -> None:
         client = _client()

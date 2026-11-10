@@ -141,7 +141,7 @@ def fetch_dependabot_alert_status(
 
     Raises:
         DependabotAlertError: 状態を判定できない場合（API エラー・通信エラー・
-            有効なのに一覧が取れない場合）
+            有効なのに一覧が取れない場合・応答を alert の一覧として読めない場合）
     """
     alerts_url = f"https://{host}/{owner}/{repo}/security/dependabot"
     try:
@@ -150,9 +150,14 @@ def fetch_dependabot_alert_status(
         raise DependabotAlertError(f"{owner}/{repo}: {describe_api_error(e)}") from e
     except httpx.HTTPError as e:
         raise DependabotAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
+    except (ValueError, TypeError) as e:
+        raise DependabotAlertError(f"{owner}/{repo}: 応答を読めません: {e}") from e
 
     if isinstance(alerts, DependabotAlertStatus):
         return alerts
+    # 応答は検証されていない JSON なので、型が dict[str, Any] でも要素を確かめる
+    if not all(isinstance(a, dict) for a in cast("list[Any]", alerts)):
+        raise DependabotAlertError(f"{owner}/{repo}: 応答を読めません: alert の一覧ではありません")
     return DependabotAlertStatus(
         enabled=True,
         open_count=len(alerts),

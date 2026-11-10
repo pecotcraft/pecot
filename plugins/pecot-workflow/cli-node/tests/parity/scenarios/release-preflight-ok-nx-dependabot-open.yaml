@@ -1,4 +1,5 @@
 # release_type が nx のリポ。open の Dependabot alert が 2 件あっても警告だけで通る（exit 0）。
+# 廃止した例外ファイル .github/dependabot-exceptions.json に #1 を載せても、#1 は警告の一覧に出る。
 id: release-preflight-ok-nx-dependabot-open
 command:
   path: [release, preflight]
@@ -58,6 +59,8 @@ setup:
         }
       .pecot/config/projects/.active: |
         ghes.example.com_acme_board_acme.json
+      .github/dependabot-exceptions.json: |
+        {"exceptions": [{"number": 1}]}
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:
