@@ -770,6 +770,30 @@ class TestPRFrontmatterModel:
         assert fm.head == "feat/issue-123-fix-bug"
         assert fm.draft is True
 
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (None, None),
+            ("", None),
+            ("   \n", None),
+            ("表示は変わらない", "表示は変わらない"),
+            ("  表示は変わらない \n", "表示は変わらない"),
+        ],
+    )
+    def test_screenshot_is_stripped_and_empty_is_none(
+        self, raw: str | None, expected: str | None
+    ) -> None:
+        """screenshot は前後の空白を落とし、空なら None（未記入）"""
+        from cli.core.frontmatter import PRFrontmatter
+
+        fm = PRFrontmatter(title="t", repository="o/r", base="b", screenshot=raw)
+        assert fm.screenshot == expected
+
+    def test_screenshot_defaults_to_none(self) -> None:
+        from cli.core.frontmatter import PRFrontmatter
+
+        assert PRFrontmatter(title="t", repository="o/r", base="b").screenshot is None
+
     def test_missing_title_raises_error(self) -> None:
         """titleがない場合はエラー"""
         from pydantic import ValidationError

@@ -17,7 +17,9 @@ from typer.testing import CliRunner
 
 from cli.commands.main import app
 from cli.commands.pr import (
+    SCREENSHOT_MISSING_ERROR,
     _append_issue_close_if_needed,
+    _exit_on_unset_branch,
     _is_missing_ref_error,
     _update_issue_status_to_in_review,
     _validate_issue_reference,
@@ -83,6 +85,8 @@ class TestValidatePRContent:
 
 テストのための変更内容。
 
+<img src="./x.png">
+
 ## Changes
 
 なし
@@ -106,16 +110,14 @@ Refs #123
 
     def test_missing_heading_is_reported_by_its_name(self) -> None:
         """PR テンプレの見出しは名前だけなので、不足は名前で返り、見出しの後ろの文は問わない"""
-        body = (
-            "## Summary\n\n本文。\n\n## Changes\n\nなし\n\n## Verified\n\n- pytest\n\nRefs #123\n"
-        )
+        body = '## Summary\n\n<img src="./x.png">\n\n## Changes\n\nなし\n\n## Verified\n\n- pytest\n\nRefs #123\n'
         errors = _validate_pr_content(body, "タイトル", "develop-aist", "develop-aist")
         assert errors == ["不足セクション: ## Risks"]
 
     def test_missing_issue_reference_names_the_exemption(self) -> None:
         """Issue 参照なしのエラー文は免除手段（--no-issue-ref）を示す"""
         body = (
-            "## Summary — 検証を追加\n\n本文。\n\n"
+            '## Summary — 検証を追加\n\n<img src="./x.png">\n\n'
             "## Changes\n\nなし\n\n"
             "## Verified — テスト通過\n\n- pytest\n\n"
             "## Risks — なし\n\n- なし\n"
@@ -163,26 +165,19 @@ Refs #123
         errors = _validate_pr_content(body, "タイトル", "main", "develop-aist")
         assert any("baseブランチが不正" in e for e in errors)
 
-    def test_base_branch_error_when_no_develop(self) -> None:
-        """開発ブランチ未設定時はエラーで設定を誘導"""
-        body = """
-## Verified — テスト用本文
+    def test_base_branch_error_when_no_develop(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """開発ブランチ未設定時は検証の前に exit 1 で止め、設定を誘導する"""
+        with pytest.raises(typer.Exit) as exc:
+            _exit_on_unset_branch(False, None, "main")
+        assert exc.value.exit_code == 1
+        err = capsys.readouterr().err
+        assert "develop_branchが設定されていません" in err
+        assert "project set-repo" in err
 
-- テスト
-- テスト
-- テスト
-- テスト
-- テスト
-
-## Risks — なし
-
-- なし
-
-Refs #123
-"""
-        errors = _validate_pr_content(body, "タイトル", "main", None)
-        assert any("develop_branchが設定されていません" in e for e in errors)
-        assert any("project set-repo" in e for e in errors)
+    def test_set_branches_do_not_exit(self) -> None:
+        """ブランチが設定されていれば止めない"""
+        _exit_on_unset_branch(False, "develop", None)
+        _exit_on_unset_branch(True, None, "main")
 
 
 # pr create --prepare コマンドテスト
@@ -317,6 +312,8 @@ draft: false
 
 テストのための変更内容。
 
+<img src="./x.png">
+
 ## Changes
 
 なし
@@ -388,6 +385,8 @@ draft: false
 
 テストのための変更内容。
 
+<img src="./x.png">
+
 ## Changes
 
 なし
@@ -437,6 +436,8 @@ draft: false
 
 テストのための変更内容。
 
+<img src="./x.png">
+
 ## Changes
 
 なし
@@ -460,7 +461,7 @@ draft: false
 
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["pr", "create", str(pr_file), "--dry-run"])
-            assert result.exit_code == 1
+            assert result.exit_code == 3
             assert "Issue 参照 `#N` がありません" in result.output
             assert "`--no-issue-ref`" in result.output
 
@@ -494,7 +495,7 @@ head: "feat/test"
 
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["pr", "create", str(pr_file)])
-            assert result.exit_code == 1
+            assert result.exit_code == 3
             assert "バリデーションエラー" in result.output
 
     def test_create_no_active_config(self, tmp_path: Path) -> None:
@@ -542,6 +543,8 @@ class TestPRCreateDirectCommand:
         body = """## Summary — テスト用サマリ
 
 テストのための変更内容。
+
+<img src="./x.png">
 
 ## Changes
 
@@ -605,6 +608,8 @@ class TestPRCreateDirectCommand:
         body = """## Summary — テスト用サマリ
 
 テストのための変更内容。
+
+<img src="./x.png">
 
 ## Changes
 
@@ -2407,6 +2412,8 @@ class TestPRPreflightCommand:
 
 テストのための変更内容。
 
+<img src="./x.png">
+
 ## Changes
 
 なし
@@ -2466,6 +2473,8 @@ class TestPRPreflightCommand:
         body = """## Summary — テスト用サマリ
 
 テストのための変更内容。
+
+<img src="./x.png">
 
 ## Changes
 
@@ -3329,18 +3338,18 @@ Refs #123
         assert not any("リリースPRのbaseブランチが不正" in e for e in errors)
         assert not any("baseブランチが不正" in e for e in errors)
 
-    def test_release_template_no_release_branch_errors(self) -> None:
-        """--template release でrelease_branch未設定ならエラーで設定を誘導"""
+    def test_release_template_no_release_branch_errors(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """--template release でrelease_branch未設定なら検証の前に exit 1 で設定を誘導"""
         body = self._make_release_body()
-        errors = _validate_pr_content(
-            body,
-            "release: v0.5.0",
-            "main",
-            "develop-aist",
-            template="release",
-        )
-        assert any("release_branchが設定されていません" in e for e in errors)
-        assert any("project set-repo" in e for e in errors)
+        del body
+        with pytest.raises(typer.Exit) as exc:
+            _exit_on_unset_branch(True, "develop-aist", None)
+        assert exc.value.exit_code == 1
+        err = capsys.readouterr().err
+        assert "release_branchが設定されていません" in err
+        assert "project set-repo" in err
 
     def test_release_template_invalid_value(self) -> None:
         """--template に無効な値を指定した場合のバリデーション"""
@@ -3931,6 +3940,8 @@ draft: false
 
 テストのための変更内容。
 
+<img src="./x.png">
+
 ## Changes
 
 なし
@@ -4456,7 +4467,7 @@ class TestPreparedPRRoundtrip:
         ):
             result = runner.invoke(app, argv)
 
-        assert result.exit_code == 1, result.output
+        assert result.exit_code == 3, result.output
         assert "使用できない記法" in result.output
         assert "未編集プレースホルダ" in result.output
 
@@ -4477,6 +4488,7 @@ class TestPreparedPRRoundtrip:
         content = content.replace('title: ""', 'title: "feat: テスト"', 1)
         content = content.replace('repository: ""', 'repository: "owner/repo"', 1)
         content = re.sub(r'^base:\s*"[^"]*"', f'base: "{base}"', content, count=1, flags=re.M)
+        content = content.replace('screenshot: ""', 'screenshot: "表示は変わらない"', 1)
         file.write_text(content, encoding="utf-8")
 
         argv = ["pr", "create", str(file), "--dry-run", "--no-issue-ref"]
@@ -4501,6 +4513,7 @@ class TestPreparedPRRoundtrip:
         content = content.replace('title: ""', 'title: "feat: テスト"', 1)
         content = content.replace('repository: ""', 'repository: "owner/repo"', 1)
         content = re.sub(r'^base:\s*"[^"]*"', 'base: "develop-aist"', content, count=1, flags=re.M)
+        content = content.replace('screenshot: ""', 'screenshot: "表示は変わらない"', 1)
         file.write_text(content, encoding="utf-8")
 
         mock_client = MagicMock()
@@ -4529,6 +4542,8 @@ class TestPreparedPRRoundtrip:
 _VALID_PR_BODY = """## Summary — テスト用サマリ
 
 テストのための変更内容。
+
+<img src="./x.png">
 
 ## Changes
 
@@ -4577,7 +4592,7 @@ class TestPrBodyStyleRejection:
         file = _write_pr_file(tmp_path, _VALID_PR_BODY + "\n- [ ] 残タスク\n")
         result = self._invoke_dry_run(file)
 
-        assert result.exit_code == 1, result.output
+        assert result.exit_code == 3, result.output
         assert "使用できない記法" in result.output
         assert "チェックボックス記法" in result.output
 
@@ -4585,7 +4600,7 @@ class TestPrBodyStyleRejection:
         file = _write_pr_file(tmp_path, _VALID_PR_BODY.replace("なし", "<残る懸念>", 1))
         result = self._invoke_dry_run(file)
 
-        assert result.exit_code == 1, result.output
+        assert result.exit_code == 3, result.output
         assert "<残る懸念>" in result.output
 
     def test_clean_body_passes(self, tmp_path: Path) -> None:
@@ -4632,6 +4647,8 @@ _SCOPE_ROOTS = {
 _SCOPE_BODY = """## Summary — テスト用サマリ
 
 テストのための変更内容。
+
+<img src="./x.png">
 
 ## Changes
 
@@ -4732,7 +4749,7 @@ class TestTitleScopeCheck:
             tmp_path, toplevel, "feat(pecot): #123 テスト", direct=direct
         )
 
-        assert result.exit_code == 1
+        assert result.exit_code == 3
         assert (
             "PR タイトルの scope を `p-w` にしてください"
             "（指定: `pecot`。変更した nx プロジェクトの tag から算出）"
@@ -4744,7 +4761,7 @@ class TestTitleScopeCheck:
     def test_missing_scope_is_rejected(self, tmp_path: Path, toplevel: Path, direct: bool) -> None:
         result, _, _ = self._invoke(tmp_path, toplevel, "feat: #123 テスト", direct=direct)
 
-        assert result.exit_code == 1
+        assert result.exit_code == 3
         assert "scope を `p-w` にしてください" in result.output
         assert "指定: `なし`" in result.output
 
@@ -4759,7 +4776,7 @@ class TestTitleScopeCheck:
     def test_full_project_name_is_rejected(self, tmp_path: Path, toplevel: Path) -> None:
         result, _, _ = self._invoke(tmp_path, toplevel, "feat(pecot-workflow): #123 テスト")
 
-        assert result.exit_code == 1
+        assert result.exit_code == 3
         assert "PR タイトルの scope を `p-w` にしてください" in result.output
         assert "指定: `pecot-workflow`" in result.output
 
@@ -4769,7 +4786,7 @@ class TestTitleScopeCheck:
         ng, _, _ = self._invoke(tmp_path, toplevel, "feat(p-w, p-v): #123 x", files=files)
 
         assert ok.exit_code == 0, ok.output
-        assert ng.exit_code == 1
+        assert ng.exit_code == 3
         assert "`p-v,p-w`" in ng.output
 
     def test_file_outside_projects_requires_repo(self, tmp_path: Path, toplevel: Path) -> None:
@@ -4777,7 +4794,7 @@ class TestTitleScopeCheck:
         ng, _, _ = self._invoke(tmp_path, toplevel, "feat(p-w): #123 x", files=files)
         ok, _, _ = self._invoke(tmp_path, toplevel, "feat(p-w,repo): #123 x", files=files)
 
-        assert ng.exit_code == 1
+        assert ng.exit_code == 3
         assert "`p-w,repo`" in ng.output
         assert ok.exit_code == 0, ok.output
 
@@ -4806,7 +4823,7 @@ class TestTitleScopeCheck:
 
     def test_unresolvable_nx_warns_and_passes(self, tmp_path: Path, toplevel: Path) -> None:
         result, roots_mock, _ = self._invoke(tmp_path, toplevel, "feat(pecot): #123 x")
-        assert result.exit_code == 1  # 対照: 判定できるときは止まる
+        assert result.exit_code == 3  # 対照: 判定できるときは止まる
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=_nx_config()),
@@ -4970,3 +4987,144 @@ class TestPrepareScopeGuidance:
 
         assert result.exit_code == 0, result.output
         assert "scope:" not in result.output
+
+
+# Summary の画像か screenshot の理由を求める検証（#183）
+
+_NO_IMAGE_BODY = _VALID_PR_BODY.replace('<img src="./x.png">\n', "", 1)
+_HINT = "`screenshot`"
+
+
+class TestScreenshotDecision:
+    """画像と、入れない理由のどちらも無い本文は exit 3 で止まる"""
+
+    def _file(self, tmp_path: Path, body: str, screenshot: str | None = None) -> Path:
+        shot = "" if screenshot is None else f"screenshot: {screenshot}\n"
+        file = tmp_path / "pr.md"
+        file.write_text(
+            "---\n"
+            'title: "feat: 画像"\n'
+            'repository: "owner/repo"\n'
+            'base: "develop-aist"\n'
+            'head: ""\n'
+            "draft: false\n"
+            f"{shot}"
+            "---\n\n" + body,
+            encoding="utf-8",
+        )
+        return file
+
+    def _run(self, args: list[str], config: MagicMock | None = None):
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=config or _pr_config()),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/183"),
+        ):
+            return runner.invoke(app, ["pr", "create", *args, "--dry-run"])
+
+    def test_no_image_no_reason_is_rejected(self, tmp_path: Path) -> None:
+        result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY))])
+
+        assert result.exit_code == 3, result.output
+        assert "Summary に画像がなく" in result.output
+        assert "`![説明](./ファイル名)`" in result.output
+        assert _HINT in result.output
+
+    @pytest.mark.parametrize(
+        "image",
+        [
+            "![x](./x.png)",
+            "![x][ref]\n\n[ref]: ./x.png",
+            '<IMG src="./x.png">',
+            "![x](https://github.com/user-attachments/assets/abc)",
+        ],
+    )
+    def test_summary_image_passes(self, tmp_path: Path, image: str) -> None:
+        body = _NO_IMAGE_BODY.replace(
+            "テストのための変更内容。", f"テストのための変更内容。\n\n{image}", 1
+        )
+        result = self._run([str(self._file(tmp_path, body))])
+
+        assert result.exit_code == 0, result.output
+
+    def test_reason_passes_without_image(self, tmp_path: Path) -> None:
+        file = self._file(tmp_path, _NO_IMAGE_BODY, '"CLI の出力は変わらない"')
+        result = self._run([str(file)])
+
+        assert result.exit_code == 0, result.output
+
+    @pytest.mark.parametrize("value", ['""', '"   "'])
+    def test_blank_reason_is_rejected(self, tmp_path: Path, value: str) -> None:
+        result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY, value))])
+
+        assert result.exit_code == 3, result.output
+        assert "Summary に画像がなく" in result.output
+
+    def _direct(self, body: str, *extra: str) -> list[str]:
+        return ["-m", body, "-t", "feat: 画像", "-b", "develop-aist", "-r", "owner/repo", *extra]
+
+    def test_direct_message_without_reason_is_rejected(self) -> None:
+        result = self._run(self._direct(_NO_IMAGE_BODY))
+
+        assert result.exit_code == 3, result.output
+        assert "--screenshot" in result.output
+
+    def test_direct_message_with_screenshot_option_passes(self) -> None:
+        result = self._run(self._direct(_NO_IMAGE_BODY, "--screenshot", "表示は変わらない"))
+
+        assert result.exit_code == 0, result.output
+
+    def test_direct_message_with_blank_screenshot_option_is_rejected(self) -> None:
+        result = self._run(self._direct(_NO_IMAGE_BODY, "--screenshot", "  "))
+
+        assert result.exit_code == 3, result.output
+
+    def test_release_template_is_exempt(self) -> None:
+        body = TestValidatePRContentRelease()._make_release_body()
+        errors = _validate_pr_content(
+            body, "release: v0.5.0", "main", "develop-aist",
+            template="release", release_branch="main",
+        )  # fmt: skip
+        assert SCREENSHOT_MISSING_ERROR not in errors
+
+    def test_develop_to_release_default_template_is_exempt(self) -> None:
+        body = TestValidatePRContentRelease()._make_release_body()
+        errors = _validate_pr_content(
+            body, "release: v0.5.0", "main", "develop-aist",
+            release_branch="main", head="develop-aist",
+        )  # fmt: skip
+        assert SCREENSHOT_MISSING_ERROR not in errors
+
+    def test_ordinary_pr_without_image_gets_the_error(self) -> None:
+        errors = _validate_pr_content(
+            _NO_IMAGE_BODY, "feat: x", "develop-aist", "develop-aist", release_branch="main"
+        )
+        assert errors == [SCREENSHOT_MISSING_ERROR]
+
+    def test_release_accepts_screenshot_option(self, tmp_path: Path) -> None:
+        body = TestValidatePRContentRelease()._make_release_body()
+        file = tmp_path / "pr.md"
+        file.write_text(
+            '---\ntitle: "release: v0.5.0"\nrepository: "owner/repo"\nbase: "main"\n'
+            'head: "develop-aist"\ndraft: false\nscreenshot: "不要"\n---\n\n' + body,
+            encoding="utf-8",
+        )
+        result = self._run([str(file), "--template", "release"])
+
+        assert result.exit_code == 0, result.output
+
+    def test_missing_section_and_missing_image_are_listed_together(self, tmp_path: Path) -> None:
+        body = _NO_IMAGE_BODY.replace("## Risks", "## Other", 1)
+        result = self._run([str(self._file(tmp_path, body))])
+
+        assert result.exit_code == 3, result.output
+        assert "不足セクション" in result.output
+        assert "Summary に画像がなく" in result.output
+
+    def test_unset_develop_branch_exits_1_before_validation(self, tmp_path: Path) -> None:
+        config = _pr_config()
+        config.get_develop_branch.return_value = None
+        result = self._run([str(self._file(tmp_path, _NO_IMAGE_BODY))], config)
+
+        assert result.exit_code == 1, result.output
+        assert "develop_branchが設定されていません" in result.output
+        assert "Summary に画像がなく" not in result.output

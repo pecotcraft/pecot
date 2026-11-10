@@ -81,6 +81,14 @@ OptionalParallel = Annotated[
 OptionalParentEpic = Annotated[int | str | None, BeforeValidator(_normalize_parent_epic)]
 
 
+def normalize_optional_text(v: str | None) -> str | None:
+    """前後の空白を落とし、空なら None にする。"""
+    return v.strip() or None if isinstance(v, str) else v
+
+
+OptionalText = Annotated[str | None, BeforeValidator(normalize_optional_text)]
+
+
 # Pydanticモデル
 
 
@@ -183,6 +191,7 @@ class PRFrontmatter(BaseModel):
         base: ベースブランチ。
         head: ヘッドブランチ（オプション、省略時は現在のブランチを使用）。
         draft: ドラフトPRフラグ（オプション、デフォルトFalse）。
+        screenshot: Summary に画像を入れない理由（オプション、空は未記入）。
     """
 
     title: str
@@ -190,6 +199,7 @@ class PRFrontmatter(BaseModel):
     base: str
     head: str | None = None
     draft: bool = False
+    screenshot: OptionalText = None
 
 
 class ParsedPR(BaseModel):

@@ -24,6 +24,7 @@ from cli.core.sections import (
     SUMMARY_MULTI_SENTENCE_ERROR,
     SUMMARY_NOT_JAPANESE_ERROR,
     extract_sections_from_template,
+    has_summary_image,
     validate_body_style,
     validate_closed_headings,
     validate_fold_balance,
@@ -1019,3 +1020,60 @@ class TestValidateFoldSummaries:
 
     def test_unclosed_fence_is_left_to_body_style(self) -> None:
         assert validate_fold_summaries("```\n<summary>理由</summary>", PLAN_FOLD_SUMMARY) == []
+
+
+_IMG = "![x](./x.png)"
+
+
+class TestHasSummaryImage:
+    """has_summary_image: Summary セクションの画像参照を数える（#183）"""
+
+    @pytest.mark.parametrize(
+        "image",
+        ["![x](./x.png)", "![x][ref]", "<img src=\"a.png\">", "<IMG src=\"a.png\">",
+         "![](https://github.com/user-attachments/assets/1)"],
+    )  # fmt: skip
+    def test_counts_image_forms(self, image: str) -> None:
+        assert has_summary_image(f"## Summary — 要点\n\n{image}\n\n## Changes\n\nなし\n")
+
+    def test_no_image(self) -> None:
+        assert not has_summary_image("## Summary — 要点\n\n本文。\n\n## Changes\n\nなし\n")
+
+    def test_plain_link_is_not_an_image(self) -> None:
+        assert not has_summary_image("## Summary\n\n[x](./x.png)\n")
+
+    def test_image_outside_summary_is_ignored(self) -> None:
+        body = "## Summary — 要点\n\n本文。\n\n## Changes\n\n" + _IMG + "\n"
+        assert not has_summary_image(body)
+
+    def test_no_summary_heading(self) -> None:
+        assert not has_summary_image("## Changes\n\n![x](./x.png)\n")
+
+    def test_h3_does_not_end_summary(self) -> None:
+        assert has_summary_image("## Summary\n\n### 詳細\n\n" + _IMG + "\n\n## Changes\n")
+
+    def test_fenced_code_is_ignored(self) -> None:
+        body = "## Summary\n\n```markdown\n![x](./x.png)\n```\n\n## Changes\n"
+        assert not has_summary_image(body)
+
+    def test_inline_code_is_ignored(self) -> None:
+        assert not has_summary_image("## Summary\n\n`![x](./x.png)`\n")
+
+    def test_html_comment_is_ignored(self) -> None:
+        body = "## Summary\n\n<!--\n![x](./x.png)\n-->\n\n## Changes\n"
+        assert not has_summary_image(body)
+
+    def test_guide_comment_example_is_not_counted(self) -> None:
+        """-m の本文に残ったガイドコメントの Summary と画像の例を数えない"""
+        body = (
+            "<!--\n## Summary — 例\n\n" + _IMG + "\n-->\n\n"
+            "## Summary — 要点\n\n本文。\n\n## Changes\n"
+        )
+        assert not has_summary_image(body)
+
+    def test_summary_heading_inside_fence_is_ignored(self) -> None:
+        body = "```\n## Summary\n```\n\n![x](./x.png)\n"
+        assert not has_summary_image(body)
+
+    def test_summary_prefix_heading_is_not_summary(self) -> None:
+        assert not has_summary_image("## Summaryish\n\n![x](./x.png)\n")
