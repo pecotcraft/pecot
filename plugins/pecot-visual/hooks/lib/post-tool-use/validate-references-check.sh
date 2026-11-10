@@ -1,41 +1,10 @@
 #!/bin/bash
-# PostToolUse hook: v-slidev 生成プロジェクトで編集された references の yaml に対し、
-# validate-references を自動実行する。
-#
-# プロジェクト root 決定方式:
-#   編集ファイルの dir から上方向に、dir を探す。
-#   探す dir は、`slides.md` ファイルと `pages/` ディレクトリを持つ。
-#   git には依存しない。見つかった dir を TALK_ROOT とする。
-#
-# 対象の dir は、実行用ミラーの CLI（slide theme --json）が返す lint.referencesDirectories。
-# 編集ファイルの dir がその一覧のどれかに一致するときだけ、その dir を validator の --dir に渡す。
-# 一致しない yaml（talk-dir 内の別の yaml）は対象外として skip する。
-#
-# validator は plugin 側 assets/slidev の dist を直接 node 実行する。
-# standalone talk-dir には validator dist を同梱しない方針。
-#
-# 出力チャネル:
-#   stdout = model に届けるべきものだけ（additionalContext を持つ JSON）。
-#            どの分岐でも「空または妥当な JSON」を維持する。
-#            呼び出し元 merge-hook-outputs.sh は、非 JSON の stdout を additionalContext に丸める。
-#            そのため診断ログを stdout に出してはならない。
-#   stderr = 開発者診断の trace 1 行。
-#            exit 0 の hook stderr は、model と debug ログのどちらにも出ない。
-#            session transcript の hook_success.stderr には恒久記録される。
-#
-# 分岐の分類（「検証していない」ことと「違反があった」ことを区別する）:
-#   validator は exit code だけでは違反とクラッシュを判別できない（どちらも exit 1）。
-#   完走フッター `N files checked, N error(s) found.` の有無を完走の証跡に使う。
-#   フッターの無い非 0 は、すべて未実施として扱う。
-#   さらに exit 0 でも、検証が実行されていない場合がある。
-#   原因は、validator の main が実行されない退行と、
-#   hook のトリガ条件と validator の対象集合の不一致。
-#   そのため、編集ファイル自身の `✓/✗ <basename>` 行の有無で無音 no-op を検知する。
-#     対象外   → trace のみ（対象 YAML でない / talk-dir 外 / plugin root 解決不能）。
-#     設定不備 → 【references YAML 検証未実施】（validator dist、node、CLI が無い）。
-#     pass     → trace のみ。
-#     違反検出 → 【references YAML schema 違反検出】。
-#     未実施   → 【references YAML 検証未実施】（無音 no-op / クラッシュ / timeout / 実行異常）。
+# PostToolUse hook: v-slidev の talk-dir で編集された references の yaml に validate-references を実行する。
+# TALK_ROOT は `slides.md` と `pages/` を持つ最も近い上位 dir（git 非依存）。
+# 編集ファイルの dir が CLI（slide theme --json）の lint.referencesDirectories のどれかに一致するときだけ、その dir を --dir に渡す。
+# 出力: stdout は additionalContext を持つ JSON か空だけ（merge-hook-outputs.sh が非 JSON を文脈に丸めるため）。診断は stderr に trace 1 行。
+# validator は違反とクラッシュがどちらも exit 1 なので、完走フッター `N files checked, N error(s) found.` を完走の証跡にする。
+# フッターの無い非 0 と、exit 0 でも編集ファイルの `✓/✗ <basename>` 行が無いものは「未実施」にする。
 
 # 開発者診断 trace。verdict は skip / pass / not-linted / violation。
 trace() {
@@ -57,6 +26,9 @@ fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-message.sh
 . "${SCRIPT_DIR%/*}/core/hook-message.sh"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/context-cap.sh
+. "${SCRIPT_DIR%/*}/core/context-cap.sh"
 
 # 検証未実施の通知。model には「検証されていない」ことだけを伝え、修正指示は出さない。
 notify_not_linted() {
@@ -215,8 +187,7 @@ EXIT=$?
 # exit code は違反とクラッシュで同じ 1 になるため、完走の判別はこのフッターだけが担う。
 # 行全体で一致を見る。validator の詳細行は 4 スペース字下げで出る。
 # そのため、YAML 由来の文字列がエラーメッセージに載っても行頭一致しない。
-# フッターと下の basename 判定は、どちらも head -n 100 で切り詰める前の全出力に対して行う。
-# フッターは末尾にあり、切り詰めた後では必ず失われる。
+# フッターと下の basename 判定は、切り詰める前の全出力に対して行う（フッターは末尾にある）。
 FOOTER=$(echo "$OUTPUT" | grep -E '^[0-9]+ files checked, [0-9]+ error\(s\) found\.$' | tail -n 1)
 
 # 編集ファイル自身の検証結果行。
@@ -230,18 +201,12 @@ echo "$OUTPUT" | grep -qxF -e "  ✓ $BASE_NAME" -e "  ✗ $BASE_NAME" && FILE_C
 # `category` 欠落の復旧導線。
 # schema 層の required 違反は、「何を書けばよいか」を示さない。
 # そのため、語彙の元データ（_common.yaml の layout_categories）と同期手段を 1 行で添える。
-# 判定は切り詰め前の全出力に対して行い、本文末尾に置く。
-# 該当行が head -n 100 で切れても、導線は残す。
+# 判定は切り詰め前の全出力に対して行い、本文が切れても導線は残す。
 CATEGORY_HINT=""
 if echo "$OUTPUT" | grep -qF "required property 'category'"; then
     CATEGORY_HINT="
 A layout yaml without \`category\` takes an id from \`layout_categories\` in \`_common.yaml\`. Right after a theme update, relinking node_modules with slide_sync (node_modules_only: true) refreshes that vocabulary."
 fi
-
-# 出力を最大 100 行に制限する。
-# 終了コードの捕捉と、フッター / basename 判定より後で行う。
-# ここで別コマンドを挟む位置を誤ると、全分岐が exit 0 になり、分類が崩れる。
-OUTPUT=$(echo "$OUTPUT" | head -n 100)
 
 if [ $EXIT -eq 0 ]; then
     # カナリア: validator の main() が実行されないまま、exit 0 で無音終了する退行がある。
@@ -268,7 +233,7 @@ fi
 if [ $EXIT -eq 1 ] && [ -n "$FOOTER" ]; then
     # validator は参照 dir 全体を検証するため、報告は編集ファイル単体の結果ではない。
     # 件数フッターは本文先頭側に置く。
-    # additionalContext の文字数上限や head -n 100 で末尾が落ちても、件数は残る。
+    # 本文が切れても件数が残るよう、フッターは先頭側に置く。
     NOTE=""
     if [ "$FILE_CHECKED" = false ]; then
         NOTE="
@@ -276,12 +241,14 @@ $BASE_NAME itself is not among the validated files (the validator reads only *.y
     fi
     trace "violation: violations found ($FOOTER / edited file: $BASE_NAME)"
     # 通知本文は、件数フッター・帰属の但し書き・違反の出力・修正依頼の順に並べる。
+    cap_context "$PECOTV_CONTEXT_MAX_REFERENCES" '^    \[' violations <<<"$OUTPUT"
     MESSAGE=$(hook_message warning "references schema violations: ${FOOTER}
 This is the validation result for the whole references directory (edited file: ${FILE_PATH}).${NOTE}
 
-${OUTPUT}
+${CAPPED_BODY}
 
-The output above lists the schema violations.${CATEGORY_HINT}")
+The output above lists the schema violations.${CATEGORY_HINT}${CAP_NOTE:+
+$CAP_NOTE}")
     jq -n --arg ctx "$MESSAGE" '{
       "hookSpecificOutput": {
         "hookEventName": "PostToolUse",

@@ -1,40 +1,10 @@
 #!/bin/bash
-# PostToolUse hook: v-slidev 生成プロジェクトで編集された pages/**/*.md に対し、
-# その layout の参照 YAML の抜粋を提示する。
-# 抜粋対象: status / best_practices / anti_patterns。
-#
-# 判定装置ではない。
-# eslint-check.sh が機械判定できるのは文字数・prop 構造までで、
-# best_practices / anti_patterns が扱う表現面の規約は判定できない。
-# 本 hook は違反を探さず、出典パスと YAML の原文だけを model に渡す（地の文・修正指示は付けない）。
-# 出典パスは talk-dir 内の相対ではなく logical 絶対パスで出す。
-# 複数の talk-dir を跨いで編集したときに、どのプロジェクトの規約かを model 側で判別できるようにするためだ。
-#
-# プロジェクト root 決定方式:
-#   編集ファイルの dir から上方向に、dir を探す。
-#   探す dir は、`slides.md` ファイルと `pages/` ディレクトリを持つ。
-#   git には依存しない（eslint-check.sh と同一方式）。
-#
-# frontmatter と YAML の解釈は、layout-conventions.mjs 経由で lint 側の実装に委ねる。
-# 委ねる先: plugin 側 assets/slidev の scripts/eslint/_shared/dist。
-# 読む YAML の場所は、実行用ミラーの CLI（slide theme --json）が返す lint.referencesDirectories の順。
-# talk-dir の references/ が先に来る。
-# lint の no-unknown-props などが読む場所と同じ一覧を使うので、提示内容と lint の適用対象が食い違わない。
-#
-# 出力チャネル:
-#   stdout = model に届けるべきものだけ（additionalContext を持つ JSON）。
-#            どの分岐でも「空または妥当な JSON」を維持する。
-#            呼び出し元 merge-hook-outputs.sh は、非 JSON の stdout を additionalContext に丸める。
-#            そのため診断ログを stdout に出してはならない。
-#   stderr = 開発者診断の trace 1 行。
-#            exit 0 の hook stderr は、model と debug ログのどちらにも出ない。
-#            session transcript の hook_success.stderr には恒久記録される。
-#
-# 分岐の分類（提示するか、しないかの 2 択。「未実施」の通知は出さない）:
-#   対象外 → trace のみ。
-#            対象 MD でない / talk-dir 外 / plugin root 解決不能 / 実行環境不足 /
-#            layout 不明 / 参照 YAML 不在 / 抜粋対象が無い、のいずれか。
-#   提示   → 出典パス 1 行 + YAML 原文の抜粋を additionalContext に載せる。
+# PostToolUse hook: talk-dir の pages/**/*.md の layout に対応する参照 YAML の抜粋を model に渡す。
+# 抜粋は status / best_practices / anti_patterns で、出典パスを付ける。判定はしない。
+# 出典は logical 絶対パス（複数の talk-dir を跨いだとき、どの規約か判別できるように）。
+# YAML の場所は CLI（slide theme --json）の lint.referencesDirectories の順で、lint と同じ一覧を使う。
+# 出力: stdout は additionalContext を持つ JSON か空だけ（merge-hook-outputs.sh が非 JSON を文脈に丸めるため）。診断は stderr に trace 1 行。
+# 分岐は提示か対象外の 2 択で、「未実施」の通知は出さない。
 
 # 自身の絶対パス。trace に含めて、実セッションの transcript から「どの配置の実体が
 # 動いたか」を特定できるようにする。
@@ -57,6 +27,9 @@ fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-paths.sh
 . "$HOOK_PATHS_LIB"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/context-cap.sh
+. "${SCRIPT_DIR%/*}/core/context-cap.sh"
 
 INPUT=$(cat)
 
@@ -180,10 +153,6 @@ BODY=$(timeout 10 node "$HELPER" "$SHARED_DIST" "$FILE_PATH" "${REFERENCES_DIRS[
 HELPER_EXIT=$?
 HELPER_ERR=$(head -n 1 "$HELPER_ERR_FILE")
 
-# 提示本文を切り詰める（$ の終了コードの捕捉より後で行う）。
-# 参照 YAML が想定外に肥大していても、additionalContext を占有しないようにする。
-BODY=$(echo "$BODY" | head -n 200)
-
 if [ $HELPER_EXIT -ne 0 ] || [ -z "$BODY" ]; then
     case $HELPER_EXIT in
         10) REASON="frontmatter or layout is missing" ;;
@@ -200,6 +169,9 @@ if [ $HELPER_EXIT -ne 0 ] || [ -z "$BODY" ]; then
 fi
 
 trace "present: references YAML excerpt presented ($REL_FILE)"
+cap_context "$PECOTV_CONTEXT_MAX_LAYOUT" '.' lines <<<"$BODY"
+BODY="$CAPPED_BODY${CAP_NOTE:+
+$CAP_NOTE}"
 jq -n --arg body "$BODY" '{
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",

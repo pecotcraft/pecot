@@ -453,18 +453,19 @@ layout: biglayout
 ---
 ')" "$PLUGIN_ROOT"
 BIG_CTX=$(ctx_of "$OUT")
-BIG_LINES=$(printf '%s\n' "$BIG_CTX" | wc -l | tr -d ' ')
+BIG_BYTES=$(printf '%s' "$BIG_CTX" | wc -c | tr -d ' ')
+BIG_SHOWN=$(printf '%s\n' "$BIG_CTX" | grep -c 'アンチパターン')
+BIG_REST=$(printf '%s\n' "$BIG_CTX" | tail -n 1 | sed -nE 's/^Truncated at 3500 bytes: ([0-9]+) more lines not shown\.$/\1/p')
 if ! printf '%s\n' "$OUT" | jq empty 2>/dev/null; then
     MSG_DETAIL_3="$(printf '%s' "$OUT" | head -c 200)"
     fail "巨大な参照 YAML: stdout が妥当な JSON でない stdout（先頭）='$MSG_DETAIL_3'"
-elif [ "$BIG_LINES" -ne 200 ]; then
-    fail "巨大な参照 YAML: 200 行に切り詰められていない（$BIG_LINES 行）"
-elif ! printf '%s\n' "$BIG_CTX" | grep -q "アンチパターン 190"; then
-    fail "巨大な参照 YAML: 切り詰め位置が早すぎる（190 件目が落ちている）"
-elif printf '%s\n' "$BIG_CTX" | grep -q "アンチパターン 250"; then
-    fail "巨大な参照 YAML: 切り詰められていない（250 件目が残っている）"
+elif [ "$BIG_BYTES" -gt 3600 ]; then
+    fail "巨大な参照 YAML: 3500 バイトに切り詰められていない（$BIG_BYTES バイト）"
+elif [ -z "$BIG_REST" ] || [ $((BIG_SHOWN + BIG_REST)) -ne 250 ]; then
+    BIG_LAST=$(printf '%s\n' "$BIG_CTX" | tail -n 1)
+    fail "巨大な参照 YAML: 末尾の行の N が残りの数と合わない shown=$BIG_SHOWN last='$BIG_LAST'"
 else
-    pass "巨大な参照 YAML: 200 行に切り詰め + stdout は妥当な JSON"
+    pass "巨大な参照 YAML: 3500 バイトに切り詰め + 末尾の行の N が残りの数と合う + stdout は妥当な JSON"
 fi
 
 # --- ケース7: symlink トポロジでも提示される ---

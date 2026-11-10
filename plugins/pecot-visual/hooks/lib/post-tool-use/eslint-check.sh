@@ -1,35 +1,11 @@
 #!/bin/bash
-# PostToolUse hook: v-slidev 生成プロジェクトで編集された MD に対し ESLint を自動実行
-#
-# プロジェクト root の決め方:
-#   編集ファイルの dir から上方向に、`slides.md` と `pages/` を両方持つ dir を探す（git 非依存）。
-#   見つかった dir を TALK_ROOT とする。
-#
-# eslint は plugin 側の deck-lint.env.config.js と node_modules（どちらも assets/slidev/）を直接参照して動かす。
-# テーマ固有の値は、実行用ミラーの CLI（slide theme --json）が解釈した lint を、環境変数 PECOTV_DECK_LINT に JSON で渡して受ける。
-# hook は宣言（pecot-theme.json）を読まない。
-# standalone の talk-dir には lint plugin を同梱しない方針。
-# 設定を `eslint.config.*` の名前にしないのは、ESLint 10 の挙動のため。
-# ESLint 10 は、対象ファイルに最も近い `eslint.config.*` を上方向の探索で使う。
-# そこで `--config` で明示して渡す。
-#
-# 出力チャネル:
-#   stdout = model に届けるものだけ（additionalContext を持つ JSON）。
-#            どの分岐でも、空または妥当な JSON にする。
-#            呼び出し元の merge-hook-outputs.sh は、非 JSON の stdout を additionalContext に丸める。
-#            そのため診断ログを stdout に出してはならない。
-#   stderr = 開発者向けの trace を 1 行。
-#            exit 0 の hook の stderr は、model と debug ログのどちらにも出ない。
-#            ただし session transcript の hook_success.stderr には恒久的に残る。
-#
-# 分岐の分類。「lint していない」ことと「違反があった」ことを区別する。
-# 違反とするのは exit 1 だけで、それ以外の非 0 と空出力は未実施として扱う。
-#   対象外   → trace のみ。対象の MD でない、talk-dir の外、lint 対象パスでない、plugin root を解決できない場合。
-#   設定不備 → 【ESLint 未実施】。eslint の binary、config、CLI が無い場合。
-#   テーマ   → 【ESLint 未実施】。テーマを引けない場合（未リンク、移行前の talk-dir、宣言の誤り）。復旧の案内を添える。
-#   pass     → trace のみ。
-#   違反     → 【ESLint違反検出】。
-#   未実施   → 【ESLint 未実施】。timeout、config の致命的エラー、実行時の異常、設定対象外の場合。
+# PostToolUse hook: v-slidev の talk-dir で編集された MD に ESLint を実行する。
+# TALK_ROOT は `slides.md` と `pages/` を持つ最も近い上位 dir（git 非依存）。
+# eslint は assets/slidev の config を `--config` で明示して使う。
+# ESLint 10 が最寄りの eslint.config.* を拾うため。
+# テーマ固有の値は、CLI（slide theme --json）の lint を環境変数 PECOTV_DECK_LINT で受ける。
+# 出力: stdout は additionalContext を持つ JSON か空だけ（merge-hook-outputs.sh が非 JSON を文脈に丸めるため）。診断は stderr に trace 1 行。
+# 違反は exit 1 だけ。それ以外の非 0 と空出力は、lint していないので「未実施」の通知にする。
 
 # 開発者診断 trace。verdict は skip / pass / not-linted / violation / canary。
 trace() {
@@ -51,6 +27,9 @@ fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-message.sh
 . "${SCRIPT_DIR%/*}/core/hook-message.sh"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/context-cap.sh
+. "${SCRIPT_DIR%/*}/core/context-cap.sh"
 
 # lint 未実施の通知。model には「lint されていない」ことだけを伝え、修正指示は出さない。
 notify_not_linted() {
@@ -252,10 +231,6 @@ ESLINT_OUTPUT=$(CDPATH= cd -P "$TALK_ROOT" && PECOTV_DECK_LINT="$LINT_JSON" time
     "$REL_FILE" 2>&1)
 ESLINT_EXIT=$?
 
-# 出力は最大 100 行にする。終了コードを捕捉した後に行うこと。
-# ここで別コマンドを挟むと、どの分岐も exit 0 になり、分類が崩れる。
-ESLINT_OUTPUT=$(echo "$ESLINT_OUTPUT" | head -n 100)
-
 if [ $ESLINT_EXIT -eq 0 ]; then
     # カナリア。base path 外の判定は、lint 対象が丸ごと lint されなかったことを意味する。
     # 相対パス方式では通常ここに来ない。
@@ -317,12 +292,14 @@ echo "$ESLINT_OUTPUT" | grep -q "$CRASH_BANNER" && ESLINT_CRASHED=true
 if [ $ESLINT_EXIT -eq 1 ] && [ -n "$ESLINT_OUTPUT" ] && [ "$ESLINT_CRASHED" = false ]; then
     trace "violation: violations found ($REL_FILE)"
     # stylish の出力は空行で始まるので、見出しの後の空行が重ならないよう先頭の空行を落とす。
-    ESLINT_BODY=$(printf '%s\n' "$ESLINT_OUTPUT" | sed '/./,$!d')
+    cap_context "$PECOTV_CONTEXT_MAX_ESLINT" '^[[:space:]]+[0-9]+:[0-9]+[[:space:]]' violations \
+        <<<"$(printf '%s\n' "$ESLINT_OUTPUT" | sed '/./,$!d')"
     VIOLATION_MESSAGE=$(hook_message warning "eslint violations: $FILE_PATH
 
-$ESLINT_BODY
+$CAPPED_BODY
 
-The output above lists the eslint violations in this file.")
+The output above lists the eslint violations in this file.${CAP_NOTE:+
+$CAP_NOTE}")
     jq -n --arg message "$VIOLATION_MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
     exit 0
 fi

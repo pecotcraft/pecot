@@ -1,30 +1,9 @@
 #!/bin/bash
-# PostToolUse hook: 書き込んだファイルを文章規則（pecot-text-lint）で確認し、違反をモデルに返す
-#
-# bin は実行用ミラーの node_modules/.bin/pecot-text-lint を node で起動する。
-# symlink 先に実行ビットが無いため、node を挟む。
-# 拡張子の判定は bin に任せる。対象外の拡張子なら、bin は 0.12 秒で exit 0 を返す。
-# hook に拡張子の一覧を持つと、bin の descriptor と 2 か所で管理することになる。
-#
-# talk-dir の pages/*.md と slides.md は飛ばす。
-# eslint-check.sh の textlint-body が、本文と発表者ノートを確認しているため。
-# 両方で掛けると、同じ違反が 2 回報告される。
-#
-# モデルに返す文言は英語にする。利用者の画面には出ず、モデルだけが読む。
-#
-# 出力チャネル:
-#   stdout = モデルに届けるものだけ（additionalContext を持つ JSON）。
-#            どの分岐でも、空または妥当な JSON にする。
-#            呼び出し元の merge-hook-outputs.sh は、非 JSON の stdout を additionalContext に丸める。
-#            そのため診断ログを stdout に出してはならない。
-#   stderr = 開発者向けの trace を 1 行。使った bin のパスを含む。
-#
-# 分岐の分類。「確認していない」ことと「違反があった」ことを区別する。
-# 違反とするのは、exit 1 で出力があるときだけ。
-# 対象外は trace のみ。file_path が無い、talk-dir の lint 対象、plugin root を解決できない場合。
-# pass も trace のみ。exit 0 のとき。
-# 違反は Writing-rule violations を返す。
-# 未実施は Not checked を返す。ミラーが無い、bin が無い、timeout、それ以外の非 0、exit 1 で出力が空の場合。
+# PostToolUse hook: 書き込んだファイルを pecot-text-lint で確認し、違反をモデルに返す。
+# bin は実行用ミラーの node_modules/.bin/pecot-text-lint を node で起動する（拡張子の判定は bin に任せる）。
+# talk-dir の pages/*.md と slides.md は飛ばす（eslint-check.sh の textlint-body が見るので、二重に報告しないため）。
+# 出力: stdout は additionalContext を持つ JSON か空だけ（merge-hook-outputs.sh が非 JSON を文脈に丸めるため）。診断は stderr に trace 1 行。
+# 違反は exit 1 で出力があるときだけ。ミラー・bin が無い、timeout、それ以外の非 0 は「未実施」にする。
 
 # 開発者診断 trace。verdict は skip / pass / violation / not-checked。
 trace() {
@@ -46,6 +25,9 @@ fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-message.sh
 . "${SCRIPT_DIR%/*}/core/hook-message.sh"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/context-cap.sh
+. "${SCRIPT_DIR%/*}/core/context-cap.sh"
 
 # 未実施の通知。$1 = 理由（1 行以上）
 notify_not_checked() {
@@ -98,9 +80,6 @@ STDERR_FILE=$(mktemp)
 trap 'rm -f "$STDERR_FILE"' EXIT
 OUTPUT=$(timeout 20 node "$BIN" "$FILE_PATH" 2>"$STDERR_FILE")
 BIN_EXIT=$?
-# 出力は最大 100 行にする。終了コードを捕捉した後に行う。
-OUTPUT=$(echo "$OUTPUT" | head -n 100)
-
 if [ $BIN_EXIT -eq 0 ]; then
     trace "pass: no violations ($FILE_PATH / bin: $BIN)"
     exit 0
@@ -108,11 +87,13 @@ fi
 
 if [ $BIN_EXIT -eq 1 ] && [ -n "$OUTPUT" ]; then
     trace "violation: violations found ($FILE_PATH / bin: $BIN)"
+    cap_context "$PECOTV_CONTEXT_MAX_TEXT_LINT" '.' violations <<<"$OUTPUT"
     VIOLATION_MESSAGE=$(hook_message warning "text lint violations: $FILE_PATH
 
-$OUTPUT
+$CAPPED_BODY
 
-The text above does not satisfy the writing rules. The rules stay enabled.")
+The text above does not satisfy the writing rules. The rules stay enabled.${CAP_NOTE:+
+$CAP_NOTE}")
     jq -n --arg message "$VIOLATION_MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
     exit 0
 fi

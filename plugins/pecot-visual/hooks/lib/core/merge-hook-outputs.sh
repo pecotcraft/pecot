@@ -95,6 +95,18 @@ ${RESULT}"
     fi
 done
 
+# 連結後の合計を上限で切る。ライブラリを解決できなければ切らない。
+CONTEXT_CAP_LIB="$(dirname "${BASH_SOURCE[0]}")/context-cap.sh"
+if [ -n "$MERGED_ADDITIONAL_CONTEXT" ] && [ -f "$CONTEXT_CAP_LIB" ]; then
+    # shellcheck source=context-cap.sh
+    . "$CONTEXT_CAP_LIB"
+    cap_context "$PECOTV_CONTEXT_MAX_TOTAL" '.' lines <<<"$MERGED_ADDITIONAL_CONTEXT"
+    if [ -n "$CAP_NOTE" ]; then
+        MERGED_ADDITIONAL_CONTEXT="$CAPPED_BODY
+$CAP_NOTE"
+    fi
+fi
+
 # マージ結果がなければ何も出力しない
 if [ -z "$MERGED_ADDITIONAL_CONTEXT" ] && [ -z "$MERGED_SYSTEM_MESSAGE" ] \
    && [ "$MERGED_CONTINUE" = "true" ] && [ "$MERGED_SUPPRESS" = "false" ] \
