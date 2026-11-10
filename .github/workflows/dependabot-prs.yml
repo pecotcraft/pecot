@@ -1,5 +1,6 @@
 # 人の判断を待つ dependabot の PR を読み、ボードの Tracker の一覧にそろえる。
-# 毎時 47 分に sync を動かす。security-alerts.yml の 17 分とずらす。
+# App の webhook と EventBridge Scheduler（.github/board-sync/ の Lambda）が、workflow_dispatch で起動する。
+# schedule（毎時 47 分）は、AWS 側の障害に備えた最後の補助。security-alerts.yml の 17 分とずらす。
 # GITHUB_TOKEN は org の Projects を扱えないため、GitHub App のトークンを使う。
 # App は security alert 用とは分け、この用途専用のものを使う。
 # 変数 DEPENDABOT_PRS_APP_CLIENT_ID が空の間は job を飛ばし、失敗の通知を出さない。

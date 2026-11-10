@@ -29,6 +29,7 @@
   },
   "mounts": [
     "source=pecot-claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
-    "source=pecot-commandhistory-${devcontainerId},target=/commandhistory,type=volume"
+    "source=pecot-commandhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=pecot-aws-config-${devcontainerId},target=/home/vscode/.aws,type=volume"
   ]
 }

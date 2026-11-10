@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo chown vscode:vscode /workspaces /home/vscode/.claude /commandhistory
+sudo chown vscode:vscode /workspaces /home/vscode/.claude /home/vscode/.aws /commandhistory
 touch /commandhistory/.bash_history /commandhistory/.zsh_history
 
 # CI では copilot の自動更新を止める。postStart が毎回 download し、/usr/local の権限で失敗するため。

@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FunctionLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:<REGION>:<ACCOUNT_ID>:log-group:/aws/lambda/pecot-board-sync:*"
+    },
+    {
+      "Sid": "FunctionSecrets",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameters",
+      "Resource": "arn:aws:ssm:<REGION>:<ACCOUNT_ID>:parameter/pecot/board-sync/*"
+    },
+    {
+      "Sid": "SchedulerInvoke",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": [
+        "arn:aws:lambda:<REGION>:<ACCOUNT_ID>:function:pecot-board-sync",
+        "arn:aws:lambda:<REGION>:<ACCOUNT_ID>:function:pecot-board-sync:*"
+      ]
+    }
+  ]
+}
