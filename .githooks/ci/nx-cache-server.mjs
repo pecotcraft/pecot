@@ -69,6 +69,7 @@ const server = createServer(async (req, res) => {
         return reply(res, 409);
       }
       const tmp = join(dir, `.${hash}.${randomBytes(6).toString("hex")}.tmp`);
+      let status;
       try {
         await pipeline(req, createWriteStream(tmp));
         // link は既存だと EEXIST で失敗するので、同時の PUT でも先に書いたものが勝つ。
@@ -83,10 +84,11 @@ const server = createServer(async (req, res) => {
           counts.put++;
           used.add(hash);
         } else counts.conflict++;
-        return reply(res, won ? 200 : 409);
+        status = won ? 200 : 409;
       } finally {
         await unlink(tmp).catch(() => {});
       }
+      return reply(res, status);
     }
     req.resume();
     return reply(res, 405);
