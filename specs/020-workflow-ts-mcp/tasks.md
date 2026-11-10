@@ -234,7 +234,7 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 - [ ] T060 [P] `CLAUDE.md` のリポジトリ構成の表と「テスト・lint の実行」から、`test-py` と `--scope=py` を外す。
 - [ ] T061 Epic #41 に、pecot-workflow の manifest と準拠範囲が片づいたことをコメントする。#41 の本文は書き換えない。
 - [ ] T062 quickstart.md を最初から最後まで実行し、SC-001〜SC-009 の結果を `.pecot/work/<Issue番号>/` に残す。
-- [ ] T063 旧 sub-issue #17〜#27 を not planned で close する（spec FR-017）。2026-11-05 に済んだ。
+- [x] T063 旧 sub-issue #17〜#27 を not planned で close する（spec FR-017）。2026-11-05 に済んだ。
 
 ---
 
