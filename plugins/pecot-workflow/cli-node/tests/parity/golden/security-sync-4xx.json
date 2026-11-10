@@ -1,5 +1,5 @@
 {
-  "stdout": "Tracker を立てません（open で例外に無い alert がありません）\n",
+  "stdout": "Tracker を立てません（open の alert がありません）\n",
   "stderr": "エラー: secret scanning の一覧を取得できません（その種類の行に触れません）: acme/demo: secret scanning: アクセスが拒否されました。 Resource not accessible by integration\n",
   "exitCode": 1,
   "requests": [

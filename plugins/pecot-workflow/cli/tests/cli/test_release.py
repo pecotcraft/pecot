@@ -6,7 +6,6 @@ core関数をモックして検証する。
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -840,7 +839,6 @@ def _invoke_preflight(
     alert_error: Exception | None = None,
     code_scanning: ScanAlertStatus | Exception | None = None,
     secret_scanning: ScanAlertStatus | Exception | None = None,
-    git_root: Path = Path("/repo"),
 ) -> tuple[typer.testing.Result, MagicMock]:
     """alert 判定を差し替えて ``pecot release preflight`` を起動し、run_preflight の mock も返す"""
     fetch = MagicMock(return_value=status or _alert_status(), side_effect=alert_error)
@@ -856,7 +854,7 @@ def _invoke_preflight(
     with (
         patch("cli.commands.release.fetch_code_scanning_status", cs),
         patch("cli.commands.release.fetch_secret_scanning_status", ss),
-        patch("cli.commands.release.git_toplevel", return_value=git_root),
+        patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
         patch(
             "cli.commands.release.origin_repo", return_value=("ghes.example.com", "owner", "repo")
         ),
@@ -903,7 +901,7 @@ class TestReleasePreflightScanning:
         assert "✓ secret scanning: 無効" in result.output
 
     def test_all_three_are_checked_before_exit(self) -> None:
-        """Dependabot が止まっても、残りの 2 種の結果まで表示してから終える"""
+        """Dependabot の警告があっても、残りの 2 種の結果まで表示してから終える"""
         bad = ScanAlertStatus(
             enabled=True, open_count=2, alerts_url="https://x/ss", open_numbers=[3, 4]
         )
@@ -914,7 +912,7 @@ class TestReleasePreflightScanning:
         )
 
         assert result.exit_code == 1
-        assert "Dependabot alert が open 1 件" in result.stderr
+        assert "Warning: 1 open Dependabot alert (highest severity: high)" in result.output
         assert "✓ code scanning: open 0" in result.output
         assert "secret scanning の alert が open 2 件" in result.stderr
 
@@ -948,17 +946,70 @@ class TestReleasePreflightScanning:
 
 
 class TestReleasePreflightDependabot:
-    """open の Dependabot alert で preflight が止まる"""
+    """open の Dependabot alert は警告だけで、preflight を止めない"""
 
-    def test_open_alerts_fail(self) -> None:
+    def test_open_alerts_warn_and_pass(self) -> None:
+        status = _alert_status(
+            open_count=2,
+            max_severity="medium",
+            open_alerts=[
+                OpenAlert(number=14, package="glob", severity="medium"),
+                OpenAlert(number=15, package="minimatch", severity="medium"),
+            ],
+        )
+        result, run_pf = _invoke_preflight(_alert_config(), status=status)
+
+        assert result.exit_code == 0
+        assert (
+            "Warning: 2 open Dependabot alerts (highest severity: medium). "
+            "The release is not blocked.\n"
+            "  #14 (glob, medium)\n"
+            "  #15 (minimatch, medium)\n"
+            f"→ {ALERTS_URL}"
+        ) in result.output
+        assert "Preflight Check Passed" in result.output
+        run_pf.assert_called_once()
+
+    def test_single_alert_uses_singular_and_omits_missing_fields(self) -> None:
+        status = _alert_status(
+            open_count=1,
+            max_severity=None,
+            open_alerts=[
+                OpenAlert(number=3, package=None, severity=None),
+            ],
+        )
+        result, _ = _invoke_preflight(_alert_config(), status=status)
+
+        assert result.exit_code == 0
+        assert "Warning: 1 open Dependabot alert. The release is not blocked." in result.output
+        assert "\n  #3\n" in result.output
+
+    def test_label_uses_only_the_present_value(self) -> None:
+        status = _alert_status(
+            open_count=2,
+            max_severity="high",
+            open_alerts=[
+                OpenAlert(number=4, package="glob", severity=None),
+                OpenAlert(number=5, package=None, severity="high"),
+            ],
+        )
+        result, _ = _invoke_preflight(_alert_config(), status=status)
+
+        assert result.exit_code == 0
+        assert "  #4 (glob)\n" in result.output
+        assert "  #5 (high)\n" in result.output
+
+    def test_open_alerts_do_not_hide_code_scanning_failure(self) -> None:
+        bad = ScanAlertStatus(enabled=True, open_count=1, alerts_url="u", open_numbers=[10])
         result, run_pf = _invoke_preflight(
-            _alert_config(), status=_alert_status(open_count=3, max_severity="high")
+            _alert_config(),
+            status=_alert_status(open_count=1, max_severity="high"),
+            code_scanning=bad,
         )
 
         assert result.exit_code == 1
-        assert "Dependabot alert が open 3 件（最高 severity: high）" in result.stderr
-        assert ALERTS_URL in result.stderr
-        assert "Preflight Check Passed" not in result.output
+        assert "Warning: 1 open Dependabot alert" in result.output
+        assert "code scanning の alert が open 1 件" in result.stderr
         run_pf.assert_not_called()
 
     def test_zero_alerts_pass(self) -> None:
@@ -979,19 +1030,43 @@ class TestReleasePreflightDependabot:
     @pytest.mark.parametrize(
         "reason",
         [
-            "owner/repo: Dependabot alerts は有効ですが一覧を取得できません",
+            "owner/repo: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）",
             "owner/repo: GitHub APIエラー: 500",
+            "owner/repo: 認証に失敗しました (401)",
+            "owner/repo: 通信に失敗しました: down",
         ],
     )
-    def test_alert_error_fails_with_reason(self, reason: str) -> None:
+    def test_alert_error_warns_and_passes(self, reason: str) -> None:
         result, run_pf = _invoke_preflight(
             _alert_config(), alert_error=DependabotAlertError(reason)
         )
 
-        assert result.exit_code == 1
-        assert reason in result.stderr
-        assert "Preflight Check Passed" not in result.output
-        run_pf.assert_not_called()
+        assert result.exit_code == 0
+        assert (
+            "Warning: Could not check Dependabot alerts. The release is not blocked."
+            in result.output.splitlines()
+        )
+        assert f"  Reason: {reason}" in result.output.splitlines()
+        assert "✓ code scanning: open 0" in result.output
+        assert "Preflight Check Passed" in result.output
+        run_pf.assert_called_once()
+
+    def test_github_api_error_warns_and_passes(self) -> None:
+        result, _ = _invoke_preflight(_alert_config(), alert_error=GitHubAuthError("bad token"))
+
+        assert result.exit_code == 0
+        lines = result.output.splitlines()
+        assert "Warning: Could not check Dependabot alerts. The release is not blocked." in lines
+        assert "  Reason: bad token" in lines
+
+    def test_reason_uses_first_line_without_trailing_period(self) -> None:
+        result, _ = _invoke_preflight(
+            _alert_config(), alert_error=GitHubAuthError("認証に失敗しました。\n1. gh auth login")
+        )
+
+        lines = result.output.splitlines()
+        assert "  Reason: 認証に失敗しました" in lines
+        assert not any("gh auth login" in line for line in lines)
 
     def test_release_branch_unset_fails_after_alert_line(self) -> None:
         result, _ = _invoke_preflight(_alert_config(release_branch=None))
@@ -999,85 +1074,6 @@ class TestReleasePreflightDependabot:
         assert result.exit_code == 1
         assert "✓ Dependabot alerts: open 0" in result.output
         assert "release_branchが設定されていません" in result.stderr
-
-
-def _write_exceptions(git_root: Path, exceptions: list[dict[str, object]]) -> None:
-    path = git_root / ".github" / "dependabot-exceptions.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"exceptions": exceptions}, ensure_ascii=False), encoding="utf-8")
-
-
-def _exception(alert: int, package: str = "minimatch") -> dict[str, object]:
-    return {
-        "alert": alert,
-        "package": package,
-        "reason": "親が修正版を受け入れない",
-        "reevaluate": "親が修正版を受け入れたら上げる",
-    }
-
-
-_MINIMATCH = OpenAlert(number=17, package="minimatch", severity="medium")
-_GRAPHQL = OpenAlert(number=16, package="graphql-core", severity="high")
-
-
-class TestReleasePreflightDependabotExceptions:
-    """例外ファイルに載った open の alert だけを通す"""
-
-    def test_all_open_alerts_excepted_pass(self, tmp_path: Path) -> None:
-        _write_exceptions(tmp_path, [_exception(17)])
-        status = _alert_status(open_count=1, max_severity="medium", open_alerts=[_MINIMATCH])
-
-        result, _ = _invoke_preflight(_alert_config(), status=status, git_root=tmp_path)
-
-        assert result.exit_code == 0
-        assert "例外として通す Dependabot alert #17（minimatch）" in result.output
-        assert "理由: 親が修正版を受け入れない" in result.output
-        assert "見直し: 親が修正版を受け入れたら上げる" in result.output
-        assert "✓ Dependabot alerts: open 1（すべて例外）" in result.output
-
-    def test_alert_outside_exceptions_fails(self, tmp_path: Path) -> None:
-        _write_exceptions(tmp_path, [_exception(17)])
-        status = _alert_status(
-            open_count=2, max_severity="high", open_alerts=[_MINIMATCH, _GRAPHQL]
-        )
-
-        result, run_pf = _invoke_preflight(_alert_config(), status=status, git_root=tmp_path)
-
-        assert result.exit_code == 1
-        assert (
-            "例外に載らない Dependabot alert が open 1 件（最高 severity: high）" in result.stderr
-        )
-        assert "#16（graphql-core・high）" in result.stderr
-        assert "#17" not in result.stderr
-        run_pf.assert_not_called()
-
-    def test_exception_for_closed_alert_is_reported(self, tmp_path: Path) -> None:
-        _write_exceptions(tmp_path, [_exception(19, "glob")])
-
-        result, _ = _invoke_preflight(_alert_config(), git_root=tmp_path)
-
-        assert result.exit_code == 0
-        assert "例外の Dependabot alert #19（glob）は open ではありません" in result.output
-        assert "✓ Dependabot alerts: open 0" in result.output
-
-    def test_exception_without_reason_fails(self, tmp_path: Path) -> None:
-        entry = _exception(17)
-        entry["reason"] = " "
-        _write_exceptions(tmp_path, [entry])
-
-        result, run_pf = _invoke_preflight(_alert_config(), git_root=tmp_path)
-
-        assert result.exit_code == 1
-        assert ".github/dependabot-exceptions.json を読めません" in result.stderr
-        run_pf.assert_not_called()
-
-    def test_open_alert_message_suggests_exceptions_file(self) -> None:
-        result, _ = _invoke_preflight(
-            _alert_config(), status=_alert_status(open_count=1, max_severity="low")
-        )
-
-        assert result.exit_code == 1
-        assert ".github/dependabot-exceptions.json に載せて通せます" in result.stderr
 
 
 class TestReleasePreflightNx:
@@ -1094,15 +1090,15 @@ class TestReleasePreflightNx:
         assert "Release Notes:" not in result.output
         run_pf.assert_not_called()
 
-    def test_nx_open_alerts_fail(self) -> None:
+    def test_nx_open_dependabot_alerts_warn_and_pass(self) -> None:
         result, _ = _invoke_preflight(
             _alert_config(release_type="nx"),
             status=_alert_status(open_count=1, max_severity="critical"),
         )
 
-        assert result.exit_code == 1
-        assert "open 1 件（最高 severity: critical）" in result.stderr
-        assert "Preflight Check Passed" not in result.output
+        assert result.exit_code == 0
+        assert "Warning: 1 open Dependabot alert (highest severity: critical)" in result.output
+        assert "Preflight Check Passed" in result.output
 
     def test_nx_rejects_version(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"), ["1.0.0"])
@@ -1152,5 +1148,7 @@ class TestReleasePreflightNx:
             result = runner.invoke(app, ["release", "preflight"])
 
         assert result.exit_code == 1
-        assert "エラー: トークンが見つかりません" in result.stderr
+        assert "Traceback" not in result.output
+        assert "  Reason: トークンが見つかりません" in result.output.splitlines()
+        assert "エラー: alert の状態を確認できません: トークンが見つかりません" in result.stderr
         assert "Preflight Check Passed" not in result.output

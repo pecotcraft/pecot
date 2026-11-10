@@ -1,6 +1,6 @@
 """core/dependabot_prs.py - 人の判断を待つ dependabot の PR を Tracker に載せるための純粋な処理
 
-``core/dependabot.py`` は dependabot の *alert*（security の脆弱性）の例外ファイルを扱う。
+``core/dependabot.py`` は dependabot の *alert*（security の脆弱性）の状態の判定を扱う。
 ここは dependabot の *PR*（版上げ）を扱い、PR ごとに「待っている理由」を決める。
 Tracker の本文（PR の一覧の表）を読み書きする処理と、行の足し外しを決める関数も置く。
 

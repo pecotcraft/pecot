@@ -1,4 +1,4 @@
-# Dependabot の一覧が 403 で、vulnerability-alerts は 204（有効）。権限不足として exit 1。
+# Dependabot は成功し、code scanning の一覧が 403（権限不足。GHAS 無しの 403 とは別）。exit 1。
 id: release-preflight-4xx
 command:
   path: [release, preflight]
@@ -80,20 +80,15 @@ github:
       path: "/repos/acme/demo/dependabot/alerts"
       query: {"state": "open", "per_page": "100"}
     respond:
-      status: 403
-      body: {"message": "Resource not accessible by integration"}
-  - match:
-      method: "GET"
-      path: "/repos/acme/demo/vulnerability-alerts"
-    respond:
-      status: 204
+      status: 200
+      body: []
   - match:
       method: "GET"
       path: "/repos/acme/demo/code-scanning/alerts"
       query: {"state": "open", "per_page": "100"}
     respond:
-      status: 200
-      body: []
+      status: 403
+      body: {"message": "Resource not accessible by integration"}
   - match:
       method: "GET"
       path: "/repos/acme/demo/secret-scanning/alerts"

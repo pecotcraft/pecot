@@ -71,7 +71,7 @@
 | `worktree link` | 既存ワークツリーにシンボリックリンクを適用/更新 |
 | `worktree remove` | ワークツリーを削除 |
 | `release preflight` | リリース前チェック（open の Dependabot・code scanning・secret scanning の alert、CHANGELOG・バージョン・タグ不存在の確認。nx のリポは alert のみ） |
-| `security sync` | open の security alert を、ラベル `security-alert` の Tracker 1 件の一覧に書き直す。open の Tracker が無く、判断の要る alert（open で例外に無い alert）があるときだけ Tracker を Backlog に立てる。Tracker は閉じない |
+| `security sync` | open の security alert を、ラベル `security-alert` の Tracker 1 件の一覧に書き直す。open の Tracker が無く、open の alert があるときだけ Tracker を Backlog に立てる。Tracker は閉じない |
 | `dependabot sync` | 人の判断を待つ dependabot の PR（自動マージの対象外・検証の失敗・競合・queue から外れたもの）を、ラベル `dependabot-pr` の Tracker 1 件の一覧に書き直す。一覧が空になれば Tracker を閉じる |
 | `release create` | GitHubリリースとタグを作成（リリースノートは CHANGELOG から取得） |
 | `release merge` | リリースPRをregular mergeでマージ |

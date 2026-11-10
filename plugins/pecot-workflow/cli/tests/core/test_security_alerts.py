@@ -13,7 +13,6 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
-from cli.core.dependabot import DependabotException
 from cli.core.github import GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError
 from cli.core.security_alerts import (
     TRACKER_RE,
@@ -125,64 +124,33 @@ def _e(kind: str, number: int, **kw: Any) -> TrackerEntry:
     return TrackerEntry(kind=kind, number=number, **kw)  # type: ignore[arg-type]
 
 
-def _exc(alert: int, reevaluate: str = "v2 が出たら") -> DependabotException:
-    return DependabotException(
-        alert=alert, package="pkg", reason="秘匿の理由", reevaluate=reevaluate
-    )
-
-
 def _keys(plan: Any) -> list[tuple[str, int]]:
     return [e.key for e in plan.entries]
 
 
 class TestPlanTracker:
-    def test_no_tracker_creates_with_open_alerts_without_exceptions(self) -> None:
+    def test_no_tracker_creates_with_open_alerts(self) -> None:
         alerts = {"dependabot": [_a("dependabot", 1), _a("dependabot", 2)]}
-        plan = plan_tracker(alerts, [_exc(2)], None)
+        plan = plan_tracker(alerts, None)
 
         assert plan.create is True
-        assert _keys(plan) == [("dependabot", 1)]
+        assert _keys(plan) == [("dependabot", 1), ("dependabot", 2)]
 
-    def test_no_tracker_and_only_exceptions_does_not_create(self) -> None:
-        plan = plan_tracker({"dependabot": [_a("dependabot", 2)]}, [_exc(2)], None)
+    def test_no_tracker_and_no_open_alerts_does_not_create(self) -> None:
+        plan = plan_tracker({}, None)
 
         assert plan.create is False
         assert plan.entries == []
 
     def test_existing_tracker_never_creates(self) -> None:
-        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [], [])
+        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [])
 
         assert plan.create is False
         assert [e.number for e in plan.added] == [1]
 
-    def test_open_alert_with_exception_leaves_the_table(self) -> None:
-        old = [_e("dependabot", 1)]
-        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [_exc(1)], old)
-
-        assert plan.entries == []
-        assert [e.key for e in plan.removed] == [("dependabot", 1)]
-        assert plan.added == []
-
-    def test_exception_alert_not_in_tracker_is_not_added(self) -> None:
-        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [_exc(1)], [])
-
-        assert plan.entries == []
-        assert plan.added == []
-
-    def test_exception_removed_from_file_returns_to_the_table(self) -> None:
-        plan = plan_tracker({"dependabot": [_a("dependabot", 1)]}, [], [])
-
-        assert _keys(plan) == [("dependabot", 1)]
-        assert [e.key for e in plan.added] == [("dependabot", 1)]
-
-    def test_code_scanning_number_is_not_matched_to_dependabot_exception(self) -> None:
-        plan = plan_tracker({"code-scanning": [_a("code-scanning", 1)]}, [_exc(1)], [])
-
-        assert _keys(plan) == [("code-scanning", 1)]
-
     def test_alert_that_is_no_longer_open_is_removed(self) -> None:
         old = [_e("dependabot", 1), _e("dependabot", 2)]
-        plan = plan_tracker({"dependabot": [_a("dependabot", 2)]}, [], old)
+        plan = plan_tracker({"dependabot": [_a("dependabot", 2)]}, old)
 
         assert _keys(plan) == [("dependabot", 2)]
         assert [e.key for e in plan.removed] == [("dependabot", 1)]
@@ -191,7 +159,7 @@ class TestPlanTracker:
     def test_new_values_win_and_only_missing_ones_fall_back_to_the_old_row(self) -> None:
         old = [_e("dependabot", 1, priority="low", package="old", ghsa="GHSA-aaaa-bbbb-cccc")]
         alerts = {"dependabot": [_a("dependabot", 1, "high", "new")]}
-        plan = plan_tracker(alerts, [], old)
+        plan = plan_tracker(alerts, old)
 
         assert plan.entries[0].priority == "high"
         assert plan.entries[0].package == "new"
@@ -200,20 +168,20 @@ class TestPlanTracker:
     def test_failed_kind_is_untouched_and_not_added(self) -> None:
         old = [_e("secret-scanning", 1)]
         alerts = {"dependabot": [_a("dependabot", 5)]}
-        plan = plan_tracker(alerts, [], old, failed_kinds={"secret-scanning", "code-scanning"})
+        plan = plan_tracker(alerts, old, failed_kinds={"secret-scanning", "code-scanning"})
 
         assert _keys(plan) == [("dependabot", 5), ("secret-scanning", 1)]
         assert plan.removed == []
 
     def test_failed_kind_does_not_decide_creation(self) -> None:
-        plan = plan_tracker({}, [], None, failed_kinds={"dependabot"})
+        plan = plan_tracker({}, None, failed_kinds={"dependabot"})
 
         assert plan.create is False
 
     def test_disabled_kind_has_no_rows_and_is_not_added(self) -> None:
         old = [_e("code-scanning", 1), _e("dependabot", 2)]
         plan = plan_tracker(
-            {"dependabot": [_a("dependabot", 2)]}, [], old, disabled_kinds={"code-scanning"}
+            {"dependabot": [_a("dependabot", 2)]}, old, disabled_kinds={"code-scanning"}
         )
 
         assert _keys(plan) == [("dependabot", 2)]
@@ -221,8 +189,8 @@ class TestPlanTracker:
 
     def test_second_run_is_a_noop(self) -> None:
         alerts = {"dependabot": [_a("dependabot", 1)], "code-scanning": [_a("code-scanning", 3)]}
-        first = plan_tracker(alerts, [], [])
-        second = plan_tracker(alerts, [], first.entries)
+        first = plan_tracker(alerts, [])
+        second = plan_tracker(alerts, first.entries)
 
         assert second.added == [] and second.removed == []
         assert second.entries == first.entries
@@ -233,7 +201,7 @@ class TestPlanTracker:
             "dependabot": [_a("dependabot", 10), _a("dependabot", 2)],
             "code-scanning": [_a("code-scanning", 5)],
         }
-        plan = plan_tracker(alerts, [], [])
+        plan = plan_tracker(alerts, [])
 
         assert _keys(plan) == [
             ("dependabot", 2),
@@ -428,7 +396,7 @@ class TestTrackerBody:
         old = parse_tracker_entries(first)
         assert [e.summary for e in old] == ["Glob | x", "Glob | x"]
 
-        plan = plan_tracker({}, [], old, failed_kinds={"dependabot"})
+        plan = plan_tracker({}, old, failed_kinds={"dependabot"})
         again = self._render(plan.entries, failed_kinds={"dependabot"})
 
         assert plan.entries == old
@@ -436,7 +404,7 @@ class TestTrackerBody:
         assert "Glob \\| x" in again
 
     def test_failed_kind_without_old_rows_is_unavailable(self) -> None:
-        plan = plan_tracker({}, [], [], failed_kinds={"code-scanning"})
+        plan = plan_tracker({}, [], failed_kinds={"code-scanning"})
         body = self._render(plan.entries, failed_kinds={"code-scanning"})
 
         assert "## code scanning\n\nunavailable" in body
@@ -445,7 +413,7 @@ class TestTrackerBody:
     def test_failed_kind_that_was_disabled_is_unavailable(self) -> None:
         before = render_tracker_body([], H, OWNER, R, disabled_kinds={"secret-scanning"})
         old = parse_tracker_entries(before)
-        plan = plan_tracker({}, [], old, failed_kinds={"secret-scanning"})
+        plan = plan_tracker({}, old, failed_kinds={"secret-scanning"})
         after = self._render(plan.entries, before, failed_kinds={"secret-scanning"})
 
         assert "## secret scanning\n\ndisabled" in before
@@ -483,7 +451,7 @@ class TestTrackerBody:
         ) in row
         assert parse_tracker_entries(body) == [entry]
 
-    def test_partly_excepted_advisory_keeps_one_row_with_the_rest(self) -> None:
+    def test_advisory_row_shrinks_when_one_alert_leaves_the_open_list(self) -> None:
         g = "GHSA-aaaa-bbbb-cccc"
         alerts = {
             "dependabot": [
@@ -492,8 +460,9 @@ class TestTrackerBody:
                 Alert("dependabot", 9, "medium", "u", "glob", g, "Glob"),
             ]
         }
-        before = plan_tracker(alerts, [], [])
-        plan = plan_tracker(alerts, [_exc(1)], before.entries)
+        before = plan_tracker(alerts, [])
+        remaining = {"dependabot": [a for a in alerts["dependabot"] if a.number != 1]}
+        plan = plan_tracker(remaining, before.entries)
         body = self._render(plan.entries)
 
         assert [e.number for e in plan.removed] == [1]

@@ -9,7 +9,6 @@ Actions の schedule と手元の両方から同じコマンドで動かす。
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 
 import httpx
 import typer
@@ -21,12 +20,6 @@ from cli.commands._tracker_sync import (
     warn_extra_trackers,
 )
 from cli.core.config import ProjectConfig
-from cli.core.dependabot import (
-    DependabotAlertError,
-    DependabotException,
-    load_dependabot_exceptions,
-)
-from cli.core.git import git_toplevel
 from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.issue_board import create_issue, put_on_board
 from cli.core.security_alerts import (
@@ -47,19 +40,6 @@ from cli.core.security_alerts import (
     render_tracker_body,
 )
 from cli.core.tracker_body import find_tracker
-
-
-def _load_exceptions() -> list[DependabotException]:
-    """cwd のリポの例外ファイルを読む。ファイルが無ければ空"""
-    git_root = git_toplevel(Path.cwd())
-    if git_root is None:
-        typer.echo("エラー: gitリポジトリのルートディレクトリが見つかりません", err=True)
-        raise typer.Exit(1)
-    try:
-        return load_dependabot_exceptions(git_root) or []
-    except DependabotAlertError as e:
-        typer.echo(f"エラー: {e}", err=True)
-        raise typer.Exit(1) from None
 
 
 def _fetch_open_alerts(
@@ -96,7 +76,7 @@ def _echo_plan(plan: TrackerPlan, tracker: int | None, title: str, dry_run: bool
     prefix = "[dry-run] " if dry_run else ""
     if tracker is None:
         if not plan.create:
-            typer.echo(f"{prefix}Tracker を立てません（open で例外に無い alert がありません）")
+            typer.echo(f"{prefix}Tracker を立てません（open の alert がありません）")
             return
         typer.echo(
             f"{prefix}Tracker を立てる: {title}"
@@ -116,9 +96,8 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
 
     対象: Dependabot・code scanning（main）・secret scanning の open の alert。
     ラベル security-alert の open の Tracker（本文に印がある Issue）を 1 件探す。
-    その本文の list-begin から list-end の間の表を、open の alert から例外を引いた行で書き直す。
+    その本文の list-begin から list-end の間の表を、open の alert の行で書き直す。
     open の Tracker が無く、表に載せる行があるときだけ、Tracker を立ててボードの Backlog に載せる。
-    例外は、cwd のリポの .github/dependabot-exceptions.json から読む（載る alert は表に載せない）。
     閉じる操作と Archived へ移す操作は人が行う。
     一覧を取れなかった種類は行に触れず、最後に終了コード 1 で終わる。
 
@@ -127,7 +106,6 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         $ pecot security sync
     """
     config, owner, repo = load_target(ctx)
-    exceptions = _load_exceptions()
     client = GitHubClient(host=config.host)
 
     alerts, failed, disabled = _fetch_open_alerts(client, config.host, owner, repo)
@@ -147,7 +125,7 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
         typer.echo(f"エラー: {label}: {e}", err=True)
         raise typer.Exit(1) from None
 
-    plan = plan_tracker(alerts, exceptions, entries, failed, disabled)
+    plan = plan_tracker(alerts, entries, failed, disabled)
 
     today = datetime.now(timezone.utc).date()
     title = build_tracker_title(today)

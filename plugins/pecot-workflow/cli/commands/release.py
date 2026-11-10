@@ -24,13 +24,8 @@ from cli.core.changelog import (
 )
 from cli.core.config import ProjectConfig, Repository, load_active_config
 from cli.core.dependabot import (
-    EXCEPTIONS_PATH,
     DependabotAlertError,
-    DependabotException,
-    OpenAlert,
     fetch_dependabot_alert_status,
-    load_dependabot_exceptions,
-    max_severity_of,
 )
 from cli.core.errors import PecotError
 from cli.core.git import git_toplevel, origin_repo
@@ -163,7 +158,6 @@ class _ReleaseContext:
     repo_obj: Repository | None
     changelog_path: Path
     tag_prefix: str | None
-    git_root: Path
 
 
 def _load_release_context(
@@ -199,9 +193,9 @@ def _load_release_context(
     if nx_alerts_only and repo_obj is not None and repo_obj.effective_release_type == "nx":
         _reject_nx_arguments(version, package)
         changelog_path = resolve_changelog_path(git_root, repo_obj.changelog_file)
-        return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, None, git_root)
+        return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, None)
     changelog_path, tag_prefix = _resolve_package_context(repo_obj, package, git_root, owner, repo)
-    return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, tag_prefix, git_root)
+    return _ReleaseContext(config, owner, repo, repo_obj, changelog_path, tag_prefix)
 
 
 def _reject_nx_arguments(version: str | None, package: str | None) -> None:
@@ -216,70 +210,50 @@ def _reject_nx_arguments(version: str | None, package: str | None) -> None:
 
 
 def _alert_label(number: int, package: str | None, severity: str | None = None) -> str:
-    detail = "・".join(v for v in (package, severity) if v)
-    return f"#{number}（{detail}）" if detail else f"#{number}"
+    detail = ", ".join(v for v in (package, severity) if v)
+    return f"#{number} ({detail})" if detail else f"#{number}"
 
 
-def _report_exceptions(exceptions: list[DependabotException], open_alerts: list[OpenAlert]) -> None:
-    """例外で通す alert と、要らなくなった例外を表示する"""
-    open_numbers = {a.number for a in open_alerts}
-    for e in exceptions:
-        label = _alert_label(e.alert, e.package)
-        if e.alert in open_numbers:
-            typer.echo(f"警告: 例外として通す Dependabot alert {label}")
-            typer.echo(f"    理由: {e.reason}")
-            typer.echo(f"    見直し: {e.reevaluate}")
-        else:
-            typer.echo(
-                f"警告: 例外の Dependabot alert {label}は open ではありません。"
-                f"{EXCEPTIONS_PATH} から外してください。"
-            )
+def _warn_alerts_unavailable(reason: str) -> None:
+    """Dependabot alert を取得できなかった警告を 2 行で出す。理由は 1 行目だけを使う"""
+    lines = reason.strip().splitlines()
+    first = lines[0].strip().rstrip("。.").rstrip() if lines else ""
+    typer.echo("Warning: Could not check Dependabot alerts. The release is not blocked.")
+    typer.echo(f"  Reason: {first}")
 
 
-def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str, git_root: Path) -> None:
-    """例外に載らない open の Dependabot alert があれば exit 1。alerts 無効のリポは通す
+def _check_dependabot_alerts(config: ProjectConfig, owner: str, repo: str) -> None:
+    """open の Dependabot alert は警告を出すだけで、リリースを止めない
 
-    例外は ``.github/dependabot-exceptions.json`` から読む。例外に載った open の alert は、
-    理由と見直し条件を表示して通す。例外に載っているのに open でない alert は表示だけする。
+    alerts が無効のリポ・open 0 件は ✓ を出す。一覧を取得できないときも警告にとどめる。
     """
     try:
-        exceptions = load_dependabot_exceptions(git_root)
         client = GitHubClient(host=config.host)
         status = fetch_dependabot_alert_status(client, config.host, owner, repo)
     except DependabotAlertError as e:
-        typer.echo(f"エラー: Dependabot alert の状態を確認できません: {e}", err=True)
-        raise typer.Exit(1) from None
+        _warn_alerts_unavailable(str(e))
+        return
     except GitHubAPIError as e:
-        typer.echo(f"エラー: {e.message}", err=True)
-        raise typer.Exit(1) from None
+        _warn_alerts_unavailable(e.message)
+        return
 
     if not status.enabled:
         typer.echo("✓ Dependabot alerts: 無効")
         return
-    if exceptions:
-        _report_exceptions(exceptions, status.open_alerts)
-    excepted = {e.alert for e in exceptions or []}
-    remaining = [a for a in status.open_alerts if a.number not in excepted]
-    count = status.open_count - (len(status.open_alerts) - len(remaining))
     if status.open_count == 0:
         typer.echo("✓ Dependabot alerts: open 0")
         return
-    if count == 0:
-        typer.echo(f"✓ Dependabot alerts: open {status.open_count}（すべて例外）")
-        return
-    severity = max_severity_of(remaining) if exceptions else status.max_severity
-    scope = "例外に載らない " if exceptions else ""
-    listing = "".join(f"  {_alert_label(a.number, a.package, a.severity)}\n" for a in remaining)
-    typer.echo(
-        f"エラー: {scope}Dependabot alert が open {count} 件"
-        f"（最高 severity: {severity}）\n"
-        f"{listing}"
-        f"→ {status.alerts_url}\n"
-        "  解消（fixed）か理由付きの dismiss で 0 件にしてから再実行してください。\n"
-        f"  修正版に上げられない alert は、理由と見直し条件を {EXCEPTIONS_PATH} に載せて通せます。",
-        err=True,
+    noun = "alert" if status.open_count == 1 else "alerts"
+    listing = "".join(
+        f"  {_alert_label(a.number, a.package, a.severity)}\n" for a in status.open_alerts
     )
-    raise typer.Exit(1)
+    severity = f" (highest severity: {status.max_severity})" if status.max_severity else ""
+    typer.echo(
+        f"Warning: {status.open_count} open Dependabot {noun}{severity}. "
+        "The release is not blocked.\n"
+        f"{listing}"
+        f"→ {status.alerts_url}"
+    )
 
 
 def _check_scanning_alerts(
@@ -291,7 +265,7 @@ def _check_scanning_alerts(
 ) -> None:
     """code scanning / secret scanning の open の alert があれば exit 1。無効のリポは通す
 
-    この 2 種は dismiss が閉じる手段なので、Dependabot のような例外の仕組みを持たない。
+    この 2 種は Dependabot と違い、open の alert でリリースを止める。dismiss が閉じる手段になる。
     """
     try:
         status: ScanAlertStatus = fetch(GitHubClient(host=config.host), config.host, owner, repo)
@@ -315,13 +289,14 @@ def _check_scanning_alerts(
     raise typer.Exit(1)
 
 
-def _check_alerts(config: ProjectConfig, owner: str, repo: str, git_root: Path) -> None:
-    """Dependabot・code scanning・secret scanning の 3 つを確かめ、1 つでも失敗なら exit 1
+def _check_alerts(config: ProjectConfig, owner: str, repo: str) -> None:
+    """Dependabot・code scanning・secret scanning の 3 つを確かめる。Dependabot は警告だけで、
+    code scanning・secret scanning のどちらかが失敗なら exit 1
 
     先に失敗した種類があっても残りを確かめてから終了コードを決める（一度で全部が分かる）。
     """
     checks: list[Callable[[], None]] = [
-        lambda: _check_dependabot_alerts(config, owner, repo, git_root),
+        lambda: _check_dependabot_alerts(config, owner, repo),
         lambda: _check_scanning_alerts(
             "code scanning", fetch_code_scanning_status, config, owner, repo
         ),
@@ -365,7 +340,8 @@ def release_preflight(
     """リリース前チェック（preflight）
 
     open の Dependabot・code scanning・secret scanning の alert を確かめる。
-    1 件でもあれば失敗する。Dependabot は例外に載せた alert を除く。
+    code scanning・secret scanning は 1 件でもあれば失敗する。
+    Dependabot は警告だけで止めない。
     あわせて、CHANGELOG.md確認、バージョン検証、タグ不存在確認、
     ブランチ差分確認、リリースノート抽出をまとめて行う。
     release_type が nx のリポでは alert の確認だけを行う。
@@ -383,7 +359,7 @@ def release_preflight(
     is_nx = rc.repo_obj is not None and rc.repo_obj.effective_release_type == "nx"
 
     typer.echo("=== Release Preflight Check ===\n")
-    _check_alerts(config, owner, repo, rc.git_root)
+    _check_alerts(config, owner, repo)
     if is_nx:
         # version 整合・タグ・差分は Nx Release が担うため alert の確認だけで終える
         typer.echo("\n=== Preflight Check Passed ===")

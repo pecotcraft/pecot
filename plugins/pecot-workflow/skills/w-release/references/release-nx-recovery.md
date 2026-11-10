@@ -51,8 +51,8 @@ gh run view <id> --log-failed -R <owner>/<repo>
 ```
 
 - `plan` の失敗: 原因を直してから、`release.yml` を起動し直す。
-  最も多い原因は preflight（open の Dependabot alert）である。
-  [release-nx.md](release-nx.md) の手元の手順の「3. open の Dependabot alert を確認（preflight）」の扱い（解消・dismiss・exceptions）に従う。
+  原因の 1 つは preflight の失敗（code scanning・secret scanning の open の alert か、その一覧の取得の失敗）である。
+  [release-nx.md](release-nx.md) の手元の手順の「3. open の security alert を確認（preflight）」の扱いに従う。
 - `release` の push の前の失敗: 同じく、直してから起動し直す。push の前なので、タグと commit は残らない。
 - SHA の不一致（「承認を待つ間に main が進みました」）: 起動し直す。
 - non-fast-forward: 起動し直す。

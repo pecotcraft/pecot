@@ -23,7 +23,6 @@ from urllib.parse import quote, unquote
 import httpx
 from pydantic import BaseModel
 
-from cli.core.dependabot import DependabotException
 from cli.core.errors import PecotError
 from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.github.errors import GitHubRateLimitError, describe_api_error
@@ -165,7 +164,7 @@ TRACKER_RE = re.compile(r"<!--\s*pecot-alert:\s*tracker\s*-->")
 
 @dataclass(frozen=True)
 class TrackerEntry:
-    """Tracker の表の 1 行（判断の要る alert。open で例外に無い alert）
+    """Tracker の表の 1 行（判断の要る alert。open の alert）
 
     Attributes:
         kind: alert の種類。
@@ -410,7 +409,6 @@ class TrackerPlan:
 
 def plan_tracker(
     open_alerts: Mapping[AlertKind, list[Alert]],
-    exceptions: list[DependabotException] | None,
     entries: list[TrackerEntry] | None,
     failed_kinds: set[AlertKind] | frozenset[AlertKind] = frozenset(),
     disabled_kinds: set[AlertKind] | frozenset[AlertKind] = frozenset(),
@@ -418,12 +416,11 @@ def plan_tracker(
     """open の alert と Tracker の今の行から、書き直した行を出す（純粋関数）
 
     ``entries`` が None のときは open の Tracker が無い。表に載せる行があるときだけ立てる。
-    取れた種類の行は、open の alert から例外（Dependabot）を引いたものにする。
+    取れた種類の行は、open の alert そのものにする。
     一覧を取れなかった種類（``failed_kinds``）は、その種類の前の行をそのまま使い、足さない。
     無効の種類（``disabled_kinds``）は行を持たない（本文には ``disabled`` だけが出る）。
     """
     skipped = set(failed_kinds) | set(disabled_kinds)
-    excepted = {e.alert for e in exceptions or []}
     old_by_key = {e.key: e for e in entries or []}
     rows: dict[tuple[AlertKind, int], TrackerEntry] = {
         old.key: old for old in entries or [] if old.kind in failed_kinds
@@ -432,8 +429,6 @@ def plan_tracker(
         if kind in skipped:
             continue
         for alert in open_alerts.get(kind, []):
-            if kind == "dependabot" and alert.number in excepted:
-                continue
             old = old_by_key.get((kind, alert.number))
             rows[(kind, alert.number)] = TrackerEntry(
                 kind=kind,

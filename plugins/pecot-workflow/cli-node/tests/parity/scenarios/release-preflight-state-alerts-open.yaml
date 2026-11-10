@@ -1,4 +1,4 @@
-# open の Dependabot alert が 2 件、code scanning の alert が 1 件ある。3 種を確かめてから exit 1。
+# open の Dependabot alert が 2 件（警告だけ）、code scanning の alert が 1 件（失敗）ある。3 種を確かめてから exit 1。
 id: release-preflight-state-alerts-open
 command:
   path: [release, preflight]

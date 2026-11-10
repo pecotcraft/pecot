@@ -1,5 +1,6 @@
-# release_type が nx のリポ。open の alert 1 件を例外ファイルで通し、open でない alert の例外は表示だけする。
-id: release-preflight-ok-nx-excepted
+# release_type が nx のリポ。open の Dependabot alert が 2 件あっても警告だけで通る（exit 0）。
+# 廃止した例外ファイル .github/dependabot-exceptions.json に #1 を載せても、#1 は警告の一覧に出る。
+id: release-preflight-ok-nx-dependabot-open
 command:
   path: [release, preflight]
   args: []
@@ -59,12 +60,7 @@ setup:
       .pecot/config/projects/.active: |
         ghes.example.com_acme_board_acme.json
       .github/dependabot-exceptions.json: |
-        {
-          "exceptions": [
-            {"alert": 1, "package": "minimatch", "reason": "parent pins the vulnerable major", "reevaluate": "bump when the parent accepts the fix"},
-            {"alert": 3, "package": "glob", "reason": "the vulnerable path is not used", "reevaluate": "bump when the parent accepts the fix"}
-          ]
-        }
+        {"exceptions": [{"number": 1}]}
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:
@@ -74,7 +70,7 @@ github:
       query: {"state": "open", "per_page": "100"}
     respond:
       status: 200
-      body: [{"number": 1, "dependency": {"package": {"name": "minimatch"}}, "security_vulnerability": {"severity": "medium"}}]
+      body: [{"number": 1, "dependency": {"package": {"name": "minimatch"}}, "security_vulnerability": {"severity": "medium"}}, {"number": 3, "dependency": {"package": {"name": "glob"}}, "security_vulnerability": {"severity": "medium"}}]
   - match:
       method: "GET"
       path: "/repos/acme/demo/code-scanning/alerts"

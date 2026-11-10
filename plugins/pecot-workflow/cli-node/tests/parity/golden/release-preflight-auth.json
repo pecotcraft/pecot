@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n✓ code scanning: open 0\n✓ secret scanning: open 0\n",
-  "stderr": "エラー: Dependabot alert の状態を確認できません: acme/demo: 認証に失敗しました。トークンを確認してください。 Bad credentials\n",
+  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ secret scanning: open 0\n",
+  "stderr": "エラー: code scanning の状態を確認できません: acme/demo: code scanning: 認証に失敗しました。トークンを確認してください。 Bad credentials\n",
   "exitCode": 1,
   "requests": [
     {
