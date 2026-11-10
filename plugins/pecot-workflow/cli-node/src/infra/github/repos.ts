@@ -29,7 +29,7 @@ export class ReposApi extends GitHubClientBase {
   async getRepositoryId(owner: string, name: string): Promise<string> {
     const result = await this.executeGraphql(QUERY_GET_REPOSITORY_ID, { owner, name })
     const repository = jsonField(result, 'repository')
-    if (!isTruthy(repository)) throw new GitHubNotFoundError(`リポジトリが見つかりません: ${owner}/${name}`)
+    if (!isTruthy(repository)) throw new GitHubNotFoundError(`repository not found: ${owner}/${name}`)
     return requireString(jsonField(repository, 'id'), 'repository.id')
   }
 
@@ -54,7 +54,7 @@ export class ReposApi extends GitHubClientBase {
     }
     const result = await this.executeGraphql(MUTATION_CREATE_LINKED_BRANCH, { input })
     const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch')
-    if (!isTruthy(linkedBranch)) throw new GitHubAPIError('リンクブランチの作成に失敗しました')
+    if (!isTruthy(linkedBranch)) throw new GitHubAPIError('failed to create the linked branch')
     return requireString(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name')
   }
 

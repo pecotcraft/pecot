@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: GitHub APIエラー: 500\n",
+  "stderr": "GitHub APIエラー: GitHub API error: 500\n",
   "exitCode": 1,
   "requests": [
     {

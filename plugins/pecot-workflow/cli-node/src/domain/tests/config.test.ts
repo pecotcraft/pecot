@@ -258,7 +258,7 @@ describe('aggregation_repo', () => {
 
   it.each(['a', 'owner/repo/extra', ''])('%j は検証エラー', (value) => {
     expect(() => parseProjectConfig(aggregationData({ aggregation_repo: value }))).toThrow(InvalidValueError)
-    expect(() => parseProjectConfig(aggregationData({ aggregation_repo: value }))).toThrow('aggregation_repo は \'owner/repo\' 形式で指定してください')
+    expect(() => parseProjectConfig(aggregationData({ aggregation_repo: value }))).toThrow('aggregation_repo must be in \'owner/repo\' form')
   })
 
   it('配列は検証エラー（文字列でない）', () => {
@@ -378,7 +378,7 @@ describe('ConfigError / MultipleConfigsError', () => {
 
   it('MultipleConfigsError の文にファイル名が含まれる（Python のリスト表記）', () => {
     const error = new MultipleConfigsError(['/tmp/config1.json', '/tmp/config2.json'])
-    expect(error.message).toBe('複数の設定ファイルが見つかりました: [\'config1.json\', \'config2.json\']')
+    expect(error.message).toBe('multiple config files found: [\'config1.json\', \'config2.json\']')
     expect(error.files).toEqual(['/tmp/config1.json', '/tmp/config2.json'])
     expect(error).toBeInstanceOf(ConfigError)
   })

@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not list Dependabot alerts (leaving its rows untouched): acme/demo: Dependabot: 認証に失敗しました。トークンを確認してください。 Bad credentials\nskipped: Tracker creation\n",
+  "stderr": "error: could not list Dependabot alerts (leaving its rows untouched): acme/demo: Dependabot: authentication failed: check the token Bad credentials\nskipped: Tracker creation\n",
   "exitCode": 1,
   "requests": [
     {

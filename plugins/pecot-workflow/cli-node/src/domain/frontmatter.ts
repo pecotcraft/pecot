@@ -168,7 +168,7 @@ function issueLine(issue: ValidationIssueView): string {
 }
 
 function validationError(lines: readonly string[]): FrontmatterError {
-  return new FrontmatterError(`バリデーションエラー:\n${lines.join('\n')}`)
+  return new FrontmatterError(`validation error:\n${lines.join('\n')}`)
 }
 
 function fieldErrors(issues: readonly ValidationIssueView[]): FrontmatterError {
@@ -179,9 +179,9 @@ function fieldErrors(issues: readonly ValidationIssueView[]): FrontmatterError {
 function checkOrderWithParentEpic(frontmatter: IssueFrontmatter): void {
   const { parent_epic: parentEpic, order } = frontmatter
   let message: string | undefined
-  if (parentEpic !== undefined && order === undefined) message = 'parent_epicが指定されている場合、orderは必須です'
-  else if (parentEpic === undefined && order !== undefined) message = 'orderを指定する場合、parent_epicも指定してください'
-  else if (order !== undefined && order <= 0) message = `orderは1以上の整数である必要があります（現在: ${String(order)}）`
+  if (parentEpic !== undefined && order === undefined) message = 'order is required when parent_epic is set'
+  else if (parentEpic === undefined && order !== undefined) message = 'parent_epic is required when order is set'
+  else if (order !== undefined && order <= 0) message = `order must be an integer of 1 or more: ${String(order)}`
   if (message !== undefined) throw validationError([`  - : Value error, ${message}`])
 }
 
@@ -255,10 +255,10 @@ interface FrontmatterDocument {
 
 // フロントマターの YAML を読み、本文と分ける。フロントマターの検証はしない
 function splitFrontmatter(content: string): FrontmatterDocument {
-  if (!content.startsWith('---')) throw new FrontmatterError('フロントマターが見つかりません（---で始まっていない）')
+  if (!content.startsWith('---')) throw new FrontmatterError('frontmatter not found (does not start with ---)')
 
   const match = FRONTMATTER_PATTERN.exec(content)
-  if (match === null) throw new FrontmatterError('フロントマターが閉じられていません（終端の---がない）')
+  if (match === null) throw new FrontmatterError('frontmatter is not closed (missing closing ---)')
 
   const rest = pythonStrip(content.slice(match[0].length))
   const body = pythonStrip(stripLeadingHtmlComment(rest))
@@ -269,10 +269,10 @@ function splitFrontmatter(content: string): FrontmatterDocument {
     data = parseYamlDocument(normalizeNewlines(match[1] ?? ''))
   }
   catch (error: unknown) {
-    throw new FrontmatterError(`YAMLのパースに失敗しました: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
+    throw new FrontmatterError(`failed to parse YAML: ${error instanceof Error ? error.message : String(error)}`, { cause: error })
   }
 
-  if (!isMapping(data)) throw new FrontmatterError('フロントマターはマッピング（key: value）形式である必要があります')
+  if (!isMapping(data)) throw new FrontmatterError('frontmatter must be a mapping (key: value)')
   return { data, body }
 }
 

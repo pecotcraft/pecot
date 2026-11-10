@@ -95,7 +95,7 @@ const RepositorySchema = model('Repository', {
   if (hasPackages && repository.changelog_file !== undefined && repository.changelog_file !== '') {
     context.addIssue({
       code: 'custom',
-      message: 'Value error, changelog_file と packages は同時指定できません。monorepo 構成では packages[].changelog に寄せてください。',
+      message: 'Value error, changelog_file and packages cannot be set together; in a monorepo, use packages[].changelog instead',
       params: { type: 'value_error' },
     })
   }
@@ -111,7 +111,7 @@ const ProjectConfigSchema = model('ProjectConfig', {
     if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) {
       context.addIssue({
         code: 'custom',
-        message: `Value error, aggregation_repo は 'owner/repo' 形式で指定してください: ${pythonStringRepr(value)}`,
+        message: `Value error, aggregation_repo must be in 'owner/repo' form: ${pythonStringRepr(value)}`,
         params: { type: 'value_error' },
       })
     }
@@ -142,7 +142,7 @@ export class MultipleConfigsError extends ConfigError {
 
   constructor(files: readonly string[]) {
     const names = files.map(file => file.slice(file.lastIndexOf('/') + 1))
-    super(`複数の設定ファイルが見つかりました: ${pythonRepr(names)}`)
+    super(`multiple config files found: ${pythonRepr(names)}`)
     this.files = files
   }
 }

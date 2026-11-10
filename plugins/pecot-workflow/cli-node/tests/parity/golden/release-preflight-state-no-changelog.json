@@ -1,6 +1,6 @@
 {
   "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n",
-  "stderr": "エラー: CHANGELOG.mdが見つかりません: {{TMP}}/base/demo/CHANGELOG.md\n",
+  "stderr": "エラー: CHANGELOG.md not found: {{TMP}}/base/demo/CHANGELOG.md\n",
   "exitCode": 1,
   "requests": [
     {

@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: PR creation failed: GitHub APIエラー: 502\n",
+  "stderr": "error: PR creation failed: GitHub API error: 502\n",
   "exitCode": 1,
   "requests": [
     {

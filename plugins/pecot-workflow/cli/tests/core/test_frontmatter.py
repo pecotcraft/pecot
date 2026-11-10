@@ -175,7 +175,7 @@ class TestIssueFrontmatterModel:
 
         from cli.core.frontmatter import IssueFrontmatter
 
-        with pytest.raises(ValidationError, match="parallelを指定する場合"):
+        with pytest.raises(ValidationError, match="order is required when parallel is set"):
             IssueFrontmatter(
                 title="タスク",
                 type="task",
@@ -190,7 +190,7 @@ class TestIssueFrontmatterModel:
 
         from cli.core.frontmatter import IssueFrontmatter
 
-        with pytest.raises(ValidationError, match="orderは必須です"):
+        with pytest.raises(ValidationError, match="order is required when parent_epic"):
             IssueFrontmatter(
                 title="タスク",
                 type="task",
@@ -205,7 +205,7 @@ class TestIssueFrontmatterModel:
 
         from cli.core.frontmatter import IssueFrontmatter
 
-        with pytest.raises(ValidationError, match="parent_epicも指定してください"):
+        with pytest.raises(ValidationError, match="parent_epic is required when order is set"):
             IssueFrontmatter(
                 title="タスク",
                 type="task",
@@ -220,7 +220,7 @@ class TestIssueFrontmatterModel:
 
         from cli.core.frontmatter import IssueFrontmatter
 
-        with pytest.raises(ValidationError, match="1以上の整数"):
+        with pytest.raises(ValidationError, match="integer of 1 or more"):
             IssueFrontmatter(
                 title="タスク",
                 type="task",
@@ -236,7 +236,7 @@ class TestIssueFrontmatterModel:
 
         from cli.core.frontmatter import IssueFrontmatter
 
-        with pytest.raises(ValidationError, match="1以上の整数"):
+        with pytest.raises(ValidationError, match="integer of 1 or more"):
             IssueFrontmatter(
                 title="タスク",
                 type="task",
@@ -422,7 +422,7 @@ order: 1
 
 本文のみ
 """
-        with pytest.raises(FrontmatterError, match="フロントマターが見つかりません"):
+        with pytest.raises(FrontmatterError, match="frontmatter not found"):
             parse_frontmatter(content)
 
     def test_parse_unclosed_frontmatter(self) -> None:
@@ -436,7 +436,7 @@ repository: owner/repo
 
 本文（閉じタグなし）
 """
-        with pytest.raises(FrontmatterError, match="フロントマターが閉じられていません"):
+        with pytest.raises(FrontmatterError, match="frontmatter is not closed"):
             parse_frontmatter(content)
 
     def test_parse_invalid_yaml(self) -> None:
@@ -450,7 +450,7 @@ type: epic: invalid
 
 本文
 """
-        with pytest.raises(FrontmatterError, match="YAMLのパースに失敗"):
+        with pytest.raises(FrontmatterError, match="failed to parse YAML"):
             parse_frontmatter(content)
 
     def test_parse_missing_required_fields(self) -> None:
@@ -463,7 +463,7 @@ title: テスト
 
 本文
 """
-        with pytest.raises(FrontmatterError, match="バリデーションエラー"):
+        with pytest.raises(FrontmatterError, match="validation error"):
             parse_frontmatter(content)
 
     def test_parse_empty_string_parent_epic(self) -> None:
@@ -561,7 +561,7 @@ status: ready
         """存在しないファイルはエラー"""
         from cli.core.frontmatter import FrontmatterError, parse_issue_file
 
-        with pytest.raises(FrontmatterError, match="ファイルが見つかりません"):
+        with pytest.raises(FrontmatterError, match="file not found"):
             parse_issue_file(tmp_path / "nonexistent.md")
 
 
@@ -683,7 +683,7 @@ template: merge-diff
 
 本文のみ
 """
-        with pytest.raises(FrontmatterError, match="フロントマターが見つかりません"):
+        with pytest.raises(FrontmatterError, match="frontmatter not found"):
             parse_comment_content(content)
 
     def test_parse_missing_issue_ref(self) -> None:
@@ -696,7 +696,7 @@ template: merge-diff
 
 本文
 """
-        with pytest.raises(FrontmatterError, match="バリデーションエラー"):
+        with pytest.raises(FrontmatterError, match="validation error"):
             parse_comment_content(content)
 
 
@@ -730,7 +730,7 @@ template: merge-diff
         """存在しないファイルはエラー"""
         from cli.core.frontmatter import FrontmatterError, parse_comment_file
 
-        with pytest.raises(FrontmatterError, match="ファイルが見つかりません"):
+        with pytest.raises(FrontmatterError, match="file not found"):
             parse_comment_file(tmp_path / "nonexistent.md")
 
 
@@ -886,7 +886,7 @@ draft: true
 
 本文のみ
 """
-        with pytest.raises(FrontmatterError, match="フロントマターが見つかりません"):
+        with pytest.raises(FrontmatterError, match="frontmatter not found"):
             parse_pr_content(content)
 
     def test_parse_missing_title(self) -> None:
@@ -900,7 +900,7 @@ base: "develop"
 
 本文
 """
-        with pytest.raises(FrontmatterError, match="バリデーションエラー"):
+        with pytest.raises(FrontmatterError, match="validation error"):
             parse_pr_content(content)
 
 
@@ -941,7 +941,7 @@ Refs #42
         """存在しないファイルはエラー"""
         from cli.core.frontmatter import FrontmatterError, parse_pr_file
 
-        with pytest.raises(FrontmatterError, match="ファイルが見つかりません"):
+        with pytest.raises(FrontmatterError, match="file not found"):
             parse_pr_file(tmp_path / "nonexistent.md")
 
 

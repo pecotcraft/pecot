@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: リソースが見つかりません: {{GITHUB_API}}/repos/acme/demo\n",
+  "stderr": "GitHub APIエラー: resource not found: {{GITHUB_API}}/repos/acme/demo\n",
   "exitCode": 1,
   "requests": [
     {

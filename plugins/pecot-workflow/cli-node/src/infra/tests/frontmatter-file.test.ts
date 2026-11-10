@@ -43,12 +43,12 @@ status: ready
   it('存在しないファイルはエラー', () => {
     const file = path.join(makeTemporaryDirectory(), 'nonexistent.md')
     expect(() => parseIssueFile(file)).toThrow(FrontmatterError)
-    expect(() => parseIssueFile(file)).toThrow(`ファイルが見つかりません: ${file}`)
+    expect(() => parseIssueFile(file)).toThrow(`file not found: ${file}`)
   })
 
   it('エラー文のパスは Python の Path と同じ書き方（重複した / と . を畳む）', () => {
-    expect(() => parseIssueFile('./no-such//dir/./x.md')).toThrow('ファイルが見つかりません: no-such/dir/x.md')
-    expect(() => parseIssueFile('/no-such-pecot//x.md')).toThrow('ファイルが見つかりません: /no-such-pecot/x.md')
+    expect(() => parseIssueFile('./no-such//dir/./x.md')).toThrow('file not found: no-such/dir/x.md')
+    expect(() => parseIssueFile('/no-such-pecot//x.md')).toThrow('file not found: /no-such-pecot/x.md')
     expect(() => parseIssueFile('.')).toThrow(OsError)
   })
 
@@ -77,7 +77,7 @@ template: merge-diff
   })
 
   it('存在しないファイルはエラー', () => {
-    expect(() => parseCommentFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('ファイルが見つかりません')
+    expect(() => parseCommentFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('file not found')
   })
 })
 
@@ -106,6 +106,6 @@ Refs #42
   })
 
   it('存在しないファイルはエラー', () => {
-    expect(() => parsePullRequestFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('ファイルが見つかりません')
+    expect(() => parsePullRequestFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('file not found')
   })
 })

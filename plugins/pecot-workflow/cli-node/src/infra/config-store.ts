@@ -36,7 +36,7 @@ export function projectsDirectory(): string {
 JSON ファイルから設定を読む。無ければ ConfigError、形が不正なら検証エラー
 */
 export function loadConfig(file: string): ProjectConfig {
-  if (!existsSync(file)) throw new ConfigError(`設定ファイルが見つかりません: ${file}`)
+  if (!existsSync(file)) throw new ConfigError(`config file not found: ${file}`)
   return parseProjectConfig(parseJsonText(readTextFile(file)))
 }
 
@@ -70,7 +70,7 @@ export function loadActiveConfig(): ProjectConfig | undefined {
 アクティブ設定を設定する。.active には .active のあるディレクトリ基準の相対パスを書く。ファイルが無ければ ConfigError
 */
 export function setActiveConfig(file: string): void {
-  if (!existsSync(file)) throw new ConfigError(`設定ファイルが見つかりません: ${file}`)
+  if (!existsSync(file)) throw new ConfigError(`config file not found: ${file}`)
   const activeFile = path.join(projectsDirectory(), '.active')
   mkdirSync(path.dirname(activeFile), { recursive: true })
   const relative = path.relative(path.resolve(path.dirname(activeFile)), path.resolve(file))

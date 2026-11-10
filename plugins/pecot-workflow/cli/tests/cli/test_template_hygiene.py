@@ -167,7 +167,7 @@ def test_prepared_template_body_has_no_forbidden_notation_or_inline_comment(
 
     content = files[0].read_text(encoding="utf-8")
     body = _body_after_leading_comment(content)
-    style_errors = [m for m in validate_body_style(body) if "未編集プレースホルダ" not in m]
+    style_errors = [m for m in validate_body_style(body) if "unedited placeholder" not in m]
     assert style_errors == [], f"{case_id}: 本文部に記法違反が残っている"
     assert "<!--" not in body, f"{case_id}: 本文内に HTML 指示コメントが残っている"
 

@@ -1,6 +1,6 @@
 {
   "stdout": "Creating GitHub release: v0.2.0...\n",
-  "stderr": "エラー: リリース作成に失敗しました: GitHub APIエラー: 422\n",
+  "stderr": "エラー: リリース作成に失敗しました: GitHub API error: 422\n",
   "exitCode": 1,
   "requests": [
     {

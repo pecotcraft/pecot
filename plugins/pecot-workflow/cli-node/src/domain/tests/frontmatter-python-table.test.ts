@@ -30,7 +30,7 @@ describe('Python の出力との一致', () => {
   it.each(OUTPUTS.yamlFailures)('YAML の失敗 %j', (yamlText) => {
     const result = run(parseFrontmatter, yamlText)
     expect(result).toHaveProperty('error')
-    expect(Object.values(result)[0]).toMatch(/^YAMLのパースに失敗しました: /u)
+    expect(Object.values(result)[0]).toMatch(/^failed to parse YAML: /u)
   })
 
   it.each(OUTPUTS.issue)('issue %j', (yamlText, expected) => {

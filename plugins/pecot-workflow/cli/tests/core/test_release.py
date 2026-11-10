@@ -80,7 +80,7 @@ class TestRunGit:
         with patch(
             "subprocess.run", side_effect=subprocess.CalledProcessError(1, "git", stderr="error")
         ):
-            with pytest.raises(ReleaseError, match="git コマンド失敗"):
+            with pytest.raises(ReleaseError, match="git command failed"):
                 _run_git(["invalid-command"])
 
     def test_cwd_passed(self) -> None:
@@ -169,7 +169,7 @@ class TestRunPreflight:
         """CHANGELOG.mdが存在しない"""
         changelog = tmp_path / "CHANGELOG.md"
 
-        with pytest.raises(ReleaseError, match="CHANGELOG.mdが見つかりません"):
+        with pytest.raises(ReleaseError, match="CHANGELOG.md not found"):
             run_preflight(
                 changelog_path=changelog,
                 develop_branch="develop-aist",
@@ -185,7 +185,7 @@ class TestRunPreflight:
         with patch("cli.core.release._run_git") as mock_git:
             mock_git.return_value = "v0.6.1"
 
-            with pytest.raises(ReleaseError, match="ローカルに既に存在します"):
+            with pytest.raises(ReleaseError, match="tag already exists locally"):
                 run_preflight(
                     changelog_path=changelog,
                     develop_branch="develop-aist",
@@ -204,7 +204,7 @@ class TestRunPreflight:
             # ls-remote: リモートタグあり
             mock_git.side_effect = ["", "abc123\trefs/tags/v0.6.1"]
 
-            with pytest.raises(ReleaseError, match="リモートに既に存在します"):
+            with pytest.raises(ReleaseError, match="tag already exists on the remote"):
                 run_preflight(
                     changelog_path=changelog,
                     develop_branch="develop-aist",
@@ -221,7 +221,7 @@ class TestRunPreflight:
         with patch("cli.core.release._run_git") as mock_git:
             mock_git.side_effect = ["", "", "", "0"]
 
-            with pytest.raises(ReleaseError, match="差分がありません"):
+            with pytest.raises(ReleaseError, match="no difference between"):
                 run_preflight(
                     changelog_path=changelog,
                     develop_branch="develop-aist",
@@ -282,7 +282,7 @@ class TestRunPreflight:
         with patch("cli.core.release._run_git") as mock_git:
             mock_git.side_effect = ["", "", "", "5"]
 
-            with pytest.raises(ReleaseError, match="見つかりません"):
+            with pytest.raises(ReleaseError, match="not found"):
                 run_preflight(
                     changelog_path=changelog,
                     develop_branch="develop-aist",

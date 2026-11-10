@@ -136,40 +136,40 @@ describe('validateSections（必須セクション検証: 見出しレベル・e
   })
 
   it('セクション名の途中マッチは不足扱い（em-dash 区切りが必須）', () => {
-    const result = validateSections('## VerifiedExtra — まぎらわしい\n\n- aaa', [heading(2, 'Verified — <サマリ>')])
-    expect(result).toEqual(['## Verified — <サマリ>'])
+    const result = validateSections('## VerifiedExtra — まぎらわしい\n\n- aaa', [heading(2, 'Verified — <summary>')])
+    expect(result).toEqual(['## Verified — <summary>'])
   })
 
   it('テンプレが em-dash サマリを宣言していれば半角ハイフンは不足扱い', () => {
-    const result = validateSections('## Verified - テスト通過\n\n- aaa', [heading(2, 'Verified — <サマリ>')])
-    expect(result).toEqual(['## Verified — <サマリ>'])
+    const result = validateSections('## Verified - テスト通過\n\n- aaa', [heading(2, 'Verified — <summary>')])
+    expect(result).toEqual(['## Verified — <summary>'])
   })
 
   it('見出しがあればサマリの規則違反は不足に数えない（validateHeadingSummaries の担当）', () => {
     const over = `${'a'.repeat(SUMMARY_MAX_CHARS + 1)}。b`
-    expect(validateSections(`## Verified — ${over}`, [heading(2, 'Verified — <サマリ>')])).toEqual([])
+    expect(validateSections(`## Verified — ${over}`, [heading(2, 'Verified — <summary>')])).toEqual([])
   })
 
   it('未編集プレースホルダの報告は validateBodyStyle の担当（#962 で移設）', () => {
     const body = '## Verified — <何を検証したかを1行で>\n\n<details><summary>log</summary></details>'
-    const result = validateSections(body, [heading(2, 'Verified — <サマリ>')])
-    expect(result.every(message => !message.includes('未編集プレースホルダ'))).toBe(true)
+    const result = validateSections(body, [heading(2, 'Verified — <summary>')])
+    expect(result.every(message => !message.includes('unedited placeholder'))).toBe(true)
   })
 })
 
 describe('validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185）', () => {
-  const required = [heading(2, 'Verified — <サマリ>')]
+  const required = [heading(2, 'Verified — <summary>')]
 
   it('サマリが上限を超えると文字数付きで返す', () => {
     const over = 'あ'.repeat(SUMMARY_MAX_CHARS + 1)
     expect(validateHeadingSummaries(`## Verified — ${over}`, required)).toEqual([
-      `## Verified — サマリが${String(SUMMARY_MAX_CHARS + 1)}文字です（上限${String(SUMMARY_MAX_CHARS)}文字）`,
+      `## Verified — the summary is ${String(SUMMARY_MAX_CHARS + 1)} characters (limit: ${String(SUMMARY_MAX_CHARS)})`,
     ])
   })
 
   it('文字数はコードポイントで数える', () => {
     const emoji = '\u{1F600}'.repeat(SUMMARY_MAX_CHARS)
-    expect(validateHeadingSummaries(`## Verified — ${emoji}あ`, required)).toEqual([`## Verified — サマリが${String(SUMMARY_MAX_CHARS + 1)}文字です（上限${String(SUMMARY_MAX_CHARS)}文字）`])
+    expect(validateHeadingSummaries(`## Verified — ${emoji}あ`, required)).toEqual([`## Verified — the summary is ${String(SUMMARY_MAX_CHARS + 1)} characters (limit: ${String(SUMMARY_MAX_CHARS)})`])
     expect(validateHeadingSummaries(`## Verified — ${'\u{1F600}'.repeat(SUMMARY_MAX_CHARS - 1)}あ`, required)).toEqual([])
   })
 
@@ -222,7 +222,7 @@ describe('validateHeadingSummaries（em-dash サマリは 50 文字以内・日�
   it('文字数・日本語・1 文の違反は同じ見出しについて全て返す', () => {
     const summary = `${'あ'.repeat(SUMMARY_MAX_CHARS - 1)}。いい`
     expect(validateHeadingSummaries(`## Verified — ${summary}`, required)).toEqual([
-      `## Verified — サマリが${String(splitCodePoints(summary).length)}文字です（上限${String(SUMMARY_MAX_CHARS)}文字）`,
+      `## Verified — the summary is ${String(splitCodePoints(summary).length)} characters (limit: ${String(SUMMARY_MAX_CHARS)})`,
       `## Verified — ${SUMMARY_MULTI_SENTENCE_ERROR}`,
     ])
   })
@@ -235,16 +235,16 @@ describe('validateHeadingSummaries（em-dash サマリは 50 文字以内・日�
 
 describe('validateBodyStyle: チェックボックス記法（#962）', () => {
   it('未チェックの箱は不可', () => {
-    expect(validateBodyStyle('## Progress — テスト\n\n- [ ] やること\n').some(message => message.includes('チェックボックス記法'))).toBe(true)
+    expect(validateBodyStyle('## Progress — テスト\n\n- [ ] やること\n').some(message => message.includes('checkbox syntax'))).toBe(true)
   })
 
   it('チェック済みの箱は不可', () => {
-    expect(validateBodyStyle('- [x] 完了\n').some(message => message.includes('チェックボックス記法'))).toBe(true)
+    expect(validateBodyStyle('- [x] 完了\n').some(message => message.includes('checkbox syntax'))).toBe(true)
   })
 
   it('* と + の箇条書きも不可', () => {
-    expect(validateBodyStyle('* [ ] a\n').some(message => message.includes('チェックボックス記法'))).toBe(true)
-    expect(validateBodyStyle('+ [X] a\n').some(message => message.includes('チェックボックス記法'))).toBe(true)
+    expect(validateBodyStyle('* [ ] a\n').some(message => message.includes('checkbox syntax'))).toBe(true)
+    expect(validateBodyStyle('+ [X] a\n').some(message => message.includes('checkbox syntax'))).toBe(true)
   })
 
   it.each(['1. [ ] a', '2) [x] b', '10. [X] c'])('番号付きリストの箱は不可: %s', (line) => {
@@ -269,7 +269,7 @@ describe('validateBodyStyle: チェックボックス記法（#962）', () => {
 
   it('複数行あってもチェックボックスの報告は 1 件にまとめる', () => {
     const messages = validateBodyStyle('- [ ] a\n- [ ] b\n- [x] c\n')
-    expect(messages.filter(message => message.includes('チェックボックス記法'))).toHaveLength(1)
+    expect(messages.filter(message => message.includes('checkbox syntax'))).toHaveLength(1)
   })
 })
 
@@ -291,7 +291,7 @@ describe('validateBodyStyle: コードフェンス・インラインコード・
   })
 
   it('未閉じフェンスは黙殺せずエラー（フェンス以降の検証バイパス防止）', () => {
-    expect(validateBodyStyle('```bash\necho hi\n\n- [ ] やること\n')).toEqual(['コードフェンスが閉じられていません'])
+    expect(validateBodyStyle('```bash\necho hi\n\n- [ ] やること\n')).toEqual(['code fence is not closed'])
   })
 
   it('インラインコードは対象外', () => {
@@ -363,7 +363,7 @@ describe('validateBodyStyle: 未編集プレースホルダの検出と正当な
   it('見出しのプレースホルダは見出しと明示する', () => {
     const body = '## Verified — <何を検証したかを1行で>\n\n<details><summary>log</summary></details>'
     const result = validateBodyStyle(body)
-    expect(result.some(message => message.includes('見出しに未編集プレースホルダ') && message.startsWith('##'))).toBe(true)
+    expect(result.some(message => message.includes('heading') && message.startsWith('unedited placeholder'))).toBe(true)
     expect(result.every(message => !message.includes('details'))).toBe(true)
   })
 
@@ -498,14 +498,14 @@ describe('validateBodyStyle: 記法違反が複数あるとき全種を 1 件ず
       CHECKBOX_ERROR,
       HORIZONTAL_RULE_ERROR,
       EMOJI_ERROR,
-      '未編集プレースホルダ <未編集> が残っています',
+      'unedited placeholder <未編集> remains',
     ])
   })
 })
 
 describe('validateFoldBalance（折りたたみ <details> の開閉の対応 #1330）', () => {
-  const unclosed = ['<details> が閉じられていません']
-  const noOpening = ['<details> に対応する開きタグがありません']
+  const unclosed = ['<details> is not closed']
+  const noOpening = ['<details> has no matching opening tag']
 
   it('テンプレートごとの案内文', () => {
     expect(new Set(CLOSED_HEADINGS_BY_TEMPLATE.keys())).toEqual(new Set(['plan']))
@@ -628,7 +628,7 @@ function fold(summary: string): string {
 }
 
 function failure(summary: string): string {
-  return `${summary} は ${PLAN_FOLD_SUMMARY} にしてください`
+  return `${summary} must be ${PLAN_FOLD_SUMMARY}`
 }
 
 describe('validateFoldSummaries（折りたたみの開閉部分 <summary> の形 #1299）', () => {

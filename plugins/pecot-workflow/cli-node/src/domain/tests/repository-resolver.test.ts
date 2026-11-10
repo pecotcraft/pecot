@@ -81,14 +81,14 @@ describe('parseOwnerRepository（失敗）', () => {
   })
 
   it('スラッシュの数が違うときの文は Python と同じ', () => {
-    expect(() => parseOwnerRepository('ownerrepo')).toThrow('不正な owner/repo 形式: \'ownerrepo\' (期待: \'owner/repo\')')
-    expect(() => parseOwnerRepository('owner/repo/extra')).toThrow('不正な owner/repo 形式: \'owner/repo/extra\' (期待: \'owner/repo\')')
+    expect(() => parseOwnerRepository('ownerrepo')).toThrow('invalid owner/repo form: \'ownerrepo\' (expected: \'owner/repo\')')
+    expect(() => parseOwnerRepository('owner/repo/extra')).toThrow('invalid owner/repo form: \'owner/repo/extra\' (expected: \'owner/repo\')')
   })
 
   it('セグメントが不正なときの文は検証エラーの書式（Python の実出力）', () => {
     const { input, message } = validationErrorTextOutput('repo-ref-bad-owner')
     expect(() => parseOwnerRepository(input)).toThrow(message)
-    expect(() => parseOwnerRepository('o/bad@repo')).toThrow('1 validation error for RepoRef\nrepo\n  Value error, 不正な owner/repo セグメント: \'bad@repo\'')
+    expect(() => parseOwnerRepository('o/bad@repo')).toThrow('1 validation error for RepoRef\nrepo\n  Value error, invalid owner/repo segment: \'bad@repo\'')
   })
 })
 
@@ -135,7 +135,7 @@ describe('createResolvedRepository', () => {
 
   it('current-git で remoteName が無いと例外', () => {
     expect(() => createResolvedRepository({ repository, source: 'current-git', remoteName: undefined })).toThrow(InvalidValueError)
-    expect(() => createResolvedRepository({ repository, source: 'current-git', remoteName: undefined })).toThrow('source=CURRENT_GIT では remote_name が必須')
+    expect(() => createResolvedRepository({ repository, source: 'current-git', remoteName: undefined })).toThrow('remote_name is required when source=CURRENT_GIT')
   })
 
   it('current-git で remoteName が空文字でも例外', () => {
@@ -143,7 +143,7 @@ describe('createResolvedRepository', () => {
   })
 
   it('explicit で remoteName があると例外', () => {
-    expect(() => createResolvedRepository({ repository, source: 'explicit', remoteName: 'origin' })).toThrow('source=EXPLICIT では remote_name は None でなければならない')
+    expect(() => createResolvedRepository({ repository, source: 'explicit', remoteName: 'origin' })).toThrow('remote_name must be None when source=EXPLICIT')
   })
 })
 
@@ -208,7 +208,7 @@ describe('resolveRepository', () => {
 
   it('git の外で明示値も無ければ曖昧', () => {
     expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow(AmbiguousRepositoryError)
-    expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow('リポジトリが曖昧です。--repo <owner/repo> を明示してください。')
+    expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow('repository is ambiguous: pass --repo <owner/repo>')
   })
 
   it('明示値の形式が不正なら値の不正', () => {

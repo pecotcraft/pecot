@@ -249,41 +249,41 @@ class TestValidateSections:
         """セクション名の途中マッチは不足扱い（em-dash 区切りが必須）"""
         result = validate_sections(
             "## VerifiedExtra — まぎらわしい\n\n- aaa",
-            [(2, "Verified — <サマリ>")],
+            [(2, "Verified — <summary>")],
         )
-        assert result == ["## Verified — <サマリ>"]
+        assert result == ["## Verified — <summary>"]
 
     def test_em_dash_required_when_template_declares_it(self) -> None:
         """テンプレが em-dash サマリを宣言していれば半角ハイフンは不足扱い"""
         result = validate_sections(
             "## Verified - テスト通過\n\n- aaa",
-            [(2, "Verified — <サマリ>")],
+            [(2, "Verified — <summary>")],
         )
-        assert result == ["## Verified — <サマリ>"]
+        assert result == ["## Verified — <summary>"]
 
     def test_summary_rule_violation_is_not_missing(self) -> None:
         """見出しがあればサマリの規則違反は不足に数えない（validate_heading_summaries の担当）"""
         over = "a" * (SUMMARY_MAX_CHARS + 1) + "。b"
-        assert validate_sections(f"## Verified — {over}", [(2, "Verified — <サマリ>")]) == []
+        assert validate_sections(f"## Verified — {over}", [(2, "Verified — <summary>")]) == []
 
     def test_placeholder_is_not_reported_here(self) -> None:
         """未編集プレースホルダの報告は validate_body_style の担当（#962 で移設）"""
         body = "## Verified — <何を検証したかを1行で>\n\n<details><summary>log</summary></details>"
-        result = validate_sections(body, [(2, "Verified — <サマリ>")])
-        assert all("未編集プレースホルダ" not in m for m in result)
+        result = validate_sections(body, [(2, "Verified — <summary>")])
+        assert all("unedited placeholder" not in m for m in result)
 
 
 class TestValidateHeadingSummaries:
     """em-dash サマリは 50 文字以内・日本語を含む 1 文（#1185）"""
 
-    REQUIRED = [(2, "Verified — <サマリ>")]
+    REQUIRED = [(2, "Verified — <summary>")]
 
     def test_summary_length_is_capped(self) -> None:
         """サマリが上限を超えると文字数付きで返す"""
         over = "あ" * (SUMMARY_MAX_CHARS + 1)
         result = validate_heading_summaries(f"## Verified — {over}", self.REQUIRED)
         assert result == [
-            f"## Verified — サマリが{SUMMARY_MAX_CHARS + 1}文字です（上限{SUMMARY_MAX_CHARS}文字）"
+            f"## Verified — the summary is {SUMMARY_MAX_CHARS + 1} characters (limit: {SUMMARY_MAX_CHARS})"
         ]
 
     def test_missing_heading_is_left_to_validate_sections(self) -> None:
@@ -335,7 +335,7 @@ class TestValidateHeadingSummaries:
         summary = "あ" * (SUMMARY_MAX_CHARS - 1) + "。いい"
         result = validate_heading_summaries(f"## Verified — {summary}", self.REQUIRED)
         assert result == [
-            f"## Verified — サマリが{len(summary)}文字です（上限{SUMMARY_MAX_CHARS}文字）",
+            f"## Verified — the summary is {len(summary)} characters (limit: {SUMMARY_MAX_CHARS})",
             f"## Verified — {SUMMARY_MULTI_SENTENCE_ERROR}",
         ]
 
@@ -353,15 +353,15 @@ class TestValidateBodyStyleCheckbox:
 
     def test_unchecked_box_is_rejected(self) -> None:
         result = validate_body_style("## Progress — テスト\n\n- [ ] やること\n")
-        assert any("チェックボックス記法" in m for m in result)
+        assert any("checkbox syntax" in m for m in result)
 
     def test_checked_box_is_rejected(self) -> None:
         result = validate_body_style("- [x] 完了\n")
-        assert any("チェックボックス記法" in m for m in result)
+        assert any("checkbox syntax" in m for m in result)
 
     def test_asterisk_and_plus_bullets_are_rejected(self) -> None:
-        assert any("チェックボックス記法" in m for m in validate_body_style("* [ ] a\n"))
-        assert any("チェックボックス記法" in m for m in validate_body_style("+ [X] a\n"))
+        assert any("checkbox syntax" in m for m in validate_body_style("* [ ] a\n"))
+        assert any("checkbox syntax" in m for m in validate_body_style("+ [X] a\n"))
 
     @pytest.mark.parametrize("line", ["1. [ ] a", "2) [x] b", "10. [X] c"])
     def test_ordered_list_checkbox_is_rejected(self, line: str) -> None:
@@ -386,7 +386,7 @@ class TestValidateBodyStyleCheckbox:
     def test_checkbox_reported_once(self) -> None:
         """複数行あってもチェックボックスの報告は 1 件にまとめる"""
         body = "- [ ] a\n- [ ] b\n- [x] c\n"
-        assert len([m for m in validate_body_style(body) if "チェックボックス記法" in m]) == 1
+        assert len([m for m in validate_body_style(body) if "checkbox syntax" in m]) == 1
 
 
 class TestValidateBodyStyleMasking:
@@ -412,7 +412,7 @@ class TestValidateBodyStyleMasking:
     def test_unclosed_fence_is_an_error(self) -> None:
         """未閉じフェンスは黙殺せずエラー（フェンス以降の検証バイパス防止）"""
         result = validate_body_style("```bash\necho hi\n\n- [ ] やること\n")
-        assert result == ["コードフェンスが閉じられていません"]
+        assert result == ["code fence is not closed"]
 
     def test_inline_code_is_ignored(self) -> None:
         body = "- 記法 `- [ ]` を使わない\n- 型は `<T>` と書く\n"
@@ -537,7 +537,7 @@ class TestValidateBodyStylePlaceholder:
     def test_placeholder_in_heading_is_labeled_as_heading(self) -> None:
         body = "## Verified — <何を検証したかを1行で>\n\n<details><summary>log</summary></details>"
         result = validate_body_style(body)
-        assert any("見出しに未編集プレースホルダ" in m and m.startswith("##") for m in result)
+        assert any("heading" in m and m.startswith("unedited placeholder") for m in result)
         assert all("details" not in m for m in result)
 
     def test_nested_angle_brackets_are_reported(self) -> None:
@@ -676,7 +676,7 @@ class TestValidateBodyStyleCombined:
             CHECKBOX_ERROR,
             HORIZONTAL_RULE_ERROR,
             EMOJI_ERROR,
-            "未編集プレースホルダ <未編集> が残っています",
+            "unedited placeholder <未編集> remains",
         ]
 
 
@@ -684,7 +684,7 @@ class TestValidateBodyStyleCombined:
 
 
 def _section_names(sections: list[tuple[int, str]]) -> list[tuple[int, str]]:
-    """(level, "名前 — <サマリ>") から em-dash サマリを落として (level, 名前) にする"""
+    """(level, "名前 — <summary>") から em-dash サマリを落として (level, 名前) にする"""
     return [(level, name.split(" — ", 1)[0]) for level, name in sections]
 
 
@@ -729,7 +729,7 @@ class TestCreateTemplateSections:
 
         assert validate_sections(body, sections) == []
         assert validate_heading_summaries(body, sections) == []
-        assert any("未編集プレースホルダ" in m for m in validate_body_style(body))
+        assert any("unedited placeholder" in m for m in validate_body_style(body))
 
 
 class TestReleaseTemplateSections:
@@ -802,7 +802,7 @@ class TestEpicTemplateSections:
         sections = extract_sections_from_template(ISSUE_TEMPLATES_DIR / "epic.md")
         body = self._body("## AS-IS - 現状")
 
-        assert validate_sections(body, sections) == ["## AS-IS — <サマリ>"]
+        assert validate_sections(body, sections) == ["## AS-IS — <summary>"]
 
     def test_over_limit_summary_is_a_summary_violation(self) -> None:
         """サマリの上限超過は不足ではなくサマリの規則違反として報告される"""
@@ -811,7 +811,7 @@ class TestEpicTemplateSections:
 
         assert validate_sections(body, sections) == []
         assert validate_heading_summaries(body, sections) == [
-            "## AS-IS — サマリが51文字です（上限50文字）"
+            "## AS-IS — the summary is 51 characters (limit: 50)"
         ]
 
 
@@ -821,8 +821,8 @@ class TestEpicTemplateSections:
 class TestValidateFoldBalance:
     """折りたたみ（<details>）の開閉の対応の検証（#1330）"""
 
-    UNCLOSED = ["<details> が閉じられていません"]
-    NO_OPENING = ["<details> に対応する開きタグがありません"]
+    UNCLOSED = ["<details> is not closed"]
+    NO_OPENING = ["<details> has no matching opening tag"]
 
     def test_closed_templates(self) -> None:
         assert set(CLOSED_HEADINGS_BY_TEMPLATE) == {"plan"}
@@ -966,7 +966,7 @@ class TestValidateFoldSummaries:
 
     @staticmethod
     def _error(summary: str) -> str:
-        return f"{summary} は {PLAN_FOLD_SUMMARY} にしてください"
+        return f"{summary} must be {PLAN_FOLD_SUMMARY}"
 
     def test_summaries_by_template(self) -> None:
         assert FOLD_SUMMARY_BY_TEMPLATE == {"plan": PLAN_FOLD_SUMMARY}

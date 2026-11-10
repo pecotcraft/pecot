@@ -146,7 +146,7 @@ class ProjectsAPI(ReposAPI):
 
         item = result.get("addProjectV2ItemById", {}).get("item")
         if not item:
-            raise GitHubAPIError("プロジェクトへの追加に失敗しました")
+            raise GitHubAPIError("failed to add the item to the project")
         return item["id"]
 
     def update_project_item_field(
@@ -182,7 +182,7 @@ class ProjectsAPI(ReposAPI):
 
         item = result.get("updateProjectV2ItemFieldValue", {}).get("projectV2Item")
         if not item:
-            raise GitHubAPIError("フィールドの更新に失敗しました")
+            raise GitHubAPIError("failed to update the field")
         return item["id"]
 
     def delete_project_item(self, project_id: str, item_id: str) -> str:
@@ -205,7 +205,7 @@ class ProjectsAPI(ReposAPI):
 
         deleted_id = result.get("deleteProjectV2Item", {}).get("deletedItemId")
         if not deleted_id:
-            raise GitHubAPIError("プロジェクトアイテムの削除に失敗しました")
+            raise GitHubAPIError("failed to delete the project item")
 
         return deleted_id
 
@@ -305,9 +305,7 @@ class ProjectsAPI(ReposAPI):
         if org_data and org_data.get("projectV2"):
             return org_data["projectV2"]["id"]
 
-        raise GitHubNotFoundError(
-            f"プロジェクトが見つかりません: {owner}/projects/{project_number}"
-        )
+        raise GitHubNotFoundError(f"project not found: {owner}/projects/{project_number}")
 
     def get_item_id_by_issue(
         self,
@@ -545,7 +543,7 @@ class ProjectsAPI(ReposAPI):
 
         field = result.get("createProjectV2Field", {}).get("projectV2Field")
         if not field:
-            raise GitHubAPIError("フィールドの作成に失敗しました")
+            raise GitHubAPIError("failed to create the field")
         return field
 
     def get_owner_node_id(self, owner: str) -> str:
@@ -586,7 +584,7 @@ class ProjectsAPI(ReposAPI):
         if org_data and org_data.get("id"):
             return org_data["id"]
 
-        raise GitHubNotFoundError(f"オーナーが見つかりません: {owner}")
+        raise GitHubNotFoundError(f"owner not found: {owner}")
 
     def create_project(self, owner_id: str, title: str) -> dict[str, Any]:
         """GitHub Projects V2を新規作成
@@ -609,9 +607,9 @@ class ProjectsAPI(ReposAPI):
 
             project = result.get("createProjectV2", {}).get("projectV2")
             if not project:
-                raise GitHubAPIError("プロジェクトの作成に失敗しました")
+                raise GitHubAPIError("failed to create the project")
             return project
         except GitHubAPIError:
             raise
         except Exception as e:
-            raise GitHubAPIError(f"プロジェクトの作成に失敗しました: {e}") from e
+            raise GitHubAPIError(f"failed to create the project: {e}") from e

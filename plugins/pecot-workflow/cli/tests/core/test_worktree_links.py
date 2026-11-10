@@ -161,13 +161,13 @@ class TestLoadSaveConfig:
         assert "setup_command" not in raw
 
     def test_missing_file_raises(self, tmp_path: Path) -> None:
-        with pytest.raises(WorktreeConfigError, match="見つかりません"):
+        with pytest.raises(WorktreeConfigError, match="not found"):
             load_config(tmp_path / "missing.json")
 
     def test_invalid_json_raises(self, tmp_path: Path) -> None:
         path = tmp_path / "bad.json"
         path.write_text("{ not json")
-        with pytest.raises(WorktreeConfigError, match="パースエラー"):
+        with pytest.raises(WorktreeConfigError, match="parse error"):
             load_config(path)
 
     def test_version_2_rejected(self, tmp_path: Path) -> None:
@@ -659,7 +659,7 @@ class TestLoadCopyExcludeSpec:
         assert not spec.match_file("anything")
         # warning が出ている
         warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
-        assert any("全パターンが無効" in r.getMessage() for r in warnings)
+        assert any("all patterns" in r.getMessage() for r in warnings)
 
     def test_empty_file_no_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
         """空 .worktreeignore は warning なしで全通過"""

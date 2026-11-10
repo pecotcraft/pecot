@@ -44,7 +44,7 @@ export function truthyNodes(value: JsonValue | undefined): readonly JsonValue[] 
 }
 
 export function throwMalformed(path: string): never {
-  throw new GitHubAPIError(`GitHub の応答の形式が不正です: ${path}`)
+  throw new GitHubAPIError(`malformed GitHub response: ${path}`)
 }
 
 /**

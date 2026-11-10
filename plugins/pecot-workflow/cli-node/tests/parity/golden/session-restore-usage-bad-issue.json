@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "ERROR: 短縮形 'N' は base_repo が必須です。--repo <owner/repo> を指定するか、主軸形式 'owner/repo/N' で指定してください。\n",
+  "stderr": "ERROR: the short form 'N' needs a base_repo: pass --repo <owner/repo> or use the full form 'owner/repo/N'\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

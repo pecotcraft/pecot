@@ -479,7 +479,7 @@ def _list_dependabot(client: GitHubClient, owner: str, repo: str) -> list[dict[s
         # 403 は無効と権限不足の両方で起きる。有効なら権限不足としてエラーにする
         if client.is_dependabot_alerts_enabled(owner, repo):
             raise SecurityAlertError(
-                f"{owner}/{repo}: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）"
+                f"{owner}/{repo}: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)"
             ) from e
         return None
 
@@ -508,8 +508,8 @@ def _list_secret_scanning(
         if client.get_secret_scanning_status(owner, repo) == "disabled":
             return None
         raise SecurityAlertError(
-            f"{owner}/{repo}: secret scanning の一覧を取得できません"
-            "（権限不足の可能性。無効とは確認できません）"
+            f"{owner}/{repo}: cannot fetch the secret scanning list "
+            "(permission may be missing; it cannot be confirmed as disabled)"
         ) from e
 
 
@@ -548,7 +548,7 @@ def list_open_alerts(
             f"{owner}/{repo}: {KIND_LABELS[kind]}: {describe_api_error(e)}"
         ) from e
     except httpx.HTTPError as e:
-        raise SecurityAlertError(f"{owner}/{repo}: 通信に失敗しました: {e}") from e
+        raise SecurityAlertError(f"{owner}/{repo}: request failed: {e}") from e
 
 
 def normalize_alerts(

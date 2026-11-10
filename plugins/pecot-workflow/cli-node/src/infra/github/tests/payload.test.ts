@@ -73,7 +73,7 @@ describe('必須の値', () => {
     ['requireNumber（文字列）', value => requireNumber(value, 'a.b'), '1'],
     ['requireValue（無い）', value => requireValue(value, 'a.b'), undefined],
   ])('%s は、場所を示す GitHubAPIError', (_label, call, value) => {
-    expect(() => call(value)).toThrow(new GitHubAPIError('GitHub の応答の形式が不正です: a.b'))
+    expect(() => call(value)).toThrow(new GitHubAPIError('malformed GitHub response: a.b'))
   })
 
   it('requireValue は null も返す', () => {

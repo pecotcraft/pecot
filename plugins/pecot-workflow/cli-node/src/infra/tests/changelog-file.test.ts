@@ -71,21 +71,21 @@ describe('readLatestVersionFromFile / extractReleaseNotesFromFile', () => {
   it('ファイルが無ければ ChangelogFileNotFoundError（パスを文に含む）', () => {
     const file = path.join(makeTemporaryDirectory(), 'CHANGELOG.md')
     expect(() => readLatestVersionFromFile(file)).toThrow(ChangelogFileNotFoundError)
-    expect(() => readLatestVersionFromFile(file)).toThrow(`CHANGELOG.mdが見つかりません: ${file}`)
+    expect(() => readLatestVersionFromFile(file)).toThrow(`CHANGELOG.md not found: ${file}`)
     expect(() => extractReleaseNotesFromFile(file, '0.6.1')).toThrow(ChangelogFileNotFoundError)
   })
 
   it('ファイル名が違うときは、文もそのファイル名を使う', () => {
     const file = path.join(makeTemporaryDirectory(), 'AIST-CHANGELOG.md')
-    expect(() => readLatestVersionFromFile(file)).toThrow(`AIST-CHANGELOG.mdが見つかりません: ${file}`)
+    expect(() => readLatestVersionFromFile(file)).toThrow(`AIST-CHANGELOG.md not found: ${file}`)
   })
 
   it('バージョンが無いときの文も、読んだファイル名を使う', () => {
     const root = makeTemporaryDirectory()
     writeTree(root, { 'AIST-CHANGELOG.md': '## [Unreleased]\n' })
     const file = path.join(root, 'AIST-CHANGELOG.md')
-    expect(() => readLatestVersionFromFile(file)).toThrow('AIST-CHANGELOG.mdにバージョンが見つかりません')
-    expect(() => extractReleaseNotesFromFile(file, '9.9.9')).toThrow('バージョン 9.9.9 がAIST-CHANGELOG.mdに見つかりません')
+    expect(() => readLatestVersionFromFile(file)).toThrow('no version found in AIST-CHANGELOG.md')
+    expect(() => extractReleaseNotesFromFile(file, '9.9.9')).toThrow('version not found in AIST-CHANGELOG.md: 9.9.9')
   })
 
   it('バージョンが無ければ VersionNotFoundError', () => {

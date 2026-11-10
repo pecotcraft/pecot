@@ -27,7 +27,7 @@ describe('listOpenAlerts', () => {
     const { client } = await startClient([restResponse('GET', ALERTS, { status: 403, text: body })])
     expect(await createDependabotSource(client).listOpenAlerts('owner', 'repo')).toEqual({
       kind: 'forbidden',
-      failure: { message: 'アクセスが拒否されました。', statusCode: 403, responseBody: body },
+      failure: { message: 'access denied', statusCode: 403, responseBody: body },
     })
   })
 
@@ -35,13 +35,13 @@ describe('listOpenAlerts', () => {
     const { client } = await startClient([restResponse('GET', ALERTS, { status: 403, text: 'API rate limit exceeded' })])
     expect(await createDependabotSource(client).listOpenAlerts('owner', 'repo')).toEqual({
       kind: 'rateLimited',
-      failure: { message: 'APIレート制限に達しました。', statusCode: 403, responseBody: 'API rate limit exceeded' },
+      failure: { message: 'API rate limit reached', statusCode: 403, responseBody: 'API rate limit exceeded' },
     })
   })
 
   it.each([
-    [401, '認証に失敗しました。トークンを確認してください。'],
-    [500, 'GitHub APIエラー: 500'],
+    [401, 'authentication failed: check the token'],
+    [500, 'GitHub API error: 500'],
   ])('%i は failure', async (status, message) => {
     const { client } = await startClient([restResponse('GET', ALERTS, { status, text: 'x' })])
     expect(await createDependabotSource(client).listOpenAlerts('owner', 'repo')).toEqual({
@@ -54,7 +54,7 @@ describe('listOpenAlerts', () => {
     const { client, server } = await startClient([restResponse('GET', ALERTS, { status: 404, text: 'x' })])
     expect(await createDependabotSource(client).listOpenAlerts('owner', 'repo')).toEqual({
       kind: 'failure',
-      failure: { message: `リソースが見つかりません: ${server.url}${ALERTS}${QUERY}`, statusCode: 404, responseBody: 'x' },
+      failure: { message: `resource not found: ${server.url}${ALERTS}${QUERY}`, statusCode: 404, responseBody: 'x' },
     })
   })
 
@@ -80,7 +80,7 @@ describe('isAlertsEnabled', () => {
     const { client } = await startClient([restResponse('GET', ENABLED, { status: 403, text: 'forbidden' })])
     expect(await createDependabotSource(client).isAlertsEnabled('owner', 'repo')).toEqual({
       kind: 'forbidden',
-      failure: { message: 'アクセスが拒否されました。', statusCode: 403, responseBody: 'forbidden' },
+      failure: { message: 'access denied', statusCode: 403, responseBody: 'forbidden' },
     })
   })
 
@@ -88,7 +88,7 @@ describe('isAlertsEnabled', () => {
     const { client } = await startClient([restResponse('GET', ENABLED, { status: 502, text: 'bad gateway' })])
     expect(await createDependabotSource(client).isAlertsEnabled('owner', 'repo')).toEqual({
       kind: 'failure',
-      failure: { message: 'GitHub APIエラー: 502', statusCode: 502, responseBody: 'bad gateway' },
+      failure: { message: 'GitHub API error: 502', statusCode: 502, responseBody: 'bad gateway' },
     })
   })
 
@@ -134,14 +134,14 @@ describe('fetchDependabotAlertStatus につないだとき', () => {
     ])
     const error = await rejection(fetchDependabotAlertStatus(createDependabotSource(client), 'github.com', 'owner', 'repo'))
     expect(error).toBeInstanceOf(DependabotAlertError)
-    expect(error).toMatchObject({ message: 'owner/repo: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）' })
+    expect(error).toMatchObject({ message: 'owner/repo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)' })
   })
 
   it('レート制限は分類せず DependabotAlertError にする（本文の message を添える）', async () => {
     const { client } = await startClient([restResponse('GET', ALERTS, { status: 403, text: '{"message":"API rate limit exceeded"}' })])
     const source = createDependabotSource(client)
     expect(await rejection(fetchDependabotAlertStatus(source, 'github.com', 'owner', 'repo'))).toMatchObject({
-      message: 'owner/repo: APIレート制限に達しました。 API rate limit exceeded',
+      message: 'owner/repo: API rate limit reached API rate limit exceeded',
     })
   })
 
@@ -150,7 +150,7 @@ describe('fetchDependabotAlertStatus につないだとき', () => {
     await server.close()
     const source = createDependabotSource(client)
     expect(await rejection(fetchDependabotAlertStatus(source, 'github.com', 'owner', 'repo'))).toMatchObject({
-      message: 'owner/repo: 通信に失敗しました: [Errno 111] Connection refused',
+      message: 'owner/repo: request failed: [Errno 111] Connection refused',
     })
   })
 })

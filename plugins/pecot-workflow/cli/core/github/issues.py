@@ -175,11 +175,11 @@ class IssuesAPI(GitHubClientBase):
 
         repository = result.get("repository")
         if not repository:
-            raise GitHubNotFoundError(f"リポジトリが見つかりません: {owner}/{repo}")
+            raise GitHubNotFoundError(f"repository not found: {owner}/{repo}")
 
         issue = repository.get("issue")
         if not issue:
-            raise GitHubNotFoundError(f"Issueが見つかりません: {owner}/{repo}/{number}")
+            raise GitHubNotFoundError(f"Issue not found: {owner}/{repo}/{number}")
 
         return issue["id"], issue.get("title", "")
 
@@ -206,7 +206,7 @@ class IssuesAPI(GitHubClientBase):
         child = add_result.get("subIssue")
 
         if not parent or not child:
-            raise GitHubAPIError("サブIssueの紐づけに失敗しました")
+            raise GitHubAPIError("failed to link the sub-issue")
 
         return {
             "parent_number": parent["number"],
@@ -236,10 +236,10 @@ class IssuesAPI(GitHubClientBase):
 
         repo_data = result.get("repository")
         if repo_data is None:
-            raise GitHubNotFoundError(f"リポジトリが見つかりません: {owner}/{repo}")
+            raise GitHubNotFoundError(f"repository not found: {owner}/{repo}")
         issue = repo_data.get("issue")
         if issue is None:
-            raise GitHubNotFoundError(f"Issueが見つかりません: {owner}/{repo}/{number}")
+            raise GitHubNotFoundError(f"Issue not found: {owner}/{repo}/{number}")
         return {
             "number": issue["number"],
             "state": issue["state"],
@@ -253,10 +253,10 @@ class IssuesAPI(GitHubClientBase):
         result = self._execute_graphql(QUERY_GET_ISSUE_KIND_PHASE1, variables)
         repo_data = result.get("repository")
         if repo_data is None:
-            raise GitHubNotFoundError(f"リポジトリが見つかりません: {owner}/{repo}")
+            raise GitHubNotFoundError(f"repository not found: {owner}/{repo}")
         issue = repo_data.get("issue")
         if issue is None:
-            raise GitHubNotFoundError(f"Issueが見つかりません: {owner}/{repo}/{number}")
+            raise GitHubNotFoundError(f"Issue not found: {owner}/{repo}/{number}")
         return {
             "number": issue["number"],
             "state": issue["state"],
@@ -302,11 +302,11 @@ class IssuesAPI(GitHubClientBase):
 
         repository = result.get("repository")
         if not repository:
-            raise GitHubNotFoundError(f"リポジトリが見つかりません: {owner}/{repo}")
+            raise GitHubNotFoundError(f"repository not found: {owner}/{repo}")
 
         issue = repository.get("issue")
         if not issue:
-            raise GitHubNotFoundError(f"Issueが見つかりません: {owner}/{repo}/{number}")
+            raise GitHubNotFoundError(f"Issue not found: {owner}/{repo}/{number}")
 
         sub_issue_nodes = self._collect_sub_issue_nodes(owner, repo, number, issue)
 

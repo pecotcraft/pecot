@@ -59,10 +59,10 @@ def _parse_ref_tuple(ref: str) -> tuple[str, str, int]:
         return match.group(1), match.group(2), int(match.group(3))
 
     raise RefParseError(
-        f"不正な参照形式: {ref}\n"
-        f"受理形式:\n"
-        f"  - 主軸: 'owner/repo/N'\n"
-        f"  - 短縮形: 'N'（基準リポと併用）",
+        f"invalid reference: {ref}\n"
+        f"accepted forms:\n"
+        f"  - full: 'owner/repo/N'\n"
+        f"  - short: 'N' (with a base repository)",
         ref,
     )
 
@@ -89,8 +89,8 @@ def parse_issue_ref(raw: str, base_repo: RepoRef | None = None) -> IssueRef:
     if raw.isascii() and raw.isdigit():
         if base_repo is None:
             raise RefParseError(
-                "短縮形 'N' は base_repo が必須です。--repo <owner/repo> を指定するか、"
-                "主軸形式 'owner/repo/N' で指定してください。",
+                "the short form 'N' needs a base_repo: "
+                "pass --repo <owner/repo> or use the full form 'owner/repo/N'",
                 ref=raw,
             )
         return IssueRef(repo=base_repo, number=int(raw))

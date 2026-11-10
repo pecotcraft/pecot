@@ -24,7 +24,7 @@ describe('copyFiles', () => {
 
   it('ソースが無ければ skipped', () => {
     const results = copyFiles(makeTemporaryDirectory(), makeTemporaryDirectory(), ['missing.txt'])
-    expect(results[0]).toMatchObject({ action: 'skipped', message: 'ソースファイルが存在しません' })
+    expect(results[0]).toMatchObject({ action: 'skipped', message: 'source file does not exist' })
   })
 
   it('更新時刻と実行権限を保つ（shutil.copy2 と同じ）', () => {

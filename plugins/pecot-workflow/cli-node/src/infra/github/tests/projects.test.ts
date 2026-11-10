@@ -101,7 +101,7 @@ describe('listProjectItems', () => {
 describe('listProjectItems の cursor', () => {
   it.each([JSON_NULL, 5])('hasNextPage が真で endCursor が %j なら、同じページを取り続けずに GitHubAPIError', async (endCursor) => {
     const { client, server } = await startClient([graphqlData('ListProjectItems', page([{ id: 'a' }], true, endCursor))])
-    expect(await rejection(client.listProjectItems('PVT'))).toMatchObject(failure(GitHubAPIError, 'ページ送りの cursor が得られませんでした'))
+    expect(await rejection(client.listProjectItems('PVT'))).toMatchObject(failure(GitHubAPIError, 'could not get the cursor for the next page'))
     expect(graphqlRequests(server)).toHaveLength(1)
   })
 })
@@ -115,7 +115,7 @@ describe('アイテムの追加・更新・削除', () => {
 
   it('addToProject は item が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('AddToProject', { addProjectV2ItemById: { item: JSON_NULL } })])
-    expect(await rejection(client.addToProject('PVT_proj', 'I_issue'))).toMatchObject(failure(GitHubAPIError, 'プロジェクトへの追加に失敗しました'))
+    expect(await rejection(client.addToProject('PVT_proj', 'I_issue'))).toMatchObject(failure(GitHubAPIError, 'failed to add the item to the project'))
   })
 
   it('updateProjectItemField はアイテム ID を返す', async () => {
@@ -129,7 +129,7 @@ describe('アイテムの追加・更新・削除', () => {
 
   it('updateProjectItemField は projectV2Item が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: JSON_NULL } })])
-    expect(await rejection(client.updateProjectItemField('PVT_proj', 'PVTI_item', 'FIELD_id', 'OPT_id'))).toMatchObject(failure(GitHubAPIError, 'フィールドの更新に失敗しました'))
+    expect(await rejection(client.updateProjectItemField('PVT_proj', 'PVTI_item', 'FIELD_id', 'OPT_id'))).toMatchObject(failure(GitHubAPIError, 'failed to update the field'))
   })
 
   it('deleteProjectItem は削除したアイテムの ID を返す', async () => {
@@ -140,7 +140,7 @@ describe('アイテムの追加・更新・削除', () => {
 
   it('deleteProjectItem は deletedItemId が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('DeleteProjectItem', { deleteProjectV2Item: { deletedItemId: JSON_NULL } })])
-    expect(await rejection(client.deleteProjectItem('PVT_proj', 'PVTI_item'))).toMatchObject(failure(GitHubAPIError, 'プロジェクトアイテムの削除に失敗しました'))
+    expect(await rejection(client.deleteProjectItem('PVT_proj', 'PVTI_item'))).toMatchObject(failure(GitHubAPIError, 'failed to delete the project item'))
   })
 })
 
@@ -249,7 +249,7 @@ describe('getProjectId', () => {
       graphqlData('GetProjectIdUser', { user: JSON_NULL }),
       graphqlData('GetProjectIdOrg', { organization: JSON_NULL }),
     ])
-    expect(await rejection(client.getProjectId('nobody', 99))).toMatchObject(failure(GitHubNotFoundError, 'プロジェクトが見つかりません: nobody/projects/99'))
+    expect(await rejection(client.getProjectId('nobody', 99))).toMatchObject(failure(GitHubNotFoundError, 'project not found: nobody/projects/99'))
   })
 })
 
@@ -302,7 +302,7 @@ describe('linkRepositoryToProject', () => {
 
   it.each(['already linked', 'Repository already exists in project'])('「%s」の失敗は、already_linked にして GitHub の message を detail に入れる', async (message) => {
     const { client } = await startClient([projectFound, repositoryFound, graphqlError('LinkProjectRepository', message)])
-    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ status: 'already_linked', detail: `GraphQLクエリ実行エラー: {'message': '${message}'}` })
+    expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({ status: 'already_linked', detail: `GraphQL query error: {'message': '${message}'}` })
   })
 
   it('プロジェクトが無ければ失敗（メッセージは GitHubNotFoundError の文）', async () => {
@@ -312,7 +312,7 @@ describe('linkRepositoryToProject', () => {
     ])
     expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({
       status: 'failed',
-      detail: 'プロジェクトが見つかりません: owner/projects/1',
+      detail: 'project not found: owner/projects/1',
     })
   })
 
@@ -320,7 +320,7 @@ describe('linkRepositoryToProject', () => {
     const { client } = await startClient([projectFound, graphqlData('GetRepositoryId', { repository: JSON_NULL })])
     expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'nonexistent')).toEqual({
       status: 'failed',
-      detail: 'リポジトリが見つかりません: owner/nonexistent',
+      detail: 'repository not found: owner/nonexistent',
     })
   })
 
@@ -328,7 +328,7 @@ describe('linkRepositoryToProject', () => {
     const { client } = await startClient([projectFound, repositoryFound, graphqlError('LinkProjectRepository', 'Some API error')])
     expect(await client.linkRepositoryToProject('owner', 1, 'owner', 'repo')).toEqual({
       status: 'failed',
-      detail: 'GraphQLクエリ実行エラー: {\'message\': \'Some API error\'}',
+      detail: 'GraphQL query error: {\'message\': \'Some API error\'}',
     })
   })
 
@@ -406,13 +406,13 @@ describe('createProjectField', () => {
 
   it('projectV2Field が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('CreateProjectField', { createProjectV2Field: { projectV2Field: JSON_NULL } })])
-    expect(await rejection(client.createProjectField('PVT_test123', 'pecot-workflow', options))).toMatchObject(failure(GitHubAPIError, 'フィールドの作成に失敗しました'))
+    expect(await rejection(client.createProjectField('PVT_test123', 'pecot-workflow', options))).toMatchObject(failure(GitHubAPIError, 'failed to create the field'))
   })
 
   it('GraphQL の失敗は GraphQLクエリ実行エラー', async () => {
     const { client } = await startClient([graphqlError('CreateProjectField', 'GraphQL error')])
     expect(await rejection(client.createProjectField('PVT_test123', 'pecot-workflow', options))).toMatchObject(
-      failure(GitHubAPIError, 'GraphQLクエリ実行エラー: {\'message\': \'GraphQL error\'}'),
+      failure(GitHubAPIError, 'GraphQL query error: {\'message\': \'GraphQL error\'}'),
     )
   })
 })
@@ -449,7 +449,7 @@ describe('getOwnerNodeId', () => {
 
   it('どちらにも無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetUserNodeId', { user: JSON_NULL }), graphqlData('GetOrgNodeId', { organization: JSON_NULL })])
-    expect(await rejection(client.getOwnerNodeId('nonexistent'))).toMatchObject(failure(GitHubNotFoundError, 'オーナーが見つかりません: nonexistent'))
+    expect(await rejection(client.getOwnerNodeId('nonexistent'))).toMatchObject(failure(GitHubNotFoundError, 'owner not found: nonexistent'))
   })
 })
 
@@ -463,7 +463,7 @@ describe('createProject', () => {
 
   it('projectV2 が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('CreateProject', { createProjectV2: { projectV2: JSON_NULL } })])
-    expect(await rejection(client.createProject('U_owner123', 'New Project'))).toMatchObject(failure(GitHubAPIError, 'プロジェクトの作成に失敗しました'))
+    expect(await rejection(client.createProject('U_owner123', 'New Project'))).toMatchObject(failure(GitHubAPIError, 'failed to create the project'))
   })
 
   it('GraphQL の失敗は GitHubAPIError', async () => {
