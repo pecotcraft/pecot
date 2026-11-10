@@ -19,7 +19,7 @@
         }
       ],
       "metadata": {
-        "description": "依存の導入は、root の project の install（pnpm install --frozen-lockfile）が行う。このターゲットは何もせず、root の install の後に動く順序だけを lint / lint-defs / test-unit に与える。"
+        "description": "依存の導入は、root の project の install（pnpm install --frozen-lockfile）が行う。このターゲットは何もせず、root の install の後に動く順序だけを lint / lint-defs / test-unit に与える。interface-spec は配布しないので runtime-lock.yaml を持たず、lock だけの更新では affected に入らない。"
       }
     },
     "lint": {
@@ -28,9 +28,6 @@
         "default",
         "runtime",
         "env",
-        {
-          "runtime": "uv --version"
-        },
         "{projectRoot}/pyrightconfig.json",
         "{projectRoot}/scripts/lint-py.sh"
       ],
@@ -38,7 +35,7 @@
         "install"
       ],
       "metadata": {
-        "description": "型チェック（typescript7 の tsc --noEmit）と eslint（警告も失敗）と、fixture の Python への ruff・pyright strict。"
+        "description": "型チェック（typescript7 の tsc --noEmit）と eslint（警告も失敗）と、fixture の Python への pyright strict。"
       },
       "options": {
         "command": "pnpm run lint",

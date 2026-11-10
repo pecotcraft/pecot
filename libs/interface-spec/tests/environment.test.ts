@@ -1,3 +1,6 @@
+import { execFileSync } from 'node:child_process'
+import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { checkEnvironment, isValidEnvironmentName, isListedName, scanEnvironmentReads } from '../src/domain/environment-names.js'
 import { validateRepository } from '../src/validate-repository.js'
@@ -37,7 +40,11 @@ describe('fixtures', () => {
 
   it('reads only files that git tracks', async () => {
     const root = await materialize('valid')
+    const file = path.join(root, 'plugins/pecot-workflow/cli/core/unlisted.py')
+    await writeFile(file, 'import os\nx = os.environ["UNLISTED"]\n')
     expect(await validateRepository(root)).toEqual([])
+    execFileSync('git', ['add', file], { cwd: root })
+    expect(await validateRepository(root)).toEqual([`error: ${PW}: environment: UNLISTED is read by cli/core/unlisted.py but not listed`])
   })
 })
 
@@ -53,7 +60,9 @@ describe('Python reads', () => {
     ['setdefault', 'os.environ.setdefault("A", "1")', ['A']],
     ['pop', 'os.environ.pop("A", None)', ['A']],
     ['assignment is not a read', 'os.environ["A"] = "1"', []],
-    ['augmented assignment is not a read', 'os.environ["A"] += "1"', []],
+    ['augmented assignment reads first', 'os.environ["A"] += "1"', ['A']],
+    ['a docstring is not scanned', 'def f():\n    """Reads os.environ[name]."""\n    pass', []],
+    ['a multi-line triple-quoted string is not scanned', 'x = \'\'\'\nos.environ.get(name)\n\'\'\'\ny = os.environ[\'A\']', ['A']],
     ['comparison is a read', 'ok = os.environ["A"] == "1"', ['A']],
     ['del is not a read', 'del os.environ["A"]', []],
     ['update is not a read', 'os.environ.update({"A": "1"})', []],
@@ -122,6 +131,9 @@ describe('TypeScript reads', () => {
     ['assignment is not a read', 'process.env.A = "1"', []],
     ['comparison is a read', 'const ok = process.env.A === "1"', ['A']],
     ['delete is not a read', 'delete process.env.A', []],
+    ['delete of an index is not a read', 'delete process.env[\'A\']', []],
+    ['augmented assignment reads first', 'process.env.A += \'x\'', ['A']],
+    ['code after a block comment on the same line is read', '/* c */ const x = process.env.D', ['D']],
     ['an index assignment is not a read', 'process.env[\'A\'] = \'1\'', []],
     ['comment lines are ignored', '// process.env.A\n * process.env.B', []],
   ] as const)('%s', (_label, source, expected) => {

@@ -1,0 +1,12 @@
+format: 1
+plugin: pecot-workflow
+environment:
+  - name: PECOT_GITHUB_API_URL
+    effect: Sends GitHub API requests to this URL instead of api.github.com.
+  - name: PECOT_GITHUB_*_TOKEN
+    effect: Authenticates GitHub API requests to the host in the middle of the name.
+entries: {}
+common_behaviors:
+  - id: PW-COMMON-01
+    pattern: unwanted
+    statement: もし知らないオプションを渡したなら、使い方のエラーを出して終了コード 2 で終わる

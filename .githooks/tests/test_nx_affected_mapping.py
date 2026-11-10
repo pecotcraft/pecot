@@ -935,3 +935,21 @@ def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
     project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
     inputs = project["targets"]["lint-defs"]["inputs"]
     assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs
+
+
+def test_lint_defs_inputs_cover_the_sources_of_every_plugin() -> None:
+    """targets.json の各プラグインの sources の glob が、lint-defs の inputs に覆われる。
+
+    覆われないと、ソースの環境変数の読みが増えても nx affected が lint-defs を選ばず、キャッシュも当たる。
+    plugins が空の間は何も確かめない。
+    """
+    targets = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))
+    project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
+    inputs = {
+        entry.removeprefix("{workspaceRoot}/")
+        for entry in project["targets"]["lint-defs"]["inputs"]
+        if isinstance(entry, str) and entry.startswith("{workspaceRoot}/")
+    }
+    for name, plugin in targets["plugins"].items():
+        for glob in plugin["sources"]:
+            assert glob in inputs, f"{name} の sources の {glob} が lint-defs の inputs に無い"

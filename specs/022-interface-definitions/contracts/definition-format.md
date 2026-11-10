@@ -193,9 +193,9 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | `generated.json` に無い項目 | `error: <file>: PW-ISSUE-OLD: entry is not in generated.json (remove it)` |
 | ファイルが無い | `error: <file>: file is missing` |
 | `interface/` が無い | `error: plugins/<plugin>/interface: directory is missing (listed in libs/interface-spec/targets.json)` |
-| JSON の構文 | `error: <file>: is not valid JSON` |
-| YAML の構文 | `error: <file>: line 17: map keys must be unique` |
-| 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: unknown validation issue (too_big): Too big: expected number to be <=255` |
+| YAML の構文 | `error: <file>:17: map keys must be unique`。JSON の構文も、位置が分かるときは `error: <file>:3: is not valid JSON`（位置が無いときは行番号なし）。alias の展開で読めない YAML は行番号なしで止める |
+| 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
+| 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: x: unknown validation issue (not_multiple_of): Invalid number: must be a multiple of 5` |
 
 並べ方は、ファイル・行・項目の ID・欄・理由の順で、同じ入力からはいつも同じ順になる。
 
@@ -203,8 +203,8 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 
 | 決め | 内容 |
 |---|---|
-| 読みに数えるもの | Python は `os.environ[...]`・`os.environ.get(...)`・`os.getenv(...)`・`from os import environ, getenv` の後の同じ形。TypeScript は `process.env.NAME`・`process.env["NAME"]`・`const { NAME } = process.env`・`import { env } from "node:process"` の後の `env`。代入や削除は読みに数えない |
-| 対象にするソース | `git ls-files` が返すファイルのうち、`targets.json` のプラグインごとの `sources` の glob に合うもの。コメントだけの行は読まない。行の後ろのコメントは外さない |
+| 読みに数えるもの | Python は `os.environ[...]`・`os.environ.get(...)`・`os.getenv(...)`・`os.environ` の `setdefault`・`pop`、 `"NAME" in os.environ`。TypeScript は `process.env.NAME`・`process.env["NAME"]`・`const { NAME } = process.env`。素の `=` による書き込みと `del`・`delete` は読みに数えない。`+=` は値を読むので数える |
+| 対象にするソース | `git ls-files` が返すファイルのうち、`targets.json` のプラグインごとの `sources` の glob に合うもの。作業ツリーに無いファイルは飛ばす。`**` はドットで始まるディレクトリに合わないので、そこにあるソースは glob に `.claude/**/*.py` のようにドットのディレクトリを明示して書く。コメントだけの行と Python の三重引用符の中は読まない。行の後ろのコメントは外さない |
 | 名前が決まらない読み | 名前が文字列のリテラルでない読みには、直前の行に `interface-env: NAME` を書く。複数の名前は空白かカンマで区切る。名前を読まない場合は `interface-env: none` と書く。無いと、`<file>:<line>: environment: reads an environment variable by a name that is not a literal; write "interface-env: NAME" on the line before it, or "interface-env: none" if it reads no name` で止める |
 | `*` | `environment` の名前には 1 つだけ書ける。両側に固定の文字が要る。`PECOT_GITHUB_*_TOKEN` は使え、`PECOT_*` は使えない。`*` は 1 文字以上の `A-Z`・`0-9`・`_` に合う |
 | 対象のプラグイン | `targets.json` で `entries` が `complete` のプラグインだけ。`partial` のプラグインの環境変数は確かめない |
@@ -212,8 +212,13 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 検出の限界は次のとおり。
 
 - `interface-env:` のコメントが古くなっても見つけられない
-- `const e = process.env` のように別名に入れてからの読みは見つけられない
+- 次の形は、名前が決まらない読みとして止める。`interface-env:` で名前を書く
+  - `from os import environ, getenv` と `import { env } from "node:process"`
+  - `const e = process.env` のような別名への代入
+  - `os.environ.copy()` や `{ ...process.env }` などの丸ごとの参照
+- Python の三重引用符を除く文字列の中と、テンプレート文字列の中の `process.env.A` や `os.environ` は、コードと区別できず読みに数える。`os.environb` は読まない
 - 名前を変数で組み立てる読みは、`interface-env:` に頼る
+- 読み込めない状況（git のリポジトリでない・ファイルを読めない）は、`error: <path>: <原因>` の 1 行と終了コード 2 で止める。終了コード 1 は指摘があるときだけである
 
 ## 一致の確認が出す失敗
 

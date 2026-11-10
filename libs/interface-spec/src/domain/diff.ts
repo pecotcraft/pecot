@@ -1,11 +1,8 @@
-import { compareText } from './finding.js'
+// 使う段階: 各プラグインの generated.json が書き出しと一致するかの確認（後の段階。いまはテストだけが呼ぶ）。
 import type { GeneratedFile } from './schema.js'
+import { compareText, isRecord } from './utility.js'
 
 type Emit = (path: string, change: string) => void
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 function compareRecords(before: Readonly<Record<string, unknown>>, after: Readonly<Record<string, unknown>>, path: string, emit: Emit): void {
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].toSorted(compareText)

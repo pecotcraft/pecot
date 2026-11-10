@@ -22,6 +22,13 @@ describe('issuesToFindings', () => {
     expect(lines([issue], { plugin: '' })).toEqual(['error: f.yaml: plugin: unknown validation issue (too_small): Too small'])
   })
 
+  it.each([
+    [{ code: 'too_small', origin: 'number', minimum: 0, inclusive: true, path: ['code'], message: 'Too small', input: -1 }, -1],
+    [{ code: 'too_big', origin: 'number', maximum: 255, inclusive: true, path: ['code'], message: 'Too big', input: 256 }, 256],
+  ] satisfies readonly (readonly [Issue, number])[])('reads a number out of range as a fixed sentence (%#)', (issue, input) => {
+    expect(lines([issue], { code: input })).toEqual(['error: f.yaml: code: must be between 0 and 255'])
+  })
+
   it('treats an invalid_union without a discriminator as unknown', () => {
     const issue: Issue = { code: 'invalid_union', errors: [], path: ['x'], message: 'Invalid input', input: 1 }
     expect(lines([issue], { x: 1 })).toEqual(['error: f.yaml: x: unknown validation issue (invalid_union): Invalid input'])

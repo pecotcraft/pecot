@@ -1,3 +1,4 @@
+import { compareText } from './finding.js'
 import type { Finding } from './finding.js'
 
 export interface SourceFile {
@@ -29,8 +30,8 @@ const INDEX_LITERAL = /^\s*(["'])([A-Za-z_]\w*)\1\s*$/u
 const SCRIPT_INDEX_LITERAL = /^\s*(["'`])([A-Za-z_]\w*)\1\s*$/u
 const METHOD_LITERAL = /^\s*\.\s*\w+\s*\(\s*(["'])([A-Za-z_]\w*)\1/u
 const MEMBERSHIP_LITERAL = /(["'])([A-Za-z_]\w*)\1 (?:not )?in$/u
-// 代入は読みに数えない。== と => は代入ではない。
-const ASSIGNMENT = /^\s*[-+*/%|&^]?=(?![=>])/u
+// 素の = だけを書き込みにする。+= のような複合代入は値を読んでから書くので読みに数える。== と => は代入ではない。
+const ASSIGNMENT = /^\s*=(?![=>])/u
 const MARKER = 'interface-env:'
 
 function lineOf(text: string, index: number): number {
@@ -39,12 +40,25 @@ function lineOf(text: string, index: number): number {
   return line
 }
 
-// コメントだけの行を空白にする。文字の位置と行数は変えない。
+function blank(text: string): string {
+  return text.replaceAll(/[^\n]/gu, ' ')
+}
+
+// コメントだけの行を空白にする（行頭が /* で */ の後ろにコードがあれば、*/ までだけ）。位置と行数は変えない。
 function maskComments(text: string, marks: readonly string[]): string {
   return text.split('\n').map((line) => {
     const trimmed = line.trimStart()
+    if (trimmed.startsWith('/*')) {
+      const end = line.indexOf('*/', line.length - trimmed.length + 2)
+      if (end !== -1 && line.slice(end + 2).trim() !== '') return ' '.repeat(end + 2) + line.slice(end + 2)
+    }
     return marks.some(mark => trimmed.startsWith(mark)) ? ' '.repeat(line.length) : line
   }).join('\n')
+}
+
+// Python の三重引用符の文字列（docstring など）の中を空白にする。文字の位置と行数は変えない。
+function maskTripleQuoted(text: string): string {
+  return text.replaceAll(/("""|''')[\s\S]*?\1/gu, match => blank(match))
 }
 
 // interface-env コメントが付いた名前。none か、コメントが無ければ undefined。
@@ -81,7 +95,7 @@ function createCollector(path: string, text: string): Collector {
 }
 
 function scanPython(path: string, text: string): ScanResult {
-  const masked = maskComments(text, ['#'])
+  const masked = maskTripleQuoted(maskComments(text, ['#']))
   const { addName, addUnresolved, result } = createCollector(path, text)
   for (const match of masked.matchAll(/\bos\.(environ|getenv)\b/gu)) {
     const line = lineOf(masked, match.index)
@@ -125,7 +139,7 @@ function scanScript(path: string, text: string): ScanResult {
     }
     const index = /^\s*(?:\?\.)?\[([^\]\n]*)\]/u.exec(after)
     if (index?.[1] !== undefined) {
-      if (ASSIGNMENT.test(after.slice(index[0].length))) continue
+      if (ASSIGNMENT.test(after.slice(index[0].length)) || /\bdelete\s+$/u.test(before)) continue
       const literal = SCRIPT_INDEX_LITERAL.exec(index[1])
       if (literal?.[2] === undefined) addUnresolved(line)
       else addName(literal[2], line)
@@ -180,7 +194,7 @@ export interface EnvironmentCheck {
 export function checkEnvironment(check: EnvironmentCheck): Finding[] {
   const findings: Finding[] = []
   const firstReader = new Map<string, string>()
-  const sources = check.sources.toSorted((left, right) => left.path.localeCompare(right.path, 'en'))
+  const sources = check.sources.toSorted((left, right) => compareText(left.path, right.path))
   for (const source of sources) {
     const { reads, unresolved } = scanEnvironmentReads(source)
     for (const read of reads) {

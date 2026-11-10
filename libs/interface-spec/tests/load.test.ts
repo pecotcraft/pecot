@@ -1,7 +1,8 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadJson, loadSources, loadYaml } from '../src/infra/load.js'
+import { LoadError, loadJson, loadSources, loadYaml } from '../src/infra/load.js'
 import { materialize } from './helpers/repository.js'
 
 describe('loadJson and loadYaml', () => {
@@ -47,5 +48,40 @@ describe('loadSources', () => {
     const sources = await loadSources(root, 'pecot-workflow', ['cli/**/*.py'])
     expect(sources.map(source => source.path)).toEqual(['plugins/pecot-workflow/cli/core/session.py'])
     expect(sources[0]?.text).toContain('PECOT_GITHUB_API_URL')
+  })
+})
+
+describe('loadSources with a missing or broken repository', () => {
+  it('skips a file that git still lists but the working tree no longer has', async () => {
+    const root = await materialize('valid')
+    await rm(path.join(root, 'plugins/pecot-workflow/cli/core/session.py'))
+    expect(await loadSources(root, 'pecot-workflow', ['cli/**/*.py'])).toEqual([])
+  })
+
+  it('throws a LoadError when the root is not a git repository', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
+    try {
+      await expect(loadSources(root, 'pecot-workflow', ['**/*.py'])).rejects.toBeInstanceOf(LoadError)
+    }
+    finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('syntax errors with a position', () => {
+  it('gives an invalid JSON its line', async () => {
+    const root = await materialize('empty')
+    await writeFile(path.join(root, 'a.json'), '{\n"a": 1\n"b": 2}')
+    expect(await loadJson(path.join(root, 'a.json'))).toEqual({ kind: 'syntax', problems: [{ line: 3, message: 'is not valid JSON' }] })
+  })
+
+  it('reports an alias expansion that throws as a syntax error', async () => {
+    const root = await materialize('empty')
+    const item = Array.from({ length: 20 }, (_, index) => String(index)).join(', ')
+    const references = Array.from({ length: 200 }, () => '*a').join(', ')
+    await writeFile(path.join(root, 'a.yaml'), `a: &a [${item}]\nb: [${references}]\n`)
+    const state = await loadYaml(path.join(root, 'a.yaml'))
+    expect(state.kind).toBe('syntax')
   })
 })

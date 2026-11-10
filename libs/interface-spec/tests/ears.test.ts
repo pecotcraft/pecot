@@ -8,6 +8,9 @@ const ACCEPTED: readonly (readonly [Pattern, string])[] = [
   ['state', '作業中の Issue がある間、別の Issue のブランチを作らない'],
   ['unwanted', 'もし認証が切れているなら、失敗の種別 auth-expired を返す'],
   ['optional', 'ロードマップリポの設定が有効なら、Epic をそのリポに作る'],
+  ['event', 'ファイルが存在すると、10 秒間、待つ'],
+  ['event', 'ファイルがあると、設定が有効なら、出す'],
+  ['state', '作業中の間、ファイルがあると、出さない'],
 ]
 
 const REJECTED: readonly (readonly [Pattern, string])[] = [
@@ -16,6 +19,8 @@ const REJECTED: readonly (readonly [Pattern, string])[] = [
   ['event', 'もし認証が切れていると、失敗を返す'],
   ['event', '常に、渡すと、出す'],
   ['event', '作業中の間、渡すと、出す'],
+  ['state', 'ファイルが存在すると、10 秒間、待つ'],
+  ['optional', 'ファイルがあると、設定が有効なら、出す'],
   ['event', 'Epic の設定が有効なら、渡すと、出す'],
   ['event', '結果の行を標準エラーに出す'],
   ['state', '作業中の Issue があると、別の Issue のブランチを作らない'],

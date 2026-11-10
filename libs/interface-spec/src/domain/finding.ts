@@ -1,3 +1,7 @@
+import { compareText } from './utility.js'
+
+export { compareText } from './utility.js'
+
 export interface Finding {
   readonly file: string
   // ソースの行番号。file に :行 を付けて出す。
@@ -12,11 +16,6 @@ export function formatFinding(finding: Finding): string {
   return ['error', file, finding.scope, finding.field, finding.reason]
     .filter(part => part !== undefined)
     .join(': ')
-}
-
-export function compareText(left: string, right: string): number {
-  if (left === right) return 0
-  return left < right ? -1 : 1
 }
 
 // ファイル・項目の ID・欄・理由の順に並べ、同じ入力からいつも同じ行の並びを出す。

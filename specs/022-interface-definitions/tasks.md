@@ -117,7 +117,8 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 - [ ] T019 [US1] typer の引数の型のうち、JSON Schema に写せないものが無いかを、34 コマンドの全引数で確かめる。写せないものがあれば、写し方を contracts/definition-format.md に足す
 - [ ] T020 [US1] `plugins/pecot-workflow/interface/generated.json` を `--write` で作る
 - [ ] T021 [US1] `test_interface_export.py` に、`--check` が今の実装で通ることのテストを足す。`plugins/pecot-workflow/project.json` の `test-py` の入力に `interface/**` と `scripts/interface/**` を足す
-- [ ] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く
+- [ ] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く。
+  `sources` の glob を `libs/interface-spec/project.json` の `lint-defs` の inputs に足す
 - [ ] T023 [US1] `plugins/pecot-workflow/cli-node/tests/interface-export.test.ts` を書く
   - 見本の `CommandSpec` を 2 つ組み、書き出した項目が形式の検証を通ることを確かめる
   - 同じ引数を持つ typer の見本から書き出した `input` と、差が 0 件であることも確かめる

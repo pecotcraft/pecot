@@ -40,8 +40,10 @@ export default defineConfig(
       '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       '@typescript-eslint/prefer-readonly': 'error',
-      // zod が推論する型は変更可能な型で、検証の関数がそれを引数に取る。
-      '@typescript-eslint/prefer-readonly-parameter-types': 'off',
+      '@typescript-eslint/prefer-readonly-parameter-types': ['error', {
+        ignoreInferredTypes: true,
+        treatMethodsAsReadonly: true,
+      }],
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       '@typescript-eslint/ban-ts-comment': ['error', {
@@ -77,14 +79,26 @@ export default defineConfig(
     rules: {
       // 定義書のデータは Record と Map を鍵で引く。引くのは自分のオブジェクトだけ。
       'security/detect-object-injection': 'off',
-      // パスは --root か fixture の相対パスで、書き込み先は利用者の入力で決まらない。
+      // 読むパスは --root と、targets.json の検証済みの名前から作る。
       'security/detect-non-literal-fs-filename': 'off',
     },
   },
   {
+    // zod が推論する型は変更可能な型で、これらの検証の関数がそれを引数に取る。テストは vitest の型と fixture の型を取る。
+    files: [
+      'src/domain/diff.ts',
+      'src/domain/environment-names.ts',
+      'src/domain/field-map.ts',
+      'src/domain/issues.ts',
+      'src/domain/validate.ts',
+      'tests/**/*.ts',
+    ],
+    rules: { '@typescript-eslint/prefer-readonly-parameter-types': 'off' },
+  },
+  {
     // zod の schema は宣言が入れ子になるのが普通の形。
     files: ['src/domain/schema.ts'],
-    rules: { 'unicorn/max-nested-calls': 'off' },
+    rules: { 'unicorn/max-nested-calls': ['error', { max: 5 }] },
   },
   {
     files: ['**/*.test.ts'],

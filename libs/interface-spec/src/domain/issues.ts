@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { Finding } from './finding.js'
 import { OUTPUT_FORMATS } from './schema.js'
+import { isRecord } from './utility.js'
 
 export type FileKind = 'generated' | 'authored' | 'targets'
 type PathPart = string | number
@@ -17,10 +18,6 @@ const UNUSED_VALUES: Readonly<Record<string, string>> = {
   prerequisites: 'write [] if none',
   default_notes: 'write {} if none',
   common_behaviors: 'write [] if none',
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function valueAt(root: unknown, path: readonly PathPart[]): unknown {
@@ -110,6 +107,8 @@ function reasonOf(issue: z.core.$ZodIssue, root: unknown, path: readonly PathPar
     return isAbsent ? missingReason : `unknown value ${JSON.stringify(value)} (${expectedValues(OUTPUT_FORMATS)})`
   }
   if (issue.code === 'too_small' && issue.origin === 'array') return `must have at least ${String(issue.minimum)} item(s)`
+  // 数の範囲を持つ欄は exit_status[].code だけ（schema.ts の exitCodeSchema の 0〜255）。
+  if ((issue.code === 'too_small' || issue.code === 'too_big') && issue.origin === 'number') return 'must be between 0 and 255'
   if (issue.code === 'custom') return issue.message
   return `unknown validation issue (${issue.code}): ${issue.message}`
 }

@@ -100,8 +100,9 @@ export const authoredFileSchema = z.strictObject({
 
 export const targetsSchema = z.strictObject({
   format: z.literal(1),
-  plugins: z.record(z.string(), z.strictObject({
+  plugins: z.record(z.string().regex(/^[a-z0-9][a-z0-9-]*$/u), z.strictObject({
     entries: z.enum(ENTRIES_MODES),
+    // 後の段階（定義書とテストのつなぎの確認）で使う。今は読むだけ。
     coverage: z.enum(COVERAGE_MODES),
     sources: z.array(z.string()),
   })),

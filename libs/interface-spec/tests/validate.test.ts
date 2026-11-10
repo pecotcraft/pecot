@@ -11,6 +11,9 @@ const PT = 'plugins/pecot-tools/interface'
 const CASES: readonly (readonly [string, readonly string[]])[] = [
   ['valid', []],
   ['entry-missing', [`error: ${PW}/authored.yaml: PW-ISSUE-QUICK: entry is missing (present in generated.json)`]],
+  ['entry-missing-partial', []],
+  ['partial-empty', []],
+  ['entry-extra-partial', [`error: ${PW}/authored.yaml: PW-ISSUE-OLD: entry is not in generated.json (remove it)`]],
   ['entry-extra', [`error: ${PW}/authored.yaml: PW-ISSUE-OLD: entry is not in generated.json (remove it)`]],
   ['field-missing', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`]],
   ['field-null', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: expected string but got null`]],
@@ -28,11 +31,15 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
     `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: id: is defined more than once`,
     `error: ${PW}/authored.yaml: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 digits)`,
   ]],
+  ['behavior-id-reverse', [
+    `error: ${PW}/authored.yaml: common_behaviors[0].id: "PT-COMMON-01" must be "PW-COMMON-NN" (NN is 2 digits)`,
+    `error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`,
+  ]],
   ['format-unknown', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")`]],
   ['file-format', [`error: ${PW}/authored.yaml: format: unknown value 2 (expected 1)`]],
-  ['unknown-issue', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: exit_status[1].code: unknown validation issue (too_big): Too big: expected number to be <=255`]],
-  ['yaml-duplicate-key', [`error: ${PW}/authored.yaml: line 17: map keys must be unique`]],
-  ['invalid-json', [`error: ${PW}/generated.json: is not valid JSON`]],
+  ['unknown-issue', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255`]],
+  ['yaml-duplicate-key', [`error: ${PW}/authored.yaml:17: map keys must be unique`]],
+  ['invalid-json', [`error: ${PW}/generated.json:1: is not valid JSON`]],
   ['interface-missing', [`error: ${PW}: directory is missing (listed in libs/interface-spec/targets.json)`]],
   ['targets-invalid', [
     'error: libs/interface-spec/targets.json: pecot-workflow: entries: unknown value "all" (expected one of "complete", "partial")',
@@ -63,6 +70,20 @@ describe('validateRepository', () => {
       `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`,
       `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement does not match pattern "unwanted"`,
     ])
+  })
+
+  it('still checks environment and collects behavior ids when another field fails the shape check', async () => {
+    const root = await materialize('behavior-id-reverse')
+    const file = path.join(root, PW, 'authored.yaml')
+    const original = await readFile(file, 'utf8')
+    const text = original
+      .replace('    on_error: Issues created before the failing file remain on GitHub.\n', '')
+      .replace('name: PECOT_GITHUB_API_URL', 'name: bad-name')
+    await writeFile(file, text)
+    const lines = await validateRepository(root)
+    expect(lines).toContain(`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`)
+    expect(lines.some(line => line.includes('environment[0].name') && line.includes('"bad-name"'))).toBe(true)
+    expect(lines).toContain(`error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`)
   })
 
   it('reports a targets.json that does not exist', async () => {

@@ -1,5 +1,6 @@
+// 使う段階: 定義書の欄と POSIX の節の対応の表示と、その対応のテスト（後の段階。いまはテストだけが使う）。
 import { z } from 'zod'
-import { compareText } from './finding.js'
+import { compareText } from './utility.js'
 import { authoredEntrySchema, generatedEntrySchema } from './schema.js'
 
 export interface PosixRow {

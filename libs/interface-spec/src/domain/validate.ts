@@ -16,6 +16,7 @@ import {
   dependencyConstraintSchema,
   targetsSchema,
 } from './schema.js'
+import { compareText, isRecord } from './utility.js'
 import type { AuthoredEntry, AuthoredFile, Behavior, GeneratedEntry, GeneratedFile, Targets } from './schema.js'
 
 export const TARGETS_PATH = 'libs/interface-spec/targets.json'
@@ -41,9 +42,7 @@ export interface PluginInput {
   readonly sources: readonly SourceFile[]
 }
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+type TextPair = readonly [string, string]
 
 function quote(value: string): string {
   return JSON.stringify(value)
@@ -54,7 +53,7 @@ function stateFindings(file: string, state: FileState): Finding[] {
   if (state.kind === 'ok') return []
   return state.problems.map(problem => ({
     file,
-    ...(problem.line !== undefined && { field: `line ${String(problem.line)}` }),
+    ...(problem.line !== undefined && { line: problem.line }),
     reason: problem.message,
   }))
 }
@@ -111,7 +110,7 @@ function elementFindings(data: unknown, file: string, entries: Readonly<Record<s
   return findings
 }
 
-function japaneseFindings(file: string, scope: string | undefined, texts: readonly (readonly [string, string])[]): Finding[] {
+function japaneseFindings(file: string, scope: string | undefined, texts: readonly TextPair[]): Finding[] {
   return texts.filter(([, text]) => hasJapanese(text)).map(([field]) => ({
     file,
     ...(scope !== undefined && { scope }),
@@ -120,7 +119,7 @@ function japaneseFindings(file: string, scope: string | undefined, texts: readon
   }))
 }
 
-function inputDescriptions(value: unknown, path: string): (readonly [string, string])[] {
+function inputDescriptions(value: unknown, path: string): TextPair[] {
   if (Array.isArray(value)) return value.flatMap((item, index) => inputDescriptions(item, `${path}[${String(index)}]`))
   if (!isRecord(value)) return []
   return Object.entries(value).flatMap(([key, child]) =>
@@ -229,25 +228,27 @@ function namesFindings(file: string, scope: string, entry: AuthoredEntry, genera
   }))
   const findings = unknown('default_notes', Object.keys(entry.default_notes))
   for (const [index, element] of entry.constraints.entries()) {
-    const conflicts = conflictConstraintSchema.safeParse(element)
-    if (conflicts.success) findings.push(...unknown(`constraints[${String(index)}].conflicts`, conflicts.data.conflicts))
-    const dependency = dependencyConstraintSchema.safeParse(element)
-    if (!dependency.success) continue
-    const { requires } = dependency.data
+    const schema = selectConstraint(element)
+    const conflicts = schema === conflictConstraintSchema ? conflictConstraintSchema.safeParse(element) : undefined
+    const dependency = schema === dependencyConstraintSchema ? dependencyConstraintSchema.safeParse(element) : undefined
+    if (conflicts?.success === true) findings.push(...unknown(`constraints[${String(index)}].conflicts`, conflicts.data.conflicts))
+    const requires = dependency?.success === true ? dependency.data.requires : {}
     findings.push(...unknown(`constraints[${String(index)}].requires`, [...Object.keys(requires), ...Object.values(requires).flat()]))
   }
   return findings
 }
 
-function exitTexts(entry: AuthoredEntry): (readonly [string, string])[] {
+function exitTexts(entry: AuthoredEntry): TextPair[] {
   return entry.exit_status.flatMap((element, index) => {
-    const parsed = (exitCodeSchema.safeParse(element).data ?? exitKindSchema.safeParse(element).data)
-    return parsed === undefined ? [] : [[`exit_status[${String(index)}].when`, parsed.when] as const]
+    const schema = selectExit(element)
+    if (schema === undefined) return []
+    const parsed = schema === exitKindSchema ? exitKindSchema.safeParse(element) : exitCodeSchema.safeParse(element)
+    return parsed.success ? [[`exit_status[${String(index)}].when`, parsed.data.when] as const] : []
   })
 }
 
 function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
-  const texts: (readonly [string, string])[] = [
+  const texts: TextPair[] = [
     ...entry.details.map((text, index) => [`details[${String(index)}]`, text] as const),
     ['stdin', entry.stdin],
     ...(entry.output.format === 'none' ? [] : [['output.description', entry.output.description] as const]),
@@ -269,6 +270,13 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
   ]
 }
 
+function environmentFindings(file: string, scope: string | undefined, items: readonly { readonly name: string, readonly effect: string }[]): Finding[] {
+  return [
+    ...environmentNameFindings(file, scope, items),
+    ...japaneseFindings(file, scope, items.map((item, index) => [`environment[${String(index)}].effect`, item.effect] as const)),
+  ]
+}
+
 function environmentNameFindings(file: string, scope: string | undefined, items: readonly { readonly name: string }[]): Finding[] {
   return items.entries().filter(([, item]) => !isValidEnvironmentName(item.name)).map(([index, item]) => ({
     file,
@@ -278,19 +286,18 @@ function environmentNameFindings(file: string, scope: string | undefined, items:
   })).toArray()
 }
 
-function checkAuthored(file: string, name: string, authored: AuthoredFile, generated: GeneratedFile | undefined): Finding[] {
+function checkAuthored(file: string, name: string, mode: PluginInput['mode'], authored: AuthoredFile, generated: GeneratedFile | undefined): Finding[] {
   const findings: Finding[] = []
   if (authored.plugin !== name) {
     findings.push({ file, field: 'plugin', reason: `${quote(authored.plugin)} does not match the directory name ${quote(name)}` })
   }
-  findings.push(
-    ...environmentNameFindings(file, undefined, authored.environment),
-    ...japaneseFindings(file, undefined, authored.environment.map((item, index) => [`environment[${String(index)}].effect`, item.effect] as const)),
-  )
+  findings.push(...environmentFindings(file, undefined, authored.environment))
   if (generated === undefined) return findings
   findings.push(...behaviorFindings(file, authored.common_behaviors, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
   const byId = new Map(generated.entries.map(entry => [entry.id, entry]))
-  for (const id of byId.keys()) {
+  // partial は generated.json にあって authored.yaml に無い項目を許す。
+  const required = mode === 'complete' ? byId.keys().toArray() : []
+  for (const id of required) {
     if (!Object.hasOwn(authored.entries, id)) findings.push({ file, scope: id, reason: 'entry is missing (present in generated.json)' })
   }
   for (const [id, entry] of Object.entries(authored.entries)) {
@@ -325,16 +332,38 @@ function validBehaviors(list: unknown): Behavior[] {
   })
 }
 
-// 形の確認が他の欄で落ちた項目でも、振る舞いの項目だけは確認する。1 回の実行で直す箇所をそろえて出すため。
-function lenientBehaviorFindings(file: string, data: unknown, generated: GeneratedFile | undefined): Finding[] {
-  if (!isRecord(data)) return []
-  const entries = isRecord(data['entries']) ? data['entries'] : {}
-  const findings = Object.entries(entries).flatMap(([id, entry]) =>
-    isRecord(entry) ? behaviorFindings(file, validBehaviors(entry['behaviors']), id, id, 'behaviors') : [])
-  if (generated !== undefined) {
-    findings.push(...behaviorFindings(file, validBehaviors(data['common_behaviors']), undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
+function validEnvironment(list: unknown): { readonly name: string, readonly effect: string }[] {
+  const items: unknown[] = Array.isArray(list) ? list : []
+  const result: { readonly name: string, readonly effect: string }[] = []
+  for (const item of items) {
+    if (isRecord(item) && typeof item['name'] === 'string' && typeof item['effect'] === 'string') result.push({ name: item['name'], effect: item['effect'] })
   }
-  return findings
+  return result
+}
+
+// 形の確認が他の欄で落ちたときも、振る舞いの項目（言語・型・ID の収集）と environment の名前・言語は確認する。
+// 1 回の実行で直す箇所をそろえて出し、プラグインをまたぐ ID の重なりも確かめるため。
+function lenientFindings(file: string, data: unknown, generated: GeneratedFile | undefined): { readonly findings: Finding[], readonly ids: string[] } {
+  if (!isRecord(data)) return { findings: [], ids: [] }
+  const entries = isRecord(data['entries']) ? data['entries'] : {}
+  const findings: Finding[] = []
+  const ids: string[] = []
+  for (const [id, entry] of Object.entries(entries)) {
+    if (!isRecord(entry)) continue
+    const behaviors = validBehaviors(entry['behaviors'])
+    ids.push(...behaviors.map(item => item.id))
+    findings.push(
+      ...behaviorFindings(file, behaviors, id, id, 'behaviors'),
+      ...environmentFindings(file, id, validEnvironment(entry['environment'])),
+    )
+  }
+  const common = validBehaviors(data['common_behaviors'])
+  ids.push(...common.map(item => item.id))
+  if (generated !== undefined) {
+    findings.push(...behaviorFindings(file, common, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
+  }
+  findings.push(...environmentFindings(file, undefined, validEnvironment(data['environment'])))
+  return { findings, ids }
 }
 
 function checkPlugin(plugin: PluginInput): { readonly findings: Finding[], readonly ids: readonly string[] } {
@@ -361,10 +390,11 @@ function checkPlugin(plugin: PluginInput): { readonly findings: Finding[], reado
     : []
   findings.push(...parsed.findings, ...selected)
   if (parsed.data === undefined || selected.length > 0) {
-    findings.push(...lenientBehaviorFindings(authoredPath, plugin.authored.data, generated))
-    return { findings, ids: [] }
+    const lenient = lenientFindings(authoredPath, plugin.authored.data, generated)
+    findings.push(...lenient.findings)
+    return { findings, ids: lenient.ids }
   }
-  findings.push(...checkAuthored(authoredPath, plugin.name, parsed.data, generated))
+  findings.push(...checkAuthored(authoredPath, plugin.name, plugin.mode, parsed.data, generated))
   if (plugin.mode === 'complete') {
     findings.push(...checkEnvironment({
       pluginDir: `plugins/${plugin.name}`,
@@ -378,7 +408,7 @@ function checkPlugin(plugin: PluginInput): { readonly findings: Finding[], reado
 
 // 定義書の形式を検証する。決定的に並べた Finding を返す。
 export function validateDefinitions(plugins: readonly PluginInput[]): Finding[] {
-  const checked = plugins.toSorted((left, right) => left.name.localeCompare(right.name, 'en')).map(plugin => ({
+  const checked = plugins.toSorted((left, right) => compareText(left.name, right.name)).map(plugin => ({
     plugin, ...checkPlugin(plugin),
   }))
   const files = checked.map(item => ({ file: `plugins/${item.plugin.name}/interface/authored.yaml`, ids: item.ids }))
