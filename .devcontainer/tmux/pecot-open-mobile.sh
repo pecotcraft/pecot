@@ -4,8 +4,8 @@
 # 使い方は次のとおり。
 #   ./pecot-open-mobile.sh                         # base / layout=default / prefix=pecot-base-default:。
 #   ./pecot-open-mobile.sh -v wt1                  # wt1 / layout=default / prefix=pecot-wt1-default:。
-#   ./pecot-open-mobile.sh --layout parallel4      # base / prefix=pecot-base-parallel4:。
-#   ./pecot-open-mobile.sh -v wt1 --layout parallel4 # wt1 / prefix=pecot-wt1-parallel4:。
+#   ./pecot-open-mobile.sh --layout parallel-a      # base / prefix=pecot-base-parallel-a:。
+#   ./pecot-open-mobile.sh -v wt1 --layout parallel-a # wt1 / prefix=pecot-wt1-parallel-a:。
 #   ./pecot-open-mobile.sh --list-layouts           # 利用可能なレイアウト一覧を表示する。
 #
 # 各エントリ（レイアウト内の各 REPOS エントリ）ごとに別セッションを作成し、先頭にアタッチする。
@@ -14,8 +14,8 @@
 # `-<N>` は、同じ (variant, repo) の組が同一 layout 内に複数回登場したときの連番。
 # 連番は layout スコープ内でユニークになる。
 # layout が異なれば別セッション群が作れるため、layout の並行起動ができる。
-# 例えば `./pecot-open-mobile.sh --layout default` と `./pecot-open-mobile.sh --layout parallel4` を続けて実行する。
-# この結果、`pecot-base-default:*` と `pecot-base-parallel4:*` の両セットが併存する。
+# 例えば `./pecot-open-mobile.sh --layout default` と `./pecot-open-mobile.sh --layout parallel-a` を続けて実行する。
+# この結果、`pecot-base-default:*` と `pecot-base-parallel-a:*` の両セットが併存する。
 # 他セッションへは "Ctrl-b s" で切り替え可能。既存セッションはそのまま残す。
 # 事前に base devcontainer が起動している必要あり。
 

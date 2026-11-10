@@ -5,8 +5,8 @@
 #   ./pecot-open.sh                              # base / layout=default / session=pecot-base-default。
 #   ./pecot-open.sh myname                       # base / layout=default / session=myname。
 #   ./pecot-open.sh -v wt1                       # wt1 / layout=default / session=pecot-wt1-default。
-#   ./pecot-open.sh --layout parallel4           # session=pecot-base-parallel4。
-#   ./pecot-open.sh -v wt1 --layout parallel4 foo # variant=wt1、layout=parallel4、session=foo。
+#   ./pecot-open.sh --layout parallel-a           # session=pecot-base-parallel-a。
+#   ./pecot-open.sh -v wt1 --layout parallel-a foo # variant=wt1、layout=parallel-a、session=foo。
 #   ./pecot-open.sh --list-layouts               # 利用可能なレイアウト一覧を表示する。
 #
 # -v / --variant <name> で base 以外のワークツリーを指定できる（layout エントリが
@@ -17,7 +17,7 @@
 # これで複数 worktree の並列作業ができる。
 # セッション名は常に `pecot-<variant>-<layout>`（positional 指定時はそれを最優先）。
 # layout が異なれば別セッションとなり、並行起動できる。
-# `pecot-base-default` と `pecot-base-parallel4` は併存できる。
+# `pecot-base-default` と `pecot-base-parallel-a` は併存できる。
 # 既存セッションがあればアタッチする。事前に base devcontainer が起動している必要あり。
 
 set -euo pipefail

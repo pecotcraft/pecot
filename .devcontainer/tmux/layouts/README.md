@@ -30,7 +30,7 @@ REPOS=(wt1:pecot wt2:pecot)
 例:
 
 ```bash
-# wt1-wt4 の pecot を 4 ペインで同時に開く（並列作業セット）
+# wt1-wt4 の pecot を 4 ペインで同時に開く（parallel-a。wt5-wt8 は parallel-b）
 REPOS=(wt1:pecot wt2:pecot wt3:pecot wt4:pecot)
 ```
 
@@ -47,12 +47,13 @@ REPOS=(wt1:pecot wt2:pecot wt3:pecot wt4:pecot)
 
 常に `pecot-<variant>-<layout>` をデフォルトセッション名として使う。
 
-| variant | layout    | session                |
-|---------|-----------|------------------------|
-| base    | default   | `pecot-base-default`   |
-| base    | parallel4 | `pecot-base-parallel4` |
-| wt1     | default   | `pecot-wt1-default`    |
-| wt1     | parallel4 | `pecot-wt1-parallel4`  |
+| variant | layout     | session                 |
+|---------|------------|-------------------------|
+| base    | default    | `pecot-base-default`    |
+| base    | parallel-a | `pecot-base-parallel-a` |
+| base    | parallel-b | `pecot-base-parallel-b` |
+| wt1     | default    | `pecot-wt1-default`     |
+| wt1     | parallel-a | `pecot-wt1-parallel-a`  |
 
 positional `session-name` を明示指定した場合はそれが最優先され、variant/layout は
 セッション名に混入しない。layout が異なれば別セッションとなるため、同 variant でも
@@ -68,15 +69,16 @@ layout 違いを並行起動できる。
 - `<N>` は同一 layout 内で同じ `(entry_variant, repo)` の組が複数回登場したときの
   `-2`, `-3`... 連番で、**layout スコープ内でのみユニーク**。
 - layout が異なれば別プレフィックスになるため、layout 並行起動が可能
-  （`pecot-base-default:*` と `pecot-base-parallel4:*` が併存する）。
+  （`pecot-base-default:*` と `pecot-base-parallel-a:*` が併存する）。
 - tmux はセッション名の `:` を `_` に替えて保存する。`Ctrl-b s` の一覧には `pecot-base-default_base-pecot` の形で出る。
 
 例:
 
-| variant | layout    | セッション例                                                            |
-|---------|-----------|-------------------------------------------------------------------------|
-| base    | default   | `pecot-base-default:base-pecot`                                         |
-| base    | parallel4 | `pecot-base-parallel4:wt1-pecot`, ..., `pecot-base-parallel4:wt4-pecot` |
+| variant | layout     | セッション例                                                              |
+|---------|------------|---------------------------------------------------------------------------|
+| base    | default    | `pecot-base-default:base-pecot`                                           |
+| base    | parallel-a | `pecot-base-parallel-a:wt1-pecot`, ..., `pecot-base-parallel-a:wt4-pecot` |
+| base    | parallel-b | `pecot-base-parallel-b:wt5-pecot`, ..., `pecot-base-parallel-b:wt8-pecot` |
 
 ## 入力バリデーション
 
