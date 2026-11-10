@@ -96,7 +96,7 @@ def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
 
     Targets open Dependabot PRs that match either of the following. A PR with no reason is not listed.
 
-    - Not eligible for auto-merge (major, playwright, unknown update-type)
+    - Not eligible for auto-merge (major, unknown update-type)
     - Eligible for auto-merge, but stopped on checks, conflicts, or the queue
 
     Finds one open Tracker labeled dependabot-pr (an Issue whose body has the markers)

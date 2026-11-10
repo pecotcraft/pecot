@@ -106,6 +106,7 @@ class TestSync:
             _pr(2, "left-pad", "major"),
             _pr(3, "lodash", "minor"),
             _pr(5, "@playwright/test", "minor"),
+            _pr(6, "is-odd", "major"),
         ]
         client = _client(prs)
         result = _invoke(client, ["sync"])
@@ -114,19 +115,19 @@ class TestSync:
         args = client.create_issue.call_args.kwargs
         assert args["labels"] == ["dependabot-pr"]
         assert args["title"].startswith("[Tracker] dependabot PR — ")
-        assert "pr/2 " in args["body"] and "pr/5 " in args["body"]
-        assert "pr/3 " not in args["body"]
+        assert "pr/2 " in args["body"] and "pr/6 " in args["body"]
+        assert "pr/3 " not in args["body"] and "pr/5 " not in args["body"]
         assert result.stdout == ""
         lines = result.stderr.splitlines()
         assert lines[:3] == [
-            "count: open dependabot PRs: 3",
+            "count: open dependabot PRs: 4",
             "count: PRs awaiting a decision: 2",
             "count: PRs awaiting a decision without check results: 0",
         ]
         assert lines[3].startswith('created: Tracker "[Tracker] dependabot PR — ')
         assert lines[4:] == [
             "added: PR #2 to new Tracker (major)",
-            "added: PR #5 to new Tracker (playwright)",
+            "added: PR #6 to new Tracker (major)",
         ]
         updates = [c.args for c in client.update_project_item_field.call_args_list]
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
@@ -142,7 +143,7 @@ class TestSync:
 
     def test_rewrites_existing_tracker(self) -> None:
         client = _client(
-            [_pr(2, "a", "major"), _pr(5, "@playwright/test", "minor")],
+            [_pr(2, "a", "major"), _pr(6, "b", "major"), _pr(5, "@playwright/test", "minor")],
             [_tracker(9, render_tracker_body([_entry(1), _entry(2)]))],
         )
         result = _invoke(client, ["sync"])
@@ -151,10 +152,10 @@ class TestSync:
         client.create_issue.assert_not_called()
         client.update_issue_body.assert_called_once()
         body = client.update_issue_body.call_args.args[3]
-        assert "pr/2 " in body and "pr/5 " in body and "pr/1 " not in body
+        assert "pr/2 " in body and "pr/6 " in body and "pr/5 " not in body and "pr/1 " not in body
         assert result.stdout == ""
         assert result.stderr.splitlines()[3:] == [
-            "added: PR #5 to Tracker #9 (playwright)",
+            "added: PR #6 to Tracker #9 (major)",
             "removed: PR #1 from Tracker #9",
         ]
         client.close_issue.assert_not_called()
