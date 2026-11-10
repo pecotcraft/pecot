@@ -9,6 +9,7 @@
 - 設定は `.devcontainer/tmux/tmux.conf` を `tmux -f` で渡す
 - ホストの tmux の外から打つ。ホストの tmux の中から打つと tmux が二重になり、prefix のキーを外側の tmux が取る
 - ホストの端末アプリで、OSC 52 によるクリップボードへの書き込みを許可しておく。Claude Code でマウスで選んだ文字が、ホストのクリップボードに入る
+- Claude Code のリンクは、端末のリンクを開く修飾キー（Linux は Ctrl、macOS は Cmd）に Shift を足してクリックすると開く。tmux の mouse mode がクリックを取るので、Shift で Ghostty に渡す
 
 ## ファイルフォーマット
 
