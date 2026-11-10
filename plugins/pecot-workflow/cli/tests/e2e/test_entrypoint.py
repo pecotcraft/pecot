@@ -181,7 +181,7 @@ class TestCLIEntrypoint:
 
         before = sorted(p.relative_to(plugin_root) for p in plugin_root.rglob("*"))
         first = run("--version")
-        if first.returncode != 0 and "venv の作成に失敗" in first.stderr:
+        if first.returncode != 0 and "failed to create the venv" in first.stderr:
             pytest.skip(
                 f"uv で venv を作れない環境（キャッシュ・ネットワークなし）: {first.stderr}"
             )

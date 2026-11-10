@@ -32,7 +32,7 @@ export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
 if [ "${PECOT_BOOTSTRAP_SKIP:-}" = "1" ]; then
   DEV_ENTRY="${PLUGIN_ROOT}/cli/.venv/bin/pecot"
   if [ ! -x "$DEV_ENTRY" ]; then
-    echo "pecot: PECOT_BOOTSTRAP_SKIP=1 ですが ${DEV_ENTRY} がありません。cli/ で uv sync を実行してください。" >&2
+    echo "pecot: PECOT_BOOTSTRAP_SKIP=1 is set but ${DEV_ENTRY} does not exist. Run uv sync in cli/." >&2
     exit 1
   fi
   exec env -u VIRTUAL_ENV -u UV_NO_SYNC "$DEV_ENTRY" "$@"
@@ -89,7 +89,7 @@ _venv_ready() {
 LOCK_FILE="${VENV_ROOT}/.lock.pid"
 
 _lock_fail() {
-  echo "pecot: ${VENV_ROOT} のロックを取得できません" >&2
+  echo "pecot: cannot acquire the lock on ${VENV_ROOT}" >&2
 }
 
 # stale なロックの掃除は rename で行う。rename に成功した 1 人だけが掃除を続け、
@@ -143,14 +143,14 @@ _switch_current() {
     return 0
   fi
   ln -s "$NAME" "$tmp" || {
-    echo "pecot: current の symlink を作れません（${tmp}）" >&2
+    echo "pecot: cannot create the current symlink (${tmp})" >&2
     return 1
   }
   if mv -T "$tmp" "${VENV_ROOT}/current" 2>/dev/null || mv -h "$tmp" "${VENV_ROOT}/current" 2>/dev/null; then
     return 0
   fi
   rm -f "$tmp"
-  echo "pecot: current を rename で切り替えられません（${VENV_ROOT}/current）" >&2
+  echo "pecot: cannot switch current by rename (${VENV_ROOT}/current)" >&2
   return 1
 }
 
@@ -196,12 +196,12 @@ _build_venv() {
   _venv_ready "$VENV" && return 0
   rm -rf "$VENV" "$stage"
   mkdir -p "$stage" || {
-    echo "pecot: ステージを作れません（${stage}）" >&2
+    echo "pecot: cannot create the stage (${stage})" >&2
     return 1
   }
   if ! _cli_source_list | tar -C "$CLI" --null -T - -cf - | tar -C "$stage" -xf -; then
     rm -rf "$stage"
-    echo "pecot: cli/ をステージへ複製できません（${stage}）" >&2
+    echo "pecot: cannot copy cli/ to the stage (${stage})" >&2
     return 1
   fi
   # 同じ lock-hash の完成済み venv が 1 つも無いときだけ「依存の導入」を伴う
@@ -214,17 +214,17 @@ _build_venv() {
   if ! env -u VIRTUAL_ENV -u UV_NO_SYNC UV_PROJECT_ENVIRONMENT="$VENV" \
     uv sync --frozen --no-dev --no-editable --quiet --project "$stage" >&2; then
     rm -rf "$stage" "$VENV"
-    echo "pecot: venv の作成に失敗しました（${VENV}）" >&2
+    echo "pecot: failed to create the venv (${VENV})" >&2
     return 1
   fi
   rm -rf "$stage"
   if [ ! -x "$VENV/bin/python" ]; then
-    echo "pecot: venv に bin/python がありません（${VENV}）" >&2
+    echo "pecot: bin/python is missing in the venv (${VENV})" >&2
     return 1
   fi
   printf '%s\n' "$PLUGIN_VERSION" >"$VENV/.pecot-version" 2>/dev/null || true
   if ! : >"$VENV/${MARK}"; then
-    echo "pecot: 完成印を書けません（${VENV}/${MARK}）" >&2
+    echo "pecot: cannot write the completion mark (${VENV}/${MARK})" >&2
     return 1
   fi
   _switch_current || return 1
@@ -265,7 +265,7 @@ if ! _hold_inuse || ! _venv_ready "$VENV"; then
   _lock_release
   [ "$rc" -eq 0 ] || exit 1
   _hold_inuse || {
-    echo "pecot: ${VENV}/.inuse をロックできません" >&2
+    echo "pecot: cannot lock ${VENV}/.inuse" >&2
     exit 1
   }
 fi

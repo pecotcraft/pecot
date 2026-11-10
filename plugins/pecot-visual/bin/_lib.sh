@@ -48,7 +48,7 @@ pnpm_resolution_hint() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -z "$version" ]; then
-            echo "npx はありますが、${plugin_root}/package.json の packageManager から pnpm の版を読めませんでした。plugin root と packageManager の記述を確認してください。"
+            echo "npx is available, but the pnpm version could not be read from packageManager in ${plugin_root}/package.json. Check the plugin root and the packageManager entry."
             return
         fi
     fi
@@ -108,7 +108,7 @@ plugin_data_dir_normalize() {
 # dependency-root.ts の解決と同じ結果になること（テストが固定する）。引数: $1 = project 名
 plugin_data_dir_resolve() {
     local project="${1:-}" base home
-    [ -n "$project" ] || { echo "plugin_data_dir_resolve: project 名が必要です" >&2; exit 127; }
+    [ -n "$project" ] || { echo "plugin_data_dir_resolve: project name is required" >&2; exit 127; }
     plugin_data_dir_normalize "${CLAUDE_PLUGIN_DATA:-}" && return 0
     plugin_data_dir_normalize "${PLUGIN_DATA:-}" && return 0
     if base="$(plugin_data_dir_normalize "${XDG_DATA_HOME:-}")"; then
@@ -119,7 +119,7 @@ plugin_data_dir_resolve() {
         printf '%s\n' "${home}/.local/share/pecot/${project}"
         return 0
     fi
-    echo "${project}: HOME が設定されておらず（または絶対パスでなく）、データ置き場を決められません。HOME か XDG_DATA_HOME を設定してください。" >&2
+    echo "${project}: HOME is not set (or is not an absolute path), so the data directory cannot be determined. Set HOME or XDG_DATA_HOME." >&2
     return 1
 }
 
@@ -127,10 +127,10 @@ plugin_data_dir_resolve() {
 # 引数: $1 = project 名
 plugin_data_dir_ensure() {
     local project="${1:-}" data
-    [ -n "$project" ] || { echo "plugin_data_dir_ensure: project 名が必要です" >&2; exit 127; }
+    [ -n "$project" ] || { echo "plugin_data_dir_ensure: project name is required" >&2; exit 127; }
     data="$(plugin_data_dir_resolve "$project")" || return 1
     if ! mkdir -p "$data" 2>/dev/null; then
-        echo "${project}: データ置き場を作れません（${data}）。" >&2
+        echo "${project}: cannot create the data directory (${data})." >&2
         return 1
     fi
     printf '%s\n' "$data"
@@ -403,8 +403,8 @@ plugin_runtime_ensure() {
         plugin_runtime_ensure_current "$base" "$name" || true
         return 0
     fi
-    mkdir -p "$base" || { plugin_runtime_note "error: ${base} を作れません。"; return 1; }
-    plugin_runtime_lock_acquire "$base" || { plugin_runtime_note "error: ${base} のロックを取得できません。"; return 1; }
+    mkdir -p "$base" || { plugin_runtime_note "error: cannot create ${base}."; return 1; }
+    plugin_runtime_lock_acquire "$base" || { plugin_runtime_note "error: cannot acquire the lock on ${base}."; return 1; }
     plugin_runtime_ensure_locked "$root" "$base" "$name" "$target" || rc=$?
     plugin_runtime_lock_release "$base"
     return "$rc"
@@ -422,7 +422,7 @@ plugin_runtime_ensure_locked() {
         # FORCE: 使用中なら作り直さずそのまま使う。
         plugin_runtime_remove_unused "$target"
         if plugin_runtime_is_complete "$target"; then
-            plugin_runtime_note "使用中のため作り直さず、そのまま使います: ${target}"
+            plugin_runtime_note "In use, so not recreating it; using it as is: ${target}"
             plugin_runtime_ensure_current "$base" "$name" || true
             return 0
         fi
@@ -453,7 +453,7 @@ plugin_runtime_ensure_locked() {
         plugin_runtime_clone_node_modules "$donor" "$target" || return 1
     else
         plugin_runtime_event "installing dependencies"
-        plugin_runtime_note "依存の取得と build 込みで初回は数分かかる場合があります（pnpm store が空の環境ではさらに長くなります）"
+        plugin_runtime_note "The first run fetches dependencies and builds, which can take a few minutes (longer when the pnpm store is empty)"
         # `$pnpm` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
         # shellcheck disable=SC2086
         ( cd "$target" && $pnpm install --frozen-lockfile ) || { rc=$?; plugin_runtime_diagnose_failure "$root"; return "$rc"; }
@@ -463,7 +463,7 @@ plugin_runtime_ensure_locked() {
     plugin_runtime_build "$target" "$pnpm" || { rc=$?; plugin_runtime_diagnose_failure "$root"; return "$rc"; }
 
     : > "$target/.complete" || return 1
-    plugin_runtime_swap_current "$base" "$name" || { plugin_runtime_note "error: current を切り替えられません。"; return 1; }
+    plugin_runtime_swap_current "$base" "$name" || { plugin_runtime_note "error: cannot switch current."; return 1; }
     plugin_runtime_collect "$base" "$name"
     plugin_runtime_note "ready ($(($(date +%s) - start))s)"
     return 0
@@ -559,7 +559,7 @@ plugin_runtime_build() {
     # `$pnpm` は "corepack pnpm" を 2 トークンに分けるため quote しない。
     # shellcheck disable=SC2086
     if ! ( cd "$dir" && $pnpm --config.verify-deps-before-run=false --filter @pecot/slidev-assets-dev run build ); then
-        pecotv_log "error: v-slidev ESLint プラグインの build に失敗しました。eslint-check.sh hook が module not found で失敗する可能性があります。"
+        pecotv_log "error: the v-slidev ESLint plugin build failed. The eslint-check.sh hook may fail with module not found."
         return 1
     fi
     # shellcheck disable=SC2086

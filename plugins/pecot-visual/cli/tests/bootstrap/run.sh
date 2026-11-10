@@ -312,7 +312,7 @@ if [ -s "$STDOUT11" ]; then
   echo "  --- CUJ 11 stdout ---" >&2; sed -n '1,20p' "$STDOUT11" >&2
   exit 1
 fi
-assert_grep 'build する' "$STDERR11" "CUJ 11 stderr guides to build"
+assert_grep 'Build first' "$STDERR11" "CUJ 11 stderr guides to build"
 if [ -e "$PLUGIN_ROOT/cli/dist" ] || [ -e "$PLUGIN_ROOT/node_modules" ]; then
   echo "[bootstrap-test] FAIL: CUJ 11 / bootstrap created node_modules or cli/dist in the plugin root" >&2
   exit 1
@@ -728,7 +728,7 @@ assert_exit_zero "$code" "CUJ 12 exit"
 assert_grep '^pecotv: installing dependencies$' "$STDERR12" "CUJ 12 ran install (cold state)"
 # 同期 DL の痕跡（fatal 化するルート）とバックグラウンド取得のどちらも、MCP 起動で動かないこと。
 assert_no_grep 'running playwright install chromium' "$STDERR12" "CUJ 12 no synchronous chromium install"
-assert_no_grep 'バックグラウンドで取得します' "$STDERR12" "CUJ 12 no background chromium fetch by default"
+assert_no_grep 'Fetching it in the background' "$STDERR12" "CUJ 12 no background chromium fetch by default"
 assert_no_grep 'error: chromium' "$STDERR12" "CUJ 12 missing chromium is not fatal"
 if ! node -e '
   const fs = require("fs");
@@ -817,7 +817,7 @@ code=$?
 set -e
 rm -f "$FIFO12B"
 assert_exit_zero "$code" "CUJ 12b exit"
-assert_grep 'バックグラウンドで取得します' "$STDERR12B" "CUJ 12b background fetch fired under opt-in"
+assert_grep 'Fetching it in the background' "$STDERR12B" "CUJ 12b background fetch fired under opt-in"
 assert_no_grep 'error: chromium' "$STDERR12B" "CUJ 12b background DL failure is not fatal"
 assert_no_grep 'Downloading|Progress' "$STDOUT12B" "CUJ 12b background fetch output stays off stdout"
 # バックグラウンド取得のログが node_modules 配下（gitignore 済）に残ること。
@@ -1051,7 +1051,7 @@ code=$?
 set -e
 rm -f "$FIFO14"
 assert_exit_zero "$code" "CUJ 14 exit"
-assert_no_grep 'バックグラウンドで取得します' "$STDERR14" "CUJ 14 no background fetch when chromium is present"
+assert_no_grep 'Fetching it in the background' "$STDERR14" "CUJ 14 no background fetch when chromium is present"
 assert_no_grep 'running playwright install chromium' "$STDERR14" "CUJ 14 no synchronous chromium install"
 if [ -f "$CHROMIUM_INSTALL_LOG" ]; then
   echo "[bootstrap-test] FAIL: CUJ 14 started a background chromium fetch despite an existing install" >&2
