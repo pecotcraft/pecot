@@ -43,8 +43,8 @@ describe('checkNodeRuntime', () => {
     '%s は起動を止める',
     (version) => {
       const message = checkNodeRuntime(version)
-      expect(message).toContain(`Node.js ${version} は既知の脆弱性の修正を含まない`)
-      expect(message).toContain('24 系は 24.22.1 以上、26 系は 26.12.1 以上')
+      expect(message).toContain(`Node.js ${version} does not include fixes for known vulnerabilities`)
+      expect(message).toContain('24.x: 24.22.1 or later, 26.x: 26.12.1 or later')
       expect(message).toContain(`nvm install ${suggestedNodeVersion()}`)
     },
   )

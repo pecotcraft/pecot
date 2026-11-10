@@ -8,11 +8,11 @@ import type { PolicyMode } from '../repository-policy.js'
 const CURRENT: ResolvedRepository = { repository: createRepositoryReference('acme-labs', 'pecot-cli'), source: 'current-git', remoteName: 'origin' }
 const EXPLICIT_SOURCE: ResolvedRepository = { repository: createRepositoryReference('x', 'y'), source: 'explicit', remoteName: undefined }
 
-const AMBIGUOUS_LINE = 'error: リポジトリが曖昧です。--repo <owner/repo> を明示してください。'
+const AMBIGUOUS_LINES = ['error: the repository is ambiguous', '  give --repo <owner/repo>']
 
 describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mode) => {
   it('--repo 無し + Git 外は曖昧で終了コード 1', () => {
-    expect(applyRepositoryPolicy({ explicit: undefined, resolved: undefined, mode })).toStrictEqual({ kind: 'exit', exitCode: 1, stderr: [AMBIGUOUS_LINE] })
+    expect(applyRepositoryPolicy({ explicit: undefined, resolved: undefined, mode })).toStrictEqual({ kind: 'exit', exitCode: 1, stderr: AMBIGUOUS_LINES })
   })
 
   it('--repo 無し + Git 内は従来挙動で続行（採用値なし）', () => {
@@ -38,7 +38,7 @@ describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mod
     expect(applyRepositoryPolicy({ explicit: 'not-a-repo', resolved: undefined, mode })).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
-      stderr: ['error: --repo の形式が不正です: \'not-a-repo\''],
+      stderr: ['error: --repo has an invalid form: \'not-a-repo\''],
     })
   })
 
@@ -46,12 +46,12 @@ describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mod
     expect(applyRepositoryPolicy({ explicit: 'a/b c', resolved: undefined, mode })).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
-      stderr: ['error: --repo の形式が不正です: \'a/b c\''],
+      stderr: ['error: --repo has an invalid form: \'a/b c\''],
     })
     expect(applyRepositoryPolicy({ explicit: 'it\'s/x', resolved: undefined, mode })).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
-      stderr: ['error: --repo の形式が不正です: "it\'s/x"'],
+      stderr: ['error: --repo has an invalid form: "it\'s/x"'],
     })
   })
 })
@@ -63,8 +63,8 @@ describe('不一致', () => {
       kind: 'exit',
       exitCode: 1,
       stderr: [
-        'error: --repo acme-labs/aist-plugin とカレント Git remote (acme-labs/pecot-cli) が不一致です。',
-        '       worktree / branch はローカル Git 破壊防止のため拒否します。',
+        'error: --repo acme-labs/aist-plugin differs from the current Git remote (acme-labs/pecot-cli)',
+        '  worktree and branch commands are rejected to protect the local Git state',
       ],
     })
   })
@@ -74,7 +74,7 @@ describe('不一致', () => {
     expect(result).toStrictEqual({
       kind: 'proceed',
       adopted: { owner: 'acme-labs', repository: 'aist-plugin' },
-      stderr: ['warning: --repo acme-labs/aist-plugin を採用します (カレント Git remote: acme-labs/pecot-cli)。'],
+      stderr: ['warning: using --repo acme-labs/aist-plugin (current Git remote: acme-labs/pecot-cli)'],
     })
   })
 

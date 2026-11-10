@@ -82,8 +82,6 @@ assert_contains() {
     fi
 }
 
-# 語の一覧なしで通ることを確かめるため、開発者の shell の値を引き継がない。
-unset PECOT_BRAND_TERMS_FILE
 TMP=$(mktemp -d)
 # 監査記録の既定は <repo>/.nx/release-audit/pecotv-audit.json。テストは全ケースで
 # $TMP 配下へ向け、リポジトリ本体の記録に触れない。

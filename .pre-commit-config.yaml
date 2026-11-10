@@ -238,7 +238,7 @@ repos:
         args: ['--strict', '-c', '.yamllint']
 
   # ワークフローの構文と式の誤りを確かめる。
-  # actionlint-system は PATH の actionlint を使う。導入は .devcontainer/scripts/post-create.sh にある。
+  # actionlint-system は PATH の actionlint を使う。導入は .devcontainer/devcontainer.json の feature（actionlint:1、version 1.7.12）にある。
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:

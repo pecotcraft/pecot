@@ -36,7 +36,7 @@ class ReposAPI(GitHubClientBase):
 
         repository = result.get("repository")
         if not repository:
-            raise GitHubNotFoundError(f"リポジトリが見つかりません: {owner}/{name}")
+            raise GitHubNotFoundError(f"repository not found: {owner}/{name}")
 
         return repository["id"]
 
@@ -98,7 +98,7 @@ class ReposAPI(GitHubClientBase):
 
         linked_branch = result.get("createLinkedBranch", {}).get("linkedBranch")
         if not linked_branch:
-            raise GitHubAPIError("リンクブランチの作成に失敗しました")
+            raise GitHubAPIError("failed to create the linked branch")
 
         return linked_branch["ref"]["name"]
 

@@ -65,7 +65,7 @@ describe('readThemeDeclaration', () => {
   it('宣言の無いテーマは、宣言が無い旨の警告を 1 件出し、既定値で続ける', async () => {
     const { declaration, warnings } = await readThemeDeclaration(new NodeThemeFiles(), WITHOUT_DECLARATION)
     expect(warnings).toHaveLength(1)
-    expect(warnings[0]).toContain('宣言が無い')
+    expect(warnings[0]).toContain('has no pecot-theme.json declaration')
     expect(warnings[0]).toContain(WITHOUT_DECLARATION)
     expect(declaration).toEqual(DEFAULT_THEME_DECLARATION)
   })
@@ -84,7 +84,7 @@ describe('readThemeDeclaration', () => {
     const error = await thrownByAsync(() => readThemeDeclaration(filesReturning(text), '/theme'))
     expect(error.reason).toBe('invalid-shape')
     expect(error.message).toContain('fontSizes.heading')
-    expect(error.message).toContain('contracts/theme-declaration.md の「`pecot-theme.json`」の節')
+    expect(error.message).toContain('the `pecot-theme.json` section of contracts/theme-declaration.md')
   })
 })
 
@@ -159,7 +159,7 @@ describe('parseThemeDeclaration', () => {
     }))
     expect(error.reason).toBe('unknown-rule')
     expect(error.message).toContain('slidev-pages-lint/no-such-rule')
-    expect(error.message).toContain('contracts/theme-declaration.md の「`pecot-theme.json`」の節の「lint.rules」の項')
+    expect(error.message).toContain('the "lint.rules" part of the `pecot-theme.json` section of contracts/theme-declaration.md')
   })
 
   it('既知の規則名と重さ（error / warn / off）を受ける', () => {

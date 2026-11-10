@@ -44,8 +44,8 @@ import { toPosixPath } from '../windows-path.js'
 変換の実装は src/mcp/windows-path.ts。
 */
 export const WINDOWS_PATH_NOTE
-  = String.raw`Windows 形式 (C:\... / \\wsl.localhost\<distro>\...) で渡した場合は、`
-    + '/mnt/<drive>/ 配下または WSL 内の絶対パスへ変換して受け付ける。'
+  = String.raw`Windows-style paths (C:\... / \\wsl.localhost\<distro>\...) are accepted and `
+    + 'converted to an absolute path under /mnt/<drive>/ or inside WSL.'
 
 /**
 ToolResult 同形の outputSchema。
@@ -54,13 +54,13 @@ data はツールごとに形が異なる (対応 CLI の --json 出力と同形
 record として受け、同形性の検証は contract / parity テスト側で行う。
 */
 export const TOOL_OUTPUT_SCHEMA = z.object({
-  ok: z.boolean().describe('ツールが目的の実行を完了したか'),
-  exitCode: z.number().describe('終了コード (0 = success)'),
-  artifacts: z.array(z.string()).describe('生成・更新したファイル・ディレクトリの絶対パス'),
-  data: z.record(z.string(), z.unknown()).describe('実行結果の詳細オブジェクト'),
-  message: z.string().describe('呼び出し元エージェント向けの 1 行サマリ'),
-  stdout: z.string().optional().describe('捕捉した stdout (未捕捉のときは省略)'),
-  stderr: z.string().optional().describe('捕捉した stderr (未捕捉のときは省略)'),
+  ok: z.boolean().describe('Whether the tool completed its intended run'),
+  exitCode: z.number().describe('Exit code (0 = success)'),
+  artifacts: z.array(z.string()).describe('Absolute paths of files and directories created or updated'),
+  data: z.record(z.string(), z.unknown()).describe('Object with the details of the run'),
+  message: z.string().describe('One-line summary for the calling agent'),
+  stdout: z.string().optional().describe('Captured stdout (omitted when nothing was captured)'),
+  stderr: z.string().optional().describe('Captured stderr (omitted when nothing was captured)'),
 })
 
 export interface CommandOutput {
@@ -116,7 +116,7 @@ export function formatError(error: unknown): string {
 文面の違反で生成を止めたときの message。drawio_create と evidence_create で同じ文言にする。
 */
 export function textViolationMessage(count: number): string {
-  return `文面の違反 ${count.toString()} 件。規則は緩めず文面を直して再実行してください`
+  return `${count.toString()} text violations; fix the text without loosening the rules, then run again`
 }
 
 /**
@@ -140,7 +140,7 @@ export const RUNTIME_UNAVAILABLE_EXIT_CODE = 1
 /**
 永続層の場所を特定できないときに利用者向けの応答へ載せる既定の表記。
 */
-export const RUNTIME_ROOT_PLACEHOLDER = '<データ置き場>/mcp-dist'
+export const RUNTIME_ROOT_PLACEHOLDER = '<data-dir>/mcp-dist'
 
 /**
 chromium の取得状態を扱う依存。既定は infra/playwright/chromium.ts の実装。
@@ -169,14 +169,14 @@ export function chromiumDefaultDependencies(): ChromiumDependencies {
 取得先として期待している場所。特定できないときも、文言が崩れないようにする。
 */
 function expectedLocation(dependencies: Readonly<ChromiumDependencies>): string {
-  return dependencies.browsersRoot() ?? 'Playwright の既定の browsers ディレクトリ'
+  return dependencies.browsersRoot() ?? 'the default Playwright browsers directory'
 }
 
 /**
 取得先とネットワークの設定を確認させる誘導。bin/pecotv の fatal メッセージと同じ内容に揃える。
 */
 const NETWORK_HINT
-  = 'ネットワーク到達性 / プロキシ設定 (HTTPS_PROXY / HTTP_PROXY) / PLAYWRIGHT_DOWNLOAD_HOST を確認のうえ再実行してください。'
+  = '; check network reachability, the proxy settings (HTTPS_PROXY / HTTP_PROXY) and PLAYWRIGHT_DOWNLOAD_HOST, then run again'
 
 /**
 TLS の鎖の検証で失敗したと判断する stderr の目印。
@@ -205,9 +205,9 @@ SSL を中継するプロキシの配下では、そのプロキシの CA が必
 pecot は証明書を同梱しないので、利用者が NODE_EXTRA_CA_CERTS で渡す。
 */
 const TLS_CERT_HINT
-  = 'TLS 証明書の検証で失敗しています。SSL を中継するプロキシの配下では、'
-    + 'そのプロキシの CA を含む PEM ファイルのパスを NODE_EXTRA_CA_CERTS に設定してください。'
-    + '設定済みの場合は、その PEM にプロキシの CA が含まれているか確認してください。'
+  = '; TLS certificate verification failed. Behind a proxy that intercepts SSL, '
+    + 'set NODE_EXTRA_CA_CERTS to the path of a PEM file that contains the proxy\'s CA. '
+    + 'If it is already set, check that the PEM contains the proxy\'s CA'
 
 /**
 取得プロセスの stderr が TLS の証明書検証の失敗を示すなら足す 1 文。示さなければ空文字。
@@ -235,16 +235,16 @@ SpawnResult.exitCode は、起動失敗 (ENOENT・playwright 未解決) とシ�
 */
 function chromiumFailureReason(result: Readonly<SpawnResult>): string {
   if (result.exitCode === LOCK_CONFLICT_EXIT_CODE) {
-    return `別のプロセスが chromium を取得中です (ロック待ちが ${String(LOCK_WAIT_SECONDS)} 秒を超えました)。`
-      + '取得の完了を待ってから再実行してください。'
+    return `another process is downloading chromium (lock wait exceeded ${String(LOCK_WAIT_SECONDS)} seconds)`
+      + '; wait for it to finish, then run again'
   }
-  if (result.timedOut) return `取得がタイムアウトしました。${NETWORK_HINT}`
+  if (result.timedOut) return `download timed out${NETWORK_HINT}`
   if (result.exitCode === null) {
     return result.signal === null
-      ? '取得コマンドを起動できませんでした (理由は stderr を参照)。node_modules を再構築 (pnpm install) してから再実行してください。'
-      : `取得コマンドが ${result.signal} で中断されました。取得が外部から打ち切られています。`
+      ? 'could not start the download command (see stderr for the reason); rebuild node_modules (pnpm install), then run again'
+      : `download command was interrupted by ${result.signal}; the download was cut off externally`
   }
-  return `取得コマンドが exit ${String(result.exitCode)} で終了しました。${NETWORK_HINT}`
+  return `download command exited with ${String(result.exitCode)}${NETWORK_HINT}`
 }
 
 /**
@@ -276,13 +276,12 @@ export async function ensureChromium(
       data: {
         event: 'chromium.unavailable',
         reason: 'chromium-not-installed',
-        detail: `${label} は Playwright Chromium を必要としますが、`
-          + `${expectedLocation(dependencies)} に見つかりません。`
-          + '`setup` ツールを呼ぶと取得できます (約 120MB のダウンロード)。'
-          + `取得を自動化する場合は ${AUTO_INSTALL_ENV}=1 を設定してください。`,
+        detail: `${label} needs Playwright Chromium, but it is not found in ${expectedLocation(dependencies)}`
+          + '; call the `setup` tool to download it (about 120MB)'
+          + `; to automate the download, set ${AUTO_INSTALL_ENV}=1`,
         expectedAt: expectedLocation(dependencies),
       },
-      message: `Playwright Chromium が未取得のため ${label} を実行できません。\`setup\` ツールを呼んでください`,
+      message: `cannot run ${label}: Playwright Chromium is not installed; call the \`setup\` tool`,
     }
   }
 
@@ -292,7 +291,7 @@ export async function ensureChromium(
   if (result.exitCode === 0 && await dependencies.isInstalled()) return undefined
 
   const detail = result.exitCode === 0
-    ? `取得コマンドは成功しましたが ${expectedLocation(dependencies)} に chromium がありません。`
+    ? `download command succeeded, but chromium is not in ${expectedLocation(dependencies)}`
     : chromiumInstallFailureDetail(result)
   return {
     ok: false,
@@ -301,10 +300,10 @@ export async function ensureChromium(
     data: {
       event: 'chromium.unavailable',
       reason: 'chromium-install-failed',
-      detail: `${label} のために ${AUTO_INSTALL_ENV}=1 で chromium を取得しようとして失敗しました。${detail}`,
+      detail: `downloading chromium with ${AUTO_INSTALL_ENV}=1 for ${label} failed: ${detail}`,
       expectedAt: expectedLocation(dependencies),
     },
-    message: `Playwright Chromium の取得に失敗したため ${label} を実行できません`,
+    message: `cannot run ${label}: Playwright Chromium download failed`,
     // 失敗原因が stdout 側にあることもある (playwright install は進捗・取得先を stdout へ書く)。
     ...spawnOutputPart(result),
   }
@@ -371,11 +370,11 @@ export function ensureRuntimeDependencies(
     data: {
       event: 'runtime-dependencies.unavailable',
       reason: 'runtime-dependencies-not-installed',
-      detail: `${label} は @slidev/cli / dom-to-pptx / @slidev/parser を必要としますが、解決できません。`
+      detail: `${label} needs @slidev/cli / dom-to-pptx / @slidev/parser, which cannot be resolved; `
         + DEPENDENCY_RECOVERY_HINT,
       expectedAt,
     },
-    message: `実行時依存が未取得のため ${label} を実行できません。\`setup\` ツールを呼んでください`,
+    message: `cannot run ${label}: runtime dependencies are not installed; call the \`setup\` tool`,
   }
 }
 
@@ -397,14 +396,14 @@ subject は拒む文言の主語（どの形の指定かを示す）。
 function absoluteThemePath(filePath: string, subject: string, original: string): { readonly ok: true, readonly path: string } | { readonly ok: false, readonly detail: string } {
   const conversion = toPosixPath(filePath)
   if (conversion.kind === 'unsupported') {
-    return { ok: false, detail: `${subject}のパスを解決できません: ${conversion.reason}` }
+    return { ok: false, detail: `cannot resolve ${subject} path: ${conversion.reason}` }
   }
   const resolved = conversion.kind === 'converted' ? conversion.path : filePath
   if (!path.isAbsolute(resolved)) {
     return {
       ok: false,
-      detail: `${subject}には絶対パスを指定してください（受け取った値: ${original}）。`
-        + 'MCP サーバの作業ディレクトリは呼び出し元と異なるため、相対パスは解決できません',
+      detail: `${subject} must be an absolute path: ${original}`
+        + ' (the MCP server working directory differs from the caller, so relative paths cannot be resolved)',
     }
   }
   return { ok: true, path: resolved }
@@ -418,10 +417,10 @@ slide_create はパスを受けないため、その値はそのまま返し、�
 */
 export function normalizeThemeArgument(theme: string, options: Readonly<{ allowPath?: boolean }> = {}): NormalizedThemeArgument {
   if (theme.startsWith(FILE_THEME_PREFIX)) {
-    const absolute = absoluteThemePath(theme.slice(FILE_THEME_PREFIX.length), 'theme の file: ', theme)
+    const absolute = absoluteThemePath(theme.slice(FILE_THEME_PREFIX.length), 'theme file:', theme)
     return absolute.ok ? { ok: true, theme: `${FILE_THEME_PREFIX}${absolute.path}` } : absolute
   }
   if (options.allowPath !== true || theme.startsWith(GIT_THEME_PREFIX)) return { ok: true, theme }
-  const absolute = absoluteThemePath(theme, 'theme ', theme)
+  const absolute = absoluteThemePath(theme, 'theme', theme)
   return absolute.ok ? { ok: true, theme: absolute.path } : absolute
 }

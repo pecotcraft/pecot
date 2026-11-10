@@ -20,9 +20,9 @@ import type { ToolDefinition } from '../server.js'
 import { captureCommandOutput, formatError, textViolationMessage, TOOL_OUTPUT_SCHEMA, violationCountOf, WINDOWS_PATH_NOTE } from './_shared.js'
 
 const evidenceCreateInput = z.object({
-  input_path: z.string().describe('EvidenceSpec JSON の絶対パス。' + WINDOWS_PATH_NOTE),
+  input_path: z.string().describe('Absolute path of the EvidenceSpec JSON. ' + WINDOWS_PATH_NOTE),
   out_path: z.string().optional().describe(
-    '出力する xlsx の絶対パス。省略時は input_path と同じディレクトリの evidence.xlsx。' + WINDOWS_PATH_NOTE,
+    'Absolute path of the xlsx to write. If omitted, evidence.xlsx in the same directory as input_path. ' + WINDOWS_PATH_NOTE,
   ),
 })
 
@@ -57,13 +57,13 @@ async function handleEvidenceCreate(
       { input: input.input_path, out: input.out_path ?? defaultOutPath(input.input_path) },
       dependencies,
     )
-    const counts = `項目 ${String(data.items)} 件 / 注記 ${String(data.annotations)} 件 / 除外 ${String(data.skipped.length)} 件`
+    const counts = `${String(data.items)} items; ${String(data.annotations)} annotations; ${String(data.skipped.length)} skipped`
     return toCallToolResult({
       ok: true,
       exitCode: 0,
       artifacts: [data.outPath],
       data: { ...data },
-      message: `エビデンス xlsx を生成しました: ${data.outPath} (${counts})`,
+      message: `generated evidence xlsx: ${data.outPath} (${counts})`,
       ...output.part(),
     })
   }
@@ -86,11 +86,11 @@ async function handleEvidenceCreate(
 export const evidenceCreateTool: ToolDefinition = {
   name: 'evidence_create',
   config: {
-    title: 'エビデンス xlsx 生成',
+    title: 'Generate evidence xlsx',
     description:
-      'EvidenceSpec JSON からスクリーンショット貼り付け済みの作業エビデンス xlsx を生成する。'
-      + ' spec に列挙した画像を順に配置し、注記を添える。'
-      + ' 生成前に title・caption・注記の文言を文章規則で確認し、違反があれば生成しない。',
+      'Generates a work-evidence xlsx with screenshots pasted in, from an EvidenceSpec JSON.'
+      + ' Places the images listed in the spec in order and adds annotations.'
+      + ' Before generating, it checks the title, captions and annotations against the text rules and generates nothing if there is a violation.',
     inputSchema: evidenceCreateInput,
     outputSchema: TOOL_OUTPUT_SCHEMA,
     // ローカルの spec / 画像を読んで xlsx を書くだけでネットワークには到達しない。

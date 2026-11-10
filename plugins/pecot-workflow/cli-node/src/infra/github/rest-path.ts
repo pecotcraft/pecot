@@ -13,7 +13,7 @@ const EXTRA_RESERVED: ReadonlyMap<string, string> = new Map([['!', '%21'], ['\''
 `.` と `..` は GitHubAPIError
 */
 export function encodePathSegment(segment: string): string {
-  if (segment === '.' || segment === '..') throw new GitHubAPIError(`URL のパスに使えない名前です: ${segment}`)
+  if (segment === '.' || segment === '..') throw new GitHubAPIError(`name not usable in a URL path: ${segment}`)
   return splitCodePoints(encodeURIComponent(segment))
     .map(character => EXTRA_RESERVED.get(character) ?? character)
     .join('')

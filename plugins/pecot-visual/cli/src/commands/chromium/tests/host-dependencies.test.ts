@@ -81,7 +81,7 @@ describe('pecotv chromium host-deps', () => {
 
   it('apt-get を始める前に、何を入れるかを stderr に出す', async () => {
     const result = await runCommand({ probes: [LIBATK_FAILURE, undefined] })
-    expect(result.stderr).toMatch(/^note: .*apt-get で入れます/)
+    expect(result.stderr).toMatch(/^note: .*installing them with apt-get/)
     expect(result.stderr.indexOf('apt-get で入れます')).toBeLessThan(result.stderr.indexOf('added: '))
   })
 
@@ -95,14 +95,14 @@ describe('pecotv chromium host-deps', () => {
 
   it('OS ライブラリ以外の起動失敗は理由を出して通し、失敗として記録する', async () => {
     const result = await runCommand({ probes: ['browserType.launch: Executable doesn\'t exist at /x/chrome'] })
-    expect(result.stderr).toMatch(/^warning: .*OS のライブラリ以外の原因/)
+    expect(result.stderr).toMatch(/^warning: .*cause other than OS libraries/)
     expect(result.exitCode).toBeUndefined()
     expect(result.records).toEqual(['launch-failed'])
   })
 
   it('--require-launch では OS ライブラリ以外の起動失敗も exit 3 にする', async () => {
     const result = await runCommand({ probes: ['browserType.launch: Executable doesn\'t exist at /x/chrome'], arguments_: ['--require-launch'] })
-    expect(result.stderr).toMatch(/^error: .*OS のライブラリ以外の原因/)
+    expect(result.stderr).toMatch(/^error: .*cause other than OS libraries/)
     expect(result.exitCode).toBe(LAUNCH_FAILED_EXIT_CODE)
     expect(result.records).toEqual(['launch-failed'])
   })

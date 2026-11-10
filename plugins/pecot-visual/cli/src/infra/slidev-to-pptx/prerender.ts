@@ -17,17 +17,17 @@ async function executeWaitStrategy(
   wait: Readonly<ResolvedWait>,
   logger: Logger,
 ): Promise<void> {
-  logger.verbose(`  ${target.selector}: 待機戦略=${wait.type}`)
+  logger.verbose(`  ${target.selector}: wait strategy: ${wait.type}`)
   if (wait.selectorWait !== undefined) {
     try {
       await waitForSelectorInVisibleSlide(hiResPage, target.selector, wait.selectorWait.selector, {
         state: wait.selectorWait.state,
         timeout: wait.selectorWait.timeout,
       })
-      logger.info(`  ${target.selector}: レンダリング完了を検出`)
+      logger.info(`  ${target.selector}: render completion detected`)
     }
     catch (error) {
-      logger.warn(`  警告: ${target.selector} のレンダリング待機がタイムアウト: ${errorMessage(error)}`)
+      logger.warn(`  ${target.selector}: render wait timed out: ${errorMessage(error)}`)
     }
   }
   if (wait.delay > 0) {
@@ -48,7 +48,7 @@ export async function prerenderComplexElements(
   let globalIndex = 0
   for (const target of config.targets) {
     const elements = await locateTargetsInVisibleSlides(page, target.selector)
-    logger.verbose(`  ${target.selector}: ${elements.length.toString()}件検出`)
+    logger.verbose(`  ${target.selector}: ${elements.length.toString()} found`)
 
     if (elements.length === 0) {
       continue
@@ -79,9 +79,9 @@ export async function prerenderComplexElements(
       await waitForCssAnimations(hiResPage, timeouts.cssAnimationSettle, logger)
 
       const hiResElements = await locateTargetsInVisibleSlides(hiResPage, target.selector)
-      logger.verbose(`  ${target.selector}: ${hiResElements.length.toString()}件検出 (hiRes)`)
+      logger.verbose(`  ${target.selector}: ${hiResElements.length.toString()} found (hiRes)`)
       if (elements.length !== hiResElements.length) {
-        logger.warn(`  警告: ${target.selector} の検出数が不一致 (page: ${elements.length.toString()}, hiRes: ${hiResElements.length.toString()})`)
+        logger.warn(`  ${target.selector}: detected count mismatch (page: ${elements.length.toString()}, hiRes: ${hiResElements.length.toString()})`)
       }
 
       const captureResult = await captureAndReplaceElements({ hiResPage, elements, hiResElements, target, config, slideNum, slidesDir, globalIndex, logger })
@@ -89,10 +89,10 @@ export async function prerenderComplexElements(
       globalIndex += captureResult.processedCount
 
       if (captureResult.count > 0) {
-        logger.info(`  プリレンダリング: ${target.selector} → ${captureResult.count.toString()}件を画像化 (${config.deviceScaleFactor.toString()}x)`)
+        logger.info(`  prerender: ${target.selector} → ${captureResult.count.toString()} rendered to images (${config.deviceScaleFactor.toString()}x)`)
       }
       if (captureResult.errors.length > 0) {
-        logger.warn(`  警告: ${target.selector} で ${captureResult.errors.length.toString()}件のエラー`)
+        logger.warn(`  ${target.selector}: ${captureResult.errors.length.toString()} errors`)
         for (const error of captureResult.errors) logger.warn(`    - ${error}`)
       }
     }
@@ -125,10 +125,10 @@ export async function restorePrerenderElements(page: Readonly<Page>, logger: Log
     imgs: globalThis.document.querySelectorAll(`${scopePrefix}[data-prerender-img]`).length,
   }), prefix)
   if (remaining.hidden > 0 || remaining.imgs > 0) {
-    logger.warn(`  警告: DOM復元が不完全 — 残存: hidden=${remaining.hidden.toString()}, img=${remaining.imgs.toString()}`)
+    logger.warn(`  DOM restore incomplete; remaining: hidden=${remaining.hidden.toString()}, img=${remaining.imgs.toString()}`)
   }
 
-  logger.verbose('プリレンダリング要素を復元')
+  logger.verbose('prerender elements restored')
 }
 /* eslint-enable unicorn/name-replacements, no-restricted-syntax */
 /* eslint-enable @typescript-eslint/prefer-readonly-parameter-types */

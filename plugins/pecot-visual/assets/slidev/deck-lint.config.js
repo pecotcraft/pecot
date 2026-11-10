@@ -38,8 +38,8 @@ export function defineDeckLintConfig({ referencesDirectories, panels, markerLayo
   const isValid = Array.isArray(referencesDirectories) && isRecord(panels) && Array.isArray(markerLayouts) && isRecord(rules)
   if (!isValid) {
     throw new TypeError(
-      'defineDeckLintConfig の引数が不正です。'
-      + 'referencesDirectories と markerLayouts は配列、panels と rules は object で渡してください',
+      'invalid argument to defineDeckLintConfig '
+      + '(fix: pass referencesDirectories and markerLayouts as arrays, and panels and rules as objects)',
     )
   }
   const settings = { 'slidev-theme': { referencesDirectories, panels, markerLayouts } }

@@ -52,7 +52,7 @@ describe('validateSemver', () => {
   it('エラー文は版と案内を含む', () => {
     expect(() => {
       validateSemver('v1.2.3')
-    }).toThrow('無効なバージョン形式: v1.2.3\nセマンティックバージョニング形式（X.Y.Z）を使用してください')
+    }).toThrow('invalid version format: v1.2.3\nuse semantic versioning (X.Y.Z)')
   })
 
   // Python の `^\d+\.\d+\.\d+$` と同じ判定（`$` は末尾の改行の前でも合う。\d は Unicode の 10 進数字）
@@ -100,7 +100,7 @@ describe('getLatestVersion', () => {
 最初のリリース前
 `
     expect(() => getLatestVersion(content)).toThrow(VersionNotFoundError)
-    expect(() => getLatestVersion(content)).toThrow('CHANGELOG.mdにバージョンが見つかりません\n最初のリリースの場合は手動でバージョンを指定してください')
+    expect(() => getLatestVersion(content)).toThrow('no version found in CHANGELOG.md\nfor a first release, specify the version manually')
   })
 
   it('見出し記号とバージョンの間は空白 1 つ以上', () => {
@@ -165,7 +165,7 @@ describe('extractVersionReleaseNotes', () => {
 
   it('存在しないバージョンは VersionNotFoundError（バージョンを文に含む）', () => {
     expect(() => extractVersionReleaseNotes(content, '9.9.9')).toThrow(VersionNotFoundError)
-    expect(() => extractVersionReleaseNotes(content, '9.9.9')).toThrow('バージョン 9.9.9 がCHANGELOG.mdに見つかりません')
+    expect(() => extractVersionReleaseNotes(content, '9.9.9')).toThrow('version not found in CHANGELOG.md: 9.9.9')
   })
 
   it('空のリリースノートは空文字列', () => {
@@ -195,20 +195,20 @@ describe('extractVersionReleaseNotes', () => {
 
 describe('ファイル名を渡したときの文', () => {
   it('getLatestVersion のバージョン無しの文は、渡したファイル名を使う', () => {
-    expect(() => getLatestVersion('## [Unreleased]', 'AIST-CHANGELOG.md')).toThrow('AIST-CHANGELOG.mdにバージョンが見つかりません\n最初のリリースの場合は手動でバージョンを指定してください')
+    expect(() => getLatestVersion('## [Unreleased]', 'AIST-CHANGELOG.md')).toThrow('no version found in AIST-CHANGELOG.md\nfor a first release, specify the version manually')
   })
 
   it('extractVersionReleaseNotes のバージョン無しの文は、渡したファイル名を使う', () => {
-    expect(() => extractVersionReleaseNotes('## [0.6.0]', '9.9.9', 'AIST-CHANGELOG.md')).toThrow('バージョン 9.9.9 がAIST-CHANGELOG.mdに見つかりません')
+    expect(() => extractVersionReleaseNotes('## [0.6.0]', '9.9.9', 'AIST-CHANGELOG.md')).toThrow('version not found in AIST-CHANGELOG.md: 9.9.9')
   })
 })
 
 describe('changelogNotFoundMessage', () => {
   it.each([
-    ['/repo/CHANGELOG.md', 'CHANGELOG.mdが見つかりません: /repo/CHANGELOG.md'],
-    ['/repo/AIST-CHANGELOG.md', 'AIST-CHANGELOG.mdが見つかりません: /repo/AIST-CHANGELOG.md'],
-    ['docs/CUSTOM.md', 'CUSTOM.mdが見つかりません: docs/CUSTOM.md'],
-    ['CHANGELOG.md', 'CHANGELOG.mdが見つかりません: CHANGELOG.md'],
+    ['/repo/CHANGELOG.md', 'CHANGELOG.md not found: /repo/CHANGELOG.md'],
+    ['/repo/AIST-CHANGELOG.md', 'AIST-CHANGELOG.md not found: /repo/AIST-CHANGELOG.md'],
+    ['docs/CUSTOM.md', 'CUSTOM.md not found: docs/CUSTOM.md'],
+    ['CHANGELOG.md', 'CHANGELOG.md not found: CHANGELOG.md'],
   ])('%s', (changelogPath, expected) => {
     expect(changelogNotFoundMessage(changelogPath)).toBe(expected)
   })

@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: リポジトリが曖昧です。--repo <owner/repo> を明示してください。\n",
+  "stderr": "error: repository is ambiguous: pass --repo <owner/repo>\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

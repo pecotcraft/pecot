@@ -131,7 +131,7 @@ async function execute(argv: readonly string[], context: Readonly<CliContext>, w
   }
   catch (error: unknown) {
     if (!(error instanceof InvalidValueError)) throw error
-    context.io.stderr(`${error.message}\n`)
+    context.io.stderr(`error: ${error.message}\n`)
     return 1
   }
   if (options.showRepo) return showRepository(options.repo, context)

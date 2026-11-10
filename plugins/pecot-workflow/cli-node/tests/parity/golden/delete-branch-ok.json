@@ -1,6 +1,6 @@
 {
-  "stdout": "ブランチ 'feat/7' を削除しました (acme/demo)\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "deleted: remote branch feat/7 in acme/demo\n",
   "exitCode": 0,
   "requests": [
     {

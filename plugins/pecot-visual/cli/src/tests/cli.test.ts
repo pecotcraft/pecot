@@ -105,7 +105,7 @@ describe('pecotv CLI', () => {
     try {
       main('24.20.0')
       expect(process.exitCode).toBe(1)
-      expect(writes.join('')).toContain('error: Node.js 24.20.0 は既知の脆弱性の修正を含まない')
+      expect(writes.join('')).toContain('error: Node.js 24.20.0 does not include fixes for known vulnerabilities')
       expect(isStdoutSpy).not.toHaveBeenCalled()
     }
     finally {
@@ -218,7 +218,7 @@ describe('pecotv CLI', () => {
     }
     const out = isWriteSpy.mock.calls.map(c => c[0]).join('')
     expect(out).toContain('evidence')
-    expect(out).toContain('エビデンス xlsx に対する操作')
+    expect(out).toContain('operate on evidence xlsx files')
     expect(isErrorSpy).not.toHaveBeenCalled()
   })
 

@@ -18,7 +18,7 @@ SUMMARY_MAX_CHARS = 50
 # テンプレに無い `##` / `###` 見出しを拒否するテンプレ名（template_path.stem）と、
 # 拒否したときに添える案内文。テンプレごとに閉じた見出しの集合を持たせる（#1330）
 CLOSED_HEADINGS_BY_TEMPLATE: dict[str, str] = {
-    "plan": "他の見出しに収まらない内容は ### Notes に書いてください",
+    "plan": "put content that fits no other heading under ### Notes",
 }
 
 # 折りたたみの開閉部分（<summary>）に許す唯一の形。文言を揃え、開閉部分を右寄せにする
@@ -26,16 +26,16 @@ CLOSED_HEADINGS_BY_TEMPLATE: dict[str, str] = {
 PLAN_FOLD_SUMMARY = '<summary align="right">詳細はこちら</summary>'
 FOLD_SUMMARY_BY_TEMPLATE: dict[str, str] = {"plan": PLAN_FOLD_SUMMARY}
 
-# 検証エラー文。テンプレの規約ブロックとの対応を tests/unit/test_template_rules.py が固定する
-CHECKBOX_ERROR = "チェックボックス記法 (- [ ] / 1. [ ]) は使用できません"
-HORIZONTAL_RULE_ERROR = "水平線は使用できません"
-EMOJI_ERROR = "絵文字は使用できません"
+# 投稿時に弾く記法の検証エラー文（英語）。テンプレには規則として書かない（tests/unit/test_template_rules.py の冒頭）
+CHECKBOX_ERROR = "checkbox syntax (- [ ] / 1. [ ]) is not allowed"
+HORIZONTAL_RULE_ERROR = "horizontal rules are not allowed"
+EMOJI_ERROR = "emoji are not allowed"
 SOFT_BREAK_ERROR = (
-    "段落の中で改行しています。GitHub は改行をそのまま表示するので、"
-    "段落は 1 行で書き、段落の間は空行で分けてください"
+    "a paragraph is broken across lines: GitHub shows line breaks as written, "
+    "so write each paragraph on one line and separate paragraphs with a blank line"
 )
-SUMMARY_NOT_JAPANESE_ERROR = "サマリに日本語が含まれていません"
-SUMMARY_MULTI_SENTENCE_ERROR = "サマリは 1 文で書いてください"
+SUMMARY_NOT_JAPANESE_ERROR = "the summary must be written in Japanese"
+SUMMARY_MULTI_SENTENCE_ERROR = "the summary must be one sentence"
 
 # GitHub が Markdown 描画時にサニタイズせず通す HTML タグのうち、投稿本文で
 # 実際に使うもの。この一覧に無いタグ形状の <...> は未編集プレースホルダ扱い
@@ -200,7 +200,7 @@ def validate_sections(body: str, required_sections: list[tuple[int, str]]) -> li
         required_sections: (level, section_name) のタプルリスト。
 
     Returns:
-        不足しているセクションの表記リスト（例: ["### Done — <サマリ>", "### Next — <サマリ>"]）。
+        不足しているセクションの表記リスト（例: ["### Done — <summary>", "### Next — <summary>"]）。
 
     Note:
         em-dash 付きの見出しは「ベース名 + em-dash + サマリ」の形があるかだけを見る。
@@ -217,7 +217,7 @@ def validate_sections(body: str, required_sections: list[tuple[int, str]]) -> li
         if " — " in section:
             base = section.split(" — ", 1)[0]
             if not _find_em_dash_heading(body, prefix, base):
-                missing.append(f"{prefix} {base} — <サマリ>")
+                missing.append(f"{prefix} {base} — <summary>")
             continue
 
         # それ以外は前方一致チェック（セクション名で始まればOK）
@@ -236,7 +236,7 @@ def validate_heading_summaries(body: str, required_sections: list[tuple[int, str
         required_sections: (level, section_name) のタプルリスト。
 
     Returns:
-        違反の表記リスト（例: ["## Verified — サマリに日本語が含まれていません"]）。
+        違反の表記リスト（例: ["## Verified — the summary must be written in Japanese"]）。
         見出し自体が無いものは validate_sections が不足として返すため、ここでは扱わない。
     """
     errors: list[str] = []
@@ -262,7 +262,7 @@ def _summary_errors(summary: str) -> list[str]:
     """em-dash サマリの規則違反（文字数・日本語・1 文）を返す"""
     errors: list[str] = []
     if len(summary) > SUMMARY_MAX_CHARS:
-        errors.append(f"サマリが{len(summary)}文字です（上限{SUMMARY_MAX_CHARS}文字）")
+        errors.append(f"the summary is {len(summary)} characters (limit: {SUMMARY_MAX_CHARS})")
     if not _JAPANESE_CHAR_RE.search(summary):
         errors.append(SUMMARY_NOT_JAPANESE_ERROR)
     sentence = summary.rstrip(_CLOSING_BRACKETS)
@@ -305,8 +305,8 @@ def _mask_fenced_code(body: str) -> tuple[list[str], bool]:
     return lines, bool(fence_char)
 
 
-def _mask_inline_code(line: str) -> str:
-    """インラインコードスパンを同じ長さの空白へ置換する。
+def _mask_inline_code(line: str, fill: str = " ") -> str:
+    """インラインコードスパンを同じ長さの fill（既定は空白）へ置換する。
 
     CommonMark のバッククォート・ラン規則（同じ長さのランで閉じる）に従い、
     ``` `- [ ]` ``` や二重バッククォートのスパンを検証対象から外す。
@@ -339,25 +339,25 @@ def _mask_inline_code(line: str) -> str:
             continue
 
         out.append(line[pos : opener.start()])
-        out.append(" " * (closer.end() - opener.start()))
+        out.append(fill * (closer.end() - opener.start()))
         pos = closer.end()
 
 
-def _blank_keeping_newlines(text: str) -> str:
-    return "".join("\n" if ch == "\n" else " " for ch in text)
+def _blank_keeping_newlines(text: str, fill: str = " ") -> str:
+    return "".join("\n" if ch == "\n" else fill for ch in text)
 
 
-def _masked_lines(body: str) -> tuple[list[str], bool]:
+def _masked_lines(body: str, fill: str = " ") -> tuple[list[str], bool]:
     """フェンス・インラインコード・HTML コメントの中身を消した行リストを返す。
 
-    フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの空白になる。
+    フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの fill になる。
 
     Returns:
         (マスク済みの行リスト, 未閉じフェンスがあるか)
     """
     lines, unclosed = _mask_fenced_code(body)
-    masked = "\n".join(_mask_inline_code(line) for line in lines)
-    masked = _HTML_COMMENT_RE.sub(lambda m: _blank_keeping_newlines(m.group(0)), masked)
+    masked = "\n".join(_mask_inline_code(line, fill) for line in lines)
+    masked = _HTML_COMMENT_RE.sub(lambda m: _blank_keeping_newlines(m.group(0), fill), masked)
     return masked.split("\n"), unclosed
 
 
@@ -514,18 +514,20 @@ def validate_body_style(body: str) -> list[str]:
     masked_lines, unclosed = _masked_lines(body)
     if unclosed:
         # 何も言わずに通すとフェンス以降が丸ごと未検証になる（検証バイパス）
-        return ["コードフェンスが閉じられていません"]
+        return ["code fence is not closed"]
 
     errors: list[str] = []
     seen: set[str] = set()
 
-    line_rules: tuple[tuple[str, Callable[[str], bool]], ...] = (
-        (CHECKBOX_ERROR, _has_checkbox),
-        (HORIZONTAL_RULE_ERROR, _has_horizontal_rule),
-        (EMOJI_ERROR, _has_emoji),
+    # 水平線は記号と空白だけの行なので、コード・コメントは記号でない "`" で埋めて判定する
+    rule_lines, _ = _masked_lines(body, fill="`")
+    line_rules: tuple[tuple[str, Callable[[str], bool], list[str]], ...] = (
+        (CHECKBOX_ERROR, _has_checkbox, masked_lines),
+        (HORIZONTAL_RULE_ERROR, _has_horizontal_rule, rule_lines),
+        (EMOJI_ERROR, _has_emoji, masked_lines),
     )
-    for message, matches in line_rules:
-        if any(matches(line) for line in masked_lines):
+    for message, matches, target in line_rules:
+        if any(matches(line) for line in target):
             errors.append(message)
     if _has_soft_break(masked_lines, body.split("\n")):
         errors.append(SOFT_BREAK_ERROR)
@@ -537,9 +539,9 @@ def validate_body_style(body: str) -> list[str]:
             if _is_allowed_token(token):
                 continue
             if heading:
-                message = f"{heading.group(1)} 見出しに未編集プレースホルダ {token} が残っています"
+                message = f"unedited placeholder {token} remains in the {heading.group(1)} heading"
             else:
-                message = f"未編集プレースホルダ {token} が残っています"
+                message = f"unedited placeholder {token} remains"
             if message in seen:
                 continue
             seen.add(message)
@@ -575,10 +577,10 @@ def validate_fold_balance(body: str) -> list[str]:
                 continue
             depth += -1 if match.group(0).startswith("</") else 1
             if depth < 0:
-                return ["<details> に対応する開きタグがありません"]
+                return ["<details> has no matching opening tag"]
 
     if depth != 0:
-        return ["<details> が閉じられていません"]
+        return ["<details> is not closed"]
     return []
 
 
@@ -643,7 +645,7 @@ def validate_fold_summaries(body: str, expected: str) -> list[str]:
                 continue
             if masked_line.startswith(expected, match.start()):
                 continue
-            message = f"{masked_line.strip()} は {expected} にしてください"
+            message = f"{masked_line.strip()} must be {expected}"
             if message not in errors:
                 errors.append(message)
     return errors

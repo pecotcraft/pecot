@@ -100,11 +100,11 @@ describe('toPosixPath', () => {
     expect(conversion.kind === 'unsupported' ? conversion.reason : '').toContain('Debian')
   })
 
-  it('WSL_DISTRO_NAME 未設定なら UNC は解決不能にする', () => {
+  it('WSL_DISTRO_NAME unsetなら UNC は解決不能にする', () => {
     const conversion = toPosixPath(String.raw`\\wsl$\Ubuntu-24.04\home`, { PECOTV_WSL_MOUNT_ROOT: '/pecotv-mount' })
 
     expect(conversion.kind).toBe('unsupported')
-    expect(conversion.kind === 'unsupported' ? conversion.reason : '').toContain('未設定')
+    expect(conversion.kind === 'unsupported' ? conversion.reason : '').toContain('unset')
   })
 
   it('ドライブ相対パスは解決不能にする', () => {
@@ -132,7 +132,7 @@ describe('toPosixPath', () => {
     expect(toPosixPath(String.raw`\deck\slides.md`, TEST_ENV)).toEqual({ kind: 'unchanged' })
   })
 
-  it('PECOTV_WSL_MOUNT_ROOT が未設定・空・非絶対のときは /mnt へ倒す', () => {
+  it('PECOTV_WSL_MOUNT_ROOT がunset・空・非絶対のときは /mnt へ倒す', () => {
     expect(toPosixPath(String.raw`C:\work`, { WSL_DISTRO_NAME: 'Ubuntu' }))
       .toEqual({ kind: 'converted', path: '/mnt/c/work' })
     expect(toPosixPath(String.raw`C:\work`, { PECOTV_WSL_MOUNT_ROOT: '' }))

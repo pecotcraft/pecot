@@ -42,7 +42,7 @@ plugin_data_dir_resolve() {
         printf '%s\n' "${home}/.local/share/pecot/${project}"
         return 0
     fi
-    echo "${project}: HOME is not set (or is not an absolute path), so the data directory cannot be determined. Set HOME or XDG_DATA_HOME." >&2
+    echo "${project}: cannot decide the data directory because HOME is unset or not an absolute path (fix: set HOME or XDG_DATA_HOME)" >&2
     return 1
 }
 
@@ -53,7 +53,7 @@ plugin_data_dir_ensure() {
     [ -n "$project" ] || { echo "plugin_data_dir_ensure: project name is required" >&2; exit 127; }
     data="$(plugin_data_dir_resolve "$project")" || return 1
     if ! mkdir -p "$data" 2>/dev/null; then
-        echo "${project}: cannot create the data directory (${data})." >&2
+        echo "${project}: cannot create the data directory: ${data}" >&2
         return 1
     fi
     printf '%s\n' "$data"
@@ -110,7 +110,7 @@ pnpm_resolution_hint() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -z "$version" ]; then
-            echo "npx is available, but the pnpm version could not be read from packageManager in ${plugin_root}/package.json. Check the plugin root and the packageManager entry."
+            echo "npx is available but the pnpm version could not be read from packageManager in ${plugin_root}/package.json (fix: check the plugin root and the packageManager field)"
             return
         fi
     fi

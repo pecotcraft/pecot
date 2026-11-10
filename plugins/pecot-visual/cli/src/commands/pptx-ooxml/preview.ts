@@ -195,7 +195,7 @@ async function sha256Of(filePath: string): Promise<string> {
 
 function inputOpenFailure(inputAbs: string, error: unknown): PreviewRuntimeError {
   return new PreviewRuntimeError(
-    `input PPTX を開けません: ${inputAbs}: ${formatError(error)}`,
+    `cannot open input PPTX: ${inputAbs}: ${formatError(error)}`,
     'input-open-failed',
   )
 }
@@ -250,7 +250,7 @@ export async function runPreview(
     /* c8 ignore next 6 -- detect-only は read-only 設計のため sha 変化ルートは到達不能。Acceptance 3 の防御網 */
     if (detectAfterSha !== detectInputSha) {
       throw new PreviewRuntimeError(
-        `入力 PPTX が変更されました (sha256 mismatch): ${inputAbs}`,
+        `input PPTX changed (sha256 mismatch): ${inputAbs}`,
         'input-mutated',
       )
     }
@@ -293,7 +293,7 @@ export async function runPreview(
     /* c8 ignore next 6 -- 入力は read-only 設計のため sha 変化ルートは到達不能。Acceptance 3 の防御網 */
     if (afterSha !== inputSha) {
       throw new PreviewRuntimeError(
-        `入力 PPTX が変更されました (sha256 mismatch): ${inputAbs}`,
+        `input PPTX changed (sha256 mismatch): ${inputAbs}`,
         'input-mutated',
       )
     }
@@ -331,20 +331,20 @@ async function convertToPdf(
   catch (error: unknown) {
     if (error instanceof SofficeTimeoutError) {
       throw new PreviewRuntimeError(
-        `soffice の PDF 変換が ${String(error.timeoutMs)}ms でタイムアウトしました`,
+        `soffice PDF conversion timed out after ${String(error.timeoutMs)}ms`,
         'soffice-timeout',
       )
     }
     if (error instanceof SofficeSpawnError) {
       throw new PreviewRuntimeError(
-        `soffice (LibreOffice) が見つかりません。'sudo apt-get install -y libreoffice-impress'`
-        + ` でインストールしてください: ${error.stderr}`,
+        `soffice (LibreOffice) is not installed; run 'sudo apt-get install -y libreoffice-impress'`
+        + `: ${error.stderr}`,
         'soffice-not-found',
       )
     }
     /* c8 ignore next 5 -- PdfConverter は SofficeSpawnError / SofficeTimeoutError 以外を投げない契約。防御網 */
     throw new PreviewRuntimeError(
-      `PDF 変換に失敗しました: ${formatError(error)}`,
+      `PDF conversion failed: ${formatError(error)}`,
       'soffice-conversion-failed',
     )
   }
@@ -356,8 +356,8 @@ async function convertToPdf(
   const pdfSize = await pdfFileSize(result.pdfPath)
   if (pdfSize === 0) {
     throw new PreviewRuntimeError(
-      `soffice が PDF を生成できませんでした (出力 PDF が不在 or 空): ${result.pdfPath}`
-      + `。PPTX の変換には libreoffice-impress が必要です`
+      `soffice did not produce a PDF (output PDF missing or empty): ${result.pdfPath}`
+      + `; PPTX conversion requires libreoffice-impress`
       + ` ('sudo apt-get install -y libreoffice-impress')`,
       'soffice-conversion-failed',
     )
@@ -465,7 +465,7 @@ export function errorToReason(error: unknown): string {
 function formatFindingLine(finding: Readonly<SlideFinding>): string {
   const shape = finding.shapeName === undefined ? '(unnamed)' : `"${finding.shapeName}"`
   return `slide ${String(finding.slide)}: shape ${shape}`
-    + ` — spAutoFit + wrap=none (LibreOffice で中央寄せ描画の既知差異)`
+    + ` — spAutoFit + wrap=none (known LibreOffice centered-rendering difference)`
 }
 
 function doesArgvWantJson(argv: readonly string[]): boolean {
@@ -477,13 +477,13 @@ export function createPptxPreviewCommand(
 ): Command {
   const command = new Command('preview')
     .description(
-      'PPTX のプレビュー PDF を生成する (LibreOffice 描画差異を補正)。元 PPTX は変更しない',
+      'generate a preview PDF of a PPTX, correcting LibreOffice rendering differences; the original PPTX is not modified',
     )
     .argument('<input>', 'input .pptx path')
-    .option('--out <path>', 'output .pdf path (省略時: <input-dir>/<input-stem>.preview.pdf)')
+    .option('--out <path>', 'output .pdf path (default: <input-dir>/<input-stem>.preview.pdf)')
     .option('--json', 'emit machine-readable result on stdout', false)
     .option('--report <path>', 'write findings JSON to <path>')
-    .option('--detect-only', 'soffice を呼ばず検知レポートのみ出力する', false)
+    .option('--detect-only', 'print only the detection report without calling soffice', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {

@@ -1,6 +1,6 @@
 {
-  "stdout": "--- dry-run モード（実行されません）---\nワークツリー: wt1\n  パス: {{TMP}}/wt1/demo\n  ブランチ: wt1\n  ベース: main\n",
-  "stderr": "",
+  "stdout": "{{TMP}}/wt1/demo\n",
+  "stderr": "dry-run: would create worktree wt1 at {{TMP}}/wt1/demo (branch wt1 from main)\n",
   "exitCode": 0,
   "requests": [],
   "files": {

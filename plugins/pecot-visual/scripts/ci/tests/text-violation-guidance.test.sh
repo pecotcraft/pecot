@@ -46,7 +46,7 @@ check_markers() {
 
 DRAWIO_MARKERS=('text-violation' 'violations[].item' 'text-lint-failed' "$KEEP_RULES")
 EVIDENCE_MARKERS=('text-violation' 'text-lint-failed' 'violations[].item' "$KEEP_RULES")
-SLIDEV_MARKERS=('本文 L<n>' '発表者ノート L<n>' 'text-constraints/textlint-body' "$KEEP_RULES")
+SLIDEV_MARKERS=('body L<n>' 'speaker notes L<n>' 'text-constraints/textlint-body' "$KEEP_RULES")
 
 check_markers skills/v-drawio/SKILL.md "${DRAWIO_MARKERS[@]}"
 check_markers agents/v-diagram-creator.md "${DRAWIO_MARKERS[@]}"

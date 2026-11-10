@@ -118,18 +118,18 @@ export function classifyGitFailure(stderr: string): GitFailureKind {
 export function gitFailureAdvice(kind: GitFailureKind, spec: Readonly<ThemeStoreSpec>): string {
   switch (kind) {
     case 'connection': {
-      return `テーマの取得元 ${spec.url} に接続できません。ネットワークとプロキシを確認してください。`
-        + 'SSL 証明書の検証で止まる場合は、git の http.sslCAInfo に、TLS を中継するプロキシの CA の証明書の束を指定してください。'
+      return `cannot connect to the theme source: ${spec.url} (fix: check the network and proxy; `
+        + 'if it stops at SSL certificate verification, set git http.sslCAInfo to the CA bundle of the TLS-intercepting proxy)'
     }
     case 'auth': {
-      return `テーマの取得元 ${spec.url} の認証に失敗しました。`
-        + 'git の認証情報（credential helper か SSH 鍵）を設定してから、やり直してください。'
+      return `authentication failed for the theme source: ${spec.url} `
+        + '(fix: set up git credentials, a credential helper or an SSH key, and retry)'
     }
     case 'tag': {
-      return `テーマの取得元 ${spec.url} にタグ '${spec.tag}' がありません。タグ名を確認してください。ブランチ名は指定できません。`
+      return `tag not found in the theme source ${spec.url}: ${spec.tag} (fix: check the tag name; branch names are not accepted)`
     }
     case 'unknown': {
-      return `テーマの取得元 ${spec.url} から git で取得できませんでした。`
+      return `git could not fetch the theme source: ${spec.url}`
     }
   }
 }

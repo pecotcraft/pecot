@@ -18,7 +18,7 @@ describe('getRepositoryId', () => {
 
   it('リポジトリが無ければ GitHubNotFoundError', async () => {
     const { client } = await startClient([graphqlData('GetRepositoryId', { repository: JSON_NULL })])
-    expect(await rejection(client.getRepositoryId('owner', 'nonexistent'))).toMatchObject(failure(GitHubNotFoundError, 'リポジトリが見つかりません: owner/nonexistent'))
+    expect(await rejection(client.getRepositoryId('owner', 'nonexistent'))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/nonexistent'))
   })
 })
 
@@ -44,7 +44,7 @@ describe('getBranchSha', () => {
       restResponse('GET', '/repos/owner/repo/git/ref/heads/nonexistent', { status: 404, body: { message: 'Not Found' } }),
     ])
     expect(await rejection(client.getBranchSha('owner', 'repo', 'nonexistent'))).toMatchObject(
-      failure(GitHubNotFoundError, `リソースが見つかりません: ${server.url}/repos/owner/repo/git/ref/heads/nonexistent`, { statusCode: 404 }),
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/git/ref/heads/nonexistent`, { statusCode: 404 }),
     )
   })
 })
@@ -78,13 +78,13 @@ describe('createLinkedBranch', () => {
 
   it('linkedBranch が null なら GitHubAPIError', async () => {
     const { client } = await startClient([graphqlData('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: JSON_NULL } })])
-    expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'n'))).toMatchObject(failure(GitHubAPIError, 'リンクブランチの作成に失敗しました'))
+    expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'n'))).toMatchObject(failure(GitHubAPIError, 'failed to create the linked branch'))
   })
 
   it('既にブランチがあるときの GraphQL の失敗は、GraphQLクエリ実行エラーになる', async () => {
     const { client } = await startClient([graphqlError('CreateLinkedBranch', 'A branch named \'feat/existing-branch\' already exists')])
     // errors[0] は辞書なので、gql は Python の str(dict) の文にする
-    const message = 'GraphQLクエリ実行エラー: {\'message\': "A branch named \'feat/existing-branch\' already exists"}'
+    const message = 'GraphQL query error: {\'message\': "A branch named \'feat/existing-branch\' already exists"}'
     expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'feat/existing-branch'))).toMatchObject(failure(GitHubAPIError, message))
   })
 })
@@ -98,12 +98,12 @@ describe('deleteBranch', () => {
 
   it('存在しない ref の 422 は GitHubAPIError（422）', async () => {
     const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/nonexistent', { status: 422, text: 'Reference does not exist' })])
-    expect(await rejection(client.deleteBranch('owner', 'repo', 'nonexistent'))).toMatchObject(failure(GitHubAPIError, 'GitHub APIエラー: 422', { statusCode: 422, responseBody: 'Reference does not exist' }))
+    expect(await rejection(client.deleteBranch('owner', 'repo', 'nonexistent'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: 'Reference does not exist' }))
   })
 
   it('保護されたブランチの 403 は、アクセスが拒否されました', async () => {
     const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/main', { status: 403, text: 'Cannot delete a protected branch' })])
-    expect(await rejection(client.deleteBranch('owner', 'repo', 'main'))).toMatchObject(failure(GitHubAPIError, 'アクセスが拒否されました。', { statusCode: 403, responseBody: 'Cannot delete a protected branch' }))
+    expect(await rejection(client.deleteBranch('owner', 'repo', 'main'))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403, responseBody: 'Cannot delete a protected branch' }))
   })
 })
 
@@ -138,7 +138,7 @@ describe('createRelease', () => {
 
   it('422 は GitHubAPIError', async () => {
     const { client } = await startClient([restResponse('POST', '/repos/owner/repo/releases', { status: 422, text: 'Validation Failed' })])
-    expect(await rejection(client.createRelease('owner', 'repo', 'v0.6.1', 'v0.6.1', 'notes'))).toMatchObject(failure(GitHubAPIError, 'GitHub APIエラー: 422', { statusCode: 422, responseBody: 'Validation Failed' }))
+    expect(await rejection(client.createRelease('owner', 'repo', 'v0.6.1', 'v0.6.1', 'notes'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: 'Validation Failed' }))
   })
 })
 
@@ -178,7 +178,7 @@ describe('listOpenDependabotAlerts', () => {
   it('403 は状態コードと本文を持つ GitHubAPIError', async () => {
     const body = '{"message":"Dependabot alerts are disabled for this repository."}'
     const { client } = await startClient([restResponse('GET', '/repos/owner/repo/dependabot/alerts', { status: 403, text: body })])
-    expect(await rejection(client.listOpenDependabotAlerts('owner', 'repo'))).toMatchObject(failure(GitHubAPIError, 'アクセスが拒否されました。', { statusCode: 403, responseBody: body }))
+    expect(await rejection(client.listOpenDependabotAlerts('owner', 'repo'))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403, responseBody: body }))
   })
 
   it('rate limit の 403 は GitHubRateLimitError', async () => {
@@ -197,7 +197,7 @@ describe('listOpenDependabotAlerts の next', () => {
       }),
     ])
     expect(await rejection(client.listOpenDependabotAlerts('owner', 'repo'))).toMatchObject(
-      failure(GitHubAPIError, 'API と異なるホストの URL は辿りません: http://evil.example/x?after=abc'),
+      failure(GitHubAPIError, 'refusing to follow a URL on a different host than the API: http://evil.example/x?after=abc'),
     )
     expect(restRequests(server)).toHaveLength(1)
   })
@@ -223,7 +223,7 @@ describe('URL のパスの符号化', () => {
 
   it.each(['.', '..'])('リポジトリ名 %j は、パスを辿る意味になるので、送らずに GitHubAPIError', async (repository) => {
     const { client, server } = await startClient([])
-    expect(await rejection(client.getRepositoryDefaultBranch('owner', repository))).toMatchObject(failure(GitHubAPIError, `URL のパスに使えない名前です: ${repository}`))
+    expect(await rejection(client.getRepositoryDefaultBranch('owner', repository))).toMatchObject(failure(GitHubAPIError, `name not usable in a URL path: ${repository}`))
     expect(restRequests(server)).toEqual([])
   })
 
@@ -232,7 +232,7 @@ describe('URL のパスの符号化', () => {
     const { client, server } = await startClient([restResponse('DELETE', path, { status: 204, text: '' })])
     await client.deleteBranch('owner', 'repo', 'a!\'()*')
     expect(restRequests(server).map(request => request.path)).toEqual([path])
-    expect(await rejection(client.deleteBranch('owner', 'repo', 'x/../y'))).toMatchObject(failure(GitHubAPIError, 'URL のパスに使えない名前です: ..'))
+    expect(await rejection(client.deleteBranch('owner', 'repo', 'x/../y'))).toMatchObject(failure(GitHubAPIError, 'name not usable in a URL path: ..'))
   })
 })
 
@@ -250,6 +250,6 @@ describe('isDependabotAlertsEnabled', () => {
 
   it('204・404 以外の成功（200）も例外', async () => {
     const { client } = await startClient([restResponse('GET', '/repos/owner/repo/vulnerability-alerts', { status: 200, text: '' })])
-    expect(await rejection(client.isDependabotAlertsEnabled('owner', 'repo'))).toMatchObject(failure(GitHubAPIError, 'GitHub APIエラー: 200', { statusCode: 200 }))
+    expect(await rejection(client.isDependabotAlertsEnabled('owner', 'repo'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 200', { statusCode: 200 }))
   })
 })

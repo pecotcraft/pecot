@@ -32,7 +32,7 @@ describe('injectDomToPptx', () => {
   it('注入後に window.domToPptx が無い場合は、待たずに例外とする', async () => {
     const page = new FakePage()
     await expect(injectDomToPptx(page.asPage(), '/lib.js')).rejects.toThrow(
-      'dom-to-pptx を注入しましたが window.domToPptx が定義されません（script 内の例外か AMD の define に登録された可能性）',
+      'dom-to-pptx was injected but window.domToPptx is not defined (an exception in the script, or it was registered through AMD define)',
     )
     expect(page.evaluateCalls).toHaveLength(1)
   })
@@ -54,14 +54,14 @@ describe('injectDomToPptx', () => {
     expect(rejected).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(1)
     await injected
-    expect(rejected).toHaveBeenCalledWith(new Error('dom-to-pptx の注入が 30 秒以内に終わりません'))
+    expect(rejected).toHaveBeenCalledWith(new Error('dom-to-pptx injection did not finish within 30 s'))
     expect(vi.getTimerCount()).toBe(0)
   })
 
   it('成功・失敗どちらでも上限のタイマーを残さない', async () => {
     vi.useFakeTimers()
     const page = new FakePage()
-    await expect(injectDomToPptx(page.asPage(), '/lib.js')).rejects.toThrow('window.domToPptx が定義されません')
+    await expect(injectDomToPptx(page.asPage(), '/lib.js')).rejects.toThrow('window.domToPptx is not defined')
     expect(vi.getTimerCount()).toBe(0)
     page.scriptInjectionTriggers.push(() => {
       vi.stubGlobal('domToPptx', { exportToPptx: () => Promise.resolve() })
@@ -142,7 +142,7 @@ describe('convertSlide', () => {
     document.body.innerHTML = '<div class="slidev-page" style="display:block"><span></span></div>'
     await expect(convertSlide(new FakePage().asPage(), 301, 'slide-', outDir, makeLogger(), defaultExportToPptxOptions, {
       targetSelector: '[id="003-01"] .slidev-page',
-    })).rejects.toThrow('対象のスライドが見つかりません ([id="003-01"] .slidev-page)')
+    })).rejects.toThrow('slide #301: target slide not found: [id="003-01"] .slidev-page')
   })
 
   it('exportOptions を fileName / skipDownload と併せて exportToPptx へ渡す', async () => {
@@ -207,7 +207,7 @@ describe('convertSlide', () => {
     const logger = makeLogger()
     const result = await convertSlide(page.asPage(), 200, 'slide-', outDir, logger, defaultExportToPptxOptions)
     expect(Object.keys(result.letterSpacingMap).length).toBeGreaterThanOrEqual(5)
-    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('letter-spacing詳細'))
+    expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('letter-spacing details'))
   })
 
   // #1070: 明示指定のアニメーションだけを通し、装飾は pptx 後処理で p:timing ごと落とす。
@@ -336,7 +336,7 @@ describe('convertSlide', () => {
     document.body.innerHTML = '<div class="slidev-page" style="display:none"><span></span></div>'
     const page = new FakePage()
     await expect(convertSlide(page.asPage(), 1, 'slide-', outDir, makeLogger(), defaultExportToPptxOptions))
-      .rejects.toThrow('表示中のスライドが見つかりません')
+      .rejects.toThrow('no visible slide found')
   })
 
   it('href が無ければ hrefMap は空、href-map ログは出ない', async () => {

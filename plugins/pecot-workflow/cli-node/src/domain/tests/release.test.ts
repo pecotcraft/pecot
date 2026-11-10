@@ -95,28 +95,28 @@ describe('runPreflight', () => {
   it('CHANGELOG の内容が無ければ ReleaseError（git は呼ばない）', () => {
     const { git, calls } = scriptedGit([])
     expect(() => runPreflight(options({ changelogContent: undefined }), git)).toThrow(ReleaseError)
-    expect(() => runPreflight(options({ changelogContent: undefined }), git)).toThrow('CHANGELOG.mdが見つかりません: /repo/CHANGELOG.md')
+    expect(() => runPreflight(options({ changelogContent: undefined }), git)).toThrow('CHANGELOG.md not found: /repo/CHANGELOG.md')
     expect(calls).toStrictEqual([])
   })
 
   it('CHANGELOG の内容が無いときの文は、実際のファイル名を使う', () => {
     const { git } = scriptedGit([])
     const missing = options({ changelogPath: '/repo/AIST-CHANGELOG.md', changelogContent: undefined })
-    expect(() => runPreflight(missing, git)).toThrow('AIST-CHANGELOG.mdが見つかりません: /repo/AIST-CHANGELOG.md')
+    expect(() => runPreflight(missing, git)).toThrow('AIST-CHANGELOG.md not found: /repo/AIST-CHANGELOG.md')
   })
 
   it('バージョンが無いときの文も、実際のファイル名を使う', () => {
     const changelogPath = '/repo/AIST-CHANGELOG.md'
     const detect = options({ changelogPath, version: undefined, changelogContent: '## [Unreleased]\n' })
-    expect(() => runPreflight(detect, scriptedGit([]).git)).toThrow('AIST-CHANGELOG.mdにバージョンが見つかりません')
+    expect(() => runPreflight(detect, scriptedGit([]).git)).toThrow('no version found in AIST-CHANGELOG.md')
     const specified = options({ changelogPath, version: '9.9.9' })
-    expect(() => runPreflight(specified, scriptedGit(['', '', '', '5']).git)).toThrow('バージョン 9.9.9 がAIST-CHANGELOG.mdに見つかりません')
+    expect(() => runPreflight(specified, scriptedGit(['', '', '', '5']).git)).toThrow('version not found in AIST-CHANGELOG.md: 9.9.9')
   })
 
   it('バージョン省略で CHANGELOG にバージョンが無ければ ReleaseError に包む', () => {
     const { git } = scriptedGit([])
     expect(() => runPreflight(options({ version: undefined, changelogContent: '## [Unreleased]\n' }), git)).toThrow(ReleaseError)
-    expect(() => runPreflight(options({ version: undefined, changelogContent: '## [Unreleased]\n' }), git)).toThrow('CHANGELOG.mdにバージョンが見つかりません')
+    expect(() => runPreflight(options({ version: undefined, changelogContent: '## [Unreleased]\n' }), git)).toThrow('no version found in CHANGELOG.md')
   })
 
   it('指定バージョンが X.Y.Z でなければ InvalidVersionError（ReleaseError ではない）', () => {
@@ -131,7 +131,7 @@ describe('runPreflight', () => {
 
   it('ローカルタグが既にあれば ReleaseError', () => {
     const { git } = scriptedGit(['v0.6.1'])
-    expect(() => runPreflight(options(), git)).toThrow('タグ v0.6.1 はローカルに既に存在します')
+    expect(() => runPreflight(options(), git)).toThrow('tag already exists locally: v0.6.1')
   })
 
   it('tag -l の出力は行ごとに完全一致で比べる', () => {
@@ -141,17 +141,17 @@ describe('runPreflight', () => {
 
   it('ローカルタグが複数行の中にあっても検出する', () => {
     const { git } = scriptedGit(['v0.6.0\nv0.6.1\n'])
-    expect(() => runPreflight(options(), git)).toThrow('ローカルに既に存在します')
+    expect(() => runPreflight(options(), git)).toThrow('tag already exists locally')
   })
 
   it('リモートタグが既にあれば ReleaseError', () => {
     const { git } = scriptedGit(['', 'abc123\trefs/tags/v0.6.1'])
-    expect(() => runPreflight(options(), git)).toThrow('タグ v0.6.1 はリモートに既に存在します')
+    expect(() => runPreflight(options(), git)).toThrow('tag already exists on the remote: v0.6.1')
   })
 
   it('差分が 0 件なら ReleaseError', () => {
     const { git } = scriptedGit(['', '', '', '0'])
-    expect(() => runPreflight(options(), git)).toThrow('origin/main と origin/develop-aist に差分がありません。リリースする変更がありません。')
+    expect(() => runPreflight(options(), git)).toThrow('no difference between origin/main and origin/develop-aist: there is nothing to release')
   })
 
   it('tagPrefix なしの tagName は v<ver>', () => {
@@ -175,12 +175,12 @@ describe('runPreflight', () => {
   it('指定バージョンが CHANGELOG に無ければ ReleaseError に包む', () => {
     const { git } = scriptedGit(['', '', '', '5'])
     expect(() => runPreflight(options({ version: '9.9.9' }), git)).toThrow(ReleaseError)
-    expect(() => runPreflight(options({ version: '9.9.9' }), scriptedGit(['', '', '', '5']).git)).toThrow('バージョン 9.9.9 がCHANGELOG.mdに見つかりません')
+    expect(() => runPreflight(options({ version: '9.9.9' }), scriptedGit(['', '', '', '5']).git)).toThrow('version not found in CHANGELOG.md: 9.9.9')
   })
 
   it('git が非 0 で終わったら、コマンドと標準エラーを含む ReleaseError', () => {
     const { git } = scriptedGit(['', { exitCode: 128, stdout: '', stderr: '  fatal: no remote\n' }])
-    expect(() => runPreflight(options(), git)).toThrow('git コマンド失敗: git ls-remote --tags origin refs/tags/v0.6.1\nfatal: no remote')
+    expect(() => runPreflight(options(), git)).toThrow('git command failed: git ls-remote --tags origin refs/tags/v0.6.1\nfatal: no remote')
   })
 
   it('rev-list の出力が整数でなければ Python の int() と同じ文の InvalidValueError', () => {

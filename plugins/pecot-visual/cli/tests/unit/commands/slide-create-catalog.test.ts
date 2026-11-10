@@ -99,7 +99,7 @@ const CATALOG: Pick<LayoutCatalog, 'categories' | 'layouts'> = {
 }
 
 describe('emitLayoutCatalog', () => {
-  it('分類ごとに群化し、0 件分類は見出しと (該当レイアウトなし) を出す', () => {
+  it('分類ごとに群化し、0 件分類は見出しと (no matching layouts) を出す', () => {
     const stdout = makeStream()
 
     emitLayoutCatalog(CATALOG, asStream(stdout))
@@ -122,7 +122,7 @@ describe('emitLayoutCatalog', () => {
     expect(figureSection.indexOf('- chart:')).toBeLessThan(figureSection.indexOf('[deprecated] legacy:'))
 
     // 0 件分類も見出しを出して不足を見せる。
-    expect(written).toContain('--- 表: 軸のある表で見せる ---\n\n(該当レイアウトなし)\n')
+    expect(written).toContain('--- 表: 軸のある表で見せる ---\n\n(no matching layouts)\n')
   })
 })
 

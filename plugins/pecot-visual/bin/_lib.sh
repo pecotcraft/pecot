@@ -48,7 +48,7 @@ pnpm_resolution_hint() {
         local version
         version="$(pnpm_version_from_manifest "$plugin_root")"
         if [ -z "$version" ]; then
-            echo "npx is available, but the pnpm version could not be read from packageManager in ${plugin_root}/package.json. Check the plugin root and the packageManager entry."
+            echo "npx is available but the pnpm version could not be read from packageManager in ${plugin_root}/package.json (fix: check the plugin root and the packageManager field)"
             return
         fi
     fi
@@ -119,7 +119,7 @@ plugin_data_dir_resolve() {
         printf '%s\n' "${home}/.local/share/pecot/${project}"
         return 0
     fi
-    echo "${project}: HOME is not set (or is not an absolute path), so the data directory cannot be determined. Set HOME or XDG_DATA_HOME." >&2
+    echo "${project}: cannot decide the data directory because HOME is unset or not an absolute path (fix: set HOME or XDG_DATA_HOME)" >&2
     return 1
 }
 
@@ -130,7 +130,7 @@ plugin_data_dir_ensure() {
     [ -n "$project" ] || { echo "plugin_data_dir_ensure: project name is required" >&2; exit 127; }
     data="$(plugin_data_dir_resolve "$project")" || return 1
     if ! mkdir -p "$data" 2>/dev/null; then
-        echo "${project}: cannot create the data directory (${data})." >&2
+        echo "${project}: cannot create the data directory: ${data}" >&2
         return 1
     fi
     printf '%s\n' "$data"
@@ -403,8 +403,8 @@ plugin_runtime_ensure() {
         plugin_runtime_ensure_current "$base" "$name" || true
         return 0
     fi
-    mkdir -p "$base" || { plugin_runtime_note "error: cannot create ${base}."; return 1; }
-    plugin_runtime_lock_acquire "$base" || { plugin_runtime_note "error: cannot acquire the lock on ${base}."; return 1; }
+    mkdir -p "$base" || { plugin_runtime_note "error: cannot create directory: ${base}"; return 1; }
+    plugin_runtime_lock_acquire "$base" || { plugin_runtime_note "error: cannot acquire lock: ${base}"; return 1; }
     plugin_runtime_ensure_locked "$root" "$base" "$name" "$target" || rc=$?
     plugin_runtime_lock_release "$base"
     return "$rc"
@@ -422,7 +422,7 @@ plugin_runtime_ensure_locked() {
         # FORCE: 使用中なら作り直さずそのまま使う。
         plugin_runtime_remove_unused "$target"
         if plugin_runtime_is_complete "$target"; then
-            plugin_runtime_note "In use, so not recreating it; using it as is: ${target}"
+            plugin_runtime_note "in use, so it is kept as is instead of being rebuilt: ${target}"
             plugin_runtime_ensure_current "$base" "$name" || true
             return 0
         fi
@@ -453,7 +453,7 @@ plugin_runtime_ensure_locked() {
         plugin_runtime_clone_node_modules "$donor" "$target" || return 1
     else
         plugin_runtime_event "installing dependencies"
-        plugin_runtime_note "The first run fetches dependencies and builds, which can take a few minutes (longer when the pnpm store is empty)"
+        plugin_runtime_note "the first run can take several minutes because it fetches dependencies and builds; it takes longer when the pnpm store is empty"
         # `$pnpm` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
         # shellcheck disable=SC2086
         ( cd "$target" && $pnpm install --frozen-lockfile ) || { rc=$?; plugin_runtime_diagnose_failure "$root"; return "$rc"; }
@@ -463,7 +463,7 @@ plugin_runtime_ensure_locked() {
     plugin_runtime_build "$target" "$pnpm" || { rc=$?; plugin_runtime_diagnose_failure "$root"; return "$rc"; }
 
     : > "$target/.complete" || return 1
-    plugin_runtime_swap_current "$base" "$name" || { plugin_runtime_note "error: cannot switch current."; return 1; }
+    plugin_runtime_swap_current "$base" "$name" || { plugin_runtime_note "error: cannot switch current"; return 1; }
     plugin_runtime_collect "$base" "$name"
     plugin_runtime_note "ready ($(($(date +%s) - start))s)"
     return 0
@@ -559,7 +559,7 @@ plugin_runtime_build() {
     # `$pnpm` は "corepack pnpm" を 2 トークンに分けるため quote しない。
     # shellcheck disable=SC2086
     if ! ( cd "$dir" && $pnpm --config.verify-deps-before-run=false --filter @pecot/slidev-assets-dev run build ); then
-        pecotv_log "error: the v-slidev ESLint plugin build failed. The eslint-check.sh hook may fail with module not found."
+        pecotv_log "error: build of the v-slidev ESLint plugin failed; the eslint-check.sh hook may fail with module not found"
         return 1
     fi
     # shellcheck disable=SC2086

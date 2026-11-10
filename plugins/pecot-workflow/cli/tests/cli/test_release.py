@@ -77,9 +77,10 @@ class TestReleasePreflight:
             result = runner.invoke(app, ["release", "preflight"])
 
         assert result.exit_code == 0
-        assert "Auto-detected version: 0.6.1" in result.output
-        assert "Preflight Check Passed" in result.output
-        assert "新機能" in result.output
+        assert result.stdout == "version: 0.6.1\ntag: v0.6.1\n\n### 追加\n\n- 新機能\n"
+        assert (
+            "count: commits to release (origin/develop-aist -> origin/main): 5\n" in result.stderr
+        )
 
     def test_success_with_version(self) -> None:
         """バージョン指定で成功"""
@@ -111,7 +112,10 @@ class TestReleasePreflight:
             result = runner.invoke(app, ["release", "preflight", "0.6.1"])
 
         assert result.exit_code == 0
-        assert "Version 0.6.1 found in CHANGELOG.md" in result.output
+        assert result.stdout.startswith("version: 0.6.1\ntag: v0.6.1\n")
+        assert (
+            "count: commits to release (origin/develop-aist -> origin/main): 3\n" in result.stderr
+        )
 
     def test_no_git_root(self) -> None:
         """gitリポジトリが見つからない"""
@@ -217,8 +221,8 @@ class TestReleaseCreate:
             result = runner.invoke(app, ["release", "create", "0.6.1"])
 
         assert result.exit_code == 0
-        assert "GitHub release created: v0.6.1" in result.output
-        assert "Release URL:" in result.output
+        assert "created: release v0.6.1 on main\n" in result.stderr
+        assert result.stdout == "https://ghes.example.com/owner/repo/releases/tag/v0.6.1\n"
 
     def test_dry_run(self) -> None:
         """ドライランモード"""
@@ -243,9 +247,8 @@ class TestReleaseCreate:
             result = runner.invoke(app, ["release", "create", "0.6.1", "--dry-run"])
 
         assert result.exit_code == 0
-        assert "DRY RUN" in result.output
-        assert "v0.6.1" in result.output
-        assert "owner/repo" in result.output
+        assert "dry-run: would create release v0.6.1 on main\n" in result.stderr
+        assert result.stdout == "### 追加\n\n- 新機能\n"
 
     def test_invalid_version(self) -> None:
         """無効なバージョン形式"""
@@ -400,7 +403,7 @@ class TestReleasePreflightPackage:
             )
 
         assert result.exit_code == 1
-        assert "packages 設定がありません" in result.output
+        assert "error: owner/repo has no packages configured" in result.stderr
 
     def test_packages_set_without_package_errors(self) -> None:
         """packages 設定済 + --package なし → エラー（利用可能リスト表示）"""
@@ -421,9 +424,7 @@ class TestReleasePreflightPackage:
             result = runner.invoke(app, ["release", "preflight", "0.6.1"])
 
         assert result.exit_code == 1
-        assert "--package を指定してください" in result.output
-        assert "pecot-workflow" in result.output
-        assert "pecot-visual" in result.output
+        assert "specify --package (available: pecot-workflow, pecot-visual)" in result.stderr
 
     def test_packages_set_with_package_uses_prefix(self) -> None:
         """packages 設定済 + --package pecot → tag_prefix=pecot で preflight 呼出"""
@@ -481,7 +482,7 @@ class TestReleasePreflightPackage:
             result = runner.invoke(app, ["release", "preflight", "0.6.1", "--package", "unknown"])
 
         assert result.exit_code == 1
-        assert "登録されていません" in result.output
+        assert "package 'unknown' is not registered in owner/repo" in result.stderr
 
 
 class TestReleaseCreatePackage:
@@ -541,7 +542,7 @@ class TestReleaseCreatePackage:
             result = runner.invoke(app, ["release", "create", "0.6.1"])
 
         assert result.exit_code == 1
-        assert "--package を指定してください" in result.output
+        assert "specify --package (available: pecot-workflow, pecot-visual)" in result.stderr
 
     def test_packages_unset_with_package_errors(self) -> None:
         """packages 未設定 + --package → エラー"""
@@ -564,7 +565,7 @@ class TestReleaseCreatePackage:
             )
 
         assert result.exit_code == 1
-        assert "packages 設定がありません" in result.output
+        assert "error: owner/repo has no packages configured" in result.stderr
 
 
 # release merge テスト
@@ -624,8 +625,7 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
 
         assert result.exit_code == 0
-        assert "マージしました" in result.output
-        assert "merge (regular)" in result.output
+        assert "merged: PR owner/repo/100 (develop-aist -> main, merge commit)\n" in result.stderr
         mock_client.merge_pull_request.assert_called_once_with(
             "owner", "repo", 100, merge_method="merge"
         )
@@ -642,8 +642,10 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100", "--dry-run"])
 
         assert result.exit_code == 0
-        assert "ドライラン" in result.output
-        assert "merge (regular)" in result.output
+        assert (
+            "dry-run: would merge PR owner/repo/100 (develop-aist -> main, merge commit)\n"
+            in result.stderr
+        )
         mock_client.merge_pull_request.assert_not_called()
 
     def test_already_merged(self) -> None:
@@ -658,7 +660,7 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
 
         assert result.exit_code == 1
-        assert "マージ済み" in result.output
+        assert "error: PR #100 is already merged" in result.stderr
 
     def test_closed_pr(self) -> None:
         """CLOSED 状態でエラー"""
@@ -672,7 +674,7 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
 
         assert result.exit_code == 1
-        assert "クローズ" in result.output
+        assert "error: PR #100 is closed" in result.stderr
 
     def test_conflicting_pr(self) -> None:
         """CONFLICTING 状態でエラー"""
@@ -686,7 +688,7 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
 
         assert result.exit_code == 1
-        assert "コンフリクト" in result.output
+        assert "error: PR #100 has conflicts that must be resolved" in result.stderr
 
     def test_conflicting_with_admin(self) -> None:
         """CONFLICTING + --admin で成功"""
@@ -705,7 +707,7 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100", "--admin"])
 
         assert result.exit_code == 0
-        assert "マージしました" in result.output
+        assert "merged: PR owner/repo/100 (develop-aist -> main, merge commit)\n" in result.stderr
 
     def test_wrong_base_branch(self) -> None:
         """base が release_branch でない場合エラー"""
@@ -756,7 +758,7 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100", "--delete-branch"])
 
         assert result.exit_code == 0
-        assert "削除しました" in result.output
+        assert "deleted: remote branch develop-aist in owner/repo\n" in result.stderr
         mock_client.delete_branch.assert_called_once_with("owner", "repo", "develop-aist")
 
     def test_delete_branch_failure_warns_on_stderr(self) -> None:
@@ -779,8 +781,8 @@ class TestReleaseMerge:
             result = runner.invoke(app, ["release", "merge", "owner/repo/100", "--delete-branch"])
 
         assert result.exit_code == 0
-        assert "⚠ ブランチ削除に失敗: 削除失敗" in result.stderr
-        assert "⚠" not in result.stdout
+        assert "warning: deleting remote branch develop-aist failed: 削除失敗\n" in result.stderr
+        assert "warning" not in result.stdout
 
     def test_no_issue_close(self) -> None:
         """Issue 自動クローズが行われないことを検証"""
@@ -874,9 +876,9 @@ class TestReleasePreflightScanning:
         result, run_pf = _invoke_preflight(_alert_config())
 
         assert result.exit_code == 0
-        assert "✓ Dependabot alerts: open 0" in result.output
-        assert "✓ code scanning: open 0" in result.output
-        assert "✓ secret scanning: open 0" in result.output
+        assert "count: open Dependabot alerts: 0\n" in result.stderr
+        assert "count: open code scanning alerts: 0\n" in result.stderr
+        assert "count: open secret scanning alerts: 0\n" in result.stderr
         run_pf.assert_called_once()
 
     def test_open_code_scanning_fails_with_numbers(self) -> None:
@@ -886,10 +888,13 @@ class TestReleasePreflightScanning:
         result, run_pf = _invoke_preflight(_alert_config(), code_scanning=status)
 
         assert result.exit_code == 1
-        assert "code scanning の alert が open 1 件" in result.stderr
-        assert "#10" in result.stderr
-        assert "https://x/cs" in result.stderr
-        assert "Preflight Check Passed" not in result.output
+        assert (
+            "error: code scanning has 1 open alert\n"
+            "  #10\n"
+            "  → https://x/cs\n"
+            "  close them (fixed, or dismissed with a reason) and run again\n"
+        ) in result.stderr
+        assert result.stdout == ""
         run_pf.assert_not_called()
 
     def test_disabled_scanning_passes(self) -> None:
@@ -897,8 +902,8 @@ class TestReleasePreflightScanning:
         result, _ = _invoke_preflight(_alert_config(), code_scanning=off, secret_scanning=off)
 
         assert result.exit_code == 0
-        assert "✓ code scanning: 無効" in result.output
-        assert "✓ secret scanning: 無効" in result.output
+        assert "skipped: code scanning (feature disabled)\n" in result.stderr
+        assert "skipped: secret scanning (feature disabled)\n" in result.stderr
 
     def test_all_three_are_checked_before_exit(self) -> None:
         """Dependabot の警告があっても、残りの 2 種の結果まで表示してから終える"""
@@ -912,9 +917,9 @@ class TestReleasePreflightScanning:
         )
 
         assert result.exit_code == 1
-        assert "Warning: 1 open Dependabot alert (highest severity: high)" in result.output
-        assert "✓ code scanning: open 0" in result.output
-        assert "secret scanning の alert が open 2 件" in result.stderr
+        assert "warning: 1 open Dependabot alert (highest severity: high)" in result.stderr
+        assert "count: open code scanning alerts: 0\n" in result.stderr
+        assert "error: secret scanning has 2 open alerts\n" in result.stderr
 
     def test_undeterminable_scanning_fails(self) -> None:
         result, run_pf = _invoke_preflight(
@@ -922,7 +927,7 @@ class TestReleasePreflightScanning:
         )
 
         assert result.exit_code == 1
-        assert "secret scanning の状態を確認できません: 権限不足" in result.stderr
+        assert "error: could not check secret scanning: 権限不足\n" in result.stderr
         run_pf.assert_not_called()
 
     def test_network_error_does_not_skip_remaining_checks(self) -> None:
@@ -933,9 +938,9 @@ class TestReleasePreflightScanning:
 
         assert result.exit_code == 1
         assert "Traceback" not in result.output
-        assert "alert の状態を確認できません" in result.stderr
-        assert "✓ Dependabot alerts: open 0" in result.output
-        assert "✓ secret scanning: open 0" in result.output
+        assert "error: could not check alerts: down\n" in result.stderr
+        assert "count: open Dependabot alerts: 0\n" in result.stderr
+        assert "count: open secret scanning alerts: 0\n" in result.stderr
         run_pf.assert_not_called()
 
     def test_nx_also_checks_scanning(self) -> None:
@@ -961,13 +966,13 @@ class TestReleasePreflightDependabot:
 
         assert result.exit_code == 0
         assert (
-            "Warning: 2 open Dependabot alerts (highest severity: medium). "
+            "warning: 2 open Dependabot alerts (highest severity: medium). "
             "The release is not blocked.\n"
             "  #14 (glob, medium)\n"
             "  #15 (minimatch, medium)\n"
-            f"→ {ALERTS_URL}"
-        ) in result.output
-        assert "Preflight Check Passed" in result.output
+            f"  → {ALERTS_URL}\n"
+        ) in result.stderr
+        assert result.stdout.startswith("version: 0.6.1\n")
         run_pf.assert_called_once()
 
     def test_single_alert_uses_singular_and_omits_missing_fields(self) -> None:
@@ -981,8 +986,8 @@ class TestReleasePreflightDependabot:
         result, _ = _invoke_preflight(_alert_config(), status=status)
 
         assert result.exit_code == 0
-        assert "Warning: 1 open Dependabot alert. The release is not blocked." in result.output
-        assert "\n  #3\n" in result.output
+        assert "warning: 1 open Dependabot alert. The release is not blocked." in result.stderr
+        assert "\n  #3\n" in result.stderr
 
     def test_label_uses_only_the_present_value(self) -> None:
         status = _alert_status(
@@ -996,8 +1001,8 @@ class TestReleasePreflightDependabot:
         result, _ = _invoke_preflight(_alert_config(), status=status)
 
         assert result.exit_code == 0
-        assert "  #4 (glob)\n" in result.output
-        assert "  #5 (high)\n" in result.output
+        assert "  #4 (glob)\n" in result.stderr
+        assert "  #5 (high)\n" in result.stderr
 
     def test_open_alerts_do_not_hide_code_scanning_failure(self) -> None:
         bad = ScanAlertStatus(enabled=True, open_count=1, alerts_url="u", open_numbers=[10])
@@ -1008,24 +1013,24 @@ class TestReleasePreflightDependabot:
         )
 
         assert result.exit_code == 1
-        assert "Warning: 1 open Dependabot alert" in result.output
-        assert "code scanning の alert が open 1 件" in result.stderr
+        assert "warning: 1 open Dependabot alert" in result.stderr
+        assert "error: code scanning has 1 open alert" in result.stderr
         run_pf.assert_not_called()
 
     def test_zero_alerts_pass(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config())
 
         assert result.exit_code == 0
-        assert "✓ Dependabot alerts: open 0" in result.output
-        assert "Preflight Check Passed" in result.output
+        assert "count: open Dependabot alerts: 0\n" in result.stderr
+        assert result.stdout.startswith("version: 0.6.1\n")
         run_pf.assert_called_once()
 
     def test_alerts_disabled_pass(self) -> None:
         result, _ = _invoke_preflight(_alert_config(), status=_alert_status(enabled=False))
 
         assert result.exit_code == 0
-        assert "✓ Dependabot alerts: 無効" in result.output
-        assert "Preflight Check Passed" in result.output
+        assert "skipped: Dependabot alerts (feature disabled)\n" in result.stderr
+        assert result.stdout.startswith("version: 0.6.1\n")
 
     @pytest.mark.parametrize(
         "reason",
@@ -1042,38 +1047,39 @@ class TestReleasePreflightDependabot:
         )
 
         assert result.exit_code == 0
-        assert (
-            "Warning: Could not check Dependabot alerts. The release is not blocked."
-            in result.output.splitlines()
-        )
-        assert f"  Reason: {reason}" in result.output.splitlines()
-        assert "✓ code scanning: open 0" in result.output
-        assert "Preflight Check Passed" in result.output
+        lines = result.stderr.splitlines()
+        assert "warning: could not check Dependabot alerts. The release is not blocked." in lines
+        assert f"  reason: {reason}" in lines
+        assert "count: open code scanning alerts: 0" in lines
+        assert result.stdout.startswith("version: 0.6.1\n")
         run_pf.assert_called_once()
 
     def test_github_api_error_warns_and_passes(self) -> None:
         result, _ = _invoke_preflight(_alert_config(), alert_error=GitHubAuthError("bad token"))
 
         assert result.exit_code == 0
-        lines = result.output.splitlines()
-        assert "Warning: Could not check Dependabot alerts. The release is not blocked." in lines
-        assert "  Reason: bad token" in lines
+        lines = result.stderr.splitlines()
+        assert "warning: could not check Dependabot alerts. The release is not blocked." in lines
+        assert "  reason: bad token" in lines
 
     def test_reason_uses_first_line_without_trailing_period(self) -> None:
         result, _ = _invoke_preflight(
-            _alert_config(), alert_error=GitHubAuthError("認証に失敗しました。\n1. gh auth login")
+            _alert_config(), alert_error=GitHubAuthError("authentication failed.\n1. gh auth login")
         )
 
-        lines = result.output.splitlines()
-        assert "  Reason: 認証に失敗しました" in lines
+        lines = result.stderr.splitlines()
+        assert "  reason: authentication failed" in lines
         assert not any("gh auth login" in line for line in lines)
 
     def test_release_branch_unset_fails_after_alert_line(self) -> None:
         result, _ = _invoke_preflight(_alert_config(release_branch=None))
 
         assert result.exit_code == 1
-        assert "✓ Dependabot alerts: open 0" in result.output
-        assert "release_branchが設定されていません" in result.stderr
+        assert "count: open Dependabot alerts: 0\n" in result.stderr
+        assert (
+            "error: release_branch is not set for owner/repo\n"
+            "  set it with: pecot project set-repo owner/repo --release-branch <branch>\n"
+        ) in result.stderr
 
 
 class TestReleasePreflightNx:
@@ -1083,11 +1089,8 @@ class TestReleasePreflightNx:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"))
 
         assert result.exit_code == 0
-        assert "=== Release Preflight Check ===" in result.output
-        assert "✓ Dependabot alerts: open 0" in result.output
-        assert "=== Preflight Check Passed ===" in result.output
-        assert "Auto-detected version" not in result.output
-        assert "Release Notes:" not in result.output
+        assert "count: open Dependabot alerts: 0\n" in result.stderr
+        assert result.stdout == ""
         run_pf.assert_not_called()
 
     def test_nx_open_dependabot_alerts_warn_and_pass(self) -> None:
@@ -1097,15 +1100,15 @@ class TestReleasePreflightNx:
         )
 
         assert result.exit_code == 0
-        assert "Warning: 1 open Dependabot alert (highest severity: critical)" in result.output
-        assert "Preflight Check Passed" in result.output
+        assert "warning: 1 open Dependabot alert (highest severity: critical)" in result.stderr
+        assert result.stdout == ""
 
     def test_nx_rejects_version(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"), ["1.0.0"])
 
         assert result.exit_code == 1
-        assert "version 引数と --package を指定できません" in result.stderr
-        assert "Preflight Check Passed" not in result.output
+        assert "error: the version argument and --package cannot be used" in result.stderr
+        assert result.stdout == ""
         run_pf.assert_not_called()
 
     def test_nx_rejects_package(self) -> None:
@@ -1116,8 +1119,8 @@ class TestReleasePreflightNx:
         result, run_pf = _invoke_preflight(config, ["--package", "pecot-workflow"])
 
         assert result.exit_code == 1
-        assert "version 引数と --package を指定できません" in result.stderr
-        assert "monorepo 構成です" not in result.stderr
+        assert "error: the version argument and --package cannot be used" in result.stderr
+        assert "is a monorepo" not in result.stderr
         run_pf.assert_not_called()
 
     def test_nx_with_packages_passes_without_arguments(self) -> None:
@@ -1127,8 +1130,8 @@ class TestReleasePreflightNx:
         result, run_pf = _invoke_preflight(config)
 
         assert result.exit_code == 0
-        assert "✓ Dependabot alerts: open 0" in result.output
-        assert "=== Preflight Check Passed ===" in result.output
+        assert "count: open Dependabot alerts: 0\n" in result.stderr
+        assert result.stdout == ""
         run_pf.assert_not_called()
 
     def test_github_auth_error_exits_without_traceback(self) -> None:
@@ -1149,6 +1152,6 @@ class TestReleasePreflightNx:
 
         assert result.exit_code == 1
         assert "Traceback" not in result.output
-        assert "  Reason: トークンが見つかりません" in result.output.splitlines()
-        assert "エラー: alert の状態を確認できません: トークンが見つかりません" in result.stderr
-        assert "Preflight Check Passed" not in result.output
+        assert "  reason: トークンが見つかりません" in result.stderr.splitlines()
+        assert "error: could not check alerts: トークンが見つかりません\n" in result.stderr
+        assert result.stdout == ""

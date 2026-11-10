@@ -77,7 +77,7 @@ describe('loadConfig', () => {
   it('存在しないファイルは ConfigError', () => {
     const { projects } = useProject()
     expect(() => loadConfig(path.join(projects, 'nonexistent.json'))).toThrow(ConfigError)
-    expect(() => loadConfig(path.join(projects, 'nonexistent.json'))).toThrow('設定ファイルが見つかりません')
+    expect(() => loadConfig(path.join(projects, 'nonexistent.json'))).toThrow('config file not found')
   })
 
   it('不正な JSON は値の不正（文言は JSON パーサーのもの。Python とは違う）', () => {
@@ -199,7 +199,7 @@ describe('アクティブ設定', () => {
     }).toThrow(ConfigError)
     expect(() => {
       setActiveConfig(path.join(projects, 'nonexistent.json'))
-    }).toThrow('設定ファイルが見つかりません')
+    }).toThrow('config file not found')
   })
 })
 
@@ -230,7 +230,7 @@ describe('findConfigFile', () => {
     writeFileSync(path.join(projects, 'ghes.example.com_test-owner_project1.json'), '{}')
     expect(() => findConfigFile({ host: 'ghes.example.com', owner: 'test-owner' })).toThrow(MultipleConfigsError)
     expect(() => findConfigFile({ host: 'ghes.example.com', owner: 'test-owner' }))
-      .toThrow('複数の設定ファイルが見つかりました: '
+      .toThrow('multiple config files found: '
         + '[\'ghes.example.com_test-owner_project1.json\', \'ghes.example.com_test-owner_project2.json\']')
   })
 

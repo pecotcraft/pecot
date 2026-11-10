@@ -107,7 +107,7 @@ plugins/pecot-visual/
 ├── cli/src/diagnostics.ts        # 新規。error・warning・note
 ├── cli/src/domain/               # 出力先のインターフェースを受け取る形に直す
 ├── cli/src/mcp/tools/            # 結果の message と説明文を英語にする
-├── cli/tests/english-only.test.ts # 新規。src/ のリテラルに日本語が無い
+├── cli/tests/unit/english-only.test.ts  # 新規。src/ のリテラルに日本語が無い
 ├── cli/eslint.config.js
 └── hooks/                        # メッセージを英語にする。tests/english-only.test.sh を足す
 

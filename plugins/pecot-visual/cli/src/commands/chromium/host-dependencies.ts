@@ -47,8 +47,8 @@ export function hostDependenciesCommandDefaultDependencies(): HostDependenciesCo
 
 export function createChromiumHostDependenciesCommand(buildDependencies: () => HostDependenciesCommandDependencies): Command {
   return new Command('host-deps')
-    .description('Chromium の起動に要る OS のライブラリを確認し、足りなければ入れる')
-    .option('--require-launch', 'OS のライブラリ以外の原因で起動できないときも失敗にする (テストの前提確認用)')
+    .description('check the OS libraries Chromium needs to launch and install any that are missing')
+    .option('--require-launch', 'also fail when Chromium cannot launch for a reason other than OS libraries (for test preconditions)')
     .action(async (options: Readonly<HostDependenciesOptions>) => {
       const dependencies = buildDependencies()
       const diagnostics = createDiagnostics(dependencies.stderr)
@@ -79,7 +79,7 @@ export function createChromiumHostDependenciesCommand(buildDependencies: () => H
         case 'launch-failed': {
           // 実行ファイル未取得等。取得は bin/pecotv の別の段が担うため、記録だけして通す。
           hostDependencies.record('launch-failed')
-          const message = `Chromium を起動できませんでした (OS のライブラリ以外の原因): ${outcome.detail}`
+          const message = `Chromium failed to launch (cause other than OS libraries): ${outcome.detail}`
           if (options.requireLaunch === true) {
             diagnostics.error(message)
             dependencies.setExitCode(LAUNCH_FAILED_EXIT_CODE)

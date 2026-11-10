@@ -66,12 +66,12 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
 
   if (explicit === undefined) {
     return resolved === undefined
-      ? exitWith('error: リポジトリが曖昧です。--repo <owner/repo> を明示してください。')
+      ? exitWith('error: the repository is ambiguous', '  give --repo <owner/repo>')
       : { kind: 'proceed', adopted: undefined, stderr: [] }
   }
 
   const explicitReference = parseExplicit(explicit)
-  if (explicitReference === undefined) return exitWith(`error: --repo の形式が不正です: ${pythonStringRepr(explicit)}`)
+  if (explicitReference === undefined) return exitWith(`error: --repo has an invalid form: ${pythonStringRepr(explicit)}`)
 
   // Git 外 / remote 不在は比較対象が無いので、明示値を採用する
   if (resolved?.source !== 'current-git') return { kind: 'proceed', adopted: explicitReference, stderr: [] }
@@ -85,13 +85,13 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
   const currentName = repositoryFullName(current)
   if (mode === 'reject') {
     return exitWith(
-      `error: --repo ${explicitName} とカレント Git remote (${currentName}) が不一致です。`,
-      '       worktree / branch はローカル Git 破壊防止のため拒否します。',
+      `error: --repo ${explicitName} differs from the current Git remote (${currentName})`,
+      '  worktree and branch commands are rejected to protect the local Git state',
     )
   }
   return {
     kind: 'proceed',
     adopted: explicitReference,
-    stderr: [`warning: --repo ${explicitName} を採用します (カレント Git remote: ${currentName})。`],
+    stderr: [`warning: using --repo ${explicitName} (current Git remote: ${currentName})`],
   }
 }

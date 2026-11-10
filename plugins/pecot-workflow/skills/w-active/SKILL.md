@@ -23,7 +23,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 pecot session status -D .
 ```
 
-`.pecot-active` の内容と `=== アクティブIssue ===` の OPEN/CLOSED が出る。違反時の対応:
+`.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
 
 1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`create-branch` は exit 2 になる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `--force-overwrite-active` を付ける。
 2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create-branch` は exit 2 になる。対象リポの既存 WT（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）へ `cd` してから着手する。
@@ -69,8 +69,9 @@ pecot create-branch owner/repo/XXX feat/description
 
 ### Step 5: ブランチ切り替え
 
-CLIの案内メッセージに従ってブランチを切り替える。
-案内メッセージにはリポジトリ名（`owner/repo`）が表示されるので、**そのリポジトリの** ワークツリーで実行すること。
+`pecot create-branch` の出力の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
+ブランチ名とリポを取り出し、ブランチを切り替える。
+**そのリポジトリの** ワークツリーで実行すること。
 
 ```bash
 git fetch origin
@@ -79,12 +80,11 @@ git checkout feat/description/XXX
 
 **CWDと対象リポジトリが異なる場合:**
 
-CLIはブランチを作成したリポジトリ名を案内メッセージに表示する。
-例: `★ acme-labs/pecot-presentation-private のワークツリー(wt2)で以下を実行してください`。
-CWDが別リポジトリであっても、案内に表示されたリポジトリのワークツリーで `git checkout` を実行する。
+`created: branch` の行の `in <owner/repo>` は、ブランチを作成したリポジトリを指す。
+CWDが別リポジトリであっても、そのリポジトリのワークツリーで `git checkout` を実行する。
 ワークスペース内に該当リポジトリのワークツリーがあれば、そのディレクトリで実行すればよい。
 
-案内されたWT名が作業対象リポジトリに存在しない場合は、
+今のワークツリーと同じ WT 名のワークツリーが作業対象リポジトリに存在しない場合は、
 `/pecot-w:w-worktree-add` コマンドでWT作成を案内するか、作業を中止する。
 
 ### Step 6: 調査

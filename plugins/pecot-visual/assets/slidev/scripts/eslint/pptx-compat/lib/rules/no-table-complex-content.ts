@@ -70,7 +70,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       noTableComplexContent:
-        'テーブルセル内に{{element}}要素があります。PPTXテーブルではセル内の画像・SVG・canvasは出力されず、入れ子のtableは行が外側の表に平坦化されます。テーブル外にdivレイアウトで配置してください。',
+        '{{element}} element in a table cell; PPTX tables do not output images, SVG, or canvas in a cell, and a nested table has its rows flattened into the outer table (fix: place it outside the table with a div layout)',
     },
   },
 

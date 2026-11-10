@@ -17,7 +17,7 @@ const COMMON_FILE_NAME = '_common.yaml'
 /**
 分類を読めなかったときの復旧導線。テーマ側の宣言を直す案内を、分類まわりの警告に必ず添える。
 */
-const CATEGORY_SYNC_HINT = 'テーマの references/_common.yaml の layout_categories を確認してください'
+const CATEGORY_SYNC_HINT = 'check layout_categories in references/_common.yaml of the theme'
 
 export type LayoutStatus = 'stable' | 'deprecated' | 'hidden'
 
@@ -72,7 +72,7 @@ function toStatus(
     }
     default: {
       if (typeof value === 'string' && value !== '') {
-        warnings.push(`${fileName} の status '${value}' は未知の値です。stable として扱います`)
+        warnings.push(`unknown status in ${fileName}: ${value}; treating it as stable`)
       }
       return 'stable'
     }
@@ -194,8 +194,8 @@ export interface LayoutCategories {
 */
 const UNCATEGORIZED_CATEGORY: LayoutCategory = {
   id: UNCATEGORIZED,
-  label: '未分類',
-  question: `category が未設定か未知語彙のレイアウト（${CATEGORY_SYNC_HINT}）`,
+  label: 'Uncategorized',
+  question: `layouts whose category is unset or unknown (${CATEGORY_SYNC_HINT})`,
 }
 
 /**
@@ -217,7 +217,7 @@ function toLayoutCategory(value: unknown): LayoutCategory | undefined {
 function categoriesUnusable(commonPath: string, reason: string): LayoutCategories {
   return {
     categories: [],
-    warnings: [`見せ方の分類を読み取れませんでした (${commonPath}: ${reason})。分類なしで続行します。${CATEGORY_SYNC_HINT}`],
+    warnings: [`cannot read the layout categories (${commonPath}: ${reason}); continuing without categories (fix: ${CATEGORY_SYNC_HINT})`],
   }
 }
 
@@ -245,14 +245,14 @@ export async function readLayoutCategories(files: ThemeFiles, directories: reado
   const found = await findCommonFile(files, directories)
   const lastDirectory = directories.at(-1) ?? ''
   if (found === undefined) {
-    return categoriesUnusable(path.join(lastDirectory, COMMON_FILE_NAME), 'ファイルがありません')
+    return categoriesUnusable(path.join(lastDirectory, COMMON_FILE_NAME), 'file not found')
   }
 
   let items: readonly unknown[]
   try {
     const parsed: unknown = parse(found.text)
     const raw: unknown = isRecord(parsed) ? parsed['layout_categories'] : undefined
-    if (!Array.isArray(raw)) throw new TypeError('layout_categories が配列として見つかりません')
+    if (!Array.isArray(raw)) throw new TypeError('layout_categories is not found as an array')
     items = raw
   }
   catch (error: unknown) {
@@ -279,15 +279,15 @@ export async function readLayoutCategories(files: ThemeFiles, directories: reado
 
   if (categories.length === 0) {
     // 全滅は「分類が読めなかった」のと利用者から見て区別がつかないので、同じ 1 行に合流させる。
-    return categoriesUnusable(found.path, `layout_categories に使える要素がありません (${String(items.length)} 件中 0 件)`)
+    return categoriesUnusable(found.path, `layout_categories has no usable item (0 of ${String(items.length)})`)
   }
   const warnings: string[] = []
   if (reserved > 0) {
-    warnings.push(`layout_categories の id '${UNCATEGORIZED}' は予約語のため無視します (${String(reserved)} 件、${CATEGORY_SYNC_HINT})`)
+    warnings.push(`ignoring reserved layout_categories id ${UNCATEGORIZED} (${String(reserved)} item(s)); ${CATEGORY_SYNC_HINT}`)
   }
   if (malformed > 0) {
     warnings.push(
-      `layout_categories の一部を読み飛ばしました (id/label/question が不揃い: ${String(malformed)} 件)。${CATEGORY_SYNC_HINT}`,
+      `skipped part of layout_categories (id, label or question missing: ${String(malformed)} item(s)); ${CATEGORY_SYNC_HINT}`,
     )
   }
   return { categories, warnings }

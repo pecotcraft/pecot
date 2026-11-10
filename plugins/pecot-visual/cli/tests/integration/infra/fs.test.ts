@@ -43,7 +43,7 @@ describe('assertDependencyRootAvailable', () => {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
     expect(check).toThrow(SlideCreateRuntimeError)
-    expect(check).toThrow(/node_modules が見つかりません/)
+    expect(check).toThrow(/node_modules not found/)
   })
 
   it('実体があれば何も投げない', () => {

@@ -90,7 +90,7 @@ export async function runEvidenceCreate(
   }
   catch (error: unknown) {
     throw new EvidenceCreateError(
-      `spec JSON が読めません: ${inputPath} (${formatError(error)})`,
+      `cannot read spec JSON: ${inputPath}: ${formatError(error)}`,
       'input-not-found',
     )
   }
@@ -101,7 +101,7 @@ export async function runEvidenceCreate(
   }
   catch (error: unknown) {
     throw new EvidenceCreateError(
-      `spec JSON の parse に失敗しました: ${inputPath} (${formatError(error)})`,
+      `cannot parse spec JSON: ${inputPath}: ${formatError(error)}`,
       'invalid-json',
     )
   }
@@ -109,7 +109,7 @@ export async function runEvidenceCreate(
   const parsed = parseEvidenceSpec(raw)
   if (!parsed.ok) {
     throw new EvidenceCreateError(
-      `spec の検証に失敗しました (${parsed.errors.length.toString()} 件)\n${formatSpecErrors(parsed.errors)}`,
+      `spec validation failed (${parsed.errors.length.toString()} errors)\n${formatSpecErrors(parsed.errors)}`,
       'invalid-spec',
     )
   }
@@ -129,7 +129,7 @@ async function assertTextsClean(spec: Readonly<EvidenceSpec>, lintText: LintText
   }
   catch (error: unknown) {
     throw new EvidenceCreateError(
-      `文章規則を確認できませんでした: ${formatError(error)}`,
+      `text rules check failed: ${formatError(error)}`,
       'text-lint-failed',
     )
   }
@@ -188,10 +188,10 @@ export async function executeEvidenceCreate(
 
 export function createEvidenceCreateCommand(buildDependencies: () => EvidenceCreateDependencies): Command {
   return new Command('create')
-    .description('EvidenceSpec JSON から作業エビデンスの xlsx を生成する')
-    .requiredOption('--input <path>', 'EvidenceSpec JSON のパス')
-    .option('--out <path>', '出力 xlsx パス (既存ファイルは上書き)', DEFAULT_OUT)
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
+    .description('generate a work-evidence xlsx from an EvidenceSpec JSON')
+    .requiredOption('--input <path>', 'EvidenceSpec JSON path')
+    .option('--out <path>', 'output xlsx path (an existing file is overwritten)', DEFAULT_OUT)
+    .option('--json', 'print machine-readable JSON to stdout', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {
@@ -254,13 +254,13 @@ function writeHumanSummary(
   stdout: NodeJS.WritableStream,
   data: Readonly<EvidenceCreateResultData>,
 ): void {
-  writeData(stdout, `生成しました: ${data.outPath}`)
-  writeData(stdout, `項目数: ${data.items.toString()} / 注記数: ${data.annotations.toString()}`)
+  writeData(stdout, `created: ${data.outPath}`)
+  writeData(stdout, `items: ${data.items.toString()} / annotations: ${data.annotations.toString()}`)
   if (data.skipped.length === 0) {
     return
   }
 
-  writeData(stdout, `除外: ${data.skipped.length.toString()} 件`)
+  writeData(stdout, `skipped: ${data.skipped.length.toString()}`)
   for (const entry of data.skipped) {
     writeData(stdout, `  - ${entry.path} (${entry.reason})`)
   }

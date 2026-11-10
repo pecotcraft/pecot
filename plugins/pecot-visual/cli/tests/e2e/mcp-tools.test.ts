@@ -273,7 +273,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       expect(dataOf(called)).toEqual({ event: 'drawio.url.done', file: outPath, warnings: 0, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
       expect(artifactsOf(called)).toEqual([outPath])
       const written = readFileSync(outPath, 'utf8')
-      expect(written.startsWith('<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
+      expect(written.startsWith('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
       expect(written).toContain('<meta http-equiv="refresh" content="0;url=https://app.diagrams.net/')
       expect(written).toContain('<a id="target" href="https://app.diagrams.net/')
     })
@@ -676,7 +676,7 @@ describe('pecotv mcp のツール (stdio)', () => {
           reason: 'chromium-not-installed',
           expectedAt: emptyBrowsersRoot,
         })
-        expect(String(dataOf(blocked)['detail'])).toContain('`setup` ツール')
+        expect(String(dataOf(blocked)['detail'])).toContain('`setup` tool')
 
         // chromium を要さない呼び出しは同じプロセスでそのまま通る (サーバは落ちていない)。
         const succeeded = await client.callTool(

@@ -222,7 +222,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
 
     // stale dist 由来の false pass を防ぐ: hash と判定できていない run は不合格。
     // 進捗の行は --log-level verbose のとき stderr に note: で出る。
-    expect(stderr).toContain('note: ルータ判定: router=hash')
+    expect(stderr).toContain('note: router detection: router=hash')
 
     const events = parseJsonEvents(stdout)
     const doneEvent = events.find(event => event.event === 'slide.convert.done')
@@ -256,7 +256,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
       { logger },
     )
 
-    expect(infos).toContain('ルータ判定: router=hash')
+    expect(infos).toContain('router detection: router=hash')
     expect(result.errors).toStrictEqual([])
     expect(result.slideCount).toBe(2)
     expect(Object.keys(result.timing.perSlide).toSorted(compareStrings)).toStrictEqual(['2', '3'])
@@ -277,7 +277,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
       { logger },
     )
 
-    expect(infos).toContain('ルータ判定: router=hash')
+    expect(infos).toContain('router detection: router=hash')
     expect(result.errors).toStrictEqual([])
     // fixture のスライド 2 は v-click 1 段。走査で `2` と `2/1` の 2 ステップになる。
     expect(Object.keys(result.timing.perSlide).toSorted(compareStrings)).toStrictEqual(['2', '2/1'])

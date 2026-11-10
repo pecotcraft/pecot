@@ -22,12 +22,12 @@ ruleset は最後に入れる。先に入れると、ruleset を入れる PR 自
 
 | 確かめ方 | 期待 |
 |---|---|
-| pecot-tools の `cli/src` だけを変えた PR を開く | `checks` の Summary に pecot-tools のレーンだけが並び、成功する |
-| README だけを変えた PR を開く | Summary が「対象なし（成功）」になる |
-| pecot-tools のテストを 1 件わざと落とした PR を開く | `ci-result` が失敗し、Summary に失敗したレーン名が出る |
+| pecot-tools の `cli/src` だけを変えた PR を開く | 変えたプラグインの `tests (<project>:<target>)` の job だけができ、`ci-result` が成功する |
+| README だけを変えた PR を開く | `lanes` の count が 0 で `tests` の job が skipped になり、`ci-result` が `tests: 0 レーン (skipped)` を出して成功する |
+| pecot-tools のテストを 1 件わざと落とした PR を開く | `ci-result` が失敗する。失敗したレーン名は、`ci-result` のログ（`tests (<lane>): failure`）と、そのレーンの `tests` の job の Summary に出る |
 | 同じ PR に続けて 2 回 push する | 1 回目の run が cancel になる |
-| PR をマージした後と、リリースの後の `main` | `main` の push で `ci.yml` が動き、成功する |
-| `.devcontainer/devcontainer.json` の版を変えた PR を開く | その PR の定義で作ったコンテナで検証が動く |
+| PR をマージした後と、リリースの後の `main` | merge queue の run と `main` の push の run で `ci.yml` が動き、成功する |
+| `.devcontainer/devcontainer.json` の版を変えた PR を開く | `.githooks/ci/dev-container.sh tag` が出す key と、job が GHCR から pull するか build した `def-<key>` が一致する。tag が無いときだけ job ごとに build する |
 
 ## 2. 手元のフック（US3）
 
@@ -50,11 +50,18 @@ pre-commit run --hook-stage manual nx-affected-tests --from-ref origin/main --to
 
 ## 4. リリース（US4）
 
-1. `pecot-tools` の実行時の依存を上げた dependabot の PR がマージされた状態で、`release.yml` を起動する
-2. `plan` の Summary に、`<PR 番号>-dependabot-deps.md` の案と pecot-tools の patch の bump が出る
+1. `pecot-tools` の実行時の依存を上げた dependabot の PR に、本文が `[dependabot skip]` の commit が付く。
+   その commit が runtime-lock と version plan を足す。
+   plan のファイル名は `<PR 番号>-dependabot-deps.md` である。
+   2 つ以上の group に当たるときは `<PR 番号>-dependabot-deps-<group>.md` になる
+2. その PR がマージされた状態で `release.yml` を起動する。artifact `release-plan` の `nx.log` に、pecot-tools の patch の bump と CHANGELOG の案が出る
 3. Environment の承認をすると `release` が動き、release commit・tag・Release・npm の publish がそろう
-4. pecot-tools の CHANGELOG に「`名前` を 旧版 から 新版 に更新。」の行がある
-5. 手元から `git push origin HEAD:main` を試すと、ruleset に拒否される
+4. pecot-tools の CHANGELOG に「`名前` を 旧版 から 新版 に更新。」の行があり、末尾に PR へのリンクが付く
+5. 手元から push せず、読み取りで確かめる。
+   - ruleset は `gh api repos/pecotcraft/pecot/rulesets/26538811` で読む。
+     bypass が release の App だけで、enforcement が active であればよい。
+   - main の履歴は `gh api "repos/pecotcraft/pecot/activity?ref=refs/heads/main"` で読む。
+     人の `push`・`force_push` が無ければよい。
 
 ## 5. 文書（US5）
 

@@ -304,7 +304,7 @@ class TestRepository:
         """packagesとchangelog_fileの同時指定はValidationError"""
         from pydantic import ValidationError
 
-        with pytest.raises(ValidationError, match="同時指定できません"):
+        with pytest.raises(ValidationError, match="cannot be set together"):
             Repository(
                 owner="test-owner",
                 name="test-repo",
@@ -520,7 +520,7 @@ class TestLoadConfig:
 
     def test_load_nonexistent_file(self, tmp_path: Path) -> None:
         """存在しないファイルはエラー"""
-        with pytest.raises(ConfigError, match="設定ファイルが見つかりません"):
+        with pytest.raises(ConfigError, match="config file not found"):
             load_config(tmp_path / "nonexistent.json")
 
     def test_load_invalid_json(self, tmp_path: Path) -> None:
@@ -667,5 +667,5 @@ class TestActiveConfig:
 
         monkeypatch.setattr(config_module, "get_projects_dir", lambda: tmp_path)
 
-        with pytest.raises(ConfigError, match="設定ファイルが見つかりません"):
+        with pytest.raises(ConfigError, match="config file not found"):
             set_active_config(tmp_path / "nonexistent.json")

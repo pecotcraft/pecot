@@ -135,7 +135,7 @@ export function parseEvidenceSpec(value: unknown): EvidenceSpecParseResult {
   }
 
   if (!isRecord(value)) {
-    addError('', 'EvidenceSpec は object である必要があります')
+    addError('', 'EvidenceSpec must be an object')
     return { ok: false, errors }
   }
 
@@ -173,14 +173,14 @@ function collectUnknownKeys(
 ): void {
   for (const key of Object.keys(record)) {
     if (!allowed.has(key)) {
-      addError(joinPointer(pointer, key), '未知のキーです')
+      addError(joinPointer(pointer, key), 'unknown key')
     }
   }
 }
 
 function parseString(value: unknown, pointer: string, addError: ErrorSink): string | undefined {
   if (typeof value !== 'string') {
-    addError(pointer, '文字列である必要があります')
+    addError(pointer, 'must be a string')
     return undefined
   }
   return value
@@ -196,7 +196,7 @@ function parseNonEmptyString(
     return undefined
   }
   if (text === '') {
-    addError(pointer, '空文字列は許可されていません')
+    addError(pointer, 'must not be empty')
     return undefined
   }
   return text
@@ -208,11 +208,11 @@ function parseCreatedDate(value: unknown, addError: ErrorSink): string | undefin
     return undefined
   }
   if (!CREATED_DATE_PATTERN.test(text)) {
-    addError('createdDate', `YYYY-MM-DD 形式である必要があります (値: ${text})`)
+    addError('createdDate', `must be in YYYY-MM-DD format: ${text}`)
     return undefined
   }
   if (!isCalendarDate(text)) {
-    addError('createdDate', `暦に存在しない日付です (値: ${text})`)
+    addError('createdDate', `not a valid calendar date: ${text}`)
     return undefined
   }
   return text
@@ -242,7 +242,7 @@ function parseExtraHeaders(
     return []
   }
   if (!isUnknownArray(value)) {
-    addError('extraHeaders', '配列である必要があります')
+    addError('extraHeaders', 'must be an array')
     return undefined
   }
   const result: HeaderField[] = []
@@ -265,7 +265,7 @@ function parseHeaderField(
   addError: ErrorSink,
 ): HeaderField | undefined {
   if (!isRecord(value)) {
-    addError(pointer, 'object である必要があります')
+    addError(pointer, 'must be an object')
     return undefined
   }
   collectUnknownKeys(value, HEADER_FIELD_KEYS, pointer, addError)
@@ -288,15 +288,15 @@ function parseItems(
   // 欠落と型不一致は原因が別 (スキル側で項目を組み立て忘れたか、値を作り間違えたか) なので
   // メッセージを分ける。
   if (value === undefined) {
-    addError('items', '必須です')
+    addError('items', 'is required')
     return undefined
   }
   if (!isUnknownArray(value)) {
-    addError('items', '配列である必要があります')
+    addError('items', 'must be an array')
     return undefined
   }
   if (value.length === 0) {
-    addError('items', '1 件以上必要です')
+    addError('items', 'must have at least one item')
     return undefined
   }
   const result: ParsedItem[] = []
@@ -318,7 +318,7 @@ function parseItem(
   addError: ErrorSink,
 ): ParsedItem | undefined {
   if (!isRecord(value)) {
-    addError(pointer, 'object である必要があります')
+    addError(pointer, 'must be an object')
     return undefined
   }
   collectUnknownKeys(value, ITEM_KEYS, pointer, addError)
@@ -370,7 +370,7 @@ function parseAnnotations(
   }
   const pointer = `${itemPointer}.annotations`
   if (!isUnknownArray(value)) {
-    addError(pointer, '配列である必要があります')
+    addError(pointer, 'must be an array')
     return undefined
   }
   const result: Annotation[] = []
@@ -392,12 +392,12 @@ function parseAnnotation(
   addError: ErrorSink,
 ): Annotation | undefined {
   if (!isRecord(value)) {
-    addError(pointer, 'object である必要があります')
+    addError(pointer, 'must be an object')
     return undefined
   }
   const type = value['type']
   if (typeof type !== 'string') {
-    addError(`${pointer}.type`, '文字列である必要があります')
+    addError(`${pointer}.type`, 'must be a string')
     return undefined
   }
   switch (type) {
@@ -411,7 +411,7 @@ function parseAnnotation(
       return parseArrow(value, pointer, addError)
     }
     default: {
-      addError(`${pointer}.type`, `未知の注記種別です (値: ${type})`)
+      addError(`${pointer}.type`, `unknown annotation type: ${type}`)
       return undefined
     }
   }
@@ -444,7 +444,7 @@ function parseCalloutText(
     return undefined
   }
   if (NEWLINE_PATTERN.test(text)) {
-    addError(pointer, 'callout の text に改行は含められません')
+    addError(pointer, 'callout text must not contain a line break')
     return undefined
   }
   return text
@@ -463,11 +463,11 @@ function parseHighlight(
   // 面積 0 の枠は描画されないので、どちらの辺が潰れているかをフィールド粒度で返す。
   let isDegenerate = false
   if (box.w <= 0) {
-    addError(`${pointer}.box.w`, `highlight の box は w > 0 である必要があります (値: ${box.w.toString()})`)
+    addError(`${pointer}.box.w`, `highlight box w must be > 0: ${box.w.toString()}`)
     isDegenerate = true
   }
   if (box.h <= 0) {
-    addError(`${pointer}.box.h`, `highlight の box は h > 0 である必要があります (値: ${box.h.toString()})`)
+    addError(`${pointer}.box.h`, `highlight box h must be > 0: ${box.h.toString()}`)
     isDegenerate = true
   }
   return isDegenerate ? undefined : { type: 'highlight', box }
@@ -485,7 +485,7 @@ function parseArrow(
     return undefined
   }
   if (from.x === to.x && from.y === to.y) {
-    addError(pointer, 'arrow の from と to が同一座標です')
+    addError(pointer, 'arrow from and to must not be the same point')
     return undefined
   }
   return { type: 'arrow', from, to }
@@ -493,7 +493,7 @@ function parseArrow(
 
 function parsePoint(value: unknown, pointer: string, addError: ErrorSink): Point | undefined {
   if (!isRecord(value)) {
-    addError(pointer, 'object である必要があります')
+    addError(pointer, 'must be an object')
     return undefined
   }
   collectUnknownKeys(value, POINT_KEYS, pointer, addError)
@@ -504,7 +504,7 @@ function parsePoint(value: unknown, pointer: string, addError: ErrorSink): Point
 
 function parseRect(value: unknown, pointer: string, addError: ErrorSink): Rect | undefined {
   if (!isRecord(value)) {
-    addError(pointer, 'object である必要があります')
+    addError(pointer, 'must be an object')
     return undefined
   }
   collectUnknownKeys(value, RECT_KEYS, pointer, addError)
@@ -520,11 +520,11 @@ function parseRect(value: unknown, pointer: string, addError: ErrorSink): Rect |
   // 2〜4 桁小数では偽陽性が出ず、入れると真のはみ出しを通してしまう。
   let isOverflow = false
   if (x + w > 1) {
-    addError(`${pointer}.w`, `x + w が 1 を超えます (x: ${x.toString()}, w: ${w.toString()})`)
+    addError(`${pointer}.w`, `x + w exceeds 1 (x: ${x.toString()}, w: ${w.toString()})`)
     isOverflow = true
   }
   if (y + h > 1) {
-    addError(`${pointer}.h`, `y + h が 1 を超えます (y: ${y.toString()}, h: ${h.toString()})`)
+    addError(`${pointer}.h`, `y + h exceeds 1 (y: ${y.toString()}, h: ${h.toString()})`)
     isOverflow = true
   }
   return isOverflow ? undefined : { x, y, w, h }
@@ -539,11 +539,11 @@ function parseRelativeCoordinate(
   addError: ErrorSink,
 ): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    addError(pointer, '有限数である必要があります')
+    addError(pointer, 'must be a finite number')
     return undefined
   }
   if (value < 0 || value > 1) {
-    addError(pointer, `0.0–1.0 の範囲外です (値: ${value.toString()})`)
+    addError(pointer, `out of range 0.0-1.0: ${value.toString()}`)
     return undefined
   }
   return value

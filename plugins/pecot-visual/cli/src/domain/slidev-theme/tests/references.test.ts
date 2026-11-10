@@ -245,11 +245,11 @@ describe('resolveLayoutReferences の status', () => {
       referencesDirectory: 'references',
     })
     expect(result.entries.find(entry => entry.name === 'odd')?.status).toBe('stable')
-    expect(result.warnings).toEqual(['odd.yaml の status \'beta\' は未知の値です。stable として扱います'])
+    expect(result.warnings).toEqual(['unknown status in odd.yaml: beta; treating it as stable'])
   })
 })
 
-const SYNC_HINT = 'テーマの references/_common.yaml の layout_categories を確認してください'
+const SYNC_HINT = 'check layout_categories in references/_common.yaml of the theme'
 const TEXT: LayoutCategory = { id: 'text', label: '文章', question: '文章で見せる' }
 const FIGURE: LayoutCategory = { id: 'figure', label: '図', question: '図で見せる' }
 
@@ -287,7 +287,7 @@ describe('readLayoutCategories', () => {
     const result = await readLayoutCategories(new NodeThemeFiles(), [directory])
     expect(result.categories).toEqual([])
     expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toContain('見せ方の分類を読み取れませんでした')
+    expect(result.warnings[0]).toContain('cannot read the layout categories')
     expect(result.warnings[0]).toContain(path.join(directory, '_common.yaml'))
     expect(result.warnings[0]).toContain(SYNC_HINT)
   })
@@ -296,7 +296,7 @@ describe('readLayoutCategories', () => {
     const directory = writeCommon(path.join(state.talk, 'bad'), `description: 'x'\n`)
     const result = await readLayoutCategories(new NodeThemeFiles(), [directory])
     expect(result.categories).toEqual([])
-    expect(result.warnings[0]).toContain('layout_categories が配列として見つかりません')
+    expect(result.warnings[0]).toContain('layout_categories is not found as an array')
   })
 
   it('使える要素が 0 件なら、全滅の警告 1 行に合流する', async () => {
@@ -304,7 +304,7 @@ describe('readLayoutCategories', () => {
     const result = await readLayoutCategories(new NodeThemeFiles(), [directory])
     expect(result.categories).toEqual([])
     expect(result.warnings).toEqual([
-      `見せ方の分類を読み取れませんでした (${path.join(directory, '_common.yaml')}: layout_categories に使える要素がありません (2 件中 0 件))。分類なしで続行します。${SYNC_HINT}`,
+      `cannot read the layout categories (${path.join(directory, '_common.yaml')}: layout_categories has no usable item (0 of 2)); continuing without categories (fix: ${SYNC_HINT})`,
     ])
   })
 
@@ -316,8 +316,8 @@ describe('readLayoutCategories', () => {
     const result = await readLayoutCategories(new NodeThemeFiles(), [directory])
     expect(result.categories).toEqual([{ id: 'text', label: '文章', question: 'q' }])
     expect(result.warnings).toEqual([
-      `layout_categories の id 'uncategorized' は予約語のため無視します (1 件、${SYNC_HINT})`,
-      `layout_categories の一部を読み飛ばしました (id/label/question が不揃い: 1 件)。${SYNC_HINT}`,
+      `ignoring reserved layout_categories id uncategorized (1 item(s)); ${SYNC_HINT}`,
+      `skipped part of layout_categories (id, label or question missing: 1 item(s)); ${SYNC_HINT}`,
     ])
   })
 
@@ -326,7 +326,7 @@ describe('readLayoutCategories', () => {
     const result = await readLayoutCategories(new NodeThemeFiles(), [directory])
     expect(result.categories).toEqual([])
     expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toContain('見せ方の分類を読み取れませんでした')
+    expect(result.warnings[0]).toContain('cannot read the layout categories')
   })
 })
 
@@ -369,7 +369,7 @@ describe('buildLayoutCatalog', () => {
     )
     expect(catalog.categories).toEqual([
       TEXT,
-      { id: 'uncategorized', label: '未分類', question: `category が未設定か未知語彙のレイアウト（${SYNC_HINT}）` },
+      { id: 'uncategorized', label: 'Uncategorized', question: `layouts whose category is unset or unknown (${SYNC_HINT})` },
     ])
     expect(catalog.layouts.map(entry => [entry.layout, entry.category])).toEqual([
       ['known', 'text'],

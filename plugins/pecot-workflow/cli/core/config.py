@@ -195,8 +195,8 @@ class Repository(BaseModel):
         """
         if self.packages and self.changelog_file:
             raise ValueError(
-                "changelog_file と packages は同時指定できません。"
-                "monorepo 構成では packages[].changelog に寄せてください。"
+                "changelog_file and packages cannot be set together; "
+                "in a monorepo, use packages[].changelog instead"
             )
         return self
 
@@ -266,7 +266,7 @@ class ProjectConfig(BaseModel):
         if v is None:
             return v
         if not _AGGREGATION_REPO_PATTERN.fullmatch(v):
-            raise ValueError(f"aggregation_repo は 'owner/repo' 形式で指定してください: {repr(v)}")
+            raise ValueError(f"aggregation_repo must be in 'owner/repo' form: {repr(v)}")
         return v
 
     @property
@@ -440,7 +440,7 @@ def load_config(path: Path | str) -> ProjectConfig:
     """
     path = Path(path)
     if not path.exists():
-        raise ConfigError(f"設定ファイルが見つかりません: {path}")
+        raise ConfigError(f"config file not found: {path}")
 
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
@@ -508,7 +508,7 @@ def set_active_config(path: Path | str) -> None:
     """
     path = Path(path)
     if not path.exists():
-        raise ConfigError(f"設定ファイルが見つかりません: {path}")
+        raise ConfigError(f"config file not found: {path}")
 
     active_file = get_projects_dir() / ".active"
     active_file.parent.mkdir(parents=True, exist_ok=True)

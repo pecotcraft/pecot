@@ -57,11 +57,11 @@ export function createProgram(): Command {
       writeData(process.stdout, 'hello from pecotv (ts)')
     })
 
-  const pptx = new Command('pptx').description('PPTX に対する操作')
+  const pptx = new Command('pptx').description('operate on PPTX files')
   pptx.addCommand(createPptxPreviewCommand(pptxPreviewDefaultDependencies))
   program.addCommand(pptx)
 
-  const slide = new Command('slide').description('Slidev プロジェクト操作')
+  const slide = new Command('slide').description('operate on Slidev projects')
   slide.addCommand(createSlideCreateCommand(slideCreateDefaultDependencies))
   slide.addCommand(createSlideConvertCommand(slideConvertDefaultDependencies))
   slide.addCommand(createSlideSyncCommand(slideSyncDefaultDependencies))
@@ -69,16 +69,16 @@ export function createProgram(): Command {
   slide.addCommand(createSlideThemeCommand(slideThemeDefaultDependencies))
   program.addCommand(slide)
 
-  const drawio = new Command('drawio').description('drawio に対する操作')
+  const drawio = new Command('drawio').description('operate on drawio diagrams')
   drawio.addCommand(createDrawioUrlCommand(drawioUrlDefaultDependencies))
   drawio.addCommand(createDrawioExportCommand(drawioExportDefaultDependencies))
   program.addCommand(drawio)
 
-  const chromiumCommand = new Command('chromium').description('Playwright Chromium の実行環境に対する操作')
+  const chromiumCommand = new Command('chromium').description('operate on the Playwright Chromium runtime')
   chromiumCommand.addCommand(createChromiumHostDependenciesCommand(hostDependenciesCommandDefaultDependencies))
   program.addCommand(chromiumCommand)
 
-  const evidence = new Command('evidence').description('エビデンス xlsx に対する操作')
+  const evidence = new Command('evidence').description('operate on evidence xlsx files')
   evidence.addCommand(createEvidenceCreateCommand(evidenceCreateDefaultDependencies))
   program.addCommand(evidence)
 
@@ -88,7 +88,7 @@ export function createProgram(): Command {
   // (計測 約 60ms) 重くなるため。
   const mcp = program
     .command('mcp')
-    .description('MCP サーバとして stdio (stdin/stdout) で待ち受ける')
+    .description('serve as an MCP server over stdio (stdin/stdout)')
 
   /* c8 ignore start -- action は dynamic import して実 process.stdin/stdout へ接続する。
      単体テストから起動すると vitest worker の stdout ごと差し替えてしまう。このルートは

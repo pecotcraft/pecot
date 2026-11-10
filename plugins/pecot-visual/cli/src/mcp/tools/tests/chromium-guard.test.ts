@@ -156,7 +156,7 @@ describe('ensureChromium: 既定は取得せず setup ツールを案内する',
 
     expect(detail).toContain('Chromium')
     expect(detail).toContain('/fake/ms-playwright')
-    expect(detail).toContain('`setup` ツール')
+    expect(detail).toContain('call the `setup` tool')
     // 単体配布では存在しないため、setup.sh のパスを案内しない。
     expect(detail).not.toContain('setup.sh')
     // 許可判断ができるようダウンロード量を明記する。
@@ -172,7 +172,7 @@ describe('ensureChromium: 既定は取得せず setup ツールを案内する',
     // eslint-disable-next-line unicorn/no-useless-undefined -- browsersRoot は場所を特定できないとき undefined を返す契約
     const rejected = await ensureChromium('drawio_export', { ...deps, browsersRoot: () => undefined })
 
-    expect(rejected?.data['expectedAt']).toBe('Playwright の既定の browsers ディレクトリ')
+    expect(rejected?.data['expectedAt']).toBe('the default Playwright browsers directory')
     expect(String(rejected?.data['detail'])).not.toContain('undefined')
   })
 
@@ -183,7 +183,7 @@ describe('ensureChromium: 既定は取得せず setup ツールを案内する',
     const message = rejected?.message ?? ''
 
     expect(message).toContain('slide_convert')
-    expect(message).toContain('`setup` ツール')
+    expect(message).toContain('call the `setup` tool')
   })
 })
 
@@ -243,9 +243,9 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     const detail = String(rejected?.data['detail'])
 
     expect(detail, '既存の誘導は残す').toContain('PLAYWRIGHT_DOWNLOAD_HOST')
-    expect(detail).toContain('TLS 証明書の検証で失敗しています')
+    expect(detail).toContain('TLS certificate verification failed')
     expect(detail).toContain('NODE_EXTRA_CA_CERTS')
-    expect(detail, '同梱の証明書は無い').not.toContain('同梱')
+    expect(detail, '同梱の証明書は無い').not.toContain('bundled')
   })
 
   it('起動失敗 (exitCode null) を「exit null」と書かずに返す', async () => {
@@ -261,7 +261,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     const detail = String(rejected?.data['detail'])
 
     expect(detail).not.toContain('exit null')
-    expect(detail).toContain('起動できませんでした')
+    expect(detail).toContain('could not start the download command')
   })
 
   it('シグナル終了 (exitCode null + signal) は中断として返す', async () => {
@@ -289,7 +289,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     const rejected = await ensureChromium('drawio_export', deps)
 
-    expect(String(rejected?.data['detail'])).toContain('別のプロセスが chromium を取得中')
+    expect(String(rejected?.data['detail'])).toContain('another process is downloading chromium')
   })
 
   it('呼び出し元の signal を取得コマンドへ渡す', async () => {
@@ -310,7 +310,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     const rejected = await ensureChromium('drawio_export', deps)
 
-    expect(String(rejected?.data['detail'])).toContain('タイムアウト')
+    expect(String(rejected?.data['detail'])).toContain('download timed out')
   })
 
   it('exit 0 でも実体が置かれていなければ失敗として扱う', async () => {
@@ -387,7 +387,7 @@ describe('chromium 未取得時のツール応答', () => {
     // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
     expect(dataOf(degraded)).toMatchObject({ png: null, pngFailed: true, warnings: 1 })
     // 復旧手段は message に載せる (data は CLI の PNG 失敗時と同形に保つ)。
-    expect(String(structured['message'])).toContain('`setup` ツール')
+    expect(String(structured['message'])).toContain('call the `setup` tool')
   })
 
   it('drawio_create は out_path 省略なら chromium 未取得でも URL を返す', async () => {

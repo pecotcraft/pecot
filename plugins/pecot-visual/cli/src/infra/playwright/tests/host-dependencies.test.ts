@@ -261,7 +261,7 @@ describe('ensureChromiumHostDependencies', () => {
     expect(outcome).toMatchObject({ status: 'missing' })
     if (outcome.status !== 'missing') return
     expect(outcome.detail).toContain('Unable to locate package')
-    expect(outcome.detail).toContain('apt-get update が失敗しました: Temporary failure resolving')
+    expect(outcome.detail).toContain('apt-get update failed: Temporary failure resolving')
     expect(outcome.detail).toContain(aptInstallCommand(PACKAGES.split(' ')))
   })
 
@@ -270,7 +270,7 @@ describe('ensureChromiumHostDependencies', () => {
     const outcome = await ensureChromiumHostDependencies(deps)
     expect(outcome).toMatchObject({ status: 'missing' })
     if (outcome.status !== 'missing') return
-    expect(outcome.detail).toContain('時間内に終わりませんでした')
+    expect(outcome.detail).toContain('did not finish in time')
   })
 
   it('入れてもまだライブラリが足りなければ missing を返す', async () => {
@@ -293,7 +293,7 @@ describe('ensureChromiumHostDependencies', () => {
     const outcome = await ensureChromiumHostDependencies(deps)
     expect(outcome).toMatchObject({ status: 'missing', libraries: [] })
     if (outcome.status !== 'missing') return
-    expect(outcome.detail).toContain('OS のライブラリが足りません。')
+    expect(outcome.detail).toContain('OS libraries required to launch Chromium are missing; ')
   })
 })
 

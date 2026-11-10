@@ -416,21 +416,21 @@ describe.each(STAGES)('fetchTheme（%s の段の子プロセス失敗）', (stag
     const options = optionsFor(`lock-${stage}`, { runner: replacingRunner(isTarget, LOCK_CONFLICT) })
     const error = await failureOf(fetchTheme(okSpec(), options))
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: 'install' })
-    expect(error instanceof Error && error.message).toContain('別のプロセスが同じテーマを取得中です')
+    expect(error instanceof Error && error.message).toContain('another process is fetching the same theme')
   })
 
   it('時間切れは、時間切れとして案内する', async () => {
     const options = optionsFor(`timeout-${stage}`, { runner: replacingRunner(isTarget, TIMED_OUT) })
     const error = await failureOf(fetchTheme(okSpec(), options))
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: timedOutReason })
-    expect(error instanceof Error && error.message).toContain('時間切れで中断しました')
+    expect(error instanceof Error && error.message).toContain('timed out')
   })
 
   it('起動できなければ、導入の確認を案内する', async () => {
     const options = optionsFor(`start-${stage}`, { runner: replacingRunner(isTarget, NOT_STARTED) })
     const error = await failureOf(fetchTheme(okSpec(), options))
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: 'install' })
-    expect(error instanceof Error && error.message).toContain('を起動できません。導入を確認してください')
+    expect(error instanceof Error && error.message).toContain('check that it is installed')
   })
 })
 
@@ -455,7 +455,7 @@ describe('fetchTheme（git の例外）', () => {
 
     const error = await failureOf(fetchTheme({ kind: 'git', url: `file://${bare}`, tag: 'v1.0.0' }, optionsFor('no-manifest')))
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: 'install' })
-    expect(error instanceof Error && error.message).toContain('package.json がありません')
+    expect(error instanceof Error && error.message).toContain('has no package.json')
   })
 
   it('取得中に先客の置き場が無効なら、消して置き直す', async () => {
@@ -524,7 +524,7 @@ describe('fetchTheme（file）', () => {
     const error = await failureOf(fetchTheme({ kind: 'file', path: './needs-install' }, { ...optionsFor('file-missing'), baseDirectory: temporaryRoot('base') }))
 
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: 'install' })
-    expect(error instanceof Error && error.message).toContain('テーマのディレクトリで install を実行してください')
+    expect(error instanceof Error && error.message).toContain('fix: run install there')
   })
 
   it('依存を持ち node_modules があれば通す', async () => {
@@ -539,7 +539,7 @@ describe('fetchTheme（file）', () => {
     writeFileSync(temporaryRoot('base', 'broken-json', 'package.json'), '{ not json', 'utf8')
     const error = await failureOf(fetchTheme({ kind: 'file', path: './broken-json' }, { ...optionsFor('file-json'), baseDirectory: temporaryRoot('base') }))
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: 'unknown' })
-    expect(error instanceof Error && error.message).toContain('name がありません')
+    expect(error instanceof Error && error.message).toContain('package.json has no name')
   })
 
   it('name が無い package.json は失敗する', async () => {

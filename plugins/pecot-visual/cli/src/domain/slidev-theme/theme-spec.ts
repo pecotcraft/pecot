@@ -38,29 +38,29 @@ export function parseThemeSpec(text: string): ThemeSpec {
   if (text.startsWith(FILE_PREFIX)) {
     const filePath = text.slice(FILE_PREFIX.length)
     if (filePath === '') {
-      throw new ThemeSpecError(`テーマの指定 '${text}' に path がありません`, 'unsupported-spec')
+      throw new ThemeSpecError(`theme spec has no path: ${text}`, 'unsupported-spec')
     }
     return { kind: 'file', path: filePath }
   }
 
   if (!GIT_PREFIX.test(text)) {
     throw new ThemeSpecError(
-      `テーマの指定 '${text}' は解釈できません。git+https://<host>/<owner>/<repo>.git#<tag> か file:<path> で書いてください`,
+      `cannot parse the theme spec: ${text} (fix: write git+https://<host>/<owner>/<repo>.git#<tag> or file:<path>)`,
       'unsupported-spec',
     )
   }
 
   const hashIndex = text.indexOf('#')
   if (hashIndex === -1 || hashIndex === text.length - 1) {
-    throw new ThemeSpecError(`テーマの指定 '${text}' にタグがありません。#<tag> を付けてください`, 'tag-required')
+    throw new ThemeSpecError(`theme spec has no tag: ${text} (fix: add #<tag>)`, 'tag-required')
   }
 
   const tag = text.slice(hashIndex + 1)
   if (tag.startsWith(SEMVER_RANGE_PREFIX)) {
-    throw new ThemeSpecError(`テーマの指定 '${text}' の範囲指定（#semver:）は使えません。タグを 1 つ書いてください`, 'semver-range')
+    throw new ThemeSpecError(`semver ranges (#semver:) are not allowed in the theme spec: ${text} (fix: write a single tag)`, 'semver-range')
   }
   if (!isSemverTag(tag)) {
-    throw new ThemeSpecError(`テーマの指定 '${text}' の '${tag}' はタグの書式でない（例: 1.2.3 か v1.2.3）`, 'tag-format')
+    throw new ThemeSpecError(`invalid tag format in the theme spec: ${tag} in ${text} (e.g. 1.2.3 or v1.2.3)`, 'tag-format')
   }
 
   const url = text.slice('git+'.length, hashIndex)

@@ -127,7 +127,7 @@ describe('parsePathArguments', () => {
       artifacts: [],
       data: { invalidPaths: ['out_path=relative/c.png'] },
     })
-    expect(parsed.rejected?.message).toContain('絶対パス')
+    expect(parsed.rejected?.message).toContain('must be an absolute path')
     // 変換が 1 件も起きていないので convertedPaths は載せない。
     expect(parsed.rejected?.data).not.toHaveProperty('convertedPaths')
   })
@@ -171,7 +171,7 @@ describe('parsePathArguments', () => {
         convertedPaths: { out_path: { from: String.raw`C:\deck\a.png`, to: `${MOUNT_ROOT}/c/deck/a.png` } },
       },
     })
-    expect(parsed.rejected?.message).toContain('Windows 形式')
+    expect(parsed.rejected?.message).toContain('Windows-style')
     expect(parsed.rejected?.message).toContain('Debian')
   })
 
@@ -184,12 +184,12 @@ describe('parsePathArguments', () => {
 
     // 旧仕様 (解決不能があると相対パス側の違反を隠す) から、両方を列挙する形へ変えた (#1094 F-06)。
     expect(parsed.rejected?.data['invalidPaths']).toEqual(['input_path=C:relative', 'out_path=b.png'])
-    expect(parsed.rejected?.message).toContain('Windows 形式のパスを解決できません')
+    expect(parsed.rejected?.message).toContain('cannot resolve Windows-style path')
     expect(parsed.rejected?.message).toContain('C:relative')
-    expect(parsed.rejected?.message).toContain('絶対パス')
+    expect(parsed.rejected?.message).toContain('must be an absolute path')
     expect(parsed.rejected?.message).toContain('out_path=b.png')
     // 解決不能側を主文にする: message の先頭がそちらであること。
-    expect(parsed.rejected?.message.indexOf('Windows 形式')).toBe(0)
+    expect(parsed.rejected?.message.startsWith('cannot resolve Windows-style')).toBe(true)
   })
 })
 
@@ -221,7 +221,7 @@ describe('createOutputCapture', () => {
 
     const text = capture.text()
     expect(text).toHaveLength(LIMIT_BYTES)
-    expect(text).not.toContain('切り詰め')
+    expect(text).not.toContain('truncated')
   })
 
   it('上限を超えたら先頭を捨てて末尾を残し、切り詰めをマーカー行で明示する', async () => {
@@ -237,7 +237,7 @@ describe('createOutputCapture', () => {
     const text = capture.text()
     const [marker, ...rest] = text.split('\n')
     expect(marker).toContain(String(LIMIT_BYTES))
-    expect(marker).toContain('切り詰め')
+    expect(marker).toContain('truncated')
     // 残るのは上限ちょうど分の末尾で、捨てられたのは先頭 'tail-marker'.length バイト。
     const retained = rest.join('\n')
     expect(retained).toHaveLength(LIMIT_BYTES)

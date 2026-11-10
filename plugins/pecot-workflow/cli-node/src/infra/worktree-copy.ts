@@ -99,7 +99,7 @@ export function copyFiles(sourceRoot: string, destinationRoot: string, files: re
   return files.map((file): CopyResult => {
     const source = path.join(sourceRoot, file)
     const destination = path.join(destinationRoot, file)
-    if (!existsSync(source)) return { source, dest: destination, action: 'skipped', message: 'ソースファイルが存在しません' }
+    if (!existsSync(source)) return { source, dest: destination, action: 'skipped', message: 'source file does not exist' }
     try {
       copyOne(source, destination)
       return { source, dest: destination, action: 'copied', message: '' }

@@ -14,8 +14,8 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      textlint: '{{fieldPath}}: {{message}}（{{ruleId}}）',
-      textlintFailed: '{{fieldPath}}: textlint を実行できませんでした: {{reason}}',
+      textlint: '{{fieldPath}}: {{message}} ({{ruleId}})',
+      textlintFailed: '{{fieldPath}}: textlint failed to run: {{reason}}',
     },
   },
 

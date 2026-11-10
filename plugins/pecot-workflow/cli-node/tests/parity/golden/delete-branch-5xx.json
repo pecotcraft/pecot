@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "GitHub APIエラー: GitHub APIエラー: 500\n",
+  "stderr": "error: could not delete remote branch feat/7 in acme/demo: GitHub API error: 500\n",
   "exitCode": 1,
   "requests": [
     {

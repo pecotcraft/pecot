@@ -136,15 +136,15 @@ export function createSlideSyncCommand(
 ): Command {
   const command = new Command('sync')
     .description(
-      'talk-dir を同期する。テンプレートのコピーを持つ移行前の talk-dir は、--theme で指定したテーマを参照する形へ移す'
-      + '（テンプレート由来のファイルを消し、作品の slides.md・pages/*.md・public/slides/ は残す）。'
-      + 'テーマを参照する移行済みの talk-dir は、package.json の依存の版でテーマを取得して node_modules を張り直す。'
-      + '本体の生成ファイル（vite.config.ts・start.mjs）は本体の今の内容にそろえ、ほかは変えない',
+      'sync a talk-dir; a pre-migration talk-dir that holds a template copy is moved to reference the theme given by --theme'
+      + ' (template-derived files are removed; slides.md, pages/*.md and public/slides/ are kept); '
+      + 'a migrated talk-dir fetches the theme at the version in package.json dependencies and rebuilds node_modules; '
+      + 'generated files (vite.config.ts, start.mjs) are aligned with the current plugin output; nothing else changes',
     )
-    .requiredOption('--dir <path>', '同期対象の talk-dir 絶対パス')
-    .option('--theme <spec>', '移行前の talk-dir が参照するテーマ (git+https://<host>/<owner>/<repo>.git#<tag> か file:<path>)')
-    .option('--node-modules-only', 'node_modules の張り直しのみ実行する（移行済みの talk-dir の通常の sync も同じ動き）', false)
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
+    .requiredOption('--dir <path>', 'absolute path of the talk-dir to sync')
+    .option('--theme <spec>', 'theme referenced by a pre-migration talk-dir (git+https://<host>/<owner>/<repo>.git#<tag> or file:<path>)')
+    .option('--node-modules-only', 'rebuild node_modules only (a normal sync of a migrated talk-dir does the same)', false)
+    .option('--json', 'print machine-readable JSON to stdout', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {
@@ -195,7 +195,7 @@ export function createSlideSyncCommand(
           }))
         }
         else {
-          createDiagnostics(dependencies.stderr).error(`slide sync 失敗: ${detail}`)
+          createDiagnostics(dependencies.stderr).error(`slide sync failed: ${detail}`)
         }
         process.exitCode = toExitCode(error)
       }
@@ -216,24 +216,24 @@ function writeSyncSummary(
   stdout: NodeJS.WritableStream,
 ): void {
   const { theme } = summary
-  const themeLine = theme === undefined ? undefined : `  テーマ: ${theme.name} (${theme.spec})`
+  const themeLine = theme === undefined ? undefined : `  theme: ${theme.name} (${theme.spec})`
   if (summary.nodeModulesOnly) {
-    writeData(stdout, `slide sync (node_modules のみ): 成功 (${summary.directory})`)
+    writeData(stdout, `slide sync (node_modules only): success (${summary.directory})`)
     if (themeLine !== undefined) writeData(stdout, themeLine)
     writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
     return
   }
-  writeData(stdout, `slide sync: 成功 (${summary.directory})`)
+  writeData(stdout, `slide sync: success (${summary.directory})`)
   if (themeLine !== undefined) writeData(stdout, themeLine)
   if (summary.mode === 'relink') {
-    if (theme !== undefined) writeData(stdout, `  置き場: ${theme.directory}`)
+    if (theme !== undefined) writeData(stdout, `  location: ${theme.directory}`)
     writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
-    writeData(stdout, '  node_modules のほかは変えていません。')
+    writeData(stdout, '  nothing changed except node_modules')
     return
   }
   writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
-  writeData(stdout, `  消した名前 (${String(summary.removed.length)} 件): ${summary.removed.join(', ')}`)
-  writeData(stdout, '  作品領域（slides.md / pages/*.md / public/slides/）は残しました。slides.md の theme: と package.json の依存を書き換えています。')
+  writeData(stdout, `  removed (${String(summary.removed.length)}): ${summary.removed.join(', ')}`)
+  writeData(stdout, '  kept slides.md, pages/*.md and public/slides/; rewrote theme: in slides.md and the dependency in package.json')
 }
 
 export interface SlideSyncExecution {
@@ -306,7 +306,7 @@ async function layoutCatalogOrEmpty(
   }
   catch (error: unknown) {
     // 移行前の形 (theme: none) もここに来る。一覧を空にして、同期の成否は変えない。
-    createDiagnostics(stderr).warning(`layout catalog を読み取れませんでした: ${directory} (${formatError(error)})`)
+    createDiagnostics(stderr).warning(`cannot read layout catalog: ${directory}: ${formatError(error)}`)
     return { categories: [], layouts: [] }
   }
 }
@@ -374,7 +374,7 @@ async function prepareMigrationTheme(
   const storeRoot = context.storeRoot()
   if (storeRoot === undefined) {
     throw new SlideCreateRuntimeError(
-      'テーマの置き場を決められません。データ置き場（CLAUDE_PLUGIN_DATA）を確認してください',
+      'cannot determine the theme location (fix: check the data directory CLAUDE_PLUGIN_DATA)',
       'theme-unknown',
     )
   }
@@ -446,7 +446,7 @@ export function slideSyncDefaultDependencies(): SlideSyncDependencies {
   const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
   /* c8 ignore next 3 -- bin/pecotv が CLAUDE_PLUGIN_ROOT を必ず export するため未設定ルートは実運用で発生しない */
   if (pluginRoot === undefined || pluginRoot === '') {
-    throw new SlideSyncRuntimeError('CLAUDE_PLUGIN_ROOT が未設定です', 'unknown')
+    throw new SlideSyncRuntimeError('CLAUDE_PLUGIN_ROOT is not set', 'unknown')
   }
   const dependencyRoot = pluginDependencyRoot()
   return {

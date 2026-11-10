@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: the body does not follow the template {{PLUGIN_ROOT}}/cli/templates/comment/merge-diff.md\n  missing sections: ## Merge — <サマリ>, ### Variance — <サマリ>, ### Impact — <サマリ>\n",
+  "stderr": "error: the body does not follow the template {{PLUGIN_ROOT}}/cli/templates/comment/merge-diff.md\n  missing sections: ## Merge — <summary>, ### Variance — <summary>, ### Impact — <summary>\n",
   "exitCode": 3,
   "requests": [],
   "files": {

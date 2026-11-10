@@ -107,7 +107,7 @@ describe('labelTexts', () => {
 
     it('展開できない中身は、通さずに投げる', () => {
       const xml = '<mxfile><diagram id="broken" name="p">%%%これは圧縮ではない%%%</diagram></mxfile>'
-      expect(() => labelTexts(xml)).toThrow('圧縮された図 (diagram id="broken") を展開できないため、文言を確認できません')
+      expect(() => labelTexts(xml)).toThrow('cannot check the text: compressed diagram (id="broken") could not be expanded')
     })
   })
 })

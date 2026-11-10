@@ -49,7 +49,7 @@ git を実行して標準出力を返す。非 0 終了は ReleaseError
 function runGit(git: GitRunner, arguments_: readonly string[]): string {
   const result = git(arguments_)
   if (result.exitCode !== 0) {
-    throw new ReleaseError(`git コマンド失敗: git ${arguments_.join(' ')}\n${pythonStrip(result.stderr)}`)
+    throw new ReleaseError(`git command failed: git ${arguments_.join(' ')}\n${pythonStrip(result.stderr)}`)
   }
   return pythonStrip(result.stdout)
 }
@@ -87,17 +87,17 @@ export function runPreflight(options: PreflightOptions, git: GitRunner): Preflig
 
   const tagName = options.tagPrefix === undefined || options.tagPrefix === '' ? `v${version}` : `${options.tagPrefix}-v${version}`
   const localTags = runGit(git, ['tag', '-l', tagName])
-  if (localTags.split('\n').includes(tagName)) throw new ReleaseError(`タグ ${tagName} はローカルに既に存在します`)
+  if (localTags.split('\n').includes(tagName)) throw new ReleaseError(`tag already exists locally: ${tagName}`)
 
   const remoteTags = runGit(git, ['ls-remote', '--tags', 'origin', `refs/tags/${tagName}`])
-  if (remoteTags !== '') throw new ReleaseError(`タグ ${tagName} はリモートに既に存在します`)
+  if (remoteTags !== '') throw new ReleaseError(`tag already exists on the remote: ${tagName}`)
 
   runGit(git, ['fetch', 'origin', releaseBranch, developBranch])
   const diffCount = countDifference(runGit(git, ['rev-list', '--count', `origin/${releaseBranch}..origin/${developBranch}`]))
   if (diffCount === 0) {
     throw new ReleaseError(
-      `origin/${releaseBranch} と origin/${developBranch} に差分がありません。`
-      + 'リリースする変更がありません。',
+      `no difference between origin/${releaseBranch} and origin/${developBranch}: `
+      + 'there is nothing to release',
     )
   }
 

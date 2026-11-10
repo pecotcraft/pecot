@@ -76,9 +76,9 @@ export function createSlideLintCommand(
   buildDependencies: () => SlideLintDependencies,
 ): Command {
   const command = new Command('lint')
-    .description('talk-dir 全体（pages/**/*.md と slides.md）を lint する')
-    .requiredOption('--dir <path>', 'lint 対象の talk-dir 絶対パス')
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
+    .description('lint the whole talk-dir (pages/**/*.md and slides.md)')
+    .requiredOption('--dir <path>', 'absolute path of the talk-dir to lint')
+    .option('--json', 'print machine-readable JSON to stdout', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {
@@ -107,7 +107,7 @@ export function createSlideLintCommand(
         }
         else {
           // 件数行を読まずに成否が分かるよう見出し行に結果を載せる（no-target は exit 0 側）。
-          const outcomeLabel = summary.outcome === 'violations' ? '違反あり' : '成功'
+          const outcomeLabel = summary.outcome === 'violations' ? 'violations' : 'success'
           writeData(dependencies.stdout, `slide lint: ${outcomeLabel} (${summary.directory})`)
           writeSummaryLines(summary, dependencies)
         }
@@ -126,7 +126,7 @@ export function createSlideLintCommand(
           }))
         }
         else {
-          createDiagnostics(dependencies.stderr).error(`slide lint 失敗: ${detail}`)
+          createDiagnostics(dependencies.stderr).error(`slide lint failed: ${detail}`)
         }
         process.exitCode = toExitCode(error)
       }
@@ -204,18 +204,18 @@ function writeSummaryLines(
   const diagnostics = createDiagnostics(dependencies.stderr)
   for (const skipped of summary.skippedSymlinkDirectories) {
     diagnostics.warning(
-      `${skipped} は symlink のため eslint の走査対象になりません`
-      + '（配下は lint されていない可能性があります）',
+      `${skipped} is a symlink and is not scanned by eslint`
+      + ' (files under it may not be linted)',
     )
   }
   if (summary.outcome === 'no-target') {
-    writeData(dependencies.stdout, `  lint 対象 0 件（pages/**/*.md と slides.md が見つかりません）`)
+    writeData(dependencies.stdout, `  linted 0 files (no pages/**/*.md or slides.md found)`)
     return
   }
   writeData(
     dependencies.stdout,
-    `  lint 対象 ${String(summary.lintedFileCount)} 件 / エラー ${String(summary.errorCount)} 件`
-    + ` / 警告 ${String(summary.warningCount)} 件`,
+    `  linted ${String(summary.lintedFileCount)} files / ${String(summary.errorCount)} errors`
+    + ` / ${String(summary.warningCount)} warnings`,
   )
   for (const violation of summary.violations) {
     writeData(
@@ -270,7 +270,7 @@ export function writeAutoDeckLintReport(
 ): void {
   const { summary } = report
   if (summary === undefined) {
-    createDiagnostics(dependencies.stderr).warning(`deck lint をスキップしました: ${report.failure ?? ''}`)
+    createDiagnostics(dependencies.stderr).warning(`deck lint skipped: ${report.failure ?? ''}`)
     return
   }
   writeData(dependencies.stdout, 'deck lint:')
@@ -278,7 +278,7 @@ export function writeAutoDeckLintReport(
   if (summary.outcome === 'violations') {
     writeData(
       dependencies.stdout,
-      `  上記の違反はこのコマンドの成否には影響しません。修正後 pecotv slide lint --dir ${talkDirectory} で再確認してください。`,
+      `  the violations above do not affect this command's result; after fixing, run pecotv slide lint --dir ${talkDirectory} to recheck`,
     )
   }
 }
@@ -357,7 +357,7 @@ export function slideLintDefaultDependencies(): SlideLintDependencies {
   const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
   /* c8 ignore next 3 -- bin/pecotv が CLAUDE_PLUGIN_ROOT を必ず export するため未設定ルートは実運用で発生しない */
   if (pluginRoot === undefined || pluginRoot === '') {
-    throw new SlideLintRuntimeError('CLAUDE_PLUGIN_ROOT が未設定です', 'unknown')
+    throw new SlideLintRuntimeError('CLAUDE_PLUGIN_ROOT is not set', 'unknown')
   }
   const runtimeDirectory = runningMirrorDirectory()
   return {

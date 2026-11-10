@@ -324,7 +324,7 @@ class TestReserveOutputPath:
             reserve_output_path(output_dir, lambda _ts: "fixed.md", max_attempts=3)
 
         message = str(excinfo.value)
-        assert "3 件の候補名がすべて使用済み" in message
+        assert "all 3 candidate names are in use" in message
         assert str(output_dir / "fixed.md") in message
         assert (output_dir / "fixed.md").read_text(encoding="utf-8") == "先客"
 

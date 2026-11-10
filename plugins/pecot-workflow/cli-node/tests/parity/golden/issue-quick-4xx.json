@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not create an Issue in acme/demo: アクセスが拒否されました。\n",
+  "stderr": "error: could not create an Issue in acme/demo: access denied\n",
   "exitCode": 1,
   "requests": [
     {

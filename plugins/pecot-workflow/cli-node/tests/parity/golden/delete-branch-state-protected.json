@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: 'main' は保護ブランチのため削除できません\n保護ブランチ: main\n",
+  "stderr": "error: main is a protected branch\n  protected: main\n",
   "exitCode": 1,
   "requests": [
     {

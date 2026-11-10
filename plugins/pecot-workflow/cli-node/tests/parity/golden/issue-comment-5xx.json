@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not create a comment on Issue acme/demo/7: GitHub APIエラー: 500\n",
+  "stderr": "error: could not create a comment on Issue acme/demo/7: GitHub API error: 500\n",
   "exitCode": 1,
   "requests": [
     {

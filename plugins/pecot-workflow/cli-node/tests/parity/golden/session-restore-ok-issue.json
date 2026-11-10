@@ -1,6 +1,6 @@
 {
-  "stdout": "復元完了: .pecot-active → acme/demo/9\n作業ファイル置き場: .pecot/work/9/\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "set: work target acme/demo/9 (work directory .pecot/work/9/)\n",
   "exitCode": 0,
   "requests": [
     {

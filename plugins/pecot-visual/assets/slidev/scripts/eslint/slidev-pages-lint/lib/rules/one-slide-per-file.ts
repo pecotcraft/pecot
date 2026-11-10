@@ -43,7 +43,7 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       multipleSlides:
-        '1ファイルに複数のスライドが含まれています。pages/以下では1ファイル1スライドにしてください。',
+        'multiple slides in one file (fix: use one slide per file under pages/)',
     },
   },
 

@@ -66,7 +66,7 @@ function expandedDocument(id: string, data: string): XmldomDocument {
     expanded = undefined
   }
   if (expanded === undefined) {
-    throw new Error(`圧縮された図 (diagram id="${id}") を展開できないため、文言を確認できません`)
+    throw new Error(`cannot check the text: compressed diagram (id="${id}") could not be expanded`)
   }
   return expanded
 }

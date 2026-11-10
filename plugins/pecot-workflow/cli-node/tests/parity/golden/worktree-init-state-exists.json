@@ -1,6 +1,6 @@
 {
-  "stdout": "設定ファイルは既に存在します: {{TMP}}/base/demo/.pecot/config/worktree-config.json\n設定ファイルは既に存在します: {{TMP}}/base/demo/.pecot/config/.worktreeignore\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "error: worktree config already exists\n  {{TMP}}/base/demo/.pecot/config/worktree-config.json\n  {{TMP}}/base/demo/.pecot/config/.worktreeignore\n",
   "exitCode": 1,
   "requests": [],
   "files": {

@@ -701,7 +701,7 @@ describe('installRuntimeDependencies', () => {
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
     expect(result.exitCode).toBe(null)
     expect(result.failedStage).toBe('npm')
-    expect(result.stderr).toContain('配布時に置き換わるはずの catalog: が残っています: vite')
+    expect(result.stderr).toMatch(/catalog: entries that should be replaced at distribution remain in .*: vite$/)
     expect(result.stderr).not.toContain('vue')
     expect(existsSync(runtimePackageJson(data))).toBe(false)
   })
@@ -717,7 +717,7 @@ describe('installRuntimeDependencies', () => {
     expect(result.stdout).toBe('')
     // eslint-disable-next-line unicorn/no-null -- SpawnResult は起動失敗を exitCode: null で表す
     expect(result.exitCode).toBe(null)
-    expect(result.stderr).toContain('配布時に置き換わるはずの catalog: が残っています: fsevents')
+    expect(result.stderr).toMatch(/catalog: entries that should be replaced at distribution remain in .*: fsevents$/)
     expect(existsSync(runtimePackageJson(data))).toBe(false)
   })
 

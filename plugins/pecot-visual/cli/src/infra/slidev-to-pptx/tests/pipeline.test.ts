@@ -185,7 +185,7 @@ describe('convertToPptx', () => {
     }
     const result = await convertToPptx(config, deps)
 
-    expect(logger.info).toHaveBeenCalledWith('ルータ判定: router=hash')
+    expect(logger.info).toHaveBeenCalledWith('router detection: router=hash')
     expect(result.slideCount).toBe(3)
     expect(steps.map(step => [step.slideNumber, step.clickStep])).toStrictEqual([[1, null], [2, null], [2, 1]])
   })
@@ -207,9 +207,9 @@ describe('convertToPptx', () => {
     }
     await convertToPptx(config, deps)
 
-    expect(logger.info).toHaveBeenCalledWith('ルータ判定: router=history')
+    expect(logger.info).toHaveBeenCalledWith('router detection: router=history')
     // dist 配信サーバの起動ログは console.log でなく logger を通す (--json の stdout を汚さない)
-    expect(logger.info).toHaveBeenCalledWith('HTTPサーバー起動: http://127.0.0.1:4001')
+    expect(logger.info).toHaveBeenCalledWith('HTTP server started: http://127.0.0.1:4001')
     expect(steps[0]?.url).toBe('http://127.0.0.1:4001/3')
   })
 
@@ -252,7 +252,7 @@ describe('convertToPptx', () => {
     const result = await convertToPptx(config, deps)
     expect(result.success).toBe(false)
     expect(result.errors.some(e => e.level === 'slide' && e.message.includes('worker-failed'))).toBe(true)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('スライド変換失敗'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('slide conversion failed'))
   })
 
   it('onProgress はスキャンの各ステップと、成功・失敗どちらの worker 完了でも呼ばれる (#1097)', async () => {
@@ -273,14 +273,14 @@ describe('convertToPptx', () => {
     }
     const result = await convertToPptx(config, deps)
     expect(result.success).toBe(false)
-    expect(labels.filter(label => label.startsWith('スキャン: '))).toStrictEqual([
-      'スキャン: ステップ1 検出',
-      'スキャン: ステップ2 検出',
+    expect(labels.filter(label => label.startsWith('scan: '))).toStrictEqual([
+      'scan: step 1 detected',
+      'scan: step 2 detected',
     ])
     // 失敗した slide 1 もリトライ尽きの時点で進捗として報告される。成功・失敗でラベルを分ける (F-06)。
-    expect(labels.filter(label => label.startsWith('スライド #')).toSorted(compareStrings)).toStrictEqual([
-      'スライド #1 変換失敗',
-      'スライド #2 変換完了',
+    expect(labels.filter(label => label.startsWith('slide #')).toSorted(compareStrings)).toStrictEqual([
+      'slide #1 conversion failed',
+      'slide #2 converted',
     ])
   })
 
@@ -357,11 +357,11 @@ describe('convertToPptx', () => {
     const result = await convertToPptx(config, deps)
 
     expect(result.success).toBe(false)
-    expect(logger.info).toHaveBeenCalledWith('失敗: 1スライド')
-    expect(logger.warn).toHaveBeenCalledWith('  [slide] スライド2: worker-failed')
-    expect(logger.info).toHaveBeenCalledWith('要素エラー: 1件')
-    expect(logger.warn).toHaveBeenCalledWith('  [element] スライド1 .chart: pr-fail')
-    expect(logger.info).not.toHaveBeenCalledWith('エラー・警告なし')
+    expect(logger.info).toHaveBeenCalledWith('1 slides failed')
+    expect(logger.warn).toHaveBeenCalledWith('  [slide] slide 2: worker-failed')
+    expect(logger.info).toHaveBeenCalledWith('1 element errors')
+    expect(logger.warn).toHaveBeenCalledWith('  [element] slide 1 .chart: pr-fail')
+    expect(logger.info).not.toHaveBeenCalledWith('no errors or warnings')
   })
 
   it('resolveDomToPptx 省略時は createRequire 経由 (本物の dom-to-pptx) で解決', async () => {
@@ -763,12 +763,12 @@ describe('convertToPptx の差分キャッシュ', () => {
     // キャッシュ復元したステップも完了として数える (#1160)。
     expect(reports).toStrictEqual([[0, 2], [1, 2], [2, 2]])
     // キャッシュ復元 (decideSteps) と prune/manifest 書き込みの前後も進捗として報告される (F-03)。
-    expect(labels.filter(label => label.startsWith('キャッシュ復元 #')).toSorted(compareStrings)).toStrictEqual([
-      'キャッシュ復元 #1',
-      'キャッシュ復元 #2',
+    expect(labels.filter(label => label.startsWith('cache restore: #')).toSorted(compareStrings)).toStrictEqual([
+      'cache restore: #1',
+      'cache restore: #2',
     ])
-    expect(labels).toContain('キャッシュ整理: prune/manifest 開始')
-    expect(labels).toContain('キャッシュ整理: prune/manifest 完了')
+    expect(labels).toContain('cache cleanup: prune/manifest started')
+    expect(labels).toContain('cache cleanup: prune/manifest done')
     expect(second.result.cache).toMatchObject({ enabled: true, hits: 2, misses: 0, invalidated: 'none' })
     // 全ヒット run でも「成功: 0 スライド」にはしない
     expect(second.result.slideCount).toBe(2)
@@ -804,7 +804,7 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(first.result.warnings).toStrictEqual([])
 
     const second = await runCached(deck)
-    expect(second.result.warnings).toStrictEqual(['2ステップはキャッシュ再利用のため要素診断を再実行していません'])
+    expect(second.result.warnings).toStrictEqual(['element diagnostics were not re-run for 2 steps because their cache was reused'])
   })
 
   it('1 ブロックだけ変更すると変換されるのは該当ステップのみ (invalidated=partial)', async () => {
@@ -866,14 +866,14 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(calls).toHaveLength(2)
     // 警告は warnings 経由で観測できる。`--json` の done payload にも載る (#931)
     expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toContain('キャッシュキーを算出できないため全変換します')
+    expect(result.warnings[0]).toContain('cannot compute the cache key, so converting everything')
     // stderr へは末尾のサマリー集約でインデント付き 1 回だけ出す（即時出力との二重を作らない）
     expect(logger.warn).toHaveBeenCalledTimes(1)
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringMatching(/^ {2}キャッシュキーを算出できないため全変換します: /),
+      expect.stringMatching(/^ {2}cannot compute the cache key, so converting everything: /),
     )
-    expect(logger.info).toHaveBeenCalledWith('警告: 1件')
-    expect(logger.info).not.toHaveBeenCalledWith('エラー・警告なし')
+    expect(logger.info).toHaveBeenCalledWith('1 warnings')
+    expect(logger.info).not.toHaveBeenCalledWith('no errors or warnings')
     // enabled: false は #898 の --no-cache と共通。
     // ただし invalidated: 'all:key' により、JSON 上で「キー算出失敗による退避」と「意図的な無効化」を区別できる。
     expect(result.cache).toMatchObject({ enabled: false, hits: 0, misses: 2, invalidated: 'all:key' })
@@ -895,11 +895,11 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(result.success).toBe(true)
     expect(calls).toHaveLength(2)
     expect(result.warnings).toStrictEqual([
-      'キャッシュを利用できないため全変換します: boom-compute-keys',
+      'cannot use the cache, so converting everything: boom-compute-keys',
     ])
     expect(logger.warn).toHaveBeenCalledTimes(1)
     expect(logger.warn).toHaveBeenCalledWith(
-      '  キャッシュを利用できないため全変換します: boom-compute-keys',
+      '  cannot use the cache, so converting everything: boom-compute-keys',
     )
     // enabled: false は --no-cache と共通のため、例外による退避は invalidated で区別する
     expect(result.cache).toMatchObject({ enabled: false, hits: 0, misses: 2, invalidated: 'all:error' })
@@ -921,10 +921,10 @@ describe('convertToPptx の差分キャッシュ', () => {
 
     expect(result.success).toBe(true)
     expect(result.warnings).toHaveLength(2)
-    expect(result.warnings[0]).toBe('キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）')
-    expect(result.warnings[1]).toContain('キャッシュを利用できないため全変換します')
+    expect(result.warnings[0]).toBe('cannot read the cache manifest; cleaning existing artifacts and rebuilding')
+    expect(result.warnings[1]).toContain('cannot use the cache, so converting everything')
     expect(logger.warn).toHaveBeenCalledTimes(2)
-    expect(logger.info).toHaveBeenCalledWith('警告: 2件')
+    expect(logger.info).toHaveBeenCalledWith('2 warnings')
     // readCacheState の戻り値は throw で捨てられるため、破損時の all:manifest は invalidated に
     // 反映されない。報告されるのは退避の理由である all:error で、破損の事実は warnings 側に残る。
     expect(result.cache).toMatchObject({ enabled: false, hits: 0, misses: 2, invalidated: 'all:error' })
@@ -943,13 +943,13 @@ describe('convertToPptx の差分キャッシュ', () => {
     // 2 ステップとも復元に失敗するため警告は 2 件。stderr もインデント付きで 2 回だけ。
     expect(result.warnings).toHaveLength(2)
     for (const warning of result.warnings) {
-      expect(warning).toContain('キャッシュの復元に失敗しました')
+      expect(warning).toContain('cache restore failed')
     }
     expect(logger.warn).toHaveBeenCalledTimes(2)
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringMatching(/^ {2}キャッシュの復元に失敗しました \(#1\): boom-materialize$/),
+      expect.stringMatching(/^ {2}cache restore failed: #1: boom-materialize$/),
     )
-    expect(logger.info).toHaveBeenCalledWith('警告: 2件')
+    expect(logger.info).toHaveBeenCalledWith('2 warnings')
     expect(result.cache).toMatchObject({ hits: 0, misses: 2, invalidated: 'partial' })
   })
 
@@ -994,17 +994,17 @@ describe('convertToPptx の差分キャッシュ', () => {
     // stderr の logger.warn だけでなく warnings にも積む。破損 run は全 miss で
     // F-09 警告（hit>0 が条件）が出ないため、warnings はこの 1 件だけになる (#929)。
     expect(second.result.warnings).toStrictEqual([
-      'キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）',
+      'cannot read the cache manifest; cleaning existing artifacts and rebuilding',
     ])
     // 人間可読サマリーが警告発生 run で「エラー・警告なし」と矛盾しないこと
-    expect(second.logger.info).toHaveBeenCalledWith('警告: 1件')
-    expect(second.logger.info).not.toHaveBeenCalledWith('エラー・警告なし')
+    expect(second.logger.info).toHaveBeenCalledWith('1 warnings')
+    expect(second.logger.info).not.toHaveBeenCalledWith('no errors or warnings')
     // manifest 警告は、末尾のサマリー集約ループでのみ出力する。
     // readCacheState 内での即時出力と、二重にならないこと。
     // F-01 の回帰検知で、プレフィックス無し 1 回とインデント付き 1 回の二重出力を一本化した。
     expect(second.logger.warn).toHaveBeenCalledTimes(1)
     expect(second.logger.warn).toHaveBeenCalledWith(
-      '  キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）',
+      '  cannot read the cache manifest; cleaning existing artifacts and rebuilding',
     )
   })
 
@@ -1019,7 +1019,7 @@ describe('convertToPptx の差分キャッシュ', () => {
 
     expect(second.result.cache).toMatchObject({ enabled: false, hits: 0, misses: 2, invalidated: 'none' })
     expect(second.result.warnings).toStrictEqual([
-      'キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）',
+      'cannot read the cache manifest; cleaning existing artifacts and rebuilding',
     ])
   })
 
@@ -1038,7 +1038,7 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(result.success).toBe(true)
     expect(calls).toHaveLength(2)
     expect(result.warnings).toStrictEqual([
-      'キャッシュを利用できないため全変換します: boom-compute-keys',
+      'cannot use the cache, so converting everything: boom-compute-keys',
     ])
     expect(result.cache).toMatchObject({ enabled: false, hits: 0, misses: 2, invalidated: 'all:error' })
     expect(await doesManifestExist(deck)).toBe(false)
@@ -1181,14 +1181,14 @@ describe('convertToPptx の差分キャッシュ', () => {
     // manifest 読み取り失敗 (ENOTDIR) 1 件 + 保存失敗 2 件 + 更新失敗 1 件。
     // 保存・更新の警告も warnings 経由で観測できる (#931)。
     expect(result.warnings).toHaveLength(4)
-    expect(result.warnings[0]).toBe('キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）')
-    expect(result.warnings.filter(w => w.includes('キャッシュへの保存に失敗'))).toHaveLength(2)
-    expect(result.warnings.filter(w => w.includes('キャッシュの更新に失敗'))).toHaveLength(1)
+    expect(result.warnings[0]).toBe('cannot read the cache manifest; cleaning existing artifacts and rebuilding')
+    expect(result.warnings.filter(w => w.includes('cache save failed'))).toHaveLength(2)
+    expect(result.warnings.filter(w => w.includes('cache update failed'))).toHaveLength(1)
     expect(logger.warn).toHaveBeenCalledTimes(4)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}キャッシュへの保存に失敗/))
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}キャッシュの更新に失敗/))
-    expect(logger.info).toHaveBeenCalledWith('警告: 4件')
-    expect(logger.info).not.toHaveBeenCalledWith('エラー・警告なし')
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}cache save failed/))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/^ {2}cache update failed/))
+    expect(logger.info).toHaveBeenCalledWith('4 warnings')
+    expect(logger.info).not.toHaveBeenCalledWith('no errors or warnings')
   })
 
   it('警告を積んだ後に throw する run でも、警告を出力し PipelineRuntimeError に載せる (#931)', async () => {
@@ -1211,13 +1211,13 @@ describe('convertToPptx の差分キャッシュ', () => {
     const error = await rejectionOf(run)
     expect(error).toBeInstanceOf(PipelineRuntimeError)
     expect((error as PipelineRuntimeError).warnings).toStrictEqual([
-      'キャッシュを利用できないため全変換します: boom-compute-keys',
+      'cannot use the cache, so converting everything: boom-compute-keys',
     ])
     // 失敗した run でも stderr への集約出力は成功時と同じ形で一度だけ出す
-    expect(logger.info).toHaveBeenCalledWith('警告: 1件')
+    expect(logger.info).toHaveBeenCalledWith('1 warnings')
     expect(logger.warn).toHaveBeenCalledTimes(1)
     expect(logger.warn).toHaveBeenCalledWith(
-      '  キャッシュを利用できないため全変換します: boom-compute-keys',
+      '  cannot use the cache, so converting everything: boom-compute-keys',
     )
   })
 
@@ -1253,17 +1253,17 @@ describe('convertToPptx の差分キャッシュ', () => {
     ])
     // 失敗した run でも、stderr への集約出力は成功時と同じ書式で出す。
     // 成功時の `=== 変換結果サマリー ===` へ到達していないため、内訳には専用の見出しが付く
-    expect(logger.info).toHaveBeenCalledWith('\n=== 変換エラー ===')
-    expect(logger.info).toHaveBeenCalledWith('失敗: 1スライド')
-    expect(logger.info).toHaveBeenCalledWith('要素エラー: 1件')
+    expect(logger.info).toHaveBeenCalledWith('\n=== conversion errors ===')
+    expect(logger.info).toHaveBeenCalledWith('1 slides failed')
+    expect(logger.info).toHaveBeenCalledWith('1 element errors')
     // 集約行は run につき一度だけ。無関係な warn の増減で落ちないよう、集約の書式
     // （先頭 2 スペース + [slide] / [element]）に一致する行だけを数える
     expect(aggregatedErrorLines(logger.warn.mock.calls)).toStrictEqual([
-      '  [slide] スライド2: worker-failed',
-      '  [element] スライド1 .chart: pr-fail',
+      '  [slide] slide 2: worker-failed',
+      '  [element] slide 1 .chart: pr-fail',
     ])
     // slideCount が未確定の run で「成功: 0スライド」を出さない
-    expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('成功:'))
+    expect(logger.info).not.toHaveBeenCalledWith(expect.stringContaining('slides succeeded'))
   })
 })
 
@@ -1313,7 +1313,7 @@ const firstStepThenBrokenRunner: SinglePassRunner = async (request) => {
   if (first !== undefined) request.onStepDone?.(first)
   throw new Error('single-pass broke')
 }
-const singlePassTimingWithFallback = { kind: 'converted' as const, groups: [{ slides: [1, 2], steps: 2, fallback: 'print コンテナが 5 秒以内に出ません' }], fallbackSteps: ['1', '2'] }
+const singlePassTimingWithFallback = { kind: 'converted' as const, groups: [{ slides: [1, 2], steps: 2, fallback: 'print container did not appear within 5 s' }], fallbackSteps: ['1', '2'] }
 /**
 グループごと退避した 1 パス変換（そのグループは現行 worker で変換済み、という結果を返す）
 */
@@ -1321,7 +1321,7 @@ const fallbackRunner: SinglePassRunner = async request => ({
   kind: 'converted',
   results: request.steps.map(step => ({ status: 'fulfilled', value: makeWorkerResult(step.slideNumber, step.clickStep) })),
   timing: singlePassTimingWithFallback,
-  fallbacks: ['スライド 1,2: print コンテナが 5 秒以内に出ません'],
+  fallbacks: ['slide 1,2: print container did not appear within 5 s'],
 })
 
 describe('convertToPptx の 1 パス変換 (#1141)', () => {
@@ -1398,8 +1398,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     // 退避したグループは 1 パス変換の中で現行 worker に回っているため、pipeline は再変換しない
     expect(workerCalls).toHaveLength(0)
     expect(result.slideCount).toBe(2)
-    expect(result.warnings).toStrictEqual(['1 パス変換を使わず現行方式で変換します: スライド 1,2: print コンテナが 5 秒以内に出ません'])
-    expect(logger.warn).toHaveBeenCalledWith('1 パス変換を使わず現行方式で変換します: スライド 1,2: print コンテナが 5 秒以内に出ません')
+    expect(result.warnings).toStrictEqual(['not using single-pass conversion; converting with the current method: slide 1,2: print container did not appear within 5 s'])
+    expect(logger.warn).toHaveBeenCalledWith('not using single-pass conversion; converting with the current method: slide 1,2: print container did not appear within 5 s')
     expect(result.timing.singlePass).toStrictEqual(singlePassTimingWithFallback)
   })
 
@@ -1438,7 +1438,7 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
   })
 
   it('print ルートの不在の印を受けたら警告を 1 回だけ出し、全 miss を現行方式で変換して timing に理由と判定時間を載せる (#1147)', async () => {
-    const missing = { kind: 'printRouteMissing' as const, fallback: 'デッキの build に print ルートがありません', detectMs: 12 }
+    const missing = { kind: 'printRouteMissing' as const, fallback: 'the deck build has no print route', detectMs: 12 }
     const runner = vi.fn<SinglePassRunner>(async () => ({ kind: 'printRouteMissing', timing: missing }))
     const logger = makeLogger()
     const { deps, workerCalls } = singlePassDeps(fullScanBrowser(), logger, runner)
@@ -1447,16 +1447,16 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(runner).toHaveBeenCalledTimes(1)
     expect(workerCalls.map(step => step.slideNumber)).toStrictEqual([1, 2])
     expect(result.slideCount).toBe(2)
-    const warning = '1 パス変換を使わず現行方式で変換します: デッキの build に print ルートがありません。`slide_sync` で deck を同期すると print ルートが入ります'
+    const warning = 'not using single-pass conversion; converting with the current method: the deck build has no print route; run `slide_sync` to add the print route to the deck'
     expect(result.warnings).toStrictEqual([warning])
-    expect(logger.warn.mock.calls.filter(call => String(call[0]).startsWith('1 パス変換を使わず'))).toStrictEqual([[warning]])
+    expect(logger.warn.mock.calls.filter(call => String(call[0]).startsWith('not using single-pass conversion'))).toStrictEqual([[warning]])
     expect(result.timing.singlePass).toStrictEqual(missing)
     expect(result.timing.perSlidePhases).toStrictEqual({ 1: workerPhases, 2: workerPhases })
   })
 
   it('print ルートの判定の時間切れはグループ単位の退避として警告し、slide_sync の案内を付けない (#1147)', async () => {
-    const reason = 'スライド 1,2: print ルートを判定できません（5 秒以内に #print-container, #page-root が出ません）'
-    const timing = { kind: 'converted' as const, groups: [{ slides: [1, 2], steps: 2, fallback: reason.slice('スライド 1,2: '.length) }], fallbackSteps: ['1', '2'] }
+    const reason = 'slide 1,2: cannot detect the print route; #print-container, #page-root did not appear within 5 s'
+    const timing = { kind: 'converted' as const, groups: [{ slides: [1, 2], steps: 2, fallback: reason.slice('slide 1,2: '.length) }], fallbackSteps: ['1', '2'] }
     const runner: SinglePassRunner = async request => ({
       kind: 'converted',
       results: request.steps.map(step => ({ status: 'fulfilled', value: makeWorkerResult(step.slideNumber, step.clickStep) })),
@@ -1468,7 +1468,7 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
 
     // 退避したグループは 1 パス変換の中で現行 worker に回っているため、pipeline は再変換しない
     expect(workerCalls).toHaveLength(0)
-    expect(result.warnings).toStrictEqual([`1 パス変換を使わず現行方式で変換します: ${reason}`])
+    expect(result.warnings).toStrictEqual([`not using single-pass conversion; converting with the current method: ${reason}`])
     expect(result.warnings.some(warning => warning.includes('slide_sync'))).toBe(false)
     expect(result.timing.singlePass).toStrictEqual(timing)
   })
@@ -1480,7 +1480,7 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
 
     expect(runner).not.toHaveBeenCalled()
     expect(workerCalls).toHaveLength(1)
-    expect(result.warnings).toStrictEqual(['1 パス変換を使わず現行方式で変換します: 全走査でない run（--only 等）は対象外です'])
+    expect(result.warnings).toStrictEqual(['not using single-pass conversion; converting with the current method: not a full-scan run (e.g. --only)'])
   })
 
   it('1 パス変換が例外を投げたら途中の成果物を消して現行方式で変換し直す', async () => {
@@ -1492,7 +1492,7 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     const result = await convertToPptx({ ...baseConfig(presDir), singlePass: true }, deps)
 
     expect(workerCalls).toHaveLength(2)
-    expect(result.warnings).toStrictEqual(['1 パス変換を使わず現行方式で変換します: 1 パス変換が失敗しました: unexpected'])
+    expect(result.warnings).toStrictEqual(['not using single-pass conversion; converting with the current method: single-pass conversion failed: unexpected'])
     const names = await readdir(path.join(presDir, 'pptx', 'slides'))
     expect(names).not.toContain('prerender-slide100-3.png')
   })
@@ -1531,7 +1531,7 @@ function recordingSinglePassRunner(requests: SinglePassRequest[]): SinglePassRun
 */
 const stepFallbackSinglePassRunner: SinglePassRunner = async (request) => {
   const outcome = await recordingSinglePassRunner([])(request)
-  return { ...outcome, fallbacks: ['スライド #2: export failed'] }
+  return { ...outcome, fallbacks: ['slide #2: export failed'] }
 }
 
 describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () => {
@@ -1557,7 +1557,7 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
     expect(requests[0]?.totalSteps).toBe(2)
     expect(second.calls.map(step => step.slideNumber)).toStrictEqual([2])
     expect(second.result.slideCount).toBe(2)
-    expect(second.result.warnings.filter(warning => warning.startsWith('1 パス'))).toStrictEqual([])
+    expect(second.result.warnings.filter(warning => warning.startsWith('not using single-pass'))).toStrictEqual([])
   })
 
   it('全件 hit の run では 1 パス変換を呼ばない', async () => {
@@ -1570,7 +1570,7 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
     expect(second.result.cache).toMatchObject({ hits: 2, misses: 0 })
     expect(runner).not.toHaveBeenCalled()
     expect(second.calls).toStrictEqual([])
-    expect(second.result.warnings.filter(warning => warning.startsWith('1 パス'))).toStrictEqual([])
+    expect(second.result.warnings.filter(warning => warning.startsWith('not using single-pass'))).toStrictEqual([])
     expect(second.result.timing).not.toHaveProperty('singlePass')
   })
 
@@ -1592,6 +1592,6 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
 
     const { result } = await runCached(deck, { singlePassRunner: stepFallbackSinglePassRunner })
 
-    expect(result.warnings).toStrictEqual(['1 パス変換を使わず現行方式で変換します: スライド #2: export failed'])
+    expect(result.warnings).toStrictEqual(['not using single-pass conversion; converting with the current method: slide #2: export failed'])
   })
 })

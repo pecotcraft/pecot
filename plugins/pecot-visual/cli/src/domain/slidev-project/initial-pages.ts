@@ -52,7 +52,7 @@ export async function buildInitialPages(
   const warnings: string[] = []
   const usable = references.filter((entry) => {
     const isUsable = PAGE_STEM.test(entry.name)
-    if (!isUsable) warnings.push(`レイアウト名 '${entry.name}' はページのファイル名に使えないため、初期ページから除きました`)
+    if (!isUsable) warnings.push(`layout name cannot be used as a page file name, so it is left out of the initial pages: ${entry.name}`)
     return isUsable
   })
   const sorted = usable.toSorted((a, b) => a.name.localeCompare(b.name))
@@ -77,15 +77,15 @@ export async function buildInitialPages(
   if (first === undefined) {
     return {
       pages: [],
-      warnings: [...warnings, 'テーマにレイアウトが無いため、初期ページを作れませんでした。テーマの layouts/ を確認してください。'],
+      warnings: [...warnings, 'the theme has no layouts, so no initial page was created (fix: check layouts/ in the theme)'],
     }
   }
   return {
     pages: [{ filename: `${first.name}.md`, content: `---\nlayout: ${first.name}\n---\n` }],
     warnings: [
       ...warnings,
-      `テーマの参照に examples が無いため、初期ページは layout: ${first.name} だけにしました。`
-      + 'テーマの references/ に examples を足すと、雛形の入った初期ページが作られます。',
+      `the theme reference has no examples, so the initial page has only layout: ${first.name}; `
+      + 'add examples to references/ in the theme to create initial pages with a skeleton',
     ],
   }
 }

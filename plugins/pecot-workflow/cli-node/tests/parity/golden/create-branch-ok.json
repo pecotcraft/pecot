@@ -1,6 +1,6 @@
 {
-  "stdout": "ブランチ作成中: feat/7 (from main)\n作成完了: feat/7\nIssue #7 にリンクしました\nステータスを 'active' に設定しました\n\n★ acme/demo で以下のコマンドを実行してブランチを切り替えてください:\n  git fetch origin\n  git checkout feat/7\n作業対象を記録: acme/demo/7\n作業ファイル置き場: .pecot/work/7/\n",
-  "stderr": "",
+  "stdout": "",
+  "stderr": "created: branch feat/7 in acme/demo from main\nset: Issue acme/demo/7 status active\nset: work target acme/demo/7 (work directory .pecot/work/7/)\n",
   "exitCode": 0,
   "requests": [
     {

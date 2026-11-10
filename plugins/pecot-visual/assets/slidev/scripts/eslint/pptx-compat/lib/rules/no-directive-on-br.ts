@@ -47,13 +47,13 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       noVShowOnBr:
-        '<br>にv-showを使用しています。' +
-        'v-showで非表示にしたbrはDOMに残り、PPTX変換で段落がテキストノードごとの別々のテキストボックスに分割されます。' +
-        'v-ifで条件分岐するか、要素を分割して条件分岐してください。',
+        'v-show is used on <br>; ' +
+        'a br hidden by v-show stays in the DOM, and PPTX conversion splits the paragraph into separate text boxes per text node ' +
+        '(fix: branch with v-if, or split the element and branch)',
       noVShowOnInlineBreaker:
-        '<{{tag}}>にv-showを使用しています。' +
-        'v-showで非表示にした<{{tag}}>はDOMに残り、PPTX変換で段落がテキストノードごとの別々のテキストボックスに分割されます。' +
-        'v-ifで条件分岐するか、要素を分割して条件分岐してください。',
+        'v-show is used on <{{tag}}>; ' +
+        'a <{{tag}}> hidden by v-show stays in the DOM, and PPTX conversion splits the paragraph into separate text boxes per text node ' +
+        '(fix: branch with v-if, or split the element and branch)',
     },
   },
 

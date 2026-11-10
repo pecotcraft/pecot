@@ -1,3 +1,48 @@
+## 1.2.0 (2026-11-10)
+
+### 🚀 Features
+
+- stderr の診断行の前置きを `error:`・`warning:`・`note:` にそろえた。 ([#226](https://github.com/pecotcraft/pecot/pull/226), [#208](https://github.com/pecotcraft/pecot/issues/208))
+  `slide convert` の進捗と build の出力は stderr に移し、進捗は `--log-level verbose` のときだけ出す。
+
+
+### 🩹 Fixes
+
+- ページを編集したときに hooks が返す文脈を、UTF-8 のバイト数の上限で切るようにした。 ([#244](https://github.com/pecotcraft/pecot/pull/244), [#225](https://github.com/pecotcraft/pecot/issues/225))
+  切ったときは、残りの違反の件数を通知の末尾に書く。違反が多いページでも、文脈がファイルに逃がされず、GitHub Copilot CLI でも捨てられない。
+
+- `vite` を 8.3.6 から 8.3.7 に更新。 ([#229](https://github.com/pecotcraft/pecot/pull/229))
+- draw.io の XML から **コメントを除去する処理** が、除去の跡で新しくできるコメントも取り除くようになった。 ([#237](https://github.com/pecotcraft/pecot/pull/237), [#234](https://github.com/pecotcraft/pecot/issues/234))
+- vite の catalog の範囲の確認を、@slidev/cli の宣言との一致ではなく、その範囲に入るかで見るようにした。入る vite の版と配布物の挙動は変わらない。 ([#240](https://github.com/pecotcraft/pecot/pull/240), [#236](https://github.com/pecotcraft/pecot/issues/236))
+- 配布ツリーの build の順を直し、cli の前で text-rules を build するようにした。 ([#264](https://github.com/pecotcraft/pecot/pull/264), [#245](https://github.com/pecotcraft/pecot/issues/245))
+  text-rules の dist が無い checkout でも、配布ツリーを build できる。
+
+- slidev を **53.1.0**、`@vueuse/core` を **15.0.0**、shiki を **4.6.0** に上げた。 ([#169](https://github.com/pecotcraft/pecot/pull/169), [#168](https://github.com/pecotcraft/pecot/issues/168))
+  外部のテーマは peer をこの版に合わせる。単体配布は初回に実行時依存を取り直す。
+
+- nx が undici の修正版を宣言したので、`runtime-workspace.yaml` から **undici の override** を外した。 ([#169](https://github.com/pecotcraft/pecot/pull/169), [#168](https://github.com/pecotcraft/pecot/issues/168))
+  lock の作り直しで、推移依存の patch 更新も入った。
+
+- vite の版を、pnpm の catalog の 1 か所で決めるようにした。実行用の依存の lock は catalog の項目を持つ。入る vite の版は変わらない。 ([#196](https://github.com/pecotcraft/pecot/pull/196), [#170](https://github.com/pecotcraft/pecot/issues/170))
+  単体配布の `setup` は、配布物の実行時依存の manifest に `catalog:` が残っていると、npm を起動せずに配布物の破損として止まる。
+
+- 依存パッケージを 5 件更新。(#172) ([#224](https://github.com/pecotcraft/pecot/pull/224), [#220](https://github.com/pecotcraft/pecot/issues/220))
+  `commander` を 15.0.0 から 15.1.0 に更新。
+  `dom-to-pptx` を 2.1.1 から 2.1.2 に更新、ほか 3 件。
+
+- references の YAML の違反の場所が、`[/props/foo]` の書式で出るようになった。文言は `must` になった。 ([#204](https://github.com/pecotcraft/pecot/pull/204), [#173](https://github.com/pecotcraft/pecot/issues/173))
+  キー名の `/` と `~` は `~1` と `~0` で表す。
+
+- jsdom を 31 に上げた（テスト用の devDependency）。 ([#203](https://github.com/pecotcraft/pecot/pull/203), [#198](https://github.com/pecotcraft/pecot/issues/198))
+  lock の作り直しで、推移依存も変わった。
+
+- hooks がエージェントへ返すメッセージを英語にした。行の頭は `error:`・`warning:`・`note:` のどれかになる。 ([#228](https://github.com/pecotcraft/pecot/pull/228), [#209](https://github.com/pecotcraft/pecot/issues/209))
+  eslint・validator・textlint が出す文言と、参照の YAML の抜粋は変わらない。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 1.1.0 (2026-11-09)
 
 ### 🚀 Features

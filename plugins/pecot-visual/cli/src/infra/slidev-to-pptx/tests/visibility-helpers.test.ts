@@ -80,7 +80,7 @@ describe('waitForCssAnimations', () => {
     const result = await waitForCssAnimations(page.asPage(), 5000, logger)
     expect(result.timedOut).toBe(false)
     expect(result.waited).toBe(1)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('CSSアニメーション待機'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('CSS animation wait'))
   })
 
   it('infinite iteration の CSSAnimation は skipped としてカウントされる', async () => {
@@ -128,7 +128,7 @@ describe('waitForCssAnimations', () => {
     const logger = makeLogger()
     const result = await waitForCssAnimations(new FakePage().asPage(), 1, logger)
     expect(result.timedOut).toBe(true)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('タイムアウト'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('timed out'))
   })
 
   it('effect.getTiming() の iterations が undefined でも動作する', async () => {
@@ -150,7 +150,7 @@ describe('waitForIframeLoad', () => {
     const page = new FakePage()
     const logger = makeLogger()
     await waitForIframeLoad(page.asPage(), '.artifact-iframe', 5000, logger)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('0件'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('none found'))
   })
 
   it('iframe ありで waitForFunction が成功するとロード完了ログ', async () => {
@@ -158,7 +158,7 @@ describe('waitForIframeLoad', () => {
     const page = new FakePage()
     const logger = makeLogger()
     await waitForIframeLoad(page.asPage(), '.artifact-iframe', 5000, logger)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('ロード完了を待機'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('to finish loading'))
   })
 
   it('waitForFunction が throw した場合はタイムアウトログを出す', async () => {
@@ -167,7 +167,7 @@ describe('waitForIframeLoad', () => {
     page.waitForFunctionThrows = true
     const logger = makeLogger()
     await waitForIframeLoad(page.asPage(), '.artifact-iframe', 5000, logger)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('タイムアウト'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('timed out'))
   })
 })
 
@@ -241,7 +241,7 @@ describe('waitForDataWaitfor', () => {
     const page = new FakePage()
     const logger = makeLogger()
     await waitForDataWaitfor(page.asPage(), undefined, 1000, logger)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('0件完了'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('0 done'))
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
@@ -258,7 +258,7 @@ describe('waitForDataWaitfor', () => {
     const page = new FakePage()
     const logger = makeLogger()
     await waitForDataWaitfor(page.asPage(), undefined, 1000, logger)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('1件完了'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('1 done'))
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
@@ -271,7 +271,7 @@ describe('waitForDataWaitfor', () => {
     const page = new FakePage()
     const logger = makeLogger()
     await waitForDataWaitfor(page.asPage(), undefined, 120, logger)
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('タイムアウト (120ms)'))
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('timed out (120ms)'))
   })
 
   it('scope を渡すと、その範囲の印だけを見る', async () => {
@@ -283,7 +283,7 @@ describe('waitForDataWaitfor', () => {
     const page = new FakePage()
     const logger = makeLogger()
     await waitForDataWaitfor(page.asPage(), '#g1', 1000, logger)
-    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('1件完了'))
+    expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('1 done'))
     expect(logger.warn).not.toHaveBeenCalled()
   })
 })

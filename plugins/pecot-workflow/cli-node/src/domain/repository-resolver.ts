@@ -41,7 +41,7 @@ function segmentIssue(field: string, value: string): readonly ValidationIssue[] 
   return [{
     type: 'value_error',
     location: [field],
-    message: `Value error, 不正な owner/repo セグメント: ${pythonStringRepr(value)} (許容: [A-Za-z0-9_.-]+)`,
+    message: `Value error, invalid owner/repo segment: ${pythonStringRepr(value)} (allowed: [A-Za-z0-9_.-]+)`,
     input: value,
   }]
 }
@@ -66,7 +66,7 @@ export function parseOwnerRepository(raw: string): RepositoryReference {
   const parts = raw.split('/')
   const [owner, repository] = parts
   if (owner === undefined || repository === undefined || parts.length !== 2) {
-    throw new InvalidValueError(`不正な owner/repo 形式: ${pythonStringRepr(raw)} (期待: 'owner/repo')`)
+    throw new InvalidValueError(`invalid owner/repo form: ${pythonStringRepr(raw)} (expected: 'owner/repo')`)
   }
   return createRepositoryReference(owner, repository)
 }
@@ -81,10 +81,10 @@ export function createResolvedRepository(resolved: ResolvedRepository): Resolved
     remote_name: resolved.remoteName ?? 'None',
   }
   if (resolved.source === 'current-git' && (resolved.remoteName === undefined || resolved.remoteName === '')) {
-    throw new ValidationFailure('ResolvedRepo', [{ type: 'value_error', location: [], message: 'Value error, source=CURRENT_GIT では remote_name が必須', input }])
+    throw new ValidationFailure('ResolvedRepo', [{ type: 'value_error', location: [], message: 'Value error, remote_name is required when source=CURRENT_GIT', input }])
   }
   if (resolved.source === 'explicit' && resolved.remoteName !== undefined) {
-    throw new ValidationFailure('ResolvedRepo', [{ type: 'value_error', location: [], message: 'Value error, source=EXPLICIT では remote_name は None でなければならない', input }])
+    throw new ValidationFailure('ResolvedRepo', [{ type: 'value_error', location: [], message: 'Value error, remote_name must be None when source=EXPLICIT', input }])
   }
   return Object.freeze({ ...resolved })
 }
@@ -124,5 +124,5 @@ export function resolveRepository(explicit: string | undefined, git: GitRunner):
   if (detected !== undefined) {
     return createResolvedRepository({ repository: detected.repository, source: 'current-git', remoteName: detected.remoteName })
   }
-  throw new AmbiguousRepositoryError('リポジトリが曖昧です。--repo <owner/repo> を明示してください。')
+  throw new AmbiguousRepositoryError('repository is ambiguous: pass --repo <owner/repo>')
 }

@@ -56,11 +56,10 @@ def ensure_devcontainer_environment() -> None:
         if os.environ.get(env_var):
             return
     raise RuntimeError(
-        "このコマンドは devcontainer 内で実行してください。\n"
-        "現在の環境では pecot の想定するマウント構造"
-        "（/workspaces/<project>/base/<repo>）が満たされません。\n"
-        "プロジェクトの .devcontainer/ を用意し、"
-        "VS Code で Reopen in Container してから再実行してください。"
+        "this command must run inside a devcontainer\n"
+        "the current environment does not have the mount layout pecot expects "
+        "(/workspaces/<project>/base/<repo>)\n"
+        "prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and run it again"
     )
 
 
@@ -201,12 +200,12 @@ def find_main_worktree(cwd: Path) -> Path:
     """
     result = run_git(["worktree", "list"], cwd, check=False)
     if result.returncode != 0 or not result.stdout.strip():
-        raise RuntimeError(f"ワークツリー一覧を取得できません: {result.stderr}")
+        raise RuntimeError(f"cannot get the worktree list: {result.stderr}")
 
     first_line = result.stdout.strip().split("\n")[0]
     match = re.match(r"^(\S+)", first_line)
     if not match:
-        raise RuntimeError("ワークツリー一覧を取得できません: パースエラー")
+        raise RuntimeError("cannot get the worktree list: parse error")
 
     return Path(match.group(1))
 
@@ -230,7 +229,7 @@ def is_worktree_env(cwd: Path) -> bool:
         git_dir_result = run_git(["rev-parse", "--git-dir"], cwd, check=True)
         common_dir_result = run_git(["rev-parse", "--git-common-dir"], cwd, check=True)
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Gitリポジトリではありません: {e.stderr.strip()}") from e
+        raise RuntimeError(f"not a git repository: {e.stderr.strip()}") from e
 
     git_dir = Path(git_dir_result.stdout.strip()).resolve()
     common_dir = Path(common_dir_result.stdout.strip()).resolve()
@@ -254,7 +253,7 @@ def get_worktree_dirs(cwd: Path) -> list[Path]:
     """
     entries = get_worktree_list(cwd=cwd)
     if not entries:
-        raise RuntimeError("ワークツリー一覧を取得できません")
+        raise RuntimeError("cannot get the worktree list")
 
     # 最初のエントリ（メインWT）を除外
     return [Path(entry.path) for entry in entries[1:]]
@@ -306,21 +305,21 @@ def detect_project_root(cwd: Path) -> Path:
     if resolved.parent.name != "base":
         expected = resolved.parent / "base" / resolved.name
         raise RuntimeError(
-            "このリポジトリは pecot プロジェクトの期待構造に配置されていません。\n"
+            "this repository is not placed in the layout pecot expects for a project\n"
             "\n"
-            f"  現在: {resolved}\n"
-            f"  期待: {expected}\n"
+            f"  current: {resolved}\n"
+            f"  expected: {expected}\n"
             "\n"
-            "なぜ base/ が必要か:\n"
-            "  devcontainer が並行作業セット（wt1, wt2...）を選択的にマウントするため、\n"
-            "  「常駐セット」と「並行セット」を base/ で分離しています。\n"
+            "why base/ is needed:\n"
+            "  the devcontainer mounts the parallel sets (wt1, wt2...) selectively, so base/ "
+            "separates the resident set from the parallel sets\n"
             "\n"
-            "移行手順（cwd が消えるため、本 CLI セッションを必ず終了してから実行）:\n"
-            "  1. この CLI セッションを閉じる\n"
-            f"  2. 別ターミナルで実行:\n"
+            "migration steps (the cwd goes away, so close this CLI session first):\n"
+            "  1. close this CLI session\n"
+            f"  2. in another terminal, run:\n"
             f"       mkdir -p {resolved.parent}/base\n"
             f"       mv {resolved} {resolved.parent}/base/\n"
-            f"  3. {resolved.parent}/base/{resolved.name}/ で CLI を再起動"
+            f"  3. restart the CLI in {resolved.parent}/base/{resolved.name}/"
         )
     return resolved.parent.parent
 
@@ -375,7 +374,7 @@ def get_next_set_name(
     # 3. 全セットに参加済 → 新セット
     new_n = existing[-1] + 1
     if new_n > max_n:
-        raise RuntimeError(f"{prefix}1〜{prefix}{max_n} は全て使用済みです。空きがありません。")
+        raise RuntimeError(f"all of {prefix}1 to {prefix}{max_n} are in use: no free set")
     return f"{prefix}{new_n}"
 
 
@@ -447,7 +446,7 @@ def copy_files(source_root: Path, dest_root: Path, files: list[Path]) -> list[Co
                     source=src,
                     dest=dst,
                     action="skipped",
-                    message="ソースファイルが存在しません",
+                    message="source file does not exist",
                 )
             )
             continue
@@ -501,7 +500,7 @@ def _get_repo_info(cwd: Path) -> RepoRef:
             info = None
     if info is None:
         raise RuntimeError(
-            "リポジトリ情報を取得できません。git remote originが設定されているか確認してください。"
+            "cannot get the repository information: check that the git remote origin is set"
         )
     return info
 
@@ -518,8 +517,8 @@ def _load_copy_exclude_spec_or_raise(main_wt: Path) -> tuple[Path, pathspec.GitI
     worktree_config_path = main_wt / WORKTREE_CONFIG_FILENAME
     if not worktree_config_path.exists():
         raise RuntimeError(
-            f"ワークツリー設定が見つかりません: {WORKTREE_CONFIG_FILENAME}\n"
-            "  pecot worktree init でテンプレートを生成してください。"
+            f"worktree config not found: {WORKTREE_CONFIG_FILENAME}\n"
+            "  run pecot worktree init to generate the template"
         )
 
     try:
@@ -534,26 +533,26 @@ def _require_registered_repo(cwd: Path) -> tuple[RepoRef, ProjectConfig]:
     config = load_active_config()
     if config is None:
         raise RuntimeError(
-            "プロジェクト設定が見つかりません。\n"
-            "  ヒント: pecot project activate <PROJECT> でプロジェクトを設定"
+            "project config not found\n"
+            "  hint: run pecot project activate <PROJECT> to set the project"
         )
     if config.find_repository(repo_info.owner, repo_info.repo) is None:
         registered = (
             "\n".join(f"  - {r.owner}/{r.name}" for r in config.repositories)
             if config.repositories
-            else "  (登録なし)"
+            else "  (none registered)"
         )
         raise RuntimeError(
-            f"リポジトリ {repo_info.owner}/{repo_info.repo} は現在アクティブな "
-            "pecot プロジェクトに登録されていません。\n"
+            f"repository {repo_info.owner}/{repo_info.repo} is not registered in the "
+            "active pecot project\n"
             "\n"
-            "登録済みリポジトリ:\n"
+            "registered repositories:\n"
             f"{registered}\n"
             "\n"
-            "このリポジトリを pecot プロジェクトに追加するには:\n"
+            "to add this repository to the pecot project:\n"
             f"  pecot project set-repo {repo_info.owner}/{repo_info.repo}\n"
             "\n"
-            "別のプロジェクトに切り替えるには:\n"
+            "to switch to another project:\n"
             "  pecot project activate <PROJECT>"
         )
     return repo_info, config
@@ -565,10 +564,9 @@ def _default_base_branch(config: ProjectConfig, repo_info: RepoRef) -> str:
     if not develop_branch:
         repo_full = f"{repo_info.owner}/{repo_info.repo}"
         raise RuntimeError(
-            f"リポジトリ {repo_full} の develop_branch が設定されていません。\n"
-            "  プロジェクト設定ファイルの repositories に"
-            " develop_branch を追加してください。\n"
-            "  または --base オプションで明示的に指定してください。"
+            f"develop_branch is not set for repository {repo_full}\n"
+            "  add develop_branch to repositories in the project config file\n"
+            "  or pass --base explicitly"
         )
     return develop_branch
 
@@ -583,8 +581,8 @@ def _load_worktree_config_or_raise(worktree_config_path: Path) -> WorktreeConfig
         # 設定ファイルは存在するが読み込み/検証に失敗（不正 JSON、スキーマ違反等）。
         # 設定ファイル不在と同様に hard error として扱い、ユーザーに修正を促す。
         raise RuntimeError(
-            f"ワークツリー設定の読み込みに失敗しました: {worktree_config_path}: {e}\n"
-            "  設定ファイルを修正してから再実行してください。"
+            f"failed to load the worktree config: {worktree_config_path}: {e}\n"
+            "  fix the config file and run it again"
         ) from e
 
 
@@ -648,7 +646,7 @@ def _run_effective_setup(
     )
     if setup_result.returncode != 0:
         logger.warning(
-            "setup_command が非ゼロ終了しました (exit %d): %s",
+            "setup_command exited with a non-zero status (exit %d): %s",
             setup_result.returncode,
             effective_setup,
         )
@@ -822,9 +820,9 @@ def _run_git_worktree_add(
             expected_upstream = f"origin/{base_branch}" if base_branch else None
             if current_upstream != expected_upstream:
                 raise RuntimeError(
-                    f"ブランチ '{name}' は既に存在し、upstream が想定と異なります "
-                    f"(現在: {current_upstream or '(未設定)'}, 期待: {expected_upstream})。"
-                    " 再利用する場合は --allow-existing-branch を指定してください。"
+                    f"branch '{name}' already exists and its upstream differs from the expected one "
+                    f"(current: {current_upstream or '(unset)'}, expected: {expected_upstream}): "
+                    "pass --allow-existing-branch to reuse it"
                 )
 
             # upstream 一致かつ bind なし → prune に取り残された孤児ブランチとみなし除去
@@ -844,7 +842,7 @@ def _run_git_worktree_add(
 
     result = run_git(args, cwd, check=False)
     if result.returncode != 0:
-        raise RuntimeError(f"ワークツリーの作成に失敗しました: {result.stderr}")
+        raise RuntimeError(f"failed to create the worktree: {result.stderr}")
 
 
 def _run_setup_command(command: str, cwd: Path, timeout: int | None = None) -> SetupResult:
@@ -919,7 +917,7 @@ def remove_worktree(
             break
 
     if wt_path is None:
-        raise RuntimeError(f"ワークツリーが見つかりません: {name}")
+        raise RuntimeError(f"worktree not found: {name}")
 
     # 2. git worktree remove
     args = ["worktree", "remove", wt_path]
@@ -928,7 +926,7 @@ def remove_worktree(
 
     result = run_git(args, cwd, check=False)
     if result.returncode != 0:
-        raise RuntimeError(f"ワークツリーの削除に失敗しました: {result.stderr}")
+        raise RuntimeError(f"failed to remove the worktree: {result.stderr}")
 
     # 3. ブランチ削除
     if not keep_branch:
@@ -950,4 +948,4 @@ def remove_worktree(
                 try:
                     set_dir.rmdir()
                 except OSError as e:
-                    logger.warning("セットディレクトリの削除に失敗: %s: %s", set_dir, e)
+                    logger.warning("failed to remove the set directory: %s: %s", set_dir, e)

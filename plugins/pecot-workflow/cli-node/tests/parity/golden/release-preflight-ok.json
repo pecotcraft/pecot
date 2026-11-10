@@ -1,6 +1,6 @@
 {
-  "stdout": "=== Release Preflight Check ===\n\n✓ Dependabot alerts: open 0\n✓ code scanning: open 0\n✓ secret scanning: open 0\n✓ Auto-detected version: 0.2.0\n✓ Tag v0.2.0 does not exist\n✓ 2 commits to release (origin/develop → origin/main)\n\n=== Preflight Check Passed ===\n\nVersion: 0.2.0\n\nRelease Notes:\n### 追加\n\n- 新機能 A\n- 新機能 B\n",
-  "stderr": "",
+  "stdout": "version: 0.2.0\ntag: v0.2.0\n\n### 追加\n\n- 新機能 A\n- 新機能 B\n",
+  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\ncount: commits to release (origin/develop -> origin/main): 2\n",
   "exitCode": 0,
   "requests": [
     {

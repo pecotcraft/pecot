@@ -241,9 +241,9 @@ function unionEmbeddedFonts(
 
       warned.add(key)
       warnings.push(
-        `埋め込みフォント "${font.typeface}" [${font.style}] の実体がスライド間で一致しません`
-        + `（${String(existing.buffer.length)} B と ${String(font.buffer.length)} B）。`
-        + 'スライド 1 に近い側（先に現れたスライド）の実体を採ります。',
+        `embedded font data differs between slides: "${font.typeface}" [${font.style}] `
+        + `(${String(existing.buffer.length)} B and ${String(font.buffer.length)} B); `
+        + 'using the data from the slide closer to slide 1 (the one that appears first)',
       )
     }
   }

@@ -126,7 +126,7 @@ describe('buildInitialPages (ページ名に使えないレイアウト名)', ()
 
     expect(result.pages.map(page => page.filename)).toStrictEqual(['plain.md'])
     expect(result.warnings).toHaveLength(1)
-    expect(result.warnings[0]).toContain(`'${name}'`)
+    expect(result.warnings[0]).toContain(`: ${name}`)
   })
 
   it('使えない名前しか無いときは、警告だけを返し、ページを作らない', async () => {

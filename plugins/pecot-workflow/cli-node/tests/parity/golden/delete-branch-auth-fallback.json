@@ -1,6 +1,6 @@
 {
-  "stdout": "ブランチ 'feat/7' を削除しました (acme/demo)\n",
-  "stderr": "⚠ 環境変数のトークンが無効です（401 Unauthorized）。gh auth token にフォールバックしました。\n  → .env のトークンを更新するか削除してください。\n",
+  "stdout": "",
+  "stderr": "warning: the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n  update or remove the token in .env\ndeleted: remote branch feat/7 in acme/demo\n",
   "exitCode": 0,
   "requests": [
     {

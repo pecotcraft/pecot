@@ -264,11 +264,10 @@ def test_worktree_repo_mismatch_reject(tmp_path) -> None:
         )
 
     assert result.exit_code == 1
-    assert (
-        "error: --repo ownerB/repoB とカレント Git remote (ownerA/repoA) が不一致です。"
-        in result.stderr
+    assert result.stderr == (
+        "error: --repo ownerB/repoB differs from the current Git remote (ownerA/repoA)\n"
+        "  worktree and branch commands are rejected to protect the local Git state\n"
     )
-    assert "worktree / branch はローカル Git 破壊防止のため拒否します。" in result.stderr
     assert result.stdout == ""
 
 

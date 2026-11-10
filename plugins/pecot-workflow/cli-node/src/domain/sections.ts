@@ -34,15 +34,15 @@ export const FOLD_SUMMARY_BY_TEMPLATE: ReadonlyMap<string, string> = new Map([['
 Python の `issue.py` の `_report_template_violations` は、この Map にテンプレ名があるときだけ 2 つの検証を掛ける。
 掛ける検証は validateFoldBalance と validateClosedHeadings。コマンドを移すときは同じ条件にする
 */
-export const CLOSED_HEADINGS_BY_TEMPLATE: ReadonlyMap<string, string> = new Map([['plan', '他の見出しに収まらない内容は ### Notes に書いてください']])
+export const CLOSED_HEADINGS_BY_TEMPLATE: ReadonlyMap<string, string> = new Map([['plan', 'put content that fits no other heading under ### Notes']])
 
 // 検証エラー文。テンプレの規約ブロックとの対応をテンプレートの単体テストが固定する
-export const CHECKBOX_ERROR = 'チェックボックス記法 (- [ ] / 1. [ ]) は使用できません'
-export const HORIZONTAL_RULE_ERROR = '水平線は使用できません'
-export const EMOJI_ERROR = '絵文字は使用できません'
-export const SOFT_BREAK_ERROR = '段落の中で改行しています。GitHub は改行をそのまま表示するので、段落は 1 行で書き、段落の間は空行で分けてください'
-export const SUMMARY_NOT_JAPANESE_ERROR = 'サマリに日本語が含まれていません'
-export const SUMMARY_MULTI_SENTENCE_ERROR = 'サマリは 1 文で書いてください'
+export const CHECKBOX_ERROR = 'checkbox syntax (- [ ] / 1. [ ]) is not allowed'
+export const HORIZONTAL_RULE_ERROR = 'horizontal rules are not allowed'
+export const EMOJI_ERROR = 'emoji are not allowed'
+export const SOFT_BREAK_ERROR = 'a paragraph is broken across lines: GitHub shows line breaks as written, so write each paragraph on one line and separate paragraphs with a blank line'
+export const SUMMARY_NOT_JAPANESE_ERROR = 'the summary must be written in Japanese'
+export const SUMMARY_MULTI_SENTENCE_ERROR = 'the summary must be one sentence'
 
 // GitHub が Markdown 描画時にサニタイズせず通す HTML タグのうち、投稿本文で実際に使うもの。
 // この一覧に無いタグ形状の <...> は未編集プレースホルダ扱い（`<T>` のような型・メタ表記はバッククォートで囲んで書く）。
@@ -155,7 +155,7 @@ function baseOf(name: string): string {
 }
 
 /**
-必須セクションの存在を確認する（見出しレベルも検証）。不足している見出しの表記を返す（例: `### Done — <サマリ>`）。
+必須セクションの存在を確認する（見出しレベルも検証）。不足している見出しの表記を返す（例: `### Done — <summary>`）。
 em-dash 付きの見出しは「ベース名 + em-dash + サマリ」の形があるかだけを見る。
 サマリの規則（文字数・日本語・1 文）は validateHeadingSummaries が、未編集の `<...>` の残存は validateBodyStyle が見る（#962）。
 それ以外の見出しはセクション名の前方一致をチェックする
@@ -169,7 +169,7 @@ export function validateSections(body: string, requiredSections: readonly Sectio
     // em-dash 付きのテンプレ見出しは「ベース名 + em-dash + サマリ」を要求
     if (name.includes(EM_DASH_SEPARATOR)) {
       const base = baseOf(name)
-      if (findEmDashHeading(body, prefix, base) === null) missing.push(`${prefix} ${base} — <サマリ>`)
+      if (findEmDashHeading(body, prefix, base) === null) missing.push(`${prefix} ${base} — <summary>`)
       continue
     }
 
@@ -188,7 +188,7 @@ function isJapaneseCharacter(character: string): boolean {
 function summaryErrors(summary: string): readonly string[] {
   const errors: string[] = []
   const characters = splitCodePoints(summary)
-  if (characters.length > SUMMARY_MAX_CHARS) errors.push(`サマリが${String(characters.length)}文字です（上限${String(SUMMARY_MAX_CHARS)}文字）`)
+  if (characters.length > SUMMARY_MAX_CHARS) errors.push(`the summary is ${String(characters.length)} characters (limit: ${String(SUMMARY_MAX_CHARS)})`)
   if (characters.every(character => !isJapaneseCharacter(character))) errors.push(SUMMARY_NOT_JAPANESE_ERROR)
   let end = characters.length
   while (end > 0 && CLOSING_BRACKETS.has(characters[end - 1] ?? '')) end -= 1
@@ -197,8 +197,9 @@ function summaryErrors(summary: string): readonly string[] {
 }
 
 /**
-em-dash 見出しのサマリが規則（文字数・日本語・1 文）を満たすか確認し、違反の表記を返す
-（例: `## Verified — サマリに日本語が含まれていません`）。
+em-dash 見出しのサマリが規則を満たすか確認し、違反の表記を返す。
+規則は文字数・日本語・1 文である
+（例: `## Verified — the summary must be written in Japanese`）。
 見出し自体が無いものは validateSections が不足として返すため、ここでは扱わない
 */
 export function validateHeadingSummaries(body: string, requiredSections: readonly SectionHeading[]): readonly string[] {
@@ -298,10 +299,10 @@ function findCloser(line: string, opener: BacktickRun): BacktickRun | undefined 
   return candidate
 }
 
-// インラインコードスパンを同じ長さの空白へ置換する。
+// インラインコードスパンを同じ長さの fill（既定は空白）へ置換する。
 // CommonMark のバッククォート・ラン規則（同じ長さのランで閉じる）に従い、`` `- [ ]` `` や二重バッククォートのスパンを検証対象から外す。
 // 閉じランが同一行に無い場合は暴走を避けてマスクしない
-function maskInlineCode(line: string): string {
+function maskInlineCode(line: string, fill = ' '): string {
   let result = ''
   let position = 0
 
@@ -316,17 +317,18 @@ function maskInlineCode(line: string): string {
       continue
     }
 
-    result += line.slice(position, opener.start) + ' '.repeat(closer.end - opener.start)
+    result += line.slice(position, opener.start) + fill.repeat(closer.end - opener.start)
     position = closer.end
   }
 }
 
 // フェンス・インラインコード・HTML コメントの中身を消した行リストを返す。
-// フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの空白になる（改行は残す）
-function maskedLines(body: string): MaskedFences {
+// フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの fill になる（改行は残す）。
+// 水平線の判定だけ fill に '`' を使う（`**`x`**` の外側の `**` を空白にすると水平線に見えるため）
+function maskedLines(body: string, fill = ' '): MaskedFences {
   const { lines, hasUnclosedFence } = maskFencedCode(body)
-  const masked = lines.map(line => maskInlineCode(line)).join('\n')
-    .replaceAll(HTML_COMMENT_PATTERN, comment => comment.replaceAll(/[^\n]/g, ' '))
+  const masked = lines.map(line => maskInlineCode(line, fill)).join('\n')
+    .replaceAll(HTML_COMMENT_PATTERN, comment => comment.replaceAll(/[^\n]/g, () => fill))
   return { lines: masked.split('\n'), hasUnclosedFence }
 }
 
@@ -450,16 +452,17 @@ function hasSoftBreak(maskedLines: readonly string[], originalLines: readonly st
 export function validateBodyStyle(body: string): readonly string[] {
   const { lines, hasUnclosedFence } = maskedLines(body)
   // 何も言わずに通すとフェンス以降が丸ごと未検証になる（検証バイパス）
-  if (hasUnclosedFence) return ['コードフェンスが閉じられていません']
+  if (hasUnclosedFence) return ['code fence is not closed']
 
   const errors: string[] = []
-  const lineRules: readonly (readonly [string, (line: string) => boolean])[] = [
-    [CHECKBOX_ERROR, hasCheckbox],
-    [HORIZONTAL_RULE_ERROR, hasHorizontalRule],
-    [EMOJI_ERROR, hasEmoji],
+  const ruleLines = maskedLines(body, '`').lines
+  const lineRules: readonly (readonly [string, (line: string) => boolean, readonly string[]])[] = [
+    [CHECKBOX_ERROR, hasCheckbox, lines],
+    [HORIZONTAL_RULE_ERROR, hasHorizontalRule, ruleLines],
+    [EMOJI_ERROR, hasEmoji, lines],
   ]
-  for (const [message, matches] of lineRules) {
-    if (lines.some(line => matches(line))) errors.push(message)
+  for (const [message, matches, target] of lineRules) {
+    if (target.some(line => matches(line))) errors.push(message)
   }
   if (hasSoftBreak(lines, body.split('\n'))) errors.push(SOFT_BREAK_ERROR)
 
@@ -468,7 +471,7 @@ export function validateBodyStyle(body: string): readonly string[] {
     const heading = HEADING_PATTERN.exec(line)
     for (const { text: token } of tokensIn(line)) {
       if (isAllowedToken(token)) continue
-      const message = heading === null ? `未編集プレースホルダ ${token} が残っています` : `${heading[1] ?? ''} 見出しに未編集プレースホルダ ${token} が残っています`
+      const message = heading === null ? `unedited placeholder ${token} remains` : `unedited placeholder ${token} remains in the ${heading[1] ?? ''} heading`
       if (seen.has(message)) continue
       seen.add(message)
       errors.push(message)
@@ -495,10 +498,10 @@ export function validateFoldBalance(body: string): readonly string[] {
       const tag = HTML_TAG_PATTERN.exec(match.text)
       if (tag === null || (tag[1] ?? '').toLowerCase() !== 'details') continue
       depth += match.text.startsWith('</') ? -1 : 1
-      if (depth < 0) return ['<details> に対応する開きタグがありません']
+      if (depth < 0) return ['<details> has no matching opening tag']
     }
   }
-  return depth === 0 ? [] : ['<details> が閉じられていません']
+  return depth === 0 ? [] : ['<details> is not closed']
 }
 
 /**
@@ -539,7 +542,7 @@ export function validateFoldSummaries(body: string, expected: string): readonly 
       const token = match.text
       const tag = HTML_TAG_PATTERN.exec(token)
       if (tag === null || (tag[1] ?? '').toLowerCase() !== 'summary' || token.startsWith('</') || maskedLine.startsWith(expected, match.index)) continue
-      const message = `${pythonStrip(maskedLine)} は ${expected} にしてください`
+      const message = `${pythonStrip(maskedLine)} must be ${expected}`
       if (!errors.includes(message)) errors.push(message)
     }
   }

@@ -132,7 +132,7 @@ export async function assertTalkDirectory(
 ): Promise<void> {
   if (!path.isAbsolute(directory)) {
     throw new SlideSyncUsageError(
-      `--dir には絶対パスを指定してください (受け取った値: '${directory}')`,
+      `--dir must be an absolute path: ${directory}`,
       'relative-dir',
     )
   }
@@ -140,13 +140,13 @@ export async function assertTalkDirectory(
   const info = await fs.talkDirectoryExists(directory)
   if (!info.exists) {
     throw new SlideSyncRuntimeError(
-      `'${directory}' はディレクトリとして存在しません`,
+      `directory not found: ${directory}`,
       'dir-not-found',
     )
   }
   if (!info.isDirectory) {
     throw new SlideSyncRuntimeError(
-      `'${directory}' はディレクトリではありません`,
+      `not a directory: ${directory}`,
       'not-a-directory',
     )
   }
@@ -154,8 +154,8 @@ export async function assertTalkDirectory(
   const hasSlidesMd = await fs.doesSlidesMdExist(directory)
   if (!hasSlidesMd) {
     throw new SlideSyncRuntimeError(
-      `'${directory}' に slides.md が無いため talk-dir として扱えません。`
-      + ' pecotv slide create で作成された talk-dir を指定してください。',
+      `not a talk-dir (no slides.md): ${directory}; `
+      + 'specify a talk-dir created by pecotv slide create',
       'not-talk-dir',
     )
   }
@@ -211,13 +211,13 @@ export interface SlideSyncDependencies {
 }
 
 function themeRequiredMessage(directory: string): string {
-  return `${directory} はテーマを参照していない移行前の talk-dir です。移行するテーマを指定してください: `
+  return `${directory} is a talk-dir from before migration that does not reference a theme; specify the theme to migrate to: `
     + `slide sync --dir ${directory} --theme <theme-spec>`
-    + `（MCP では slide_sync の dir: ${directory}, theme: <theme-spec>）`
+    + ` (MCP: slide_sync with dir: ${directory}, theme: <theme-spec>)`
 }
 
-const IGNORED_THEME_WARNING = '--theme は使いませんでした。この talk-dir はすでにテーマを参照しています。'
-  + 'テーマや版を替えるときは、package.json の依存を書き換えてから sync してください'
+const IGNORED_THEME_WARNING = '--theme was not used because this talk-dir already references a theme; '
+  + 'to change the theme or its version, edit the dependency in package.json and run sync'
 
 /**
 sync の工程。talk-dir を 3 通りに分けて進める。
@@ -244,8 +244,8 @@ export async function runSlideSync(
   if (options.nodeModulesOnly) {
     if (options.theme !== undefined) {
       throw new SlideSyncUsageError(
-        '--node-modules-only と --theme は同時に指定できません。'
-        + 'node_modules の張り直しだけなら --node-modules-only を、移行なら --theme を指定してください',
+        '--node-modules-only and --theme cannot be used together; '
+        + 'use --node-modules-only to relink node_modules only, or --theme to migrate',
         'theme-with-node-modules-only',
       )
     }
@@ -327,7 +327,7 @@ async function migrate(
   }
   catch (error: unknown) {
     if (error instanceof SlideSyncRuntimeError || error instanceof SlideSyncUsageError) throw error
-    throw new SlideSyncRuntimeError(`移行に失敗しました: ${formatError(error)}`, 'migrate-failed')
+    throw new SlideSyncRuntimeError(`migration failed: ${formatError(error)}`, 'migrate-failed')
   }
 
   let nodeModulesTarget: string
@@ -360,7 +360,7 @@ function wrapLinkError(error: unknown): Error {
   // theme-name-mismatch など、原因の文言を持つ例外は包み直さない。
   if (error instanceof SlideCreateRuntimeError) return error
   return new SlideSyncRuntimeError(
-    `node_modules の張り直しに失敗しました: ${formatError(error)}`,
+    `relinking node_modules failed: ${formatError(error)}`,
     'symlink-failed',
   )
 }

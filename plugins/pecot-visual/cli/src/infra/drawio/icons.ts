@@ -36,7 +36,7 @@ export function createIconResolver(
   return (relativePath: string, color?: string): string | undefined => {
     // 空文字 / `/` 単独は `.svg` 単一ファイル名 (`iconRoot/.svg`) を解決してしまうため早期 reject
     if (relativePath === '' || relativePath === '/') {
-      options.warn?.(`空のアイコンパスが指定されました: '${relativePath}'`)
+      options.warn?.(`empty icon path: ${relativePath}`)
       return undefined
     }
     const withExtension = relativePath.endsWith('.svg') ? relativePath : `${relativePath}.svg`
@@ -44,11 +44,11 @@ export function createIconResolver(
     const resolved = path.resolve(iconRoot, withExtension)
     const normalizedRoot = path.resolve(iconRoot)
     if (resolved !== normalizedRoot && !resolved.startsWith(`${normalizedRoot}${path.sep}`)) {
-      options.warn?.(`アイコンパスが iconRoot 外に解決されました: ${relativePath}`)
+      options.warn?.(`icon path resolves outside iconRoot: ${relativePath}`)
       return undefined
     }
     if (!existsSync(resolved)) {
-      options.warn?.(`アイコンが見つかりません: ${resolved}`)
+      options.warn?.(`icon not found: ${resolved}`)
       return undefined
     }
     let svgText = readFileSync(resolved, 'utf8')

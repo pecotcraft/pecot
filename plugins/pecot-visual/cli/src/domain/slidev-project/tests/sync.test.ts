@@ -431,8 +431,8 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     expect(summary.warnings).toHaveLength(1)
     const [warning] = summary.warnings
     expect(warning).toContain('--theme')
-    expect(warning).toContain('使いませんでした')
-    expect(warning).toContain('package.json の依存')
+    expect(warning).toContain('was not used')
+    expect(warning).toContain('edit the dependency in package.json')
   })
 
   it('印が今の値と同じでも、求められた張り直しをテーマ付きで行う', async () => {

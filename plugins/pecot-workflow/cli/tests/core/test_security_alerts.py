@@ -613,7 +613,7 @@ class TestListOpenAlerts:
 
     def test_dependabot_forbidden_but_enabled_is_error(self) -> None:
         client = self._dep(_err(403, "Resource not accessible"), enabled=True)
-        with pytest.raises(SecurityAlertError, match="権限不足"):
+        with pytest.raises(SecurityAlertError, match="permission may be missing"):
             list_open_alerts(client, "dependabot", OWNER, R)
 
     def test_dependabot_rate_limit_is_error_without_lookup(self) -> None:
@@ -624,7 +624,7 @@ class TestListOpenAlerts:
 
     def test_network_error_is_security_alert_error(self) -> None:
         client = self._dep(httpx.ConnectError("down"))
-        with pytest.raises(SecurityAlertError, match="通信"):
+        with pytest.raises(SecurityAlertError, match="request failed"):
             list_open_alerts(client, "dependabot", OWNER, R)
 
 
@@ -684,7 +684,7 @@ class TestScanStatus:
 
     @pytest.mark.parametrize("repo_status", [None, "enabled"])
     def test_secret_scanning_404_without_disabled_is_error(self, repo_status: str | None) -> None:
-        """権限不足（状態が読めない）・有効なのに 404 は、無効としない"""
+        """permission may be missing（状態が読めない）・有効なのに 404 は、無効としない"""
         with pytest.raises(SecurityAlertError, match="secret scanning"):
             fetch_secret_scanning_status(self._ss404(repo_status), H, OWNER, R)
 

@@ -119,13 +119,13 @@ class TestParseIssueRef:
         assert exc_info.value.ref == "invalid"
 
     def test_invalid_format_error_message_lists_accepted_forms(self) -> None:
-        """不正形式のエラーメッセージに受理形式 2 種類が列挙され、``owner/repo#N`` は含まれないこと。"""
+        """不正形式のエラーメッセージにaccepted forms 2 種類が列挙され、``owner/repo#N`` は含まれないこと。"""
         with pytest.raises(RefParseError) as exc_info:
             parse_issue_ref("owner//5")
         msg = exc_info.value.message
-        assert "受理形式" in msg
+        assert "accepted forms" in msg
         assert "owner/repo/N" in msg
-        assert "N'（基準リポと併用）" in msg
+        assert "N' (with a base repository)" in msg
         assert "owner/repo#N" not in msg
 
     def test_old_format_incomplete_rejected(self) -> None:

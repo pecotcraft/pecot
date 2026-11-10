@@ -243,7 +243,7 @@ describe('parseEvidenceSpec — ルートの検証', () => {
   it('未知のトップレベルキーを拒否する', () => {
     const result = parseWith({ footer: 'x' })
 
-    expect(expectErrors(result)).toStrictEqual([{ path: 'footer', message: '未知のキーです' }])
+    expect(expectErrors(result)).toStrictEqual([{ path: 'footer', message: 'unknown key' }])
   })
 
   it('エラーを最初の 1 件で打ち切らず全件返す', () => {
@@ -302,20 +302,20 @@ describe('parseEvidenceSpec — items', () => {
     ['object', {}],
   ])('items が %s なら型不一致として拒否する', (_label, items) => {
     expect(expectErrors(parseWith({ items })))
-      .toStrictEqual([{ path: 'items', message: '配列である必要があります' }])
+      .toStrictEqual([{ path: 'items', message: 'must be an array' }])
   })
 
   it('items 欠落は型不一致と区別した欠落専用メッセージで拒否する', () => {
     const { title, createdDate } = minimalSpec()
 
     expect(expectErrors(parseEvidenceSpec({ title, createdDate })))
-      .toStrictEqual([{ path: 'items', message: '必須です' }])
+      .toStrictEqual([{ path: 'items', message: 'is required' }])
   })
 
   it('items が空配列なら拒否する', () => {
     const result = parseWith({ items: [] })
 
-    expect(expectErrors(result)).toStrictEqual([{ path: 'items', message: '1 件以上必要です' }])
+    expect(expectErrors(result)).toStrictEqual([{ path: 'items', message: 'must have at least one item' }])
   })
 
   it('item が object でなければ item のパスで拒否する', () => {
@@ -399,7 +399,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
     expect(expectErrors(result)).toStrictEqual([{
       path: 'items[0].annotations[0].type',
-      message: '未知の注記種別です (値: underline)',
+      message: 'unknown annotation type: underline',
     }])
   })
 
@@ -416,7 +416,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
     expect(expectErrors(result)).toStrictEqual([{
       path: 'items[0].annotations[1].box.x',
-      message: '0.0–1.0 の範囲外です (値: 1.5)',
+      message: 'out of range 0.0-1.0: 1.5',
     }])
   })
 
@@ -443,7 +443,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
       expect(expectErrors(result)).toStrictEqual([{
         path: 'items[0].annotations[0].text',
-        message: 'callout の text に改行は含められません',
+        message: 'callout text must not contain a line break',
       }])
     })
 
@@ -492,7 +492,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
       expect(expectErrors(result)).toStrictEqual([{
         path: 'items[0].annotations[0].box.w',
-        message: 'highlight の box は w > 0 である必要があります (値: 0)',
+        message: 'highlight box w must be > 0: 0',
       }])
     })
 
@@ -501,7 +501,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
       expect(expectErrors(result)).toStrictEqual([{
         path: 'items[0].annotations[0].box.h',
-        message: 'highlight の box は h > 0 である必要があります (値: 0)',
+        message: 'highlight box h must be > 0: 0',
       }])
     })
 
@@ -531,7 +531,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
       expect(expectErrors(result)).toStrictEqual([{
         path: 'items[0].annotations[0]',
-        message: 'arrow の from と to が同一座標です',
+        message: 'arrow from and to must not be the same point',
       }])
     })
 
@@ -588,7 +588,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
       expect(expectErrors(result)).toStrictEqual([{
         path: 'items[0].annotations[0].box.w',
-        message: 'x + w が 1 を超えます (x: 0.9, w: 0.2)',
+        message: 'x + w exceeds 1 (x: 0.9, w: 0.2)',
       }])
     })
 
@@ -597,7 +597,7 @@ describe('parseEvidenceSpec — annotations', () => {
 
       expect(expectErrors(result)).toStrictEqual([{
         path: 'items[0].annotations[0].box.h',
-        message: 'y + h が 1 を超えます (y: 0.9, h: 0.2)',
+        message: 'y + h exceeds 1 (y: 0.9, h: 0.2)',
       }])
     })
 

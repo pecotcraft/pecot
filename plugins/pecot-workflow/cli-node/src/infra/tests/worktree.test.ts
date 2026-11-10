@@ -177,12 +177,12 @@ describe('findMainWorktree', () => {
 
   it('一覧を取得できなければ WorktreeRuntimeError。git の stderr を含む', () => {
     const message = runtimeMessage(() => findMainWorktree(makeTemporaryDirectory()))
-    expect(message).toMatch(/^ワークツリー一覧を取得できません: fatal: not a git repository/u)
+    expect(message).toMatch(/^cannot get the worktree list: fatal: not a git repository/u)
   })
 
   it('一覧が空でも WorktreeRuntimeError', () => {
     installFakeGit({ 'worktree list': '  \n' })
-    expect(runtimeMessage(() => findMainWorktree('.'))).toBe('ワークツリー一覧を取得できません: ')
+    expect(runtimeMessage(() => findMainWorktree('.'))).toBe('cannot get the worktree list: ')
   })
 
   it('作業ディレクトリが無ければ OsError（Python の FileNotFoundError に当たる）', () => {
@@ -233,21 +233,20 @@ describe('detectProjectRoot', () => {
     const repository = createGitRepository({ 'README.md': 'x' }, path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo'))
     const parent = path.dirname(repository)
     const expected = [
-      'このリポジトリは pecot プロジェクトの期待構造に配置されていません。',
+      'this repository is not placed in the layout pecot expects for a project',
       '',
-      `  現在: ${repository}`,
-      `  期待: ${path.join(parent, 'base', 'myrepo')}`,
+      `  current: ${repository}`,
+      `  expected: ${path.join(parent, 'base', 'myrepo')}`,
       '',
-      'なぜ base/ が必要か:',
-      '  devcontainer が並行作業セット（wt1, wt2...）を選択的にマウントするため、',
-      '  「常駐セット」と「並行セット」を base/ で分離しています。',
+      'why base/ is needed:',
+      '  the devcontainer mounts the parallel sets (wt1, wt2...) selectively, so base/ separates the resident set from the parallel sets',
       '',
-      '移行手順（cwd が消えるため、本 CLI セッションを必ず終了してから実行）:',
-      '  1. この CLI セッションを閉じる',
-      '  2. 別ターミナルで実行:',
+      'migration steps (the cwd goes away, so close this CLI session first):',
+      '  1. close this CLI session',
+      '  2. in another terminal, run:',
       `       mkdir -p ${parent}/base`,
       `       mv ${repository} ${parent}/base/`,
-      `  3. ${parent}/base/myrepo/ で CLI を再起動`,
+      `  3. restart the CLI in ${parent}/base/myrepo/`,
     ].join('\n')
     expect(runtimeMessage(() => detectProjectRoot(repository))).toBe(expected)
   })
@@ -301,7 +300,7 @@ describe('getNextSetName', () => {
 
   it('全セットに参加済みで max を超えるなら WorktreeRuntimeError', () => {
     const directories = Array.from({ length: 9 }, (_unused, index) => `wt${String(index + 1)}/myrepo`)
-    expect(runtimeMessage(() => getNextSetName(projectOf(directories), 'myrepo'))).toBe('wt1〜wt9 は全て使用済みです。空きがありません。')
+    expect(runtimeMessage(() => getNextSetName(projectOf(directories), 'myrepo'))).toBe('all of wt1 to wt9 are in use: no free set')
   })
 
   it('base ディレクトリと wt でないディレクトリは無視する', () => {
@@ -324,7 +323,7 @@ describe('getNextSetName', () => {
   it('prefix と max を変えられる', () => {
     const root = projectOf(['ws1/myrepo'])
     expect(getNextSetName(root, 'myrepo', { prefix: 'ws' })).toBe('ws2')
-    expect(runtimeMessage(() => getNextSetName(root, 'myrepo', { prefix: 'ws', maxNumber: 1 }))).toBe('ws1〜ws1 は全て使用済みです。空きがありません。')
+    expect(runtimeMessage(() => getNextSetName(root, 'myrepo', { prefix: 'ws', maxNumber: 1 }))).toBe('all of ws1 to ws1 are in use: no free set')
   })
 })
 
@@ -378,9 +377,9 @@ describe('createWorktree（実 git・実ファイル）', () => {
     const { repository } = createProject({ repositories: [{ owner: 'myowner', name: 'myrepo' }] })
     const message = runtimeMessage(() => createWorktree(repository, { isDryRun: true }))
     expect(message).toBe([
-      'リポジトリ myowner/myrepo の develop_branch が設定されていません。',
-      '  プロジェクト設定ファイルの repositories に develop_branch を追加してください。',
-      '  または --base オプションで明示的に指定してください。',
+      'develop_branch is not set for repository myowner/myrepo',
+      '  add develop_branch to repositories in the project config file',
+      '  or pass --base explicitly',
     ].join('\n'))
     expect(createWorktree(repository, { baseBranch: 'main', isDryRun: true }).baseBranch).toBe('main')
   })
@@ -396,19 +395,19 @@ describe('createWorktree（実 git・実ファイル）', () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
     const message = runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
-    expect(message).toBe('ブランチ \'wt1\' は既に存在し、upstream が想定と異なります (現在: origin/main, 期待: origin/develop)。 再利用する場合は --allow-existing-branch を指定してください。')
+    expect(message).toBe('branch \'wt1\' already exists and its upstream differs from the expected one (current: origin/main, expected: origin/develop): pass --allow-existing-branch to reuse it')
   })
 
   it('upstream の無い既存ブランチは「(未設定)」と表示する', () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', 'wt1', 'main'])
-    expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop' }))).toContain('(現在: (未設定), 期待: origin/develop)')
+    expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop' }))).toContain('(current: (unset), expected: origin/develop)')
   })
 
   it('base が空で upstream のあるブランチは、期待が None の不一致になる', () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
-    expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: '' }))).toContain('(現在: origin/main, 期待: None)')
+    expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: '' }))).toContain('(current: origin/main, expected: None)')
   })
 
   it('upstream が空の既存ブランチを base が空で作ると、そのまま再利用する', () => {
@@ -458,7 +457,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
     const other = path.join(root, 'other', 'myrepo')
     gitForTest(repository, ['worktree', 'add', '-q', '--track', '-b', 'wt1', other, 'origin/develop'])
     const message = runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
-    expect(message).toMatch(/^ワークツリーの作成に失敗しました: [\s\S]*fatal: 'wt1' is already (checked out|used by worktree)/u)
+    expect(message).toMatch(/^failed to create the worktree: [\s\S]*fatal: 'wt1' is already (checked out|used by worktree)/u)
     expect(branchCommit(repository, 'wt1')).toBe(branchCommit(repository, 'origin/develop'))
     expect(existsSync(other)).toBe(true)
   })
@@ -466,7 +465,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('孤児ブランチでも upstream が不一致なら、不一致のエラーが先に出て、ブランチは消さない', () => {
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
-    expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop' }))).toContain('upstream が想定と異なります')
+    expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop' }))).toContain('upstream differs from the expected one')
     expect(branchCommit(repository, 'wt1')).toBe(branchCommit(repository, 'main'))
   })
 
@@ -489,51 +488,51 @@ describe('createWorktree（実 git・実ファイル）', () => {
 
   it('メイン WT が base/ に無ければ WorktreeRuntimeError', () => {
     const repository = createGitRepository({ 'README.md': 'x' }, path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo'))
-    expect(runtimeMessage(() => createWorktree(repository))).toContain('このリポジトリは pecot プロジェクトの期待構造に配置されていません。')
+    expect(runtimeMessage(() => createWorktree(repository))).toContain('this repository is not placed in the layout pecot expects for a project')
   })
 
   it('worktree-config.json が無ければ init を促すエラー', () => {
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', 'worktree-config.json'))
-    expect(runtimeMessage(() => createWorktree(repository))).toBe('ワークツリー設定が見つかりません: .pecot/config/worktree-config.json\n  pecot worktree init でテンプレートを生成してください。')
+    expect(runtimeMessage(() => createWorktree(repository))).toBe('worktree config not found: .pecot/config/worktree-config.json\n  run pecot worktree init to generate the template')
   })
 
   it('.worktreeignore が無ければ init を促すエラー', () => {
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', '.worktreeignore'))
-    expect(runtimeMessage(() => createWorktree(repository))).toBe('コピー除外設定が見つかりません: .pecot/config/.worktreeignore\n  pecot worktree init でテンプレートを生成してください。')
+    expect(runtimeMessage(() => createWorktree(repository))).toBe('copy exclude config not found: .pecot/config/.worktreeignore\n  run pecot worktree init to generate the template')
   })
 
   it('origin が無ければ WorktreeRuntimeError', () => {
     const { repository } = createProject()
     gitForTest(repository, ['remote', 'remove', 'origin'])
-    expect(runtimeMessage(() => createWorktree(repository))).toBe('リポジトリ情報を取得できません。git remote originが設定されているか確認してください。')
+    expect(runtimeMessage(() => createWorktree(repository))).toBe('cannot get the repository information: check that the git remote origin is set')
   })
 
   it('origin の owner が不正な名前でも WorktreeRuntimeError', () => {
     const { repository } = createProject({ originUrl: 'https://github.com/bad%20owner/myrepo.git' })
-    expect(runtimeMessage(() => createWorktree(repository))).toBe('リポジトリ情報を取得できません。git remote originが設定されているか確認してください。')
+    expect(runtimeMessage(() => createWorktree(repository))).toBe('cannot get the repository information: check that the git remote origin is set')
   })
 
   it('アクティブなプロジェクト設定が無ければ WorktreeRuntimeError', () => {
     const { repository, configRoot } = createProject()
     rmSync(path.join(configRoot, '.pecot', 'config', 'projects', '.active'))
-    expect(runtimeMessage(() => createWorktree(repository))).toBe('プロジェクト設定が見つかりません。\n  ヒント: pecot project activate <PROJECT> でプロジェクトを設定')
+    expect(runtimeMessage(() => createWorktree(repository))).toBe('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
   })
 
   it('アクティブなプロジェクトに登録されていないリポジトリはエラー。登録済みの一覧と追加手順を示す', () => {
     const { repository } = createProject({ repositories: [{ owner: 'foo', name: 'bar' }, { owner: 'foo', name: 'baz' }] })
     const expected = [
-      'リポジトリ myowner/myrepo は現在アクティブな pecot プロジェクトに登録されていません。',
+      'repository myowner/myrepo is not registered in the active pecot project',
       '',
-      '登録済みリポジトリ:',
+      'registered repositories:',
       '  - foo/bar',
       '  - foo/baz',
       '',
-      'このリポジトリを pecot プロジェクトに追加するには:',
+      'to add this repository to the pecot project:',
       '  pecot project set-repo myowner/myrepo',
       '',
-      '別のプロジェクトに切り替えるには:',
+      'to switch to another project:',
       '  pecot project activate <PROJECT>',
     ].join('\n')
     expect(runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))).toBe(expected)
@@ -541,7 +540,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
 
   it('登録が 1 件も無ければ「(登録なし)」', () => {
     const { repository } = createProject({ repositories: [] })
-    expect(runtimeMessage(() => createWorktree(repository, { isDryRun: true }))).toContain('登録済みリポジトリ:\n  (登録なし)\n')
+    expect(runtimeMessage(() => createWorktree(repository, { isDryRun: true }))).toContain('registered repositories:\n  (none registered)\n')
   })
 
   it('symlink 登録済みのファイルは、未追跡ファイルのコピーから除く', () => {
@@ -592,8 +591,8 @@ describe('createWorktree（実 git・実ファイル）', () => {
     const { repository, root } = createProject({ worktreeConfig: '{ this is not valid json' })
     const configPath = path.join(repository, '.pecot', 'config', 'worktree-config.json')
     const message = runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
-    expect(message.startsWith(`ワークツリー設定の読み込みに失敗しました: ${configPath}: JSONパースエラー: ${configPath}: `)).toBe(true)
-    expect(message.endsWith('\n  設定ファイルを修正してから再実行してください。')).toBe(true)
+    expect(message.startsWith(`failed to load the worktree config: ${configPath}: JSON parse error: ${configPath}: `)).toBe(true)
+    expect(message.endsWith('\n  fix the config file and run it again')).toBe(true)
     expect(existsSync(path.join(root, 'wt1', 'myrepo'))).toBe(true)
   })
 
@@ -601,7 +600,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
     const { repository } = createProject({ worktreeConfig: '{"version": 2}' })
     const configPath = path.join(repository, '.pecot', 'config', 'worktree-config.json')
     const message = runtimeMessage(() => createWorktree(repository, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
-    const head = `ワークツリー設定の読み込みに失敗しました: ${configPath}: 設定ファイルの検証に失敗しました: ${configPath}`
+    const head = `failed to load the worktree config: ${configPath}: config file validation failed: ${configPath}`
     expect(message).toContain(`${head}: 1 validation error for WorktreeConfig\nversion\n  Input should be 3`)
   })
 
@@ -630,7 +629,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
       const stderr = captureStderr()
       const result = createWorktree(repository, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toMatchObject({ command: 'sleep 5', exitCode: -1, stderr: 'timeout after 1 seconds' })
-      expect(stderr.text()).toBe('setup_command が非ゼロ終了しました (exit -1): sleep 5\n')
+      expect(stderr.text()).toBe('setup_command exited with a non-zero status (exit -1): sleep 5\n')
     })
 
     it('setup_command が非ゼロ終了でも例外は投げず、結果と警告を残す', () => {
@@ -640,7 +639,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
       const root = path.dirname(path.dirname(repository))
       expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
       expect(result.setupResult).toMatchObject({ exitCode: 42, stderr: 'boom\n' })
-      expect(stderr.text()).toBe('setup_command が非ゼロ終了しました (exit 42): echo boom >&2; exit 42\n')
+      expect(stderr.text()).toBe('setup_command exited with a non-zero status (exit 42): echo boom >&2; exit 42\n')
     })
   })
 })
@@ -679,7 +678,7 @@ describe('removeWorktree', () => {
     writeFileSync(path.join(worktree, 'README.md'), 'dirty')
     expect(runtimeMessage(() => {
       removeWorktree(repository, 'wt1')
-    })).toMatch(/^ワークツリーの削除に失敗しました: fatal: '.*' contains modified or untracked files, use --force to delete it/u)
+    })).toMatch(/^failed to remove the worktree: fatal: '.*' contains modified or untracked files, use --force to delete it/u)
     expect(existsSync(worktree)).toBe(true)
     removeWorktree(repository, 'wt1', { isForced: true })
     expect(existsSync(worktree)).toBe(false)
@@ -689,7 +688,7 @@ describe('removeWorktree', () => {
     const { repository } = projectWithWorktree()
     expect(runtimeMessage(() => {
       removeWorktree(repository, 'nope')
-    })).toBe('ワークツリーが見つかりません: nope')
+    })).toBe('worktree not found: nope')
   })
 
   it('消した WT の中から呼ぶと、掃除の git が作業ディレクトリを失って OsError になる（Python の FileNotFoundError と同じ）', () => {
@@ -726,7 +725,7 @@ describe('removeWorktree', () => {
     finally {
       chmodSync(root, 0o755)
     }
-    expect(stderr.text().startsWith(`セットディレクトリの削除に失敗: ${path.join(root, 'wt1')}: [Errno 13] Permission denied`)).toBe(true)
+    expect(stderr.text().startsWith(`failed to remove the set directory: ${path.join(root, 'wt1')}: [Errno 13] Permission denied`)).toBe(true)
   })
 })
 
@@ -790,7 +789,7 @@ describe('isWorktreeEnvironment', () => {
   })
 
   it('Git リポジトリの外は WorktreeRuntimeError。git の stderr を含む', () => {
-    expect(runtimeMessage(() => isWorktreeEnvironment(makeTemporaryDirectory()))).toMatch(/^Gitリポジトリではありません: fatal: not a git repository/u)
+    expect(runtimeMessage(() => isWorktreeEnvironment(makeTemporaryDirectory()))).toMatch(/^not a git repository: fatal: not a git repository/u)
   })
 
   it('git が無ければ OsError（WorktreeRuntimeError にはしない）', () => {
@@ -812,7 +811,7 @@ describe('getWorktreeDirectories', () => {
   })
 
   it('一覧を取得できなければ WorktreeRuntimeError', () => {
-    expect(runtimeMessage(() => getWorktreeDirectories(makeTemporaryDirectory()))).toBe('ワークツリー一覧を取得できません')
+    expect(runtimeMessage(() => getWorktreeDirectories(makeTemporaryDirectory()))).toBe('cannot get the worktree list')
   })
 })
 
@@ -841,7 +840,7 @@ describe('getCurrentWorktreeName', () => {
   })
 
   it('git リポジトリの外は WorktreeRuntimeError', () => {
-    expect(runtimeMessage(() => getCurrentWorktreeName(makeTemporaryDirectory()))).toMatch(/^Gitリポジトリではありません/u)
+    expect(runtimeMessage(() => getCurrentWorktreeName(makeTemporaryDirectory()))).toMatch(/^not a git repository/u)
   })
 })
 
@@ -874,8 +873,8 @@ describe('ensureDevcontainerEnvironment', () => {
     const message = runtimeMessage(() => {
       ensureDevcontainerEnvironment(absent())
     })
-    expect(message).toContain('このコマンドは devcontainer 内で実行してください。')
-    expect(message).toContain('プロジェクトの .devcontainer/ を用意し、VS Code で Reopen in Container してから再実行してください。')
+    expect(message).toContain('this command must run inside a devcontainer')
+    expect(message).toContain('prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and run it again')
     expect(message).not.toContain('a-dcgen')
   })
 

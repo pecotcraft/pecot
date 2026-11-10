@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: could not read project board: 認証エラー: GitHub APIのトークンを取得できませんでした。\n  \n  {{TMP}}/base/demo/.pecot/config/.env を生成しました。以下の手順でトークンを設定してください:\n  \n  1. トークンを取得: https://ghes.example.com/settings/tokens\n  \n  \n  2. {{TMP}}/base/demo/.pecot/config/.env を編集して PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN にトークンを設定\n  \n  または GitHub CLI で認証:\n     gh auth login -h ghes.example.com\n",
+  "stderr": "error: could not read project board: authentication error: could not get a GitHub API token\n  \n  {{TMP}}/base/demo/.pecot/config/.env was generated. Set the token as follows:\n  \n  1. get a token: https://ghes.example.com/settings/tokens\n  \n  \n  2. edit {{TMP}}/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\n  \n  or authenticate with the GitHub CLI:\n     gh auth login -h ghes.example.com\n",
   "exitCode": 1,
   "requests": [],
   "files": {

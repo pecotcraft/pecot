@@ -101,7 +101,7 @@ describe('drawio_export の兄弟 PDF', () => {
       exitCode: 0,
       artifacts: [svgPath, pdfPath],
       data: { event: 'drawio.export.done', file: svgPath, pdf: pdfPath, pdfFailed: false, warnings: 0 },
-      message: `SVG を ${svgPath} に書き出しました (PDF: ${pdfPath})`,
+      message: `wrote SVG to ${svgPath} (PDF: ${pdfPath})`,
     })
     expect(readFileSync(svgPath, 'utf8')).toContain('color-scheme: light;')
     expect(readFileSync(pdfPath)).toEqual(PDF_BYTES)
@@ -128,9 +128,9 @@ describe('drawio_export の兄弟 PDF', () => {
       artifacts: [svgPath],
       // eslint-disable-next-line unicorn/no-null -- CLI の --json と同形性を保つため PDF 失敗時は null を pin する
       data: { event: 'drawio.export.done', file: svgPath, pdf: null, pdfFailed: true, warnings: 1 },
-      message: `SVG を ${svgPath} に書き出しました (警告 1 件、詳細は stderr)`,
+      message: `wrote SVG to ${svgPath} (1 warnings; details in stderr)`,
     })
-    expect(String(structured['stderr'])).toContain('warning: PDF 生成失敗: forced PDF failure')
+    expect(String(structured['stderr'])).toContain('warning: PDF export failed: forced PDF failure')
     expect(existsSync(svgPath)).toBe(true)
     expect(existsSync(pdfPath)).toBe(false)
   })
@@ -152,7 +152,7 @@ describe('drawio_export の兄弟 PDF', () => {
       artifacts: [svgPath],
       // eslint-disable-next-line unicorn/no-null -- PDF を出さないときの `pdf: null` を pin する
       data: { pdf: null, pdfFailed: false, warnings: 0 },
-      message: `SVG を ${svgPath} に書き出しました`,
+      message: `wrote SVG to ${svgPath}`,
     })
     expect(readFileSync(pdfPath, 'utf8')).toBe('%PDF-old')
   })

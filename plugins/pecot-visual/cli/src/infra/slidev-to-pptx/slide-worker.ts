@@ -78,7 +78,7 @@ async function convertSingleSlide(
   logger: Logger,
 ): Promise<SlideConvertResult> {
   const slideStart = performance.now()
-  logger.info(`\nスライド #${stepKeyOf(step)} を変換中...`)
+  logger.info(`\nconverting slide #${stepKeyOf(step)}...`)
 
   // step.url は scanner と buildSlideUrl のどちらの処理でも、baseUrl 込みの絶対 URL。
   const slideUrl = step.url
@@ -153,8 +153,8 @@ export async function convertSingleSlideWithRetry(
     catch (error) {
       lastError = error
       if (attempt < maxRetries) {
-        logger.warn(`スライド #${stepKeyOf(step)} 変換失敗（試行${(attempt + 1).toString()}/${(maxRetries + 1).toString()}）: ${errorMessage(error)}`)
-        logger.warn(`  ${timeouts.slideRetryDelay.toString()}ms後にリトライ...`)
+        logger.warn(`slide #${stepKeyOf(step)} conversion failed (attempt ${(attempt + 1).toString()}/${(maxRetries + 1).toString()}): ${errorMessage(error)}`)
+        logger.warn(`  retrying in ${timeouts.slideRetryDelay.toString()}ms...`)
         await new Promise<void>(resolve => setTimeout(() => { resolve() }, timeouts.slideRetryDelay))
       }
       else {

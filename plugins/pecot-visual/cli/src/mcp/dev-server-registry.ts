@@ -352,7 +352,7 @@ export function createDevServerRegistry(
         failure: {
           ok: false,
           reason: 'dev-server-spawn-failed',
-          detail: `Slidev dev サーバを起動できませんでした: ${detail}`,
+          detail: `could not start the Slidev dev server: ${detail}`,
           stdout: '',
           stderr: '',
         },
@@ -470,10 +470,10 @@ function portInUseFailure(
   // 無断で止めたり、ホストへ転送していないポートを自分で選んで開けない URL を返したりし得る。
   // どのポートが使用中かという事実だけ述べ、判断は利用者に確認してから動くよう案内する。
   const detail = port === undefined
-    ? `ポート ${defaultPorts.join(' / ')} はすべて使用中のため Slidev dev サーバを起動できません。`
-    + '停止してよいプレビューがあるか、使用するポートを利用者に確認してから呼び直してください。'
-    : `ポート ${String(port)} は使用中のため Slidev dev サーバを起動できません。`
-      + `ポート ${String(port)} が使用中であることを利用者に伝え、使用するポートを確認してから呼び直してください。`
+    ? `cannot start the Slidev dev server: ports ${defaultPorts.join(' / ')} are all in use`
+    + '; ask the user whether any preview may be stopped, or which port to use, then call again'
+    : `cannot start the Slidev dev server: port ${String(port)} is in use`
+      + `; tell the user that port ${String(port)} is in use, ask which port to use, then call again`
   return {
     ok: false,
     reason: 'dev-server-port-in-use',
@@ -489,7 +489,7 @@ function portInUseFailure(
 attemptStart 経由 (子を起こした後に signal を見る failureDetailOf) と、start が子を起こす前に signal を見るルートがある。
 両方から使うため、文言をここで 1 箇所にまとめる。
 */
-const CANCELLED_DETAIL = '呼び出しがキャンセルされたため Slidev dev サーバの起動を打ち切りました。'
+const CANCELLED_DETAIL = 'Slidev dev server start aborted because the call was cancelled'
 
 /**
 spawn する前に中断済みと分かったときの失敗。子を起こしていないので stdout / stderr は空。
@@ -521,11 +521,11 @@ function failureReasonOf(outcome: Exclude<ReadyOutcome, 'ready'>): DevServerFail
 function failureDetailOf(outcome: Exclude<ReadyOutcome, 'ready'>, port: number, timeoutMs: number): string {
   switch (outcome) {
     case 'exited': {
-      return `Slidev dev サーバがポート ${String(port)} で起動直後に終了しました (理由は stderr を参照)。`
+      return `Slidev dev server on port ${String(port)} exited right after starting (see stderr for the reason)`
     }
     case 'timeout': {
-      return `Slidev dev サーバがポート ${String(port)} で応答するまで待ちましたが、`
-        + `${String(timeoutMs)}ms 以内に到達できませんでした。`
+      return `Slidev dev server on port ${String(port)} did not become reachable within `
+        + `${String(timeoutMs)}ms`
     }
     case 'cancelled': {
       return CANCELLED_DETAIL

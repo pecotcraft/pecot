@@ -107,7 +107,7 @@ export function runtimeInstallPlan(manifestPath: string): RuntimeInstallPlan {
   const dependencies = dependencyMap(manifest['dependencies'])
   const coreVersion = dependencies['@slidev/cli']
   if (coreVersion === undefined || coreVersion === '') {
-    throw new Error(`${manifestPath} の dependencies に @slidev/cli の版指定がありません（配布物の破損）`)
+    throw new Error(`dependencies in ${manifestPath} has no version for @slidev/cli (the distribution is corrupted)`)
   }
 
   const specs = Object.entries(dependencies)
@@ -212,7 +212,7 @@ export async function installRuntimeDependencies(
       // eslint-disable-next-line unicorn/no-null -- 同上
       signal: null,
       stdout: '',
-      stderr: 'HOME と XDG_DATA_HOME が未設定のため、実行時依存の取得先 (データ置き場の mcp-dist/) を決められません。PLUGIN_DATA に絶対パスを指定してください',
+      stderr: 'cannot decide where to fetch the runtime dependencies (mcp-dist/ in the data directory) because HOME and XDG_DATA_HOME are unset; set PLUGIN_DATA to an absolute path',
       timedOut: false,
       failedStage: 'npm',
     }
@@ -244,7 +244,7 @@ export async function installRuntimeDependencies(
       // eslint-disable-next-line unicorn/no-null -- 同上
       signal: null,
       stdout: '',
-      stderr: `${options.manifestPath} に、配布時に置き換わるはずの catalog: が残っています: ${unresolved.join(', ')}`,
+      stderr: `catalog: entries that should be replaced at distribution remain in ${options.manifestPath}: ${unresolved.join(', ')}`,
       timedOut: false,
       failedStage: 'npm',
     }

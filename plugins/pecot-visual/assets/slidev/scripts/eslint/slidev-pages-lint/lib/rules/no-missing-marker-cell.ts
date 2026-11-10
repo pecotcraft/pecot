@@ -21,10 +21,10 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      missingDiagram: '図のファイルがありません: {{xmlSrc}}（{{filePath}}）。xmlSrc は talk-dir の public/ からのパスで書いてください',
-      noDiagram: 'steps[{{index}}].marker.cell を指定していますが、図（diagramContent.xmlSrc または steps[].diagram.xmlSrc）がありません',
-      invalidDiagram: '図 {{xmlSrc}} を解析できません: {{reason}}',
-      invalidCell: 'steps[{{index}}].marker.cell "{{cell}}" を図 {{xmlSrc}} で解決できません: {{reason}}',
+      missingDiagram: 'diagram file not found: {{xmlSrc}} ({{filePath}}) (fix: write xmlSrc as a path from public/ of the talk-dir)',
+      noDiagram: 'steps[{{index}}].marker.cell is set, but there is no diagram (diagramContent.xmlSrc or steps[].diagram.xmlSrc)',
+      invalidDiagram: 'cannot parse diagram {{xmlSrc}}: {{reason}}',
+      invalidCell: 'cannot resolve steps[{{index}}].marker.cell in diagram {{xmlSrc}}: {{cell}} ({{reason}})',
     },
   },
 

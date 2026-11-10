@@ -43,24 +43,24 @@ import {
 } from './_shared.js'
 
 const drawioCreateInput = z.object({
-  input_path: z.string().describe('入力 .drawio ファイルの絶対パス。' + WINDOWS_PATH_NOTE),
-  mode: z.enum(['view', 'edit']).describe('生成する URL の用途 (view / edit)。生成される URL は同一').default('view'),
-  out_path: z.string().describe('表示用 HTML を書き出す .html ファイル (開くと draw.io へリダイレクトする) の絶対パス。省略すると data.url で URL だけを返す。' + WINDOWS_PATH_NOTE).optional(),
+  input_path: z.string().describe('Absolute path of the input .drawio file. ' + WINDOWS_PATH_NOTE),
+  mode: z.enum(['view', 'edit']).describe('Purpose of the generated URL (view / edit). The generated URL is the same for both').default('view'),
+  out_path: z.string().describe('Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in data.url. ' + WINDOWS_PATH_NOTE).optional(),
   theme: z.string()
-    .describe('書体と文字サイズを確かめるテーマの指定。`git+https://<host>/<owner>/<repo>.git#<tag>`・`file:<絶対パス>`・'
-      + 'talk-dir かテーマ root の絶対パスのどれか。省略すると、図が talk-dir の `public/` の下にあればその talk-dir のテーマ、'
-      + '無ければ本体の既定値（sans-serif）で確かめる。スライドに載せる図を talk-dir の外に置くときは、talk-dir の絶対パスを渡す。'
+    .describe('Theme used to check the font and font size: `git+https://<host>/<owner>/<repo>.git#<tag>`, `file:<absolute path>`, '
+      + 'or the absolute path of a talk-dir or a theme root. If omitted, the theme of the talk-dir is used when the diagram is under its `public/`; '
+      + 'otherwise the built-in default (sans-serif) is used. When the diagram for a slide is placed outside the talk-dir, pass the absolute path of the talk-dir. '
       + WINDOWS_PATH_NOTE)
     .optional(),
-  png: z.boolean().describe('out_path 指定時に PNG を兄弟ファイル (<out_path の拡張子を .png に置換>) として同時出力するか').default(true),
+  png: z.boolean().describe('Whether to also write a PNG as a sibling file (<out_path with the extension replaced by .png>) when out_path is given').default(true),
 })
 
 const drawioExportInput = z.object({
-  input_path: z.string().describe('入力 .drawio ファイルの絶対パス。' + WINDOWS_PATH_NOTE),
-  icons_dir: z.string().describe('icon:// 参照を解決する root ディレクトリの絶対パス。省略時は <plugin-root>/assets/drawio-icons (プラグイン同梱カタログ) を使う。プロジェクト固有のアイコンカタログを使う図では必ず指定する (指定抜けはエラーにならない)。' + WINDOWS_PATH_NOTE).optional(),
-  out_path: z.string().describe('出力 SVG の絶対パス。省略すると <input_path>.svg に書き出す。PDF は <out_path の拡張子を .pdf に置換> の兄弟ファイルへ書き出す。' + WINDOWS_PATH_NOTE).optional(),
-  print_hash: z.boolean().describe('export せず、陳腐化判定用の合成ハッシュだけを算出する').default(false),
-  pdf: z.boolean().describe('SVG と同時に PDF を兄弟ファイル (<out_path の拡張子を .pdf に置換>) として出力するか').default(true),
+  input_path: z.string().describe('Absolute path of the input .drawio file. ' + WINDOWS_PATH_NOTE),
+  icons_dir: z.string().describe('Absolute path of the root directory that resolves icon:// references. If omitted, <plugin-root>/assets/drawio-icons (the catalog bundled with the plugin) is used. Always specify it for diagrams that use a project-specific icon catalog (omitting it does not raise an error). ' + WINDOWS_PATH_NOTE).optional(),
+  out_path: z.string().describe('Absolute path of the output SVG. If omitted, it is written to <input_path>.svg. The PDF is written to a sibling file (<out_path with the extension replaced by .pdf>). ' + WINDOWS_PATH_NOTE).optional(),
+  print_hash: z.boolean().describe('Compute only the composite hash used for staleness checks, without exporting').default(false),
+  pdf: z.boolean().describe('Whether to also write a PDF as a sibling file (<out_path with the extension replaced by .pdf>) alongside the SVG').default(true),
 })
 
 /**
@@ -72,14 +72,14 @@ const PNG_SKIPPED_EXIT_CODE = 3
 message 末尾の警告件数サフィックス。drawio_create / drawio_export で表記を揃える。
 */
 function warningSuffix(warningCount: number): string {
-  return warningCount > 0 ? ` (警告 ${String(warningCount)} 件、詳細は stderr)` : ''
+  return warningCount > 0 ? ` (${String(warningCount)} warnings; details in stderr)` : ''
 }
 
 function drawioCreateMessage(outputFile: string | undefined, warningCount: number): string {
   const warnings = warningSuffix(warningCount)
   return outputFile === undefined
-    ? `drawio URL を生成しました${warnings}`
-    : `drawio の表示用 HTML を ${outputFile} に書き出しました${warnings}`
+    ? `generated drawio URL${warnings}`
+    : `wrote drawio viewer HTML to ${outputFile}${warnings}`
 }
 
 /**
@@ -132,13 +132,13 @@ const handleDrawioCreate = async (
 
   // PNG を書くときだけ chromium が要る。out_path 省略時と png: false は URL 生成だけで完結する。
   const unavailable = input.out_path !== undefined && input.png
-    ? await ensureChromium('drawio_create の PNG 出力', chromiumDefaultDependencies(), call.signal)
+    ? await ensureChromium('drawio_create PNG output', chromiumDefaultDependencies(), call.signal)
     : undefined
 
   const output = captureCommandOutput()
   // CLI は capturePng の失敗を stderr へ書いてから warning に数える。
   // 同じ行を残して、「警告 N 件、詳細は stderr」という message を CLI と MCP で同じ意味にする。
-  if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG 生成失敗: ${unavailable.message}`)
+  if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG export failed: ${unavailable.message}`)
   try {
     const execution = await executeDrawioUrl(
       input.input_path,
@@ -243,9 +243,9 @@ function drawioExportFailure(error: unknown): ToolResult {
 }
 
 function drawioExportMessage(execution: Readonly<DrawioExportExecution>): string {
-  if (execution.outputFile === undefined) return `合成ハッシュを算出しました: ${execution.sourceSha256}`
+  if (execution.outputFile === undefined) return `computed composite hash: ${execution.sourceSha256}`
   const pdf = execution.pdfFile === undefined ? '' : ` (PDF: ${execution.pdfFile})`
-  return `SVG を ${execution.outputFile} に書き出しました${pdf}${warningSuffix(execution.warningCount)}`
+  return `wrote SVG to ${execution.outputFile}${pdf}${warningSuffix(execution.warningCount)}`
 }
 
 // annotations は SDK 既定 (readOnlyHint: false / openWorldHint: true) と一致するため付けない。
@@ -253,8 +253,8 @@ function drawioExportMessage(execution: Readonly<DrawioExportExecution>): string
 export const drawioCreateTool: ToolDefinition = {
   name: 'drawio_create',
   config: {
-    title: 'drawio 図の成果物出力',
-    description: 'drawio XML をブラウザでそのまま開ける成果物にする。out_path へ表示用 HTML (.html。開くと draw.io へリダイレクトする) を書き出し、標準で実描画 PNG も同時出力する (描画結果の確認に使える)。icon:// 参照は data URI に解決して埋め込む。生成前に図のラベルを文章規則で確認し、違反があれば生成しない。書体と文字サイズはテーマの宣言（theme、または図の祖先の talk-dir のテーマ）で確認し、結果を data.theme に返す。',
+    title: 'Output a drawio diagram as a deliverable',
+    description: 'Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in data.theme.',
     inputSchema: drawioCreateInput,
     outputSchema: TOOL_OUTPUT_SCHEMA,
   },
@@ -265,7 +265,7 @@ export const drawioExportTool: ToolDefinition = {
   name: 'drawio_export',
   config: {
     title: 'drawio SVG / PDF export',
-    description: 'drawio XML を静的 SVG と兄弟の PDF に export する。pdf: false で PDF を抑止する。print_hash 指定時は export せず陳腐化判定用の合成ハッシュだけを返す。図の文言は確かめないので、drawio_create を通した .drawio を渡す。',
+    description: 'Exports drawio XML to a static SVG and a sibling PDF. Set pdf: false to suppress the PDF. With print_hash, it exports nothing and returns only the composite hash used for staleness checks. It does not check the diagram text, so pass a .drawio that has gone through drawio_create.',
     inputSchema: drawioExportInput,
     outputSchema: TOOL_OUTPUT_SCHEMA,
   },

@@ -152,23 +152,38 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Goal**: `release`・`worktree`・`repo`・`session` と、グループの無いコマンドがそろう。`cli/commands/` に日本語の固定の文言が残らない
 
-**Independent Test**: golden の全 224 件が一致する。`cli/tests/unit/test_english_only.py` が全リテラルで通る。`cli/commands/` の `_output.py` 以外で `typer.echo` が 0 か所
+**Independent Test**: golden の全 227 件が一致する。`cli/tests/unit/test_english_only.py` が全リテラルで通る。`cli/commands/` の `_output.py` 以外で `typer.echo` が 0 か所
 
-- [ ] T026 [US2] `cli/tests/unit/test_english_only.py` の対象を、`cli/commands/` の全文字列リテラル（f-string の固定部分を含む）に広げる。この時点では失敗する。
+- [x] T026 [US2] `cli/tests/unit/test_english_only.py` の対象を、`cli/commands/` の全文字列リテラル（f-string の固定部分を含む）に広げる。この時点では失敗する。
   `issue.py` の `_QUICK_BODY_FOOTER` は GitHub に書く本文である。`cli/templates/` へ移すか除外の一覧に入れ、テストから外す（research R10）
-- [ ] T027 [P] [US2] `cli/commands/release.py`（73 か所）を `Output` に移す。テストの期待値も直す
-- [ ] T028 [P] [US2] `cli/commands/worktree.py`（47 か所）を同じ形に移す
-- [ ] T029 [P] [US2] repo のコマンドを移す。対象は `cli/commands/repo.py`（47 か所）・`repo_display.py`（3 か所）・`_repo_policy.py`（5 か所）。
+- [x] T027 [P] [US2] `cli/commands/release.py`（73 か所）を `Output` に移す。テストの期待値も直す
+- [x] T028 [P] [US2] `cli/commands/worktree.py`（47 か所）を同じ形に移す
+- [x] T029 [P] [US2] repo のコマンドを移す。対象は `cli/commands/repo.py`（47 か所）・`repo_display.py`（3 か所）・`_repo_policy.py`（5 か所）。
   `repo.py` の `_print_checkout_guide` の `★` 案内は、`issue quick` と同じ形の行にする。形は `created: branch <name> in <owner/repo>` である。
   `skills/w-active/SKILL.md` の Step 5 も同じ PR で直す
-- [ ] T030 [P] [US2] `cli/commands/session.py`（27 か所）を移す
-- [ ] T031 [US2] `cli/commands/main.py`（4 か所）を移す。`add-to-project`・`update-issue-status` は Phase 4、`create-branch`・`delete-branch` は `repo.py` にあり T029 で移す
-- [ ] T032 [US2] 残りの golden を記録し直す。Phase 4 で記録し直した `issue-*`・`add-to-project-*`・`update-issue-status-*` は触らない。全 224 件で `✔`・`✓` が 0 個になることを確かめる
+- [x] T030 [P] [US2] `cli/commands/session.py`（27 か所）を移す
+- [x] T031 [US2] `cli/commands/main.py`（4 か所）を移す。`add-to-project`・`update-issue-status` は Phase 4、`create-branch`・`delete-branch` は `repo.py` にあり T029 で移す
+- [x] T032 [US2] 残りの golden を記録し直す。Phase 4 で記録し直した `issue-*`・`add-to-project-*`・`update-issue-status-*` は触らない。全 227 件で `✔`・`✓` が 0 個になることを確かめる
   - `release-*`・`worktree-*`・`session-*`・`global-ok-show-repo-*`
   - `add-to-*`・`create-branch-*`・`delete-branch-*`・`update-issue-*`
-- [ ] T033 [US2] T026 が通ることを確かめる
+- [x] T033 [US2] T026 が通ることを確かめる
 
 **Checkpoint**: quickstart.md の 3 が通る
+
+---
+
+## Phase 7a: User Story 2 — core の文言を英語にする (Priority: P1)
+
+**Goal**: `cli/core/` が作る例外・検証・警告・ログの文言が英語になり、どのコマンドの `error:` の行にも core 由来の日本語が残らない
+
+**Independent Test**: `cli/tests/unit/test_english_only.py` の `cli/core/` の走査が通る。記録し直した golden の stdout・stderr に core 由来の日本語が 0 文字
+
+- [x] T065 [US2] `cli/tests/unit/test_english_only.py` に、`cli/core/` の全文字列リテラル（f-string の固定部分を含む）を走査するテストを足す。GitHub やファイルに書く中身と判定の材料は、理由つきの除外の一覧に載せる
+- [x] T066 [US2] `cli/core/` の例外・検証・logger・警告の文言と、それを包む `cli/commands/options.py` の文言を英語にする。テストの期待値も直す
+- [x] T067 [US2] `cli-node/src/` の対応する文言を同じ英語にする。`cli-node/tests/python-output/` の fixture は `record.py` で記録し直す（spec 020 の FR-007）
+- [x] T068 [US2] core の文言が出る golden を記録し直す
+
+**Checkpoint**: `record.py --check` と `record:parity:check` の差が 0 件
 
 ---
 
@@ -184,6 +199,7 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
   - banned-api の理由の文言で、`cli/commands/_output.py` を使うよう示す
   - `per-file-ignores` で `commands/_output.py` と `tests/` を外す
 - [ ] T035 [US3] T034 で見つかる違反を直す。`cli/core/` などコマンドの外の出力は、`Output` に移すか、呼ぶ側のコマンドへ返す形にする
+  - `cli/core/worktree.py`・`worktree_links.py` の logger も対象にする。handler が無く、Python の `lastResort` が前置きの無い行を stderr に出している。T034 の禁止の対象に logging は入らないので、ここで移す
 - [ ] T036 [US3] `cli-node/eslint.config.js` に、直接の出力を止める規則を足す
   - `no-console`
   - `no-restricted-syntax` で、`stdout`・`stderr` という名前の識別子・プロパティへの `.write` 呼び出し。`process.stdout.write` も含む
@@ -223,14 +239,14 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Goal**: pecot-visual の MCP ツールが返す結果の `message`・エラーの文言・ツールと引数の説明文が英語になる
 
-**Independent Test**: `plugins/pecot-visual/cli/tests/english-only.test.ts` が通る。ツールの一覧の説明文と、依存が未取得のときの結果の `message` が英語
+**Independent Test**: `plugins/pecot-visual/cli/tests/unit/english-only.test.ts` が通る。ツールの一覧の説明文と、依存が未取得のときの結果の `message` が英語
 
-- [ ] T046 [US5] `plugins/pecot-visual/cli/tests/english-only.test.ts` を書く。`src/` の文字列リテラル（テンプレートリテラルの固定部分を含む）に日本語の文字が無いことを確かめる。この時点では失敗する
-- [ ] T047 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の各ツールの説明文（`description`、35 か所）と引数の説明を英語にする
-- [ ] T048 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の結果の `message` とエラーの文言を英語にする。`_shared.ts` の依存が未取得のときの文言を含める
-- [ ] T049 [P] [US5] `plugins/pecot-visual/cli/src/domain/`・`src/infra/` の、エラーとして結果に入る文言を英語にする。例は `cache-store.ts`・`image-dimensions.ts`
-- [ ] T050 [US5] `plugins/pecot-visual/cli/tests/` の日本語の文言を期待しているテストを書き換える。`plugins/pecot-visual/skills/*/SKILL.md` がツールの文言を引いていれば直す
-- [ ] T051 [US5] T046 が通ることを確かめる
+- [x] T046 [US5] `plugins/pecot-visual/cli/tests/unit/english-only.test.ts` を書く。`src/` の文字列リテラル（テンプレートリテラルの固定部分を含む）に日本語の文字が無いことを確かめる。この時点では失敗する
+- [x] T047 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の各ツールの説明文（`description`、35 か所）と引数の説明を英語にする
+- [x] T048 [P] [US5] `plugins/pecot-visual/cli/src/mcp/tools/` の結果の `message` とエラーの文言を英語にする。`_shared.ts` の依存が未取得のときの文言を含める
+- [x] T049 [P] [US5] `plugins/pecot-visual/cli/src/domain/`・`src/infra/` の、エラーとして結果に入る文言を英語にする。例は `cache-store.ts`・`image-dimensions.ts`
+- [x] T050 [US5] `plugins/pecot-visual/cli/tests/` の日本語の文言を期待しているテストを書き換える。`plugins/pecot-visual/skills/*/SKILL.md` がツールの文言を引いていれば直す
+- [x] T051 [US5] T046 が通ることを確かめる
 
 **Checkpoint**: quickstart.md の 5 の MCP の文言の部分が、pecot-visual で通る
 

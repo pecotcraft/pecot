@@ -54,7 +54,7 @@ function integerOf(digits: string): number {
 
 function invalidFormat(raw: string): ReferenceParseError {
   return new ReferenceParseError(
-    `不正な参照形式: ${raw}\n受理形式:\n  - 主軸: 'owner/repo/N'\n  - 短縮形: 'N'（基準リポと併用）`,
+    `invalid reference: ${raw}\naccepted forms:\n  - full: 'owner/repo/N'\n  - short: 'N' (with a base repository)`,
     raw,
   )
 }
@@ -68,7 +68,7 @@ export function parseIssueReference(raw: string, baseRepository?: RepositoryRefe
   if (/^\d+$/u.test(raw)) {
     if (baseRepository === undefined) {
       throw new ReferenceParseError(
-        '短縮形 \'N\' は base_repo が必須です。--repo <owner/repo> を指定するか、主軸形式 \'owner/repo/N\' で指定してください。',
+        'the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'',
         raw,
       )
     }

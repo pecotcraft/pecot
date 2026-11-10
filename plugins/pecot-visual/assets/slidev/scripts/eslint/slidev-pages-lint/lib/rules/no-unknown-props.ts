@@ -32,9 +32,9 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       unknownProp:
-        "'{{prop}}' は {{layout}} レイアウトで定義されていないプロパティです。使用可能: {{allowed}}",
+        'property not defined in the {{layout}} layout: {{prop}} (allowed: {{allowed}})',
       unknownNestedProp:
-        "'{{path}}' は {{layout}} レイアウトで定義されていないキーです。使用可能: {{allowed}}",
+        'key not defined in the {{layout}} layout: {{path}} (allowed: {{allowed}})',
     },
   },
 
@@ -68,7 +68,7 @@ const rule: Rule.RuleModule = {
       const findings = collectUnknownProps(frontmatter, tree, SLIDEV_STANDARD_KEYS);
 
       for (const finding of findings) {
-        const allowed = finding.allowed.length > 0 ? finding.allowed.join(', ') : '(なし)';
+        const allowed = finding.allowed.length > 0 ? finding.allowed.join(', ') : '(none)';
         // ネスト配下の finding のみ unknownNestedProp で report する。
         // 走査時に確定させた isNested を使う（path 文字列の解析はしない）。
         if (finding.isNested) {

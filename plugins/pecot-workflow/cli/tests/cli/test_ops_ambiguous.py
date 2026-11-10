@@ -2,7 +2,7 @@
 
 ``--repo`` 未明示 + Git 外 (=``_detect_current_git_repo`` が None を返す) の状況を扱う。
 この状況で worktree/branch/release 系コマンドを呼ぶと exit 1 になる。
-「リポジトリが曖昧です」を stderr に出力することを検証する。
+"the repository is ambiguous"を stderr に出力することを検証する。
 
 決定は ``cli/_repo_policy.py::require_repo_match`` 側。
 既存コマンド側が独自に ambiguous 判定していても、decorator が先に
@@ -27,7 +27,7 @@ def _patch_no_git():
     )
 
 
-AMBIGUOUS_MSG = "リポジトリが曖昧です。--repo <owner/repo> を明示してください。"
+AMBIGUOUS_MSG = "error: the repository is ambiguous\n  give --repo <owner/repo>\n"
 
 
 class TestAmbiguousOps:

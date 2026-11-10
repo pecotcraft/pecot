@@ -388,7 +388,7 @@ describe('slide_page のテーマの失敗', () => {
 
     expect(structuredOf(result)['ok']).toBe(false)
     expect(dataOf(result)['reason']).toBe('skeleton-unavailable')
-    expect(textOf(dataOf(result)['detail'])).toContain('参照 yaml')
+    expect(textOf(dataOf(result)['detail'])).toContain('no reference yaml')
     expect(pageFilesOf(directory)).toEqual([])
   })
 

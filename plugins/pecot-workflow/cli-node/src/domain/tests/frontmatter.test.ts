@@ -77,19 +77,19 @@ describe('validateIssueFrontmatter', () => {
   })
 
   it('parent_epic 指定時に order がないとエラー', () => {
-    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353 })).toThrow('orderは必須です')
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353 })).toThrow('order is required when parent_epic is set')
   })
 
   it('order 指定時に parent_epic がないとエラー', () => {
-    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, order: 1 })).toThrow('parent_epicも指定してください')
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, order: 1 })).toThrow('parent_epic is required when order is set')
   })
 
   it('order が 0 の場合はエラー', () => {
-    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 0 })).toThrow('1以上の整数')
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 0 })).toThrow('integer of 1 or more')
   })
 
   it('order が負の場合はエラー', () => {
-    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: -1 })).toThrow('1以上の整数')
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: -1 })).toThrow('integer of 1 or more')
   })
 
   it('parent_epic に owner/repo/N 形式を指定できる（文字列のまま保持）', () => {
@@ -143,9 +143,9 @@ describe('validateIssueFrontmatter', () => {
     expect(Object.isFrozen(fm.labels)).toBe(true)
   })
 
-  it('エラー文は「バリデーションエラー:」の後に項目ごとの行が続く', () => {
+  it('エラー文は「validation error:」の後に項目ごとの行が続く', () => {
     expect(() => validateIssueFrontmatter({ title: 'T' })).toThrow(
-      'バリデーションエラー:\n  - type: Field required\n  - repository: Field required\n  - status: Field required',
+      'validation error:\n  - type: Field required\n  - repository: Field required\n  - status: Field required',
     )
   })
 
@@ -208,7 +208,7 @@ order: 1
   })
 
   it('フロントマターがない場合はエラー', () => {
-    expect(() => parseFrontmatter('# タイトル\n\n本文のみ\n')).toThrow('フロントマターが見つかりません（---で始まっていない）')
+    expect(() => parseFrontmatter('# タイトル\n\n本文のみ\n')).toThrow('frontmatter not found (does not start with ---)')
   })
 
   it('閉じられていないフロントマターはエラー', () => {
@@ -219,7 +219,7 @@ repository: owner/repo
 
 本文（閉じタグなし）
 `
-    expect(() => parseFrontmatter(content)).toThrow('フロントマターが閉じられていません（終端の---がない）')
+    expect(() => parseFrontmatter(content)).toThrow('frontmatter is not closed (missing closing ---)')
   })
 
   it('無効な YAML はエラー', () => {
@@ -230,16 +230,16 @@ type: epic: invalid
 
 本文
 `
-    expect(() => parseFrontmatter(content)).toThrow(/^YAMLのパースに失敗しました: /u)
+    expect(() => parseFrontmatter(content)).toThrow(/^failed to parse YAML: /u)
   })
 
   it('マッピングでない YAML はエラー', () => {
-    expect(() => parseFrontmatter('---\n- a\n- b\n---\n\n本文\n')).toThrow('フロントマターはマッピング（key: value）形式である必要があります')
-    expect(() => parseFrontmatter('---\n# コメントだけ\n---\n\n本文\n')).toThrow('フロントマターはマッピング（key: value）形式である必要があります')
+    expect(() => parseFrontmatter('---\n- a\n- b\n---\n\n本文\n')).toThrow('frontmatter must be a mapping (key: value)')
+    expect(() => parseFrontmatter('---\n# コメントだけ\n---\n\n本文\n')).toThrow('frontmatter must be a mapping (key: value)')
   })
 
   it('必須フィールドがない場合はエラー', () => {
-    expect(() => parseFrontmatter('---\ntitle: テスト\n---\n\n本文\n')).toThrow('バリデーションエラー')
+    expect(() => parseFrontmatter('---\ntitle: テスト\n---\n\n本文\n')).toThrow('validation error')
   })
 
   it('空文字列の parent_epic をパース', () => {
@@ -391,11 +391,11 @@ template: merge-diff
   })
 
   it('フロントマターがない場合はエラー', () => {
-    expect(() => parseCommentContent('# タイトル\n\n本文のみ\n')).toThrow('フロントマターが見つかりません')
+    expect(() => parseCommentContent('# タイトル\n\n本文のみ\n')).toThrow('frontmatter not found')
   })
 
   it('issue_ref がない場合はエラー', () => {
-    expect(() => parseCommentContent('---\ntemplate: merge-diff\n---\n\n本文\n')).toThrow('バリデーションエラー')
+    expect(() => parseCommentContent('---\ntemplate: merge-diff\n---\n\n本文\n')).toThrow('validation error')
   })
 })
 
@@ -472,11 +472,11 @@ draft: true
   })
 
   it('フロントマターがない場合はエラー', () => {
-    expect(() => parsePullRequestContent('# PR\n\n本文のみ\n')).toThrow('フロントマターが見つかりません')
+    expect(() => parsePullRequestContent('# PR\n\n本文のみ\n')).toThrow('frontmatter not found')
   })
 
   it('title がない場合はエラー', () => {
-    expect(() => parsePullRequestContent('---\nrepository: "owner/repo"\nbase: "develop"\n---\n\n本文\n')).toThrow('バリデーションエラー')
+    expect(() => parsePullRequestContent('---\nrepository: "owner/repo"\nbase: "develop"\n---\n\n本文\n')).toThrow('validation error')
   })
 })
 

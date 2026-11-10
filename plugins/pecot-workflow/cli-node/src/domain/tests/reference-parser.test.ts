@@ -54,7 +54,7 @@ describe('parseIssueReference', () => {
   it('短縮形 N で基準リポが無いと例外。文は Python と同じ', () => {
     const error = thrownBy(() => parseIssueReference('123'))
     expect(error.reference).toBe('123')
-    expect(error.message).toBe('短縮形 \'N\' は base_repo が必須です。--repo <owner/repo> を指定するか、主軸形式 \'owner/repo/N\' で指定してください。')
+    expect(error.message).toBe('the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'')
   })
 
   it('短縮形は ASCII の数字だけ（全角・丸数字は不可）', () => {
@@ -72,7 +72,7 @@ describe('parseIssueReference', () => {
 
   it('不正形式のエラー文に受理形式 2 種類が並び、owner/repo#N は含まれない（Python の実出力）', () => {
     expect(thrownBy(() => parseIssueReference('owner//5')).message)
-      .toBe('不正な参照形式: owner//5\n受理形式:\n  - 主軸: \'owner/repo/N\'\n  - 短縮形: \'N\'（基準リポと併用）')
+      .toBe('invalid reference: owner//5\naccepted forms:\n  - full: \'owner/repo/N\'\n  - short: \'N\' (with a base repository)')
   })
 
   it('末尾に改行があっても Python の $ と同じく受理する', () => {

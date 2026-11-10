@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: PR #31 のbaseブランチが release_branch と一致しません\n  base: main\n  release_branch: release\n",
+  "stderr": "error: the base branch of PR #31 does not match release_branch\n  base: main\n  release_branch: release\n",
   "exitCode": 1,
   "requests": [
     {

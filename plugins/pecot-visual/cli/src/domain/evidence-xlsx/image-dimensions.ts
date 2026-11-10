@@ -70,7 +70,7 @@ export function readImageDimensions(
   return {
     ok: false,
     reason: 'unsupported-format',
-    message: `PNG / JPEG のシグネチャに一致しません (先頭 ${describeHead(view)})`,
+    message: `not a PNG or JPEG signature (head: ${describeHead(view)})`,
   }
 }
 
@@ -86,14 +86,14 @@ function hasJpegSignature(view: Readonly<DataView>): boolean {
 
 function readPngDimensions(view: Readonly<DataView>): ImageDimensionsResult {
   if (view.byteLength < PNG_MINIMUM_LENGTH) {
-    return unreadable(`PNG の IHDR まで届きません (${view.byteLength.toString()} バイト)`)
+    return unreadable(`PNG ends before IHDR (${view.byteLength.toString()} bytes)`)
   }
   if (view.getUint32(12) !== PNG_IHDR_TYPE) {
-    return unreadable('PNG の第 1 チャンクが IHDR ではありません')
+    return unreadable('first PNG chunk is not IHDR')
   }
   const width = view.getUint32(16)
   const height = view.getUint32(20)
-  return width === 0 || height === 0 ? unreadable(`PNG の IHDR 寸法が 0 です (${width.toString()}x${height.toString()})`) : { ok: true, format: 'png', width, height }
+  return width === 0 || height === 0 ? unreadable(`PNG IHDR size is 0 (${width.toString()}x${height.toString()})`) : { ok: true, format: 'png', width, height }
 }
 
 function readJpegDimensions(view: Readonly<DataView>): ImageDimensionsResult {
@@ -102,13 +102,13 @@ function readJpegDimensions(view: Readonly<DataView>): ImageDimensionsResult {
   let index = 2
   while (index < view.byteLength) {
     if (view.getUint8(index) !== MARKER_PREFIX) {
-      return unreadable(`JPEG のマーカー境界が不正です (offset ${index.toString()})`)
+      return unreadable(`invalid JPEG marker boundary (offset ${index.toString()})`)
     }
     index += 1
     // マーカー直前の連続 0xFF は fill バイトなので読み飛ばす。
     while (index < view.byteLength && view.getUint8(index) === MARKER_PREFIX) index += 1
     if (index >= view.byteLength) {
-      return unreadable('JPEG がマーカーの途中で終端しています')
+      return unreadable('JPEG ends in the middle of a marker')
     }
     const marker = view.getUint8(index)
     index += 1
@@ -120,31 +120,31 @@ function readJpegDimensions(view: Readonly<DataView>): ImageDimensionsResult {
     }
     // SOS 以降はエントロピー符号化データで、SOF はもう現れない。
     if (marker === MARKER_SOS) {
-      return unreadable('JPEG に SOF セグメントがありません (SOS に到達)')
+      return unreadable('no SOF segment in JPEG (reached SOS)')
     }
     if (marker === MARKER_EOI) {
-      return unreadable('JPEG に SOF セグメントがありません (EOI に到達)')
+      return unreadable('no SOF segment in JPEG (reached EOI)')
     }
 
     if (index + 2 > view.byteLength) {
-      return unreadable('JPEG のセグメント長フィールドが欠けています')
+      return unreadable('JPEG segment length field is missing')
     }
     const segmentLength = view.getUint16(index)
     // 長さフィールド自身の 2 バイトを含む値なので 2 未満は破損。
     if (segmentLength < 2) {
-      return unreadable(`JPEG のセグメント長が不正です (${segmentLength.toString()})`)
+      return unreadable(`invalid JPEG segment length (${segmentLength.toString()})`)
     }
     if ([MARKER_SOF0, MARKER_SOF1, MARKER_SOF2].includes(marker)) {
       if (segmentLength < JPEG_SOF_MINIMUM_LENGTH || index + JPEG_SOF_MINIMUM_LENGTH > view.byteLength) {
-        return unreadable('JPEG の SOF セグメントが寸法の手前で切れています')
+        return unreadable('JPEG SOF segment is cut off before the size')
       }
       const height = view.getUint16(index + 3)
       const width = view.getUint16(index + 5)
-      return width === 0 || height === 0 ? unreadable(`JPEG の SOF 寸法が 0 です (${width.toString()}x${height.toString()})`) : { ok: true, format: 'jpeg', width, height }
+      return width === 0 || height === 0 ? unreadable(`JPEG SOF size is 0 (${width.toString()}x${height.toString()})`) : { ok: true, format: 'jpeg', width, height }
     }
     index += segmentLength
   }
-  return unreadable('JPEG に SOF セグメントがありません')
+  return unreadable('no SOF segment in JPEG')
 }
 
 function unreadable(message: string): ImageDimensionsResult {
@@ -160,5 +160,5 @@ function describeHead(view: Readonly<DataView>): string {
   for (let index = 0; index < limit; index += 1) {
     parts.push(view.getUint8(index).toString(16).padStart(2, '0'))
   }
-  return parts.length === 0 ? '(空)' : parts.join(' ')
+  return parts.length === 0 ? '(empty)' : parts.join(' ')
 }

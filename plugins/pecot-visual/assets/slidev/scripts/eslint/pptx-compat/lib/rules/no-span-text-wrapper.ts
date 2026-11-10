@@ -101,10 +101,10 @@ const rule: Rule.RuleModule = {
     schema: [],
     messages: {
       noSpanTextWrapper:
-        '<span>をテキストラッパーとして使用しています。' +
-        'PPTX変換では、親が flex / grid でなく span が block / flex / grid 表示でない場合、' +
-        '<span>は親のテキストボックスの一部として吸収され、spanの幅・padding・背景の矩形が失われます。' +
-        '<div>または<p>を使用してください。',
+        '<span> is used as a text wrapper; ' +
+        'in PPTX conversion, when the parent is not flex / grid and the span is not displayed as block / flex / grid, ' +
+        'the <span> is absorbed into the parent text box and its width, padding, and background rectangle are lost ' +
+        '(fix: use <div> or <p>)',
     },
   },
 

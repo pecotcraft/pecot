@@ -99,10 +99,10 @@ function lastPayload(stdout: Readonly<CapturedStream>): ErrorPayload {
 
 // git の失敗の種類、reason、対処の文言の一部。
 const GIT_FAILURE_CASES: readonly (readonly ['connection' | 'auth' | 'tag' | 'unknown', string, string])[] = [
-  ['connection', 'theme-connection', '接続できません'],
-  ['auth', 'theme-auth', 'credential helper か SSH 鍵'],
-  ['tag', 'theme-tag', 'タグ名を確認'],
-  ['unknown', 'theme-unknown', 'git で取得できませんでした'],
+  ['connection', 'theme-connection', 'cannot connect to the theme source'],
+  ['auth', 'theme-auth', 'set up git credentials, a credential helper or an SSH key'],
+  ['tag', 'theme-tag', 'check the tag name'],
+  ['unknown', 'theme-unknown', 'git could not fetch the theme source'],
 ]
 
 describe('slide create の失敗 (FR-013)', () => {
@@ -208,7 +208,7 @@ describe('slide create の失敗 (FR-013)', () => {
     const stderr = makeStream()
     const fetchTheme = vi.fn<FetchTheme>().mockImplementation((_spec, options) => {
       options.warn?.('取得中の警告')
-      return Promise.reject(new ThemeFetchError('接続できません', 'connection'))
+      return Promise.reject(new ThemeFetchError('cannot connect to the theme source', 'connection'))
     })
     const dependencies = dependenciesWith(fetchTheme, makeStream(), stderr)
 
@@ -231,7 +231,7 @@ describe('slide create の失敗 (FR-013)', () => {
     const { payload, exitCode } = await runJson(projectDirectory, dependencies)
 
     expect(payload.reason).toBe('theme-unknown')
-    expect(payload.detail).toContain('データ置き場')
+    expect(payload.detail).toContain('the data directory CLAUDE_PLUGIN_DATA')
     expect(exitCode).toBe(1)
   })
 

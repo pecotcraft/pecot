@@ -25,7 +25,7 @@ function reportItemCount(
       fieldPath,
       actual: String(actual),
       limit: String(limit),
-      note: note ? `。${note}` : '',
+      note: note ? `; ${note}` : '',
     },
   });
 }
@@ -40,12 +40,12 @@ const rule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      minChars: '{{fieldPath}}: {{detail}}（HTMLタグ除去後の全角換算の文字数）',
-      maxChars: '{{fieldPath}}: {{detail}}（HTMLタグ除去後の全角換算の文字数）',
-      minItems: '{{fieldPath}}: 配列要素数が{{actual}}です（最小{{limit}}）{{note}}',
-      maxItems: '{{fieldPath}}: 配列要素数が{{actual}}です（最大{{limit}}）{{note}}',
+      minChars: '{{fieldPath}}: {{detail}} (full-width-equivalent count after HTML tags are removed)',
+      maxChars: '{{fieldPath}}: {{detail}} (full-width-equivalent count after HTML tags are removed)',
+      minItems: '{{fieldPath}}: {{actual}} array items (min: {{limit}}){{note}}',
+      maxItems: '{{fieldPath}}: {{actual}} array items (max: {{limit}}){{note}}',
       emptyText:
-        '{{fieldPath}}: テキストが空です（値を設定するか、フィールドを削除してください）',
+        '{{fieldPath}}: text is empty (fix: set a value or remove the field)',
       boldRequired: `{{fieldPath}}: ${BOLD_REQUIRED_MESSAGE}`,
       emDisallowed: `{{fieldPath}}: ${EM_DISALLOWED_MESSAGE}`,
     },

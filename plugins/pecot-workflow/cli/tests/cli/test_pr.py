@@ -828,7 +828,7 @@ class TestPRReadCommand:
         with patch("cli.commands.pr.load_active_config", return_value=mock_config):
             result = runner.invoke(app, ["pr", "read", "invalid-format"])
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
     def test_read_pr_not_found(self) -> None:
         """異常系: PRが見つからない場合"""
@@ -1331,7 +1331,7 @@ class TestPRCleanupCommand:
             result = runner.invoke(app, ["pr", "cleanup", "invalid-format"])
 
             assert result.exit_code == 2
-            assert "不正な参照形式" in result.output
+            assert "invalid reference" in result.output
 
 
 # pr cleanup フラグ削除テスト
@@ -4490,7 +4490,7 @@ class TestPreparedPRRoundtrip:
 
         assert result.exit_code == 3, result.output
         assert "error: disallowed syntax" in result.output
-        assert "未編集プレースホルダ" in result.output
+        assert "unedited placeholder" in result.output
 
     @pytest.mark.parametrize(
         ("template", "base"),
@@ -4615,7 +4615,7 @@ class TestPrBodyStyleRejection:
 
         assert result.exit_code == 3, result.output
         assert "error: disallowed syntax" in result.output
-        assert "チェックボックス記法" in result.output
+        assert "checkbox syntax" in result.output
 
     def test_placeholder_is_rejected(self, tmp_path: Path) -> None:
         file = _write_pr_file(tmp_path, _VALID_PR_BODY.replace("なし", "<残る懸念>", 1))

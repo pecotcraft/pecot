@@ -99,7 +99,7 @@ commands 層が soffice-not-found にマップする。
 */
 export class SofficeSpawnError extends Error {
   constructor(readonly stderr: string) {
-    super(`soffice の起動に失敗しました: ${stderr}`)
+    super(`soffice failed to start: ${stderr}`)
     this.name = 'SofficeSpawnError'
   }
 }
@@ -111,7 +111,7 @@ commands 層が soffice-timeout にマップする。SofficeSpawnError (起動�
 */
 export class SofficeTimeoutError extends Error {
   constructor(readonly timeoutMs: number) {
-    super(`soffice の PDF 変換が ${String(timeoutMs)}ms でタイムアウトしました`)
+    super(`soffice PDF conversion timed out after ${String(timeoutMs)}ms`)
     this.name = 'SofficeTimeoutError'
   }
 }

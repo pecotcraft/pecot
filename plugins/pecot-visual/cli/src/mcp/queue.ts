@@ -16,7 +16,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 */
 export class ReentrantEnqueueError extends Error {
   constructor() {
-    super('走行中のタスクから enqueue は呼べません (キューが自分自身の完了を待つデッドロックになります)')
+    super('enqueue cannot be called from a running task (the queue would deadlock waiting for itself)')
     this.name = 'ReentrantEnqueueError'
   }
 }

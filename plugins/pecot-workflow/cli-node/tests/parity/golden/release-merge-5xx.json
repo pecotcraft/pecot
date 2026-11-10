@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "エラー: マージに失敗しました: GitHub APIエラー: 502\n",
+  "stderr": "error: could not merge PR acme/demo/31: GitHub API error: 502 Bad Gateway\n",
   "exitCode": 1,
   "requests": [
     {

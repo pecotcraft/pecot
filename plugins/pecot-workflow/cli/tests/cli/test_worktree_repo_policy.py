@@ -43,7 +43,7 @@ class TestWorktreeMismatchReject:
                 ],
             )
         assert result.exit_code == 1
-        assert "不一致です" in result.stderr
+        assert "differs from the current Git remote" in result.stderr
 
     def test_worktree_add_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
@@ -59,7 +59,7 @@ class TestWorktreeMismatchReject:
                 ],
             )
         assert result.exit_code == 1
-        assert "不一致です" in result.stderr
+        assert "differs from the current Git remote" in result.stderr
 
     def test_worktree_remove_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
@@ -76,7 +76,7 @@ class TestWorktreeMismatchReject:
                 ],
             )
         assert result.exit_code == 1
-        assert "不一致です" in result.stderr
+        assert "differs from the current Git remote" in result.stderr
 
     def test_worktree_link_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
@@ -93,7 +93,7 @@ class TestWorktreeMismatchReject:
                 ],
             )
         assert result.exit_code == 1
-        assert "不一致です" in result.stderr
+        assert "differs from the current Git remote" in result.stderr
 
 
 class TestBranchMismatchReject:
@@ -113,9 +113,10 @@ class TestBranchMismatchReject:
             )
         assert result.exit_code == 1
         assert (
-            "error: --repo acme-labs/aist-plugin とカレント Git remote "
-            "(acme-labs/pecot-cli) が不一致です。" in result.stderr
-        )
+            "error: --repo acme-labs/aist-plugin differs from the current Git remote "
+            "(acme-labs/pecot-cli)\n"
+            "  worktree and branch commands are rejected to protect the local Git state\n"
+        ) == result.stderr
 
     def test_delete_branch_mismatch(self) -> None:
         with _patch_current_git():
@@ -130,7 +131,7 @@ class TestBranchMismatchReject:
                 ],
             )
         assert result.exit_code == 1
-        assert "不一致です" in result.stderr
+        assert "differs from the current Git remote" in result.stderr
 
 
 class TestMatchPassesThrough:
@@ -153,4 +154,4 @@ class TestMatchPassesThrough:
         # --dry-run: decorator を素通しして link 本体に入っても書き込みを起こさせない
         # 不一致エラーは出ない。exit code はコマンド側処理に依存するが
         # decorator 由来のエラー文言は absent。
-        assert "不一致です" not in result.stderr
+        assert "differs from the current Git remote" not in result.stderr

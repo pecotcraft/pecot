@@ -49,7 +49,7 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 }
 ```
 
-CLI で `--setup "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了しても WT 作成自体は成功扱い（exit 0）で、stdout/stderr が結果出力に表示される。
+CLI で `--setup "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（exit 0）になる。失敗のときだけ `warning: setup command ...` の行が出て、コマンドの stdout/stderr が続く。成功のときは何も表示されない。
 
 ### Step 2: add を叩く
 

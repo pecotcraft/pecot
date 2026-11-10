@@ -80,8 +80,8 @@ export interface SlideThemeExecution {
 }
 
 const LINK_COLOR_WARNING
-  = 'pptx.linkColor を省いたため、PPTX ではリンクは変換されません（ハイパーリンクが付きません）。'
-    + `リンクを変換するには ${THEME_DECLARATION_FILE_NAME} の pptx.linkColor に 6 桁の 16 進で書いてください`
+  = 'pptx.linkColor is omitted, so links are not converted in PPTX (no hyperlinks are added) '
+    + `(fix: set pptx.linkColor in ${THEME_DECLARATION_FILE_NAME} to a 6-digit hex value to convert links)`
 
 /**
 `slide theme` の実処理。CLI action と MCP ツール（slide_theme）、lint・page・convert もここを通る。
@@ -160,9 +160,9 @@ function writeHumanReport(
 ): void {
   const { theme } = data
   writeData(stdout, `slide theme: ${theme.name} (${theme.spec})`)
-  writeData(stdout, `  テーマ root: ${theme.directory}`)
-  writeData(stdout, `  宣言: ${theme.declared ? 'あり' : 'なし'}`)
-  writeData(stdout, `  レイアウト ${String(data.layouts.length)} 件`)
+  writeData(stdout, `  theme root: ${theme.directory}`)
+  writeData(stdout, `  declaration: ${theme.declared ? 'present' : 'absent'}`)
+  writeData(stdout, `  layouts: ${String(data.layouts.length)}`)
   for (const category of data.categories) {
     writeData(stdout, `  --- ${category.label}: ${category.question} ---`)
     const members = data.layouts.filter(entry => entry.category === category.id)
@@ -188,9 +188,9 @@ export function createSlideThemeCommand(
   buildDependencies: () => SlideThemeDependencies,
 ): Command {
   const command = new Command('theme')
-    .description('talk-dir が参照するテーマの宣言とレイアウトの一覧を返す')
-    .option('--dir <path>', 'talk-dir のパス（省略時はカレント）')
-    .option('--json', 'machine-readable な JSON を stdout に出す', false)
+    .description('print the theme declaration and layout list referenced by a talk-dir')
+    .option('--dir <path>', 'talk-dir path (default: current directory)')
+    .option('--json', 'print machine-readable JSON to stdout', false)
     .exitOverride()
     .configureOutput({
       writeErr: (string_: string) => {
@@ -228,7 +228,7 @@ export function createSlideThemeCommand(
           writeData(dependencies.stdout, JSON.stringify({ event: 'slide.theme.error', reason, detail }))
         }
         else {
-          createDiagnostics(dependencies.stderr).error(`slide theme 失敗: ${detail}`)
+          createDiagnostics(dependencies.stderr).error(`slide theme failed: ${detail}`)
         }
         process.exitCode = 1
       }

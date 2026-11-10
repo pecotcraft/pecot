@@ -71,7 +71,7 @@ function unwrap<T>(result: DependabotResult<T>, owner: string, repository: strin
       return result.value
     }
     case 'network': {
-      throw new DependabotAlertError(`${owner}/${repository}: 通信に失敗しました: ${result.message}`)
+      throw new DependabotAlertError(`${owner}/${repository}: request failed: ${result.message}`)
     }
     case 'forbidden':
     case 'rateLimited':
@@ -87,7 +87,7 @@ function unwrap<T>(result: DependabotResult<T>, owner: string, repository: strin
 */
 async function classifyForbidden(source: DependabotSource, owner: string, repository: string, alertsUrl: string): Promise<DependabotAlertStatus> {
   if (unwrap(await source.isAlertsEnabled(owner, repository), owner, repository)) {
-    throw new DependabotAlertError(`${owner}/${repository}: Dependabot alerts は有効ですが一覧を取得できません（権限不足の可能性）`)
+    throw new DependabotAlertError(`${owner}/${repository}: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)`)
   }
   return { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl }
 }
