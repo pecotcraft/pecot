@@ -23,24 +23,24 @@ run_claude_guard() {
   local core_script="$1"
 
   if [ -z "$core_script" ]; then
-    echo "Usage: claude-adapter.sh <core-script>" >&2
+    hook_message error "usage: claude-adapter.sh <core-script>" >&2
     return 0
   fi
 
   if [ ! -x "$core_script" ]; then
-    echo "Core script not found or not executable: $core_script" >&2
+    hook_message error "core script not found or not executable: $core_script" >&2
     return 0
   fi
 
   # stdin JSONからコマンドを抽出。
   local input
   if ! input=$(cat); then
-    echo "Failed to read input from stdin" >&2
+    hook_message error "failed to read input from stdin" >&2
     return 0
   fi
   local command
   if ! command=$(echo "$input" | jq -r '.tool_input.command // ""' 2>/dev/null); then
-    echo "Invalid JSON input" >&2
+    hook_message error "invalid JSON input" >&2
     return 0
   fi
 
@@ -81,12 +81,16 @@ run_claude_guard() {
       if ! jq -n --arg reason "$output" '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":$reason}}' 2>/dev/null; then
         local script_name
         script_name=$(basename "$core_script")
-        jq -n --arg reason "フック実行エラー: コアスクリプト ${script_name} の出力をJSON変換できませんでした。\n原因: コアスクリプトがブロック判定を返しましたが、出力形式が不正です。\n対処: フックのログ（tmp/pecot/hooks/）を確認し、コアスクリプトの出力内容を調べてください。" '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":$reason}}'
+        local fail_msg
+        fail_msg=$(hook_message error "hook failed: could not convert the output of core script ${script_name} to JSON.
+Cause: the core script returned a block decision, but its output format is invalid.
+Fix: check the hook log (tmp/pecot/hooks/) and inspect the core script output.")
+        jq -n --arg reason "$fail_msg" '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":$reason}}'
       fi
       ;;
     2)
       # 内部エラー: フェイルオープン。
-      echo "Hook core script error (fail-open): $core_script" >&2
+      hook_message error "hook core script failed (fail-open): $core_script" >&2
       if [ -s "$stderr_file" ]; then
         cat "$stderr_file" >&2
       fi

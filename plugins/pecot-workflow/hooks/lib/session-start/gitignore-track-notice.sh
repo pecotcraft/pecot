@@ -14,7 +14,8 @@ pecot_hook_enabled "gitignore-track-notice" true || exit 0
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
 [ -z "$PROJECT_DIR" ] && exit 0
-PROJECT_DIR="${PROJECT_DIR%/}"  # 末尾スラッシュを除去（既存慣行）
+# 末尾スラッシュを除去（既存慣行）
+PROJECT_DIR="${PROJECT_DIR%/}"
 
 TARGET="${PROJECT_DIR}/.pecot/.gitignore"
 [ -f "$TARGET" ] || exit 0
@@ -22,7 +23,7 @@ command -v git >/dev/null 2>&1 || exit 0
 git -C "$PROJECT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 
 if ! git -C "$PROJECT_DIR" ls-files --error-unmatch -- .pecot/.gitignore >/dev/null 2>&1; then
-    echo '`.pecot/.gitignore` が未追跡です。`git add -f .pecot/.gitignore` で追加して commit すると、新しい clone や CI でも `.pecot/` の生成物が未追跡として出なくなります。追跡していないブランチへ切り替えるとファイルは消えますが、次の hook で書き直されます。'
+    hook_message note '`.pecot/.gitignore` is untracked. Adding it with `git add -f .pecot/.gitignore` and committing keeps the generated files under `.pecot/` from showing as untracked in new clones and CI. Switching to a branch that does not track it removes the file, but the next hook rewrites it.'
     exit 0
 fi
 
@@ -31,5 +32,5 @@ MISSING=$(grep -vE '^[[:space:]]*(#|$)' <("$ENSURE" --print) | while IFS= read -
     tr -d '\r' < "$TARGET" | grep -qxF -- "$line" || printf '%s\n' "$line"
 done)
 if [ -n "$MISSING" ]; then
-    echo "追跡中の \`.pecot/.gitignore\` に、現行の定義の行が欠けています。\`${ENSURE} --print > .pecot/.gitignore\` で書き直して commit してください。"
+    hook_message note "the tracked \`.pecot/.gitignore\` lacks lines of the current definition. Rewrite it with \`${ENSURE} --print > .pecot/.gitignore\` and commit."
 fi

@@ -8,6 +8,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
 pecot_hook_enabled "websearch-allow" true || exit 0
 
-REASON="WebSearch は読み取り専用のため自動許可（websearch-allow）"
+REASON=$(hook_message note "websearch-allow: allowed automatically because WebSearch is read-only")
 jq -n --arg reason "$REASON" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "permissionDecisionReason": $reason}}'
 exit 0

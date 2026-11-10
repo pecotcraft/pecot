@@ -31,8 +31,8 @@ USER_PROMPT=$(echo "$INPUT" | jq -r '.prompt // ""')
 FIRST_LINE="${USER_PROMPT%%$'\n'*}"
 
 if [[ "$FIRST_LINE" =~ ^/(pecot-w:)?w- ]]; then
-    cat <<'EOF'
-# pecot workflow notes
+    MESSAGE=$(cat <<'EOF'
+pecot workflow notes
 
 While running a pecot skill/command:
 
@@ -40,5 +40,7 @@ While running a pecot skill/command:
 - Follow the Step order and template format defined in the skill body
 - Ask when unclear; do not guess
 EOF
+)
+    hook_message note "$MESSAGE"
     echo ""
 fi

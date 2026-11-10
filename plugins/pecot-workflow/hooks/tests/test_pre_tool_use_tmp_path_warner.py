@@ -57,7 +57,7 @@ def test_bash_tmp_foo_shows_reminder(config, script):
         '{"tool_name":"Bash","tool_input":{"command":"mkdir -p /tmp/release-smoke"}}',
     )
     assert result.returncode == 0
-    assert "Bash コマンドに" in result.stdout
+    assert "warning: the Bash command contains" in result.stdout
     assert ".pecot/work/" in result.stdout
     assert "PreToolUse" in result.stdout
 

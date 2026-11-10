@@ -145,7 +145,8 @@ def test_claude_installed_older_outputs_notice(notice_script, make_fixture, no_c
     result = _run_notice(notice_script, plugin_root=str(root))
     assert result.returncode == 0
     assert "installed: 1.2.0" in result.stdout
-    assert "latest: 1.3.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 1.3.0 (installed:" in result.stdout
     assert "claude plugin update pecot-w@pecot" in result.stdout
     assert "-s project" in result.stdout
 
@@ -172,7 +173,8 @@ def test_copilot_installed_older_outputs_notice(
     assert result.returncode == 0
     assert "copilot plugin update pecot-v@pecot" in result.stdout
     assert "installed: 1.2.0" in result.stdout
-    assert "latest: 1.3.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 1.3.0 (installed:" in result.stdout
     # copilot 形では -s project の注記は付かない。
     assert "-s project" not in result.stdout
 
@@ -252,7 +254,7 @@ def test_wiring_via_session_start_common(
         env=env,
     )
     assert result.returncode == 0
-    assert "pecot-w プラグインに更新があります" in result.stdout
+    assert "plugin update available: pecot-w" in result.stdout
     assert "claude plugin update pecot-w@pecot" in result.stdout
 
 
@@ -261,7 +263,8 @@ def test_dir_name_differs_from_plugin_name(notice_script, make_fixture, no_confi
     root = make_fixture("1.2.0", "2.0.0", "claude", "pecot", "pecot-w")
     result = _run_notice(notice_script, plugin_root=str(root))
     assert result.returncode == 0
-    assert "latest: 2.0.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 2.0.0 (installed:" in result.stdout
     assert "claude plugin update pecot-w@pecot" in result.stdout
 
 
@@ -293,7 +296,8 @@ def test_marketplace_object_source_no_output(notice_script, make_fixture, no_con
 def _assert_claude_notice(result: subprocess.CompletedProcess) -> None:
     assert result.returncode == 0
     assert "installed: 1.2.0" in result.stdout
-    assert "latest: 1.3.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 1.3.0 (installed:" in result.stdout
     assert "claude plugin update pecot-w@pecot" in result.stdout
 
 
@@ -429,7 +433,8 @@ def test_copilot_reads_clone_under_custom_config_dir(
     )
     assert result.returncode == 0
     assert "copilot plugin update pecot-v@pecot" in result.stdout
-    assert "latest: 1.3.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 1.3.0 (installed:" in result.stdout
 
 
 def test_copilot_reads_own_marketplace_cache(notice_script, make_fixture, no_config_path) -> None:
@@ -439,7 +444,8 @@ def test_copilot_reads_own_marketplace_cache(notice_script, make_fixture, no_con
     assert result.returncode == 0
     assert "copilot plugin update pecot-v@pecot" in result.stdout
     assert "installed: 1.2.0" in result.stdout
-    assert "latest: 1.3.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 1.3.0 (installed:" in result.stdout
 
 
 def test_copilot_cache_preferred_over_claude_clone(
@@ -461,7 +467,8 @@ def test_copilot_cache_preferred_over_claude_clone(
     plugin_json.mkdir(parents=True)
     (plugin_json / "plugin.json").write_text('{"version":"1.3.0"}\n')
     result = _run_notice(notice_script, plugin_root=str(root))
-    assert "latest: 1.4.0" in result.stdout
+    assert "plugin update available: " in result.stdout
+    assert " 1.4.0 (installed:" in result.stdout
 
 
 def test_copilot_cache_of_other_marketplace_ignored(

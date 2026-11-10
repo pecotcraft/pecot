@@ -89,8 +89,8 @@ def test_syntax_error_warns_and_uses_default(dispatcher, config_path) -> None:
     result = _hook_enabled(dispatcher, "test-hook", "true")
     # return 0（デフォルト値 true = 有効）
     assert result.returncode == 0
-    # stderr に WARNING が含まれる
-    assert "WARNING" in result.stderr
+    # stderr に warning: で始まる行が含まれる
+    assert "warning: failed to parse hooks-config.json" in result.stderr
 
 
 def test_empty_file_uses_default(dispatcher, config_path) -> None:

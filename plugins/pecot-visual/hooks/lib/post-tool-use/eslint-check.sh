@@ -42,19 +42,22 @@ trace() {
 SCRIPT_DIR="$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_PATHS_LIB="${SCRIPT_DIR%/*}/core/hook-paths.sh"
 if [ ! -f "$HOOK_PATHS_LIB" ]; then
-    trace "skip: 共有ライブラリを解決できない ($HOOK_PATHS_LIB)"
+    trace "skip: shared library cannot be resolved ($HOOK_PATHS_LIB)"
     exit 0
 fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-paths.sh
 . "$HOOK_PATHS_LIB"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/hook-message.sh
+. "${SCRIPT_DIR%/*}/core/hook-message.sh"
 
 # lint 未実施の通知。model には「lint されていない」ことだけを伝え、修正指示は出さない。
 notify_not_linted() {
     local message
-    message="【ESLint 未実施】ファイル: $FILE_PATH
+    message=$(hook_message warning "eslint not run: $FILE_PATH
 $1
-このファイルの lint は実行されていないため、違反は検出されていません。"
+No eslint result exists for this file, so violations have not been detected.")
     jq -n --arg message "$message" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
 }
 
@@ -62,7 +65,7 @@ INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 if [ -z "$FILE_PATH" ]; then
-    trace "skip: tool_input.file_path が空"
+    trace "skip: tool_input.file_path is empty"
     exit 0
 fi
 
@@ -70,7 +73,7 @@ fi
 case "$FILE_PATH" in
     *.md) ;;
     *)
-        trace "skip: .md 以外 ($FILE_PATH)"
+        trace "skip: not a .md file ($FILE_PATH)"
         exit 0
         ;;
 esac
@@ -83,7 +86,7 @@ ORIG_DIR=$(CDPATH= cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)
 TALK_ROOT=$(find_talk_root "$ORIG_DIR" "pages")
 
 if [ -z "$TALK_ROOT" ]; then
-    trace "skip: talk-dir マーカー (slides.md + pages/) が見つからない ($FILE_PATH)"
+    trace "skip: talk-dir marker (slides.md + pages/) not found ($FILE_PATH)"
     exit 0
 fi
 
@@ -93,7 +96,7 @@ fi
 HOOKS_ROOT=$(resolve_hooks_root "$SCRIPT_DIR" "/lib/post-tool-use")
 
 if [ -z "$HOOKS_ROOT" ]; then
-    trace "skip: plugin root を解決できない (PLUGIN_HOOKS / CLAUDE_PLUGIN_ROOT 未設定 かつ SCRIPT_DIR=$SCRIPT_DIR から逆算不能)"
+    trace "skip: plugin root cannot be resolved (PLUGIN_HOOKS and CLAUDE_PLUGIN_ROOT are unset, and SCRIPT_DIR=$SCRIPT_DIR does not lead back to it)"
     exit 0
 fi
 
@@ -110,7 +113,7 @@ REL_FILE=$(talk_relative_path "$TALK_ROOT" "$ORIG_DIR" "$FILE_PATH")
 # talk-dir 内でも、対象外のパス（README.md 等）は lint されないのが正しい。
 # 後ろへ回すと、テーマ未リンクの talk-dir で対象外の編集まで【ESLint 未実施】になる。
 if ! is_talk_lint_target "$REL_FILE"; then
-    trace "skip: lint 対象パスでない ($REL_FILE)"
+    trace "skip: not a lint target path ($REL_FILE)"
     exit 0
 fi
 
@@ -118,9 +121,9 @@ fi
 # 依存と build 成果物は bin/pecotv が作るミラーにしか無い。ミラーが無い（初回の build 中など）ときは
 # 【ESLint 未実施】に倒す。
 if ! RUNTIME_DIR="$(resolve_runtime_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"; then
-    trace "not-linted: 実行用ミラーが無い"
-    notify_not_linted "lint 環境が未準備です（実行用ミラーがまだ作られていません）。
-\`pecotv\` コマンドを一度実行すると plugin の bootstrap が走り復旧します。"
+    trace "not-linted: runtime mirror is missing"
+    notify_not_linted "The lint environment is not ready (the runtime mirror has not been created yet).
+Running the \`pecotv\` command once runs the plugin bootstrap, which restores it."
     exit 0
 fi
 ASSETS_DIR="$(resolve_slidev_assets_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"
@@ -175,15 +178,15 @@ case "$ESLINT_RESOLVE_LAST" in
         NG_KIND=${NG_REASON%%"$TAB"*}
         NG_DETAIL=${NG_REASON#*"$TAB"}
         case "$NG_KIND" in
-            undeclared) NG_TEXT="assets/slidev/package.json が devDependencies.eslint を宣言していない" ;;
-            major) NG_TEXT="eslint ${NG_DETAIL%% want *} が assets/slidev の要求 ${NG_DETAIL##* want } とメジャー違い" ;;
+            undeclared) NG_TEXT="assets/slidev/package.json does not declare devDependencies.eslint" ;;
+            major) NG_TEXT="eslint ${NG_DETAIL%% want *} differs in major version from the assets/slidev requirement ${NG_DETAIL##* want }" ;;
             *) NG_TEXT="$NG_DETAIL" ;;
         esac
-        trace "eslint 解決失敗: $NG_TEXT (assets: $ASSETS_DIR)"
+        trace "eslint resolution failed: $NG_TEXT (assets: $ASSETS_DIR)"
         ;;
     *)
         ESLINT_BIN=""
-        trace "eslint 解決失敗: node が結果を返さなかった (${ESLINT_RESOLVE:-出力なし} / assets: $ASSETS_DIR)"
+        trace "eslint resolution failed: node returned no result (${ESLINT_RESOLVE:-no output} / assets: $ASSETS_DIR)"
         ;;
 esac
 
@@ -198,9 +201,9 @@ if [ ! -f "$RUNTIME_DIR/cli/dist/cli.js" ]; then
     MISSING="${MISSING:+$MISSING, }cli/dist/cli.js"
 fi
 if [ -n "$MISSING" ]; then
-    trace "not-linted: lint 環境が不足 ($MISSING / theme: ${THEME_DIR:-未解決})"
-    notify_not_linted "lint 環境が不足しています（不足: $MISSING / theme: ${THEME_DIR:-未解決}）。
-\`pecotv\` コマンドを一度実行すると plugin の bootstrap が走り復旧します。"
+    trace "not-linted: lint environment is incomplete ($MISSING / theme: ${THEME_DIR:-unresolved})"
+    notify_not_linted "The lint environment is incomplete (missing: $MISSING / theme: ${THEME_DIR:-unresolved}).
+Running the \`pecotv\` command once runs the plugin bootstrap, which restores it."
     exit 0
 fi
 
@@ -211,23 +214,23 @@ if [ $THEME_EXIT -ne 0 ]; then
     THEME_DETAIL=$(printf '%s\n' "$THEME_JSON" | jq -r '.detail // empty' 2>/dev/null)
     case "$THEME_REASON" in
         theme-unlinked)
-            trace "not-linted: テーマが張られていない ($TALK_ROOT)"
-            notify_not_linted "テーマを引けませんでした（reason: theme-unlinked）。${THEME_DETAIL}
-slide_sync（node_modules_only: true）で node_modules を張り直してください。"
+            trace "not-linted: theme is not linked ($TALK_ROOT)"
+            notify_not_linted "The theme could not be resolved (reason: theme-unlinked). ${THEME_DETAIL}
+Relinking node_modules with slide_sync (node_modules_only: true) restores it."
             ;;
         theme-none)
-            trace "not-linted: テーマを参照していない talk-dir ($TALK_ROOT)"
-            notify_not_linted "テーマを引けませんでした（reason: theme-none）。${THEME_DETAIL}"
+            trace "not-linted: talk-dir does not reference a theme ($TALK_ROOT)"
+            notify_not_linted "The theme could not be resolved (reason: theme-none). ${THEME_DETAIL}"
             ;;
         theme-*)
-            trace "not-linted: テーマの宣言を読めない ($THEME_REASON)"
-            notify_not_linted "テーマの宣言を読めませんでした（reason: ${THEME_REASON}）。${THEME_DETAIL}"
+            trace "not-linted: theme declaration cannot be read ($THEME_REASON)"
+            notify_not_linted "The theme declaration could not be read (reason: ${THEME_REASON}). ${THEME_DETAIL}"
             ;;
         *)
-            trace "not-linted: slide theme が失敗した (exit $THEME_EXIT)${THEME_ERR:+ / stderr: $THEME_ERR}"
-            notify_not_linted "テーマの宣言を取得できませんでした（slide theme が exit $THEME_EXIT で終了しました）。${THEME_ERR:+
+            trace "not-linted: slide theme failed (exit $THEME_EXIT)${THEME_ERR:+ / stderr: $THEME_ERR}"
+            notify_not_linted "The theme declaration could not be fetched (slide theme exited with $THEME_EXIT). ${THEME_ERR:+
 stderr: $THEME_ERR}
-\`pecotv\` コマンドを一度実行すると plugin の bootstrap が走り復旧します。"
+Running the \`pecotv\` command once runs the plugin bootstrap, which restores it."
             ;;
     esac
     exit 0
@@ -235,8 +238,8 @@ fi
 
 LINT_JSON=$(printf '%s\n' "$THEME_JSON" | jq -c '.lint // empty' 2>/dev/null)
 if [ -z "$LINT_JSON" ]; then
-    trace "not-linted: slide theme の出力に lint が無い"
-    notify_not_linted "slide theme の出力から lint の入力を読めませんでした（theme: ${THEME_DIR:-未解決}）。"
+    trace "not-linted: slide theme output has no lint"
+    notify_not_linted "The lint input could not be read from the slide theme output (theme: ${THEME_DIR:-unresolved})."
     exit 0
 fi
 
@@ -263,16 +266,16 @@ if [ $ESLINT_EXIT -eq 0 ]; then
     # eslint 10 の base path 外のメッセージも、設定対象外のメッセージも、"File ignored because ..." で始まる。
     # 広い "File ignored" で拾うと、下の設定対象外の分岐と衝突する。
     if echo "$ESLINT_OUTPUT" | grep -q "outside of base path"; then
-        trace "canary: eslint が base path 外と判定 (arg: $REL_FILE / talk root: $TALK_ROOT)"
-        CANARY_MESSAGE="【ESLint スキップ検出】ファイル: $FILE_PATH
+        trace "canary: eslint judged the file outside its base path (arg: $REL_FILE / talk root: $TALK_ROOT)"
+        CANARY_MESSAGE=$(hook_message warning "eslint skipped: $FILE_PATH
 
-eslint が lint を実行しませんでした。base path 外と判定されたためです（talk root: $TALK_ROOT / eslint 引数: $REL_FILE）。lint 未実施のため、このファイルの違反は検出されていません。"
+eslint did not lint the file because it judged the file to be outside its base path (talk root: $TALK_ROOT / eslint argument: $REL_FILE). No lint ran, so violations in this file have not been detected.")
         jq -n --arg message "$CANARY_MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
         exit 0
     fi
 
     if [ -z "$ESLINT_OUTPUT" ]; then
-        trace "pass: 違反なし ($REL_FILE)"
+        trace "pass: no violations ($REL_FILE)"
         exit 0
     fi
 
@@ -280,8 +283,8 @@ eslint が lint を実行しませんでした。base path 外と判定された
     # その場合は model に伝える。
     # 対象外のパス（talk-dir 内の README.md 等）は、正当な skip。
     if echo "$ESLINT_OUTPUT" | grep -q "no matching configuration"; then
-        trace "not-linted: lint 対象パスが設定対象外と判定された ($REL_FILE)"
-        notify_not_linted "eslint が設定対象外と判定しました（eslint 引数: $REL_FILE / talk root: $TALK_ROOT）。lint 対象のパスなので、eslint config 側の不整合の可能性があります。"
+        trace "not-linted: lint target path judged outside the configuration ($REL_FILE)"
+        notify_not_linted "eslint judged the file to be outside its configuration (eslint argument: $REL_FILE / talk root: $TALK_ROOT). The path is a lint target, so the eslint config may be inconsistent."
         exit 0
     fi
 
@@ -290,7 +293,7 @@ eslint が lint を実行しませんでした。base path 外と判定された
     # 違反として報告すると誤報になる（この hook が防いでいる誤報と同じ形）。
     # pass として扱い、trace に残す。transcript から追えるようにするため。
     UNKNOWN_HEAD=$(echo "$ESLINT_OUTPUT" | head -n 3 | tr '\n' ' ')
-    trace "pass: exit 0 だが未知の出力あり ($UNKNOWN_HEAD)"
+    trace "pass: exit 0 with unrecognized output ($UNKNOWN_HEAD)"
     exit 0
 fi
 
@@ -312,27 +315,27 @@ echo "$ESLINT_OUTPUT" | grep -q "$CRASH_BANNER" && ESLINT_CRASHED=true
 # 非 0 の例は、config fatal の 2、timeout の 124、cd 失敗、127 など。
 # これらは未実施として扱う。
 if [ $ESLINT_EXIT -eq 1 ] && [ -n "$ESLINT_OUTPUT" ] && [ "$ESLINT_CRASHED" = false ]; then
-    trace "violation: 違反検出 ($REL_FILE)"
-    VIOLATION_MESSAGE="【ESLint違反検出】ファイル: $FILE_PATH
+    trace "violation: violations found ($REL_FILE)"
+    VIOLATION_MESSAGE=$(hook_message warning "eslint violations: $FILE_PATH
 
 $ESLINT_OUTPUT
 
-上記のESLint違反を修正してください。"
+The output above lists the eslint violations in this file.")
     jq -n --arg message "$VIOLATION_MESSAGE" '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": $message}}'
     exit 0
 fi
 
 if [ "$ESLINT_CRASHED" = true ]; then
-    REASON="eslint がクラッシュしました (exit $ESLINT_EXIT / config 解決失敗・plugin 読み込み失敗等)"
+    REASON="eslint crashed (exit $ESLINT_EXIT / config resolution failure, plugin load failure, etc.)"
 else
     case $ESLINT_EXIT in
-        124) REASON="eslint が timeout しました (30 秒超過)" ;;
-        2)   REASON="eslint が致命的エラーで終了しました (exit 2 / config 解決失敗等)" ;;
-        *)   REASON="eslint が異常終了しました (exit $ESLINT_EXIT)" ;;
+        124) REASON="eslint timed out (over 30 seconds)" ;;
+        2)   REASON="eslint exited with a fatal error (exit 2 / config resolution failure, etc.)" ;;
+        *)   REASON="eslint exited abnormally (exit $ESLINT_EXIT)" ;;
     esac
 fi
 
 HEAD=$(echo "$ESLINT_OUTPUT" | head -n 10)
 trace "not-linted: $REASON ($(echo "$HEAD" | head -n 3 | tr '\n' ' '))"
-notify_not_linted "$REASON。${HEAD:+
-eslint 出力: $HEAD}"
+notify_not_linted "$REASON.${HEAD:+
+eslint output: $HEAD}"

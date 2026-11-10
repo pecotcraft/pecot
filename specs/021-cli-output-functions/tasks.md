@@ -263,12 +263,12 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 - `hooks/tests/test_english_only.py`
 - `plugins/pecot-visual/hooks/tests/english-only.test.sh`
 
-- [ ] T059 [P] `hooks/tests/test_english_only.py` を書く。`hooks/**/*.sh` と `hooks/hooks*.json` のコメントでない行に、日本語の文字が無いことを確かめる。この時点では失敗する
-- [ ] T060 [P] `plugins/pecot-visual/hooks/tests/english-only.test.sh` を同じ考えで書き、失敗することを確かめる
-- [ ] T061 `hooks/lib/` の日本語のメッセージ（105 行）を英語にする。拒否の理由は `error:`、注意は `warning:` で始める。`hooks/lib/adapters/claude-adapter.sh` の `フック実行エラー` を含める
-- [ ] T062 `plugins/pecot-visual/hooks/lib/` と `hooks.json` の日本語のメッセージ（112 行）を英語にする。`eslint-check.sh`・`validate-references-check.sh`・`layout-conventions.sh` が多い。外部のツール（textlint の規則など）が返す文言は変えない
-- [ ] T063 `hooks/tests/` と `plugins/pecot-visual/hooks/tests/` の、日本語のメッセージを期待しているテストを書き換える
-- [ ] T064 T059・T060 が通ることを確かめる。spec の SC-001〜SC-007 を quickstart.md の 1〜6 で確かめ、結果を PR に書く
+- [x] T059 [P] `hooks/tests/test_english_only.py` を書く。`hooks/**/*.sh` と `hooks/hooks*.json` のコメントでない行に、日本語の文字が無いことを確かめる。この時点では失敗する
+- [x] T060 [P] `plugins/pecot-visual/hooks/tests/english-only.test.sh` を同じ考えで書き、失敗することを確かめる
+- [x] T061 `hooks/lib/` の日本語のメッセージ（105 行）を英語にする。拒否の理由は `error:`、注意は `warning:` で始める。`hooks/lib/adapters/claude-adapter.sh` の `フック実行エラー` を含める
+- [x] T062 `plugins/pecot-visual/hooks/lib/` と `hooks.json` の日本語のメッセージ（112 行）を英語にする。`eslint-check.sh`・`validate-references-check.sh`・`layout-conventions.sh` が多い。外部のツール（textlint の規則など）が返す文言は変えない
+- [x] T063 `hooks/tests/` と `plugins/pecot-visual/hooks/tests/` の、日本語のメッセージを期待しているテストを書き換える
+- [x] T064 T059・T060 が通ることを確かめる。spec の SC-001〜SC-007 を quickstart.md の 1〜6 で確かめ、結果を PR に書く
 
 **Checkpoint**: quickstart.md の 6 が通る
 

@@ -492,4 +492,4 @@ def test_copilot_entry_wt_branch_deny(
     )
     assert result.returncode == 0
     assert '"permissionDecision": "deny"' in result.stdout
-    assert "保護ブランチ" in result.stdout
+    assert "protected branch" in result.stdout

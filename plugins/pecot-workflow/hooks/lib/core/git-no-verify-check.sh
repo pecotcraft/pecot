@@ -29,7 +29,7 @@ source "${SCRIPT_DIR}/config-dispatcher.sh"
 pecot_hook_enabled "git-no-verify-check" true || exit 0
 
 if [ -z "$HOOK_COMMAND" ]; then
-  echo "HOOK_COMMAND environment variable is required" >&2
+  hook_message error "HOOK_COMMAND environment variable is required" >&2
   exit 2
 fi
 
@@ -81,16 +81,15 @@ while IFS= read -r segment; do
 done <<< "$stripped"
 
 if [[ "$blocked" == true ]]; then
-  echo "【git-no-verify-check ガード】"
-  echo "git --no-verify (-n) オプションは許可されていません。"
-  echo ""
-  echo "このプロジェクトではCI・品質チェック（pre-commit, pre-push, gitlint等）のスキップを一切認めていません。"
-  echo "--no-verify に限らず、SKIP=..., --no-gpg-sign 等のあらゆるスキップ手段の使用が禁止されています。"
-  echo ""
-  echo "フックがエラーを出す場合:"
-  echo "  1. エラーメッセージを読み、何が違反しているかを特定してください"
-  echo "  2. 違反の根本原因を修正してください"
-  echo "  3. 修正後、通常通り（スキップオプションなしで）再実行してください"
+  hook_message error "git-no-verify-check: the git --no-verify (-n) option is not allowed.
+
+This project does not allow skipping CI or quality checks (pre-commit, pre-push, gitlint, etc.) at all.
+Every way of skipping is prohibited, not only --no-verify: SKIP=..., --no-gpg-sign, and so on.
+
+When a hook reports an error:
+  1. Read the error message and identify what is violated
+  2. Fix the root cause of the violation
+  3. Re-run normally (without any skip option) after the fix"
   exit 1
 fi
 

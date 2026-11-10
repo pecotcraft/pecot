@@ -87,10 +87,10 @@ def test_shared_mode_guides_comment_update_and_implementer(ctx, hook_script):
     result = _run(hook_script, _EXIT_PLAN)
     assert result.returncode == 0
     context = _context(result)
-    assert "計画のコメントの更新" in context
+    assert "Plan comment update" in context
     assert "pecot issue comment" in context
-    assert "実装の引き継ぎ" in context
-    assert "コミットは main の責務" in context
+    assert "Implementation handoff" in context
+    assert "Committing is main's responsibility" in context
     assert "team_name" not in context
 
 
@@ -100,8 +100,8 @@ def test_quick_mode_guides_comment_update_only_and_clears_flag(ctx, hook_script)
     result = _run(hook_script, _EXIT_PLAN)
     assert result.returncode == 0
     context = _context(result)
-    assert "計画のコメントの更新" in context
-    assert "実装の引き継ぎ" not in context
+    assert "Plan comment update" in context
+    assert "Implementation handoff" not in context
     assert not ctx["quick_mode"].exists()
 
 
@@ -125,4 +125,4 @@ def test_work_link_cwd_reads_session_worktree_state(ctx, hook_script, work_layou
     result = _run(hook_script, payload)
 
     assert result.returncode == 0
-    assert "計画のコメントの更新" in _context(result)
+    assert "Plan comment update" in _context(result)

@@ -122,7 +122,7 @@ NON_TALK="$TMP/non-talk/references"
 mkdir -p "$NON_TALK"
 echo "description: foo" > "$NON_TALK/00.yaml"
 run_hook "marker-absent" "$NON_TALK/00.yaml" "$PLUGIN_ROOT"
-if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: talk-dir マーカー"; then
+if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: talk-dir marker"; then
     pass "talk-dir マーカー不在: exit 0 / stdout 空 / stderr skip trace"
 else
     fail "talk-dir マーカー不在: exit=$EXIT stdout='$OUT' stderr='$ERR'"
@@ -130,7 +130,7 @@ fi
 
 # --- ケース2: yaml でないファイル → stdout 空 / stderr skip ---
 run_hook "non-yaml" "$TMP/foo.txt" "$PLUGIN_ROOT"
-if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: yaml でない"; then
+if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: not a yaml file"; then
     pass "yaml 以外: exit 0 / stdout 空 / stderr skip trace"
 else
     fail "yaml 以外: exit=$EXIT stdout='$OUT' stderr='$ERR'"
@@ -154,7 +154,7 @@ touch "$TALK/slides.md"
 echo "description: foo" > "$TALK/references/00.yaml"
 echo "description: tpl" > "$TALK/references/_template.yaml"
 run_hook "skip-files" "$TALK/references/_template.yaml" "$PLUGIN_ROOT"
-if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: validator の SKIP_FILES"; then
+if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: validator SKIP_FILES"; then
     pass "_template.yaml: exit 0 / stdout 空 / stderr skip trace (SKIP_FILES)"
 else
     fail "_template.yaml: exit=$EXIT stdout='$OUT' stderr='$ERR'"
@@ -188,13 +188,13 @@ fi
 # 検証されていないのに pass と区別できないため、「未実施」を additionalContext で model に伝える。
 run_hook "dist-missing" "$TALK/references/00.yaml" "$TMP/no-such-plugin"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【references YAML 検証未実施】"; then
+if ! echo "$CTX" | head -n 1 | grep -q "^warning: references validation not run: "; then
     fail "validator dist 不在: 未実施通知が出ていない stdout='$OUT'"
 elif ! echo "$CTX" | grep -q "assets: .*/assets/slidev"; then
     fail "validator dist 不在: 解決済み assets/slidev のパスが通知に無い ctx='$CTX'"
 elif ! echo "$CTX" | grep -q "pecotv"; then
     fail "validator dist 不在: bootstrap 案内 (pecotv コマンド) が通知に無い ctx='$CTX'"
-elif echo "$CTX" | grep -q "schema 違反検出"; then
+elif echo "$CTX" | grep -q "schema violations"; then
     fail "validator dist 不在: 違反として報告している ctx='$CTX'"
 elif ! echo "$ERR" | grep -q "\[validate-references-check\] not-linted:"; then
     fail "validator dist 不在: stderr trace が not-linted でない stderr='$ERR'"
@@ -205,11 +205,11 @@ fi
 # --- ケース6b: 実行用ミラーが無い（初回の build 中・データ置き場を解決できない） ---
 MIRROR_ABSENT=1 run_hook "mirror-absent" "$TALK/references/00.yaml" "$PLUGIN_ROOT"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【references YAML 検証未実施】"; then
+if ! echo "$CTX" | grep -q "warning: references validation not run:"; then
     fail "ミラー不在: 未実施通知が出ていない stdout='$OUT'"
 elif ! echo "$CTX" | grep -q "pecotv"; then
     fail "ミラー不在: bootstrap 案内 (pecotv コマンド) が通知に無い ctx='$CTX'"
-elif ! echo "$ERR" | grep -q "\[validate-references-check\] not-linted: 実行用ミラーが無い"; then
+elif ! echo "$ERR" | grep -q "\[validate-references-check\] not-linted: runtime mirror is missing"; then
     fail "ミラー不在: stderr trace が not-linted でない stderr='$ERR'"
 else
     pass "ミラー不在: 未実施通知 + bootstrap 案内"
@@ -240,7 +240,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     CTX=$(ctx_of "$OUT")
     if echo "$OUT$ERR" | grep -q "ERR_MODULE_NOT_FOUND"; then
         fail "実 assets: ERR_MODULE_NOT_FOUND が出ている stdout='$OUT' stderr='$ERR'"
-    elif ! echo "$CTX" | grep -q "【references YAML schema 違反検出】"; then
+    elif ! echo "$CTX" | grep -q "warning: references schema violations:"; then
         fail "実 assets: 違反見出しが無い stdout='$OUT' stderr='$ERR'"
     elif ! echo "$CTX" | grep -q "must be object"; then
         fail "実 assets: 違反内容が additionalContext に含まれない ctx='$CTX'"
@@ -263,7 +263,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
 
     # 通知の帰属。validator は参照 dir 全体を検証するので、他ファイル
     # 由来の違反を編集ファイルの違反として提示してはならない。
-    if echo "$CTX" | grep -q "ディレクトリ全体の検証結果"; then
+    if echo "$CTX" | grep -q "validation result for the whole references directory"; then
         pass "違反通知: ディレクトリ全体の結果であることを明示している"
     else
         fail "違反通知: 帰属の但し書きが無い ctx='$CTX'"
@@ -284,13 +284,13 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     grep -v '^category:' "$REF_SRC/plain.yaml" > "$NOCAT/references/plain.yaml"
     run_hook "no-category" "$NOCAT/references/plain.yaml" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if ! echo "$CTX" | grep -q "【references YAML schema 違反検出】"; then
+    if ! echo "$CTX" | grep -q "warning: references schema violations:"; then
         fail "category 欠落: 違反見出しが無い stdout='$OUT' stderr='$ERR'"
     elif ! echo "$CTX" | grep -qF "required property 'category'"; then
         fail "category 欠落: validator の違反行が通知に無い ctx='$CTX'"
     elif ! echo "$CTX" | grep -q "layout_categories"; then
         fail "category 欠落: 語彙の元データへの導線が無い ctx='$CTX'"
-    elif ! echo "$CTX" | grep -q "slide_sync（node_modules_only: true）で node_modules を張り直してください"; then
+    elif ! echo "$CTX" | grep -q "relinking node_modules with slide_sync (node_modules_only: true)"; then
         fail "category 欠落: node_modules を張り直す導線が無い ctx='$CTX'"
     elif echo "$CTX" | grep -q "テンプレートを同期"; then
         fail "category 欠落: 旧文言（テンプレートを同期）が残っている ctx='$CTX'"
@@ -310,9 +310,9 @@ assert_not_linted_at() {
     local label="$1" target="$2" root="$3" expect="$4" ctx
     run_hook "$label" "$target" "$root"
     ctx=$(ctx_of "$OUT")
-    if echo "$ctx" | grep -q "schema 違反検出"; then
+    if echo "$ctx" | grep -q "schema violations"; then
         fail "$label: 違反として報告している ctx='$ctx'"
-    elif ! echo "$ctx" | grep -q "【references YAML 検証未実施】"; then
+    elif ! echo "$ctx" | grep -q "warning: references validation not run:"; then
         fail "$label: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
     elif ! echo "$ctx" | grep -q "$expect"; then
         fail "$label: 期待する理由 ('$expect') が通知に無い ctx='$ctx'"
@@ -330,7 +330,7 @@ assert_not_linted() {
 # このスタブのケースは、validator の main が実行されず無音で exit 0 になる退行の未実施判定を、唯一守っている。
 # 実 validator では、もう再現できない。消すと、この退行を検知できなくなる。
 STUB_SILENT=$(make_stub_plugin stub-exit0-silent 0 "" "")
-assert_not_linted "exit 0 かつ完全無音 (main 未実行相当)" "$STUB_SILENT" "完走を示す出力がありません"
+assert_not_linted "exit 0 かつ完全無音 (main 未実行相当)" "$STUB_SILENT" "printed no completion footer"
 
 # 実 validator を symlink を含む CLAUDE_PLUGIN_ROOT で起動する。validator の自己実行判定が
 # argv[1] を realpath に揃えているため、symlink 経由でも完走して pass に振り分けられる。
@@ -352,13 +352,13 @@ fi
 if [ "$HAVE_VALIDATOR" = true ]; then
     printf '%s' "$BAD_YAML" > "$REAL/references/ignored.yml"
     assert_not_linted_at ".yml 編集 (validator は *.yaml しか読まない)" \
-        "$REAL/references/ignored.yml" "$PLUGIN_ROOT" "検証対象に含まれていません"
+        "$REAL/references/ignored.yml" "$PLUGIN_ROOT" "is not among the validated files"
 
     # ネスト配下は参照 dir そのものではないので、検証の対象にしない（readdirSync は非再帰）。
     mkdir -p "$REAL/references/sub"
     printf '%s' "$BAD_YAML" > "$REAL/references/sub/nested.yaml"
     run_hook "nested-yaml" "$REAL/references/sub/nested.yaml" "$PLUGIN_ROOT"
-    if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: テーマの参照 dir の yaml でない"; then
+    if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: not a yaml in a theme references dir"; then
         pass "ネスト配下の yaml: 参照 dir そのものでないので skip"
     else
         fail "ネスト配下の yaml: skip していない stdout='$OUT' stderr='$ERR'"
@@ -370,19 +370,19 @@ fi
 # --- ケース10: 非 0 で完走していない分岐 → 未実施（違反と報告しない） ---
 # #861 の本題。
 # validator は、違反の場合とクラッシュの場合で、同じ exit 1 を返す。そのため、exit code 単独では判別できない。
-# 旧仕様は、非 0 を全数「schema 違反検出」に振り分けた。
+# 旧仕様は、非 0 を全数「schema violations」に振り分けた。
 # その結果、検証されていない YAML への修正指示が model に届く誤報が出ていた。
 # timeout はスタブの exit 124 で再現する（実 sleep 30 秒を使わない）。
 STUB_TIMEOUT=$(make_stub_plugin stub-exit124 124 "" "")
-assert_not_linted "exit 124 (timeout)" "$STUB_TIMEOUT" "timeout"
+assert_not_linted "exit 124 (timeout)" "$STUB_TIMEOUT" "timed out"
 
 STUB_EXIT1_EMPTY=$(make_stub_plugin stub-exit1-empty 1 "" "")
-assert_not_linted "exit 1 かつ出力空 (cd 失敗相当)" "$STUB_EXIT1_EMPTY" "出力なしで異常終了"
+assert_not_linted "exit 1 かつ出力空 (cd 失敗相当)" "$STUB_EXIT1_EMPTY" "exited abnormally without output"
 
 STUB_CRASH=$(make_stub_plugin stub-exit1-crash 1 "Validating: /somewhere/pages/_references" \
     "node:internal/modules/esm/resolve:275
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'js-yaml'")
-assert_not_linted "exit 1 + スタックトレースのみ (フッター無し = クラッシュ)" "$STUB_CRASH" "クラッシュ"
+assert_not_linted "exit 1 + スタックトレースのみ (フッター無し = クラッシュ)" "$STUB_CRASH" "crashed"
 
 # 実行異常時は原因追跡のため validator 出力の先頭を通知に添える
 run_hook "crash-output-head" "$TALK/references/00.yaml" "$STUB_CRASH"
@@ -446,10 +446,10 @@ if [ "$HAVE_VALIDATOR" = true ]; then
 
     run_hook "big-output" "$BIG/references/big01.yaml" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "【references YAML 検証未実施】"; then
+    if echo "$CTX" | grep -q "warning: references validation not run:"; then
         MSG_DETAIL_2="$(echo "$CTX" | head -n 3)"
         fail "大出力: 違反が未実施に化けている ctx='$MSG_DETAIL_2'"
-    elif ! echo "$CTX" | head -n 1 | grep -qE '^【references YAML schema 違反検出】12 files checked, [0-9]+ error\(s\) found\.$'; then
+    elif ! echo "$CTX" | head -n 1 | grep -qE '^warning: references schema violations: 12 files checked, [0-9]+ error\(s\) found\.$'; then
         MSG_DETAIL_3="$(echo "$CTX" | head -n 1)"
         fail "大出力: 件数フッターが先頭行に無い head='$MSG_DETAIL_3'"
     else
@@ -476,8 +476,8 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     assert_detected() {
         local label="$1" target="$2"
         run_hook "topo-$label" "$target" "$PLUGIN_ROOT"
-        if ctx_of "$OUT" | grep -q "【references YAML schema 違反検出】"; then
-            pass "トポロジ $label: schema 違反検出"
+        if ctx_of "$OUT" | grep -q "warning: references schema violations:"; then
+            pass "トポロジ $label: schema violations"
         else
             fail "トポロジ $label: schema 違反が報告されない stdout='$OUT' stderr='$ERR'"
         fi
@@ -525,7 +525,7 @@ MERGE_OUT=$(printf '%s' "$MERGE_IN" | CLAUDE_PLUGIN_ROOT="$STUB_CRASH" CLAUDE_PL
 MERGE_CTX=$(ctx_of "$MERGE_OUT")
 if ! printf '%s\n' "$MERGE_OUT" | jq empty 2>/dev/null; then
     fail "merge 経由 (未実施分岐): stdout が妥当な JSON でない stdout='$MERGE_OUT'"
-elif ! echo "$MERGE_CTX" | grep -q "【references YAML 検証未実施】"; then
+elif ! echo "$MERGE_CTX" | grep -q "warning: references validation not run:"; then
     fail "merge 経由 (未実施分岐): additionalContext に未実施通知が無い stdout='$MERGE_OUT'"
 elif ! printf '%s\n' "$MERGE_OUT" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' > /dev/null 2>&1; then
     fail "merge 経由 (未実施分岐): hookEventName が PostToolUse でない stdout='$MERGE_OUT'"
@@ -598,7 +598,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     mkdir -p "$REAL/public"
     printf '%s' "$BAD_YAML" > "$REAL/public/other.yaml"
     run_hook "not-reference-dir" "$REAL/public/other.yaml" "$PLUGIN_ROOT"
-    if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: 参照 dir らしくない場所の yaml"; then
+    if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: yaml outside a references-like dir"; then
         pass "参照 dir でない yaml: 検証せず skip"
     else
         fail "参照 dir でない yaml: skip していない stdout='$OUT' stderr='$ERR'"
@@ -614,7 +614,7 @@ if [ "$HAVE_VALIDATOR" = true ]; then
     STUB_THEME_REFERENCES="$THEME_SIDE/references,$THEME_SIDE/theme-refs" \
         run_hook "second-reference-dir" "$THEME_SIDE/theme-refs/plain.yaml" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "【references YAML schema 違反検出】" && echo "$CTX" | grep -q "must be object"; then
+    if echo "$CTX" | grep -q "warning: references schema violations:" && echo "$CTX" | grep -q "must be object"; then
         pass "2 つ目の参照 dir: その dir の yaml を検証して違反を検出"
     else
         fail "2 つ目の参照 dir: 違反が報告されない stdout='$OUT' stderr='$ERR'"
@@ -641,7 +641,7 @@ rm -f "$THEME_LOG"
 mkdir -p "$TALK/public"
 echo "description: other" > "$TALK/public/other.yaml"
 STUB_THEME_LOG="$THEME_LOG" STUB_THEME_FAIL=theme-unlinked run_hook "non-reference-no-theme" "$TALK/public/other.yaml" "$PLUGIN_ROOT"
-if [ -z "$OUT" ] && [ ! -e "$THEME_LOG" ] && echo "$ERR" | grep -q "skip: 参照 dir らしくない場所の yaml"; then
+if [ -z "$OUT" ] && [ ! -e "$THEME_LOG" ] && echo "$ERR" | grep -q "skip: yaml outside a references-like dir"; then
     pass "参照 dir らしくない yaml: slide theme を起こさず、通知しない"
 else
     fail "参照 dir らしくない yaml: slide theme を起こした/通知した stdout='$OUT' stderr='$ERR'"
@@ -651,9 +651,9 @@ fi
 STUB_NOCALL=$(make_stub_plugin stub-nocall 0 "SHOULD-NOT-RUN" "")
 STUB_THEME_FAIL=theme-unlinked run_hook "theme-unlinked" "$TALK/references/00.yaml" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【references YAML 検証未実施】"; then
+if ! echo "$CTX" | grep -q "warning: references validation not run:"; then
     fail "theme-unlinked: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
-elif ! echo "$CTX" | grep -q "slide_sync（node_modules_only: true）で node_modules を張り直してください"; then
+elif ! echo "$CTX" | grep -q "Relinking node_modules with slide_sync (node_modules_only: true)"; then
     fail "theme-unlinked: node_modules を張り直す案内が無い ctx='$CTX'"
 elif echo "$CTX" | grep -q "SHOULD-NOT-RUN"; then
     fail "theme-unlinked: validator を起動している ctx='$CTX'"
@@ -663,7 +663,7 @@ fi
 
 STUB_THEME_FAIL=theme-none run_hook "theme-none" "$TALK/references/00.yaml" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【references YAML 検証未実施】" && echo "$CTX" | grep -q "theme-none"; then
+if echo "$CTX" | grep -q "warning: references validation not run:" && echo "$CTX" | grep -q "theme-none"; then
     pass "theme-none: 未実施 + reason を通知"
 else
     fail "theme-none: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
@@ -671,7 +671,7 @@ fi
 
 STUB_THEME_FAIL=crash run_hook "theme-crash" "$TALK/references/00.yaml" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【references YAML 検証未実施】" && echo "$CTX" | grep -q "slide theme が exit 3"; then
+if echo "$CTX" | grep -q "warning: references validation not run:" && echo "$CTX" | grep -q "slide theme exited with 3"; then
     pass "slide theme の異常終了: 未実施 + exit code を通知"
 else
     fail "slide theme の異常終了: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
@@ -692,7 +692,7 @@ mkdir -p "$OLD_MARKER/pages" "$OLD_MARKER/references"
 touch "$OLD_MARKER/start.mjs"
 echo "description: foo" > "$OLD_MARKER/references/a.yaml"
 run_hook "old-marker" "$OLD_MARKER/references/a.yaml" "$PLUGIN_ROOT"
-if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: talk-dir マーカー (slides.md + pages/)"; then
+if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[validate-references-check\] skip: talk-dir marker (slides.md + pages/)"; then
     pass "start.mjs だけの dir: talk-dir とみなさず skip"
 else
     fail "start.mjs だけの dir: skip していない stdout='$OUT' stderr='$ERR'"
@@ -714,7 +714,7 @@ if [ "$HAVE_VALIDATOR" = true ] && [ -f "$REAL_CLI_DIST/commands/slidev-project/
     printf '%s' "$BAD_YAML" > "$REAL_CLI_TALK/references/bad.yaml"
     MIRROR_REAL_CLI_DIST="$REAL_CLI_DIST" run_hook "real-cli" "$REAL_CLI_TALK/references/bad.yaml" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "【references YAML schema 違反検出】" && echo "$CTX" | grep -q "must be object"; then
+    if echo "$CTX" | grep -q "warning: references schema violations:" && echo "$CTX" | grep -q "must be object"; then
         pass "実 CLI: talk-dir の references/ の不正な yaml を検証して違反を検出"
     else
         fail "実 CLI: 違反が報告されない stdout='$OUT' stderr='$ERR'"

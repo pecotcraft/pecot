@@ -48,19 +48,23 @@ trace() {
 SCRIPT_DIR="$(CDPATH= cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_PATHS_LIB="${SCRIPT_DIR%/*}/core/hook-paths.sh"
 if [ ! -f "$HOOK_PATHS_LIB" ]; then
-    trace "skip: 共有ライブラリを解決できない ($HOOK_PATHS_LIB)"
+    trace "skip: shared library cannot be resolved ($HOOK_PATHS_LIB)"
     exit 0
 fi
 # shellcheck source-path=SCRIPTDIR
 # shellcheck source=../core/hook-paths.sh
 . "$HOOK_PATHS_LIB"
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=../core/hook-message.sh
+. "${SCRIPT_DIR%/*}/core/hook-message.sh"
 
 # 検証未実施の通知。model には「検証されていない」ことだけを伝え、修正指示は出さない。
 notify_not_linted() {
     # 通知本文は、未実施の理由と、違反が検出されていないことを伝える。
-    local message="【references YAML 検証未実施】ファイル: ${FILE_PATH}
+    local message
+    message=$(hook_message warning "references validation not run: ${FILE_PATH}
 ${1}
-このファイルの検証は実行されていないため、違反は検出されていません。"
+No validation ran for this file, so violations have not been detected.")
     jq -n --arg ctx "$message" '{
       "hookSpecificOutput": {
         "hookEventName": "PostToolUse",
@@ -73,7 +77,7 @@ INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 if [ -z "$FILE_PATH" ]; then
-    trace "skip: tool_input.file_path が空"
+    trace "skip: tool_input.file_path is empty"
     exit 0
 fi
 
@@ -81,7 +85,7 @@ fi
 case "$FILE_PATH" in
     *.yaml|*.yml) ;;
     *)
-        trace "skip: yaml でない ($FILE_PATH)"
+        trace "skip: not a yaml file ($FILE_PATH)"
         exit 0
         ;;
 esac
@@ -92,7 +96,7 @@ BASE_NAME=$(basename "$FILE_PATH")
 # 検証されないのが正しいので、対象外として扱う。
 # 下の無音 no-op 検知に流すと、正当なスキップが毎回通知されてしまう。
 if [ "$BASE_NAME" = "_template.yaml" ]; then
-    trace "skip: validator の SKIP_FILES ($BASE_NAME)"
+    trace "skip: validator SKIP_FILES ($BASE_NAME)"
     exit 0
 fi
 
@@ -103,7 +107,7 @@ DIR=$(CDPATH= cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)
 TALK_ROOT=$(find_talk_root "$DIR" "pages")
 
 if [ -z "$TALK_ROOT" ]; then
-    trace "skip: talk-dir マーカー (slides.md + pages/) が見つからない ($FILE_PATH)"
+    trace "skip: talk-dir marker (slides.md + pages/) not found ($FILE_PATH)"
     exit 0
 fi
 
@@ -115,7 +119,7 @@ REL_DIR=${DIR#"$TALK_ROOT"}
 case "$REL_DIR" in
     *[Rr]ef*) ;;
     *)
-        trace "skip: 参照 dir らしくない場所の yaml ($FILE_PATH)"
+        trace "skip: yaml outside a references-like dir ($FILE_PATH)"
         exit 0
         ;;
 esac
@@ -126,16 +130,16 @@ esac
 HOOKS_ROOT=$(resolve_hooks_root "$SCRIPT_DIR" "/lib/post-tool-use")
 
 if [ -z "$HOOKS_ROOT" ]; then
-    trace "skip: plugin root を解決できない (PLUGIN_HOOKS / CLAUDE_PLUGIN_ROOT 未設定 かつ SCRIPT_DIR=$SCRIPT_DIR から逆算不能)"
+    trace "skip: plugin root cannot be resolved (PLUGIN_HOOKS and CLAUDE_PLUGIN_ROOT are unset, and SCRIPT_DIR=$SCRIPT_DIR does not lead back to it)"
     exit 0
 fi
 
 # 実行用ミラー（データ置き場の runtime/）側 assets/slidev の validator dist と CLI を供給元として参照する。
 # ミラーが無い（初回の build 中など）ときは、未実施の通知を出す。
 if ! RUNTIME_DIR="$(resolve_runtime_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"; then
-    trace "not-linted: 実行用ミラーが無い"
-    notify_not_linted "検証環境が未準備です（実行用ミラーがまだ作られていません）。
-\`pecotv\` コマンドを一度実行すると plugin の bootstrap が走り復旧します。"
+    trace "not-linted: runtime mirror is missing"
+    notify_not_linted "The validation environment is not ready (the runtime mirror has not been created yet).
+Running the \`pecotv\` command once runs the plugin bootstrap, which restores it."
     exit 0
 fi
 ASSETS_DIR="$(resolve_slidev_assets_dir "$(dirname "$HOOKS_ROOT")" "$SCRIPT_DIR/../../../bin/_lib.sh")"
@@ -148,9 +152,9 @@ if ! command -v node > /dev/null 2>&1; then
     MISSING="${MISSING:+$MISSING, }node"
 fi
 if [ -n "$MISSING" ]; then
-    trace "not-linted: 検証環境が不足 ($MISSING / assets: $ASSETS_DIR)"
-    notify_not_linted "検証環境が不足しています（不足: $MISSING / assets: $ASSETS_DIR）。
-\`pecotv\` コマンドを一度実行すると plugin の bootstrap が走り復旧します。"
+    trace "not-linted: validation environment is incomplete ($MISSING / assets: $ASSETS_DIR)"
+    notify_not_linted "The validation environment is incomplete (missing: $MISSING / assets: $ASSETS_DIR).
+Running the \`pecotv\` command once runs the plugin bootstrap, which restores it."
     exit 0
 fi
 
@@ -165,17 +169,17 @@ THEME_ERR=$(head -n 1 "$THEME_ERR_FILE")
 if [ $THEME_EXIT -ne 0 ]; then
     THEME_REASON=$(printf '%s\n' "$THEME_JSON" | jq -r '.reason // empty' 2>/dev/null)
     THEME_DETAIL=$(printf '%s\n' "$THEME_JSON" | jq -r '.detail // empty' 2>/dev/null)
-    trace "not-linted: テーマを引けない (${THEME_REASON:-exit $THEME_EXIT})${THEME_ERR:+ / stderr: $THEME_ERR}"
+    trace "not-linted: theme cannot be resolved (${THEME_REASON:-exit $THEME_EXIT})${THEME_ERR:+ / stderr: $THEME_ERR}"
     case "$THEME_REASON" in
         theme-unlinked)
-            notify_not_linted "テーマを引けませんでした（reason: theme-unlinked）。${THEME_DETAIL}
-slide_sync（node_modules_only: true）で node_modules を張り直してください。"
+            notify_not_linted "The theme could not be resolved (reason: theme-unlinked). ${THEME_DETAIL}
+Relinking node_modules with slide_sync (node_modules_only: true) restores it."
             ;;
         theme-*)
-            notify_not_linted "テーマを引けませんでした（reason: ${THEME_REASON}）。${THEME_DETAIL}"
+            notify_not_linted "The theme could not be resolved (reason: ${THEME_REASON}). ${THEME_DETAIL}"
             ;;
         *)
-            notify_not_linted "テーマの宣言を取得できませんでした（slide theme が exit $THEME_EXIT で終了しました）。${THEME_ERR:+
+            notify_not_linted "The theme declaration could not be fetched (slide theme exited with $THEME_EXIT). ${THEME_ERR:+
 stderr: $THEME_ERR}"
             ;;
     esac
@@ -193,7 +197,7 @@ while IFS= read -r reference_dir; do
     fi
 done < <(printf '%s\n' "$THEME_JSON" | jq -r '.lint.referencesDirectories[]? // empty' 2>/dev/null)
 if [ -z "$REFERENCES_DIR" ]; then
-    trace "skip: テーマの参照 dir の yaml でない ($FILE_PATH)"
+    trace "skip: not a yaml in a theme references dir ($FILE_PATH)"
     exit 0
 fi
 
@@ -231,7 +235,7 @@ echo "$OUTPUT" | grep -qxF -e "  ✓ $BASE_NAME" -e "  ✗ $BASE_NAME" && FILE_C
 CATEGORY_HINT=""
 if echo "$OUTPUT" | grep -qF "required property 'category'"; then
     CATEGORY_HINT="
-\`category\` が無いレイアウト yaml では、\`_common.yaml\` の \`layout_categories\` から id を選んで書いてください。テーマを更新した直後なら、slide_sync（node_modules_only: true）で node_modules を張り直してください。"
+A layout yaml without \`category\` takes an id from \`layout_categories\` in \`_common.yaml\`. Right after a theme update, relinking node_modules with slide_sync (node_modules_only: true) refreshes that vocabulary."
 fi
 
 # 出力を最大 100 行に制限する。
@@ -243,18 +247,18 @@ if [ $EXIT -eq 0 ]; then
     # カナリア: validator の main() が実行されないまま、exit 0 で無音終了する退行がある。
     # pass と区別できないので、未実施に振り分ける。
     if [ -z "$FOOTER" ]; then
-        trace "not-linted: exit 0 だが完走フッターが無い (validator の main が実行されていない疑い / validator: $VALIDATOR)"
-        notify_not_linted "validator が exit 0 で終了しましたが、完走を示す出力がありません（validator: $VALIDATOR）。検証が実行されていない可能性があります。"
+        trace "not-linted: exit 0 without a completion footer (validator main may not have run / validator: $VALIDATOR)"
+        notify_not_linted "The validator exited with 0 but printed no completion footer (validator: $VALIDATOR). The validation may not have run."
         exit 0
     fi
 
     if [ "$FILE_CHECKED" = false ]; then
-        trace "not-linted: validator は完走したが編集ファイルが検証対象に含まれない ($BASE_NAME / $FOOTER)"
-        notify_not_linted "validator は完走しましたが（$FOOTER）、$BASE_NAME は検証対象に含まれていません。validator が読むのは 参照 dir 直下の *.yaml のみです（*.yml・サブディレクトリ配下は対象外）。"
+        trace "not-linted: validator completed but the edited file is not validated ($BASE_NAME / $FOOTER)"
+        notify_not_linted "The validator completed ($FOOTER), but $BASE_NAME is not among the validated files. The validator reads only *.yaml directly under the references dir (*.yml and subdirectories are excluded)."
         exit 0
     fi
 
-    trace "pass: 違反なし ($BASE_NAME / $FOOTER)"
+    trace "pass: no violations ($BASE_NAME / $FOOTER)"
     exit 0
 fi
 
@@ -268,16 +272,16 @@ if [ $EXIT -eq 1 ] && [ -n "$FOOTER" ]; then
     NOTE=""
     if [ "$FILE_CHECKED" = false ]; then
         NOTE="
-なお $BASE_NAME 自体は検証対象に含まれていません（validator が読むのは 参照 dir 直下の *.yaml のみ）。"
+$BASE_NAME itself is not among the validated files (the validator reads only *.yaml directly under the references dir)."
     fi
-    trace "violation: 違反検出 ($FOOTER / 編集ファイル: $BASE_NAME)"
+    trace "violation: violations found ($FOOTER / edited file: $BASE_NAME)"
     # 通知本文は、件数フッター・帰属の但し書き・違反の出力・修正依頼の順に並べる。
-    MESSAGE="【references YAML schema 違反検出】${FOOTER}
-references ディレクトリ全体の検証結果です（編集ファイル: ${FILE_PATH}）。${NOTE}
+    MESSAGE=$(hook_message warning "references schema violations: ${FOOTER}
+This is the validation result for the whole references directory (edited file: ${FILE_PATH}).${NOTE}
 
 ${OUTPUT}
 
-上記の違反を修正してください。${CATEGORY_HINT}"
+The output above lists the schema violations.${CATEGORY_HINT}")
     jq -n --arg ctx "$MESSAGE" '{
       "hookSpecificOutput": {
         "hookEventName": "PostToolUse",
@@ -288,18 +292,18 @@ ${OUTPUT}
 fi
 
 case $EXIT in
-    124) REASON="validator が timeout しました (30 秒超過)" ;;
+    124) REASON="the validator timed out (over 30 seconds)" ;;
     1)
         if [ -n "$OUTPUT" ]; then
-            REASON="validator がクラッシュしました (exit 1 / 完走フッター無し。dist 破損・module 解決失敗・検証対象 dir 不在等)"
+            REASON="the validator crashed (exit 1 / no completion footer: broken dist, module resolution failure, missing target dir, etc.)"
         else
-            REASON="validator が出力なしで異常終了しました (exit 1 / talk root への cd 失敗等)"
+            REASON="the validator exited abnormally without output (exit 1 / failed cd to the talk root, etc.)"
         fi
         ;;
-    *)   REASON="validator が異常終了しました (exit $EXIT)" ;;
+    *)   REASON="the validator exited abnormally (exit $EXIT)" ;;
 esac
 
 HEAD=$(echo "$OUTPUT" | head -n 10)
 trace "not-linted: $REASON ($(echo "$HEAD" | head -n 3 | tr '\n' ' '))"
-notify_not_linted "$REASON。${HEAD:+
-validator 出力: $HEAD}"
+notify_not_linted "${REASON^}.${HEAD:+
+validator output: $HEAD}"

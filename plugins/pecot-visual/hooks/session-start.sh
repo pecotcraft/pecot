@@ -17,7 +17,8 @@
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-PROJECT_DIR="${PROJECT_DIR%/}"  # 末尾スラッシュを除去
+# 末尾スラッシュを除去
+PROJECT_DIR="${PROJECT_DIR%/}"
 PECOTV_DIR="${PROJECT_DIR}/.pecotv"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

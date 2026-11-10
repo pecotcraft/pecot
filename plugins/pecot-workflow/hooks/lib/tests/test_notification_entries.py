@@ -50,7 +50,7 @@ def test_stop_emits_terminal_sequence(hooks_dir, project) -> None:
 def test_stop_merges_bell_with_auto_push_system_message(hooks_dir, project) -> None:
     flag = project / ".pecot" / "state" / ".auto-push-urls"
     flag.parent.mkdir(parents=True, exist_ok=True)
-    flag.write_text("自動push完了: wip/x\n比較: https://example.test/compare\n\n")
+    flag.write_text("note: auto-push complete: wip/x\n  compare: https://example.test/compare\n\n")
     result = _run(hooks_dir, "stop.sh", {"hook_event_name": "Stop"})
     data = json.loads(result.stdout)
     assert data["terminalSequence"] == BEL
@@ -84,7 +84,7 @@ def test_stop_copilot_does_not_emit_terminal_sequence(hooks_dir, project) -> Non
 def test_stop_copilot_still_shows_auto_push_urls(hooks_dir, project) -> None:
     flag = project / ".pecot" / "state" / ".auto-push-urls"
     flag.parent.mkdir(parents=True, exist_ok=True)
-    flag.write_text("自動push完了: wip/x\n比較: https://example.test/compare\n\n")
+    flag.write_text("note: auto-push complete: wip/x\n  compare: https://example.test/compare\n\n")
     result = _run(hooks_dir, "stop-copilot.sh", {"hook_event_name": "Stop"})
     data = json.loads(result.stdout)
     assert "wip/x" in data["systemMessage"]

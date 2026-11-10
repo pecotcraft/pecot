@@ -86,9 +86,10 @@ ROOT1=$(make_claude_fixture "$TMP/c1" "0.29.0" "0.30.0")
 OUT1=$(_run CLAUDE_PLUGIN_ROOT="$ROOT1")
 EXIT=$?
 if [ $EXIT -eq 0 ] \
+    && printf '%s' "$OUT1" | head -n 1 | grep -q '^note: plugin update available: ' \
     && printf '%s' "$OUT1" | grep -q 'claude plugin update pecot-v@pecot' \
     && printf '%s' "$OUT1" | grep -q 'installed: 0.29.0' \
-    && printf '%s' "$OUT1" | grep -q 'latest: 0.30.0'; then
+    && printf '%s' "$OUT1" | grep -q 'pecot-v 0.30.0'; then
     pass "Claude 形 + installed 古い: claude plugin update と両バージョンが含まれる"
 else
     fail "Claude 形 + installed 古い: exit=$EXIT out='$OUT1'"
@@ -238,7 +239,8 @@ fi
 expect_notice() {
     local label="$1" exit_code="$2" out="$3" hint="$4"
     if [ "$exit_code" -eq 0 ] && printf '%s' "$out" | grep -q "$hint" \
-        && printf '%s' "$out" | grep -q 'latest: 0.30.0'; then
+        && printf '%s' "$out" | head -n 1 | grep -q '^note: ' \
+        && printf '%s' "$out" | grep -q 'pecot-v 0.30.0'; then
         pass "$label"
     else
         fail "$label: exit=$exit_code out='$out'"

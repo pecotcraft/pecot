@@ -31,12 +31,11 @@ if [ "$SKILL_NAME" = "pecot-w" ] || \
    [ "$SKILL_NAME" = "pecot-w:w-ready" ] || \
    [ "$SKILL_NAME" = "pecot-w:w-epic" ]; then
 
-    MESSAGE='【pecot-workflowスキル起動】
+    MESSAGE=$(hook_message note "pecot-workflow skill started.
 
-★ 重要 ★
-すべての作業はIssueで追跡する。Issue起票をスキップしていい状況はない。
+All work is tracked in an Issue; there is no situation where filing the Issue is skipped.
 
-Phase 1: ヒアリング → Phase 2: 定型作業（サブエージェント委譲） → Phase 3: プランモード'
+Phase 1: hearing -> Phase 2: routine work (delegated to subagents) -> Phase 3: plan mode")
 
     jq -n --arg msg "$MESSAGE" '{
       "hookSpecificOutput": {

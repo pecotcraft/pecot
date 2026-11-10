@@ -151,7 +151,7 @@ assert_excerpt() {
         fail "$label: 出典 YAML に無い行がある（hook が文字列を足した疑い）: $stray"
         return
     fi
-    if printf '%s\n' "$ctx" | grep -q '【'; then
+    if printf '%s\n' "$ctx" | grep -qE '^(error|warning|note): '; then
         fail "$label: 見出しマーカーがある（判定装置の出力形式に寄っている）ctx='$ctx'"
         return
     fi
@@ -183,16 +183,16 @@ write_page() {
 
 # --- ケース1: 対象 MD でない分岐 ---
 run_hook_json "no-file-path" '{}' "$PLUGIN_ROOT"
-assert_silent "file_path 空" "tool_input.file_path が空"
+assert_silent "file_path 空" "tool_input.file_path is empty"
 
 run_hook "non-md" "$TALK/pages/foo.txt" "$PLUGIN_ROOT"
-assert_silent "非 .md" ".md 以外"
+assert_silent "非 .md" "not a .md file"
 
 NON_TALK="$TMP/non-talk"
 mkdir -p "$NON_TALK"
 echo "# foo" > "$NON_TALK/foo.md"
 run_hook "outside-talk" "$NON_TALK/foo.md" "$PLUGIN_ROOT"
-assert_silent "talk-dir 外" "talk-dir マーカー"
+assert_silent "talk-dir 外" "talk-dir marker"
 
 # 参照 YAML の dir 配下。case のパターンは `/` も `*` で食うため、pages/ の下に参照 dir があると
 # その中の MD が対象に紛れ込む。参照 dir の一覧（stub CLI が返す）と比べて外す。
@@ -200,48 +200,48 @@ mkdir -p "$TALK/pages/shared-refs"
 echo "# note" > "$TALK/pages/shared-refs/note.md"
 STUB_THEME_REFERENCES="$TALK/references,$TALK/pages/shared-refs" \
     run_hook "references-dir" "$TALK/pages/shared-refs/note.md" "$PLUGIN_ROOT"
-assert_silent "参照 YAML の dir 配下" "参照 YAML の dir 配下"
+assert_silent "参照 YAML の dir 配下" "under a references YAML dir"
 
 # slides.md は束ねる側。個別ページの layout 規約は持たない。
 printf -- '---\nlayout: plain\n---\n' > "$TALK/slides.md"
 run_hook "slides-md" "$TALK/slides.md" "$PLUGIN_ROOT"
-assert_silent "slides.md" "pages 配下の MD でない"
+assert_silent "slides.md" "not an md file under pages"
 
 # talk-dir 内だが pages 配下でない MD
 echo "# readme" > "$TALK/README.md"
 run_hook "talk-readme" "$TALK/README.md" "$PLUGIN_ROOT"
-assert_silent "talk-dir 直下の README.md" "pages 配下の MD でない"
+assert_silent "talk-dir 直下の README.md" "not an md file under pages"
 
 # --- ケース2: layout が取れない / 使えない分岐 ---
 run_hook "no-frontmatter" "$(write_page plain.md '# 見出しだけ
 ')" "$PLUGIN_ROOT"
-assert_silent "frontmatter 無し" "frontmatter か layout が無い"
+assert_silent "frontmatter 無し" "frontmatter or layout is missing"
 
 run_hook "no-layout" "$(write_page nolayout.md '---
 title: "layout を書いていない"
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "layout 未指定" "frontmatter か layout が無い"
+assert_silent "layout 未指定" "frontmatter or layout is missing"
 
 # パストラバーサル。`../` を通すと参照 dir の外の YAML を読み出せる。
 run_hook "traversal-layout" "$(write_page traversal.md '---
 layout: ../../etc/passwd
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "layout が ../ を含む" "layout 値が参照 YAML のファイル名として不正"
+assert_silent "layout が ../ を含む" "layout value is invalid as a references YAML file name"
 
 # `_` 始まりは layout として指定されない内部ファイル（_template / _common 等）。
 run_hook "underscore-layout" "$(write_page underscore.md '---
 layout: _template
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "layout が _ 始まり" "layout 値が参照 YAML のファイル名として不正"
+assert_silent "layout が _ 始まり" "layout value is invalid as a references YAML file name"
 
 run_hook "unknown-layout" "$(write_page unknown.md '---
 layout: no-such-layout
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "対応する参照 YAML 不在" "対応する参照 YAML が無い"
+assert_silent "対応する参照 YAML 不在" "no matching references YAML"
 
 # 参照 YAML はあるが読めない場合。不在（綴り違い・テーマ側の欠落）と別分岐であること。
 printf 'layout: [broken\n  - yaml\n' > "$TALK/references/brokenlayout.yaml"
@@ -249,7 +249,7 @@ run_hook "broken-yaml" "$(write_page broken.md '---
 layout: brokenlayout
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "参照 YAML がパース不能" "参照 YAML を読めない"
+assert_silent "参照 YAML がパース不能" "references YAML cannot be read"
 
 # 参照 YAML はあるが抜粋対象のキーが無い場合。
 cat > "$TALK/references/barelayout.yaml" <<'EOF'
@@ -263,17 +263,17 @@ run_hook "no-sections" "$(write_page bare.md '---
 layout: barelayout
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "抜粋対象が無い参照 YAML" "参照 YAML に status / best_practices / anti_patterns のいずれも無い"
+assert_silent "抜粋対象が無い参照 YAML" "references YAML has none of status / best_practices / anti_patterns"
 
 # --- ケース3: 実行環境が不足する分岐（未実施通知を出さないこと） ---
 # 本 hook は判定装置ではないので、提示できなかったことを model に伝えない。
-# eslint-check.sh の【ESLint 未実施】に相当する出力を持たないことが要点。
+# eslint-check.sh の未実施の通知に相当する出力を持たないことが要点。
 STEP1=$(write_page step1.md '---
 layout: plain
 ---
 ')
 run_hook "dist-missing" "$STEP1" "$TMP/no-such-plugin"
-assert_silent "_shared/dist 不在" "実行環境が不足"
+assert_silent "_shared/dist 不在" "runtime environment is incomplete"
 
 # node 不在。PATH から node だけを外した最小 bin を組み、hook が必要とする他の
 # コマンドは実体への symlink で残す。
@@ -287,7 +287,7 @@ OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$STEP1\"}}" | \
 EXIT=$?
 ERR=$(cat "$ERRFILE")
 [ -n "$OUT" ] && BAD_STDOUT="${BAD_STDOUT}[no-node] "
-assert_silent "node 不在" "実行環境が不足"
+assert_silent "node 不在" "runtime environment is incomplete"
 
 # 共有ライブラリは、hook の dir の 1 段上の core/ から source される。
 # 逆算不能を確かめたい。
@@ -306,7 +306,7 @@ OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$STEP1\"}}" | \
 EXIT=$?
 ERR=$(cat "$ERRFILE")
 [ -n "$OUT" ] && BAD_STDOUT="${BAD_STDOUT}[detached] "
-assert_silent "plugin root 解決不能" "plugin root を解決できない"
+assert_silent "plugin root 解決不能" "plugin root cannot be resolved"
 
 # 共有ライブラリ自体が無い配置。未定義関数のまま実行すると、talk-dir 外と区別できない
 # 無音 skip になるので、専用の trace で落ちること。
@@ -318,7 +318,7 @@ OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$STEP1\"}}" | \
 EXIT=$?
 ERR=$(cat "$ERRFILE")
 [ -n "$OUT" ] && BAD_STDOUT="${BAD_STDOUT}[nolib] "
-assert_silent "共有ライブラリ不在" "共有ライブラリを解決できない"
+assert_silent "共有ライブラリ不在" "shared library cannot be resolved"
 
 # --- ケース4: 提示分岐 ---
 run_hook "plain" "$STEP1" "$PLUGIN_ROOT"
@@ -546,7 +546,7 @@ EOF
         ENTRY_CTX=$(ctx_of "$ENTRY_OUT")
         EXCERPT_LINE=$(printf '%s\n' "$ENTRY_CTX" | \
             grep -nF "$TALK/references/plain.yaml:" | head -n 1 | cut -d: -f1)
-        VIOLATION_LINE=$(printf '%s\n' "$ENTRY_CTX" | grep -n '【ESLint違反検出】' | head -n 1 | cut -d: -f1)
+        VIOLATION_LINE=$(printf '%s\n' "$ENTRY_CTX" | grep -n 'warning: eslint violations:' | head -n 1 | cut -d: -f1)
         if ! printf '%s\n' "$ENTRY_OUT" | jq empty 2>/dev/null; then
             fail "$ENTRY 経由: stdout が妥当な JSON でない stdout='$ENTRY_OUT'"
         elif [ -z "$EXCERPT_LINE" ]; then
@@ -571,7 +571,7 @@ layout: plain
 ')
 for reason in theme-unlinked theme-none crash; do
     STUB_THEME_FAIL="$reason" run_hook "theme-$reason" "$STEP2" "$PLUGIN_ROOT"
-    assert_silent "slide theme が失敗 ($reason)" "テーマを引けない"
+    assert_silent "slide theme が失敗 ($reason)" "theme cannot be resolved"
 done
 
 # 10b: 参照 dir の一覧は先頭が優先。talk-dir の references/ の yaml が、テーマ側の同名の yaml に勝つ。
@@ -629,7 +629,7 @@ mkdir -p "$OLD_MARKER/pages"
 touch "$OLD_MARKER/start.mjs"
 printf -- '---\nlayout: plain\n---\n' > "$OLD_MARKER/pages/a.md"
 run_hook "old-marker" "$OLD_MARKER/pages/a.md" "$PLUGIN_ROOT"
-assert_silent "start.mjs だけの dir" "talk-dir マーカー (slides.md + pages/)"
+assert_silent "start.mjs だけの dir" "talk-dir marker (slides.md + pages/)"
 
 # --- ガードレール: 全分岐で stdout が「空または妥当な JSON」 ---
 if [ -z "$BAD_STDOUT" ]; then

@@ -19,8 +19,8 @@ fi
 # ウィンドウタイトルからワークスペース名を抽出する。
 # 形式は window [N] (ファイル名 - ワークスペース名 (ワークスペース) [WSL: Ubuntu] - Visual Studio Code)。
 # 「(ワークスペース)」か「(Workspace)」の前の名前が、ワークスペース名。
-# 日本語の語は変数に出し、grep のパターンを組み立てる。
-WS_JA='ワークスペース'
+# 日本語の語（ワークスペース）は UTF-8 のバイトで持ち、grep のパターンを組み立てる。
+WS_JA=$'\xe3\x83\xaf\xe3\x83\xbc\xe3\x82\xaf\xe3\x82\xb9\xe3\x83\x9a\xe3\x83\xbc\xe3\x82\xb9'
 WORKSPACE_NAME=$(echo "$CODE_STATUS" | \
     grep -oP "window \[\d+\].*?- \K[^(]+(?= \((${WS_JA}|Workspace)\))" | \
     head -1 | xargs)
@@ -41,16 +41,17 @@ for search_dir in "$REPO_ROOT/workspaces" "$REPO_ROOT" "$HOME"; do
     fi
 done
 
-echo "# VSCode Workspace Context"
-echo ""
-echo "セッション開始時、最初の応答で以下のワークスペース情報をウェルカムメッセージとして表示してください："
-echo ""
-echo "**Workspace:** $WORKSPACE_NAME"
-echo ""
+CONTEXT="VSCode workspace context. Show the workspace information below as a welcome message in the first response of the session.
+
+**Workspace:** $WORKSPACE_NAME
+"
 
 # ワークスペースファイルが見つかった場合はフォルダ情報を表示。
 if [ -n "$WORKSPACE_FILE" ] && [ -f "$WORKSPACE_FILE" ]; then
-    echo "**Folders:**"
-    jq -r '.folders[] | "- \(.name // .path): `\(.path)`"' "$WORKSPACE_FILE" 2>/dev/null
-    echo ""
+    CONTEXT="${CONTEXT}
+**Folders:**
+$(jq -r '.folders[] | "- \(.name // .path): `\(.path)`"' "$WORKSPACE_FILE" 2>/dev/null)
+"
 fi
+
+hook_message note "$CONTEXT"

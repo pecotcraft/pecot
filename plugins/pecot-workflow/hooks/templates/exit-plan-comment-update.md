@@ -1,2 +1,3 @@
 <!-- mode: shared -->
-**計画のコメントの更新** — 承認した計画が投稿した版と違えば、投稿したファイルを直して `pecot issue comment <そのファイル>` を打ち直してください。
+note: **Plan comment update** — if the approved plan differs from the posted one, fix the posted file.
+Then run `pecot issue comment <that file>` again.

@@ -147,7 +147,7 @@ def test_commit_resolves_once_in_pre_and_once_in_post(
     counts = git_call_log.rev_parse_counts()
     assert counts.get("--show-toplevel") == 1
     assert counts.get("--is-inside-work-tree", 0) <= 2, counts
-    assert "【コミット完了】" in _additional_context(result)
+    assert "note: commit complete" in _additional_context(result)
 
 
 def test_issue_create_resolves_once_in_pre_and_not_in_post(
@@ -233,7 +233,7 @@ def test_git_dash_c_commit_runs_commit_info_and_auto_push(
         _post_claude(f"git -C {repo} commit -m x", stdout, elsewhere),
         cwd=elsewhere,
     )
-    assert "【コミット完了】" in _additional_context(result)
+    assert "note: commit complete" in _additional_context(result)
     _assert_wip_pushed(bare)
 
 
@@ -249,7 +249,7 @@ def test_compound_cd_add_commit_runs_commit_info_and_auto_push(
         _post_claude(f"cd {repo} && git add . && git commit -m x", stdout, elsewhere),
         cwd=elsewhere,
     )
-    assert "【コミット完了】" in _additional_context(result)
+    assert "note: commit complete" in _additional_context(result)
     _assert_wip_pushed(bare)
 
 
@@ -259,7 +259,7 @@ def test_commit_post_output_has_top_level_additional_context(run_hook_entry, san
     stdout = _commit(repo)
     result = run_hook_entry("post-tool-use-bash.sh", _post_copilot("git commit -m x", stdout, repo))
     data = json.loads(result.stdout)
-    assert "【コミット完了】" in data["additionalContext"]
+    assert "note: commit complete" in data["additionalContext"]
     assert data["additionalContext"] == data["hookSpecificOutput"]["additionalContext"]
 
 
@@ -276,7 +276,7 @@ def test_commit_and_issue_create_in_one_command_run_all_subscripts(
         "post-tool-use-bash.sh",
         _post_claude("git commit -m x && pecot issue create x.md", stdout, repo),
     )
-    assert "【コミット完了】" in _additional_context(result)
+    assert "note: commit complete" in _additional_context(result)
     _assert_wip_pushed(bare)
     counts = git_call_log.rev_parse_counts()
     assert counts.get("--show-toplevel") == 1
@@ -302,7 +302,7 @@ def test_oversize_command_is_not_passed_through_in_pre(run_hook_entry, sandbox) 
     assert "Argument list too long" not in result.stderr
     hso = json.loads(result.stdout)["hookSpecificOutput"]
     assert hso["permissionDecision"] == "ask"
-    assert "大きすぎる" in hso["permissionDecisionReason"]
+    assert "exceeds" in hso["permissionDecisionReason"]
 
 
 def test_oversize_command_still_gets_tmp_reminder(run_hook_entry, sandbox) -> None:
@@ -321,7 +321,7 @@ def test_oversize_command_still_gets_issue_pending_reminder(run_hook_entry, sand
         "pre-tool-use-bash.sh", _pre(_big_command("git switch feat/other"), repo)
     )
     hso = json.loads(result.stdout)["hookSpecificOutput"]
-    assert "Issue 起票が未完了" in hso["additionalContext"]
+    assert "warning: Issue filing is not complete" in hso["additionalContext"]
 
 
 def test_oversize_commit_is_still_detected_in_post(run_hook_entry, sandbox) -> None:
@@ -332,7 +332,7 @@ def test_oversize_commit_is_still_detected_in_post(run_hook_entry, sandbox) -> N
         _post_claude(_big_command("git commit --no-verify -m x"), stdout, repo),
     )
     assert "Argument list too long" not in result.stderr
-    assert "【コミット完了】" in _additional_context(result)
+    assert "note: commit complete" in _additional_context(result)
     _assert_wip_pushed(bare)
 
 

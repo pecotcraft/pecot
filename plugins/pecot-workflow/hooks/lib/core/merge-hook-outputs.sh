@@ -24,7 +24,8 @@ MERGED_UPDATED_INPUT=""
 # Claude Code は hookSpecificOutput.additionalContext を出すと、hookEventName が必須になる。
 MERGED_HOOK_EVENT_NAME="${PECOT_HOOK_EVENT:-}"
 MERGED_TERMINAL_SEQUENCE=""
-MERGED_SESSION_TITLE=""   # SessionStart / UserPromptSubmit のセッション名（Claude Code）
+# SessionStart / UserPromptSubmit のセッション名（Claude Code）
+MERGED_SESSION_TITLE=""
 
 # decision 優先順位: deny(3) > ask(2) > allow(1)。
 decision_priority() {

@@ -9,7 +9,8 @@ pecot_hook_enabled "session-start-common" true || exit 0
 # CLAUDE_PROJECT_DIR は、エントリポイント（session-start-*.sh）が project-root.sh で揃えたもの。
 # 値は hook 入力の cwd の git toplevel で、git 外では未設定のまま。
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
-PROJECT_DIR="${PROJECT_DIR%/}"  # 末尾スラッシュを除去（F-07）
+# 末尾スラッシュを除去（F-07）
+PROJECT_DIR="${PROJECT_DIR%/}"
 PECOT_DIR="${PROJECT_DIR}/.pecot"
 
 # 多重実行防止（flock があるときのみ）。
@@ -24,7 +25,8 @@ if command -v flock >/dev/null 2>&1; then
     _LOCK_ID="$(printf '%s' "${PROJECT_DIR}" | cksum | cut -d' ' -f1)"
     LOCK_FILE="${TMPDIR:-/tmp}/.session-start-common-${_LOCK_ID}.lock"
     exec 9>"$LOCK_FILE"
-    flock -n 9 || exit 0  # ロック取得失敗 = 別プロセスが実行中 → スキップ
+    # ロック取得失敗 = 別プロセスが実行中 → スキップ
+flock -n 9 || exit 0
 fi
 
 if [ -n "$PROJECT_DIR" ] && [ -d "$PECOT_DIR" ]; then

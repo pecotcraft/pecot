@@ -35,7 +35,8 @@ output_block_json() {
 # 環境変数 1 個が 128KiB を超えると、子プロセスの execve が失敗し、コアのガードが動かないまま素通しになるため。
 # 素通しにせず、利用者の確認に回す（fail-closed）。
 if [ "${PECOT_HOOK_COMMAND_OVERSIZE:-}" = "1" ]; then
-    jq -n --arg reason "Bash コマンドが大きすぎる（${PECOT_HOOK_COMMAND_MAX_BYTES} バイト超）ため、ガードで内容を確認できません。内容を確認のうえ許可してください。" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": $reason}}'
+    OVERSIZE_MSG=$(hook_message warning "the Bash command exceeds ${PECOT_HOOK_COMMAND_MAX_BYTES} bytes, so the guards cannot inspect it. Review the command before allowing it.")
+    jq -n --arg reason "$OVERSIZE_MSG" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask", "permissionDecisionReason": $reason}}'
     exit 0
 fi
 
@@ -49,7 +50,7 @@ fi
 
 # 必須環境変数の検証。
 if [ -z "$CLAUDE_PROJECT_DIR" ]; then
-    echo "CLAUDE_PROJECT_DIR が未設定です" >&2
+    hook_message error "CLAUDE_PROJECT_DIR is not set" >&2
     exit 0
 fi
 
@@ -57,7 +58,7 @@ fi
 CORE_DIR="${PLUGIN_HOOKS}/lib/core"
 
 if [ ! -d "$CORE_DIR" ]; then
-    echo "コアスクリプトディレクトリが見つかりません: $CORE_DIR" >&2
+    hook_message error "core script directory not found: $CORE_DIR" >&2
     exit 0
 fi
 

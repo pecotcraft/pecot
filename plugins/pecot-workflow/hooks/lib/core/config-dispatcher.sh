@@ -8,6 +8,10 @@
 #   source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
 #   pecot_hook_enabled "hook-name" true || return 0
 
+# hook_message（メッセージの頭と字下げ）を、このファイルを source するスクリプトへ提供する。
+_PECOT_CONFIG_DISPATCHER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${_PECOT_CONFIG_DISPATCHER_DIR}/hook-message.sh"
+
 # hooks-config.json のパスを解決
 # テスト時は PECOT_HOOKS_CONFIG_PATH 環境変数でオーバーライド可能。
 _PECOT_HOOKS_CONFIG="${PECOT_HOOKS_CONFIG_PATH:-${CLAUDE_PROJECT_DIR}/.pecot/config/hooks-config.json}"
@@ -60,7 +64,7 @@ pecot_hook_enabled() {
 
     # パースエラー（構文エラー等）の場合は警告 + デフォルト値で動作。
     if [[ "$_PECOT_HOOKS_CONFIG_STATE" == "error" ]]; then
-        echo "[pecot-hooks] WARNING: hooks-config.json のパースに失敗しました。デフォルト値（$default）で動作します。" >&2
+        hook_message warning "failed to parse hooks-config.json; using the default value ($default)" >&2
         [[ "$default" == "true" ]]
         return $?
     fi

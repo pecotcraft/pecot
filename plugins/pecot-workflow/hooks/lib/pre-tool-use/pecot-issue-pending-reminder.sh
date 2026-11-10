@@ -37,29 +37,31 @@ ORIGIN=$(head -n1 "$FLAG" | tr -d '[:space:]')
 
 case "$ORIGIN" in
     w-quick)
-        MESSAGE='【リマインダー】Issue 起票が未完了です。
+        MESSAGE='Issue filing is not complete.
 
-w-quick の Step 1 を完了してから次に進んでください。
-  pecot issue quick -r owner/repo -m "ユーザー指示の要約"
+Complete Step 1 of w-quick before moving on.
+  pecot issue quick -r owner/repo -m "<summary of the user instruction>"
 
-起票に成功すると自動でこのリマインダーは消えます。'
+This reminder disappears automatically once filing succeeds.'
         ;;
     w-ready)
-        MESSAGE='【リマインダー】サブタスク Issue の起票が未完了です。
+        MESSAGE='Subtask Issue filing is not complete.
 
-w-ready の Step 4 を完了してから次に進んでください。
+Complete Step 4 of w-ready before moving on.
   1. pecot issue create --prepare --template task --repo <owner/repo>
 
-  2. 出力されたファイルを編集（title / parent_epic を設定。repository は --repo で反映済）
+  2. Edit the generated file (set title / parent_epic; repository is already set by --repo)
 
-  3. pecot issue create <ファイルパス>
+  3. pecot issue create <file path>
 
-起票に成功すると自動でこのリマインダーは消えます。'
+This reminder disappears automatically once filing succeeds.'
         ;;
     *)
-        MESSAGE='【リマインダー】Issue 起票が未完了です。先に `pecot issue quick` または `pecot issue create` を実行してください。'
+        MESSAGE='Issue filing is not complete. Run `pecot issue quick` or `pecot issue create` first.'
         ;;
 esac
+
+MESSAGE=$(hook_message warning "$MESSAGE")
 
 jq -n --arg msg "$MESSAGE" '{
   "hookSpecificOutput": {

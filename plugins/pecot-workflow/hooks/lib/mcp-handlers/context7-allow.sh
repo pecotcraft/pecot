@@ -14,7 +14,7 @@ pecot_hook_enabled "context7-allow" true || exit 0
 
 case "${PECOT_HOOK_TOOL_NAME:-}" in
     mcp__plugin_pecot-w_context7__resolve-library-id | mcp__plugin_pecot-w_context7__query-docs)
-        REASON="context7 の読み取り専用ツールのため自動許可（context7-allow）"
+        REASON=$(hook_message note "context7-allow: allowed automatically because the context7 tool is read-only")
         jq -n --arg reason "$REASON" '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "permissionDecisionReason": $reason}}'
         ;;
 esac

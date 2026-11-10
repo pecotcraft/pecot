@@ -283,7 +283,7 @@ Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification
 | Copilot 1.0.103 | `gh pr merge 999999` | 同上 | snake_case | `ask` → `-p` と autopilot ではクライアントが deny 扱い（`Denied ... (unable to ask user for confirmation)`）、実行なし | 2026-10-25 |
 | Claude 2.1.310 | `git commit --no-verify` | Pre: `pre-tool-use-bash.sh` | snake_case | トップレベル `{"decision":"block"}` → 拒否 | 2026-10-25 |
 | Copilot 1.0.103 | `git commit --no-verify` | 同上 | snake_case | トップレベル `{"decision":"block"}` を**無視して実行された**（`hookSpecificOutput.permissionDecision: "deny"` と、トップレベルの `permissionDecision: "deny"` は有効） | 2026-10-25 |
-| Claude 2.1.310 | `git commit -m` | Post: `post-tool-use-bash.sh` | `tool_response.stdout` | 「【コミット完了】」と auto-push（bare に wip を push） | 2026-10-25 |
+| Claude 2.1.310 | `git commit -m` | Post: `post-tool-use-bash.sh` | `tool_response.stdout` | `note: commit complete`と auto-push（bare に wip を push） | 2026-10-25 |
 | Copilot 1.0.103 | `git commit -m` | 同上 | `tool_result.text_result_for_llm` | **無出力**、push なし（commit を検出しない） | 2026-10-25 |
 | 両方 | `cat /tmp/x-1229` | Pre: `pre-tool-use.sh`（tmp-path-warner） | snake_case | `additionalContext` の `/tmp` リマインダー | 2026-10-25 |
 | 両方 | UserPromptSubmit / Stop | `user-prompt-submit.sh` / `stop.sh` が各 1 回 | Claude は `transcript_path` あり。Copilot は Stop にだけ `transcript_path`（events.jsonl） | — | 2026-10-25 |
@@ -323,12 +323,12 @@ Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification
 | Copilot 1.0.103 | スキル w-help / v-drawio | pecot-w / pecot-v の Skill 系エントリが起動 | `tool_name: "skill"`、名前空間なし | pecot-w のスキル準拠の案内が届く。他のプラグインのスキルには応答しない | 2026-10-25 |
 | 両方 | `gh pr merge 999999` | Pre: `pre-tool-use-bash.sh` | snake_case | `permissionDecision: "ask"` と理由。`-p` と Copilot の autopilot ではクライアントが拒否し、実行なし | 2026-10-25 |
 | 両方 | `git commit --no-verify` | Pre: `pre-tool-use-bash.sh` | snake_case | `hookSpecificOutput.permissionDecision: "deny"` で拒否、理由が tool_result に届く | 2026-10-25 |
-| 両方 | `git commit -m` / `git -C <path> commit` | Post: `post-tool-use-bash.sh` | Claude は `tool_response.stdout`、Copilot は `tool_result.text_result_for_llm` | 「【コミット完了】」が 1 回届き、auto-push が wip を push する。`--show-toplevel` は Pre / Post 各 1 回 | 2026-10-25 |
+| 両方 | `git commit -m` / `git -C <path> commit` | Post: `post-tool-use-bash.sh` | Claude は `tool_response.stdout`、Copilot は `tool_result.text_result_for_llm` | `note: commit complete`が 1 回届き、auto-push が wip を push する。`--show-toplevel` は Pre / Post 各 1 回 | 2026-10-25 |
 | 両方 | `cat /tmp/x-1229` | Pre: `pre-tool-use-bash.sh` | snake_case | `/tmp` のリマインダーが 1 回届く | 2026-10-25 |
 | 両方 | SessionStart の timeout | 定義の timeout を 5 秒にし、hook に 45 秒の待ちを入れた写し | — | 約 5 秒で打ち切ってセッションが続く | 2026-10-25 |
 | Claude 2.1.310 | ターンの終了 | Stop: `stop.sh` | — | `{"terminalSequence":"\u0007"}` を出す（`-p` では端末に出ない） | 2026-10-25 |
 | Copilot 1.0.103 | ターンの終了 | Stop: `stop-copilot.sh` | — | PTY ベルを送る | 2026-10-25 |
-| Copilot 1.0.103 | スキル w-quick | Post: `post-tool-use-skill.sh` | `tool_name: "skill"` | トップレベルの `additionalContext` で「【pecot-workflowスキル起動】」がモデルに届く | 2026-10-25 |
+| Copilot 1.0.103 | スキル w-quick | Post: `post-tool-use-skill.sh` | `tool_name: "skill"` | トップレベルの `additionalContext` で`note: pecot-workflow skill started`がモデルに届く | 2026-10-25 |
 | Claude 2.1.310 | 70KB のコマンド + `git commit --no-verify` | Pre: `pre-tool-use-bash.sh` | snake_case | `permissionDecision: "ask"`（60,000 バイト超）→ `-p` では拒否、実行なし | 2026-10-25 |
 | Claude 2.1.310 | 起票前の Write | Pre: `pre-tool-use.sh` | `tool_input.file_path` | 起票のリマインダーが届く | 2026-10-25 |
 | Claude 2.1.310 | MCP の PR 作成 | Pre: `pre-tool-use-mcp.sh` | `tool_name: "mcp__github__create_pull_request"` | `permissionDecision: "deny"` で拒否、理由が届く | 2026-10-25 |

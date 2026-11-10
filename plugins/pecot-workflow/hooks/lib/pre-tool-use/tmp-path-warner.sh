@@ -42,11 +42,11 @@ case "$EFFECTIVE_TOKEN" in
         ;;
 esac
 
-MESSAGE='【リマインダー】Bash コマンドに `/tmp/<X>` が含まれています。
-agent/session の作業成果物は user から見えないため、`.pecot/work/<タスクID>/<X>` に置き換えてください。
-- 例: `/tmp/release-smoke` → `.pecot/work/655/release-smoke`
-- system 調査 (`find /tmp` `ls /tmp` 等) や `/tmpfs` パスは無視して構いません
-- user が明示的に指定した `/tmp/<path>` は警告を無視して構いません。'
+MESSAGE=$(hook_message warning 'the Bash command contains `/tmp/<X>`.
+Work products of an agent or session are not visible to the user, so use `.pecot/work/<task ID>/<X>` instead.
+- Example: `/tmp/release-smoke` -> `.pecot/work/655/release-smoke`
+- System inspection (`find /tmp`, `ls /tmp`, etc.) and `/tmpfs` paths can be ignored
+- A `/tmp/<path>` the user explicitly specified can be ignored.')
 
 jq -n --arg msg "$MESSAGE" '{
   "hookSpecificOutput": {

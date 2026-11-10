@@ -150,7 +150,7 @@ fi
 
 # --- ケース2: 非 .md → stdout 空 / stderr に skip trace ---
 run_hook "non-md" "$NON_TALK/foo.txt" "$PLUGIN_ROOT"
-if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: .md 以外"; then
+if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: not a .md file"; then
     pass "非 .md: exit 0 / stdout 空 / stderr skip trace"
 else
     fail "非 .md: exit=$EXIT stdout='$OUT' stderr='$ERR'"
@@ -173,7 +173,7 @@ touch "$TALK/slides.md"
 echo "# foo" > "$TALK/pages/01.md"
 run_hook "assets-missing" "$TALK/pages/01.md" "$TMP/no-such-plugin"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【ESLint 未実施】"; then
+if ! echo "$CTX" | head -n 1 | grep -q "^warning: eslint not run: "; then
     fail "assets 不在: 未実施通知が出ていない stdout='$OUT'"
 elif ! echo "$CTX" | grep -q "theme: $TALK/node_modules/stub-theme"; then
     fail "assets 不在: 通知に theme: の表記（解決済みのテーマ root）が無い ctx='$CTX'"
@@ -181,7 +181,7 @@ elif echo "$CTX" | grep -q "template:"; then
     fail "assets 不在: 通知が旧表記の template: を使っている ctx='$CTX'"
 elif ! echo "$CTX" | grep -q "pecotv"; then
     fail "assets 不在: bootstrap 案内 (pecotv コマンド) が通知に無い ctx='$CTX'"
-elif echo "$CTX" | grep -q "【ESLint違反検出】"; then
+elif echo "$CTX" | grep -q "warning: eslint violations:"; then
     fail "assets 不在: 違反として報告している ctx='$CTX'"
 elif ! echo "$ERR" | grep -q "\[eslint-check\] not-linted:"; then
     fail "assets 不在: stderr trace が not-linted でない stderr='$ERR'"
@@ -190,16 +190,16 @@ else
 fi
 
 # --- ケース4b: 実行用ミラーが無い（初回の build 中・データ置き場を解決できない） ---
-# 【ESLint 未実施】に倒し、違反とは報告しない。
+# 未実施の通知に倒し、違反とは報告しない。
 MIRROR_ABSENT=1 run_hook "mirror-absent" "$TALK/pages/01.md" "$PLUGIN_ROOT"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【ESLint 未実施】"; then
+if ! echo "$CTX" | grep -q "warning: eslint not run:"; then
     fail "ミラー不在: 未実施通知が出ていない stdout='$OUT'"
 elif ! echo "$CTX" | grep -q "pecotv"; then
     fail "ミラー不在: bootstrap 案内 (pecotv コマンド) が通知に無い ctx='$CTX'"
-elif echo "$CTX" | grep -q "【ESLint違反検出】"; then
+elif echo "$CTX" | grep -q "warning: eslint violations:"; then
     fail "ミラー不在: 違反として報告している ctx='$CTX'"
-elif ! echo "$ERR" | grep -q "\[eslint-check\] not-linted: 実行用ミラーが無い"; then
+elif ! echo "$ERR" | grep -q "\[eslint-check\] not-linted: runtime mirror is missing"; then
     fail "ミラー不在: stderr trace が not-linted でない stderr='$ERR'"
 else
     pass "ミラー不在: 未実施通知 + bootstrap 案内"
@@ -254,7 +254,7 @@ if [ "$HAVE_ESLINT" = true ]; then
         fail "実 assets: ERR_MODULE_NOT_FOUND が出ている stdout='$OUT' stderr='$ERR'"
     elif ! echo "$CTX" | grep -q "slidev-pages-lint/no-content-before-frontmatter"; then
         fail "実 assets: 違反 rule id が additionalContext に含まれない stdout='$OUT'"
-    elif ! echo "$CTX" | grep -q "【ESLint違反検出】"; then
+    elif ! echo "$CTX" | head -n 1 | grep -q "^warning: eslint violations: "; then
         fail "実 assets: 違反見出しが無い ctx='$CTX'"
     elif ! printf '%s\n' "$OUT" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' > /dev/null 2>&1; then
         fail "実 assets: hookSpecificOutput.hookEventName が PostToolUse でない stdout='$OUT'"
@@ -327,7 +327,7 @@ if [ "$HAVE_ESLINT" = true ]; then
         fail "本文・ノートの文面違反: 本文の違反がファイル行 6 で出ない ctx='$CTX'"
     elif ! echo "$CTX" | grep -q "発表者ノート L9:"; then
         fail "本文・ノートの文面違反: ノートの違反がファイル行 9 で出ない ctx='$CTX'"
-    elif echo "$CTX" | grep -q "【ESLint 未実施】"; then
+    elif echo "$CTX" | grep -q "warning: eslint not run:"; then
         fail "本文・ノートの文面違反: 未実施に化けている ctx='$CTX'"
     else
         pass "本文・ノートの文面違反: text-constraints/textlint-body を本文行とノート行で additionalContext に含む"
@@ -350,7 +350,7 @@ heading: "本文にバナー文言を含む違反 fixture"
 EOF
     run_hook "banner-in-body" "$REAL/pages/banner-in-body.md" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "【ESLint 未実施】"; then
+    if echo "$CTX" | grep -q "warning: eslint not run:"; then
         fail "本文にバナー文言: 違反が未実施に化けている（stylish 出力に本文が混入した疑い）ctx='$CTX'"
     elif ! echo "$CTX" | grep -q "slidev-pages-lint/no-content-before-frontmatter"; then
         fail "本文にバナー文言: 違反として報告されていない stdout='$OUT' stderr='$ERR'"
@@ -369,7 +369,7 @@ IGNORED_MSG="  0:0  warning  File ignored because no matching configuration was 
 STUB_IGNORED=$(make_stub_plugin stub-ignored 0 "$IGNORED_MSG")
 run_hook "ignored-lint-target" "$TALK/pages/01.md" "$STUB_IGNORED"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【ESLint 未実施】" && ! echo "$CTX" | grep -q "【ESLint違反検出】"; then
+if echo "$CTX" | grep -q "warning: eslint not run:" && ! echo "$CTX" | grep -q "warning: eslint violations:"; then
     pass "設定対象外 (lint 対象パス pages/): 未実施を通知"
 else
     fail "設定対象外 (lint 対象パス pages/): 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
@@ -379,7 +379,7 @@ fi
 echo "# slides" > "$TALK/slides.md"
 run_hook "ignored-slides-md" "$TALK/slides.md" "$STUB_IGNORED"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【ESLint 未実施】"; then
+if echo "$CTX" | grep -q "warning: eslint not run:"; then
     pass "設定対象外 (lint 対象パス slides.md): 未実施を通知"
 else
     fail "設定対象外 (lint 対象パス slides.md): 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
@@ -390,7 +390,7 @@ fi
 if [ "$HAVE_ESLINT" = true ]; then
     echo "# readme" > "$REAL/README.md"
     run_hook "ignored-non-target" "$REAL/README.md" "$PLUGIN_ROOT"
-    if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: lint 対象パスでない"; then
+    if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: not a lint target path"; then
         pass "設定対象外 (lint 対象パス外 README.md): stdout 空 / stderr skip trace"
     else
         fail "設定対象外 (lint 対象パス外 README.md): stdout='$OUT' stderr='$ERR'"
@@ -409,7 +409,7 @@ STUB_WARN=$(make_stub_plugin stub-node-warning 0 \
 run_hook "exit0-unknown-output" "$TALK/pages/01.md" "$STUB_WARN"
 if [ -n "$OUT" ]; then
     fail "exit 0 + 未知の非空出力: model に通知している（node warning を違反/未実施に昇格させた疑い）stdout='$OUT'"
-elif ! echo "$ERR" | grep -q "\[eslint-check\] pass: exit 0 だが未知の出力あり"; then
+elif ! echo "$ERR" | grep -q "\[eslint-check\] pass: exit 0 with unrecognized output"; then
     fail "exit 0 + 未知の非空出力: stderr trace が pass でない stderr='$ERR'"
 elif ! echo "$ERR" | grep -q "ExperimentalWarning"; then
     fail "exit 0 + 未知の非空出力: 出力の先頭が trace に残っていない stderr='$ERR'"
@@ -419,15 +419,15 @@ fi
 
 # --- ケース10: exit 1 以外の非 0 / 非 0 かつ空出力 → 未実施（違反と報告しない） ---
 # #849 の本題。eslint 10 は config fatal で exit 2 を返す。旧仕様は非 0 を全数
-# 「【ESLint違反検出】」に振り分けたため、lint されていない md の修正指示が model に
+# 違反の通知に振り分けたため、lint されていない md の修正指示が model に
 # 届く誤報が出ていた。timeout はスタブの exit 124 で再現する（実 sleep 30 秒を使わない）。
 assert_not_linted() {
     local label="$1" root="$2" expect="$3" ctx
     run_hook "$label" "$TALK/pages/01.md" "$root"
     ctx=$(ctx_of "$OUT")
-    if echo "$ctx" | grep -q "【ESLint違反検出】"; then
+    if echo "$ctx" | grep -q "warning: eslint violations:"; then
         fail "$label: 違反として報告している ctx='$ctx'"
-    elif ! echo "$ctx" | grep -q "【ESLint 未実施】"; then
+    elif ! echo "$ctx" | grep -q "warning: eslint not run:"; then
         fail "$label: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
     elif ! echo "$ctx" | grep -q "$expect"; then
         fail "$label: 期待する理由 ('$expect') が通知に無い ctx='$ctx'"
@@ -449,7 +449,7 @@ else
 fi
 
 STUB_TIMEOUT=$(make_stub_plugin stub-exit124 124 "")
-assert_not_linted "exit 124 (timeout)" "$STUB_TIMEOUT" "timeout"
+assert_not_linted "exit 124 (timeout)" "$STUB_TIMEOUT" "timed out"
 
 STUB_EXIT1_EMPTY=$(make_stub_plugin stub-exit1-empty 1 "")
 assert_not_linted "exit 1 かつ出力空" "$STUB_EXIT1_EMPTY" "exit 1"
@@ -459,7 +459,7 @@ assert_not_linted "exit 1 かつ出力空" "$STUB_EXIT1_EMPTY" "exit 1"
 # 現行 eslint ではクラッシュは exit 2 なので、この組み合わせは起こらない。下のピン留めでその前提を固定している。
 STUB_EXIT1_CRASH=$(make_stub_plugin stub-exit1-crash 1 \
     "Oops! Something went wrong! :( ESLint: 10.13.0 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@v-slidev/eslint-plugin-slidev-pages-lint'")
-assert_not_linted "exit 1 + クラッシュバナー" "$STUB_EXIT1_CRASH" "クラッシュ"
+assert_not_linted "exit 1 + クラッシュバナー" "$STUB_EXIT1_CRASH" "crashed"
 
 # 実 eslint のクラッシュを hook 経由で起こす。本体の assets を汚さずにクラッシュさせるため、
 # 偽 plugin root に実 eslint パッケージの symlink を置く。
@@ -472,7 +472,7 @@ if [ "$HAVE_ESLINT" = true ]; then
     printf '{"devDependencies":{"eslint":"^10.13.0"}}\n' > "$CRASH_TPL/package.json"
     echo 'import x from "@no/such-module-for-crash-pin"; export default []' \
         > "$CRASH_PLUGIN/assets/slidev/deck-lint.env.config.js"
-    assert_not_linted "実 eslint のクラッシュ (ERR_MODULE_NOT_FOUND)" "$CRASH_PLUGIN" "クラッシュ"
+    assert_not_linted "実 eslint のクラッシュ (ERR_MODULE_NOT_FOUND)" "$CRASH_PLUGIN" "crashed"
 else
     echo "SKIP: $ASSETS_DIR から eslint を解決できないので実クラッシュケースを skip"
 fi
@@ -486,11 +486,11 @@ printf '{"name":"eslint","version":"9.30.0","bin":{"eslint":"bin/eslint.js"}}\n'
     > "$STUB_MAJOR/assets/slidev/node_modules/eslint/package.json"
 run_hook "major-mismatch" "$TALK/pages/01.md" "$STUB_MAJOR"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【ESLint 未実施】"; then
+if ! echo "$CTX" | grep -q "warning: eslint not run:"; then
     fail "メジャー不一致: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
 elif ! echo "$CTX" | grep -q "node_modules/eslint"; then
     fail "メジャー不一致: 不足として eslint が挙がっていない ctx='$CTX'"
-elif ! echo "$ERR" | grep -q "\[eslint-check\] eslint 解決失敗: .*9.30.0.*メジャー違い"; then
+elif ! echo "$ERR" | grep -q "\[eslint-check\] eslint resolution failed: .*9.30.0.*differs in major version"; then
     fail "メジャー不一致: 理由が trace に無い stderr='$ERR'"
 else
     pass "メジャー不一致: 未実施へ振り分け + 理由を trace に残す"
@@ -504,9 +504,9 @@ touch "$NO_ESLINT/assets/slidev/deck-lint.env.config.js"
 # 親の node_modules から拾われないよう、実 eslint を持たない $TMP 配下に置く
 run_hook "eslint-unresolvable" "$TALK/pages/01.md" "$NO_ESLINT"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【ESLint 未実施】"; then
+if ! echo "$CTX" | grep -q "warning: eslint not run:"; then
     fail "eslint 解決不能: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
-elif ! echo "$ERR" | grep -q "\[eslint-check\] eslint 解決失敗: .*eslint"; then
+elif ! echo "$ERR" | grep -q "\[eslint-check\] eslint resolution failed: .*eslint"; then
     fail "eslint 解決不能: 解決失敗の理由が trace に無い stderr='$ERR'"
 else
     pass "eslint 解決不能: 未実施 + 解決失敗の理由を trace に残す"
@@ -624,7 +624,7 @@ echo "# foo" > "$CANARY_TALK/pages/a.md"
 STUB_CANARY=$(make_stub_plugin stub-canary 0 "  0:0  warning  File ignored because outside of base path")
 run_hook "canary" "$CANARY_TALK/pages/a.md" "$STUB_CANARY"
 CANARY_CTX=$(ctx_of "$OUT")
-if echo "$CANARY_CTX" | grep -q "ESLint スキップ検出"; then
+if echo "$CANARY_CTX" | grep -q "eslint skipped:"; then
     pass "カナリア: base path 外判定を additionalContext で報告"
 else
     fail "カナリア: スキップ検出が出力されない stdout='$OUT' stderr='$ERR'"
@@ -634,7 +634,7 @@ fi
 # 対象は、base path 外メッセージと設定対象外メッセージ。
 # hook が広い "File ignored" で拾うと、この入力が設定対象外（未実施）分岐へ回る。
 # するとカナリアが何も知らせずに機能しなくなる。カナリアとして分類されていることを固定する。
-if echo "$CANARY_CTX" | grep -q "【ESLint 未実施】"; then
+if echo "$CANARY_CTX" | grep -q "warning: eslint not run:"; then
     fail "カナリア: 設定対象外（未実施）分岐に流れている（grep が広すぎる疑い）ctx='$CANARY_CTX'"
 else
     pass "カナリア: 設定対象外の分岐と衝突しない"
@@ -642,7 +642,7 @@ fi
 
 # eslint に渡す引数が talk root 相対であること。basename だけになると talk root 直下に
 # 無いファイルが lint されなくなるので、カナリアの表示経由で形を固定する。
-if echo "$CANARY_CTX" | grep -q "eslint 引数: pages/a.md"; then
+if echo "$CANARY_CTX" | grep -q "eslint argument: pages/a.md"; then
     pass "eslint 引数: talk root 相対パス (pages/a.md) を渡している"
 else
     fail "eslint 引数: talk root 相対パスになっていない ctx='$CANARY_CTX'"
@@ -671,7 +671,7 @@ MERGE_OUT=$(printf '%s' "$MERGE_IN" | CLAUDE_PLUGIN_ROOT="$STUB_FATAL" CLAUDE_PL
 MERGE_CTX=$(ctx_of "$MERGE_OUT")
 if ! printf '%s\n' "$MERGE_OUT" | jq empty 2>/dev/null; then
     fail "merge 経由 (未実施時): stdout が妥当な JSON でない stdout='$MERGE_OUT'"
-elif ! echo "$MERGE_CTX" | grep -q "【ESLint 未実施】"; then
+elif ! echo "$MERGE_CTX" | grep -q "warning: eslint not run:"; then
     fail "merge 経由 (未実施時): additionalContext に未実施通知が無い stdout='$MERGE_OUT'"
 elif ! printf '%s\n' "$MERGE_OUT" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' > /dev/null 2>&1; then
     fail "merge 経由 (未実施時): hookEventName が PostToolUse でない stdout='$MERGE_OUT'"
@@ -742,7 +742,7 @@ ENV_JSON=$(printf '%s\n' "$CTX" | sed -n 's/.*ENV=\(.*\)  stub\/rule.*/\1/p')
 if ! printf '%s\n' "$ENV_JSON" | jq -e --arg talk "$TALK" --arg refs "$TMP/theme-refs" \
     '.referencesDirectories == [($talk + "/references"), $refs] and .rules == {"slidev-pages-lint/no-missing-page":"error","text-constraints/max-chars":"warn"} and .panels == {} and .markerLayouts == []' > /dev/null 2>&1; then
     fail "PECOTV_DECK_LINT: slide theme の lint が JSON のまま渡っていない env='$ENV_JSON' ctx='$CTX'"
-elif ! echo "$CTX" | grep -q "【ESLint違反検出】"; then
+elif ! echo "$CTX" | grep -q "warning: eslint violations:"; then
     fail "PECOTV_DECK_LINT: 違反として報告されていない ctx='$CTX'"
 else
     pass "PECOTV_DECK_LINT: slide theme の lint（参照 dir・rules）が eslint に JSON で渡る"
@@ -752,15 +752,15 @@ fi
 STUB_NOCALL=$(make_stub_plugin stub-nocall 1 "SHOULD-NOT-RUN")
 STUB_THEME_FAIL=theme-unlinked run_hook "theme-unlinked" "$TALK/pages/01.md" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if ! echo "$CTX" | grep -q "【ESLint 未実施】"; then
+if ! echo "$CTX" | grep -q "warning: eslint not run:"; then
     fail "theme-unlinked: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
-elif ! echo "$CTX" | grep -q "slide_sync（node_modules_only: true）で node_modules を張り直してください"; then
+elif ! echo "$CTX" | grep -q "Relinking node_modules with slide_sync (node_modules_only: true)"; then
     fail "theme-unlinked: slide_sync の node_modules_only の案内が無い ctx='$CTX'"
-elif echo "$CTX" | grep -q "SHOULD-NOT-RUN\|【ESLint違反検出】"; then
+elif echo "$CTX" | grep -q "SHOULD-NOT-RUN\|warning: eslint violations:"; then
     fail "theme-unlinked: eslint を起動した/違反として報告している ctx='$CTX'"
 elif echo "$CTX" | grep -q "テンプレートを同期"; then
     fail "theme-unlinked: 旧文言（テンプレートを同期）が残っている ctx='$CTX'"
-elif ! echo "$ERR" | grep -q "\[eslint-check\] not-linted: テーマが張られていない"; then
+elif ! echo "$ERR" | grep -q "\[eslint-check\] not-linted: theme is not linked"; then
     fail "theme-unlinked: stderr trace が not-linted でない stderr='$ERR'"
 else
     pass "theme-unlinked: 未実施 + slide_sync（node_modules_only: true）の案内（eslint は起動しない）"
@@ -768,7 +768,7 @@ fi
 
 STUB_THEME_FAIL=theme-none run_hook "theme-none" "$TALK/pages/01.md" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【ESLint 未実施】" && echo "$CTX" | grep -q "theme-none" \
+if echo "$CTX" | grep -q "warning: eslint not run:" && echo "$CTX" | grep -q "theme-none" \
     && echo "$CTX" | grep -q "slide sync --theme <theme-spec>" && ! echo "$CTX" | grep -q "SHOULD-NOT-RUN"; then
     pass "theme-none: 未実施 + slide sync --theme の案内"
 else
@@ -777,7 +777,7 @@ fi
 
 STUB_THEME_FAIL=theme-unknown-rule run_hook "theme-unknown-rule" "$TALK/pages/01.md" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【ESLint 未実施】" && echo "$CTX" | grep -q "theme-unknown-rule"; then
+if echo "$CTX" | grep -q "warning: eslint not run:" && echo "$CTX" | grep -q "theme-unknown-rule"; then
     pass "theme-unknown-rule: 未実施 + reason を通知"
 else
     fail "theme-unknown-rule: reason が通知に無い stdout='$OUT' stderr='$ERR'"
@@ -785,7 +785,7 @@ fi
 
 STUB_THEME_FAIL=crash run_hook "theme-crash" "$TALK/pages/01.md" "$STUB_NOCALL"
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【ESLint 未実施】" && echo "$CTX" | grep -q "slide theme が exit 3" && ! echo "$CTX" | grep -q "SHOULD-NOT-RUN"; then
+if echo "$CTX" | grep -q "warning: eslint not run:" && echo "$CTX" | grep -q "slide theme exited with 3" && ! echo "$CTX" | grep -q "SHOULD-NOT-RUN"; then
     pass "slide theme の異常終了: 未実施（原因の exit code を通知）"
 else
     fail "slide theme の異常終了: 未実施通知が出ていない stdout='$OUT' stderr='$ERR'"
@@ -798,19 +798,19 @@ NO_CLI_DATA="$(mirror_data_for "$NO_CLI_ROOT")"
 rm -f "$NO_CLI_DATA/runtime/mirror/cli/dist/cli.js"
 OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$TALK/pages/01.md\"}}" | CLAUDE_PLUGIN_ROOT="$NO_CLI_ROOT" CLAUDE_PLUGIN_DATA="$NO_CLI_DATA" bash "$HOOK" 2>"$ERRFILE")
 CTX=$(ctx_of "$OUT")
-if echo "$CTX" | grep -q "【ESLint 未実施】" && echo "$CTX" | grep -q "実行用ミラーがまだ作られていません"; then
+if echo "$CTX" | grep -q "warning: eslint not run:" && echo "$CTX" | grep -q "the runtime mirror has not been created yet"; then
     pass "CLI 不在のミラー: ミラー未準備として未実施"
 else
     fail "CLI 不在のミラー: 未実施の通知が無い stdout='$OUT'"
 fi
 
 # 16e: 対象外の編集（README.md）は、slide theme を起こさず、通知しない。
-# テーマ未リンクの talk-dir でも、対象外の編集まで【ESLint 未実施】にしない。
+# テーマ未リンクの talk-dir でも、対象外の編集まで未実施の通知にしない。
 THEME_LOG="$TMP/theme-spawn.log"
 rm -f "$THEME_LOG"
 echo "# readme" > "$TALK/README.md"
 STUB_THEME_LOG="$THEME_LOG" STUB_THEME_FAIL=theme-unlinked run_hook "non-target-no-theme" "$TALK/README.md" "$STUB_NOCALL"
-if [ -z "$OUT" ] && [ ! -e "$THEME_LOG" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: lint 対象パスでない"; then
+if [ -z "$OUT" ] && [ ! -e "$THEME_LOG" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: not a lint target path"; then
     pass "対象外の編集: slide theme を起こさず、通知しない（テーマ未リンクでも）"
 else
     THEME_LOG_TEXT=$(cat "$THEME_LOG" 2>/dev/null)
@@ -840,7 +840,7 @@ mkdir -p "$OLD_MARKER/pages"
 touch "$OLD_MARKER/start.mjs"
 echo "# foo" > "$OLD_MARKER/pages/a.md"
 run_hook "old-marker" "$OLD_MARKER/pages/a.md" "$PLUGIN_ROOT"
-if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: talk-dir マーカー (slides.md + pages/)"; then
+if [ -z "$OUT" ] && echo "$ERR" | grep -q "\[eslint-check\] skip: talk-dir marker (slides.md + pages/)"; then
     pass "start.mjs だけの dir: talk-dir とみなさず skip"
 else
     fail "start.mjs だけの dir: skip していない stdout='$OUT' stderr='$ERR'"
@@ -871,7 +871,7 @@ if [ "$HAVE_ESLINT" = true ] && [ -f "$REAL_CLI_DIST/commands/slidev-project/the
     rm "$REAL_CLI_TALK/node_modules/slidev-theme-pecotv-test-declared"
     MIRROR_REAL_CLI_DIST="$REAL_CLI_DIST" run_hook "real-cli-unlinked" "$REAL_CLI_TALK/pages/long.md" "$PLUGIN_ROOT"
     CTX=$(ctx_of "$OUT")
-    if echo "$CTX" | grep -q "theme-unlinked" && echo "$CTX" | grep -q "【ESLint 未実施】"; then
+    if echo "$CTX" | grep -q "theme-unlinked" && echo "$CTX" | grep -q "warning: eslint not run:"; then
         pass "実 CLI: 未リンクの talk-dir は theme-unlinked の未実施通知"
     else
         fail "実 CLI: theme-unlinked の未実施通知が出ない stdout='$OUT' stderr='$ERR'"

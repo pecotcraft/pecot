@@ -168,18 +168,19 @@ if [ "${PECOT_POST_COMMIT:-}" = "1" ]; then
             AUTO_PUSH_FLAG="${CLAUDE_PROJECT_DIR}/.pecot/state/.auto-push-urls"
             # 関数外のため return 不可。pecot 未使用リポでは URL フラグを落とすだけ（gitignore-before-write #666）。
             if pecot_state_dir_ensure "$(dirname "$AUTO_PUSH_FLAG")"; then
-                printf '%s\n' "自動push完了: ${WIP_BRANCH}" "比較: ${COMPARE_URL}" "" >> "$AUTO_PUSH_FLAG"
+                { hook_message note "auto-push complete: ${WIP_BRANCH}
+compare: ${COMPARE_URL}"; echo; } >> "$AUTO_PUSH_FLAG"
             fi
         fi
     else
-        MESSAGE="【自動push失敗】${PUSH_OUTPUT}
+        MESSAGE=$(hook_message warning "auto-push failed: ${PUSH_OUTPUT}
 
-理由: コミット完了後の自動pushが失敗しました。リモートとの通信エラー、
-ブランチ保護ルール、認証問題等が考えられます。
+Reason: the auto-push after the commit failed. Possible causes are a network error with the remote,
+a branch protection rule, or an authentication problem.
 
-対処方法:
-  1. エラーメッセージからpush失敗の原因を特定してください
-  2. 手動で git push origin HEAD を実行し、詳細なエラーを確認してください"
+What to do:
+  1. Identify the cause of the push failure from the error message
+  2. Run git push origin HEAD manually and check the detailed error")
         jq -n --arg msg "$MESSAGE" '{
           "hookSpecificOutput": {
             "hookEventName": "PostToolUse",

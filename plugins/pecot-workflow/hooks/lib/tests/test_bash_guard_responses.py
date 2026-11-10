@@ -68,6 +68,8 @@ def _assert_decision(result, decision: str, reason_contains: str) -> dict:
     reason = hso.get("permissionDecisionReason", "")
     assert reason, "permissionDecisionReason が空"
     assert reason_contains in reason
+    head = {"deny": "error:", "ask": "warning:", "allow": "note:"}[decision]
+    assert reason.startswith(head), reason
     assert "decision" not in out, "トップレベルの decision は使わない"
     assert "reason" not in out, "トップレベルの reason は使わない"
     assert "reason" not in hso, "reason ではなく permissionDecisionReason に書く"
@@ -133,7 +135,7 @@ def test_deny_mcp_pr_create(run_hook_entry, project) -> None:
         "cwd": str(project),
     }
     result = run_hook_entry("pre-tool-use-mcp.sh", payload)
-    _assert_decision(result, "deny", "PR保護")
+    _assert_decision(result, "deny", "pr-create-block")
 
 
 # allow: 理由が残る。
@@ -158,7 +160,7 @@ def issue_pending(project: Path) -> None:
 
 def _assert_reminders(out: dict) -> None:
     ctx = out["hookSpecificOutput"].get("additionalContext", "")
-    assert "Issue 起票が未完了" in ctx
+    assert "warning: Issue filing is not complete" in ctx
     assert "/tmp/" in ctx
 
 
@@ -197,7 +199,7 @@ def test_issue_pending_reminder_delivered_through_bash_entry(
         "pre-tool-use-bash.sh", _bash_payload(client, "git switch feat/other", project)
     )
     out = _hso(result)
-    assert "Issue 起票が未完了" in out["hookSpecificOutput"]["additionalContext"]
+    assert "warning: Issue filing is not complete" in out["hookSpecificOutput"]["additionalContext"]
 
 
 @pytest.mark.parametrize("client", CLIENTS)
