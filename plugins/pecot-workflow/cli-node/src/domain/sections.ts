@@ -299,10 +299,10 @@ function findCloser(line: string, opener: BacktickRun): BacktickRun | undefined 
   return candidate
 }
 
-// インラインコードスパンを同じ長さの空白へ置換する。
+// インラインコードスパンを同じ長さの fill（既定は空白）へ置換する。
 // CommonMark のバッククォート・ラン規則（同じ長さのランで閉じる）に従い、`` `- [ ]` `` や二重バッククォートのスパンを検証対象から外す。
 // 閉じランが同一行に無い場合は暴走を避けてマスクしない
-function maskInlineCode(line: string): string {
+function maskInlineCode(line: string, fill = ' '): string {
   let result = ''
   let position = 0
 
@@ -317,17 +317,18 @@ function maskInlineCode(line: string): string {
       continue
     }
 
-    result += line.slice(position, opener.start) + ' '.repeat(closer.end - opener.start)
+    result += line.slice(position, opener.start) + fill.repeat(closer.end - opener.start)
     position = closer.end
   }
 }
 
 // フェンス・インラインコード・HTML コメントの中身を消した行リストを返す。
-// フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの空白になる（改行は残す）
-function maskedLines(body: string): MaskedFences {
+// フェンス内の行は空文字になり、インラインコードと HTML コメントは同じ長さの fill になる（改行は残す）。
+// 水平線の判定だけ fill に '`' を使う（`**`x`**` の外側の `**` を空白にすると水平線に見えるため）
+function maskedLines(body: string, fill = ' '): MaskedFences {
   const { lines, hasUnclosedFence } = maskFencedCode(body)
-  const masked = lines.map(line => maskInlineCode(line)).join('\n')
-    .replaceAll(HTML_COMMENT_PATTERN, comment => comment.replaceAll(/[^\n]/g, ' '))
+  const masked = lines.map(line => maskInlineCode(line, fill)).join('\n')
+    .replaceAll(HTML_COMMENT_PATTERN, comment => comment.replaceAll(/[^\n]/g, () => fill))
   return { lines: masked.split('\n'), hasUnclosedFence }
 }
 
@@ -454,13 +455,14 @@ export function validateBodyStyle(body: string): readonly string[] {
   if (hasUnclosedFence) return ['code fence is not closed']
 
   const errors: string[] = []
-  const lineRules: readonly (readonly [string, (line: string) => boolean])[] = [
-    [CHECKBOX_ERROR, hasCheckbox],
-    [HORIZONTAL_RULE_ERROR, hasHorizontalRule],
-    [EMOJI_ERROR, hasEmoji],
+  const ruleLines = maskedLines(body, '`').lines
+  const lineRules: readonly (readonly [string, (line: string) => boolean, readonly string[]])[] = [
+    [CHECKBOX_ERROR, hasCheckbox, lines],
+    [HORIZONTAL_RULE_ERROR, hasHorizontalRule, ruleLines],
+    [EMOJI_ERROR, hasEmoji, lines],
   ]
-  for (const [message, matches] of lineRules) {
-    if (lines.some(line => matches(line))) errors.push(message)
+  for (const [message, matches, target] of lineRules) {
+    if (target.some(line => matches(line))) errors.push(message)
   }
   if (hasSoftBreak(lines, body.split('\n'))) errors.push(SOFT_BREAK_ERROR)
 

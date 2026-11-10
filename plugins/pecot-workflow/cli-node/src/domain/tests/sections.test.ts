@@ -437,6 +437,22 @@ describe('validateBodyStyle: 水平線（#1185）', () => {
     expect(validateBodyStyle(`- 記法 \`---\` は使わない\n\n${COMMENT_OPEN}\n---\n-->\n`)).toEqual([])
   })
 
+  it.each([
+    '**`targets.json`**',
+    '***`x`***',
+    '__`x`__',
+    '> **`x`**',
+    '- ***`x`***',
+    '> - __`x`__',
+    '*** <!-- c -->',
+  ])('強調で包んだインラインコードや末尾の HTML コメントは水平線にならない: %j', (line) => {
+    expect(validateBodyStyle(`${line}\n`)).toEqual([])
+  })
+
+  it('強調で包んだインラインコードのすぐ次の行の ---（setext の下線）は水平線として弾く', () => {
+    expect(validateBodyStyle('**`x`**\n---\n')).toContain(HORIZONTAL_RULE_ERROR)
+  })
+
   it('4 スペース以上のインデントは CommonMark では水平線にならない', () => {
     expect(validateBodyStyle('    ---\n')).toEqual([])
   })
