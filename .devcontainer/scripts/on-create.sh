@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo chown vscode:vscode /workspaces /home/vscode/.claude /commandhistory
+sudo chown vscode:vscode /workspaces /home/vscode/.claude /home/vscode/.aws /commandhistory
 touch /commandhistory/.bash_history /commandhistory/.zsh_history
 
 if ! grep -q 'HISTFILE=/commandhistory' /home/vscode/.bashrc; then
