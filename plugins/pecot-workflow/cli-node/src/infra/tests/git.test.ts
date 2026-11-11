@@ -16,6 +16,8 @@ import {
   gitRunnerFor,
   gitToplevel,
   originRepository,
+  primaryRemoteName,
+  primaryRemoteRepository,
   runGit,
 } from '../git.js'
 
@@ -188,6 +190,56 @@ describe('originRepository', () => {
 
   it('origin が無ければ undefined', () => {
     expect(originRepository(createGitRepository())).toBeUndefined()
+  })
+})
+
+describe('primaryRemoteName', () => {
+  it('origin があれば、ほかの remote より先に並んでいても origin を返す', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'a-first', 'https://github.com/o/a.git'])
+    gitForTest(directory, ['remote', 'add', 'origin', 'https://github.com/o/b.git'])
+    expect(primaryRemoteName(directory)).toBe('origin')
+  })
+
+  it('origin が無ければ最初の remote を返す', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'upstream', 'https://github.com/o/a.git'])
+    gitForTest(directory, ['remote', 'add', 'zeta', 'https://github.com/o/b.git'])
+    expect(primaryRemoteName(directory)).toBe('upstream')
+  })
+
+  it('remote が無ければ undefined', () => {
+    expect(primaryRemoteName(createGitRepository())).toBeUndefined()
+  })
+
+  it('git の外では undefined', () => {
+    const directory = makeTemporaryDirectory('pecot-nogit-')
+    setEnvironment({ GIT_CEILING_DIRECTORIES: path.dirname(directory) })
+    expect(primaryRemoteName(directory)).toBeUndefined()
+  })
+
+  it('git が無ければ undefined', () => {
+    const repository = createGitRepository()
+    withoutGit()
+    expect(primaryRemoteName(repository)).toBeUndefined()
+  })
+})
+
+describe('primaryRemoteRepository', () => {
+  it('origin が無いときは最初の remote の URL を分ける', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'upstream', 'git@ghes.example.com:acme/demo.git'])
+    expect(primaryRemoteRepository(directory)).toEqual({ host: 'ghes.example.com', owner: 'acme', repository: 'demo' })
+  })
+
+  it('URL の形式が不正なら undefined', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'origin', 'invalid'])
+    expect(primaryRemoteRepository(directory)).toBeUndefined()
+  })
+
+  it('remote が無ければ undefined', () => {
+    expect(primaryRemoteRepository(createGitRepository())).toBeUndefined()
   })
 })
 

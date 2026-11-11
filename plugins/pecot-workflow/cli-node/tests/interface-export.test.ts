@@ -230,7 +230,7 @@ describe('main', () => {
   it('COMMANDS が空なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
     const before = readFileSync(generated)
     const { io, out, error } = capture()
-    expect(main(['--check'], io)).toBe(0)
+    expect(main(['--check'], io, [])).toBe(0)
     expect(out).toStrictEqual([])
     expect(error).toStrictEqual(['warning: no commands are registered in cli-node; generated.json is left as is\n'])
     expect(readFileSync(generated).equals(before)).toBe(true)
@@ -239,7 +239,7 @@ describe('main', () => {
   it('--write でも同じで、generated.json を変えない', () => {
     const before = readFileSync(generated)
     const { io, error } = capture()
-    expect(main(['--write'], io)).toBe(0)
+    expect(main(['--write'], io, [])).toBe(0)
     expect(error).toHaveLength(1)
     expect(readFileSync(generated).equals(before)).toBe(true)
   })

@@ -21,9 +21,9 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { loadActiveConfig } from './config-store.js'
 import type { Diagnostics } from './diagnostics.js'
 import { isDirectory } from './file-kind.js'
-import { GitCommandError, gitToplevel, originRepository, runGit } from './git.js'
+import { GitCommandError, gitToplevel, remoteRepository, runGit } from './git.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
-import { toOsError } from './os-error.js'
+import { isFileNotFound, toOsError } from './os-error.js'
 import { normalizePath, resolveRealPath, WORKTREE_CONFIG_FILENAME } from './paths.js'
 import {
   createSymlinks,
@@ -365,18 +365,35 @@ export function filterCopyableFiles(files: readonly string[], spec: Readonly<Git
 
 // オーケストレーション
 
-// origin リモートからリポジトリ情報を取得する。取得できなければ WorktreeRuntimeError
-function getRepositoryInfo(cwd: string): RepositoryReference {
-  const origin = originRepository(cwd)
-  if (origin !== undefined) {
+const NO_REMOTE_MESSAGE = 'cannot get the repository information: check that a git remote is set to a GitHub repository URL'
+
+interface RemoteCandidate {
+  readonly remote: string
+  readonly repository: RepositoryReference | undefined
+}
+
+// remote 候補を優先順に返す。origin があれば origin だけ、無ければ git remote の順にすべて。URL を読めない remote の repository は undefined
+function readRemoteCandidates(cwd: string): readonly RemoteCandidate[] {
+  let output: string
+  try {
+    output = runGit(['remote'], { cwd, check: true }).stdout
+  }
+  catch (error: unknown) {
+    if (error instanceof GitCommandError || isFileNotFound(error)) return []
+    throw error
+  }
+  const remotes = output.split('\n').map(line => pythonStrip(line)).filter(line => line !== '')
+  return (remotes.includes('origin') ? ['origin'] : remotes).map((remote) => {
+    const location = remoteRepository(cwd, remote)
+    if (location === undefined) return { remote, repository: undefined }
     try {
-      return createRepositoryReference(origin.owner, origin.repository)
+      return { remote, repository: createRepositoryReference(location.owner, location.repository) }
     }
     catch (error: unknown) {
-      if (!(error instanceof ValidationFailure)) throw error
+      if (error instanceof ValidationFailure) return { remote, repository: undefined }
+      throw error
     }
-  }
-  throw new WorktreeRuntimeError('cannot get the repository information: check that the git remote origin is set')
+  })
 }
 
 // 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）。(ワークツリー設定ファイルのパス, コピー除外 spec) を返す
@@ -394,32 +411,37 @@ function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnosti
   }
 }
 
-// リポジトリ登録チェック（アクティブプロジェクト配下か確認）
-function requireRegisteredRepository(cwd: string): { readonly repository: RepositoryReference, readonly config: ProjectConfig } {
-  const repository = getRepositoryInfo(cwd)
+// リポジトリ登録チェック。remote は origin、無ければ登録済みのリポを指す最初の remote、どれも未登録なら最初の remote（未登録として止まる）
+function requireRegisteredRepository(cwd: string): { readonly repository: RepositoryReference, readonly config: ProjectConfig, readonly remote: string } {
+  const candidates = readRemoteCandidates(cwd)
+  if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE)
   const config = loadActiveConfig()
   if (config === undefined) {
     throw new WorktreeRuntimeError('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
   }
-  if (findRepository(config, repository.owner, repository.repository) === undefined) {
-    const registered = config.repositories.length > 0
-      ? config.repositories.map(item => `  - ${item.owner}/${item.name}`).join('\n')
-      : '  (none registered)'
-    throw new WorktreeRuntimeError(
-      `repository ${repository.owner}/${repository.repository} is not registered in the `
-      + 'active pecot project\n'
-      + '\n'
-      + 'registered repositories:\n'
-      + `${registered}\n`
-      + '\n'
-      + 'to add this repository to the pecot project:\n'
-      + `  pecot project set-repo ${repository.owner}/${repository.repository}\n`
-      + '\n'
-      + 'to switch to another project:\n'
-      + '  pecot project activate <PROJECT>',
-    )
+  for (const candidate of candidates) {
+    if (candidate.repository !== undefined && findRepository(config, candidate.repository.owner, candidate.repository.repository) !== undefined) {
+      return { repository: candidate.repository, config, remote: candidate.remote }
+    }
   }
-  return { repository, config }
+  const repository = candidates[0]?.repository
+  if (repository === undefined) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE)
+  const registered = config.repositories.length > 0
+    ? config.repositories.map(item => `  - ${item.owner}/${item.name}`).join('\n')
+    : '  (none registered)'
+  throw new WorktreeRuntimeError(
+    `repository ${repository.owner}/${repository.repository} is not registered in the `
+    + 'active pecot project\n'
+    + '\n'
+    + 'registered repositories:\n'
+    + `${registered}\n`
+    + '\n'
+    + 'to add this repository to the pecot project:\n'
+    + `  pecot project set-repo ${repository.owner}/${repository.repository}\n`
+    + '\n'
+    + 'to switch to another project:\n'
+    + '  pecot project activate <PROJECT>',
+  )
 }
 
 // ベースブランチ決定（プロジェクト設定の develop_branch を使用）
@@ -540,7 +562,7 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
   runGit(['worktree', 'prune'], { cwd: mainWorktree })
 
   // 1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）
-  const { repository, config } = requireRegisteredRepository(cwd)
+  const { repository, config, remote } = requireRegisteredRepository(cwd)
 
   // 2. 名前決定（プロジェクトセットへの自動参加）
   const repositoryDirectoryName = path.basename(mainWorktree)
@@ -558,7 +580,7 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
   }
 
   // 5. git worktree add
-  addGitWorktree(cwd, worktreePath, name, baseBranch, options.isExistingBranchAllowed === true)
+  addGitWorktree(cwd, worktreePath, name, { remote, baseBranch }, options.isExistingBranchAllowed === true)
   recordWorktreeName(worktreePath, name, diagnostics)
 
   // 6〜8. シンボリックリンク作成・未追跡ファイルコピー・セットアップコマンド実行
@@ -576,12 +598,13 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
 cwd は対象 Git リポジトリのパス（メイン WT でもサブ WT でも可）。
 既存ブランチの upstream 不一致、または git worktree add 失敗時は WorktreeRuntimeError
 */
-function addGitWorktree(cwd: string, worktreePath: string, name: string, baseBranch: string, isExistingBranchAllowed: boolean): void {
+function addGitWorktree(cwd: string, worktreePath: string, name: string, base: Readonly<{ readonly remote: string, readonly baseBranch: string }>, isExistingBranchAllowed: boolean): void {
+  const { remote, baseBranch } = base
   let hasBranch = runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`], { cwd }).exitCode === 0
 
   if (hasBranch && !isExistingBranchAllowed) {
     const currentUpstream = pythonStrip(runGit(['for-each-ref', '--format=%(upstream:short)', `refs/heads/${name}`], { cwd }).stdout)
-    const expectedUpstream = baseBranch === '' ? undefined : `origin/${baseBranch}`
+    const expectedUpstream = baseBranch === '' ? undefined : `${remote}/${baseBranch}`
     if ((currentUpstream === '' ? undefined : currentUpstream) !== expectedUpstream) {
       throw new WorktreeRuntimeError(
         `branch '${name}' already exists and its upstream differs from the expected one `
@@ -599,7 +622,7 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, baseBra
   }
 
   const gitArguments = hasBranch ? ['worktree', 'add', worktreePath, name] : ['worktree', 'add', worktreePath, '-b', name]
-  if (!hasBranch && baseBranch !== '') gitArguments.push('--track', `origin/${baseBranch}`)
+  if (!hasBranch && baseBranch !== '') gitArguments.push('--track', `${remote}/${baseBranch}`)
 
   const result = runGit(gitArguments, { cwd })
   if (result.exitCode !== 0) throw new WorktreeRuntimeError(`failed to create the worktree: ${result.stderr}`)

@@ -1,6 +1,7 @@
 // GitHub API 操作の例外。Python の cli/core/github/errors.py と同じ階層にする。
 
 import { PecotError } from '../../domain/errors.js'
+import { describeErrorBody } from '../../domain/api-error-detail.js'
 
 export interface GitHubErrorDetail {
   /**
@@ -45,3 +46,10 @@ export class GitHubNotFoundError extends GitHubAPIError {}
 レート制限エラー（403 Forbidden で rate limit を超えたとき）
 */
 export class GitHubRateLimitError extends GitHubAPIError {}
+
+/**
+GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える
+*/
+export function describeApiError(error: Readonly<GitHubAPIError>): string {
+  return describeErrorBody(error.message, error.responseBody)
+}

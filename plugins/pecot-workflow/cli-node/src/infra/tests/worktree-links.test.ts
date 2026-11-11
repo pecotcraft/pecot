@@ -16,15 +16,17 @@ import {
   pecotGitignoreEnsureScript,
   createSymlinks,
   createSymlinksSafe,
+  decideOverwrite,
   DEFAULT_WORKTREEIGNORE_CONTENT,
   getDefaultConfig,
   loadConfig,
   loadCopyExcludeSpec,
   parseWorktreeConfig,
+  planLink,
   saveConfig,
   WorktreeConfigError,
 } from '../worktree-links.js'
-import type { WorktreeConfig } from '../worktree-links.js'
+import type { LinkPlan, WorktreeConfig } from '../worktree-links.js'
 import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
 import { worktreeConfigOutputs } from '../../tests/_helpers/python-output.js'
 
@@ -587,5 +589,54 @@ describe('loadCopyExcludeSpec', () => {
     writeIgnore(main, 'a\vb\fc\u{2028}d')
     const spec = loadCopyExcludeSpec(main, ignoredDiagnostics)
     expect(['a', 'b', 'c', 'd', 'e'].map(name => spec.matchFile(name))).toEqual([true, true, true, true, false])
+  })
+})
+
+describe('decideOverwrite', () => {
+  it.for([
+    { name: '--force', force: true, allWorktrees: false, expected: { force: true, ask: false } },
+    { name: '--force と --all', force: true, allWorktrees: true, expected: { force: true, ask: false } },
+    { name: '単独の worktree', force: false, allWorktrees: false, expected: { force: false, ask: true } },
+    { name: '--all', force: false, allWorktrees: true, expected: { force: false, ask: false } },
+  ])('$name のとき、上書きの決め方を返す', (row) => {
+    expect(decideOverwrite({ force: row.force, allWorktrees: row.allWorktrees })).toEqual(row.expected)
+  })
+})
+
+function plan(root: string, link: WorktreeConfig['links'][number], decision: Parameters<typeof planLink>[3] = {}): LinkPlan {
+  return planLink(link, root, path.join(root, 'wt1', 'myrepo'), decision)
+}
+
+describe('planLink', () => {
+  it('リンク先が無いと、skip-missing を返す', () => {
+    expect(plan(setupProject(), linkOf('x', 'aist-roadmap', 'nothing'))).toBe('skip-missing')
+  })
+
+  it('リンク先が、指す先の無い symlink だと、skip-dangling を返す', () => {
+    const root = setupProject()
+    symlinkSync('/nonexistent-target', path.join(root, 'base', 'aist-roadmap', 'dangling.md'))
+    expect(plan(root, linkOf('x', 'aist-roadmap', 'dangling.md'))).toBe('skip-dangling')
+  })
+
+  it('置き場に何も無いと、create を返す', () => {
+    expect(plan(setupProject(), CLAUDE_LOCAL)).toBe('create')
+  })
+
+  it('置き場に symlink があると、update を返す', () => {
+    const root = setupProject()
+    symlinkSync('/anywhere', path.join(root, 'wt1', 'myrepo', 'CLAUDE.local.md'))
+    expect(plan(root, CLAUDE_LOCAL)).toBe('update')
+  })
+
+  it('置き場に実ファイルがあると、決め方に応じて update・ask・skip-real-file を返す', () => {
+    const { root } = setupRealFile()
+    expect([plan(root, CLAUDE_LOCAL, { force: true }), plan(root, CLAUDE_LOCAL, { ask: true }), plan(root, CLAUDE_LOCAL)]).toEqual(['update', 'ask', 'skip-real-file'])
+  })
+
+  it('置き場の実ファイルを git が追跡していると、force でも skip-tracked を返す', () => {
+    const root = setupProject()
+    const worktree = path.join(root, 'wt1', 'myrepo')
+    createGitRepository({ 'CLAUDE.local.md': 'tracked' }, worktree)
+    expect(plan(root, CLAUDE_LOCAL, { force: true })).toBe('skip-tracked')
   })
 })

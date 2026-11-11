@@ -77,6 +77,18 @@ const add = defineCommand({
   },
 })
 
+const skipping = defineCommand({
+  path: ['skipping'],
+  description: '名前が no_ で始まる入力',
+  input: z.object({ no_copy: z.boolean().default(false) }),
+  positional: [],
+  interactive: false,
+  run: async (input) => {
+    seen.push(input)
+    return await exitWith(0)
+  },
+})
+
 async function messageOf(promise: Promise<unknown>): Promise<string> {
   const error = await usageErrorOf(promise)
   return error.message
@@ -120,6 +132,13 @@ describe('runDefinition', () => {
     seen.length = 0
     await runDefinition(read, ['a/b/1'], capture())
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false }])
+  })
+
+  it('名前が no_ で始まる真偽値は、指定が無ければ false で、--no-copy を付けると true', async () => {
+    seen.length = 0
+    await runDefinition(skipping, [], capture())
+    await runDefinition(skipping, ['--no-copy'], capture())
+    expect(seen).toEqual([{ no_copy: false }, { no_copy: true }])
   })
 
   it('複数の位置引数は配列にする', async () => {

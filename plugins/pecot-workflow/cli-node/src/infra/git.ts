@@ -103,10 +103,58 @@ export function gitRemoteUrl(cwd?: string, remote = 'origin'): string | undefine
 }
 
 /**
+主の remote 名。origin、無ければ最初の remote。remote が無い・git の外なら undefined
+*/
+export function primaryRemoteName(cwd?: string): string | undefined {
+  let output: string
+  try {
+    output = runGit(['remote'], { cwd, check: true }).stdout
+  }
+  catch (error: unknown) {
+    if (error instanceof GitCommandError || isFileNotFound(error)) return undefined
+    throw error
+  }
+  const remotes = output.split('\n').map(line => pythonStrip(line)).filter(line => line !== '')
+  return remotes.includes('origin') ? 'origin' : remotes[0]
+}
+
+/**
+主の remote の URL から host・owner・repository を返す。remote 不在・git の外・URL 形式の不一致は undefined
+*/
+export function primaryRemoteRepository(cwd?: string): RemoteLocation | undefined {
+  const name = primaryRemoteName(cwd)
+  if (name === undefined) return undefined
+  const url = gitRemoteUrl(cwd, name)
+  if (url === undefined) return undefined
+  try {
+    return parseRemoteUrl(url)
+  }
+  catch (error: unknown) {
+    if (error instanceof InvalidValueError) return undefined
+    throw error
+  }
+}
+
+/**
 現在のブランチ名（detached HEAD では `HEAD`）。git の外なら undefined
 */
 export function gitCurrentBranch(cwd?: string): string | undefined {
   return runForValue(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd })
+}
+
+/**
+指定した remote の URL から host・owner・repository を返す。remote 不在・git の外・URL 形式の不一致は undefined
+*/
+export function remoteRepository(cwd: string, remote: string): RemoteLocation | undefined {
+  const url = gitRemoteUrl(cwd, remote)
+  if (url === undefined) return undefined
+  try {
+    return parseRemoteUrl(url)
+  }
+  catch (error: unknown) {
+    if (error instanceof InvalidValueError) return undefined
+    throw error
+  }
 }
 
 /**

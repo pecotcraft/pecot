@@ -36,15 +36,8 @@ const PENDING_PATHS: readonly (readonly string[])[] = [
   ['pr', 'preflight'],
   ['session', 'status'],
   ['session', 'restore'],
-  ['release', 'preflight'],
-  ['release', 'create'],
-  ['release', 'merge'],
   ['security', 'sync'],
   ['dependabot', 'sync'],
-  ['worktree', 'init'],
-  ['worktree', 'add'],
-  ['worktree', 'link'],
-  ['worktree', 'remove'],
 ]
 
 function keyOf(path: readonly string[]): string {
@@ -69,7 +62,7 @@ describe('コマンドの一覧', () => {
 
   it('未移植の path は toolName が重複しない', () => {
     const names = PENDING_PATHS.map(path => toolNameOf(path))
-    expect(new Set(names).size).toBe(34)
+    expect(new Set(names).size).toBe(names.length)
   })
 })
 

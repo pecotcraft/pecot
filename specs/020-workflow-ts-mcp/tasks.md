@@ -178,12 +178,12 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 **Independent Test**: `parity.test.ts` の `worktree-*`・`release-*` のシナリオが golden と一致する。
 この PR で足した 7 個が登録され、登録済みの全部で `--check` の差が 0。振る舞いの項目 217 個（worktree 129、release 88）が vitest につながる
 
-- [ ] T026 [P] [US1] `cli/commands/worktree.py` を `cli-node/src/commands/worktree.ts` に移し、`COMMANDS` に 4 個を足す。`worktree link` は `interactive: true` にする。CLI の上書き確認は今の対話のまま残す。
-- [ ] T027 [P] [US1] `cli/commands/release.py` を `cli-node/src/commands/release.ts` に移し、`COMMANDS` に 3 個を足す。
+- [x] T026 [P] [US1] `cli/commands/worktree.py` を `cli-node/src/commands/worktree.ts` に移し、`COMMANDS` に 4 個を足す。`worktree link` は `interactive: true` にする。CLI の上書き確認は今の対話のまま残す。
+- [x] T027 [P] [US1] `cli/commands/release.py` を `cli-node/src/commands/release.ts` に移し、`COMMANDS` に 3 個を足す。
   `resolve_release_target_repo` は、フェーズ 6 の同期が使う。`export` して、別のファイルから読めるようにする。
-- [ ] T028 [US1] Python が書いた状態を Node が読む `worktree-add-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
-- [ ] T029 [US1] 振る舞いの項目 217 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/worktree.test.ts` と `release.test.ts` である。
-- [ ] T030 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。
+- [x] T028 [US1] Python が書いた状態を Node が読む `worktree-add-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
+- [x] T029 [US1] 振る舞いの項目 217 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/worktree.test.ts` と `release.test.ts` である。
+- [x] T030 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。
 
 **Checkpoint**: 該当シナリオが全部一致する。この PR で足した 7 個が登録され、登録済みの全部で `--check` の差が 0。該当の項目 217 個が全部つながる
 

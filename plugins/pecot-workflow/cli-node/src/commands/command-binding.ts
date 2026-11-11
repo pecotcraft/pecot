@@ -91,6 +91,8 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
   // commander は 2 つ並べた名前の後ろを長い形とみなし、属性名にする。別名を先に書いて、属性名を元の名前にそろえる
   const flags = `${short === undefined ? '' : `${short}, `}${alias === undefined ? '' : `${alias}, `}${long}${kind === 'boolean' ? '' : ' <value>'}`
   const option = new Option(flags)
+  // `--no-copy` のような名前の入力そのものを、commander に否定形（既定が真）と読ませない
+  option.negate = false
   if (kind === 'list') option.argParser((value: string, previous: readonly string[] | undefined) => [...previous ?? [], value])
   return {
     field,

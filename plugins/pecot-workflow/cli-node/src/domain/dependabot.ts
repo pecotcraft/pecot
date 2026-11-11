@@ -1,15 +1,27 @@
 // Dependabot alert の状態判定。`release preflight` と `project info` が同じ判定を共有する。
 // 有効 / 無効・open 件数・最高 severity・一覧 URL をまとめて返す。取得は DependabotSource に任せる。
 
+import { describeErrorBody } from './api-error-detail.js'
 import type { DependabotAlert, DependabotFailure, DependabotResult, DependabotSource } from './dependabot-source.js'
 import { PecotError } from './errors.js'
-import { isJsonObject, tryParseJsonText } from './json.js'
-import { pythonStrip } from './python-format.js'
+import { isJsonObject, jsonField } from './json.js'
 
 /**
 alert の状態を判定できない。alerts が無効なのか権限不足なのかを区別できないときも含む
 */
 export class DependabotAlertError extends PecotError {}
+
+/**
+open の alert 1 件の要点
+*/
+export interface OpenAlert {
+  readonly number: number
+  /**
+  依存パッケージ名。応答に無ければ undefined
+  */
+  readonly package: string | undefined
+  readonly severity: string | undefined
+}
 
 export interface DependabotAlertStatus {
   /**
@@ -28,6 +40,10 @@ export interface DependabotAlertStatus {
   alert 一覧の Web URL
   */
   readonly alertsUrl: string
+  /**
+  open の alert の要点（番号が整数のものだけ）
+  */
+  readonly openAlerts: readonly OpenAlert[]
 }
 
 // severity の強さ順（大きいほど重い）。未知の値は順位 -1 として扱い、落とさない
@@ -52,14 +68,23 @@ function maxSeverity(alerts: readonly DependabotAlert[]): string | undefined {
   return best
 }
 
-/**
-API エラーの message に、応答本文 JSON の message だけを添える。本文が JSON でない（HTML 等）か message が無ければ添えない
-*/
 function describe(failure: DependabotFailure): string {
-  const body = tryParseJsonText(failure.responseBody ?? '')
-  if (!isJsonObject(body)) return failure.message
-  const detail = body['message']
-  return typeof detail === 'string' && pythonStrip(detail) !== '' ? `${failure.message} ${pythonStrip(detail)}` : failure.message
+  return describeErrorBody(failure.message, failure.responseBody)
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function openAlertOf(alert: DependabotAlert): OpenAlert | undefined {
+  const number = jsonField(alert, 'number')
+  if (typeof number !== 'number' || !Number.isSafeInteger(number)) return undefined
+  const dependency = jsonField(alert, 'dependency')
+  return {
+    number,
+    package: stringOrUndefined(jsonField(jsonField(dependency, 'package'), 'name')),
+    severity: stringOrUndefined(jsonField(jsonField(alert, 'security_vulnerability'), 'severity')),
+  }
 }
 
 /**
@@ -89,7 +114,7 @@ async function classifyForbidden(source: DependabotSource, owner: string, reposi
   if (unwrap(await source.isAlertsEnabled(owner, repository), owner, repository)) {
     throw new DependabotAlertError(`${owner}/${repository}: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)`)
   }
-  return { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl }
+  return { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl, openAlerts: [] }
 }
 
 /**
@@ -103,5 +128,5 @@ export async function fetchDependabotAlertStatus(source: DependabotSource, host:
   if (listed.kind === 'forbidden') return classifyForbidden(source, owner, repository, alertsUrl)
 
   const alerts = unwrap(listed, owner, repository)
-  return { enabled: true, openCount: alerts.length, maxSeverity: maxSeverity(alerts), alertsUrl }
+  return { enabled: true, openCount: alerts.length, maxSeverity: maxSeverity(alerts), alertsUrl, openAlerts: alerts.map(alert => openAlertOf(alert)).filter(alert => alert !== undefined) }
 }
