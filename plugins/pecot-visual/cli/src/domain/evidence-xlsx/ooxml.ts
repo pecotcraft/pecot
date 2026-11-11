@@ -482,14 +482,7 @@ function cellXfXml(definition: Readonly<CellXfDefinition>): string {
 }
 
 /**
-drawing1.xml。子要素順はスキーマで決まっている。
-`xdr:oneCellAnchor` の子要素順は `xdr:from → xdr:ext → (xdr:pic|xdr:grpSp) → xdr:clientData`。
-`xdr:pic` の子要素順は `nvPicPr → blipFill → spPr`。
-`r:embed` の rId は placement の並び順で振るため、buildDrawingRelsXml と同じ順で渡す。
-
-注記を持つ画像は、画像と注記を `xdr:grpSp` 1 つにまとめて oneCellAnchor 1 つで置く。
-注記の座標はグループ内 (画像左上が原点) なので、アンカーのオフセットは 0 のままで済む。
-cNvPr の id はグループ → 画像 → 注記の連番で、drawing 全体で一意にする。
+drawing1.xml。`r:embed` の rId は placement の並び順で振るため、buildDrawingRelsXml と同じ順で渡す。
 */
 export function buildDrawingXml(placements: readonly ImagePlacement[]): string {
   let nextShapeId = FIRST_SHAPE_ID
@@ -500,17 +493,17 @@ export function buildDrawingXml(placements: readonly ImagePlacement[]): string {
   }
   const anchors = placements.map((placement, offset) => {
     const { anchor } = placement
-    const hasShapes = placement.annotationShapes.length > 0
-    const groupId = hasShapes ? takeShapeId() : 0
-    const picture = buildPictureXml(placement, imageRelationshipId(offset), takeShapeId())
-    const body = hasShapes
-      ? buildGroupXml(
-          placement,
-          groupId,
-          picture,
-          placement.annotationShapes.map(shape => buildShapeXml(shape, takeShapeId())).join(''),
-        )
-      : picture
+    const relationshipId = imageRelationshipId(offset)
+    let body: string
+    if (placement.annotationShapes.length > 0) {
+      const groupId = takeShapeId()
+      const pictureXml = buildPictureXml(placement, relationshipId, takeShapeId())
+      const shapesXml = placement.annotationShapes.map(shape => buildShapeXml(shape, takeShapeId())).join('')
+      body = buildGroupXml(placement, groupId, pictureXml, shapesXml)
+    }
+    else {
+      body = buildPictureXml(placement, relationshipId, takeShapeId())
+    }
     return anchorXml({
       column: anchor.column,
       row: anchor.row,

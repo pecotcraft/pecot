@@ -37,8 +37,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
 import { buildPng } from '../_helpers/image-fixture.js'
-import { CONVERT_TIMEOUT_MS, readPpm, rasterize } from '../_helpers/raster.js'
 import { CLI_DIST, drainStderr, makeTransport } from '../_helpers/mcp-stdio.js'
+import { CONVERT_TIMEOUT_MS, rasterize, readPpm } from '../_helpers/raster.js'
 import type { PpmImage } from '../_helpers/raster.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 

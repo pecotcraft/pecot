@@ -10,7 +10,14 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Annotation, NormalizedEvidenceItem } from '../spec-schema.js'
-import { buildEvidenceLayout, DISPLAY_WIDTH_PX, LABEL_COLUMN_WIDTH_PX, VALUE_COLUMN_WIDTH_PX } from '../layout.js'
+import {
+  buildEvidenceLayout,
+  DISPLAY_WIDTH_PX,
+  EMU_PER_PIXEL,
+  LABEL_COLUMN_WIDTH_PX,
+  ROW_HEIGHT_PX,
+  VALUE_COLUMN_WIDTH_PX,
+} from '../layout.js'
 import {
   buildContentTypesXml,
   buildDrawingRelsXml,
@@ -551,7 +558,7 @@ describe('buildDrawingXml — 注記図形', () => {
     { type: 'arrow', from: { x: 0.4, y: 0.6 }, to: { x: 0.25, y: 0.5 } },
   ]
 
-  it('グループ・pic・sp の最小構成・既定スタイル・通し採番を具体値で pin する', () => {
+  it('注記付きの画像は、画像と注記を 1 つの grpSp にまとめ、id をグループ・画像・注記の順に振る', () => {
     expect(buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)).toBe(
       `${DECL}<xdr:wsDr xmlns:xdr="${NS_SPREADSHEET_DRAWING}" xmlns:a="${NS_DRAWINGML}" xmlns:r="${NS_OFFICE_REL}">`
       + `<xdr:oneCellAnchor>`
@@ -618,18 +625,27 @@ describe('buildDrawingXml — 注記図形', () => {
     )
   })
 
-  it('どの colOff も B 列の幅以下、どの rowOff も 190500 EMU 以下になる', () => {
-    const xml = buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)
+  it('注記付きの drawing では、どのアンカーの colOff も B 列の幅を、rowOff も行の高さを超えない', () => {
+    const layout = buildEvidenceLayout({
+      title: 'T',
+      createdDate: '2026-08-17',
+      extraHeaders: [],
+      images: [
+        { item: { ...item('1 枚目'), annotations: ANNOTATIONS }, width: 1920, height: 1080 },
+        { item: { ...item('2 枚目'), annotations: ANNOTATIONS }, width: 800, height: 600 },
+      ],
+    })
+    const xml = buildDrawingXml(layout.placements)
     const colOffsets = xml.matchAll(/<xdr:colOff>(\d+)<\/xdr:colOff>/g).map(m => Number(m[1])).toArray()
     const rowOffsets = xml.matchAll(/<xdr:rowOff>(\d+)<\/xdr:rowOff>/g).map(m => Number(m[1])).toArray()
 
-    expect(colOffsets.length).toBeGreaterThan(0)
-    expect(rowOffsets.length).toBeGreaterThan(0)
+    expect(colOffsets).toHaveLength(2)
+    expect(rowOffsets).toHaveLength(2)
     for (const offset of colOffsets) {
-      expect(offset).toBeLessThanOrEqual(1_333_500)
+      expect(offset).toBeLessThanOrEqual(LABEL_COLUMN_WIDTH_PX * EMU_PER_PIXEL)
     }
     for (const offset of rowOffsets) {
-      expect(offset).toBeLessThanOrEqual(190_500)
+      expect(offset).toBeLessThanOrEqual(ROW_HEIGHT_PX * EMU_PER_PIXEL)
     }
   })
 

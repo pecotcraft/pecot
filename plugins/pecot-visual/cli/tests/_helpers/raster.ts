@@ -47,9 +47,7 @@ export interface ColorBounds extends PixelRegion {
 }
 
 /**
-P6 (binary) PPM を読む。pdftoppm の既定出力形式で、ヘッダは
-「マジック → 幅 → 高さ → 最大値」の 4 トークン。トークン間の空白は任意で、
-`#` から行末まではコメント。画素は RGB 各 1 バイトが行優先で並ぶ。
+P6 (binary) PPM を読む。ヘッダは「マジック → 幅 → 高さ → 最大値」の 4 トークンで、`#` から行末まではコメント。
 */
 export function readPpm(filePath: string): PpmImage {
   const data = readFileSync(filePath)
@@ -66,17 +64,17 @@ export function readPpm(filePath: string): PpmImage {
     tokens.push(data.toString('ascii', start, offset))
   }
   expect(tokens[0], `${filePath} が P6 形式ではない`).toBe('P6')
-  // 最大値の直後の空白 1 文字までがヘッダ。CRLF を出すラスタライザに合わせて
-  // \r\n は 1 文字として飛ばす (1 バイトずれると RGB の位相が全滅し、原因の読めない
-  // fail になる)。
+  // 最大値の直後の空白 1 文字までがヘッダ。\r\n は 1 文字として飛ばす (1 バイトずれると RGB の位相が全滅する)。
   expect(isPpmSpace(data.at(offset)), `${filePath} のヘッダ終端が空白ではない`).toBe(true)
   let pixelStart = offset + 1
   if (data.at(offset) === 0x0D && data.at(pixelStart) === 0x0A) pixelStart += 1
-  return {
-    width: Number(tokens[1]),
-    height: Number(tokens[2]),
-    pixels: data.subarray(pixelStart),
-  }
+  const width = Number(tokens[1])
+  const height = Number(tokens[2])
+  const pixels = data.subarray(pixelStart)
+  expect(tokens[3], `${filePath} の最大値が 255 ではない (1 チャネル 1 バイト前提)`).toBe('255')
+  expect(pixels.length, `${filePath} の画素列が ${String(width)}x${String(height)} の RGB に足りない`)
+    .toBeGreaterThanOrEqual(width * height * 3)
+  return { width, height, pixels }
 }
 
 function isPpmSpace(byte: number | undefined): boolean {
@@ -86,18 +84,13 @@ function isPpmSpace(byte: number | undefined): boolean {
 /**
 PDF の全ページを PPM にする。アンチエイリアスを切って塗りの色を厳密一致させる。
 */
-export function rasterize(
-  pdfPath: string,
-  outputDirectory: string,
-  dpi: number = RENDER_DPI,
-  timeoutMs: number = CONVERT_TIMEOUT_MS,
-): readonly string[] {
+export function rasterize(pdfPath: string, outputDirectory: string): readonly string[] {
   mkdirSync(outputDirectory, { recursive: true })
   const prefix = path.join(outputDirectory, 'page')
   const result = spawnSync(
     'pdftoppm',
-    ['-r', String(dpi), '-aa', 'no', '-aaVector', 'no', pdfPath, prefix],
-    { encoding: 'utf8', timeout: timeoutMs },
+    ['-r', String(RENDER_DPI), '-aa', 'no', '-aaVector', 'no', pdfPath, prefix],
+    { encoding: 'utf8', timeout: CONVERT_TIMEOUT_MS },
   )
   expect(result.status, `pdftoppm に失敗: ${result.stderr}`).toBe(0)
   return readdirSync(outputDirectory)
@@ -131,10 +124,10 @@ export function colorBounds(
   tolerance = 0,
   region?: Readonly<PixelRegion>,
 ): ColorBounds {
-  const startX = Math.max(0, region?.minX ?? 0)
-  const startY = Math.max(0, region?.minY ?? 0)
-  const endX = Math.min(page.width - 1, region?.maxX ?? page.width - 1)
-  const endY = Math.min(page.height - 1, region?.maxY ?? page.height - 1)
+  const startX = Math.max(0, Math.floor(region?.minX ?? 0))
+  const startY = Math.max(0, Math.floor(region?.minY ?? 0))
+  const endX = Math.min(page.width - 1, Math.ceil(region?.maxX ?? page.width - 1))
+  const endY = Math.min(page.height - 1, Math.ceil(region?.maxY ?? page.height - 1))
   let pixels = 0
   let minX = Infinity
   let minY = Infinity
