@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
 from cli.core.worktree_links import (
     DEFAULT_WORKTREEIGNORE_CONTENT,
+    LinkPlan,
     WorktreeConfig,
     WorktreeConfigError,
     WorktreeLinkItem,
@@ -21,9 +22,11 @@ from cli.core.worktree_links import (
     _process_link,
     create_symlinks,
     create_symlinks_safe,
+    decide_overwrite,
     get_default_config,
     load_config,
     load_copy_exclude_spec,
+    plan_link,
     save_config,
 )
 from cli.tests.conftest import git_init_and_commit
@@ -281,7 +284,7 @@ class TestCreateSymlinks:
             ]
         )
 
-        results = create_symlinks(config, root, "wt1", "myrepo")
+        results = create_symlinks(config, root, root / "wt1" / "myrepo")
 
         assert len(results) == 1
         assert results[0].action == "created"
@@ -306,7 +309,7 @@ class TestCreateSymlinks:
             ]
         )
 
-        results = create_symlinks(config, root, "wt1", "myrepo")
+        results = create_symlinks(config, root, root / "wt1" / "myrepo")
 
         assert results[0].action == "created"
         symlink = root / "wt1" / "myrepo" / ".claude" / "settings.local.json"
@@ -326,7 +329,7 @@ class TestCreateSymlinks:
                 )
             ]
         )
-        results = create_symlinks(config, root, "wt1", "myrepo")
+        results = create_symlinks(config, root, root / "wt1" / "myrepo")
         assert results[0].action == "skipped"
 
     def test_dangling_symlink_target_skipped(self, tmp_path: Path) -> None:
@@ -343,7 +346,9 @@ class TestCreateSymlinks:
             target_repo="aist-roadmap",
             target_path="dangling.md",
         )
-        result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        result = _process_link(
+            link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True
+        )
 
         assert result.action == "skipped"
         assert "dangling" in result.message
@@ -360,7 +365,7 @@ class TestCreateSymlinks:
                 )
             ]
         )
-        results = create_symlinks(config, root, "wt1", "myrepo")
+        results = create_symlinks(config, root, root / "wt1" / "myrepo")
         assert results[0].action == "created"
         assert (root / "wt1" / "myrepo" / ".claude").is_dir()
 
@@ -378,7 +383,7 @@ class TestCreateSymlinks:
                 )
             ]
         )
-        results = create_symlinks(config, root, "wt1", "myrepo")
+        results = create_symlinks(config, root, root / "wt1" / "myrepo")
         assert results[0].action == "created"
         assert os.readlink(existing) == "../../base/aist-roadmap/CLAUDE.local.md"
 
@@ -441,7 +446,7 @@ class TestPecotGitignoreEnsureScript:
         root, config = _pecot_links_project(tmp_path)
 
         with caplog.at_level(logging.WARNING, logger="cli.core.worktree_links"):
-            create_symlinks(config, root, "wt1", "myrepo")
+            create_symlinks(config, root, root / "wt1" / "myrepo")
 
         assert str(tmp_path / "plugin" / self._REL) in caplog.text
 
@@ -463,7 +468,7 @@ class TestPecotGitignoreEnsureScript:
         root, config = _pecot_links_project(tmp_path)
         wt = root / "wt1" / "myrepo"
 
-        create_symlinks(config, root, "wt1", "myrepo")
+        create_symlinks(config, root, root / "wt1" / "myrepo")
 
         assert marker.read_text().strip() == str(wt)
 
@@ -475,7 +480,7 @@ class TestPecotGitignore:
         root, config = _pecot_links_project(tmp_path)
         wt = root / "wt1" / "myrepo"
 
-        create_symlinks(config, root, "wt1", "myrepo")
+        create_symlinks(config, root, root / "wt1" / "myrepo")
 
         gitignore = wt / ".pecot" / ".gitignore"
         assert gitignore.is_file()
@@ -486,7 +491,7 @@ class TestPecotGitignore:
         root, config = _pecot_links_project(tmp_path)
         wt = root / "wt1" / "myrepo"
 
-        create_symlinks_safe(config, root, "wt1", "myrepo")
+        create_symlinks_safe(config, root, root / "wt1" / "myrepo")
 
         assert (wt / ".pecot" / ".gitignore").is_file()
         assert _porcelain(wt) == ""
@@ -503,7 +508,7 @@ class TestPecotGitignore:
             ]
         )
 
-        create_symlinks(config, root, "wt1", "myrepo")
+        create_symlinks(config, root, root / "wt1" / "myrepo")
 
         assert not (root / "wt1" / "myrepo" / ".pecot").exists()
 
@@ -523,7 +528,7 @@ class TestCreateSymlinksSafe:
                 )
             ]
         )
-        results = create_symlinks_safe(config, root, "wt1", "myrepo", force=True)
+        results = create_symlinks_safe(config, root, root / "wt1" / "myrepo", force=True)
         assert results[0].action == "created"
         assert existing.is_symlink()
 
@@ -541,7 +546,7 @@ class TestCreateSymlinksSafe:
                 )
             ]
         )
-        results = create_symlinks_safe(config, root, "wt1", "myrepo", force=False)
+        results = create_symlinks_safe(config, root, root / "wt1" / "myrepo", force=False)
         assert results[0].action == "skipped"
         assert not existing.is_symlink()
 
@@ -721,7 +726,9 @@ class TestProcessLinkTrackedGuard:
             target_repo="aist-roadmap",
             target_path="README.md",
         )
-        result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        result = _process_link(
+            link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True
+        )
 
         assert result.action == "error"
         readme = wt_repo / "README.md"
@@ -740,7 +747,9 @@ class TestProcessLinkTrackedGuard:
             target_repo="aist-roadmap",
             target_path="docs",
         )
-        result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        result = _process_link(
+            link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True
+        )
 
         assert result.action == "error"
         docs = wt_repo / "docs"
@@ -758,7 +767,7 @@ class TestProcessLinkTrackedGuard:
             path="README.md", target_repo="aist-roadmap", target_path="README.md"
         )
         with caplog.at_level(logging.WARNING, logger="cli.core.worktree_links"):
-            _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+            _process_link(link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True)
         assert [(r.levelno, r.getMessage()) for r in caplog.records] == [
             (
                 logging.WARNING,
@@ -776,7 +785,9 @@ class TestProcessLinkTrackedGuard:
         (root / "base" / "aist-roadmap" / "b").write_text("shared")
         link = WorktreeLinkItem(path="a/b", target_repo="aist-roadmap", target_path="b")
         with caplog.at_level(logging.WARNING, logger="cli.core.worktree_links"):
-            result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+            result = _process_link(
+                link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True
+            )
         assert result.action == "error"
         assert len(caplog.records) == 1
         assert caplog.records[0].levelno == logging.WARNING
@@ -802,7 +813,9 @@ class TestProcessLinkTrackedGuard:
             target_repo="aist-roadmap",
             target_path="untracked.md",
         )
-        result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        result = _process_link(
+            link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True
+        )
 
         assert result.action == "created"
         assert (wt_repo / "untracked.md").is_symlink()
@@ -819,7 +832,87 @@ class TestProcessLinkTrackedGuard:
             target_repo="aist-roadmap",
             target_path="README.md",
         )
-        result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        result = _process_link(
+            link, root, root / "wt1" / "myrepo", confirm_callback=lambda _p, _t: True
+        )
 
         assert result.action == "created"
         assert (wt_repo / "README.md").is_symlink()
+
+
+# wt_root 指定と plan_link
+
+
+class TestWtRootAndPlan:
+    def _link(self, path: str = "a.txt") -> WorktreeLinkItem:
+        return WorktreeLinkItem(path=path, target_repo="aist-roadmap", target_path="a.txt")
+
+    def test_wt_root_outside_set_layout(self, tmp_path: Path) -> None:
+        """--path 相当: <root>/<set>/<repo> の外にも symlink を作る"""
+        root = _setup_project(tmp_path)
+        (root / "base" / "aist-roadmap" / "a.txt").write_text("shared")
+        wt_root = tmp_path / "elsewhere" / "deep" / "wt"
+        wt_root.mkdir(parents=True)
+        config = WorktreeConfig(links=[self._link("sub/a.txt")])
+
+        results = create_symlinks(config, root, wt_root)
+
+        assert results[0].action == "created"
+        symlink = wt_root / "sub" / "a.txt"
+        assert symlink.is_symlink()
+        assert symlink.read_text() == "shared"
+        assert not (root / "wt1" / "myrepo" / "sub").exists()
+
+    def test_symlink_through_different_depth_parent(self, tmp_path: Path) -> None:
+        """途中に深さの違う symlink があっても、リンク先へ解決できる"""
+        root = _setup_project(tmp_path)
+        (root / "base" / "aist-roadmap" / "a.txt").write_text("shared")
+        real_wt = tmp_path / "x" / "y" / "z" / "wt"
+        real_wt.mkdir(parents=True)
+        wt_root = tmp_path / "alias"
+        wt_root.symlink_to(real_wt)
+        config = WorktreeConfig(links=[self._link()])
+
+        results = create_symlinks(config, root, wt_root)
+
+        assert results[0].action == "created"
+        assert (wt_root / "a.txt").read_text() == "shared"
+
+    def test_plan_link_values(self, tmp_path: Path) -> None:
+        root = _setup_project(tmp_path)
+        wt_root = root / "wt1" / "myrepo"
+        link = self._link()
+        target = root / "base" / "aist-roadmap" / "a.txt"
+
+        assert plan_link(link, root, wt_root) is LinkPlan.SKIP_MISSING
+
+        target.symlink_to("/nonexistent/x")
+        assert plan_link(link, root, wt_root) is LinkPlan.SKIP_DANGLING
+        target.unlink()
+
+        target.write_text("shared")
+        assert plan_link(link, root, wt_root) is LinkPlan.CREATE
+
+        (wt_root / "a.txt").write_text("local")
+        assert plan_link(link, root, wt_root) is LinkPlan.SKIP_REAL_FILE
+        assert plan_link(link, root, wt_root, ask=True) is LinkPlan.ASK
+        assert plan_link(link, root, wt_root, force=True) is LinkPlan.UPDATE
+        assert (wt_root / "a.txt").read_text() == "local"
+
+        (wt_root / "a.txt").unlink()
+        (wt_root / "a.txt").symlink_to("elsewhere")
+        assert plan_link(link, root, wt_root) is LinkPlan.UPDATE
+
+    def test_plan_link_tracked(self, tmp_path: Path) -> None:
+        root = _setup_project(tmp_path)
+        wt_root = root / "wt1" / "myrepo"
+        git_init_and_commit(wt_root, {"a.txt": "x"})
+        (root / "base" / "aist-roadmap" / "a.txt").write_text("shared")
+
+        assert plan_link(self._link(), root, wt_root, force=True) is LinkPlan.SKIP_TRACKED
+
+    def test_decide_overwrite(self) -> None:
+        assert decide_overwrite(force=True, all_worktrees=False) == (True, False)
+        assert decide_overwrite(force=True, all_worktrees=True) == (True, False)
+        assert decide_overwrite(force=False, all_worktrees=True) == (False, False)
+        assert decide_overwrite(force=False, all_worktrees=False) == (False, True)

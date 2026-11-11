@@ -18,6 +18,7 @@ import shutil
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Literal
 
@@ -349,20 +350,6 @@ def get_default_config(
 # Symlink 生成
 
 
-def _compute_relative_target(
-    link: WorktreeLinkItem,
-) -> str:
-    """link から symlink 相対ターゲット文字列を計算
-
-    symlink の配置先は ``<root>/<set>/<repo>/<path>``。その親ディレクトリから
-    ``<root>`` まで遡る段数は ``len(Path(path).parts) - 1 + 2`` で求める。
-    （+2 は ``<set>/<repo>/`` 分）。
-    """
-    depth = len(Path(link.path).parts) - 1 + 2
-    prefix = "../" * depth
-    return f"{prefix}base/{link.target_repo}/{link.target_path}"
-
-
 def _resolve_absolute_target(project_root: Path, link: WorktreeLinkItem) -> Path:
     return project_root / "base" / link.target_repo / link.target_path
 
@@ -383,37 +370,89 @@ def _is_tracked_in_repo(repo_root: Path, rel_path: str) -> bool:
     return bool(result.stdout.strip())
 
 
+class LinkPlan(str, Enum):
+    """1 本の link に対する判定値（副作用なしで求める）"""
+
+    CREATE = "create"
+    UPDATE = "update"
+    ASK = "ask"
+    SKIP_MISSING = "skip_missing"
+    SKIP_DANGLING = "skip_dangling"
+    SKIP_TRACKED = "skip_tracked"
+    SKIP_REAL_FILE = "skip_real_file"
+
+
+def decide_overwrite(*, force: bool, all_worktrees: bool) -> tuple[bool, bool]:
+    """上書きの決め方を ``(force, ask)`` で返す
+
+    ``--force`` は確認なしで上書きする。``--all`` は確認せずに飛ばす。
+    1 つの worktree だけのときは確認する。予定と本番の両方がこれを使う。
+    """
+    if force:
+        return True, False
+    return False, not all_worktrees
+
+
+def plan_link(
+    link: WorktreeLinkItem,
+    project_root: Path,
+    wt_root: Path,
+    *,
+    force: bool = False,
+    ask: bool = False,
+) -> LinkPlan:
+    """1 本の link をどう扱うかを判定する（stat と ``git ls-files`` だけを行う）
+
+    判定の順は、リンク先なし → 既存の symlink → 実ファイル／ディレクトリ → 新規。
+    """
+    abs_target = _resolve_absolute_target(project_root, link)
+    if not abs_target.exists():
+        return LinkPlan.SKIP_DANGLING if abs_target.is_symlink() else LinkPlan.SKIP_MISSING
+    symlink_path = wt_root / link.path
+    if symlink_path.is_symlink():
+        return LinkPlan.UPDATE
+    if symlink_path.exists():
+        if _is_tracked_in_repo(wt_root, link.path):
+            return LinkPlan.SKIP_TRACKED
+        if force:
+            return LinkPlan.UPDATE
+        if ask:
+            return LinkPlan.ASK
+        return LinkPlan.SKIP_REAL_FILE
+    return LinkPlan.CREATE
+
+
 def _process_link(
     link: WorktreeLinkItem,
     project_root: Path,
-    set_name: str,
-    repo_name: str,
-    overwrite_strategy: Callable[[Path, Path], bool],
+    wt_root: Path,
+    *,
+    force: bool = False,
+    confirm_callback: Callable[[Path, Path], bool] | None = None,
 ) -> SymlinkResult:
     """1 本の link 定義を実際のファイルシステム操作に変換する
 
     Args:
         link: リンク定義。
         project_root: プロジェクトルート。
-        set_name: WT セット名。
-        repo_name: wt 側リポジトリのディレクトリ名。
-        overwrite_strategy: リアルファイル／ディレクトリが配置先に存在する時の
-            上書き可否判定。``(symlink_path, target_abs_path) -> bool``。
-            既存 symlink は常に張り替えるので呼ばれない。
+        wt_root: symlink を作る worktree のルート。
+        force: 実ファイル／ディレクトリを確認なしで上書きする。
+        confirm_callback: 実ファイル／ディレクトリがあるときの上書き可否。
+            ``(symlink_path, target_abs_path) -> bool``。None なら確認せず飛ばす。
     """
-    symlink_path = project_root / set_name / repo_name / link.path
+    symlink_path = wt_root / link.path
     abs_target = _resolve_absolute_target(project_root, link)
-    rel_target = _compute_relative_target(link)
+    plan = plan_link(link, project_root, wt_root, force=force, ask=confirm_callback is not None)
 
-    if not abs_target.exists():
-        if abs_target.is_symlink():
-            logger.warning("target is a dangling symlink: %s", abs_target)
-            return SymlinkResult(
-                symlink_path=symlink_path,
-                target_path=abs_target,
-                action="skipped",
-                message=f"target is a dangling symlink: {abs_target}",
-            )
+    if plan is LinkPlan.SKIP_DANGLING:
+        logger.warning("target is a dangling symlink: %s", abs_target)
+        return SymlinkResult(
+            symlink_path=symlink_path,
+            target_path=abs_target,
+            action="skipped",
+            message=f"target is a dangling symlink: {abs_target}",
+        )
+    if plan is LinkPlan.SKIP_MISSING:
         logger.warning("target does not exist: %s", abs_target)
         return SymlinkResult(
             symlink_path=symlink_path,
@@ -421,36 +460,39 @@ def _process_link(
             action="skipped",
             message=f"target does not exist: {abs_target}",
         )
+    if plan is LinkPlan.SKIP_TRACKED:
+        logger.warning(
+            "symlink creation skipped because the path is tracked by git: %s", symlink_path
+        )
+        return SymlinkResult(
+            symlink_path=symlink_path,
+            target_path=abs_target,
+            action="error",
+            message=f"symlink creation aborted because the path is tracked by git: {link.path}",
+        )
+    if plan is LinkPlan.SKIP_REAL_FILE or (
+        plan is LinkPlan.ASK
+        and (confirm_callback is None or not confirm_callback(symlink_path, abs_target))
+    ):
+        return SymlinkResult(
+            symlink_path=symlink_path,
+            target_path=abs_target,
+            action="skipped",
+            message=f"a real file exists: {symlink_path}",
+        )
 
+    rel_target = ""
     try:
         symlink_path.parent.mkdir(parents=True, exist_ok=True)
-
         if symlink_path.is_symlink():
             symlink_path.unlink()
         elif symlink_path.exists():
-            repo_root = project_root / set_name / repo_name
-            if _is_tracked_in_repo(repo_root, link.path):
-                logger.warning(
-                    "symlink creation skipped because the path is tracked by git: %s", symlink_path
-                )
-                return SymlinkResult(
-                    symlink_path=symlink_path,
-                    target_path=abs_target,
-                    action="error",
-                    message=f"symlink creation aborted because the path is tracked by git: {link.path}",
-                )
-            if not overwrite_strategy(symlink_path, abs_target):
-                return SymlinkResult(
-                    symlink_path=symlink_path,
-                    target_path=abs_target,
-                    action="skipped",
-                    message=f"a real file exists: {symlink_path}",
-                )
             if symlink_path.is_dir():
                 shutil.rmtree(symlink_path)
             else:
                 symlink_path.unlink()
-
+        # 親の途中に深さの違う symlink があっても、カーネルは実際の親から辿る
+        rel_target = os.path.relpath(abs_target, os.path.realpath(symlink_path.parent))
         symlink_path.symlink_to(rel_target)
         return SymlinkResult(
             symlink_path=symlink_path,
@@ -527,53 +569,37 @@ def _ensure_pecot_gitignore(config: WorktreeConfig, wt_root: Path) -> None:
 def create_symlinks(
     config: WorktreeConfig,
     project_root: Path,
-    set_name: str,
-    repo_name: str,
+    wt_root: Path,
 ) -> list[SymlinkResult]:
     """シンボリックリンクを作成（既存ファイル/ディレクトリは常に上書き）
 
     Args:
         config: 設定
         project_root: プロジェクトルート
-        set_name: WTセット名（例: "wt1"）
-        repo_name: wt 側リポジトリのディレクトリ名
+        wt_root: symlink を作る worktree のルート
 
     Returns:
         SymlinkResult のリスト
     """
-    _ensure_pecot_gitignore(config, project_root / set_name / repo_name)
-    return [
-        _process_link(
-            link, project_root, set_name, repo_name, overwrite_strategy=lambda _p, _t: True
-        )
-        for link in config.links
-    ]
+    return create_symlinks_safe(config, project_root, wt_root, force=True)
 
 
 def create_symlinks_safe(
     config: WorktreeConfig,
     project_root: Path,
-    set_name: str,
-    repo_name: str,
+    wt_root: Path,
+    *,
     force: bool = False,
     confirm_callback: Callable[[Path, Path], bool] | None = None,
 ) -> list[SymlinkResult]:
     """シンボリックリンクを安全に作成（既存ファイルの競合処理付き）
 
-    create_symlinks と異なり、リアルファイル／ディレクトリが存在する場合に
+    リアルファイル／ディレクトリが存在する場合に
     ``force`` または ``confirm_callback`` で上書き可否を制御する。
     """
-
-    def strategy(symlink_path: Path, abs_target: Path) -> bool:
-        if force:
-            return True
-        if confirm_callback is not None:
-            return confirm_callback(symlink_path, abs_target)
-        return False
-
-    _ensure_pecot_gitignore(config, project_root / set_name / repo_name)
+    _ensure_pecot_gitignore(config, wt_root)
     return [
-        _process_link(link, project_root, set_name, repo_name, overwrite_strategy=strategy)
+        _process_link(link, project_root, wt_root, force=force, confirm_callback=confirm_callback)
         for link in config.links
     ]
 
@@ -598,4 +624,7 @@ __all__ = [
     "get_default_config",
     "create_symlinks",
     "create_symlinks_safe",
+    "LinkPlan",
+    "decide_overwrite",
+    "plan_link",
 ]

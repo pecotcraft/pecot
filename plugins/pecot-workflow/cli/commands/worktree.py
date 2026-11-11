@@ -254,7 +254,10 @@ def _resolve_link_targets(
         except RuntimeError as e:
             out.error(str(e))
             raise typer.Exit(1) from None
-    resolved_dir = directory.resolve()
+    from cli.core.git import git_toplevel
+
+    root = git_toplevel(directory)
+    resolved_dir = (root if root is not None else directory).resolve()
     resolved_main = main_wt.resolve()
     if resolved_dir == resolved_main:
         out.error("use --all in the main worktree")
@@ -266,26 +269,36 @@ def _echo_link_preview(
     targets: list[Path],
     config: WorktreeConfig,
     project_root: Path,
-    repo_dir_name: str,
+    force: bool,
+    all_worktrees: bool,
     out: Output,
 ) -> None:
-    """Show the link plan in dry-run mode"""
+    """Show the link plan in dry-run mode (the same decision as the real run)"""
+    from cli.core.worktree_links import LinkPlan, decide_overwrite, plan_link
+
+    skip_reasons = {
+        LinkPlan.SKIP_MISSING: "target does not exist",
+        LinkPlan.SKIP_DANGLING: "target is a dangling symlink",
+        LinkPlan.SKIP_REAL_FILE: "a real file exists",
+        LinkPlan.SKIP_TRACKED: "tracked by git",
+    }
+    use_force, ask = decide_overwrite(force=force, all_worktrees=all_worktrees)
     for target_wt in targets:
-        set_name = target_wt.parent.name
         for link in config.links:
-            symlink_path = project_root / set_name / repo_dir_name / link.path
+            symlink_path = target_wt / link.path
             target_abs = project_root / "base" / link.target_repo / link.target_path
-            if not target_abs.exists():
-                op = Operation(Verb.SKIP, f"symlink {symlink_path} (target missing)")
-            elif symlink_path.is_symlink():
+            plan = plan_link(link, project_root, target_wt, force=use_force, ask=ask)
+            if plan is LinkPlan.CREATE:
+                op = Operation(Verb.CREATE, f"symlink {symlink_path} -> {target_abs}")
+            elif plan is LinkPlan.UPDATE:
                 op = Operation(Verb.UPDATE, f"symlink {symlink_path} -> {target_abs}")
-            elif symlink_path.exists():
+            elif plan is LinkPlan.ASK:
                 op = Operation(
                     Verb.UPDATE,
                     f"symlink {symlink_path} -> {target_abs} (real file, asks first)",
                 )
             else:
-                op = Operation(Verb.CREATE, f"symlink {symlink_path} -> {target_abs}")
+                op = Operation(Verb.SKIP, f"symlink {symlink_path} ({skip_reasons[plan]})")
             out.planned(op)
 
 
@@ -301,25 +314,21 @@ def _apply_links_to_worktree(
     target_wt: Path,
     config: WorktreeConfig,
     project_root: Path,
-    repo_dir_name: str,
     force: bool,
     all_worktrees: bool,
     out: Output,
 ) -> tuple[int, int, int]:
     """Create links in one worktree, show the result, and return the (created, skipped, error) counts"""
-    from cli.core.worktree_links import create_symlinks_safe
-
-    set_name = target_wt.parent.name
+    from cli.core.worktree_links import create_symlinks_safe, decide_overwrite
 
     # --force overwrites without asking, --all skips without asking, a single target asks
-    callback = None if force or all_worktrees else _confirm_overwrite
+    use_force, ask = decide_overwrite(force=force, all_worktrees=all_worktrees)
     results = create_symlinks_safe(
         config,
         project_root,
-        set_name,
-        repo_dir_name,
-        force=force,
-        confirm_callback=callback,
+        target_wt,
+        force=use_force,
+        confirm_callback=_confirm_overwrite if ask else None,
     )
 
     created = [r for r in results if r.action == "created"]
@@ -384,15 +393,13 @@ def worktree_link(
         out.error(str(e))
         raise typer.Exit(1) from None
 
-    repo_dir_name = main_wt.name
-
     targets = _resolve_link_targets(directory, main_wt, all_worktrees, out)
     if not targets:
         out.count("sub-worktrees", 0)
         return
 
     if dry_run:
-        _echo_link_preview(targets, config, project_root, repo_dir_name, out)
+        _echo_link_preview(targets, config, project_root, force, all_worktrees, out)
         return
 
     total_created = 0
@@ -401,7 +408,7 @@ def worktree_link(
 
     for target_wt in targets:
         created, skipped, errors = _apply_links_to_worktree(
-            target_wt, config, project_root, repo_dir_name, force, all_worktrees, out
+            target_wt, config, project_root, force, all_worktrees, out
         )
         total_created += created
         total_skipped += skipped
