@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.commands.session import _active_issue_lines, _collect_flag_statuses
@@ -83,6 +84,9 @@ class TestCollectFlagStatuses:
 class TestFlagStatusCommand:
     """flag_status コマンドのテスト"""
 
+    @add_test_properties(
+        verifies=["PW-SESSION-STATUS-01", "PW-SESSION-STATUS-02", "PW-SESSION-STATUS-03"]
+    )
     def test_normal_output(self, tmp_path: Path) -> None:
         """正常系: ブランチ・リポジトリ・フラグすべてあり"""
         exists_map = {

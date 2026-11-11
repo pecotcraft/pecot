@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "plugins": {
+    "pecot-tools": {
+      "entries": "complete",
+      "coverage": "on",
+      "sources": [],
+      "tests": [
+        "cli/tests/**/*.txt"
+      ]
+    },
+    "pecot-workflow": {
+      "entries": "complete",
+      "coverage": "on",
+      "sources": [],
+      "tests": [
+        "cli/tests/**/*.txt"
+      ]
+    }
+  }
+}

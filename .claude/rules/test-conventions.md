@@ -63,7 +63,7 @@ paths:
 
 ## 項目へのつなぎ
 
-vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。`verifies` の関数は #256 で足します。
+vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。`verifies` の関数は、各 project の `tests/_helpers/verifies.ts` にあります。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli-node/` です。
 
 ```ts
 it('バケット名に大文字があると、awscli を呼ばずに入力エラーを返す', async (ctx) => {

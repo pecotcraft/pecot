@@ -21,7 +21,7 @@
     "test": "vitest run --coverage --project cli",
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts",
-    "test:hooks": "vitest run --project hooks",
+    "test:hooks": "vitest run --project hooks --outputFile.junit=test-results/junit-hooks.xml",
     "record:parity": "tsx tests/parity/record.ts",
     "record:parity:check": "tsx tests/parity/record.ts --check"
   },
@@ -31,6 +31,9 @@
     "zod": "^4.6.7"
   },
   "knip": {
+    "ignoreFiles": [
+      "tests/_helpers/verifies.ts"
+    ],
     "project": [
       "src/**/*.ts",
       "tests/**/*.ts",

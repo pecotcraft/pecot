@@ -54,6 +54,7 @@
         "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh"
       ],
       "dependsOn": ["install", "build-cli"],
+      "outputs": ["{projectRoot}/cli/test-results/junit.xml"],
       "metadata": {
         "description": "install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 25 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。plugin.json、.mcp.json、bin/ などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
       },

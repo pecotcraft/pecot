@@ -4,7 +4,8 @@
     "pecot-workflow": {
       "entries": "partial",
       "coverage": "off",
-      "sources": []
+      "sources": [],
+      "tests": []
     }
   }
 }

@@ -4,12 +4,14 @@
     "pecot-tools": {
       "entries": "partial",
       "coverage": "off",
-      "sources": []
+      "sources": [],
+      "tests": []
     },
     "pecot-workflow": {
       "entries": "partial",
       "coverage": "off",
-      "sources": []
+      "sources": [],
+      "tests": []
     }
   }
 }

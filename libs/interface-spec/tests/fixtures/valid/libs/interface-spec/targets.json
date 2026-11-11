@@ -6,14 +6,16 @@
       "coverage": "off",
       "sources": [
         "cli/src/**/*.ts"
-      ]
+      ],
+      "tests": []
     },
     "pecot-workflow": {
       "entries": "complete",
       "coverage": "off",
       "sources": [
         "cli/**/*.py"
-      ]
+      ],
+      "tests": []
     }
   }
 }

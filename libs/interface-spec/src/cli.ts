@@ -4,6 +4,7 @@ import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { checkCommandsMd, writeCommandsMd } from './commands-md.js'
 import { LoadError } from './infra/load.js'
+import { linkRepository } from './links-repository.js'
 import { validateRepository } from './validate-repository.js'
 
 export interface Output {
@@ -11,7 +12,7 @@ export interface Output {
   readonly stderr: (text: string) => void
 }
 
-const USAGE = 'usage: interface-spec validate [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]'
+const USAGE = 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]'
 
 export function defaultRoot(): string {
   return path.resolve(import.meta.dirname, '../../..')
@@ -38,8 +39,8 @@ function parseArguments(rest: readonly string[], flags: readonly string[]): { ro
 
 export async function run(argv: readonly string[], output: Output): Promise<number> {
   const [command, ...rest] = argv
-  const parsed = command === 'validate' || command === 'commands-md'
-    ? parseArguments(rest, command === 'validate' ? [] : ['--check', '--write'])
+  const parsed = command === 'validate' || command === 'links' || command === 'commands-md'
+    ? parseArguments(rest, command === 'commands-md' ? ['--check', '--write'] : [])
     : undefined
   if (parsed === undefined) {
     output.stderr(`${USAGE}\n`)
@@ -51,7 +52,7 @@ export async function run(argv: readonly string[], output: Output): Promise<numb
       for (const line of written) output.stdout(`${line}\n`)
       return 0
     }
-    const lines = command === 'validate' ? await validateRepository(parsed.root) : await checkCommandsMd(parsed.root)
+    const lines = await check(command, parsed.root)
     for (const line of lines) output.stderr(`${line}\n`)
     return lines.length === 0 ? 0 : 1
   }
@@ -59,6 +60,12 @@ export async function run(argv: readonly string[], output: Output): Promise<numb
     output.stderr(`error: ${describeFailure(error)}\n`)
     return 2
   }
+}
+
+async function check(command: string | undefined, root: string): Promise<string[]> {
+  if (command === 'validate') return validateRepository(root)
+  if (command === 'links') return linkRepository(root)
+  return checkCommandsMd(root)
 }
 
 // 読み込みの失敗は LoadError が `<path>: <code>` を持つ。終了コード 1（指摘あり）と見分けるため 2 で終わる。

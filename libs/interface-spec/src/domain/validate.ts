@@ -332,6 +332,16 @@ function validBehaviors(list: unknown): Behavior[] {
   })
 }
 
+// 形が崩れていても取れる振る舞いの項目の ID を集める。validate と links が同じ集め方を使う。
+export function collectBehaviorIds(data: unknown): string[] {
+  if (!isRecord(data)) return []
+  const entries = isRecord(data['entries']) ? data['entries'] : {}
+  return [
+    ...Object.values(entries).flatMap(entry => (isRecord(entry) ? validBehaviors(entry['behaviors']) : []).map(item => item.id)),
+    ...validBehaviors(data['common_behaviors']).map(item => item.id),
+  ]
+}
+
 function validEnvironment(list: unknown): { readonly name: string, readonly effect: string }[] {
   const items: unknown[] = Array.isArray(list) ? list : []
   const result: { readonly name: string, readonly effect: string }[] = []
@@ -347,23 +357,20 @@ function lenientFindings(file: string, data: unknown, generated: GeneratedFile |
   if (!isRecord(data)) return { findings: [], ids: [] }
   const entries = isRecord(data['entries']) ? data['entries'] : {}
   const findings: Finding[] = []
-  const ids: string[] = []
   for (const [id, entry] of Object.entries(entries)) {
     if (!isRecord(entry)) continue
     const behaviors = validBehaviors(entry['behaviors'])
-    ids.push(...behaviors.map(item => item.id))
     findings.push(
       ...behaviorFindings(file, behaviors, id, id, 'behaviors'),
       ...environmentFindings(file, id, validEnvironment(entry['environment'])),
     )
   }
   const common = validBehaviors(data['common_behaviors'])
-  ids.push(...common.map(item => item.id))
   if (generated !== undefined) {
     findings.push(...behaviorFindings(file, common, undefined, `${generated.prefix}-COMMON`, 'common_behaviors'))
   }
   findings.push(...environmentFindings(file, undefined, validEnvironment(data['environment'])))
-  return { findings, ids }
+  return { findings, ids: collectBehaviorIds(data) }
 }
 
 function checkPlugin(plugin: PluginInput): { readonly findings: Finding[], readonly ids: readonly string[] } {
