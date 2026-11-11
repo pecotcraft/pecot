@@ -26,6 +26,7 @@
 .nxignore
 .pre-commit-config.yaml
 README.md
+libs/interface-spec/package.json
 libs/interface-spec/src/cli.ts
 libs/interface-spec/src/domain/diff.ts
 libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml

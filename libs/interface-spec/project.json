@@ -57,7 +57,7 @@
         "install"
       ],
       "metadata": {
-        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソースは、glob を targets.json へ書く段階で inputs に足す。"
+        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。失敗は 1 件 1 行で標準エラーに出す。"
       },
       "options": {
         "command": "pnpm exec tsx src/cli.ts validate",

@@ -53,6 +53,11 @@ function patternOf(properties: Readonly<Record<string, unknown>>, name: string):
   return isRecord(property) ? property['pattern'] : undefined
 }
 
+function itemsOf(property: unknown): Readonly<Record<string, unknown>> | undefined {
+  const items = isRecord(property) ? property['items'] : undefined
+  return isRecord(items) ? items : undefined
+}
+
 function descriptionOf(property: unknown): unknown {
   return isRecord(property) ? property['description'] : undefined
 }
@@ -78,6 +83,7 @@ describe('MCP ツール契約 (tools/list)', () => {
   }
 
   it('tools/list のツール名の集合が generated.json の項目と一致する', () => {
+    // 26 はツールを足す人が直す値。generated.json を書き出し直しても、直し忘れはここで止まる。
     expect(listed).toHaveLength(26)
     const listedNames = listed.map(tool => tool.name)
     const generatedNames = GENERATED_TOOLS.map(tool => tool.name)
@@ -108,8 +114,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     const properties = propertiesOf(toolOf(name).inputSchema)
     const described = Object.values(properties).map(property => descriptionOf(property))
     const itemFields = Object.values(properties)
-      .map(property => (isRecord(property) ? property['items'] : undefined))
-      .flatMap(items => Object.values(propertiesOf(isRecord(items) ? items : undefined)))
+      .map(property => itemsOf(property))
+      .flatMap(items => Object.values(propertiesOf(items)))
       .map(property => descriptionOf(property))
 
     for (const description of [...described, ...itemFields]) {
@@ -139,9 +145,9 @@ describe('MCP ツール契約 (tools/list)', () => {
 
   it.each(GENERATED_TOOLS)('$name が配列の要素に宣言外のキーを許さない', ({ name }) => {
     const items = Object.values(propertiesOf(toolOf(name).inputSchema))
-      .map(property => (isRecord(property) ? property['items'] : undefined))
-      .filter(item => isRecord(item) && item['type'] === 'object')
-      .map(item => (isRecord(item) ? item['additionalProperties'] : undefined))
+      .map(property => itemsOf(property))
+      .filter(item => item?.['type'] === 'object')
+      .map(item => item?.['additionalProperties'])
 
     expect(items.every(value => value === false)).toBe(true)
   })
@@ -159,6 +165,7 @@ describe('MCP ツール契約 (tools/list)', () => {
   it.each(GENERATED_TOOLS)('$name が title と description を持ち openWorldHint が true', ({ name }) => {
     const tool = toolOf(name)
 
+    // title は generated.json の形式に欄が無く、書き出しの対象外。ここで値の有無だけ確かめる。
     expect(tool.title).toEqual(expect.stringMatching(/\S/))
     expect(tool.description).toEqual(expect.stringMatching(/\S/))
     expect(tool.annotations?.openWorldHint).toBe(true)

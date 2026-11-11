@@ -48,6 +48,7 @@
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
+        "{workspaceRoot}/libs/interface-spec/package.json",
         "sharedGlobals",
         "pecotToolsPluginTestGlobals",
         "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh"
@@ -106,6 +107,7 @@
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
+        "{workspaceRoot}/libs/interface-spec/package.json",
         "sharedGlobals",
         "pecotToolsPluginLintGlobals"
       ],
