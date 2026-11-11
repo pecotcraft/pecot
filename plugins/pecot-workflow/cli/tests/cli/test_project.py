@@ -2645,6 +2645,18 @@ class TestInfoDependabotAlerts:
         alerts_url="https://ghes.example.com/test-owner/repo-b/security/dependabot",
     )
 
+    @staticmethod
+    def _by_name(**results: Any) -> MagicMock:
+        """取得は並列なので、呼ばれた順ではなくリポジトリの名前で結果を返す偽物を作る"""
+
+        def fetch(_client: Any, _host: str, _owner: str, name: str) -> DependabotAlertStatus:
+            result = results[name.replace("-", "_")]
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        return MagicMock(side_effect=fetch)
+
     def _invoke(self, fetch: MagicMock, *args: str):  # type: ignore[no-untyped-def]
         config = MagicMock()
         config.host = "ghes.example.com"
@@ -2670,7 +2682,7 @@ class TestInfoDependabotAlerts:
             return runner.invoke(app, ["project", "info", *args])
 
     def test_lines_for_enabled_and_disabled(self) -> None:
-        fetch = MagicMock(side_effect=[self.ENABLED, self.DISABLED])
+        fetch = self._by_name(repo_a=self.ENABLED, repo_b=self.DISABLED)
 
         result = self._invoke(fetch)
 
@@ -2682,11 +2694,9 @@ class TestInfoDependabotAlerts:
         assert lines[b + 1] == "    dependabot_alerts: disabled"
 
     def test_failure_is_shown_and_does_not_stop(self) -> None:
-        fetch = MagicMock(
-            side_effect=[
-                DependabotAlertError("test-owner/repo-a: GitHub APIエラー: 500"),
-                self.DISABLED,
-            ]
+        fetch = self._by_name(
+            repo_a=DependabotAlertError("test-owner/repo-a: GitHub APIエラー: 500"),
+            repo_b=self.DISABLED,
         )
 
         result = self._invoke(fetch)
@@ -2699,7 +2709,7 @@ class TestInfoDependabotAlerts:
         assert "    dependabot_alerts: disabled" in result.stdout
 
     def test_json_includes_dependabot_alerts(self) -> None:
-        fetch = MagicMock(side_effect=[self.ENABLED, DependabotAlertError("理由")])
+        fetch = self._by_name(repo_a=self.ENABLED, repo_b=DependabotAlertError("理由"))
 
         result = self._invoke(fetch, "--json")
 
