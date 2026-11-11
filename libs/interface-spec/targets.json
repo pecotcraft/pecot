@@ -5,7 +5,7 @@
     "pecot-visual": { "entries": "complete", "coverage": "on", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
     "pecot-workflow": {
       "entries": "complete",
-      "coverage": "off",
+      "coverage": "on",
       "sources": [
         "cli/commands/**/*.py",
         "cli/core/**/*.py",
