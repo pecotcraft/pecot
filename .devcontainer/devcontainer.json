@@ -9,7 +9,7 @@
     "ghcr.io/devcontainers/features/aws-cli:1": { "version": "2.39.4" },
     "ghcr.io/devcontainers-extra/features/actionlint:1": { "version": "1.7.12" },
     // version は pnpm-lock.yaml の playwright の版にそろえる。
-    "./features/playwright-deps": { "version": "1.64.1" }
+    "./features/playwright-deps": { "version": "1.65.0" }
   },
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"

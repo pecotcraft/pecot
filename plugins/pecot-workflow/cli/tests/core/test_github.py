@@ -7,6 +7,7 @@ HTTPリクエストとsubprocessをモック化。
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -3417,7 +3418,7 @@ class TestAuthHeaderPrefix:
 class TestTokenFallback:
     """401時にgh auth tokenへフォールバックしてリトライ"""
 
-    def test_rest_fallback_on_401(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_rest_fallback_on_401(self, caplog: pytest.LogCaptureFixture) -> None:
         """REST API 401→gh auth tokenフォールバック→リトライ成功、stderr警告出力"""
         client = GitHubClient(host="ghes.example.com", token="expired_token")
 
@@ -3446,19 +3447,21 @@ class TestTokenFallback:
             original_setup()
             client._rest.get = mock_get
 
-        with patch.object(client, "_get_token_from_gh", return_value="fresh_token"):
-            with patch.object(client, "_setup_clients", side_effect=patched_setup):
-                client._rest.get = mock_get
-                result = client._rest_request("get", "/user")
+        with caplog.at_level(logging.WARNING, logger="cli.core.github.client"):
+            with patch.object(client, "_get_token_from_gh", return_value="fresh_token"):
+                with patch.object(client, "_setup_clients", side_effect=patched_setup):
+                    client._rest.get = mock_get
+                    result = client._rest_request("get", "/user")
 
         assert result.status_code == 200
         assert client.token == "fresh_token"
         assert client._used_fallback is True
 
-        captured = capsys.readouterr()
-        assert "the token in the environment variable is invalid" in captured.err
-        assert "fell back to gh auth token" in captured.err
-        assert "update or remove the token in .env" in captured.err
+        warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+        assert len(warnings) == 1
+        assert "the token in the environment variable is invalid" in warnings[0]
+        assert "fell back to gh auth token" in warnings[0]
+        assert "update or remove the token in .env" in warnings[0]
         client.close()
 
     def test_no_retry_if_already_fallen_back(self) -> None:

@@ -2,10 +2,10 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import { createOutput, VerbSchema } from '../../src/commands/output.js'
+import { createOutput, createProcessIo, VerbSchema } from '../../src/commands/output.js'
 import { parseJson } from '../../src/tests/_helpers/json.js'
 
 const StreamSchema = z.enum(['stdout', 'stderr']).nullable()
@@ -98,5 +98,36 @@ describe('共通の出力関数', () => {
   it.each(named)('$name', ({ item }) => {
     const expected = item.stream === null ? [] : [{ stream: item.stream, text: item.line }]
     expect(run(item)).toEqual(expected)
+  })
+})
+
+function captureWrites(stream: 'stdout' | 'stderr'): string[] {
+  const written: string[] = []
+  vi.spyOn(stream === 'stdout' ? process.stdout : process.stderr, 'write').mockImplementation((chunk) => {
+    written.push(String(chunk))
+    return true
+  })
+  return written
+}
+
+describe('createProcessIo', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('stdout は process.stdout.write に、stderr は process.stderr.write に、そのまま書く', () => {
+    const out = captureWrites('stdout')
+    const errors = captureWrites('stderr')
+    const io = createProcessIo()
+    io.stdout('out\n')
+    io.stderr('err\n')
+    expect(out).toEqual(['out\n'])
+    expect(errors).toEqual(['err\n'])
+  })
+
+  it('createOutput に渡すと、警告が process.stderr に前置きと字下げ付きで出る', () => {
+    const errors = captureWrites('stderr')
+    createOutput(false, createProcessIo()).warning('first\nsecond')
+    expect(errors).toEqual(['warning: first\n  second\n'])
   })
 })

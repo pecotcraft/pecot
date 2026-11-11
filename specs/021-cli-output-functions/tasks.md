@@ -193,20 +193,20 @@ description: "CLI の出力を共通の関数だけが書き、行の形がコ�
 
 **Independent Test**: `cli/commands/issue.py` に `typer.echo("x")` を足すと ruff が `TID251` で止まる。`cli-node/src/cli.ts` に `process.stderr.write("x\n")` を足すと eslint が止まる
 
-- [ ] T034 [US3] `cli/pyproject.toml` の `[tool.ruff.lint]` を直す
+- [x] T034 [US3] `cli/pyproject.toml` の `[tool.ruff.lint]` を直す
   - `select` に `T20` と `TID251` を足す
   - `[tool.ruff.lint.flake8-tidy-imports.banned-api]` に、直接の出力の 6 つを足す。`typer.echo`・`typer.secho`・`click.echo`・`sys.stdout`・`sys.stderr`・`rich.print`
   - banned-api の理由の文言で、`cli/commands/_output.py` を使うよう示す
   - `per-file-ignores` で `commands/_output.py` と `tests/` を外す
-- [ ] T035 [US3] T034 で見つかる違反を直す。`cli/core/` などコマンドの外の出力は、`Output` に移すか、呼ぶ側のコマンドへ返す形にする
+- [x] T035 [US3] T034 で見つかる違反を直す。`cli/core/` などコマンドの外の出力は、`Output` に移すか、呼ぶ側のコマンドへ返す形にする
   - `cli/core/worktree.py`・`worktree_links.py` の logger も対象にする。handler が無く、Python の `lastResort` が前置きの無い行を stderr に出している。T034 の禁止の対象に logging は入らないので、ここで移す
-- [ ] T036 [US3] `cli-node/eslint.config.js` に、直接の出力を止める規則を足す
+- [x] T036 [US3] `cli-node/eslint.config.js` に、直接の出力を止める規則を足す
   - `no-console`
   - `no-restricted-syntax` で、`stdout`・`stderr` という名前の識別子・プロパティへの `.write` 呼び出し。`process.stdout.write` も含む
   - 既存の `no-restricted-syntax` の配列を定数にし、出力のセレクタと合わせた配列を `src/**/*.ts` のブロックに置く。形は `plugins/pecot-visual/cli/eslint.config.js` に合わせる
   - `src/commands/output.ts` とテストは外す
-- [ ] T037 [US3] `cli-node/` の直接の出力を、共通の関数を使うか、呼ぶ側へ返す形に直す。対象は `src/cli.ts`・`src/infra/worktree-links.ts`・`src/infra/github/client.ts`
-- [ ] T038 [US3] quickstart.md の 4 を実行し、両方で止まること、`_output.py`・`output.ts` では止まらないことを確かめる
+- [x] T037 [US3] `cli-node/` の直接の出力を、共通の関数を使うか、呼ぶ側へ返す形に直す。対象は `src/cli.ts`・`src/infra/worktree-links.ts`・`src/infra/github/client.ts`
+- [x] T038 [US3] quickstart.md の 4 を実行し、両方で止まること、`_output.py`・`output.ts` では止まらないことを確かめる
 
 **Checkpoint**: pre-commit が全ファイルで通る
 

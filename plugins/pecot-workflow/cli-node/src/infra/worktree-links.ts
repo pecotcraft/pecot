@@ -32,6 +32,7 @@ import {
   WORK_DIR,
   WORKTREE_IGNORE_FILENAME,
 } from './paths.js'
+import type { Diagnostics } from './diagnostics.js'
 import { compileGitIgnoreSpec } from './gitignore-spec.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
 import { readTextFile } from './text-file.js'
@@ -79,13 +80,6 @@ tmp/
 
 // .pecot/.gitignore の生成スクリプト。中身の本体は hook 側に置き、CLI は複製せずに呼ぶ
 const PECOT_GITIGNORE_ENSURE_RELATIVE = 'hooks/lib/core/pecot-gitignore-ensure.sh'
-
-/**
-Python の logging が、設定なしで警告・エラーを出す形（メッセージだけを stderr に 1 行）
-*/
-export function logMessage(message: string): void {
-  process.stderr.write(`${message}\n`)
-}
 
 // 型
 
@@ -315,7 +309,7 @@ function splitLines(text: string): readonly string[] {
 
 .worktreeignore が無ければ WorktreeConfigError
 */
-export function loadCopyExcludeSpec(mainWorktree: string): GitIgnoreSpec {
+export function loadCopyExcludeSpec(mainWorktree: string, diagnostics: Diagnostics): GitIgnoreSpec {
   const file = path.join(mainWorktree, WORKTREE_IGNORE_FILENAME)
   if (!existsSync(file)) {
     throw new WorktreeConfigError(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
@@ -327,7 +321,7 @@ export function loadCopyExcludeSpec(mainWorktree: string): GitIgnoreSpec {
 
   // `/` 単体や空白のみの行などは、何にも当たらないパターンになる。それしか残らなかったら意図通りではない可能性が高い
   if (effectiveLines.length > 0 && spec.matchablePatternCount === 0) {
-    logMessage(`all patterns in ${normalizePath(file)} are invalid (${String(effectiveLines.length)} effective lines silently ignored): check the gitignore syntax`)
+    diagnostics.warning(`all patterns in ${normalizePath(file)} are invalid (${String(effectiveLines.length)} effective lines silently ignored): check the gitignore syntax`)
   }
   return spec
 }
@@ -404,13 +398,13 @@ function isSymbolicLink(target: string): boolean {
 export type OverwriteStrategy = (symlinkPath: string, targetPath: string) => boolean
 
 // 1 本の link 定義を、実際のファイルシステム操作に変換する
-function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeSet: string, repositoryName: string, canOverwrite: OverwriteStrategy): SymlinkResult {
+function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeSet: string, repositoryName: string, canOverwrite: OverwriteStrategy, diagnostics: Diagnostics): SymlinkResult {
   const symlinkPath = path.join(projectRoot, worktreeSet, repositoryName, link.path)
   const targetPath = resolveAbsoluteTarget(projectRoot, link)
 
   if (!existsSync(targetPath)) {
     const message = isSymbolicLink(targetPath) ? `target is a dangling symlink: ${targetPath}` : `target does not exist: ${targetPath}`
-    logMessage(message)
+    diagnostics.warning(message)
     return { symlinkPath, targetPath, action: 'skipped', message }
   }
 
@@ -423,7 +417,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     }
     else if (existsSync(symlinkPath)) {
       if (isTrackedInRepository(path.join(projectRoot, worktreeSet, repositoryName), link.path)) {
-        logMessage(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
+        diagnostics.error(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
         return { symlinkPath, targetPath, action: 'error', message: `symlink creation aborted because the path is tracked by git: ${link.path}` }
       }
       if (!canOverwrite(symlinkPath, targetPath)) {
@@ -440,7 +434,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     if (!hasErrorCode(error)) throw error
     const converted = toOsError(error)
     const message = converted instanceof Error ? converted.message : String(converted)
-    logMessage(`failed to create the symlink: ${symlinkPath} -> ${relativeTarget}: ${message}`)
+    diagnostics.error(`failed to create the symlink: ${symlinkPath} -> ${relativeTarget}: ${message}`)
     return { symlinkPath, targetPath, action: 'error', message }
   }
 }
@@ -459,11 +453,11 @@ export function pecotGitignoreEnsureScript(): string {
 // ただしこのファイルを作るのは Claude Code の hook だけで、既定の .worktreeignore は .pecot/ をコピー対象から外す。
 // そのため WT を作った直後は symlink が未追跡として出る。symlink にした .gitignore は git が読まないので実ファイルで置く。
 // 生成に失敗しても link 作成は続ける（未追跡が見えるだけで、作業は妨げない）
-function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: string): void {
+function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: string, diagnostics: Diagnostics): void {
   if (config.links.every(link => !link.path.startsWith(`${PECOT_DIR}/`))) return
   const script = pecotGitignoreEnsureScript()
   if (!isFile(script)) {
-    logMessage(`generation script for ${PECOT_GITIGNORE_FILENAME} not found: ${script}`)
+    diagnostics.warning(`generation script for ${PECOT_GITIGNORE_FILENAME} not found: ${script}`)
     return
   }
   const result = spawnSync('bash', [script], {
@@ -472,15 +466,15 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
     stdio: ['inherit', 'pipe', 'pipe'],
   })
   if (result.error !== undefined) throw toOsError(result.error)
-  if (result.status !== 0) logMessage(`could not generate ${PECOT_GITIGNORE_FILENAME}: ${result.stderr.trim()}`)
+  if (result.status !== 0) diagnostics.warning(`could not generate ${PECOT_GITIGNORE_FILENAME}: ${result.stderr.trim()}`)
 }
 
 /**
 シンボリックリンクを作る（既存ファイル／ディレクトリは常に上書き）
 */
-export function createSymlinks(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeSet: string, repositoryName: string): readonly SymlinkResult[] {
-  ensurePecotGitignore(config, path.join(projectRoot, worktreeSet, repositoryName))
-  return config.links.map(link => processLink(link, projectRoot, worktreeSet, repositoryName, () => true))
+export function createSymlinks(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeSet: string, repositoryName: string, diagnostics: Diagnostics): readonly SymlinkResult[] {
+  ensurePecotGitignore(config, path.join(projectRoot, worktreeSet, repositoryName), diagnostics)
+  return config.links.map(link => processLink(link, projectRoot, worktreeSet, repositoryName, () => true, diagnostics))
 }
 
 export interface SafeSymlinkOptions {
@@ -497,8 +491,8 @@ export interface SafeSymlinkOptions {
 /**
 シンボリックリンクを安全に作る。リアルファイル／ディレクトリがあるとき、force または confirm で上書き可否を決める
 */
-export function createSymlinksSafe(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeSet: string, repositoryName: string, options: Readonly<SafeSymlinkOptions> = {}): readonly SymlinkResult[] {
+export function createSymlinksSafe(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeSet: string, repositoryName: string, diagnostics: Diagnostics, options: Readonly<SafeSymlinkOptions> = {}): readonly SymlinkResult[] {
   const canOverwrite: OverwriteStrategy = (symlinkPath, targetPath) => options.force === true || (options.confirm?.(symlinkPath, targetPath) ?? false)
-  ensurePecotGitignore(config, path.join(projectRoot, worktreeSet, repositoryName))
-  return config.links.map(link => processLink(link, projectRoot, worktreeSet, repositoryName, canOverwrite))
+  ensurePecotGitignore(config, path.join(projectRoot, worktreeSet, repositoryName), diagnostics)
+  return config.links.map(link => processLink(link, projectRoot, worktreeSet, repositoryName, canOverwrite, diagnostics))
 }
