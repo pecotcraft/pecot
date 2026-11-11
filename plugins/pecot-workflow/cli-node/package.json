@@ -36,6 +36,9 @@
       "tests/**/*.ts",
       "scripts/**/*.ts"
     ],
+    "ignore": [
+      "tests/hooks/_helpers/**"
+    ],
     "ignoreDependencies": [
       "typescript7"
     ],
