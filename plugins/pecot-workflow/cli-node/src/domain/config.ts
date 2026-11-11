@@ -325,3 +325,11 @@ export function withAggregationRepository(config: ProjectConfig, value: string |
 export function withRepositoryAppended(config: ProjectConfig, repository: Repository): ProjectConfig {
   return Object.freeze({ ...config, repositories: Object.freeze([...config.repositories, repository]) })
 }
+
+/**
+同じ owner と name のリポジトリを差し替えたコピー。無ければ元のまま
+*/
+export function withRepositoryReplaced(config: ProjectConfig, repository: Repository): ProjectConfig {
+  const replaced = config.repositories.map(item => item.owner === repository.owner && item.name === repository.name ? repository : item)
+  return Object.freeze({ ...config, repositories: Object.freeze(replaced) })
+}

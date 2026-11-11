@@ -27,8 +27,11 @@ function isRequired(schema: z.ZodType): boolean {
   return !schema.safeParse(undefined).success
 }
 
+/**
+typer の Missing argument と Invalid value に出す名前。引数の名前のまま（小文字）
+*/
 function argumentLabel(name: string): string {
-  return name.toUpperCase()
+  return name
 }
 
 function flagOf(name: string): string {
@@ -45,21 +48,22 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
 }
 
 /**
-click の Usage 行と Missing argument に出す名前。可変長は `...` を付ける
+typer の Missing argument に出す名前。可変長は `...` を付ける
 */
 function labelWithEllipsis(definition: Readonly<CommandDefinition>, name: string): string {
   return isListField(definition, name) ? `${argumentLabel(name)}...` : argumentLabel(name)
 }
 
 /**
-click の Usage 行に出す書式。
-位置引数は大文字で並べる。例は `[OPTIONS] ISSUE_REF`。任意なら `[VERSION]`、複数なら `NAMES...` にする
+typer の Usage 行に出す書式。
+位置引数は名前のまま並べ、必須なら `{issue_ref}`、任意なら `[version]` にする。複数なら `...` を付ける
 */
 export function synopsisOf(definition: Readonly<CommandDefinition>): string {
   const names = definition.positional.map((name) => {
     const schema = fieldSchemaOf(definition, name)
-    const label = labelWithEllipsis(definition, name)
-    return schema === undefined || isRequired(schema) || isListField(definition, name) ? label : `[${label}]`
+    const label = argumentLabel(name)
+    const suffix = isListField(definition, name) ? '...' : ''
+    return schema === undefined || isRequired(schema) ? `{${label}}${suffix}` : `[${label}]${suffix}`
   })
   return ['[OPTIONS]', ...names].join(' ')
 }

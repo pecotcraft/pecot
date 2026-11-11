@@ -23,6 +23,7 @@ import {
   WORKFLOW_STATUSES,
   withAggregationRepository,
   withRepositoryAppended,
+  withRepositoryReplaced,
   workflowFieldName,
 } from '../config.js'
 import type { ProjectConfig, RepositoryMembership } from '../config.js'
@@ -482,5 +483,25 @@ describe('更新（コピーを作る）', () => {
     expect(updated.repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo', 'new'])
     expect(config.repositories).toHaveLength(2)
     expect(Object.isFrozen(updated.repositories)).toBe(true)
+  })
+
+  it('withRepositoryReplaced は同じ owner と name の 1 件を差し替えたコピーを返し、元は変えない', () => {
+    const config = sampleConfig()
+    const edited = withRepositories([{ owner: 'test-owner', name: 'test-repo', develop_branch: 'edited' }]).repositories[0]
+    expect(edited).toBeDefined()
+    if (edited === undefined) return
+    const updated = withRepositoryReplaced(config, edited)
+    expect(updated.repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo'])
+    expect(updated.repositories[0]?.develop_branch).toBe('edited')
+    expect(config.repositories[0]?.develop_branch).not.toBe('edited')
+    expect(Object.isFrozen(updated.repositories)).toBe(true)
+  })
+
+  it('withRepositoryReplaced は同じリポジトリが無いと、元と同じ並びを返す', () => {
+    const config = sampleConfig()
+    const other = withRepositories([{ owner: 'o', name: 'absent' }]).repositories[0]
+    expect(other).toBeDefined()
+    if (other === undefined) return
+    expect(withRepositoryReplaced(config, other).repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo'])
   })
 })
