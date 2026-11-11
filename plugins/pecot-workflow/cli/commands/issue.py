@@ -343,11 +343,23 @@ def add_to_project(
 ) -> None:
     """Add an Issue to the project board with a GraphQL mutation"""
     out = Output(dry_run=False)
+    if status and status not in VALID_STATUSES:
+        _exit_invalid_status(out, status)
+
     # 1. 設定取得
     config = load_active_config()
     if config is None:
         out.error("no active project")
         raise typer.Exit(1)
+
+    field_id: str | None = None
+    option_id: str | None = None
+    if status:
+        field_id = config.get_field_id("workflow")
+        option_id = config.get_option_id("workflow", status)
+        if not field_id or not option_id:
+            out.error(f"status '{status}' is not configured in the project")
+            raise typer.Exit(1)
 
     # 2. issue_ref をパース
     try:
@@ -373,14 +385,9 @@ def add_to_project(
         out.done(Operation(Verb.ADD, f"{target} to project"))
 
         # 6. ステータス設定（オプション）
-        if status:
-            field_id = config.get_field_id("workflow")
-            option_id = config.get_option_id("workflow", status)
-            if field_id and option_id:
-                client.update_project_item_field(config.project.id, item_id, field_id, option_id)
-                out.done(Operation(Verb.SET, f"{target} status {status}"))
-            else:
-                out.warning(f"status '{status}' not found in the project")
+        if status and field_id and option_id:
+            client.update_project_item_field(config.project.id, item_id, field_id, option_id)
+            out.done(Operation(Verb.SET, f"{target} status {status}"))
 
     except GitHubAPIError as e:
         out.error(f"could not add {target} to project: {e.message}")

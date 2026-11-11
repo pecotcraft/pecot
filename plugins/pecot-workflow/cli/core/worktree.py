@@ -903,7 +903,7 @@ def remove_worktree(
     name: str,
     force: bool = False,
     keep_branch: bool = False,
-) -> None:
+) -> str | None:
     """ワークツリーを削除
 
     Args:
@@ -911,6 +911,9 @@ def remove_worktree(
         name: WT名（ブランチ名）
         force: 強制削除（デフォルト: False）
         keep_branch: ブランチを残す（デフォルト: False）
+
+    Returns:
+        ローカルブランチの削除に失敗したときはその理由。成功時と keep_branch 時は None
 
     Raises:
         RuntimeError: 削除に失敗した場合
@@ -939,10 +942,14 @@ def remove_worktree(
     if result.returncode != 0:
         raise RuntimeError(f"failed to remove the worktree: {result.stderr}")
 
-    # 3. ブランチ削除
+    # 3. ブランチ削除（失敗は worktree 削除後なので例外にせず理由を返す）
+    branch_error: str | None = None
     if not keep_branch:
-        # ローカルブランチ削除
-        run_git(["branch", "-D", name], cwd, check=False)
+        branch_result = run_git(["branch", "-D", name], cwd, check=False)
+        if branch_result.returncode != 0:
+            branch_error = (
+                branch_result.stderr or ""
+            ).strip() or f"git branch -D exited with {branch_result.returncode}"
 
     # 4. プロジェクトルート配下の <name> ディレクトリが空なら rmdir
     try:
@@ -960,3 +967,5 @@ def remove_worktree(
                     set_dir.rmdir()
                 except OSError as e:
                     logger.warning("failed to remove the set directory: %s: %s", set_dir, e)
+
+    return branch_error

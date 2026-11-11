@@ -83,3 +83,10 @@ def describe_api_error(error: GitHubAPIError) -> str:
     if not details:
         return error.message
     return f"{error.message} {' '.join(details)}"
+
+
+def is_missing_ref_error(e: GitHubAPIError) -> bool:
+    """Whether this error means the branch (ref) no longer exists"""
+    if e.status_code not in (404, 422):
+        return False
+    return e.response_body is not None and "Reference does not exist" in e.response_body

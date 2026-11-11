@@ -34,7 +34,7 @@ from pathlib import Path
 from pydantic import BaseModel, field_validator, model_validator
 
 from cli.core.errors import PecotError
-from cli.core.git import run_git
+from cli.core.git import pick_primary_remote, run_git
 from cli.core.git_url import parse_remote_url
 
 _SEGMENT_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -117,7 +117,9 @@ def _detect_current_git_repo(cwd: Path) -> tuple[RepoRef, str] | None:
     if not remotes:
         return None
 
-    remote_name = "origin" if "origin" in remotes else remotes[0]
+    remote_name = pick_primary_remote(remotes)
+    if remote_name is None:
+        return None
     url_cp = run_git(["remote", "get-url", remote_name], cwd, check=False)
     if url_cp.returncode != 0:
         return None

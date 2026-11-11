@@ -69,10 +69,11 @@ class TestReleasePreflight:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
+            patch("cli.commands.release.primary_remote_name", return_value="origin"),
             patch("cli.commands.release.run_preflight", return_value=preflight_result),
         ):
             result = runner.invoke(app, ["release", "preflight"])
@@ -104,10 +105,11 @@ class TestReleasePreflight:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
+            patch("cli.commands.release.primary_remote_name", return_value="origin"),
             patch("cli.commands.release.run_preflight", return_value=preflight_result),
         ):
             result = runner.invoke(app, ["release", "preflight", "0.6.1"])
@@ -130,7 +132,7 @@ class TestReleasePreflight:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=None),
@@ -150,7 +152,7 @@ class TestReleasePreflight:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -172,10 +174,11 @@ class TestReleasePreflight:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
+            patch("cli.commands.release.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.release.run_preflight",
                 side_effect=ReleaseError("タグ v0.6.1 はローカルに既に存在します"),
@@ -213,7 +216,7 @@ class TestReleaseCreate:
                 return_value="### 追加\n\n- 新機能",
             ),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -240,7 +243,7 @@ class TestReleaseCreate:
                 return_value="### 追加\n\n- 新機能",
             ),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -284,7 +287,7 @@ class TestReleaseCreate:
                 return_value="notes",
             ),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -309,7 +312,7 @@ class TestReleaseCreate:
                 return_value="notes",
             ),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -370,10 +373,11 @@ class TestReleasePreflightPackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
+            patch("cli.commands.release.primary_remote_name", return_value="origin"),
             patch("cli.commands.release.run_preflight", return_value=preflight_result) as mock_pf,
         ):
             result = runner.invoke(app, ["release", "preflight", "0.6.1"])
@@ -381,6 +385,41 @@ class TestReleasePreflightPackage:
         assert result.exit_code == 0
         # tag_prefix=None で呼ばれる
         assert mock_pf.call_args.kwargs["tag_prefix"] is None
+        assert mock_pf.call_args.kwargs["remote"] == "origin"
+
+    def test_non_origin_remote_is_used(self) -> None:
+        """origin が無く別名の remote だけのとき、その remote とリポを対象にする"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.get_develop_branch.return_value = "develop-aist"
+        mock_config.get_release_branch.return_value = "main"
+        mock_config.find_repository.return_value.changelog_file = None
+        mock_config.find_repository.return_value.packages = None
+        preflight_result = PreflightResult(
+            version="0.6.1",
+            release_notes="notes",
+            develop_branch="develop-aist",
+            release_branch="main",
+            diff_count=2,
+            tag_name="v0.6.1",
+        )
+
+        with (
+            patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
+            patch(
+                "cli.commands.release.primary_remote_repo",
+                return_value=("github.com", "up-owner", "up-repo"),
+            ),
+            patch("cli.commands.release.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.release.load_active_config", return_value=mock_config),
+            patch("cli.commands.release.run_preflight", return_value=preflight_result) as mock_pf,
+        ):
+            result = runner.invoke(app, ["release", "preflight", "0.6.1"])
+
+        assert result.exit_code == 0
+        assert mock_pf.call_args.kwargs["remote"] == "upstream"
+        assert "commits to release (upstream/develop-aist -> upstream/main): 2" in result.stderr
+        mock_config.get_develop_branch.assert_called_with("up-owner", "up-repo")
 
     def test_packages_unset_with_package_errors(self) -> None:
         """packages 未設定 + --package → エラー"""
@@ -394,7 +433,7 @@ class TestReleasePreflightPackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -417,7 +456,7 @@ class TestReleasePreflightPackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -447,10 +486,11 @@ class TestReleasePreflightPackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
+            patch("cli.commands.release.primary_remote_name", return_value="origin"),
             patch("cli.commands.release.run_preflight", return_value=preflight_result) as mock_pf,
         ):
             result = runner.invoke(
@@ -475,7 +515,7 @@ class TestReleasePreflightPackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -509,7 +549,7 @@ class TestReleaseCreatePackage:
                 return_value="### 追加\n\n- 新機能",
             ),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -535,7 +575,7 @@ class TestReleaseCreatePackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -556,7 +596,7 @@ class TestReleaseCreatePackage:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
@@ -885,11 +925,13 @@ def _invoke_preflight(
         patch("cli.commands.release.fetch_secret_scanning_status", ss),
         patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
         patch(
-            "cli.commands.release.origin_repo", return_value=("ghes.example.com", "owner", "repo")
+            "cli.commands.release.primary_remote_repo",
+            return_value=("ghes.example.com", "owner", "repo"),
         ),
         patch("cli.commands.release.load_active_config", return_value=config),
         patch("cli.commands.release.GitHubClient"),
         patch("cli.commands.release.fetch_dependabot_alert_status", fetch),
+        patch("cli.commands.release.primary_remote_name", return_value="origin"),
         patch("cli.commands.release.run_preflight", run_pf),
     ):
         result = runner.invoke(app, ["release", "preflight", *(args or [])])
@@ -1166,7 +1208,7 @@ class TestReleasePreflightNx:
         with (
             patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
             patch(
-                "cli.commands.release.origin_repo",
+                "cli.commands.release.primary_remote_repo",
                 return_value=("ghes.example.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=config),

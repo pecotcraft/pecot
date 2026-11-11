@@ -791,7 +791,11 @@ class TestDeleteBranchCommand:
         mock_client.get_repository_default_branch.return_value = "main"
         mock_client.delete_branch.side_effect = [
             None,  # feat/my-feature 成功
-            GitHubAPIError("Reference does not exist", status_code=422),
+            GitHubAPIError(
+                "Reference does not exist",
+                status_code=422,
+                response_body='{"message":"Reference does not exist"}',
+            ),
         ]
 
         with (
@@ -803,6 +807,32 @@ class TestDeleteBranchCommand:
             assert "deleted: remote branch feat/my-feature in owner/repo\n" in result.output
             # WIPブランチ削除のメッセージは出ない
             assert "wip/" not in result.output
+
+    def test_delete_wip_branch_failure_warns(self) -> None:
+        """WIPブランチの削除が存在しない以外の理由で失敗した場合は警告（終了コード 0）"""
+        from cli.core.github import GitHubAPIError
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.find_repository.return_value = None
+
+        mock_client = MagicMock()
+        mock_client.get_repository_default_branch.return_value = "main"
+        mock_client.delete_branch.side_effect = [
+            None,  # feat/my-feature 成功
+            GitHubAPIError("Forbidden", status_code=403, response_body='{"message":"Forbidden"}'),
+        ]
+
+        with (
+            patch("cli.commands.repo.load_active_config", return_value=mock_config),
+            patch("cli.commands.repo.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["delete-branch", "owner/repo", "feat/my-feature"])
+            assert result.exit_code == 0
+            assert (
+                "warning: could not delete remote branch wip/feat/my-feature in owner/repo:"
+                in result.output
+            )
 
     def test_delete_success_with_repo_config(self) -> None:
         """リポジトリ設定ありで正常にブランチ削除"""
