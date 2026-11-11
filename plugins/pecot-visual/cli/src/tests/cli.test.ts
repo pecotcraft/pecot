@@ -24,6 +24,7 @@ async function withPluginRoot(version: string, function_: () => void | Promise<v
   }
   finally {
     if (previous === undefined) {
+      // interface-env: none
       Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
     }
     else {
@@ -36,6 +37,7 @@ async function withPluginRoot(version: string, function_: () => void | Promise<v
 function withEnvironment(value: string | undefined, function_: () => void): void {
   const previous = process.env['CLAUDE_PLUGIN_ROOT']
   if (value === undefined) {
+    // interface-env: none
     Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
   }
   else {
@@ -46,6 +48,7 @@ function withEnvironment(value: string | undefined, function_: () => void): void
   }
   finally {
     if (previous === undefined) {
+      // interface-env: none
       Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
     }
     else {

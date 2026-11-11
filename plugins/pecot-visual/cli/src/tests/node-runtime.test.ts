@@ -100,6 +100,7 @@ describe('最低版の記述の整合', () => {
     const root = fileURLToPath(new URL('../../../../pecot-tools/', import.meta.url))
     // git のフック（pre-push）から実行されると GIT_DIR 等が設定され、cwd がリポジトリの
     // ルート扱いになって列挙の基準がずれる。GIT_* を外して cwd から解決させる。
+    // interface-env: none
     const gitEnvironment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')))
     const files = execFileSync('git', ['ls-files', '--', '*package.json'], { cwd: root, encoding: 'utf8', env: gitEnvironment })
       .split('\n')

@@ -212,6 +212,7 @@ async function reusableName(directory: string, spec: Readonly<ThemeStoreSpec>): 
 }
 
 function gitEnvironment(): NodeJS.ProcessEnv {
+  // interface-env: none
   const environment: NodeJS.ProcessEnv = { ...process.env, LC_ALL: 'C', GIT_TERMINAL_PROMPT: '0' }
   for (const name of GIT_ENVIRONMENT_REMOVED) Reflect.deleteProperty(environment, name)
   return environment
@@ -328,6 +329,7 @@ async function populate(
   const installed = await run(
     pnpm.command,
     [...pnpm.commandArguments, ...PNPM_INSTALL_ARGUMENTS],
+    // interface-env: none
     { ...process.env, COREPACK_ENABLE_STRICT: '0' },
     pnpm.cwd,
   )

@@ -1,0 +1,965 @@
+{
+  "entries": [
+    {
+      "deprecated": false,
+      "description": "Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in data.theme.",
+      "hidden": false,
+      "id": "PV-DRAWIO-CREATE",
+      "input": {
+        "properties": {
+          "input_path": {
+            "description": "Absolute path of the input .drawio file. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "mode": {
+            "default": "view",
+            "description": "Purpose of the generated URL (view / edit). The generated URL is the same for both",
+            "enum": [
+              "view",
+              "edit"
+            ],
+            "type": "string"
+          },
+          "out_path": {
+            "description": "Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in data.url. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "png": {
+            "default": true,
+            "description": "Whether to also write a PNG as a sibling file (<out_path with the extension replaced by .png>) when out_path is given",
+            "type": "boolean"
+          },
+          "theme": {
+            "description": "Theme used to check the font and font size: `git+https://<host>/<owner>/<repo>.git#<tag>`, `file:<absolute path>`, or the absolute path of a talk-dir or a theme root. If omitted, the theme of the talk-dir is used when the diagram is under its `public/`; otherwise the built-in default (sans-serif) is used. When the diagram for a slide is placed outside the talk-dir, pass the absolute path of the talk-dir. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "drawio_create",
+      "surfaces": {
+        "mcp": {
+          "tool": "drawio_create"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Exports drawio XML to a static SVG and a sibling PDF. Set pdf: false to suppress the PDF. With print_hash, it exports nothing and returns only the composite hash used for staleness checks. It does not check the diagram text, so pass a .drawio that has gone through drawio_create.",
+      "hidden": false,
+      "id": "PV-DRAWIO-EXPORT",
+      "input": {
+        "properties": {
+          "icons_dir": {
+            "description": "Absolute path of the root directory that resolves icon:// references. If omitted, <plugin-root>/assets/drawio-icons (the catalog bundled with the plugin) is used. Always specify it for diagrams that use a project-specific icon catalog (omitting it does not raise an error). Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "input_path": {
+            "description": "Absolute path of the input .drawio file. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "out_path": {
+            "description": "Absolute path of the output SVG. If omitted, it is written to <input_path>.svg. The PDF is written to a sibling file (<out_path with the extension replaced by .pdf>). Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "pdf": {
+            "default": true,
+            "description": "Whether to also write a PDF as a sibling file (<out_path with the extension replaced by .pdf>) alongside the SVG",
+            "type": "boolean"
+          },
+          "print_hash": {
+            "default": false,
+            "description": "Compute only the composite hash used for staleness checks, without exporting",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "input_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "drawio_export",
+      "surfaces": {
+        "mcp": {
+          "tool": "drawio_export"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Generates a work-evidence xlsx with screenshots pasted in, from an EvidenceSpec JSON. Places the images listed in the spec in order and adds annotations. Before generating, it checks the title, captions and annotations against the text rules and generates nothing if there is a violation.",
+      "hidden": false,
+      "id": "PV-EVIDENCE-CREATE",
+      "input": {
+        "properties": {
+          "input_path": {
+            "description": "Absolute path of the EvidenceSpec JSON. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "out_path": {
+            "description": "Absolute path of the xlsx to write. If omitted, evidence.xlsx in the same directory as input_path. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "evidence_create",
+      "surfaces": {
+        "mcp": {
+          "tool": "evidence_create"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. Call it when slide_create / slide_convert / slide_sync fail with \"runtime dependencies are not installed\", or when drawio_export / slide_convert / drawio_create PNG output fails with \"Playwright Chromium is not installed\". The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium, so it takes tens of seconds. If OS libraries needed to launch Chromium are missing, it installs them with apt-get where sudo is available, and otherwise returns the command to install them. It skips what is already installed, so it finishes quickly and is safe to call repeatedly.",
+      "hidden": false,
+      "id": "PV-SETUP",
+      "input": {
+        "properties": {},
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "setup",
+      "surfaces": {
+        "mcp": {
+          "tool": "setup"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Converts a Slidev project to PPTX. The duration is proportional to the number of slides (just under 30 seconds for 55 slides).",
+      "hidden": false,
+      "id": "PV-SLIDE-CONVERT",
+      "input": {
+        "properties": {
+          "cache": {
+            "default": true,
+            "description": "Whether to read the diff cache. Even with false, the cache is rebuilt when the conversion completes",
+            "type": "boolean"
+          },
+          "href_json_path": {
+            "description": "Absolute path of the hyperlink JSON. If omitted, staging/slides/href-map.json is auto-detected. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "morph_option": {
+            "description": "Granularity of the morph transition. Only meaningful when transition_type=morph",
+            "enum": [
+              "byObject",
+              "byWord",
+              "byChar"
+            ],
+            "type": "string"
+          },
+          "out_path": {
+            "description": "Absolute path of the output .pptx. If omitted, <project_dir>/pptx/<title of slides.md | basename>.pptx. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "project_dir": {
+            "description": "Absolute path of the Slidev project directory. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "spacing_json_path": {
+            "description": "Absolute path of the letter-spacing JSON. If omitted, staging/slides/letter-spacing.json is auto-detected. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "theme": {
+            "description": "Name passed to slidev --theme (allowed characters: [a-zA-Z0-9@/_.-])",
+            "type": "string"
+          },
+          "transition_duration_ms": {
+            "description": "Slide transition duration, as a positive integer in milliseconds (default: 500)",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991,
+            "type": "integer"
+          },
+          "transition_type": {
+            "description": "Slide transition type (default: fade)",
+            "enum": [
+              "fade",
+              "morph"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_dir"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_convert",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_convert"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Generates a new talk-dir that references the Slidev theme given by `theme`. The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) or a local path (`file:<path>`). Returns the presentation categories (data.categories) and the list of selectable layouts (data.layouts). Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).",
+      "hidden": false,
+      "id": "PV-SLIDE-CREATE",
+      "input": {
+        "properties": {
+          "force": {
+            "default": false,
+            "description": "Delete and overwrite when the destination already exists",
+            "type": "boolean"
+          },
+          "project_dir": {
+            "description": "Absolute path of the destination directory. Specify a place where the calling agent has write permission for later edits (e.g. under the working directory). Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "theme": {
+            "description": "Theme to reference (required): `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. A git URL without a tag is not accepted.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_dir",
+          "theme"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_create",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_create"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (data.url). The port can be set with port; if omitted, a free port from 3030 to 3034 is used. Calling again for the same talk-dir returns the running server as it is (data.reused: true). Set stop: true to stop it. The server runs only while the MCP server process is alive; the preview ends with the session.",
+      "hidden": false,
+      "id": "PV-SLIDE-DEV",
+      "input": {
+        "properties": {
+          "dir": {
+            "description": "Absolute path of the talk-dir to start the Slidev dev server for. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "port": {
+            "description": "Port to start on. If it is in use, the call fails instead of moving to another port. If omitted, ports 3030 to 3034 are tried in ascending order and the first free one is used. Specifying a different port for a talk-dir that is already running reopens it on that port",
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "stop": {
+            "default": false,
+            "description": "Stop the dev server of the talk-dir when true (arguments other than dir have no effect when stopping)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dir"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_dev",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_dev"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lints the whole talk-dir (pages/**/*.md and slides.md) and returns the list of violations. The call itself succeeds (exitCode 1) even with violations.",
+      "hidden": false,
+      "id": "PV-SLIDE-LINT",
+      "input": {
+        "properties": {
+          "dir": {
+            "description": "Absolute path of the talk-dir to lint. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dir"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_lint",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_lint"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Generates a skeleton page for one layout under pages/ of the talk-dir, and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). The specification is returned in data.reference and data.includes. Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, then choose the layout name from data.layouts of that category (passing an unknown name returns data.categories and data.layouts in the response). The generated page must be registered separately as a src: entry in slides.md.",
+      "hidden": false,
+      "id": "PV-SLIDE-PAGE",
+      "input": {
+        "properties": {
+          "dir": {
+            "description": "Absolute path of the talk-dir to generate the page in. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "file": {
+            "description": "File name to generate directly under pages/ (.md may be omitted). Names with path separators or starting with a digit are not accepted",
+            "type": "string"
+          },
+          "force": {
+            "default": false,
+            "description": "Overwrite when a page with the same name already exists",
+            "type": "boolean"
+          },
+          "layout": {
+            "description": "Layout name. Decide the presentation style from the categories (data.categories) in the slide_create / slide_sync response, then choose from the names in data.layouts that belong to that category",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layout",
+          "dir",
+          "file"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_page",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_page"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Syncs an existing talk-dir. A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in data.migration.removed. A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) fetches the theme at the version in the dependency and relinks node_modules, and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. Returns the presentation categories (data.categories), the list of selectable layouts (data.layouts), and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.",
+      "hidden": false,
+      "id": "PV-SLIDE-SYNC",
+      "input": {
+        "properties": {
+          "dir": {
+            "description": "Absolute path of the talk-dir to sync. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "node_modules_only": {
+            "default": false,
+            "description": "Only relink node_modules. The theme in package.json is fetched first, then linked (no network access if it is already fetched). A migrated talk-dir that references a theme behaves the same even when this is omitted. The generated files (vite.config.ts, start.mjs) are also aligned with the current content of the plugin. Cannot be specified together with theme",
+            "type": "boolean"
+          },
+          "theme": {
+            "description": "Theme the pre-migration talk-dir should reference: `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. Required for a pre-migration talk-dir (one that holds a copy of the template). Not used for a migrated talk-dir",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dir"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_sync",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_sync"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the theme declaration referenced by a talk-dir and the list of layouts. The declaration covers fonts, font sizes, PPTX fonts and link colors, and lint rules. Skills use it to obtain theme values.",
+      "hidden": false,
+      "id": "PV-SLIDE-THEME",
+      "input": {
+        "properties": {
+          "dir": {
+            "description": "Absolute path of the talk-dir whose theme to inspect. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dir"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of files and directories created or updated",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "Object with the details of the run",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the tool completed its intended run",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when nothing was captured)",
+              "type": "string"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when nothing was captured)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "slide_theme",
+      "surfaces": {
+        "mcp": {
+          "tool": "slide_theme"
+        }
+      }
+    }
+  ],
+  "format": 1,
+  "plugin": "pecot-visual",
+  "prefix": "PV"
+}

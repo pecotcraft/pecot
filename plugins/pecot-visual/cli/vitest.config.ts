@@ -5,6 +5,7 @@ export default defineConfig({
     setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts'],
     include: [
       'src/**/tests/**/*.test.ts',
+      'tests/*.test.ts',
       'tests/unit/**/*.test.ts',
       'tests/integration/**/*.test.ts',
     ],

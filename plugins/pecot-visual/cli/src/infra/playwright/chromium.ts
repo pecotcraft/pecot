@@ -104,8 +104,8 @@ export async function isChromiumInstalled(): Promise<boolean> {
 PECOTV_AUTO_INSTALL_BROWSER による自動取得が有効か。
 */
 export function isAutoInstallEnabled(): boolean {
-  // eslint-disable-next-line security/detect-object-injection -- キーは本モジュールの定数
-  return process.env[AUTO_INSTALL_ENV] === '1'
+  // interface-env: PECOTV_AUTO_INSTALL_BROWSER
+  return process.env[AUTO_INSTALL_ENV] === '1' // eslint-disable-line security/detect-object-injection -- キーは本モジュールの定数
 }
 
 /**
@@ -193,6 +193,7 @@ export async function installChromium(options: InstallChromiumOptions = {}): Pro
     locked.command,
     locked.commandArguments,
     {
+      // interface-env: none
       env: process.env,
       timeoutMs: INSTALL_TIMEOUT_MS,
       signal: options.signal,

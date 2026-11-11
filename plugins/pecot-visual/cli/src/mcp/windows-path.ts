@@ -72,6 +72,7 @@ filesystem はこのプロセスから見えないため、解決できない旨
 */
 export function toPosixPath(
   value: string,
+  // interface-env: WSL_DISTRO_NAME PECOTV_WSL_MOUNT_ROOT
   environment: Readonly<Record<string, string | undefined>> = process.env,
 ): PathConversion {
   const drive = DRIVE_ABSOLUTE_REGEX.exec(value)

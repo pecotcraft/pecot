@@ -64,6 +64,7 @@ describe('MCP ツールの異常系応答', () => {
   afterAll(async () => {
     if (connected !== undefined) await closeMcp(connected)
     if (previousPluginRoot === undefined) {
+      // interface-env: none
       Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
     }
     else {

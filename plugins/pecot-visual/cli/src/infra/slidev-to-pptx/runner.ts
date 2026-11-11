@@ -45,6 +45,7 @@ export class ChildProcessSlidevRunner implements SlidevRunner {
       signal?: AbortSignal
     } = {
       cwd: projectDirectory,
+      // interface-env: none
       env: process.env,
       timeoutMs: options.timeoutMs,
     }
