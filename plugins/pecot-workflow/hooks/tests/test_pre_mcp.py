@@ -1,7 +1,10 @@
 """pre-tool-use-mcp.sh のユニットテスト（test_pre_mcp.bats 移植）。
 
-PR 作成 MCP ツール（github / githubEnterprise）の常時ブロックと、非 PR MCP ツール・
-tool_name 欠落時のすり抜けを検証する。
+deny・ask・allow の順序を検証する。
+deny は PR 作成 MCP ツール（github / githubEnterprise）の常時ブロック。
+ask は pecot-workflow の投稿ツールの確認、allow は context7 の自動許可。
+非 PR MCP ツール・tool_name 欠落時のすり抜けも検証する。
+ask の網羅的なケースは cli-node/tests/hooks/pecot-post-ask.test.ts にある。
 """
 
 from __future__ import annotations
@@ -160,3 +163,55 @@ def test_pr_create_block_wins_over_allow_chain(state_dir, hook_script, hooks_con
     assert result.returncode == 0
     assert '"permissionDecision": "deny"' in result.stdout
     assert '"permissionDecision": "allow"' not in result.stdout
+
+
+# pecot-workflow の投稿ツール: ask（pecot-post-ask）。
+
+_PECOT_TOOL_PREFIX = "mcp__plugin_pecot-w_pecot-workflow__"
+
+
+def test_pecot_pr_create_asks(state_dir, hook_script, hooks_config):
+    hooks_config.write({})
+    input_json = f'{{"tool_name":"{_PECOT_TOOL_PREFIX}pr_create","tool_input":{{}}}}'
+    result = _run(hook_script, input_json)
+    assert result.returncode == 0
+    assert '"permissionDecision": "ask"' in result.stdout
+    assert "external-post-check: pecot pr create" in result.stdout
+
+
+def test_pecot_issue_create_prepare_passes(state_dir, hook_script, hooks_config):
+    hooks_config.write({})
+    input_json = (
+        f'{{"tool_name":"{_PECOT_TOOL_PREFIX}issue_create","tool_input":{{"prepare":true}}}}'
+    )
+    result = _run(hook_script, input_json)
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
+def test_pecot_non_post_tool_no_output(state_dir, hook_script, hooks_config):
+    hooks_config.write({})
+    input_json = f'{{"tool_name":"{_PECOT_TOOL_PREFIX}issue_read","tool_input":{{}}}}'
+    result = _run(hook_script, input_json)
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
+def test_pr_create_block_wins_over_ask(state_dir, hook_script, hooks_config):
+    # deny 系（pr-create-block）が ask より先段で評価される。
+    hooks_config.write({})
+    input_json = '{"tool_name":"mcp__github__create_pull_request","tool_input":{}}'
+    result = _run(hook_script, input_json)
+    assert result.returncode == 0
+    assert '"permissionDecision": "deny"' in result.stdout
+    assert '"permissionDecision": "ask"' not in result.stdout
+
+
+def test_ask_stage_keeps_context7_allow(state_dir, hook_script, hooks_config):
+    # ask の段を通っても、対象外のツール名の allow は変わらない。
+    hooks_config.write({})
+    input_json = '{"tool_name":"mcp__plugin_pecot-w_context7__query-docs","tool_input":{}}'
+    result = _run(hook_script, input_json)
+    assert result.returncode == 0
+    assert '"permissionDecision": "allow"' in result.stdout
+    assert '"permissionDecision": "ask"' not in result.stdout

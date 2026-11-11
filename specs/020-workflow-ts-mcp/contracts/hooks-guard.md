@@ -54,7 +54,10 @@ matcher は `hooks.json` の `mcp__.*` のままで足りる。Copilot CLI 向�
 | 上の形でサブコマンドが分からない（`pecot` だけ、`pecot --help`） | deny。理由には MCP ツールの一覧を使うよう書く |
 | それ以外 | 今の判定へ進む |
 
-セグメントの分け方と起動形の見つけ方は、今の `external-post-check.sh` の処理を使う。サブコマンド別の許可・阻止は持たない。
+セグメントの分け方とクオートの正規化は、今の `external-post-check.sh` の処理を `lib/core/command-segments.sh` に移して共有する。サブコマンド別の許可・阻止は持たない。
+起動形は、共有の `_PECOT` より締める。`pecot` の後ろに語の境界（空白か行末）を求め、パスの部分に `=` を含めない。`pecot` を起動していないコマンドを止めないためだ。例は `CLAUDE_PROJECT_DIR=/…/pecot bash run.sh`・`pecot-tools aws s3 ls`・`/…/pecot/…/run-tests.sh`。
+セグメントの先頭に起動形が来ない形は素通しになる。例は `${PECOT} …`・`time pecot …`・`env X=1 pecot …`・`bash -c "pecot …"`・`{ pecot …; }`・`if pecot …; then`。今の ask と同じ抜けで、塞ぐかどうかはフェーズ 11 で決める。
+`<<` を含むコマンドは、改行を区切りに直さない（ヒアドキュメントの本文の行を止めないため）。グローバルの `--repo` が前に来る形（`pecot --repo o/r issue read 1`）は読み飛ばさず、一覧の文で deny する。
 グループ付きのコマンドは、グループとサブコマンドをつなげてツール名にする。
 
 | Bash の起動 | ツール名 |
