@@ -26,7 +26,19 @@ pnpm -C plugins/pecot-workflow --filter @pecot/pecot-workflow-cli run record:par
 pnpm -C plugins/pecot-workflow --filter @pecot/pecot-workflow-cli run record:parity <id>...
 ```
 
-期待: `record:parity:check` の差が 0。`test-cli` の `parity.test.ts` で、Node の直接起動と MCP 経由の両方が 213 件一致する（SC-004）。形式は [contracts/parity.md](./contracts/parity.md)。
+期待: `record:parity:check` の差が 0。`test-cli` の `parity.test.ts` で、Node の直接起動と MCP 経由の両方が全件（228 件以上）一致する（SC-004）。形式は [contracts/parity.md](./contracts/parity.md)。
+
+## 定義書との一致
+
+```bash
+# Node に登録したコマンドの input と cli を、定義書と比べる（test-cli の中でも流れる）
+pnpm -C plugins/pecot-workflow --filter @pecot/pecot-workflow-cli exec tsx scripts/export-interface.ts --check
+# 定義書の項目とテストのつなぎ、実装との食い違い
+npx nx run interface-spec:lint-defs
+```
+
+期待: `--check` の差が 0 件（SC-010）。`lint-defs` に `has no test` の行が無い（SC-011）。
+切り替えの PR では、`interface/generated.json` の差分が各項目の `surfaces.mcp` だけ。形式は [contracts/interface.md](./contracts/interface.md)。
 
 ## CUJ
 
@@ -39,23 +51,23 @@ pnpm -C plugins/pecot-workflow --filter @pecot/pecot-workflow-cli run record:par
 | 5 | 利用者が `! pecot project info` を実行する | 結果が出る（deny されない） |
 | 6 | 移行前の版で作ったデータ置き場のまま、切り替えの版に更新して起動する | `venv/` が消え、ボードの設定とセッション状態はそのまま読める |
 | 7 | `worktree_link` を `overwrite` なしで呼ぶ。上書き先に実ファイルがある | 上書きされず、対象が一覧で返る |
-| 8 | プラグインを入れていない MCP クライアントに `npx -y @pecot/workflow-mcp` を 1 エントリ登録する | 32 個のツールが見え、`project_info` が結果を返す（SC-008） |
+| 8 | プラグインを入れていない MCP クライアントに `npx -y @pecot/workflow-mcp` を 1 エントリ登録する | 34 個のツールが見え、`project_info` が結果を返す（SC-008） |
 | 9 | 時間のかかるツール（`release_preflight`）を MCP で呼ぶ | タイムアウトせず、CLI と同じ結果が返る |
 
-CUJ 1〜7 と 9 はフェーズ 10 の後、CUJ 8 はフェーズ 12 の後に確かめる。
+CUJ 1〜7 と 9 はフェーズ 11 の後、CUJ 8 はフェーズ 13 の後に確かめる。
 
 ## 走査
 
 ```bash
-# スキル・agents・templates の $PECOT（SC-003）
-git grep -nE '\$PECOT|PECOT=' -- 'plugins/pecot-workflow/skills/**' 'plugins/pecot-workflow/agents/**' 'plugins/pecot-workflow/hooks/templates/**'
-# Python の残り（SC-006。フェーズ 11 の後）
+# スキル・agents・templates の、Bash で pecot を呼ばせる記述（SC-003。残してよい箇所は tests/skills/tool-names.test.ts の一覧）
+git grep -nE '\bpecot (issue|pr|project|session|worktree|release|[a-z]+-[a-z-]+)' -- 'plugins/pecot-workflow/skills/**' 'plugins/pecot-workflow/agents/**' 'plugins/pecot-workflow/hooks/templates/**'
+# Python の残り（SC-006。フェーズ 12 の後）
 git ls-files 'plugins/pecot-workflow/**/*.py' 'plugins/pecot-workflow/**/pyproject.toml' 'plugins/pecot-workflow/**/uv.lock'
-# 旧形式の manifest（フェーズ 10 の後）
+# 旧形式の manifest（フェーズ 11 の後）
 git ls-files 'plugins/pecot-workflow/.github/plugin/*' 'plugins/pecot-workflow/hooks/hooks-copilot.json'
 ```
 
-期待: どれも 0 件。
+期待: 1 つ目は、利用者向けの説明として一覧に載せた箇所だけ。ほかは 0 件。
 
 ## 性能
 

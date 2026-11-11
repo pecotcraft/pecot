@@ -24,7 +24,7 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 | 単体配布 | 無い | npm の `@pecot/visual-mcp` / `@pecot/tools-mcp` |
 
 規模: Python の CLI のソースは約 16,200 行、テストは約 33,700 行。hooks は shell と jq で約 3,600 行、テストは pytest で約 17,100 行。
-スキル・agents・hooks テンプレートの 27 ファイルが `pecot <サブコマンド>` を 201 箇所に書く（2026-11-11 に数えた。`$PECOT` の変数は 0 箇所）。
+スキル・agents・hooks テンプレートの 27 ファイルが `pecot <サブコマンド>` を 197 箇所に書く（2026-11-11 に数えた。`$PECOT` の変数は 0 箇所）。
 サブコマンドは 34 個で、定義書（`plugins/pecot-workflow/interface/`）の項目と 1 対 1 に対応する。
 
 ### 旧 spec 015 からの引き継ぎと変更
@@ -58,7 +58,7 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 | 公開面の正 | `contracts/mcp-tools.md` | 定義書 `plugins/pecot-workflow/interface/`（`authored.yaml` と `generated.json`）。`contracts/mcp-tools.md` は定義書に従う |
 | 前後比較のシナリオ | 213 件 | 228 件。Python を変える PR が、その PR の中で足し、記録し直してきた |
 | CLI の出力 | コマンドごとに直接書く | Python は共通の出力の関数（`cli/commands/_output.py`）を通す。Node にも同じ関数（`cli-node/src/commands/output.ts`）がある |
-| 振る舞いの項目とテスト | つながりは無い | 定義書の振る舞いの項目 746 個が、pytest の `verifies` でテストにつながる。つながるテストの無い項目は `lint-defs` が止める |
+| 振る舞いの項目とテスト | つながりは無い | 定義書の振る舞いの項目 769 個が、pytest の `verifies` でテストにつながる。つながるテストの無い項目は `lint-defs` が止める |
 | スキルからの呼び方 | `$PECOT` とランチャー変数 | 素の `pecot <サブコマンド>` |
 
 移行の前後の一致は、次の 2 つで確かめる。
@@ -121,7 +121,7 @@ pecot-workflow が MCP サーバを持ち、全 34 サブコマンドをツー�
 **Acceptance Scenarios**:
 
 1. **Given** GitHub Copilot CLI、**When** スキルが MCP ツールで Issue を読む、**Then** データ置き場が解決され、止まらない
-2. **Given** スキル・agents・hooks テンプレートの本文、**When** 全部を走査する、**Then** Bash で `pecot` を呼ぶ記述が 0 件
+2. **Given** スキル・agents・hooks テンプレートの本文、**When** 全部を走査する、**Then** エージェントに Bash で `pecot` を呼ばせる記述が 0 件
 3. **Given** スキル本文にある MCP ツール名、**When** スキルのテストを流す、**Then** 全部がサーバの公開するツール一覧にある
 4. **Given** 前後比較のシナリオ、**When** MCP 経由でツールを呼ぶ、**Then** 結果の本文と終了コードが CLI の golden と一致する
 
@@ -206,7 +206,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 | FR-002 | 利用者は pecot-workflow のために Python と uv を入れない。導入は pecot-visual / pecot-tools と同じく、データ置き場に実行用ミラーを作る方式にする |
 | FR-003 | pecot-workflow は MCP の stdio サーバを持つ。データ置き場は、起動時にクライアントが渡す `CLAUDE_PLUGIN_DATA` / `PLUGIN_DATA`、無ければ既定の場所の順で解決する。MCP の登録には `env` を書かない |
 | FR-004 | MCP ツールは CLI の全 34 サブコマンドを 1 対 1 で写す。スキルが使わない初期設定のコマンドも含む。ツール名は `<group>_<subcommand>`、グループの無いものはコマンド名の `-` を `_` にしたもの。許可の単位はツール 1 つ。CLI と MCP は 1 つのコマンド定義の一覧から作り、片方だけの追加を起こさない |
-| FR-005 | スキル本文・エージェント定義・hooks テンプレートは MCP ツールを呼ぶ。Bash で `pecot` を呼ぶ記述を持たない |
+| FR-005 | スキル本文・エージェント定義・hooks テンプレートは MCP ツールを呼ぶ。エージェントに Bash で `pecot` を呼ばせる記述を持たない。利用者が端末で打つコマンドの説明は残してよい |
 | FR-006 | hooks のガードは、許可・確認・阻止を MCP ツールの呼び出しに対して行う。条件と理由の文言は移行前と同じ。Claude Code と Copilot CLI の 2 つのツール名の形を同じに扱う |
 | FR-007 | 済んでいる前後比較（シナリオと golden の全件。2026-11-11 の時点で 228 件）を Node の CLI の直接起動と MCP 経由の両方に流し、全部一致させる。golden を記録し直すのは、Python の CLI か依存を変える PR だけ。その PR で Node も同じように直す。Python を消した後は回帰テストとして残す |
 | FR-008 | `baseline.json` の基準値は書き換えない。移行後の CLI の行カバレッジは基準値以上かつ 90% 以上とし、下回ればテストを失敗させる。hooks はカバレッジを計らず、テストの件数と起動スクリプトの一覧を基準より減らさない |
@@ -236,7 +236,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 | データ置き場 | `CLAUDE_PLUGIN_DATA` / `PLUGIN_DATA`、無ければ既定の場所。実行用ミラーと状態ファイルを置く |
 | 前後比較のシナリオと golden | 済み。2026-11-11 の時点で 228 件。Python の実出力から作った期待値 |
 | 定義書 | `plugins/pecot-workflow/interface/`。実装から書き出す `generated.json`（コマンド名・入力・CLI の形・MCP ツール）と、人が書く `authored.yaml`（説明・副作用・終了コード・振る舞いの項目）。項目は 34 個で、ID は `PW-…` |
-| 振る舞いの項目 | 定義書の項目が持つ、振る舞いの 1 文と ID。テストが ID を書いてつながる。746 個 |
+| 振る舞いの項目 | 定義書の項目が持つ、振る舞いの 1 文と ID。テストが ID を書いてつながる。769 個 |
 | 基準値 | 済み。CLI の行カバレッジ 91.0%、hooks のテスト 1,569 件と起動スクリプトの一覧 |
 | 単体配布 | npm の `@pecot/workflow-mcp`。hooks を含まない |
 
@@ -248,7 +248,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 |---|---|
 | SC-001 | Python と uv の無い端末で、quickstart の CUJ が Claude Code と GitHub Copilot CLI の両方で全部通る |
 | SC-002 | GitHub Copilot CLI でスキルを実行し、データ置き場が解決されず止まる件数が 0 |
-| SC-003 | スキル・agents・hooks テンプレートの、Bash で `pecot` を呼ぶ記述が 201 箇所から 0 になる |
+| SC-003 | スキル・agents・hooks テンプレートの `pecot <サブコマンド>` 197 箇所のうち、エージェントに Bash で呼ばせる記述が 0 になる。利用者が端末で打つコマンドの説明は残してよい |
 | SC-004 | 前後比較の全件（228 件以上）が、CLI の直接起動と MCP 経由の両方で全部一致する |
 | SC-005 | 移行後の CLI の行カバレッジが 91.0% 以上。hooks のテストが 1,569 件以上で、起動スクリプトの一覧が基準を全部含む |
 | SC-006 | pecot-workflow に Python の CLI・テスト・`test-py` レーンが残らない |

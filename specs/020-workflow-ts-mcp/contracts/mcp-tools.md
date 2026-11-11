@@ -33,6 +33,6 @@
 
 | 確認 | 方法 |
 |---|---|
-| ツールの数と名前 | `tools/list` が定義書（`interface/generated.json`）の項目と一致する |
+| ツールの数と名前 | `tools/list` が定義書（`interface/generated.json`）の 34 項目と一致する。切り替えの後は、各項目の `surfaces.mcp.tool` と一致する |
 | 入力の対応 | 各ツールの JSON Schema のプロパティが、CLI のオプション（`--show-repo`・`--version` を除く）と 1 対 1 |
 | 結果の同一性 | 前後比較のシナリオを MCP 経由でも流し、stdout と終了コードが CLI と一致する |

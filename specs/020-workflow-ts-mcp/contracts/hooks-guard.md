@@ -28,7 +28,7 @@ matcher は `hooks.json` の `mcp__.*` のままで足りる。Copilot CLI 向�
 
 ## 入れる時期
 
-| 判定 | フェーズ 7 | フェーズ 10（切り替え） |
+| 判定 | フェーズ 8 | フェーズ 11（切り替え） |
 |---|---|---|
 | 投稿の ask（MCP） | 入れる。MCP サーバが未登録なので発火しない | そのまま |
 | Bash の `pecot` の deny | `lib/core/pecot-cli-deny.sh` とテストだけを入れる | `pre-tool-use-bash.sh` から呼ぶ |
