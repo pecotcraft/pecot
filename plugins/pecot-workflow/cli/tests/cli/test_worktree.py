@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner, Result
 
 from cli.commands.main import app
@@ -696,13 +697,41 @@ class TestWorktreeLink:
 
 
 class TestDevcontainerGuard:
-    def test_add_fails_outside_devcontainer(self, tmp_path: Path) -> None:
-        """devcontainer 外で pecot worktree add を呼ぶと RuntimeError で非 0 終了"""
+    """devcontainer の外では、4 コマンドとも error: の 1 行と終了コード 1 で止まる"""
+
+    MESSAGE = "このコマンドは devcontainer 内で実行してください。"
+
+    def _assert_error_line(self, result: Result) -> None:
+        assert result.exit_code == 1
+        assert any(line.startswith("error: ") for line in result.stderr.splitlines())
+        assert self.MESSAGE in result.stderr
+        assert "Traceback" not in result.output + result.stderr
+
+    @pytest.mark.parametrize(
+        "args",
+        [["add"], ["remove", "wt1"], ["init"], ["link"]],
+        ids=["add", "remove", "init", "link"],
+    )
+    def test_fails_outside_devcontainer(self, tmp_path: Path, args: list[str]) -> None:
         with patch(
             "cli.core.worktree.ensure_devcontainer_environment",
-            side_effect=RuntimeError("このコマンドは devcontainer 内で実行してください。"),
+            side_effect=RuntimeError(self.MESSAGE),
         ):
-            result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
-        assert result.exit_code != 0
-        # RuntimeError は CLI 側の try/except で拾われるか、
-        # そうでなくても非 0 終了すればガードの役割を果たしている
+            result = runner.invoke(app, ["worktree", *args, "-D", str(tmp_path)])
+        self._assert_error_line(result)
+
+
+class TestLinkInvalidConfig:
+    def test_malformed_json_is_error_line(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "worktree-config.json"
+        cfg.write_text("{not json", encoding="utf-8")
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch("cli.core.worktree_links.find_config_file", return_value=cfg),
+        ):
+            result = runner.invoke(app, ["worktree", "link", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert any(
+            line.startswith("error: JSON parse error:") for line in result.stderr.splitlines()
+        )
+        assert "Traceback" not in result.output + result.stderr

@@ -4,8 +4,10 @@ CLI definition built with Typer.
 """
 
 from pathlib import Path
+from typing import Any
 
 import typer
+from typer.core import TyperGroup
 
 from cli import __version__
 from cli.commands._output import Output, install_log_handler
@@ -48,6 +50,7 @@ from cli.commands.worktree import (
     worktree_link,
     worktree_remove,
 )
+from cli.core.errors import PecotError
 from cli.core.github.client import resolve_api_url_override
 from cli.core.repo_resolver import AmbiguousRepoError, resolve_repo
 
@@ -56,8 +59,21 @@ _OUT = Output(dry_run=False)
 # core の logger の警告とエラーを Output へ流す
 install_log_handler()
 
+
+class _PecotGroup(TyperGroup):
+    """Root safety net: turn an uncaught PecotError into one error: line and exit code 1"""
+
+    def invoke(self, ctx: Any) -> Any:  # ctx は typer 同梱の非公開の click.Context
+        try:
+            return super().invoke(ctx)
+        except PecotError as e:
+            _OUT.error(str(e))
+            raise typer.Exit(1) from None
+
+
 # メインアプリケーション
 app = typer.Typer(
+    cls=_PecotGroup,
     name="pecot",
     help="pecot-workflow CLI - work tracking on GitHub Projects",
     no_args_is_help=True,

@@ -14,7 +14,7 @@ from cli.commands._output import Output
 from cli.commands._work_target import record_work_target
 from cli.commands.options import DirectoryOption
 from cli.commands.pr import extract_issue_number_from_branch
-from cli.core.config import load_active_config
+from cli.core.config import ConfigError, load_active_config
 from cli.core.errors import PecotError
 from cli.core.git import git_current_branch, origin_repo
 from cli.core.github import GitHubAPIError, GitHubClient
@@ -135,7 +135,11 @@ def _active_issue_lines(flag_statuses: list[FlagStatus]) -> list[str]:
     owner, repo, number = ref.repo.owner, ref.repo.repo, ref.number
 
     # 設定からホスト情報を取得
-    config = load_active_config()
+    try:
+        config = load_active_config()
+    except ConfigError as e:
+        _OUT.warning(f"cannot read the active Issue: {e}")
+        return []
     if config is None:
         _OUT.warning("cannot read the active Issue: no active project")
         return []
@@ -159,7 +163,7 @@ def _active_issue_lines(flag_statuses: list[FlagStatus]) -> list[str]:
 
 
 def _fetch_issue_title(issue_ref: str) -> str:
-    """Fetch the Issue title for the session name. Return an empty string when the config is missing or unreadable or the API fails (restore goes on)."""
+    """Fetch the Issue title for the session name. Return an empty string only when the config is missing or the API fails (restore goes on). An unreadable config raises ConfigError."""
     try:
         config = load_active_config()
         if config is None:
@@ -168,6 +172,8 @@ def _fetch_issue_title(issue_ref: str) -> str:
         issue = GitHubClient(host=config.host).get_issue_slim(
             ref.repo.owner, ref.repo.repo, ref.number, comment_limit=0
         )
+    except ConfigError:
+        raise
     except PecotError:
         return ""
     return issue.get("title", "")
@@ -214,5 +220,9 @@ def flag_restore(
         number = extracted_number
 
     # 2. フラグ復元（セッション名用のタイトルは取れたときだけ添える）
-    title = _fetch_issue_title(f"{owner}/{repo}/{number}")
+    try:
+        title = _fetch_issue_title(f"{owner}/{repo}/{number}")
+    except ConfigError as e:
+        _OUT.error(str(e))
+        raise typer.Exit(code=1) from e
     record_work_target(_OUT, owner, repo, number, title, fail_with_exit=True)

@@ -16,7 +16,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from cli.core.errors import PecotError
 from cli.core.paths import CONFIG_DIR
@@ -435,17 +435,26 @@ def load_config(path: Path | str) -> ProjectConfig:
         ProjectConfigオブジェクト
 
     Raises:
-        ConfigError: ファイルが見つからない場合
-        ValidationError: JSONの形式が不正な場合
+        ConfigError: ファイルが見つからない場合、または JSON・文字コード・
+            スキーマが不正で読めない場合
     """
     path = Path(path)
     if not path.exists():
         raise ConfigError(f"config file not found: {path}")
 
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return ProjectConfig.model_validate(data)
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return ProjectConfig.model_validate(data)
+    except ValueError as e:
+        # JSONDecodeError / ValidationError / UnicodeDecodeError はいずれも ValueError の子
+        if isinstance(e, ValidationError):
+            detail = "; ".join(
+                f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()
+            )
+        else:
+            detail = str(e)
+        raise ConfigError(f"invalid config file: {path}: {detail}") from e
 
 
 def save_config(config: ProjectConfig, path: Path | str) -> None:

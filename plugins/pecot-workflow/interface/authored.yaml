@@ -383,13 +383,13 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: Count lines for the open Dependabot PRs, the PRs awaiting a decision and the PRs awaiting a decision without check results. A result line for each change (created, added, removed, updated, unchanged, closed, skipped), or a dry-run line with --dry-run. A warning line when several Trackers are open. An error line for each failure, except when the GitHub token cannot be found, where a traceback is printed.
+    diagnostics: Count lines for the open Dependabot PRs, the PRs awaiting a decision and the PRs awaiting a decision without check results. A result line for each change (created, added, removed, updated, unchanged, closed, skipped), or a dry-run line with --dry-run. A warning line when several Trackers are open. An error line for each failure.
     environment: []
     exit_status:
       - code: 0
         when: The Tracker was synchronized, or --dry-run printed the plan.
       - code: 1
-        when: There is no active project, the repository cannot be read from the git remote, the PRs or issues cannot be listed, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating, closing or placing the Tracker on the board failed, or the GitHub token cannot be found (a traceback is printed).
+        when: There is no active project, the repository cannot be read from the git remote, the PRs or issues cannot be listed, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating, closing or placing the Tracker on the board failed, or the GitHub token cannot be found.
       - code: 2
         when: A command line error occurs.
     on_error: A Tracker that was created stays open on GitHub even when placing it on the board failed, and the next run places it on the board. A failed body update leaves the body as it was and the Tracker open. A failed close leaves the list set to none and the Tracker open, and the next run closes it. Changes already made are not rolled back.
@@ -519,7 +519,7 @@ entries:
         statement: もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-DEPENDABOT-SYNC-35
         pattern: unwanted
-        statement: もし GitHub のトークンが見つからないなら、traceback を標準エラーに出す
+        statement: もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる
       - id: PW-DEPENDABOT-SYNC-36
         pattern: unwanted
         statement: もし GitHub のトークンが見つからないなら、終了コード 1 で終わる
@@ -2396,13 +2396,13 @@ entries:
     output:
       format: text
       description: The URL of the created release. With --dry-run, the release notes instead.
-    diagnostics: A result line on stderr for the created release, or a plan line with --dry-run. A warning line when --repo differs from the git remote. An error line on a failure, except when the GitHub token cannot be found, where a traceback is printed.
+    diagnostics: A result line on stderr for the created release, or a plan line with --dry-run. A warning line when --repo differs from the git remote. An error line on a failure.
     environment: []
     exit_status:
       - code: 0
         when: The release was created, or the plan was printed with --dry-run.
       - code: 1
-        when: The version is not in X.Y.Z form, the root directory of the git repository cannot be found, there is no active project, the --package rules are broken, the CHANGELOG or the version in it is not found, release_branch is not set, the GitHub API returned an error, the git remote cannot be read without --repo, the repository is ambiguous outside git without --repo, the GitHub token cannot be found (a traceback is printed), or the project root cannot be determined.
+        when: The version is not in X.Y.Z form, the root directory of the git repository cannot be found, there is no active project, the --package rules are broken, the CHANGELOG or the version in it is not found, release_branch is not set, the GitHub API returned an error, the git remote cannot be read without --repo, the repository is ambiguous outside git without --repo, the GitHub token cannot be found, or the project root cannot be determined.
       - code: 2
         when: The version argument is missing, or another command line error occurs.
     on_error: Nothing is created on GitHub when a step fails.
@@ -2507,7 +2507,7 @@ entries:
         statement: もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる
       - id: PW-RELEASE-CREATE-25
         pattern: unwanted
-        statement: もし GitHub のトークンが見つからないなら、traceback を標準エラーに出す
+        statement: もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる
       - id: PW-RELEASE-CREATE-26
         pattern: unwanted
         statement: もし GitHub のトークンが見つからないなら、終了コード 1 で終わる
@@ -2669,13 +2669,13 @@ entries:
     output:
       format: text
       description: The version line, the tag line, a blank line and the release notes of the version. Nothing is written to stdout for a repository whose release type is nx.
-    diagnostics: Per alert kind, a count line, a skipped line or a warning line, and an error line for code scanning and secret scanning. A count line for the commits to release. A warning line when --repo differs from the git remote. An error line on a failure, except when the version is not in X.Y.Z form, where a traceback is printed.
+    diagnostics: Per alert kind, a count line, a skipped line or a warning line, and an error line for code scanning and secret scanning. A count line for the commits to release. A warning line when --repo differs from the git remote. An error line on a failure.
     environment: []
     exit_status:
       - code: 0
         when: Every check passed, including the case where only Dependabot alerts are open or could not be read.
       - code: 1
-        when: The root directory of the git repository cannot be found, there is no active project, the --package rules are broken, an nx repository is given a version or --package, an alert check fails, develop_branch or release_branch is not set, the CHANGELOG or the version in it is not found, the tag already exists, there is nothing to release, a git command fails, the version is not in X.Y.Z form (a traceback is printed), the git remote cannot be read without --repo, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+        when: The root directory of the git repository cannot be found, there is no active project, the --package rules are broken, an nx repository is given a version or --package, an alert check fails, develop_branch or release_branch is not set, the CHANGELOG or the version in it is not found, the tag already exists, there is nothing to release, a git command fails, the version is not in X.Y.Z form, the git remote cannot be read without --repo, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
       - code: 2
         when: A command line error occurs, such as an unknown option.
     on_error: Nothing is created on GitHub or in the working tree. git fetch may already have updated <remote>/<release_branch> and <remote>/<develop_branch>.
@@ -2849,13 +2849,13 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: A result line for each change (created, added, removed, updated, unchanged, skipped), or a dry-run line with --dry-run. A warning line when several Trackers are open. An error line for each failure, including each kind whose list could not be fetched, except when the GitHub token cannot be found, where a traceback is printed.
+    diagnostics: A result line for each change (created, added, removed, updated, unchanged, skipped), or a dry-run line with --dry-run. A warning line when several Trackers are open. An error line for each failure, including each kind whose list could not be fetched.
     environment: []
     exit_status:
       - code: 0
         when: The Tracker was synchronized, or --dry-run printed the plan, and every kind was fetched or is disabled.
       - code: 1
-        when: There is no active project, the repository cannot be read from the git remote, the issues cannot be listed, the list of a kind cannot be fetched, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating or placing the Tracker on the board failed, or the GitHub token cannot be found (a traceback is printed). The exit status is 1 for a kind that cannot be fetched also with --dry-run.
+        when: There is no active project, the repository cannot be read from the git remote, the issues cannot be listed, the list of a kind cannot be fetched, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating or placing the Tracker on the board failed, or the GitHub token cannot be found. The exit status is 1 for a kind that cannot be fetched also with --dry-run.
       - code: 2
         when: A command line error occurs.
     on_error: A Tracker that was created stays open on GitHub even when placing it on the board failed, and the next run places it on the board. A failed body update leaves the body as it was, and the next run retries it. Changes already made are not rolled back.
@@ -2964,7 +2964,7 @@ entries:
         statement: もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-SECURITY-SYNC-28
         pattern: unwanted
-        statement: もし GitHub のトークンが見つからないなら、traceback を標準エラーに出す
+        statement: もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる
       - id: PW-SECURITY-SYNC-29
         pattern: unwanted
         statement: もし GitHub のトークンが見つからないなら、終了コード 1 で終わる
@@ -3035,13 +3035,13 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: A set line on stderr for the recorded work target, with the work directory when it was created. An error line on a failure, except that a broken active config file prints a traceback. When the Issue number cannot be inferred from the branch name, the error line is followed by a hint to pass --issue.
+    diagnostics: A set line on stderr for the recorded work target, with the work directory when it was created. An error line on a failure, including when the active config file is broken. When the Issue number cannot be inferred from the branch name, the error line is followed by a hint to pass --issue.
     environment: []
     exit_status:
       - code: 0
         when: The work target was recorded.
       - code: 1
-        when: Without --issue, the branch name cannot be read, the Issue number cannot be inferred from the branch name or the origin repository cannot be read; the work target cannot be written, including when the project root cannot be determined; or the active config file is broken (a traceback is printed).
+        when: Without --issue, the branch name cannot be read, the Issue number cannot be inferred from the branch name or the origin repository cannot be read; the work target cannot be written, including when the project root cannot be determined; or the active config file is broken (an error line is printed).
       - code: 2
         when: --issue is not in owner/repo/N form, --directory is missing or is not an existing directory, or another command line error occurs.
     on_error: When writing .pecot-session-title fails after .pecot-active was written, .pecot-active stays written.
@@ -3128,7 +3128,7 @@ entries:
         statement: もし作業対象のファイルを書けないなら、終了コード 1 で終わる
       - id: PW-SESSION-RESTORE-20
         pattern: unwanted
-        statement: もしアクティブな設定ファイルの JSON が不正かスキーマに違反しているなら、traceback を標準エラーに出す
+        statement: もしアクティブな設定ファイルの JSON が不正かスキーマに違反しているなら、error の行を標準エラーに出す
       - id: PW-SESSION-RESTORE-21
         pattern: unwanted
         statement: もしアクティブな設定ファイルの JSON が不正かスキーマに違反しているなら、終了コード 1 で終わる
@@ -3148,13 +3148,13 @@ entries:
     output:
       format: text
       description: Markdown with a Session status heading, the Branch, Repository and Inferred Issue lines, the flag table, and an Active Issue section when the active Issue could be read.
-    diagnostics: A warning line on stderr when .pecot-active holds an Issue reference and the active Issue cannot be read, including when there is no active project. A traceback when the project root cannot be determined, or when .pecot-active holds an Issue reference and the active config file is broken.
+    diagnostics: A warning line on stderr when .pecot-active holds an Issue reference and the active Issue cannot be read, including when there is no active project or when the active config file is broken. An error line when the project root cannot be determined.
     environment: []
     exit_status:
       - code: 0
-        when: The status was printed, including when the branch, the repository or the active Issue could not be read.
+        when: The status was printed, including when the branch, the repository or the active Issue could not be read, and when .pecot-active holds an Issue reference and the active config file is broken.
       - code: 1
-        when: The project root cannot be determined (a traceback is printed), or .pecot-active holds an Issue reference and the active config file is broken (a traceback is printed).
+        when: The project root cannot be determined (an error line is printed).
       - code: 2
         when: --directory is missing or is not an existing directory, or another command line error occurs.
     on_error: default
@@ -3237,10 +3237,10 @@ entries:
         statement: もし --directory が存在するディレクトリでないなら、終了コード 2 で終わる
       - id: PW-SESSION-STATUS-21
         pattern: unwanted
-        statement: もし .pecot-active に Issue の参照があり、アクティブな設定ファイルの形式が不正なら、traceback を標準エラーに出す
+        statement: もし .pecot-active に Issue の参照があり、アクティブな設定ファイルの形式が不正なら、warning の行を標準エラーに出す
       - id: PW-SESSION-STATUS-22
         pattern: unwanted
-        statement: もし .pecot-active に Issue の参照があり、アクティブな設定ファイルの形式が不正なら、終了コード 1 で終わる
+        statement: もし .pecot-active に Issue の参照があり、アクティブな設定ファイルの形式が不正なら、終了コード 0 で終わる
   PW-UPDATE-ISSUE-STATUS:
     constraints: []
     details:
@@ -3350,7 +3350,7 @@ entries:
     output:
       format: text
       description: The path of the created worktree on one line. With --dry-run, the planned path.
-    diagnostics: A created line (a dry-run line with --dry-run) and count lines for the symlinks and the copied files on stderr. A warning line for each link that was skipped, each file that could not be copied and a failed setup command. An error line for a failure. Outside a devcontainer, a traceback instead of an error line.
+    diagnostics: A created line (a dry-run line with --dry-run) and count lines for the symlinks and the copied files on stderr. A warning line for each link that was skipped, each file that could not be copied and a failed setup command. An error line for a failure, including outside a devcontainer.
     environment:
       - name: REMOTE_CONTAINERS
         effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
@@ -3362,7 +3362,7 @@ entries:
       - code: 0
         when: The worktree was created, or --dry-run printed the plan. Skipped links, files that could not be copied and a failed setup command do not change it.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, the repository is not in the base/ layout, worktree-config.json or .worktreeignore is missing or worktree-config.json is invalid, the origin remote cannot be read, there is no active project, the repository is not registered in it, develop_branch is not set and --base is omitted, every set from wt1 to wt9 is in use, the branch wtN exists with another upstream, git worktree add failed, or the command runs outside a devcontainer (a traceback is printed).
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, the repository is not in the base/ layout, worktree-config.json or .worktreeignore is missing or worktree-config.json is invalid, the origin remote cannot be read, there is no active project, the repository is not registered in it, develop_branch is not set and --base is omitted, every set from wt1 to wt9 is in use, the branch wtN exists with another upstream, git worktree add failed, or the command runs outside a devcontainer.
       - code: 2
         when: -D is missing or is not an existing directory, or another command line error occurs.
     on_error: Stops at the first error. When worktree-config.json is found invalid after git worktree add, the worktree and its branch stay without links, copied files or the setup run. Pruned metadata and a deleted unused branch stay as they are.
@@ -3491,7 +3491,7 @@ entries:
         statement: もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる
       - id: PW-WORKTREE-ADD-30
         pattern: unwanted
-        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出す
+        statement: もし devcontainer の外で打ったなら、error の行を標準エラーに出す
       - id: PW-WORKTREE-ADD-31
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
@@ -3568,7 +3568,7 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: A created line for each of the two files on stderr. An error line for a failure. Outside a devcontainer, a traceback instead of an error line.
+    diagnostics: A created line for each of the two files on stderr. An error line for a failure, including outside a devcontainer.
     environment:
       - name: REMOTE_CONTAINERS
         effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
@@ -3580,7 +3580,7 @@ entries:
       - code: 0
         when: Both files were created.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, one of the two files already exists, the active config file cannot be read or is malformed, a file cannot be written (a traceback is printed), or the command runs outside a devcontainer (a traceback is printed).
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, one of the two files already exists, the active config file cannot be read or is malformed, a file cannot be written (a traceback is printed), or the command runs outside a devcontainer.
       - code: 2
         when: -D is missing or is not an existing directory, or another command line error occurs.
     on_error: When .worktreeignore cannot be written after worktree-config.json was written, worktree-config.json stays. Nothing is written when a file already exists or the active config file cannot be read.
@@ -3643,7 +3643,7 @@ entries:
         statement: もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる
       - id: PW-WORKTREE-INIT-14
         pattern: unwanted
-        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出す
+        statement: もし devcontainer の外で打ったなら、error の行を標準エラーに出す
       - id: PW-WORKTREE-INIT-15
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
@@ -3676,7 +3676,7 @@ entries:
     stdin: A y or n answer to the overwrite prompt. The prompt is asked only for a single worktree, without --force, when a real file or directory that git does not track exists at a link path. An end of input aborts the command.
     output:
       format: none
-    diagnostics: A count line of the symlinks created for each worktree, and a skipped line for each skipped link, on stderr. With --all and more than one worktree, count lines of the totals. A warning line for each link that could not be created. Dry-run lines with --dry-run. An error line for a failure. Outside a devcontainer or with an invalid config file, a traceback instead of an error line.
+    diagnostics: A count line of the symlinks created for each worktree, and a skipped line for each skipped link, on stderr. With --all and more than one worktree, count lines of the totals. A warning line for each link that could not be created. Dry-run lines with --dry-run. An error line for a failure, including outside a devcontainer or with an invalid config file.
     environment:
       - name: REMOTE_CONTAINERS
         effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
@@ -3688,7 +3688,7 @@ entries:
       - code: 0
         when: The links were applied or planned, including when links were skipped or could not be created.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the config file is missing, the config file is invalid or the command runs outside a devcontainer (a traceback is printed), the main worktree or the project root cannot be found, -D is the main worktree without --all, the worktree list cannot be read, or the overwrite prompt is aborted.
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the config file is missing, the config file is invalid or the command runs outside a devcontainer, the main worktree or the project root cannot be found, -D is the main worktree without --all, the worktree list cannot be read, or the overwrite prompt is aborted.
       - code: 2
         when: -D is missing or is not an existing directory, or another command line error occurs.
     on_error: Links already created in this run stay. A link that could not be created is left as it was, and the other links are still processed.
@@ -3789,7 +3789,7 @@ entries:
         statement: もし設定ファイルが無いなら、終了コード 1 で終わる
       - id: PW-WORKTREE-LINK-23
         pattern: unwanted
-        statement: もし設定ファイルの形式が不正なら、error の行ではなく traceback を標準エラーに出す
+        statement: もし設定ファイルの形式が不正なら、error の行を標準エラーに出す
       - id: PW-WORKTREE-LINK-24
         pattern: unwanted
         statement: もし設定ファイルの形式が不正なら、終了コード 1 で終わる
@@ -3816,7 +3816,7 @@ entries:
         statement: もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる
       - id: PW-WORKTREE-LINK-32
         pattern: unwanted
-        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出す
+        statement: もし devcontainer の外で打ったなら、error の行を標準エラーに出す
       - id: PW-WORKTREE-LINK-33
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
@@ -3839,7 +3839,7 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: A removed line and a deleted line on stderr. A warning line instead of the deleted line when the branch cannot be deleted, and a warning line when the set directory cannot be removed. An error line for a failure. Outside a devcontainer, a traceback instead of an error line.
+    diagnostics: A removed line and a deleted line on stderr. A warning line instead of the deleted line when the branch cannot be deleted, and a warning line when the set directory cannot be removed. An error line for a failure, including outside a devcontainer.
     environment:
       - name: REMOTE_CONTAINERS
         effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
@@ -3851,7 +3851,7 @@ entries:
       - code: 0
         when: The worktree was removed, including when the branch could not be deleted.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, no worktree has the given branch name, git worktree remove failed, or the command runs outside a devcontainer (a traceback is printed).
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, no worktree has the given branch name, git worktree remove failed, or the command runs outside a devcontainer.
       - code: 2
         when: The name or -D is missing, -D is not an existing directory, or another command line error occurs.
     on_error: Stops at the first error. When git worktree remove failed, the worktree and the branch stay. After the worktree was removed, a failure to delete the branch writes a warning and leaves the branch.
@@ -3937,7 +3937,7 @@ entries:
         statement: もし --repo を省いて git の外で打ったなら、終了コード 1 で終わる
       - id: PW-WORKTREE-REMOVE-21
         pattern: unwanted
-        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出す
+        statement: もし devcontainer の外で打ったなら、error の行を標準エラーに出す
       - id: PW-WORKTREE-REMOVE-22
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
@@ -3991,3 +3991,9 @@ common_behaviors:
   - id: PW-COMMON-15
     pattern: unwanted
     statement: もし読み込む設定ファイルの形式が不正なら、終了コード 1 で終わる
+  - id: PW-COMMON-16
+    pattern: unwanted
+    statement: もしコマンドが捕まえなかった pecot の独自の例外が起きたなら、error の行を標準エラーに出す
+  - id: PW-COMMON-17
+    pattern: unwanted
+    statement: もしコマンドが捕まえなかった pecot の独自の例外が起きたなら、終了コード 1 で終わる（リポジトリが曖昧なときの終了コード 2 も、ここを通ると 1 になる）

@@ -16,7 +16,7 @@ import pytest
 import typer.testing
 
 from cli.commands.main import app
-from cli.core.github import GitHubAPIError, GitHubNotFoundError
+from cli.core.github import GitHubAPIError, GitHubAuthError, GitHubNotFoundError
 from cli.core.security_alerts import TrackerEntry, render_tracker_body
 
 runner = typer.testing.CliRunner()
@@ -63,7 +63,7 @@ def _invoke(
     config: MagicMock | None = None,
 ) -> Any:
     with (
-        patch("cli.commands.security.GitHubClient", return_value=client),
+        patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
         patch("cli.commands._tracker_sync.load_active_config", return_value=config or _config()),
         patch("cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")),
     ):
@@ -477,3 +477,23 @@ class TestCommands:
 
         assert "sync" in result.output
         assert "review-exceptions" not in result.output
+
+
+def _invoke_real_client(args: list[str]) -> Any:
+    with (
+        patch("cli.commands._tracker_sync.load_active_config", return_value=_config()),
+        patch("cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")),
+    ):
+        return runner.invoke(app, ["security", *args])
+
+
+def test_sync_without_token_is_an_error_line() -> None:
+    with patch(
+        "cli.core.github.client.GitHubClientBase._get_token",
+        side_effect=GitHubAuthError("could not get a GitHub API token"),
+    ):
+        result = _invoke_real_client(["sync", "--dry-run"])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output
+    assert "error: could not get a GitHub API token\n" in result.stderr

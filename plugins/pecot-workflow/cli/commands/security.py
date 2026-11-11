@@ -19,6 +19,7 @@ from cli.commands._tracker_sync import (
     DryRunOption,
     api_error_detail,
     load_target,
+    make_client,
     settle,
     warn_extra_trackers,
 )
@@ -129,7 +130,7 @@ def security_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
     """
     out = Output(dry_run)
     config, owner, repo = load_target(ctx, out)
-    client = GitHubClient(host=config.host)
+    client = make_client(out, config)
 
     alerts, failed, disabled = _fetch_open_alerts(out, client, config.host, owner, repo)
     try:

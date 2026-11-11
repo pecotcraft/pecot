@@ -19,6 +19,7 @@ from cli.commands._tracker_sync import (
     DryRunOption,
     api_error_detail,
     load_target,
+    make_client,
     warn_extra_trackers,
 )
 from cli.core.config import ProjectConfig
@@ -114,7 +115,7 @@ def dependabot_sync(ctx: typer.Context, dry_run: DryRunOption = False) -> None:
     """
     out = Output(dry_run)
     config, owner, repo = load_target(ctx, out)
-    client = GitHubClient(host=config.host)
+    client = make_client(out, config)
 
     try:
         prs = client.list_open_dependabot_pull_requests(owner, repo)
