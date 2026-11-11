@@ -262,7 +262,7 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: A result line on stderr for each deleted branch (deleted), the plan line with --dry-run (dry-run), and an error line that lists the protected branches when the branch is protected.
+    diagnostics: A result line on stderr for each deleted branch (deleted), the plan line with --dry-run (dry-run), an error line that lists the protected branches when the branch is protected, and an error line for any other failure, including when --repo differs from the git remote.
     environment: []
     exit_status:
       - code: 0

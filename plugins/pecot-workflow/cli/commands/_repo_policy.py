@@ -160,7 +160,7 @@ def require_repo_match(mode: Mode) -> Callable[[F], F]:
                 _OUT.error(
                     f"--repo {explicit_ref.full_name} differs from the current Git remote "
                     f"({current_ref.full_name})\n"
-                    "worktree and branch commands are rejected to protect the local Git state"
+                    "this command works only on the repository of the current Git remote"
                 )
                 raise typer.Exit(1)
 

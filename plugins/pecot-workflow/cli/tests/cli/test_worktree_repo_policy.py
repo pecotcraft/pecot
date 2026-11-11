@@ -115,7 +115,7 @@ class TestBranchMismatchReject:
         assert (
             "error: --repo acme-labs/aist-plugin differs from the current Git remote "
             "(acme-labs/pecot-cli)\n"
-            "  worktree and branch commands are rejected to protect the local Git state\n"
+            "  this command works only on the repository of the current Git remote\n"
         ) == result.stderr
 
     def test_delete_branch_mismatch(self) -> None:
