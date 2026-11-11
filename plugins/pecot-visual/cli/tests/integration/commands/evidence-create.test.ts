@@ -285,7 +285,8 @@ describe('pecotv evidence create — 混在入力 (FR-006)', () => {
 })
 
 /**
-oneCellAnchor 1 件を「何を載せたどのセルか」に絞った観測用の形。
+oneCellAnchor 1 件を「どのセルに何を載せたか」に絞った観測用の形。
+kind は直下の子 (pic 単体か、注記を束ねた grpSp か)。
 */
 interface AnchorSummary {
   readonly kind: string
@@ -299,9 +300,9 @@ function anchorSummaries(drawing: Readonly<XmlDocument>): readonly AnchorSummary
   return drawing.selectNodes('//xdr:oneCellAnchor', OOXML_NS).map((anchor) => {
     const from = anchor.selectNodes('./xdr:from', OOXML_NS)[0]
     const extent = anchor.selectNodes('./xdr:ext', OOXML_NS)[0]
-    const shape = anchor.selectNodes('./xdr:sp//a:prstGeom', OOXML_NS)[0]
+    const group = anchor.selectNodes('./xdr:grpSp', OOXML_NS)[0]
     return {
-      kind: shape === undefined ? 'pic' : (shape.getAttr('prst') ?? ''),
+      kind: group === undefined ? 'pic' : 'grpSp',
       cell: [
         from?.selectNodes('./xdr:col', OOXML_NS)[0]?.text() ?? '',
         from?.selectNodes('./xdr:row', OOXML_NS)[0]?.text() ?? '',
@@ -361,21 +362,28 @@ describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
     // 出力された sp の実数が --json の annotations と一致する。
     expect(drawing.selectNodes('//xdr:sp', OOXML_NS)).toHaveLength(3)
 
-    // 注記は対応する画像と同じアンカーセルに乗り、画像左上からの EMU オフセットを持つ。
+    // 注記付きの画像は、画像と注記を grpSp にまとめて 1 つのアンカーに置く。
+    // アンカーのオフセットは 0。注記の位置は、グループ内の a:off (画像左上が原点) で表す。
     // 1920x1080 → 960x540 なので相対座標には 0.5 倍が伝播する。
     expect(anchorSummaries(drawing)).toStrictEqual([
-      { kind: 'pic', cell: '1,6', colOff: '0', rowOff: '0', extent: ['9144000', '5143500'] },
-      {
-        kind: 'wedgeRectCallout',
-        cell: '1,6',
-        colOff: '4572000',
-        rowOff: '3086100',
-        extent: ['2743200', '514350'],
-      },
-      { kind: 'rect', cell: '1,6', colOff: '914400', rowOff: '1028700', extent: ['1828800', '771525'] },
-      { kind: 'line', cell: '1,6', colOff: '2286000', rowOff: '2571750', extent: ['1371600', '514350'] },
-      // 注記なしの画像の行には sp が 1 件も無い。
+      { kind: 'grpSp', cell: '1,6', colOff: '0', rowOff: '0', extent: ['9144000', '5143500'] },
+      // 注記なしの画像は pic だけを置く。
       { kind: 'pic', cell: '1,37', colOff: '0', rowOff: '0', extent: ['7620000', '5715000'] },
+    ])
+    const shapes = drawing.selectNodes('//xdr:grpSp/xdr:sp', OOXML_NS).map((shape) => {
+      const xfrm = shape.selectNodes('./xdr:spPr/a:xfrm', OOXML_NS)[0]
+      const off = xfrm?.selectNodes('./a:off', OOXML_NS)[0]
+      const extension = xfrm?.selectNodes('./a:ext', OOXML_NS)[0]
+      return {
+        kind: shape.selectNodes('./xdr:spPr/a:prstGeom', OOXML_NS)[0]?.getAttr('prst'),
+        off: [off?.getAttr('x'), off?.getAttr('y')],
+        ext: [extension?.getAttr('cx'), extension?.getAttr('cy')],
+      }
+    })
+    expect(shapes).toStrictEqual([
+      { kind: 'wedgeRectCallout', off: ['4572000', '3086100'], ext: ['2743200', '514350'] },
+      { kind: 'rect', off: ['914400', '1028700'], ext: ['1828800', '771525'] },
+      { kind: 'line', off: ['2286000', '2571750'], ext: ['1371600', '514350'] },
     ])
 
     // 矢印の向きは flip で表す (左上向きなので両方立つ)。
@@ -386,10 +394,10 @@ describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
     expect(drawing.selectNodes('//xdr:sp//a:t', OOXML_NS).map(node => node.text()))
       .toStrictEqual([`A&B <tag> "q"`])
 
-    // shape id は画像・注記を通して一意。
+    // shape id はグループ・画像・注記を通して一意。
     const ids = drawing.selectNodes('//xdr:cNvPr', OOXML_NS).map(node => node.getAttr('id') ?? '')
-    expect(ids).toHaveLength(5)
-    expect(new Set(ids).size).toBe(5)
+    expect(ids).toHaveLength(6)
+    expect(new Set(ids).size).toBe(6)
   })
 
   it('--json なしでは注記数もサマリに出す', async () => {

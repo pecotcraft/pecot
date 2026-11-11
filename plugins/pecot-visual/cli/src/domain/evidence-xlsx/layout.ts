@@ -192,9 +192,8 @@ export interface ImageAnchor {
 }
 
 /**
-注記図形 1 件の共通部分。オフセットは画像左上を原点とする EMU で、
-画像と同じアンカーセルの colOff / rowOff にそのまま入る。
-これは pic 側の colOff / rowOff が 0 であることに依存するため、両者は一緒に変える。
+注記図形 1 件の共通部分。オフセットはグループ内の座標 (画像左上が原点) の EMU で、
+`a:off` にそのまま入る。
 */
 interface AnnotationShapeBase {
   readonly offsetXEmu: number
