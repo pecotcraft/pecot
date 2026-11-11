@@ -154,6 +154,7 @@ class GitHubClientBase:
 
         # ホストに対応する環境変数名を取得
         env_name = auth.get_env_var_name(host)
+        # interface-env: PECOT_GITHUB_*_TOKEN
         token = os.environ.get(env_name)
         if token:
             return token
@@ -164,6 +165,7 @@ class GitHubClientBase:
 
         root_env_name = auth.ROOT_ENV_VAR_MAP.get(host)
         if root_env_name:
+            # interface-env: GITHUB_COM_TOKEN
             return os.environ.get(root_env_name)
 
         return None

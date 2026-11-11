@@ -138,10 +138,10 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: `lint-defs` が通る。10 項目のどの欄も、値か「使わないときの値」を持つ
 
-- [ ] T025 [US1] `plugins/pecot-workflow/interface/authored.yaml` の先頭の `environment` に、CLI の全コマンドに共通の環境変数を書く。T012 の確認が挙げた名前をすべて入れる
-- [ ] T026 [US1] `project` の 10 コマンドの項目を書く。`cli/commands/project.py` と `cli/tests/` の該当のテストを読み、今の振る舞いを書き起こす
-- [ ] T027 [US1] T026 で書いた振る舞いの項目に当てて、EARS の型と文の形を比べる規則（T008）が厳しすぎないかを確かめる。合わない実例があれば、規則と contracts の表を直す
-- [ ] T028 [US1] `common_behaviors` に、全コマンドに共通の振る舞い（知らないオプション、`--help`、`--repo` の解決など）を書く
+- [x] T025 [US1] `plugins/pecot-workflow/interface/authored.yaml` の先頭の `environment` に、CLI の全コマンドに共通の環境変数を書く。T012 の確認が挙げた名前をすべて入れる。devcontainer の 3 つの名前は T032 で worktree の項目に書く
+- [x] T026 [US1] `project` の 10 コマンドの項目を書く。`cli/commands/project.py` と `cli/tests/` の該当のテストを読み、今の振る舞いを書き起こす
+- [x] T027 [US1] T026 で書いた振る舞いの項目に当てて、EARS の型と文の形を比べる規則（T008）が厳しすぎないかを確かめる。合わない実例があれば、規則と contracts の表を直す
+- [x] T028 [US1] `common_behaviors` に、全コマンドに共通の振る舞い（知らないオプション、`--help`、`--repo` の解決など）を書く
 
 **Checkpoint**: `lint-defs` が通る
 

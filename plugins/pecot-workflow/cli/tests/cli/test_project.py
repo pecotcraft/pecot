@@ -51,6 +51,22 @@ class TestProjectListNewCommand:
             assert "github.com_foo_bar" in result.output
             assert "ghes.example.com_test_proj" in result.output
 
+    def test_project_list_outputs_in_filename_order(self, tmp_path: Path) -> None:
+        """名前の順と違う順に作った設定ファイルが、ファイル名の順に 1 行ずつ出る"""
+        for name in ("github.com_c_proj", "github.com_a_proj", "github.com_b_proj"):
+            (tmp_path / f"{name}.json").write_text("{}")
+
+        with (
+            patch("cli.commands.project.get_projects_dir", return_value=tmp_path),
+            patch("cli.commands.project.get_active_config_path", return_value=None),
+        ):
+            result = runner.invoke(app, ["project", "list"])
+
+        assert result.exit_code == 0
+        assert result.stdout == (
+            "=== Projects ===\n  github.com_a_proj\n  github.com_b_proj\n  github.com_c_proj\n"
+        )
+
     def test_project_list_with_active_marker(self, tmp_path: Path) -> None:
         """アクティブマーカー表示"""
         config_file = tmp_path / "github.com_active_proj.json"
@@ -2558,6 +2574,24 @@ class TestInfoAggregationRepoDisplay:
 
         assert result.exit_code == 0, result.output
         assert "- Roadmap repo: none" in result.stdout
+
+    def test_info_markdown_sections_in_order(self) -> None:
+        """Markdown 出力は Overview・Registered repositories・Board status の 3 節をこの順で出す"""
+        config = self._build_config("test-owner/agg-repo")
+        config_path = MagicMock()
+        config_path.stem = "test-project"
+        client = MagicMock()
+        client.list_project_items.return_value = []
+        with (
+            patch("cli.commands.project.load_active_config", return_value=config),
+            patch("cli.commands.project.get_active_config_path", return_value=config_path),
+            patch("cli.commands.project.GitHubClient", return_value=client),
+        ):
+            result = runner.invoke(app, ["project", "info"])
+
+        assert result.exit_code == 0, result.output
+        headings = [line for line in result.stdout.splitlines() if line.startswith("## ")]
+        assert headings == ["## Overview", "## Registered repositories", "## Board status"]
 
     def test_info_json_includes_aggregation_repo_when_set(self) -> None:
         config = self._build_config("test-owner/agg-repo")
