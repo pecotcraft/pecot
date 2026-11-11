@@ -23,8 +23,10 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 | manifest | 旧形式 `.github/plugin/plugin.json` が `hooks/hooks-copilot.json` を指す | root に Agent Plugins 1.0 の `plugin.json` と `mcp.json` |
 | 単体配布 | 無い | npm の `@pecot/visual-mcp` / `@pecot/tools-mcp` |
 
-規模: Python の CLI のソースは約 16,200 行、テストは約 33,700 行。hooks は shell と jq で約 3,600 行、テストは pytest で約 17,100 行。
-スキル・agents・hooks テンプレートの 27 ファイルが `pecot <サブコマンド>` を 197 箇所に書く（2026-11-11 に数えた。`$PECOT` の変数は 0 箇所）。
+規模（2026-11-11 に数え直した）: Python の CLI のソースは 18,309 行で、うち `cli/commands/*.py` が 8,450 行。テストは 44,432 行。
+hooks は shell が 2,973 行で、テストは pytest で 14,892 行。数え方は、`git ls-files` が返す `plugins/pecot-workflow/` 内の対象ファイルを `wc -l` で足した値（ソースはテストを除く）。
+スキル・agents・hooks テンプレートの 28 ファイルが、`pecot <サブコマンド>` を 202 箇所に書く。
+数えた式は research.md の R-19 にある（`$PECOT` の変数は 0 箇所）。
 サブコマンドは 34 個で、定義書（`plugins/pecot-workflow/interface/`）の項目と 1 対 1 に対応する。
 
 ### 旧 spec 015 からの引き継ぎと変更
@@ -54,7 +56,7 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 
 | 項目 | 2026-11-05 の記述 | 今 |
 |---|---|---|
-| サブコマンドの数 | 32 個 | 34 個。グループ無しの `security-sync`・`dependabot-sync` が増え、`pr merge` は `pr cleanup` に替わった |
+| サブコマンドの数 | 32 個 | 34 個。グループ `security`・`dependabot` の `sync` が増え、`pr merge` は `pr cleanup` に替わった |
 | 公開面の正 | `contracts/mcp-tools.md` | 定義書 `plugins/pecot-workflow/interface/`（`authored.yaml` と `generated.json`）。`contracts/mcp-tools.md` は定義書に従う |
 | 前後比較のシナリオ | 213 件 | 228 件。Python を変える PR が、その PR の中で足し、記録し直してきた |
 | CLI の出力 | コマンドごとに直接書く | Python は共通の出力の関数（`cli/commands/_output.py`）を通す。Node にも同じ関数（`cli-node/src/commands/output.ts`）がある |
@@ -74,7 +76,7 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 ### Session 2026-11-05
 
 - Q: 移行の途中に Python の CLI が変わったら、golden と Node はどうするか → A: Python を変える PR で Node も同じように直す。同じ PR で、該当シナリオの golden を記録し直す。
-  それ以外の理由で golden は書き換えない。Python の依存の更新（dependabot を含む）も Python を変える PR に含める。typer の更新でずれた 12 件は、着手の最初に今の Python で記録し直す
+  それ以外の理由で golden は書き換えない。Python の依存の更新（dependabot を含む）も Python を変える PR に含める。typer の更新でずれた 12 件は、着手の最初に今の Python で記録し直す（2026-11-11 に 5 件へ変わった。Session 2026-11-11 を参照）
 - Q: 既存の sub-issue #17〜#27 をどう置き換えるか → A: not planned で close する。新しい Issue は tasks から w-issueize で作る。着手が先になるため、後継を作る前に close した。コメントには再設計で計画を作り直したことを書いた
 - Q: 移行が終わるまで Python の依存を dependabot で更新し続けるか → A: 切り替えまで版の更新の対象から外す。脆弱性の alert が出たものだけを手で上げ、golden の記録し直しと合わせる
 
@@ -88,6 +90,14 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 - Q: 振る舞いの項目につなぐ Node のテストは、どの種類にするか → A: 今つながっている pytest のケースと同じことを確かめる vitest のケースを書き、それにつなぐ。
   前後比較のシナリオ（golden との比較）にはつながない。1 シナリオは出力の全体を見るので、落ちた項目を示せないため
 - Q: 2026-11-11 の計り直しで出た golden の 5 件の差は、いつ片づけるか → A: 着手の最初のフェーズで原因を調べて片づける。Python を変えない PR で記録し直してよいのは、この 1 回だけ
+- Q: MCP 経由の前後比較は、228 件のどれを流すか → A: MCP に写せるシナリオの全件を流す。CLI の直接起動は 228 件の全件。
+  除くのは 3 種で、2026-11-11 の時点で 63 件。残りは 165 件。
+  内訳は、`global-*` の 31 件、名前に `usage` を含む `global-*` 以外の 29 件、標準入力を使う `worktree-link` の 3 件。
+  入力の検証の誤りは、ツール一覧のテストが受け持つ
+- Q: 切り替えの前の `--check` は、定義書のどの欄を比べるか → A: `surfaces.mcp` 以外の全部。
+  `input`・`cli`・`name`・`description`・`hidden`・`deprecated`・`surfaces.cli` を比べる。
+  `input` と `cli` だけだと、説明などの差が切り替えまで見えず、切り替えの PR が大きくなるため
+- Q: `worktree link` の上書き確認は、MCP でどう扱うか → A: 新しい入力は作らず、定義書にある `force` を使う。MCP ツールは標準入力を持たないので、`force` が false で確認が要るときは、定義書の今の振る舞い（入力の終端なら中止する）と同じになる
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -97,16 +107,16 @@ pecot-workflow の CLI を Node に移す。コマンド名・引数・出力・
 
 **Why this priority**: 以降の MCP 化・hooks・スキルの書き換えは、Node の CLI が Python と同じ結果を返すことを前提にする。
 
-**Independent Test**: 前後比較のシナリオの全件を Node の CLI に流し、golden と全部一致する。Node のコマンド定義から書き出した項目が、定義書の同じ ID の項目と入力・CLI の形で一致する。Python と uv の無い環境で `pecot project info` と `pecot issue read` が今と同じ出力を返す。
+**Independent Test**: 前後比較のシナリオの全件を Node の CLI に流し、golden と全部一致する。Node のコマンド定義から書き出した項目が、定義書の同じ ID の項目と `surfaces.mcp` 以外の欄で一致する。Python と uv の無い環境で `pecot project info` と `pecot issue read` が今と同じ出力を返す。
 
 **Acceptance Scenarios**:
 
 1. **Given** 全 34 サブコマンドの golden、**When** 同じシナリオを Node の CLI に流す、**Then** 出力・終了コード・GitHub への書き込み・状態ファイルが一致する
 2. **Given** Python と uv の無い端末、**When** プラグインを入れて `pecot` を初めて実行する、**Then** データ置き場に実行用ミラーが作られ、コマンドが動く
 3. **Given** データ置き場に移行前の venv がある、**When** 切り替え後の版が初めて起動する、**Then** 古い venv は使われず、片付けられる。ボードの設定とセッション状態はそのまま読める
-4. **Given** Node に移したコマンド、**When** Node のコマンド定義から項目を書き出して定義書と比べる、**Then** 同じ ID の項目の入力と CLI の形の差が 0 件。差があれば、差のある項目と欄を示して失敗する
+4. **Given** Node に移したコマンド、**When** Node のコマンド定義から項目を書き出して定義書と比べる、**Then** 同じ ID の項目の `surfaces.mcp` 以外の欄の差が 0 件。差があれば、差のある項目と欄を示して失敗する
 5. **Given** Node に移していないコマンド、**When** 同じ比較を流す、**Then** そのコマンドは比べる対象に入らず、失敗しない
-6. **Given** 34 コマンドが Node にそろった状態、**When** 切り替えの変更で定義書の元を Node に替える、**Then** 入力と CLI の形は変わらず、MCP ツールの欄だけが増える
+6. **Given** 34 コマンドが Node にそろった状態、**When** 切り替えの変更で定義書の元を Node に替える、**Then** 増えるのは `surfaces.mcp` だけで、ほかの欄は変わらない
 7. **Given** Node に移したコマンド、**When** その振る舞いの項目を数える、**Then** 全項目に ID を書いた Node のテストがある
 
 ---
@@ -124,7 +134,7 @@ pecot-workflow が MCP サーバを持ち、全 34 サブコマンドをツー�
 1. **Given** GitHub Copilot CLI、**When** スキルが MCP ツールで Issue を読む、**Then** データ置き場が解決され、止まらない
 2. **Given** スキル・agents・hooks テンプレートの本文、**When** 全部を走査する、**Then** エージェントに Bash で `pecot` を呼ばせる記述が 0 件
 3. **Given** スキル本文にある MCP ツール名、**When** スキルのテストを流す、**Then** 全部がサーバの公開するツール一覧にある
-4. **Given** 前後比較のシナリオ、**When** MCP 経由でツールを呼ぶ、**Then** 結果の本文と終了コードが CLI の golden と一致する
+4. **Given** MCP に写せる前後比較のシナリオ、**When** MCP 経由でツールを呼ぶ、**Then** 出力・終了コード・GitHub への書き込み・書き出したファイルが、CLI の golden と一致する
 
 ---
 
@@ -187,7 +197,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 - MCP サーバが起動しない（Node が無い、ミラーの作成に失敗する）ときは、理由を返して止まる。Python や Bash の CLI に切り替えて続けない
 - `gh` の認証切れ・GitHub API の失敗は、今の CLI と同じ文言と終了コードで返す
 - `release merge` のように時間のかかる操作も、MCP ツールの呼び出しの中で完了まで待つ
-- `worktree link` の上書き確認は、CLI では今の対話のまま。MCP では入力で上書きの可否を受け、既定は上書きしない。上書きしなかった対象を一覧で返す
+- `worktree link` の上書き確認は、CLI では今の対話のまま。MCP ツールは標準入力を持たず、入力 `force`（定義書にある）を受ける。`force` が false で確認が要るときは、入力の終端と同じく中止する
 - 切り替えの後、Node の CLI は Python の版がデータ置き場とリポの `.pecot/` に残した状態をそのまま読む
 - 前後比較の差し替え口（GitHub API の接続先）は、ループバックの宛先だけを受け付ける。他の値なら起動時に失敗する
 - golden と Node の出力が食い違ったら Node 側を直す。Node に合わせて golden を書き換えない
@@ -209,7 +219,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 | FR-004 | MCP ツールは CLI の全 34 サブコマンドを 1 対 1 で写す。スキルが使わない初期設定のコマンドも含む。ツール名は `<group>_<subcommand>`、グループの無いものはコマンド名の `-` を `_` にしたもの。許可の単位はツール 1 つ。CLI と MCP は 1 つのコマンド定義の一覧から作り、片方だけの追加を起こさない |
 | FR-005 | スキル本文・エージェント定義・hooks テンプレートは MCP ツールを呼ぶ。エージェントに Bash で `pecot` を呼ばせる記述を持たない。利用者が端末で打つコマンドの説明は残してよい |
 | FR-006 | hooks のガードは、許可・確認・阻止を MCP ツールの呼び出しに対して行う。条件と理由の文言は移行前と同じ。Claude Code と Copilot CLI の 2 つのツール名の形を同じに扱う |
-| FR-007 | 済んでいる前後比較（シナリオと golden の全件。2026-11-11 の時点で 228 件）を Node の CLI の直接起動と MCP 経由の両方に流し、全部一致させる。golden を記録し直すのは、Python の CLI か依存を変える PR だけ。その PR で Node も同じように直す。例外は着手の最初の 1 回で、2026-11-11 の計り直しで出た 5 件の差を片づける。Python を消した後は回帰テストとして残す |
+| FR-007 | 済んでいる前後比較（シナリオと golden。2026-11-11 の時点で 228 件）を、Node の CLI の直接起動では全件、MCP 経由では MCP に写せるシナリオの全件に流し、全部一致させる。golden を記録し直すのは、Python の CLI か依存を変える PR だけ。その PR で Node も同じように直す。例外は着手の最初の 1 回で、2026-11-11 の計り直しで出た 5 件の差を片づける。Python を消した後は回帰テストとして残す |
 | FR-008 | `baseline.json` の基準値は書き換えない。移行後の CLI の行カバレッジは基準値以上かつ 90% 以上とし、下回ればテストを失敗させる。hooks はカバレッジを計らず、テストの件数と起動スクリプトの一覧を基準より減らさない |
 | FR-009 | 移行の完了時に、pecot-workflow に Python の CLI とテスト、pytest、`test-py` レーン、uv で venv を作る wrapper、nx の globals にある uv と Python の参照が残らない |
 | FR-010 | スキルのテストは、スキル本文にある MCP ツール名がサーバの公開するツール一覧にあるかを確かめ、無ければ失敗する |
@@ -221,7 +231,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 | FR-016 | pecot-workflow は pecot-visual と同じ Agent Plugins 1.0 の形を持つ。root に `plugin.json` と `mcp.json` を置き、Copilot CLI 向けの hooks と agents は `com.github.copilot/` に置く。旧形式 `.github/plugin/plugin.json` と `hooks/hooks-copilot.json` は残さない。Claude Code 向けの従来形式との name・version・MCP サーバの一致をテストで確かめる。切り替えのリリースで出す |
 | FR-017 | 旧の sub-issue #17〜#27 は、2026-11-05 に not planned で close した。後継の Issue は、着手のときにこの spec の tasks から w-issueize で作る。2026-11-11 に作り直した tasks を使う |
 | FR-018 | 切り替えまで、pecot-workflow の Python の依存（`cli/` の uv）は dependabot の版の更新の対象から外し、今の版のまま止める。脆弱性の alert が出た依存だけを手で上げ、同じ PR で golden を記録し直して Node を追従させる。Python の削除で uv のエントリも消す |
-| FR-019 | 移行の前後で公開面が同じことを、定義書（`plugins/pecot-workflow/interface/`）で確かめる。Node のコマンド定義から書き出した項目を、定義書の同じ ID の項目と比べ、入力と CLI の形の差を 0 件にする。比べるのは Node に登録したコマンドだけで、差があれば失敗する。比べ方は定義書のライブラリ（`libs/interface-spec`）のものを使い、別に作らない |
+| FR-019 | 移行の前後で公開面が同じことを、定義書（`plugins/pecot-workflow/interface/`）で確かめる。Node のコマンド定義から書き出した項目を、定義書の同じ ID の項目と比べ、`surfaces.mcp` 以外の欄の差を 0 件にする。比べるのは Node に登録したコマンドだけで、差があれば失敗する。比べ方は定義書のライブラリ（`libs/interface-spec`）のものを使い、別に作らない |
 | FR-020 | 切り替えのリリースまで、定義書の書き出しの元は Python のままにする。Node の書き出しは比べるだけで、`generated.json` を書き換えない。34 コマンドがそろっていても同じ。切り替えの変更（FR-014）で書き出しの元を Node に替え、Python の書き出しとそのテストを消す。替えた後の定義書は、項目ごとに MCP ツールの欄を持つ |
 | FR-021 | MCP ツールの一覧と入力は、定義書の項目と一致する。CLI と MCP の両方を、同じ定義書と比べて確かめる。`contracts/mcp-tools.md` は定義書に従う |
 | FR-022 | 定義書の振る舞いの項目のつなぎ先を、Python のテストから Node のテストへ移す。コマンドを Node に移すフェーズは、そのコマンドの項目が全部 Node のテストにつながることを完了の条件にする。Python を消すまでは両方につながり、消す時点で全部の項目が Node のテストにつながっている。つなぐ先は、今の pytest のケースと同じことを確かめる Node の単体のテストのケースに限り、前後比較のシナリオにはつながない。項目の ID と文は変えない |
@@ -235,7 +245,7 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 | コマンド定義 | サブコマンド 1 つの名前・入力・実行。CLI と MCP ツールの両方がこれから作られる。34 個 |
 | MCP ツール | コマンド定義 1 つを写したもの。結果の本文は CLI の標準出力と同じ |
 | データ置き場 | `CLAUDE_PLUGIN_DATA` / `PLUGIN_DATA`、無ければ既定の場所。実行用ミラーと状態ファイルを置く |
-| 前後比較のシナリオと golden | 済み。2026-11-11 の時点で 228 件。Python の実出力から作った期待値 |
+| 前後比較のシナリオと golden | 済み。2026-11-11 の時点で 228 件。Python の実出力から作った期待値。MCP 経由で流すのは、MCP に写せるシナリオの全件（165 件） |
 | 定義書 | `plugins/pecot-workflow/interface/`。実装から書き出す `generated.json`（コマンド名・入力・CLI の形・MCP ツール）と、人が書く `authored.yaml`（説明・副作用・終了コード・振る舞いの項目）。項目は 34 個で、ID は `PW-…` |
 | 振る舞いの項目 | 定義書の項目が持つ、振る舞いの 1 文と ID。テストが ID を書いてつながる。769 個 |
 | 基準値 | 済み。CLI の行カバレッジ 91.0%、hooks のテスト 1,569 件と起動スクリプトの一覧 |
@@ -247,16 +257,16 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 
 | ID | 内容 |
 |---|---|
-| SC-001 | Python と uv の無い端末で、quickstart の CUJ が Claude Code と GitHub Copilot CLI の両方で全部通る |
+| SC-001 | Python と uv の無い端末で、quickstart の CUJ が、その表のクライアントの列のとおりに全部通る |
 | SC-002 | GitHub Copilot CLI でスキルを実行し、データ置き場が解決されず止まる件数が 0 |
-| SC-003 | スキル・agents・hooks テンプレートの `pecot <サブコマンド>` 197 箇所のうち、エージェントに Bash で呼ばせる記述が 0 になる。利用者が端末で打つコマンドの説明は残してよい |
-| SC-004 | 前後比較の全件（228 件以上）が、CLI の直接起動と MCP 経由の両方で全部一致する |
+| SC-003 | スキル・agents・hooks テンプレートの `pecot <サブコマンド>` 202 箇所のうち、エージェントに Bash で呼ばせる記述が 0 になる。利用者が端末で打つコマンドの説明は残してよい |
+| SC-004 | 前後比較の全件（228 件以上）が CLI の直接起動で、MCP に写せるシナリオの全件（165 件以上）が MCP 経由で、それぞれ全部一致する |
 | SC-005 | 移行後の CLI の行カバレッジが 91.0% 以上。hooks のテストが 1,569 件以上で、起動スクリプトの一覧が基準を全部含む |
 | SC-006 | pecot-workflow に Python の CLI・テスト・`test-py` レーンが残らない |
 | SC-007 | Epic #41 の GAP のうち「pecot-workflow の manifest」と「pecot-workflow の準拠範囲」が解消する |
 | SC-008 | プラグインを入れていない MCP クライアントで、npm の 1 エントリの登録だけで 34 個のツールが使える |
 | SC-009 | `project info` の起動から結果までを 5 回ずつ計り、Node の中央値が Python の中央値以下 |
-| SC-010 | Node のコマンド定義から書き出した 34 項目と定義書の、入力と CLI の形の差が 0 件。書き出しの元を Node に替えた差分に、入力と CLI の形の変更が無い |
+| SC-010 | Node のコマンド定義から書き出した 34 項目と定義書の、`surfaces.mcp` 以外の欄の差が 0 件。書き出しの元を Node に替えた差分が、`surfaces.mcp` だけである |
 | SC-011 | Python のテストを消した後、定義書の振る舞いの項目のうち、テストにつながらないものが 0 件。項目の数は移行の前より減らない |
 
 ## Assumptions
@@ -264,8 +274,9 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 - 実装先は `plugins/pecot-workflow/`。nx の project 名 `pecot-workflow` と marketplace の `pecot-w` は変えない
 - 言語・構成・テストの仕組みは pecot-tools に合わせる。移行中の Node の CLI は `cli-node/` に置き、Python を消すフェーズで `cli/` に移す
 - CLI は MCP サーバと並べて残す。hooks と利用者の端末から呼ぶため
-- 旧 spec 015 の research・contracts（ツール名の形、ガードの移し方、前後比較の形式）は、名前を読み替えて plan で引き継ぐ。Copilot CLI でのツール名の形は、MCP サーバを作るフェーズに実物を使って確かめる
+- 旧 spec 015 の research・contracts（ツール名の形、ガードの移し方、前後比較の形式）は、名前を読み替えて plan で引き継ぐ。Copilot CLI でのツール名の形は、フェーズ 9 で実物を使って確かめる
 - npm の `@pecot` スコープと trusted publishing の設定は Epic #44 で用意済み。`@pecot/workflow-mcp` の初回の publish に要る npm 側の設定は利用者が行う
 - 定義書の形式・比べ方・lint（spec 022、Epic #199）は済んでいて、この spec では変えない。足りない機能があれば、定義書のライブラリの側に足す
 - 34 個は 2026-11-11 の定義書の項目数。移行の途中で Python のコマンドが増えたら、定義書の項目も増える。そのときは Node にも同じコマンドを足す
+- 移行の途中に Python のコマンドが増えたとき、Node への足し忘れを止めるのはフェーズ 6 の registry のテスト。それより前は止まらない
 - CHANGELOG は version-plans からの自動生成に委ねる。各フェーズの PR に pecot-workflow の version plan を付ける

@@ -14,18 +14,26 @@ tests/parity/
 ## シナリオ
 
 ```yaml
-id: issue-create-basic
-command: [issue, create, body.md]
+id: issue-create-ok-basic
+command:
+  path: [issue, create]
+  args: ["body.md"]
+stdin: ""                # 省略できる。標準入力に流す文字列
 setup:
   repo:
     branch: feat/123
-    files: { body.md: "..." , .pecot/config.yaml: "..." }
+    files: { body.md: "..." , .pecot/config/projects/.active: "..." }
+  cwd: "."               # 省略できる。repo の中で実行するディレクトリ
   data: { config/hosts.json: "..." }
-  env: { GITHUB_TOKEN: dummy }
+  env: { PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token }
+  ghToken: ...           # 省略できる。gh stub が返すトークン
 github:
   - match: { method: POST, path: /graphql, operation: CreateIssue }
     respond: { status: 200, body: { ... } }
+    times: 1             # 省略できる。応答を返せる回数
 ```
+
+ファイルの名前は `<コマンドの path>-<kind>-<名前>.yaml`。kind は `ok`・`usage`・`auth`・`4xx`・`5xx`・`state` のどれか。
 
 ## golden
 
@@ -42,12 +50,47 @@ github:
 |---|---|---|
 | 記録 | `record:parity` を手で起動 | Python の CLI（`PECOT_BOOTSTRAP_SKIP=1`、`PECOT_GITHUB_API_URL` を偽サーバへ）でシナリオを流して golden を書く。使うのは、Python の CLI か依存を変える PR だけ（spec FR-007）。対象はその変更で出力が変わるシナリオに限る |
 | 点検 | `record:parity:check` を手で起動 | golden を書かずに、今の Python との差を出す。Python を変える PR で、記録し直す対象を見つけるときに使う |
-| 比較 | `test-cli` レーン | Node の CLI を直接起動した結果と、MCP クライアントからツールを呼んだ結果を、それぞれ golden と比べる |
+| 比較 | `test-cli` レーン | Node の CLI を直接起動した結果は全件、MCP クライアントからツールを呼んだ結果は「MCP に写せるシナリオ」の全件を、それぞれ golden と比べる |
 | Python の削除後 | `test-cli` レーン | `record.ts` を消す。golden は Node の回帰テストの期待値として残す |
+
+## MCP 経由で流す対象
+
+CLI の直接起動は全件（228 件）。MCP 経由は「MCP に写せるシナリオ」の全件。
+
+次の 3 種は MCP に写せないので除く。2026-11-11 の時点の件数は 63 件、残りは 165 件。
+
+| 除く種類 | 件数 | 理由 |
+|---|---|---|
+| `global-*` | 31 | `--help`・`--version`・`--show-repo`・未知のコマンド・引数なしは、ツールの呼び出しに写せない |
+| 名前に `usage` を含むもののうち `global-*` 以外 | 29 | CLI の引数の誤り。MCP では入力の検証の誤りになる |
+| 標準入力を使う `worktree-link-*-overwrite-confirmed`・`-declined`・`-eof` | 3 | MCP のツールは標準入力を持たない |
+
+- 除く一覧と理由は `parity.test.ts` が持つ
+- 入力の検証の誤りは、フェーズ 7 のツール一覧のテストが受け持つ
+- `worktree_link` の `force` が false のときの中止（入力の終端と同じ結果）は、フェーズ 7 のツールの単体テストが受け持つ
+
+### argv からツールの入力への写し方
+
+| argv の要素 | ツールの入力 |
+|---|---|
+| 位置引数 | 定義書の `cli.positional` の順に、同じ名前の入力へ入れる |
+| フラグ `--<name>` | 名前の `-` を `_` にした入力へ入れる。値を取らないフラグは `true` |
+| 短い形（`-D` など）と `--no-<name>` | 定義書の `cli.flags` の欄で入力の名前に引く。`--no-` の形は `false` |
+| グローバルの `--repo` | 入力 `repo` |
+
+### 比べる欄
+
+`structuredContent` の `stdout`・`stderr`・`exitCode` を、golden の同じ名前の欄と比べる。golden の `requests` と `files` も、直接起動と同じく比べる。
 
 ## 規則
 
 - 定義書にあるサブコマンドのそれぞれに、正常系と失敗系（認証切れ、GitHub の 4xx / 5xx、引数の誤り）を 1 件以上
 - golden を Node に合わせて書き換えない。差が出たら Node 側を直す
 - golden を記録し直す PR では、Node 側も同じ PR で直し、`parity.test.ts` を通す
+- `*-python-state` のシナリオ（Python が書いた形の状態を Node が読む）は 3 件。issue の分は無い
+  - `project-info-ok-python-state` はフェーズ 2 で確かめる
+  - `session-status-ok-python-state` はフェーズ 3 で確かめる
+  - `worktree-add-ok-python-state` はフェーズ 5 で確かめる
+- `global-*` は、フェーズ 2〜5 の対象から外す。31 件のうち 24 件は今も一致している
+- 残りの 7 件（`parity.test.ts` の `SCENARIOS_NEEDING_ALL_COMMANDS`）は、34 個がそろうフェーズ 6 で一致を確かめる
 - `PECOT_GITHUB_API_URL` は `http://127.0.0.1` と `http://localhost` だけを受け付ける。他の値なら CLI は起動時に失敗する
