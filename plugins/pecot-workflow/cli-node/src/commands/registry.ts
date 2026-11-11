@@ -1,5 +1,6 @@
 // コマンド定義の一覧。CLI と MCP の両方がこの一覧から作られる。
-// 各コマンドは defineCommand() で定義して COMMANDS に足す。グローバルの --repo は、全コマンドの入力 repo として合成する。
+// 各コマンドは defineCommand() で定義し、index.ts の COMMANDS に足す。グローバルの --repo は、全コマンドの入力 repo として合成する。
+// 一覧は index.ts に置く。ここに置くと、コマンドのファイルとの import が循環し、GLOBAL_SHAPE の初期化より前に例外が出る。
 import { z } from 'zod'
 
 /**
@@ -8,6 +9,10 @@ import { z } from 'zod'
 export interface CommandIo {
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
+  /**
+  標準入力から 1 行読む（末尾の改行は含めない）。終端は undefined。渡されない io（MCP）は、入力の終端と同じ扱い
+  */
+  readonly readLine?: () => string | undefined
 }
 
 /**
@@ -39,6 +44,10 @@ export interface CommandSpec<Input extends z.ZodObject> {
   CLI の短いオプション。キーは input の名前、値は `-D` の形
   */
   readonly shortFlags?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
+  /**
+  CLI の別名の長いオプション。キーは input の名前、値は `--force` の形。短いオプションとは併用できない
+  */
+  readonly aliases?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
   /**
   CLI の否定形のオプション。キーは input の名前、値は `--no-checkout` の形。
   `--checkout/--no-checkout` の形で、既定値が真の真偽値を偽にできる
@@ -79,6 +88,10 @@ export interface CommandDefinition {
   */
   readonly shortFlags: ReadonlyMap<string, string>
   /**
+  input の名前から別名の長いオプションへ
+  */
+  readonly aliases: ReadonlyMap<string, string>
+  /**
   input の名前から否定形のオプションへ
   */
   readonly negations: ReadonlyMap<string, string>
@@ -111,6 +124,10 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
 export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandSpec<Input>>): CommandDefinition {
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
   if (Object.hasOwn(spec.input.shape, 'repo')) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
+  const aliased = Object.keys(spec.aliases ?? {})
+  for (const name of aliased) {
+    if (spec.shortFlags !== undefined && Object.hasOwn(spec.shortFlags, name)) throw new TypeError(`${name}: 短いオプションと別名は併用できません`)
+  }
   const input = spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
     // 検証は spec.input で行う（全体の refine を保つ）。repo は strictObject が拒むので外し、別に検証する
@@ -125,18 +142,10 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     input,
     positional: spec.positional,
     shortFlags: flagMap(spec.shortFlags),
+    aliases: flagMap(spec.aliases),
     negations: flagMap(spec.negations),
     interactive: spec.interactive,
     parse,
     run: async (raw, io) => await parse(raw).run(io),
   }
-}
-
-/**
-移植済みのコマンド。Phase 4〜7 で足す
-*/
-export const COMMANDS: readonly CommandDefinition[] = []
-
-export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {
-  return commands.find(command => command.path.join(' ') === path.join(' '))
 }

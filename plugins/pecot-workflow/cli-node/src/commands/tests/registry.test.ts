@@ -3,7 +3,8 @@ import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
 import { COMMAND_PATHS } from '../../../tests/parity/commands.js'
-import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
+import { COMMANDS, findCommand } from '../index.js'
+import { defineCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
 /**
@@ -193,6 +194,33 @@ describe('defineCommand', () => {
     expect(negated.negations).toEqual(new Map([['checkout', '--no-checkout']]))
   })
 
+  it('aliases を持てる。無ければ空', () => {
+    const aliased = defineCommand({
+      path: ['al'],
+      description: '',
+      input: z.object({ allow_existing_branch: z.boolean().default(false) }),
+      positional: [],
+      aliases: { allow_existing_branch: '--force' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(aliased.aliases).toEqual(new Map([['allow_existing_branch', '--force']]))
+    expect(definition.aliases).toEqual(new Map())
+  })
+
+  it('短いオプションと別名を同じ入力に持つと作れない', () => {
+    expect(() => defineCommand({
+      path: ['both'],
+      description: '',
+      input: z.object({ force: z.boolean().default(false) }),
+      positional: [],
+      shortFlags: { force: '-f' },
+      aliases: { force: '--yes' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })).toThrow(TypeError)
+  })
+
   it('path が空なら作れない', () => {
     expect(() => defineCommand({
       path: [],
@@ -217,6 +245,6 @@ describe('findCommand', () => {
     })
     expect(findCommand(['pr', 'read'], [command])).toBe(command)
     expect(findCommand(['pr', 'merge'], [command])).toBeUndefined()
-    expect(findCommand(['pr', 'read'])).toBeUndefined()
+    expect(findCommand(['pr', 'read'])).toBe(COMMANDS.find(candidate => candidate.path.join(' ') === 'pr read'))
   })
 })

@@ -27,10 +27,6 @@ function isRequired(schema: z.ZodType): boolean {
   return !schema.safeParse(undefined).success
 }
 
-function argumentLabel(name: string): string {
-  return name.toUpperCase()
-}
-
 function flagOf(name: string): string {
   return `--${name.replaceAll('_', '-')}`
 }
@@ -45,21 +41,21 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
 }
 
 /**
-click の Usage 行と Missing argument に出す名前。可変長は `...` を付ける
+Missing argument に出す名前。可変長は `...` を付ける
 */
 function labelWithEllipsis(definition: Readonly<CommandDefinition>, name: string): string {
-  return isListField(definition, name) ? `${argumentLabel(name)}...` : argumentLabel(name)
+  return isListField(definition, name) ? `${name}...` : name
 }
 
 /**
-click の Usage 行に出す書式。
-位置引数は大文字で並べる。例は `[OPTIONS] ISSUE_REF`。任意なら `[VERSION]`、複数なら `NAMES...` にする
+click の Usage 行に出す書式（typer 0.28 と同じ）。
+位置引数は入力の名前のまま並べる。必須は `{issue_ref}`、任意は `[version]`、複数は後ろに `...` を付ける
 */
 export function synopsisOf(definition: Readonly<CommandDefinition>): string {
   const names = definition.positional.map((name) => {
     const schema = fieldSchemaOf(definition, name)
-    const label = labelWithEllipsis(definition, name)
-    return schema === undefined || isRequired(schema) || isListField(definition, name) ? label : `[${label}]`
+    const label = schema === undefined || isRequired(schema) ? `{${name}}` : `[${name}]`
+    return isListField(definition, name) ? `${label}...` : label
   })
   return ['[OPTIONS]', ...names].join(' ')
 }
@@ -75,7 +71,7 @@ interface BoundOption {
   readonly kind: FlagKind
   readonly valueType: ValueType
   /**
-  長い形・短い形の順
+  長い形・短い形・別名の順
   */
   readonly names: readonly string[]
   /**
@@ -91,7 +87,9 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
   const short = definition.shortFlags.get(field)
   const kind = flagKindOf(schema)
   const valueType = valueTypeOf(schema)
-  const flags = `${short === undefined ? '' : `${short}, `}${long}${kind === 'boolean' ? '' : ' <value>'}`
+  const alias = definition.aliases.get(field)
+  // commander は 2 つ並べた名前の後ろを長い形とみなし、属性名にする。別名を先に書いて、属性名を元の名前にそろえる
+  const flags = `${short === undefined ? '' : `${short}, `}${alias === undefined ? '' : `${alias}, `}${long}${kind === 'boolean' ? '' : ' <value>'}`
   const option = new Option(flags)
   if (kind === 'list') option.argParser((value: string, previous: readonly string[] | undefined) => [...previous ?? [], value])
   return {
@@ -100,7 +98,7 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
     isRequired: isRequired(schema),
     kind,
     valueType,
-    names: short === undefined ? [long] : [long, short],
+    names: [long, ...short === undefined ? [] : [short], ...alias === undefined ? [] : [alias]],
     negation: kind === 'boolean' ? definition.negations.get(field) : undefined,
   }
 }
@@ -122,7 +120,7 @@ function toUsageError(
   const quoted = error.message.replace(/^[^']*'([^']*)'.*$/su, '$1')
   switch (error.code) {
     case 'commander.unknownOption': {
-      const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.slice(0, 1), ...entry.negation === undefined ? [] : [entry.negation]])]
+      const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.filter(name => name.startsWith('--')), ...entry.negation === undefined ? [] : [entry.negation]])]
       const possibilities = quoted.startsWith('--') ? closeMatches(quoted, longNames) : []
       return new UsageError(noSuchOptionMessage(quoted, possibilities), usage)
     }
@@ -165,7 +163,7 @@ function positionalInput(definition: Readonly<CommandDefinition>, command: Comma
     if (Array.isArray(value) ? value.length > 0 : value !== undefined) {
       const kind = schema === undefined ? 'value' : flagKindOf(schema)
       const valueType: ValueType = schema === undefined ? { type: 'string' } : valueTypeOf(schema)
-      return [[name, convertField(value, kind, valueType, argumentLabel(name), usage)]]
+      return [[name, convertField(value, kind, valueType, name, usage)]]
     }
     if (schema !== undefined && isRequired(schema)) throw new UsageError(missingArgumentMessage(labelWithEllipsis(definition, name)), usage)
     return []
@@ -193,7 +191,7 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
   const [issue] = error.issues
   const field = issue?.path.at(0)
   const names = definition.positional.includes(String(field))
-    ? argumentLabel(String(field))
+    ? String(field)
     : bound.find(entry => entry.field === field)?.names ?? 'input'
   return new UsageError(invalidValueMessage(names, issue?.message ?? error.message), usage)
 }
@@ -220,7 +218,7 @@ export async function runDefinition(
     .exitOverride()
     .configureOutput({ writeOut: io.stdout, writeErr: discard, outputError: discard })
   for (const name of definition.positional) {
-    command.argument(isListField(definition, name) ? `[${argumentLabel(name)}...]` : `[${argumentLabel(name)}]`)
+    command.argument(isListField(definition, name) ? `[${name}...]` : `[${name}]`)
   }
   for (const { option, negation } of bound) {
     command.addOption(option)

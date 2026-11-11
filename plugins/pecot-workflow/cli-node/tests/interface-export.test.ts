@@ -10,7 +10,8 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import { COMMANDS, defineCommand, type CommandIo } from '../src/commands/registry.js'
+import { COMMANDS } from '../src/commands/index.js'
+import { defineCommand, type CommandIo } from '../src/commands/registry.js'
 import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
 import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
@@ -162,6 +163,32 @@ describe('exportEntries', () => {
     })])
     expect(entry?.id).toBe('PW-SUB-ADD-TO-X')
     expect(entry?.name).toBe('sub add-to_x')
+  })
+})
+
+describe('exportEntries の別名', () => {
+  const aliased = defineCommand({
+    path: ['aliased'],
+    description: 'Has aliases.',
+    input: z.strictObject({
+      allow_existing_branch: z.boolean().default(false),
+      verbose: z.boolean().default(true),
+      directory: z.string().optional(),
+    }),
+    positional: [],
+    shortFlags: { directory: '-D' },
+    aliases: { allow_existing_branch: '--force', verbose: '--loud' },
+    negations: { verbose: '--no-verbose' },
+    run: () => Promise.resolve(0),
+    interactive: false,
+  })
+
+  it('旗は、長い形・短い形・別名・否定形の順に並ぶ', () => {
+    expect(exportEntries([aliased])[0]?.cli.flags).toStrictEqual({
+      allow_existing_branch: ['--allow-existing-branch', '--force'],
+      verbose: ['--verbose', '--loud', '--no-verbose'],
+      directory: ['--directory', '-D'],
+    })
   })
 })
 

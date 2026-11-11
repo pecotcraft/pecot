@@ -52,6 +52,31 @@ const remove = defineCommand({
   },
 })
 
+const optionalNames = z.array(z.string()).optional()
+
+const optionalList = defineCommand({
+  path: ['optional-list'],
+  description: '任意の可変長',
+  input: z.object({ names: optionalNames }),
+  positional: ['names'],
+  interactive: false,
+  run: async () => await exitWith(0),
+})
+
+const add = defineCommand({
+  path: ['worktree', 'add'],
+  description: '作る',
+  input: z.object({ allow_existing_branch: z.boolean().default(false), directory: z.string().optional() }),
+  positional: [],
+  shortFlags: { directory: '-D' },
+  aliases: { allow_existing_branch: '--force' },
+  interactive: false,
+  run: async (input) => {
+    seen.push(input)
+    return await exitWith(0)
+  },
+})
+
 async function messageOf(promise: Promise<unknown>): Promise<string> {
   const error = await usageErrorOf(promise)
   return error.message
@@ -69,11 +94,12 @@ async function usageErrorOf(promise: Promise<unknown>): Promise<UsageError> {
 }
 
 describe('synopsisOf・usageOf', () => {
-  it('位置引数は大文字。任意なら角括弧、複数なら ...', () => {
-    expect(synopsisOf(read)).toBe('[OPTIONS] ISSUE_REF')
-    expect(synopsisOf(preflight)).toBe('[OPTIONS] [VERSION]')
-    expect(synopsisOf(remove)).toBe('[OPTIONS] NAMES...')
-    expect(usageOf(read)).toEqual({ commandPath: ['issue', 'read'], synopsis: '[OPTIONS] ISSUE_REF' })
+  it('位置引数は小文字。必須は波括弧、任意は角括弧、複数は ... を付ける（typer 0.28 と同じ）', () => {
+    expect(synopsisOf(read)).toBe('[OPTIONS] {issue_ref}')
+    expect(synopsisOf(preflight)).toBe('[OPTIONS] [version]')
+    expect(synopsisOf(remove)).toBe('[OPTIONS] {names}...')
+    expect(synopsisOf(optionalList)).toBe('[OPTIONS] [names]...')
+    expect(usageOf(read)).toEqual({ commandPath: ['issue', 'read'], synopsis: '[OPTIONS] {issue_ref}' })
   })
 })
 
@@ -104,18 +130,20 @@ describe('runDefinition', () => {
 
   it('必須の位置引数が無ければ Missing argument', async () => {
     const error = await usageErrorOf(runDefinition(read, [], capture()))
-    expect(formatUsageError(error)).toBe(`Usage: pecot issue read [OPTIONS] ISSUE_REF
-Try 'pecot issue read --help' for help.
-╭─ Error ──────────────────────────────────────────────────────────────────────╮
-│ Missing argument 'ISSUE_REF'.                                                │
-╰──────────────────────────────────────────────────────────────────────────────╯
-`)
+    expect(formatUsageError(error)).toBe([
+      'Usage: pecot issue read [OPTIONS] {issue_ref}',
+      'Try \'pecot issue read --help\' for help.',
+      '╭─ Error ──────────────────────────────────────────────────────────────────────╮',
+      '│ Missing argument \'issue_ref\'.                                                │',
+      '╰──────────────────────────────────────────────────────────────────────────────╯',
+      '',
+    ].join('\n'))
   })
 
   it('必須のオプションが無ければ Missing option（長い形・短い形の順）', async () => {
     const error = await usageErrorOf(runDefinition(preflight, [], capture()))
     expect(error.message).toBe('Missing option \'--directory\' / \'-D\'.')
-    expect(error.context).toEqual({ commandPath: ['release', 'preflight'], synopsis: '[OPTIONS] [VERSION]' })
+    expect(error.context).toEqual({ commandPath: ['release', 'preflight'], synopsis: '[OPTIONS] [version]' })
   })
 
   it('任意の位置引数は省ける。短いオプションで渡せる', async () => {
@@ -217,7 +245,7 @@ describe('型の変換', () => {
 
   it('位置引数の誤りは、名前を大文字で出す', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'NUMBER\': \'abc\' is not a valid integer.')
+    expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid integer.')
   })
 
   it('実数は指数と _ を受ける', async () => {
@@ -270,8 +298,25 @@ describe('否定形と包んだスキーマ', () => {
 
   it('必須の可変長の位置引数が無ければ ... を付けて案内する', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'FILES...\'.')
-    expect(synopsisOf(flags)).toBe('[OPTIONS] FILES...')
+    expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'files...\'.')
+    expect(synopsisOf(flags)).toBe('[OPTIONS] {files}...')
+  })
+
+  it('別名は長い形のまま、元の名前の入力にする', async () => {
+    seen.length = 0
+    await runDefinition(add, ['--allow-existing-branch'], capture())
+    await runDefinition(add, ['--force'], capture())
+    await runDefinition(add, [], capture())
+    expect(seen).toEqual([
+      { allow_existing_branch: true },
+      { allow_existing_branch: true },
+      { allow_existing_branch: false },
+    ])
+  })
+
+  it('別名も未知のオプションの候補になる', async () => {
+    const message = await messageOf(runDefinition(add, ['--forc'], capture()))
+    expect(message).toBe('No such option: --forc (Possible options: --force)')
   })
 
   it('否定形も未知のオプションの候補になる', async () => {
