@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -16,6 +17,35 @@ from cli.commands.session import _active_issue_lines, _collect_flag_statuses
 from cli.core.github import GitHubAPIError
 
 runner = CliRunner()
+
+
+def _init_upstream_only_repo(base: Path, branch: str = "main") -> Path:
+    """origin が無く upstream だけを持つ git リポを作る"""
+    repo = base / "upstream-only"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", branch], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "remote", "add", "upstream", "https://github.com/acme/demo.git"],
+        cwd=repo,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@example.com",
+            "commit",
+            "-q",
+            "--allow-empty",
+            "-m",
+            "init",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    return repo
 
 
 # _collect_flag_statuses のユニットテスト
@@ -104,7 +134,7 @@ class TestFlagStatusCommand:
                 return_value="feat/20260202-120000/867",
             ),
             patch(
-                "cli.commands.session.origin_repo",
+                "cli.commands.session.primary_remote_repo",
                 return_value=("github.com", "acme-labs", "ai-engineer-starter-kit"),
             ),
             patch("cli.commands.session.flag_exists", side_effect=mock_flag_exists),
@@ -125,7 +155,10 @@ class TestFlagStatusCommand:
         """Markdown は stdout に 1 回、Issue を読めない warning は stderr に出る"""
         with (
             patch("cli.commands.session.git_current_branch", return_value="feat/x/7"),
-            patch("cli.commands.session.origin_repo", return_value=("github.com", "acme", "demo")),
+            patch(
+                "cli.commands.session.primary_remote_repo",
+                return_value=("github.com", "acme", "demo"),
+            ),
             patch("cli.commands.session.flag_exists", return_value=True),
             patch("cli.commands.session.read_flag", return_value="acme/demo/7"),
             patch("cli.commands.session.load_active_config", return_value=None),
@@ -151,7 +184,7 @@ class TestFlagStatusCommand:
         with (
             patch("cli.commands.session.git_current_branch", return_value=None),
             patch(
-                "cli.commands.session.origin_repo",
+                "cli.commands.session.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.session.flag_exists", return_value=False),
@@ -169,7 +202,7 @@ class TestFlagStatusCommand:
                 "cli.commands.session.git_current_branch",
                 return_value="feat/test/123",
             ),
-            patch("cli.commands.session.origin_repo", return_value=None),
+            patch("cli.commands.session.primary_remote_repo", return_value=None),
             patch("cli.commands.session.flag_exists", return_value=False),
         ):
             result = runner.invoke(app, ["session", "status", "-D", str(tmp_path)])
@@ -186,7 +219,7 @@ class TestFlagStatusCommand:
                 return_value="main",
             ),
             patch(
-                "cli.commands.session.origin_repo",
+                "cli.commands.session.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.session.flag_exists", return_value=False),
@@ -207,7 +240,7 @@ class TestFlagStatusCommand:
                 return_value="feat/no-issue-number",
             ),
             patch(
-                "cli.commands.session.origin_repo",
+                "cli.commands.session.primary_remote_repo",
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.session.flag_exists", return_value=False),
@@ -216,6 +249,18 @@ class TestFlagStatusCommand:
 
         assert result.exit_code == 0
         assert "- Inferred Issue: none" in result.output
+
+    def test_upstream_only_repo_shows_repository(self, tmp_path: Path) -> None:
+        """origin が無く upstream だけのリポでは、最初の remote のリポを Repository に出す"""
+        repo = _init_upstream_only_repo(tmp_path)
+        with (
+            patch("cli.commands.session.flag_exists", return_value=False),
+            patch("cli.commands.session.load_active_config", return_value=None),
+        ):
+            result = runner.invoke(app, ["session", "status", "-D", str(repo)])
+
+        assert result.exit_code == 0
+        assert "- Repository: acme/demo" in result.output
 
 
 # _active_issue_lines のユニットテスト
@@ -336,6 +381,19 @@ class TestShowActiveIssue:
 class TestFlagRestoreCommand:
     """flag_restore コマンドのテスト"""
 
+    def test_restore_upstream_only_repo_records_work_target(self, tmp_path: Path) -> None:
+        """origin が無く upstream だけのリポでも、最初の remote のリポで作業対象を記録する"""
+        repo = _init_upstream_only_repo(tmp_path, branch="feat/x/309")
+        with (
+            patch("cli.commands.session.load_active_config", return_value=None),
+            patch("cli.commands._work_target.write_work_target") as mock_write,
+        ):
+            result = runner.invoke(app, ["session", "restore", "-D", str(repo)])
+
+        assert result.exit_code == 0
+        assert "set: work target acme/demo/309" in result.output
+        mock_write.assert_called_once_with("acme/demo/309", "")
+
     def test_restore_auto_detect(self, tmp_path: Path) -> None:
         """ブランチ名から自動推定して復元成功"""
         with (
@@ -344,7 +402,7 @@ class TestFlagRestoreCommand:
                 return_value="feat/session-restore/870",
             ),
             patch(
-                "cli.commands.session.origin_repo",
+                "cli.commands.session.primary_remote_repo",
                 return_value=("github.com", "acme-labs", "ai-engineer-starter-kit"),
             ),
             patch("cli.commands.session.load_active_config", return_value=None),
@@ -494,7 +552,7 @@ class TestFlagRestoreCommand:
                 return_value="feat/test/789",
             ),
             patch(
-                "cli.commands.session.origin_repo",
+                "cli.commands.session.primary_remote_repo",
                 return_value=None,
             ),
         ):

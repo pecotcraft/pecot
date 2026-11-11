@@ -1230,7 +1230,9 @@ entries:
       - The related Issues are the closing issues of the PR, the Issues named after Closes, Fixes or Resolves in its body, and the Issue whose number ends the head branch name.
       - Does not close an Epic or an Issue that has sub-issues, and writes a skipped line for it.
       - With --delete-branch, deletes the remote head branch and then wip/<head>.
-      - Switches the local checkout to the worktree name inside a worktree, or to develop_branch otherwise, pulls it from origin and deletes the local head branch with git branch -D.
+      - A wip/<head> that does not exist is skipped without a message.
+      - A wip/<head> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
+      - Switches the local checkout to the worktree name inside a worktree, or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
       - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
       - After the local cleanup, removes the flags .pecot-active, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked and the flag merge-slash-pending under .pecot/state/.
       - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
@@ -1240,7 +1242,7 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: "A count line for the Issues to close, then one result line per step on stderr: closed, skipped, unchanged, deleted, set and updated. With --dry-run, dry-run: would lines take the place of the result lines. Warning lines for steps that failed and for local cleanup that was skipped."
+    diagnostics: "A count line for the Issues to close, then one result line per step on stderr: closed, skipped, unchanged, deleted, set and updated. With --dry-run, dry-run: would lines take the place of the result lines. Warning lines for steps that failed, including a wip/<head> that exists but cannot be deleted, and for local cleanup that was skipped."
     environment: []
     exit_status:
       - code: 0
@@ -1249,7 +1251,7 @@ entries:
         when: There is no active project, the PR cannot be fetched or does not exist, or the PR is not merged.
       - code: 2
         when: The PR reference is malformed, or another command line error occurs.
-    on_error: A PR that is not merged is left as it is and nothing is changed. A failure to close an Issue is a warning and the other Issues and the later steps still run; nothing is rolled back. When deleting the remote head branch fails, deleting wip/<head> is skipped. When the checkout fails, the pull and the branch deletion are skipped and the flags are still removed.
+    on_error: A PR that is not merged is left as it is and nothing is changed. A failure to close an Issue is a warning and the other Issues and the later steps still run; nothing is rolled back. When deleting the remote head branch fails, deleting wip/<head> is skipped. When wip/<head> exists but cannot be deleted, a warning is written and the later steps still run. When the checkout fails, the pull and the branch deletion are skipped and the flags are still removed.
     effects:
       - target: github
         kind: read
@@ -1302,7 +1304,7 @@ entries:
         statement: カレントのリポジトリが PR のリポジトリと同じだと、worktree の中なら worktree 名の、そうでなければ develop_branch のブランチに切り替える
       - id: PW-PR-CLEANUP-07
         pattern: event
-        statement: ブランチを切り替えると、origin の develop_branch を pull する
+        statement: ブランチを切り替えると、origin の remote（無ければ最初の remote）から develop_branch を pull する
       - id: PW-PR-CLEANUP-08
         pattern: event
         statement: pull すると、ローカルの head ブランチを git branch -D で削除する
@@ -1366,6 +1368,12 @@ entries:
       - id: PW-PR-CLEANUP-28
         pattern: unwanted
         statement: もし PR の参照の形が誤っているなら、終了コード 2 で終わる
+      - id: PW-PR-CLEANUP-29
+        pattern: unwanted
+        statement: もし wip/<head> のリモートブランチが無いなら、何も出さない
+      - id: PW-PR-CLEANUP-30
+        pattern: unwanted
+        statement: もし wip/<head> があるのに削除できなかったなら、warning の行を標準エラーに出す
   PW-PR-CREATE:
     constraints:
       - requires: {message: [title, base]}
@@ -1399,7 +1407,7 @@ entries:
       - code: 0
         when: The template was copied, the PR was created, or the --dry-run validation passed. Failing to set the board status still gives 0.
       - code: 1
-        when: There is no active project, --template is not default or release, no mode argument is given, -t or -b is missing with -m, --screenshot is given with a file, the front matter cannot be read or has no valid repository, the repository cannot be decided or is not in owner/repo form, the head branch cannot be decided, develop_branch or release_branch is not set, the early check finds a fatal case (not a git repository, no origin, no current branch), or the GitHub API returned an error.
+        when: There is no active project, --template is not default or release, no mode argument is given, -t or -b is missing with -m, --screenshot is given with a file, the front matter cannot be read or has no valid repository, the repository cannot be decided or is not in owner/repo form, the head branch cannot be decided, develop_branch or release_branch is not set, the early check finds a fatal case (not a git repository, no git remote, no current branch), or the GitHub API returned an error.
       - code: 2
         when: The early check finds a warning (not pushed, uncommitted changes or a stash), or another command line error occurs.
       - code: 3
@@ -1589,7 +1597,7 @@ entries:
     details:
       - Prints the information to check before creating a PR for the repository given by --directory.
       - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
-      - The base branch is origin/ followed by the develop_branch of the active project.
+      - The base branch is <remote>/ followed by the develop_branch of the active project, where <remote> is the origin remote, or the first remote when there is no origin.
       - Prints every section even when there are warnings.
       - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
       - Exits with status 2 when there is at least one warning.
@@ -1604,7 +1612,7 @@ entries:
       - code: 0
         when: The sections were printed and there is no warning.
       - code: 1
-        when: The directory is not a git repository, there is no origin remote, the current branch or the repository cannot be determined, there is no active project, develop_branch is not set, or origin/<develop_branch> does not exist.
+        when: The directory is not a git repository, there is no git remote, the current branch or the repository cannot be determined, there is no active project, develop_branch is not set, or <remote>/<develop_branch> does not exist, where <remote> is the origin remote, or the first remote when there is no origin.
       - code: 2
         when: There is at least one warning, --directory is missing, or another command line error occurs.
     on_error: default
@@ -1617,7 +1625,7 @@ entries:
         what: Reads the active config file, .gitignore and .git/info/exclude.
     prerequisites:
       - An active project exists (pecot project activate).
-      - origin/<develop_branch> exists in the local repository.
+      - <remote>/<develop_branch> exists in the local repository, where <remote> is the origin remote, or the first remote when there is no origin.
     idempotent: true
     examples:
       - run: pecot pr preflight -D .
@@ -1632,7 +1640,7 @@ entries:
         statement: warning があるときに打つと、11 の節を全部出す
       - id: PW-PR-PREFLIGHT-03
         pattern: event
-        statement: 打つと、Base Branch の節に origin/<develop_branch> を出す
+        statement: 打つと、Base Branch の節に <remote>/<develop_branch> を出す（<remote> は origin、無ければ最初の remote）
       - id: PW-PR-PREFLIGHT-04
         pattern: event
         statement: "打つと、count: preflight warnings の行を標準エラーに出す"
@@ -1659,7 +1667,7 @@ entries:
         statement: もし git のリポジトリでないなら、終了コード 1 で終わる
       - id: PW-PR-PREFLIGHT-12
         pattern: unwanted
-        statement: もし origin の remote が無いなら、終了コード 1 で終わる
+        statement: もし git の remote が無いなら、終了コード 1 で終わる
       - id: PW-PR-PREFLIGHT-13
         pattern: unwanted
         statement: もし現在のブランチか remote のリポジトリを決められないなら、終了コード 1 で終わる
@@ -1671,7 +1679,7 @@ entries:
         statement: もし develop_branch が設定に無いなら、終了コード 1 で終わる
       - id: PW-PR-PREFLIGHT-16
         pattern: unwanted
-        statement: もし origin/<develop_branch> が無いなら、終了コード 1 で終わる
+        statement: もし <remote>/<develop_branch> が無いなら、終了コード 1 で終わる
       - id: PW-PR-PREFLIGHT-17
         pattern: unwanted
         statement: もし --directory を渡していないなら、使い方のエラーを出して終了コード 2 で終わる
@@ -3027,10 +3035,10 @@ entries:
       - "Without a title, the session name is #<number>."
       - The Issue title is read from GitHub.
       - When the active config file is missing or the Issue cannot be read, the command goes on with an empty title and no warning.
-      - With --issue, the branch and the origin remote are not read.
+      - With --issue, the branch and the git remote are not read.
       - The reference of --issue must be the full form owner/repo/N.
       - Without --issue, the Issue number is the number at the end of the current branch name after the last slash.
-      - Without --issue, the repository is the origin remote, and both are read in --directory.
+      - Without --issue, the repository is the origin remote, or the first remote when there is no origin, and both are read in --directory.
       - The project root, and so the files above, are resolved from the working directory of the command, not from --directory.
     stdin: none
     output:
@@ -3041,7 +3049,7 @@ entries:
       - code: 0
         when: The work target was recorded.
       - code: 1
-        when: Without --issue, the branch name cannot be read, the Issue number cannot be inferred from the branch name or the origin repository cannot be read; the work target cannot be written, including when the project root cannot be determined; or the active config file is broken (an error line is printed).
+        when: Without --issue, the branch name cannot be read, the Issue number cannot be inferred from the branch name or the repository of the origin remote, or of the first remote when there is no origin, cannot be read; the work target cannot be written, including when the project root cannot be determined; or the active config file is broken (an error line is printed).
       - code: 2
         when: --issue is not in owner/repo/N form, --directory is missing or is not an existing directory, or another command line error occurs.
     on_error: When writing .pecot-session-title fails after .pecot-active was written, .pecot-active stays written.
@@ -3054,7 +3062,7 @@ entries:
         what: Reads the active config file.
       - target: git
         kind: read
-        what: Reads the current branch and the origin remote URL of the directory.
+        what: Reads the current branch and the URL of the origin remote, or of the first remote when there is no origin, of the directory.
       - target: github
         kind: read
         what: Reads the title of the Issue.
@@ -3067,14 +3075,14 @@ entries:
       - run: pecot session restore --issue example-org/my-repo/123 -D .
         note: Restore the work target of a given Issue.
     default_notes:
-      issue: Inferred from the end of the current branch name and the origin remote of --directory.
+      issue: Inferred from the end of the current branch name and the origin remote, or the first remote when there is no origin, of --directory.
     behaviors:
       - id: PW-SESSION-RESTORE-01
         pattern: event
         statement: --issue に owner/repo/N を渡して打つと、その Issue を作業対象として記録する
       - id: PW-SESSION-RESTORE-02
         pattern: event
-        statement: --issue を省いて打つと、ブランチ名の末尾の番号と origin のリポジトリから作業対象の Issue を決めて記録する
+        statement: --issue を省いて打つと、ブランチ名の末尾の番号と origin（無ければ最初の remote）のリポジトリから作業対象の Issue を決めて記録する
       - id: PW-SESSION-RESTORE-03
         pattern: event
         statement: 作業対象を記録すると、.pecot-active に owner/repo/N を書く
@@ -3119,7 +3127,7 @@ entries:
         statement: もし --issue を省いてブランチ名の末尾が番号でないなら、終了コード 1 で終わる
       - id: PW-SESSION-RESTORE-17
         pattern: unwanted
-        statement: もし --issue を省いて origin のリポジトリを読めないなら、終了コード 1 で終わる
+        statement: もし --issue を省いて origin（無ければ最初の remote）のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-SESSION-RESTORE-18
         pattern: unwanted
         statement: もし作業対象のファイルを書けないなら、error の行を標準エラーに出す
@@ -3135,9 +3143,9 @@ entries:
   PW-SESSION-STATUS:
     constraints: []
     details:
-      - Shows the current branch, the origin repository, the Issue inferred from the branch name and the session flag state.
+      - Shows the current branch, the repository of the origin remote (or of the first remote when there is no origin), the Issue inferred from the branch name and the session flag state.
       - The Issue is inferred from the number at the end of the branch name after the last slash.
-      - The branch and the origin repository are read in --directory.
+      - The branch and the repository of the origin remote, or of the first remote when there is no origin, are read in --directory.
       - The flag file .pecot-active is read from .pecot/state/ of the project root, which is resolved from the working directory of the command, not from --directory.
       - The flag table has one row per flag with the flag name, set or unset, and the content of the file.
       - When .pecot-active holds an Issue reference, an Active Issue section follows with the number, the title and the state of the Issue.
@@ -3161,7 +3169,7 @@ entries:
     effects:
       - target: git
         kind: read
-        what: Reads the current branch and the origin remote URL of the directory.
+        what: Reads the current branch and the URL of the origin remote, or of the first remote when there is no origin, of the directory.
       - target: file
         kind: read
         what: Reads .pecot-active under .pecot/state/ and the active config file.
@@ -3201,10 +3209,10 @@ entries:
         statement: もしブランチ名を読めないなら、処理を続ける
       - id: PW-SESSION-STATUS-09
         pattern: unwanted
-        statement: もし origin のリポジトリを読めないなら、Repository の行に unknown を出す
+        statement: もし origin（無ければ最初の remote）のリポジトリを読めないなら、Repository の行に unknown を出す
       - id: PW-SESSION-STATUS-10
         pattern: unwanted
-        statement: もし origin のリポジトリを読めないなら、処理を続ける
+        statement: もし origin（無ければ最初の remote）のリポジトリを読めないなら、処理を続ける
       - id: PW-SESSION-STATUS-11
         pattern: unwanted
         statement: もしブランチ名の末尾が番号でないなら、Inferred Issue の行に none を出す

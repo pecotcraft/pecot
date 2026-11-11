@@ -23,7 +23,13 @@ from cli.core.frontmatter import (
     FrontmatterError,
     parse_pr_file,
 )
-from cli.core.git import git_current_branch, git_remote_url, git_toplevel, origin_repo, run_git
+from cli.core.git import (
+    git_current_branch,
+    git_remote_url,
+    git_toplevel,
+    primary_remote_name,
+    run_git,
+)
 from cli.core.git_url import parse_remote_url
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
 from cli.core.github.errors import describe_api_error, is_missing_ref_error
@@ -360,43 +366,68 @@ def _validate_pr_content(
     return errors
 
 
+def _primary_remote(directory: Path) -> tuple[str, str, tuple[str, str, str] | None] | None:
+    """Look up the primary remote once and return ``(name, url, (host, owner, repo))``
+
+    None if there is no remote or its URL cannot be read. The repository part is None if the URL does not parse.
+    """
+    name = primary_remote_name(directory)
+    if name is None:
+        return None
+    url = git_remote_url(directory, name)
+    if url is None:
+        return None
+    try:
+        return name, url, parse_remote_url(url)
+    except ValueError:
+        return name, url, None
+
+
 def _nx_scope_toplevel(
     config: ProjectConfig,
     owner: str,
     repo: str,
     base: str,
     directory: Path,
-) -> Path | None:
-    """Return the worktree root if the title scope is to be compared with nx projects
+) -> tuple[Path, str] | None:
+    """Return the worktree root and the remote name if the title scope is to be compared with nx projects
 
     Returns it only when all of the following hold (otherwise returns None, with no comparison or warning).
 
     - The target's ``effective_release_type`` is ``nx``
     - base equals develop_branch (not a release PR)
-    - ``origin`` matches the target, and the worktree root has ``nx.json``
+    - the primary remote matches the target, and the worktree root has ``nx.json``
     """
     repository = config.find_repository(owner, repo)
     if repository is None or repository.effective_release_type != "nx":
         return None
     if base != config.get_develop_branch(owner, repo):
         return None
-    origin = origin_repo(directory)
-    if origin is None or (origin[1].lower(), origin[2].lower()) != (owner.lower(), repo.lower()):
+    found = _primary_remote(directory)
+    if found is None:
+        return None
+    remote_name, _url, remote_info = found
+    if remote_info is None:
+        return None
+    _host, remote_owner, remote_repo = remote_info
+    if (remote_owner.lower(), remote_repo.lower()) != (owner.lower(), repo.lower()):
         return None
     toplevel = git_toplevel(directory)
     if toplevel is None or not (toplevel / "nx.json").is_file():
         return None
-    return toplevel
+    return toplevel, remote_name
 
 
-def _expected_title_scope(toplevel: Path, base: str, head: str, out: Output) -> list[str] | None:
+def _expected_title_scope(
+    toplevel: Path, base: str, head: str, out: Output, *, remote: str
+) -> list[str] | None:
     """Return the scope expected from the changed nx projects
 
     If it cannot be determined, warns and returns None (the comparison is skipped).
     Returns an empty list (no comparison) if the diff is empty or only has a version plan.
     """
     projects = nx_projects(toplevel)
-    files = changed_files(toplevel, f"origin/{base}", head) if projects else None
+    files = changed_files(toplevel, f"{remote}/{base}", head) if projects else None
     if projects is None or files is None:
         out.warning("cannot read nx projects or the diff; skipped the PR title scope check")
         return None
@@ -423,10 +454,11 @@ def _title_scope_errors(
     release_branch = config.get_release_branch(owner, repo)
     if _is_release_pr(template, base, head, develop_branch, release_branch):
         return []
-    toplevel = _nx_scope_toplevel(config, owner, repo, base, directory)
-    if toplevel is None:
+    scope_target = _nx_scope_toplevel(config, owner, repo, base, directory)
+    if scope_target is None:
         return []
-    expected = _expected_title_scope(toplevel, base, head, out)
+    toplevel, remote = scope_target
+    expected = _expected_title_scope(toplevel, base, head, out, remote=remote)
     if not expected:
         return []
     given = parse_title_scope(title)
@@ -588,11 +620,12 @@ def _add_scope_hint(
     out: Output,
 ) -> str:
     """Write the scope computed from the changed nx projects as a comment on the title line"""
-    toplevel = _nx_scope_toplevel(config, owner, repo, base, directory)
-    if toplevel is None:
+    scope_target = _nx_scope_toplevel(config, owner, repo, base, directory)
+    if scope_target is None:
         return content
+    toplevel, remote = scope_target
     head = git_current_branch(directory)
-    expected = _expected_title_scope(toplevel, base, head, out) if head else None
+    expected = _expected_title_scope(toplevel, base, head, out, remote=remote) if head else None
     if not expected:
         return content
     scope = ",".join(expected)
@@ -634,7 +667,8 @@ def _pr_create_prepare(directory: Path, out: Output, *, template: str = "default
     # releaseテンプレートの場合、baseは自動設定スキップ（テンプレートのデフォルト "main" を維持）
     if template != "release":
         # リポジトリのdevelop_branchを取得してbaseを自動設定
-        repo_info = origin_repo(directory)
+        found = _primary_remote(directory)
+        repo_info = found[2] if found else None
         if repo_info:
             _host, owner, repo = repo_info
             config = load_active_config()
@@ -1419,7 +1453,9 @@ def _read_git_exclude(cwd: Path) -> str:
         return "(read error)"
 
 
-def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path, out: Output) -> str:
+def _determine_base_branch(
+    host: str, owner: str, repo: str, cwd: Path, out: Output, *, remote: str
+) -> str:
     """Decide the base branch
 
     Gets it from projectConfig.develop_branch.
@@ -1431,9 +1467,10 @@ def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path, out: Out
         repo: Repository name
         cwd: Target directory
         out: Output functions
+        remote: Primary remote name
 
     Returns:
-        Base branch name (origin/xxx form)
+        Base branch name (<remote>/xxx form)
 
     Raises:
         typer.Exit: If there is no project config, or develop_branch is unset
@@ -1453,7 +1490,7 @@ def _determine_base_branch(host: str, owner: str, repo: str, cwd: Path, out: Out
         )
         raise typer.Exit(1)
 
-    branch_name = f"origin/{develop_branch}"
+    branch_name = f"{remote}/{develop_branch}"
     if not _branch_exists(branch_name, cwd):
         out.error(
             f"branch {branch_name} does not exist\ncheck the remote branches with: git branch -r"
@@ -1503,29 +1540,29 @@ def _get_worktree_info(cwd: Path) -> str:
     return "\n".join(lines)
 
 
-def _is_same_repo_for_cleanup(cwd: Path, owner: str, repo: str, out: Output) -> bool:
-    """Cross-repository check. If the CWD's repository differs from the PR's, warn and return False"""
+def _is_same_repo_for_cleanup(cwd: Path, owner: str, repo: str, out: Output) -> str | None:
+    """Cross-repository check. Return the primary remote name, or None (with a warning) if the CWD's repository differs"""
     skipped = "skipped local cleanup"
     try:
-        remote_url = git_remote_url(cwd)
-        if remote_url is None:
+        found = _primary_remote(cwd)
+        if found is None:
             out.warning(f"cannot read the remote URL; {skipped}")
-            return False
-        try:
-            _host, local_owner, local_repo = parse_remote_url(remote_url)
-        except ValueError:
+            return None
+        remote_name, _url, repo_info = found
+        if repo_info is None:
             out.warning(f"cannot read the repository from the remote URL; {skipped}")
-            return False
+            return None
+        _host, local_owner, local_repo = repo_info
         if local_owner != owner or local_repo != repo:
             out.warning(
                 f"current repository ({local_owner}/{local_repo}) differs from the PR's "
                 f"({owner}/{repo}); {skipped}"
             )
-            return False
+            return None
     except Exception:
         out.warning(f"cannot determine the repository; {skipped}")
-        return False
-    return True
+        return None
+    return remote_name
 
 
 def _resolve_cleanup_checkout_target(
@@ -1575,7 +1612,8 @@ def _local_cleanup_after_merge(
     """
     cwd = Path.cwd()
 
-    if not _is_same_repo_for_cleanup(cwd, owner, repo, out):
+    remote = _is_same_repo_for_cleanup(cwd, owner, repo, out)
+    if remote is None:
         return
 
     current_branch = git_current_branch(cwd)
@@ -1599,8 +1637,8 @@ def _local_cleanup_after_merge(
     else:
         settle(out, Operation(Verb.UNCHANGED, f"current branch {checkout_target}"))
 
-    pull = Operation(Verb.UPDATE, f"{checkout_target} from origin/{develop_branch}")
-    _run_local_step(out, pull, cwd, ["pull", "origin", develop_branch], f"pulling {develop_branch}")
+    pull = Operation(Verb.UPDATE, f"{checkout_target} from {remote}/{develop_branch}")
+    _run_local_step(out, pull, cwd, ["pull", remote, develop_branch], f"pulling {develop_branch}")
 
     if head_branch != checkout_target:
         delete = Operation(Verb.DELETE, f"local branch {head_branch}")
@@ -1615,12 +1653,13 @@ def _local_cleanup_after_merge(
         settle(out, skip)
 
 
-def _get_push_status(branch: str, cwd: Path) -> tuple[bool, str]:
+def _get_push_status(branch: str, cwd: Path, *, remote: str) -> tuple[bool, str]:
     """Check the push state to the remote
 
     Args:
         branch: Branch name
         cwd: Target directory
+        remote: Primary remote name
 
     Returns:
         Tuple of (is_pushed, message)
@@ -1629,32 +1668,32 @@ def _get_push_status(branch: str, cwd: Path) -> tuple[bool, str]:
     """
     # 1. リモートブランチの存在確認
     try:
-        result = run_git(["rev-parse", "--verify", f"origin/{branch}"], cwd, check=False)
+        result = run_git(["rev-parse", "--verify", f"{remote}/{branch}"], cwd, check=False)
         if result.returncode != 0:
-            return False, f"origin/{branch} does not exist (not pushed)"
+            return False, f"{remote}/{branch} does not exist (not pushed)"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False, "(git rev-parse failed)"
 
     # 2. ローカルとリモートのコミット差分を確認
     try:
         # ローカルにあってリモートにないコミット数
-        result = run_git(["rev-list", "--count", f"origin/{branch}..{branch}"], cwd, check=True)
+        result = run_git(["rev-list", "--count", f"{remote}/{branch}..{branch}"], cwd, check=True)
         ahead_count = int(result.stdout.strip())
 
         # リモートにあってローカルにないコミット数
-        result = run_git(["rev-list", "--count", f"{branch}..origin/{branch}"], cwd, check=True)
+        result = run_git(["rev-list", "--count", f"{branch}..{remote}/{branch}"], cwd, check=True)
         behind_count = int(result.stdout.strip())
 
         if ahead_count == 0 and behind_count == 0:
-            return True, f"in sync with origin/{branch}"
+            return True, f"in sync with {remote}/{branch}"
         elif ahead_count > 0 and behind_count == 0:
             return False, f"{ahead_count} unpushed commits"
         elif ahead_count == 0 and behind_count > 0:
-            return True, f"origin/{branch} is {behind_count} commits ahead (pull recommended)"
+            return True, f"{remote}/{branch} is {behind_count} commits ahead (pull recommended)"
         else:
             return (
                 False,
-                f"diverged: local is {ahead_count} commits ahead, origin/{branch} is {behind_count} ahead",
+                f"diverged: local is {ahead_count} commits ahead, {remote}/{branch} is {behind_count} ahead",
             )
 
     except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
@@ -1698,33 +1737,33 @@ def _stash_has_entries(stash_list: str) -> bool:
 
 def _validate_pr_context(
     directory: Path, out: Output
-) -> tuple[Path, str, str, tuple[str, str, str]]:
+) -> tuple[Path, str, str, tuple[str, str, str], str]:
     """Validate the preconditions shared by the PR commands, and return the context if they hold.
 
-    Exit(1) on fatal cases (outside a git repository / no origin / branch undetermined / repository undetermined).
+    Exit(1) on fatal cases (outside a git repository / no remote / branch undetermined / repository undetermined).
+    Returns ``(git_root, remote_url, current_branch, repo_info, remote_name)``.
     """
     git_root = git_toplevel(directory)
     if git_root is None:
         out.error("not a git repository")
         raise typer.Exit(1)
 
-    remote_url = git_remote_url(directory)
-    if remote_url is None:
-        out.error("origin remote not found")
+    found = _primary_remote(directory)
+    if found is None:
+        out.error("git remote not found")
         raise typer.Exit(1)
+    remote_name, remote_url, repo_info = found
 
     current_branch = git_current_branch(directory)
     if current_branch is None:
         out.error("cannot determine the current branch")
         raise typer.Exit(1)
 
-    try:
-        repo_info = parse_remote_url(remote_url)
-    except ValueError:
+    if repo_info is None:
         out.error("cannot read repository info from the remote URL\ncheck it with: git remote -v")
-        raise typer.Exit(1) from None
+        raise typer.Exit(1)
 
-    return git_root, remote_url, current_branch, repo_info
+    return git_root, remote_url, current_branch, repo_info, remote_name
 
 
 def _collect_preflight_warnings(
@@ -1776,12 +1815,12 @@ def _print_preflight_warnings(out: Output, warnings: list[PreflightWarning]) -> 
 def _run_preflight_checks_or_exit(directory: Path, out: Output) -> None:
     """Shared helper called from pr create.
 
-    Fatal cases (outside a git repository, no origin, branch undetermined, repository undetermined) end with Exit(1).
+    Fatal cases (outside a git repository, no remote, branch undetermined, repository undetermined) end with Exit(1).
     When a warning is found, fail early with Exit(2). With no warnings, do nothing and return.
     """
-    _, _, current_branch, _ = _validate_pr_context(directory, out)
+    _, _, current_branch, _, remote = _validate_pr_context(directory, out)
 
-    is_pushed, push_message = _get_push_status(current_branch, directory)
+    is_pushed, push_message = _get_push_status(current_branch, directory, remote=remote)
     git_status = _get_git_status(directory)
     stash_list = _get_stash_list(directory)
     stash_has_entries = _stash_has_entries(stash_list)
@@ -1810,7 +1849,7 @@ def pr_preflight(
     """Show all the information to check before creating a PR
 
     Prints the following information.
-    - Git Remote (origin URL)
+    - Git Remote (primary remote URL: origin, or the first remote)
     - Current Branch (current branch name)
     - Push Status (push state to the remote)
     - Base Branch (branch to compare against)
@@ -1824,16 +1863,16 @@ def pr_preflight(
 
     exit code semantics:
     - 0: success (all checks pass)
-    - 1: fatal error (cannot create a PR: outside a git repository / no origin / branch undetermined / repository undetermined)
+    - 1: fatal error (cannot create a PR: outside a git repository / no remote / branch undetermined / repository undetermined)
     - 2: fixable warning (not pushed / uncommitted / non-empty stash)
 
     The sections go to stdout. The warning count and each warning go to stderr.
     """
     out = Output(False)
 
-    _, remote_url, current_branch, repo_info = _validate_pr_context(directory, out)
+    _, remote_url, current_branch, repo_info, remote = _validate_pr_context(directory, out)
     host, owner, repo = repo_info
-    base_branch = _determine_base_branch(host, owner, repo, directory, out)
+    base_branch = _determine_base_branch(host, owner, repo, directory, out, remote=remote)
 
     # 5. 各種情報収集
     git_status = _get_git_status(directory)
@@ -1843,7 +1882,7 @@ def pr_preflight(
     diff_summary = _get_diff_summary(base_branch, directory)
     worktree_info = _get_worktree_info(directory)
 
-    is_pushed, push_message = _get_push_status(current_branch, directory)
+    is_pushed, push_message = _get_push_status(current_branch, directory, remote=remote)
     stash_list = _get_stash_list(directory)
     stash_has_entries = _stash_has_entries(stash_list)
 
@@ -2004,8 +2043,9 @@ def _delete_merged_branch(
     try:
         client.delete_branch(owner, repo, wip_branch)
         out.done(Operation(Verb.DELETE, f"remote branch {wip_branch}"))
-    except GitHubAPIError:
-        pass  # The WIP branch usually does not exist.
+    except GitHubAPIError as e:
+        if not is_missing_ref_error(e):  # The WIP branch usually does not exist.
+            out.warning(f"deleting remote branch {wip_branch} failed: {describe_api_error(e)}")
 
 
 def _remove_active_flags(out: Output) -> None:

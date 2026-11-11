@@ -1602,7 +1602,11 @@ class TestPRCleanupDeleteBranch:
         # featureブランチ削除は成功、WIPブランチ削除は422
         mock_client.delete_branch.side_effect = [
             None,  # feat/test-branch 成功
-            GitHubAPIError("Reference does not exist", status_code=422),
+            GitHubAPIError(
+                "Reference does not exist",
+                status_code=422,
+                response_body='{"message":"Reference does not exist"}',
+            ),
         ]
 
         with (
@@ -1615,6 +1619,42 @@ class TestPRCleanupDeleteBranch:
             assert "count: Issues to close:" in result.stderr
             # WIPブランチ削除のメッセージは出ない
             assert "wip/" not in result.output
+
+    def test_delete_branch_wip_forbidden_warns(self) -> None:
+        """WIPブランチの削除が 403 のときは warning の行を出し、終了コードは 0"""
+        from cli.core.github import GitHubAPIError
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = {
+            "number": 42,
+            "state": "MERGED",
+            "title": "feat: テスト",
+            "body": "",
+            "head_ref": "feat/test-branch",
+            "base_ref": "develop-aist",
+            "is_draft": False,
+            "mergeable": "MERGEABLE",
+            "comments": 0,
+            "closing_issues": [],
+            "reviews": [],
+        }
+        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+        mock_client.delete_branch.side_effect = [
+            None,  # feat/test-branch 成功
+            GitHubAPIError("Forbidden", status_code=403, response_body='{"message":"Forbidden"}'),
+        ]
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
+
+            assert result.exit_code == 0
+            assert "warning: deleting remote branch wip/feat/test-branch failed:" in result.stderr
 
     def test_delete_branch_not_called_without_flag(self) -> None:
         """--delete-branchなしではブランチ削除しない"""
@@ -2127,7 +2167,7 @@ class TestDeterminBaseBranch:
             patch("cli.commands.pr._branch_exists", return_value=True),
         ):
             result = _determine_base_branch(
-                "github.com", "owner", "repo", Path.cwd(), Output(False)
+                "github.com", "owner", "repo", Path.cwd(), Output(False), remote="origin"
             )
             assert result == "origin/develop-aist"
 
@@ -2139,7 +2179,9 @@ class TestDeterminBaseBranch:
             patch("cli.commands.pr.load_active_config", return_value=None),
         ):
             with pytest.raises(typer.Exit):
-                _determine_base_branch("github.com", "owner", "repo", Path.cwd(), Output(False))
+                _determine_base_branch(
+                    "github.com", "owner", "repo", Path.cwd(), Output(False), remote="origin"
+                )
 
     def test_develop_branch_not_set_raises_error(self) -> None:
         """develop_branchが設定されていない場合はエラーを発生"""
@@ -2152,7 +2194,9 @@ class TestDeterminBaseBranch:
             patch("cli.commands.pr.load_active_config", return_value=mock_config),
         ):
             with pytest.raises(typer.Exit):
-                _determine_base_branch("github.com", "owner", "repo", Path.cwd(), Output(False))
+                _determine_base_branch(
+                    "github.com", "owner", "repo", Path.cwd(), Output(False), remote="origin"
+                )
 
 
 class TestPRPreflightCommand:
@@ -2166,6 +2210,7 @@ class TestPRPreflightCommand:
 
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -2209,6 +2254,7 @@ class TestPRPreflightCommand:
 
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -2254,17 +2300,19 @@ class TestPRPreflightCommand:
         """originリモートがない場合はエラー"""
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch("cli.commands.pr.git_remote_url", return_value=None),
         ):
             result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
 
             assert result.exit_code == 1
-            assert "error: origin remote not found" in result.stderr
+            assert "error: git remote not found" in result.stderr
 
     def test_preflight_no_current_branch(self, tmp_path: Path) -> None:
         """現在のブランチを取得できない場合はエラー"""
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -2282,6 +2330,7 @@ class TestPRPreflightCommand:
 
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -2317,6 +2366,7 @@ class TestPRPreflightCommand:
 
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -2356,6 +2406,7 @@ class TestPRPreflightCommand:
 
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -2424,6 +2475,7 @@ class TestPRPreflightCommand:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://github.com/owner/repo.git",
@@ -2489,6 +2541,7 @@ class TestPRPreflightCommand:
             patch("cli.commands.pr.GitHubClient", return_value=mock_client),
             patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://github.com/owner/repo.git",
@@ -3023,7 +3076,7 @@ class TestGetPushStatus:
         mock_result.returncode = 1
 
         with patch("subprocess.run", return_value=mock_result):
-            is_pushed, message = _get_push_status("feat/test", Path.cwd())
+            is_pushed, message = _get_push_status("feat/test", Path.cwd(), remote="origin")
             assert is_pushed is False
             assert "not pushed" in message
 
@@ -3041,7 +3094,7 @@ class TestGetPushStatus:
             return result
 
         with patch("subprocess.run", side_effect=mock_run):
-            is_pushed, message = _get_push_status("feat/test", Path.cwd())
+            is_pushed, message = _get_push_status("feat/test", Path.cwd(), remote="origin")
             assert is_pushed is True
             assert "in sync" in message
 
@@ -3069,7 +3122,7 @@ class TestGetPushStatus:
             return result
 
         with patch("subprocess.run", side_effect=mock_run):
-            is_pushed, message = _get_push_status("feat/test", Path.cwd())
+            is_pushed, message = _get_push_status("feat/test", Path.cwd(), remote="origin")
             assert is_pushed is False
             assert message == "3 unpushed commits"
 
@@ -3097,7 +3150,7 @@ class TestGetPushStatus:
             return result
 
         with patch("subprocess.run", side_effect=mock_run):
-            is_pushed, message = _get_push_status("feat/test", Path.cwd())
+            is_pushed, message = _get_push_status("feat/test", Path.cwd(), remote="origin")
             assert is_pushed is True  # PRは作成可能
             assert "commits ahead" in message
             assert "pull recommended" in message
@@ -3126,7 +3179,7 @@ class TestGetPushStatus:
             return result
 
         with patch("subprocess.run", side_effect=mock_run):
-            is_pushed, message = _get_push_status("feat/test", Path.cwd())
+            is_pushed, message = _get_push_status("feat/test", Path.cwd(), remote="origin")
             assert is_pushed is False
             assert "diverged" in message
 
@@ -3446,6 +3499,7 @@ class TestLocalCleanupAfterMerge:
             return result
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3483,6 +3537,7 @@ class TestLocalCleanupAfterMerge:
             return result
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3510,6 +3565,7 @@ class TestLocalCleanupAfterMerge:
         config = self._make_config("develop-aist")
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3550,6 +3606,7 @@ class TestLocalCleanupAfterMerge:
             return result
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3587,6 +3644,7 @@ class TestLocalCleanupAfterMerge:
             return result
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3616,6 +3674,7 @@ class TestLocalCleanupAfterMerge:
         config = self._make_config(develop_branch=None)
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3644,6 +3703,7 @@ class TestLocalCleanupAfterMerge:
         config = self._make_config("develop-aist")
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/other-owner/other-repo.git",
@@ -3672,6 +3732,7 @@ class TestLocalCleanupAfterMerge:
         config = self._make_config("develop-aist")
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch("cli.commands.pr.git_remote_url", return_value=None),
             patch("subprocess.run") as mock_run,
         ):
@@ -3695,6 +3756,7 @@ class TestLocalCleanupAfterMerge:
         config = self._make_config("develop-aist")
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch("cli.commands.pr.git_remote_url", return_value="/local/bare/repo"),
             patch("subprocess.run") as mock_run,
         ):
@@ -3717,7 +3779,10 @@ class TestLocalCleanupAfterMerge:
 
         config = self._make_config("develop-aist")
 
-        with patch("cli.commands.pr.git_remote_url", side_effect=OSError("boom")):
+        with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch("cli.commands.pr.git_remote_url", side_effect=OSError("boom")),
+        ):
             _local_cleanup_after_merge(
                 head_branch="feat/test-branch",
                 config=config,
@@ -3737,6 +3802,7 @@ class TestLocalCleanupAfterMerge:
         config = self._make_config("develop-aist")
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3775,6 +3841,7 @@ class TestLocalCleanupAfterMerge:
             return result
 
         with (
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url",
                 return_value="https://ghes.example.com/owner/repo.git",
@@ -3892,9 +3959,10 @@ class TestPrCreatePrepareCloses:
         monkeypatch.setattr(pr_module, "read_flag", lambda _name: None)
         monkeypatch.setattr(
             pr_module,
-            "origin_repo",
-            lambda _d: ("github.com", "owner", "repo"),
+            "git_remote_url",
+            lambda _d, _name=None: "https://github.com/owner/repo.git",
         )
+        monkeypatch.setattr(pr_module, "primary_remote_name", lambda _d: "origin")
         monkeypatch.setattr(pr_module, "git_current_branch", lambda _d: "feat/foo/456")
 
         mock_client = MagicMock()
@@ -4701,6 +4769,14 @@ def _nx_config(release_type: str | None = "nx") -> ProjectConfig:
     )
 
 
+def _remote_url(repo_info: tuple[str, str, str] | None) -> str | None:
+    """(host, owner, repo) から remote の URL を作る。None は remote の URL が読めない場合"""
+    if repo_info is None:
+        return None
+    host, owner, repo = repo_info
+    return f"https://{host}/{owner}/{repo}.git"
+
+
 class TestTitleScopeCheck:
     """nx のリポの通常 PR は、タイトルの scope が変更した nx プロジェクトと一致しないと止まる"""
 
@@ -4729,7 +4805,8 @@ class TestTitleScopeCheck:
         files_mock = MagicMock(return_value=changed)
         with (
             patch("cli.commands.pr.load_active_config", return_value=config or _nx_config()),
-            patch("cli.commands.pr.origin_repo", return_value=origin),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch("cli.commands.pr.git_remote_url", return_value=_remote_url(origin)),
             patch("cli.commands.pr.git_toplevel", return_value=toplevel),
             patch("cli.commands.pr.nx_projects", roots_mock),
             patch("cli.commands.pr.changed_files", files_mock),
@@ -4837,7 +4914,10 @@ class TestTitleScopeCheck:
 
         with (
             patch("cli.commands.pr.load_active_config", return_value=_nx_config()),
-            patch("cli.commands.pr.origin_repo", return_value=("h", "owner", "repo")),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value=_remote_url(("h", "owner", "repo"))
+            ),
             patch("cli.commands.pr.git_toplevel", return_value=toplevel),
             patch("cli.commands.pr.nx_projects", return_value=None),
             patch("cli.commands.pr.changed_files") as files_mock,
@@ -4858,7 +4938,10 @@ class TestTitleScopeCheck:
     def test_unresolvable_diff_warns_and_passes(self, tmp_path: Path, toplevel: Path) -> None:
         with (
             patch("cli.commands.pr.load_active_config", return_value=_nx_config()),
-            patch("cli.commands.pr.origin_repo", return_value=("h", "owner", "repo")),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value=_remote_url(("h", "owner", "repo"))
+            ),
             patch("cli.commands.pr.git_toplevel", return_value=toplevel),
             patch("cli.commands.pr.nx_projects", return_value=_SCOPE_ROOTS),
             patch("cli.commands.pr.changed_files", return_value=None),
@@ -4878,7 +4961,10 @@ class TestTitleScopeCheck:
         from cli.commands.pr import _title_scope_errors
 
         with (
-            patch("cli.commands.pr.origin_repo", return_value=("h", "owner", "repo")),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value=_remote_url(("h", "owner", "repo"))
+            ),
             patch("cli.commands.pr.git_toplevel", return_value=toplevel),
             patch("cli.commands.pr.nx_projects") as roots_mock,
         ):
@@ -4946,7 +5032,8 @@ class TestTitleScopeCheck:
         config.get_develop_branch.return_value = "develop-aist"
         config.get_release_branch.return_value = None
         with (
-            patch("cli.commands.pr.origin_repo") as origin_mock,
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch("cli.commands.pr.git_remote_url") as origin_mock,
             patch("cli.commands.pr.nx_projects") as roots_mock,
         ):
             errors = _title_scope_errors(
@@ -4985,7 +5072,10 @@ class TestPrepareScopeGuidance:
         monkeypatch.setattr(pr_module, "get_output_dir", lambda: tmp_path / "out")
         with (
             patch("cli.commands.pr.load_active_config", return_value=config),
-            patch("cli.commands.pr.origin_repo", return_value=("h", "owner", "repo")),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value=_remote_url(("h", "owner", "repo"))
+            ),
             patch("cli.commands.pr.git_toplevel", return_value=top),
             patch("cli.commands.pr.git_current_branch", return_value="feat/x/123"),
             patch("cli.commands.pr.nx_projects", return_value=roots or _SCOPE_ROOTS),
@@ -5348,9 +5438,13 @@ class TestPrPrepareOutputLines:
         monkeypatch.setenv("PECOT_WORK_DIR", str(tmp_path))
         config = _line_config()
         with (
-            patch("cli.commands.pr.origin_repo", return_value=("github.com", "owner", "repo")),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url",
+                return_value=_remote_url(("github.com", "owner", "repo")),
+            ),
             patch("cli.commands.pr.load_active_config", return_value=config),
-            patch("cli.commands.pr._nx_scope_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr._nx_scope_toplevel", return_value=(tmp_path, "origin")),
             patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
             patch("cli.commands.pr._expected_title_scope", return_value=["p-w", "repo"]),
             patch("cli.commands.pr._fill_closes_in_template", side_effect=lambda c, *_a: c),
@@ -5397,6 +5491,7 @@ class TestPrCleanupOutputLines:
             patch("cli.commands.pr.load_active_config", return_value=config),
             patch("cli.commands.pr.GitHubClient", return_value=client),
             patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -5457,6 +5552,7 @@ class TestPrCleanupOutputLines:
             patch("cli.commands.pr.load_active_config", return_value=config),
             patch("cli.commands.pr.GitHubClient", return_value=client),
             patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -5522,6 +5618,7 @@ class TestPrPreflightOutputLines:
         config.get_develop_branch.return_value = "develop-aist"
         with (
             patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
             patch(
                 "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
             ),
@@ -5558,3 +5655,220 @@ class TestPrPreflightOutputLines:
         assert "=== Stash List ===\nstash@{0}: WIP\n" in result.stdout
         assert "=== Summary ===" not in result.stdout
         _assert_no_symbols(result)
+
+
+class TestPrimaryRemoteUpstream:
+    """origin が無く upstream だけのリポでは、主の remote（upstream）で ref を組み立てる"""
+
+    _URL = "https://ghes.example.com/owner/repo.git"
+
+    def test_preflight_uses_upstream_for_base_and_push_status(self, tmp_path: Path) -> None:
+        mock_config = MagicMock()
+        mock_config.get_develop_branch.return_value = "develop-aist"
+        push_mock = MagicMock(return_value=(True, "in sync with upstream/feat/test/123"))
+
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr._branch_exists", return_value=True) as exists_mock,
+            patch("cli.commands.pr._get_push_status", push_mock),
+            patch(
+                "cli.commands.pr._get_git_status",
+                return_value="On branch feat/test/123\nnothing to commit, working tree clean\n",
+            ),
+            patch("cli.commands.pr._read_gitignore", return_value=""),
+            patch("cli.commands.pr._read_git_exclude", return_value=""),
+            patch("cli.commands.pr._get_commits_vs_base", return_value="abc test"),
+            patch("cli.commands.pr._get_diff_summary", return_value="1 file changed"),
+            patch("cli.commands.pr._get_worktree_info", return_value="wt"),
+            patch("cli.commands.pr._get_stash_list", return_value="(no stash)"),
+        ):
+            result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
+
+        assert result.exit_code == 0, result.stderr
+        assert "=== Base Branch ===\nupstream/develop-aist\n" in result.stdout
+        assert "=== Commits (vs upstream/develop-aist) ===" in result.stdout
+        exists_mock.assert_called_once_with("upstream/develop-aist", tmp_path)
+        push_mock.assert_called_once_with("feat/test/123", tmp_path, remote="upstream")
+
+    def test_validate_pr_context_returns_remote_name(self, tmp_path: Path) -> None:
+        from cli.commands.pr import _validate_pr_context
+
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL) as url_mock,
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
+        ):
+            context = _validate_pr_context(tmp_path, Output(False))
+
+        assert context == (
+            tmp_path,
+            self._URL,
+            "feat/test/123",
+            ("ghes.example.com", "owner", "repo"),
+            "upstream",
+        )
+        url_mock.assert_called_once_with(tmp_path, "upstream")
+
+    def test_pr_create_preflight_checks_push_status_against_upstream(self, tmp_path: Path) -> None:
+        """pr create の実投稿が通る _run_preflight_checks_or_exit も主の remote で比べる"""
+        from cli.commands.pr import _run_preflight_checks_or_exit
+
+        push_mock = MagicMock(return_value=(True, "in sync"))
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
+            patch("cli.commands.pr._get_push_status", push_mock),
+            patch(
+                "cli.commands.pr._get_git_status",
+                return_value="On branch feat/test/123\nnothing to commit, working tree clean\n",
+            ),
+            patch("cli.commands.pr._get_stash_list", return_value="(no stash)"),
+        ):
+            _run_preflight_checks_or_exit(tmp_path, Output(False))
+
+        push_mock.assert_called_once_with("feat/test/123", tmp_path, remote="upstream")
+
+    def test_no_remote_exits_with_git_remote_not_found(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from cli.commands.pr import _validate_pr_context
+
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value=None),
+            pytest.raises(typer.Exit) as exc,
+        ):
+            _validate_pr_context(tmp_path, Output(False))
+
+        assert exc.value.exit_code == 1
+        assert capsys.readouterr().err == "error: git remote not found\n"
+
+    def test_get_push_status_compares_with_given_remote(self) -> None:
+        from cli.commands.pr import _get_push_status
+
+        calls: list[list[str]] = []
+
+        def fake_run_git(args: list[str], cwd: Path | None, check: bool = False) -> MagicMock:
+            calls.append(args)
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = "0"
+            return result
+
+        with patch("cli.commands.pr.run_git", side_effect=fake_run_git):
+            is_pushed, message = _get_push_status("feat/x", Path.cwd(), remote="upstream")
+
+        assert (is_pushed, message) == (True, "in sync with upstream/feat/x")
+        assert ["rev-parse", "--verify", "upstream/feat/x"] in calls
+        assert ["rev-list", "--count", "upstream/feat/x..feat/x"] in calls
+
+    def test_nx_scope_toplevel_returns_remote_name(self, tmp_path: Path) -> None:
+        from cli.commands.pr import _nx_scope_toplevel
+
+        (tmp_path / "nx.json").write_text("{}", encoding="utf-8")
+        with (
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL),
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+        ):
+            result = _nx_scope_toplevel(_nx_config(), "owner", "repo", "develop-aist", tmp_path)
+
+        assert result == (tmp_path, "upstream")
+
+    def test_expected_title_scope_diffs_against_given_remote(self, tmp_path: Path) -> None:
+        from cli.commands.pr import _expected_title_scope
+
+        files_mock = MagicMock(return_value=["plugins/pecot-workflow/cli/a.py"])
+        with (
+            patch("cli.commands.pr.nx_projects", return_value=_SCOPE_ROOTS),
+            patch("cli.commands.pr.changed_files", files_mock),
+        ):
+            expected = _expected_title_scope(
+                tmp_path, "develop-aist", "feat/x/123", Output(False), remote="upstream"
+            )
+
+        assert expected == ["p-w"]
+        files_mock.assert_called_once_with(tmp_path, "upstream/develop-aist", "feat/x/123")
+
+    def test_create_prepare_sets_base_and_diffs_against_upstream(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import cli.commands.pr as pr_module
+
+        top = tmp_path / "top"
+        top.mkdir()
+        (top / "nx.json").write_text("{}", encoding="utf-8")
+        monkeypatch.setattr(pr_module, "get_output_dir", lambda: tmp_path / "out")
+        files_mock = MagicMock(return_value=["plugins/pecot-workflow/a.py"])
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_nx_config()),
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL),
+            patch("cli.commands.pr.git_toplevel", return_value=top),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/x/123"),
+            patch("cli.commands.pr.nx_projects", return_value=_SCOPE_ROOTS),
+            patch("cli.commands.pr.changed_files", files_mock),
+        ):
+            result = runner.invoke(app, ["pr", "create", "--prepare"])
+
+        assert result.exit_code == 0, result.output
+        assert "set: base to develop-aist" in result.stderr
+        assert "set: title scope hint to p-w" in result.stderr
+        files_mock.assert_called_once_with(top, "upstream/develop-aist", "feat/x/123")
+
+    def test_cleanup_pulls_from_upstream(self, capsys: pytest.CaptureFixture[str]) -> None:
+        from cli.commands.pr import _local_cleanup_after_merge
+
+        config = MagicMock()
+        config.get_develop_branch.return_value = "develop-aist"
+        run_calls: list[list[str]] = []
+
+        def mock_subprocess_run(cmd: list[str], **kwargs: object) -> MagicMock:
+            run_calls.append(cmd)
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = ""
+            return result
+
+        with (
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test-branch"),
+            patch("cli.core.worktree.is_worktree_env", return_value=False),
+            patch("subprocess.run", side_effect=mock_subprocess_run),
+        ):
+            _local_cleanup_after_merge("feat/test-branch", config, "owner", "repo", Output(False))
+
+        assert ["git", "pull", "upstream", "develop-aist"] in run_calls
+        assert not any("origin" in cmd for cmd in run_calls)
+        assert "updated: develop-aist from upstream/develop-aist" in capsys.readouterr().err
+
+    def test_cleanup_dry_run_plans_pull_from_upstream(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        from cli.commands.pr import _local_cleanup_after_merge
+
+        config = MagicMock()
+        config.get_develop_branch.return_value = "develop-aist"
+
+        with (
+            patch("cli.commands.pr.primary_remote_name", return_value="upstream"),
+            patch("cli.commands.pr.git_remote_url", return_value=self._URL),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test-branch"),
+            patch("cli.core.worktree.is_worktree_env", return_value=False),
+            patch("subprocess.run") as mock_run,
+        ):
+            _local_cleanup_after_merge("feat/test-branch", config, "owner", "repo", Output(True))
+
+        mock_run.assert_not_called()
+        assert (
+            "dry-run: would update develop-aist from upstream/develop-aist"
+            in capsys.readouterr().err
+        )
