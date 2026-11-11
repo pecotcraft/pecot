@@ -40,7 +40,7 @@ describe('isPatternMatch', () => {
     expect(isPatternMatch(pattern, statement)).toBe(false)
   })
 
-  it('各例を他のパターンで試すと、形が重なる場合を除いて受け入れない', () => {
+  it('各例は、自分のパターン以外のどのパターンにも合わない', () => {
     for (const [pattern, statement] of ACCEPTED) {
       const others = (['ubiquitous', 'event', 'state', 'unwanted', 'optional'] as const).filter(other => other !== pattern && isPatternMatch(other, statement))
       expect({ statement, others }).toEqual({ statement, others: [] })

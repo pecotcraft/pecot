@@ -49,7 +49,7 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
 ]
 
 describe('validateRepository', () => {
-  it.each(CASES)('fixture %s のとき、期待する失敗の行を返す', async (name, expected) => {
+  it.each(CASES)('fixture %s を検証すると、失敗の行を過不足なく決まった順で返す', async (name, expected) => {
     expect(await validateRepository(await materialize(name))).toEqual(expected)
   })
 

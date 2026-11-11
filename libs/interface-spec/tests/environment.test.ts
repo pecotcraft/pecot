@@ -67,7 +67,7 @@ describe('Python reads', () => {
     ['del is not a read', 'del os.environ["A"]', []],
     ['update is not a read', 'os.environ.update({"A": "1"})', []],
     ['comment lines are ignored', '# os.environ["A"]', []],
-  ] as const)('%s のとき、読んだ名前を取り出す', (_label, source, expected) => {
+  ] as const)('%s（%j）のとき、読んだ名前として %j を返し、止めない', (_label, source, expected) => {
     expect(names('a.py', source)).toEqual(expected)
     expect(unresolved('a.py', source)).toEqual([])
   })
@@ -89,7 +89,7 @@ describe('Python reads', () => {
     ['an import of environ', 'from os import environ'],
     ['an import of getenv among others', 'from os import path, getenv'],
     ['a parenthesized import', 'from os import (\n    environ,\n)'],
-  ] as const)('%s のとき、止める', (_label, source) => {
+  ] as const)('%s のとき、読みを解決できない行を 1 件返し、名前は返さない', (_label, source) => {
     expect(unresolved('a.py', source)).toHaveLength(1)
     expect(names('a.py', source)).toEqual([])
   })
@@ -136,7 +136,7 @@ describe('TypeScript reads', () => {
     ['code after a block comment on the same line is read', '/* c */ const x = process.env.D', ['D']],
     ['an index assignment is not a read', 'process.env[\'A\'] = \'1\'', []],
     ['comment lines are ignored', '// process.env.A\n * process.env.B', []],
-  ] as const)('%s のとき、読んだ名前を取り出す', (_label, source, expected) => {
+  ] as const)('%s（%j）のとき、読んだ名前として %j を返し、止めない', (_label, source, expected) => {
     expect(names('a.ts', source)).toEqual(expected)
     expect(unresolved('a.ts', source)).toEqual([])
   })
@@ -151,7 +151,7 @@ describe('TypeScript reads', () => {
     ['a rest element in destructuring', 'const { A, ...rest } = process.env'],
     ['a computed key in destructuring', 'const { [name]: value } = process.env'],
     ['an import of env', 'import { env } from \'node:process\''],
-  ] as const)('%s のとき、止める', (_label, source) => {
+  ] as const)('%s のとき、読みを解決できない行を返す', (_label, source) => {
     expect(unresolved('a.ts', source).length).toBeGreaterThan(0)
   })
 

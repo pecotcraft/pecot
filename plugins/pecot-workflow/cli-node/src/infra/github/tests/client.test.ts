@@ -886,7 +886,7 @@ describe('executeGraphql', () => {
     expect(server.problems()).toEqual([])
   })
 
-  it.each(GRAPHQL_FAILURES)('$name のとき、期待の例外を投げる', async ({ respond, expected }) => {
+  it.each(GRAPHQL_FAILURES)('$name のとき、$expected.error.name を投げる', async ({ respond, expected }) => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const execution = client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })

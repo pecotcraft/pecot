@@ -109,10 +109,13 @@ export default defineConfig(
     plugins: { vitest },
     rules: {
       ...vitest.configs.recommended.rules,
-      'vitest/valid-title': ['error', {
-        mustMatch: { it: [JA, NO_JA], test: [JA, NO_JA] },
-        mustNotMatch: { it: ['。$', KUTEN], test: ['。$', KUTEN] },
-      }],
+      'vitest/valid-title': [
+        'error',
+        {
+          mustMatch: { it: [JA, NO_JA], test: [JA, NO_JA] },
+          mustNotMatch: { it: ['。$', KUTEN], test: ['。$', KUTEN] },
+        },
+      ],
     },
   },
   {

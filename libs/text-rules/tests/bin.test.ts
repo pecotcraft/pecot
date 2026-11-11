@@ -255,7 +255,7 @@ describe('parseArgv', () => {
     [['a.md', 'b.py'], { commitMsg: false, files: ['a.md', 'b.py'] }],
     [['--commit-msg', '.git/COMMIT_EDITMSG'], { commitMsg: true, files: ['.git/COMMIT_EDITMSG'] }],
     [['a.md', '--commit-msg'], { commitMsg: true, files: ['a.md'] }],
-  ])('引数が %j のとき、期待の解析結果を返す', (argv, expected) => {
+  ])('引数が %j のとき、%j を返す', (argv, expected) => {
     expect(parseArgv(argv)).toEqual(expected)
   })
 })
@@ -273,7 +273,7 @@ describe('stripCommitComments', () => {
     [`${BREAKING_SCOPED} の type・scope・印を外す`, `${BREAKING_SCOPED} c`, 'c'],
     ['コメント行の次の行を件名とする', '# x\nfix(a): c', '\nc'],
     ['type(scope): の無い件名はそのまま', 'Fix(a): c', 'Fix(a): c'],
-  ])('%s のとき、期待の文字列を返す', (_name, input, expected) => {
+  ])('コミットメッセージを整えるとき、%s', (_name, input, expected) => {
     expect(stripCommitComments(input)).toBe(expected)
   })
 })

@@ -66,7 +66,7 @@ describe('sanitizeFilename', () => {
     ['複数の禁止文字を一括置換', String.raw`a/b\c<d>e:f"g|h?i*j`, 'a_b_c_d_e_f_g_h_i_j'],
     ['前後の空白は trim', '  hello  ', 'hello'],
   ]
-  it.each(cases)('%s（入力 %s）のとき、%s を返す', (_label, input, expected) => {
+  it.each(cases)('%s（入力 %j）のとき、%s を返す', (_label, input, expected) => {
     expect(sanitizeFilename(input)).toBe(expected)
   })
 

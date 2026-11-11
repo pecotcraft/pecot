@@ -524,7 +524,7 @@ describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果
     { name: '何も無ければ解決できない', environment: {}, expected: undefined },
   ]
 
-  it.each(cases)('$name のとき、bash と TS が期待の値を返す', ({ environment, expected }) => {
+  it.each(cases)('$name のとき、bash と TS がともに $expected を返す', ({ environment, expected }) => {
     expect(resolveWithBash(environment)).toBe(expected)
     expect(resolveWithTypeScript(environment)).toBe(expected)
   })

@@ -15,7 +15,7 @@ describe('doesContainJapanese', () => {
     ['半角英数字のみ', 'Hello World 123', false],
     ['記号のみ', '!@#$%^&*()', false],
     ['空文字列', '', false],
-  ])('%s（入力 %s）のとき、%s を返す', (_label, input, expected) => {
+  ])('%s（入力 %j）のとき、%s を返す', (_label, input, expected) => {
     expect(doesContainJapanese(input)).toBe(expected)
   })
 

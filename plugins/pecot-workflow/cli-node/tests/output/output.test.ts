@@ -95,7 +95,7 @@ describe('共通の出力関数', () => {
     expect(cases.length).toBe(63)
   })
 
-  it.each(named)('$name のとき、期待の行を書く', ({ item }) => {
+  it.each(named)('$name のとき、$item.line を書く', ({ item }) => {
     const expected = item.stream === null ? [] : [{ stream: item.stream, text: item.line }]
     expect(run(item)).toEqual(expected)
   })

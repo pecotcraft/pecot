@@ -269,26 +269,26 @@ describe('aggregation_repo', () => {
 describe('フィールドの検索', () => {
   const config = sampleConfig()
 
-  it('フィールド名から ID を引く', () => {
+  it('フィールド名から ID を引き、無い名前には undefined を返す', () => {
     expect(getFieldId(config, 'workflow')).toBe('FIELD_workflow')
     expect(getFieldId(config, 'priority')).toBe('FIELD_priority')
     expect(getFieldId(config, 'size')).toBe('FIELD_size')
     expect(getFieldId(config, 'nonexistent')).toBeUndefined()
   })
 
-  it('フィールド名と選択肢名から選択肢の ID を引く', () => {
+  it('フィールド名と選択肢名から選択肢の ID を引き、無い組には undefined を返す', () => {
     expect(getOptionId(config, 'workflow', 'active')).toBe('opt_active')
     expect(getOptionId(config, 'priority', 'high')).toBe('opt_high')
     expect(getOptionId(config, 'workflow', 'nonexistent')).toBeUndefined()
     expect(getOptionId(config, 'nonexistent', 'active')).toBeUndefined()
   })
 
-  it('priority が無い設定では priority のフィールドは undefined', () => {
+  it('priority が無い設定では、priority のフィールドの ID は undefined を返す', () => {
     const noPriority = parseProjectConfig({ ...sampleConfigData(), project: { number: 1, id: 'a', fields: { workflow: { id: 'x', options: {} } } } })
     expect(getFieldId(noPriority, 'priority')).toBeUndefined()
   })
 
-  it('workflow のフィールド名を返す', () => {
+  it('設定の workflow のフィールドから、その名前を返す', () => {
     expect(workflowFieldName(config)).toBe('pecot-workflow-test')
   })
 })
@@ -296,35 +296,35 @@ describe('フィールドの検索', () => {
 describe('リポジトリの検索', () => {
   const config = sampleConfig()
 
-  it('owner と名前からリポジトリを探す', () => {
+  it('owner と名前からリポジトリを探し、無ければ undefined を返す', () => {
     expect(findRepository(config, 'test-owner', 'test-repo')?.name).toBe('test-repo')
     expect(findRepository(config, 'test-owner', 'nonexistent')).toBeUndefined()
   })
 
-  it('名前だけでリポジトリを探す', () => {
+  it('名前だけでリポジトリを探し、無ければ undefined を返す', () => {
     expect(findRepositoryByName(config, 'test-repo')?.owner).toBe('test-owner')
     expect(findRepositoryByName(config, 'nonexistent')).toBeUndefined()
   })
 
-  it('リポジトリの develop ブランチを返す', () => {
+  it('リポジトリの develop ブランチを返し、未設定や無いリポジトリには undefined を返す', () => {
     expect(getDevelopBranch(config, 'test-owner', 'test-repo')).toBe('develop')
     expect(getDevelopBranch(config, 'test-owner', 'another-repo')).toBeUndefined()
     expect(getDevelopBranch(config, 'test-owner', 'nonexistent')).toBeUndefined()
   })
 
-  it('リポジトリの release ブランチを返す', () => {
+  it('リポジトリの release ブランチを返し、未設定や無いリポジトリには undefined を返す', () => {
     const withRelease = withRepositories([{ owner: 'test-owner', name: 'test-repo', develop_branch: 'develop', release_branch: 'main' }, { owner: 'test-owner', name: 'another-repo' }])
     expect(getReleaseBranch(withRelease, 'test-owner', 'test-repo')).toBe('main')
     expect(getReleaseBranch(withRelease, 'test-owner', 'another-repo')).toBeUndefined()
     expect(getReleaseBranch(withRelease, 'test-owner', 'nonexistent')).toBeUndefined()
   })
 
-  it('configuredRepositoryFullName は owner/name', () => {
+  it('リポジトリの設定から、owner/name の形の名前を返す', () => {
     const [first] = config.repositories
     expect(first && configuredRepositoryFullName(first)).toBe('test-owner/test-repo')
   })
 
-  it('名前からリポジトリ内のパッケージを探す', () => {
+  it('名前からリポジトリ内のパッケージを探し、無い名前やパッケージの無いリポジトリには undefined を返す', () => {
     const monorepo = withRepositories([{ owner: 'o', name: 'r', packages: [{ name: 'pecot', changelog: 'plugins/pecot-workflow/CHANGELOG.md' }] }, { owner: 'o', name: 'plain' }])
     const [repository, plain] = monorepo.repositories
     expect(repository && findPackage(repository, 'pecot')?.changelog).toBe('plugins/pecot-workflow/CHANGELOG.md')
