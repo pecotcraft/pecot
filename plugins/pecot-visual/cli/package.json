@@ -85,10 +85,10 @@
     "eslint-plugin-unicorn": "^79.0.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "jsdom": "^31.0.0",
-    "knip": "^6.44.2",
+    "knip": "^6.45.0",
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.72.1",
+    "typescript-eslint": "^8.72.2",
     "typescript7": "npm:typescript@^7.0.2",
     "vite": "catalog:",
     "vitest": "^5.1.0"
