@@ -689,6 +689,16 @@ _PECOTV_TEST_LANES = {
         ),
         # interface-spec の単体テストはソースの変更で動く。
         ("libs/interface-spec/src/cli.ts", {"interface-spec:test-unit"}),
+        # pecot-tools の書き出しが import する 3 ファイルは、pecot-tools:test-cli にも届く。
+        (
+            "libs/interface-spec/src/domain/diff.ts",
+            {"interface-spec:test-unit", "pecot-tools:test-cli"},
+        ),
+        # interface-spec の package.json（zod の版）は、pecot-tools:test-cli にも届く。
+        (
+            "libs/interface-spec/package.json",
+            {"interface-spec:test-unit", "pecot-tools:test-cli", *_GITHOOKS_GRAPH},
+        ),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
         (
@@ -884,6 +894,14 @@ def test_graph_lanes_read_every_workspace_package_json(
         ),
         # interface-spec のソースは lint と lint-defs の両方、定義書（plugins/*/interface/）は lint-defs だけに届く。
         ("libs/interface-spec/src/cli.ts", {"interface-spec:lint", "interface-spec:lint-defs"}),
+        (
+            "libs/interface-spec/src/domain/diff.ts",
+            {"interface-spec:lint", "interface-spec:lint-defs", "pecot-tools:lint"},
+        ),
+        (
+            "libs/interface-spec/package.json",
+            {"interface-spec:lint", "interface-spec:lint-defs", "pecot-tools:lint"},
+        ),
         (
             "libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml",
             {"interface-spec:lint"},

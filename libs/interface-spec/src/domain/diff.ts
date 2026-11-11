@@ -1,4 +1,4 @@
-// 使う段階: 各プラグインの generated.json が書き出しと一致するかの確認（後の段階。いまはテストだけが呼ぶ）。
+// 各プラグインの generated.json が書き出しと一致するかの確認が使う。
 import type { GeneratedFile } from './schema.js'
 import { compareText, isRecord } from './utility.js'
 
@@ -50,4 +50,9 @@ export function diffGenerated(before: Readonly<GeneratedFile>, after: Readonly<G
     })
   }
   return lines
+}
+
+// 書き出しが古いときの失敗の行。1 行目は error、差の行は 2 空白で字下げ、最後に直すコマンド。
+export function formatStale(file: string, lines: readonly string[], command: string): string[] {
+  return [`error: ${file} is stale`, ...lines.map(line => `  ${line}`), `  run: ${command}`]
 }

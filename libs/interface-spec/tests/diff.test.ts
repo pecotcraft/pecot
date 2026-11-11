@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diffGenerated } from '../src/domain/diff.js'
+import { diffGenerated, formatStale } from '../src/domain/diff.js'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import type { GeneratedFile } from '../src/domain/schema.js'
 
@@ -51,5 +51,20 @@ describe('diffGenerated', () => {
 
   it('ファイルの先頭部が変わると、報告する', () => {
     expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
+  })
+})
+
+describe('formatStale', () => {
+  it('差の行を字下げして error の行と run の行で挟む', () => {
+    expect(formatStale('plugins/x/interface/generated.json', ['PW-A: entry: added', 'PW-B: entry: removed'], 'do --write')).toEqual([
+      'error: plugins/x/interface/generated.json is stale',
+      '  PW-A: entry: added',
+      '  PW-B: entry: removed',
+      '  run: do --write',
+    ])
+  })
+
+  it('差の行が無くても error の行と run の行を返す', () => {
+    expect(formatStale('f.json', [], 'cmd')).toEqual(['error: f.json is stale', '  run: cmd'])
   })
 })

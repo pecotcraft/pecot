@@ -1,0 +1,2741 @@
+{
+  "entries": [
+    {
+      "deprecated": false,
+      "description": "Returns the query execution state (QUEUED / RUNNING / SUCCEEDED / FAILED / CANCELLED) and statistics",
+      "hidden": false,
+      "id": "PT-AWS-ATHENA-GET-QUERY-EXECUTION",
+      "input": {
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "query_execution_id": {
+            "description": "ID returned by aws_athena_start_query_execution",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query_execution_id"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_athena_get_query_execution",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_athena_get_query_execution"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the result rows of a completed query. For many rows, split with max_items and starting_token",
+      "hidden": false,
+      "id": "PT-AWS-ATHENA-GET-QUERY-RESULTS",
+      "input": {
+        "properties": {
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "query_execution_id": {
+            "description": "ID returned by aws_athena_start_query_execution",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query_execution_id"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_athena_get_query_results",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_athena_get_query_results"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Starts a read-only query (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) and returns query_execution_id. Mutating queries and multiple statements are rejected before running. Wait for completion with aws_athena_get_query_execution, then fetch results with aws_athena_get_query_results",
+      "hidden": false,
+      "id": "PT-AWS-ATHENA-START-QUERY-EXECUTION",
+      "input": {
+        "properties": {
+          "catalog": {
+            "description": "Data catalog name. Specify together with database (not on its own)",
+            "type": "string"
+          },
+          "database": {
+            "description": "Default database name",
+            "type": "string"
+          },
+          "output_location": {
+            "description": "Output location for results (starts with s3://)",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "query_string": {
+            "description": "Read-only query to run. Give a single statement that starts with SELECT / WITH / SHOW / DESCRIBE / EXPLAIN (no enclosing parentheses)",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "work_group": {
+            "description": "Workgroup name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query_string"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": false
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_athena_start_query_execution",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_athena_start_query_execution"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Gets statistics of one metric over a time range. Specify all dimensions exactly as when the metric was published, or the result is empty",
+      "hidden": false,
+      "id": "PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS",
+      "input": {
+        "properties": {
+          "dimensions": {
+            "description": "Dimensions to filter by. Specify exactly the combination the metric has",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "description": "Dimension name (e.g. QueueName, FunctionName)",
+                  "type": "string"
+                },
+                "value": {
+                  "description": "Dimension value",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "type": "object"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "end_time": {
+            "description": "End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time",
+            "type": "string"
+          },
+          "metric_name": {
+            "description": "Metric name (e.g. NumberOfMessagesSent)",
+            "type": "string"
+          },
+          "namespace": {
+            "description": "Metric namespace (e.g. AWS/SQS, AWS/Lambda)",
+            "type": "string"
+          },
+          "period": {
+            "description": "Aggregation period in seconds. Must be a multiple of 60",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00",
+            "type": "string"
+          },
+          "statistics": {
+            "description": "Statistics to get. Specify 1 to 5",
+            "items": {
+              "enum": [
+                "SampleCount",
+                "Average",
+                "Sum",
+                "Minimum",
+                "Maximum"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "type": "array"
+          },
+          "unit": {
+            "description": "Unit to filter by. The result is empty if it does not match the unit of the data",
+            "enum": [
+              "Seconds",
+              "Microseconds",
+              "Milliseconds",
+              "Bytes",
+              "Kilobytes",
+              "Megabytes",
+              "Gigabytes",
+              "Terabytes",
+              "Bits",
+              "Kilobits",
+              "Megabits",
+              "Gigabits",
+              "Terabits",
+              "Percent",
+              "Count",
+              "Bytes/Second",
+              "Kilobytes/Second",
+              "Megabytes/Second",
+              "Gigabytes/Second",
+              "Terabytes/Second",
+              "Bits/Second",
+              "Kilobits/Second",
+              "Megabits/Second",
+              "Gigabits/Second",
+              "Terabits/Second",
+              "Count/Second",
+              "None"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace",
+          "metric_name",
+          "start_time",
+          "end_time",
+          "period",
+          "statistics"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_cloudwatch_get_metric_statistics",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_cloudwatch_get_metric_statistics"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns instance state, type, tags, and network configuration. Output is large, so narrow it with max_items or filters",
+      "hidden": false,
+      "id": "PT-AWS-EC2-DESCRIBE-INSTANCES",
+      "input": {
+        "properties": {
+          "filters": {
+            "description": "Filter conditions. With several, only instances matching all are returned",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "description": "Filter name (e.g. instance-state-name, tag:Name)",
+                  "type": "string"
+                },
+                "values": {
+                  "description": "Values; an instance matches if any one matches",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "name",
+                "values"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "instance_ids": {
+            "description": "Instance IDs to get (i-... form)",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_ec2_describe_instances",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_ec2_describe_instances"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns tags, digests, and push times of images in a repository. Use it to check deploy times. Only ACTIVE images are returned unless specified otherwise",
+      "hidden": false,
+      "id": "PT-AWS-ECR-DESCRIBE-IMAGES",
+      "input": {
+        "properties": {
+          "image_ids": {
+            "description": "Images to get. Each element needs at least one of image_tag and image_digest. Cannot be combined with starting_token",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "image_digest": {
+                  "description": "Image digest (sha256:... form)",
+                  "type": "string"
+                },
+                "image_tag": {
+                  "description": "Image tag",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "registry_id": {
+            "description": "AWS account ID of the registry (12 digits). If omitted, the default registry",
+            "type": "string"
+          },
+          "repository_name": {
+            "description": "Repository name",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "tag_status": {
+            "description": "Filter by whether the image is tagged. If omitted, no filtering",
+            "enum": [
+              "TAGGED",
+              "UNTAGGED",
+              "ANY"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository_name"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_ecr_describe_images",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_ecr_describe_images"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the configuration of one function (runtime, handler, environment variables, timeout, etc.)",
+      "hidden": false,
+      "id": "PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION",
+      "input": {
+        "properties": {
+          "function_name": {
+            "description": "Function name, partial ARN, or full ARN",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "qualifier": {
+            "description": "Version number or alias name. If omitted, $LATEST",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "function_name"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_lambda_get_function_configuration",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_lambda_get_function_configuration"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists the mappings between functions and event sources (SQS queues, DynamoDB streams, etc.). Filter by event_source_arn or function_name",
+      "hidden": false,
+      "id": "PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS",
+      "input": {
+        "properties": {
+          "event_source_arn": {
+            "description": "ARN of the event source (starts with arn:)",
+            "type": "string"
+          },
+          "function_name": {
+            "description": "Function name, partial ARN, or full ARN",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_lambda_list_event_source_mappings",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_lambda_list_event_source_mappings"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists Lambda functions in the region. For many functions, split with max_items and starting_token",
+      "hidden": false,
+      "id": "PT-AWS-LAMBDA-LIST-FUNCTIONS",
+      "input": {
+        "properties": {
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_lambda_list_functions",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_lambda_list_functions"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists CloudWatch Logs log groups. Narrow by prefix with log_group_name_prefix",
+      "hidden": false,
+      "id": "PT-AWS-LOGS-DESCRIBE-LOG-GROUPS",
+      "input": {
+        "properties": {
+          "log_group_name_prefix": {
+            "description": "Log group name prefix",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_logs_describe_log_groups",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_logs_describe_log_groups"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists log streams in a log group. To find the latest stream, set order_by to LastEventTime and descending to true",
+      "hidden": false,
+      "id": "PT-AWS-LOGS-DESCRIBE-LOG-STREAMS",
+      "input": {
+        "properties": {
+          "descending": {
+            "default": false,
+            "description": "If true, sorts in descending order",
+            "type": "boolean"
+          },
+          "log_group_name": {
+            "description": "Target log group name",
+            "type": "string"
+          },
+          "log_stream_name_prefix": {
+            "description": "Log stream name prefix",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "order_by": {
+            "description": "Sort key",
+            "enum": [
+              "LogStreamName",
+              "LastEventTime"
+            ],
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "required": [
+          "log_group_name"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_logs_describe_log_streams",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_logs_describe_log_streams"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Searches log events across a log group. log_stream_names and log_stream_name_prefix cannot be specified together",
+      "hidden": false,
+      "id": "PT-AWS-LOGS-FILTER-LOG-EVENTS",
+      "input": {
+        "properties": {
+          "end_time": {
+            "description": "End time (UNIX epoch milliseconds)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "filter_pattern": {
+            "description": "CloudWatch Logs filter pattern",
+            "type": "string"
+          },
+          "log_group_name": {
+            "description": "Target log group name",
+            "type": "string"
+          },
+          "log_stream_name_prefix": {
+            "description": "Prefix of log stream names to search. Cannot be combined with log_stream_names",
+            "type": "string"
+          },
+          "log_stream_names": {
+            "description": "Log stream names to search. Cannot be combined with log_stream_name_prefix",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start time (UNIX epoch milliseconds)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "required": [
+          "log_group_name"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_logs_filter_log_events",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_logs_filter_log_events"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Gets events of one log stream. To continue, pass nextForwardToken from the response as next_token",
+      "hidden": false,
+      "id": "PT-AWS-LOGS-GET-LOG-EVENTS",
+      "input": {
+        "properties": {
+          "end_time": {
+            "description": "End time (UNIX epoch milliseconds)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          },
+          "limit": {
+            "description": "Maximum number of events to return (1-10000)",
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "log_group_name": {
+            "description": "Target log group name",
+            "type": "string"
+          },
+          "log_stream_name": {
+            "description": "Target log stream name",
+            "type": "string"
+          },
+          "next_token": {
+            "description": "nextForwardToken / nextBackwardToken from the previous response",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "start_from_head": {
+            "default": false,
+            "description": "If true, returns the oldest events first",
+            "type": "boolean"
+          },
+          "start_time": {
+            "description": "Start time (UNIX epoch milliseconds)",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "log_group_name",
+          "log_stream_name"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_logs_get_log_events",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_logs_get_log_events"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the configuration and state of Aurora / Multi-AZ DB clusters. Narrow to one with db_cluster_identifier",
+      "hidden": false,
+      "id": "PT-AWS-RDS-DESCRIBE-DB-CLUSTERS",
+      "input": {
+        "properties": {
+          "db_cluster_identifier": {
+            "description": "Cluster identifier or ARN. If omitted, all clusters",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_rds_describe_db_clusters",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_rds_describe_db_clusters"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the configuration and state of DB instances (DBInstanceStatus, endpoint, etc.). Narrow to one with db_instance_identifier",
+      "hidden": false,
+      "id": "PT-AWS-RDS-DESCRIBE-DB-INSTANCES",
+      "input": {
+        "properties": {
+          "db_instance_identifier": {
+            "description": "Instance identifier or ARN. If omitted, all instances",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_rds_describe_db_instances",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_rds_describe_db_instances"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the event history of DB instances and clusters (stop, start, failover, etc.). Without a range, covers the last 1 hour; events are retained for 14 days",
+      "hidden": false,
+      "id": "PT-AWS-RDS-DESCRIBE-EVENTS",
+      "input": {
+        "properties": {
+          "duration": {
+            "description": "Number of minutes back from now. Cannot be combined with start_time / end_time",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "end_time": {
+            "description": "End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time",
+            "type": "string"
+          },
+          "event_categories": {
+            "description": "Event categories to filter by (e.g. availability, failover)",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "source_identifier": {
+            "description": "Identifier of the event source. When specified, also specify source_type",
+            "type": "string"
+          },
+          "source_type": {
+            "description": "Type of the event source",
+            "enum": [
+              "db-instance",
+              "db-parameter-group",
+              "db-security-group",
+              "db-snapshot",
+              "db-cluster",
+              "db-cluster-snapshot",
+              "custom-engine-version",
+              "db-proxy",
+              "blue-green-deployment",
+              "db-shard-group",
+              "zero-etl"
+            ],
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_rds_describe_events",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_rds_describe_events"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Downloads one S3 object to a local absolute path. Uploads and recursive copy are not exposed",
+      "hidden": false,
+      "id": "PT-AWS-S3-CP",
+      "input": {
+        "properties": {
+          "local_path": {
+            "description": "Local absolute path to write to",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "description": "If true, overwrites the destination even if it already exists",
+            "type": "boolean"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "s3_uri": {
+            "description": "Source (s3://bucket/key)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "s3_uri",
+          "local_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": false
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_s3_cp",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_s3_cp"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in data.lines",
+      "hidden": false,
+      "id": "PT-AWS-S3-LS",
+      "input": {
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "s3_uri": {
+            "description": "Target to list (s3://bucket or s3://bucket/prefix/). If omitted, lists buckets",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_s3_ls",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_s3_ls"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Gets an object by bucket and key and returns its metadata as JSON. Use version_id to pick a version and range for a partial download",
+      "hidden": false,
+      "id": "PT-AWS-S3API-GET-OBJECT",
+      "input": {
+        "properties": {
+          "bucket": {
+            "description": "Bucket name",
+            "type": "string"
+          },
+          "key": {
+            "description": "Object key",
+            "type": "string"
+          },
+          "outfile": {
+            "description": "Local absolute path to write to",
+            "type": "string"
+          },
+          "overwrite": {
+            "default": false,
+            "description": "If true, overwrites the destination even if it already exists",
+            "type": "boolean"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "range": {
+            "description": "Byte range to get (bytes=0-1023)",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "version_id": {
+            "description": "Version ID to get",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bucket",
+          "key",
+          "outfile"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "openWorldHint": true,
+          "readOnlyHint": false
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_s3api_get_object",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_s3api_get_object"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the schedule expression (ScheduleExpression), timezone, target, and state of one schedule",
+      "hidden": false,
+      "id": "PT-AWS-SCHEDULER-GET-SCHEDULE",
+      "input": {
+        "properties": {
+          "group_name": {
+            "description": "Schedule group name. If omitted, the default group is used",
+            "type": "string"
+          },
+          "name": {
+            "description": "Schedule name",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_scheduler_get_schedule",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_scheduler_get_schedule"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists EventBridge Scheduler schedules. Get details (expression, target) with aws_scheduler_get_schedule",
+      "hidden": false,
+      "id": "PT-AWS-SCHEDULER-LIST-SCHEDULES",
+      "input": {
+        "properties": {
+          "group_name": {
+            "description": "Schedule group name to filter by. If omitted, lists all groups",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name_prefix": {
+            "description": "Schedule name prefix",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "state": {
+            "description": "State to filter by",
+            "enum": [
+              "ENABLED",
+              "DISABLED"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_scheduler_list_schedules",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_scheduler_list_schedules"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the attributes of one queue (backlog counts, visibility timeout, dead-letter queue settings, etc.)",
+      "hidden": false,
+      "id": "PT-AWS-SQS-GET-QUEUE-ATTRIBUTES",
+      "input": {
+        "properties": {
+          "attribute_names": {
+            "default": [
+              "All"
+            ],
+            "description": "Attribute names to get. Defaults to all attributes",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "queue_url": {
+            "description": "Queue URL (starts with https://)",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "queue_url"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_sqs_get_queue_attributes",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_sqs_get_queue_attributes"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lists SQS queue URLs. Narrow by name prefix with queue_name_prefix",
+      "hidden": false,
+      "id": "PT-AWS-SQS-LIST-QUEUES",
+      "input": {
+        "properties": {
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "queue_name_prefix": {
+            "description": "Queue name prefix",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_sqs_list_queues",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_sqs_list_queues"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Starts AWS SSO device authorization and returns the verification URL and code immediately. It does not wait for completion, so check with aws_sso_login_status after the user approves",
+      "hidden": false,
+      "id": "PT-AWS-SSO-LOGIN",
+      "input": {
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": false
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_sso_login",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_sso_login"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. Does not run awscli",
+      "hidden": false,
+      "id": "PT-AWS-SSO-LOGIN-STATUS",
+      "input": {
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_sso_login_status",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_sso_login_status"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Returns the account ID, user ID, and ARN of the current credentials. Use it to check that authentication works",
+      "hidden": false,
+      "id": "PT-AWS-STS-GET-CALLER-IDENTITY",
+      "input": {
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "pattern": "^[\\w.-]+$",
+            "type": "string"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "destructiveHint": false,
+          "openWorldHint": true,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "artifacts": {
+              "description": "Absolute paths of the local files written",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "category": {
+              "description": "Failure category (omitted on success)",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": {},
+              "description": "awscli JSON output, or an array of lines",
+              "propertyNames": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "exitCode": {
+              "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
+              "type": "number"
+            },
+            "message": {
+              "description": "One-line summary for the calling agent",
+              "type": "string"
+            },
+            "ok": {
+              "description": "Whether the awscli run succeeded",
+              "type": "boolean"
+            },
+            "stderr": {
+              "description": "Redacted awscli stderr (only on failure)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "data",
+            "artifacts",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "name": "aws_sts_get_caller_identity",
+      "surfaces": {
+        "mcp": {
+          "tool": "aws_sts_get_caller_identity"
+        }
+      }
+    }
+  ],
+  "format": 1,
+  "plugin": "pecot-tools",
+  "prefix": "PT"
+}
