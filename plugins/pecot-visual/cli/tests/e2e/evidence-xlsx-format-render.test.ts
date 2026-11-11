@@ -27,7 +27,7 @@
 
 /* eslint-disable security/detect-non-literal-fs-filename */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -38,16 +38,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, drainStderr, makeTransport } from '../_helpers/mcp-stdio.js'
-import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
+import { CONVERT_TIMEOUT_MS, rasterize, readPpm } from '../_helpers/raster.js'
+import type { PpmImage } from '../_helpers/raster.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 
-const CONVERT_TIMEOUT_MS = 180_000
 const REQUEST_TIMEOUT_MS = 60_000
-
-/**
-pdftoppm の解像度 (dpi)。1.5pt の画像枠が数 px の幅で出る値。
-*/
-const RENDER_DPI = 150
 
 /**
 装飾ごとに必要な画素数の下限。
@@ -154,52 +149,6 @@ function skipWithoutRenderPipeline(context: TestContext): void {
   )
 }
 
-interface PpmImage {
-  readonly width: number
-  readonly height: number
-  /**
-  RGB 各 1 バイトが行優先で隙間なく並ぶ画素列。
-  */
-  readonly pixels: Buffer
-}
-
-/**
-P6 (binary) PPM を読む。pdftoppm の既定出力形式で、ヘッダは
-「マジック → 幅 → 高さ → 最大値」の 4 トークン。トークン間の空白は任意で、
-`#` から行末まではコメント。画素は RGB 各 1 バイトが行優先で並ぶ。
-*/
-function readPpm(filePath: string): PpmImage {
-  const data = readFileSync(filePath)
-  let offset = 0
-  const tokens: string[] = []
-  while (tokens.length < 4) {
-    while (offset < data.length && isPpmSpace(data.at(offset))) offset += 1
-    if (data.at(offset) === 0x23) {
-      while (offset < data.length && data.at(offset) !== 0x0A) offset += 1
-      continue
-    }
-    const start = offset
-    while (offset < data.length && !isPpmSpace(data.at(offset))) offset += 1
-    tokens.push(data.toString('ascii', start, offset))
-  }
-  expect(tokens[0], `${filePath} が P6 形式ではない`).toBe('P6')
-  // 最大値の直後の空白 1 文字までがヘッダ。CRLF を出すラスタライザに合わせて
-  // \r\n は 1 文字として飛ばす (1 バイトずれると RGB の位相が全滅し、原因の読めない
-  // fail になる)。
-  expect(isPpmSpace(data.at(offset)), `${filePath} のヘッダ終端が空白ではない`).toBe(true)
-  let pixelStart = offset + 1
-  if (data.at(offset) === 0x0D && data.at(pixelStart) === 0x0A) pixelStart += 1
-  return {
-    width: Number(tokens[1]),
-    height: Number(tokens[2]),
-    pixels: data.subarray(pixelStart),
-  }
-}
-
-function isPpmSpace(byte: number | undefined): boolean {
-  return byte === 0x20 || byte === 0x09 || byte === 0x0A || byte === 0x0D
-}
-
 /**
 全ページを通した 1 色ぶんの計測結果。
 */
@@ -274,24 +223,6 @@ function measureColor(
     }
   }
   return { pixels, widestExtent, longestRunAtWidestExtent, rightmost }
-}
-
-/**
-PDF の全ページを PPM にする。アンチエイリアスを切って塗りの色を厳密一致させる。
-*/
-function rasterize(pdfPath: string, outputDirectory: string): readonly string[] {
-  mkdirSync(outputDirectory, { recursive: true })
-  const prefix = path.join(outputDirectory, 'page')
-  const result = spawnSync(
-    'pdftoppm',
-    ['-r', String(RENDER_DPI), '-aa', 'no', '-aaVector', 'no', pdfPath, prefix],
-    { encoding: 'utf8', timeout: CONVERT_TIMEOUT_MS },
-  )
-  expect(result.status, `pdftoppm に失敗: ${result.stderr}`).toBe(0)
-  return readdirSync(outputDirectory)
-    .filter(name => name.endsWith('.ppm'))
-    .toSorted(compareStrings)
-    .map(name => path.join(outputDirectory, name))
 }
 
 // 判定に soffice を実際に起動するため時間がかかる。ファイルの読み込み時に 1 度だけ行う。

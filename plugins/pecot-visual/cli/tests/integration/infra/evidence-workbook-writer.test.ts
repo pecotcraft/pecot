@@ -276,8 +276,8 @@ describe('writeEvidenceWorkbook — 書式が出力まで届く', () => {
     const drawing = entryText(await writeTwoImageWorkbook(), 'xl/drawings/drawing1.xml')
     const ids = drawing.matchAll(/<xdr:cNvPr id="(\d+)"/g).map(match => match[1]).toArray()
 
-    // 画像 2 枚 + 注記 2 件。id が重複すると Excel が修復を要求する。
-    expect(ids).toHaveLength(4)
+    // グループ 1 + 画像 2 枚 + 注記 2 件。id が重複すると Excel が修復を要求する。
+    expect(ids).toHaveLength(5)
     expect(new Set(ids).size).toBe(ids.length)
     expect(drawing.match(/<xdr:sp>/g)).toHaveLength(FORMAT_CASE_ANNOTATIONS.length)
     expect(drawing.match(/<xdr:pic>/g)).toHaveLength(2)

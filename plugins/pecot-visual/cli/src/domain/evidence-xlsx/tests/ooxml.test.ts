@@ -10,7 +10,14 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Annotation, NormalizedEvidenceItem } from '../spec-schema.js'
-import { buildEvidenceLayout, DISPLAY_WIDTH_PX, LABEL_COLUMN_WIDTH_PX, VALUE_COLUMN_WIDTH_PX } from '../layout.js'
+import {
+  buildEvidenceLayout,
+  DISPLAY_WIDTH_PX,
+  EMU_PER_PIXEL,
+  LABEL_COLUMN_WIDTH_PX,
+  ROW_HEIGHT_PX,
+  VALUE_COLUMN_WIDTH_PX,
+} from '../layout.js'
 import {
   buildContentTypesXml,
   buildDrawingRelsXml,
@@ -538,8 +545,8 @@ describe('buildDrawingXml', () => {
 })
 
 describe('buildDrawingXml — 注記図形', () => {
-  // 1920x1080 → 960x540。picture の anchor は col=1 / row=7 で colOff / rowOff = 0 なので、
-  // 注記は同じセルに画像左上からの EMU オフセットで重なる。
+  // 1920x1080 → 960x540。画像と注記は xdr:grpSp 1 つにまとまり、アンカーは col=1 / row=7 の
+  // colOff / rowOff = 0。注記はグループ内の a:off (画像左上が原点) で重なる。
   const ANNOTATIONS: readonly Annotation[] = [
     {
       type: 'callout',
@@ -551,36 +558,32 @@ describe('buildDrawingXml — 注記図形', () => {
     { type: 'arrow', from: { x: 0.4, y: 0.6 }, to: { x: 0.25, y: 0.5 } },
   ]
 
-  const PICTURE_ANCHOR = `<xdr:oneCellAnchor>`
-    + `<xdr:from><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff>`
-    + `<xdr:row>7</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>`
-    + `<xdr:ext cx="9144000" cy="5143500"/>`
-    + `<xdr:pic>`
-    + `<xdr:nvPicPr><xdr:cNvPr id="2" name="Picture 1"/>`
-    + `<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>`
-    + `<xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>`
-    + `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="9144000" cy="5143500"/></a:xfrm>`
-    + `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>`
-    + `<a:ln w="19050"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill></a:ln>`
-    + `</xdr:spPr>`
-    + `</xdr:pic>`
-    + `<xdr:clientData/>`
-    + `</xdr:oneCellAnchor>`
-
-  it('sp の最小構成・既定スタイル・通し採番を具体値で pin する', () => {
+  it('注記付きの画像は、画像と注記を 1 つの grpSp にまとめ、id をグループ・画像・注記の順に振る', () => {
     expect(buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)).toBe(
       `${DECL}<xdr:wsDr xmlns:xdr="${NS_SPREADSHEET_DRAWING}" xmlns:a="${NS_DRAWINGML}" xmlns:r="${NS_OFFICE_REL}">`
-      + PICTURE_ANCHOR
-      // callout: box (480,324) 288x54 px。白地 + 2.25pt 赤枠、文言は中央寄せ。
       + `<xdr:oneCellAnchor>`
-      + `<xdr:from><xdr:col>1</xdr:col><xdr:colOff>4572000</xdr:colOff>`
-      + `<xdr:row>7</xdr:row><xdr:rowOff>3086100</xdr:rowOff></xdr:from>`
-      + `<xdr:ext cx="2743200" cy="514350"/>`
+      + `<xdr:from><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff>`
+      + `<xdr:row>7</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>`
+      + `<xdr:ext cx="9144000" cy="5143500"/>`
+      + `<xdr:grpSp>`
+      + `<xdr:nvGrpSpPr><xdr:cNvPr id="2" name="Group 1"/><xdr:cNvGrpSpPr/></xdr:nvGrpSpPr>`
+      + `<xdr:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="9144000" cy="5143500"/>`
+      + `<a:chOff x="0" y="0"/><a:chExt cx="9144000" cy="5143500"/></a:xfrm></xdr:grpSpPr>`
+      + `<xdr:pic>`
+      + `<xdr:nvPicPr><xdr:cNvPr id="3" name="Picture 1"/>`
+      + `<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>`
+      + `<xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>`
+      + `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="9144000" cy="5143500"/></a:xfrm>`
+      + `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>`
+      + `<a:ln w="19050"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill></a:ln>`
+      + `</xdr:spPr>`
+      + `</xdr:pic>`
+      // callout: box (480,324) 288x54 px。白地 + 2.25pt 赤枠、文言は中央寄せ。
       + `<xdr:sp>`
       // macro / textlink 属性なし・cNvSpPr は空要素 (実機確認済みの最小構成)。
-      + `<xdr:nvSpPr><xdr:cNvPr id="3" name="Callout 3"/><xdr:cNvSpPr/></xdr:nvSpPr>`
+      + `<xdr:nvSpPr><xdr:cNvPr id="4" name="Callout 4"/><xdr:cNvSpPr/></xdr:nvSpPr>`
       + `<xdr:spPr>`
-      + `<a:xfrm><a:off x="0" y="0"/><a:ext cx="2743200" cy="514350"/></a:xfrm>`
+      + `<a:xfrm><a:off x="4572000" y="3086100"/><a:ext cx="2743200" cy="514350"/></a:xfrm>`
       + `<a:prstGeom prst="wedgeRectCallout"><a:avLst>`
       + `<a:gd name="adj1" fmla="val -133333"/><a:gd name="adj2" fmla="val -150000"/>`
       + `</a:avLst></a:prstGeom>`
@@ -594,43 +597,87 @@ describe('buildDrawingXml — 注記図形', () => {
       + `<a:t>ログインボタン</a:t>`
       + `</a:r></a:p></xdr:txBody>`
       + `</xdr:sp>`
-      + `<xdr:clientData/>`
-      + `</xdr:oneCellAnchor>`
       // highlight: 塗りなし + 2.25pt 赤枠。txBody は持たない。
-      + `<xdr:oneCellAnchor>`
-      + `<xdr:from><xdr:col>1</xdr:col><xdr:colOff>914400</xdr:colOff>`
-      + `<xdr:row>7</xdr:row><xdr:rowOff>1028700</xdr:rowOff></xdr:from>`
-      + `<xdr:ext cx="1828800" cy="771525"/>`
       + `<xdr:sp>`
-      + `<xdr:nvSpPr><xdr:cNvPr id="4" name="Highlight 4"/><xdr:cNvSpPr/></xdr:nvSpPr>`
+      + `<xdr:nvSpPr><xdr:cNvPr id="5" name="Highlight 5"/><xdr:cNvSpPr/></xdr:nvSpPr>`
       + `<xdr:spPr>`
-      + `<a:xfrm><a:off x="0" y="0"/><a:ext cx="1828800" cy="771525"/></a:xfrm>`
+      + `<a:xfrm><a:off x="914400" y="1028700"/><a:ext cx="1828800" cy="771525"/></a:xfrm>`
       + `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>`
       + `<a:noFill/>`
       + `<a:ln w="28575"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill></a:ln>`
       + `</xdr:spPr>`
       + `</xdr:sp>`
-      + `<xdr:clientData/>`
-      + `</xdr:oneCellAnchor>`
       // arrow: 左上向きなので flipH / flipV の両方が立つ。矢尻は tailEnd。
-      + `<xdr:oneCellAnchor>`
-      + `<xdr:from><xdr:col>1</xdr:col><xdr:colOff>2286000</xdr:colOff>`
-      + `<xdr:row>7</xdr:row><xdr:rowOff>2571750</xdr:rowOff></xdr:from>`
-      + `<xdr:ext cx="1371600" cy="514350"/>`
       + `<xdr:sp>`
-      + `<xdr:nvSpPr><xdr:cNvPr id="5" name="Arrow 5"/><xdr:cNvSpPr/></xdr:nvSpPr>`
+      + `<xdr:nvSpPr><xdr:cNvPr id="6" name="Arrow 6"/><xdr:cNvSpPr/></xdr:nvSpPr>`
       + `<xdr:spPr>`
-      + `<a:xfrm flipH="1" flipV="1"><a:off x="0" y="0"/><a:ext cx="1371600" cy="514350"/></a:xfrm>`
+      + `<a:xfrm flipH="1" flipV="1"><a:off x="2286000" y="2571750"/><a:ext cx="1371600" cy="514350"/></a:xfrm>`
       + `<a:prstGeom prst="line"><a:avLst/></a:prstGeom>`
       + `<a:noFill/>`
       + `<a:ln w="38100"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill>`
       + `<a:tailEnd type="triangle" w="lg" len="lg"/></a:ln>`
       + `</xdr:spPr>`
       + `</xdr:sp>`
+      + `</xdr:grpSp>`
       + `<xdr:clientData/>`
       + `</xdr:oneCellAnchor>`
       + `</xdr:wsDr>`,
     )
+  })
+
+  it('注記付きの drawing では、どのアンカーの colOff も B 列の幅を、rowOff も行の高さを超えない', () => {
+    const layout = buildEvidenceLayout({
+      title: 'T',
+      createdDate: '2026-08-17',
+      extraHeaders: [],
+      images: [
+        { item: { ...item('1 枚目'), annotations: ANNOTATIONS }, width: 1920, height: 1080 },
+        { item: { ...item('2 枚目'), annotations: ANNOTATIONS }, width: 800, height: 600 },
+      ],
+    })
+    const xml = buildDrawingXml(layout.placements)
+    const colOffsets = xml.matchAll(/<xdr:colOff>(\d+)<\/xdr:colOff>/g).map(m => Number(m[1])).toArray()
+    const rowOffsets = xml.matchAll(/<xdr:rowOff>(\d+)<\/xdr:rowOff>/g).map(m => Number(m[1])).toArray()
+
+    expect(colOffsets).toHaveLength(2)
+    expect(rowOffsets).toHaveLength(2)
+    for (const offset of colOffsets) {
+      expect(offset).toBeLessThanOrEqual(LABEL_COLUMN_WIDTH_PX * EMU_PER_PIXEL)
+    }
+    for (const offset of rowOffsets) {
+      expect(offset).toBeLessThanOrEqual(ROW_HEIGHT_PX * EMU_PER_PIXEL)
+    }
+  })
+
+  it('アンカーの ext・グループの ext と chExt・画像の ext が等しく、chOff は原点になる', () => {
+    const xml = buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)
+    const size = 'cx="9144000" cy="5143500"'
+
+    expect(xml).toContain(`<xdr:ext ${size}/>`)
+    expect(xml).toContain(`<xdr:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext ${size}/>`
+      + `<a:chOff x="0" y="0"/><a:chExt ${size}/></a:xfrm></xdr:grpSpPr>`)
+    expect(xml).toContain(`<xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>`
+      + `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext ${size}/></a:xfrm>`)
+  })
+
+  it('注記の a:off は layout の offsetXEmu / offsetYEmu と一致する', () => {
+    const { placements } = singleImageLayout(ANNOTATIONS)
+    const xml = buildDrawingXml(placements)
+    const offsets = xml.matchAll(/<xdr:sp>.*?<a:off x="(\d+)" y="(\d+)"\/>/g)
+      .map(m => [Number(m[1]), Number(m[2])])
+      .toArray()
+
+    expect(offsets).toStrictEqual(
+      placements[0]?.annotationShapes.map(shape => [shape.offsetXEmu, shape.offsetYEmu]),
+    )
+  })
+
+  it('注記の無い画像は grpSp を持たず、pic だけをアンカーに置く', () => {
+    const xml = buildDrawingXml(singleImageLayout([]).placements)
+
+    expect(xml).not.toContain('grpSp')
+    expect(xml).toContain('<xdr:oneCellAnchor>')
+    expect(xml).toContain('<xdr:cNvPr id="2" name="Picture 1"/>')
   })
 
   it('theme 参照を持たない (色はすべて rgb 明示)', () => {
@@ -645,7 +692,7 @@ describe('buildDrawingXml — 注記図形', () => {
       { type: 'arrow', from: { x: 0.2, y: 0.2 }, to: { x: 0.6, y: 0.6 } },
     ]).placements)
 
-    expect(xml).toContain('<a:xfrm><a:off x="0" y="0"/><a:ext cx="3657600" cy="2057400"/></a:xfrm>')
+    expect(xml).toContain('<a:ext cx="3657600" cy="2057400"/></a:xfrm>')
     expect(xml).not.toContain('flip')
   })
 
@@ -727,11 +774,13 @@ describe('buildDrawingXml — 注記図形', () => {
 
     expect(xml.matchAll(/<xdr:cNvPr id="(\d+)" name="([^"]+)"\/>/g).map(m => [m[1], m[2]]).toArray())
       .toStrictEqual([
-        ['2', 'Picture 1'],
-        ['3', 'Highlight 3'],
-        ['4', 'Arrow 4'],
-        ['5', 'Picture 2'],
-        ['6', 'Callout 6'],
+        ['2', 'Group 1'],
+        ['3', 'Picture 1'],
+        ['4', 'Highlight 4'],
+        ['5', 'Arrow 5'],
+        ['6', 'Group 2'],
+        ['7', 'Picture 2'],
+        ['8', 'Callout 8'],
       ])
   })
 })

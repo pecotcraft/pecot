@@ -482,18 +482,9 @@ function cellXfXml(definition: Readonly<CellXfDefinition>): string {
 }
 
 /**
-drawing1.xml。子要素順はスキーマで決まっている。
-`xdr:oneCellAnchor` の子要素順は `xdr:from → xdr:ext → (xdr:pic|xdr:sp) → xdr:clientData`。
-`xdr:pic` の子要素順は `nvPicPr → blipFill → spPr`。
-`r:embed` の rId は placement の並び順で振るため、buildDrawingRelsXml と同じ順で渡す。
-
-注記図形は画像と同じアンカーセルに置き、画像左上からの EMU オフセットを
-colOff / rowOff で与える (画像側の colOff / rowOff が 0 であることに依存する)。
-cNvPr の id は画像・注記を通した連番で、drawing 全体で一意にする。
+drawing1.xml。`r:embed` の rId は placement の並び順で振るため、buildDrawingRelsXml と同じ順で渡す。
 */
 export function buildDrawingXml(placements: readonly ImagePlacement[]): string {
-  // 画像 → その画像の注記 の順に採番する。id を先に確定させてから XML を組むことで、
-  // 連結の順序と採番の順序を切り離す。
   let nextShapeId = FIRST_SHAPE_ID
   const takeShapeId = (): number => {
     const id = nextShapeId
@@ -502,32 +493,57 @@ export function buildDrawingXml(placements: readonly ImagePlacement[]): string {
   }
   const anchors = placements.map((placement, offset) => {
     const { anchor } = placement
-    const pictureAnchor = anchorXml({
+    const relationshipId = imageRelationshipId(offset)
+    let body: string
+    if (placement.annotationShapes.length > 0) {
+      const groupId = takeShapeId()
+      const pictureXml = buildPictureXml(placement, relationshipId, takeShapeId())
+      const shapesXml = placement.annotationShapes.map(shape => buildShapeXml(shape, takeShapeId())).join('')
+      body = buildGroupXml(placement, groupId, pictureXml, shapesXml)
+    }
+    else {
+      body = buildPictureXml(placement, relationshipId, takeShapeId())
+    }
+    return anchorXml({
       column: anchor.column,
       row: anchor.row,
       columnOffsetEmu: 0,
       rowOffsetEmu: 0,
       widthEmu: anchor.widthEmu,
       heightEmu: anchor.heightEmu,
-    }, buildPictureXml(placement, imageRelationshipId(offset), takeShapeId()))
-    const shapeAnchors = placement.annotationShapes
-      .map(shape => anchorXml({
-        column: anchor.column,
-        row: anchor.row,
-        columnOffsetEmu: shape.offsetXEmu,
-        rowOffsetEmu: shape.offsetYEmu,
-        widthEmu: shape.widthEmu,
-        heightEmu: shape.heightEmu,
-      }, buildShapeXml(shape, takeShapeId())))
-      .join('')
-    return pictureAnchor + shapeAnchors
+    }, body)
   }).join('')
   return `${XML_DECLARATION}\n<xdr:wsDr xmlns:xdr="${NS_SPREADSHEET_DRAWING}" xmlns:a="${NS_DRAWINGML}"`
     + ` xmlns:r="${NS_OFFICE_RELATIONSHIPS}">${anchors}</xdr:wsDr>`
 }
 
 /**
-oneCellAnchor の開始セルと実寸。オフセットは画像左上を原点とする EMU。
+画像と注記をまとめる `xdr:grpSp`。子の座標系 (chOff / chExt) は画像の寸法に揃え、
+グループ内の座標が EMU のまま画像左上を原点にする。
+*/
+function buildGroupXml(
+  placement: Readonly<ImagePlacement>,
+  groupId: number,
+  pictureXml: string,
+  shapesXml: string,
+): string {
+  const { widthEmu, heightEmu } = placement.anchor
+  const cx = widthEmu.toString()
+  const cy = heightEmu.toString()
+  return `<xdr:grpSp>`
+    + `<xdr:nvGrpSpPr>`
+    + `<xdr:cNvPr id="${groupId.toString()}" name="Group ${placement.index.toString()}"/>`
+    + `<xdr:cNvGrpSpPr/>`
+    + `</xdr:nvGrpSpPr>`
+    + `<xdr:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/>`
+    + `<a:chOff x="0" y="0"/><a:chExt cx="${cx}" cy="${cy}"/></a:xfrm></xdr:grpSpPr>`
+    + pictureXml
+    + shapesXml
+    + `</xdr:grpSp>`
+}
+
+/**
+oneCellAnchor の開始セルと実寸。
 */
 interface AnchorPosition {
   readonly column: number
@@ -594,7 +610,8 @@ function buildShapeXml(shape: Readonly<AnnotationShape>, shapeId: number): strin
     + `<xdr:cNvSpPr/>`
     + `</xdr:nvSpPr>`
     + `<xdr:spPr>`
-    + `<a:xfrm${parts.transformAttributes}><a:off x="0" y="0"/>${extent}</a:xfrm>`
+    + `<a:xfrm${parts.transformAttributes}>`
+    + `<a:off x="${shape.offsetXEmu.toString()}" y="${shape.offsetYEmu.toString()}"/>${extent}</a:xfrm>`
     + parts.geometry
     + parts.style
     + `</xdr:spPr>`
