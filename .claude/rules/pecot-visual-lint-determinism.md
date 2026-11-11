@@ -2,6 +2,7 @@
 paths:
   - "plugins/pecot-visual/assets/slidev/package.json"
   - "plugins/pecot-visual/assets/slidev/scripts/eslint/_shared/package.json"
+  - "plugins/pecot-visual/assets/slidev/scripts/eslint/*/tsconfig.json"
 ---
 
 # v-slidev / eslint-shared の package.json をいじる前に
@@ -35,5 +36,3 @@ paths:
 
 1. このルールに従っているか確認（`--no-cache` / tsconfig の `references` / `dist` 固定）
 2. それでも揺れるなら build artifact のキャッシュ汚染を疑い `pnpm -r exec rm -rf dist node_modules/.cache` で再生成
-
-元の記載: `CLAUDE.md` の「環境の既知事項」の pecot-visual の lint の項。
