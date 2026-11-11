@@ -12,7 +12,7 @@
 // main WT の探索（findWorktreeConfigFile）は worktree.ts にある。worktree.ts がこのファイルを読むため、相互の import を避けて置いた。
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, lstatSync, mkdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { PecotError, InvalidValueError } from '../domain/errors.js'
@@ -358,12 +358,6 @@ export function getDefaultConfig(targetRepository: string, selfRepository?: stri
 
 // Symlink 生成
 
-// symlink の配置先は `<root>/<set>/<repo>/<path>`。その親ディレクトリから `<root>` まで遡る段数は、path の深さ - 1 + 2（`<set>/<repo>/` 分）
-function computeRelativeTarget(link: Readonly<WorktreeLinkItem>): string {
-  const depth = link.path.split('/').filter(segment => segment !== '' && segment !== '.').length - 1 + 2
-  return `${'../'.repeat(depth)}base/${link.target_repo}/${link.target_path}`
-}
-
 function resolveAbsoluteTarget(projectRoot: string, link: Readonly<WorktreeLinkItem>): string {
   return path.join(projectRoot, 'base', link.target_repo, link.target_path)
 }
@@ -398,8 +392,8 @@ function isSymbolicLink(target: string): boolean {
 export type OverwriteStrategy = (symlinkPath: string, targetPath: string) => boolean
 
 // 1 本の link 定義を、実際のファイルシステム操作に変換する
-function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeSet: string, repositoryName: string, canOverwrite: OverwriteStrategy, diagnostics: Diagnostics): SymlinkResult {
-  const symlinkPath = path.join(projectRoot, worktreeSet, repositoryName, link.path)
+function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeRoot: string, canOverwrite: OverwriteStrategy, diagnostics: Diagnostics): SymlinkResult {
+  const symlinkPath = path.join(worktreeRoot, link.path)
   const targetPath = resolveAbsoluteTarget(projectRoot, link)
 
   if (!existsSync(targetPath)) {
@@ -408,15 +402,17 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     return { symlinkPath, targetPath, action: 'skipped', message }
   }
 
-  const relativeTarget = computeRelativeTarget(link)
+  let relativeTarget = path.relative(path.dirname(symlinkPath), targetPath)
   try {
     mkdirSync(path.dirname(symlinkPath), { recursive: true })
+    // 親が symlink 経由でも解決できるよう、実体の親ディレクトリからの相対にする
+    relativeTarget = path.relative(realpathSync(path.dirname(symlinkPath)), targetPath)
 
     if (isSymbolicLink(symlinkPath)) {
       unlinkSync(symlinkPath)
     }
     else if (existsSync(symlinkPath)) {
-      if (isTrackedInRepository(path.join(projectRoot, worktreeSet, repositoryName), link.path)) {
+      if (isTrackedInRepository(worktreeRoot, link.path)) {
         diagnostics.warning(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
         return { symlinkPath, targetPath, action: 'error', message: `symlink creation aborted because the path is tracked by git: ${link.path}` }
       }
@@ -472,9 +468,9 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
 /**
 シンボリックリンクを作る（既存ファイル／ディレクトリは常に上書き）
 */
-export function createSymlinks(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeSet: string, repositoryName: string, diagnostics: Diagnostics): readonly SymlinkResult[] {
-  ensurePecotGitignore(config, path.join(projectRoot, worktreeSet, repositoryName), diagnostics)
-  return config.links.map(link => processLink(link, projectRoot, worktreeSet, repositoryName, () => true, diagnostics))
+export function createSymlinks(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeRoot: string, diagnostics: Diagnostics): readonly SymlinkResult[] {
+  ensurePecotGitignore(config, worktreeRoot, diagnostics)
+  return config.links.map(link => processLink(link, projectRoot, worktreeRoot, () => true, diagnostics))
 }
 
 export interface SafeSymlinkOptions {
@@ -491,8 +487,8 @@ export interface SafeSymlinkOptions {
 /**
 シンボリックリンクを安全に作る。リアルファイル／ディレクトリがあるとき、force または confirm で上書き可否を決める
 */
-export function createSymlinksSafe(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeSet: string, repositoryName: string, diagnostics: Diagnostics, options: Readonly<SafeSymlinkOptions> = {}): readonly SymlinkResult[] {
+export function createSymlinksSafe(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeRoot: string, diagnostics: Diagnostics, options: Readonly<SafeSymlinkOptions> = {}): readonly SymlinkResult[] {
   const canOverwrite: OverwriteStrategy = (symlinkPath, targetPath) => options.force === true || (options.confirm?.(symlinkPath, targetPath) ?? false)
-  ensurePecotGitignore(config, path.join(projectRoot, worktreeSet, repositoryName), diagnostics)
-  return config.links.map(link => processLink(link, projectRoot, worktreeSet, repositoryName, canOverwrite, diagnostics))
+  ensurePecotGitignore(config, worktreeRoot, diagnostics)
+  return config.links.map(link => processLink(link, projectRoot, worktreeRoot, canOverwrite, diagnostics))
 }
