@@ -853,7 +853,11 @@ def test_graph_lanes_read_every_workspace_package_json(
         ("package.json", {"pecot-workflow:lint-py"}),
         # pecot-workflow の lint は lint-py と lint-cli に分かれ、変更が届いたほうだけが選ばれる (#1313)。
         ("plugins/pecot-workflow/cli-node/src/cli.ts", {"pecot-workflow:lint-cli"}),
-        ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow:lint-py"}),
+        # cli のソースは、環境変数の確認のため lint-defs の inputs（targets.json の sources）にも入る。
+        (
+            "plugins/pecot-workflow/cli/core/state.py",
+            {"pecot-workflow:lint-py", "interface-spec:lint-defs"},
+        ),
         # tests/hooks/ のテストも型の確認と eslint の対象。
         (
             "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",
@@ -961,4 +965,6 @@ def test_lint_defs_inputs_cover_the_sources_of_every_plugin() -> None:
     }
     for name, plugin in targets["plugins"].items():
         for glob in plugin["sources"]:
-            assert glob in inputs, f"{name} の sources の {glob} が lint-defs の inputs に無い"
+            # sources は plugins/<name>/ からの glob、inputs はリポのルートからの glob。
+            path = f"plugins/{name}/{glob}"
+            assert path in inputs, f"{name} の sources の {glob} が lint-defs の inputs に無い"
