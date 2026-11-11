@@ -1,77 +1,84 @@
+<!-- このファイルは生成物です。手で直さず、`pnpm -C libs/interface-spec exec tsx src/cli.ts commands-md --write` で作り直してください。 -->
+
 # コマンド一覧
 
-## プロジェクト管理 (`project`)
+引数と詳しい振る舞いは `pecot <コマンド> --help` で確かめてください。
 
-| サブコマンド | 説明 |
-|-------------|------|
-| `project info` | プロジェクト情報ダッシュボードを表示 |
-| `project list` | 利用可能なプロジェクト一覧を表示 |
-| `project search` | GitHub APIでプロジェクトを検索 |
-| `project activate` | init済みプロジェクトをアクティベート |
-| `project set-repo` | リポジトリをプロジェクト設定に追加/更新 |
-| `project init` | 既存プロジェクトにpecot-workflow関連フィールドを追加 |
-| `project create` | 新規プロジェクトを作成（既存プロジェクトへのフィールド追加は `project init`） |
-| `project set-aggregation-repo` | Epic の既定の作成先リポジトリ（`aggregation_repo`）を設定する |
-| `project show-aggregation-repo` | Epic の既定の作成先リポジトリ（`aggregation_repo`）を表示する |
-| `project unset-aggregation-repo` | Epic の既定の作成先リポジトリを解除する（解除後の Epic 起票は `--repo` の明示が必須） |
+## dependabot
 
-## Issue操作 (`issue`)
+| コマンド | 説明 |
+| --- | --- |
+| `dependabot sync` | Rewrite the open Tracker's list of Dependabot PRs waiting for a human decision |
 
-| サブコマンド | 説明 |
-|-------------|------|
-| `issue create` | フロントマター付きMarkdownファイルからIssueを作成 |
-| `issue quick` | フリーフォーマットメッセージからIssueを即座に作成 |
-| `issue read` | Issue詳細を取得 |
-| `issue comment` | Issueにコメントを投稿 |
-| `issue reopen` | クローズされたIssueを再オープンし、ボード status を同時設定する |
+## issue
 
-**`issue quick` の暗黙の動作:**
+| コマンド | 説明 |
+| --- | --- |
+| `issue comment` | Post a comment on an Issue |
+| `issue create` | Create Issues from Markdown files with frontmatter |
+| `issue quick` | Create an Issue at once from a free-format message |
+| `issue read` | Fetch Issue details efficiently (GraphQL, only the needed fields) |
+| `issue reopen` | Reopen a closed Issue (also sets the status on the board) |
 
-- type: `--type` で `task` / `bug` / `epic` を指定（既定 `task`）
-- status: `task` / `bug` は `active`、`epic` は `backlog`（理由は [issue-flow-rules.md §4](issue-flow-rules.md#起票時の既定-status) 参照）
-- priority: `medium`
-- size: `s`（`epic` は設定なし）
-- ブランチ自動作成: `feat/{YYYYMMDD-HHMMSS}/{issue_number}`（`--no-branch` で省略）
+## pr
 
-## PR操作 (`pr`)
+| コマンド | 説明 |
+| --- | --- |
+| `pr cleanup` | Clean up after a merged PR (close related Issues, delete branches, local cleanup) |
+| `pr create` | Create a PR (pull request) |
+| `pr preflight` | Show all the information to check before creating a PR |
+| `pr read` | Get PR details efficiently (GraphQL, only the needed fields) |
 
-| サブコマンド | 説明 |
-|-------------|------|
-| `pr create` | PR（プルリクエスト）を作成 |
-| `pr read` | PR詳細を取得 |
-| `pr cleanup` | マージ済みPRの後片付け（関連Issueのクローズ、ブランチ削除、フラグ削除） |
-| `pr preflight` | PR作成前の事前確認情報を一括出力 |
+## project
 
-**`pr create` のワークフロー補足:**
+| コマンド | 説明 |
+| --- | --- |
+| `project activate` | Activate an initialized project |
+| `project create` | Create a new project (to add the fields to an existing project, use project init) |
+| `project info` | Show the project info dashboard |
+| `project init` | Add pecot-workflow fields to an existing project |
+| `project list` | List available projects |
+| `project search` | Search projects through the GitHub API |
+| `project set-aggregation-repo` | Set the Epic aggregation repository (``aggregation_repo``) |
+| `project set-repo` | Add or update a repository in the project config |
+| `project show-aggregation-repo` | Show the Epic aggregation repository (``aggregation_repo``) |
+| `project unset-aggregation-repo` | Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo |
 
-- `--template release`: リリースPR用。`release_branch`へのPR作成を許可、Issue参照チェックをスキップ
-- `--no-issue-ref`: Issue起点でないPR用。Issue番号の自動抽出・追加をスキップ
-- `--screenshot <理由>`: `-m` で本文を渡すときに、画像を入れない理由を渡す（ファイル形式ではフロントマターの `screenshot`）。Summary に画像があれば不要。release の PR では見ない
+## release
 
-終了コード:
+| コマンド | 説明 |
+| --- | --- |
+| `release create` | Create a GitHub release and its tag (the release notes come from the CHANGELOG) |
+| `release merge` | Merge a release PR with a regular merge |
+| `release preflight` | Run the pre-release checks (preflight); for an nx repository only the alerts are checked |
 
-| 終了コード | 意味 |
-|-----------|------|
-| 1 | 通信・設定・引数の失敗 |
-| 2 | preflight の警告 |
-| 3 | 本文の検証の失敗（Issue 参照・必須セクション・記法・base・title の scope・画像） |
+## security
+
+| コマンド | 説明 |
+| --- | --- |
+| `security sync` | Rewrite the open Tracker's list of open security alerts |
+
+## session
+
+| コマンド | 説明 |
+| --- | --- |
+| `session restore` | Restore lost session flags (such as .pecot-active) from the branch information |
+| `session status` | Show the session flag state, branch information, and inferred Issue |
+
+## worktree
+
+| コマンド | 説明 |
+| --- | --- |
+| `worktree add` | Create a new worktree |
+| `worktree init` | Create the worktree config files in the main worktree |
+| `worktree link` | Apply or update symlinks in existing worktrees |
+| `worktree remove` | Remove a worktree |
 
 ## その他
 
 | コマンド | 説明 |
-|---------|------|
-| `create-branch` | Issueに紐づいたブランチを作成（Development自動リンク） |
-| `delete-branch` | リモートブランチを削除（保護ブランチチェック付き） |
-| `add-to-project` | Issueをプロジェクトボードに追加（pecot 外で作った Issue 用） |
-| `update-issue-status` | プロジェクトボードのステータスを更新（通常フローでは CLI が自動設定） |
-| `session status` | セッションのフラグ状態・ブランチ情報・Issue推定結果を表示 |
-| `session restore` | 消失したセッションフラグ（`.pecot-active` 等）をブランチ情報から復元 |
-| `worktree init` | ワークツリー設定ファイルをメインWTに作成 |
-| `worktree add` | 新しいワークツリーを作成 |
-| `worktree link` | 既存ワークツリーにシンボリックリンクを適用/更新 |
-| `worktree remove` | ワークツリーを削除 |
-| `release preflight` | リリース前チェック（open の Dependabot・code scanning・secret scanning の alert、CHANGELOG・バージョン・タグ不存在の確認。nx のリポは alert のみ） |
-| `security sync` | open の security alert を、ラベル `security-alert` の Tracker 1 件の一覧に書き直す。open の Tracker が無く、open の alert があるときだけ Tracker を Backlog に立てる。Tracker は閉じない |
-| `dependabot sync` | 人の判断を待つ dependabot の PR（自動マージの対象外・検証の失敗・競合・queue から外れたもの）を、ラベル `dependabot-pr` の Tracker 1 件の一覧に書き直す。一覧が空になれば Tracker を閉じる |
-| `release create` | GitHubリリースとタグを作成（リリースノートは CHANGELOG から取得） |
-| `release merge` | リリースPRをregular mergeでマージ |
+| --- | --- |
+| `add-to-project` | Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot) |
+| `create-branch` | Create a branch linked to an Issue (shown in the Development section of the Issue) |
+| `delete-branch` | Delete a remote branch (a protected branch is never deleted) |
+| `update-issue-status` | Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves) |

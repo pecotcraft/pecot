@@ -341,7 +341,7 @@ def add_to_project(
         help="Initial status (backlog/pending/ready/active/in_review/archived)",
     ),
 ) -> None:
-    """Add an Issue to the project board with a GraphQL mutation"""
+    """Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)"""
     out = Output(dry_run=False)
     # 1. 設定取得
     config = load_active_config()
@@ -447,7 +447,7 @@ def update_issue_status(
         help="Status (backlog/pending/ready/active/in_review/archived)",
     ),
 ) -> None:
-    """Update the status of an Issue on the project board by Issue number"""
+    """Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)"""
     out = Output(dry_run=False)
     # 1. ステータスバリデーション
     if status not in VALID_STATUSES:
@@ -520,7 +520,7 @@ def issue_reopen_command(
         help="Reason for reopening (posted as a comment)",
     ),
 ) -> None:
-    """Reopen a closed Issue"""
+    """Reopen a closed Issue (also sets the status on the board)"""
     out = Output(dry_run=False)
     # 1. ステータスバリデーション
     if status not in VALID_STATUSES:

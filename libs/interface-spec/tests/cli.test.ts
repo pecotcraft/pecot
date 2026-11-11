@@ -78,7 +78,7 @@ describe('validate', () => {
     [['validate', '--bogus', 'x']],
     [['validate', '--root', 'a', 'b']],
   ])('%j を渡すと、使い方を出して 2 で終わる', async (argv) => {
-    expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n' })
+    expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n' })
   })
 })
 

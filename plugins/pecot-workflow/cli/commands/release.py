@@ -306,7 +306,7 @@ def release_preflight(
         ),
     ] = None,
 ) -> None:
-    """Run the pre-release checks (preflight)
+    """Run the pre-release checks (preflight); for an nx repository only the alerts are checked
 
     Checks the open Dependabot, code scanning, and secret scanning alerts.
     A single open code scanning or secret scanning alert fails the check.
@@ -395,7 +395,7 @@ def release_create(
         ),
     ] = None,
 ) -> None:
-    """Create a GitHub release and its tag
+    """Create a GitHub release and its tag (the release notes come from the CHANGELOG)
 
     Gets the release notes from CHANGELOG.md
     and creates the release and the tag together through the GitHub API.

@@ -156,7 +156,7 @@ def create_branch(
         help="Disable the .pecot-active overwrite guard (when sure it is stale)",
     ),
 ) -> None:
-    """Create a branch linked to an Issue
+    """Create a branch linked to an Issue (shown in the Development section of the Issue)
 
     Uses the GitHub GraphQL API (createLinkedBranch) to create a branch
     linked in the Development section of the Issue.
@@ -244,7 +244,7 @@ def delete_branch(
         help="Show what would be deleted without deleting anything",
     ),
 ) -> None:
-    """Delete a remote branch
+    """Delete a remote branch (a protected branch is never deleted)
 
     Deletes the remote branch safely through the GitHub REST API,
     even where a PreToolUse hook blocks git push and the gh CLI.
