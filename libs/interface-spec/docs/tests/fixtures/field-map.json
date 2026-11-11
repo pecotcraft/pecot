@@ -1,0 +1,11 @@
+{
+  "posix": [
+    { "section": "NAME", "fields": ["id", "name", "description"], "writer": "書き出し", "mcp": "Tool の name" },
+    { "section": "DESCRIPTION", "fields": ["details"], "writer": "人", "mcp": "同じ" },
+    { "section": "EXIT STATUS", "fields": ["exit_status"], "writer": "人", "mcp": "失敗の種別" },
+    { "section": "CHANGE HISTORY", "fields": [], "writer": "欄にしない", "mcp": "—" }
+  ],
+  "borrowed": [
+    { "fields": ["effects", "idempotent"], "source": "AWS CLI" }
+  ]
+}

@@ -1,0 +1,27 @@
+[project]
+name = "interface-spec-docs"
+version = "0.0.0"
+description = "インタフェース定義書の HTML 表示（sphinx-needs）。配布しない。"
+requires-python = ">=3.13"
+dependencies = [
+  "sphinx-needs==9.2.*",
+  "sphinx-test-reports==4.0.*",
+  "pyyaml",
+]
+
+[dependency-groups]
+dev = [
+  "pytest",
+  "types-docutils",
+  "types-PyYAML",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore:.*deprecated:sphinx.deprecation.RemovedInSphinx11Warning",
+]

@@ -52,3 +52,4 @@ CLAUDE.local.md
 plugins/pecot-tools/cli/test-results/
 plugins/pecot-visual/cli/test-results/
 plugins/pecot-workflow/cli-node/test-results/
+plugins/pecot-workflow/cli/test-results/

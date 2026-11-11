@@ -193,6 +193,16 @@ if [ "$RUN_PY" = true ]; then
     wait "$PASS1_PID" || PASS1_RC=$?
     wait "$PASS2_PID" || PASS2_RC=$?
 
+    # pass 1 の JUnit を、失敗した回も含めてリポに残す（nx の outputs と表示の入力）。
+    # JUnit が無い回（pytest が JUnit を書く前に止まった等）は、古い「合格」を残さないよう消す。
+    JUNIT_KEEP="$PLUGIN_ROOT/cli/test-results/junit.xml"
+    mkdir -p "$(dirname "$JUNIT_KEEP")"
+    if [ -f "$TMP1/junit.xml" ]; then
+        cp "$TMP1/junit.xml" "$JUNIT_KEEP"
+    else
+        rm -f "$JUNIT_KEEP"
+    fi
+
     echo "==> compare JUnit XML (pass1 vs pass2)"
     uv run --no-project --python "$PY" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" "$TMP1/junit.xml" "$TMP2/junit.xml" || CMP_RC=$?
 

@@ -29,7 +29,9 @@
         "runtime",
         "env",
         "{projectRoot}/pyrightconfig.json",
-        "{projectRoot}/scripts/lint-py.sh"
+        "{projectRoot}/scripts/lint-py.sh",
+        "{projectRoot}/docs/pyproject.toml",
+        "{projectRoot}/docs/uv.lock"
       ],
       "dependsOn": [
         "install"
@@ -103,10 +105,29 @@
         "install"
       ],
       "metadata": {
-        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli-node/tests/interface-export/）を形式の検証に読むので、inputs に足してある。"
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli-node/tests/interface-export/）を形式の検証に読むので、inputs に足してある。 docs/tests の pytest（iface_defs 拡張）も動かす。"
       },
       "options": {
-        "command": "pnpm exec vitest run --coverage",
+        "command": "pnpm exec vitest run --coverage && uv run --locked --project docs pytest docs/tests -q",
+        "cwd": "libs/interface-spec"
+      }
+    },
+    "docs": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "定義書とテストの合否の HTML を docs/_build に作る。JUnit は git に無い入力なので cache しない。JUnit が無くても作れ、合否は未実行になる。PR の必須のレーンではない。"
+      },
+      "options": {
+        "commands": [
+          "mkdir -p docs/_generated",
+          "pnpm exec tsx src/cli.ts field-map > docs/_generated/field-map.json",
+          "uv run --locked --project docs sphinx-build -W -b html docs docs/_build"
+        ],
+        "parallel": false,
         "cwd": "libs/interface-spec"
       }
     }

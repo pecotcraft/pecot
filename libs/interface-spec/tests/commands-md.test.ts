@@ -114,7 +114,7 @@ describe('commands-md', () => {
   ])('$name を渡すと、使い方を出して 2 で終わる', async ({ argv }) => {
     const result = await call(...argv)
     expect(result.code).toBe(2)
-    expect(result.stderr).toMatch(/^usage: interface-spec validate .*\n {7}interface-spec links .*\n {7}interface-spec commands-md .*\n$/u)
+    expect(result.stderr).toMatch(/^usage: interface-spec validate .*\n {7}interface-spec links .*\n {7}interface-spec commands-md .*\n {7}interface-spec field-map\n$/u)
   })
 
   it.for([
