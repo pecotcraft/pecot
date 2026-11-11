@@ -19,7 +19,7 @@ plugins/pecot-workflow/scripts/interface/export.py --check
 | そのまま動かす | 終了コード 0 |
 | `cli/commands/issue.py` の `issue create` にオプションを 1 つ足して動かす | 終了コード 1。`PW-ISSUE-CREATE: input.properties.<名前>: added` と、直すコマンドが出る |
 | `--write` で書き出し直し、`pnpm exec nx run interface-spec:lint-defs` を動かす | 通る。`authored.yaml` は変わっていない |
-| `main.py` にコマンドを 1 つ足して `--write` し、`lint-defs` を動かす | 終了コード 1。足したコマンドの ID と `entry is missing` が出る |
+| `main.py` にコマンドを 1 つ足して `--write` し、`lint-defs` を動かす | 終了コード 1。足したコマンドの ID と `entry is missing` が出る。`targets.json` で `entries: complete` にした後（#254）に確かめる |
 | `authored.yaml` の `constraints` の引数の名前を 1 字変える | `lint-defs` が `unknown input name` で止まる |
 | `authored.yaml` の 1 項目から `on_error` を消す | `lint-defs` が `field is missing` で止まる。`default` と書くと通る |
 | `pattern: event` の項目の文を「もし〜なら、〜する」に変える | `lint-defs` が `statement does not match pattern` で止まる |

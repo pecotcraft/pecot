@@ -261,6 +261,15 @@ error: plugins/pecot-workflow/interface/generated.json is stale
   run: plugins/pecot-workflow/scripts/interface/export.py --write
 ```
 
+差の行の代わりに出す行と、ファイル全体の失敗は次のとおり。どれも終了コード 1 で、最後に `run:` の行を出す。
+
+| 場合 | 行 |
+|---|---|
+| バイト列だけが違う（字下げ・改行コード） | `error: <file> is stale` の下に `generated.json: formatting differs` |
+| 項目の形が違う（`entries` が配列でない・`id` が無い） | `error: <file> is stale` の下に `generated.json: unexpected structure` |
+| JSON として読めない（UTF-8 でないものを含む） | `error: <file>: not valid JSON (<理由>)` |
+| ファイルが無い | `error: <file>: file is missing` |
+
 ## つなぎの確認が出す失敗
 
 ```text

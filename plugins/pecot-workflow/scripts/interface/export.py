@@ -48,7 +48,7 @@ def _scalar_schema(type_: Any, where: str) -> Json:
     if name == "boolean":
         return {"type": "boolean"}
     if name == "choice":
-        choices = [c.value if isinstance(c, enum.Enum) else str(c) for c in type_.choices]
+        choices = [str(c.value) if isinstance(c, enum.Enum) else str(c) for c in type_.choices]
         return {"type": "string", "enum": choices}
     if name == "int range":
         if any(getattr(type_, a, False) for a in ("min_open", "max_open", "clamp")):
@@ -64,10 +64,10 @@ def _scalar_schema(type_: Any, where: str) -> Json:
 
 def _default_value(default: Any, where: str) -> Any:
     if isinstance(default, enum.Enum):
-        return default.value
+        return str(default.value)
     if isinstance(default, (list, tuple)):
         return [_default_value(item, where) for item in cast("Sequence[Any]", default)]
-    if isinstance(default, (str, int, float, bool)):
+    if isinstance(default, (str, int, bool)):
         return default
     raise ExportError(f"{where}: unsupported default value {default!r}")
 
@@ -113,9 +113,8 @@ def _input_name(param: Any, is_option: bool, where: str) -> str:
 
 def _entry(path: list[str], command: Any, argument_cls: type, option_cls: type) -> Json:
     name = " ".join(path)
-    where = name
     if not command.help:
-        raise ExportError(f"{where}: help is missing")
+        raise ExportError(f"{name}: help is missing")
     properties: Json = {}
     required: list[str] = []
     positional: list[str] = []
@@ -123,11 +122,11 @@ def _entry(path: list[str], command: Any, argument_cls: type, option_cls: type) 
     for param in command.params:
         is_option = isinstance(param, option_cls)
         if not is_option and not isinstance(param, argument_cls):
-            raise ExportError(f"{where}: unexpected parameter class {type(param).__name__}")
-        input_name = _input_name(param, is_option, where)
+            raise ExportError(f"{name}: unexpected parameter class {type(param).__name__}")
+        input_name = _input_name(param, is_option, name)
         if input_name in properties:
-            raise ExportError(f"{where}: input name {input_name!r} collides with another parameter")
-        properties[input_name] = _property_schema(param, f"{where}: {input_name}")
+            raise ExportError(f"{name}: input name {input_name!r} collides with another parameter")
+        properties[input_name] = _property_schema(param, f"{name}: {input_name}")
         if param.required:
             required.append(input_name)
         if is_option:
@@ -173,7 +172,9 @@ def build_file(app: typer.Typer) -> Json:
     walk(root, [])
     ids = [e["id"] for e in entries]
     if len(set(ids)) != len(ids):
-        raise ExportError("two commands produce the same id")
+        raise ExportError(
+            f"two commands produce the same id {next(i for i in ids if ids.count(i) > 1)!r}"
+        )
     entries.sort(key=lambda e: e["id"])
     return {"format": FORMAT, "plugin": PLUGIN, "prefix": PREFIX, "entries": entries}
 
@@ -187,8 +188,6 @@ def _show(value: object) -> str:
 
 
 def _compare(before: Any, after: Any, path: str, emit: Callable[[str, str], None]) -> None:
-    left: object = before
-    right: object = after
     if isinstance(before, dict) and isinstance(after, dict):
         b, a = cast("dict[str, Any]", before), cast("dict[str, Any]", after)
         for key in sorted({*b, *a}):
@@ -207,8 +206,8 @@ def _compare(before: Any, after: Any, path: str, emit: Callable[[str, str], None
                 emit(child, "removed")
             else:
                 _compare(bl[index], al[index], child, emit)
-    elif _show(left) != _show(right):
-        emit(path, f"{_show(left)} -> {_show(right)}")
+    elif _show(cast("object", before)) != _show(cast("object", after)):
+        emit(path, f"{_show(cast('object', before))} -> {_show(cast('object', after))}")
 
 
 def diff_generated(before: Mapping[str, Any], after: Mapping[str, Any]) -> list[str]:
@@ -240,6 +239,11 @@ def display_path(path: Path) -> str:
         return str(path)
 
 
+def _add_plugin_to_path() -> None:
+    if str(PLUGIN_ROOT) not in sys.path:
+        sys.path.insert(0, str(PLUGIN_ROOT))
+
+
 def ensure_venv(
     argv: Sequence[str],
     *,
@@ -251,13 +255,16 @@ def ensure_venv(
     """Re-run under cli/.venv when started by another Python. Returns an exit code to stop, else None."""
     env = os.environ if environ is None else environ
     current = Path(sys.prefix if prefix is None else prefix).resolve()
-    if current == venv_dir.resolve() or REEXEC_MARKER in env:
+    if current == venv_dir.resolve():
         return None
     python = venv_dir / "bin" / "python"
-    if not python.exists():
-        sys.stderr.write(
-            f"error: {display_path(venv_dir)} is missing\n"
-            "  run: cd plugins/pecot-workflow/cli && uv sync\n"
+    problem = "is not active" if REEXEC_MARKER in env else "is missing"
+    if REEXEC_MARKER in env or not python.exists():
+        _add_plugin_to_path()
+        from cli.commands._output import Output
+
+        Output(dry_run=False).error(
+            f"{display_path(venv_dir)} {problem}\nrun: cd plugins/pecot-workflow/cli && uv sync"
         )
         return 2
     env[REEXEC_MARKER] = "1"
@@ -273,6 +280,33 @@ def _parse(argv: Sequence[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
+def _check(raw: bytes | None, expected: bytes, shown: str) -> tuple[str, list[str]]:
+    """Return the error head and the detail lines for a generated.json that differs."""
+    if raw is None:
+        return f"{shown}: file is missing", []
+    try:
+        before = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        return f"{shown}: not valid JSON ({error})", []
+    stale = f"{shown} is stale"
+    if not _has_entries(before):
+        return stale, ["generated.json: unexpected structure"]
+    lines = diff_generated(before, json.loads(expected.decode("utf-8")))
+    return stale, lines or ["generated.json: formatting differs"]
+
+
+def _has_entries(data: object) -> bool:
+    if not isinstance(data, dict):
+        return False
+    entries = cast("dict[str, Any]", data).get("entries")
+    if not isinstance(entries, list):
+        return False
+    return all(
+        isinstance(e, dict) and isinstance(cast("dict[str, Any]", e).get("id"), str)
+        for e in cast("list[Any]", entries)
+    )
+
+
 def main(
     argv: Sequence[str],
     *,
@@ -280,40 +314,37 @@ def main(
     generated_path: Path = GENERATED_PATH,
 ) -> int:
     args = _parse(argv)
-    if str(PLUGIN_ROOT) not in sys.path:
-        sys.path.insert(0, str(PLUGIN_ROOT))
+    _add_plugin_to_path()
     from cli.commands._output import Operation, Output, Verb
 
     out = Output(dry_run=False)
-    shown = display_path(generated_path)
     try:
         if app is None:
             from cli.commands.main import app as real_app
 
             app = real_app
-        expected = render(build_file(app))
+    except ImportError as error:
+        out.error(f"cannot load the pecot-workflow CLI ({error})")
+        return 2
+    shown = display_path(generated_path)
+    try:
+        expected = render(build_file(app)).encode("utf-8")
     except ExportError as error:
         out.error(str(error))
         return 2
-    current = generated_path.read_text(encoding="utf-8") if generated_path.exists() else None
+    raw = generated_path.read_bytes() if generated_path.exists() else None
+    changed = raw != expected
     if args.write:
-        if current != expected:
+        if changed:
             generated_path.parent.mkdir(parents=True, exist_ok=True)
-            generated_path.write_text(expected, encoding="utf-8")
-        verb = Verb.UNCHANGED if current == expected else Verb.UPDATE
-        out.done(Operation(verb, shown))
+            generated_path.write_bytes(expected)
+        out.done(Operation(Verb.UPDATE if changed else Verb.UNCHANGED, shown))
         return 0
-    if current == expected:
+    if not changed:
         return 0
-    if current is None:
-        out.error(f"{shown}: file is missing\nrun: {RUN_WRITE}")
-        return 1
-    try:
-        lines = diff_generated(json.loads(current), json.loads(expected))
-    except (ValueError, AttributeError, TypeError, KeyError):
-        lines = []
-    body = "\n".join(lines or ["generated.json: formatting differs"])
-    out.error(f"{shown} is stale\n{body}\nrun: {RUN_WRITE}")
+    head, lines = _check(raw, expected, shown)
+    body = "".join(f"\n{line}" for line in lines)
+    out.error(f"{head}{body}\nrun: {RUN_WRITE}")
     return 1
 
 

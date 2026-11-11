@@ -1,5 +1,6 @@
 // cli-node のコマンド一覧（COMMANDS）から、interface/generated.json の項目を作る。
 // 形と決定性の決めは specs/022-interface-definitions/contracts/definition-format.md にある。
+import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
@@ -55,23 +56,36 @@ function keyRank(key: string): number {
 }
 
 /**
-引数 1 つの JSON Schema を、キーの順をそろえ、z.int() の端を外した形にする
+contracts の表に載せる type
 */
-function normalizeProperty(schema: JsonObject): JsonObject {
+const TYPES = new Set(['string', 'integer', 'boolean', 'array'])
+
+/**
+引数 1 つの JSON Schema を、キーの順をそろえ、z.int() の端を外した形にする。
+表に無いキーと type は、where を付けて例外で止める
+*/
+function normalizeProperty(schema: JsonObject, where: string): JsonObject {
   const entries = Object.entries(schema)
     .filter(([key, value]) => !(typeof value === 'number' && (key === 'minimum' || key === 'maximum') && SAFE_INTEGER_EDGES.has(value)))
-    .toSorted(([left], [right]) => keyRank(left) - keyRank(right) || byName(left, right))
-    .map(([key, value]): [string, unknown] => [key, key === 'items' && isRecord(value) ? normalizeProperty(value) : value])
+    .map(([key, value]): [string, unknown] => {
+      if (!SCHEMA_KEY_ORDER.includes(key)) throw new TypeError(`${where}: unsupported JSON Schema key ${key}`)
+      if (key === 'type' && !(typeof value === 'string' && TYPES.has(value))) throw new TypeError(`${where}: unsupported type ${JSON.stringify(value)}`)
+      return [key, key === 'items' && isRecord(value) ? normalizeProperty(value, where) : value]
+    })
+    .toSorted(([left], [right]) => keyRank(left) - keyRank(right))
   return Object.fromEntries(entries)
 }
 
-function normalizeInput(schema: JsonObject): InputSchema {
+/**
+グローバルの repo を除いて、input を正規化する。repo は defineCommand が足したもので、コマンド自身の引数ではない
+*/
+function normalizeInput(schema: JsonObject, command: string): InputSchema {
   const { properties, required } = schema
-  const own = isRecord(properties) ? Object.entries(properties) : []
-  const names = Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []
+  const own = (isRecord(properties) ? Object.entries(properties) : []).filter(([name]) => name !== 'repo')
+  const names = (Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []).filter(name => name !== 'repo')
   return {
     type: 'object',
-    properties: Object.fromEntries(own.toSorted(([left], [right]) => byName(left, right)).map(([name, schema_]) => [name, normalizeProperty(isRecord(schema_) ? schema_ : {})])),
+    properties: Object.fromEntries(own.toSorted(([left], [right]) => byName(left, right)).map(([name, property]) => [name, normalizeProperty(isRecord(property) ? property : {}, `${command}: ${name}`)])),
     required: names.toSorted(byName),
     additionalProperties: false,
   }
@@ -96,9 +110,7 @@ function flagsOf(command: CommandDefinition, names: readonly string[]): Record<s
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function entryOf(command: CommandDefinition): InterfaceEntry {
   const name = command.path.join(' ')
-  // defineCommand が足したグローバルの repo は、コマンド自身の引数ではないので外す
-  const own = command.input.omit({ repo: true })
-  const input = normalizeInput(z.toJSONSchema(own, { io: 'input' }))
+  const input = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name)
   return {
     id: `${PREFIX}-${name.toUpperCase().replaceAll(/[ _]/g, '-')}`,
     name,
@@ -124,8 +136,7 @@ export function exportEntries(commands: readonly CommandDefinition[]): Interface
 */
 export function main(argv: readonly string[], io: CommandIo, commands: readonly CommandDefinition[] = COMMANDS): number {
   const output = createOutput(false, io)
-  const modes = argv.filter(argument => argument === '--check' || argument === '--write')
-  if (modes.length !== 1 || argv.length !== 1) {
+  if (!(argv.length === 1 && (argv[0] === '--check' || argv[0] === '--write'))) {
     output.error('usage: export-interface.ts --check | --write')
     return 2
   }
@@ -137,8 +148,10 @@ export function main(argv: readonly string[], io: CommandIo, commands: readonly 
   return 2
 }
 
-// Node の import.meta.main は engines の範囲で実験的な扱いなので、起動したファイルかどうかを argv で判定する
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Node の import.meta.main は engines の範囲で実験的な扱いなので、起動したファイルかどうかを realpath で比べて判定する
+const entryPoint = process.argv[1]
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者の入力ではないパス
+if (entryPoint !== undefined && realpathSync(entryPoint) === realpathSync(fileURLToPath(import.meta.url))) {
   process.exitCode = main(process.argv.slice(2), {
     stdout: (text) => { process.stdout.write(text) },
     stderr: (text) => { process.stderr.write(text) },

@@ -69,8 +69,16 @@ function capture(): { io: CommandIo, out: string[], error: string[] } {
   return { io, out, error }
 }
 
+const samples = [alpha, beta]
+
 describe('exportEntries', () => {
   const entries = exportEntries([beta, alpha])
+
+  it('見本の書き出し全体が node-sample.json と同じバイト列になる', () => {
+    const file = { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: exportEntries(samples) }
+    const expected = readFileSync(path.resolve(import.meta.dirname, 'interface-export/node-sample.json'), 'utf8')
+    expect(`${JSON.stringify(file, undefined, 2)}\n`).toBe(expected)
+  })
 
   it('項目は id の順に並ぶ', () => {
     expect(entries.map(entry => entry.id)).toStrictEqual(['PW-ALPHA', 'PW-BETA'])
@@ -149,6 +157,39 @@ describe('exportEntries', () => {
   })
 })
 
+describe('exportEntries の失敗と refine', () => {
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
+  function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineCommand> {
+    return defineCommand({ path: ['bad', 'cmd'], description: 'Bad.', input: z.strictObject(shape), positional: [], run: () => Promise.resolve(0), interactive: false })
+  }
+
+  it('全体の refine を持つ input でも書き出せ、repo を出さない', () => {
+    const refined = defineCommand({
+      path: ['refined'],
+      description: 'Refined.',
+      input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined),
+      positional: [],
+      run: () => Promise.resolve(0),
+      interactive: false,
+    })
+    const [entry] = exportEntries([refined])
+    expect(Object.keys(entry?.input.properties ?? {})).toStrictEqual(['a', 'b'])
+    expect(entry?.input.required).toStrictEqual([])
+  })
+
+  it.each([
+    ['exclusiveMinimum', z.number().int().gt(0), 'bad cmd: n: unsupported JSON Schema key exclusiveMinimum'],
+    ['minLength', z.string().min(1), 'bad cmd: n: unsupported JSON Schema key minLength'],
+    ['pattern', z.string().regex(/^a$/), 'bad cmd: n: unsupported JSON Schema key pattern'],
+    ['format', z.email(), 'bad cmd: n: unsupported JSON Schema key format'],
+    ['anyOf', z.union([z.string(), strings]), 'bad cmd: n: unsupported JSON Schema key anyOf'],
+    ['number', z.number(), 'bad cmd: n: unsupported type "number"'],
+    ['items の中の type', z.array(z.number()), 'bad cmd: n: unsupported type "number"'],
+  ])('表に無い %s は、コマンドと引数の名前を付けて止める', (_label, schema, message) => {
+    expect(() => exportEntries([commandOf({ n: schema })])).toThrow(message)
+  })
+})
+
 describe('main', () => {
   const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
 
@@ -161,10 +202,12 @@ describe('main', () => {
     expect(readFileSync(generated).equals(before)).toBe(true)
   })
 
-  it('--write でも同じ', () => {
+  it('--write でも同じで、generated.json を変えない', () => {
+    const before = readFileSync(generated)
     const { io, error } = capture()
     expect(main(['--write'], io)).toBe(0)
     expect(error).toHaveLength(1)
+    expect(readFileSync(generated).equals(before)).toBe(true)
   })
 
   it('モードの指定が無い・不正なら 2 を返す', () => {

@@ -126,6 +126,7 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 - [x] T024 [US1] `plugins/pecot-workflow/cli-node/scripts/export-interface.ts` を実装する
   - `registry.ts` の `CommandSpec` の入力を `z.toJSONSchema()` に通し、`surfaces.cli` と `surfaces.mcp` の両方を持つ項目を作る
   - 登録済みのコマンドが 0 件の今は、`generated.json` を書き換えない
+  - 登録が 1 件以上になったら、`main` が `exportEntries` で書き出して一致を確かめる。Epic #42 で最初のコマンドを移す PR が足す
 
 **Checkpoint**: オプションを 1 つ足すと `test-py` が落ち、`--write` で通る
 

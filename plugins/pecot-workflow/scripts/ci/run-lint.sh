@@ -69,6 +69,7 @@ if [ "$RUN_PY" = true ]; then
         exit 1
     }
     # ruff は uv.lock の版で実行する。版未固定の uvx だと pre-commit の rev と判定がずれる (#1220)
+    # --config: ../scripts/interface に root の設定を当てないため
     uv run --no-sync ruff check commands core templates tests __init__.py __main__.py ../scripts/interface --config pyproject.toml
     uv run --no-sync ruff format --check commands core templates tests __init__.py __main__.py ../scripts/interface --config pyproject.toml || {
         echo "ERROR: format ずれを検出。修正コマンド: cd plugins/pecot-workflow/cli && uv run ruff format ." >&2

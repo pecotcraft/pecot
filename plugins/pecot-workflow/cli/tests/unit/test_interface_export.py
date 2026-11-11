@@ -1,24 +1,20 @@
-"""tests/unit/test_interface_export.py - scripts/interface/export.py（generated.json の書き出し）のテスト
-
-- 見本の typer の app の書き出しを、共有の fixture（typer-sample.json）とバイト列で比べる
-- 型の写し・名前の決め・決定性・例外で止める形を確かめる
-- --check の 4 通り、--write の 2 回、差の行の規則、venv の起動し直しを確かめる
-- 実物の app で --check が通ること（T021）
-"""
+"""Tests for scripts/interface/export.py, which writes and checks interface/generated.json."""
 
 from __future__ import annotations
 
 import importlib.util
 import json
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from enum import Enum
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Annotated
 
 import pytest
 import typer
+import typer.main
+from typer.core import TyperGroup
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = PLUGIN_ROOT / "scripts" / "interface" / "export.py"
@@ -37,7 +33,11 @@ def _load_script() -> ModuleType:
     return module
 
 
-export = _load_script()
+@pytest.fixture(scope="module")
+def export() -> Iterator[ModuleType]:
+    module = _load_script()
+    yield module
+    sys.modules.pop("interface_export", None)
 
 
 class Mode(str, Enum):
@@ -46,7 +46,7 @@ class Mode(str, Enum):
 
 
 def sample_app() -> typer.Typer:
-    """Node 側と比べる 2 コマンド（alpha・beta）と、hidden・deprecated の 2 コマンドを持つ見本。"""
+    """Sample app. alpha and beta are compared with Node; the sub commands are hidden or deprecated."""
     app = typer.Typer()
     sub = typer.Typer()
 
@@ -105,12 +105,13 @@ def _entry(data: dict[str, object], entry_id: str) -> dict[str, object]:
 # --- 書き出し -----------------------------------------------------------------
 
 
-def test_sample_export_matches_shared_fixture_byte_for_byte() -> None:
+def test_sample_export_matches_shared_fixture_byte_for_byte(export: ModuleType) -> None:
     rendered = export.render(export.build_file(sample_app()))
+    # Regenerate: run this file with cli/.venv/bin/python from plugins/pecot-workflow/cli.
     assert rendered == SAMPLE_FIXTURE.read_text(encoding="utf-8")
 
 
-def test_header_and_entries_are_sorted_by_id() -> None:
+def test_header_and_entries_are_sorted_by_id(export: ModuleType) -> None:
     data = export.build_file(sample_app())
     assert list(data) == ["format", "plugin", "prefix", "entries"]
     assert data["format"] == 1
@@ -120,7 +121,7 @@ def test_header_and_entries_are_sorted_by_id() -> None:
     assert ids == ["PW-ALPHA", "PW-BETA", "PW-SUB-HIDDEN-CMD", "PW-SUB-OLD-CMD"]
 
 
-def test_entry_fields_and_key_order() -> None:
+def test_entry_fields_and_key_order(export: ModuleType) -> None:
     data = export.build_file(sample_app())
     alpha = _entry(data, "PW-ALPHA")
     assert list(alpha) == [
@@ -133,7 +134,7 @@ def test_entry_fields_and_key_order() -> None:
     assert alpha["deprecated"] is False
 
 
-def test_input_types_defaults_and_required() -> None:
+def test_input_types_defaults_and_required(export: ModuleType) -> None:
     data = export.build_file(sample_app())
     alpha = _entry(data, "PW-ALPHA")
     assert alpha["input"] == {
@@ -156,7 +157,7 @@ def test_input_types_defaults_and_required() -> None:
     assert list(alpha["input"]["properties"]["count"]) == ["type", "default", "description"]
 
 
-def test_positional_order_flags_and_arrays() -> None:
+def test_positional_order_flags_and_arrays(export: ModuleType) -> None:
     data = export.build_file(sample_app())
     alpha = _entry(data, "PW-ALPHA")
     assert alpha["cli"] == {
@@ -187,7 +188,7 @@ def test_positional_order_flags_and_arrays() -> None:
     assert beta["input"]["required"] == []
 
 
-def test_hidden_deprecated_and_callable_default() -> None:
+def test_hidden_deprecated_and_callable_default(export: ModuleType) -> None:
     data = export.build_file(sample_app())
     hidden = _entry(data, "PW-SUB-HIDDEN-CMD")
     assert hidden["hidden"] is True
@@ -196,32 +197,16 @@ def test_hidden_deprecated_and_callable_default() -> None:
     assert _entry(data, "PW-SUB-OLD-CMD")["deprecated"] is True
 
 
-def test_root_callback_options_are_not_entries() -> None:
+def test_root_callback_options_are_not_entries(export: ModuleType) -> None:
     rendered = export.render(export.build_file(sample_app()))
     assert "Global repository." not in rendered
 
 
-def test_render_format() -> None:
+def test_render_format(export: ModuleType) -> None:
     text = export.render({"b": "é", "a": [1]})
     assert text == json.dumps({"b": "é", "a": [1]}, indent=2, ensure_ascii=False) + "\n"
     assert text.endswith("}\n")
     assert not text.endswith("\n\n")
-
-
-def test_unsupported_type_is_an_error() -> None:
-    app = typer.Typer()
-
-    @app.command("one")
-    def one(ratio: Annotated[float, typer.Option("--ratio")] = 1.0) -> None:
-        """One."""
-
-    @app.command("two")
-    def two() -> None:
-        """Two."""
-
-    _ = (one, two)
-    with pytest.raises(export.ExportError, match="one.*ratio"):
-        export.build_file(app)
 
 
 def _app_of(command: Callable[..., None]) -> typer.Typer:
@@ -236,6 +221,10 @@ def _app_of(command: Callable[..., None]) -> typer.Typer:
     return app
 
 
+def _float_option(ratio: Annotated[float, typer.Option("--ratio")] = 1.0) -> None:
+    """One."""
+
+
 def _clamped(value: Annotated[int, typer.Option("--value", min=1, clamp=True)] = 2) -> None:
     """One."""
 
@@ -244,31 +233,8 @@ def _with_envvar(value: Annotated[str, typer.Option("--value", envvar="SOME_VAR"
     """One."""
 
 
-def test_clamped_range_is_an_error() -> None:
-    for command in (_clamped,):
-        with pytest.raises(export.ExportError, match="range"):
-            export.build_file(_app_of(command))
-
-
-def test_envvar_option_is_an_error() -> None:
-    with pytest.raises(export.ExportError, match="envvar"):
-        export.build_file(_app_of(_with_envvar))
-
-
-def test_command_without_help_is_an_error() -> None:
-    app = typer.Typer()
-
-    @app.command("one")
-    def one() -> None:
-        pass
-
-    @app.command("two")
-    def two() -> None:
-        """Two."""
-
-    _ = (one, two)
-    with pytest.raises(export.ExportError, match="help"):
-        export.build_file(app)
+def _without_help() -> None:
+    pass
 
 
 def _colliding(
@@ -278,9 +244,131 @@ def _colliding(
     """One."""
 
 
-def test_input_name_collision_is_an_error() -> None:
-    with pytest.raises(export.ExportError, match="collides"):
-        export.build_file(_app_of(_colliding))
+def _param(**overrides: object) -> SimpleNamespace:
+    base: dict[str, object] = {
+        "name": "v",
+        "opts": ["--v"],
+        "secondary_opts": [],
+        "type": SimpleNamespace(name="str"),
+        "required": False,
+        "nargs": 1,
+        "multiple": False,
+        "default": None,
+        "help": None,
+        "hidden": False,
+        "envvar": None,
+        "count": False,
+        "is_flag": False,
+        "is_bool_flag": False,
+    }
+    return SimpleNamespace(**{**base, **overrides})
+
+
+def _int_range(**overrides: object) -> SimpleNamespace:
+    base = {"name": "int range", "min": 1, "max": 2, "min_open": False, "max_open": False}
+    return SimpleNamespace(**{**base, "clamp": False, **overrides})
+
+
+def _schema(**overrides: object) -> Callable[[ModuleType, pytest.MonkeyPatch], object]:
+    return lambda export, _mp: export._property_schema(_param(**overrides), "one: v")
+
+
+def _two_commands_one_id(export: ModuleType, _mp: pytest.MonkeyPatch) -> object:
+    app = typer.Typer()
+    sub = typer.Typer()
+
+    @app.command("a-b")
+    def a_b() -> None:
+        """One."""
+
+    @sub.command("b")
+    def b() -> None:
+        """Two."""
+
+    app.add_typer(sub, name="a")
+    _ = (a_b, b)
+    return export.build_file(app)
+
+
+def _root_is_not_a_group(export: ModuleType, _mp: pytest.MonkeyPatch) -> object:
+    app = typer.Typer()
+
+    @app.command("only")
+    def only() -> None:
+        """Only."""
+
+    _ = only
+    return export.build_file(app)
+
+
+def _unknown_command_class(export: ModuleType, monkeypatch: pytest.MonkeyPatch) -> object:
+    group = TyperGroup(name="root", commands={"x": SimpleNamespace()})  # pyright: ignore[reportArgumentType]
+    monkeypatch.setattr(typer.main, "get_command", lambda _app: group)
+    return export.build_file(typer.Typer())
+
+
+def _no_long_name(export: ModuleType, _mp: pytest.MonkeyPatch) -> object:
+    return export._input_name(_param(opts=["-v"]), True, "one")
+
+
+UNSUPPORTED_SHAPES = {
+    "hidden parameter": (_schema(hidden=True), "one: v: hidden parameter"),
+    "envvar": (_schema(envvar="X"), "one: v: envvar is not supported"),
+    "count": (_schema(count=True), "one: v: count option"),
+    "non-boolean flag": (_schema(is_flag=True), "one: v: non-boolean flag"),
+    "nargs 2": (_schema(nargs=2), r"one: v: nargs=2"),
+    "unknown type": (
+        _schema(type=SimpleNamespace(name="float")),
+        "one: v: unsupported parameter type 'float'",
+    ),
+    "clamped range": (_schema(type=_int_range(clamp=True)), "one: v: open or clamped"),
+    "open range": (_schema(type=_int_range(min_open=True)), "one: v: open or clamped"),
+    "float default": (_schema(default=1.0), "one: v: unsupported default value 1.0"),
+    "object default": (_schema(default=object()), "one: v: unsupported default value"),
+    "no long name": (_no_long_name, "one: option 'v' has no long name"),
+    "duplicate id": (_two_commands_one_id, "two commands produce the same id 'PW-A-B'"),
+    "root is not a group": (_root_is_not_a_group, "the command tree root is not a group"),
+    "unknown command class": (_unknown_command_class, "x: unexpected command class"),
+    "real float option": (
+        lambda export, _mp: export.build_file(_app_of(_float_option)),
+        "one: ratio: unsupported parameter type 'float'",
+    ),
+    "real clamp": (
+        lambda export, _mp: export.build_file(_app_of(_clamped)),
+        "one: value: open or clamped",
+    ),
+    "real envvar": (
+        lambda export, _mp: export.build_file(_app_of(_with_envvar)),
+        "one: value: envvar is not supported",
+    ),
+    "real missing help": (
+        lambda export, _mp: export.build_file(_app_of(_without_help)),
+        "one: help is missing",
+    ),
+    "real name collision": (
+        lambda export, _mp: export.build_file(_app_of(_colliding)),
+        "one: input name 'x' collides with another parameter",
+    ),
+}
+
+
+@pytest.mark.parametrize("case", UNSUPPORTED_SHAPES)
+def test_unsupported_shape_raises_export_error(
+    export: ModuleType, monkeypatch: pytest.MonkeyPatch, case: str
+) -> None:
+    build, message = UNSUPPORTED_SHAPES[case]
+    with pytest.raises(export.ExportError, match=message):
+        build(export, monkeypatch)
+
+
+def test_enum_choice_values_and_default_are_strings(export: ModuleType) -> None:
+    class Level(int, Enum):
+        ONE = 1
+        TWO = 2
+
+    choice = SimpleNamespace(name="choice", choices=[Level.ONE, Level.TWO])
+    assert export._scalar_schema(choice, "one: v") == {"type": "string", "enum": ["1", "2"]}
+    assert export._default_value(Level.ONE, "one: v") == "1"
 
 
 # --- 差の行 -------------------------------------------------------------------
@@ -299,12 +387,12 @@ def _e(entry_id: str, props: dict[str, object], **extra: object) -> dict[str, ob
     }
 
 
-def test_diff_identical_is_empty() -> None:
+def test_diff_identical_is_empty(export: ModuleType) -> None:
     same = _file([_e("PW-A", {"a": {"type": "string"}})])
     assert export.diff_generated(same, same) == []
 
 
-def test_diff_names_added_changed_and_removed_properties() -> None:
+def test_diff_names_added_changed_and_removed_properties(export: ModuleType) -> None:
     before = _file(
         [_e("PW-ISSUE-CREATE", {"draft": {"type": "boolean", "default": False}, "gone": {}})]
     )
@@ -318,7 +406,7 @@ def test_diff_names_added_changed_and_removed_properties() -> None:
     ]
 
 
-def test_diff_names_added_and_removed_entries_in_id_order() -> None:
+def test_diff_names_added_and_removed_entries_in_id_order(export: ModuleType) -> None:
     before = _file([_e("PW-B", {}), _e("PW-C", {})])
     after = _file([_e("PW-A", {}), _e("PW-B", {})])
     assert export.diff_generated(before, after) == [
@@ -327,7 +415,7 @@ def test_diff_names_added_and_removed_entries_in_id_order() -> None:
     ]
 
 
-def test_diff_compares_array_items_by_index() -> None:
+def test_diff_compares_array_items_by_index(export: ModuleType) -> None:
     def with_path(path: list[str]) -> dict[str, object]:
         return _file([_e("PW-A", {}, surfaces={"cli": {"path": path}})])
 
@@ -343,7 +431,7 @@ def test_diff_compares_array_items_by_index() -> None:
     ]
 
 
-def test_diff_distinguishes_true_from_one_and_shows_type_change() -> None:
+def test_diff_distinguishes_true_from_one_and_shows_type_change(export: ModuleType) -> None:
     before = _file([_e("PW-A", {"a": {"type": "string", "default": 1}})])
     after = _file([_e("PW-A", {"a": {"type": "string", "default": [1]}})])
     assert export.diff_generated(before, after) == ["PW-A: input.properties.a.default: 1 -> [1]"]
@@ -354,7 +442,7 @@ def test_diff_distinguishes_true_from_one_and_shows_type_change() -> None:
     ]
 
 
-def test_diff_reports_header_change() -> None:
+def test_diff_reports_header_change(export: ModuleType) -> None:
     assert export.diff_generated(_file([]), _file([], prefix="PV")) == [
         'file: prefix: "PW" -> "PV"'
     ]
@@ -363,16 +451,16 @@ def test_diff_reports_header_change() -> None:
 # --- --check / --write --------------------------------------------------------
 
 
-def _write_generated(tmp_path: Path, app: typer.Typer) -> Path:
+def _write_generated(export: ModuleType, tmp_path: Path, app: typer.Typer) -> Path:
     path = tmp_path / "generated.json"
     path.write_text(export.render(export.build_file(app)), encoding="utf-8")
     return path
 
 
 def test_check_passes_silently_when_equal(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    path = _write_generated(tmp_path, sample_app())
+    path = _write_generated(export, tmp_path, sample_app())
     assert export.main(["--check"], app=sample_app(), generated_path=path) == 0
     captured = capsys.readouterr()
     assert captured.out == ""
@@ -412,9 +500,9 @@ def _app_without_extra_option() -> typer.Typer:
 
 
 def test_check_reports_added_option_and_exits_1(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    path = _write_generated(tmp_path, _app_without_extra_option())
+    path = _write_generated(export, tmp_path, _app_without_extra_option())
     code = export.main(["--check"], app=_app_with_extra_option(), generated_path=path)
     assert code == 1
     captured = capsys.readouterr()
@@ -425,7 +513,9 @@ def test_check_reports_added_option_and_exits_1(
     assert lines[-1] == RUN_LINE
 
 
-def test_check_reports_missing_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_check_reports_missing_file(
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     path = tmp_path / "generated.json"
     code = export.main(["--check"], app=sample_app(), generated_path=path)
     assert code == 1
@@ -433,9 +523,9 @@ def test_check_reports_missing_file(tmp_path: Path, capsys: pytest.CaptureFixtur
 
 
 def test_check_reports_formatting_only_difference(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    path = _write_generated(tmp_path, sample_app())
+    path = _write_generated(export, tmp_path, sample_app())
     data = json.loads(path.read_text(encoding="utf-8"))
     path.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n", encoding="utf-8")
     code = export.main(["--check"], app=sample_app(), generated_path=path)
@@ -445,12 +535,12 @@ def test_check_reports_formatting_only_difference(
     )
 
 
-def test_display_path_is_relative_to_repo_root() -> None:
+def test_display_path_is_relative_to_repo_root(export: ModuleType) -> None:
     assert export.display_path(GENERATED) == "plugins/pecot-workflow/interface/generated.json"
 
 
 def test_write_twice_reports_updated_then_unchanged(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     path = tmp_path / "generated.json"
     assert export.main(["--write"], app=sample_app(), generated_path=path) == 0
@@ -460,7 +550,9 @@ def test_write_twice_reports_updated_then_unchanged(
     assert capsys.readouterr().err == f"unchanged: {path}\n"
 
 
-def test_exactly_one_mode_is_required(capsys: pytest.CaptureFixture[str]) -> None:
+def test_exactly_one_mode_is_required(
+    export: ModuleType, capsys: pytest.CaptureFixture[str]
+) -> None:
     for argv in ([], ["--check", "--write"]):
         with pytest.raises(SystemExit) as raised:
             export.main(argv, app=sample_app())
@@ -468,21 +560,62 @@ def test_exactly_one_mode_is_required(capsys: pytest.CaptureFixture[str]) -> Non
     capsys.readouterr()
 
 
-def test_unreadable_tree_exits_2(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    app = typer.Typer()
-
-    @app.command("one")
-    def one() -> None:
-        pass
-
-    @app.command("two")
-    def two() -> None:
-        """Two."""
-
-    _ = (one, two)
-    code = export.main(["--check"], app=app, generated_path=tmp_path / "g.json")
+def test_export_error_exits_2(
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    code = export.main(["--check"], app=_app_of(_without_help), generated_path=tmp_path / "g.json")
     assert code == 2
-    assert capsys.readouterr().err.startswith("error: ")
+    assert capsys.readouterr().err == "error: one: help is missing\n"
+
+
+def test_cli_import_failure_exits_2(
+    export: ModuleType,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setitem(sys.modules, "cli.commands.main", None)
+    assert export.main(["--check"], generated_path=tmp_path / "g.json") == 2
+    assert capsys.readouterr().err.startswith("error: cannot load the pecot-workflow CLI (")
+
+
+def test_check_reports_invalid_json_and_bad_utf8(
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "generated.json"
+    for content in (b"{", b"\xff\xfe"):
+        path.write_bytes(content)
+        assert export.main(["--check"], app=sample_app(), generated_path=path) == 1
+        lines = capsys.readouterr().err.splitlines(keepends=True)
+        assert len(lines) == 2
+        assert lines[0].startswith(f"error: {path}: not valid JSON (")
+        assert lines[1] == RUN_LINE
+
+
+def test_check_reports_unexpected_structure(
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "generated.json"
+    path.write_text(json.dumps({"entries": [{"name": "x"}]}), encoding="utf-8")
+    assert export.main(["--check"], app=sample_app(), generated_path=path) == 1
+    assert capsys.readouterr().err == (
+        f"error: {path} is stale\n  generated.json: unexpected structure\n{RUN_LINE}"
+    )
+
+
+def test_crlf_file_is_a_formatting_difference_and_write_restores_lf(
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "generated.json"
+    text = export.render(export.build_file(sample_app()))
+    path.write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+    assert export.main(["--check"], app=sample_app(), generated_path=path) == 1
+    assert capsys.readouterr().err == (
+        f"error: {path} is stale\n  generated.json: formatting differs\n{RUN_LINE}"
+    )
+    assert export.main(["--write"], app=sample_app(), generated_path=path) == 0
+    assert path.read_bytes() == text.encode("utf-8")
+    capsys.readouterr()
 
 
 # --- venv の起動し直し ---------------------------------------------------------
@@ -503,7 +636,7 @@ def _venv(tmp_path: Path) -> Path:
     return venv
 
 
-def test_reexec_when_outside_venv(tmp_path: Path) -> None:
+def test_reexec_when_outside_venv(export: ModuleType, tmp_path: Path) -> None:
     venv = _venv(tmp_path)
     run = _Exec()
     environ: dict[str, str] = {}
@@ -513,32 +646,40 @@ def test_reexec_when_outside_venv(tmp_path: Path) -> None:
     assert result is None
     python = str(venv / "bin" / "python")
     assert run.calls == [(python, [python, str(SCRIPT), "--check"])]
-    assert environ != {}
+    assert environ == {export.REEXEC_MARKER: "1"}
 
 
-def test_no_reexec_inside_venv_or_on_second_launch(tmp_path: Path) -> None:
+def test_no_reexec_inside_venv(export: ModuleType, tmp_path: Path) -> None:
     venv = _venv(tmp_path)
     run = _Exec()
-    assert (
-        export.ensure_venv(["--check"], prefix=str(venv), venv_dir=venv, environ={}, execv=run)
-        is None
+    result = export.ensure_venv(
+        ["--check"], prefix=str(venv), venv_dir=venv, environ={export.REEXEC_MARKER: "1"}, execv=run
     )
-    first: dict[str, str] = {}
-    export.ensure_venv(
-        ["--check"], prefix=str(tmp_path / "other"), venv_dir=venv, environ=first, execv=run
-    )
-    run.calls.clear()
-    assert (
-        export.ensure_venv(
-            ["--check"], prefix=str(tmp_path / "other"), venv_dir=venv, environ=first, execv=run
-        )
-        is None
-    )
+    assert result is None
     assert run.calls == []
 
 
+def test_marker_outside_venv_exits_2_without_reexec(
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    venv = _venv(tmp_path)
+    run = _Exec()
+    code = export.ensure_venv(
+        ["--check"],
+        prefix=str(tmp_path / "other"),
+        venv_dir=venv,
+        environ={export.REEXEC_MARKER: "1"},
+        execv=run,
+    )
+    assert code == 2
+    assert run.calls == []
+    assert capsys.readouterr().err == (
+        f"error: {venv} is not active\n  run: cd plugins/pecot-workflow/cli && uv sync\n"
+    )
+
+
 def test_missing_venv_exits_2_with_uv_sync_hint(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    export: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     run = _Exec()
     code = export.ensure_venv(
@@ -550,19 +691,23 @@ def test_missing_venv_exits_2_with_uv_sync_hint(
     )
     assert code == 2
     assert run.calls == []
-    assert "uv sync" in capsys.readouterr().err
+    assert capsys.readouterr().err == (
+        f"error: {tmp_path / '.venv'} is missing\n  run: cd plugins/pecot-workflow/cli && uv sync\n"
+    )
 
 
-# --- 実物の app（T021） ---------------------------------------------------------
+# --- 実物の app ---------------------------------------------------------------
 
 
-def test_real_app_matches_committed_generated_json(capsys: pytest.CaptureFixture[str]) -> None:
+def test_real_app_matches_committed_generated_json(
+    export: ModuleType, capsys: pytest.CaptureFixture[str]
+) -> None:
     assert export.main(["--check"]) == 0
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
 
 
-def test_real_app_has_34_entries() -> None:
-    data = json.loads(GENERATED.read_text(encoding="utf-8"))
-    assert len(data["entries"]) == 34
+if __name__ == "__main__":
+    module = _load_script()
+    SAMPLE_FIXTURE.write_text(module.render(module.build_file(sample_app())), encoding="utf-8")

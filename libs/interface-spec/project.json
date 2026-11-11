@@ -84,13 +84,15 @@
       "inputs": [
         "default",
         "runtime",
+        "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/interface-export/typer-sample.json",
+        "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/interface-export/node-sample.json",
         "env"
       ],
       "dependsOn": [
         "install"
       ],
       "metadata": {
-        "description": "vitest の単体テスト。カバレッジ閾値は 90%。"
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli-node/tests/interface-export/）を形式の検証に読むので、inputs に足してある。"
       },
       "options": {
         "command": "pnpm exec vitest run --coverage",
