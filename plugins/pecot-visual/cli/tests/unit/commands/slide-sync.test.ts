@@ -27,6 +27,7 @@ import {
 import { parseJsonRecord } from '../../_helpers/records.js'
 import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { verifies } from '../../_helpers/verifies.js'
 
 // 実テンプレートが必要なテストは integration 側で実行するため、unit ではコマンドの
 // パース / エラーマッピング / default deps factory に絞る。
@@ -412,7 +413,8 @@ describe('slide sync --theme (移行前の talk-dir)', () => {
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
   })
 
-  it('--node-modules-only との同時指定は theme-with-node-modules-only (exit 2)', async () => {
+  it('--node-modules-only との同時指定は theme-with-node-modules-only (exit 2)', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-08')
     const talk = createLegacyTalkWithWork()
 
     const { parsed, exitCode } = await failureOf(['--dir', talk, '--theme', 'file:/abs/theme', '--node-modules-only'])

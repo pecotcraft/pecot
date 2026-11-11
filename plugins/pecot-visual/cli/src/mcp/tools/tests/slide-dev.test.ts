@@ -21,6 +21,7 @@ import { ZodError } from 'zod'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 import {
   createDevServerRegistry,
   devServerDefaultDependencies,
@@ -227,6 +228,11 @@ describe('createDevServerRegistry', () => {
     expect(children[1]?.killedWith).toEqual(['SIGTERM'])
   })
 
+  it('ready を待つ既定の時間は 15 秒', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-10')
+    expect(devServerDefaultDependencies().readyTimeoutMs).toBe(15_000)
+  })
+
   it('既定のポートは 3030 から 3034 まで', () => {
     expect(devServerDefaultDependencies().defaultPorts).toEqual([3030, 3031, 3032, 3033, 3034])
   })
@@ -288,7 +294,8 @@ describe('createDevServerRegistry', () => {
     expect(spawned).toEqual([{ directory: TALK_DIRECTORY, port: 5000 }])
   })
 
-  it('指定されたポートが使用中なら別のポートへ移らず失敗を返す', async () => {
+  it('指定されたポートが使用中なら別のポートへ移らず失敗を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-06')
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -433,7 +440,8 @@ describe('createDevServerRegistry', () => {
     expect(started.ok ? '' : started.stderr).toContain('slides.md が破損しています')
   })
 
-  it('ready にならなければタイムアウトで畳んで子を止める', async () => {
+  it('ready にならなければタイムアウトで畳んで子を止める', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-10')
     const fake = makeFakeChild(7)
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => fake.child,
@@ -730,7 +738,8 @@ describe('slideDevTool', () => {
     expect(dataOf(result)).toHaveProperty('invalidPaths')
   })
 
-  it('talk-dir が無ければ spawn せず即失敗し、捕捉相当の空キーを残す', async () => {
+  it('talk-dir が無ければ spawn せず即失敗し、捕捉相当の空キーを残す', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-07')
     const result = await toolWith(unusedRegistry()).handler(
       { dir: path.join(workDirectory, 'no-such-deck'), stop: false },
       CALL,
@@ -742,7 +751,8 @@ describe('slideDevTool', () => {
     expect(structuredOf(result)['stderr']).toBe('')
   })
 
-  it('slides.md が無ければ Slidev プロジェクトとして扱わない', async () => {
+  it('slides.md が無ければ Slidev プロジェクトとして扱わない', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-07')
     rmSync(path.join(talkDirectory, 'slides.md'))
 
     const result = await toolWith(unusedRegistry()).handler({ dir: talkDirectory, stop: false }, CALL)
@@ -761,7 +771,8 @@ describe('slideDevTool', () => {
     expect(String(dataOf(result)['detail'])).toContain('`slide_sync`')
   })
 
-  it('既定の張り直しは、テーマを参照しない talk-dir (slides.md に theme が無い) を theme-none で止める', async () => {
+  it('既定の張り直しは、テーマを参照しない talk-dir (slides.md に theme が無い) を theme-none で止める', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-08')
     // 3 つ目の引数を省き、既定の ensureTalkThemeLinked (実ファイルを読む) を通す。
     const tool = slideDevTool(() => unusedRegistry(), installedRuntimeDependencies)
 
@@ -934,7 +945,8 @@ describe('slideDevTool', () => {
     expect(calls).toStrictEqual(['start'])
   })
 
-  it('起動できたら URL・ポート・pid を data に載せる', async () => {
+  it('起動できたら URL・ポート・pid を data に載せる', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-01')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(555).child }))
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, stop: false }, CALL)
@@ -951,7 +963,8 @@ describe('slideDevTool', () => {
     expect(String(structuredOf(result)['message'])).toContain('http://localhost:3030')
   })
 
-  it('port を指定したらそのポートで起動する', async () => {
+  it('port を指定したらそのポートで起動する', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-03')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(560).child }))
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, port: 5000, stop: false }, CALL)
@@ -960,7 +973,8 @@ describe('slideDevTool', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.dev.started', port: 5000, url: 'http://localhost:5000' })
   })
 
-  it('指定した port が使用中なら理由付きで失敗を返す', async () => {
+  it('指定した port が使用中なら理由付きで失敗を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-06')
     const registry = createDevServerRegistry(makeDependencies({ isPortFree: () => Promise.resolve(false) }))
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, port: 5000, stop: false }, CALL)
@@ -985,7 +999,8 @@ describe('slideDevTool', () => {
     expect(rejection.issues.some(issue => issue.path.includes('port'))).toBe(true)
   })
 
-  it('起動済みなら reused として同じ URL を返す', async () => {
+  it('起動済みなら reused として同じ URL を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-02')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(556).child }))
     const tool = toolWith(registry)
     await tool.handler({ dir: talkDirectory, stop: false }, CALL)
@@ -1029,7 +1044,8 @@ describe('slideDevTool', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.dev.stopped', stopped: true })
   })
 
-  it('stop は talk-dir の確認を通さずに停止する', async () => {
+  it('stop は talk-dir の確認を通さずに停止する', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-04')
     // 停止は talk-dir の体裁と無関係で、消えた talk-dir のサーバも止められる必要がある。
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(558).child }))
     const tool = toolWith(registry)
@@ -1047,7 +1063,8 @@ describe('slideDevTool', () => {
     })
   })
 
-  it('動いていないサーバへの stop は失敗にしない', async () => {
+  it('動いていないサーバへの stop は失敗にしない', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-05')
     const registry = createDevServerRegistry(makeDependencies())
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, stop: true }, CALL)

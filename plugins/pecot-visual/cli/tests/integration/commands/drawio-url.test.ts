@@ -19,6 +19,7 @@ import {
 } from '../../../src/commands/drawio/url.js'
 import type { LintText } from '../../../src/domain/_shared/text-check.js'
 import { defaultLintText } from '../../../src/infra/text-lint.js'
+import { verifies } from '../../_helpers/verifies.js'
 
 const failingLintText: LintText = () => Promise.reject(new Error('辞書を読めません'))
 
@@ -777,7 +778,8 @@ describe('createDrawioUrlCommand', () => {
       workDirectory = ''
     })
 
-    it('-o + 既定 (--png) で capturePng が <-o path 拡張子置換>.png 引数で呼ばれる', async () => {
+    it('-o + 既定 (--png) で capturePng が <-o path 拡張子置換>.png 引数で呼ばれる', async (context) => {
+      await verifies(context, 'PV-DRAWIO-CREATE-03')
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-png-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
       const expectedPngPath = path.join(workDirectory, 'out.drawio.png')
@@ -838,7 +840,8 @@ describe('createDrawioUrlCommand', () => {
       }
     })
 
-    it('-o + --no-png で capturePng が呼ばれない', async () => {
+    it('-o + --no-png で capturePng が呼ばれない', async (context) => {
+      await verifies(context, 'PV-DRAWIO-CREATE-04')
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-png-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
       const capturePng = vi.fn<(xmlString: string, outputPath: string, fonts: readonly string[]) => Promise<void>>(() => Promise.resolve())
@@ -894,7 +897,8 @@ describe('createDrawioUrlCommand', () => {
       }
     })
 
-    it('-o + --json + --png 成功時に png:<拡張子置換後> + pngFailed:false', async () => {
+    it('-o + --json + --png 成功時に png:<拡張子置換後> + pngFailed:false', async (context) => {
+      await verifies(context, 'PV-DRAWIO-CREATE-03')
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-png-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
       const expectedPngPath = path.join(workDirectory, 'out.drawio.png')

@@ -16,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { rejectionOf } from '../../../tests/_helpers/rejection.js'
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { toCallToolResult } from '../result.js'
 import { allTools } from '../tools/index.js'
 import {
@@ -250,7 +251,8 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       expect(mcp.calls.slice(before)).toEqual([{ name: table.tool, arguments: table.full }])
     })
 
-    it('宣言外のキーは拒否せず、ハンドラへ渡さない', async () => {
+    it('宣言外のキーは拒否せず、ハンドラへ渡さない', async (context) => {
+      await verifies(context, 'PV-COMMON-02')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, table.tool, { ...table.minimal, ...UNEXPECTED })
 
@@ -265,7 +267,8 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       expect(called.structuredContent).toEqual(toCallToolResult(SPY_RESULT).structuredContent)
     })
 
-    it.each(table.rejects)('スキーマ違反を拒否する: %s', async (_label, arguments_) => {
+    it.for(table.rejects)('スキーマ違反を拒否する: %s', async ([, arguments_], context) => {
+      await verifies(context, 'PV-COMMON-01')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, table.tool, arguments_)
 
@@ -297,7 +300,8 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
   })
 
   describe('未知ツール', () => {
-    it('JSON-RPC エラー (-32602) で拒否し、ハンドラへ届かない', async () => {
+    it('JSON-RPC エラー (-32602) で拒否し、ハンドラへ届かない', async (context) => {
+      await verifies(context, 'PV-COMMON-13')
       const before = mcp.calls.length
       const error: unknown = await rejectionOf(mcp.client.callTool({ name: 'no_such_tool', arguments: {} }))
 

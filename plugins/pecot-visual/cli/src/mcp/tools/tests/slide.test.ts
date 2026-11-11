@@ -23,6 +23,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync,
 import path from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { parse } from 'yaml'
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import type { SlideCreateDependencies } from '../../../commands/slidev-project/create.js'
@@ -43,7 +44,9 @@ import { XmldomXmlEngine } from '../../../infra/pptx-ooxml/xml-engine.js'
 import type { ToolCallContext, ToolDefinition } from '../../server.js'
 import { useInstalledChromiumCache } from '../../../../tests/_helpers/chromium-cache.js'
 import { seedDependencyRoot } from '../../../../tests/_helpers/dependency-probes.js'
-import { copyFixtureTheme } from '../../../../tests/_helpers/theme-fixtures.js'
+import { copyFixtureTheme, FIXTURE_THEMES } from '../../../../tests/_helpers/theme-fixtures.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { snapshotTree } from './tree-snapshot.js'
 import {
   slideConvertTool,
   slideCreateTool,
@@ -144,6 +147,16 @@ function makePluginRoot(): string {
 const THEME_NAME = 'slidev-theme-pecotv-test-declared'
 
 /**
+fixture テーマの見せ方の分類 id を、宣言（references/_common.yaml の layout_categories）の並びのまま返す。
+*/
+function fixtureCategoryIds(): readonly string[] {
+  const common: unknown = parse(readFileSync(path.join(FIXTURE_THEMES, 'with-declaration', 'references', '_common.yaml'), 'utf8'))
+  const categories = isRecord(common) ? common['layout_categories'] : undefined
+  if (!Array.isArray(categories)) throw new TypeError('_common.yaml に layout_categories が無い')
+  return categories.map(entry => (isRecord(entry) ? String(entry['id']) : ''))
+}
+
+/**
 fixture テーマ (宣言あり) の写しを作り、`file:` の指定を返す。
 */
 function makeThemeSpec(): string {
@@ -222,6 +235,22 @@ function fakeEslint(exitCode: number, report: unknown): EslintRunner {
       stderr: '',
       timedOut: false,
     }),
+  }
+}
+
+/**
+呼ばれた回数を数える fake runner。
+*/
+function countingEslint(): { readonly runner: EslintRunner, readonly calls: () => number } {
+  let count = 0
+  return {
+    runner: {
+      run: () => {
+        count += 1
+        return Promise.resolve({ exitCode: 0, signal: null, stdout: '[]', stderr: '', timedOut: false })
+      },
+    },
+    calls: () => count,
   }
 }
 
@@ -345,7 +374,12 @@ describe('slide_create', () => {
     expect(dataOf(result)['invalidPaths']).toEqual(['project_dir=relative/deck'])
   })
 
-  it('生成に成功すると slide.create.done を data に載せ、生成先を artifacts に返す', async () => {
+  it('生成に成功すると slide.create.done を data に載せ、生成先を artifacts に返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-01')
+
+    await verifies(context, 'PV-SLIDE-CREATE-02')
+
+    await verifies(context, 'PV-SLIDE-CREATE-03')
     const projectDirectory = temporaryRoot('deck')
     const theme = makeThemeSpec()
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
@@ -365,6 +399,16 @@ describe('slide_create', () => {
     })
     expect(dataOf(result)).not.toHaveProperty('template')
     expect(dataOf(result)['layouts']).toHaveLength(8)
+    expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
+    const categories = dataOf(result)['categories']
+    if (!Array.isArray(categories)) throw new TypeError('slide_create が data.categories を返していません')
+    const categoryIds = categories.map(entry => (isRecord(entry) ? entry['id'] : undefined))
+    expect(categoryIds).toEqual(fixtureCategoryIds())
+    const layouts = dataOf(result)['layouts']
+    if (!Array.isArray(layouts)) throw new TypeError('slide_create が data.layouts を返していません')
+    for (const entry of layouts) {
+      expect(categoryIds).toContain(isRecord(entry) ? entry['category'] : undefined)
+    }
     // eslint を解決できない fixture なので、自動 deck lint は成否を変えず skipped として扱われる。
     expect(dataOf(result)['lint']).toMatchObject({ skipped: true })
   })
@@ -380,7 +424,8 @@ describe('slide_create', () => {
     expect(textOf(structuredOf(result)['stdout'])).not.toContain('Layout Catalog')
   })
 
-  it('タグの無い git URL は取得に入らず usage error として exitCode 2 で返す', async () => {
+  it('タグの無い git URL は取得に入らず usage error として exitCode 2 で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-07')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: temporaryRoot('deck-no-tag'),
       theme: 'git+https://example.com/org/theme.git',
@@ -391,9 +436,12 @@ describe('slide_create', () => {
     expect(structured['ok']).toBe(false)
     expect(structured['exitCode']).toBe(2)
     expect(dataOf(result)).toMatchObject({ event: 'slide.create.error', reason: 'theme-tag-required' })
+    expect(existsSync(temporaryRoot('deck-no-tag'))).toBe(false)
+    expect(existsSync(temporaryRoot('store'))).toBe(false)
   })
 
-  it('相対の file: は実処理前に invalid-option・exitCode 2 で返す (サーバの cwd は呼び出し元と別)', async () => {
+  it('相対の file: は実処理前に invalid-option・exitCode 2 で返す (サーバの cwd は呼び出し元と別)', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-08')
     const projectDirectory = temporaryRoot('deck-relative-theme')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: projectDirectory,
@@ -433,10 +481,12 @@ describe('slide_create', () => {
     expect(dataOf(result)['reason']).toBe('theme-unknown')
   })
 
-  it('force なしで既存ディレクトリを指すと exitCode 2 で返す', async () => {
+  it('force なしで既存ディレクトリを指すと exitCode 2 で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-06')
     const pluginRoot = makePluginRoot()
     const projectDirectory = makeTalkDirectory('existing')
     const theme = makeThemeSpec()
+    const before = snapshotTree(projectDirectory)
 
     const rejected = await call(createCreateTool(pluginRoot, makeStream(), makeStream()), {
       project_dir: projectDirectory,
@@ -444,6 +494,7 @@ describe('slide_create', () => {
     })
     expect(structuredOf(rejected)['exitCode']).toBe(2)
     expect(dataOf(rejected)['reason']).toBe('dest-exists')
+    expect(snapshotTree(projectDirectory)).toEqual(before)
 
     // force: true なら同じ入力で成功する (上書き分岐が生きていることの確認)。
     const forced = await call(createCreateTool(pluginRoot, makeStream(), makeStream()), {
@@ -522,7 +573,8 @@ describe('slide_sync', () => {
     })
   })
 
-  it('移行前の talk-dir に theme を渡すと、テーマを参照する形へ移し、消した名前を data.migration.removed と message に返す', async () => {
+  it('移行前の talk-dir に theme を渡すと、テーマを参照する形へ移し、消した名前を data.migration.removed と message に返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-01')
     const talk = makeTalkDirectory('talk-legacy')
     mkdirSync(path.join(talk, 'layouts'))
     mkdirSync(path.join(talk, 'pages'))
@@ -546,7 +598,8 @@ describe('slide_sync', () => {
     expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
   })
 
-  it('移行前の talk-dir に theme を渡さないと theme-required・exitCode 2 で返し、何も変えない', async () => {
+  it('移行前の talk-dir に theme を渡さないと theme-required・exitCode 2 で返し、何も変えない', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-07')
     const talk = makeTalkDirectory('talk-legacy-no-theme')
     mkdirSync(path.join(talk, 'layouts'))
 
@@ -558,6 +611,20 @@ describe('slide_sync', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'theme-required' })
     expect(textOf(structured['message'])).toContain('theme: <theme-spec>')
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
+  })
+
+  it('theme と node_modules_only を同時に渡すと、何も変えず theme-with-node-modules-only・exitCode 2 で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-08')
+    const talk = makeTalkDirectory('talk-theme-with-node-modules-only')
+    mkdirSync(path.join(talk, 'layouts'))
+    const before = snapshotTree(talk)
+
+    const result = await call(createSyncTool(makePluginRoot()), { dir: talk, theme: makeThemeSpec(), node_modules_only: true })
+
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)['exitCode']).toBe(2)
+    expect(dataOf(result)).toMatchObject({ event: 'slide.sync.error', reason: 'theme-with-node-modules-only' })
+    expect(snapshotTree(talk)).toEqual(before)
   })
 
   it('相対の file: の theme は実処理前に invalid-option・exitCode 2 で返す', async () => {
@@ -602,7 +669,8 @@ describe('slide_lint', () => {
     expect(textOf(structuredOf(result)['message'])).toContain('must be an absolute path')
   })
 
-  it('違反なしは slide.lint.done / exitCode 0 で返す', async () => {
+  it('違反なしは slide.lint.done / exitCode 0 で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-03')
     const talk = makeThemedTalkDirectory('talk-clean')
     const eslint = fakeEslint(0, [
       { filePath: path.join(talk, 'slides.md'), errorCount: 0, warningCount: 0, messages: [] },
@@ -617,7 +685,8 @@ describe('slide_lint', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.lint.done', outcome: 'clean' })
   })
 
-  it('違反ありは「報告が成果」なので ok: true / exitCode 1 で返す', async () => {
+  it('違反ありは「報告が成果」なので ok: true / exitCode 1 で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-02')
     const talk = makeThemedTalkDirectory('talk-violations')
     const eslint = fakeEslint(1, [
       {
@@ -641,6 +710,33 @@ describe('slide_lint', () => {
       outcome: 'violations',
       errorCount: 1,
     })
+  })
+
+  it('slides.md の無いディレクトリは、eslint を起動せず not-talk-dir の失敗を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-05')
+    const notTalk = temporaryRoot('lint-not-talk')
+    mkdirSync(notTalk, { recursive: true })
+    const eslint = countingEslint()
+
+    const result = await call(createLintTool(eslint.runner), { dir: notTalk })
+
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)['exitCode']).toBe(1)
+    expect(dataOf(result)).toMatchObject({ event: 'slide.lint.error', reason: 'not-talk-dir' })
+    expect(eslint.calls()).toBe(0)
+  })
+
+  it('テーマを参照しない talk-dir は、eslint を起動せず theme-none の失敗を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-06')
+    const talk = makeTalkDirectory('lint-theme-none', '---\ntheme: none\ntitle: デモ\n---\n\n# hello\n')
+    const eslint = countingEslint()
+
+    const result = await call(createLintTool(eslint.runner), { dir: talk })
+
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)['exitCode']).toBe(1)
+    expect(dataOf(result)).toMatchObject({ event: 'slide.lint.error', reason: 'theme-none' })
+    expect(eslint.calls()).toBe(0)
   })
 
   it('talk-dir が存在しないと実行失敗 (exitCode 1) として返る', async () => {
@@ -689,7 +785,10 @@ describe('slide_convert', () => {
       .toEqual(['project_dir=relative/deck', 'out_path=relative/out.pptx'])
   })
 
-  it('変換に成功すると slide.convert.done を data に載せ、出力 PPTX を artifacts に返す', async () => {
+  it('変換に成功すると slide.convert.done を data に載せ、出力 PPTX を artifacts に返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-01')
+
+    await verifies(context, 'PV-SLIDE-CONVERT-02')
     const project = makeTalkDirectory('convert-ok')
     const out = temporaryRoot('out', 'deck.pptx')
 
@@ -734,7 +833,8 @@ describe('slide_convert', () => {
     ])
   })
 
-  it('省略可能なパラメータを全て指定しても CLI の option へ写る', async () => {
+  it('省略可能なパラメータを全て指定しても CLI の option へ写る', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-04')
     const project = makeTalkDirectory('convert-full')
     const out = temporaryRoot('out', 'full.pptx')
     const spacingJson = temporaryRoot('letter-spacing.json')
@@ -760,7 +860,8 @@ describe('slide_convert', () => {
     expect(pipeline.calls).toEqual([{ theme: '@slidev/theme-default', cacheSkipRead: true }])
   })
 
-  it('out_path 省略時は slides.md の title から既定の出力先を決める', async () => {
+  it('out_path 省略時は slides.md の title から既定の出力先を決める', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-01')
     const project = makeTalkDirectory('convert-default-out', '---\ntitle: デモ資料\n---\n\n# hello\n')
 
     const result = await call(createConvertTool(fakePipeline()), { project_dir: project })
@@ -788,7 +889,8 @@ describe('slide_convert', () => {
     expect(data['errors']).toEqual([{ level: 'slide', slideNumber: 1, message: '変換に失敗しました' }])
   })
 
-  it('クライアントのキャンセルで pipeline が止まり、PPTX を書かずに cancelled で返る (#1228)', async () => {
+  it('クライアントのキャンセルで pipeline が止まり、PPTX を書かずに cancelled で返る (#1228)', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-10')
     const project = makeTalkDirectory('convert-cancel')
     const out = temporaryRoot('out', 'cancel.pptx')
     const controller = new AbortController()
@@ -828,7 +930,8 @@ describe('slide_convert', () => {
     expect(dataOf(result)['reason']).toBe('invalid-theme')
   })
 
-  it('project-dir 不在は実行失敗 (exitCode 1) として返る', async () => {
+  it('project-dir 不在は実行失敗 (exitCode 1) として返る', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-08')
     const result = await call(createConvertTool(fakePipeline()), {
       project_dir: temporaryRoot('no-such-project'),
     })

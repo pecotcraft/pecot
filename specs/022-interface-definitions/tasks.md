@@ -317,8 +317,8 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: テストの無い項目を 1 つ足すと、`lint-defs` が止まる
 
-- [ ] T069 [US5] pecot-visual の項目に vitest をつなぐ。Phase 12 と同じ形にする
-- [ ] T070 [US5] つなぐテストが無い項目を挙げ、T065 と同じ決めで扱う。`targets.json` の pecot-visual を `coverage: on` にする
+- [x] T069 [US5] pecot-visual の項目に vitest をつなぐ。Phase 12 と同じ形にする
+- [x] T070 [US5] つなぐテストが無い項目を挙げ、T065 と同じ決めで扱う。`targets.json` の pecot-visual を `coverage: on` にする
 
 **Checkpoint**: `lint-defs` が通る。3 プラグインとも `complete`・`on` になる
 

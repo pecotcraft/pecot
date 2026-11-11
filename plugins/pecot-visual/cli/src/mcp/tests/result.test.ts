@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import {
   createOutputCapture,
   parsePathArguments,
@@ -23,7 +24,8 @@ const BASE_RESULT: ToolResult = {
 }
 
 describe('toCallToolResult', () => {
-  it('成功時は isError を持たず structuredContent と同内容の JSON テキストを載せる', () => {
+  it('成功時は isError を持たず structuredContent と同内容の JSON テキストを載せる', async (context) => {
+    await verifies(context, 'PV-COMMON-06')
     const converted = toCallToolResult(BASE_RESULT)
 
     expect(converted.isError).toBeUndefined()
@@ -39,7 +41,8 @@ describe('toCallToolResult', () => {
     expect(JSON.parse(block?.type === 'text' ? block.text : '')).toEqual(converted.structuredContent)
   })
 
-  it('exitCode を保持しつつ ok: false を isError: true に連動させる', () => {
+  it('exitCode を保持しつつ ok: false を isError: true に連動させる', async (context) => {
+    await verifies(context, 'PV-COMMON-07')
     const converted = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 3, message: 'warnings' })
 
     expect(converted.isError).toBe(true)
@@ -155,7 +158,8 @@ describe('parsePathArguments', () => {
     })
   })
 
-  it('変換できない Windows 形式は専用の文言で弾く', () => {
+  it('変換できない Windows 形式は専用の文言で弾く', async (context) => {
+    await verifies(context, 'PV-COMMON-05')
     const parsed = parsePathArguments(
       PATH_SCHEMA,
       { input_path: String.raw`\\wsl.localhost\Debian\home\a.drawio`, out_path: String.raw`C:\deck\a.png` },
@@ -224,7 +228,8 @@ describe('createOutputCapture', () => {
     expect(text).not.toContain('truncated')
   })
 
-  it('上限を超えたら先頭を捨てて末尾を残し、切り詰めをマーカー行で明示する', async () => {
+  it('上限を超えたら先頭を捨てて末尾を残し、切り詰めをマーカー行で明示する', async (context) => {
+    await verifies(context, 'PV-COMMON-11')
     // 失敗の直接原因は末尾に出るため、残すのは新しい側。
     const capture = createOutputCapture()
 
@@ -300,7 +305,8 @@ describe('truncateCapturedText', () => {
     expect(truncateCapturedText('download failed')).toBe('download failed')
   })
 
-  it('上限を超えたら末尾だけを残し、切り詰めたことを冒頭で明示する', () => {
+  it('上限を超えたら末尾だけを残し、切り詰めたことを冒頭で明示する', async (context) => {
+    await verifies(context, 'PV-COMMON-11')
     const retained = truncateCapturedText('z'.repeat(LIMIT_BYTES * 2) + 'END')
     const body = retained.split('\n').slice(1).join('\n')
 

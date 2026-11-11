@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
 import { executeSlideTheme } from '../../../commands/slidev-project/theme.js'
 import { NodeThemeFiles } from '../../../infra/slidev-theme/fs.js'
@@ -126,7 +127,9 @@ function pageFilesOf(directory: string): readonly string[] {
 }
 
 describe('slide_page の成功ルート', () => {
-  it('pages/ 配下にスケルトンを書き出し、reference と includes を返す', async () => {
+  it('pages/ 配下にスケルトンを書き出し、reference と includes を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-PAGE-01')
+    await verifies(context, 'PV-SLIDE-PAGE-02')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'strategy' }, CALL)
@@ -161,7 +164,21 @@ describe('slide_page の成功ルート', () => {
     expect(textOf(structured['message'])).toContain('src: ./pages/strategy.md')
   })
 
-  it('file の .md は省略できる (明示指定と同じ結果になる)', async () => {
+  it('ページを書いても slides.md は書き換えない', async (context) => {
+    await verifies(context, 'PV-SLIDE-PAGE-09')
+    const directory = makeTalkDirectory()
+    const slides = path.join(directory, 'slides.md')
+    const before = readFileSync(slides, 'utf8')
+
+    const result = await tool.handler({ layout: 'plain', dir: directory, file: 'strategy' }, CALL)
+
+    expect(structuredOf(result)['ok']).toBe(true)
+    expect(existsSync(path.join(directory, 'pages', 'strategy.md'))).toBe(true)
+    expect(readFileSync(slides, 'utf8')).toBe(before)
+  })
+
+  it('file の .md は省略できる (明示指定と同じ結果になる)', async (context) => {
+    await verifies(context, 'PV-SLIDE-PAGE-03')
     const directory = makeTalkDirectory()
 
     const omitted = await tool.handler({ layout: 'cover', dir: directory, file: 'chapter' }, CALL)
@@ -268,9 +285,10 @@ describe('slide_page の引数検証', () => {
     expect(dataOf(result)['invalidPaths']).toEqual(['dir=talk'])
   })
 
-  it.each(['sub/page.md', '../escape.md', String.raw`sub\page.md`])(
-    'パス区切りを含む file (%s) は拒否する',
-    async (file) => {
+  it.for([{ file: 'sub/page.md' }, { file: '../escape.md' }, { file: String.raw`sub\page.md` }])(
+    'パス区切りを含む file ($file) は拒否する',
+    async ({ file }, context) => {
+      await verifies(context, 'PV-SLIDE-PAGE-08')
       const directory = makeTalkDirectory()
 
       const result = await tool.handler({ layout: 'plain', dir: directory, file }, CALL)
@@ -325,7 +343,8 @@ describe('slide_page の引数検証', () => {
     expect(/^\d/.test(stem)).toBe(numeric)
   })
 
-  it('数字始まりの file はファイルを作らずに拒否する', async () => {
+  it('数字始まりの file はファイルを作らずに拒否する', async (context) => {
+    await verifies(context, 'PV-SLIDE-PAGE-07')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: '01-cover' }, CALL)
@@ -402,7 +421,8 @@ describe('slide_page のテーマの失敗', () => {
 })
 
 describe('slide_page の失敗ルート', () => {
-  it('未知の layout は選択可能な一覧つきで失敗する', async () => {
+  it('未知の layout は選択可能な一覧つきで失敗する', async (context) => {
+    await verifies(context, 'PV-SLIDE-PAGE-06')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: 'no-such-layout', dir: directory, file: 'page' }, CALL)
@@ -448,7 +468,10 @@ describe('slide_page の失敗ルート', () => {
     expect(pageFilesOf(directory), `layout: ${layout}`).toEqual([])
   })
 
-  it('既存ページは force なしなら上書きせず、force: true で上書きする', async () => {
+  it('既存ページは force なしなら上書きせず、force: true で上書きする', async (context) => {
+    await verifies(context, 'PV-SLIDE-PAGE-04')
+
+    await verifies(context, 'PV-SLIDE-PAGE-05')
     const directory = makeTalkDirectory()
     const target = path.join(directory, 'pages', 'page.md')
     writeFileSync(target, '---\nlayout: cover\n---\n', 'utf8')

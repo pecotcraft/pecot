@@ -21,6 +21,8 @@ import { useInstalledChromiumCache } from '../../../../tests/_helpers/chromium-c
 import { copyFixtureTheme } from '../../../../tests/_helpers/theme-fixtures.js'
 import { drawioExportTool, drawioCreateTool } from '../drawio.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
+import { decodeData } from '../../../domain/drawio/url.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -112,7 +114,8 @@ describe('drawio_create', () => {
     expect(dataOf(result)['invalidPaths']).toEqual(['out_path=out/diagram.drawio.html'])
   })
 
-  it('out_path 省略時は URL だけを data に載せ、artifacts は空になる', async () => {
+  it('out_path 省略時は URL だけを data に載せ、artifacts は空になる', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-01')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL }, CALL)
     const structured = structuredOf(result)
 
@@ -128,7 +131,19 @@ describe('drawio_create', () => {
     expect(data['warnings']).toBe(0)
   })
 
-  it('入力ファイル不在は reason input-not-found + exitCode 1 で返す', async () => {
+  it('icon:// を含む入力は、URL に載る図の XML で icon がデータ URI に解決される', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-01')
+    const result = await drawioCreateTool.handler({ input_path: ICON_RESOLVABLE }, CALL)
+    const url = dataOf(result)['url']
+    if (typeof url !== 'string') throw new TypeError('data.url が文字列ではありません')
+
+    const xml = decodeData(url.slice(url.indexOf('#R') + 2))
+    expect(xml).toContain('data:image/svg+xml')
+    expect(xml).not.toContain('icon://')
+  })
+
+  it('入力ファイル不在は reason input-not-found + exitCode 1 で返す', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-09')
     const result = await drawioCreateTool.handler(
       { input_path: path.join(makeTemporaryDirectory(), 'missing.drawio') },
       CALL,
@@ -205,7 +220,9 @@ describe('drawio_create', () => {
     })
   })
 
-  it('png:false 指定の out_path は表示用 HTML だけを artifacts に載せる', async () => {
+  it('png:false 指定の out_path は表示用 HTML だけを artifacts に載せる', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-02')
+    await verifies(context, 'PV-DRAWIO-CREATE-04')
     const outPath = path.join(makeTemporaryDirectory(), 'out.drawio.html')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL, out_path: outPath, png: false }, CALL)
     const structured = structuredOf(result)
@@ -221,7 +238,8 @@ describe('drawio_create', () => {
     expect(structured['message']).toContain(outPath)
   })
 
-  it('.html 以外の out_path は reason invalid-output-extension + exitCode 2 で弾く', async () => {
+  it('.html 以外の out_path は reason invalid-output-extension + exitCode 2 で弾く', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-08')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'out.drawio.url')
     const result = await drawioCreateTool.handler(
@@ -238,7 +256,8 @@ describe('drawio_create', () => {
     expect(existsSync(outPath)).toBe(false)
   })
 
-  it('PNG 生成が失敗しても表示用 HTML は残り、png:null / pngFailed:true になる', async () => {
+  it('PNG 生成が失敗しても表示用 HTML は残り、png:null / pngFailed:true になる', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-06')
     // 実 Chromium を起こさずに PNG 失敗ルートへ入るための失敗注入。
     vi.stubEnv('PECOTV_FORCE_PNG_FAIL', '1')
     const directory = makeTemporaryDirectory()
@@ -349,7 +368,8 @@ describe('drawio_export', () => {
     expect(dataOf(fromFakeRoot)['sourceSha256']).toBe(dataOf(unresolvable)['sourceSha256'])
   })
 
-  it('print_hash:true は export と書き出しのどちらも行わずハッシュだけを返す', async () => {
+  it('print_hash:true は export と書き出しのどちらも行わずハッシュだけを返す', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-03')
     const outPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const result = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, icons_dir: ICON_ROOT, out_path: outPath, print_hash: true },
@@ -395,7 +415,8 @@ describe('drawio_export', () => {
     expect(structuredOf(result)['exitCode']).toBe(1)
   })
 
-  it('export 失敗は reason export-failed + exitCode 1 で返す', async () => {
+  it('export 失敗は reason export-failed + exitCode 1 で返す', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-05')
     // 実 Chromium / embed.diagrams.net を起こさずに export 失敗ルートへ入るための失敗注入。
     vi.stubEnv('PECOTV_FORCE_SVG_FAIL', '1')
     const outPath = path.join(makeTemporaryDirectory(), 'out.svg')

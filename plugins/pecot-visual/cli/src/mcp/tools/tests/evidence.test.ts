@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { buildPng } from '../../../../tests/_helpers/image-fixture.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 import type { ToolCallContext } from '../../server.js'
 import { evidenceCreateTool } from '../evidence.js'
 import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-directory.js'
@@ -73,7 +74,8 @@ function validSpec(): Record<string, unknown> {
 }
 
 describe('evidence_create ツール', () => {
-  it('spec から xlsx を生成し、CLI の --json と同形の data を返す', async () => {
+  it('spec から xlsx を生成し、CLI の --json と同形の data を返す', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-01')
     const specPath = placeSpec(validSpec())
     const outPath = workDirectory('login-evidence.xlsx')
 
@@ -105,7 +107,8 @@ describe('evidence_create ツール', () => {
     expect(existsSync(expectedOut)).toBe(true)
   })
 
-  it('除外された画像は skipped に載せたうえで成功扱いにする', async () => {
+  it('除外された画像は skipped に載せたうえで成功扱いにする', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-02')
     const missing = workDirectory('missing.png')
     const specPath = placeSpec({
       title: '一部欠落',
@@ -145,7 +148,8 @@ describe('evidence_create ツール', () => {
     expect(dataOf(result)['invalidPaths']).toEqual(['out_path=out/evidence.xlsx'])
   })
 
-  it('spec が存在しないときは input-not-found で exitCode 1', async () => {
+  it('spec が存在しないときは input-not-found で exitCode 1', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-05')
     const result = await callEvidenceCreate({ input_path: workDirectory('no-such.json') })
     const structured = structuredOf(result)
 
@@ -160,7 +164,8 @@ describe('evidence_create ツール', () => {
     expect(structured['message']).not.toBe('')
   })
 
-  it('spec が JSON として破損しているときは invalid-json', async () => {
+  it('spec が JSON として破損しているときは invalid-json', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-04')
     const specPath = workDirectory('broken.json')
     writeFileSync(specPath, '{ "title": ', 'utf8')
 

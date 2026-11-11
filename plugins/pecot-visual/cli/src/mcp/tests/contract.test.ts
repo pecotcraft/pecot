@@ -34,6 +34,7 @@ import type { Tool } from '@modelcontextprotocol/server'
 import { createChromiumCacheDirectory, removeChromiumCacheDirectory } from '../../../tests/_helpers/chromium-cache.js'
 import { allTools } from '../tools/index.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
 import { compareStrings } from '../../domain/_shared/compare-strings.js'
 
@@ -514,7 +515,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it.each(TOOL_CONTRACTS)('$name のパス型パラメータは相対パスなら実処理前に exitCode 2 で弾く', async (contract) => {
+  it.for(TOOL_CONTRACTS)('$name のパス型パラメータは相対パスなら実処理前に exitCode 2 で弾く', async (contract, context) => {
+    await verifies(context, 'PV-COMMON-03')
     // 必須パラメータは絶対パスで埋め、対象の 1 件だけを相対パスにする。
     // 実処理まで進めば、結果は「入力不在」の exitCode 1。
     // exitCode 2 を返すこと自体が、実行前の拒否の証拠となる (FR-011)。
@@ -541,7 +543,8 @@ describe('MCP ツール契約 (tools/list)', () => {
         .map(contract => contract.name)))
   })
 
-  it.each(SINGLE_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して下流へ渡す', async (contract) => {
+  it.for(SINGLE_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して下流へ渡す', async (contract, context) => {
+    await verifies(context, 'PV-COMMON-04')
     // パス引数が 1 件のツールは、変換後の値がそのまま下流へ渡るので応答 (message / data) に現れる。
     // slide 系の既定 deps ファクトリは CLAUDE_PLUGIN_ROOT を要る。未設定だと、引数を見る前に失敗する。
     // すると変換後のパスが応答に出ない。プラグイン導入時と同じ値を入れて、実処理まで進ませる。
@@ -574,7 +577,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it.each(MULTI_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して受理する', async (contract) => {
+  it.for(MULTI_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して受理する', async (contract, context) => {
+    await verifies(context, 'PV-COMMON-04')
     // パス引数が 2 件以上のツールには、下流が out_path 等を応答に載せない場合がある。
     // 「変換後のパスが応答に現れる」だけでは、全引数を覆えない。
     // そこで 2 点で引数ごとに変換を観測する。
