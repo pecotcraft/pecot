@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 import { readBaseline } from './tests/parity/baseline.js'
 
@@ -22,6 +22,8 @@ export default defineConfig({
         },
       },
     ],
+    reporters: [...configDefaults.reporters, 'junit'],
+    outputFile: { junit: 'test-results/junit.xml' },
     coverage: {
       provider: 'v8',
       reporter: ['text'],

@@ -1,0 +1,4 @@
+PT-AWS-S3-CP-01 is tested here
+# note PT-AWS-S3-LS-01 in a comment
+PT-COMMON-01
+PT-AWS-S3-LS-99 is unknown

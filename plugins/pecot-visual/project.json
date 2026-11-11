@@ -124,6 +124,7 @@
         "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh",
         "^production"
       ],
+      "outputs": ["{projectRoot}/cli/test-results/junit.xml"],
       "dependsOn": [
         "install",
         "check-pm-guard",

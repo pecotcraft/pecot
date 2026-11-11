@@ -881,7 +881,7 @@ def test_graph_lanes_read_every_workspace_package_json(
         # tests/hooks/ のテストも型の確認と eslint の対象。
         (
             "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",
-            {"pecot-workflow:lint-cli"},
+            {"pecot-workflow:lint-cli", "interface-spec:lint-defs"},
         ),
         # libs/text-rules の lint は実体の target 1 つ。
         # pecot-visual の lint-slidev は、リンクで載せた libs/text-rules を inputs に持つ (#1297)。
@@ -994,8 +994,8 @@ def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
     assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs
 
 
-def test_lint_defs_inputs_cover_the_sources_of_every_plugin() -> None:
-    """targets.json の各プラグインの sources の glob が、lint-defs の inputs に覆われる。
+def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
+    """targets.json の各プラグインの sources と tests の glob が、lint-defs の inputs に覆われる。
 
     覆われないと、ソースの環境変数の読みが増えても nx affected が lint-defs を選ばず、キャッシュも当たる。
     plugins が空の間は何も確かめない。
@@ -1008,7 +1008,8 @@ def test_lint_defs_inputs_cover_the_sources_of_every_plugin() -> None:
         if isinstance(entry, str) and entry.startswith("{workspaceRoot}/")
     }
     for name, plugin in targets["plugins"].items():
-        for glob in plugin["sources"]:
-            # sources は plugins/<name>/ からの glob、inputs はリポのルートからの glob。
-            path = f"plugins/{name}/{glob}"
-            assert path in inputs, f"{name} の sources の {glob} が lint-defs の inputs に無い"
+        for key in ("sources", "tests"):
+            for glob in plugin[key]:
+                # glob は plugins/<name>/ から、inputs はリポのルートから。
+                path = f"plugins/{name}/{glob}"
+                assert path in inputs, f"{name} の {key} の {glob} が lint-defs の inputs に無い"

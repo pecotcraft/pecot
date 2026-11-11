@@ -24,6 +24,7 @@ import { allTools } from '../../src/mcp/tools/index.js'
 import { FAKE_AWS_FIXTURE_DIR, useFakeAws, type FakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { verifies } from '../_helpers/verifies.js'
 import { compareStrings } from '../_helpers/compare-strings.js'
 
 /**
@@ -290,7 +291,8 @@ async function callMinimal(name: string): Promise<Record<string, unknown>> {
 }
 
 describe('全 24 ツールの正常系', () => {
-  it.each(TOOL_COMMANDS)('$name が既定 fixture で成功し、引数と data が契約どおりになる', async (command) => {
+  it.for(TOOL_COMMANDS)('$name が既定 fixture で成功し、引数と data が契約どおりになる', async (command, context) => {
+    if (command.name === 'aws_sts_get_caller_identity') await verifies(context, 'PT-AWS-STS-GET-CALLER-IDENTITY-01')
     const instance = fakeAws.install()
 
     const structured = await callMinimal(command.name)

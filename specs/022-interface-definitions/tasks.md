@@ -259,24 +259,24 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US4 の 2〜3 行目が通る
 
-- [ ] T057 [US4] `libs/interface-spec/tests/links.test.ts` を書く。fixture のテストのファイルから ID を集め、定義書に無い ID と、テストの無い項目を、contracts の失敗の行で比べる。`coverage: off` では後者を出さないことも確かめる
-- [ ] T058 [US4] `libs/interface-spec/src/domain/links.ts` と `cli.ts` の `links` のコマンドを実装する
+- [x] T057 [US4] `libs/interface-spec/tests/links.test.ts` を書く。fixture のテストのファイルから ID を集め、定義書に無い ID と、テストの無い項目を、contracts の失敗の行で比べる。`coverage: off` では後者を出さないことも確かめる
+- [x] T058 [US4] `libs/interface-spec/src/domain/links.ts` と `cli.ts` の `links` のコマンドを実装する
   - テストのファイルから `P[WTV]-[A-Z0-9-]+-[0-9]{2}` に合う文字列を集める
   - テストは動かさない
   - `lint-defs` に足す
   - 3 プラグインを対象にした `lint-defs` の所要を測り、10 秒を超えないことを PR に書く
-- [ ] T059 [P] [US4] vitest の 3 つの project（pecot-tools・pecot-visual・`cli-node/`）に `verifies` の関数を足す
+- [x] T059 [P] [US4] vitest の 3 つの project（pecot-tools・pecot-visual・`cli-node/`）に `verifies` の関数を足す
   - pecot-tools では `plugins/pecot-tools/cli/tests/_helpers/verifies.ts` に置く
   - `annotate(id, 'verifies')` を呼ぶ 1 行の関数にする
   - 各 `vitest.config.ts` に JUnit の出力を足し、出力先を `.gitignore` と nx の `outputs` に書く
-- [ ] T060 [P] [US4] pytest から、項目の ID を JUnit へ出せる形にする
+- [x] T060 [P] [US4] pytest から、項目の ID を JUnit へ出せる形にする
   - `plugins/pecot-workflow/cli/pyproject.toml` の dev 依存に ub-test-reports を足し、`uv.lock` を更新する
   - `plugins/pecot-workflow/scripts/ci/run-tests.sh` の pytest に、次の 3 つを足す
     - `-p ub_test_reports.pytest_plugin`
     - `-o junit_family=xunit1`
     - `-o "test_reports_properties=verifies, list"`
   - JUnit を比べる既存の処理（`compare_junit.py`）が通ることを確かめる
-- [ ] T061 [US4] 見本として、pecot-tools の 1 ツールと pecot-workflow の 1 コマンドのテストに ID を書く。JUnit に `<property name="verifies">` が出ることを確かめる。対象は #200 と同じにする。`aws_sts_get_caller_identity` と `session status` だ
+- [x] T061 [US4] 見本として、pecot-tools の 1 ツールと pecot-workflow の 1 コマンドのテストに ID を書く。JUnit に `<property name="verifies">` が出ることを確かめる。対象は #200 と同じにする。`aws_sts_get_caller_identity` と `session status` だ
 
 **Checkpoint**: テストに `verifies(ctx, 'PT-AWS-S3-LS-99')` を足すと、`lint-defs` がファイルと行を出して止まる
 

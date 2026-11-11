@@ -62,6 +62,7 @@ dev = [
     "pytest-timeout>=2.3.0",
     "pytest-xdist>=3.6.0",
     "respx>=0.23.0",
+    "ub-test-reports>=2.0.0,<3; python_version >= '3.11'",
 ]
 
 # ruff設定
@@ -109,7 +110,9 @@ known-first-party = ["cli"]
 # testpaths は plugins/pecot-workflow/cli/ を CWD として解決される
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short -p ub_test_reports.pytest_plugin"
+junit_family = "xunit1"
+test_reports_properties = ["verifies, list"]
 timeout = 30
 pythonpath = [".."]
 

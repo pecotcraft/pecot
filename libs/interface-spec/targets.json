@@ -1,8 +1,8 @@
 {
   "format": 1,
   "plugins": {
-    "pecot-tools": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"] },
-    "pecot-visual": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"] },
+    "pecot-tools": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
+    "pecot-visual": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
     "pecot-workflow": {
       "entries": "complete",
       "coverage": "off",
@@ -13,6 +13,12 @@
         "cli/__main__.py",
         "bin/*",
         "hooks/**/*.sh"
+      ],
+      "tests": [
+        "cli/tests/**/*.py",
+        "cli-node/tests/**/*.ts",
+        "cli-node/src/**/tests/**/*.ts",
+        "hooks/**/test_*.py"
       ]
     }
   }

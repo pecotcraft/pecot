@@ -6,7 +6,8 @@
       "coverage": "off",
       "sources": [
         "cli/**/*.py"
-      ]
+      ],
+      "tests": []
     }
   }
 }

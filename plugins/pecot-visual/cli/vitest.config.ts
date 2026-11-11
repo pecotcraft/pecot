@@ -1,7 +1,9 @@
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
+    reporters: [...configDefaults.reporters, 'junit'],
+    outputFile: { junit: 'test-results/junit.xml' },
     setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts'],
     include: [
       'src/**/tests/**/*.test.ts',

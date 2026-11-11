@@ -4,6 +4,7 @@
     "pecot-workflow": {
       "entries": "all",
       "sources": [],
+      "tests": [],
       "extra": 1
     }
   }
