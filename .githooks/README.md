@@ -9,7 +9,7 @@
   - `.githooks/ci/` : 次の 2 種類のスクリプト
     - manual の stage の hook の実体 : `run-affected-tests.sh`
     - CI だけが呼ぶもの : `run-pr-checks.sh`・`list-test-lanes.sh`・`check-ci-result.sh`・
-      `finish-ci-summary.sh`・`dev-container.sh`
+      `finish-ci-summary.sh`・`dev-container.sh`・`find-pr-ci-base.sh`
   - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
   - `.githooks/scripts/` : hook の stage に属さず、リポ全体で使うスクリプト。install・CI・リリース・hook の entry から呼ぶ
   - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.test.sh` は `.githooks/scripts/tests/` に置く

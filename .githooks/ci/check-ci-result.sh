@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
 # ci-result の判定。checks・lanes・tests の結果を照らし、レーンごとの結論を 1 行ずつ出す。
 # env: CHECKS_RESULT・LANES_RESULT・TESTS_RESULT・LANES_COUNT・LANES_JSON・GH_TOKEN。
+# LINT_MODE=skip のとき lint の job は飛ばされている。空・run は lint の success を求める。
 # CI_RESULT_JOBS_FILE があれば、gh run view の代わりにそのファイル（--json jobs の出力）を読む。
 
 set -euo pipefail
 
+LINT_MODE="${LINT_MODE:-run}"
 echo "checks: $CHECKS_RESULT"
 echo "lanes: $LANES_RESULT"
-if [ "$CHECKS_RESULT" != "success" ]; then
-    echo "checks が success ではありません: $CHECKS_RESULT"
-    exit 1
-fi
+echo "lint: $LINT_MODE"
+case "$LINT_MODE" in
+    run)
+        if [ "$CHECKS_RESULT" != "success" ]; then
+            echo "checks が success ではありません: $CHECKS_RESULT"
+            exit 1
+        fi
+        ;;
+    skip)
+        if [ "$CHECKS_RESULT" != "skipped" ]; then
+            echo "lint=skip のとき checks は skipped のはずです: $CHECKS_RESULT"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "LINT_MODE が不明な値です: $LINT_MODE"
+        exit 1
+        ;;
+esac
 if [ "$LANES_RESULT" != "success" ]; then
     echo "lanes が success ではありません: $LANES_RESULT"
     exit 1
@@ -39,9 +56,18 @@ conclusion_of() {
 }
 
 failed=0
-conclusion=$(conclusion_of "checks (lint)")
-echo "checks (lint): $conclusion"
-[ "$conclusion" = "success" ] || failed=1
+if [ "$LINT_MODE" = "skip" ]; then
+    not_skipped=$(jq -r '.jobs[] | select((.name | startswith("checks")) and (.conclusion != "skipped")) | .name + ": " + (.conclusion // "none")' <<< "$jobs")
+    if [ -n "$not_skipped" ]; then
+        echo "lint=skip なのに checks の job が skipped ではありません。"
+        echo "$not_skipped"
+        failed=1
+    fi
+else
+    conclusion=$(conclusion_of "checks (lint)")
+    echo "checks (lint): $conclusion"
+    [ "$conclusion" = "success" ] || failed=1
+fi
 
 if [ "$LANES_COUNT" = "0" ]; then
     # 飛ばした job は展開前の名前で出るため、名前で数えず needs.tests.result で確かめる。
