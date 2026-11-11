@@ -84,6 +84,8 @@
         "{projectRoot}/tests/test_run_affected_lint.py",
         "{projectRoot}/tests/test_list_test_lanes.py",
         "{projectRoot}/tests/test_fetch_pr_nx_cache.py",
+        "{projectRoot}/tests/test_find_pr_ci_base.py",
+        "{projectRoot}/tests/test_pr_run.py",
         "{projectRoot}/tests/test_nx_cache_server.py",
         "{projectRoot}/tests/test_dev_container.py",
         "{projectRoot}/tests/test_check_ci_result.py",
@@ -105,7 +107,7 @@
         "description": "CI のスクリプト（run-pr-checks・run-affected-*・キャッシュの取り込みとサーバ・dev-container）のテスト。"
       },
       "options": {
-        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py",
+        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py",
         "cwd": "."
       }
     },

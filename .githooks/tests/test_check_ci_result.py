@@ -154,3 +154,75 @@ def test_lane_conclusion_not_success(run, conclusion: str | None) -> None:
     r = run(jobs)
     assert r.returncode != 0
     assert f"tests (q:test-hooks): {conclusion or 'null'}" in r.stdout
+
+
+def _skip_jobs() -> list[dict]:
+    return _jobs(**{"checks (lint)": None})
+
+
+def test_lint_skip_zero_lanes(run) -> None:
+    r = run(
+        _jobs(**{"checks (lint)": None, "tests (p:test-cli)": None, "tests (q:test-hooks)": None}),
+        lanes=[],
+        TESTS_RESULT="skipped",
+        LINT_MODE="skip",
+        CHECKS_RESULT="skipped",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_lint_skip_with_lanes(run) -> None:
+    r = run(_skip_jobs(), LINT_MODE="skip", CHECKS_RESULT="skipped")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "tests (p:test-cli): success" in r.stdout
+
+
+_EXPANDED = "checks (${{ matrix.part }})"
+
+
+@pytest.mark.parametrize("name", [_EXPANDED, "checks (lint)", "checks (lint-py)"])
+def test_lint_skip_with_skipped_matrix_job_with_lanes(run, name: str) -> None:
+    """if で飛ばした matrix の job は checks で始まる名前・skipped で jobs に出る。"""
+    jobs = _skip_jobs() + [{"name": name, "conclusion": "skipped"}]
+    r = run(jobs, LINT_MODE="skip", CHECKS_RESULT="skipped")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "tests (p:test-cli): success" in r.stdout
+
+
+@pytest.mark.parametrize("name", [_EXPANDED, "checks (lint)", "checks (lint-py)"])
+def test_lint_skip_with_skipped_matrix_job_zero_lanes(run, name: str) -> None:
+    jobs = [{"name": name, "conclusion": "skipped"}]
+    r = run(jobs, lanes=[], TESTS_RESULT="skipped", LINT_MODE="skip", CHECKS_RESULT="skipped")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+@pytest.mark.parametrize("result", ["success", "failure"])
+def test_lint_skip_requires_checks_skipped(run, result: str) -> None:
+    r = run(_skip_jobs(), LINT_MODE="skip", CHECKS_RESULT=result)
+    assert r.returncode != 0
+    assert "skipped" in r.stdout
+
+
+def test_lint_skip_with_failed_checks_job(run) -> None:
+    jobs = _skip_jobs() + [{"name": "checks (lint)", "conclusion": "failure"}]
+    r = run(jobs, LINT_MODE="skip", CHECKS_RESULT="skipped")
+    assert r.returncode != 0
+    assert "checks (lint): failure" in r.stdout
+
+
+def test_lint_skip_still_checks_lanes(run) -> None:
+    r = run(_skip_jobs(), LINT_MODE="skip", CHECKS_RESULT="skipped", LANES_RESULT="failure")
+    assert r.returncode != 0
+
+
+def test_lint_run_requires_checks_lint(run) -> None:
+    r = run(_jobs(), LINT_MODE="run")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert run(_skip_jobs(), LINT_MODE="run").returncode != 0
+    assert run(_jobs(), LINT_MODE="run", CHECKS_RESULT="skipped").returncode != 0
+
+
+def test_lint_mode_unknown_value_fails(run) -> None:
+    r = run(_jobs(), LINT_MODE="maybe")
+    assert r.returncode != 0
+    assert "LINT_MODE" in r.stdout

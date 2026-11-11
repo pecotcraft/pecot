@@ -26,7 +26,10 @@ concurrency:
 
 jobs:
   # lint と、変更が届いたレーンごとの tests を別の job に分けて同時に動かす。
+  # main が進んでいない merge queue では lanes が lint=skip を出し、lint の runner を立てない。
   checks:
+    needs: lanes
+    if: ${{ !cancelled() && needs.lanes.outputs.lint != 'skip' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -106,6 +109,7 @@ jobs:
     outputs:
       lanes: ${{ steps.list.outputs.lanes }}
       count: ${{ steps.list.outputs.count }}
+      lint: ${{ steps.list.outputs.lint }}
       base: ${{ steps.shas.outputs.base }}
       head: ${{ steps.shas.outputs.head }}
       no_prev: ${{ steps.shas.outputs.noPreviousBuild }}
@@ -135,13 +139,53 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts --filter pecot
 
+      # merge queue の lanes が PR の CI で test した main を知るための印。同じ repo の PR だけが上げる。
+      - name: Write ci-base
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          mkdir -p .pecot/tmp/ci/ci-base
+          {
+            echo "main_sha=$(git rev-parse HEAD^1)"
+            echo "pr_head=$(git rev-parse HEAD^2)"
+          } > .pecot/tmp/ci/ci-base/ci-base.txt
+
+      - name: Upload ci-base
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-base
+          path: .pecot/tmp/ci/ci-base/ci-base.txt
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
+      # 失敗しても pr_main が空になるだけで、全レーンを動かす側に倒れる。
+      - name: Find PR CI base
+        id: prbase
+        if: github.event_name == 'merge_group'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          REPO: ${{ github.repository }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          QUEUE_HEAD: ${{ github.event.merge_group.head_sha }}
+        run: .githooks/ci/find-pr-ci-base.sh >> "$GITHUB_OUTPUT"
+
       - name: List test lanes
         id: list
         env:
           NX_BASE: ${{ steps.shas.outputs.base }}
           NX_HEAD: ${{ steps.shas.outputs.head }}
           NO_PREV: ${{ steps.shas.outputs.noPreviousBuild }}
-        run: .githooks/ci/list-test-lanes.sh "$NX_BASE" "$NX_HEAD" >> "$GITHUB_OUTPUT"
+          PR_MAIN: ${{ steps.prbase.outputs.pr_main }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+        run: |
+          args=()
+          if [ -n "$PR_MAIN" ]; then
+            args+=(--pr-main="$PR_MAIN" --queue-base="$QUEUE_BASE")
+          fi
+          .githooks/ci/list-test-lanes.sh "${args[@]}" "$NX_BASE" "$NX_HEAD" >> "$GITHUB_OUTPUT"
 
   # レーンが 0 本のとき、空の matrix は GitHub がエラーにするため job ごと飛ばす。
   tests:
@@ -304,6 +348,7 @@ jobs:
           LANES_RESULT: ${{ needs.lanes.result }}
           TESTS_RESULT: ${{ needs.tests.result }}
           LANES_COUNT: ${{ needs.lanes.outputs.count }}
+          LINT_MODE: ${{ needs.lanes.outputs.lint }}
           LANES_JSON: ${{ needs.lanes.outputs.lanes }}
           GH_TOKEN: ${{ github.token }}
         run: .githooks/ci/check-ci-result.sh

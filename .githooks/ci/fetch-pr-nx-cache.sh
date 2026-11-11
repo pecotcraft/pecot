@@ -5,6 +5,8 @@
 set -uo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../lib/pr-run.sh
+source "$repo_root/.githooks/lib/pr-run.sh"
 source_file="${NX_SOURCE_FILE:-$repo_root/.pecot/tmp/ci/nx-source.txt}"
 repo="${REPO:-}"
 own_run="${GITHUB_RUN_ID:-}"
@@ -31,9 +33,7 @@ fi
 
 case "${EVENT_NAME:-}" in
     pull_request) pr="${PR_NUMBER:-}" ;;
-    merge_group)
-        pr=$(sed -nE 's#^(refs/heads/)?gh-readonly-queue/.+/pr-([0-9]+)-[0-9a-f]+$#\2#p' <<< "${HEAD_REF:-}")
-        ;;
+    merge_group) pr=$(pr_number_from_head_ref "${HEAD_REF:-}") || pr="" ;;
     *) finish_none "対象外の event" ;;
 esac
 if ! [[ "$pr" =~ ^[0-9]+$ ]]; then
@@ -43,12 +43,13 @@ if [ -z "$repo" ]; then
     finish_none "取得の失敗"
 fi
 
-pull=$(gh api "repos/$repo/pulls/$pr") || finish_none "取得の失敗"
-pull_head_sha=$(jq -r '.head.sha // ""' <<< "$pull") || finish_none "取得の失敗"
-pull_head_repo=$(jq -r '.head.repo.full_name // ""' <<< "$pull") || finish_none "取得の失敗"
-if [ "$pull_head_repo" != "$repo" ]; then
-    finish_none "fork の PR"
-fi
+pr_load_head "$repo" "$pr"
+case $? in
+    0) ;;
+    2) finish_none "fork の PR" ;;
+    *) finish_none "取得の失敗" ;;
+esac
+pull_head_sha="$PR_HEAD_SHA"
 repo_id=$(gh api "repos/$repo" | jq -r '.id // ""') || finish_none "取得の失敗"
 [ -n "$repo_id" ] || finish_none "取得の失敗"
 
@@ -75,7 +76,7 @@ selected=""
 while IFS= read -r cand; do
     cid=$(jq -r '.id' <<< "$cand")
     info=$(gh api "repos/$repo/actions/runs/$cid") || finish_none "取得の失敗"
-    if jq -e --argjson pr "$pr" '.event == "pull_request" and ((.pull_requests // []) | map(.number) | index($pr) != null)' <<< "$info" > /dev/null; then
+    if pr_run_is_for_pr "$pr" <<< "$info"; then
         selected="$cand"
         break
     fi
