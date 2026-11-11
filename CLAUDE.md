@@ -20,7 +20,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 - 成果物は配布物（各 `SKILL.md`・`plugins/pecot-workflow/cli/templates/`・CLI 検証）。利用環境のエージェントの挙動はこれだけで決まる
 - Issue / PR 本文・コメントの品質問題は製品欠陥として配布成果物で直す。エージェントメモリ・心がけ・ローカル設定で直さない
-- Issue / PR / コメント本文は aist-roadmap#119 を唯一の基準とする。GitHub が UI で出す情報（Files changed・sub-issue・Development 欄）は書かず、読者の判断に使う情報だけ残す
+- Issue / PR / コメント本文には、GitHub が UI で出す情報（Files changed・sub-issue・Development 欄）を書かず、読者の判断に使う情報だけ残す
 
 ## テスト・lint
 

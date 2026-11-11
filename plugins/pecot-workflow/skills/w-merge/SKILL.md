@@ -91,7 +91,7 @@ pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 
 stderr の `warning:` の行があれば以下で手動対応:
 
-- ワーキングツリーが汚れている場合: `git stash` してから再実行
+- ワーキングツリーが汚れている場合: 変更を一時的な WIP commit で退避してから再実行する。stash は全ワークツリーで共有されるので、使うときは `git stash push -u -m "<名前>"` で名前を付け、戻すときもその entry を指定する
 - `--skip-local-cleanup` でローカル後処理をスキップし、手動で対応
 
 > 注意: ワークツリー環境では`wtX`ブランチ（ベースブランチ）を削除しない。`cd`コマンドで他のワークツリーやmainワークツリーに移動しない

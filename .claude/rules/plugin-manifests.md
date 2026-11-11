@@ -44,13 +44,13 @@ pecot-visual と pecot-tools は、2 つのクライアントが別のファイ�
   SessionStart の hook で置き場を Bash へ渡す仕組みも作らない。クライアントが置き場を渡さない起動は 3 段目で解決される
 - `PLUGIN_DATA` は 1 プラグイン専用の置き場で、project 名の階層が付かない。
   単体配布の MCP 登録の `env` にだけ書く案内にし、シェルで export する案内を書かない。複数プラグインが同じ `runtime/` を奪い合うためである
-- pecot-workflow は hook からの起動（クライアントの置き場）と Bash からの起動（3 段目）で venv を 2 か所に作る。uv の venv で軽いので許容している（#1258）
+- pecot-workflow は hook からの起動（クライアントの置き場）と Bash からの起動（3 段目）で venv を 2 か所に作る。uv の venv で軽いので許容している
 - pecot-visual の単体配布も同じ順で、解決した置き場の `mcp-dist/` に依存を置く。
   bash は `plugin_data_dir_normalize`、TypeScript は `cli/src/infra/_shared/dependency-root.ts` が解決する。
   2 つは同じ入力で同じ結果になる。テストがこれを固定している。
   片方だけ変えない
 
-## 名前は 4 層に分ける（#1223）
+## 名前は 4 層に分ける
 
 | 層 | 名前 | 使う場所 |
 |:--|:----|:-------|
