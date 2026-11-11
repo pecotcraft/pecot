@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 from typer.testing import CliRunner, Result
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands._output import Output
 from cli.commands.issue import (
@@ -449,6 +450,7 @@ class TestResolveParentEpicRef:
 class TestAddToProjectCommand:
     """add-to-project コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-12"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -456,6 +458,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-13"])
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
         mock_config = MagicMock()
@@ -464,6 +467,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-14"])
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
         mock_config = MagicMock()
@@ -482,6 +486,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 1
             assert "is not in the project" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-01", "PW-ADD-TO-PROJECT-07"])
     def test_add_success(self) -> None:
         """正常にプロジェクトに追加"""
         mock_config = MagicMock()
@@ -506,6 +511,7 @@ class TestAddToProjectCommand:
             mock_client.get_issue_node_id.assert_called_once_with("owner", "repo", 123)
             mock_client.add_to_project.assert_called_once_with("PVT_123", "I_abc123")
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-03", "PW-ADD-TO-PROJECT-08"])
     def test_add_with_status(self) -> None:
         """--status オプション付きで追加"""
         mock_config = MagicMock()
@@ -533,6 +539,9 @@ class TestAddToProjectCommand:
                 "PVT_123", "PVTI_456", "PVTF_workflow", "opt_active"
             )
 
+    @add_test_properties(
+        verifies=["PW-ADD-TO-PROJECT-09", "PW-ADD-TO-PROJECT-10", "PW-ADD-TO-PROJECT-11"]
+    )
     def test_add_with_invalid_status(self) -> None:
         """有効でないステータスはエラー（何も追加しない）"""
         mock_config = MagicMock()
@@ -548,6 +557,7 @@ class TestAddToProjectCommand:
             assert "valid values:" in result.output
             mock_client.add_to_project.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-16", "PW-ADD-TO-PROJECT-17"])
     def test_add_with_status_not_configured(self) -> None:
         """ボードが定義していないステータスはエラー（何も追加しない）"""
         mock_config = MagicMock()
@@ -568,6 +578,7 @@ class TestAddToProjectCommand:
             assert "status 'active' is not configured in the project" in result.output
             mock_client.add_to_project.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-15"])
     def test_github_api_error(self) -> None:
         """GitHub APIエラー時"""
         from cli.core.github import GitHubAPIError
@@ -589,6 +600,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 1
             assert "error: could not" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-02", "PW-ADD-TO-PROJECT-08"])
     def test_add_with_default_status(self) -> None:
         """--status 未指定時にデフォルトで ready が設定される"""
         mock_config = MagicMock()
@@ -632,6 +644,7 @@ class TestAddToProjectCommand:
 class TestUpdateIssueStatusCommand:
     """update-issue-status コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-07"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -639,6 +652,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-08"])
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
         mock_config = MagicMock()
@@ -647,6 +661,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-09"])
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
         mock_config = MagicMock()
@@ -665,6 +680,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "is not in the project" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-05", "PW-UPDATE-ISSUE-STATUS-06"])
     def test_invalid_status(self) -> None:
         """不正なステータスはエラー"""
         mock_config = MagicMock()
@@ -675,6 +691,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "backlog/pending/ready/active/in_review/archived" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-10", "PW-UPDATE-ISSUE-STATUS-11"])
     def test_issue_not_in_board(self) -> None:
         """Issueがボードにない場合はエラー"""
         mock_config = MagicMock()
@@ -693,6 +710,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "is not on the project board" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-12"])
     def test_status_not_configured_in_board(self) -> None:
         """ボードが Status を定義していないと、終了コード 1 で未設定を知らせる"""
         mock_config = MagicMock()
@@ -714,6 +732,7 @@ class TestUpdateIssueStatusCommand:
         assert "status 'active' is not configured in the project" in result.output
         mock_client.update_project_item_field.assert_not_called()
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-01", "PW-UPDATE-ISSUE-STATUS-04"])
     def test_update_success(self) -> None:
         """正常にステータス更新"""
         mock_config = MagicMock()
@@ -743,6 +762,7 @@ class TestUpdateIssueStatusCommand:
                 "PVT_123", "PVTI_456", "PVTF_workflow", "opt_active"
             )
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-01"])
     def test_update_all_statuses(self) -> None:
         """全ステータス（backlog/pending/ready/active/in_review/archived）が使用可能"""
         for status in ["backlog", "pending", "ready", "active", "in_review", "archived"]:
@@ -763,6 +783,7 @@ class TestUpdateIssueStatusCommand:
                 result = runner.invoke(app, ["update-issue-status", "owner/repo/123", status])
                 assert result.exit_code == 0, f"Status '{status}' failed: {result.output}"
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-13"])
     def test_github_api_error(self) -> None:
         """GitHub APIエラー時"""
         from cli.core.github import GitHubAPIError

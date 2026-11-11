@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import respx
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import (
@@ -110,6 +111,7 @@ def _register_routes(
     return page1, page2, list_b, check_b
 
 
+@add_test_properties(verifies=["PW-PROJECT-INFO-06"])
 def test_markdown_shows_open_count_and_disabled(respx_mock: respx.MockRouter) -> None:
     page1, page2, list_b, check_b = _register_routes(respx_mock)
 
