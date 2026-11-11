@@ -109,7 +109,7 @@
 | 決定 | `test-hooks` レーンは、移行中は pytest と vitest の両方を流す。フェーズ 12 で vitest だけにする |
 | 決定 | 件数と起動スクリプトは、済みの `baseline-scripts.test.ts` の方式で基準と比べる |
 | 理由 | hooks は shell なので v8 のカバレッジは取れない。件数とスクリプトの一覧で減っていないことを確かめる |
-| 時期 | フェーズ 1 の後ならいつでも進められる。フェーズ 8 と 10 で hooks を変えるので、移したテストに同じ変更を入れる |
+| 時期 | フェーズ 1 の後ならいつでも進められる。フェーズ 8 と 11 で hooks を変えるので、移したテストに同じ変更を入れる |
 
 ## R-10. カバレッジ
 
@@ -188,7 +188,8 @@
 | 確かめたこと | `lint-defs` の links は、`targets.json` の `tests` のファイルを文字として読み、ID の形の文字列を拾う。1 つの ID が pytest と vitest の両方にあっても通る。pecot-workflow の `tests` には `cli-node/tests/**/*.ts` が既に入っている |
 | 決定 | コマンドを移すフェーズで、そのコマンドの項目ごとに vitest のケースを書き、`verifies(context, 'PW-…')` で ID を書く。pytest の側はフェーズ 12 まで残す |
 | 決定 | 前後比較のシナリオにはつながない（spec の Clarifications）。`tests/parity/` の下に ID を書かない |
-| 決定 | フェーズ 1 で `tests/interface-export.test.ts` に確認を足す。`COMMANDS` に登録したコマンドの項目の ID が、`tests/parity/` を除く cli-node のテストに全部あることを確かめる。登録が 0 件の間は何も確かめない |
+| 決定 | フェーズ 1 で `tests/interface-export.test.ts` に確認を足す。`COMMANDS` に登録したコマンドの項目の ID が、`tests/parity/` を除く cli-node のテストに全部あることを確かめる |
+| 決定 | 共通の `PW-COMMON` 17 個は、フェーズ 1 でつなぐ。中身はグローバルオプション・API の URL の検証・捕まえなかった例外で、済みの `cli.ts` の枠の振る舞いである。コマンドの要る項目は、見本のコマンド定義で確かめる |
 | 理由 | `lint-defs` は pytest の側の ID で通ってしまうので、移したコマンドの項目が Node につながったかを別に確かめる必要がある |
 | 退けた案 | フェーズ 12 でまとめてつなぐ（spec の Clarifications で退けた） |
 
@@ -208,5 +209,5 @@
 |---|---|
 | 計った値 | 2026-11-11 に `pecot <サブコマンド>` を数えた。27 ファイル 197 箇所。`skills/*/SKILL.md` が 15 ファイル 91 箇所、`skills/*/references/` が 11 ファイル 105 箇所、`hooks/templates/` が 1 箇所。agents は 0。`$PECOT` の変数は 0 箇所 |
 | 決定 | エージェントに Bash で実行させる記述を、MCP ツールの呼び出しに書き換える。利用者が端末で打つコマンドの説明は CLI のまま残してよい。`w-help` の `references/commands.md` は定義書から作るので、手で直さない |
-| 決定 | フェーズ 11 のテスト（`tests/skills/tool-names.test.ts`）は、コードブロックの中の `pecot <サブコマンド>` を 0 件にする。利用者向けの説明として残す箇所は、ファイルと行の一覧をテストに持つ |
+| 決定 | 書き換えるのは、コードブロックの中の呼び出しと、コードブロックの外で手順として実行を指示する文。フェーズ 11 のテスト（`tests/skills/tool-names.test.ts`）は、残す箇所のファイルと行の一覧を持ち、`pecot <サブコマンド>` の残りが一覧と同じであることを確かめる |
 | 理由 | CLI は利用者の端末と hooks のために残る（spec の Assumptions）。エージェントの Bash の `pecot` は deny される（FR-012） |

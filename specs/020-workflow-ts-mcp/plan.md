@@ -138,8 +138,8 @@ CLAUDE.md                                  # フェーズ 14
 
 | Phase | 内容 | 終わりの条件 | 配布物 |
 |---|---|---|---|
-| 1 準備 | golden のずれを R-0 のとおり片づける。dependabot の uv の版の更新を止める。`export-interface.ts --check` と、移したコマンドの項目のつなぎを確かめるテストを入れる | `record:parity:check` の差が R-0 の残す分だけ。`--check` が登録 0 件で通り、見本の 1 コマンドで差を出せる | 変わらない |
-| 2 project とグループ無し | 14 個（project 10、グループ無しの `add-to-project`・`update-issue-status`・`create-branch`・`delete-branch`）を移す。共通の項目 `PW-COMMON` もつなぐ | 該当シナリオが golden と一致。`--check` の差が 0。該当の項目 174 個が vitest につながる | 変わらない |
+| 1 準備 | golden のずれを R-0 のとおり片づける。dependabot の uv の版の更新を止める。`export-interface.ts --check` と、移したコマンドの項目のつなぎを確かめるテストを入れる。共通の項目 `PW-COMMON` 17 個をつなぐ | `record:parity:check` の差が 0。`--check` が登録 0 件で通り、見本の 1 コマンドで差を出せる | 変わらない |
+| 2 project とグループ無し | 14 個（project 10、グループ無しの `add-to-project`・`update-issue-status`・`create-branch`・`delete-branch`）を移す | 該当シナリオが golden と一致。`--check` の差が 0。該当の項目 157 個が vitest につながる | 変わらない |
 | 3 issue と session | 7 個を移す | 同上。項目は 181 個 | 変わらない |
 | 4 pr | 4 個（`create`・`read`・`preflight`・`cleanup`）を移す | 同上。項目は 107 個 | 変わらない |
 | 5 worktree と release | 7 個を移す。`worktree link` の対話は CLI だけに残す | 同上。項目は 217 個 | 変わらない |
@@ -156,7 +156,8 @@ CLAUDE.md                                  # フェーズ 14
 依存:
 
 - フェーズ 1 が全部の前にある
-- フェーズ 2〜6 は互いに独立し、並べて進めてよい。共通の項目 `PW-COMMON` は、最初に入るフェーズがつなぐ。フェーズ 7 は 2〜6 の後
+- フェーズ 2〜5 は互いに独立し、並べて進めてよい
+- フェーズ 6 の移植は 1 の後ならいつでも進めてよい。34 個がそろったことの確認は 2〜5 の後。フェーズ 7 は 2〜6 の後
 - フェーズ 8 と 10 は、フェーズ 1 の後ならいつでも進めてよい。フェーズ 9 はフェーズ 7 と 8 の後
 - フェーズ 11 は 2〜10 が全部終わってから。フェーズ 12 は 11 の後、13 は 12 の後、14 は最後
 
@@ -169,7 +170,7 @@ CLAUDE.md                                  # フェーズ 14
 | 切り替えの PR が大きくなる | MCP サーバ・判定・テストはフェーズ 7〜10 で先に入れておき、フェーズ 11 は繋ぐだけにする。定義書の元の差し替えは、差分が MCP ツールの欄だけであることで確かめる |
 | 移行中に Python の CLI か依存が変わる | 同じ PR で Node を直し、golden を記録し直す（FR-007）。引数が変われば定義書も変わり、直していない Node を `--check` が止める |
 | 項目 769 個の vitest が、pytest と違うことを確かめてしまう | 項目の文（EARS の 1 文）を期待値の元にする。pytest のケースを読み、同じ入力と同じ期待値で書く。PR のレビューで項目ごとに対応を見る |
-| 並べて進めるフェーズ 2〜6 が `registry.ts` と共通の項目で衝突する | `COMMANDS` への追加は 1 行ずつ。`PW-COMMON` は最初に入る PR がつなぎ、後の PR は rebase で取り込む |
+| 並べて進めるフェーズ 2〜6 が `registry.ts` で衝突する | `COMMANDS` への追加は 1 行ずつ。後の PR は rebase で取り込む。共通の項目 `PW-COMMON` はフェーズ 1 でつなぐので、重ならない |
 | 出力の細部（rich の表、改行、全角の幅）が一致しない | golden で文字単位に比べる。差が出たら Node 側を Python に合わせる |
 | 単体配布では hooks のガードが動かない | 配布の README に書く。投稿の確認は MCP クライアント自身に任せる |
 | MCP サーバが起動しない | 理由を返して止まる。Python や Bash の CLI に切り替えない。bootstrap のテストで固定する |

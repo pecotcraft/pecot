@@ -42,7 +42,7 @@
 | 見る | `cli-node/tests/**/*.ts`、`cli-node/src/**/tests/**/*.ts` |
 | 見ない | `cli-node/tests/parity/**` |
 
-共通の項目 `PW-COMMON-NN` は、登録が 1 件以上になったら確かめます。
+共通の項目 `PW-COMMON-NN` は、登録の数に依らず確かめます。フェーズ 1 でつなぎます。
 
 ## vitest のケースの書き方
 
