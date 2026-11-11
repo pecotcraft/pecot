@@ -19,7 +19,6 @@ from cli.core.worktree_links import (
     DEFAULT_WORKTREEIGNORE_CONTENT,
     WorktreeConfig,
     WorktreeLinkItem,
-    _compute_relative_target,
     create_symlinks_safe,
     get_default_config,
     save_config,
@@ -295,9 +294,7 @@ class TestProjectSetE2E:
 
         link = result.path / ".pecot" / "work"
         assert link.is_symlink()
-        work_link_item = next((item for item in config.links if item.path == ".pecot/work"), None)
-        assert work_link_item is not None
-        assert os.readlink(link) == _compute_relative_target(work_link_item)
+        assert os.readlink(link) == "../../../base/repo-A/.pecot/work"
         # main WT の内容が WT 側から見える
         assert (link / "100" / "note.md").read_text() == "from-base"
         # WT 側からの書き込みが main WT に残る
@@ -341,8 +338,7 @@ class TestProjectSetE2E:
         results = create_symlinks_safe(
             config,
             project_root=root,
-            set_name="wt1",
-            repo_name="repo-A",
+            wt_root=root / "wt1" / "repo-A",
             force=False,
             confirm_callback=None,
         )

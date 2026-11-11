@@ -590,14 +590,12 @@ def _load_worktree_config_or_raise(worktree_config_path: Path) -> WorktreeConfig
 def _create_worktree_symlinks(
     worktree_config: WorktreeConfig,
     project_root: Path,
-    name: str,
-    repo_dir_name: str,
     path: Path,
 ) -> tuple[list[SymlinkResult], set[Path]]:
     """6. シンボリックリンク作成。(結果, 作成成功したリンクの WT 相対パス) を返す"""
     from cli.core.worktree_links import create_symlinks
 
-    linked_files = create_symlinks(worktree_config, project_root, name, repo_dir_name)
+    linked_files = create_symlinks(worktree_config, project_root, path)
 
     # 作成成功したシンボリックリンクのパスを記録（コピー除外用）
     symlinked_paths: set[Path] = set()
@@ -781,7 +779,7 @@ def _populate_worktree(
     symlinked_paths: set[Path] = set()
     if link:
         result.linked_files, symlinked_paths = _create_worktree_symlinks(
-            worktree_config, project_root, result.name, main_wt.name, result.path
+            worktree_config, project_root, result.path
         )
 
     # 7. 未追跡ファイルコピー（シンボリックリンク対象を除外）

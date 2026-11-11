@@ -70,7 +70,9 @@ class TestWorktreeAdd:
 
         def create(*_args: object, **_kwargs: object) -> WorktreeCreateResult:
             link = WorktreeLinkItem(path="x", target_repo="none", target_path="missing")
-            _process_link(link, tmp_path, "wt1", "repo", lambda *_: False)
+            _process_link(
+                link, tmp_path, tmp_path / "wt1" / "repo", confirm_callback=lambda *_: False
+            )
             return WorktreeCreateResult(
                 name="wt1",
                 path=tmp_path / "wt1" / "repo",
@@ -279,7 +281,9 @@ class TestWorktreeAdd:
 
         def create(*_args: object, **_kwargs: object) -> WorktreeCreateResult:
             link = WorktreeLinkItem(path=path, target_repo="src", target_path=target_path or path)
-            r = _process_link(link, tmp_path, "wt1", "repo", lambda *_: False)
+            r = _process_link(
+                link, tmp_path, tmp_path / "wt1" / "repo", confirm_callback=lambda *_: False
+            )
             return self._created(tmp_path, linked_files=[r])
 
         mock_create.side_effect = create
@@ -629,6 +633,63 @@ class TestWorktreeLink:
         assert result.exit_code == 0
         assert "overwrite it?" not in result.stderr
         assert real.is_symlink()
+
+    def test_link_dry_run_all_real_file_is_skip(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, ["--all", "--dry-run"])
+        assert result.exit_code == 0
+        assert f"symlink {real} (a real file exists)" in result.output
+        assert not real.is_symlink()
+
+    def test_link_dry_run_force_real_file_is_update(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, ["--force", "--dry-run"])
+        assert result.exit_code == 0
+        assert f"symlink {real} -> " in result.output
+        assert "a real file exists" not in result.output
+        assert not real.is_symlink()
+
+    def test_link_dry_run_single_real_file_asks_first(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, ["--dry-run"])
+        assert result.exit_code == 0
+        assert "(real file, asks first)" in result.output
+        assert not real.is_symlink()
+
+    def test_link_dry_run_tracked_path_is_skip(self, tmp_path: Path) -> None:
+        wt = tmp_path / "wt1" / "myrepo"
+        wt.mkdir(parents=True, exist_ok=True)
+        git_init_and_commit(wt, {"README.md": "x"})
+        result = self._run_link(tmp_path, "README.md", "README.md", args=["--dry-run"])
+        assert result.exit_code == 0
+        assert f"symlink {wt / 'README.md'} (tracked by git)" in result.output
+        assert not (wt / "README.md").is_symlink()
+
+    def test_link_from_subdirectory_targets_worktree_root(self, tmp_path: Path) -> None:
+        wt = tmp_path / "wt1" / "myrepo"
+        wt.mkdir(parents=True, exist_ok=True)
+        git_init_and_commit(wt, {"keep.md": "x"})
+        sub = wt / "sub" / "dir"
+        sub.mkdir(parents=True)
+        # _run_link は wt を -D に渡すので、サブディレクトリを渡す形で直接打つ
+        (tmp_path / "base" / "myrepo").mkdir(parents=True)
+        (tmp_path / "base" / "src").mkdir(parents=True)
+        (tmp_path / "base" / "src" / "a.txt").write_text("shared")
+        from cli.core.worktree_links import WorktreeConfig, WorktreeLinkItem
+
+        config = WorktreeConfig(
+            links=[WorktreeLinkItem(path="a.txt", target_repo="src", target_path="a.txt")]
+        )
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch(
+                "cli.core.worktree.find_main_worktree", return_value=tmp_path / "base" / "myrepo"
+            ),
+            patch("cli.core.worktree.detect_project_root", return_value=tmp_path),
+            patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
+            patch("cli.core.worktree_links.load_config", return_value=config),
+        ):
+            result = runner.invoke(app, ["worktree", "link", "-D", str(sub), "--force"])
+        assert result.exit_code == 0
+        assert (wt / "a.txt").is_symlink()
+        assert not (sub / "a.txt").exists()
 
 
 # devcontainer 前提ガード

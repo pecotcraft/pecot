@@ -3339,7 +3339,7 @@ entries:
       - The repository must be registered in the active project.
       - Creates the symlinks of worktree-config.json, then copies the git-ignored files of the main worktree that .worktreeignore does not exclude and that are not under a created symlink, then runs the setup command in the new worktree.
       - With --path, the worktree is created at that path, and the copied files go to that path.
-      - With --path, the symlinks and .pecot/.gitignore are still created under <project root>/<wtN>/<repository directory name>.
+      - With --path, the symlinks and .pecot/.gitignore are created in the worktree at that path.
       - When a link path starts with .pecot/, writes .pecot/.gitignore in the new worktree by running a script of the plugin before it links.
       - The setup command is --setup, or setup_command of worktree-config.json, and runs through the shell with a closed stdin and the timeout setup_command_timeout.
       - A failed or timed out setup command is a warning and does not change the exit status.
@@ -3552,6 +3552,9 @@ entries:
       - id: PW-WORKTREE-ADD-50
         pattern: unwanted
         statement: もし worktree を作った後に worktree-config.json を読めなかったなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-51
+        pattern: event
+        statement: --path を付けて打つと、リンクと .pecot/.gitignore もその場所に作る
   PW-WORKTREE-INIT:
     constraints: []
     details:
@@ -3659,7 +3662,7 @@ entries:
       - Applies the links of worktree-config.json to the worktree in -D, or to every sub-worktree with --all, and replaces a link that already exists.
       - The links are read from the main worktree of the repository.
       - Run pecot worktree init when the config file is missing.
-      - Without --all, -D must be a sub-worktree, and the command stops in the main worktree.
+      - Without --all, the target is the root of the worktree that contains -D, so -D may be a subdirectory. The command stops when that root is the main worktree.
       - With --all and no sub-worktree, the command only reports a count of 0.
       - A link whose target does not exist is skipped.
       - A path tracked by git, or a link that cannot be created, is an error that is shown as a warning and does not change the exit status.
@@ -3667,8 +3670,8 @@ entries:
       - With --all and without --force, a real file is skipped without asking.
       - When a link path starts with .pecot/, writes .pecot/.gitignore in the worktree by running a script of the plugin before it links.
       - With --dry-run, shows for each link whether it would be created, updated or skipped, and changes nothing.
-      - With --dry-run and --all, a real file at a link path is planned as an update, although the run skips it without asking.
-      - With --dry-run, a path tracked by git is planned as an update, although the run writes a warning line and does not create the link.
+      - With --dry-run, each link is decided the same way as in the real run, so a link the run skips is planned as a skipped line with the same reason. With --all and without --force, a real file is planned as skipped.
+      - A path tracked by git is planned as skipped, and the real run writes a warning line for it and counts it as an error.
       - Needs a devcontainer.
     stdin: A y or n answer to the overwrite prompt. The prompt is asked only for a single worktree, without --force, when a real file or directory that git does not track exists at a link path. An end of input aborts the command.
     output:
@@ -3817,6 +3820,9 @@ entries:
       - id: PW-WORKTREE-LINK-33
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-34
+        pattern: event
+        statement: -D にサブディレクトリを渡して打つと、その worktree のルートにリンクを作る
   PW-WORKTREE-REMOVE:
     constraints: []
     details:

@@ -374,8 +374,8 @@ function loadWorktreeConfigOrRaise(configPath: string): WorktreeConfig {
 }
 
 // シンボリックリンク作成。(結果, 作成成功したリンクの WT 相対パス) を返す。後者はコピー除外に使う
-function createWorktreeSymlinks(config: WorktreeConfig, projectRoot: string, name: string, repositoryDirectoryName: string, worktreePath: string, diagnostics: Diagnostics): { readonly linkedFiles: readonly SymlinkResult[], readonly symlinkedPaths: readonly string[] } {
-  const linkedFiles = createSymlinks(config, projectRoot, name, repositoryDirectoryName, diagnostics)
+function createWorktreeSymlinks(config: WorktreeConfig, projectRoot: string, worktreePath: string, diagnostics: Diagnostics): { readonly linkedFiles: readonly SymlinkResult[], readonly symlinkedPaths: readonly string[] } {
+  const linkedFiles = createSymlinks(config, projectRoot, worktreePath, diagnostics)
   const symlinkedPaths = linkedFiles
     .filter(link => link.action === 'created')
     .map(link => path.relative(worktreePath, link.symlinkPath))
@@ -489,7 +489,7 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
   const worktreeConfig = loadWorktreeConfigOrRaise(configPath)
   const linking = options.shouldLink === false
     ? { linkedFiles: [], symlinkedPaths: [] }
-    : createWorktreeSymlinks(worktreeConfig, projectRoot, name, repositoryDirectoryName, worktreePath, diagnostics)
+    : createWorktreeSymlinks(worktreeConfig, projectRoot, worktreePath, diagnostics)
   const copiedFiles = options.shouldCopy === false ? [] : copyUntrackedToWorktree(mainWorktree, worktreePath, spec, linking.symlinkedPaths)
   const setupResult = runEffectiveSetup(options.setupCommand, worktreeConfig, worktreePath, diagnostics)
   return { name, path: worktreePath, branch: name, baseBranch, copiedFiles, linkedFiles: linking.linkedFiles, setupResult }

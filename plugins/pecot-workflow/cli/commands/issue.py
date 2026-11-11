@@ -332,7 +332,7 @@ def add_to_project(
     ctx: typer.Context,
     issue_ref: str = typer.Argument(
         ...,
-        help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)",
+        help="Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)",
     ),
     status: str | None = typer.Option(
         "ready",
@@ -447,7 +447,7 @@ def update_issue_status(
     ctx: typer.Context,
     issue_ref: str = typer.Argument(
         ...,
-        help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)",
+        help="Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)",
     ),
     status: str = typer.Argument(
         ...,
@@ -512,7 +512,7 @@ def issue_reopen_command(
     ctx: typer.Context,
     issue_ref: str = typer.Argument(
         ...,
-        help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)",
+        help="Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)",
     ),
     status: str = typer.Option(
         "ready",
@@ -1989,7 +1989,7 @@ def issue_read(
     issue_ref: Annotated[
         str,
         typer.Argument(
-            help="Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+            help="Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
         ),
     ],
     json_output: Annotated[
