@@ -16,7 +16,7 @@ from cli.commands.options import DirectoryOption
 from cli.commands.pr import extract_issue_number_from_branch
 from cli.core.config import ConfigError, load_active_config
 from cli.core.errors import PecotError
-from cli.core.git import git_current_branch, origin_repo
+from cli.core.git import git_current_branch, primary_remote_repo
 from cli.core.github import GitHubAPIError, GitHubClient
 from cli.core.ref_parser import RefParseError, parse_issue_ref
 from cli.core.state import FLAG_PECOT_ACTIVE, flag_exists, read_flag
@@ -75,7 +75,7 @@ def flag_status(
     branch_display = branch if branch else "unknown"
 
     # 2. リポジトリ情報取得
-    origin = origin_repo(directory)
+    origin = primary_remote_repo(directory)
     repo_display = f"{origin[1]}/{origin[2]}" if origin else "unknown"
 
     # 3. Issue番号推定
@@ -211,7 +211,7 @@ def flag_restore(
             )
             raise typer.Exit(code=1)
 
-        origin = origin_repo(directory)
+        origin = primary_remote_repo(directory)
         if origin is None:
             _OUT.error("cannot read the repository information")
             raise typer.Exit(code=1)

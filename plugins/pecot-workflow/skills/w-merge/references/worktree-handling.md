@@ -51,7 +51,7 @@ git branch
 ```bash
 # デフォルトブランチに切り替え（開発ブランチ または main）
 git checkout <デフォルトブランチ>
-git pull origin <デフォルトブランチ>
+git pull <remote> <デフォルトブランチ>  # remote は origin、無ければ最初の remote
 git branch -D <マージしたブランチ>
 ```
 
@@ -69,7 +69,7 @@ mainワークツリーへの移動や更新は**不要**。
 git checkout <Current directory nameの値>
 
 # 2. git pullで開発ブランチをマージ
-git pull origin <開発ブランチ>
+git pull <remote> <開発ブランチ>  # remote は origin、無ければ最初の remote
 
 # 3. マージしたローカルブランチを削除
 git branch -D <マージしたブランチ>

@@ -85,7 +85,7 @@ pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 
 `pr cleanup` コマンドが自動的に以下を実行する。
 
-- WT環境では、wtXブランチへ切替 → `git pull origin <開発ブランチ>` → ローカルフィーチャーブランチ削除
+- WT環境では、wtXブランチへ切替 → `git pull <remote> <開発ブランチ>`（remote は origin、無ければ最初の remote）→ ローカルフィーチャーブランチ削除
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
 - クロスリポでは、現在のリポとPRのリポが異なる場合、ローカルクリーンアップはスキップされる
 
