@@ -14,6 +14,1208 @@ environment:
   - name: GITHUB_COM_TOKEN
     effect: Supplies the GitHub token for github.com when the variable named for that host is unset (PECOT_GITHUB_COM_TOKEN without an entry in .pecot/config/hosts.json). The variable is read from the environment, after the .env file in the project root is loaded; a line in that file does not overwrite an existing environment variable, and it is loaded after .pecot/config/.env.
 entries:
+  PW-ISSUE-COMMENT:
+    constraints:
+      - requires: {message: [issue, template]}
+      - requires: {prepare: [template]}
+    details:
+      - "Has three modes: --prepare, a file argument and -m."
+      - When more than one mode is given, --prepare wins over the file and the file wins over -m.
+      - With --prepare, copies the template of the given kind to .pecot/tmp/output/ and prints its path.
+      - With --prepare and --issue, fills issue_ref in the front matter of the copy with the given reference.
+      - With a file, posts its body as a comment on the Issue named by issue_ref in its front matter.
+      - With -m, posts the given body as a comment on the Issue given by --issue.
+      - A file is validated against the template named in its front matter, and -m against the template given by -t.
+      - A file that has comment_url updates that comment instead of posting a new one.
+      - After posting from a file, writes the URL of the new comment back to comment_url in that file.
+      - comment_url must point to a comment on the Issue named by issue_ref.
+      - With a file, a repository that is not in the project gives a warning and the comment is still posted.
+    stdin: none
+    output:
+      format: text
+      description: With --prepare, the path of the template copy. Otherwise the URL of the comment that was posted or updated.
+    diagnostics: A result line on stderr for the comment (created or updated). A warning line when the repository of a file is not in the project, or when comment_url cannot be written back. When the body does not follow the template, one error line whose first line names the template path, followed by indented lines for the missing sections, heading summary rule violations, unusable notation, collapse rule violations and headings not in the template.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The template was copied, or the comment was posted or updated.
+      - code: 1
+        when: There is no active project, no mode argument is given, -t is missing with --prepare or -m, --issue is missing with -m, the front matter cannot be read or has no template, comment_url is malformed or points to another host or Issue, or the GitHub API returned an error.
+      - code: 2
+        when: The Issue reference is malformed, or another command line error occurs.
+      - code: 3
+        when: The body does not follow the template.
+    on_error: Nothing is posted when the body does not follow the template. When the comment is posted but comment_url cannot be written back, the comment stays on GitHub and the file is left as it was. A template copy written by --prepare stays in .pecot/tmp/output/.
+    effects:
+      - target: github
+        kind: write
+        what: Posts a comment on the Issue, or updates the comment named by comment_url.
+      - target: github
+        kind: read
+        what: With a file, checks whether the repository is linked to the project.
+      - target: file
+        kind: write
+        what: Writes the template copy under .pecot/tmp/output/, and writes comment_url back to the file that was posted.
+      - target: file
+        kind: read
+        what: Reads the comment file, the templates and the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+    idempotent: false
+    examples:
+      - run: pecot issue comment --prepare -t plan -i example-org/my-repo/12
+        note: Write a plan template for Issue 12 and print its path.
+      - run: pecot issue comment .pecot/tmp/output/comment-plan-20260101-120000.md
+        note: Post the comment in the file, or update it when the file has comment_url.
+    default_notes:
+      issue: No default. Required with -m; with --prepare, issue_ref in the copy stays empty when omitted; with a file, issue_ref comes from the front matter. The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+      template: No default. Required with --prepare and -m; with a file, the template comes from the front matter.
+    behaviors:
+      - id: PW-ISSUE-COMMENT-01
+        pattern: event
+        statement: --prepare とテンプレの種類を付けて打つと、テンプレのコピーを .pecot/tmp/output/ に書く
+      - id: PW-ISSUE-COMMENT-02
+        pattern: event
+        statement: --prepare に --issue を付けて打つと、コピーの issue_ref に渡した参照を入れる
+      - id: PW-ISSUE-COMMENT-03
+        pattern: event
+        statement: コメントのファイルを渡すと、フロントマターの issue_ref の Issue にコメントを投稿する
+      - id: PW-ISSUE-COMMENT-04
+        pattern: event
+        statement: "-m に --issue とテンプレの種類を付けて打つと、その Issue にコメントを投稿する"
+      - id: PW-ISSUE-COMMENT-05
+        pattern: event
+        statement: comment_url を持つファイルを渡すと、新しいコメントを投稿せずにそのコメントを書き換える
+      - id: PW-ISSUE-COMMENT-06
+        pattern: event
+        statement: ファイルからコメントを投稿すると、できたコメントの URL をファイルの comment_url に書き戻す
+      - id: PW-ISSUE-COMMENT-07
+        pattern: event
+        statement: --prepare とファイルを一緒に渡すと、ファイルを投稿せずにテンプレのコピーだけを書く
+      - id: PW-ISSUE-COMMENT-08
+        pattern: event
+        statement: ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルを投稿する
+      - id: PW-ISSUE-COMMENT-09
+        pattern: event
+        statement: --prepare を付けて打つと、書いたテンプレのパスを標準出力に出す
+      - id: PW-ISSUE-COMMENT-10
+        pattern: event
+        statement: コメントを投稿すると、そのコメントの URL を標準出力に出す
+      - id: PW-ISSUE-COMMENT-11
+        pattern: event
+        statement: コメントを書き換えると、書き換えたコメントの URL を標準出力に出す
+      - id: PW-ISSUE-COMMENT-12
+        pattern: event
+        statement: コメントを投稿すると、created の行を標準エラーに出す
+      - id: PW-ISSUE-COMMENT-13
+        pattern: event
+        statement: コメントを書き換えると、updated の行を標準エラーに出す
+      - id: PW-ISSUE-COMMENT-14
+        pattern: unwanted
+        statement: もしファイルの Issue のリポジトリがプロジェクトに無いなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-COMMENT-15
+        pattern: unwanted
+        statement: もし comment_url を書き戻せないなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-COMMENT-16
+        pattern: unwanted
+        statement: もし本文がテンプレに合わないなら、終了コード 3 で終わる
+      - id: PW-ISSUE-COMMENT-17
+        pattern: unwanted
+        statement: もし本文がテンプレに合わないなら、違反の種類ごとの行を標準エラーに出す
+      - id: PW-ISSUE-COMMENT-18
+        pattern: unwanted
+        statement: もし本文がテンプレに合わないなら、コメントを投稿しない
+      - id: PW-ISSUE-COMMENT-19
+        pattern: unwanted
+        statement: もし --prepare か -m でテンプレの種類を渡していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-20
+        pattern: unwanted
+        statement: もし -m で --issue を渡していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-21
+        pattern: unwanted
+        statement: もし --prepare・ファイル・-m のどれも渡していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-22
+        pattern: unwanted
+        statement: もしファイルのフロントマターを読めないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-23
+        pattern: unwanted
+        statement: もしファイルのフロントマターに template が無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-24
+        pattern: unwanted
+        statement: もし comment_url の形が誤っているか、別のホストや別の Issue を指すなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-25
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-26
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-COMMENT-27
+        pattern: unwanted
+        statement: もし Issue の参照の形が誤っているなら、終了コード 2 で終わる
+  PW-ISSUE-CREATE:
+    constraints:
+      - requires: {message: [title]}
+    details:
+      - "Has three modes: --prepare, files and -m."
+      - When more than one mode is given, --prepare wins over the files and the files win over -m.
+      - With --prepare, copies the template given by --template to .pecot/tmp/output/ and prints its path.
+      - With --prepare and --repo, fills the repository line of the copy with the given repository.
+      - With --prepare and --suffix, appends the suffix to the file name of the copy.
+      - With files, creates one Issue per file in the order given.
+      - With files, the front matter decides the type, repository, status, priority, size, parent Epic, order and labels, and the options of the same names are ignored.
+      - Before the first Issue of a batch is created, checks that every file exists, that none is given twice and that every {{issue:key}} placeholder points to an earlier file.
+      - A {{issue:key}} placeholder in a body expands to the number of the Issue created from the earlier file with that key.
+      - With -m, creates one Issue from --title, the body, --repo and --type.
+      - With -m, --repo is required unless --type is epic.
+      - The body must follow the template of the Issue type.
+      - The status at creation can only be the default of the type.
+      - An Epic is created in aggregation_repo when no repository is given.
+      - Creating an Epic in a repository other than aggregation_repo gives a warning and continues.
+      - Adds each created Issue to the project board and sets its status, priority and size.
+      - With a parent Epic, links each created Issue as a sub-issue of it.
+      - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
+    stdin: none
+    output:
+      format: text
+      description: With --prepare, the path of the template copy. Otherwise one line per created Issue with its URL, in the order of the files.
+    diagnostics: "Result lines on stderr for each Issue: created, added (to the project and to the parent Epic as a sub-issue) and set (status, priority and size). Warning lines when an Epic is created outside aggregation_repo, and when adding an Issue to the project fails. An error line for each failure; a body that does not follow the template is reported with the template path on the first line and indented lines for each kind of violation. A malformed --parent-epic is reported by the command line parser as a usage error, not as an error line."
+    environment: []
+    exit_status:
+      - code: 0
+        when: The template was copied, or every Issue was created. Failing to add an Issue to the project board still gives 0.
+      - code: 1
+        when: There is no active project, no mode argument is given, -t or -r is missing with -m, a file is missing or given twice, a placeholder does not point to an earlier file, the front matter cannot be read or has a malformed repository, the body does not follow the template, the status is not the default of the type, the repository is not linked to the project, another Issue of the parent Epic has the same order, linking to the parent Epic failed, or the GitHub API returned an error. A body that does not follow the template gives 1, not 3.
+      - code: 2
+        when: A repository is not in owner/repo form, --repo is missing with --prepare for a type other than epic, the destination of an Epic cannot be decided, --parent-epic is malformed, or another command line error occurs.
+    on_error: When a file in a batch fails, the Issues created from earlier files stay on GitHub and later files are not processed. Only the existence of the files, duplicates and placeholders are checked before the first Issue is created; every other check runs just before the Issue of that file is created. The flag issue-create-slash-pending stays after a failure, and issue-pending is removed each time an Issue is created. When adding to the project board fails, a warning is written, the Issue stays, and the next file is processed. When linking to the parent Epic fails, the Issue stays on the board with its fields set.
+    effects:
+      - target: github
+        kind: write
+        what: Creates Issues, adds them to the project board, sets their fields and links them to the parent Epic as sub-issues.
+      - target: github
+        kind: read
+        what: Reads the repositories linked to the project and the sub-issues of the parent Epic.
+      - target: file
+        kind: write
+        what: Writes the template copy under .pecot/tmp/output/ and removes the flags issue-pending and issue-create-slash-pending under .pecot/state/.
+      - target: file
+        kind: read
+        what: Reads the Markdown files, the templates and the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+    idempotent: false
+    examples:
+      - run: pecot issue create --prepare --template task --repo example-org/my-repo
+        note: Write a task template and print its path.
+      - run: pecot issue create .pecot/work/12/issue-a.md .pecot/work/12/issue-b.md
+        note: Create two Issues in the order given.
+      - run: "pecot issue create -t \"Add a report\" -r example-org/my-repo -m \"<body>\""
+        note: Create one Issue from the command line.
+    default_notes:
+      status: "Decided by the type: ready for task and bug, backlog for epic and tracker. Any other value stops the command with exit status 1."
+      repo: Required with -m and --prepare unless the type is epic. An Epic goes to aggregation_repo of the active project; when that is not set, --repo is required.
+      parent_epic: An integer is resolved against aggregation_repo, or against the repository of the new Issue when aggregation_repo is not set. The form owner/repo/N is used as it is.
+    behaviors:
+      - id: PW-ISSUE-CREATE-01
+        pattern: event
+        statement: --prepare を付けて打つと、--template のテンプレのコピーを .pecot/tmp/output/ に書く
+      - id: PW-ISSUE-CREATE-02
+        pattern: event
+        statement: --prepare に --repo を付けて打つと、コピーの repository に渡したリポジトリを入れる
+      - id: PW-ISSUE-CREATE-03
+        pattern: event
+        statement: --prepare に --suffix を付けて打つと、コピーのファイル名に suffix を付ける
+      - id: PW-ISSUE-CREATE-04
+        pattern: event
+        statement: 複数のファイルを渡すと、渡した順に 1 件ずつ Issue を作る
+      - id: PW-ISSUE-CREATE-05
+        pattern: event
+        statement: "-m に --title と --repo を付けて打つと、Issue を 1 件作る"
+      - id: PW-ISSUE-CREATE-06
+        pattern: event
+        statement: --prepare とファイルを一緒に渡すと、ファイルから Issue を作らずにテンプレのコピーだけを書く
+      - id: PW-ISSUE-CREATE-07
+        pattern: event
+        statement: ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから Issue を作る
+      - id: PW-ISSUE-CREATE-08
+        pattern: event
+        statement: ファイルを渡すと、フロントマターの値を使い、--type・--status などのオプションは使わない
+      - id: PW-ISSUE-CREATE-09
+        pattern: event
+        statement: 本文に {{issue:key}} があると、key のファイルから作った Issue の番号に置き換えて投稿する
+      - id: PW-ISSUE-CREATE-10
+        pattern: event
+        statement: Issue を作ると、プロジェクトのボードに足す
+      - id: PW-ISSUE-CREATE-11
+        pattern: event
+        statement: ボードに足すと、status・priority・size を設定する
+      - id: PW-ISSUE-CREATE-12
+        pattern: event
+        statement: --status を省いて -m で打つと、type の既定の status を設定する
+      - id: PW-ISSUE-CREATE-13
+        pattern: event
+        statement: 親 Epic を指定して Issue を作ると、その Epic の sub-issue につなぐ
+      - id: PW-ISSUE-CREATE-14
+        pattern: event
+        statement: --type epic で --repo を省くと、aggregation_repo に Epic を作る
+      - id: PW-ISSUE-CREATE-15
+        pattern: event
+        statement: aggregation_repo と違うリポジトリに Epic を作ると、warning の行を標準エラーに出す
+      - id: PW-ISSUE-CREATE-16
+        pattern: event
+        statement: --prepare を付けて打つと、書いたテンプレのパスを標準出力に出す
+      - id: PW-ISSUE-CREATE-17
+        pattern: event
+        statement: Issue を作ると、その URL を標準出力に出す
+      - id: PW-ISSUE-CREATE-18
+        pattern: event
+        statement: Issue を作ると、created の行を標準エラーに出す
+      - id: PW-ISSUE-CREATE-19
+        pattern: event
+        statement: ボードか親 Epic に足すと、added の行を標準エラーに出す
+      - id: PW-ISSUE-CREATE-20
+        pattern: event
+        statement: 欄を設定すると、set の行を標準エラーに出す
+      - id: PW-ISSUE-CREATE-21
+        pattern: unwanted
+        statement: もしボードへの追加に失敗したなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-CREATE-22
+        pattern: unwanted
+        statement: もしボードへの追加に失敗したなら、作った Issue の URL を標準出力に出す
+      - id: PW-ISSUE-CREATE-23
+        pattern: unwanted
+        statement: もしボードへの追加に失敗したなら、次のファイルへ進む
+      - id: PW-ISSUE-CREATE-24
+        pattern: unwanted
+        statement: もし欄の設定に失敗したなら、失敗を無視して続ける
+      - id: PW-ISSUE-CREATE-25
+        pattern: unwanted
+        statement: もし親 Epic へのつなぎに失敗したなら、作った Issue の URL を標準出力に出す
+      - id: PW-ISSUE-CREATE-26
+        pattern: unwanted
+        statement: もし親 Epic へのつなぎに失敗したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-27
+        pattern: unwanted
+        statement: もし複数のファイルの途中で Issue の作成に失敗したなら、後のファイルを処理しない
+      - id: PW-ISSUE-CREATE-28
+        pattern: unwanted
+        statement: もし複数のファイルの途中で Issue の作成に失敗したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-29
+        pattern: unwanted
+        statement: もし本文がテンプレに合わないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-30
+        pattern: unwanted
+        statement: もし status が type の既定の値でないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-31
+        pattern: unwanted
+        statement: もし -m に --title を渡していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-32
+        pattern: unwanted
+        statement: もし epic 以外の -m に --repo を渡していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-33
+        pattern: unwanted
+        statement: もし --prepare・ファイル・-m のどれも渡していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-34
+        pattern: unwanted
+        statement: もしファイルが無いか、同じファイルを重ねて渡したか、{{issue:key}} が先のファイルを指していないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-35
+        pattern: unwanted
+        statement: もしフロントマターを読めないか、repository が owner/repo の形でないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-36
+        pattern: unwanted
+        statement: もし同じ親 Epic に同じ order の Issue があるなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-37
+        pattern: unwanted
+        statement: もしリポジトリがプロジェクトにつながっていないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-38
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-39
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-CREATE-40
+        pattern: unwanted
+        statement: もしリポジトリが owner/repo の形でないなら、終了コード 2 で終わる
+      - id: PW-ISSUE-CREATE-41
+        pattern: unwanted
+        statement: もし epic 以外の --prepare に --repo を渡していないなら、終了コード 2 で終わる
+      - id: PW-ISSUE-CREATE-42
+        pattern: unwanted
+        statement: もし Epic の作り先を決められないなら、終了コード 2 で終わる
+      - id: PW-ISSUE-CREATE-43
+        pattern: unwanted
+        statement: もし --parent-epic の形が誤っているなら、使い方のエラーを出して終了コード 2 で終わる
+  PW-ISSUE-QUICK:
+    constraints: []
+    details:
+      - Creates an Issue from a free-format message in one step, without template validation.
+      - The title is the first 50 characters of the message with each run of whitespace turned into one space, prefixed by the type.
+      - Adds the Issue to the project board and sets status, priority and size by type.
+      - For task and bug the values are active, medium and s; for epic and tracker they are backlog and medium, with no size.
+      - With a parent Epic, links the Issue as a sub-issue of it.
+      - Giving a parent Epic to an Epic gives a warning.
+      - Unless --no-branch is given, creates a linked branch named feat/<YYYYMMDD-HHMMSS>/<N> from the develop_branch of the repository.
+      - After the branch is created, or with --no-branch, writes the work target to .pecot/state/.pecot-active and creates .pecot/work/<N>/.
+      - For a type other than epic and tracker, creates the flag .pecot/state/.pecot-quick-mode.
+      - With a parent Epic and --order, stops when another Issue of that Epic has the same order.
+    stdin: none
+    output:
+      format: text
+      description: The URL of the created Issue.
+    diagnostics: "Result lines on stderr: created (the Issue, then the branch), added (to the project, then to the parent Epic as a sub-issue), set (status, priority and size, then the work target). Warning lines when adding to the project fails, when the branch cannot be created, and when a parent Epic is given to an Epic. An error line for each failure. A malformed --parent-epic is reported by the command line parser as a usage error, not as an error line."
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Issue was created. Failing to add it to the board, or failing to create the branch through the API, still gives 0.
+      - code: 1
+        when: The message is empty, the repository is not in owner/repo form, there is no active project, the repository is not linked to the project, another Issue of the parent Epic has the same order, linking to the parent Epic failed, develop_branch is not set for the repository, or the GitHub API returned an error.
+      - code: 2
+        when: --parent-epic is malformed, -m or -r is missing, or another command line error occurs.
+    on_error: When develop_branch is not set, the Issue stays on the board with its fields and sub-issue link already set; the URL is not printed and neither .pecot-active nor .pecot-quick-mode is written. When the branch cannot be created through the API, a warning is written and .pecot-active is not written. When adding to the project board fails, the Issue stays, a warning is written and nothing more is done. When linking to the parent Epic fails, the Issue stays on the board with its fields set.
+    effects:
+      - target: github
+        kind: write
+        what: Creates an Issue, adds it to the project board, sets its fields, links it to the parent Epic and creates a linked branch.
+      - target: github
+        kind: read
+        what: Reads the repositories linked to the project, the sub-issues of the parent Epic and the head of the develop branch.
+      - target: file
+        kind: write
+        what: Writes .pecot/state/.pecot-active and .pecot/state/.pecot-quick-mode, creates .pecot/work/<N>/, and removes the flags issue-pending and issue-create-slash-pending.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+    idempotent: false
+    examples:
+      - run: "pecot issue quick -r example-org/my-repo -m \"Add an API endpoint\""
+        note: Create a task, its branch and the work target.
+      - run: "pecot issue quick -r example-org/my-repo -m \"Update the docs\" --no-branch"
+        note: Create a task without a branch.
+    default_notes:
+      type: task. The status, priority and size set on the board are decided by the type.
+    behaviors:
+      - id: PW-ISSUE-QUICK-01
+        pattern: event
+        statement: メッセージとリポジトリを渡すと、Issue を 1 件作る
+      - id: PW-ISSUE-QUICK-02
+        pattern: event
+        statement: メッセージを渡すと、先頭 50 文字をタイトルにする
+      - id: PW-ISSUE-QUICK-03
+        pattern: event
+        statement: Issue を作ると、プロジェクトのボードに足す
+      - id: PW-ISSUE-QUICK-04
+        pattern: event
+        statement: ボードに足すと、type に応じた status・priority・size を設定する
+      - id: PW-ISSUE-QUICK-05
+        pattern: event
+        statement: --parent-epic を付けて打つと、その Epic の sub-issue につなぐ
+      - id: PW-ISSUE-QUICK-06
+        pattern: event
+        statement: Epic に --parent-epic を付けて打つと、warning の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-07
+        pattern: event
+        statement: --no-branch を省いて打つと、develop_branch から feat/<YYYYMMDD-HHMMSS>/<N> のリンク付きブランチを作る
+      - id: PW-ISSUE-QUICK-08
+        pattern: event
+        statement: ブランチを作ると、.pecot/state/.pecot-active に作業対象を書く
+      - id: PW-ISSUE-QUICK-09
+        pattern: event
+        statement: ブランチを作ると、.pecot/work/<N>/ を作る
+      - id: PW-ISSUE-QUICK-10
+        pattern: event
+        statement: --no-branch を付けて打つと、ブランチを作らずに .pecot/state/.pecot-active を書く
+      - id: PW-ISSUE-QUICK-11
+        pattern: event
+        statement: --no-branch を付けて打つと、.pecot/work/<N>/ を作る
+      - id: PW-ISSUE-QUICK-12
+        pattern: event
+        statement: epic と tracker 以外を作ると、.pecot/state/.pecot-quick-mode を作る
+      - id: PW-ISSUE-QUICK-13
+        pattern: event
+        statement: Issue を作ると、その URL を標準出力に出す
+      - id: PW-ISSUE-QUICK-14
+        pattern: event
+        statement: Issue を作ると、created の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-15
+        pattern: event
+        statement: ボードか親 Epic に足すと、added の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-16
+        pattern: event
+        statement: 欄を設定すると、set の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-17
+        pattern: event
+        statement: ブランチを作ると、created の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-18
+        pattern: unwanted
+        statement: もしボードへの追加に失敗したなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-19
+        pattern: unwanted
+        statement: もしボードへの追加に失敗したなら、作った Issue の URL を標準出力に出す
+      - id: PW-ISSUE-QUICK-20
+        pattern: unwanted
+        statement: もしボードへの追加に失敗したなら、欄の設定とブランチの作成をしない
+      - id: PW-ISSUE-QUICK-21
+        pattern: unwanted
+        statement: もし親 Epic へのつなぎに失敗したなら、作った Issue の URL を標準出力に出す
+      - id: PW-ISSUE-QUICK-22
+        pattern: unwanted
+        statement: もし親 Epic へのつなぎに失敗したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-23
+        pattern: unwanted
+        statement: もし develop_branch が設定に無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-24
+        pattern: unwanted
+        statement: もし develop_branch が設定に無いなら、URL を標準出力に出さない
+      - id: PW-ISSUE-QUICK-25
+        pattern: unwanted
+        statement: もし develop_branch が設定に無いなら、.pecot-active と .pecot-quick-mode を書かない
+      - id: PW-ISSUE-QUICK-26
+        pattern: unwanted
+        statement: もしブランチの作成が API で失敗したなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-QUICK-27
+        pattern: unwanted
+        statement: もしブランチの作成が API で失敗したなら、.pecot-active を書かない
+      - id: PW-ISSUE-QUICK-28
+        pattern: unwanted
+        statement: もしメッセージが空なら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-29
+        pattern: unwanted
+        statement: もしリポジトリが owner/repo の形でないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-30
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-31
+        pattern: unwanted
+        statement: もしリポジトリがプロジェクトにつながっていないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-32
+        pattern: unwanted
+        statement: もし同じ親 Epic に同じ order の Issue があるなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-33
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-QUICK-34
+        pattern: unwanted
+        statement: もし --parent-epic の形が誤っているなら、使い方のエラーを出して終了コード 2 で終わる
+      - id: PW-ISSUE-QUICK-35
+        pattern: unwanted
+        statement: もし -m か -r を省いたなら、使い方のエラーを出して終了コード 2 で終わる
+  PW-ISSUE-READ:
+    constraints: []
+    details:
+      - Fetches one Issue with a single GraphQL query.
+      - Prints the title, state, parent Issue, linked branches, linked PRs, sub-issues, body and comments.
+      - Shows at most --comment-limit comments, from 0 to 20; 0 hides them.
+      - With --json, prints the same data as JSON.
+      - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    stdin: none
+    output:
+      format: text
+      description: "Markdown that starts with a ## #<N> <title> heading, followed by the state, the parent, the linked branches, the linked PRs, the sub-issues, the body and the comments. With --json, a JSON object with the same data."
+    diagnostics: default
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Issue was printed.
+      - code: 1
+        when: There is no active project, or the GitHub API returned an error.
+      - code: 2
+        when: The Issue reference is malformed, --comment-limit is outside 0 to 20, or another command line error occurs.
+    on_error: default
+    effects:
+      - target: github
+        kind: read
+        what: Reads the Issue, its parent, sub-issues, linked branches, linked PRs and comments.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+    idempotent: true
+    examples:
+      - run: pecot issue read example-org/my-repo/12
+        note: Show the Issue as Markdown.
+      - run: pecot issue read example-org/my-repo/12 --json -c 0
+        note: Show the Issue as JSON without comments.
+    default_notes:
+      issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    behaviors:
+      - id: PW-ISSUE-READ-01
+        pattern: event
+        statement: Issue の参照を渡すと、見出し・状態・本文を Markdown で標準出力に出す
+      - id: PW-ISSUE-READ-02
+        pattern: event
+        statement: 親 Issue がある Issue を読むと、親 Issue を出す
+      - id: PW-ISSUE-READ-03
+        pattern: event
+        statement: リンクされたブランチがある Issue を読むと、そのブランチを出す
+      - id: PW-ISSUE-READ-04
+        pattern: event
+        statement: リンクされた PR がある Issue を読むと、その PR を出す
+      - id: PW-ISSUE-READ-05
+        pattern: event
+        statement: sub-issue がある Issue を読むと、sub-issue を出す
+      - id: PW-ISSUE-READ-06
+        pattern: event
+        statement: コメントがある Issue を読むと、--comment-limit 件までのコメントを出す
+      - id: PW-ISSUE-READ-07
+        pattern: event
+        statement: --comment-limit 0 を付けて打つと、コメントを出さない
+      - id: PW-ISSUE-READ-08
+        pattern: event
+        statement: --json を付けて打つと、同じ内容を JSON で標準出力に出す
+      - id: PW-ISSUE-READ-09
+        pattern: event
+        statement: 短い形 N の参照を渡すと、--repo か git の remote で補って読む
+      - id: PW-ISSUE-READ-10
+        pattern: unwanted
+        statement: もし Issue の参照の形が誤っているなら、終了コード 2 で終わる
+      - id: PW-ISSUE-READ-11
+        pattern: unwanted
+        statement: もし --comment-limit が 0 から 20 の外なら、終了コード 2 で終わる
+      - id: PW-ISSUE-READ-12
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-READ-13
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+  PW-ISSUE-REOPEN:
+    constraints: []
+    details:
+      - Reopens a closed Issue and sets its status on the project board.
+      - Sets the status given by --status, and ready when it is not given.
+      - Waits 3 seconds after setting the status and reopens the Issue a second time, because board automation can close it again.
+      - With --comment, posts the given reason as a comment after the Issue is reopened.
+      - Each run with --comment posts another comment.
+      - An Issue that is not on the board is reopened with a warning and its status is not changed.
+      - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    stdin: none
+    output:
+      format: none
+    diagnostics: "Result lines on stderr: set (the status), reopened (the Issue) and created (the comment). Warning lines when the Issue is not on the board and when the status is not configured in the project. An error line for each failure."
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Issue was reopened.
+      - code: 1
+        when: The status is not one of the valid values, there is no active project, the repository is not in the project, the Issue is not open after the second reopen, posting the comment failed, or the GitHub API returned an error.
+      - code: 2
+        when: The Issue reference is malformed, or another command line error occurs.
+    on_error: When posting the comment fails, the Issue stays open with the new status and the command exits with 1. When the Issue is not open after the second reopen, the status stays changed and the command exits with 1.
+    effects:
+      - target: github
+        kind: write
+        what: Reopens the Issue, sets the status field of its board item and posts the comment.
+      - target: github
+        kind: read
+        what: Reads the repositories linked to the project and the board item of the Issue.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+    idempotent: true
+    examples:
+      - run: "pecot issue reopen example-org/my-repo/12 --status active --comment \"The fix did not hold.\""
+        note: Reopen an Issue as active and leave the reason.
+    default_notes:
+      issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    behaviors:
+      - id: PW-ISSUE-REOPEN-01
+        pattern: event
+        statement: 閉じた Issue の参照を渡すと、その Issue を reopen する
+      - id: PW-ISSUE-REOPEN-02
+        pattern: event
+        statement: Issue を reopen すると、ボードの status を --status の値にする
+      - id: PW-ISSUE-REOPEN-03
+        pattern: event
+        statement: --status を省いて打つと、ボードの status を ready にする
+      - id: PW-ISSUE-REOPEN-04
+        pattern: event
+        statement: status を設定すると、3 秒待ってからもう一度 reopen する
+      - id: PW-ISSUE-REOPEN-05
+        pattern: event
+        statement: --comment を付けて打つと、reopen の後に理由をコメントに投稿する
+      - id: PW-ISSUE-REOPEN-06
+        pattern: event
+        statement: --comment を付けて 2 回打つと、そのたびにコメントを投稿する
+      - id: PW-ISSUE-REOPEN-07
+        pattern: event
+        statement: status を設定すると、set の行を標準エラーに出す
+      - id: PW-ISSUE-REOPEN-08
+        pattern: event
+        statement: Issue を reopen すると、reopened の行を標準エラーに出す
+      - id: PW-ISSUE-REOPEN-09
+        pattern: event
+        statement: コメントを投稿すると、created の行を標準エラーに出す
+      - id: PW-ISSUE-REOPEN-10
+        pattern: unwanted
+        statement: もし Issue がボードに無いなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-REOPEN-11
+        pattern: unwanted
+        statement: もし Issue がボードに無いなら、status を変えずに reopen だけを行う
+      - id: PW-ISSUE-REOPEN-12
+        pattern: unwanted
+        statement: もし status がプロジェクトに設定されていないなら、warning の行を標準エラーに出す
+      - id: PW-ISSUE-REOPEN-13
+        pattern: unwanted
+        statement: もし 2 回目の reopen の後も Issue が open でないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-REOPEN-14
+        pattern: unwanted
+        statement: もしコメントの投稿に失敗したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-REOPEN-15
+        pattern: unwanted
+        statement: もし --status が有効な値でないなら、終了コード 1 で終わる
+      - id: PW-ISSUE-REOPEN-16
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-REOPEN-17
+        pattern: unwanted
+        statement: もしリポジトリがプロジェクトに無いなら、終了コード 1 で終わる
+      - id: PW-ISSUE-REOPEN-18
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-REOPEN-19
+        pattern: unwanted
+        statement: もし Issue の参照の形が誤っているなら、終了コード 2 で終わる
+  PW-PR-CLEANUP:
+    constraints: []
+    details:
+      - "Cleans up after a merged PR: closes the related Issues, optionally deletes the remote branches and returns the local checkout to the development branch."
+      - The related Issues are the closing issues of the PR, the Issues named after Closes, Fixes or Resolves in its body, and the Issue whose number ends the head branch name.
+      - Does not close an Epic or an Issue that has sub-issues, and writes a skipped line for it.
+      - With --delete-branch, deletes the remote head branch and then wip/<head>.
+      - Switches the local checkout to the worktree name inside a worktree, or to develop_branch otherwise, pulls it from origin and deletes the local head branch with git branch -D.
+      - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
+      - After the local cleanup, removes the flags .pecot-active, .pecot-session-title, .pecot-quick-mode and .wip-branch-linked and the flag merge-slash-pending under .pecot/state/.
+      - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
+      - "With --dry-run, writes dry-run: would lines instead of the result lines and changes nothing."
+      - "A second run leaves the same state as the first but writes different lines: the remote branch is reported as unchanged and git branch -D on the local branch gives a warning."
+      - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    stdin: none
+    output:
+      format: none
+    diagnostics: "A count line for the Issues to close, then one result line per step on stderr: closed, skipped, unchanged, deleted, set and updated. With --dry-run, dry-run: would lines take the place of the result lines. Warning lines for steps that failed and for local cleanup that was skipped."
+    environment: []
+    exit_status:
+      - code: 0
+        when: The cleanup finished. A step that failed with a warning still gives 0.
+      - code: 1
+        when: There is no active project, the PR cannot be fetched or does not exist, or the PR is not merged.
+      - code: 2
+        when: The PR reference is malformed, or another command line error occurs.
+    on_error: A PR that is not merged is left as it is and nothing is changed. A failure to close an Issue is a warning and the other Issues and the later steps still run; nothing is rolled back. When deleting the remote head branch fails, deleting wip/<head> is skipped. When the checkout fails, the pull and the branch deletion are skipped and the flags are still removed.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the PR and the kind of each related Issue.
+      - target: github
+        kind: write
+        what: Closes the related Issues.
+      - target: github
+        kind: destructive
+        what: Deletes the remote head branch and wip/<head>.
+      - target: git
+        kind: destructive
+        what: Checks out the development branch or the worktree branch, pulls it, and deletes the local head branch with git branch -D.
+      - target: file
+        kind: write
+        what: Removes the flags under .pecot/state/.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+      - The PR is already merged.
+    idempotent: true
+    examples:
+      - run: pecot pr cleanup example-org/my-repo/123 --delete-branch
+        note: Clean up after a merged PR and delete its remote branch.
+      - run: pecot pr cleanup example-org/my-repo/123 --dry-run
+        note: Show what would be done without changing anything.
+    default_notes:
+      pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    behaviors:
+      - id: PW-PR-CLEANUP-01
+        pattern: event
+        statement: マージ済みの PR の参照を渡すと、closing issues・本文の Closes / Fixes / Resolves・head ブランチ名の末尾の番号の Issue を close する
+      - id: PW-PR-CLEANUP-02
+        pattern: event
+        statement: Epic か sub-issue を持つ Issue があると、その Issue を close しない
+      - id: PW-PR-CLEANUP-03
+        pattern: event
+        statement: Epic か sub-issue を持つ Issue があると、skipped の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-04
+        pattern: event
+        statement: --delete-branch を付けて打つと、リモートの head ブランチを削除する
+      - id: PW-PR-CLEANUP-05
+        pattern: event
+        statement: リモートの head ブランチを削除すると、続けて wip/<head> を削除する
+      - id: PW-PR-CLEANUP-06
+        pattern: event
+        statement: カレントのリポジトリが PR のリポジトリと同じだと、worktree の中なら worktree 名の、そうでなければ develop_branch のブランチに切り替える
+      - id: PW-PR-CLEANUP-07
+        pattern: event
+        statement: ブランチを切り替えると、origin の develop_branch を pull する
+      - id: PW-PR-CLEANUP-08
+        pattern: event
+        statement: pull すると、ローカルの head ブランチを git branch -D で削除する
+      - id: PW-PR-CLEANUP-09
+        pattern: event
+        statement: ローカルの片付けを終えると、フラグのファイルと merge-slash-pending を消す
+      - id: PW-PR-CLEANUP-10
+        pattern: event
+        statement: --skip-local-cleanup を付けて打つと、ローカルの片付けをしない
+      - id: PW-PR-CLEANUP-11
+        pattern: event
+        statement: --skip-local-cleanup を付けて打つと、フラグのファイルと merge-slash-pending を消さない
+      - id: PW-PR-CLEANUP-12
+        pattern: event
+        statement: "--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す"
+      - id: PW-PR-CLEANUP-13
+        pattern: event
+        statement: 実行すると、close する Issue の件数を count の行で標準エラーに出す
+      - id: PW-PR-CLEANUP-14
+        pattern: event
+        statement: Issue を close すると、closed の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-15
+        pattern: event
+        statement: ブランチを削除すると、deleted の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-16
+        pattern: event
+        statement: リモートの head ブランチが既に無いと、unchanged の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-17
+        pattern: unwanted
+        statement: もしローカルの head ブランチが既に無いなら、warning の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-18
+        pattern: unwanted
+        statement: もしカレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-19
+        pattern: unwanted
+        statement: もしカレントのリポジトリが PR のリポジトリと違うなら、ローカルの片付けを飛ばす
+      - id: PW-PR-CLEANUP-20
+        pattern: unwanted
+        statement: もし Issue の close に失敗したなら、warning の行を標準エラーに出す
+      - id: PW-PR-CLEANUP-21
+        pattern: unwanted
+        statement: もし Issue の close に失敗したなら、ほかの Issue と後の処理を続ける
+      - id: PW-PR-CLEANUP-22
+        pattern: unwanted
+        statement: もしリモートの head ブランチの削除に失敗したなら、wip/<head> の削除を飛ばす
+      - id: PW-PR-CLEANUP-23
+        pattern: unwanted
+        statement: もし checkout に失敗したなら、pull と git branch -D を飛ばす
+      - id: PW-PR-CLEANUP-24
+        pattern: unwanted
+        statement: もし PR がマージされていないなら、終了コード 1 で終わる
+      - id: PW-PR-CLEANUP-25
+        pattern: unwanted
+        statement: もし PR がマージされていないなら、何も変えない
+      - id: PW-PR-CLEANUP-26
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-PR-CLEANUP-27
+        pattern: unwanted
+        statement: もし PR を取得できないか、PR が無いなら、終了コード 1 で終わる
+      - id: PW-PR-CLEANUP-28
+        pattern: unwanted
+        statement: もし PR の参照の形が誤っているなら、終了コード 2 で終わる
+  PW-PR-CREATE:
+    constraints:
+      - requires: {message: [title, base]}
+      - conflicts: [file, screenshot]
+    details:
+      - "Has three modes: --prepare, a file argument and -m."
+      - When more than one mode is given, --prepare wins over the file and the file wins over -m.
+      - --template is default or release.
+      - With --prepare, copies the template to .pecot/tmp/output/ and prints its path.
+      - With --prepare and the default template, sets base in the copy to the develop_branch of the repository.
+      - With --prepare in an nx repository, adds the expected title scope as a comment on the title line.
+      - "With --prepare and the default template, fills the trailing Closes # with the number of the active task, or else the number that ends the branch name."
+      - "The Closes # of the copy is left empty when that Issue is an Epic."
+      - With a file, the repository, base, title, head and draft come from its front matter and the options of the same names are ignored.
+      - With -m, the repository is --repo, or the only repository of the active project when --repo is omitted.
+      - "Unless the template is release or --no-issue-ref is given, appends Closes #N to the body when it does not mention the number N that ends the head branch name."
+      - With a file, Closes is not appended when that Issue is an Epic.
+      - Checks the title, body and base, and stops with exit status 3 when the Issue reference, a required section, the heading summaries, the notation, the Summary screenshot or the base branch is wrong.
+      - In a repository whose release type is nx, also stops with exit status 3 when the title scope differs from the scope of the changed nx projects.
+      - Unless --dry-run is given, runs the same checks as pr preflight on the current directory and stops with exit status 2 when they find a warning.
+      - "With --dry-run, validates and writes dry-run: would lines without creating the PR."
+      - After the PR is created, sets the Issue named by the head branch to In Review unless the template is release.
+      - Removes the flag pr-create-slash-pending after the PR is created.
+    stdin: none
+    output:
+      format: text
+      description: With --prepare, the path of the template copy. Otherwise the URL of the created PR. Nothing with --dry-run.
+    diagnostics: "A result line on stderr for the PR (created) and for the board status (set). With --prepare, set lines for base, the title scope hint and Closes. With --dry-run, dry-run: would lines for the PR and the status. One error line for each validation failure. When the early check finds warnings, an error line followed by one warning line for each. Warning lines when the board status cannot be set and when the Issue kind cannot be read."
+    environment: []
+    exit_status:
+      - code: 0
+        when: The template was copied, the PR was created, or the --dry-run validation passed. Failing to set the board status still gives 0.
+      - code: 1
+        when: There is no active project, --template is not default or release, no mode argument is given, -t or -b is missing with -m, --screenshot is given with a file, the front matter cannot be read or has no valid repository, the repository cannot be decided or is not in owner/repo form, the head branch cannot be decided, develop_branch or release_branch is not set, the early check finds a fatal case (not a git repository, no origin, no current branch), or the GitHub API returned an error.
+      - code: 2
+        when: The early check finds a warning (not pushed, uncommitted changes or a stash), or another command line error occurs.
+      - code: 3
+        when: "The Issue reference #N is missing, a required section is missing, a heading summary rule is broken, an unusable notation is used, the Summary has no image and no screenshot reason, or the base branch is wrong. In an nx repository, a wrong title scope also gives 3."
+    on_error: No PR is created when validation fails or the early check finds a warning. When the PR is created but the board status cannot be set, the PR stays and a warning is written. A template copy written by --prepare stays in .pecot/tmp/output/.
+    effects:
+      - target: github
+        kind: write
+        what: Creates the PR and sets the board status of the related Issue to In Review.
+      - target: github
+        kind: read
+        what: Reads the kind of the related Issue and its board item.
+      - target: git
+        kind: read
+        what: Reads the branch, remote, status, stash and push state, and with an nx repository the diff against the base.
+      - target: process
+        kind: read
+        what: In a repository whose release type is nx, runs nx graph to list the projects.
+      - target: file
+        kind: write
+        what: Writes the template copy under .pecot/tmp/output/ and removes the flag pr-create-slash-pending under .pecot/state/.
+      - target: file
+        kind: read
+        what: Reads the PR file, the templates, the active config file and .pecot/state/.pecot-active.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+      - The head branch is pushed and the working tree is clean.
+    idempotent: false
+    examples:
+      - run: pecot pr create --prepare
+        note: Write a PR template and print its path.
+      - run: pecot pr create .pecot/tmp/output/pr-create-20260101-120000.md --dry-run
+        note: Validate the file without creating the PR.
+      - run: "pecot pr create -m \"<body>\" -t \"feat: add a report\" -b develop -r example-org/my-repo"
+        note: Create a PR from the command line.
+    default_notes:
+      head: The current branch. The related Issue is the number that ends the head branch name.
+      repo: With -m, the only repository of the active project when there is exactly one. With a file, the repository in the front matter.
+    behaviors:
+      - id: PW-PR-CREATE-01
+        pattern: event
+        statement: --prepare を付けて打つと、テンプレのコピーを .pecot/tmp/output/ に書く
+      - id: PW-PR-CREATE-02
+        pattern: event
+        statement: --prepare を付けて打つと、書いたテンプレのパスを標準出力に出す
+      - id: PW-PR-CREATE-03
+        pattern: event
+        statement: default のテンプレで --prepare を付けて打つと、コピーの base に develop_branch を入れる
+      - id: PW-PR-CREATE-04
+        pattern: event
+        statement: nx のリポジトリで --prepare を付けて打つと、タイトルの行に scope の目安をコメントで足す
+      - id: PW-PR-CREATE-05
+        pattern: event
+        statement: default のテンプレで --prepare を付けて打つと、末尾の Closes に着手中の Issue の番号を入れる
+      - id: PW-PR-CREATE-06
+        pattern: event
+        statement: 着手中の Issue が Epic のときに --prepare を付けて打つと、Closes を空のままにする
+      - id: PW-PR-CREATE-07
+        pattern: event
+        statement: 着手中の Issue が Epic のときに --prepare を付けて打つと、warning の行を標準エラーに出す
+      - id: PW-PR-CREATE-08
+        pattern: event
+        statement: --prepare とファイルを一緒に渡すと、PR を作らずにテンプレのコピーだけを書く
+      - id: PW-PR-CREATE-09
+        pattern: event
+        statement: ファイルを渡すと、フロントマターの値で PR を作る
+      - id: PW-PR-CREATE-10
+        pattern: event
+        statement: ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから PR を作る
+      - id: PW-PR-CREATE-11
+        pattern: event
+        statement: "-m に -t と -b を付けて打つと、PR を作る"
+      - id: PW-PR-CREATE-12
+        pattern: event
+        statement: "-m で --repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る"
+      - id: PW-PR-CREATE-13
+        pattern: event
+        statement: --head を省いて打つと、今のブランチを head にする
+      - id: PW-PR-CREATE-14
+        pattern: event
+        statement: --draft を付けて -m で打つと、ドラフトの PR を作る
+      - id: PW-PR-CREATE-15
+        pattern: event
+        statement: head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す
+      - id: PW-PR-CREATE-16
+        pattern: event
+        statement: ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない
+      - id: PW-PR-CREATE-17
+        pattern: event
+        statement: ファイルで作るとき末尾の番号の Issue が Epic だと、warning の行を標準エラーに出す
+      - id: PW-PR-CREATE-18
+        pattern: event
+        statement: --no-issue-ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない
+      - id: PW-PR-CREATE-19
+        pattern: event
+        statement: --template release を付けて打つと、リリース PR として検証する
+      - id: PW-PR-CREATE-20
+        pattern: event
+        statement: --dry-run を付けずに打つと、PR を作る前に pr preflight と同じ確認をする
+      - id: PW-PR-CREATE-21
+        pattern: event
+        statement: "--dry-run を付けて打つと、PR を作らずに dry-run: would create の行を標準エラーに出す"
+      - id: PW-PR-CREATE-22
+        pattern: event
+        statement: --dry-run を付けて打つと、事前の確認をしない
+      - id: PW-PR-CREATE-23
+        pattern: event
+        statement: PR を作ると、関連 Issue のボードの status を In Review にする
+      - id: PW-PR-CREATE-24
+        pattern: event
+        statement: PR を作ると、pr-create-slash-pending を消す
+      - id: PW-PR-CREATE-25
+        pattern: event
+        statement: PR を作ると、その URL を標準出力に出す
+      - id: PW-PR-CREATE-26
+        pattern: event
+        statement: PR を作ると、created の行を標準エラーに出す
+      - id: PW-PR-CREATE-27
+        pattern: unwanted
+        statement: "もし本文に Issue の参照 #N が無いなら、終了コード 3 で終わる"
+      - id: PW-PR-CREATE-28
+        pattern: unwanted
+        statement: もし必須の節が足りないなら、終了コード 3 で終わる
+      - id: PW-PR-CREATE-29
+        pattern: unwanted
+        statement: もし見出しの要約の規則に反するなら、終了コード 3 で終わる
+      - id: PW-PR-CREATE-30
+        pattern: unwanted
+        statement: もし使えない記法があるなら、終了コード 3 で終わる
+      - id: PW-PR-CREATE-31
+        pattern: unwanted
+        statement: もし Summary に画像も screenshot の理由も無いなら、終了コード 3 で終わる
+      - id: PW-PR-CREATE-32
+        pattern: unwanted
+        statement: もし base が設定のブランチと違うなら、終了コード 3 で終わる
+      - id: PW-PR-CREATE-33
+        pattern: unwanted
+        statement: もし nx のリポジトリでタイトルの scope が変更したプロジェクトの scope と違うなら、終了コード 3 で終わる
+      - id: PW-PR-CREATE-34
+        pattern: unwanted
+        statement: もし検証に失敗したなら、違反ごとに error の行を標準エラーに出す
+      - id: PW-PR-CREATE-35
+        pattern: unwanted
+        statement: もし検証に失敗したなら、PR を作らない
+      - id: PW-PR-CREATE-36
+        pattern: unwanted
+        statement: もし事前の確認が warning を出したなら、終了コード 2 で終わる
+      - id: PW-PR-CREATE-37
+        pattern: unwanted
+        statement: もし事前の確認が git のリポジトリでないなどの致命的な場合に当たったなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-38
+        pattern: unwanted
+        statement: もし develop_branch か release_branch が設定に無いなら、検証の前に終了コード 1 で終わる
+      - id: PW-PR-CREATE-39
+        pattern: unwanted
+        statement: もしボードの status を In Review にできなかったなら、warning の行を標準エラーに出す
+      - id: PW-PR-CREATE-40
+        pattern: unwanted
+        statement: もし PR の作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-41
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-42
+        pattern: unwanted
+        statement: もし --template が default でも release でもないなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-43
+        pattern: unwanted
+        statement: もし --prepare・ファイル・-m のどれも渡していないなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-44
+        pattern: unwanted
+        statement: もし -m に -t か -b を渡していないなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-45
+        pattern: unwanted
+        statement: もしファイルと一緒に --screenshot を渡したなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-46
+        pattern: unwanted
+        statement: もしフロントマターを読めないか、repository が owner/repo の形でないなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-47
+        pattern: unwanted
+        statement: もし -m のリポジトリを決められないか、--repo が owner/repo の形でないなら、終了コード 1 で終わる
+      - id: PW-PR-CREATE-48
+        pattern: unwanted
+        statement: もし head ブランチを決められないなら、終了コード 1 で終わる
+  PW-PR-PREFLIGHT:
+    constraints: []
+    details:
+      - Prints the information to check before creating a PR for the repository given by --directory.
+      - "Prints 11 sections in a fixed order: Git Remote, Current Branch, Push Status, Base Branch, Git Status, .gitignore, Git Exclude, Commits, Diff Summary, Worktree Info and Stash List."
+      - The base branch is origin/ followed by the develop_branch of the active project.
+      - Prints every section even when there are warnings.
+      - Counts a warning for a branch that is not pushed or has diverged, for modified or untracked files, and for stash entries.
+      - Exits with status 2 when there is at least one warning.
+      - Reads the repository and the config and changes nothing.
+    stdin: none
+    output:
+      format: text
+      description: 11 sections, each a === <title> === line followed by its content, separated by blank lines.
+    diagnostics: "A count line for the warnings, then one warning line on stderr for each, in the form <label>: <message> (fix: <hint>)."
+    environment: []
+    exit_status:
+      - code: 0
+        when: The sections were printed and there is no warning.
+      - code: 1
+        when: The directory is not a git repository, there is no origin remote, the current branch or the repository cannot be determined, there is no active project, develop_branch is not set, or origin/<develop_branch> does not exist.
+      - code: 2
+        when: There is at least one warning, --directory is missing, or another command line error occurs.
+    on_error: default
+    effects:
+      - target: git
+        kind: read
+        what: Reads the remote, the branch, the push state, the status, the log and diff against the base, the worktree list and the stash list.
+      - target: file
+        kind: read
+        what: Reads the active config file, .gitignore and .git/info/exclude.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - origin/<develop_branch> exists in the local repository.
+    idempotent: true
+    examples:
+      - run: pecot pr preflight -D .
+        note: Check the current repository before creating a PR.
+    default_notes: {}
+    behaviors:
+      - id: PW-PR-PREFLIGHT-01
+        pattern: event
+        statement: --directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す
+      - id: PW-PR-PREFLIGHT-02
+        pattern: event
+        statement: warning があるときに打つと、11 の節を全部出す
+      - id: PW-PR-PREFLIGHT-03
+        pattern: event
+        statement: 打つと、Base Branch の節に origin/<develop_branch> を出す
+      - id: PW-PR-PREFLIGHT-04
+        pattern: event
+        statement: "打つと、count: preflight warnings の行を標準エラーに出す"
+      - id: PW-PR-PREFLIGHT-05
+        pattern: event
+        statement: warning があるときに打つと、warning ごとに warning の行を標準エラーに出す
+      - id: PW-PR-PREFLIGHT-06
+        pattern: ubiquitous
+        statement: 常に、リポジトリとファイルを書き換えない
+      - id: PW-PR-PREFLIGHT-07
+        pattern: unwanted
+        statement: もしブランチが push されていないか remote とずれているなら、Push Status の warning を数える
+      - id: PW-PR-PREFLIGHT-08
+        pattern: unwanted
+        statement: もし未コミットの変更があるなら、Git Status の warning を数える
+      - id: PW-PR-PREFLIGHT-09
+        pattern: unwanted
+        statement: もし stash に項目があるなら、Stash List の warning を数える
+      - id: PW-PR-PREFLIGHT-10
+        pattern: unwanted
+        statement: もし warning が 1 件以上あるなら、終了コード 2 で終わる
+      - id: PW-PR-PREFLIGHT-11
+        pattern: unwanted
+        statement: もし git のリポジトリでないなら、終了コード 1 で終わる
+      - id: PW-PR-PREFLIGHT-12
+        pattern: unwanted
+        statement: もし origin の remote が無いなら、終了コード 1 で終わる
+      - id: PW-PR-PREFLIGHT-13
+        pattern: unwanted
+        statement: もし現在のブランチか remote のリポジトリを決められないなら、終了コード 1 で終わる
+      - id: PW-PR-PREFLIGHT-14
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-PR-PREFLIGHT-15
+        pattern: unwanted
+        statement: もし develop_branch が設定に無いなら、終了コード 1 で終わる
+      - id: PW-PR-PREFLIGHT-16
+        pattern: unwanted
+        statement: もし origin/<develop_branch> が無いなら、終了コード 1 で終わる
+      - id: PW-PR-PREFLIGHT-17
+        pattern: unwanted
+        statement: もし --directory を渡していないなら、使い方のエラーを出して終了コード 2 で終わる
+  PW-PR-READ:
+    constraints: []
+    details:
+      - Fetches one PR with a single GraphQL query.
+      - Prints the title, state, draft flag, mergeability, comment count, head and base branches, closing issues, referenced issues, review states and body.
+      - With --reviews, adds the review bodies and the line comments, and a pecot issue read hint under each related Issue.
+      - With --json, prints the PR as JSON, and with --reviews the JSON also holds the reviews and the line comments.
+      - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    stdin: none
+    output:
+      format: text
+      description: "Markdown that starts with a ## PR #<N> <title> heading. With --reviews, a ## Reviews section and a ## Line Comments section follow when there are reviews or line comments. With --json, a JSON object."
+    diagnostics: default
+    environment: []
+    exit_status:
+      - code: 0
+        when: The PR was printed.
+      - code: 1
+        when: There is no active project, or the GitHub API returned an error.
+      - code: 2
+        when: The PR reference is malformed, or another command line error occurs.
+    on_error: default
+    effects:
+      - target: github
+        kind: read
+        what: Reads the PR, its related Issues and, with --reviews, its reviews and line comments.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host.
+    idempotent: true
+    examples:
+      - run: pecot pr read example-org/my-repo/123
+        note: Show the PR as Markdown.
+      - run: pecot pr read example-org/my-repo/123 --reviews
+        note: Show the PR with its reviews and line comments.
+    default_notes:
+      pr_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    behaviors:
+      - id: PW-PR-READ-01
+        pattern: event
+        statement: PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す
+      - id: PW-PR-READ-02
+        pattern: event
+        statement: 関連 Issue がある PR を読むと、closing issues と参照 Issue を出す
+      - id: PW-PR-READ-03
+        pattern: event
+        statement: レビューがある PR を読むと、レビューごとの author と状態を出す
+      - id: PW-PR-READ-04
+        pattern: event
+        statement: --reviews を付けて打つと、レビューの本文と行のコメントを足して出す
+      - id: PW-PR-READ-05
+        pattern: event
+        statement: --reviews を付けてレビューがあると、## Reviews の節を出す
+      - id: PW-PR-READ-06
+        pattern: event
+        statement: --reviews を付けて行のコメントがあると、## Line Comments の節を出す
+      - id: PW-PR-READ-07
+        pattern: event
+        statement: --reviews を付けて打つと、関連 Issue ごとに pecot issue read の案内を足す
+      - id: PW-PR-READ-08
+        pattern: event
+        statement: --json を付けて打つと、同じ内容を JSON で標準出力に出す
+      - id: PW-PR-READ-09
+        pattern: event
+        statement: --json と --reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める
+      - id: PW-PR-READ-10
+        pattern: event
+        statement: 短い形 N の参照を渡すと、--repo か git の remote で補って読む
+      - id: PW-PR-READ-11
+        pattern: unwanted
+        statement: もし PR の参照の形が誤っているなら、終了コード 2 で終わる
+      - id: PW-PR-READ-12
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-PR-READ-13
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
   PW-PROJECT-ACTIVATE:
     constraints: []
     details:

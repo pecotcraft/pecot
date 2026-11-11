@@ -153,8 +153,8 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: `lint-defs` が通る
 
-- [ ] T029 [P] [US1] `issue` の 5 コマンドの項目を書く。`cli/commands/issue.py` とテストを読む。複数ファイルの途中で失敗したときに残るものを `on_error` に書く
-- [ ] T030 [P] [US1] `pr` の 4 コマンドの項目を書く。`cli/commands/pr.py` とテストを読む
+- [x] T029 [P] [US1] `issue` の 5 コマンドの項目を書く。`cli/commands/issue.py` とテストを読む。複数ファイルの途中で失敗したときに残るものを `on_error` に書く
+- [x] T030 [P] [US1] `pr` の 4 コマンドの項目を書く。`cli/commands/pr.py` とテストを読む
 
 **Checkpoint**: `lint-defs` が通る
 
