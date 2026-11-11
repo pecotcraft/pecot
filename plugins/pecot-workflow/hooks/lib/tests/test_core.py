@@ -377,6 +377,7 @@ def test_gh_command_unset_command_exit_2(gh_script) -> None:
         "(pecot pr create --prepare) && (pecot pr create body.md)",
         "echo $(pecot pr create --prepare) && pecot pr create x.md",
         "pecot pr create --prepare | pecot pr create x.md",
+        "pecot pr create --help && pecot pr create body.md",
     ],
 )
 def test_pr_external_asks(external_post_script, command) -> None:
@@ -391,6 +392,7 @@ def test_pr_external_asks(external_post_script, command) -> None:
         # 確認用フラグ（位置不問）は素通し
         "pecot pr create --prepare",
         "pecot pr create -p",
+        "pecot pr create --help",
         "pecot pr create x.md --dry-run",
         "pecot pr create x.md -n",
         # 検出対象外サブコマンド（pecot pr cleanup は gh pr merge の後片付け）。
@@ -677,6 +679,8 @@ def test_pr_external_gh_merge_ignores_skip_flags(external_post_script, command) 
         "pecot issue create --prepare --template task && pecot issue create x.md",
         "pecot issue create --prepare; pecot issue create x.md",
         "pecot issue create x.md && pecot issue create --prepare",  # 逆順
+        "pecot issue create --help && pecot issue create x.md",
+        "pecot issue quick --help && pecot issue quick -m x",
         "PECOT_DEBUG=1 pecot issue quick -m x",
         "git status && pecot issue quick -m x",
         "echo done\npecot issue create x.md",  # 改行区切り
@@ -695,6 +699,8 @@ def test_issue_create_asks(external_post_script, command) -> None:
         # 確認用フラグ（--prepare / -p）は素通し
         "pecot issue create --prepare --template task --repo owner/repo",
         "pecot issue create -p --template task --repo owner/repo",
+        "pecot issue create --help",
+        "pecot issue quick --help",
         "pecot issue create --prepare --template task-implement --suffix phase1 --repo o/r",
         # 検出対象外サブコマンド。
         "pecot issue read acme-labs/aist-plugin/937",

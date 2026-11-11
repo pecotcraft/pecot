@@ -34,8 +34,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 
 | 知りたいこと | 参照先 |
 |-------------|--------|
-| CLI コマンドの一覧と概要 | [コマンド一覧](references/commands.md) |
-| コマンドの引数と使い方 | `pecot <command> --help` |
+| CLI コマンド一覧（引数は `--help`） | [コマンド一覧](references/commands.md) |
 | ボードステータスの意味 | [ボードステータス](references/board-status.md) |
 | マージ方法の使い分け | [マージ戦略](references/merge-strategy.md) |
 | スキル一覧・役割 | [スキル一覧](references/skills.md) |
