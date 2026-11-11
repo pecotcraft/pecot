@@ -206,7 +206,7 @@ describe('defineCommand', () => {
 })
 
 describe('findCommand', () => {
-  it('path で引く', () => {
+  it('path が一致するコマンドを返し、一致しなければ undefined を返す', () => {
     const command = defineCommand({
       path: ['pr', 'read'],
       description: '',

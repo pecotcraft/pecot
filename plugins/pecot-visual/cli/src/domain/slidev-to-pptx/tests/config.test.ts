@@ -27,7 +27,7 @@ describe('timeouts', () => {
 })
 
 describe('PipelineConfig 型', () => {
-  it('必須フィールドを満たす値を構築できる', () => {
+  it('必須フィールドをすべて入れた設定を作ると、presDir と onlySlide が入れた値のままになる', () => {
     const config: PipelineConfig = {
       presDir: '/abs/pres',
       templatePath: 'dist',

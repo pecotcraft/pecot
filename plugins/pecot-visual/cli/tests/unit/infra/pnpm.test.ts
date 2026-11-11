@@ -62,7 +62,7 @@ describe('resolvePnpmCommand', () => {
 })
 
 describe('FALLBACK_PNPM_VERSION', () => {
-  it('plugins/pecot-visual/package.json の packageManager と同じ', () => {
+  it('既定の pnpm の版は、plugins/pecot-visual/package.json の packageManager が指す版と等しい', () => {
     const manifest: unknown = JSON.parse(readFileSync(path.join(PLUGIN_ROOT, 'package.json'), 'utf8'))
     const declared = typeof manifest === 'object' && manifest !== null && 'packageManager' in manifest ? manifest.packageManager : undefined
     expect(String(declared).split('+', 1)[0]).toBe(`pnpm@${FALLBACK_PNPM_VERSION}`)

@@ -8,7 +8,7 @@ import type {
 } from '../types.js'
 
 describe('SlideStep 型', () => {
-  it('clickStep null / 数値の双方を構築できる', () => {
+  it('clickStep に null と数値を入れると、入れた値のまま保持する', () => {
     // eslint-disable-next-line unicorn/no-null -- clickStep 未指定の表現
     const a: SlideStep = { slideNumber: 1, clickStep: null, url: 'http://localhost/1' }
     const b: SlideStep = { slideNumber: 5, clickStep: 3, url: 'http://localhost/5?clicks=3' }
@@ -18,7 +18,7 @@ describe('SlideStep 型', () => {
 })
 
 describe('PipelineError 型', () => {
-  it('slide / element 双方の level を表現できる', () => {
+  it('level に slide と element を入れると、入れた値のまま保持する', () => {
     const slide: PipelineError = { level: 'slide', slideNumber: 2, message: 'failed' }
     const element: PipelineError = {
       level: 'element',

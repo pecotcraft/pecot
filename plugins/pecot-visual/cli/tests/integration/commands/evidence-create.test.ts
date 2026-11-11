@@ -103,7 +103,7 @@ function readJsonEvent(): Record<string, unknown> {
 }
 
 describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', () => {
-  it('単一シート・ヘッダー・No. 連番・pic 数・EMU・media byte 一致', async () => {
+  it('画像 3 枚を渡すと、シート 1 枚・No.1 から No.3 の連番・画像 3 件・表示 px × 9525 の EMU・元画像と同じ media の xlsx を出す', async () => {
     const shots = [
       { bytes: buildPng(1920, 1080, [200, 40, 40]), name: '01-login.png', caption: 'ログイン画面を表示' },
       { bytes: buildPng(800, 600, [40, 80, 200]), name: '02-home.png', caption: 'ホーム画面へ遷移' },
@@ -314,7 +314,7 @@ function anchorSummaries(drawing: Readonly<XmlDocument>): readonly AnchorSummary
 }
 
 describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
-  it('注記あり・注記なし・除外の混在で sp が画像へ正しく帰属する', async () => {
+  it('注記ありの画像・注記なしの画像・除外された画像が混在すると、注記図形を注記ありの画像のアンカーにだけ付ける', async () => {
     const annotated = place('01-login.png', buildPng(1920, 1080, [200, 40, 40]))
     const plain = place('02-home.png', buildPng(800, 600, [40, 80, 200]))
     const missing = workDirectory('missing.png')

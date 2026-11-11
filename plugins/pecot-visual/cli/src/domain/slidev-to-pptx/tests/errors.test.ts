@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { PipelineRuntimeError, PipelineTimeoutError } from '../errors.js'
 
 describe('PipelineTimeoutError', () => {
-  it('Error / PipelineTimeoutError 双方の instanceof', () => {
+  it('PipelineTimeoutError を作ると、Error と PipelineTimeoutError のどちらの instanceof も真になる', () => {
     const error = new PipelineTimeoutError(1234, { elapsedMs: 1234 })
     expect(error).toBeInstanceOf(Error)
     expect(error).toBeInstanceOf(PipelineTimeoutError)
@@ -38,7 +38,7 @@ describe('PipelineTimeoutError', () => {
 })
 
 describe('PipelineRuntimeError', () => {
-  it('Error / PipelineRuntimeError 双方の instanceof', () => {
+  it('PipelineRuntimeError を作ると、Error と PipelineRuntimeError のどちらの instanceof も真になる', () => {
     const error = new PipelineRuntimeError('boom')
     expect(error).toBeInstanceOf(Error)
     expect(error).toBeInstanceOf(PipelineRuntimeError)

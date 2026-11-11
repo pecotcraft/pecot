@@ -17,7 +17,7 @@ describe('loadJson and loadYaml', () => {
     await expect(loadJson(root)).rejects.toThrow(/EISDIR/u)
   })
 
-  it('読み込むと、内容をパースする', async () => {
+  it('json と yaml のファイルを読み込むと、ok の状態とパースしたデータを返す', async () => {
     const root = await materialize('empty')
     await writeFile(path.join(root, 'a.json'), '{"a":1}')
     await writeFile(path.join(root, 'a.yaml'), 'a: 1\n')

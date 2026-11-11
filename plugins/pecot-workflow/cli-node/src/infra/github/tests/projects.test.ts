@@ -227,7 +227,7 @@ describe('user のクエリの失敗の扱い', () => {
 })
 
 describe('getProjectId', () => {
-  it('user のプロジェクトの ID', async () => {
+  it('user にプロジェクトがあれば、その ID を返す', async () => {
     const { client } = await startClient([graphqlData('GetProjectIdUser', { user: { projectV2: { id: 'PVT_test123' } } })])
     expect(await client.getProjectId('testuser', 1)).toBe('PVT_test123')
   })
@@ -356,7 +356,7 @@ describe('listProjects', () => {
     expect(graphqlRequests(server)).toEqual([{ operation: 'ListProjectsUser', variables: { owner: 'u', first: 20 } }])
   })
 
-  it('user に無ければ organization。first を指定できる', async () => {
+  it('user に無いとき organization のプロジェクトを返し、first を変数に送る', async () => {
     const { client, server } = await startClient([
       graphqlData('ListProjectsUser', { user: JSON_NULL }),
       graphqlData('ListProjectsOrg', { organization: { projectsV2: { nodes: [projects[0]] } } }),
@@ -418,7 +418,7 @@ describe('createProjectField', () => {
 })
 
 describe('getOwnerNodeId', () => {
-  it('user の Node ID', async () => {
+  it('user の Node ID を返し、login を変数に送る', async () => {
     const { client, server } = await startClient([graphqlData('GetUserNodeId', { user: { id: 'U_kgDOtest123' } })])
     expect(await client.getOwnerNodeId('testuser')).toBe('U_kgDOtest123')
     expect(graphqlRequests(server)).toEqual([{ operation: 'GetUserNodeId', variables: { login: 'testuser' } }])

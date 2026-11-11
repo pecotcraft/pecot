@@ -264,7 +264,7 @@ describe('changedFiles（実 git）', () => {
 })
 
 describe('expectedScope', () => {
-  it('1 つのプロジェクト', () => {
+  it('差分が 1 つのプロジェクトだけに属するとき、そのプロジェクト名だけを返す', () => {
     expect(expectedScope(['plugins/pecot-workflow/cli/a.py', 'plugins/pecot-workflow/README.md'], ROOTS)).toEqual(['pecot-workflow'])
   })
 
@@ -318,7 +318,7 @@ describe('parseTitleScope', () => {
     ['(a): x', undefined],
     ['plain title', undefined],
     ['', undefined],
-  ])('%j の scope', (title, expected) => {
+  ])('タイトル %j のとき、scope を期待の配列か undefined で返す', (title, expected) => {
     expect(parseTitleScope(title)).toEqual(expected)
   })
 })

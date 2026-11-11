@@ -2833,7 +2833,7 @@ describe('prerender replace (CUJ 1-5)', () => {
   // 既存 CUJ 1 は merged_index === original_slideNumber === 1 の幸運ケースで
   // バグを検出できなかった (commit 08bf130 を参照)。本テストは逆引きが必須の
   // ルートのみで合格する設計で、再発検出のための regression test。
-  it('CUJ 5: 複数スライド × 100 刻み slideNumber でも prerender 逆引きで正しく解決される', async () => {
+  it('CUJ 5: 複数スライドの slideNumber が 100 刻みのとき、prerender 画像を元のスライド番号で逆引きして差し替える', async () => {
     // invariant: 元 slideNumber (100, 200) と merged 連番 (1, 2) は一致しない。
     // そのため逆引きが破損していると、prerender ファイルが見つからず差し替え 0 件になる。
     const projectDirectory = makeProjectDirectory(temporaryRoot())

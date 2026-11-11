@@ -5,7 +5,7 @@ import { JSON_NULL } from '../json-null.js'
 import { isJsonObject, jsonField, parseJsonText, tryParseJsonText } from '../json.js'
 
 describe('isJsonObject', () => {
-  it('配列でも null でもないオブジェクトだけ', () => {
+  it('配列・null・文字列などを渡すと false、プレーンなオブジェクトを渡すと true を返す', () => {
     expect(isJsonObject({ a: 1 })).toBe(true)
     expect(isJsonObject({})).toBe(true)
     for (const value of [JSON_NULL, undefined, [1], 'text', 5, true]) expect(isJsonObject(value)).toBe(false)
@@ -27,7 +27,7 @@ describe('jsonField', () => {
 })
 
 describe('parseJsonText / tryParseJsonText', () => {
-  it('JSON を読む', () => {
+  it('JSON 文字列を渡すと、パースした値を返す', () => {
     expect(parseJsonText('{"a": [1, null]}')).toEqual({ a: [1, JSON_NULL] })
     expect(tryParseJsonText('[1]')).toEqual([1])
   })

@@ -41,7 +41,7 @@ describe('strings plugin: Python', () => {
   it.each([
     ['f 接頭辞', `x = f"${sentence}"\n`, 7],
     ['r 接頭辞', `x = r'${sentence}'\n`, 7],
-  ])('%s の文字列', async (_name, text, column) => {
+  ])('%s の文字列のとき、文字列の位置に指摘を 1 件返す', async (_name, text, column) => {
     expect(await lint(text, '.py')).toEqual([at(1, column)])
   })
 
@@ -93,7 +93,7 @@ describe('strings plugin: シェル', () => {
   it.each([
     ['echo', `echo "${sentence}"\n`, 7],
     ['変数代入', `MSG='${sentence}'\n`, 6],
-  ])('%s の文字列', async (_name, text, column) => {
+  ])('%s の文字列のとき、文字列の位置に指摘を 1 件返す', async (_name, text, column) => {
     expect(await lint(text, '.sh')).toEqual([at(1, column)])
   })
 
@@ -135,7 +135,7 @@ describe('strings plugin: YAML', () => {
     ['単引用符', `description: '${sentence}'\n`, 15],
     ['二重引用符', `description: "${sentence}"\n`, 15],
     ['プレーン', `description: ${sentence}\n`, 14],
-  ])('%s の値', async (_name, text, column) => {
+  ])('%s の値のとき、値の位置に指摘を 1 件返す', async (_name, text, column) => {
     expect(await lint(text, '.yaml')).toEqual([at(1, column)])
   })
 

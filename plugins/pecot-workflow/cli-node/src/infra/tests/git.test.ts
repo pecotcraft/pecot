@@ -136,7 +136,7 @@ describe('gitRemoteUrl', () => {
     expect(gitRemoteUrl(repository)).toBe('https://github.com/owner/repo.git')
   })
 
-  it('別の remote を指定できる', () => {
+  it('remote 名を渡すと、その remote の URL を返し、渡さなければ undefined を返す', () => {
     const repository = createGitRepository()
     gitForTest(repository, ['remote', 'add', 'upstream', 'u'])
     expect(gitRemoteUrl(repository, 'upstream')).toBe('u')
@@ -149,7 +149,7 @@ describe('gitRemoteUrl', () => {
 })
 
 describe('gitCurrentBranch', () => {
-  it('ブランチ名', () => {
+  it('checkout したブランチの名前を返す', () => {
     const repository = createGitRepository()
     gitForTest(repository, ['checkout', '-q', '-b', 'feat/x/1'])
     expect(gitCurrentBranch(repository)).toBe('feat/x/1')

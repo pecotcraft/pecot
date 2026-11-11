@@ -63,7 +63,7 @@ describe('workDirectoryName', () => {
     expect(workDirectoryName('acme-labs/aist-plugin/655')).toBe('655')
   })
 
-  it('番号のみ', () => {
+  it('番号だけを渡すと、その番号を返す', () => {
     expect(workDirectoryName('42')).toBe('42')
   })
 

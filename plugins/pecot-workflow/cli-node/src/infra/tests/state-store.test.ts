@@ -28,7 +28,7 @@ function useProject(): string {
 }
 
 describe('getStateDirectory', () => {
-  it('プロジェクトルート配下の .pecot/state', () => {
+  it('プロジェクトルート配下の .pecot/state を返す', () => {
     const root = useProject()
     expect(getStateDirectory()).toBe(path.join(root, '.pecot', 'state'))
   })

@@ -16,7 +16,7 @@ function writeFile(name: string, content: string): string {
 }
 
 describe('parseIssueFile', () => {
-  it('ファイルからパース', () => {
+  it('Issue のファイルを読むと、frontmatter と本文を返す', () => {
     const file = writeFile('issue.md', `---
 title: ファイルからのテスト
 type: task
@@ -60,7 +60,7 @@ status: ready
 })
 
 describe('parseCommentFile', () => {
-  it('ファイルからパース', () => {
+  it('コメントのファイルを読むと、frontmatter と本文を返す', () => {
     const file = writeFile('comment.md', `---
 issue_ref: "owner/repo/123"
 template: merge-diff
@@ -82,7 +82,7 @@ template: merge-diff
 })
 
 describe('parsePullRequestFile', () => {
-  it('ファイルからパース', () => {
+  it('PR のファイルを読むと、frontmatter と本文を返す', () => {
     const file = writeFile('pr.md', `---
 title: "ファイルからのPR"
 repository: "owner/repo"

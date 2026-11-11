@@ -249,7 +249,7 @@ describe('getIssueSlim', () => {
     expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([{ owner: 'owner', repo: 'repo', number: 460, commentLimit: 20 }])
   })
 
-  it('子要素が無い最小の Issue（親なし・サブ Issue なし・timelineItems なし）', async () => {
+  it('親・サブ Issue・timelineItems が無い Issue は、空の子要素を持つ形で返す', async () => {
     const { client } = await startClient([graphqlData('GetIssueSlim', {
       repository: { issue: {
         number: 435,
@@ -318,7 +318,7 @@ describe('closeIssue / reopenIssue', () => {
     expect(restRequests(server).map(({ method, body }) => ({ method, body }))).toEqual([{ method: 'PATCH', body: { state: 'closed', state_reason: 'completed' } }])
   })
 
-  it('closeIssue は state_reason を指定できる', async () => {
+  it('closeIssue に state_reason を渡すと、送る本文に state_reason が入る', async () => {
     const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/124', { status: 200, body: { number: 124, state: 'closed', state_reason: 'not_planned' } })])
     await client.closeIssue('owner', 'repo', 124, 'not_planned')
     expect(restRequests(server).map(({ body }) => body)).toEqual([{ state: 'closed', state_reason: 'not_planned' }])

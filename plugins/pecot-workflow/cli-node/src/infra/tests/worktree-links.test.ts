@@ -534,7 +534,7 @@ describe('loadCopyExcludeSpec', () => {
     expect(spec.matchFile('foo.md')).toBe(false)
   })
 
-  it('否定パターンが機能する', () => {
+  it('否定パターンで戻したパスは除外せず、それ以外は除外する', () => {
     const main = makeTemporaryDirectory()
     writeIgnore(main, '.nx/\n!.nx/version-plans/\n')
     const spec = loadCopyExcludeSpec(main, ignoredDiagnostics)

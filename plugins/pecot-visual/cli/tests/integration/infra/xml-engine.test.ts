@@ -54,7 +54,7 @@ describe('XmldomXmlEngine', () => {
     expect(altContent.length).toBe(1)
   })
 
-  it('selectNodes は nsMap 省略時にも動作する', () => {
+  it('nsMap を省略すると、名前空間なしの XPath で一致する 2 件のノードを返す', () => {
     const engine = new XmldomXmlEngine()
     const document = engine.parse(Buffer.from('<root><a/><a/><b/></root>', 'utf8'))
     const aNodes = document.selectNodes('//a')

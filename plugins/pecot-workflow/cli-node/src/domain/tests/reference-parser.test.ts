@@ -28,7 +28,7 @@ function thrownBy(action: () => unknown): ReferenceParseError {
 }
 
 describe('parseIssueReference', () => {
-  it('主軸形式 owner/repo/N', () => {
+  it('issue 参照に owner/repo/N を渡すと、リポジトリと番号に分けて返す', () => {
     const reference = parseIssueReference('owner/repo/123')
     expect(reference).toEqual({ repository: { owner: 'owner', repository: 'repo' }, number: 123 })
   })
@@ -38,7 +38,7 @@ describe('parseIssueReference', () => {
     ['my_org/my_repo/789', 'my_org', 'my_repo', 789],
     ['owner/repo.name/123', 'owner', 'repo.name', 123],
     ['owner/repo/5', 'owner', 'repo', 5],
-  ])('%j の特殊文字・基準リポ無し', (raw, owner, repository, number) => {
+  ])('%j を渡すと、基準リポジトリ無しで owner・repository・番号に分けて返す', (raw, owner, repository, number) => {
     expect(parseIssueReference(raw)).toEqual({ repository: { owner, repository }, number })
   })
 
@@ -111,11 +111,11 @@ describe('parseIssueReference', () => {
 })
 
 describe('parsePullRequestReference', () => {
-  it('主軸形式', () => {
+  it('owner/repo/N を渡すと、リポジトリと番号に分けて返す', () => {
     expect(parsePullRequestReference('owner/repo/456')).toEqual({ repository: { owner: 'owner', repository: 'repo' }, number: 456 })
   })
 
-  it('短縮形', () => {
+  it('N だけと基準リポジトリを渡すと、基準リポジトリの番号として返す', () => {
     expect(parsePullRequestReference('7', base)).toEqual({ repository: base, number: 7 })
   })
 
@@ -133,7 +133,7 @@ describe('parseRepositoryReference', () => {
     expect(parseRepositoryReference(raw)).toEqual({ owner, repository })
   })
 
-  it.each(['owner/repo/123', 'ownerrepo', ''])('%j は拒否', (raw) => {
+  it.each(['owner/repo/123', 'ownerrepo', ''])('%j を渡すと、参照エラーを投げる', (raw) => {
     expect(() => parseRepositoryReference(raw)).toThrow(ReferenceParseError)
   })
 
@@ -168,11 +168,11 @@ describe('extractReferencesIssueNumbers', () => {
     expect(extract('変更内容\n\nRefs #935')).toEqual([935])
   })
 
-  it('複数', () => {
+  it('Refs を複数行に並べると、すべての番号を返す', () => {
     expect(extract('Refs #100\nRefs #200')).toEqual([100, 200])
   })
 
-  it('Ref（単数）', () => {
+  it('Ref と単数形で書いても、番号を返す', () => {
     expect(extract('Ref #42')).toEqual([42])
   })
 
@@ -193,7 +193,7 @@ describe('extractReferencesIssueNumbers', () => {
     expect(extract('Fixes #123')).toEqual([])
   })
 
-  it('文中の Refs', () => {
+  it('文の途中にある Refs からも、番号を返す', () => {
     expect(extract('この変更は Refs #55 に関連')).toEqual([55])
   })
 
@@ -201,12 +201,12 @@ describe('extractReferencesIssueNumbers', () => {
     expect(extract('xRefs #7')).toEqual([])
   })
 
-  it('コロン付き', () => {
+  it('Refs の直後にコロンがあっても、番号を返す', () => {
     expect(extract('Refs: #171')).toEqual([171])
     expect(extract('Refs: #251 (Epic: #43)')).toEqual([251])
   })
 
-  it('同じリポの owner/repo#N・owner/repo/N', () => {
+  it('同じリポジトリを owner/repo#N や owner/repo/N で書くと、番号を返す', () => {
     expect(extract('Refs: acme-labs/aist-plugin#227')).toEqual([227])
     expect(extract('Refs acme-labs/aist-plugin/228')).toEqual([228])
   })
@@ -219,7 +219,7 @@ describe('extractReferencesIssueNumbers', () => {
     expect(extract('Refs acme-labs/pecot-presentation#264\nRefs other/aist-plugin/5')).toEqual([])
   })
 
-  it('形式の混在', () => {
+  it('書式の違う参照を混ぜると、同じリポジトリの番号だけを返す', () => {
     expect(extract('Refs #1\nRef: acme-labs/aist-plugin#2\nRefs other/repo#3\nrefs acme-labs/aist-plugin/4')).toEqual([1, 2, 4])
   })
 

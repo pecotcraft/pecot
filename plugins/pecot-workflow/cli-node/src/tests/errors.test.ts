@@ -40,7 +40,7 @@ describe('独自例外は PecotError を継承する', () => {
     expect(errorClass.prototype).toBeInstanceOf(PecotError)
   })
 
-  it('MultipleConfigsError は ConfigError の下', () => {
+  it('MultipleConfigsError は、ConfigError として捕まえられる', () => {
     expect(MultipleConfigsError.prototype).toBeInstanceOf(ConfigError)
   })
 

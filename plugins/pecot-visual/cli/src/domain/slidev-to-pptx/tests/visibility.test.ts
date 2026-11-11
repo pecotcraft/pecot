@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { slideVisibleFunctionSource, slidevReadyFunctionSource, readSlidevHasNextFn } from '../visibility.js'
 
 describe('slideVisibleFunctionSource', () => {
-  it('arrow function 形式の文字列定数', () => {
+  it('定数の値は、引数 el を取るアロー関数の文字列で、getComputedStyle を含む', () => {
     expect(typeof slideVisibleFunctionSource).toBe('string')
     expect(slideVisibleFunctionSource.startsWith('(el) => {')).toBe(true)
     expect(slideVisibleFunctionSource).toContain('getComputedStyle')
@@ -12,7 +12,7 @@ describe('slideVisibleFunctionSource', () => {
 })
 
 describe('slidevReadyFunctionSource', () => {
-  it('arrow function 形式の文字列定数', () => {
+  it('定数の値は、引数の無いアロー関数の文字列で、.slidev-page を含む', () => {
     expect(typeof slidevReadyFunctionSource).toBe('string')
     expect(slidevReadyFunctionSource.startsWith('() => {')).toBe(true)
     expect(slidevReadyFunctionSource).toContain('.slidev-page')
@@ -20,7 +20,7 @@ describe('slidevReadyFunctionSource', () => {
 })
 
 describe('readSlidevHasNextFn', () => {
-  it('arrow function 形式の文字列定数', () => {
+  it('定数の値は、引数の無いアロー関数の文字列で、$$slidev-context を含む', () => {
     expect(typeof readSlidevHasNextFn).toBe('string')
     expect(readSlidevHasNextFn.startsWith('() => {')).toBe(true)
     expect(readSlidevHasNextFn).toContain('$$slidev-context')

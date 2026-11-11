@@ -37,7 +37,7 @@ describe('createPullRequest', () => {
     ])
   })
 
-  it('draft を指定できる', async () => {
+  it('draft を true で渡すと、送る本文に draft: true が入る', async () => {
     const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/pulls', { status: 201, body: { number: 43, draft: true } })])
     expect(await client.createPullRequest('owner', 'repo', 'WIP: 作業中', '作業中です', 'feat/wip', 'develop', true)).toEqual({ number: 43, draft: true })
     expect(restRequests(server).map(request => request.body)).toMatchObject([{ draft: true }])
@@ -75,12 +75,12 @@ describe('getPullRequestSlim', () => {
     expect(graphqlRequests(server)).toEqual([{ operation: 'GetPullRequestSlim', variables: { owner: 'owner', repo: 'repo', number: 42 } }])
   })
 
-  it('ドラフトと UNKNOWN の mergeable', async () => {
+  it('ドラフトで mergeable が UNKNOWN のとき、そのまま返す', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestSlim', { repository: { pullRequest: pullRequest({ isDraft: true, mergeable: 'UNKNOWN', body: '作業中' }) } })])
     expect(await client.getPullRequestSlim('owner', 'repo', 43)).toMatchObject({ is_draft: true, mergeable: 'UNKNOWN', referenced_issues: [] })
   })
 
-  it('MERGED の状態', async () => {
+  it('MERGED の PR は、state に MERGED を返す', async () => {
     const { client } = await startClient([graphqlData('GetPullRequestSlim', { repository: { pullRequest: pullRequest({ state: 'MERGED' }) } })])
     expect(await client.getPullRequestSlim('owner', 'repo', 46)).toMatchObject({ state: 'MERGED' })
   })

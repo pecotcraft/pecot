@@ -74,15 +74,15 @@ function validationMessage(data: JsonValue): string {
 }
 
 describe('列挙値', () => {
-  it('ワークフローのステータス', () => {
+  it('ワークフローのステータスの列挙値は、backlog から archived までの 6 つを並べて返す', () => {
     expect(WORKFLOW_STATUSES).toEqual(['backlog', 'pending', 'ready', 'active', 'in_review', 'archived'])
   })
 
-  it('優先度', () => {
+  it('優先度の列挙値は、high・medium・low の 3 つを並べて返す', () => {
     expect(PRIORITIES).toEqual(['high', 'medium', 'low'])
   })
 
-  it('サイズ', () => {
+  it('サイズの列挙値は、xs から l までの 4 つを並べて返す', () => {
     expect(SIZES).toEqual(['xs', 's', 'm', 'l'])
   })
 })
@@ -115,7 +115,7 @@ describe('parseProjectConfig（モデルの値）', () => {
     expect(config.repositories[0]).toEqual({ owner: 'a', name: 'b' })
   })
 
-  it('release_branch・changelog_file・packages の任意項目', () => {
+  it('release_branch・changelog_file・packages を指定すると値を読み取り、指定しないと packages は undefined になる', () => {
     const config = withRepositories([
       { owner: 'o', name: 'r1', develop_branch: 'develop', release_branch: 'main' },
       { owner: 'o', name: 'r2', changelog_file: 'AIST-CHANGELOG.md' },
