@@ -43,6 +43,7 @@ import { createLegacyTalkDirectory } from '../../_helpers/talk-directory.js'
 import { copyFixtureTheme } from '../../_helpers/theme-fixtures.js'
 import { FIXTURE_THEME_NAME } from '../../_helpers/theme-repository.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
+import { verifies } from '../../_helpers/verifies.js'
 import { themeErrorReason } from '../../../src/domain/slidev-theme/error-reason.js'
 
 const HERE = import.meta.dirname
@@ -126,13 +127,18 @@ function snapshotOutsideNodeModules(directory: string): Map<string, string> {
   return entries
 }
 
+function withoutGeneratedFiles(snapshot: ReadonlyMap<string, string>): Map<string, string> {
+  return new Map([...snapshot].filter(([name]) => name !== 'vite.config.ts' && name !== 'start.mjs'))
+}
+
 // 移行前の talk-dir（テンプレートのコピーを持つ形）。`slide create` はコピーしないため、helper で写す。
 async function setupTalkDirectory(): Promise<string> {
   return await createLegacyTalkDirectory(state.temporaryRoot)
 }
 
 describe('runSlideSyncFromCli (smoke)', () => {
-  it('移行前の talk-dir に --theme を付けると、テンプレート由来の名前を消してテーマを参照する形へ移し、作品と生成物と .gitignore を残す', async () => {
+  it('移行前の talk-dir に --theme を付けると、テンプレート由来の名前を消してテーマを参照する形へ移し、作品と生成物と .gitignore を残す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-02')
     const talk = await setupTalkDirectory()
     // 作品と生成物
     writeFileSync(path.join(talk, 'pages', '_user.md'), 'USER MARKER')
@@ -458,7 +464,8 @@ async function createThemedTalk(): Promise<string> {
 }
 
 describe('slide sync --node-modules-only (テーマを参照する talk-dir)', () => {
-  it('消えた node_modules を、package.json の spec のテーマ付きで張り直し、レイアウトの一覧を返す', async () => {
+  it('消えた node_modules を、package.json の spec のテーマ付きで張り直し、レイアウトの一覧を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-05')
     const talk = await createThemedTalk()
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
     const stdout = makeStream()
@@ -629,10 +636,13 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     expect(await loadDedupe(talk)).toStrictEqual(['@slidev/client', 'vue', '@vueuse/core'])
   }, 120_000)
 
-  it.each([
-    ['通常の sync', ['--json']],
-    ['--node-modules-only', ['--node-modules-only', '--json']],
-  ])('旧内容の生成ファイルを置いた移行済みの talk-dir は、%s で本体の今の内容に書き直す', async (_name, flags) => {
+  const REWRITE_CASES: readonly { name: string, flags: readonly string[], id: string }[] = [
+    { name: '通常の sync', flags: ['--json'], id: 'PV-SLIDE-SYNC-04' },
+    { name: '--node-modules-only', flags: ['--node-modules-only', '--json'], id: 'PV-SLIDE-SYNC-05' },
+  ]
+  it.for(REWRITE_CASES)('旧内容の生成ファイルを置いた移行済みの talk-dir は、$name で本体の今の内容に書き直す', { timeout: 120_000 }, async (row, context) => {
+    await verifies(context, row.id)
+    const { flags } = row
     const url = createThemeRepository()
     const talk = await createTalk(url)
     const configPath = path.join(talk, 'vite.config.ts')
@@ -640,15 +650,18 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const expectedConfig = readFileSync(configPath, 'utf8')
     writeFileSync(configPath, 'export default {} // OLD', 'utf8')
     writeFileSync(startPath, 'OLD-START', { mode: 0o644 })
+    const before = snapshotOutsideNodeModules(talk)
 
     await buildCommand(makeStream()).parseAsync(['--dir', talk, ...flags], { from: 'user' })
 
     expect(readFileSync(configPath, 'utf8')).toBe(expectedConfig)
     expect(readFileSync(startPath, 'utf8')).toBe(START_SCRIPT_SOURCE)
     expect(statSync(startPath).mode & 0o777).toBe(0o755)
-  }, 120_000)
+    expect(withoutGeneratedFiles(snapshotOutsideNodeModules(talk))).toStrictEqual(withoutGeneratedFiles(before))
+  })
 
-  it('依存の版を書き換えて sync すると、新しい版のテーマで張り直し、node_modules のほかは変えない', async () => {
+  it('依存の版を書き換えて sync すると、新しい版のテーマで張り直し、node_modules のほかは変えない', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-03')
     const url = createThemeRepository()
     const talk = await createTalk(url)
     const packagePath = path.join(talk, 'package.json')

@@ -11,6 +11,8 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { snapshotTree } from './tree-snapshot.js'
 import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-directory.js'
 import { slideThemeDefaultDependencies } from '../../../commands/slidev-project/theme.js'
 import type { ToolCallContext } from '../../server.js'
@@ -68,7 +70,8 @@ describe('slide_theme の定義', () => {
 })
 
 describe('slide_theme の成功', () => {
-  it('theme・declaration・layouts・warnings と lint を返す', async () => {
+  it('theme・declaration・layouts・warnings と lint を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-01')
     const talk = makeTalk()
     const result = await tool.handler({ dir: talk }, CALL)
 
@@ -116,12 +119,30 @@ describe('slide_theme の成功', () => {
       },
     })
     expect(data['warnings']).toEqual([])
+    expect(data['categories']).toEqual([
+      expect.objectContaining({ id: 'text' }),
+      expect.objectContaining({ id: 'figure' }),
+    ])
+  })
+
+  it('呼んでも talk-dir のファイルは変わらない', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-02')
+    const talk = makeTalk()
+    const before = snapshotTree(talk)
+
+    const result = await tool.handler({ dir: talk }, CALL)
+
+    expect(structuredOf(result)['ok']).toBe(true)
+    expect(snapshotTree(talk)).toEqual(before)
   })
 })
 
 describe('slide_theme の失敗', () => {
-  it('テーマを張っていなければ theme-unlinked で、slide_sync の案内を含む', async () => {
+  it('テーマを張っていなければ theme-unlinked で、slide_sync の案内を含む', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-02')
+    await verifies(context, 'PV-SLIDE-THEME-04')
     const talk = makeTalk({ link: false })
+    const before = snapshotTree(talk)
     const result = await tool.handler({ dir: talk }, CALL)
 
     const structured = structuredOf(result)
@@ -132,9 +153,13 @@ describe('slide_theme の失敗', () => {
     expect(data['event']).toBe('slide.theme.error')
     expect(data['reason']).toBe('theme-unlinked')
     expect(data['detail']).toEqual(expect.stringContaining('--node-modules-only'))
+    expect(structured['message']).toEqual(expect.stringContaining('slide_sync'))
+    // 張り直しと取得をしないので、node_modules は作られない。
+    expect(snapshotTree(talk)).toEqual(before)
   })
 
-  it('theme: none で宣言も無ければ theme-none で、slide sync --theme を案内する', async () => {
+  it('theme: none で宣言も無ければ theme-none で、slide sync --theme を案内する', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-03')
     const talk = makeTalk({ theme: 'none' })
     const result = await tool.handler({ dir: talk }, CALL)
 
@@ -155,6 +180,22 @@ describe('slide_theme の失敗', () => {
 
     const data = dataOf(await tool.handler({ dir: talk }, CALL))
     expect(data['reason']).toBe('theme-unknown-rule')
+  })
+
+  it('宣言の形が決まった形でなければ theme-invalid-shape で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-05')
+    const talk = makeTalk()
+    const broken = temporaryRoot('broken-shape-theme')
+    mkdirSync(broken)
+    writeFileSync(path.join(broken, 'package.json'), '{"name":"b"}')
+    writeFileSync(path.join(broken, 'pecot-theme.json'), JSON.stringify({ schema: 1, slide: { width: -1, height: 1 } }))
+    rmSync(path.join(talk, 'node_modules', THEME_NAME))
+    symlinkSync(broken, path.join(talk, 'node_modules', THEME_NAME), 'dir')
+
+    const result = await tool.handler({ dir: talk }, CALL)
+
+    expect(result.isError).toBe(true)
+    expect(dataOf(result)).toMatchObject({ event: 'slide.theme.error', reason: 'theme-invalid-shape' })
   })
 
   it('相対パスの dir は usage error（exit 2）で拒む', async () => {

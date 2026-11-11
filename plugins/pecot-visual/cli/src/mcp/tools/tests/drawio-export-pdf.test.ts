@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as ChromiumModule from '../../../infra/playwright/chromium.js'
 import type { ToolCallContext } from '../../server.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 import { drawioExportTool } from '../drawio.js'
 
 const EMBED_SVG = '<svg xmlns="http://www.w3.org/2000/svg" style="color-scheme: light dark;" width="201px" height="121px"><g/></svg>'
@@ -84,7 +85,8 @@ afterEach(() => {
 })
 
 describe('drawio_export の兄弟 PDF', () => {
-  it('標準で SVG と兄弟 PDF を書き、artifacts と data.pdf に載せる', async () => {
+  it('標準で SVG と兄弟 PDF を書き、artifacts と data.pdf に載せる', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-01')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'diagram.drawio.svg')
     const pdfPath = path.join(directory, 'diagram.drawio.pdf')
@@ -107,7 +109,8 @@ describe('drawio_export の兄弟 PDF', () => {
     expect(readFileSync(pdfPath)).toEqual(PDF_BYTES)
   })
 
-  it('PECOTV_FORCE_PDF_FAIL=1 では SVG だけを残し、ok: true のまま exitCode 3 で警告を返す', async () => {
+  it('PECOTV_FORCE_PDF_FAIL=1 では SVG だけを残し、ok: true のまま exitCode 3 で警告を返す', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-04')
     vi.stubEnv('PECOTV_FORCE_PDF_FAIL', '1')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'out.svg')
@@ -135,7 +138,8 @@ describe('drawio_export の兄弟 PDF', () => {
     expect(existsSync(pdfPath)).toBe(false)
   })
 
-  it('pdf: false では PDF を書かず、既存の PDF にも触れない', async () => {
+  it('pdf: false では PDF を書かず、既存の PDF にも触れない', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-02')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'out.svg')
     const pdfPath = path.join(directory, 'out.pdf')
@@ -157,7 +161,8 @@ describe('drawio_export の兄弟 PDF', () => {
     expect(readFileSync(pdfPath, 'utf8')).toBe('%PDF-old')
   })
 
-  it('out_path の拡張子が .pdf なら exit 2 の invalid-output-extension で何も書かない', async () => {
+  it('out_path の拡張子が .pdf なら exit 2 の invalid-output-extension で何も書かない', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-06')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'diagram.pdf')
 

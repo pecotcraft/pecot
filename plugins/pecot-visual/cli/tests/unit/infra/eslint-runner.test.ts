@@ -17,6 +17,7 @@ import {
   ChildProcessEslintRunner,
   resolveEslintBin,
 } from '../../../src/infra/slidev-project/eslint-runner.js'
+import { verifies } from '../../_helpers/verifies.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -54,7 +55,8 @@ function writeStubBin(): string {
 }
 
 describe('ChildProcessEslintRunner', () => {
-  it('talk-dir を cwd に、本体の deck lint 設定と JSON formatter で eslint を起動する', async () => {
+  it('talk-dir を cwd に、本体の deck lint 設定と JSON formatter で eslint を起動する', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-04')
     const talkDirectory = path.join(state.temporaryRoot, 'talk')
     mkdirSync(talkDirectory, { recursive: true })
     const stub = writeStubBin()

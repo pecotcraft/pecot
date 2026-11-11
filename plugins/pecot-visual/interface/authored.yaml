@@ -637,7 +637,7 @@ entries:
         statement: もし Chromium が入っていないなら、chromium-not-installed の失敗を返し、message に setup の呼び出しを案内する
       - id: PV-SLIDE-CONVERT-08
         pattern: unwanted
-        statement: もし project_dir が Slidev のプロジェクトでないなら、project-not-found・exitCode 2 の失敗を返す
+        statement: もし project_dir が Slidev のプロジェクトでないなら、project-not-found・exitCode 1 の失敗を返す
       - id: PV-SLIDE-CONVERT-09
         pattern: unwanted
         statement: もし talk-dir がテーマを参照していないなら、theme-none の失敗を返す

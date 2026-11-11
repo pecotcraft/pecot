@@ -10,9 +10,11 @@
 import {
   appendFileSync,
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -24,7 +26,8 @@ import path from 'node:path'
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createSlideCreateCommand } from '../../../src/commands/slidev-project/create.js'
+import type { EslintRunner } from '../../../src/domain/slidev-project/lint.js'
+import { createSlideCreateCommand, executeSlideCreate } from '../../../src/commands/slidev-project/create.js'
 import {
   autoDeckLintJsonField,
   createSlideLintCommand,
@@ -35,6 +38,7 @@ import {
 } from '../../../src/commands/slidev-project/lint.js'
 import { createSlideSyncCommand } from '../../../src/commands/slidev-project/sync.js'
 import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
+import { verifies } from '../../_helpers/verifies.js'
 import {
   asStream,
   assertTemplatePluginsBuilt,
@@ -460,16 +464,25 @@ describe('テーマの宣言で動く lint (実 eslint)', () => {
     }
   })
 
-  it('theme: none で宣言も無い talk-dir は theme-none の失敗になり、slide sync --theme を案内する', async () => {
+  it('theme: none で宣言も無い talk-dir は theme-none の失敗になり、slide sync --theme を案内する', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-06')
     const talk = await setupTalkDirectory('legacy')
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n', 'utf8')
     const stderr = makeStream()
     const previousExitCode = process.exitCode
     try {
-      const command = createSlideLintCommand(() => lintDependencies(makeStream(), stderr))
+      const eslint = countingEslint()
+      const command = createSlideLintCommand(() => ({ ...lintDependencies(makeStream(), stderr), eslint: eslint.runner }))
       await command.parseAsync(['--dir', talk], { from: 'user' })
       expect(stderr.chunks.join('')).toContain('slide sync --theme <theme-spec>')
       expect(process.exitCode).toBe(1)
+      const stdout = makeStream()
+      const jsonCommand = createSlideLintCommand(() => ({ ...lintDependencies(stdout, makeStream()), eslint: eslint.runner }))
+      await jsonCommand.parseAsync(['--dir', talk, '--json'], { from: 'user' })
+      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+      const parsed = JSON.parse(lastJsonLine(stdout.chunks)) as { event: string, reason: string }
+      expect(parsed).toMatchObject({ event: 'slide.lint.error', reason: 'theme-none' })
+      expect(eslint.calls()).toBe(0)
     }
     finally {
       process.exitCode = previousExitCode
@@ -525,14 +538,20 @@ describe('createSlideLintCommand', () => {
     }
   })
 
-  it('--json 違反ありは slide.lint.violations を出す', async () => {
+  it('--json 違反ありは slide.lint.violations を出す', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-01')
+    await verifies(context, 'PV-SLIDE-LINT-04')
     const talk = await setupTalkDirectory()
     appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8')
+    writeFileSync(path.join(talk, 'pages', '01-prefixed.md'), '---\nlayout: plain\nheading: 見出し\n---\n', 'utf8')
+    appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/01-prefixed.md\n---\n', 'utf8')
+    const before = snapshotFiles(talk)
     const stdout = makeStream()
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
       await command.parseAsync(['--dir', talk, '--json'], { from: 'user' })
+      expect(snapshotFiles(talk)).toStrictEqual(before)
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
       const parsed = JSON.parse(lastJsonLine(stdout.chunks)) as {
         event: string
@@ -542,7 +561,7 @@ describe('createSlideLintCommand', () => {
       }
       expect(parsed.event).toBe('slide.lint.violations')
       expect(parsed.outcome).toBe('violations')
-      expect(parsed.lintedFileCount).toBe(5)
+      expect(parsed.lintedFileCount).toBe(6)
       expect(parsed.violations.map(v => v.rule)).toContain('slidev-pages-lint/no-missing-page')
       expect(process.exitCode).toBe(1)
     }
@@ -620,16 +639,25 @@ describe('createSlideLintCommand', () => {
     }
   })
 
-  it('slides.md が無い dir は slide.lint.error(not-talk-dir) + exit 1', async () => {
+  it('slides.md が無い dir は slide.lint.error(not-talk-dir) + exit 1', async (context) => {
+    await verifies(context, 'PV-SLIDE-LINT-05')
     const stdout = makeStream()
     const stderr = makeStream()
     const previousExitCode = process.exitCode
     try {
-      const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
+      const eslint = countingEslint()
+      const command = createSlideLintCommand(() => ({ ...lintDependencies(stdout, stderr), eslint: eslint.runner }))
       await command.parseAsync(['--dir', state.temporaryRoot], { from: 'user' })
       expect(stderr.chunks.join('')).toContain('error: slide lint failed:')
       expect(stderr.chunks.join('')).toContain('slides.md')
       expect(process.exitCode).toBe(1)
+      const jsonOut = makeStream()
+      const jsonCommand = createSlideLintCommand(() => ({ ...lintDependencies(jsonOut, makeStream()), eslint: eslint.runner }))
+      await jsonCommand.parseAsync(['--dir', state.temporaryRoot, '--json'], { from: 'user' })
+      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+      const parsed = JSON.parse(lastJsonLine(jsonOut.chunks)) as { event: string, reason: string }
+      expect(parsed).toMatchObject({ event: 'slide.lint.error', reason: 'not-talk-dir' })
+      expect(eslint.calls()).toBe(0)
     }
     finally {
       process.exitCode = previousExitCode
@@ -708,7 +736,8 @@ describe('create / sync 末尾の自動 deck lint', () => {
     expect(countIndex).toBeGreaterThan(successIndex)
   })
 
-  it('slide create --json は slide.create.done に lint 要約を載せる', async () => {
+  it('slide create --json は slide.create.done に lint 要約を載せる', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-03')
     const projectDirectory = path.join(state.temporaryRoot, 'auto-create-json')
     const stdout = makeStream()
     const command = createSlideCreateCommand(() => ({
@@ -729,7 +758,51 @@ describe('create / sync 末尾の自動 deck lint', () => {
     expect(parsed.lint.lintedFileCount).toBe(4)
   })
 
-  it('slide sync は違反があっても exit code を変えず deck lint 一覧と再確認コマンドを出す', async () => {
+  it('slide create は生成直後の lint が違反を見つけても成功を返し、data.lint に違反を載せる', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-04')
+    const projectDirectory = path.join(state.temporaryRoot, 'auto-create-violations')
+    const { data } = await executeSlideCreate(
+      projectDirectory,
+      { theme: copyThemeForTalk(state.temporaryRoot, 'theme-src').spec, force: false, emitCatalog: false },
+      { ...lintDependencies(makeStream(), makeStream()), now: () => 0 },
+      (summary) => { appendFileSync(slidesPathOf(summary.projectDirectory), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8') },
+    )
+    // eslint-disable-next-line no-restricted-syntax -- data の narrowing
+    const { event, lint } = data as { event: string, lint: { skipped: boolean, outcome: string, violations: { rule: string }[] } }
+    expect(event).toBe('slide.create.done')
+    expect(lint.skipped).toBe(false)
+    expect(lint.outcome).toBe('violations')
+    expect(lint.violations.map(v => v.rule)).toContain('slidev-pages-lint/no-missing-page')
+    expect(existsSync(path.join(projectDirectory, 'slides.md'))).toBe(true)
+  })
+
+  it('slide sync --json は同期の後の deck lint の結果を data.lint に載せる', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-06')
+    const talk = await setupTalkDirectory('auto-sync-json')
+    appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8')
+    const stdout = makeStream()
+    const previousExitCode = process.exitCode
+    try {
+      const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, makeStream()))
+      await command.parseAsync(['--dir', talk, '--node-modules-only', '--json'], { from: 'user' })
+      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
+      const parsed = JSON.parse(lastJsonLine(stdout.chunks)) as {
+        event: string
+        lint: { skipped: boolean, outcome: string, lintedFileCount: number, violations: { rule: string }[] }
+      }
+      expect(parsed.event).toBe('slide.sync.done')
+      expect(parsed.lint.skipped).toBe(false)
+      expect(parsed.lint.outcome).toBe('violations')
+      expect(parsed.lint.lintedFileCount).toBe(5)
+      expect(parsed.lint.violations.map(v => v.rule)).toContain('slidev-pages-lint/no-missing-page')
+    }
+    finally {
+      process.exitCode = previousExitCode
+    }
+  })
+
+  it('slide sync は違反があっても exit code を変えず deck lint 一覧と再確認コマンドを出す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-06')
     const talk = await setupTalkDirectory('auto-sync')
     appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8')
     const stdout = makeStream()
@@ -759,7 +832,8 @@ describe('create / sync 末尾の自動 deck lint', () => {
     }
   })
 
-  it('slide sync --node-modules-only でも deck lint 要約を出す', async () => {
+  it('slide sync --node-modules-only でも deck lint 要約を出す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-06')
     const talk = await setupTalkDirectory('auto-sync-nm')
     const stdout = makeStream()
     const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, makeStream()))
@@ -852,6 +926,32 @@ function addBodyNotePage(talk: string): void {
     'utf8',
   )
   appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/body-note.md\n---\n', 'utf8')
+}
+
+function countingEslint(): { readonly runner: EslintRunner, readonly calls: () => number } {
+  let count = 0
+  const runner: EslintRunner = {
+    run: () => {
+      count += 1
+      return Promise.reject(new Error('eslint は起動されない想定'))
+    },
+  }
+  return { runner, calls: () => count }
+}
+
+function snapshotFiles(directory: string): Map<string, string> {
+  const entries = new Map<string, string>()
+  const walk = (current: string): void => {
+    const children = readdirSync(current, { withFileTypes: true })
+    for (const entry of children) {
+      const target = path.join(current, entry.name)
+      if (entry.name === 'node_modules') continue
+      if (entry.isDirectory()) walk(target)
+      else entries.set(path.relative(directory, target), readFileSync(target, 'utf8'))
+    }
+  }
+  walk(directory)
+  return entries
 }
 
 function slidesPathOf(talkDirectory: string): string {

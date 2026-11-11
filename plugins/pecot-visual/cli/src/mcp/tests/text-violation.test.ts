@@ -22,6 +22,7 @@ import { isRecord } from '../../../tests/_helpers/records.js'
 import { redundantExpression } from '../../../tests/_helpers/redundant-expression.js'
 import { assertTemplatePluginsBuilt, createTalkDirectory } from '../../../tests/_helpers/talk-directory.js'
 import { useTemporaryDirectory } from '../../../tests/_helpers/temporary-directory.js'
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import type { ToolCallContext } from '../server.js'
 import { drawioCreateTool } from '../tools/drawio.js'
 import { evidenceCreateTool } from '../tools/evidence.js'
@@ -108,7 +109,8 @@ function callEvidence(input: string, out: string): Promise<CallToolResult> {
 }
 
 describe('drawio_create の文面確認', () => {
-  it('違反ラベル 1 件は text-violation で返し、何も書かない', async () => {
+  it('違反ラベル 1 件は text-violation で返し、何も書かない', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-05')
     const { input, out } = placeDiagram(`<mxCell id="n1" value="${HYPE}" vertex="1" parent="1"/>`)
 
     const result = await callDrawio(input, out)
@@ -128,7 +130,8 @@ describe('drawio_create の文面確認', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('違反ラベル 3 件（value・object label・html=1）を全件返し、違反の無いセルは含めない', async () => {
+  it('違反ラベル 3 件（value・object label・html=1）を全件返し、違反の無いセルは含めない', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-05')
     const { input, out } = placeDiagram(
       `<mxCell id="n1" value="${HYPE}" vertex="1" parent="1"/>`
       + `<object id="n2" label="${HYPE_2}"><mxCell vertex="1" parent="1"/></object>`
@@ -174,7 +177,8 @@ describe('drawio_create の文面確認', () => {
 })
 
 describe('evidence_create の文面確認', () => {
-  it('title の違反は text-violation で返し、xlsx を書かない', async () => {
+  it('title の違反は text-violation で返し、xlsx を書かない', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-03')
     const { input, out } = placeEvidence({
       title: HYPE,
       createdDate: '2026-10-28',
@@ -197,7 +201,8 @@ describe('evidence_create の文面確認', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('title・caption・callout の 3 項目を全件返す', async () => {
+  it('title・caption・callout の 3 項目を全件返す', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-03')
     const { input, out } = placeEvidence({
       title: HYPE,
       createdDate: '2026-10-28',

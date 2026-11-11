@@ -8,6 +8,7 @@ import { toCallToolResult } from '../result.js'
 import { createMcpServer, MCP_SERVER_NAME, type ToolCallContext, type ToolDefinition } from '../server.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { rejectionOf } from '../../../tests/_helpers/rejection.js'
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { closeMcp, connectMcp, PROTOCOL_ERAS } from './_client.js'
 
 /**
@@ -240,7 +241,8 @@ describe('createMcpServer', () => {
     })
   })
 
-  it('並行して届いた tools/call を 1 件ずつ実行する', async () => {
+  it('並行して届いた tools/call を 1 件ずつ実行する', async (context) => {
+    await verifies(context, 'PV-COMMON-08')
     // 直列化は createMcpServer 側の enqueue 包装で構造的に保証する。
     // ハンドラ側で enqueue しない (= ツール実装の善意に依存しない) ことがこのテストの主眼。
     let running = 0
@@ -281,7 +283,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('toCallToolResult の変換結果が client.callTool まで往復する', async () => {
+  it('toCallToolResult の変換結果が client.callTool まで往復する', async (context) => {
+    await verifies(context, 'PV-COMMON-06')
     const failing: ToolDefinition = {
       name: 'failing',
       config: { description: 'ToolResult 変換の往復検証', inputSchema: z.object({}) },
@@ -328,7 +331,8 @@ describe('createMcpServer の progress ハートビート', () => {
   */
   const INTERVAL_MS = 5
 
-  it('progressToken 付きの呼び出しへ enqueue 直後の 1 発と周期ハートビートを送る', async () => {
+  it('progressToken 付きの呼び出しへ enqueue 直後の 1 発と周期ハートビートを送る', async (context) => {
+    await verifies(context, 'PV-COMMON-09')
     const received: Progress[] = []
     // ハンドラはここが解放するまで返らない。解放条件が「3 発受信」なので、
     // 実時間の待ち合わせを入れずにハートビートの反復を観測できる。
@@ -363,7 +367,8 @@ describe('createMcpServer の progress ハートビート', () => {
     }
   })
 
-  it('キュー待機中もハートビートを送り続ける (デキュー前に無音区間を作らない)', async () => {
+  it('キュー待機中もハートビートを送り続ける (デキュー前に無音区間を作らない)', async (context) => {
+    await verifies(context, 'PV-COMMON-09')
     const received: Progress[] = []
     const queuedCount = (): number => received.filter(item => item.message === 'waiter: waiting in queue').length
     const occupied: PromiseWithResolvers<void> = Promise.withResolvers()
@@ -402,6 +407,48 @@ describe('createMcpServer の progress ハートビート', () => {
       expect(queuedCount()).toBeGreaterThanOrEqual(2)
     }
     finally {
+      await closeMcp(connected)
+    }
+  })
+
+  it('周期を渡さないと既定の 10 秒ごとに progress 通知を送る', async (context) => {
+    await verifies(context, 'PV-COMMON-09')
+    const received: Progress[] = []
+    const gate: PromiseWithResolvers<void> = Promise.withResolvers()
+    const gated: ToolDefinition = {
+      name: 'gated',
+      config: { description: '既定の周期の検証', inputSchema: z.object({}) },
+      handler: async () => {
+        await gate.promise
+        return { content: [] }
+      },
+    }
+
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const connected = await connectMcp([gated])
+    try {
+      const pending = connected.client.callTool({ name: 'gated', arguments: {} }, {
+        onprogress: (progress) => {
+          received.push(progress)
+        },
+      })
+      // vi.waitFor は偽の setInterval で止まるので、実タイマーの delay で待つ。
+      while (received.length === 0) await delay(5)
+
+      await vi.advanceTimersByTimeAsync(9999)
+      await delay(20)
+      expect(received).toHaveLength(1)
+
+      await vi.advanceTimersByTimeAsync(1)
+      while (received.length < 2) await delay(5)
+      expect(received).toHaveLength(2)
+      expect(received[1]).toMatchObject({ progress: 2, message: 'gated: running' })
+
+      gate.resolve()
+      await pending
+    }
+    finally {
+      vi.useRealTimers()
       await closeMcp(connected)
     }
   })
@@ -479,7 +526,8 @@ describe('createMcpServer の progress ハートビート', () => {
     }
   })
 
-  it.each(PROTOCOL_ERAS)('キャンセル後は周期送出と reportProgress のどちらも通知を送らない [%s]', async (era) => {
+  it.for(PROTOCOL_ERAS)('キャンセル後は周期送出と reportProgress のどちらも通知を送らない [%s]', async (era, context) => {
+    await verifies(context, 'PV-COMMON-10')
     const errors: Error[] = []
     const started: PromiseWithResolvers<void> = Promise.withResolvers()
     const finished: PromiseWithResolvers<void> = Promise.withResolvers()

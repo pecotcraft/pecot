@@ -26,6 +26,7 @@ import { START_SCRIPT_SOURCE, viteConfigSource } from '../../../src/domain/slide
 import { copyFixtureTheme as copyTheme } from '../../_helpers/theme-fixtures.js'
 import type { CopiedTheme, FixtureTheme } from '../../_helpers/theme-fixtures.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { verifies } from '../../_helpers/verifies.js'
 
 const HERE = import.meta.dirname
 // repo の plugins/pecot-visual が plugin-root（cli/.. = plugins/pecot-visual）。
@@ -310,7 +311,8 @@ describe('executeSlideCreate (smoke)', () => {
     )).rejects.toThrow(SlideCreateUsageError)
   })
 
-  it('--force で既存ディレクトリを上書きし、前の生成物を残さない', async () => {
+  it('--force で既存ディレクトリを上書きし、前の生成物を残さない', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-05')
     const projectDirectory = temporaryRoot('sample')
     await runSlideCreate(
       projectDirectory,
@@ -346,7 +348,9 @@ describe('executeSlideCreate (smoke)', () => {
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
-  it('--force で、生成の途中 (node_modules の組み立て) に失敗しても、既存の生成先は残り、一時 dir は残らない', async () => {
+  it('--force で、生成の途中 (node_modules の組み立て) に失敗しても、既存の生成先は残り、一時 dir は残らない', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-05')
+    await verifies(context, 'PV-SLIDE-CREATE-10')
     const projectDirectory = temporaryRoot('forced', 'talk')
     mkdirSync(projectDirectory, { recursive: true })
     writeFileSync(path.join(projectDirectory, 'slides.md'), '# 既存\n')

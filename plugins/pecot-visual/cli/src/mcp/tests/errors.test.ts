@@ -25,6 +25,7 @@ import { z } from 'zod'
 import { allTools } from '../tools/index.js'
 import type { ToolDefinition } from '../server.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
 
 // src/mcp/tests → cli/
@@ -77,7 +78,8 @@ describe('MCP ツールの異常系応答', () => {
     return connected.client
   }
 
-  it('必須パラメータ欠落は入力検証で弾き、structuredContent を返さない', async () => {
+  it('必須パラメータ欠落は入力検証で弾き、structuredContent を返さない', async (context) => {
+    await verifies(context, 'PV-COMMON-01')
     const called = await client().callTool({ name: 'drawio_create', arguments: {} })
 
     expect(called.isError).toBe(true)
@@ -127,7 +129,8 @@ describe('MCP ツールの異常系応答', () => {
     expect(structured['message']).not.toBe('')
   })
 
-  it('エラー 2 連投のあとでも同じ接続で正常呼び出しが通る', async () => {
+  it('エラー 2 連投のあとでも同じ接続で正常呼び出しが通る', async (context) => {
+    await verifies(context, 'PV-COMMON-12')
     // 入力検証エラー (キューに載る前で弾かれる) と実行エラー (キューを通る) を 1 件ずつ挟み、
     // どちらのルートもサーバとキューを壊さないことを見る。
     const invalid = await client().callTool({ name: 'drawio_create', arguments: {} })
@@ -144,7 +147,8 @@ describe('MCP ツールの異常系応答', () => {
       .toEqual(expect.stringContaining('https://'))
   })
 
-  it('ハンドラ内の未捕捉例外は当該呼び出しだけを失敗させ、サーバは受け付け続ける (SC-005)', async () => {
+  it('ハンドラ内の未捕捉例外は当該呼び出しだけを失敗させ、サーバは受け付け続ける (SC-005)', async (context) => {
+    await verifies(context, 'PV-COMMON-14')
     // 実ツールのハンドラは例外を捕捉して ok:false を返す設計なので、未捕捉例外のルートは
     // 意図的に throw するツールを登録して直接作る。
     const exploding: ToolDefinition = {
