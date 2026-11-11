@@ -15,6 +15,9 @@ nx の task cache は、宣言した入力が変わらない限りレーンを�
   - シェルは行の順に見る。その行より前の行で代入や束縛をしていない変数の読み取りを数える。
     `X="${X:-1}"` のような既定値つきの展開は、同じ行の代入より先に外の値を読むので数える。
     ファイルの後ろで代入していても、それより前の読み取りは外の値を読む。
+  - `interface-env:` のコメントの名前は、代入や stub に関わらず数える。`none` は数えない。
+    interface-spec と違い、直前の行に限らずファイル全体を数え、行頭のコメント（.py は `#`、JS 系は `//` か `/*`）に限る。
+    行頭に限るのは、文字列の中の目印を拾わないため。
   - JS は、`process.env.X || 既定値` の形か、null 合体演算子で既定値を付けた形の読み取りを、
     ファイル内の代入に関わらず数える。
     それ以外は、ファイル内で代入や stub をしている変数を数えない。
@@ -122,6 +125,20 @@ _EXEMPT: dict[str, str] = {
         "一時ディレクトリへ向けるので、値は結果を左右しない。既定の場所を確かめるテストだけが子プロセスへ渡す。"
         "全体では付け替えない（pnpm の store と uv の Python の置き場まで動くため）"
     ),
+    "PECOTV_DEPENDENCY_ROOT": (
+        "scripts/ci/run-tests.sh が unset し、vitest の setupFiles（unset-plugin-data-environment.ts）も消す。"
+        "PLUGIN_DATA と同じ"
+    ),
+    "PECOTV_RUNTIME_DIR": (
+        "scripts/ci/run-tests.sh が unset し、vitest の setupFiles（unset-plugin-data-environment.ts）も消す。"
+        "PLUGIN_DATA と同じ"
+    ),
+    "PECOT_GITHUB_*_TOKEN": (
+        "nx の env は 1 つの名前しか取らず、`*` の名前を宣言できない。読む cli/core/github/client.py が動くのは"
+        "test-py だけで、cli/tests/conftest.py の autouse が外して固定する。cli-node の同じ読みは"
+        "useIsolatedEnvironment が外す。秘密の値をハッシュに入れない点も合う"
+    ),
+    "GITHUB_COM_TOKEN": "PECOT_GITHUB_*_TOKEN と同じ読みの組なので、同じ扱い",
     "SCRIPT_DIR": "bootstrap テストの stub-root.sh が自分の置き場所から求める内部変数",
     "STUB_FAIL_BUILD": "bootstrap テストの stub pnpm の失敗注入。テストが自分で env に渡す",
     "STUB_FAIL_INSTALL": "bootstrap テストの stub pnpm の失敗注入。テストが自分で env に渡す",
@@ -201,12 +218,26 @@ _PY_ASSIGN = re.compile(
 )
 # package.json の scripts は 1 行のシェル。`NAME=value cmd` の前置代入は代入、`$NAME` は読み取り。
 _PKG_ASSIGN = re.compile(rf"(?:^|[;&|(\s])({_ENV_NAME})=")
+_PY_INTERFACE_ENV = re.compile(r"^[ \t]*#[ \t]*interface-env:(.*)$", re.MULTILINE)
+_JS_INTERFACE_ENV = re.compile(r"^[ \t]*(?://|/\*)[ \t]*interface-env:(.*)$", re.MULTILINE)
+# libs/interface-spec の isValidEnvironmentName と同じ形。
+_INTERFACE_ENV_NAME = re.compile(r"[A-Za-z_]\w*|[A-Z0-9_]+\*[A-Z0-9_]+")
 
 _JS_SUFFIXES = {".ts", ".tsx", ".mts", ".cts", ".mjs", ".cjs", ".js"}
 
 
 def _flat(matches: list) -> set[str]:
     return {g for m in matches for g in (m if isinstance(m, tuple) else (m,)) if g}
+
+
+def _interface_env_names(text: str, marker: re.Pattern[str]) -> set[str]:
+    """`interface-env:` の行に書かれた名前。`none` と、名前の形でない説明の語は除く。"""
+    names: set[str] = set()
+    for m in marker.finditer(text):
+        for token in re.split(r"[\s,]+", m.group(1).replace("*/", " ")):
+            if token != "none" and _INTERFACE_ENV_NAME.fullmatch(token):
+                names.add(token)
+    return names
 
 
 def _strip_shell_comments(text: str) -> str:
@@ -294,8 +325,10 @@ def scan_env_reads(root: Path, rels: list[str]) -> dict[str, set[str]]:
         elif suffix in _JS_SUFFIXES:
             plain = _flat(_JS_READ.findall(text)) - _flat(_JS_ASSIGN.findall(text))
             add(plain | _flat(_JS_READ_DEFAULT.findall(text)), rel)
+            add(_interface_env_names(text, _JS_INTERFACE_ENV), rel)
         elif suffix == ".py":
             add(_flat(_PY_READ.findall(text)) - _flat(_PY_ASSIGN.findall(text)), rel)
+            add(_interface_env_names(text, _PY_INTERFACE_ENV), rel)
     return reads
 
 
@@ -595,3 +628,47 @@ def test_scan_reads_shell_under_tests_but_not_under_hooks(tmp_path: Path) -> Non
         },
     )
     assert set(scan_env_reads(tmp_path, rels)) == {"UNDECLARED_TESTS_SH", "UNDECLARED_RELEASE_TEST"}
+
+
+def test_scan_counts_interface_env_names_for_reads_by_a_constant(tmp_path: Path) -> None:
+    """名前を定数で渡す読みは、直前の `interface-env:` の名前で数える。同じファイルの stub では引かない。"""
+    rels = _write_files(
+        tmp_path,
+        {
+            "plugins/p/cli/src/a.test.ts": (
+                "vi.stubEnv('A', '1')\n// interface-env: A B\nconst v = process.env[NAMES.a]\n"
+            ),
+            "plugins/p/cli/core.py": (
+                "import os\n# interface-env: C, D\nv = os.environ.get(name)\n"
+            ),
+        },
+    )
+    assert set(scan_env_reads(tmp_path, rels)) == {"A", "B", "C", "D"}
+
+
+def test_scan_skips_interface_env_none_and_markers_inside_strings(tmp_path: Path) -> None:
+    rels = _write_files(
+        tmp_path,
+        {
+            "plugins/p/cli/src/a.test.ts": (
+                "// interface-env: none\n"
+                "  // interface-env: KEPT\n"
+                "const s = '// interface-env: E\\n'\n"
+                "const t = `x\\n// interface-env: F`\n"
+            ),
+            "plugins/p/cli/core.py": "# interface-env: none\ns = '# interface-env: G'\n",
+        },
+    )
+    assert set(scan_env_reads(tmp_path, rels)) == {"KEPT"}
+
+
+def test_scan_keeps_only_valid_names_in_interface_env(tmp_path: Path) -> None:
+    rels = _write_files(
+        tmp_path,
+        {
+            "plugins/p/cli/src/a.ts": (
+                "/* interface-env: PECOT_GITHUB_*_TOKEN (see foo.bar) PLAIN_NAME */\n"
+            ),
+        },
+    )
+    assert set(scan_env_reads(tmp_path, rels)) == {"PECOT_GITHUB_*_TOKEN", "PLAIN_NAME"}
