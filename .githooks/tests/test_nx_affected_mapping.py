@@ -923,7 +923,22 @@ def test_graph_lanes_read_every_workspace_package_json(
             },
         ),
         # lint のレーンの表には、定義書の変更が lint-defs に届くことも置く。
-        ("plugins/pecot-visual/interface/generated.json", {"interface-spec:lint-defs"}),
+        (
+            "plugins/pecot-visual/interface/generated.json",
+            {"interface-spec:lint-defs", "pecot-visual:lint-cli"},
+        ),
+        # describe の題の規則は、interface-spec の lint と、これを読む 4 つの lint に届く。
+        (
+            "libs/interface-spec/src/eslint/describe-title.ts",
+            {
+                "interface-spec:lint",
+                "interface-spec:lint-defs",
+                "pecot-tools:lint",
+                "pecot-visual:lint-cli",
+                "pecot-workflow:lint-cli",
+                "text-rules:lint",
+            },
+        ),
         (
             "plugins/pecot-workflow/skills/w-help/references/commands.md",
             {"interface-spec:lint-defs"},

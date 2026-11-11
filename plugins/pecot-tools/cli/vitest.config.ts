@@ -5,7 +5,7 @@ export default defineConfig({
     reporters: [...configDefaults.reporters, 'junit'],
     outputFile: { junit: 'test-results/junit.xml' },
     setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts'],
-    include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/integration/**/*.test.ts'],
+    include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/interface/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     testTimeout: 60_000,
     coverage: {

@@ -1,0 +1,9 @@
+{
+  "entries": [
+    { "id": "XX-ALPHA", "name": "alpha_tool" },
+    { "id": "XX-BETA", "name": "beta tool" }
+  ],
+  "format": "pecot-interface/1",
+  "plugin": "xx",
+  "prefix": "XX"
+}

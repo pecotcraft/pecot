@@ -80,6 +80,15 @@ export default defineConfig(
     },
   },
   {
+    // eslint.config.js が .ts のまま直に import する。Node の型の除去は .js を .ts に読み替えないので、相対の値の import を持てない。
+    files: ['src/eslint/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{ group: ['./*', '../*'], message: 'eslint の規則のファイルは相対の import を持たない（Node の型の除去が .js を .ts に読み替えない）' }],
+      }],
+    },
+  },
+  {
     rules: {
       // 定義書のデータは Record と Map を鍵で引く。引くのは自分のオブジェクトだけ。
       'security/detect-object-injection': 'off',
@@ -88,7 +97,7 @@ export default defineConfig(
     },
   },
   {
-    // zod が推論する型は変更可能な型で、これらの検証の関数がそれを引数に取る。テストは vitest の型と fixture の型を取る。
+    // zod が推論する型と ESTree の node の型は変更可能な型で、これらの関数がそれを引数に取る。テストは vitest の型と fixture の型を取る。
     files: [
       'src/domain/commands-md.ts',
       'src/domain/diff.ts',
@@ -96,6 +105,7 @@ export default defineConfig(
       'src/domain/field-map.ts',
       'src/domain/issues.ts',
       'src/domain/validate.ts',
+      'src/eslint/describe-title.ts',
       'tests/**/*.ts',
     ],
     rules: { '@typescript-eslint/prefer-readonly-parameter-types': 'off' },

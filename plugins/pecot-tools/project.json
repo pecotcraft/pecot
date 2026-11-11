@@ -110,7 +110,9 @@
         "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
         "{workspaceRoot}/libs/interface-spec/package.json",
         "sharedGlobals",
-        "pecotToolsPluginLintGlobals"
+        "pecotToolsPluginLintGlobals",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{projectRoot}/interface/generated.json"
       ],
       "options": {
         "command": "bash scripts/ci/run-lint.sh --scope=cli",
