@@ -3,7 +3,7 @@
 import path from 'node:path'
 
 import { ESLint } from 'eslint'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const RESTRICTED_PATH = path.join(ROOT, 'src', 'cli.ts')
@@ -15,8 +15,15 @@ const RESTRICTED_PATHS: readonly (readonly [string, string])[] = [
 ]
 const OUTPUT_PATH = path.join(ROOT, 'src', 'commands', 'output.ts')
 
+// 最初の lintText はプロジェクト全体の読み込みで重い。src/tests/lint-rules.test.ts と同じく beforeAll の 1 回に寄せる
+const WARM_UP_TIMEOUT_MS = 120_000
+const eslint = new ESLint({ cwd: ROOT })
+
+beforeAll(async () => {
+  await eslint.lintText('export const warmUp = 1\n', { filePath: RESTRICTED_PATH })
+}, WARM_UP_TIMEOUT_MS)
+
 async function ruleIds(code: string, filePath: string): Promise<readonly string[]> {
-  const eslint = new ESLint({ cwd: ROOT })
   const [result] = await eslint.lintText(code, { filePath })
   const messages = result?.messages ?? []
   // 構文の誤りや typed lint の失敗は規則の結果ではないので、先に落とす
