@@ -3341,8 +3341,8 @@ entries:
       - wt1 to wt9 are the limit.
       - Skips every wtN that a worktree of this repository already uses, including a worktree made with --path, which is found by its record or by a checked out branch wtN.
       - Records wtN in the git administrative directory of the new worktree, which pecot pr cleanup reads to return to wtN.
-      - Creates the branch from origin/<base> with that branch as its upstream, where <base> is --base or the develop_branch of the repository in the active project.
-      - When the branch wtN already exists, stops unless its upstream is origin/<base> or --allow-existing-branch is given.
+      - Creates the branch from <remote>/<base> with that branch as its upstream, where <remote> is the origin remote, or the first remote when there is no origin, and <base> is --base or the develop_branch of the repository in the active project.
+      - When the branch wtN already exists, stops unless its upstream is <remote>/<base> or --allow-existing-branch is given.
       - A matching branch that no worktree uses is deleted and created again.
       - Runs git worktree prune on the main worktree before it creates the worktree, also with --dry-run.
       - Needs .pecot/config/worktree-config.json and .pecot/config/.worktreeignore in the main worktree, which pecot worktree init creates.
@@ -3372,7 +3372,7 @@ entries:
       - code: 0
         when: The worktree was created, or --dry-run printed the plan. Skipped links, files that could not be copied, a failed setup command and a wtN record that could not be written do not change it.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, the repository is not in the base/ layout, worktree-config.json or .worktreeignore is missing or worktree-config.json is invalid, the origin remote cannot be read, there is no active project, the repository is not registered in it, develop_branch is not set and --base is omitted, every set from wt1 to wt9 is in use, the branch wtN exists with another upstream, git worktree add failed, or the command runs outside a devcontainer.
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, the repository is not in the base/ layout, worktree-config.json or .worktreeignore is missing or worktree-config.json is invalid, the repository of the origin remote, or of the first remote when there is no origin, cannot be read, there is no active project, the repository is not registered in it, develop_branch is not set and --base is omitted, every set from wt1 to wt9 is in use, the branch wtN exists with another upstream, git worktree add failed, or the command runs outside a devcontainer.
       - code: 2
         when: -D is missing or is not an existing directory, or another command line error occurs.
     on_error: Stops at the first error. When worktree-config.json is found invalid after git worktree add, the worktree and its branch stay without links, copied files or the setup run. A wtN record that cannot be written leaves the worktree as it is. Pruned metadata and a deleted unused branch stay as they are.
@@ -3399,6 +3399,7 @@ entries:
       - The command runs in a devcontainer.
       - The repository is in the layout <project root>/base/<repository>, and its worktree config files exist (pecot worktree init).
       - An active project exists, and the repository is registered in it.
+      - <remote>/<base> exists in the local repository, where <remote> is the origin remote, or the first remote when there is no origin.
     idempotent: false
     examples:
       - run: pecot worktree add -D .
@@ -3417,7 +3418,7 @@ entries:
         statement: リポジトリを -D に渡して打つと、プロジェクトのルートの下の wtN にそのリポジトリの worktree を作る
       - id: PW-WORKTREE-ADD-02
         pattern: event
-        statement: worktree を作ると、wtN と同じ名前のブランチを origin/<ベース> を upstream にして作る
+        statement: worktree を作ると、wtN と同じ名前のブランチを <remote>/<ベース> を upstream にして作る（<remote> は origin、無ければ最初の remote）
       - id: PW-WORKTREE-ADD-03
         pattern: event
         statement: このリポジトリの worktree（--path のものを含む）がまだ使っていない wtN があると、その中で番号が最小のセットに worktree を作る
@@ -3528,10 +3529,10 @@ entries:
         statement: もしアクティブなプロジェクトが無いか、リポジトリがそのプロジェクトに登録されていないなら、終了コード 1 で終わる
       - id: PW-WORKTREE-ADD-39
         pattern: unwanted
-        statement: もし origin remote を読めないなら、何も作らない
+        statement: もし origin（無ければ最初の remote）のリポジトリを読めないなら、何も作らない
       - id: PW-WORKTREE-ADD-40
         pattern: unwanted
-        statement: もし origin remote を読めないなら、終了コード 1 で終わる
+        statement: もし origin（無ければ最初の remote）のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-WORKTREE-ADD-41
         pattern: unwanted
         statement: もし --base を省いて develop_branch が設定に無いなら、何も作らない

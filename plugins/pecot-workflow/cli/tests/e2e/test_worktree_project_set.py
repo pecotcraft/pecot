@@ -166,7 +166,7 @@ class TestProjectSetE2E:
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.origin_repo",
+                "cli.core.worktree.primary_remote_repo",
                 side_effect=fake_origin_repo,
             ),
         ):
@@ -239,7 +239,7 @@ class TestProjectSetE2E:
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.origin_repo",
+                "cli.core.worktree.primary_remote_repo",
                 side_effect=fake_origin_repo,
             ),
         ):
@@ -287,7 +287,7 @@ class TestProjectSetE2E:
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.origin_repo",
+                "cli.core.worktree.primary_remote_repo",
                 side_effect=fake_origin_repo,
             ),
         ):
@@ -384,7 +384,7 @@ class TestProjectSetE2E:
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.origin_repo",
+                "cli.core.worktree.primary_remote_repo",
                 side_effect=fake_origin_repo,
             ),
         ):
@@ -442,7 +442,7 @@ class TestWorktreeOrphanBranchE2E:
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.origin_repo",
+                "cli.core.worktree.primary_remote_repo",
                 side_effect=fake_origin_repo,
             ),
         ):
@@ -512,7 +512,7 @@ class TestWorktreePathNumberE2E:
         return (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.origin_repo",
+                "cli.core.worktree.primary_remote_repo",
                 return_value=("github.com", "test-owner", "myrepo"),
             ),
         )

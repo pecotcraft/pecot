@@ -23,7 +23,7 @@ import pathspec
 from pydantic import ValidationError
 
 from cli.core.config import ProjectConfig, load_active_config
-from cli.core.git import git_toplevel, origin_repo, run_git
+from cli.core.git import git_toplevel, primary_remote_name, primary_remote_repo, run_git
 from cli.core.repo_resolver import RepoRef
 
 if TYPE_CHECKING:
@@ -542,9 +542,11 @@ def copy_files(source_root: Path, dest_root: Path, files: list[Path]) -> list[Co
 
 # オーケストレーション
 
+_NO_REMOTE_MESSAGE = "cannot get the repository information: check that a git remote is set"
+
 
 def _get_repo_info(cwd: Path) -> RepoRef:
-    """origin リモートからリポジトリ情報を取得
+    """主の remote（origin、無ければ最初の remote）からリポジトリ情報を取得
 
     Args:
         cwd: 対象ディレクトリ
@@ -555,18 +557,16 @@ def _get_repo_info(cwd: Path) -> RepoRef:
     Raises:
         RuntimeError: リポジトリ情報を取得できない場合
     """
-    origin = origin_repo(cwd)
+    primary = primary_remote_repo(cwd)
     info: RepoRef | None = None
-    if origin is not None:
-        _host, owner, repo = origin
+    if primary is not None:
+        _host, owner, repo = primary
         try:
             info = RepoRef(owner=owner, repo=repo)
         except ValidationError:
             info = None
     if info is None:
-        raise RuntimeError(
-            "cannot get the repository information: check that the git remote origin is set"
-        )
+        raise RuntimeError(_NO_REMOTE_MESSAGE)
     return info
 
 
@@ -803,8 +803,12 @@ def create_worktree(
         )
 
     # 5. git worktree add
+    remote = primary_remote_name(cwd)
+    if remote is None:
+        raise RuntimeError(_NO_REMOTE_MESSAGE)
     _run_git_worktree_add(
         cwd=cwd,
+        remote=remote,
         path=path,
         name=name,
         base_branch=base_branch,
@@ -859,6 +863,7 @@ def _populate_worktree(
 
 def _run_git_worktree_add(
     cwd: Path,
+    remote: str,
     path: Path,
     name: str,
     base_branch: str | None,
@@ -868,9 +873,10 @@ def _run_git_worktree_add(
 
     Args:
         cwd: 対象 Git リポジトリのパス（メイン WT でも サブ WT でも可）。
+        remote: 主の remote 名（origin、無ければ最初の remote）。
         path: 作成先 WT パス。
         name: ブランチ名 / WT 名。
-        base_branch: upstream 期待値 (`origin/<base_branch>`)。
+        base_branch: upstream 期待値 (`<remote>/<base_branch>`)。
         allow_existing_branch: 既存ブランチの upstream 不一致を許容するか。
 
     Raises:
@@ -891,7 +897,7 @@ def _run_git_worktree_add(
                 check=False,
             )
             current_upstream = upstream_result.stdout.strip() or None
-            expected_upstream = f"origin/{base_branch}" if base_branch else None
+            expected_upstream = f"{remote}/{base_branch}" if base_branch else None
             if current_upstream != expected_upstream:
                 raise RuntimeError(
                     f"branch '{name}' already exists and its upstream differs from the expected one "
@@ -912,7 +918,7 @@ def _run_git_worktree_add(
     else:
         args = ["worktree", "add", str(path), "-b", name]
         if base_branch:
-            args.extend(["--track", f"origin/{base_branch}"])
+            args.extend(["--track", f"{remote}/{base_branch}"])
 
     result = run_git(args, cwd, check=False)
     if result.returncode != 0:
