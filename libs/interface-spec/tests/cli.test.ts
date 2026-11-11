@@ -29,11 +29,11 @@ async function call(...argv: string[]): Promise<{ code: number, stdout: string, 
 }
 
 describe('validate', () => {
-  it('exits 0 and prints nothing for a valid repository', async () => {
+  it('正しいリポジトリのとき、何も出さず 0 で終わる', async () => {
     expect(await call('validate', '--root', await materialize('valid'))).toEqual({ code: 0, stdout: '', stderr: '' })
   })
 
-  it('prints one line per failure to stderr and exits 1', async () => {
+  it('失敗があると、1 件ごとに 1 行を標準エラーに出して 1 で終わる', async () => {
     expect(await call('validate', '--root', await materialize('language'))).toEqual({
       code: 1,
       stdout: '',
@@ -42,12 +42,12 @@ describe('validate', () => {
     })
   })
 
-  it('points --root at the repository root by default', () => {
+  it('--root を省くと、リポジトリの root を指す', () => {
     const targets = path.join(defaultRoot(), 'libs/interface-spec/targets.json')
     expect(existsSync(targets)).toBe(true)
   })
 
-  it('exits 2 with one error line when the root is not a git repository', async () => {
+  it('root が git リポジトリでないと、エラーを 1 行出して 2 で終わる', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     const fixture = path.join(PROJECT, 'tests', 'fixtures', 'valid')
     try {
@@ -63,7 +63,7 @@ describe('validate', () => {
     }
   })
 
-  it('exits 2 with one error line for an unexpected read error', async () => {
+  it('想定外の読み取りエラーのとき、エラーを 1 行出して 2 で終わる', async () => {
     const root = await materialize('valid')
     const authored = path.join(root, 'plugins/pecot-workflow/interface/authored.yaml')
     await rm(authored)
@@ -77,13 +77,13 @@ describe('validate', () => {
     [['validate', '--root']],
     [['validate', '--bogus', 'x']],
     [['validate', '--root', 'a', 'b']],
-  ])('prints the usage and exits 2 for %j', async (argv) => {
+  ])('%j を渡すと、使い方を出して 2 で終わる', async (argv) => {
     expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n' })
   })
 })
 
 describe('the command line', () => {
-  it('runs through tsx the way lint-defs does', async () => {
+  it('lint-defs と同じく tsx から呼ぶと、欠けた欄を 1 行出して終了コード 1 で終わる', async () => {
     const root = await materialize('field-missing')
     await expect(exec('pnpm', ['exec', 'tsx', 'src/cli.ts', 'validate', '--root', root], { cwd: PROJECT, env: CHILD_ENV })).rejects.toMatchObject({
       code: 1,

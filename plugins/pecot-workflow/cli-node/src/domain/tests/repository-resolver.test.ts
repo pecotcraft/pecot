@@ -111,7 +111,7 @@ describe('createRepositoryReference', () => {
 })
 
 describe('repositoryFullName', () => {
-  it('owner/repository', () => {
+  it('owner と repository を / でつないだ名前を返す', () => {
     expect(repositoryFullName(createRepositoryReference('owner', 'repo'))).toBe('owner/repo')
   })
 

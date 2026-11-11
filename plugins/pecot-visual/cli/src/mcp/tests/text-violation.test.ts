@@ -302,7 +302,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
   // slide_lint の 2 件だけがテンプレート側 eslint plugin の dist を使う
   beforeAll(assertTemplatePluginsBuilt)
 
-  it('lintText（fragment）', async () => {
+  it('fragment を lintText に渡すとき、止める場所どおりの規則名が出る', async () => {
     const findings = await lintText(PARITY_TEXT, 'fragment')
 
     expect(new Set(findings.map(finding => finding.ruleId))).toStrictEqual(PARITY_RULES)
@@ -313,7 +313,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
     ['pecot-text-lint（bin）の .ts の文字列', 'parity.ts', `export const text = '${PARITY_TEXT}'\n`, []],
     ['pecot-text-lint（bin）の .vue の template', 'parity.vue', `<template>\n  <p>${PARITY_TEXT}</p>\n</template>\n`, []],
     ['pecot-text-lint（bin）の --commit-msg', 'COMMIT_EDITMSG', `fix: ${PARITY_TEXT}\n`, ['--commit-msg']],
-  ])('%s', (_name, name, content, options) => {
+  ])('%s のとき、止める場所どおりの規則名が出る', (_name, name, content, options) => {
     const entry = fileURLToPath(import.meta.resolve('@pecot/text-rules'))
     const bin = path.join(path.dirname(entry), 'bin', 'pecot-text-lint.js')
     const file = workDirectory(name)
@@ -327,7 +327,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
     expect(new Set(ruleIds)).toStrictEqual(PARITY_RULES)
   })
 
-  it('drawio_create', async () => {
+  it('drawio_create に禁止文を渡すとき、止める場所どおりの規則名が出る', async () => {
     const { input, out } = placeDiagram(`<mxCell id="n1" value="${PARITY_TEXT}" vertex="1" parent="1"/>`)
 
     const result = await callDrawio(input, out)
@@ -335,7 +335,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
     expect(ruleIdsOf(violationsOf(result))).toStrictEqual(PARITY_RULES)
   })
 
-  it('evidence_create', async () => {
+  it('evidence_create に禁止文を渡すとき、止める場所どおりの規則名が出る', async () => {
     const { input, out } = placeEvidence({
       title: PARITY_TEXT,
       createdDate: '2026-10-28',

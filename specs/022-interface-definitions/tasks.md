@@ -235,16 +235,16 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US4 の 1 行目が、4 つの project で通る
 
-- [ ] T049 [US4] `vitest/valid-title` の設定で、`it` の題の 2 つの決めを守れるかを確かめる
+- [x] T049 [US4] `vitest/valid-title` の設定で、`it` の題の 2 つの決めを守れるかを確かめる
   - 決めは「日本語の文字がある」と「句点で終わらない」だ
   - `describe` と `it` を別々の形で指定できるかも確かめる
   - できない部分は、`libs/interface-spec` に小さな eslint の規則を書く
   - 規則を書くときは、通る題と外れる題の RuleTester のテストを先に書く
-- [ ] T050 [US4] `.claude/rules/test-conventions.md` を書く。中身は contracts/test-conventions.md に従う。対象、題の形、項目へのつなぎ、従う考え方を、vitest と pytest の例つきで書く
-- [ ] T051 [P] [US4] `plugins/pecot-tools/cli/eslint.config.js` で題の lint を有効にし、外れた題（約 2 件）を直す
-- [ ] T052 [P] [US4] pecot-visual で題の lint を有効にし、外れた題（約 110 件）を直す。設定は `plugins/pecot-visual/cli/eslint.config.js` と、`plugins/pecot-visual/assets/slidev/` の下にある
-- [ ] T053 [P] [US4] `plugins/pecot-workflow/cli-node/eslint.config.js` で有効にし、外れた題（約 33 件）を直す
-- [ ] T054 [P] [US4] `libs/text-rules/eslint.config.js` と `libs/interface-spec/eslint.config.js` で有効にし、外れた題を直す
+- [x] T050 [US4] `.claude/rules/test-conventions.md` を書く。中身は contracts/test-conventions.md に従う。対象、題の形、項目へのつなぎ、従う考え方を、vitest と pytest の例つきで書く
+- [x] T051 [P] [US4] `plugins/pecot-tools/cli/eslint.config.js` で題の lint を有効にし、外れた題（約 2 件）を直す
+- [x] T052 [P] [US4] pecot-visual で題の lint を有効にし、外れた題（約 110 件）を直す。設定は `plugins/pecot-visual/cli/eslint.config.js` と、`plugins/pecot-visual/assets/slidev/` の下にある
+- [x] T053 [P] [US4] `plugins/pecot-workflow/cli-node/eslint.config.js` で有効にし、外れた題（約 33 件）を直す
+- [x] T054 [P] [US4] `libs/text-rules/eslint.config.js` と `libs/interface-spec/eslint.config.js` で有効にし、外れた題を直す
 - [ ] T055 [US4] 「いちばん外の `describe` の題が定義書の `name` にある」を確かめる eslint の規則の、RuleTester のテストを書く。定義書にある名前・無い名前・`describe` が無いファイルを入れる。この時点で失敗する
 - [ ] T056 [US4] T055 の規則を `libs/interface-spec` に実装する。各 project の eslint の設定で、`tests/interface/**` にだけ当てる。今の公開面のテストのファイルは対象に入れず、作り替えない
 

@@ -290,7 +290,7 @@ describe('convertSlide', () => {
       '<div>x</div>',
       false,
     ],
-  ])('hasExplicitAnimation: %s → %s', async (_name, markup, expected) => {
+  ])('%s のとき、明示ありの判定が期待どおりになる', async (_name, markup, expected) => {
     document.body.innerHTML = `<div class="slidev-page" style="display:block">${markup}</div>`
     const page = new FakePage()
     const result = await convertSlide(page.asPage(), 600, 'slide-', outDir, makeLogger(), defaultExportToPptxOptions)

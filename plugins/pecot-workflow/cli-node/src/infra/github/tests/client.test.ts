@@ -207,7 +207,7 @@ describe('resolveApiUrlOverride', () => {
 })
 
 describe('初期化の URL', () => {
-  it('github.com', () => {
+  it('host が github.com のとき、API と GraphQL の URL を github.com のものにする', () => {
     const client = new GitHubClientBase({ host: 'github.com', token: 'test_token' })
     expect(client.host).toBe('github.com')
     expect(client.token).toBe('test_token')
@@ -867,14 +867,14 @@ describe('executeGraphql', () => {
     useFakeGh()
   })
 
-  it.each(GRAPHQL_SUCCESSES)('$name', async ({ respond, data }) => {
+  it.each(GRAPHQL_SUCCESSES)('$name のとき、data を返す', async ({ respond, data }) => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
     const client = new GitHubClientBase({ token: 't' })
     expect(await client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).toEqual(data)
     expect(server.problems()).toEqual([])
   })
 
-  it.each(GRAPHQL_FAILURES)('$name', async ({ respond, expected }) => {
+  it.each(GRAPHQL_FAILURES)('$name のとき、期待の例外を投げる', async ({ respond, expected }) => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
     const client = new GitHubClientBase({ token: 't' })
     const execution = client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })

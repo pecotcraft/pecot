@@ -18,14 +18,14 @@ function unresolved(path: string, text: string): number[] {
 }
 
 describe('fixtures', () => {
-  it('lists a name that the source reads but the definitions do not', async () => {
+  it('ソースが読む名前を定義書が挙げていないと、その名前を挙げる', async () => {
     expect(await validateRepository(await materialize('env-unlisted'))).toEqual([
       'error: plugins/pecot-tools/interface/authored.yaml: environment: AWS_REGION is read by cli/src/aws.ts but not listed',
       `error: ${PW}: environment: PECOT_SESSION_PROJECT_DIR is read by cli/core/session.py but not listed`,
     ])
   })
 
-  it('stops reads whose name is hidden and that have no interface-env comment', async () => {
+  it('名前が隠れていて interface-env コメントも無い読み取りは、止める', async () => {
     expect(await validateRepository(await materialize('env-no-comment'))).toEqual([
       `error: plugins/pecot-tools/cli/src/aws.ts:1: environment: ${UNRESOLVED}`,
       `error: plugins/pecot-tools/cli/src/aws.ts:2: environment: ${UNRESOLVED}`,
@@ -34,11 +34,11 @@ describe('fixtures', () => {
     ])
   })
 
-  it('does not run the check for a plugin whose entries are partial', async () => {
+  it('項目が部分的な plugin では、環境変数の確かめを動かさない', async () => {
     expect(await validateRepository(await materialize('env-partial'))).toEqual([])
   })
 
-  it('reads only files that git tracks', async () => {
+  it('git が追跡するファイルだけ、読む', async () => {
     const root = await materialize('valid')
     const file = path.join(root, 'plugins/pecot-workflow/cli/core/unlisted.py')
     await writeFile(file, 'import os\nx = os.environ["UNLISTED"]\n')
@@ -67,7 +67,7 @@ describe('Python reads', () => {
     ['del is not a read', 'del os.environ["A"]', []],
     ['update is not a read', 'os.environ.update({"A": "1"})', []],
     ['comment lines are ignored', '# os.environ["A"]', []],
-  ] as const)('%s', (_label, source, expected) => {
+  ] as const)('%s のとき、読んだ名前を取り出す', (_label, source, expected) => {
     expect(names('a.py', source)).toEqual(expected)
     expect(unresolved('a.py', source)).toEqual([])
   })
@@ -89,32 +89,32 @@ describe('Python reads', () => {
     ['an import of environ', 'from os import environ'],
     ['an import of getenv among others', 'from os import path, getenv'],
     ['a parenthesized import', 'from os import (\n    environ,\n)'],
-  ] as const)('stops %s', (_label, source) => {
+  ] as const)('%s のとき、止める', (_label, source) => {
     expect(unresolved('a.py', source)).toHaveLength(1)
     expect(names('a.py', source)).toEqual([])
   })
 
-  it('does not stop an unrelated import from os', () => {
+  it('os 以外の import は、止めない', () => {
     expect(unresolved('a.py', 'from os import path')).toEqual([])
   })
 
-  it('takes the names from the comment on the line before', () => {
+  it('直前の行のコメントから、名前を取る', () => {
     const source = 'import os\n# interface-env: A, B\nx = os.environ.get(name)\n'
     expect(names('a.py', source)).toEqual(['A', 'B'])
     expect(unresolved('a.py', source)).toEqual([])
   })
 
-  it('accepts interface-env: none', () => {
+  it('interface-env: none と書くと、受け入れる', () => {
     const source = 'import os\n# interface-env: none\nx = dict(os.environ)\n'
     expect(names('a.py', source)).toEqual([])
     expect(unresolved('a.py', source)).toEqual([])
   })
 
-  it('does not take a comment that is two lines above', () => {
+  it('2 行上のコメントは、名前として取らない', () => {
     expect(unresolved('a.py', '# interface-env: A\n\nx = os.environ.get(name)\n')).toEqual([3])
   })
 
-  it('reports the line where the read starts', () => {
+  it('読みが始まる行を、報告する', () => {
     expect(unresolved('a.py', 'import os\n\nx = os.environ.get(\n    name,\n)\n')).toEqual([3])
   })
 })
@@ -136,7 +136,7 @@ describe('TypeScript reads', () => {
     ['code after a block comment on the same line is read', '/* c */ const x = process.env.D', ['D']],
     ['an index assignment is not a read', 'process.env[\'A\'] = \'1\'', []],
     ['comment lines are ignored', '// process.env.A\n * process.env.B', []],
-  ] as const)('%s', (_label, source, expected) => {
+  ] as const)('%s のとき、読んだ名前を取り出す', (_label, source, expected) => {
     expect(names('a.ts', source)).toEqual(expected)
     expect(unresolved('a.ts', source)).toEqual([])
   })
@@ -151,19 +151,19 @@ describe('TypeScript reads', () => {
     ['a rest element in destructuring', 'const { A, ...rest } = process.env'],
     ['a computed key in destructuring', 'const { [name]: value } = process.env'],
     ['an import of env', 'import { env } from \'node:process\''],
-  ] as const)('stops %s', (_label, source) => {
+  ] as const)('%s のとき、止める', (_label, source) => {
     expect(unresolved('a.ts', source).length).toBeGreaterThan(0)
   })
 
-  it('reads .mjs, .js and .tsx the same way', () => {
+  it('.mjs・.js・.tsx も、同じ読み方をする', () => {
     for (const path of ['a.mjs', 'a.js', 'a.tsx', 'a.cts']) expect(names(path, 'process.env.A')).toEqual(['A'])
   })
 
-  it('takes the names from a // comment on the line before', () => {
+  it('直前の行の // コメントから、名前を取る', () => {
     expect(names('a.ts', '// interface-env: A\nconst x = process.env[name]')).toEqual(['A'])
   })
 
-  it('ignores files that are neither Python nor TypeScript', () => {
+  it('Python でも TypeScript でもないファイルは、無視する', () => {
     expect(scanEnvironmentReads({ path: 'a.sh', text: 'echo $A; os.environ["B"]' })).toEqual({ reads: [], unresolved: [] })
   })
 })
@@ -178,7 +178,7 @@ describe('listed names', () => {
     ['PECOT_GITHUB_*_TOKEN', 'PECOT_GITHUB_*_TOKEN', true],
     ['PECOT_GITHUB_*_TOKEN', 'OTHER_X_TOKEN', false],
     ['PECOT_GITHUB_*_TOKEN', 'PECOT_GITHUB_X_KEY', false],
-  ] as const)('%s matches %s: %s', (listed, read, expected) => {
+  ] as const)('一覧の %s と読んだ名前 %s を比べると、%s になる', (listed, read, expected) => {
     expect(isListedName(listed, read)).toBe(expected)
   })
 
@@ -190,11 +190,11 @@ describe('listed names', () => {
     ['A_*_B_*_C', false],
     ['has space', false],
     ['', false],
-  ] as const)('%s is valid: %s', (name, expected) => {
+  ] as const)('名前 %j を検証すると、%s になる', (name, expected) => {
     expect(isValidEnvironmentName(name)).toBe(expected)
   })
 
-  it('names the first file that reads a name and orders the lines by file and line', () => {
+  it('名前を最初に読むファイルを挙げ、行をファイルと行の順に並べる', () => {
     const findings = checkEnvironment({
       pluginDir: 'plugins/p',
       authoredPath: 'plugins/p/interface/authored.yaml',

@@ -405,7 +405,7 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
     ['空白を含むパスは trim しない', { CLAUDE_PLUGIN_DATA: '/data/with space ' }],
   ]
 
-  it.each(CASES)('%s', (_name, values) => {
+  it.each(CASES)('%s のとき、bash と同じ場所を返す', (_name, values) => {
     const expected = bashResolve(values)
     // 未設定にした上で設定する（テストの env を bash に渡した env と一致させる）
     setEnvironment({ CLAUDE_PLUGIN_DATA: undefined, PLUGIN_DATA: undefined, XDG_DATA_HOME: undefined, HOME: undefined })

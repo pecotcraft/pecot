@@ -12,7 +12,7 @@ function bodiesOf(scanner: Scanner, text: string): string[] {
 }
 
 function check(scanner: Scanner, rows: readonly Row[]): void {
-  it.each(rows)('%s', (_name, input, bodies) => {
+  it.each(rows)('%s のとき、期待の本文を切り出す', (_name, input, bodies) => {
     expect(bodiesOf(scanner, input)).toEqual(bodies)
   })
 }

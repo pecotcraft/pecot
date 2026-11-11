@@ -63,7 +63,7 @@ describe('前後比較', () => {
     expect(existsSync(cliEntry), `${cliEntry} がありません。pnpm run build を先に流してください`).toBe(true)
   })
 
-  it.for(scenarioIds())('%s', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(scenarioIds())('シナリオ %s のとき、前後比較が一致する', { timeout: TEST_TIMEOUT_MS }, async (id) => {
     const scenario = readScenario(id)
     const outcome = await runScenario(scenario, node)
 

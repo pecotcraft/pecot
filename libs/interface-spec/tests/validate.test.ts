@@ -49,16 +49,16 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
 ]
 
 describe('validateRepository', () => {
-  it.each(CASES)('%s', async (name, expected) => {
+  it.each(CASES)('fixture %s のとき、期待する失敗の行を返す', async (name, expected) => {
     expect(await validateRepository(await materialize(name))).toEqual(expected)
   })
 
-  it('returns the same lines in the same order on every run', async () => {
+  it('実行のたびに、同じ行を同じ順で返す', async () => {
     const root = await materialize('behavior-id')
     expect(await validateRepository(root)).toEqual(await validateRepository(root))
   })
 
-  it('reports a shape error and a pattern mismatch in the same run', async () => {
+  it('形のエラーとパターンの不一致を、同じ実行で報告する', async () => {
     const root = await materialize('valid')
     const file = path.join(root, PW, 'authored.yaml')
     const original = await readFile(file, 'utf8')
@@ -72,7 +72,7 @@ describe('validateRepository', () => {
     ])
   })
 
-  it('still checks environment and collects behavior ids when another field fails the shape check', async () => {
+  it('別のフィールドの形が合わなくても、environment を確かめ behavior の id を集める', async () => {
     const root = await materialize('behavior-id-reverse')
     const file = path.join(root, PW, 'authored.yaml')
     const original = await readFile(file, 'utf8')
@@ -86,7 +86,7 @@ describe('validateRepository', () => {
     expect(lines).toContain(`error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`)
   })
 
-  it('reports a targets.json that does not exist', async () => {
+  it('targets.json が無いと、報告する', async () => {
     expect(await validateRepository(await materialize('empty'))).toEqual(['error: libs/interface-spec/targets.json: file is missing'])
   })
 })

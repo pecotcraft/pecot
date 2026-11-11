@@ -15,7 +15,7 @@ describe('doesContainJapanese', () => {
     ['半角英数字のみ', 'Hello World 123', false],
     ['記号のみ', '!@#$%^&*()', false],
     ['空文字列', '', false],
-  ])('%s -> %s', (_label, input, expected) => {
+  ])('%s（入力 %s）のとき、%s を返す', (_label, input, expected) => {
     expect(doesContainJapanese(input)).toBe(expected)
   })
 
@@ -35,7 +35,7 @@ describe('calculateSpcValue', () => {
     ['2.0px', 150],
     ['0.5px', 38],
     ['0px', 0],
-  ])('letter-spacing=%s -> spc=%i', (letter, expected) => {
+  ])('letter-spacing が %s のとき、spc が %i になる', (letter, expected) => {
     expect(calculateSpcValue(letter)).toBe(expected)
   })
 

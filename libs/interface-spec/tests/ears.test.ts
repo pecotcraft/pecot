@@ -32,15 +32,15 @@ const REJECTED: readonly (readonly [Pattern, string])[] = [
 ]
 
 describe('isPatternMatch', () => {
-  it.each(ACCEPTED)('%s accepts its own form: %s', (pattern, statement) => {
+  it.each(ACCEPTED)('パターン %s は、自分の形の文 %s を受け入れる', (pattern, statement) => {
     expect(isPatternMatch(pattern, statement)).toBe(true)
   })
 
-  it.each(REJECTED)('%s rejects: %s', (pattern, statement) => {
+  it.each(REJECTED)('パターン %s は、文 %s を受け入れない', (pattern, statement) => {
     expect(isPatternMatch(pattern, statement)).toBe(false)
   })
 
-  it('accepts each example under no other pattern except where the forms overlap', () => {
+  it('各例を他のパターンで試すと、形が重なる場合を除いて受け入れない', () => {
     for (const [pattern, statement] of ACCEPTED) {
       const others = (['ubiquitous', 'event', 'state', 'unwanted', 'optional'] as const).filter(other => other !== pattern && isPatternMatch(other, statement))
       expect({ statement, others }).toEqual({ statement, others: [] })
@@ -49,7 +49,7 @@ describe('isPatternMatch', () => {
 })
 
 describe('hasJapanese', () => {
-  it.each([['ひらがな', true], ['カタカナ', true], ['漢字', true], ['English only 123', false], ['', false]])('%s', (text, expected) => {
+  it.each([['ひらがな', true], ['カタカナ', true], ['漢字', true], ['English only 123', false], ['', false]])('%j のとき、hasJapanese は %s を返す', (text, expected) => {
     expect(hasJapanese(text)).toBe(expected)
   })
 })

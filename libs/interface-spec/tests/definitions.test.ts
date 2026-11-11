@@ -59,14 +59,14 @@ function generatedEntry(data: Record<string, unknown>, index: number): Record<st
 }
 
 describe('generated.json checks', () => {
-  it('rejects a plugin name that differs from the directory and a bad prefix', async () => {
+  it('plugin 名がディレクトリと違い、接頭辞も不正だと、止める', async () => {
     expect(await withGenerated((data) => {
       data['plugin'] = 'other'
       data['prefix'] = 'pw'
     })).toContain(`${GENERATED}||plugin|"other" does not match the directory name "pecot-workflow"`)
   })
 
-  it('rejects an id without the prefix, a repeated id, and an entry without a surface', async () => {
+  it('id に接頭辞が無い、id が重複する、surface の無い項目があると、止める', async () => {
     const lines = await withGenerated((data) => {
       const first = generatedEntry(data, 0)
       first['id'] = 'XX-ISSUE-CREATE'
@@ -78,13 +78,13 @@ describe('generated.json checks', () => {
     expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have cli or mcp`)
   })
 
-  it('rejects a prefix in lower case', async () => {
+  it('接頭辞が小文字だと、止める', async () => {
     expect(await withGenerated((data) => {
       data['prefix'] = 'pw'
     })).toContain(`${GENERATED}||prefix|"pw" must be upper-case letters and digits`)
   })
 
-  it('rejects Japanese in name, description and input descriptions', async () => {
+  it('name・description・入力の説明に日本語があると、止める', async () => {
     const lines = await withGenerated((data) => {
       const first = generatedEntry(data, 0)
       first['description'] = '説明'
@@ -94,7 +94,7 @@ describe('generated.json checks', () => {
     expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|input.properties.title.description|contains Japanese text (write English)`)
   })
 
-  it('rejects cli names that are not in input', async () => {
+  it('input に無い cli 名があると、止める', async () => {
     const lines = await withGenerated((data) => {
       generatedEntry(data, 1)['cli'] = { positional: ['nope'], flags: { gone: ['--gone'] } }
     })
@@ -104,13 +104,13 @@ describe('generated.json checks', () => {
 })
 
 describe('authored.yaml checks', () => {
-  it('rejects a plugin name that differs from the directory', async () => {
+  it('plugin 名がディレクトリと違うと、止める', async () => {
     expect(await withAuthored((data) => {
       data['plugin'] = 'other'
     })).toContain(`${AUTHORED}||plugin|"other" does not match the directory name "pecot-workflow"`)
   })
 
-  it('rejects bad environment names and Japanese in their effect', async () => {
+  it('環境変数名が不正、または effect に日本語があると、止める', async () => {
     const lines = await withAuthored((data) => {
       data['environment'] = [{ name: 'PECOT_*', effect: '効果' }, { name: 'ok name', effect: 'x' }]
     })
@@ -119,7 +119,7 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}||environment[1].name|"ok name" is not a valid name (use A-Z, 0-9 and "_"; "*" may appear once, with fixed characters on both sides)`)
   })
 
-  it('rejects names in requires and default_notes that are not in input', async () => {
+  it('requires か default_notes が、input に無い名前を持つと止める', async () => {
     const lines = await withAuthored((data) => {
       const target = entry(data, 'PW-ISSUE-CREATE')
       target['constraints'] = [{ requires: { message: ['ttl'] } }]
@@ -129,7 +129,7 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|default_notes|unknown input name "repo"`)
   })
 
-  it('rejects a constraint that is neither conflicts nor requires', async () => {
+  it('制約が conflicts でも requires でもないと、止める', async () => {
     const lines = await withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['constraints'] = [{ excludes: ['a'] }, 'text']
     })
@@ -137,7 +137,7 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[1]|must be an object with "conflicts" or "requires"`)
   })
 
-  it('accepts an exit_status with kind and rejects one with neither code nor kind', async () => {
+  it('exit_status が kind を持つと受け入れ、code と kind の両方が無いと止める', async () => {
     const lines = await withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['exit_status'] = [{ kind: 'auth-expired', when: 'Authentication expired.' }, { when: 'x' }, 7]
     })
@@ -146,7 +146,7 @@ describe('authored.yaml checks', () => {
     expect(lines.some(line => line.includes('exit_status[0]'))).toBe(false)
   })
 
-  it('rejects an empty behaviors list and a missing behavior field', async () => {
+  it('behaviors が空、または behavior のフィールドが無いと、止める', async () => {
     const lines = await withAuthored((data) => {
       entry(data, 'PW-ISSUE-QUICK')['behaviors'] = []
       const create = entry(data, 'PW-ISSUE-CREATE')
@@ -156,28 +156,28 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE-01|pattern|field is missing`)
   })
 
-  it('names the entry for a behavior that is not an object', async () => {
+  it('behavior がオブジェクトでないと、その項目の名前を出す', async () => {
     const lines = await withAuthored((data) => {
       entry(data, 'PW-ISSUE-QUICK')['behaviors'] = ['x']
     })
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|behaviors[0]|expected object but got string`)
   })
 
-  it('rejects a common behavior with no Japanese', async () => {
+  it('共通の behavior に日本語が無いと、止める', async () => {
     const lines = await withAuthored((data) => {
       data['common_behaviors'] = [{ id: 'PW-COMMON-01', pattern: 'event', statement: 'English only' }]
     })
     expect(lines).toEqual([`${AUTHORED}|PW-COMMON-01|statement|has no Japanese text (write Japanese)`])
   })
 
-  it('rejects a common behavior with an unknown pattern', async () => {
+  it('共通の behavior に未知のパターンがあると、止める', async () => {
     const lines = await withAuthored((data) => {
       data['common_behaviors'] = [{ id: 'PW-COMMON-02', pattern: 'nope', statement: '常に、終わる' }]
     })
     expect(lines).toEqual([`${AUTHORED}|PW-COMMON-02|pattern|unknown value "nope" (expected one of "ubiquitous", "event", "state", "unwanted", "optional")`])
   })
 
-  it('names the file level for a non-object entries and a missing common_behaviors', async () => {
+  it('entries がオブジェクトでない、または common_behaviors が無いと、ファイル単位で名前を出す', async () => {
     const lines = await withAuthored((data) => {
       data['entries'] = []
       delete data['common_behaviors']
@@ -186,7 +186,7 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}||common_behaviors|field is missing (write [] if none)`)
   })
 
-  it('rejects a missing output and a json output without schema', async () => {
+  it('output が無い、または schema の無い json の output だと、止める', async () => {
     const lines = await withAuthored((data) => {
       delete entry(data, 'PW-ISSUE-CREATE')['output']
       entry(data, 'PW-ISSUE-QUICK')['output'] = { format: 'json', description: 'x' }
@@ -195,14 +195,14 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|output.schema|field is missing`)
   })
 
-  it('reports an entry that is not an object', async () => {
+  it('項目がオブジェクトでないと、報告する', async () => {
     const lines = await withAuthored((data) => {
       record(data['entries'])['PW-ISSUE-QUICK'] = 'x'
     })
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|entry|expected object but got string`)
   })
 
-  it('reports missing files', async () => {
+  it('ファイルが無いと、報告する', async () => {
     const plugin = await validPlugin()
     const lines = validateDefinitions([{ ...plugin, generated: { kind: 'missing' }, authored: { kind: 'syntax', problems: [{ message: 'broken' }] } }])
     expect(lines).toEqual([

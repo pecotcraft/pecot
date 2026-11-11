@@ -451,7 +451,7 @@ describe('.pecot/.gitignore の生成スクリプトの探索', () => {
 })
 
 describe('.pecot/ 配下の link を張ると WT に .pecot/.gitignore が実ファイルでき、未追跡が出ない（#1219）', () => {
-  it('createSymlinks', () => {
+  it('createSymlinks は .pecot/.gitignore を実ファイルで作る', () => {
     const { root, config, worktree } = setupPecotLinks()
     createSymlinks(config, root, 'wt1', 'myrepo')
     const gitignore = path.join(worktree, '.pecot', '.gitignore')
@@ -460,7 +460,7 @@ describe('.pecot/ 配下の link を張ると WT に .pecot/.gitignore が実フ
     expect(gitForTest(worktree, ['status', '--porcelain'])).toBe('')
   })
 
-  it('createSymlinksSafe', () => {
+  it('createSymlinksSafe も .pecot/.gitignore を実ファイルで作る', () => {
     const { root, config, worktree } = setupPecotLinks()
     createSymlinksSafe(config, root, 'wt1', 'myrepo')
     expect(lstatSync(path.join(worktree, '.pecot', '.gitignore')).isFile()).toBe(true)
