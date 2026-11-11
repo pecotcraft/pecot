@@ -25,6 +25,7 @@ import { closeMatches } from './commands/fuzzy.js'
 import { helpText } from './commands/help.js'
 import { COMMANDS, findCommand } from './commands/registry.js'
 import type { CommandDefinition, CommandIo } from './commands/registry.js'
+import { createProcessIo } from './commands/output.js'
 import { formatResolvedRepository } from './commands/repository-display.js'
 import { outputWidth } from './commands/rich-panel.js'
 import {
@@ -184,14 +185,7 @@ function terminalColumns(): number | undefined {
 }
 
 export async function main(): Promise<void> {
-  const io: CommandIo = {
-    stdout: (text) => {
-      process.stdout.write(text)
-    },
-    stderr: (text) => {
-      process.stderr.write(text)
-    },
-  }
+  const io = createProcessIo()
   const pipe = { isClosed: false }
   const finish = (): void => {
     pipe.isClosed = true

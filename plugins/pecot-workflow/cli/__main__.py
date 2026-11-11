@@ -22,7 +22,8 @@ def main() -> None:
         # パイプ切断時は静かに終了
         # stdoutを閉じてから終了（追加のエラーを防ぐ）
         try:
-            sys.stdout.close()
+            # Not output: cleanup after the pipe closed.
+            sys.stdout.close()  # noqa: TID251
         except BrokenPipeError:
             pass
         sys.exit(0)

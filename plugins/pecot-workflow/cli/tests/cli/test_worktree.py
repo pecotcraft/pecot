@@ -63,6 +63,29 @@ class TestWorktreeAdd:
         assert "name" not in kwargs
 
     @patch("cli.core.worktree.create_worktree")
+    def test_add_core_warning_has_prefix(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        """main の import だけで handler が付き、core の警告が `warning:` 付きで出る"""
+        from cli.core.worktree_links import WorktreeLinkItem, _process_link
+
+        def create(*_args: object, **_kwargs: object) -> WorktreeCreateResult:
+            link = WorktreeLinkItem(path="x", target_repo="none", target_path="missing")
+            _process_link(link, tmp_path, "wt1", "repo", lambda *_: False)
+            return WorktreeCreateResult(
+                name="wt1",
+                path=tmp_path / "wt1" / "repo",
+                branch="wt1",
+                base_branch="main",
+                copied_files=[],
+            )
+
+        mock_create.side_effect = create
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        assert any(line.startswith("warning: target does not exist:") for line in lines)
+        assert not any(line.startswith("target does not exist:") for line in lines)
+
+    @patch("cli.core.worktree.create_worktree")
     def test_add_dry_run(self, mock_create: MagicMock, tmp_path: Path) -> None:
         mock_create.return_value = WorktreeCreateResult(
             name="wt1",
