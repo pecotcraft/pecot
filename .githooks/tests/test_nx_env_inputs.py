@@ -59,6 +59,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 # 足すときは理由を 1 行で書く。
 # 読まれなくなった変数は test_exempt_entries_are_still_read が落とす。そのときは行ごと消す。
 _EXEMPT: dict[str, str] = {
+    "COLUMNS": "枠の幅。cli-node のテストは幅を引数で渡し、前後比較は子プロセスに 80 を渡すので、外の値は結果を変えない",
+    "TERMINAL_WIDTH": "COLUMNS と同じ",
     "PATH": (
         "実行ファイルの版は runtime 入力（node / uv / aws の --version）で見る。値そのものは"
         "端末・フック・IDE ごとに揺れ、入れると無関係な再実行が増える"
