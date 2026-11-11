@@ -45,15 +45,37 @@ def _ruff(code: str, filename: str, from_root: bool) -> set[str]:
     return {d["code"] for d in json.loads(proc.stdout)}
 
 
+STOPPED_PATHS = ["commands/issue.py", "core/github/client.py"]
+
+
 @pytest.mark.parametrize("from_root", [False, True], ids=["cwd-cli", "cwd-root"])
+@pytest.mark.parametrize("filename", STOPPED_PATHS)
 @pytest.mark.parametrize("api", list(CASES))
-def test_banned_api_stops_in_commands(api: str, from_root: bool) -> None:
-    assert "TID251" in _ruff(CASES[api], "commands/issue.py", from_root)
+def test_banned_api_stops(api: str, filename: str, from_root: bool) -> None:
+    assert "TID251" in _ruff(CASES[api], filename, from_root)
 
 
 @pytest.mark.parametrize("from_root", [False, True], ids=["cwd-cli", "cwd-root"])
-def test_print_stops_in_commands(from_root: bool) -> None:
-    assert "T201" in _ruff("print('x')\n", "commands/issue.py", from_root)
+@pytest.mark.parametrize("filename", STOPPED_PATHS)
+def test_print_stops(filename: str, from_root: bool) -> None:
+    assert "T201" in _ruff("print('x')\n", filename, from_root)
+
+
+def test_pecot_workflow_scripts_are_exempt() -> None:
+    code = "import sys\nprint('x')\nsys.stderr.write('x')\n"
+    codes = _ruff_at_root(code, "plugins/pecot-workflow/scripts/ci/compare_junit.py")
+    assert not codes & {"T201", "TID251"}
+
+
+def _ruff_at_root(code: str, name: str) -> set[str]:
+    proc = subprocess.run(
+        [sys.executable, "-m", "ruff", "check", "--config",
+         "plugins/pecot-workflow/cli/pyproject.toml", "--output-format", "json",
+         "--stdin-filename", name, "-"],
+        input=code, capture_output=True, text=True, cwd=REPO_ROOT, check=False,
+    )  # fmt: skip
+    assert proc.returncode in (0, 1), proc.stderr
+    return {d["code"] for d in json.loads(proc.stdout)}
 
 
 @pytest.mark.parametrize("from_root", [False, True], ids=["cwd-cli", "cwd-root"])

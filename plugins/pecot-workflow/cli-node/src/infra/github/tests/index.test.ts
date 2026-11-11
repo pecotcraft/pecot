@@ -10,7 +10,7 @@ import { IssuesApi } from '../issues.js'
 import { ProjectsApi } from '../projects.js'
 import { PullsApi } from '../pulls.js'
 import { ReposApi } from '../repos.js'
-import { recordDiagnostics } from '../../tests/recording-diagnostics.js'
+import { ignoredDiagnostics } from '../../tests/recording-diagnostics.js'
 import { graphqlData, graphqlRequests, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
@@ -29,7 +29,7 @@ describe('GitHubClient', () => {
   })
 
   it('コンストラクタに host を渡せる（GitHubClientBase と同じ）', () => {
-    const client = new GitHubClient({ host: 'ghes.example.com', token: 't', diagnostics: recordDiagnostics().diagnostics })
+    const client = new GitHubClient({ host: 'ghes.example.com', token: 't', diagnostics: ignoredDiagnostics })
     expect(client.apiUrl).toBe('https://ghes.example.com/api/v3')
   })
 

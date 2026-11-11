@@ -53,9 +53,10 @@ from cli.core.repo_resolver import AmbiguousRepoError, resolve_repo
 
 _OUT = Output(dry_run=False)
 
-# メインアプリケーション
+# core の logger の警告とエラーを Output へ流す
 install_log_handler()
 
+# メインアプリケーション
 app = typer.Typer(
     name="pecot",
     help="pecot-workflow CLI - work tracking on GitHub Projects",

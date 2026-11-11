@@ -12,6 +12,7 @@ import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createOutput } from '../../../commands/output.js'
 import { isAvoidedPort, startFakeGithub } from '../../../../tests/fake-github/server.js'
 import type { FakeGithub, ResponseMatch, ResponseRule, ResponseSpec } from '../../../../tests/fake-github/server.js'
 import { InvalidValueError } from '../../../domain/errors.js'
@@ -24,12 +25,9 @@ import { clearHostsConfigCache } from '../auth.js'
 import { GitHubClientBase, resolveApiUrlOverride, RestResponse, TransportFailure } from '../client.js'
 import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from '../errors.js'
 import { QUERY_GET_USER_NODE_ID } from '../queries.js'
-import { recordDiagnostics } from '../../tests/recording-diagnostics.js'
+import { ignoredDiagnostics, recordDiagnostics } from '../../tests/recording-diagnostics.js'
 
 useIsolatedEnvironment()
-
-// 出力を確かめないケースが渡す受け口
-const ignored = recordDiagnostics()
 
 const servers: FakeGithub[] = []
 const rawServers: Server[] = []
@@ -197,13 +195,13 @@ describe('resolveApiUrlOverride', () => {
 
   it('不正な値はクライアントの構築で InvalidValueError になる', () => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.1:8080' })
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })).toThrow(InvalidValueError)
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })).toThrow(InvalidValueError)
   })
 })
 
 describe('初期化の URL', () => {
   it('github.com', () => {
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com', token: 'test_token' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', token: 'test_token' })
     expect(client.host).toBe('github.com')
     expect(client.token).toBe('test_token')
     expect(client.apiUrl).toBe('https://api.github.com')
@@ -212,18 +210,18 @@ describe('初期化の URL', () => {
   })
 
   it('host の既定は github.com', () => {
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).host).toBe('github.com')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).host).toBe('github.com')
   })
 
   it('GitHub Enterprise Server は /api/v3 と /api/graphql', () => {
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com', token: 'test_token' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 'test_token' })
     expect(client.apiUrl).toBe('https://ghes.example.com/api/v3')
     expect(client.graphqlUrl).toBe('https://ghes.example.com/api/graphql')
   })
 
   it.each(['127.0.0.1', 'localhost'])('PECOT_GITHUB_API_URL に %s を指定すると、host が GHE でも REST と GraphQL の URL を組み立てる', (host) => {
     setEnvironment({ PECOT_GITHUB_API_URL: `http://${host}:8123` })
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com', token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 't' })
     expect(client.apiUrl).toBe(`http://${host}:8123`)
     expect(client.graphqlUrl).toBe(`http://${host}:8123/graphql`)
     expect(client.host).toBe('ghes.example.com')
@@ -231,7 +229,7 @@ describe('初期化の URL', () => {
 
   it('PECOT_GITHUB_API_URL の指定で、REST の base と GraphQL の URL を差し替える', () => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.0.0.1:8080/api/v3/' })
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com', token: 't', timeoutMilliseconds: 5 })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 't', timeoutMilliseconds: 5 })
     expect(client.apiUrl).toBe('http://127.0.0.1:8080/api/v3')
     expect(client.graphqlUrl).toBe('http://127.0.0.1:8080/api/v3/graphql')
     expect(client.timeoutMilliseconds).toBe(5)
@@ -243,7 +241,7 @@ describe('トークンの取得', () => {
     useProject({ 'ghes.example.com': { env_var: 'PECOT_GITHUB_GHES_TOKEN', token_url: 'https://ghes.example.com/settings/tokens' } })
     setEnvironment({ PECOT_GITHUB_GHES_TOKEN: 'env_token_from_test' })
     const bin = useFakeGh('gh_token')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com' }).token).toBe('env_token_from_test')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com' }).token).toBe('env_token_from_test')
     expect(readFakeCalls(bin, 'gh')).toEqual([])
   })
 
@@ -252,7 +250,7 @@ describe('トークンの取得', () => {
     vi.stubEnv('PECOT_GITHUB_COM_TOKEN', undefined)
     writeFileSync(path.join(config, '.env'), 'PECOT_GITHUB_COM_TOKEN=token_from_env_file\n')
     const bin = useFakeGh('gh_token')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' }).token).toBe('token_from_env_file')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('token_from_env_file')
     expect(process.env['PECOT_GITHUB_COM_TOKEN']).toBe('token_from_env_file')
     expect(readFakeCalls(bin, 'gh')).toEqual([])
   })
@@ -260,21 +258,21 @@ describe('トークンの取得', () => {
   it('config/.env に無ければ、ルート .env の GITHUB_COM_TOKEN', () => {
     const { root } = useProject()
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=root_token\n')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' }).token).toBe('root_token')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('root_token')
   })
 
   it('config/.env のトークンがルート .env より優先される', () => {
     const { root, config } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens' } })
     writeFileSync(path.join(config, '.env'), 'PECOT_GITHUB_COM_TOKEN=config_token\n')
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=root_token\n')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' }).token).toBe('config_token')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('config_token')
   })
 
   it('ルート .env のトークンが gh auth token より優先される（gh は呼ばれない）', () => {
     const { root } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens' } })
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=root_com_token\n')
     const bin = useFakeGh('gh_token_should_not_be_used')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' }).token).toBe('root_com_token')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('root_com_token')
     expect(readFakeCalls(bin, 'gh')).toEqual([])
   })
 
@@ -282,35 +280,35 @@ describe('トークンの取得', () => {
     const { root } = useProject()
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=\n')
     useFakeGh('gh_token')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' }).token).toBe('gh_token')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('gh_token')
   })
 
   it('ルート .env に対応しないホストは gh auth token -h <host> にフォールバックする', () => {
     const { root } = useProject()
     writeFileSync(path.join(root, '.env'), 'SOME_TOKEN=unused\n')
     const bin = useFakeGh('gh_fallback_token')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'gitlab.example.com' }).token).toBe('gh_fallback_token')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'gitlab.example.com' }).token).toBe('gh_fallback_token')
     expect(readFakeCalls(bin, 'gh')).toEqual([['auth', 'token', '-h', 'gitlab.example.com']])
   })
 
   it('github.com は gh auth token（-h なし）', () => {
     useProject()
     const bin = useFakeGh('gh_token_123')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' }).token).toBe('gh_token_123')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('gh_token_123')
     expect(readFakeCalls(bin, 'gh')).toEqual([['auth', 'token']])
   })
 
   it('GHES は gh auth token -h ghes.example.com', () => {
     useProject()
     const bin = useFakeGh('ghes_token_456')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com' }).token).toBe('ghes_token_456')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com' }).token).toBe('ghes_token_456')
     expect(readFakeCalls(bin, 'gh')).toEqual([['auth', 'token', '-h', 'ghes.example.com']])
   })
 
   it('token に空文字を渡したときは、指定なしと同じに取得する', () => {
     useProject()
     useFakeGh('gh_token')
-    expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com', token: '' }).token).toBe('gh_token')
+    expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', token: '' }).token).toBe('gh_token')
   })
 
   // 期待値は Python の _build_auth_error_message の出力
@@ -328,7 +326,7 @@ describe('トークンの取得', () => {
     expect(file).toBe(path.join(root, '.pecot', 'config', '.env'))
     let thrown: unknown
     try {
-      new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com' })
+      new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com' })
     }
     catch (error: unknown) {
       thrown = error
@@ -349,7 +347,7 @@ describe('トークンの取得', () => {
     const { config } = useProject()
     useFakeGh()
     const file = path.join(config, '.env')
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'gitlab.example.com' })).toThrow(
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'gitlab.example.com' })).toThrow(
       `authentication error: could not get a GitHub API token\n\n${file} was generated. Set the token as follows:\n\n`
       + `1. get a token: https://gitlab.example.com/settings/tokens\n\n\n`
       + `2. edit ${file} and set the token in PECOT_GITHUB_GITLAB_EXAMPLE_COM_TOKEN\n\nor authenticate with the GitHub CLI:\n   gh auth login -h gitlab.example.com`,
@@ -360,7 +358,7 @@ describe('トークンの取得', () => {
     const { config } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens', description: 'GitHub.com', scopes: ['repo'] } })
     // gh を含まない PATH にする
     setEnvironment({ PATH: makeTemporaryDirectory() })
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' })).toThrow(GitHubAuthError)
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toThrow(GitHubAuthError)
     const content = readFileSync(path.join(config, '.env'), 'utf8')
     expect(content).toContain('PECOT_GITHUB_COM_TOKEN=')
     expect(content).toContain('# 必要なスコープ: repo')
@@ -371,8 +369,8 @@ describe('トークンの取得', () => {
     const bin = makeTemporaryDirectory()
     installFakeGh(bin, { token: '' })
     prependToPath(bin)
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' })).toThrow(GitHubAuthError)
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' })).toThrow('authentication error: could not get a GitHub API token')
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toThrow(GitHubAuthError)
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toThrow('authentication error: could not get a GitHub API token')
     expect(existsSync(path.join(config, '.env'))).toBe(true)
   })
 
@@ -381,7 +379,7 @@ describe('トークンの取得', () => {
     const bin = makeTemporaryDirectory()
     installFakeExecutable(bin, 'gh', 'printf \'  \\n\'\n')
     prependToPath(bin)
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com' })).toThrow(GitHubAuthError)
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toThrow(GitHubAuthError)
   })
 
   it('gh が時間切れになったら、gh が失敗したときと同じ誘導つきの GitHubAuthError', () => {
@@ -391,7 +389,7 @@ describe('トークンの取得', () => {
     installFakeExecutable(bin, 'gh', 'exec sleep 5\n')
     prependToPath(bin)
     const started = Date.now()
-    expect(() => new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com', ghTimeoutMilliseconds: 100 })).toThrow(GitHubAuthError)
+    expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', ghTimeoutMilliseconds: 100 })).toThrow(GitHubAuthError)
     expect(Date.now() - started).toBeLessThan(3000)
   })
 })
@@ -401,7 +399,7 @@ function responseOf(statusCode: number, text: string): RestResponse {
 }
 
 describe('handleHttpError', () => {
-  const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 'test_token' })
+  const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'test_token' })
 
   function failure(target: RestResponse): unknown {
     try {
@@ -460,7 +458,7 @@ describe('handleHttpError', () => {
 describe('REST の要求', () => {
   it('POST は JSON の本文を送り、Bearer で認証する（github.com）', async () => {
     const server = await serve([rule({ method: 'POST', path: '/repos/owner/repo/issues' }, { status: 201, body: { number: 124 } })])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com', token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', token: 't' })
     const response = await client.restRequest('POST', '/repos/owner/repo/issues', { json: { title: 'New Issue', body: 'Body', labels: ['bug'] } })
     expect(response.statusCode).toBe(201)
     expect(response.isSuccess).toBe(true)
@@ -473,7 +471,7 @@ describe('REST の要求', () => {
 
   it('GHE は token で認証し、base の /api/v3 を保ったまま path を連結する', async () => {
     const server = await serve([rule({ method: 'GET', path: '/api/v3/user' }, { status: 200, body: { login: 'u' } })], '/api/v3/')
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com', token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 't' })
     expect(client.apiUrl).toBe(`${server.url}/api/v3`)
     expect(await client.getAuthenticatedUser()).toEqual({ login: 'u' })
     expect(server.requests()).toEqual([{ type: 'rest', method: 'GET', path: '/api/v3/user', query: {}, auth: 'token' }])
@@ -481,7 +479,7 @@ describe('REST の要求', () => {
 
   it('先頭の / が無い path も同じ URL になる', async () => {
     const server = await serve([rule({ path: '/api/v3/user' }, { status: 200, body: {} }, 2)], '/api/v3')
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await client.restRequest('GET', 'user')
     await client.restRequest('GET', '/user')
     expect(server.problems()).toEqual([])
@@ -491,7 +489,7 @@ describe('REST の要求', () => {
   // 期待値は httpx の build_request が作る URL
   it('params を httpx と同じ表記のクエリにする（真偽値は小文字、undefined と空白は httpx の表記、予約文字は %XX）', async () => {
     const server = await serve([rule({ method: 'GET', path: '/x' }, { status: 200, body: {} })])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await client.restRequest('GET', '/x', { params: { 'a': true, 'b': false, 'c': undefined, 'd 1': 'é~*!x y&=', 'e': 1.5, 'f': 100 } })
     expect(server.requests()).toEqual([{
       type: 'rest',
@@ -504,7 +502,7 @@ describe('REST の要求', () => {
 
   it('params を指定すると、URL に書かれたクエリは置き換わる（httpx と同じ）。空の params は URL のクエリを消す', async () => {
     const server = await serve([rule({ path: '/x' }, { status: 200, body: {} }, 2)])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await client.restRequest('GET', '/x?y=1', { params: { z: 2 } })
     await client.restRequest('GET', '/x?y=1', { params: {} })
     expect(server.requests().map(request => request.type === 'rest' ? request.query : undefined)).toEqual([{ z: '2' }, {}])
@@ -512,7 +510,7 @@ describe('REST の要求', () => {
 
   it('絶対 URL は base を付けずにそのまま使う', async () => {
     const server = await serve([rule({ path: '/other/page', query: { after: 'abc' } }, { status: 200, body: ['page2'] })], '/api/v3')
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const response = await client.restRequest('GET', `${server.url}/other/page?after=abc`)
     expect(response.json()).toEqual(['page2'])
     expect(server.requests()).toHaveLength(1)
@@ -524,7 +522,7 @@ describe('REST の要求', () => {
     ['同じホストの別のスキーム', 'https://127.0.0.1/x'],
   ])('絶対 URL が API と同じ origin でなければ（%s）、Authorization を送らず GitHubAPIError', async (_name, target) => {
     const server = await serve([])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await expect(client.restRequest('GET', target)).rejects.toThrow(
       new GitHubAPIError(`refusing to follow a URL on a different host than the API: ${target}`),
     )
@@ -541,7 +539,7 @@ describe('REST の要求', () => {
       }),
       rule({ path: '/repos/o/r/dependabot/alerts', query: { after: 'abc' } }, { status: 200, body: [{ number: 2 }] }),
     ])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const first = await client.restRequest('GET', '/repos/o/r/dependabot/alerts', { params: { state: 'open', per_page: 100 } })
     const next = first.links.get('next')
     expect(next).toEqual({ url: `${server.url}/repos/o/r/dependabot/alerts?after=abc`, rel: 'next' })
@@ -579,7 +577,7 @@ describe('REST の要求', () => {
 
   it('リダイレクトは辿らず、そのまま返す。失敗として扱う', async () => {
     const server = await serve([rule({ path: '/old' }, { status: 301, body: {}, headers: { Location: '/new' } })])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const response = await client.restRequest('GET', '/old')
     expect(response.statusCode).toBe(301)
     expect(response.isSuccess).toBe(false)
@@ -599,7 +597,7 @@ describe('REST の要求', () => {
     // 401 でも gh には切り替えない
     useFakeGh()
     useProject()
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const response = await client.restRequest('GET', '/repos/test/test')
     expect(response.text).toBe('body text')
     let thrown: unknown
@@ -615,13 +613,13 @@ describe('REST の要求', () => {
 
   it('JSON でない本文を json() で読むと InvalidValueError', async () => {
     await serve([rule({ path: '/x' }, { status: 200, text: 'not json' })])
-    const response = await new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).restRequest('GET', '/x')
+    const response = await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).restRequest('GET', '/x')
     expect(() => response.json()).toThrow(InvalidValueError)
   })
 
   it('認証ユーザーの情報を取る', async () => {
     const server = await serve([rule({ method: 'GET', path: '/user' }, { status: 200, body: { login: 'test-user', id: 12_345, name: 'Test User', email: 'test@example.com' } })])
-    const user = await new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).getAuthenticatedUser()
+    const user = await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).getAuthenticatedUser()
     expect(user).toEqual({ login: 'test-user', id: 12_345, name: 'Test User', email: 'test@example.com' })
     expect(server.requests()).toEqual([{ type: 'rest', method: 'GET', path: '/user', query: {}, auth: 'Bearer' }])
   })
@@ -630,7 +628,7 @@ describe('REST の要求', () => {
     useProject()
     useFakeGh()
     await serve([rule({ path: '/user' }, { status: 401, text: 'Unauthorized' })])
-    await expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).getAuthenticatedUser()).rejects.toMatchObject({
+    await expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).getAuthenticatedUser()).rejects.toMatchObject({
       name: 'GitHubAuthError',
       statusCode: 401,
       responseBody: 'Unauthorized',
@@ -642,7 +640,7 @@ describe('REST の要求', () => {
       response.writeHead(200, { 'content-type': 'application/json' }).end('{}')
     })
     setEnvironment({ PECOT_GITHUB_API_URL: raw.url })
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'github.com', token: 'tok' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', token: 'tok' })
     await client.restRequest('GET', '/user')
     await client.restRequest('PUT', '/x', { json: { a: ['日本語', 1, true], b: JSON_NULL } })
     const [get, put] = raw.requests
@@ -659,7 +657,7 @@ describe('REST の要求', () => {
       response.writeHead(200).end('{}')
     })
     setEnvironment({ PECOT_GITHUB_API_URL: raw.url })
-    await new GitHubClientBase({ diagnostics: ignored.diagnostics, host, token: 'tok' }).restRequest('GET', '/user')
+    await new GitHubClientBase({ diagnostics: ignoredDiagnostics, host, token: 'tok' }).restRequest('GET', '/user')
     expect(raw.requests[0]?.headers.authorization).toBe('token tok')
   })
 
@@ -667,7 +665,7 @@ describe('REST の要求', () => {
     const closed = await startFakeGithub([])
     await closed.close()
     setEnvironment({ PECOT_GITHUB_API_URL: closed.url })
-    const request = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).restRequest('GET', '/user')
+    const request = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).restRequest('GET', '/user')
     await expect(request).rejects.toBeInstanceOf(TransportFailure)
     await expect(request).rejects.toThrow('[Errno 111] Connection refused')
   })
@@ -677,7 +675,7 @@ describe('REST の要求', () => {
       // 応答しない
     })
     setEnvironment({ PECOT_GITHUB_API_URL: raw.url })
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't', timeoutMilliseconds: 50 })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't', timeoutMilliseconds: 50 })
     await expect(client.restRequest('GET', '/user')).rejects.toThrow(new TransportFailure('timed out'))
   })
 })
@@ -697,6 +695,26 @@ describe('401 のときの gh auth token への切り替え', () => {
     expect(recorded.lines).toEqual([`warning: ${FALLBACK_WARNING}`])
     expect(readFakeCalls(bin, 'gh')).toEqual([['auth', 'token']])
     expect(server.requests()).toHaveLength(2)
+  })
+
+  it('受け口に createOutput を渡すと、stderr に変更前と同じ 2 行の警告が出る', async () => {
+    useProject()
+    useFakeGh('gh_new_token')
+    const stderr: string[] = []
+    const output = createOutput(false, {
+      stdout: () => {
+        // この確認では stdout を使わない
+      },
+      stderr: (text) => {
+        stderr.push(text)
+      },
+    })
+    await serve([
+      rule({ path: '/user' }, { status: 401, text: 'Unauthorized' }),
+      rule({ path: '/user' }, { status: 200, body: { login: 'u' } }),
+    ])
+    await new GitHubClientBase({ diagnostics: output, token: 'env_old_token' }).getAuthenticatedUser()
+    expect(stderr.join('')).toBe('warning: the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n  update or remove the token in .env\n')
   })
 
   it('切り替えは 1 回だけ。再試行も 401 なら、そのまま 401 を返し、以後 gh は呼ばない', async () => {
@@ -767,7 +785,7 @@ describe('401 のときの gh auth token への切り替え', () => {
       rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' }),
       rule({ operation: 'GetUserNodeId' }, retry),
     ])
-    const failure = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
+    const failure = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
     await expect(failure).rejects.toBeInstanceOf(errorClass)
     await expect(failure).rejects.toThrow(message.replace('{{GRAPHQL}}', () => `${server.url}/graphql`))
   })
@@ -788,7 +806,7 @@ describe('401 のときの gh auth token への切り替え', () => {
     useProject()
     useFakeGh()
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' })])
-    await expect(new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toThrow(
+    await expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toThrow(
       new GitHubAuthError(`GraphQL authentication error: ${statusSentence('Client error', 401, 'Unauthorized').replace('{{GRAPHQL}}', () => `${server.url}/graphql`)}`),
     )
   })
@@ -863,14 +881,14 @@ describe('executeGraphql', () => {
 
   it.each(GRAPHQL_SUCCESSES)('$name', async ({ respond, data }) => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     expect(await client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).toEqual(data)
     expect(server.problems()).toEqual([])
   })
 
   it.each(GRAPHQL_FAILURES)('$name', async ({ respond, expected }) => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const execution = client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
     await expect(execution).rejects.toBeInstanceOf(expected.error)
     await expect(execution).rejects.toMatchObject({ message: expected.message.replace('{{GRAPHQL}}', () => `${server.url}/graphql`) })
@@ -879,13 +897,13 @@ describe('executeGraphql', () => {
 
   it('変数を省くと空のオブジェクトを送る', async () => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: { id: 'U' } } } })])
-    await new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID)
+    await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID)
     expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetUserNodeId', variables: {}, auth: 'Bearer' }])
   })
 
   it('null の変数をそのまま送る', async () => {
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: JSON_NULL } } })])
-    const result = await new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: JSON_NULL })
+    const result = await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: JSON_NULL })
     expect(result).toEqual({ user: JSON_NULL })
     expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetUserNodeId', variables: { login: JSON_NULL }, auth: 'Bearer' }])
   })
@@ -895,7 +913,7 @@ describe('executeGraphql', () => {
       response.writeHead(200, { 'content-type': 'application/json' }).end('{"data":{}}')
     })
     setEnvironment({ PECOT_GITHUB_API_URL: `${raw.url}/api/v3/` })
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, host: 'ghes.example.com', token: 'tok' })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 'tok' })
     await client.executeGraphql('query { viewer { login } }', { a: 1 })
     expect(raw.requests).toHaveLength(1)
     const [request] = raw.requests
@@ -909,7 +927,7 @@ describe('executeGraphql', () => {
     const closed = await startFakeGithub([])
     await closed.close()
     setEnvironment({ PECOT_GITHUB_API_URL: closed.url })
-    const execution = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
+    const execution = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
     await expect(execution).rejects.toBeInstanceOf(GitHubAPIError)
     await expect(execution).rejects.toMatchObject({ message: 'GraphQL query error: [Errno 111] Connection refused' })
   })
@@ -919,7 +937,7 @@ describe('executeGraphql', () => {
       // 応答しない
     })
     setEnvironment({ PECOT_GITHUB_API_URL: raw.url })
-    const client = new GitHubClientBase({ diagnostics: ignored.diagnostics, token: 't', timeoutMilliseconds: 50 })
+    const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't', timeoutMilliseconds: 50 })
     await expect(client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toMatchObject({ message: 'GraphQL query error: timed out' })
   })
 })

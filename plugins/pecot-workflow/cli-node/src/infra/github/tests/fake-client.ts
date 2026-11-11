@@ -13,7 +13,7 @@ import { setEnvironment, useIsolatedEnvironment } from '../../../tests/_helpers/
 import { installFakeGh, prependToPath } from '../../../tests/_helpers/fake-executables.js'
 import { makeTemporaryDirectory } from '../../../tests/_helpers/temporary.js'
 import { GitHubClient } from '../index.js'
-import { recordDiagnostics } from '../../tests/recording-diagnostics.js'
+import { ignoredDiagnostics } from '../../tests/recording-diagnostics.js'
 
 const servers: FakeGithub[] = []
 
@@ -48,7 +48,7 @@ export async function startClient(rules: readonly ResponseRule[], host = 'github
   installFakeGh(bin)
   prependToPath(bin)
   setEnvironment({ PECOT_GITHUB_API_URL: server.url })
-  return { client: new GitHubClient({ host, token: 'test_token', diagnostics: recordDiagnostics().diagnostics }), server }
+  return { client: new GitHubClient({ host, token: 'test_token', diagnostics: ignoredDiagnostics }), server }
 }
 
 /**

@@ -25,16 +25,13 @@ import {
   WorktreeConfigError,
 } from '../worktree-links.js'
 import type { WorktreeConfig } from '../worktree-links.js'
-import { recordDiagnostics } from './recording-diagnostics.js'
+import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
 import { worktreeConfigOutputs } from '../../tests/_helpers/python-output.js'
 
 // 期待値は、Python の CLI の実出力（tests/python-output/worktree-config.json。record.py が Python で記録する）
 const OUTPUTS = worktreeConfigOutputs()
 
 useIsolatedEnvironment()
-
-// 出力を確かめないケースが渡す受け口
-const ignored = recordDiagnostics()
 
 function linkOf(linkPath: string, targetRepository: string, targetPath: string): WorktreeConfig['links'][number] {
   return { path: linkPath, target_repo: targetRepository, target_path: targetPath, description: undefined }
@@ -203,7 +200,7 @@ const CLAUDE_LOCAL = linkOf('CLAUDE.local.md', 'aist-roadmap', 'CLAUDE.local.md'
 describe('createSymlinks', () => {
   it('ルート直下のパスは 2 段の相対リンク', () => {
     const root = setupProject()
-    const results = createSymlinks(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results.map(result => result.action)).toEqual(['created'])
     const symlink = path.join(root, 'wt1', 'myrepo', 'CLAUDE.local.md')
     expect(readlinkSync(symlink)).toBe('../../base/aist-roadmap/CLAUDE.local.md')
@@ -213,7 +210,7 @@ describe('createSymlinks', () => {
 
   it('ネストしたパスは 3 段の相対リンク。中間ディレクトリも作る', () => {
     const root = setupProject()
-    const results = createSymlinks(configOf([linkOf('.claude/settings.local.json', 'aist-roadmap', '.claude/settings.local.json')]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([linkOf('.claude/settings.local.json', 'aist-roadmap', '.claude/settings.local.json')]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results[0]?.action).toBe('created')
     const symlink = path.join(root, 'wt1', 'myrepo', '.claude', 'settings.local.json')
     expect(readlinkSync(symlink)).toBe('../../../base/aist-roadmap/.claude/settings.local.json')
@@ -243,7 +240,7 @@ describe('createSymlinks', () => {
     const root = setupProject()
     const existing = path.join(root, 'wt1', 'myrepo', 'CLAUDE.local.md')
     symlinkSync('/tmp/old-target', existing)
-    const results = createSymlinks(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results[0]?.action).toBe('created')
     expect(readlinkSync(existing)).toBe('../../base/aist-roadmap/CLAUDE.local.md')
   })
@@ -253,7 +250,7 @@ describe('createSymlinks', () => {
     const repository = path.join(root, 'wt1', 'myrepo')
     writeTree(repository, { 'CLAUDE.local.md': 'real', 'd/x': '1' })
     mkdirSync(path.join(root, 'base', 'aist-roadmap', 'd'))
-    const results = createSymlinks(configOf([CLAUDE_LOCAL, linkOf('d', 'aist-roadmap', 'd')]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([CLAUDE_LOCAL, linkOf('d', 'aist-roadmap', 'd')]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results.map(result => result.action)).toEqual(['created', 'created'])
     expect(lstatSync(path.join(repository, 'CLAUDE.local.md')).isSymbolicLink()).toBe(true)
     expect(lstatSync(path.join(repository, 'd')).isSymbolicLink()).toBe(true)
@@ -303,7 +300,7 @@ describe('git 管理対象のガード', () => {
   it('untracked のリアルファイルには symlink を作る', () => {
     const { root, repository } = setupTracked({ 'keep.md': 'x' })
     writeFileSync(path.join(repository, 'untracked.md'), 'local-only')
-    const results = createSymlinks(configOf([linkOf('untracked.md', 'aist-roadmap', 'untracked.md')]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([linkOf('untracked.md', 'aist-roadmap', 'untracked.md')]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results[0]?.action).toBe('created')
     expect(lstatSync(path.join(repository, 'untracked.md')).isSymbolicLink()).toBe(true)
   })
@@ -313,7 +310,7 @@ describe('git 管理対象のガード', () => {
     writeTree(path.join(root, 'base', 'aist-roadmap'), { 'README.md': 'LINK-TARGET' })
     const repository = path.join(root, 'wt1', 'myrepo')
     writeTree(repository, { 'README.md': 'local-only' })
-    const results = createSymlinks(configOf([linkOf('README.md', 'aist-roadmap', 'README.md')]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([linkOf('README.md', 'aist-roadmap', 'README.md')]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results[0]?.action).toBe('created')
     expect(lstatSync(path.join(repository, 'README.md')).isSymbolicLink()).toBe(true)
   })
@@ -321,7 +318,7 @@ describe('git 管理対象のガード', () => {
   it('git が無ければ追跡の確認をせず、symlink を作る', () => {
     const { root, repository } = setupTracked({ 'README.md': 'TRACKED' })
     setEnvironment({ PATH: makeTemporaryDirectory('pecot-nogit-') })
-    const results = createSymlinks(configOf([linkOf('README.md', 'aist-roadmap', 'README.md')]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinks(configOf([linkOf('README.md', 'aist-roadmap', 'README.md')]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results[0]?.action).toBe('created')
     expect(lstatSync(path.join(repository, 'README.md')).isSymbolicLink()).toBe(true)
   })
@@ -342,19 +339,19 @@ describe('createSymlinksSafe', () => {
         throw new TypeError('boom')
       },
     }
-    expect(() => createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics, options)).toThrow('boom')
+    expect(() => createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics, options)).toThrow('boom')
   })
 
   it('force ならリアルファイルを上書きする', () => {
     const { root, existing } = setupRealFile()
-    const results = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics, { force: true })
+    const results = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics, { force: true })
     expect(results[0]?.action).toBe('created')
     expect(lstatSync(existing).isSymbolicLink()).toBe(true)
   })
 
   it('force なし・confirm なしなら skipped で、リアルファイルを残す', () => {
     const { root, existing } = setupRealFile()
-    const results = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    const results = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(results[0]).toMatchObject({ action: 'skipped', message: `a real file exists: ${existing}` })
     expect(lstatSync(existing).isSymbolicLink()).toBe(false)
   })
@@ -362,14 +359,14 @@ describe('createSymlinksSafe', () => {
   it('confirm が true を返せば上書きし、false なら残す。confirm にはパスが渡る', () => {
     const { root, existing } = setupRealFile()
     const asked: (readonly string[])[] = []
-    const denied = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics, {
+    const denied = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics, {
       confirm: (symlinkPath, targetPath) => {
         asked.push([symlinkPath, targetPath])
         return false
       },
     })
     expect(denied[0]?.action).toBe('skipped')
-    const approved = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics, { confirm: () => true })
+    const approved = createSymlinksSafe(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics, { confirm: () => true })
     expect(approved[0]?.action).toBe('created')
     expect(asked).toEqual([[existing, path.join(root, 'base', 'aist-roadmap', 'CLAUDE.local.md')]])
   })
@@ -428,7 +425,7 @@ describe('.pecot/.gitignore の生成スクリプトの探索', () => {
     writeFileSync(script, `#!/bin/bash\necho "$CLAUDE_PROJECT_DIR" > "${marker}"\n`)
     setEnvironment({ CLAUDE_PLUGIN_ROOT: path.join(temporary, 'plugin') })
     const { root, config, worktree } = setupPecotLinks()
-    createSymlinks(config, root, 'wt1', 'myrepo', ignored.diagnostics)
+    createSymlinks(config, root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(readFileSync(marker, 'utf8').trim()).toBe(worktree)
   })
 
@@ -449,14 +446,14 @@ describe('.pecot/.gitignore の生成スクリプトの探索', () => {
   it('bash が見つからなければ例外', () => {
     const { root, config } = setupPecotLinks()
     setEnvironment({ PATH: makeTemporaryDirectory('pecot-nobash-') })
-    expect(() => createSymlinks(config, root, 'wt1', 'myrepo', ignored.diagnostics)).toThrow(OsError)
+    expect(() => createSymlinks(config, root, 'wt1', 'myrepo', ignoredDiagnostics)).toThrow(OsError)
   })
 })
 
 describe('.pecot/ 配下の link を張ると WT に .pecot/.gitignore が実ファイルでき、未追跡が出ない（#1219）', () => {
   it('createSymlinks', () => {
     const { root, config, worktree } = setupPecotLinks()
-    createSymlinks(config, root, 'wt1', 'myrepo', ignored.diagnostics)
+    createSymlinks(config, root, 'wt1', 'myrepo', ignoredDiagnostics)
     const gitignore = path.join(worktree, '.pecot', '.gitignore')
     expect(lstatSync(gitignore).isFile()).toBe(true)
     expect(lstatSync(gitignore).isSymbolicLink()).toBe(false)
@@ -465,14 +462,14 @@ describe('.pecot/ 配下の link を張ると WT に .pecot/.gitignore が実フ
 
   it('createSymlinksSafe', () => {
     const { root, config, worktree } = setupPecotLinks()
-    createSymlinksSafe(config, root, 'wt1', 'myrepo', ignored.diagnostics)
+    createSymlinksSafe(config, root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(lstatSync(path.join(worktree, '.pecot', '.gitignore')).isFile()).toBe(true)
     expect(gitForTest(worktree, ['status', '--porcelain'])).toBe('')
   })
 
   it('.pecot/ 配下の link が無ければ .pecot を作らない', () => {
     const root = setupProject()
-    createSymlinks(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignored.diagnostics)
+    createSymlinks(configOf([CLAUDE_LOCAL]), root, 'wt1', 'myrepo', ignoredDiagnostics)
     expect(() => lstatSync(path.join(root, 'wt1', 'myrepo', '.pecot'))).toThrow(/ENOENT/u)
   })
 })
@@ -487,14 +484,14 @@ function writeIgnore(mainWorktree: string, content: string): string {
 describe('loadCopyExcludeSpec', () => {
   it('.worktreeignore が無ければ WorktreeConfigError', () => {
     const main = makeTemporaryDirectory()
-    expect(() => loadCopyExcludeSpec(main, ignored.diagnostics)).toThrow(WorktreeConfigError)
-    expect(() => loadCopyExcludeSpec(main, ignored.diagnostics)).toThrow(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
+    expect(() => loadCopyExcludeSpec(main, ignoredDiagnostics)).toThrow(WorktreeConfigError)
+    expect(() => loadCopyExcludeSpec(main, ignoredDiagnostics)).toThrow(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
   })
 
   it('基本の gitignore パターンが当たる', () => {
     const main = makeTemporaryDirectory()
     writeIgnore(main, '.git/\n__pycache__/\n*.pyc\n')
-    const spec = loadCopyExcludeSpec(main, ignored.diagnostics)
+    const spec = loadCopyExcludeSpec(main, ignoredDiagnostics)
     expect(spec.matchFile('.git/config')).toBe(true)
     expect(spec.matchFile('__pycache__/foo.pyc')).toBe(true)
     expect(spec.matchFile('mod.pyc')).toBe(true)
@@ -504,7 +501,7 @@ describe('loadCopyExcludeSpec', () => {
   it('空行と # コメントは読み飛ばす', () => {
     const main = makeTemporaryDirectory()
     writeIgnore(main, '# header comment\n\n.git/\n# another comment\n\n*.pyc\n')
-    const spec = loadCopyExcludeSpec(main, ignored.diagnostics)
+    const spec = loadCopyExcludeSpec(main, ignoredDiagnostics)
     expect(spec.matchFile('.git/HEAD')).toBe(true)
     expect(spec.matchFile('foo.pyc')).toBe(true)
     expect(spec.matchFile('foo.md')).toBe(false)
@@ -513,7 +510,7 @@ describe('loadCopyExcludeSpec', () => {
   it('否定パターンが機能する', () => {
     const main = makeTemporaryDirectory()
     writeIgnore(main, '.nx/\n!.nx/version-plans/\n')
-    const spec = loadCopyExcludeSpec(main, ignored.diagnostics)
+    const spec = loadCopyExcludeSpec(main, ignoredDiagnostics)
     expect(spec.matchFile('.nx/workspace-data/cache.db')).toBe(true)
     expect(spec.matchFile('.nx/version-plans/my-plan.md')).toBe(false)
   })
@@ -561,7 +558,7 @@ describe('loadCopyExcludeSpec', () => {
   it('Python の splitlines と同じ文字でも行を分ける（\\v・\\f・U+2028）', () => {
     const main = makeTemporaryDirectory()
     writeIgnore(main, 'a\vb\fc\u{2028}d')
-    const spec = loadCopyExcludeSpec(main, ignored.diagnostics)
+    const spec = loadCopyExcludeSpec(main, ignoredDiagnostics)
     expect(['a', 'b', 'c', 'd', 'e'].map(name => spec.matchFile(name))).toEqual([true, true, true, true, false])
   })
 })

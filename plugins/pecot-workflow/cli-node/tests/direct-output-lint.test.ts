@@ -7,6 +7,12 @@ import { describe, expect, it } from 'vitest'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const RESTRICTED_PATH = path.join(ROOT, 'src', 'cli.ts')
+// 止める側のパスは、src/cli.ts のほかに infra と domain の実在のファイルでも確かめる
+const RESTRICTED_PATHS: readonly (readonly [string, string])[] = [
+  ['src/cli.ts', RESTRICTED_PATH],
+  ['src/infra/worktree.ts', path.join(ROOT, 'src', 'infra', 'worktree.ts')],
+  ['src/domain/format.ts', path.join(ROOT, 'src', 'domain', 'format.ts')],
+]
 const OUTPUT_PATH = path.join(ROOT, 'src', 'commands', 'output.ts')
 
 async function ruleIds(code: string, filePath: string): Promise<readonly string[]> {
@@ -19,13 +25,15 @@ async function ruleIds(code: string, filePath: string): Promise<readonly string[
 }
 
 describe('直接の出力を止める lint', () => {
-  it.each([
-    ['console.log("x")', 'no-console'],
-    ['process.stderr.write("x")', 'no-restricted-syntax'],
-    ['process.stdout.write("x")', 'no-restricted-syntax'],
-    ['declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")', 'no-restricted-syntax'],
-  ])('%s は src/cli.ts のパスで止まる', async (code, expected) => {
-    expect(await ruleIds(`${code}\n`, RESTRICTED_PATH)).toContain(expected)
+  describe.each(RESTRICTED_PATHS)('%s のパス', (_name, filePath) => {
+    it.each([
+      ['console.log("x")', 'no-console'],
+      ['process.stderr.write("x")', 'no-restricted-syntax'],
+      ['process.stdout.write("x")', 'no-restricted-syntax'],
+      ['declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")', 'no-restricted-syntax'],
+    ])('%s は止まる', async (code, expected) => {
+      expect(await ruleIds(`${code}\n`, filePath)).toContain(expected)
+    })
   })
 
   it.each([

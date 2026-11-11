@@ -23,3 +23,15 @@ export function recordDiagnostics(): RecordedDiagnostics {
     },
   }
 }
+
+/**
+出力を確かめないケースが渡す受け口。何も記録しない
+*/
+export const ignoredDiagnostics: Diagnostics = {
+  warning: () => {
+    // 何も記録しない
+  },
+  error: () => {
+    // 何も記録しない
+  },
+}

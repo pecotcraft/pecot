@@ -112,6 +112,9 @@ class OutputLogHandler(logging.Handler):
 
     core cannot import Output, so it logs and this handler prints the line.
     Records below WARNING are not printed.
+
+    An exception raised inside emit propagates to the caller. ``BrokenPipeError`` is
+    handled by ``__main__.py``. The traceback in ``exc_info`` is not printed.
     """
 
     def __init__(self) -> None:
@@ -122,7 +125,7 @@ class OutputLogHandler(logging.Handler):
         """Print the record as a warning line, or an error line from ERROR up."""
         if record.levelno >= logging.ERROR:
             self._out.error(record.getMessage())
-        elif record.levelno >= logging.WARNING:
+        else:
             self._out.warning(record.getMessage())
 
 
