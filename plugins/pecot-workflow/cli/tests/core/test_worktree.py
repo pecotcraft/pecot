@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,8 +16,10 @@ import pathspec
 import pytest
 from ub_test_reports.pytest_plugin import add_test_properties
 
+from cli.core.repo_resolver import RepoRef
 from cli.core.worktree import (
     SetupResult,
+    WorktreeCreateResult,
     _run_effective_setup,
     _run_setup_command,
     _should_exclude,
@@ -219,11 +220,6 @@ class TestGetNextSetName:
 
 
 class TestCreateWorktree:
-    @pytest.fixture(autouse=True)
-    def _primary_remote_is_origin(self) -> Iterator[None]:
-        with patch("cli.core.worktree.primary_remote_name", return_value="origin"):
-            yield
-
     def _setup_fake_project(self, tmp_path: Path) -> tuple[Path, Path]:
         from cli.tests.conftest import make_worktree_required_configs
 
@@ -248,8 +244,8 @@ class TestCreateWorktree:
         cfg.get_develop_branch.return_value = "develop"
         return cfg
 
-    def _make_repo_info(self) -> MagicMock:
-        return MagicMock(owner="myowner", repo="myrepo")
+    def _remote_repos(self) -> list[tuple[str, MagicMock]]:
+        return [("origin", MagicMock(owner="myowner", repo="myrepo"))]
 
     def test_path_uses_new_placement(self, tmp_path: Path) -> None:
         """dry_run で path が <root>/<name>/<repo_dir_name> になる"""
@@ -258,7 +254,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
         ):
             result = create_worktree(
@@ -282,7 +278,7 @@ class TestCreateWorktree:
 
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
         ):
             result = create_worktree(
@@ -302,7 +298,7 @@ class TestCreateWorktree:
 
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
         ):
             result = create_worktree(
@@ -327,7 +323,7 @@ class TestCreateWorktree:
 
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -357,7 +353,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -401,7 +397,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -455,7 +451,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -493,7 +489,7 @@ class TestCreateWorktree:
 
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -532,7 +528,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -580,7 +576,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
             patch("cli.core.worktree_links.load_config", return_value=fake_config),
@@ -629,7 +625,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
             patch("cli.core.worktree_links.load_config", return_value=fake_config),
@@ -670,7 +666,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
             patch("cli.core.worktree_links.load_config", return_value=fake_config),
@@ -712,7 +708,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
             patch("cli.core.worktree_links.load_config", return_value=fake_config),
@@ -755,7 +751,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
             patch("cli.core.worktree_links.load_config", return_value=fake_config),
@@ -788,7 +784,7 @@ class TestCreateWorktree:
 
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=cfg),
         ):
             with pytest.raises(RuntimeError) as exc_info:
@@ -854,7 +850,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=untracked),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("cli.core.worktree_links.load_config", return_value=fake_config),
             patch("subprocess.run", side_effect=fake_run),
@@ -898,7 +894,7 @@ class TestCreateWorktree:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree._get_repo_info", return_value=self._make_repo_info()),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
             patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
             patch("subprocess.run", side_effect=fake_run),
         ):
@@ -1468,14 +1464,11 @@ class TestCreateWorktreeAutoPrune:
         )
         cfg.get_develop_branch.return_value = "develop"
 
-        def fake_primary_remote_repo(cwd: Path | None = None) -> tuple[str, str, str]:
-            return ("github.com", "test-owner", "myrepo")
-
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                side_effect=fake_primary_remote_repo,
+                "cli.core.worktree._read_remote_repos",
+                return_value=[("origin", RepoRef(owner="test-owner", repo="myrepo"))],
             ),
         ):
             # 既存 wt1 ブランチ（upstream: origin/develop）は再利用
@@ -1521,12 +1514,11 @@ class TestCreateWorktreeAutoPrune:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=repo),
             patch(
-                "cli.core.worktree._get_repo_info",
-                return_value=MagicMock(owner="test-owner", repo="myrepo"),
+                "cli.core.worktree._read_remote_repos",
+                return_value=[("origin", MagicMock(owner="test-owner", repo="myrepo"))],
             ),
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch("cli.core.worktree.get_untracked_files", return_value=[]),
-            patch("cli.core.worktree.primary_remote_name", return_value="origin"),
             patch("subprocess.run", side_effect=fake_run),
         ):
             create_worktree(cwd=repo, base_branch="develop", copy=False, link=False)
@@ -1548,9 +1540,18 @@ class TestCreateWorktreeAutoPrune:
     reason="git required",
 )
 class TestCreateWorktreePrimaryRemote:
-    """origin の無いリポで最初の remote を使う（実 git で remote の選択まで通す）"""
+    """origin の無いリポで使う remote を決める（実 git で remote の選択まで通す）"""
 
-    def _make_repo(self, tmp_path: Path, remote_names: list[str]) -> tuple[Path, Path]:
+    def _make_repo(
+        self,
+        tmp_path: Path,
+        remote_names: list[str],
+        repo_names: dict[str, str] | None = None,
+    ) -> tuple[Path, Path]:
+        """remote の URL は GitHub の形に置く（push のあとで置くので remote-tracking の ref は残る）
+
+        repo_names: remote 名 -> 指すリポ名（省略した remote は myrepo）
+        """
         from cli.tests.conftest import make_worktree_required_configs
 
         root = tmp_path / "workspaces"
@@ -1569,25 +1570,30 @@ class TestCreateWorktreePrimaryRemote:
             _git(remote, "init", "--bare", "-q")
             _git(repo, "remote", "add", remote_name, str(remote))
             _git(repo, "push", remote_name, "main", "develop", "-q")
+            repo_name = (repo_names or {}).get(remote_name, "myrepo")
+            _git(
+                repo,
+                "remote",
+                "set-url",
+                remote_name,
+                f"https://github.com/test-owner/{repo_name}.git",
+            )
         make_worktree_required_configs(repo, ignore_content=".git/\n")
         return root, repo
 
     def _config(self) -> MagicMock:
+        """test-owner/myrepo だけが登録済み"""
         cfg = MagicMock()
         repo_mock = MagicMock(owner="test-owner", name="myrepo")
         cfg.repositories = [repo_mock]
-        cfg.find_repository.return_value = repo_mock
+        cfg.find_repository.side_effect = lambda owner, name: (
+            repo_mock if owner == "test-owner" and name == "myrepo" else None
+        )
         cfg.get_develop_branch.return_value = "develop"
         return cfg
 
-    def _create(self, repo: Path, **kwargs: bool) -> object:
-        with (
-            patch("cli.core.worktree.load_active_config", return_value=self._config()),
-            patch(
-                "cli.core.worktree.primary_remote_repo",
-                return_value=("github.com", "test-owner", "myrepo"),
-            ),
-        ):
+    def _create(self, repo: Path, **kwargs: bool) -> WorktreeCreateResult:
+        with patch("cli.core.worktree.load_active_config", return_value=self._config()):
             return create_worktree(cwd=repo, copy=False, link=False, **kwargs)
 
     def _upstream(self, repo: Path, branch: str) -> str:
@@ -1639,6 +1645,37 @@ class TestCreateWorktreePrimaryRemote:
             create_worktree(cwd=repo, copy=False, link=False)
 
         assert str(exc.value) == (
-            "cannot get the repository information: check that a git remote is set"
+            "cannot get the repository information: "
+            "check that a git remote is set to a GitHub repository URL"
         )
+        assert not (root / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-02"])
+    def test_existing_branch_matching_first_remote_upstream_is_reused(self, tmp_path: Path) -> None:
+        _root, repo = self._make_repo(tmp_path, ["upstream"])
+        _git(repo, "branch", "--track", "wt1", "upstream/develop")
+
+        result = self._create(repo, allow_existing_branch=True)
+
+        assert result.path.exists()
+        assert self._upstream(repo, "wt1") == "upstream/develop"
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-52"])
+    def test_registered_remote_is_used_without_origin(self, tmp_path: Path) -> None:
+        _root, repo = self._make_repo(tmp_path, ["fork", "upstream"], {"fork": "other"})
+
+        self._create(repo)
+
+        assert self._upstream(repo, "wt1") == "upstream/develop"
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-52"])
+    def test_first_remote_is_reported_when_none_is_registered(self, tmp_path: Path) -> None:
+        root, repo = self._make_repo(
+            tmp_path, ["fork", "upstream"], {"fork": "other", "upstream": "another"}
+        )
+
+        with pytest.raises(RuntimeError) as exc:
+            self._create(repo)
+
+        assert "repository test-owner/other is not registered" in str(exc.value)
         assert not (root / "wt1").exists()

@@ -135,7 +135,7 @@ class TestWorktreeAdd:
 
     @add_test_properties(verifies=["PW-WORKTREE-ADD-40"])
     def test_add_without_remote_exits_1(self, tmp_path: Path) -> None:
-        """remote の無いリポでは、新しい文の error の行と終了コード 1 になる"""
+        """remote の無いリポでは、error の行を出して終了コード 1 になる"""
         from cli.tests.conftest import make_worktree_required_configs
 
         repo = tmp_path / "base" / "myrepo"
@@ -151,9 +151,9 @@ class TestWorktreeAdd:
 
         assert result.exit_code == 1
         assert (
-            "error: cannot get the repository information: check that a git remote is set"
-            in result.output
-        )
+            "error: cannot get the repository information: "
+            "check that a git remote is set to a GitHub repository URL"
+        ) in result.output
         assert not (tmp_path / "wt1").exists()
 
     def test_add_rejects_positional_name(self, tmp_path: Path) -> None:

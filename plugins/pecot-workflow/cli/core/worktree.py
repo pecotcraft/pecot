@@ -23,7 +23,8 @@ import pathspec
 from pydantic import ValidationError
 
 from cli.core.config import ProjectConfig, load_active_config
-from cli.core.git import git_toplevel, primary_remote_name, primary_remote_repo, run_git
+from cli.core.git import git_remote_url, git_toplevel, pick_primary_remote, run_git
+from cli.core.git_url import parse_remote_url
 from cli.core.repo_resolver import RepoRef
 
 if TYPE_CHECKING:
@@ -542,32 +543,43 @@ def copy_files(source_root: Path, dest_root: Path, files: list[Path]) -> list[Co
 
 # オーケストレーション
 
-_NO_REMOTE_MESSAGE = "cannot get the repository information: check that a git remote is set"
+_NO_REMOTE_MESSAGE = (
+    "cannot get the repository information: "
+    "check that a git remote is set to a GitHub repository URL"
+)
 
 
-def _get_repo_info(cwd: Path) -> RepoRef:
-    """主の remote（origin、無ければ最初の remote）からリポジトリ情報を取得
+def _read_remote_repos(cwd: Path) -> list[tuple[str, RepoRef | None]]:
+    """remote 候補を優先順に ``(remote 名, リポジトリ)`` で返す
+
+    origin があれば origin だけ。無ければ ``git remote`` の順にすべて。
+    URL を GitHub の owner/repo として読めない remote のリポジトリは None。
 
     Args:
         cwd: 対象ディレクトリ
 
     Returns:
-        RepoRef
-
-    Raises:
-        RuntimeError: リポジトリ情報を取得できない場合
+        候補のリスト。remote が無い・git 外なら空
     """
-    primary = primary_remote_repo(cwd)
-    info: RepoRef | None = None
-    if primary is not None:
-        _host, owner, repo = primary
-        try:
-            info = RepoRef(owner=owner, repo=repo)
-        except ValidationError:
-            info = None
-    if info is None:
-        raise RuntimeError(_NO_REMOTE_MESSAGE)
-    return info
+    try:
+        result = run_git(["remote"], cwd, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return []
+    remotes = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if pick_primary_remote(remotes) == "origin":
+        remotes = ["origin"]
+    candidates: list[tuple[str, RepoRef | None]] = []
+    for name in remotes:
+        ref: RepoRef | None = None
+        url = git_remote_url(cwd, name)
+        if url is not None:
+            try:
+                _host, owner, repo = parse_remote_url(url)
+                ref = RepoRef(owner=owner, repo=repo)
+            except (ValueError, ValidationError):
+                ref = None
+        candidates.append((name, ref))
+    return candidates
 
 
 def _load_copy_exclude_spec_or_raise(main_wt: Path) -> tuple[Path, pathspec.GitIgnoreSpec]:
@@ -592,35 +604,48 @@ def _load_copy_exclude_spec_or_raise(main_wt: Path) -> tuple[Path, pathspec.GitI
         raise RuntimeError(str(e)) from e
 
 
-def _require_registered_repo(cwd: Path) -> tuple[RepoRef, ProjectConfig]:
-    """1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）"""
-    repo_info = _get_repo_info(cwd)
+def _require_registered_repo(cwd: Path) -> tuple[RepoRef, ProjectConfig, str]:
+    """1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）
+
+    remote は、origin があれば origin。無ければ、アクティブなプロジェクトに登録済みの
+    リポを指す最初の remote。どれも登録済みでなければ最初の remote（未登録として止まる）。
+
+    Returns:
+        (リポジトリ, プロジェクト設定, 使う remote 名)
+    """
+    candidates = _read_remote_repos(cwd)
+    if not candidates:
+        raise RuntimeError(_NO_REMOTE_MESSAGE)
     config = load_active_config()
     if config is None:
         raise RuntimeError(
             "project config not found\n"
             "  hint: run pecot project activate <PROJECT> to set the project"
         )
-    if config.find_repository(repo_info.owner, repo_info.repo) is None:
-        registered = (
-            "\n".join(f"  - {r.owner}/{r.name}" for r in config.repositories)
-            if config.repositories
-            else "  (none registered)"
-        )
-        raise RuntimeError(
-            f"repository {repo_info.owner}/{repo_info.repo} is not registered in the "
-            "active pecot project\n"
-            "\n"
-            "registered repositories:\n"
-            f"{registered}\n"
-            "\n"
-            "to add this repository to the pecot project:\n"
-            f"  pecot project set-repo {repo_info.owner}/{repo_info.repo}\n"
-            "\n"
-            "to switch to another project:\n"
-            "  pecot project activate <PROJECT>"
-        )
-    return repo_info, config
+    for remote, ref in candidates:
+        if ref is not None and config.find_repository(ref.owner, ref.repo) is not None:
+            return ref, config, remote
+    remote, repo_info = candidates[0]
+    if repo_info is None:
+        raise RuntimeError(_NO_REMOTE_MESSAGE)
+    registered = (
+        "\n".join(f"  - {r.owner}/{r.name}" for r in config.repositories)
+        if config.repositories
+        else "  (none registered)"
+    )
+    raise RuntimeError(
+        f"repository {repo_info.owner}/{repo_info.repo} is not registered in the "
+        "active pecot project\n"
+        "\n"
+        "registered repositories:\n"
+        f"{registered}\n"
+        "\n"
+        "to add this repository to the pecot project:\n"
+        f"  pecot project set-repo {repo_info.owner}/{repo_info.repo}\n"
+        "\n"
+        "to switch to another project:\n"
+        "  pecot project activate <PROJECT>"
+    )
 
 
 def _default_base_branch(config: ProjectConfig, repo_info: RepoRef) -> str:
@@ -776,7 +801,7 @@ def create_worktree(
     run_git(["worktree", "prune"], main_wt, check=False)
 
     # 1.5 リポジトリ登録チェック（アクティブプロジェクト配下か確認）
-    repo_info, config = _require_registered_repo(cwd)
+    repo_info, config, remote = _require_registered_repo(cwd)
 
     # 2. 名前決定（プロジェクトセットへの自動参加）
     if name is None:
@@ -803,9 +828,6 @@ def create_worktree(
         )
 
     # 5. git worktree add
-    remote = primary_remote_name(cwd)
-    if remote is None:
-        raise RuntimeError(_NO_REMOTE_MESSAGE)
     _run_git_worktree_add(
         cwd=cwd,
         remote=remote,

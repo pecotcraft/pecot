@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
+from cli.core.repo_resolver import RepoRef
 from cli.core.worktree import (
     create_worktree,
     get_claimed_set_names,
@@ -156,18 +157,17 @@ class TestProjectSetE2E:
         )
         cfg.get_develop_branch.return_value = "develop"
 
-        # 実際の origin URL はローカル bare リポなので
-        # origin_repo が None を返す。cwd から repo 名を決めて返すモック。
-        def fake_origin_repo(cwd: Path | None = None) -> tuple[str, str, str]:
-            name = Path(cwd).name if cwd else ""
-            return ("github.com", "test-owner", name)
+        # 実際の origin URL はローカル bare リポなので GitHub の owner/repo として読めない。
+        # remote 候補の読み出しを、cwd から repo 名を決めて返すモックに差し替える。
+        def fake_remote_repos(cwd: Path) -> list[tuple[str, RepoRef | None]]:
+            return [("origin", RepoRef(owner="test-owner", repo=Path(cwd).name))]
 
         # wt1 を両リポで作成
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                side_effect=fake_origin_repo,
+                "cli.core.worktree._read_remote_repos",
+                side_effect=fake_remote_repos,
             ),
         ):
             result_a = create_worktree(
@@ -232,15 +232,14 @@ class TestProjectSetE2E:
         )
         cfg.get_develop_branch.return_value = "develop"
 
-        def fake_origin_repo(cwd: Path | None = None) -> tuple[str, str, str]:
-            name = Path(cwd).name if cwd else ""
-            return ("github.com", "test-owner", name)
+        def fake_remote_repos(cwd: Path) -> list[tuple[str, RepoRef | None]]:
+            return [("origin", RepoRef(owner="test-owner", repo=Path(cwd).name))]
 
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                side_effect=fake_origin_repo,
+                "cli.core.worktree._read_remote_repos",
+                side_effect=fake_remote_repos,
             ),
         ):
             # repo-A: 最初の add → wt1
@@ -280,15 +279,14 @@ class TestProjectSetE2E:
         )
         cfg.get_develop_branch.return_value = "develop"
 
-        def fake_origin_repo(cwd: Path | None = None) -> tuple[str, str, str]:
-            name = Path(cwd).name if cwd else ""
-            return ("github.com", "test-owner", name)
+        def fake_remote_repos(cwd: Path) -> list[tuple[str, RepoRef | None]]:
+            return [("origin", RepoRef(owner="test-owner", repo=Path(cwd).name))]
 
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                side_effect=fake_origin_repo,
+                "cli.core.worktree._read_remote_repos",
+                side_effect=fake_remote_repos,
             ),
         ):
             result = create_worktree(
@@ -377,15 +375,14 @@ class TestProjectSetE2E:
         )
         cfg.get_develop_branch.return_value = "develop"
 
-        def fake_origin_repo(cwd: Path | None = None) -> tuple[str, str, str]:
-            name = Path(cwd).name if cwd else ""
-            return ("github.com", "test-owner", name)
+        def fake_remote_repos(cwd: Path) -> list[tuple[str, RepoRef | None]]:
+            return [("origin", RepoRef(owner="test-owner", repo=Path(cwd).name))]
 
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                side_effect=fake_origin_repo,
+                "cli.core.worktree._read_remote_repos",
+                side_effect=fake_remote_repos,
             ),
         ):
             result = create_worktree(
@@ -436,14 +433,14 @@ class TestWorktreeOrphanBranchE2E:
         cfg.find_repository.return_value = repo_mock
         cfg.get_develop_branch.return_value = "develop"
 
-        def fake_origin_repo(cwd: Path | None = None) -> tuple[str, str, str]:
-            return ("github.com", "test-owner", "myrepo")
+        def fake_remote_repos(cwd: Path) -> list[tuple[str, RepoRef | None]]:
+            return [("origin", RepoRef(owner="test-owner", repo="myrepo"))]
 
         with (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                side_effect=fake_origin_repo,
+                "cli.core.worktree._read_remote_repos",
+                side_effect=fake_remote_repos,
             ),
         ):
             first = create_worktree(
@@ -512,8 +509,8 @@ class TestWorktreePathNumberE2E:
         return (
             patch("cli.core.worktree.load_active_config", return_value=cfg),
             patch(
-                "cli.core.worktree.primary_remote_repo",
-                return_value=("github.com", "test-owner", "myrepo"),
+                "cli.core.worktree._read_remote_repos",
+                return_value=[("origin", RepoRef(owner="test-owner", repo="myrepo"))],
             ),
         )
 
