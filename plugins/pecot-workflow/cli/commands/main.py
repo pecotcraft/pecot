@@ -61,7 +61,7 @@ install_log_handler()
 
 
 class _PecotGroup(TyperGroup):
-    """ルートの網。捕まえ損ねた PecotError を error: の 1 行と終了コード 1 にする"""
+    """Root safety net: turn an uncaught PecotError into one error: line and exit code 1"""
 
     def invoke(self, ctx: Any) -> Any:  # ctx は typer 同梱の非公開の click.Context
         try:
