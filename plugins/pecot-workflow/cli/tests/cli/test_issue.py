@@ -6518,6 +6518,7 @@ class TestIssueCreateStatusValidation:
         assert result.exit_code == 1
         assert expected_msg in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-44"])
     def test_direct_status_outside_enum_rejected(self) -> None:
         """direct（task）: enum 外の status は I/O 到達前に不正ステータスとして exit 1"""
         result = runner.invoke(
@@ -6538,7 +6539,10 @@ class TestIssueCreateStatusValidation:
             ],
         )
         assert result.exit_code == 1
-        assert "invalid status: foo" in result.output
+        assert result.stdout == ""
+        lines = result.stderr.splitlines()
+        assert lines[0] == "error: invalid status: foo"
+        assert lines[1].startswith("  valid values: ")
 
     def test_direct_epic_status_pending_rejected(self) -> None:
         """direct（epic）: enum 内だが既定外の status（pending）は exit 1。

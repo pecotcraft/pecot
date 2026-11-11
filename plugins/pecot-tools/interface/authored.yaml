@@ -1703,6 +1703,9 @@ entries:
       - id: PT-AWS-S3API-GET-OBJECT-04
         pattern: unwanted
         statement: もし range が bytes= で始まらないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+      - id: PT-AWS-S3API-GET-OBJECT-05
+        pattern: unwanted
+        statement: もし outfile が絶対パスでないか s3:// で始まるなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
   PT-AWS-SCHEDULER-GET-SCHEDULE:
     constraints: []
     details:
