@@ -27,7 +27,7 @@ from cli.core.git import git_toplevel, origin_repo, run_git
 from cli.core.repo_resolver import RepoRef
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
 
     from cli.core.worktree_links import SymlinkResult, WorktreeConfig
 
@@ -260,19 +260,70 @@ def get_worktree_dirs(cwd: Path) -> list[Path]:
     return [Path(entry.path) for entry in entries[1:]]
 
 
+WORKTREE_NAME_MARKER = "pecot-worktree-name"
+
+
+def _read_worktree_name_marker(cwd: Path) -> str | None:
+    """worktree add が git の管理ディレクトリに書いた wtN を読む。無ければ None"""
+    result = run_git(
+        ["rev-parse", "--path-format=absolute", "--git-path", WORKTREE_NAME_MARKER],
+        cwd,
+        check=False,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    try:
+        text = Path(result.stdout.strip()).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return text or None
+
+
+def _write_worktree_name_marker(path: Path, name: str) -> None:
+    """新しい worktree の git の管理ディレクトリに wtN を記録する。失敗は warning"""
+    try:
+        result = run_git(
+            ["rev-parse", "--path-format=absolute", "--git-path", WORKTREE_NAME_MARKER],
+            path,
+            check=True,
+        )
+        Path(result.stdout.strip()).write_text(name + "\n", encoding="utf-8")
+    except (subprocess.CalledProcessError, OSError) as e:
+        logger.warning("failed to record the worktree name %s: %s", name, e)
+
+
+def get_claimed_set_names(main_wt: Path) -> set[str]:
+    """このリポの worktree が使っている wtN（記録と、wtN ブランチの checkout）の集合"""
+    names: set[str] = set()
+    common = run_git(
+        ["rev-parse", "--path-format=absolute", "--git-common-dir"], main_wt, check=False
+    )
+    if common.returncode == 0 and common.stdout.strip():
+        for marker in (Path(common.stdout.strip()) / "worktrees").glob(f"*/{WORKTREE_NAME_MARKER}"):
+            try:
+                text = marker.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+            if text:
+                names.add(text)
+    refs = run_git(
+        ["for-each-ref", "--format=%(refname:short)%00%(worktreepath)", "refs/heads/"],
+        main_wt,
+        check=False,
+    )
+    if refs.returncode == 0:
+        for line in refs.stdout.splitlines():
+            branch, _, wt_path = line.partition("\0")
+            if wt_path and re.fullmatch(r"wt\d+", branch):
+                names.add(branch)
+    return names
+
+
 def get_current_worktree_name(cwd: Path) -> str | None:
-    """現在のサブワークツリー名を取得
+    """現在のサブワークツリー名を返す
 
-    pecot の配置規約 ``<root>/wtN/<repo_dir>/`` を前提にする。
-    ``git rev-parse --show-toplevel`` が返すリポジトリディレクトリの
-    **親ディレクトリ名**（= WT 名）を返す。
-    サブWT環境でない場合は None を返す。
-
-    Args:
-        cwd: 判定対象ディレクトリ
-
-    Returns:
-        WT名（例: "wt2"）。サブWT環境でない場合・ルートを取得できない場合は None
+    worktree add の記録を先に読み、無ければ置き場所の親ディレクトリが wtN か base のときだけその名前を返す。
+    サブWT環境でないか、どちらも無ければ None。
 
     Raises:
         RuntimeError: Gitリポジトリ外で実行した場合（``is_worktree_env`` 由来）
@@ -280,10 +331,16 @@ def get_current_worktree_name(cwd: Path) -> str | None:
     if not is_worktree_env(cwd):
         return None
 
+    recorded = _read_worktree_name_marker(cwd)
+    if recorded:
+        return recorded
     toplevel = git_toplevel(cwd)
     if toplevel is None:
         return None
-    return toplevel.parent.name
+    parent = toplevel.parent.name
+    if re.fullmatch(r"wt\d+|base", parent):
+        return parent
+    return None
 
 
 def detect_project_root(cwd: Path) -> Path:
@@ -330,16 +387,13 @@ def get_next_set_name(
     repo_dir_name: str,
     prefix: str = "wt",
     max_n: int = 9,
+    claimed: Iterable[str] = (),
 ) -> str:
     """プロジェクトルート基準で対象リポの参加先セット名を決定
 
-    ロジック（プロジェクトセット = 同じ wtN 配下の複数リポ WT）は次のとおり。
-
-    1. ``<project_root>/wt\\d+/`` を列挙する。
-    2. 各 wtN について ``wtN/<repo_dir_name>`` が存在しないものを先頭から探す。
-       見つかったら既存セットに参加させる形でその名前を返す。
-    3. 全ての既存 wtN に該当リポが既にあるなら、``max(N)+1`` で新セット ``wt<N+1>`` を返す。
-    4. 既存セットが無ければ ``wt1`` を返す
+    対象は ``<project_root>/wtN`` と claimed（このリポの worktree が使う wtN）の番号。
+    ``wtN/<repo_dir_name>`` が無く、claimed に無い最小の N に参加する。
+    全部使用中なら ``max(N)+1``、番号が無ければ ``wt1`` を返す。
 
     Args:
         project_root: プロジェクトルート。
@@ -362,6 +416,13 @@ def get_next_set_name(
                 if m:
                     existing.append(int(m.group(1)))
 
+    claimed_names = set(claimed)
+    claimed_pattern = re.compile(rf"^{re.escape(prefix)}(\d+)$")
+    for claimed_name in claimed_names:
+        m = claimed_pattern.match(claimed_name)
+        if m and int(m.group(1)) not in existing:
+            existing.append(int(m.group(1)))
+
     if not existing:
         return f"{prefix}1"
 
@@ -369,7 +430,10 @@ def get_next_set_name(
 
     # 2. 既存セットで該当リポが未登場のものがあればそこに参加
     for n in existing:
-        if not (project_root / f"{prefix}{n}" / repo_dir_name).exists():
+        if (
+            not (project_root / f"{prefix}{n}" / repo_dir_name).exists()
+            and f"{prefix}{n}" not in claimed_names
+        ):
             return f"{prefix}{n}"
 
     # 3. 全セットに参加済 → 新セット
@@ -716,7 +780,7 @@ def create_worktree(
 
     # 2. 名前決定（プロジェクトセットへの自動参加）
     if name is None:
-        name = get_next_set_name(project_root, main_wt.name)
+        name = get_next_set_name(project_root, main_wt.name, claimed=get_claimed_set_names(main_wt))
 
     # 3. ベースブランチ決定（プロジェクト設定の develop_branch を使用）
     if base_branch is None:
@@ -746,6 +810,7 @@ def create_worktree(
         base_branch=base_branch,
         allow_existing_branch=allow_existing_branch,
     )
+    _write_worktree_name_marker(path, name)
 
     # 6〜8. シンボリックリンク作成・未追跡ファイルコピー・セットアップコマンド実行
     result = WorktreeCreateResult(name=name, path=path, branch=name, base_branch=base_branch)

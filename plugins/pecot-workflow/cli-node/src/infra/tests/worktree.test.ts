@@ -12,6 +12,7 @@ import { installFakeExecutable, prependToPath } from '../../tests/_helpers/fake-
 import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../tests/_helpers/temporary.js'
 import {
+  claimedSetNames,
   createWorktree,
   detectProjectRoot,
   ensureDevcontainerEnvironment,
@@ -320,6 +321,17 @@ describe('getNextSetName', () => {
     expect(getNextSetName(root, 'myrepo')).toBe('wt1')
   })
 
+  it('claimed の番号には参加せず、避けて次の番号にする', () => {
+    expect(getNextSetName(projectOf(['wt1', 'wt2']), 'myrepo', { claimed: ['wt1'] })).toBe('wt2')
+  })
+
+  it('claimed だけでも max が上がる。wt1 ディレクトリが無くても claimed に wt1 があれば wt2', () => {
+    expect(getNextSetName(projectOf([]), 'myrepo', { claimed: ['wt1'] })).toBe('wt2')
+    expect(getNextSetName(projectOf(['wt1']), 'myrepo', { claimed: ['wt3'] })).toBe('wt1')
+    expect(getNextSetName(projectOf(['wt1/myrepo']), 'myrepo', { claimed: ['wt3'] })).toBe('wt4')
+    expect(getNextSetName(projectOf(['wt1/myrepo', 'wt2/myrepo']), 'myrepo', { claimed: ['wt3'] })).toBe('wt4')
+  })
+
   it('prefix と max を変えられる', () => {
     const root = projectOf(['ws1/myrepo'])
     expect(getNextSetName(root, 'myrepo', { prefix: 'ws' })).toBe('ws2')
@@ -333,6 +345,59 @@ function projectWithSetup(setupCommand: string | undefined, timeout?: number): P
   if (timeout !== undefined) config['setup_command_timeout'] = timeout
   return createProject({ worktreeConfig: JSON.stringify(config) })
 }
+
+function addElsewhere(): { readonly repository: string, readonly root: string, readonly elsewhere: string } {
+  const { repository, root } = createProject()
+  const elsewhere = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
+  const first = createWorktree(repository, ignoredDiagnostics, { path: elsewhere, shouldCopy: false, shouldLink: false })
+  expect(first.name).toBe('wt1')
+  return { repository, root, elsewhere }
+}
+
+describe('createWorktree と番号の記録（実 git）', () => {
+  it('作った worktree に番号を記録し、dry-run では書かない', () => {
+    const { repository, root } = createProject()
+    createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    expect(claimedSetNames(repository)).toEqual(new Set())
+    const result = createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
+    expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
+    const recordPath = gitForTest(result.path, ['rev-parse', '--path-format=absolute', '--git-path', 'pecot-worktree-name']).trim()
+    expect(readFileSync(recordPath, 'utf8')).toBe('wt1\n')
+  })
+
+  it('path 指定の worktree があっても、次の作成は wt2 を選ぶ', () => {
+    const { repository, root } = addElsewhere()
+    const second = createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
+    expect(second.name).toBe('wt2')
+    expect(second.path).toBe(path.join(root, 'wt2', 'myrepo'))
+  })
+
+  it('path 指定の worktree が機能ブランチに移った後も、wt1 を選ばない', () => {
+    const { repository, elsewhere } = addElsewhere()
+    gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
+    expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true }).name).toBe('wt2')
+  })
+
+  it('記録の無い worktree でも、wtN のブランチを使っていればその番号を使用中にする', () => {
+    const { repository, root } = createProject()
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'wt1', path.join(makeTemporaryDirectory(), 'x', 'myrepo')])
+    expect(claimedSetNames(repository)).toEqual(new Set(['wt1']))
+    expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true }).path).toBe(path.join(root, 'wt2', 'myrepo'))
+  })
+
+  it('claimedSetNames はプロセスの作業ディレクトリに依らない', () => {
+    vi.restoreAllMocks()
+    const { repository } = addElsewhere()
+    const original = process.cwd()
+    process.chdir(makeTemporaryDirectory())
+    try {
+      expect(claimedSetNames(repository)).toEqual(new Set(['wt1']))
+    }
+    finally {
+      process.chdir(original)
+    }
+  })
+})
 
 describe('createWorktree（実 git・実ファイル）', () => {
   it('dry-run は path を <root>/<name>/<repo> にし、WT を作らない', () => {
@@ -828,6 +893,21 @@ describe('getCurrentWorktreeName', () => {
     const worktree = path.join(root, 'wt2', 'myrepo')
     gitForTest(repository, ['worktree', 'add', '-q', '-b', 'wt2', worktree])
     expect(getCurrentWorktreeName(worktree)).toBe('wt2')
+  })
+
+  it('記録があればそれを返す。置き場所の親の名前には依らない', () => {
+    const { repository } = createProject()
+    const worktree = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
+    createWorktree(repository, ignoredDiagnostics, { path: worktree, shouldCopy: false, shouldLink: false })
+    gitForTest(worktree, ['switch', '-q', '-c', 'feature/x'])
+    expect(getCurrentWorktreeName(worktree)).toBe('wt1')
+  })
+
+  it('記録が無く、親の名前が wtN と base のどちらでもないと、undefined を返す', () => {
+    const { repository } = createProject()
+    const worktree = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'other', worktree])
+    expect(getCurrentWorktreeName(worktree)).toBeUndefined()
   })
 
   it('メイン WT では undefined', () => {
