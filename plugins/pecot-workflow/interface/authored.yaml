@@ -2,36 +2,42 @@ format: 1
 plugin: pecot-workflow
 environment:
   - name: PECOT_GITHUB_API_URL
-    effect: Sends GitHub API requests to this URL instead of the real host. Only an http://127.0.0.1 or http://localhost URL is accepted; any other value stops the command with exit status 1 before the subcommand runs. An empty value is ignored.
+    effect: Sends GitHub API requests to this URL instead of the real host. Only an http://127.0.0.1 or http://localhost URL is accepted; any other value stops the command with exit status 1 before the subcommand runs. The exceptions are --version and the top-level --help, which finish first with exit status 0. An empty value is ignored.
   - name: PECOT_SESSION_PROJECT_DIR
-    effect: When the working directory is inside the .pecot/work directory of this directory, this directory becomes the project root instead of the git toplevel. CLAUDE_PROJECT_DIR takes precedence.
+    effect: When the working directory is inside <value>/.pecot/work (with no nested git repository in between), <value> becomes the project root instead of the git toplevel. CLAUDE_PROJECT_DIR takes precedence.
   - name: CLAUDE_PROJECT_DIR
-    effect: Used as the project root when set, ahead of PECOT_SESSION_PROJECT_DIR and the git toplevel. Config files, the active project setting and the work directories are looked up under it.
+    effect: Used as the project root when set, ahead of PECOT_SESSION_PROJECT_DIR and the git toplevel. The config files, the active project setting and the work directories are looked up under it.
   - name: CLAUDE_PLUGIN_ROOT
     effect: Locates the plugin directory. The version shown by --version is read from .claude-plugin/plugin.json under it, and the scripts that worktree commands run are looked up under it.
   - name: PECOT_GITHUB_*_TOKEN
-    effect: Supplies the GitHub token for a host. The variable name for a host is the env_var of that host in config/hosts.json (PECOT_GITHUB_COM_TOKEN for github.com when the file has no entry). It is read from config/.env first, and an existing environment variable is not overwritten. When it is unset or rejected with 401, the token of gh auth token is used.
+    effect: Supplies the GitHub token for a host. The variable name is the env_var of that host in .pecot/config/hosts.json. Without an entry, the name is PECOT_GITHUB_COM_TOKEN for github.com, and PECOT_GITHUB_<HOST>_TOKEN for any other host, where <HOST> is the host name in upper case with each . replaced by _. The variable is read from the environment, after .pecot/config/.env is loaded; a line in that file does not overwrite an existing environment variable. When no token is found, GITHUB_COM_TOKEN is used for github.com, and then the token from gh auth token. When the token is rejected with 401, the command retries once with the token from gh auth token and writes a warning line; this also applies to the token from GITHUB_COM_TOKEN.
   - name: GITHUB_COM_TOKEN
-    effect: Supplies the GitHub token for github.com when the variable named by config/hosts.json is not set. It is read from the .env file in the project root, after config/.env.
+    effect: Supplies the GitHub token for github.com when the variable named for that host is unset (PECOT_GITHUB_COM_TOKEN without an entry in .pecot/config/hosts.json). The variable is read from the environment, after the .env file in the project root is loaded; a line in that file does not overwrite an existing environment variable, and it is loaded after .pecot/config/.env.
 entries:
   PW-PROJECT-ACTIVATE:
     constraints: []
     details:
-      - Without a project argument, lists the initialized projects (those with a pecot-workflow field) of the owner and marks the active one with [ACTIVE].
+      - Without a project argument, lists the initialized projects of the owner; --host is required.
+      - A project is initialized when it has a pecot-workflow field.
+      - The listing marks the active project with [ACTIVE].
+      - When the owner has no initialized project, the listing is a none line.
       - With a project number or name, regenerates the config file of that project from GitHub and makes it the active project.
-      - With a config file path or file name, syncs the project from the host, owner and number recorded in that file and makes it the active project; --host is not needed.
-      - Repository settings (branches, packages, release type) and aggregation_repo already in the config file are kept.
+      - With a config file path or file name, syncs the project from the host, owner and number recorded in that file and makes it the active project.
+      - A config file path or file name needs neither --host nor --owner.
+      - The develop branch, release branch, changelog_file, packages and release type of each repository, and aggregation_repo, already in the config file are kept.
+      - A repository that is no longer linked to the project is removed from the config file.
+      - A newly linked repository is appended to the end of the repository list.
     stdin: none
     output:
       format: text
-      description: Only when no project is given, a header line followed by one line per initialized project, with [ACTIVE] on the active one. Nothing is written to stdout when a project is given.
-    diagnostics: With a project given, result lines on stderr for the config file (created or updated) and for the active project (set). A warning line when --host differs from the host of the given config file; the config file host is used.
+      description: Only when no project is given, a header line followed by one line per initialized project, with [ACTIVE] on the active one, or a none line when there is no initialized project. Nothing is written to stdout when a project is given.
+    diagnostics: With a project given, result lines on stderr for the config file (created or updated) and for the active project (set). A warning line when --host differs from the host of the given config file. In that case the host of the config file is used.
     environment: []
     exit_status:
       - code: 0
         when: The projects were listed, or the project was activated.
       - code: 1
-        when: --host is required but missing, the project is not found or not initialized, the config file cannot be loaded, or the GitHub API returned an error.
+        when: --host is required but missing, the project is not found or not initialized, the config file cannot be loaded, the GitHub API returned an error, or the project root cannot be determined.
       - code: 2
         when: The command line is invalid, such as an unknown option.
     on_error: default
@@ -41,7 +47,7 @@ entries:
         what: Reads the projects of the owner, their fields and linked repositories.
       - target: file
         kind: write
-        what: Creates or updates the config file under config/projects/ and sets the active project.
+        what: Creates or updates the config file under .pecot/config/projects/ and sets the active project.
       - target: file
         kind: read
         what: Reads the config files and the active project setting.
@@ -54,53 +60,71 @@ entries:
       - run: pecot project activate 1 --host github.com --owner example-org
         note: Activate the project by number.
     default_notes:
-      owner: The authenticated user.
+      owner: The authenticated user; with a config file, the owner recorded in the file and --owner is not used.
       host: Required unless a config file is given; with a config file, the host recorded in the file.
     behaviors:
       - id: PW-PROJECT-ACTIVATE-01
         pattern: event
-        statement: プロジェクトを渡さずに打つと、初期化済みのプロジェクトを標準出力に一覧する
+        statement: --host を付けてプロジェクトを渡さずに打つと、初期化済みのプロジェクトを標準出力に一覧する
       - id: PW-PROJECT-ACTIVATE-02
         pattern: event
         statement: 一覧にアクティブなプロジェクトがあると、その行に [ACTIVE] を付ける
       - id: PW-PROJECT-ACTIVATE-03
         pattern: event
-        statement: プロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイルを作る
+        statement: 初期化済みのプロジェクトが 1 つも無い所有者を一覧すると、none の行を標準出力に出す
       - id: PW-PROJECT-ACTIVATE-04
         pattern: event
-        statement: 設定ファイルのパスかファイル名を渡すと、--host を渡さなくても設定ファイルの host で同期する
+        statement: プロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイルを作る
       - id: PW-PROJECT-ACTIVATE-05
         pattern: event
-        statement: --owner を省くと、認証したユーザーのプロジェクトを対象にする
+        statement: プロジェクトの番号か名前を渡すと、そのプロジェクトをアクティブにする
       - id: PW-PROJECT-ACTIVATE-06
         pattern: event
-        statement: 既存の設定ファイルがあるプロジェクトを同期すると、リポジトリごとの release_type と packages を引き継ぐ
+        statement: 設定ファイルのパスかファイル名を渡すと、--host を渡さなくても設定ファイルの host で同期する
       - id: PW-PROJECT-ACTIVATE-07
         pattern: event
-        statement: 既存の設定ファイルがあるプロジェクトを同期すると、aggregation_repo を引き継ぐ
+        statement: --owner を省くと、認証したユーザーのプロジェクトを対象にする
       - id: PW-PROJECT-ACTIVATE-08
-        pattern: unwanted
-        statement: もし --host が要る場面で渡していないなら、終了コード 1 で終わる
+        pattern: event
+        statement: 既存の設定ファイルがあるプロジェクトを同期すると、リポジトリごとの branches・changelog_file・packages・release_type を引き継ぐ
       - id: PW-PROJECT-ACTIVATE-09
-        pattern: unwanted
-        statement: もし指定したプロジェクトが無いなら、終了コード 1 で終わる
+        pattern: event
+        statement: 既存の設定ファイルがあるプロジェクトを同期すると、aggregation_repo を引き継ぐ
       - id: PW-PROJECT-ACTIVATE-10
-        pattern: unwanted
-        statement: もし指定したプロジェクトが初期化されていないなら、終了コード 1 で終わる
+        pattern: event
+        statement: リンクを外したリポジトリがあるプロジェクトを同期すると、そのリポジトリを設定ファイルから消す
       - id: PW-PROJECT-ACTIVATE-11
-        pattern: unwanted
-        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+        pattern: event
+        statement: 新しくリンクしたリポジトリがあるプロジェクトを同期すると、そのリポジトリを設定ファイルの末尾に足す
       - id: PW-PROJECT-ACTIVATE-12
         pattern: unwanted
-        statement: もし --host が設定ファイルの host と違うなら、warning の行を標準エラーに出す
+        statement: もし --host が要る場面で渡していないなら、終了コード 1 で終わる
       - id: PW-PROJECT-ACTIVATE-13
-        pattern: event
-        statement: プロジェクトの番号か名前を渡すと、そのプロジェクトをアクティブにする
+        pattern: unwanted
+        statement: もし指定したプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-PROJECT-ACTIVATE-14
+        pattern: unwanted
+        statement: もし指定したプロジェクトが初期化されていないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-ACTIVATE-15
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-PROJECT-ACTIVATE-16
+        pattern: unwanted
+        statement: もし渡した設定ファイルを読めないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-ACTIVATE-17
+        pattern: unwanted
+        statement: もし --host が渡した設定ファイルの host と違うなら、warning の行を標準エラーに出す
+      - id: PW-PROJECT-ACTIVATE-18
+        pattern: unwanted
+        statement: もし --host が渡した設定ファイルの host と違うなら、設定ファイルの host で同期する
   PW-PROJECT-CREATE:
     constraints: []
     details:
-      - Creates a GitHub Projects V2 project for the owner, adds the pecot-workflow, pecot-priority and pecot-size fields, writes the config file and makes the project active.
-      - Stops without creating anything when the owner is not found or a project with the same title already exists.
+      - Creates a GitHub Projects V2 project for the owner.
+      - Adds the pecot-workflow, pecot-priority and pecot-size fields to the project.
+      - Writes the config file and makes the project active.
+      - Stops without creating anything when the owner is not found.
+      - Stops without creating anything when a project with the same title already exists.
     stdin: none
     output:
       format: none
@@ -110,7 +134,7 @@ entries:
       - code: 0
         when: The project was created, initialized and activated.
       - code: 1
-        when: The owner is not found, a project with the same title exists, the GitHub API returned an error, or the project does not conform to pecot-workflow when the config file is generated.
+        when: The owner is not found, a project with the same title exists, the GitHub API returned an error, the project does not conform to pecot-workflow when the config file is generated, or the project root cannot be determined.
       - code: 2
         when: A required argument or --suffix is missing, or another command line error occurs.
     on_error: When a step after the project is created fails, the project and the fields created so far remain on GitHub. When generating the config file fails, the project and its three fields remain and no config file is written.
@@ -123,7 +147,7 @@ entries:
         what: Reads the owner, the existing projects, the fields and the linked repositories.
       - target: file
         kind: write
-        what: Writes the config file under config/projects/ and sets the active project.
+        what: Writes the config file under .pecot/config/projects/ and sets the active project.
     prerequisites:
       - A GitHub token is available for the host, with permission to create projects for the owner.
     idempotent: false
@@ -137,32 +161,38 @@ entries:
         statement: 新しいタイトルを渡すと、GitHub にプロジェクトを作る
       - id: PW-PROJECT-CREATE-02
         pattern: event
-        statement: プロジェクトを作ると、続けて pecot-workflow のフィールドを足す
+        statement: プロジェクトを作ると、続けて pecot-workflow の 3 つのフィールドを足す
       - id: PW-PROJECT-CREATE-03
         pattern: event
         statement: フィールドを足すと、設定ファイルを作る
       - id: PW-PROJECT-CREATE-04
-        pattern: unwanted
-        statement: もし同じタイトルのプロジェクトが既にあるなら、終了コード 1 で終わる
-      - id: PW-PROJECT-CREATE-05
-        pattern: unwanted
-        statement: もし所有者が見つからないなら、終了コード 1 で終わる
-      - id: PW-PROJECT-CREATE-06
-        pattern: unwanted
-        statement: もしプロジェクトの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
-      - id: PW-PROJECT-CREATE-07
-        pattern: event
-        statement: 新しいタイトルを渡すと、created の行を標準エラーに出す
-      - id: PW-PROJECT-CREATE-08
         pattern: event
         statement: 設定ファイルを作ると、そのプロジェクトをアクティブにする
+      - id: PW-PROJECT-CREATE-05
+        pattern: event
+        statement: プロジェクトを作ると、created の行を標準エラーに出す
+      - id: PW-PROJECT-CREATE-06
+        pattern: unwanted
+        statement: もし同じタイトルのプロジェクトが既にあるなら、終了コード 1 で終わる
+      - id: PW-PROJECT-CREATE-07
+        pattern: unwanted
+        statement: もし所有者が見つからないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-CREATE-08
+        pattern: unwanted
+        statement: もしプロジェクトの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-PROJECT-CREATE-09
+        pattern: unwanted
+        statement: もし作ったプロジェクトが pecot-workflow に準拠しないなら、終了コード 1 で終わる
   PW-PROJECT-INFO:
     constraints: []
     details:
-      - Shows the active project, its registered repositories and the board status (Backlog, Pending, Ready, Active and In Review items that are open).
-      - Each registered repository line carries the release type and the Dependabot alert status; a repository whose alerts cannot be read shows the reason and does not stop the command.
+      - Shows the active project, its registered repositories and the board status.
+      - The board status covers the open items in Backlog, Pending, Ready, Active and In Review.
+      - Each registered repository line carries the release type and the Dependabot alert status.
+      - A repository whose alerts cannot be read shows the reason and does not stop the command.
       - Narrows the board items to one repository when --repo or the global pecot --repo is given.
       - Deletes Archived items from the board except the 20 most recently updated.
+      - An Archived item that cannot be deleted is skipped and the command continues.
     stdin: none
     output:
       format: text
@@ -173,7 +203,7 @@ entries:
       - code: 0
         when: The dashboard was printed.
       - code: 1
-        when: There is no active project, the GitHub API returned an error, or an unexpected error occurred.
+        when: There is no active project, the active config file is broken, the GitHub API returned an error, an unexpected error occurred, or the project root cannot be determined.
       - code: 2
         when: --repo is not in owner/repo form, or another command line error occurs.
     on_error: Archived items already deleted from the board stay deleted.
@@ -207,24 +237,40 @@ entries:
         statement: --json を付けて打つと、同じ内容を JSON で標準出力に出す
       - id: PW-PROJECT-INFO-03
         pattern: event
-        statement: aggregation_repo を設定していると、概要に Roadmap repo として出す
+        statement: --repo を付けて打つと、ボードの項目をそのリポジトリに絞る
       - id: PW-PROJECT-INFO-04
         pattern: event
-        statement: Dependabot alert を取れたリポジトリがあると、その行に open の件数か disabled を出す
+        statement: 更新の新しい 20 件を超える Archived の項目があると、超えた分をボードから削除する
       - id: PW-PROJECT-INFO-05
+        pattern: event
+        statement: aggregation_repo を設定していると、概要に Roadmap repo として出す
+      - id: PW-PROJECT-INFO-06
+        pattern: event
+        statement: Dependabot alert を取れたリポジトリがあると、その行に open の件数か disabled を出す
+      - id: PW-PROJECT-INFO-07
+        pattern: event
+        statement: Archived の項目を削除すると、deleted の行を標準エラーに出す
+      - id: PW-PROJECT-INFO-08
         pattern: unwanted
         statement: もし登録したリポジトリの Dependabot alert を取れないなら、その行に失敗の理由を出す
-      - id: PW-PROJECT-INFO-06
+      - id: PW-PROJECT-INFO-09
+        pattern: unwanted
+        statement: もし Archived の項目を削除できなかったなら、warning の行を標準エラーに出す
+      - id: PW-PROJECT-INFO-10
         pattern: unwanted
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
-      - id: PW-PROJECT-INFO-07
+      - id: PW-PROJECT-INFO-11
         pattern: unwanted
         statement: もしボードの取得で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-PROJECT-INFO-12
+        pattern: unwanted
+        statement: もし予期しないエラーが起きたなら、終了コード 1 で終わる
   PW-PROJECT-INIT:
     constraints: []
     details:
       - Adds the pecot-workflow-<suffix>, pecot-priority and pecot-size fields to an existing project.
-      - A field that already exists is skipped; the others are still created.
+      - A field that already exists is skipped.
+      - The other fields are still created.
     stdin: none
     output:
       format: none
@@ -234,7 +280,7 @@ entries:
       - code: 0
         when: Every field was created or already existed.
       - code: 1
-        when: The project is not found, its fields cannot be read, or the GitHub API returned an error.
+        when: The project is not found, its fields cannot be read, the GitHub API returned an error, or the project root cannot be determined.
       - code: 2
         when: A required argument or --suffix is missing, or another command line error occurs.
     on_error: Fields created before the failing one remain on the project.
@@ -255,23 +301,24 @@ entries:
     behaviors:
       - id: PW-PROJECT-INIT-01
         pattern: event
-        statement: フィールドの無いプロジェクトに打つと、3 つのフィールドを作る
+        statement: フィールドの無いプロジェクトに打つと、pecot-workflow の 3 つのフィールドを作る
       - id: PW-PROJECT-INIT-02
         pattern: event
-        statement: 既にあるフィールドがあると、そのフィールドは作らずに skipped の行を標準エラーに出す
+        statement: フィールドを作ると、created の行を標準エラーに出す
       - id: PW-PROJECT-INIT-03
-        pattern: unwanted
-        statement: もし指定したタイトルのプロジェクトが無いなら、終了コード 1 で終わる
+        pattern: event
+        statement: 既にあるフィールドがあると、そのフィールドは作らずに skipped の行を標準エラーに出す
       - id: PW-PROJECT-INIT-04
         pattern: unwanted
-        statement: もしフィールドの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
+        statement: もし指定したタイトルのプロジェクトが無いなら、終了コード 1 で終わる
       - id: PW-PROJECT-INIT-05
-        pattern: event
-        statement: フィールドの無いプロジェクトに打つと、created の行を標準エラーに出す
+        pattern: unwanted
+        statement: もしフィールドの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
   PW-PROJECT-LIST:
     constraints: []
     details:
-      - Lists the config files under config/projects/ in file name order and marks the active project with [ACTIVE].
+      - Lists the config files under .pecot/config/projects/ in file name order.
+      - Marks the active project with [ACTIVE].
     stdin: none
     output:
       format: text
@@ -281,13 +328,15 @@ entries:
     exit_status:
       - code: 0
         when: The list was printed.
+      - code: 1
+        when: The project root cannot be determined.
       - code: 2
         when: The command line is invalid, such as an unknown option.
     on_error: default
     effects:
       - target: file
         kind: read
-        what: Reads the config files under config/projects/ and the active project setting.
+        what: Reads the config files under .pecot/config/projects/ and the active project setting.
     prerequisites: []
     idempotent: true
     examples:
@@ -297,13 +346,13 @@ entries:
     behaviors:
       - id: PW-PROJECT-LIST-01
         pattern: event
-        statement: 設定ファイルが 1 つも無いと、none の行を標準出力に出す
+        statement: 設定ファイルがあると、ファイル名の順に 1 行ずつ標準出力に出す
       - id: PW-PROJECT-LIST-02
         pattern: event
-        statement: 設定ファイルがあると、ファイル名の順に 1 行ずつ標準出力に出す
+        statement: アクティブなプロジェクトの設定ファイルがあると、その行の末尾に [ACTIVE] を付ける
       - id: PW-PROJECT-LIST-03
         pattern: event
-        statement: アクティブなプロジェクトの設定ファイルがあると、その行の末尾に [ACTIVE] を付ける
+        statement: 設定ファイルが 1 つも無いと、none の行を標準出力に出す
   PW-PROJECT-SEARCH:
     constraints: []
     details:
@@ -312,14 +361,14 @@ entries:
     stdin: none
     output:
       format: text
-      description: A header line, a column header and one line per project with its number, title and URL.
+      description: A header line, a blank line, a column header line, a separator line of 80 hyphens, and one line per project with its number, title and URL.
     diagnostics: default
     environment: []
     exit_status:
       - code: 0
         when: The projects were printed.
       - code: 1
-        when: The owner has no project, or the GitHub API returned an error.
+        when: The owner has no project, the GitHub API returned an error, or the project root cannot be determined.
       - code: 2
         when: The owner argument is missing, or another command line error occurs.
     on_error: default
@@ -350,8 +399,10 @@ entries:
   PW-PROJECT-SET-AGGREGATION-REPO:
     constraints: []
     details:
-      - Stores the Epic aggregation repository in the config file of the active project; pecot issue create --type epic uses it as the destination.
-      - Overwriting a different value always writes a warning line; --yes only omits the confirmation hint.
+      - Stores the Epic aggregation repository in the config file of the active project.
+      - pecot issue create --type epic uses the stored repository as the destination.
+      - Overwriting a different value always writes a warning line.
+      - --yes only omits the confirmation hint from the warning line.
       - Giving the value already stored changes nothing.
     stdin: none
     output:
@@ -362,7 +413,7 @@ entries:
       - code: 0
         when: The value was set or was already set.
       - code: 1
-        when: The value is not in owner/repo form, or there is no active project.
+        when: The value is not in owner/repo form, there is no active project, the active config file is broken, or the project root cannot be determined.
       - code: 2
         when: The value argument is missing, or another command line error occurs.
     on_error: default
@@ -385,30 +436,33 @@ entries:
         pattern: event
         statement: 未設定の状態で値を渡すと、設定ファイルに書く
       - id: PW-PROJECT-SET-AGGREGATION-REPO-02
-        pattern: unwanted
-        statement: もし既にある値と違う値を渡したなら、上書きの warning の行を標準エラーに出す
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-03
-        pattern: event
-        statement: --yes を付けて上書きすると、warning の行から確認の案内を省く
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-04
-        pattern: event
-        statement: 既にある値と同じ値を渡すと、unchanged の行を標準エラーに出す
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-05
-        pattern: unwanted
-        statement: もし値が owner/repo の形でないなら、終了コード 1 で終わる
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-06
-        pattern: unwanted
-        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
-      - id: PW-PROJECT-SET-AGGREGATION-REPO-07
         pattern: event
         statement: 未設定の状態で値を渡すと、set の行を標準エラーに出す
+      - id: PW-PROJECT-SET-AGGREGATION-REPO-03
+        pattern: event
+        statement: 既にある値と同じ値を渡すと、unchanged の行を標準エラーに出す
+      - id: PW-PROJECT-SET-AGGREGATION-REPO-04
+        pattern: unwanted
+        statement: もし既にある値と違う値を渡したなら、上書きの warning の行を標準エラーに出す
+      - id: PW-PROJECT-SET-AGGREGATION-REPO-05
+        pattern: event
+        statement: --yes を付けて上書きすると、warning の行から確認の案内を省く
+      - id: PW-PROJECT-SET-AGGREGATION-REPO-06
+        pattern: unwanted
+        statement: もし値が owner/repo の形でないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-SET-AGGREGATION-REPO-07
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
   PW-PROJECT-SET-REPO:
     constraints:
       - conflicts: [package, changelog_file]
       - conflicts: [package, clear_packages]
     details:
-      - Links the repository to the GitHub project and adds it to the config file of the active project. The config file is written only after the link succeeded.
+      - Links the repository to the GitHub project and adds it to the config file of the active project.
+      - The config file is written only after the link succeeded.
       - For a repository already registered, updates only the settings given on the command line.
+      - Giving --package replaces the packages of a registered repository and also clears its changelog_file, even when --changelog-file is not given.
+      - Giving --clear-packages removes the packages of a registered repository.
       - The repository owner must match the project owner.
     stdin: none
     output:
@@ -419,7 +473,7 @@ entries:
       - code: 0
         when: The repository was registered or updated.
       - code: 1
-        when: There is no active project, the repository is not in owner/repo form or its owner differs from the project owner, the link failed, --package conflicts with --changelog-file or --clear-packages or is malformed, --changelog-file is given for a repository that has packages, or --release-type is not single, multi or nx.
+        when: There is no active project, the active config file is broken, the repository is not in owner/repo form or its owner differs from the project owner, the link failed, --package conflicts with --changelog-file or --clear-packages or is malformed, --changelog-file is given for a repository that has packages, --release-type is not single, multi or nx, or the project root cannot be determined.
       - code: 2
         when: The repository argument is missing, or another command line error occurs.
     on_error: The config file is not written when linking the repository fails.
@@ -450,37 +504,52 @@ entries:
         statement: 未登録のリポジトリを渡すと、プロジェクトにリンクする
       - id: PW-PROJECT-SET-REPO-02
         pattern: event
-        statement: 登録済みのリポジトリを渡すと、渡したオプションの値だけを更新する
+        statement: リンクに成功すると、設定ファイルにリポジトリを足す
       - id: PW-PROJECT-SET-REPO-03
         pattern: event
-        statement: --clear-packages を付けると、登録済みの packages を消す
+        statement: 登録済みのリポジトリを渡すと、渡したオプションの値だけを更新する
       - id: PW-PROJECT-SET-REPO-04
-        pattern: unwanted
-        statement: もしリンクに失敗したなら、設定ファイルを書き換えない
+        pattern: event
+        statement: 登録済みのリポジトリに --package を渡すと、packages を置き換える
       - id: PW-PROJECT-SET-REPO-05
-        pattern: unwanted
-        statement: もしリンクに失敗したなら、終了コード 1 で終わる
+        pattern: event
+        statement: 登録済みのリポジトリに --package を渡すと、changelog_file を消す
       - id: PW-PROJECT-SET-REPO-06
-        pattern: unwanted
-        statement: もし --package と --changelog-file を一緒に渡したなら、終了コード 1 で終わる
+        pattern: event
+        statement: 登録済みのリポジトリに --clear-packages を付けると、packages を消す
       - id: PW-PROJECT-SET-REPO-07
         pattern: unwanted
-        statement: もし --package が NAME:PATH の形でないなら、終了コード 1 で終わる
+        statement: もしリンクに失敗したなら、設定ファイルを書き換えない
       - id: PW-PROJECT-SET-REPO-08
         pattern: unwanted
-        statement: もし --package の NAME が重なるなら、終了コード 1 で終わる
+        statement: もしリンクに失敗したなら、終了コード 1 で終わる
       - id: PW-PROJECT-SET-REPO-09
         pattern: unwanted
-        statement: もしリポジトリの所有者がプロジェクトの所有者と違うなら、終了コード 1 で終わる
+        statement: もし --package と --changelog-file を一緒に渡したなら、終了コード 1 で終わる
       - id: PW-PROJECT-SET-REPO-10
         pattern: unwanted
-        statement: もしリポジトリが owner/repo の形でないなら、終了コード 1 で終わる
+        statement: もし --package と --clear-packages を一緒に渡したなら、終了コード 1 で終わる
       - id: PW-PROJECT-SET-REPO-11
         pattern: unwanted
-        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+        statement: もし --package が NAME:PATH の形でないなら、終了コード 1 で終わる
       - id: PW-PROJECT-SET-REPO-12
-        pattern: event
-        statement: リンクに成功すると、設定ファイルにリポジトリを足す
+        pattern: unwanted
+        statement: もし --package の NAME が重なるなら、終了コード 1 で終わる
+      - id: PW-PROJECT-SET-REPO-13
+        pattern: unwanted
+        statement: もしリポジトリの所有者がプロジェクトの所有者と違うなら、終了コード 1 で終わる
+      - id: PW-PROJECT-SET-REPO-14
+        pattern: unwanted
+        statement: もしリポジトリが owner/repo の形でないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-SET-REPO-15
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-PROJECT-SET-REPO-16
+        pattern: unwanted
+        statement: もし --release-type が single・multi・nx のどれでもないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-SET-REPO-17
+        pattern: unwanted
+        statement: もし packages を持つリポジトリに --changelog-file を渡したなら、終了コード 1 で終わる
   PW-PROJECT-SHOW-AGGREGATION-REPO:
     constraints: []
     details:
@@ -495,7 +564,7 @@ entries:
       - code: 0
         when: The value was printed.
       - code: 1
-        when: There is no active project.
+        when: There is no active project, the active config file is broken, or the project root cannot be determined.
       - code: 2
         when: The command line is invalid, such as an unknown option.
     on_error: default
@@ -534,7 +603,7 @@ entries:
       - code: 0
         when: The value was cleared or was not set.
       - code: 1
-        when: There is no active project.
+        when: There is no active project, the active config file is broken, or the project root cannot be determined.
       - code: 2
         when: The command line is invalid, such as an unknown option.
     on_error: default
@@ -558,13 +627,13 @@ entries:
         statement: 値を設定していると、設定ファイルから消す
       - id: PW-PROJECT-UNSET-AGGREGATION-REPO-02
         pattern: event
-        statement: 未設定だと、unchanged の行を標準エラーに出す
+        statement: 値を設定していると、removed の行を標準エラーに出す
       - id: PW-PROJECT-UNSET-AGGREGATION-REPO-03
+        pattern: event
+        statement: 未設定だと、unchanged の行を標準エラーに出す
+      - id: PW-PROJECT-UNSET-AGGREGATION-REPO-04
         pattern: unwanted
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
-      - id: PW-PROJECT-UNSET-AGGREGATION-REPO-04
-        pattern: event
-        statement: 値を設定していると、removed の行を標準エラーに出す
 common_behaviors:
   - id: PW-COMMON-01
     pattern: event
@@ -579,17 +648,32 @@ common_behaviors:
     pattern: event
     statement: --version か -v を付けて打つと、終了コード 0 で終わる
   - id: PW-COMMON-05
-    pattern: unwanted
-    statement: もし知らないオプションを渡したなら、終了コード 2 で終わる
-  - id: PW-COMMON-06
-    pattern: unwanted
-    statement: もし --repo が owner/repo の形でないなら、終了コード 2 で終わる
-  - id: PW-COMMON-07
     pattern: event
     statement: --show-repo を付けて打つと、解決したリポジトリを標準出力に出す
+  - id: PW-COMMON-06
+    pattern: event
+    statement: --repo を渡すと、git の remote に関わらず渡したリポジトリを対象にする
+  - id: PW-COMMON-07
+    pattern: event
+    statement: --repo を省くと、カレントの git の origin remote のリポジトリを対象にする
   - id: PW-COMMON-08
-    pattern: unwanted
-    statement: もし --show-repo でリポジトリを解決できないなら、終了コード 2 で終わる
+    pattern: event
+    statement: --repo を省いて origin remote が無いと、最初の remote のリポジトリを対象にする
   - id: PW-COMMON-09
     pattern: unwanted
-    statement: もし PECOT_GITHUB_API_URL がループバックの http の URL でないなら、終了コード 1 で終わる
+    statement: もし知らないオプションを渡したなら、終了コード 2 で終わる
+  - id: PW-COMMON-10
+    pattern: unwanted
+    statement: もし --repo が owner/repo の形でないなら、終了コード 2 で終わる
+  - id: PW-COMMON-11
+    pattern: unwanted
+    statement: もし --show-repo でリポジトリを解決できないなら、終了コード 2 で終わる
+  - id: PW-COMMON-12
+    pattern: unwanted
+    statement: もし PECOT_GITHUB_API_URL がループバックの http の URL でないなら、サブコマンドを動かさずに終了コード 1 で終わる
+  - id: PW-COMMON-13
+    pattern: unwanted
+    statement: もしプロジェクトのルートを決められないなら、終了コード 1 で終わる
+  - id: PW-COMMON-14
+    pattern: unwanted
+    statement: もし読み込む設定ファイルの形式が不正なら、終了コード 1 で終わる
