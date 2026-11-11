@@ -4,14 +4,20 @@ hooks の本体は shell と jq のまま（FR-013）。判定の入力を Bash 
 
 ## ツール名の取り出し
 
-`PECOT_HOOK_TOOL_NAME` から `<tool>` を取り出してから判定する。
+`PECOT_HOOK_TOOL_NAME` から `<tool>` を取り出してから判定する。取り出した名前が 34 個のツール名にあるときだけ判定し、無ければ素通しにする。
 
 | クライアント | 形 | 例 |
 |---|---|---|
 | Claude Code | `mcp__plugin_pecot-w_pecot-workflow__<tool>` | `mcp__plugin_pecot-w_pecot-workflow__issue_create` |
 | Copilot CLI | `pecot-workflow-<tool>` | `pecot-workflow-issue_create` |
 
+Copilot CLI の matcher `pecot-workflow-.*` は、playwright のツールにも当たる。
+例は `pecot-workflow-playwright-browser_click`。
+接頭辞を外すと `playwright-browser_click` になる。34 個のツール名に無いので素通しになる。
+Claude Code の接頭辞は `pecot-workflow__` で終わるので、playwright のツールには当たらない。
+
 matcher は `hooks.json` の `mcp__.*` のままで足りる。Copilot CLI 向けの matcher には `pecot-workflow-.*` を足す。置き場は `com.github.copilot/hooks/hooks.json`（`hooks/hooks-copilot.json` から移す）。
+今の `hooks-copilot.json` の matcher は `mcp__.*|github-mcp-server-create_pull_request`。
 
 ## 投稿の ask（`lib/mcp-handlers/pecot-post-ask.sh`）
 
@@ -28,42 +34,78 @@ matcher は `hooks.json` の `mcp__.*` のままで足りる。Copilot CLI 向�
 
 ## 入れる時期
 
-| 判定 | フェーズ 7 | フェーズ 10（切り替え） |
+この表を正にする。
+
+| 判定 | フェーズ 8 | フェーズ 11（切り替え） |
 |---|---|---|
 | 投稿の ask（MCP） | 入れる。MCP サーバが未登録なので発火しない | そのまま |
 | Bash の `pecot` の deny | `lib/core/pecot-cli-deny.sh` とテストだけを入れる | `pre-tool-use-bash.sh` から呼ぶ |
 | `external-post-check.sh` の pecot の判定 | 残す | 外す |
-| 案内文 | 書き換えた文を用意し、テストで固定する | 差し替える |
+| 案内文 | 書き換えた文を `lib/core/mcp-guidance.sh` に用意し、テストで固定する | 呼ぶ側を差し替える |
+| Copilot CLI の matcher | 足さない | `pecot-workflow-.*` を足し、`hooks-copilot.json` を移す |
+
+フェーズ 8 が `mcp-dispatcher.sh` を変えるときは、既存の pytest（`hooks/tests/test_pre_mcp.py` など）も同じ PR で直す。
 
 ## Bash の `pecot` の deny（`lib/core/pecot-cli-deny.sh`）
 
 | 入力 | 判定 |
 |---|---|
-| セグメントの先頭が `pecot` / `$PECOT` / `"$PECOT"` / `bin/pecot` のフルパス / クオート付きのパス | deny。理由に対応するツール名を入れる（例: `pecot issue read` → `issue_read`） |
+| セグメントの先頭が `pecot` / `$PECOT` / `"$PECOT"` / `bin/pecot` のフルパス / クオート付きのパス（`"${CLAUDE_PLUGIN_ROOT}/bin/pecot"` を含む） | deny。理由に対応するツール名を入れる（例: `pecot issue read` → `issue_read`） |
 | 上の形でサブコマンドが分からない（`pecot` だけ、`pecot --help`） | deny。理由には MCP ツールの一覧を使うよう書く |
 | それ以外 | 今の判定へ進む |
 
 セグメントの分け方と起動形の見つけ方は、今の `external-post-check.sh` の処理を使う。サブコマンド別の許可・阻止は持たない。
+グループ付きのコマンドは、グループとサブコマンドをつなげてツール名にする。
+
+| Bash の起動 | ツール名 |
+|---|---|
+| `pecot issue read` | `issue_read` |
+| `pecot security sync` | `security_sync` |
+| `pecot dependabot sync` | `dependabot_sync` |
+| `pecot add-to-project` | `add_to_project` |
 
 `external-post-check.sh` には `gh pr merge` の ask だけが残る。
 
 ## 案内文の書き換え
 
+実物（`plugins/pecot-workflow/hooks/`）で `pecot` を案内している箇所は、次のとおり。
+
 | 置き場 | 今 | 移行後 |
 |---|---|---|
-| `lib/core/gh-command-check.sh` | `PECOT=pecot` と Copilot 用の別ランチャーの説明 | `issue_create` / `pr_create` を使うよう案内 |
-| `lib/pre-tool-use/pecot-issue-pending-reminder.sh` | `pecot issue quick` または `pecot issue create` | `issue_quick` または `issue_create` |
-| `lib/post-tool-use/plan-issue-poster.sh` の失敗時の案内 | `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue comment ...` | `issue_comment`（`prepare: true` で下書き、次にファイルを渡して投稿） |
-| `hooks/templates/*.md` | `pecot` コマンド | MCP ツール名 |
+| `lib/core/gh-command-check.sh`（54・66〜67 行） | `pecot pr create`、`pecot issue quick`、`pecot issue create` | `pr_create`、`issue_quick`、`issue_create` |
+| `lib/core/git-worktree-branch-check.sh`（85 行） | `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" delete-branch <owner/repo> <branch>` | `delete_branch`（入力は `repo_ref` と `branch`） |
+| `lib/pre-tool-use/pecot-issue-pending-reminder.sh`（43・51・55・60 行） | `pecot issue quick`、`pecot issue create --prepare`、`pecot issue create <file path>` | `issue_quick`、`issue_create`（`prepare: true` で下書き、次にファイルを渡して投稿） |
+| `lib/core/external-post-check.sh` の `ISSUE_MSG`・`CREATE_MSG`（131〜142 行） | `pecot issue quick` / `create`、`pecot pr create` | フェーズ 11 で外す。ask の文は `pecot-post-ask.sh` に移す（文言は今と同じ） |
+| `lib/core/external-post-check.sh` の `GH_MSG`（144〜148 行） | `pecot pr cleanup` | `pr_cleanup`（この判定はフェーズ 11 の後も残る） |
+| `templates/exit-plan-comment-update.md` | `pecot issue comment <that file>` | `issue_comment` |
+| `hooks/README.md`（71〜75・86〜113・123・172〜174・252 行） | `pecot` コマンド | ツール名 |
 
-hooks の中から CLI を呼ぶ処理（`plan-post-result.sh` の `pecot issue comment`）は、Node の CLI をそのまま呼ぶ。Bash ツールを通らないので deny の対象にならない。
+次のものは案内文ではないので、書き換えない。
+
+- `lib/session-start/git-sync.sh:19` の `uvx` を確かめる処理は、コメントだけが `pecot CLI` に触れている
+- `workflow-compliance-injector.sh`・`pecot-skill-compliance.sh` の文は、スキルの名前だけを案内する
+
+`plan-issue-poster.sh` と `plan-post-result.sh` は、リポに無い。計画の Issue への投稿は、確認の前にエージェントが済ませる（w-active / w-quick の手順）。
+
+### 移行後の文の置き場とテスト
+
+- 移行後の文は `hooks/lib/core/mcp-guidance.sh` に、文ごとの関数として置く。フェーズ 8 で作る
+- 固定するテストは `cli-node/tests/hooks/mcp-guidance.test.ts`。各関数の出力に、対応するツール名があり、`pecot` で始まる起動形が無いことを確かめる
+- フェーズ 11 で、上の表の 5 つのスクリプトとテンプレートが、この関数を呼ぶ形に替える。`hooks/README.md` の表も同じ変更で直す
+
+### hooks の中からの CLI の呼び出し
+
+実物では、hooks のスクリプトが `bin/pecot` を実行する箇所は無い。
+`git grep -n 'bin/pecot' -- plugins/pecot-workflow/hooks` の該当は、テストを除くと、コメントと案内文だけ。
+`exit-plan-remind.sh` は、承認後の計画が変わっていれば、`issue_comment` で打ち直すよう案内する。フェーズ 11 の後も、hooks の中に Bash の `pecot` の実行を足さない。
 
 ## テスト
 
 | 確認 | 方法 |
 |---|---|
 | 今の阻止の条件 | 今の pytest のケースを vitest に移し、MCP の入力 JSON で同じ判定と文言になる |
+| 34 個に無い名前 | `pecot-workflow-playwright-browser_click` などは、2 つのクライアントの形のどちらでも素通しになる |
 | 2 つのクライアントの名前 | 各ケースを両方のツール名の形で流す |
 | Bash の deny | 定義書にあるサブコマンドの起動形それぞれで deny され、理由に対応するツール名がある |
-| 件数 | vitest の件数が `baseline.json` の `hooks.testCount` 以上 |
+| 件数 | 移行元の pytest のケースとの対応で比べる。`scripts/ci/compare_junit.py` で、pytest の JUnit と vitest の JUnit（`cli-node/test-results/junit-hooks.xml`）をファイルごとに比べる。フェーズ 8 が足した新しいケースは、`hooks.testCount`（1,569 件）との比較から除く |
 | 起動スクリプト | テストが起動するスクリプトの一覧が `hooks.scripts` を全部含む（消したスクリプトを除く） |
