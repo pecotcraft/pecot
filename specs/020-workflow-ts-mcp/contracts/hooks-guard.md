@@ -64,6 +64,6 @@ hooks の中から CLI を呼ぶ処理（`plan-post-result.sh` の `pecot issue 
 |---|---|
 | 今の阻止の条件 | 今の pytest のケースを vitest に移し、MCP の入力 JSON で同じ判定と文言になる |
 | 2 つのクライアントの名前 | 各ケースを両方のツール名の形で流す |
-| Bash の deny | 32 サブコマンドの起動形それぞれで deny され、理由に対応するツール名がある |
+| Bash の deny | 定義書にあるサブコマンドの起動形それぞれで deny され、理由に対応するツール名がある |
 | 件数 | vitest の件数が `baseline.json` の `hooks.testCount` 以上 |
 | 起動スクリプト | テストが起動するスクリプトの一覧が `hooks.scripts` を全部含む（消したスクリプトを除く） |

@@ -47,7 +47,7 @@ github:
 
 ## 規則
 
-- 32 サブコマンドのそれぞれに、正常系と失敗系（認証切れ、GitHub の 4xx / 5xx、引数の誤り）を 1 件以上
+- 定義書にあるサブコマンドのそれぞれに、正常系と失敗系（認証切れ、GitHub の 4xx / 5xx、引数の誤り）を 1 件以上
 - golden を Node に合わせて書き換えない。差が出たら Node 側を直す
 - golden を記録し直す PR では、Node 側も同じ PR で直し、`parity.test.ts` を通す
 - `PECOT_GITHUB_API_URL` は `http://127.0.0.1` と `http://localhost` だけを受け付ける。他の値なら CLI は起動時に失敗する
