@@ -471,3 +471,35 @@ describe('createProject', () => {
     expect(await rejection(client.createProject('U_owner123', 'New Project'))).toMatchObject({ name: 'GitHubAPIError' })
   })
 })
+
+function fieldValue(fieldId: unknown): unknown {
+  return { field: { id: fieldId } }
+}
+
+async function lookupSetFieldIds(response: unknown): Promise<{ readonly result: ReadonlySet<string>, readonly variables: unknown }> {
+  const { client, server } = await startClient([graphqlData('GetIssueProjectItems', response)])
+  const result = await client.getItemSetFieldIds('PVT_proj', 'owner', 'repo', 123, 'PVTI_item')
+  return { result, variables: graphqlRequests(server).map(request => request.variables) }
+}
+
+describe('getItemSetFieldIds', () => {
+  it('指定のプロジェクトの指定のアイテムの、値が入っているフィールド ID を返す', async () => {
+    const { result, variables } = await lookupSetFieldIds({ repository: { issue: { projectItems: { nodes: [
+      { id: 'PVTI_other', project: { id: 'PVT_proj' }, fieldValues: { nodes: [fieldValue('F_other')] } },
+      { id: 'PVTI_item', project: { id: 'PVT_other' }, fieldValues: { nodes: [fieldValue('F_wrong_project')] } },
+      { id: 'PVTI_item', project: { id: 'PVT_proj' }, fieldValues: { nodes: [fieldValue('F_workflow'), {}, JSON_NULL, fieldValue(1), fieldValue('F_priority')] } },
+    ] } } } })
+    expect(result).toEqual(new Set(['F_workflow', 'F_priority']))
+    expect(variables).toEqual([{ owner: 'owner', repo: 'repo', number: 123 }])
+  })
+
+  it.each([
+    ['Issue が無い', { repository: { issue: JSON_NULL } }],
+    ['リポジトリが無い', { repository: JSON_NULL }],
+    ['アイテムが無い', { repository: { issue: { projectItems: { nodes: [] } } } }],
+    ['値が入っていない', { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_item', project: { id: 'PVT_proj' }, fieldValues: { nodes: [] } }] } } } }],
+  ])('%sときは空', async (_label, response) => {
+    const { result } = await lookupSetFieldIds(response)
+    expect(result.size).toBe(0)
+  })
+})

@@ -16,6 +16,7 @@ import {
   gitRunnerFor,
   gitToplevel,
   originRepository,
+  primaryRemoteRepository,
   runGit,
 } from '../git.js'
 
@@ -206,5 +207,34 @@ describe('gitRunnerFor と resolveRepository（実 git）', () => {
 
   it('リポジトリの外では曖昧', () => {
     expect(() => resolveRepository(undefined, gitRunnerFor(makeTemporaryDirectory(), { stripGitEnvironment: true }))).toThrow(AmbiguousRepositoryError)
+  })
+})
+
+describe('primaryRemoteRepository', () => {
+  it('origin が無ければ git remote の出力の最初の remote を使う', () => {
+    const repository = createGitRepository()
+    gitForTest(repository, ['remote', 'add', 'upstream', 'git@github.com:o/up.git'])
+    gitForTest(repository, ['remote', 'add', 'fork', 'https://github.com/o/fork.git'])
+    expect(primaryRemoteRepository(repository)).toEqual({ host: 'github.com', owner: 'o', repository: 'fork' })
+  })
+
+  it('origin があれば origin を使う', () => {
+    const repository = createGitRepository()
+    gitForTest(repository, ['remote', 'add', 'upstream', 'git@github.com:o/up.git'])
+    gitForTest(repository, ['remote', 'add', 'origin', 'git@github.com:o/r.git'])
+    expect(primaryRemoteRepository(repository)).toEqual({ host: 'github.com', owner: 'o', repository: 'r' })
+  })
+
+  it.each([
+    ['remote が無い', (): string => createGitRepository()],
+    ['リポジトリの外', (): string => makeTemporaryDirectory()],
+  ])('%sときは undefined', (_label, directory) => {
+    expect(primaryRemoteRepository(directory())).toBeUndefined()
+  })
+
+  it('URL の形式が合わなければ undefined', () => {
+    const repository = createGitRepository()
+    gitForTest(repository, ['remote', 'add', 'origin', 'invalid'])
+    expect(primaryRemoteRepository(repository)).toBeUndefined()
   })
 })

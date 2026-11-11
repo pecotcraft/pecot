@@ -219,7 +219,7 @@ export function validatePullRequestFrontmatter(data: unknown): PullRequestFrontm
 // 先頭の空白の連続と、本文の最短一致が、空白を取り合う。入力はフロントマター付きの Markdown 1 ファイルで、
 // Python の同名の正規表現と同じ範囲を取るため、この形を保つ。
 // eslint-disable-next-line regexp/no-super-linear-backtracking -- 空白の連続が長い入力でだけ遅くなる。取る範囲を Python と揃えるため書き換えない
-const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/su
+const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/dsu
 
 // 本文先頭のガイドコメント（`--prepare` 雛形の「読者:／書き方:／フィールド:」ブロック）。
 // 前後の空白・空行ごと 1 ブロックだけ食う。本文途中のコメントは対象外。
@@ -298,4 +298,24 @@ export function parseCommentContent(content: string): ParsedComment {
 export function parsePullRequestContent(content: string): ParsedPullRequest {
   const { data, body } = splitFrontmatter(content)
   return { frontmatter: validatePullRequestFrontmatter(data), body }
+}
+
+// `key` の直後に空白を挟んで `:` が続く行か（Python の `^key\s*:`）
+function isKeyLine(line: string, key: string): boolean {
+  return line.startsWith(key) && /^\s*:/u.test(line.slice(key.length))
+}
+
+/**
+フロントマターに `key: "value"` の 1 行を足す（同じキーの行があれば置き換える）。
+フロントマターが無ければ FrontmatterError。置き換えた結果が元と同じ行の並びなら、足す（Python と同じ）
+*/
+export function setFrontmatterValue(content: string, key: string, value: string): string {
+  const match = FRONTMATTER_PATTERN.exec(content)
+  const span = match?.indices?.[1]
+  if (match === null || span === undefined) throw new FrontmatterError('frontmatter not found')
+  const lines = (match[1] ?? '').split('\n')
+  const entry = `${key}: "${value}"`
+  const replaced = lines.map(line => isKeyLine(line, key) ? entry : line)
+  if (replaced.every((line, index) => line === lines.at(index))) replaced.push(entry)
+  return content.slice(0, span[0]) + replaced.join('\n') + content.slice(span[1])
 }

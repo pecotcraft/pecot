@@ -52,6 +52,30 @@ const remove = defineCommand({
   },
 })
 
+const optionalStrings = z.array(z.string()).optional()
+
+const optionalFiles = defineCommand({
+  path: ['quick'],
+  description: '任意の複数',
+  input: z.object({ files: optionalStrings }),
+  positional: ['files'],
+  interactive: false,
+  run: async () => await exitWith(0),
+})
+
+const ownRepository = defineCommand({
+  path: ['issue', 'quick'],
+  description: '自分の repo を持つ',
+  input: z.object({ repo: z.string().optional(), title: z.string() }),
+  positional: ['title'],
+  shortFlags: { repo: '-r' },
+  interactive: false,
+  run: async (input) => {
+    seen.push(input)
+    return await exitWith(0)
+  },
+})
+
 async function messageOf(promise: Promise<unknown>): Promise<string> {
   const error = await usageErrorOf(promise)
   return error.message
@@ -73,6 +97,7 @@ describe('synopsisOf・usageOf', () => {
     expect(synopsisOf(read)).toBe('[OPTIONS] ISSUE_REF')
     expect(synopsisOf(preflight)).toBe('[OPTIONS] [VERSION]')
     expect(synopsisOf(remove)).toBe('[OPTIONS] NAMES...')
+    expect(synopsisOf(optionalFiles)).toBe('[OPTIONS] [FILES]...')
     expect(usageOf(read)).toEqual({ commandPath: ['issue', 'read'], synopsis: '[OPTIONS] ISSUE_REF' })
   })
 })
@@ -88,6 +113,13 @@ describe('runDefinition', () => {
     seen.length = 0
     await runDefinition(read, ['a/b/1'], capture(), 'x/y')
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false, repo: 'x/y' }])
+  })
+
+  it('自分の repo を持つコマンドは、自分の -r を使い、グローバルの --repo は捨てる', async () => {
+    seen.length = 0
+    await runDefinition(ownRepository, ['t', '-r', 'y/z'], capture(), 'x/y')
+    await runDefinition(ownRepository, ['t'], capture(), 'x/y')
+    expect(seen).toEqual([{ title: 't', repo: 'y/z' }, { title: 't' }])
   })
 
   it('指定の無い真偽値は false。既定値は zod が足す', async () => {

@@ -246,6 +246,25 @@ export class ProjectsApi extends ReposApi {
   }
 
   /**
+  プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
+  */
+  async getItemSetFieldIds(projectId: string, owner: string, repository: string, issueNumber: number, itemId: string): Promise<ReadonlySet<string>> {
+    const result = await this.executeGraphql(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
+    const issue = jsonField(jsonField(result, 'repository'), 'issue')
+    const fieldIds = new Set<string>()
+    const items = truthyNodes(jsonField(issue, 'projectItems'))
+    for (const item of items) {
+      if (jsonField(item, 'id') !== itemId || jsonField(jsonField(item, 'project'), 'id') !== projectId) continue
+      const values = truthyNodes(jsonField(item, 'fieldValues'))
+      for (const value of values) {
+        const fieldId = jsonField(jsonField(value, 'field'), 'id')
+        if (typeof fieldId === 'string') fieldIds.add(fieldId)
+      }
+    }
+    return fieldIds
+  }
+
+  /**
   プロジェクトにリポジトリをリンクする。
   リンクした（linked）、既にリンク済み（already_linked）、失敗（failed）のいずれも例外にせず結果で返す
   */

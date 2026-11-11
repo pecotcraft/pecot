@@ -47,6 +47,7 @@ const alpha = defineCommand({
 })
 
 const strings = z.array(z.string())
+const optionalString = z.string().optional()
 
 const beta = defineCommand({
   path: ['beta'],
@@ -116,6 +117,15 @@ describe('exportEntries', () => {
 
   it('グローバルの repo は input に出さない', () => {
     expect(Object.keys(entries[0]?.input.properties ?? {})).not.toContain('repo')
+  })
+
+  it('コマンド自身が持つ repo は input と cli.flags に出す', () => {
+    const shape = { repo: optionalString.describe('Target repository.'), title: z.string().describe('Title.') }
+    const own = defineCommand({ path: ['own'], description: 'Own repo.', input: z.strictObject(shape), positional: ['title'], shortFlags: { repo: '-r' }, run: () => Promise.resolve(0), interactive: false })
+    const [entry] = exportEntries([own])
+    expect(Object.keys(entry?.input.properties ?? {})).toStrictEqual(['repo', 'title'])
+    expect(entry?.input.required).toStrictEqual(['title'])
+    expect(entry?.cli.flags).toStrictEqual({ repo: ['--repo', '-r'] })
   })
 
   it('input.properties と cli.flags のキーは名前の順、引数の中のキーは決めた順', () => {

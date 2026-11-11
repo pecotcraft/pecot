@@ -155,7 +155,10 @@ export interface ReserveOptions {
   readonly now?: (() => Date) | undefined
 }
 
-function formatTimestamp(milliseconds: number): string {
+/**
+`YYYYMMDD-HHMMSS`（ローカル時刻）。reserveOutputPath の nameFor に渡す形
+*/
+export function formatTimestamp(milliseconds: number): string {
   const date = new Date(milliseconds)
   const two = (value: number): string => String(value).padStart(2, '0')
   return `${String(date.getFullYear())}${two(date.getMonth() + 1)}${two(date.getDate())}-${two(date.getHours())}${two(date.getMinutes())}${two(date.getSeconds())}`

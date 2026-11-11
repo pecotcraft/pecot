@@ -90,6 +90,13 @@ export function createResolvedRepository(resolved: ResolvedRepository): Resolved
 }
 
 /**
+remote 名の一覧から主の remote を選ぶ（origin、無ければ最初）。一覧が空なら undefined
+*/
+export function pickPrimaryRemote(remotes: readonly string[]): string | undefined {
+  return remotes.includes('origin') ? 'origin' : remotes[0]
+}
+
+/**
 現在の git の remote からリポジトリを取り出す。git の外・remote 無しは undefined。
 URL の形式が不正なときは、InvalidValueError をそのまま伝える（バグ扱い）。
 Python の `_detect_current_git_repo` と同じで、infra/git.ts の originRepository（不正なら undefined を返す）とは契約が違う。
@@ -103,10 +110,8 @@ export function detectCurrentGitRepository(git: GitRunner): { readonly repositor
   const remotesResult = git(['remote'])
   if (remotesResult.exitCode !== 0) return undefined
   const remotes = remotesResult.stdout.split('\n').map(line => line.trim()).filter(line => line !== '')
-  const [firstRemote] = remotes
-  if (firstRemote === undefined) return undefined
-
-  const remoteName = remotes.includes('origin') ? 'origin' : firstRemote
+  const remoteName = pickPrimaryRemote(remotes)
+  if (remoteName === undefined) return undefined
   const url = git(['remote', 'get-url', remoteName])
   if (url.exitCode !== 0) return undefined
   const { owner, repository } = parseRemoteUrl(url.stdout.trim())

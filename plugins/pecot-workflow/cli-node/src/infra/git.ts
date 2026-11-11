@@ -7,6 +7,7 @@ import type { GitResult, GitRunner } from '../domain/git-runner.js'
 import { parseRemoteUrl } from '../domain/git-url.js'
 import type { RemoteLocation } from '../domain/git-url.js'
 import { BaseError, InvalidValueError } from '../domain/errors.js'
+import { pickPrimaryRemote } from '../domain/repository-resolver.js'
 import { normalizeNewlines, pythonRepr, pythonStrip } from '../domain/python-format.js'
 import { isFileNotFound, toOsError } from './os-error.js'
 
@@ -115,7 +116,10 @@ Python の `origin_repo` と同じ契約で、URL が不正でも例外にしな
 不正な URL を例外として見せる domain の detectCurrentGitRepository とは契約が違う
 */
 export function originRepository(cwd?: string): RemoteLocation | undefined {
-  const url = gitRemoteUrl(cwd)
+  return parseRemoteLocation(gitRemoteUrl(cwd))
+}
+
+function parseRemoteLocation(url: string | undefined): RemoteLocation | undefined {
   if (url === undefined) return undefined
   try {
     return parseRemoteUrl(url)
@@ -124,4 +128,15 @@ export function originRepository(cwd?: string): RemoteLocation | undefined {
     if (error instanceof InvalidValueError) return undefined
     throw error
   }
+}
+
+/**
+主の remote（origin、無ければ最初）の URL から host・owner・repository を返す。
+remote 不在・git の外・URL 形式の不一致は undefined。Python の `primary_remote_repo` と同じ契約
+*/
+export function primaryRemoteRepository(cwd?: string): RemoteLocation | undefined {
+  const listed = runForValue(['remote'], { cwd })
+  if (listed === undefined) return undefined
+  const name = pickPrimaryRemote(listed.split('\n').map(line => line.trim()).filter(line => line !== ''))
+  return name === undefined ? undefined : parseRemoteLocation(gitRemoteUrl(cwd, name))
 }

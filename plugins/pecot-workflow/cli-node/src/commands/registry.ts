@@ -28,7 +28,7 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly description: string
   /**
-  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。`repo` はグローバルの --repo 用の予約名
+  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。`repo` を持てば、そのコマンド自身の入力になる（グローバルの --repo は使わない）
   */
   readonly input: Input
   /**
@@ -70,9 +70,13 @@ export interface CommandDefinition {
   readonly toolName: string
   readonly description: string
   /**
-  グローバルの repo を足した入力
+  グローバルの repo を足した入力。ownsRepository なら spec.input のまま
   */
   readonly input: z.ZodObject
+  /**
+  コマンド自身が repo を入力に持つか。真ならグローバルの --repo は合成せず、run に渡る repo はコマンド自身の値
+  */
+  readonly ownsRepository: boolean
   readonly positional: readonly string[]
   /**
   input の名前から短いオプションへ
@@ -110,9 +114,13 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
 
 export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandSpec<Input>>): CommandDefinition {
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
-  if (Object.hasOwn(spec.input.shape, 'repo')) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
-  const input = spec.input.safeExtend(GLOBAL_SHAPE)
+  const hasOwnRepository = Object.hasOwn(spec.input.shape, 'repo')
+  const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
+    if (hasOwnRepository) {
+      const own: z.output<Input> & GlobalInput = spec.input.parse(raw)
+      return { run: async io => await spec.run(own, io) }
+    }
     // 検証は spec.input で行う（全体の refine を保つ）。repo は strictObject が拒むので外し、別に検証する
     const own: z.output<Input> = spec.input.parse(Object.fromEntries(Object.entries(raw).filter(([name]) => name !== 'repo')))
     const parsed = { ...own, ...GLOBAL_SCHEMA.parse(raw) }
@@ -123,6 +131,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     toolName: toolNameOf(spec.path),
     description: spec.description,
     input,
+    ownsRepository: hasOwnRepository,
     positional: spec.positional,
     shortFlags: flagMap(spec.shortFlags),
     negations: flagMap(spec.negations),

@@ -140,15 +140,25 @@ describe('defineCommand', () => {
     expect(plain.interactive).toBe(true)
   })
 
-  it('repo は予約名なので、input に持てない', () => {
-    expect(() => defineCommand({
-      path: ['x'],
+  it('input が repo を持つコマンドは、グローバルの repo を合成せず、自分の repo を使う', async () => {
+    const received: unknown[] = []
+    const own = defineCommand({
+      path: ['own'],
       description: '',
-      input: z.object({ repo: z.string() }),
+      input: z.object({ repo: z.string().optional(), name: z.string() }),
       positional: [],
       interactive: false,
-      run: async () => await exitWith(0),
-    })).toThrow('予約名')
+      run: async (input) => {
+        received.push(input)
+        return await exitWith(0)
+      },
+    })
+    expect(own.ownsRepository).toBe(true)
+    expect(definition.ownsRepository).toBe(false)
+    expect(Object.keys(own.input.shape)).toEqual(['repo', 'name'])
+    await own.run({ repo: 'a/b', name: 'x' }, capture())
+    expect(received).toEqual([{ repo: 'a/b', name: 'x' }])
+    expect(() => own.parse({ name: 'x', repo: 1 })).toThrow(z.ZodError)
   })
 
   it('全体の refine を保ち、strictObject でも repo を受ける', async () => {

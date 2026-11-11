@@ -7,6 +7,7 @@ import {
   parseCommentContent,
   parseFrontmatter,
   parsePullRequestContent,
+  setFrontmatterValue,
   stripFrontmatter,
   stripLeadingHtmlComment,
   validateCommentFrontmatter,
@@ -529,5 +530,26 @@ describe('stripFrontmatter（frontmatter 除去ヘルパ）', () => {
   it('閉じていないフロントマターも原文を返す', () => {
     const content = '---\ntitle: x\n本文\n'
     expect(stripFrontmatter(content)).toBe(content)
+  })
+})
+
+describe('setFrontmatterValue', () => {
+  it('新しいキーを末尾に足し、本文はそのまま残す', () => {
+    const content = '---\nissue_ref: "o/r/1"\n---\n\n## Plan\n'
+    expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe('---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n')
+  })
+
+  it('同じキーの行があれば置き換える', () => {
+    const content = '---\ncomment_url: "old"\nissue_ref: "o/r/1"\n---\nbody\n'
+    expect(setFrontmatterValue(content, 'comment_url', 'new')).toBe('---\ncomment_url: "new"\nissue_ref: "o/r/1"\n---\nbody\n')
+  })
+
+  it('キーに正規表現の記号があっても、その文字どおりの行だけを置き換える', () => {
+    const content = '---\na.c: "1"\nabc: "2"\n---\nbody\n'
+    expect(setFrontmatterValue(content, 'a.c', 'x')).toBe('---\na.c: "x"\nabc: "2"\n---\nbody\n')
+  })
+
+  it('フロントマターが無ければ FrontmatterError を投げる', () => {
+    expect(() => setFrontmatterValue('## Plan\n', 'comment_url', 'x')).toThrow(new FrontmatterError('frontmatter not found'))
   })
 })

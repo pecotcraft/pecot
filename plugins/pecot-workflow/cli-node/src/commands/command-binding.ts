@@ -53,13 +53,13 @@ function labelWithEllipsis(definition: Readonly<CommandDefinition>, name: string
 
 /**
 click の Usage 行に出す書式。
-位置引数は大文字で並べる。例は `[OPTIONS] ISSUE_REF`。任意なら `[VERSION]`、複数なら `NAMES...` にする
+位置引数は大文字で並べる。例は `[OPTIONS] ISSUE_REF`。任意なら `[VERSION]`、必須の複数なら `NAMES...`、任意の複数なら `[FILES]...`
 */
 export function synopsisOf(definition: Readonly<CommandDefinition>): string {
   const names = definition.positional.map((name) => {
     const schema = fieldSchemaOf(definition, name)
-    const label = labelWithEllipsis(definition, name)
-    return schema === undefined || isRequired(schema) || isListField(definition, name) ? label : `[${label}]`
+    if (schema === undefined || isRequired(schema)) return labelWithEllipsis(definition, name)
+    return isListField(definition, name) ? `[${argumentLabel(name)}]...` : `[${argumentLabel(name)}]`
   })
   return ['[OPTIONS]', ...names].join(' ')
 }
@@ -107,7 +107,7 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
 
 function bindOptions(definition: Readonly<CommandDefinition>): readonly BoundOption[] {
   return Object.keys(definition.input.shape)
-    .filter(name => name !== 'repo' && !definition.positional.includes(name))
+    .filter(name => (definition.ownsRepository || name !== 'repo') && !definition.positional.includes(name))
     .map(name => bindOption(definition, name))
     .filter(bound => bound !== undefined)
 }
@@ -200,7 +200,7 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
 
 /**
 定義したコマンドを argv（コマンド名より後ろ）で実行して、終了コードを返す。
-グローバルの --repo は repo で渡し、入力 repo にする。
+グローバルの --repo は repo で渡し、入力 repo にする（コマンド自身が repo を持つなら捨てる）。
 使い方の誤りは UsageError を投げる。--help は説明を stdout に出して 0 を返す。
 UsageError にするのは解析と入力の検証（parse）の誤りだけで、本体（run）の例外はそのまま伝える
 */
@@ -239,7 +239,7 @@ export async function runDefinition(
   const input = Object.fromEntries(entries)
   let prepared: PreparedCommand
   try {
-    prepared = definition.parse(repository === undefined ? input : { ...input, repo: repository })
+    prepared = definition.parse(repository === undefined || definition.ownsRepository ? input : { ...input, repo: repository })
   }
   catch (error: unknown) {
     if (error instanceof z.ZodError) throw issueToUsageError(definition, error, bound, usage)
