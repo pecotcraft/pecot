@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest'
 
 import { ConfigError, MultipleConfigsError, parseProjectConfig, serializeProjectConfig } from '../../domain/config.js'
 import type { ProjectConfig } from '../../domain/config.js'
-import { InvalidValueError } from '../../domain/errors.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
@@ -80,18 +79,20 @@ describe('loadConfig', () => {
     expect(() => loadConfig(path.join(projects, 'nonexistent.json'))).toThrow('config file not found')
   })
 
-  it('不正な JSON は値の不正（文言は JSON パーサーのもの。Python とは違う）', () => {
+  it('不正な JSON は invalid config file の ConfigError（詳細は JSON パーサーの文で、Python とは違う）', () => {
     const { projects } = useProject()
     const file = path.join(projects, 'invalid.json')
     writeFileSync(file, 'not valid json')
-    expect(() => loadConfig(file)).toThrow(InvalidValueError)
+    expect(() => loadConfig(file)).toThrow(ConfigError)
+    expect(() => loadConfig(file)).toThrow(`invalid config file: ${file}: `)
   })
 
-  it('形が不正なら検証エラーの文', () => {
+  it('形が不正なら invalid config file の ConfigError（詳細は 場所: 本文 を ; でつなぐ）', () => {
     const { projects } = useProject()
     const file = path.join(projects, 'bad.json')
     writeFileSync(file, '{}')
-    expect(() => loadConfig(file)).toThrow(/^4 validation errors for ProjectConfig\nhost\n/u)
+    expect(() => loadConfig(file)).toThrow(ConfigError)
+    expect(() => loadConfig(file)).toThrow(`invalid config file: ${file}: host: Field required; owner: Field required;`)
   })
 })
 

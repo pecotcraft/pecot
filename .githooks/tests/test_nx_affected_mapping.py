@@ -1045,3 +1045,22 @@ def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
                 # glob は plugins/<name>/ から、inputs はリポのルートから。
                 path = f"plugins/{name}/{glob}"
                 assert path in inputs, f"{name} の {key} の {glob} が lint-defs の inputs に無い"
+
+
+def test_pecot_workflow_sources_list_every_directory_of_cli_node_src() -> None:
+    """cli-node/src の .ts を直下に持つディレクトリ（tests は除く）が、どれも sources の glob に載る。
+
+    sources は ** を使わずディレクトリを列挙するので、載らないと環境変数の確認から漏れる。
+    """
+    sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
+        "plugins"
+    ]["pecot-workflow"]["sources"]
+    plugin_root = _REPO_ROOT / "plugins/pecot-workflow"
+    src = plugin_root / "cli-node/src"
+    directories = {
+        path.parent for path in src.rglob("*.ts") if "tests" not in path.relative_to(src).parts
+    }
+    assert directories, "cli-node/src に .ts が無い"
+    for directory in sorted(directories):
+        glob = f"{directory.relative_to(plugin_root).as_posix()}/*.ts"
+        assert glob in sources, f"{glob} が targets.json の pecot-workflow の sources に無い"

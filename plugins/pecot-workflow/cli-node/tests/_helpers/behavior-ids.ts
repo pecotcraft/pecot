@@ -4,15 +4,44 @@ import { globSync, readFileSync } from 'node:fs'
 
 import { compareText } from '../../../../../libs/interface-spec/src/domain/utility.js'
 
-const ID = /PW-[A-Z0-9\-]+-\d{2}/gv
+const ID = /(?<![\w\-])PW-[A-Z0-9\-]+-\d{2}(?![\w\-])/gv
 // 2 つ目の引数が文字列のリテラルでない verifies の呼び出し
-const DYNAMIC_CALL = /verifies\([^,\(\)]+,\s*(?!['"`])/v
+const DYNAMIC_CALL = /verifies\([^,\(\)]+,(?!\s*['"`])/v
 const LITERAL_CALL = /verifies\([^,\(\)]+,\s*['"`](?<id>[^'"`]+)['"`]/gv
 
 export const TEST_GLOBS = ['tests/**/*.ts', 'src/**/tests/**/*.ts']
 
+const QUOTES = new Set(['\'', '"', '`'])
+
+// 文字列の外の // と /* */ を消す。文字列の中の // と /* はそのまま残す
 export function stripComments(text: string): string {
-  return text.replaceAll(/\/\*[\s\S]*?\*\//gv, '').replaceAll(/(?:^|\s)\/\/.*$/gmv, '')
+  let result = ''
+  let quote = ''
+  let index = 0
+  while (index < text.length) {
+    const char = text.charAt(index)
+    const pair = text.slice(index, index + 2)
+    if (quote !== '') {
+      const step = char === '\\' ? 2 : 1
+      result += text.slice(index, index + step)
+      index += step
+      if (char === quote) quote = ''
+    }
+    else if (pair === '//') {
+      index = text.indexOf('\n', index)
+      if (index === -1) index = text.length
+    }
+    else if (pair === '/*') {
+      const end = text.indexOf('*/', index + 2)
+      index = end === -1 ? text.length : end + 2
+    }
+    else {
+      if (QUOTES.has(char)) quote = char
+      result += char
+      index += 1
+    }
+  }
+  return result
 }
 
 /**

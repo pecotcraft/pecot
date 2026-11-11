@@ -202,7 +202,6 @@
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
         "{projectRoot}/interface/generated.json",
-        "{projectRoot}/interface/authored.yaml",
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",

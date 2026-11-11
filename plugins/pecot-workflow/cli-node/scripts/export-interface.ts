@@ -8,7 +8,7 @@ import process from 'node:process'
 import { z } from 'zod'
 
 import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.js'
-import { generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
+import { generatedEntrySchema, generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { createOutput } from '../src/commands/output.js'
 import { COMMANDS, type CommandDefinition, type CommandIo } from '../src/commands/registry.js'
 
@@ -142,7 +142,27 @@ export interface MainOptions {
 const DEFAULT_TARGET = path.resolve(import.meta.dirname, '../../interface/generated.json')
 
 function reasonOf(error: unknown): string {
+  if (error instanceof z.ZodError) return issuesOf(error)
   return error instanceof Error ? (error.message.split('\n', 1)[0] ?? 'unknown') : 'unknown'
+}
+
+/**
+zod のエラーを「欄のパス: 文」に直す。複数あるときは先頭の 3 件を "; " でつなぐ
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
+function issuesOf(error: z.ZodError): string {
+  const shown = error.issues.slice(0, 3).map(issue => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+  return shown.join('; ') + (error.issues.length > shown.length ? `; and ${String(error.issues.length - shown.length)} more` : '')
+}
+
+function duplicatesOf(ids: readonly string[]): string[] {
+  const seen = new Set<string>()
+  const duplicated = new Set<string>()
+  for (const id of ids) {
+    if (seen.has(id)) duplicated.add(id)
+    seen.add(id)
+  }
+  return [...duplicated].toSorted(byName)
 }
 
 /**
@@ -158,13 +178,22 @@ function check(entries: readonly InterfaceEntry[], target: string, output: Reado
     output.error(`cannot read ${target}: ${reasonOf(error)}`)
     return 1
   }
-  const ids = new Set(entries.map(entry => entry.id))
-  const node: GeneratedFile = {
-    format: authored.format,
-    plugin: authored.plugin,
-    prefix: authored.prefix,
-    entries: entries.map(({ surfaces, ...rest }) => generatedFileSchema.shape.entries.element.parse({ ...rest, surfaces: { cli: surfaces.cli } })),
+  const duplicated = duplicatesOf(entries.map(entry => entry.id))
+  if (duplicated.length > 0) {
+    output.error(`duplicate ids: ${duplicated.join(', ')}`)
+    return 1
   }
+  const ids = new Set(entries.map(entry => entry.id))
+  const nodeEntries: GeneratedFile['entries'] = []
+  for (const { surfaces, ...rest } of entries) {
+    const parsed = generatedEntrySchema.safeParse({ ...rest, surfaces: { cli: surfaces.cli } })
+    if (!parsed.success) {
+      output.error(`${rest.id}: invalid entry: ${issuesOf(parsed.error)}`)
+      return 1
+    }
+    nodeEntries.push(parsed.data)
+  }
+  const node: GeneratedFile = { format: authored.format, plugin: authored.plugin, prefix: authored.prefix, entries: nodeEntries }
   const picked = authored.entries
     .filter(entry => ids.has(entry.id))
     .map(({ surfaces, ...rest }) => ({ ...rest, surfaces: { ...(surfaces.cli !== undefined && { cli: surfaces.cli }) } }))

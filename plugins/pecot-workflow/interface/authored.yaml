@@ -24,9 +24,9 @@ environment:
   - name: PATH
     effect: Searched, in order, for the nx executable when node_modules/.bin/nx under the git toplevel does not exist. An empty element is taken as the current directory. When unset, /bin:/usr/bin is searched.
   - name: TERMINAL_WIDTH
-    effect: Width of the framed panels of the help and error output, in columns, when it is a positive integer. It is ahead of COLUMNS and the width of the terminal. The width is never smaller than the minimum width of a panel.
+    effect: Width of the framed panels of the help and error output, in columns, when it is a positive integer. It is ahead of COLUMNS and of the width of the terminal.
   - name: COLUMNS
-    effect: Width of the framed panels of the help and error output, in columns, when it is a positive integer and TERMINAL_WIDTH is not usable. It is ahead of the width of the terminal; with none of them, the width is 80.
+    effect: Width of the framed panels of the help and error output, in columns, when it is a positive integer and TERMINAL_WIDTH is not set. It is ahead of the width of the terminal; with none of them, the width is 80.
 entries:
   PW-ADD-TO-PROJECT:
     constraints: []

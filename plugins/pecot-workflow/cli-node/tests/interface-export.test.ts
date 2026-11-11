@@ -243,6 +243,13 @@ function entryOf(definition: Definition, id: string): Record<string, unknown> {
   return entry
 }
 
+function checkText(text: string | undefined): { code: number, error: string[] } {
+  const target = path.join(makeTemporaryDirectory(), 'generated.json')
+  if (text !== undefined) writeFileSync(target, text)
+  const { io, error } = capture()
+  return { code: main(['--check'], io, [alpha, beta], { target }), error }
+}
+
 describe('main の --check', () => {
   const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
 
@@ -290,6 +297,60 @@ describe('main の --check', () => {
     const definition = definitionOf(samples)
     entryOf(definition, 'PW-BETA')['mcp'] = {}
     expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: mcp: removed\n'] })
+  })
+
+  describe('定義書を読めないとき', () => {
+    it('ファイルが無ければ、cannot read の行を出して 1 を返す', () => {
+      const result = checkText(undefined)
+      expect(result.code).toBe(1)
+      expect(result.error).toHaveLength(1)
+      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: ENOENT/v)
+    })
+
+    it('JSON でなければ、cannot read の行を出して 1 を返す', () => {
+      const result = checkText('{')
+      expect(result.code).toBe(1)
+      expect(result.error).toHaveLength(1)
+      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: .*JSON/v)
+    })
+
+    it('スキーマに合わなければ、欄のパスと文を 1 行で出して 1 を返す', () => {
+      const result = checkText('{"a":1}')
+      expect(result.code).toBe(1)
+      expect(result.error).toHaveLength(1)
+      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: format: /v)
+      expect(result.error[0]).not.toMatch(/generated\.json: \[/v)
+      expect(result.error[0]?.trimEnd().split('\n')).toHaveLength(1)
+    })
+  })
+
+  describe('Node の側の項目が不正なとき', () => {
+    const broken = defineCommand({
+      path: ['broken'],
+      description: 'Has an invalid path',
+      input: z.strictObject({}),
+      positional: [],
+      run: () => Promise.resolve(0),
+      interactive: false,
+    })
+
+    it('項目がスキーマに合わなければ、コマンドの項目を示す error の行を出して 1 を返す', () => {
+      const emptyPath = { ...broken, path: [] }
+      const target = path.join(makeTemporaryDirectory(), 'generated.json')
+      writeFileSync(target, JSON.stringify(definitionOf(samples)))
+      const { io, error } = capture()
+      expect(main(['--check'], io, [emptyPath], { target })).toBe(1)
+      expect(error).toHaveLength(1)
+      expect(error[0]).toMatch(/^error: PW-: invalid entry: /v)
+    })
+
+    it('同じ ID のコマンドが 2 つあれば、重複した ID を示す error の行を出して 1 を返す', () => {
+      const target = path.join(makeTemporaryDirectory(), 'generated.json')
+      writeFileSync(target, JSON.stringify(definitionOf(samples)))
+      const { io, error } = capture()
+      expect(main(['--check'], io, [alpha, alpha, beta], { target })).toBe(1)
+      expect(error).toStrictEqual(['error: duplicate ids: PW-ALPHA\n'])
+    })
   })
 
   it('登録が 1 件以上の --write は、使い方のエラーで 2 を返し、ファイルを書かない', () => {
@@ -351,6 +412,24 @@ describe('振る舞いの項目のつなぎ', () => {
       const directory = makeTemporaryDirectory()
       writeTree(directory, files)
       expect(collectVerifiedIds(directory, ['tests/interface/rows.test.ts'])).toStrictEqual(new Set([idOf('D')]))
+    })
+
+    it('リテラルだけのファイルでは、verifies の外にある ID のリテラルを数えない', () => {
+      const directory = makeTemporaryDirectory()
+      writeTree(directory, { 'tests/interface/lit.test.ts': `const x = '${idOf('X')}'\n${callOf('Y')}\n` })
+      expect(collectVerifiedIds(directory, ['tests/**/*.test.ts'])).toStrictEqual(new Set([idOf('Y')]))
+    })
+
+    it('桁が続く ID は、前の桁までの ID として数えない', () => {
+      const directory = makeTemporaryDirectory()
+      writeTree(directory, { 'tests/interface/long.test.ts': `${CALL}context, row.id)\nconst x = '${idOf('L')}1'\n` })
+      expect(collectVerifiedIds(directory, ['tests/**/*.test.ts'])).toStrictEqual(new Set())
+    })
+
+    it('文字列の中の // をコメントとして扱わない', () => {
+      const directory = makeTemporaryDirectory()
+      writeTree(directory, { 'tests/interface/str.test.ts': `const a = 'a // b'; ${callOf('S')}\nconst b = "/* c"; ${callOf('T')} */\n` })
+      expect(collectVerifiedIds(directory, ['tests/**/*.test.ts'])).toStrictEqual(new Set([idOf('S'), idOf('T')]))
     })
 
     it('include に当たらないファイルと tests/parity の ID を数えない', () => {

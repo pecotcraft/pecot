@@ -134,9 +134,10 @@ it('対象を決めないコマンドで --repo を省くと、カレントの g
 
 it('対象を決めないコマンドで --repo を省いて origin remote が無いと、最初の remote のリポジトリを対象にする', async (context) => {
   await verifies(context, 'PW-COMMON-08')
-  const repository = repositoryWithRemotes({ upstream: 'https://github.com/owner/up.git' })
+  // 最初は git remote の出力順（名前順）。追加した順の先頭（upstream）ではなく fork になる
+  const repository = repositoryWithRemotes({ upstream: 'https://github.com/owner/up.git', mirror: 'https://github.com/owner/mirror.git', fork: 'https://github.com/owner/fork.git' })
   const result = await run(['target'], [TARGET], repository)
-  expect(result).toEqual({ code: 0, stdout: 'resolved: owner/up\nsource:   current-git (upstream)\n', stderr: '' })
+  expect(result).toEqual({ code: 0, stdout: 'resolved: owner/fork\nsource:   current-git (fork)\n', stderr: '' })
 })
 
 it.for([{ argv: ['--no-such-option'] }, { argv: ['target', '--no-such-option'] }])('知らないオプション $argv を渡すと、終了コード 2 で終わる', async ({ argv }, context) => {
@@ -150,6 +151,7 @@ it('--repo が owner/repo の形でないと、終了コード 2 で終わる', 
   await verifies(context, 'PW-COMMON-10')
   const result = await run(['--repo', 'invalid', '--show-repo'])
   expect(result.code).toBe(2)
+  expect(result.stderr).toContain('Invalid value for \'--repo\'')
   expect(result.stderr).toContain('owner/repo')
 })
 
@@ -159,19 +161,23 @@ it('--show-repo でリポジトリを解決できないと、終了コード 2 �
   expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: repository is ambiguous: pass --repo <owner/repo>\n' })
 })
 
-it.for([{ url: 'https://example.com' }, { url: 'ftp://127.0.0.1' }])('PECOT_GITHUB_API_URL が $url だと、サブコマンドを動かさない', async ({ url }, context) => {
+// ループバックの http の URL ではない値。どれも拒否される
+// eslint-disable-next-line unicorn/prefer-https -- http で外部ホストの URL を拒否することの確認
+const NON_LOOPBACK_URLS = [{ url: 'https://example.com' }, { url: 'ftp://127.0.0.1' }, { url: 'http://example.com' }]
+
+it.for(NON_LOOPBACK_URLS)('PECOT_GITHUB_API_URL が $url だと、サブコマンドを動かさない', async ({ url }, context) => {
   await verifies(context, 'PW-COMMON-12')
   setEnvironment({ PECOT_GITHUB_API_URL: url })
   await run(['target'])
   expect(state.started).toBe(0)
 })
 
-it('PECOT_GITHUB_API_URL がループバックの http の URL でないと、終了コード 1 で終わる', async (context) => {
+it.for(NON_LOOPBACK_URLS)('PECOT_GITHUB_API_URL が $url だと、終了コード 1 で終わる', async ({ url }, context) => {
   await verifies(context, 'PW-COMMON-13')
-  setEnvironment({ PECOT_GITHUB_API_URL: 'https://example.com' })
+  setEnvironment({ PECOT_GITHUB_API_URL: url })
   const result = await run(['target'])
   expect(result.code).toBe(1)
-  expect(result.stderr).toBe('error: PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://example.com\n')
+  expect(result.stderr).toBe(`error: PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${url}\n`)
 })
 
 it('プロジェクトのルートを決められないと、終了コード 1 で終わる', async (context) => {
@@ -185,17 +191,17 @@ it('プロジェクトのルートを決められないと、終了コード 1 �
   expect(result.stderr.split('\n', 1)[0]).toMatch(/^error: project root not found/u)
 })
 
-it('読み込む設定ファイルの形式が不正だと、終了コード 1 で終わる', async (context) => {
+it.for([{ content: 'not json' }, { content: '{"host":"github.com"}' }])('読み込む設定ファイルの中身が $content だと、終了コード 1 で終わる', async ({ content }, context) => {
   await verifies(context, 'PW-COMMON-15')
   const directory = makeTemporaryDirectory('pecot-config-')
-  writeTree(directory, { '.pecot/config/projects/broken.json': '{"host":"github.com"}', '.pecot/config/projects/.active': 'broken.json\n' })
+  writeTree(directory, { '.pecot/config/projects/broken.json': content, '.pecot/config/projects/.active': 'broken.json\n' })
   setEnvironment({ CLAUDE_PROJECT_DIR: directory })
   const config = sample('config', () => {
     loadActiveConfig()
   })
   const result = await run(['config'], [config], directory)
   expect(result.code).toBe(1)
-  expect(result.stderr).toMatch(/^error: /u)
+  expect(result.stderr).toMatch(/^error: invalid config file: \S*broken\.json: /u)
 })
 
 it('コマンドが捕まえなかった独自の例外が起きると、error の行を標準エラーに出す', async (context) => {
