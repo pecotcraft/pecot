@@ -5,7 +5,7 @@
 </div>
 
 <!-- markdownlint-disable MD013 -->
-![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![Agent Plugins](https://img.shields.io/badge/Agent_Plugins-1.0-24292F?style=flat-square) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![Python](https://img.shields.io/badge/Python-3.10_to_3.14-3776AB?style=flat-square&logo=python&logoColor=white) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![Python](https://img.shields.io/badge/Python-3.10_to_3.14-3776AB?style=flat-square&logo=python&logoColor=white) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
 <!-- markdownlint-enable MD013 -->
 
 Claude Code 向けのプラグインのマーケットプレイスです。
@@ -27,7 +27,7 @@ Agent Plugins 1.0 に対応したエージェントにも、今後対応して�
 
 ### 前提条件
 
-- [Claude Code](https://claude.ai/code) 2.1.141 以上、または Agent Plugins 1.0 に対応したエージェント（例: [GitHub Copilot CLI](https://github.com/github/copilot-cli) 1.0.97 以上）
+- [Claude Code](https://claude.ai/code) 2.1.141 以上
 - [gh CLI](https://cli.github.com/) — `gh auth login` で認証後、`gh auth refresh -s project` を実行する。
   GitHub Projects V2 アクセス用の `project` スコープを追加する
 - [uv](https://docs.astral.sh/uv/) — pecot-w の pecot CLI の実行に使う
@@ -40,17 +40,6 @@ claude plugin marketplace add https://github.com/pecotcraft/pecot.git
 claude plugin install pecot-w@pecot
 claude plugin install pecot-v@pecot
 claude plugin install pecot-t@pecot
-```
-
-### Agent Plugins 1.0 対応のエージェント
-
-GitHub Copilot CLI の例です。
-
-```bash
-copilot plugin marketplace add https://github.com/pecotcraft/pecot.git
-copilot plugin install pecot-w@pecot
-copilot plugin install pecot-v@pecot
-copilot plugin install pecot-t@pecot
 ```
 
 ---
@@ -68,22 +57,6 @@ claude plugin update pecot-t@pecot
 ```
 
 project スコープでインストールしている場合は `-s project` を付けてください。
-
-### Agent Plugins 1.0 対応のエージェント
-
-GitHub Copilot CLI の例です。
-
-```bash
-copilot plugin update --all
-```
-
-個別に更新する場合は次のように指定してください。
-
-```bash
-copilot plugin update pecot-w@pecot
-copilot plugin update pecot-v@pecot
-copilot plugin update pecot-t@pecot
-```
 
 ---
 
