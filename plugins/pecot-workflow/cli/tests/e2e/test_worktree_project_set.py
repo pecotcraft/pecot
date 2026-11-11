@@ -19,8 +19,10 @@ from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
 from cli.core.worktree import (
     _write_worktree_name_marker,
     create_worktree,
+    find_main_worktree,
     get_claimed_set_names,
     get_current_worktree_name,
+    get_worktree_list,
     remove_worktree,
 )
 from cli.core.worktree_links import (
@@ -690,3 +692,19 @@ class TestRemoveWorktreeByNameE2E:
         assert result is None
         assert not wt.exists()
         assert "feat/z" not in self._branches(repo)
+
+    def test_paths_with_spaces(self, tmp_path: Path) -> None:
+        root = tmp_path / "my workspaces"
+        (root / "base").mkdir(parents=True)
+        repo = root / "base" / "myrepo"
+        _init_repo(repo, default_branch="develop")
+        wt = root / "wt 1" / "myrepo"
+        _git(repo, "worktree", "add", "-b", "wt1", str(wt), "develop", "-q")
+        _git(wt, "checkout", "-b", "feat/x", "-q")
+
+        assert find_main_worktree(wt) == repo
+        assert [w.path for w in get_worktree_list(repo)] == [str(repo), str(wt)]
+
+        remove_worktree(cwd=repo, name="wt 1")
+
+        assert not wt.exists()

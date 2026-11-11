@@ -102,26 +102,29 @@ export interface WorktreeInfo {
 
 // Git 操作関数
 
-const WORKTREE_LINE_WITH_BRANCH = /^(\S+)\s+(\S+)\s+\[([^\]]+)\]/u
-const WORKTREE_LINE_WITHOUT_BRANCH = /^(\S+)\s+(\S+)/u
-
-function parseWorktreeLine(line: string): WorktreeInfo | undefined {
-  // フォーマット: /path/to/worktree  abc123 [branch-name]
-  // または: /path/to/worktree  abc123 (detached HEAD)
-  const [, wtPath, commit, branch] = WORKTREE_LINE_WITH_BRANCH.exec(line) ?? WORKTREE_LINE_WITHOUT_BRANCH.exec(line) ?? []
-  return wtPath === undefined || commit === undefined ? undefined : { path: wtPath, commit, branch }
-}
-
 function outputLines(stdout: string): readonly string[] {
   return pythonStrip(stdout).split('\n').filter(line => line !== '')
 }
 
+// `git worktree list --porcelain` を worktree ごとに分ける。パスの空白はそのまま残る
+function parsePorcelain(stdout: string): readonly WorktreeInfo[] {
+  const entries: { path: string, commit: string, branch: string | undefined }[] = []
+  for (const line of outputLines(stdout)) {
+    if (line.startsWith('worktree ')) entries.push({ path: line.slice('worktree '.length), commit: '', branch: undefined })
+    const entry = entries.at(-1)
+    if (entry === undefined) continue
+    if (line.startsWith('HEAD ')) entry.commit = line.slice('HEAD '.length)
+    else if (line.startsWith('branch ')) entry.branch = line.slice('branch '.length).replace(/^refs\/heads\//u, '')
+  }
+  return entries
+}
+
 /**
-git worktree list の結果を分ける。実行に失敗したら空
+git worktree list --porcelain の結果を分ける。実行に失敗したら空
 */
 export function getWorktreeList(cwd?: string): readonly WorktreeInfo[] {
-  const result = runGit(['worktree', 'list'], { cwd })
-  return result.exitCode === 0 ? outputLines(result.stdout).map(line => parseWorktreeLine(line)).filter(info => info !== undefined) : []
+  const result = runGit(['worktree', 'list', '--porcelain'], { cwd })
+  return result.exitCode === 0 ? parsePorcelain(result.stdout) : []
 }
 
 /**
@@ -129,11 +132,10 @@ export function getWorktreeList(cwd?: string): readonly WorktreeInfo[] {
 任意の WT 内から呼べる。一覧を取得できなければ WorktreeRuntimeError
 */
 export function findMainWorktree(cwd: string): string {
-  const result = runGit(['worktree', 'list'], { cwd })
-  const output = pythonStrip(result.stdout)
-  if (output === '' || result.exitCode !== 0) throw new WorktreeRuntimeError(`cannot get the worktree list: ${result.stderr}`)
-  // 空でない出力の先頭は空白でない文字なので、最初の空白までが必ずパスになる
-  return normalizePath(/^\S+/u.exec(output)?.[0] ?? '')
+  const result = runGit(['worktree', 'list', '--porcelain'], { cwd })
+  const main = result.exitCode === 0 ? parsePorcelain(result.stdout)[0] : undefined
+  if (main === undefined) throw new WorktreeRuntimeError(`cannot get the worktree list: ${result.stderr}`)
+  return normalizePath(main.path)
 }
 
 /**
@@ -634,9 +636,10 @@ function findWorktreePathByName(cwd: string, name: string): string | undefined {
 
 /**
 ワークツリーを削除する。name は worktree add が付けた名前（wtN）か、checkout しているブランチ名。
-WT が見つからない・削除に失敗した場合は WorktreeRuntimeError
+WT が見つからない・削除に失敗した場合は WorktreeRuntimeError。
+ローカルブランチを消せなかったときは、その理由を返す。成功時と shouldKeepBranch は undefined
 */
-export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): void {
+export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): string | undefined {
   // 1. WTパスを特定
   const worktreePath = findWorktreePathByName(cwd, name)
   if (worktreePath === undefined) throw new WorktreeRuntimeError(`worktree not found: ${name}`)
@@ -648,10 +651,15 @@ export function removeWorktree(cwd: string, name: string, diagnostics: Diagnosti
   if (removed.exitCode !== 0) throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
 
   // 3. ブランチ削除（ローカルブランチ）
-  if (options.shouldKeepBranch !== true) runGit(['branch', '-D', name], { cwd })
+  let branchError: string | undefined
+  if (options.shouldKeepBranch !== true) {
+    const branchResult = runGit(['branch', '-D', name], { cwd })
+    if (branchResult.exitCode !== 0) branchError = pythonStrip(branchResult.stderr) || `git branch -D exited with ${String(branchResult.exitCode)}`
+  }
 
   // 4. プロジェクトルート配下の <name> ディレクトリが空なら rmdir
   removeEmptySetDirectory(cwd, name, diagnostics)
+  return branchError
 }
 
 function removeEmptySetDirectory(cwd: string, name: string, diagnostics: Diagnostics): void {

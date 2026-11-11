@@ -137,7 +137,7 @@ describe('getWorktreeList', () => {
     gitForTest(repository, ['worktree', 'add', '-q', '-b', 'wt1', path.join(root, 'wt1', 'myrepo')])
     const list = getWorktreeList(repository)
     expect(list).toHaveLength(2)
-    expect(list[0]).toEqual({ path: repository, commit: branchCommit(repository, 'main').slice(0, list[0]?.commit.length), branch: 'main' })
+    expect(list[0]).toEqual({ path: repository, commit: branchCommit(repository, 'main'), branch: 'main' })
     expect(list[1]?.branch).toBe('wt1')
     expect(list[1]?.path).toBe(path.join(root, 'wt1', 'myrepo'))
   })
@@ -148,17 +148,28 @@ describe('getWorktreeList', () => {
     expect(getWorktreeList(repository).map(entry => entry.branch)).toEqual(['main', undefined])
   })
 
-  it('git の出力が Python の例と同じ形でも分けられる（偽の git）', () => {
-    installFakeGit({ 'worktree list': '/home/user/repo         abc1234 [main]\n/home/user/wt1/repo     def5678 [wt1]\n/home/user/d     0123456 (detached HEAD)\nstray\n' })
+  it('porcelain の出力を、空白を含むパス・detached・bare も含めて分ける（偽の git）', () => {
+    installFakeGit({ 'worktree list --porcelain': 'worktree /home/user/my repo\nHEAD abc1234\nbranch refs/heads/main\n\nworktree /home/user/wt1/repo\nHEAD def5678\nbranch refs/heads/feature/x\nlocked\n\nworktree /home/user/d\nHEAD 0123456\ndetached\n\nworktree /home/user/b\nbare\n' })
     expect(getWorktreeList()).toEqual([
-      { path: '/home/user/repo', commit: 'abc1234', branch: 'main' },
-      { path: '/home/user/wt1/repo', commit: 'def5678', branch: 'wt1' },
+      { path: '/home/user/my repo', commit: 'abc1234', branch: 'main' },
+      { path: '/home/user/wt1/repo', commit: 'def5678', branch: 'feature/x' },
       { path: '/home/user/d', commit: '0123456', branch: undefined },
+      { path: '/home/user/b', commit: '', branch: undefined },
     ])
   })
 
+  it('空白を含むパスの worktree を、一覧・メインの特定・削除で扱える（実 git）', () => {
+    const { repository } = createProject()
+    const worktree = path.join(makeTemporaryDirectory(), 'with space', 'my repo')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'wt1', worktree])
+    expect(getWorktreeList(repository).map(entry => entry.path)).toEqual([repository, worktree])
+    expect(findMainWorktree(worktree)).toBe(repository)
+    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics)).toBeUndefined()
+    expect(existsSync(worktree)).toBe(false)
+  })
+
   it('出力が空なら空', () => {
-    installFakeGit({ 'worktree list': '' })
+    installFakeGit({ 'worktree list --porcelain': '' })
     expect(getWorktreeList()).toEqual([])
   })
 
@@ -182,7 +193,7 @@ describe('findMainWorktree', () => {
   })
 
   it('一覧が空でも WorktreeRuntimeError', () => {
-    installFakeGit({ 'worktree list': '  \n' })
+    installFakeGit({ 'worktree list --porcelain': '  \n' })
     expect(runtimeMessage(() => findMainWorktree('.'))).toBe('cannot get the worktree list: ')
   })
 
@@ -258,7 +269,7 @@ describe('detectProjectRoot', () => {
     mkdirSync(real, { recursive: true })
     const alias = path.join(makeTemporaryDirectory(), 'alias')
     symlinkSync(real, alias)
-    installFakeGit({ 'worktree list': `${alias}  abc1234 [main]\n` })
+    installFakeGit({ 'worktree list --porcelain': `worktree ${alias}\nHEAD abc1234\nbranch refs/heads/main\n` })
     expect(detectProjectRoot('.')).toBe(root)
   })
 })
@@ -726,10 +737,18 @@ function projectWithWorktree(): { readonly repository: string, readonly root: st
 describe('removeWorktree', () => {
   it('WT とブランチを消し、空になった <root>/<name>/ も消す', () => {
     const { repository, root, worktree } = projectWithWorktree()
-    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics)).toBeUndefined()
     expect(existsSync(worktree)).toBe(false)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     expect(gitForTest(repository, ['branch', '--list', 'wt1'])).toBe('')
+  })
+
+  it('ブランチ wt1 が無い worktree を名前で消すと、ブランチを消せなかった理由を返す', () => {
+    const { repository, elsewhere } = addElsewhere()
+    gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
+    gitForTest(repository, ['branch', '-D', 'wt1'])
+    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics)).toMatch(/wt1/u)
+    expect(existsSync(elsewhere)).toBe(false)
   })
 
   it('他リポの WT が残っていれば <root>/<name>/ は消さない', () => {
@@ -739,9 +758,9 @@ describe('removeWorktree', () => {
     expect(existsSync(path.join(root, 'wt1', 'other-repo'))).toBe(true)
   })
 
-  it('keep_branch ならブランチを残す', () => {
+  it('keep_branch ならブランチを残し、undefined を返す', () => {
     const { repository } = projectWithWorktree()
-    removeWorktree(repository, 'wt1', ignoredDiagnostics, { shouldKeepBranch: true })
+    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics, { shouldKeepBranch: true })).toBeUndefined()
     expect(gitForTest(repository, ['branch', '--list', 'wt1']).trim()).toBe('wt1')
   })
 
@@ -792,7 +811,7 @@ describe('removeWorktree', () => {
     if (!isHolderFirst) gitForTest(repository, ['worktree', 'add', '-q', '-b', 'tmp', holder])
     gitForTest(recorded, ['switch', '-q', '-c', 'feature/x'])
     gitForTest(holder, ['switch', '-q', 'wt1'])
-    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics)).toMatch(/used by worktree/u)
     expect(existsSync(recorded)).toBe(false)
     expect(existsSync(holder)).toBe(true)
     expect(existsSync(root)).toBe(true)

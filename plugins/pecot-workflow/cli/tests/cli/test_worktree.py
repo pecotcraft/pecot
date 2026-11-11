@@ -349,7 +349,9 @@ class TestWorktreeRemove:
     @patch("cli.core.worktree.run_git")
     def test_remove_unknown_name(self, mock_git: MagicMock, tmp_path: Path) -> None:
         mock_git.return_value = MagicMock(
-            returncode=0, stdout=f"{tmp_path} abc1234 [main]\n", stderr=""
+            returncode=0,
+            stdout=f"worktree {tmp_path}\nHEAD {'a' * 40}\nbranch refs/heads/main\n",
+            stderr="",
         )
         result = runner.invoke(app, ["worktree", "remove", "nope", "-D", str(tmp_path)])
         assert result.exit_code == 1
