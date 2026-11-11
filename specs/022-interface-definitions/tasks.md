@@ -102,28 +102,28 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **前提**: PR #227（`--help` を英語にする）がマージされている
 
-- [ ] T016 [US1] `plugins/pecot-workflow/cli/tests/unit/test_interface_export.py` を書く
+- [x] T016 [US1] `plugins/pecot-workflow/cli/tests/unit/test_interface_export.py` を書く
   - 小さな typer の app を組み、書き出した項目を期待の値と比べる
   - 比べるのは、型・必須か・既定値・位置引数の順・オプションの名前・`hidden`・`deprecated` だ
   - 型は、文字列・整数・真偽値・path・choice・複数指定を入れる
   - この時点で失敗する
-- [ ] T017 [US1] `plugins/pecot-workflow/scripts/interface/` を、`lint-py` の ruff と strict の型チェックの対象に入れる。`project.json` の `lint-py` の入力にも足す
-- [ ] T018 [US1] `plugins/pecot-workflow/scripts/interface/export.py` を実装する
+- [x] T017 [US1] `plugins/pecot-workflow/scripts/interface/` を、`lint-py` の ruff と strict の型チェックの対象に入れる。`project.json` の `lint-py` の入力にも足す
+- [x] T018 [US1] `plugins/pecot-workflow/scripts/interface/export.py` を実装する
   - `typer.main.get_command(app)` の木をたどり、contracts/definition-format.md の `generated.json` を作る
   - typer が同梱する click の非公開のモジュールを import しない
   - 既定値が実行時に決まる引数は `default` に入れない
   - 項目は `id` の順に並べ、キーの順を固定する。同じ実装から同じバイト列を出す
   - `--check` は、リポジトリのファイルとの差を contracts の形で出して終了コード 1 で終わる。`--write` は書き換える
-- [ ] T019 [US1] typer の引数の型のうち、JSON Schema に写せないものが無いかを、34 コマンドの全引数で確かめる。写せないものがあれば、写し方を contracts/definition-format.md に足す
-- [ ] T020 [US1] `plugins/pecot-workflow/interface/generated.json` を `--write` で作る
-- [ ] T021 [US1] `test_interface_export.py` に、`--check` が今の実装で通ることのテストを足す。`plugins/pecot-workflow/project.json` の `test-py` の入力に `interface/**` と `scripts/interface/**` を足す
-- [ ] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く。
+- [x] T019 [US1] typer の引数の型のうち、JSON Schema に写せないものが無いかを、34 コマンドの全引数で確かめる。写せないものがあれば、写し方を contracts/definition-format.md に足す
+- [x] T020 [US1] `plugins/pecot-workflow/interface/generated.json` を `--write` で作る
+- [x] T021 [US1] `test_interface_export.py` に、`--check` が今の実装で通ることのテストを足す。`plugins/pecot-workflow/project.json` の `test-py` の入力に `interface/**` と `scripts/interface/**` を足す
+- [x] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く。
   `sources` の glob を `libs/interface-spec/project.json` の `lint-defs` の inputs に足す
-- [ ] T023 [US1] `plugins/pecot-workflow/cli-node/tests/interface-export.test.ts` を書く
+- [x] T023 [US1] `plugins/pecot-workflow/cli-node/tests/interface-export.test.ts` を書く
   - 見本の `CommandSpec` を 2 つ組み、書き出した項目が形式の検証を通ることを確かめる
   - 同じ引数を持つ typer の見本から書き出した `input` と、差が 0 件であることも確かめる
   - この時点で失敗する（FR-008、SC-008）
-- [ ] T024 [US1] `plugins/pecot-workflow/cli-node/scripts/export-interface.ts` を実装する
+- [x] T024 [US1] `plugins/pecot-workflow/cli-node/scripts/export-interface.ts` を実装する
   - `registry.ts` の `CommandSpec` の入力を `z.toJSONSchema()` に通し、`surfaces.cli` と `surfaces.mcp` の両方を持つ項目を作る
   - 登録済みのコマンドが 0 件の今は、`generated.json` を書き換えない
 

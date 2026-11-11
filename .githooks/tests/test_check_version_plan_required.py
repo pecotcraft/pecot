@@ -1307,6 +1307,8 @@ def test_real_07_pass_dev_only_files_without_plan(real_nx: _RealNx) -> None:
         "plugins/pecot-visual/scripts/pptx-compare/probe.mjs",
         "libs/text-rules/vitest.config.ts",
         "plugins/pecot-workflow/hooks/conftest.py",
+        "plugins/pecot-workflow/interface/authored.yaml",
+        "plugins/pecot-workflow/scripts/interface/probe.py",
     ):
         path = real_nx.probe / rel
         path.parent.mkdir(parents=True, exist_ok=True)

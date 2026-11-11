@@ -321,6 +321,8 @@
         "vitest.e2e.config.ts",
         ".gitignore",
         "plugins/*/scripts/ci/**",
+        "plugins/*/interface/**",
+        "plugins/*/scripts/interface/**",
         "!plugins/pecot-visual/scripts/ci/dev-install-lib.sh",
         "plugins/pecot-visual/scripts/pptx-compare/",
         "plugins/pecot-visual/scripts/page-compare/",

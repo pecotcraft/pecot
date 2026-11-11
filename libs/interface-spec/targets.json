@@ -1,1 +1,17 @@
-{ "format": 1, "plugins": {} }
+{
+  "format": 1,
+  "plugins": {
+    "pecot-workflow": {
+      "entries": "partial",
+      "coverage": "off",
+      "sources": [
+        "cli/commands/**/*.py",
+        "cli/core/**/*.py",
+        "cli/__init__.py",
+        "cli/__main__.py",
+        "bin/*",
+        "hooks/**/*.sh"
+      ]
+    }
+  }
+}

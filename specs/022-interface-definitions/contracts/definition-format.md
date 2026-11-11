@@ -58,14 +58,14 @@ MCP ツールへの読み替えは、このリポの決めだ。POSIX の規格�
         "type": "object",
         "properties": {
           "files": { "type": "array", "items": { "type": "string" }, "description": "Markdown files to post." },
-          "issue_type": { "type": "string", "enum": ["task", "bug", "epic", "tracker"], "default": "task", "description": "Issue type." }
+          "type": { "type": "string", "enum": ["task", "bug", "epic", "tracker"], "default": "task", "description": "Issue type." }
         },
         "required": [],
         "additionalProperties": false
       },
       "cli": {
         "positional": ["files"],
-        "flags": { "issue_type": ["--type"] }
+        "flags": { "type": ["--type"] }
       }
     }
   ]
@@ -79,7 +79,39 @@ MCP ツールへの読み替えは、このリポの決めだ。POSIX の規格�
 | `input` の型 | JSON Schema 2020-12。MCP ツールは `tools/list` の `inputSchema` をそのまま入れる |
 | 既定値 | 固定の値だけを `default` に入れる。実行時に決まるものは入れず、`authored.yaml` の `default_notes` に書く |
 | `surfaces` | CLI のコマンドは `cli.path`、MCP ツールは `mcp.tool`。両方で公開する操作は、1 つの項目が両方を持つ |
+| root のオプション | `pecot` の直後に置くオプション（`--repo`・`--show-repo`・`--version` など）は項目にしない。`input` には、コマンド自身の引数だけを入れる |
+| `cli.flags` の並び | 長い名前（宣言の順）、短い名前、否定形（`--no-checkout` など）の順 |
 | MCP ツールの出力と注釈 | `tools/list` の `outputSchema` を `mcp.output` に、`annotations` を `mcp.annotations` に入れる |
+
+### 決定性の決め
+
+書き出しは、Python（typer）と Node（`CommandSpec`）のどちらからでも、同じ実装から同じバイト列を出す。
+
+| 対象 | 決め |
+|---|---|
+| 項目の並び | `id` の順 |
+| 項目のキーの順 | `id`・`name`・`description`・`surfaces`・`hidden`・`deprecated`・`input`・`cli`・`mcp` |
+| `input.properties`・`cli.flags` のキー | 名前の順 |
+| 引数の中のキーの順 | `type`・`items`・`enum`・`minimum`・`maximum`・`default`・`description` |
+| `required` | 名前の順。必須が無くても `[]` を書く |
+| `additionalProperties` | 常に `false` |
+| 書き方 | 字下げ 2 の JSON と、末尾の改行 1 つ。文字はエスケープしない |
+
+### typer の引数の型の写し
+
+pecot-workflow の書き出しは、typer が同梱する click の `type.name` から JSON Schema を作る。Node の書き出しは、`z.toJSONSchema()` の結果を同じ形に正規化する。
+
+| `type.name` | JSON Schema |
+|---|---|
+| `str` | `{"type": "string"}` |
+| `int` | `{"type": "integer"}` |
+| `int range` | `{"type": "integer", "minimum": …, "maximum": …}`。端があるものだけを書く |
+| `boolean` | `{"type": "boolean"}` |
+| `choice` | `{"type": "string", "enum": [...]}` |
+| `path`・`directory`・`file` | `{"type": "string"}` |
+| `multiple=True`・`nargs=-1` | `{"type": "array", "items": <要素の型>}` |
+
+表に無い型と、開区間・`clamp` の `int range` は、書き出しが失敗で止める。
 
 ## `authored.yaml`
 
