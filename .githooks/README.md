@@ -324,7 +324,7 @@ for skill in skills/*/; do (cd "$skill" && npm ...); done
 | 件名の形 | 作るもの | `.gitlint` の設定 |
 |---|---|---|
 | `Revert "..."` | `git revert` | `allow-revert` |
-| `chore(release): ...` | `nx release`（`release.yml`） | `allow-release` |
+| `chore(release): ...` | `nx release`、`release-land.sh` の merge の commit（`release.yml`） | `allow-release` |
 | `build(<scope>): bump ...` | dependabot。squash でそのまま `main` に残る | `allow-dependabot` |
 
 件名を書き換えるには、dependabot の PR に commit を積むことになる。

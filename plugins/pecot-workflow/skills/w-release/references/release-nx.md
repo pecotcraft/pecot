@@ -158,7 +158,7 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
 ランナーの手順に従うのは、次の 2 つをどちらも満たすときだけ。
 
 1. コマンドが成功する
-2. 出力の YAML に、job `plan`・`release` がある
+2. 出力の YAML に、job `release` と入力 `dry-run` がある
 
 `release.yml` はよくある名前なので、別の目的のファイルを起動しないよう、2 を確かめる。
 手元の手順（下の 1〜8）に進むのは、`HTTP 404` のときと、2 を満たさないときだけ。
@@ -166,10 +166,11 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
 
 ### ランナーの手順（`release.yml` があるリポ）
 
-承認は GitHub の画面でユーザーが行う。
-エージェントは、画面でも `pending_deployments` の API でも承認しない。
+dry-run で案を見てユーザーの OK を得てから、本番を起動する。
+前の run が終わるまで、次の run を起動しない。
+同じ concurrency の group で待つ run は、後の起動に置き換えられて cancel される。
 
-1. 起動する。出力の URL の末尾が run の id になる。
+1. dry-run で起動する。入力は付けない（`dry-run` の既定は `true`）。出力の URL の末尾が run の id になる。
 
    ```bash
    gh workflow run release.yml --ref main -R <owner>/<repo>
@@ -182,28 +183,19 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    gh run list --workflow release.yml --event workflow_dispatch --json databaseId,createdAt,headSha -L 5 -R <owner>/<repo>
    ```
 
-2. `plan` の job の結論を待つ。`gh run watch` は承認待ちで戻らないので使わない。
-   次の 1 コマンドで、上限 30 分まで待つ。`plan` の結論が出たら、その値を表示して終わる。
+2. run の完了を待つ。`timeout` を付けた 1 コマンドで、上限 30 分まで待つ。
 
    ```bash
-   timeout 1800 bash -c 'until c=$(gh run view <id> -R <owner>/<repo> --json jobs --jq ".jobs[]|select(.name==\"plan\").conclusion") && [ -n "$c" ]; do sleep 20; done; echo "$c"'
+   timeout 1800 gh run watch <id> --exit-status -R <owner>/<repo>
    ```
 
-   `success` なら次へ進む。
-   `success` 以外（`failure`・`cancelled`・`skipped`）は止めて、
-   [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
-   `skipped` は、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える。
-   上限まで待っても結論が出ず、run の `status` が `pending` のままなら、承認待ちの別の run がある。
-   次のコマンドで確かめる。
+   失敗したら止めて、[release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
+   `skipped` で終わったときは、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える。
 
-   ```bash
-   gh run list --workflow release.yml --status waiting -R <owner>/<repo>
-   ```
-
-3. `plan` が残した案を読み、ユーザーに示す。
+3. dry-run が残した案を読み、ユーザーに示す。
    観点は、2ブランチ手順の「5. bump 妥当性のユーザー確認」と同じ。
    案は `release-plan` という名前の artifact に入っている。
-   `nx.log` から bump・tag・CHANGELOG の案を読む。`plans.log` は plan の件数である。
+   `nx.log` から bump・tag・CHANGELOG の案を、`summary.md` から次の version と作るタグ名を読む。`plans.log` は plan の件数である。
 
    ```bash
    gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
@@ -213,12 +205,18 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    Summary の「preflight warnings」にも同じ行が出る。
    `warning: could not check Dependabot alerts` が出たときは、App の権限（Dependabot alerts の read）とトークンを確かめていただく。
 
-   案が誤っていたら、承認を案内しない。
-   `gh run cancel <id> -R <owner>/<repo>` で止め、plan を直す PR を出し、マージしてから起動し直す。
+   案が誤っていたら、本番を起動しない。plan を直す PR を出し、マージしてから dry-run をやり直す。
+   ユーザーの明示の OK を得るまで、次へ進まない。
 
-4. 案に問題が無ければ、承認の画面を開いて承認していただくようユーザーに案内する。
-   承認を待つ間、エージェントは何もしない。ユーザーが承認したと伝えるまで、次へ進まない。
-5. `release` の job の完了を待つ。待ち方は 2 と同じで、job 名を `release` にする。
+4. OK の後、dry-run の run の `headSha` を渡して本番を起動する。
+   `sha` を渡すので、dry-run で見た案と同じ commit から release commit・タグ・Release ができる。間に `main` が進んでも、dry-run はやり直さない。
+
+   ```bash
+   gh run view <id> --json headSha --jq .headSha -R <owner>/<repo>
+   gh workflow run release.yml --ref main -f dry-run=false -f sha=<headSha> -R <owner>/<repo>
+   ```
+
+5. 本番の run の完了を待つ。待ち方は 2 と同じで、id は 1 と同じ引き方で取る。
    完了したら、発行したタグ名と GitHub Release の URL を報告する。
    タグ名と URL は、次のコマンドで取る。
 
@@ -226,7 +224,10 @@ gh workflow view release.yml -R <owner>/<repo> --yaml
    gh release list -L 4 -R <owner>/<repo>
    ```
 
-   `plan` が preflight で止まったときは、open の code scanning・secret scanning の alert があるか、その一覧を取得できない。
+   失敗したときは [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
+   本番の run の artifact は `release-log` である。
+
+   dry-run が preflight で止まったときは、open の code scanning・secret scanning の alert があるか、その一覧を取得できない。
    手元の手順の「3. open の security alert を確認（preflight）」に従う。
    扱いは、解消か理由付きの dismiss である。
 

@@ -38,8 +38,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 ## リリース
 
-- `main` の trunk-based。`gh workflow run release.yml --ref main` で起動し、手元で `nx release` を打たない
-- Environment `release` の承認はユーザーが GitHub の画面で行う。エージェントは承認しない
+- `main` の trunk-based。`gh workflow run release.yml --ref main` で dry-run を起動して案を見てから、`-f dry-run=false -f sha=<SHA>` で本番を起動する。手元で `nx release` を打たない
 - 手順とやり直しは w-release スキル
 
 ## 環境の既知事項
