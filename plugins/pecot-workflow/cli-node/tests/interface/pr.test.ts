@@ -113,8 +113,8 @@ function filesOf(directory: string): string[] {
     })
 }
 
-function installNx(roots: Readonly<Record<string, string>>): void {
-  const nodes = Object.fromEntries(Object.entries(roots).map(([name, root]) => [name, { data: { root } }]))
+function installNx(projects: Readonly<Record<string, { readonly root: string, readonly tags: readonly string[] }>>): void {
+  const nodes = Object.fromEntries(Object.entries(projects).map(([name, data]) => [name, { data }]))
   const bin = makeTemporaryDirectory('pecot-nx-')
   installFakeExecutable(bin, 'nx', `file="\${2#--file=}"\nprintf '%s' '${JSON.stringify({ graph: { nodes } })}' > "$file"\n`)
   prependToPath(bin)
@@ -194,7 +194,7 @@ describe('pr create', () => {
 
   it('nx のリポジトリで --prepare を付けて打つと、タイトルの行に scope の目安をコメントで足す', async (context) => {
     await verifies(context, 'PW-PR-CREATE-04')
-    installNx({ 'p-w': 'plugins/pecot-workflow' })
+    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
     const workspace = await openWorkspace({ ...NX_OPTIONS, github: [NOT_EPIC_RULE] })
     const result = await workspace.run(['pr', 'create', '--prepare'])
     expect(result.code).toBe(0)
@@ -446,7 +446,7 @@ describe('pr create', () => {
 
   it.for([{ mode: 'file' }, { mode: 'message' }])('nx のリポジトリで scope が違うタイトルを $mode の形で渡すと、終了コード 3 で終わる', async (row, context) => {
     await verifies(context, 'PW-PR-CREATE-33')
-    installNx({ 'p-w': 'plugins/pecot-workflow' })
+    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
     const workspace = await openWorkspace(NX_OPTIONS)
     const title = 'feat(pecot): #12 見本の変更'
     const argv = row.mode === 'file'

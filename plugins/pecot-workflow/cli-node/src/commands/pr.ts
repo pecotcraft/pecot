@@ -41,7 +41,7 @@ import { gitCurrentBranch, GitCommandError, gitRemoteUrl, gitRunnerFor, gitTople
 import { GitHubClient } from '../infra/github/index.js'
 import { describeApiError, GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestSlim } from '../infra/github/pulls.js'
-import { changedFiles, expectedScope, nxProjectRoots, parseTitleScope } from '../infra/nx-scope.js'
+import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
 import { outputDirectory, OutputPathReservationError, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
 import { consumeFlag, readFlag, removeFlag } from '../infra/state-store.js'
@@ -154,7 +154,7 @@ function nxScopeTarget(config: Readonly<ProjectConfig>, owner: string, repositor
 }
 
 function expectedTitleScope(target: Readonly<ScopeTarget>, base: string, head: string, out: Readonly<Output>): readonly string[] | undefined {
-  const projects = nxProjectRoots(target.toplevel)
+  const projects = nxProjects(target.toplevel)
   const files = projects === undefined ? undefined : changedFiles(target.toplevel, `${target.remote}/${base}`, head)
   if (projects === undefined || files === undefined) {
     out.warning('cannot read nx projects or the diff; skipped the PR title scope check')
