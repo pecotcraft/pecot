@@ -1242,7 +1242,9 @@ def pr_read(
     ctx: typer.Context,
     pr_ref: Annotated[
         str,
-        typer.Argument(help="PR reference (owner/repo/N, or the short form N only with `--repo`)"),
+        typer.Argument(
+            help="PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+        ),
     ],
     json_output: Annotated[
         bool,
@@ -2036,7 +2038,9 @@ def pr_cleanup(
     ctx: typer.Context,
     pr_ref: Annotated[
         str,
-        typer.Argument(help="PR reference (owner/repo/N, or the short form N only with `--repo`)"),
+        typer.Argument(
+            help="PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
+        ),
     ],
     dry_run: Annotated[
         bool,

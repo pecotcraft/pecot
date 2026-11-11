@@ -1019,6 +1019,14 @@ class TestPRCommandsHelp:
         assert result.exit_code == 0
         assert "--json" in result.output or "json" in result.output.lower()
 
+    def test_pr_read_help_names_git_remote_fallback(self) -> None:
+        """短い形 N の help は、--repo が無いときの今のディレクトリの remote を述べる"""
+        result = runner.invoke(app, ["pr", "read", "--help"])
+        assert result.exit_code == 0
+        flat = re.sub(r"[\s│]+", " ", result.output)
+        assert "or else of the git remote of the current directory" in flat
+        assert "only with" not in flat
+
 
 # _extract_closing_issue_numbers 関数テスト
 

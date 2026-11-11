@@ -970,6 +970,15 @@ class TestIssueCommandsHelp:
         assert result.exit_code == 0
         assert "backlog" in result.output or "status" in result.output.lower()
 
+    @pytest.mark.parametrize("command", ["update-issue-status", "add-to-project"])
+    def test_short_form_help_names_git_remote_fallback(self, command: str) -> None:
+        """短い形 N の help は、--repo が無いときの今のディレクトリの remote を述べる"""
+        result = runner.invoke(app, [command, "--help"])
+        assert result.exit_code == 0
+        flat = re.sub(r"[\s│]+", " ", result.output)
+        assert "or else of the git remote of the current directory" in flat
+        assert "only with" not in flat
+
 
 # --- issue create コマンドテスト ---
 

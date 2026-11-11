@@ -21,7 +21,7 @@
         "properties": {
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
           "status": {
             "type": "string",
@@ -538,7 +538,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
           "json": {
             "type": "boolean",
@@ -590,7 +590,7 @@
           },
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
           "status": {
             "type": "string",
@@ -648,7 +648,7 @@
           },
           "pr_ref": {
             "type": "string",
-            "description": "PR reference (owner/repo/N, or the short form N only with `--repo`)"
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
           "skip_local_cleanup": {
             "type": "boolean",
@@ -863,7 +863,7 @@
           },
           "pr_ref": {
             "type": "string",
-            "description": "PR reference (owner/repo/N, or the short form N only with `--repo`)"
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
           "reviews": {
             "type": "boolean",
@@ -1633,7 +1633,7 @@
         "properties": {
           "issue_ref": {
             "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)"
           },
           "status": {
             "type": "string",
