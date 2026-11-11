@@ -14,6 +14,455 @@ environment:
   - name: GITHUB_COM_TOKEN
     effect: Supplies the GitHub token for github.com when the variable named for that host is unset (PECOT_GITHUB_COM_TOKEN without an entry in .pecot/config/hosts.json). The variable is read from the environment, after the .env file in the project root is loaded; a line in that file does not overwrite an existing environment variable, and it is loaded after .pecot/config/.env.
 entries:
+  PW-ADD-TO-PROJECT:
+    constraints: []
+    details:
+      - Adds one Issue to the project board of the active project and then sets its Status field.
+      - The Issue reference is owner/repo/N; the short form N is accepted when the repository is given by the global pecot --repo or the git remote.
+      - The repository of the Issue must be registered in the active project.
+      - --status takes backlog, pending, ready, active, in_review or archived, and the Status is set to that value.
+      - An empty --status skips the Status update and only adds the Issue.
+      - An Issue that is already on the board is not added twice.
+      - A --status value that the board does not define is not an error. The Issue stays on the board with the Status it was given on adding, and the command finishes with exit status 0.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line on stderr for the added Issue (added) and for the Status (set), and a warning line when the Status is not found in the project.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Issue was added to the board, including when the Status was not set because the board does not define the --status value.
+      - code: 1
+        when: There is no active project, the repository is not in the project, the GitHub API returned an error, --repo differs from the repository of the git remote in a way the command does not accept, or the project root cannot be determined.
+      - code: 2
+        when: The Issue reference is malformed, or the short form is given without a repository, or another command line error occurs.
+    on_error: When setting the Status fails after the Issue was added, the Issue stays on the board.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the repositories linked to the project and the node ID of the Issue.
+      - target: github
+        kind: write
+        what: Adds the Issue to the project board and sets its Status field.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host, with permission to edit the project.
+    idempotent: true
+    examples:
+      - run: pecot add-to-project example-org/my-repo/123
+        note: Add the Issue to the board with the Status ready.
+      - run: pecot add-to-project example-org/my-repo/123 --status backlog
+        note: Add the Issue to the board with the Status backlog.
+    default_notes: {}
+    behaviors:
+      - id: PW-ADD-TO-PROJECT-01
+        pattern: event
+        statement: Issue の参照を渡して打つと、その Issue をアクティブなプロジェクトのボードに足す
+      - id: PW-ADD-TO-PROJECT-02
+        pattern: event
+        statement: Issue をボードに足すと、added の行を標準エラーに出す
+      - id: PW-ADD-TO-PROJECT-03
+        pattern: event
+        statement: --status を省いて打つと、足した項目の Status を ready にする
+      - id: PW-ADD-TO-PROJECT-04
+        pattern: event
+        statement: --status に値を渡して打つと、足した項目の Status をその値にする
+      - id: PW-ADD-TO-PROJECT-05
+        pattern: event
+        statement: Status を設定すると、set の行を標準エラーに出す
+      - id: PW-ADD-TO-PROJECT-06
+        pattern: event
+        statement: --status に空文字を渡して打つと、Status を設定せずに Issue だけをボードに足す
+      - id: PW-ADD-TO-PROJECT-07
+        pattern: event
+        statement: Issue の参照に番号だけを渡して --repo を付けると、そのリポジトリの Issue を足す
+      - id: PW-ADD-TO-PROJECT-08
+        pattern: unwanted
+        statement: もし --status の値をボードが定義していないなら、Status を設定せずに warning の行を標準エラーに出す
+      - id: PW-ADD-TO-PROJECT-09
+        pattern: unwanted
+        statement: もし --status の値をボードが定義していないなら、終了コード 0 で終わる
+      - id: PW-ADD-TO-PROJECT-10
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-ADD-TO-PROJECT-11
+        pattern: unwanted
+        statement: もし Issue の参照が不正なら、終了コード 2 で終わる
+      - id: PW-ADD-TO-PROJECT-12
+        pattern: unwanted
+        statement: もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わる
+      - id: PW-ADD-TO-PROJECT-13
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+  PW-CREATE-BRANCH:
+    constraints: []
+    details:
+      - Creates a branch linked to an Issue through the GitHub GraphQL API (createLinkedBranch), so the branch shows in the Development section of the Issue.
+      - The Issue reference must be the full form owner/repo/N.
+      - The branch is named <branch_name>/<N>, with the Issue number appended.
+      - The branch starts from the head of --base; without --base, from the develop_branch of the repository in the config file.
+      - After the branch is created, the Status of the Issue on the board is set to active.
+      - A failure to set the Status does not stop the command.
+      - After that, the Issue is recorded as the work target in .pecot/state/.pecot-active and .pecot/state/.pecot-session-title, and .pecot/work/<N>/ is created.
+      - A failure to record the work target does not stop the command.
+      - The repository of the working directory git remote must be the repository of the Issue. --allow-cross-repo skips this check.
+      - When .pecot-active holds another Issue that is OPEN, the command stops. --force-overwrite-active skips this check.
+      - When .pecot-active holds a malformed value, a CLOSED Issue or an Issue in another state, a warning line is written and the file is overwritten.
+      - The repository must be registered in the active project.
+      - --checkout and --no-checkout are kept for compatibility and have no effect.
+      - The global pecot --repo must match the repository of the current git remote; this command does not take its target from --repo.
+    stdin: none
+    output:
+      format: none
+    diagnostics: Result lines on stderr for the created branch (created), the Status (set) and the work target (set), and warning lines when the Status or the work target could not be set or .pecot-active is overwritten.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The branch was created, including when setting the Status or recording the work target failed.
+      - code: 1
+        when: There is no active project, develop_branch is not set and --base is not given, the repository is not in the project, the GitHub API returned an error, --repo differs from the current git remote, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+      - code: 2
+        when: The Issue reference is not the full form, the repository of the working directory differs from the repository of the Issue, .pecot-active holds another OPEN Issue, or another command line error occurs.
+    on_error: When the branch was created and setting the Status or recording the work target fails, the branch stays linked to the Issue and the command still finishes with exit status 0. When .pecot-active was written and .pecot-session-title could not be, the first file stays written.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the repositories linked to the project, the node ID and title of the Issue, the head commit of the base branch, and the state of the Issue held in .pecot-active.
+      - target: github
+        kind: write
+        what: Creates the linked branch and sets the Status of the Issue on the board to active.
+      - target: file
+        kind: read
+        what: Reads the active config file and .pecot/state/.pecot-active.
+      - target: file
+        kind: write
+        what: Writes .pecot/state/.pecot-active and .pecot/state/.pecot-session-title, and creates .pecot/work/<N>/.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host, with permission to edit the project.
+      - The working directory is a checkout of the repository of the Issue, unless --allow-cross-repo is given.
+    idempotent: false
+    examples:
+      - run: pecot create-branch example-org/my-repo/123 feat/my-change
+        note: Create the branch feat/my-change/123 from the develop branch.
+      - run: pecot create-branch example-org/my-repo/123 fix/my-bug --base main
+        note: Create the branch fix/my-bug/123 from main.
+      - run: pecot create-branch example-org/my-repo/123 feat/my-change --allow-cross-repo
+        note: Create the branch from a directory that is not a checkout of the repository.
+    default_notes:
+      base: The develop_branch of the repository in the config file; without it, the command stops with exit status 1.
+    behaviors:
+      - id: PW-CREATE-BRANCH-01
+        pattern: event
+        statement: Issue の参照とブランチ名を渡して打つと、Issue に紐づいたブランチを ブランチ名/Issue 番号 の名前で作る
+      - id: PW-CREATE-BRANCH-02
+        pattern: event
+        statement: --base を付けて打つと、そのブランチの先頭からブランチを作る
+      - id: PW-CREATE-BRANCH-03
+        pattern: event
+        statement: --base を省いて打つと、設定ファイルの develop_branch の先頭からブランチを作る
+      - id: PW-CREATE-BRANCH-04
+        pattern: event
+        statement: ブランチを作ると、created の行を標準エラーに出す
+      - id: PW-CREATE-BRANCH-05
+        pattern: event
+        statement: ブランチを作ると、ボード上の Issue の Status を active にする
+      - id: PW-CREATE-BRANCH-06
+        pattern: event
+        statement: Status を active にすると、set の行を標準エラーに出す
+      - id: PW-CREATE-BRANCH-07
+        pattern: event
+        statement: ブランチを作ると、その Issue を作業対象として .pecot-active と .pecot-session-title に記録する
+      - id: PW-CREATE-BRANCH-08
+        pattern: event
+        statement: 作業対象を記録すると、set の行を標準エラーに出す
+      - id: PW-CREATE-BRANCH-09
+        pattern: event
+        statement: --allow-cross-repo を付けて打つと、作業ディレクトリのリポジトリと Issue のリポジトリを比べずにブランチを作る
+      - id: PW-CREATE-BRANCH-10
+        pattern: event
+        statement: --force-overwrite-active を付けて打つと、.pecot-active の内容を確かめずに上書きする
+      - id: PW-CREATE-BRANCH-11
+        pattern: event
+        statement: --checkout か --no-checkout を付けて打つと、付けないときと同じ結果になる
+      - id: PW-CREATE-BRANCH-12
+        pattern: unwanted
+        statement: もし .pecot-active の内容が不正な形なら、warning の行を標準エラーに出して上書きする
+      - id: PW-CREATE-BRANCH-13
+        pattern: unwanted
+        statement: もし .pecot-active の Issue が CLOSED なら、warning の行を標準エラーに出して上書きする
+      - id: PW-CREATE-BRANCH-14
+        pattern: unwanted
+        statement: もしボード上の Issue の Status を active にできなかったなら、warning の行を標準エラーに出す
+      - id: PW-CREATE-BRANCH-15
+        pattern: unwanted
+        statement: もし作業対象を記録できなかったなら、warning の行を標準エラーに出す
+      - id: PW-CREATE-BRANCH-16
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-17
+        pattern: unwanted
+        statement: もし Issue の参照がフル形式でないなら、終了コード 2 で終わる
+      - id: PW-CREATE-BRANCH-18
+        pattern: unwanted
+        statement: もし作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違うなら、終了コード 2 で終わる
+      - id: PW-CREATE-BRANCH-19
+        pattern: unwanted
+        statement: もし .pecot-active に別の OPEN な Issue が残っているなら、終了コード 2 で終わる
+      - id: PW-CREATE-BRANCH-20
+        pattern: unwanted
+        statement: もし --base を省いて develop_branch も設定していないなら、終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-21
+        pattern: unwanted
+        statement: もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-22
+        pattern: unwanted
+        statement: もしブランチの作成までの GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-23
+        pattern: unwanted
+        statement: もし --repo が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わる
+      - id: PW-CREATE-BRANCH-24
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を出して終了コード 1 で終わる
+  PW-DELETE-BRANCH:
+    constraints: []
+    details:
+      - Deletes a remote branch through the GitHub REST API, for use where a hook blocks git push and the gh CLI.
+      - The repository to delete from is the repo_ref argument (owner/repo); the global pecot --repo is only checked against the current git remote and is not used as the target.
+      - The default branch of the repository and the develop_branch and release_branch in the config file are protected and are never deleted.
+      - Also deletes the remote branch wip/<branch> when it exists.
+      - A wip/<branch> that cannot be deleted is skipped without a message.
+      - --dry-run reads the default branch and checks the protected branches, then writes the plan line for the branch and deletes nothing. It does not plan the deletion of wip/<branch>.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line on stderr for each deleted branch (deleted), the plan line with --dry-run (dry-run), and an error line that lists the protected branches when the branch is protected.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The branch was deleted, or the plan line was written with --dry-run.
+      - code: 1
+        when: There is no active project, the default branch cannot be read, the branch is protected, the branch cannot be deleted, --repo differs from the current git remote, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+      - code: 2
+        when: repo_ref is not in owner/repo form, or another command line error occurs.
+    on_error: When deleting wip/<branch> fails, the branch itself stays deleted and the command still finishes with exit status 0.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the default branch of the repository.
+      - target: github
+        kind: destructive
+        what: Deletes the remote branch, and wip/<branch> when it exists.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host, with permission to delete branches.
+    idempotent: false
+    examples:
+      - run: pecot delete-branch example-org/my-repo feat/my-change/123
+        note: Delete the remote branch and its wip branch.
+      - run: pecot delete-branch example-org/my-repo feat/my-change/123 --dry-run
+        note: Show the plan without deleting.
+    default_notes: {}
+    behaviors:
+      - id: PW-DELETE-BRANCH-01
+        pattern: event
+        statement: リポジトリとブランチ名を渡して打つと、そのリポジトリのリモートブランチを削除する
+      - id: PW-DELETE-BRANCH-02
+        pattern: event
+        statement: ブランチを削除すると、deleted の行を標準エラーに出す
+      - id: PW-DELETE-BRANCH-03
+        pattern: event
+        statement: wip/ブランチ名 のリモートブランチがあると、それも削除する
+      - id: PW-DELETE-BRANCH-04
+        pattern: event
+        statement: wip/ブランチ名 を削除すると、deleted の行を標準エラーに出す
+      - id: PW-DELETE-BRANCH-05
+        pattern: event
+        statement: --dry-run を付けて打つと、削除せずに dry-run の行を標準エラーに出す
+      - id: PW-DELETE-BRANCH-06
+        pattern: unwanted
+        statement: もし wip/ブランチ名 を削除できなかったなら、何も出さずにそのブランチを残して終了コード 0 で終わる
+      - id: PW-DELETE-BRANCH-07
+        pattern: unwanted
+        statement: もし削除するブランチが既定ブランチ・develop_branch・release_branch のどれかなら、保護するブランチを並べた error の行を標準エラーに出す
+      - id: PW-DELETE-BRANCH-08
+        pattern: unwanted
+        statement: もし削除するブランチが既定ブランチ・develop_branch・release_branch のどれかなら、終了コード 1 で終わる
+      - id: PW-DELETE-BRANCH-09
+        pattern: unwanted
+        statement: もし repo_ref が owner/repo の形でないなら、終了コード 2 で終わる
+      - id: PW-DELETE-BRANCH-10
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-DELETE-BRANCH-11
+        pattern: unwanted
+        statement: もしリポジトリの既定ブランチを読めないなら、終了コード 1 で終わる
+      - id: PW-DELETE-BRANCH-12
+        pattern: unwanted
+        statement: もしブランチの削除で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-DELETE-BRANCH-13
+        pattern: unwanted
+        statement: もし --repo が今の git remote のリポジトリと食い違うなら、終了コード 1 で終わる
+      - id: PW-DELETE-BRANCH-14
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を出して終了コード 1 で終わる
+  PW-DEPENDABOT-SYNC:
+    constraints: []
+    details:
+      - Finds the open Tracker issue labeled dependabot-pr whose body has the Tracker marker, and rewrites the table between list-begin and list-end in its body.
+      - Lists the open Dependabot PRs that wait for a human decision. A PR with no waiting reason is not listed.
+      - A PR is eligible for auto-merge when its first commit is authored by dependabot[bot] with a valid signature and no dependency update is major or of unknown type.
+      - A PR whose update type is major or unknown is listed. An eligible PR is listed when its checks failed, its checks have not finished 24 hours after the last push with auto-merge on, it conflicts for more than 30 minutes, it was dequeued after the last push, or it has no auto-merge 30 minutes after the last push.
+      - Each table row has the PR title, a link to the PR and the state of the checks (passed, failed, pending or none). The waiting reasons appear only in the result lines.
+      - Text in the Tracker body outside the list markers stays as it is.
+      - When no Tracker is open and there are PRs to list, creates a Tracker, adds it to the project board, and sets Status to Backlog and Priority to medium.
+      - When no Tracker is open and no PR is listed, creates nothing.
+      - When the list is empty and a Tracker is open, sets the list to none and closes the Tracker as completed.
+      - On an open Tracker that is not closed, sets Status and Priority only while they are empty, so a change made by a person stays. A field that the active project does not define is not set.
+      - When several Trackers are open, uses the lowest number and leaves the others open. A closed Tracker is not reused.
+    stdin: none
+    output:
+      format: none
+    diagnostics: Count lines for the open Dependabot PRs, the PRs awaiting a decision and the PRs awaiting a decision without check results. A result line for each change (created, added, removed, updated, unchanged, closed, skipped), or a dry-run line with --dry-run. A warning line when several Trackers are open. An error line for each failure.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Tracker was synchronized, or --dry-run printed the plan.
+      - code: 1
+        when: There is no active project, the repository cannot be read from the origin remote, the PRs or issues cannot be listed, the Tracker body does not have exactly one pair of list-begin and list-end markers, or creating, updating, closing or placing the Tracker on the board failed.
+      - code: 2
+        when: A command line error occurs.
+    on_error: A Tracker that was created stays open on GitHub even when placing it on the board failed, and the next run places it on the board. A failed body update leaves the body as it was and the Tracker open. A failed close leaves the list set to none and the Tracker open, and the next run closes it. Changes already made are not rolled back.
+    effects:
+      - target: github
+        kind: read
+        what: Lists the open Dependabot PRs of the repository and the issues that carry the dependabot-pr label.
+      - target: github
+        kind: write
+        what: Creates the Tracker issue, rewrites its body, closes it, adds it to the project board and sets its Status and Priority.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host, with permission to edit issues and the project.
+      - The repository is the origin remote of the working directory, or --repo is given.
+    idempotent: true
+    examples:
+      - run: pecot dependabot sync --dry-run
+        note: Show the planned Tracker changes without writing to GitHub.
+      - run: pecot dependabot sync
+        note: Rewrite the Tracker list, creating or closing the Tracker when needed.
+    default_notes: {}
+    behaviors:
+      - id: PW-DEPENDABOT-SYNC-01
+        pattern: event
+        statement: open の Tracker が無く、判断を待つ PR があると、label が dependabot-pr の Tracker の Issue を作る
+      - id: PW-DEPENDABOT-SYNC-02
+        pattern: event
+        statement: Tracker の Issue を作ると、ボードに足して Status を Backlog、Priority を medium にする
+      - id: PW-DEPENDABOT-SYNC-03
+        pattern: event
+        statement: open の Tracker が無く、判断を待つ PR も無いと、Tracker の Issue を作らない
+      - id: PW-DEPENDABOT-SYNC-04
+        pattern: event
+        statement: open の Tracker が無く、判断を待つ PR も無いと、skipped の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-05
+        pattern: event
+        statement: open の Tracker があると、list-begin と list-end の間の表を、判断を待つ PR の行に書き直す
+      - id: PW-DEPENDABOT-SYNC-06
+        pattern: event
+        statement: update type が major か不明の PR があると、その PR を表に載せる
+      - id: PW-DEPENDABOT-SYNC-07
+        pattern: event
+        statement: 自動マージの対象の PR の検証が失敗していると、その PR を表に載せる
+      - id: PW-DEPENDABOT-SYNC-08
+        pattern: event
+        statement: 自動マージを入れた PR の検証が最後の push から 24 時間たっても終わらないと、その PR を表に載せる
+      - id: PW-DEPENDABOT-SYNC-09
+        pattern: event
+        statement: 自動マージの対象の PR が競合したまま 30 分を超えると、その PR を表に載せる
+      - id: PW-DEPENDABOT-SYNC-10
+        pattern: event
+        statement: 自動マージの対象の PR が最後の push の後に merge queue から外されると、その PR を表に載せる
+      - id: PW-DEPENDABOT-SYNC-11
+        pattern: event
+        statement: 自動マージの対象の PR が、自動マージと queue の両方が無いまま最後の push から 30 分を超えると、その PR を表に載せる
+      - id: PW-DEPENDABOT-SYNC-12
+        pattern: event
+        statement: 判断を待つ理由の無い PR があると、その PR を表に載せない
+      - id: PW-DEPENDABOT-SYNC-13
+        pattern: event
+        statement: PR の一覧を取れると、open の Dependabot PR の数と判断を待つ PR の数と検証の結果が無い PR の数の count の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-14
+        pattern: event
+        statement: 表に PR を足すと、added の行を理由とともに標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-15
+        pattern: event
+        statement: 表から PR を外すと、removed の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-16
+        pattern: event
+        statement: 行の足し外しが無く本文だけが変わると、本文を書き直して updated の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-17
+        pattern: event
+        statement: 書き直した本文が今の本文と同じだと、本文を書き直さずに unchanged の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-18
+        pattern: event
+        statement: 判断を待つ PR が無く open の Tracker があると、表を none に書き直す
+      - id: PW-DEPENDABOT-SYNC-19
+        pattern: event
+        statement: 表を none に書き直すと、Tracker を completed の理由で閉じる
+      - id: PW-DEPENDABOT-SYNC-20
+        pattern: event
+        statement: Tracker を閉じると、closed の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-21
+        pattern: event
+        statement: 表が既に none の open の Tracker があると、本文を書き直さずに Tracker を閉じる
+      - id: PW-DEPENDABOT-SYNC-22
+        pattern: event
+        statement: 閉じない open の Tracker の Status か Priority が空だと、空の欄だけに Backlog か medium を入れる
+      - id: PW-DEPENDABOT-SYNC-23
+        pattern: event
+        statement: open の Tracker が複数あると、番号が最小のものを使う
+      - id: PW-DEPENDABOT-SYNC-24
+        pattern: event
+        statement: open の Tracker が複数あると、使わないものを閉じずに warning の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-25
+        pattern: event
+        statement: --dry-run を付けて打つと、GitHub への書き込みをせず、予定の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-26
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-DEPENDABOT-SYNC-27
+        pattern: unwanted
+        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、終了コード 1 で終わる
+      - id: PW-DEPENDABOT-SYNC-28
+        pattern: unwanted
+        statement: もし PR か Issue の一覧を取れないなら、何も書かずに終了コード 1 で終わる
+      - id: PW-DEPENDABOT-SYNC-29
+        pattern: unwanted
+        statement: もし使う Tracker の本文に list-begin と list-end の印が 1 組だけ無いなら、何も書かずに終了コード 1 で終わる
+      - id: PW-DEPENDABOT-SYNC-30
+        pattern: unwanted
+        statement: もし Tracker の本文の書き直しに失敗したなら、Tracker を閉じずに終了コード 1 で終わる
+      - id: PW-DEPENDABOT-SYNC-31
+        pattern: unwanted
+        statement: もし表を none に書き直した後で Tracker を閉じられなかったなら、次の実行でやり直す旨の error の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-32
+        pattern: unwanted
+        statement: もし表を none に書き直した後で Tracker を閉じられなかったなら、終了コード 1 で終わる
+      - id: PW-DEPENDABOT-SYNC-33
+        pattern: unwanted
+        statement: もし Tracker の作成かボードへの追加に失敗したなら、Tracker の error の行を標準エラーに出す
+      - id: PW-DEPENDABOT-SYNC-34
+        pattern: unwanted
+        statement: もし Tracker の作成かボードへの追加に失敗したなら、終了コード 1 で終わる
   PW-ISSUE-COMMENT:
     constraints:
       - requires: {message: [issue, template]}
@@ -1836,6 +2285,1243 @@ entries:
       - id: PW-PROJECT-UNSET-AGGREGATION-REPO-04
         pattern: unwanted
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+  PW-RELEASE-CREATE:
+    constraints: []
+    details:
+      - "Creates a GitHub release and its tag through the GitHub API; no git tag or git push is needed."
+      - "The release notes are the section of the given version in the CHANGELOG, from the line after its ## [X.Y.Z] heading to the next ## heading."
+      - "The CHANGELOG is the changelog_file of the repository in the config file; without it, CHANGELOG.md and then AIST-CHANGELOG.md at the git root, and with --package, the changelog of that package."
+      - "The tag is created at the head of the release_branch of the repository in the config file."
+      - "The tag is v<version> and the release name is the same; with --package, the tag is <package>-v<version> and the release name is <package> v<version>."
+      - "The version must be in X.Y.Z form without a leading v."
+      - "A repository with packages configured needs --package, and a repository without packages does not accept it."
+      - "The repository is taken from the global pecot --repo, and without it from the origin remote; the command still needs the working directory to be inside a git repository."
+      - "A mismatch between --repo and the current git remote is a warning, and --repo is used."
+      - "With --dry-run, the release is not created and no GitHub client is made."
+    stdin: none
+    output:
+      format: text
+      description: The URL of the created release. With --dry-run, the release notes instead.
+    diagnostics: A result line on stderr for the created release, or a plan line with --dry-run. A warning line when --repo differs from the git remote. An error line on a failure, except when the GitHub token cannot be found, where a traceback is printed.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The release was created, or the plan was printed with --dry-run.
+      - code: 1
+        when: The version is not in X.Y.Z form, the root directory of the git repository cannot be found, there is no active project, the --package rules are broken, the CHANGELOG or the version in it is not found, release_branch is not set, the GitHub API returned an error, the repository is ambiguous outside git without --repo, the GitHub token cannot be found (a traceback is printed), or the project root cannot be determined.
+      - code: 2
+        when: The version argument is missing, or another command line error occurs.
+    on_error: Nothing is created on GitHub when a step fails.
+    effects:
+      - target: github
+        kind: write
+        what: Creates the release and the tag.
+      - target: file
+        kind: read
+        what: Reads the active config file and the CHANGELOG.
+      - target: git
+        kind: read
+        what: Reads the root directory of the git repository and the origin remote URL.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - The working directory is inside a git repository.
+      - The release_branch of the repository is set in the config file (pecot project set-repo).
+      - The CHANGELOG has a section for the version.
+      - A GitHub token is available for the host, with permission to create releases.
+    idempotent: false
+    examples:
+      - run: pecot release create 0.6.1
+        note: Create the release v0.6.1 from the CHANGELOG.
+      - run: pecot release create 0.6.1 --dry-run
+        note: Print the plan and the release notes without creating anything.
+      - run: pecot release create 0.6.1 --package pecot-workflow
+        note: Create the release pecot-workflow-v0.6.1 in a monorepo.
+    default_notes:
+      package: None; required when the repository has packages configured in the config file.
+    behaviors:
+      - id: PW-RELEASE-CREATE-01
+        pattern: event
+        statement: 版を渡して打つと、CHANGELOG のその版の節をリリースノートにして GitHub のリリースを作る
+      - id: PW-RELEASE-CREATE-02
+        pattern: event
+        statement: リリースを作ると、release_branch の先頭にタグを作る
+      - id: PW-RELEASE-CREATE-03
+        pattern: event
+        statement: --package を付けて打つと、パッケージ名を接頭辞にしたタグと名前でリリースを作る
+      - id: PW-RELEASE-CREATE-04
+        pattern: event
+        statement: --dry-run を付けて打つと、リリースを作らずに予定の行を標準エラーに出す
+      - id: PW-RELEASE-CREATE-05
+        pattern: event
+        statement: --dry-run を付けて打つと、リリースノートを標準出力に出す
+      - id: PW-RELEASE-CREATE-06
+        pattern: event
+        statement: --repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す
+      - id: PW-RELEASE-CREATE-07
+        pattern: event
+        statement: リリースを作ると、リリースの URL を標準出力に出す
+      - id: PW-RELEASE-CREATE-08
+        pattern: event
+        statement: リリースを作ると、created の行を標準エラーに出す
+      - id: PW-RELEASE-CREATE-09
+        pattern: unwanted
+        statement: もし版が X.Y.Z の形でないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-10
+        pattern: unwanted
+        statement: もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-11
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-12
+        pattern: unwanted
+        statement: もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-13
+        pattern: unwanted
+        statement: もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-14
+        pattern: unwanted
+        statement: もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-15
+        pattern: unwanted
+        statement: もし CHANGELOG が無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-16
+        pattern: unwanted
+        statement: もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-17
+        pattern: unwanted
+        statement: もし release_branch を設定していないなら、設定コマンドを案内する error の行を出して終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-18
+        pattern: unwanted
+        statement: もしリリースの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-CREATE-19
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を出して終了コード 1 で終わる
+  PW-RELEASE-MERGE:
+    constraints: []
+    details:
+      - "Merges the PR with a regular merge (a merge commit), never a squash or a rebase, so that the merge-base is kept."
+      - "The PR is the pr_ref argument (owner/repo/N); the global pecot --repo is only compared with the current git remote and is not used as the target, and the short form N is rejected even when --repo is given."
+      - "Only a PR whose base branch equals the release_branch of the repository in the config file is merged."
+      - "A PR that is already merged or closed is not merged."
+      - "A PR with merge conflicts is not merged unless --admin is given; --admin skips only this check and the GitHub API still decides whether the merge is allowed."
+      - "With --delete-branch, the head branch of the PR is deleted from the remote after the merge; a failure to delete is a warning and does not change the exit status."
+      - "With --dry-run, nothing is merged or deleted, and --delete-branch has no effect."
+      - "A mismatch between --repo and the current git remote is a warning, and the command goes on."
+      - "No Issue is closed by the command."
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line on stderr for the merge and for the deleted branch, or a plan line with --dry-run. A warning line when deleting the branch failed, and when --repo differs from the git remote. An error line on a failure.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The PR was merged, or the plan was printed with --dry-run.
+      - code: 1
+        when: There is no active project, the PR is not found or cannot be read, the PR is already merged or closed, the PR has conflicts and --admin is not given, release_branch is not set, the base branch of the PR is not the release_branch, the GitHub API refused the merge, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+      - code: 2
+        when: The PR reference is not in owner/repo/N form, the PR reference is missing, or another command line error occurs.
+    on_error: When the merge succeeded and deleting the head branch failed, the PR stays merged and the head branch remains on the remote.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the state, the mergeable state, the base branch and the head branch of the PR.
+      - target: github
+        kind: write
+        what: Merges the PR with the merge method merge.
+      - target: github
+        kind: destructive
+        what: Deletes the head branch of the PR from the remote when --delete-branch is given.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - The release_branch of the repository is set in the config file (pecot project set-repo).
+      - A GitHub token is available for the host, with permission to merge the PR.
+    idempotent: false
+    examples:
+      - run: pecot release merge example-org/my-repo/123
+        note: Merge the release PR with a merge commit.
+      - run: pecot release merge example-org/my-repo/123 --dry-run
+        note: Print the plan without merging.
+      - run: pecot release merge example-org/my-repo/123 --delete-branch
+        note: Merge the release PR and delete its head branch.
+    default_notes: {}
+    behaviors:
+      - id: PW-RELEASE-MERGE-01
+        pattern: event
+        statement: PR の参照を渡して打つと、その PR を通常のマージ（マージコミット）でマージする
+      - id: PW-RELEASE-MERGE-02
+        pattern: event
+        statement: --delete-branch を付けて打つと、マージの後に PR の head ブランチをリモートから削除する
+      - id: PW-RELEASE-MERGE-03
+        pattern: event
+        statement: --admin を付けて打つと、衝突のある PR でもマージを試みる
+      - id: PW-RELEASE-MERGE-04
+        pattern: event
+        statement: --dry-run を付けて打つと、マージせずに予定の行を標準エラーに出す
+      - id: PW-RELEASE-MERGE-05
+        pattern: event
+        statement: --dry-run と --delete-branch を付けて打つと、ブランチを削除しない
+      - id: PW-RELEASE-MERGE-06
+        pattern: event
+        statement: --repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す
+      - id: PW-RELEASE-MERGE-07
+        pattern: event
+        statement: PR をマージすると、merged の行を標準エラーに出す
+      - id: PW-RELEASE-MERGE-08
+        pattern: event
+        statement: head ブランチを削除すると、deleted の行を標準エラーに出す
+      - id: PW-RELEASE-MERGE-09
+        pattern: unwanted
+        statement: もし head ブランチを削除できなかったなら、warning の行を標準エラーに出して終了コード 0 で終わる
+      - id: PW-RELEASE-MERGE-10
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-11
+        pattern: unwanted
+        statement: もし PR の参照が owner/repo/N の形でないなら、終了コード 2 で終わる
+      - id: PW-RELEASE-MERGE-12
+        pattern: unwanted
+        statement: もし PR が見つからないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-13
+        pattern: unwanted
+        statement: もし PR の取得で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-14
+        pattern: unwanted
+        statement: もし PR が既にマージ済みなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-15
+        pattern: unwanted
+        statement: もし PR が閉じているなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-16
+        pattern: unwanted
+        statement: もし PR に衝突があって --admin を付けていないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-17
+        pattern: unwanted
+        statement: もし release_branch を設定していないなら、設定コマンドを案内する error の行を出して終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-18
+        pattern: unwanted
+        statement: もし PR の base ブランチが release_branch でないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-19
+        pattern: unwanted
+        statement: もしマージで GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-MERGE-20
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を出して終了コード 1 で終わる
+  PW-RELEASE-PREFLIGHT:
+    constraints: []
+    details:
+      - "Checks the open Dependabot, code scanning and secret scanning alerts of the repository; all three are always checked, even when an earlier one fails."
+      - "An open Dependabot alert is a warning and does not stop the command; the warning lists each alert as #<number> with its package and severity, and the URL of the alert page."
+      - "An open code scanning or secret scanning alert fails the command; a repository with the feature disabled passes with a skipped line."
+      - "A state of code scanning or secret scanning that cannot be determined, such as a missing permission, fails the command."
+      - "For a repository whose release type is nx, only the alerts are checked, and the version argument and --package are rejected."
+      - "Otherwise checks that the CHANGELOG exists, that the version is in X.Y.Z form, that the tag exists neither locally nor on origin, and that origin/<release_branch> and origin/<develop_branch> differ."
+      - "Without a version argument, the version is the first ## [X.Y.Z] heading of the CHANGELOG, and the Unreleased heading is skipped."
+      - "The CHANGELOG is the changelog_file of the repository in the config file; without it, CHANGELOG.md and then AIST-CHANGELOG.md at the git root, and with --package, the changelog of that package."
+      - "The tag is v<version>; with --package, it is <package>-v<version>."
+      - "A repository with packages configured needs --package, and a repository without packages does not accept it."
+      - "The repository is taken from the global pecot --repo, and without it from the origin remote; the command still needs the working directory to be inside a git repository."
+      - "A mismatch between --repo and the current git remote is a warning, and --repo is used."
+    stdin: none
+    output:
+      format: text
+      description: The version line, the tag line, a blank line and the release notes of the version. Nothing is written to stdout for a repository whose release type is nx.
+    diagnostics: Per alert kind, a count line, a skipped line or a warning line, and an error line for code scanning and secret scanning. A count line for the commits to release. A warning line when --repo differs from the git remote. An error line on a failure, except when the version is not in X.Y.Z form, where a traceback is printed.
+    environment: []
+    exit_status:
+      - code: 0
+        when: Every check passed, including the case where only Dependabot alerts are open or could not be read.
+      - code: 1
+        when: The root directory of the git repository cannot be found, there is no active project, the --package rules are broken, an nx repository is given a version or --package, an alert check fails, develop_branch or release_branch is not set, the CHANGELOG or the version in it is not found, the tag already exists, there is nothing to release, a git command fails, the version is not in X.Y.Z form (a traceback is printed), the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+      - code: 2
+        when: A command line error occurs, such as an unknown option.
+    on_error: Nothing is created on GitHub or in the working tree. git fetch may already have updated origin/<release_branch> and origin/<develop_branch>.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the open Dependabot, code scanning and secret scanning alerts of the repository.
+      - target: git
+        kind: read
+        what: Reads the git root, the origin remote URL, the local tags, the remote tags with git ls-remote and the commit count between the two branches.
+      - target: git
+        kind: write
+        what: Fetches the release branch and the develop branch from origin, which updates the remote-tracking refs.
+      - target: file
+        kind: read
+        what: Reads the active config file and the CHANGELOG.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - The working directory is inside a git repository whose origin remote has the develop and release branches.
+      - The develop_branch and release_branch of the repository are set in the config file (pecot project set-repo), unless the release type is nx.
+      - A GitHub token is available for the host, with permission to read the alerts.
+    idempotent: true
+    examples:
+      - run: pecot release preflight
+        note: Check the release with the version detected from the CHANGELOG.
+      - run: pecot release preflight 0.6.1
+        note: Check the release of a given version.
+      - run: pecot release preflight 0.6.1 --package pecot-workflow
+        note: Check the release of one package in a monorepo.
+    default_notes:
+      version: The first ## [X.Y.Z] heading of the CHANGELOG; the Unreleased heading is skipped.
+      package: None; required when the repository has packages configured in the config file.
+    behaviors:
+      - id: PW-RELEASE-PREFLIGHT-01
+        pattern: event
+        statement: 版を省いて打つと、CHANGELOG の最初の版を対象にチェックする
+      - id: PW-RELEASE-PREFLIGHT-02
+        pattern: event
+        statement: 版を渡して打つと、その版を対象にチェックする
+      - id: PW-RELEASE-PREFLIGHT-03
+        pattern: event
+        statement: --package を付けて打つと、パッケージ名を接頭辞にしたタグ名でチェックする
+      - id: PW-RELEASE-PREFLIGHT-04
+        pattern: event
+        statement: 打つと、Dependabot・code scanning・secret scanning の open の alert を調べて、結果の行を標準エラーに出す
+      - id: PW-RELEASE-PREFLIGHT-05
+        pattern: event
+        statement: open の Dependabot alert があると、件数と最も重い severity を添えた warning の行を標準エラーに出す
+      - id: PW-RELEASE-PREFLIGHT-06
+        pattern: event
+        statement: release_type が nx のリポジトリに打つと、alert だけを調べて終わる
+      - id: PW-RELEASE-PREFLIGHT-07
+        pattern: event
+        statement: --repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す
+      - id: PW-RELEASE-PREFLIGHT-08
+        pattern: event
+        statement: チェックが通ると、version・tag の行とリリースノートを標準出力に出す
+      - id: PW-RELEASE-PREFLIGHT-09
+        pattern: event
+        statement: チェックが通ると、release へ入るコミット数の count の行を標準エラーに出す
+      - id: PW-RELEASE-PREFLIGHT-10
+        pattern: unwanted
+        statement: もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出して続ける
+      - id: PW-RELEASE-PREFLIGHT-11
+        pattern: unwanted
+        statement: もし open の code scanning alert があるなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-12
+        pattern: unwanted
+        statement: もし open の secret scanning alert があるなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-13
+        pattern: unwanted
+        statement: もし code scanning か secret scanning の状態を判定できないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-14
+        pattern: unwanted
+        statement: もし alert の確認が 1 つ失敗したなら、残りの確認も行ってから終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-15
+        pattern: unwanted
+        statement: もし git リポジトリのルートを見つけられないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-16
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-17
+        pattern: unwanted
+        statement: もし nx のリポジトリに版か --package を渡したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-18
+        pattern: unwanted
+        statement: もし packages を設定したリポジトリに --package を渡さなかったなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-19
+        pattern: unwanted
+        statement: もし --package が設定に登録していないパッケージ名なら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-20
+        pattern: unwanted
+        statement: もし packages を設定していないリポジトリに --package を渡したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-21
+        pattern: unwanted
+        statement: もし develop_branch か release_branch を設定していないなら、設定コマンドを案内する error の行を出して終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-22
+        pattern: unwanted
+        statement: もし CHANGELOG が無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-23
+        pattern: unwanted
+        statement: もし版を省いて CHANGELOG に版が 1 つも無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-24
+        pattern: unwanted
+        statement: もし渡した版が X.Y.Z の形でないなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-25
+        pattern: unwanted
+        statement: もしタグがローカルに既にあるなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-26
+        pattern: unwanted
+        statement: もしタグが origin に既にあるなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-27
+        pattern: unwanted
+        statement: もし release と develop の間に差分のコミットが無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-28
+        pattern: unwanted
+        statement: もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-29
+        pattern: unwanted
+        statement: もし git コマンドが失敗したなら、終了コード 1 で終わる
+      - id: PW-RELEASE-PREFLIGHT-30
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を出して終了コード 1 で終わる
+  PW-SECURITY-SYNC:
+    constraints: []
+    details:
+      - Finds the open Tracker issue labeled security-alert whose body has the Tracker marker, and rewrites the list between list-begin and list-end in its body with the open alerts.
+      - Reads the open Dependabot alerts, the open code scanning alerts of the default branch and the open secret scanning alerts. Each kind has its own heading and table in the Tracker body.
+      - Priority comes from the alert severity. A secret scanning alert is always high, and the Priority of a new Tracker is the highest Priority among its rows.
+      - The rows of code scanning and secret scanning alerts show masked as the title, and a Dependabot row shows the advisory summary. Dependabot alerts of one advisory share a row.
+      - Text in the Tracker body outside the list markers stays as it is.
+      - A kind whose feature is disabled shows disabled under its heading and adds no rows. A repository without a code scanning analysis counts as having no code scanning alerts.
+      - A kind whose list cannot be fetched keeps its previous rows, shows unavailable when it had none, and makes the command end with exit status 1 after the other kinds were applied. A 403 for Dependabot alerts or a 404 for secret scanning that cannot be confirmed as disabled counts as a failure to fetch.
+      - When no Tracker is open and there are rows to list, creates a Tracker, adds it to the project board, and sets Status to Backlog and Priority to the highest row.
+      - When no Tracker is open and there is no row to list, creates nothing.
+      - Never closes the Tracker. When every alert is gone, each kind shows none, and a person closes the Tracker and moves it to Archived.
+      - On an existing Tracker, sets Status and Priority only while they are empty, so a change made by a person stays. A field that the active project does not define is not set.
+      - When several Trackers are open, uses the lowest number and leaves the others open. A closed Tracker is not reused.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line for each change (created, added, removed, updated, unchanged, skipped), or a dry-run line with --dry-run. A warning line when several Trackers are open. An error line for each failure, including each kind whose list could not be fetched.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Tracker was synchronized, or --dry-run printed the plan, and every kind was fetched or is disabled.
+      - code: 1
+        when: There is no active project, the repository cannot be read from the origin remote, the issues cannot be listed, the list of a kind cannot be fetched, the Tracker body does not have exactly one pair of list-begin and list-end markers, or creating, updating or placing the Tracker on the board failed. The exit status is 1 for a kind that cannot be fetched also with --dry-run.
+      - code: 2
+        when: A command line error occurs.
+    on_error: A Tracker that was created stays open on GitHub even when placing it on the board failed, and the next run places it on the board. A failed body update leaves the body as it was, and the next run retries it. Changes already made are not rolled back.
+    effects:
+      - target: github
+        kind: read
+        what: Lists the open Dependabot, code scanning and secret scanning alerts of the repository, the secret scanning and Dependabot settings when a list is refused, and the issues that carry the security-alert label.
+      - target: github
+        kind: write
+        what: Creates the Tracker issue, rewrites its body, adds it to the project board and sets its Status and Priority.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host, with permission to read the security alerts and to edit issues and the project.
+      - The repository is the origin remote of the working directory, or --repo is given.
+    idempotent: true
+    examples:
+      - run: pecot security sync --dry-run
+        note: Show the planned Tracker changes without writing to GitHub.
+      - run: pecot security sync
+        note: Rewrite the Tracker list, creating the Tracker when needed.
+    default_notes: {}
+    behaviors:
+      - id: PW-SECURITY-SYNC-01
+        pattern: event
+        statement: open の Tracker が無く、載せる alert があると、label が security-alert の Tracker の Issue を作る
+      - id: PW-SECURITY-SYNC-02
+        pattern: event
+        statement: Tracker の Issue を作ると、ボードに足して Status を Backlog、Priority を行の最大にする
+      - id: PW-SECURITY-SYNC-03
+        pattern: event
+        statement: open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作らない
+      - id: PW-SECURITY-SYNC-04
+        pattern: event
+        statement: open の Tracker が無く、載せる alert も無いと、skipped の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-05
+        pattern: event
+        statement: open の Tracker があると、list-begin と list-end の間を、Dependabot・code scanning・secret scanning の見出しと表に書き直す
+      - id: PW-SECURITY-SYNC-06
+        pattern: event
+        statement: 表に alert を足すと、added の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-07
+        pattern: event
+        statement: 表から alert を外すと、removed の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-08
+        pattern: event
+        statement: 行の足し外しが無く本文だけが変わると、本文を書き直して updated の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-09
+        pattern: event
+        statement: 書き直した本文が今の本文と同じだと、本文を書き直さずに unchanged の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-10
+        pattern: event
+        statement: open の alert がすべて無くなると、各種類の見出しの下に none を書いて Tracker を閉じない
+      - id: PW-SECURITY-SYNC-11
+        pattern: event
+        statement: code scanning と secret scanning の行を書くと、title を masked にする
+      - id: PW-SECURITY-SYNC-12
+        pattern: event
+        statement: 機能が無効の種類があると、その見出しの下に disabled を書く
+      - id: PW-SECURITY-SYNC-13
+        pattern: event
+        statement: 機能が無効の種類があると、skipped の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-14
+        pattern: event
+        statement: code scanning の解析が無いリポジトリだと、code scanning の alert を 0 件として扱う
+      - id: PW-SECURITY-SYNC-15
+        pattern: event
+        statement: 既存の Tracker の Status か Priority が空だと、空の欄だけに Backlog か行の最大の Priority を入れる
+      - id: PW-SECURITY-SYNC-16
+        pattern: event
+        statement: open の Tracker が複数あると、番号が最小のものを使う
+      - id: PW-SECURITY-SYNC-17
+        pattern: event
+        statement: open の Tracker が複数あると、使わないものを閉じずに warning の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-18
+        pattern: event
+        statement: --dry-run を付けて打つと、GitHub への書き込みをせず、予定の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-19
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-SECURITY-SYNC-20
+        pattern: unwanted
+        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、終了コード 1 で終わる
+      - id: PW-SECURITY-SYNC-21
+        pattern: unwanted
+        statement: もしある種類の alert の一覧を取れないなら、その種類の前の行を残し、前の行が無ければ見出しの下に unavailable を書く
+      - id: PW-SECURITY-SYNC-22
+        pattern: unwanted
+        statement: もしある種類の alert の一覧を取れないなら、その種類を触らない旨の error の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-23
+        pattern: unwanted
+        statement: もしある種類の alert の一覧を取れないなら、ほかの種類を書き直した後に終了コード 1 で終わる
+      - id: PW-SECURITY-SYNC-24
+        pattern: unwanted
+        statement: もし Dependabot alert が有効なのに一覧を 403 で取れないなら、その種類を取れなかったものとして扱う
+      - id: PW-SECURITY-SYNC-25
+        pattern: unwanted
+        statement: もし secret scanning の一覧を 404 で取れず、無効とも確かめられないなら、その種類を取れなかったものとして扱う
+      - id: PW-SECURITY-SYNC-26
+        pattern: unwanted
+        statement: もし Issue の一覧を取れないなら、何も書かずに終了コード 1 で終わる
+      - id: PW-SECURITY-SYNC-27
+        pattern: unwanted
+        statement: もし使う Tracker の本文に list-begin と list-end の印が 1 組だけ無いなら、何も書かずに終了コード 1 で終わる
+      - id: PW-SECURITY-SYNC-28
+        pattern: unwanted
+        statement: もし Tracker の本文の書き直しに失敗したなら、error の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-29
+        pattern: unwanted
+        statement: もし Tracker の本文の書き直しに失敗したなら、終了コード 1 で終わる
+      - id: PW-SECURITY-SYNC-30
+        pattern: unwanted
+        statement: もし Tracker の作成かボードへの追加に失敗したなら、Tracker の error の行を標準エラーに出す
+      - id: PW-SECURITY-SYNC-31
+        pattern: unwanted
+        statement: もし Tracker の作成かボードへの追加に失敗したなら、終了コード 1 で終わる
+  PW-SESSION-RESTORE:
+    constraints: []
+    details:
+      - "Restores the work target that was lost from the session: the Issue the branch is working on."
+      - "Writes .pecot-active, holding owner/repo/N, and .pecot-session-title, holding the session name, under .pecot/state/ of the project root; an existing work target is overwritten."
+      - "Creates the work directory .pecot/work/N/ under the project root; when it cannot be created, the command goes on without it."
+      - "The session name is #<number> followed by the Issue title, with a leading [Task], [Bug] or [Epic] removed, cut to 40 characters; without a title, it is #<number>."
+      - "The Issue title is read from GitHub; when there is no active project, the config file is unreadable or the Issue cannot be read, the command goes on with an empty title and no warning."
+      - "With --issue, the branch and the origin remote are not read; the reference must be the full form owner/repo/N."
+      - "Without --issue, the Issue number is the number at the end of the current branch name after the last slash, and the repository is the origin remote, both read in --directory."
+      - "The project root, and so the files above, are resolved from the working directory of the command, not from --directory."
+    stdin: none
+    output:
+      format: none
+    diagnostics: A set line on stderr for the recorded work target, with the work directory when it was created. An error line on a failure; when the Issue number cannot be inferred from the branch name, the line is followed by a hint to pass --issue.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The work target was recorded.
+      - code: 1
+        when: Without --issue, the branch name cannot be read, the Issue number cannot be inferred from the branch name or the origin repository cannot be read; or the work target cannot be written, including when the project root cannot be determined.
+      - code: 2
+        when: --issue is not in owner/repo/N form, --directory is missing or is not an existing directory, or another command line error occurs.
+    on_error: When writing .pecot-session-title fails after .pecot-active was written, .pecot-active stays written.
+    effects:
+      - target: file
+        kind: write
+        what: Writes .pecot-active and .pecot-session-title under .pecot/state/, and creates .pecot/work/N/.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+      - target: git
+        kind: read
+        what: Reads the current branch and the origin remote URL of the directory.
+      - target: github
+        kind: read
+        what: Reads the title of the Issue.
+    prerequisites:
+      - The directory is a git repository whose branch name ends with the Issue number, unless --issue is given.
+    idempotent: true
+    examples:
+      - run: pecot session restore -D .
+        note: Restore the work target from the branch name.
+      - run: pecot session restore --issue example-org/my-repo/123 -D .
+        note: Restore the work target of a given Issue.
+    default_notes:
+      issue: Inferred from the end of the current branch name and the origin remote of --directory.
+    behaviors:
+      - id: PW-SESSION-RESTORE-01
+        pattern: event
+        statement: --issue に owner/repo/N を渡して打つと、その Issue を作業対象として記録する
+      - id: PW-SESSION-RESTORE-02
+        pattern: event
+        statement: --issue を省いて打つと、ブランチ名の末尾の番号と origin のリポジトリから作業対象の Issue を決めて記録する
+      - id: PW-SESSION-RESTORE-03
+        pattern: event
+        statement: 作業対象を記録すると、.pecot-active に owner/repo/N を書く
+      - id: PW-SESSION-RESTORE-04
+        pattern: event
+        statement: 作業対象を記録すると、.pecot-session-title にセッション名を書く
+      - id: PW-SESSION-RESTORE-05
+        pattern: event
+        statement: Issue の題名を GitHub から読めると、セッション名に番号と題名を入れる
+      - id: PW-SESSION-RESTORE-06
+        pattern: event
+        statement: 作業対象を記録すると、作業ディレクトリ .pecot/work/N/ を作る
+      - id: PW-SESSION-RESTORE-07
+        pattern: event
+        statement: 作業対象が既に記録されていると、新しい作業対象で上書きする
+      - id: PW-SESSION-RESTORE-08
+        pattern: event
+        statement: 作業対象を記録すると、set の行を標準エラーに出す
+      - id: PW-SESSION-RESTORE-09
+        pattern: unwanted
+        statement: もし Issue の題名を読めないなら、題名を入れずにセッション名を書いて続ける
+      - id: PW-SESSION-RESTORE-10
+        pattern: unwanted
+        statement: もし --issue が owner/repo/N の形でないなら、終了コード 2 で終わる
+      - id: PW-SESSION-RESTORE-11
+        pattern: unwanted
+        statement: もし --directory を省いたなら、終了コード 2 で終わる
+      - id: PW-SESSION-RESTORE-12
+        pattern: unwanted
+        statement: もし --directory が存在するディレクトリでないなら、終了コード 2 で終わる
+      - id: PW-SESSION-RESTORE-13
+        pattern: unwanted
+        statement: もし --issue を省いてブランチ名を読めないなら、終了コード 1 で終わる
+      - id: PW-SESSION-RESTORE-14
+        pattern: unwanted
+        statement: もし --issue を省いてブランチ名の末尾が番号でないなら、--issue を使う案内を添えた error の行を出して終了コード 1 で終わる
+      - id: PW-SESSION-RESTORE-15
+        pattern: unwanted
+        statement: もし --issue を省いて origin のリポジトリを読めないなら、終了コード 1 で終わる
+      - id: PW-SESSION-RESTORE-16
+        pattern: unwanted
+        statement: もし作業対象のファイルを書けないなら、error の行を標準エラーに出して終了コード 1 で終わる
+  PW-SESSION-STATUS:
+    constraints: []
+    details:
+      - "Shows the current branch, the origin repository, the Issue inferred from the branch name and the session flag state."
+      - "The Issue is inferred from the number at the end of the branch name after the last slash."
+      - "The branch and the origin repository are read in --directory; the flag file .pecot-active is read from .pecot/state/ of the project root, which is resolved from the working directory of the command, not from --directory."
+      - "The flag table has one row per flag with the flag name, set or unset, and the content of the file."
+      - "When .pecot-active holds an Issue reference, an Active Issue section follows with the number, the title and the state of the Issue, and the body when it is not empty."
+      - "The command is a diagnostic: a value that cannot be read is shown as unknown or none, or left out, and does not fail the command."
+      - "Nothing is written."
+    stdin: none
+    output:
+      format: text
+      description: Markdown with a Session status heading, the Branch, Repository and Inferred Issue lines, the flag table, and an Active Issue section when the active Issue could be read.
+    diagnostics: A warning line on stderr when the active Issue cannot be read. A traceback when the project root cannot be determined or the active config file is broken.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The status was printed, including when the branch, the repository or the active Issue could not be read.
+      - code: 1
+        when: The project root cannot be determined (a traceback is printed), or the active config file is broken (a traceback is printed).
+      - code: 2
+        when: --directory is missing or is not an existing directory, or another command line error occurs.
+    on_error: default
+    effects:
+      - target: git
+        kind: read
+        what: Reads the current branch and the origin remote URL of the directory.
+      - target: file
+        kind: read
+        what: Reads .pecot-active under .pecot/state/ and the active config file.
+      - target: github
+        kind: read
+        what: Reads the title, the state and the body of the Issue held in .pecot-active.
+    prerequisites: []
+    idempotent: true
+    examples:
+      - run: pecot session status -D .
+        note: Show the session state of the current repository.
+    default_notes: {}
+    behaviors:
+      - id: PW-SESSION-STATUS-01
+        pattern: event
+        statement: --directory を渡して打つと、ブランチ・リポジトリ・推定した Issue・フラグの表を Markdown で標準出力に出す
+      - id: PW-SESSION-STATUS-02
+        pattern: event
+        statement: ブランチ名の末尾が番号だと、その番号を Inferred Issue の行に出す
+      - id: PW-SESSION-STATUS-03
+        pattern: event
+        statement: .pecot-active があると、フラグの表にその行を set と内容で出す
+      - id: PW-SESSION-STATUS-04
+        pattern: event
+        statement: .pecot-active が無いと、フラグの表にその行を unset で出す
+      - id: PW-SESSION-STATUS-05
+        pattern: event
+        statement: .pecot-active に Issue の参照があると、GitHub から読んだ Issue の番号・題名・状態を Active Issue の節に出す
+      - id: PW-SESSION-STATUS-06
+        pattern: event
+        statement: 読んだ Issue に本文があると、本文を Active Issue の節に続けて出す
+      - id: PW-SESSION-STATUS-07
+        pattern: unwanted
+        statement: もしブランチ名を読めないなら、Branch の行に unknown を出して続ける
+      - id: PW-SESSION-STATUS-08
+        pattern: unwanted
+        statement: もし origin のリポジトリを読めないなら、Repository の行に unknown を出して続ける
+      - id: PW-SESSION-STATUS-09
+        pattern: unwanted
+        statement: もしブランチ名の末尾が番号でないなら、Inferred Issue の行に none を出して続ける
+      - id: PW-SESSION-STATUS-10
+        pattern: unwanted
+        statement: もし .pecot-active の内容が Issue の参照として読めないなら、Active Issue の節を出さずに続ける
+      - id: PW-SESSION-STATUS-11
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、Active Issue の節を出さずに warning の行を標準エラーに出す
+      - id: PW-SESSION-STATUS-12
+        pattern: unwanted
+        statement: もし Issue を GitHub から読めないなら、Active Issue の節を出さずに warning の行を標準エラーに出す
+      - id: PW-SESSION-STATUS-13
+        pattern: unwanted
+        statement: もし --directory を省いたなら、終了コード 2 で終わる
+      - id: PW-SESSION-STATUS-14
+        pattern: unwanted
+        statement: もし --directory が存在するディレクトリでないなら、終了コード 2 で終わる
+  PW-UPDATE-ISSUE-STATUS:
+    constraints: []
+    details:
+      - Sets the Status of an Issue that is already on the project board of the active project.
+      - The Issue reference is owner/repo/N; the short form N is accepted when the repository is given by the global pecot --repo or the git remote.
+      - The status is backlog, pending, ready, active, in_review or archived. It is checked before the config file is read.
+      - The repository of the Issue must be registered in the active project, and the Issue must be on the board.
+      - A status that the board does not define stops the command with exit status 1; this differs from add-to-project, which only warns.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line on stderr for the Status (set), and an error line with the valid values when the status is invalid.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The Status was set.
+      - code: 1
+        when: The status is not one of the valid values, there is no active project, the repository is not in the project, the Issue is not on the board, the board does not define the status, the GitHub API returned an error, or the project root cannot be determined.
+      - code: 2
+        when: The Issue reference is malformed, or the short form is given without a repository, or another command line error occurs.
+    on_error: default
+    effects:
+      - target: github
+        kind: read
+        what: Reads the repositories linked to the project and the board item of the Issue.
+      - target: github
+        kind: write
+        what: Sets the Status field of the board item.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+    prerequisites:
+      - An active project exists (pecot project activate).
+      - A GitHub token is available for the host, with permission to edit the project.
+    idempotent: true
+    examples:
+      - run: pecot update-issue-status example-org/my-repo/123 in_review
+        note: Move the Issue to In Review.
+    default_notes: {}
+    behaviors:
+      - id: PW-UPDATE-ISSUE-STATUS-01
+        pattern: event
+        statement: Issue の参照と Status を渡して打つと、ボード上のその Issue の Status を渡した値にする
+      - id: PW-UPDATE-ISSUE-STATUS-02
+        pattern: event
+        statement: Status を設定すると、set の行を標準エラーに出す
+      - id: PW-UPDATE-ISSUE-STATUS-03
+        pattern: event
+        statement: Issue の参照に番号だけを渡して --repo を付けると、そのリポジトリの Issue の Status を設定する
+      - id: PW-UPDATE-ISSUE-STATUS-04
+        pattern: unwanted
+        statement: もし Status が backlog・pending・ready・active・in_review・archived のどれでもないなら、有効な値を並べた error の行を標準エラーに出す
+      - id: PW-UPDATE-ISSUE-STATUS-05
+        pattern: unwanted
+        statement: もし Status が backlog・pending・ready・active・in_review・archived のどれでもないなら、終了コード 1 で終わる
+      - id: PW-UPDATE-ISSUE-STATUS-06
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
+      - id: PW-UPDATE-ISSUE-STATUS-07
+        pattern: unwanted
+        statement: もし Issue の参照が不正なら、終了コード 2 で終わる
+      - id: PW-UPDATE-ISSUE-STATUS-08
+        pattern: unwanted
+        statement: もし Issue のリポジトリがプロジェクトに登録されていないなら、終了コード 1 で終わる
+      - id: PW-UPDATE-ISSUE-STATUS-09
+        pattern: unwanted
+        statement: もし Issue がボードに無いなら、add-to-project を案内する error の行を標準エラーに出す
+      - id: PW-UPDATE-ISSUE-STATUS-10
+        pattern: unwanted
+        statement: もし Issue がボードに無いなら、終了コード 1 で終わる
+      - id: PW-UPDATE-ISSUE-STATUS-11
+        pattern: unwanted
+        statement: もしボードが Status を定義していないなら、終了コード 1 で終わる
+      - id: PW-UPDATE-ISSUE-STATUS-12
+        pattern: unwanted
+        statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+  PW-WORKTREE-ADD:
+    constraints: []
+    details:
+      - Creates a worktree of the repository in -D under <project root>/<wtN>/<repository directory name>, on a new branch named wtN.
+      - The project root is the parent of base/ in the layout <project root>/base/<repository>. A repository outside that layout stops the command.
+      - Joins the lowest numbered wtN set that has no worktree of this repository yet, and starts the set max(N)+1 when every set already has one. wt1 to wt9 are the limit.
+      - Creates the branch from origin/<base> with that branch as its upstream, where <base> is --base or the develop_branch of the repository in the active project.
+      - When the branch wtN already exists, stops unless its upstream is origin/<base> or --allow-existing-branch is given. A matching branch that no worktree uses is deleted and created again.
+      - Prunes stale worktree metadata before it creates the worktree.
+      - Needs .pecot/config/worktree-config.json and .pecot/config/.worktreeignore in the main worktree, which pecot worktree init creates. The repository must be registered in the active project.
+      - Creates the symlinks of worktree-config.json, then copies the git-ignored files of the main worktree that .worktreeignore does not exclude and that are not under a created symlink, then runs the setup command in the new worktree.
+      - When a link path starts with .pecot/, writes .pecot/.gitignore in the new worktree by running a script of the plugin before it links.
+      - The setup command is --setup, or setup_command of worktree-config.json, and runs through the shell with a closed stdin and the timeout setup_command_timeout. A failed or timed out setup command is a warning and does not change the exit status.
+      - A link whose target does not exist, whose path is tracked by git or that cannot be created is skipped with a warning, and does not change the exit status.
+      - Needs a devcontainer. The command stops before it runs when none of the checks passes.
+    stdin: none
+    output:
+      format: text
+      description: The path of the created worktree on one line. With --dry-run, the planned path.
+    diagnostics: A created line (a dry-run line with --dry-run) and count lines for the symlinks and the copied files on stderr. A warning line for each link that was skipped, each file that could not be copied and a failed setup command. An error line for a failure. Outside a devcontainer, a traceback instead of an error line.
+    environment:
+      - name: REMOTE_CONTAINERS
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: CODESPACES
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: DEVCONTAINER
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+    exit_status:
+      - code: 0
+        when: The worktree was created, or --dry-run printed the plan. Skipped links, files that could not be copied and a failed setup command do not change it.
+      - code: 1
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the repository is not in the base/ layout, worktree-config.json or .worktreeignore is missing or worktree-config.json is invalid, the origin remote cannot be read, there is no active project, the repository is not registered in it, develop_branch is not set and --base is omitted, every set from wt1 to wt9 is in use, the branch wtN exists with another upstream, git worktree add failed, or the command runs outside a devcontainer (a traceback is printed).
+      - code: 2
+        when: -D is missing or is not an existing directory, or another command line error occurs.
+    on_error: Stops at the first error. When worktree-config.json is found invalid after git worktree add, the worktree and its branch stay without links, copied files or the setup run. Pruned metadata and a deleted unused branch stay as they are.
+    effects:
+      - target: git
+        kind: write
+        what: Prunes stale worktree metadata, creates the worktree and the branch wtN, and sets the upstream.
+      - target: git
+        kind: destructive
+        what: Deletes an existing local branch wtN that matches the expected upstream and has no worktree.
+      - target: file
+        kind: read
+        what: Reads worktree-config.json, .worktreeignore and the active config file.
+      - target: file
+        kind: write
+        what: Creates the symlinks, copies the git-ignored files, and writes .pecot/.gitignore in the new worktree.
+      - target: file
+        kind: destructive
+        what: Replaces an existing symlink or file at a link path in the new worktree.
+      - target: process
+        kind: write
+        what: Runs the setup command through the shell and the script that writes .pecot/.gitignore.
+    prerequisites:
+      - The command runs in a devcontainer.
+      - The repository is in the layout <project root>/base/<repository>, and its worktree config files exist (pecot worktree init).
+      - An active project exists, and the repository is registered in it.
+    idempotent: false
+    examples:
+      - run: pecot worktree add -D .
+        note: Create the next worktree of the repository in the current directory.
+      - run: pecot worktree add -D . --dry-run
+        note: Show the worktree that would be created.
+      - run: pecot worktree add -D . --base develop --setup "pnpm install"
+        note: Branch from develop and run a setup command after creation.
+    default_notes:
+      base: The develop_branch of the repository in the active project.
+      path: <project root>/<wtN>/<repository directory name>.
+      setup: The setup_command of worktree-config.json; without it, no command runs.
+    behaviors:
+      - id: PW-WORKTREE-ADD-01
+        pattern: event
+        statement: リポジトリを -D に渡して打つと、プロジェクトのルートの下の wtN にそのリポジトリの worktree を作る
+      - id: PW-WORKTREE-ADD-02
+        pattern: event
+        statement: worktree を作ると、wtN と同じ名前のブランチを origin/<ベース> を upstream にして作る
+      - id: PW-WORKTREE-ADD-03
+        pattern: event
+        statement: リポジトリの worktree がまだ無い wtN があると、その中で番号が最小のセットに worktree を作る
+      - id: PW-WORKTREE-ADD-04
+        pattern: event
+        statement: すべての wtN にリポジトリの worktree が既にあると、最大の番号の次のセットに worktree を作る
+      - id: PW-WORKTREE-ADD-05
+        pattern: event
+        statement: --base を付けて打つと、そのブランチをベースにする
+      - id: PW-WORKTREE-ADD-06
+        pattern: event
+        statement: --base を省いて打つと、アクティブなプロジェクトの設定の develop_branch をベースにする
+      - id: PW-WORKTREE-ADD-07
+        pattern: event
+        statement: --path を付けて打つと、その場所に worktree を作る
+      - id: PW-WORKTREE-ADD-08
+        pattern: event
+        statement: worktree を作ると、created の行を標準エラーに出す
+      - id: PW-WORKTREE-ADD-09
+        pattern: event
+        statement: worktree を作ると、worktree のパスを標準出力に出す
+      - id: PW-WORKTREE-ADD-10
+        pattern: event
+        statement: --dry-run を付けて打つと、何も作らずに dry-run の予定の行を標準エラーに出す
+      - id: PW-WORKTREE-ADD-11
+        pattern: event
+        statement: --dry-run を付けて打つと、予定の worktree のパスを標準出力に出す
+      - id: PW-WORKTREE-ADD-12
+        pattern: event
+        statement: シンボリックリンクを作ると、作った数を symlinks created の count の行で標準エラーに出す
+      - id: PW-WORKTREE-ADD-13
+        pattern: event
+        statement: 作らなかったリンクか作れなかったリンクがあると、その数を count の行で標準エラーに出す
+      - id: PW-WORKTREE-ADD-14
+        pattern: event
+        statement: --no-link を付けて打つと、シンボリックリンクを作らない
+      - id: PW-WORKTREE-ADD-15
+        pattern: event
+        statement: 未追跡のファイルをコピーすると、コピーした数を files copied の count の行で標準エラーに出す
+      - id: PW-WORKTREE-ADD-16
+        pattern: event
+        statement: --no-copy を付けて打つと、未追跡のファイルをコピーしない
+      - id: PW-WORKTREE-ADD-17
+        pattern: event
+        statement: --setup を付けて打つと、worktree の中でそのコマンドを実行する
+      - id: PW-WORKTREE-ADD-18
+        pattern: event
+        statement: --setup を省いて worktree-config.json に setup_command があると、worktree の中でそのコマンドを実行する
+      - id: PW-WORKTREE-ADD-19
+        pattern: event
+        statement: --allow-existing-branch を付けて打つと、upstream の違う既存のブランチを再利用する
+      - id: PW-WORKTREE-ADD-20
+        pattern: unwanted
+        statement: もしコピーに失敗したファイルがあるなら、そのファイルごとに warning の行を標準エラーに出す
+      - id: PW-WORKTREE-ADD-21
+        pattern: unwanted
+        statement: もしリンク先が無いか、リンクのパスを git が追跡しているか、リンクを作れないなら、そのリンクを作らずに warning の行を標準エラーに出す
+      - id: PW-WORKTREE-ADD-22
+        pattern: unwanted
+        statement: もし setup のコマンドが失敗したか時間切れになったなら、warning の行を標準エラーに出す
+      - id: PW-WORKTREE-ADD-23
+        pattern: unwanted
+        statement: もし setup のコマンドが失敗したか時間切れになったなら、終了コード 0 のまま終わる
+      - id: PW-WORKTREE-ADD-24
+        pattern: unwanted
+        statement: もし --repo が今の git の remote と食い違うなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-25
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-26
+        pattern: unwanted
+        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-27
+        pattern: unwanted
+        statement: もしリポジトリが <ルート>/base/<リポジトリ> の配置に無いなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-28
+        pattern: unwanted
+        statement: もし worktree-config.json か .worktreeignore が無いなら、init を促す error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-29
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無いか、リポジトリがそのプロジェクトに登録されていないなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-30
+        pattern: unwanted
+        statement: もし origin remote を読めないなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-31
+        pattern: unwanted
+        statement: もし --base を省いて develop_branch が設定に無いなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-32
+        pattern: unwanted
+        statement: もし wt1 から wt9 までのセットがすべて使われているなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-33
+        pattern: unwanted
+        statement: もし同じ名前のブランチが別の upstream で既にあり --allow-existing-branch が無いなら、何も作らずに終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-34
+        pattern: unwanted
+        statement: もし git worktree add に失敗したなら、error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-ADD-35
+        pattern: unwanted
+        statement: もし worktree を作った後に worktree-config.json を読めなかったなら、worktree とブランチを残したまま終了コード 1 で終わる
+  PW-WORKTREE-INIT:
+    constraints: []
+    details:
+      - Writes the default templates into the main worktree of the repository in -D, as .pecot/config/worktree-config.json and .pecot/config/.worktreeignore.
+      - worktree-config.json has the links CLAUDE.local.md, .env and .claude/settings.local.json, which point to the aggregation_repo of the active project, or to this repository when there is none or the active project cannot be read.
+      - worktree-config.json also has the links of hooks-config.json, projects/.active and .pecot/work, which point to this repository.
+      - .worktreeignore lists the patterns that worktree add does not copy, in the gitignore syntax.
+      - Stops without writing when either file already exists. Needs a devcontainer.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A created line for each of the two files on stderr. An error line for a failure. Outside a devcontainer, a traceback instead of an error line.
+    environment:
+      - name: REMOTE_CONTAINERS
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: CODESPACES
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: DEVCONTAINER
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+    exit_status:
+      - code: 0
+        when: Both files were created.
+      - code: 1
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, one of the two files already exists, a file cannot be written (a traceback is printed), or the command runs outside a devcontainer (a traceback is printed).
+      - code: 2
+        when: -D is missing or is not an existing directory, or another command line error occurs.
+    on_error: When .worktreeignore cannot be written after worktree-config.json was written, worktree-config.json stays. Nothing is written when a file already exists.
+    effects:
+      - target: git
+        kind: read
+        what: Reads the worktree list to find the main worktree.
+      - target: file
+        kind: read
+        what: Reads the active config file.
+      - target: file
+        kind: write
+        what: Creates worktree-config.json and .worktreeignore, and the .pecot/config directory when it is missing.
+    prerequisites:
+      - The command runs in a devcontainer.
+    idempotent: false
+    examples:
+      - run: pecot worktree init -D .
+        note: Write the worktree config files of the repository in the current directory.
+    default_notes: {}
+    behaviors:
+      - id: PW-WORKTREE-INIT-01
+        pattern: event
+        statement: 設定ファイルの無いリポジトリを -D に渡して打つと、メインの worktree に worktree-config.json を書く
+      - id: PW-WORKTREE-INIT-02
+        pattern: event
+        statement: 設定ファイルの無いリポジトリを -D に渡して打つと、メインの worktree に .worktreeignore を書く
+      - id: PW-WORKTREE-INIT-03
+        pattern: event
+        statement: アクティブなプロジェクトに aggregation_repo があると、共有する 3 つのリンクをそのリポジトリに向ける
+      - id: PW-WORKTREE-INIT-04
+        pattern: event
+        statement: aggregation_repo が無いか、アクティブなプロジェクトを読めないと、共有する 3 つのリンクをこのリポジトリに向ける
+      - id: PW-WORKTREE-INIT-05
+        pattern: event
+        statement: ファイルを書くと、ファイルごとに created の行を標準エラーに出す
+      - id: PW-WORKTREE-INIT-06
+        pattern: unwanted
+        statement: もし worktree-config.json か .worktreeignore が既にあるなら、何も書かずに既存のファイルのパスを error の行に出して終了コード 1 で終わる
+      - id: PW-WORKTREE-INIT-07
+        pattern: unwanted
+        statement: もしメインの worktree を見つけられないなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-INIT-08
+        pattern: unwanted
+        statement: もし --repo が今の git の remote と食い違うなら、何も書かずに終了コード 1 で終わる
+      - id: PW-WORKTREE-INIT-09
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-INIT-10
+        pattern: unwanted
+        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出して終了コード 1 で終わる
+  PW-WORKTREE-LINK:
+    constraints: []
+    details:
+      - Applies the links of worktree-config.json to the worktree in -D, or to every sub-worktree with --all, and replaces a link that already exists.
+      - The links are read from the main worktree of the repository. Run pecot worktree init when the config file is missing.
+      - Without --all, -D must be a sub-worktree, and the command stops in the main worktree. With --all and no sub-worktree, it only reports a count of 0.
+      - A link whose target does not exist is skipped. A path tracked by git, or a link that cannot be created, is an error that is shown as a warning and does not change the exit status.
+      - A real file or directory at a link path is replaced only after a confirmation on stderr that is answered on stdin, or without asking with --force. With --all, a real file is skipped without asking.
+      - When a link path starts with .pecot/, writes .pecot/.gitignore in the worktree by running a script of the plugin before it links.
+      - With --dry-run, shows for each link whether it would be created, updated or skipped, and changes nothing.
+      - Needs a devcontainer.
+    stdin: A y or n answer to the overwrite prompt. The prompt is asked only for a single worktree, without --force, when a real file or directory that git does not track exists at a link path. An end of input aborts the command.
+    output:
+      format: none
+    diagnostics: A count line of the symlinks created for each worktree, and a skipped line for each skipped link, on stderr. With --all and more than one worktree, count lines of the totals. A warning line for each link that could not be created. Dry-run lines with --dry-run. An error line for a failure. Outside a devcontainer or with an invalid config file, a traceback instead of an error line.
+    environment:
+      - name: REMOTE_CONTAINERS
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: CODESPACES
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: DEVCONTAINER
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+    exit_status:
+      - code: 0
+        when: The links were applied or planned, including when links were skipped or could not be created.
+      - code: 1
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the config file is missing, the config file is invalid or the command runs outside a devcontainer (a traceback is printed), the main worktree or the project root cannot be found, -D is the main worktree without --all, the worktree list cannot be read, or the overwrite prompt is aborted.
+      - code: 2
+        when: -D is missing or is not an existing directory, or another command line error occurs.
+    on_error: Links already created in this run stay. A link that could not be created is left as it was, and the other links are still processed.
+    effects:
+      - target: git
+        kind: read
+        what: Reads the worktree list and asks whether a link path is tracked.
+      - target: file
+        kind: read
+        what: Reads worktree-config.json.
+      - target: file
+        kind: write
+        what: Creates the symlinks, replaces the ones that exist, and writes .pecot/.gitignore in the worktree.
+      - target: file
+        kind: destructive
+        what: Deletes a real file or directory at a link path that the user confirmed or --force allowed.
+      - target: process
+        kind: write
+        what: Runs the script that writes .pecot/.gitignore.
+    prerequisites:
+      - The command runs in a devcontainer.
+      - The repository is in the layout <project root>/base/<repository>, and worktree-config.json exists (pecot worktree init).
+    idempotent: true
+    examples:
+      - run: pecot worktree link -D ../wt1/my-repo
+        note: Apply the links to one sub-worktree.
+      - run: pecot worktree link -D . --all --dry-run
+        note: Show the links that would change in every sub-worktree.
+      - run: pecot worktree link -D . --all --force
+        note: Replace real files at link paths in every sub-worktree without asking.
+    default_notes: {}
+    behaviors:
+      - id: PW-WORKTREE-LINK-01
+        pattern: event
+        statement: サブの worktree を -D に渡して打つと、worktree-config.json のリンクをその worktree に作る
+      - id: PW-WORKTREE-LINK-02
+        pattern: event
+        statement: --all を付けて打つと、すべてのサブの worktree にリンクを作る
+      - id: PW-WORKTREE-LINK-03
+        pattern: event
+        statement: --all を付けてサブの worktree が無いと、sub-worktrees の count を 0 にして標準エラーに出す
+      - id: PW-WORKTREE-LINK-04
+        pattern: event
+        statement: worktree にリンクを作ると、作った数を worktree ごとの count の行で標準エラーに出す
+      - id: PW-WORKTREE-LINK-05
+        pattern: event
+        statement: 複数の worktree に作ると、作った数と飛ばした数と失敗した数の合計を count の行で標準エラーに出す
+      - id: PW-WORKTREE-LINK-06
+        pattern: event
+        statement: すでにリンクがあると、張り替える
+      - id: PW-WORKTREE-LINK-07
+        pattern: event
+        statement: リンク先が無いと、そのリンクを飛ばして skipped の行を標準エラーに出す
+      - id: PW-WORKTREE-LINK-08
+        pattern: event
+        statement: リンクのパスに実ファイルがあるサブの worktree を --all なしで打つと、上書きしてよいかを標準エラーで尋ねる
+      - id: PW-WORKTREE-LINK-09
+        pattern: event
+        statement: 上書きの確認に y と答えると、実ファイルかディレクトリを消してリンクを作る
+      - id: PW-WORKTREE-LINK-10
+        pattern: event
+        statement: --force を付けて打つと、尋ねずに実ファイルかディレクトリを消してリンクを作る
+      - id: PW-WORKTREE-LINK-11
+        pattern: event
+        statement: --all を付けてリンクのパスに実ファイルがあると、尋ねずにそのリンクを飛ばす
+      - id: PW-WORKTREE-LINK-12
+        pattern: event
+        statement: --dry-run を付けて打つと、何も変えずにリンクごとの dry-run の予定の行を標準エラーに出す
+      - id: PW-WORKTREE-LINK-13
+        pattern: unwanted
+        statement: もしリンクのパスを git が追跡しているか、リンクを作れないなら、そのリンクを作らずに warning の行を標準エラーに出す
+      - id: PW-WORKTREE-LINK-14
+        pattern: unwanted
+        statement: もし作れないリンクがあるなら、残りのリンクの処理を続ける
+      - id: PW-WORKTREE-LINK-15
+        pattern: unwanted
+        statement: もし上書きの確認で入力が尽きたなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-16
+        pattern: unwanted
+        statement: もし設定ファイルが無いなら、init を促す error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-17
+        pattern: unwanted
+        statement: もし設定ファイルの形式が不正なら、error の行ではなく traceback を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-18
+        pattern: unwanted
+        statement: もしメインの worktree を --all なしで -D に渡したなら、use --all の error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-19
+        pattern: unwanted
+        statement: もしプロジェクトのルートかメインの worktree を見つけられないなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-20
+        pattern: unwanted
+        statement: もし --repo が今の git の remote と食い違うなら、何も変えずに終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-21
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-LINK-22
+        pattern: unwanted
+        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出して終了コード 1 で終わる
+  PW-WORKTREE-REMOVE:
+    constraints: []
+    details:
+      - Finds the worktree whose branch is the given name in the worktree list of the repository in -D, and removes it with git worktree remove.
+      - Deletes the local branch of the same name unless --keep-branch is given. A failure to delete the branch is not reported.
+      - Removes <project root>/<name> afterwards when that directory is empty. A set directory that cannot be removed is a warning.
+      - Without --force, git refuses to remove a worktree that has changes.
+      - A name that is not a branch name of a listed worktree stops the command. A worktree with a detached HEAD cannot be found by name.
+      - Needs a devcontainer. Does not read the worktree config files or the active project.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A removed line and a deleted line on stderr. A warning line when the set directory cannot be removed. An error line for a failure. Outside a devcontainer, a traceback instead of an error line.
+    environment:
+      - name: REMOTE_CONTAINERS
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: CODESPACES
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+      - name: DEVCONTAINER
+        effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
+    exit_status:
+      - code: 0
+        when: The worktree was removed.
+      - code: 1
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, no worktree has the given branch name, git worktree remove failed, or the command runs outside a devcontainer (a traceback is printed).
+      - code: 2
+        when: The name or -D is missing, -D is not an existing directory, or another command line error occurs.
+    on_error: Stops at the first error. When git worktree remove failed, the worktree and the branch stay. After the worktree was removed, a failure to delete the branch leaves the branch without a message.
+    effects:
+      - target: git
+        kind: read
+        what: Reads the worktree list.
+      - target: git
+        kind: destructive
+        what: Removes the worktree, including uncommitted changes with --force, and deletes the local branch with git branch -D.
+      - target: file
+        kind: destructive
+        what: Removes the empty set directory <project root>/<name>.
+    prerequisites:
+      - The command runs in a devcontainer.
+    idempotent: false
+    examples:
+      - run: pecot worktree remove wt1 -D .
+        note: Remove the worktree wt1 and its branch.
+      - run: pecot worktree remove wt1 -D . --keep-branch --force
+        note: Remove the worktree even with changes and keep the branch.
+    default_notes: {}
+    behaviors:
+      - id: PW-WORKTREE-REMOVE-01
+        pattern: event
+        statement: worktree のブランチ名を渡して打つと、その worktree を削除する
+      - id: PW-WORKTREE-REMOVE-02
+        pattern: event
+        statement: worktree を削除すると、removed の行を標準エラーに出す
+      - id: PW-WORKTREE-REMOVE-03
+        pattern: event
+        statement: worktree を削除すると、同じ名前のローカルブランチを削除する
+      - id: PW-WORKTREE-REMOVE-04
+        pattern: event
+        statement: ブランチを削除すると、deleted の行を標準エラーに出す
+      - id: PW-WORKTREE-REMOVE-05
+        pattern: event
+        statement: --keep-branch を付けて打つと、ブランチを残す
+      - id: PW-WORKTREE-REMOVE-06
+        pattern: event
+        statement: --force を付けて打つと、変更のある worktree も削除する
+      - id: PW-WORKTREE-REMOVE-07
+        pattern: event
+        statement: 削除した後にプロジェクトのルートの下の同名のディレクトリが空だと、そのディレクトリを削除する
+      - id: PW-WORKTREE-REMOVE-08
+        pattern: unwanted
+        statement: もし空のセットのディレクトリを削除できないなら、warning の行を標準エラーに出す
+      - id: PW-WORKTREE-REMOVE-09
+        pattern: unwanted
+        statement: もし渡した名前をブランチ名に持つ worktree が無いなら、worktree not found の error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-REMOVE-10
+        pattern: unwanted
+        statement: もし --force を付けずに変更のある worktree を削除しようとしたなら、worktree とブランチを残して終了コード 1 で終わる
+      - id: PW-WORKTREE-REMOVE-11
+        pattern: unwanted
+        statement: もし git worktree remove に失敗したなら、error の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-REMOVE-12
+        pattern: unwanted
+        statement: もし --repo が今の git の remote と食い違うなら、何も削除せずに終了コード 1 で終わる
+      - id: PW-WORKTREE-REMOVE-13
+        pattern: unwanted
+        statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる
+      - id: PW-WORKTREE-REMOVE-14
+        pattern: unwanted
+        statement: もし devcontainer の外で打ったなら、error の行ではなく traceback を標準エラーに出して終了コード 1 で終わる
+
 common_behaviors:
   - id: PW-COMMON-01
     pattern: event
@@ -1854,7 +3540,7 @@ common_behaviors:
     statement: --show-repo を付けて打つと、解決したリポジトリを標準出力に出す
   - id: PW-COMMON-06
     pattern: event
-    statement: --repo を渡すと、git の remote に関わらず渡したリポジトリを対象にする
+    statement: 対象のリポジトリを引数で受けないコマンドに --repo を渡すと、渡したリポジトリを対象にする
   - id: PW-COMMON-07
     pattern: event
     statement: --repo を省くと、カレントの git の origin remote のリポジトリを対象にする

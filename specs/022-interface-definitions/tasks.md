@@ -166,10 +166,10 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US1 の全行が通る
 
-- [ ] T031 [P] [US1] `session`（2）・`release`（3）の項目を書く
-- [ ] T032 [P] [US1] `security sync`・`dependabot sync`・`worktree`（4）の項目を書く
-- [ ] T033 [P] [US1] グループの無い 4 コマンド（`add-to-project`・`update-issue-status`・`create-branch`・`delete-branch`）の項目を書く
-- [ ] T034 [US1] `libs/interface-spec/targets.json` の pecot-workflow を `entries: complete` にする
+- [x] T031 [P] [US1] `session`（2）・`release`（3）の項目を書く
+- [x] T032 [P] [US1] `security sync`・`dependabot sync`・`worktree`（4）の項目を書く
+- [x] T033 [P] [US1] グループの無い 4 コマンド（`add-to-project`・`update-issue-status`・`create-branch`・`delete-branch`）の項目を書く
+- [x] T034 [US1] `libs/interface-spec/targets.json` の pecot-workflow を `entries: complete` にする
 
 **Checkpoint**: `main.py` にコマンドを 1 つ足して書き出すと、`lint-defs` が `entry is missing` で止まる
 
