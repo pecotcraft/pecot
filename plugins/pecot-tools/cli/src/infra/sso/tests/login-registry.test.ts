@@ -17,6 +17,7 @@ import {
   shutdownLoginRegistry,
 } from '../login-registry.js'
 import { useLoginRegistry } from '../../../../tests/_helpers/login-registry.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 import { useTemporaryDirectories } from '../../../../tests/_helpers/temporary-directory.js'
 
 /**
@@ -73,7 +74,8 @@ describe('createLoginRegistry', () => {
     ])
   })
 
-  it('pending の同一キーへの再 start は新規起動せず既存の値を返す', async () => {
+  it('pending の同一キーへの再 start は新規起動せず既存の値を返す', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-02')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -111,7 +113,8 @@ describe('createLoginRegistry', () => {
     expect(session?.verificationUrl).toBe('https://example.awsapps.com/start/#/device')
   })
 
-  it('URL を出さずに exit 0 で終わったときは completed', async () => {
+  it('URL を出さずに exit 0 で終わったときは completed', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-05')
     // 2.36.40 で確認したところ、`--use-device-code` は毎回デバイスフローに入るため、この場面は未観測。
     // 防御として completed にする。R5 の「抽出できずに終了は failed」は、SSO 設定なし
     // = exit ≠ 0 を想定した記述。

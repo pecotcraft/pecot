@@ -178,6 +178,36 @@ const EXPECTED_ARGUMENTS: Readonly<Record<string, readonly string[]>> = {
 }
 
 /**
+ツールごとの、既定 fixture での正常系が確かめる項目の ID。JSON を出さないツールは data を見ないので空。
+*/
+const HAPPY_PATH_IDS: Readonly<Record<string, readonly string[]>> = {
+  aws_sts_get_caller_identity: ['PT-AWS-STS-GET-CALLER-IDENTITY-01'],
+  aws_lambda_list_functions: ['PT-AWS-LAMBDA-LIST-FUNCTIONS-01'],
+  aws_lambda_get_function_configuration: ['PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-01'],
+  aws_lambda_list_event_source_mappings: ['PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-01'],
+  aws_logs_describe_log_groups: ['PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-01'],
+  aws_logs_describe_log_streams: ['PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-01', 'PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-02'],
+  aws_logs_get_log_events: ['PT-AWS-LOGS-GET-LOG-EVENTS-01'],
+  aws_logs_filter_log_events: ['PT-AWS-LOGS-FILTER-LOG-EVENTS-01'],
+  aws_cloudwatch_get_metric_statistics: ['PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-01'],
+  aws_sqs_list_queues: ['PT-AWS-SQS-LIST-QUEUES-01'],
+  aws_sqs_get_queue_attributes: ['PT-AWS-SQS-GET-QUEUE-ATTRIBUTES-01'],
+  aws_athena_start_query_execution: ['PT-AWS-ATHENA-START-QUERY-EXECUTION-01'],
+  aws_athena_get_query_execution: ['PT-AWS-ATHENA-GET-QUERY-EXECUTION-01'],
+  aws_athena_get_query_results: ['PT-AWS-ATHENA-GET-QUERY-RESULTS-01'],
+  aws_s3_ls: [],
+  aws_s3_cp: [],
+  aws_s3api_get_object: [],
+  aws_rds_describe_events: ['PT-AWS-RDS-DESCRIBE-EVENTS-01'],
+  aws_rds_describe_db_clusters: ['PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-01'],
+  aws_rds_describe_db_instances: ['PT-AWS-RDS-DESCRIBE-DB-INSTANCES-01'],
+  aws_scheduler_list_schedules: ['PT-AWS-SCHEDULER-LIST-SCHEDULES-01'],
+  aws_scheduler_get_schedule: ['PT-AWS-SCHEDULER-GET-SCHEDULE-01'],
+  aws_ecr_describe_images: ['PT-AWS-ECR-DESCRIBE-IMAGES-01'],
+  aws_ec2_describe_instances: ['PT-AWS-EC2-DESCRIBE-INSTANCES-01'],
+}
+
+/**
 ツール名とその許可リストエントリの service / subcommand / JSON 出力の有無。
 */
 const TOOL_COMMANDS: readonly {
@@ -191,6 +221,25 @@ const TOOL_COMMANDS: readonly {
   subcommand: entry.subcommand,
   jsonOutput: entry.jsonOutput,
 }))
+
+/**
+NextToken を data.nextToken へ転記するツール（許可リストで pagination が max-items のもの）と項目 ID。
+*/
+const PAGINATED_ROWS: readonly { readonly name: string, readonly id: string }[] = [
+  { name: 'aws_athena_get_query_results', id: 'PT-AWS-ATHENA-GET-QUERY-RESULTS-02' },
+  { name: 'aws_ec2_describe_instances', id: 'PT-AWS-EC2-DESCRIBE-INSTANCES-03' },
+  { name: 'aws_ecr_describe_images', id: 'PT-AWS-ECR-DESCRIBE-IMAGES-04' },
+  { name: 'aws_lambda_list_event_source_mappings', id: 'PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-02' },
+  { name: 'aws_lambda_list_functions', id: 'PT-AWS-LAMBDA-LIST-FUNCTIONS-02' },
+  { name: 'aws_logs_describe_log_groups', id: 'PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-02' },
+  { name: 'aws_logs_describe_log_streams', id: 'PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-03' },
+  { name: 'aws_logs_filter_log_events', id: 'PT-AWS-LOGS-FILTER-LOG-EVENTS-03' },
+  { name: 'aws_rds_describe_db_clusters', id: 'PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-02' },
+  { name: 'aws_rds_describe_db_instances', id: 'PT-AWS-RDS-DESCRIBE-DB-INSTANCES-02' },
+  { name: 'aws_rds_describe_events', id: 'PT-AWS-RDS-DESCRIBE-EVENTS-04' },
+  { name: 'aws_scheduler_list_schedules', id: 'PT-AWS-SCHEDULER-LIST-SCHEDULES-02' },
+  { name: 'aws_sqs_list_queues', id: 'PT-AWS-SQS-LIST-QUEUES-02' },
+]
 
 const fakeAws = useFakeAws()
 const mcp: { connected: ConnectedMcp | undefined } = { connected: undefined }
@@ -281,6 +330,16 @@ function expectedArgumentsOf(name: string): readonly string[] {
 }
 
 /**
+ツール名に対応する正常系の項目 ID。表に無ければ取りこぼしとして落とす。
+*/
+function happyPathIdsOf(name: string): readonly string[] {
+  // eslint-disable-next-line security/detect-object-injection -- name は ALLOWLIST 由来の静的なツール名
+  const ids = HAPPY_PATH_IDS[name]
+  if (ids === undefined) throw new Error(`正常系の ID の表に ${name} がありません`)
+  return ids
+}
+
+/**
 引数を省いた最小呼び出しで tools/call する。
 */
 async function callMinimal(name: string): Promise<Record<string, unknown>> {
@@ -292,7 +351,7 @@ async function callMinimal(name: string): Promise<Record<string, unknown>> {
 
 describe('全 24 ツールの正常系', () => {
   it.for(TOOL_COMMANDS)('$name が既定 fixture で成功し、引数と data が契約どおりになる', async (command, context) => {
-    if (command.name === 'aws_sts_get_caller_identity') await verifies(context, 'PT-AWS-STS-GET-CALLER-IDENTITY-01')
+    for (const id of happyPathIdsOf(command.name)) await verifies(context, id)
     const instance = fakeAws.install()
 
     const structured = await callMinimal(command.name)
@@ -310,6 +369,11 @@ describe('全 24 ツールの正常系', () => {
 
   it('最小引数の表が許可リストと 1:1 で対応する', () => {
     expect(Object.keys(MINIMAL_ARGUMENTS).toSorted(compareStrings))
+      .toEqual(ALLOWLIST.map(entry => entry.toolName).toSorted(compareStrings))
+  })
+
+  it('正常系の ID の表が許可リストと 1:1 で対応する', () => {
+    expect(Object.keys(HAPPY_PATH_IDS).toSorted(compareStrings))
       .toEqual(ALLOWLIST.map(entry => entry.toolName).toSorted(compareStrings))
   })
 
@@ -348,7 +412,8 @@ describe('引数の組み立て', () => {
     ]])
   })
 
-  it('boolean の既定値は --no-<flag> として現れる', async () => {
+  it('boolean の既定値は --no-<flag> として現れる', async (context) => {
+    await verifies(context, 'PT-AWS-LOGS-GET-LOG-EVENTS-02')
     const instance = fakeAws.install()
 
     await call('aws_logs_get_log_events', {
@@ -363,6 +428,23 @@ describe('引数の組み立て', () => {
       '--log-stream-name', 's',
       '--limit', '10',
       '--no-start-from-head',
+      '--output', 'json', '--no-cli-pager',
+    ]])
+  })
+
+  it('function_name と qualifier を渡すと、--function-name と --qualifier を付けて実行する', async (context) => {
+    await verifies(context, 'PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-02')
+    const instance = fakeAws.install()
+
+    await call('aws_lambda_get_function_configuration', {
+      function_name: 'order-notifier',
+      qualifier: 'live',
+    })
+
+    expect(commandCalls(instance)).toEqual([[
+      'lambda', 'get-function-configuration',
+      '--function-name', 'order-notifier',
+      '--qualifier', 'live',
       '--output', 'json', '--no-cli-pager',
     ]])
   })
@@ -389,7 +471,8 @@ describe('引数の組み立て', () => {
     ]])
   })
 
-  it('attribute_names は未指定なら既定の All が載る', async () => {
+  it('attribute_names は未指定なら既定の All が載る', async (context) => {
+    await verifies(context, 'PT-AWS-SQS-GET-QUEUE-ATTRIBUTES-02')
     const instance = fakeAws.install()
 
     await call('aws_sqs_get_queue_attributes', {
@@ -487,7 +570,8 @@ describe('引数の組み立て', () => {
     ]])
   })
 
-  it('ecr の tag_status は shorthand の --filter へ合成される', async () => {
+  it('ecr の tag_status は shorthand の --filter へ合成される', async (context) => {
+    await verifies(context, 'PT-AWS-ECR-DESCRIBE-IMAGES-02')
     const instance = fakeAws.install()
 
     await call('aws_ecr_describe_images', {
@@ -557,7 +641,8 @@ describe('応答の中身', () => {
       .toBe('b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e')
   })
 
-  it('aws_s3_ls は JSON 出力を持たないので data.lines になる', async () => {
+  it('aws_s3_ls は JSON 出力を持たないので data.lines になる', async (context) => {
+    await verifies(context, 'PT-AWS-S3-LS-02')
     fakeAws.install()
 
     const structured = await callMinimal('aws_s3_ls')
@@ -567,14 +652,34 @@ describe('応答の中身', () => {
     })
   })
 
-  it('NextToken を data.nextToken へ転記する', async () => {
+  it('s3_uri を渡すと、出力を 1 行 1 要素にして data.lines に載せる', async (context) => {
+    await verifies(context, 'PT-AWS-S3-LS-01')
     fakeAws.install()
 
-    const structured = await callMinimal('aws_lambda_list_functions')
+    const result = await call('aws_s3_ls', { s3_uri: 's3://example-bucket/logs/' })
+
+    expect(result.structured['data']).toEqual({
+      lines: ['2026-09-01 10:00:00       1024 report.json', '                           PRE logs/'],
+    })
+  })
+
+  it.for(PAGINATED_ROWS)('$name の NextToken を data.nextToken へ転記する', async (row, context) => {
+    await verifies(context, row.id)
+    fakeAws.install({ fixture: 'paginated' })
+
+    const structured = await callMinimal(row.name)
     const data = structured['data']
 
-    expect(isRecord(data) ? data['nextToken'] : undefined)
-      .toBe('eyJNYXJrZXIiOiAib3JkZXItbm90aWZpZXIifQ==')
+    expect(isRecord(data) ? data['nextToken'] : undefined).toBe('eyJuZXh0IjogMX0=')
+  })
+
+  it('NextToken の表が max-items のツールと 1:1 で対応する', () => {
+    expect(PAGINATED_ROWS.map(row => row.name).toSorted(compareStrings))
+      .toEqual(
+        ALLOWLIST.filter(entry => entry.pagination === 'max-items')
+          .map(entry => entry.toolName)
+          .toSorted(compareStrings),
+      )
   })
 
   it('ページングを持たないツールは nextToken を作らない', async () => {
@@ -585,7 +690,9 @@ describe('応答の中身', () => {
     expect(isRecord(structured['data']) && 'nextToken' in structured['data']).toBe(false)
   })
 
-  it('書き出し先を artifacts に載せる', async () => {
+  it('書き出し先を artifacts に載せる', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-01')
+    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-01')
     fakeAws.install()
 
     const copied = await callMinimal('aws_s3_cp')
@@ -619,7 +726,8 @@ describe('失敗種別', () => {
     { fixture: 'invalid-input', category: 'invalid-input', exitCode: 252 },
   ]
 
-  it.each(FAILURES)('fixture $fixture を $category にする', async (failure) => {
+  it.for(FAILURES)('fixture $fixture を $category にする', async (failure, context) => {
+    await verifies(context, 'PT-COMMON-09')
     fakeAws.install({ fixture: failure.fixture })
 
     const result = await call('aws_lambda_get_function_configuration', { function_name: 'x' })
@@ -644,7 +752,8 @@ describe('失敗種別', () => {
     expect(result.structured).toMatchObject({ ok: false, exitCode: 1, category: 'auth-missing' })
   })
 
-  it('awscli 未導入は awscli-missing にする', async () => {
+  it('awscli 未導入は awscli-missing にする', async (context) => {
+    await verifies(context, 'PT-COMMON-07')
     fakeAws.withoutAws()
 
     const result = await call('aws_sts_get_caller_identity', {})
@@ -654,7 +763,8 @@ describe('失敗種別', () => {
 })
 
 describe('SC-008 失敗の直後も同じ接続が次の呼び出しへ応答する', () => {
-  it('未導入 → 認証切れ → 大量出力 の後にも成功を返す', async () => {
+  it('未導入 → 認証切れ → 大量出力 の後にも成功を返す', async (context) => {
+    await verifies(context, 'PT-COMMON-13')
     fakeAws.withoutAws()
     const missing = await call('aws_sts_get_caller_identity', {})
     expect(missing.structured['category']).toBe('awscli-missing')
@@ -672,7 +782,9 @@ describe('SC-008 失敗の直後も同じ接続が次の呼び出しへ応答す
     expect(recovered.structured['ok']).toBe(true)
   })
 
-  it('時間切れの後にも成功を返す', async () => {
+  it('時間切れの後にも成功を返す', async (context) => {
+    await verifies(context, 'PT-COMMON-13')
+    await verifies(context, 'PT-COMMON-08')
     // hang する偽 awscli を使う it は 1 本に限る（SIGTERM 待ちの分だけ実行時間が伸びる）。
     fakeAws.install({ hang: true })
     const timedOut = await call('aws_sts_get_caller_identity', {})

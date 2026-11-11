@@ -28,6 +28,7 @@ import {
   TOOL_TIMEOUT_MS,
 } from '../_shared.js'
 import { type FakeAws, useFakeAws } from '../../../../tests/_helpers/fake-aws.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 
 const IDENTITY_ENTRY: AllowlistEntry = {
   toolName: 'aws_sts_get_caller_identity',
@@ -120,7 +121,8 @@ describe('共通スキーマ', () => {
       .toEqual(['ok', 'exitCode', 'category', 'data', 'artifacts', 'message', 'stderr'])
   })
 
-  it('既定の制限時間は 120 秒', () => {
+  it('既定の制限時間は 120 秒', async (context) => {
+    await verifies(context, 'PT-COMMON-08')
     expect(TOOL_TIMEOUT_MS).toBe(120_000)
   })
 })
@@ -148,7 +150,8 @@ describe('executeAllowlisted', () => {
     expect(commandCalls(fake)).toEqual([])
   })
 
-  it('AccessDenied を permission-denied にし、stderr の秘密を伏せる', async () => {
+  it('AccessDenied を permission-denied にし、stderr の秘密を伏せる', async (context) => {
+    await verifies(context, 'PT-COMMON-12')
     fakeAws.install({ fixture: 'access-denied' })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
@@ -194,7 +197,8 @@ describe('executeAllowlisted', () => {
     })
   })
 
-  it('時間切れは exitCode 124 の timeout にする', async () => {
+  it('時間切れは exitCode 124 の timeout にする', async (context) => {
+    await verifies(context, 'PT-COMMON-08')
     fakeAws.install({ hang: true })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, { timeoutMs: 500 })
@@ -269,7 +273,8 @@ describe('executeAllowlisted', () => {
     })
   })
 
-  it('成功時の stdout も秘匿化する', async () => {
+  it('成功時の stdout も秘匿化する', async (context) => {
+    await verifies(context, 'PT-COMMON-15')
     // SC-006 は応答全体が対象。stderr 側だけ固定すると、成功時の退行を見逃す。
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'leaky.stdout'), '{"AccessKeyId":"AKIAIOSFODNN7EXAMPLE"}\n')
@@ -308,7 +313,8 @@ describe('executeAllowlisted', () => {
     expect(parsed.success).toBe(true)
   })
 
-  it('上限を超える出力は先頭を残して truncated を立てる', async () => {
+  it('上限を超える出力は先頭を残して truncated を立てる', async (context) => {
+    await verifies(context, 'PT-COMMON-11')
     await withFixtureDirectory(async (directory) => {
       const body = `{"Functions":["${'x'.repeat(OUTPUT_LIMIT_BYTES)}"]}`
       writeFileSync(path.join(directory, 'large.stdout'), body)
