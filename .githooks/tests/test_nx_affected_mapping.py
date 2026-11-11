@@ -689,16 +689,23 @@ _PECOTV_TEST_LANES = {
         ),
         # interface-spec の単体テストはソースの変更で動く。
         ("libs/interface-spec/src/cli.ts", {"interface-spec:test-unit"}),
-        # pecot-tools の書き出しが import する 3 ファイルは、pecot-tools:test-cli にも届く。
+        # pecot-tools・pecot-visual の書き出しが import する 3 ファイルは、それぞれの test-cli にも届く。
         (
             "libs/interface-spec/src/domain/diff.ts",
-            {"interface-spec:test-unit", "pecot-tools:test-cli"},
+            {"interface-spec:test-unit", "pecot-tools:test-cli", "pecot-visual:test-cli"},
         ),
-        # interface-spec の package.json（zod の版）は、pecot-tools:test-cli にも届く。
+        # interface-spec の package.json（zod の版）は、pecot-tools・pecot-visual の test-cli にも届く。
         (
             "libs/interface-spec/package.json",
-            {"interface-spec:test-unit", "pecot-tools:test-cli", *_GITHOOKS_GRAPH},
+            {
+                "interface-spec:test-unit",
+                "pecot-tools:test-cli",
+                "pecot-visual:test-cli",
+                *_GITHOOKS_GRAPH,
+            },
         ),
+        # 定義書の書き出し結果は、一致のテストの pecot-visual:test-cli に届く。
+        ("plugins/pecot-visual/interface/generated.json", {"pecot-visual:test-cli"}),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
         (
@@ -856,7 +863,10 @@ def test_graph_lanes_read_every_workspace_package_json(
     ("changed_file", "expected"),
     [
         # pecot-visual の起点の lint（nx:noop）は inputs を持たず、全レーンを連れてこない。
-        ("plugins/pecot-visual/cli/src/version.ts", {"pecot-visual:lint-cli"}),
+        (
+            "plugins/pecot-visual/cli/src/version.ts",
+            {"pecot-visual:lint-cli", "interface-spec:lint-defs"},
+        ),
         # pecot-tools の lint は実体の target。plugins/pecot-tools/package.json は pecot-visual:lint-cli も読む。
         ("plugins/pecot-tools/package.json", {"pecot-tools:lint", "pecot-visual:lint-cli"}),
         # text-rules の lint は root の package.json を読まない。root の package.json が選ぶのは pecot-workflow:lint-py だけ。
@@ -896,12 +906,24 @@ def test_graph_lanes_read_every_workspace_package_json(
         ("libs/interface-spec/src/cli.ts", {"interface-spec:lint", "interface-spec:lint-defs"}),
         (
             "libs/interface-spec/src/domain/diff.ts",
-            {"interface-spec:lint", "interface-spec:lint-defs", "pecot-tools:lint"},
+            {
+                "interface-spec:lint",
+                "interface-spec:lint-defs",
+                "pecot-tools:lint",
+                "pecot-visual:lint-cli",
+            },
         ),
         (
             "libs/interface-spec/package.json",
-            {"interface-spec:lint", "interface-spec:lint-defs", "pecot-tools:lint"},
+            {
+                "interface-spec:lint",
+                "interface-spec:lint-defs",
+                "pecot-tools:lint",
+                "pecot-visual:lint-cli",
+            },
         ),
+        # lint のレーンの表には、定義書の変更が lint-defs に届くことも置く。
+        ("plugins/pecot-visual/interface/generated.json", {"interface-spec:lint-defs"}),
         (
             "libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml",
             {"interface-spec:lint"},
@@ -962,7 +984,7 @@ def test_representative_files_list_matches_the_parametrized_ones() -> None:
 
 
 def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
-    """plugins/*/interface/ はまだ無いので、実在を要る選び方のテストでなく、入力の宣言で固定する。"""
+    """定義書は plugins/*/interface/ に置かれる。実在を要る選び方のテストでなく、入力の宣言で固定する。"""
     project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
     inputs = project["targets"]["lint-defs"]["inputs"]
     assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs

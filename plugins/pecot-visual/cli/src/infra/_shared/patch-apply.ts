@@ -188,6 +188,7 @@ export async function applyPatches(
   ])
   const result = await (options.runner ?? spawnPromise)(locked.command, locked.commandArguments, {
     cwd: options.root,
+    // interface-env: none
     env: process.env,
     timeoutMs: PATCH_APPLY_TIMEOUT_MS,
     signal: options.signal,

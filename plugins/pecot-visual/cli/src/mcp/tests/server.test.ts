@@ -28,6 +28,7 @@ async function withPluginRoot(version: string, function_: () => void | Promise<v
   }
   finally {
     if (previous === undefined) {
+      // interface-env: none
       Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
     }
     else {

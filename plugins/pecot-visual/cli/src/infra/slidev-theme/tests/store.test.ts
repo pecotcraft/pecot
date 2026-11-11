@@ -38,6 +38,7 @@ afterEach(() => {
 })
 
 function gitEnvironment(): NodeJS.ProcessEnv {
+  // interface-env: none
   const environment = { ...process.env }
   for (const name of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']) Reflect.deleteProperty(environment, name)
   return environment

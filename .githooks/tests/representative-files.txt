@@ -66,6 +66,7 @@ plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/package.json
 plugins/pecot-visual/com.github.copilot/hooks/hooks.json
 plugins/pecot-visual/hooks/hooks.json
 plugins/pecot-visual/hooks/tests/runtime-dir-for-hooks.test.sh
+plugins/pecot-visual/interface/generated.json
 plugins/pecot-visual/mcp.json
 plugins/pecot-visual/plugin.json
 plugins/pecot-visual/runtime-lock.yaml

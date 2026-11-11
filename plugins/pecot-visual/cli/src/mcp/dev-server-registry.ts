@@ -547,6 +547,7 @@ export function devServerDefaultDependencies(): DevServerDependencies {
     spawn: (options: Readonly<DevServerSpawnOptions>) => {
       const spawnOptions: Parameters<typeof spawn>[2] = {
         cwd: options.directory,
+        // interface-env: none
         env: process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false,

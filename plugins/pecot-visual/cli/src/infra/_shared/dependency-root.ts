@@ -152,8 +152,8 @@ function isMatchingSegments(pattern: readonly string[], target: readonly string[
 環境変数の値。未設定・空白のみは undefined。
 */
 export function trimmedEnvironment(name: string): string | undefined {
-  // eslint-disable-next-line security/detect-object-injection -- name は本ファイル内の固定文字列
-  const raw = process.env[name]
+  // interface-env: CLAUDE_PLUGIN_ROOT PECOTV_DEPENDENCY_ROOT PECOTV_RUNTIME_DIR
+  const raw = process.env[name] // eslint-disable-line security/detect-object-injection -- name は本ファイル内の固定文字列
   if (raw === undefined) return undefined
   const trimmed = raw.trim()
   return trimmed === '' ? undefined : trimmed

@@ -51,6 +51,7 @@
         "{projectRoot}/package.json",
         "{workspaceRoot}/plugins/*/interface/**/*",
         "{workspaceRoot}/plugins/pecot-tools/cli/src/**/*.ts",
+        "{workspaceRoot}/plugins/pecot-visual/cli/src/**/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/cli/commands/**/*.py",
         "{workspaceRoot}/plugins/pecot-workflow/cli/core/**/*.py",
         "{workspaceRoot}/plugins/pecot-workflow/cli/__init__.py",

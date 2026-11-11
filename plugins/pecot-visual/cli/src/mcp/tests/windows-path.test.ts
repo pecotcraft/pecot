@@ -151,7 +151,7 @@ describe('toPosixPath', () => {
       vi.unstubAllEnvs()
     })
 
-    it('process.env を読む', () => {
+    it('第 2 引数を省略すると、現在の環境変数を読む', () => {
       // 既定引数 (第 2 引数省略) のルートそのものを確認する。stub した値が変換後パスへ
       // そのまま出ることを見て、既定引数がダミー値の {} 等で通っていないことを保証する。
       vi.stubEnv('PECOTV_WSL_MOUNT_ROOT', '/pecotv-mount-env-default')

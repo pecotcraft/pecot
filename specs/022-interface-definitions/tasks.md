@@ -204,12 +204,12 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US2 が、pecot-visual で通る
 
-- [ ] T041 [US2] pecot-visual の一致のテストと書き出しを、Phase 6 と同じ形で作る
+- [x] T041 [US2] pecot-visual の一致のテストと書き出しを、Phase 6 と同じ形で作る
   - `plugins/pecot-visual/cli/tests/interface-export.test.ts`
   - `plugins/pecot-visual/cli/scripts/export-interface.ts`
-- [ ] T042 [US2] `plugins/pecot-visual/interface/generated.json` を `--write` で作る。`project.json` の `test-cli` の入力に `interface/**` を足す
-- [ ] T043 [US2] `plugins/pecot-visual/interface/authored.yaml` を書く。ツールが書き出すファイルと起動するプロセス（dev サーバ、ブラウザ）を `effects` に書く
-- [ ] T044 [US2] `libs/interface-spec/targets.json` に pecot-visual を `entries: complete`・`coverage: off` で足す
+- [x] T042 [US2] `plugins/pecot-visual/interface/generated.json` を `--write` で作る。`project.json` の `test-cli` の入力に `interface/**` を足す
+- [x] T043 [US2] `plugins/pecot-visual/interface/authored.yaml` を書く。ツールが書き出すファイルと起動するプロセス（dev サーバ、ブラウザ）を `effects` に書く
+- [x] T044 [US2] `libs/interface-spec/targets.json` に pecot-visual を `entries: complete`・`coverage: off` で足す
 
 **Checkpoint**: ツールの入力に項目を 1 つ足すと、`test-cli` が止まる
 

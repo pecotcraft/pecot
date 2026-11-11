@@ -174,6 +174,7 @@ export class ChildProcessEslintRunner implements EslintRunner {
     return spawnPromise(process.execPath, spawnArguments, {
       cwd: arguments_.talkDirectory,
       // deck lint の設定は、宣言を読まずこの JSON を受ける。create / sync の自動 lint も同じ設定で動く。
+      // interface-env: none
       env: { ...process.env, PECOTV_DECK_LINT: JSON.stringify(arguments_.lint) },
       timeoutMs: ESLINT_TIMEOUT_MS,
     })

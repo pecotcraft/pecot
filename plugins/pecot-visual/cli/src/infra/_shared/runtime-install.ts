@@ -273,6 +273,7 @@ export async function installRuntimeDependencies(
     locked.command,
     locked.commandArguments,
     {
+      // interface-env: none
       env: process.env,
       timeoutMs: RUNTIME_INSTALL_TIMEOUT_MS,
       signal: options.signal,

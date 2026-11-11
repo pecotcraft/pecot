@@ -82,6 +82,7 @@ viewer で `xmlString` を描いて `outputPath` に PNG を書く。
 fonts は読み込む書体名（テーマの宣言の本文の書体と和文の書体）。総称の書体だけなら Web フォントを読み込まない。
 */
 export async function capturePng(xmlString: string, outputPath: string, fonts: readonly string[]): Promise<void> {
+  // interface-env: PECOTV_FORCE_PNG_FAIL PECOTV_FORCE_SVG_FAIL
   if (process.env[FORCE_FAIL_ENV.xmlpng] === '1') {
     throw new Error(`forced XMLPNG failure (${FORCE_FAIL_ENV.xmlpng}=1)`)
   }
@@ -181,8 +182,8 @@ export async function exportViaEmbed(
   options: Readonly<{ format: EmbedExportFormat }>,
 ): Promise<Buffer> {
   const failFlagName = FORCE_FAIL_ENV[options.format]
-  // eslint-disable-next-line security/detect-object-injection -- key は EmbedExportFormat union で本ファイル内固定
-  if (process.env[failFlagName] === '1') {
+  // interface-env: PECOTV_FORCE_PNG_FAIL PECOTV_FORCE_SVG_FAIL
+  if (process.env[failFlagName] === '1') { // eslint-disable-line security/detect-object-injection -- key は EmbedExportFormat union で本ファイル内固定
     throw new Error(`forced ${options.format.toUpperCase()} failure (${failFlagName}=1)`)
   }
 

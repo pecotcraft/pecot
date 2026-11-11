@@ -26,8 +26,9 @@
     "declaration": true,
     "declarationMap": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "rootDir": "../../.."
   },
-  "include": ["src/**/*", "types/**/*", "tests/**/*"],
+  "include": ["src/**/*", "types/**/*", "tests/**/*", "scripts/**/*.ts"],
   "exclude": ["dist", "coverage", "node_modules"]
 }

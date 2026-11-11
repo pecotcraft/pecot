@@ -1,0 +1,1448 @@
+format: 1
+plugin: pecot-visual
+environment:
+  - name: CLAUDE_PLUGIN_ROOT
+    effect: Locates the plugin directory from which the server reads its assets, scripts and version, and a runtime dependency root in a plugin install.
+  - name: CLAUDE_PLUGIN_DATA
+    effect: Sets the data directory that holds the runtime dependencies (mcp-dist) and the fetched themes; read first.
+  - name: PLUGIN_DATA
+    effect: Sets the data directory when CLAUDE_PLUGIN_DATA is not set; both need an absolute path.
+  - name: XDG_DATA_HOME
+    effect: Sets the base of the data directory (<XDG_DATA_HOME>/pecot/pecot-visual) when neither CLAUDE_PLUGIN_DATA nor PLUGIN_DATA is set; an absolute path.
+  - name: HOME
+    effect: Sets the base of the data directory (~/.local/share/pecot/pecot-visual) as the last choice, and of the Playwright browsers directory (~/.cache/ms-playwright).
+  - name: PATH
+    effect: Decides where the server looks for the pnpm executable; the same value is passed to the child processes.
+  - name: PLAYWRIGHT_BROWSERS_PATH
+    effect: Moves the directory in which Playwright Chromium is installed and looked for; 0 selects the location inside the package.
+  - name: NODE_EXTRA_CA_CERTS
+    effect: Passed to the child processes (pnpm, npm and the Chromium download) as the PEM file with the CA of a proxy that intercepts SSL.
+  - name: PECOTV_DEPENDENCY_ROOT
+    effect: Names the runtime mirror of the plugin from which the dependencies are resolved; passed by bin/pecotv and used before CLAUDE_PLUGIN_ROOT.
+  - name: PECOTV_RUNTIME_DIR
+    effect: Names the running mirror of the plugin (runtime/<hash>) that bin/pecotv passes; its parent holds the Chromium download lock and the OS library check stamp.
+  - name: PECOTV_AUTO_INSTALL_BROWSER
+    effect: Lets a tool that needs Chromium download it on the spot when set to 1; otherwise a missing Chromium makes the tool tell to call setup.
+  - name: WSL_DISTRO_NAME
+    effect: Names the current WSL distribution; a \\wsl.localhost\<distro>\ path of this distribution is converted to a path inside WSL.
+  - name: PECOTV_WSL_MOUNT_ROOT
+    effect: Moves the root under which a Windows drive path (C:\...) is converted; /mnt when not set.
+entries:
+  PV-DRAWIO-CREATE:
+    constraints: []
+    details:
+      - Turns one .drawio file into a viewer HTML that redirects to draw.io, and returns the URL in data.url.
+      - Writes the HTML to out_path and, unless png is false, a PNG next to it; without out_path it writes nothing and returns only the URL.
+      - Resolves icon:// references into embedded data URIs.
+      - Checks the labels against the text rules and the font and font size against the theme declaration before generating; data.theme reports the theme used.
+      - Returns ok true with exitCode 3 when the PNG could not be written; the HTML is still written and data.pngFailed is true.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment:
+      - name: PECOTV_FORCE_PNG_FAIL
+        effect: Makes the PNG rendering fail on purpose when set to 1; the call then returns exitCode 3 without a PNG. Used to test the failure path.
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: invalid-option
+        when: "theme is a relative path or a file: path that cannot be converted (exitCode 2)."
+      - kind: invalid-output-extension
+        when: out_path does not end in .html (exitCode 2).
+      - kind: invalid-theme
+        when: theme is not a theme spec, a talk-dir or a theme root (exitCode 2).
+      - kind: input-not-found
+        when: input_path does not exist (exitCode 1).
+      - kind: icon-unresolved
+        when: An icon:// reference in the diagram is not found under the bundled icon catalog (exitCode 1).
+      - kind: text-violation
+        when: A label or the font breaks the text rules or the theme declaration (exitCode 1); nothing is written and data.violations lists every violation.
+      - kind: text-lint-failed
+        when: The text check could not run (exitCode 1).
+      - kind: theme-invalid-shape
+        when: The theme declaration does not have the expected shape (exitCode 1).
+      - kind: theme-unknown-rule
+        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+      - kind: theme-connection
+        when: The theme repository cannot be reached (exitCode 1).
+      - kind: theme-auth
+        when: The theme repository rejects the credentials (exitCode 1).
+      - kind: theme-tag
+        when: The tag of the theme does not exist in the repository (exitCode 1).
+      - kind: theme-install
+        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+      - kind: theme-unknown
+        when: Fetching the theme failed for another reason (exitCode 1).
+      - kind: theme-tag-required
+        when: "The git URL of theme has no #<tag> (exitCode 2)."
+      - kind: theme-tag-format
+        when: The tag of theme is not in the accepted format (exitCode 2).
+      - kind: theme-semver-range
+        when: The tag of theme is a version range (exitCode 2).
+      - kind: theme-unsupported-spec
+        when: "theme is neither a git+https URL nor a file: path (exitCode 2)."
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: Nothing is written when the text check or the input check fails. A failed PNG leaves the HTML and is reported as exitCode 3, not as a failure.
+    effects:
+      - target: file
+        kind: read
+        what: Reads input_path, the bundled icon catalog, and the theme declaration of the theme or of the talk-dir above the diagram.
+      - target: file
+        kind: write
+        what: Writes the viewer HTML to out_path and the PNG to the same path with the extension replaced by .png; replaces files that already exist.
+      - target: process
+        kind: write
+        what: Launches Chromium to render the PNG, which loads viewer.diagrams.net and web fonts over the network.
+      - target: process
+        kind: write
+        what: Runs git and pnpm to fetch the theme when theme is a git URL that is not yet fetched.
+    prerequisites:
+      - Playwright Chromium is installed when out_path is given and png is true; call setup otherwise. Without it the call degrades to exitCode 3 without a PNG.
+    idempotent: true
+    examples:
+      - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"out_path\": \"/work/diagram.html\"}"
+        note: Write the viewer HTML and a PNG next to it.
+      - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"mode\": \"edit\"}"
+        note: Return only the editing URL.
+    default_notes:
+      out_path: Not written when omitted; only data.url is returned.
+      theme: The theme of the talk-dir when the diagram is under its public/ directory; otherwise the built-in default (sans-serif).
+    behaviors:
+      - id: PV-DRAWIO-CREATE-01
+        pattern: event
+        statement: input_path を渡して呼ぶと、データ URI に解決した図の URL を data.url に載せた成功の応答を返す
+      - id: PV-DRAWIO-CREATE-02
+        pattern: event
+        statement: out_path を渡して呼ぶと、その .html に表示用の HTML を書き、artifacts に載せる
+      - id: PV-DRAWIO-CREATE-03
+        pattern: event
+        statement: out_path を渡して png を省くと、同じ名前で拡張子を .png にした PNG も書く
+      - id: PV-DRAWIO-CREATE-04
+        pattern: event
+        statement: png を false にして呼ぶと、PNG を書かず Chromium を起動しない
+      - id: PV-DRAWIO-CREATE-05
+        pattern: unwanted
+        statement: もしラベルの文面が文面の規則に反するなら、何も書かず text-violation の失敗を返し、違反の全件を data.violations に載せる
+      - id: PV-DRAWIO-CREATE-06
+        pattern: unwanted
+        statement: もし PNG を書けなかったなら、HTML は残し、exitCode 3・data.pngFailed が true の成功の応答を返す
+      - id: PV-DRAWIO-CREATE-07
+        pattern: unwanted
+        statement: もし Chromium が入っていないなら、HTML だけを書き、exitCode 3 の成功の応答を返し、message に setup の呼び出しを案内する
+      - id: PV-DRAWIO-CREATE-08
+        pattern: unwanted
+        statement: もし out_path の拡張子が .html でないなら、何も書かず invalid-output-extension・exitCode 2 の失敗を返す
+      - id: PV-DRAWIO-CREATE-09
+        pattern: unwanted
+        statement: もし input_path が存在しないなら、input-not-found・exitCode 1 の失敗を返す
+  PV-DRAWIO-EXPORT:
+    constraints: []
+    details:
+      - Exports one .drawio file to a static SVG and, unless pdf is false, a PDF next to it.
+      - With print_hash it exports nothing and returns only the composite hash used for staleness checks in data.sourceSha256.
+      - Does not check the diagram text; the input is expected to have gone through drawio_create.
+      - Returns ok true with exitCode 3 when the PDF could not be written; the SVG is still written and data.pdfFailed is true.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment:
+      - name: PECOTV_FORCE_SVG_FAIL
+        effect: Makes the SVG export fail on purpose when set to 1; the call then fails with export-failed. Used to test the failure path.
+      - name: PECOTV_FORCE_PDF_FAIL
+        effect: Makes the PDF export fail on purpose when set to 1; the call then returns exitCode 3 without a PDF. Used to test the failure path.
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: invalid-output-extension
+        when: out_path ends in .pdf while print_hash is false (exitCode 2).
+      - kind: input-not-found
+        when: input_path does not exist (exitCode 1).
+      - kind: icon-unresolved
+        when: An icon:// reference in the diagram is not found under icons_dir (exitCode 1).
+      - kind: export-failed
+        when: The SVG export through draw.io failed (exitCode 1).
+      - kind: chromium-not-installed
+        when: Playwright Chromium is not installed and PECOTV_AUTO_INSTALL_BROWSER is not 1 (exitCode 1); the message tells to call setup.
+      - kind: chromium-install-failed
+        when: PECOTV_AUTO_INSTALL_BROWSER is 1 and the Chromium download failed (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: Nothing is written when the input check or the SVG export fails. A failed PDF leaves the SVG and is reported as exitCode 3, not as a failure.
+    effects:
+      - target: file
+        kind: read
+        what: Reads input_path and the icon catalog under icons_dir.
+      - target: file
+        kind: write
+        what: Writes the SVG to out_path and the PDF to the same path with the extension replaced by .pdf; replaces files that already exist. Nothing is written with print_hash.
+      - target: process
+        kind: write
+        what: Launches Chromium, which loads embed.diagrams.net and web fonts over the network to export the SVG, and prints the PDF. Not started with print_hash.
+    prerequisites:
+      - Playwright Chromium is installed unless print_hash is true; call setup otherwise.
+      - The diagram has gone through drawio_create, because this tool does not check the text.
+    idempotent: true
+    examples:
+      - run: "drawio_export {\"input_path\": \"/work/diagram.drawio\"}"
+        note: Write diagram.drawio.svg and diagram.drawio.pdf next to the input.
+      - run: "drawio_export {\"input_path\": \"/work/diagram.drawio\", \"print_hash\": true}"
+        note: Get the hash for a staleness check without exporting.
+    default_notes:
+      icons_dir: The icon catalog bundled with the plugin.
+      out_path: The input path with .svg appended.
+    behaviors:
+      - id: PV-DRAWIO-EXPORT-01
+        pattern: event
+        statement: input_path を渡して呼ぶと、SVG と同じ名前の PDF を書き、artifacts に両方を載せた成功の応答を返す
+      - id: PV-DRAWIO-EXPORT-02
+        pattern: event
+        statement: pdf を false にして呼ぶと、SVG だけを書く
+      - id: PV-DRAWIO-EXPORT-03
+        pattern: event
+        statement: print_hash を true にして呼ぶと、何も書かず Chromium を起動せず、data.sourceSha256 に合成ハッシュを載せて返す
+      - id: PV-DRAWIO-EXPORT-04
+        pattern: unwanted
+        statement: もし PDF を書けなかったなら、SVG は残し、exitCode 3・data.pdfFailed が true の成功の応答を返す
+      - id: PV-DRAWIO-EXPORT-05
+        pattern: unwanted
+        statement: もし SVG の出力に失敗したなら、何も書かず export-failed・exitCode 1 の失敗を返す
+      - id: PV-DRAWIO-EXPORT-06
+        pattern: unwanted
+        statement: もし out_path の拡張子が .svg でないなら、何も書かず invalid-output-extension・exitCode 2 の失敗を返す
+      - id: PV-DRAWIO-EXPORT-07
+        pattern: unwanted
+        statement: もし Chromium が入っていないなら、何も書かず chromium-not-installed の失敗を返し、message に setup の呼び出しを案内する
+  PV-EVIDENCE-CREATE:
+    constraints: []
+    details:
+      - Builds one work-evidence xlsx from an EvidenceSpec JSON, placing the listed screenshots in order and adding the annotations.
+      - Checks the title, captions and annotations against the text rules before generating.
+      - Reports in data how many items and annotations were placed and which images were skipped, with the reason each was skipped.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: input-not-found
+        when: input_path does not exist (exitCode 1).
+      - kind: invalid-json
+        when: The file at input_path is not valid JSON (exitCode 1).
+      - kind: invalid-spec
+        when: The JSON does not match the EvidenceSpec format (exitCode 1).
+      - kind: text-violation
+        when: The title, a caption or an annotation breaks the text rules (exitCode 1); nothing is written and data.violations lists every violation.
+      - kind: text-lint-failed
+        when: The text check could not run (exitCode 1).
+      - kind: no-valid-images
+        when: No image in the spec could be placed (exitCode 1).
+      - kind: output-write-failed
+        when: The xlsx could not be written (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: Nothing is written when the spec check or the text check fails.
+    effects:
+      - target: file
+        kind: read
+        what: Reads input_path and the image files listed in it.
+      - target: file
+        kind: write
+        what: Writes the xlsx to out_path; replaces a file that already exists.
+    prerequisites:
+      - The image files in the EvidenceSpec exist; a missing, unreadable or unsupported image is skipped and reported in data.skipped.
+    idempotent: true
+    examples:
+      - run: "evidence_create {\"input_path\": \"/work/evidence/spec.json\"}"
+        note: Write evidence.xlsx next to the spec.
+    default_notes:
+      out_path: evidence.xlsx in the same directory as input_path.
+    behaviors:
+      - id: PV-EVIDENCE-CREATE-01
+        pattern: event
+        statement: input_path を渡して呼ぶと、仕様の順に画像を貼った xlsx を書き、artifacts にそのパスを載せた成功の応答を返す
+      - id: PV-EVIDENCE-CREATE-02
+        pattern: event
+        statement: 貼れない画像が仕様に含まれると、その画像を飛ばし、飛ばした画像と理由を data.skipped に載せる
+      - id: PV-EVIDENCE-CREATE-03
+        pattern: unwanted
+        statement: もし題・見出し・注釈が文面の規則に反するなら、何も書かず text-violation の失敗を返し、違反の全件を data.violations に載せる
+      - id: PV-EVIDENCE-CREATE-04
+        pattern: unwanted
+        statement: もし input_path の中身が JSON として読めないなら、invalid-json・exitCode 1 の失敗を返す
+      - id: PV-EVIDENCE-CREATE-05
+        pattern: unwanted
+        statement: もし input_path が存在しないなら、input-not-found・exitCode 1 の失敗を返す
+  PV-SETUP:
+    constraints: []
+    details:
+      - Downloads the runtime dependencies (@slidev/cli, dom-to-pptx, @slidev/parser and others) and Playwright Chromium, and checks the OS libraries Chromium needs.
+      - The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium.
+      - Skips what is already installed, so a repeated call finishes quickly.
+      - Runs the Chromium and OS library steps even when the runtime dependencies fail; ok is true only when all steps succeed.
+      - Installs missing OS libraries with apt-get where sudo is available, and otherwise returns the command to run.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: runtime-install-failed
+        when: Installing the runtime dependencies failed (exitCode 1); data.runtime.detail gives the cause, and a TLS certificate failure adds a hint about NODE_EXTRA_CA_CERTS.
+      - kind: chromium-install-failed
+        when: Downloading Chromium failed (exitCode 1 when the runtime dependencies were installed, otherwise the runtime failure decides the code).
+      - kind: chromium-host-deps-missing
+        when: The OS libraries Chromium needs are missing and could not be installed (exitCode 1); data.hostDeps.detail gives the command to run.
+    on_error: Whatever was downloaded before a failing step stays installed, and a call after the cause is fixed continues from there.
+    effects:
+      - target: file
+        kind: destructive
+        what: Writes the runtime dependencies under <data-dir>/mcp-dist, replacing its package.json and install stamp, and writes the Chromium browser to the Playwright browsers directory.
+      - target: process
+        kind: write
+        what: Runs npm to install the runtime dependencies, and runs Playwright to download Chromium over the network.
+      - target: process
+        kind: write
+        what: Runs sudo apt-get to install the OS libraries for Chromium when they are missing and sudo is available without a password.
+    prerequisites:
+      - Network access to the npm registry and to the Playwright download host; behind a proxy that intercepts SSL, NODE_EXTRA_CA_CERTS points at the proxy CA.
+    idempotent: true
+    examples:
+      - run: setup {}
+        note: Prepare the runtime before the first slide_create or drawio_export.
+    default_notes: {}
+    behaviors:
+      - id: PV-SETUP-01
+        pattern: event
+        statement: 実行時依存が未導入の状態で呼ぶと、実行時依存を取得し、data.runtime.downloaded を true にする
+      - id: PV-SETUP-02
+        pattern: event
+        statement: 実行時依存が導入済みの状態で呼ぶと、取得を飛ばし、data.runtime.downloaded を false にする
+      - id: PV-SETUP-03
+        pattern: event
+        statement: Chromium が未導入の状態で呼ぶと、Chromium を取得し、data.chromium.downloaded を true にする
+      - id: PV-SETUP-04
+        pattern: event
+        statement: すべて導入済みの状態で呼ぶと、data.event を setup.skipped にした成功の応答を返す
+      - id: PV-SETUP-05
+        pattern: unwanted
+        statement: もし実行時依存の取得に失敗したなら、Chromium の取得は続けて行う
+      - id: PV-SETUP-06
+        pattern: unwanted
+        statement: もし Chromium の起動に要る OS のライブラリが無くて入れられないなら、chromium-host-deps-missing の失敗を返し、実行する導入コマンドを message に載せる
+      - id: PV-SETUP-07
+        pattern: unwanted
+        statement: もし取得の失敗が TLS 証明書の検証によるなら、NODE_EXTRA_CA_CERTS で証明書を渡す案内を detail に加える
+  PV-SLIDE-CONVERT:
+    constraints: []
+    details:
+      - Converts one Slidev project to a PPTX file and returns its path in artifacts.
+      - The duration is proportional to the number of slides; 55 slides take just under 30 seconds.
+      - Reads the diff cache in the output directory and reconverts only the changed steps; the cache is rebuilt after every conversion, also with cache false.
+      - Relinks the theme in node_modules and aligns the generated files of the talk-dir first, so a stale theme link is repaired by the call.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment:
+      - name: PECOTV_SINGLE_PASS
+        effect: Turns the single-pass rendering off when set to 0; any other value or no value keeps it on.
+      - name: PECOTV_SINGLE_PASS_CONCURRENCY
+        effect: Sets the number of groups rendered at the same time in single-pass rendering; an integer of 1 or more, and any other value is ignored.
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: runtime-dependencies-not-installed
+        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+      - kind: chromium-not-installed
+        when: Playwright Chromium is not installed and PECOTV_AUTO_INSTALL_BROWSER is not 1 (exitCode 1); the message tells to call setup.
+      - kind: chromium-install-failed
+        when: PECOTV_AUTO_INSTALL_BROWSER is 1 and the Chromium download failed (exitCode 1).
+      - kind: project-not-found
+        when: project_dir does not exist or is not a Slidev project (exitCode 1).
+      - kind: invalid-theme
+        when: theme contains a character outside [a-zA-Z0-9@/_.-] (exitCode 2).
+      - kind: invalid-staging-json
+        when: The letter-spacing JSON or the hyperlink JSON is unreadable or has the wrong shape (exitCode 1).
+      - kind: slidev-build-failed
+        when: slidev build exited with an error (exitCode 1); data.warnings and data.errors give the diagnostics.
+      - kind: slidev-build-timeout
+        when: slidev build did not finish within its time limit (exitCode 1).
+      - kind: pptx-convert-failed
+        when: Rendering the slides or building the PPTX failed (exitCode 1).
+      - kind: pptx-convert-timeout
+        when: The conversion did not finish within its time limit (exitCode 1).
+      - kind: merge-failed
+        when: Merging the converted slides or writing the output failed (exitCode 1).
+      - kind: cancelled
+        when: The client cancelled the call (exitCode 1).
+      - kind: theme-none
+        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+      - kind: theme-unlinked
+        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+      - kind: theme-connection
+        when: The theme repository cannot be reached (exitCode 1).
+      - kind: theme-auth
+        when: The theme repository rejects the credentials (exitCode 1).
+      - kind: theme-tag
+        when: The tag of the theme does not exist in the repository (exitCode 1).
+      - kind: theme-install
+        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+      - kind: theme-unknown
+        when: Fetching the theme failed for another reason (exitCode 1).
+      - kind: theme-name-mismatch
+        when: The key of the theme in dependencies does not match the name of the theme (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: The dist directory and index.html of project_dir are already removed when a later step fails, and no PPTX is written.
+    effects:
+      - target: file
+        kind: read
+        what: Reads slides.md, pages/, public/, the theme and the optional letter-spacing and hyperlink JSON in project_dir.
+      - target: file
+        kind: write
+        what: Writes the PPTX to out_path and the diff cache to the output directory; relinks node_modules and rewrites vite.config.ts and start.mjs of project_dir when they differ from the plugin.
+      - target: file
+        kind: destructive
+        what: Deletes the dist directory and index.html of project_dir before the build, and replaces an existing PPTX at out_path.
+      - target: process
+        kind: write
+        what: Runs slidev build, and launches Chromium to render the slides.
+      - target: process
+        kind: write
+        what: Runs git and pnpm to fetch the theme when it is not yet fetched.
+    prerequisites:
+      - The runtime dependencies and Playwright Chromium are installed; call setup otherwise.
+      - project_dir is a talk-dir that references a theme.
+    idempotent: true
+    examples:
+      - run: "slide_convert {\"project_dir\": \"/work/talk\"}"
+        note: Convert the talk-dir to a PPTX under its pptx directory.
+      - run: "slide_convert {\"project_dir\": \"/work/talk\", \"out_path\": \"/work/out/talk.pptx\", \"transition_type\": \"morph\", \"morph_option\": \"byWord\"}"
+        note: Convert with a word-level morph transition.
+    default_notes:
+      out_path: project_dir/pptx/<title of slides.md, or the basename of project_dir>.pptx.
+      spacing_json_path: staging/slides/letter-spacing.json in project_dir when it exists.
+      href_json_path: staging/slides/href-map.json in project_dir when it exists.
+    behaviors:
+      - id: PV-SLIDE-CONVERT-01
+        pattern: event
+        statement: project_dir を渡して呼ぶと、PPTX を書き、artifacts にそのパスを載せた成功の応答を返す
+      - id: PV-SLIDE-CONVERT-02
+        pattern: event
+        statement: out_path を渡して呼ぶと、その場所に PPTX を書く
+      - id: PV-SLIDE-CONVERT-03
+        pattern: event
+        statement: cache を省いて再度呼ぶと、変わっていない工程の変換を省く
+      - id: PV-SLIDE-CONVERT-04
+        pattern: event
+        statement: cache を false にして呼ぶと、キャッシュを読まずに全工程を変換し、キャッシュを作り直す
+      - id: PV-SLIDE-CONVERT-05
+        pattern: event
+        statement: transition_type を morph にして呼ぶと、morph_option の粒度で切り替え効果を付ける
+      - id: PV-SLIDE-CONVERT-06
+        pattern: unwanted
+        statement: もし実行時依存が未導入なら、runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+      - id: PV-SLIDE-CONVERT-07
+        pattern: unwanted
+        statement: もし Chromium が入っていないなら、chromium-not-installed の失敗を返し、message に setup の呼び出しを案内する
+      - id: PV-SLIDE-CONVERT-08
+        pattern: unwanted
+        statement: もし project_dir が Slidev のプロジェクトでないなら、project-not-found・exitCode 2 の失敗を返す
+      - id: PV-SLIDE-CONVERT-09
+        pattern: unwanted
+        statement: もし talk-dir がテーマを参照していないなら、theme-none の失敗を返す
+      - id: PV-SLIDE-CONVERT-10
+        pattern: unwanted
+        statement: もしクライアントが呼び出しを取り消したなら、変換を打ち切り cancelled の失敗を返す
+  PV-SLIDE-CREATE:
+    constraints: []
+    details:
+      - Creates a talk-dir at project_dir that references the Slidev theme given by theme, and returns the directory in artifacts.
+      - theme is a git URL with a tag (git+https://<host>/<owner>/<repo>.git#<tag>) or a local path (file:<absolute path>).
+      - Returns the presentation categories in data.categories and the selectable layouts in data.layouts.
+      - Lints the whole deck right after generation and returns the result in data.lint; the generation counts as successful even with violations.
+      - The generated start.mjs starts the dev server on the port in SLIDEV_PORT when that is set.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment:
+      - name: SLIDEV_PORT
+        effect: Read by the generated start.mjs, not by the tool; sets the port of the dev server started from the talk-dir.
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: runtime-dependencies-not-installed
+        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+      - kind: invalid-option
+        when: "The file: path of theme is relative or cannot be converted (exitCode 2)."
+      - kind: dest-exists
+        when: project_dir already exists and force is false (exitCode 2).
+      - kind: theme-tag-required
+        when: "The git URL of theme has no #<tag> (exitCode 2)."
+      - kind: theme-tag-format
+        when: The tag of theme is not in the accepted format (exitCode 2).
+      - kind: theme-semver-range
+        when: The tag of theme is a version range (exitCode 2).
+      - kind: theme-unsupported-spec
+        when: "theme is neither a git+https URL nor a file: path (exitCode 2)."
+      - kind: theme-connection
+        when: The theme repository cannot be reached (exitCode 1).
+      - kind: theme-auth
+        when: The theme repository rejects the credentials (exitCode 1).
+      - kind: theme-tag
+        when: The tag of the theme does not exist in the repository (exitCode 1).
+      - kind: theme-install
+        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+      - kind: theme-unknown
+        when: Fetching the theme failed for another reason (exitCode 1).
+      - kind: theme-invalid-shape
+        when: The theme declaration does not have the expected shape (exitCode 1).
+      - kind: theme-unknown-rule
+        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+      - kind: copy-failed
+        when: Building the talk-dir files failed (exitCode 1).
+      - kind: symlink-failed
+        when: Linking node_modules failed (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: An existing project_dir is kept unchanged when any step fails, also with force, and the temporary directory is removed.
+    effects:
+      - target: file
+        kind: write
+        what: Creates project_dir with slides.md, package.json, pages/, public/slides/, vite.config.ts, start.mjs and node_modules links; stores a fetched theme under <data-dir>/themes.
+      - target: file
+        kind: destructive
+        what: Deletes the existing project_dir after the new one is assembled when force is true.
+      - target: process
+        kind: write
+        what: Runs git to resolve the tag and pnpm to install the theme dependencies from the network when a git theme is not yet fetched.
+      - target: process
+        kind: read
+        what: Runs eslint over the generated deck for data.lint.
+    prerequisites:
+      - The runtime dependencies are installed; call setup otherwise.
+      - The caller can write to project_dir and its parent.
+    idempotent: false
+    examples:
+      - run: "slide_create {\"project_dir\": \"/work/talk\", \"theme\": \"git+https://github.com/example/slidev-theme.git#v1.0.0\"}"
+        note: Create a talk-dir that references a tagged theme.
+      - run: "slide_create {\"project_dir\": \"/work/talk\", \"theme\": \"file:/work/theme\", \"force\": true}"
+        note: Recreate the talk-dir from a local theme.
+    default_notes: {}
+    behaviors:
+      - id: PV-SLIDE-CREATE-01
+        pattern: event
+        statement: project_dir と theme を渡して呼ぶと、テーマを参照する talk-dir を作り、artifacts に project_dir を載せた成功の応答を返す
+      - id: PV-SLIDE-CREATE-02
+        pattern: event
+        statement: 呼ぶと、data.categories と data.layouts にテーマの提示カテゴリと選べるレイアウトを載せる
+      - id: PV-SLIDE-CREATE-03
+        pattern: event
+        statement: 呼ぶと、生成直後のデッキ全体の lint の結果を data.lint に載せる
+      - id: PV-SLIDE-CREATE-04
+        pattern: unwanted
+        statement: もし生成直後の lint が違反を見つけたなら、生成は成功として返す
+      - id: PV-SLIDE-CREATE-05
+        pattern: event
+        statement: force を true にして呼ぶと、組み立てが済んだ後で既存の project_dir を置き換える
+      - id: PV-SLIDE-CREATE-06
+        pattern: unwanted
+        statement: もし project_dir が既にあり force が false なら、何も変えず dest-exists・exitCode 2 の失敗を返す
+      - id: PV-SLIDE-CREATE-07
+        pattern: unwanted
+        statement: もし theme が tag の無い git URL なら、何も作らず theme-tag-required・exitCode 2 の失敗を返す
+      - id: PV-SLIDE-CREATE-08
+        pattern: unwanted
+        statement: "もし file: の theme が相対パスなら、何も作らず invalid-option・exitCode 2 の失敗を返す"
+      - id: PV-SLIDE-CREATE-09
+        pattern: unwanted
+        statement: もし実行時依存が未導入なら、何も作らず runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+      - id: PV-SLIDE-CREATE-10
+        pattern: unwanted
+        statement: もし組み立ての途中で失敗したなら、既存の project_dir を残し、一時ディレクトリを消す
+  PV-SLIDE-DEV:
+    constraints: []
+    details:
+      - Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser in data.url, with the port in data.port.
+      - Calling again for the same talk-dir returns the running server unchanged, with data.reused true.
+      - With stop true it stops the dev server of the talk-dir; data.stopped tells whether one was running.
+      - The server runs only while the MCP server process is alive, so the preview ends with the session.
+      - Relinks the theme in node_modules and aligns the generated files of the talk-dir before starting; a running server is stopped and started again in that case.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: runtime-dependencies-not-installed
+        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+      - kind: talk-dir-not-found
+        when: dir does not exist or is not a directory (exitCode 1).
+      - kind: slides-md-not-found
+        when: dir has no slides.md, so it is not a talk-dir (exitCode 1).
+      - kind: node-modules-unresolved
+        when: node_modules of dir cannot be resolved even after relinking the theme (exitCode 1); the message gives the slide_sync call.
+      - kind: dev-server-port-in-use
+        when: The requested port is in use, or every port from 3030 to 3034 is in use (exitCode 1).
+      - kind: dev-server-spawn-failed
+        when: The dev server process could not be started (exitCode 1).
+      - kind: dev-server-exited
+        when: The dev server exited right after starting (exitCode 1); stderr gives the reason.
+      - kind: dev-server-timeout
+        when: The dev server did not answer within 15 seconds (exitCode 1).
+      - kind: dev-server-cancelled
+        when: The client cancelled the call before the server started (exitCode 1).
+      - kind: theme-none
+        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+      - kind: theme-connection
+        when: The theme repository cannot be reached (exitCode 1).
+      - kind: theme-auth
+        when: The theme repository rejects the credentials (exitCode 1).
+      - kind: theme-tag
+        when: The tag of the theme does not exist in the repository (exitCode 1).
+      - kind: theme-install
+        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+      - kind: theme-unknown
+        when: Fetching the theme failed for another reason (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: A server that failed to become ready is stopped and not left running.
+    effects:
+      - target: file
+        kind: write
+        what: Relinks node_modules and rewrites vite.config.ts and start.mjs in dir when they differ from the theme and the plugin.
+      - target: process
+        kind: write
+        what: Starts the Slidev dev server as a child process of the MCP server, listening on a local port until it is stopped or the MCP server ends.
+      - target: process
+        kind: destructive
+        what: Stops the running dev server of the talk-dir when stop is true, and when a relink requires a restart.
+      - target: process
+        kind: write
+        what: Runs git and pnpm to fetch the theme when it is not yet fetched.
+    prerequisites:
+      - The runtime dependencies are installed; call setup otherwise.
+      - dir is a talk-dir that references a theme.
+    idempotent: false
+    examples:
+      - run: "slide_dev {\"dir\": \"/work/talk\"}"
+        note: Start the preview and get its URL.
+      - run: "slide_dev {\"dir\": \"/work/talk\", \"stop\": true}"
+        note: Stop the preview.
+    default_notes:
+      port: The first free port from 3030 to 3034.
+    behaviors:
+      - id: PV-SLIDE-DEV-01
+        pattern: event
+        statement: dir を渡して呼ぶと、dev サーバを起動し、URL と port を data に載せた成功の応答を返す
+      - id: PV-SLIDE-DEV-02
+        pattern: event
+        statement: 起動中の talk-dir に同じ呼び出しをすると、起動中のサーバをそのまま返し、data.reused を true にする
+      - id: PV-SLIDE-DEV-03
+        pattern: event
+        statement: port を渡して呼ぶと、そのポートで起動する
+      - id: PV-SLIDE-DEV-04
+        pattern: event
+        statement: stop を true にして呼ぶと、その talk-dir の dev サーバを止め、data.stopped を true にする
+      - id: PV-SLIDE-DEV-05
+        pattern: event
+        statement: 起動していない talk-dir に stop を true にして呼ぶと、何も止めず data.stopped を false にした成功の応答を返す
+      - id: PV-SLIDE-DEV-06
+        pattern: unwanted
+        statement: もし port を渡して、そのポートが使用中なら、別のポートへ移らず dev-server-port-in-use の失敗を返す
+      - id: PV-SLIDE-DEV-07
+        pattern: unwanted
+        statement: もし dir が talk-dir でないなら、サーバを起動せず talk-dir-not-found または slides-md-not-found の失敗を返す
+      - id: PV-SLIDE-DEV-08
+        pattern: unwanted
+        statement: もし talk-dir がテーマを参照していないなら、サーバを起動せず theme-none の失敗を返す
+      - id: PV-SLIDE-DEV-09
+        pattern: unwanted
+        statement: もし実行時依存が未導入なら、サーバを起動せず runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+      - id: PV-SLIDE-DEV-10
+        pattern: unwanted
+        statement: もしサーバが 15 秒以内に応答しないなら、そのサーバを止め dev-server-timeout の失敗を返す
+  PV-SLIDE-LINT:
+    constraints: []
+    details:
+      - Lints the whole talk-dir (pages/**/*.md and slides.md) with the rules of its theme and returns the violations in data.violations.
+      - "Violations are not a failure: the call returns ok true with exitCode 1 and data.event slide.lint.violations; with none it returns exitCode 0."
+      - Reports directories under pages/ that are symlinks and are not scanned in data.skippedSymlinkDirectories.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: dir-not-found
+        when: dir does not exist (exitCode 1).
+      - kind: not-a-directory
+        when: dir is not a directory (exitCode 1).
+      - kind: not-talk-dir
+        when: dir has no slides.md, so it is not a talk-dir (exitCode 1).
+      - kind: eslint-not-launched
+        when: eslint could not be started (exitCode 1).
+      - kind: eslint-timeout
+        when: eslint did not finish within its time limit (exitCode 1).
+      - kind: eslint-failed
+        when: eslint exited with an error that is not a lint violation (exitCode 1).
+      - kind: invalid-report
+        when: The eslint report could not be read (exitCode 1).
+      - kind: theme-none
+        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+      - kind: theme-unlinked
+        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+      - kind: theme-invalid-shape
+        when: The theme declaration does not have the expected shape (exitCode 1).
+      - kind: theme-unknown-rule
+        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: default
+    effects:
+      - target: file
+        kind: read
+        what: Reads slides.md, pages/**/*.md and the theme declaration of dir.
+      - target: process
+        kind: read
+        what: Runs eslint over the deck and reads its report; nothing is fixed or written.
+    prerequisites:
+      - dir is a talk-dir that references a theme.
+    idempotent: true
+    examples:
+      - run: "slide_lint {\"dir\": \"/work/talk\"}"
+        note: Lint the whole deck.
+    default_notes: {}
+    behaviors:
+      - id: PV-SLIDE-LINT-01
+        pattern: event
+        statement: dir を渡して呼ぶと、デッキ全体を lint し、違反の一覧を data.violations に載せて返す
+      - id: PV-SLIDE-LINT-02
+        pattern: unwanted
+        statement: もし違反が 1 件以上あるなら、ok を true のまま exitCode 1 で返し、data.event を slide.lint.violations にする
+      - id: PV-SLIDE-LINT-03
+        pattern: event
+        statement: 違反が無いデッキを渡すと、exitCode 0・data.event が slide.lint.done の成功の応答を返す
+      - id: PV-SLIDE-LINT-04
+        pattern: ubiquitous
+        statement: 常に、ファイルを書き換えない
+      - id: PV-SLIDE-LINT-05
+        pattern: unwanted
+        statement: もし dir が talk-dir でないなら、lint を起動せず not-talk-dir の失敗を返す
+      - id: PV-SLIDE-LINT-06
+        pattern: unwanted
+        statement: もし talk-dir がテーマを参照していないなら、lint を起動せず theme-none の失敗を返す
+  PV-SLIDE-PAGE:
+    constraints: []
+    details:
+      - Writes a skeleton page for one layout to pages/<file>.md of the talk-dir and returns its path in artifacts.
+      - Returns the specification of the layout in data.reference and the common specifications it includes in data.includes.
+      - "The page is not registered in slides.md; the caller adds the src: entry."
+      - An unknown layout fails and returns data.categories and data.layouts so the caller can choose a name.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: invalid-file-name
+        when: file is empty, contains a path separator, or contains a character that a page name cannot use (exitCode 1).
+      - kind: numeric-filename-prefix
+        when: file starts with a digit (exitCode 1).
+      - kind: unknown-layout
+        when: layout is not in the theme of the talk-dir (exitCode 1); data.categories and data.layouts list the choices.
+      - kind: skeleton-unavailable
+        when: The reference yaml of the layout is missing or has no usable skeleton (exitCode 1).
+      - kind: reference-read-failed
+        when: The reference yaml could not be read (exitCode 1).
+      - kind: broken-reference
+        when: A common specification that the reference yaml includes is missing (exitCode 1).
+      - kind: file-exists
+        when: pages/<file>.md already exists and force is false (exitCode 1).
+      - kind: write-failed
+        when: The page could not be written (exitCode 1).
+      - kind: theme-none
+        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+      - kind: theme-unlinked
+        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+      - kind: theme-invalid-shape
+        when: The theme declaration does not have the expected shape (exitCode 1).
+      - kind: theme-unknown-rule
+        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: default
+    effects:
+      - target: file
+        kind: read
+        what: Reads the theme declaration and the reference yaml of the layout.
+      - target: file
+        kind: write
+        what: Writes pages/<file>.md in dir; replaces an existing page only when force is true.
+    prerequisites:
+      - dir is a talk-dir that references a theme.
+      - The layout name is taken from data.layouts of slide_create or slide_sync.
+    idempotent: false
+    examples:
+      - run: "slide_page {\"layout\": \"cover\", \"dir\": \"/work/talk\", \"file\": \"cover\"}"
+        note: Write pages/cover.md from the cover layout.
+    default_notes: {}
+    behaviors:
+      - id: PV-SLIDE-PAGE-01
+        pattern: event
+        statement: layout・dir・file を渡して呼ぶと、pages/ に骨組みのページを書き、artifacts にそのパスを載せた成功の応答を返す
+      - id: PV-SLIDE-PAGE-02
+        pattern: event
+        statement: 呼ぶと、レイアウトの仕様を data.reference に、その共通仕様を data.includes に載せる
+      - id: PV-SLIDE-PAGE-03
+        pattern: event
+        statement: file を .md なしで渡すと、.md を補ったファイル名で書く
+      - id: PV-SLIDE-PAGE-04
+        pattern: event
+        statement: force を true にして呼ぶと、同名のページがあっても上書きする
+      - id: PV-SLIDE-PAGE-05
+        pattern: unwanted
+        statement: もし同名のページがあり force が false なら、何も書かず file-exists の失敗を返す
+      - id: PV-SLIDE-PAGE-06
+        pattern: unwanted
+        statement: もし layout がテーマに無いなら、何も書かず unknown-layout の失敗を返し、data.categories と data.layouts を載せる
+      - id: PV-SLIDE-PAGE-07
+        pattern: unwanted
+        statement: もし file が数字で始まるなら、何も書かず numeric-filename-prefix の失敗を返す
+      - id: PV-SLIDE-PAGE-08
+        pattern: unwanted
+        statement: もし file にパス区切りが含まれるなら、何も書かず invalid-file-name の失敗を返す
+      - id: PV-SLIDE-PAGE-09
+        pattern: ubiquitous
+        statement: 常に、slides.md を書き換えない
+  PV-SLIDE-SYNC:
+    constraints:
+      - conflicts:
+          - theme
+          - node_modules_only
+    details:
+      - Brings an existing talk-dir in line with the plugin and returns its directory in artifacts.
+      - "A pre-migration talk-dir (one that holds a copy of the template) is moved to a form that references theme: the files from the template are deleted and the work area (slides.md, pages/*.md, public/slides/) is kept; the deleted names are in data.migration.removed."
+      - A migrated talk-dir fetches the theme at the version in the dependency of package.json, relinks node_modules and aligns vite.config.ts and start.mjs with the plugin; other files are not changed.
+      - "To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling."
+      - Returns data.categories, data.layouts and the lint result of the whole deck after the sync.
+      - A running slide_dev has to be stopped with stop true and started again.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: runtime-dependencies-not-installed
+        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+      - kind: invalid-option
+        when: "The file: path of theme is relative or cannot be converted (exitCode 2)."
+      - kind: dir-not-found
+        when: dir does not exist (exitCode 1).
+      - kind: not-a-directory
+        when: dir is not a directory (exitCode 1).
+      - kind: not-talk-dir
+        when: dir has no slides.md, so it is not a talk-dir (exitCode 1).
+      - kind: theme-required
+        when: dir is a pre-migration talk-dir and theme is not given (exitCode 2).
+      - kind: theme-with-node-modules-only
+        when: theme and node_modules_only are given together (exitCode 2).
+      - kind: theme-root
+        when: "The directory of a file: theme is not a theme root (exitCode 1)."
+      - kind: theme-name-mismatch
+        when: The key of the theme in dependencies does not match the name of the theme (exitCode 1).
+      - kind: migrate-failed
+        when: Moving the pre-migration talk-dir to the theme form failed (exitCode 1).
+      - kind: symlink-failed
+        when: Linking node_modules failed (exitCode 1).
+      - kind: theme-tag-required
+        when: "The git URL of theme has no #<tag> (exitCode 2)."
+      - kind: theme-tag-format
+        when: The tag of theme is not in the accepted format (exitCode 2).
+      - kind: theme-semver-range
+        when: The tag of theme is a version range (exitCode 2).
+      - kind: theme-unsupported-spec
+        when: "theme is neither a git+https URL nor a file: path (exitCode 2)."
+      - kind: theme-connection
+        when: The theme repository cannot be reached (exitCode 1).
+      - kind: theme-auth
+        when: The theme repository rejects the credentials (exitCode 1).
+      - kind: theme-tag
+        when: The tag of the theme does not exist in the repository (exitCode 1).
+      - kind: theme-install
+        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+      - kind: theme-unknown
+        when: Fetching the theme failed for another reason (exitCode 1).
+      - kind: theme-unlinked
+        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: default
+    effects:
+      - target: file
+        kind: destructive
+        what: Deletes the files that came from the template when migrating a pre-migration talk-dir; the work area is kept.
+      - target: file
+        kind: write
+        what: Rewrites package.json, slides.md, vite.config.ts, start.mjs and the node_modules links of dir; stores a fetched theme under <data-dir>/themes.
+      - target: process
+        kind: write
+        what: Runs git and pnpm to fetch the theme from the network when it is not yet fetched.
+      - target: process
+        kind: read
+        what: Runs eslint over the deck for data.lint.
+    prerequisites:
+      - The runtime dependencies are installed; call setup otherwise.
+      - A running slide_dev of dir is stopped.
+    idempotent: true
+    examples:
+      - run: "slide_sync {\"dir\": \"/work/talk\", \"theme\": \"git+https://github.com/example/slidev-theme.git#v1.0.0\"}"
+        note: Move a pre-migration talk-dir to a theme reference.
+      - run: "slide_sync {\"dir\": \"/work/talk\", \"node_modules_only\": true}"
+        note: Relink node_modules only.
+    default_notes: {}
+    behaviors:
+      - id: PV-SLIDE-SYNC-01
+        pattern: event
+        statement: 移行前の talk-dir に theme を渡して呼ぶと、テンプレート由来のファイルを消してテーマを参照する形へ移し、消した名前を data.migration.removed に載せる
+      - id: PV-SLIDE-SYNC-02
+        pattern: event
+        statement: 移行前の talk-dir を移すと、slides.md・pages/*.md・public/slides/ を残す
+      - id: PV-SLIDE-SYNC-03
+        pattern: event
+        statement: 移行済みの talk-dir を渡して呼ぶと、package.json の依存の版でテーマを取得し、node_modules を張り直す
+      - id: PV-SLIDE-SYNC-04
+        pattern: event
+        statement: 移行済みの talk-dir を渡して呼ぶと、vite.config.ts と start.mjs をプラグインの今の内容にそろえる
+      - id: PV-SLIDE-SYNC-05
+        pattern: event
+        statement: node_modules_only を true にして呼ぶと、node_modules の張り直しと生成ファイルのそろえだけを行う
+      - id: PV-SLIDE-SYNC-06
+        pattern: event
+        statement: 呼ぶと、同期の後のデッキ全体の lint の結果を data.lint に載せる
+      - id: PV-SLIDE-SYNC-07
+        pattern: unwanted
+        statement: もし移行前の talk-dir に theme を渡さないなら、何も変えず theme-required・exitCode 2 の失敗を返す
+      - id: PV-SLIDE-SYNC-08
+        pattern: unwanted
+        statement: もし theme と node_modules_only を同時に渡したなら、何も変えず theme-with-node-modules-only・exitCode 2 の失敗を返す
+      - id: PV-SLIDE-SYNC-09
+        pattern: unwanted
+        statement: もし実行時依存が未導入なら、何も変えず runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+  PV-SLIDE-THEME:
+    constraints: []
+    details:
+      - "Returns the theme that a talk-dir references: its name, spec and root in data.theme, and the declaration in data.declaration."
+      - The declaration covers fonts, font sizes, PPTX fonts, link colors and lint rules.
+      - Also returns the selectable layouts in data.layouts, the presentation categories in data.categories, the lint settings in data.lint and the warnings in data.warnings.
+      - Skills use it to read the theme values.
+    stdin: none
+    output:
+      format: json
+      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      schema:
+        additionalProperties: false
+        properties:
+          artifacts:
+            description: Absolute paths of files and directories created or updated
+            items:
+              type: string
+            type: array
+          data:
+            additionalProperties: {}
+            description: Object with the details of the run
+            propertyNames:
+              type: string
+            type: object
+          exitCode:
+            description: Exit code (0 = success)
+            type: number
+          message:
+            description: One-line summary for the calling agent
+            type: string
+          ok:
+            description: Whether the tool completed its intended run
+            type: boolean
+          stderr:
+            description: Captured stderr (omitted when nothing was captured)
+            type: string
+          stdout:
+            description: Captured stdout (omitted when nothing was captured)
+            type: string
+        required:
+          - ok
+          - exitCode
+          - artifacts
+          - data
+          - message
+        type: object
+    diagnostics: default
+    environment: []
+    exit_status:
+      - kind: invalid-path
+        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+      - kind: theme-none
+        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+      - kind: theme-unlinked
+        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+      - kind: theme-invalid-shape
+        when: The theme declaration does not have the expected shape (exitCode 1).
+      - kind: theme-unknown-rule
+        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+      - kind: unknown
+        when: The run failed for a reason the tool does not classify (exitCode 1).
+    on_error: default
+    effects:
+      - target: file
+        kind: read
+        what: Reads package.json, slides.md and the linked theme of dir.
+    prerequisites:
+      - dir is a talk-dir that references a theme and has the theme linked in node_modules.
+    idempotent: true
+    examples:
+      - run: "slide_theme {\"dir\": \"/work/talk\"}"
+        note: Get the fonts, font sizes and layouts of the theme.
+    default_notes: {}
+    behaviors:
+      - id: PV-SLIDE-THEME-01
+        pattern: event
+        statement: dir を渡して呼ぶと、参照するテーマの名前・宣言・レイアウト・カテゴリを data に載せた成功の応答を返す
+      - id: PV-SLIDE-THEME-02
+        pattern: ubiquitous
+        statement: 常に、ファイルを書き換えず、テーマを取得しない
+      - id: PV-SLIDE-THEME-03
+        pattern: unwanted
+        statement: もし talk-dir がテーマを参照していないなら、theme-none の失敗を返す
+      - id: PV-SLIDE-THEME-04
+        pattern: unwanted
+        statement: もしテーマが node_modules に張られていないなら、theme-unlinked の失敗を返し、slide_sync の呼び出しを message に案内する
+      - id: PV-SLIDE-THEME-05
+        pattern: unwanted
+        statement: もしテーマの宣言が決まった形でないなら、theme-invalid-shape の失敗を返す
+common_behaviors:
+  - id: PV-COMMON-01
+    pattern: unwanted
+    statement: もし inputSchema が宣言した型・範囲・列挙・必須に反する入力を渡したなら、ツールを実行せず入力検証エラーを返し、structuredContent を返さない
+  - id: PV-COMMON-02
+    pattern: event
+    statement: 最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行する
+  - id: PV-COMMON-03
+    pattern: unwanted
+    statement: もしパスを渡す入力が相対パスなら、処理を始めず ok が false・exitCode 2 の失敗を返し、渡した値を data.invalidPaths に載せる
+  - id: PV-COMMON-04
+    pattern: event
+    statement: Windows 形式のパスを渡すと、/mnt/<ドライブ>/ の下か WSL 内の絶対パスに変換して処理する
+  - id: PV-COMMON-05
+    pattern: unwanted
+    statement: もし Windows 形式のパスを POSIX の絶対パスに変換できないなら、処理を始めず ok が false・exitCode 2 の失敗を返す
+  - id: PV-COMMON-06
+    pattern: ubiquitous
+    statement: 常に、応答の structuredContent と同じ内容の JSON を content のテキストにも載せる
+  - id: PV-COMMON-07
+    pattern: unwanted
+    statement: もし ok が false なら、応答の isError を真にする
+  - id: PV-COMMON-08
+    pattern: event
+    statement: 呼び出しが同時に届くと、1 件ずつ到着順に実行する
+  - id: PV-COMMON-09
+    pattern: event
+    statement: progressToken を付けて呼ぶと、キューでの待機中と実行中の 10 秒ごとに progress 通知を送る
+  - id: PV-COMMON-10
+    pattern: unwanted
+    statement: もしクライアントが呼び出しを取り消したなら、取り消した呼び出しへの progress 通知を止める
+  - id: PV-COMMON-11
+    pattern: unwanted
+    statement: もし捕捉した stdout または stderr が 64 KiB を超えたなら、先頭を捨てて末尾の 64 KiB を残し、先頭に切り詰めを示す行を付ける
+  - id: PV-COMMON-12
+    pattern: event
+    statement: 呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応える
+  - id: PV-COMMON-13
+    pattern: unwanted
+    statement: もし公開していないツール名で呼ばれたなら、JSON-RPC エラー -32602 を返す
+  - id: PV-COMMON-14
+    pattern: unwanted
+    statement: もしハンドラの中で捕捉されない例外が起きたなら、その呼び出しだけを失敗させ、サーバは次の呼び出しを受け付ける
