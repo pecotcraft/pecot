@@ -763,6 +763,76 @@ describe('removeWorktree', () => {
     })).toBe('worktree not found: nope')
   })
 
+  it('記録した名前を渡すと、機能ブランチに移した --path の worktree と wt1 ブランチを消す', () => {
+    const { repository, elsewhere } = addElsewhere()
+    gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
+    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(existsSync(elsewhere)).toBe(false)
+    expect(gitForTest(repository, ['branch', '--list', 'wt1'])).toBe('')
+    expect(gitForTest(repository, ['branch', '--list', 'feature/x']).trim()).toBe('feature/x')
+  })
+
+  it('記録の無い <root>/<name>/<repo> の worktree は、機能ブランチに移していても置き場所で見つけて消す', () => {
+    const { repository, root, worktree } = projectWithWorktree()
+    gitForTest(worktree, ['switch', '-q', '-c', 'feature/x'])
+    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(existsSync(worktree)).toBe(false)
+    expect(existsSync(path.join(root, 'wt1'))).toBe(false)
+    expect(gitForTest(repository, ['branch', '--list', 'wt1'])).toBe('')
+    expect(gitForTest(repository, ['branch', '--list', 'feature/x']).trim()).toBe('feature/x')
+  })
+
+  // 一覧の並びは git の管理ディレクトリの読み順で決まるので、どちらを先に作っても記録の方を消すことを確かめる
+  it.for([{ order: '記録の worktree を先に作る', isHolderFirst: false }, { order: 'ブランチ wt1 の worktree を先に作る', isHolderFirst: true }])('$order と、記録が wt1 の worktree を消し、ブランチ wt1 の別の worktree を残す', ({ isHolderFirst }) => {
+    const { repository, root } = createProject()
+    const holder = path.join(makeTemporaryDirectory(), 'holder', 'myrepo')
+    if (isHolderFirst) gitForTest(repository, ['worktree', 'add', '-q', '-b', 'tmp', holder])
+    const recorded = path.join(makeTemporaryDirectory(), 'elsewhere', 'myrepo')
+    expect(createWorktree(repository, ignoredDiagnostics, { path: recorded, shouldCopy: false, shouldLink: false }).name).toBe('wt1')
+    if (!isHolderFirst) gitForTest(repository, ['worktree', 'add', '-q', '-b', 'tmp', holder])
+    gitForTest(recorded, ['switch', '-q', '-c', 'feature/x'])
+    gitForTest(holder, ['switch', '-q', 'wt1'])
+    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(existsSync(recorded)).toBe(false)
+    expect(existsSync(holder)).toBe(true)
+    expect(existsSync(root)).toBe(true)
+  })
+
+  it('detached HEAD の worktree も記録した名前で消す', () => {
+    const { repository, elsewhere } = addElsewhere()
+    gitForTest(elsewhere, ['switch', '-q', '--detach'])
+    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(existsSync(elsewhere)).toBe(false)
+  })
+
+  it('別の worktree のディレクトリが消えていても、wt1 を消せる', () => {
+    const { repository, elsewhere } = addElsewhere()
+    const other = path.join(makeTemporaryDirectory(), 'other', 'myrepo')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'other', other])
+    rmSync(other, { recursive: true })
+    removeWorktree(repository, 'wt1', ignoredDiagnostics)
+    expect(existsSync(elsewhere)).toBe(false)
+  })
+
+  it('base とメインのブランチ名は worktree not found になり、メインの worktree が残る', () => {
+    const { repository } = projectWithWorktree()
+    for (const name of ['base', 'main']) {
+      expect(runtimeMessage(() => {
+        removeWorktree(repository, name, ignoredDiagnostics)
+      })).toBe(`worktree not found: ${name}`)
+    }
+    expect(existsSync(repository)).toBe(true)
+  })
+
+  it('wtN でない名前のブランチを渡すと、その worktree とブランチを消す', () => {
+    const { repository } = createProject()
+    const worktree = path.join(makeTemporaryDirectory(), 'z', 'myrepo')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'feature/z', worktree])
+    removeWorktree(repository, 'feature/z', ignoredDiagnostics)
+    expect(existsSync(worktree)).toBe(false)
+    expect(gitForTest(repository, ['branch', '--list', 'feature/z'])).toBe('')
+  })
+
   it('消した WT の中から呼ぶと、掃除の git が作業ディレクトリを失って OsError になる（Python の FileNotFoundError と同じ）', () => {
     const { worktree } = projectWithWorktree()
     expect(thrownError(() => {

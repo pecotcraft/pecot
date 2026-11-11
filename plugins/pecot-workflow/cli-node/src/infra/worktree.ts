@@ -603,14 +603,42 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, baseBra
   if (result.exitCode !== 0) throw new WorktreeRuntimeError(`failed to create the worktree: ${result.stderr}`)
 }
 
+// worktree の記録。ディレクトリが無い、toplevel が別（.git の消えた跡）なら空。GIT_* は外して読む
+function recordedNameOf(worktreePath: string): string {
+  if (!isDirectory(worktreePath)) return ''
+  const toplevel = gitToplevel({ cwd: worktreePath, stripGitEnvironment: true })
+  if (toplevel === undefined || resolveRealPath(toplevel) !== resolveRealPath(worktreePath)) return ''
+  const result = runGit(['rev-parse', '--path-format=absolute', '--git-path', WORKTREE_NAME_RECORD], { cwd: worktreePath, stripGitEnvironment: true })
+  const recordPath = pythonStrip(result.stdout)
+  return recordPath !== '' && result.exitCode === 0 ? readRecord(recordPath) : ''
+}
+
 /**
-ワークツリーを削除する。name は WT 名（ブランチ名）。
+名前から削除対象の worktree を探す（メインを除く）。記録の名前、置き場所 `<root>/<name>/<repo>`、ブランチ名の順に、段ごとに全件を見る
+*/
+function findWorktreePathByName(cwd: string, name: string): string | undefined {
+  const candidates = getWorktreeList(cwd).slice(1)
+  const recorded = candidates.find(info => recordedNameOf(info.path) === name)
+  if (recorded !== undefined) return recorded.path
+  let expected: string | undefined
+  try {
+    const repositoryName = path.basename(resolveRealPath(findMainWorktree(cwd)))
+    expected = path.join(detectProjectRoot(cwd), name, repositoryName)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof WorktreeRuntimeError)) throw error
+  }
+  const placed = expected === undefined ? undefined : candidates.find(info => resolveRealPath(info.path) === resolveRealPath(expected))
+  return placed?.path ?? candidates.find(info => info.branch === name)?.path
+}
+
+/**
+ワークツリーを削除する。name は worktree add が付けた名前（wtN）か、checkout しているブランチ名。
 WT が見つからない・削除に失敗した場合は WorktreeRuntimeError
 */
 export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): void {
   // 1. WTパスを特定
-  const listing = runGit(['worktree', 'list'], { cwd })
-  const worktreePath = outputLines(listing.stdout).map(line => parseWorktreeLine(line)).find(info => info?.branch === name)?.path
+  const worktreePath = findWorktreePathByName(cwd, name)
   if (worktreePath === undefined) throw new WorktreeRuntimeError(`worktree not found: ${name}`)
 
   // 2. git worktree remove

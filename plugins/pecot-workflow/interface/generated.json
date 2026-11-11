@@ -1876,7 +1876,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the worktree to remove (the branch name)"
+            "description": "Name of the worktree to remove (the recorded wtN, the wtN directory, or the branch name)"
           }
         },
         "required": [
