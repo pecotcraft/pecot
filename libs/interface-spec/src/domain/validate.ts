@@ -211,6 +211,11 @@ function behaviorFindings(file: string, behaviors: readonly Behavior[], scope: s
         reason: `${quote(behavior.id)} must be ${quote(`${idPrefix}-NN`)} (NN is 2 digits)`,
       })
     }
+    // 空の判定は zod の trim と同じ String.prototype.trim。
+    if (behavior.statement.trim() === '') {
+      findings.push({ file, scope: behavior.id, field: 'statement', reason: 'is empty' })
+      continue
+    }
     if (!hasJapanese(behavior.statement)) {
       findings.push({ file, scope: behavior.id, field: 'statement', reason: 'has no Japanese text (write Japanese)' })
     }

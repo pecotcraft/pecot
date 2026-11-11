@@ -17,6 +17,11 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
   ['entry-extra', [`error: ${PW}/authored.yaml: PW-ISSUE-OLD: entry is not in generated.json (remove it)`]],
   ['field-missing', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`]],
   ['field-null', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: expected string but got null`]],
+  ['field-empty', [
+    `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: details[1]: is empty`,
+    `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: is empty (write "default" if nothing remains)`,
+    `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-02: statement: is empty`,
+  ]],
   ['unknown-field', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: owner: unknown field`]],
   ['constraint-name', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: constraints[0].conflicts: unknown input name "mesage"`]],
   ['language', [
@@ -51,6 +56,18 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
 describe('validateRepository', () => {
   it.each(CASES)('fixture %s を検証すると、失敗の行を過不足なく決まった順で返す', async (name, expected) => {
     expect(await validateRepository(await materialize(name))).toEqual(expected)
+  })
+
+  it('空白だけの欄も、空として止める', async () => {
+    const root = await materialize('valid')
+    const file = path.join(root, PW, 'authored.yaml')
+    const original = await readFile(file, 'utf8')
+    const text = original.replace('    on_error: Issues created before the failing file remain on GitHub.\n', '    on_error: "  "\n')
+    expect(text).not.toBe(original)
+    await writeFile(file, text)
+    expect(await validateRepository(root)).toEqual([
+      `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: is empty (write "default" if nothing remains)`,
+    ])
   })
 
   it('実行のたびに、同じ行を同じ順で返す', async () => {

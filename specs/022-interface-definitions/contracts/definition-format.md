@@ -215,7 +215,9 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | 場合 | 行 |
 |---|---|
 | 知らない欄 | `error: <file>: PW-ISSUE-CREATE: owner: unknown field` |
-| 欄が無い | `error: <file>: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`。「使わないときの値」がある欄だけ括弧を付ける |
+| 欄が無い | `error: <file>: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`。「使わないときの値」がある欄だけ括弧を付ける。欄が空のときも同じ括弧を付ける |
+| 欄が空（空白だけも含む） | `error: <file>: PW-ISSUE-CREATE: on_error: is empty (write "default" if nothing remains)`。括弧の付かない欄は `error: <file>: PW-ISSUE-CREATE: details[1]: is empty` |
+| `statement` が空 | `error: <file>: PW-ISSUE-CREATE-02: statement: is empty`。日本語と `pattern` の確認は飛ばす |
 | 型が違う（YAML の `null` を含む） | `error: <file>: PW-ISSUE-CREATE: on_error: expected string but got null` |
 | 列挙の値が違う | `error: <file>: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")` |
 | 知らない `format` | `error: <file>: format: unknown value 2 (expected 1)` |

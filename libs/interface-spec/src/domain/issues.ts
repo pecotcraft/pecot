@@ -94,8 +94,10 @@ function isUnusedValueSite(path: readonly PathPart[], kind: FileKind): boolean {
 function reasonOf(issue: z.core.$ZodIssue, root: unknown, path: readonly PathPart[], kind: FileKind): string {
   const value = valueAt(root, path)
   const isAbsent = isMissing(root, path)
-  const hint = isAbsent && isUnusedValueSite(path, kind) ? UNUSED_VALUES[String(path.at(-1))] : undefined
-  const missingReason = hint === undefined ? 'field is missing' : `field is missing (${hint})`
+  const isEmpty = issue.code === 'too_small' && issue.origin === 'string' && issue.minimum === 1
+  const hint = (isAbsent || isEmpty) && isUnusedValueSite(path, kind) ? UNUSED_VALUES[String(path.at(-1))] : undefined
+  const withHint = (reason: string): string => hint === undefined ? reason : `${reason} (${hint})`
+  const missingReason = withHint('field is missing')
   if (issue.code === 'invalid_type') {
     return isAbsent ? missingReason : `expected ${issue.expected} but got ${describe(value)}`
   }
@@ -106,6 +108,7 @@ function reasonOf(issue: z.core.$ZodIssue, root: unknown, path: readonly PathPar
   if (issue.code === 'invalid_union' && issue.discriminator !== undefined) {
     return isAbsent ? missingReason : `unknown value ${JSON.stringify(value)} (${expectedValues(OUTPUT_FORMATS)})`
   }
+  if (isEmpty) return withHint('is empty')
   if (issue.code === 'too_small' && issue.origin === 'array') return `must have at least ${String(issue.minimum)} item(s)`
   // 数の範囲を持つ欄は exit_status[].code だけ（schema.ts の exitCodeSchema の 0〜255）。
   if ((issue.code === 'too_small' || issue.code === 'too_big') && issue.origin === 'number') return 'must be between 0 and 255'
