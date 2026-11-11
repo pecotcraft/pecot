@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.core.release import (
     PreflightResult,
@@ -73,6 +74,7 @@ class TestRunGit:
             assert result == "output"
             mock_run.assert_called_once()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-33"])
     def test_failure_raises_release_error(self) -> None:
         """コマンド失敗時にReleaseErrorを送出"""
         import subprocess
@@ -121,6 +123,7 @@ SAMPLE_CHANGELOG = """# 変更履歴
 class TestRunPreflight:
     """run_preflight()のテスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-02"])
     def test_success_with_version(self, tmp_path: Path) -> None:
         """バージョン指定での正常実行"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -168,6 +171,7 @@ class TestRunPreflight:
         assert calls[2] == ["fetch", "upstream", "main", "develop"]
         assert calls[3] == ["rev-list", "--count", "upstream/main..upstream/develop"]
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-31"])
     def test_no_difference_message_uses_remote(self, tmp_path: Path) -> None:
         """差分なしの文言も remote 名を使う"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -187,6 +191,7 @@ class TestRunPreflight:
 
         assert "no difference between upstream/main and upstream/develop" in str(exc.value)
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-01"])
     def test_success_auto_detect_version(self, tmp_path: Path) -> None:
         """バージョン自動検出での正常実行"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -205,6 +210,7 @@ class TestRunPreflight:
 
         assert result.version == "0.6.1"
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-26"])
     def test_changelog_not_found(self, tmp_path: Path) -> None:
         """CHANGELOG.mdが存在しない"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -217,6 +223,7 @@ class TestRunPreflight:
                 version="0.6.1",
             )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-28"])
     def test_malformed_version_is_release_error(self, tmp_path: Path) -> None:
         """X.Y.Z でない版は ReleaseError になる"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -231,6 +238,7 @@ class TestRunPreflight:
                 cwd=tmp_path,
             )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-29"])
     def test_tag_already_exists_locally(self, tmp_path: Path) -> None:
         """ローカルタグが既に存在する"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -248,6 +256,7 @@ class TestRunPreflight:
                     cwd=tmp_path,
                 )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-30"])
     def test_tag_already_exists_remotely(self, tmp_path: Path) -> None:
         """リモートタグが既に存在する"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -267,6 +276,7 @@ class TestRunPreflight:
                     cwd=tmp_path,
                 )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-31"])
     def test_no_diff(self, tmp_path: Path) -> None:
         """ブランチ間に差分がない"""
         changelog = tmp_path / "CHANGELOG.md"
@@ -302,6 +312,7 @@ class TestRunPreflight:
 
         assert result.tag_name == "v0.6.1"
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-03"])
     def test_tag_name_with_prefix(self, tmp_path: Path) -> None:
         """tag_prefix 指定時、tag_name は <prefix>-v<ver> 形式になる
 
@@ -328,6 +339,7 @@ class TestRunPreflight:
         second_call_args = mock_git.call_args_list[1][0][0]
         assert "refs/tags/pecot-workflow-v0.6.1" in second_call_args
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-32"])
     def test_version_not_in_changelog(self, tmp_path: Path) -> None:
         """指定バージョンがCHANGELOGに存在しない"""
         changelog = tmp_path / "CHANGELOG.md"

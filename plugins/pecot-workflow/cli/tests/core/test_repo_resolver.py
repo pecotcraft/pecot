@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.core.repo_resolver import (
     AmbiguousRepoError,
@@ -215,6 +216,7 @@ class TestDetectCurrentGitRepo:
         assert remote == "origin"
         assert ref.repo == "origin-repo"
 
+    @add_test_properties(verifies=["PW-COMMON-08"])
     def test_upstream_only_fallback(self) -> None:
         fake = _fake_git_factory(
             remotes=["upstream"],

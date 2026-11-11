@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.repo_resolver import RepoRef
@@ -40,6 +41,7 @@ WARN_MSG_SUBSTR = (
 class TestReleasePreflightWarn:
     """FR-009b: release preflight 不一致で警告 + 続行。"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-08"])
     def test_warn_emitted_on_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -60,6 +62,7 @@ class TestReleasePreflightWarn:
 
 
 class TestReleaseCreateWarn:
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-07"])
     def test_warn_emitted_on_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -78,6 +81,7 @@ class TestReleaseCreateWarn:
 
 
 class TestReleaseMergeReject:
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-11", "PW-RELEASE-MERGE-12"])
     def test_rejected_on_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(

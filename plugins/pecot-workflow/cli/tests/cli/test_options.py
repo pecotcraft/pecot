@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import pytest
 import typer
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.options import (
     RepoOption,
@@ -26,6 +27,7 @@ class TestValidateRepoOption:
     def test_valid_formats_pass_through(self, value: str) -> None:
         assert _validate_repo_option(value) == value
 
+    @add_test_properties(verifies=["PW-COMMON-10"])
     @pytest.mark.parametrize(
         "value",
         ["", "ownerrepo", "owner/repo/extra", "owner with space/repo", "owner/"],

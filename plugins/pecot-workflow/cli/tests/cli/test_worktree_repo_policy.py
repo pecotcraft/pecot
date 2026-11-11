@@ -12,6 +12,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.repo_resolver import RepoRef
@@ -99,6 +100,7 @@ class TestWorktreeMismatchReject:
 class TestBranchMismatchReject:
     """FR-009a: create-branch / delete-branch は不一致で exit 1。"""
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-25"])
     def test_create_branch_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -118,6 +120,7 @@ class TestBranchMismatchReject:
             "  this command works only on the repository of the current Git remote\n"
         ) == result.stderr
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-16"])
     def test_delete_branch_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(

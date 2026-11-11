@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.core.github import GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError
 from cli.core.security_alerts import (
@@ -210,6 +211,7 @@ class TestPlanTracker:
             ("secret-scanning", 1),
         ]
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-04"])
     def test_max_priority_is_the_maximum_of_all_rows(self) -> None:
         entries = [
             _e("dependabot", 1, priority="low"),
@@ -280,6 +282,7 @@ class TestTrackerBody:
         for line in body.split("\n"):
             assert line == "" or line.startswith(("<!--", "## ", "|"))
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-16"])
     def test_code_scanning_row_has_masked_title_and_priority(self) -> None:
         body = self._render([_e("code-scanning", 4, priority="low")])
 
@@ -287,11 +290,13 @@ class TestTrackerBody:
         assert body.count("| low |") == 1
         assert parse_tracker_entries(body) == [_e("code-scanning", 4, priority="low")]
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-16"])
     def test_secret_scanning_title_is_masked(self) -> None:
         body = self._render([_e("secret-scanning", 5, priority="high")])
 
         assert "| <!-- pecot-alert: secret-scanning/5 priority=high --> masked | [#5](" in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-07", "PW-SECURITY-SYNC-14"])
     def test_empty_kinds_show_none(self) -> None:
         body = self._render([])
 
@@ -300,6 +305,7 @@ class TestTrackerBody:
         assert "|" not in body
         assert parse_tracker_entries(body) == []
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-17"])
     def test_disabled_kind_is_a_heading_only(self) -> None:
         body = render_tracker_body(
             [_e("dependabot", 1)], H, OWNER, R, disabled_kinds={"code-scanning"}
@@ -403,6 +409,7 @@ class TestTrackerBody:
         assert again == first
         assert "Glob \\| x" in again
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-31"])
     def test_failed_kind_without_old_rows_is_unavailable(self) -> None:
         plan = plan_tracker({}, [], failed_kinds={"code-scanning"})
         body = self._render(plan.entries, failed_kinds={"code-scanning"})
@@ -580,6 +587,7 @@ class TestFindTracker:
     def test_closed_tracker_is_ignored(self) -> None:
         assert find_tracker([self._issue(1, "closed")]) == (None, [])
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-21"])
     def test_picks_smallest_open_number_and_reports_others(self) -> None:
         found, others = find_tracker([self._issue(9), self._issue(4), self._issue(6, "closed")])
 
@@ -611,6 +619,7 @@ class TestListOpenAlerts:
         client = self._dep(_err(403, "Dependabot alerts are disabled"), enabled=False)
         assert list_open_alerts(client, "dependabot", OWNER, R) is None
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-35"])
     def test_dependabot_forbidden_but_enabled_is_error(self) -> None:
         client = self._dep(_err(403, "Resource not accessible"), enabled=True)
         with pytest.raises(SecurityAlertError, match="permission may be missing"):
@@ -665,6 +674,7 @@ class TestScanStatus:
         with pytest.raises(SecurityAlertError):
             fetch_code_scanning_status(self._cs(err), H, OWNER, R)
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-19"])
     def test_code_scanning_no_analysis_is_zero(self) -> None:
         status = fetch_code_scanning_status(
             self._cs(_err(404, "no analysis found", GitHubNotFoundError)), H, OWNER, R
@@ -682,6 +692,7 @@ class TestScanStatus:
     def test_secret_scanning_404_with_disabled_status_is_disabled(self) -> None:
         assert fetch_secret_scanning_status(self._ss404("disabled"), H, OWNER, R).enabled is False
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-36"])
     @pytest.mark.parametrize("repo_status", [None, "enabled"])
     def test_secret_scanning_404_without_disabled_is_error(self, repo_status: str | None) -> None:
         """permission may be missing（状態が読めない）・有効なのに 404 は、無効としない"""

@@ -21,6 +21,7 @@ import pytest
 import typer
 from typer.core import TyperCommand
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands._repo_policy import require_repo_match
 from cli.core.repo_resolver import RepoRef, ResolvedRepo, ResolveSource
@@ -50,6 +51,7 @@ class TestPolicyResolvedRepoPopulation:
     decorator が 3 パスそれぞれで、``ctx.obj["_policy_resolved_repo"]`` に ``RepoRef`` を populate する。
     """
 
+    @add_test_properties(verifies=["PW-COMMON-06"])
     def test_warn_explicit_no_current_git_populates(self) -> None:
         """Git 外 / remote 不在パスでも populate される。"""
         captured: dict[str, Any] = {}

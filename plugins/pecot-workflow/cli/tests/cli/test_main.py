@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli import __version__
 from cli.commands.main import app
@@ -24,12 +25,14 @@ runner = CliRunner()
 class TestVersionCommand:
     """バージョン表示のテスト"""
 
+    @add_test_properties(verifies=["PW-COMMON-03", "PW-COMMON-04"])
     def test_version_flag(self) -> None:
         """--version フラグでバージョン表示"""
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
         assert __version__ in result.stdout
 
+    @add_test_properties(verifies=["PW-COMMON-03", "PW-COMMON-04"])
     def test_version_short_flag(self) -> None:
         """-v フラグでバージョン表示"""
         result = runner.invoke(app, ["-v"])
@@ -43,6 +46,7 @@ class TestVersionCommand:
 class TestHelpCommand:
     """ヘルプ表示のテスト"""
 
+    @add_test_properties(verifies=["PW-COMMON-01", "PW-COMMON-02"])
     def test_help_flag(self) -> None:
         """--help フラグでヘルプ表示"""
         result = runner.invoke(app, ["--help"])
@@ -63,6 +67,7 @@ class TestHelpCommand:
 class TestApiUrlOverrideGuard:
     """不正な PECOT_GITHUB_API_URL では、サブコマンドの前に止まる"""
 
+    @add_test_properties(verifies=["PW-COMMON-12", "PW-COMMON-13"])
     def test_invalid_value_stops_with_exit_1(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PECOT_GITHUB_API_URL", "https://example.com")
         result = runner.invoke(app, ["session", "status"])
@@ -87,6 +92,7 @@ class TestApiUrlOverrideGuard:
 
 
 class TestPecotErrorNet:
+    @add_test_properties(verifies=["PW-COMMON-14", "PW-COMMON-16", "PW-COMMON-17"])
     def test_project_root_not_found_is_error_line(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
@@ -102,6 +108,7 @@ class TestPecotErrorNet:
         assert "error: project root not found: test" in result.stderr.splitlines()
         assert "Traceback" not in result.output + result.stderr
 
+    @add_test_properties(verifies=["PW-COMMON-16"])
     def test_missing_token_is_error_line(self, tmp_path: Path) -> None:
         from cli.core.github import GitHubAuthError
         from cli.core.github.client import GitHubClientBase

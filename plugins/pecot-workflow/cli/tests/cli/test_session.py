@@ -155,6 +155,7 @@ class TestFlagStatusCommand:
         assert "| .pecot-active | set | acme-labs/ai-engineer-starter-kit/867 |" in result.output
         assert ".plan-post-pending" not in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-01", "PW-SESSION-STATUS-16"])
     def test_data_goes_to_stdout_and_warning_to_stderr(self, tmp_path: Path) -> None:
         """Markdown は stdout に 1 回、Issue を読めない warning は stderr に出る"""
         with (
@@ -183,6 +184,7 @@ class TestFlagStatusCommand:
         )
         assert result.stderr == "warning: cannot read the active Issue: no active project\n"
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-07", "PW-SESSION-STATUS-08"])
     def test_unknown_branch(self, tmp_path: Path) -> None:
         """ブランチ不明時は unknown と表示"""
         with (
@@ -199,6 +201,7 @@ class TestFlagStatusCommand:
         assert "- Branch: unknown" in result.output
         assert "- Inferred Issue: none" in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-09", "PW-SESSION-STATUS-10"])
     def test_unknown_repo(self, tmp_path: Path) -> None:
         """リポジトリ不明時は unknown と表示"""
         with (
@@ -215,6 +218,7 @@ class TestFlagStatusCommand:
         assert "- Repository: unknown" in result.output
         assert "- Inferred Issue: #123" in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-04"])
     def test_no_flags(self, tmp_path: Path) -> None:
         """フラグなし環境でも正常終了"""
         with (
@@ -236,6 +240,7 @@ class TestFlagStatusCommand:
         assert "| .pecot-active | unset |  |" in result.output
         assert ".plan-post-pending" not in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-11", "PW-SESSION-STATUS-12"])
     def test_branch_without_issue_number(self, tmp_path: Path) -> None:
         """Issue番号がないブランチの場合 none と表示"""
         with (
@@ -254,6 +259,7 @@ class TestFlagStatusCommand:
         assert result.exit_code == 0
         assert "- Inferred Issue: none" in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-01"])
     def test_upstream_only_repo_shows_repository(self, tmp_path: Path) -> None:
         """origin が無く upstream だけのリポでは、最初の remote のリポを Repository に出す"""
         repo = _init_upstream_only_repo(tmp_path)
@@ -273,6 +279,7 @@ class TestFlagStatusCommand:
 class TestShowActiveIssue:
     """_active_issue_lines のテスト"""
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-05", "PW-SESSION-STATUS-06"])
     def test_issue_info_displayed(self, capsys: object) -> None:
         """正常系: .pecot-activeにIssue参照があり、API成功 → タイトル・状態が表示"""
         from unittest.mock import MagicMock
@@ -306,6 +313,7 @@ class TestShowActiveIssue:
         assert "テスト用の本文です" in text
         mock_client.get_issue_slim.assert_called_once_with("owner", "repo", 42, comment_limit=0)
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-17", "PW-SESSION-STATUS-18"])
     def test_api_failure_shows_warning(self, capsys: object) -> None:
         """API失敗時: 警告メッセージが表示される"""
         from unittest.mock import MagicMock
@@ -346,6 +354,7 @@ class TestShowActiveIssue:
         captured = capsys.readouterr()  # type: ignore[union-attr]
         assert captured.out == ""
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-15", "PW-SESSION-STATUS-16"])
     def test_no_active_config_shows_warning(self, capsys: object) -> None:
         """設定なし: 警告メッセージが表示される"""
         from cli.commands.session import FlagStatus
@@ -362,6 +371,7 @@ class TestShowActiveIssue:
         assert lines == []
         assert captured.out == ""
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-13", "PW-SESSION-STATUS-14"])
     def test_invalid_issue_ref_no_output(self, capsys: object) -> None:
         """不正なIssue参照: 何も表示しない"""
         from cli.commands.session import FlagStatus
@@ -385,6 +395,7 @@ class TestShowActiveIssue:
 class TestFlagRestoreCommand:
     """flag_restore コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-02"])
     def test_restore_upstream_only_repo_records_work_target(self, tmp_path: Path) -> None:
         """origin が無く upstream だけのリポでも、最初の remote のリポで作業対象を記録する"""
         repo = _init_upstream_only_repo(tmp_path, branch="feat/x/309")
@@ -398,6 +409,7 @@ class TestFlagRestoreCommand:
         assert "set: work target acme/demo/309" in result.output
         mock_write.assert_called_once_with("acme/demo/309", "")
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-02"])
     def test_restore_auto_detect(self, tmp_path: Path) -> None:
         """ブランチ名から自動推定して復元成功"""
         with (
@@ -420,6 +432,7 @@ class TestFlagRestoreCommand:
         # アクティブ設定が無いときはタイトル無しで記録する（復元は止めない）
         mock_write.assert_called_once_with("acme-labs/ai-engineer-starter-kit/870", "")
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-05"])
     def test_restore_records_session_title_from_issue(self, tmp_path: Path) -> None:
         """設定があれば Issue タイトルを取ってセッション名の材料として渡す"""
         mock_config = MagicMock()
@@ -439,6 +452,7 @@ class TestFlagRestoreCommand:
         mock_client.get_issue_slim.assert_called_once_with("owner", "repo", 123, comment_limit=0)
         mock_write.assert_called_once_with("owner/repo/123", "[Task] 復元テスト")
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-09", "PW-SESSION-RESTORE-10"])
     def test_restore_continues_when_title_fetch_fails(self, tmp_path: Path) -> None:
         """タイトル取得の API 失敗は復元を止めない（タイトル無しで記録）"""
         from cli.core.github import GitHubAPIError
@@ -459,6 +473,7 @@ class TestFlagRestoreCommand:
         assert result.exit_code == 0
         mock_write.assert_called_once_with("owner/repo/123", "")
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-20", "PW-SESSION-RESTORE-21"])
     def test_restore_stops_when_config_is_broken(self, tmp_path: Path) -> None:
         """設定ファイルが不正で ConfigError になったら error: の行で止まる（記録しない）"""
         from cli.core.config import ConfigError
@@ -485,6 +500,9 @@ class TestFlagRestoreCommand:
         (projects / "broken.json").write_text(content)
         (projects / ".active").write_text("broken.json\n")
 
+    @add_test_properties(
+        verifies=["PW-COMMON-15", "PW-SESSION-RESTORE-20", "PW-SESSION-RESTORE-21"]
+    )
     @pytest.mark.parametrize("content", ["not json", '{"host":"github.com"}'])
     def test_restore_real_broken_config_exits_1(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, content: str
@@ -502,6 +520,9 @@ class TestFlagRestoreCommand:
         assert "Traceback" not in result.output
         assert not (tmp_path / ".pecot" / "state" / ".pecot-active").exists()
 
+    @add_test_properties(
+        verifies=["PW-SESSION-RESTORE-01", "PW-SESSION-RESTORE-03", "PW-SESSION-RESTORE-08"]
+    )
     def test_restore_manual_issue(self, tmp_path: Path) -> None:
         """--issue owner/repo/123 で手動指定成功"""
         with (
@@ -524,6 +545,7 @@ class TestFlagRestoreCommand:
         assert "set: work target owner/repo/123" in result.output
         mock_write.assert_called_once_with("owner/repo/123", "")
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-15", "PW-SESSION-RESTORE-16"])
     def test_restore_branch_without_issue(self, tmp_path: Path) -> None:
         """Issue番号なしブランチでエラー + HINTメッセージ"""
         with (
@@ -540,6 +562,7 @@ class TestFlagRestoreCommand:
             "  run: pecot session restore --issue <owner/repo/N>\n"
         ) in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-14"])
     def test_restore_branch_not_found(self, tmp_path: Path) -> None:
         """ブランチ取得失敗でエラー"""
         with patch("cli.commands.session.git_current_branch", return_value=None):
@@ -548,6 +571,7 @@ class TestFlagRestoreCommand:
         assert result.exit_code == 1
         assert "error: cannot read the branch name" in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-17"])
     def test_restore_repo_not_found(self, tmp_path: Path) -> None:
         """リポジトリ情報取得失敗でエラー"""
         with (
@@ -565,6 +589,7 @@ class TestFlagRestoreCommand:
         assert result.exit_code == 1
         assert "error: cannot read the repository information" in result.output
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-11"])
     def test_restore_invalid_issue_ref(self, tmp_path: Path) -> None:
         """不正な --issue 形式でエラー"""
         result = runner.invoke(
@@ -580,6 +605,7 @@ class TestFlagRestoreCommand:
 class TestStatusWithBrokenConfig:
     """session status: 不正な設定は warning の行を出して表を出し、終了コード 0"""
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-21", "PW-SESSION-STATUS-22"])
     def test_warns_and_exits_0(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         TestFlagRestoreCommand._write_active_config(tmp_path, '{"host":"github.com"}')
         state = tmp_path / ".pecot" / "state"

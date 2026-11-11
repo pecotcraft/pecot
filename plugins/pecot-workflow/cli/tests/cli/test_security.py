@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import typer.testing
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.github import GitHubAPIError, GitHubAuthError, GitHubNotFoundError
@@ -97,6 +98,14 @@ def _tracker(number: int, body: str, state: str = "open") -> dict[str, Any]:
 
 
 class TestSync:
+    @add_test_properties(
+        verifies=[
+            "PW-SECURITY-SYNC-01",
+            "PW-SECURITY-SYNC-02",
+            "PW-SECURITY-SYNC-03",
+            "PW-SECURITY-SYNC-04",
+        ]
+    )
     def test_creates_one_tracker_and_puts_it_on_backlog(self) -> None:
         config = _config()
         config.get_field_id.side_effect = lambda name: f"F_{name}"
@@ -144,6 +153,7 @@ class TestSync:
         assert "pecot-alert: dependabot/2 " in body
         assert "例外" not in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-05"])
     def test_no_open_alerts_creates_nothing(self) -> None:
         client = _client()
         result = _invoke(client, ["sync", "--dry-run"])
@@ -167,6 +177,7 @@ class TestSync:
         assert "state=" not in body
         assert "SECURITY.md" not in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-05", "PW-SECURITY-SYNC-06"])
     def test_no_alerts_no_tracker(self) -> None:
         client = _client()
         result = _invoke(client, ["sync"])
@@ -176,6 +187,7 @@ class TestSync:
         assert result.stderr == "skipped: Tracker creation\n"
         client.create_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-07", "PW-SECURITY-SYNC-08"])
     def test_existing_tracker_is_patched_without_new_issue(self) -> None:
         client = _client(
             dependabot=[_dep(1), _dep(2)],
@@ -192,6 +204,7 @@ class TestSync:
         assert result.stdout == ""
         assert result.stderr == "added: dependabot #2 to Tracker #5\n"
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-12", "PW-SECURITY-SYNC-13"])
     def test_same_body_is_not_patched(self) -> None:
         entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
         client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body(entry))])
@@ -202,6 +215,7 @@ class TestSync:
         assert result.stdout == ""
         assert result.stderr == "unchanged: Tracker #5\n"
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-12"])
     def test_crlf_body_counts_as_the_same(self) -> None:
         entry = _row("dependabot", 1, priority="medium", package="pkg", ghsa="GHSA-aaaa-bbbb-cccc")
         body = _body(entry).replace("\n", "\r\n")
@@ -211,6 +225,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         client.update_issue_body.assert_not_called()
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-09"])
     def test_row_leaving_the_list_is_removed(self) -> None:
         client = _client(
             dependabot=[_dep(1)],
@@ -243,6 +258,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         assert result.stderr == "dry-run: would update Tracker #5 body\n"
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-10", "PW-SECURITY-SYNC-11"])
     def test_body_only_change_prints_one_result_line(self) -> None:
         old_row = (
             "| <!-- pecot-alert: dependabot/1 state=open priority=medium pkg=pkg"
@@ -258,6 +274,7 @@ class TestSync:
         assert result.stdout == ""
         assert result.stderr == "updated: Tracker #5 body\n"
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-41", "PW-SECURITY-SYNC-42"])
     def test_patch_422_is_a_failure(self) -> None:
         client = _client(dependabot=[_dep(1)], issues=[_tracker(5, _body())])
         client.update_issue_body.side_effect = GitHubAPIError("too long", status_code=422)
@@ -267,6 +284,7 @@ class TestSync:
         assert result.stderr.startswith("error: could not update Tracker #5 body:")
         assert "updated:" not in result.stderr
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-39", "PW-SECURITY-SYNC-40"])
     def test_broken_markers_exit_1_without_writing(self) -> None:
         broken = _body().replace("<!-- pecot-alert: list-end -->", "")
         client = _client(dependabot=[_dep(1)], issues=[_tracker(5, broken)])
@@ -276,6 +294,9 @@ class TestSync:
         client.update_issue_body.assert_not_called()
         client.create_issue.assert_not_called()
 
+    @add_test_properties(
+        verifies=["PW-SECURITY-SYNC-21", "PW-SECURITY-SYNC-22", "PW-SECURITY-SYNC-23"]
+    )
     def test_multiple_trackers_use_the_smallest_and_warn(self) -> None:
         client = _client(dependabot=[_dep(1)], issues=[_tracker(9, _body()), _tracker(5, _body())])
         result = _invoke(client, ["sync"])
@@ -304,11 +325,13 @@ class TestSync:
         _invoke(client, ["sync"], config)
         return client
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-20"])
     def test_existing_tracker_with_status_and_priority_is_not_reset(self) -> None:
         client = self._existing_board({"F_workflow", "F_priority"})
 
         client.update_project_item_field.assert_not_called()
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-20"])
     def test_existing_tracker_with_empty_fields_gets_backlog_and_priority(self) -> None:
         client = self._existing_board(set())
 
@@ -316,6 +339,14 @@ class TestSync:
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_medium") in updates
 
+    @add_test_properties(
+        verifies=[
+            "PW-SECURITY-SYNC-30",
+            "PW-SECURITY-SYNC-32",
+            "PW-SECURITY-SYNC-33",
+            "PW-SECURITY-SYNC-34",
+        ]
+    )
     def test_failed_kind_is_untouched_and_exits_1(self) -> None:
         entry = _row("secret-scanning", 1)
         client = _client(
@@ -331,6 +362,7 @@ class TestSync:
         assert "pecot-alert: secret-scanning/1 priority=" in body
         assert "pecot-alert: dependabot/1" in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-31"])
     def test_failed_kind_without_previous_rows_is_unavailable(self) -> None:
         client = _client(
             code_scanning=GitHubAPIError("boom", status_code=500),
@@ -343,6 +375,7 @@ class TestSync:
         body = client.update_issue_body.call_args.args[3]
         assert "## code scanning\n\nunavailable" in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-34"])
     def test_failed_kind_does_not_create_a_tracker(self) -> None:
         client = _client(dependabot=GitHubAPIError("boom", status_code=500))
         result = _invoke(client, ["sync"])
@@ -350,6 +383,7 @@ class TestSync:
         assert result.exit_code == 1
         client.create_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-17", "PW-SECURITY-SYNC-18"])
     def test_disabled_kind_is_a_heading_only_with_exit_0(self) -> None:
         client = _client(
             secret_scanning=GitHubNotFoundError("nf", status_code=404, response_body="{}"),
@@ -365,6 +399,7 @@ class TestSync:
         assert "## secret scanning\n\ndisabled" in body
         assert "pecot-alert: secret-scanning/" not in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-30"])
     def test_failed_kind_keeps_its_previous_rows(self) -> None:
         entry = _row("secret-scanning", 1)
         client = _client(
@@ -378,6 +413,7 @@ class TestSync:
         assert "## secret scanning\n\n| title" in body
         assert "pecot-alert: secret-scanning/1 priority=" in body
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-36"])
     def test_secret_scanning_404_without_disabled_status_fails(self) -> None:
         """権限不足の 404 を無効とみなさない。触れずに exit 1"""
         client = _client(
@@ -388,6 +424,7 @@ class TestSync:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-19"])
     def test_code_scanning_no_analysis_404_is_zero_alerts(self) -> None:
         client = _client(
             code_scanning=GitHubNotFoundError(
@@ -400,6 +437,7 @@ class TestSync:
         assert result.exit_code == 0, result.output
         assert "pecot-alert: code-scanning/9" not in client.update_issue_body.call_args.args[3]
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-18"])
     def test_code_scanning_without_ghas_403_is_disabled(self) -> None:
         client = _client(
             code_scanning=GitHubAPIError(
@@ -413,10 +451,12 @@ class TestSync:
         assert result.exit_code == 0
         assert "skipped: code scanning alerts (feature disabled)\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-35"])
     def test_dependabot_forbidden_while_enabled_fails(self) -> None:
         client = _client(dependabot=GitHubAPIError("denied", status_code=403, response_body="{}"))
         assert _invoke(client, ["sync"]).exit_code == 1
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-37", "PW-SECURITY-SYNC-38"])
     def test_issue_list_failure_exits_1(self) -> None:
         client = _client()
         client.list_issues_by_label.side_effect = GitHubAPIError("x", status_code=500)
@@ -427,6 +467,7 @@ class TestSync:
 
 
 class TestDryRun:
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-24", "PW-SECURITY-SYNC-25"])
     def test_new_tracker_line_and_no_writes(self) -> None:
         client = _client(dependabot=[_dep(1, "high")], code_scanning=[_cs(10)])
         result = _invoke(client, ["sync", "--dry-run"])
@@ -444,6 +485,7 @@ class TestDryRun:
         client.add_to_project.assert_not_called()
         client.update_project_item_field.assert_not_called()
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-25"])
     def test_existing_tracker_lines(self) -> None:
         client = _client(
             dependabot=[_dep(2), _dep(3)],
@@ -487,6 +529,7 @@ def _invoke_real_client(args: list[str]) -> Any:
         return runner.invoke(app, ["security", *args])
 
 
+@add_test_properties(verifies=["PW-SECURITY-SYNC-28", "PW-SECURITY-SYNC-29"])
 def test_sync_without_token_is_an_error_line() -> None:
     with patch(
         "cli.core.github.client.GitHubClientBase._get_token",

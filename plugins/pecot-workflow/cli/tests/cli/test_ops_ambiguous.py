@@ -14,6 +14,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 
@@ -39,6 +40,7 @@ class TestAmbiguousOps:
         assert result.exit_code == 1
         assert AMBIGUOUS_MSG in result.stderr
 
+    @add_test_properties(verifies=["PW-COMMON-17", "PW-CREATE-BRANCH-26", "PW-CREATE-BRANCH-27"])
     def test_create_branch_ambiguous(self) -> None:
         with _patch_no_git():
             result = runner.invoke(
@@ -52,6 +54,7 @@ class TestAmbiguousOps:
         assert result.exit_code == 1
         assert AMBIGUOUS_MSG in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-36", "PW-RELEASE-PREFLIGHT-37"])
     def test_release_preflight_ambiguous(self) -> None:
         with _patch_no_git():
             result = runner.invoke(app, ["release", "preflight", "0.99.0"])

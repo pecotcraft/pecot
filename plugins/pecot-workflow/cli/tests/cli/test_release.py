@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 import typer.testing
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.dependabot import DependabotAlertError, DependabotAlertStatus, OpenAlert
@@ -48,6 +49,9 @@ def _alert_status(
 class TestReleasePreflight:
     """release preflight コマンドのテスト"""
 
+    @add_test_properties(
+        verifies=["PW-RELEASE-PREFLIGHT-01", "PW-RELEASE-PREFLIGHT-09", "PW-RELEASE-PREFLIGHT-10"]
+    )
     def test_success_with_auto_detect(self) -> None:
         """バージョン自動検出で成功"""
         mock_config = MagicMock()
@@ -84,6 +88,7 @@ class TestReleasePreflight:
             "count: commits to release (origin/develop-aist -> origin/main): 5\n" in result.stderr
         )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-02"])
     def test_success_with_version(self) -> None:
         """バージョン指定で成功"""
         mock_config = MagicMock()
@@ -120,6 +125,7 @@ class TestReleasePreflight:
             "count: commits to release (origin/develop-aist -> origin/main): 3\n" in result.stderr
         )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-18"])
     def test_no_git_root(self) -> None:
         """gitリポジトリが見つからない"""
         with patch("cli.commands.release.git_toplevel", return_value=None):
@@ -127,6 +133,7 @@ class TestReleasePreflight:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-19"])
     def test_no_active_config(self) -> None:
         """アクティブプロジェクトがない"""
         with (
@@ -141,6 +148,7 @@ class TestReleasePreflight:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-24", "PW-RELEASE-PREFLIGHT-25"])
     def test_no_develop_branch(self) -> None:
         """develop_branchが未設定"""
         mock_config = MagicMock()
@@ -162,6 +170,7 @@ class TestReleasePreflight:
         assert result.exit_code == 1
         assert "develop_branch" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-30", "PW-RELEASE-PREFLIGHT-33"])
     def test_preflight_error(self) -> None:
         """preflightチェックエラー"""
         mock_config = MagicMock()
@@ -195,6 +204,7 @@ class TestReleasePreflight:
 class TestReleaseCreate:
     """release create コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-08", "PW-RELEASE-CREATE-09"])
     def test_success(self) -> None:
         """リリース作成成功"""
         mock_config = MagicMock()
@@ -228,6 +238,9 @@ class TestReleaseCreate:
         assert "created: release v0.6.1 on main\n" in result.stderr
         assert result.stdout == "https://ghes.example.com/owner/repo/releases/tag/v0.6.1\n"
 
+    @add_test_properties(
+        verifies=["PW-RELEASE-CREATE-04", "PW-RELEASE-CREATE-05", "PW-RELEASE-CREATE-06"]
+    )
     def test_dry_run(self) -> None:
         """ドライランモード"""
         mock_config = MagicMock()
@@ -254,12 +267,14 @@ class TestReleaseCreate:
         assert "dry-run: would create release v0.6.1 on main\n" in result.stderr
         assert result.stdout == "### 追加\n\n- 新機能\n"
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-10"])
     def test_invalid_version(self) -> None:
         """無効なバージョン形式"""
         result = runner.invoke(app, ["release", "create", "invalid"])
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-11"])
     def test_no_git_root(self) -> None:
         """gitリポジトリが見つからない"""
         with patch("cli.commands.release.git_toplevel", return_value=None):
@@ -267,6 +282,7 @@ class TestReleaseCreate:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-20"])
     def test_api_error(self) -> None:
         """APIエラーの場合"""
         from cli.core.github import GitHubAPIError
@@ -297,6 +313,7 @@ class TestReleaseCreate:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-18", "PW-RELEASE-CREATE-19"])
     def test_no_release_branch(self) -> None:
         """release_branchが未設定"""
         mock_config = MagicMock()
@@ -421,6 +438,7 @@ class TestReleasePreflightPackage:
         assert "commits to release (upstream/develop-aist -> upstream/main): 2" in result.stderr
         mock_config.get_develop_branch.assert_called_with("up-owner", "up-repo")
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-23"])
     def test_packages_unset_with_package_errors(self) -> None:
         """packages 未設定 + --package → エラー"""
         mock_config = MagicMock()
@@ -445,6 +463,7 @@ class TestReleasePreflightPackage:
         assert result.exit_code == 1
         assert "error: owner/repo has no packages configured" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-21"])
     def test_packages_set_without_package_errors(self) -> None:
         """packages 設定済 + --package なし → エラー（利用可能リスト表示）"""
         mock_config = MagicMock()
@@ -466,6 +485,7 @@ class TestReleasePreflightPackage:
         assert result.exit_code == 1
         assert "specify --package (available: pecot-workflow, pecot-visual)" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-03"])
     def test_packages_set_with_package_uses_prefix(self) -> None:
         """packages 設定済 + --package pecot → tag_prefix=pecot で preflight 呼出"""
         mock_config = MagicMock()
@@ -504,6 +524,7 @@ class TestReleasePreflightPackage:
         )
         assert "pecot-workflow-v0.6.1" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-22"])
     def test_packages_set_with_unknown_package_errors(self) -> None:
         """packages 設定済 + --package 未登録名 → エラー"""
         mock_config = MagicMock()
@@ -529,6 +550,7 @@ class TestReleasePreflightPackage:
 class TestReleaseCreatePackage:
     """release create の --package 分岐テスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-03"])
     def test_packages_set_with_package_creates_prefixed_tag(self) -> None:
         """packages 設定済 + --package pecot → <plugin>-v<ver> タグで create"""
         mock_config = MagicMock()
@@ -565,6 +587,7 @@ class TestReleaseCreatePackage:
         assert call_kwargs["tag_name"] == "pecot-workflow-v0.6.1"
         assert call_kwargs["name"] == "pecot-workflow v0.6.1"
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-13"])
     def test_packages_set_without_package_errors(self) -> None:
         """packages 設定済 + --package なし → エラー"""
         mock_config = MagicMock()
@@ -585,6 +608,7 @@ class TestReleaseCreatePackage:
         assert result.exit_code == 1
         assert "specify --package (available: pecot-workflow, pecot-visual)" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-15"])
     def test_packages_unset_with_package_errors(self) -> None:
         """packages 未設定 + --package → エラー"""
         mock_config = MagicMock()
@@ -649,6 +673,7 @@ def _mock_config(*, release_branch: str | None = "main") -> MagicMock:
 class TestReleaseMerge:
     """release merge コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-01", "PW-RELEASE-MERGE-07"])
     def test_success(self) -> None:
         """正常マージ（merge method="merge" で呼ばれることを検証）"""
         mock_client = MagicMock()
@@ -671,6 +696,7 @@ class TestReleaseMerge:
             "owner", "repo", 100, merge_method="merge"
         )
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-11", "PW-RELEASE-MERGE-12"])
     def test_repo_mismatch_is_rejected(self) -> None:
         """--repo が現在の remote と食い違うと、GitHub を呼ばず終了コード 1 で拒否する"""
         mock_client = MagicMock()
@@ -697,6 +723,7 @@ class TestReleaseMerge:
         assert "use the full form 'owner/repo/N'" in result.stderr
         assert "pass --repo" not in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-04", "PW-RELEASE-MERGE-05"])
     def test_dry_run(self) -> None:
         """ドライラン出力（merge (regular) 表示の検証）"""
         mock_client = MagicMock()
@@ -715,6 +742,7 @@ class TestReleaseMerge:
         )
         mock_client.merge_pull_request.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-17"])
     def test_already_merged(self) -> None:
         """MERGED 状態でエラー"""
         mock_client = MagicMock()
@@ -729,6 +757,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "error: PR #100 is already merged" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-18"])
     def test_closed_pr(self) -> None:
         """CLOSED 状態でエラー"""
         mock_client = MagicMock()
@@ -743,6 +772,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "error: PR #100 is closed" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-19"])
     def test_conflicting_pr(self) -> None:
         """CONFLICTING 状態でエラー"""
         mock_client = MagicMock()
@@ -757,6 +787,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "error: PR #100 has conflicts that must be resolved" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-03"])
     def test_conflicting_with_admin(self) -> None:
         """CONFLICTING + --admin で成功"""
         mock_client = MagicMock()
@@ -776,6 +807,7 @@ class TestReleaseMerge:
         assert result.exit_code == 0
         assert "merged: PR owner/repo/100 (develop-aist -> main, merge commit)\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-22"])
     def test_wrong_base_branch(self) -> None:
         """base が release_branch でない場合エラー"""
         mock_client = MagicMock()
@@ -791,6 +823,7 @@ class TestReleaseMerge:
         assert "release_branch" in result.output
         assert "develop-aist" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-20", "PW-RELEASE-MERGE-21"])
     def test_release_branch_not_configured(self) -> None:
         """release_branch 未設定でエラー"""
         mock_client = MagicMock()
@@ -808,6 +841,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "release_branch" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-02", "PW-RELEASE-MERGE-08"])
     def test_delete_branch(self) -> None:
         """--delete-branch で削除成功"""
         mock_client = MagicMock()
@@ -828,6 +862,7 @@ class TestReleaseMerge:
         assert "deleted: remote branch develop-aist in owner/repo\n" in result.stderr
         mock_client.delete_branch.assert_called_once_with("owner", "repo", "develop-aist")
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-09", "PW-RELEASE-MERGE-10"])
     def test_delete_branch_failure_warns_on_stderr(self) -> None:
         """--delete-branch の削除失敗は ⚠ を stderr に出し、マージ自体は成功"""
         from cli.core.github import GitHubAPIError
@@ -941,6 +976,7 @@ def _invoke_preflight(
 class TestReleasePreflightScanning:
     """code scanning・secret scanning の open の alert でも preflight が止まる"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-04", "PW-RELEASE-PREFLIGHT-05"])
     def test_all_zero_passes_and_shows_three_lines(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config())
 
@@ -950,6 +986,7 @@ class TestReleasePreflightScanning:
         assert "count: open secret scanning alerts: 0\n" in result.stderr
         run_pf.assert_called_once()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-13", "PW-RELEASE-PREFLIGHT-17"])
     def test_open_code_scanning_fails_with_numbers(self) -> None:
         status = ScanAlertStatus(
             enabled=True, open_count=1, alerts_url="https://x/cs", open_numbers=[10]
@@ -966,6 +1003,7 @@ class TestReleasePreflightScanning:
         assert result.stdout == ""
         run_pf.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-05"])
     def test_disabled_scanning_passes(self) -> None:
         off = ScanAlertStatus(enabled=False, open_count=0, alerts_url="https://x/s")
         result, _ = _invoke_preflight(_alert_config(), code_scanning=off, secret_scanning=off)
@@ -974,6 +1012,7 @@ class TestReleasePreflightScanning:
         assert "skipped: code scanning (feature disabled)\n" in result.stderr
         assert "skipped: secret scanning (feature disabled)\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-14", "PW-RELEASE-PREFLIGHT-16"])
     def test_all_three_are_checked_before_exit(self) -> None:
         """Dependabot の警告があっても、残りの 2 種の結果まで表示してから終える"""
         bad = ScanAlertStatus(
@@ -990,6 +1029,7 @@ class TestReleasePreflightScanning:
         assert "count: open code scanning alerts: 0\n" in result.stderr
         assert "error: secret scanning has 2 open alerts\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-15"])
     def test_undeterminable_scanning_fails(self) -> None:
         result, run_pf = _invoke_preflight(
             _alert_config(), secret_scanning=SecurityAlertError("権限不足")
@@ -999,6 +1039,7 @@ class TestReleasePreflightScanning:
         assert "error: could not check secret scanning: 権限不足\n" in result.stderr
         run_pf.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-16", "PW-RELEASE-PREFLIGHT-17"])
     def test_network_error_does_not_skip_remaining_checks(self) -> None:
         """通信エラーでも残りの種類を確かめてから exit 1（traceback で終わらない）"""
         result, run_pf = _invoke_preflight(
@@ -1022,6 +1063,7 @@ class TestReleasePreflightScanning:
 class TestReleasePreflightDependabot:
     """open の Dependabot alert は警告だけで、preflight を止めない"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-06"])
     def test_open_alerts_warn_and_pass(self) -> None:
         status = _alert_status(
             open_count=2,
@@ -1101,6 +1143,7 @@ class TestReleasePreflightDependabot:
         assert "skipped: Dependabot alerts (feature disabled)\n" in result.stderr
         assert result.stdout.startswith("version: 0.6.1\n")
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-11", "PW-RELEASE-PREFLIGHT-12"])
     @pytest.mark.parametrize(
         "reason",
         [
@@ -1140,6 +1183,7 @@ class TestReleasePreflightDependabot:
         assert "  reason: authentication failed" in lines
         assert not any("gh auth login" in line for line in lines)
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-24", "PW-RELEASE-PREFLIGHT-25"])
     def test_release_branch_unset_fails_after_alert_line(self) -> None:
         result, _ = _invoke_preflight(_alert_config(release_branch=None))
 
@@ -1154,6 +1198,7 @@ class TestReleasePreflightDependabot:
 class TestReleasePreflightNx:
     """release_type: nx は alert の確認だけを行う"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-07"])
     def test_nx_checks_alerts_only(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"))
 
@@ -1172,6 +1217,7 @@ class TestReleasePreflightNx:
         assert "warning: 1 open Dependabot alert (highest severity: critical)" in result.stderr
         assert result.stdout == ""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-20"])
     def test_nx_rejects_version(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"), ["1.0.0"])
 
@@ -1180,6 +1226,7 @@ class TestReleasePreflightNx:
         assert result.stdout == ""
         run_pf.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-20"])
     def test_nx_rejects_package(self) -> None:
         config = _alert_config(release_type="nx")
         # packages 設定ありの nx リポに --package で向けても拒否される
@@ -1229,6 +1276,7 @@ class TestReleasePreflightNx:
 class TestReleaseErrorLines:
     """例外が traceback ではなく error: の行と終了コード 1 になる"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-28"])
     def test_preflight_malformed_version(self, tmp_path: Path) -> None:
         (tmp_path / "CHANGELOG.md").write_text("## [Unreleased]\n", encoding="utf-8")
         with (
@@ -1248,6 +1296,7 @@ class TestReleaseErrorLines:
         assert len(error_lines) == 1
         assert "1.2" in error_lines[0]
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-25", "PW-RELEASE-CREATE-26"])
     def test_create_without_token(self, tmp_path: Path) -> None:
         with (
             patch("cli.commands.release.git_toplevel", return_value=tmp_path),
