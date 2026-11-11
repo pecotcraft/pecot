@@ -400,7 +400,14 @@ function runEffectiveSetup(setupCommand: string | undefined, config: WorktreeCon
   const effective = setupCommand ?? config.setup_command
   if (effective === undefined || effective === '') return undefined
   const result = runSetupCommand(effective, worktreePath, config.setup_command_timeout)
-  if (result.exitCode !== 0) diagnostics.warning(`setup_command exited with a non-zero status (exit ${String(result.exitCode)}): ${effective}`)
+  if (result.exitCode !== 0) {
+    // Python の core と同じ 1 メッセージ。字下げは受け口側が付ける
+    const head = result.exitCode === -1 ? `setup command timed out: ${effective}` : `setup command failed (exit ${String(result.exitCode)}): ${effective}`
+    const lines = [head]
+    if (result.stdout.trim() !== '') for (const line of result.stdout.replace(/\n+$/, '').split('\n')) lines.push(`out: ${line}`)
+    if (result.stderr.trim() !== '') for (const line of result.stderr.replace(/\n+$/, '').split('\n')) lines.push(`err: ${line}`)
+    diagnostics.warning(lines.join('\n'))
+  }
   return result
 }
 

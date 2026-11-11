@@ -1,0 +1,111 @@
+# 追跡しているパスの link と、0 以外で終わる setup の行が、それぞれ 1 本だけ出る。
+# links は CLAUDE.local.md の 1 件で、commit に含めて追跡させる。
+id: worktree-add-ok-tracked-link-setup-failed
+command:
+  path: [worktree, add]
+  args:
+    - "-D"
+    - "."
+    - "--setup"
+    - "echo hi; echo oops >&2; exit 3"
+setup:
+  repo:
+    commits: [{message: "chore: CLAUDE.local.md を追跡する", files: {.gitignore: ".pecot/\n", CLAUDE.local.md: "ローカル向けの指示\n"}}]
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
+        {
+          "host": "ghes.example.com",
+          "owner": "acme",
+          "workflow_suffix": "acme",
+          "project": {
+            "number": 1,
+            "id": "PVT_1",
+            "board_url": "https://ghes.example.com/users/acme/projects/1",
+            "fields": {
+              "workflow": {
+                "id": "PVTSSF_workflow",
+                "options": {
+                  "backlog": "o1",
+                  "pending": "o2",
+                  "ready": "o3",
+                  "active": "o4",
+                  "in_review": "o5",
+                  "archived": "o6"
+                }
+              },
+              "priority": {
+                "id": "PVTSSF_priority",
+                "options": {
+                  "high": "p1",
+                  "medium": "p2",
+                  "low": "p3"
+                }
+              },
+              "size": {
+                "id": "PVTSSF_size",
+                "options": {
+                  "xs": "s1",
+                  "s": "s2",
+                  "m": "s3",
+                  "l": "s4"
+                }
+              }
+            }
+          },
+          "repositories": [
+            {
+              "owner": "acme",
+              "name": "demo",
+              "develop_branch": "main"
+            }
+          ]
+        }
+      .pecot/config/projects/.active: |
+        ghes.example.com_acme_board_acme.json
+      .pecot/config/worktree-config.json: |
+        {
+          "version": 3,
+          "description": "relative symlinks from wtN to base",
+          "links": [
+            {
+              "path": "CLAUDE.local.md",
+              "target_repo": "demo",
+              "target_path": "CLAUDE.local.md",
+              "description": "local CLAUDE notes"
+            }
+          ]
+        }
+      .pecot/config/.worktreeignore: |
+        # Git メタデータ
+        .git/
+
+        # Python キャッシュ。
+        __pycache__/
+        *.pyc
+        *.pyo
+        .venv/
+        venv/
+        *.egg-info/
+        .pytest_cache/
+        .mypy_cache/
+        .ruff_cache/
+        .tox/
+
+        # カバレッジ
+        htmlcov/
+        .coverage
+
+        # ビルド生成物
+        dist/
+        build/
+
+        # JS 依存
+        node_modules/
+
+        # pecot の実行時状態・一時領域（config は worktree-config の links 経由で symlink）
+        .pecot/
+        tmp/
+
+        # Nx ビルド状態（version-plans は残すので .nx/ 丸ごとは除外しない）
+        .nx/workspace-data/
+github: []

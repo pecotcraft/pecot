@@ -629,6 +629,20 @@ def _copy_untracked_to_worktree(
     return []
 
 
+def _format_setup_failure(sr: SetupResult) -> str:
+    """Build the one-message warning of a failed setup command (head line plus out/err lines)"""
+    if sr.returncode == -1:
+        head = f"setup command timed out: {sr.command}"
+    else:
+        head = f"setup command failed (exit {sr.returncode}): {sr.command}"
+    lines = [head]
+    if sr.stdout.strip():
+        lines += [f"out: {line}" for line in sr.stdout.rstrip("\n").split("\n")]
+    if sr.stderr.strip():
+        lines += [f"err: {line}" for line in sr.stderr.rstrip("\n").split("\n")]
+    return "\n".join(lines)
+
+
 def _run_effective_setup(
     setup_command: str | None, worktree_config: WorktreeConfig, path: Path
 ) -> SetupResult | None:
@@ -646,11 +660,7 @@ def _run_effective_setup(
         effective_setup, cwd=path, timeout=worktree_config.setup_command_timeout
     )
     if setup_result.returncode != 0:
-        logger.warning(
-            "setup_command exited with a non-zero status (exit %d): %s",
-            setup_result.returncode,
-            effective_setup,
-        )
+        logger.warning(_format_setup_failure(setup_result))
     return setup_result
 
 

@@ -6,11 +6,12 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from cli.commands.main import app
 from cli.core.config import FieldOptions, Project, ProjectConfig, ProjectFields, Repository
 from cli.core.worktree import SetupResult, WorktreeCreateResult
+from cli.tests.conftest import git_init_and_commit
 
 runner = CliRunner()
 
@@ -156,25 +157,22 @@ class TestWorktreeAdd:
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_failure(self, mock_create: MagicMock, tmp_path: Path) -> None:
-        """setup_result が失敗の場合 warning が出力され、exit code は 0 のまま"""
-        mock_create.return_value = WorktreeCreateResult(
-            name="wt1",
-            path=tmp_path / "wt1" / "repo",
-            branch="wt1",
-            base_branch="main",
-            copied_files=[],
-            setup_result=SetupResult(
-                command="exit 42",
-                returncode=42,
-                stdout="",
-                stderr="oops\n",
-            ),
+        """setup が失敗すると core の警告が 1 本だけ出て、exit code は 0 のまま"""
+        result = self._add_with_setup(
+            mock_create,
+            tmp_path,
+            SetupResult(command="exit 42", returncode=42, stdout="", stderr="oops\n"),
         )
-        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
-        # 失敗でも WT 作成は成功扱い
         assert result.exit_code == 0
-        assert "warning: setup command failed (exit 42): exit 42" in result.output
-        assert "err: oops" in result.output
+        lines = result.stderr.splitlines()
+        assert [ln for ln in lines if "setup command" in ln] == [
+            "warning: setup command failed (exit 42): exit 42"
+        ]
+        assert (
+            lines[lines.index("warning: setup command failed (exit 42): exit 42") + 1]
+            == "  err: oops"
+        )
+        assert "setup_command exited" not in result.stderr
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_passes_setup_option_to_core(self, mock_create: MagicMock, tmp_path: Path) -> None:
@@ -196,24 +194,96 @@ class TestWorktreeAdd:
 
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_timeout(self, mock_create: MagicMock, tmp_path: Path) -> None:
-        """timeout した際の CLI 出力は timed out の warning"""
-        mock_create.return_value = WorktreeCreateResult(
+        """timeout した際は timed out の警告が 1 本だけ出る"""
+        result = self._add_with_setup(
+            mock_create,
+            tmp_path,
+            SetupResult(
+                command="sleep 600", returncode=-1, stdout="", stderr="timeout after 60 seconds"
+            ),
+        )
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        assert [ln for ln in lines if "setup command" in ln] == [
+            "warning: setup command timed out: sleep 600"
+        ]
+        assert lines[lines.index("warning: setup command timed out: sleep 600") + 1] == (
+            "  err: timeout after 60 seconds"
+        )
+        assert "setup_command exited" not in result.stderr
+
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_tracked_link_is_one_warning(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        """追跡しているパスの link は core の警告 1 行だけで、error: の行は出ない"""
+        wt_repo = tmp_path / "wt1" / "repo"
+        wt_repo.mkdir(parents=True)
+        git_init_and_commit(wt_repo, {"README.md": "x"})
+        (tmp_path / "base" / "src").mkdir(parents=True)
+        (tmp_path / "base" / "src" / "README.md").write_text("shared")
+        result = self._add_with_link(mock_create, tmp_path, "README.md")
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        tracked = f"warning: symlink creation skipped because the path is tracked by git: {wt_repo / 'README.md'}"
+        assert lines.count(tracked) == 1
+        assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
+
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_symlink_failure_is_one_warning(
+        self, mock_create: MagicMock, tmp_path: Path
+    ) -> None:
+        """symlink の作成失敗は core の警告 1 行だけで、error: と symlink <path>: の行は出ない"""
+        wt_repo = tmp_path / "wt1" / "repo"
+        wt_repo.mkdir(parents=True)
+        (wt_repo / "a").write_text("plain file")
+        (tmp_path / "base" / "src").mkdir(parents=True)
+        (tmp_path / "base" / "src" / "b").write_text("shared")
+        result = self._add_with_link(mock_create, tmp_path, "a/b", target_path="b")
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        assert (
+            len([ln for ln in lines if ln.startswith("warning: failed to create the symlink:")])
+            == 1
+        )
+        assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
+        assert "count: symlink errors: 1" in result.output
+
+    @staticmethod
+    def _created(tmp_path: Path, **extra: object) -> WorktreeCreateResult:
+        return WorktreeCreateResult(
             name="wt1",
             path=tmp_path / "wt1" / "repo",
             branch="wt1",
             base_branch="main",
             copied_files=[],
-            setup_result=SetupResult(
-                command="sleep 600",
-                returncode=-1,
-                stdout="",
-                stderr="timeout after 60 seconds",
-            ),
+            **extra,  # type: ignore[arg-type]
         )
-        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "warning: setup command timed out: sleep 600" in result.output
-        assert "err: timeout after 60 seconds" in result.output
+
+    def _add_with_setup(self, mock_create: MagicMock, tmp_path: Path, setup: SetupResult) -> Result:
+        """本物の _run_effective_setup を通し、_run_setup_command だけを差し替えて worktree add を打つ"""
+        from cli.core.worktree import _run_effective_setup
+
+        def create(*_args: object, **_kwargs: object) -> WorktreeCreateResult:
+            config = MagicMock(setup_command=None, setup_command_timeout=None)
+            with patch("cli.core.worktree._run_setup_command", return_value=setup):
+                sr = _run_effective_setup(setup.command, config, tmp_path)
+            return self._created(tmp_path, setup_result=sr)
+
+        mock_create.side_effect = create
+        return runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+
+    def _add_with_link(
+        self, mock_create: MagicMock, tmp_path: Path, path: str, target_path: str | None = None
+    ) -> Result:
+        """本物の _process_link を通して worktree add を打つ（<tmp>/base/src が link 先）"""
+        from cli.core.worktree_links import WorktreeLinkItem, _process_link
+
+        def create(*_args: object, **_kwargs: object) -> WorktreeCreateResult:
+            link = WorktreeLinkItem(path=path, target_repo="src", target_path=target_path or path)
+            r = _process_link(link, tmp_path, "wt1", "repo", lambda *_: False)
+            return self._created(tmp_path, linked_files=[r])
+
+        mock_create.side_effect = create
+        return runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
 
 
 # worktree remove
@@ -401,6 +471,53 @@ class TestWorktreeLink:
         assert result.exit_code == 1
         assert "error: worktree config not found" in result.output
         assert "run: pecot worktree init -D <directory>" in result.output
+
+    def _run_link(self, tmp_path: Path, path: str, target_path: str) -> Result:
+        """<tmp>/wt1/myrepo で worktree link を打つ（link 先は <tmp>/base/src）"""
+        from cli.core.worktree_links import WorktreeConfig, WorktreeLinkItem
+
+        (tmp_path / "base" / "myrepo").mkdir(parents=True)
+        (tmp_path / "base" / "src").mkdir(parents=True)
+        (tmp_path / "base" / "src" / target_path).write_text("shared")
+        wt = tmp_path / "wt1" / "myrepo"
+        wt.mkdir(parents=True, exist_ok=True)
+        config = WorktreeConfig(
+            links=[WorktreeLinkItem(path=path, target_repo="src", target_path=target_path)]
+        )
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch(
+                "cli.core.worktree.find_main_worktree", return_value=tmp_path / "base" / "myrepo"
+            ),
+            patch("cli.core.worktree.detect_project_root", return_value=tmp_path),
+            patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
+            patch("cli.core.worktree_links.load_config", return_value=config),
+        ):
+            return runner.invoke(app, ["worktree", "link", "-D", str(wt), "--force"])
+
+    def test_link_tracked_path_is_one_warning(self, tmp_path: Path) -> None:
+        wt = tmp_path / "wt1" / "myrepo"
+        wt.mkdir(parents=True, exist_ok=True)
+        git_init_and_commit(wt, {"README.md": "x"})
+        result = self._run_link(tmp_path, "README.md", "README.md")
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        tracked = f"warning: symlink creation skipped because the path is tracked by git: {wt / 'README.md'}"
+        assert lines.count(tracked) == 1
+        assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
+
+    def test_link_symlink_failure_is_one_warning(self, tmp_path: Path) -> None:
+        wt = tmp_path / "wt1" / "myrepo"
+        wt.mkdir(parents=True, exist_ok=True)
+        (wt / "a").write_text("plain file")
+        result = self._run_link(tmp_path, "a/b", "b")
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        assert (
+            len([ln for ln in lines if ln.startswith("warning: failed to create the symlink:")])
+            == 1
+        )
+        assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
 
 
 # devcontainer 前提ガード

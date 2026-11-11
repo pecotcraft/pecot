@@ -417,7 +417,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     }
     else if (existsSync(symlinkPath)) {
       if (isTrackedInRepository(path.join(projectRoot, worktreeSet, repositoryName), link.path)) {
-        diagnostics.error(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
+        diagnostics.warning(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
         return { symlinkPath, targetPath, action: 'error', message: `symlink creation aborted because the path is tracked by git: ${link.path}` }
       }
       if (!canOverwrite(symlinkPath, targetPath)) {
@@ -434,7 +434,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     if (!hasErrorCode(error)) throw error
     const converted = toOsError(error)
     const message = converted instanceof Error ? converted.message : String(converted)
-    diagnostics.error(`failed to create the symlink: ${symlinkPath} -> ${relativeTarget}: ${message}`)
+    diagnostics.warning(`failed to create the symlink: ${symlinkPath} -> ${relativeTarget}: ${message}`)
     return { symlinkPath, targetPath, action: 'error', message }
   }
 }

@@ -747,6 +747,45 @@ class TestProcessLinkTrackedGuard:
         assert docs.is_dir() and not docs.is_symlink()
         assert (docs / "index.md").read_text() == canary
 
+    def test_tracked_path_logs_one_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        root = self._make_project(tmp_path)
+        wt_repo = root / "wt1" / "myrepo"
+        wt_repo.mkdir(parents=True)
+        git_init_and_commit(wt_repo, {"README.md": "x"})
+        link = WorktreeLinkItem(
+            path="README.md", target_repo="aist-roadmap", target_path="README.md"
+        )
+        with caplog.at_level(logging.WARNING, logger="cli.core.worktree_links"):
+            _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        assert [(r.levelno, r.getMessage()) for r in caplog.records] == [
+            (
+                logging.WARNING,
+                f"symlink creation skipped because the path is tracked by git: {wt_repo / 'README.md'}",
+            )
+        ]
+
+    def test_oserror_logs_one_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        root = self._make_project(tmp_path)
+        wt_repo = root / "wt1" / "myrepo"
+        wt_repo.mkdir(parents=True)
+        (wt_repo / "a").write_text("file")
+        (root / "base" / "aist-roadmap" / "b").write_text("shared")
+        link = WorktreeLinkItem(path="a/b", target_repo="aist-roadmap", target_path="b")
+        with caplog.at_level(logging.WARNING, logger="cli.core.worktree_links"):
+            result = _process_link(link, root, "wt1", "myrepo", lambda _p, _t: True)
+        assert result.action == "error"
+        assert len(caplog.records) == 1
+        assert caplog.records[0].levelno == logging.WARNING
+        assert (
+            caplog.records[0]
+            .getMessage()
+            .startswith(f"failed to create the symlink: {wt_repo / 'a' / 'b'} -> ")
+        )
+
     def test_process_link_creates_symlink_for_untracked_path(self, tmp_path: Path) -> None:
         root = self._make_project(tmp_path)
         wt_repo = root / "wt1" / "myrepo"

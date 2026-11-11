@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -15,6 +16,8 @@ import pathspec
 import pytest
 
 from cli.core.worktree import (
+    SetupResult,
+    _run_effective_setup,
     _run_setup_command,
     _should_exclude,
     copy_files,
@@ -892,6 +895,52 @@ class TestCreateWorktree:
         assert "failed to load the worktree config" in msg
         assert "worktree-config.json" in msg
         assert "fix the config file and run it again" in msg
+
+
+# _run_effective_setup の警告
+
+
+class TestRunEffectiveSetupWarning:
+    @staticmethod
+    def _warnings(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+        return [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+    def test_failure_is_one_warning_with_out_and_err(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        fake = SetupResult(command="make", returncode=42, stdout="hi\nthere\n", stderr="oops\n")
+        config = MagicMock(setup_command=None, setup_command_timeout=None)
+        with patch("cli.core.worktree._run_setup_command", return_value=fake):
+            _run_effective_setup("make", config, tmp_path)
+        records = self._warnings(caplog)
+        assert [(r.levelno, r.getMessage()) for r in records] == [
+            (
+                logging.WARNING,
+                "setup command failed (exit 42): make\nout: hi\nout: there\nerr: oops",
+            )
+        ]
+        assert records[0].args == ()
+
+    def test_timeout_is_one_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+        fake = SetupResult(
+            command="sleep 600", returncode=-1, stdout="", stderr="timeout after 60 seconds"
+        )
+        config = MagicMock(setup_command=None, setup_command_timeout=60)
+        with patch("cli.core.worktree._run_setup_command", return_value=fake):
+            _run_effective_setup("sleep 600", config, tmp_path)
+        assert [(r.levelno, r.getMessage()) for r in self._warnings(caplog)] == [
+            (
+                logging.WARNING,
+                "setup command timed out: sleep 600\nerr: timeout after 60 seconds",
+            )
+        ]
+
+    def test_success_logs_nothing(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+        fake = SetupResult(command="true", returncode=0, stdout="done\n", stderr="")
+        config = MagicMock(setup_command=None, setup_command_timeout=None)
+        with patch("cli.core.worktree._run_setup_command", return_value=fake):
+            _run_effective_setup("true", config, tmp_path)
+        assert self._warnings(caplog) == []
 
 
 # _run_setup_command のテスト

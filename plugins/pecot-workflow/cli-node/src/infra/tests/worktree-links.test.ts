@@ -265,7 +265,7 @@ describe('createSymlinks', () => {
     const results = createSymlinks(configOf([linkOf('sub/file', 'shared', 'f')]), root, 'wt1', 'myrepo', recorded.diagnostics)
     const message = `[Errno 17] File exists: '${path.join(repository, 'sub')}'`
     expect(results[0]).toMatchObject({ action: 'error', message })
-    expect(recorded.lines).toEqual([`error: failed to create the symlink: ${path.join(repository, 'sub', 'file')} -> ../../../base/shared/f: ${message}`])
+    expect(recorded.lines).toEqual([`warning: failed to create the symlink: ${path.join(repository, 'sub', 'file')} -> ../../../base/shared/f: ${message}`])
   })
 })
 
@@ -285,7 +285,7 @@ describe('git 管理対象のガード', () => {
     expect(results[0]).toMatchObject({ action: 'error', message: 'symlink creation aborted because the path is tracked by git: README.md' })
     expect(lstatSync(path.join(repository, 'README.md')).isSymbolicLink()).toBe(false)
     expect(readFileSync(path.join(repository, 'README.md'), 'utf8')).toBe('TRACKED-CANARY-12345')
-    expect(recorded.lines).toEqual([`error: symlink creation skipped because the path is tracked by git: ${path.join(repository, 'README.md')}`])
+    expect(recorded.lines).toEqual([`warning: symlink creation skipped because the path is tracked by git: ${path.join(repository, 'README.md')}`])
   })
 
   it('tracked ディレクトリにも symlink を作らない', () => {
