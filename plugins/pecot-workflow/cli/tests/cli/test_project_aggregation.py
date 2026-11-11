@@ -222,3 +222,13 @@ class TestNoActiveProject:
         assert result.stderr == (
             "error: no active project\n  run: pecot project activate <PROJECT>\n"
         )
+
+    @add_test_properties(verifies=["PW-PROJECT-UNSET-AGGREGATION-REPO-04"])
+    def test_unset_without_active(self) -> None:
+        """アクティブ設定が無ければ unset も exit 1。"""
+        with patch("cli.commands.project.load_active_config", return_value=None):
+            result = runner.invoke(app, ["project", "unset-aggregation-repo"])
+        assert result.exit_code == 1
+        assert result.stderr == (
+            "error: no active project\n  run: pecot project activate <PROJECT>\n"
+        )

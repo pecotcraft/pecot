@@ -296,6 +296,29 @@ class TestPRCreatePrepareCommand:
         assert result.exit_code == 1
         assert "error: missing arguments" in result.output
 
+    @add_test_properties(verifies=["PW-PR-CREATE-08"])
+    def test_prepare_with_file_only_writes_the_template_copy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--prepare とファイルを一緒に渡すと、PR を作らずにテンプレのコピーだけを書く"""
+        import cli.commands.pr as pr_module
+
+        output_dir = tmp_path / "pecot"
+        monkeypatch.setattr(pr_module, "get_output_dir", lambda: output_dir)
+        monkeypatch.setattr(pr_module, "load_active_config", lambda: None)
+        pr_file = tmp_path / "pr.md"
+        pr_file.write_text("---\ntitle: x\n---\n", encoding="utf-8")
+
+        with patch("cli.commands.pr.GitHubClient") as mock_client_cls:
+            result = runner.invoke(app, ["pr", "create", "--prepare", str(pr_file)])
+
+        assert result.exit_code == 0, result.stderr
+        mock_client_cls.return_value.create_pull_request.assert_not_called()
+        files = list(output_dir.glob("pr-create-*.md"))
+        assert len(files) == 1
+        assert result.stdout.strip().splitlines()[-1] == str(files[0])
+        assert pr_file.read_text(encoding="utf-8") == "---\ntitle: x\n---\n"
+
 
 # pr create ファイルからの作成テスト
 
@@ -530,6 +553,98 @@ body
             assert result.exit_code == 1
             assert "error: no active project" in result.stderr
 
+    def _submit_with_file_and_message(self, tmp_path: Path, extra_args: list[str]) -> MagicMock:
+        file = _write_pr_file(tmp_path, _VALID_PR_BODY)
+        client = MagicMock()
+        client.create_pull_request.return_value = {"number": 21, "html_url": "https://x/pull/21"}
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_pr_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/962"),
+            patch("cli.commands.pr._run_preflight_checks_or_exit"),
+            patch("cli.commands.pr.consume_flag"),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(file), *extra_args])
+        assert result.exit_code == 0, result.stderr
+        return client
+
+    @add_test_properties(verifies=["PW-PR-CREATE-10"])
+    def test_create_with_file_and_message_uses_the_file(self, tmp_path: Path) -> None:
+        """ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから PR を作る"""
+        client = self._submit_with_file_and_message(
+            tmp_path, ["-m", "別の本文", "-t", "feat: 別のタイトル", "-b", "develop-aist"]
+        )
+
+        client.create_pull_request.assert_called_once()
+        kwargs = client.create_pull_request.call_args.kwargs
+        assert kwargs["title"] == "feat: 記法チェック"
+        assert "テストのための変更内容" in kwargs["body"]
+        assert "別の本文" not in kwargs["body"]
+
+    @add_test_properties(verifies=["PW-PR-CREATE-35"])
+    def test_create_validation_error_does_not_create_the_pr(self, tmp_path: Path) -> None:
+        """検証に失敗すると、dry-run でなくても PR を作らない"""
+        pr_file = tmp_path / "pr.md"
+        pr_file.write_text(
+            """---
+title: "feat: テスト機能追加"
+repository: "owner/repo"
+base: "develop-aist"
+head: "feat/test"
+---
+
+## Verified — テスト用本文
+
+- テスト（Issue参照なし、必須セクション不足）
+""",
+            encoding="utf-8",
+        )
+        client = MagicMock()
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_pr_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(pr_file)])
+
+        assert result.exit_code == 3
+        assert "error: " in result.stderr
+        client.create_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-PR-CREATE-46"])
+    @pytest.mark.parametrize(
+        ("front", "expected_error"),
+        [
+            pytest.param(
+                "",
+                "error: frontmatter not found (does not start with ---)",
+                id="frontmatter-unreadable",
+            ),
+            pytest.param(
+                '---\ntitle: "feat: x"\nrepository: "norepo"\nbase: "develop-aist"\n---\n\n',
+                "error: repository is required (e.g. owner/repo)",
+                id="repository-not-owner-repo",
+            ),
+        ],
+    )
+    def test_create_unreadable_frontmatter_or_bad_repository_exits_1(
+        self, tmp_path: Path, front: str, expected_error: str
+    ) -> None:
+        """フロントマターを読めないか、repository が owner/repo の形でないと、終了コード 1 で終わる"""
+        pr_file = tmp_path / "pr.md"
+        pr_file.write_text(front + "本文\n", encoding="utf-8")
+        client = MagicMock()
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_pr_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(pr_file)])
+
+        assert result.exit_code == 1
+        assert expected_error in result.stderr.splitlines()
+        client.create_pull_request.assert_not_called()
+
 
 # pr create -m オプションテスト
 
@@ -662,6 +777,92 @@ class TestPRCreateDirectCommand:
             )
             assert result.exit_code == 0
             assert "dry-run: would create PR" in result.stderr
+
+    def _direct_submit(
+        self, repositories: list[Repository], extra_args: list[str], branch: str | None
+    ) -> tuple[Any, MagicMock]:
+        config = _pr_config()
+        config.repositories = repositories
+        client = MagicMock()
+        client.create_pull_request.return_value = {"number": 21, "html_url": "https://x/pull/21"}
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=config),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value=branch),
+            patch("cli.commands.pr._run_preflight_checks_or_exit"),
+            patch("cli.commands.pr.consume_flag"),
+        ):
+            result = runner.invoke(
+                app,
+                ["pr", "create", "-m", _VALID_PR_BODY, "-t", "feat: テスト", "-b", "develop-aist"]
+                + extra_args,
+            )
+        return result, client
+
+    @add_test_properties(verifies=["PW-PR-CREATE-12"])
+    def test_create_direct_single_configured_repository_is_the_target(self) -> None:
+        """-m で --repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る"""
+        result, client = self._direct_submit(
+            [Repository(owner="acme", name="widgets")], [], "feat/test/962"
+        )
+
+        assert result.exit_code == 0, result.stderr
+        kwargs = client.create_pull_request.call_args.kwargs
+        assert kwargs["owner"] == "acme"
+        assert kwargs["repo"] == "widgets"
+
+    @add_test_properties(verifies=["PW-PR-CREATE-14"])
+    def test_create_direct_draft_option_creates_a_draft_pr(self) -> None:
+        """--draft を付けて -m で打つと、ドラフトの PR を作る"""
+        result, client = self._direct_submit(
+            [Repository(owner="acme", name="widgets")], ["--draft"], "feat/test/962"
+        )
+
+        assert result.exit_code == 0, result.stderr
+        assert client.create_pull_request.call_args.kwargs["draft"] is True
+
+    @add_test_properties(verifies=["PW-PR-CREATE-47"])
+    @pytest.mark.parametrize(
+        ("repositories", "extra_args", "expected_error"),
+        [
+            pytest.param(
+                [Repository(owner="acme", name="widgets")],
+                ["-r", "not-a-repo"],
+                "error: invalid repository format: not-a-repo (expected: owner/repo)",
+                id="invalid-repo-option",
+            ),
+            pytest.param(
+                [],
+                [],
+                "error: specify the repository (-r owner/repo)",
+                id="no-configured-repository",
+            ),
+            pytest.param(
+                [Repository(owner="acme", name="a"), Repository(owner="acme", name="b")],
+                [],
+                "error: specify the repository (-r owner/repo)",
+                id="several-configured-repositories",
+            ),
+        ],
+    )
+    def test_create_direct_undecidable_or_invalid_repository_exits_1(
+        self, repositories: list[Repository], extra_args: list[str], expected_error: str
+    ) -> None:
+        """-m のリポジトリを決められないか --repo が owner/repo の形でないと、終了コード 1 で終わる"""
+        result, client = self._direct_submit(repositories, extra_args, "feat/test/962")
+
+        assert result.exit_code == 1
+        assert expected_error in result.stderr.splitlines()
+        client.create_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-PR-CREATE-48"])
+    def test_create_direct_undetermined_head_branch_exits_1(self) -> None:
+        """head ブランチを決められないと、終了コード 1 で終わる"""
+        result, client = self._direct_submit([Repository(owner="acme", name="widgets")], [], None)
+
+        assert result.exit_code == 1
+        assert "error: cannot determine the head branch" in result.stderr.splitlines()
+        client.create_pull_request.assert_not_called()
 
 
 # pr read コマンドテスト
@@ -1016,6 +1217,68 @@ class TestPRReadCommand:
             assert "## Reviews" not in result.output
             assert "## Line Comments" not in result.output
 
+    @add_test_properties(verifies=["PW-PR-READ-10"])
+    def test_read_short_ref_is_completed_with_the_repo_option(self) -> None:
+        """短い形 N の参照を渡すと、--repo で補って読む"""
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = _slim_pr(456)
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["--repo", "acme/widgets", "pr", "read", "456"])
+
+        assert result.exit_code == 0, result.stderr
+        mock_client.get_pull_request_slim.assert_called_once_with("acme", "widgets", 456)
+
+    @add_test_properties(verifies=["PW-PR-READ-10"])
+    @pytest.mark.parametrize(
+        ("remotes", "urls", "expected"),
+        [
+            pytest.param(
+                ["origin"],
+                {"origin": "https://ghes.example.com/acme/widgets.git"},
+                ("acme", "widgets"),
+                id="origin",
+            ),
+            pytest.param(
+                ["upstream"],
+                {"upstream": "https://ghes.example.com/acme/upstream-repo.git"},
+                ("acme", "upstream-repo"),
+                id="upstream-only",
+            ),
+        ],
+    )
+    def test_read_short_ref_is_completed_with_the_git_remote(
+        self, remotes: list[str], urls: dict[str, str], expected: tuple[str, str]
+    ) -> None:
+        """短い形 N の参照を渡すと、--repo が無ければ git の remote（origin が無ければ upstream）で補って読む"""
+
+        def fake_git(args: list[str], cwd: Path | None = None, **_kw: Any) -> Any:
+            if args[:2] == ["rev-parse", "--is-inside-work-tree"]:
+                stdout = "true\n"
+            elif args == ["remote"]:
+                stdout = "\n".join(remotes) + "\n"
+            elif args[:2] == ["remote", "get-url"]:
+                stdout = urls[args[2]] + "\n"
+            else:
+                raise AssertionError(f"unexpected git call: {args}")
+            return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = _slim_pr(456)
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.core.repo_resolver.run_git", side_effect=fake_git),
+        ):
+            result = runner.invoke(app, ["pr", "read", "456"])
+
+        assert result.exit_code == 0, result.stderr
+        mock_client.get_pull_request_slim.assert_called_once_with(*expected, 456)
+
 
 # ヘルプ表示テスト
 
@@ -1369,6 +1632,52 @@ class TestPRCleanupCommand:
 
             assert result.exit_code == 2
             assert "invalid reference" in result.output
+
+    @add_test_properties(verifies=["PW-PR-CLEANUP-10"])
+    def test_cleanup_skip_local_cleanup_does_not_run_local_cleanup(self) -> None:
+        """--skip-local-cleanup を付けると、ローカルの片付けをせず git も動かさない"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = {
+            "number": 42,
+            "state": "MERGED",
+            "title": "feat: テスト",
+            "body": "",
+            "head_ref": "feat/test",
+            "base_ref": "develop-aist",
+            "is_draft": False,
+            "mergeable": "MERGEABLE",
+            "comments": 0,
+            "closing_issues": [],
+            "reviews": [],
+        }
+        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.commands.pr._local_cleanup_after_merge") as mock_local,
+            patch("cli.commands.pr.run_git") as mock_git,
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--skip-local-cleanup"])
+
+        assert result.exit_code == 0, result.stderr
+        mock_local.assert_not_called()
+        mock_git.assert_not_called()
+
+    @add_test_properties(verifies=["PW-PR-CLEANUP-26"])
+    def test_cleanup_no_active_project_exits_1_without_calling_github(self) -> None:
+        """アクティブなプロジェクトが無いと、終了コード 1 で終わり、GitHub を呼ばない"""
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=None),
+            patch("cli.commands.pr.GitHubClient") as mock_client_cls,
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42"])
+
+        assert result.exit_code == 1
+        assert "error: no active project" in result.stderr.splitlines()
+        mock_client_cls.assert_not_called()
 
 
 # pr cleanup フラグ削除テスト
@@ -2241,6 +2550,30 @@ class TestDeterminBaseBranch:
                     "github.com", "owner", "repo", Path.cwd(), Output(False), remote="origin"
                 )
 
+    @add_test_properties(verifies=["PW-PR-PREFLIGHT-16"])
+    @pytest.mark.parametrize("remote", ["origin", "upstream"])
+    def test_missing_remote_develop_branch_exits_1(
+        self, remote: str, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """<remote>/<develop_branch> が無いと、終了コード 1 で終わる"""
+        from cli.commands.pr import _determine_base_branch
+
+        mock_config = MagicMock()
+        mock_config.get_develop_branch.return_value = "develop-aist"
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr._branch_exists", return_value=False) as exists,
+        ):
+            with pytest.raises(typer.Exit) as excinfo:
+                _determine_base_branch(
+                    "github.com", "owner", "repo", Path.cwd(), Output(False), remote=remote
+                )
+
+        assert excinfo.value.exit_code == 1
+        exists.assert_called_once_with(f"{remote}/develop-aist", Path.cwd())
+        assert f"error: branch {remote}/develop-aist does not exist" in capsys.readouterr().err
+
 
 class TestPRPreflightCommand:
     """pr preflight コマンドのテスト"""
@@ -2630,6 +2963,141 @@ class TestPRPreflightCommand:
             assert result.exit_code == 0
             mock_client.create_pull_request.assert_not_called()
             assert "dry-run: would create PR" in result.stderr
+
+    _SECTION_HEADINGS = [
+        "=== Git Remote ===",
+        "=== Current Branch ===",
+        "=== Push Status ===",
+        "=== Base Branch ===",
+        "=== Git Status ===",
+        "=== .gitignore ===",
+        "=== Git Exclude ===",
+        "=== Commits (vs origin/develop-aist) ===",
+        "=== Diff Summary (vs origin/develop-aist) ===",
+        "=== Worktree Info ===",
+        "=== Stash List ===",
+    ]
+
+    @add_test_properties(verifies=["PW-PR-PREFLIGHT-01"])
+    def test_preflight_prints_eleven_sections_in_order(self, tmp_path: Path) -> None:
+        """--directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す"""
+        mock_config = MagicMock()
+        mock_config.get_develop_branch.return_value = "develop-aist"
+
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr._branch_exists", return_value=True),
+            patch("cli.commands.pr._get_push_status", return_value=(True, "in sync")),
+            patch(
+                "cli.commands.pr._get_git_status",
+                return_value="On branch x\nnothing to commit, working tree clean\n",
+            ),
+            patch("cli.commands.pr._read_gitignore", return_value="*.pyc"),
+            patch("cli.commands.pr._read_git_exclude", return_value="# exclude"),
+            patch("cli.commands.pr._get_commits_vs_base", return_value="abc test"),
+            patch("cli.commands.pr._get_diff_summary", return_value="1 file changed"),
+            patch("cli.commands.pr._get_worktree_info", return_value="worktree info"),
+            patch("cli.commands.pr._get_stash_list", return_value="(no stash)"),
+        ):
+            result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
+
+        assert result.exit_code == 0, result.stderr
+        headings = [ln for ln in result.stdout.splitlines() if re.fullmatch(r"=== .* ===", ln)]
+        assert headings == self._SECTION_HEADINGS
+
+    @add_test_properties(verifies=["PW-PR-PREFLIGHT-06"])
+    def test_preflight_does_not_write_to_the_repository_or_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """リポジトリとファイルを書き換えない（git は読み取りだけ、open は書き込みモードで呼ばない）"""
+        (tmp_path / ".gitignore").write_text("*.pyc\n", encoding="utf-8")
+        mock_config = MagicMock()
+        mock_config.get_develop_branch.return_value = "develop-aist"
+        git_calls: list[list[str]] = []
+
+        def fake_git(args: list[str], cwd: Path | None = None, **_kw: Any) -> Any:
+            git_calls.append(list(args))
+            stdout = {
+                ("rev-parse", "--git-common-dir"): str(tmp_path / ".git"),
+                ("rev-parse", "--git-dir"): str(tmp_path / ".git"),
+                ("rev-list", "--count"): "0",
+            }.get(tuple(args[:2]), "")
+            return subprocess.CompletedProcess(args, 0, stdout=stdout + "\n", stderr="")
+
+        opened_modes: list[str] = []
+        real_open = Path.open
+
+        def recording_open(self: Path, mode: str = "r", *a: Any, **kw: Any) -> Any:
+            opened_modes.append(mode)
+            return real_open(self, mode, *a, **kw)
+
+        write_text = MagicMock()
+        write_bytes = MagicMock()
+        monkeypatch.setattr(Path, "open", recording_open)
+        monkeypatch.setattr(Path, "write_text", write_text)
+        monkeypatch.setattr(Path, "write_bytes", write_bytes)
+
+        with (
+            patch("cli.commands.pr.git_toplevel", return_value=tmp_path),
+            patch("cli.commands.pr.primary_remote_name", return_value="origin"),
+            patch(
+                "cli.commands.pr.git_remote_url", return_value="https://github.com/owner/repo.git"
+            ),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/123"),
+            patch("cli.commands.pr.load_active_config", return_value=mock_config),
+            patch("cli.commands.pr.run_git", side_effect=fake_git),
+        ):
+            result = runner.invoke(app, ["pr", "preflight", "-D", str(tmp_path)])
+
+        assert result.exit_code == 0, result.stderr
+        assert git_calls
+        read_only = {
+            "rev-parse",
+            "status",
+            "log",
+            "diff",
+            "worktree",
+            "rev-list",
+            "stash",
+        }
+        assert {c[0] for c in git_calls} <= read_only
+        assert all(c[1] == "list" for c in git_calls if c[0] in ("worktree", "stash"))
+        assert all(not (set(mode) & set("wax+")) for mode in opened_modes)
+        write_text.assert_not_called()
+        write_bytes.assert_not_called()
+
+    @add_test_properties(verifies=["PW-PR-PREFLIGHT-17"])
+    def test_preflight_without_directory_is_a_usage_error(self) -> None:
+        """--directory を渡していないと、使い方のエラーを出して終了コード 2 で終わる"""
+        result = runner.invoke(app, ["pr", "preflight"])
+
+        assert result.exit_code == 2
+        assert "Missing option" in result.output
+        assert "--directory" in result.output
+
+    @add_test_properties(verifies=["PW-PR-CREATE-37"])
+    def test_create_outside_a_git_repository_exits_1_before_creating(self, tmp_path: Path) -> None:
+        """pr create の事前の確認が git のリポジトリでない場合に当たると、終了コード 1 で終わる"""
+        file = _write_pr_file(tmp_path, _VALID_PR_BODY)
+        client = MagicMock()
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_pr_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/test/962"),
+            patch("cli.commands.pr.git_toplevel", return_value=None),
+        ):
+            result = runner.invoke(app, ["pr", "create", str(file)])
+
+        assert result.exit_code == 1
+        assert "error: not a git repository" in result.stderr.splitlines()
+        client.create_pull_request.assert_not_called()
 
 
 class TestHelperFunctionsWithMocks:
@@ -4523,6 +4991,36 @@ class TestPrCleanupEpicProtect:
         assert "unchanged: Issue #903 (already closed)" in result.stderr
         assert "failed" not in result.stderr
 
+    @add_test_properties(verifies=["PW-PR-CLEANUP-21"])
+    def test_cleanup_continues_after_a_close_failure(self) -> None:
+        """Issue の close が 1 件失敗しても、次の Issue の close とブランチ削除に進む"""
+        from cli.core.github import GitHubAPIError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = self._make_pr(
+            head_ref="feat/no-number",
+            closing_issues=[{"number": 101}, {"number": 102}],
+        )
+        mock_client.get_issue_kind.side_effect = lambda _o, _r, n: _kind_task(n)
+        mock_client.close_issue.side_effect = [
+            GitHubAPIError("boom", status_code=500),
+            {"number": 102, "state": "closed"},
+        ]
+
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=self._config()),
+            patch("cli.commands.pr.GitHubClient", return_value=mock_client),
+            patch("cli.commands.pr._local_cleanup_after_merge"),
+        ):
+            result = runner.invoke(app, ["pr", "cleanup", "owner/repo/42", "--delete-branch"])
+
+        assert result.exit_code == 0, result.stderr
+        closed = [c.args[2] for c in mock_client.close_issue.call_args_list]
+        assert closed == [101, 102]
+        assert "warning: closing Issue #101 failed: boom" in result.stderr
+        assert "closed: Issue #102" in result.stderr
+        mock_client.delete_branch.assert_any_call("owner", "repo", "feat/no-number")
+
 
 # pr 雛形ラウンドトリップテスト（#958 F-02 / F-03 / F-06）
 
@@ -5512,6 +6010,47 @@ class TestPrCreateOutputLines:
         assert "warning: Issue #12 is not on the board; status not updated" in result.stderr
         assert result.stdout == "https://x/pull/21\n"
 
+    @add_test_properties(verifies=["PW-PR-CREATE-24"])
+    def test_submit_consumes_the_slash_pending_flag(self, tmp_path: Path) -> None:
+        from cli.core.state import FLAG_PR_CREATE_SLASH_PENDING
+
+        client = MagicMock()
+        client.create_pull_request.return_value = {"number": 21, "html_url": "https://x/pull/21"}
+        client.get_item_id_by_issue.return_value = None
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_line_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr._run_preflight_checks_or_exit"),
+            patch("cli.commands.pr.consume_flag") as consume,
+        ):
+            result = runner.invoke(app, ["pr", "create", str(self._file(tmp_path))])
+
+        assert result.exit_code == 0, result.stderr
+        consume.assert_called_once_with(FLAG_PR_CREATE_SLASH_PENDING)
+
+    @add_test_properties(verifies=["PW-PR-CREATE-40"])
+    def test_api_error_on_create_exits_1_and_skips_the_status_update(self, tmp_path: Path) -> None:
+        from cli.core.github import GitHubAPIError
+
+        client = MagicMock()
+        client.create_pull_request.side_effect = GitHubAPIError("Validation Failed")
+        with (
+            patch("cli.commands.pr.load_active_config", return_value=_line_config()),
+            patch("cli.commands.pr.GitHubClient", return_value=client),
+            patch("cli.commands.pr.git_current_branch", return_value="feat/demo/12"),
+            patch("cli.commands.pr._run_preflight_checks_or_exit"),
+            patch("cli.commands.pr.consume_flag") as consume,
+            patch("cli.commands.pr._update_issue_status_to_in_review") as update_status,
+        ):
+            result = runner.invoke(app, ["pr", "create", str(self._file(tmp_path))])
+
+        assert result.exit_code == 1
+        assert "error: PR creation failed: Validation Failed" in result.stderr.splitlines()
+        assert result.stdout == ""
+        update_status.assert_not_called()
+        consume.assert_not_called()
+
 
 class TestPrPrepareOutputLines:
     @add_test_properties(verifies=["PW-PR-CREATE-02", "PW-PR-CREATE-03", "PW-PR-CREATE-04"])
@@ -5755,6 +6294,28 @@ class TestPrPreflightOutputLines:
         assert "=== Summary ===" not in result.stdout
         _assert_no_symbols(result)
 
+    @add_test_properties(verifies=["PW-PR-PREFLIGHT-02"])
+    def test_warnings_still_print_all_eleven_sections_in_order(self, tmp_path: Path) -> None:
+        result = self._run(
+            tmp_path, pushed=False, push_message="2 unpushed commits", stash="stash@{0}: WIP"
+        )
+
+        assert result.exit_code == 2
+        headings = [ln for ln in result.stdout.splitlines() if re.fullmatch(r"=== .* ===", ln)]
+        assert headings == [
+            "=== Git Remote ===",
+            "=== Current Branch ===",
+            "=== Push Status ===",
+            "=== Base Branch ===",
+            "=== Git Status ===",
+            "=== .gitignore ===",
+            "=== Git Exclude ===",
+            "=== Commits (vs origin/develop-aist) ===",
+            "=== Diff Summary (vs origin/develop-aist) ===",
+            "=== Worktree Info ===",
+            "=== Stash List ===",
+        ]
+
 
 class TestPrimaryRemoteUpstream:
     """origin が無く upstream だけのリポでは、主の remote（upstream）で ref を組み立てる"""
@@ -5975,3 +6536,19 @@ class TestPrimaryRemoteUpstream:
             "dry-run: would update develop-aist from upstream/develop-aist"
             in capsys.readouterr().err
         )
+
+
+def _slim_pr(number: int) -> dict[str, Any]:
+    return {
+        "number": number,
+        "state": "OPEN",
+        "title": "feat: テスト",
+        "body": "本文",
+        "head_ref": "feat/test",
+        "base_ref": "develop-aist",
+        "is_draft": False,
+        "mergeable": "MERGEABLE",
+        "comments": 0,
+        "closing_issues": [],
+        "reviews": [],
+    }

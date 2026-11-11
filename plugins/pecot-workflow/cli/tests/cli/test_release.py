@@ -197,6 +197,18 @@ class TestReleasePreflight:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-34", "PW-RELEASE-PREFLIGHT-35"])
+    def test_unreadable_remote_repo_exits_with_error_line(self) -> None:
+        """--repo を省き remote のリポジトリを読めないと、error の行を出して終了コード 1"""
+        with (
+            patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
+            patch("cli.commands.release.primary_remote_repo", return_value=None),
+        ):
+            result = runner.invoke(app, ["release", "preflight", "0.6.1"])
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+
 
 # release create テスト
 
@@ -338,6 +350,57 @@ class TestReleaseCreate:
 
         assert result.exit_code == 1
         assert "release_branch" in result.output
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-01"])
+    def test_body_is_release_notes(self) -> None:
+        """リリースの本文に CHANGELOG のリリースノートを渡す"""
+        result, client = _invoke_create(["0.6.1"], notes="### 追加\n\n- 新機能")
+
+        assert result.exit_code == 0
+        assert client.create_release.call_args.kwargs["body"] == "### 追加\n\n- 新機能"
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-02"])
+    def test_target_commitish_is_release_branch(self) -> None:
+        """リリースの対象のコミットに release_branch を渡す"""
+        result, client = _invoke_create(["0.6.1"])
+
+        assert result.exit_code == 0
+        assert client.create_release.call_args.kwargs["target_commitish"] == "main"
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-12"])
+    def test_no_active_project(self) -> None:
+        """アクティブなプロジェクトが無いと終了コード 1"""
+        result, _ = _invoke_create(["0.6.1"], config=None)
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-16"])
+    def test_changelog_missing(self) -> None:
+        """CHANGELOG が無いと終了コード 1"""
+        result, client = _invoke_create(["0.6.1"], notes=FileNotFoundError("no CHANGELOG"))
+
+        assert result.exit_code == 1
+        client.create_release.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-17"])
+    def test_version_section_missing(self) -> None:
+        """CHANGELOG に渡した版の節が無いと終了コード 1"""
+        from cli.core.changelog import VersionNotFoundError
+
+        result, client = _invoke_create(["0.6.1"], notes=VersionNotFoundError("no section"))
+
+        assert result.exit_code == 1
+        client.create_release.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-21", "PW-RELEASE-CREATE-22"])
+    def test_unreadable_remote_repo_exits_with_error_line(self) -> None:
+        """--repo を省き remote のリポジトリを読めないと、error の行を出して終了コード 1"""
+        result, client = _invoke_create(["0.6.1"], remote=None)
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+        client.create_release.assert_not_called()
 
 
 # --package オプションの分岐テスト
@@ -632,6 +695,17 @@ class TestReleaseCreatePackage:
         assert result.exit_code == 1
         assert "error: owner/repo has no packages configured" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-14"])
+    def test_unregistered_package_errors(self) -> None:
+        """登録していないパッケージ名を --package に渡すと終了コード 1"""
+        result, client = _invoke_create(
+            ["0.6.1", "--package", "unknown"], repo_obj=_mock_repo_with_packages()
+        )
+
+        assert result.exit_code == 1
+        assert "package 'unknown' is not registered in owner/repo" in result.stderr
+        client.create_release.assert_not_called()
+
 
 # release merge テスト
 
@@ -906,6 +980,95 @@ class TestReleaseMerge:
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-06"])
+    def test_dry_run_does_not_delete_branch(self) -> None:
+        """--dry-run と --delete-branch を付けても、ブランチを削除しない"""
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = _make_pr_data()
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["release", "merge", "owner/repo/100", "--dry-run", "--delete-branch"]
+            )
+
+        assert result.exit_code == 0
+        mock_client.delete_branch.assert_not_called()
+        mock_client.merge_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-13"])
+    def test_no_active_project(self) -> None:
+        """アクティブなプロジェクトが無いと終了コード 1"""
+        with patch("cli.commands.release.load_active_config", return_value=None):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-14"])
+    def test_malformed_pr_ref_exits_2(self) -> None:
+        """PR の参照が owner/repo/N の形でないと終了コード 2"""
+        with patch("cli.commands.release.load_active_config", return_value=_mock_config()):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/abc"])
+
+        assert result.exit_code == 2
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-15"])
+    def test_pr_not_found(self) -> None:
+        """PR が見つからないと終了コード 1"""
+        from cli.core.github import GitHubNotFoundError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.side_effect = GitHubNotFoundError("not found")
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: PR owner/repo/100 not found\n" in result.stderr
+        mock_client.merge_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-16"])
+    def test_pr_fetch_api_error(self) -> None:
+        """PR の取得で GitHub API がエラーを返すと終了コード 1"""
+        from cli.core.github import GitHubAPIError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.side_effect = GitHubAPIError("boom")
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: could not read PR owner/repo/100:" in result.stderr
+        mock_client.merge_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-23"])
+    def test_merge_api_error(self) -> None:
+        """マージで GitHub API がエラーを返すと終了コード 1"""
+        from cli.core.github import GitHubAPIError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = _make_pr_data()
+        mock_client.merge_pull_request.side_effect = GitHubAPIError("boom")
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: could not merge PR owner/repo/100:" in result.stderr
 
 
 # release preflight: Dependabot alert / nx 方式
@@ -1316,3 +1479,43 @@ class TestReleaseErrorLines:
         assert result.exit_code == 1
         assert "Traceback" not in result.output
         assert "error: could not get a GitHub API token\n" in result.stderr
+
+
+_UNSET = object()
+
+
+def _invoke_create(
+    args: list[str],
+    *,
+    notes: str | Exception = "notes",
+    config: object = _UNSET,
+    remote: tuple[str, str, str] | None | object = _UNSET,
+    repo_obj: MagicMock | None = None,
+) -> tuple[typer.testing.Result, MagicMock]:
+    """``pecot release create`` を I/O 境界だけ差し替えて起動し、GitHub クライアントの mock も返す"""
+    if config is _UNSET:
+        config = MagicMock()
+        config.host = "ghes.example.com"
+        config.get_release_branch.return_value = "main"
+        if repo_obj is None:
+            repo_obj = MagicMock()
+            repo_obj.changelog_file = None
+            repo_obj.packages = None
+        config.find_repository.return_value = repo_obj
+    if remote is _UNSET:
+        remote = ("github.com", "owner", "repo")
+
+    mock_client = MagicMock()
+    mock_client.create_release.return_value = {"html_url": "https://x/r", "tag_name": "v0.6.1"}
+    notes_patch = (
+        {"side_effect": notes} if isinstance(notes, Exception) else {"return_value": notes}
+    )
+    with (
+        patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
+        patch("cli.commands.release.extract_version_release_notes", **notes_patch),
+        patch("cli.commands.release.primary_remote_repo", return_value=remote),
+        patch("cli.commands.release.load_active_config", return_value=config),
+        patch("cli.commands._tracker_sync.GitHubClient", return_value=mock_client),
+    ):
+        result = runner.invoke(app, ["release", "create", *args])
+    return result, mock_client

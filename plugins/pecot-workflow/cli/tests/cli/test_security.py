@@ -465,6 +465,67 @@ class TestSync:
         assert result.exit_code == 1
         client.create_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-15"])
+    def test_all_alerts_gone_rewrites_to_none_and_does_not_close(self) -> None:
+        old = _body(_row("dependabot", 1, priority="medium", package="pkg"))
+        client = _client(issues=[_tracker(5, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        body = client.update_issue_body.call_args.args[3]
+        assert "## Dependabot\n\nnone" in body
+        assert "## code scanning\n\nnone" in body
+        assert "pecot-alert: dependabot/1" not in body
+        client.close_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-26"])
+    def test_no_active_project_exits_1(self) -> None:
+        client = _client(dependabot=[_dep(1)])
+        with (
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
+            patch("cli.commands._tracker_sync.load_active_config", return_value=None),
+            patch(
+                "cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")
+            ),
+        ):
+            result = runner.invoke(app, ["security", "sync"])
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+        client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-27"])
+    def test_unreadable_git_remote_exits_1(self) -> None:
+        client = _client(dependabot=[_dep(1)])
+        with (
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
+            patch("cli.commands._tracker_sync.load_active_config", return_value=_config()),
+            patch("cli.commands.release.primary_remote_repo", return_value=None),
+        ):
+            result = runner.invoke(app, ["security", "sync"])
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+        client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-43", "PW-SECURITY-SYNC-44"])
+    def test_tracker_creation_failure_prints_a_tracker_error_and_exits_1(self) -> None:
+        client = _client(dependabot=[_dep(1)])
+        client.create_issue.side_effect = GitHubAPIError("boom", status_code=502)
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        assert "error: Tracker: boom\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-SECURITY-SYNC-43", "PW-SECURITY-SYNC-44"])
+    def test_board_registration_failure_prints_a_tracker_error_and_exits_1(self) -> None:
+        client = _client(dependabot=[_dep(1)])
+        client.add_to_project.side_effect = GitHubAPIError("boom", status_code=502)
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 1
+        assert "error: Tracker: boom\n" in result.stderr
+
 
 class TestDryRun:
     @add_test_properties(verifies=["PW-SECURITY-SYNC-24", "PW-SECURITY-SYNC-25"])

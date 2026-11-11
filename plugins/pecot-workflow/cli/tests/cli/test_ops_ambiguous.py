@@ -61,6 +61,27 @@ class TestAmbiguousOps:
         assert result.exit_code == 1
         assert AMBIGUOUS_MSG in result.stderr
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-17", "PW-DELETE-BRANCH-18"])
+    def test_delete_branch_ambiguous(self) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["delete-branch", "acme-labs/pecot-cli", "feat/x"])
+        assert result.exit_code == 1
+        assert AMBIGUOUS_MSG in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-23", "PW-RELEASE-CREATE-24"])
+    def test_release_create_ambiguous(self) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["release", "create", "0.99.0"])
+        assert result.exit_code == 1
+        assert AMBIGUOUS_MSG in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-24", "PW-RELEASE-MERGE-25"])
+    def test_release_merge_ambiguous(self) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["release", "merge", "acme-labs/pecot-cli/1"])
+        assert result.exit_code == 1
+        assert AMBIGUOUS_MSG in result.stderr
+
 
 class TestExplicitRepoOutsideGitPasses:
     """Git 外でも ``--repo`` 明示あれば decorator は素通し (比較対象なし)。"""

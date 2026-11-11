@@ -276,6 +276,24 @@ class TestWriteWorkTarget:
 
         assert (tmp_path / STATE_DIR / FLAG_PECOT_SESSION_TITLE).read_text() == "#5"
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-07"])
+    def test_second_write_overwrites_first(self, tmp_path: Path) -> None:
+        """続けて 2 回書くと、.pecot-active と .pecot-session-title は 2 回目の値になる"""
+        from cli.core.paths import STATE_DIR
+        from cli.core.state import (
+            FLAG_PECOT_ACTIVE,
+            FLAG_PECOT_SESSION_TITLE,
+            write_work_target,
+        )
+
+        with patch("cli.core.state.get_project_root", return_value=tmp_path):
+            write_work_target("acme-labs/aist-plugin/1", "[Task] 最初")
+            write_work_target("acme-labs/aist-plugin/2", "[Task] 次")
+
+        state_dir = tmp_path / STATE_DIR
+        assert (state_dir / FLAG_PECOT_ACTIVE).read_text() == "acme-labs/aist-plugin/2"
+        assert (state_dir / FLAG_PECOT_SESSION_TITLE).read_text() == "#2 次"
+
     def test_non_numeric_ref_writes_nothing(self, tmp_path: Path) -> None:
         """番号が数字でない参照は ValueError で止まり、どのフラグも書かない"""
         from cli.core.paths import STATE_DIR

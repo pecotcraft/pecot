@@ -376,6 +376,95 @@ class TestSync:
         assert result.exit_code == 1
         assert "error: Tracker:" in result.stderr
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-18"])
+    def test_checks_only_change_rewrites_the_body(self) -> None:
+        old = render_tracker_body(
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",), "failed")]
+        )
+        client = _client([_pr(2, "a", "major")], [_tracker(9, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_called_once()
+        args = client.update_issue_body.call_args.args
+        assert args[:3] == ("o", "r", 9)
+        assert args[3] != old
+        assert "| passed |" in args[3]
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-19"])
+    def test_checks_only_change_prints_an_updated_line(self) -> None:
+        old = render_tracker_body(
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",), "failed")]
+        )
+        client = _client([_pr(2, "a", "major")], [_tracker(9, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == ""
+        assert result.stderr.splitlines()[3:] == ["updated: Tracker #9 body"]
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-27"])
+    def test_existing_tracker_fills_only_the_empty_board_fields(self) -> None:
+        body = render_tracker_body([_entry(2)])
+        client = _client([_pr(2, "a", "major")], [_tracker(9, body)])
+        client.get_item_set_field_ids.return_value = {"F_workflow"}
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        updates = [c.args for c in client.update_project_item_field.call_args_list]
+        assert updates == [("PVT_1", "ITEM", "F_priority", "O_priority_medium")]
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-27"])
+    def test_existing_tracker_with_both_board_fields_set_is_not_reset(self) -> None:
+        body = render_tracker_body([_entry(2)])
+        client = _client([_pr(2, "a", "major")], [_tracker(9, body)])
+        client.get_item_set_field_ids.return_value = {"F_workflow", "F_priority"}
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_project_item_field.assert_not_called()
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-29"])
+    def test_multiple_open_trackers_leave_the_unused_one_open(self) -> None:
+        old = render_tracker_body([_entry(1)])
+        client = _client([_pr(2, "a", "major")], [_tracker(12, old), _tracker(9, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_called_once()
+        assert client.update_issue_body.call_args.args[2] == 9
+        client.close_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-33"])
+    def test_no_active_project_exits_1(self) -> None:
+        client = _client([_pr(2, "a", "major")])
+        with (
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
+            patch("cli.commands._tracker_sync.load_active_config", return_value=None),
+            patch(
+                "cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")
+            ),
+        ):
+            result = runner.invoke(app, ["dependabot", "sync"])
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+        client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-34"])
+    def test_unreadable_git_remote_exits_1(self) -> None:
+        client = _client([_pr(2, "a", "major")])
+        with (
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
+            patch("cli.commands._tracker_sync.load_active_config", return_value=_config()),
+            patch("cli.commands.release.primary_remote_repo", return_value=None),
+        ):
+            result = runner.invoke(app, ["dependabot", "sync"])
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+        client.create_issue.assert_not_called()
+
 
 def _invoke_real_client(args: list[str]) -> Any:
     with (

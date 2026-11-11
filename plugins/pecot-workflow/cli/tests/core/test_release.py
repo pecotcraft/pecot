@@ -191,6 +191,21 @@ class TestRunPreflight:
 
         assert "no difference between upstream/main and upstream/develop" in str(exc.value)
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-27"])
+    def test_no_version_in_changelog_raises(self, tmp_path: Path) -> None:
+        """版を省き、CHANGELOG に版の節が 1 つも無いと ReleaseError"""
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# 変更履歴\n\n## [Unreleased]\n", encoding="utf-8")
+
+        with pytest.raises(ReleaseError):
+            run_preflight(
+                changelog_path=changelog,
+                develop_branch="develop",
+                release_branch="main",
+                version=None,
+                cwd=tmp_path,
+            )
+
     @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-01"])
     def test_success_auto_detect_version(self, tmp_path: Path) -> None:
         """バージョン自動検出での正常実行"""

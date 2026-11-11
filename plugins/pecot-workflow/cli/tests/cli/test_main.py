@@ -61,6 +61,22 @@ class TestHelpCommand:
         assert "Usage:" in result.output or result.exit_code == 2
 
 
+class TestUnknownOption:
+    """知らないオプションのテスト"""
+
+    @add_test_properties(verifies=["PW-COMMON-09"])
+    def test_unknown_global_option_exits_2(self) -> None:
+        """知らないオプションを渡すと終了コード 2 で終わる"""
+        result = runner.invoke(app, ["--no-such-option"])
+        assert result.exit_code == 2
+
+    @add_test_properties(verifies=["PW-COMMON-09"])
+    def test_unknown_subcommand_option_exits_2(self) -> None:
+        """サブコマンドに知らないオプションを渡すと終了コード 2 で終わる"""
+        result = runner.invoke(app, ["session", "status", "--no-such-option"])
+        assert result.exit_code == 2
+
+
 # PECOT_GITHUB_API_URL の起動時の確認
 
 

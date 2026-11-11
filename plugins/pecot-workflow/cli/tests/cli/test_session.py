@@ -114,6 +114,24 @@ class TestCollectFlagStatuses:
 class TestFlagStatusCommand:
     """flag_status コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-SESSION-STATUS-19"])
+    def test_status_without_directory_exits_2(self) -> None:
+        """--directory を省くと終了コード 2 で終わる"""
+        result = runner.invoke(app, ["session", "status"])
+        assert result.exit_code == 2
+
+    @add_test_properties(verifies=["PW-SESSION-STATUS-20"])
+    def test_status_directory_not_existing_dir_exits_2(self, tmp_path: Path) -> None:
+        """--directory が存在しないパスやファイルだと終了コード 2 で終わる"""
+        missing = tmp_path / "no-such-dir"
+        result = runner.invoke(app, ["session", "status", "-D", str(missing)])
+        assert result.exit_code == 2
+
+        a_file = tmp_path / "file.txt"
+        a_file.write_text("x")
+        result = runner.invoke(app, ["session", "status", "-D", str(a_file)])
+        assert result.exit_code == 2
+
     @add_test_properties(
         verifies=["PW-SESSION-STATUS-01", "PW-SESSION-STATUS-02", "PW-SESSION-STATUS-03"]
     )
@@ -394,6 +412,24 @@ class TestShowActiveIssue:
 
 class TestFlagRestoreCommand:
     """flag_restore コマンドのテスト"""
+
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-12"])
+    def test_restore_without_directory_exits_2(self) -> None:
+        """--directory を省くと終了コード 2 で終わる"""
+        result = runner.invoke(app, ["session", "restore"])
+        assert result.exit_code == 2
+
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-13"])
+    def test_restore_directory_not_existing_dir_exits_2(self, tmp_path: Path) -> None:
+        """--directory が存在しないパスやファイルだと終了コード 2 で終わる"""
+        missing = tmp_path / "no-such-dir"
+        result = runner.invoke(app, ["session", "restore", "-D", str(missing)])
+        assert result.exit_code == 2
+
+        a_file = tmp_path / "file.txt"
+        a_file.write_text("x")
+        result = runner.invoke(app, ["session", "restore", "-D", str(a_file)])
+        assert result.exit_code == 2
 
     @add_test_properties(verifies=["PW-SESSION-RESTORE-02"])
     def test_restore_upstream_only_repo_records_work_target(self, tmp_path: Path) -> None:
