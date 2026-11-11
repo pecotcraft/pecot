@@ -1,5 +1,6 @@
 ---
 paths:
+  - "nx.json"
   - "**/CHANGELOG.md"
   - ".nx/version-plans/**"
 ---
@@ -49,3 +50,11 @@ dom-to-pptx 1.1.7 の Fractional Font Precision 修正で sz が +5〜13.3% 増�
 
 迷ったら直近の `.nx/version-plans/*.md` で似た規模の変更がどう判定されているか
 確認してから決めます。
+
+## release group
+
+- `nx.json` の `release.groups` には、1 group に 1 project だけを入れる
+  - 複数入れると CHANGELOG が commit から抜ける（#624、nrwl/nx#35559）
+- version-plan の frontmatter のキーは group 名だけにする
+- config の `develop_branch` と `release_branch` が同じなら単一ブランチ
+- shared hook の `develop-aist` のハードコードは、他リポが使うので残す
