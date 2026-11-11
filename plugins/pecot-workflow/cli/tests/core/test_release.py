@@ -177,6 +177,20 @@ class TestRunPreflight:
                 version="0.6.1",
             )
 
+    def test_malformed_version_is_release_error(self, tmp_path: Path) -> None:
+        """X.Y.Z でない版は ReleaseError になる"""
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(SAMPLE_CHANGELOG, encoding="utf-8")
+
+        with pytest.raises(ReleaseError, match="1.2"):
+            run_preflight(
+                changelog_path=changelog,
+                develop_branch="develop-aist",
+                release_branch="main",
+                version="1.2",
+                cwd=tmp_path,
+            )
+
     def test_tag_already_exists_locally(self, tmp_path: Path) -> None:
         """ローカルタグが既に存在する"""
         changelog = tmp_path / "CHANGELOG.md"

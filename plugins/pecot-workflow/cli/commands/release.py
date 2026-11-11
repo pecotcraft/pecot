@@ -435,7 +435,9 @@ def release_create(
         out.data(release_notes)
         return
 
-    client = GitHubClient(host=config.host)
+    from cli.commands._tracker_sync import make_client  # _tracker_sync imports this module
+
+    client = make_client(out, config)
 
     try:
         result = client.create_release(

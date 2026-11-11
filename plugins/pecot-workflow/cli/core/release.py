@@ -12,6 +12,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from cli.core.changelog import (
+    InvalidVersionError,
     VersionNotFoundError,
     extract_version_release_notes,
     get_latest_version,
@@ -121,7 +122,10 @@ def run_preflight(
         except VersionNotFoundError as e:
             raise ReleaseError(str(e)) from e
     else:
-        validate_semver(version)
+        try:
+            validate_semver(version)
+        except InvalidVersionError as e:
+            raise ReleaseError(str(e)) from e
 
     # 3. タグ不存在確認（ローカル）
     tag_name = f"{tag_prefix}-v{version}" if tag_prefix else f"v{version}"

@@ -107,9 +107,9 @@ def worktree_add(
     from cli.core.worktree import create_worktree, ensure_devcontainer_environment
 
     out = Output(dry_run)
-    ensure_devcontainer_environment()
 
     try:
+        ensure_devcontainer_environment()
         result = create_worktree(
             cwd=directory,
             base_branch=base,
@@ -168,9 +168,9 @@ def worktree_remove(
     from cli.core.worktree import ensure_devcontainer_environment, remove_worktree
 
     out = Output(False)
-    ensure_devcontainer_environment()
 
     try:
+        ensure_devcontainer_environment()
         remove_worktree(
             cwd=directory,
             name=name,
@@ -207,9 +207,9 @@ def worktree_init(
     )
 
     out = Output(False)
-    ensure_devcontainer_environment()
 
     try:
+        ensure_devcontainer_environment()
         main_wt = find_main_worktree(directory)
     except RuntimeError as e:
         out.error(str(e))
@@ -366,15 +366,24 @@ def worktree_link(
     )
 
     out = Output(dry_run)
-    ensure_devcontainer_environment()
-    from cli.core.worktree_links import find_config_file, load_config
+    from cli.core.worktree_links import WorktreeConfigError, find_config_file, load_config
+
+    try:
+        ensure_devcontainer_environment()
+    except RuntimeError as e:
+        out.error(str(e))
+        raise typer.Exit(1) from None
 
     config_path = find_config_file(directory)
     if config_path is None:
         out.error("worktree config not found\nrun: pecot worktree init -D <directory>")
         raise typer.Exit(1)
 
-    config = load_config(config_path)
+    try:
+        config = load_config(config_path)
+    except WorktreeConfigError as e:
+        out.error(str(e))
+        raise typer.Exit(1) from None
 
     # main worktree and project root
     try:

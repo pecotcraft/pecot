@@ -7,6 +7,7 @@ CliRunnerを使用してコマンドを実行。
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -80,3 +81,52 @@ class TestApiUrlOverrideGuard:
         result = runner.invoke(app, ["session", "status", "-D", str(tmp_path)])
         assert result.exit_code == 0
         assert "PECOT_GITHUB_API_URL は" not in result.output
+
+
+# ルートの網（PecotError を error: の 1 行と終了コード 1 にする）
+
+
+class TestPecotErrorNet:
+    def test_project_root_not_found_is_error_line(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        from cli.core.paths import ProjectRootNotFoundError
+
+        monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("PECOT_SESSION_PROJECT_DIR", raising=False)
+        monkeypatch.chdir(tmp_path)
+        err = ProjectRootNotFoundError("project root not found: test")
+        with patch("cli.commands.session.flag_exists", side_effect=err):
+            result = runner.invoke(app, ["session", "status", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "error: project root not found: test" in result.stderr.splitlines()
+        assert "Traceback" not in result.output + result.stderr
+
+    def test_missing_token_is_error_line(self, tmp_path: Path) -> None:
+        from cli.core.github import GitHubAuthError
+        from cli.core.github.client import GitHubClientBase
+
+        config = MagicMock(host="github.com")
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=config),
+            patch("cli.commands.issue._report_template_violations", return_value=False),
+            patch.object(
+                GitHubClientBase, "_get_token", side_effect=GitHubAuthError("could not get a token")
+            ),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "comment",
+                    "-i",
+                    "o/r/1",
+                    "-m",
+                    "x",
+                    "--template",
+                    "plan",
+                ],
+            )
+        assert result.exit_code == 1
+        assert any(line.startswith("error: ") for line in result.stderr.splitlines())
+        assert "Traceback" not in result.output + result.stderr

@@ -524,14 +524,35 @@ class TestLoadConfig:
             load_config(tmp_path / "nonexistent.json")
 
     def test_load_invalid_json(self, tmp_path: Path) -> None:
-        """不正なJSONはエラー"""
-        import json
-
+        """不正なJSONは ConfigError（1 行）"""
         config_file = tmp_path / "invalid.json"
         config_file.write_text("not valid json")
 
-        with pytest.raises(json.JSONDecodeError):
+        with pytest.raises(ConfigError, match="invalid config file:") as exc:
             load_config(config_file)
+        assert "\n" not in str(exc.value)
+        assert str(config_file) in str(exc.value)
+
+    def test_load_schema_violation(self, tmp_path: Path) -> None:
+        """形式違いは ConfigError。メッセージは 1 行で URL を含まない"""
+        config_file = tmp_path / "schema.json"
+        config_file.write_text('{"host": "github.com"}')
+
+        with pytest.raises(ConfigError, match="invalid config file:") as exc:
+            load_config(config_file)
+        message = str(exc.value)
+        assert "\n" not in message
+        assert "https://errors.pydantic.dev" not in message
+        assert ": Field required" in message
+
+    def test_load_non_utf8(self, tmp_path: Path) -> None:
+        """UTF-8 でないファイルは ConfigError"""
+        config_file = tmp_path / "latin.json"
+        config_file.write_bytes(b'{"host": "\xff\xfe"}')
+
+        with pytest.raises(ConfigError, match="invalid config file:") as exc:
+            load_config(config_file)
+        assert "\n" not in str(exc.value)
 
 
 class TestSaveConfig:

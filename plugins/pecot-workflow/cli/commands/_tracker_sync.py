@@ -15,7 +15,7 @@ import typer
 from cli.commands._output import Operation, Output
 from cli.commands.release import resolve_release_target_repo
 from cli.core.config import ProjectConfig, load_active_config
-from cli.core.github import GitHubAPIError
+from cli.core.github import GitHubAPIError, GitHubClient
 
 DryRunOption = Annotated[
     bool,
@@ -37,6 +37,19 @@ def load_target(ctx: typer.Context, out: Output) -> tuple[ProjectConfig, str, st
         out.error("no active project")
         raise typer.Exit(1)
     return config, owner, repo
+
+
+def make_client(out: Output, config: ProjectConfig) -> GitHubClient:
+    """Create the GitHub client; an auth or API error becomes an ``error:`` line and exit 1
+
+    Raises:
+        typer.Exit(1): when the client cannot be created (for example, no token)
+    """
+    try:
+        return GitHubClient(host=config.host)
+    except GitHubAPIError as e:
+        out.error(e.message)
+        raise typer.Exit(1) from None
 
 
 def api_error_detail(e: GitHubAPIError | httpx.HTTPError) -> str:

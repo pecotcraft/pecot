@@ -217,7 +217,7 @@ class TestReleaseCreate:
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
-            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=mock_client),
         ):
             result = runner.invoke(app, ["release", "create", "0.6.1"])
 
@@ -288,7 +288,7 @@ class TestReleaseCreate:
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
-            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=mock_client),
         ):
             result = runner.invoke(app, ["release", "create", "0.6.1"])
 
@@ -513,7 +513,7 @@ class TestReleaseCreatePackage:
                 return_value=("github.com", "owner", "repo"),
             ),
             patch("cli.commands.release.load_active_config", return_value=mock_config),
-            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=mock_client),
         ):
             result = runner.invoke(
                 app, ["release", "create", "0.6.1", "--package", "pecot-workflow"]
@@ -1182,3 +1182,46 @@ class TestReleasePreflightNx:
         assert "  reason: トークンが見つかりません" in result.stderr.splitlines()
         assert "error: could not check alerts: トークンが見つかりません\n" in result.stderr
         assert result.stdout == ""
+
+
+class TestReleaseErrorLines:
+    """例外が traceback ではなく error: の行と終了コード 1 になる"""
+
+    def test_preflight_malformed_version(self, tmp_path: Path) -> None:
+        (tmp_path / "CHANGELOG.md").write_text("## [Unreleased]\n", encoding="utf-8")
+        with (
+            patch("cli.commands.release.git_toplevel", return_value=tmp_path),
+            patch(
+                "cli.commands.release.origin_repo",
+                return_value=("ghes.example.com", "owner", "repo"),
+            ),
+            patch("cli.commands.release.load_active_config", return_value=_alert_config()),
+            patch("cli.commands.release._check_alerts"),
+        ):
+            result = runner.invoke(app, ["release", "preflight", "1.2"])
+
+        assert result.exit_code == 1
+        assert "Traceback" not in result.output
+        error_lines = [line for line in result.stderr.splitlines() if line.startswith("error:")]
+        assert len(error_lines) == 1
+        assert "1.2" in error_lines[0]
+
+    def test_create_without_token(self, tmp_path: Path) -> None:
+        with (
+            patch("cli.commands.release.git_toplevel", return_value=tmp_path),
+            patch(
+                "cli.commands.release.origin_repo",
+                return_value=("ghes.example.com", "owner", "repo"),
+            ),
+            patch("cli.commands.release.load_active_config", return_value=_alert_config()),
+            patch("cli.commands.release.extract_version_release_notes", return_value="notes"),
+            patch(
+                "cli.core.github.client.GitHubClientBase._get_token",
+                side_effect=GitHubAuthError("could not get a GitHub API token"),
+            ),
+        ):
+            result = runner.invoke(app, ["release", "create", "0.6.1"])
+
+        assert result.exit_code == 1
+        assert "Traceback" not in result.output
+        assert "error: could not get a GitHub API token\n" in result.stderr

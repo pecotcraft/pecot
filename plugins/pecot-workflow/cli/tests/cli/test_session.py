@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from cli.commands.main import app
@@ -396,20 +397,48 @@ class TestFlagRestoreCommand:
         assert result.exit_code == 0
         mock_write.assert_called_once_with("owner/repo/123", "")
 
-    def test_restore_continues_when_config_is_broken(self, tmp_path: Path) -> None:
-        """設定ファイルが不正で ConfigError になっても復元は止めない（タイトル無しで記録）"""
+    def test_restore_stops_when_config_is_broken(self, tmp_path: Path) -> None:
+        """設定ファイルが不正で ConfigError になったら error: の行で止まる（記録しない）"""
         from cli.core.config import ConfigError
 
         with (
-            patch("cli.commands.session.load_active_config", side_effect=ConfigError("broken")),
+            patch(
+                "cli.commands.session.load_active_config",
+                side_effect=ConfigError("invalid config file: x.json: boom"),
+            ),
             patch("cli.commands._work_target.write_work_target") as mock_write,
         ):
             result = runner.invoke(
                 app, ["session", "restore", "--issue", "owner/repo/123", "-D", str(tmp_path)]
             )
 
-        assert result.exit_code == 0
-        mock_write.assert_called_once_with("owner/repo/123", "")
+        assert result.exit_code == 1
+        assert "error: invalid config file: x.json: boom" in result.output
+        mock_write.assert_not_called()
+
+    @staticmethod
+    def _write_active_config(root: Path, content: str) -> None:
+        projects = root / ".pecot" / "config" / "projects"
+        projects.mkdir(parents=True)
+        (projects / "broken.json").write_text(content)
+        (projects / ".active").write_text("broken.json\n")
+
+    @pytest.mark.parametrize("content", ["not json", '{"host":"github.com"}'])
+    def test_restore_real_broken_config_exits_1(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, content: str
+    ) -> None:
+        """実ファイルの JSON 不正・形式違いは exit 1、error: の行、Traceback 無し、.pecot-active 無し"""
+        self._write_active_config(tmp_path, content)
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+
+        result = runner.invoke(
+            app, ["session", "restore", "--issue", "owner/repo/123", "-D", str(tmp_path)]
+        )
+
+        assert result.exit_code == 1
+        assert "error: invalid config file" in result.output
+        assert "Traceback" not in result.output
+        assert not (tmp_path / ".pecot" / "state" / ".pecot-active").exists()
 
     def test_restore_manual_issue(self, tmp_path: Path) -> None:
         """--issue owner/repo/123 で手動指定成功"""
@@ -484,3 +513,21 @@ class TestFlagRestoreCommand:
         assert result.exit_code == 2
         assert result.output.startswith("error: ")
         assert "owner/repo/N" in result.output
+
+
+class TestStatusWithBrokenConfig:
+    """session status: 不正な設定は warning の行を出して表を出し、終了コード 0"""
+
+    def test_warns_and_exits_0(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        TestFlagRestoreCommand._write_active_config(tmp_path, '{"host":"github.com"}')
+        state = tmp_path / ".pecot" / "state"
+        state.mkdir(parents=True)
+        (state / ".pecot-active").write_text("owner/repo/42\n")
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+
+        result = runner.invoke(app, ["session", "status", "-D", str(tmp_path)])
+
+        assert result.exit_code == 0
+        assert "warning: cannot read the active Issue: invalid config file" in result.output
+        assert "Traceback" not in result.output
+        assert "| .pecot-active | set |" in result.output
