@@ -11,6 +11,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import typer.testing
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.dependabot_prs import LIST_BEGIN, LIST_END, PrEntry, render_tracker_body
@@ -101,6 +102,17 @@ def _tracker(number: int, body: str, state: str = "open") -> dict[str, Any]:
 
 
 class TestSync:
+    @add_test_properties(
+        verifies=[
+            "PW-DEPENDABOT-SYNC-01",
+            "PW-DEPENDABOT-SYNC-02",
+            "PW-DEPENDABOT-SYNC-03",
+            "PW-DEPENDABOT-SYNC-04",
+            "PW-DEPENDABOT-SYNC-14",
+            "PW-DEPENDABOT-SYNC-15",
+            "PW-DEPENDABOT-SYNC-16",
+        ]
+    )
     def test_creates_tracker_for_waiting_prs_only(self) -> None:
         prs = [
             _pr(2, "left-pad", "major"),
@@ -133,6 +145,7 @@ class TestSync:
         assert ("PVT_1", "ITEM", "F_workflow", "O_workflow_backlog") in updates
         assert ("PVT_1", "ITEM", "F_priority", "O_priority_medium") in updates
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-05", "PW-DEPENDABOT-SYNC-06"])
     def test_no_waiting_prs_no_tracker(self) -> None:
         client = _client([_pr(3, "lodash", "minor")])
         result = _invoke(client, ["sync"])
@@ -141,6 +154,9 @@ class TestSync:
         client.create_issue.assert_not_called()
         assert result.stderr.splitlines()[-1] == "skipped: Tracker creation"
 
+    @add_test_properties(
+        verifies=["PW-DEPENDABOT-SYNC-07", "PW-DEPENDABOT-SYNC-16", "PW-DEPENDABOT-SYNC-17"]
+    )
     def test_rewrites_existing_tracker(self) -> None:
         client = _client(
             [_pr(2, "a", "major"), _pr(6, "b", "major"), _pr(5, "@playwright/test", "minor")],
@@ -160,6 +176,7 @@ class TestSync:
         ]
         client.close_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-20", "PW-DEPENDABOT-SYNC-21"])
     def test_same_list_is_not_patched(self) -> None:
         pr = _pr(2, "a", "major")
         body = render_tracker_body(
@@ -173,6 +190,7 @@ class TestSync:
         client.close_issue.assert_not_called()
         assert result.stderr.splitlines()[-1] == "unchanged: Tracker #9"
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-07"])
     def test_old_form_tracker_is_rewritten_to_the_new_columns(self) -> None:
         prs = [
             _pr(120, "ajv", "major", title="build(repo): bump ajv from 6.15.0 to 8.20.0"),
@@ -192,6 +210,9 @@ class TestSync:
         assert "| [#200](https://github.com/o/r/pull/200) | passed |" in body
         assert "major" not in body
 
+    @add_test_properties(
+        verifies=["PW-DEPENDABOT-SYNC-22", "PW-DEPENDABOT-SYNC-23", "PW-DEPENDABOT-SYNC-24"]
+    )
     def test_empty_list_sets_none_and_closes(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
         result = _invoke(client, ["sync"])
@@ -206,6 +227,7 @@ class TestSync:
         ]
         assert "unchanged" not in result.stderr
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-31", "PW-DEPENDABOT-SYNC-32"])
     def test_dry_run_changes_nothing(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
         result = _invoke(client, ["sync", "--dry-run"])
@@ -220,6 +242,7 @@ class TestSync:
             "dry-run: would close Tracker #9",
         ]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-31", "PW-DEPENDABOT-SYNC-32"])
     def test_dry_run_create_changes_nothing(self) -> None:
         client = _client([_pr(2, "a", "major")])
         result = _invoke(client, ["sync", "--dry-run"])
@@ -236,6 +259,7 @@ class TestSync:
         )
         assert lines[4:] == ["dry-run: would add PR #2 to new Tracker (major)"]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-37", "PW-DEPENDABOT-SYNC-38"])
     def test_list_failure_exits_1_without_touching_body(self) -> None:
         client = _client(
             GitHubAPIError("boom", status_code=502), [_tracker(9, render_tracker_body([_entry(1)]))]
@@ -255,6 +279,7 @@ class TestSync:
         assert "null" not in result.stderr
         assert "None" not in result.stderr
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-15"])
     def test_null_rollup_count_is_limited_to_listed_prs(self) -> None:
         null = {"nodes": [{"commit": {"statusCheckRollup": None}}]}
         prs = [
@@ -267,6 +292,7 @@ class TestSync:
         assert "count: PRs awaiting a decision: 1\n" in result.stderr
         assert "count: PRs awaiting a decision without check results: 1\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-41", "PW-DEPENDABOT-SYNC-42"])
     def test_body_rewrite_failure_exits_1_and_does_not_close(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
         client.update_issue_body.side_effect = GitHubAPIError("422", status_code=422)
@@ -277,6 +303,7 @@ class TestSync:
         assert result.stderr.splitlines()[-1].startswith("error: could not update Tracker #9 body:")
         assert "removed:" not in result.stderr
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-43", "PW-DEPENDABOT-SYNC-44"])
     def test_close_failure_after_rewrite_exits_1_with_retry_message(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([_entry(1)]))])
         client.close_issue.side_effect = GitHubAPIError("boom", status_code=502)
@@ -292,6 +319,7 @@ class TestSync:
         )
         assert "closed:" not in result.stderr
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-25", "PW-DEPENDABOT-SYNC-26"])
     def test_retry_closes_without_rewriting_an_already_none_list(self) -> None:
         client = _client([], [_tracker(9, render_tracker_body([]))])
         result = _invoke(client, ["sync"])
@@ -310,6 +338,7 @@ class TestSync:
         client.close_issue.assert_not_called()
         assert result.stderr.splitlines()[3:] == ["dry-run: would close Tracker #9"]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-39", "PW-DEPENDABOT-SYNC-40"])
     def test_broken_markers_exit_1_without_touching_anything(self) -> None:
         client = _client(
             [_pr(2, "a", "major")], [_tracker(9, "<!-- pecot-dependabot-pr: tracker -->")]
@@ -322,6 +351,7 @@ class TestSync:
         client.close_issue.assert_not_called()
         client.create_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-28", "PW-DEPENDABOT-SYNC-30"])
     def test_multiple_open_trackers_warn_and_use_the_smallest(self) -> None:
         body = render_tracker_body([_entry(2)])
         client = _client([_pr(2, "a", "major")], [_tracker(12, body), _tracker(9, body)])
@@ -334,6 +364,9 @@ class TestSync:
         )
         client.create_issue.assert_not_called()
 
+    @add_test_properties(
+        verifies=["PW-DEPENDABOT-SYNC-02", "PW-DEPENDABOT-SYNC-45", "PW-DEPENDABOT-SYNC-46"]
+    )
     def test_board_repair_failure_on_existing_tracker_exits_1(self) -> None:
         body = render_tracker_body([_entry(2)])
         client = _client([_pr(2, "a", "major")], [_tracker(9, body)])
@@ -342,6 +375,95 @@ class TestSync:
 
         assert result.exit_code == 1
         assert "error: Tracker:" in result.stderr
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-18"])
+    def test_checks_only_change_rewrites_the_body(self) -> None:
+        old = render_tracker_body(
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",), "failed")]
+        )
+        client = _client([_pr(2, "a", "major")], [_tracker(9, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_called_once()
+        args = client.update_issue_body.call_args.args
+        assert args[:3] == ("o", "r", 9)
+        assert args[3] != old
+        assert "| passed |" in args[3]
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-19"])
+    def test_checks_only_change_prints_an_updated_line(self) -> None:
+        old = render_tracker_body(
+            [PrEntry(2, "Bump a", "https://github.com/o/r/pull/2", ("major",), "failed")]
+        )
+        client = _client([_pr(2, "a", "major")], [_tracker(9, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == ""
+        assert result.stderr.splitlines()[3:] == ["updated: Tracker #9 body"]
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-27"])
+    def test_existing_tracker_fills_only_the_empty_board_fields(self) -> None:
+        body = render_tracker_body([_entry(2)])
+        client = _client([_pr(2, "a", "major")], [_tracker(9, body)])
+        client.get_item_set_field_ids.return_value = {"F_workflow"}
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        updates = [c.args for c in client.update_project_item_field.call_args_list]
+        assert updates == [("PVT_1", "ITEM", "F_priority", "O_priority_medium")]
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-27"])
+    def test_existing_tracker_with_both_board_fields_set_is_not_reset(self) -> None:
+        body = render_tracker_body([_entry(2)])
+        client = _client([_pr(2, "a", "major")], [_tracker(9, body)])
+        client.get_item_set_field_ids.return_value = {"F_workflow", "F_priority"}
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_project_item_field.assert_not_called()
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-29"])
+    def test_multiple_open_trackers_leave_the_unused_one_open(self) -> None:
+        old = render_tracker_body([_entry(1)])
+        client = _client([_pr(2, "a", "major")], [_tracker(12, old), _tracker(9, old)])
+        result = _invoke(client, ["sync"])
+
+        assert result.exit_code == 0, result.output
+        client.update_issue_body.assert_called_once()
+        assert client.update_issue_body.call_args.args[2] == 9
+        client.close_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-33"])
+    def test_no_active_project_exits_1(self) -> None:
+        client = _client([_pr(2, "a", "major")])
+        with (
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
+            patch("cli.commands._tracker_sync.load_active_config", return_value=None),
+            patch(
+                "cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")
+            ),
+        ):
+            result = runner.invoke(app, ["dependabot", "sync"])
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+        client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-34"])
+    def test_unreadable_git_remote_exits_1(self) -> None:
+        client = _client([_pr(2, "a", "major")])
+        with (
+            patch("cli.commands._tracker_sync.GitHubClient", return_value=client),
+            patch("cli.commands._tracker_sync.load_active_config", return_value=_config()),
+            patch("cli.commands.release.primary_remote_repo", return_value=None),
+        ):
+            result = runner.invoke(app, ["dependabot", "sync"])
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+        client.create_issue.assert_not_called()
 
 
 def _invoke_real_client(args: list[str]) -> Any:
@@ -352,6 +474,7 @@ def _invoke_real_client(args: list[str]) -> Any:
         return runner.invoke(app, ["dependabot", *args])
 
 
+@add_test_properties(verifies=["PW-DEPENDABOT-SYNC-35", "PW-DEPENDABOT-SYNC-36"])
 def test_sync_without_token_is_an_error_line() -> None:
     with patch(
         "cli.core.github.client.GitHubClientBase._get_token",

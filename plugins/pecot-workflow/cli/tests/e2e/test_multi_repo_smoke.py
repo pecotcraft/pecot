@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import respx
 from gql import gql
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import (
@@ -242,6 +243,7 @@ def test_epic_aggregation_routing(respx_mock: respx.MockRouter) -> None:
 # CUJ 3: US4 × semantic — worktree reject (respx 不要)
 
 
+@add_test_properties(verifies=["PW-WORKTREE-ADD-27"])
 def test_worktree_repo_mismatch_reject(tmp_path) -> None:
     """`pecot --repo ownerB/repoB worktree add ...` がカレント Git 不一致で exit 1。"""
     with patch(

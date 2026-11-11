@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 import typer.testing
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.dependabot import DependabotAlertError, DependabotAlertStatus, OpenAlert
@@ -48,6 +49,9 @@ def _alert_status(
 class TestReleasePreflight:
     """release preflight コマンドのテスト"""
 
+    @add_test_properties(
+        verifies=["PW-RELEASE-PREFLIGHT-01", "PW-RELEASE-PREFLIGHT-09", "PW-RELEASE-PREFLIGHT-10"]
+    )
     def test_success_with_auto_detect(self) -> None:
         """バージョン自動検出で成功"""
         mock_config = MagicMock()
@@ -84,6 +88,7 @@ class TestReleasePreflight:
             "count: commits to release (origin/develop-aist -> origin/main): 5\n" in result.stderr
         )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-02"])
     def test_success_with_version(self) -> None:
         """バージョン指定で成功"""
         mock_config = MagicMock()
@@ -120,6 +125,7 @@ class TestReleasePreflight:
             "count: commits to release (origin/develop-aist -> origin/main): 3\n" in result.stderr
         )
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-18"])
     def test_no_git_root(self) -> None:
         """gitリポジトリが見つからない"""
         with patch("cli.commands.release.git_toplevel", return_value=None):
@@ -127,6 +133,7 @@ class TestReleasePreflight:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-19"])
     def test_no_active_config(self) -> None:
         """アクティブプロジェクトがない"""
         with (
@@ -141,6 +148,7 @@ class TestReleasePreflight:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-24", "PW-RELEASE-PREFLIGHT-25"])
     def test_no_develop_branch(self) -> None:
         """develop_branchが未設定"""
         mock_config = MagicMock()
@@ -162,6 +170,7 @@ class TestReleasePreflight:
         assert result.exit_code == 1
         assert "develop_branch" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-30", "PW-RELEASE-PREFLIGHT-33"])
     def test_preflight_error(self) -> None:
         """preflightチェックエラー"""
         mock_config = MagicMock()
@@ -188,6 +197,18 @@ class TestReleasePreflight:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-34", "PW-RELEASE-PREFLIGHT-35"])
+    def test_unreadable_remote_repo_exits_with_error_line(self) -> None:
+        """--repo を省き remote のリポジトリを読めないと、error の行を出して終了コード 1"""
+        with (
+            patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
+            patch("cli.commands.release.primary_remote_repo", return_value=None),
+        ):
+            result = runner.invoke(app, ["release", "preflight", "0.6.1"])
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+
 
 # release create テスト
 
@@ -195,6 +216,7 @@ class TestReleasePreflight:
 class TestReleaseCreate:
     """release create コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-08", "PW-RELEASE-CREATE-09"])
     def test_success(self) -> None:
         """リリース作成成功"""
         mock_config = MagicMock()
@@ -228,6 +250,9 @@ class TestReleaseCreate:
         assert "created: release v0.6.1 on main\n" in result.stderr
         assert result.stdout == "https://ghes.example.com/owner/repo/releases/tag/v0.6.1\n"
 
+    @add_test_properties(
+        verifies=["PW-RELEASE-CREATE-04", "PW-RELEASE-CREATE-05", "PW-RELEASE-CREATE-06"]
+    )
     def test_dry_run(self) -> None:
         """ドライランモード"""
         mock_config = MagicMock()
@@ -254,12 +279,14 @@ class TestReleaseCreate:
         assert "dry-run: would create release v0.6.1 on main\n" in result.stderr
         assert result.stdout == "### 追加\n\n- 新機能\n"
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-10"])
     def test_invalid_version(self) -> None:
         """無効なバージョン形式"""
         result = runner.invoke(app, ["release", "create", "invalid"])
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-11"])
     def test_no_git_root(self) -> None:
         """gitリポジトリが見つからない"""
         with patch("cli.commands.release.git_toplevel", return_value=None):
@@ -267,6 +294,7 @@ class TestReleaseCreate:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-20"])
     def test_api_error(self) -> None:
         """APIエラーの場合"""
         from cli.core.github import GitHubAPIError
@@ -297,6 +325,7 @@ class TestReleaseCreate:
 
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-18", "PW-RELEASE-CREATE-19"])
     def test_no_release_branch(self) -> None:
         """release_branchが未設定"""
         mock_config = MagicMock()
@@ -321,6 +350,57 @@ class TestReleaseCreate:
 
         assert result.exit_code == 1
         assert "release_branch" in result.output
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-01"])
+    def test_body_is_release_notes(self) -> None:
+        """リリースの本文に CHANGELOG のリリースノートを渡す"""
+        result, client = _invoke_create(["0.6.1"], notes="### 追加\n\n- 新機能")
+
+        assert result.exit_code == 0
+        assert client.create_release.call_args.kwargs["body"] == "### 追加\n\n- 新機能"
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-02"])
+    def test_target_commitish_is_release_branch(self) -> None:
+        """リリースの対象のコミットに release_branch を渡す"""
+        result, client = _invoke_create(["0.6.1"])
+
+        assert result.exit_code == 0
+        assert client.create_release.call_args.kwargs["target_commitish"] == "main"
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-12"])
+    def test_no_active_project(self) -> None:
+        """アクティブなプロジェクトが無いと終了コード 1"""
+        result, _ = _invoke_create(["0.6.1"], config=None)
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-16"])
+    def test_changelog_missing(self) -> None:
+        """CHANGELOG が無いと終了コード 1"""
+        result, client = _invoke_create(["0.6.1"], notes=FileNotFoundError("no CHANGELOG"))
+
+        assert result.exit_code == 1
+        client.create_release.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-17"])
+    def test_version_section_missing(self) -> None:
+        """CHANGELOG に渡した版の節が無いと終了コード 1"""
+        from cli.core.changelog import VersionNotFoundError
+
+        result, client = _invoke_create(["0.6.1"], notes=VersionNotFoundError("no section"))
+
+        assert result.exit_code == 1
+        client.create_release.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-21", "PW-RELEASE-CREATE-22"])
+    def test_unreadable_remote_repo_exits_with_error_line(self) -> None:
+        """--repo を省き remote のリポジトリを読めないと、error の行を出して終了コード 1"""
+        result, client = _invoke_create(["0.6.1"], remote=None)
+
+        assert result.exit_code == 1
+        assert "error: could not read the repository from the git remote\n" in result.stderr
+        client.create_release.assert_not_called()
 
 
 # --package オプションの分岐テスト
@@ -421,6 +501,7 @@ class TestReleasePreflightPackage:
         assert "commits to release (upstream/develop-aist -> upstream/main): 2" in result.stderr
         mock_config.get_develop_branch.assert_called_with("up-owner", "up-repo")
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-23"])
     def test_packages_unset_with_package_errors(self) -> None:
         """packages 未設定 + --package → エラー"""
         mock_config = MagicMock()
@@ -445,6 +526,7 @@ class TestReleasePreflightPackage:
         assert result.exit_code == 1
         assert "error: owner/repo has no packages configured" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-21"])
     def test_packages_set_without_package_errors(self) -> None:
         """packages 設定済 + --package なし → エラー（利用可能リスト表示）"""
         mock_config = MagicMock()
@@ -466,6 +548,7 @@ class TestReleasePreflightPackage:
         assert result.exit_code == 1
         assert "specify --package (available: pecot-workflow, pecot-visual)" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-03"])
     def test_packages_set_with_package_uses_prefix(self) -> None:
         """packages 設定済 + --package pecot → tag_prefix=pecot で preflight 呼出"""
         mock_config = MagicMock()
@@ -504,6 +587,7 @@ class TestReleasePreflightPackage:
         )
         assert "pecot-workflow-v0.6.1" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-22"])
     def test_packages_set_with_unknown_package_errors(self) -> None:
         """packages 設定済 + --package 未登録名 → エラー"""
         mock_config = MagicMock()
@@ -529,6 +613,7 @@ class TestReleasePreflightPackage:
 class TestReleaseCreatePackage:
     """release create の --package 分岐テスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-03"])
     def test_packages_set_with_package_creates_prefixed_tag(self) -> None:
         """packages 設定済 + --package pecot → <plugin>-v<ver> タグで create"""
         mock_config = MagicMock()
@@ -565,6 +650,7 @@ class TestReleaseCreatePackage:
         assert call_kwargs["tag_name"] == "pecot-workflow-v0.6.1"
         assert call_kwargs["name"] == "pecot-workflow v0.6.1"
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-13"])
     def test_packages_set_without_package_errors(self) -> None:
         """packages 設定済 + --package なし → エラー"""
         mock_config = MagicMock()
@@ -585,6 +671,7 @@ class TestReleaseCreatePackage:
         assert result.exit_code == 1
         assert "specify --package (available: pecot-workflow, pecot-visual)" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-15"])
     def test_packages_unset_with_package_errors(self) -> None:
         """packages 未設定 + --package → エラー"""
         mock_config = MagicMock()
@@ -607,6 +694,17 @@ class TestReleaseCreatePackage:
 
         assert result.exit_code == 1
         assert "error: owner/repo has no packages configured" in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-14"])
+    def test_unregistered_package_errors(self) -> None:
+        """登録していないパッケージ名を --package に渡すと終了コード 1"""
+        result, client = _invoke_create(
+            ["0.6.1", "--package", "unknown"], repo_obj=_mock_repo_with_packages()
+        )
+
+        assert result.exit_code == 1
+        assert "package 'unknown' is not registered in owner/repo" in result.stderr
+        client.create_release.assert_not_called()
 
 
 # release merge テスト
@@ -649,6 +747,7 @@ def _mock_config(*, release_branch: str | None = "main") -> MagicMock:
 class TestReleaseMerge:
     """release merge コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-01", "PW-RELEASE-MERGE-07"])
     def test_success(self) -> None:
         """正常マージ（merge method="merge" で呼ばれることを検証）"""
         mock_client = MagicMock()
@@ -671,6 +770,7 @@ class TestReleaseMerge:
             "owner", "repo", 100, merge_method="merge"
         )
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-11", "PW-RELEASE-MERGE-12"])
     def test_repo_mismatch_is_rejected(self) -> None:
         """--repo が現在の remote と食い違うと、GitHub を呼ばず終了コード 1 で拒否する"""
         mock_client = MagicMock()
@@ -697,6 +797,7 @@ class TestReleaseMerge:
         assert "use the full form 'owner/repo/N'" in result.stderr
         assert "pass --repo" not in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-04", "PW-RELEASE-MERGE-05"])
     def test_dry_run(self) -> None:
         """ドライラン出力（merge (regular) 表示の検証）"""
         mock_client = MagicMock()
@@ -715,6 +816,7 @@ class TestReleaseMerge:
         )
         mock_client.merge_pull_request.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-17"])
     def test_already_merged(self) -> None:
         """MERGED 状態でエラー"""
         mock_client = MagicMock()
@@ -729,6 +831,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "error: PR #100 is already merged" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-18"])
     def test_closed_pr(self) -> None:
         """CLOSED 状態でエラー"""
         mock_client = MagicMock()
@@ -743,6 +846,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "error: PR #100 is closed" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-19"])
     def test_conflicting_pr(self) -> None:
         """CONFLICTING 状態でエラー"""
         mock_client = MagicMock()
@@ -757,6 +861,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "error: PR #100 has conflicts that must be resolved" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-03"])
     def test_conflicting_with_admin(self) -> None:
         """CONFLICTING + --admin で成功"""
         mock_client = MagicMock()
@@ -776,6 +881,7 @@ class TestReleaseMerge:
         assert result.exit_code == 0
         assert "merged: PR owner/repo/100 (develop-aist -> main, merge commit)\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-22"])
     def test_wrong_base_branch(self) -> None:
         """base が release_branch でない場合エラー"""
         mock_client = MagicMock()
@@ -791,6 +897,7 @@ class TestReleaseMerge:
         assert "release_branch" in result.output
         assert "develop-aist" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-20", "PW-RELEASE-MERGE-21"])
     def test_release_branch_not_configured(self) -> None:
         """release_branch 未設定でエラー"""
         mock_client = MagicMock()
@@ -808,6 +915,7 @@ class TestReleaseMerge:
         assert result.exit_code == 1
         assert "release_branch" in result.output
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-02", "PW-RELEASE-MERGE-08"])
     def test_delete_branch(self) -> None:
         """--delete-branch で削除成功"""
         mock_client = MagicMock()
@@ -828,6 +936,7 @@ class TestReleaseMerge:
         assert "deleted: remote branch develop-aist in owner/repo\n" in result.stderr
         mock_client.delete_branch.assert_called_once_with("owner", "repo", "develop-aist")
 
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-09", "PW-RELEASE-MERGE-10"])
     def test_delete_branch_failure_warns_on_stderr(self) -> None:
         """--delete-branch の削除失敗は ⚠ を stderr に出し、マージ自体は成功"""
         from cli.core.github import GitHubAPIError
@@ -871,6 +980,95 @@ class TestReleaseMerge:
 
         assert result.exit_code == 0
         mock_client.close_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-06"])
+    def test_dry_run_does_not_delete_branch(self) -> None:
+        """--dry-run と --delete-branch を付けても、ブランチを削除しない"""
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = _make_pr_data()
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["release", "merge", "owner/repo/100", "--dry-run", "--delete-branch"]
+            )
+
+        assert result.exit_code == 0
+        mock_client.delete_branch.assert_not_called()
+        mock_client.merge_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-13"])
+    def test_no_active_project(self) -> None:
+        """アクティブなプロジェクトが無いと終了コード 1"""
+        with patch("cli.commands.release.load_active_config", return_value=None):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: no active project\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-14"])
+    def test_malformed_pr_ref_exits_2(self) -> None:
+        """PR の参照が owner/repo/N の形でないと終了コード 2"""
+        with patch("cli.commands.release.load_active_config", return_value=_mock_config()):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/abc"])
+
+        assert result.exit_code == 2
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-15"])
+    def test_pr_not_found(self) -> None:
+        """PR が見つからないと終了コード 1"""
+        from cli.core.github import GitHubNotFoundError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.side_effect = GitHubNotFoundError("not found")
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: PR owner/repo/100 not found\n" in result.stderr
+        mock_client.merge_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-16"])
+    def test_pr_fetch_api_error(self) -> None:
+        """PR の取得で GitHub API がエラーを返すと終了コード 1"""
+        from cli.core.github import GitHubAPIError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.side_effect = GitHubAPIError("boom")
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: could not read PR owner/repo/100:" in result.stderr
+        mock_client.merge_pull_request.assert_not_called()
+
+    @add_test_properties(verifies=["PW-RELEASE-MERGE-23"])
+    def test_merge_api_error(self) -> None:
+        """マージで GitHub API がエラーを返すと終了コード 1"""
+        from cli.core.github import GitHubAPIError
+
+        mock_client = MagicMock()
+        mock_client.get_pull_request_slim.return_value = _make_pr_data()
+        mock_client.merge_pull_request.side_effect = GitHubAPIError("boom")
+
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["release", "merge", "owner/repo/100"])
+
+        assert result.exit_code == 1
+        assert "error: could not merge PR owner/repo/100:" in result.stderr
 
 
 # release preflight: Dependabot alert / nx 方式
@@ -941,6 +1139,7 @@ def _invoke_preflight(
 class TestReleasePreflightScanning:
     """code scanning・secret scanning の open の alert でも preflight が止まる"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-04", "PW-RELEASE-PREFLIGHT-05"])
     def test_all_zero_passes_and_shows_three_lines(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config())
 
@@ -950,6 +1149,7 @@ class TestReleasePreflightScanning:
         assert "count: open secret scanning alerts: 0\n" in result.stderr
         run_pf.assert_called_once()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-13", "PW-RELEASE-PREFLIGHT-17"])
     def test_open_code_scanning_fails_with_numbers(self) -> None:
         status = ScanAlertStatus(
             enabled=True, open_count=1, alerts_url="https://x/cs", open_numbers=[10]
@@ -966,6 +1166,7 @@ class TestReleasePreflightScanning:
         assert result.stdout == ""
         run_pf.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-05"])
     def test_disabled_scanning_passes(self) -> None:
         off = ScanAlertStatus(enabled=False, open_count=0, alerts_url="https://x/s")
         result, _ = _invoke_preflight(_alert_config(), code_scanning=off, secret_scanning=off)
@@ -974,6 +1175,7 @@ class TestReleasePreflightScanning:
         assert "skipped: code scanning (feature disabled)\n" in result.stderr
         assert "skipped: secret scanning (feature disabled)\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-14", "PW-RELEASE-PREFLIGHT-16"])
     def test_all_three_are_checked_before_exit(self) -> None:
         """Dependabot の警告があっても、残りの 2 種の結果まで表示してから終える"""
         bad = ScanAlertStatus(
@@ -990,6 +1192,7 @@ class TestReleasePreflightScanning:
         assert "count: open code scanning alerts: 0\n" in result.stderr
         assert "error: secret scanning has 2 open alerts\n" in result.stderr
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-15"])
     def test_undeterminable_scanning_fails(self) -> None:
         result, run_pf = _invoke_preflight(
             _alert_config(), secret_scanning=SecurityAlertError("権限不足")
@@ -999,6 +1202,7 @@ class TestReleasePreflightScanning:
         assert "error: could not check secret scanning: 権限不足\n" in result.stderr
         run_pf.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-16", "PW-RELEASE-PREFLIGHT-17"])
     def test_network_error_does_not_skip_remaining_checks(self) -> None:
         """通信エラーでも残りの種類を確かめてから exit 1（traceback で終わらない）"""
         result, run_pf = _invoke_preflight(
@@ -1022,6 +1226,7 @@ class TestReleasePreflightScanning:
 class TestReleasePreflightDependabot:
     """open の Dependabot alert は警告だけで、preflight を止めない"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-06"])
     def test_open_alerts_warn_and_pass(self) -> None:
         status = _alert_status(
             open_count=2,
@@ -1101,6 +1306,7 @@ class TestReleasePreflightDependabot:
         assert "skipped: Dependabot alerts (feature disabled)\n" in result.stderr
         assert result.stdout.startswith("version: 0.6.1\n")
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-11", "PW-RELEASE-PREFLIGHT-12"])
     @pytest.mark.parametrize(
         "reason",
         [
@@ -1140,6 +1346,7 @@ class TestReleasePreflightDependabot:
         assert "  reason: authentication failed" in lines
         assert not any("gh auth login" in line for line in lines)
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-24", "PW-RELEASE-PREFLIGHT-25"])
     def test_release_branch_unset_fails_after_alert_line(self) -> None:
         result, _ = _invoke_preflight(_alert_config(release_branch=None))
 
@@ -1154,6 +1361,7 @@ class TestReleasePreflightDependabot:
 class TestReleasePreflightNx:
     """release_type: nx は alert の確認だけを行う"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-07"])
     def test_nx_checks_alerts_only(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"))
 
@@ -1172,6 +1380,7 @@ class TestReleasePreflightNx:
         assert "warning: 1 open Dependabot alert (highest severity: critical)" in result.stderr
         assert result.stdout == ""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-20"])
     def test_nx_rejects_version(self) -> None:
         result, run_pf = _invoke_preflight(_alert_config(release_type="nx"), ["1.0.0"])
 
@@ -1180,6 +1389,7 @@ class TestReleasePreflightNx:
         assert result.stdout == ""
         run_pf.assert_not_called()
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-20"])
     def test_nx_rejects_package(self) -> None:
         config = _alert_config(release_type="nx")
         # packages 設定ありの nx リポに --package で向けても拒否される
@@ -1229,6 +1439,7 @@ class TestReleasePreflightNx:
 class TestReleaseErrorLines:
     """例外が traceback ではなく error: の行と終了コード 1 になる"""
 
+    @add_test_properties(verifies=["PW-RELEASE-PREFLIGHT-28"])
     def test_preflight_malformed_version(self, tmp_path: Path) -> None:
         (tmp_path / "CHANGELOG.md").write_text("## [Unreleased]\n", encoding="utf-8")
         with (
@@ -1248,6 +1459,7 @@ class TestReleaseErrorLines:
         assert len(error_lines) == 1
         assert "1.2" in error_lines[0]
 
+    @add_test_properties(verifies=["PW-RELEASE-CREATE-25", "PW-RELEASE-CREATE-26"])
     def test_create_without_token(self, tmp_path: Path) -> None:
         with (
             patch("cli.commands.release.git_toplevel", return_value=tmp_path),
@@ -1267,3 +1479,43 @@ class TestReleaseErrorLines:
         assert result.exit_code == 1
         assert "Traceback" not in result.output
         assert "error: could not get a GitHub API token\n" in result.stderr
+
+
+_UNSET = object()
+
+
+def _invoke_create(
+    args: list[str],
+    *,
+    notes: str | Exception = "notes",
+    config: object = _UNSET,
+    remote: tuple[str, str, str] | None | object = _UNSET,
+    repo_obj: MagicMock | None = None,
+) -> tuple[typer.testing.Result, MagicMock]:
+    """``pecot release create`` を I/O 境界だけ差し替えて起動し、GitHub クライアントの mock も返す"""
+    if config is _UNSET:
+        config = MagicMock()
+        config.host = "ghes.example.com"
+        config.get_release_branch.return_value = "main"
+        if repo_obj is None:
+            repo_obj = MagicMock()
+            repo_obj.changelog_file = None
+            repo_obj.packages = None
+        config.find_repository.return_value = repo_obj
+    if remote is _UNSET:
+        remote = ("github.com", "owner", "repo")
+
+    mock_client = MagicMock()
+    mock_client.create_release.return_value = {"html_url": "https://x/r", "tag_name": "v0.6.1"}
+    notes_patch = (
+        {"side_effect": notes} if isinstance(notes, Exception) else {"return_value": notes}
+    )
+    with (
+        patch("cli.commands.release.git_toplevel", return_value=Path("/repo")),
+        patch("cli.commands.release.extract_version_release_notes", **notes_patch),
+        patch("cli.commands.release.primary_remote_repo", return_value=remote),
+        patch("cli.commands.release.load_active_config", return_value=config),
+        patch("cli.commands._tracker_sync.GitHubClient", return_value=mock_client),
+    ):
+        result = runner.invoke(app, ["release", "create", *args])
+    return result, mock_client

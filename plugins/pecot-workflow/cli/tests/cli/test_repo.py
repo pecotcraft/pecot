@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.repo_resolver import RepoRef
@@ -46,6 +47,7 @@ def _make_create_branch_client(
 class TestCreateBranchCommand:
     """create-branch コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-18"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.repo.load_active_config", return_value=None):
@@ -56,6 +58,7 @@ class TestCreateBranchCommand:
                 in result.output
             )
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-19"])
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
         mock_config = MagicMock()
@@ -64,6 +67,7 @@ class TestCreateBranchCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-23"])
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
         mock_config = MagicMock()
@@ -84,6 +88,14 @@ class TestCreateBranchCommand:
             assert result.exit_code == 1
             assert "error: owner/repo is not in the project\n" in result.output
 
+    @add_test_properties(
+        verifies=[
+            "PW-CREATE-BRANCH-01",
+            "PW-CREATE-BRANCH-03",
+            "PW-CREATE-BRANCH-09",
+            "PW-CREATE-BRANCH-11",
+        ]
+    )
     def test_create_branch_success(self) -> None:
         """正常にブランチ作成（ブランチ名末尾にIssue番号が自動付与される）"""
         mock_config = MagicMock()
@@ -123,6 +135,7 @@ class TestCreateBranchCommand:
                 name="feat/test-branch/123",
             )
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-08"])
     def test_create_branch_records_issue_title_for_session_name(self) -> None:
         """Node ID と同じ応答で得た Issue タイトルが作業対象の記録に渡る"""
         mock_config = MagicMock()
@@ -150,6 +163,7 @@ class TestCreateBranchCommand:
             # タイトルのための追加の Issue 取得は行わない
             mock_client.get_issue_slim.assert_not_called()
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-07", "PW-CREATE-BRANCH-10"])
     def test_create_branch_updates_status_to_active(self) -> None:
         """ブランチ作成時にステータスが自動的に 'active' に更新される"""
         mock_config = MagicMock()
@@ -187,6 +201,7 @@ class TestCreateBranchCommand:
                 "PVT_test123", "PVTI_item123", "PVTF_workflow", "active_option_id"
             )
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-16"])
     def test_create_branch_continues_on_status_update_failure(self) -> None:
         """ステータス更新API失敗時も処理続行する"""
         from cli.core.github import GitHubAPIError
@@ -279,6 +294,7 @@ class TestCreateBranchCommand:
             # ステータス更新は試みられない
             mock_client.update_project_item_field.assert_not_called()
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-06"])
     def test_create_branch_no_checkout(self) -> None:
         """--no-checkout オプション"""
         mock_config = MagicMock()
@@ -309,6 +325,7 @@ class TestCreateBranchCommand:
             checkout_calls = [c for c in calls if "checkout" in str(c)]
             assert len(checkout_calls) == 0
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-02"])
     def test_create_branch_custom_base(self) -> None:
         """--base オプション"""
         mock_config = MagicMock()
@@ -336,6 +353,7 @@ class TestCreateBranchCommand:
             # main ブランチから分岐
             mock_client.get_branch_sha.assert_called_once_with("owner", "repo", "main")
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-24"])
     def test_github_api_error(self) -> None:
         """GitHub APIエラー時"""
         from cli.core.github import GitHubAPIError
@@ -361,6 +379,7 @@ class TestCreateBranchCommand:
                 in result.output
             )
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-22"])
     def test_no_develop_branch_raises_error(self) -> None:
         """develop_branchが未設定の場合はエラーを発生"""
         mock_config = MagicMock()
@@ -388,6 +407,7 @@ class TestCreateBranchCommand:
 class TestCreateBranchSessionScopeGuards:
     """A-1 (CWD–Issue ref 整合) / A-2 (.pecot-active 上書き) ガードのテスト"""
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-20"])
     def test_create_branch_rejects_cwd_repo_mismatch(self) -> None:
         """A-1: CWD git remote の owner/repo と issue_ref が異なれば exit 2"""
         mock_config = MagicMock()
@@ -407,6 +427,7 @@ class TestCreateBranchSessionScopeGuards:
             assert "/pecot-w:w-worktree-add" in result.output
             assert "--allow-cross-repo" in result.output
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-04"])
     def test_create_branch_allows_cross_repo_with_flag(self) -> None:
         """A-1: --allow-cross-repo でリポ不一致をバイパスできる"""
         mock_config = MagicMock()
@@ -444,6 +465,7 @@ class TestCreateBranchSessionScopeGuards:
             assert result.exit_code == 0
             assert "created: branch" in result.output
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-21"])
     def test_create_branch_rejects_open_active_overwrite(self) -> None:
         """A-2: .pecot-active に OPEN な別 Issue があれば exit 2 + API 未呼び出し"""
         mock_config = MagicMock()
@@ -469,6 +491,7 @@ class TestCreateBranchSessionScopeGuards:
             mock_client.create_linked_branch.assert_not_called()
             mock_client.get_issue_slim.assert_called_once_with("owner", "repo", 999)
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-14", "PW-CREATE-BRANCH-15"])
     def test_create_branch_overwrites_closed_active_silently(self) -> None:
         """A-2: .pecot-active の Issue が CLOSED なら note を出して続行"""
         mock_config = MagicMock()
@@ -495,6 +518,7 @@ class TestCreateBranchSessionScopeGuards:
             assert "warning: .pecot-active points to closed Issue owner/repo/999" in (result.output)
             mock_write.assert_called_once_with("owner/repo/123", "[Task] テスト")
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-12", "PW-CREATE-BRANCH-13"])
     def test_create_branch_treats_unparseable_active_as_stale(self) -> None:
         """A-2: パース不能な .pecot-active は note 1 行 + 続行（get_issue_slim 未呼び出し）"""
         mock_config = MagicMock()
@@ -522,6 +546,7 @@ class TestCreateBranchSessionScopeGuards:
             mock_client.get_issue_slim.assert_not_called()
             mock_write.assert_called_once_with("owner/repo/123", "[Task] テスト")
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-05"])
     def test_create_branch_allows_force_overwrite_active(self) -> None:
         """A-2: --force-overwrite-active で OPEN でも上書き可能 + get_issue_slim 未呼び出し"""
         mock_config = MagicMock()
@@ -612,6 +637,7 @@ class TestCreateBranchSessionScopeGuards:
 class TestDeleteBranchCommand:
     """delete-branch コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-12"])
     def test_invalid_repo_ref(self) -> None:
         """不正なリポジトリ参照形式はエラー"""
         mock_config = MagicMock()
@@ -622,6 +648,7 @@ class TestDeleteBranchCommand:
             assert "invalid owner/repo form" in result.output
             assert "owner/repo" in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-13"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.repo.load_active_config", return_value=None):
@@ -632,6 +659,7 @@ class TestDeleteBranchCommand:
                 in result.output
             )
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-10", "PW-DELETE-BRANCH-11"])
     def test_protected_branch_default(self) -> None:
         """デフォルトブランチの削除はブロック"""
         mock_config = MagicMock()
@@ -649,6 +677,7 @@ class TestDeleteBranchCommand:
             assert result.exit_code == 1
             assert "is a protected branch\n  protected: " in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-10", "PW-DELETE-BRANCH-11"])
     def test_protected_branch_develop(self) -> None:
         """develop_branchの削除はブロック"""
         mock_config = MagicMock()
@@ -669,6 +698,7 @@ class TestDeleteBranchCommand:
             assert result.exit_code == 1
             assert "is a protected branch\n  protected: " in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-10", "PW-DELETE-BRANCH-11"])
     def test_protected_branch_release(self) -> None:
         """release_branchの削除はブロック"""
         mock_config = MagicMock()
@@ -689,6 +719,7 @@ class TestDeleteBranchCommand:
             assert result.exit_code == 1
             assert "is a protected branch\n  protected: " in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-14"])
     def test_api_error_on_default_branch_fetch(self) -> None:
         """デフォルトブランチ取得時のAPIエラー"""
         from cli.core.github import GitHubAPIError
@@ -713,6 +744,7 @@ class TestDeleteBranchCommand:
                 in result.output
             )
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-15"])
     def test_api_error_on_delete(self) -> None:
         """ブランチ削除時のAPIエラー"""
         from cli.core.github import GitHubAPIError
@@ -738,6 +770,7 @@ class TestDeleteBranchCommand:
                 "Reference does not exist\n"
             ) in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-01", "PW-DELETE-BRANCH-04"])
     def test_delete_success(self) -> None:
         """正常にブランチ削除"""
         mock_config = MagicMock()
@@ -759,6 +792,7 @@ class TestDeleteBranchCommand:
             mock_client.delete_branch.assert_any_call("owner", "repo", "feat/old-branch")
             mock_client.delete_branch.assert_any_call("owner", "repo", "wip/feat/old-branch")
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-02", "PW-DELETE-BRANCH-05"])
     def test_delete_also_deletes_wip_branch(self) -> None:
         """ブランチ削除時にWIPブランチも連動削除"""
         mock_config = MagicMock()
@@ -779,6 +813,7 @@ class TestDeleteBranchCommand:
             mock_client.delete_branch.assert_any_call("owner", "repo", "feat/my-feature")
             mock_client.delete_branch.assert_any_call("owner", "repo", "wip/feat/my-feature")
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-07"])
     def test_delete_wip_branch_not_found_silently_skipped(self) -> None:
         """WIPブランチが存在しない場合はスキップ"""
         from cli.core.github import GitHubAPIError
@@ -808,6 +843,7 @@ class TestDeleteBranchCommand:
             # WIPブランチ削除のメッセージは出ない
             assert "wip/" not in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-08", "PW-DELETE-BRANCH-09"])
     def test_delete_wip_branch_failure_warns(self) -> None:
         """WIPブランチの削除が存在しない以外の理由で失敗した場合は警告（終了コード 0）"""
         from cli.core.github import GitHubAPIError
@@ -854,6 +890,7 @@ class TestDeleteBranchCommand:
             assert result.exit_code == 0
             assert "deleted: remote branch feat/done-branch in owner/repo\n" in result.output
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-03", "PW-DELETE-BRANCH-06"])
     def test_dry_run(self) -> None:
         """--dry-run で削除せず情報表示"""
         mock_config = MagicMock()

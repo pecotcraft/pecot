@@ -288,11 +288,11 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: `authored.yaml` にテストの無い項目を 1 つ足すと、`lint-defs` が `has no test` で止まる
 
-- [ ] T062 [P] [US5] `project` の項目に pytest をつなぐ。`@add_test_properties(verifies=[…])` を足す。関数の名前と中身は直さない
-- [ ] T063 [P] [US5] `issue`・`pr` の項目に pytest をつなぐ
-- [ ] T064 [P] [US5] 残りのコマンドと `common_behaviors` の項目に pytest をつなぐ
-- [ ] T065 [US5] つなぐテストが無い項目を挙げる。実装にある振る舞いは、テストを足す。項目を消してよいのは、今の実装にその振る舞いが無いと確かめたときだけにする。挙げた項目と決めを PR に書く
-- [ ] T066 [US5] `libs/interface-spec/targets.json` の pecot-workflow を `coverage: on` にする
+- [x] T062 [P] [US5] `project` の項目に pytest をつなぐ。`@add_test_properties(verifies=[…])` を足す。関数の名前と中身は直さない
+- [x] T063 [P] [US5] `issue`・`pr` の項目に pytest をつなぐ
+- [x] T064 [P] [US5] 残りのコマンドと `common_behaviors` の項目に pytest をつなぐ
+- [x] T065 [US5] つなぐテストが無い項目を挙げる。実装にある振る舞いは、テストを足す。項目を消してよいのは、今の実装にその振る舞いが無いと確かめたときだけにする。挙げた項目と決めを PR に書く
+- [x] T066 [US5] `libs/interface-spec/targets.json` の pecot-workflow を `coverage: on` にする
 
 **Checkpoint**: `lint-defs` が通る。pecot-workflow の振る舞いの項目で、テストの無いものが 0 件
 

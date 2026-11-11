@@ -1532,9 +1532,6 @@ entries:
       - id: PW-PR-CREATE-28
         pattern: unwanted
         statement: もし必須の節が足りないなら、終了コード 3 で終わる
-      - id: PW-PR-CREATE-29
-        pattern: unwanted
-        statement: もし見出しの要約の規則に反するなら、終了コード 3 で終わる
       - id: PW-PR-CREATE-30
         pattern: unwanted
         statement: もし使えない記法があるなら、終了コード 3 で終わる

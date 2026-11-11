@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
 from cli.core.worktree_links import (
@@ -318,6 +319,7 @@ class TestCreateSymlinks:
         assert link_target == "../../../base/aist-roadmap/.claude/settings.local.json"
         assert symlink.resolve().read_text() == "{}"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-22", "PW-WORKTREE-LINK-04"])
     def test_target_missing_skipped(self, tmp_path: Path) -> None:
         root = _setup_project(tmp_path)
         config = WorktreeConfig(
@@ -332,6 +334,7 @@ class TestCreateSymlinks:
         results = create_symlinks(config, root, root / "wt1" / "myrepo")
         assert results[0].action == "skipped"
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-04"])
     def test_dangling_symlink_target_skipped(self, tmp_path: Path) -> None:
         """ターゲットが dangling symlink の場合は skipped になり識別可能な message を返す"""
         root = _setup_project(tmp_path)
@@ -369,6 +372,7 @@ class TestCreateSymlinks:
         assert results[0].action == "created"
         assert (root / "wt1" / "myrepo" / ".claude").is_dir()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-03"])
     def test_replaces_existing_symlink(self, tmp_path: Path) -> None:
         root = _setup_project(tmp_path)
         existing = root / "wt1" / "myrepo" / "CLAUDE.local.md"
@@ -514,6 +518,7 @@ class TestPecotGitignore:
 
 
 class TestCreateSymlinksSafe:
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-08", "PW-WORKTREE-LINK-09"])
     def test_real_file_force_overwrite(self, tmp_path: Path) -> None:
         root = _setup_project(tmp_path)
         existing = root / "wt1" / "myrepo" / "CLAUDE.local.md"
@@ -550,6 +555,27 @@ class TestCreateSymlinksSafe:
         assert results[0].action == "skipped"
         assert not existing.is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-19"])
+    def test_error_in_one_link_does_not_stop_the_next(self, tmp_path: Path) -> None:
+        root = _setup_project(tmp_path)
+        wt = root / "wt1" / "myrepo"
+        (wt / "a").write_text("plain file")
+        config = WorktreeConfig(
+            links=[
+                WorktreeLinkItem(
+                    path="a/b", target_repo="aist-roadmap", target_path="CLAUDE.local.md"
+                ),
+                WorktreeLinkItem(
+                    path="CLAUDE.local.md",
+                    target_repo="aist-roadmap",
+                    target_path="CLAUDE.local.md",
+                ),
+            ]
+        )
+        results = create_symlinks_safe(config, root, wt, force=True)
+        assert [r.action for r in results] == ["error", "created"]
+        assert (wt / "CLAUDE.local.md").is_symlink()
+
 
 # 定数
 
@@ -572,6 +598,7 @@ class TestLoadCopyExcludeSpec:
         ignore_path.write_text(content, encoding="utf-8")
         return ignore_path
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-35"])
     def test_missing_raises(self, tmp_path: Path) -> None:
         """.worktreeignore が無ければ WorktreeConfigError"""
         with pytest.raises(WorktreeConfigError) as exc_info:
@@ -714,6 +741,7 @@ class TestProcessLinkTrackedGuard:
         (target_repo / "docs" / "index.md").write_text("LINK-TARGET-DOC")
         return root
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-22", "PW-WORKTREE-LINK-17"])
     def test_process_link_skips_tracked_file(self, tmp_path: Path) -> None:
         root = self._make_project(tmp_path)
         wt_repo = root / "wt1" / "myrepo"
@@ -735,6 +763,7 @@ class TestProcessLinkTrackedGuard:
         assert not readme.is_symlink()
         assert readme.read_text() == canary
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-17"])
     def test_process_link_skips_tracked_directory(self, tmp_path: Path) -> None:
         root = self._make_project(tmp_path)
         wt_repo = root / "wt1" / "myrepo"
@@ -775,6 +804,7 @@ class TestProcessLinkTrackedGuard:
             )
         ]
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-22"])
     def test_oserror_logs_one_warning(
         self, tmp_path: Path, caplog: pytest.LogCaptureFixture
     ) -> None:
@@ -847,6 +877,7 @@ class TestWtRootAndPlan:
     def _link(self, path: str = "a.txt") -> WorktreeLinkItem:
         return WorktreeLinkItem(path=path, target_repo="aist-roadmap", target_path="a.txt")
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-51"])
     def test_wt_root_outside_set_layout(self, tmp_path: Path) -> None:
         """--path 相当: <root>/<set>/<repo> の外にも symlink を作る"""
         root = _setup_project(tmp_path)

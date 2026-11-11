@@ -6,6 +6,7 @@ add-to-project, update-issue-status, issue create コマンドのテスト。
 from __future__ import annotations
 
 import re
+import subprocess
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -14,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 from typer.testing import CliRunner, Result
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands._output import Output
 from cli.commands.issue import (
@@ -443,12 +445,22 @@ class TestResolveParentEpicRef:
             _resolve_parent_epic_ref("invalid-format", config, "owner", "repo")
 
 
+def _git_repo_with_origin(base: Path, url: str) -> Path:
+    """origin を持つ git リポを作る（番号だけの参照を remote から解決するテスト用）"""
+    repo = base / "git-repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "remote", "add", "origin", url], cwd=repo, check=True)
+    return repo
+
+
 # --- add-to-project コマンドテスト ---
 
 
 class TestAddToProjectCommand:
     """add-to-project コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-12"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -456,6 +468,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-13"])
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
         mock_config = MagicMock()
@@ -464,6 +477,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-14"])
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
         mock_config = MagicMock()
@@ -482,6 +496,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 1
             assert "is not in the project" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-01", "PW-ADD-TO-PROJECT-07"])
     def test_add_success(self) -> None:
         """正常にプロジェクトに追加"""
         mock_config = MagicMock()
@@ -506,6 +521,7 @@ class TestAddToProjectCommand:
             mock_client.get_issue_node_id.assert_called_once_with("owner", "repo", 123)
             mock_client.add_to_project.assert_called_once_with("PVT_123", "I_abc123")
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-03", "PW-ADD-TO-PROJECT-08"])
     def test_add_with_status(self) -> None:
         """--status オプション付きで追加"""
         mock_config = MagicMock()
@@ -533,6 +549,9 @@ class TestAddToProjectCommand:
                 "PVT_123", "PVTI_456", "PVTF_workflow", "opt_active"
             )
 
+    @add_test_properties(
+        verifies=["PW-ADD-TO-PROJECT-09", "PW-ADD-TO-PROJECT-10", "PW-ADD-TO-PROJECT-11"]
+    )
     def test_add_with_invalid_status(self) -> None:
         """有効でないステータスはエラー（何も追加しない）"""
         mock_config = MagicMock()
@@ -548,6 +567,7 @@ class TestAddToProjectCommand:
             assert "valid values:" in result.output
             mock_client.add_to_project.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-16", "PW-ADD-TO-PROJECT-17"])
     def test_add_with_status_not_configured(self) -> None:
         """ボードが定義していないステータスはエラー（何も追加しない）"""
         mock_config = MagicMock()
@@ -568,6 +588,7 @@ class TestAddToProjectCommand:
             assert "status 'active' is not configured in the project" in result.output
             mock_client.add_to_project.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-15"])
     def test_github_api_error(self) -> None:
         """GitHub APIエラー時"""
         from cli.core.github import GitHubAPIError
@@ -589,6 +610,7 @@ class TestAddToProjectCommand:
             assert result.exit_code == 1
             assert "error: could not" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-02", "PW-ADD-TO-PROJECT-08"])
     def test_add_with_default_status(self) -> None:
         """--status 未指定時にデフォルトで ready が設定される"""
         mock_config = MagicMock()
@@ -625,6 +647,77 @@ class TestAddToProjectCommand:
         assert result.exit_code == 0
         assert "[default: ready]" in result.output
 
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-04"])
+    def test_add_with_empty_status_skips_status_update(self) -> None:
+        """--status に空文字を渡すと、Status を設定せず Issue だけをボードに足す"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+
+        mock_client = MagicMock()
+        mock_client.get_issue_node_id.return_value = "I_abc123"
+        mock_client.add_to_project.return_value = "PVTI_456"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["add-to-project", "owner/repo/123", "--status", ""])
+
+        assert result.exit_code == 0, result.output
+        mock_client.add_to_project.assert_called_once_with("PVT_123", "I_abc123")
+        mock_client.update_project_item_field.assert_not_called()
+        assert "set:" not in result.output
+
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-05"])
+    def test_add_short_form_uses_repo_option(self) -> None:
+        """番号だけの参照に --repo を付けると、そのリポジトリの Issue を足す"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+
+        mock_client = MagicMock()
+        mock_client.get_issue_node_id.return_value = "I_abc123"
+        mock_client.add_to_project.return_value = "PVTI_456"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["--repo", "owner/repo", "add-to-project", "123", "--status", ""]
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_issue_node_id.assert_called_once_with("owner", "repo", 123)
+        assert "added: Issue owner/repo/123 to project" in result.stderr
+
+    @add_test_properties(verifies=["PW-ADD-TO-PROJECT-06"])
+    def test_add_short_form_falls_back_to_git_remote(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """番号だけの参照で --repo を省くと、git の remote のリポジトリの Issue を足す"""
+        monkeypatch.chdir(_git_repo_with_origin(tmp_path, "https://github.com/owner/repo.git"))
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+
+        mock_client = MagicMock()
+        mock_client.get_issue_node_id.return_value = "I_abc123"
+        mock_client.add_to_project.return_value = "PVTI_456"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["add-to-project", "123", "--status", ""])
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_issue_node_id.assert_called_once_with("owner", "repo", 123)
+
 
 # --- update-issue-status コマンドテスト ---
 
@@ -632,6 +725,7 @@ class TestAddToProjectCommand:
 class TestUpdateIssueStatusCommand:
     """update-issue-status コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-07"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -639,6 +733,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-08"])
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
         mock_config = MagicMock()
@@ -647,6 +742,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-09"])
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
         mock_config = MagicMock()
@@ -665,6 +761,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "is not in the project" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-05", "PW-UPDATE-ISSUE-STATUS-06"])
     def test_invalid_status(self) -> None:
         """不正なステータスはエラー"""
         mock_config = MagicMock()
@@ -675,6 +772,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "backlog/pending/ready/active/in_review/archived" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-10", "PW-UPDATE-ISSUE-STATUS-11"])
     def test_issue_not_in_board(self) -> None:
         """Issueがボードにない場合はエラー"""
         mock_config = MagicMock()
@@ -693,6 +791,7 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "is not on the project board" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-12"])
     def test_status_not_configured_in_board(self) -> None:
         """ボードが Status を定義していないと、終了コード 1 で未設定を知らせる"""
         mock_config = MagicMock()
@@ -714,6 +813,7 @@ class TestUpdateIssueStatusCommand:
         assert "status 'active' is not configured in the project" in result.output
         mock_client.update_project_item_field.assert_not_called()
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-01", "PW-UPDATE-ISSUE-STATUS-04"])
     def test_update_success(self) -> None:
         """正常にステータス更新"""
         mock_config = MagicMock()
@@ -743,6 +843,7 @@ class TestUpdateIssueStatusCommand:
                 "PVT_123", "PVTI_456", "PVTF_workflow", "opt_active"
             )
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-01"])
     def test_update_all_statuses(self) -> None:
         """全ステータス（backlog/pending/ready/active/in_review/archived）が使用可能"""
         for status in ["backlog", "pending", "ready", "active", "in_review", "archived"]:
@@ -763,6 +864,7 @@ class TestUpdateIssueStatusCommand:
                 result = runner.invoke(app, ["update-issue-status", "owner/repo/123", status])
                 assert result.exit_code == 0, f"Status '{status}' failed: {result.output}"
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-13"])
     def test_github_api_error(self) -> None:
         """GitHub APIエラー時"""
         from cli.core.github import GitHubAPIError
@@ -783,6 +885,56 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "error: could not" in result.output
 
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-02"])
+    def test_update_short_form_uses_repo_option(self) -> None:
+        """番号だけの参照に --repo を付けると、そのリポジトリの Issue の Status を設定する"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = "PVTF_workflow"
+        mock_config.get_option_id.return_value = "opt_active"
+
+        mock_client = MagicMock()
+        mock_client.get_item_id_by_issue.return_value = "PVTI_456"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["--repo", "owner/repo", "update-issue-status", "123", "active"]
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_item_id_by_issue.assert_called_once_with("PVT_123", "owner", "repo", 123)
+        assert "set: Issue owner/repo/123 status active" in result.stderr
+
+    @add_test_properties(verifies=["PW-UPDATE-ISSUE-STATUS-03"])
+    def test_update_short_form_falls_back_to_git_remote(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """番号だけの参照で --repo を省くと、git の remote のリポジトリの Issue を対象にする"""
+        monkeypatch.chdir(_git_repo_with_origin(tmp_path, "https://github.com/owner/repo.git"))
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = "PVTF_workflow"
+        mock_config.get_option_id.return_value = "opt_active"
+
+        mock_client = MagicMock()
+        mock_client.get_item_id_by_issue.return_value = "PVTI_456"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["update-issue-status", "123", "active"])
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_item_id_by_issue.assert_called_once_with("PVT_123", "owner", "repo", 123)
+
 
 # --- issue reopen コマンドテスト ---
 
@@ -790,6 +942,7 @@ class TestUpdateIssueStatusCommand:
 class TestIssueReopenCommand:
     """issue reopen コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-16"])
     def test_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -797,6 +950,7 @@ class TestIssueReopenCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-19"])
     def test_invalid_issue_ref(self) -> None:
         """不正なIssue参照形式はエラー"""
         mock_config = MagicMock()
@@ -805,6 +959,7 @@ class TestIssueReopenCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-17"])
     def test_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合はエラー"""
         mock_config = MagicMock()
@@ -821,6 +976,7 @@ class TestIssueReopenCommand:
             assert result.exit_code == 1
             assert "is not in the project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-01", "PW-ISSUE-REOPEN-08"])
     def test_reopen_success(self) -> None:
         """基本的な再オープン成功"""
         mock_config = MagicMock()
@@ -844,6 +1000,7 @@ class TestIssueReopenCommand:
             assert mock_client.reopen_issue.call_count == 2
             mock_client.reopen_issue.assert_called_with("owner", "repo", 123)
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-02", "PW-ISSUE-REOPEN-07"])
     def test_reopen_with_status(self) -> None:
         """--statusオプション指定での再オープン"""
         mock_config = MagicMock()
@@ -874,6 +1031,7 @@ class TestIssueReopenCommand:
                 "PVT_123", "PVTI_456", "PVTF_workflow", "opt_active"
             )
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-05", "PW-ISSUE-REOPEN-09"])
     def test_reopen_with_comment(self) -> None:
         """--commentオプション指定での再オープン"""
         mock_config = MagicMock()
@@ -907,6 +1065,7 @@ class TestIssueReopenCommand:
                 "owner", "repo", 123, "追加対応が必要"
             )
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-10", "PW-ISSUE-REOPEN-11"])
     def test_reopen_not_on_board(self) -> None:
         """ボードに存在しない場合は警告のみ"""
         mock_config = MagicMock()
@@ -932,6 +1091,7 @@ class TestIssueReopenCommand:
             mock_client.reopen_issue.assert_called_with("owner", "repo", 123)
             mock_client.update_project_item_field.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-13"])
     def test_reopen_state_not_open(self) -> None:
         """2回目のreopenでstateがopenにならない場合はエラー"""
         mock_config = MagicMock()
@@ -953,6 +1113,7 @@ class TestIssueReopenCommand:
             assert result.exit_code == 1
             assert "error: Issue owner/repo/123 did not become open" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-15"])
     def test_invalid_status(self) -> None:
         """不正なステータス値はエラー"""
         mock_config = MagicMock()
@@ -962,6 +1123,119 @@ class TestIssueReopenCommand:
             )
             assert result.exit_code == 1
             assert "backlog/pending/ready/active/in_review/archived" in result.output
+
+    @staticmethod
+    def _reopen_config() -> MagicMock:
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = "PVTF_workflow"
+        mock_config.get_option_id.return_value = "opt_active"
+        return mock_config
+
+    @staticmethod
+    def _reopen_client() -> MagicMock:
+        mock_client = MagicMock()
+        mock_client.reopen_issue.return_value = {"state": "open", "number": 123}
+        mock_client.get_item_id_by_issue.return_value = "PVTI_456"
+        return mock_client
+
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-04"])
+    def test_reopen_waits_3_seconds_before_second_reopen(self) -> None:
+        """status を設定すると、3 秒待ってからもう一度 reopen する"""
+        mock_client = self._reopen_client()
+        events: list[str] = []
+        mock_client.reopen_issue.side_effect = lambda *a: (
+            events.append("reopen"),
+            {"state": "open", "number": 123},
+        )[1]
+        mock_client.update_project_item_field.side_effect = lambda *a: events.append("set")
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._reopen_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch(
+                "cli.commands.issue.time.sleep", side_effect=lambda s: events.append(f"sleep{s}")
+            ),
+        ):
+            result = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--status", "active"])
+
+        assert result.exit_code == 0, result.output
+        assert events == ["reopen", "set", "sleep3", "reopen"]
+
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-06"])
+    def test_reopen_comment_posted_every_time(self) -> None:
+        """--comment を付けて 2 回打つと、そのたびにコメントを投稿する"""
+        mock_client = self._reopen_client()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._reopen_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.time.sleep"),
+        ):
+            first = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--comment", "再開"])
+            second = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--comment", "再開"])
+
+        assert first.exit_code == 0, first.output
+        assert second.exit_code == 0, second.output
+        assert mock_client.add_issue_comment.call_count == 2
+        mock_client.add_issue_comment.assert_called_with("owner", "repo", 123, "再開")
+
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-12"])
+    def test_reopen_status_not_configured_warns_and_continues(self) -> None:
+        """status がプロジェクトに設定されていないと、warning の行を標準エラーに出して再オープンは続ける"""
+        mock_config = self._reopen_config()
+        mock_config.get_option_id.return_value = None
+        mock_client = self._reopen_client()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.time.sleep"),
+        ):
+            result = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--status", "active"])
+
+        assert result.exit_code == 0, result.output
+        assert (
+            "warning: status 'active' is not configured in the project"
+            in result.stderr.splitlines()
+        )
+        mock_client.update_project_item_field.assert_not_called()
+        assert mock_client.reopen_issue.call_count == 2
+
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-14"])
+    def test_reopen_comment_failure_exits_1(self) -> None:
+        """コメントの投稿に失敗すると、終了コード 1 で終わる"""
+        mock_client = self._reopen_client()
+        mock_client.add_issue_comment.side_effect = GitHubAPIError("boom", status_code=500)
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._reopen_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.time.sleep"),
+        ):
+            result = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--comment", "再開"])
+
+        assert result.exit_code == 1
+        assert "error: could not reopen Issue owner/repo/123: boom" in result.stderr
+
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-18"])
+    def test_reopen_api_error_exits_1(self) -> None:
+        """reopen の API がエラーを返すと、終了コード 1 で終わる"""
+        mock_client = self._reopen_client()
+        mock_client.reopen_issue.side_effect = GitHubAPIError("boom", status_code=500)
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._reopen_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.time.sleep"),
+        ):
+            result = runner.invoke(app, ["issue", "reopen", "owner/repo/123", "--status", "active"])
+
+        assert result.exit_code == 1
+        assert "error: could not reopen Issue owner/repo/123: boom" in result.stderr
+        mock_client.update_project_item_field.assert_not_called()
 
 
 # --- ヘルプ表示テスト ---
@@ -998,6 +1272,7 @@ class TestIssueCommandsHelp:
 class TestIssueCreatePrepareCommand:
     """issue create --prepare コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-01"])
     def test_prepare_task_template(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """task テンプレートを準備"""
         import cli.commands.issue as issue_module
@@ -1115,6 +1390,7 @@ class TestIssueCreatePrepareCommand:
         assert result.exit_code == 0
         assert "issue-task-" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-33"])
     def test_no_args_shows_error(self) -> None:
         """引数なしでエラーメッセージを表示"""
         result = runner.invoke(app, ["issue", "create"])
@@ -1124,6 +1400,7 @@ class TestIssueCreatePrepareCommand:
         assert "prepare a template" in result.output
         assert "direct posting" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-03"])
     def test_prepare_with_suffix(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """--suffix 指定時はファイル名へ反映される"""
         import cli.commands.issue as issue_module
@@ -1212,6 +1489,7 @@ class TestIssueCreatePrepareCommand:
         # issue, task, YYYYMMDD, HHMMSS の4パートのみ
         assert len(parts) == 4
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-16"])
     @pytest.mark.parametrize(
         ("suffix", "name_suffix"),
         [
@@ -1286,6 +1564,7 @@ class TestIssueCreatePrepareCommand:
         assert f"error: {message}" in result.output
         assert not (tmp_path / "pecot").exists()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-41"])
     def test_prepare_task_requires_repo(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1316,6 +1595,7 @@ class TestIssueCreatePrepareCommand:
         assert "--repo owner/repo" in result.output
         assert "is required" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-41"])
     def test_prepare_task_implement_requires_repo(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1333,6 +1613,7 @@ class TestIssueCreatePrepareCommand:
         assert "--repo owner/repo" in result.output
         assert "is required" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-40"])
     def test_prepare_repo_invalid_format_no_slash(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1430,6 +1711,7 @@ class TestIssueCreatePrepareCommand:
         assert result.exit_code == 2
         assert "invalid repository format" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-02"])
     def test_prepare_repo_written_into_frontmatter(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1485,12 +1767,45 @@ class TestIssueCreatePrepareCommand:
             content = template_path.read_text(encoding="utf-8")
             assert 'repository: ""' in content, f'{name}.md missing repository: "" line'
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-06"])
+    def test_prepare_with_file_writes_only_template_copy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--prepare とファイルを一緒に渡すと、ファイルから Issue を作らずテンプレのコピーだけを書く"""
+        import cli.commands.issue as issue_module
+
+        output_dir = tmp_path / "pecot"
+        monkeypatch.setattr(issue_module, "get_output_dir", lambda: output_dir)
+        issue_file = tmp_path / "issue.md"
+        issue_file.write_text(
+            f"---\ntitle: test\ntype: task\nrepository: owner/repo\nstatus: ready\n---\n\n{MINIMAL_TASK_BODY}",
+            encoding="utf-8",
+        )
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                ["issue", "create", "--prepare", "--repo", "owner/repo", str(issue_file)],
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.create_issue.assert_not_called()
+        files = list(output_dir.glob("issue-task-*.md"))
+        assert len(files) == 1
+        assert result.stdout.strip() == str(files[0])
+        assert "repository: owner/repo" in files[0].read_text(encoding="utf-8")
+
 
 class TestIssueCreateCommand:
     """issue create コマンドのテスト"""
 
     # --- 正常系テスト ---
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-10"])
     def test_create_minimal_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """正常系: 最小構成（title/type/repository/status）でIssue作成"""
         # テストファイル作成
@@ -1545,6 +1860,7 @@ status: ready
             mock_client.get_issue_node_id.assert_called_once_with("owner", "repo", 456)
             mock_client.add_to_project.assert_called_once_with("PVT_123", "I_abc123")
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-11", "PW-ISSUE-CREATE-13"])
     def test_create_full_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """正常系: フル構成（全フィールド指定）でIssue作成"""
         issue_file = tmp_path / "issue.md"
@@ -1757,6 +2073,7 @@ order: 3
             mock_client.create_issue.call_args.kwargs["title"] == "[Task] #353-03a: 認証機能の実装"
         )
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-36"])
     def test_create_with_parallel_exits_when_sibling_is_branchless(self, tmp_path: Path) -> None:
         """異常系: 同じ段の既存が枝なしなら重複で終了する"""
         result, mock_client = self._invoke_create_with_parallel(
@@ -1767,6 +2084,7 @@ order: 3
 
     # --- 異常系テスト ---
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-38"])
     def test_create_no_active_config(self, tmp_path: Path) -> None:
         """異常系: アクティブ設定がない場合はエラー"""
         issue_file = tmp_path / "issue.md"
@@ -1788,6 +2106,7 @@ body
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-40"])
     def test_create_direct_invalid_repo_shape(self) -> None:
         """異常系: 直接投稿で --repo が不正形式 (foo/) なら exit 2"""
         mock_config = MagicMock()
@@ -1810,6 +2129,7 @@ body
             assert result.exit_code == 2
             assert "invalid repository format" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-34"])
     def test_create_file_not_found(self) -> None:
         """異常系: ファイルが存在しない場合はエラー"""
         mock_config = MagicMock()
@@ -1818,6 +2138,7 @@ body
             assert result.exit_code == 1
             assert "file not found" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-35"])
     def test_create_validation_error(self, tmp_path: Path) -> None:
         """異常系: フロントマターバリデーションエラー"""
         # 必須フィールド（repository）が欠落
@@ -1839,6 +2160,7 @@ body
             assert result.exit_code == 1
             assert "バリデーションエラー" in result.output or "repository" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-37"])
     def test_create_repo_not_in_project(self, tmp_path: Path) -> None:
         """異常系: リポジトリがプロジェクトに含まれていない場合はエラー"""
         issue_file = tmp_path / "issue.md"
@@ -1868,6 +2190,7 @@ status: ready
             assert result.exit_code == 1
             assert "is not linked to the project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-39"])
     def test_create_github_api_error(self, tmp_path: Path) -> None:
         """異常系: GitHub APIエラー（Issue作成失敗）"""
         from cli.core.github import GitHubAPIError
@@ -1902,6 +2225,7 @@ status: ready
             assert result.exit_code == 1
             assert "could not create an Issue in" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-21", "PW-ISSUE-CREATE-22"])
     def test_create_board_add_failure_partial_success(self, tmp_path: Path) -> None:
         """異常系: ボード追加失敗時は警告を出してIssue URLを返す（部分成功）"""
         from cli.core.github import GitHubAPIError
@@ -1947,6 +2271,7 @@ status: ready
             # Issue URLは出力される
             assert "https://ghes.example.com/owner/repo/issues/456" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-25", "PW-ISSUE-CREATE-26"])
     def test_create_sub_issue_link_failure_exits(self, tmp_path: Path) -> None:
         """異常系: サブIssue紐づけ失敗時は URL 先出し→エラー→exit 1 で停止"""
         from cli.core.github import GitHubAPIError
@@ -2169,6 +2494,226 @@ status: backlog
         assert result.exit_code == 0
         assert "create" in result.output.lower()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-07"])
+    def test_create_file_wins_over_message(self, tmp_path: Path) -> None:
+        """ファイルと -m を一緒に渡すと、-m の本文を使わずファイルから Issue を作る"""
+        issue_file = tmp_path / "issue.md"
+        issue_file.write_text(
+            f"---\ntitle: ファイルのタイトル\ntype: task\nrepository: owner/repo\nstatus: ready\n---\n\n{MINIMAL_TASK_BODY}",
+            encoding="utf-8",
+        )
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = None
+        mock_config.get_option_id.return_value = None
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 456,
+            "html_url": "https://ghes.example.com/owner/repo/issues/456",
+        }
+        mock_client.get_issue_node_id.return_value = "I_abc123"
+        mock_client.add_to_project.return_value = "PVTI_789"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "create",
+                    str(issue_file),
+                    "-m",
+                    "## 別の本文",
+                    "-t",
+                    "別のタイトル",
+                    "-r",
+                    "other/repo",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.create_issue.assert_called_once_with(
+            owner="owner",
+            repo="repo",
+            title="[Task] ファイルのタイトル",
+            body=MINIMAL_TASK_BODY.strip(),
+            labels=None,
+        )
+
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-08"])
+    def test_create_file_uses_frontmatter_not_options(self, tmp_path: Path) -> None:
+        """ファイルを渡すと、フロントマターの値を使い、--type・--status・--priority は使わない"""
+        issue_file = tmp_path / "issue.md"
+        issue_file.write_text(
+            "---\ntitle: test\ntype: task\nrepository: owner/repo\nstatus: ready\npriority: high\n---\n\n"
+            + MINIMAL_TASK_BODY,
+            encoding="utf-8",
+        )
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.side_effect = lambda name: f"PVTF_{name}"
+        mock_config.get_option_id.side_effect = lambda field, value: {
+            ("workflow", "ready"): "opt_workflow_ready",
+            ("priority", "high"): "opt_priority_high",
+        }.get((field, value))
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 456,
+            "html_url": "https://ghes.example.com/owner/repo/issues/456",
+        }
+        mock_client.get_issue_node_id.return_value = "I_abc123"
+        mock_client.add_to_project.return_value = "PVTI_789"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "create",
+                    str(issue_file),
+                    "--type",
+                    "bug",
+                    "--status",
+                    "backlog",
+                    "--priority",
+                    "low",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        assert mock_client.create_issue.call_args.kwargs["title"] == "[Task] test"
+        update_calls = mock_client.update_project_item_field.call_args_list
+        assert [c.args for c in update_calls] == [
+            ("PVT_123", "PVTI_789", "PVTF_workflow", "opt_workflow_ready"),
+            ("PVT_123", "PVTI_789", "PVTF_priority", "opt_priority_high"),
+        ]
+        assert "set: Issue owner/repo/456 status ready, priority high" in result.stderr
+
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-24"])
+    def test_create_field_set_failure_is_ignored(self) -> None:
+        """欄の設定に失敗しても無視して続け、親 Epic につないで URL を出す"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.aggregation_repo_ref = None
+        mock_config.get_field_id.return_value = "PVTF_workflow"
+        mock_config.get_option_id.return_value = "opt_ready"
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 456,
+            "html_url": "https://ghes.example.com/owner/repo/issues/456",
+        }
+        mock_client.get_issue_node_id.side_effect = lambda o, r, n: {
+            456: "I_new456",
+            100: "I_epic100",
+        }.get(n, f"I_{n}")
+        mock_client.add_to_project.return_value = "PVTI_789"
+        mock_client.update_project_item_field.side_effect = GitHubAPIError(
+            "field update failed", status_code=500
+        )
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "create",
+                    "-t",
+                    "タイトル",
+                    "-r",
+                    "owner/repo",
+                    "-m",
+                    MINIMAL_TASK_BODY,
+                    "--parent-epic",
+                    "100",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.update_project_item_field.assert_called_once()
+        assert result.stdout == "https://ghes.example.com/owner/repo/issues/456\n"
+        mock_client.add_sub_issue.assert_called_once_with("I_epic100", "I_new456")
+
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-31"])
+    def test_create_message_without_title_exits_1(self) -> None:
+        """-m に -t を渡していないと、API を呼ばず終了コード 1 で終わる"""
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["issue", "create", "-r", "owner/repo", "-m", MINIMAL_TASK_BODY]
+            )
+
+        assert result.exit_code == 1
+        assert "error: -t (title) is required with -m" in result.stderr
+        mock_client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-32"])
+    def test_create_message_without_repo_exits_1(self) -> None:
+        """epic 以外の -m に -r を渡していないと、API を呼ばず終了コード 1 で終わる"""
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                ["issue", "create", "-t", "タイトル", "--type", "task", "-m", MINIMAL_TASK_BODY],
+            )
+
+        assert result.exit_code == 1
+        assert "error: -r (repository) is required with -m" in result.stderr
+        mock_client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-43"])
+    def test_create_malformed_parent_epic_exits_2(self) -> None:
+        """--parent-epic の形が誤っていると、使い方のエラーを出して終了コード 2 で終わる"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.aggregation_repo_ref = None
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "create",
+                    "-t",
+                    "タイトル",
+                    "-r",
+                    "owner/repo",
+                    "-m",
+                    MINIMAL_TASK_BODY,
+                    "--parent-epic",
+                    "abc",
+                ],
+            )
+
+        assert result.exit_code == 2
+        assert "could not resolve parent_epic" in result.output
+        mock_client.create_issue.assert_not_called()
+
 
 # --- issue comment prepare コマンドテスト ---
 
@@ -2176,6 +2721,7 @@ status: backlog
 class TestIssueCommentTemplateRequired:
     """コメントのテンプレートは既定が無く、指定しないと止まる"""
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-19"])
     @pytest.mark.parametrize(
         "args",
         [
@@ -2193,6 +2739,7 @@ class TestIssueCommentTemplateRequired:
             "(plan / merge-diff / review-findings / review-resolution / precede-notify)"
         ) in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-23"])
     def test_file_without_template_exits_1(self, tmp_path: Path) -> None:
         comment_file = tmp_path / "comment.md"
         comment_file.write_text(
@@ -2209,6 +2756,7 @@ class TestIssueCommentTemplateRequired:
 class TestIssueCommentPrepareCommand:
     """issue comment --prepare コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-01", "PW-ISSUE-COMMENT-09"])
     def test_prepare_merge_diff_template(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -2228,6 +2776,7 @@ class TestIssueCommentPrepareCommand:
         assert "template: merge-diff" in content
         assert "issue_ref:" in content
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-02"])
     def test_prepare_with_issue_ref(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """--issue オプションでissue_refが設定される"""
         import cli.commands.issue as issue_module
@@ -2245,6 +2794,7 @@ class TestIssueCommentPrepareCommand:
         content = files[0].read_text()
         assert 'issue_ref: "owner/repo/123"' in content
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-09"])
     def test_prepare_same_second_keeps_each_issue_ref(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -2322,6 +2872,38 @@ class TestIssueCommentPrepareCommand:
         assert result.exit_code == 0
         assert "template" in result.output.lower()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-07"])
+    def test_prepare_with_file_writes_only_template_copy(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """--prepare とファイルを一緒に渡すと、ファイルを投稿せずテンプレのコピーだけを書く"""
+        import cli.commands.issue as issue_module
+
+        output_dir = tmp_path / "pecot"
+        monkeypatch.setattr(issue_module, "get_output_dir", lambda: output_dir)
+        comment_file = tmp_path / "comment.md"
+        comment_file.write_text(
+            '---\nissue_ref: "owner/repo/123"\ntemplate: merge-diff\n---\n\n' + _MERGE_DIFF_BODY,
+            encoding="utf-8",
+        )
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["issue", "comment", "-t", "merge-diff", "--prepare", str(comment_file)]
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.add_issue_comment.assert_not_called()
+        mock_client.update_issue_comment.assert_not_called()
+        files = list(output_dir.glob("comment-merge-diff-*.md"))
+        assert len(files) == 1
+        assert result.stdout.strip() == str(files[0])
+        assert "template: merge-diff" in files[0].read_text(encoding="utf-8")
+
 
 # --- issue comment --file コマンドテスト ---
 
@@ -2329,6 +2911,7 @@ class TestIssueCommentPrepareCommand:
 class TestIssueCommentCreateCommand:
     """issue comment --file コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-03"])
     def test_create_success(self, tmp_path: Path) -> None:
         """正常系: コメント投稿成功"""
         comment_file = tmp_path / "comment.md"
@@ -2376,6 +2959,7 @@ class TestIssueCommentCreateCommand:
             # 4番目の引数はコメント本文
             assert "### Variance —" in call_args[0][3]
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-25"])
     def test_create_no_active_config(self, tmp_path: Path) -> None:
         """異常系: アクティブ設定がない場合はエラー"""
         comment_file = tmp_path / "comment.md"
@@ -2394,6 +2978,7 @@ body
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-27"])
     def test_create_invalid_issue_ref(self, tmp_path: Path) -> None:
         """異常系: 不正なissue_ref形式はエラー"""
         comment_file = tmp_path / "comment.md"
@@ -2413,6 +2998,7 @@ body
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-16"])
     def test_create_missing_required_sections(self, tmp_path: Path) -> None:
         """異常系: 必須セクションが不足している場合はエラー"""
         comment_file = tmp_path / "comment.md"
@@ -2435,6 +3021,7 @@ template: merge-diff
             assert result.exit_code == 3
             assert "missing sections" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-26"])
     def test_create_github_api_error(self, tmp_path: Path) -> None:
         """異常系: GitHub APIエラー"""
         from cli.core.github import GitHubAPIError
@@ -2481,6 +3068,93 @@ template: merge-diff
         assert result.exit_code == 0
         assert "FILE" in result.output or "file" in result.output.lower()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-08"])
+    def test_create_file_wins_over_message(self, tmp_path: Path) -> None:
+        """ファイルと -m を一緒に渡すと、-m の本文を使わずファイルを投稿する"""
+        comment_file = tmp_path / "comment.md"
+        comment_file.write_text(
+            '---\nissue_ref: "owner/repo/123"\ntemplate: merge-diff\n---\n\n' + _MERGE_DIFF_BODY,
+            encoding="utf-8",
+        )
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.is_repo_in_project.return_value = True
+        mock_client = MagicMock()
+        mock_client.add_issue_comment.return_value = {
+            "id": 456,
+            "html_url": "https://ghes.example.com/owner/repo/issues/123#issuecomment-456",
+        }
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "comment",
+                    str(comment_file),
+                    "-m",
+                    "## 別の本文",
+                    "--issue",
+                    "owner/repo/999",
+                ],
+            )
+
+        assert result.exit_code == 0, result.output
+        mock_client.add_issue_comment.assert_called_once_with(
+            "owner", "repo", 123, _MERGE_DIFF_BODY.strip()
+        )
+
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-14"])
+    def test_create_repo_not_in_project_warns_and_posts(self, tmp_path: Path) -> None:
+        """Issue のリポジトリがプロジェクトに無いと、warning の行を標準エラーに出して投稿は続ける"""
+        comment_file = tmp_path / "comment.md"
+        comment_file.write_text(
+            '---\nissue_ref: "owner/repo/123"\ntemplate: merge-diff\n---\n\n' + _MERGE_DIFF_BODY,
+            encoding="utf-8",
+        )
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.is_repo_in_project.return_value = False
+        mock_client = MagicMock()
+        mock_client.add_issue_comment.return_value = {
+            "id": 456,
+            "html_url": "https://ghes.example.com/owner/repo/issues/123#issuecomment-456",
+        }
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 0, result.output
+        assert "warning: owner/repo is not in the project" in result.stderr.splitlines()
+        mock_client.add_issue_comment.assert_called_once()
+
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-22"])
+    def test_create_unreadable_frontmatter_exits_1(self, tmp_path: Path) -> None:
+        """フロントマターを読めないファイルは、API を呼ばず終了コード 1 で終わる"""
+        comment_file = tmp_path / "comment.md"
+        comment_file.write_text(
+            '---\nissue_ref: "owner/repo/123"\ntemplate: merge-diff\n\n' + _MERGE_DIFF_BODY,
+            encoding="utf-8",
+        )
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 1
+        assert "error: frontmatter is not closed (missing closing ---)" in result.stderr
+        mock_client.add_issue_comment.assert_not_called()
+        mock_client.update_issue_comment.assert_not_called()
+
 
 _MERGE_DIFF_BODY = """## Merge — タスク1完了
 
@@ -2514,6 +3188,7 @@ class TestIssueCommentUpdateByFile:
         )
         return path
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-06"])
     @pytest.mark.parametrize(
         "url",
         [
@@ -2565,6 +3240,9 @@ class TestIssueCommentUpdateByFile:
         args = mock_client.update_issue_comment.call_args[0]
         assert args[:3] == ("owner", "repo", 456)
 
+    @add_test_properties(
+        verifies=["PW-ISSUE-COMMENT-05", "PW-ISSUE-COMMENT-11", "PW-ISSUE-COMMENT-13"]
+    )
     @pytest.mark.parametrize(
         "url",
         [
@@ -2595,6 +3273,7 @@ class TestIssueCommentUpdateByFile:
         assert args[:3] == ("owner", "repo", 456)
         assert "### Variance —" in args[3]
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-24"])
     @pytest.mark.parametrize(
         "url",
         [
@@ -2619,6 +3298,7 @@ class TestIssueCommentUpdateByFile:
         mock_client.add_issue_comment.assert_not_called()
         mock_client.update_issue_comment.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-24"])
     def test_comment_url_for_other_host_is_rejected(self, tmp_path: Path) -> None:
         """設定のホストと違うホストの comment_url では、API を呼ばずに止める"""
         url = "https://ghes.example.com/owner/repo/pull/123#issuecomment-456"
@@ -2639,6 +3319,7 @@ class TestIssueCommentUpdateByFile:
         mock_client.add_issue_comment.assert_not_called()
         mock_client.update_issue_comment.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-24"])
     @pytest.mark.parametrize(
         "url",
         [
@@ -2664,6 +3345,7 @@ class TestIssueCommentUpdateByFile:
         mock_client.add_issue_comment.assert_not_called()
         mock_client.update_issue_comment.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-26"])
     def test_update_failure_exits_1(self, tmp_path: Path) -> None:
         """更新の API が失敗したら exit 1"""
         url = "https://github.com/owner/repo/issues/123#issuecomment-456"
@@ -2679,6 +3361,35 @@ class TestIssueCommentUpdateByFile:
 
         assert result.exit_code == 1
         assert "could not update the comment" in result.output
+
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-15"])
+    def test_write_back_failure_warns_and_exits_0(self, tmp_path: Path) -> None:
+        """comment_url を書き戻せないと、warning の行を標準エラーに出す。URL は標準出力に出て終了コード 0"""
+        comment_file = self._write(tmp_path / "comment.md")
+        url = "https://github.com/owner/repo/issues/123#issuecomment-456"
+        mock_client = MagicMock()
+        mock_client.add_issue_comment.return_value = {"id": 456, "html_url": url}
+        real_write_text = Path.write_text
+
+        def _fail_for_comment_file(self: Path, *args: object, **kwargs: object) -> int:
+            if self == comment_file:
+                raise OSError("read-only file system")
+            return real_write_text(self, *args, **kwargs)  # type: ignore[arg-type]
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch.object(Path, "write_text", _fail_for_comment_file),
+        ):
+            result = runner.invoke(app, ["issue", "comment", str(comment_file)])
+
+        assert result.exit_code == 0, result.output
+        assert result.stdout == f"{url}\n"
+        assert (
+            "warning: could not write comment_url back to the file: read-only file system"
+            in result.stderr.splitlines()
+        )
+        assert "comment_url" not in comment_file.read_text(encoding="utf-8")
 
 
 # --- issue comment 直接投稿コマンドテスト ---
@@ -2728,6 +3439,7 @@ class TestCommentDirectCommand:
             assert result.exit_code == 0
             assert "created: comment on" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-16"])
     def test_direct_validation_missing_sections(self) -> None:
         """異常系: 必須セクション不足でエラー"""
         mock_config = MagicMock()
@@ -2750,6 +3462,7 @@ class TestCommentDirectCommand:
             assert result.exit_code == 3
             assert "missing sections" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-25"])
     def test_direct_no_active_config(self) -> None:
         """異常系: アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -2769,6 +3482,7 @@ class TestCommentDirectCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-27"])
     def test_direct_invalid_issue_ref(self) -> None:
         """異常系: 不正なissue_ref形式はエラー"""
         mock_config = MagicMock()
@@ -2789,6 +3503,7 @@ class TestCommentDirectCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-26"])
     def test_direct_github_api_error(self) -> None:
         """異常系: GitHub APIエラー"""
         from cli.core.github import GitHubAPIError
@@ -2831,6 +3546,7 @@ class TestCommentDirectCommand:
             assert result.exit_code == 1
             assert "could not create a comment" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-20"])
     def test_direct_missing_issue_option(self) -> None:
         """異常系: -m指定時に--issueがないとエラー"""
         result = runner.invoke(
@@ -2839,6 +3555,7 @@ class TestCommentDirectCommand:
         assert result.exit_code == 1
         assert "--issue (Issue reference) is required with -m" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-04"])
     def test_direct_review_findings_template_success(self) -> None:
         """正常系: review-findings テンプレートでのコメント投稿"""
         mock_config = MagicMock()
@@ -3510,6 +4227,7 @@ CUJ 1
 class TestIssueReadCommand:
     """issue read コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-01"])
     def test_read_basic(self) -> None:
         """正常系: 基本的なIssue読み取り"""
         mock_config = MagicMock()
@@ -3537,6 +4255,7 @@ class TestIssueReadCommand:
             assert "[Task] テストタスク" in result.output
             assert "OPEN" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-02"])
     def test_read_with_parent(self) -> None:
         """正常系: 親Issue付きのIssue"""
         mock_config = MagicMock()
@@ -3569,6 +4288,7 @@ class TestIssueReadCommand:
             assert "**Parent:** #353" in result.output
             assert "親エピック" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-02"])
     def test_read_with_parent_cross_repo(self) -> None:
         """正常系: 親Issueがクロスリポの場合は owner/repo#N 形式で表示"""
         mock_config = MagicMock()
@@ -3634,6 +4354,7 @@ class TestIssueReadCommand:
             assert "None/None" not in result.output
             assert "owner/repo#353" not in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-05"])
     def test_read_with_sub_issues(self) -> None:
         """正常系: サブIssue付きのIssue"""
         mock_config = MagicMock()
@@ -3665,6 +4386,7 @@ class TestIssueReadCommand:
             assert "タスク1" in result.output
             assert "タスク2" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-03"])
     def test_read_with_linked_branches(self) -> None:
         """正常系: リンクブランチ付きのIssue"""
         mock_config = MagicMock()
@@ -3690,6 +4412,7 @@ class TestIssueReadCommand:
             assert result.exit_code == 0
             assert "feat/issue-435-task" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-08"])
     def test_read_json_output(self) -> None:
         """正常系: JSON形式出力"""
         mock_config = MagicMock()
@@ -3720,6 +4443,7 @@ class TestIssueReadCommand:
             assert data["number"] == 435
             assert data["state"] == "OPEN"
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-12"])
     def test_read_no_active_config(self) -> None:
         """異常系: アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -3727,6 +4451,7 @@ class TestIssueReadCommand:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-10"])
     def test_read_invalid_issue_ref(self) -> None:
         """異常系: 不正なissue_ref形式はエラー"""
         mock_config = MagicMock()
@@ -3735,6 +4460,7 @@ class TestIssueReadCommand:
             assert result.exit_code == 2
             assert "invalid reference" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-13"])
     def test_read_issue_not_found(self) -> None:
         """異常系: Issueが見つからない場合"""
         from cli.core.github import GitHubNotFoundError
@@ -3761,6 +4487,89 @@ class TestIssueReadCommand:
         assert result.exit_code == 0
         assert "issue" in result.output.lower() or "read" in result.output.lower()
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-06"])
+    def test_read_comments_up_to_comment_limit(self) -> None:
+        """コメントがある Issue を読むと、--comment-limit 件までのコメントを出す"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+
+        mock_client = MagicMock()
+        mock_client.get_issue_slim.return_value = {
+            "number": 435,
+            "state": "OPEN",
+            "title": "[Task] コメント付き",
+            "body": "本文",
+            "comments": {
+                "total_count": 7,
+                "nodes": [
+                    {"author": "alice", "created_at": "2026-01-02T03:04:05Z", "body": "1件目"},
+                    {"author": "bob", "created_at": "2026-01-03T03:04:05Z", "body": "2件目"},
+                ],
+            },
+            "parent": None,
+            "sub_issues": [],
+            "linked_branches": [],
+        }
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "read", "owner/repo/435", "--comment-limit", "2"])
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_issue_slim.assert_called_once_with("owner", "repo", 435, comment_limit=2)
+        assert "### Comments (2/7)" in result.stdout
+        assert "**@alice** - 2026-01-02" in result.stdout
+        assert "1件目" in result.stdout
+        assert "**@bob** - 2026-01-03" in result.stdout
+        assert "2件目" in result.stdout
+
+    @add_test_properties(verifies=["PW-ISSUE-READ-07"])
+    def test_read_comment_limit_zero_hides_comments(self) -> None:
+        """--comment-limit 0 を付けて打つと、コメントを出さない"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+
+        mock_client = MagicMock()
+        mock_client.get_issue_slim.return_value = {
+            "number": 435,
+            "state": "OPEN",
+            "title": "[Task] コメント付き",
+            "body": "本文",
+            "comments": {"total_count": 7, "nodes": []},
+            "parent": None,
+            "sub_issues": [],
+            "linked_branches": [],
+        }
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "read", "owner/repo/435", "--comment-limit", "0"])
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_issue_slim.assert_called_once_with("owner", "repo", 435, comment_limit=0)
+        assert "### Comments" not in result.stdout
+
+    @add_test_properties(verifies=["PW-ISSUE-READ-11"])
+    @pytest.mark.parametrize("limit", ["21", "-1"])
+    def test_read_comment_limit_out_of_range_exits_2(self, limit: str) -> None:
+        """--comment-limit が 0 から 20 の外だと、API を呼ばず終了コード 2 で終わる"""
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=MagicMock()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app, ["issue", "read", "owner/repo/435", "--comment-limit", limit]
+            )
+
+        assert result.exit_code == 2
+        mock_client.get_issue_slim.assert_not_called()
+
 
 # --- _format_issue_markdown 関数テスト ---
 
@@ -3768,6 +4577,7 @@ class TestIssueReadCommand:
 class TestFormatIssueMarkdown:
     """_format_issue_markdown 関数のテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-01"])
     def test_basic_issue(self) -> None:
         """基本的なIssue情報のフォーマット"""
         issue = {
@@ -3788,6 +4598,7 @@ class TestFormatIssueMarkdown:
         assert "**Comments:** 5" in result
         assert "## タスク概要" in result
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-04"])
     def test_with_linked_prs_merged(self) -> None:
         """リンクPR（MERGED）の表示"""
         issue = {
@@ -3828,6 +4639,7 @@ class TestFormatIssueMarkdown:
         assert "**Linked PRs:**" in result
         assert "#456 fix: バグ修正 (OPEN)" in result
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-04"])
     def test_with_multiple_linked_prs(self) -> None:
         """複数のリンクPR表示"""
         issue = {
@@ -3933,6 +4745,7 @@ class TestIssueCreateFromFileValidation:
             assert result.exit_code == 0
             assert "https://ghes.example.com/owner/repo/issues/456" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-29"])
     def test_create_from_file_missing_required_section(self, tmp_path: Path) -> None:
         """異常系: 必須セクション不足でエラー"""
         issue_file = tmp_path / "issue.md"
@@ -4213,6 +5026,7 @@ class TestIssueQuickCommandErrors:
         ):
             yield
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-28"])
     def test_quick_empty_message_error(self) -> None:
         """メッセージが空の場合はエラー"""
         mock_config = MagicMock()
@@ -4222,6 +5036,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "the message is empty" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-28"])
     def test_quick_whitespace_only_message_error(self) -> None:
         """メッセージが空白のみの場合はエラー"""
         mock_config = MagicMock()
@@ -4231,6 +5046,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "the message is empty" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-29"])
     def test_quick_invalid_repository_format(self) -> None:
         """リポジトリ形式が不正（owner/repo以外）"""
         mock_config = MagicMock()
@@ -4241,6 +5057,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "invalid repository format" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-29"])
     def test_quick_invalid_repository_format_three_parts(self) -> None:
         """リポジトリ形式が不正（owner/repo/extra）"""
         mock_config = MagicMock()
@@ -4250,6 +5067,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "invalid repository format" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-30"])
     def test_quick_no_project_config(self) -> None:
         """プロジェクト設定がない場合"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -4257,6 +5075,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "no active project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-31"])
     def test_quick_repo_not_in_project(self) -> None:
         """リポジトリがプロジェクトに含まれていない場合"""
         mock_config = MagicMock()
@@ -4273,6 +5092,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "is not linked to the project" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-33"])
     def test_quick_issue_creation_failure(self) -> None:
         """Issue作成失敗時のエラーハンドリング"""
         from cli.core.github import GitHubAPIError
@@ -4294,6 +5114,7 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "could not create an Issue in" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-18", "PW-ISSUE-QUICK-19"])
     def test_quick_board_addition_failure(self) -> None:
         """ボード追加失敗時の警告表示"""
         from cli.core.github import GitHubAPIError
@@ -4322,6 +5143,7 @@ class TestIssueQuickCommandErrors:
             assert "could not add Issue" in result.output
             assert "https://ghes.example.com/owner/repo/issues/123" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-05", "PW-ISSUE-QUICK-15"])
     def test_quick_with_parent_epic_option(self) -> None:
         """--parent-epic オプション指定時（aggregation_repo 未設定 → task repo にフォールバック）"""
         mock_config = MagicMock()
@@ -4368,6 +5190,7 @@ class TestIssueQuickCommandErrors:
             mock_client.get_issue_node_id.assert_any_call("owner", "repo", 353)
             mock_client.add_sub_issue.assert_called_once_with("I_parent353", "I_test123")
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-21", "PW-ISSUE-QUICK-22"])
     def test_quick_epic_link_failure(self) -> None:
         """親Epic紐づけ失敗時は URL 先出し→エラー→exit 1 で停止"""
         from cli.core.github import GitHubAPIError
@@ -4411,6 +5234,7 @@ class TestIssueQuickCommandErrors:
             assert "https://ghes.example.com/owner/repo/issues/123" in result.output
             assert "as sub-issue of" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-10"])
     def test_quick_with_no_branch_option(self) -> None:
         """--no-branch オプション時はブランチ作成しない"""
         mock_config = MagicMock()
@@ -4450,6 +5274,7 @@ class TestIssueQuickCommandErrors:
             assert len(fetch_calls) == 0
             assert len(checkout_calls) == 0
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-02"])
     def test_quick_title_truncation(self) -> None:
         """タイトルが50文字で切り詰められることを確認"""
         long_message = "a" * 100  # 100文字のメッセージ
@@ -4489,6 +5314,7 @@ class TestIssueQuickCommandErrors:
             title_body = title[7:]  # "[Task] "を除く
             assert len(title_body) <= 50
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-02"])
     def test_quick_title_whitespace_normalization(self) -> None:
         """タイトル内の空白が正規化されることを確認"""
         message = "test\n\nmessage  with   spaces"
@@ -4524,6 +5350,7 @@ class TestIssueQuickCommandErrors:
             # 空白が単一スペースに正規化されている
             assert title == "[Task] test message with spaces"
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-23"])
     def test_quick_no_develop_branch_raises_error(self) -> None:
         """develop_branchが未設定の場合はエラーを発生（ブランチ作成時）"""
         mock_config = MagicMock()
@@ -4550,6 +5377,150 @@ class TestIssueQuickCommandErrors:
             assert result.exit_code == 1
             assert "develop_branch is not set for repository" in result.output
 
+    @staticmethod
+    def _quick_config(develop_branch: str | None = "develop") -> MagicMock:
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.aggregation_repo_ref = None
+        mock_config.get_field_id.return_value = "PVTF_workflow"
+        mock_config.get_option_id.return_value = "opt_active"
+        mock_repo = MagicMock()
+        mock_repo.develop_branch = develop_branch
+        mock_config.find_repository.return_value = mock_repo
+        return mock_config
+
+    @staticmethod
+    def _quick_client() -> MagicMock:
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 123,
+            "html_url": "https://ghes.example.com/owner/repo/issues/123",
+            "node_id": "I_test123",
+        }
+        mock_client.add_to_project.return_value = "PVTI_456"
+        mock_client.get_issue_node_id.return_value = "I_parent"
+        mock_client.get_branch_sha.return_value = "sha-develop"
+        mock_client.create_linked_branch.return_value = "feat/20260101-000000/123"
+        return mock_client
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-20"])
+    def test_quick_board_addition_failure_skips_fields_and_branch(self) -> None:
+        """ボードへの追加に失敗すると、欄の設定とブランチの作成をしない"""
+        mock_client = self._quick_client()
+        mock_client.add_to_project.side_effect = GitHubAPIError("Board failed", status_code=500)
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._quick_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
+
+        assert result.exit_code == 0, result.output
+        mock_client.update_project_item_field.assert_not_called()
+        mock_client.get_branch_sha.assert_not_called()
+        mock_client.create_linked_branch.assert_not_called()
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-24"])
+    def test_quick_no_develop_branch_prints_no_url(self) -> None:
+        """develop_branch が設定に無いと、URL を標準出力に出さない"""
+        with (
+            patch(
+                "cli.commands.issue.load_active_config",
+                return_value=self._quick_config(develop_branch=None),
+            ),
+            patch("cli.commands.issue.GitHubClient", return_value=self._quick_client()),
+        ):
+            result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
+
+        assert result.exit_code == 1
+        assert result.stdout == ""
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-25"])
+    def test_quick_no_develop_branch_writes_no_flags(self) -> None:
+        """develop_branch が設定に無いと、.pecot-active と .pecot-quick-mode を書かない"""
+        with (
+            patch(
+                "cli.commands.issue.load_active_config",
+                return_value=self._quick_config(develop_branch=None),
+            ),
+            patch("cli.commands.issue.GitHubClient", return_value=self._quick_client()),
+            patch("cli.core.state.write_flag") as mock_write,
+            patch("cli.core.state.touch_flag") as mock_touch,
+        ):
+            result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
+
+        assert result.exit_code == 1
+        mock_write.assert_not_called()
+        mock_touch.assert_not_called()
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-32"])
+    def test_quick_duplicate_order_exits_1(self) -> None:
+        """同じ親 Epic に同じ order の Issue があると、Issue を作らず終了コード 1 で終わる"""
+        mock_client = self._quick_client()
+        mock_client.get_issue_slim.return_value = {
+            "sub_issues": [{"number": 10, "state": "OPEN", "title": "[Task] #353-01: 既存"}],
+        }
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._quick_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                [
+                    "issue",
+                    "quick",
+                    "-r",
+                    "owner/repo",
+                    "-m",
+                    "test",
+                    "--parent-epic",
+                    "353",
+                    "--order",
+                    "1",
+                ],
+            )
+
+        assert result.exit_code == 1
+        assert "Epic #353 already has an Issue with order=1" in result.stderr
+        mock_client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-34"])
+    def test_quick_malformed_parent_epic_exits_2(self) -> None:
+        """--parent-epic の形が誤っていると、使い方のエラーを出して終了コード 2 で終わる"""
+        mock_client = self._quick_client()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._quick_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(
+                app,
+                ["issue", "quick", "-r", "owner/repo", "-m", "test", "--parent-epic", "abc"],
+            )
+
+        assert result.exit_code == 2
+        assert "could not resolve parent_epic" in result.output
+        mock_client.create_issue.assert_not_called()
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-35"])
+    @pytest.mark.parametrize(
+        "args",
+        [
+            ["issue", "quick", "-r", "owner/repo"],
+            ["issue", "quick", "-m", "test"],
+        ],
+        ids=["without-message", "without-repo"],
+    )
+    def test_quick_missing_required_option_exits_2(self, args: list[str]) -> None:
+        """-m か -r を省くと、使い方のエラーを出して終了コード 2 で終わる"""
+        result = runner.invoke(app, args)
+
+        assert result.exit_code == 2
+        assert "Missing option" in result.output
+
 
 # --- issue comment コマンドテスト ---
 
@@ -4557,12 +5528,14 @@ class TestIssueQuickCommandErrors:
 class TestIssueCommentDirect:
     """issue comment -m のテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-21"])
     def test_comment_direct_missing_message(self) -> None:
         """-m未指定（引数なし）でエラー"""
         result = runner.invoke(app, ["issue", "comment"])
         assert result.exit_code == 1
         assert "missing arguments" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-20"])
     def test_comment_direct_missing_issue_ref(self) -> None:
         """--issue未指定でエラー"""
         mock_config = MagicMock()
@@ -4573,6 +5546,7 @@ class TestIssueCommentDirect:
             assert "--issue" in result.output
             assert "is required" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-25"])
     def test_comment_direct_no_active_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.issue.load_active_config", return_value=None):
@@ -4599,6 +5573,7 @@ class TestIssueQuickEnhancements:
         ):
             yield
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-01"])
     def test_issue_quick_default_type_is_task(self) -> None:
         """--type 省略時はデフォルトで task になる"""
         from unittest.mock import MagicMock, patch
@@ -4809,6 +5784,7 @@ class TestIssueQuickEnhancements:
             call_args = mock_client.create_issue.call_args[1]
             assert call_args["title"] == "[Bug] バグ報告"
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-04"])
     def test_issue_quick_with_type_epic_status_backlog(self) -> None:
         """--type epic でEpicを作成、ステータスは backlog"""
         from unittest.mock import MagicMock, patch
@@ -4872,6 +5848,7 @@ class TestIssueQuickEnhancements:
             assert status_call[0][2] == "field_workflow"  # field_id
             assert status_call[0][3] == "option_backlog"  # option_id
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-04"])
     def test_issue_quick_with_type_tracker_backlog_without_size(self) -> None:
         """--type tracker は backlog で起票し、size を設定しない"""
         from unittest.mock import MagicMock, patch
@@ -4926,6 +5903,7 @@ class TestIssueQuickEnhancements:
         field_ids = [c[0][2] for c in mock_client.update_project_item_field.call_args_list]
         assert "field_size" not in field_ids
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-10", "PW-ISSUE-QUICK-11"])
     def test_issue_quick_no_branch_writes_pecot_active(self) -> None:
         """--no-branch でも .pecot-active に書き込む"""
         from unittest.mock import MagicMock, patch
@@ -5020,6 +5998,7 @@ class TestIssueQuickEnhancements:
             size_calls = [c for c in update_calls if c[0][2] == "field_size"]
             assert len(size_calls) == 0
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-06"])
     def test_issue_quick_epic_with_parent_shows_warning(self) -> None:
         """Epic に親Epic を指定すると警告が表示される"""
         from unittest.mock import MagicMock, patch
@@ -5066,6 +6045,7 @@ class TestIssueQuickEnhancements:
             # 警告メッセージが出力されたことを確認
             assert "warning: giving a parent Epic to an Epic is not recommended" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-12"])
     def test_issue_quick_touches_quick_mode_flag(self) -> None:
         """taskタイプでクイックモードフラグが作成される"""
         from unittest.mock import MagicMock, patch
@@ -5100,6 +6080,7 @@ class TestIssueQuickEnhancements:
 
             mock_touch.assert_called_once_with(FLAG_PECOT_QUICK_MODE)
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-12"])
     def test_issue_quick_epic_skips_quick_mode_flag(self) -> None:
         """epicタイプではクイックモードフラグが作成されない"""
         from unittest.mock import MagicMock, patch
@@ -5141,6 +6122,77 @@ class TestIssueQuickEnhancements:
             assert result.exit_code == 0
             mock_touch.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-07"])
+    def test_issue_quick_branch_from_develop_branch(self) -> None:
+        """develop_branch から feat/<YYYYMMDD-HHMMSS>/<N> のリンク付きブランチを作る"""
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 123,
+            "html_url": "https://ghes.example.com/owner/repo/issues/123",
+            "node_id": "I_test123",
+        }
+        mock_client.add_to_project.return_value = "PVTI_456"
+        mock_client.get_branch_sha.return_value = "sha-develop"
+        mock_client.create_linked_branch.return_value = "feat/20260101-000000/123"
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = None
+        mock_repo = MagicMock()
+        mock_repo.develop_branch = "develop"
+        mock_config.find_repository.return_value = mock_repo
+
+        with (
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+        ):
+            result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
+
+        assert result.exit_code == 0, result.output
+        mock_client.get_branch_sha.assert_called_once_with("owner", "repo", "develop")
+        kwargs = mock_client.create_linked_branch.call_args.kwargs
+        assert kwargs["issue_id"] == "I_test123"
+        assert kwargs["oid"] == "sha-develop"
+        assert re.fullmatch(r"feat/\d{8}-\d{6}/123", kwargs["name"])
+
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-26", "PW-ISSUE-QUICK-27"])
+    def test_issue_quick_branch_api_failure_warns_and_skips_active(self) -> None:
+        """ブランチの作成が API で失敗すると、warning の行を標準エラーに出し、.pecot-active を書かない"""
+        mock_client = MagicMock()
+        mock_client.create_issue.return_value = {
+            "number": 123,
+            "html_url": "https://ghes.example.com/owner/repo/issues/123",
+            "node_id": "I_test123",
+        }
+        mock_client.add_to_project.return_value = "PVTI_456"
+        mock_client.get_branch_sha.return_value = "sha-develop"
+        mock_client.create_linked_branch.side_effect = GitHubAPIError(
+            "branch failed", status_code=422
+        )
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = None
+        mock_repo = MagicMock()
+        mock_repo.develop_branch = "develop"
+        mock_config.find_repository.return_value = mock_repo
+
+        with (
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.core.state.write_flag") as mock_write,
+        ):
+            result = runner.invoke(app, ["issue", "quick", "-r", "owner/repo", "-m", "test"])
+
+        assert result.exit_code == 0, result.output
+        assert "warning: could not create the branch: branch failed" in result.stderr.splitlines()
+        mock_write.assert_not_called()
+        assert "set: work target" not in result.stderr
+
 
 # --- parent_epic クロスリポ対応の統合テスト（Bug #69） ---
 
@@ -5166,6 +6218,7 @@ class TestParentEpicCrossRepo:
             mock_config.aggregation_repo = aggregation
         return mock_config
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-13"])
     def test_from_file_cross_repo_owner_repo_n_string(self, tmp_path: Path) -> None:
         """frontmatter parent_epic に owner/repo/N 形式でクロスリポ親リンク"""
         issue_file = tmp_path / "issue.md"
@@ -5206,6 +6259,7 @@ class TestParentEpicCrossRepo:
             assert slim_call.args[1] == "roadmap"
             assert slim_call.args[2] == 21
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-19"])
     def test_from_file_int_resolves_to_aggregation_repo(self, tmp_path: Path) -> None:
         """frontmatter の整数 parent_epic は aggregation_repo 基準で解決される"""
         issue_file = tmp_path / "issue.md"
@@ -5276,6 +6330,7 @@ class TestParentEpicCrossRepo:
             mock_client.get_issue_node_id.assert_any_call("roadmap_owner", "roadmap", 21)
             mock_client.add_sub_issue.assert_called_once()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-25", "PW-ISSUE-CREATE-26"])
     def test_link_failure_exits_with_url_first(self, tmp_path: Path) -> None:
         """get_issue_node_id が GitHubAPIError を投げる → URL 先出し + exit 1"""
         from cli.core.github import GitHubAPIError
@@ -5417,6 +6472,7 @@ class TestIssueCreateStatusValidation:
     # create_issue.assert_not_called() は client を生成しないため検証対象が存在せず省略。
     # 代わりに、検証を抜けると未モックの load_active_config / GitHubClient へ進む。
     # そこで exit_code 1 や期待メッセージの崩れが回帰検出になる（モック不在＝検出器）。
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-30"])
     @pytest.mark.parametrize(
         ("issue_type", "body", "status", "expected_msg"),
         [
@@ -5436,8 +6492,6 @@ class TestIssueCreateStatusValidation:
                 "active",
                 "for type 'task' is only 'ready'",
             ),
-            # enum 外の値は不正ステータスとして拒否
-            ("task", MINIMAL_TASK_BODY, "foo", "invalid status: foo"),
         ],
     )
     def test_direct_status_type_mismatch_rejected(
@@ -5463,6 +6517,28 @@ class TestIssueCreateStatusValidation:
         )
         assert result.exit_code == 1
         assert expected_msg in result.output
+
+    def test_direct_status_outside_enum_rejected(self) -> None:
+        """direct（task）: enum 外の status は I/O 到達前に不正ステータスとして exit 1"""
+        result = runner.invoke(
+            app,
+            [
+                "issue",
+                "create",
+                "-t",
+                "タイトル",
+                "-r",
+                "owner/repo",
+                "--type",
+                "task",
+                "--status",
+                "foo",
+                "-m",
+                MINIMAL_TASK_BODY,
+            ],
+        )
+        assert result.exit_code == 1
+        assert "invalid status: foo" in result.output
 
     def test_direct_epic_status_pending_rejected(self) -> None:
         """direct（epic）: enum 内だが既定外の status（pending）は exit 1。
@@ -5497,6 +6573,7 @@ class TestIssueCreateStatusValidation:
             assert "given: pending" in result.output
             mock_client.create_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-12"])
     def test_direct_task_default_status_ready_applied(self) -> None:
         """direct: --type task で status 未指定 → ready の option で update される"""
         mock_config = self._make_config()
@@ -5527,6 +6604,7 @@ class TestIssueCreateStatusValidation:
             )
             assert "status ready" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-12"])
     def test_direct_epic_default_status_backlog_applied(self) -> None:
         """direct: --type epic で status 未指定（-r 無し、aggregation_repo ルーティング）
         → backlog の option で update される"""
@@ -5556,6 +6634,7 @@ class TestIssueCreateStatusValidation:
             )
             assert "status backlog" in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-05"])
     def test_direct_tracker_title_prefix_and_backlog_status(self) -> None:
         """direct: --type tracker は題が [Tracker] で始まり、Status が backlog になる"""
         mock_config = self._make_config()
@@ -5654,6 +6733,7 @@ class TestIssueCreateStatusValidation:
         issue_file.write_text(f"---\n{frontmatter}\n---\n\n{body}", encoding="utf-8")
         return issue_file
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-30"])
     def test_file_bug_status_backlog_rejected(self, tmp_path: Path) -> None:
         """file: frontmatter type:bug status:backlog は exit 1、Issue 未作成"""
         issue_file = self._write_file(
@@ -5673,6 +6753,7 @@ class TestIssueCreateStatusValidation:
             assert "for type 'bug' is only 'ready'" in result.output
             mock_client.create_issue.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-30"])
     def test_file_epic_status_ready_rejected(self, tmp_path: Path) -> None:
         """file: frontmatter type:epic status:ready は exit 1、Issue 未作成"""
         issue_file = self._write_file(
@@ -5717,6 +6798,7 @@ class TestIssueCreateStatusValidation:
             assert "status ready" in result.output
             assert "WorkflowStatus." not in result.output
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-11", "PW-ISSUE-CREATE-20"])
     def test_file_set_fields_uses_enum_values_not_repr(self, tmp_path: Path) -> None:
         """file: status/priority/size を全設定して起票する。
         Set fields: 行が enum repr（WorkflowStatus.READY 等）ではなく enum 値で表示される（#670）。"""
@@ -5902,6 +6984,7 @@ status: ready
             assert "issues/102" in result.output
         assert not flag.is_file()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-04", "PW-ISSUE-CREATE-09"])
     def test_bulk_create_second_body_has_resolved_number(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -5932,6 +7015,7 @@ status: ready
         assert "#101 に依存" in second_body
         assert "{{issue:" not in second_body
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-09"])
     def test_bulk_create_cross_repo_placeholder_uses_full_ref(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -5963,6 +7047,7 @@ status: ready
         second_body = mock_client.create_issue.call_args_list[1][1]["body"]
         assert "owner/other#101 に依存" in second_body
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-34"])
     def test_bulk_create_forward_reference_fails_without_posting(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -5992,6 +7077,7 @@ status: ready
         mock_client.create_issue.assert_not_called()
         assert flag.is_file()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-34"])
     def test_bulk_create_duplicate_file_fails(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -6015,6 +7101,7 @@ status: ready
         mock_client.create_issue.assert_not_called()
         assert flag.is_file()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-34"])
     def test_bulk_create_missing_file_fails_without_posting(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -6037,6 +7124,7 @@ status: ready
         mock_client.create_issue.assert_not_called()
         assert flag.is_file()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-28"])
     def test_bulk_create_midway_failure_keeps_flag(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -6136,6 +7224,61 @@ status: ready
             assert result.exit_code == 1
         assert flag.is_file()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-23"])
+    def test_bulk_create_board_add_failure_proceeds_to_next_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ボードへの追加に失敗しても、次のファイルへ進む。"""
+        self._state_project(tmp_path, monkeypatch)
+        f1 = self._write_issue_file(tmp_path, "issue-1.md", title="Phase 1", body="基盤")
+        f2 = self._write_issue_file(tmp_path, "issue-2.md", title="Phase 2", body="後続")
+        mock_client = self._make_client([101, 102])
+        mock_client.add_to_project.side_effect = [
+            GitHubAPIError("Project not found", status_code=404),
+            "PVTI_item",
+        ]
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._make_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue._validate_issue_template"),
+        ):
+            result = runner.invoke(app, ["issue", "create", str(f1), str(f2)])
+
+        assert result.exit_code == 0, result.output
+        assert mock_client.create_issue.call_count == 2
+        assert result.stdout.splitlines() == [
+            "https://ghes.example.com/owner/repo/issues/101",
+            "https://ghes.example.com/owner/repo/issues/102",
+        ]
+
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-27"])
+    def test_bulk_create_midway_failure_skips_later_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """3 件のうち 2 件目の作成に失敗すると、3 件目を処理しない。"""
+        self._state_project(tmp_path, monkeypatch)
+        f1 = self._write_issue_file(tmp_path, "issue-1.md", title="Phase 1", body="基盤")
+        f2 = self._write_issue_file(tmp_path, "issue-2.md", title="Phase 2", body="中間")
+        f3 = self._write_issue_file(tmp_path, "issue-3.md", title="Phase 3", body="後続")
+        mock_client = self._make_client([101])
+        mock_client.create_issue.side_effect = [
+            {"number": 101, "html_url": "https://ghes.example.com/owner/repo/issues/101"},
+            GitHubAPIError("boom"),
+            {"number": 103, "html_url": "https://ghes.example.com/owner/repo/issues/103"},
+        ]
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=self._make_config()),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+            patch("cli.commands.issue._validate_issue_template"),
+        ):
+            result = runner.invoke(app, ["issue", "create", str(f1), str(f2), str(f3)])
+
+        assert result.exit_code == 1
+        assert mock_client.create_issue.call_count == 2
+        assert "issues/103" not in result.output
+
 
 class TestIssuePendingConsume:
     """起票成功で issue-pending（起票未完了リマインドのフラグ）を CLI が消すことのテスト（#1259）。
@@ -6219,6 +7362,7 @@ status: ready
         assert "created: Issue owner/repo/123" in result.output
         assert not flag.exists()
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-05"])
     def test_create_direct_success_consumes_issue_pending(self, flag: Path) -> None:
         with (
             patch("cli.commands.issue.load_active_config", return_value=self._config()),
@@ -6332,6 +7476,7 @@ class TestBodyStyleRejectionRoutes:
         )
         return comment_file
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-29"])
     def test_issue_create_rejects_checkbox(self, tmp_path: Path) -> None:
         """issue create: 本文のチェックボックス記法で exit 1（API に到達しない）"""
         body = _VALID_TASK_BODY + "\n- [ ] 残タスク\n"
@@ -6418,6 +7563,7 @@ class TestBodyStyleRejectionRoutes:
         assert "unusable notation" in result.output
         mock_gh_class.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-18"])
     def test_comment_direct_rejects_placeholder(self) -> None:
         """issue comment -m: 本文に残った `<...>` で exit 3"""
         message = _VALID_MERGE_DIFF_BODY + "\n- **<次にやること>** — 未定\n"
@@ -6447,6 +7593,9 @@ class TestBodyStyleRejectionRoutes:
         assert "<次にやること>" in result.output
         mock_gh_class.assert_not_called()
 
+    @add_test_properties(
+        verifies=["PW-ISSUE-COMMENT-16", "PW-ISSUE-COMMENT-17", "PW-ISSUE-COMMENT-18"]
+    )
     def test_comment_from_file_validation_failure_exits_3(self, tmp_path: Path) -> None:
         """issue comment（ファイル）: テンプレ検証の失敗は exit 3（hooks が通信失敗と区別する）"""
         comment_file = self._comment_file(tmp_path, "## 進捗\n\n- 見出しなし\n- ✅ 完了\n")
@@ -6467,6 +7616,7 @@ class TestBodyStyleRejectionRoutes:
         assert "  unusable notation: emoji are not allowed" in lines
         mock_gh_class.assert_not_called()
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-17"])
     def test_comment_direct_validation_failure_exits_3(self) -> None:
         """issue comment -m: サマリ規則違反は専用のエラー行で報告し exit 3"""
         message = _VALID_MERGE_DIFF_BODY.replace("## Merge — 実装完了", "## Merge — all done")
@@ -6680,6 +7830,19 @@ class TestOutputStreams:
         for progress in ("Creating", "Adding to board", "Linking", "Created:", "★"):
             assert progress not in stderr
 
+    @add_test_properties(
+        verifies=[
+            "PW-ISSUE-QUICK-03",
+            "PW-ISSUE-QUICK-04",
+            "PW-ISSUE-QUICK-08",
+            "PW-ISSUE-QUICK-09",
+            "PW-ISSUE-QUICK-13",
+            "PW-ISSUE-QUICK-14",
+            "PW-ISSUE-QUICK-15",
+            "PW-ISSUE-QUICK-16",
+            "PW-ISSUE-QUICK-17",
+        ]
+    )
     def test_quick_with_branch_success_streams(self) -> None:
         client = self._client([12])
         config = self._config()
@@ -6703,6 +7866,9 @@ class TestOutputStreams:
             "set: work target owner/repo/12 (work directory .pecot/work/12/)",
         ]
 
+    @add_test_properties(
+        verifies=["PW-ISSUE-CREATE-04", "PW-ISSUE-CREATE-17", "PW-ISSUE-CREATE-18"]
+    )
     def test_create_multiple_files_prints_urls_in_argument_order(self, tmp_path: Path) -> None:
         body = "## Goal \u2014 \u9054\u6210\n\n\u72b6\u614b\n\n## Acceptance \u2014 \u5224\u5b9a\n\n- **a** \u2014 \u78ba\u8a8d: pytest\n"
         files = []
@@ -6731,6 +7897,9 @@ class TestOutputStreams:
         assert "[1/2]" not in result.output
         self._assert_stderr_lines(result.stderr)
 
+    @add_test_properties(
+        verifies=["PW-ISSUE-REOPEN-03", "PW-ISSUE-REOPEN-07", "PW-ISSUE-REOPEN-08"]
+    )
     def test_reopen_success_streams(self) -> None:
         client = MagicMock()
         client.reopen_issue.return_value = {"state": "open"}
@@ -6749,6 +7918,7 @@ class TestOutputStreams:
             "reopened: Issue owner/repo/7",
         ]
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-13"])
     def test_reopen_state_not_open_is_error(self) -> None:
         client = MagicMock()
         client.reopen_issue.return_value = {"state": "closed"}
@@ -6763,6 +7933,7 @@ class TestOutputStreams:
         assert result.exit_code == 1
         assert "error: Issue owner/repo/7 did not become open (state: closed)" in result.stderr
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-33"])
     def test_missing_arguments_usage_lines_are_indented(self) -> None:
         result = runner.invoke(app, ["issue", "create"])
 
@@ -6773,6 +7944,7 @@ class TestOutputStreams:
         assert all(line.startswith("  ") for line in lines[1:])
         assert "" not in lines
 
+    @add_test_properties(verifies=["PW-ISSUE-REOPEN-15"])
     def test_invalid_status_lists_valid_values(self) -> None:
         result = runner.invoke(app, ["issue", "reopen", "owner/repo/7", "--status", "done"])
 
@@ -6783,6 +7955,7 @@ class TestOutputStreams:
         assert lines[1].startswith("  valid values: ")
         assert result.stderr.isascii()
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-05"])
     def test_read_sub_issues_show_state_suffix(self) -> None:
         client = MagicMock()
         client.get_issue_slim.return_value = {
@@ -6812,6 +7985,7 @@ class TestOutputStreams:
         assert "\u2713" not in result.stdout
         assert "\u25cb" not in result.stdout
 
+    @add_test_properties(verifies=["PW-ISSUE-COMMENT-10", "PW-ISSUE-COMMENT-12"])
     def test_comment_post_url_on_stdout(self, tmp_path: Path) -> None:
         client = MagicMock()
         client.add_issue_comment.return_value = {

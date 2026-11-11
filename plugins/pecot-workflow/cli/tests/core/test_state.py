@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from ub_test_reports.pytest_plugin import add_test_properties
 
 
 class TestGetStateDir:
@@ -136,6 +137,9 @@ class TestFlagExists:
 class TestEnsureWorkDir:
     """ensure_work_dir関数のテスト"""
 
+    @add_test_properties(
+        verifies=["PW-ISSUE-QUICK-09", "PW-ISSUE-QUICK-11", "PW-SESSION-RESTORE-06"]
+    )
     def test_creates_work_dir_from_full_ref(self, tmp_path: Path) -> None:
         """owner/repo/N 形式から .pecot/work/N/ を作成して返す"""
         from cli.core.state import ensure_work_dir
@@ -190,12 +194,14 @@ class TestEnsureWorkDir:
 class TestFormatSessionTitle:
     """format_session_title 関数のテスト（Claude Code のセッション名）"""
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-05"])
     def test_strips_issue_type_prefix(self) -> None:
         """先頭の種別接頭辞 [Task] を落として `#<番号> <タイトル>` にする"""
         from cli.core.state import format_session_title
 
         assert format_session_title(12, "[Task] 題名") == "#12 題名"
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-04"])
     def test_truncates_to_40_chars(self) -> None:
         """全体を 40 文字で切る（末尾の空白は落とす）"""
         from cli.core.state import SESSION_TITLE_MAX_CHARS, format_session_title
@@ -240,6 +246,9 @@ class TestFormatSessionTitle:
 class TestWriteWorkTarget:
     """write_work_target 関数のテスト"""
 
+    @add_test_properties(
+        verifies=["PW-CREATE-BRANCH-08", "PW-SESSION-RESTORE-03", "PW-SESSION-RESTORE-04"]
+    )
     def test_writes_active_and_session_title(self, tmp_path: Path) -> None:
         """.pecot-active と .pecot-session-title を同時に書く"""
         from cli.core.paths import STATE_DIR
@@ -256,6 +265,7 @@ class TestWriteWorkTarget:
         assert (state_dir / FLAG_PECOT_ACTIVE).read_text() == "acme-labs/aist-plugin/1253"
         assert (state_dir / FLAG_PECOT_SESSION_TITLE).read_text() == "#1253 題名"
 
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-09"])
     def test_session_title_number_only_without_title(self, tmp_path: Path) -> None:
         """タイトルが取れなかったときは番号だけのセッション名を書く"""
         from cli.core.paths import STATE_DIR
@@ -265,6 +275,24 @@ class TestWriteWorkTarget:
             write_work_target("owner/repo/5", "")
 
         assert (tmp_path / STATE_DIR / FLAG_PECOT_SESSION_TITLE).read_text() == "#5"
+
+    @add_test_properties(verifies=["PW-SESSION-RESTORE-07"])
+    def test_second_write_overwrites_first(self, tmp_path: Path) -> None:
+        """続けて 2 回書くと、.pecot-active と .pecot-session-title は 2 回目の値になる"""
+        from cli.core.paths import STATE_DIR
+        from cli.core.state import (
+            FLAG_PECOT_ACTIVE,
+            FLAG_PECOT_SESSION_TITLE,
+            write_work_target,
+        )
+
+        with patch("cli.core.state.get_project_root", return_value=tmp_path):
+            write_work_target("acme-labs/aist-plugin/1", "[Task] 最初")
+            write_work_target("acme-labs/aist-plugin/2", "[Task] 次")
+
+        state_dir = tmp_path / STATE_DIR
+        assert (state_dir / FLAG_PECOT_ACTIVE).read_text() == "acme-labs/aist-plugin/2"
+        assert (state_dir / FLAG_PECOT_SESSION_TITLE).read_text() == "#2 次"
 
     def test_non_numeric_ref_writes_nothing(self, tmp_path: Path) -> None:
         """番号が数字でない参照は ValueError で止まり、どのフラグも書かない"""

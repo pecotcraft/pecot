@@ -23,6 +23,7 @@ import httpx
 import pytest
 import respx
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import (
@@ -161,6 +162,7 @@ def _invoke_direct(
 class TestEpicRoutingDirect:
     """``-m`` 直接投稿モードのルーティング検証 (シナリオ A-D)"""
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-14"])
     def test_A_aggregation_set_repo_omitted(self, respx_mock: respx.MockRouter) -> None:
         """(A) aggregation_repo あり + --repo 省略 → aggregation_repo に作成。"""
         config = _make_config("acme-labs/aist-roadmap")
@@ -214,6 +216,7 @@ class TestEpicRoutingDirect:
         assert rest_route.call_count == 1
         assert "warning:" not in result.stderr
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-15"])
     def test_C_aggregation_set_repo_mismatch_warns(self, respx_mock: respx.MockRouter) -> None:
         """(C) --repo と aggregation_repo が不一致 → 警告ありで明示値に作成。"""
         config = _make_config("acme-labs/aist-roadmap")
@@ -251,6 +254,7 @@ class TestEpicRoutingDirect:
         assert "acme-labs/aist-roadmap" in result.stderr
         assert "continuing as an exception for an Epic in an implementation repo" in result.stderr
 
+    @add_test_properties(verifies=["PW-ISSUE-CREATE-42"])
     def test_D_aggregation_unset_repo_omitted_exits_2(self, respx_mock: respx.MockRouter) -> None:
         """(D) aggregation_repo なし + --repo 省略 → exit 2、API 到達なし。"""
         config = _make_config(None)

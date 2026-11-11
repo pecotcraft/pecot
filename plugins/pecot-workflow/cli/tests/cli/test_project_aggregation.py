@@ -22,6 +22,7 @@ from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import ProjectConfig, load_config, save_config
@@ -74,6 +75,9 @@ def patched_config(config_path: Path):
 
 
 class TestSetAggregationRepo:
+    @add_test_properties(
+        verifies=["PW-PROJECT-SET-AGGREGATION-REPO-01", "PW-PROJECT-SET-AGGREGATION-REPO-02"]
+    )
     def test_set_when_unset(self, patched_config: Path) -> None:
         """未設定状態から初回 set で書き込みできる。"""
         result = runner.invoke(app, ["project", "set-aggregation-repo", "acme-labs/aist-roadmap"])
@@ -84,6 +88,7 @@ class TestSetAggregationRepo:
         saved = load_config(patched_config)
         assert saved.aggregation_repo == "acme-labs/aist-roadmap"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-AGGREGATION-REPO-04"])
     def test_overwrite_existing_warns_without_yes(self, patched_config: Path) -> None:
         """既存値がある場合 stderr に警告を出しつつ書き換える。"""
         # 事前に値を仕込む
@@ -101,6 +106,7 @@ class TestSetAggregationRepo:
         saved = load_config(patched_config)
         assert saved.aggregation_repo == "acme-labs/new-repo"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-AGGREGATION-REPO-05"])
     def test_overwrite_with_yes_suppresses_confirm_hint(self, patched_config: Path) -> None:
         """``--yes`` でも警告自体は出す (確認ヒントを出さないだけ)。"""
         cfg = load_config(patched_config)
@@ -119,6 +125,7 @@ class TestSetAggregationRepo:
         saved = load_config(patched_config)
         assert saved.aggregation_repo == "acme-labs/new-repo"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-AGGREGATION-REPO-03"])
     def test_set_same_value_is_unchanged(self, patched_config: Path) -> None:
         """同じ値なら、警告と保存をせずに unchanged を出す。"""
         cfg = load_config(patched_config)
@@ -130,6 +137,7 @@ class TestSetAggregationRepo:
         assert result.stdout == ""
         assert result.stderr == "unchanged: aggregation_repo acme-labs/aist-roadmap\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-AGGREGATION-REPO-06"])
     def test_invalid_format_rejected(self, patched_config: Path) -> None:
         """ "a" のような不正値は非ゼロ終了 + エラー表示。"""
         result = runner.invoke(app, ["project", "set-aggregation-repo", "a"])
@@ -138,6 +146,7 @@ class TestSetAggregationRepo:
         saved = load_config(patched_config)
         assert saved.aggregation_repo is None  # 書き込まれていない
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-AGGREGATION-REPO-06"])
     def test_invalid_extra_segment_rejected(self, patched_config: Path) -> None:
         """3 セグメント形式 "a/b/c" も拒否。"""
         result = runner.invoke(app, ["project", "set-aggregation-repo", "a/b/c"])
@@ -146,6 +155,9 @@ class TestSetAggregationRepo:
 
 
 class TestUnsetAggregationRepo:
+    @add_test_properties(
+        verifies=["PW-PROJECT-UNSET-AGGREGATION-REPO-01", "PW-PROJECT-UNSET-AGGREGATION-REPO-02"]
+    )
     def test_unset_clears_value(self, patched_config: Path) -> None:
         """設定済みの値を None に戻す。"""
         cfg = load_config(patched_config)
@@ -159,6 +171,7 @@ class TestUnsetAggregationRepo:
         saved = load_config(patched_config)
         assert saved.aggregation_repo is None
 
+    @add_test_properties(verifies=["PW-PROJECT-UNSET-AGGREGATION-REPO-03"])
     def test_unset_when_already_unset(self, patched_config: Path) -> None:
         """未設定なら no-op メッセージのみ。"""
         result = runner.invoke(app, ["project", "unset-aggregation-repo"])
@@ -168,12 +181,14 @@ class TestUnsetAggregationRepo:
 
 
 class TestShowAggregationRepo:
+    @add_test_properties(verifies=["PW-PROJECT-SHOW-AGGREGATION-REPO-02"])
     def test_show_unset(self, patched_config: Path) -> None:
         """未設定時は "none" を stdout に出す。"""
         result = runner.invoke(app, ["project", "show-aggregation-repo"])
         assert result.exit_code == 0
         assert result.stdout == "none\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-SHOW-AGGREGATION-REPO-01"])
     def test_show_with_value(self, patched_config: Path) -> None:
         """設定済みはそのまま stdout に値を出す。"""
         cfg = load_config(patched_config)
@@ -186,6 +201,7 @@ class TestShowAggregationRepo:
 
 
 class TestNoActiveProject:
+    @add_test_properties(verifies=["PW-PROJECT-SET-AGGREGATION-REPO-07"])
     def test_set_without_active(self) -> None:
         """アクティブ設定が無ければ set は exit 1。"""
         with patch("cli.commands.project.load_active_config", return_value=None):
@@ -197,10 +213,21 @@ class TestNoActiveProject:
             "error: no active project\n  run: pecot project activate <PROJECT>\n"
         )
 
+    @add_test_properties(verifies=["PW-PROJECT-SHOW-AGGREGATION-REPO-03"])
     def test_show_without_active(self) -> None:
         """アクティブ設定が無ければ show も exit 1。"""
         with patch("cli.commands.project.load_active_config", return_value=None):
             result = runner.invoke(app, ["project", "show-aggregation-repo"])
+        assert result.exit_code == 1
+        assert result.stderr == (
+            "error: no active project\n  run: pecot project activate <PROJECT>\n"
+        )
+
+    @add_test_properties(verifies=["PW-PROJECT-UNSET-AGGREGATION-REPO-04"])
+    def test_unset_without_active(self) -> None:
+        """アクティブ設定が無ければ unset も exit 1。"""
+        with patch("cli.commands.project.load_active_config", return_value=None):
+            result = runner.invoke(app, ["project", "unset-aggregation-repo"])
         assert result.exit_code == 1
         assert result.stderr == (
             "error: no active project\n  run: pecot project activate <PROJECT>\n"

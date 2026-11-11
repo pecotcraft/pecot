@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -178,12 +179,14 @@ class TestGetNextSetName:
         (tmp_path / "wt2").mkdir()
         assert get_next_set_name(tmp_path, "myrepo") == "wt2"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-04"])
     def test_new_set_when_all_existing_have_repo(self, tmp_path: Path) -> None:
         """全セットに該当リポ参加済 → max+1 で新セット"""
         (tmp_path / "wt1" / "myrepo").mkdir(parents=True)
         (tmp_path / "wt2" / "myrepo").mkdir(parents=True)
         assert get_next_set_name(tmp_path, "myrepo") == "wt3"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-03"])
     def test_picks_lowest_available_set(self, tmp_path: Path) -> None:
         """複数の空き（参加可能）セット中では最小番号"""
         (tmp_path / "wt1").mkdir()  # 参加可能
@@ -209,6 +212,7 @@ class TestGetNextSetName:
         (tmp_path / "base").mkdir()
         assert get_next_set_name(tmp_path, "myrepo") == "wt1"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-03"])
     def test_avoids_claimed_name(self, tmp_path: Path) -> None:
         """wt1 が claimed にあれば、wt1/ が空でも避けて wt2"""
         (tmp_path / "wt1").mkdir()
@@ -281,6 +285,7 @@ class TestCreateWorktree:
         assert result.name == "wt1"
         assert result.branch == "wt1"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-04"])
     def test_auto_name_uses_get_next_set_name(self, tmp_path: Path) -> None:
         """name 省略時は プロジェクトルート基準で番号決定
 
@@ -303,6 +308,7 @@ class TestCreateWorktree:
         assert result.name == "wt2"
         assert result.path == root / "wt2" / "myrepo"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-03"])
     def test_auto_joins_existing_set(self, tmp_path: Path) -> None:
         """別リポが作った wt1/ へ該当リポが未参加 → wt1 に参加"""
         root, repo = self._setup_fake_project(tmp_path)
@@ -349,6 +355,7 @@ class TestCreateWorktree:
                     copy=False,
                 )
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-12"])
     def test_existing_branch_allow_existing_bypasses_guard(self, tmp_path: Path) -> None:
         """--allow-existing-branch で衝突ガードをバイパス"""
         root, repo = self._setup_fake_project(tmp_path)
@@ -515,6 +522,7 @@ class TestCreateWorktree:
                     copy=False,
                 )
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-12"])
     def test_allow_existing_branch_skips_orphan_detection(self, tmp_path: Path) -> None:
         """allow_existing_branch=True のとき worktreepath が空でも branch -D を呼ばない"""
         root, repo = self._setup_fake_project(tmp_path)
@@ -562,6 +570,7 @@ class TestCreateWorktree:
         assert "-b" not in add_cmd
         assert result.path == root / "wt1" / "myrepo"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-10"])
     def test_setup_command_cli_takes_priority_over_config(self, tmp_path: Path) -> None:
         """CLI --setup 明示が config.setup_command より優先される"""
         root, repo = self._setup_fake_project(tmp_path)
@@ -611,6 +620,7 @@ class TestCreateWorktree:
         assert result.setup_result.command == "echo from-cli"
         assert result.setup_result.returncode == 0
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-11"])
     def test_setup_command_from_config_used_when_cli_absent(self, tmp_path: Path) -> None:
         """CLI 未指定なら config.setup_command が使われる"""
         root, repo = self._setup_fake_project(tmp_path)
@@ -925,6 +935,116 @@ class TestCreateWorktree:
         assert "worktree-config.json" in msg
         assert "fix the config file and run it again" in msg
 
+    @staticmethod
+    def _recording_run(calls: list[list[str]], add_returncode: int = 0) -> Callable[..., MagicMock]:
+        """git の呼び出しを記録し、worktree add だけ add_returncode を返す subprocess.run の代わり"""
+
+        def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+            calls.append(list(cmd))
+            if cmd[:2] == ["git", "show-ref"]:
+                return MagicMock(returncode=1, stdout="", stderr="")
+            if cmd[:3] == ["git", "worktree", "add"]:
+                if add_returncode == 0:
+                    Path(cmd[3]).mkdir(parents=True, exist_ok=True)
+                return MagicMock(returncode=add_returncode, stdout="", stderr="fatal: boom")
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        return fake_run
+
+    @staticmethod
+    def _added(calls: list[list[str]]) -> list[list[str]]:
+        return [c for c in calls if c[:3] == ["git", "worktree", "add"]]
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-09"])
+    def test_copy_false_copies_no_untracked_files(self, tmp_path: Path) -> None:
+        root, repo = self._setup_fake_project(tmp_path)
+        (repo / "untracked.txt").write_text("local")
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=repo),
+            patch("cli.core.worktree.get_untracked_files", return_value=[Path("untracked.txt")]),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
+            patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
+            patch("subprocess.run", side_effect=self._recording_run([])),
+        ):
+            result = create_worktree(
+                cwd=repo, name="wt1", base_branch="develop", copy=False, link=False
+            )
+
+        assert result.copied_files == []
+        assert not (root / "wt1" / "myrepo" / "untracked.txt").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-33"])
+    def test_non_base_layout_raises_before_git_worktree_add(self, tmp_path: Path) -> None:
+        main_wt = tmp_path / "elsewhere" / "myrepo"
+        main_wt.mkdir(parents=True)
+        calls: list[list[str]] = []
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=main_wt),
+            patch("subprocess.run", side_effect=self._recording_run(calls)),
+            pytest.raises(RuntimeError, match="not placed in the layout"),
+        ):
+            create_worktree(cwd=main_wt, base_branch="develop", copy=False, link=False)
+
+        assert self._added(calls) == []
+        assert not (tmp_path / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-41"])
+    def test_no_develop_branch_raises_before_git_worktree_add(self, tmp_path: Path) -> None:
+        root, repo = self._setup_fake_project(tmp_path)
+        cfg = self._make_config()
+        cfg.get_develop_branch.return_value = None
+        calls: list[list[str]] = []
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=repo),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
+            patch("cli.core.worktree.load_active_config", return_value=cfg),
+            patch("subprocess.run", side_effect=self._recording_run(calls)),
+            pytest.raises(RuntimeError, match="develop_branch is not set"),
+        ):
+            create_worktree(cwd=repo, name="wt1", copy=False, link=False)
+
+        assert self._added(calls) == []
+        assert not (root / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-43"])
+    def test_all_numbers_in_use_raises_before_git_worktree_add(self, tmp_path: Path) -> None:
+        root, repo = self._setup_fake_project(tmp_path)
+        for n in range(1, 10):
+            (root / f"wt{n}" / "myrepo").mkdir(parents=True)
+        calls: list[list[str]] = []
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=repo),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
+            patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
+            patch("subprocess.run", side_effect=self._recording_run(calls)),
+            pytest.raises(RuntimeError, match="are in use"),
+        ):
+            create_worktree(cwd=repo, base_branch="develop", copy=False, link=False)
+
+        assert self._added(calls) == []
+        assert not (root / "wt10").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-47"])
+    def test_git_worktree_add_failure_raises(self, tmp_path: Path) -> None:
+        _root, repo = self._setup_fake_project(tmp_path)
+        calls: list[list[str]] = []
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=repo),
+            patch("cli.core.worktree._read_remote_repos", return_value=self._remote_repos()),
+            patch("cli.core.worktree.load_active_config", return_value=self._make_config()),
+            patch("subprocess.run", side_effect=self._recording_run(calls, add_returncode=128)),
+            pytest.raises(RuntimeError) as exc,
+        ):
+            create_worktree(cwd=repo, name="wt1", base_branch="develop", copy=False, link=False)
+
+        assert str(exc.value) == "failed to create the worktree: fatal: boom"
+        assert len(self._added(calls)) == 1
+
 
 # _run_effective_setup の警告
 
@@ -1027,6 +1147,7 @@ class TestRunSetupCommand:
 
 
 class TestRemoveWorktree:
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-05"])
     def test_empty_set_dir_is_removed(self, tmp_path: Path) -> None:
         """削除後、<root>/<name>/ が空なら rmdir"""
         root = tmp_path / "workspaces"
@@ -1080,6 +1201,33 @@ class TestRemoveWorktree:
         assert set_dir.exists()
         assert (set_dir / "other-repo").exists()
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-08"])
+    def test_set_dir_rmdir_failure_logs_one_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        root = tmp_path / "workspaces"
+        repo = root / "base" / "myrepo"
+        repo.mkdir(parents=True)
+        set_dir = root / "wt1"
+        set_dir.mkdir()
+        list_output = _porcelain((str(repo), "main"), (str(set_dir / "myrepo"), "wt1"))
+
+        def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+            if cmd[:3] == ["git", "worktree", "list"]:
+                return MagicMock(returncode=0, stdout=list_output, stderr="")
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=repo),
+            patch("subprocess.run", side_effect=fake_run),
+            patch.object(Path, "rmdir", side_effect=OSError("denied")),
+            caplog.at_level(logging.WARNING, logger="cli.core.worktree"),
+        ):
+            remove_worktree(cwd=repo, name="wt1")
+
+        messages = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+        assert messages == [f"failed to remove the set directory: {set_dir}: denied"]
+
     def _run_remove(self, tmp_path: Path, branch_result: MagicMock, keep_branch: bool = False):  # type: ignore[no-untyped-def]
         root = tmp_path / "workspaces"
         repo = root / "base" / "myrepo"
@@ -1102,6 +1250,7 @@ class TestRemoveWorktree:
     def test_returns_none_when_branch_deleted(self, tmp_path: Path) -> None:
         assert self._run_remove(tmp_path, MagicMock(returncode=0, stdout="", stderr="")) is None
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-09"])
     def test_returns_stderr_when_branch_delete_fails(self, tmp_path: Path) -> None:
         failed = MagicMock(returncode=1, stdout="", stderr="error: branch 'wt1' not found\n")
         assert self._run_remove(tmp_path, failed) == "error: branch 'wt1' not found"
@@ -1300,6 +1449,7 @@ class TestGetCurrentWorktreeName:
             ]
             assert get_current_worktree_name(Path("/workspaces/wt2/x")) is None
 
+    @add_test_properties(verifies=["PW-PR-CLEANUP-06"])
     def test_returns_recorded_name(self, tmp_path: Path) -> None:
         """記録があれば置き場所の親ディレクトリ名より優先する"""
         marker = tmp_path / "pecot-worktree-name"
@@ -1619,7 +1769,7 @@ class TestCreateWorktreePrimaryRemote:
             env=_clean_git_env(),
         ).stdout.strip()
 
-    @add_test_properties(verifies=["PW-WORKTREE-ADD-02"])
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-02", "PW-WORKTREE-ADD-06"])
     def test_upstream_is_first_remote_without_origin(self, tmp_path: Path) -> None:
         _root, repo = self._make_repo(tmp_path, ["upstream"])
 
@@ -1627,7 +1777,7 @@ class TestCreateWorktreePrimaryRemote:
 
         assert self._upstream(repo, "wt1") == "upstream/develop"
 
-    @add_test_properties(verifies=["PW-WORKTREE-ADD-02"])
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-02", "PW-WORKTREE-ADD-06"])
     def test_upstream_is_origin_when_origin_and_other_remote_exist(self, tmp_path: Path) -> None:
         _root, repo = self._make_repo(tmp_path, ["aaa", "origin"])
 
@@ -1681,7 +1831,7 @@ class TestCreateWorktreePrimaryRemote:
 
         assert self._upstream(repo, "wt1") == "upstream/develop"
 
-    @add_test_properties(verifies=["PW-WORKTREE-ADD-52"])
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-37", "PW-WORKTREE-ADD-52"])
     def test_first_remote_is_reported_when_none_is_registered(self, tmp_path: Path) -> None:
         root, repo = self._make_repo(
             tmp_path, ["fork", "upstream"], {"fork": "other", "upstream": "another"}
@@ -1692,3 +1842,13 @@ class TestCreateWorktreePrimaryRemote:
 
         assert "repository test-owner/other is not registered" in str(exc.value)
         assert not (root / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-05"])
+    def test_base_branch_option_overrides_develop_branch(self, tmp_path: Path) -> None:
+        _root, repo = self._make_repo(tmp_path, ["origin"])
+
+        with patch("cli.core.worktree.load_active_config", return_value=self._config()):
+            result = create_worktree(cwd=repo, base_branch="main", copy=False, link=False)
+
+        assert result.base_branch == "main"
+        assert self._upstream(repo, "wt1") == "origin/main"

@@ -12,10 +12,11 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner, Result
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.commands.project import _build_board_url, _build_repositories
-from cli.core.config import Repository
+from cli.core.config import Package, Repository
 from cli.core.dependabot import DependabotAlertError, DependabotAlertStatus
 from cli.core.github import GitHubAPIError, GitHubNotFoundError
 
@@ -28,6 +29,7 @@ runner = CliRunner()
 class TestProjectListNewCommand:
     """project list コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-PROJECT-LIST-03"])
     def test_project_list_empty(self, tmp_path: Path) -> None:
         """プロジェクト設定がない場合"""
         with patch("cli.commands.project.get_projects_dir", return_value=tmp_path):
@@ -51,6 +53,7 @@ class TestProjectListNewCommand:
             assert "github.com_foo_bar" in result.output
             assert "ghes.example.com_test_proj" in result.output
 
+    @add_test_properties(verifies=["PW-PROJECT-LIST-01"])
     def test_project_list_outputs_in_filename_order(self, tmp_path: Path) -> None:
         """名前の順と違う順に作った設定ファイルが、ファイル名の順に 1 行ずつ出る"""
         for name in ("github.com_c_proj", "github.com_a_proj", "github.com_b_proj"):
@@ -67,6 +70,7 @@ class TestProjectListNewCommand:
             "=== Projects ===\n  github.com_a_proj\n  github.com_b_proj\n  github.com_c_proj\n"
         )
 
+    @add_test_properties(verifies=["PW-PROJECT-LIST-02"])
     def test_project_list_with_active_marker(self, tmp_path: Path) -> None:
         """アクティブマーカー表示"""
         config_file = tmp_path / "github.com_active_proj.json"
@@ -89,6 +93,7 @@ class TestProjectListNewCommand:
 class TestSetRepoCommand:
     """project set-repo コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-15"])
     def test_set_repo_no_config(self) -> None:
         """アクティブ設定がない場合はエラー"""
         with patch("cli.commands.project.load_active_config", return_value=None):
@@ -99,6 +104,7 @@ class TestSetRepoCommand:
                 "error: no active project\n  run: pecot project activate <PROJECT>\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-14"])
     def test_set_repo_invalid_format(self) -> None:
         """owner/repo形式でない場合はエラー"""
         mock_config = MagicMock()
@@ -113,6 +119,7 @@ class TestSetRepoCommand:
                 "  example: pecot project set-repo example-org/my-repo\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-13"])
     def test_set_repo_owner_mismatch(self) -> None:
         """リポジトリオーナーとプロジェクトオーナーが異なる場合はエラー"""
         mock_config = MagicMock()
@@ -127,6 +134,7 @@ class TestSetRepoCommand:
                 "  GitHub Projects V2 links only repositories of the project owner\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-01", "PW-PROJECT-SET-REPO-02"])
     def test_set_repo_new_add(self, tmp_path: Path) -> None:
         """新規リポジトリ追加（リンク成功時）"""
         mock_config = MagicMock()
@@ -159,6 +167,7 @@ class TestSetRepoCommand:
             )
             mock_save.assert_called_once()
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-07", "PW-PROJECT-SET-REPO-08"])
     def test_set_repo_link_failure(self, tmp_path: Path) -> None:
         """新規リポジトリ追加時にリンク失敗した場合はエラー"""
         mock_config = MagicMock()
@@ -248,6 +257,7 @@ class TestSetRepoCommand:
             assert result.exit_code == 0
             mock_save.assert_called_once()
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-02"])
     def test_set_repo_with_packages_new(self, tmp_path: Path) -> None:
         """--package 複数指定で新規リポ追加"""
         mock_config = MagicMock()
@@ -292,6 +302,7 @@ class TestSetRepoCommand:
             assert added_repo.packages[1].name == "bar"
             assert added_repo.changelog_file is None
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-11"])
     def test_set_repo_package_invalid_format(self) -> None:
         """--package が NAME:PATH 形式でない場合はエラー"""
         mock_config = MagicMock()
@@ -304,6 +315,7 @@ class TestSetRepoCommand:
             assert result.exit_code == 1
             assert "NAME:PATH" in result.output
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-09"])
     def test_set_repo_package_with_changelog_file_exclusive(self) -> None:
         """--package と --changelog-file の同時指定はエラー"""
         mock_config = MagicMock()
@@ -326,6 +338,7 @@ class TestSetRepoCommand:
                 result.stderr == "error: --package and --changelog-file cannot be used together\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-12"])
     def test_set_repo_package_duplicate_name(self) -> None:
         """--package の NAME 重複はエラー"""
         mock_config = MagicMock()
@@ -346,6 +359,7 @@ class TestSetRepoCommand:
             assert result.exit_code == 1
             assert result.stderr == "error: --package NAME is duplicated: 'foo'\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-06"])
     def test_set_repo_clear_packages(self, tmp_path: Path) -> None:
         """--clear-packages で既存 packages を削除"""
         mock_repo = MagicMock()
@@ -378,13 +392,108 @@ class TestSetRepoCommand:
             assert result.exit_code == 0
             assert mock_repo.packages is None
 
+    # _link_project_repository 関数テスト
 
-# _link_project_repository 関数テスト
+    def _invoke_set_repo_existing(
+        self,
+        tmp_path: Path,
+        extra_args: list[str],
+        *,
+        packages: list[Package] | None = None,
+        changelog_file: str | None = None,
+    ) -> tuple[Result, MagicMock, MagicMock]:
+        """登録済みリポジトリに set-repo を起動し、(結果, リポジトリ, save_config) を返す"""
+        mock_repo = MagicMock()
+        mock_repo.owner = "test-owner"
+        mock_repo.name = "existing-repo"
+        mock_repo.packages = packages
+        mock_repo.changelog_file = changelog_file
+
+        mock_config = MagicMock()
+        mock_config.owner = "test-owner"
+        mock_config.repositories = [mock_repo]
+        mock_config.find_repository.return_value = mock_repo
+
+        mock_config_path = tmp_path / "test.json"
+        mock_config_path.write_text("{}")
+
+        with (
+            patch("cli.commands.project.load_active_config", return_value=mock_config),
+            patch("cli.commands.project.get_active_config_path", return_value=mock_config_path),
+            patch("cli.commands.project.save_config") as mock_save,
+        ):
+            result = runner.invoke(
+                app, ["project", "set-repo", "test-owner/existing-repo", *extra_args]
+            )
+        return result, mock_repo, mock_save
+
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-04"])
+    def test_set_repo_package_replaces_packages(self, tmp_path: Path) -> None:
+        """登録済みリポジトリに --package を渡すと packages が置き換わる"""
+        result, mock_repo, mock_save = self._invoke_set_repo_existing(
+            tmp_path,
+            ["--package", "pkg-b:packages/b/CHANGELOG.md"],
+            packages=[Package(name="pkg-a", changelog="packages/a/CHANGELOG.md")],
+        )
+        assert result.exit_code == 0
+        assert mock_repo.packages == [Package(name="pkg-b", changelog="packages/b/CHANGELOG.md")]
+        mock_save.assert_called_once()
+
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-05"])
+    def test_set_repo_package_clears_changelog_file(self, tmp_path: Path) -> None:
+        """登録済みリポジトリに --package を渡すと changelog_file が消える"""
+        result, mock_repo, mock_save = self._invoke_set_repo_existing(
+            tmp_path,
+            ["--package", "pkg-b:packages/b/CHANGELOG.md"],
+            changelog_file="OLD-CHANGELOG.md",
+        )
+        assert result.exit_code == 0
+        assert mock_repo.changelog_file is None
+        mock_save.assert_called_once()
+
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-10"])
+    def test_set_repo_package_and_clear_packages_conflict(self, tmp_path: Path) -> None:
+        """--package と --clear-packages を一緒に渡すと終了コード 1"""
+        result, _, mock_save = self._invoke_set_repo_existing(
+            tmp_path, ["--package", "foo:F.md", "--clear-packages"]
+        )
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        assert result.stderr == "error: --package and --clear-packages cannot be used together\n"
+        mock_save.assert_not_called()
+
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-16"])
+    def test_set_repo_invalid_release_type(self, tmp_path: Path) -> None:
+        """--release-type が single・multi・nx のどれでもないと終了コード 1"""
+        result, _, mock_save = self._invoke_set_repo_existing(tmp_path, ["--release-type", "bogus"])
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        assert result.stderr == (
+            "error: --release-type must be one of ['multi', 'nx', 'single'] (got: 'bogus')\n"
+        )
+        mock_save.assert_not_called()
+
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-17"])
+    def test_set_repo_changelog_file_with_packages_fails(self, tmp_path: Path) -> None:
+        """packages を持つリポジトリに --changelog-file を渡すと終了コード 1"""
+        result, mock_repo, mock_save = self._invoke_set_repo_existing(
+            tmp_path,
+            ["--changelog-file", "X.md"],
+            packages=[Package(name="pkg-a", changelog="packages/a/CHANGELOG.md")],
+        )
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        assert result.stderr == (
+            "error: this repository has packages set\n"
+            "  run with --clear-packages before switching to --changelog-file\n"
+        )
+        mock_save.assert_not_called()
 
 
 class TestLinkProjectRepository:
     """_link_project_repository 関数のテスト（GraphQL版）"""
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-01"])
     def test_link_success(self) -> None:
         """リンク成功"""
         mock_client = MagicMock()
@@ -525,6 +634,9 @@ class TestBuildBoardUrl:
 class TestBuildRepositories:
     """_build_repositories の並びとメタ引き継ぎのテスト"""
 
+    @add_test_properties(
+        verifies=["PW-PROJECT-ACTIVATE-08", "PW-PROJECT-ACTIVATE-10", "PW-PROJECT-ACTIVATE-11"]
+    )
     def test_keeps_existing_order_drops_unlinked_appends_new(self) -> None:
         """既存設定の順を保ち、リンクが外れたものは落とし、新規は末尾に足す"""
         existing = {
@@ -700,6 +812,7 @@ class TestWorkflowFieldOptions:
 class TestProjectSearchCommand:
     """pecot project search コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-PROJECT-SEARCH-01"])
     def test_project_search_success(self) -> None:
         """正常にプロジェクト一覧を表示"""
         mock_client = MagicMock()
@@ -733,6 +846,7 @@ class TestProjectSearchCommand:
             expected = "=== Projects of test-owner (ghes.example.com) ==="
             assert result.stdout.splitlines().count(expected) == 1
 
+    @add_test_properties(verifies=["PW-PROJECT-SEARCH-03"])
     def test_project_search_empty(self) -> None:
         """プロジェクトがない場合"""
         mock_client = MagicMock()
@@ -744,6 +858,7 @@ class TestProjectSearchCommand:
             assert result.stdout == ""
             assert result.stderr == "error: no projects found for test-owner\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-SEARCH-04"])
     def test_project_search_api_error(self) -> None:
         """GitHub APIエラー"""
         from cli.core.github import GitHubAPIError
@@ -757,6 +872,7 @@ class TestProjectSearchCommand:
             assert result.stdout == ""
             assert result.stderr == "error: could not list projects (status 500): API Error\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-SEARCH-02"])
     def test_project_search_long_title_truncated(self) -> None:
         """長いタイトルは省略される"""
         mock_client = MagicMock()
@@ -780,6 +896,7 @@ class TestProjectSearchCommand:
 class TestProjectInitCommand:
     """pecot project init コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-01"])
     def test_init_success(self) -> None:
         """正常にpecot-workflow関連フィールドを作成"""
         mock_client = MagicMock()
@@ -824,6 +941,7 @@ class TestProjectInitCommand:
             )
             assert mock_client.create_project_field.call_count == 3
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-03"])
     def test_init_already_exists(self) -> None:
         """既にpecot-workflowフィールドが存在する場合はスキップ（priority/sizeは作成）"""
         mock_client = MagicMock()
@@ -868,6 +986,7 @@ class TestProjectInitCommand:
             )
             assert mock_client.create_project_field.call_count == 2
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-04"])
     def test_init_project_not_found(self) -> None:
         """プロジェクトが見つからない場合"""
         mock_client = MagicMock()
@@ -933,6 +1052,7 @@ class TestProjectInitCommand:
             assert result.exit_code == 1
             assert result.stderr == "error: could not initialize project fields: API Error\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-05"])
     def test_init_field_creation_error(self) -> None:
         """フィールド作成時のAPIエラー"""
         from cli.core.github import GitHubAPIError
@@ -956,6 +1076,7 @@ class TestProjectInitCommand:
                 "error: could not initialize project fields: Field creation failed\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-01", "PW-PROJECT-INIT-02"])
     def test_init_creates_all_three_fields(self) -> None:
         """3フィールドすべて作成"""
         mock_client = MagicMock()
@@ -986,6 +1107,7 @@ class TestProjectInitCommand:
             )
             assert mock_client.create_project_field.call_count == 3
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-03"])
     def test_init_skips_existing_priority_field(self) -> None:
         """priorityフィールドが既存の場合はスキップ"""
         mock_client = MagicMock()
@@ -1052,6 +1174,7 @@ class TestProjectInitCommand:
             )
             assert mock_client.create_project_field.call_count == 2
 
+    @add_test_properties(verifies=["PW-PROJECT-INIT-03"])
     def test_init_all_fields_exist(self) -> None:
         """すべてのフィールドが既存の場合はすべてスキップ"""
         mock_client = MagicMock()
@@ -1124,6 +1247,15 @@ class TestHasField:
 class TestProjectCreateCommand:
     """pecot project create コマンドのテスト"""
 
+    @add_test_properties(
+        verifies=[
+            "PW-PROJECT-CREATE-01",
+            "PW-PROJECT-CREATE-02",
+            "PW-PROJECT-CREATE-03",
+            "PW-PROJECT-CREATE-04",
+            "PW-PROJECT-CREATE-05",
+        ]
+    )
     def test_create_success(self, tmp_path: Path) -> None:
         """正常にプロジェクト作成・init・syncを実行"""
         mock_client = MagicMock()
@@ -1311,6 +1443,7 @@ class TestProjectCreateCommand:
             calls = mock_cls.call_args_list
             assert any(call[1].get("host") == "ghes.example.com" for call in calls)
 
+    @add_test_properties(verifies=["PW-PROJECT-CREATE-07"])
     def test_create_owner_not_found(self) -> None:
         """オーナーが見つからない場合"""
         mock_client = MagicMock()
@@ -1325,6 +1458,7 @@ class TestProjectCreateCommand:
             assert result.exit_code == 1
             assert result.stderr == "error: owner not found: nonexistent\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-CREATE-08"])
     def test_create_project_api_error(self) -> None:
         """プロジェクト作成時のAPIエラー"""
         mock_client = MagicMock()
@@ -1339,6 +1473,7 @@ class TestProjectCreateCommand:
             assert result.exit_code == 1
             assert result.stderr == "error: could not create project: プロジェクト作成失敗\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-CREATE-06"])
     def test_create_duplicate_title(self) -> None:
         """同名プロジェクトが既に存在する場合"""
         mock_client = MagicMock()
@@ -1363,6 +1498,57 @@ class TestProjectCreateCommand:
                 "  url: https://github.com/users/test-owner/projects/1\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-CREATE-09"])
+    def test_create_noncompliant_project_fails(self, tmp_path: Path) -> None:
+        """作ったプロジェクトの workflow フィールドに選択肢が足りないと終了コード 1"""
+        mock_client = MagicMock()
+        mock_client.get_owner_node_id.return_value = "U_owner123"
+        mock_client.create_project.return_value = {
+            "id": "PVT_new123",
+            "number": 42,
+            "title": "New Project",
+            "url": "https://github.com/users/test-owner/projects/42",
+        }
+        mock_client.list_projects.side_effect = [
+            [],
+            [{"number": 42, "title": "New Project", "id": "PVT_new123", "url": "..."}],
+            [{"number": 42, "title": "New Project", "id": "PVT_new123", "url": "..."}],
+        ]
+        mock_client.get_project_fields.return_value = {
+            "id": "PVT_new123",
+            "fields": {
+                "nodes": [
+                    {
+                        "name": "pecot-workflow-test",
+                        "id": "field-1",
+                        "options": [
+                            {"name": "Backlog", "id": "opt1"},
+                            {"name": "Ready", "id": "opt2"},
+                        ],
+                    }
+                ]
+            },
+        }
+        mock_client.get_linked_repositories.return_value = []
+
+        with (
+            patch("cli.commands.project.GitHubClient", return_value=mock_client),
+            patch("cli.commands.project.get_projects_dir", return_value=tmp_path),
+            patch("cli.commands.project.save_config"),
+            patch("cli.commands.project.set_active_config"),
+        ):
+            result = runner.invoke(
+                app, ["project", "create", "test-owner", "New Project", "--suffix", "test"]
+            )
+        assert result.exit_code == 1
+        last_lines = result.stderr.splitlines()[-2:]
+        assert last_lines[0].startswith("error: pecot-workflow field is missing options: ")
+        missing = last_lines[0].removeprefix("error: pecot-workflow field is missing options: ")
+        assert set(missing.split(", ")) == {"Pending", "Active", "In Review", "Archived"}
+        assert last_lines[1] == (
+            "  required options: Backlog / Pending / Ready / Active / In Review / Archived"
+        )
+
 
 # activate コマンドテスト
 
@@ -1370,6 +1556,7 @@ class TestProjectCreateCommand:
 class TestActivateCommand:
     """project activate コマンドのテスト"""
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-07"])
     def test_activate_no_owner_uses_authenticated_user(self) -> None:
         """--owner 省略時は認証ユーザーを使用"""
         mock_client = MagicMock()
@@ -1404,6 +1591,7 @@ class TestActivateCommand:
                 "  pass --owner to give the owner explicitly\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-04", "PW-PROJECT-ACTIVATE-05"])
     def test_activate_by_name_success(self, tmp_path: Path) -> None:
         """プロジェクト名でアクティベート成功"""
         mock_client = MagicMock()
@@ -1458,6 +1646,7 @@ class TestActivateCommand:
                 f"set: active project to {config_name}\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-13"])
     def test_activate_by_name_not_found(self) -> None:
         """存在しないプロジェクト名を指定"""
         mock_client = MagicMock()
@@ -1484,6 +1673,7 @@ class TestActivateCommand:
                 "error: project not found: Non Existent\n  available projects:\n  - Other Project\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-01"])
     def test_activate_list_initialized_projects(self) -> None:
         """init済みプロジェクト一覧を表示"""
         mock_client = MagicMock()
@@ -1530,6 +1720,7 @@ class TestActivateCommand:
             # Project Two はinit未済みなので表示されない
             assert "#2: Project Two" not in result.stdout
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-03"])
     def test_activate_no_initialized_projects(self) -> None:
         """init済みプロジェクトがない場合"""
         mock_client = MagicMock()
@@ -1548,6 +1739,7 @@ class TestActivateCommand:
             assert result.stdout == "=== Initialized projects (github.com/test-owner) ===\n  none\n"
             assert result.stderr == ""
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-02"])
     def test_activate_with_active_marker(self) -> None:
         """アクティブなプロジェクトにマーカー表示"""
         mock_client = MagicMock()
@@ -1576,6 +1768,7 @@ class TestActivateCommand:
             assert result.exit_code == 0
             assert "[ACTIVE]" in result.stdout
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-04", "PW-PROJECT-ACTIVATE-05"])
     def test_activate_project_success(self, tmp_path: Path) -> None:
         """プロジェクトのアクティベート成功"""
         mock_client = MagicMock()
@@ -1620,6 +1813,7 @@ class TestActivateCommand:
                 f"set: active project to {config_name}\n"
             )
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-13"])
     def test_activate_project_not_found(self) -> None:
         """存在しないプロジェクト番号を指定"""
         mock_client = MagicMock()
@@ -1632,6 +1826,7 @@ class TestActivateCommand:
             assert result.exit_code == 1
             assert result.stderr == "error: project #999 not found\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-14"])
     def test_activate_project_not_initialized(self) -> None:
         """init未済みのプロジェクトを指定"""
         mock_client = MagicMock()
@@ -1673,6 +1868,7 @@ class TestActivateCommand:
             expected = "=== Initialized projects (ghes.example.com/test-owner) ==="
             assert result.stdout.splitlines().count(expected) == 1
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-15"])
     def test_activate_api_error(self) -> None:
         """GitHub APIエラー"""
         mock_client = MagicMock()
@@ -1685,6 +1881,7 @@ class TestActivateCommand:
             assert result.exit_code == 1
             assert result.stderr == "error: could not activate project: API Error\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-12"])
     def test_activate_host_option_required(self) -> None:
         """--hostオプションが必須であることを確認"""
         result = runner.invoke(app, ["project", "activate", "--owner", "test-owner"])
@@ -1884,6 +2081,7 @@ class TestActivateCommand:
         assert result.exit_code == 1
         assert result.stderr == "error: could not read the title of project #1\n"
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-16"])
     def test_activate_config_file_load_error(self, tmp_path: Path) -> None:
         """設定ファイルの読み込みに失敗したときは読み込み失敗を案内する"""
         config_file = tmp_path / "test_config.json"
@@ -2014,6 +2212,7 @@ class TestActivateCommand:
             assert result.exit_code == 0
             assert "set: active project to " in result.stderr
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-06"])
     def test_activate_config_filename_without_host_option(self, tmp_path: Path) -> None:
         """設定ファイル名で--hostなしで同期してアクティベート可能"""
         # テスト用設定ファイルを作成
@@ -2065,6 +2264,7 @@ class TestActivateCommand:
             assert result.exit_code == 0
             assert "set: active project to " in result.stderr
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-06"])
     def test_activate_config_filepath_without_host_option(self, tmp_path: Path) -> None:
         """設定ファイルパスで--hostなしで同期してアクティベート可能"""
         # テスト用設定ファイルを作成
@@ -2114,6 +2314,7 @@ class TestActivateCommand:
             assert result.exit_code == 0
             assert "set: active project to " in result.stderr
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-12"])
     def test_activate_name_without_host_shows_error(self) -> None:
         """名前指定時に--hostなしだとエラー（設定ファイルに一致しない場合）"""
         result = runner.invoke(app, ["project", "activate", "NonexistentProject"])
@@ -2125,6 +2326,7 @@ class TestActivateCommand:
             "ghes.example.com_example-org_example-project_example-org\n"
         ) in result.stderr
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-08"])
     def test_activate_preserves_release_type_and_packages(self, tmp_path: Path) -> None:
         """既存設定の release_type と packages が _sync_project_config で保持される"""
         # ファイル名は _sync_project_config 内の {host}_{owner}_{slug}_{workflow-suffix}.json に従う。
@@ -2222,6 +2424,7 @@ class TestActivateCommand:
         assert len(repo.packages) == 2
         assert [p.name for p in repo.packages] == ["pkg-a", "pkg-b"]
 
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-09"])
     def test_activate_preserves_aggregation_repo(self, tmp_path: Path) -> None:
         """既存設定の aggregation_repo が _sync_project_config で保持される"""
         config_file = tmp_path / "github.com_test-owner_test-project_x.json"
@@ -2308,8 +2511,73 @@ class TestActivateCommand:
             f"aggregation_repo が保持されていない: {saved.aggregation_repo}"
         )
 
+    # release_branch 関連テスト
 
-# release_branch 関連テスト
+    def _invoke_activate_host_mismatch(self, tmp_path: Path) -> tuple[Result, MagicMock]:
+        """設定ファイルの host (ghes.example.com) と違う --host (github.com) で activate を起動"""
+        config_file = tmp_path / "test_config.json"
+        config_file.write_text("{}")
+
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.owner = "test-owner"
+        mock_config.project.number = 1
+
+        mock_client = MagicMock()
+        mock_client.get_project_fields.return_value = {
+            "id": "PVT_1",
+            "title": "Test Project",
+            "fields": {
+                "nodes": [
+                    {
+                        "name": "pecot-workflow-test",
+                        "id": "field-1",
+                        "options": [
+                            {"name": "Backlog", "id": "opt1"},
+                            {"name": "Pending", "id": "opt-pending"},
+                            {"name": "Ready", "id": "opt2"},
+                            {"name": "Active", "id": "opt3"},
+                            {"name": "In Review", "id": "opt-ir"},
+                            {"name": "Archived", "id": "opt4"},
+                        ],
+                    }
+                ]
+            },
+        }
+        mock_client.list_projects.return_value = [
+            {"number": 1, "title": "Test Project", "id": "PVT_1", "url": "..."},
+        ]
+        mock_client.get_linked_repositories.return_value = []
+
+        with (
+            patch("cli.commands.project.load_config", return_value=mock_config),
+            patch("cli.commands.project.GitHubClient", return_value=mock_client) as mock_cls,
+            patch("cli.commands.project.get_projects_dir", return_value=tmp_path),
+            patch("cli.commands.project.save_config"),
+            patch("cli.commands.project.set_active_config"),
+        ):
+            result = runner.invoke(
+                app, ["project", "activate", str(config_file), "--host", "github.com"]
+            )
+        return result, mock_cls
+
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-17"])
+    def test_activate_config_file_host_mismatch_warns(self, tmp_path: Path) -> None:
+        """--host が設定ファイルの host と違うと warning の行を標準エラーに出す"""
+        result, _ = self._invoke_activate_host_mismatch(tmp_path)
+        assert result.exit_code == 0
+        assert (
+            "warning: --host (github.com) differs from the config file host (ghes.example.com)\n"
+            "  using the config file host\n"
+        ) in result.stderr
+
+    @add_test_properties(verifies=["PW-PROJECT-ACTIVATE-18"])
+    def test_activate_config_file_host_mismatch_uses_config_host(self, tmp_path: Path) -> None:
+        """--host が設定ファイルの host と違えば、設定ファイルの host で同期する"""
+        result, mock_cls = self._invoke_activate_host_mismatch(tmp_path)
+        assert result.exit_code == 0
+        assert mock_cls.call_args_list
+        assert all(call.kwargs == {"host": "ghes.example.com"} for call in mock_cls.call_args_list)
 
 
 class TestSetRepoReleaseBranch:
@@ -2352,6 +2620,7 @@ class TestSetRepoReleaseBranch:
             assert result.stderr.endswith(f"added: test-owner/new-repo to {mock_config_path}\n")
             mock_save.assert_called_once()
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-03"])
     def test_set_repo_update_release_branch(self, tmp_path: Path) -> None:
         """既存リポジトリの release_branch を更新"""
         mock_repo = MagicMock()
@@ -2383,6 +2652,7 @@ class TestSetRepoReleaseBranch:
             # release_branchが設定されたことを確認
             assert mock_repo.release_branch == "main"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-03"])
     def test_set_repo_no_release_branch_preserves_existing(self, tmp_path: Path) -> None:
         """--release-branch 未指定時は既存値を保持"""
         mock_repo = MagicMock()
@@ -2494,6 +2764,7 @@ class TestSetRepoChangelogFile:
             # changelog_fileが設定されたことを確認
             assert mock_repo.changelog_file == "AIST-CHANGELOG.md"
 
+    @add_test_properties(verifies=["PW-PROJECT-SET-REPO-03"])
     def test_set_repo_no_changelog_file_preserves_existing(self, tmp_path: Path) -> None:
         """--changelog-file 未指定時は既存値を保持"""
         mock_repo = MagicMock()
@@ -2541,6 +2812,7 @@ class TestInfoAggregationRepoDisplay:
         config.aggregation_repo = aggregation_repo
         return config
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-05"])
     def test_info_markdown_shows_aggregation_repo_when_set(self) -> None:
         config = self._build_config("test-owner/agg-repo")
         config_path = MagicMock()
@@ -2575,6 +2847,7 @@ class TestInfoAggregationRepoDisplay:
         assert result.exit_code == 0, result.output
         assert "- Roadmap repo: none" in result.stdout
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-01"])
     def test_info_markdown_sections_in_order(self) -> None:
         """Markdown 出力は Overview・Registered repositories・Board status の 3 節をこの順で出す"""
         config = self._build_config("test-owner/agg-repo")
@@ -2593,6 +2866,7 @@ class TestInfoAggregationRepoDisplay:
         headings = [line for line in result.stdout.splitlines() if line.startswith("## ")]
         assert headings == ["## Overview", "## Registered repositories", "## Board status"]
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-02"])
     def test_info_json_includes_aggregation_repo_when_set(self) -> None:
         config = self._build_config("test-owner/agg-repo")
         config_path = MagicMock()
@@ -2681,6 +2955,7 @@ class TestInfoDependabotAlerts:
         ):
             return runner.invoke(app, ["project", "info", *args])
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-06"])
     def test_lines_for_enabled_and_disabled(self) -> None:
         fetch = self._by_name(repo_a=self.ENABLED, repo_b=self.DISABLED)
 
@@ -2693,6 +2968,7 @@ class TestInfoDependabotAlerts:
         b = lines.index("    release_type: single")
         assert lines[b + 1] == "    dependabot_alerts: disabled"
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-08"])
     def test_failure_is_shown_and_does_not_stop(self) -> None:
         fetch = self._by_name(
             repo_a=DependabotAlertError("test-owner/repo-a: GitHub APIエラー: 500"),
@@ -2708,6 +2984,7 @@ class TestInfoDependabotAlerts:
         )
         assert "    dependabot_alerts: disabled" in result.stdout
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-02"])
     def test_json_includes_dependabot_alerts(self) -> None:
         fetch = self._by_name(repo_a=self.ENABLED, repo_b=DependabotAlertError("理由"))
 
@@ -2750,9 +3027,82 @@ class TestInfoDependabotAlerts:
 # project info コマンドのエラー時のテスト
 
 
+class TestInfoPruneArchived:
+    """project info が新しい 20 件を超える Archived の項目を削除するテスト"""
+
+    @staticmethod
+    def _archived_items(count: int) -> list[dict[str, Any]]:
+        """updatedAt が item-01 < item-02 < ... の Archived 項目"""
+        return [
+            {
+                "id": f"item-{i:02d}",
+                "updatedAt": f"2025-01-{i:02d}T00:00:00Z",
+                "fieldValues": {
+                    "nodes": [{"name": "Archived", "field": {"name": "pecot-workflow-test"}}]
+                },
+                "content": {"number": i, "title": f"issue {i}", "state": "CLOSED"},
+            }
+            for i in range(1, count + 1)
+        ]
+
+    def _invoke_info(self, client: MagicMock) -> Result:
+        config = MagicMock()
+        config.host = "github.com"
+        config.owner = "test-owner"
+        config.project.id = "PVT_1"
+        config.project.number = 1
+        config.workflow_field_name = "pecot-workflow-test"
+        config.repositories = []
+        config.aggregation_repo = None
+        config_path = MagicMock()
+        config_path.stem = "test-project"
+        with (
+            patch("cli.commands.project.load_active_config", return_value=config),
+            patch("cli.commands.project.get_active_config_path", return_value=config_path),
+            patch("cli.commands.project.GitHubClient", return_value=client),
+        ):
+            return runner.invoke(app, ["project", "info"])
+
+    @add_test_properties(verifies=["PW-PROJECT-INFO-04"])
+    def test_info_deletes_archived_beyond_latest_20(self) -> None:
+        """更新の新しい 20 件を超えた Archived の項目だけをボードから削除する"""
+        client = MagicMock()
+        client.list_project_items.return_value = self._archived_items(22)
+
+        result = self._invoke_info(client)
+
+        assert result.exit_code == 0, result.output
+        deleted = [call.args for call in client.delete_project_item.call_args_list]
+        assert sorted(deleted) == [("PVT_1", "item-01"), ("PVT_1", "item-02")]
+
+    @add_test_properties(verifies=["PW-PROJECT-INFO-07"])
+    def test_info_reports_deleted_archived_count(self) -> None:
+        """Archived の項目を削除すると deleted の行を標準エラーに出す"""
+        client = MagicMock()
+        client.list_project_items.return_value = self._archived_items(22)
+
+        result = self._invoke_info(client)
+
+        assert result.exit_code == 0, result.output
+        assert result.stderr == "deleted: 2 archived items\n"
+
+    @add_test_properties(verifies=["PW-PROJECT-INFO-09"])
+    def test_info_warns_when_archived_delete_fails(self) -> None:
+        """Archived の項目を削除できないと warning の行を標準エラーに出し、終了コード 0 で終わる"""
+        client = MagicMock()
+        client.list_project_items.return_value = self._archived_items(22)
+        client.delete_project_item.side_effect = GitHubAPIError("delete failed")
+
+        result = self._invoke_info(client)
+
+        assert result.exit_code == 0, result.output
+        assert result.stderr == "warning: failed to delete 2 archived items\n"
+
+
 class TestInfoErrorPaths:
     """project info の設定なし / GitHub APIエラーの場合"""
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-10"])
     def test_info_no_config(self) -> None:
         """設定がない場合はエラー"""
         with patch("cli.commands.project.load_active_config", return_value=None):
@@ -2765,6 +3115,7 @@ class TestInfoErrorPaths:
             "error: no active project\n  run: pecot project activate <PROJECT>\n"
         )
 
+    @add_test_properties(verifies=["PW-PROJECT-INFO-11"])
     def test_info_github_api_error(self) -> None:
         """GitHub APIエラー時"""
         config = MagicMock()
@@ -2785,3 +3136,25 @@ class TestInfoErrorPaths:
         assert result.exit_code == 1
         assert result.stdout == ""
         assert result.stderr == "error: could not read project board (status 500): API error\n"
+
+    @add_test_properties(verifies=["PW-PROJECT-INFO-12"])
+    def test_info_unexpected_error(self) -> None:
+        """予期しないエラーが起きると終了コード 1"""
+        config = MagicMock()
+        config.host = "github.com"
+        config.owner = "test"
+        config.project.id = "PVT_test"
+        config.repositories = []
+
+        client = MagicMock()
+        client.list_project_items.side_effect = RuntimeError("boom")
+
+        with (
+            patch("cli.commands.project.load_active_config", return_value=config),
+            patch("cli.commands.project.GitHubClient", return_value=client),
+        ):
+            result = runner.invoke(app, ["project", "info"])
+
+        assert result.exit_code == 1
+        assert result.stdout == ""
+        assert result.stderr == "error: unexpected error: boom\n"

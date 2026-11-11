@@ -28,6 +28,7 @@ import httpx
 import pytest
 import respx
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import (
@@ -239,6 +240,7 @@ class TestFormatTableRowComposesRef:
 
 
 class TestLocalRepoFilterMarkdown:
+    @add_test_properties(verifies=["PW-PROJECT-INFO-03"])
     def test_local_repo_filters_markdown(
         self, mock_config, mock_graphql_route, mock_dependabot_alerts_route
     ) -> None:
@@ -264,6 +266,7 @@ class TestLocalRepoFilterMarkdown:
 
 
 class TestLocalRepoFilterJson:
+    @add_test_properties(verifies=["PW-PROJECT-INFO-03"])
     def test_local_repo_filters_json(
         self, mock_config, mock_graphql_route, mock_dependabot_alerts_route
     ) -> None:
@@ -375,6 +378,7 @@ class TestUnknownRepoEmptyResult:
 
 
 class TestInfoSectionOrder:
+    @add_test_properties(verifies=["PW-PROJECT-INFO-01"])
     def test_info_section_order(
         self, mock_config, mock_graphql_route, mock_dependabot_alerts_route
     ) -> None:

@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import pytest
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.core.dependabot_prs import (
     LIST_BEGIN,
@@ -158,12 +159,15 @@ class TestParseUpdateMetadata:
 
 
 class TestWaitingReasonsMetadata:
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-14"])
     def test_minor_in_good_state_is_not_listed(self) -> None:
         assert waiting_reasons(_pr(), NOW) == []
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-08"])
     def test_major(self) -> None:
         assert waiting_reasons(_pr(deps=(("a", "major"),)), NOW) == ["major"]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-08"])
     def test_group_with_major_is_major(self) -> None:
         assert waiting_reasons(_pr(deps=(("a", "patch"), ("b", "major"))), NOW) == ["major"]
 
@@ -179,6 +183,7 @@ class TestWaitingReasonsMetadata:
         assert waiting_reasons(_pr(commit_author="someone"), NOW) == ["unknown update type"]
         assert waiting_reasons(_pr(commit_author=None), NOW) == ["unknown update type"]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-08"])
     def test_no_type_at_all_is_unknown(self) -> None:
         assert waiting_reasons(_pr(deps=(("a", None),)), NOW) == ["unknown update type"]
 
@@ -201,6 +206,7 @@ class TestWaitingReasonsMetadata:
 
 
 class TestWaitingReasonsState:
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-09"])
     def test_failed_checks(self) -> None:
         assert waiting_reasons(_pr(rollup="FAILURE"), NOW) == ["checks failed"]
         assert waiting_reasons(_pr(rollup="ERROR"), NOW) == ["checks failed"]
@@ -209,11 +215,13 @@ class TestWaitingReasonsState:
         pr = _pr(rollup="PENDING", age=timedelta(hours=23))
         assert waiting_reasons(pr, NOW) == []
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-10"])
     @pytest.mark.parametrize("rollup", ["PENDING", "EXPECTED", None])
     def test_not_finishing_after_24h(self, rollup: str | None) -> None:
         pr = _pr(rollup=rollup, age=timedelta(hours=25))
         assert waiting_reasons(pr, NOW) == ["checks not finishing"]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-10"])
     @pytest.mark.parametrize(
         ("age", "expected"),
         [
@@ -228,6 +236,7 @@ class TestWaitingReasonsState:
         pr = _pr(auto_merge=False, rollup="PENDING", age=timedelta(hours=25))
         assert waiting_reasons(pr, NOW) == ["no auto-merge"]
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-13"])
     @pytest.mark.parametrize(
         ("age", "expected"),
         [
@@ -238,6 +247,7 @@ class TestWaitingReasonsState:
     def test_no_auto_merge_grace_boundary(self, age: timedelta, expected: list[str]) -> None:
         assert waiting_reasons(_pr(auto_merge=False, age=age), NOW) == expected
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-11"])
     @pytest.mark.parametrize(
         ("base_age", "expected"),
         [
@@ -251,6 +261,7 @@ class TestWaitingReasonsState:
         pr = _pr(mergeable="CONFLICTING", age=timedelta(hours=2), base_age=base_age)
         assert waiting_reasons(pr, NOW) == expected
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-11"])
     @pytest.mark.parametrize(
         ("age", "expected"),
         [(timedelta(minutes=30), []), (timedelta(minutes=30, seconds=1), ["conflict"])],
@@ -303,6 +314,7 @@ class TestWaitingReasonsState:
     def test_unknown_mergeable_is_not_a_reason(self) -> None:
         assert waiting_reasons(_pr(mergeable="UNKNOWN", age=timedelta(hours=2)), NOW) == []
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-12"])
     def test_dequeued_after_last_push(self) -> None:
         pr = _pr(
             auto_merge=False,
@@ -326,6 +338,7 @@ class TestWaitingReasonsState:
         pr = _pr(auto_merge=False, age=timedelta(minutes=10), rollup=None)
         assert waiting_reasons(pr, NOW) == []
 
+    @add_test_properties(verifies=["PW-DEPENDABOT-SYNC-13"])
     def test_no_auto_merge_after_grace(self) -> None:
         pr = _pr(auto_merge=False, age=timedelta(hours=1))
         assert waiting_reasons(pr, NOW) == ["no auto-merge"]

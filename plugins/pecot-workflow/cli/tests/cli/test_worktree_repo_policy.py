@@ -12,6 +12,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.repo_resolver import RepoRef
@@ -29,6 +30,7 @@ def _patch_current_git(owner: str = "acme-labs", repo: str = "pecot-cli"):
 class TestWorktreeMismatchReject:
     """FR-009a: worktree 系コマンドは不一致で exit 1。"""
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-11"])
     def test_worktree_init_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -45,6 +47,7 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-27"])
     def test_worktree_add_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -61,6 +64,7 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-18"])
     def test_worktree_remove_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -78,6 +82,7 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-29"])
     def test_worktree_link_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -95,10 +100,59 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-26"])
+    def test_worktree_add_mismatch_creates_nothing(self, tmp_path) -> None:
+        with _patch_current_git(), patch("cli.core.worktree.create_worktree") as mock_create:
+            runner.invoke(
+                app,
+                ["--repo", "acme-labs/aist-plugin", "worktree", "add", "-D", str(tmp_path)],
+            )
+        mock_create.assert_not_called()
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-10"])
+    def test_worktree_init_mismatch_writes_no_files(self, tmp_path) -> None:
+        with _patch_current_git():
+            runner.invoke(
+                app,
+                ["--repo", "acme-labs/aist-plugin", "worktree", "init", "-D", str(tmp_path)],
+            )
+        assert not (tmp_path / ".pecot" / "config" / "worktree-config.json").exists()
+        assert not (tmp_path / ".pecot" / "config" / ".worktreeignore").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-17"])
+    def test_worktree_remove_mismatch_removes_nothing(self, tmp_path) -> None:
+        with _patch_current_git(), patch("cli.core.worktree.remove_worktree") as mock_remove:
+            runner.invoke(
+                app,
+                [
+                    "--repo",
+                    "acme-labs/aist-plugin",
+                    "worktree",
+                    "remove",
+                    "wt1",
+                    "-D",
+                    str(tmp_path),
+                ],
+            )
+        mock_remove.assert_not_called()
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-28"])
+    def test_worktree_link_mismatch_creates_no_links(self, tmp_path) -> None:
+        with (
+            _patch_current_git(),
+            patch("cli.core.worktree_links.create_symlinks_safe") as mock_links,
+        ):
+            runner.invoke(
+                app,
+                ["--repo", "acme-labs/aist-plugin", "worktree", "link", "-D", str(tmp_path)],
+            )
+        mock_links.assert_not_called()
+
 
 class TestBranchMismatchReject:
     """FR-009a: create-branch / delete-branch は不一致で exit 1。"""
 
+    @add_test_properties(verifies=["PW-CREATE-BRANCH-25"])
     def test_create_branch_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -118,6 +172,7 @@ class TestBranchMismatchReject:
             "  this command works only on the repository of the current Git remote\n"
         ) == result.stderr
 
+    @add_test_properties(verifies=["PW-DELETE-BRANCH-16"])
     def test_delete_branch_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(
