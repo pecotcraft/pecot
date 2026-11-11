@@ -38,6 +38,8 @@ updates:
   # pecot-workflow CLI（uv / pyproject.toml + uv.lock）
   - package-ecosystem: "uv"
     directory: "/plugins/pecot-workflow/cli"
+    # 移行中は Python の依存の版の更新の PR を止める（alert とセキュリティ更新は止まらない）
+    open-pull-requests-limit: 0
     schedule:
       interval: "weekly"
       day: "monday"

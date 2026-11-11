@@ -205,7 +205,7 @@ describe('--show-repo', () => {
   it('作業ディレクトリが無く git を起動できなければ、OS のエラーとして 1', async () => {
     const result = await run(['--show-repo'], '/nonexistent-directory-for-test')
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^エラー: \[Errno 2\] No such file or directory/u)
+    expect(result.stderr).toMatch(/^error: \[Errno 2\] No such file or directory/u)
   })
 
   it('コマンドより先に処理して、コマンドは実行しない', async () => {
@@ -352,19 +352,19 @@ async function runFailing(failure: Error): Promise<Run> {
 }
 
 describe('例外の扱い', () => {
-  it('独自の例外は エラー: の文で 1', async () => {
-    expect(await runFailing(new ProjectRootNotFoundError('ルートがありません'))).toEqual({ code: 1, stdout: '', stderr: 'エラー: ルートがありません\n' })
+  it('独自の例外は error: の行で 1', async () => {
+    expect(await runFailing(new ProjectRootNotFoundError('ルートがありません'))).toEqual({ code: 1, stdout: '', stderr: 'error: ルートがありません\n' })
   })
 
-  it('GitHub の失敗は GitHub APIエラー: の文で 1', async () => {
-    expect(await runFailing(new GitHubAPIError('boom', { statusCode: 500 }))).toEqual({ code: 1, stdout: '', stderr: 'GitHub APIエラー: boom\n' })
+  it('GitHub の失敗も error: の行で 1', async () => {
+    expect(await runFailing(new GitHubAPIError('boom', { statusCode: 500 }))).toEqual({ code: 1, stdout: '', stderr: 'error: boom\n' })
   })
 
-  it('値の誤りと OS のエラーも エラー: の文で 1', async () => {
+  it('値の誤りと OS のエラーも error: の行で 1', async () => {
     const invalid = await runFailing(new InvalidValueError('不正です'))
-    expect(invalid.stderr).toBe('エラー: 不正です\n')
+    expect(invalid.stderr).toBe('error: 不正です\n')
     const osError = await runFailing(new OsError('[Errno 2] No such file or directory: \'x\'', 'ENOENT', 'x'))
-    expect(osError.stderr).toBe('エラー: [Errno 2] No such file or directory: \'x\'\n')
+    expect(osError.stderr).toBe('error: [Errno 2] No such file or directory: \'x\'\n')
   })
 
   it('検証の誤りではない ZodError は、使い方の誤りにしない', async () => {

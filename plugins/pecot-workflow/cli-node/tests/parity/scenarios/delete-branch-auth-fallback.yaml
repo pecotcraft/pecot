@@ -1,4 +1,4 @@
-# env のトークンに REST が 401 を返す。gh auth token のトークンで再送が通り、警告が stderr に出る。最初の GET が 2 回記録される。
+# env のトークンに REST が 401 を返す。gh auth token のトークンで再送が通り、警告が stderr に出る。最初の GET が 2 回記録される。 wip/ の削除が 404 の Not Found なので、警告の行も出る。
 id: delete-branch-auth-fallback
 command:
   path: [delete-branch]

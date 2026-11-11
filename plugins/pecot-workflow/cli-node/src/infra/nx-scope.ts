@@ -106,6 +106,7 @@ export function nxProjectRoots(toplevel: string, options: Readonly<NxGraphOption
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: (options.timeoutSeconds ?? NX_GRAPH_TIMEOUT_SECONDS) * 1000,
       killSignal: 'SIGKILL',
+      // interface-env: none
       env: { ...process.env, NX_DAEMON: 'false' },
     })
     if (result.error !== undefined || result.status !== 0 || result.stderr.includes('Showing partial graph')) return undefined

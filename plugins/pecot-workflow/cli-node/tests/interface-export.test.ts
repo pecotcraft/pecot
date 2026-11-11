@@ -1,12 +1,20 @@
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない */
+/* eslint-disable security/detect-non-literal-fs-filename -- 読むのは一時ファイルと定義書 */
 // cli-node の書き出しが、typer 側の書き出しと同じ input・cli を出すことを確かめる。
 // typer 側の書き出し済みの見本（interface-export/typer-sample.json）を、Python 側のテストと共有する。
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
-import { defineCommand, type CommandIo } from '../src/commands/registry.js'
+import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
+import { COMMANDS, defineCommand, type CommandIo } from '../src/commands/registry.js'
+import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
+import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
+import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
+import vitestConfig from '../vitest.config.js'
 import { exportEntries, main } from '../scripts/export-interface.js'
 import { parseJson } from '../src/tests/_helpers/json.js'
 
@@ -158,7 +166,6 @@ describe('exportEntries', () => {
 })
 
 describe('exportEntries の失敗と refine', () => {
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
   function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineCommand> {
     return defineCommand({ path: ['bad', 'cmd'], description: 'Bad.', input: z.strictObject(shape), positional: [], run: () => Promise.resolve(0), interactive: false })
   }
@@ -216,10 +223,159 @@ describe('main', () => {
     expect(main(['--check', '--write'], io)).toBe(2)
     expect(error.every(line => line.startsWith('error: '))).toBe(true)
   })
+})
 
-  it('登録がある場合は未対応として 2 を返す', () => {
+const IncludeSchema = z.object({ include: z.array(z.string()) })
+const ProjectSchema = z.object({ test: IncludeSchema })
+const ConfigSchema = z.object({ test: z.object({ projects: z.array(ProjectSchema) }) })
+
+interface Definition { format: 1, plugin: string, prefix: string, entries: Record<string, unknown>[] }
+
+// 定義書は Python 側の書き出しと同じく surfaces.mcp を持たない
+function definitionOf(commands: Parameters<typeof exportEntries>[0]): Definition {
+  const entries = exportEntries(commands).map(({ surfaces, ...rest }) => ({ ...rest, surfaces: { cli: surfaces.cli } }))
+  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries }
+}
+
+function entryOf(definition: Definition, id: string): Record<string, unknown> {
+  const entry = definition.entries.find(candidate => candidate['id'] === id)
+  if (entry === undefined) throw new Error(`定義書に ${id} が無い`)
+  return entry
+}
+
+describe('main の --check', () => {
+  const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
+
+  function check(definition: Definition): { code: number, error: string[] } {
+    const target = path.join(makeTemporaryDirectory(), 'generated.json')
+    writeFileSync(target, JSON.stringify(definition))
     const { io, error } = capture()
-    expect(main(['--check'], io, [alpha])).toBe(2)
-    expect(error).toStrictEqual(['error: exporting registered commands is not supported yet\n'])
+    return { code: main(['--check'], io, samples, { target }), error }
+  }
+
+  it('定義書と差が無ければ 0 を返し、何も出さない', () => {
+    expect(check(definitionOf(samples))).toStrictEqual({ code: 0, error: [] })
+  })
+
+  it('定義書だけが持つ ID があっても、0 を返す', () => {
+    const definition = definitionOf(samples)
+    definition.entries.push({ ...entryOf(definition, 'PW-BETA'), id: 'PW-OTHER', name: 'other' })
+    expect(check(definition)).toStrictEqual({ code: 0, error: [] })
+  })
+
+  it('surfaces.mcp だけの差は 0 を返す', () => {
+    const definition = definitionOf(samples)
+    entryOf(definition, 'PW-ALPHA')['surfaces'] = { cli: { path: ['alpha'] }, mcp: { tool: 'renamed' } }
+    expect(check(definition).code).toBe(0)
+  })
+
+  it('Node にあって定義書に無い ID は 1 を返し、entry: added の行を出す', () => {
+    const definition = definitionOf([alpha])
+    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: entry: added\n'] })
+  })
+
+  it('欄の値の差は 1 を返し、前と後の値を出す', () => {
+    const definition = definitionOf(samples)
+    entryOf(definition, 'PW-ALPHA')['description'] = 'Changed'
+    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-ALPHA: description: "Changed" -> "Greet someone"\n'] })
+  })
+
+  it('Node にだけある欄のキーは 1 を返し、added の行を出す', () => {
+    const definition = definitionOf(samples)
+    Reflect.deleteProperty(entryOf(definition, 'PW-BETA'), 'cli')
+    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: cli: added\n'] })
+  })
+
+  it('定義書にだけある欄のキーは 1 を返し、removed の行を出す', () => {
+    const definition = definitionOf(samples)
+    entryOf(definition, 'PW-BETA')['mcp'] = {}
+    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: mcp: removed\n'] })
+  })
+
+  it('登録が 1 件以上の --write は、使い方のエラーで 2 を返し、ファイルを書かない', () => {
+    const target = path.join(makeTemporaryDirectory(), 'generated.json')
+    const { io, error } = capture()
+    expect(main(['--write'], io, samples, { target })).toBe(2)
+    expect(error).toHaveLength(1)
+    expect(error[0]).toMatch(/^error: /v)
+    expect(() => readFileSync(target)).toThrow('ENOENT')
+  })
+
+  it('実物の generated.json を書き換えない', () => {
+    const before = readFileSync(generated)
+    check(definitionOf(samples))
+    expect(readFileSync(generated).equals(before)).toBe(true)
+  })
+})
+
+// 見本の ID は、定義書の ID の形をそのまま書かないよう連結で作る
+const PREFIX = 'PW'
+const SUFFIX = '01'
+const CALL = ['verifies', '('].join('')
+const idOf = (name: string): string => `${PREFIX}-${name}-${SUFFIX}`
+const callOf = (name: string): string => `await ${CALL}context, '${idOf(name)}')`
+
+describe('振る舞いの項目のつなぎ', () => {
+  const root = path.resolve(import.meta.dirname, '..')
+  const { projects } = ConfigSchema.parse(vitestConfig).test
+  const include = projects.flatMap(project => project.test.include)
+
+  const authoredText = readFileSync(path.resolve(root, '../interface/authored.yaml'), 'utf8')
+  const authored = authoredFileSchema.parse(parseYaml(authoredText))
+
+  function expectedIds(commands: Parameters<typeof exportEntries>[0]): string[] {
+    return exportEntries(commands).flatMap((entry) => {
+      const found = authored.entries[entry.id]
+      if (found === undefined) throw new Error(`authored.yaml に ${entry.id} が無い`)
+      return found.behaviors.map(behavior => behavior.id)
+    })
+  }
+
+  describe('collectVerifiedIds', () => {
+    const files = {
+      'tests/interface/a.test.ts': `${callOf('A')}\n// ${callOf('B')}\n/* ${callOf('C')} */\n`,
+      'tests/interface/rows.test.ts': `it.for([{ id: '${idOf('D')}' }])('x', async (row, context) => {\n  await ${CALL}context, row.id)\n})\n// '${idOf('E')}'\n`,
+      'tests/parity/p.test.ts': callOf('F'),
+      'tests/other/o.test.ts': callOf('G'),
+      'src/commands/tests/s.test.ts': callOf('H'),
+    }
+
+    it('verifies の引数の ID を集め、コメントの中の ID を数えない', () => {
+      const directory = makeTemporaryDirectory()
+      writeTree(directory, files)
+      const ids = collectVerifiedIds(directory, ['tests/interface/**/*.test.ts', 'src/**/tests/**/*.test.ts'])
+      expect([...ids].toSorted(compareText)).toStrictEqual([idOf('A'), idOf('D'), idOf('H')])
+    })
+
+    it('引数がリテラルでない verifies を持つファイルでは、行の ID を数える', () => {
+      const directory = makeTemporaryDirectory()
+      writeTree(directory, files)
+      expect(collectVerifiedIds(directory, ['tests/interface/rows.test.ts'])).toStrictEqual(new Set([idOf('D')]))
+    })
+
+    it('include に当たらないファイルと tests/parity の ID を数えない', () => {
+      const directory = makeTemporaryDirectory()
+      writeTree(directory, files)
+      const ids = collectVerifiedIds(directory, ['tests/**/*.test.ts'])
+      expect(ids.has(idOf('F'))).toBe(false)
+      expect(ids.has(idOf('H'))).toBe(false)
+      expect(ids.has(idOf('G'))).toBe(true)
+    })
+
+    it('無い ID を、並べて返す', () => {
+      const missing = missingIds([idOf('Z'), idOf('A'), idOf('A')], new Set([idOf('B')]))
+      expect(missing).toStrictEqual([idOf('A'), idOf('Z')])
+    })
+  })
+
+  it('登録済みのコマンドの項目の ID が、すべて vitest の verifies につながる', () => {
+    const missing = missingIds(expectedIds(COMMANDS), collectVerifiedIds(root, include))
+    expect(missing).toStrictEqual([])
+  })
+
+  it('共通の項目の ID が、すべて vitest の verifies につながる', () => {
+    const common = authored.common_behaviors.map(behavior => behavior.id)
+    expect(common).toHaveLength(17)
+    expect(missingIds(common, collectVerifiedIds(root, include))).toStrictEqual([])
   })
 })

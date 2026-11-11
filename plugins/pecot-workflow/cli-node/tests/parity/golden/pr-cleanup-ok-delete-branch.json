@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch feat/demo/12\n",
+  "stderr": "count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch feat/demo/12\nwarning: deleting remote branch wip/feat/demo/12 failed: resource not found: {{GITHUB_API}}/repos/acme/demo/git/refs/heads/wip/feat/demo/12 Not Found\n",
   "exitCode": 0,
   "requests": [
     {

@@ -12,7 +12,12 @@
         "cli/__init__.py",
         "cli/__main__.py",
         "bin/*",
-        "hooks/**/*.sh"
+        "hooks/**/*.sh",
+        "cli-node/src/*.ts",
+        "cli-node/src/commands/*.ts",
+        "cli-node/src/domain/*.ts",
+        "cli-node/src/infra/*.ts",
+        "cli-node/src/infra/github/*.ts"
       ],
       "tests": [
         "cli/tests/**/*.py",

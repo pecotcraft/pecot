@@ -87,6 +87,8 @@ plugins/pecot-workflow/cli/core/state.py
 plugins/pecot-workflow/cli/pyproject.toml
 plugins/pecot-workflow/cli/uv.lock
 plugins/pecot-workflow/hooks/lib/session-start/plugin-update-notice.sh
+plugins/pecot-workflow/interface/authored.yaml
+plugins/pecot-workflow/interface/generated.json
 plugins/pecot-workflow/project.json
 plugins/pecot-workflow/runtime-lock.yaml
 plugins/pecot-workflow/scripts/ci/python-version.sh
