@@ -29,7 +29,7 @@ from cli.core.dependabot import (
     fetch_dependabot_alert_status,
 )
 from cli.core.errors import PecotError
-from cli.core.git import git_toplevel, origin_repo
+from cli.core.git import git_toplevel, primary_remote_name, primary_remote_repo
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
 from cli.core.github.errors import describe_api_error
 from cli.core.ref_parser import RefParseError, parse_pr_ref
@@ -51,7 +51,7 @@ def resolve_release_target_repo(
 ) -> tuple[str, str]:
     """Decide the target (owner, repo) of the release commands.
 
-    Order: the ``@require_repo_match`` result, the global ``--repo``, then the git origin.
+    Order: the ``@require_repo_match`` result, the global ``--repo``, then the git remote (origin, else the first remote).
     Raises ``typer.Exit(1)`` when none of them works.
     """
     resolved = read_resolved_repo(ctx)
@@ -72,9 +72,9 @@ def resolve_release_target_repo(
             raise typer.Exit(1)
         return parts[0], parts[1]
 
-    origin = origin_repo(cwd)
+    origin = primary_remote_repo(cwd)
     if origin is None:
-        _OUT.error("could not read the repository from the origin remote")
+        _OUT.error("could not read the repository from the git remote")
         raise typer.Exit(1)
     _host, owner, repo = origin
     return owner, repo
@@ -339,6 +339,7 @@ def release_preflight(
         out, config.get_release_branch(owner, repo), "release", owner, repo
     )
 
+    remote = primary_remote_name(cwd) or "origin"
     try:
         result = run_preflight(
             changelog_path=rc.changelog_path,
@@ -347,13 +348,14 @@ def release_preflight(
             version=version,
             cwd=cwd,
             tag_prefix=rc.tag_prefix,
+            remote=remote,
         )
     except ReleaseError as e:
         out.error(str(e))
         raise typer.Exit(1) from None
 
     out.count(
-        f"commits to release (origin/{result.develop_branch} -> origin/{result.release_branch})",
+        f"commits to release ({remote}/{result.develop_branch} -> {remote}/{result.release_branch})",
         result.diff_count,
     )
     out.data(f"version: {result.version}\ntag: {result.tag_name}\n\n{result.release_notes}")

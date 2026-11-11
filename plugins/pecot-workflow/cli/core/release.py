@@ -86,6 +86,7 @@ def run_preflight(
     version: str | None = None,
     cwd: Path | None = None,
     tag_prefix: str | None = None,
+    remote: str = "origin",
 ) -> PreflightResult:
     """リリース前チェックを実行
 
@@ -104,6 +105,7 @@ def run_preflight(
         cwd: gitコマンドの作業ディレクトリ。
         tag_prefix: タグ prefix（monorepo 時に指定、None なら `v<ver>`、
             指定時は `<tag_prefix>-v<ver>`）。
+        remote: ls-remote・fetch・差分確認に使う remote 名。
 
     Returns:
         PreflightResult: チェック結果
@@ -135,7 +137,7 @@ def run_preflight(
 
     # タグ不存在確認（リモート）
     try:
-        remote_tags = _run_git(["ls-remote", "--tags", "origin", f"refs/tags/{tag_name}"], cwd=cwd)
+        remote_tags = _run_git(["ls-remote", "--tags", remote, f"refs/tags/{tag_name}"], cwd=cwd)
         if remote_tags:
             raise ReleaseError(f"tag already exists on the remote: {tag_name}")
     except ReleaseError:
@@ -144,17 +146,17 @@ def run_preflight(
         raise
 
     # 4. ブランチ差分確認
-    _run_git(["fetch", "origin", release_branch, develop_branch], cwd=cwd)
+    _run_git(["fetch", remote, release_branch, develop_branch], cwd=cwd)
 
     diff_output = _run_git(
-        ["rev-list", "--count", f"origin/{release_branch}..origin/{develop_branch}"],
+        ["rev-list", "--count", f"{remote}/{release_branch}..{remote}/{develop_branch}"],
         cwd=cwd,
     )
     diff_count = int(diff_output)
 
     if diff_count == 0:
         raise ReleaseError(
-            f"no difference between origin/{release_branch} and origin/{develop_branch}: "
+            f"no difference between {remote}/{release_branch} and {remote}/{develop_branch}: "
             "there is nothing to release"
         )
 

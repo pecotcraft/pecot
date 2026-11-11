@@ -1678,7 +1678,7 @@
           },
           "base": {
             "type": "string",
-            "description": "Base branch (default: the current branch)"
+            "description": "Base branch (default: the develop_branch of the repository in the active project)"
           },
           "directory": {
             "type": "string",

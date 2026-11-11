@@ -315,16 +315,32 @@ class TestWorktreeRemove:
 
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_deletes_branch_by_default(self, mock_remove: MagicMock, tmp_path: Path) -> None:
+        mock_remove.return_value = None
         result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
         assert result.exit_code == 0
         assert mock_remove.call_args.kwargs["keep_branch"] is False
-        assert "local branch wt1" in result.stderr
+        assert "deleted: local branch wt1" in result.stderr
 
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_force(self, mock_remove: MagicMock, tmp_path: Path) -> None:
+        mock_remove.return_value = None
         result = runner.invoke(app, ["worktree", "remove", "wt1", "--force", "-D", str(tmp_path)])
         assert result.exit_code == 0
         assert mock_remove.call_args.kwargs["force"] is True
+        assert "deleted: local branch wt1" in result.stderr
+
+    @patch("cli.core.worktree.remove_worktree")
+    def test_remove_branch_delete_failure_warns(
+        self, mock_remove: MagicMock, tmp_path: Path
+    ) -> None:
+        mock_remove.return_value = "error: branch 'wt1' not found"
+        result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "removed: worktree wt1" in result.stderr
+        assert "warning: could not delete local branch wt1: error: branch 'wt1' not found" in (
+            result.stderr
+        )
+        assert "deleted: local branch" not in result.stderr
 
     @patch("cli.core.worktree.run_git")
     def test_remove_unknown_name(self, mock_git: MagicMock, tmp_path: Path) -> None:
@@ -356,6 +372,17 @@ class TestWorktreeInit:
         assert ".claude/settings.local.json" in paths
         # setup_command はデフォルト None なので出力されない
         assert "setup_command" not in data
+
+    def test_init_fails_on_invalid_active_config(self, tmp_path: Path) -> None:
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=tmp_path),
+            patch("cli.core.config.load_active_config", side_effect=ValueError("bad format")),
+        ):
+            result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "error: could not read the active config: bad format" in result.stderr
+        assert not (tmp_path / ".pecot" / "config" / "worktree-config.json").exists()
+        assert not (tmp_path / ".pecot" / "config" / ".worktreeignore").exists()
 
     def test_init_creates_worktreeignore(self, tmp_path: Path) -> None:
         """init は .worktreeignore も同時に生成する"""

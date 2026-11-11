@@ -147,6 +147,46 @@ class TestRunPreflight:
         assert result.release_branch == "main"
         assert result.diff_count == 5
 
+    def test_uses_given_remote(self, tmp_path: Path) -> None:
+        """remote を渡すと ls-remote・fetch・rev-list がその名前で呼ばれる"""
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(SAMPLE_CHANGELOG, encoding="utf-8")
+
+        with patch("cli.core.release._run_git") as mock_git:
+            mock_git.side_effect = ["", "", "", "5"]
+            run_preflight(
+                changelog_path=changelog,
+                develop_branch="develop",
+                release_branch="main",
+                version="0.6.1",
+                cwd=tmp_path,
+                remote="upstream",
+            )
+
+        calls = [c.args[0] for c in mock_git.call_args_list]
+        assert calls[1] == ["ls-remote", "--tags", "upstream", "refs/tags/v0.6.1"]
+        assert calls[2] == ["fetch", "upstream", "main", "develop"]
+        assert calls[3] == ["rev-list", "--count", "upstream/main..upstream/develop"]
+
+    def test_no_difference_message_uses_remote(self, tmp_path: Path) -> None:
+        """差分なしの文言も remote 名を使う"""
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(SAMPLE_CHANGELOG, encoding="utf-8")
+
+        with patch("cli.core.release._run_git") as mock_git:
+            mock_git.side_effect = ["", "", "", "0"]
+            with pytest.raises(ReleaseError) as exc:
+                run_preflight(
+                    changelog_path=changelog,
+                    develop_branch="develop",
+                    release_branch="main",
+                    version="0.6.1",
+                    cwd=tmp_path,
+                    remote="upstream",
+                )
+
+        assert "no difference between upstream/main and upstream/develop" in str(exc.value)
+
     def test_success_auto_detect_version(self, tmp_path: Path) -> None:
         """バージョン自動検出での正常実行"""
         changelog = tmp_path / "CHANGELOG.md"

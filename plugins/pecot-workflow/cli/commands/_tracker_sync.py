@@ -24,7 +24,7 @@ DryRunOption = Annotated[
 
 
 def load_target(ctx: typer.Context, out: Output) -> tuple[ProjectConfig, str, str]:
-    """Resolve the target repository (git origin, ``--repo`` first) and the active project
+    """Resolve the target repository (``--repo`` first, then the git remote: origin, else the first remote) and the active project
 
     Used by ``pecot security sync`` and ``pecot dependabot sync``.
 

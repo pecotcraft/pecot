@@ -1051,6 +1051,40 @@ class TestRemoveWorktree:
         assert set_dir.exists()
         assert (set_dir / "other-repo").exists()
 
+    def _run_remove(self, tmp_path: Path, branch_result: MagicMock, keep_branch: bool = False):  # type: ignore[no-untyped-def]
+        root = tmp_path / "workspaces"
+        repo = root / "base" / "myrepo"
+        repo.mkdir(parents=True)
+        list_output = f"{repo}  abc1234 [main]\n{root / 'wt1' / 'myrepo'}  def5678 [wt1]\n"
+
+        def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+            if cmd[:3] == ["git", "worktree", "list"]:
+                return MagicMock(returncode=0, stdout=list_output, stderr="")
+            if cmd[:2] == ["git", "branch"]:
+                return branch_result
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        with (
+            patch("cli.core.worktree.find_main_worktree", return_value=repo),
+            patch("subprocess.run", side_effect=fake_run),
+        ):
+            return remove_worktree(cwd=repo, name="wt1", keep_branch=keep_branch)
+
+    def test_returns_none_when_branch_deleted(self, tmp_path: Path) -> None:
+        assert self._run_remove(tmp_path, MagicMock(returncode=0, stdout="", stderr="")) is None
+
+    def test_returns_stderr_when_branch_delete_fails(self, tmp_path: Path) -> None:
+        failed = MagicMock(returncode=1, stdout="", stderr="error: branch 'wt1' not found\n")
+        assert self._run_remove(tmp_path, failed) == "error: branch 'wt1' not found"
+
+    def test_returns_exit_code_when_stderr_empty(self, tmp_path: Path) -> None:
+        failed = MagicMock(returncode=1, stdout="", stderr="")
+        assert self._run_remove(tmp_path, failed) == "git branch -D exited with 1"
+
+    def test_returns_none_with_keep_branch(self, tmp_path: Path) -> None:
+        failed = MagicMock(returncode=1, stdout="", stderr="boom")
+        assert self._run_remove(tmp_path, failed, keep_branch=True) is None
+
 
 # get_untracked_files のテスト (維持)
 

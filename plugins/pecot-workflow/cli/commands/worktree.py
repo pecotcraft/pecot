@@ -55,7 +55,7 @@ def worktree_add(
         str | None,
         typer.Option(
             "--base",
-            help="Base branch (default: the current branch)",
+            help="Base branch (default: the develop_branch of the repository in the active project)",
         ),
     ] = None,
     path: Annotated[
@@ -171,7 +171,7 @@ def worktree_remove(
 
     try:
         ensure_devcontainer_environment()
-        remove_worktree(
+        branch_error = remove_worktree(
             cwd=directory,
             name=name,
             force=force,
@@ -183,7 +183,10 @@ def worktree_remove(
 
     out.done(Operation(Verb.REMOVE, f"worktree {name}"))
     if not keep_branch:
-        out.done(Operation(Verb.DELETE, f"local branch {name}"))
+        if branch_error is None:
+            out.done(Operation(Verb.DELETE, f"local branch {name}"))
+        else:
+            out.warning(f"could not delete local branch {name}: {branch_error}")
 
 
 @require_repo_match(mode="reject")
@@ -197,7 +200,7 @@ def worktree_init(
       - .pecot/config/worktree-config.json  (symlink / setup_command)
       - .pecot/config/.worktreeignore       (patterns excluded from copying)
     """
-    from cli.core.config import load_active_config
+    from cli.core.config import ConfigError, load_active_config
     from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
     from cli.core.worktree import ensure_devcontainer_environment, find_main_worktree
     from cli.core.worktree_links import (
@@ -230,8 +233,9 @@ def worktree_init(
         aggregation_ref = project_config.aggregation_repo_ref if project_config else None
         if aggregation_ref is not None:
             target_repo = aggregation_ref.repo
-    except Exception:
-        pass
+    except (ValueError, OSError, ConfigError) as e:
+        out.error(f"could not read the active config: {e}")
+        raise typer.Exit(1) from None
 
     config = get_default_config(target_repo=target_repo, self_repo=main_wt.name)
     save_config(config, config_path)

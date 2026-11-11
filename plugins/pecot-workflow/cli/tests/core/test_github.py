@@ -33,6 +33,7 @@ from cli.core.github.auth import (
     load_hosts_config,
 )
 from cli.core.github.client import resolve_api_url_override
+from cli.core.github.errors import is_missing_ref_error
 
 # 例外クラステスト
 
@@ -3555,3 +3556,19 @@ class TestPecotGithubApiUrl:
             client = GitHubClient(host="ghes.example.com", token="t")
         assert client.api_url == "https://ghes.example.com/api/v3"
         assert client.graphql_url == "https://ghes.example.com/api/graphql"
+
+
+@pytest.mark.parametrize(
+    ("status_code", "response_body", "expected"),
+    [
+        (422, '{"message":"Reference does not exist"}', True),
+        (404, '{"message":"Reference does not exist"}', True),
+        (404, '{"message":"Not Found"}', False),
+        (422, '{"message":"Validation Failed"}', False),
+        (403, '{"message":"Reference does not exist"}', False),
+        (422, None, False),
+    ],
+)
+def test_is_missing_ref_error(status_code: int, response_body: str | None, expected: bool) -> None:
+    e = GitHubAPIError("err", status_code=status_code, response_body=response_body)
+    assert is_missing_ref_error(e) is expected

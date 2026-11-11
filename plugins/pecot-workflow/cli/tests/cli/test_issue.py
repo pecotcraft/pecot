@@ -534,27 +534,39 @@ class TestAddToProjectCommand:
             )
 
     def test_add_with_invalid_status(self) -> None:
-        """存在しないステータスを指定した場合は警告"""
+        """有効でないステータスはエラー（何も追加しない）"""
         mock_config = MagicMock()
-        mock_config.host = "ghes.example.com"
-        mock_config.project.id = "PVT_123"
-        mock_config.is_repo_in_project.return_value = True
-        mock_config.get_field_id.return_value = None
-        mock_config.get_option_id.return_value = None
-
         mock_client = MagicMock()
-        mock_client.get_issue_node_id.return_value = "I_abc123"
-        mock_client.add_to_project.return_value = "PVTI_456"
 
         with (
             patch("cli.commands.issue.load_active_config", return_value=mock_config),
             patch("cli.commands.issue.GitHubClient", return_value=mock_client),
         ):
-            result = runner.invoke(app, ["add-to-project", "owner/repo/123", "--status", "invalid"])
-            assert result.exit_code == 0
-            assert "added: Issue owner/repo/123 to project" in result.output
-            assert "warning:" in result.output
-            assert "invalid" in result.output
+            result = runner.invoke(app, ["add-to-project", "owner/repo/123", "--status", "foo"])
+            assert result.exit_code == 1
+            assert "invalid status: foo" in result.output
+            assert "valid values:" in result.output
+            mock_client.add_to_project.assert_not_called()
+
+    def test_add_with_status_not_configured(self) -> None:
+        """ボードが定義していないステータスはエラー（何も追加しない）"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = "PVTF_workflow"
+        mock_config.get_option_id.return_value = None
+
+        mock_client = MagicMock()
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["add-to-project", "owner/repo/123", "--status", "active"])
+            assert result.exit_code == 1
+            assert "status 'active' is not configured in the project" in result.output
+            mock_client.add_to_project.assert_not_called()
 
     def test_github_api_error(self) -> None:
         """GitHub APIエラー時"""

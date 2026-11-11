@@ -25,21 +25,21 @@ entries:
       - --status takes backlog, pending, ready, active, in_review or archived, and the Status is set to that value.
       - An empty --status skips the Status update and only adds the Issue.
       - An Issue that is already on the board is not added twice.
-      - A --status value that the board does not define is not an error.
-      - The Issue stays on the board with the Status it was given on adding, and the command finishes with exit status 0.
+      - A --status value that is not one of these values stops the command before anything is added.
+      - A --status value that the board does not define stops the command before anything is added.
     stdin: none
     output:
       format: none
-    diagnostics: A result line on stderr for the added Issue (added) and for the Status (set), and a warning line when the Status is not found in the project.
+    diagnostics: A result line on stderr for the added Issue (added) and for the Status (set). An error line with the valid values when --status is not a valid value, and an error line when the board does not define the --status value.
     environment: []
     exit_status:
       - code: 0
-        when: The Issue was added to the board, including when the Status was not set because the board does not define the --status value.
+        when: The Issue was added to the board, and its Status was set unless --status is empty.
       - code: 1
-        when: There is no active project, the repository is not in the project, the GitHub API returned an error, or the project root cannot be determined.
+        when: --status is not a valid value, the board does not define the --status value, there is no active project, the repository is not in the project, the GitHub API returned an error, or the project root cannot be determined.
       - code: 2
         when: The Issue reference is malformed, or the short form is given without a repository, or another command line error occurs.
-    on_error: When setting the Status fails after the Issue was added, the Issue stays on the board.
+    on_error: An invalid --status value, or one that the board does not define, stops the command before the Issue is added. When setting the Status fails after the Issue was added, the Issue stays on the board.
     effects:
       - target: github
         kind: read
@@ -87,13 +87,13 @@ entries:
         statement: Status を設定すると、set の行を標準エラーに出す
       - id: PW-ADD-TO-PROJECT-09
         pattern: unwanted
-        statement: もし --status の値をボードが定義していないなら、Status を設定しない
+        statement: もし --status が backlog・pending・ready・active・in_review・archived のどれでもないなら、有効な値を並べた error の行を標準エラーに出す
       - id: PW-ADD-TO-PROJECT-10
         pattern: unwanted
-        statement: もし --status の値をボードが定義していないなら、warning の行を標準エラーに出す
+        statement: もし --status が backlog・pending・ready・active・in_review・archived のどれでもないなら、Issue をボードに足さない
       - id: PW-ADD-TO-PROJECT-11
         pattern: unwanted
-        statement: もし --status の値をボードが定義していないなら、終了コード 0 で終わる
+        statement: もし --status が backlog・pending・ready・active・in_review・archived のどれでもないなら、終了コード 1 で終わる
       - id: PW-ADD-TO-PROJECT-12
         pattern: unwanted
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
@@ -106,6 +106,12 @@ entries:
       - id: PW-ADD-TO-PROJECT-15
         pattern: unwanted
         statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-ADD-TO-PROJECT-16
+        pattern: unwanted
+        statement: もし --status の値をボードが定義していないなら、Issue をボードに足さない
+      - id: PW-ADD-TO-PROJECT-17
+        pattern: unwanted
+        statement: もし --status の値をボードが定義していないなら、終了コード 1 で終わる
   PW-CREATE-BRANCH:
     constraints: []
     details:
@@ -256,13 +262,14 @@ entries:
       - The global pecot --repo is only checked against the current git remote and is not used as the target.
       - The default branch of the repository and the develop_branch and release_branch in the config file are protected and are never deleted.
       - Also deletes the remote branch wip/<branch> when it exists.
-      - A wip/<branch> that cannot be deleted is skipped without a message.
+      - A wip/<branch> that does not exist is skipped without a message.
+      - A wip/<branch> that exists but cannot be deleted gives a warning, and the command still finishes with exit status 0.
       - --dry-run reads the default branch and checks the protected branches, then writes the plan line for the branch and deletes nothing.
       - --dry-run does not plan the deletion of wip/<branch>.
     stdin: none
     output:
       format: none
-    diagnostics: A result line on stderr for each deleted branch (deleted), the plan line with --dry-run (dry-run), an error line that lists the protected branches when the branch is protected, and an error line for any other failure, including when --repo differs from the git remote.
+    diagnostics: A result line on stderr for each deleted branch (deleted), the plan line with --dry-run (dry-run), a warning line when wip/<branch> cannot be deleted for a reason other than not existing, an error line that lists the protected branches when the branch is protected, and an error line for any other failure, including when --repo differs from the git remote.
     environment: []
     exit_status:
       - code: 0
@@ -271,7 +278,7 @@ entries:
         when: There is no active project, the default branch cannot be read, the branch is protected, the branch cannot be deleted, --repo differs from the current git remote, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
       - code: 2
         when: repo_ref is not in owner/repo form, or another command line error occurs.
-    on_error: When deleting wip/<branch> fails, the branch itself stays deleted and the command still finishes with exit status 0.
+    on_error: When deleting wip/<branch> fails, the branch itself stays deleted, a warning is written unless wip/<branch> does not exist, and the command still finishes with exit status 0.
     effects:
       - target: github
         kind: read
@@ -313,10 +320,10 @@ entries:
         statement: --dry-run を付けて打つと、dry-run の行を標準エラーに出す
       - id: PW-DELETE-BRANCH-07
         pattern: unwanted
-        statement: もし wip/ブランチ名 を削除できなかったなら、何も出さない
+        statement: もし wip/ブランチ名 のリモートブランチが無いなら、何も出さない
       - id: PW-DELETE-BRANCH-08
         pattern: unwanted
-        statement: もし wip/ブランチ名 を削除できなかったなら、そのブランチを残す
+        statement: もし wip/ブランチ名 があるのに削除できなかったなら、warning の行を標準エラーに出す
       - id: PW-DELETE-BRANCH-09
         pattern: unwanted
         statement: もし wip/ブランチ名 を削除できなかったなら、終了コード 0 で終わる
@@ -382,7 +389,7 @@ entries:
       - code: 0
         when: The Tracker was synchronized, or --dry-run printed the plan.
       - code: 1
-        when: There is no active project, the repository cannot be read from the origin remote, the PRs or issues cannot be listed, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating, closing or placing the Tracker on the board failed, or the GitHub token cannot be found.
+        when: There is no active project, the repository cannot be read from the git remote, the PRs or issues cannot be listed, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating, closing or placing the Tracker on the board failed, or the GitHub token cannot be found.
       - code: 2
         when: A command line error occurs.
     on_error: A Tracker that was created stays open on GitHub even when placing it on the board failed, and the next run places it on the board. A failed body update leaves the body as it was and the Tracker open. A failed close leaves the list set to none and the Tracker open, and the next run closes it. Changes already made are not rolled back.
@@ -399,7 +406,7 @@ entries:
     prerequisites:
       - An active project exists (pecot project activate).
       - A GitHub token is available for the host, with permission to edit issues and the project.
-      - The repository is the origin remote of the working directory, or --repo is given.
+      - The repository is --repo, and without it the origin remote of the working directory, or its first remote when there is no origin.
     idempotent: true
     examples:
       - run: pecot dependabot sync --dry-run
@@ -509,7 +516,7 @@ entries:
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
       - id: PW-DEPENDABOT-SYNC-34
         pattern: unwanted
-        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、終了コード 1 で終わる
+        statement: もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-DEPENDABOT-SYNC-35
         pattern: unwanted
         statement: もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる
@@ -2381,7 +2388,7 @@ entries:
       - The version must be in X.Y.Z form without a leading v.
       - A repository with packages configured needs --package.
       - A repository without packages does not accept --package.
-      - The repository is taken from the global pecot --repo, and without it from the origin remote.
+      - The repository is taken from the global pecot --repo, and without it from the origin remote, or from the first remote when there is no origin.
       - The command needs the working directory to be inside a git repository.
       - A mismatch between --repo and the current git remote is a warning, and --repo is used.
       - With --dry-run, the release is not created and no GitHub client is made.
@@ -2395,7 +2402,7 @@ entries:
       - code: 0
         when: The release was created, or the plan was printed with --dry-run.
       - code: 1
-        when: The version is not in X.Y.Z form, the root directory of the git repository cannot be found, there is no active project, the --package rules are broken, the CHANGELOG or the version in it is not found, release_branch is not set, the GitHub API returned an error, the origin remote cannot be read without --repo, the repository is ambiguous outside git without --repo, the GitHub token cannot be found, or the project root cannot be determined.
+        when: The version is not in X.Y.Z form, the root directory of the git repository cannot be found, there is no active project, the --package rules are broken, the CHANGELOG or the version in it is not found, release_branch is not set, the GitHub API returned an error, the git remote cannot be read without --repo, the repository is ambiguous outside git without --repo, the GitHub token cannot be found, or the project root cannot be determined.
       - code: 2
         when: The version argument is missing, or another command line error occurs.
     on_error: Nothing is created on GitHub when a step fails.
@@ -2408,7 +2415,7 @@ entries:
         what: Reads the active config file and the CHANGELOG.
       - target: git
         kind: read
-        what: Reads the root directory of the git repository and the origin remote URL.
+        what: Reads the root directory of the git repository and the URL of the origin remote, or of the first remote when there is no origin.
     prerequisites:
       - An active project exists (pecot project activate).
       - The working directory is inside a git repository.
@@ -2488,10 +2495,10 @@ entries:
         statement: もしリリースの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
       - id: PW-RELEASE-CREATE-21
         pattern: unwanted
-        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、error の行を標準エラーに出す
+        statement: もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す
       - id: PW-RELEASE-CREATE-22
         pattern: unwanted
-        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、終了コード 1 で終わる
+        statement: もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-RELEASE-CREATE-23
         pattern: unwanted
         statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す
@@ -2646,7 +2653,7 @@ entries:
       - A repository with the feature disabled passes with a skipped line.
       - A state of code scanning or secret scanning that cannot be determined, such as a missing permission, fails the command.
       - For a repository whose release type is nx, only the alerts are checked, and the version argument and --package are rejected.
-      - Otherwise checks that the CHANGELOG exists, that the version is in X.Y.Z form, that the tag exists neither locally nor on origin, and that origin/<develop_branch> has commits that origin/<release_branch> does not have.
+      - Otherwise checks that the CHANGELOG exists, that the version is in X.Y.Z form, that the tag exists neither locally nor on the remote, and that <remote>/<develop_branch> has commits that <remote>/<release_branch> does not have, where <remote> is origin, or the first remote when there is no origin.
       - "Without a version argument, the version is the first ## [X.Y.Z] heading of the CHANGELOG, and the Unreleased heading is skipped."
       - The CHANGELOG is the changelog_file of the repository in the config file.
       - Without changelog_file, the CHANGELOG is CHANGELOG.md and then AIST-CHANGELOG.md at the git root, and with --package, the changelog of that package.
@@ -2654,7 +2661,8 @@ entries:
       - With --package, the tag is <package>-v<version>.
       - A repository with packages configured needs --package.
       - A repository without packages does not accept --package.
-      - The repository is taken from the global pecot --repo, and without it from the origin remote.
+      - The repository is taken from the global pecot --repo, and without it from the origin remote, or from the first remote when there is no origin.
+      - With a --repo that differs from the git remote, the git commands still use origin, or the first remote when there is no origin.
       - The command needs the working directory to be inside a git repository.
       - A mismatch between --repo and the current git remote is a warning, and --repo is used.
     stdin: none
@@ -2667,26 +2675,26 @@ entries:
       - code: 0
         when: Every check passed, including the case where only Dependabot alerts are open or could not be read.
       - code: 1
-        when: The root directory of the git repository cannot be found, there is no active project, the --package rules are broken, an nx repository is given a version or --package, an alert check fails, develop_branch or release_branch is not set, the CHANGELOG or the version in it is not found, the tag already exists, there is nothing to release, a git command fails, the version is not in X.Y.Z form, the origin remote cannot be read without --repo, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
+        when: The root directory of the git repository cannot be found, there is no active project, the --package rules are broken, an nx repository is given a version or --package, an alert check fails, develop_branch or release_branch is not set, the CHANGELOG or the version in it is not found, the tag already exists, there is nothing to release, a git command fails, the version is not in X.Y.Z form, the git remote cannot be read without --repo, the repository is ambiguous outside git without --repo, or the project root cannot be determined.
       - code: 2
         when: A command line error occurs, such as an unknown option.
-    on_error: Nothing is created on GitHub or in the working tree. git fetch may already have updated origin/<release_branch> and origin/<develop_branch>.
+    on_error: Nothing is created on GitHub or in the working tree. git fetch may already have updated <remote>/<release_branch> and <remote>/<develop_branch>.
     effects:
       - target: github
         kind: read
         what: Reads the open Dependabot, code scanning and secret scanning alerts of the repository.
       - target: git
         kind: read
-        what: Reads the git root, the origin remote URL, the local tags, the remote tags with git ls-remote and the commit count between the two branches.
+        what: Reads the git root, the URL of <remote>, the local tags, the remote tags with git ls-remote and the commit count between the two branches.
       - target: git
         kind: write
-        what: Fetches the release branch and the develop branch from origin, which updates the remote-tracking refs.
+        what: Fetches the release branch and the develop branch from <remote>, which updates the remote-tracking refs.
       - target: file
         kind: read
         what: Reads the active config file and the CHANGELOG.
     prerequisites:
       - An active project exists (pecot project activate).
-      - The working directory is inside a git repository whose origin remote has the develop and release branches.
+      - The working directory is inside a git repository whose origin remote, or its first remote when there is no origin, has the develop and release branches.
       - The develop_branch and release_branch of the repository are set in the config file (pecot project set-repo), unless the release type is nx.
       - A GitHub token is available for the host, with permission to read the alerts.
     idempotent: true
@@ -2790,10 +2798,10 @@ entries:
         statement: もしタグがローカルに既にあるなら、終了コード 1 で終わる
       - id: PW-RELEASE-PREFLIGHT-30
         pattern: unwanted
-        statement: もしタグが origin に既にあるなら、終了コード 1 で終わる
+        statement: もしタグが remote に既にあるなら、終了コード 1 で終わる
       - id: PW-RELEASE-PREFLIGHT-31
         pattern: unwanted
-        statement: もし origin/<release_branch> に無いコミットが origin/<develop_branch> から 1 つも見つからないなら、終了コード 1 で終わる
+        statement: もし <remote>/<release_branch> に無いコミットが <remote>/<develop_branch> から 1 つも見つからないなら、終了コード 1 で終わる
       - id: PW-RELEASE-PREFLIGHT-32
         pattern: unwanted
         statement: もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる
@@ -2802,10 +2810,10 @@ entries:
         statement: もし git コマンドが失敗したなら、終了コード 1 で終わる
       - id: PW-RELEASE-PREFLIGHT-34
         pattern: unwanted
-        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、error の行を標準エラーに出す
+        statement: もし --repo を省いて git の remote のリポジトリを読めないなら、error の行を標準エラーに出す
       - id: PW-RELEASE-PREFLIGHT-35
         pattern: unwanted
-        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、終了コード 1 で終わる
+        statement: もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-RELEASE-PREFLIGHT-36
         pattern: unwanted
         statement: もし --repo を省いて git の外で打ったなら、the repository is ambiguous の行を標準エラーに出す
@@ -2847,7 +2855,7 @@ entries:
       - code: 0
         when: The Tracker was synchronized, or --dry-run printed the plan, and every kind was fetched or is disabled.
       - code: 1
-        when: There is no active project, the repository cannot be read from the origin remote, the issues cannot be listed, the list of a kind cannot be fetched, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating or placing the Tracker on the board failed, or the GitHub token cannot be found. The exit status is 1 for a kind that cannot be fetched also with --dry-run.
+        when: There is no active project, the repository cannot be read from the git remote, the issues cannot be listed, the list of a kind cannot be fetched, the Tracker body does not have exactly one pair of list-begin and list-end markers, creating, updating or placing the Tracker on the board failed, or the GitHub token cannot be found. The exit status is 1 for a kind that cannot be fetched also with --dry-run.
       - code: 2
         when: A command line error occurs.
     on_error: A Tracker that was created stays open on GitHub even when placing it on the board failed, and the next run places it on the board. A failed body update leaves the body as it was, and the next run retries it. Changes already made are not rolled back.
@@ -2864,7 +2872,7 @@ entries:
     prerequisites:
       - An active project exists (pecot project activate).
       - A GitHub token is available for the host, with permission to read the security alerts and to edit issues and the project.
-      - The repository is the origin remote of the working directory, or --repo is given.
+      - The repository is --repo, and without it the origin remote of the working directory, or its first remote when there is no origin.
     idempotent: true
     examples:
       - run: pecot security sync --dry-run
@@ -2953,7 +2961,7 @@ entries:
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
       - id: PW-SECURITY-SYNC-27
         pattern: unwanted
-        statement: もし --repo を省いて origin remote のリポジトリを読めないなら、終了コード 1 で終わる
+        statement: もし --repo を省いて git の remote のリポジトリを読めないなら、終了コード 1 で終わる
       - id: PW-SECURITY-SYNC-28
         pattern: unwanted
         statement: もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる
@@ -3548,7 +3556,8 @@ entries:
     constraints: []
     details:
       - Writes the default templates into the main worktree of the repository in -D, as .pecot/config/worktree-config.json and .pecot/config/.worktreeignore.
-      - worktree-config.json has the links CLAUDE.local.md, .env and .claude/settings.local.json, which point to the aggregation_repo of the active project, or to this repository when there is none or the active project cannot be read.
+      - worktree-config.json has the links CLAUDE.local.md, .env and .claude/settings.local.json, which point to the aggregation_repo of the active project, or to this repository when there is no active project or it has no aggregation_repo.
+      - An active config file that cannot be read or is malformed stops the command before anything is written.
       - worktree-config.json also has the links of hooks-config.json, projects/.active and .pecot/work, which point to this repository.
       - .worktreeignore lists the patterns that worktree add does not copy, in the gitignore syntax.
       - Stops without writing when either file already exists.
@@ -3568,10 +3577,10 @@ entries:
       - code: 0
         when: Both files were created.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, one of the two files already exists, a file cannot be written (a traceback is printed), or the command runs outside a devcontainer.
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, the main worktree cannot be found, one of the two files already exists, the active config file cannot be read or is malformed, a file cannot be written (a traceback is printed), or the command runs outside a devcontainer.
       - code: 2
         when: -D is missing or is not an existing directory, or another command line error occurs.
-    on_error: When .worktreeignore cannot be written after worktree-config.json was written, worktree-config.json stays. Nothing is written when a file already exists.
+    on_error: When .worktreeignore cannot be written after worktree-config.json was written, worktree-config.json stays. Nothing is written when a file already exists or the active config file cannot be read.
     effects:
       - target: git
         kind: read
@@ -3601,7 +3610,7 @@ entries:
         statement: アクティブなプロジェクトに aggregation_repo があると、共有する 3 つのリンクをそのリポジトリに向ける
       - id: PW-WORKTREE-INIT-04
         pattern: event
-        statement: aggregation_repo が無いか、アクティブなプロジェクトを読めないと、共有する 3 つのリンクをこのリポジトリに向ける
+        statement: アクティブなプロジェクトが無いか aggregation_repo が無いと、共有する 3 つのリンクをこのリポジトリに向ける
       - id: PW-WORKTREE-INIT-05
         pattern: event
         statement: ファイルを書くと、ファイルごとに created の行を標準エラーに出す
@@ -3635,6 +3644,15 @@ entries:
       - id: PW-WORKTREE-INIT-15
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-INIT-16
+        pattern: unwanted
+        statement: もしアクティブな設定ファイルを読めないか形式が不正なら、何も書かない
+      - id: PW-WORKTREE-INIT-17
+        pattern: unwanted
+        statement: もしアクティブな設定ファイルを読めないか形式が不正なら、error の行を標準エラーに出す
+      - id: PW-WORKTREE-INIT-18
+        pattern: unwanted
+        statement: もしアクティブな設定ファイルを読めないか形式が不正なら、終了コード 1 で終わる
   PW-WORKTREE-LINK:
     constraints: []
     details:
@@ -3804,7 +3822,7 @@ entries:
     details:
       - Finds the worktree whose branch is the given name in the worktree list of the repository in -D, and removes it with git worktree remove.
       - Deletes the local branch of the same name unless --keep-branch is given.
-      - When git branch -D fails, the deleted line is still written and the branch remains.
+      - When git branch -D fails, a warning with the reason is written instead of the deleted line, the branch remains and the command still finishes with exit status 0.
       - Removes <project root>/<name> afterwards when that directory is empty.
       - A set directory that cannot be removed is a warning.
       - Without --force, git refuses to remove a worktree that has changes.
@@ -3815,7 +3833,7 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: A removed line and a deleted line on stderr, the deleted line also when the branch could not be deleted. A warning line when the set directory cannot be removed. An error line for a failure, including outside a devcontainer.
+    diagnostics: A removed line and a deleted line on stderr. A warning line instead of the deleted line when the branch cannot be deleted, and a warning line when the set directory cannot be removed. An error line for a failure, including outside a devcontainer.
     environment:
       - name: REMOTE_CONTAINERS
         effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
@@ -3825,12 +3843,12 @@ entries:
         effect: A non-empty value marks the environment as a devcontainer. Not read when /.dockerenv exists.
     exit_status:
       - code: 0
-        when: The worktree was removed.
+        when: The worktree was removed, including when the branch could not be deleted.
       - code: 1
         when: --repo differs from the current git remote, --repo is omitted outside a git repository, no worktree has the given branch name, git worktree remove failed, or the command runs outside a devcontainer.
       - code: 2
         when: The name or -D is missing, -D is not an existing directory, or another command line error occurs.
-    on_error: Stops at the first error. When git worktree remove failed, the worktree and the branch stay. After the worktree was removed, a failure to delete the branch still writes the deleted line and leaves the branch.
+    on_error: Stops at the first error. When git worktree remove failed, the worktree and the branch stay. After the worktree was removed, a failure to delete the branch writes a warning and leaves the branch.
     effects:
       - target: git
         kind: read
@@ -3871,13 +3889,13 @@ entries:
         statement: worktree を削除すると、removed の行を標準エラーに出す
       - id: PW-WORKTREE-REMOVE-07
         pattern: event
-        statement: --keep-branch を省いて worktree を削除すると、deleted の行を標準エラーに出す
+        statement: ローカルブランチを削除すると、deleted の行を標準エラーに出す
       - id: PW-WORKTREE-REMOVE-08
         pattern: unwanted
         statement: もし空のセットのディレクトリを削除できないなら、warning の行を標準エラーに出す
       - id: PW-WORKTREE-REMOVE-09
         pattern: unwanted
-        statement: もし git branch -D に失敗したなら、deleted の行を標準エラーに出す
+        statement: もし git branch -D に失敗したなら、deleted の行の代わりに理由を添えた warning の行を標準エラーに出す
       - id: PW-WORKTREE-REMOVE-10
         pattern: unwanted
         statement: もし git branch -D に失敗したなら、ブランチを残す
@@ -3917,6 +3935,9 @@ entries:
       - id: PW-WORKTREE-REMOVE-22
         pattern: unwanted
         statement: もし devcontainer の外で打ったなら、終了コード 1 で終わる
+      - id: PW-WORKTREE-REMOVE-23
+        pattern: unwanted
+        statement: もし git branch -D に失敗したなら、終了コード 0 で終わる
 
 common_behaviors:
   - id: PW-COMMON-01

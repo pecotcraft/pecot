@@ -26,7 +26,7 @@ from cli.core.frontmatter import (
 from cli.core.git import git_current_branch, git_remote_url, git_toplevel, origin_repo, run_git
 from cli.core.git_url import parse_remote_url
 from cli.core.github import GitHubAPIError, GitHubClient, GitHubNotFoundError
-from cli.core.github.errors import describe_api_error
+from cli.core.github.errors import describe_api_error, is_missing_ref_error
 from cli.core.issue_kind import is_epic_issue
 from cli.core.nx_scope import changed_files, expected_scope, nx_projects, parse_title_scope
 from cli.core.paths import OutputPathReservationError, get_output_dir, reserved_output_path
@@ -1978,13 +1978,6 @@ def _is_closed_by_another_request(e: GitHubAPIError) -> bool:
     )
 
 
-def _is_missing_ref_error(e: GitHubAPIError) -> bool:
-    """Whether this error means the branch (ref) no longer exists"""
-    if e.status_code not in (404, 422):
-        return False
-    return e.response_body is not None and "Reference does not exist" in e.response_body
-
-
 def _delete_merged_branch(
     out: Output, client: GitHubClient, owner: str, repo: str, head_branch: str
 ) -> None:
@@ -2001,7 +1994,7 @@ def _delete_merged_branch(
         client.delete_branch(owner, repo, head_branch)
         out.done(op)
     except GitHubAPIError as e:
-        if not _is_missing_ref_error(e):
+        if not is_missing_ref_error(e):
             out.warning(f"deleting remote branch {head_branch} failed: {describe_api_error(e)}")
             return
         out.done(Operation(Verb.UNCHANGED, f"remote branch {head_branch} (already deleted)"))
