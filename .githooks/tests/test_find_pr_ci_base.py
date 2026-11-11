@@ -31,6 +31,17 @@ cat "$f"
 """
 
 
+def run_entry(
+    run_id: int, created: str, prs: tuple[int, ...] = (7,), event: str = "pull_request"
+) -> dict:
+    return {
+        "id": run_id,
+        "created_at": created,
+        "event": event,
+        "pull_requests": [{"number": n} for n in prs],
+    }
+
+
 class Env:
     def __init__(self, tmp_path: Path, repo: Path, script: Path) -> None:
         self.fake = tmp_path / "fake"
@@ -64,26 +75,23 @@ class Env:
         repo_obj = {"full_name": head_repo} if head_repo else None
         self.api(f"repos/{REPO}/pulls/{n}", {"head": {"sha": head, "repo": repo_obj}})
 
-    def runs(self, head: str, *runs: tuple[int, str]) -> None:
+    def runs(self, head: str, *runs: tuple[int, str] | dict) -> None:
+        """List workflow runs の応答。(id, created_at) は PR 7 の pull_request の run になる。"""
         url = f"repos/{REPO}/actions/workflows/ci.yml/runs?event=pull_request&head_sha={head}&status=success&per_page=100"
-        self.api(url, {"workflow_runs": [{"id": i, "created_at": c} for i, c in runs]})
-
-    def run_info(self, run_id: int, prs: list[int], event: str = "pull_request") -> None:
         self.api(
-            f"repos/{REPO}/actions/runs/{run_id}",
-            {"id": run_id, "event": event, "pull_requests": [{"number": n} for n in prs]},
+            url, {"workflow_runs": [r if isinstance(r, dict) else run_entry(*r) for r in runs]}
         )
 
     def artifact(self, run_id: int, main_sha: str, pr_head: str) -> None:
         (self.fake / f"artifact_{run_id}").write_text(f"main_sha={main_sha}\npr_head={pr_head}\n")
 
-    def go(self, head_ref: str, base: str, head: str) -> tuple[str, str]:
+    def go(self, head_ref: str, base: str, head: str, repo: str = REPO) -> tuple[str, str]:
         env = {
             **os.environ,
             "PATH": f"{self.bin}:{os.environ['PATH']}",
             "FAKE_GH_DIR": str(self.fake),
             "HEAD_REF": head_ref,
-            "REPO": REPO,
+            "REPO": repo,
             "QUEUE_BASE": base,
             "QUEUE_HEAD": head,
         }
@@ -109,7 +117,6 @@ class Scene:
 
     def good_run(self, run_id: int = 100, created: str = "2026-11-01T00:00:00Z") -> None:
         self.env.runs(self.pr_head, (run_id, created))
-        self.env.run_info(run_id, [7])
         self.env.artifact(run_id, self.m0, self.pr_head)
 
     def go(self) -> tuple[str, str]:
@@ -140,8 +147,6 @@ def test_head_ref_forms(scene: Scene, prefix: str) -> None:
 
 def test_picks_newer_run_that_passes(scene: Scene) -> None:
     scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
-    scene.env.run_info(100, [7])
-    scene.env.run_info(110, [7])
     scene.env.artifact(100, scene.m0, scene.pr_head)
     scene.env.artifact(110, scene.base, scene.pr_head)
     assert scene.go()[0] == f"pr_main={scene.base}"
@@ -149,20 +154,36 @@ def test_picks_newer_run_that_passes(scene: Scene) -> None:
 
 def test_falls_back_to_older_run_when_newer_fails_check(scene: Scene) -> None:
     scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
-    scene.env.run_info(100, [7])
-    scene.env.run_info(110, [7])
     scene.env.artifact(100, scene.m0, scene.pr_head)
     scene.env.artifact(110, scene.m0, "f" * 40)
     assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
 def test_skips_run_of_other_pr(scene: Scene) -> None:
-    scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
-    scene.env.run_info(100, [7])
-    scene.env.run_info(110, [8])
+    scene.env.runs(
+        scene.pr_head,
+        (100, "2026-11-01T00:00:00Z"),
+        run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)),
+    )
     scene.env.artifact(100, scene.m0, scene.pr_head)
     scene.env.artifact(110, scene.base, scene.pr_head)
     assert scene.go()[0] == f"pr_main={scene.m0}"
+
+
+def test_skips_run_of_other_event(scene: Scene) -> None:
+    scene.env.runs(
+        scene.pr_head,
+        (100, "2026-11-01T00:00:00Z"),
+        run_entry(110, "2026-11-02T00:00:00Z", event="push"),
+    )
+    scene.env.artifact(100, scene.m0, scene.pr_head)
+    scene.env.artifact(110, scene.base, scene.pr_head)
+    assert scene.go()[0] == f"pr_main={scene.m0}"
+
+
+def test_only_run_of_other_pr_gives_reason(scene: Scene) -> None:
+    scene.env.runs(scene.pr_head, run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)))
+    assert scene.go() == ("", "reason=run に PR が含まれない")
 
 
 def test_no_successful_run(scene: Scene) -> None:
@@ -171,33 +192,56 @@ def test_no_successful_run(scene: Scene) -> None:
 
 
 def test_runs_for_other_head_are_not_returned(scene: Scene) -> None:
-    # PR の head と違う head_sha の run は API が返さない（フィクスチャ無し = 取得の失敗）
+    # PR の head と違う head_sha の run は、API が `workflow_runs: []` で返す
+    scene.env.api(
+        f"repos/{REPO}/actions/workflows/ci.yml/runs?event=pull_request&head_sha={scene.pr_head}&status=success&per_page=100",
+        {"workflow_runs": []},
+    )
     scene.env.runs("e" * 40, (100, "2026-11-01T00:00:00Z"))
-    assert scene.go() == ("", "reason=取得の失敗")
+    assert scene.go() == ("", "reason=成功した run なし")
 
 
-def test_artifact_missing(scene: Scene) -> None:
-    scene.good_run()
+def _drop_artifact(scene: Scene) -> None:
     (scene.env.fake / "artifact_100").unlink()
-    assert scene.go() == ("", "reason=ci-base なし")
 
 
-def test_artifact_pr_head_differs(scene: Scene) -> None:
-    scene.good_run()
+def _artifact_of_other_head(scene: Scene) -> None:
     scene.env.artifact(100, scene.m0, "f" * 40)
-    assert scene.go() == ("", "reason=pr_head 不一致")
 
 
-def test_main_sha_not_ancestor(scene: Scene) -> None:
-    scene.good_run()
+def _main_sha_not_ancestor(scene: Scene) -> None:
     scene.env.artifact(100, scene.pr_head, scene.pr_head)
-    assert scene.go() == ("", "reason=main_sha が base の祖先でない")
 
 
-def test_main_sha_malformed(scene: Scene) -> None:
-    scene.good_run()
+def _main_sha_malformed(scene: Scene) -> None:
     scene.env.artifact(100, "main", scene.pr_head)
-    assert scene.go()[1] == "reason=main_sha が base の祖先でない"
+
+
+@pytest.mark.parametrize(
+    ("break_artifact", "reason"),
+    [
+        (_drop_artifact, "ci-base なし"),
+        (_artifact_of_other_head, "pr_head 不一致"),
+        (_main_sha_not_ancestor, "main_sha が base の祖先でない"),
+        (_main_sha_malformed, "main_sha が base の祖先でない"),
+    ],
+    ids=["missing", "pr_head_differs", "not_ancestor", "malformed"],
+)
+def test_bad_artifact_gives_reason(
+    scene: Scene, break_artifact: Callable[[Scene], None], reason: str
+) -> None:
+    scene.good_run()
+    break_artifact(scene)
+    assert scene.go() == ("", f"reason={reason}")
+
+
+@pytest.mark.parametrize("missing", ["REPO", "QUEUE_BASE", "QUEUE_HEAD"])
+def test_missing_input(scene: Scene, missing: str) -> None:
+    scene.good_run()
+    args = {"REPO": REPO, "QUEUE_BASE": scene.base, "QUEUE_HEAD": scene.q_head}
+    args[missing] = ""
+    out = scene.env.go(scene.ref, args["QUEUE_BASE"], args["QUEUE_HEAD"], repo=args["REPO"])
+    assert out == ("", "reason=入力の不足")
 
 
 def test_queue_head_parent_is_not_queue_base(scene: Scene) -> None:
@@ -214,7 +258,6 @@ def test_merge_tree_conflict(env: Env) -> None:
     q_head = env.commit("g.txt", "x", parent=base)
     env.pull(7, pr_head)
     env.runs(pr_head, (100, "2026-11-01T00:00:00Z"))
-    env.run_info(100, [7])
     env.artifact(100, m0, pr_head)
     ref = f"gh-readonly-queue/main/pr-7-{base}"
     assert env.go(ref, base, q_head) == ("", "reason=merge-tree が失敗（衝突または commit なし）")
@@ -228,7 +271,6 @@ def test_tree_differs_from_queue_head(env: Env) -> None:
     q_head = env.commit("pr.txt", "different", parent=base)
     env.pull(7, pr_head)
     env.runs(pr_head, (100, "2026-11-01T00:00:00Z"))
-    env.run_info(100, [7])
     env.artifact(100, m0, pr_head)
     ref = f"gh-readonly-queue/main/pr-7-{base}"
     assert env.go(ref, base, q_head) == ("", "reason=tree 不一致")

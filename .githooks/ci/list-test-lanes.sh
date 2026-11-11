@@ -73,15 +73,15 @@ if [ -n "$pr_main" ]; then
 fi
 
 lint=run
-main_arg="-"
+# 積は pr_main..queue_base と queue_base..head の 2 つの範囲だけで決まるので、needs_all_lanes（NO_PREV）を通らない。SHA が読めなければ通常のモードに戻る。
 if [ "$stack" = true ]; then
     echo "モード: 積（PR: nx affected --base=$queue_base --head=$head / main: $pr_main..$queue_base）" >&2
     run_nx affected -t "$lane_names" --base="$queue_base" --head="$head" --graph="$graph_pr"
     if [ "$(git rev-parse "${pr_main}^{commit}")" = "$(git rev-parse "${queue_base}^{commit}")" ]; then
         lint=skip
+        printf '%s\n' '{"tasks":{"tasks":{}}}' > "$graph_main"
     else
         run_nx affected -t "$lane_names" --base="$pr_main" --head="$queue_base" --graph="$graph_main"
-        main_arg="$graph_main"
     fi
 elif needs_all_lanes "$base"; then
     echo "モード: 全レーン（nx run-many -t $lane_names）" >&2
@@ -97,7 +97,6 @@ const fs = require("fs");
 const lanes = new Set(process.argv[1].split(","));
 const readLanes = (file) => {
     const found = new Map();
-    if (file === "-") return found;
     const tasks = JSON.parse(fs.readFileSync(file, "utf8")).tasks.tasks;
     for (const task of Object.values(tasks)) {
         const { project, target } = task.target;
@@ -107,17 +106,9 @@ const readLanes = (file) => {
     }
     return found;
 };
-const stack = process.argv[4] === "stack";
 const prLanes = readLanes(process.argv[2]);
-const mainLanes = stack ? readLanes(process.argv[3]) : null;
+const mainLanes = process.argv[3] ? readLanes(process.argv[3]) : null;
 const out = [...prLanes.values()].filter((x) => !mainLanes || mainLanes.has(x.lane));
-if (stack) {
-    const [none, labelPr, labelMain, labelProduct] = process.argv.slice(5);
-    const fmt = (names) => (names.length ? names.join(",") : none);
-    console.error(`${labelPr}: ${fmt([...prLanes.keys()])}`);
-    console.error(`${labelMain}: ${fmt([...mainLanes.keys()])}`);
-    console.error(`${labelProduct}: ${fmt(out.map((x) => x.lane))}`);
-}
 const bySlug = new Map();
 for (const { lane, slug } of out) bySlug.set(slug, [...(bySlug.get(slug) || []), lane]);
 for (const [slug, names] of bySlug) {
@@ -128,11 +119,14 @@ for (const [slug, names] of bySlug) {
 }
 out.sort((a, b) => (a.lane < b.lane ? -1 : a.lane > b.lane ? 1 : 0));
 process.stdout.write(`lanes=${JSON.stringify(out)}\ncount=${out.length}\n`);
+if (mainLanes) {
+    process.stdout.write(`pr=${[...prLanes.keys()].join(",")}\nmain=${[...mainLanes.keys()].join(",")}\nproduct=${out.map((x) => x.lane).join(",")}\n`);
+}
 '
 # slug の重なりは JS 内で数えて止める。upload-artifact の名前が重なると後の job が 409 で落ちる。
-mode_arg=plain
-[ "$stack" = true ] && mode_arg=stack
-if ! result=$(node -e "$js" "$lane_names" "$graph_pr" "$main_arg" "$mode_arg" なし "PR の変更のレーン" "main の変更のレーン" 積 2> "$work/node.err"); then
+main_file=""
+[ "$stack" = true ] && main_file="$graph_main"
+if ! result=$(node -e "$js" "$lane_names" "$graph_pr" "$main_file" 2> "$work/node.err"); then
     {
         echo "ERROR: nx の task graph からレーンを読めませんでした。"
         sed 's/^/       /' "$work/node.err"
@@ -140,4 +134,11 @@ if ! result=$(node -e "$js" "$lane_names" "$graph_pr" "$main_arg" "$mode_arg" �
     exit 1
 fi
 cat "$work/node.err" >&2
-printf '%s\nlint=%s\n' "$result" "$lint"
+if [ "$stack" = true ]; then
+    show() { v=$(printf '%s\n' "$result" | sed -n "s/^$1=//p"); echo "$2: ${v:-なし}" >&2; }
+    show pr "PR の変更のレーン"
+    show main "main の変更のレーン"
+    show product 積
+fi
+printf '%s\n' "$result" | grep -E '^(lanes|count)='
+printf 'lint=%s\n' "$lint"

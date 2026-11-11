@@ -177,6 +177,25 @@ def test_lint_skip_with_lanes(run) -> None:
     assert "tests (p:test-cli): success" in r.stdout
 
 
+_EXPANDED = "checks (${{ matrix.part }})"
+
+
+@pytest.mark.parametrize("name", [_EXPANDED, "checks (lint)", "checks (lint-py)"])
+def test_lint_skip_with_skipped_matrix_job_with_lanes(run, name: str) -> None:
+    """if で飛ばした matrix の job は checks で始まる名前・skipped で jobs に出る。"""
+    jobs = _skip_jobs() + [{"name": name, "conclusion": "skipped"}]
+    r = run(jobs, LINT_MODE="skip", CHECKS_RESULT="skipped")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "tests (p:test-cli): success" in r.stdout
+
+
+@pytest.mark.parametrize("name", [_EXPANDED, "checks (lint)", "checks (lint-py)"])
+def test_lint_skip_with_skipped_matrix_job_zero_lanes(run, name: str) -> None:
+    jobs = [{"name": name, "conclusion": "skipped"}]
+    r = run(jobs, lanes=[], TESTS_RESULT="skipped", LINT_MODE="skip", CHECKS_RESULT="skipped")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
 @pytest.mark.parametrize("result", ["success", "failure"])
 def test_lint_skip_requires_checks_skipped(run, result: str) -> None:
     r = run(_skip_jobs(), LINT_MODE="skip", CHECKS_RESULT=result)

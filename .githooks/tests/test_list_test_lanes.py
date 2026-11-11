@@ -93,7 +93,11 @@ class _Env:
         self.base_graphs[f"STUB_TASKS_BASE_{base}"] = str(f)
 
     def run(
-        self, base: str | None = None, opts: list[str] | None = None, **env: str
+        self,
+        base: str | None = None,
+        opts: list[str] | None = None,
+        head: str | None = None,
+        **env: str,
     ) -> subprocess.CompletedProcess:
         full = {
             **os.environ,
@@ -104,7 +108,7 @@ class _Env:
             **env,
         }
         return subprocess.run(
-            [str(self.script), *(opts or []), base or self.head, self.head],
+            [str(self.script), *(opts or []), base or self.head, head or self.head],
             cwd=self.repo,
             env=full,
             capture_output=True,
@@ -251,13 +255,7 @@ def test_stack_same_main_calls_nx_once_and_skips_lint(env: _Env) -> None:
     m0 = env.head
     head = env.new_commit("a")
     env.set_tasks("p:test-cli", "q:test-hooks")
-    r = subprocess.run(
-        [str(env.script), *_stack_opts(m0, m0), m0, head],
-        cwd=env.repo,
-        env={**os.environ, **_stub_env(env)},
-        capture_output=True,
-        text=True,
-    )
+    r = env.run(base=m0, opts=_stack_opts(m0, m0), head=head)
     assert r.returncode == 0, r.stderr
     lanes, count = _parse(r.stdout, lint="skip")
     assert [x["lane"] for x in lanes] == []
@@ -270,23 +268,8 @@ def test_stack_same_main_calls_nx_once_and_skips_lint(env: _Env) -> None:
     assert "積: なし" in r.stderr
 
 
-def _stub_env(env: _Env) -> dict[str, str]:
-    return {
-        "STUB_NX_LOG": str(env.log),
-        "STUB_PROJECT_GRAPH": str(env.project_graph),
-        "STUB_TASKS_GRAPH": str(env.tasks_graph),
-        **env.base_graphs,
-    }
-
-
 def _stack_run(env: _Env, m0: str, qbase: str, head: str, **extra: str):
-    return subprocess.run(
-        [str(env.script), head and f"--pr-main={m0}", f"--queue-base={qbase}", qbase, head],
-        cwd=env.repo,
-        env={**os.environ, **_stub_env(env), **extra},
-        capture_output=True,
-        text=True,
-    )
+    return env.run(base=qbase, opts=_stack_opts(m0, qbase), head=head, **extra)
 
 
 def test_stack_overlap_remains(env: _Env) -> None:

@@ -4,7 +4,11 @@
 # QUEUE_BASE は merge_group.base_sha、QUEUE_HEAD は merge_group.head_sha。
 # 出力: 成功時は stdout に `pr_main=<sha>` の 1 行。出せないときは stdout に何も出さず、stderr に `reason=<理由>` を 1 行出して exit 0。
 
+# -e は付けない。失敗は全部 none（reason を出して exit 0 = 全部を動かす側）に集めるため。
 set -uo pipefail
+
+# shellcheck source=../lib/pr-run.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/pr-run.sh"
 
 repo="${REPO:-}"
 queue_base="${QUEUE_BASE:-}"
@@ -15,14 +19,16 @@ none() {
     exit 0
 }
 
-pr=$(sed -nE 's#^(refs/heads/)?gh-readonly-queue/.+/pr-([0-9]+)-[0-9a-f]+$#\2#p' <<< "${HEAD_REF:-}")
-[[ "$pr" =~ ^[0-9]+$ ]] || none "PR 番号不明"
+pr=$(pr_number_from_head_ref "${HEAD_REF:-}") || none "PR 番号不明"
 [ -n "$repo" ] && [ -n "$queue_base" ] && [ -n "$queue_head" ] || none "入力の不足"
 
-pull=$(gh api "repos/$repo/pulls/$pr") || none "取得の失敗"
-pr_head=$(jq -r '.head.sha // ""' <<< "$pull") || none "取得の失敗"
-head_repo=$(jq -r '.head.repo.full_name // ""' <<< "$pull") || none "取得の失敗"
-[ "$head_repo" = "$repo" ] || none "fork の PR"
+pr_load_head "$repo" "$pr"
+case $? in
+    0) ;;
+    2) none "fork の PR" ;;
+    *) none "取得の失敗" ;;
+esac
+pr_head="$PR_HEAD_SHA"
 [ -n "$pr_head" ] || none "取得の失敗"
 
 parent=$(git rev-parse "$queue_head^1" 2> /dev/null) || none "queue の commit を読めない"
@@ -34,7 +40,7 @@ queue_tree=$(git rev-parse "$queue_head^{tree}" 2> /dev/null) || none "queue の
 [ "$merged_tree" = "$queue_tree" ] || none "tree 不一致"
 
 runs=$(gh api "repos/$repo/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$pr_head&status=success&per_page=100" \
-    | jq -c '[.workflow_runs[]? | {id, created_at}] | sort_by(.created_at) | reverse') || none "取得の失敗"
+    | jq -c '[.workflow_runs[]?] | sort_by(.created_at) | reverse') || none "取得の失敗"
 [ "$runs" != "[]" ] || none "成功した run なし"
 
 tmp_base="$(git rev-parse --show-toplevel)/.pecot/tmp"
@@ -43,12 +49,12 @@ work=$(mktemp -d "$tmp_base/find-pr-ci-base.XXXXXX") || none "一時ディレク
 trap 'rm -rf "$work"' EXIT
 
 last_reason="成功した run なし"
-while IFS= read -r id; do
-    info=$(gh api "repos/$repo/actions/runs/$id") || { last_reason="取得の失敗"; continue; }
-    if ! jq -e --argjson pr "$pr" '.event == "pull_request" and ((.pull_requests // []) | map(.number) | index($pr) != null)' <<< "$info" > /dev/null; then
+while IFS= read -r run; do
+    if ! pr_run_is_for_pr "$pr" <<< "$run"; then
         last_reason="run に PR が含まれない"
         continue
     fi
+    id=$(jq -r '.id' <<< "$run")
     dir="$work/$id"
     mkdir -p "$dir"
     if ! gh run download "$id" -R "$repo" -n ci-base -D "$dir" > /dev/null 2>&1 || [ ! -f "$dir/ci-base.txt" ]; then
@@ -67,6 +73,6 @@ while IFS= read -r id; do
     fi
     echo "pr_main=$main_sha"
     exit 0
-done < <(jq -r '.[].id' <<< "$runs")
+done < <(jq -c '.[]' <<< "$runs")
 
 none "$last_reason"
