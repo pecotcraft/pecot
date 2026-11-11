@@ -193,6 +193,19 @@ class TestGetNextSetName:
         (tmp_path / "base").mkdir()
         assert get_next_set_name(tmp_path, "myrepo") == "wt1"
 
+    def test_avoids_claimed_name(self, tmp_path: Path) -> None:
+        """wt1 が claimed にあれば、wt1/ が空でも避けて wt2"""
+        (tmp_path / "wt1").mkdir()
+        (tmp_path / "wt2").mkdir()
+        assert get_next_set_name(tmp_path, "myrepo", claimed={"wt1"}) == "wt2"
+
+    def test_claimed_raises_max(self, tmp_path: Path) -> None:
+        """<root>/wt1 が無くても claimed の番号は max に入る"""
+        assert get_next_set_name(tmp_path, "myrepo", claimed={"wt1"}) == "wt2"
+
+    def test_claimed_ignores_non_matching_names(self, tmp_path: Path) -> None:
+        assert get_next_set_name(tmp_path, "myrepo", claimed={"feat/x", "main"}) == "wt1"
+
     def test_ignores_non_wt_dirs(self, tmp_path: Path) -> None:
         (tmp_path / "foo").mkdir()
         (tmp_path / "wt1").mkdir()
@@ -1237,6 +1250,7 @@ class TestGetCurrentWorktreeName:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="/repo/.git/worktrees/wt2\n"),
                 MagicMock(returncode=0, stdout="/repo/.git\n"),
+                MagicMock(returncode=1, stdout=""),
                 MagicMock(returncode=0, stdout="/workspaces/wt2/aist-roadmap\n"),
             ]
             assert get_current_worktree_name(Path("/workspaces/wt2/aist-roadmap")) == "wt2"
@@ -1254,19 +1268,43 @@ class TestGetCurrentWorktreeName:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="/repo/.git/worktrees/base\n"),
                 MagicMock(returncode=0, stdout="/repo/.git\n"),
+                MagicMock(returncode=1, stdout=""),
                 MagicMock(returncode=0, stdout="/workspaces/base/aist-roadmap\n"),
             ]
             assert get_current_worktree_name(Path("/workspaces/base/aist-roadmap")) == "base"
 
     def test_returns_none_when_toplevel_fails(self) -> None:
-        """サブWT判定後に --show-toplevel が失敗したら None を返す"""
+        """記録が無く、--show-toplevel が失敗したら None を返す"""
         with patch("subprocess.run") as mock_run:
             mock_run.side_effect = [
                 MagicMock(returncode=0, stdout="/repo/.git/worktrees/wt2\n"),
                 MagicMock(returncode=0, stdout="/repo/.git\n"),
+                MagicMock(returncode=1, stdout=""),
                 subprocess.CalledProcessError(128, "git"),
             ]
             assert get_current_worktree_name(Path("/workspaces/wt2/x")) is None
+
+    def test_returns_recorded_name(self, tmp_path: Path) -> None:
+        """記録があれば置き場所の親ディレクトリ名より優先する"""
+        marker = tmp_path / "pecot-worktree-name"
+        marker.write_text("wt1\n", encoding="utf-8")
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="/repo/.git/worktrees/x\n"),
+                MagicMock(returncode=0, stdout="/repo/.git\n"),
+                MagicMock(returncode=0, stdout=f"{marker}\n"),
+            ]
+            assert get_current_worktree_name(Path("/elsewhere/x")) == "wt1"
+
+    def test_returns_none_when_no_record_and_parent_is_not_wt(self) -> None:
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="/repo/.git/worktrees/x\n"),
+                MagicMock(returncode=0, stdout="/repo/.git\n"),
+                MagicMock(returncode=1, stdout=""),
+                MagicMock(returncode=0, stdout="/elsewhere/x\n"),
+            ]
+            assert get_current_worktree_name(Path("/elsewhere/x")) is None
 
 
 # ensure_devcontainer_environment のテスト

@@ -10,7 +10,7 @@
 // このファイルがそれらを読む。逆向きの import は作らない（findWorktreeConfigFile と findMainWorktree をここに置くのはそのため）。
 
 import { BaseError } from '../domain/errors.js'
-import { existsSync, readdirSync, rmdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { findRepository, getDevelopBranch } from '../domain/config.js'
@@ -182,16 +182,80 @@ export function getWorktreeDirectories(cwd: string): readonly string[] {
   return entries.slice(1).map(entry => normalizePath(entry.path))
 }
 
+// worktree add が wtN を書く記録。管理ディレクトリ（.git/worktrees/<id>/）の中に置く
+const WORKTREE_NAME_RECORD = 'pecot-worktree-name'
+
+// 記録のパス。git が解決した絶対パス（このプロセスの cwd に依らない）。取れなければ undefined
+function worktreeNameRecordPath(cwd: string): string | undefined {
+  const result = runGit(['rev-parse', '--path-format=absolute', '--git-path', WORKTREE_NAME_RECORD], { cwd })
+  const recordPath = pythonStrip(result.stdout)
+  return recordPath !== '' && result.exitCode === 0 ? recordPath : undefined
+}
+
+function readRecord(file: string): string {
+  try {
+    return pythonStrip(readFileSync(file, 'utf8'))
+  }
+  catch {
+    return ''
+  }
+}
+
+// 作った worktree に名前を記録する。失敗は warning にとどめる
+function recordWorktreeName(worktreePath: string, name: string, diagnostics: Diagnostics): void {
+  const recordPath = worktreeNameRecordPath(worktreePath)
+  if (recordPath === undefined) {
+    diagnostics.warning(`failed to record the worktree name ${name}: cannot resolve the git path: ${worktreePath}`)
+    return
+  }
+  try {
+    writeFileSync(recordPath, `${name}\n`)
+  }
+  catch (error: unknown) {
+    const converted = toOsError(error)
+    diagnostics.warning(`failed to record the worktree name ${name}: ${recordPath}: ${converted instanceof Error ? converted.message : String(converted)}`)
+  }
+}
+
+/**
+使用中の wtN の名前を返す。全 worktree の記録と、wtN のブランチを checkout している worktree の和
+*/
+export function claimedSetNames(mainWorktree: string): ReadonlySet<string> {
+  const names = new Set<string>()
+  const common = runGit(['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: mainWorktree })
+  const commonDirectory = pythonStrip(common.stdout)
+  if (commonDirectory !== '' && common.exitCode === 0) {
+    const administrative = path.join(commonDirectory, 'worktrees')
+    const entries = existsSync(administrative) ? readdirSync(administrative) : []
+    for (const entry of entries) {
+      const recorded = readRecord(path.join(administrative, entry, WORKTREE_NAME_RECORD))
+      if (recorded !== '') names.add(recorded)
+    }
+  }
+  const references = runGit(['for-each-ref', '--format=%(refname:short)%00%(worktreepath)', 'refs/heads/'], { cwd: mainWorktree })
+  if (references.exitCode === 0) {
+    for (const line of references.stdout.split('\n')) {
+      const [branch, worktreePath] = line.split('\0', 2)
+      if (branch !== undefined && worktreePath !== undefined && worktreePath !== '' && /^wt\d+$/u.test(branch)) names.add(branch)
+    }
+  }
+  return names
+}
+
 /**
 現在のサブワークツリー名を取得する。
-
-pecot の配置規約 `<root>/wtN/<repo_dir>/` を前提にする。
-`git rev-parse --show-toplevel` が返すリポジトリディレクトリの親ディレクトリ名（= WT 名）を返す。
-サブ WT 環境でない場合・ルートを取得できない場合は undefined。Git リポジトリ外なら WorktreeRuntimeError
+サブ WT でなければ undefined。記録（`pecot-worktree-name`）があればそれを返す。
+無ければ toplevel の親ディレクトリ名を、`wt\d+` か `base` のときだけ返し、それ以外は undefined。
+Git リポジトリ外なら WorktreeRuntimeError
 */
 export function getCurrentWorktreeName(cwd: string): string | undefined {
-  const toplevel = isWorktreeEnvironment(cwd) ? gitToplevel({ cwd }) : undefined
-  return toplevel === undefined ? undefined : path.basename(path.dirname(toplevel))
+  if (!isWorktreeEnvironment(cwd)) return undefined
+  const recordPath = worktreeNameRecordPath(cwd)
+  const recorded = recordPath === undefined ? '' : readRecord(recordPath)
+  if (recorded !== '') return recorded
+  const toplevel = gitToplevel({ cwd })
+  const parent = toplevel === undefined ? undefined : path.basename(path.dirname(toplevel))
+  return parent !== undefined && /^(?:wt\d+|base)$/u.test(parent) ? parent : undefined
 }
 
 /**
@@ -233,6 +297,10 @@ export interface NextSetNameOptions {
   最大番号。既定は 9
   */
   readonly maxNumber?: number | undefined
+  /**
+  使用中の名前（claimedSetNames の結果）。ディレクトリが無くても、参加せず max にも数える
+  */
+  readonly claimed?: Iterable<string> | undefined
 }
 
 // プロジェクトルート直下の `<prefix><数字>` ディレクトリの番号を昇順で返す
@@ -247,7 +315,7 @@ function existingSetNumbers(projectRoot: string, prefix: string): readonly numbe
 /**
 プロジェクトルート基準で、対象リポの参加先セット名を決める（プロジェクトセット = 同じ wtN 配下の複数リポ WT）。
 
-1. `<projectRoot>/wt\d+/` を列挙する。
+1. `<projectRoot>/wt\d+/` と `options.claimed` の番号を列挙する。claimed の番号は参加せず、max にも数える。
 2. 各 wtN について `wtN/<repositoryDirectoryName>` が存在しないものを先頭から探す。見つかったら既存セットに参加させる形でその名前を返す。
 3. 全ての既存 wtN に該当リポが既にあるなら、max(N)+1 で新セット `wt<N+1>` を返す。
 4. 既存セットが無ければ `wt1` を返す。
@@ -257,13 +325,18 @@ function existingSetNumbers(projectRoot: string, prefix: string): readonly numbe
 export function getNextSetName(projectRoot: string, repositoryDirectoryName: string, options: Readonly<NextSetNameOptions> = {}): string {
   const prefix = options.prefix ?? 'wt'
   const maxNumber = options.maxNumber ?? 9
-  const numbers = existingSetNumbers(projectRoot, prefix)
+  const claimed = new Set<number>()
+  const claimedNames = [...options.claimed ?? []]
+  for (const claimedName of claimedNames) {
+    if (claimedName.startsWith(prefix) && /^\d+$/u.test(claimedName.slice(prefix.length))) claimed.add(Number(claimedName.slice(prefix.length)))
+  }
+  const numbers = [...new Set([...existingSetNumbers(projectRoot, prefix), ...claimed])].toSorted((a, b) => a - b)
 
   const last = numbers.at(-1)
   if (last === undefined) return `${prefix}1`
 
   // 既存セットで該当リポが未登場のものがあればそこに参加
-  const joinable = numbers.find(number => !existsSync(path.join(projectRoot, `${prefix}${String(number)}`, repositoryDirectoryName)))
+  const joinable = numbers.find(number => !claimed.has(number) && !existsSync(path.join(projectRoot, `${prefix}${String(number)}`, repositoryDirectoryName)))
   if (joinable !== undefined) return `${prefix}${String(joinable)}`
 
   // 全セットに参加済み → 新セット
@@ -469,7 +542,7 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
 
   // 2. 名前決定（プロジェクトセットへの自動参加）
   const repositoryDirectoryName = path.basename(mainWorktree)
-  const name = options.name ?? getNextSetName(projectRoot, repositoryDirectoryName)
+  const name = options.name ?? getNextSetName(projectRoot, repositoryDirectoryName, { claimed: claimedSetNames(mainWorktree) })
 
   // 3. ベースブランチ決定（プロジェクト設定の develop_branch を使用）
   const baseBranch = options.baseBranch ?? defaultBaseBranch(config, repository)
@@ -484,6 +557,7 @@ export function createWorktree(cwd: string, diagnostics: Diagnostics, options: R
 
   // 5. git worktree add
   addGitWorktree(cwd, worktreePath, name, baseBranch, options.isExistingBranchAllowed === true)
+  recordWorktreeName(worktreePath, name, diagnostics)
 
   // 6〜8. シンボリックリンク作成・未追跡ファイルコピー・セットアップコマンド実行
   const worktreeConfig = loadWorktreeConfigOrRaise(configPath)

@@ -9,12 +9,18 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
-from cli.core.worktree import create_worktree, remove_worktree
+from cli.core.worktree import (
+    create_worktree,
+    get_claimed_set_names,
+    get_current_worktree_name,
+    remove_worktree,
+)
 from cli.core.worktree_links import (
     DEFAULT_WORKTREEIGNORE_CONTENT,
     WorktreeConfig,
@@ -477,3 +483,86 @@ class TestWorktreeOrphanBranchE2E:
             repo, "for-each-ref", "--format=%(upstream:short)", "refs/heads/wt1"
         ).stdout.strip()
         assert upstream_after == "origin/develop"
+
+
+@pytest.mark.skipif(
+    not subprocess.run(["which", "git"], capture_output=True).stdout,
+    reason="git required",
+)
+class TestWorktreePathNumberE2E:
+    """--path の worktree が使う wtN を、番号の決定と戻り先の決定が扱う"""
+
+    def _setup(self, tmp_path: Path) -> tuple[Path, Path, MagicMock]:
+        root = tmp_path / "workspaces"
+        (root / "base").mkdir(parents=True)
+        repo = root / "base" / "myrepo"
+        _init_repo(repo, default_branch="develop")
+        _setup_remote(repo, tmp_path / "remotes" / "myrepo", branch="develop", repo_name="myrepo")
+        save_config(WorktreeConfig(links=[]), repo / WORKTREE_CONFIG_FILENAME)
+        _write_default_ignore(repo)
+
+        cfg = MagicMock()
+        repo_mock = MagicMock(owner="test-owner", name="myrepo")
+        cfg.repositories = [repo_mock]
+        cfg.find_repository.return_value = repo_mock
+        cfg.get_develop_branch.return_value = "develop"
+        return root, repo, cfg
+
+    def _patches(self, cfg: MagicMock) -> tuple[Any, Any]:
+        return (
+            patch("cli.core.worktree.load_active_config", return_value=cfg),
+            patch(
+                "cli.core.worktree.origin_repo",
+                return_value=("github.com", "test-owner", "myrepo"),
+            ),
+        )
+
+    def test_next_add_avoids_number_of_path_worktree(self, tmp_path: Path) -> None:
+        root, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            first = create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+            second = create_worktree(cwd=repo, copy=False, link=False)
+
+        assert first.name == "wt1"
+        assert second.name == "wt2"
+        assert second.path == root / "wt2" / "myrepo"
+
+    def test_number_survives_checkout_to_feature_branch(self, tmp_path: Path) -> None:
+        root, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            first = create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+            _git(first.path, "checkout", "-b", "feat/x", "-q")
+            second = create_worktree(cwd=repo, copy=False, link=False)
+
+        assert second.name == "wt2"
+        assert _git(repo, "rev-parse", "--verify", "wt1").stdout.strip()
+
+    def test_current_name_from_subdirectory_of_path_worktree(self, tmp_path: Path) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+        sub = created.path / "sub"
+        sub.mkdir()
+
+        assert get_current_worktree_name(sub) == "wt1"
+
+    def test_claimed_set_names_ignores_process_cwd(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+
+        other = tmp_path / "other"
+        _init_repo(other)
+        monkeypatch.chdir(other)
+
+        assert get_claimed_set_names(repo) == {"wt1"}
