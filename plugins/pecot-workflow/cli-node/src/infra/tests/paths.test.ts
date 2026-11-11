@@ -34,7 +34,7 @@ import {
 useIsolatedEnvironment()
 
 describe('パス定数', () => {
-  it('.pecot/ 配下の値', () => {
+  it('.pecot 配下の各定数は、決まった相対パスの値になる', () => {
     expect(PECOT_DIR).toBe('.pecot')
     expect(STATE_DIR).toBe('.pecot/state')
     expect(WORK_DIR).toBe('.pecot/work')
@@ -217,13 +217,13 @@ describe('resolveRealPath', () => {
 })
 
 describe('outputDirectory', () => {
-  it('プロジェクトルート基準の .pecot/tmp/output', () => {
+  it('CLAUDE_PROJECT_DIR 配下の .pecot/tmp/output を返す', () => {
     const directory = makeTemporaryDirectory()
     setEnvironment({ CLAUDE_PROJECT_DIR: directory })
     expect(outputDirectory()).toBe(path.join(directory, '.pecot', 'tmp', 'output'))
   })
 
-  it('絶対パス', () => {
+  it('絶対パスで、末尾が .pecot/tmp/output のパスを返す', () => {
     const repository = createGitRepository()
     expect(path.isAbsolute(outputDirectory({ cwd: repository }))).toBe(true)
     expect(outputDirectory({ cwd: repository }).split(path.sep).slice(-3)).toEqual(['.pecot', 'tmp', 'output'])

@@ -23,7 +23,7 @@ describe('FrontmatterError', () => {
 })
 
 describe('validateIssueFrontmatter', () => {
-  it('最小限のフィールドでインスタンス化できる', () => {
+  it('必須のフィールドだけを渡すと、labels を空配列、parent_epic を undefined にして返す', () => {
     const fm = validateIssueFrontmatter({ title: 'テスト機能の実装', type: 'task', repository: 'owner/repo', status: 'ready' })
     expect(fm.title).toBe('テスト機能の実装')
     expect(fm.type).toBe('task')
@@ -33,7 +33,7 @@ describe('validateIssueFrontmatter', () => {
     expect(fm.parent_epic).toBeUndefined()
   })
 
-  it('すべてのフィールドを持つインスタンス', () => {
+  it('すべてのフィールドを渡すと、渡した値をそのまま返す', () => {
     const fm = validateIssueFrontmatter({
       title: 'バグ修正',
       type: 'bug',
@@ -70,7 +70,7 @@ describe('validateIssueFrontmatter', () => {
     expect(fm.order).toBeUndefined()
   })
 
-  it('parent_epic と order の両方が指定されている場合は正常', () => {
+  it('parent_epic と order を両方渡すと、検証を通して両方の値を返す', () => {
     const fm = validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 1 })
     expect(fm.parent_epic).toBe(353)
     expect(fm.order).toBe(1)
@@ -158,7 +158,7 @@ describe('validateIssueFrontmatter', () => {
 })
 
 describe('parseFrontmatter', () => {
-  it('シンプルなフロントマターをパース', () => {
+  it('title・type・repository・status と本文のあるコンテンツを渡すと、フロントマターと本文を取り出す', () => {
     const content = `---
 title: テスト機能の実装
 type: task
@@ -179,7 +179,7 @@ status: ready
     expect(result.body).toContain('これは本文です。')
   })
 
-  it('フル構成のフロントマターをパース', () => {
+  it('priority・size・labels・parent_epic・order まで書いたコンテンツを渡すと、すべての値を取り出す', () => {
     const content = `---
 title: Epic実装
 type: epic
@@ -242,7 +242,7 @@ type: epic: invalid
     expect(() => parseFrontmatter('---\ntitle: テスト\n---\n\n本文\n')).toThrow('validation error')
   })
 
-  it('空文字列の parent_epic をパース', () => {
+  it('priority・size・parent_epic・order が空文字列のとき、いずれも undefined にする', () => {
     const content = [
       '---',
       'title: Epic実装',
@@ -265,7 +265,7 @@ type: epic: invalid
     expect(result.frontmatter.order).toBeUndefined()
   })
 
-  it('template フィールド付きのフロントマターをパース', () => {
+  it('template を書いたコンテンツを渡すと、template の値を取り出す', () => {
     const content = `---
 title: フェーズ1実装
 type: task
@@ -283,7 +283,7 @@ status: ready
     expect(result.frontmatter.type).toBe('task')
   })
 
-  it('template フィールドなしのフロントマターをパース', () => {
+  it('template を書かないコンテンツを渡すと、template は undefined になる', () => {
     const content = `---
 title: 通常タスク
 type: task
@@ -314,7 +314,7 @@ status: ready
     expect(parseFrontmatter(content).body).toBe('本文')
   })
 
-  it('本文が空でも動作する', () => {
+  it('本文が空のとき、body を空文字列にする', () => {
     const content = `---
 title: テスト
 type: task
@@ -341,13 +341,13 @@ status: ready
 })
 
 describe('validateCommentFrontmatter', () => {
-  it('最小限のフィールドでインスタンス化できる', () => {
+  it('issue_ref だけを渡すと、template を undefined にして返す', () => {
     const fm = validateCommentFrontmatter({ issue_ref: 'owner/repo/123' })
     expect(fm.issue_ref).toBe('owner/repo/123')
     expect(fm.template).toBeUndefined()
   })
 
-  it('すべてのフィールドを持つインスタンス', () => {
+  it('issue_ref と template を渡すと、両方の値を返す', () => {
     const fm = validateCommentFrontmatter({ issue_ref: 'owner/repo/456', template: 'merge-diff' })
     expect(fm.issue_ref).toBe('owner/repo/456')
     expect(fm.template).toBe('merge-diff')
@@ -359,7 +359,7 @@ describe('validateCommentFrontmatter', () => {
 })
 
 describe('parseCommentContent', () => {
-  it('シンプルなコメントフロントマターをパース', () => {
+  it('issue_ref と本文のあるコンテンツを渡すと、issue_ref と本文を取り出す', () => {
     const content = `---
 issue_ref: "owner/repo/123"
 ---
@@ -374,7 +374,7 @@ issue_ref: "owner/repo/123"
     expect(result.body).toContain('これは本文です。')
   })
 
-  it('フル構成のコメントフロントマターをパース', () => {
+  it('issue_ref・template・本文のあるコンテンツを渡すと、3 つとも取り出す', () => {
     const content = `---
 issue_ref: "org/project/42"
 template: merge-diff
@@ -400,7 +400,7 @@ template: merge-diff
 })
 
 describe('validatePullRequestFrontmatter', () => {
-  it('最小限のフィールドでインスタンス化できる', () => {
+  it('title・repository・base だけを渡すと、head を undefined、draft を false にして返す', () => {
     const fm = validatePullRequestFrontmatter({ title: '機能追加', repository: 'owner/repo', base: 'develop-aist' })
     expect(fm.title).toBe('機能追加')
     expect(fm.repository).toBe('owner/repo')
@@ -409,7 +409,7 @@ describe('validatePullRequestFrontmatter', () => {
     expect(fm.draft).toBe(false)
   })
 
-  it('すべてのフィールドを持つインスタンス', () => {
+  it('head と draft まで渡すと、渡した値をそのまま返す', () => {
     const fm = validatePullRequestFrontmatter({ title: 'バグ修正PR', repository: 'org/project', base: 'develop', head: 'feat/issue-123-fix-bug', draft: true })
     expect(fm.head).toBe('feat/issue-123-fix-bug')
     expect(fm.draft).toBe(true)
@@ -429,7 +429,7 @@ describe('validatePullRequestFrontmatter', () => {
 })
 
 describe('parsePullRequestContent', () => {
-  it('シンプルな PR フロントマターをパース', () => {
+  it('title・repository・base と本文のあるコンテンツを渡すと、head を undefined、draft を false にして取り出す', () => {
     const content = `---
 title: "機能追加PR"
 repository: "owner/repo"
@@ -452,7 +452,7 @@ Refs #123
     expect(result.body).toContain('Refs #123')
   })
 
-  it('フル構成の PR フロントマターをパース', () => {
+  it('head と draft まで書いたコンテンツを渡すと、その値を取り出す', () => {
     const content = `---
 title: "バグ修正"
 repository: "org/project"

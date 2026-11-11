@@ -19,7 +19,7 @@ describe('prerenderConfig', () => {
     }
   })
 
-  it('PrerenderTarget / WaitStrategy / PrerenderConfig 型は import 可能', () => {
+  it('PrerenderTarget・WaitStrategy・PrerenderConfig の値を作ると、入れた selector・type・倍率のままになる', () => {
     const target: PrerenderTarget = { selector: '.foo' }
     const fixed: WaitStrategy = { type: 'fixed', delay: 100 }
     const sel: WaitStrategy = { type: 'selectorState', selector: '.x', state: 'detached' }

@@ -209,7 +209,7 @@ describe('型の変換', () => {
     expect(await messageOf(runDefinition(typed, ['1', '--limit', '0'], io))).toBe('Invalid value for \'--limit\': 0 is not in the range x>=1.')
   })
 
-  it('範囲のない整数と実数の誤りの文', async () => {
+  it('整数の項目に 1.5、実数の項目に abc を渡すと、範囲を言わない誤りの文を返す', async () => {
     const io = capture()
     expect(await messageOf(runDefinition(typed, ['1', '--step', '1.5'], io))).toBe('Invalid value for \'--step\': \'1.5\' is not a valid integer.')
     expect(await messageOf(runDefinition(typed, ['1', '--ratio', 'abc'], io))).toBe('Invalid value for \'--ratio\': \'abc\' is not a valid float.')

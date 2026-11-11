@@ -57,7 +57,7 @@ function useProject(): { readonly root: string, readonly projects: string } {
 }
 
 describe('ディレクトリ', () => {
-  it('設定ディレクトリとプロジェクト設定ディレクトリ', () => {
+  it('設定ディレクトリは .pecot/config、プロジェクト設定ディレクトリはその下の projects を返す', () => {
     const { root } = useProject()
     expect(configDirectory()).toBe(path.join(root, '.pecot', 'config'))
     expect(projectsDirectory()).toBe(path.join(root, '.pecot', 'config', 'projects'))

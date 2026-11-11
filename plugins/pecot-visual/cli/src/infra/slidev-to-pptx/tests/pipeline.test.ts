@@ -125,7 +125,7 @@ describe('convertToPptx', () => {
     expect(result.slideCount).toBe(1)
   })
 
-  it('onlySlide.click=null と scanPage の組み合わせ', async () => {
+  it('onlySlide の click が null のとき、走査したページの step を変換して成功を返す', async () => {
     const config: PipelineConfig = {
       ...baseConfig(presDir),
       onlySlide: { slide: 3, click: null },
@@ -390,7 +390,7 @@ describe('convertToPptx', () => {
     expect(result.success).toBe(true)
   })
 
-  it('templatePath / outputDir が絶対パスでも動作', async () => {
+  it('templatePath と outputDir が絶対パスのとき、変換に成功する', async () => {
     const config: PipelineConfig = {
       ...baseConfig(presDir),
       templatePath: path.join(presDir, 'dist'),

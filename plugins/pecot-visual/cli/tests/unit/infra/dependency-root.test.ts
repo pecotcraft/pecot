@@ -145,12 +145,12 @@ describe('ルートの解決', () => {
 })
 
 describe('themeStoreRoot', () => {
-  it('CLAUDE_PLUGIN_DATA の themes/', () => {
+  it('CLAUDE_PLUGIN_DATA があると、その下の themes を返す', () => {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', '/fake/data')
     expect(themeStoreRoot()).toBe(path.join('/fake/data', 'themes'))
   })
 
-  it('PLUGIN_DATA だけでも themes/（単体配布の形）', () => {
+  it('CLAUDE_PLUGIN_DATA が空で PLUGIN_DATA があると、その下の themes を返す', () => {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', '')
     vi.stubEnv('PLUGIN_DATA', '/fake/standalone')
     expect(themeStoreRoot()).toBe(path.join('/fake/standalone', 'themes'))

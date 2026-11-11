@@ -37,13 +37,13 @@ describe('例外クラス', () => {
 })
 
 describe('validateSemver', () => {
-  it.each(['0.3.2', '1.0.0', '10.20.30'])('有効なバージョン形式 %s', (version) => {
+  it.each(['0.3.2', '1.0.0', '10.20.30'])('バージョンが %s のとき、検証を通す', (version) => {
     expect(() => {
       validateSemver(version)
     }).not.toThrow()
   })
 
-  it.each(['v0.3.2', '0.3', 'abc', '1.2.3.4'])('無効なバージョン形式 %s', (version) => {
+  it.each(['v0.3.2', '0.3', 'abc', '1.2.3.4'])('バージョンが %s のとき、InvalidVersionError を投げる', (version) => {
     expect(() => {
       validateSemver(version)
     }).toThrow(InvalidVersionError)
@@ -172,7 +172,7 @@ describe('extractVersionReleaseNotes', () => {
     expect(extractVersionReleaseNotes('# 変更履歴\n\n## [0.6.1] - 2026-02-20\n\n## [0.6.0] - 2026-02-15\n', '0.6.1')).toBe('')
   })
 
-  it('最後のバージョン（後続セクションなし）', () => {
+  it('最後のバージョンに後続のセクションが無いとき、末尾までを本文として返す', () => {
     expect(extractVersionReleaseNotes('# 変更履歴\n\n## [0.1.0] - 2026-01-01\n\n### 追加\n\n- 初回リリース\n', '0.1.0')).toContain('- 初回リリース')
   })
 
@@ -215,7 +215,7 @@ describe('changelogNotFoundMessage', () => {
 })
 
 describe('定数', () => {
-  it('値と整合性', () => {
+  it('既定の変更履歴ファイル名を CHANGELOG.md とし、それを先頭にした重複のない候補一覧を持つ', () => {
     expect(DEFAULT_CHANGELOG_FILE).toBe('CHANGELOG.md')
     expect(CHANGELOG_FALLBACK_FILES).toContain('CHANGELOG.md')
     expect(CHANGELOG_FALLBACK_FILES).toContain('AIST-CHANGELOG.md')

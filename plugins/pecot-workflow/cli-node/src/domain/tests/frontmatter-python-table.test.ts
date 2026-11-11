@@ -23,11 +23,11 @@ function run(parse: (content: string) => { readonly frontmatter: object }, yamlT
 }
 
 describe('Python の出力との一致', () => {
-  it.each(OUTPUTS.keyAndTag)('issue キー・タグ %j', (yamlText, expected) => {
+  it.each(OUTPUTS.keyAndTag)('issue のキーとタグが %j のとき、Python の出力と一致する', (yamlText, expected) => {
     expect(run(parseFrontmatter, yamlText)).toEqual(expected)
   })
 
-  it.each(OUTPUTS.yamlFailures)('YAML の失敗 %j', (yamlText) => {
+  it.each(OUTPUTS.yamlFailures)('YAML が %j で失敗するとき、failed to parse YAML のエラーを返す', (yamlText) => {
     const result = run(parseFrontmatter, yamlText)
     expect(result).toHaveProperty('error')
     expect(Object.values(result)[0]).toMatch(/^failed to parse YAML: /u)

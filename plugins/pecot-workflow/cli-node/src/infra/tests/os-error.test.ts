@@ -7,7 +7,7 @@ function systemError(code: string, message: string, extra: Readonly<Record<strin
 }
 
 describe('hasErrorCode', () => {
-  it('code が E で始まる文字列の Error だけ', () => {
+  it('code が E で始まる文字列の Error のとき true、それ以外は false を返す', () => {
     expect(hasErrorCode(systemError('ENOENT', 'x'))).toBe(true)
     expect(hasErrorCode(systemError('ERR_FS_EISDIR', 'x'))).toBe(true)
     expect(hasErrorCode(systemError('MODULE_NOT_FOUND', 'x'))).toBe(false)
@@ -18,7 +18,7 @@ describe('hasErrorCode', () => {
 })
 
 describe('isSystemCallError', () => {
-  it('syscall を持つシステムエラーだけ', () => {
+  it('syscall を持つシステムエラーのとき true、それ以外は false を返す', () => {
     expect(isSystemCallError(systemError('ENOENT', 'x', { syscall: 'open' }))).toBe(true)
     expect(isSystemCallError(systemError('ERR_INVALID_ARG_TYPE', 'x'))).toBe(false)
     expect(isSystemCallError(new TypeError('x'))).toBe(false)
@@ -26,7 +26,7 @@ describe('isSystemCallError', () => {
 })
 
 describe('isFileNotFound', () => {
-  it('ENOENT だけ', () => {
+  it('ENOENT のとき true、それ以外は false を返す', () => {
     expect(isFileNotFound(systemError('ENOENT', 'x'))).toBe(true)
     expect(isFileNotFound(systemError('EACCES', 'x'))).toBe(false)
     expect(isFileNotFound(undefined)).toBe(false)

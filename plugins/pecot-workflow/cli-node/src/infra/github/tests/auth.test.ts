@@ -228,7 +228,7 @@ describe('ensureEnvironmentFile', () => {
   const HEADER = '# pecot-cli 認証設定\n# 各トークンの値を設定してください\n#\n# トークン作成時は必要なスコープを付与してください\n'
 
   // 期待値は Python の ensure_env_file の出力
-  it('新規作成: スコープ付きのホスト', () => {
+  it('スコープ付きのホストでは、取得先とスコープを書いた .env を設定ディレクトリに新しく作る', () => {
     const { config } = useProject({ 'ghes.example.com': ENTERPRISE_HOST })
     const file = ensureEnvironmentFile('ghes.example.com')
     expect(file).toBe(path.join(config, '.env'))

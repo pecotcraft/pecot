@@ -48,7 +48,7 @@ describe('computeInputsHash', () => {
 describe('parseThemeStamp', () => {
   const valid = { spec: SPEC, fetchedAt: '2026-11-02T00:00:00.000Z', inputsHash: 'abc' }
 
-  it('正しい形を読む', () => {
+  it('正しい形の JSON を渡すと、その内容をスタンプとして返す', () => {
     expect(parseThemeStamp(JSON.stringify(valid))).toEqual(valid)
   })
 

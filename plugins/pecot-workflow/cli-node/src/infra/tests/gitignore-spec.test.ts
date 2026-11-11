@@ -6,7 +6,7 @@ import { GITIGNORE_CASES } from './gitignore-spec-cases.js'
 describe('compileGitIgnoreSpec（pathspec 1.1.1 の GitIgnoreSpec と同じ判定）', () => {
   const judged = GITIGNORE_CASES.filter(testCase => testCase.results !== undefined)
 
-  it.each(judged)('パターン $patterns', (testCase) => {
+  it.each(judged)('$patterns を渡すと、各ファイルの一致が期待の判定になる', (testCase) => {
     const spec = compileGitIgnoreSpec(testCase.patterns)
     expect(spec.matchablePatternCount).toBe(testCase.matchable)
     const actual = (testCase.results ?? []).map(([file]) => [file, spec.matchFile(file)])

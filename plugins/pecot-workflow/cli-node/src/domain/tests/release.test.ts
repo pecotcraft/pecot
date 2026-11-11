@@ -68,7 +68,7 @@ describe('ReleaseError', () => {
 })
 
 describe('runPreflight', () => {
-  it('バージョン指定での正常実行', () => {
+  it('バージョンを指定すると、版・リリースノート・ブランチ名・差分数・タグ名を返す', () => {
     const { git, calls } = scriptedGit(['', '', '', '5\n'])
     const result = runPreflight(options(), git)
     expect(result).toStrictEqual({

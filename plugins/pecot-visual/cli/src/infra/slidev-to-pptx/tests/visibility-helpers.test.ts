@@ -131,7 +131,7 @@ describe('waitForCssAnimations', () => {
     expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('timed out'))
   })
 
-  it('effect.getTiming() の iterations が undefined でも動作する', async () => {
+  it('getTiming が iterations を返さないとき、アニメーション 1 件を待った数として返す', async () => {
     const anim = {
       constructor: { name: 'CSSAnimation' },
       effect: { getTiming: () => ({}) },

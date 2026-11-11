@@ -31,7 +31,7 @@ function heading(level: number, name: string): SectionHeading {
 }
 
 describe('extractSectionsFromTemplate', () => {
-  it('見出しレベルが正しく抽出される', () => {
+  it('テンプレートの見出しを渡すと、レベルと名前を取り出す', () => {
     const template = '---\nissue_ref: ""\n---\n\n### 完了した作業\n- 内容\n\n#### 残タスク\n- なし\n'
     expect(extractSectionsFromTemplate(template)).toEqual([heading(3, '完了した作業'), heading(4, '残タスク')])
   })
@@ -41,7 +41,7 @@ describe('extractSectionsFromTemplate', () => {
     expect(extractSectionsFromTemplate(template)).toEqual([heading(2, 'Verified — <何を検証したか>'), heading(2, 'Risks')])
   })
 
-  it('##から######まで全てのレベルを抽出', () => {
+  it('## から ###### までの見出しを渡すと、すべてのレベルを取り出す', () => {
     const template = '---\n---\n\n## レベル2\n### レベル3\n#### レベル4\n##### レベル5\n###### レベル6\n'
     expect(extractSectionsFromTemplate(template)).toEqual([
       heading(2, 'レベル2'),
@@ -52,7 +52,7 @@ describe('extractSectionsFromTemplate', () => {
     ])
   })
 
-  it('フロントマターがない場合も抽出可能', () => {
+  it('フロントマターが無くても、見出しのレベルと名前を取り出す', () => {
     expect(extractSectionsFromTemplate('### セクション1\n内容\n#### セクション2\n内容\n')).toEqual([heading(3, 'セクション1'), heading(4, 'セクション2')])
   })
 
@@ -109,7 +109,7 @@ describe('validateSections（必須セクション検証: 見出しレベル・e
     expect(validateSections(body, [heading(2, 'サマリー'), heading(3, '完了した作業')])).toContain('## サマリー')
   })
 
-  it('#### 形式のセクションを正しく検出', () => {
+  it('#### の見出しがあるとき、不足なしで空配列を返す', () => {
     expect(validateSections('\n#### 残タスク\n- なし\n', [heading(4, '残タスク')])).toEqual([])
   })
 
@@ -117,7 +117,7 @@ describe('validateSections（必須セクション検証: 見出しレベル・e
     expect(validateSections('\n### 残タスク\n- なし\n', [heading(4, '残タスク')])).toEqual(['#### 残タスク'])
   })
 
-  it('異なるレベルの見出しが混在', () => {
+  it('レベルの違う見出しが並ぶとき、本文に無い見出しだけを不足として返す', () => {
     const body = '\n### 完了した作業\n- タスク1\n\n#### 残タスク\n- なし\n'
     expect(validateSections(body, [heading(3, '完了した作業'), heading(4, '残タスク'), heading(4, '確認事項')])).toEqual(['#### 確認事項'])
   })
@@ -126,7 +126,7 @@ describe('validateSections（必須セクション検証: 見出しレベル・e
     expect(validateSections('テスト本文', [])).toEqual([])
   })
 
-  it('セクション名に特殊文字が含まれる場合も正しく検出', () => {
+  it('見出しの名前に特殊文字を含んでいても、不足なしで空配列を返す', () => {
     expect(validateSections('\n### 注意事項・コンテキスト\n- 内容\n', [heading(3, '注意事項・コンテキスト')])).toEqual([])
   })
 
@@ -150,7 +150,7 @@ describe('validateSections（必須セクション検証: 見出しレベル・e
     expect(validateSections(`## Verified — ${over}`, [heading(2, 'Verified — <summary>')])).toEqual([])
   })
 
-  it('未編集プレースホルダの報告は validateBodyStyle の担当（#962 で移設）', () => {
+  it('未編集のプレースホルダが残っていても、unedited placeholder を含むメッセージを返さない', () => {
     const body = '## Verified — <何を検証したかを1行で>\n\n<details><summary>log</summary></details>'
     const result = validateSections(body, [heading(2, 'Verified — <summary>')])
     expect(result.every(message => !message.includes('unedited placeholder'))).toBe(true)
@@ -523,7 +523,7 @@ describe('validateFoldBalance（折りたたみ <details> の開閉の対応 #13
   const unclosed = ['<details> is not closed']
   const noOpening = ['<details> has no matching opening tag']
 
-  it('テンプレートごとの案内文', () => {
+  it('テンプレートごとの閉じる見出しの表は、plan だけを持ち、Notes を含む', () => {
     expect(new Set(CLOSED_HEADINGS_BY_TEMPLATE.keys())).toEqual(new Set(['plan']))
     expect(CLOSED_HEADINGS_BY_TEMPLATE.get('plan')).toContain('Notes')
   })
@@ -536,7 +536,7 @@ describe('validateFoldBalance（折りたたみ <details> の開閉の対応 #13
     expect(validateFoldBalance('あ'.repeat(20_000))).toEqual([])
   })
 
-  it('閉じられていない details', () => {
+  it('閉じられていない details があるとき、閉じられていない旨のエラーを返す', () => {
     expect(validateFoldBalance(`<details>\n${'x'.repeat(500)}`)).toEqual(unclosed)
   })
 
@@ -544,19 +544,19 @@ describe('validateFoldBalance（折りたたみ <details> の開閉の対応 #13
     expect(validateFoldBalance('本文\n</details>\n')).toEqual(noOpening)
   })
 
-  it('文字の行にある閉じタグだけ', () => {
+  it('文字と同じ行に閉じタグだけがあるとき、対応する開きタグが無い旨のエラーを返す', () => {
     expect(validateFoldBalance('a</details>')).toEqual(noOpening)
   })
 
-  it('閉じタグが開きタグより前', () => {
+  it('閉じタグが開きタグより前にあるとき、対応する開きタグが無い旨のエラーを返す', () => {
     expect(validateFoldBalance('</details>\n<details>\n')).toEqual(noOpening)
   })
 
-  it('空の本文', () => {
+  it('本文が空のとき、空配列を返す', () => {
     expect(validateFoldBalance('')).toEqual([])
   })
 
-  it('入れ子の details', () => {
+  it('details が入れ子で、すべて閉じられているとき、空配列を返す', () => {
     expect(validateFoldBalance('<details>\n<details>\n内\n</details>\n</details>\n')).toEqual([])
   })
 
@@ -564,11 +564,11 @@ describe('validateFoldBalance（折りたたみ <details> の開閉の対応 #13
     expect(validateFoldBalance('<details>\n<details>\n内\n</details>\n')).toEqual(unclosed)
   })
 
-  it('リスト項目の中の details', () => {
+  it('リスト項目の中の details が閉じられているとき、空配列を返す', () => {
     expect(validateFoldBalance('- <details>\n  本文\n  </details>\n')).toEqual([])
   })
 
-  it('属性付きと大文字の details', () => {
+  it('属性付きや大文字の details でも、閉じられていれば空配列を返す', () => {
     expect(validateFoldBalance('<details open>\nx\n</details>')).toEqual([])
     expect(validateFoldBalance('<DETAILS>\nx\n</DETAILS>')).toEqual([])
   })
@@ -648,7 +648,7 @@ function failure(summary: string): string {
 }
 
 describe('validateFoldSummaries（折りたたみの開閉部分 <summary> の形 #1299）', () => {
-  it('テンプレートごとの形', () => {
+  it('折りたたみの summary の表は、plan だけに右寄せの詳細はこちらを割り当てる', () => {
     expect(FOLD_SUMMARY_BY_TEMPLATE).toEqual(new Map([['plan', PLAN_FOLD_SUMMARY]]))
     expect(PLAN_FOLD_SUMMARY).toBe('<summary align="right">詳細はこちら</summary>')
   })

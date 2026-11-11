@@ -69,21 +69,21 @@ function firstItem(items: readonly BoardItem[]): BoardItem {
 }
 
 describe('extractWorkflowStatus', () => {
-  it('pecot-workflow フィールドがある場合', () => {
+  it('pecot-workflow のフィールドがあるとき、その値を返す', () => {
     const item = { fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Active' }] } }
     expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBe('Active')
   })
 
-  it('pecot-workflow フィールドがない場合', () => {
+  it('pecot-workflow のフィールドが無いとき、undefined を返す', () => {
     const item = { fieldValues: { nodes: [{ field: { name: 'Priority' }, name: 'High' }] } }
     expect(extractWorkflowStatus(item, 'pecot-workflow-test')).toBeUndefined()
   })
 
-  it('fieldValues が空の場合', () => {
+  it('fieldValues が空のとき、undefined を返す', () => {
     expect(extractWorkflowStatus({ fieldValues: { nodes: [] } }, 'pecot-workflow-test')).toBeUndefined()
   })
 
-  it('fieldValues が無い場合', () => {
+  it('fieldValues が無いとき、undefined を返す', () => {
     expect(extractWorkflowStatus({}, 'pecot-workflow-test')).toBeUndefined()
   })
 
@@ -114,7 +114,7 @@ describe('extractWorkflowStatus', () => {
 })
 
 describe('transformItems', () => {
-  it('基本的な変換', () => {
+  it('raw の項目を、workflow・title・番号・ラベルを持つ項目に変換する', () => {
     const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
     expect(items).toHaveLength(4)
     const item = firstItem(items)
@@ -146,7 +146,7 @@ describe('transformItems', () => {
     expect(JSON.stringify(item)).toBe('{"id":"x","workflow":null,"title":"t","updatedAt":"","content":{"number":null,"state":null,"url":null,"labels":[],"repository":""}}')
   })
 
-  it('ラベルが空の場合', () => {
+  it('ラベルが空のとき、labels は空配列になる', () => {
     const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
     const ready = items.find(item => item.workflow === 'Ready')
     expect(ready?.content.labels).toEqual([])
@@ -212,7 +212,7 @@ describe('transformItems', () => {
 })
 
 describe('formatBoardOutput', () => {
-  it('基本的な出力フォーマット', () => {
+  it('ステータスの見出しと Ref・Title の表を出し、プロジェクト名の見出しと 0 件の見出しは出さない', () => {
     const output = formatBoardOutput(transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test'))
 
     // プロジェクト名見出しは出力されない
@@ -334,7 +334,7 @@ describe('formatBoardOutput', () => {
 })
 
 describe('formatItemsJson', () => {
-  it('JSON 出力形式', () => {
+  it('items だけをキーに持つ JSON を返す', () => {
     const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
     const output = formatItemsJson(items)
     expect(Object.keys(output)).toEqual(['items'])
@@ -344,7 +344,7 @@ describe('formatItemsJson', () => {
 })
 
 describe('formatTableRow', () => {
-  it('基本的なテーブル行フォーマット', () => {
+  it('Ref と Title を並べた表の行を返す', () => {
     const item: BoardItem = { id: 'item1', workflow: 'Active', title: 'Test Issue', updatedAt: '2026-01-14T10:00:00Z', content: { number: 123, labels: ['bug', 'urgent'], repository: 'owner/repo' } }
     expect(formatTableRow(item)).toBe('| owner/repo#123 | Test Issue |')
   })
@@ -365,7 +365,7 @@ describe('formatTableRow', () => {
     expect(formatTableRow({ title: '', content: { number: 1, labels: [], repository: 'owner/repo' } })).toBe('| owner/repo#1 | - |')
   })
 
-  it('フィールドが欠落している場合のフォールバック', () => {
+  it('フィールドが欠けたとき、Ref と Title を - にした行を返す', () => {
     expect(formatTableRow({ content: {} })).toBe('| - | - |')
   })
 })

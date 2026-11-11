@@ -123,7 +123,7 @@ describe('createRelease', () => {
     }))
   })
 
-  it('target_commitish・draft・prerelease を指定できる', async () => {
+  it('targetCommitish・draft・prerelease を渡すと、送る本文に target_commitish・draft・prerelease が入る', async () => {
     const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/releases', { status: 201, body: { id: 2, tag_name: 'v1.0.0' } })])
     await client.createRelease('owner', 'repo', 'v1.0.0', 'v1.0.0', 'Release notes', { targetCommitish: 'release', draft: true, prerelease: true })
     expect(restRequests(server).map(({ body }) => body)).toEqual([{

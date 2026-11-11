@@ -227,7 +227,7 @@ describe('コマンドの解決', () => {
     await expect(run(['boom'])).rejects.toThrow('boom')
   })
 
-  it('グループを持たないコマンドも実行できる', async () => {
+  it('グループを持たないコマンドを渡すと、終了コード 0 で終わる', async () => {
     const result = await run(['add-to-project'])
     expect(result.code).toBe(0)
   })

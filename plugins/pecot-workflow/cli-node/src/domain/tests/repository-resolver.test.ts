@@ -115,7 +115,7 @@ describe('repositoryFullName', () => {
     expect(repositoryFullName(createRepositoryReference('owner', 'repo'))).toBe('owner/repo')
   })
 
-  it('ドットを含む名前', () => {
+  it('名前にドットを含む owner/repo を、そのまま owner/repo の形で返す', () => {
     expect(repositoryFullName(parseOwnerRepository('a.io/b.c'))).toBe('a.io/b.c')
   })
 })
@@ -161,7 +161,7 @@ describe('detectCurrentGitRepository', () => {
     expect(detectCurrentGitRepository(fakeGit({ isInsideWorktree: false }))).toBeUndefined()
   })
 
-  it('origin だけ', () => {
+  it('origin だけがあるとき、origin の URL からリポジトリを返す', () => {
     const detected = detectCurrentGitRepository(fakeGit({ remotes: ['origin'], remoteUrls: { origin: 'git@github.com:owner/repoA.git' } }))
     expect(detected).toEqual({ repository: { owner: 'owner', repository: 'repoA' }, remoteName: 'origin' })
   })
