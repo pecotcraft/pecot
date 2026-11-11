@@ -21,7 +21,6 @@ from cli.commands.pr import (
     SCREENSHOT_MISSING_ERROR,
     _append_issue_close_if_needed,
     _exit_on_unset_branch,
-    _is_missing_ref_error,
     _update_issue_status_to_in_review,
     _validate_issue_reference,
     _validate_pr_content,
@@ -1724,24 +1723,6 @@ class TestPRCleanupDeleteBranch:
             mock_client.delete_branch.assert_any_call("owner", "repo", "wip/feat/test-branch")
             assert mock_client.delete_branch.call_count == 2
             assert "deleted: remote branch wip/feat/test-branch" in result.stderr
-
-
-@pytest.mark.parametrize(
-    ("status_code", "response_body", "expected"),
-    [
-        (422, '{"message":"Reference does not exist"}', True),
-        (404, '{"message":"Reference does not exist"}', True),
-        (404, '{"message":"Not Found"}', False),
-        (422, '{"message":"Validation Failed"}', False),
-        (403, '{"message":"Reference does not exist"}', False),
-        (422, None, False),
-    ],
-)
-def test_is_missing_ref_error(status_code: int, response_body: str | None, expected: bool) -> None:
-    from cli.core.github import GitHubAPIError
-
-    e = GitHubAPIError("err", status_code=status_code, response_body=response_body)
-    assert _is_missing_ref_error(e) is expected
 
 
 class TestExtractIssueNumberFromBranch:

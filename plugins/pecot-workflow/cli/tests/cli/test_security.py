@@ -65,7 +65,7 @@ def _invoke(
     with (
         patch("cli.commands.security.GitHubClient", return_value=client),
         patch("cli.commands._tracker_sync.load_active_config", return_value=config or _config()),
-        patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),
+        patch("cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")),
     ):
         return runner.invoke(app, ["security", *args])
 

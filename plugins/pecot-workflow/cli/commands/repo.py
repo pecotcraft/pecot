@@ -14,6 +14,7 @@ from cli.commands._repo_policy import require_repo_match
 from cli.commands._work_target import record_work_target
 from cli.core.config import ProjectConfig, load_active_config
 from cli.core.github import GitHubAPIError, GitHubClient
+from cli.core.github.errors import describe_api_error, is_missing_ref_error
 from cli.core.ref_parser import RefParseError, parse_issue_ref, parse_repo_ref
 from cli.core.repo_resolver import AmbiguousRepoError, ResolveSource, resolve_repo
 from cli.core.state import FLAG_PECOT_ACTIVE, read_flag
@@ -310,6 +311,11 @@ def delete_branch(
     wip_branch = f"wip/{branch}"
     try:
         client.delete_branch(owner, repo, wip_branch)
-    except GitHubAPIError:
-        return  # 存在しない場合は無視
+    except GitHubAPIError as e:
+        if not is_missing_ref_error(e):
+            out.warning(
+                f"could not delete remote branch {wip_branch} in {owner}/{repo}: "
+                f"{describe_api_error(e)}"
+            )
+        return  # 存在しない場合は何も出さない
     out.done(Operation(Verb.DELETE, f"remote branch {wip_branch} in {owner}/{repo}"))

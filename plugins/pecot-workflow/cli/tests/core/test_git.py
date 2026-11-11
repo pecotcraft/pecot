@@ -14,6 +14,9 @@ from cli.core.git import (
     git_remote_url,
     git_toplevel,
     origin_repo,
+    pick_primary_remote,
+    primary_remote_name,
+    primary_remote_repo,
     run_git,
 )
 
@@ -175,3 +178,49 @@ class TestOriginRepo:
     def test_returns_none_without_origin(self) -> None:
         with patch("subprocess.run", side_effect=subprocess.CalledProcessError(2, "git")):
             assert origin_repo() is None
+
+
+class TestPickPrimaryRemote:
+    """pick_primary_remote のテスト"""
+
+    @pytest.mark.parametrize(
+        ("remotes", "expected"),
+        [
+            (["upstream", "origin"], "origin"),
+            (["upstream", "fork"], "upstream"),
+            ([], None),
+        ],
+    )
+    def test_picks(self, remotes: list[str], expected: str | None) -> None:
+        assert pick_primary_remote(remotes) == expected
+
+
+class TestPrimaryRemote:
+    """primary_remote_name / primary_remote_repo のテスト"""
+
+    def test_name_reads_git_remote(self) -> None:
+        with patch("subprocess.run", return_value=_completed("upstream\nfork\n")):
+            assert primary_remote_name(Path("/r")) == "upstream"
+
+    def test_name_none_without_remote(self) -> None:
+        with patch("subprocess.run", return_value=_completed("")):
+            assert primary_remote_name(Path("/r")) is None
+
+    def test_repo_uses_non_origin_remote(self) -> None:
+        with (
+            patch("cli.core.git.primary_remote_name", return_value="upstream"),
+            patch("cli.core.git.git_remote_url", return_value="git@github.com:o/r.git") as mock_url,
+        ):
+            assert primary_remote_repo(Path("/r")) == ("github.com", "o", "r")
+        mock_url.assert_called_once_with(Path("/r"), "upstream")
+
+    def test_repo_none_for_unparsable_url(self) -> None:
+        with (
+            patch("cli.core.git.primary_remote_name", return_value="origin"),
+            patch("cli.core.git.git_remote_url", return_value="invalid"),
+        ):
+            assert primary_remote_repo(Path("/r")) is None
+
+    def test_repo_none_without_remote(self) -> None:
+        with patch("cli.core.git.primary_remote_name", return_value=None):
+            assert primary_remote_repo(Path("/r")) is None

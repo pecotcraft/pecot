@@ -87,7 +87,7 @@ def _invoke(client: MagicMock, args: list[str]) -> Any:
     with (
         patch("cli.commands.dependabot.GitHubClient", return_value=client),
         patch("cli.commands._tracker_sync.load_active_config", return_value=_config()),
-        patch("cli.commands.release.origin_repo", return_value=("github.com", "o", "r")),
+        patch("cli.commands.release.primary_remote_repo", return_value=("github.com", "o", "r")),
     ):
         return runner.invoke(app, ["dependabot", *args])
 

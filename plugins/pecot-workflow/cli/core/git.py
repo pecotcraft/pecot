@@ -101,6 +101,49 @@ def git_current_branch(cwd: Path | None = None) -> str | None:
     return result.stdout.strip()
 
 
+def pick_primary_remote(remotes: list[str]) -> str | None:
+    """remote 名の一覧から主の remote を選ぶ（origin、無ければ最初の remote）
+
+    Returns:
+        remote 名。一覧が空なら None
+    """
+    if "origin" in remotes:
+        return "origin"
+    return remotes[0] if remotes else None
+
+
+def primary_remote_name(cwd: Path | None = None) -> str | None:
+    """主の remote 名を返す（origin、無ければ最初の remote）
+
+    Returns:
+        remote 名。remote が無い・git 外なら None
+    """
+    try:
+        result = run_git(["remote"], cwd, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    remotes = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    return pick_primary_remote(remotes)
+
+
+def primary_remote_repo(cwd: Path | None = None) -> tuple[str, str, str] | None:
+    """主の remote の URL から ``(host, owner, repo)`` を返す
+
+    Returns:
+        ``(host, owner, repo)``。remote 不在・git 外・URL 形式不一致なら None
+    """
+    name = primary_remote_name(cwd)
+    if name is None:
+        return None
+    url = git_remote_url(cwd, name)
+    if url is None:
+        return None
+    try:
+        return parse_remote_url(url)
+    except ValueError:
+        return None
+
+
 def origin_repo(cwd: Path | None = None) -> tuple[str, str, str] | None:
     """origin の URL から ``(host, owner, repo)`` を返す
 
