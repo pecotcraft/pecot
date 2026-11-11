@@ -1,0 +1,154 @@
+{
+  "format": 1,
+  "plugin": "pecot-workflow",
+  "prefix": "PW",
+  "entries": [
+    {
+      "id": "PW-PR-CREATE",
+      "name": "pr create",
+      "description": "Create a pull request",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-ISSUE-QUICK",
+      "name": "issue quick",
+      "description": "Create an issue | open <branch> at once",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "quick"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-ISSUE-CREATE",
+      "name": "issue create",
+      "description": "Create an issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-ISSUE-OLD",
+      "name": "issue old",
+      "description": "Old way to create an issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "old"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": true,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-CREATE-BRANCH",
+      "name": "create-branch",
+      "description": "Create a branch",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "create-branch"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-ADD-TO-PROJECT",
+      "name": "add-to-project",
+      "description": "Add an issue to the board",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "add-to-project"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-HIDDEN",
+      "name": "hidden",
+      "description": "Internal command",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "internal",
+            "hidden"
+          ]
+        }
+      },
+      "hidden": true,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "id": "PW-MCP-ONLY",
+      "name": "mcp only",
+      "description": "Tool only",
+      "surfaces": {
+        "mcp": {
+          "tool": "mcp_only"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}

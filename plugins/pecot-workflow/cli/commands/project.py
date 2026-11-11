@@ -394,7 +394,7 @@ def set_aggregation_repo_command(
 
 
 def unset_aggregation_repo_command() -> None:
-    """Clear the Epic aggregation repository (``aggregation_repo``)"""
+    """Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo"""
     config, config_path = _load_active_config_with_path()
 
     if config.aggregation_repo is None:
@@ -917,7 +917,7 @@ def create(
     host: str = typer.Option("github.com", "--host", "-h", help="GitHub host"),
     suffix: str = typer.Option(..., "--suffix", "-s", help="Suffix of the workflow field"),
 ) -> None:
-    """Create a new project
+    """Create a new project (to add the fields to an existing project, use project init)
 
     Creates a new GitHub Projects V2 and sets up the pecot-workflow fields automatically.
     After creation, it runs init (add fields) and activate (generate the config file and activate).

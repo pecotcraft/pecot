@@ -6,7 +6,7 @@
     {
       "id": "PW-ADD-TO-PROJECT",
       "name": "add-to-project",
-      "description": "Add an Issue to the project board with a GraphQL mutation",
+      "description": "Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)",
       "surfaces": {
         "cli": {
           "path": [
@@ -49,7 +49,7 @@
     {
       "id": "PW-CREATE-BRANCH",
       "name": "create-branch",
-      "description": "Create a branch linked to an Issue",
+      "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
       "surfaces": {
         "cli": {
           "path": [
@@ -124,7 +124,7 @@
     {
       "id": "PW-DELETE-BRANCH",
       "name": "delete-branch",
-      "description": "Delete a remote branch",
+      "description": "Delete a remote branch (a protected branch is never deleted)",
       "surfaces": {
         "cli": {
           "path": [
@@ -570,7 +570,7 @@
     {
       "id": "PW-ISSUE-REOPEN",
       "name": "issue reopen",
-      "description": "Reopen a closed Issue",
+      "description": "Reopen a closed Issue (also sets the status on the board)",
       "surfaces": {
         "cli": {
           "path": [
@@ -944,7 +944,7 @@
     {
       "id": "PW-PROJECT-CREATE",
       "name": "project create",
-      "description": "Create a new project",
+      "description": "Create a new project (to add the fields to an existing project, use project init)",
       "surfaces": {
         "cli": {
           "path": [
@@ -1325,7 +1325,7 @@
     {
       "id": "PW-PROJECT-UNSET-AGGREGATION-REPO",
       "name": "project unset-aggregation-repo",
-      "description": "Clear the Epic aggregation repository (``aggregation_repo``)",
+      "description": "Clear the Epic aggregation repository (``aggregation_repo``); creating an Epic after this needs --repo",
       "surfaces": {
         "cli": {
           "path": [
@@ -1350,7 +1350,7 @@
     {
       "id": "PW-RELEASE-CREATE",
       "name": "release create",
-      "description": "Create a GitHub release and its tag",
+      "description": "Create a GitHub release and its tag (the release notes come from the CHANGELOG)",
       "surfaces": {
         "cli": {
           "path": [
@@ -1461,7 +1461,7 @@
     {
       "id": "PW-RELEASE-PREFLIGHT",
       "name": "release preflight",
-      "description": "Run the pre-release checks (preflight)",
+      "description": "Run the pre-release checks (preflight); for an nx repository only the alerts are checked",
       "surfaces": {
         "cli": {
           "path": [
@@ -1618,7 +1618,7 @@
     {
       "id": "PW-UPDATE-ISSUE-STATUS",
       "name": "update-issue-status",
-      "description": "Update the status of an Issue on the project board by Issue number",
+      "description": "Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)",
       "surfaces": {
         "cli": {
           "path": [

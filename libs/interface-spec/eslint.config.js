@@ -73,8 +73,8 @@ export default defineConfig(
       'import-x/no-restricted-paths': ['error', {
         basePath: import.meta.dirname,
         zones: [
-          { target: './src/domain', from: ['./src/infra', './src/validate-repository.ts', './src/cli.ts'], message: 'domain は infra・cli を import しない' },
-          { target: './src/infra', from: ['./src/validate-repository.ts', './src/cli.ts'], message: 'infra は cli を import しない' },
+          { target: './src/domain', from: ['./src/infra', './src/validate-repository.ts', './src/commands-md.ts', './src/cli.ts'], message: 'domain は infra・cli を import しない' },
+          { target: './src/infra', from: ['./src/validate-repository.ts', './src/commands-md.ts', './src/cli.ts'], message: 'infra は cli を import しない' },
         ],
       }],
     },
@@ -90,6 +90,7 @@ export default defineConfig(
   {
     // zod が推論する型は変更可能な型で、これらの検証の関数がそれを引数に取る。テストは vitest の型と fixture の型を取る。
     files: [
+      'src/domain/commands-md.ts',
       'src/domain/diff.ts',
       'src/domain/environment-names.ts',
       'src/domain/field-map.ts',

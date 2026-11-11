@@ -221,10 +221,10 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US3 の上 2 行が通る
 
-- [ ] T045 [US3] `libs/interface-spec/tests/commands-md.test.ts` を書く。fixture の定義書から作った Markdown を、期待の文字列と比べる。確かめるのは 3 つだ。グループの見出しと並び、`hidden` の項目を出さないこと、先頭の「生成物」の行である
-- [ ] T046 [US3] `libs/interface-spec/src/cli.ts` に `commands-md` のコマンドを足す。`--check` は、作り直したものとリポジトリのファイルを比べる。`--write` は書き換える
-- [ ] T047 [US3] `plugins/pecot-workflow/skills/w-help/references/commands.md` を生成物に置き換える。今の手書きの表にあって定義書に無い補足（`project create` と `project init` の使い分けなど）を挙げる。補足は実装の help の文に移し、`generated.json` を書き出し直す
-- [ ] T048 [US3] `lint-defs` に `commands-md --check` を足す。`plugins/pecot-workflow/skills/w-help/SKILL.md` が `commands.md` を参照する箇所が、生成物の形でも読めることを確かめる
+- [x] T045 [US3] `libs/interface-spec/tests/commands-md.test.ts` を書く。fixture の定義書から作った Markdown を、期待の文字列と比べる。確かめるのは 3 つだ。グループの見出しと並び、`hidden` の項目を出さないこと、先頭の「生成物」の行である
+- [x] T046 [US3] `libs/interface-spec/src/cli.ts` に `commands-md` のコマンドを足す。`--check` は、作り直したものとリポジトリのファイルを比べる。`--write` は書き換える
+- [x] T047 [US3] `plugins/pecot-workflow/skills/w-help/references/commands.md` を生成物に置き換える。今の手書きの表にあって定義書に無い補足（`project create` と `project init` の使い分けなど）を挙げる。補足は実装の help の文に移し、`generated.json` を書き出し直す
+- [x] T048 [US3] `lint-defs` に `commands-md --check` を足す。`plugins/pecot-workflow/skills/w-help/SKILL.md` が `commands.md` を参照する箇所が、生成物の形でも読めることを確かめる
 
 **Checkpoint**: `generated.json` の説明を変えて作り直さないと、`lint-defs` が `commands.md is stale` で止まる
 

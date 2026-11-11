@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { readFile, stat } from 'node:fs/promises'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { parseDocument } from 'yaml'
@@ -12,7 +12,7 @@ const run = promisify(execFile)
 // 検証を続けられない読み込みの失敗。cli が error: の 1 行にして終了コード 2 で終わる。
 export class LoadError extends Error {}
 
-async function readText(file: string): Promise<string | undefined> {
+export async function readText(file: string): Promise<string | undefined> {
   try {
     return await readFile(file, 'utf8')
   }
@@ -21,6 +21,11 @@ async function readText(file: string): Promise<string | undefined> {
     if (code === 'ENOENT') return undefined
     throw new LoadError(`${file}: ${code ?? (error instanceof Error ? error.message : 'unknown')}`)
   }
+}
+
+export async function writeText(file: string, text: string): Promise<void> {
+  await mkdir(path.dirname(file), { recursive: true })
+  await writeFile(file, text, 'utf8')
 }
 
 export async function loadJson(file: string): Promise<FileState> {

@@ -91,6 +91,7 @@ plugins/pecot-workflow/runtime-lock.yaml
 plugins/pecot-workflow/scripts/ci/python-version.sh
 plugins/pecot-workflow/scripts/ci/run-lint.sh
 plugins/pecot-workflow/scripts/ci/run-tests.sh
+plugins/pecot-workflow/skills/w-help/references/commands.md
 plugins/pecot-workflow/skills/w-pr/SKILL.md
 pnpm-workspace.yaml
 pyproject.toml

@@ -2,6 +2,7 @@ import { realpathSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import { checkCommandsMd, writeCommandsMd } from './commands-md.js'
 import { LoadError } from './infra/load.js'
 import { validateRepository } from './validate-repository.js'
 
@@ -10,28 +11,47 @@ export interface Output {
   readonly stderr: (text: string) => void
 }
 
-const USAGE = 'usage: interface-spec validate [--root <dir>]'
+const USAGE = 'usage: interface-spec validate [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]'
 
 export function defaultRoot(): string {
   return path.resolve(import.meta.dirname, '../../..')
 }
 
+function parseArguments(rest: readonly string[], flags: readonly string[]): { root: string, flag?: string } | undefined {
+  let root = defaultRoot()
+  const found: string[] = []
+  for (let index = 0; index < rest.length; index++) {
+    const argument = rest[index] ?? ''
+    if (argument === '--root') {
+      const value = rest[index + 1]
+      if (value === undefined) return undefined
+      root = path.resolve(value)
+      index++
+    }
+    else if (flags.includes(argument)) found.push(argument)
+    else return undefined
+  }
+  if (flags.length === 0) return found.length === 0 ? { root } : undefined
+  const [flag] = found
+  return flag !== undefined && found.length === 1 ? { root, flag } : undefined
+}
+
 export async function run(argv: readonly string[], output: Output): Promise<number> {
   const [command, ...rest] = argv
-  if (command !== 'validate') {
+  const parsed = command === 'validate' || command === 'commands-md'
+    ? parseArguments(rest, command === 'validate' ? [] : ['--check', '--write'])
+    : undefined
+  if (parsed === undefined) {
     output.stderr(`${USAGE}\n`)
     return 2
   }
-  let root = defaultRoot()
-  if (rest.length > 0) {
-    if (rest[0] !== '--root' || rest.length !== 2 || rest[1] === undefined) {
-      output.stderr(`${USAGE}\n`)
-      return 2
-    }
-    root = path.resolve(rest[1])
-  }
   try {
-    const lines = await validateRepository(root)
+    if (command === 'commands-md' && parsed.flag === '--write') {
+      const written = await writeCommandsMd(parsed.root)
+      for (const line of written) output.stdout(`${line}\n`)
+      return 0
+    }
+    const lines = command === 'validate' ? await validateRepository(parsed.root) : await checkCommandsMd(parsed.root)
     for (const line of lines) output.stderr(`${line}\n`)
     return lines.length === 0 ? 0 : 1
   }

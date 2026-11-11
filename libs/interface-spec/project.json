@@ -58,16 +58,17 @@
         "{workspaceRoot}/plugins/pecot-workflow/cli/__main__.py",
         "{workspaceRoot}/plugins/pecot-workflow/bin/*",
         "{workspaceRoot}/plugins/pecot-workflow/hooks/**/*.sh",
+        "{workspaceRoot}/plugins/pecot-workflow/skills/w-help/references/commands.md",
         "env"
       ],
       "dependsOn": [
         "install"
       ],
       "metadata": {
-        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソース（targets.json の sources）は inputs に足してある。プラグインを足すときは、その sources の glob も足す。"
+        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。w-help の commands.md が、generated.json から作り直したものと一致するかも確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソース（targets.json の sources）は inputs に足してある。プラグインを足すときは、その sources の glob も足す。"
       },
       "options": {
-        "command": "pnpm exec tsx src/cli.ts validate",
+        "command": "pnpm exec tsx src/cli.ts validate && pnpm exec tsx src/cli.ts commands-md --check",
         "cwd": "libs/interface-spec"
       }
     },

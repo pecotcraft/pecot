@@ -925,6 +925,10 @@ def test_graph_lanes_read_every_workspace_package_json(
         # lint のレーンの表には、定義書の変更が lint-defs に届くことも置く。
         ("plugins/pecot-visual/interface/generated.json", {"interface-spec:lint-defs"}),
         (
+            "plugins/pecot-workflow/skills/w-help/references/commands.md",
+            {"interface-spec:lint-defs"},
+        ),
+        (
             "libs/interface-spec/tests/fixtures/valid/plugins/pecot-tools/interface/authored.yaml",
             {"interface-spec:lint"},
         ),
