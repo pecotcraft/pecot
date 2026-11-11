@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { AllowlistEntry, InputSpec } from '../allowlist.js'
 import { TIMESTAMP_PATTERN } from '../allowlist.js'
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { buildArguments, validateInput } from '../arguments.js'
 
 /**
@@ -407,7 +408,8 @@ describe('validateInput', () => {
     expect(validateInput(listEntry, { names: [1] })?.message).toContain('must be an array of strings')
   })
 
-  it('pattern 付き string は書式を見る', () => {
+  it('pattern 付き string は書式を見る', async (context) => {
+    await verifies(context, 'PT-COMMON-14')
     const entry = entryOf({ inputs: [inputOf({ name: 'queue_url', pattern: /^https:\/\// })] })
 
     expect(validateInput(entry, { queue_url: 'https://sqs.example/q' })).toBeUndefined()

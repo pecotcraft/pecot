@@ -1,15 +1,5 @@
-// 偽 awscli を PATH の先頭に置き、MCP 越しに SSO の 2 段構成を通す統合テスト。
-//
-// 見るのは次の 7 点。
-//   (a) 開始 → pending → 完了確認の遷移。
-//   (b) 未開始の状態確認。
-//   (c) awscli の版不足。
-//   (d) SSO 設定なし。
-//   (e) 失敗したフローの状態確認。
-//   (f) 時間切れの案内。
-//   (g) SC-008（失敗の直後も同じ接続が次の呼び出しに応える）。
-//
-// PATH を stub するため it.concurrent は使わない。ensureAwscli の memo は毎ケース捨てる。
+// 偽 awscli を PATH の先頭に置き、MCP 越しに SSO の 2 段構成（開始・状態確認）を通す統合テスト。
+// PATH を stub するため it.concurrent は使わない。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,6 +11,7 @@ import { closeMcp, connectMcp, type ConnectedMcp } from '../../src/mcp/tests/_cl
 import { allTools } from '../../src/mcp/tools/index.js'
 import { useFakeAws, type FakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
+import { verifies } from '../_helpers/verifies.js'
 import { useLoginRegistry } from '../_helpers/login-registry.js'
 
 /**
@@ -82,7 +73,10 @@ function commandCallCount(instance: Readonly<FakeAws>): number {
 }
 
 describe('SSO の 2 段構成', () => {
-  it('開始で URL とコードを返し、承認後の状態確認で completed になる', async () => {
+  it('開始で URL とコードを返し、承認後の状態確認で completed になる', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-01')
+    await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-01')
+    await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-02')
     const instance = fakeAws.install({ exitWhenFile: true })
     await connect()
 
@@ -100,6 +94,7 @@ describe('SSO の 2 段構成', () => {
 
     const pending = await call('aws_sso_login_status')
     expect(dataOf(pending)).toMatchObject({ state: 'pending' })
+    expect(String(pending['message'])).toContain('Not approved yet')
     // 状態確認は awscli を起こさない（契約書 §SSO 認証）。
     expect(commandCallCount(instance)).toBe(1)
 
@@ -114,7 +109,8 @@ describe('SSO の 2 段構成', () => {
     expect(commandCallCount(instance)).toBe(1)
   })
 
-  it('開始していない状態確認は invalid-input で awscli を起こさない', async () => {
+  it('開始していない状態確認は invalid-input で awscli を起こさない', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-03')
     const instance = fakeAws.install()
     await connect()
 
@@ -125,7 +121,9 @@ describe('SSO の 2 段構成', () => {
     expect(commandCallCount(instance)).toBe(0)
   })
 
-  it('awscli が 2.22 未満なら開始せず awscli-missing を返す', async () => {
+  it('awscli が 2.22 未満なら開始せず awscli-missing を返す', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-03')
+    await verifies(context, 'PT-COMMON-07')
     // `--use-device-code` は 2.22 以降にしか無い。そのまま起動すると invalid-input に化けて
     // 打ち手（awscli の更新）が伝わらない。
     const instance = fakeAws.install({ version: 'aws-cli/2.15.0 Python/3.14.6 Linux/7.0.0' })
@@ -138,7 +136,8 @@ describe('SSO の 2 段構成', () => {
     expect(commandCallCount(instance)).toBe(0)
   })
 
-  it('SSO 設定の無い profile は auth-missing を返す', async () => {
+  it('SSO 設定の無い profile は auth-missing を返す', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-04')
     fakeAws.install({ fixture: 'sso-login.no-config' })
     await connect()
 
@@ -150,7 +149,8 @@ describe('SSO の 2 段構成', () => {
     expect(String(structured['message'])).toContain('aws configure sso')
   })
 
-  it('失敗したフローの状態確認は同じ種別と出力を返す', async () => {
+  it('失敗したフローの状態確認は同じ種別と出力を返す', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-04')
     // 開始が失敗した直後に状態を引きにいくケース。開始の応答を取りこぼしたエージェントが
     // ここで理由に辿り着けないと、原因不明のまま再試行を繰り返す。
     fakeAws.install({ fixture: 'sso-login.no-config' })
@@ -164,7 +164,8 @@ describe('SSO の 2 段構成', () => {
     expect(String(structured['stderr'])).toContain('Missing the following required SSO configuration')
   })
 
-  it('時間切れの状態確認は 124 と再開始の案内を返す', async () => {
+  it('時間切れの状態確認は 124 と再開始の案内を返す', async (context) => {
+    await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-05')
     fakeAws.install({ exitWhenFile: true })
     await connect({ timeoutMs: 1000 })
 
@@ -197,7 +198,8 @@ describe('SSO の 2 段構成', () => {
     ])
   })
 
-  it('失敗の直後も同じ接続が次の呼び出しに応える', async () => {
+  it('失敗の直後も同じ接続が次の呼び出しに応える', async (context) => {
+    await verifies(context, 'PT-COMMON-13')
     // SC-008。失敗した呼び出しがサーバを畳んでしまうと、再認証の導線が途切れる。
     fakeAws.install({ fixture: 'sso-login.no-config' })
     await connect()

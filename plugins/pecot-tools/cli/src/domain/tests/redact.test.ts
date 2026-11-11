@@ -1,23 +1,28 @@
 import { describe, expect, it } from 'vitest'
 
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { redactSecrets } from '../redact.js'
 
 describe('redactSecrets', () => {
-  it('アクセスキー ID を伏せる（長期・一時の両方）', () => {
+  it('アクセスキー ID を伏せる（長期・一時の両方）', async (context) => {
+    await verifies(context, 'PT-COMMON-15')
     expect(redactSecrets('key=AKIAIOSFODNN7EXAMPLE')).toBe('key=[redacted]')
     expect(redactSecrets('key=ASIAIOSFODNN7EXAMPLE')).toBe('key=[redacted]')
   })
 
-  it('aws_secret_access_key の値部だけを伏せる', () => {
+  it('aws_secret_access_key の値部だけを伏せる', async (context) => {
+    await verifies(context, 'PT-COMMON-12')
     expect(redactSecrets('aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'))
       .toBe('aws_secret_access_key = [redacted]')
   })
 
-  it('aws_session_token の値部だけを伏せる', () => {
+  it('aws_session_token の値部だけを伏せる', async (context) => {
+    await verifies(context, 'PT-COMMON-12')
     expect(redactSecrets('aws_session_token=IQoJb3JpZ2luX2VjEXAMPLE')).toBe('aws_session_token=[redacted]')
   })
 
-  it('x-amz-security-token ヘッダの値部だけを伏せる', () => {
+  it('x-amz-security-token ヘッダの値部だけを伏せる', async (context) => {
+    await verifies(context, 'PT-COMMON-12')
     expect(redactSecrets('x-amz-security-token: IQoJb3JpZ2luX2VjEXAMPLE'))
       .toBe('x-amz-security-token: [redacted]')
   })

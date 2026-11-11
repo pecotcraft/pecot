@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { OUTPUT_LIMIT_BYTES } from '../../infra/awscli.js'
 import { limitOutput, toCallToolResult, type ExecutionResult } from '../result.js'
 
@@ -25,7 +26,8 @@ describe('toCallToolResult', () => {
     })
   })
 
-  it('content の JSON テキストと structuredContent が同値になる', () => {
+  it('content の JSON テキストと structuredContent が同値になる', async (context) => {
+    await verifies(context, 'PT-COMMON-10')
     const converted = toCallToolResult(BASE_RESULT)
     const [block] = converted.content
 

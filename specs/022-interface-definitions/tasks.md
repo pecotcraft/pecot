@@ -304,8 +304,8 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: テストの無い項目を 1 つ足すと、`lint-defs` が止まる
 
-- [ ] T067 [US5] pecot-tools の項目に vitest をつなぐ。つなぐテストのうち `it.each` のものは `it.for` に書き換え、表の行に ID を持たせる。全ツールを回すテストは、共通の振る舞いの項目につなぐ
-- [ ] T068 [US5] つなぐテストが無い項目を挙げ、T065 と同じ決めで扱う。`targets.json` の pecot-tools を `coverage: on` にする
+- [x] T067 [US5] pecot-tools の項目に vitest をつなぐ。つなぐテストのうち `it.each` のものは `it.for` に書き換え、表の行に ID を持たせる。全ツールを回すテストは、共通の振る舞いの項目につなぐ
+- [x] T068 [US5] つなぐテストが無い項目を挙げ、T065 と同じ決めで扱う。`targets.json` の pecot-tools を `coverage: on` にする
 
 **Checkpoint**: `lint-defs` が通る
 
