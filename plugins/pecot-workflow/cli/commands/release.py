@@ -519,7 +519,7 @@ def _delete_release_head_branch(
         out.warning(f"deleting remote branch {head_branch} failed: {describe_api_error(e)}")
 
 
-@require_repo_match(mode="warn")
+@require_repo_match(mode="reject")
 def release_merge(
     ctx: typer.Context,
     pr_ref: Annotated[

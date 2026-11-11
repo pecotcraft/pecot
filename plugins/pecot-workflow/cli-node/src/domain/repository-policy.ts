@@ -86,7 +86,7 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
   if (mode === 'reject') {
     return exitWith(
       `error: --repo ${explicitName} differs from the current Git remote (${currentName})`,
-      '  worktree and branch commands are rejected to protect the local Git state',
+      '  this command works only on the repository of the current Git remote',
     )
   }
   return {

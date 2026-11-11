@@ -17,6 +17,7 @@ from cli.commands.main import app
 from cli.core.dependabot import DependabotAlertError, DependabotAlertStatus, OpenAlert
 from cli.core.github import GitHubAuthError
 from cli.core.release import PreflightResult, ReleaseError
+from cli.core.repo_resolver import RepoRef
 from cli.core.security_alerts import ScanAlertStatus, SecurityAlertError
 
 runner = typer.testing.CliRunner()
@@ -629,6 +630,32 @@ class TestReleaseMerge:
         mock_client.merge_pull_request.assert_called_once_with(
             "owner", "repo", 100, merge_method="merge"
         )
+
+    def test_repo_mismatch_is_rejected(self) -> None:
+        """--repo が現在の remote と食い違うと、GitHub を呼ばず終了コード 1 で拒否する"""
+        mock_client = MagicMock()
+        with (
+            patch("cli.commands.release.load_active_config", return_value=_mock_config()),
+            patch("cli.commands.release.GitHubClient", return_value=mock_client),
+            patch(
+                "cli.core.repo_resolver._detect_current_git_repo",
+                return_value=(RepoRef(owner="acme", repo="current"), "origin"),
+            ),
+        ):
+            result = runner.invoke(
+                app, ["--repo", "acme/other", "release", "merge", "owner/repo/100"]
+            )
+        assert result.exit_code == 1
+        assert "differs from the current Git remote" in result.stderr
+        mock_client.merge_pull_request.assert_not_called()
+
+    def test_short_ref_points_to_full_form_only(self) -> None:
+        """短い形の参照は、--repo を案内せずフル形式だけを案内する"""
+        with patch("cli.commands.release.load_active_config", return_value=_mock_config()):
+            result = runner.invoke(app, ["release", "merge", "100"])
+        assert result.exit_code != 0
+        assert "use the full form 'owner/repo/N'" in result.stderr
+        assert "pass --repo" not in result.stderr
 
     def test_dry_run(self) -> None:
         """ドライラン出力（merge (regular) 表示の検証）"""

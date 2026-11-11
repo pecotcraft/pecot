@@ -266,7 +266,7 @@ def test_worktree_repo_mismatch_reject(tmp_path) -> None:
     assert result.exit_code == 1
     assert result.stderr == (
         "error: --repo ownerB/repoB differs from the current Git remote (ownerA/repoA)\n"
-        "  worktree and branch commands are rejected to protect the local Git state\n"
+        "  this command works only on the repository of the current Git remote\n"
     )
     assert result.stdout == ""
 

@@ -84,6 +84,21 @@ class TestParseIssueRef:
             parse_issue_ref("123")
         assert exc_info.value.ref == "123"
 
+    def test_shorthand_without_base_points_to_full_form_only(self) -> None:
+        with pytest.raises(RefParseError) as exc_info:
+            parse_issue_ref("123")
+        assert exc_info.value.message == (
+            "the short form 'N' is not accepted here: use the full form 'owner/repo/N'"
+        )
+
+    def test_shorthand_without_base_points_to_repo_flag(self) -> None:
+        with pytest.raises(RefParseError) as exc_info:
+            parse_issue_ref("123", repo_flag=True)
+        assert exc_info.value.message == (
+            "the short form 'N' needs a base_repo: "
+            "pass --repo <owner/repo> or use the full form 'owner/repo/N'"
+        )
+
     def test_shorthand_rejects_unicode_digits(self) -> None:
         """str.isdigit() は全角/丸数字にも True を返すので ASCII 限定のこと。"""
         base = RepoRef(owner="o", repo="r")

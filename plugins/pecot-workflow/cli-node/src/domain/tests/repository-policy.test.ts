@@ -64,7 +64,7 @@ describe('不一致', () => {
       exitCode: 1,
       stderr: [
         'error: --repo acme-labs/aist-plugin differs from the current Git remote (acme-labs/pecot-cli)',
-        '  worktree and branch commands are rejected to protect the local Git state',
+        '  this command works only on the repository of the current Git remote',
       ],
     })
   })

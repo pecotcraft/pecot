@@ -70,7 +70,9 @@ def _parse_ref_tuple(ref: str) -> tuple[str, str, int]:
 # 公開 API（contract §Public API 準拠）
 
 
-def parse_issue_ref(raw: str, base_repo: RepoRef | None = None) -> IssueRef:
+def parse_issue_ref(
+    raw: str, base_repo: RepoRef | None = None, *, repo_flag: bool = False
+) -> IssueRef:
     """Issue 参照を ``IssueRef`` にパースする。
 
     data-model.md §IssueRef / contracts/core-ref-parser.md 準拠。
@@ -82,17 +84,24 @@ def parse_issue_ref(raw: str, base_repo: RepoRef | None = None) -> IssueRef:
     Args:
         raw: 入力文字列
         base_repo: 短縮形 ``"N"`` のフォールバック先
+        repo_flag: ``--repo`` で短縮形を解決するコマンドか。True のとき、短縮形で
+            ``base_repo`` が None の error に ``--repo`` の案内を含める
 
     Raises:
         RefParseError: 不正な形式、または短縮形で ``base_repo`` が None の場合
     """
     if raw.isascii() and raw.isdigit():
         if base_repo is None:
-            raise RefParseError(
-                "the short form 'N' needs a base_repo: "
-                "pass --repo <owner/repo> or use the full form 'owner/repo/N'",
-                ref=raw,
-            )
+            if repo_flag:
+                message = (
+                    "the short form 'N' needs a base_repo: "
+                    "pass --repo <owner/repo> or use the full form 'owner/repo/N'"
+                )
+            else:
+                message = (
+                    "the short form 'N' is not accepted here: use the full form 'owner/repo/N'"
+                )
+            raise RefParseError(message, ref=raw)
         return IssueRef(repo=base_repo, number=int(raw))
 
     owner, repo, number = _parse_ref_tuple(raw)
@@ -102,7 +111,9 @@ def parse_issue_ref(raw: str, base_repo: RepoRef | None = None) -> IssueRef:
         raise RefParseError(str(e), ref=raw) from None
 
 
-def parse_pr_ref(raw: str, base_repo: RepoRef | None = None) -> IssueRef:
+def parse_pr_ref(
+    raw: str, base_repo: RepoRef | None = None, *, repo_flag: bool = False
+) -> IssueRef:
     """PR 参照を ``IssueRef`` にパースする。
 
     PR と Issue は番号空間を共有するため実装は ``parse_issue_ref`` に委譲する。
@@ -111,11 +122,12 @@ def parse_pr_ref(raw: str, base_repo: RepoRef | None = None) -> IssueRef:
     Args:
         raw: 入力文字列
         base_repo: 短縮形 ``"N"`` のフォールバック先
+        repo_flag: ``parse_issue_ref`` と同じ
 
     Raises:
         RefParseError: 不正な形式、または短縮形で ``base_repo`` が None の場合
     """
-    return parse_issue_ref(raw, base_repo=base_repo)
+    return parse_issue_ref(raw, base_repo=base_repo, repo_flag=repo_flag)
 
 
 def parse_repo_ref(raw: str) -> RepoRef:
