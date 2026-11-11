@@ -18,6 +18,8 @@ import { describe, expect, it } from 'vitest'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { snapshotTree } from './tree-snapshot.js'
 import type { ToolCallContext } from '../../server.js'
 import { slideDevTool } from '../slide-dev.js'
 import { slideConvertTool, slideCreateTool, slideSyncTool } from '../slide.js'
@@ -98,7 +100,8 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
   // 接続が欠けると fs.ts の symlink-failed で失敗する。
   // 同じ「未取得」でも、reason と event がツールごとに別物となる。
 
-  it('slide_create は生成を始めず ToolResult 契約で返す', async () => {
+  it('slide_create は生成を始めず ToolResult 契約で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CREATE-09')
     // ガードが実処理の後ろにあると、テーマの取得 (git) を終えた後で symlink-failed になり、
     // setup を案内する reason が返らない。
     const projectDirectory = path.join(CLI_ROOT, 'tests', 'fixtures', 'not-created-yet')
@@ -110,19 +113,27 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
     expect(dataOf(result)['event']).toBe('runtime-dependencies.unavailable')
     expect(existsSync(projectDirectory), '半作成の talk-dir を残さない').toBe(false)
+    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
   })
 
-  it('slide_sync も同じ reason / event で返す', async () => {
+  it('slide_sync も同じ reason / event で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-SYNC-09')
     const tool = slideSyncTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
-    const result = await tool.handler({ dir: path.join(CLI_ROOT, 'tests', 'fixtures'), node_modules_only: false }, CALL)
+    const talk = path.join(CLI_ROOT, 'tests', 'fixtures', 'minimal-slidev')
+    const before = snapshotTree(talk)
+
+    const result = await tool.handler({ dir: talk, node_modules_only: false }, CALL)
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
     expect(dataOf(result)['event']).toBe('runtime-dependencies.unavailable')
+    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(snapshotTree(talk)).toEqual(before)
   })
 
-  it('slide_dev はレジストリに触れず同じ reason / event で返す', async () => {
+  it('slide_dev はレジストリに触れず同じ reason / event で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-DEV-09')
     // ガードが後ろにあると、@slidev/cli を解決できない環境で子プロセスの起動エラーに化ける。
     const tool = slideDevTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
@@ -131,6 +142,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
     expect(dataOf(result)['event']).toBe('runtime-dependencies.unavailable')
+    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
   })
 
   it('4 ツールの応答はツール名だけが違う同じ形になる', async () => {
@@ -166,7 +178,8 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
 describe('slide_convert への接続', () => {
   const projectDirectory = path.join(CLI_ROOT, 'tests', 'fixtures', 'minimal-slidev')
 
-  it('実行時依存が未取得なら変換を始めず ToolResult 契約で返す', async () => {
+  it('実行時依存が未取得なら変換を始めず ToolResult 契約で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-06')
     // 静的 import のままだと、@slidev/parser が無い環境では本モジュールの読み込み時点で
     // 落ちる。動的 import 化 + ガードで「例外」ではなく「理由付きの応答」になる。
     const tool = slideConvertTool(
@@ -180,6 +193,7 @@ describe('slide_convert への接続', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('runtime-dependencies-not-installed')
+    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
   })
 
   it('相対パスの拒否はガードより先に働く', async () => {

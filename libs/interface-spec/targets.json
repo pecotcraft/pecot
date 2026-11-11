@@ -1,8 +1,8 @@
 {
   "format": 1,
   "plugins": {
-    "pecot-tools": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
-    "pecot-visual": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
+    "pecot-tools": { "entries": "complete", "coverage": "on", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
+    "pecot-visual": { "entries": "complete", "coverage": "on", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
     "pecot-workflow": {
       "entries": "complete",
       "coverage": "off",

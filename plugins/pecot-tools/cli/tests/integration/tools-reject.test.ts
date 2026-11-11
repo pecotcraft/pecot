@@ -26,6 +26,7 @@ import { allTools } from '../../src/mcp/tools/index.js'
 import { useFakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { verifies } from '../_helpers/verifies.js'
 
 /**
 SDK が inputSchema 違反の text に載せる接頭辞。
@@ -110,7 +111,8 @@ async function expectSchemaError(
 }
 
 describe('S3 の方向（research R7）', () => {
-  it('取得元にローカルパスを渡すと invalid-input で拒否する', async () => {
+  it('取得元にローカルパスを渡すと invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-04')
     const structured = await expectIsError('aws_s3_cp', {
       s3_uri: '/var/data/report.json',
       local_path: '/var/data/copy.json',
@@ -120,7 +122,8 @@ describe('S3 の方向（research R7）', () => {
     expect(structured['message']).toContain('s3_uri')
   })
 
-  it('書き出し先に S3 URI を渡すと invalid-input で拒否する', async () => {
+  it('書き出し先に S3 URI を渡すと invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-05')
     const structured = await expectIsError('aws_s3_cp', {
       s3_uri: 's3://example-bucket/report.json',
       local_path: 's3://example-bucket/copy.json',
@@ -130,7 +133,8 @@ describe('S3 の方向（research R7）', () => {
     expect(structured['message']).toContain('local_path')
   })
 
-  it('書き出し先が相対パスなら拒否する', async () => {
+  it('s3api の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-COMMON-14')
     const structured = await expectIsError('aws_s3api_get_object', {
       bucket: 'example-bucket',
       key: 'report.json',
@@ -139,25 +143,46 @@ describe('S3 の方向（research R7）', () => {
 
     expect(structured['message']).toContain('absolute path')
   })
+
+  it('s3_cp の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-05')
+    const structured = await expectIsError('aws_s3_cp', {
+      s3_uri: 's3://example-bucket/report.json',
+      local_path: 'data/report.json',
+    })
+
+    expect(structured['category']).toBe('invalid-input')
+    expect(structured['message']).toContain('local_path')
+  })
 })
 
 describe('Athena の変更系・複文（research R6）', () => {
-  const NOT_ALLOWED: readonly string[] = [
-    'DROP TABLE orders',
-    'INSERT INTO orders VALUES (1)',
-    'CREATE TABLE snapshot AS SELECT * FROM orders',
-    'UNLOAD (SELECT * FROM orders) TO \'s3://bucket/prefix/\'',
-    'EXPLAIN ANALYZE INSERT INTO orders VALUES (1)',
-    'SELECT 1; DROP TABLE orders',
+  const NOT_ALLOWED: readonly (readonly [string, string])[] = [
+    ['DROP TABLE orders', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
+    ['INSERT INTO orders VALUES (1)', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
+    ['CREATE TABLE snapshot AS SELECT * FROM orders', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
+    ['UNLOAD (SELECT * FROM orders) TO \'s3://bucket/prefix/\'', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
+    ['EXPLAIN ANALYZE INSERT INTO orders VALUES (1)', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
+    ['SELECT 1; DROP TABLE orders', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-03'],
   ]
 
-  it.each(NOT_ALLOWED)('%j を not-allowed で拒否する', async (query) => {
+  it.for(NOT_ALLOWED)('%j を not-allowed で拒否する', async ([query, id], context) => {
+    await verifies(context, id)
     const structured = await expectIsError('aws_athena_start_query_execution', { query_string: query })
 
     expect(structured['category']).toBe('not-allowed')
   })
 
-  it('参照クエリは拒否しない', async () => {
+  it('参照だけの文でも複数あれば not-allowed で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-03')
+    const structured = await expectIsError('aws_athena_start_query_execution', { query_string: 'SELECT 1; SELECT 2' })
+
+    expect(structured['category']).toBe('not-allowed')
+    expect(structured['message']).toContain('Multiple statements')
+  })
+
+  it('参照クエリは拒否しない', async (context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-01')
     const result = await client().callTool({
       name: 'aws_athena_start_query_execution',
       arguments: { query_string: 'SELECT 1' },
@@ -166,7 +191,8 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(result.isError).toBeUndefined()
   })
 
-  it('shorthand の項目に , を含めると invalid-input で拒否する', async () => {
+  it('shorthand の項目に , を含めると invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
     // 素通しすると `Database=a,Catalog=x` のように契約外のキーを注入できる。
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
@@ -177,7 +203,25 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(structured['message']).toContain('database')
   })
 
-  it('output_location に別キーを継ぎ足す注入も invalid-input で拒否する', async () => {
+  it.for([
+    { name: 'database', args: { database: 'a=b' } },
+    { name: 'database', args: { database: 'a{b' } },
+    { name: 'database', args: { database: 'a}b' } },
+    { name: 'catalog', args: { database: 'analytics', catalog: 'x,y' } },
+    { name: 'output_location', args: { output_location: 's3://b/p{x}' } },
+  ])('$name に , = { } のいずれかを含むとき、invalid-input で拒否する', async (row, context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
+    const structured = await expectIsError('aws_athena_start_query_execution', {
+      query_string: 'SELECT 1',
+      ...row.args,
+    })
+
+    expect(structured['category']).toBe('invalid-input')
+    expect(structured['message']).toContain(row.name)
+  })
+
+  it('output_location に別キーを継ぎ足す注入も invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
     // --result-configuration に実際に注入される形。`OutputLocation=s3://b/p,ExpectedBucketOwner=…` を
     // 実 awscli は受理するため、組み立て前に項目側で落とす。
     const structured = await expectIsError('aws_athena_start_query_execution', {
@@ -189,10 +233,9 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(structured['message']).toContain('output_location')
   })
 
-  it('catalog の単独指定を invalid-input で拒否する', async () => {
-    // 契約は、catalog を database とあわせて指定するよう定めている。
-    // Database 無しの QueryExecutionContext を実 Athena API が受けるかは未確認なので、
-    // 組み立てる前に拒否する。
+  it('catalog の単独指定を invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-04')
+    // Database 無しの QueryExecutionContext を実 Athena API が受けるか未確認なので、組み立て前に拒否する。
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
       catalog: 'awsdatacatalog',
@@ -204,7 +247,8 @@ describe('Athena の変更系・複文（research R6）', () => {
 })
 
 describe('`-` 始まりの値（research R3）', () => {
-  it('位置引数は `--flag=value` の逃がし先が無いので拒否する', async () => {
+  it('位置引数は `--flag=value` の逃がし先が無いので拒否する', async (context) => {
+    await verifies(context, 'PT-COMMON-05')
     const structured = await expectIsError('aws_s3api_get_object', {
       bucket: 'example-bucket',
       key: 'report.json',
@@ -215,7 +259,8 @@ describe('`-` 始まりの値（research R3）', () => {
     expect(structured['message']).toContain('\'-\'')
   })
 
-  it('配列の要素も同じ規則で拒否する', async () => {
+  it('配列の要素も同じ規則で拒否する', async (context) => {
+    await verifies(context, 'PT-COMMON-05')
     // string-list は nargs が貪欲で 1 トークン形へ畳めない。
     const structured = await expectIsError('aws_logs_filter_log_events', {
       log_group_name: 'g',
@@ -328,7 +373,8 @@ describe('shorthand-list の項目値', () => {
 })
 
 describe('既存ファイルの上書き（research R7 の Edge Case）', () => {
-  it('aws_s3_cp は overwrite 無しで既存の local_path を拒否する', async () => {
+  it('aws_s3_cp は overwrite 無しで既存の local_path を拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-02')
     const structured = await expectIsError('aws_s3_cp', {
       s3_uri: 's3://example-bucket/report.json',
       local_path: existingFile(),
@@ -338,7 +384,8 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
     expect(structured['message']).toContain('overwrite')
   })
 
-  it('aws_s3api_get_object は overwrite 無しで既存の outfile を拒否する', async () => {
+  it('aws_s3api_get_object は overwrite 無しで既存の outfile を拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-02')
     const structured = await expectIsError('aws_s3api_get_object', {
       bucket: 'example-bucket',
       key: 'report.json',
@@ -349,7 +396,8 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
     expect(structured['message']).toContain('overwrite')
   })
 
-  it('overwrite: true なら既存でも実行する', async () => {
+  it('overwrite: true なら既存でも実行する', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-06')
     const result = await client().callTool({
       name: 'aws_s3_cp',
       arguments: {
@@ -360,16 +408,37 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
     })
 
     expect(result.isError).toBeUndefined()
+    const structured = result.structuredContent
+    if (!isRecord(structured)) throw new Error('structuredContent がありません')
+    expect(structured['artifacts']).toEqual([existingFile()])
+    expect(callLog().some(call => call[0] === 's3' && call[1] === 'cp' && call.includes(existingFile()))).toBe(true)
   })
 
-  it('書き出し先がディレクトリなら overwrite に依らず拒否する', async () => {
+  it.for([
+    {
+      name: 'aws_s3_cp',
+      args: () => ({
+        s3_uri: 's3://example-bucket/report.json',
+        local_path: workDirectory(),
+        overwrite: true,
+      }),
+      id: 'PT-AWS-S3-CP-03',
+    },
+    {
+      name: 'aws_s3api_get_object',
+      args: () => ({
+        bucket: 'example-bucket',
+        key: 'report.json',
+        outfile: workDirectory(),
+        overwrite: true,
+      }),
+      id: 'PT-AWS-S3API-GET-OBJECT-03',
+    },
+  ])('$name は書き出し先がディレクトリなら overwrite に依らず拒否する', async ({ name, args, id }, context) => {
+    await verifies(context, id)
     // overwrite: true で通すと `aws s3 cp s3://b/k /dir` が /dir/k を書き、artifacts に載る
     // 書き出し先（/dir）と実体がずれる。
-    const structured = await expectIsError('aws_s3_cp', {
-      s3_uri: 's3://example-bucket/report.json',
-      local_path: workDirectory(),
-      overwrite: true,
-    })
+    const structured = await expectIsError(name, args())
 
     expect(structured['category']).toBe('invalid-input')
     expect(structured['message']).toContain('must not be a directory')
@@ -389,7 +458,8 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
 })
 
 describe('排他指定', () => {
-  it('log_stream_names と log_stream_name_prefix の併用を拒否する', async () => {
+  it('log_stream_names と log_stream_name_prefix の併用を拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-LOGS-FILTER-LOG-EVENTS-02')
     const structured = await expectIsError('aws_logs_filter_log_events', {
       log_group_name: 'g',
       log_stream_names: ['a'],
@@ -400,7 +470,8 @@ describe('排他指定', () => {
     expect(structured['message']).toContain('cannot be combined')
   })
 
-  it('image_ids と starting_token の併用を拒否する', async () => {
+  it('image_ids と starting_token の併用を拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-ECR-DESCRIBE-IMAGES-03')
     // ECR の API は imageIds 指定時に nextToken を受け付けない。
     const structured = await expectIsError('aws_ecr_describe_images', {
       repository_name: 'order-api',
@@ -412,7 +483,8 @@ describe('排他指定', () => {
     expect(structured['message']).toContain('cannot be combined')
   })
 
-  it('start_time と duration の併用を拒否する', async () => {
+  it('start_time と duration の併用を拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-RDS-DESCRIBE-EVENTS-02')
     // duration は現在から遡る分数で、start_time / end_time と意味が重なる。
     const structured = await expectIsError('aws_rds_describe_events', {
       start_time: '2026-09-01T00:00:00Z',
@@ -425,7 +497,8 @@ describe('排他指定', () => {
 })
 
 describe('inputSchema 段階で落ちる違反', () => {
-  it.each(['ec2_terminate_instances', 'aws_sso_logout'])('許可リストに無いツール名 %s は JSON-RPC エラー -32602 になる', async (name) => {
+  it.for(['ec2_terminate_instances', 'aws_sso_logout'])('許可リストに無いツール名 %s は JSON-RPC エラー -32602 になる', async (name, context) => {
+    await verifies(context, 'PT-COMMON-04')
     // 許可リスト外は not-allowed ではなく「そのツールが無い」。ハンドラに到達しない。
     // 公開しているツールの近縁な名前 (aws_sso_logout) でも、載っていなければ同じ扱いになる。
     // client と server は別バンドルなので、エラー型は instanceof ではなく code で見る。
@@ -433,21 +506,24 @@ describe('inputSchema 段階で落ちる違反', () => {
     expect(callLog(), `${name} で awscli が起動した`).toEqual([])
   })
 
-  it('profile の書式違反は入力検証エラーになる', async () => {
+  it('profile の書式違反は入力検証エラーになる', async (context) => {
+    await verifies(context, 'PT-COMMON-01')
     const text = await expectSchemaError('aws_sts_get_caller_identity', { profile: 'dev account' })
 
     expect(text).toContain(INVALID_PARAMS_TEXT)
     expect(text).toContain('profile')
   })
 
-  it('region の書式違反は入力検証エラーになる', async () => {
+  it('region の書式違反は入力検証エラーになる', async (context) => {
+    await verifies(context, 'PT-COMMON-01')
     const text = await expectSchemaError('aws_sts_get_caller_identity', { region: 'tokyo' })
 
     expect(text).toContain(INVALID_PARAMS_TEXT)
     expect(text).toContain('region')
   })
 
-  it('数値の範囲違反は入力検証エラーになる', async () => {
+  it('数値の範囲違反は入力検証エラーになる', async (context) => {
+    await verifies(context, 'PT-COMMON-01')
     expect(await expectSchemaError('aws_lambda_list_functions', { max_items: 0 }))
       .toContain(INVALID_PARAMS_TEXT)
     expect(await expectSchemaError('aws_logs_get_log_events', {
@@ -457,12 +533,14 @@ describe('inputSchema 段階で落ちる違反', () => {
     })).toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('必須入力の欠落は入力検証エラーになる', async () => {
+  it('必須入力の欠落は入力検証エラーになる', async (context) => {
+    await verifies(context, 'PT-COMMON-01')
     expect(await expectSchemaError('aws_lambda_get_function_configuration', {}))
       .toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('列挙外の値は入力検証エラーになる', async () => {
+  it('列挙外の値は入力検証エラーになる', async (context) => {
+    await verifies(context, 'PT-COMMON-01')
     expect(await expectSchemaError('aws_logs_describe_log_streams', {
       log_group_name: 'g',
       order_by: 'Other',
@@ -482,5 +560,55 @@ describe('inputSchema 段階で落ちる違反', () => {
 
     expect(notAllowed['category']).toBe('not-allowed')
     expect(invalidInput['category']).toBe('invalid-input')
+  })
+})
+
+describe('許可リストの書式の規則', () => {
+  it.for([
+    {
+      name: 'cloudwatch の start_time がタイムゾーンの無い日時のとき',
+      tool: 'aws_cloudwatch_get_metric_statistics',
+      args: {
+        namespace: 'AWS/SQS',
+        metric_name: 'NumberOfMessagesSent',
+        start_time: '2026-09-01T00:00:00',
+        end_time: '2026-09-01T01:00:00Z',
+        period: 300,
+        statistics: ['Sum'],
+      },
+      ids: ['PT-COMMON-14', 'PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-02'],
+    },
+    {
+      name: 'rds の start_time がタイムゾーンの無い日時のとき',
+      tool: 'aws_rds_describe_events',
+      args: { start_time: '2026-09-01T00:00:00' },
+      ids: ['PT-COMMON-14', 'PT-AWS-RDS-DESCRIBE-EVENTS-03'],
+    },
+    {
+      name: 's3api の range が bytes= で始まらないとき',
+      tool: 'aws_s3api_get_object',
+      args: { bucket: 'example-bucket', key: 'report.json', outfile: '/var/data/out.bin', range: '0-1023' },
+      ids: ['PT-COMMON-14', 'PT-AWS-S3API-GET-OBJECT-04'],
+    },
+    {
+      name: 's3 ls の s3_uri が s3:// で始まらないとき',
+      tool: 'aws_s3_ls',
+      args: { s3_uri: 'example-bucket/logs/' },
+      ids: ['PT-COMMON-14', 'PT-AWS-S3-LS-03'],
+    },
+  ])('$name、invalid-input・exitCode 2 で拒否し awscli を起動しない', async (row, context) => {
+    for (const id of row.ids) await verifies(context, id)
+    const structured = await expectIsError(row.tool, row.args)
+
+    expect(structured['ok']).toBe(false)
+    expect(structured['category']).toBe('invalid-input')
+  })
+
+  it('値に制御文字を含むとき、invalid-input で拒否し awscli を起動しない', async (context) => {
+    await verifies(context, 'PT-COMMON-06')
+    const structured = await expectIsError('aws_lambda_get_function_configuration', { function_name: 'a\u{1}b' })
+
+    expect(structured['ok']).toBe(false)
+    expect(structured['category']).toBe('invalid-input')
   })
 })

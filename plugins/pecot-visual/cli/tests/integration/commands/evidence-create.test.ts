@@ -28,6 +28,7 @@ import {
 } from '../../_helpers/ooxml-parts.js'
 import { readZipEntries } from '../../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { verifies } from '../../_helpers/verifies.js'
 
 interface CapturedStream {
   readonly chunks: string[]
@@ -412,7 +413,8 @@ describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
 })
 
 describe('pecotv evidence create — US3 ヘッダー・キャプション・並び順の指定', () => {
-  it('items の指定順が通し番号になり、caption の明示と省略が混在しても崩れない', async () => {
+  it('items の指定順が通し番号になり、caption の明示と省略が混在しても崩れない', async (context) => {
+    await verifies(context, 'PV-EVIDENCE-CREATE-01')
     // 受入シナリオ 1–3 / SC-002: ファイル名の自然順 (01 → 02 → 03) ではなく spec の
     // 宣言順 (03 → 01 → 02) が No. と縦並び順になる。extraHeaders は 2 件を宣言順で出す。
     //

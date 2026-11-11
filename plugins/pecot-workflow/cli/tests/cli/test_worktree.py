@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner, Result
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import FieldOptions, Project, ProjectConfig, ProjectFields, Repository
@@ -131,6 +132,29 @@ class TestWorktreeAdd:
         result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
         assert result.exit_code == 1
         assert "error: boom" in result.output
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-40"])
+    def test_add_without_remote_exits_1(self, tmp_path: Path) -> None:
+        """remote の無いリポでは、error の行を出して終了コード 1 になる"""
+        from cli.tests.conftest import make_worktree_required_configs
+
+        repo = tmp_path / "base" / "myrepo"
+        repo.mkdir(parents=True)
+        git_init_and_commit(repo, {"README.md": "hi"})
+        make_worktree_required_configs(repo)
+
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch("cli.core.worktree.load_active_config", return_value=MagicMock()),
+        ):
+            result = runner.invoke(app, ["worktree", "add", "-D", str(repo)])
+
+        assert result.exit_code == 1
+        assert (
+            "error: cannot get the repository information: "
+            "check that a git remote is set to a GitHub repository URL"
+        ) in result.output
+        assert not (tmp_path / "wt1").exists()
 
     def test_add_rejects_positional_name(self, tmp_path: Path) -> None:
         """NAME を位置引数で渡すと typer が拒否する"""
@@ -349,7 +373,9 @@ class TestWorktreeRemove:
     @patch("cli.core.worktree.run_git")
     def test_remove_unknown_name(self, mock_git: MagicMock, tmp_path: Path) -> None:
         mock_git.return_value = MagicMock(
-            returncode=0, stdout=f"{tmp_path} abc1234 [main]\n", stderr=""
+            returncode=0,
+            stdout=f"worktree {tmp_path}\nHEAD {'a' * 40}\nbranch refs/heads/main\n",
+            stderr="",
         )
         result = runner.invoke(app, ["worktree", "remove", "nope", "-D", str(tmp_path)])
         assert result.exit_code == 1

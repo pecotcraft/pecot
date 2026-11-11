@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { verifies } from '../../../tests/_helpers/verifies.js'
 import { ReentrantEnqueueError, createExecutionQueue } from '../queue.js'
 
 /**
@@ -12,7 +13,8 @@ async function delay(ms: number): Promise<void> {
 }
 
 describe('createExecutionQueue', () => {
-  it('到着順に実行する', async () => {
+  it('到着順に実行する', async (context) => {
+    await verifies(context, 'PV-COMMON-08')
     const queue = createExecutionQueue()
     const order: string[] = []
 

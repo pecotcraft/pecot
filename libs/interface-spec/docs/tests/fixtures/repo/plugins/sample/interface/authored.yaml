@@ -1,0 +1,91 @@
+format: 1
+plugin: sample
+environment: []
+entries:
+  SM-ONE:
+    constraints: []
+    details:
+      - Runs the target once.
+      - Stops at the first failure.
+    stdin: none
+    output:
+      format: text
+      description: A line per target.
+    diagnostics: A warning on stderr.
+    environment:
+      - name: SAMPLE_HOME
+        effect: Moves the sample directory.
+    exit_status:
+      - code: 0
+        when: The target ran.
+      - code: 2
+        when: The target is missing.
+    on_error: default
+    effects:
+      - target: file
+        kind: write
+        what: Writes the result file.
+    prerequisites: []
+    idempotent: true
+    examples:
+      - run: sample one run x
+        note: Run x.
+    default_notes: {}
+    behaviors:
+      - id: SM-ONE-01
+        pattern: event
+        statement: target を渡して打つと、対象を 1 回動かす
+      - id: SM-ONE-02
+        pattern: unwanted
+        statement: target が無いと、終了コード 2 で終わる
+      - id: SM-ONE-03
+        pattern: state
+        statement: 動かし終えたとき、結果のファイルを書く
+  SM-TWO:
+    constraints: []
+    details:
+      - Reads two things.
+    stdin: none
+    output:
+      format: none
+    diagnostics: none
+    environment: []
+    exit_status: []
+    on_error: default
+    effects: []
+    prerequisites: []
+    idempotent: true
+    examples: []
+    default_notes: {}
+    behaviors:
+      - id: SM-TWO-01
+        pattern: event
+        statement: 呼ぶと、2 つを読んで返す
+      - id: SM-TWO-02
+        pattern: unwanted
+        statement: 読めないと、失敗の結果を返す
+      - id: SM-TWO-03
+        pattern: ubiquitous
+        statement: 何も書かない
+  SM-HALF:
+    constraints: []
+    details: []
+    stdin: none
+    output:
+      format: none
+    diagnostics: none
+    environment: []
+    exit_status: []
+    on_error: default
+    effects: []
+    prerequisites: []
+    idempotent: true
+    examples: []
+    default_notes: {}
+    behaviors:
+      - id: SM-HALF-01
+        pattern: event
+common_behaviors:
+  - id: SM-COMMON-01
+    pattern: event
+    statement: --help を付けて打つと、使い方を出す

@@ -61,6 +61,7 @@ import { extractFromPptx } from '../../_helpers/xpath-extract.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
+import { verifies } from '../../_helpers/verifies.js'
 import { ensureTalkThemeLinked, linkedThemeDefaultDependencies } from '../../../src/commands/slidev-project/linked-theme.js'
 
 // テーマの宣言（pecot-theme.json）の pptx を、テスト内の値で与える。テーマの固有値は本体に持たない。
@@ -506,7 +507,8 @@ describe('validateTheme', () => {
 })
 
 describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
-  it('成功時: outputAbs に merge 済 PPTX を書き出し、runner / converter が 1 回ずつ呼ばれる', async () => {
+  it('成功時: outputAbs に merge 済 PPTX を書き出し、runner / converter が 1 回ずつ呼ばれる', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-02')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'sample.pptx')
     const slidevRunner = createSuccessRunner()
@@ -789,7 +791,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('移行前の talk-dir (theme: none でテーマの宣言も無い) は、slidev build に入らず theme-none で止まり、移行を案内する', async () => {
+  it('移行前の talk-dir (theme: none でテーマの宣言も無い) は、slidev build に入らず theme-none で止まり、移行を案内する', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-09')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     writeFileSync(path.join(projectDirectory, 'slides.md'), '---\ntheme: none\ntitle: Legacy\n---\n# 表紙\n')
     const out = temporaryRoot('out', 'legacy.pptx')
@@ -994,7 +997,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(spcCount).toBe(0)
   })
 
-  it('--transition-type=morph + --morph-option=byChar + --transition-duration-ms=800 が反映される', async () => {
+  it('--transition-type=morph + --morph-option=byChar + --transition-duration-ms=800 が反映される', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-05')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'morph.pptx')
     const slidevRunner = createSuccessRunner()
@@ -3275,7 +3279,8 @@ interface CacheDoneEvent {
 }
 
 describe('slide convert の差分キャッシュ', () => {
-  it('2 回連続で実行すると 2 回目は全ヒットし、変換が 1 件も動かない', async () => {
+  it('2 回連続で実行すると 2 回目は全ヒットし、変換が 1 件も動かない', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-03')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-1.pptx')
     const firstCalls: number[] = []
@@ -3301,7 +3306,8 @@ describe('slide convert の差分キャッシュ', () => {
     expect(existsSync(out)).toBe(true)
   })
 
-  it('1 枚だけ変更した再実行では該当ステップのみ miss になる', async () => {
+  it('1 枚だけ変更した再実行では該当ステップのみ miss になる', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-03')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-2.pptx')
     const stdout = makeStream()
@@ -5248,7 +5254,8 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
 })
 
 describe('slide convert の --no-cache (T016 / T017)', () => {
-  it('warm cache でも全変換し、完了時の再構築で次の run が全ヒットする', async () => {
+  it('warm cache でも全変換し、完了時の再構築で次の run が全ヒットする', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-04')
     const stderr = makeStream()
     const project = makeCacheProject(temporaryRoot(), 'no-cache-rebuild', ['# A', '# B'])
     const warmOut = temporaryRoot('no-cache-warm.pptx')

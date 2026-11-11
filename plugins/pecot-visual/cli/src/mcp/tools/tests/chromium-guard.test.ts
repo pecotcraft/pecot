@@ -23,6 +23,8 @@ import {
 } from '../../../../tests/_helpers/chromium-cache.js'
 import { LOCK_CONFLICT_EXIT_CODE } from '../../../infra/_shared/flock.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { snapshotTree } from './tree-snapshot.js'
 import type { ToolCallContext } from '../../server.js'
 import { drawioExportTool, drawioCreateTool } from '../drawio.js'
 import { ensureChromium, type ChromiumDependencies } from '../_shared.js'
@@ -330,20 +332,26 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 })
 
 describe('chromium 未取得時のツール応答', () => {
-  it('drawio_export は実処理を呼ばず isError で返す', async () => {
+  it('drawio_export は実処理を呼ばず isError で返す', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-07')
     stubChromium()
 
+    const workDirectory = createWorkDirectory()
+
     const result = await drawioExportTool.handler(
-      { input_path: MINIMAL_DRAWIO, icons_dir: ICON_ROOT },
+      { input_path: MINIMAL_DRAWIO, icons_dir: ICON_ROOT, out_path: path.join(workDirectory, 'out.svg') },
       CALL,
     )
 
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['exitCode']).toBe(1)
     expect(dataOf(result)['reason']).toBe('chromium-not-installed')
+    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(snapshotTree(workDirectory)).toEqual(new Map())
   })
 
-  it('drawio_export は print_hash なら chromium 未取得でも成功する', async () => {
+  it('drawio_export は print_hash なら chromium 未取得でも成功する', async (context) => {
+    await verifies(context, 'PV-DRAWIO-EXPORT-03')
     stubChromium()
 
     const result = await drawioExportTool.handler(
@@ -355,7 +363,8 @@ describe('chromium 未取得時のツール応答', () => {
     expect(dataOf(result)['event']).toBe('drawio.export.hash')
   })
 
-  it('slide_convert は実処理を呼ばず isError で返す', async () => {
+  it('slide_convert は実処理を呼ばず isError で返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-CONVERT-07')
     stubChromium()
 
     const result = await slideConvertTool().handler(
@@ -365,9 +374,11 @@ describe('chromium 未取得時のツール応答', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('chromium-not-installed')
+    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
   })
 
-  it('drawio_create は PNG を諦めて表示用 HTML は書く (CLI の degrade と同じ)', async () => {
+  it('drawio_create は PNG を諦めて表示用 HTML は書く (CLI の degrade と同じ)', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-07')
     // drawio_export / slide_convert と違い、chromium 無しでも表示用 HTML の生成は成立する。
     // CLI は PNG 失敗を警告に落として exit 3 を返すので、MCP もそこへ揃える (SC-002)。
     stubChromium()
@@ -399,7 +410,8 @@ describe('chromium 未取得時のツール応答', () => {
     expect(dataOf(result)['event']).toBe('drawio.url.done')
   })
 
-  it('drawio_create は png: false なら chromium 未取得でも表示用 HTML を書く', async () => {
+  it('drawio_create は png: false なら chromium 未取得でも表示用 HTML を書く', async (context) => {
+    await verifies(context, 'PV-DRAWIO-CREATE-04')
     stubChromium()
     const workDirectory = createWorkDirectory()
     const outPath = path.join(workDirectory, 'out.drawio.html')

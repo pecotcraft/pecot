@@ -17,6 +17,7 @@ import type { SpawnResult } from '../../../domain/_shared/spawn-result.js'
 import { LOCK_CONFLICT_EXIT_CODE } from '../../../infra/_shared/flock.js'
 import type { RuntimeInstallResult } from '../../../infra/_shared/runtime-install.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
+import { verifies } from '../../../../tests/_helpers/verifies.js'
 import type { ToolCallContext } from '../../server.js'
 import { setupTool } from '../setup.js'
 import type { ChromiumDependencies, RuntimeDependencies } from '../_shared.js'
@@ -172,7 +173,8 @@ async function setupDetail(...callArguments: Parameters<typeof callSetup>): Prom
 }
 
 describe('setup: chromium', () => {
-  it('未取得なら取得して成功を返す', async () => {
+  it('未取得なら取得して成功を返す', async (context) => {
+    await verifies(context, 'PV-SETUP-03')
     const { deps, installCalls } = fakeDependencies({ installed: false })
 
     const result = await callSetup(deps)
@@ -193,7 +195,8 @@ describe('setup: chromium', () => {
     expect(stageOf(result, 'chromium')['durationMs']).toEqual(expect.any(Number))
   })
 
-  it('取得済みでも取得コマンドは実行し、ダウンロードなしとして返す', async () => {
+  it('取得済みでも取得コマンドは実行し、ダウンロードなしとして返す', async (context) => {
+    await verifies(context, 'PV-SETUP-04')
     // 早期 return はしない。判定が「取得済み」でも実体が欠けていることがある。
     // 例はダウンロード途中、必要リビジョンだけ未取得の状態。
     // 早期 return は、取得と案内のどちらも行われない行き止まりを作る。
@@ -295,7 +298,8 @@ describe('setup: chromium', () => {
 })
 
 describe('setup: 実行時依存 (永続層)', () => {
-  it('未取得なら npm install を実行し、取得先を成果物に載せる', async () => {
+  it('未取得なら npm install を実行し、取得先を成果物に載せる', async (context) => {
+    await verifies(context, 'PV-SETUP-01')
     const runtime = fakeRuntimeDependencies({ installed: false })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, runtime.deps)
@@ -311,7 +315,10 @@ describe('setup: 実行時依存 (永続層)', () => {
     })
   })
 
-  it('取得済みなら install を呼ばない', async () => {
+  it('取得済みなら install を呼ばない', async (context) => {
+    await verifies(context, 'PV-SETUP-02')
+
+    await verifies(context, 'PV-SETUP-04')
     // chromium と違い install は 600MB 級の依存解決を毎回やり直すため、取得済みなら飛ばす。
     // プラグインルートは常にこのルートを通る (実行時依存が同梱されている)。
     const runtime = fakeRuntimeDependencies({ installed: true })
@@ -336,7 +343,8 @@ describe('setup: 実行時依存 (永続層)', () => {
     expect(stageOf(second, 'runtime')).toMatchObject({ installed: true, downloaded: false })
   })
 
-  it('取得に失敗したら runtime-install-failed として返し、chromium は続行する', async () => {
+  it('取得に失敗したら runtime-install-failed として返し、chromium は続行する', async (context) => {
+    await verifies(context, 'PV-SETUP-05')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, stderr: 'ERR_PNPM' })),
@@ -449,7 +457,8 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
 
   const TLS_HINT = 'NODE_EXTRA_CA_CERTS'
 
-  it('実行時依存側: npm の検証コードを含む失敗には誘導が付く', async () => {
+  it('実行時依存側: npm の検証コードを含む失敗には誘導が付く', async (context) => {
+    await verifies(context, 'PV-SETUP-07')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({
@@ -478,7 +487,8 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
     expect(detail).not.toContain(TLS_HINT)
   })
 
-  it('chromium 側: playwright の文言を含む失敗には同じ誘導が付く', async () => {
+  it('chromium 側: playwright の文言を含む失敗には同じ誘導が付く', async (context) => {
+    await verifies(context, 'PV-SETUP-07')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({
@@ -598,7 +608,8 @@ describe('setup: Chromium の OS ライブラリ', () => {
     expect(host.signals().every(signal => signal === CALL.signal)).toBe(true)
   })
 
-  it('sudo を使えなければ chromium-host-deps-missing として入れるコマンドを返す', async () => {
+  it('sudo を使えなければ chromium-host-deps-missing として入れるコマンドを返す', async (context) => {
+    await verifies(context, 'PV-SETUP-06')
     const host = fakeHostDependencies({ probes: [LIBATK_FAILURE], sudoExitCode: 1 })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)

@@ -18,6 +18,7 @@ import type { SlideThemeDependencies } from '../../../src/commands/slidev-projec
 import { isRecord } from '../../../src/domain/_shared/json.js'
 import { NodeThemeFiles } from '../../../src/infra/slidev-theme/fs.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { verifies } from '../../_helpers/verifies.js'
 
 const THEMES = path.resolve(import.meta.dirname, '..', '..', 'fixtures', 'themes')
 const WITH_DECLARATION = path.join(THEMES, 'with-declaration')
@@ -108,7 +109,8 @@ async function runCommand(
 }
 
 describe('executeSlideTheme（宣言のあるテーマ）', () => {
-  it('theme・declaration・layouts・categories・lint・warnings を返す', async () => {
+  it('theme・declaration・layouts・categories・lint・warnings を返す', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-01')
     const talk = makeTalk()
     const themeRoot = path.join(talk, 'node_modules', WITH_DECLARATION_NAME)
     const { dependencies } = makeDependencies()
@@ -246,7 +248,8 @@ describe('executeSlideTheme の失敗', () => {
     await expect(executeSlideTheme({ dir: talk }, dependencies)).rejects.toMatchObject({ reason: 'theme-unlinked' })
   })
 
-  it('宣言の形が誤っていれば invalid-shape の例外を投げる', async () => {
+  it('宣言の形が誤っていれば invalid-shape の例外を投げる', async (context) => {
+    await verifies(context, 'PV-SLIDE-THEME-05')
     const themeRoot = temporaryRoot('theme-broken')
     cpSync(WITH_DECLARATION, themeRoot, { recursive: true })
     writeFileSync(path.join(themeRoot, 'pecot-theme.json'), JSON.stringify({ schema: 1, slide: { width: -1, height: 1 } }))
