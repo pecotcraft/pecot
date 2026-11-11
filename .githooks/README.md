@@ -192,8 +192,10 @@ skill レベルの `scripts/ci/` は持たない。プラグイン直下の disp
 > 依存する nx 本体（root package.json）と各 plugin-root の project.json / plugin.json を `inputs` に宣言しており、
 > これらの変更でも affected になる。
 >
-> `libs/<name>/`（現在は `libs/text-rules`）は plugin ではないライブラリの nx project で、release group にも
-> その project を入れる。レーンは `test-unit`、lint は `lint` 1 つである。
+> `libs/<name>/` は plugin ではないライブラリの nx project である。
+>
+> - `libs/text-rules`: release group に入る。レーンは `test-unit`、lint は `lint` 1 つである。
+> - `libs/interface-spec`: 配布しないので release group に入らず、変えても version plan は要らない。レーンは `test-unit`、lint は `lint`・`lint-defs` である。`docs` は名前が test / lint で始まらないので、レーンの列挙に入らない。
 
 ### R2. CI スクリプトのペア必須
 

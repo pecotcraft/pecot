@@ -362,10 +362,10 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: 直した文書に、定義書と食い違う記述が無い
 
-- [ ] T077 [P] `specs/020-workflow-ts-mcp/contracts/mcp-tools.md` の先頭に 1 行足す。ツールの一覧と入力の正が `plugins/pecot-workflow/interface/` にある旨だ（FR-018）
-- [ ] T078 [P] `CLAUDE.md` の「リポジトリ構成」の表に `libs/interface-spec` と、そのレーンを足す。`.githooks/README.md` のレーンの説明を直す
-- [ ] T079 [P] `plugins/pecot-workflow/skills/w-help/SKILL.md` に、コマンドの引数と振る舞いを調べるときの参照先を書く。利用環境のエージェントが読むのは、生成済みの `commands.md` だ
-- [ ] T080 Epic #42 の Issue に、移行で使う手順を 3 つ書く
+- [x] T077 [P] `specs/020-workflow-ts-mcp/contracts/mcp-tools.md` の先頭に 1 行足す。ツールの一覧と入力の正が `plugins/pecot-workflow/interface/` にある旨だ（FR-018）
+- [x] T078 [P] `CLAUDE.md` の「リポジトリ構成」の表に `libs/interface-spec` と、そのレーンを足す。`.githooks/README.md` のレーンの説明を直す
+- [x] T079 [P] `plugins/pecot-workflow/skills/w-help/SKILL.md` に、コマンドの引数と振る舞いを調べるときの参照先を書く。利用環境のエージェントが読むのは、生成済みの `commands.md` だ
+- [x] T080 Epic #42 の Issue に、移行で使う手順を 3 つ書く
   - 書き出しの元を `cli-node/` の `CommandSpec` に替える
   - `generated.json` の `input` の差が 0 件になるまで移す
   - つなぎ先を Node のテストへ移す

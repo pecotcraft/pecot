@@ -22,6 +22,8 @@
 # 検出しないパターンは次のとおり。
 #   - --prepare / -p（issue/pr 共通の確認用フラグ）、--dry-run / -n（pr create のみ）
 #     … 同一セグメント内にある場合。
+#   - --help（使い方の表示。pecot の CLI は -h を受けないため --help のみ）
+#     … 同一セグメント内にある場合。
 #   - pecot issue read / pr read / pr cleanup / pr preflight 等（対象外サブコマンド）
 #   - echo "gh pr merge"（文字列内・区切り前置なし）
 #   - config キー false 時
@@ -77,8 +79,8 @@ GH_PR_MERGE_PATTERN="${_SEG_ANCHOR}${_GH}[[:space:]]+pr[[:space:]]+merge([[:spac
 
 # 除外フラグ（語境界つき、位置不問）。pecot 専用（gh pr merge には適用しない）。
 # pr create は --dry-run / -n を持つが issue create には無いため個別に定義する。
-PECOT_PR_SKIP_PATTERN='(^|[[:space:]])(--prepare|-p|--dry-run|-n)([[:space:]]|=|$)'
-PECOT_ISSUE_SKIP_PATTERN='(^|[[:space:]])(--prepare|-p)([[:space:]]|=|$)'
+PECOT_PR_SKIP_PATTERN='(^|[[:space:]])(--prepare|-p|--dry-run|-n|--help)([[:space:]]|=|$)'
+PECOT_ISSUE_SKIP_PATTERN='(^|[[:space:]])(--prepare|-p|--help)([[:space:]]|=|$)'
 
 # コマンド文字列を区切り文字（; && || & | ` $( ( ) ）で分割し、改行区切りで出力する。
 # 分割後の各セグメントが 1 コマンド相当となり、確認フラグの比較を同一コマンド内に
