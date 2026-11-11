@@ -102,6 +102,7 @@ def nx_projects(toplevel: Path) -> dict[str, NxProject] | None:
                 text=True,
                 stdin=subprocess.DEVNULL,
                 timeout=NX_GRAPH_TIMEOUT_SEC,
+                # interface-env: none
                 env={**os.environ, "NX_DAEMON": "false"},
                 check=False,
             )

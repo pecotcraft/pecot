@@ -40,6 +40,7 @@ def run_git(
         FileNotFoundError: git が見つからない場合
     """
     env = (
+        # interface-env: none
         {k: v for k, v in os.environ.items() if not k.startswith("GIT_")} if strip_git_env else None
     )
     return subprocess.run(

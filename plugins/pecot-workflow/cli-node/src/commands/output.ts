@@ -96,3 +96,17 @@ export function createOutput(isDryRun: boolean, io: CommandIo): Output {
     },
   }
 }
+
+/**
+process.stdout・process.stderr に書く CommandIo。src/cli.ts の main が使う
+*/
+export function createProcessIo(): CommandIo {
+  return {
+    stdout: (text) => {
+      process.stdout.write(text)
+    },
+    stderr: (text) => {
+      process.stderr.write(text)
+    },
+  }
+}

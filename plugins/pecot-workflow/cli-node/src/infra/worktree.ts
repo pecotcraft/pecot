@@ -19,6 +19,7 @@ import { pythonStrip, ValidationFailure } from '../domain/python-format.js'
 import { createRepositoryReference } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { loadActiveConfig } from './config-store.js'
+import type { Diagnostics } from './diagnostics.js'
 import { isDirectory } from './file-kind.js'
 import { GitCommandError, gitToplevel, originRepository, runGit } from './git.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
@@ -28,7 +29,6 @@ import {
   createSymlinks,
   loadConfig,
   loadCopyExcludeSpec,
-  logMessage,
   WorktreeConfigError,
 } from './worktree-links.js'
 import type { SymlinkResult, WorktreeConfig } from './worktree-links.js'
@@ -305,13 +305,13 @@ function getRepositoryInfo(cwd: string): RepositoryReference {
 }
 
 // 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）。(ワークツリー設定ファイルのパス, コピー除外 spec) を返す
-function loadCopyExcludeSpecOrRaise(mainWorktree: string): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
+function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnostics): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
   const configPath = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
   if (!existsSync(configPath)) {
     throw new WorktreeRuntimeError(`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run pecot worktree init to generate the template`)
   }
   try {
-    return { configPath, spec: loadCopyExcludeSpec(mainWorktree) }
+    return { configPath, spec: loadCopyExcludeSpec(mainWorktree, diagnostics) }
   }
   catch (error: unknown) {
     if (error instanceof WorktreeConfigError) throw new WorktreeRuntimeError(error.message, { cause: error })
@@ -374,8 +374,8 @@ function loadWorktreeConfigOrRaise(configPath: string): WorktreeConfig {
 }
 
 // シンボリックリンク作成。(結果, 作成成功したリンクの WT 相対パス) を返す。後者はコピー除外に使う
-function createWorktreeSymlinks(config: WorktreeConfig, projectRoot: string, name: string, repositoryDirectoryName: string, worktreePath: string): { readonly linkedFiles: readonly SymlinkResult[], readonly symlinkedPaths: readonly string[] } {
-  const linkedFiles = createSymlinks(config, projectRoot, name, repositoryDirectoryName)
+function createWorktreeSymlinks(config: WorktreeConfig, projectRoot: string, name: string, repositoryDirectoryName: string, worktreePath: string, diagnostics: Diagnostics): { readonly linkedFiles: readonly SymlinkResult[], readonly symlinkedPaths: readonly string[] } {
+  const linkedFiles = createSymlinks(config, projectRoot, name, repositoryDirectoryName, diagnostics)
   const symlinkedPaths = linkedFiles
     .filter(link => link.action === 'created')
     .map(link => path.relative(worktreePath, link.symlinkPath))
@@ -396,11 +396,11 @@ function copyUntrackedToWorktree(mainWorktree: string, worktreePath: string, spe
 }
 
 // セットアップコマンド実行。優先順位: CLI --setup 明示 > config.setup_command > skip
-function runEffectiveSetup(setupCommand: string | undefined, config: WorktreeConfig, worktreePath: string): SetupResult | undefined {
+function runEffectiveSetup(setupCommand: string | undefined, config: WorktreeConfig, worktreePath: string, diagnostics: Diagnostics): SetupResult | undefined {
   const effective = setupCommand ?? config.setup_command
   if (effective === undefined || effective === '') return undefined
   const result = runSetupCommand(effective, worktreePath, config.setup_command_timeout)
-  if (result.exitCode !== 0) logMessage(`setup_command exited with a non-zero status (exit ${String(result.exitCode)}): ${effective}`)
+  if (result.exitCode !== 0) diagnostics.warning(`setup_command exited with a non-zero status (exit ${String(result.exitCode)}): ${effective}`)
   return result
 }
 
@@ -445,13 +445,13 @@ export interface CreateWorktreeOptions {
 ワークツリーを作成する。cwd は対象 Git リポジトリのパス。
 作成に失敗した場合、プロジェクトルート・既存ブランチ衝突・設定の不備は WorktreeRuntimeError
 */
-export function createWorktree(cwd: string, options: Readonly<CreateWorktreeOptions> = {}): WorktreeCreateResult {
+export function createWorktree(cwd: string, diagnostics: Diagnostics, options: Readonly<CreateWorktreeOptions> = {}): WorktreeCreateResult {
   // 1. メインWT検出 & プロジェクトルート
   const mainWorktree = findMainWorktree(cwd)
   const projectRoot = detectProjectRoot(cwd)
 
   // 1.1 必須設定ファイルの存在チェック（無ければ早期エラー、init を促す）
-  const { configPath, spec } = loadCopyExcludeSpecOrRaise(mainWorktree)
+  const { configPath, spec } = loadCopyExcludeSpecOrRaise(mainWorktree, diagnostics)
 
   // 1.2 container rebuild 後の stale worktree メタデータを事前に掃除する。
   //     `.git/worktrees/<name>/` だけ残って実体が消えているケース（rebuild や手動 rm -rf のあと）で、add が衝突エラーになるのを防ぐ
@@ -482,9 +482,9 @@ export function createWorktree(cwd: string, options: Readonly<CreateWorktreeOpti
   const worktreeConfig = loadWorktreeConfigOrRaise(configPath)
   const linking = options.shouldLink === false
     ? { linkedFiles: [], symlinkedPaths: [] }
-    : createWorktreeSymlinks(worktreeConfig, projectRoot, name, repositoryDirectoryName, worktreePath)
+    : createWorktreeSymlinks(worktreeConfig, projectRoot, name, repositoryDirectoryName, worktreePath, diagnostics)
   const copiedFiles = options.shouldCopy === false ? [] : copyUntrackedToWorktree(mainWorktree, worktreePath, spec, linking.symlinkedPaths)
-  const setupResult = runEffectiveSetup(options.setupCommand, worktreeConfig, worktreePath)
+  const setupResult = runEffectiveSetup(options.setupCommand, worktreeConfig, worktreePath, diagnostics)
   return { name, path: worktreePath, branch: name, baseBranch, copiedFiles, linkedFiles: linking.linkedFiles, setupResult }
 }
 
@@ -526,7 +526,7 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, baseBra
 ワークツリーを削除する。name は WT 名（ブランチ名）。
 WT が見つからない・削除に失敗した場合は WorktreeRuntimeError
 */
-export function removeWorktree(cwd: string, name: string, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): void {
+export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): void {
   // 1. WTパスを特定
   const listing = runGit(['worktree', 'list'], { cwd })
   const worktreePath = outputLines(listing.stdout).map(line => parseWorktreeLine(line)).find(info => info?.branch === name)?.path
@@ -542,10 +542,10 @@ export function removeWorktree(cwd: string, name: string, options: Readonly<{ re
   if (options.shouldKeepBranch !== true) runGit(['branch', '-D', name], { cwd })
 
   // 4. プロジェクトルート配下の <name> ディレクトリが空なら rmdir
-  removeEmptySetDirectory(cwd, name)
+  removeEmptySetDirectory(cwd, name, diagnostics)
 }
 
-function removeEmptySetDirectory(cwd: string, name: string): void {
+function removeEmptySetDirectory(cwd: string, name: string, diagnostics: Diagnostics): void {
   let projectRoot: string
   try {
     projectRoot = detectProjectRoot(cwd)
@@ -561,6 +561,6 @@ function removeEmptySetDirectory(cwd: string, name: string): void {
   }
   catch (error: unknown) {
     const converted = toOsError(error)
-    logMessage(`failed to remove the set directory: ${groupDirectory}: ${converted instanceof Error ? converted.message : String(converted)}`)
+    diagnostics.warning(`failed to remove the set directory: ${groupDirectory}: ${converted instanceof Error ? converted.message : String(converted)}`)
   }
 }

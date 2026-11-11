@@ -7,7 +7,7 @@ paths:
 # nx の inputs を足す前に
 
 test / lint のレーン（`test-*` / `lint-*` target）は `cache: true` で、inputs が変わらない限り
-前回の結果を再利用します (#1225)。inputs に書いたファイルは、そのファイルの変更でこのレーンを
+前回の結果を再利用します。inputs に書いたファイルは、そのファイルの変更でこのレーンを
 実行させる宣言にもなります。projectRoot（プラグイン）の外を書くと、その外側の変更でも project ごと
 affected になります。
 

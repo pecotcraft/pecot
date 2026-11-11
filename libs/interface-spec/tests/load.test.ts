@@ -6,18 +6,18 @@ import { LoadError, loadJson, loadSources, loadYaml } from '../src/infra/load.js
 import { materialize } from './helpers/repository.js'
 
 describe('loadJson and loadYaml', () => {
-  it('report a missing file as missing', async () => {
+  it('ファイルが無いと、missing として報告する', async () => {
     const root = await materialize('empty')
     expect(await loadJson(path.join(root, 'none.json'))).toEqual({ kind: 'missing' })
     expect(await loadYaml(path.join(root, 'none.yaml'))).toEqual({ kind: 'missing' })
   })
 
-  it('throw on a read error that is not a missing file', async () => {
+  it('ファイルが無い以外の読み取りエラーは、投げる', async () => {
     const root = await materialize('empty')
     await expect(loadJson(root)).rejects.toThrow(/EISDIR/u)
   })
 
-  it('parse the content', async () => {
+  it('読み込むと、内容をパースする', async () => {
     const root = await materialize('empty')
     await writeFile(path.join(root, 'a.json'), '{"a":1}')
     await writeFile(path.join(root, 'a.yaml'), 'a: 1\n')
@@ -25,7 +25,7 @@ describe('loadJson and loadYaml', () => {
     expect(await loadYaml(path.join(root, 'a.yaml'))).toEqual({ kind: 'ok', data: { a: 1 } })
   })
 
-  it('give every yaml error its line', async () => {
+  it('yaml のエラーには、すべて行を付ける', async () => {
     const root = await materialize('empty')
     await writeFile(path.join(root, 'a.yaml'), 'a: 1\na: 2\nb: [\n')
     const state = await loadYaml(path.join(root, 'a.yaml'))
@@ -37,11 +37,11 @@ describe('loadJson and loadYaml', () => {
 })
 
 describe('loadSources', () => {
-  it('reads nothing when there is no glob', async () => {
+  it('glob が無いとき、何も読まない', async () => {
     expect(await loadSources(await materialize('valid'), 'pecot-workflow', [])).toEqual([])
   })
 
-  it('reads only tracked files that match, in path order', async () => {
+  it('追跡されて一致するファイルだけを、パス順に読む', async () => {
     const root = await materialize('valid')
     await mkdir(path.join(root, 'plugins/pecot-workflow/cli/node_modules'), { recursive: true })
     await writeFile(path.join(root, 'plugins/pecot-workflow/cli/node_modules/ignored.py'), 'x = 1\n')
@@ -52,13 +52,13 @@ describe('loadSources', () => {
 })
 
 describe('loadSources with a missing or broken repository', () => {
-  it('skips a file that git still lists but the working tree no longer has', async () => {
+  it('git に載っていてもワーキングツリーに無いファイルは、飛ばす', async () => {
     const root = await materialize('valid')
     await rm(path.join(root, 'plugins/pecot-workflow/cli/core/session.py'))
     expect(await loadSources(root, 'pecot-workflow', ['cli/**/*.py'])).toEqual([])
   })
 
-  it('throws a LoadError when the root is not a git repository', async () => {
+  it('root が git リポジトリでないと、LoadError を投げる', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     try {
       await expect(loadSources(root, 'pecot-workflow', ['**/*.py'])).rejects.toBeInstanceOf(LoadError)
@@ -70,13 +70,13 @@ describe('loadSources with a missing or broken repository', () => {
 })
 
 describe('syntax errors with a position', () => {
-  it('gives an invalid JSON its line', async () => {
+  it('不正な JSON には、行を付ける', async () => {
     const root = await materialize('empty')
     await writeFile(path.join(root, 'a.json'), '{\n"a": 1\n"b": 2}')
     expect(await loadJson(path.join(root, 'a.json'))).toEqual({ kind: 'syntax', problems: [{ line: 3, message: 'is not valid JSON' }] })
   })
 
-  it('reports an alias expansion that throws as a syntax error', async () => {
+  it('alias の展開が投げると、構文エラーとして報告する', async () => {
     const root = await materialize('empty')
     const item = Array.from({ length: 20 }, (_, index) => String(index)).join(', ')
     const references = Array.from({ length: 200 }, () => '*a').join(', ')

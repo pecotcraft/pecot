@@ -36,7 +36,7 @@ describe('独自例外は PecotError を継承する', () => {
     ['MultipleConfigsError', MultipleConfigsError],
     ['ReferenceParseError', ReferenceParseError],
     ['AmbiguousRepositoryError', AmbiguousRepositoryError],
-  ])('%s', (_name, errorClass) => {
+  ])('%s は PecotError を継承する', (_name, errorClass) => {
     expect(errorClass.prototype).toBeInstanceOf(PecotError)
   })
 

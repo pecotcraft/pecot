@@ -1,6 +1,18 @@
 {
   "format": 1,
   "plugins": {
-    "pecot-tools": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"] }
+    "pecot-tools": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"] },
+    "pecot-workflow": {
+      "entries": "partial",
+      "coverage": "off",
+      "sources": [
+        "cli/commands/**/*.py",
+        "cli/core/**/*.py",
+        "cli/__init__.py",
+        "cli/__main__.py",
+        "bin/*",
+        "hooks/**/*.sh"
+      ]
+    }
   }
 }

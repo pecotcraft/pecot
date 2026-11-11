@@ -51,13 +51,19 @@
         "{projectRoot}/package.json",
         "{workspaceRoot}/plugins/*/interface/**/*",
         "{workspaceRoot}/plugins/pecot-tools/cli/src/**/*.ts",
+        "{workspaceRoot}/plugins/pecot-workflow/cli/commands/**/*.py",
+        "{workspaceRoot}/plugins/pecot-workflow/cli/core/**/*.py",
+        "{workspaceRoot}/plugins/pecot-workflow/cli/__init__.py",
+        "{workspaceRoot}/plugins/pecot-workflow/cli/__main__.py",
+        "{workspaceRoot}/plugins/pecot-workflow/bin/*",
+        "{workspaceRoot}/plugins/pecot-workflow/hooks/**/*.sh",
         "env"
       ],
       "dependsOn": [
         "install"
       ],
       "metadata": {
-        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。失敗は 1 件 1 行で標準エラーに出す。"
+        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソース（targets.json の sources）は inputs に足してある。プラグインを足すときは、その sources の glob も足す。"
       },
       "options": {
         "command": "pnpm exec tsx src/cli.ts validate",
@@ -79,13 +85,15 @@
       "inputs": [
         "default",
         "runtime",
+        "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/interface-export/typer-sample.json",
+        "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/interface-export/node-sample.json",
         "env"
       ],
       "dependsOn": [
         "install"
       ],
       "metadata": {
-        "description": "vitest の単体テスト。カバレッジ閾値は 90%。"
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。pecot-workflow の書き出しの見本（cli-node/tests/interface-export/）を形式の検証に読むので、inputs に足してある。"
       },
       "options": {
         "command": "pnpm exec vitest run --coverage",

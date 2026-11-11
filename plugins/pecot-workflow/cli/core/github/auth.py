@@ -133,6 +133,7 @@ def load_env_file(env_file: Path) -> None:
                 key = key.strip()
                 value = value.strip()
                 # 既存の環境変数を上書きしない
+                # interface-env: none
                 if key and key not in os.environ:
                     os.environ[key] = value
 

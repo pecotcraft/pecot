@@ -17,8 +17,6 @@ argument-hint: "[タスクの内容]"
 ### Step 1: Issue作成（pecot issue quick）
 
 > **ガード**: Issue 番号が入った `created: Issue <owner/repo/N>` の行を出力で確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
->
-> このステップは絶対にスキップしてはならない。Issue作成コマンドを実行し、Issue番号が出力されたことを確認してから次に進むこと。Issue作成前にコードを編集することは禁止。
 
 ```bash
 # 基本形（親Epicなし）

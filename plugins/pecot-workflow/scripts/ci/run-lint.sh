@@ -69,8 +69,9 @@ if [ "$RUN_PY" = true ]; then
         exit 1
     }
     # ruff は uv.lock の版で実行する。版未固定の uvx だと pre-commit の rev と判定がずれる (#1220)
-    uv run --no-sync ruff check commands core templates tests __init__.py __main__.py
-    uv run --no-sync ruff format --check commands core templates tests __init__.py __main__.py || {
+    # --config: ../scripts/interface に root の設定を当てないため
+    uv run --no-sync ruff check commands core templates tests __init__.py __main__.py ../scripts/interface --config pyproject.toml
+    uv run --no-sync ruff format --check commands core templates tests __init__.py __main__.py ../scripts/interface --config pyproject.toml || {
         echo "ERROR: format ずれを検出。修正コマンド: cd plugins/pecot-workflow/cli && uv run ruff format ." >&2
         exit 1
     }
@@ -80,7 +81,7 @@ if [ "$RUN_PY" = true ]; then
     # そのため cwd を / にして呼ぶ。設定は --project で cli/ を指し、パスと --pythonpath は絶対パスで渡す。
     CLI_DIR="$PWD"
     ( cd / && npx --yes pyright@1.1.410 --project "$CLI_DIR" --pythonpath "$CLI_DIR/.venv/bin/python" \
-        "$CLI_DIR/commands" "$CLI_DIR/core" "$CLI_DIR/templates" "$CLI_DIR/__init__.py" "$CLI_DIR/__main__.py" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" )
+        "$CLI_DIR/commands" "$CLI_DIR/core" "$CLI_DIR/templates" "$CLI_DIR/__init__.py" "$CLI_DIR/__main__.py" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" "$PLUGIN_ROOT/scripts/interface" )
 fi
 
 # Node 側（cli-node/）は repo root の 1 つの pnpm workspace に属する。

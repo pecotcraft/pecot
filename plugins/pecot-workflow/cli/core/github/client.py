@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
-import sys
 from typing import TYPE_CHECKING, Any, NoReturn
 from urllib.parse import urlsplit
 
@@ -22,6 +22,8 @@ from cli.core.github.errors import (
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+
+logger = logging.getLogger(__name__)
 
 _LOOPBACK_HOSTS = ("127.0.0.1", "localhost")
 
@@ -152,6 +154,7 @@ class GitHubClientBase:
 
         # ホストに対応する環境変数名を取得
         env_name = auth.get_env_var_name(host)
+        # interface-env: PECOT_GITHUB_*_TOKEN
         token = os.environ.get(env_name)
         if token:
             return token
@@ -162,6 +165,7 @@ class GitHubClientBase:
 
         root_env_name = auth.ROOT_ENV_VAR_MAP.get(host)
         if root_env_name:
+            # interface-env: GITHUB_COM_TOKEN
             return os.environ.get(root_env_name)
 
         return None
@@ -281,8 +285,8 @@ or authenticate with the GitHub CLI:
             return False
         if new_token == self.token:
             return False
-        # Same output as Output.warning (core cannot import Output). The constant has no prefix or indent.
-        print("warning: " + TOKEN_FALLBACK_WARNING.replace("\n", "\n  "), file=sys.stderr)
+        # core cannot import Output; the handler in commands/_output.py adds the prefix and indent.
+        logger.warning(TOKEN_FALLBACK_WARNING)
         self.token = new_token
         self.close()
         self._setup_clients()

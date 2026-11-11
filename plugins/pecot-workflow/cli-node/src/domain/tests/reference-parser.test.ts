@@ -124,7 +124,7 @@ describe('parseRepositoryReference', () => {
     ['owner/repo', 'owner', 'repo'],
     ['my-org/my-repo', 'my-org', 'my-repo'],
     ['owner/repo.name', 'owner', 'repo.name'],
-  ])('%j', (raw, owner, repository) => {
+  ])('%j のとき、owner と repository に分ける', (raw, owner, repository) => {
     expect(parseRepositoryReference(raw)).toEqual({ owner, repository })
   })
 
@@ -159,7 +159,7 @@ describe('extractReferencesIssueNumbers', () => {
   const pullRepository = createRepositoryReference('acme-labs', 'aist-plugin')
   const extract = (body: string | undefined): readonly number[] => [...extractReferencesIssueNumbers(body, pullRepository)].toSorted((a, b) => a - b)
 
-  it('Refs #N', () => {
+  it('Refs #N の行から Issue 番号を取り出す', () => {
     expect(extract('変更内容\n\nRefs #935')).toEqual([935])
   })
 

@@ -53,6 +53,7 @@ def ensure_devcontainer_environment() -> None:
     if Path("/.dockerenv").exists():
         return
     for env_var in ("REMOTE_CONTAINERS", "CODESPACES", "DEVCONTAINER"):
+        # interface-env: REMOTE_CONTAINERS CODESPACES DEVCONTAINER
         if os.environ.get(env_var):
             return
     raise RuntimeError(

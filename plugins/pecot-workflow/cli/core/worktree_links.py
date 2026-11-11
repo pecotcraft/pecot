@@ -514,6 +514,7 @@ def _ensure_pecot_gitignore(config: WorktreeConfig, wt_root: Path) -> None:
         return
     result = subprocess.run(
         ["bash", str(script)],
+        # interface-env: none
         env={**os.environ, "CLAUDE_PROJECT_DIR": str(wt_root)},
         capture_output=True,
         text=True,

@@ -1,0 +1,1907 @@
+{
+  "format": 1,
+  "plugin": "pecot-workflow",
+  "prefix": "PW",
+  "entries": [
+    {
+      "id": "PW-ADD-TO-PROJECT",
+      "name": "add-to-project",
+      "description": "Add an Issue to the project board with a GraphQL mutation",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "add-to-project"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+          },
+          "status": {
+            "type": "string",
+            "default": "ready",
+            "description": "Initial status (backlog/pending/ready/active/in_review/archived)"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "status": [
+            "--status",
+            "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-CREATE-BRANCH",
+      "name": "create-branch",
+      "description": "Create a branch linked to an Issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "create-branch"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "allow_cross_repo": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch (default: develop_branch from the config)"
+          },
+          "branch_name": {
+            "type": "string",
+            "description": "Name of the branch to create"
+          },
+          "checkout": {
+            "type": "boolean",
+            "default": true,
+            "description": "Kept for compatibility; has no effect"
+          },
+          "force_overwrite_active": {
+            "type": "boolean",
+            "default": false,
+            "description": "Disable the .pecot-active overwrite guard (when sure it is stale)"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (owner/repo/123)"
+          }
+        },
+        "required": [
+          "branch_name",
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref",
+          "branch_name"
+        ],
+        "flags": {
+          "allow_cross_repo": [
+            "--allow-cross-repo",
+            "-X"
+          ],
+          "base": [
+            "--base",
+            "-b"
+          ],
+          "checkout": [
+            "--checkout",
+            "--no-checkout"
+          ],
+          "force_overwrite_active": [
+            "--force-overwrite-active",
+            "-F"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-DELETE-BRANCH",
+      "name": "delete-branch",
+      "description": "Delete a remote branch",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "delete-branch"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Name of the branch to delete"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would be deleted without deleting anything"
+          },
+          "repo_ref": {
+            "type": "string",
+            "description": "Repository reference (owner/repo)"
+          }
+        },
+        "required": [
+          "branch",
+          "repo_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "repo_ref",
+          "branch"
+        ],
+        "flags": {
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-DEPENDABOT-SYNC",
+      "name": "dependabot sync",
+      "description": "Rewrite the open Tracker's list of Dependabot PRs waiting for a human decision",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "dependabot",
+            "sync"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the planned Tracker changes without changing anything"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-COMMENT",
+      "name": "issue comment",
+      "description": "Post a comment on an Issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "comment"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Path of a Markdown file with frontmatter"
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue reference (owner/repo/123 form, required with -m)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Comment body"
+          },
+          "prepare": {
+            "type": "boolean",
+            "default": false,
+            "description": "Copy a template to the work directory"
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "merge-diff",
+              "review-findings",
+              "review-resolution",
+              "precede-notify"
+            ],
+            "description": "Template type (required with --prepare and -m; plan/merge-diff/review-findings/review-resolution/precede-notify)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "file"
+        ],
+        "flags": {
+          "issue": [
+            "--issue",
+            "-i"
+          ],
+          "message": [
+            "--message",
+            "-m"
+          ],
+          "prepare": [
+            "--prepare",
+            "-p"
+          ],
+          "template": [
+            "--template",
+            "-t"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-CREATE",
+      "name": "issue create",
+      "description": "Create Issues from Markdown files with frontmatter",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Path of a Markdown file with frontmatter (several for a batch post)"
+          },
+          "label": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Label (can be given several times)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Issue body (direct posting mode)"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Order number of the subtask (used with parent_epic)"
+          },
+          "parent_epic": {
+            "type": "string",
+            "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
+          },
+          "prepare": {
+            "type": "boolean",
+            "default": false,
+            "description": "Copy a template to the work directory"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority (high/medium/low)"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository (owner/repo form; required with -m / --prepare unless epic)"
+          },
+          "size": {
+            "type": "string",
+            "description": "Size (xs/s/m/l)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status (backlog/pending/ready/active/in_review/archived)"
+          },
+          "suffix": {
+            "type": "string",
+            "description": "Suffix of the output file name (only with --prepare)"
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "task",
+              "bug",
+              "epic",
+              "tracker",
+              "task-implement"
+            ],
+            "default": "task",
+            "description": "Template type (with --prepare: task/bug/epic/tracker/task-implement)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Issue title (direct posting mode, required with -m)"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "bug",
+              "epic",
+              "tracker"
+            ],
+            "default": "task",
+            "description": "Issue type (task/bug/epic/tracker)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "files"
+        ],
+        "flags": {
+          "label": [
+            "--label",
+            "-l"
+          ],
+          "message": [
+            "--message",
+            "-m"
+          ],
+          "order": [
+            "--order"
+          ],
+          "parent_epic": [
+            "--parent-epic"
+          ],
+          "prepare": [
+            "--prepare",
+            "-p"
+          ],
+          "priority": [
+            "--priority"
+          ],
+          "repo": [
+            "--repo",
+            "-r"
+          ],
+          "size": [
+            "--size"
+          ],
+          "status": [
+            "--status"
+          ],
+          "suffix": [
+            "--suffix",
+            "-s"
+          ],
+          "template": [
+            "--template"
+          ],
+          "title": [
+            "--title",
+            "-t"
+          ],
+          "type": [
+            "--type"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-QUICK",
+      "name": "issue quick",
+      "description": "Create an Issue at once from a free-format message",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "quick"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Issue message (free format)"
+          },
+          "no_branch": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip creating a branch"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Order number of the subtask (used with parent_epic)"
+          },
+          "parent_epic": {
+            "type": "string",
+            "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository (owner/repo form)"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "bug",
+              "epic",
+              "tracker"
+            ],
+            "default": "task",
+            "description": "Issue type (task/bug/epic/tracker)"
+          }
+        },
+        "required": [
+          "message",
+          "repo"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "message": [
+            "--message",
+            "-m"
+          ],
+          "no_branch": [
+            "--no-branch"
+          ],
+          "order": [
+            "--order"
+          ],
+          "parent_epic": [
+            "--parent-epic"
+          ],
+          "repo": [
+            "--repo",
+            "-r"
+          ],
+          "type": [
+            "--type"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-READ",
+      "name": "issue read",
+      "description": "Fetch Issue details efficiently (GraphQL, only the needed fields)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "read"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "comment_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "default": 5,
+            "description": "Number of comments to show (0-20; 0 hides them)"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+          },
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Output as JSON"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "comment_limit": [
+            "--comment-limit",
+            "-c"
+          ],
+          "json": [
+            "--json",
+            "-j"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-ISSUE-REOPEN",
+      "name": "issue reopen",
+      "description": "Reopen a closed Issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "issue",
+            "reopen"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "Reason for reopening (posted as a comment)"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+          },
+          "status": {
+            "type": "string",
+            "default": "ready",
+            "description": "Status after reopening (backlog/pending/ready/active/in_review/archived)"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "comment": [
+            "--comment",
+            "-c"
+          ],
+          "status": [
+            "--status",
+            "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PR-CLEANUP",
+      "name": "pr cleanup",
+      "description": "Clean up after a merged PR (close related Issues, delete branches, local cleanup)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "cleanup"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "delete_branch": {
+            "type": "boolean",
+            "default": false,
+            "description": "Delete the branch"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Dry-run (do not actually clean up)"
+          },
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (owner/repo/N, or the short form N only with `--repo`)"
+          },
+          "skip_local_cleanup": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip the local branch switch and deletion"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "pr_ref"
+        ],
+        "flags": {
+          "delete_branch": [
+            "--delete-branch",
+            "-d"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "skip_local_cleanup": [
+            "--skip-local-cleanup"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PR-CREATE",
+      "name": "pr create",
+      "description": "Create a PR (pull request)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "base": {
+            "type": "string",
+            "description": "Base branch (required with -m)"
+          },
+          "draft": {
+            "type": "boolean",
+            "default": false,
+            "description": "Create as a draft PR"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Validate only (skip the early preflight check, do not create the PR)"
+          },
+          "file": {
+            "type": "string",
+            "description": "Path to a Markdown file with front matter"
+          },
+          "head": {
+            "type": "string",
+            "description": "Head branch (default: the current branch)"
+          },
+          "message": {
+            "type": "string",
+            "description": "PR body, given directly"
+          },
+          "no_issue_ref": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)"
+          },
+          "prepare": {
+            "type": "boolean",
+            "default": false,
+            "description": "Copy the template to the work directory"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Repository in owner/repo form (with -m)"
+          },
+          "screenshot": {
+            "type": "string",
+            "description": "Reason to omit an image from Summary (with -m)"
+          },
+          "template": {
+            "type": "string",
+            "default": "default",
+            "description": "PR template kind (default / release)"
+          },
+          "title": {
+            "type": "string",
+            "description": "PR title (required with -m)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "file"
+        ],
+        "flags": {
+          "base": [
+            "--base",
+            "-b"
+          ],
+          "draft": [
+            "--draft",
+            "-d"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ],
+          "head": [
+            "--head"
+          ],
+          "message": [
+            "--message",
+            "-m"
+          ],
+          "no_issue_ref": [
+            "--no-issue-ref"
+          ],
+          "prepare": [
+            "--prepare",
+            "-p"
+          ],
+          "repo": [
+            "--repo",
+            "-r"
+          ],
+          "screenshot": [
+            "--screenshot"
+          ],
+          "template": [
+            "--template"
+          ],
+          "title": [
+            "--title",
+            "-t"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PR-PREFLIGHT",
+      "name": "pr preflight",
+      "description": "Show all the information to check before creating a PR",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "preflight"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "directory": [
+            "--directory",
+            "-D"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PR-READ",
+      "name": "pr read",
+      "description": "Get PR details efficiently (GraphQL, only the needed fields)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "pr",
+            "read"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Output as JSON"
+          },
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (owner/repo/N, or the short form N only with `--repo`)"
+          },
+          "reviews": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include review details (bodies and line comments)"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "pr_ref"
+        ],
+        "flags": {
+          "json": [
+            "--json",
+            "-j"
+          ],
+          "reviews": [
+            "--reviews",
+            "-r"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-ACTIVATE",
+      "name": "project activate",
+      "description": "Activate an initialized project",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "activate"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "GitHub host"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Project owner (defaults to the authenticated user)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Project number or name, or config file path/file name"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "project"
+        ],
+        "flags": {
+          "host": [
+            "--host",
+            "-h"
+          ],
+          "owner": [
+            "--owner",
+            "-o"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-CREATE",
+      "name": "project create",
+      "description": "Create a new project",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "default": "github.com",
+            "description": "GitHub host"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          },
+          "suffix": {
+            "type": "string",
+            "description": "Suffix of the workflow field"
+          },
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          }
+        },
+        "required": [
+          "owner",
+          "suffix",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "owner",
+          "title"
+        ],
+        "flags": {
+          "host": [
+            "--host",
+            "-h"
+          ],
+          "suffix": [
+            "--suffix",
+            "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-INFO",
+      "name": "project info",
+      "description": "Show the project info dashboard",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "info"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Output as JSON"
+          },
+          "repo": {
+            "type": "string",
+            "description": "Target repository, given explicitly as 'owner/repo'"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "json": [
+            "--json",
+            "-j"
+          ],
+          "repo": [
+            "--repo"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-INIT",
+      "name": "project init",
+      "description": "Add pecot-workflow fields to an existing project",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "init"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "default": "github.com",
+            "description": "GitHub host"
+          },
+          "name": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          },
+          "suffix": {
+            "type": "string",
+            "description": "Suffix of the workflow field"
+          }
+        },
+        "required": [
+          "name",
+          "owner",
+          "suffix"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "owner",
+          "name"
+        ],
+        "flags": {
+          "host": [
+            "--host",
+            "-h"
+          ],
+          "suffix": [
+            "--suffix",
+            "-s"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-LIST",
+      "name": "project list",
+      "description": "List available projects",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "list"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-PROJECT-SEARCH",
+      "name": "project search",
+      "description": "Search projects through the GitHub API",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "search"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "default": "github.com",
+            "description": "GitHub host"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          }
+        },
+        "required": [
+          "owner"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "owner"
+        ],
+        "flags": {
+          "host": [
+            "--host",
+            "-h"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-SET-AGGREGATION-REPO",
+      "name": "project set-aggregation-repo",
+      "description": "Set the Epic aggregation repository (``aggregation_repo``)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "set-aggregation-repo"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Aggregation repository (owner/repo form)"
+          },
+          "yes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Overwrite an existing value without confirmation (a warning goes to stderr)"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "value"
+        ],
+        "flags": {
+          "yes": [
+            "--yes",
+            "-y"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-SET-REPO",
+      "name": "project set-repo",
+      "description": "Add or update a repository in the project config",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "set-repo"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "changelog_file": {
+            "type": "string",
+            "description": "CHANGELOG file name"
+          },
+          "clear_packages": {
+            "type": "boolean",
+            "default": false,
+            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to --changelog-file or the default CHANGELOG.md"
+          },
+          "develop_branch": {
+            "type": "string",
+            "description": "Development branch name"
+          },
+          "owner_repo": {
+            "type": "string",
+            "description": "Repository name in owner/repo form"
+          },
+          "package": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Register a monorepo package as NAME:PATH. Can be repeated. Example: --package pecot:plugins/pecot-workflow/CHANGELOG.md"
+          },
+          "release_branch": {
+            "type": "string",
+            "description": "Release branch name"
+          },
+          "release_type": {
+            "type": "string",
+            "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)"
+          }
+        },
+        "required": [
+          "owner_repo"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "owner_repo"
+        ],
+        "flags": {
+          "changelog_file": [
+            "--changelog-file"
+          ],
+          "clear_packages": [
+            "--clear-packages"
+          ],
+          "develop_branch": [
+            "--develop-branch",
+            "-b"
+          ],
+          "package": [
+            "--package"
+          ],
+          "release_branch": [
+            "--release-branch"
+          ],
+          "release_type": [
+            "--release-type"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-PROJECT-SHOW-AGGREGATION-REPO",
+      "name": "project show-aggregation-repo",
+      "description": "Show the Epic aggregation repository (``aggregation_repo``)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "show-aggregation-repo"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-PROJECT-UNSET-AGGREGATION-REPO",
+      "name": "project unset-aggregation-repo",
+      "description": "Clear the Epic aggregation repository (``aggregation_repo``)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "project",
+            "unset-aggregation-repo"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-RELEASE-CREATE",
+      "name": "release create",
+      "description": "Create a GitHub release and its tag",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "release",
+            "create"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          },
+          "package": {
+            "type": "string",
+            "description": "Package name in a monorepo (required for repositories with packages configured)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Release version (for example 0.6.1)"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "version"
+        ],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
+          ],
+          "package": [
+            "--package"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-RELEASE-MERGE",
+      "name": "release merge",
+      "description": "Merge a release PR with a regular merge",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "release",
+            "merge"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "admin": {
+            "type": "boolean",
+            "default": false,
+            "description": "Merge with admin rights (skip the mergeability check)"
+          },
+          "delete_branch": {
+            "type": "boolean",
+            "default": false,
+            "description": "Delete the branch after merging"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without merging"
+          },
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (owner/repo/123)"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "pr_ref"
+        ],
+        "flags": {
+          "admin": [
+            "--admin"
+          ],
+          "delete_branch": [
+            "--delete-branch",
+            "-d"
+          ],
+          "dry_run": [
+            "--dry-run",
+            "-n"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-RELEASE-PREFLIGHT",
+      "name": "release preflight",
+      "description": "Run the pre-release checks (preflight)",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "release",
+            "preflight"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "string",
+            "description": "Package name in a monorepo (required for repositories with packages configured)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Release version (detected from the CHANGELOG when omitted)"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "version"
+        ],
+        "flags": {
+          "package": [
+            "--package"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-SECURITY-SYNC",
+      "name": "security sync",
+      "description": "Rewrite the open Tracker's list of open security alerts",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "security",
+            "sync"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the planned Tracker changes without changing anything"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-SESSION-RESTORE",
+      "name": "session restore",
+      "description": "Restore lost session flags (such as .pecot-active) from the branch information",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "session",
+            "restore"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue reference (owner/repo/number)"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "directory": [
+            "--directory",
+            "-D"
+          ],
+          "issue": [
+            "--issue",
+            "-i"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-SESSION-STATUS",
+      "name": "session status",
+      "description": "Show the session flag state, branch information, and inferred Issue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "session",
+            "status"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "directory": [
+            "--directory",
+            "-D"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-UPDATE-ISSUE-STATUS",
+      "name": "update-issue-status",
+      "description": "Update the status of an Issue on the project board by Issue number",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "update-issue-status"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` only with `--repo`)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status (backlog/pending/ready/active/in_review/archived)"
+          }
+        },
+        "required": [
+          "issue_ref",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref",
+          "status"
+        ],
+        "flags": {}
+      }
+    },
+    {
+      "id": "PW-WORKTREE-ADD",
+      "name": "worktree add",
+      "description": "Create a new worktree",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "worktree",
+            "add"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "allow_existing_branch": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow reusing an existing branch even if its upstream differs from develop_branch"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch (default: the current branch)"
+          },
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          },
+          "no_copy": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip copying untracked files"
+          },
+          "no_link": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip creating symlinks"
+          },
+          "path": {
+            "type": "string",
+            "description": "Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)"
+          },
+          "setup": {
+            "type": "string",
+            "description": "Command to run after creation"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "allow_existing_branch": [
+            "--allow-existing-branch",
+            "--force"
+          ],
+          "base": [
+            "--base"
+          ],
+          "directory": [
+            "--directory",
+            "-D"
+          ],
+          "dry_run": [
+            "--dry-run"
+          ],
+          "no_copy": [
+            "--no-copy"
+          ],
+          "no_link": [
+            "--no-link"
+          ],
+          "path": [
+            "--path"
+          ],
+          "setup": [
+            "--setup"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-WORKTREE-INIT",
+      "name": "worktree init",
+      "description": "Create the worktree config files in the main worktree",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "worktree",
+            "init"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "directory": [
+            "--directory",
+            "-D"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-WORKTREE-LINK",
+      "name": "worktree link",
+      "description": "Apply or update symlinks in existing worktrees",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "worktree",
+            "link"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "all": {
+            "type": "boolean",
+            "default": false,
+            "description": "Apply to all sub-worktrees"
+          },
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show what would happen without changing anything"
+          },
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "Overwrite real files and directories without asking"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "all": [
+            "--all"
+          ],
+          "directory": [
+            "--directory",
+            "-D"
+          ],
+          "dry_run": [
+            "--dry-run"
+          ],
+          "force": [
+            "--force"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-WORKTREE-REMOVE",
+      "name": "worktree remove",
+      "description": "Remove a worktree",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "worktree",
+            "remove"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Target Git repository (absolute or relative path)"
+          },
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "Force removal even if there are changes"
+          },
+          "keep_branch": {
+            "type": "boolean",
+            "default": false,
+            "description": "Keep the branch"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the worktree to remove (the branch name)"
+          }
+        },
+        "required": [
+          "directory",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "name"
+        ],
+        "flags": {
+          "directory": [
+            "--directory",
+            "-D"
+          ],
+          "force": [
+            "--force"
+          ],
+          "keep_branch": [
+            "--keep-branch"
+          ]
+        }
+      }
+    }
+  ]
+}

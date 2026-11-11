@@ -23,7 +23,7 @@ consumer は `assets/slidev/deck-lint.config.js` や `assets/slidev/eslint.confi
   → 同上
 
 - `_shared/package.json` 経由で再 export している型 (`FrontmatterBase` 等) の名前 / 形を変える。
-  全 consumer plugin の型解決が連鎖して失敗する（#421 系）
+  全 consumer plugin の型解決が連鎖して失敗する
 
 ## 編集後の確認手順
 

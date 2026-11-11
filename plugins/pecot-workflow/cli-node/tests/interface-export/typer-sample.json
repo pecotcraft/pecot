@@ -1,0 +1,200 @@
+{
+  "format": 1,
+  "plugin": "pecot-workflow",
+  "prefix": "PW",
+  "entries": [
+    {
+      "id": "PW-ALPHA",
+      "name": "alpha",
+      "description": "Greet someone",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "alpha"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "default": 3,
+            "description": "How many times."
+          },
+          "json": {
+            "type": "boolean",
+            "default": false,
+            "description": "Print JSON."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "slow"
+            ],
+            "default": "fast",
+            "description": "Mode."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name to greet."
+          },
+          "verbose": {
+            "type": "boolean",
+            "default": true,
+            "description": "Be loud."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "name"
+        ],
+        "flags": {
+          "count": [
+            "--count",
+            "-c"
+          ],
+          "json": [
+            "--json",
+            "-j"
+          ],
+          "mode": [
+            "--mode"
+          ],
+          "verbose": [
+            "--verbose",
+            "--no-verbose"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-BETA",
+      "name": "beta",
+      "description": "Read files.",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "beta"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files to read."
+          },
+          "label": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 5,
+            "description": "Upper limit."
+          },
+          "source": {
+            "type": "string",
+            "description": "Optional source."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "source",
+          "files"
+        ],
+        "flags": {
+          "label": [
+            "--label",
+            "-l"
+          ],
+          "limit": [
+            "--limit"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-SUB-HIDDEN-CMD",
+      "name": "sub hidden-cmd",
+      "description": "Hidden command.",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "sub",
+            "hidden-cmd"
+          ]
+        }
+      },
+      "hidden": true,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "when": {
+            "type": "string",
+            "description": "When."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "when": [
+            "--when"
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-SUB-OLD-CMD",
+      "name": "sub old-cmd",
+      "description": "Deprecated command.",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "sub",
+            "old-cmd"
+          ]
+        }
+      },
+      "hidden": false,
+      "deprecated": true,
+      "input": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {}
+      }
+    }
+  ]
+}

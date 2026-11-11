@@ -35,33 +35,33 @@ async function check(id: string, hints: Record<string, unknown>, kinds: readonly
 }
 
 describe('effects against mcp.annotations', () => {
-  it('passes when they agree', async () => {
+  it('ヒントと作用が合っているとき、通す', async () => {
     expect(await check('PT-AWS-S3-CP', { readOnlyHint: false, destructiveHint: true, idempotentHint: false }, ['write', 'destructive'], false)).toEqual([])
   })
 
-  it('rejects a destructive effect under readOnlyHint true', async () => {
+  it('readOnlyHint が true なのに破壊の作用があると、止める', async () => {
     expect(await check('PT-AWS-S3-LS', { readOnlyHint: true }, ['read', 'destructive'], true))
       .toEqual(['PT-AWS-S3-LS: effects has kind "destructive" but annotations.readOnlyHint is true'])
   })
 
-  it('rejects readOnlyHint false without a write or destructive effect', async () => {
+  it('書き込みも破壊の作用も無いのに readOnlyHint が false だと、止める', async () => {
     expect(await check('PT-AWS-S3-LS', { readOnlyHint: false }, ['read'], true))
       .toEqual(['PT-AWS-S3-LS: effects has no kind "write" or "destructive" but annotations.readOnlyHint is false'])
   })
 
-  it('rejects destructiveHint that disagrees with effects', async () => {
+  it('destructiveHint が作用と食い違うと、止める', async () => {
     expect(await check('PT-AWS-S3-CP', { destructiveHint: true }, ['write'], true))
       .toEqual(['PT-AWS-S3-CP: effects has no kind "destructive" but annotations.destructiveHint is true'])
     expect(await check('PT-AWS-S3-CP', { destructiveHint: false }, ['write', 'destructive'], true))
       .toEqual(['PT-AWS-S3-CP: effects has kind "destructive" but annotations.destructiveHint is false'])
   })
 
-  it('rejects idempotentHint that disagrees with idempotent', async () => {
+  it('idempotentHint が idempotent と食い違うと、止める', async () => {
     expect(await check('PT-AWS-S3-CP', { idempotentHint: true }, ['write'], false))
       .toEqual(['PT-AWS-S3-CP: idempotent is false but annotations.idempotentHint is true'])
   })
 
-  it('does not compare hints that are absent', async () => {
+  it('ヒントが無いとき、比べない', async () => {
     expect(await check('PT-AWS-S3-CP', {}, ['write', 'destructive'], false)).toEqual([])
   })
 })

@@ -102,30 +102,31 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **前提**: PR #227（`--help` を英語にする）がマージされている
 
-- [ ] T016 [US1] `plugins/pecot-workflow/cli/tests/unit/test_interface_export.py` を書く
+- [x] T016 [US1] `plugins/pecot-workflow/cli/tests/unit/test_interface_export.py` を書く
   - 小さな typer の app を組み、書き出した項目を期待の値と比べる
   - 比べるのは、型・必須か・既定値・位置引数の順・オプションの名前・`hidden`・`deprecated` だ
   - 型は、文字列・整数・真偽値・path・choice・複数指定を入れる
   - この時点で失敗する
-- [ ] T017 [US1] `plugins/pecot-workflow/scripts/interface/` を、`lint-py` の ruff と strict の型チェックの対象に入れる。`project.json` の `lint-py` の入力にも足す
-- [ ] T018 [US1] `plugins/pecot-workflow/scripts/interface/export.py` を実装する
+- [x] T017 [US1] `plugins/pecot-workflow/scripts/interface/` を、`lint-py` の ruff と strict の型チェックの対象に入れる。`project.json` の `lint-py` の入力にも足す
+- [x] T018 [US1] `plugins/pecot-workflow/scripts/interface/export.py` を実装する
   - `typer.main.get_command(app)` の木をたどり、contracts/definition-format.md の `generated.json` を作る
   - typer が同梱する click の非公開のモジュールを import しない
   - 既定値が実行時に決まる引数は `default` に入れない
   - 項目は `id` の順に並べ、キーの順を固定する。同じ実装から同じバイト列を出す
   - `--check` は、リポジトリのファイルとの差を contracts の形で出して終了コード 1 で終わる。`--write` は書き換える
-- [ ] T019 [US1] typer の引数の型のうち、JSON Schema に写せないものが無いかを、34 コマンドの全引数で確かめる。写せないものがあれば、写し方を contracts/definition-format.md に足す
-- [ ] T020 [US1] `plugins/pecot-workflow/interface/generated.json` を `--write` で作る
-- [ ] T021 [US1] `test_interface_export.py` に、`--check` が今の実装で通ることのテストを足す。`plugins/pecot-workflow/project.json` の `test-py` の入力に `interface/**` と `scripts/interface/**` を足す
-- [ ] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く。
+- [x] T019 [US1] typer の引数の型のうち、JSON Schema に写せないものが無いかを、34 コマンドの全引数で確かめる。写せないものがあれば、写し方を contracts/definition-format.md に足す
+- [x] T020 [US1] `plugins/pecot-workflow/interface/generated.json` を `--write` で作る
+- [x] T021 [US1] `test_interface_export.py` に、`--check` が今の実装で通ることのテストを足す。`plugins/pecot-workflow/project.json` の `test-py` の入力に `interface/**` と `scripts/interface/**` を足す
+- [x] T022 [US1] `libs/interface-spec/targets.json` に pecot-workflow を `entries: partial`・`coverage: off` で足す。`plugins/pecot-workflow/interface/authored.yaml` を、項目が空の形で置く。
   `sources` の glob を `libs/interface-spec/project.json` の `lint-defs` の inputs に足す
-- [ ] T023 [US1] `plugins/pecot-workflow/cli-node/tests/interface-export.test.ts` を書く
+- [x] T023 [US1] `plugins/pecot-workflow/cli-node/tests/interface-export.test.ts` を書く
   - 見本の `CommandSpec` を 2 つ組み、書き出した項目が形式の検証を通ることを確かめる
   - 同じ引数を持つ typer の見本から書き出した `input` と、差が 0 件であることも確かめる
   - この時点で失敗する（FR-008、SC-008）
-- [ ] T024 [US1] `plugins/pecot-workflow/cli-node/scripts/export-interface.ts` を実装する
+- [x] T024 [US1] `plugins/pecot-workflow/cli-node/scripts/export-interface.ts` を実装する
   - `registry.ts` の `CommandSpec` の入力を `z.toJSONSchema()` に通し、`surfaces.cli` と `surfaces.mcp` の両方を持つ項目を作る
   - 登録済みのコマンドが 0 件の今は、`generated.json` を書き換えない
+  - 登録が 1 件以上になったら、`main` が `exportEntries` で書き出して一致を確かめる。Epic #42 で最初のコマンドを移す PR が足す
 
 **Checkpoint**: オプションを 1 つ足すと `test-py` が落ち、`--write` で通る
 
@@ -137,10 +138,10 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: `lint-defs` が通る。10 項目のどの欄も、値か「使わないときの値」を持つ
 
-- [ ] T025 [US1] `plugins/pecot-workflow/interface/authored.yaml` の先頭の `environment` に、CLI の全コマンドに共通の環境変数を書く。T012 の確認が挙げた名前をすべて入れる
-- [ ] T026 [US1] `project` の 10 コマンドの項目を書く。`cli/commands/project.py` と `cli/tests/` の該当のテストを読み、今の振る舞いを書き起こす
-- [ ] T027 [US1] T026 で書いた振る舞いの項目に当てて、EARS の型と文の形を比べる規則（T008）が厳しすぎないかを確かめる。合わない実例があれば、規則と contracts の表を直す
-- [ ] T028 [US1] `common_behaviors` に、全コマンドに共通の振る舞い（知らないオプション、`--help`、`--repo` の解決など）を書く
+- [x] T025 [US1] `plugins/pecot-workflow/interface/authored.yaml` の先頭の `environment` に、CLI の全コマンドに共通の環境変数を書く。T012 の確認が挙げた名前をすべて入れる。devcontainer の 3 つの名前は T032 で worktree の項目に書く
+- [x] T026 [US1] `project` の 10 コマンドの項目を書く。`cli/commands/project.py` と `cli/tests/` の該当のテストを読み、今の振る舞いを書き起こす
+- [x] T027 [US1] T026 で書いた振る舞いの項目に当てて、EARS の型と文の形を比べる規則（T008）が厳しすぎないかを確かめる。合わない実例があれば、規則と contracts の表を直す
+- [x] T028 [US1] `common_behaviors` に、全コマンドに共通の振る舞い（知らないオプション、`--help`、`--repo` の解決など）を書く
 
 **Checkpoint**: `lint-defs` が通る
 
@@ -235,16 +236,16 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US4 の 1 行目が、4 つの project で通る
 
-- [ ] T049 [US4] `vitest/valid-title` の設定で、`it` の題の 2 つの決めを守れるかを確かめる
+- [x] T049 [US4] `vitest/valid-title` の設定で、`it` の題の 2 つの決めを守れるかを確かめる
   - 決めは「日本語の文字がある」と「句点で終わらない」だ
   - `describe` と `it` を別々の形で指定できるかも確かめる
   - できない部分は、`libs/interface-spec` に小さな eslint の規則を書く
   - 規則を書くときは、通る題と外れる題の RuleTester のテストを先に書く
-- [ ] T050 [US4] `.claude/rules/test-conventions.md` を書く。中身は contracts/test-conventions.md に従う。対象、題の形、項目へのつなぎ、従う考え方を、vitest と pytest の例つきで書く
-- [ ] T051 [P] [US4] `plugins/pecot-tools/cli/eslint.config.js` で題の lint を有効にし、外れた題（約 2 件）を直す
-- [ ] T052 [P] [US4] pecot-visual で題の lint を有効にし、外れた題（約 110 件）を直す。設定は `plugins/pecot-visual/cli/eslint.config.js` と、`plugins/pecot-visual/assets/slidev/` の下にある
-- [ ] T053 [P] [US4] `plugins/pecot-workflow/cli-node/eslint.config.js` で有効にし、外れた題（約 33 件）を直す
-- [ ] T054 [P] [US4] `libs/text-rules/eslint.config.js` と `libs/interface-spec/eslint.config.js` で有効にし、外れた題を直す
+- [x] T050 [US4] `.claude/rules/test-conventions.md` を書く。中身は contracts/test-conventions.md に従う。対象、題の形、項目へのつなぎ、従う考え方を、vitest と pytest の例つきで書く
+- [x] T051 [P] [US4] `plugins/pecot-tools/cli/eslint.config.js` で題の lint を有効にし、外れた題（約 2 件）を直す
+- [x] T052 [P] [US4] pecot-visual で題の lint を有効にし、外れた題（約 110 件）を直す。設定は `plugins/pecot-visual/cli/eslint.config.js` と、`plugins/pecot-visual/assets/slidev/` の下にある
+- [x] T053 [P] [US4] `plugins/pecot-workflow/cli-node/eslint.config.js` で有効にし、外れた題（約 33 件）を直す
+- [x] T054 [P] [US4] `libs/text-rules/eslint.config.js` と `libs/interface-spec/eslint.config.js` で有効にし、外れた題を直す
 - [ ] T055 [US4] 「いちばん外の `describe` の題が定義書の `name` にある」を確かめる eslint の規則の、RuleTester のテストを書く。定義書にある名前・無い名前・`describe` が無いファイルを入れる。この時点で失敗する
 - [ ] T056 [US4] T055 の規則を `libs/interface-spec` に実装する。各 project の eslint の設定で、`tests/interface/**` にだけ当てる。今の公開面のテストのファイルは対象に入れず、作り替えない
 

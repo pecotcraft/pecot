@@ -44,6 +44,9 @@
       "inputs": [
         "{projectRoot}/cli/**/*",
         "{projectRoot}/cli-node/tests/output/cases.json",
+        "{projectRoot}/cli-node/tests/interface-export/typer-sample.json",
+        "{projectRoot}/interface/generated.json",
+        "{projectRoot}/scripts/interface/**/*",
         "sharedGlobals",
         "pecotPluginTestGlobals",
         "{projectRoot}/.claude-plugin/plugin.json",
@@ -56,7 +59,7 @@
         { "runtime": "node -p \"require('nx/package.json').version\"" }
       ],
       "metadata": {
-        "description": "cli の pytest。cli/ 以外の inputs は strace で棚卸しした実際の読み込み (#1225)。cli のテストは plugin.json のバージョン、bin/pecot の wrapper と bin/_lib.sh、gitignore 補完スクリプトを読む。skills・agents・hooks テンプレートの文書も読み、cli コマンドとの整合と参照の実在を確かめる（test_doc_reference_integrity 等）。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（tests/core/test_nx_scope.py）を nx の更新でキャッシュから外すために置く。cli-node/tests/output/cases.json は、Python と Node の出力の一致のテスト（tests/cli/test_output.py）が読む。"
+        "description": "cli の pytest。cli/ 以外の inputs は strace で棚卸しした実際の読み込み (#1225)。cli のテストは plugin.json のバージョン、bin/pecot の wrapper と bin/_lib.sh、gitignore 補完スクリプトを読む。skills・agents・hooks テンプレートの文書も読み、cli コマンドとの整合と参照の実在を確かめる（test_doc_reference_integrity 等）。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（tests/core/test_nx_scope.py）を nx の更新でキャッシュから外すために置く。cli-node/tests/output/cases.json は、Python と Node の出力の一致のテスト（tests/cli/test_output.py）が読む。interface/generated.json と scripts/interface/ は、tests/unit/test_interface_export.py が読む。cli-node/tests/interface-export/typer-sample.json は、同じテストが見本の期待値として読む。"
       },
       "options": {
         "command": "bash scripts/ci/run-tests.sh --scope=py",
@@ -166,11 +169,12 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli/**/*",
+        "{projectRoot}/scripts/interface/**/*",
         "sharedGlobals",
         "pecotPluginLintGlobals"
       ],
       "metadata": {
-        "description": "cli の ruff / pyright。pre-commit の nx-affected-lint が起動する。"
+        "description": "cli と scripts/interface の ruff / pyright。pre-commit の nx-affected-lint が起動する。"
       },
       "options": {
         "command": "bash scripts/ci/run-lint.sh --scope=py",
