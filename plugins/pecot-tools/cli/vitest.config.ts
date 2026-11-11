@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts'],
-    include: ['src/**/tests/**/*.test.ts', 'tests/integration/**/*.test.ts'],
+    include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/integration/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     testTimeout: 60_000,
     coverage: {

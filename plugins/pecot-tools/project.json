@@ -44,6 +44,10 @@
       "inputs": [
         "{projectRoot}/cli/**/*",
         "!{projectRoot}/cli/tests/bootstrap/**",
+        "{projectRoot}/interface/**/*",
+        "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
         "sharedGlobals",
         "pecotToolsPluginTestGlobals",
         "{workspaceRoot}/.githooks/pre-commit/check-engines-node-drift.sh"
@@ -99,6 +103,9 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli/**/*",
+        "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
         "sharedGlobals",
         "pecotToolsPluginLintGlobals"
       ],

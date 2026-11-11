@@ -1,1 +1,6 @@
-{ "format": 1, "plugins": {} }
+{
+  "format": 1,
+  "plugins": {
+    "pecot-tools": { "entries": "complete", "coverage": "off", "sources": ["cli/src/**/*.ts"] }
+  }
+}

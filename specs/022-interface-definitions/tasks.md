@@ -180,18 +180,18 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US2 が、pecot-tools で通る
 
-- [ ] T035 [US2] `plugins/pecot-tools/cli/tests/interface-export.test.ts` を書く。メモリ内でつないだ MCP サーバの `tools/list` から書き出したものが、リポジトリの `generated.json` と一致することを確かめる。この時点で失敗する
-- [ ] T036 [US2] `plugins/pecot-tools/cli/scripts/export-interface.ts` を実装する
+- [x] T035 [US2] `plugins/pecot-tools/cli/tests/interface-export.test.ts` を書く。メモリ内でつないだ MCP サーバの `tools/list` から書き出したものが、リポジトリの `generated.json` と一致することを確かめる。この時点で失敗する
+- [x] T036 [US2] `plugins/pecot-tools/cli/scripts/export-interface.ts` を実装する
   - `tools/list` の `inputSchema`・`outputSchema`・`annotations` を、そのまま `input`・`mcp.output`・`mcp.annotations` に入れる
   - `--check` と `--write` を持つ
   - 差の出し方は `libs/interface-spec` の関数を使う
-- [ ] T037 [US2] `plugins/pecot-tools/interface/generated.json` を `--write` で作る。`project.json` の `test-cli` の入力に `interface/**` を足す
-- [ ] T038 [US2] `plugins/pecot-tools/interface/authored.yaml` を書く。26 ツールの項目と、全ツールに共通の環境変数・共通の振る舞い（入力の検証、失敗の種別、結果の形）を書く
+- [x] T037 [US2] `plugins/pecot-tools/interface/generated.json` を `--write` で作る。`project.json` の `test-cli` の入力に `interface/**` を足す
+- [x] T038 [US2] `plugins/pecot-tools/interface/authored.yaml` を書く。26 ツールの項目と、全ツールに共通の環境変数・共通の振る舞い（入力の検証、失敗の種別、結果の形）を書く
   - `effects` は、実行する AWS の操作と、読み取りか書き込みかを書く（spec の US2 の 3）
   - `exit_status` は、失敗の種別（`awscli-missing` など）と条件を書く
   - `stdin` は `none` にする
-- [ ] T039 [US2] `plugins/pecot-tools/cli/src/mcp/tests/contract.test.ts` の `TOOL_CONTRACTS` の表を消す。代わりに、定義書との一致を確かめる。別リポの契約からの転記である旨のコメントも消す
-- [ ] T040 [US2] `libs/interface-spec/targets.json` に pecot-tools を `entries: complete`・`coverage: off` で足す
+- [x] T039 [US2] `plugins/pecot-tools/cli/src/mcp/tests/contract.test.ts` の `TOOL_CONTRACTS` の表を消す。代わりに、定義書との一致を確かめる。別リポの契約からの転記である旨のコメントも消す
+- [x] T040 [US2] `libs/interface-spec/targets.json` に pecot-tools を `entries: complete`・`coverage: off` で足す
 
 **Checkpoint**: 許可リストにコマンドを 1 つ足すと、`test-cli` と `lint-defs` が止まる
 
