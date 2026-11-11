@@ -1,6 +1,5 @@
-# リリースを devcontainer のランナーで動かす。承認は無く、dry-run=true（既定）は案だけ、false は sha の案から release を出す。
-# 本番は一時ブランチへ push して Release を出し、release-land.sh が最新の main を取り込んで main へ push する。
-# 利用者に見せる文は env に置き、run のシェルは日本語を持たない形にする。
+# 承認なしで動くリリース。dry-run=true（既定）は案だけ、false は sha の案から release を出す。
+# 利用者に見せる文は env に置き、run のシェルは日本語を持たない。
 name: release
 
 on:
@@ -30,6 +29,23 @@ jobs:
     timeout-minutes: 60
     environment: release-plan
     steps:
+      - name: Check sha input
+        id: sha-input
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          INPUT_SHA: ${{ inputs.sha }}
+          MSG_SHA_REQUIRED: "本番には sha（dry-run の run の headSha）が必要です。"
+          MSG_SHA_FORMAT: "sha は 40 桁の小文字 16 進で指定してください（ブランチ名や短い SHA は使えません）。"
+        run: |
+          if [ "$DRY_RUN" != "true" ] && [ -z "$INPUT_SHA" ]; then
+            echo "::error::$MSG_SHA_REQUIRED"
+            exit 1
+          fi
+          if [ -n "$INPUT_SHA" ] && ! [[ "$INPUT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::$MSG_SHA_FORMAT"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,16 +54,11 @@ jobs:
           persist-credentials: false
 
       - name: Verify sha
+        id: verify-sha
         env:
-          DRY_RUN: ${{ inputs.dry-run }}
           INPUT_SHA: ${{ inputs.sha }}
-          MSG_SHA_REQUIRED: "本番には sha（dry-run の run の headSha）が必要です。"
           MSG_SHA_NOT_IN_MAIN: "sha が origin/main の祖先ではありません。dry-run をやり直してください。"
         run: |
-          if [ "$DRY_RUN" != "true" ] && [ -z "$INPUT_SHA" ]; then
-            echo "::error::$MSG_SHA_REQUIRED"
-            exit 1
-          fi
           if [ -n "$INPUT_SHA" ] && ! git merge-base --is-ancestor "$INPUT_SHA" origin/main; then
             echo "::error::$MSG_SHA_NOT_IN_MAIN"
             exit 1
@@ -60,6 +71,7 @@ jobs:
           client-id: ${{ vars.PECOT_BOT_CLIENT_ID }}
           private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
           permission-contents: ${{ inputs.dry-run && 'read' || 'write' }}
+          # publish-npm.yml の起動（attach-mcp-tgz.sh）に要る。
           permission-actions: ${{ !inputs.dry-run && 'write' || '' }}
           permission-vulnerability-alerts: read
           permission-security-events: read
@@ -76,7 +88,7 @@ jobs:
           echo "name=${APP_SLUG}[bot]" >> "$GITHUB_OUTPUT"
           echo "email=${id}+${APP_SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
 
-      # コンテナが作る前にホストで作り、Summary を書く側の持ち主にそろえる。
+      # コンテナより先にホストで作り、Summary を書く側の持ち主にそろえる。
       - name: Prepare output directory
         run: mkdir -p .pecot/tmp/release
 
@@ -102,10 +114,9 @@ jobs:
             RUN_ID
             RUN_ATTEMPT
 
-      # exec の cwd は /workspaces/base のため、cd してから動かす。
       # 本番は nx が失敗しても、一時ブランチが残っていれば land で bump を main へ入れる。
       - name: Run release
-        id: verify
+        id: release
         uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3.1900000450
         env:
           CI: "true"
@@ -136,11 +147,13 @@ jobs:
               nx_rc=0
               run nx env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=push.default GIT_CONFIG_VALUE_0=current pnpm exec nx release --verbose --yes || nx_rc=$?
               land_rc=0
-              git ls-remote --exit-code origin "refs/heads/$branch" > /dev/null 2>&1
+              ls_out=$(git ls-remote --exit-code origin "refs/heads/$branch" 2>&1)
               ls_rc=$?
               if [ "$ls_rc" -eq 0 ]; then
                 run land .githooks/scripts/release-land.sh "$base" "$branch" || land_rc=$?
               elif [ "$ls_rc" -ne 2 ]; then
+                { echo "error: git ls-remote failed with exit code $ls_rc (branch: $branch)"; printf '%s\n' "$ls_out" | sed 's/^/  /'; } > "$d/land.log"
+                cat "$d/land.log"
                 land_rc=$ls_rc
               fi
               [ "$nx_rc" -eq 0 ] || exit "$nx_rc"
@@ -148,16 +161,20 @@ jobs:
             fi
           env: *release-env
 
-      # GITHUB_STEP_SUMMARY は Action が固定するため、コンテナの中からは書かない。ログをここで Summary にまとめる。
+      # GITHUB_STEP_SUMMARY はコンテナの中から書けないため、ログをここでまとめる。
       - name: Write job summary
         if: always()
         env:
           DRY_RUN: ${{ inputs.dry-run }}
+          SHA_INPUT_OUTCOME: ${{ steps.sha-input.outcome }}
+          SHA_VERIFY_OUTCOME: ${{ steps.verify-sha.outcome }}
           UP_OUTCOME: ${{ steps.up.outcome }}
-          RUN_OUTCOME: ${{ steps.verify.outcome }}
+          RUN_OUTCOME: ${{ steps.release.outcome }}
+          MSG_SHA_FAILED: "sha の確認で止まりました（入力の誤りで、基盤の失敗ではありません）。上の step のエラーを確かめてください。"
           MSG_UP_FAILED: "コンテナの取得・起動に失敗しました（基盤の失敗で、リリースの失敗ではありません）。"
           MSG_PLAN_FAILED: "案の作成に失敗しました。各ログを確かめてください。"
           MSG_RELEASE_FAILED: "リリースに失敗しました。各ログと、一時ブランチ release/run-* の有無を確かめてください。"
+          MSG_NOT_RUN: "リリースの手順まで進みませんでした。失敗した step を確かめてください。"
         run: |
           d=.pecot/tmp/release
           fence='```'
@@ -165,13 +182,17 @@ jobs:
           {
             if [ "$DRY_RUN" = "true" ]; then echo "## Release plan"; else echo "## Release"; fi
             echo
-            if [ "$UP_OUTCOME" != "success" ]; then
+            if [ "$SHA_INPUT_OUTCOME" = "failure" ] || [ "$SHA_VERIFY_OUTCOME" = "failure" ]; then
+              echo "$MSG_SHA_FAILED"
+            elif [ "$UP_OUTCOME" = "failure" ]; then
               echo "$MSG_UP_FAILED"
-            elif [ "$RUN_OUTCOME" != "success" ]; then
+            elif [ "$RUN_OUTCOME" = "failure" ]; then
               if [ "$DRY_RUN" = "true" ]; then echo "$MSG_PLAN_FAILED"; else echo "$MSG_RELEASE_FAILED"; fi
+            elif [ "$RUN_OUTCOME" != "success" ]; then
+              echo "$MSG_NOT_RUN"
             fi
             if [ -f "$d/land.log" ]; then
-              landed="$(grep -E '^(landed|skipped|error):' "$d/land.log" || true)"
+              landed="$(grep -E '^(landed|skipped|error):' "$d/land.log" | tail -n 50 || true)"
               if [ -n "$landed" ]; then
                 echo
                 echo "### land"
@@ -182,7 +203,7 @@ jobs:
               fi
             fi
             if [ -f "$d/preflight.log" ]; then
-              warn="$(awk '/^warning:/ {on=1; print; next} on && /^[[:space:]]/ {print; next} {on=0}' "$d/preflight.log")"
+              warn="$(awk '/^warning:/ {on=1; print; next} on && /^[[:space:]]/ {print; next} {on=0}' "$d/preflight.log" | head -c 50000)"
               if [ -n "$warn" ]; then
                 echo
                 echo "### preflight warnings"
@@ -192,12 +213,12 @@ jobs:
                 echo "$fence"
               fi
             fi
-            for n in preflight nx land; do
+            for n in preflight nx; do
               [ -f "$d/$n.log" ] || continue
               echo
               echo "<details><summary>$n</summary>"
               echo
-              echo "$fence"text
+              printf '%s\n' "${fence}text"
               tail -c 300000 "$d/$n.log"
               echo "$fence"
               echo

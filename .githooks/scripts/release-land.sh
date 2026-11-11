@@ -20,10 +20,13 @@ die() {
     exit 1
 }
 
-release_head="$(git rev-parse HEAD)"
+release_head="$(git rev-parse "refs/heads/$branch")"
 
 if [ "$release_head" = "$(git rev-parse "$base^{commit}")" ]; then
-    git push origin ":refs/heads/$branch" > /dev/null 2>&1 || die "failed to delete the temporary branch"
+    if ! delete_out="$(git push origin ":refs/heads/$branch" 2>&1)"; then
+        printf '%s\n' "$delete_out" | sed 's/^/  /' >&2
+        die "failed to delete the temporary branch"
+    fi
     echo "skipped: no release commit"
     exit 0
 fi
@@ -39,7 +42,7 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
         mode="fast-forward"
     else
         git checkout --quiet --detach "$main_sha"
-        if ! git merge --quiet --no-ff --no-verify -m "chore(release): merge main into $subject" "$release_head" > /dev/null; then
+        if ! git merge --quiet --no-ff --no-verify -m "chore(release): merge main into ${subject#chore(release): }" "$release_head" > /dev/null; then
             git merge --abort > /dev/null 2>&1 || true
             die "failed to merge main into the release commit"
         fi
@@ -53,11 +56,11 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
         echo "landed: $target ($mode)"
         exit 0
     fi
-    if printf '%s\n' "$out" | grep -qE 'fetch first|non-fast-forward'; then
+    if printf '%s\n' "$out" | grep -E '^!.*\[(remote )?rejected\]' | grep -qE '\((fetch first|non-fast-forward|cannot lock ref|incorrect old value)'; then
         echo "retry: main advanced during push (attempt $attempt/$MAX_ATTEMPTS)" >&2
         continue
     fi
-    printf '%s\n' "$out" >&2
+    printf '%s\n' "$out" | sed 's/^/  /' >&2
     die "push to main was rejected"
 done
 

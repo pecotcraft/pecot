@@ -39,11 +39,10 @@ def _run_cmd() -> str:
     return _step("Run release")["with"]["runCmd"]
 
 
-def test_single_job_without_approval_environment() -> None:
+def test_single_job_runs_in_release_plan_environment() -> None:
     wf = _workflow()
     assert list(wf["jobs"]) == ["release"]
     assert wf["jobs"]["release"]["environment"] == "release-plan"
-    assert not re.search(r"environment:\s*release\s*$", _WORKFLOW.read_text(encoding="utf-8"), re.M)
 
 
 def test_inputs_default_to_dry_run() -> None:
@@ -53,22 +52,14 @@ def test_inputs_default_to_dry_run() -> None:
     assert inputs["sha"]["type"] == "string"
 
 
-def test_checkout_uses_input_sha_and_never_main() -> None:
-    checkout = _step("Checkout")["with"]
-    assert checkout["ref"] == "${{ inputs.sha || github.sha }}"
-    assert not re.search(r"ref:\s*main\b", _WORKFLOW.read_text(encoding="utf-8"))
-    assert not any(s.get("name") == "Verify main has not advanced" for s in _steps())
+def test_checkout_uses_input_sha_after_the_sha_form_is_checked() -> None:
+    names = [s.get("name") for s in _steps()]
+    assert names.index("Check sha input") < names.index("Checkout")
+    assert _step("Checkout")["with"]["ref"] == "${{ inputs.sha || github.sha }}"
 
 
 def test_does_not_use_stringly_typed_inputs() -> None:
     assert "github.event.inputs" not in _WORKFLOW.read_text(encoding="utf-8")
-
-
-def test_sha_is_required_for_production_and_checked_against_main() -> None:
-    run = _step("Verify sha")["run"]
-    assert '"$DRY_RUN" != "true"' in run
-    assert "merge-base --is-ancestor" in run
-    assert "origin/main" in run
 
 
 def test_token_permissions_follow_dry_run() -> None:
@@ -81,27 +72,6 @@ def test_token_permissions_follow_dry_run() -> None:
         "permission-secret-scanning-alerts",
     ):
         assert with_[key] == "read"
-
-
-def test_dry_run_branch_runs_nx_dry_run_and_only_production_lands() -> None:
-    cmd = _run_cmd()
-    dry, prod = cmd.split("else", 1)
-    assert "nx release --dry-run" in dry
-    assert "release-land.sh" not in dry
-    assert "--dry-run" not in prod
-    assert "nx release --verbose --yes" in prod
-    assert "release-land.sh" in prod
-
-
-def test_production_lands_even_when_nx_fails() -> None:
-    prod = _run_cmd().split("else", 1)[1]
-    nx_pos = prod.index("nx release --verbose --yes")
-    assert "|| nx_rc=$?" in prod[nx_pos:].splitlines()[0]
-    assert prod.index("ls-remote --exit-code") < prod.index("release-land.sh")
-    assert "push.default" in prod
-    assert 'exit "$nx_rc"' in prod
-    assert 'exit "$land_rc"' in prod
-    assert 'git switch -c "$branch"' in prod
 
 
 def test_no_japanese_in_shell() -> None:
@@ -172,12 +142,13 @@ class Scene:
         _git(self.work, "push", "-q", "origin", "main")
         _git(root, "clone", "-q", str(self.origin), str(self.other))
 
-    def release(self, *, commit: bool = True, file: str = "version.txt") -> str:
+    def release(self, *, commit: bool = True, file: str = "version.txt", push: bool = True) -> str:
         _git(self.work, "switch", "-q", "-c", self.branch)
         if commit:
             _commit_file(self.work, file, "1.0.0\n", "chore(release): publish")
             _git(self.work, "tag", "-a", "v1.0.0", "-m", "v1.0.0")
-        _git(self.work, "push", "-q", "--follow-tags", "origin", self.branch)
+        if push:
+            _git(self.work, "push", "-q", "--follow-tags", "origin", self.branch)
         return _out(self.work, "rev-parse", "HEAD")
 
     def land(self, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -230,28 +201,22 @@ exec "{_REAL_GIT}" "$@"
 # ---- push の前提 ----
 
 
-def test_nx_style_push_moves_only_branch_and_tag(scene: Scene) -> None:
-    release = scene.release(commit=True)
-    # release() は --follow-tags 付きの push 済み。nx と同じ形で、もう 1 度 push して冪等であることも見る。
-    _commit_file(scene.work, "more.txt", "x\n", "chore(release): more")
-    _git(scene.work, "tag", "-a", "v1.0.1", "-m", "v1.0.1")
-    result = _git(
-        scene.work,
-        "push",
-        "--follow-tags",
-        "--no-verify",
-        "--atomic",
-        env={
-            "GIT_CONFIG_COUNT": "1",
-            "GIT_CONFIG_KEY_0": "push.default",
-            "GIT_CONFIG_VALUE_0": "current",
-        },
-    )
-    assert result.returncode == 0
+_NX_PUSH_ENV = {
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "push.default",
+    "GIT_CONFIG_VALUE_0": "current",
+}
+
+
+def test_nx_style_push_moves_only_branch_and_tag_even_when_local_main_is_ahead(
+    scene: Scene,
+) -> None:
+    _commit_file(scene.work, "local-only.txt", "x\n", "chore: local only")
+    scene.release(push=False)
+    _git(scene.work, "push", "--follow-tags", "--no-verify", "--atomic", env=_NX_PUSH_ENV)
     assert scene.origin_ref(f"refs/heads/{scene.branch}") == _out(scene.work, "rev-parse", "HEAD")
-    assert scene.origin_ref("refs/tags/v1.0.1")
+    assert scene.origin_ref("refs/tags/v1.0.0")
     assert scene.origin_ref("refs/heads/main") == scene.base
-    assert release != scene.base
 
 
 # ---- release-land.sh ----
@@ -277,7 +242,7 @@ def test_land_merges_advanced_main(scene: Scene) -> None:
     assert _out(scene.origin, "rev-parse", f"{landed}^2") == release
     assert (
         _out(scene.origin, "log", "-1", "--format=%s", landed)
-        == "chore(release): merge main into chore(release): publish"
+        == "chore(release): merge main into publish"
     )
     assert (
         _git(scene.origin, "merge-base", "--is-ancestor", "v1.0.0", landed, check=False).returncode
@@ -309,36 +274,319 @@ def test_land_retries_when_main_advances_just_before_push(tmp_path: Path, scene:
     assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
 
 
+def _assert_land_error(result: subprocess.CompletedProcess[str], scene: Scene) -> None:
+    assert result.returncode == 1
+    errors = [line for line in result.stderr.splitlines() if line.startswith("error:")]
+    assert len(errors) == 1, result.stderr
+    assert errors[0].endswith(f"(branch: {scene.branch})")
+    assert scene.origin_ref(f"refs/heads/{scene.branch}")
+
+
 def test_land_conflict_errors_and_keeps_branch(scene: Scene) -> None:
     scene.release(file="CHANGELOG.md")
     _advance_main(scene.other, "CHANGELOG.md", "conflicting\n")
-    result = scene.land()
-    assert result.returncode == 1
-    assert result.stderr.startswith("error:")
-    assert scene.branch in result.stderr
-    assert scene.origin_ref(f"refs/heads/{scene.branch}")
+    _assert_land_error(scene.land(), scene)
 
 
 def test_land_gives_up_after_five_attempts(tmp_path: Path, scene: Scene) -> None:
     scene.release()
     shim_env = _push_shim(tmp_path, scene, times=99)
-    result = scene.land(shim_env)
-    assert result.returncode == 1
-    assert "error:" in result.stderr
-    assert scene.branch in result.stderr
+    _assert_land_error(scene.land(shim_env), scene)
     assert (tmp_path / "counter").read_text(encoding="utf-8").strip() == "5"
-    assert scene.origin_ref(f"refs/heads/{scene.branch}")
 
 
-def test_land_stops_at_once_when_remote_hook_rejects(scene: Scene) -> None:
+def test_land_stops_at_once_when_remote_hook_rejects_even_if_it_says_fetch_first(
+    scene: Scene,
+) -> None:
     scene.release()
     hook = scene.origin / "hooks/pre-receive"
-    hook.write_text("#!/bin/sh\necho denied >&2\nexit 1\n", encoding="utf-8")
+    hook.write_text("#!/bin/sh\necho 'denied: fetch first' >&2\nexit 1\n", encoding="utf-8")
     hook.chmod(0o755)
     result = scene.land()
-    assert result.returncode == 1
-    assert "error:" in result.stderr
-    assert scene.branch in result.stderr
+    _assert_land_error(result, scene)
     assert "retry:" not in result.stderr
     assert scene.origin_ref("refs/heads/main") == scene.base
-    assert scene.origin_ref(f"refs/heads/{scene.branch}")
+
+
+def test_land_shows_branch_delete_failure_output(scene: Scene) -> None:
+    scene.release(commit=False)
+    hook = scene.origin / "hooks/pre-receive"
+    hook.write_text("#!/bin/sh\necho 'no delete' >&2\nexit 1\n", encoding="utf-8")
+    hook.chmod(0o755)
+    result = scene.land()
+    _assert_land_error(result, scene)
+    assert "no delete" in result.stderr
+
+
+def test_land_does_not_depend_on_the_checked_out_branch(scene: Scene) -> None:
+    release = scene.release()
+    _git(scene.work, "switch", "-q", "main")
+    result = scene.land()
+    assert result.returncode == 0, result.stderr
+    assert scene.origin_ref("refs/heads/main") == release
+
+
+# ---- sha の確認（step の run をそのまま bash で動かす） ----
+
+
+def _run_step(name: str, cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["bash", "-e", "-c", _step(name)["run"]],
+        cwd=cwd,
+        env=_env(env),
+        text=True,
+        capture_output=True,
+    )
+
+
+def _sha_flow(scene: Scene, dry_run: str, sha: str) -> int:
+    env = {"DRY_RUN": dry_run, "INPUT_SHA": sha}
+    for name in ("Check sha input", "Verify sha"):
+        result = _run_step(name, scene.work, env)
+        if result.returncode != 0:
+            return result.returncode
+    return 0
+
+
+@pytest.mark.parametrize(
+    ("dry_run", "sha_kind", "expected"),
+    [
+        ("false", "empty", 1),
+        ("false", "branch-name", 1),
+        ("false", "short", 1),
+        ("false", "upper", 1),
+        ("false", "multi-line", 1),
+        ("false", "not-ancestor", 1),
+        ("true", "branch-name", 1),
+        ("true", "empty", 0),
+        ("true", "base", 0),
+        ("false", "base", 0),
+    ],
+)
+def test_sha_flow(scene: Scene, dry_run: str, sha_kind: str, expected: int) -> None:
+    _git(scene.work, "switch", "-q", "-c", "local-only")
+    local_only = _commit_file(scene.work, "x.txt", "x\n", "feat: not pushed")
+    sha = {
+        "empty": "",
+        "branch-name": "main",
+        "short": scene.base[:7],
+        "upper": scene.base.upper(),
+        "multi-line": scene.base + "\n" + scene.base,
+        "not-ancestor": local_only,
+        "base": scene.base,
+    }[sha_kind]
+    assert _sha_flow(scene, dry_run, sha) == expected
+
+
+# ---- runCmd（stub の pecot・pnpm・gh と本物の git・release-land.sh で動かす） ----
+
+# nx の push は、フックを飛ばす git の引数を変数で組み立てて nx と同じ形にする。
+_NX_STUB = """#!/usr/bin/env bash
+case "$*" in
+  *--dry-run*) echo "dry-run plan"; exit 0 ;;
+esac
+[ "$NX_MODE" = fail-before ] && { echo "nx failed" >&2; exit 1; }
+echo 1.0.0 > version.txt
+git add version.txt
+git commit -q -m "chore(release): publish"
+git tag -a v1.0.0 -m v1.0.0
+skip=verify
+git push --follow-tags "--no-$skip" --atomic
+[ "$NX_MODE" = fail-after ] && { echo "nx failed after push" >&2; exit 3; }
+exit 0
+"""
+
+_GIT_SHIM = """#!/usr/bin/env bash
+if [ "${{1:-}}" = ls-remote ] && [ -n "${{LS_REMOTE_FAIL:-}}" ]; then
+  echo "fatal: authentication failed" >&2
+  exit 128
+fi
+exec "{real}" "$@"
+"""
+
+
+class RunScene(Scene):
+    def __init__(self, root: Path) -> None:
+        super().__init__(root)
+        self.root_dir = root
+        self.stubs = root / "stubs"
+        self.stubs.mkdir()
+        self._script(self.stubs / "pnpm", _NX_STUB)
+        self._script(self.stubs / "gh", "#!/usr/bin/env bash\nexit 0\n")
+        self._script(self.stubs / "git", _GIT_SHIM.format(real=_REAL_GIT))
+        self._script(
+            self.work / "plugins/pecot-workflow/bin/pecot",
+            "#!/usr/bin/env bash\necho preflight ok\n",
+        )
+        land = self.work / ".githooks/scripts/release-land.sh"
+        land.parent.mkdir(parents=True)
+        shutil.copy(_LAND, land)
+        self.logs = self.work / ".pecot/tmp/release"
+        self.logs.mkdir(parents=True)
+
+    @staticmethod
+    def _script(path: Path, text: str) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        path.chmod(0o755)
+
+    def run_cmd(self, *, dry_run: bool, **extra: str) -> subprocess.CompletedProcess[str]:
+        cmd = _run_cmd()
+        assert "cd /workspaces/base/pecot &&" in cmd
+        cmd = cmd.replace("cd /workspaces/base/pecot", f"cd {self.work}")
+        env = {
+            "PATH": f"{self.stubs}{os.pathsep}{os.environ['PATH']}",
+            "DRY_RUN": "true" if dry_run else "false",
+            "BOT_NAME": "bot",
+            "BOT_EMAIL": "bot@example.com",
+            "RUN_ID": "1",
+            "RUN_ATTEMPT": "1",
+            **extra,
+        }
+        return subprocess.run(
+            ["bash", "-c", cmd], cwd=self.root_dir, env=_env(env), text=True, capture_output=True
+        )
+
+
+@pytest.fixture
+def run_scene(tmp_path: Path) -> RunScene:
+    return RunScene(tmp_path)
+
+
+def test_run_cmd_dry_run_only_plans(run_scene: RunScene) -> None:
+    result = run_scene.run_cmd(dry_run=True)
+    assert result.returncode == 0, result.stderr
+    assert (run_scene.logs / "preflight.log").is_file()
+    assert "dry-run plan" in (run_scene.logs / "nx.log").read_text(encoding="utf-8")
+    assert not (run_scene.logs / "land.log").exists()
+    assert run_scene.origin_ref("refs/heads/main") == run_scene.base
+    assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
+
+
+def test_run_cmd_production_lands_release(run_scene: RunScene) -> None:
+    result = run_scene.run_cmd(dry_run=False, NX_MODE="ok")
+    assert result.returncode == 0, result.stderr
+    released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
+    assert released
+    assert run_scene.origin_ref("refs/heads/main") == released
+    assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
+    land_log = (run_scene.logs / "land.log").read_text(encoding="utf-8")
+    assert land_log.startswith(f"landed: {released} (fast-forward)")
+
+
+def test_run_cmd_nx_failure_before_push_skips_land(run_scene: RunScene) -> None:
+    result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-before")
+    assert result.returncode == 1
+    assert not (run_scene.logs / "land.log").exists()
+    assert run_scene.origin_ref("refs/heads/main") == run_scene.base
+
+
+def test_run_cmd_nx_failure_after_push_still_lands_and_returns_nx_code(
+    run_scene: RunScene,
+) -> None:
+    result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-after")
+    assert result.returncode == 3
+    released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
+    assert run_scene.origin_ref("refs/heads/main") == released
+    assert (run_scene.logs / "land.log").read_text(encoding="utf-8").startswith("landed:")
+
+
+def test_run_cmd_ls_remote_failure_is_reported_in_land_log(run_scene: RunScene) -> None:
+    result = run_scene.run_cmd(dry_run=False, NX_MODE="ok", LS_REMOTE_FAIL="1")
+    assert result.returncode == 128
+    land_log = (run_scene.logs / "land.log").read_text(encoding="utf-8")
+    assert land_log.startswith(
+        f"error: git ls-remote failed with exit code 128 (branch: {run_scene.branch})"
+    )
+    assert run_scene.origin_ref("refs/heads/main") == run_scene.base
+
+
+# ---- Write job summary ----
+
+
+def _summary(tmp_path: Path, logs: dict[str, str], **env: str) -> str:
+    cwd = tmp_path / "summary-cwd"
+    d = cwd / ".pecot/tmp/release"
+    d.mkdir(parents=True)
+    for name, text in logs.items():
+        (d / f"{name}.log").write_text(text, encoding="utf-8")
+    out = tmp_path / "step-summary.md"
+    out.write_text("", encoding="utf-8")
+    step = _step("Write job summary")
+    base_env = {
+        k: v for k, v in step["env"].items() if k.startswith("MSG_") and "${{" not in str(v)
+    }
+    base_env.update(
+        DRY_RUN="false",
+        SHA_INPUT_OUTCOME="success",
+        SHA_VERIFY_OUTCOME="success",
+        UP_OUTCOME="success",
+        RUN_OUTCOME="success",
+        GITHUB_STEP_SUMMARY=str(out),
+    )
+    base_env.update(env)
+    result = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        cwd=cwd,
+        env=_env(base_env),
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return out.read_text(encoding="utf-8")
+
+
+def _msg(name: str) -> str:
+    return _step("Write job summary")["env"][name]
+
+
+def test_summary_dry_run_heading(tmp_path: Path) -> None:
+    text = _summary(tmp_path, {"preflight": "ok\n", "nx": "plan\n"}, DRY_RUN="true")
+    assert text.startswith("## Release plan\n")
+    assert "<details><summary>preflight</summary>" in text
+    assert "<details><summary>nx</summary>" in text
+
+
+def test_summary_production_shows_landed_line_without_git_errors(tmp_path: Path) -> None:
+    land = (
+        "landed: abc123 (merged def456)\n"
+        "  error: failed to push some refs to 'origin'\n"
+        "error: push to main was rejected (branch: release/run-1-1)\n"
+    )
+    text = _summary(tmp_path, {"land": land, "nx": "x\n"})
+    assert text.startswith("## Release\n")
+    section = text.split("### land", 1)[1].split("```", 2)[1]
+    assert "landed: abc123 (merged def456)" in section
+    assert "error: push to main was rejected (branch: release/run-1-1)" in section
+    assert "failed to push some refs" not in section
+    assert "<summary>land</summary>" not in text
+
+
+def test_summary_sha_failure_is_not_reported_as_infrastructure(tmp_path: Path) -> None:
+    text = _summary(
+        tmp_path, {}, SHA_VERIFY_OUTCOME="failure", UP_OUTCOME="skipped", RUN_OUTCOME="skipped"
+    )
+    assert _msg("MSG_SHA_FAILED") in text
+    assert _msg("MSG_UP_FAILED") not in text
+
+
+def test_summary_container_failure_and_skipped_are_told_apart(tmp_path: Path) -> None:
+    failed = _summary(tmp_path, {}, UP_OUTCOME="failure", RUN_OUTCOME="skipped")
+    assert _msg("MSG_UP_FAILED") in failed
+    skipped = _summary(tmp_path / "b", {}, UP_OUTCOME="skipped", RUN_OUTCOME="skipped")
+    assert _msg("MSG_NOT_RUN") in skipped
+    assert _msg("MSG_UP_FAILED") not in skipped
+
+
+def test_summary_release_failure_messages(tmp_path: Path) -> None:
+    assert _msg("MSG_RELEASE_FAILED") in _summary(tmp_path, {}, RUN_OUTCOME="failure")
+    plan = _summary(tmp_path / "b", {}, RUN_OUTCOME="failure", DRY_RUN="true")
+    assert _msg("MSG_PLAN_FAILED") in plan
+
+
+def test_summary_stays_under_one_mebibyte(tmp_path: Path) -> None:
+    big = "x" * 100 + "\n"
+    logs = dict.fromkeys(("preflight", "nx", "land"), big * 20000)
+    logs["preflight"] = ("warning: w\n  detail\n" * 40000) + logs["preflight"]
+    text = _summary(tmp_path, logs)
+    assert len(text.encode("utf-8")) < 1024 * 1024

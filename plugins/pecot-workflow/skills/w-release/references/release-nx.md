@@ -183,19 +183,26 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
    gh run list --workflow release.yml --event workflow_dispatch --json databaseId,createdAt,headSha -L 5 -R <owner>/<repo>
    ```
 
-2. run の完了を待つ。`timeout` を付けた 1 コマンドで、上限 30 分まで待つ。
+2. run の完了を待つ。Bash ツールの前面の上限は 10 分なので、1 回の待ちは `timeout 540` に収める。終わらなければ、同じコマンドを打ち直す。
 
    ```bash
-   timeout 1800 gh run watch <id> --exit-status -R <owner>/<repo>
+   timeout 540 gh run watch <id> --exit-status --interval 30 --compact -R <owner>/<repo>
    ```
 
-   失敗したら止めて、[release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
-   `skipped` で終わったときは、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える。
+   待った後に、job `release` の結論を取る。
+
+   ```bash
+   gh run view <id> --json conclusion,jobs --jq '.conclusion, (.jobs[]|.name+": "+.conclusion)' -R <owner>/<repo>
+   ```
+
+   - `success` のときだけ、次へ進む
+   - `skipped` のときは、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える
+   - `failure`・`cancelled` のときは止めて、[release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う
 
 3. dry-run が残した案を読み、ユーザーに示す。
    観点は、2ブランチ手順の「5. bump 妥当性のユーザー確認」と同じ。
    案は `release-plan` という名前の artifact に入っている。
-   `nx.log` から bump・tag・CHANGELOG の案を、`summary.md` から次の version と作るタグ名を読む。`plans.log` は plan の件数である。
+   `nx.log` から bump・tag・CHANGELOG の案を読む。`summary.md` には、`nx.log` と同じ内容と preflight の warnings が入る。
 
    ```bash
    gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
@@ -217,15 +224,21 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
    ```
 
 5. 本番の run の完了を待つ。待ち方は 2 と同じで、id は 1 と同じ引き方で取る。
-   完了したら、発行したタグ名と GitHub Release の URL を報告する。
+   完了したら、発行したタグ名と GitHub Release の URL に加えて、`main` への取り込みの結果を報告する。
    タグ名と URL は、次のコマンドで取る。
 
    ```bash
    gh release list -L 4 -R <owner>/<repo>
    ```
 
+   取り込みの結果は、artifact `release-log` の `summary.md` の `### land` の行である。
+   `landed: ... (merged <SHA>)`・`landed: ... (fast-forward)`・`skipped:` のどれかを読んで、そのまま伝える。
+
+   ```bash
+   gh run download <id> -n release-log -D .pecot/work/<Issue番号>/release-log -R <owner>/<repo>
+   ```
+
    失敗したときは [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
-   本番の run の artifact は `release-log` である。
 
    dry-run が preflight で止まったときは、open の code scanning・secret scanning の alert があるか、その一覧を取得できない。
    手元の手順の「3. open の security alert を確認（preflight）」に従う。
