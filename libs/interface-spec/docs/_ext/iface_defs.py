@@ -46,8 +46,6 @@ JUNIT_DIR = Path("_generated") / "junit"
 class Case:
     classname: str
     name: str
-    file: str
-    line: int
     time: float
     result: str
     message: str
@@ -83,8 +81,6 @@ def _flatten(suites: list[dict[str, Any]]) -> list[Suite]:
             Case(
                 classname=str(c["classname"]),
                 name=str(c["name"]),
-                file=str(c["file"]),
-                line=int(c["line"]),
                 time=float(c["time"]),
                 result=str(c["result"]),
                 message=str(c["message"]),
@@ -124,7 +120,10 @@ _RESULT_ELEMENT = {"failed": "failure", "error": "error", "skipped": "skipped"}
 
 
 def render_junit(suites: list[Suite]) -> str:
-    """絞ったケースを JUnit に書く。ケースごとに verifies を 1 つにまとめ、値を ID のカンマ区切りにする。"""
+    """絞ったケースを JUnit に書く。ケースごとに verifies を 1 つにまとめ、値を ID のカンマ区切りにする。
+
+    file・line は書かない。vitest の JUnit は持たず、pytest の表にだけ行が増えて列がそろわないため。
+    """
     root = ET.Element("testsuites")
     for suite in suites:
         element = ET.SubElement(
@@ -138,14 +137,10 @@ def render_junit(suites: list[Suite]) -> str:
                 "skipped": str(sum(c.result == "skipped" for c in suite.cases)),
             },
         )
-        props = ET.SubElement(element, "properties")
-        ET.SubElement(props, "property", {"name": "ub_test_reports:line_base", "value": "1"})
         for c in suite.cases:
             attrs = {
                 "classname": c.classname,
                 "name": c.name,
-                "file": c.file,
-                "line": str(c.line),
                 "time": str(c.time),
             }
             if c.result == "disabled":

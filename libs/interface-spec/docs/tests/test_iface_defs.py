@@ -148,6 +148,12 @@ def test_verifies_links_cases(full: Built) -> None:
     assert names("SM-ONE-03") == []
 
 
+def test_pytest_and_vitest_cases_have_same_fields(full: Built) -> None:
+    cases = [n for n in full.needs.values() if n["type"] == "testcase"]
+    assert {n["title"] for n in cases} >= {"test_normal", "sample_two > 呼ぶと、2 つを返す"}
+    assert all(not n.get("case_file") and not n.get("case_line") for n in cases)
+
+
 def test_cases_without_verifies_are_dropped(full: Built) -> None:
     titles = {n["title"] for n in full.needs.values()}
     assert "test_other" not in titles
@@ -207,8 +213,6 @@ def case(result: str) -> Case:
     return Case(
         classname="c",
         name="n",
-        file="f",
-        line=1,
         time=0.0,
         result=result,
         message="",
