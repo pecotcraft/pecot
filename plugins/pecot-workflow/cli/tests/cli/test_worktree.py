@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from typer.testing import CliRunner, Result
 from ub_test_reports.pytest_plugin import add_test_properties
 
@@ -65,6 +64,7 @@ class TestWorktreeAdd:
         _, kwargs = mock_create.call_args
         assert "name" not in kwargs
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-23"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_core_warning_has_prefix(self, mock_create: MagicMock, tmp_path: Path) -> None:
         """main の import だけで handler が付き、core の警告が `warning:` 付きで出る"""
@@ -90,6 +90,7 @@ class TestWorktreeAdd:
         assert any(line.startswith("warning: target does not exist:") for line in lines)
         assert not any(line.startswith("target does not exist:") for line in lines)
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-16"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_dry_run(self, mock_create: MagicMock, tmp_path: Path) -> None:
         mock_create.return_value = WorktreeCreateResult(
@@ -103,6 +104,7 @@ class TestWorktreeAdd:
         assert result.exit_code == 0
         assert "dry-run" in result.output
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-12"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_allow_existing_branch_flag(self, mock_create: MagicMock, tmp_path: Path) -> None:
         mock_create.return_value = WorktreeCreateResult(
@@ -182,6 +184,7 @@ class TestWorktreeAdd:
         assert "setup command" not in result.output
         assert "echo done" not in result.output
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-24", "PW-WORKTREE-ADD-25"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_failure(self, mock_create: MagicMock, tmp_path: Path) -> None:
         """setup が失敗すると core の警告が 1 本だけ出て、exit code は 0 のまま"""
@@ -201,6 +204,7 @@ class TestWorktreeAdd:
         )
         assert "setup_command exited" not in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-10"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_passes_setup_option_to_core(self, mock_create: MagicMock, tmp_path: Path) -> None:
         """--setup で指定したコマンドが create_worktree に渡される"""
@@ -219,6 +223,7 @@ class TestWorktreeAdd:
         _, kwargs = mock_create.call_args
         assert kwargs["setup_command"] == "echo cli-setup"
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-24", "PW-WORKTREE-ADD-25"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_displays_setup_timeout(self, mock_create: MagicMock, tmp_path: Path) -> None:
         """timeout した際は timed out の警告が 1 本だけ出る"""
@@ -239,6 +244,7 @@ class TestWorktreeAdd:
         )
         assert "setup_command exited" not in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-23"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_tracked_link_is_one_warning(self, mock_create: MagicMock, tmp_path: Path) -> None:
         """追跡しているパスの link は core の警告 1 行だけで、error: の行は出ない"""
@@ -254,6 +260,7 @@ class TestWorktreeAdd:
         assert lines.count(tracked) == 1
         assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-19", "PW-WORKTREE-ADD-23"])
     @patch("cli.core.worktree.create_worktree")
     def test_add_symlink_failure_is_one_warning(
         self, mock_create: MagicMock, tmp_path: Path
@@ -325,12 +332,14 @@ class TestWorktreeRemove:
         result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
         assert result.exit_code == 0
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-16"])
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_error(self, mock_remove: MagicMock, tmp_path: Path) -> None:
         mock_remove.side_effect = RuntimeError("not found")
         result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
         assert result.exit_code == 1
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-06"])
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_keep_branch(self, mock_remove: MagicMock, tmp_path: Path) -> None:
         result = runner.invoke(
@@ -341,6 +350,7 @@ class TestWorktreeRemove:
         assert "removed: worktree wt1" in result.stderr
         assert "local branch" not in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-07"])
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_deletes_branch_by_default(self, mock_remove: MagicMock, tmp_path: Path) -> None:
         mock_remove.return_value = None
@@ -349,6 +359,7 @@ class TestWorktreeRemove:
         assert mock_remove.call_args.kwargs["keep_branch"] is False
         assert "deleted: local branch wt1" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-07"])
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_force(self, mock_remove: MagicMock, tmp_path: Path) -> None:
         mock_remove.return_value = None
@@ -357,6 +368,9 @@ class TestWorktreeRemove:
         assert mock_remove.call_args.kwargs["force"] is True
         assert "deleted: local branch wt1" in result.stderr
 
+    @add_test_properties(
+        verifies=["PW-WORKTREE-REMOVE-06", "PW-WORKTREE-REMOVE-09", "PW-WORKTREE-REMOVE-23"]
+    )
     @patch("cli.core.worktree.remove_worktree")
     def test_remove_branch_delete_failure_warns(
         self, mock_remove: MagicMock, tmp_path: Path
@@ -370,6 +384,7 @@ class TestWorktreeRemove:
         )
         assert "deleted: local branch" not in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-11", "PW-WORKTREE-REMOVE-12"])
     @patch("cli.core.worktree.run_git")
     def test_remove_unknown_name(self, mock_git: MagicMock, tmp_path: Path) -> None:
         mock_git.return_value = MagicMock(
@@ -386,6 +401,7 @@ class TestWorktreeRemove:
 
 
 class TestWorktreeInit:
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-01"])
     def test_init_creates_v3_template(self, tmp_path: Path) -> None:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=tmp_path),
@@ -403,6 +419,9 @@ class TestWorktreeInit:
         # setup_command はデフォルト None なので出力されない
         assert "setup_command" not in data
 
+    @add_test_properties(
+        verifies=["PW-WORKTREE-INIT-16", "PW-WORKTREE-INIT-17", "PW-WORKTREE-INIT-18"]
+    )
     def test_init_fails_on_invalid_active_config(self, tmp_path: Path) -> None:
         with (
             patch("cli.core.worktree.find_main_worktree", return_value=tmp_path),
@@ -414,6 +433,7 @@ class TestWorktreeInit:
         assert not (tmp_path / ".pecot" / "config" / "worktree-config.json").exists()
         assert not (tmp_path / ".pecot" / "config" / ".worktreeignore").exists()
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-02", "PW-WORKTREE-INIT-05"])
     def test_init_creates_worktreeignore(self, tmp_path: Path) -> None:
         """init は .worktreeignore も同時に生成する"""
         with (
@@ -435,6 +455,9 @@ class TestWorktreeInit:
         assert "worktree-config.json" in result.output
         assert ".worktreeignore" in result.output
 
+    @add_test_properties(
+        verifies=["PW-WORKTREE-INIT-01", "PW-WORKTREE-INIT-02", "PW-WORKTREE-INIT-05"]
+    )
     def test_init_creates_both_files_in_single_invocation(self, tmp_path: Path) -> None:
         """1 回の `pecot worktree init` で worktree-config.json と .worktreeignore の
         両方が揃う（片方だけ作られる中間状態が存在しない）ことを保証"""
@@ -463,6 +486,7 @@ class TestWorktreeInit:
         assert "worktree-config.json" in result.output
         assert ".worktreeignore" in result.output
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-08"])
     def test_init_exists_config_only(self, tmp_path: Path) -> None:
         """worktree-config.json だけ既存でも exit 1"""
         config_path = tmp_path / ".pecot" / "config" / "worktree-config.json"
@@ -473,6 +497,7 @@ class TestWorktreeInit:
         assert result.exit_code == 1
         assert "error: worktree config already exists" in result.output
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-07", "PW-WORKTREE-INIT-08"])
     def test_init_exists_ignore_only(self, tmp_path: Path) -> None:
         """.worktreeignore だけ既存でも exit 1"""
         ignore_path = tmp_path / ".pecot" / "config" / ".worktreeignore"
@@ -484,6 +509,7 @@ class TestWorktreeInit:
         assert "error: worktree config already exists" in result.output
         assert ".worktreeignore" in result.output
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-04"])
     def test_init_target_repo_fallbacks_to_self_when_no_project(self, tmp_path: Path) -> None:
         """active project が無い場合、target_repo は main WT のディレクトリ名に揃う"""
         main_wt = tmp_path / "myrepo"
@@ -535,6 +561,7 @@ class TestWorktreeInit:
         data = json.loads((main_wt / ".pecot" / "config" / "worktree-config.json").read_text())
         return {link["path"]: link["target_repo"] for link in data["links"]}
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-03"])
     def test_init_shared_links_point_to_aggregation_repo(self, tmp_path: Path) -> None:
         """aggregation_repo があれば、共有 3 リンクはそのリポ、自リポ 3 リンクは main WT のディレクトリ名を指す"""
         assert self._init_targets(tmp_path, "owner/roadmap-repo") == {
@@ -546,6 +573,7 @@ class TestWorktreeInit:
             ".pecot/work": "myrepo",
         }
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-04"])
     def test_init_shared_links_point_to_self_without_aggregation_repo(self, tmp_path: Path) -> None:
         """aggregation_repo が無ければ、repositories に別のリポがあっても共有 3 リンクは自リポを指す"""
         assert set(self._init_targets(tmp_path, None).values()) == {"myrepo"}
@@ -555,6 +583,7 @@ class TestWorktreeInit:
 
 
 class TestWorktreeLink:
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-21", "PW-WORKTREE-LINK-22"])
     def test_link_no_config(self, tmp_path: Path) -> None:
         with patch("cli.core.worktree_links.find_config_file", return_value=None):
             result = runner.invoke(app, ["worktree", "link", "-D", str(tmp_path)])
@@ -607,6 +636,7 @@ class TestWorktreeLink:
             result = self._run_link(tmp_path, "a.txt", "a.txt", args=args, input=input)
         return result, real
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-18"])
     def test_link_tracked_path_is_one_warning(self, tmp_path: Path) -> None:
         wt = tmp_path / "wt1" / "myrepo"
         wt.mkdir(parents=True, exist_ok=True)
@@ -618,6 +648,7 @@ class TestWorktreeLink:
         assert lines.count(tracked) == 1
         assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-18"])
     def test_link_symlink_failure_is_one_warning(self, tmp_path: Path) -> None:
         wt = tmp_path / "wt1" / "myrepo"
         wt.mkdir(parents=True, exist_ok=True)
@@ -631,6 +662,9 @@ class TestWorktreeLink:
         )
         assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
 
+    @add_test_properties(
+        verifies=["PW-WORKTREE-LINK-05", "PW-WORKTREE-LINK-06", "PW-WORKTREE-LINK-07"]
+    )
     def test_link_real_file_answered_y_is_replaced(self, tmp_path: Path) -> None:
         result, real = self._real_file_link(tmp_path, [], input="y\n")
         assert result.exit_code == 0
@@ -648,6 +682,7 @@ class TestWorktreeLink:
         assert not real.is_symlink()
         assert real.read_text() == "local"
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-10"])
     def test_link_real_file_with_all_is_skipped_without_asking(self, tmp_path: Path) -> None:
         result, real = self._real_file_link(tmp_path, ["--all"])
         assert result.exit_code == 0
@@ -655,18 +690,23 @@ class TestWorktreeLink:
         assert not real.is_symlink()
         assert real.read_text() == "local"
 
+    @add_test_properties(
+        verifies=["PW-WORKTREE-LINK-01", "PW-WORKTREE-LINK-08", "PW-WORKTREE-LINK-09"]
+    )
     def test_link_real_file_with_force_is_replaced_without_asking(self, tmp_path: Path) -> None:
         result, real = self._real_file_link(tmp_path, ["--force"])
         assert result.exit_code == 0
         assert "overwrite it?" not in result.stderr
         assert real.is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-11"])
     def test_link_dry_run_all_real_file_is_skip(self, tmp_path: Path) -> None:
         result, real = self._real_file_link(tmp_path, ["--all", "--dry-run"])
         assert result.exit_code == 0
         assert f"symlink {real} (a real file exists)" in result.output
         assert not real.is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-11", "PW-WORKTREE-LINK-16"])
     def test_link_dry_run_force_real_file_is_update(self, tmp_path: Path) -> None:
         result, real = self._real_file_link(tmp_path, ["--force", "--dry-run"])
         assert result.exit_code == 0
@@ -674,12 +714,14 @@ class TestWorktreeLink:
         assert "a real file exists" not in result.output
         assert not real.is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-16"])
     def test_link_dry_run_single_real_file_asks_first(self, tmp_path: Path) -> None:
         result, real = self._real_file_link(tmp_path, ["--dry-run"])
         assert result.exit_code == 0
         assert "(real file, asks first)" in result.output
         assert not real.is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-11", "PW-WORKTREE-LINK-16"])
     def test_link_dry_run_tracked_path_is_skip(self, tmp_path: Path) -> None:
         wt = tmp_path / "wt1" / "myrepo"
         wt.mkdir(parents=True, exist_ok=True)
@@ -689,6 +731,7 @@ class TestWorktreeLink:
         assert f"symlink {wt / 'README.md'} (tracked by git)" in result.output
         assert not (wt / "README.md").is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-01", "PW-WORKTREE-LINK-34"])
     def test_link_from_subdirectory_targets_worktree_root(self, tmp_path: Path) -> None:
         wt = tmp_path / "wt1" / "myrepo"
         wt.mkdir(parents=True, exist_ok=True)
@@ -733,21 +776,32 @@ class TestDevcontainerGuard:
         assert self.MESSAGE in result.stderr
         assert "Traceback" not in result.output + result.stderr
 
-    @pytest.mark.parametrize(
-        "args",
-        [["add"], ["remove", "wt1"], ["init"], ["link"]],
-        ids=["add", "remove", "init", "link"],
-    )
-    def test_fails_outside_devcontainer(self, tmp_path: Path, args: list[str]) -> None:
+    def _invoke_outside(self, tmp_path: Path, args: list[str]) -> Result:
         with patch(
             "cli.core.worktree.ensure_devcontainer_environment",
             side_effect=RuntimeError(self.MESSAGE),
         ):
-            result = runner.invoke(app, ["worktree", *args, "-D", str(tmp_path)])
-        self._assert_error_line(result)
+            return runner.invoke(app, ["worktree", *args, "-D", str(tmp_path)])
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-30", "PW-WORKTREE-ADD-31"])
+    def test_add_fails_outside_devcontainer(self, tmp_path: Path) -> None:
+        self._assert_error_line(self._invoke_outside(tmp_path, ["add"]))
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-21", "PW-WORKTREE-REMOVE-22"])
+    def test_remove_fails_outside_devcontainer(self, tmp_path: Path) -> None:
+        self._assert_error_line(self._invoke_outside(tmp_path, ["remove", "wt1"]))
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-14", "PW-WORKTREE-INIT-15"])
+    def test_init_fails_outside_devcontainer(self, tmp_path: Path) -> None:
+        self._assert_error_line(self._invoke_outside(tmp_path, ["init"]))
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-32", "PW-WORKTREE-LINK-33"])
+    def test_link_fails_outside_devcontainer(self, tmp_path: Path) -> None:
+        self._assert_error_line(self._invoke_outside(tmp_path, ["link"]))
 
 
 class TestLinkInvalidConfig:
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-23", "PW-WORKTREE-LINK-24"])
     def test_malformed_json_is_error_line(self, tmp_path: Path) -> None:
         cfg = tmp_path / "worktree-config.json"
         cfg.write_text("{not json", encoding="utf-8")

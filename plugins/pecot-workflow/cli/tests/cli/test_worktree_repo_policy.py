@@ -30,6 +30,7 @@ def _patch_current_git(owner: str = "acme-labs", repo: str = "pecot-cli"):
 class TestWorktreeMismatchReject:
     """FR-009a: worktree 系コマンドは不一致で exit 1。"""
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-11"])
     def test_worktree_init_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -46,6 +47,7 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-27"])
     def test_worktree_add_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -62,6 +64,7 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-18"])
     def test_worktree_remove_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(
@@ -79,6 +82,7 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-29"])
     def test_worktree_link_mismatch(self, tmp_path) -> None:
         with _patch_current_git():
             result = runner.invoke(

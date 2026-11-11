@@ -34,6 +34,7 @@ AMBIGUOUS_MSG = "error: the repository is ambiguous\n  give --repo <owner/repo>\
 class TestAmbiguousOps:
     """--repo 無し + Git 外 で 3 コマンドが exit 1 + 曖昧メッセージ。"""
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-30", "PW-WORKTREE-LINK-31"])
     def test_worktree_link_ambiguous(self, tmp_path) -> None:
         with _patch_no_git():
             result = runner.invoke(app, ["worktree", "link", "-D", str(tmp_path)])
