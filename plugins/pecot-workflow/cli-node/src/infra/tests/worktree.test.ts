@@ -629,7 +629,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
       const recorded = recordDiagnostics()
       const result = createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toMatchObject({ command: 'sleep 5', exitCode: -1, stderr: 'timeout after 1 seconds' })
-      expect(recorded.lines).toEqual(['warning: setup_command exited with a non-zero status (exit -1): sleep 5'])
+      expect(recorded.lines).toEqual(['warning: setup command timed out: sleep 5\nerr: timeout after 1 seconds'])
     })
 
     it('setup_command が非ゼロ終了でも例外は投げず、結果と警告を残す', () => {
@@ -639,7 +639,14 @@ describe('createWorktree（実 git・実ファイル）', () => {
       const root = path.dirname(path.dirname(repository))
       expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
       expect(result.setupResult).toMatchObject({ exitCode: 42, stderr: 'boom\n' })
-      expect(recorded.lines).toEqual(['warning: setup_command exited with a non-zero status (exit 42): echo boom >&2; exit 42'])
+      expect(recorded.lines).toEqual(['warning: setup command failed (exit 42): echo boom >&2; exit 42\nerr: boom'])
+    })
+
+    it('stdout と stderr が両方あれば out: と err: の行で続ける', () => {
+      const { repository } = projectWithSetup(undefined)
+      const recorded = recordDiagnostics()
+      createWorktree(repository, recorded.diagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo hi; echo oops >&2; exit 42', shouldCopy: false, shouldLink: false })
+      expect(recorded.lines).toEqual(['warning: setup command failed (exit 42): echo hi; echo oops >&2; exit 42\nout: hi\nerr: oops'])
     })
   })
 })

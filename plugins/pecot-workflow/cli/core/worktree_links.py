@@ -430,7 +430,7 @@ def _process_link(
         elif symlink_path.exists():
             repo_root = project_root / set_name / repo_name
             if _is_tracked_in_repo(repo_root, link.path):
-                logger.error(
+                logger.warning(
                     "symlink creation skipped because the path is tracked by git: %s", symlink_path
                 )
                 return SymlinkResult(
@@ -458,7 +458,7 @@ def _process_link(
             action="created",
         )
     except OSError as e:
-        logger.error(
+        logger.warning(
             "failed to create the symlink: %s -> %s: %s",
             symlink_path,
             rel_target,

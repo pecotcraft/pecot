@@ -15,14 +15,14 @@ from cli.commands._repo_policy import require_repo_match
 from cli.commands.options import DirectoryOption
 
 if TYPE_CHECKING:
-    from cli.core.worktree import CopyResult, SetupResult
+    from cli.core.worktree import CopyResult
     from cli.core.worktree_links import SymlinkResult, WorktreeConfig
 
 # CLI commands
 
 
 def _echo_link_results(linked_files: list[SymlinkResult], out: Output) -> None:
-    """Print the counts and errors of symlink creation"""
+    """Print the counts of symlink creation (the cause of each error is logged by core)"""
     link_created = [r for r in linked_files if r.action == "created"]
     link_skipped = [r for r in linked_files if r.action == "skipped"]
     link_errors = [r for r in linked_files if r.action == "error"]
@@ -31,8 +31,6 @@ def _echo_link_results(linked_files: list[SymlinkResult], out: Output) -> None:
         out.count("symlinks skipped", len(link_skipped))
     if link_errors:
         out.count("symlink errors", len(link_errors))
-        for err in link_errors:
-            out.warning(f"symlink {err.symlink_path}: {err.message}")
 
 
 def _echo_copy_results(copied_files: list[CopyResult], out: Output) -> None:
@@ -47,22 +45,6 @@ def _echo_copy_results(copied_files: list[CopyResult], out: Output) -> None:
         out.count("copy errors", len(errors))
         for copy_err in errors:
             out.warning(f"copy {copy_err.source}: {copy_err.message}")
-
-
-def _echo_setup_result(sr: SetupResult, out: Output) -> None:
-    """Warn with the command output when the setup command failed (no line on success)"""
-    if sr.returncode == 0:
-        return
-    if sr.returncode == -1:
-        head = f"setup command timed out: {sr.command}"
-    else:
-        head = f"setup command failed (exit {sr.returncode}): {sr.command}"
-    lines = [head]
-    if sr.stdout.strip():
-        lines += [f"out: {line}" for line in sr.stdout.rstrip("\n").split("\n")]
-    if sr.stderr.strip():
-        lines += [f"err: {line}" for line in sr.stderr.rstrip("\n").split("\n")]
-    out.warning("\n".join(lines))
 
 
 @require_repo_match(mode="reject")
@@ -155,9 +137,6 @@ def worktree_add(
 
     if result.copied_files:
         _echo_copy_results(result.copied_files, out)
-
-    if result.setup_result is not None:
-        _echo_setup_result(result.setup_result, out)
 
 
 @require_repo_match(mode="reject")
@@ -350,8 +329,6 @@ def _apply_links_to_worktree(
     out.count(f"symlinks created in {target_wt}", len(created))
     for r in skipped:
         out.done(Operation(Verb.SKIP, f"symlink {r.symlink_path} ({r.message})"))
-    for r in errors:
-        out.warning(f"symlink {r.symlink_path}: {r.message}")
     return len(created), len(skipped), len(errors)
 
 
