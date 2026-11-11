@@ -81,6 +81,12 @@ pecot-workflow だけが Python で動き、スキルは Bash から `pecot` を
 ### Session 2026-11-11
 
 - Q: spec 021・022 の後の前提を、新しい spec に書くか、この spec を直すか → A: この spec を直す。成果物の置き場を 1 つに保つ。plan・tasks も同じディレクトリで作り直す
+- Q: 定義書の書き出しの元を Python から Node に替えるのは、どの時点にするか → A: 切り替えのリリースの PR で替える。
+  それまで定義書は、利用者に届いている Python の CLI を写し続ける。34 個が Node にそろっても、切り替えまでは Node は比べるだけにする
+- Q: 定義書の振る舞いの項目を Node のテストにつなぐ作業は、いつ行うか → A: コマンドを Node に移す各フェーズで、そのコマンドの項目を Node のテストにもつなぐ。
+  Python を消すまでは pytest と Node の両方につながる。Python を消すフェーズは、pytest の側を消すだけにする
+- Q: 振る舞いの項目につなぐ Node のテストは、どの種類にするか → A: 今つながっている pytest のケースと同じことを確かめる vitest のケースを書き、それにつなぐ。
+  前後比較のシナリオ（golden との比較）にはつながない。1 シナリオは出力の全体を見るので、落ちた項目を示せないため
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -99,7 +105,8 @@ pecot-workflow の CLI を Node に移す。コマンド名・引数・出力・
 3. **Given** データ置き場に移行前の venv がある、**When** 切り替え後の版が初めて起動する、**Then** 古い venv は使われず、片付けられる。ボードの設定とセッション状態はそのまま読める
 4. **Given** Node に移したコマンド、**When** Node のコマンド定義から項目を書き出して定義書と比べる、**Then** 同じ ID の項目の入力と CLI の形の差が 0 件。差があれば、差のある項目と欄を示して失敗する
 5. **Given** Node に移していないコマンド、**When** 同じ比較を流す、**Then** そのコマンドは比べる対象に入らず、失敗しない
-6. **Given** 34 コマンドが Node にそろった状態、**When** 定義書の書き出しの元を Node に替える、**Then** 定義書の入力と CLI の形は変わらず、MCP ツールの欄だけが増える
+6. **Given** 34 コマンドが Node にそろった状態、**When** 切り替えの変更で定義書の元を Node に替える、**Then** 入力と CLI の形は変わらず、MCP ツールの欄だけが増える
+7. **Given** Node に移したコマンド、**When** その振る舞いの項目を数える、**Then** 全項目に ID を書いた Node のテストがある
 
 ---
 
@@ -185,7 +192,8 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 - golden と Node の出力が食い違ったら Node 側を直す。Node に合わせて golden を書き換えない
 - 移行の途中に Python の CLI か依存が変わり、出力が golden とずれる。そのときは同じ PR で Node を直し、該当の golden を記録し直す
 - 移行の途中に Python のコマンドの引数が変わると、定義書が書き出し直される。そのコマンドが Node に移っていれば、同じ PR で Node のコマンド定義も直す。直さないと定義書との比較が失敗する
-- 定義書の `generated.json` は 1 ファイルで、移行の途中は Python が書き出す。Node の書き出しで先に書き換えると、まだ移していないコマンドの項目が消える。34 個がそろうまで、Node は比べるだけで書き込まない
+- 定義書の `generated.json` は 1 ファイルで、移行の途中は Python が書き出す。Node の書き出しで先に書き換えると、まだ移していないコマンドの項目が消える。切り替えの変更まで、Node は比べるだけで書き込まない
+- 前後比較のシナリオがある振る舞いを通っていても、その項目につながるテストには数えない。項目ごとに、その振る舞いだけを確かめる Node のテストのケースを置く
 - 振る舞いの項目につながる pytest を、Node 側に同じ ID のテストが無いまま消すと、定義書の lint が止まる。つなぎ先を移してから消す
 
 ## Requirements *(mandatory)*
@@ -207,15 +215,15 @@ Issue 作成・PR 作成などの許可・確認・阻止を、MCP ツールの�
 | FR-011 | Issue・PR の本文への textlint は扱わない |
 | FR-012 | エージェントが Bash で `pecot` を呼ぶと、PreToolUse で全部阻止し、対応する MCP ツール名を返す。Bash の入力で見るのは `pecot` の起動かどうかだけで、サブコマンド別の許可・阻止は持たない。利用者の端末・`! pecot ...`・hooks の内部からの呼び出しは阻止しない |
 | FR-013 | hooks の本体は shell と jq のまま。テストは pytest を使わず、Node のテストから shell を起動する形に移す |
-| FR-014 | 前後比較が全部一致するまで、リリースで配る CLI は Python のまま。一致したら 1 回のリリースで、CLI・MCP サーバ・スキル本文・hooks のガード・Agent Plugins 1.0 の形をそろえて切り替える。Python の削除は切り替えの後に行う。切り替え前のフェーズは配布物の振る舞いを変えない |
+| FR-014 | 前後比較が全部一致するまで、リリースで配る CLI は Python のまま。一致したら 1 回のリリースで、CLI・MCP サーバ・スキル本文・hooks のガード・Agent Plugins 1.0 の形・定義書の書き出しの元をそろえて切り替える。Python の削除は切り替えの後に行う。切り替え前のフェーズは配布物の振る舞いを変えない |
 | FR-015 | MCP サーバを npm の `@pecot/workflow-mcp` として単体で配る。pecot-visual / pecot-tools と同じく、リリースのタグから `publish-npm.yml` の trusted publishing で出し、リリースのたびに更新する。README に hooks のガードが無いことを書く |
 | FR-016 | pecot-workflow は pecot-visual と同じ Agent Plugins 1.0 の形を持つ。root に `plugin.json` と `mcp.json` を置き、Copilot CLI 向けの hooks と agents は `com.github.copilot/` に置く。旧形式 `.github/plugin/plugin.json` と `hooks/hooks-copilot.json` は残さない。Claude Code 向けの従来形式との name・version・MCP サーバの一致をテストで確かめる。切り替えのリリースで出す |
 | FR-017 | 旧の sub-issue #17〜#27 は、2026-11-05 に not planned で close した。後継の Issue は、着手のときにこの spec の tasks から w-issueize で作る。2026-11-11 に作り直した tasks を使う |
 | FR-018 | 切り替えまで、pecot-workflow の Python の依存（`cli/` の uv）は dependabot の版の更新の対象から外し、今の版のまま止める。脆弱性の alert が出た依存だけを手で上げ、同じ PR で golden を記録し直して Node を追従させる。Python の削除で uv のエントリも消す |
 | FR-019 | 移行の前後で公開面が同じことを、定義書（`plugins/pecot-workflow/interface/`）で確かめる。Node のコマンド定義から書き出した項目を、定義書の同じ ID の項目と比べ、入力と CLI の形の差を 0 件にする。比べるのは Node に登録したコマンドだけで、差があれば失敗する。比べ方は定義書のライブラリ（`libs/interface-spec`）のものを使い、別に作らない |
-| FR-020 | 34 コマンドが Node にそろうまで、定義書の書き出しの元は Python のままにする。Node の書き出しは比べるだけで、`generated.json` を書き換えない。そろったら書き出しの元を Node に替え、Python の書き出しとそのテストを消す。替えた後の定義書は、項目ごとに MCP ツールの欄を持つ |
+| FR-020 | 切り替えのリリースまで、定義書の書き出しの元は Python のままにする。Node の書き出しは比べるだけで、`generated.json` を書き換えない。34 コマンドがそろっていても同じ。切り替えの変更（FR-014）で書き出しの元を Node に替え、Python の書き出しとそのテストを消す。替えた後の定義書は、項目ごとに MCP ツールの欄を持つ |
 | FR-021 | MCP ツールの一覧と入力は、定義書の項目と一致する。定義書の一致の確認（`lint-defs`）が、CLI と MCP の両方を同じ定義書と比べる。`contracts/mcp-tools.md` は定義書に従う |
-| FR-022 | 定義書の振る舞いの項目のつなぎ先を、Python のテストから Node のテストへ移す。Python のテストを消す時点で、全部の項目が Node のテストにつながっている。項目の ID と文は変えない |
+| FR-022 | 定義書の振る舞いの項目のつなぎ先を、Python のテストから Node のテストへ移す。コマンドを Node に移すフェーズは、そのコマンドの項目が全部 Node のテストにつながることを完了の条件にする。Python を消すまでは両方につながり、消す時点で全部の項目が Node のテストにつながっている。つなぐ先は、今の pytest のケースと同じことを確かめる Node の単体のテストのケースに限り、前後比較のシナリオにはつながない。項目の ID と文は変えない |
 | FR-023 | 定義書の仕組みが pecot-workflow について読む先（実装のソース、lint の入力、テスト結果）を、Node の構成に替える。Python の削除の後に、Python の CLI を指す参照が残らない |
 | FR-024 | Node の CLI は、Python と同じ共通の出力の関数を通して出力する。コマンドが標準出力・標準エラーへ直接書かないことを、今の lint のまま確かめる |
 
