@@ -68,12 +68,55 @@ async function usageErrorOf(promise: Promise<unknown>): Promise<UsageError> {
   throw new Error('UsageError が投げられませんでした')
 }
 
+const owner = defineCommand({
+  path: ['pr', 'create'],
+  description: '自前の --repo を持つ',
+  input: z.object({ title: z.string().optional(), repo: z.string().optional() }),
+  positional: [],
+  shortFlags: { repo: '-r' },
+  ownsRepo: true,
+  interactive: false,
+  run: async (input, _io, context) => {
+    seen.push([input, context])
+    return await exitWith(0)
+  },
+})
+
 describe('synopsisOf・usageOf', () => {
   it('位置引数は大文字。任意なら角括弧、複数なら ...', () => {
     expect(synopsisOf(read)).toBe('[OPTIONS] ISSUE_REF')
     expect(synopsisOf(preflight)).toBe('[OPTIONS] [VERSION]')
     expect(synopsisOf(remove)).toBe('[OPTIONS] NAMES...')
     expect(usageOf(read)).toEqual({ commandPath: ['issue', 'read'], synopsis: '[OPTIONS] ISSUE_REF' })
+  })
+})
+
+describe('runDefinition の ownsRepo', () => {
+  it('自前の --repo と -r が入力に入り、グローバルの値は context で届く', async () => {
+    seen.length = 0
+    await runDefinition(owner, ['--repo', 'own/one'], capture(), 'global/repo')
+    await runDefinition(owner, ['-r', 'own/two'], capture())
+    expect(seen).toEqual([
+      [{ repo: 'own/one' }, { globalRepository: 'global/repo' }],
+      [{ repo: 'own/two' }, { globalRepository: undefined }],
+    ])
+  })
+
+  it('グローバルの --repo だけなら入力に入らない', async () => {
+    seen.length = 0
+    await runDefinition(owner, ['--title', 't'], capture(), 'global/repo')
+    expect(seen).toEqual([[{ title: 't' }, { globalRepository: 'global/repo' }]])
+  })
+
+  it('印が無いコマンドは今までどおり、グローバルの値を入力 repo にする', async () => {
+    seen.length = 0
+    await runDefinition(read, ['a/b/1'], capture(), 'x/y')
+    expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false, repo: 'x/y' }])
+  })
+
+  it('印が無いコマンドに --repo を渡すと、No such option', async () => {
+    const promise = runDefinition(read, ['a/b/1', '--repo', 'x/y'], capture())
+    expect(await messageOf(promise)).toBe('No such option: --repo (Possible options: --help)')
   })
 })
 
@@ -277,6 +320,27 @@ describe('否定形と包んだスキーマ', () => {
   it('否定形も未知のオプションの候補になる', async () => {
     const io = capture()
     expect(await messageOf(runDefinition(flags, ['a', '--no-checkou'], io))).toBe('No such option: --no-checkou (Possible options: --checkout, --no-checkout)')
+  })
+})
+
+describe('名前が no_ で始まる旗', () => {
+  const skip = defineCommand({
+    path: ['skip'],
+    description: '省く',
+    input: z.object({ no_issue_ref: z.boolean().default(false) }),
+    positional: [],
+    interactive: false,
+    run: async (input) => {
+      seen.push(input)
+      return await exitWith(0)
+    },
+  })
+
+  it('--no-issue-ref を渡さなければ偽、渡せば真になる', async () => {
+    seen.length = 0
+    await runDefinition(skip, [], capture())
+    await runDefinition(skip, ['--no-issue-ref'], capture())
+    expect(seen).toEqual([{ no_issue_ref: false }, { no_issue_ref: true }])
   })
 })
 

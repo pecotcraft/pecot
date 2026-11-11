@@ -415,6 +415,18 @@ describe('validatePullRequestFrontmatter', () => {
     expect(fm.draft).toBe(true)
   })
 
+  it('screenshot は前後の空白を落とし、空や未指定なら undefined にする', () => {
+    const base = { title: 'T', repository: 'o/r', base: 'develop' }
+    expect(validatePullRequestFrontmatter({ ...base, screenshot: '  画面は変わらない  ' }).screenshot).toBe('画面は変わらない')
+    expect(validatePullRequestFrontmatter({ ...base, screenshot: '  ' }).screenshot).toBeUndefined()
+    expect(validatePullRequestFrontmatter({ ...base, screenshot: JSON_NULL }).screenshot).toBeUndefined()
+    expect(validatePullRequestFrontmatter(base).screenshot).toBeUndefined()
+  })
+
+  it('screenshot が文字列でなければエラー', () => {
+    expect(() => validatePullRequestFrontmatter({ title: 'T', repository: 'o/r', base: 'develop', screenshot: 5 })).toThrow('  - screenshot: Input should be a valid string')
+  })
+
   it('title がない場合はエラー', () => {
     expect(() => validatePullRequestFrontmatter({ repository: 'owner/repo', base: 'develop' })).toThrow('  - title: Field required')
   })

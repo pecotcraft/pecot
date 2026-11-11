@@ -9,6 +9,7 @@ import {
   createResolvedRepository,
   detectCurrentGitRepository,
   parseOwnerRepository,
+  pickPrimaryRemote,
   repositoryFullName,
   resolveRepository,
 } from '../repository-resolver.js'
@@ -213,5 +214,15 @@ describe('resolveRepository', () => {
 
   it('明示値の形式が不正なら値の不正', () => {
     expect(() => resolveRepository('invalid', fakeGit())).toThrow(InvalidValueError)
+  })
+})
+
+describe('pickPrimaryRemote', () => {
+  it.each([
+    [['upstream', 'origin'], 'origin'],
+    [['upstream', 'fork'], 'upstream'],
+    [[], undefined],
+  ])('%j から主の remote を選ぶ', (remotes, expected) => {
+    expect(pickPrimaryRemote(remotes)).toBe(expected)
   })
 })

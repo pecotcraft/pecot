@@ -107,7 +107,7 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
 
 function bindOptions(definition: Readonly<CommandDefinition>): readonly BoundOption[] {
   return Object.keys(definition.input.shape)
-    .filter(name => name !== 'repo' && !definition.positional.includes(name))
+    .filter(name => (definition.ownsRepo || name !== 'repo') && !definition.positional.includes(name))
     .map(name => bindOption(definition, name))
     .filter(bound => bound !== undefined)
 }
@@ -178,7 +178,9 @@ function positionalInput(definition: Readonly<CommandDefinition>, command: Comma
 
 function optionInput(command: Command, bound: readonly BoundOption[], usage: UsageContext): readonly (readonly [string, unknown])[] {
   return bound.flatMap(({ field, option, isRequired: required, kind, valueType, names }): (readonly [string, unknown])[] => {
-    const value: unknown = command.getOptionValue(option.attributeName())
+    const given: unknown = command.getOptionValue(option.attributeName())
+    // commander は `--no-x` を `--x` の否定として扱い、指定が無いと true を入れる。指定されたとき（false）だけ、この入力の真にする
+    const value = kind === 'boolean' && names[0]?.startsWith('--no-') === true ? (given === false ? true : undefined) : given
     if (value !== undefined) return [[field, convertField(value, kind, valueType, names, usage)]]
     if (required && kind === 'boolean') return [[field, false]]
     if (required) throw new UsageError(missingOptionMessage(names), usage)
@@ -200,7 +202,7 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
 
 /**
 定義したコマンドを argv（コマンド名より後ろ）で実行して、終了コードを返す。
-グローバルの --repo は repo で渡し、入力 repo にする。
+グローバルの --repo は、ownsRepo でなければ入力 repo にし、ownsRepo なら context で渡す。
 使い方の誤りは UsageError を投げる。--help は説明を stdout に出して 0 を返す。
 UsageError にするのは解析と入力の検証（parse）の誤りだけで、本体（run）の例外はそのまま伝える
 */
@@ -239,7 +241,8 @@ export async function runDefinition(
   const input = Object.fromEntries(entries)
   let prepared: PreparedCommand
   try {
-    prepared = definition.parse(repository === undefined ? input : { ...input, repo: repository })
+    const raw = repository === undefined || definition.ownsRepo ? input : { ...input, repo: repository }
+    prepared = definition.parse(raw, { globalRepository: repository })
   }
   catch (error: unknown) {
     if (error instanceof z.ZodError) throw issueToUsageError(definition, error, bound, usage)

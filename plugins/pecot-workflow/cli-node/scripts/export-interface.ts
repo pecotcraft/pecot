@@ -10,7 +10,8 @@ import { z } from 'zod'
 import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.js'
 import { generatedEntrySchema, generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { createOutput } from '../src/commands/output.js'
-import { COMMANDS, type CommandDefinition, type CommandIo } from '../src/commands/registry.js'
+import { COMMANDS } from '../src/commands/command-list.js'
+import type { CommandDefinition, CommandIo } from '../src/commands/registry.js'
 
 const PREFIX = 'PW'
 
@@ -80,12 +81,12 @@ function normalizeProperty(schema: JsonObject, where: string): JsonObject {
 }
 
 /**
-グローバルの repo を除いて、input を正規化する。repo は defineCommand が足したもので、コマンド自身の引数ではない
+input を正規化する。ownsRepo でなければ repo を除く（defineCommand が足したグローバルの引数のため）
 */
-function normalizeInput(schema: JsonObject, command: string): InputSchema {
+function normalizeInput(schema: JsonObject, command: string, isOwner: boolean): InputSchema {
   const { properties, required } = schema
-  const own = (isRecord(properties) ? Object.entries(properties) : []).filter(([name]) => name !== 'repo')
-  const names = (Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []).filter(name => name !== 'repo')
+  const own = (isRecord(properties) ? Object.entries(properties) : []).filter(([name]) => isOwner || name !== 'repo')
+  const names = (Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []).filter(name => isOwner || name !== 'repo')
   return {
     type: 'object',
     properties: Object.fromEntries(own.toSorted(([left], [right]) => byName(left, right)).map(([name, property]) => [name, normalizeProperty(isRecord(property) ? property : {}, `${command}: ${name}`)])),
@@ -113,7 +114,7 @@ function flagsOf(command: CommandDefinition, names: readonly string[]): Record<s
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function entryOf(command: CommandDefinition): InterfaceEntry {
   const name = command.path.join(' ')
-  const input = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name)
+  const input = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name, command.ownsRepo)
   return {
     id: `${PREFIX}-${name.toUpperCase().replaceAll(/[ _]/g, '-')}`,
     name,

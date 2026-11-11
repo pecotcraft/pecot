@@ -16,6 +16,7 @@ import {
   gitRunnerFor,
   gitToplevel,
   originRepository,
+  primaryRemoteName,
   runGit,
 } from '../git.js'
 
@@ -188,6 +189,34 @@ describe('originRepository', () => {
 
   it('origin が無ければ undefined', () => {
     expect(originRepository(createGitRepository())).toBeUndefined()
+  })
+})
+
+describe('primaryRemoteName', () => {
+  it('origin があれば origin を返す', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'upstream', 'https://github.com/o/u.git'])
+    gitForTest(directory, ['remote', 'add', 'origin', 'https://github.com/o/r.git'])
+    expect(primaryRemoteName(directory)).toBe('origin')
+  })
+
+  it('origin が無ければ最初の remote を返す', () => {
+    const directory = createGitRepository()
+    gitForTest(directory, ['remote', 'add', 'upstream', 'https://github.com/o/u.git'])
+    expect(primaryRemoteName(directory)).toBe('upstream')
+  })
+
+  it('remote が無ければ undefined', () => {
+    expect(primaryRemoteName(createGitRepository())).toBeUndefined()
+  })
+
+  it('git の外なら undefined', () => {
+    expect(primaryRemoteName(makeTemporaryDirectory())).toBeUndefined()
+  })
+
+  it('git が無ければ undefined', () => {
+    withoutGit()
+    expect(primaryRemoteName(makeTemporaryDirectory())).toBeUndefined()
   })
 })
 

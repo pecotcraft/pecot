@@ -1,5 +1,5 @@
 // コマンド定義の一覧。CLI と MCP の両方がこの一覧から作られる。
-// 各コマンドは defineCommand() で定義して COMMANDS に足す。グローバルの --repo は、全コマンドの入力 repo として合成する。
+// 各コマンドは defineCommand() で定義して command-list.ts の COMMANDS に足す。グローバルの --repo は、全コマンドの入力 repo として合成する。
 import { z } from 'zod'
 
 /**
@@ -18,6 +18,13 @@ const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
 
 export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
+/**
+グローバルの --repo の値。ownsRepo のコマンドは、入力ではなくここから読む
+*/
+export interface CommandContext {
+  readonly globalRepository: string | undefined
+}
+
 export interface CommandSpec<Input extends z.ZodObject> {
   /**
   `['issue', 'create']`、`['add-to-project']`
@@ -28,7 +35,7 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly description: string
   /**
-  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。`repo` はグローバルの --repo 用の予約名
+  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。`repo` は、ownsRepo でなければグローバルの --repo 用の予約名
   */
   readonly input: Input
   /**
@@ -48,7 +55,11 @@ export interface CommandSpec<Input extends z.ZodObject> {
   実行して終了コードを返す。出力は io に書く
   */
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-  readonly run: (input: z.output<Input> & GlobalInput, io: CommandIo) => Promise<number>
+  readonly run: (input: z.output<Input> & GlobalInput, io: CommandIo, context: CommandContext) => Promise<number>
+  /**
+  input の `repo` を、このコマンド自身の入力として持つか。持つと、グローバルの --repo は input に混ぜず context で渡す
+  */
+  readonly ownsRepo?: boolean
   /**
   CLI でだけ利用者に問うか
   */
@@ -70,7 +81,7 @@ export interface CommandDefinition {
   readonly toolName: string
   readonly description: string
   /**
-  グローバルの repo を足した入力
+  ownsRepo でなければ、グローバルの repo を足した入力
   */
   readonly input: z.ZodObject
   readonly positional: readonly string[]
@@ -83,14 +94,15 @@ export interface CommandDefinition {
   */
   readonly negations: ReadonlyMap<string, string>
   readonly interactive: boolean
+  readonly ownsRepo: boolean
   /**
-  検証の段。入力が不正なら ZodError を投げる。本体は呼ばない
+  検証の段。入力が不正なら ZodError を投げる。本体は呼ばない。context は ownsRepo のコマンドの本体へ渡る
   */
-  readonly parse: (input: Readonly<Record<string, unknown>>) => PreparedCommand
+  readonly parse: (input: Readonly<Record<string, unknown>>, context?: Readonly<CommandContext>) => PreparedCommand
   /**
   parse してから本体を呼ぶ。本体が投げた ZodError は、検証の誤りと区別できる
   */
-  readonly run: (input: Readonly<Record<string, unknown>>, io: CommandIo) => Promise<number>
+  readonly run: (input: Readonly<Record<string, unknown>>, io: CommandIo, context?: Readonly<CommandContext>) => Promise<number>
 }
 
 /**
@@ -110,13 +122,21 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
 
 export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandSpec<Input>>): CommandDefinition {
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
-  if (Object.hasOwn(spec.input.shape, 'repo')) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
-  const input = spec.input.safeExtend(GLOBAL_SHAPE)
-  const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
+  const isOwner = spec.ownsRepo ?? false
+  const hasRepository = Object.hasOwn(spec.input.shape, 'repo')
+  if (!isOwner && hasRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
+  if (isOwner && !hasRepository) throw new TypeError('ownsRepo のコマンドは input に repo が要ります')
+  const input = isOwner ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
+  const parse = (raw: Readonly<Record<string, unknown>>, context?: Readonly<CommandContext>): PreparedCommand => {
+    if (isOwner) {
+      const parsedOwn: z.output<Input> = spec.input.parse(raw)
+      const own: CommandContext = { globalRepository: context?.globalRepository }
+      return { run: async io => await spec.run(parsedOwn, io, own) }
+    }
     // 検証は spec.input で行う（全体の refine を保つ）。repo は strictObject が拒むので外し、別に検証する
     const own: z.output<Input> = spec.input.parse(Object.fromEntries(Object.entries(raw).filter(([name]) => name !== 'repo')))
     const parsed = { ...own, ...GLOBAL_SCHEMA.parse(raw) }
-    return { run: async io => await spec.run(parsed, io) }
+    return { run: async io => await spec.run(parsed, io, { globalRepository: parsed.repo }) }
   }
   return {
     path: spec.path,
@@ -127,16 +147,13 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     shortFlags: flagMap(spec.shortFlags),
     negations: flagMap(spec.negations),
     interactive: spec.interactive,
+    ownsRepo: isOwner,
     parse,
-    run: async (raw, io) => await parse(raw).run(io),
+    run: async (raw, io, context) => await parse(raw, context).run(io),
   }
 }
 
-/**
-移植済みのコマンド。Phase 4〜7 で足す
-*/
-export const COMMANDS: readonly CommandDefinition[] = []
-
-export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
+export function findCommand(path: readonly string[], commands: readonly CommandDefinition[]): CommandDefinition | undefined {
   return commands.find(command => command.path.join(' ') === path.join(' '))
 }

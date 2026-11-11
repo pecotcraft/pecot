@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process'
 
 import type { GitResult, GitRunner } from '../domain/git-runner.js'
 import { parseRemoteUrl } from '../domain/git-url.js'
+import { pickPrimaryRemote } from '../domain/repository-resolver.js'
 import type { RemoteLocation } from '../domain/git-url.js'
 import { BaseError, InvalidValueError } from '../domain/errors.js'
 import { normalizeNewlines, pythonRepr, pythonStrip } from '../domain/python-format.js'
@@ -100,6 +101,20 @@ remote の URL。remote が無い・git の外なら undefined
 */
 export function gitRemoteUrl(cwd?: string, remote = 'origin'): string | undefined {
   return runForValue(['remote', 'get-url', remote], { cwd })
+}
+
+/**
+主の remote 名（origin、無ければ最初の remote）。remote が無い・git の外・git が無いときは undefined
+*/
+export function primaryRemoteName(cwd?: string): string | undefined {
+  try {
+    const remotes = runGit(['remote'], { cwd, check: true }).stdout.split('\n').map(line => pythonStrip(line)).filter(line => line !== '')
+    return pickPrimaryRemote(remotes)
+  }
+  catch (error: unknown) {
+    if (error instanceof GitCommandError || isFileNotFound(error)) return undefined
+    throw error
+  }
 }
 
 /**
