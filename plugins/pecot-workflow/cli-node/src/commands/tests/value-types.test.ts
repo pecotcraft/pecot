@@ -23,7 +23,7 @@ const KIND_CASES: readonly (readonly [string, z.ZodType, string])[] = [
 ]
 
 describe('flagKindOf', () => {
-  it.for(KIND_CASES)('%s', ([, schema, expected]) => {
+  it.for(KIND_CASES.map(([label, schema, expected]) => ({ label, schema, expected })))('$label のとき、$expected を返す', ({ schema, expected }) => {
     expect(flagKindOf(schema)).toBe(expected)
   })
 })
@@ -39,7 +39,7 @@ const TYPE_CASES: readonly (readonly [string, z.ZodType, unknown])[] = [
 ]
 
 describe('valueTypeOf', () => {
-  it.for(TYPE_CASES)('%s', ([, schema, expected]) => {
+  it.for(TYPE_CASES.map(([label, schema, expected]) => ({ label, schema, expected })))('$label のとき、$expected を返す', ({ schema, expected }) => {
     expect(valueTypeOf(schema)).toEqual(expected)
   })
 })

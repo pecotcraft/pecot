@@ -20,27 +20,27 @@ const { required, closedHeadingsByTemplate, cases } = sectionsOutputs()
 
 describe('Python の出力との一致', () => {
   describe.each(cases)('本文 $body', (result) => {
-    it('validateBodyStyle', () => {
+    it('本文の書式の検証が Python の結果と一致する', () => {
       expect(validateBodyStyle(result.body)).toEqual(result.style)
     })
 
-    it('validateSections', () => {
+    it('必須の節の検証が Python の結果と一致する', () => {
       expect(required.map(headings => validateSections(result.body, headings))).toEqual(result.sections)
     })
 
-    it('validateHeadingSummaries', () => {
+    it('見出しの要約の検証が Python の結果と一致する', () => {
       expect(required.map(headings => validateHeadingSummaries(result.body, headings))).toEqual(result.summaries)
     })
 
-    it('validateFoldBalance', () => {
+    it('折りたたみの対応の検証が Python の結果と一致する', () => {
       expect(validateFoldBalance(result.body)).toEqual(result.balance)
     })
 
-    it('validateClosedHeadings', () => {
+    it('閉じる見出しの検証が Python の結果と一致する', () => {
       expect(required.map(headings => validateClosedHeadings(result.body, headings))).toEqual(result.closed)
     })
 
-    it('validateFoldSummaries', () => {
+    it('折りたたみの要約の検証が Python の結果と一致する', () => {
       expect(validateFoldSummaries(result.body, PLAN_FOLD_SUMMARY)).toEqual(result.fold)
     })
   })

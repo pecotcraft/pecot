@@ -209,7 +209,7 @@ describe('changelogNotFoundMessage', () => {
     ['/repo/AIST-CHANGELOG.md', 'AIST-CHANGELOG.md not found: /repo/AIST-CHANGELOG.md'],
     ['docs/CUSTOM.md', 'CUSTOM.md not found: docs/CUSTOM.md'],
     ['CHANGELOG.md', 'CHANGELOG.md not found: CHANGELOG.md'],
-  ])('%s', (changelogPath, expected) => {
+  ])('パスが %s のとき、ファイル名つきの見つからない文を返す', (changelogPath, expected) => {
     expect(changelogNotFoundMessage(changelogPath)).toBe(expected)
   })
 })

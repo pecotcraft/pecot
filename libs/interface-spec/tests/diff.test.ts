@@ -15,12 +15,12 @@ function entry(id: string, input: object, extra: object = {}): object {
 }
 
 describe('diffGenerated', () => {
-  it('returns nothing for identical files', () => {
+  it('同じ内容のファイルのとき、何も返さない', () => {
     const same = file([entry('PW-A', { a: { type: 'string' } })])
     expect(diffGenerated(same, same)).toEqual([])
   })
 
-  it('names an added property, a changed default and a removed one', () => {
+  it('プロパティの追加・default の変更・削除があると、それぞれ名前を出す', () => {
     const before = file([entry('PW-ISSUE-CREATE', { draft: { type: 'boolean', default: false }, gone: { type: 'string' } })])
     const after = file([entry('PW-ISSUE-CREATE', { draft: { type: 'boolean', default: true }, label: { type: 'string' } })])
     expect(diffGenerated(before, after)).toEqual([
@@ -30,26 +30,26 @@ describe('diffGenerated', () => {
     ])
   })
 
-  it('names added and removed entries in id order', () => {
+  it('項目の追加と削除があると、id の順に名前を出す', () => {
     const before = file([entry('PW-B', {}), entry('PW-C', {})])
     const after = file([entry('PW-A', {}), entry('PW-B', {})])
     expect(diffGenerated(before, after)).toEqual(['PW-A: entry: added', 'PW-C: entry: removed'])
   })
 
-  it('compares array items by index', () => {
+  it('配列の要素を比べるとき、添字で対応づける', () => {
     const before = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'b'] } } })])
     const after = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'c', 'd'] } } })])
     expect(diffGenerated(before, after)).toEqual(['PW-A: surfaces.cli.path[1]: "b" -> "c"', 'PW-A: surfaces.cli.path[2]: added'])
     expect(diffGenerated(after, before)).toEqual(['PW-A: surfaces.cli.path[1]: "c" -> "b"', 'PW-A: surfaces.cli.path[2]: removed'])
   })
 
-  it('reports a value whose type changed', () => {
+  it('値の型が変わると、報告する', () => {
     const before = file([entry('PW-A', { a: { type: 'string', default: 1 } })])
     const after = file([entry('PW-A', { a: { type: 'string', default: [1] } })])
     expect(diffGenerated(before, after)).toEqual(['PW-A: input.properties.a.default: 1 -> [1]'])
   })
 
-  it('reports a change in the file header', () => {
+  it('ファイルの先頭部が変わると、報告する', () => {
     expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
   })
 })

@@ -33,15 +33,15 @@ describe('Python の出力との一致', () => {
     expect(Object.values(result)[0]).toMatch(/^failed to parse YAML: /u)
   })
 
-  it.each(OUTPUTS.issue)('issue %j', (yamlText, expected) => {
+  it.each(OUTPUTS.issue)('issue のフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
     expect(run(parseFrontmatter, yamlText)).toEqual(expected)
   })
 
-  it.each(OUTPUTS.comment)('comment %j', (yamlText, expected) => {
+  it.each(OUTPUTS.comment)('コメントのフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
     expect(run(parseCommentContent, yamlText)).toEqual(expected)
   })
 
-  it.each(OUTPUTS.pullRequest)('pr %j', (yamlText, expected) => {
+  it.each(OUTPUTS.pullRequest)('PR のフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
     expect(run(parsePullRequestContent, yamlText)).toEqual(expected)
   })
 })

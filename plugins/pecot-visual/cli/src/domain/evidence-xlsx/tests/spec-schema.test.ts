@@ -194,7 +194,7 @@ describe('parseEvidenceSpec — caption 補完 (FR-004)', () => {
     ['拡張子なし', '/work/screenshot', 'screenshot'],
     ['ドット始まりで拡張子なし', '/work/.hidden', '.hidden'],
     ['相対パス', 'shots/02-submit.PNG', '02-submit'],
-  ])('%s: %s -> %s', (_label, imagePath, expected) => {
+  ])('%s（%s）のとき、caption が %s になる', (_label, imagePath, expected) => {
     const result = parseWith({ items: [{ imagePath }] })
 
     expect(expectSpec(result).items[0]?.caption).toBe(expected)

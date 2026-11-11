@@ -239,7 +239,7 @@ function inputValueOf(input: JsonValue): string {
 }
 
 describe('formatValidationError（入力値の省略はバイト長で決まる）', () => {
-  it.each(inputValueOutputs())('$name', ({ input, inputValue }) => {
+  it.each(inputValueOutputs())('$name のとき、Python の入力値の表記と一致する', ({ input, inputValue }) => {
     expect(inputValueOf(input)).toBe(inputValue)
   })
 })
