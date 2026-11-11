@@ -6,6 +6,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
 import { defaultRoot, run } from '../src/cli.js'
+import { BORROWED_MAP, POSIX_MAP } from '../src/domain/field-map.js'
 import process from 'node:process'
 import { materialize } from './helpers/repository.js'
 
@@ -77,8 +78,18 @@ describe('validate', () => {
     [['validate', '--root']],
     [['validate', '--bogus', 'x']],
     [['validate', '--root', 'a', 'b']],
+    [['field-map', 'x']],
   ])('%j を渡すと、使い方を出して 2 で終わる', async (argv) => {
-    expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n' })
+    expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n       interface-spec field-map\n' })
+  })
+})
+
+describe('field-map', () => {
+  it('欄の対応の 2 つの表を JSON で標準出力に出し、0 で終わる', async () => {
+    const result = await call('field-map')
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(JSON.parse(result.stdout)).toEqual({ posix: POSIX_MAP, borrowed: BORROWED_MAP })
   })
 })
 

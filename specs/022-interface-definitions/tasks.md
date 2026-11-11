@@ -330,27 +330,27 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 
 **Independent Test**: quickstart.md の US3 の 3 行目と、US5 の 2〜4 行目が通る
 
-- [ ] T071 [US5] `libs/interface-spec/docs/` に sphinx の project を作る
+- [x] T071 [US5] `libs/interface-spec/docs/` に sphinx の project を作る
   - `pyproject.toml` と `uv.lock` で、sphinx-needs 9.2 と sphinx-test-reports 4.0 の版を固定する
   - `conf.py` に、need の型を 2 つ定義する。コマンド・ツールと、振る舞いの項目だ
   - `conf.py` に、リンクの型 `belongs`・`verifies` を定義する
   - `tr_suite_id_length`・`tr_case_id_length` は 8 にする
   - `docs/` の下の Python を、T001 の ruff と strict の型チェックの対象に入れる
-- [ ] T072 [US5] `libs/interface-spec/docs/tests/test_iface_defs.py` を書く
+- [x] T072 [US5] `libs/interface-spec/docs/tests/test_iface_defs.py` を書く
   - fixture の定義書で sphinx をビルドし、出力の `needs.json` を読む
   - need の ID・`belongs` のリンク・本文の表の行を、期待の値と比べる
   - 定義書を作れない項目が警告になることも確かめる
   - この時点で失敗する
   - `test-unit` のレーンから動かす
-- [ ] T073 [US5] `libs/interface-spec/docs/_ext/iface_defs.py` に、定義書を読んで need を作るディレクティブを実装する。`sphinx_needs.api.create_need` を使う。試行の `.pecot/work/199/tech-advisor/A-directive/iface_defs.py` をもとにする
+- [x] T073 [US5] `libs/interface-spec/docs/_ext/iface_defs.py` に、定義書を読んで need を作るディレクティブを実装する。`sphinx_needs.api.create_need` を使う。試行の `.pecot/work/199/tech-advisor/A-directive/iface_defs.py` をもとにする
   - コマンド・ツールの need の本文に、引数・副作用・終了の状態の表を入れる。欄は、contracts の POSIX の節の順に並べる
   - 振る舞いの項目の need を、コマンド・ツールへ `belongs` でつなぐ
   - 定義書のファイルを `env.note_dependency` で依存に入れる
   - need を作れないとき（`InvalidNeedException`）は、警告にして続ける
   - 欄と枠組みの対応表（`field-map.ts` から書き出したもの）を、1 つのページに出す
-- [ ] T074 [US5] プラグインごとのページを作る。各ページで、そのプラグインの JUnit を取り込む。テストのケースは、項目につないだものだけを描く。JUnit が無いときは、合否を「未実行」と出す
-- [ ] T075 [US5] `libs/interface-spec/project.json` に `docs` のレーンを足す。`sphinx-build -W` で動かす。PR の必須のレーンには入れない。全量のビルドの所要と、HTML の大きさを測って PR に書く
-- [ ] T076 [US5] 表示の HTML を CI の artifact に上げるかを決める。上げるなら、`ci.yml` のどの job が JUnit を集めるかを決めて足す。上げないなら、手元で作る手順を `libs/interface-spec/README.md` に書く
+- [x] T074 [US5] プラグインごとのページを作る。各ページで、そのプラグインの JUnit を取り込む。テストのケースは、項目につないだものだけを描く。JUnit が無いときは、合否を「未実行」と出す
+- [x] T075 [US5] `libs/interface-spec/project.json` に `docs` のレーンを足す。`sphinx-build -W` で動かす。PR の必須のレーンには入れない。全量のビルドの所要と、HTML の大きさを測って PR に書く
+- [x] T076 [US5] 表示の HTML を CI の artifact に上げるかを決める。上げるなら、`ci.yml` のどの job が JUnit を集めるかを決めて足す。上げないなら、手元で作る手順を `libs/interface-spec/README.md` に書く
 
 **Checkpoint**: 任意のコマンドのページで、振る舞いの項目ごとに、つないだテストの名前と合否が並ぶ
 

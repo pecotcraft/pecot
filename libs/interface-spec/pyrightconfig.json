@@ -1,6 +1,12 @@
 {
   "typeCheckingMode": "strict",
   "pythonVersion": "3.10",
-  "include": ["tests/fixtures"],
-  "exclude": ["**/__pycache__", "**/.venv"]
+  "include": ["tests/fixtures", "docs"],
+  "exclude": ["**/__pycache__", "**/.venv", "docs/_build", "docs/tests/fixtures"],
+  "venvPath": "docs",
+  "venv": ".venv",
+  "executionEnvironments": [
+    { "root": "docs", "pythonVersion": "3.14", "extraPaths": ["docs/_ext"] },
+    { "root": "." }
+  ]
 }

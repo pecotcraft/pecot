@@ -3,6 +3,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { checkCommandsMd, writeCommandsMd } from './commands-md.js'
+import { BORROWED_MAP, POSIX_MAP } from './domain/field-map.js'
 import { LoadError } from './infra/load.js'
 import { linkRepository } from './links-repository.js'
 import { validateRepository } from './validate-repository.js'
@@ -12,7 +13,7 @@ export interface Output {
   readonly stderr: (text: string) => void
 }
 
-const USAGE = 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]'
+const USAGE = 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n       interface-spec field-map'
 
 export function defaultRoot(): string {
   return path.resolve(import.meta.dirname, '../../..')
@@ -39,6 +40,10 @@ function parseArguments(rest: readonly string[], flags: readonly string[]): { ro
 
 export async function run(argv: readonly string[], output: Output): Promise<number> {
   const [command, ...rest] = argv
+  if (command === 'field-map' && rest.length === 0) {
+    output.stdout(`${JSON.stringify({ posix: POSIX_MAP, borrowed: BORROWED_MAP }, undefined, 2)}\n`)
+    return 0
+  }
   const parsed = command === 'validate' || command === 'links' || command === 'commands-md'
     ? parseArguments(rest, command === 'commands-md' ? ['--check', '--write'] : [])
     : undefined

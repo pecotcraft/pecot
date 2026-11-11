@@ -65,7 +65,7 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 
 ```bash
 # JUnit を出しながらテストを動かし、表示を作る
-pnpm exec nx run-many -t test
+pnpm exec nx run-many -t test-py test-cli test-hooks --projects=pecot-workflow,pecot-tools,pecot-visual
 pnpm exec nx run interface-spec:docs
 ```
 

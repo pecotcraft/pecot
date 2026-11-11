@@ -1,4 +1,4 @@
-// 使う段階: 定義書の欄と POSIX の節の対応の表示と、その対応のテスト（後の段階。いまはテストだけが使う）。
+// 使う段階: 欄と POSIX の節の対応の表示（cli の field-map が JSON に書き、docs が表にする）と、その対応のテスト。
 import { z } from 'zod'
 import { compareText } from './utility.js'
 import { authoredEntrySchema, generatedEntrySchema } from './schema.js'

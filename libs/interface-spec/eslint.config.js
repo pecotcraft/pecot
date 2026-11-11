@@ -16,7 +16,7 @@ const NO_JA = '題に日本語が無い（.claude/rules/test-conventions.md）'
 const KUTEN = '題が句点で終わる（.claude/rules/test-conventions.md）'
 
 export default defineConfig(
-  { ignores: ['coverage/**', 'node_modules/**', 'tests/fixtures/**'] },
+  { ignores: ['coverage/**', 'node_modules/**', 'tests/fixtures/**', 'docs/**'] },
   js.configs.recommended,
   ...tsConfigs.strictTypeChecked,
   ...tsConfigs.stylisticTypeChecked,

@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "plugin": "sample",
+  "prefix": "SM",
+  "entries": [
+    {
+      "id": "SM-ONE",
+      "name": "one run",
+      "description": "Runs one thing",
+      "surfaces": { "cli": { "path": ["one", "run"] } },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "target": { "type": "string", "description": "What to run" },
+          "force": { "type": "boolean", "description": "Skip the check" }
+        },
+        "required": ["target"]
+      },
+      "cli": { "positional": ["target"], "flags": { "force": ["--force", "-f"] } }
+    },
+    {
+      "id": "SM-TWO",
+      "name": "sample_two",
+      "description": "Reads two things",
+      "surfaces": { "mcp": { "tool": "sample_two" } },
+      "hidden": false,
+      "deprecated": false,
+      "input": { "type": "object", "properties": {} },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": { "ok": { "type": "boolean", "description": "Whether it worked" } }
+        }
+      }
+    },
+    {
+      "id": "SM-BAD",
+      "name": "bad entry",
+      "description": "Has no authored entry",
+      "surfaces": { "cli": { "path": ["bad"] } },
+      "hidden": false,
+      "deprecated": false,
+      "input": { "type": "object", "properties": {} }
+    },
+    {
+      "id": "SM-HALF",
+      "name": "half entry",
+      "description": "Has a behavior without a statement",
+      "surfaces": { "cli": { "path": ["half"] } },
+      "hidden": false,
+      "deprecated": false,
+      "input": { "type": "object", "properties": {} }
+    }
+  ]
+}
