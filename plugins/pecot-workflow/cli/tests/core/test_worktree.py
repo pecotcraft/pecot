@@ -14,6 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pathspec
 import pytest
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.core.worktree import (
     SetupResult,
@@ -1284,6 +1285,7 @@ class TestGetCurrentWorktreeName:
             ]
             assert get_current_worktree_name(Path("/workspaces/wt2/x")) is None
 
+    @add_test_properties(verifies=["PW-PR-CLEANUP-06"])
     def test_returns_recorded_name(self, tmp_path: Path) -> None:
         """記録があれば置き場所の親ディレクトリ名より優先する"""
         marker = tmp_path / "pecot-worktree-name"

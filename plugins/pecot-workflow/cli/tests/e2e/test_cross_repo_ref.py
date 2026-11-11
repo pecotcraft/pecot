@@ -18,6 +18,7 @@ import httpx
 import pytest
 import respx
 from typer.testing import CliRunner
+from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.github import GitHubClient
@@ -105,6 +106,7 @@ class TestIssueReadCrossRepo:
         assert result.exit_code == 0
         _assert_variables(route, "ownerX", "repoX", 5)
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-09"])
     def test_shorthand_with_repo_option(self, respx_mock: respx.MockRouter, mock_config) -> None:
         """CUJ2: 短縮形 ``N`` + ``--repo`` で同じ fetch が発火する。"""
         route = respx_mock.post(GRAPHQL_URL).mock(
@@ -121,6 +123,7 @@ class TestIssueReadCrossRepo:
         assert result.exit_code == 0
         _assert_variables(route, "ownerX", "repoX", 5)
 
+    @add_test_properties(verifies=["PW-ISSUE-READ-10"])
     def test_hash_only_rejected(self, respx_mock: respx.MockRouter, mock_config) -> None:
         """CUJ5: ``#5`` だけはパース失敗で exit=2、GitHub API は呼ばれない。"""
         route = respx_mock.post(GRAPHQL_URL).mock(

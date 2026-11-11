@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from ub_test_reports.pytest_plugin import add_test_properties
 
 
 class TestGetStateDir:
@@ -136,6 +137,7 @@ class TestFlagExists:
 class TestEnsureWorkDir:
     """ensure_work_dir関数のテスト"""
 
+    @add_test_properties(verifies=["PW-ISSUE-QUICK-09", "PW-ISSUE-QUICK-11"])
     def test_creates_work_dir_from_full_ref(self, tmp_path: Path) -> None:
         """owner/repo/N 形式から .pecot/work/N/ を作成して返す"""
         from cli.core.state import ensure_work_dir
