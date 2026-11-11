@@ -1,3 +1,75 @@
+## 4.1.0 (2026-11-11)
+
+### 🚀 Features
+
+- `pecot release`・`worktree`・`session`・`create-branch`・`delete-branch` の行を英語にし、 ([#265](https://github.com/pecotcraft/pecot/pull/265), [#213](https://github.com/pecotcraft/pecot/issues/213))
+  データ以外の行を stderr に移す。`create-branch` は切り替えの案内を出さない。
+
+
+### 🩹 Fixes
+
+- pecot-tools の診断行の前置きを `error:` にそろえ、MCP ツールの文言と進捗通知を英語にした。 ([#276](https://github.com/pecotcraft/pecot/pull/276), [#215](https://github.com/pecotcraft/pecot/issues/215))
+  3 プラグインの launcher（`bin/`・`setup.sh`）が出す文言も英語にした。
+
+- `pecot worktree` が link の作成で出す警告の行に、`warning:`・`error:` の前置きを付ける。 ([#280](https://github.com/pecotcraft/pecot/pull/280), [#216](https://github.com/pecotcraft/pecot/issues/216))
+  ほかのコマンドの警告と同じ形で読める。
+
+- lock の作り直しで推移依存が変わった。 ([#270](https://github.com/pecotcraft/pecot/pull/270), [#247](https://github.com/pecotcraft/pecot/issues/247))
+  `@babel/parser` を 7.29.9 から 7.29.13 に更新し、重複した `@typescript-eslint/*` と `parse5` を 1 つの版にまとめた。
+
+- CLI のコマンドの定義を `interface/generated.json` に書き出す開発用のスクリプトを足した。 ([#283](https://github.com/pecotcraft/pecot/pull/283), [#248](https://github.com/pecotcraft/pecot/issues/248))
+  CLI の振る舞いは変わらない。
+
+- `project` の 10 コマンドの定義を `interface/authored.yaml` に書き起こした。 ([#291](https://github.com/pecotcraft/pecot/pull/291), [#251](https://github.com/pecotcraft/pecot/issues/251))
+  CLI の振る舞いは変わらない。
+
+- `pecot release merge` は、`--repo` が今の Git remote から外れていれば終了コード 1 で止まる。 ([#300](https://github.com/pecotcraft/pecot/pull/300), [#254](https://github.com/pecotcraft/pecot/issues/254))
+  `--repo` を使わないコマンドに短い形 `N` を渡したときの error は、フル形式だけを案内する。
+
+- w-help の `commands.md` を、定義書（`interface/generated.json`）から作る生成物にした。 ([#304](https://github.com/pecotcraft/pecot/pull/304), [#255](https://github.com/pecotcraft/pecot/issues/255))
+  説明は CLI の help と同じ英語の文になる。
+  一部のコマンドの help の 1 行目に、使い分けの補足を足した。
+
+- テストが、確かめる振る舞いの項目の ID を JUnit に書き出す。定義書に無い ID を書いたテストは、CI が止める。 ([#314](https://github.com/pecotcraft/pecot/pull/314), [#256](https://github.com/pecotcraft/pecot/issues/256))
+- 太字の中にインラインコードだけを置いた行や、水平線の記号のうしろに HTML コメントを置いた行を、 ([#272](https://github.com/pecotcraft/pecot/pull/272), [#267](https://github.com/pecotcraft/pecot/issues/267))
+  本文の検証が水平線と見なして止めないようにする。
+
+- w-merge のマージ待ちが、auto-merge の予約が残ったままのコンフリクトと、必須チェックの失敗で抜けるようにした。 ([#273](https://github.com/pecotcraft/pecot/pull/273), [#268](https://github.com/pecotcraft/pecot/issues/268))
+  抜けた後は、取り込んで直す手順か、落ちたチェックを読む手順を示し、片付けをせずに止まる。
+
+- Tracker が、minor・patch の playwright の PR を人の判断待ちとして載せなくなった。 ([#277](https://github.com/pecotcraft/pecot/pull/277), [#274](https://github.com/pecotcraft/pecot/issues/274))
+  major の PR は、これまでどおり `major` の理由で載る。
+
+- `pecot worktree add`・`pecot worktree link` で、link の作成と `setup_command` の失敗が ([#294](https://github.com/pecotcraft/pecot/pull/294), [#286](https://github.com/pecotcraft/pecot/issues/286))
+  2 行で出ていた。これを `warning:` の 1 行にした。
+
+- **w-merge** の片付けで worktree が汚れていたら、WIP commit か名前付きの stash で退避する手順にした。 ([#293](https://github.com/pecotcraft/pecot/pull/293), [#292](https://github.com/pecotcraft/pecot/issues/292))
+  **w-quick** の Step 1 で、同じ禁止を 2 回書いていた段落を消した。
+
+- worktree・release・security・dependabot・session の失敗のうち traceback を出していた場面が、`error:` の行と終了コード 1 で止まる。 ([#305](https://github.com/pecotcraft/pecot/pull/305), [#298](https://github.com/pecotcraft/pecot/issues/298))
+  `session status` は、アクティブな設定ファイルが不正なら warning の行を出して表を続ける。
+
+- `add-to-project`・`delete-branch`・`worktree remove`・`worktree init` が失敗を流さずに知らせる。 ([#303](https://github.com/pecotcraft/pecot/pull/303), [#299](https://github.com/pecotcraft/pecot/issues/299))
+  release 系は origin が無ければ最初の remote を使い、`worktree add --base` の help は実際の既定を示す。
+
+- `pecot worktree add --path` は、リンクも `--path` の worktree に作る。 ([#308](https://github.com/pecotcraft/pecot/pull/308), [#301](https://github.com/pecotcraft/pecot/issues/301))
+  `pecot worktree link --dry-run` は、本番が飛ばすリンクを skip と予定する。
+  短い形 `N` の help は、`--repo` が無いと git の remote で解決すると書く。
+
+- `pecot worktree add` は、`--path` で作った worktree が使う wtN を避け、作った worktree に wtN を記録する。 ([#312](https://github.com/pecotcraft/pecot/pull/312), [#306](https://github.com/pecotcraft/pecot/issues/306))
+  `pecot pr cleanup` は、記録した wtN に戻る。
+
+- `pecot pr cleanup --delete-branch` は、`wip/<head>` があるのに削除できなかったとき、warning の行で知らせる。 ([#313](https://github.com/pecotcraft/pecot/pull/313), [#309](https://github.com/pecotcraft/pecot/issues/309))
+  `pecot session` と `pecot pr` のコマンドは、origin の無いリポで最初の remote を使う。
+
+- w-release の手順を、承認の待ちが無い形にする。dry-run で案を見てから、同じ commit を指定して本番を起動する。 ([#311](https://github.com/pecotcraft/pecot/pull/311), [#310](https://github.com/pecotcraft/pecot/issues/310))
+- pecot-visual の MCP ツールの説明文・結果・エラー、slide_lint の規則の文言、CLI の行を英語にする。 ([#269](https://github.com/pecotcraft/pecot/pull/269), [#214](https://github.com/pecotcraft/pecot/issues/214))
+  `slide sync` が書く talk-dir の設定のコメントも英語になり、PPTX の変換が 1 回やり直しになる。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 4.0.0 (2026-11-10)
 
 ### 🚀 Features

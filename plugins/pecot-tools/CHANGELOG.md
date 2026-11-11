@@ -1,3 +1,26 @@
+## 1.1.0 (2026-11-11)
+
+### 🚀 Features
+
+- pecot-tools の診断行の前置きを `error:` にそろえ、MCP ツールの文言と進捗通知を英語にした。 ([#276](https://github.com/pecotcraft/pecot/pull/276), [#215](https://github.com/pecotcraft/pecot/issues/215))
+  3 プラグインの launcher（`bin/`・`setup.sh`）が出す文言も英語にした。
+
+
+### 🩹 Fixes
+
+- lock の作り直しで推移依存が変わった。 ([#270](https://github.com/pecotcraft/pecot/pull/270), [#247](https://github.com/pecotcraft/pecot/issues/247))
+  `@babel/parser` を 7.29.9 から 7.29.13 に更新し、重複した `@typescript-eslint/*` と `parse5` を 1 つの版にまとめた。
+
+- 26 の MCP ツールのインタフェース定義書を `interface/` に置いた。ツールの入力・出力・注釈を変えて書き出し直さないと、CI が止める。 ([#285](https://github.com/pecotcraft/pecot/pull/285), [#249](https://github.com/pecotcraft/pecot/issues/249))
+- テストが、確かめる振る舞いの項目の ID を JUnit に書き出す。定義書に無い ID を書いたテストは、CI が止める。 ([#314](https://github.com/pecotcraft/pecot/pull/314), [#256](https://github.com/pecotcraft/pecot/issues/256))
+- 古い Node.js で起動した CLI の案内の 2 行目以降が、ほかの診断行と同じ空白 2 つで始まるようにした。 ([#278](https://github.com/pecotcraft/pecot/pull/278), [#275](https://github.com/pecotcraft/pecot/issues/275))
+- pecot-visual の MCP ツールの説明文・結果・エラー、slide_lint の規則の文言、CLI の行を英語にする。 ([#269](https://github.com/pecotcraft/pecot/pull/269), [#214](https://github.com/pecotcraft/pecot/issues/214))
+  `slide sync` が書く talk-dir の設定のコメントも英語になり、PPTX の変換が 1 回やり直しになる。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 1.0.2 (2026-11-10)
 
 ### 🩹 Fixes

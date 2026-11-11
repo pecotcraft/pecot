@@ -1,6 +1,6 @@
 {
   "name": "pecot-w",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "pecot-w (pecot-workflow) workflow automation plugin for Claude Code - skills, hooks, agents, and commands for AI-assisted development",
   "author": {
     "name": "pecot"

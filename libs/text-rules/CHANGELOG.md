@@ -1,3 +1,14 @@
+## 0.2.6 (2026-11-11)
+
+### 🩹 Fixes
+
+- lock の作り直しで推移依存が変わった。 ([#270](https://github.com/pecotcraft/pecot/pull/270), [#247](https://github.com/pecotcraft/pecot/issues/247))
+  `@babel/parser` を 7.29.9 から 7.29.13 に更新し、重複した `@typescript-eslint/*` と `parse5` を 1 つの版にまとめた。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.5 (2026-11-10)
 
 ### 🩹 Fixes
