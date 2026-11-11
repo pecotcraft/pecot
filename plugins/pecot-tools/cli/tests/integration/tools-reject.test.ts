@@ -134,14 +134,28 @@ describe('S3 の方向（research R7）', () => {
   })
 
   it('s3api の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
-    await verifies(context, 'PT-COMMON-14')
+    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-05')
     const structured = await expectIsError('aws_s3api_get_object', {
       bucket: 'example-bucket',
       key: 'report.json',
       outfile: 'data/report.json',
     })
 
+    expect(structured['category']).toBe('invalid-input')
     expect(structured['message']).toContain('absolute path')
+  })
+
+  it('s3api の書き出し先に S3 URI を渡すと、invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3API-GET-OBJECT-05')
+    const structured = await expectIsError('aws_s3api_get_object', {
+      bucket: 'example-bucket',
+      key: 'report.json',
+      outfile: 's3://example-bucket/copy.json',
+    })
+
+    expect(structured['category']).toBe('invalid-input')
+    expect(structured['message']).toContain('outfile')
+    expect(structured['message']).toContain('s3://')
   })
 
   it('s3_cp の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {

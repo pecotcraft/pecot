@@ -718,13 +718,13 @@ entries:
     output:
       format: text
       description: With --prepare, the path of the template copy. Otherwise one line per created Issue with its URL, in the order of the files.
-    diagnostics: "Result lines on stderr for each Issue: created, added (to the project and to the parent Epic as a sub-issue) and set (status, priority and size). Warning lines when an Epic is created outside aggregation_repo, and when adding an Issue to the project fails. An error line for each failure; a body that does not follow the template is reported with the template path on the first line and indented lines for each kind of violation. A malformed --parent-epic is reported by the command line parser as a usage error, not as an error line."
+    diagnostics: "Result lines on stderr for each Issue: created, added (to the project and to the parent Epic as a sub-issue) and set (status, priority and size). Warning lines when an Epic is created outside aggregation_repo, and when adding an Issue to the project fails. An error line with the valid values when --status given with -m is not a valid value. An error line for each failure; a body that does not follow the template is reported with the template path on the first line and indented lines for each kind of violation. A malformed --parent-epic is reported by the command line parser as a usage error, not as an error line."
     environment: []
     exit_status:
       - code: 0
         when: The template was copied, or every Issue was created. Failing to add an Issue to the project board still gives 0.
       - code: 1
-        when: There is no active project, no mode argument is given, -t or -r is missing with -m, a file is missing or given twice, a placeholder does not point to an earlier file, the front matter cannot be read or has a malformed repository, the body does not follow the template, the status is not the default of the type, the repository is not linked to the project, another Issue of the parent Epic has the same order, linking to the parent Epic failed, or the GitHub API returned an error. A body that does not follow the template gives 1, not 3.
+        when: There is no active project, no mode argument is given, -t or -r is missing with -m, a file is missing or given twice, a placeholder does not point to an earlier file, the front matter cannot be read or has a malformed repository, the body does not follow the template, --status given with -m is not one of the valid values, the status is not the default of the type, the repository is not linked to the project, another Issue of the parent Epic has the same order, linking to the parent Epic failed, or the GitHub API returned an error. A body that does not follow the template gives 1, not 3.
       - code: 2
         when: A repository is not in owner/repo form, --repo is missing with --prepare for a type other than epic, the destination of an Epic cannot be decided, --parent-epic is malformed, or another command line error occurs.
     on_error: When a file in a batch fails, the Issues created from earlier files stay on GitHub and later files are not processed. Only the existence of the files, duplicates and placeholders are checked before the first Issue is created; every other check runs just before the Issue of that file is created. The flag issue-create-slash-pending stays after a failure, and issue-pending is removed each time an Issue is created. When adding to the project board fails, a warning is written, the Issue stays, and the next file is processed. When linking to the parent Epic fails, the Issue stays on the board with its fields set.
@@ -846,7 +846,7 @@ entries:
         statement: もし本文がテンプレに合わないなら、終了コード 1 で終わる
       - id: PW-ISSUE-CREATE-30
         pattern: unwanted
-        statement: もし status が type の既定の値でないなら、終了コード 1 で終わる
+        statement: もし status が有効な値で、type の既定の値でないなら、終了コード 1 で終わる
       - id: PW-ISSUE-CREATE-31
         pattern: unwanted
         statement: もし -m に --title を渡していないなら、終了コード 1 で終わる
@@ -886,6 +886,9 @@ entries:
       - id: PW-ISSUE-CREATE-43
         pattern: unwanted
         statement: もし --parent-epic の形が誤っているなら、使い方のエラーを出して終了コード 2 で終わる
+      - id: PW-ISSUE-CREATE-44
+        pattern: unwanted
+        statement: もし -m で打ち、--status が有効な値でないなら、有効な値を並べた error の行を標準エラーに出して終了コード 1 で終わる
   PW-ISSUE-QUICK:
     constraints: []
     details:
