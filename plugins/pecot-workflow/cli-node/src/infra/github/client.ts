@@ -23,6 +23,7 @@ import {
   splitCodePoints,
 } from '../../domain/python-format.js'
 import { configDirectory } from '../config-store.js'
+import type { Diagnostics } from '../diagnostics.js'
 import { projectRoot } from '../paths.js'
 import {
   ensureEnvironmentFile,
@@ -349,6 +350,10 @@ export interface GitHubClientOptions {
   gh auth token の時間切れ（ミリ秒）。既定は 10000
   */
   readonly ghTimeoutMilliseconds?: number | undefined
+  /**
+  警告の受け口。トークンを切り替えたときの案内を渡す。省略できない（省くと警告が出ない）
+  */
+  readonly diagnostics: Diagnostics
 }
 
 const DEFAULT_TIMEOUT_MILLISECONDS = 30_000
@@ -364,6 +369,7 @@ issues・pulls・projects・repos の操作は、次のメソッドを使って�
 restJson・restObject・restRequest・handleHttpError・executeGraphql。
 */
 export class GitHubClientBase {
+  private readonly diagnostics: Diagnostics
   private usedFallback = false
   readonly host: string
   token: string
@@ -376,7 +382,8 @@ export class GitHubClientBase {
   */
   readonly linkedRepositoriesCache = new Map<string, readonly LinkedRepository[]>()
 
-  constructor(options: Readonly<GitHubClientOptions> = {}) {
+  constructor(options: Readonly<GitHubClientOptions>) {
+    this.diagnostics = options.diagnostics
     this.host = options.host ?? 'github.com'
     this.ghTimeoutMilliseconds = options.ghTimeoutMilliseconds ?? DEFAULT_GH_TIMEOUT_MILLISECONDS
     this.token = options.token === undefined || options.token === '' ? this.resolveToken(this.host) : options.token
@@ -466,8 +473,7 @@ or authenticate with the GitHub CLI:
       throw error
     }
     if (newToken === this.token) return false
-    // Output.warning と同じ出力にする（前置き `warning: `、2 行目以降は空白 2 つで字下げ）
-    process.stderr.write(`warning: ${TOKEN_FALLBACK_WARNING.replaceAll('\n', '\n  ')}\n`)
+    this.diagnostics.warning(TOKEN_FALLBACK_WARNING)
     this.token = newToken
     return true
   }

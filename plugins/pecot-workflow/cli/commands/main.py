@@ -8,7 +8,7 @@ from pathlib import Path
 import typer
 
 from cli import __version__
-from cli.commands._output import Output
+from cli.commands._output import Output, install_log_handler
 from cli.commands.dependabot import dependabot_sync as dependabot_sync_command
 from cli.commands.issue import add_to_project as add_to_project_command
 from cli.commands.issue import issue_comment as issue_comment_command
@@ -52,6 +52,9 @@ from cli.core.github.client import resolve_api_url_override
 from cli.core.repo_resolver import AmbiguousRepoError, resolve_repo
 
 _OUT = Output(dry_run=False)
+
+# core の logger の警告とエラーを Output へ流す
+install_log_handler()
 
 # メインアプリケーション
 app = typer.Typer(

@@ -8,6 +8,7 @@ All lines are written in English.
 from __future__ import annotations
 
 import enum
+import logging
 import sys
 from dataclasses import dataclass
 
@@ -104,3 +105,33 @@ class Output:
     def data(self, text: str) -> None:
         """Write the text to stdout as is, adding a newline if it has none."""
         sys.stdout.write(text if text.endswith("\n") else text + "\n")
+
+
+class OutputLogHandler(logging.Handler):
+    """Route log records of core code to Output.warning / Output.error.
+
+    core cannot import Output, so it logs and this handler prints the line.
+    Records below WARNING are not printed.
+
+    An exception raised inside emit propagates to the caller. ``BrokenPipeError`` is
+    handled by ``__main__.py``. The traceback in ``exc_info`` is not printed.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.WARNING)
+        self._out = Output(dry_run=False)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Print the record as a warning line, or an error line from ERROR up."""
+        if record.levelno >= logging.ERROR:
+            self._out.error(record.getMessage())
+        else:
+            self._out.warning(record.getMessage())
+
+
+def install_log_handler() -> None:
+    """Attach OutputLogHandler to the ``cli`` logger once. Calling again adds nothing."""
+    cli_logger = logging.getLogger("cli")
+    if any(isinstance(h, OutputLogHandler) for h in cli_logger.handlers):
+        return
+    cli_logger.addHandler(OutputLogHandler())
