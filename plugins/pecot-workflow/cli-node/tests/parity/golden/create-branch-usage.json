@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: the short form 'N' needs a base_repo: pass --repo <owner/repo> or use the full form 'owner/repo/N'\n",
+  "stderr": "error: the short form 'N' is not accepted here: use the full form 'owner/repo/N'\n",
   "exitCode": 2,
   "requests": [],
   "files": {

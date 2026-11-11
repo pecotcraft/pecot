@@ -302,6 +302,38 @@ class TestWorktreeRemove:
         result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
         assert result.exit_code == 1
 
+    @patch("cli.core.worktree.remove_worktree")
+    def test_remove_keep_branch(self, mock_remove: MagicMock, tmp_path: Path) -> None:
+        result = runner.invoke(
+            app, ["worktree", "remove", "wt1", "--keep-branch", "-D", str(tmp_path)]
+        )
+        assert result.exit_code == 0
+        assert mock_remove.call_args.kwargs["keep_branch"] is True
+        assert "removed: worktree wt1" in result.stderr
+        assert "local branch" not in result.stderr
+
+    @patch("cli.core.worktree.remove_worktree")
+    def test_remove_deletes_branch_by_default(self, mock_remove: MagicMock, tmp_path: Path) -> None:
+        result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        assert mock_remove.call_args.kwargs["keep_branch"] is False
+        assert "local branch wt1" in result.stderr
+
+    @patch("cli.core.worktree.remove_worktree")
+    def test_remove_force(self, mock_remove: MagicMock, tmp_path: Path) -> None:
+        result = runner.invoke(app, ["worktree", "remove", "wt1", "--force", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        assert mock_remove.call_args.kwargs["force"] is True
+
+    @patch("cli.core.worktree.run_git")
+    def test_remove_unknown_name(self, mock_git: MagicMock, tmp_path: Path) -> None:
+        mock_git.return_value = MagicMock(
+            returncode=0, stdout=f"{tmp_path} abc1234 [main]\n", stderr=""
+        )
+        result = runner.invoke(app, ["worktree", "remove", "nope", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "error: worktree not found: nope" in result.stderr
+
 
 # worktree init
 
@@ -472,7 +504,14 @@ class TestWorktreeLink:
         assert "error: worktree config not found" in result.output
         assert "run: pecot worktree init -D <directory>" in result.output
 
-    def _run_link(self, tmp_path: Path, path: str, target_path: str) -> Result:
+    def _run_link(
+        self,
+        tmp_path: Path,
+        path: str,
+        target_path: str,
+        args: list[str] | None = None,
+        input: str | None = None,
+    ) -> Result:
         """<tmp>/wt1/myrepo で worktree link を打つ（link 先は <tmp>/base/src）"""
         from cli.core.worktree_links import WorktreeConfig, WorktreeLinkItem
 
@@ -493,7 +532,22 @@ class TestWorktreeLink:
             patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
             patch("cli.core.worktree_links.load_config", return_value=config),
         ):
-            return runner.invoke(app, ["worktree", "link", "-D", str(wt), "--force"])
+            return runner.invoke(
+                app,
+                ["worktree", "link", "-D", str(wt), *(["--force"] if args is None else args)],
+                input=input,
+            )
+
+    def _real_file_link(
+        self, tmp_path: Path, args: list[str], input: str | None = None
+    ) -> tuple[Result, Path]:
+        """配置先に実ファイルがある状態で worktree link を打つ（実ファイルのパスも返す）"""
+        real = tmp_path / "wt1" / "myrepo" / "a.txt"
+        real.parent.mkdir(parents=True, exist_ok=True)
+        real.write_text("local")
+        with patch("cli.core.worktree.get_worktree_dirs", return_value=[real.parent]):
+            result = self._run_link(tmp_path, "a.txt", "a.txt", args=args, input=input)
+        return result, real
 
     def test_link_tracked_path_is_one_warning(self, tmp_path: Path) -> None:
         wt = tmp_path / "wt1" / "myrepo"
@@ -518,6 +572,36 @@ class TestWorktreeLink:
             == 1
         )
         assert not any(ln.startswith(("error:", "warning: symlink /")) for ln in lines)
+
+    def test_link_real_file_answered_y_is_replaced(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, [], input="y\n")
+        assert result.exit_code == 0
+        assert "real file exists" in result.stderr
+        assert real.is_symlink()
+
+    def test_link_real_file_answered_n_is_kept(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, [], input="n\n")
+        assert result.exit_code == 0
+        assert not real.is_symlink()
+        assert real.read_text() == "local"
+
+    def test_link_real_file_eof_is_kept(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, [], input="")
+        assert not real.is_symlink()
+        assert real.read_text() == "local"
+
+    def test_link_real_file_with_all_is_skipped_without_asking(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, ["--all"])
+        assert result.exit_code == 0
+        assert "overwrite it?" not in result.stderr
+        assert not real.is_symlink()
+        assert real.read_text() == "local"
+
+    def test_link_real_file_with_force_is_replaced_without_asking(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, ["--force"])
+        assert result.exit_code == 0
+        assert "overwrite it?" not in result.stderr
+        assert real.is_symlink()
 
 
 # devcontainer 前提ガード

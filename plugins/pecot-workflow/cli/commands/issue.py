@@ -153,7 +153,7 @@ def _parse_issue_ref_from_ctx(ctx: typer.Context | None, raw: str) -> tuple[str,
     """
     base = _resolve_base_repo(ctx)
     try:
-        ref = parse_issue_ref(raw, base_repo=base)
+        ref = parse_issue_ref(raw, base_repo=base, repo_flag=True)
     except RefParseError as e:
         raise typer.BadParameter(e.message) from None
     return ref.repo.owner, ref.repo.repo, ref.number
@@ -2024,7 +2024,7 @@ def issue_read(
     # 2. issue_ref をパース
     try:
         base = _resolve_base_repo(ctx)
-        ref = parse_issue_ref(issue_ref, base_repo=base)
+        ref = parse_issue_ref(issue_ref, base_repo=base, repo_flag=True)
     except RefParseError as e:
         out.error(str(e.message))
         raise typer.Exit(2) from None

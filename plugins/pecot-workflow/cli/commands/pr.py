@@ -1278,7 +1278,7 @@ def pr_read(
 
     try:
         base = _resolve_base_repo(ctx)
-        ref = parse_pr_ref(pr_ref, base_repo=base)
+        ref = parse_pr_ref(pr_ref, base_repo=base, repo_flag=True)
     except RefParseError as e:
         out.error(e.message)
         raise typer.Exit(2) from None
@@ -2069,7 +2069,7 @@ def pr_cleanup(
 
     try:
         base = _resolve_base_repo(ctx)
-        ref = parse_pr_ref(pr_ref, base_repo=base)
+        ref = parse_pr_ref(pr_ref, base_repo=base, repo_flag=True)
     except RefParseError as e:
         out.error(e.message)
         raise typer.Exit(2) from None

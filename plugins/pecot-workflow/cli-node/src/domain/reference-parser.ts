@@ -62,13 +62,16 @@ function invalidFormat(raw: string): ReferenceParseError {
 /**
 Issue 参照を IssueReference にする。
 `owner/repo/N` は主軸形式。`N` は短縮形で、baseRepository が要る。
-形式が不正・短縮形で基準リポが無いときは ReferenceParseError
+形式が不正・短縮形で基準リポが無いときは ReferenceParseError。
+repositoryFlag は --repo で短縮形を解決するコマンドか。true のときだけ error で --repo を案内する
 */
-export function parseIssueReference(raw: string, baseRepository?: RepositoryReference): IssueReference {
+export function parseIssueReference(raw: string, baseRepository?: RepositoryReference, { repositoryFlag = false }: { readonly repositoryFlag?: boolean } = {}): IssueReference {
   if (/^\d+$/u.test(raw)) {
     if (baseRepository === undefined) {
       throw new ReferenceParseError(
-        'the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'',
+        repositoryFlag
+          ? 'the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\''
+          : 'the short form \'N\' is not accepted here: use the full form \'owner/repo/N\'',
         raw,
       )
     }
@@ -89,8 +92,8 @@ export function parseIssueReference(raw: string, baseRepository?: RepositoryRefe
 /**
 PR 参照を IssueReference にする。Issue と番号空間を共有するので parseIssueReference に委ねる
 */
-export function parsePullRequestReference(raw: string, baseRepository?: RepositoryReference): IssueReference {
-  return parseIssueReference(raw, baseRepository)
+export function parsePullRequestReference(raw: string, baseRepository?: RepositoryReference, options: { readonly repositoryFlag?: boolean } = {}): IssueReference {
+  return parseIssueReference(raw, baseRepository, options)
 }
 
 /**

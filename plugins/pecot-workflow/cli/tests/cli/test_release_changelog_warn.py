@@ -77,8 +77,8 @@ class TestReleaseCreateWarn:
         assert WARN_MSG_SUBSTR in result.stderr
 
 
-class TestReleaseMergeWarn:
-    def test_warn_emitted_on_mismatch(self) -> None:
+class TestReleaseMergeReject:
+    def test_rejected_on_mismatch(self) -> None:
         with _patch_current_git():
             result = runner.invoke(
                 app,
@@ -92,7 +92,9 @@ class TestReleaseMergeWarn:
                 ],
             )
 
-        assert WARN_MSG_SUBSTR in result.stderr
+        assert result.exit_code == 1
+        assert "differs from the current Git remote" in result.stderr
+        assert "using --repo" not in result.stderr
 
 
 @pytest.mark.usefixtures("no_open_alerts")

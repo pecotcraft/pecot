@@ -51,9 +51,14 @@ describe('parseIssueReference', () => {
     expect(parseIssueReference('123', base)).toEqual({ repository: base, number: 123 })
   })
 
-  it('短縮形 N で基準リポが無いと例外。文は Python と同じ', () => {
+  it('短縮形 N で基準リポが無いと例外。文は Python と同じで、フル形式だけを案内する', () => {
     const error = thrownBy(() => parseIssueReference('123'))
     expect(error.reference).toBe('123')
+    expect(error.message).toBe('the short form \'N\' is not accepted here: use the full form \'owner/repo/N\'')
+  })
+
+  it('--repo で解決するコマンドで基準リポが無いと、--repo も案内する', () => {
+    const error = thrownBy(() => parseIssueReference('123', undefined, { repositoryFlag: true }))
     expect(error.message).toBe('the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'')
   })
 

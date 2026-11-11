@@ -681,6 +681,27 @@ class TestUpdateIssueStatusCommand:
             assert result.exit_code == 1
             assert "is not on the project board" in result.output
 
+    def test_status_not_configured_in_board(self) -> None:
+        """ボードが Status を定義していないと、終了コード 1 で未設定を知らせる"""
+        mock_config = MagicMock()
+        mock_config.host = "ghes.example.com"
+        mock_config.project.id = "PVT_123"
+        mock_config.is_repo_in_project.return_value = True
+        mock_config.get_field_id.return_value = None
+        mock_config.get_option_id.return_value = None
+
+        mock_client = MagicMock()
+        mock_client.get_item_id_by_issue.return_value = "PVTI_456"
+
+        with (
+            patch("cli.commands.issue.load_active_config", return_value=mock_config),
+            patch("cli.commands.issue.GitHubClient", return_value=mock_client),
+        ):
+            result = runner.invoke(app, ["update-issue-status", "owner/repo/123", "active"])
+        assert result.exit_code == 1
+        assert "status 'active' is not configured in the project" in result.output
+        mock_client.update_project_item_field.assert_not_called()
+
     def test_update_success(self) -> None:
         """正常にステータス更新"""
         mock_config = MagicMock()
