@@ -80,12 +80,14 @@ function normalizeProperty(schema: JsonObject, where: string): JsonObject {
 }
 
 /**
-グローバルの repo を除いて、input を正規化する。repo は defineCommand が足したもので、コマンド自身の引数ではない
+グローバルの repo を除いて、input を正規化する。repo は defineCommand が足したもので、コマンド自身の引数ではない。
+自分の `--repo` を持つコマンド（hasOwnRepo）の repo は、コマンド自身の引数なので残す
 */
-function normalizeInput(schema: JsonObject, command: string): InputSchema {
+function normalizeInput(schema: JsonObject, command: string, isRepositoryKept: boolean): InputSchema {
   const { properties, required } = schema
-  const own = (isRecord(properties) ? Object.entries(properties) : []).filter(([name]) => name !== 'repo')
-  const names = (Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []).filter(name => name !== 'repo')
+  const isKept = (name: string): boolean => isRepositoryKept || name !== 'repo'
+  const own = (isRecord(properties) ? Object.entries(properties) : []).filter(([name]) => isKept(name))
+  const names = (Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []).filter(name => isKept(name))
   return {
     type: 'object',
     properties: Object.fromEntries(own.toSorted(([left], [right]) => byName(left, right)).map(([name, property]) => [name, normalizeProperty(isRecord(property) ? property : {}, `${command}: ${name}`)])),
@@ -113,7 +115,7 @@ function flagsOf(command: CommandDefinition, names: readonly string[]): Record<s
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function entryOf(command: CommandDefinition): InterfaceEntry {
   const name = command.path.join(' ')
-  const input = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name)
+  const input = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name, command.hasOwnRepo)
   return {
     id: `${PREFIX}-${name.toUpperCase().replaceAll(/[ _]/g, '-')}`,
     name,

@@ -1,6 +1,8 @@
 // GitHub API 操作の例外。Python の cli/core/github/errors.py と同じ階層にする。
 
 import { PecotError } from '../../domain/errors.js'
+import { isJsonObject, jsonField, tryParseJsonText } from '../../domain/json.js'
+import { isJsonArray, pythonStrip } from '../../domain/python-format.js'
 
 export interface GitHubErrorDetail {
   /**
@@ -45,3 +47,25 @@ export class GitHubNotFoundError extends GitHubAPIError {}
 レート制限エラー（403 Forbidden で rate limit を超えたとき）
 */
 export class GitHubRateLimitError extends GitHubAPIError {}
+
+/**
+GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える。
+本文が JSON でない（HTML など）・どちらも無いときは添えない。
+422 では理由が errors[].message にだけ入ることがある（例: "Validation Failed" の詳細）
+*/
+export function describeApiError(error: Readonly<GitHubAPIError>): string {
+  const body = tryParseJsonText(error.responseBody ?? '')
+  if (!isJsonObject(body)) return error.message
+  const top = jsonField(body, 'message')
+  const errors = jsonField(body, 'errors')
+  const messages = [top, ...(isJsonArray(errors) ? errors.map(item => jsonField(item, 'message')) : [])]
+  const details = messages.filter(message => typeof message === 'string').map(message => pythonStrip(message)).filter(message => message !== '')
+  return details.length === 0 ? error.message : `${error.message} ${details.join(' ')}`
+}
+
+/**
+このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす
+*/
+export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
+  return (error.statusCode === 404 || error.statusCode === 422) && error.responseBody?.includes('Reference does not exist') === true
+}

@@ -118,6 +118,33 @@ describe('exportEntries', () => {
     expect(Object.keys(entries[0]?.input.properties ?? {})).not.toContain('repo')
   })
 
+  it('自分の --repo を持つコマンド（hasOwnRepo）は、repo を input と cli.flags に出し、required には入れない', () => {
+    const own = defineCommand({
+      path: ['own'],
+      description: 'Has its own repo.',
+      input: z.strictObject({
+        json: z.boolean().default(false).describe('Print JSON.'),
+        repo: z.string().optional().describe('Target repository.'),
+      }),
+      hasOwnRepo: true,
+      positional: [],
+      shortFlags: { json: '-j' },
+      run: () => Promise.resolve(0),
+      interactive: false,
+    })
+    const [entry] = exportEntries([own])
+    expect(entry?.input).toStrictEqual({
+      type: 'object',
+      properties: {
+        json: { type: 'boolean', default: false, description: 'Print JSON.' },
+        repo: { type: 'string', description: 'Target repository.' },
+      },
+      required: [],
+      additionalProperties: false,
+    })
+    expect(entry?.cli).toStrictEqual({ positional: [], flags: { json: ['--json', '-j'], repo: ['--repo'] } })
+  })
+
   it('input.properties と cli.flags のキーは名前の順、引数の中のキーは決めた順', () => {
     const alphaEntry = entries[0]
     expect(Object.keys(alphaEntry?.input.properties ?? {})).toStrictEqual(['count', 'json', 'mode', 'name', 'verbose'])
@@ -203,7 +230,7 @@ describe('main', () => {
   it('COMMANDS が空なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
     const before = readFileSync(generated)
     const { io, out, error } = capture()
-    expect(main(['--check'], io)).toBe(0)
+    expect(main(['--check'], io, [])).toBe(0)
     expect(out).toStrictEqual([])
     expect(error).toStrictEqual(['warning: no commands are registered in cli-node; generated.json is left as is\n'])
     expect(readFileSync(generated).equals(before)).toBe(true)
@@ -212,7 +239,7 @@ describe('main', () => {
   it('--write でも同じで、generated.json を変えない', () => {
     const before = readFileSync(generated)
     const { io, error } = capture()
-    expect(main(['--write'], io)).toBe(0)
+    expect(main(['--write'], io, [])).toBe(0)
     expect(error).toHaveLength(1)
     expect(readFileSync(generated).equals(before)).toBe(true)
   })

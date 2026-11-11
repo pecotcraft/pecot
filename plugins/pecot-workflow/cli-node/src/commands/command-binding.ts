@@ -107,7 +107,7 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
 
 function bindOptions(definition: Readonly<CommandDefinition>): readonly BoundOption[] {
   return Object.keys(definition.input.shape)
-    .filter(name => name !== 'repo' && !definition.positional.includes(name))
+    .filter(name => (name !== 'repo' || definition.hasOwnRepo) && !definition.positional.includes(name))
     .map(name => bindOption(definition, name))
     .filter(bound => bound !== undefined)
 }
@@ -199,6 +199,14 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
 }
 
 /**
+グローバルの --repo を入力 repo にする。自分の `--repo` を持つコマンドは、サブコマンドの値を先に使い、無ければグローバルの値を使う
+*/
+function withRepository(definition: Readonly<CommandDefinition>, input: Readonly<Record<string, unknown>>, repository: string | undefined): Readonly<Record<string, unknown>> {
+  if (repository === undefined) return input
+  return definition.hasOwnRepo ? { repo: repository, ...input } : { ...input, repo: repository }
+}
+
+/**
 定義したコマンドを argv（コマンド名より後ろ）で実行して、終了コードを返す。
 グローバルの --repo は repo で渡し、入力 repo にする。
 使い方の誤りは UsageError を投げる。--help は説明を stdout に出して 0 を返す。
@@ -239,7 +247,7 @@ export async function runDefinition(
   const input = Object.fromEntries(entries)
   let prepared: PreparedCommand
   try {
-    prepared = definition.parse(repository === undefined ? input : { ...input, repo: repository })
+    prepared = definition.parse(withRepository(definition, input, repository))
   }
   catch (error: unknown) {
     if (error instanceof z.ZodError) throw issueToUsageError(definition, error, bound, usage)
