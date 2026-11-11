@@ -41,6 +41,42 @@ class TestAmbiguousOps:
         assert result.exit_code == 1
         assert AMBIGUOUS_MSG in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-28"])
+    def test_worktree_add_ambiguous_message(self, tmp_path) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert AMBIGUOUS_MSG in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-29"])
+    def test_worktree_add_ambiguous_exit_code(self, tmp_path) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-12"])
+    def test_worktree_init_ambiguous_message(self, tmp_path) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
+        assert AMBIGUOUS_MSG in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-13"])
+    def test_worktree_init_ambiguous_exit_code(self, tmp_path) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-19"])
+    def test_worktree_remove_ambiguous_message(self, tmp_path) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
+        assert AMBIGUOUS_MSG in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-20"])
+    def test_worktree_remove_ambiguous_exit_code(self, tmp_path) -> None:
+        with _patch_no_git():
+            result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+
     @add_test_properties(verifies=["PW-COMMON-17", "PW-CREATE-BRANCH-26", "PW-CREATE-BRANCH-27"])
     def test_create_branch_ambiguous(self) -> None:
         with _patch_no_git():

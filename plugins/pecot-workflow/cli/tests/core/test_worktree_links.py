@@ -555,6 +555,27 @@ class TestCreateSymlinksSafe:
         assert results[0].action == "skipped"
         assert not existing.is_symlink()
 
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-19"])
+    def test_error_in_one_link_does_not_stop_the_next(self, tmp_path: Path) -> None:
+        root = _setup_project(tmp_path)
+        wt = root / "wt1" / "myrepo"
+        (wt / "a").write_text("plain file")
+        config = WorktreeConfig(
+            links=[
+                WorktreeLinkItem(
+                    path="a/b", target_repo="aist-roadmap", target_path="CLAUDE.local.md"
+                ),
+                WorktreeLinkItem(
+                    path="CLAUDE.local.md",
+                    target_repo="aist-roadmap",
+                    target_path="CLAUDE.local.md",
+                ),
+            ]
+        )
+        results = create_symlinks_safe(config, root, wt, force=True)
+        assert [r.action for r in results] == ["error", "created"]
+        assert (wt / "CLAUDE.local.md").is_symlink()
+
 
 # 定数
 

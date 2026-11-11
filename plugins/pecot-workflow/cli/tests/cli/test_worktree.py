@@ -11,7 +11,8 @@ from ub_test_reports.pytest_plugin import add_test_properties
 
 from cli.commands.main import app
 from cli.core.config import FieldOptions, Project, ProjectConfig, ProjectFields, Repository
-from cli.core.worktree import SetupResult, WorktreeCreateResult
+from cli.core.repo_resolver import RepoRef
+from cli.core.worktree import CopyResult, SetupResult, WorktreeCreateResult
 from cli.tests.conftest import git_init_and_commit
 
 runner = CliRunner()
@@ -321,6 +322,232 @@ class TestWorktreeAdd:
         mock_create.side_effect = create
         return runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-05"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_base_option_is_passed_to_core(
+        self, mock_create: MagicMock, tmp_path: Path
+    ) -> None:
+        mock_create.return_value = self._created(tmp_path)
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path), "--base", "release"])
+        assert result.exit_code == 0
+        assert mock_create.call_args.kwargs["base_branch"] == "release"
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-08"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_no_link_passes_link_false(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        mock_create.return_value = self._created(tmp_path)
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path), "--no-link"])
+        assert result.exit_code == 0
+        assert mock_create.call_args.kwargs["link"] is False
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-09"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_no_copy_passes_copy_false(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        mock_create.return_value = self._created(tmp_path)
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path), "--no-copy"])
+        assert result.exit_code == 0
+        assert mock_create.call_args.kwargs["copy"] is False
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-14"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_prints_created_line(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        mock_create.return_value = self._created(tmp_path)
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        assert (
+            f"created: worktree wt1 at {tmp_path / 'wt1' / 'repo'} (branch wt1 from main)"
+            in result.stderr.splitlines()
+        )
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-15"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_prints_path_to_stdout(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        mock_create.return_value = self._created(tmp_path)
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        assert result.stdout == f"{tmp_path / 'wt1' / 'repo'}\n"
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-17"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_dry_run_prints_planned_path_to_stdout(
+        self, mock_create: MagicMock, tmp_path: Path
+    ) -> None:
+        mock_create.return_value = self._created(tmp_path)
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path), "--dry-run"])
+        assert result.exit_code == 0
+        assert result.stdout == f"{tmp_path / 'wt1' / 'repo'}\n"
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-18"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_prints_symlinks_created_count(
+        self, mock_create: MagicMock, tmp_path: Path
+    ) -> None:
+        wt_repo = tmp_path / "wt1" / "repo"
+        wt_repo.mkdir(parents=True)
+        (tmp_path / "base" / "src").mkdir(parents=True)
+        (tmp_path / "base" / "src" / "a.txt").write_text("shared")
+        result = self._add_with_link(mock_create, tmp_path, "a.txt")
+        assert result.exit_code == 0
+        assert "count: symlinks created: 1" in result.stderr.splitlines()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-20"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_prints_files_copied_count(self, mock_create: MagicMock, tmp_path: Path) -> None:
+        copied = [
+            CopyResult(source=tmp_path / f"s{i}", dest=tmp_path / f"d{i}", action="copied")
+            for i in range(2)
+        ]
+        mock_create.return_value = WorktreeCreateResult(
+            name="wt1",
+            path=tmp_path / "wt1" / "repo",
+            branch="wt1",
+            base_branch="main",
+            copied_files=copied,
+        )
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "count: files copied: 2" in result.stderr.splitlines()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-21"])
+    @patch("cli.core.worktree.create_worktree")
+    def test_add_prints_warning_per_copy_error(
+        self, mock_create: MagicMock, tmp_path: Path
+    ) -> None:
+        failed = [
+            CopyResult(
+                source=tmp_path / f"s{i}", dest=tmp_path / f"d{i}", action="error", message=f"m{i}"
+            )
+            for i in range(2)
+        ]
+        mock_create.return_value = WorktreeCreateResult(
+            name="wt1",
+            path=tmp_path / "wt1" / "repo",
+            branch="wt1",
+            base_branch="main",
+            copied_files=failed,
+        )
+        result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 0
+        lines = result.stderr.splitlines()
+        assert f"warning: copy {tmp_path / 's0'}: m0" in lines
+        assert f"warning: copy {tmp_path / 's1'}: m1" in lines
+        assert len([ln for ln in lines if ln.startswith("warning: copy ")]) == 2
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-32"])
+    def test_add_outside_git_exits_1(self, tmp_path: Path) -> None:
+        with patch("cli.core.worktree.ensure_devcontainer_environment"):
+            result = runner.invoke(app, ["worktree", "add", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "error: cannot get the worktree list" in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-34"])
+    def test_add_non_base_layout_exits_1(self, tmp_path: Path) -> None:
+        main_wt = tmp_path / "elsewhere" / "myrepo"
+        main_wt.mkdir(parents=True)
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch("cli.core.worktree.find_main_worktree", return_value=main_wt),
+        ):
+            result = runner.invoke(app, ["worktree", "add", "-D", str(main_wt)])
+        assert result.exit_code == 1
+        assert "error: this repository is not placed in the layout" in result.stderr
+        assert not (tmp_path / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-36"])
+    def test_add_without_worktree_config_exits_1(self, tmp_path: Path) -> None:
+        repo = tmp_path / "base" / "myrepo"
+        repo.mkdir(parents=True)
+        git_init_and_commit(repo, {"README.md": "hi"})
+        result = self._add_in_repo(repo, tmp_path)
+        assert result.exit_code == 1
+        assert "error: worktree config not found" in result.stderr
+        assert not (tmp_path / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-38"])
+    def test_add_without_project_config_exits_1(self, tmp_path: Path) -> None:
+        result = self._add_in_repo(self._repo(tmp_path), tmp_path, project_config=None)
+        assert result.exit_code == 1
+        assert "error: project config not found" in result.stderr
+        assert not (tmp_path / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-42"])
+    def test_add_without_develop_branch_exits_1(self, tmp_path: Path) -> None:
+        result = self._add_in_repo(
+            self._repo(tmp_path), tmp_path, project_config=self._project(develop=None)
+        )
+        assert result.exit_code == 1
+        assert "error: develop_branch is not set" in result.stderr
+        assert not (tmp_path / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-44"])
+    def test_add_all_numbers_in_use_exits_1(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        for n in range(1, 10):
+            (tmp_path / f"wt{n}" / "myrepo").mkdir(parents=True)
+        result = self._add_in_repo(repo, tmp_path, project_config=self._project(develop="develop"))
+        assert result.exit_code == 1
+        assert "error: all of wt1 to wt9 are in use" in result.stderr
+        assert not (tmp_path / "wt10").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-47"])
+    def test_add_git_worktree_add_failure_prints_error(self, tmp_path: Path) -> None:
+        result = self._add_in_repo(
+            self._repo(tmp_path), tmp_path, project_config=self._project(develop="develop")
+        )
+        assert "error: failed to create the worktree" in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-48"])
+    def test_add_git_worktree_add_failure_exits_1(self, tmp_path: Path) -> None:
+        result = self._add_in_repo(
+            self._repo(tmp_path), tmp_path, project_config=self._project(develop="develop")
+        )
+        assert result.exit_code == 1
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-50"])
+    def test_add_broken_worktree_config_exits_1(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        (repo / ".pecot" / "config" / "worktree-config.json").write_text("{not json")
+        with patch("cli.core.worktree._run_git_worktree_add"):
+            result = self._add_in_repo(
+                repo, tmp_path, project_config=self._project(develop="develop")
+            )
+        assert result.exit_code == 1
+        assert "error: failed to load the worktree config" in result.stderr
+
+    @staticmethod
+    def _project(develop: str | None) -> MagicMock:
+        cfg = MagicMock()
+        cfg.get_develop_branch.return_value = develop
+        return cfg
+
+    @staticmethod
+    def _repo(tmp_path: Path) -> Path:
+        """<tmp>/base/myrepo に、remote の無い git リポと必須の設定ファイルを置く"""
+        from cli.tests.conftest import make_worktree_required_configs
+
+        repo = tmp_path / "base" / "myrepo"
+        repo.mkdir(parents=True)
+        git_init_and_commit(repo, {"README.md": "hi"})
+        make_worktree_required_configs(repo)
+        return repo
+
+    @staticmethod
+    def _add_in_repo(
+        repo: Path,
+        tmp_path: Path,
+        project_config: MagicMock | None = None,
+    ) -> Result:
+        """git と設定の読みだけ本物で、remote とアクティブな設定を差し替えて worktree add を打つ"""
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch(
+                "cli.core.worktree._read_remote_repos",
+                return_value=[("origin", RepoRef(owner="o", repo="myrepo"))],
+            ),
+            patch("cli.core.worktree.load_active_config", return_value=project_config),
+        ):
+            return runner.invoke(app, ["worktree", "add", "-D", str(repo)])
+
 
 # worktree remove
 
@@ -395,6 +622,49 @@ class TestWorktreeRemove:
         result = runner.invoke(app, ["worktree", "remove", "nope", "-D", str(tmp_path)])
         assert result.exit_code == 1
         assert "error: worktree not found: nope" in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-14"])
+    def test_remove_git_failure_exits_1(self, tmp_path: Path) -> None:
+        result = self._remove_with_git_failure(tmp_path)
+        assert result.exit_code == 1
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-15"])
+    def test_remove_git_failure_prints_error_line(self, tmp_path: Path) -> None:
+        result = self._remove_with_git_failure(tmp_path)
+        assert "error: failed to remove the worktree: fatal: has changes\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-15"])
+    @patch("cli.core.worktree.remove_worktree")
+    def test_remove_runtime_error_prints_error_line(
+        self, mock_remove: MagicMock, tmp_path: Path
+    ) -> None:
+        mock_remove.side_effect = RuntimeError("not found")
+        result = runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(tmp_path)])
+        assert "error: not found\n" in result.stderr
+
+    @staticmethod
+    def _remove_with_git_failure(tmp_path: Path) -> Result:
+        """git worktree remove が変更ありで失敗する状態で worktree remove を打つ"""
+        main_wt = tmp_path / "base" / "myrepo"
+        main_wt.mkdir(parents=True)
+        wt = tmp_path / "wt1" / "myrepo"
+        listing = (
+            f"worktree {main_wt}\nHEAD {'a' * 40}\nbranch refs/heads/main\n\n"
+            f"worktree {wt}\nHEAD {'a' * 40}\nbranch refs/heads/wt1\n"
+        )
+
+        def fake_git(args: list[str], *_a: object, **_k: object) -> MagicMock:
+            if args[:2] == ["worktree", "remove"]:
+                return MagicMock(returncode=1, stdout="", stderr="fatal: has changes")
+            return MagicMock(returncode=0, stdout=listing, stderr="")
+
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch("cli.core.worktree.run_git", side_effect=fake_git),
+            patch("cli.core.worktree._read_recorded_name_of", return_value="wt1"),
+            patch("cli.core.worktree.find_main_worktree", return_value=main_wt),
+        ):
+            return runner.invoke(app, ["worktree", "remove", "wt1", "-D", str(main_wt)])
 
 
 # worktree init
@@ -578,6 +848,41 @@ class TestWorktreeInit:
         """aggregation_repo が無ければ、repositories に別のリポがあっても共有 3 リンクは自リポを指す"""
         assert set(self._init_targets(tmp_path, None).values()) == {"myrepo"}
 
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-06"])
+    def test_init_existing_config_leaves_ignore_file_uncreated(self, tmp_path: Path) -> None:
+        config_path = tmp_path / ".pecot" / "config" / "worktree-config.json"
+        config_path.parent.mkdir(parents=True)
+        config_path.write_text("{}")
+        with patch("cli.core.worktree.find_main_worktree", return_value=tmp_path):
+            result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert not (tmp_path / ".pecot" / "config" / ".worktreeignore").exists()
+        assert config_path.read_text() == "{}"
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-06"])
+    def test_init_existing_ignore_file_leaves_config_uncreated(self, tmp_path: Path) -> None:
+        ignore_path = tmp_path / ".pecot" / "config" / ".worktreeignore"
+        ignore_path.parent.mkdir(parents=True)
+        ignore_path.write_text(".git/\n")
+        with patch("cli.core.worktree.find_main_worktree", return_value=tmp_path):
+            result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert not (tmp_path / ".pecot" / "config" / "worktree-config.json").exists()
+        assert ignore_path.read_text() == ".git/\n"
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-09"])
+    def test_init_main_worktree_lookup_failure_exits_1(self, tmp_path: Path) -> None:
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch(
+                "cli.core.worktree.find_main_worktree",
+                side_effect=RuntimeError("cannot get the worktree list"),
+            ),
+        ):
+            result = runner.invoke(app, ["worktree", "init", "-D", str(tmp_path)])
+        assert result.exit_code == 1
+        assert "error: cannot get the worktree list" in result.stderr
+
 
 # worktree link
 
@@ -760,6 +1065,110 @@ class TestWorktreeLink:
         assert result.exit_code == 0
         assert (wt / "a.txt").is_symlink()
         assert not (sub / "a.txt").exists()
+
+    def _invoke_link(
+        self,
+        tmp_path: Path,
+        directory: Path,
+        args: list[str],
+        detect_root: object = None,
+    ) -> Result:
+        """設定は差し替え、-D に directory を渡して worktree link を打つ（メインの worktree は <tmp>/base/myrepo）"""
+        from cli.core.worktree_links import WorktreeConfig, WorktreeLinkItem
+
+        config = WorktreeConfig(
+            links=[WorktreeLinkItem(path="a.txt", target_repo="src", target_path="a.txt")]
+        )
+        root_patch = (
+            {"side_effect": detect_root}
+            if isinstance(detect_root, Exception)
+            else {"return_value": tmp_path}
+        )
+        with (
+            patch("cli.core.worktree.ensure_devcontainer_environment"),
+            patch(
+                "cli.core.worktree.find_main_worktree", return_value=tmp_path / "base" / "myrepo"
+            ),
+            patch("cli.core.worktree.detect_project_root", **root_patch),
+            patch("cli.core.worktree_links.find_config_file", return_value=tmp_path / "cfg"),
+            patch("cli.core.worktree_links.load_config", return_value=config),
+        ):
+            return runner.invoke(app, ["worktree", "link", "-D", str(directory), *args])
+
+    def _two_worktrees(self, tmp_path: Path) -> list[Path]:
+        (tmp_path / "base" / "myrepo").mkdir(parents=True)
+        (tmp_path / "base" / "src").mkdir(parents=True)
+        (tmp_path / "base" / "src" / "a.txt").write_text("shared")
+        wts = [tmp_path / "wt1" / "myrepo", tmp_path / "wt2" / "myrepo"]
+        for wt in wts:
+            wt.mkdir(parents=True)
+        return wts
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-02"])
+    def test_link_all_links_every_sub_worktree(self, tmp_path: Path) -> None:
+        wts = self._two_worktrees(tmp_path)
+        with patch("cli.core.worktree.get_worktree_dirs", return_value=wts):
+            result = self._invoke_link(tmp_path, wts[0], ["--all"])
+        assert result.exit_code == 0
+        assert all((wt / "a.txt").is_symlink() for wt in wts)
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-12"])
+    def test_link_all_without_sub_worktrees_prints_zero_count(self, tmp_path: Path) -> None:
+        self._two_worktrees(tmp_path)
+        with patch("cli.core.worktree.get_worktree_dirs", return_value=[]):
+            result = self._invoke_link(tmp_path, tmp_path / "base" / "myrepo", ["--all"])
+        assert result.exit_code == 0
+        assert "count: sub-worktrees: 0" in result.stderr.splitlines()
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-13"])
+    def test_link_prints_symlinks_created_count_per_worktree(self, tmp_path: Path) -> None:
+        result = self._run_link(tmp_path, "a.txt", "a.txt")
+        wt = (tmp_path / "wt1" / "myrepo").resolve()
+        assert result.exit_code == 0
+        assert f"count: symlinks created in {wt}: 1" in result.stderr.splitlines()
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-14"])
+    def test_link_all_prints_total_counts(self, tmp_path: Path) -> None:
+        wts = self._two_worktrees(tmp_path)
+        with patch("cli.core.worktree.get_worktree_dirs", return_value=wts):
+            result = self._invoke_link(tmp_path, wts[0], ["--all"])
+        lines = result.stderr.splitlines()
+        assert "count: symlinks created: 2" in lines
+        assert "count: symlinks skipped: 0" in lines
+        assert "count: symlink errors: 0" in lines
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-15"])
+    def test_link_skipped_result_prints_skip_line(self, tmp_path: Path) -> None:
+        result, real = self._real_file_link(tmp_path, ["--all"])
+        assert f"skipped: symlink {real} (a real file exists: {real})" in (
+            result.stderr.splitlines()
+        )
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-20"])
+    def test_link_real_file_eof_exits_1(self, tmp_path: Path) -> None:
+        result, _real = self._real_file_link(tmp_path, [], input="")
+        assert result.exit_code == 1
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-25"])
+    def test_link_in_main_worktree_without_all_prints_error(self, tmp_path: Path) -> None:
+        self._two_worktrees(tmp_path)
+        result = self._invoke_link(tmp_path, tmp_path / "base" / "myrepo", [])
+        assert "error: use --all in the main worktree\n" in result.stderr
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-26"])
+    def test_link_in_main_worktree_without_all_exits_1(self, tmp_path: Path) -> None:
+        self._two_worktrees(tmp_path)
+        result = self._invoke_link(tmp_path, tmp_path / "base" / "myrepo", [])
+        assert result.exit_code == 1
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-27"])
+    def test_link_project_root_failure_exits_1(self, tmp_path: Path) -> None:
+        wts = self._two_worktrees(tmp_path)
+        result = self._invoke_link(
+            tmp_path, wts[0], [], detect_root=RuntimeError("this repository is not placed")
+        )
+        assert result.exit_code == 1
+        assert "error: this repository is not placed\n" in result.stderr
 
 
 # devcontainer 前提ガード

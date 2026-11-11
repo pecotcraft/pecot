@@ -411,6 +411,41 @@ class TestProjectSetE2E:
         with patch("cli.core.worktree.load_active_config", return_value=cfg):
             remove_worktree(cwd=repo_a, name="wt1", force=True)
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-08"])
+    def test_link_false_creates_no_symlink(self, tmp_path: Path) -> None:
+        root, repo_a, _ = _build_project(tmp_path)
+        config = WorktreeConfig(
+            links=[
+                WorktreeLinkItem(
+                    path="CLAUDE.local.md",
+                    target_repo="aist-roadmap",
+                    target_path="CLAUDE.local.md",
+                )
+            ]
+        )
+        save_config(config, repo_a / WORKTREE_CONFIG_FILENAME)
+        _write_default_ignore(repo_a)
+
+        cfg = MagicMock()
+        repo_a_mock = MagicMock(owner="test-owner", name="repo-A")
+        cfg.repositories = [repo_a_mock]
+        cfg.find_repository.return_value = repo_a_mock
+        cfg.get_develop_branch.return_value = "develop"
+
+        with (
+            patch("cli.core.worktree.load_active_config", return_value=cfg),
+            patch(
+                "cli.core.worktree._read_remote_repos",
+                return_value=[("origin", RepoRef(owner="test-owner", repo="repo-A"))],
+            ),
+        ):
+            result = create_worktree(cwd=repo_a, name="wt1", copy=False, link=False)
+
+        assert result.path == root / "wt1" / "repo-A"
+        assert result.linked_files == []
+        assert not (result.path / "CLAUDE.local.md").is_symlink()
+        assert not (result.path / "CLAUDE.local.md").exists()
+
 
 @pytest.mark.skipif(
     not subprocess.run(["which", "git"], capture_output=True).stdout,
@@ -573,6 +608,41 @@ class TestWorktreePathNumberE2E:
 
         assert get_claimed_set_names(repo) == {"wt1"}
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-07"])
+    def test_path_option_creates_worktree_at_that_path(self, tmp_path: Path) -> None:
+        root, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+
+        assert created.path == elsewhere
+        assert str(elsewhere) in [w.path for w in get_worktree_list(repo)]
+        assert not (root / "wt1").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-13"])
+    def test_dry_run_creates_no_worktree_and_no_branch(self, tmp_path: Path) -> None:
+        root, repo, cfg = self._setup(tmp_path)
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            planned = create_worktree(cwd=repo, dry_run=True, copy=False, link=False)
+
+        assert planned.path == root / "wt1" / "myrepo"
+        assert not (root / "wt1").exists()
+        assert [w.path for w in get_worktree_list(repo)] == [str(repo)]
+        assert "wt1" not in _git(repo, "branch", "--format=%(refname:short)").stdout.split()
+
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-49"])
+    def test_broken_worktree_config_leaves_worktree_and_branch(self, tmp_path: Path) -> None:
+        root, repo, cfg = self._setup(tmp_path)
+        (repo / WORKTREE_CONFIG_FILENAME).write_text("{not json", encoding="utf-8")
+        p1, p2 = self._patches(cfg)
+        with p1, p2, pytest.raises(RuntimeError, match="failed to load the worktree config"):
+            create_worktree(cwd=repo, copy=False, link=False)
+
+        assert (root / "wt1" / "myrepo").is_dir()
+        assert "wt1" in _git(repo, "branch", "--format=%(refname:short)").stdout.split()
+
 
 @pytest.mark.skipif(
     not subprocess.run(["which", "git"], capture_output=True).stdout,
@@ -716,3 +786,40 @@ class TestRemoveWorktreeByNameE2E:
         remove_worktree(cwd=repo, name="wt 1")
 
         assert not wt.exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-03"])
+    def test_keep_branch_leaves_branch_after_removal(self, tmp_path: Path) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, copy=False, link=False)
+            result = remove_worktree(cwd=repo, name="wt1", keep_branch=True)
+
+        assert result is None
+        assert not created.path.exists()
+        assert "wt1" in self._branches(repo)
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-04"])
+    def test_force_removes_worktree_with_changes(self, tmp_path: Path) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, copy=False, link=False)
+            (created.path / "README.md").write_text("changed")
+            remove_worktree(cwd=repo, name="wt1", force=True)
+
+        assert not created.path.exists()
+        assert "wt1" not in self._branches(repo)
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-13"])
+    def test_changes_without_force_raise_and_keep_worktree_and_branch(self, tmp_path: Path) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, copy=False, link=False)
+            (created.path / "README.md").write_text("changed")
+            with pytest.raises(RuntimeError, match="failed to remove the worktree"):
+                remove_worktree(cwd=repo, name="wt1")
+
+        assert created.path.is_dir()
+        assert "wt1" in self._branches(repo)

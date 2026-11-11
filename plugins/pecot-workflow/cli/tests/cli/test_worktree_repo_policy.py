@@ -100,6 +100,54 @@ class TestWorktreeMismatchReject:
         assert result.exit_code == 1
         assert "differs from the current Git remote" in result.stderr
 
+    @add_test_properties(verifies=["PW-WORKTREE-ADD-26"])
+    def test_worktree_add_mismatch_creates_nothing(self, tmp_path) -> None:
+        with _patch_current_git(), patch("cli.core.worktree.create_worktree") as mock_create:
+            runner.invoke(
+                app,
+                ["--repo", "acme-labs/aist-plugin", "worktree", "add", "-D", str(tmp_path)],
+            )
+        mock_create.assert_not_called()
+
+    @add_test_properties(verifies=["PW-WORKTREE-INIT-10"])
+    def test_worktree_init_mismatch_writes_no_files(self, tmp_path) -> None:
+        with _patch_current_git():
+            runner.invoke(
+                app,
+                ["--repo", "acme-labs/aist-plugin", "worktree", "init", "-D", str(tmp_path)],
+            )
+        assert not (tmp_path / ".pecot" / "config" / "worktree-config.json").exists()
+        assert not (tmp_path / ".pecot" / "config" / ".worktreeignore").exists()
+
+    @add_test_properties(verifies=["PW-WORKTREE-REMOVE-17"])
+    def test_worktree_remove_mismatch_removes_nothing(self, tmp_path) -> None:
+        with _patch_current_git(), patch("cli.core.worktree.remove_worktree") as mock_remove:
+            runner.invoke(
+                app,
+                [
+                    "--repo",
+                    "acme-labs/aist-plugin",
+                    "worktree",
+                    "remove",
+                    "wt1",
+                    "-D",
+                    str(tmp_path),
+                ],
+            )
+        mock_remove.assert_not_called()
+
+    @add_test_properties(verifies=["PW-WORKTREE-LINK-28"])
+    def test_worktree_link_mismatch_creates_no_links(self, tmp_path) -> None:
+        with (
+            _patch_current_git(),
+            patch("cli.core.worktree_links.create_symlinks_safe") as mock_links,
+        ):
+            runner.invoke(
+                app,
+                ["--repo", "acme-labs/aist-plugin", "worktree", "link", "-D", str(tmp_path)],
+            )
+        mock_links.assert_not_called()
+
 
 class TestBranchMismatchReject:
     """FR-009a: create-branch / delete-branch は不一致で exit 1。"""
