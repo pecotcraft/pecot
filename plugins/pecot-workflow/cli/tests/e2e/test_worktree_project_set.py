@@ -7,6 +7,7 @@ create_worktree → create_symlinks → remove_worktree の一連のフローが
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -17,9 +18,12 @@ import pytest
 from cli.core.paths import WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME
 from cli.core.repo_resolver import RepoRef
 from cli.core.worktree import (
+    _write_worktree_name_marker,
     create_worktree,
+    find_main_worktree,
     get_claimed_set_names,
     get_current_worktree_name,
+    get_worktree_list,
     remove_worktree,
 )
 from cli.core.worktree_links import (
@@ -563,3 +567,141 @@ class TestWorktreePathNumberE2E:
         monkeypatch.chdir(other)
 
         assert get_claimed_set_names(repo) == {"wt1"}
+
+
+@pytest.mark.skipif(
+    not subprocess.run(["which", "git"], capture_output=True).stdout,
+    reason="git required",
+)
+class TestRemoveWorktreeByNameE2E:
+    """remove は 記録 → 置き場所 → ブランチ名 の順で worktree を探す"""
+
+    _setup = TestWorktreePathNumberE2E._setup
+    _patches = TestWorktreePathNumberE2E._patches
+
+    @staticmethod
+    def _branches(repo: Path) -> list[str]:
+        out = _git(repo, "branch", "--format=%(refname:short)").stdout
+        return out.split()
+
+    def test_removes_path_worktree_moved_to_feature_branch(self, tmp_path: Path) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+            _git(created.path, "checkout", "-b", "feat/x", "-q")
+            result = remove_worktree(cwd=repo, name="wt1")
+
+        assert result is None
+        assert not elsewhere.exists()
+        branches = self._branches(repo)
+        assert "wt1" not in branches
+        assert "feat/x" in branches
+
+    def test_removes_unrecorded_worktree_by_location(self, tmp_path: Path) -> None:
+        root, repo, _ = self._setup(tmp_path)
+        wt = root / "wt1" / "myrepo"
+        _git(repo, "worktree", "add", "-b", "wt1", str(wt), "develop", "-q")
+        _git(wt, "checkout", "-b", "feat/x", "-q")
+
+        result = remove_worktree(cwd=repo, name="wt1")
+
+        assert result is None
+        assert not wt.exists()
+        assert not (root / "wt1").exists()
+        branches = self._branches(repo)
+        assert "wt1" not in branches
+        assert "feat/x" in branches
+
+    @pytest.mark.parametrize("branch_first", [True, False])
+    def test_record_wins_over_branch_name_match(self, tmp_path: Path, branch_first: bool) -> None:
+        # git worktree list の並びは管理ディレクトリの読み順で決まり、固定できない。作る順を両方試す
+        _, repo, _ = self._setup(tmp_path)
+        by_branch = tmp_path / "by-branch" / "myrepo"
+        recorded = tmp_path / "recorded" / "myrepo"
+
+        def add_by_branch() -> None:
+            # ブランチ wt1 を checkout、記録なし
+            _git(repo, "worktree", "add", "-b", "wt1", str(by_branch), "develop", "-q")
+
+        def add_recorded() -> None:
+            # 記録が wt1、ブランチは feat/x
+            _git(repo, "worktree", "add", "-b", "feat/x", str(recorded), "develop", "-q")
+            _write_worktree_name_marker(recorded, "wt1")
+
+        for add in (add_by_branch, add_recorded) if branch_first else (add_recorded, add_by_branch):
+            add()
+
+        result = remove_worktree(cwd=repo, name="wt1")
+
+        assert not recorded.exists()
+        assert by_branch.exists()
+        assert result is not None
+        assert "used by worktree" in result
+        branches = self._branches(repo)
+        assert "wt1" in branches
+        assert "feat/x" in branches
+
+    def test_removes_detached_head_worktree(self, tmp_path: Path) -> None:
+        _, repo, cfg = self._setup(tmp_path)
+        elsewhere = tmp_path / "elsewhere" / "myrepo"
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            created = create_worktree(cwd=repo, path=elsewhere, copy=False, link=False)
+            _git(created.path, "checkout", "--detach", "-q")
+            remove_worktree(cwd=repo, name="wt1")
+
+        assert not elsewhere.exists()
+        assert "wt1" not in self._branches(repo)
+
+    def test_removes_when_another_worktree_directory_is_gone(self, tmp_path: Path) -> None:
+        root, repo, cfg = self._setup(tmp_path)
+        p1, p2 = self._patches(cfg)
+        with p1, p2:
+            first = create_worktree(cwd=repo, copy=False, link=False)
+            second = create_worktree(cwd=repo, copy=False, link=False)
+            shutil.rmtree(second.path)
+            remove_worktree(cwd=repo, name="wt1")
+
+        assert first.name == "wt1"
+        assert not first.path.exists()
+        assert "wt1" not in self._branches(repo)
+
+    def test_does_not_target_main_worktree(self, tmp_path: Path) -> None:
+        _, repo, _ = self._setup(tmp_path)
+
+        with pytest.raises(RuntimeError, match="worktree not found: base"):
+            remove_worktree(cwd=repo, name="base")
+        with pytest.raises(RuntimeError, match="worktree not found: main"):
+            remove_worktree(cwd=repo, name="main")
+
+        assert repo.exists()
+        assert "main" in self._branches(repo)
+
+    def test_removes_non_wtn_branch_name_as_before(self, tmp_path: Path) -> None:
+        _, repo, _ = self._setup(tmp_path)
+        wt = tmp_path / "other" / "myrepo"
+        _git(repo, "worktree", "add", "-b", "feat/z", str(wt), "develop", "-q")
+
+        result = remove_worktree(cwd=repo, name="feat/z")
+
+        assert result is None
+        assert not wt.exists()
+        assert "feat/z" not in self._branches(repo)
+
+    def test_paths_with_spaces(self, tmp_path: Path) -> None:
+        root = tmp_path / "my workspaces"
+        (root / "base").mkdir(parents=True)
+        repo = root / "base" / "myrepo"
+        _init_repo(repo, default_branch="develop")
+        wt = root / "wt 1" / "myrepo"
+        _git(repo, "worktree", "add", "-b", "wt1", str(wt), "develop", "-q")
+        _git(wt, "checkout", "-b", "feat/x", "-q")
+
+        assert find_main_worktree(wt) == repo
+        assert [w.path for w in get_worktree_list(repo)] == [str(repo), str(wt)]
+
+        remove_worktree(cwd=repo, name="wt 1")
+
+        assert not wt.exists()

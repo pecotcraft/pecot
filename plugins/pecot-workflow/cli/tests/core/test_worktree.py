@@ -45,11 +45,18 @@ def _make_spec(lines: list[str]) -> pathspec.PathSpec:
 # get_worktree_list のテスト
 
 
+def _porcelain(*entries: tuple[str, str | None]) -> str:
+    """``git worktree list --porcelain`` 形式の出力を作る（branch が None なら detached）"""
+    blocks = []
+    for path, branch in entries:
+        tail = f"branch refs/heads/{branch}" if branch else "detached"
+        blocks.append(f"worktree {path}\nHEAD {'a' * 40}\n{tail}\n")
+    return "\n".join(blocks)
+
+
 class TestGetWorktreeList:
     def test_parse_normal_output(self) -> None:
-        mock_output = (
-            "/home/user/repo         abc1234 [main]\n/home/user/wt1/repo     def5678 [wt1]\n"
-        )
+        mock_output = _porcelain(("/home/user/repo", "main"), ("/home/user/wt1/repo", "wt1"))
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout=mock_output)
             result = get_worktree_list()
@@ -57,8 +64,16 @@ class TestGetWorktreeList:
         assert result[0].branch == "main"
         assert result[1].branch == "wt1"
 
+    def test_parse_path_with_spaces(self) -> None:
+        mock_output = _porcelain(("/home/my user/repo", "main"), ("/home/my user/wt 1/repo", "wt1"))
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout=mock_output)
+            result = get_worktree_list()
+        assert [w.path for w in result] == ["/home/my user/repo", "/home/my user/wt 1/repo"]
+        assert result[1].branch == "wt1"
+
     def test_parse_detached_head(self) -> None:
-        mock_output = "/home/user/repo         abc1234 (detached HEAD)\n"
+        mock_output = _porcelain(("/home/user/repo", None))
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout=mock_output)
             result = get_worktree_list()
@@ -76,9 +91,7 @@ class TestGetWorktreeList:
 
 class TestFindMainWorktree:
     def test_returns_first_worktree_path(self) -> None:
-        mock_output = (
-            "/home/user/repo         abc1234 [main]\n/home/user/wt/wt1       def5678 [wt1]\n"
-        )
+        mock_output = _porcelain(("/home/user/repo", "main"), ("/home/user/wt/wt1", "wt1"))
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(returncode=0, stdout=mock_output)
             result = find_main_worktree(Path("/home/user/wt/wt1"))
@@ -1023,7 +1036,7 @@ class TestRemoveWorktree:
         set_dir.mkdir()
 
         # git worktree list の出力: メイン + wt1
-        list_output = f"{repo}  abc1234 [main]\n{set_dir / 'myrepo'}  def5678 [wt1]\n"
+        list_output = _porcelain((str(repo), "main"), (str(set_dir / "myrepo"), "wt1"))
 
         def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
             if cmd[:3] == ["git", "worktree", "list"]:
@@ -1051,7 +1064,7 @@ class TestRemoveWorktree:
         set_dir.mkdir()
         (set_dir / "other-repo").mkdir()
 
-        list_output = f"{repo}  abc1234 [main]\n{set_dir / 'myrepo'}  def5678 [wt1]\n"
+        list_output = _porcelain((str(repo), "main"), (str(set_dir / "myrepo"), "wt1"))
 
         def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
             if cmd[:3] == ["git", "worktree", "list"]:
@@ -1071,7 +1084,7 @@ class TestRemoveWorktree:
         root = tmp_path / "workspaces"
         repo = root / "base" / "myrepo"
         repo.mkdir(parents=True)
-        list_output = f"{repo}  abc1234 [main]\n{root / 'wt1' / 'myrepo'}  def5678 [wt1]\n"
+        list_output = _porcelain((str(repo), "main"), (str(root / "wt1" / "myrepo"), "wt1"))
 
         def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
             if cmd[:3] == ["git", "worktree", "list"]:

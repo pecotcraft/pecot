@@ -3840,14 +3840,17 @@ entries:
   PW-WORKTREE-REMOVE:
     constraints: []
     details:
-      - Finds the worktree whose branch is the given name in the worktree list of the repository in -D, and removes it with git worktree remove.
+      - Finds the worktree by the given name among the worktrees of the repository in -D other than the main worktree, and removes it with git worktree remove.
+      - Looks for the worktree in 3 steps and takes the first match. First the worktree whose name that pecot worktree add recorded is the given name, then the worktree at <project root>/<name>/<repo>, then the worktree whose checked out branch is the given name.
+      - Does not read the record of a worktree whose directory is missing.
+      - The main worktree is never found by name.
       - Deletes the local branch of the same name unless --keep-branch is given.
+      - A branch of another name that the removed worktree had checked out remains.
       - When git branch -D fails, a warning with the reason is written instead of the deleted line, the branch remains and the command still finishes with exit status 0.
       - Removes <project root>/<name> afterwards when that directory is empty.
       - A set directory that cannot be removed is a warning.
       - Without --force, git refuses to remove a worktree that has changes.
-      - A name that is not a branch name of a listed worktree stops the command.
-      - A worktree with a detached HEAD cannot be found by name.
+      - A name that matches no worktree in any of the 3 steps stops the command.
       - Needs a devcontainer.
       - Does not read the worktree config files or the active project.
     stdin: none
@@ -3865,14 +3868,14 @@ entries:
       - code: 0
         when: The worktree was removed, including when the branch could not be deleted.
       - code: 1
-        when: --repo differs from the current git remote, --repo is omitted outside a git repository, no worktree has the given branch name, git worktree remove failed, or the command runs outside a devcontainer.
+        when: --repo differs from the current git remote, --repo is omitted outside a git repository, no worktree matches the given name, git worktree remove failed, or the command runs outside a devcontainer.
       - code: 2
         when: The name or -D is missing, -D is not an existing directory, or another command line error occurs.
     on_error: Stops at the first error. When git worktree remove failed, the worktree and the branch stay. After the worktree was removed, a failure to delete the branch writes a warning and leaves the branch.
     effects:
       - target: git
         kind: read
-        what: Reads the worktree list.
+        what: Reads the worktree list and the wtN that pecot worktree add recorded in each worktree.
       - target: git
         kind: destructive
         what: Removes the worktree, including uncommitted changes with --force, and deletes the local branch with git branch -D.
@@ -3891,7 +3894,7 @@ entries:
     behaviors:
       - id: PW-WORKTREE-REMOVE-01
         pattern: event
-        statement: worktree のブランチ名を渡して打つと、その worktree を削除する
+        statement: worktree add が記録した名前を渡して打つと、checkout しているブランチによらず、その worktree を削除する
       - id: PW-WORKTREE-REMOVE-02
         pattern: event
         statement: --keep-branch を省いて worktree を削除すると、同じ名前のローカルブランチを削除する
@@ -3921,10 +3924,10 @@ entries:
         statement: もし git branch -D に失敗したなら、ブランチを残す
       - id: PW-WORKTREE-REMOVE-11
         pattern: unwanted
-        statement: もし渡した名前をブランチ名に持つ worktree が無いなら、worktree not found の error の行を標準エラーに出す
+        statement: もし渡した名前の worktree が無いなら、worktree not found の error の行を標準エラーに出す
       - id: PW-WORKTREE-REMOVE-12
         pattern: unwanted
-        statement: もし渡した名前をブランチ名に持つ worktree が無いなら、終了コード 1 で終わる
+        statement: もし渡した名前の worktree が無いなら、終了コード 1 で終わる
       - id: PW-WORKTREE-REMOVE-13
         pattern: unwanted
         statement: もし --force を付けずに変更のある worktree を削除しようとしたなら、worktree とブランチを残す
@@ -3958,6 +3961,12 @@ entries:
       - id: PW-WORKTREE-REMOVE-23
         pattern: unwanted
         statement: もし git branch -D に失敗したなら、終了コード 0 で終わる
+      - id: PW-WORKTREE-REMOVE-24
+        pattern: event
+        statement: 記録の無い worktree の、プロジェクトのルートから見た置き場所 <名前>/<repo> の名前を渡して打つと、checkout しているブランチによらず、その worktree を削除する
+      - id: PW-WORKTREE-REMOVE-25
+        pattern: event
+        statement: 記録と置き場所のどちらでも見つからない名前を渡して打つと、その名前のブランチを checkout している worktree を削除する
 
 common_behaviors:
   - id: PW-COMMON-01

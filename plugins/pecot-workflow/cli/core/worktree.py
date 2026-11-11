@@ -142,48 +142,39 @@ class WorktreeInfo:
     branch: str | None
 
 
+def _parse_worktree_porcelain(stdout: str) -> list[WorktreeInfo]:
+    """``git worktree list --porcelain`` の出力（空行区切り）を WorktreeInfo にする"""
+    worktrees: list[WorktreeInfo] = []
+    for block in stdout.split("\n\n"):
+        path: str | None = None
+        commit = ""
+        branch: str | None = None
+        for line in block.strip("\n").split("\n"):
+            key, _, value = line.partition(" ")
+            if key == "worktree":
+                path = value
+            elif key == "HEAD":
+                commit = value
+            elif key == "branch":
+                branch = value.removeprefix("refs/heads/")
+        if path:
+            worktrees.append(WorktreeInfo(path=path, commit=commit, branch=branch))
+    return worktrees
+
+
 def get_worktree_list(cwd: Path | None = None) -> list[WorktreeInfo]:
-    """git worktree listの結果をパース
+    """git worktree list --porcelain の結果をパース（空白を含むパスも扱える）
 
     Args:
         cwd: 対象ディレクトリ（省略時: カレントディレクトリ）
 
     Returns:
-        WorktreeInfoのリスト
+        WorktreeInfoのリスト。branch は refs/heads/ を外した名前で、detached HEAD は None
     """
-    result = run_git(["worktree", "list"], cwd, check=False)
+    result = run_git(["worktree", "list", "--porcelain"], cwd, check=False)
     if result.returncode != 0:
         return []
-
-    worktrees: list[WorktreeInfo] = []
-    for line in result.stdout.strip().split("\n"):
-        if not line:
-            continue
-
-        # フォーマット: /path/to/worktree  abc123 [branch-name]
-        # または: /path/to/worktree  abc123 (detached HEAD)
-        match = re.match(r"^(\S+)\s+(\S+)\s+\[([^\]]+)\]", line)
-        if match:
-            worktrees.append(
-                WorktreeInfo(
-                    path=match.group(1),
-                    commit=match.group(2),
-                    branch=match.group(3),
-                )
-            )
-        else:
-            # detached HEAD の場合
-            match = re.match(r"^(\S+)\s+(\S+)", line)
-            if match:
-                worktrees.append(
-                    WorktreeInfo(
-                        path=match.group(1),
-                        commit=match.group(2),
-                        branch=None,
-                    )
-                )
-
-    return worktrees
+    return _parse_worktree_porcelain(result.stdout)
 
 
 def find_main_worktree(cwd: Path) -> Path:
@@ -200,16 +191,15 @@ def find_main_worktree(cwd: Path) -> Path:
     Raises:
         RuntimeError: git worktree list の実行に失敗した場合
     """
-    result = run_git(["worktree", "list"], cwd, check=False)
+    result = run_git(["worktree", "list", "--porcelain"], cwd, check=False)
     if result.returncode != 0 or not result.stdout.strip():
         raise RuntimeError(f"cannot get the worktree list: {result.stderr}")
 
-    first_line = result.stdout.strip().split("\n")[0]
-    match = re.match(r"^(\S+)", first_line)
-    if not match:
+    entries = _parse_worktree_porcelain(result.stdout)
+    if not entries:
         raise RuntimeError("cannot get the worktree list: parse error")
 
-    return Path(match.group(1))
+    return Path(entries[0].path)
 
 
 def is_worktree_env(cwd: Path) -> bool:
@@ -989,6 +979,59 @@ def _run_setup_command(command: str, cwd: Path, timeout: int | None = None) -> S
     )
 
 
+def _read_recorded_name_of(wt_path: Path) -> str | None:
+    """一覧の worktree が持つ記録（wtN）を読む。別の worktree や親のリポの記録は採らない"""
+    if not wt_path.is_dir():
+        return None
+    top = run_git(["rev-parse", "--show-toplevel"], wt_path, check=False, strip_git_env=True)
+    if top.returncode != 0 or not top.stdout.strip():
+        return None
+    if Path(top.stdout.strip()).resolve() != wt_path.resolve():
+        return None
+    marker = run_git(
+        ["rev-parse", "--path-format=absolute", "--git-path", WORKTREE_NAME_MARKER],
+        wt_path,
+        check=False,
+        strip_git_env=True,
+    )
+    if marker.returncode != 0 or not marker.stdout.strip():
+        return None
+    try:
+        text = Path(marker.stdout.strip()).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return text or None
+
+
+def _find_worktree_path_by_name(cwd: Path, name: str) -> str | None:
+    """名前で worktree のパスを探す。メインの worktree は対象にしない
+
+    探す順は、記録の名前、置き場所 ``<root>/<name>/<repo>``、ブランチ名。各段で一覧の全件を見る。
+    """
+    candidates = get_worktree_list(cwd)[1:]
+    if not candidates:
+        return None
+
+    for wt in candidates:
+        if _read_recorded_name_of(Path(wt.path)) == name:
+            return wt.path
+
+    try:
+        main_wt = find_main_worktree(cwd)
+        expected: Path | None = (detect_project_root(cwd) / name / main_wt.name).resolve()
+    except RuntimeError:
+        expected = None
+    if expected is not None:
+        for wt in candidates:
+            if Path(wt.path).resolve() == expected:
+                return wt.path
+
+    for wt in candidates:
+        if wt.branch == name:
+            return wt.path
+    return None
+
+
 def remove_worktree(
     cwd: Path,
     name: str,
@@ -999,7 +1042,7 @@ def remove_worktree(
 
     Args:
         cwd: 対象Gitリポジトリのパス
-        name: WT名（ブランチ名）
+        name: WT名。記録した wtN、置き場所、ブランチ名の順で探す。
         force: 強制削除（デフォルト: False）
         keep_branch: ブランチを残す（デフォルト: False）
 
@@ -1010,16 +1053,7 @@ def remove_worktree(
         RuntimeError: 削除に失敗した場合
     """
     # 1. WTパスを特定
-    result = run_git(["worktree", "list"], cwd, check=False)
-
-    wt_path: str | None = None
-    for line in result.stdout.strip().split("\n"):
-        if not line:
-            continue
-        match = re.match(r"^(\S+)\s+(\S+)\s+\[([^\]]+)\]", line)
-        if match and match.group(3) == name:
-            wt_path = match.group(1)
-            break
+    wt_path = _find_worktree_path_by_name(cwd, name)
 
     if wt_path is None:
         raise RuntimeError(f"worktree not found: {name}")

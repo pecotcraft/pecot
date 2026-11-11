@@ -25,6 +25,8 @@ cd <project-root>/base/<repo>
 pecot worktree remove <NAME> -D . [--force] [--keep-branch]
 ```
 
+`<NAME>` は `worktree add` が付けた名前（`wt1` など）。サブ WT が機能ブランチに移っていても、この名前で削除できる。消えるローカルブランチは `<NAME>` で、機能ブランチは残る。
+
 オプションは `pecot worktree remove --help`。変更が残っているサブ WT を消すときは `--force`。
 
 `<project-root>/<NAME>/` ディレクトリが空になれば自動で rmdir される。

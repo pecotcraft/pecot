@@ -145,7 +145,7 @@ def worktree_remove(
     name: Annotated[
         str,
         typer.Argument(
-            help="Name of the worktree to remove (the branch name)",
+            help="Name of the worktree to remove (the recorded wtN, the wtN directory, or the branch name)",
         ),
     ],
     directory: DirectoryOption = ...,  # type: ignore[assignment]
