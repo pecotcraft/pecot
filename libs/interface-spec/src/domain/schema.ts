@@ -49,7 +49,10 @@ export const generatedFileSchema = z.strictObject({
   entries: z.array(generatedEntrySchema),
 })
 
-const environmentVariable = z.strictObject({ name: z.string(), effect: z.string() })
+// 人が書く文字列の欄。空白だけも空とみなす（trim は検証の中だけで、ファイルには書き戻さない）。
+const authoredText = z.string().trim().min(1)
+
+const environmentVariable = z.strictObject({ name: z.string(), effect: authoredText })
 
 export const behaviorSchema = z.strictObject({
   id: z.string(),
@@ -58,35 +61,35 @@ export const behaviorSchema = z.strictObject({
 })
 
 const output = z.discriminatedUnion('format', [
-  z.strictObject({ format: z.literal('text'), description: z.string() }),
-  z.strictObject({ format: z.literal('json'), description: z.string(), schema: jsonSchemaObject }),
+  z.strictObject({ format: z.literal('text'), description: authoredText }),
+  z.strictObject({ format: z.literal('json'), description: authoredText, schema: jsonSchemaObject }),
   z.strictObject({ format: z.literal('none') }),
 ])
 
 // constraints と exit_status の要素は、持っているキーで schema を選んでから parse する（z.union にしない）。
 export const conflictConstraintSchema = z.strictObject({ conflicts: z.array(z.string()).min(2) })
 export const dependencyConstraintSchema = z.strictObject({ requires: z.record(z.string(), z.array(z.string())) })
-export const exitCodeSchema = z.strictObject({ code: z.int().min(0).max(255), when: z.string() })
-export const exitKindSchema = z.strictObject({ kind: z.string(), when: z.string() })
+export const exitCodeSchema = z.strictObject({ code: z.int().min(0).max(255), when: authoredText })
+export const exitKindSchema = z.strictObject({ kind: authoredText, when: authoredText })
 
 export const authoredEntrySchema = z.strictObject({
   constraints: z.array(z.unknown()),
-  details: z.array(z.string()),
-  stdin: z.string(),
+  details: z.array(authoredText),
+  stdin: authoredText,
   output,
-  diagnostics: z.string(),
+  diagnostics: authoredText,
   environment: z.array(environmentVariable),
   exit_status: z.array(z.unknown()),
-  on_error: z.string(),
+  on_error: authoredText,
   effects: z.array(z.strictObject({
     target: z.enum(EFFECT_TARGETS),
     kind: z.enum(EFFECT_KINDS),
-    what: z.string(),
+    what: authoredText,
   })),
-  prerequisites: z.array(z.string()),
+  prerequisites: z.array(authoredText),
   idempotent: z.boolean(),
-  examples: z.array(z.strictObject({ run: z.string(), note: z.string() })),
-  default_notes: z.record(z.string(), z.string()),
+  examples: z.array(z.strictObject({ run: authoredText, note: authoredText })),
+  default_notes: z.record(z.string(), authoredText),
   behaviors: z.array(behaviorSchema).min(1),
 })
 

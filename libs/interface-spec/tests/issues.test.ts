@@ -17,9 +17,14 @@ describe('issuesToFindings', () => {
     ])
   })
 
-  it('配列についてでない too_small は、未知として扱う', () => {
-    const issue: Issue = { code: 'too_small', origin: 'string', minimum: 1, inclusive: true, path: ['plugin'], message: 'Too small', input: '' }
-    expect(lines([issue], { plugin: '' })).toEqual(['error: f.yaml: plugin: unknown validation issue (too_small): Too small'])
+  it('文字列の too_small は is empty にし、使わないときの値がある欄には括弧の案内を付ける', () => {
+    const issue: Issue = { code: 'too_small', origin: 'string', minimum: 1, inclusive: true, path: ['entries', 'PW-A', 'on_error'], message: 'Too small', input: '' }
+    expect(lines([issue], { entries: { 'PW-A': { on_error: '' } } })).toEqual(['error: f.yaml: PW-A: on_error: is empty (write "default" if nothing remains)'])
+  })
+
+  it('括弧の付かない位置の文字列の too_small は、is empty だけにする', () => {
+    const issue: Issue = { code: 'too_small', origin: 'string', minimum: 1, inclusive: true, path: ['entries', 'PW-A', 'examples', 0, 'run'], message: 'Too small', input: ' ' }
+    expect(lines([issue], { entries: { 'PW-A': { examples: [{ run: ' ' }] } } })).toEqual(['error: f.yaml: PW-A: examples[0].run: is empty'])
   })
 
   it.each([

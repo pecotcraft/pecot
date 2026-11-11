@@ -1,4 +1,5 @@
-import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { execFileSync } from 'node:child_process'
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -88,6 +89,18 @@ describe('linkRepository', () => {
       'error: PW-ISSUE-CREATE-02 has no test',
       'error: PW-ISSUE-QUICK-01 has no test',
     ])
+  })
+
+  it('statement が空の振る舞いの項目でも ID を集め、テストに書いた ID を定義書に無いと言わない', async () => {
+    const root = await materialize('field-empty')
+    await writeFile(path.join(root, 'libs/interface-spec/targets.json'), JSON.stringify({
+      format: 1,
+      plugins: { 'pecot-workflow': { entries: 'complete', coverage: 'off', sources: [], tests: ['plugins/pecot-workflow/cli/tests/*.txt'] } },
+    }))
+    await mkdir(path.join(root, 'plugins/pecot-workflow/cli/tests'), { recursive: true })
+    await writeFile(path.join(root, 'plugins/pecot-workflow/cli/tests/c.txt'), 'PW-ISSUE-CREATE-02\n')
+    execFileSync('git', ['add', '--all'], { cwd: root })
+    expect(await linkRepository(root)).toEqual([])
   })
 
   it('git が追跡しないファイルは読まない', async () => {
