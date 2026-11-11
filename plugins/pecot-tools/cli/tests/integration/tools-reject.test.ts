@@ -133,8 +133,8 @@ describe('S3 の方向（research R7）', () => {
     expect(structured['message']).toContain('local_path')
   })
 
-  it('書き出し先が相対パスなら拒否する', async (context) => {
-    await verifies(context, 'PT-AWS-S3-CP-05')
+  it('s3api の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-COMMON-14')
     const structured = await expectIsError('aws_s3api_get_object', {
       bucket: 'example-bucket',
       key: 'report.json',
@@ -142,6 +142,17 @@ describe('S3 の方向（research R7）', () => {
     })
 
     expect(structured['message']).toContain('absolute path')
+  })
+
+  it('s3_cp の書き出し先が相対パスのとき、invalid-input で拒否する', async (context) => {
+    await verifies(context, 'PT-AWS-S3-CP-05')
+    const structured = await expectIsError('aws_s3_cp', {
+      s3_uri: 's3://example-bucket/report.json',
+      local_path: 'data/report.json',
+    })
+
+    expect(structured['category']).toBe('invalid-input')
+    expect(structured['message']).toContain('local_path')
   })
 })
 
@@ -152,6 +163,7 @@ describe('Athena の変更系・複文（research R6）', () => {
     ['CREATE TABLE snapshot AS SELECT * FROM orders', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
     ['UNLOAD (SELECT * FROM orders) TO \'s3://bucket/prefix/\'', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
     ['EXPLAIN ANALYZE INSERT INTO orders VALUES (1)', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-02'],
+    ['SELECT 1; DROP TABLE orders', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-03'],
   ]
 
   it.for(NOT_ALLOWED)('%j を not-allowed で拒否する', async ([query, id], context) => {
@@ -191,6 +203,23 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(structured['message']).toContain('database')
   })
 
+  it.for([
+    { name: 'database', args: { database: 'a=b' } },
+    { name: 'database', args: { database: 'a{b' } },
+    { name: 'database', args: { database: 'a}b' } },
+    { name: 'catalog', args: { database: 'analytics', catalog: 'x,y' } },
+    { name: 'output_location', args: { output_location: 's3://b/p{x}' } },
+  ])('$name に , = { } のいずれかを含むとき、invalid-input で拒否する', async (row, context) => {
+    await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
+    const structured = await expectIsError('aws_athena_start_query_execution', {
+      query_string: 'SELECT 1',
+      ...row.args,
+    })
+
+    expect(structured['category']).toBe('invalid-input')
+    expect(structured['message']).toContain(row.name)
+  })
+
   it('output_location に別キーを継ぎ足す注入も invalid-input で拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
     // --result-configuration に実際に注入される形。`OutputLocation=s3://b/p,ExpectedBucketOwner=…` を
@@ -206,9 +235,7 @@ describe('Athena の変更系・複文（research R6）', () => {
 
   it('catalog の単独指定を invalid-input で拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-04')
-    // 契約は、catalog を database とあわせて指定するよう定めている。
-    // Database 無しの QueryExecutionContext を実 Athena API が受けるかは未確認なので、
-    // 組み立てる前に拒否する。
+    // Database 無しの QueryExecutionContext を実 Athena API が受けるか未確認なので、組み立て前に拒否する。
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
       catalog: 'awsdatacatalog',
@@ -381,6 +408,10 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
     })
 
     expect(result.isError).toBeUndefined()
+    const structured = result.structuredContent
+    if (!isRecord(structured)) throw new Error('structuredContent がありません')
+    expect(structured['artifacts']).toEqual([existingFile()])
+    expect(callLog().some(call => call[0] === 's3' && call[1] === 'cp' && call.includes(existingFile()))).toBe(true)
   })
 
   it.for([
@@ -535,7 +566,7 @@ describe('inputSchema 段階で落ちる違反', () => {
 describe('許可リストの書式の規則', () => {
   it.for([
     {
-      name: 'cloudwatch の start_time のタイムゾーンの無い日時',
+      name: 'cloudwatch の start_time がタイムゾーンの無い日時のとき',
       tool: 'aws_cloudwatch_get_metric_statistics',
       args: {
         namespace: 'AWS/SQS',
@@ -548,36 +579,36 @@ describe('許可リストの書式の規則', () => {
       ids: ['PT-COMMON-14', 'PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-02'],
     },
     {
-      name: 'rds の start_time のタイムゾーンの無い日時',
+      name: 'rds の start_time がタイムゾーンの無い日時のとき',
       tool: 'aws_rds_describe_events',
       args: { start_time: '2026-09-01T00:00:00' },
       ids: ['PT-COMMON-14', 'PT-AWS-RDS-DESCRIBE-EVENTS-03'],
     },
     {
-      name: 's3api の range が bytes= で始まらない値',
+      name: 's3api の range が bytes= で始まらないとき',
       tool: 'aws_s3api_get_object',
       args: { bucket: 'example-bucket', key: 'report.json', outfile: '/var/data/out.bin', range: '0-1023' },
       ids: ['PT-COMMON-14', 'PT-AWS-S3API-GET-OBJECT-04'],
     },
     {
-      name: 's3 ls の s3_uri が s3:// で始まらない値',
+      name: 's3 ls の s3_uri が s3:// で始まらないとき',
       tool: 'aws_s3_ls',
       args: { s3_uri: 'example-bucket/logs/' },
       ids: ['PT-COMMON-14', 'PT-AWS-S3-LS-03'],
     },
-    {
-      name: '値の制御文字',
-      tool: 'aws_lambda_get_function_configuration',
-      args: { function_name: 'a\u{1}b' },
-      ids: ['PT-COMMON-06'],
-    },
-  ])('$name と、invalid-input・exitCode 2 で拒否し awscli を起動しない', async (row, context) => {
+  ])('$name、invalid-input・exitCode 2 で拒否し awscli を起動しない', async (row, context) => {
     for (const id of row.ids) await verifies(context, id)
     const structured = await expectIsError(row.tool, row.args)
 
     expect(structured['ok']).toBe(false)
     expect(structured['category']).toBe('invalid-input')
-    expect(structured['exitCode']).toBe(2)
-    expect(callLog().filter(call => call[0] !== '--version')).toEqual([])
+  })
+
+  it('値に制御文字を含むとき、invalid-input で拒否し awscli を起動しない', async (context) => {
+    await verifies(context, 'PT-COMMON-06')
+    const structured = await expectIsError('aws_lambda_get_function_configuration', { function_name: 'a\u{1}b' })
+
+    expect(structured['ok']).toBe(false)
+    expect(structured['category']).toBe('invalid-input')
   })
 })

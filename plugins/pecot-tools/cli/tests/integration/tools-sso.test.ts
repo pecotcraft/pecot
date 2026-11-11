@@ -1,15 +1,5 @@
-// 偽 awscli を PATH の先頭に置き、MCP 越しに SSO の 2 段構成を通す統合テスト。
-//
-// 見るのは次の 7 点。
-//   (a) 開始 → pending → 完了確認の遷移。
-//   (b) 未開始の状態確認。
-//   (c) awscli の版不足。
-//   (d) SSO 設定なし。
-//   (e) 失敗したフローの状態確認。
-//   (f) 時間切れの案内。
-//   (g) SC-008（失敗の直後も同じ接続が次の呼び出しに応える）。
-//
-// PATH を stub するため it.concurrent は使わない。ensureAwscli の memo は毎ケース捨てる。
+// 偽 awscli を PATH の先頭に置き、MCP 越しに SSO の 2 段構成（開始・状態確認）を通す統合テスト。
+// PATH を stub するため it.concurrent は使わない。
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -104,6 +94,7 @@ describe('SSO の 2 段構成', () => {
 
     const pending = await call('aws_sso_login_status')
     expect(dataOf(pending)).toMatchObject({ state: 'pending' })
+    expect(String(pending['message'])).toContain('Not approved yet')
     // 状態確認は awscli を起こさない（契約書 §SSO 認証）。
     expect(commandCallCount(instance)).toBe(1)
 

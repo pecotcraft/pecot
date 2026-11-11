@@ -1,7 +1,5 @@
 // SSO ログインレジストリの単体テスト。偽 awscli を PATH の先頭へ置いて実プロセスで通す。
-//
-// PATH を stub するため it.concurrent は使わない。各ケースで shutdown しないと、
-// 待機中の子が次のケースへ持ち越される。
+// PATH を stub するため it.concurrent は使わない。各ケースで shutdown する。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 扱うのは mkdtemp の戻り値のみ */
 
@@ -115,9 +113,7 @@ describe('createLoginRegistry', () => {
 
   it('URL を出さずに exit 0 で終わったときは completed', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-05')
-    // 2.36.40 で確認したところ、`--use-device-code` は毎回デバイスフローに入るため、この場面は未観測。
-    // 防御として completed にする。R5 の「抽出できずに終了は failed」は、SSO 設定なし
-    // = exit ≠ 0 を想定した記述。
+    // `--use-device-code` は毎回デバイスフローに入るため未観測の場面。防御として completed にする。
     fakeAws.install({ fixture: 'sso-login.cached' })
     const registry = newRegistry()
 

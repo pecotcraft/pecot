@@ -324,6 +324,9 @@ describe('executeAllowlisted', () => {
 
       expect(result.ok).toBe(true)
       expect(result.data).toMatchObject({ truncated: true })
+      const output = String(result.data['output'])
+      expect(body.startsWith(output)).toBe(true)
+      expect(Buffer.byteLength(output, 'utf8')).toBeLessThanOrEqual(OUTPUT_LIMIT_BYTES)
       expect(result.message).toContain('max_items')
       expect(result.message).toContain('starting_token')
     })

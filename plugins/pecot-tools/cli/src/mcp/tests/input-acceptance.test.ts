@@ -378,11 +378,11 @@ const SSO_NAMES: ReadonlySet<string> = new Set(['aws_sso_login', 'aws_sso_login_
 /**
 要素が strictObject のパラメータ。宣言外のキーを持つ要素は拒否される。
 */
-const STRICT_ELEMENT_CASES: readonly { readonly tool: string, readonly args: Arguments, readonly id?: string }[] = [
+const STRICT_ELEMENT_CASES: readonly { readonly tool: string, readonly args: Arguments, readonly ids: readonly string[] }[] = [
   {
     tool: 'aws_ec2_describe_instances',
     args: { filters: [{ name: 'tag:Name', values: ['web'], extra: 1 }] },
-    id: 'PT-AWS-EC2-DESCRIBE-INSTANCES-02',
+    ids: ['PT-COMMON-03', 'PT-AWS-EC2-DESCRIBE-INSTANCES-02'],
   },
   {
     tool: 'aws_cloudwatch_get_metric_statistics',
@@ -395,11 +395,12 @@ const STRICT_ELEMENT_CASES: readonly { readonly tool: string, readonly args: Arg
       statistics: ['Sum'],
       dimensions: [{ name: 'QueueName', value: 'q', extra: 1 }],
     },
-    id: 'PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-03',
+    ids: ['PT-COMMON-03', 'PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-03'],
   },
   {
     tool: 'aws_ecr_describe_images',
     args: { repository_name: 'repo', image_ids: [{ image_tag: 'latest', extra: 1 }] },
+    ids: ['PT-COMMON-03'],
   },
 ]
 
@@ -506,9 +507,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
   })
 
   describe('strictObject 要素の宣言外キー', () => {
-    it.for(STRICT_ELEMENT_CASES)('$tool は要素の宣言外キーを拒否する', async ({ tool, args, id }, context) => {
-      await verifies(context, 'PT-COMMON-03')
-      if (id !== undefined) await verifies(context, id)
+    it.for(STRICT_ELEMENT_CASES)('$tool は要素の宣言外キーを拒否する', async ({ tool, args, ids }, context) => {
+      for (const id of ids) await verifies(context, id)
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, tool, args)
 

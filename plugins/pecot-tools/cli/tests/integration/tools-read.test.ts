@@ -1,12 +1,4 @@
-// 偽 awscli を PATH の先頭に置き、MCP 越しに 24 ツールの正常系・失敗系を通す統合テスト。
-//
-// 見るのは次の 5 点。
-// (a) 24 件が既定 fixture で成功すること。
-// (b) 組み立てられた引数配列が契約の「対応 awscli 引数」と一致すること。
-// (c) 応答の data / artifacts が fixture と一致すること。
-// (d) 失敗 fixture ごとの category。
-// (e) SC-008（失敗の直後も同じ接続が次の呼び出しに応える）。
-//
+// 偽 awscli を PATH の先頭に置き、MCP 越しに全ツールの正常系・失敗系・引数の組み立てを通す統合テスト。
 // PATH を stub するため it.concurrent は使わない。ensureAwscli の memo は毎ケース捨てる。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 扱うのは mkdtemp の戻り値と fixture パスだけ */
@@ -178,7 +170,7 @@ const EXPECTED_ARGUMENTS: Readonly<Record<string, readonly string[]>> = {
 }
 
 /**
-ツールごとの、既定 fixture での正常系が確かめる項目の ID。JSON を出さないツールは data を見ないので空。
+ツールごとの、既定 fixture での正常系が確かめる項目の ID。JSON 出力を持つツールは data を fixture と比べるので ID を持つ。data の項目を見ない s3 ls / s3 cp は空。
 */
 const HAPPY_PATH_IDS: Readonly<Record<string, readonly string[]>> = {
   aws_sts_get_caller_identity: ['PT-AWS-STS-GET-CALLER-IDENTITY-01'],
@@ -186,7 +178,7 @@ const HAPPY_PATH_IDS: Readonly<Record<string, readonly string[]>> = {
   aws_lambda_get_function_configuration: ['PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-01'],
   aws_lambda_list_event_source_mappings: ['PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-01'],
   aws_logs_describe_log_groups: ['PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-01'],
-  aws_logs_describe_log_streams: ['PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-01', 'PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-02'],
+  aws_logs_describe_log_streams: ['PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-01'],
   aws_logs_get_log_events: ['PT-AWS-LOGS-GET-LOG-EVENTS-01'],
   aws_logs_filter_log_events: ['PT-AWS-LOGS-FILTER-LOG-EVENTS-01'],
   aws_cloudwatch_get_metric_statistics: ['PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-01'],
@@ -197,7 +189,7 @@ const HAPPY_PATH_IDS: Readonly<Record<string, readonly string[]>> = {
   aws_athena_get_query_results: ['PT-AWS-ATHENA-GET-QUERY-RESULTS-01'],
   aws_s3_ls: [],
   aws_s3_cp: [],
-  aws_s3api_get_object: [],
+  aws_s3api_get_object: ['PT-AWS-S3API-GET-OBJECT-01'],
   aws_rds_describe_events: ['PT-AWS-RDS-DESCRIBE-EVENTS-01'],
   aws_rds_describe_db_clusters: ['PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-01'],
   aws_rds_describe_db_instances: ['PT-AWS-RDS-DESCRIBE-DB-INSTANCES-01'],
@@ -349,6 +341,15 @@ async function callMinimal(name: string): Promise<Record<string, unknown>> {
   return result.structured
 }
 
+/**
+表のキーを許可リストと比べる。ツール名の並びを揃えて返す。
+*/
+function sortedNames(names: readonly string[]): readonly string[] {
+  return names.toSorted(compareStrings)
+}
+
+const ALLOWLIST_NAMES = sortedNames(ALLOWLIST.map(entry => entry.toolName))
+
 describe('全 24 ツールの正常系', () => {
   it.for(TOOL_COMMANDS)('$name が既定 fixture で成功し、引数と data が契約どおりになる', async (command, context) => {
     for (const id of happyPathIdsOf(command.name)) await verifies(context, id)
@@ -368,18 +369,26 @@ describe('全 24 ツールの正常系', () => {
   })
 
   it('最小引数の表が許可リストと 1:1 で対応する', () => {
-    expect(Object.keys(MINIMAL_ARGUMENTS).toSorted(compareStrings))
-      .toEqual(ALLOWLIST.map(entry => entry.toolName).toSorted(compareStrings))
+    expect(sortedNames(Object.keys(MINIMAL_ARGUMENTS))).toEqual(ALLOWLIST_NAMES)
   })
 
   it('正常系の ID の表が許可リストと 1:1 で対応する', () => {
-    expect(Object.keys(HAPPY_PATH_IDS).toSorted(compareStrings))
-      .toEqual(ALLOWLIST.map(entry => entry.toolName).toSorted(compareStrings))
+    expect(sortedNames(Object.keys(HAPPY_PATH_IDS))).toEqual(ALLOWLIST_NAMES)
   })
 
   it('期待 argv の表が許可リストと 1:1 で対応する', () => {
-    expect(Object.keys(EXPECTED_ARGUMENTS).toSorted(compareStrings))
-      .toEqual(ALLOWLIST.map(entry => entry.toolName).toSorted(compareStrings))
+    expect(sortedNames(Object.keys(EXPECTED_ARGUMENTS))).toEqual(ALLOWLIST_NAMES)
+  })
+
+  it('項目 ID がツール名から作る接頭辞で始まる', () => {
+    const rows = [
+      ...Object.entries(HAPPY_PATH_IDS).flatMap(([name, ids]) => ids.map(id => ({ name, id }))),
+      ...PAGINATED_ROWS,
+    ]
+    for (const row of rows) {
+      const prefix = `PT-${row.name.toUpperCase().replaceAll('_', '-')}-`
+      expect(row.id.startsWith(prefix), `${row.id} は ${prefix} で始まる`).toBe(true)
+    }
   })
 })
 
@@ -409,6 +418,20 @@ describe('引数の組み立て', () => {
       '--output', 'json', '--no-cli-pager',
       '--profile', 'dev',
       '--region', 'ap-northeast-1',
+    ]])
+  })
+
+  it('descending を省くと、--no-descending を付けて実行する', async (context) => {
+    await verifies(context, 'PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-02')
+    const instance = fakeAws.install()
+
+    await call('aws_logs_describe_log_streams', { log_group_name: 'g' })
+
+    expect(commandCalls(instance)).toEqual([[
+      'logs', 'describe-log-streams',
+      '--log-group-name', 'g',
+      '--no-descending',
+      '--output', 'json', '--no-cli-pager',
     ]])
   })
 
@@ -643,10 +666,10 @@ describe('応答の中身', () => {
 
   it('aws_s3_ls は JSON 出力を持たないので data.lines になる', async (context) => {
     await verifies(context, 'PT-AWS-S3-LS-02')
-    fakeAws.install()
-
+    const instance = fakeAws.install()
     const structured = await callMinimal('aws_s3_ls')
 
+    expect(commandCalls(instance)).toEqual([['s3', 'ls', '--no-cli-pager']])
     expect(structured['data']).toEqual({
       lines: ['2026-09-01 10:00:00       1024 report.json', '                           PRE logs/'],
     })
@@ -654,10 +677,11 @@ describe('応答の中身', () => {
 
   it('s3_uri を渡すと、出力を 1 行 1 要素にして data.lines に載せる', async (context) => {
     await verifies(context, 'PT-AWS-S3-LS-01')
-    fakeAws.install()
+    const instance = fakeAws.install()
 
     const result = await call('aws_s3_ls', { s3_uri: 's3://example-bucket/logs/' })
 
+    expect(commandCalls(instance)).toEqual([['s3', 'ls', 's3://example-bucket/logs/', '--no-cli-pager']])
     expect(result.structured['data']).toEqual({
       lines: ['2026-09-01 10:00:00       1024 report.json', '                           PRE logs/'],
     })
@@ -739,6 +763,8 @@ describe('失敗種別', () => {
       category: failure.category,
     })
     expect(result.structured['message']).toContain(failure.category)
+    const stderr = result.structured['stderr']
+    expect(typeof stderr === 'string' && stderr.length > 0, `stderr: ${JSON.stringify(stderr)}`).toBe(true)
   })
 
   it('高レベル s3 コマンドの exit 1 も stderr から種別を決める', async () => {
