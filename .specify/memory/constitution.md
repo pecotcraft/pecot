@@ -2,16 +2,17 @@
   =========================================================================
   Sync Impact Report
   =========================================================================
-  Version change: 2.2.0 → 3.0.0
+  Version change: 3.0.0 → 3.1.0
   Modified principles:
-    - III. コード品質ゲート: `--no-verify` の禁止から、ツールが内部で使う push
-      （nx release）を除くと明確化
-    - V. 本体実装優先（aist-roadmap編集の最小化）→ V. 本体実装優先（speckit 成果物の編集の最小化）:
-      廃止した aist-roadmap を対象から外し、このリポジトリの specs/ と本体の関係に置き換えた（MAJOR）
-  Modified sections:
-    - タイトル: aist-roadmap 憲法 → pecot 憲法
-    - ガバナンス/スコープ: aist-roadmap と対象リポ群から、pecotcraft/pecot の speckit 成果物と実装へ
-  Added sections: なし
+    - I. ドメイン駆動設計: 「リンターによる構造強制」を、実在する強制
+      （TS の domain からの I/O の禁止、Python の直接の出力の禁止）に合わせ、
+      それ以外の依存方向は SHOULD（PR レビュー）とした
+    - II. テスト駆動開発: カバレッジの閾値（vitest 90%・pytest 80%）を明記し、
+      「定義書とテストのつなぎ」（verifies・lint-defs・空の欄の禁止・テストの題の規約）を追加
+    - III. コード品質ゲート: 未使用コードの検出を追加し、
+      このリポジトリでの置き場と代表の表を追加（一覧の正は .pre-commit-config.yaml）
+    - IV. シンプルさとYAGNI: 未使用コードの削除を knip が止めると明記
+  Added sections: II の「定義書とテストのつなぎ」
   Removed sections: なし
   Templates requiring updates:
     - .specify/templates/plan-template.md ✅ 更新不要（Constitution Check は原則を汎用参照）
@@ -41,9 +42,16 @@
   ドメイン間の連携が必要な場合はインターフェース（抽象）を介する。
 - **境界づけられたコンテキスト**: ドメインが十分に大きい場合、
   コンテキスト境界を明示的に定義し、コンテキスト間の変換層を設ける。
-- **リンターによる構造強制**: DDDの層構造・依存方向はリンタールール
-  （インポート制約等）で自動強制しなければならない（MUST）。
+- **リンターによる構造強制**: ドメイン層から I/O を外すことは、
+  リンタールールで自動強制しなければならない（MUST）。
   ドキュメントだけの規約は守られないため、違反をCIで検出可能にする。
+  - TS の CLI（pecot-tools・pecot-visual の `cli/`、pecot-workflow の `cli-node/`、
+    `libs/interface-spec`）は、各 `eslint.config.js` が `src/domain/` からの
+    I/O の import（`node:fs`・`node:child_process` など）と `fetch`・`process` を止める。
+  - Python の CLI（pecot-workflow の `cli/`）は層の lint を持たない。
+    ruff の banned-api が、`Output` を経ない直接の出力を止めるだけである。
+  - 上の 2 つ以外の依存方向（層の全般・循環）は、リンターでの強制が
+    まだ無い。PR レビューで確かめるべきである（SHOULD）。
 
 **根拠**: ドメイン中心の構造はビジネス要件の変化に強く、
 各機能を独立してテスト・置換可能にする。リンターとセットで運用することで、
@@ -62,6 +70,20 @@
 - **テスト分類**: 単体テスト（ドメインロジック）、
   統合テスト（層間連携・外部I/O）、E2Eテスト（エンドツーエンド）を
   目的に応じて使い分ける。DDDのレイヤー境界ごとにテスト戦略を定める。
+- **カバレッジの閾値**: TS の vitest は lines・branches・functions・statements を
+  90%、pecot-workflow の pytest は 80% とし、下回ると失敗させる（MUST）。
+  値は各 `vitest.config.ts` の `thresholds` と、`pyproject.toml` の `fail_under` が正。
+
+#### 定義書とテストのつなぎ
+
+公開面（コマンド・MCP ツール・hook）の振る舞いは、各プラグインの
+`interface/` の定義書に項目として書き、テストにつながなければならない（MUST）。
+
+- 振る舞いの項目を確かめるテストは、`verifies` で項目の ID を書かなければならない（MUST）。
+  テストにつながらない項目と、定義書に無い ID は、`interface-spec:lint-defs` が止める。
+- 定義書の人が書く文字列の欄は、空にしてはならない（MUST）。空の欄は `lint-defs` が止める。
+- テストの題は `.claude/rules/test-conventions.md` の規約に従う（MUST）。
+  vitest の題の形は、各 `eslint.config.js` の `vitest/valid-title` が止める。
 
 #### テストの実質性
 
@@ -102,6 +124,22 @@ AIエージェントが書く単体テストは「グリーンパス」の足場
   テストコードはstrictモードを緩和してよい。
 - **テストカバレッジ計測**: カバレッジ閾値を設定し、閾値未満でCIを失敗させる。
 - **コミットメッセージ検証**: 規約に沿ったメッセージ形式を強制する。
+- **未使用コードの検出**: 未使用の export・依存・ファイルを自動で止める。
+
+このリポジトリでの置き場と代表は次のとおり。hook の一覧の正は
+`.pre-commit-config.yaml`、置き場と理由の正は `.githooks/README.md` とする。
+
+| 置き場 | 代表 | 止めるもの |
+|---|---|---|
+| pre-commit（CI でも動く） | `nx-affected-lint` | 変更のある nx project の `lint`・`lint-*`・`lint-defs`（tsc・eslint・knip・ruff・pyright など） |
+| pre-commit（CI でも動く） | `check-text`・`markdownlint-cli2`・`yamllint`・`actionlint-system`・`ruff-check`・`ruff-format` | 文面の規則、Markdown・YAML・ワークフロー・Python の形 |
+| pre-commit（CI でも動く） | `check-root-entries` などの単機能ガード | リポの配置と運用の決まり |
+| commit-msg | `gitlint`・`check-commit-text`・`check-direct-commit` | Conventional Commits の形、文面の規則、`main` への直接の commit |
+| pre-push（CI でも動く） | `check-text-push`・`check-version-plan-required`・`nx-env-inputs` | push の範囲の文面、version plan の欠け、nx の入力の宣言の不足 |
+| CI の必須チェック | `ci-result`・`version-plan` | affected なテストのレーンと上の hook の結果、version plan |
+
+- 型検査は、TS が tsc の `strict`、Python が pyright の `strict` で動く。
+- 未使用コードは、プラグインの TS の CLI で knip が止める。
 - ゲートが未導入のプロジェクトでは、機能開発の前にゲート整備を
   行わなければならない（MUST）。ゲートなしでの開発着手は禁止。
 - 通常のワークフローで `--no-verify` バイパスは許可されない。
@@ -129,6 +167,7 @@ AIエージェントが書く単体テストは「グリーンパス」の足場
   導入してはならない（MUST NOT）。
 - 未使用コードはコメントアウトやアンダースコアプレフィックスでのリネームではなく、
   削除しなければならない（MUST）。
+  プラグインの TS の CLI では knip が止める。
 
 **根拠**: 複雑さはソフトウェアの主要な長期コストである。
 コードベースをリーンに保つことで保守性と迅速なオンボーディングを確保する。
@@ -176,4 +215,4 @@ AIエージェントは成果物の体裁整理や小さな改善よりも、
 - **スコープ**: この憲法は、このリポジトリ（`pecotcraft/pecot`）の speckit 成果物
   （`specs/`・`.specify/`）と実装に適用する。
 
-**Version**: 3.0.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-05
+**Version**: 3.1.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-11
