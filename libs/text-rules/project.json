@@ -45,7 +45,8 @@
       "inputs": [
         "default",
         "runtime",
-        "env"
+        "env",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts"
       ],
       "dependsOn": [
         "install"

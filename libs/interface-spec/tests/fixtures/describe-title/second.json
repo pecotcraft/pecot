@@ -1,0 +1,6 @@
+{
+  "entries": [{ "id": "XX-GAMMA", "name": "gamma_tool" }],
+  "format": "pecot-interface/1",
+  "plugin": "xx",
+  "prefix": "XX"
+}

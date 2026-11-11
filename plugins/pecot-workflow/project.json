@@ -193,7 +193,9 @@
         "env",
         "pecotPluginEnv",
         "pecotPluginNodeInputs",
-        "{projectRoot}/scripts/ci/run-lint.sh"
+        "{projectRoot}/scripts/ci/run-lint.sh",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{projectRoot}/interface/generated.json"
       ],
       "dependsOn": ["install"],
       "metadata": {

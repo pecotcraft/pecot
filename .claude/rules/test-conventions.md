@@ -44,6 +44,8 @@ paths:
 |---|---|
 | `it`・`test` の題に、ひらがな・カタカナ・漢字が無い | `題に日本語が無い` |
 | `it`・`test` の題が全角の句点（`。`）で終わる | `題が句点で終わる` |
+| `tests/interface/**` のいちばん外の `describe` の題が、定義書の `name` に無い | `describe の題 '…' が定義書の name に無い` |
+| `tests/interface/**` のいちばん外の `describe` の題が、文字列のリテラルでない | `describe の題が文字列のリテラルでない` |
 
 日本語が無く、しかも句点で終わる題では、句点の文言だけが出ます。
 
@@ -59,7 +61,10 @@ paths:
 - `libs/text-rules/eslint.config.js`
 - `libs/interface-spec/eslint.config.js`
 
-公開面のテストのいちばん外の `describe` の題が、定義書の `name` にあるかの確かめは、#279 で足します。
+`describe` の題の 2 行は、`tests/interface/**` にだけ当てます。規則は `libs/interface-spec/src/eslint/describe-title.ts` にあります。
+上の `eslint.config.js` のうち、interface-spec を除く 4 つが、`describeTitleConfig` で読み込んでいます。
+入れ子の `describe` と関数の中の `describe`、`describe` が無いファイルは止めません。`${}` の無いテンプレートリテラルは題として読みます。
+`libs/text-rules` は定義書を持たないので `definitions` が空で、`tests/interface/` に `describe` を足すと、どの題も止まります。
 
 ## 項目へのつなぎ
 

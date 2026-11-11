@@ -246,8 +246,8 @@ description: "CLI と MCP のインタフェース定義書を正として持ち
 - [x] T052 [P] [US4] pecot-visual で題の lint を有効にし、外れた題（約 110 件）を直す。設定は `plugins/pecot-visual/cli/eslint.config.js` と、`plugins/pecot-visual/assets/slidev/` の下にある
 - [x] T053 [P] [US4] `plugins/pecot-workflow/cli-node/eslint.config.js` で有効にし、外れた題（約 33 件）を直す
 - [x] T054 [P] [US4] `libs/text-rules/eslint.config.js` と `libs/interface-spec/eslint.config.js` で有効にし、外れた題を直す
-- [ ] T055 [US4] 「いちばん外の `describe` の題が定義書の `name` にある」を確かめる eslint の規則の、RuleTester のテストを書く。定義書にある名前・無い名前・`describe` が無いファイルを入れる。この時点で失敗する
-- [ ] T056 [US4] T055 の規則を `libs/interface-spec` に実装する。各 project の eslint の設定で、`tests/interface/**` にだけ当てる。今の公開面のテストのファイルは対象に入れず、作り替えない
+- [x] T055 [US4] 「いちばん外の `describe` の題が定義書の `name` にある」を確かめる eslint の規則の、RuleTester のテストを書く。定義書にある名前・無い名前・`describe` が無いファイルを入れる。この時点で失敗する
+- [x] T056 [US4] T055 の規則を `libs/interface-spec` に実装する。各 project の eslint の設定で、`tests/interface/**` にだけ当てる。今の公開面のテストのファイルは対象に入れず、作り替えない
 
 **Checkpoint**: `it('works', …)` を足すと、4 つの project の lint が止まる
 

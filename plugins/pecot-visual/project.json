@@ -304,7 +304,9 @@
         "pecotvPluginLintGlobals",
         "{projectRoot}/.gitignore",
         "{workspaceRoot}/plugins/pecot-tools/package.json",
-        "^production"
+        "^production",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{projectRoot}/interface/generated.json"
       ],
       "dependsOn": ["install", { "projects": ["text-rules"], "target": "build" }],
       "metadata": {

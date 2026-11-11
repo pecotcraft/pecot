@@ -10,6 +10,7 @@ export default defineConfig({
       'tests/*.test.ts',
       'tests/unit/**/*.test.ts',
       'tests/integration/**/*.test.ts',
+      'tests/interface/**/*.test.ts',
     ],
     exclude: [
       'tests/e2e/**',

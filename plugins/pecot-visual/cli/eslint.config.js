@@ -10,6 +10,8 @@ import { configs as regexpConfigs } from 'eslint-plugin-regexp'
 import security from 'eslint-plugin-security'
 import vitest from '@vitest/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
+import path from 'node:path'
+import { describeTitleConfig } from '../../../libs/interface-spec/src/eslint/describe-title.ts'
 
 const JA = String.raw`[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]`
 const NO_JA = '題に日本語が無い（.claude/rules/test-conventions.md）'
@@ -182,6 +184,9 @@ export default defineConfig(
       'unicorn/prefer-query-selector': 'off',
     },
   },
+  // tests/interface/ のいちばん外の describe の題が、定義書の name にあるかを確かめる。
+  // 規則は libs/interface-spec/src/eslint/describe-title.ts にある。
+  describeTitleConfig([path.resolve(import.meta.dirname, '../interface/generated.json')]),
   {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     ...tsConfigs.disableTypeChecked,
