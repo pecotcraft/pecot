@@ -457,6 +457,7 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
     return
   }
   const result = spawnSync('bash', [script], {
+    // interface-env: none
     env: { ...process.env, CLAUDE_PROJECT_DIR: worktreeRoot },
     encoding: 'utf8',
     stdio: ['inherit', 'pipe', 'pipe'],

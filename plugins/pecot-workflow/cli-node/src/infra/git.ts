@@ -46,6 +46,7 @@ export class GitCommandError extends BaseError {
 export const MAX_OUTPUT_BYTES = 1024 * 1024 * 1024
 
 function withoutGitVariables(): Record<string, string> {
+  // interface-env: none
   return Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined && !entry[0].startsWith('GIT_')))
 }
 

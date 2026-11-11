@@ -57,6 +57,10 @@
         {
           "runtime": "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin"
         },
+        {
+          "runtime": "git ls-files -- plugins/pecot-workflow/cli-node/src | git hash-object --stdin"
+        },
+        "{workspaceRoot}/libs/interface-spec/targets.json",
         "{projectRoot}/tests/representative-files.txt"
       ],
       "dependsOn": [
@@ -68,7 +72,7 @@
         }
       ],
       "metadata": {
-        "description": "実 nx の affected とレーン入力の対応を確かめる。代表ファイルの実在は representative-files.txt の runtime 入力で見る。"
+        "description": "実 nx の affected とレーン入力の対応を確かめる。代表ファイルの実在は representative-files.txt の runtime 入力で見る。cli-node/src のファイルの増減は runtime 入力で見る。"
       },
       "options": {
         "command": ".githooks/tests/run.sh .githooks/tests/test_nx_affected_mapping.py",

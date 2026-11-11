@@ -31,9 +31,6 @@
     "zod": "^4.6.7"
   },
   "knip": {
-    "ignoreFiles": [
-      "tests/_helpers/verifies.ts"
-    ],
     "project": [
       "src/**/*.ts",
       "tests/**/*.ts",

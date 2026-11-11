@@ -20,7 +20,7 @@ import { resolveApiUrlOverride } from './infra/github/client.js'
 import { hasErrorCode } from './infra/os-error.js'
 import { runDefinition } from './commands/command-binding.js'
 import { invalidRepositoryMessage, parseGlobalOptions, ROOT_USAGE } from './commands/global-options.js'
-import { FAILURE_EXIT_CODE, failureMessage } from './commands/failure.js'
+import { FAILURE_EXIT_CODE, isReportableFailure, reportFailure } from './commands/failure.js'
 import { closeMatches } from './commands/fuzzy.js'
 import { helpText } from './commands/help.js'
 import { COMMANDS, findCommand } from './commands/registry.js'
@@ -146,7 +146,7 @@ async function execute(argv: readonly string[], context: Readonly<CliContext>, w
 
 /**
 argv（node とスクリプトを除く）を実行して終了コードを返す。
-使い方の誤りは枠付きで stderr に出して 2。独自の例外は failure.ts の文で 1。それ以外の例外は伝える
+使い方の誤りは枠付きで stderr に出して 2。独自の例外は error の行で 1。それ以外の例外は伝える
 */
 export async function runCli(argv: readonly string[], context: Readonly<CliContext>): Promise<number> {
   const width = outputWidth(context.environment, context.terminalColumns)
@@ -158,9 +158,8 @@ export async function runCli(argv: readonly string[], context: Readonly<CliConte
       context.io.stderr(formatUsageError(error, width))
       return USAGE_EXIT_CODE
     }
-    const message = failureMessage(error)
-    if (message === undefined) throw error
-    context.io.stderr(message)
+    if (!isReportableFailure(error)) throw error
+    reportFailure(error, context.io)
     return FAILURE_EXIT_CODE
   }
 }
@@ -198,6 +197,7 @@ export async function main(): Promise<void> {
     commands: COMMANDS,
     io,
     cwd: process.cwd(),
+    // interface-env: TERMINAL_WIDTH COLUMNS
     environment: process.env,
     terminalColumns: terminalColumns(),
   })

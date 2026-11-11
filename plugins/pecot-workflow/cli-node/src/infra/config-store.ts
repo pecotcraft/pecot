@@ -12,8 +12,9 @@ import {
   serializeProjectConfig,
 } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
+import { InvalidValueError } from '../domain/errors.js'
 import { parseJsonText } from '../domain/json.js'
-import { compareStrings, pythonStrip } from '../domain/python-format.js'
+import { compareStrings, pythonStrip, ValidationFailure } from '../domain/python-format.js'
 import { isFileNotFound } from './os-error.js'
 import { CONFIG_DIR, projectRoot, resolveRealPath } from './paths.js'
 import { readTextFile } from './text-file.js'
@@ -33,11 +34,22 @@ export function projectsDirectory(): string {
 }
 
 /**
-JSON ファイルから設定を読む。無ければ ConfigError、形が不正なら検証エラー
+JSON ファイルから設定を読む。無ければ ConfigError、JSON の構文や形が不正なら `invalid config file: {パス}: {詳細}` の ConfigError。
+詳細は、形の不正なら `場所: 本文` を `; ` でつないだもの（Python と同じ）、構文の不正なら JSON パーサーの文（Python の JSONDecodeError の文とは違う）
 */
 export function loadConfig(file: string): ProjectConfig {
   if (!existsSync(file)) throw new ConfigError(`config file not found: ${file}`)
-  return parseProjectConfig(parseJsonText(readTextFile(file)))
+  try {
+    return parseProjectConfig(parseJsonText(readTextFile(file)))
+  }
+  catch (error: unknown) {
+    if (error instanceof ValidationFailure) {
+      const detail = error.issues.map(issue => `${issue.location.map(String).join('.')}: ${issue.message}`).join('; ')
+      throw new ConfigError(`invalid config file: ${file}: ${detail}`, { cause: error })
+    }
+    if (error instanceof InvalidValueError) throw new ConfigError(`invalid config file: ${file}: ${error.message}`, { cause: error })
+    throw error
+  }
 }
 
 /**

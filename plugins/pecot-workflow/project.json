@@ -83,13 +83,19 @@
         "{projectRoot}/cli/core/github/queries.py",
         "{projectRoot}/cli/commands/main.py",
         "{projectRoot}/cli/templates/**/*",
+        "{projectRoot}/interface/generated.json",
+        "{projectRoot}/interface/authored.yaml",
+        "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
+        "{workspaceRoot}/libs/interface-spec/package.json",
         "{projectRoot}/hooks/lib/core/pecot-gitignore-ensure.sh",
         { "runtime": "node -p \"require('nx/package.json').version\"" }
       ],
       "dependsOn": ["install", "build-cli"],
       "outputs": ["{projectRoot}/cli-node/test-results/junit.xml"],
       "metadata": {
-        "description": "cli-node の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行する。そのため、本レーンの入力から tests/hooks/ を除く。hooks/ の変更で本レーンを動かさないため。install と build は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。version.ts が plugin.json を読む。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/core/github/queries.py は偽サーバの operation 対応表の確認が読む。cli/commands/main.py は commands.ts の 33 個との一致の確認が読む。そのため、どちらも入力に置く。cli/templates/ は Issue・PR 本文のテンプレートで、template-store のテストが読む。hooks/lib/core/pecot-gitignore-ensure.sh は gitignore 補完のスクリプトで、worktree-links のテストが読む。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。"
+        "description": "cli-node の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行する。そのため、本レーンの入力から tests/hooks/ を除く。hooks/ の変更で本レーンを動かさないため。install と build は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。version.ts が plugin.json を読む。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/core/github/queries.py は偽サーバの operation 対応表の確認が読む。cli/commands/main.py は commands.ts の 33 個との一致の確認が読む。そのため、どちらも入力に置く。cli/templates/ は Issue・PR 本文のテンプレートで、template-store のテストが読む。hooks/lib/core/pecot-gitignore-ensure.sh は gitignore 補完のスクリプトで、worktree-links のテストが読む。interface/ の定義書と libs/interface-spec の比較の関数は、定義書との一致のテストが読む。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
@@ -195,7 +201,11 @@
         "pecotPluginNodeInputs",
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
-        "{projectRoot}/interface/generated.json"
+        "{projectRoot}/interface/generated.json",
+        "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
+        "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
+        "{workspaceRoot}/libs/interface-spec/package.json"
       ],
       "dependsOn": ["install"],
       "metadata": {

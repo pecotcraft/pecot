@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "deleted: remote branch feat/7 in acme/demo\n",
+  "stderr": "deleted: remote branch feat/7 in acme/demo\nwarning: could not delete remote branch wip/feat/7 in acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo/git/refs/heads/wip/feat/7 Not Found\n",
   "exitCode": 0,
   "requests": [
     {

@@ -1,4 +1,4 @@
-# ブランチを削除し、wip/ の連動削除は 404 でも無視される。
+# ブランチを削除する。wip/ の連動削除が 404 の Not Found だと、warning の行を出して続ける。
 id: delete-branch-ok
 command:
   path: [delete-branch]

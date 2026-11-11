@@ -692,7 +692,12 @@ _PECOTV_TEST_LANES = {
         # pecot-tools・pecot-visual の書き出しが import する 3 ファイルは、それぞれの test-cli にも届く。
         (
             "libs/interface-spec/src/domain/diff.ts",
-            {"interface-spec:test-unit", "pecot-tools:test-cli", "pecot-visual:test-cli"},
+            {
+                "interface-spec:test-unit",
+                "pecot-tools:test-cli",
+                "pecot-visual:test-cli",
+                "pecot-workflow:test-cli",
+            },
         ),
         # interface-spec の package.json（zod の版）は、pecot-tools・pecot-visual の test-cli にも届く。
         (
@@ -701,11 +706,18 @@ _PECOTV_TEST_LANES = {
                 "interface-spec:test-unit",
                 "pecot-tools:test-cli",
                 "pecot-visual:test-cli",
+                "pecot-workflow:test-cli",
                 *_GITHOOKS_GRAPH,
             },
         ),
         # 定義書の書き出し結果は、一致のテストの pecot-visual:test-cli に届く。
         ("plugins/pecot-visual/interface/generated.json", {"pecot-visual:test-cli"}),
+        # pecot-workflow の定義書は、test-cli と、Python の書き出しの確認の test-py に届く。
+        (
+            "plugins/pecot-workflow/interface/generated.json",
+            {"pecot-workflow:test-cli", "pecot-workflow:test-py"},
+        ),
+        ("plugins/pecot-workflow/interface/authored.yaml", {"pecot-workflow:test-cli"}),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
         (
@@ -872,7 +884,10 @@ def test_graph_lanes_read_every_workspace_package_json(
         # text-rules の lint は root の package.json を読まない。root の package.json が選ぶのは pecot-workflow:lint-py だけ。
         ("package.json", {"pecot-workflow:lint-py"}),
         # pecot-workflow の lint は lint-py と lint-cli に分かれ、変更が届いたほうだけが選ばれる (#1313)。
-        ("plugins/pecot-workflow/cli-node/src/cli.ts", {"pecot-workflow:lint-cli"}),
+        (
+            "plugins/pecot-workflow/cli-node/src/cli.ts",
+            {"pecot-workflow:lint-cli", "interface-spec:lint-defs"},
+        ),
         # cli のソースは、環境変数の確認のため lint-defs の inputs（targets.json の sources）にも入る。
         (
             "plugins/pecot-workflow/cli/core/state.py",
@@ -911,6 +926,7 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "interface-spec:lint-defs",
                 "pecot-tools:lint",
                 "pecot-visual:lint-cli",
+                "pecot-workflow:lint-cli",
             },
         ),
         (
@@ -920,6 +936,7 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "interface-spec:lint-defs",
                 "pecot-tools:lint",
                 "pecot-visual:lint-cli",
+                "pecot-workflow:lint-cli",
             },
         ),
         # lint のレーンの表には、定義書の変更が lint-defs に届くことも置く。
@@ -1028,3 +1045,22 @@ def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
                 # glob は plugins/<name>/ から、inputs はリポのルートから。
                 path = f"plugins/{name}/{glob}"
                 assert path in inputs, f"{name} の {key} の {glob} が lint-defs の inputs に無い"
+
+
+def test_pecot_workflow_sources_list_every_directory_of_cli_node_src() -> None:
+    """cli-node/src の .ts を直下に持つディレクトリ（tests は除く）が、どれも sources の glob に載る。
+
+    sources は ** を使わずディレクトリを列挙するので、載らないと環境変数の確認から漏れる。
+    """
+    sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
+        "plugins"
+    ]["pecot-workflow"]["sources"]
+    plugin_root = _REPO_ROOT / "plugins/pecot-workflow"
+    src = plugin_root / "cli-node/src"
+    directories = {
+        path.parent for path in src.rglob("*.ts") if "tests" not in path.relative_to(src).parts
+    }
+    assert directories, "cli-node/src に .ts が無い"
+    for directory in sorted(directories):
+        glob = f"{directory.relative_to(plugin_root).as_posix()}/*.ts"
+        assert glob in sources, f"{glob} が targets.json の pecot-workflow の sources に無い"

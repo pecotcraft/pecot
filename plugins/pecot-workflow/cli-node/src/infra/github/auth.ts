@@ -26,7 +26,7 @@ const hostsCache: { value: JsonObject | undefined } = { value: undefined }
 /**
 環境変数の値。無ければ undefined。
 
-名前が実行時に決まるので、`process.env['X']` の形では読めない。
+名前が実行時に決まるので、環境変数の名前を添字で直接書く形では読めない。
 名前の元は、hosts.json の env_var、ホストから作る `PECOT_GITHUB_<HOST>_TOKEN`、ROOT_ENV_VAR_MAP。
 環境変数の宣言の確認（.githooks/tests/test_nx_env_inputs.py）は、この読み方を検出できない。
 宣言できない代わりに、テストが結果をトークンの値に依存させない。
@@ -34,6 +34,7 @@ const hostsCache: { value: JsonObject | undefined } = { value: undefined }
 トークンの変数を外す隔離は tests/_helpers/environment.ts の useIsolatedEnvironment が行う。
 */
 export function environmentValue(name: string): string | undefined {
+  // interface-env: PECOT_GITHUB_*_TOKEN GITHUB_COM_TOKEN
   return new Map(Object.entries(process.env)).get(name)
 }
 
@@ -101,7 +102,7 @@ export const ROOT_ENV_VAR_MAP: ReadonlyMap<string, string> = new Map([
 ])
 
 /**
-環境変数ファイルを読み、process.env に設定する。Python の load_env_file と同じく process.env を書き換える。
+環境変数ファイルを読み、実行中の環境に設定する。Python の load_env_file と同じく環境を書き換える。
 KEY=VALUE 形式で、空行と # で始まる行は飛ばす。既にある環境変数は上書きしない
 */
 export function loadEnvironmentFile(file: string): void {
@@ -113,6 +114,7 @@ export function loadEnvironmentFile(file: string): void {
     if (separator === -1) continue
     const key = pythonStrip(line.slice(0, separator))
     const value = pythonStrip(line.slice(separator + 1))
+    // interface-env: none
     if (key !== '' && !Object.hasOwn(process.env, key)) Reflect.set(process.env, key, value)
   }
 }

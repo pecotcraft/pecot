@@ -74,37 +74,37 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 
 **Purpose**: 移植の基準を今の Python にそろえる。移行中に基準が動かないようにする。定義書と比べる仕組みを、最初のコマンドを移す前に入れる
 
-- [ ] T001 `cli/` で `uv sync` を実行し、`cli-node/` で `record:parity:check` を流す。差が次の 5 件であることを確かめる。結果を `.pecot/work/<Issue番号>/` に残す。
+- [x] T001 `cli/` で `uv sync` を実行し、`cli-node/` で `record:parity:check` を流す。差が次の 5 件であることを確かめる。結果を `.pecot/work/<Issue番号>/` に残す。
   `delete-branch-auth-fallback`・`delete-branch-ok`・`pr-cleanup-ok-delete-branch` は stderr の差である。`pr-create-ok-prepare`・`pr-create-ok-prepare-epic` は files の差である。
   差があると終了コード 1 で終わる。
-- [ ] T002 T001 の 5 件の原因を調べる。この 1 回は、Python を変えない PR で記録し直してよい（spec FR-007 の例外）。Python の出力が変わっていたなら、その 5 件だけを `record:parity <id>...` で記録し直す。
+- [x] T002 T001 の 5 件の原因を調べる。この 1 回は、Python を変えない PR で記録し直してよい（spec FR-007 の例外）。Python の出力が変わっていたなら、その 5 件だけを `record:parity <id>...` で記録し直す。
   実行する環境で変わる値なら、`cli-node/tests/parity/run.ts` の置き換えの規則に足す。どちらの場合も、`record:parity:check` の差を 0 にする。
-- [ ] T003 [P] `.github/dependabot.yml` の uv のエントリに `open-pull-requests-limit: 0` を付ける。対象は `/plugins/pecot-workflow/cli` である。理由を同じファイルの 1 行のコメントに書く（research R-15）。
-- [ ] T004 `cli-node/tests/interface-export.test.ts` に `--check` のテストを先に書く。見本のコマンド定義を `main` に渡し、一時ファイルの定義書と比べる。
+- [x] T003 [P] `.github/dependabot.yml` の uv のエントリに `open-pull-requests-limit: 0` を付ける。対象は `/plugins/pecot-workflow/cli` である。理由を同じファイルの 1 行のコメントに書く（research R-15）。
+- [x] T004 `cli-node/tests/interface-export.test.ts` に `--check` のテストを先に書く。見本のコマンド定義を `main` に渡し、一時ファイルの定義書と比べる。
   確かめる条件は 5 つある。
   比べる項目は登録したコマンドの ID だけ。比べる欄は `surfaces.mcp` 以外の全部。Node にあって定義書に無い ID は失敗。定義書にあって Node に無い ID は見ない。登録 0 件は warning 1 行で終了コード 0。
   差があるときは、`<ID>: <欄>: <前> -> <後>` の行が標準エラーに出ることも確かめる。
   登録が 0 件なら、`--write` も warning 1 行を出して終了コード 0 にする。登録が 1 件以上の `--write` は、使い方のエラー（終了コード 2）にする。
   テストに書く見本の ID は、`PW-…-NN` の形の文字列をそのまま書かず、文字列の連結で作る。`lint-defs` が `is not defined` で止めるため。
-- [ ] T005 `cli-node/scripts/export-interface.ts` に `--check` を実装する。比べ方は `libs/interface-spec/src/domain/diff.ts` の `diffGenerated` を使う。
+- [x] T005 `cli-node/scripts/export-interface.ts` に `--check` を実装する。比べ方は `libs/interface-spec/src/domain/diff.ts` の `diffGenerated` を使う。
   `libs/interface-spec` は、`cli-node/eslint.config.js` の `describe-title` と同じく相対パスで import する。`GeneratedFile` の配列は変更可能な型なので、渡す前に写す。
   `diffGenerated` は項目と欄を絞る引数を持たない。呼ぶ側で、定義書の項目を Node の ID だけにし、Node の項目から `surfaces.mcp` を除いたものを渡す。
   差の行は `createOutput().error` に渡す。`formatStale` は `--write` を促す行を出すので、切り替えの前は使わない。
   `main` に、`generated.json` のパスを差し替える引数を足す（pecot-tools の `options.target` と同じ）。
-- [ ] T006 同じ `interface-export.test.ts` に、移したコマンドの項目のつなぎの確認を足す。決めは contracts/interface.md の「移したコマンドの項目のつなぎ」にある。
+- [x] T006 同じ `interface-export.test.ts` に、移したコマンドの項目のつなぎの確認を足す。決めは contracts/interface.md の「移したコマンドの項目のつなぎ」にある。
   登録済みのコマンドごとに、`authored.yaml` から振る舞いの ID を集める。ID が `verifies(` の引数として `cli-node/tests/**/*.ts` か `cli-node/src/**/tests/**/*.ts` にあることを見る。`tests/parity/**` と、コメントの中の ID は数えない。
   ID のあるファイルが `vitest.config.ts` の `cli` project の include に当たることも確かめる。登録が 0 件の間は、共通の項目 `PW-COMMON` だけを確かめる。
   見本のコマンドと見本の ID で、無い ID を並べて失敗することを確かめる。
-- [ ] T007 [P] 共通の項目 `PW-COMMON` の 17 個を、`cli-node/tests/interface/common.test.ts` のケースにつなぐ。対象は `cli-node/src/cli.ts` のグローバルオプションと例外の扱いである。
+- [x] T007 [P] 共通の項目 `PW-COMMON` の 17 個を、`cli-node/tests/interface/common.test.ts` のケースにつなぐ。対象は `cli-node/src/cli.ts` のグローバルオプションと例外の扱いである。
   コマンドの要る項目は、見本のコマンド定義を `COMMANDS` の代わりに渡して確かめる。Python と違う振る舞いがあれば、`cli.ts` の側を直す。
-- [ ] T008 [P] `libs/interface-spec/targets.json` の pecot-workflow の `sources` に、cli-node の製品コードを足す。Python と併記する。
+- [x] T008 [P] `libs/interface-spec/targets.json` の pecot-workflow の `sources` に、cli-node の製品コードを足す。Python と併記する。
   同じ変更で `libs/interface-spec/project.json` の `lint-defs` の inputs にも足す。
   テストは `sources` に入れない。`**` は使わず、ディレクトリごとに glob を分ける。
   - `cli-node/src/*.ts`・`cli-node/src/commands/*.ts`・`cli-node/src/domain/*.ts`
   - `cli-node/src/infra/*.ts`・`cli-node/src/infra/github/*.ts`
   `interface-spec:lint-defs` の環境変数の確認で出る失敗（試算で 41 件）を 0 件にする。やることは 3 つある。
   `authored.yaml` の `environment` に、製品コードが読む名前を足す。名前が文字列でない読みに、`interface-env:` の注記を付ける。テストのファイルを `sources` の glob から外す。
-- [ ] T009 [P] `project.json` の `test-cli` と `lint-cli` の inputs に、次を足す。
+- [x] T009 [P] `project.json` の `test-cli` と `lint-cli` の inputs に、次を足す。
   - `interface/generated.json` と `interface/authored.yaml`
   - `libs/interface-spec` の `src/domain/diff.ts`・`schema.ts`・`utility.ts`・`package.json`
   pecot-tools の `project.json` と同じ形にする。`.githooks/tests/test_nx_affected_mapping.py` の期待値も直す。

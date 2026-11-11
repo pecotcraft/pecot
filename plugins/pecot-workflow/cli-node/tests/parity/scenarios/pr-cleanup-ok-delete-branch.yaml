@@ -1,4 +1,4 @@
-# -d 付きで片付ける。リモートの head と wip ブランチの削除を試す（wip は 404 で無視）。
+# -d 付きで片付ける。リモートの head と wip ブランチの削除を試す（wip が 404 の Not Found だと、warning の行を出して続ける）。
 id: pr-cleanup-ok-delete-branch
 command:
   path: [pr, cleanup]

@@ -77,12 +77,13 @@ ID のあるファイルが、`cli-node/vitest.config.ts` のどれかの projec
 
 ## vitest のケースの書き方
 
-- 項目のケースは `cli-node/tests/interface/<グループ>.test.ts` に置く。グループ無しのコマンドは、コマンド名のファイルにする。共通の項目は `tests/interface/common.test.ts` に置く
+- 項目のケースは `cli-node/tests/interface/<グループ>.test.ts` に置く。グループ無しのコマンドは、コマンド名のファイルにする。共通の項目は `tests/interface/common.test.ts` に置く。共通の項目のファイルは、いちばん外の `describe` を置かず、`it` を直下に並べる（`describe-title` の規則が、コマンド名でない題を止めるため）
 - 題は `.claude/rules/test-conventions.md` の規約に従う。いちばん外の `describe` の題はコマンド名にする
 - ケースの最初で `await verifies(context, 'PW-…')` を呼ぶ。1 つのケースが複数の項目を確かめるなら、ID ごとに呼ぶ
 - 期待値は、項目の文と、今つながっている pytest のケースの期待値から取る
 - モックは I/O 境界（偽の GitHub サーバ、一時 git リポ、子プロセス）だけにする
 - 表を回すケースは `it.for` を使い、行に ID をリテラルで持たせる。`it.each` では `annotate` が使えない
+- つなぎの確認は、`verifies(` の2つ目の引数がリテラルのファイルでは、その引数の ID を数える。リテラルでない呼び出し（`verifies(context, row.id)`）を持つファイルでは、コメントを除いた行の ID のリテラルを全部数える
 - `tests/interface/` では `it.skip` と `it.todo` を使わない
 - コマンドは `cli-node/src/cli.ts` の `runCli(argv, context)` をプロセス内で呼んで起動する。カバレッジに数えるため
 
