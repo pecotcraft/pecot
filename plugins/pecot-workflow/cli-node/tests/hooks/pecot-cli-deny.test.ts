@@ -1,12 +1,12 @@
 // Bash の pecot 起動の deny（hooks/lib/core/pecot-cli-deny.sh）を確かめる。
-// どのスクリプトからも呼ばないので、HOOK_COMMAND を直接渡して起動する。
+// claude-bash-guards.sh からの接続は lib/bash-guard-responses.test.ts で確かめる。ここでは HOOK_COMMAND を直接渡して起動する。
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import type { HookRun } from './_helpers/run-hook.js'
-import { createProject, runHook } from './_helpers/run-hook.js'
+import { createProject, runHook, writeHooksConfig } from './_helpers/run-hook.js'
 
 // 定義書の 34 コマンド（cli.path）。MCP ツール名は、語を `_` でつなぎ `-` を `_` にした名前。
 const commands: readonly (readonly string[])[] = [
@@ -64,8 +64,8 @@ function toolOf(words: readonly string[]): string {
   return words.join('_').replaceAll('-', '_')
 }
 
-function runDeny(command: string): HookRun {
-  return runHook('lib/core/pecot-cli-deny.sh', { projectDirectory: createProject(), env: { HOOK_COMMAND: command } })
+function runDeny(command: string, projectDirectory = createProject()): HookRun {
+  return runHook('lib/core/pecot-cli-deny.sh', { projectDirectory, env: { HOOK_COMMAND: command } })
 }
 
 describe('pecot-cli-deny', () => {
@@ -117,6 +117,18 @@ describe('pecot-cli-deny', () => {
   })
 
   it.for([
+    { command: 'pecot \\\n  issue read 1', note: '起動形の後ろの行継続' },
+    { command: 'FOO=1 \\\n  pecot issue read 1', note: '環境変数の前置きの後ろの行継続' },
+    { command: 'echo a && \\\npecot issue read 1', note: '&& の後ろの行継続' },
+    { command: 'echo a \\\n  && pecot issue read 1', note: '行継続の次の行頭の &&' },
+    { command: 'echo a\n\\\npecot issue read 1', note: '行頭の \\ だけの行の次' },
+  ])('行末の \\ で続く行は連結して判定する: $note', ({ command }) => {
+    const run = runDeny(command)
+    expect(run.status).toBe(1)
+    expect(run.stdout).toContain('MCP tool issue_read ')
+  })
+
+  it.for([
     { command: 'echo "pecot issue read"', note: '文字列の中' },
     { command: 'gh pr merge 1', note: 'gh pr merge' },
     { command: 'git status', note: 'git status' },
@@ -130,13 +142,17 @@ describe('pecot-cli-deny', () => {
     { command: 'grep -rnE "gh|pecot" plugins/', note: 'クオート内の | をはさむ pecot' },
     { command: 'rg \'(uvx|pecot)\' hooks', note: 'クオート内の括弧と | をはさむ pecot' },
     { command: 'echo "a;pecot issue read 1"', note: 'クオート内の ; の後ろ' },
+    { command: 'git worktree add \\\n/workspaces/wt3/pecot', note: '行末の \\ の次の行が …/pecot で終わる語（git worktree add）' },
+    { command: 'git add \\\nplugins/pecot-workflow/bin/pecot \\\n  README.md', note: '継続行の先頭が …/bin/pecot で終わる語（git add）' },
+    { command: 'ls \\\npecot', note: '継続行の先頭が pecot だけの語（ls の引数）' },
+    { command: 'cat \\\n  $PECOT', note: '継続行の先頭が $PECOT（cat の引数）' },
   ])('pecot を起動しない形（$note）は、無出力で素通しにする', ({ command }) => {
     const run = runDeny(command)
     expect(run.status).toBe(0)
     expect(run.stdout).toBe('')
   })
 
-  // 先頭に起動形が来ない形は、今の ask と同じ検出抜けになる。塞ぐかどうかは切り替えのフェーズで決める。
+  // 先頭に起動形が来ない形は検出抜けになる。塞ぐのは別の Issue で決める。
   it.for([
     { command: '${PECOT} issue read 1', note: '${PECOT} の展開形' },
     { command: 'time pecot issue read 1', note: 'time の後ろ' },
@@ -157,6 +173,30 @@ describe('pecot-cli-deny', () => {
     const run = runDeny(command)
     expect(run.status).toBe(0)
     expect(run.stdout).toBe('')
+  })
+
+  describe('設定キー pecot-cli-deny', () => {
+    it('false にすると、起動形でも無出力で素通しにする', () => {
+      const project = createProject()
+      writeHooksConfig(project, { 'pecot-cli-deny': false })
+      const run = runDeny('pecot issue read 1', project)
+      expect(run.status).toBe(0)
+      expect(run.stdout).toBe('')
+    })
+
+    it('true にすると、deny する', () => {
+      const project = createProject()
+      writeHooksConfig(project, { 'pecot-cli-deny': true })
+      const run = runDeny('pecot issue read 1', project)
+      expect(run.status).toBe(1)
+      expect(run.stdout).toContain('MCP tool issue_read ')
+    })
+
+    it('他のキーだけを false にしても、deny する', () => {
+      const project = createProject()
+      writeHooksConfig(project, { 'claude-bash-guards': false, 'gh-pr-merge-ask': false })
+      expect(runDeny('pecot issue read 1', project).status).toBe(1)
+    })
   })
 
   it('HOOK_COMMAND が空だと、内部エラーで終える', () => {

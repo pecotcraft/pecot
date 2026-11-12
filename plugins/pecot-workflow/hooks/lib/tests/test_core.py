@@ -334,27 +334,14 @@ def test_gh_command_unset_command_exit_2(gh_script) -> None:
     assert result.returncode == 2
 
 
-# external-post-check: PR 外部反映のユーザー承認ガード（exit 11 = ask）。
+# external-post-check: gh pr merge のユーザー承認ガード（exit 11 = ask）。
+# pecot の起動は pecot-cli-deny.sh が deny する。MCP ツールの投稿の ask は pecot-post-ask.sh が持つ。
+# そのため external-post-check.sh は、pecot の起動を判定しない（素通しにする）。
 
 
-# ${PECOT} 展開形（例: "${PECOT} pr create"）はエージェントが素で打つ形ではないため
-# 意図的に対象外（ask しない）。捕捉するのは pecot / $PECOT / "$PECOT" / フルパス /
-# クオート付きパス（"${CLAUDE_PLUGIN_ROOT}/bin/pecot" 含む）まで。
 @pytest.mark.parametrize(
     "command",
     [
-        # pecot pr create（実投稿）。
-        "pecot pr create x.md",
-        'pecot pr create -m "fix bug" -t topic -b main',
-        "$PECOT pr create ./x.md",
-        "pecot pr create",  # 引数なしでも ask（usage 表示のみの no-op も承認対象）
-        # クオート内の -n を除外フラグと誤認せず ask になること（必須ケース）。
-        'pecot pr create -m "fix -n bug" -t t -b main',
-        # pecot pr create: 各起動形。
-        '"$PECOT" pr create x.md',
-        "/home/vscode/.claude/plugins/pecot/pecot-w/bin/pecot pr create x.md",
-        '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" pr create x.md',
-        # gh pr merge: 各形。
         "gh pr merge 789",
         "gh pr merge --squash",
         "GH_HOST=ghes.example.com gh pr merge 810",
@@ -362,25 +349,15 @@ def test_gh_command_unset_command_exit_2(gh_script) -> None:
         "git push & gh pr merge 1",  # 単独 & の後続も検出すること
         "/usr/bin/gh pr merge 1",
         # リダイレクト 2>&1 は & 分割で断片化するが、起動形のセグメントは残ること
-        "pecot pr create x.md 2>&1 | tail -5",
-        # 連結コマンド: 確認フラグは同一セグメント内にしか働かないこと。先頭
-        # セグメントの --prepare で後続の実投稿が素通しにならない（#927 必須ケース）。
-        "pecot pr create --prepare && pecot pr create body.md",
-        "pecot pr create --prepare; pecot pr create body.md",
-        "pecot pr create body.md && pecot pr create --prepare",  # 逆順
-        "pecot pr create --prepare&&pecot pr create body.md",  # 空白なし &&
-        "pecot pr create --prepare & pecot pr create body.md",  # 単独 &
-        "pecot pr create --prepare\npecot pr create body.md",  # 改行（; と同じ区切り）
-        "PECOT_DEBUG=1 pecot pr create --prepare && PECOT_DEBUG=1 pecot pr create body.md",
-        # 非先頭セグメントの環境変数前置。
-        "pecot pr create --prepare && GH_HOST=ghes.example.com pecot pr create y.md",
-        "(pecot pr create --prepare) && (pecot pr create body.md)",
-        "echo $(pecot pr create --prepare) && pecot pr create x.md",
-        "pecot pr create --prepare | pecot pr create x.md",
-        "pecot pr create --help && pecot pr create body.md",
+        "gh pr merge 1 2>&1 | tail -5",
+        "(gh pr merge 1) && echo done",
+        "echo $(gh pr merge 1)",
+        "gh pr merge 1 --help && gh pr merge 2",
+        # pecot の起動があっても、gh pr merge 側で ask になること
+        "pecot pr create --prepare && gh pr merge 810",
     ],
 )
-def test_pr_external_asks(external_post_script, command) -> None:
+def test_gh_pr_merge_asks(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
     assert "warning: external-post-check:" in result.stdout
@@ -389,36 +366,24 @@ def test_pr_external_asks(external_post_script, command) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        # 確認用フラグ（位置不問）は素通し
+        # pecot の起動は判定しない（deny は pecot-cli-deny.sh）。
+        "pecot pr create x.md",
         "pecot pr create --prepare",
-        "pecot pr create -p",
-        "pecot pr create --help",
-        "pecot pr create x.md --dry-run",
-        "pecot pr create x.md -n",
-        # 検出対象外サブコマンド（pecot pr cleanup は gh pr merge の後片付け）。
+        "pecot issue quick -r owner/repo -m x",
+        "pecot issue create x.md",
+        "$PECOT pr create ./x.md",
+        '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue create x.md',
         "pecot pr cleanup 810",
-        "pecot pr cleanup 810 --delete-branch",
-        '"$PECOT" pr cleanup 810',
         "pecot pr read acme-labs/aist-plugin/810",
-        "pecot pr preflight",
         # 文字列内・ファイル名内。
         'echo "gh pr merge"',
         "cat gh-pr-merge-notes.txt",
-        # ${PECOT} 展開形は対象外。
-        "${PECOT} pr create x.md",
-        # 連結コマンド: 実投稿のセグメントが無ければ素通し
-        "pecot pr create --prepare && pecot pr read acme-labs/aist-plugin/1",
-        "pecot pr create --prepare && pecot pr create --dry-run",
-        "pecot pr create --prepare && git push",
-        "pecot pr create --prepare | tee log.txt",
-        # リダイレクト 2>&1 の断片が確認フラグの比較を壊さないこと
-        "pecot pr create --prepare 2>&1",
-        "pecot pr create --dry-run x.md 2>&1 | tail -5",
-        # セグメント先頭アンカーで先頭一致が緩んでいないこと
-        "mypecot pr create x.md",
+        # gh の別の操作。
+        "gh pr view 810",
+        "gh pr list",
     ],
 )
-def test_pr_external_passes(external_post_script, command) -> None:
+def test_external_post_passes(external_post_script, command) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 0
     assert result.stdout == ""
@@ -428,18 +393,8 @@ def test_pr_external_gh_merge_guides_to_w_merge(external_post_script) -> None:
     result = _run_core(external_post_script, env={"HOOK_COMMAND": "gh pr merge 810"})
     assert result.returncode == 11
     assert "/pecot-w:w-merge" in result.stdout
-    assert "pecot pr cleanup" in result.stdout
-
-
-def test_pr_external_mixed_kinds_asks_by_gh_merge(external_post_script) -> None:
-    """種別混在: pecot create 側が確認フラグで免除されても gh merge 側で ask になること。"""
-    result = _run_core(
-        external_post_script,
-        env={"HOOK_COMMAND": "pecot pr create --prepare && gh pr merge 810"},
-    )
-    assert result.returncode == 11
-    assert "/pecot-w:w-merge" in result.stdout
-    assert "pecot pr cleanup" in result.stdout
+    assert "the MCP tool pr_cleanup" in result.stdout
+    assert "pecot pr cleanup" not in result.stdout
 
 
 def test_pr_external_unset_command_exit_2(external_post_script) -> None:
@@ -447,97 +402,8 @@ def test_pr_external_unset_command_exit_2(external_post_script) -> None:
     assert result.returncode == 2
 
 
-# pr-create-slash-pending フラグ（/pecot-w:w-pr 起点のターンスコープ ask 免除）。
-# 存在確認のみで判定し削除しない（消費しない）ため、いずれのケースもフラグ残存を
-# assert する。
-@pytest.fixture
-def pr_slash_flag(tmp_path: Path) -> dict:
-    """HOOK_WORKING_DIR 配下に pr-create-slash-pending を置いた環境。"""
-    project = tmp_path / "slash-project"
-    state = project / ".pecot" / "state"
-    state.mkdir(parents=True)
-    flag = state / "pr-create-slash-pending"
-    flag.touch()
-    return {"env": {"HOOK_WORKING_DIR": str(project)}, "flag": flag}
-
-
-def test_pr_external_slash_flag_passes_and_remains(external_post_script, pr_slash_flag) -> None:
-    result = _run_core(
-        external_post_script,
-        env={**pr_slash_flag["env"], "HOOK_COMMAND": "pecot pr create x.md"},
-    )
-    assert result.returncode == 0
-    assert result.stdout == ""
-    assert pr_slash_flag["flag"].is_file()
-
-
-def test_pr_external_slash_flag_survives_repeated_invocation(
-    external_post_script, pr_slash_flag
-) -> None:
-    """同一ターン内の連続リトライ相当（同スクリプトの再実行）でも免除が続くこと。"""
-    for _ in range(2):
-        result = _run_core(
-            external_post_script,
-            env={**pr_slash_flag["env"], "HOOK_COMMAND": "pecot pr create x.md"},
-        )
-        assert result.returncode == 0
-    assert pr_slash_flag["flag"].is_file()
-
-
-def test_pr_external_slash_flag_passes_m_form(external_post_script, pr_slash_flag) -> None:
-    result = _run_core(
-        external_post_script,
-        env={**pr_slash_flag["env"], "HOOK_COMMAND": 'pecot pr create -m "fix" -t t -b main'},
-    )
-    assert result.returncode == 0
-    assert pr_slash_flag["flag"].is_file()
-
-
-@pytest.mark.parametrize(
-    "command",
-    [
-        "pecot pr create --prepare",
-        "pecot pr create x.md --dry-run",
-        "pecot pr create x.md -n",
-    ],
-)
-def test_pr_external_slash_flag_passes_confirm_flags(
-    external_post_script, pr_slash_flag, command
-) -> None:
-    result = _run_core(
-        external_post_script,
-        env={**pr_slash_flag["env"], "HOOK_COMMAND": command},
-    )
-    assert result.returncode == 0
-    assert pr_slash_flag["flag"].is_file()
-
-
-def test_pr_external_slash_flag_passes_chained_create(external_post_script, pr_slash_flag) -> None:
-    """セグメント分割後も免除はコマンド全体に働くこと（#919 の退行防止）。"""
-    result = _run_core(
-        external_post_script,
-        env={
-            **pr_slash_flag["env"],
-            "HOOK_COMMAND": "pecot pr create --prepare && pecot pr create x.md",
-        },
-    )
-    assert result.returncode == 0
-    assert result.stdout == ""
-    assert pr_slash_flag["flag"].is_file()
-
-
-def test_pr_external_pr_create_flag_not_applied_to_gh_merge(
-    external_post_script, pr_slash_flag
-) -> None:
-    """pr-create-slash-pending（/w-pr 起点）は gh pr merge を免除しない。"""
-    result = _run_core(
-        external_post_script,
-        env={**pr_slash_flag["env"], "HOOK_COMMAND": "gh pr merge 810"},
-    )
-    assert result.returncode == 11
-    assert pr_slash_flag["flag"].is_file()
-
-
+# merge-slash-pending フラグ（/pecot-w:w-merge 起点の ask 免除）。
+# 存在確認のみで判定し削除しない（消費しない）ため、いずれのケースもフラグ残存を assert する。
 @pytest.fixture
 def merge_slash_flag(tmp_path: Path) -> dict:
     """HOOK_WORKING_DIR 配下に merge-slash-pending を置いた環境。"""
@@ -572,54 +438,43 @@ def test_gh_merge_asks_without_merge_slash_flag(external_post_script, tmp_path) 
     assert "warning: external-post-check:" in result.stdout
 
 
-def test_merge_slash_flag_not_applied_to_pr_create(external_post_script, merge_slash_flag) -> None:
-    """merge-slash-pending は pecot pr create を免除しない。"""
-    result = _run_core(
-        external_post_script,
-        env={**merge_slash_flag["env"], "HOOK_COMMAND": "pecot pr create x.md"},
-    )
-    assert result.returncode == 11
-
-
-def test_pr_external_no_slash_flag_still_asks(external_post_script, tmp_path) -> None:
-    project = tmp_path / "noflag-project"
-    (project / ".pecot" / "state").mkdir(parents=True)
-    result = _run_core(
-        external_post_script,
-        env={"HOOK_WORKING_DIR": str(project), "HOOK_COMMAND": "pecot pr create x.md"},
-    )
-    assert result.returncode == 11
-    assert "warning: external-post-check:" in result.stdout
-
-
-def test_pr_external_slash_flag_passes_even_when_ask_disabled_via_config(
-    external_post_script, pr_slash_flag, tmp_path
+@pytest.mark.parametrize("flag_name", ["pr-create-slash-pending", "issue-create-slash-pending"])
+def test_other_slash_flags_not_applied_to_gh_merge(
+    external_post_script, tmp_path, flag_name
 ) -> None:
-    config = tmp_path / "hooks-config.json"
-    config.write_text('{"pecot-pr-create-ask": false}')
+    """/w-pr・起票系の免除フラグは gh pr merge を免除しない。"""
+    project = tmp_path / "other-flag-project"
+    state = project / ".pecot" / "state"
+    state.mkdir(parents=True)
+    flag = state / flag_name
+    flag.touch()
     result = _run_core(
         external_post_script,
-        env={
-            **pr_slash_flag["env"],
-            "HOOK_COMMAND": "pecot pr create x.md",
-            "PECOT_HOOKS_CONFIG_PATH": str(config),
-        },
+        env={"HOOK_WORKING_DIR": str(project), "HOOK_COMMAND": "gh pr merge 810"},
+    )
+    assert result.returncode == 11
+    assert flag.is_file()
+
+
+def test_gh_merge_passes_when_ask_disabled_via_config(external_post_script, tmp_path) -> None:
+    config = tmp_path / "hooks-config.json"
+    config.write_text('{"gh-pr-merge-ask": false}')
+    result = _run_core(
+        external_post_script,
+        env={"HOOK_COMMAND": "gh pr merge 810", "PECOT_HOOKS_CONFIG_PATH": str(config)},
     )
     assert result.returncode == 0
-    assert pr_slash_flag["flag"].is_file()
+    assert result.stdout == ""
 
 
-# F-08: すり抜け回帰（改行区切り・decoy クオート文字列・シングルクオートパス）。
-# いずれも実コマンドを検出して ask（exit 11）になること。
+# すり抜け回帰（改行区切り・decoy クオート文字列）。いずれも実コマンドを検出して ask（exit 11）になること。
 @pytest.mark.parametrize(
     "command",
     [
-        # F-01: 改行区切りは ; と同じ区切りとして扱う。
+        # 改行区切りは ; と同じ区切りとして扱う。
         "echo done\ngh pr merge 5",
-        # F-02: decoy のクオート内 -n を除外フラグと誤認せず、後続の実コマンドを検出。
+        # decoy のクオート内 -n を除外フラグと誤認せず、後続の実コマンドを検出。
         'echo "&& gh pr merge -n stuff" && gh pr merge 5',
-        # F-03: シングルクオートで囲まれたフルパス起動。
-        "'/home/user/pecot' pr create x.md",
     ],
 )
 def test_pr_external_bypass_regressions(external_post_script, command) -> None:
@@ -628,21 +483,7 @@ def test_pr_external_bypass_regressions(external_post_script, command) -> None:
     assert "warning: external-post-check:" in result.stdout
 
 
-# F-04: 別セグメントの --dry-run/-n を同一コマンドの確認フラグと誤認せず ask のまま。
-@pytest.mark.parametrize(
-    "command",
-    [
-        "pecot pr create x.md && echo -n done",
-        "pecot pr create x.md | grep -n foo",
-    ],
-)
-def test_pr_external_other_segment_flag_still_asks(external_post_script, command) -> None:
-    result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
-    assert result.returncode == 11
-    assert "warning: external-post-check:" in result.stdout
-
-
-# F-06: gh pr merge は確認フラグ免除を持たない（--dry-run/-n でも無条件 ask）。
+# gh pr merge は確認フラグ免除を持たない（--dry-run/-n でも無条件 ask）。
 @pytest.mark.parametrize(
     "command",
     [
@@ -654,151 +495,6 @@ def test_pr_external_gh_merge_ignores_skip_flags(external_post_script, command) 
     result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
     assert result.returncode == 11
     assert "warning: external-post-check:" in result.stdout
-
-
-# external-post-check: pecot issue quick / create（実投稿）の ask（exit 11）。
-
-
-@pytest.mark.parametrize(
-    "command",
-    [
-        # pecot issue quick（実投稿）。
-        'pecot issue quick -r owner/repo -m "fix"',
-        "pecot issue quick",  # 引数なしでも ask（usage 表示のみの no-op も対象）
-        "$PECOT issue quick -r owner/repo -m x",
-        '"$PECOT" issue quick -r owner/repo -m x',
-        "/home/vscode/.claude/plugins/pecot/pecot-w/bin/pecot issue quick -m x",
-        '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue quick -m x',
-        # pecot issue create（実投稿: ファイル / -m 直接指定）。
-        "pecot issue create x.md",
-        "pecot issue create phase1.md phase2.md",
-        'pecot issue create -t "t" -r owner/repo -m "body"',
-        # クオート内の -p を確認フラグと誤認しないこと
-        'pecot issue create x.md -m "fix -p bug"',
-        # 連結コマンド: 確認フラグは同一セグメント内にしか働かないこと
-        "pecot issue create --prepare --template task && pecot issue create x.md",
-        "pecot issue create --prepare; pecot issue create x.md",
-        "pecot issue create x.md && pecot issue create --prepare",  # 逆順
-        "pecot issue create --help && pecot issue create x.md",
-        "pecot issue quick --help && pecot issue quick -m x",
-        "PECOT_DEBUG=1 pecot issue quick -m x",
-        "git status && pecot issue quick -m x",
-        "echo done\npecot issue create x.md",  # 改行区切り
-    ],
-)
-def test_issue_create_asks(external_post_script, command) -> None:
-    result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
-    assert result.returncode == 11
-    assert "warning: external-post-check:" in result.stdout
-    assert "canonical route" in result.stdout
-
-
-@pytest.mark.parametrize(
-    "command",
-    [
-        # 確認用フラグ（--prepare / -p）は素通し
-        "pecot issue create --prepare --template task --repo owner/repo",
-        "pecot issue create -p --template task --repo owner/repo",
-        "pecot issue create --help",
-        "pecot issue quick --help",
-        "pecot issue create --prepare --template task-implement --suffix phase1 --repo o/r",
-        # 検出対象外サブコマンド。
-        "pecot issue read acme-labs/aist-plugin/937",
-        "pecot issue reopen acme-labs/aist-plugin/937",
-        "pecot issue comment --prepare",
-        "pecot update-issue-status acme-labs/aist-plugin/1 active",
-        # 文字列内・ファイル名内。
-        'echo "pecot issue quick"',
-        "cat pecot-issue-create-notes.txt",
-        # ${PECOT} 展開形は対象外（pr 側と同一方針）。
-        "${PECOT} issue quick -m x",
-        # セグメント先頭アンカー。
-        "mypecot issue quick -m x",
-        # 連結コマンド: 実投稿セグメントが無ければ素通し
-        "pecot issue create --prepare --template task --repo o/r && git status",
-    ],
-)
-def test_issue_create_passes(external_post_script, command) -> None:
-    result = _run_core(external_post_script, env={"HOOK_COMMAND": command})
-    assert result.returncode == 0
-    assert result.stdout == ""
-
-
-# issue-create-slash-pending フラグ（起票系スラッシュコマンド起点の ask 免除）。
-# 存在確認のみで判定し削除しない（消費は CLI 側）ため、フラグ残存を assert する。
-@pytest.fixture
-def issue_slash_flag(tmp_path: Path) -> dict:
-    """HOOK_WORKING_DIR 配下に issue-create-slash-pending を置いた環境。"""
-    project = tmp_path / "issue-slash-project"
-    state = project / ".pecot" / "state"
-    state.mkdir(parents=True)
-    flag = state / "issue-create-slash-pending"
-    flag.write_text("w-quick\n")
-    return {"env": {"HOOK_WORKING_DIR": str(project)}, "flag": flag}
-
-
-@pytest.mark.parametrize(
-    "command",
-    [
-        'pecot issue quick -r owner/repo -m "fix"',
-        "pecot issue create x.md",
-        "pecot issue create phase1.md phase2.md",
-    ],
-)
-def test_issue_slash_flag_passes_and_remains(
-    external_post_script, issue_slash_flag, command
-) -> None:
-    result = _run_core(
-        external_post_script,
-        env={**issue_slash_flag["env"], "HOOK_COMMAND": command},
-    )
-    assert result.returncode == 0
-    assert result.stdout == ""
-    assert issue_slash_flag["flag"].is_file()
-
-
-def test_issue_slash_flag_not_applied_to_pr_create(external_post_script, issue_slash_flag) -> None:
-    """issue 用フラグで pecot pr create の ask は免除されないこと。"""
-    result = _run_core(
-        external_post_script,
-        env={**issue_slash_flag["env"], "HOOK_COMMAND": "pecot pr create x.md"},
-    )
-    assert result.returncode == 11
-    assert issue_slash_flag["flag"].is_file()
-
-
-def test_pr_slash_flag_not_applied_to_issue_create(external_post_script, pr_slash_flag) -> None:
-    """pr 用フラグで pecot issue quick の ask は免除されないこと。"""
-    result = _run_core(
-        external_post_script,
-        env={**pr_slash_flag["env"], "HOOK_COMMAND": "pecot issue quick -m x"},
-    )
-    assert result.returncode == 11
-    assert pr_slash_flag["flag"].is_file()
-
-
-def test_issue_no_slash_flag_still_asks(external_post_script, tmp_path) -> None:
-    """免除フラグが無い場合は ask（exit 11）になること。"""
-    project = tmp_path / "issue-noflag-project"
-    (project / ".pecot" / "state").mkdir(parents=True)
-    result = _run_core(
-        external_post_script,
-        env={"HOOK_WORKING_DIR": str(project), "HOOK_COMMAND": "pecot issue quick -m x"},
-    )
-    assert result.returncode == 11
-
-
-def test_issue_ask_precedes_pr_ask(external_post_script) -> None:
-    """issue と pr の ask が混在する場合、issue チェックが先に確定すること。
-
-    どちらも exit 11 のため、ISSUE_MSG にしか現れない語で判別する。
-    """
-    result = _run_core(
-        external_post_script,
-        env={"HOOK_COMMAND": "pecot issue quick -m x && pecot pr create x.md"},
-    )
-    assert result.returncode == 11
-    assert "canonical route" in result.stdout
 
 
 # git-worktree-branch-check

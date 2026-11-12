@@ -319,54 +319,55 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 **Independent Test**: エージェントに Bash で `pecot` を呼ばせる記述が 0 件。`interface/generated.json` の差分が各項目の `surfaces.mcp` だけ。
 `claude --plugin-dir plugins/pecot-workflow` と GitHub Copilot CLI で、quickstart.md の CUJ 1〜7・9・10 が通る
 
-- [ ] T055 [P] [US2] `cli-node/tests/skills/tool-names.test.ts` を先に書く。本文にある MCP ツール名が全部 `COMMANDS` にあることを確かめる。対象はスキル・agents・hooks テンプレートである。
+- [x] T055 [P] [US2] `cli-node/tests/skills/tool-names.test.ts` を先に書く。本文にある MCP ツール名が全部 `COMMANDS` にあることを確かめる。対象はスキル・agents・hooks テンプレートである。
   `pecot <サブコマンド>` の残りが、テストの持つ一覧と同じであることも確かめる。一覧に載せるのは、利用者が端末で打つコマンドの説明だけである（research R-19）。
-  `cli-node/vitest.config.ts` の `cli` project の include に `tests/skills/**/*.test.ts` を足す。`tests/coverage-include.test.ts` に、`tests/skills/` が include に当たる確認を足す。
-- [ ] T056 [P] [US2] `test-skills` レーンを vitest に替える。次の pytest を vitest に移す。
-  - `scripts/ci/tests/test_*.py` の 5 本（`test-skills` の本体）
-  - `skills/w-onboarding/scripts/tests/` の pytest
+  `cli-node/vitest.config.ts` に `skills` project を足し、include を `tests/skills/**/*.test.ts` にする（`cli` project の `test` は `--project cli` で、skills のテストは `test:skills` が流す）。
+  `tests/coverage-include.test.ts` に、`skills` project の include が `tests/skills/` のテストに当たる確認を足す。
+- [x] T056 [P] [US2] `test-skills` レーンを vitest に替える。次の pytest を vitest に移す。
+  - `scripts/ci/tests/test_*.py` の 4 本（`test-skills` の本体）
+  - `skills/w-onboarding/scripts/tests/` の pytest 1 本（`test_open_browser.py`。`conftest.py` も消す）
   直す先は `project.json` と `scripts/ci/run-tests.sh` である。
-- [ ] T057 [P] [US1] bootstrap の shell のテストを流す `test-bootstrap` レーンを、pecot-tools と同じ形で足す。足すものは 5 つある。
+- [x] T057 [P] [US1] bootstrap の shell のテストを流す `test-bootstrap` レーンを、pecot-tools と同じ形で足す。足すものは 5 つある。
   `project.json` の `test-bootstrap` target。`test` target の dependsOn。`scripts/ci/run-tests.sh` の `bootstrap` scope。
   `.githooks/tests/test_nx_affected_mapping.py` の対応表。root の `CLAUDE.md` のレーンの表。
-- [ ] T058 [US2] スキルなどの `pecot <サブコマンド>` を、MCP ツールの呼び出しに書き換える。対象は 28 ファイル 202 箇所のうち、エージェントに実行させる記述である。
+- [x] T058 [US2] スキルなどの `pecot <サブコマンド>` を、MCP ツールの呼び出しに書き換える。対象は 28 ファイル 203 箇所のうち、エージェントに実行させる記述である。
   数え方は research.md の R-19 の式を使う。コードブロックの外でも、手順として実行を指示する文は対象にする。
-  内訳は `skills/*/SKILL.md` 15 ファイル 91 箇所、`skills/*/references/` 11 ファイル 109 箇所。`agents/` と `hooks/templates/` が各 1 ファイル 1 箇所。`$PECOT` の形は 0 箇所。
+  内訳は `skills/*/SKILL.md` 15 ファイル 92 箇所、`skills/*/references/` 11 ファイル 109 箇所。`agents/` と `hooks/templates/` が各 1 ファイル 1 箇所。`$PECOT` の形は 0 箇所。
   `skills/w-help/references/commands.md` は手で直さない。
   `skills/w-pr/SKILL.md` の frontmatter の `allowed-tools` にある `Bash(*/bin/pecot ...)` は、MCP ツールの名前に替える。
   `agents/w-e2e-planner.md:57` の `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue create --prepare` も、`issue_create`（`prepare: true`）に替える。
-- [ ] T059 [US3] `hooks/pre-tool-use-bash.sh` から `lib/core/pecot-cli-deny.sh` を呼ぶ。`lib/core/external-post-check.sh` の pecot の判定を外し、`gh pr merge` の ask だけを残す。
+- [x] T059 [US3] `hooks/pre-tool-use-bash.sh` から `lib/core/pecot-cli-deny.sh` を呼ぶ。`lib/core/external-post-check.sh` の pecot の判定を外し、`gh pr merge` の ask だけを残す。
   案内文は、`hooks/lib/core/mcp-guidance.sh` の文に差し替え、古い文を消す。対象はフェーズ 8 で用意した 6 か所である。
   `external-post-check.sh` の `ISSUE_MSG`・`CREATE_MSG` は外し、ask の文は `pecot-post-ask.sh` に移す。テストを同じ変更に合わせる。
-- [ ] T060 [US3] hooks に Bash の `pecot` の実行が無いことを、`git grep` で確かめる。
+- [x] T060 [US3] hooks に Bash の `pecot` の実行が無いことを、`git grep` で確かめる。
   式は `git grep -nE '(bin/pecot|\$PECOT|"\$PECOT")' -- 'plugins/pecot-workflow/hooks/**/*.sh'` である。
   2026-11-11 の時点では、コメントと案内文に出るだけで、実行する処理は無い。結果は PR の本文に書く。
-- [ ] T061 [US1] `bin/_lib.sh` に、pecot-tools の `bin/_lib.sh` から `plugin_runtime_*` と Node の下限の確認を写す。`bin/pecot` は実行用ミラー方式に書き換える。`PECOT_BOOTSTRAP_SKIP=1` は `cli-node/dist/cli.js` を直接起動する。
-- [ ] T062 [US1] 初回起動で `${DATA}/venv/` を消す処理を `bin/pecot` に入れる。`.inuse` のロックを持つ世代は、次回の起動で消す。
-- [ ] T063 [P] [US1] `plugins/pecot-tools/cli/tests/bootstrap/` から 3 本を `cli-node/tests/bootstrap/` に写す。
+- [x] T061 [US1] `bin/_lib.sh` に、pecot-tools の `bin/_lib.sh` から `plugin_runtime_*` と Node の下限の確認を写す。`bin/pecot` は実行用ミラー方式に書き換える。`PECOT_BOOTSTRAP_SKIP=1` は `cli-node/dist/cli.js` を直接起動する。
+- [x] T062 [US1] 初回起動で `${DATA}/venv/` を消す処理を `bin/pecot` に入れる。`.inuse` のロックを持つ世代は、次回の起動で消す。
+- [x] T063 [P] [US1] `plugins/pecot-tools/cli/tests/bootstrap/` から 3 本を `cli-node/tests/bootstrap/` に写す。
   3 本は `data-dir.sh`・`run.sh`・`stub-root.sh`。Python と uv の無い `PATH` で、初回起動がミラーを作ることを確かめる。古い venv が消えることと、Node が無いと理由を返して止まることも確かめる。
-- [ ] T064 [US2] `.mcp.json` に `pecot-workflow` を足す。`command` は `${CLAUDE_PLUGIN_ROOT}/bin/pecot`、`args` は `["mcp"]` である。context7 と `pecot-workflow-playwright` は残し、`env` は書かない。
-- [ ] T065 [US2] root に `plugin.json` と `mcp.json` を置く。`plugin.json` は `$schema` 1.0.0、name `pecot-w` である。
+- [x] T064 [US2] `.mcp.json` に `pecot-workflow` を足す。`command` は `${CLAUDE_PLUGIN_ROOT}/bin/pecot`、`args` は `["mcp"]` である。context7 と `pecot-workflow-playwright` は残し、`env` は書かない。
+- [x] T065 [US2] root に `plugin.json` と `mcp.json` を置く。`plugin.json` は `$schema` 1.0.0、name `pecot-w` である。
   `mcp.json` は `pecot-workflow`・context7・`pecot-workflow-playwright` の 3 つを持つ。Copilot CLI の matcher `pecot-workflow-.*` が playwright のツールにも当たるので、hooks は 34 個のツール名にあるときだけ判定する。
-- [ ] T066 [US2] `hooks/hooks-copilot.json` を `com.github.copilot/hooks/hooks.json` に移す。matcher に `pecot-workflow-.*` を足す。
+- [x] T066 [US2] `hooks/hooks-copilot.json` を `com.github.copilot/hooks/hooks.json` に移す。matcher に `pecot-workflow-.*` を足す。
   agents を `com.github.copilot/agents/` に置く。`plugins/pecot-workflow/.github/plugin/plugin.json` と `hooks/hooks-copilot.json` を消す。
-- [ ] T067 [US2] `cli-node/tests/bootstrap/manifest.sh` を作る。中身は `plugins/pecot-visual/cli/tests/bootstrap/manifest.sh` と同じ確認にする。両形式の name・version・MCP サーバと args の一致を固定する。
-- [ ] T068 [US2] `project.json` の `release.version.manifestRootsToUpdate` を直す。`plugins/pecot-workflow/.github/plugin` の指定を `{projectRoot}` に替える。
+- [x] T067 [US2] `cli-node/tests/bootstrap/manifest.sh` を作る。中身は `plugins/pecot-visual/cli/tests/bootstrap/manifest.sh` と同じ確認にする。両形式の name・version・MCP サーバと args の一致を固定する。
+- [x] T068 [US2] `project.json` の `release.version.manifestRootsToUpdate` を直す。`plugins/pecot-workflow/.github/plugin` の指定を `{projectRoot}` に替える。
   `.nx/nx-release/src/version-actions.js` とそのテストの、旧形式の参照も直す。
-- [ ] T069 [US1] `cli-node/scripts/export-interface.ts` に `--write` を実装し、`interface/generated.json` を Node から書く。
+- [x] T069 [US1] `cli-node/scripts/export-interface.ts` に `--write` を実装し、`interface/generated.json` を Node から書く。
   `--check` は、全部の項目の全部の欄を比べるように替える。定義書にあって Node に無い ID も失敗にする。差の表示は `formatStale` を使う。
   `generated.json` の差分が各項目の `surfaces.mcp` だけであることを確かめる。`origin/main` の `generated.json` と、今の `generated.json` を比べる。
   どちらにも `jq -S 'del(.entries[].surfaces.mcp)'` をかけて `diff` に渡し、出力が空になることを見る。
   `input` か `cli` に差が出たら、コマンド定義の側を直す。
-- [ ] T070 [US1] `scripts/interface/export.py` と `cli/tests/unit/test_interface_export.py` を消す。`cli-node/tests/interface-export/typer-sample.json` と、それを読むテストも消す。
+- [x] T070 [US1] `scripts/interface/export.py` と `cli/tests/unit/test_interface_export.py` を消す。`cli-node/tests/interface-export/typer-sample.json` と、それを読むテストも消す。
   `libs/interface-spec/tests/sample-files.test.ts` と、`libs/interface-spec/project.json` の `test-unit` の inputs の、`typer-sample.json` の参照も外す。
   `scripts/ci/run-lint.sh` と `cli/pyproject.toml` の `scripts/interface` の参照も外す。`project.json` の `test-py`・`lint-py` の inputs から、消したパスを外す。
-- [ ] T071 [US1] `libs/interface-spec/targets.json` の pecot-workflow の `sources` から、Python の 4 つを外す。
+- [x] T071 [US1] `libs/interface-spec/targets.json` の pecot-workflow の `sources` から、Python の 4 つを外す。
   4 つは `cli/commands/**/*.py`・`cli/core/**/*.py`・`cli/__init__.py`・`cli/__main__.py` である。
   `libs/interface-spec/project.json` の `lint-defs` の inputs も、`sources` に合わせて直す。`interface-spec:lint-defs` が通ることを確かめる。
-- [ ] T072 [US1] SC-009 を計る。同じ端末で続けて、切り替えの前の `bin/pecot`（Python）と後の `bin/pecot`（Node のミラー）で、`project info` の起動から結果までを 5 回ずつ計る。初回の準備は数えない。
+- [x] T072 [US1] SC-009 を計る。同じ端末で続けて、切り替えの前の `bin/pecot`（Python）と後の `bin/pecot`（Node のミラー）で、`project info` の起動から結果までを 5 回ずつ計る。初回の準備は数えない。
   接続先は偽の GitHub サーバ（`PECOT_GITHUB_API_URL` をループバックに向ける）にする。2 つの中央値を、PR の本文と `.pecot/work/<Issue番号>/` に残す。Node が Python 以下であることを確かめる。
-- [ ] T073 version plan に、Node と MCP への切り替えを書く。旧形式の manifest の削除も書く。Python と uv が要らなくなったことも書く。
+- [x] T073 version plan に、Node と MCP への切り替えを書く。旧形式の manifest の削除も書く。Python と uv が要らなくなったことも書く。
 - [ ] T074 quickstart.md の CUJ 1〜7・9・10 を、CUJ ごとの表のクライアントで実行する。結果は `.pecot/work/<Issue番号>/` に残す。
   Claude Code は `claude --plugin-dir plugins/pecot-workflow` で起動する。
   CUJ 6 の更新と実投稿の確認は、リリースの後に人が確かめる。PR の本文に、確かめる手順と、リリースの後に確かめることを書く。
@@ -390,8 +391,8 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
   スキルとテンプレートの文書を確かめるものは vitest に移す。Python の構成だけを確かめるものは消す。決めた結果を PR の本文に書く。
 - [ ] T077 [US4] hooks とスキルの pytest を消す。対象は次のとおり。
   - `hooks/tests/`・`hooks/lib/tests/`・`hooks/conftest.py`
-  - `skills/w-onboarding/scripts/tests/` の Python
-  - `scripts/ci/tests/test_*.py` の 5 本
+  - `skills/w-merge/scripts/tests/` の pytest。`merge-wait.sh` のテストで、vitest に移してから消す。フェーズ 11 では `test-hooks` の pytest が流す
+  - `skills/w-onboarding/scripts/tests/` と `scripts/ci/tests/test_*.py` は、フェーズ 11 で vitest に移して消した
 - [ ] T078 [US4] Python のソースを読む Node のテスト 3 つを、固定の期待値に置き換える。
   対象は次の 3 つ。
   - `cli-node/src/infra/github/tests/queries.test.ts`（`cli/core/github/queries.py` を読む）

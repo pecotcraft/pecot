@@ -7,6 +7,7 @@
   "session-project-dir": true,
   "gh-pr-create-check": true,
   "gh-issue-create-check": true,
+  "pecot-cli-deny": true,
   "pecot-pr-create-ask": true,
   "pecot-issue-create-ask": true,
   "gh-pr-merge-ask": true,

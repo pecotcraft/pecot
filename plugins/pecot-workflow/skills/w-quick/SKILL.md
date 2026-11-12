@@ -14,18 +14,15 @@ argument-hint: "[タスクの内容]"
 
 ## 手順
 
-### Step 1: Issue作成（pecot issue quick）
+### Step 1: Issue作成（issue_quick）
 
 > **ガード**: Issue 番号が入った `created: Issue <owner/repo/N>` の行を出力で確認するまで、Edit / Write / MultiEdit / NotebookEdit / EnterPlanMode / `git checkout` / `git switch` を呼ばない。Issue 起票よりも前にコード編集・ブランチ切り替え・プランモード移行を行うことは禁止。
 
-```bash
-# 基本形（親Epicなし）
-pecot issue quick -r owner/repo -m "ユーザー指示の要約"
-```
+基本形（親Epicなし）は、`issue_quick` を `repo: "owner/repo"`・`message: "ユーザー指示の要約"` で呼ぶ。
 
-**`-m` の書き方:** テンプレを経由しないため `-m` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
+**`message` の書き方:** テンプレを経由しないため `message` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
 
-**成功確認:** stderr に `created: Issue <owner/repo/N>` の行があること。`N` が Issue 番号になる。
+**成功確認:** 結果に `created: Issue <owner/repo/N>` の行があること。`N` が Issue 番号になる。
 
 **特徴:**
 
@@ -38,7 +35,7 @@ pecot issue quick -r owner/repo -m "ユーザー指示の要約"
 **リポジトリの特定方法:**
 
 - ユーザーが明示的に指定している場合はその値を使用
-- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `pecot project show-aggregation-repo` を実行して根拠を得てから決める（推測で `-r` を埋めない）
+- 指定がない場合は AskUserQuestion で起票先リポジトリを確認する。または `project_show_aggregation_repo` を呼んで根拠を得てから決める（推測で `repo` を埋めない）
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 2: ブランチ切り替え
@@ -65,23 +62,16 @@ git checkout feat/{YYYYMMDD-HHMMSS}/{issue_number}
 
 ### Step 4: 計画ドラフト作成
 
-次のコマンドで plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
-
-```bash
-pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
-```
+plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
+`issue_comment` を `prepare: true`・`template: "plan"`・`issue: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
 
 変更対象は active Issue のリポジトリ内に限る。ほかのリポの変更は計画から外し、パッチに退避して当該リポへの起票を提案する（判定手順: [issue-flow-rules.md §6](../w-help/references/issue-flow-rules.md)）。
 
 ### Step 5: 計画の投稿
 
-通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。
+通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-```bash
-pecot issue comment <書いたファイル>
-```
-
-exit 3 で止まったら、指摘を直して打ち直す。
+結果に `exit code: 3` の行が出て止まったら、指摘を直して呼び直す。
 
 ### Step 6: プランモードで承認を得る
 
@@ -92,6 +82,6 @@ EnterPlanMode tool:
   (パラメータなし)
 ```
 
-承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 5 のコマンドを打ち直す。投稿したコメントが書き換わる。
+承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 5 の呼び出しをやり直す。投稿したコメントが書き換わる。
 
 承認後は、サブエージェントを起動せず main が実装する。

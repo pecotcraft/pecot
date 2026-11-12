@@ -136,7 +136,7 @@ pythonVersion = "3.10"
 extraPaths = [".."]
 # cli/ 直下を再帰的に拾うと .venv / build / __pycache__ も対象になり 30k+ エラーを生むため
 # include を明示し、exclude で .venv 等を排除する。
-include = ["commands", "core", "templates", "__init__.py", "__main__.py", "../scripts/ci/compare_junit.py", "../scripts/interface"]
+include = ["commands", "core", "templates", "__init__.py", "__main__.py", "../scripts/ci/compare_junit.py"]
 exclude = ["tests", "**/__pycache__", "**/.venv", "**/build", "**/*.egg-info"]
 
 # uv の path source cache-keys

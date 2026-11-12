@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない */
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは一時ファイルと定義書 */
-// cli-node の書き出しが、typer 側の書き出しと同じ input・cli を出すことを確かめる。
-// typer 側の書き出し済みの見本（interface-export/typer-sample.json）を、Python 側のテストと共有する。
+// cli-node の書き出しの形と、--check / --write の動きを確かめる。
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -17,18 +16,6 @@ import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
 import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
 import vitestConfig from '../vitest.config.js'
 import { exportEntries, main } from '../scripts/export-interface.js'
-import { parseJson } from '../src/tests/_helpers/json.js'
-
-const SampleEntrySchema = z.looseObject({ id: z.string() })
-const SampleSchema = z.object({ entries: z.array(SampleEntrySchema) })
-const sampleText = readFileSync(path.resolve(import.meta.dirname, 'interface-export/typer-sample.json'), 'utf8')
-const sample = SampleSchema.parse(parseJson(sampleText))
-
-function sampleEntry(id: string): Record<string, unknown> {
-  const entry = sample.entries.find(candidate => candidate.id === id)
-  if (entry === undefined) throw new Error(`見本に ${id} が無い`)
-  return entry
-}
 
 const alpha = defineCommand({
   path: ['alpha'],
@@ -91,17 +78,6 @@ describe('exportEntries', () => {
 
   it('項目は id の順に並ぶ', () => {
     expect(entries.map(entry => entry.id)).toStrictEqual(['PW-ALPHA', 'PW-BETA'])
-  })
-
-  it.each(['PW-ALPHA', 'PW-BETA'])('%s の input・cli が typer の書き出しと同じ', (id) => {
-    const entry = entries.find(candidate => candidate.id === id)
-    const expected = sampleEntry(id)
-    expect(entry?.input).toStrictEqual(expected['input'])
-    expect(entry?.cli).toStrictEqual(expected['cli'])
-    expect(entry?.name).toBe(expected['name'])
-    expect(entry?.description).toBe(expected['description'])
-    expect(entry?.hidden).toBe(expected['hidden'])
-    expect(entry?.deprecated).toBe(expected['deprecated'])
   })
 
   it('surfaces は cli.path と mcp.tool の両方を持つ', () => {
@@ -251,30 +227,71 @@ describe('exportEntries の失敗と refine', () => {
   })
 })
 
-describe('main', () => {
-  const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
+const IncludeSchema = z.object({ include: z.array(z.string()) })
+const ProjectSchema = z.object({ test: IncludeSchema })
+const ConfigSchema = z.object({ test: z.object({ projects: z.array(ProjectSchema) }) })
 
-  it('登録済みのコマンドは、定義書と差が無く 0 を返す', () => {
-    const { io, out, error } = capture()
-    expect(main(['--check'], io)).toBe(0)
-    expect({ out, error }).toStrictEqual({ out: [], error: [] })
+const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
+const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli-node exec tsx scripts/export-interface.ts --write'
+
+function fileOf(commands: Parameters<typeof exportEntries>[0]): Record<string, unknown> {
+  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: exportEntries(commands) }
+}
+
+const EntriesSchema = z.array(z.custom<Record<string, unknown>>(value => typeof value === 'object' && value !== null))
+
+function entryOf(file: Readonly<Record<string, unknown>>, id: string): Record<string, unknown> {
+  const entries = EntriesSchema.parse(file['entries'])
+  const entry = entries.find(candidate => candidate['id'] === id)
+  if (entry === undefined) throw new TypeError(`定義書に ${id} が無い`)
+  return entry
+}
+
+function temporaryTarget(text?: string): string {
+  const target = path.join(makeTemporaryDirectory(), 'generated.json')
+  if (text !== undefined) writeFileSync(target, text)
+  return target
+}
+
+function run(mode: string, target: string, commands: Parameters<typeof exportEntries>[0] = samples): { code: number, out: string[], error: string[] } {
+  const { io, out, error } = capture()
+  return { code: main([mode], io, commands, { target }), out, error }
+}
+
+describe('main の --write', () => {
+  it('挿入順のまま、字下げ 2・末尾に改行 1 つで書き、wrote の行を出して 0 を返す', () => {
+    const target = temporaryTarget()
+    const result = run('--write', target)
+    expect(result.code).toBe(0)
+    expect(result.out).toStrictEqual([`wrote: ${target}\n`])
+    expect(result.error).toStrictEqual([])
+    expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify(fileOf(samples), undefined, 2)}\n`)
   })
 
-  it('登録が 0 件なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
-    const before = readFileSync(generated)
-    const { io, out, error } = capture()
-    expect(main(['--check'], io, [])).toBe(0)
-    expect(out).toStrictEqual([])
-    expect(error).toStrictEqual(['warning: no commands are registered in cli-node; generated.json is left as is\n'])
-    expect(readFileSync(generated).equals(before)).toBe(true)
+  it('書いたファイルは --check が 0 を返す', () => {
+    const target = temporaryTarget()
+    run('--write', target)
+    expect(run('--check', target)).toStrictEqual({ code: 0, out: [], error: [] })
   })
 
-  it('--write でも同じで、generated.json を変えない', () => {
-    const before = readFileSync(generated)
-    const { io, error } = capture()
-    expect(main(['--write'], io, [])).toBe(0)
-    expect(error).toHaveLength(1)
-    expect(readFileSync(generated).equals(before)).toBe(true)
+  it('古い定義書を書き換える', () => {
+    const target = temporaryTarget('{}')
+    expect(run('--write', target).code).toBe(0)
+    expect(run('--check', target).code).toBe(0)
+  })
+
+  it('書けなければ、cannot write の行を出して 1 を返す', () => {
+    const target = path.join(makeTemporaryDirectory(), 'missing', 'generated.json')
+    const result = run('--write', target)
+    expect(result.code).toBe(1)
+    expect(result.error).toHaveLength(1)
+    expect(result.error[0]).toMatch(/^error: cannot write \S+generated\.json: ENOENT/v)
+  })
+
+  it('登録が 0 件でも、空の項目で書く', () => {
+    const target = temporaryTarget()
+    expect(run('--write', target, []).code).toBe(0)
+    expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: [] }, undefined, 2)}\n`)
   })
 
   it('モードの指定が無い・不正なら 2 を返す', () => {
@@ -285,102 +302,101 @@ describe('main', () => {
   })
 })
 
-const IncludeSchema = z.object({ include: z.array(z.string()) })
-const ProjectSchema = z.object({ test: IncludeSchema })
-const ConfigSchema = z.object({ test: z.object({ projects: z.array(ProjectSchema) }) })
-
-interface Definition { format: 1, plugin: string, prefix: string, entries: Record<string, unknown>[] }
-
-// 定義書は Python 側の書き出しと同じく surfaces.mcp を持たない
-function definitionOf(commands: Parameters<typeof exportEntries>[0]): Definition {
-  const entries = exportEntries(commands).map(({ surfaces, ...rest }) => ({ ...rest, surfaces: { cli: surfaces.cli } }))
-  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries }
+function textOf(file: Readonly<Record<string, unknown>>): string {
+  return `${JSON.stringify(file, undefined, 2)}\n`
 }
 
-function entryOf(definition: Definition, id: string): Record<string, unknown> {
-  const entry = definition.entries.find(candidate => candidate['id'] === id)
-  if (entry === undefined) throw new Error(`定義書に ${id} が無い`)
-  return entry
-}
-
-function checkText(text: string | undefined): { code: number, error: string[] } {
-  const target = path.join(makeTemporaryDirectory(), 'generated.json')
-  if (text !== undefined) writeFileSync(target, text)
-  const { io, error } = capture()
-  return { code: main(['--check'], io, [alpha, beta], { target }), error }
+function checkOf(file: Readonly<Record<string, unknown>>): ReturnType<typeof run> {
+  return run('--check', temporaryTarget(textOf(file)))
 }
 
 describe('main の --check', () => {
-  const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
-
-  function check(definition: Definition): { code: number, error: string[] } {
-    const target = path.join(makeTemporaryDirectory(), 'generated.json')
-    writeFileSync(target, JSON.stringify(definition))
-    const { io, error } = capture()
-    return { code: main(['--check'], io, samples, { target }), error }
-  }
-
-  it('定義書と差が無ければ 0 を返し、何も出さない', () => {
-    expect(check(definitionOf(samples))).toStrictEqual({ code: 0, error: [] })
+  it('実物の generated.json は、登録済みのコマンドと一致して 0 を返す', () => {
+    const { io, out, error } = capture()
+    expect(main(['--check'], io)).toBe(0)
+    expect({ out, error }).toStrictEqual({ out: [], error: [] })
   })
 
-  it('定義書だけが持つ ID があっても、0 を返す', () => {
-    const definition = definitionOf(samples)
-    definition.entries.push({ ...entryOf(definition, 'PW-BETA'), id: 'PW-OTHER', name: 'other' })
-    expect(check(definition)).toStrictEqual({ code: 0, error: [] })
+  it('実物の generated.json を書き換えない', () => {
+    const before = readFileSync(generated)
+    run('--check', generated)
+    run('--write', temporaryTarget())
+    expect(readFileSync(generated).equals(before)).toBe(true)
   })
 
-  it('surfaces.mcp だけの差は 0 を返す', () => {
-    const definition = definitionOf(samples)
-    entryOf(definition, 'PW-ALPHA')['surfaces'] = { cli: { path: ['alpha'] }, mcp: { tool: 'renamed' } }
-    expect(check(definition).code).toBe(0)
+  it('書式が違っても中身が同じなら、差の行は出さずに stale の行だけで 1 を返す', () => {
+    const compact = temporaryTarget(JSON.stringify(fileOf(samples)))
+    const result = run('--check', compact)
+    expect(result.code).toBe(1)
+    expect(result.error).toStrictEqual([
+      expect.stringMatching(/^error: \S+generated\.json is stale\n$/v),
+      `  run: ${WRITE_COMMAND}\n`,
+    ])
+  })
+
+  it('欄の値の差は 1 を返し、前と後の値と直すコマンドを formatStale の形で出す', () => {
+    const file = fileOf(samples)
+    entryOf(file, 'PW-ALPHA')['description'] = 'Changed'
+    const result = checkOf(file)
+    expect(result.code).toBe(1)
+    expect(result.error).toStrictEqual([
+      expect.stringMatching(/^error: \S+generated\.json is stale\n$/v),
+      '  PW-ALPHA: description: "Changed" -> "Greet someone"\n',
+      `  run: ${WRITE_COMMAND}\n`,
+    ])
+  })
+
+  it('surfaces.mcp の差も 1 を返す', () => {
+    const file = fileOf(samples)
+    entryOf(file, 'PW-ALPHA')['surfaces'] = { cli: { path: ['alpha'] }, mcp: { tool: 'renamed' } }
+    const result = checkOf(file)
+    expect(result.code).toBe(1)
+    expect(result.error).toContain('  PW-ALPHA: surfaces.mcp.tool: "renamed" -> "alpha"\n')
   })
 
   it('Node にあって定義書に無い ID は 1 を返し、entry: added の行を出す', () => {
-    const definition = definitionOf([alpha])
-    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: entry: added\n'] })
+    const result = checkOf(fileOf([alpha]))
+    expect(result.code).toBe(1)
+    expect(result.error).toContain('  PW-BETA: entry: added\n')
   })
 
-  it('欄の値の差は 1 を返し、前と後の値を出す', () => {
-    const definition = definitionOf(samples)
-    entryOf(definition, 'PW-ALPHA')['description'] = 'Changed'
-    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-ALPHA: description: "Changed" -> "Greet someone"\n'] })
+  it('定義書にあって Node に無い ID も 1 を返し、entry: removed の行を出す', () => {
+    const target = temporaryTarget(textOf(fileOf(samples)))
+    const result = run('--check', target, [alpha])
+    expect(result.code).toBe(1)
+    expect(result.error).toContain('  PW-BETA: entry: removed\n')
   })
 
   it('Node にだけある欄のキーは 1 を返し、added の行を出す', () => {
-    const definition = definitionOf(samples)
-    Reflect.deleteProperty(entryOf(definition, 'PW-BETA'), 'cli')
-    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: cli: added\n'] })
+    const file = fileOf(samples)
+    Reflect.deleteProperty(entryOf(file, 'PW-BETA'), 'cli')
+    expect(checkOf(file).error).toContain('  PW-BETA: cli: added\n')
   })
 
   it('定義書にだけある欄のキーは 1 を返し、removed の行を出す', () => {
-    const definition = definitionOf(samples)
-    entryOf(definition, 'PW-BETA')['mcp'] = {}
-    expect(check(definition)).toStrictEqual({ code: 1, error: ['error: PW-BETA: mcp: removed\n'] })
+    const file = fileOf(samples)
+    entryOf(file, 'PW-BETA')['mcp'] = {}
+    expect(checkOf(file).error).toContain('  PW-BETA: mcp: removed\n')
   })
 
   describe('定義書を読めないとき', () => {
-    it('ファイルが無ければ、cannot read の行を出して 1 を返す', () => {
-      const result = checkText(undefined)
+    it('ファイルが無ければ、cannot read と直すコマンドを出して 1 を返す', () => {
+      const result = run('--check', temporaryTarget())
       expect(result.code).toBe(1)
       expect(result.error).toHaveLength(1)
-      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: ENOENT/v)
+      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: ENOENT.*\n {2}run: pnpm /v)
     })
 
     it('JSON でなければ、cannot read の行を出して 1 を返す', () => {
-      const result = checkText('{')
+      const result = run('--check', temporaryTarget('{'))
       expect(result.code).toBe(1)
-      expect(result.error).toHaveLength(1)
       expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: .*JSON/v)
     })
 
-    it('スキーマに合わなければ、欄のパスと文を 1 行で出して 1 を返す', () => {
-      const result = checkText('{"a":1}')
+    it('スキーマに合わなければ、cannot read の行を出して 1 を返す', () => {
+      const result = run('--check', temporaryTarget('{"a":1}'))
       expect(result.code).toBe(1)
-      expect(result.error).toHaveLength(1)
-      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: format: /v)
-      expect(result.error[0]).not.toMatch(/generated\.json: \[/v)
-      expect(result.error[0]?.trimEnd().split('\n')).toHaveLength(1)
+      expect(result.error[0]).toMatch(/^error: cannot read \S+generated\.json: /v)
     })
   })
 
@@ -394,38 +410,20 @@ describe('main の --check', () => {
       interactive: false,
     })
 
-    it('項目がスキーマに合わなければ、コマンドの項目を示す error の行を出して 1 を返す', () => {
-      const emptyPath = { ...broken, path: [] }
-      const target = path.join(makeTemporaryDirectory(), 'generated.json')
-      writeFileSync(target, JSON.stringify(definitionOf(samples)))
-      const { io, error } = capture()
-      expect(main(['--check'], io, [emptyPath], { target })).toBe(1)
-      expect(error).toHaveLength(1)
-      expect(error[0]).toMatch(/^error: PW-: invalid entry: /v)
+    it('項目がスキーマに合わなければ、invalid entries の行を出して 1 を返し、ファイルを書かない', () => {
+      const target = temporaryTarget()
+      const result = run('--write', target, [{ ...broken, path: [] }])
+      expect(result.code).toBe(1)
+      expect(result.error).toHaveLength(1)
+      expect(result.error[0]).toMatch(/^error: invalid entries: /v)
+      expect(() => readFileSync(target)).toThrow('ENOENT')
     })
 
     it('同じ ID のコマンドが 2 つあれば、重複した ID を示す error の行を出して 1 を返す', () => {
-      const target = path.join(makeTemporaryDirectory(), 'generated.json')
-      writeFileSync(target, JSON.stringify(definitionOf(samples)))
-      const { io, error } = capture()
-      expect(main(['--check'], io, [alpha, alpha, beta], { target })).toBe(1)
-      expect(error).toStrictEqual(['error: duplicate ids: PW-ALPHA\n'])
+      const result = run('--check', temporaryTarget(), [alpha, alpha, beta])
+      expect(result.code).toBe(1)
+      expect(result.error).toStrictEqual(['error: duplicate ids: PW-ALPHA\n'])
     })
-  })
-
-  it('登録が 1 件以上の --write は、使い方のエラーで 2 を返し、ファイルを書かない', () => {
-    const target = path.join(makeTemporaryDirectory(), 'generated.json')
-    const { io, error } = capture()
-    expect(main(['--write'], io, samples, { target })).toBe(2)
-    expect(error).toHaveLength(1)
-    expect(error[0]).toMatch(/^error: /v)
-    expect(() => readFileSync(target)).toThrow('ENOENT')
-  })
-
-  it('実物の generated.json を書き換えない', () => {
-    const before = readFileSync(generated)
-    check(definitionOf(samples))
-    expect(readFileSync(generated).equals(before)).toBe(true)
   })
 })
 

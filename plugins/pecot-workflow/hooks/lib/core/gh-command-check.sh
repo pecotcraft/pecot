@@ -23,6 +23,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/config-dispatcher.sh"
+source "${SCRIPT_DIR}/mcp-guidance.sh"
 
 if [ -z "$HOOK_COMMAND" ]; then
   hook_message error "HOOK_COMMAND environment variable is required" >&2
@@ -45,26 +46,12 @@ GH_PR_CREATE_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:s
 GH_ISSUE_CREATE_PATTERN='(^|;|&&|&|\|\||\||`|\$\(|\()[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*(/[^ ]*/)?gh[[:space:]]+issue[[:space:]]+create([[:space:]]|$)'
 
 if pecot_hook_enabled "gh-pr-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_PR_CREATE_PATTERN ]]; then
-  hook_message error "gh-pr-create-check: gh pr create is not allowed.
-
-Reason: using gh pr create directly skips the automatic Issue reference, the PR template validation,
-and the traceability record, which breaks the consistency of the workflow.
-
-Use this instead:
-  pecot pr create"
+  hook_message error "$(mcp_guidance_gh_pr_create)"
   exit 1
 fi
 
 if pecot_hook_enabled "gh-issue-create-check" true && [[ "$HOOK_COMMAND" =~ $GH_ISSUE_CREATE_PATTERN ]]; then
-  hook_message error "gh-issue-create-check: gh issue create is not allowed.
-
-Reason: using gh issue create directly skips the automatic registration on the pecot project board,
-the status/priority/size field settings, and the template validation, which breaks the consistency
-and traceability of the workflow.
-
-Use one of these instead:
-  pecot issue quick   (free-form quick filing)
-  pecot issue create  (from Markdown with frontmatter)"
+  hook_message error "$(mcp_guidance_gh_issue_create)"
   exit 1
 fi
 

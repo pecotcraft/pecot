@@ -1,7 +1,7 @@
-"""hooks.json / hooks-copilot.json の plan 系エントリ構成パリティ回帰テスト。
+"""hooks.json / com.github.copilot/hooks/hooks.json の plan 系エントリ構成パリティ回帰テスト。
 
 contracts/hook-flow.md 不変条件 3 は次のとおり。
-Copilot CLI 手段（hooks-copilot.json）の plan 系 hook 挙動は、Claude Code 手段（hooks.json）と同一。
+Copilot CLI 手段（com.github.copilot/hooks/hooks.json）の plan 系 hook 挙動は、Claude Code 手段（hooks.json）と同一。
 両ファイルの plan 系エントリを、{(event, matcher): command} の写像に正規化する。
 plan 系エントリは、PostToolUse の ExitPlanMode の 1 本だけ。
 配列順に依存せず、一致を検証する。
@@ -42,7 +42,7 @@ def _plan_entry_map(config_path: Path) -> dict[tuple[str, str], str]:
 
 def test_plan_entries_present_in_both(hooks_dir: Path):
     claude = _plan_entry_map(hooks_dir / "hooks.json")
-    copilot = _plan_entry_map(hooks_dir / "hooks-copilot.json")
+    copilot = _plan_entry_map(hooks_dir.parent / "com.github.copilot" / "hooks" / "hooks.json")
     expected_keys = {("PostToolUse", "ExitPlanMode")}
     assert set(claude.keys()) == expected_keys
     assert set(copilot.keys()) == expected_keys
@@ -50,6 +50,6 @@ def test_plan_entries_present_in_both(hooks_dir: Path):
 
 def test_plan_entries_parity_between_claude_and_copilot(hooks_dir: Path):
     claude = _plan_entry_map(hooks_dir / "hooks.json")
-    copilot = _plan_entry_map(hooks_dir / "hooks-copilot.json")
+    copilot = _plan_entry_map(hooks_dir.parent / "com.github.copilot" / "hooks" / "hooks.json")
     # 配列順が異なっても写像として一致すること
     assert claude == copilot

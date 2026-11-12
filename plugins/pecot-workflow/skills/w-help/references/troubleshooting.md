@@ -9,13 +9,9 @@ gh auth refresh -s project   # projectスコープ追加
 
 ## プロジェクトが見つからない
 
-```bash
-pecot project list            # 一覧確認
-pecot project search <owner>  # 検索
-```
+- 一覧確認: `project_list` を引数なしで呼ぶ
+- 検索: `project_search` を `owner: "<owner>"` で呼ぶ
 
 ## フィールドが見つからない
 
-```bash
-pecot project init <owner> <project-name>
-```
+`project_init` を `owner: "<owner>"`・`name: "<project-name>"`・`suffix: "<suffix>"` で呼ぶ。

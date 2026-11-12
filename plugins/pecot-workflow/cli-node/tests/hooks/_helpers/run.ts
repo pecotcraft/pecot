@@ -1,6 +1,6 @@
-// shell の起動。同期は spawnSync、並行に起動するケースは runAsync を使う。タイムアウトは 25 秒で、超えたら throw する。
+// shell の起動。spawnSync を使う。タイムアウトは 25 秒で、超えたら throw する。
 // stdout・stderr は Node の復号のまま返し、改行（\r\n）は直さない。
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { constants } from 'node:os'
@@ -39,10 +39,6 @@ function exitCodeOf(status: number | null, signal: NodeJS.Signals | null): numbe
   return -(entry?.[1] ?? 0)
 }
 
-function ignoreBrokenPipe(): void {
-  // 読まずに終わる子への書き込みは EPIPE になる。結果は終了コードで見る
-}
-
 export function run(hookCase: HookCase, command: string, argv: readonly string[] = [], options: RunOptions = {}): RunResult {
   const result = spawnSync(command, argv, {
     input: options.stdin,
@@ -55,40 +51,6 @@ export function run(hookCase: HookCase, command: string, argv: readonly string[]
   })
   if (result.error) throw new Error(`起動に失敗しました（${description(command, argv)}）: ${result.error.message}`, { cause: result.error })
   return { exitCode: exitCodeOf(result.status, result.signal), stdout: result.stdout, stderr: result.stderr }
-}
-
-export function runAsync(hookCase: HookCase, command: string, argv: readonly string[] = [], options: RunOptions = {}): Promise<RunResult> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, argv, { cwd: options.cwd ?? hookCase.temporaryPath, env: hookCase.composeEnv(options.env) })
-    const out: string[] = []
-    const errors: string[] = []
-    child.stdout.setEncoding('utf8')
-    child.stderr.setEncoding('utf8')
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL')
-      reject(new Error(`${String(TIMEOUT_MS)} ms でタイムアウトしました（${description(command, argv)}）`))
-    }, TIMEOUT_MS)
-    child.stdout.on('data', (chunk: string) => {
-      out.push(chunk)
-    })
-    child.stderr.on('data', (chunk: string) => {
-      errors.push(chunk)
-    })
-    child.on('error', (error) => {
-      clearTimeout(timer)
-      reject(error)
-    })
-    child.on('close', (code, signal) => {
-      clearTimeout(timer)
-      resolve({
-        exitCode: exitCodeOf(code, signal),
-        stdout: out.join(''),
-        stderr: errors.join(''),
-      })
-    })
-    child.stdin.on('error', ignoreBrokenPipe)
-    child.stdin.end(options.stdin)
-  })
 }
 
 // bash <script> [args...]

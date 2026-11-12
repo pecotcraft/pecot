@@ -9,11 +9,11 @@ when_to_use: "ワークツリーを作りたい、並行作業用の作業ディ
 
 # ワークツリー作成
 
-`pecot worktree add` でワークツリーを作る。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
+`worktree_add` でワークツリーを作る。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
 
 main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<リポ名>/` に作られる。セット名 `wtN` は常に自動採番（手動指定は不可、対象リポが未参加の最小 `wtN` に入る）。
 
-実行にはアクティブな pecot project 設定（`~/.pecot/config/projects/.active`）と、対象リポがその `repositories[]` に登録されていることが必要。
+実行にはアクティブな pecot のプロジェクト設定（`~/.pecot/config/projects/.active`）と、対象リポがその `repositories[]` に登録されていることが必要。
 
 ## スコープ
 
@@ -23,11 +23,8 @@ main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<�
 
 ### Step 1: （初回のみ）ワークツリー設定を用意
 
-対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると `pecot worktree add` は exit 1 で失敗する。init は両ファイルを同時に生成する。
-
-```bash
-pecot worktree init -D <project-root>/base/<repo>
-```
+対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると `worktree_add` は `exit code: 1` で失敗する。
+init は両ファイルを同時に生成する。`worktree_init` を `directory: "<project-root>/base/<repo>"` で呼ぶ。
 
 生成される `worktree-config.json` の `links[]` を編集する（symlink 不要なら空でよい）。
 
@@ -49,29 +46,21 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 }
 ```
 
-CLI で `--setup "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（exit 0）になる。失敗のときだけ `warning: setup command ...` の行が出て、コマンドの stdout/stderr が続く。成功のときは何も表示されない。
+`worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（`exit code` の行が付かない）になる。
+失敗のときだけ `warning: setup command ...` の行が出て、コマンドの stdout/stderr が続く。成功のときは何も表示されない。
 
-### Step 2: add を叩く
+### Step 2: add を呼ぶ
 
-対象リポの main WT で実行:
+対象リポの main WT を指して、`worktree_add` を `directory: "<project-root>/base/<repo>"` で呼ぶ。ツールは作業ディレクトリを `directory` で受けるので、`cd` しない。
 
-```bash
-cd <project-root>/base/<repo>
-pecot worktree add -D .
-```
-
-オプションは `pecot worktree add --help`。既存ブランチ衝突時は `--allow-existing-branch` で再利用可能。
+入力は `worktree_add` の入力の定義で確かめる。既存ブランチ衝突時は `allow_existing_branch: true` で再利用可能。
 
 採番されたセット名 `<wtN>` で、`<project-root>/<wtN>/<リポ名>/` に WT が作られる。
 symlink は add 時に自動で張られる（`.pecot/config/worktree-config.json` がある場合）。
 
 ### Step 3: 既存サブ WT に symlink 設定を反映する
 
-`.pecot/config/worktree-config.json` を後から編集した場合、既存のサブ WT へ反映するには、main WT から次を実行する。
+`.pecot/config/worktree-config.json` を後から編集した場合、既存のサブ WT へ反映するには、main WT を指す。
+`worktree_link` を `directory: "<project-root>/base/<repo>"`・`all: true` で呼ぶ。
 
-```bash
-cd <project-root>/base/<repo>
-pecot worktree link -D . --all
-```
-
-リアルファイルが置かれていて衝突する場合は `--force`。
+リアルファイルが置かれていて衝突する場合は `force: true`。

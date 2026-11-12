@@ -82,7 +82,7 @@ npx nx run interface-spec:docs
 |---|---|---|---|---|---|
 | 1 | 人 | Claude Code | Python と uv の無い環境で `claude --plugin-dir plugins/pecot-workflow` を起動し、「ボードの状態を見せて」と頼む | データ置き場の `runtime/` にミラーがあり、記録に `project_info` の呼び出しと結果がある（SC-001） | フェーズ 11 の PR の中 |
 | 2 | 人 | Copilot CLI | 対象の Epic を決め、`/pecot-w:w-breakdown` を実行する。specify の手前（Epic を読んだところ）で止める | `project_info` と `issue_read` が呼ばれ、データ置き場が見つからずに止まることがない（SC-002） | フェーズ 11 の PR の中 |
-| 3 | 人 | 両方 | 検証用のリポで、スラッシュコマンドの外から、エージェントに `issue_create` を呼ばせる。確認の画面で拒否する | 確認の画面に `pecot-issue-create-ask` の理由が出る。文言は移行前と同じ（[contracts/hooks-guard.md](./contracts/hooks-guard.md)） | フェーズ 11 の PR の中 |
+| 3 | 人 | 両方 | 検証用のリポで、スラッシュコマンドの外から、エージェントに `issue_create` を呼ばせる。確認の画面で拒否する | 確認の画面に `pecot-issue-create-ask` の理由が出る。文は `mcp_guidance_post_ask_issue`（MCP の入力名で書いた版。[contracts/hooks-guard.md](./contracts/hooks-guard.md)） | フェーズ 11 の PR の中 |
 | 4 | エージェント | 両方 | エージェントに Bash で `pecot issue read owner/repo/1` を実行させる | deny され、`issue_read` を使うよう返る | フェーズ 11 の PR の中 |
 | 5 | 人 | 両方 | Claude Code は `! pecot project info`、Copilot CLI は端末で直接 `pecot project info` を打つ | 結果が出る（deny されない） | フェーズ 11 の PR の中 |
 | 6 | 人 | Claude Code | 今のリリース版で `pecot project info` を 1 回流して `venv/` を作る。同じデータ置き場のまま、`--plugin-dir` で切り替えの版を起動する | `venv/` が消え、ボードの設定とセッション状態はそのまま読める | `--plugin-dir` での確認はフェーズ 11 の PR の中、実際の更新はリリースの後 |

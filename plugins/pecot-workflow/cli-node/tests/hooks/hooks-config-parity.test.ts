@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下の設定のみ */
-// hooks.json と hooks-copilot.json の plan 系エントリが同じ構成であることの確認。
+// hooks.json と com.github.copilot/hooks/hooks.json の plan 系エントリが同じ構成であることの確認。
 // plan 系エントリは PostToolUse の ExitPlanMode の 1 本だけ。配列順に依存せず比べる。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -40,13 +40,13 @@ function planEntryMap(configName: string): Map<string, string> {
 }
 
 describe('hooks 設定の plan 系エントリ', () => {
-  it('hooks.json と hooks-copilot.json の両方に、PostToolUse の ExitPlanMode だけがある', () => {
+  it('hooks.json と com.github.copilot/hooks/hooks.json の両方に、PostToolUse の ExitPlanMode だけがある', () => {
     const expectedKeys = new Set(['PostToolUse/ExitPlanMode'])
     expect(new Set(planEntryMap('hooks.json').keys())).toEqual(expectedKeys)
-    expect(new Set(planEntryMap('hooks-copilot.json').keys())).toEqual(expectedKeys)
+    expect(new Set(planEntryMap('../com.github.copilot/hooks/hooks.json').keys())).toEqual(expectedKeys)
   })
 
-  it('hooks.json と hooks-copilot.json で、配列順が違っても同じ写像になる', () => {
-    expect(planEntryMap('hooks.json')).toEqual(planEntryMap('hooks-copilot.json'))
+  it('hooks.json と com.github.copilot/hooks/hooks.json で、配列順が違っても同じ写像になる', () => {
+    expect(planEntryMap('hooks.json')).toEqual(planEntryMap('../com.github.copilot/hooks/hooks.json'))
   })
 })

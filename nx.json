@@ -329,7 +329,6 @@
         ".gitignore",
         "plugins/*/scripts/ci/**",
         "plugins/*/interface/**",
-        "plugins/*/scripts/interface/**",
         "plugins/*/cli*/scripts/export-interface.ts",
         "!plugins/pecot-visual/scripts/ci/dev-install-lib.sh",
         "plugins/pecot-visual/scripts/pptx-compare/",

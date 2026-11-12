@@ -25,6 +25,13 @@ export default defineConfig({
           taskTitleValueFormatTruncate: 0,
         },
       },
+      {
+        test: {
+          name: 'skills',
+          include: ['tests/skills/**/*.test.ts'],
+          exclude: ['node_modules/**', 'dist/**'],
+        },
+      },
     ],
     reporters: [...configDefaults.reporters, 'junit'],
     outputFile: { junit: 'test-results/junit.xml' },

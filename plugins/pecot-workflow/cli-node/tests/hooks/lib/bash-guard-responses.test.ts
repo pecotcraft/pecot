@@ -102,9 +102,6 @@ function clientRows<T extends object>(rows: readonly T[]): (T & Client)[] {
 describe('pre-tool-use-bash.sh の応答形式', () => {
   // ask（確認が必要な操作）は deny に置き換えない。
   it.for(clientRows([
-    { label: 'pecot issue create .pecot/work/1229/issue.md' },
-    { label: 'pecot issue quick -r owner/repo -m "summary"' },
-    { label: 'pecot pr create' },
     { label: 'gh pr merge 999999' },
   ]))('$clientName の入力でコマンドが $label のとき、ask を返す', (row) => {
     const hookCase = createHookCase()
@@ -112,6 +109,19 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     const result = runBashEntry(hookCase, row.client, row.label, project)
     expect(result.exitCode).toBe(0)
     assertDecision(result, 'ask', 'external-post-check')
+  })
+
+  it.for(clientRows([
+    { label: 'pecot issue create .pecot/work/1229/issue.md' },
+    { label: 'pecot issue quick -r owner/repo -m "summary"' },
+    { label: 'pecot pr create' },
+    { label: 'pecot issue read 1' },
+  ]))('$clientName の入力でコマンドが $label のとき、deny を返す', (row) => {
+    const hookCase = createHookCase()
+    const project = setUpProject(hookCase)
+    const result = runBashEntry(hookCase, row.client, row.label, project)
+    expect(result.exitCode).toBe(0)
+    assertDecision(result, 'deny', 'pecot-cli-deny')
   })
 
   // deny（禁止操作）は hookSpecificOutput.permissionDecision で出す。

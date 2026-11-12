@@ -20,9 +20,9 @@ import { goldenDirectory, goldenPath, hasGolden, readGolden, readScenario, scena
 import { pluginRoot } from './setup.js'
 
 const python: Launcher = {
-  command: path.join(pluginRoot, 'bin', 'pecot'),
+  command: path.join(pluginRoot, 'cli', '.venv', 'bin', 'pecot'),
   args: [],
-  env: { PECOT_BOOTSTRAP_SKIP: '1' },
+  env: { CLAUDE_PLUGIN_ROOT: pluginRoot },
 }
 
 const GOLDEN_KEYS: readonly (keyof Golden)[] = ['stdout', 'stderr', 'exitCode', 'requests', 'files']

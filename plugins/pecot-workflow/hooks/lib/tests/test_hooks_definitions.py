@@ -1,4 +1,6 @@
-"""hooks 定義 4 本（pecot-workflow / pecot-visual の hooks.json・hooks-copilot.json）の検証（#1229 T052）。
+"""hooks 定義 4 本の検証（#1229 T052）。
+
+対象は pecot-workflow / pecot-visual の hooks.json と com.github.copilot/hooks/hooks.json。
 
 全エントリの timeout、matcher、SessionStart / Stop / Notification の構成を固定する。
 `${CLAUDE_PLUGIN_ROOT}` のクォートと、command が指すファイルの実在と実行権も固定する。
@@ -17,17 +19,18 @@ import pytest
 WORKFLOW = "pecot-workflow"
 VISUAL = "pecot-visual"
 
-# pecot-visual の Copilot 定義は Agent Plugins 1.0 形式の位置（プラグインルート相対）にある。
+# Copilot 定義は Agent Plugins 1.0 形式の位置（プラグインルート相対）にある。
 COPILOT_VISUAL = "com.github.copilot/hooks/hooks.json"
+COPILOT_WORKFLOW = "com.github.copilot/hooks/hooks.json"
 
 DEFINITIONS = [
     (WORKFLOW, "hooks.json"),
-    (WORKFLOW, "hooks-copilot.json"),
+    (WORKFLOW, COPILOT_WORKFLOW),
     (VISUAL, "hooks.json"),
     (VISUAL, COPILOT_VISUAL),
 ]
 CLAUDE_DEFINITIONS = [(WORKFLOW, "hooks.json"), (VISUAL, "hooks.json")]
-COPILOT_DEFINITIONS = [(WORKFLOW, "hooks-copilot.json"), (VISUAL, COPILOT_VISUAL)]
+COPILOT_DEFINITIONS = [(WORKFLOW, COPILOT_WORKFLOW), (VISUAL, COPILOT_VISUAL)]
 
 EDIT_MATCHER = "Edit|Write|MultiEdit|NotebookEdit|EnterPlanMode"
 NOTIFICATION_MATCHER = "permission_prompt|idle_prompt|elicitation_dialog"
@@ -162,7 +165,7 @@ def test_copilot_event_names_are_pascal_case(load, plugin, name) -> None:
 
 @pytest.mark.parametrize(
     ("plugin", "name"),
-    [(WORKFLOW, "hooks.json"), (WORKFLOW, "hooks-copilot.json")],
+    [(WORKFLOW, "hooks.json"), (WORKFLOW, COPILOT_WORKFLOW)],
     ids=["claude", "copilot"],
 )
 def test_edit_entry_matcher_is_narrowed(load, plugin, name) -> None:
@@ -208,7 +211,7 @@ def test_pecot_tools_has_no_hooks_directory(plugins_dir: Path) -> None:
 def test_claude_workflow_session_title_entry_only_in_claude_definition(load) -> None:
     """セッション名（sessionTitle）は Claude Code 専用の UserPromptSubmit エントリで出す。
     sessionTitle は、公式ドキュメント（hooks の UserPromptSubmit / SessionStart decision control）に記載がある出力項目。
-    Copilot CLI の hook 出力には無いので、hooks-copilot.json には載せない。
+    Copilot CLI の hook 出力には無いので、Copilot の hooks.json には載せない。
     user-prompt-submit.sh は素テキストを echo する構成で JSON を混ぜられないため、別エントリにする。
     """
     claude = [
@@ -219,7 +222,7 @@ def test_claude_workflow_session_title_entry_only_in_claude_definition(load) -> 
     assert claude == ["user-prompt-submit.sh", "user-prompt-submit-title.sh"]
     copilot = [
         _file(h)
-        for e in _entries(load(WORKFLOW, "hooks-copilot.json"), "UserPromptSubmit")
+        for e in _entries(load(WORKFLOW, COPILOT_WORKFLOW), "UserPromptSubmit")
         for h in e["hooks"]
     ]
     assert "user-prompt-submit-title.sh" not in copilot
@@ -247,7 +250,7 @@ def test_claude_notification_matcher_and_stop_entry(load) -> None:
 
 def test_copilot_stop_points_at_copilot_entry(load) -> None:
     stop_files = [
-        _file(h) for e in _entries(load(WORKFLOW, "hooks-copilot.json"), "Stop") for h in e["hooks"]
+        _file(h) for e in _entries(load(WORKFLOW, COPILOT_WORKFLOW), "Stop") for h in e["hooks"]
     ]
     assert stop_files == ["stop-copilot.sh"]
 
@@ -267,12 +270,12 @@ def _matchers(hooks: dict, event: str, entry_file: str) -> list[str | None]:
 @pytest.mark.parametrize("event", ["PreToolUse", "PostToolUse"])
 def test_copilot_workflow_skill_matcher_includes_raw_tool_name(load, event) -> None:
     entry = "pre-tool-use-skill.sh" if event == "PreToolUse" else "post-tool-use-skill.sh"
-    assert _matchers(load(WORKFLOW, "hooks-copilot.json"), event, entry) == ["Skill|skill"]
+    assert _matchers(load(WORKFLOW, COPILOT_WORKFLOW), event, entry) == ["Skill|skill"]
 
 
 def test_copilot_workflow_mcp_matcher_includes_github_mcp_pr_create(load) -> None:
-    matchers = _matchers(load(WORKFLOW, "hooks-copilot.json"), "PreToolUse", "pre-tool-use-mcp.sh")
-    assert matchers == ["mcp__.*|github-mcp-server-create_pull_request"]
+    matchers = _matchers(load(WORKFLOW, COPILOT_WORKFLOW), "PreToolUse", "pre-tool-use-mcp.sh")
+    assert matchers == ["mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*"]
 
 
 def test_copilot_visual_skill_matcher_includes_raw_tool_name(load) -> None:

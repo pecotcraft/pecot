@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "pecot-workflow": {
+      "type": "stdio",
+      "command": "./bin/pecot",
+      "args": [
+        "mcp"
+      ]
+    },
+    "context7": {
+      "type": "streamable-http",
+      "url": "https://mcp.context7.com/mcp/oauth"
+    },
+    "pecot-workflow-playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "--prefix=${PLUGIN_ROOT}/bin",
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--headless",
+        "--no-sandbox"
+      ]
+    }
+  }
+}

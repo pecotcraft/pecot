@@ -133,7 +133,7 @@ describe('統合: アダプターとエントリ', () => {
   })
 
   // external-post-check は終了コード 11 で ask の JSON になる。
-  it.for(rowsOf(['gh pr merge 810', 'pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot issue create x.md']))(
+  it.for(rowsOf(['gh pr merge 810']))(
     'Claude Code のエントリでコマンドが $label のとき、ask を返す',
     (row) => {
       const hookCase = createHookCase()
@@ -146,7 +146,21 @@ describe('統合: アダプターとエントリ', () => {
     },
   )
 
-  it('issue-create-slash-pending があるとき、Claude Code のエントリは pecot issue quick を通す', () => {
+  it.for(rowsOf(['pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot issue create x.md', 'pecot pr create x.md --dry-run', '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue read 1']))(
+    'Claude Code のエントリでコマンドが $label のとき、pecot-cli-deny の deny を返す',
+    (row) => {
+      const hookCase = createHookCase()
+      setUpEmptyProject(hookCase)
+      const result = runEntry(hookCase, { tool_input: { command: row.label } })
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('"permissionDecision": "deny"')
+      expect(result.stdout).toContain('pecot-cli-deny')
+      expect(result.stdout).toContain('MCP tool')
+      expect(result.stdout).not.toContain('"ask"')
+    },
+  )
+
+  it('issue-create-slash-pending があっても、Claude Code のエントリは pecot issue quick を deny する', () => {
     const hookCase = createHookCase()
     const project = path.join(hookCase.temporaryPath, 'project')
     const state = path.join(project, '.pecot', 'state')
@@ -154,6 +168,24 @@ describe('統合: アダプターとエントリ', () => {
     writeFileSync(path.join(state, 'issue-create-slash-pending'), 'w-quick\n')
     hookCase.setEnv('CLAUDE_PROJECT_DIR', project)
     const result = runEntry(hookCase, { tool_input: { command: 'pecot issue quick -m x -r owner/repo' } })
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('"permissionDecision": "deny"')
+  })
+
+  // pecot-cli-deny は external-post-check より先に動くため、deny が勝つ。
+  it('pecot の起動と gh pr merge が同じコマンドにあるとき、deny が勝つ', () => {
+    const hookCase = createHookCase()
+    setUpEmptyProject(hookCase)
+    const result = runEntry(hookCase, { tool_input: { command: 'pecot issue read 1 && gh pr merge 1' } })
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('"permissionDecision": "deny"')
+    expect(result.stdout).not.toContain('"ask"')
+  })
+
+  it('行末の \\ で続く行の先頭が …/pecot で終わる語のとき、pecot の起動と誤らず何も出力しない', () => {
+    const hookCase = createHookCase()
+    setUpEmptyProject(hookCase)
+    const result = runEntry(hookCase, { tool_input: { command: 'git worktree list \\\n/workspaces/wt3/pecot' } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
   })
@@ -167,14 +199,6 @@ describe('統合: アダプターとエントリ', () => {
     expect(result.stdout).toContain('"permissionDecision": "deny"')
     expect(result.stdout).not.toContain('"decision"')
     expect(result.stdout).not.toContain('"ask"')
-  })
-
-  it('Claude Code のエントリで pecot pr create に --dry-run が付くとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    setUpEmptyProject(hookCase)
-    const result = runEntry(hookCase, { tool_input: { command: 'pecot pr create x.md --dry-run' } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
   })
 
   it('Copilot CLI のエントリで --no-verify を送るとき、トップレベルの decision を使わず deny を返す', () => {
@@ -230,7 +254,7 @@ describe('統合: アダプターとエントリ', () => {
   })
 
   // ask は deny に置き換えない。Copilot CLI は -p / autopilot で自前で deny 扱いにするが、hook 側では変換しない。
-  it.for(rowsOf(['gh pr merge 810', 'pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo']))(
+  it.for(rowsOf(['gh pr merge 810']))(
     'Copilot CLI のエントリでコマンドが $label のとき、deny に置き換えず ask を返す',
     (row) => {
       const hookCase = createHookCase()
@@ -244,14 +268,19 @@ describe('統合: アダプターとエントリ', () => {
     },
   )
 
-  it('Copilot CLI のエントリで pecot pr create に --dry-run が付くとき、何も出力しない', () => {
-    const hookCase = createHookCase()
-    const repository = gitRepository(hookCase)
-    hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
-    const result = runEntry(hookCase, copilotToolPayload('pecot pr create x.md --dry-run'), repository)
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
+  it.for(rowsOf(['pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot pr create x.md --dry-run']))(
+    'Copilot CLI のエントリでコマンドが $label のとき、ask に置き換えず deny を返す',
+    (row) => {
+      const hookCase = createHookCase()
+      const repository = gitRepository(hookCase)
+      hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
+      const result = runEntry(hookCase, copilotToolPayload(row.label), repository)
+      expect(result.exitCode).toBe(0)
+      expect(result.stdout).toContain('"permissionDecision": "deny"')
+      expect(result.stdout).toContain('pecot-cli-deny')
+      expect(result.stdout).not.toContain('"permissionDecision": "ask"')
+    },
+  )
 
   it('Claude Code のアダプターで wt ブランチから commit するとき、deny の JSON を返す', () => {
     const hookCase = createHookCase()

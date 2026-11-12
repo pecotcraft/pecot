@@ -8,6 +8,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
+source "${SCRIPT_DIR%/*}/core/mcp-guidance.sh"
 pecot_hook_enabled "pecot-issue-pending-reminder" true || exit 0
 
 [ -z "$CLAUDE_PROJECT_DIR" ] && exit 0
@@ -36,29 +37,9 @@ esac
 ORIGIN=$(head -n1 "$FLAG" | tr -d '[:space:]')
 
 case "$ORIGIN" in
-    w-quick)
-        MESSAGE='Issue filing is not complete.
-
-Complete Step 1 of w-quick before moving on.
-  pecot issue quick -r owner/repo -m "<summary of the user instruction>"
-
-This reminder disappears automatically once filing succeeds.'
-        ;;
-    w-ready)
-        MESSAGE='Subtask Issue filing is not complete.
-
-Complete Step 4 of w-ready before moving on.
-  1. pecot issue create --prepare --template task --repo <owner/repo>
-
-  2. Edit the generated file (set title / parent_epic; repository is already set by --repo)
-
-  3. pecot issue create <file path>
-
-This reminder disappears automatically once filing succeeds.'
-        ;;
-    *)
-        MESSAGE='Issue filing is not complete. Run `pecot issue quick` or `pecot issue create` first.'
-        ;;
+    w-quick) MESSAGE=$(mcp_guidance_reminder_quick) ;;
+    w-ready) MESSAGE=$(mcp_guidance_reminder_ready) ;;
+    *) MESSAGE=$(mcp_guidance_reminder_other) ;;
 esac
 
 MESSAGE=$(hook_message warning "$MESSAGE")

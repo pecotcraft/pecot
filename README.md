@@ -5,7 +5,7 @@
 </div>
 
 <!-- markdownlint-disable MD013 -->
-![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![Python](https://img.shields.io/badge/Python-3.10_to_3.14-3776AB?style=flat-square&logo=python&logoColor=white) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
 <!-- markdownlint-enable MD013 -->
 
 Claude Code 向けのプラグインのマーケットプレイスです。
@@ -30,8 +30,7 @@ Agent Plugins 1.0 に対応したエージェントにも、今後対応して�
 - [Claude Code](https://claude.ai/code) 2.1.141 以上
 - [gh CLI](https://cli.github.com/) — `gh auth login` で認証後、`gh auth refresh -s project` を実行する。
   GitHub Projects V2 アクセス用の `project` スコープを追加する
-- [uv](https://docs.astral.sh/uv/) — pecot-w の pecot CLI の実行に使う
-- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上 — pecot-v・pecot-t を使う場合。脆弱性の修正を含まないバージョンでは起動しない
+- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上 — pecot-w・pecot-v・pecot-t の実行に使う。脆弱性の修正を含まないバージョンでは起動しない
 
 ### Claude Code
 

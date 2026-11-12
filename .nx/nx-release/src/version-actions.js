@@ -6,9 +6,7 @@
  *
  * 配布チャネルごとの plugin.json の version を同期更新する。
  *   - Claude Code: `.claude-plugin/plugin.json`（全プラグイン）。
- *   - Copilot CLI: pecot-workflow は `.github/plugin/plugin.json`。
- *     pecot-visual / pecot-tools は、Agent Plugins 1.0 形式のルートの `plugin.json`。
- *     `plugin.json` は `$schema` 付き。
+ *   - Copilot CLI: 3 プラグインとも、Agent Plugins 1.0 形式のルートの `plugin.json`（`$schema` 付き）。
  *     Copilot はこの形式では `.github/plugin/plugin.json` を読まない。
  *
  * pyproject.toml / uv.lock の bump は不要 — `cli/__init__.py` が

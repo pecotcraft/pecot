@@ -1,35 +1,23 @@
 #!/bin/bash
 # PreToolUse MCP handler: pecot-workflow の issue_create / issue_quick / pr_create の投稿を ask にする。
-# ask の文は external-post-check.sh の ISSUE_MSG / CREATE_MSG と同じ。切り替えまで 2 か所に置く。
+# ask の文は core/mcp-guidance.sh の mcp_guidance_post_ask_issue / mcp_guidance_post_ask_pr。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
 source "${SCRIPT_DIR%/*}/core/pecot-tool-names.sh"
-
-ISSUE_MSG='external-post-check: pecot issue quick / pecot issue create (a real post) publishes an Issue externally.
-
-Do not run it until the user has explicitly approved.
-The canonical routes for filing are these skills:
-/pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.
-To only generate a template, add --prepare (or -p) to pecot issue create
-The quick subcommand has no --prepare / -p.'
-
-CREATE_MSG='external-post-check: pecot pr create (a real post) publishes a PR externally.
-
-Do not run it until the user has explicitly approved.
-To only review the content, use --prepare / -p (template generation) or --dry-run / -n.'
+source "${SCRIPT_DIR%/*}/core/mcp-guidance.sh"
 
 TOOL=$(pecot_tool_from_hook_name "${PECOT_HOOK_TOOL_NAME:-}") || exit 0
 
 case "$TOOL" in
     issue_create | issue_quick)
         pecot_hook_enabled "pecot-issue-create-ask" true || exit 0
-        MESSAGE="$ISSUE_MSG"
+        MESSAGE="$(mcp_guidance_post_ask_issue)"
         FLAG="${CLAUDE_PROJECT_DIR}/.pecot/state/issue-create-slash-pending"
         ;;
     pr_create)
         pecot_hook_enabled "pecot-pr-create-ask" true || exit 0
-        MESSAGE="$CREATE_MSG"
+        MESSAGE="$(mcp_guidance_post_ask_pr)"
         FLAG="${CLAUDE_PROJECT_DIR}/.pecot/state/pr-create-slash-pending"
         ;;
     *)

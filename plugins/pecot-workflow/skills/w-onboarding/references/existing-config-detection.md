@@ -4,15 +4,9 @@
 
 ## 1. カレントリポに設定あり
 
-```bash
-pecot project list
-```
+`project_list` を引数なしで呼ぶ。
 
-`=== Projects ===` の次の行が `none` でなければ設定あり。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。
-
-```bash
-pecot project activate <設定ファイル名>
-```
+`=== Projects ===` の次の行が `none` でなければ設定あり。AskUserQuestion でどの設定を使うか確認し、activate して Step 4 へ進む。`project_activate` を `project: "<設定ファイル名>"` で呼ぶ。
 
 ## 2. 兄弟リポに同一プロジェクトの設定あり
 
@@ -56,24 +50,17 @@ EOF
 ```bash
 mkdir -p .pecot/config/projects
 cp <兄弟リポのJSONパス> .pecot/config/projects/
-pecot project activate <コピーしたファイル名（拡張子なし）>
 ```
 
-→ Step 3 へ（`set-repo` でカレントリポを登録してから Step 4 へ）。
+コピーしたら、`project_activate` を `project: "<コピーしたファイル名（拡張子なし）>"` で呼ぶ。
+
+→ Step 3 へ（`project_set_repo` でカレントリポを登録してから Step 4 へ）。
 
 ## 3. GitHub 上に init 済みプロジェクトあり
 
-AskUserQuestion でホスト・オーナーを確認してから検索する。
+AskUserQuestion でホスト・オーナーを確認してから検索する。`project_activate` を `host: "<host>"`・`owner: "<owner>"` で呼ぶ。
 
-```bash
-pecot project activate --host <host> --owner <owner>
-```
-
-init 済みプロジェクトが表示されたら AskUserQuestion で選択させ、番号指定で activate:
-
-```bash
-pecot project activate <番号> --host <host> --owner <owner>
-```
+init 済みプロジェクトが表示されたら AskUserQuestion で選択させ、番号指定で activate する。`project_activate` を `project: "<番号>"`・`host: "<host>"`・`owner: "<owner>"` で呼ぶ。
 
 → Step 3 へ。
 

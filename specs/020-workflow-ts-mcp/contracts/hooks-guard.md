@@ -25,7 +25,9 @@ hooks の定義を移すときも、イベント名は `PreToolUse` のままに
 
 ## 投稿の ask（`lib/mcp-handlers/pecot-post-ask.sh`）
 
-今の `external-post-check.sh` の pecot 部分を移す。理由の文言は今と同じ。
+`external-post-check.sh` にあった pecot の判定を移した。理由の文は `lib/core/mcp-guidance.sh` の `mcp_guidance_post_ask_issue`・`mcp_guidance_post_ask_pr` が持つ。
+
+移行前の文との違いは 1 点だけ。`pecot issue create --prepare`・`--dry-run` などのフラグの案内を、MCP の入力（`prepare: true`・`dry_run: true`）に替えた。
 
 | ツール | 素通しの条件 | それ以外 |
 |---|---|---|
@@ -44,7 +46,7 @@ hooks の定義を移すときも、イベント名は `PreToolUse` のままに
 | 判定 | フェーズ 8 | フェーズ 11（切り替え） |
 |---|---|---|
 | 投稿の ask（MCP） | 入れる。MCP サーバが未登録なので発火しない | そのまま |
-| Bash の `pecot` の deny | `lib/core/pecot-cli-deny.sh` とテストだけを入れる | `pre-tool-use-bash.sh` から呼ぶ |
+| Bash の `pecot` の deny | `lib/core/pecot-cli-deny.sh` とテストだけを入れる | `lib/adapters/claude-bash-guards.sh` から呼ぶ（`pre-tool-use-bash.sh` にはロジックを置けない）。順は `git-no-verify-check.sh` の後、`external-post-check.sh` の前で、deny が ask と allow より先になる |
 | `external-post-check.sh` の pecot の判定 | 残す | 外す |
 | 案内文 | 書き換えた文を `lib/core/mcp-guidance.sh` に用意し、テストで固定する | 呼ぶ側を差し替える |
 | Copilot CLI の matcher | 足さない | `pecot-workflow-.*` を足し、`hooks-copilot.json` を移す |
@@ -60,7 +62,7 @@ hooks の定義を移すときも、イベント名は `PreToolUse` のままに
 | それ以外 | 今の判定へ進む |
 
 セグメントの分け方は、今の `external-post-check.sh` の処理を `lib/core/command-segments.sh` に移して共有する。サブコマンド別の許可・阻止は持たない。
-起動形は、共有の `_PECOT` より締める。`pecot` の後ろに語の境界（空白か行末）を求め、パスの部分に `=` を含めない。`pecot` を起動していないコマンドを止めないためだ。例は `CLAUDE_PROJECT_DIR=/…/pecot bash run.sh`・`pecot-tools aws s3 ls`・`/…/pecot/…/run-tests.sh`。
+起動形は、`pecot` の後ろに語の境界（空白か行末）を求め、パスの部分に `=` を含めない。`pecot` を起動していないコマンドを止めないためだ。共有の `_PECOT` は、読む先が無くなったので消した。例は `CLAUDE_PROJECT_DIR=/…/pecot bash run.sh`・`pecot-tools aws s3 ls`・`/…/pecot/…/run-tests.sh`。
 
 クオートとヒアドキュメントは、deny が自分で読む（共有のクオートの正規化は使わない）。
 
@@ -71,8 +73,11 @@ hooks の定義を移すときも、イベント名は `PreToolUse` のままに
 | 区切り語が数字で始まる `<<` | ヒアドキュメントと扱わず、本文の行も判定する（`$((1<<2))` の後ろの行を通さないため） |
 | 空白・`;`・`&`・`\|`・`(`・`)`・バッククォートのどれかを含むクオートの範囲 | 判定から外す。例は `grep -E "gh\|pecot" plugins/` |
 | 上の文字を含まないクオート（`"$PECOT"`・`"${CLAUDE_PLUGIN_ROOT}/bin/pecot"`） | クオートだけを外して判定する |
+| 行末の `\` と改行 | 空白 1 つに畳み、前後の行を 1 つのコマンドとして判定する。継続行の先頭が `…/pecot` で終わる語（`git worktree add \` の次の行が `/workspaces/wt3/pecot` など）を、起動と誤らないため |
 
-次の形は素通しになる。テストで今の姿を固定していて、塞ぐかどうかはフェーズ 11 で決める。
+有効・無効は config キー `pecot-cli-deny`（既定 `true`）で切り替える（`pecot_hook_enabled`）。`hooks-config.json.sample` と `hooks/README.md` に載せる。
+
+次の形は素通しになる。テストで今の姿を固定している。塞ぐのは別の Issue にする。
 
 - セグメントの先頭に起動形が来ない形。`${PECOT} …`、`time`・`env`・`command`・`exec`・`sudo`・`xargs`・`!` の後ろ、`bash -c "pecot …"`、`{ pecot …; }`、`if pecot …; then`
 - 環境変数の前置きが大文字と `_` だけでない形（`foo=1 pecot …`・`X1=1 pecot …`）
@@ -100,7 +105,7 @@ hooks の定義を移すときも、イベント名は `PreToolUse` のままに
 | `lib/core/gh-command-check.sh`（54・66〜67 行） | `pecot pr create`、`pecot issue quick`、`pecot issue create` | `pr_create`、`issue_quick`、`issue_create` |
 | `lib/core/git-worktree-branch-check.sh`（85 行） | `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" delete-branch <owner/repo> <branch>` | `delete_branch`（入力は `repo_ref` と `branch`） |
 | `lib/pre-tool-use/pecot-issue-pending-reminder.sh`（43・51・55・60 行） | `pecot issue quick`、`pecot issue create --prepare`、`pecot issue create <file path>` | `issue_quick`、`issue_create`（`prepare: true` で下書き、次にファイルを渡して投稿） |
-| `lib/core/external-post-check.sh` の `ISSUE_MSG`・`CREATE_MSG`（131〜142 行） | `pecot issue quick` / `create`、`pecot pr create` | フェーズ 11 で外す。ask の文は `pecot-post-ask.sh` に移す（文言は今と同じ） |
+| `lib/core/external-post-check.sh` の `ISSUE_MSG`・`CREATE_MSG`（131〜142 行） | `pecot issue quick` / `create`、`pecot pr create` | フェーズ 11 で外した。ask の文は `mcp-guidance.sh` の `mcp_guidance_post_ask_issue`・`mcp_guidance_post_ask_pr` に置き、`pecot-post-ask.sh` が呼ぶ |
 | `lib/core/external-post-check.sh` の `GH_MSG`（144〜148 行） | `pecot pr cleanup` | `pr_cleanup`（この判定はフェーズ 11 の後も残る） |
 | `templates/exit-plan-comment-update.md` | `pecot issue comment <that file>` | `issue_comment` |
 | `hooks/README.md`（71〜75・86〜113・123・172〜174・252 行） | `pecot` コマンド | ツール名 |

@@ -1,5 +1,8 @@
 // 投稿の ask（hooks/lib/mcp-handlers/pecot-post-ask.sh）を、MCP の入力 JSON で確かめる。
 // エントリの pre-tool-use-mcp.sh から流し、ask の段を足しても deny と allow が変わらないことも確かめる。
+import { spawnSync } from 'node:child_process'
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import type { HookRun } from './_helpers/run-hook.js'
@@ -11,11 +14,11 @@ const forms = [
   { label: '接頭辞が短い形', prefix: 'pecot-workflow-' },
 ]
 
-// 対象の 3 ツールと、Bash の同じ操作・設定キー・スラッシュコマンド起点のフラグ。
+// 対象の 3 ツールと、ask の文を返す mcp-guidance.sh の関数・設定キー・スラッシュコマンド起点のフラグ。
 const targets = [
-  { tool: 'issue_create', bash: 'pecot issue create body.md', key: 'pecot-issue-create-ask', flag: 'issue-create-slash-pending' },
-  { tool: 'issue_quick', bash: 'pecot issue quick -r o/r -m x', key: 'pecot-issue-create-ask', flag: 'issue-create-slash-pending' },
-  { tool: 'pr_create', bash: 'pecot pr create body.md', key: 'pecot-pr-create-ask', flag: 'pr-create-slash-pending' },
+  { tool: 'issue_create', guidance: 'mcp_guidance_post_ask_issue', key: 'pecot-issue-create-ask', flag: 'issue-create-slash-pending' },
+  { tool: 'issue_quick', guidance: 'mcp_guidance_post_ask_issue', key: 'pecot-issue-create-ask', flag: 'issue-create-slash-pending' },
+  { tool: 'pr_create', guidance: 'mcp_guidance_post_ask_pr', key: 'pecot-pr-create-ask', flag: 'pr-create-slash-pending' },
 ]
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -45,22 +48,23 @@ function outputOf(toolName: string, toolInput: unknown, project = createProject(
   return runEntry(project, toolName, toolInput).stdout
 }
 
-// Bash の同じ操作で external-post-check.sh が出す文（ask の理由）。
-function bashReason(projectDirectory: string, command: string): string {
-  const run = runHook('lib/core/external-post-check.sh', { projectDirectory, env: { HOOK_COMMAND: command, HOOK_WORKING_DIR: projectDirectory } })
-  expect(run.status).toBe(11)
-  return run.stdout.trimEnd()
+// mcp-guidance.sh の関数が出す文を、hook_message の warning で包んだもの（ask の理由）。
+function expectedReason(guidance: string): string {
+  const core = path.resolve(import.meta.dirname, '../../../hooks/lib/core')
+  const script = `source "${core}/hook-message.sh"; source "${core}/mcp-guidance.sh"; hook_message warning "$(${guidance})"`
+  const result = spawnSync('bash', ['-c', script], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
+  expect(result.status).toBe(0)
+  return result.stdout.trimEnd()
 }
 
 describe.for(forms)('ツール名が$label', (form) => {
   describe.for(targets)('$tool', (target) => {
     const toolName = `${form.prefix}${target.tool}`
 
-    it('入力に何も無いと、Bash の同じ操作と同じ文で ask を返す', () => {
-      const project = createProject()
-      const result = readDecision(runEntry(project, toolName, {}))
+    it('入力に何も無いと、mcp-guidance.sh の文で ask を返す', () => {
+      const result = readDecision(runEntry(createProject(), toolName, {}))
       expect(result?.decision).toBe('ask')
-      expect(result?.reason).toBe(bashReason(project, target.bash))
+      expect(result?.reason).toBe(expectedReason(target.guidance))
     })
 
     // issue_quick の入力に prepare は無いので、素通しにしない。

@@ -12,10 +12,11 @@
 #   2. gh-command-check.sh           → exit 1ならdeny JSON出力して終了
 #   3. git-worktree-branch-check.sh  → exit 1ならdeny JSON出力して終了
 #   4. git-no-verify-check.sh        → exit 1ならdeny JSON出力して終了
-#   5. external-post-check.sh       → exit 11ならask JSON出力して終了
-#   6. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
+#   5. pecot-cli-deny.sh             → exit 1ならdeny JSON出力して終了（Bash の pecot 起動を MCP ツールへ誘導）
+#   6. external-post-check.sh       → exit 11ならask JSON出力して終了（gh pr merge のみ）
+#   7. tech-advisor-clone-allow.sh   → exit 10ならallow JSON出力して終了。
 #      （全deny/askガード通過後のみ実行。deny/ask > allow の不変条件を維持）。
-#   7. 保持していた警告があれば出力
+#   8. 保持していた警告があれば出力
 #
 # deny は hookSpecificOutput.permissionDecision で返す。
 # トップレベルの decision:block は使わない。
@@ -99,7 +100,17 @@ if [ "$NOVERIFY_EXIT" -eq 1 ]; then
     exit 0
 fi
 
-# --- 5. external-post-check（exit 11 = ask）---
+# --- 5. pecot-cli-deny（exit 1 = ブロック）---
+# 設定キー pecot-cli-deny は、コアスクリプトの中で見る。
+CLI_DENY_OUTPUT=$("$CORE_DIR/pecot-cli-deny.sh" 2>/dev/null)
+CLI_DENY_EXIT=$?
+
+if [ "$CLI_DENY_EXIT" -eq 1 ]; then
+    output_block_json "$CLI_DENY_OUTPUT"
+    exit 0
+fi
+
+# --- 6. external-post-check（exit 11 = ask）---
 # 11 以外の非ゼロ終了（コアスクリプトの内部エラー等）は素通しになる（fail-open）。
 # ガードの誤動作で正当な操作を止め続けるより素通しを選ぶ意図的な設計。
 EXTERNAL_POST_OUTPUT=$("$CORE_DIR/external-post-check.sh" 2>/dev/null)
@@ -110,7 +121,7 @@ if [ "$EXTERNAL_POST_EXIT" -eq 11 ]; then
     exit 0
 fi
 
-# --- 6. tech-advisor-clone-allow（exit 10 = 自動許可）---
+# --- 7. tech-advisor-clone-allow（exit 10 = 自動許可）---
 ALLOW_OUTPUT=$("$CORE_DIR/tech-advisor-clone-allow.sh" 2>/dev/null)
 ALLOW_EXIT=$?
 
@@ -119,7 +130,7 @@ if [ "$ALLOW_EXIT" -eq 10 ]; then
     exit 0
 fi
 
-# --- 7. 警告出力（ブロックなし）---
+# --- 8. 警告出力（ブロックなし）---
 if [ -n "$CHECKOUT_WARNING" ]; then
     echo "$CHECKOUT_WARNING"
 fi

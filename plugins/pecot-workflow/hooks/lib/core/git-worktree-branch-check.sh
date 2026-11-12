@@ -24,6 +24,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/config-dispatcher.sh"
+source "${SCRIPT_DIR}/mcp-guidance.sh"
 pecot_hook_enabled "git-worktree-branch-check" true || exit 0
 
 if [ -z "$HOOK_COMMAND" ]; then
@@ -81,8 +82,7 @@ Work on a feature branch:
     if [ "$OPERATION" = "push" ]; then
         MSG="${MSG}
 
-To delete a remote branch:
-  \"\${CLAUDE_PLUGIN_ROOT}/bin/pecot\" delete-branch <owner/repo> <branch>"
+$(mcp_guidance_delete_branch)"
     fi
     hook_message error "$MSG"
     exit 1

@@ -16,9 +16,7 @@ argument-hint: "[Epic の内容]"
 
 ### Step 1: ボードを確認する
 
-```bash
-pecot project info
-```
+`project_info` を引数なしで呼ぶ。
 
 | ステータス | 意味 |
 |-----------|------|
@@ -36,11 +34,7 @@ Backlog内に類似のEpicがないか確認する。
 
 ### Step 3: 集約リポの事前確認
 
-Epic の作成先を決定するため、`aggregation_repo` の設定状況をまず確認する。
-
-```bash
-pecot project show-aggregation-repo
-```
+Epic の作成先を決定するため、`aggregation_repo` の設定状況をまず確認する。`project_show_aggregation_repo` を引数なしで呼ぶ。
 
 - **設定済み**（`owner/repo` が返る）→ Step 4 へ進む
 - **未設定**（`none` が返る）→ AskUserQuestion で分岐:
@@ -51,29 +45,23 @@ pecot project show-aggregation-repo
 
 ### Step 4: Epic Issueを作成
 
-```bash
-# 1. テンプレート準備
-pecot issue create --prepare --template epic
+1. テンプレートを準備する。`issue_create` を `prepare: true`・`template: "epic"` で呼ぶ
+2. 出力されたファイルを編集する
+   - YAMLフロントマターを設定する
+   - Issue本文を記述する（テンプレ冒頭コメントの 読者:/書き方: に従う）
+3. 投稿する。`issue_create` を `files: ["<ファイルパス>"]` で呼ぶ
 
-# 2. 出力されたファイルを編集
-#    - YAMLフロントマター設定
-#    - Issue本文を記述（テンプレ冒頭コメントの 読者:/書き方: に従う）
-
-# 3. 投稿
-pecot issue create <ファイルパス>
-```
-
-CLI が出力したファイルのセクション構造を維持して本文を埋める。テンプレ冒頭コメントの `読者:`（Epic を分解する人）の判断に使われない情報は書かない。
+ツールが出力したファイルのセクション構造を維持して本文を埋める。テンプレ冒頭コメントの `読者:`（Epic を分解する人）の判断に使われない情報は書かない。
 
 **YAMLフロントマターの設定:**
 
-`title`（必須）を設定する。`[Epic]` プレフィックスはCLIが自動付与するため不要。
+`title`（必須）を設定する。`[Epic]` プレフィックスはツールが自動付与するため不要。
 
 **リポジトリの特定方法:**
 
-- 集約リポ設定済（Step 3 で `owner/repo` が返った）→ `repository: ""` のまま。CLI が自動で集約リポに作成する
-- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `pecot issue create` が exit 2 で失敗
-- ユーザーが実装リポ名を言及しても安易に `--repo` で上書きせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ `--repo <impl-repo>` で明示する（CLI は stderr 警告を出しつつ作成を許可）
+- 集約リポ設定済（Step 3 で `owner/repo` が返った）→ `repository: ""` のまま。ツールが自動で集約リポに作成する
+- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が `exit code: 2` で失敗する
+- ユーザーが実装リポ名を言及しても安易に `repo` で上書きせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ `repo: "<impl-repo>"` で明示する（ツールは警告を出しつつ作成を許可する）
 - 詳細マトリクス: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 5: 完了報告

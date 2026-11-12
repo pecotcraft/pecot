@@ -12,17 +12,15 @@
 
 ### 1. 対象確認
 
-```bash
-pecot project info
-```
+`project_info` を引数なしで呼ぶ。
 
 対象リポの `develop` branch と `release` branch を控える。リリースバージョンを `<ver>` と表記。
 
 ### 2. bump 種別のユーザー確認
 
 `<ver>` を確定する前に、ユーザーへ以下を提示して明示的承認を得る。
-承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`pecot release preflight`・
-`pecot release create` 等）には進まない。
+承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_preflight`・
+`release_create` 等）には進まない。
 
 提示項目:
 
@@ -90,32 +88,42 @@ git log v<前バージョン>..origin/<develop> --oneline
 git add <編集したファイル>
 git commit -m "docs(changelog): <ver> リリースノートを追加"
 git push -u origin docs/changelog-v<ver>
-
-pecot pr create \
-  --no-issue-ref \
-  -r <owner>/<repo> \
-  -t "docs(changelog): <ver> リリースノートを追加" \
-  --screenshot "CHANGELOG の追記だけで、画面・生成する Markdown・CLI の出力は変わらない" \
-  -m "## Summary
-
-CHANGELOG.md に <ver> のリリースノートを追加した。
-
-## Changes
-
-なし
-
-## Verified
-
-- CHANGELOG.md に <ver> の節があることを確かめた
-
-## Risks
-
-なし" \
-  -b <develop>
-
-gh pr merge <PR番号> --repo <owner>/<repo> --squash
-pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 ```
+
+push したら、`pr_create` を次の入力で呼ぶ。
+
+```text
+pr_create
+  no_issue_ref: true
+  repo: "<owner>/<repo>"
+  title: "docs(changelog): <ver> リリースノートを追加"
+  screenshot: "CHANGELOG の追記だけで、画面・生成する Markdown・CLI の出力は変わらない"
+  base: "<develop>"
+  message: |
+    ## Summary
+
+    CHANGELOG.md に <ver> のリリースノートを追加した。
+
+    ## Changes
+
+    なし
+
+    ## Verified
+
+    - CHANGELOG.md に <ver> の節があることを確かめた
+
+    ## Risks
+
+    なし
+```
+
+作れたら、PR をマージして片付ける。
+
+```bash
+gh pr merge <PR番号> --repo <owner>/<repo> --squash
+```
+
+マージしたら、`pr_cleanup` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
 
 #### 3-5. develop 最新化
 
@@ -127,9 +135,7 @@ git pull --ff-only origin <develop>
 
 ### 4. プリフライト
 
-```bash
-pecot release preflight <ver>
-```
+`release_preflight` を `version: "<ver>"` で呼ぶ。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
@@ -138,9 +144,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 5. リリース PR 作成
 
-```bash
-pecot pr create --prepare --template release
-```
+`pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
 
 下書きファイルを編集:
 
@@ -151,21 +155,15 @@ pecot pr create --prepare --template release
   すべて埋める（1 つでも欠けると投稿時検証で弾かれる）。Changes には `CHANGELOG.md` の
   `## [<ver>]` セクションを転記
 
-```bash
-pecot pr create --template release <ファイルパス>
-```
+編集したら、`pr_create` を `template: "release"`・`file: "<ファイルパス>"` で呼ぶ。
 
 ### 6. リリース PR マージ
 
-```bash
-pecot release merge <owner>/<repo>/<PR番号>
-```
+`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
 
 ### 7. タグ + GitHub Release
 
-```bash
-pecot release create <ver>
-```
+`release_create` を `version: "<ver>"` で呼ぶ。
 
 ### 8. 完了報告
 

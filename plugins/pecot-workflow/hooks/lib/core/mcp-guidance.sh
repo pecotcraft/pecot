@@ -1,7 +1,9 @@
 #!/bin/bash
 # Bash の pecot から MCP ツールへ移った後の案内文（source して使う）。
 # 各関数は文を stdout に出すだけ。hook_message の kind は呼ぶ側が付ける。
-# どのスクリプトからも読まない（切り替えのフェーズで、元の文を出している箇所を差し替える）。
+# 読むのは次のファイル。
+# gh-command-check.sh、git-worktree-branch-check.sh、external-post-check.sh。
+# mcp-handlers/pecot-post-ask.sh、pre-tool-use/pecot-issue-pending-reminder.sh。
 
 # gh-command-check.sh: gh pr create の阻止。
 mcp_guidance_gh_pr_create() {

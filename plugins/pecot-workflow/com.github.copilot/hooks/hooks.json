@@ -23,7 +23,7 @@
         ]
       },
       {
-        "matcher": "mcp__.*|github-mcp-server-create_pull_request",
+        "matcher": "mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*",
         "hooks": [
           {
             "type": "command",

@@ -180,9 +180,6 @@ def test_claude_entry_tool_cwd_feat_allows(
     "command",
     [
         "gh pr merge 810",
-        "pecot pr create ./x.md",
-        "pecot issue quick -m x -r owner/repo",
-        "pecot issue create x.md",
     ],
 )
 def test_claude_entry_external_ask(
@@ -203,11 +200,41 @@ def test_claude_entry_external_ask(
     assert "external-post-check" in result.stdout
 
 
-def test_claude_entry_issue_create_slash_flag_passes(
+@pytest.mark.parametrize(
+    "command",
+    [
+        "pecot pr create ./x.md",
+        "pecot issue quick -m x -r owner/repo",
+        "pecot issue create x.md",
+        "pecot pr create x.md --dry-run",
+        '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue read 1',
+    ],
+)
+def test_claude_entry_pecot_cli_deny(
+    pre_tool_use_bash: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    command: str,
+):
+    project = tmp_path / "project"
+    project.mkdir()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
+
+    payload = json.dumps({"tool_input": {"command": command}})
+    result = _run_stdin(["bash", str(pre_tool_use_bash)], payload)
+    assert result.returncode == 0
+    assert '"permissionDecision": "deny"' in result.stdout
+    assert "pecot-cli-deny" in result.stdout
+    assert "MCP tool" in result.stdout
+    assert '"ask"' not in result.stdout
+
+
+def test_claude_entry_pecot_cli_deny_ignores_slash_flag(
     pre_tool_use_bash: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    # 起票系の免除フラグがあっても、Bash の pecot は deny のまま。
     project = tmp_path / "project"
     state = project / ".pecot" / "state"
     state.mkdir(parents=True)
@@ -215,6 +242,41 @@ def test_claude_entry_issue_create_slash_flag_passes(
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
 
     payload = json.dumps({"tool_input": {"command": "pecot issue quick -m x -r owner/repo"}})
+    result = _run_stdin(["bash", str(pre_tool_use_bash)], payload)
+    assert result.returncode == 0
+    assert '"permissionDecision": "deny"' in result.stdout
+
+
+def test_claude_entry_pecot_cli_deny_wins_over_ask(
+    pre_tool_use_bash: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    # pecot の起動（deny/exit 1）と gh pr merge（ask/exit 11）が同居する場合は、deny が勝つ。
+    # ガード実行順で、pecot-cli-deny が external-post-check より先に動くため。
+    project = tmp_path / "project"
+    project.mkdir()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
+
+    payload = json.dumps({"tool_input": {"command": "pecot issue read 1 && gh pr merge 1"}})
+    result = _run_stdin(["bash", str(pre_tool_use_bash)], payload)
+    assert result.returncode == 0
+    assert '"permissionDecision": "deny"' in result.stdout
+    assert '"ask"' not in result.stdout
+
+
+def test_claude_entry_line_continuation_path_passes(
+    pre_tool_use_bash: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    # 行末の \\ で続く行の先頭が …/pecot で終わる語でも、pecot の起動と誤らない。
+    project = tmp_path / "project"
+    project.mkdir()
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
+
+    command = "git worktree list \\\n/workspaces/wt3/pecot"
+    payload = json.dumps({"tool_input": {"command": command}})
     result = _run_stdin(["bash", str(pre_tool_use_bash)], payload)
     assert result.returncode == 0
     assert result.stdout == ""
@@ -237,21 +299,6 @@ def test_claude_entry_deny_wins_over_ask(
     assert '"permissionDecision": "deny"' in result.stdout
     assert '"decision"' not in result.stdout
     assert '"ask"' not in result.stdout
-
-
-def test_claude_entry_pr_external_dry_run_pass(
-    pre_tool_use_bash: Path,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-):
-    project = tmp_path / "project"
-    project.mkdir()
-    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
-
-    payload = json.dumps({"tool_input": {"command": "pecot pr create x.md --dry-run"}})
-    result = _run_stdin(["bash", str(pre_tool_use_bash)], payload)
-    assert result.returncode == 0
-    assert result.stdout == ""
 
 
 # Copilot CLI（snake_case の tool_input が届く。エントリ pre-tool-use-bash.sh を通す）。
@@ -358,8 +405,6 @@ def test_copilot_entry_non_bash_tool_ignored(
     "command",
     [
         "gh pr merge 810",
-        "pecot pr create ./x.md",
-        "pecot issue quick -m x -r owner/repo",
     ],
 )
 def test_copilot_entry_external_ask(
@@ -381,20 +426,31 @@ def test_copilot_entry_external_ask(
     assert '"permissionDecision": "deny"' not in result.stdout
 
 
-def test_copilot_entry_pr_external_dry_run_pass(
+@pytest.mark.parametrize(
+    "command",
+    [
+        "pecot pr create ./x.md",
+        "pecot issue quick -m x -r owner/repo",
+        "pecot pr create x.md --dry-run",
+    ],
+)
+def test_copilot_entry_pecot_cli_deny(
     pre_tool_use_bash: Path,
     git_repo: Callable[..., Path],
+    command: str,
     monkeypatch: pytest.MonkeyPatch,
 ):
     repo = git_repo()
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
     result = _run_stdin(
         ["bash", str(pre_tool_use_bash)],
-        _copilot_tool_payload("pecot pr create x.md --dry-run"),
+        _copilot_tool_payload(command),
         cwd=repo,
     )
     assert result.returncode == 0
-    assert result.stdout == ""
+    assert '"permissionDecision": "deny"' in result.stdout
+    assert "pecot-cli-deny" in result.stdout
+    assert '"permissionDecision": "ask"' not in result.stdout
 
 
 # Claude Code アダプター経由: git-worktree-branch-check。

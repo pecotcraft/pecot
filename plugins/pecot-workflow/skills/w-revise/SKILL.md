@@ -17,15 +17,9 @@ when_to_use: "PR のレビュー指摘に対応したい、マージ前に PR �
 
 対象 PR の本文・diff・既存レビューを読む。引数が無ければ、会話から一意に決まる PR を使う。決まらなければユーザーに聞く。
 
-```bash
-pecot pr read <owner>/<repo>/<PR番号> --reviews
-```
+`pr_read` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`reviews: true` で呼ぶ。
 
-紐づいた Issue があれば、それも読む。
-
-```bash
-pecot issue read <owner>/<repo>/<Issue番号>
-```
+紐づいた Issue があれば、それも読む。`issue_read` を `issue_ref: "<owner>/<repo>/<Issue番号>"` で呼ぶ。
 
 ### Step 2: 各レビュアーに専門視点でレビューを依頼
 
@@ -135,10 +129,8 @@ gh api --hostname <対象ホスト> graphql \
 
 テンプレを取り、ガイドに従って書いて、修正の前に投稿する。General にはインラインにできなかった指摘だけを書く。Disposition には全 F-NN を 1 行ずつ並べ、コメントの URL を添える。
 
-```bash
-pecot issue comment --prepare --template review-findings --issue <owner>/<repo>/<PR番号>
-pecot issue comment <書いたファイル>
-```
+1. `issue_comment` を `prepare: true`・`template: "review-findings"`・`issue: "<owner>/<repo>/<PR番号>"` で呼ぶ
+2. 書いたら、`issue_comment` を `file: "<書いたファイル>"` で呼ぶ
 
 ### Step 4: 対応可否をユーザーに一括確認
 
@@ -156,11 +148,7 @@ Step 3 のコメントの URL を示し、AskUserQuestion で次の 3 択（と 
 
 まず、選択に関わらず次の 2 つを行う。
 
-1. `review-resolution` のテンプレを取り、Decision 節と Declined 節を埋める。
-
-   ```bash
-   pecot issue comment --prepare --template review-resolution --issue <owner>/<repo>/<PR番号>
-   ```
+1. `review-resolution` のテンプレを取り、Decision 節と Declined 節を埋める。`issue_comment` を `prepare: true`・`template: "review-resolution"`・`issue: "<owner>/<repo>/<PR番号>"` で呼ぶ。
 
 2. 対応不要の F-NN のスレッドに、理由を返信する（Step 3 の `in_reply_to`）。
 
@@ -204,11 +192,7 @@ gh api --hostname <対象ホスト> graphql -f query='
 
 #### `review-resolution` を投稿
 
-Step 5 で書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。
-
-```bash
-pecot issue comment <書いたファイル>
-```
+Step 5 で書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
 チャットには `review-resolution` の本文をそのまま示す。マージが必要なら `/pecot-w:w-merge` を案内する。
 

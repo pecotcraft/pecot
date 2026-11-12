@@ -18,11 +18,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 
 ### Step 1: ボードを確認する
 
-対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。
-
-```bash
-pecot project info
-```
+対象Epic・Trackerの配下に既にReady・Active・Pendingのサブタスクがないかを確認し、二重登録を避ける。`project_info` を引数なしで呼ぶ。
 
 ### Step 2: 対象Epic・Trackerを特定
 
@@ -34,10 +30,7 @@ pecot project info
 2. ユーザーがEpicタイトルを指定している場合はボードから検索
 3. 不明な場合は **AskUserQuestion** ツールでBacklog内のEpicとTrackerをリストアップして選択させる
 
-```bash
-# Epic・Tracker詳細を取得
-pecot issue read owner/repo/XXX
-```
+Epic・Tracker詳細を取得する。`issue_read` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
 ### Step 3: 次のサブタスクをAIが計画する
 
@@ -59,26 +52,23 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 
 **リポジトリの特定方法:**
 
-- サブタスクの `--repo` は **実装するリポ** を指定する。Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的に例外指示がある場合を除く）
+- サブタスクの `repo` は **実装するリポ** を指定する。Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的に例外指示がある場合を除く）
 - 判断材料: Epic タイトル / 本文の「対象リポ」記述、または親 Epic を読んだ上でユーザーに確認する
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 タイプに応じて選び、テンプレートを準備する。
 
-```bash
-pecot issue create --prepare --template task --repo <owner/repo>  # 機能追加・改善
-pecot issue create --prepare --template bug  --repo <owner/repo>  # バグ修正
-```
+`issue_create` を `prepare: true`・`repo: "<owner/repo>"` と次の `template` で呼ぶ。
+
+- 機能追加・改善: `template: "task"`
+- バグ修正: `template: "bug"`
 
 出力されたファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
-`title`（必須）と `parent_epic`（必須）を設定する。`repository` は `--repo` で設定済み。
+`title`（必須）と `parent_epic`（必須）を設定する。`repository` は `repo` で設定済み。
 
 `parent_epic` は full path `owner/repo/N` を推奨。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。
 
-```bash
-# ファイル編集後に投稿
-pecot issue create <ファイルパス>
-```
+ファイル編集後に投稿する。`issue_create` を `files: ["<ファイルパス>"]` で呼ぶ。
 
 ### Step 5: 完了報告
 

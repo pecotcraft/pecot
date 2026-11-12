@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pecot-w",
+  "version": "4.1.0",
+  "description": "pecot-w (pecot-workflow) workflow automation plugin - skills, hooks, agents, and MCP tools for AI-assisted development",
+  "author": {
+    "name": "pecot"
+  }
+}

@@ -63,7 +63,7 @@ specs/
 
 ポイントは次のとおり。
 
-- PRでレビュー・承認を経て開発ブランチにマージ（base は config の develop_branch で、`pecot project info` で確認する）
+- PRでレビュー・承認を経て開発ブランチにマージ（base は config の develop_branch で、`project_info` で確認する）
 - ボードには載せない（ノイズ防止）
 - 仕様確定後に実装フェーズへ
 

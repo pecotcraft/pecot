@@ -83,9 +83,6 @@ def _assert_decision(result, decision: str, reason_contains: str) -> dict:
 @pytest.mark.parametrize(
     "command",
     [
-        "pecot issue create .pecot/work/1229/issue.md",
-        'pecot issue quick -r owner/repo -m "summary"',
-        "pecot pr create",
         "gh pr merge 999999",
     ],
 )
@@ -103,6 +100,21 @@ def test_deny_git_no_verify(run_hook_entry, project, client) -> None:
         "pre-tool-use-bash.sh", _bash_payload(client, "git commit --no-verify -m x", project)
     )
     _assert_decision(result, "deny", "git-no-verify-check")
+
+
+@pytest.mark.parametrize("client", CLIENTS)
+@pytest.mark.parametrize(
+    "command",
+    [
+        "pecot issue create .pecot/work/1229/issue.md",
+        'pecot issue quick -r owner/repo -m "summary"',
+        "pecot pr create",
+        "pecot issue read 1",
+    ],
+)
+def test_deny_pecot_cli(run_hook_entry, project, client, command) -> None:
+    result = run_hook_entry("pre-tool-use-bash.sh", _bash_payload(client, command, project))
+    _assert_decision(result, "deny", "pecot-cli-deny")
 
 
 @pytest.mark.parametrize("client", CLIENTS)

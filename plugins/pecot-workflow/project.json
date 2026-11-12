@@ -34,7 +34,7 @@
     },
     "test": {
       "executor": "nx:noop",
-      "dependsOn": ["test-py", "test-cli", "test-hooks", "test-skills"],
+      "dependsOn": ["test-py", "test-cli", "test-bootstrap", "test-hooks", "test-skills"],
       "metadata": {
         "description": "CI と manual の stage の nx-affected-tests が起動する起点。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
@@ -44,9 +44,6 @@
       "inputs": [
         "{projectRoot}/cli/**/*",
         "{projectRoot}/cli-node/tests/output/cases.json",
-        "{projectRoot}/cli-node/tests/interface-export/typer-sample.json",
-        "{projectRoot}/interface/generated.json",
-        "{projectRoot}/scripts/interface/**/*",
         "sharedGlobals",
         "pecotPluginTestGlobals",
         "{projectRoot}/.claude-plugin/plugin.json",
@@ -60,7 +57,7 @@
       ],
       "outputs": ["{projectRoot}/cli/test-results/junit.xml"],
       "metadata": {
-        "description": "cli の pytest。cli/ 以外の inputs は strace で棚卸しした実際の読み込み (#1225)。cli のテストは plugin.json のバージョン、bin/pecot の wrapper と bin/_lib.sh、gitignore 補完スクリプトを読む。skills・agents・hooks テンプレートの文書も読み、cli コマンドとの整合と参照の実在を確かめる（test_doc_reference_integrity 等）。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（tests/core/test_nx_scope.py）を nx の更新でキャッシュから外すために置く。cli-node/tests/output/cases.json は、Python と Node の出力の一致のテスト（tests/cli/test_output.py）が読む。interface/generated.json と scripts/interface/ は、tests/unit/test_interface_export.py が読む。cli-node/tests/interface-export/typer-sample.json は、同じテストが見本の期待値として読む。pass 1 の JUnit は cli/test-results/junit.xml に残し（失敗した回も含む）、outputs に置く。"
+        "description": "cli の pytest。cli/ 以外の inputs は strace で棚卸しした実際の読み込み (#1225)。cli のテストは plugin.json のバージョン、bin/pecot の wrapper と bin/_lib.sh、gitignore 補完スクリプトを読む。skills・agents・hooks テンプレートの文書も読み、cli コマンドとの整合と参照の実在を確かめる（test_doc_reference_integrity 等）。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（tests/core/test_nx_scope.py）を nx の更新でキャッシュから外すために置く。cli-node/tests/output/cases.json は、Python と Node の出力の一致のテスト（tests/cli/test_output.py）が読む。pass 1 の JUnit は cli/test-results/junit.xml に残し（失敗した回も含む）、outputs に置く。"
       },
       "options": {
         "command": "bash scripts/ci/run-tests.sh --scope=py",
@@ -72,6 +69,8 @@
       "inputs": [
         "{projectRoot}/cli-node/**/*",
         "!{projectRoot}/cli-node/tests/hooks/**",
+        "!{projectRoot}/cli-node/tests/bootstrap/**",
+        "!{projectRoot}/cli-node/tests/skills/**",
         "sharedGlobals",
         "runtime",
         { "runtime": "git --version" },
@@ -103,26 +102,64 @@
         "cwd": "plugins/pecot-workflow"
       }
     },
+    "test-bootstrap": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/cli-node/tests/bootstrap/**/*",
+        "{projectRoot}/cli-node/tsconfig.json",
+        "{projectRoot}/cli-node/tsconfig.build.json",
+        "{projectRoot}/cli-node/scripts/tsc.mjs",
+        "{projectRoot}/.claude-plugin/plugin.json",
+        "{projectRoot}/plugin.json",
+        "{projectRoot}/mcp.json",
+        "{projectRoot}/.mcp.json",
+        "{projectRoot}/com.github.copilot/**/*",
+        "{projectRoot}/bin/pecot",
+        "{projectRoot}/scripts/ci/run-tests.sh",
+        "sharedGlobals",
+        "runtime",
+        "env",
+        "pecotPluginEnv",
+        "pecotPluginNodeInputs"
+      ],
+      "dependsOn": ["install", "build-cli"],
+      "metadata": {
+        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest。約 1 分）。実 pnpm でミラーを build する run.sh は、cli-node/src を読まない。ミラーの build が使う型の確認は build-cli が担う。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+      },
+      "options": {
+        "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
+        "cwd": "plugins/pecot-workflow"
+      }
+    },
     "test-skills": {
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/skills/**/*",
-        "{projectRoot}/scripts/ci/tests/**/*",
-        "sharedGlobals",
-        "pecotPluginTestGlobals",
-        "{projectRoot}/cli/commands/**/*",
-        "{projectRoot}/cli/templates/**/*",
-        "{projectRoot}/hooks/**/*.sh",
-        "{projectRoot}/hooks/templates/*.md",
         "{projectRoot}/agents/*.md",
-        "{projectRoot}/README.md",
+        "{projectRoot}/hooks/templates/*.md",
+        "{projectRoot}/cli/templates/pr/create.md",
+        "{projectRoot}/cli-node/tests/skills/**/*",
+        "{projectRoot}/cli-node/src/**/*",
+        "{projectRoot}/cli-node/tests/_helpers/**/*",
+        "{projectRoot}/cli-node/vitest.config.ts",
+        "{projectRoot}/cli-node/tsconfig.json",
+        "{projectRoot}/cli-node/tests/parity/baseline.ts",
+        "{projectRoot}/cli-node/tests/parity/baseline.json",
+        "{projectRoot}/scripts/ci/run-tests.sh",
+        "sharedGlobals",
+        "runtime",
+        "env",
+        "pecotPluginEnv",
+        "pecotPluginNodeInputs",
         "{projectRoot}/.claude-plugin/plugin.json"
       ],
+      "dependsOn": ["install"],
+      "outputs": ["{projectRoot}/cli-node/test-results/junit-skills.xml"],
       "metadata": {
-        "description": "skills テスト（scripts/ci/tests/）は skills / agents / hooks / README の pecot 呼び出しを CLI のコマンド木と照らして確かめる。そのため、CLI コマンド・テンプレート・hooks・agents・README を inputs に宣言する。"
+        "description": "skills テスト（cli-node/tests/skills/）の vitest（project skills）。skills・agents・hooks テンプレートの本文に書かれたツール名と入力名を、cli-node/src の COMMANDS の定義と照らして確かめる。そのため、本文と src を inputs に宣言する。w-release の docs PR の例は PR のテンプレート（cli/templates/pr/create.md）の節と照らす。tests/parity/baseline.ts は、並べ替えの関数を借りる。vitest だけで動くので、Python 側の共通入力（pecotPluginTestGlobals）は宣言しない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
-        "command": "bash scripts/ci/run-tests.sh --scope=skills",
+        "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",
         "cwd": "plugins/pecot-workflow"
       }
     },
@@ -144,10 +181,14 @@
         "{workspaceRoot}/plugins/pecot-visual/skills/*/SKILL.md",
         "{projectRoot}/.claude-plugin/plugin.json",
         "{projectRoot}/.mcp.json",
+        "{projectRoot}/mcp.json",
+        "{projectRoot}/plugin.json",
+        "{projectRoot}/com.github.copilot/**/*",
         "{workspaceRoot}/plugins/pecot-visual/.mcp.json",
         "{projectRoot}/bin/pecot",
         "{projectRoot}/bin/_lib.sh",
         "{projectRoot}/skills/w-help/references/issue-flow-rules.md",
+        "{projectRoot}/skills/w-merge/scripts/**/*",
         "{projectRoot}/scripts/ci/run-lint.sh",
         "{projectRoot}/project.json",
         "{workspaceRoot}/plugins/pecot-visual/scripts/ci/run-lint.sh",
@@ -156,12 +197,13 @@
         "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-lint.sh",
         "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-tests.sh",
         "{workspaceRoot}/plugins/pecot-tools/project.json",
-        "{workspaceRoot}/plugins/pecot-visual/hooks/hooks*.json"
+        "{workspaceRoot}/plugins/pecot-visual/hooks/hooks*.json",
+        "{workspaceRoot}/plugins/pecot-visual/com.github.copilot/hooks/hooks.json"
       ],
       "dependsOn": ["install"],
       "outputs": ["{projectRoot}/cli-node/test-results/junit-hooks.xml"],
       "metadata": {
-        "description": "hooks テスト（test_cuj_definition_single_source）が agents/w-e2e-planner.md を読む。strace で棚卸しした実際の読み込み (#1225) として、agents 全件・plugin.json・bin/pecot・issue-flow-rules.md を入れる。CI スコープの整合は test_ci_scope_consistency が確かめる。このテストは 3 プラグインの project.json と run-*.sh を読むため、それらも入れる。test_hooks_definitions が読む pecot-visual の hooks*.json も宣言する (#1229)。test_agent_definitions は、両プラグインの agents と skills/*/SKILL.md を読む。読むのは frontmatter（disallowedTools・argument-hint・when_to_use）で、これらも宣言する (#1231)。hooks scope は pytest と cli-node の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回ずつ流し、結果を比べる。読むのは cli-node/tests/hooks/ のテストと、vitest.config.ts、baseline.json、baseline.ts で、これらを宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "hooks テスト（test_cuj_definition_single_source）が agents/w-e2e-planner.md を読む。strace で棚卸しした実際の読み込み (#1225) として、agents 全件・plugin.json・bin/pecot・issue-flow-rules.md を入れる。CI スコープの整合は test_ci_scope_consistency が確かめる。このテストは 3 プラグインの project.json と run-*.sh を読むため、それらも入れる。test_hooks_definitions が読む pecot-visual の hooks*.json も宣言する (#1229)。test_agent_definitions は、両プラグインの agents と skills/*/SKILL.md を読む。読むのは frontmatter（disallowedTools・argument-hint・when_to_use）で、これらも宣言する (#1231)。hooks scope は pytest と cli-node の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回ずつ流し、結果を比べる。読むのは cli-node/tests/hooks/ のテストと、vitest.config.ts、baseline.json、baseline.ts で、これらを宣言する。skills/w-merge/scripts/ は merge-wait.sh とその pytest で、vitest に移すまで hooks scope の pytest が流す。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
@@ -179,12 +221,11 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli/**/*",
-        "{projectRoot}/scripts/interface/**/*",
         "sharedGlobals",
         "pecotPluginLintGlobals"
       ],
       "metadata": {
-        "description": "cli と scripts/interface の ruff / pyright。pre-commit の nx-affected-lint が起動する。"
+        "description": "cli の ruff / pyright。pre-commit の nx-affected-lint が起動する。"
       },
       "options": {
         "command": "bash scripts/ci/run-lint.sh --scope=py",
@@ -234,7 +275,7 @@
       "versionActions": "./.nx/nx-release/src/version-actions.js",
       "manifestRootsToUpdate": [
         { "path": "{projectRoot}/.claude-plugin" },
-        { "path": "{projectRoot}/.github/plugin" }
+        { "path": "{projectRoot}" }
       ]
     }
   }

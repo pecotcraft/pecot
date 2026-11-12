@@ -19,7 +19,7 @@ paths:
 
 ## manifest は 2 重に持つ
 
-pecot-visual と pecot-tools は、2 つのクライアントが別のファイルを読むため manifest を 2 組持ちます。
+3 プラグインは、2 つのクライアントが別のファイルを読むため manifest を 2 組持ちます。
 
 | クライアント | 読むファイル |
 |:-----------|:----------|
@@ -28,8 +28,10 @@ pecot-visual と pecot-tools は、2 つのクライアントが別のファイ�
 
 - `name`・`version`・MCP サーバのキー・`command`・`args` を 2 組で一致させる。`version` はリリース時に nx が両方を書き換える
 - `mcp.json` に `env` を書かない。置き場はクライアントが MCP へ渡す `PLUGIN_DATA`・`CLAUDE_PLUGIN_DATA` で決まる
-- pecot-workflow は 1.0 形式を持たない（別 Epic で扱う）。`.claude-plugin/plugin.json`・`.github/plugin/plugin.json`・`.mcp.json` だけを保つ
-- 一致は `plugins/{pecot-visual,pecot-tools}/cli/tests/bootstrap/manifest.sh` が確認する
+- `.github/plugin/plugin.json` は持たない。Copilot CLI は 1.0 形式のプラグインでは読まない
+- Copilot CLI の hooks は `com.github.copilot/hooks/hooks.json` に置く。エージェントは `com.github.copilot/agents`（`../agents` への相対 symlink）に置く
+- リモートの MCP サーバの `type` は、`.mcp.json` が `"http"`、`mcp.json` が `"streamable-http"` にする。1.0 のスキーマは `http` を認めない。`url` は同値
+- 一致は `plugins/{pecot-visual,pecot-tools}/cli/tests/bootstrap/manifest.sh` が確認する。pecot-workflow は `plugins/pecot-workflow/cli-node/tests/bootstrap/manifest.sh` が確認する
 
 ## データ置き場は 3 段で解決する
 
@@ -44,7 +46,7 @@ pecot-visual と pecot-tools は、2 つのクライアントが別のファイ�
   SessionStart の hook で置き場を Bash へ渡す仕組みも作らない。クライアントが置き場を渡さない起動は 3 段目で解決される
 - `PLUGIN_DATA` は 1 プラグイン専用の置き場で、project 名の階層が付かない。
   単体配布の MCP 登録の `env` にだけ書く案内にし、シェルで export する案内を書かない。複数プラグインが同じ `runtime/` を奪い合うためである
-- pecot-workflow は hook からの起動（クライアントの置き場）と Bash からの起動（3 段目）で venv を 2 か所に作る。uv の venv で軽いので許容している
+- pecot-workflow も `${データ置き場}/runtime/` に実行用ミラーを作る。旧方式の `venv/` は、`bin/pecot` が解決した置き場と既定の場所の 2 か所から、毎回の起動で片づける（使用中の世代は次回に回す）
 - pecot-visual の単体配布も同じ順で、解決した置き場の `mcp-dist/` に依存を置く。
   bash は `plugin_data_dir_normalize`、TypeScript は `cli/src/infra/_shared/dependency-root.ts` が解決する。
   2 つは同じ入力で同じ結果になる。テストがこれを固定している。

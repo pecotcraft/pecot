@@ -88,7 +88,7 @@ def test_shared_mode_guides_comment_update_and_implementer(ctx, hook_script):
     assert result.returncode == 0
     context = _context(result)
     assert "Plan comment update" in context
-    assert "pecot issue comment" in context
+    assert "MCP tool issue_comment" in context
     assert "Implementation handoff" in context
     assert "Committing is main's responsibility" in context
     assert "team_name" not in context

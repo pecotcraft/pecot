@@ -48,7 +48,8 @@ describe('pecot-issue-pending-reminder.sh', () => {
     const result = runReminder(hookCase, '{"tool_name":"Edit","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('warning: Issue filing is not complete')
-    expect(result.stdout).toContain('pecot issue quick')
+    expect(result.stdout).toContain('MCP tool issue_quick')
+    expect(result.stdout).not.toContain('pecot issue quick')
     expect(result.stdout).toContain('PreToolUse')
   })
 
@@ -59,7 +60,8 @@ describe('pecot-issue-pending-reminder.sh', () => {
     const result = runReminder(hookCase, '{"tool_name":"EnterPlanMode","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('warning: Subtask Issue')
-    expect(result.stdout).toContain('pecot issue create --prepare')
+    expect(result.stdout).toContain('MCP tool issue_create with prepare: true')
+    expect(result.stdout).not.toContain('pecot issue create')
   })
 
   it('フラグがあり git checkout を実行するとき、リマインダーを返す', () => {
@@ -114,8 +116,8 @@ describe('pecot-issue-pending-reminder.sh', () => {
     const result = runReminder(hookCase, '{"tool_name":"Edit","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('warning: Issue filing is not complete')
-    expect(result.stdout).toContain('pecot issue quick')
-    expect(result.stdout).toContain('pecot issue create')
+    expect(result.stdout).toContain('issue_quick or issue_create')
+    expect(result.stdout).not.toContain('pecot issue')
   })
 
   it('フラグがあり MultiEdit のとき、リマインダーを返す', () => {

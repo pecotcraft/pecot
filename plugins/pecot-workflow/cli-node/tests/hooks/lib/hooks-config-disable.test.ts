@@ -149,11 +149,10 @@ describe('pecot-skill-reminder', () => {
   })
 })
 
-// external-post-check の 3 キー: false で ask（exit 11）が抑止され、true で ask される
+// external-post-check のキー: false で ask（exit 11）が抑止され、true で ask される。
+// pecot-pr-create-ask・pecot-issue-create-ask は MCP ハンドラの pecot-post-ask.sh が見る。
 const EXTERNAL_POST_ROWS = [
-  { label: 'pecot pr create', configKey: 'pecot-pr-create-ask', command: 'pecot pr create x.md' },
   { label: 'gh pr merge', configKey: 'gh-pr-merge-ask', command: 'gh pr merge 810' },
-  { label: 'pecot issue quick', configKey: 'pecot-issue-create-ask', command: 'pecot issue quick -m x' },
 ]
 
 describe('external-post-check', () => {
@@ -177,5 +176,30 @@ describe('external-post-check', () => {
     const result = runWithFront(hookCase, path.join(coreDirectory, 'external-post-check.sh'), '')
     expect(result.exitCode).toBe(11)
     expect(result.stdout).toContain('warning: external-post-check:')
+  })
+})
+
+// pecot-cli-deny: false で deny（exit 1）が抑止され、true で deny される
+describe('pecot-cli-deny', () => {
+  it('キー pecot-cli-deny を false にすると、pecot の起動を deny せず通す', () => {
+    const hookCase = createHookCase()
+    const config = setUpDisable(hookCase)
+    config.write({ 'pecot-cli-deny': false })
+    hookCase.setEnv('HOOK_COMMAND', 'pecot issue read 1')
+
+    const result = runWithFront(hookCase, path.join(coreDirectory, 'pecot-cli-deny.sh'), '')
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
+  })
+
+  it('キー pecot-cli-deny を true にすると、pecot の起動を deny する', () => {
+    const hookCase = createHookCase()
+    const config = setUpDisable(hookCase)
+    config.write({ 'pecot-cli-deny': true })
+    hookCase.setEnv('HOOK_COMMAND', 'pecot issue read 1')
+
+    const result = runWithFront(hookCase, path.join(coreDirectory, 'pecot-cli-deny.sh'), '')
+    expect(result.exitCode).toBe(1)
+    expect(result.stdout).toContain('MCP tool issue_read')
   })
 })

@@ -26,7 +26,7 @@ function makeTree(files) {
 }
 
 const CLAUDE = "plugins/pecot-workflow/.claude-plugin/plugin.json";
-const COPILOT = "plugins/pecot-workflow/.github/plugin/plugin.json";
+const COPILOT = "plugins/pecot-workflow/plugin.json";
 
 test("先頭の plugin.json から現在の version を読む", async () => {
   const tree = makeTree({ [CLAUDE]: '{"name":"pecot-w","version":"1.29.3"}\n' });
@@ -52,7 +52,7 @@ test("manifestsToUpdate が空なら throw する", async () => {
 test("両配布チャネルの plugin.json の version を書き換え、他のフィールドを保つ", async () => {
   const tree = makeTree({
     [CLAUDE]: '{"name":"pecot-w","version":"1.29.3"}\n',
-    [COPILOT]: '{"name":"pecot-w","version":"1.29.3","hooks":"hooks/hooks-copilot.json"}\n',
+    [COPILOT]: '{"name":"pecot-w","version":"1.29.3","$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"}\n',
   });
   const logs = await makeActions([CLAUDE, COPILOT]).updateProjectVersion(tree, "2.0.0");
   assert.equal(logs.length, 2);
@@ -60,7 +60,7 @@ test("両配布チャネルの plugin.json の version を書き換え、他の�
   assert.deepEqual(JSON.parse(tree.get(COPILOT)), {
     name: "pecot-w",
     version: "2.0.0",
-    hooks: "hooks/hooks-copilot.json",
+    $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   });
 });
 
@@ -126,12 +126,12 @@ function readProject(root) {
 }
 
 const EXPECTED_MANIFESTS = {
+  // Copilot CLI 向けは 3 プラグインとも Agent Plugins 1.0 形式のルートの plugin.json を使う。
+  // .github/plugin/plugin.json は持たない。先頭の .claude-plugin/plugin.json が現在の版の基準。
   "pecot-workflow": [
     "plugins/pecot-workflow/.claude-plugin/plugin.json",
-    "plugins/pecot-workflow/.github/plugin/plugin.json",
+    "plugins/pecot-workflow/plugin.json",
   ],
-  // pecot-visual / pecot-tools の Copilot CLI 向けは Agent Plugins 1.0 形式のルートの plugin.json を使う。
-  // .github/plugin/plugin.json は持たない。先頭の .claude-plugin/plugin.json が現在の版の基準。
   "pecot-visual": [
     "plugins/pecot-visual/.claude-plugin/plugin.json",
     "plugins/pecot-visual/plugin.json",

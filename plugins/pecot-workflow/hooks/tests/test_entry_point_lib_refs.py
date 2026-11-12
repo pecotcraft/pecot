@@ -14,7 +14,7 @@ hooks 全域は、lib 配下の被呼び出し側と、hooks 設定 command が�
 - 参照先ファイルが実在すること（hooks/ 直下 ＋ lib/**/*.sh の全数）
 - lib が読むテンプレの参照先が実在すること（`templates/` セグメントを含む `.md` 参照）
 - 抽出器が参照を取りこぼしていないこと（非コメント行の `.sh` ／ テンプレ `.md` トークン会計）。
-- hooks.json / hooks-copilot.json の command が実在し、かつエントリポイント（hooks/ 直下）であること。
+- hooks/hooks.json / com.github.copilot/hooks/hooks.json の command が実在し、かつエントリポイント（hooks/ 直下）であること。
 - 列挙・解決の総量が下限を割らないこと（glob 取り違え・行フィルタ過剰除去の空振り検知）
 
 参照の抽出は、conftest の extract_refs / extract_template_refs fixture（共有抽出器）を消費する。
@@ -85,7 +85,7 @@ _MIN_RESOLVED_REFS = 90
 # そこで、別方向から空振りを検知する。
 _MIN_RESOLVED_TEMPLATE_REFS = 2
 
-_CONFIG_FILES = ("hooks.json", "hooks-copilot.json")
+_CONFIG_FILES = ("hooks/hooks.json", "com.github.copilot/hooks/hooks.json")
 _PLUGIN_ROOT_PREFIX = "${CLAUDE_PLUGIN_ROOT}/"
 
 # 抽出器とは独立な「鈍い」走査。
@@ -187,17 +187,17 @@ def _config_command_scripts(config_path: Path) -> list[str]:
 
 
 def test_config_commands_are_all_enumerated() -> None:
-    """hooks.json / hooks-copilot.json の command がすべてエントリポイントであること。
+    """hooks/hooks.json / com.github.copilot/hooks/hooks.json の command がすべてエントリポイントであること。
 
     許容集合は、hooks/ 直下 glob（＝エントリポイント）に限る。
     参照ガード側の全数列挙（`_GUARDED_SCRIPTS`）を流用すると、「command はエントリポイント」という不変条件が消える。
     その結果、lib 内部スクリプトを直接指す command を検知できなくなる。
     逆方向は課さない。
-    2 次ディスパッチャは command ではなく、hooks-copilot.json は Notification / WebSearch を持たない部分集合になる。
+    2 次ディスパッチャは command ではなく、Copilot 側の hooks.json は Notification / WebSearch を持たない部分集合になる。
     """
     enumerated = {path.relative_to(_PLUGIN_ROOT).as_posix() for path in _ENTRY_POINTS}
     for config_name in _CONFIG_FILES:
-        scripts = _config_command_scripts(_HOOKS_DIR / config_name)
+        scripts = _config_command_scripts(_PLUGIN_ROOT / config_name)
         assert scripts, f"{config_name} から command を抽出できませんでした"
         unenumerated = sorted(set(scripts) - enumerated)
         assert unenumerated == [], (
@@ -214,7 +214,7 @@ def test_config_command_scripts_exist(config_name: str) -> None:
     それでも、command 側の参照切れを「列挙抜け」ではなく「参照切れ」として名指しで落とす。
     崩れた symlink（glob には現れるが is_file() が偽）はこのテストだけが検知する。
     """
-    scripts = _config_command_scripts(_HOOKS_DIR / config_name)
+    scripts = _config_command_scripts(_PLUGIN_ROOT / config_name)
     assert scripts, f"{config_name} から command を抽出できませんでした"
     missing = sorted({s for s in scripts if not (_PLUGIN_ROOT / s).is_file()})
     assert missing == [], (

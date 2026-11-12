@@ -1,7 +1,7 @@
 # packages monorepo のリリース
 
 1 リポ内に複数 package があり、package ごとに CHANGELOG とバージョンを持つ構成を扱う。
-設定は `pecot project set-repo --package NAME:PATH ...` で行う。タグ形式は `<package>@v<ver>`。
+設定は `project_set_repo` の `package: ["NAME:PATH", ...]` で行う。タグ形式は `<package>@v<ver>`。
 
 ## バージョン決定基準
 
@@ -13,9 +13,7 @@
 
 ### 1. 対象確認
 
-```bash
-pecot project info
-```
+`project_info` を引数なしで呼ぶ。
 
 `package: NAME → CHANGELOG パス` の行から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
 リリース package を `<package>`、バージョンを `<ver>` と表記。
@@ -23,8 +21,8 @@ pecot project info
 ### 2. bump 種別のユーザー確認
 
 `<ver>` を確定する前に、ユーザーへ以下を提示して明示的承認を得る。
-承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`pecot release preflight`・
-`pecot release create` 等）には進まない。
+承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_preflight`・
+`release_create` 等）には進まない。
 
 提示項目:
 
@@ -60,7 +58,7 @@ git checkout -b docs/changelog-<package>-v<ver> origin/<develop>
 
 #### 3-2. 対象 CHANGELOG 編集
 
-`pecot project info` の `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
+`project_info` の結果の `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
 前回タグ `<package>@v<前バージョン>` からの差分をまとめる。
 
 ```bash
@@ -95,32 +93,42 @@ package に対応する `plugin.json` / `pyproject.toml` 等があれば同期�
 git add <編集したファイル>
 git commit -m "docs(changelog): <package> <ver> リリースノートを追加"
 git push -u origin docs/changelog-<package>-v<ver>
-
-pecot pr create \
-  --no-issue-ref \
-  -r <owner>/<repo> \
-  -t "docs(changelog): <package> <ver> リリースノートを追加" \
-  --screenshot "CHANGELOG の追記だけで、画面・生成する Markdown・CLI の出力は変わらない" \
-  -m "## Summary
-
-<package> の CHANGELOG.md に <ver> のリリースノートを追加した。
-
-## Changes
-
-なし
-
-## Verified
-
-- <package> の CHANGELOG.md に <ver> の節があることを確かめた
-
-## Risks
-
-なし" \
-  -b <develop>
-
-gh pr merge <PR番号> --repo <owner>/<repo> --squash
-pecot pr cleanup <owner>/<repo>/<PR番号> --delete-branch
 ```
+
+push したら、`pr_create` を次の入力で呼ぶ。
+
+```text
+pr_create
+  no_issue_ref: true
+  repo: "<owner>/<repo>"
+  title: "docs(changelog): <package> <ver> リリースノートを追加"
+  screenshot: "CHANGELOG の追記だけで、画面・生成する Markdown・CLI の出力は変わらない"
+  base: "<develop>"
+  message: |
+    ## Summary
+
+    <package> の CHANGELOG.md に <ver> のリリースノートを追加した。
+
+    ## Changes
+
+    なし
+
+    ## Verified
+
+    - <package> の CHANGELOG.md に <ver> の節があることを確かめた
+
+    ## Risks
+
+    なし
+```
+
+作れたら、PR をマージして片付ける。
+
+```bash
+gh pr merge <PR番号> --repo <owner>/<repo> --squash
+```
+
+マージしたら、`pr_cleanup` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
 
 #### 3-5. develop 最新化
 
@@ -132,9 +140,7 @@ git pull --ff-only origin <develop>
 
 ### 4. プリフライト
 
-```bash
-pecot release preflight --package <package> <ver>
-```
+`release_preflight` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
@@ -143,9 +149,7 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 5. リリース PR 作成
 
-```bash
-pecot pr create --prepare --template release
-```
+`pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
 
 下書きファイルを編集:
 
@@ -156,21 +160,15 @@ pecot pr create --prepare --template release
   すべて埋める（1 つでも欠けると投稿時検証で弾かれる）。Changes には該当 CHANGELOG の
   `## [<ver>]` セクションを転記
 
-```bash
-pecot pr create --template release <ファイルパス>
-```
+編集したら、`pr_create` を `template: "release"`・`file: "<ファイルパス>"` で呼ぶ。
 
 ### 6. リリース PR マージ
 
-```bash
-pecot release merge <owner>/<repo>/<PR番号>
-```
+`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
 
 ### 7. タグ + GitHub Release
 
-```bash
-pecot release create --package <package> <ver>
-```
+`release_create` を `package: "<package>"`・`version: "<ver>"` で呼ぶ。
 
 ### 8. 完了報告
 

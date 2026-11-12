@@ -132,7 +132,7 @@ describe('pre-tool-use-mcp.sh', () => {
     expect(result.stdout).not.toContain('permissionDecision')
   })
 
-  // Copilot CLI 1.0.103 の組み込み GitHub MCP の PR 作成。matcher は hooks-copilot.json の `mcp__.*|github-mcp-server-create_pull_request`。
+  // Copilot CLI 1.0.103 の組み込み GitHub MCP の PR 作成。matcher は Copilot 用の hooks.json の `mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*`。
   it('Copilot 形式の GitHub MCP の PR 作成のとき、拒否する', () => {
     const hookCase = createHookCase()
     setUpStateDirectory(hookCase)

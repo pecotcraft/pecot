@@ -8,47 +8,27 @@
 
 | 引数 | 動き | 終了コード |
 |---|---|---|
-| `--check` | `COMMANDS` から作った項目を、`interface/generated.json` の同じ ID の項目と比べる。ファイルは書かない | 差が無ければ 0、あれば 1 |
-| `--write` | `generated.json` を Node の項目で書く。切り替えの PR（フェーズ 11）で実装する。それまでは、登録が 1 件以上なら使い方のエラーにする | 0。切り替えの前で登録が 1 件以上なら 2 |
+| `--check` | `COMMANDS` から作った項目を、`interface/generated.json` の全部の項目と比べる。ファイルは書かない | 直列化した文字列が同じなら 0、違えば 1 |
+| `--write` | `COMMANDS` から作った `{format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries}` を `generatedFileSchema` に通し、挿入順のまま `JSON.stringify(file, undefined, 2) + '\n'` で `generated.json` に書く。`wrote: <パス>` を標準出力に出す | 書けたら 0、書けなければ 1 |
 | それ以外 | 使い方を標準エラーに出す | 2 |
 
-登録が 0 件のときは、`--check` と `--write` のどちらでも、warning を 1 行出して 0 で終わります。今の実装のままです。
+登録が 0 件でも、`--check` と `--write` は同じ動きです（`--write` は空の `entries` で書く）。
 
 ## `--check` の比べ方
 
-| 条件 | 切り替えの前 | 切り替えの後 |
-|---|---|---|
-| 比べる項目 | `COMMANDS` に登録したコマンドの ID だけ | 全部の項目 |
-| 比べる欄 | `surfaces.mcp` 以外の全部（`input`・`cli`・`name`・`description`・`hidden`・`deprecated`・`surfaces.cli`） | 項目の全部の欄 |
-| Node にあって定義書に無い ID | 失敗 | 失敗 |
-| 定義書にあって Node に無い ID | 見ない | 失敗 |
-| 登録が 0 件 | warning を 1 行出して 0 | 起こらない |
+項目と欄は絞りません。Node にあって定義書に無い ID も、定義書にあって Node に無い ID も失敗です。`surfaces.mcp` も比べます。
 
-`surfaces.mcp` を除くのは、Python 側の書き出しに無い欄だからです。Python と Node の書き出しの差は、この欄だけです。
+1. 定義書の文字列が、Node の項目を直列化した文字列と同じなら 0
+2. 違えば、`diffGenerated` の行（`<ID>: <欄>: <前> -> <後>`）を `formatStale` で包んで標準エラーに出し、1。1 行目は `error: <パス> is stale`。
+   最後は `run: pnpm --dir plugins/pecot-workflow/cli-node exec tsx scripts/export-interface.ts --write`
+3. 読めない・JSON でない・形式に合わないときは、`error: cannot read <パス>: <理由>` と `run:` の行を出して 1
 
-### 絞り方
-
-`diffGenerated` は、項目と欄を絞る引数を持ちません。呼ぶ側で絞ります。
-
-- 定義書の側は、項目を Node の ID だけにしたものを渡す
-- Node の側は、項目から `surfaces.mcp` を除いたものを渡す
-- 切り替えの後は、どちらも絞らずに渡す
-
-`GeneratedFile` の型は配列が変更可能です。渡す前に写します。
 `libs/interface-spec` の読み方は、pecot-tools の `cli/scripts/export-interface.ts` と同じく相対パスです。
-
-### 差の表示
-
-`diffGenerated` が返す行（`<ID>: <欄>: <前> -> <後>`）を、`createOutput().error` に渡します。差のある項目の ID と欄が分かります。
-
-- 切り替えの前は `formatStale` を使わない。`error: ... is stale` と `--write` を促す行を出すため
-- 切り替えの後は `formatStale` を使う
 
 ### テストの前提
 
 - `main` は `generated.json` のパスを差し替える引数を持つ（pecot-tools の `options.target` と同じ）。テストは、一時ファイルに置いた定義書で確かめる
 - テストに書く見本の ID は、`lint-defs` が拾う形（`PW-…-NN`）の文字列をそのまま書かない。文字列の連結で作る
-- 登録が 1 件以上で切り替えの前に `--write` を打つと、使い方のエラー（終了コード 2）にする
 
 ## 流す場所
 

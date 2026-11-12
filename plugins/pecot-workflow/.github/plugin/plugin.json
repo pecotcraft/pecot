@@ -1,9 +1,0 @@
-{
-  "name": "pecot-w",
-  "version": "4.1.0",
-  "description": "pecot-w (pecot-workflow) workflow automation plugin for GitHub Copilot CLI",
-  "author": {
-    "name": "pecot"
-  },
-  "hooks": "hooks/hooks-copilot.json"
-}
