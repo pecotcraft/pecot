@@ -34,8 +34,7 @@ const USAGE_FAILURE = 2
 const NO_ACTIVE_PROJECT = 'no active project\nrun: pecot project activate <PROJECT>'
 
 /**
-リリースの 3 個の対象リポジトリを決める。順は、repository-match が採用した --repo、グローバルの --repo、主の remote。
-決められないときは error の行を出して undefined を返す。呼び出し側は終了コード 1 で終わる。
+順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して undefined を返す。
 remote は process.cwd() から読む
 */
 export function resolveReleaseTargetRepository(adopted: RepositoryReference | undefined, explicit: string | undefined, out: Readonly<Output>): RepositoryReference | undefined {

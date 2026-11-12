@@ -1,4 +1,4 @@
-// GitHub クライアントを作る共有の関数（Python の make_client に当たる）。
+// 各コマンドが、診断の出力先 out を渡す形をそろえて GitHub クライアントを作る。
 import type { ProjectConfig } from '../domain/config.js'
 import { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'

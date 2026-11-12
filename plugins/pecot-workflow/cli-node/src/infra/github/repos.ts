@@ -24,9 +24,7 @@ const NOT_FOUND = 404
 
 export class ReposApi extends GitHubClientBase {
   /**
-  一覧 API を Link ヘッダの next で最後まで辿って集める。
-  一覧は cursor 方式で page を持たない。2 ページ目以降は next の絶対 URL をそのまま辿る。
-  params を再送すると cursor と二重指定になるため、送らない
+  Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
   */
   private async listAll(path: string, firstParameters: Readonly<Record<string, number | string>>): Promise<readonly JsonValue[]> {
     const items: JsonValue[] = []

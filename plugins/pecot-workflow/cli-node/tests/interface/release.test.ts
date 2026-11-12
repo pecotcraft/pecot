@@ -97,6 +97,18 @@ describe('release preflight', () => {
     expect(result.stderr).toContain('count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n')
   })
 
+  it('3 種の機能が無効だと、skipped の行を標準エラーに出し、終了コード 0 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-PREFLIGHT-05')
+    const rules = alertRules({
+      dependabot: [rest('GET', alertPath('dependabot'), 403, FORBIDDEN), rest('GET', '/repos/acme/demo/vulnerability-alerts', 404)],
+      code: [rest('GET', alertPath('code'), 403, { message: 'Advanced Security must be enabled for this repository to use code scanning.' })],
+      secret: [rest('GET', alertPath('secret'), 404, NOT_FOUND), rest('GET', '/repos/acme/demo', 200, { security_and_analysis: { secret_scanning: { status: 'disabled' } } })],
+    })
+    const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('skipped: Dependabot alerts (feature disabled)\nskipped: code scanning (feature disabled)\nskipped: secret scanning (feature disabled)\n')
+  })
+
   it('open の Dependabot alert があると、件数と最も重い severity を添えた warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-RELEASE-PREFLIGHT-06')
     const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] })
@@ -203,6 +215,18 @@ describe('release preflight', () => {
       await verifies(context, 'PW-RELEASE-PREFLIGHT-17')
       const result = await runPreflight(project(WITH_BRANCHES), [], rules)
       expect(result.code).toBe(1)
+      expect(result.stdout).toBe('')
+    })
+  })
+
+  describe('alert の確認が例外で失敗した', () => {
+    it('もしトークンが無いなら、code・secret scanning の確認ごとに could not check alerts の行を出し、残りも続けて、終了コード 1 で終わる', async (context) => {
+      await verifies(context, 'PW-RELEASE-PREFLIGHT-16')
+      await verifies(context, 'PW-RELEASE-PREFLIGHT-17')
+      const result = await runPreflight(project({ ...WITH_BRANCHES, hasToken: false }), [], [])
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('warning: could not check Dependabot alerts. The release is not blocked.\n')
+      expect(result.stderr.split('error: could not check alerts: authentication error')).toHaveLength(3)
       expect(result.stdout).toBe('')
     })
   })

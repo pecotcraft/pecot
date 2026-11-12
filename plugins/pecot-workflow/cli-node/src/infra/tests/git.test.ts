@@ -15,9 +15,9 @@ import {
   gitRemoteUrl,
   gitRunnerFor,
   gitToplevel,
-  originRepository,
   primaryRemoteName,
   primaryRemoteRepository,
+  remoteRepository,
   runGit,
 } from '../git.js'
 
@@ -170,7 +170,7 @@ describe('gitCurrentBranch', () => {
   })
 })
 
-describe('originRepository', () => {
+describe('remoteRepository', () => {
   it.each([
     ['git@github.com:owner/repo.git', 'github.com', 'owner', 'repo'],
     ['https://github.com/owner/repo.git', 'github.com', 'owner', 'repo'],
@@ -179,17 +179,17 @@ describe('originRepository', () => {
   ])('origin の URL %j を分ける', (url, host, owner, repository) => {
     const directory = createGitRepository()
     gitForTest(directory, ['remote', 'add', 'origin', url])
-    expect(originRepository(directory)).toEqual({ host, owner, repository })
+    expect(remoteRepository(directory, 'origin')).toEqual({ host, owner, repository })
   })
 
   it('URL の形式が不正なら undefined', () => {
     const directory = createGitRepository()
     gitForTest(directory, ['remote', 'add', 'origin', 'invalid'])
-    expect(originRepository(directory)).toBeUndefined()
+    expect(remoteRepository(directory, 'origin')).toBeUndefined()
   })
 
-  it('origin が無ければ undefined', () => {
-    expect(originRepository(createGitRepository())).toBeUndefined()
+  it('remote が無ければ undefined', () => {
+    expect(remoteRepository(createGitRepository(), 'origin')).toBeUndefined()
   })
 })
 

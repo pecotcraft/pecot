@@ -103,19 +103,25 @@ export function gitRemoteUrl(cwd?: string, remote = 'origin'): string | undefine
 }
 
 /**
+remote 名の一覧。git の外・git が無いときは undefined
+*/
+export function listRemotes(cwd?: string): readonly string[] | undefined {
+  const output = runForValue(['remote'], { cwd })
+  return output === undefined ? undefined : output.split('\n').map(line => pythonStrip(line)).filter(line => line !== '')
+}
+
+/**
+優先順の remote 候補。origin があれば origin だけ、無ければ一覧の順にすべて
+*/
+export function preferredRemotes(remotes: readonly string[]): readonly string[] {
+  return remotes.includes('origin') ? ['origin'] : remotes
+}
+
+/**
 主の remote 名。origin、無ければ最初の remote。remote が無い・git の外なら undefined
 */
 export function primaryRemoteName(cwd?: string): string | undefined {
-  let output: string
-  try {
-    output = runGit(['remote'], { cwd, check: true }).stdout
-  }
-  catch (error: unknown) {
-    if (error instanceof GitCommandError || isFileNotFound(error)) return undefined
-    throw error
-  }
-  const remotes = output.split('\n').map(line => pythonStrip(line)).filter(line => line !== '')
-  return remotes.includes('origin') ? 'origin' : remotes[0]
+  return preferredRemotes(listRemotes(cwd) ?? [])[0]
 }
 
 /**
@@ -123,16 +129,7 @@ export function primaryRemoteName(cwd?: string): string | undefined {
 */
 export function primaryRemoteRepository(cwd?: string): RemoteLocation | undefined {
   const name = primaryRemoteName(cwd)
-  if (name === undefined) return undefined
-  const url = gitRemoteUrl(cwd, name)
-  if (url === undefined) return undefined
-  try {
-    return parseRemoteUrl(url)
-  }
-  catch (error: unknown) {
-    if (error instanceof InvalidValueError) return undefined
-    throw error
-  }
+  return name === undefined ? undefined : remoteRepository(cwd, name)
 }
 
 /**
@@ -145,25 +142,8 @@ export function gitCurrentBranch(cwd?: string): string | undefined {
 /**
 指定した remote の URL から host・owner・repository を返す。remote 不在・git の外・URL 形式の不一致は undefined
 */
-export function remoteRepository(cwd: string, remote: string): RemoteLocation | undefined {
+export function remoteRepository(cwd: string | undefined, remote: string): RemoteLocation | undefined {
   const url = gitRemoteUrl(cwd, remote)
-  if (url === undefined) return undefined
-  try {
-    return parseRemoteUrl(url)
-  }
-  catch (error: unknown) {
-    if (error instanceof InvalidValueError) return undefined
-    throw error
-  }
-}
-
-/**
-origin の URL から host・owner・repository を返す。origin 不在・git の外・URL 形式の不一致は undefined。
-Python の `origin_repo` と同じ契約で、URL が不正でも例外にしない。
-不正な URL を例外として見せる domain の detectCurrentGitRepository とは契約が違う
-*/
-export function originRepository(cwd?: string): RemoteLocation | undefined {
-  const url = gitRemoteUrl(cwd)
   if (url === undefined) return undefined
   try {
     return parseRemoteUrl(url)

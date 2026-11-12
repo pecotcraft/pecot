@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fetchCodeScanningStatus, fetchSecretScanningStatus, KIND_LABELS, SecurityAlertError } from '../security-alerts.js'
+import { fetchCodeScanningStatus, fetchSecretScanningStatus, SecurityAlertError } from '../security-alerts.js'
 import type { ScanAlertSource, ScanKind, ScanListResult } from '../security-alerts-source.js'
 
 // 取得元をメモリ上で置き換える。呼ばれた種類と対象も控える
@@ -16,12 +16,6 @@ function memorySource(result: ScanListResult): { readonly source: ScanAlertSourc
     },
   }
 }
-
-describe('KIND_LABELS', () => {
-  it('種類ごとの表示名を持つ', () => {
-    expect(KIND_LABELS).toEqual({ 'dependabot': 'Dependabot', 'code-scanning': 'code scanning', 'secret-scanning': 'secret scanning' })
-  })
-})
 
 describe('fetchCodeScanningStatus', () => {
   it('有効なら件数と、昇順にした番号と、一覧の URL を返す', async () => {

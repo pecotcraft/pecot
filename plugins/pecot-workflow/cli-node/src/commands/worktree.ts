@@ -1,6 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは検証済みの -D と、main worktree 配下の設定ファイル */
-// worktree add / remove / init / link。移す元は cli/commands/worktree.py。
-// 4 個とも、本体の前に --repo と git の remote の食い違いを reject で止める。
+// worktree add / remove / init / link。4 個とも、本体の前に --repo と git の remote の食い違いを reject で止める。
 import { accessSync, constants, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -43,14 +42,25 @@ import { requireRepositoryMatch } from './repository-match.js'
 
 const FAILURE = 1
 
+// click の realpath と同じく、解決できない所は字面のまま残して投げない
+function lenientRealPath(value: string): string {
+  try {
+    return resolveRealPath(value)
+  }
+  catch (error: unknown) {
+    if (!hasErrorCode(error)) throw error
+    return path.resolve(value)
+  }
+}
+
 // typer の DirectoryOption と同じ検証と文にする。
-// symlink は解決する。
+// stat の失敗は、どの理由でも does not exist と出す。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function checkDirectory(value: string, context: z.RefinementCtx): void {
   const fail = (reason: string): void => {
     context.addIssue({ code: 'custom', message: `Directory ${pythonStringRepr(value)} ${reason}` })
   }
-  const resolved = resolveRealPath(value)
+  const resolved = lenientRealPath(value)
   let isFile: boolean
   try {
     isFile = statSync(resolved).isFile()
@@ -73,7 +83,7 @@ function checkDirectory(value: string, context: z.RefinementCtx): void {
   }
 }
 
-const directoryInput = z.string().superRefine(checkDirectory).transform(resolveRealPath).describe('Target Git repository (absolute or relative path)')
+const directoryInput = z.string().superRefine(checkDirectory).transform(lenientRealPath).describe('Target Git repository (absolute or relative path)')
 const dryRunInput = z.boolean().default(false).describe('Show what would happen without changing anything')
 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
@@ -104,7 +114,7 @@ function countCopyResults(results: readonly CopyResult[], out: Readonly<Output>)
 const worktreeAddInput = z.object({
   directory: directoryInput,
   base: z.string().optional().describe('Base branch (default: the develop_branch of the repository in the active project)'),
-  path: z.string().transform(resolveRealPath).optional().describe('Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)'),
+  path: z.string().transform(lenientRealPath).optional().describe('Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)'),
   no_copy: z.boolean().default(false).describe('Skip copying untracked files'),
   no_link: z.boolean().default(false).describe('Skip creating symlinks'),
   setup: z.string().optional().describe('Command to run after creation'),
@@ -254,13 +264,17 @@ function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInpu
   return 0
 }
 
+function isMissingPath(error: unknown): boolean {
+  return hasErrorCode(error) && (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+}
+
 function isExistingFile(file: string): boolean {
   try {
     statSync(file)
     return true
   }
   catch (error: unknown) {
-    if (hasErrorCode(error)) return false
+    if (isMissingPath(error)) return false
     throw error
   }
 }
@@ -282,11 +296,15 @@ const worktreeLinkCommand = defineCommand({
   run: (input, io) => Promise.resolve(runLink(input, io)),
 })
 
-// 対象の worktree。--all はサブの全部、無ければ -D を含む worktree のルート（メインなら undefined）
-function linkTargets(directory: string, mainWorktree: string, isAll: boolean): readonly string[] | undefined {
-  if (isAll) return getWorktreeDirectories(directory)
+type LinkTargets
+  = | { readonly kind: 'main-needs-all' }
+    | { readonly kind: 'worktrees', readonly directories: readonly string[] }
+
+// 対象の worktree。--all はサブの全部（0 個もある）、無ければ -D を含む worktree のルート
+function linkTargets(directory: string, mainWorktree: string, isAll: boolean): LinkTargets {
+  if (isAll) return { kind: 'worktrees', directories: getWorktreeDirectories(directory) }
   const resolvedDirectory = resolveRealPath(gitToplevel({ cwd: directory }) ?? directory)
-  return resolvedDirectory === resolveRealPath(mainWorktree) ? undefined : [resolvedDirectory]
+  return resolvedDirectory === resolveRealPath(mainWorktree) ? { kind: 'main-needs-all' } : { kind: 'worktrees', directories: [resolvedDirectory] }
 }
 
 type SkipPlan = Exclude<LinkPlan, 'create' | 'update' | 'ask'>
@@ -346,11 +364,12 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
     const mainWorktree = findMainWorktree(input.directory)
     const projectRoot = detectProjectRoot(input.directory)
 
-    const targets = linkTargets(input.directory, mainWorktree, input.all)
-    if (targets === undefined) {
+    const resolved = linkTargets(input.directory, mainWorktree, input.all)
+    if (resolved.kind === 'main-needs-all') {
       out.error('use --all in the main worktree')
       return FAILURE
     }
+    const targets = resolved.directories
     if (targets.length === 0) {
       out.count('sub-worktrees', 0)
       return 0

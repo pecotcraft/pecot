@@ -401,6 +401,38 @@ describe('createSymlinksSafe', () => {
   })
 })
 
+// 共有先にファイルがある既存の symlink を、path: 'shared/' の link で張り直す
+function setupTrailingSlash(): { readonly root: string, readonly worktree: string, readonly sharedFile: string, readonly link: WorktreeConfig['links'][number] } {
+  const root = setupProject()
+  const sharedFile = path.join(root, 'base', 'aist-roadmap', 'shared', 'keep.txt')
+  writeTree(path.join(root, 'base', 'aist-roadmap'), { 'shared/keep.txt': 'precious' })
+  const worktree = path.join(root, 'wt1', 'myrepo')
+  symlinkSync(path.join(root, 'base', 'aist-roadmap', 'shared'), path.join(worktree, 'shared'))
+  return { root, worktree, sharedFile, link: linkOf('shared/', 'aist-roadmap', 'shared') }
+}
+
+describe('末尾が / の link.path（pathlib は末尾の / を落とす）', () => {
+  it('planLink は既存の symlink を update と判定する', () => {
+    const { root, worktree, link } = setupTrailingSlash()
+    expect(planLink(link, root, worktree)).toBe('update')
+  })
+
+  it('force でも共有先の中身を消さず、symlink だけ張り直す', () => {
+    const { root, worktree, sharedFile, link } = setupTrailingSlash()
+    const results = createSymlinksSafe(configOf([link]), root, worktree, ignoredDiagnostics, { force: true })
+    expect(results.map(result => result.action)).toEqual(['created'])
+    expect(readFileSync(sharedFile, 'utf8')).toBe('precious')
+    expect(lstatSync(path.join(worktree, 'shared')).isSymbolicLink()).toBe(true)
+    expect(readFileSync(path.join(worktree, 'shared', 'keep.txt'), 'utf8')).toBe('precious')
+  })
+
+  it('confirm が y でも共有先の中身を消さない', () => {
+    const { root, worktree, sharedFile, link } = setupTrailingSlash()
+    createSymlinksSafe(configOf([link]), root, worktree, ignoredDiagnostics, { confirm: () => true })
+    expect(readFileSync(sharedFile, 'utf8')).toBe('precious')
+  })
+})
+
 const ENSURE_SCRIPT = path.join('hooks', 'lib', 'core', 'pecot-gitignore-ensure.sh')
 
 // base/myrepo に .pecot/ 配下の link 先を置き、wt1/myrepo を git リポジトリにする

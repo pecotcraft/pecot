@@ -21,9 +21,9 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { loadActiveConfig } from './config-store.js'
 import type { Diagnostics } from './diagnostics.js'
 import { isDirectory } from './file-kind.js'
-import { GitCommandError, gitToplevel, remoteRepository, runGit } from './git.js'
+import { GitCommandError, gitToplevel, listRemotes, preferredRemotes, remoteRepository, runGit } from './git.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
-import { isFileNotFound, toOsError } from './os-error.js'
+import { toOsError } from './os-error.js'
 import { normalizePath, resolveRealPath, WORKTREE_CONFIG_FILENAME } from './paths.js'
 import {
   createSymlinks,
@@ -374,16 +374,7 @@ interface RemoteCandidate {
 
 // remote 候補を優先順に返す。origin があれば origin だけ、無ければ git remote の順にすべて。URL を読めない remote の repository は undefined
 function readRemoteCandidates(cwd: string): readonly RemoteCandidate[] {
-  let output: string
-  try {
-    output = runGit(['remote'], { cwd, check: true }).stdout
-  }
-  catch (error: unknown) {
-    if (error instanceof GitCommandError || isFileNotFound(error)) return []
-    throw error
-  }
-  const remotes = output.split('\n').map(line => pythonStrip(line)).filter(line => line !== '')
-  return (remotes.includes('origin') ? ['origin'] : remotes).map((remote) => {
+  return preferredRemotes(listRemotes(cwd) ?? []).map((remote) => {
     const location = remoteRepository(cwd, remote)
     if (location === undefined) return { remote, repository: undefined }
     try {

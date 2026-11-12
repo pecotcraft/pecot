@@ -118,10 +118,7 @@ function sleepBriefly(): void {
 }
 
 /**
-fd から 1 行読む関数を作る。
-1 バイトずつ読むので、次の行を先読みして取りこぼすことが無い（確認が何度も来ても、行ごとに読める）。
-末尾の改行の無い最後の行は返し、その次の呼び出しが終端（undefined）になる。
-read と wait はテスト用の差し替え口
+1 バイトずつ読むのは、次の行を先読みして取りこぼさず、process.stdin に触れないため。read と wait はテスト用の差し替え口
 */
 export function createLineReader(
   fd: number,
@@ -190,10 +187,8 @@ export function reportAborted(io: CommandIo): number {
 }
 
 /**
-`<text> [y/N]:` で y/n を問う（click の `confirm(default=False, err=True)` と同じ出力）。
-問いは改行なしで stderr に、最後の空白 1 つは stdout に出す。答えは前後の空白を落として小文字にし、
-y・yes は true、n・no・空は false。それ以外は `Error: invalid input` を出して問い直す。
-入力が終わったとき、または io が readLine を持たないとき（MCP）は AbortedError を投げる
+末尾の空白 1 つを stdout に出すのは、既存の CLI の出力（問いは stderr、空白だけ stdout）を変えないため。
+readLine が無い（MCP）か入力が終わると AbortedError を投げる
 */
 export function isConfirmed(io: CommandIo, text: string): boolean {
   for (;;) {

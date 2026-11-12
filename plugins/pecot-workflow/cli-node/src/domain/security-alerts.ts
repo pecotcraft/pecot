@@ -4,17 +4,10 @@
 import { PecotError } from './errors.js'
 import type { ScanAlertSource, ScanKind, ScanListResult } from './security-alerts-source.js'
 
-export type AlertKind = 'dependabot' | 'code-scanning' | 'secret-scanning'
-
-export const KIND_LABELS: Readonly<Record<AlertKind, string>> = {
-  'dependabot': 'Dependabot',
-  'code-scanning': 'code scanning',
-  'secret-scanning': 'secret scanning',
-}
-
-function labelOf(kind: ScanKind): string {
-  return new Map(Object.entries(KIND_LABELS)).get(kind) ?? kind
-}
+const KIND_LABELS: ReadonlyMap<ScanKind, string> = new Map([
+  ['code-scanning', 'code scanning'],
+  ['secret-scanning', 'secret scanning'],
+])
 
 /**
 security alert の状態を判定できない
@@ -49,7 +42,7 @@ function unwrap(result: ScanListResult, kind: ScanKind, owner: string, repositor
       throw new SecurityAlertError(`${owner}/${repository}: ${UNCONFIRMED_MESSAGE}`)
     }
     case 'failure': {
-      throw new SecurityAlertError(`${owner}/${repository}: ${labelOf(kind)}: ${result.message}`)
+      throw new SecurityAlertError(`${owner}/${repository}: ${KIND_LABELS.get(kind) ?? kind}: ${result.message}`)
     }
     case 'network': {
       throw new SecurityAlertError(`${owner}/${repository}: request failed: ${result.message}`)

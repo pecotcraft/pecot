@@ -141,6 +141,13 @@ describe('runDefinition', () => {
     expect(seen).toEqual([{ no_copy: false }, { no_copy: true }])
   })
 
+  it('--no-copy の否定形 --copy は、未知のオプションで No such option になる', async () => {
+    seen.length = 0
+    const error = await usageErrorOf(runDefinition(skipping, ['--copy'], capture()))
+    expect(error.message).toBe('No such option: --copy (Possible options: --no-copy)')
+    expect(seen).toEqual([])
+  })
+
   it('複数の位置引数は配列にする', async () => {
     seen.length = 0
     await runDefinition(remove, ['one', 'two'], capture())

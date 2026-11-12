@@ -1,4 +1,3 @@
-// `--repo` とカレントの git の remote が同じかを確かめる（Python の require_repo_match）。判定は domain の applyRepositoryPolicy が行う。
 // remote は -D ではなく process.cwd() から読む。
 import { applyRepositoryPolicy } from '../domain/repository-policy.js'
 import type { PolicyMode } from '../domain/repository-policy.js'

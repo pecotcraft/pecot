@@ -296,6 +296,7 @@ describe('worktree add', () => {
 
   it('--path の worktree が wt1 を使っていても、それを数えて次の番号のセットに worktree を作る', async (context) => {
     await verifies(context, 'PW-WORKTREE-ADD-03')
+    await verifies(context, 'PW-WORKTREE-ADD-04')
     const { root } = createProject()
     await addWorktree(['--path', path.join(root, 'elsewhere', 'demo')])
     expect(await addWorktree()).toBe(path.join(root, 'wt2', 'demo'))
@@ -371,9 +372,15 @@ describe('worktree add', () => {
   it.for([{ flag: '--allow-existing-branch' }, { flag: '--force' }])('$flag を付けて打つと、upstream の違う既存のブランチを再利用する', async ({ flag }, context) => {
     await verifies(context, 'PW-WORKTREE-ADD-12')
     const { repository } = createProject()
+    // develop を進めて、既存の wt1（main の位置）と作り直した wt1 の位置が別になるようにする
+    gitForTest(repository, ['checkout', '-q', 'develop'])
+    gitForTest(repository, ['commit', '-q', '--allow-empty', '-m', 'develop only'])
+    gitForTest(repository, ['update-ref', 'refs/remotes/origin/develop', 'develop'])
+    gitForTest(repository, ['checkout', '-q', 'main'])
     gitForTest(repository, ['branch', 'wt1', 'main'])
     const worktree = await addWorktree([flag])
     expect(gitForTest(worktree, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe('wt1')
+    expect(gitForTest(worktree, ['rev-parse', 'HEAD']).trim()).toBe(gitForTest(repository, ['rev-parse', 'main']).trim())
   })
 
   it('--dry-run を付けて打つと、何も作らない', async (context) => {
@@ -441,7 +448,7 @@ describe('worktree add', () => {
     expect(result.stderr).toContain('count: files copied: 1\n')
   })
 
-  it('コピーに失敗したファイルがあると、そのファイルごとに warning の行を標準エラーに出す', async (context) => {
+  it.skipIf(process.getuid?.() === 0)('コピーに失敗したファイルがあると、そのファイルごとに warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-WORKTREE-ADD-21')
     const { repository } = createProject()
     const secret = path.join(repository, '.env.local')
@@ -466,6 +473,30 @@ describe('worktree add', () => {
     expect(result.code).toBe(0)
     expect(existsSync(path.join(root, 'wt1', 'demo', 'CLAUDE.local.md'))).toBe(false)
     expect(result.stderr).toContain(`warning: target does not exist: ${path.join(repository, 'CLAUDE.local.md')}\n`)
+  })
+
+  it('--dry-run は、既存のリンク・実ファイル・追跡済み・dangling のそれぞれに、予定の行を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-LINK-16')
+    const links = ['CLAUDE.local.md', 'second.md', 'dangling.md', 'tracked.md'].map(name => ({ path: name, target_repo: 'demo', target_path: name }))
+    const { project, worktree } = await linkedProject(['wt1'], { worktreeConfig: JSON.stringify({ version: 3, links }), files: { 'tracked.md': 'tracked' } })
+    symlinkSync('/nonexistent', path.join(project.repository, 'dangling.md'))
+    const real = path.join(worktree, 'CLAUDE.local.md')
+    rmSync(real, { force: true })
+    writeFileSync(real, 'mine')
+    symlinkSync('/nonexistent', path.join(worktree, 'second.md'))
+    const from = (name: string): string => path.join(worktree, name)
+    const to = (name: string): string => path.join(project.repository, name)
+    const asking = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
+    expect(asking.stderr).toBe([
+      `dry-run: would update symlink ${from('CLAUDE.local.md')} -> ${to('CLAUDE.local.md')} (real file, asks first)`,
+      `dry-run: would update symlink ${from('second.md')} -> ${to('second.md')}`,
+      `dry-run: would skip symlink ${from('dangling.md')} (target is a dangling symlink)`,
+      `dry-run: would skip symlink ${from('tracked.md')} (tracked by git)`,
+      '',
+    ].join('\n'))
+    const skipping = await pecot(['worktree', 'link', '-D', project.repository, '--all', '--dry-run'])
+    expect(skipping.stderr).toContain(`dry-run: would skip symlink ${from('CLAUDE.local.md')} (a real file exists)\n`)
+    expect(skipping.reads).toBe(0)
   })
 
   it('リンクのパスを git が追跡していると、そのリンクを作らず、warning の行を標準エラーに出す', async (context) => {
@@ -564,16 +595,16 @@ describe('worktree add', () => {
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
-  it.for<{ readonly name: string, readonly options: Readonly<ProjectOptions> }>([
-    { name: 'アクティブなプロジェクトが無い', options: { activeConfig: false } },
-    { name: 'リポジトリがプロジェクトに登録されていない', options: { repositories: [{ owner: 'acme', name: 'other', develop_branch: 'main' }] } },
+  it.for<{ readonly name: string, readonly options: Readonly<ProjectOptions>, readonly message: string }>([
+    { name: 'アクティブなプロジェクトが無い', options: { activeConfig: false }, message: 'project config not found' },
+    { name: 'リポジトリがプロジェクトに登録されていない', options: { repositories: [{ owner: 'acme', name: 'other', develop_branch: 'main' }] }, message: 'is not registered in the active pecot project' },
   ])('$name と、何も作らず、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-WORKTREE-ADD-37')
     await verifies(context, 'PW-WORKTREE-ADD-38')
     const { repository, root } = createProject(row.options)
     const result = await pecot(['worktree', 'add', '-D', repository])
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: /u)
+    expect(result.stderr).toContain(row.message)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     expect(branches(repository)).not.toContain('wt1')
   })
@@ -586,7 +617,7 @@ describe('worktree add', () => {
     gitForTest(matching, ['remote', 'add', 'origin', 'https://github.com/acme/demo.git'])
     const result = await pecot(['worktree', 'add', '-D', path.join(root, 'base', 'demo')], { cwd: matching })
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: /u)
+    expect(result.stderr).toContain('error: cannot get the repository information: check that a git remote is set')
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
@@ -596,7 +627,7 @@ describe('worktree add', () => {
     const { repository, root } = createProject({ repositories: [{ owner: 'acme', name: 'demo' }] })
     const result = await pecot(['worktree', 'add', '-D', repository])
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: /u)
+    expect(result.stderr).toContain('error: develop_branch is not set for repository acme/demo')
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     const withBase = await pecot(['worktree', 'add', '-D', repository, '--base', 'develop'])
     expect(withBase.code).toBe(0)
@@ -610,7 +641,7 @@ describe('worktree add', () => {
     const before = worktreePaths(repository)
     const result = await pecot(['worktree', 'add', '-D', repository])
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: /u)
+    expect(result.stderr).toContain('error: all of wt1 to wt9 are in use: no free set')
     expect(worktreePaths(repository)).toEqual(before)
   })
 
@@ -642,7 +673,7 @@ describe('worktree add', () => {
     const { repository, root } = createProject({ worktreeConfig: '{"version": 3, "links": "x"}\n' })
     const result = await pecot(['worktree', 'add', '-D', repository])
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: /u)
+    expect(result.stderr).toContain('error: failed to load the worktree config: ')
     expect(worktreePaths(repository)).toContain(path.join(root, 'wt1', 'demo'))
     expect(branches(repository)).toContain('wt1')
   })
@@ -667,6 +698,15 @@ describe('worktree add', () => {
     gitForTest(repository, ['remote', 'rename', 'origin', 'upstream'])
     const worktree = await addWorktree()
     expect(upstreamOf(worktree)).toBe('upstream/develop')
+  })
+
+  it('--path がファイルの下を指しても、検証で落とさず、その先の処理に進む', async () => {
+    const { repository } = createProject()
+    const file = path.join(makeTemporaryDirectory(), 'file.txt')
+    writeFileSync(file, 'x')
+    const result = await pecot(['worktree', 'add', '-D', repository, '--path', path.join(file, 'sub'), '--dry-run'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain(`dry-run: would create worktree wt1 at ${path.join(file, 'sub')} `)
   })
 })
 
@@ -741,6 +781,7 @@ describe('worktree init', () => {
     initialProject()
     const result = await pecot(['worktree', 'init', '-D', outsideGit()])
     expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: cannot get the worktree list/u)
   })
 
   it('--repo が今の git の remote と食い違うと、何も書かず、終了コード 1 で終わる', async (context) => {
@@ -749,6 +790,7 @@ describe('worktree init', () => {
     const { repository } = initialProject()
     const result = await pecot(['--repo', 'other/thing', 'worktree', 'init', '-D', repository])
     expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: --repo other/thing differs from the current Git remote (acme/demo)')
     expect(existsSync(configPaths(repository).config)).toBe(false)
   })
 
@@ -785,6 +827,43 @@ describe('worktree init', () => {
     expect(result.stderr).toMatch(/^error: could not read the active config: /u)
     expect(existsSync(configPaths(repository).config)).toBe(false)
     expect(existsSync(configPaths(repository).ignore)).toBe(false)
+  })
+
+  // 文と枠は Python の typer（click）の Directory オプションと同じ
+  const DIRECTORY_ROWS: readonly { readonly name: string, readonly argument: () => string, readonly reason: string }[] = [
+    { name: '無い', argument: () => path.join(makeTemporaryDirectory(), 'missing'), reason: 'does not exist.' },
+    { name: 'ファイルの下を指す', argument: () => {
+      const file = path.join(makeTemporaryDirectory(), 'file.txt')
+      writeFileSync(file, 'x')
+      return path.join(file, 'sub')
+    }, reason: 'does not exist.' },
+    { name: 'ファイルを指す', argument: () => {
+      const file = path.join(makeTemporaryDirectory(), 'file.txt')
+      writeFileSync(file, 'x')
+      return file
+    }, reason: 'is a file.' },
+  ]
+
+  it.for(DIRECTORY_ROWS)('-D が$nameと、使い方の枠で理由を出し、終了コード 2 で終わる', async (row) => {
+    const directory = row.argument()
+    const result = await pecot(['worktree', 'init', '-D', directory], { cwd: makeTemporaryDirectory() })
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${directory}' ${row.reason}`)
+  })
+
+  it.skipIf(process.getuid?.() === 0)('-D が読めないディレクトリだと、is not readable の理由を出し、終了コード 2 で終わる', async () => {
+    const directory = path.join(makeTemporaryDirectory(), 'locked')
+    mkdirSync(directory)
+    chmodSync(directory, 0o000)
+    try {
+      const result = await pecot(['worktree', 'init', '-D', directory], { cwd: makeTemporaryDirectory() })
+      expect(result.code).toBe(2)
+      expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain('is not readable.')
+    }
+    finally {
+      chmodSync(directory, 0o755)
+    }
   })
 })
 
@@ -870,11 +949,14 @@ describe('worktree link', () => {
   it('--dry-run を付けて打つと、何も変えない', async (context) => {
     await verifies(context, 'PW-WORKTREE-LINK-11')
     const { worktree } = await linkedProject()
-    writeFileSync(path.join(worktree, 'second.md'), 'mine')
+    const linkPath = path.join(worktree, 'CLAUDE.local.md')
+    rmSync(linkPath, { force: true })
+    writeFileSync(linkPath, 'mine')
     const result = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
     expect(result.code).toBe(0)
-    expect(existsSync(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
-    expect(readFileSync(path.join(worktree, 'second.md'), 'utf8')).toBe('mine')
+    expect(result.stderr).toContain('(real file, asks first)')
+    expect(isSymlink(linkPath)).toBe(false)
+    expect(readFileSync(linkPath, 'utf8')).toBe('mine')
     expect(result.reads).toBe(0)
   })
 
@@ -993,12 +1075,22 @@ describe('worktree link', () => {
     expect(result.stderr).toContain('is not placed in the layout pecot expects')
   })
 
+  it('-D が git の外だと、メインの worktree を見つけられず、終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-WORKTREE-LINK-27')
+    createProject()
+    const result = await pecot(['worktree', 'link', '-D', outsideGit(), '--all'])
+    expect(result.code).toBe(1)
+    // メインの worktree が無いと設定ファイルも見つからないので、文は設定ファイルが無いときと同じ
+    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init -D <directory>\n')
+  })
+
   it('--repo が今の git の remote と食い違うと、何も変えず、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-WORKTREE-LINK-28')
     await verifies(context, 'PW-WORKTREE-LINK-29')
     const { worktree } = await linkedProject()
     const result = await pecot(['--repo', 'other/thing', 'worktree', 'link', '-D', worktree])
     expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: --repo other/thing differs from the current Git remote (acme/demo)')
     expect(existsSync(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
   })
 
@@ -1099,7 +1191,7 @@ describe('worktree remove', () => {
     expect(result.stderr).toBe('removed: worktree wt1\ndeleted: local branch wt1\n')
   })
 
-  it('空のセットのディレクトリを削除できないと、warning の行を標準エラーに出す', async (context) => {
+  it.skipIf(process.getuid?.() === 0)('空のセットのディレクトリを削除できないと、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-WORKTREE-REMOVE-08')
     const { repository, root } = createProject()
     await addWorktree()
@@ -1155,6 +1247,7 @@ describe('worktree remove', () => {
     const worktree = await addWorktree()
     const result = await pecot(['--repo', 'other/thing', 'worktree', 'remove', 'wt1', '-D', repository])
     expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: --repo other/thing differs from the current Git remote (acme/demo)')
     expect(existsSync(worktree)).toBe(true)
     expect(branches(repository)).toContain('wt1')
   })

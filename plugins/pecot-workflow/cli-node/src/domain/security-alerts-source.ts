@@ -7,12 +7,7 @@
 export type ScanKind = 'code-scanning' | 'secret-scanning'
 
 /**
-結果の種類は kind で判別する。
-- ok は、取得できた。count は open の件数、numbers はそのうち番号が整数のもの。
-- disabled は、機能が無効と確かめられた。
-- unconfirmed は、一覧を読めず、無効とも確かめられなかった（権限不足など）。
-- failure は、上記以外の API エラー。message は応答本文を添えた文。
-- network は、通信の失敗（応答を得られなかった）。
+kind で判別する。unconfirmed は一覧を読めず無効とも確かめられない（権限不足など）。failure は API エラー、network は応答なし
 */
 export type ScanListResult
   = | { readonly kind: 'ok', readonly count: number, readonly numbers: readonly number[] }
