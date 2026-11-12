@@ -87,6 +87,17 @@ describe('runPreflight', () => {
     ])
   })
 
+  it('remote を渡すと、ls-remote・fetch・差分確認と誤りの文にその remote を使う', () => {
+    const { git, calls } = scriptedGit(['', '', '', '0'])
+    expect(() => runPreflight(options({ remote: 'upstream' }), git)).toThrow('no difference between upstream/main and upstream/develop-aist: there is nothing to release')
+    expect(calls).toStrictEqual([
+      ['tag', '-l', 'v0.6.1'],
+      ['ls-remote', '--tags', 'upstream', 'refs/tags/v0.6.1'],
+      ['fetch', 'upstream', 'main', 'develop-aist'],
+      ['rev-list', '--count', 'upstream/main..upstream/develop-aist'],
+    ])
+  })
+
   it('バージョン省略時は CHANGELOG から検出する', () => {
     const { git } = scriptedGit(['', '', '', '3'])
     expect(runPreflight(options({ version: undefined }), git).version).toBe('0.6.1')

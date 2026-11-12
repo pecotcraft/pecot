@@ -1,8 +1,7 @@
 // GitHub API 操作の例外。Python の cli/core/github/errors.py と同じ階層にする。
 
 import { PecotError } from '../../domain/errors.js'
-import { isJsonObject, jsonField, tryParseJsonText } from '../../domain/json.js'
-import { isJsonArray, pythonStrip } from '../../domain/python-format.js'
+import { describeErrorBody } from '../../domain/api-error-detail.js'
 
 export interface GitHubErrorDetail {
   /**
@@ -54,13 +53,7 @@ GitHubAPIError の message に、応答本文 JSON の message と errors[].mess
 422 では理由が errors[].message にだけ入ることがある（例: "Validation Failed" の詳細）
 */
 export function describeApiError(error: Readonly<GitHubAPIError>): string {
-  const body = tryParseJsonText(error.responseBody ?? '')
-  if (!isJsonObject(body)) return error.message
-  const top = jsonField(body, 'message')
-  const errors = jsonField(body, 'errors')
-  const messages = [top, ...(isJsonArray(errors) ? errors.map(item => jsonField(item, 'message')) : [])]
-  const details = messages.filter(message => typeof message === 'string').map(message => pythonStrip(message)).filter(message => message !== '')
-  return details.length === 0 ? error.message : `${error.message} ${details.join(' ')}`
+  return describeErrorBody(error.message, error.responseBody)
 }
 
 /**

@@ -20,7 +20,7 @@ import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
 import { isJsonArray, pythonStrip, ValidationFailure } from '../domain/python-format.js'
 import type { JsonValue, ValidationIssue } from '../domain/python-format.js'
-import { isDirectory, isFile } from './file-kind.js'
+import { isFile } from './file-kind.js'
 import { runGit } from './git.js'
 import { hasErrorCode, OsError, toOsError } from './os-error.js'
 import {
@@ -358,8 +358,14 @@ export function getDefaultConfig(targetRepository: string, selfRepository?: stri
 
 // Symlink 生成
 
+// pathlib と同じく末尾の / を落とす。残すと lstat が symlink をたどり、実ディレクトリと誤判定する
+function joinWithoutTrailingSlash(...segments: readonly string[]): string {
+  const joined = path.join(...segments)
+  return joined.length > 1 ? joined.replace(/\/+$/, '') : joined
+}
+
 function resolveAbsoluteTarget(projectRoot: string, link: Readonly<WorktreeLinkItem>): string {
-  return path.join(projectRoot, 'base', link.target_repo, link.target_path)
+  return joinWithoutTrailingSlash(projectRoot, 'base', link.target_repo, link.target_path)
 }
 
 /**
@@ -391,15 +397,80 @@ function isSymbolicLink(target: string): boolean {
 */
 export type OverwriteStrategy = (symlinkPath: string, targetPath: string) => boolean
 
-// 1 本の link 定義を、実際のファイルシステム操作に変換する
-function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeRoot: string, canOverwrite: OverwriteStrategy, diagnostics: Diagnostics): SymlinkResult {
-  const symlinkPath = path.join(worktreeRoot, link.path)
-  const targetPath = resolveAbsoluteTarget(projectRoot, link)
+/**
+1 本の link に対する判定値。副作用なしで求める
+*/
+export type LinkPlan = 'create' | 'update' | 'ask' | 'skip-missing' | 'skip-dangling' | 'skip-tracked' | 'skip-real-file'
 
-  if (!existsSync(targetPath)) {
-    const message = isSymbolicLink(targetPath) ? `target is a dangling symlink: ${targetPath}` : `target does not exist: ${targetPath}`
+/**
+上書きの決め方。force は確認なしで上書きし、ask は確認してから上書きする
+*/
+export interface OverwriteDecision {
+  readonly force: boolean
+  readonly ask: boolean
+}
+
+/**
+`--force` は確認なしで上書きする。`--all` は確認せずに飛ばす。1 つの worktree だけのときは確認する。
+予定の表示と本番の両方がこれを使う
+*/
+export function decideOverwrite(options: Readonly<{ readonly force: boolean, readonly allWorktrees: boolean }>): OverwriteDecision {
+  return options.force ? { force: true, ask: false } : { force: false, ask: !options.allWorktrees }
+}
+
+/**
+1 本の link をどう扱うかを判定する（stat と `git ls-files` だけを行う）。
+順は、リンク先なし → 既存の symlink → 実ファイル／ディレクトリ → 新規
+*/
+export function planLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeRoot: string, decision: Readonly<Partial<OverwriteDecision>> = {}): LinkPlan {
+  const targetPath = resolveAbsoluteTarget(projectRoot, link)
+  if (!existsSync(targetPath)) return isSymbolicLink(targetPath) ? 'skip-dangling' : 'skip-missing'
+  const symlinkPath = joinWithoutTrailingSlash(worktreeRoot, link.path)
+  if (isSymbolicLink(symlinkPath)) return 'update'
+  if (!existsSync(symlinkPath)) return 'create'
+  if (isTrackedInRepository(worktreeRoot, link.path)) return 'skip-tracked'
+  if (decision.force === true) return 'update'
+  return decision.ask === true ? 'ask' : 'skip-real-file'
+}
+
+interface LinkOverwrite {
+  readonly force: boolean
+  /**
+  force でないときの上書き可否の確認。無ければ確認せずに飛ばす
+  */
+  readonly confirm: OverwriteStrategy | undefined
+}
+
+// 再帰で消すのは lstat が実ディレクトリと答えたときだけ。symlink は共有先をたどらず unlink する
+function removeExisting(target: string): void {
+  let stats
+  try {
+    stats = lstatSync(target)
+  }
+  catch {
+    return
+  }
+  if (stats.isDirectory()) rmSync(target, { recursive: true })
+  else unlinkSync(target)
+}
+
+// 1 本の link 定義を、実際のファイルシステム操作に変換する。判定は planLink と同じ
+function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, worktreeRoot: string, overwrite: Readonly<LinkOverwrite>, diagnostics: Diagnostics): SymlinkResult {
+  const symlinkPath = joinWithoutTrailingSlash(worktreeRoot, link.path)
+  const targetPath = resolveAbsoluteTarget(projectRoot, link)
+  const plan = planLink(link, projectRoot, worktreeRoot, { force: overwrite.force, ask: overwrite.confirm !== undefined })
+
+  if (plan === 'skip-missing' || plan === 'skip-dangling') {
+    const message = plan === 'skip-dangling' ? `target is a dangling symlink: ${targetPath}` : `target does not exist: ${targetPath}`
     diagnostics.warning(message)
     return { symlinkPath, targetPath, action: 'skipped', message }
+  }
+  if (plan === 'skip-tracked') {
+    diagnostics.warning(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
+    return { symlinkPath, targetPath, action: 'error', message: `symlink creation aborted because the path is tracked by git: ${link.path}` }
+  }
+  if (plan === 'skip-real-file' || (plan === 'ask' && overwrite.confirm?.(symlinkPath, targetPath) !== true)) {
+    return { symlinkPath, targetPath, action: 'skipped', message: `a real file exists: ${symlinkPath}` }
   }
 
   let relativeTarget = path.relative(path.dirname(symlinkPath), targetPath)
@@ -408,20 +479,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
     // 親が symlink 経由でも解決できるよう、実体の親ディレクトリからの相対にする
     relativeTarget = path.relative(realpathSync(path.dirname(symlinkPath)), targetPath)
 
-    if (isSymbolicLink(symlinkPath)) {
-      unlinkSync(symlinkPath)
-    }
-    else if (existsSync(symlinkPath)) {
-      if (isTrackedInRepository(worktreeRoot, link.path)) {
-        diagnostics.warning(`symlink creation skipped because the path is tracked by git: ${symlinkPath}`)
-        return { symlinkPath, targetPath, action: 'error', message: `symlink creation aborted because the path is tracked by git: ${link.path}` }
-      }
-      if (!canOverwrite(symlinkPath, targetPath)) {
-        return { symlinkPath, targetPath, action: 'skipped', message: `a real file exists: ${symlinkPath}` }
-      }
-      if (isDirectory(symlinkPath)) rmSync(symlinkPath, { recursive: true })
-      else unlinkSync(symlinkPath)
-    }
+    removeExisting(symlinkPath)
 
     symlinkSync(relativeTarget, symlinkPath)
     return { symlinkPath, targetPath, action: 'created', message: '' }
@@ -436,19 +494,15 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
 }
 
 /**
-.pecot/.gitignore の生成スクリプトのパス。
-bin/pecot が export する CLAUDE_PLUGIN_ROOT を起点にし、無ければソースツリーの plugin ルートを起点にする。
-スクリプトの有無は問わない（無ければ呼び出し側の警告に、見当違いでない候補パスが出る）
+.pecot/.gitignore の生成スクリプトのパス。CLAUDE_PLUGIN_ROOT を起点にし、無ければソースツリーのルート。
+スクリプトの有無は問わない（無ければ呼び出し側の警告に候補パスが出る）
 */
 export function pecotGitignoreEnsureScript(): string {
   return path.join(pluginRoot(), PECOT_GITIGNORE_ENSURE_RELATIVE)
 }
 
-// .pecot/ 配下へ link を張る前に、WT の .pecot/.gitignore を用意する（#1219）。
-// link 先の symlink（hooks-config.json・projects/・work 等）は .pecot/.gitignore が ignore する前提。
-// ただしこのファイルを作るのは Claude Code の hook だけで、既定の .worktreeignore は .pecot/ をコピー対象から外す。
-// そのため WT を作った直後は symlink が未追跡として出る。symlink にした .gitignore は git が読まないので実ファイルで置く。
-// 生成に失敗しても link 作成は続ける（未追跡が見えるだけで、作業は妨げない）
+// .pecot/.gitignore は hook しか作らず、WT 作成直後は symlink が未追跡で出る（#1219）。symlink だと git が読まないので実ファイルで置く
+// 生成に失敗しても link 作成は続ける
 function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: string, diagnostics: Diagnostics): void {
   if (config.links.every(link => !link.path.startsWith(`${PECOT_DIR}/`))) return
   const script = pecotGitignoreEnsureScript()
@@ -471,7 +525,7 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
 */
 export function createSymlinks(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeRoot: string, diagnostics: Diagnostics): readonly SymlinkResult[] {
   ensurePecotGitignore(config, worktreeRoot, diagnostics)
-  return config.links.map(link => processLink(link, projectRoot, worktreeRoot, () => true, diagnostics))
+  return config.links.map(link => processLink(link, projectRoot, worktreeRoot, { force: true, confirm: undefined }, diagnostics))
 }
 
 export interface SafeSymlinkOptions {
@@ -489,7 +543,7 @@ export interface SafeSymlinkOptions {
 シンボリックリンクを安全に作る。リアルファイル／ディレクトリがあるとき、force または confirm で上書き可否を決める
 */
 export function createSymlinksSafe(config: Readonly<WorktreeConfig>, projectRoot: string, worktreeRoot: string, diagnostics: Diagnostics, options: Readonly<SafeSymlinkOptions> = {}): readonly SymlinkResult[] {
-  const canOverwrite: OverwriteStrategy = (symlinkPath, targetPath) => options.force === true || (options.confirm?.(symlinkPath, targetPath) ?? false)
+  const overwrite: LinkOverwrite = { force: options.force === true, confirm: options.confirm }
   ensurePecotGitignore(config, worktreeRoot, diagnostics)
-  return config.links.map(link => processLink(link, projectRoot, worktreeRoot, canOverwrite, diagnostics))
+  return config.links.map(link => processLink(link, projectRoot, worktreeRoot, overwrite, diagnostics))
 }

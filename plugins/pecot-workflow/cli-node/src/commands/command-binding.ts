@@ -73,7 +73,7 @@ interface BoundOption {
   readonly kind: FlagKind
   readonly valueType: ValueType
   /**
-  長い形・短い形の順
+  長い形・短い形・別名の順
   */
   readonly names: readonly string[]
   /**
@@ -89,10 +89,12 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
   const short = definition.shortFlags.get(field)
   const kind = flagKindOf(schema)
   const valueType = valueTypeOf(schema)
-  const flags = `${short === undefined ? '' : `${short}, `}${long}${kind === 'boolean' ? '' : ' <value>'}`
+  const alias = definition.aliases.get(field)
+  // commander は 2 つ並べた名前の後ろを長い形とみなし、属性名にする。別名を先に書いて、属性名を元の名前にそろえる
+  const flags = `${short === undefined ? '' : `${short}, `}${alias === undefined ? '' : `${alias}, `}${long}${kind === 'boolean' ? '' : ' <value>'}`
   const option = new Option(flags)
-  // commander は --no- で始まる名前を否定形と読む。入力名が no_ で始まる真偽値は、肯定のフラグとして扱う
-  if (kind === 'boolean' && long.startsWith('--no-')) option.negate = false
+  // `--no-copy` のような名前の入力そのものを、commander に否定形（既定が真）と読ませない
+  option.negate = false
   if (kind === 'list') option.argParser((value: string, previous: readonly string[] | undefined) => [...previous ?? [], value])
   return {
     field,
@@ -100,7 +102,7 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
     isRequired: isRequired(schema),
     kind,
     valueType,
-    names: short === undefined ? [long] : [long, short],
+    names: [long, ...short === undefined ? [] : [short], ...alias === undefined ? [] : [alias]],
     negation: kind === 'boolean' ? definition.negations.get(field) : undefined,
   }
 }
@@ -145,7 +147,7 @@ function toUsageError(
       const typedName = quoted.startsWith('--') ? quoted.replace(/=.*$/su, '') : quoted
       const booleanNames = bound.flatMap(entry => entry.kind === 'boolean' ? [entry.names[0], entry.negation] : [])
       if (typedName !== quoted && booleanNames.includes(typedName)) return new UsageError(optionTakesNoValueMessage(typedName))
-      const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.slice(0, 1), ...entry.negation === undefined ? [] : [entry.negation]])]
+      const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.filter(name => name.startsWith('--')), ...entry.negation === undefined ? [] : [entry.negation]])]
       const possibilities = typedName.startsWith('--') ? closeMatches(typedName, longNames) : []
       return new UsageError(noSuchOptionMessage(typedName, possibilities), usage)
     }

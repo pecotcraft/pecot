@@ -3,8 +3,10 @@
 import type { CommandDefinition } from './command-definition.js'
 import { ISSUE_COMMANDS } from './issue.js'
 import { PROJECT_COMMANDS } from './project.js'
+import { RELEASE_COMMANDS } from './release.js'
 import { REPOSITORY_COMMANDS } from './repository.js'
 import { SESSION_COMMANDS } from './session.js'
+import { WORKTREE_COMMANDS } from './worktree.js'
 
 export { defineCommand, toolNameOf } from './command-definition.js'
 export type { CommandDefinition, CommandIo, PreparedCommand } from './command-definition.js'
@@ -12,7 +14,14 @@ export type { CommandDefinition, CommandIo, PreparedCommand } from './command-de
 /**
 移植済みのコマンド
 */
-export const COMMANDS: readonly CommandDefinition[] = [...REPOSITORY_COMMANDS, ...PROJECT_COMMANDS, ...ISSUE_COMMANDS, ...SESSION_COMMANDS]
+export const COMMANDS: readonly CommandDefinition[] = [
+  ...REPOSITORY_COMMANDS,
+  ...PROJECT_COMMANDS,
+  ...ISSUE_COMMANDS,
+  ...SESSION_COMMANDS,
+  ...WORKTREE_COMMANDS,
+  ...RELEASE_COMMANDS,
+]
 
 export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {
   return commands.find(command => command.path.join(' ') === path.join(' '))
