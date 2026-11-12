@@ -36,7 +36,7 @@ export const STATUS_FIELD_NAME = 'Status'
 workflow フィールドに作る選択肢。作る順でもある
 */
 export const WORKFLOW_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
-  { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here by hand from Ready or Backlog when deprioritized.' },
+  { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' },
   { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' },
   BLOCKED_OPTION,
   { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' },
