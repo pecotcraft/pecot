@@ -1,10 +1,11 @@
 // Bash の pecot 起動の deny（hooks/lib/core/pecot-cli-deny.sh）を確かめる。
 // claude-bash-guards.sh からの接続は lib/bash-guard-responses.test.ts で確かめる。ここでは HOOK_COMMAND を直接渡して起動する。
-import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { createHookCase } from './_helpers/environment.js'
+import { runShell } from './_helpers/run.js'
 import type { HookRun } from './_helpers/run-hook.js'
 import { createProject, runHook, writeHooksConfig } from './_helpers/run-hook.js'
 
@@ -71,7 +72,7 @@ function runDeny(command: string, projectDirectory = createProject()): HookRun {
 describe('pecot-cli-deny', () => {
   it('34 コマンドの MCP ツール名が、hooks の一覧と一致する', () => {
     const script = path.resolve(import.meta.dirname, '../../../hooks/lib/core/pecot-tool-names.sh')
-    const result = spawnSync('bash', ['-c', String.raw`source "$1"; printf "%s\n" $PECOT_TOOL_NAMES`, '_', script], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
+    const result = runShell(createHookCase(), String.raw`source "$1"; printf "%s\n" $PECOT_TOOL_NAMES`, [script])
     expect(commands.map(words => toolOf(words)).toSorted(compareText)).toEqual(result.stdout.split('\n').filter(Boolean).toSorted(compareText))
   })
 

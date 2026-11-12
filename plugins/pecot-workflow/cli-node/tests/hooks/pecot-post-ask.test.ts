@@ -1,10 +1,11 @@
 // 投稿の ask（hooks/lib/mcp-handlers/pecot-post-ask.sh）を、MCP の入力 JSON で確かめる。
 // エントリの pre-tool-use-mcp.sh から流し、ask の段を足しても deny と allow が変わらないことも確かめる。
-import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { createHookCase } from './_helpers/environment.js'
+import { runShell } from './_helpers/run.js'
 import type { HookRun } from './_helpers/run-hook.js'
 import { createProject, runHook, writeHooksConfig, writeStateFlag } from './_helpers/run-hook.js'
 
@@ -52,8 +53,8 @@ function outputOf(toolName: string, toolInput: unknown, project = createProject(
 function expectedReason(guidance: string): string {
   const core = path.resolve(import.meta.dirname, '../../../hooks/lib/core')
   const script = 'source "$1/hook-message.sh"; source "$1/mcp-guidance.sh"; hook_message warning "$($2)"'
-  const result = spawnSync('bash', ['-c', script, '_', core, guidance], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
-  expect(result.status).toBe(0)
+  const result = runShell(createHookCase(), script, [core, guidance])
+  expect(result.exitCode).toBe(0)
   return result.stdout.trimEnd()
 }
 

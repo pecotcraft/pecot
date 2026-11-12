@@ -1,9 +1,11 @@
 // 移行後の案内文（hooks/lib/core/mcp-guidance.sh）を固定する。
 // 各関数の出力の全文と、対応する MCP ツール名があり、pecot の起動形が無いことを確かめる。
-import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+
+import { createHookCase } from './_helpers/environment.js'
+import { runShell } from './_helpers/run.js'
 
 const guidanceScript = path.resolve(import.meta.dirname, '../../../hooks/lib/core/mcp-guidance.sh')
 
@@ -32,8 +34,8 @@ const guidances = [
 ]
 
 function guidanceOf(shellFunction: string): string {
-  const result = spawnSync('bash', ['-c', 'source "$1"; "$2"', '_', guidanceScript, shellFunction], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
-  expect(result.status).toBe(0)
+  const result = runShell(createHookCase(), 'source "$1"; "$2"', [guidanceScript, shellFunction])
+  expect(result.exitCode).toBe(0)
   return result.stdout
 }
 
