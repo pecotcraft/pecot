@@ -299,13 +299,13 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: 移した pytest のケースのすべてに、対応する vitest のケースがある。件数は、移行元のケースとの対応でファイルごとに比べる。起動スクリプトの一覧が `baseline.json` の `hooks.scripts` を全部含む
 
-- [ ] T051 [P] [US4] `hooks/tests/` の pytest（27 ファイル）を、vitest で `cli-node/tests/hooks/` に移す。
+- [x] T051 [P] [US4] `hooks/tests/` の pytest（27 ファイル）を、vitest で `cli-node/tests/hooks/` に移す。
   shell は `child_process.spawnSync` で起動し、stdin・env・終了コード・stdout を確かめる。今の pass 2 の条件（空の設定と `GIT_DIR` の export）も残す。
-- [ ] T052 [P] [US4] `hooks/lib/tests/` の pytest（35 ファイル）を、同じ方法で移す。
-- [ ] T053 [US4] 移したファイルごとに、pytest のケースと vitest のケースの対応を作り、件数を比べる。対応表は `.pecot/work/<Issue番号>/` に残す。
+- [x] T052 [P] [US4] `hooks/lib/tests/` の pytest（35 ファイル）を、同じ方法で移す。
+- [x] T053 [US4] 移したファイルごとに、pytest のケースと vitest のケースの対応を作り、件数を比べる。対応表は `.pecot/work/<Issue番号>/` に残す。
   比べるのは、pytest の JUnit と vitest の JUnit（`cli-node/test-results/junit-hooks.xml`）である。`scripts/ci/compare_junit.py` を使うなら、ケース名をそろえて移す。
   フェーズ 8 が足した新しいケースは、`baseline.json` の `hooks.testCount`（1,569 件）との比較から除く。
-- [ ] T054 [US4] `cli-node/tests/hooks/baseline-scripts.test.ts` に確認を足す。テストが起動するスクリプトの一覧が `hooks.scripts` を全部含むことを見る。消したスクリプトは除く。
+- [x] T054 [US4] `cli-node/tests/hooks/baseline-scripts.test.ts` に確認を足す。テストが起動するスクリプトの一覧が `hooks.scripts` を全部含むことを見る。消したスクリプトは除く。
   `test-hooks` レーンは、移行中は pytest と vitest の両方を流す。直す先は `project.json` と `scripts/ci/run-tests.sh` である。
 
 **Checkpoint**: vitest だけで hooks の全ケースが流れる。移行元の全ケースに対応が付いている。pytest もまだ残っている。`.mcp.json`・`bin/pecot`・`skills/` に差分が無い
