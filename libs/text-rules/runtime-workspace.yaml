@@ -9,7 +9,7 @@ packages: []
 
 catalog:
   # vite の範囲の唯一の定義。lockfile-single-version.test.ts が @slidev/cli の vite の範囲の中にあるかを見る。
-  vite: ^8.3.7
+  vite: ^8.3.8
 
 overrides:
   # puppeteer の postinstall が Chrome を取得するのを避ける。pecotv は dom-to-pptx の bundle しか使わない (#1062)。
