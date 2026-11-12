@@ -10,6 +10,7 @@ import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 
 import { setChildStdin } from '../infra/child-stdin.js'
 import { createOutput } from '../commands/output.js'
+import { UNDETERMINED_PREFIX, resolveSessionDirectory, unusableReason } from './session-directory.js'
 import { createMcpServer } from './server.js'
 import type { McpServerOptions } from './server.js'
 
@@ -85,10 +86,11 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
   return protocolStdout
 }
 
-type McpReportUnexpected = NonNullable<McpServerOptions['reportUnexpected']>
-
 export interface McpServeDependencies {
-  readonly createServer: (reportUnexpected: McpReportUnexpected) => McpServer
+  /**
+  options.unavailableReason があるとき、サーバはどのツールの呼び出しにもその理由を返す（対象のリポを決められなかったとき）
+  */
+  readonly createServer: (options: Readonly<McpServerOptions>) => McpServer
   readonly createTransport: (stdin: Readable, stdout: Writable) => Transport
   /**
   stdout のガードを張り、JSON-RPC 専用の Writable を返す
@@ -96,6 +98,18 @@ export interface McpServeDependencies {
   readonly installStdoutGuard: () => Writable
   readonly stdin: Readable
   readonly stderr: WritableTarget
+  /**
+  セッションのディレクトリの判定に使う環境変数。読む名前は session-directory.ts にある
+  */
+  readonly environment: Readonly<Record<string, string | undefined>>
+  /**
+  起動したときの作業ディレクトリを読む。読めない（消えている）ときは投げる
+  */
+  readonly cwd: () => string
+  /**
+  作業ディレクトリを移す。失敗したら投げる
+  */
+  readonly changeDirectory: (directory: string) => void
 }
 
 function messageOf(error: unknown): string {
@@ -117,7 +131,7 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
     reportedErrors.add(error)
     reportError(error.message)
   }
-  const reportUnexpected: McpReportUnexpected = (error, collected) => {
+  const reportUnexpected: NonNullable<McpServerOptions['reportUnexpected']> = (error, collected) => {
     reportError(error instanceof Error ? (error.stack ?? error.message) : String(error))
     if (collected.stdout !== '') reportError(`stdout so far: ${collected.stdout}`)
     if (collected.stderr !== '') reportError(`stderr so far: ${collected.stderr}`)
@@ -126,7 +140,7 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
   const handle = serveStdio(
     () => {
       try {
-        const server = dependencies.createServer(reportUnexpected)
+        const server = dependencies.createServer({ reportUnexpected })
         // eslint-disable-next-line unicorn/prefer-add-event-listener -- SDK の Protocol は onerror 経由で通知する
         server.server.onerror = report
         return server
@@ -143,14 +157,53 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
   return handle
 }
 
+// セッションのディレクトリの判定が読む環境変数
+function hostEnvironment(): Record<string, string | undefined> {
+  return {
+    CLAUDE_PLUGIN_ROOT: process.env['CLAUDE_PLUGIN_ROOT'],
+    PLUGIN_ROOT: process.env['PLUGIN_ROOT'],
+    COPILOT_PLUGIN_ROOT: process.env['COPILOT_PLUGIN_ROOT'],
+    COPILOT_SESSION_CWD: process.env['COPILOT_SESSION_CWD'],
+    CLAUDE_PROJECT_DIR: process.env['CLAUDE_PROJECT_DIR'],
+  }
+}
+
 export function defaultDependencies(): McpServeDependencies {
   return {
-    createServer: reportUnexpected => createMcpServer(undefined, { reportUnexpected }),
+    createServer: options => createMcpServer(undefined, options),
     createTransport: (stdin, stdout) => new StdioServerTransport(stdin, stdout),
     /* v8 ignore next -- 実 process.stdout を差し替えるので、単体テストからは起動しない（ガード本体は偽の stream で確かめる） */
     installStdoutGuard: () => installStdoutGuard(process.stdout, process.stderr),
     stdin: process.stdin,
     stderr: process.stderr,
+    environment: hostEnvironment(),
+    cwd: () => process.cwd(),
+    changeDirectory: (directory) => {
+      process.chdir(directory)
+    },
+  }
+}
+
+/**
+対象のリポを見るディレクトリを決めて移る。決められない（cwd を読めない、判定の結果、移るのに失敗）ときは理由を返す
+*/
+function moveToSessionDirectory(dependencies: Readonly<McpServeDependencies>): string | undefined {
+  let cwd: string
+  try {
+    cwd = dependencies.cwd()
+  }
+  catch (error: unknown) {
+    return `${UNDETERMINED_PREFIX}: cannot read the current directory: ${messageOf(error)}`
+  }
+  const decision = resolveSessionDirectory(dependencies.environment, cwd)
+  if (decision.kind === 'stay') return undefined
+  if (decision.kind === 'undetermined') return decision.reason
+  try {
+    dependencies.changeDirectory(decision.directory)
+    return undefined
+  }
+  catch (error: unknown) {
+    return unusableReason(decision.variable, decision.value, decision.directory, messageOf(error))
   }
 }
 
@@ -158,11 +211,21 @@ export function defaultDependencies(): McpServeDependencies {
 `pecot mcp` の本体。子プロセスの stdin を切り離してから待ち受ける。起動できたら 0、同期の起動の失敗は stderr に出して 1 を返す
 */
 export function executeMcpServe(buildDependencies: () => McpServeDependencies = defaultDependencies): number {
-  const dependencies = buildDependencies()
+  let dependencies: McpServeDependencies
+  try {
+    dependencies = buildDependencies()
+  }
+  catch (error: unknown) {
+    reportTo(process.stderr)(messageOf(error))
+    return 1
+  }
   // 子が JSON-RPC のパイプ（fd 0）を読むと、メッセージを食う
   setChildStdin('ignore')
   try {
-    runMcpServe(dependencies)
+    // 移るのは起動の 1 回だけ。決められなくても起動し、ツールの呼び出しで理由を返す（起動に失敗したサーバは、ホストにはツールが無いように見える）
+    const unavailableReason = moveToSessionDirectory(dependencies)
+    if (unavailableReason !== undefined) reportTo(dependencies.stderr)(unavailableReason)
+    runMcpServe({ ...dependencies, createServer: options => dependencies.createServer({ ...options, unavailableReason }) })
     return 0
   }
   catch (error: unknown) {

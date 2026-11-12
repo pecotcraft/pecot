@@ -6,9 +6,15 @@ environment:
   - name: PECOT_SESSION_PROJECT_DIR
     effect: When the working directory is inside <value>/.pecot/work (with no nested git repository in between), <value> becomes the project root instead of the git toplevel. CLAUDE_PROJECT_DIR takes precedence.
   - name: CLAUDE_PROJECT_DIR
-    effect: Used as the project root when set, ahead of PECOT_SESSION_PROJECT_DIR and the git toplevel. The config files, the active project setting and the work directories are looked up under it.
+    effect: Used as the project root when set, ahead of PECOT_SESSION_PROJECT_DIR and the git toplevel. The config files, the active project setting and the work directories are looked up under it. In `pecot mcp`, when the server is started inside the plugin directory, COPILOT_SESSION_CWD is unset and COPILOT_PLUGIN_ROOT is unset, the server moves to this directory. When COPILOT_PLUGIN_ROOT is set, the value is not used, because it was inherited from the shell that started GitHub Copilot CLI.
   - name: CLAUDE_PLUGIN_ROOT
-    effect: Locates the plugin directory. The version shown by --version is read from .claude-plugin/plugin.json under it, and the scripts that worktree commands run are looked up under it.
+    effect: Locates the plugin directory. The version shown by --version is read from .claude-plugin/plugin.json under it, and the scripts that worktree commands run are looked up under it. In `pecot mcp`, a working directory inside this directory, or inside the directory named by PLUGIN_ROOT, means the host started the server in the plugin directory instead of the session directory.
+  - name: PLUGIN_ROOT
+    effect: Read only by `pecot mcp`. The plugin directory that the Agent Plugins 1.0 specification promises to the server. A working directory inside it, or inside CLAUDE_PLUGIN_ROOT, means the host started the server in the plugin directory instead of the session directory. An empty value is ignored.
+  - name: COPILOT_PLUGIN_ROOT
+    effect: Read only by `pecot mcp`, and only whether it is set. When it is set, GitHub Copilot CLI started the server, and CLAUDE_PROJECT_DIR is not used to decide the session directory. An empty value is ignored.
+  - name: COPILOT_SESSION_CWD
+    effect: Read only by `pecot mcp`. When the server is started inside the plugin directory (CLAUDE_PLUGIN_ROOT), the server moves to this directory once at startup and treats it as the session directory, ahead of CLAUDE_PROJECT_DIR. A value that is not an existing directory makes every tool call fail with exit status 1 and a reason that names the variable and the value. Without it, GitHub Copilot CLI older than 1.0.106 makes every tool call fail with exit status 1 and a reason that asks for an upgrade. An empty value is ignored.
   - name: PECOT_GITHUB_*_TOKEN
     effect: Supplies the GitHub token for a host. The variable name is the env_var of that host in .pecot/config/hosts.json. Without an entry, the name is PECOT_GITHUB_COM_TOKEN for github.com, and PECOT_GITHUB_<HOST>_TOKEN for any other host, where <HOST> is the host name in upper case with each . replaced by _. The variable is read from the environment, after .pecot/config/.env is loaded; a line in that file does not overwrite an existing environment variable. When no token is found, GITHUB_COM_TOKEN is used for github.com, and then the token from gh auth token. When the token is rejected with 401, the command retries once with the token from gh auth token and writes a warning line; this also applies to the token from GITHUB_COM_TOKEN.
   - name: GITHUB_COM_TOKEN
