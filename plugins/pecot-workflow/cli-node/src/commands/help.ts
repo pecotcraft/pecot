@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は readonly にできない */
-// ルートとグループの説明。Python の CLI（typer）が rich で出していた枠付きの書式を写す。
-//
-// 表の幅は、各列の最大のセル数に列の間の空白 2 を足したもの。説明の列が残りを取る。
-// 端末が狭く、説明の列が足りなくなるときの、rich の列の縮め方は写していない。
+// ルートとグループの説明。枠を使わず、コマンドごとの --help と同じ「見出し + 字下げした 2 列」の書式で出す（help-layout.ts）。
+// 節は Usage、説明、Options、Commands の順。中身の無い節は出さない。
+import { definitionSection, HELP_OPTION, paragraph, usageLines } from './help-layout.js'
+import type { DefinitionRow } from './help-layout.js'
 import type { CommandDefinition } from './registry.js'
-import { cellLength, framePanel, padCells, wrapText } from './rich-panel.js'
 
 export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - work tracking on GitHub Projects'
 
@@ -19,55 +18,19 @@ const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
   ['worktree', 'Work with worktrees'],
 ])
 
-/**
-オプションの表の 1 行。列は rich の表と同じ並び。長い形、短い形、否定の長い形、否定の短い形、型、説明の順
-*/
-interface OptionRow {
-  readonly cells: readonly [string, string, string, string, string]
-  readonly help: string
-}
-
-function optionRow(long: string, short: string, metavar: string, help: string): OptionRow {
-  return { cells: [long, short, '', '', metavar], help }
-}
-
-const HELP_ROW = optionRow('--help', '', '', 'Show this message and exit.')
-
-const ROOT_OPTION_ROWS: readonly OptionRow[] = [
-  optionRow('--version', '-v', '', 'Show the version'),
-  optionRow('--repo', '', '<str>', 'Target repository, given explicitly as \'owner/repo\''),
-  optionRow('--show-repo', '', '', 'Show the resolved repository and where it came from, then exit'),
-  optionRow('--install-completion', '', '', 'Install completion for the current shell.'),
-  optionRow('--show-completion', '', '', 'Show completion for the current shell, to copy it or customize the installation.'),
-  HELP_ROW,
+const ROOT_OPTIONS: readonly DefinitionRow[] = [
+  { name: '-v, --version', description: 'Show the version' },
+  { name: '--repo <owner/repo>', description: 'Target repository, given explicitly as \'owner/repo\'' },
+  { name: '--show-repo', description: 'Show the resolved repository and where it came from, then exit' },
+  HELP_OPTION,
 ]
 
-const COLUMN_GAP = 2
-
-/**
-表の行を、説明を折り返して並べる。最後の列が説明で、残りの幅を取る
-*/
-function tableLines(rows: readonly (readonly [readonly string[], string])[], inner: number): readonly string[] {
-  const columnCount = Math.max(0, ...rows.map(([cells]) => cells.length))
-  const widths = Array.from({ length: columnCount }, (_, column) => Math.max(0, ...rows.map(([cells]) => cellLength(cells.slice(column, column + 1).join('')))))
-  const fixed = widths.reduce((total, width) => total + width + COLUMN_GAP, 0)
-  const helpWidth = Math.max(1, inner - fixed)
-  return rows.flatMap(([cells, help]) => {
-    const prefix = cells.map((cell, column) => padCells(cell, Math.max(0, ...widths.slice(column, column + 1)) + COLUMN_GAP)).join('')
-    const helpLines = wrapText(help, helpWidth, 'ellipsis')
-    return helpLines.map((line, index) => index === 0 ? `${prefix}${line}` : `${' '.repeat(fixed)}${line}`)
-  })
-}
-
-interface Entry {
-  readonly name: string
-  readonly description: string
-}
+const ROOT_FOOTER = 'Run \'pecot COMMAND --help\' for the arguments and options of a command.'
 
 /**
 path の直下のコマンドとグループ。単独のコマンドが先、グループが後で、それぞれ登録順
 */
-function entriesOf(path: readonly string[], commands: readonly CommandDefinition[]): readonly Entry[] {
+function entriesOf(path: readonly string[], commands: readonly CommandDefinition[]): readonly DefinitionRow[] {
   const level = path.length
   const direct = commands.filter(command => command.path.length === level + 1 && path.every((segment, index) => command.path.at(index) === segment))
   const groups = commands
@@ -79,29 +42,20 @@ function entriesOf(path: readonly string[], commands: readonly CommandDefinition
   ]
 }
 
-function paddedLines(text: string, width: number): readonly string[] {
-  return wrapText(text, width - 2).map(line => ` ${padCells(line, width - 2)} `)
-}
-
 /**
-path のグループ（空ならルート）の説明。用法、説明、オプションの枠、コマンドの枠の順。
-末尾は枠の改行で終わる。--help ではこの後ろに空行が付く
+path のグループ（空ならルート）の説明。Usage、説明、Options、Commands の順で、ルートだけ末尾に 1 行の案内が付く。
+末尾は改行で終わる。--help と引数なしの呼び出しは、どちらもこの文字列をそのまま出す
 */
 export function helpText(path: readonly string[], commands: readonly CommandDefinition[], width = 80): string {
-  const blank = ' '.repeat(width)
-  const description = path.length === 0 ? PROGRAM_DESCRIPTION : GROUP_DESCRIPTIONS.get(path.slice(0, 1).join('')) ?? ''
-  const usage = ['pecot', ...path, '[OPTIONS] COMMAND [ARGS]...'].join(' ')
-  const header = [
-    blank,
-    ...paddedLines(`Usage: ${usage}`, width),
-    blank,
-    ...description === '' ? [] : [...paddedLines(description, width), blank],
-  ]
-  const inner = width - 4
-  const optionRows = path.length === 0 ? ROOT_OPTION_ROWS : [HELP_ROW]
-  const options = framePanel('Options', tableLines(optionRows.map(row => [row.cells, row.help]), inner), width)
+  const isRoot = path.length === 0
+  const description = isRoot ? PROGRAM_DESCRIPTION : GROUP_DESCRIPTIONS.get(path.slice(0, 1).join('')) ?? ''
   const entries = entriesOf(path, commands)
-  const commandRows = entries.map((entry): readonly [readonly string[], string] => [[entry.name], entry.description])
-  const commandsPanel = entries.length === 0 ? '' : framePanel('Commands', tableLines(commandRows, inner), width)
-  return `${header.join('\n')}\n${options}${commandsPanel}`
+  const sections = [
+    usageLines(['pecot', ...path, '[OPTIONS] COMMAND [ARGS]...'].join(' '), width),
+    ...description === '' ? [] : [paragraph(description, width)],
+    definitionSection('Options', isRoot ? ROOT_OPTIONS : [HELP_OPTION], width),
+    ...entries.length === 0 ? [] : [definitionSection('Commands', entries, width)],
+    ...isRoot ? [paragraph(ROOT_FOOTER, width)] : [],
+  ]
+  return `${sections.join('\n\n')}\n`
 }

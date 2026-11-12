@@ -162,13 +162,6 @@ describe('rich-panel', () => {
     expect(wrapText('日', 1)).toEqual([' '])
   })
 
-  it('wrapText の ellipsis は、長すぎる語を切って末尾を … にする。2 セルの文字の途中なら空白で埋める', () => {
-    expect(wrapText('あいう', 4, 'ellipsis')).toEqual(['あ …'])
-    expect(wrapText('a\u{2764}\u{FE0F}b', 3, 'ellipsis')).toEqual(['a …'])
-    expect(wrapText('abc', 1, 'ellipsis')).toEqual(['…'])
-    expect(wrapText('ab cdefghij kl', 5, 'ellipsis')).toEqual(['ab ', 'cdef…', 'kl'])
-  })
-
   it('wrapText は幅を超える末尾の空白だけを落とす', () => {
     expect(wrapText('abc   ', 4)).toEqual(['abc '])
     expect(wrapText('abcd  ', 4)).toEqual(['abcd'])

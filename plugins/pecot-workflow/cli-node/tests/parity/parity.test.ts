@@ -1,6 +1,7 @@
 // Node の CLI でシナリオを流し、Python の CLI から作った golden と比べる。
 // 移植済みの一覧（PORTED）に無いコマンドは「golden と一致しない」ことを確かめる。
 // 一覧に入れたコマンドは「一致する」ことを確かめる。
+// help を stdout に出す 4 件は、書式を Node で決めたので stdout だけ golden と比べない（SCENARIOS_WITH_NODE_HELP）。
 // it.fails を使わないのは、本体のどこで throw しても通ってしまうため。
 // build が無い、起動の失敗、git の失敗が「期待どおりの失敗」として緑になる。
 import { existsSync } from 'node:fs'
@@ -26,13 +27,22 @@ help の一覧や「近いコマンド」の案内は、Python の全 34 コマ�
 全コマンドが registry に入るまでは、登録の進み具合で結果が変わるので、golden と比べない
 */
 const SCENARIOS_NEEDING_ALL_COMMANDS: ReadonlySet<string> = new Set([
+  'global-usage-command-suggestion',
+  'global-usage-command-suggestion-group',
+  'global-usage-group-missing-command',
+])
+
+/**
+help を stdout に出すシナリオ。help の書式は Node で決めた（#362）ので、stdout は golden と比べない。
+stdout 以外（終了コード・stderr・要求・ファイル）は golden と同じであること、stdout は golden と違うことを確かめる。
+stdout の中身は src/commands/tests/help.test.ts が Node の期待値で確かめる。
+コマンドの一覧は stdout にだけ出るので、全コマンドが登録される前でも比べられる
+*/
+const SCENARIOS_WITH_NODE_HELP: ReadonlySet<string> = new Set([
   'global-ok-help',
   'global-ok-help-group',
   'global-ok-help-after-double-dash',
   'global-usage-no-args',
-  'global-usage-command-suggestion',
-  'global-usage-command-suggestion-group',
-  'global-usage-group-missing-command',
 ])
 
 // issue reopen は 3 秒待つ。子プロセスの時間切れ（25 秒）より長くする
@@ -49,7 +59,16 @@ function isAllCommandsPorted(): boolean {
   return COMMAND_PATHS.every(commandPath => isPorted(commandPath))
 }
 
-function expectParity(actual: Golden, golden: Golden, isPortedCommand: boolean): void {
+/**
+isNodeHelp は help の書式を Node で決めたシナリオ。stdout 以外が golden と同じで、stdout は golden と違う help であること
+*/
+function expectParity(actual: Golden, golden: Golden, isPortedCommand: boolean, isNodeHelp: boolean): void {
+  if (isNodeHelp) {
+    expect({ ...actual, stdout: '' }).toEqual({ ...golden, stdout: '' })
+    expect(actual.stdout).not.toBe(golden.stdout)
+    expect(actual.stdout).toContain('Usage: pecot')
+    return
+  }
   if (isPortedCommand) {
     expect(actual).toEqual(golden)
     return
@@ -76,9 +95,10 @@ describe('前後比較', () => {
     // 全コマンドが登録されるまでは比べない。合格に見せず skipped と出す
     if (SCENARIOS_NEEDING_ALL_COMMANDS.has(id) && !isAllCommandsPorted()) context.skip()
     const isPortedCommand = isPorted(scenario.command.path)
-    // 移植済みのコマンドは、偽サーバの誤りと使われなかった応答も無いこと
-    expect(isPortedCommand ? outcome.problems : []).toEqual([])
-    expect(isPortedCommand ? outcome.unused : []).toEqual([])
-    expectParity(outcome.golden, golden, isPortedCommand)
+    const isNodeHelp = SCENARIOS_WITH_NODE_HELP.has(id)
+    // 移植済みのコマンドと help は、偽サーバの誤りと使われなかった応答も無いこと
+    expect(isPortedCommand || isNodeHelp ? outcome.problems : []).toEqual([])
+    expect(isPortedCommand || isNodeHelp ? outcome.unused : []).toEqual([])
+    expectParity(outcome.golden, golden, isPortedCommand, isNodeHelp)
   })
 })

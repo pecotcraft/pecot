@@ -49,6 +49,15 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
 }
 
 /**
+コマンド名が決まった後の argv に、`--` より前の `--help` があるか。
+あれば、ほかの引数は検証せずに help を出す。`--help -1` と `--base --help` が、その例。`--` の後ろの `--help` は位置引数
+*/
+export function isHelpRequested(argv: readonly string[]): boolean {
+  const end = argv.indexOf('--')
+  return (end === -1 ? argv : argv.slice(0, end)).includes('--help')
+}
+
+/**
 typer の Usage 行に出す書式。
 位置引数は名前のまま並べ、必須なら `{issue_ref}`、任意なら `[version]` にする。複数なら `...` を付ける
 */
@@ -244,7 +253,7 @@ function withRepository(definition: Readonly<CommandDefinition>, input: Readonly
 /**
 定義したコマンドを argv（コマンド名より後ろ）で実行して、終了コードを返す。
 グローバルの --repo は repo で渡し、入力 repo にする。
-使い方の誤りは UsageError を投げる。--help は説明を stdout に出して 0 を返す。
+使い方の誤りは UsageError を投げる。--help は扱わない（help は cli.ts の execute が isHelpRequested で先に出す）ので、ここでは未知のオプション。
 UsageError にするのは解析と入力の検証（parse）の誤りだけで、本体（run）の例外はそのまま伝える
 */
 export async function runDefinition(
@@ -258,10 +267,10 @@ export async function runDefinition(
   const command = new Command(definition.path.join(' '))
   command
     .description(definition.description)
-    .helpOption('--help', 'Show this message and exit.')
+    .helpOption(false)
     .allowExcessArguments(true)
     .exitOverride()
-    .configureOutput({ writeOut: io.stdout, writeErr: discard, outputError: discard })
+    .configureOutput({ writeOut: discard, writeErr: discard, outputError: discard })
   for (const name of definition.positional) {
     command.argument(isListField(definition, name) ? `[${argumentLabel(name)}...]` : `[${argumentLabel(name)}]`)
   }
@@ -270,17 +279,14 @@ export async function runDefinition(
     if (negation !== undefined) command.addOption(new Option(negation))
   }
 
-  // 負数に見える語があれば、その手前までを解析する。手前の誤りを先に出し、--help も出さずに、その語を断る
+  // 負数に見える語があれば、その手前までを解析する。手前の誤りを先に出し、その語を断る
   const negativeIndex = negativeNumberIndex(argv, bound)
-  if (negativeIndex !== undefined) command.configureOutput({ writeOut: discard, writeErr: discard, outputError: discard })
   try {
     await command.parseAsync(negativeIndex === undefined ? [...argv] : argv.slice(0, negativeIndex), { from: 'user' })
   }
   catch (error: unknown) {
     if (!(error instanceof CommanderError)) throw error
-    const isHelp = error.code === 'commander.helpDisplayed' || error.code === 'commander.help'
-    if (!isHelp) throw toUsageError(error, argv, bound, usage)
-    if (negativeIndex === undefined) return 0
+    throw toUsageError(error, argv, bound, usage)
   }
   const negativeWord = negativeIndex === undefined ? undefined : argv.at(negativeIndex)
   if (negativeWord !== undefined) throw new UsageError(noSuchOptionMessage(negativeWord.slice(0, 2)), usage)

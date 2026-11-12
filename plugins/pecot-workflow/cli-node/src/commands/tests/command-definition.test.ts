@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { runDefinition } from '../command-binding.js'
-import { CommandExit, defineCommand } from '../command-definition.js'
+import { CommandExit, defineCommand, interfaceIdOf } from '../command-definition.js'
 import { BaseError } from '../../domain/errors.js'
 import { UsageError } from '../usage-error.js'
 import { capture, exitWith } from './support.js'
@@ -118,5 +118,13 @@ describe('hasOwnRepo', () => {
 
   it('--repo の形が refine に通らないと、Invalid value for \'--repo\' の使い方の誤りにする', async () => {
     await expect(runDefinition(own, ['n', '--repo', 'bad'], capture())).rejects.toMatchObject({ message: 'Invalid value for \'--repo\': bad' })
+  })
+})
+
+describe('interfaceIdOf', () => {
+  it('path を大文字にして、空白と _ を - にし、PW- を付ける', () => {
+    expect(interfaceIdOf(['create-branch'])).toBe('PW-CREATE-BRANCH')
+    expect(interfaceIdOf(['issue', 'create'])).toBe('PW-ISSUE-CREATE')
+    expect(interfaceIdOf(['session', 'set_title'])).toBe('PW-SESSION-SET-TITLE')
   })
 })

@@ -182,9 +182,8 @@ function keepCells(characters: readonly string[], cells: number): readonly strin
   return characters
 }
 
-function truncateCells(characters: readonly string[], width: number, overflow: 'ellipsis' | 'fold'): readonly string[] {
-  if (cellLengthOf(characters) <= width) return characters
-  return overflow === 'ellipsis' ? [...keepCells(characters, width - 1), '…'] : keepCells(characters, width)
+function truncateCells(characters: readonly string[], width: number): readonly string[] {
+  return cellLengthOf(characters) <= width ? characters : keepCells(characters, width)
 }
 
 function isSpaceAt(characters: readonly string[], index: number): boolean {
@@ -211,9 +210,9 @@ function nextWord(characters: readonly string[], start: number): Word | undefine
 }
 
 /**
-折り返す位置（文字の添字）を返す。fold が偽なら、長すぎる語は折らずに切る
+折り返す位置（文字の添字）を返す。長すぎる語は幅の単位で折る
 */
-function divideLine(characters: readonly string[], width: number, isFold: boolean): readonly number[] {
+function divideLine(characters: readonly string[], width: number): readonly number[] {
   const breaks: number[] = []
   let cellOffset = 0
   let word = nextWord(characters, 0)
@@ -225,18 +224,12 @@ function divideLine(characters: readonly string[], width: number, isFold: boolea
       cellOffset += cellLengthOf(wholeWord)
     }
     else if (wordLength > width) {
-      if (isFold) {
-        const pieces = chopCells(wholeWord, width)
-        let position = start
-        for (const [pieceIndex, piece] of pieces.entries()) {
-          if (position > 0) breaks.push(position)
-          if (pieceIndex === pieces.length - 1) cellOffset = cellLengthOf(piece)
-          else position += piece.length
-        }
-      }
-      else {
-        if (start > 0) breaks.push(start)
-        cellOffset = cellLengthOf(wholeWord)
+      const pieces = chopCells(wholeWord, width)
+      let position = start
+      for (const [pieceIndex, piece] of pieces.entries()) {
+        if (position > 0) breaks.push(position)
+        if (pieceIndex === pieces.length - 1) cellOffset = cellLengthOf(piece)
+        else position += piece.length
       }
     }
     else if (cellOffset > 0) {
@@ -260,15 +253,15 @@ function stripExcessWhitespace(characters: readonly string[], width: number): re
 
 /**
 幅に収まるように折り返した行を返す。短い行を空白で埋めはしない。
-入力の改行はそのまま行の区切りにする。長すぎる語は、折る（fold）か、切って末尾を … にする（ellipsis）かを選べる
+入力の改行はそのまま行の区切りにする。長すぎる語は幅の単位で折る
 */
-export function wrapText(text: string, width: number, overflow: 'ellipsis' | 'fold' = 'fold'): readonly string[] {
+export function wrapText(text: string, width: number): readonly string[] {
   return text.split('\n').flatMap((line) => {
     const characters = splitCodePoints(line)
-    const offsets = [0, ...divideLine(characters, width, overflow === 'fold'), characters.length]
+    const offsets = [0, ...divideLine(characters, width), characters.length]
     return offsets.slice(0, -1).map((from, index) => {
       const piece = characters.slice(from, offsets.at(index + 1))
-      return truncateCells(stripExcessWhitespace(piece, width), width, overflow).join('')
+      return truncateCells(stripExcessWhitespace(piece, width), width).join('')
     })
   })
 }
@@ -303,7 +296,7 @@ export function outputWidth(environment: Readonly<Record<string, string | undefi
 /**
 枠付きの表示。左上にタイトルを置く。lines は枠の内側の幅に収まっている行。末尾は改行で終わる
 */
-export function framePanel(title: string, lines: readonly string[], width: number): string {
+function framePanel(title: string, lines: readonly string[], width: number): string {
   const inner = width - 4
   const titleText = ` ${title} `
   const top = `╭─${titleText}${'─'.repeat(Math.max(0, width - 3 - cellLength(titleText)))}╮`

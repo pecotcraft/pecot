@@ -146,6 +146,13 @@ export function toolNameOf(path: readonly string[]): string {
   return path.join('_').replaceAll('-', '_')
 }
 
+/**
+path から定義書（interface/）の項目の ID を作る。`['create-branch']` は PW-CREATE-BRANCH、`['issue', 'create']` は PW-ISSUE-CREATE
+*/
+export function interfaceIdOf(path: readonly string[]): string {
+  return `PW-${path.join(' ').toUpperCase().replaceAll(/[ _]/g, '-')}`
+}
+
 function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): ReadonlyMap<string, string> {
   return new Map(Object.entries(flags ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
 }
