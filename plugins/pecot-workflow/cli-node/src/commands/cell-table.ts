@@ -1,5 +1,5 @@
 // rich の Unicode 幅の表（unicode 17.0.0）。生成物なので手で直さない。
-// 再生成: cli/.venv/bin/python で `rich._unicode_data.load('latest')` の widths と narrow_to_wide を書き出す。
+// 再生成: Python の rich で `rich._unicode_data.load('latest')` の widths と narrow_to_wide を書き出す。
 // widths は [開始, 終了, セル数] の並びで、表に無い文字は 1 セルになる。
 export const CELL_WIDTHS: readonly (readonly [number, number, number])[] = [
   [0, 0, 0],

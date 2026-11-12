@@ -4,7 +4,7 @@ import { frontmatterOutputs } from '../../tests/_helpers/python-output.js'
 import type { FrontmatterResult } from '../../tests/_helpers/python-output.js'
 import { FrontmatterError, parseCommentContent, parseFrontmatter, parsePullRequestContent } from '../frontmatter.js'
 
-// 期待値は、Python の CLI の実出力（tests/python-output/frontmatter.json。record.py が Python で記録する）。
+// 期待値は、Python の CLI の実出力（tests/python-output/frontmatter.json。作り直さない記録）。
 // フロントマターの YAML → 検証後の値、または FrontmatterError の文。
 const OUTPUTS = frontmatterOutputs()
 

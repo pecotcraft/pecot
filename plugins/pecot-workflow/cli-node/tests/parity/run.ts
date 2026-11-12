@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ。node の子プロセス・ストリームの型は readonly にできない */
-// シナリオ 1 件を流して、golden と同じ形の結果を作る。record.ts（Python）と parity.test.ts（Node）が共有する。
+// シナリオ 1 件を流して、golden と同じ形の結果を作る。parity.test.ts が使う。
 // 流れ: 一時 root と偽サーバを用意し、CLI を子プロセスで起動し、.pecot/ とデータ置き場を回収し、正規化する。
 // 子プロセスは非同期で起動する。spawnSync だと、同じプロセスの偽サーバのループが止まるため。
 import { spawn } from 'node:child_process'

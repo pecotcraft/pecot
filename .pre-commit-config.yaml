@@ -215,17 +215,17 @@ repos:
       - id: ruff-check
         types_or: [python, pyi]
         exclude: ^libs/interface-spec/tests/fixtures/
-        args: ['--fix', '--config', 'plugins/pecot-workflow/cli/pyproject.toml']
+        args: ['--fix', '--config', 'pyproject.toml']
       # interface-spec の fixture は、--fix で書き換えると期待の行番号が崩れるので、チェックだけにする
       - id: ruff-check
         alias: ruff-check-interface-spec-fixtures
         name: ruff check (interface-spec fixtures, no fix)
         files: ^libs/interface-spec/tests/fixtures/
         types_or: [python, pyi]
-        args: ['--config', 'plugins/pecot-workflow/cli/pyproject.toml']
+        args: ['--config', 'pyproject.toml']
       - id: ruff-format
         types_or: [python, pyi]
-        args: ['--config', 'plugins/pecot-workflow/cli/pyproject.toml']
+        args: ['--config', 'pyproject.toml']
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.24.0

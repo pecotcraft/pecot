@@ -22,9 +22,7 @@
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts",
     "test:hooks": "vitest run --project hooks --outputFile.junit=test-results/junit-hooks.xml",
-    "test:skills": "vitest run --project skills --outputFile.junit=test-results/junit-skills.xml",
-    "record:parity": "tsx tests/parity/record.ts",
-    "record:parity:check": "tsx tests/parity/record.ts --check"
+    "test:skills": "vitest run --project skills --outputFile.junit=test-results/junit-skills.xml"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",

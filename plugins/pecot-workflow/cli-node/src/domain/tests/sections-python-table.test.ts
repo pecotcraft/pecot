@@ -12,7 +12,7 @@ import {
   validateSections,
 } from '../sections.js'
 
-// 期待値は、Python の CLI の実出力（tests/python-output/sections.json。record.py が Python で記録する）。
+// 期待値は、Python の CLI の実出力（tests/python-output/sections.json。作り直さない記録）。
 // 改行（\r\n・\r・U+2028）・全角や非改行の空白・絵文字・コードポイントの数え方など、
 // 正規表現の書き方（lint が書き換えた形を含む）で結果が変わりやすい本文を選んでいる。
 // 空白の範囲（U+0085・U+FEFF・U+001C〜U+001F）だけは Python と違うため、その本文は含めない。

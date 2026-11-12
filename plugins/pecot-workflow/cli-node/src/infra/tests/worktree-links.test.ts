@@ -30,7 +30,7 @@ import type { LinkPlan, WorktreeConfig } from '../worktree-links.js'
 import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
 import { worktreeConfigOutputs } from '../../tests/_helpers/python-output.js'
 
-// 期待値は、Python の CLI の実出力（tests/python-output/worktree-config.json。record.py が Python で記録する）
+// 期待値は、Python の CLI の実出力（tests/python-output/worktree-config.json。作り直さない記録）
 const OUTPUTS = worktreeConfigOutputs()
 
 useIsolatedEnvironment()

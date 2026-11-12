@@ -1301,12 +1301,12 @@ def test_real_07_pass_dev_only_files_without_plan(real_nx: _RealNx) -> None:
     """実 nx (g): 利用環境で使わないファイル（テスト・CI・開発用の設定）だけの変更は pass。"""
     real_nx.case("real-07")
     for rel in (
-        "plugins/pecot-workflow/cli/tests/__init__.py",
+        "plugins/pecot-workflow/cli-node/tests/probe.test.ts",
         "plugins/pecot-tools/scripts/ci/probe.sh",
         "plugins/pecot-visual/cli/eslint.config.js",
         "plugins/pecot-visual/scripts/pptx-compare/probe.mjs",
         "libs/text-rules/vitest.config.ts",
-        "plugins/pecot-workflow/hooks/conftest.py",
+        "plugins/pecot-workflow/scripts/ci/run-tests.sh",
         "plugins/pecot-workflow/interface/authored.yaml",
         "plugins/pecot-workflow/cli-node/scripts/export-interface.ts",
     ):

@@ -9,9 +9,7 @@
  *   - Copilot CLI: 3 プラグインとも、Agent Plugins 1.0 形式のルートの `plugin.json`（`$schema` 付き）。
  *     Copilot はこの形式では `.github/plugin/plugin.json` を読まない。
  *
- * pyproject.toml / uv.lock の bump は不要 — `cli/__init__.py` が
- * CLAUDE_PLUGIN_ROOT から plugin.json を直接読む。
- * そのため Python 側の version は 0.0.0 で pin できる。
+ * Node の CLI は CLAUDE_PLUGIN_ROOT から plugin.json を直接読むので、package.json の version は bump しない。
  *
  * project.json で `manifestRootsToUpdate` に plugin.json を持つ root を列挙する。
  * 親クラスの init() が各 root で `validManifestFilenames=["plugin.json"]` を first-match で展開する。

@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは scenarios/ と golden/ 配下のみ */
 // 前後比較のシナリオ（scenarios/<id>.yaml）と golden（golden/<id>.json）の型、読み込み、正規化。
 // YAML と JSON は unknown として読み、型ガードで形を確かめる。形が崩れていれば読み込みの時点で落とす。
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { parse } from 'yaml'
@@ -344,10 +344,6 @@ export function readScenario(id: string): Scenario {
 
 export function goldenPath(id: string): string {
   return path.join(goldenDirectory, `${id}.json`)
-}
-
-export function hasGolden(id: string): boolean {
-  return existsSync(goldenPath(id))
 }
 
 export function readGolden(id: string): Golden {

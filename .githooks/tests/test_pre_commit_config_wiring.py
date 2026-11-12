@@ -106,8 +106,8 @@ def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
         "plugins/pecot-visual/cli/src/infra/drawio/pdf.ts",
         "plugins/pecot-visual/cli/tests/e2e/mcp-tools.test.ts",
         "plugins/pecot-visual/scripts/pptx-compare/lib/cli-dist.mjs",
-        "plugins/pecot-workflow/cli/core/paths.py",
-        "plugins/pecot-workflow/hooks/tests/test_session_start_common.py",
+        "plugins/pecot-workflow/cli-node/src/cli.ts",
+        "plugins/pecot-workflow/cli-node/tests/hooks/_helpers/run.ts",
         "nx.json",
         # libs/<name>/ のライブラリも同じ走査範囲に入れる。
         "libs/text-rules/index.ts",
@@ -212,7 +212,7 @@ _TEXT_FILES_HOOK = "check-text"
     "changed_path",
     [
         "README.md",
-        "plugins/pecot-workflow/cli/core/paths.py",
+        "plugins/pecot-workflow/cli-node/src/cli.ts",
         ".githooks/pre-commit/check-text.sh",
         "nx.json",
         "plugins/pecot-workflow/hooks/hooks.json",
@@ -243,7 +243,6 @@ def _hook_exclude_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
         "plugins/pecot-visual/CHANGELOG.md",
         "plugins/pecot-workflow/cli-node/tests/parity/golden/pr-create-ok.json",
         "plugins/pecot-workflow/cli-node/tests/python-output/sections.json",
-        "plugins/pecot-workflow/cli-node/tests/python-output/record.py",
         ".nx/nx-release/tests/_fixtures/dependabot-real.json",
     ],
 )

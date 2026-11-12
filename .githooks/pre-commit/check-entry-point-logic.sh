@@ -14,7 +14,7 @@ set -euo pipefail
 
 # --- Entry point file list (R-006) ---
 # plugins/pecot-workflow/hooks/*.sh の実ファイル集合と一致させる。
-# 一覧のドリフトは plugins/pecot-workflow/hooks/lib/tests/test_entry_point_linter.py が双方向で検知する。
+# 一覧のドリフトは .githooks/tests/test_entry_point_linter.py が双方向で検知する。
 CLAUDE_ENTRY_POINTS=(
     "plugins/pecot-workflow/hooks/pre-tool-use.sh"
     "plugins/pecot-workflow/hooks/pre-tool-use-bash.sh"

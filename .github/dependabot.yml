@@ -9,7 +9,6 @@
 # gitlint のバージョンはその rev が定義元で、型確認用の venv も .githooks/scripts/run-lint.sh がそこから読む。
 #
 # cooldown の 1 日は pnpm-workspace.yaml の minimumReleaseAge: 1440 に揃える。
-# plugins/pecot-workflow/cli/pyproject.toml の [tool.uv] exclude-newer = "1 day" にも揃える。
 
 version: 2
 updates:
@@ -34,24 +33,6 @@ updates:
     ignore:
       - dependency-name: "web-tree-sitter"
       - dependency-name: "@cffnpwr/textlint-plugin-comments"
-
-  # pecot-workflow CLI（uv / pyproject.toml + uv.lock）
-  - package-ecosystem: "uv"
-    directory: "/plugins/pecot-workflow/cli"
-    # 移行中は Python の依存の版の更新の PR を止める（alert とセキュリティ更新は止まらない）
-    open-pull-requests-limit: 0
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Asia/Tokyo"
-    cooldown:
-      default-days: 1
-    commit-message:
-      prefix: "build(pecot-workflow)"
-    groups:
-      pecot-workflow-minor-patch:
-        update-types: ["minor", "patch"]
 
   # GitHub Actions（.github/workflows/ の uses を SHA で固定している）
   - package-ecosystem: "github-actions"

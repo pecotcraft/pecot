@@ -269,7 +269,7 @@ export interface ValidationIssue {
   readonly input: JsonValue | undefined
 }
 
-// 検証ライブラリの案内 URL に入る版。Python の CLI が使っていた版（cli/uv.lock）に合わせる
+// 検証ライブラリの案内 URL に入る版。Python の CLI が使っていた版に合わせる
 const VALIDATION_DOCS_VERSION = '2.14'
 // 入力値の repr の省略。UTF-8 のバイト長が 50 を超えたら、前 25 バイト・後ろ 24 バイトまでを文字単位で残す。
 // 文字の途中でバイトが切れる位置では、入りきる文字だけを残す（どちらも内側へ寄せる）。
