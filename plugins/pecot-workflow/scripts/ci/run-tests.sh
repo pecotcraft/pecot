@@ -5,7 +5,7 @@ PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PLUGIN_ROOT}"
 
 # --scope で実行範囲を絞る（nx のレーン pecot-workflow:test-<scope> から呼ぶ）。引数なしは全部。
-#   cli / bootstrap / hooks / skills / release。hooks は vitest の hooks project を、通常の環境と空の設定の環境で 2 回流して比べる。
+#   cli / bootstrap / hooks / skills / release。release は cli/dist が要る（nx では build-cli が用意する）。hooks は vitest の hooks project を、通常の環境と空の設定の環境で 2 回流して比べる。
 # env PECOT_WORKFLOW_SKIP_INSTALL=1: install を飛ばす（nx 経由では pecot-workflow:install が 1 回だけ流す）。
 # 本ファイルや lock を足したら、nx.json の pecotPluginTestGlobals か pecotPluginNodeInputs に足す。
 # CLAUDE_PLUGIN_DATA は一時ディレクトリに固定し、bin/pecot 経由のテストが導入先のデータ置き場を触らないようにする。

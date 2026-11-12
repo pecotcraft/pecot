@@ -1,7 +1,7 @@
 # @pecot/workflow-mcp
 
 pecot-workflow プラグインの MCP サーバを、npm のパッケージとして単体で配布したものです。プラグインを導入していない環境でも、
-MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボード・リリース・worktree の 34 個のツールが使えます。
+MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボード・リリース・worktree のツールが使えます。
 
 ## 前提
 
@@ -27,6 +27,23 @@ MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボ
 `--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
 `--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
 
+`--prefix=/` には次の副作用があります。
+
+- 利用者のリポジトリの `.npmrc` を読まず、globalconfig も `/etc/npmrc` になる。registry・proxy・cafile は `~/.npmrc` に置く
+- `npm_config_prefix=/` などの環境変数がサーバに引き継がれる。`worktree_add` の `setup_command` で `npm i -g` を打つと `/lib/node_modules` を向く
+
+この副作用を避けたいときは、先に `npm i -g @pecot/workflow-mcp` で入れて、コマンドを直接登録します。
+
+```json
+{
+  "mcpServers": {
+    "pecot-workflow": {
+      "command": "pecot-workflow-mcp"
+    }
+  }
+}
+```
+
 Windows の MCP クライアントから使う場合は WSL2 経由で起動します。
 
 ```json
@@ -49,23 +66,11 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 版を固定するときは、`--package=@pecot/workflow-mcp@1.2.3` のように版を付けます。
 依存は `npm-shrinkwrap.json` で固定されているため、同じ版なら同じ依存が入ります。
 
-初回の起動は依存の取得に時間がかかります。Claude Code で起動が 30 秒を超えて失敗したら、環境変数 `MCP_TIMEOUT` を延ばしてください。
+ツールが対象にするリポジトリは、サーバを起動したディレクトリを含むリポジトリです。
+Claude Code では、Claude Code がサーバを起動するディレクトリ（通常はプロジェクトの root）になります。
 
-## 対象のリポジトリ
-
-ツールが対象にするリポジトリは、クライアントによって決まります。
-
-- Claude Code: プロジェクトの root（`CLAUDE_PROJECT_DIR`）
-- ほかのクライアント: サーバを起動したディレクトリを含むリポジトリ
-
-## 注意
-
-- プラグインの hooks は働かない。`issue_create`・`issue_quick`・`pr_create` の確認は、MCP クライアント自身の確認だけになる。これらのツールは自動で許可しない
-- `--help` を打つと、プラグインで出る補足の節は出ません
-
-## 結果の読み方
-
-ツールが失敗すると、結果の末尾に `exit code: <n>` の行が付きます。標準出力が空のときは、結果は標準エラーだけになります。
+プラグインの hooks は働きません。`issue_create`・`issue_quick`・`pr_create` の確認は、MCP クライアント自身の確認だけになります。
+これらのツールは自動で許可しないでください。また、`--help` を打つと、プラグインで出る補足の節は出ません。
 
 ## ツール
 
@@ -105,6 +110,12 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 | `worktree_remove` | worktree を削除する |
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |
 | `worktree_link` | 既存の worktree にシンボリックリンクを適用・更新する |
+
+## 失敗したとき
+
+- 初回の起動は依存の取得に時間がかかる。Claude Code で起動が 30 秒を超えて失敗したら、環境変数 `MCP_TIMEOUT` を延ばす
+- ツールが失敗すると、結果の末尾に `exit code: <n>` の行が付く。標準出力が空のときは、結果は標準エラーだけになる
+- `EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認する
 
 ## 版
 

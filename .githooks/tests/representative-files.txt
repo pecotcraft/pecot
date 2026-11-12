@@ -7,10 +7,12 @@
 .devcontainer/tmux/pecot-open.sh
 .githooks/ci/run-affected-tests.sh
 .githooks/ci/run-pr-checks.sh
+.githooks/lib/mcp-publish-common.sh
 .githooks/pre-commit/check-engines-node-drift.sh
 .githooks/scripts/attach-mcp-tgz.sh
 .githooks/scripts/gen-runtime-lock.mjs
 .githooks/scripts/run-pnpm.sh
+.githooks/scripts/tests/mcp-publish-common.test.sh
 .githooks/tests/test_nx_task_cache.py
 .githooks/tests/test_ruleset_main.py
 .github/board-sync/handler.mjs

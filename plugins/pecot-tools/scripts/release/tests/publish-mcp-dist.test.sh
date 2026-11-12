@@ -166,6 +166,8 @@ cp -a "$TOOLS_ROOT/scripts/release" "$TEST_TOOLS/scripts/release" || exit 1
 # 共通スクリプト（pack から gh まで）も同じ理由で作業ツリーから置く。
 mkdir -p "$TEST_REPO/.githooks/scripts" || exit 1
 cp -a "$REPO_ROOT/.githooks/scripts/attach-mcp-tgz.sh" "$REPO_ROOT/.githooks/scripts/origin-slug.mjs" "$TEST_REPO/.githooks/scripts/" || exit 1
+mkdir -p "$TEST_REPO/.githooks/lib" || exit 1
+cp -a "$REPO_ROOT/.githooks/lib/mcp-publish-common.sh" "$TEST_REPO/.githooks/lib/" || exit 1
 # git 管理外の build 生成物は実体を持ち込む。
 cp -a "$TOOLS_ROOT/cli/dist" "$TEST_TOOLS/cli/dist" || exit 1
 git -C "$TEST_REPO" add -A > /dev/null 2>&1 || exit 1

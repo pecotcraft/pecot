@@ -1,7 +1,5 @@
-// pecot-workflow MCP 単体配布ツリーの仕上げ (#352)。publish-mcp-dist.sh からのみ呼ばれる。
-//
-// 1. 配布用 package.json を、cli/package.json の依存宣言から生成する。
-// 2. .claude-plugin/plugin.json を実バージョンで書き出す。
+// MCP 単体配布ツリーの仕上げ (#352)。publish-mcp-dist.sh からのみ呼ばれる。
+// 配布用 package.json を cli/package.json の依存宣言から生成し、.claude-plugin/plugin.json を実版で書く。
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'

@@ -1,14 +1,12 @@
 #!/bin/bash
-# publish-mcp-dist.sh の検証 (#352)。配布ツリーの中身・起動・tgz・gh の呼び出しを固定する。
-# gh は PATH 先頭のスタブで差し替える。cli/dist が build 済みであることが前提で、publish は --skip-build で流す。
-# 早期 return の検証で非ゼロ終了を起こすため、`set -e` は使わない。
+# publish-mcp-dist.sh の検証 (#352)。gh は PATH 先頭のスタブで差し替え、cli/dist は build 済みを前提に --skip-build で流す。
+# 非ゼロ終了を意図的に起こすため、`set -e` は使わない。
 set -u
 
 # git hook 経由で GIT_DIR 等が export されていると、リポ本体の index を書き換えるので捨てる。
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
     GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_COMMON_DIR GIT_NAMESPACE
-# nx release --dry-run の親から起動されると NX_DRY_RUN が届き、非 dry-run の検証まで dry-run になる。
-# 本テストは dry-run の有無を引数で作り分けるので、継承した値は先頭で捨てる。
+# 継承した NX_DRY_RUN は、非 dry-run の検証まで dry-run にする。
 unset NX_DRY_RUN
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -43,9 +41,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# 失敗の補足に使う。末尾 N 行・全体を 1 行にまとめて返す。
-# 失敗メッセージの文字列に引用符入りの $(...) を入れないため、ここへ切り出す。
-# log_tail は $TMP からの相対名、file_tail / file_cat は絶対パスを受ける。
+# 失敗の補足に使う。log_tail は $TMP からの相対名、file_tail / file_cat は絶対パスを受ける。
 log_tail() {
     tail -"$2" "$TMP/$1" | tr '\n' ' '
 }
@@ -65,8 +61,7 @@ if [ ! -d "$WORKFLOW_ROOT/cli/dist" ]; then
 fi
 
 # --- PATH 先頭のスタブ ---
-# gh: 引数を GH_STUB_LOG に記録し、upload された tgz を GH_STUB_DIR/uploaded.tgz へ写す。GH_STUB_NO_RELEASE=1 で release view が失敗する。
-# npm: install だけ永続キャッシュと --prefer-offline を足して本物へ渡す。非 dry-run の publish_real だけが PATH の先頭に置く。
+# gh は引数を GH_STUB_LOG に記録し、upload された tgz を写す。npm は install だけ永続キャッシュを足して本物へ渡す。
 mkdir -p "$TMP/bin" "$TMP/npmbin"
 REAL_NPM="$(command -v npm)"
 # 非 dry-run の実行は opt-in を拒否するので、スタブ側で永続キャッシュを足す。
@@ -129,9 +124,7 @@ git init --quiet --initial-branch=main "$TEST_REPO" || exit 1
 # gh の -R は origin の URL から求める。合成した owner/name の https URL を置く。
 TEST_SLUG="acme-labs/example-repo"
 git -C "$TEST_REPO" remote add origin "https://github.com/$TEST_SLUG.git" || exit 1
-# git 管理対象の入力（manifest・bin・テンプレート・gitignore 補完・scripts）。ls-files 経由で列挙して
-# node_modules 等を自動的に外す。bin は publish-mcp-dist.sh が resolve_pnpm 解決のため
-# bin/_lib.sh を source する（run-tests.sh と共通）ので同梱する。
+# git 管理対象の入力を ls-files で列挙し、node_modules 等を外す。bin は publish が _lib.sh を source するので同梱する。
 (cd "$REPO_ROOT" && git ls-files -z -- \
     plugins/pecot-workflow/.claude-plugin \
     plugins/pecot-workflow/bin \
@@ -149,6 +142,8 @@ cp -a "$WORKFLOW_ROOT/scripts/release" "$TEST_WORKFLOW/scripts/release" || exit 
 # 共通スクリプト（pack から gh まで）も同じ理由で作業ツリーから置く。
 mkdir -p "$TEST_REPO/.githooks/scripts" || exit 1
 cp -a "$REPO_ROOT/.githooks/scripts/attach-mcp-tgz.sh" "$REPO_ROOT/.githooks/scripts/origin-slug.mjs" "$TEST_REPO/.githooks/scripts/" || exit 1
+mkdir -p "$TEST_REPO/.githooks/lib" || exit 1
+cp -a "$REPO_ROOT/.githooks/lib/mcp-publish-common.sh" "$TEST_REPO/.githooks/lib/" || exit 1
 # git 管理外の build 生成物は実体を持ち込む。
 cp -a "$WORKFLOW_ROOT/cli/dist" "$TEST_WORKFLOW/cli/dist" || exit 1
 git -C "$TEST_REPO" add -A > /dev/null 2>&1 || exit 1
@@ -337,15 +332,18 @@ for entry in cli.js package.json infra/template-store.js mcp/server.js; do
     fi
 done
 
-# サーバが実行時に dist の外から読むファイル。テンプレートは issue_comment の prepare 等、
-# gitignore 補完のスクリプトは worktree_* が読む。同梱し忘れると、起動はしても呼んだときに失敗する。
-for entry in cli/templates/comment/plan.md hooks/lib/core/pecot-gitignore-ensure.sh; do
-    if [ -f "$DIST/$entry" ]; then
-        pass "$entry が配布ツリーにある"
-    else
-        fail "$entry が配布ツリーに無い"
-    fi
-done
+# サーバが実行時に dist の外から読むファイルが欠けると、起動はしても呼んだときに失敗する。
+# テンプレートは 1 本でなく、ソースの全ファイルの一覧が配布ツリーと一致することを見る。
+TEMPLATE_SOURCE_LIST="$(cd "$WORKFLOW_ROOT/cli/templates" && find . -type f | sort)"
+assert_eq "cli/templates の全ファイルが配布ツリーに同梱される" "$TEMPLATE_SOURCE_LIST" \
+    "$(cd "$DIST/cli/templates" && find . -type f | sort)"
+assert_eq "cli/templates の一覧が空でない（空同士の一致を防ぐ）" "yes" \
+    "$([ -n "$TEMPLATE_SOURCE_LIST" ] && echo yes || echo no)"
+if [ -f "$DIST/hooks/lib/core/pecot-gitignore-ensure.sh" ]; then
+    pass "hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーにある"
+else
+    fail "hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーに無い"
+fi
 
 assert_eq "配布ツリーに .gitignore が無い" "0" \
     "$(find "$DIST" -name '.gitignore' | wc -l | tr -d ' ')"
@@ -383,7 +381,8 @@ assert_eq "README の登録例 2 件が @pecot/workflow-mcp を指す" "2" \
 assert_eq "README の登録例 2 件が --prefix を付ける" "2" \
     "$(grep -cF '"--prefix=/"' "$DIST/README.md" | tr -d ' ')"
 # 登録例のサーバ名は initialize の serverInfo.name に合わせる。
-assert_eq "README の登録例 2 件がサーバ名 pecot-workflow を使う" "2" \
+# 3 件 = npx 起動 + 事前インストール後の直接起動 + WSL 経由。
+assert_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3" \
     "$(grep -cF '"pecot-workflow":' "$DIST/README.md" | tr -d ' ')"
 
 # --- 4. 配布ツリーの起動 smoke ---
@@ -520,13 +519,11 @@ process.stdout.write(value === undefined ? '' : String(value))
 " "$1" "$2"
 }
 
-# tools/list の期待値。MCP のツールの数と先頭は、cli/src/commands/registry.ts の COMMANDS の並びで決まる。
-# 配布ツリーに TS ソースは含まれず、ここから参照できないので写している（cli/tests/bootstrap/run.sh と同値）。
+# tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している（cli/tests/bootstrap/run.sh と同値）。
 EXPECTED_TOOL_COUNT=34
 EXPECTED_FIRST_TOOL="add_to_project"
 
-# smoke の起動は、プラグインとセッションの環境変数を外す。値が残ると、同梱し忘れたテンプレートも
-# ソースツリーから読めて、smoke が通ってしまう。
+# smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
 smoke_node() {
     env -u CLAUDE_PLUGIN_ROOT -u PLUGIN_ROOT -u COPILOT_PLUGIN_ROOT \
         -u COPILOT_SESSION_CWD -u CLAUDE_PROJECT_DIR -u PECOT_SESSION_PROJECT_DIR \
@@ -632,6 +629,39 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
         ;;
 esac
 
+# worktree_link は pecot-gitignore-ensure.sh を呼んで .pecot/.gitignore を作る。同梱し忘れは警告で済んで link だけ通るので、生成物で確かめる。
+# <root>/base/repo（設定と link 先）と <root>/wt1/repo（link を張る側）の一時構成を、ネットワークなしで作る。
+LINK_ROOT="$TMP/link-project"
+LINK_MAIN="$LINK_ROOT/base/repo"
+LINK_WT="$LINK_ROOT/wt1/repo"
+mkdir -p "$LINK_MAIN/.pecot/config" "$LINK_MAIN/.pecot/work" "$LINK_ROOT/wt1"
+git init --quiet --initial-branch=main "$LINK_MAIN" || exit 1
+git -C "$LINK_MAIN" remote add origin https://github.com/example/link-fixture.git || exit 1
+git -C "$LINK_MAIN" commit --quiet --allow-empty -m "link fixture" > /dev/null 2>&1 || exit 1
+git -C "$LINK_MAIN" worktree add --quiet -b link-wt "$LINK_WT" > /dev/null 2>&1 || exit 1
+cat > "$LINK_MAIN/.pecot/config/worktree-config.json" << 'LINK_CONFIG'
+{"version":3,"links":[{"path":".pecot/work","target_repo":"repo","target_path":".pecot/work"}]}
+LINK_CONFIG
+SMOKE_LINK_OUT="$TMP/smoke-link.json"
+DEVCONTAINER=1 SMOKE_CWD="$LINK_WT" \
+    SMOKE_TOOL_CALLS="[{\"name\":\"worktree_link\",\"arguments\":{\"directory\":\"$LINK_WT\"}}]" \
+    smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
+    > "$SMOKE_LINK_OUT" 2> "$SMOKE_LINK_OUT.err"
+assert_eq "worktree_link の tools/call が終了コード 0 を返す" "0" \
+    "$(call_value "$SMOKE_LINK_OUT" 0 exitCode)"
+LINK_TEXT="$(call_value "$SMOKE_LINK_OUT" 0 text | tr '\n' ' ')"
+if [ -L "$LINK_WT/.pecot/work" ]; then
+    pass "worktree_link が worktree に symlink を張る"
+else
+    fail "worktree_link が symlink を張らなかった: $LINK_TEXT"
+fi
+if [ -f "$LINK_WT/.pecot/.gitignore" ] && [ ! -L "$LINK_WT/.pecot/.gitignore" ] \
+    && grep -qxF '!/config/worktree-config.json' "$LINK_WT/.pecot/.gitignore"; then
+    pass "worktree_link が同梱のスクリプトで .pecot/.gitignore を実ファイルで作る"
+else
+    fail "worktree_link が .pecot/.gitignore を作らなかった: $LINK_TEXT"
+fi
+
 # 引数がある起動は、そのまま commander へ渡す（argv 注入が --version を止めない）。
 VERSION_RC=0
 node "$DIST/bin/pecot-workflow-mcp.mjs" --version > "$TMP/version.out" 2> "$TMP/version.err" || VERSION_RC=$?
@@ -657,9 +687,7 @@ tgz_names() {
     tar -tzf "$GH_STUB_DIR/uploaded.tgz" 2> /dev/null
 }
 
-# 5-1. HEAD に pecot-workflow のリリースタグが無ければ、gh を一切呼ばずに終了する。
-#      他プラグインのみのリリース時に、GitHub への到達性・認証がリリースの成否に結びつかないことを見る。
-#      $TEST_VERSION のタグはリポジトリ本体には存在しないため、本体側で検証できる。
+# 5-1. HEAD に pecot-workflow のリリースタグが無ければ、gh を一切呼ばずに終了する（$TEST_VERSION のタグは本体に無い）。
 if publish_real bash "$PUBLISH" --version="$TEST_VERSION" --skip-build \
     --out-dir="$TMP/dist-gate" > "$TMP/gate.log" 2>&1; then
     if grep -q "スキップ" "$TMP/gate.log" && [ ! -d "$TMP/dist-gate" ]; then
@@ -712,6 +740,9 @@ for entry in package/package.json package/npm-shrinkwrap.json package/README.md 
         fail "tgz に $entry が入っていない"
     fi
 done
+assert_eq "tgz の cli/templates が配布ツリーの全ファイルと一致する" \
+    "$(cd "$WORKFLOW_ROOT/cli/templates" && find . -type f | sed 's|^\./|package/cli/templates/|' | sort)" \
+    "$(grep '^package/cli/templates/' "$TREE" | grep -v '/$' | sort)"
 if grep -E '\.map$|cert' "$TREE" > /dev/null; then
     BAD_PATHS="$(grep -E '\.map$|cert' "$TREE" | head -3 | tr '\n' ' ')"
     fail "tgz に .map か cert を含むパスがある: $BAD_PATHS"
@@ -838,9 +869,7 @@ reject_out_dir "親ディレクトリが不在のパス" "$TMP/does-not-exist/ch
 assert_eq "ガードは対象ディレクトリを消さない" "1" \
     "$(ls -A "$TMP/nonempty" | wc -l | tr -d ' ')"
 
-# F-02: REPO_ROOT を pwd -P で確定させている。
-# そのため、リポジトリを指す symlink 経由で本体を起動しても、--out-dir の前方一致 (条件 a) が働くことを固定する。
-# --out-dir 自体は symlink を経由させず、起動パスだけを symlink 経由にする。
+# REPO_ROOT は pwd -P で確定するので、symlink 経由の起動でも --out-dir の前方一致 (条件 a) が働く。起動パスだけ symlink にする。
 SYMLINK_SCRIPT="$TMP/repo-link/plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh"
 SYMLINK_LAUNCH_OUT="$REPO_ROOT/plugins/pecot-workflow/scripts/release/.f02-outdir-check-$$"
 if bash "$SYMLINK_SCRIPT" --dry-run --skip-build --out-dir="$SYMLINK_LAUNCH_OUT" \

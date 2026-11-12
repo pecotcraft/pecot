@@ -85,9 +85,12 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/scripts/release/**/*",
+        "{workspaceRoot}/LICENSE",
+        "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",
         "{workspaceRoot}/.githooks/scripts/attach-mcp-tgz.sh",
         "{workspaceRoot}/.githooks/scripts/origin-slug.mjs",
         "{workspaceRoot}/.githooks/scripts/tests/attach-mcp-tgz.test.sh",
+        "{workspaceRoot}/.githooks/scripts/tests/mcp-publish-common.test.sh",
         "sharedGlobals",
         "pecotToolsPluginTestGlobals"
       ],

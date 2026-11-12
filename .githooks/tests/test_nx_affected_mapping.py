@@ -779,6 +779,25 @@ _PECOTV_TEST_LANES = {
                 "pecot-workflow:test-release",
             },
         ),
+        # 3 つの publish-mcp-dist.sh が source する共通の関数と、そのテストの変更は、3 つの test-release に届く（lib は githooks のレーンにも届く）。
+        (
+            ".githooks/lib/mcp-publish-common.sh",
+            {
+                "pecot-tools:test-release",
+                "pecot-visual:test-release",
+                "pecot-workflow:test-release",
+                "githooks:test-ci",
+                *_GITHOOKS_GRAPH,
+            },
+        ),
+        (
+            ".githooks/scripts/tests/mcp-publish-common.test.sh",
+            {
+                "pecot-tools:test-release",
+                "pecot-visual:test-release",
+                "pecot-workflow:test-release",
+            },
+        ),
         # pecot-workflow の定義書は、一致のテストの test-cli に届く。
         ("plugins/pecot-workflow/interface/generated.json", {"pecot-workflow:test-cli"}),
         ("plugins/pecot-workflow/interface/authored.yaml", {"pecot-workflow:test-cli"}),

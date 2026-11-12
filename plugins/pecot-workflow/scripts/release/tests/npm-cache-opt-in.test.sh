@@ -1,8 +1,7 @@
 #!/bin/bash
 # PECOT_RELEASE_TEST_NPM_CACHE（依存解決の npm キャッシュの opt-in）の検証 (#352)。
-# publish が npm へ渡す --cache と --prefer-offline を、PATH 先頭の npm スタブで記録して固定する（フラグは環境の NPM_CONFIG_* に勝つ）。
-# 実配布（dry-run でない実行）では opt-in を拒否する。拒否以外は --dry-run --skip-build で流すので、cli/dist の build が前提。
-# 拒否の検証で非ゼロ終了を起こすため、`set -e` は使わない。
+# publish が npm へ渡す --cache と --prefer-offline を、npm スタブで記録して固定する。cli/dist の build が前提。
+# 非ゼロ終了を意図的に起こすため、`set -e` は使わない。
 set -u
 
 # git hook 経由で GIT_DIR 等が export されていると `git -C` が呼び出し元を巻き込むので捨てる。
@@ -55,7 +54,6 @@ cleanup() {
 trap cleanup EXIT
 
 # 失敗の補足に使う。$TMP 配下のログの末尾 N 行を 1 行にまとめて返す。
-# 失敗メッセージの文字列に引用符入りの $(...) を入れないため、ここへ切り出す。
 log_tail() {
     tail -"$2" "$TMP/$1" | tr '\n' ' '
 }

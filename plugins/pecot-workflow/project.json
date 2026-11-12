@@ -197,8 +197,14 @@
         "{projectRoot}/hooks/lib/core/pecot-gitignore-ensure.sh",
         "{projectRoot}/.claude-plugin/plugin.json",
         "{projectRoot}/scripts/ci/run-tests.sh",
+        "{projectRoot}/cli/src/commands/*.ts",
+        "{projectRoot}/cli/src/mcp/server.ts",
+        "{projectRoot}/cli/src/infra/template-store.ts",
+        "{workspaceRoot}/LICENSE",
+        "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",
         "{workspaceRoot}/.githooks/scripts/attach-mcp-tgz.sh",
         "{workspaceRoot}/.githooks/scripts/origin-slug.mjs",
+        "{workspaceRoot}/.githooks/scripts/tests/mcp-publish-common.test.sh",
         "sharedGlobals",
         "runtime",
         "env",
@@ -207,7 +213,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "MCP 単体配布の publish スクリプトの確認。cli/src は入力に置かず、dist は build-cli の dependsOn が用意する。npm の依存解決のキャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。"
+        "description": "MCP 単体配布の publish スクリプトの確認。npm の依存解決でレジストリの状態を読むが、入力ハッシュには表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに実行しないため。レジストリ側の変化はリリース時の dry-run で拾う。ツールの一覧が決まる cli/src/commands・mcp/server.ts・template-store.ts だけを入力に置く。dist は build-cli の dependsOn が用意する。npm の依存解決のキャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-workflow\" bash scripts/ci/run-tests.sh --scope=release",
@@ -253,6 +259,7 @@
         "description": "配布ツリーを作って tgz を Release に添え、publish-npm.yml を起動する。"
       },
       "options": {
+        "//forwardAllArgs-reason": "既定 true だと --dryRun=true が末尾に注入される。dry-run は NX_DRY_RUN で受ける。",
         "forwardAllArgs": false,
         "command": "bash scripts/release/publish-mcp-dist.sh",
         "cwd": "plugins/pecot-workflow"

@@ -70,7 +70,7 @@ pecot-tools のパッケージ名・配布物名・MCP サーバのキーには 
 
 ## 利用者向け README を書く
 
-対象はルート `README.md`、3 プラグインの `README.md`、単体配布の `scripts/release/mcp-dist-README.md` 2 本です。読者は導入して使う人です。
+対象はルート `README.md`、3 プラグインの `README.md`、単体配布の `scripts/release/mcp-dist-README.md` 3 本です。読者は導入して使う人です。
 各行に「読者がこれで何をするか」があるものだけ残します。
 
 骨組みは次のとおりです。持たない節は作りません。
