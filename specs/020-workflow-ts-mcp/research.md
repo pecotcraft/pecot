@@ -74,7 +74,10 @@
 |---|---|
 | 決定 | サーバ名は `pecot-workflow`。ツール名は `<group>_<subcommand>`、グループの無いものはコマンド名の `-` を `_` にする |
 | Claude Code | `mcp__plugin_pecot-w_pecot-workflow__<tool>`。導入済みの pecot-t のツール（`mcp__plugin_pecot-t_pecot-tools__aws_s3_ls`）と同じ形であることを確かめた |
-| Copilot CLI | `pecot-workflow-<tool>` と推定する。根拠は `hooks-copilot.json` の matcher にある `github-mcp-server-create_pull_request` の形。フェーズ 9 で実物を確かめる |
+| Copilot CLI | `pecot-workflow-<tool>`。2026-11-12 に Copilot CLI 1.0.107 と 1.0.109 で実物を確かめた（結果は同じ。推定は `hooks-copilot.json` の matcher にある `github-mcp-server-create_pull_request` の形だった）。登録は 2 通りで、`--additional-mcp-config` の登録（`session.mcp_server_status_changed` の `configSource` は `user`）とプラグインの `.mcp.json` の登録（`plugin`）。どちらも `tool.execution_start` の `toolName` は `pecot-workflow-project_info`（`mcpToolName` は `project_info`）で、PreToolUse の `tool_name` も同じ。`tool_input` は文字列ではなくオブジェクトで届き、`issue_create` の `prepare: true` は真偽値の `true` のまま読める。したがって hooks の取り出しは変えない |
+| Copilot CLI で確かめた事実 | `-p` では対話の確認画面を出せない。`permissionDecision` が `ask` のとき、ツールの結果は `success: false`・`error.code` が `denied` になり、`error.message` は `Denied by preToolUse hook (unable to ask user for confirmation):` で始まって、その後に hooks の理由（`warning: external-post-check: ...`）が続く |
+| Copilot CLI の失敗の結果 | MCP ツールの失敗は `success: false`・`error.code` が `failure` で届く。`error.message` と結果の `content` の先頭に `MCP server 'pecot-workflow':` が付き、その後に CLI の `error: ...` の行と `exit code: 1` の行が続く（`issue_read` に存在しない Issue を渡して確かめた） |
+| Copilot CLI のプラグインのサーバの cwd | プラグインの `.mcp.json` のサーバは、`cwd` を書かなければプラグインの root で起動する（2026-11-12、1.0.109 で確かめた。1.0.108 の試しも同じ）。`"cwd"` に作業ツリーのパスを書くと、そのパスの cwd で起動した（1.0.109）。利用者のリポを cwd として読む `cli-node/src/mcp/server.ts` との関係は、この Issue では事実だけを記録する |
 | 決定 | hooks は、この 2 つの形から `<tool>` を取り出し、それが 34 個のツール名にあるときだけ判定する |
 | 理由 | `.mcp.json` と root の `mcp.json` は `pecot-workflow-playwright` も持つ。Copilot CLI では matcher `pecot-workflow-.*` がそのツールにも当たるので、名前で絞る |
 | 退けた案 | `pecot_` の接頭辞（クライアントがサーバ名を前に付けるので重複する） |
