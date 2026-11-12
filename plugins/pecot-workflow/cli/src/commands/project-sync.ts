@@ -20,7 +20,7 @@ const WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
 /**
 前提を待つ Issue を pecot が置く列。既存のボードに無くても設定の同期は止めない
 */
-export const BLOCKED_OPTION: ProjectFieldOption = { name: 'Blocked', color: 'GRAY', description: 'Waiting for prerequisite Issues. Set by pecot.' }
+export const BLOCKED_OPTION: ProjectFieldOption = { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' }
 
 /**
 人の判断を待つ Issue の札。既定の Status に足す
@@ -36,13 +36,13 @@ export const STATUS_FIELD_NAME = 'Status'
 workflow フィールドに作る選択肢。作る順でもある
 */
 export const WORKFLOW_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
-  { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized.' },
+  { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here by hand from Ready or Backlog when deprioritized.' },
   { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' },
   BLOCKED_OPTION,
   { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' },
   { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' },
   { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' },
-  { name: 'Archived', color: 'PURPLE', description: 'Storage for completed or cancelled items. Moved here after issue is closed or no longer needed.' },
+  { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' },
 ]
 
 export const PRIORITY_FIELD_OPTIONS: readonly ProjectFieldOption[] = [

@@ -31,7 +31,7 @@
           {
             "name": "Pending",
             "color": "GRAY",
-            "description": "Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized."
+            "description": "Items on hold (Epic or Task). Moved here by hand from Ready or Backlog when deprioritized."
           },
           {
             "name": "Backlog",
@@ -41,7 +41,7 @@
           {
             "name": "Blocked",
             "color": "GRAY",
-            "description": "Waiting for prerequisite Issues. Set by pecot."
+            "description": "Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start."
           },
           {
             "name": "Ready",
@@ -61,7 +61,7 @@
           {
             "name": "Archived",
             "color": "PURPLE",
-            "description": "Storage for completed or cancelled items. Moved here after issue is closed or no longer needed."
+            "description": "Completed or cancelled items. Moved here after the issue is closed or no longer needed."
           }
         ]
       },
