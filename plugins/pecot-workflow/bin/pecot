@@ -63,7 +63,7 @@ PLUGIN_RUNTIME_FORCE="${PECOT_BOOTSTRAP_FORCE:-}"
     fi
   done
   # 4. 旧方式の venv。毎回 venv の有無を見て、あるときだけ片づける。
-  plugin_legacy_venv_cleanup "$DATA"
+  plugin_legacy_venv_cleanup "$DATA" || true
 } >&2 </dev/null
 
 # 5. ミラーの cli を実行する。

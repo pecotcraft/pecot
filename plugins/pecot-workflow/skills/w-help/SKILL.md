@@ -46,9 +46,9 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 
 ## よくある操作
 
-利用者が端末で打つ CLI のヘルプは `--help` で確認できる。エージェントの Bash の `pecot` は hooks が止めるので、エージェントは MCP ツールの入力の定義を読む。
+利用者が端末か `!` で打つ CLI のヘルプは `--help` で確認できる。エージェントは Bash で打たない（hooks が deny する）。エージェントは MCP ツールの入力の定義を読む。
 
-```bash
+```text
 pecot --help             # コマンド一覧
 pecot <command> --help   # サブコマンドの詳細
 pecot --version          # バージョン表示

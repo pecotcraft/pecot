@@ -87,7 +87,12 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 MCP ツールの `pr_create`（実投稿）/ `issue_create` / `issue_quick`（実投稿）と、Bash の `gh pr merge` は、成果物を外部へ反映する操作。
 そのため実行前にガードを挟み、いずれもユーザー承認（ask）を要求する。
 MCP ツールの ask は `lib/mcp-handlers/pecot-post-ask.sh` が担う。`gh pr merge` の ask は `lib/core/external-post-check.sh` が担う。
-案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は `mcp_guidance_post_ask_issue`・`mcp_guidance_post_ask_pr`・`mcp_guidance_pr_merge` の 3 つ。
+案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 9 つ。
+
+- `mcp_guidance_gh_pr_create`・`mcp_guidance_gh_issue_create`・`mcp_guidance_delete_branch`
+- `mcp_guidance_reminder_quick`・`mcp_guidance_reminder_ready`・`mcp_guidance_reminder_other`
+- `mcp_guidance_pr_merge`・`mcp_guidance_post_ask_issue`・`mcp_guidance_post_ask_pr`
+
 Bash での pecot の起動は `pecot-cli-deny` が deny するので、ask の対象にしない。
 マージは `gh pr merge`、片付けは MCP ツールの `pr_cleanup` で行う。
 w-merge スキル起動はユーザーのマージ指示であり、マージ直前の再承認は求めない（#911）。

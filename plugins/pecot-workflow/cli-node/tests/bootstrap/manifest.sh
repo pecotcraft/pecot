@@ -28,13 +28,12 @@ PLUGIN_NAME=pecot-w
 BIN=pecot
 # 従来形式の .mcp.json と mcp.json に載る MCP サーバ名（"名前:実行ファイル" か "名前:npx"）
 SERVERS='pecot-workflow:pecot pecot-workflow-playwright:npx'
-HOOKS_COPILOT=yes
 
-node - "$PLUGIN_ROOT" "$PLUGIN_NAME" "$BIN" "$SERVERS" "$HOOKS_COPILOT" <<'JS'
+node - "$PLUGIN_ROOT" "$PLUGIN_NAME" "$BIN" "$SERVERS" <<'JS'
 const fs = require('node:fs')
 const path = require('node:path')
 
-const [root, pluginName, bin, servers, hooksCopilot] = process.argv.slice(2)
+const [root, pluginName, bin, servers] = process.argv.slice(2)
 let pass = 0
 let fail = 0
 const ok = (name) => { pass += 1; console.log(`ok   ${name}`) }
@@ -124,11 +123,9 @@ check('mcp.json: command がプラグインルートの外を指さない', Obje
 
 // --- Copilot の hooks と旧形式の manifest ---
 const exists = (file) => fs.existsSync(path.join(root, file))
-if (hooksCopilot === 'yes') {
-  check('com.github.copilot/hooks/hooks.json がある', exists('com.github.copilot/hooks/hooks.json'))
-  check('旧 hooks/hooks-copilot.json は無い', !exists('hooks/hooks-copilot.json'))
-  JSON.parse(fs.readFileSync(path.join(root, 'com.github.copilot/hooks/hooks.json'), 'utf8'))
-}
+check('com.github.copilot/hooks/hooks.json がある', exists('com.github.copilot/hooks/hooks.json'))
+check('旧 hooks/hooks-copilot.json は無い', !exists('hooks/hooks-copilot.json'))
+JSON.parse(fs.readFileSync(path.join(root, 'com.github.copilot/hooks/hooks.json'), 'utf8'))
 check('旧 .github/plugin/plugin.json は無い（1.0 形式では Copilot が読まない）', !exists('.github/plugin/plugin.json'))
 
 // --- エージェント: Copilot は com.github.copilot/agents から読む。agents/ への相対 symlink ---

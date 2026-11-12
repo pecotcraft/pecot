@@ -27,8 +27,9 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
 
 1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`create_branch` は `exit code: 2` で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
-2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create_branch` は `exit code: 2` で止まる。対象リポの既存 WT（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）へ `cd` してから着手する。
-   スクリプト経由など CWD 外発行のみ `allow_cross_repo: true` を付ける。
+2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create_branch` は `exit code: 2` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
+   MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
+   始め直せないときだけ `allow_cross_repo: true` を付ける。
 3. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。

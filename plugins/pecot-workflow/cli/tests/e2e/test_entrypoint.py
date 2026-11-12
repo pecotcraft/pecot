@@ -106,8 +106,9 @@ class TestCLIEntrypoint:
         前提: 実リポの cli/.venv が同期済み（``uv run pytest`` で作られる）。
         """
         pecot = PROJECT_ROOT / ".venv" / "bin" / "pecot"
-        if not pecot.is_file():
-            pytest.skip("cli/.venv/bin/pecot が無い")
+        assert pecot.is_file(), (
+            "cli/.venv/bin/pecot が無い。cli で `uv sync` を実行して venv を作ること"
+        )
         (tmp_path / ".claude-plugin").mkdir()
         (tmp_path / ".claude-plugin" / "plugin.json").write_text(
             json.dumps({"name": "pecot-w", "version": "9.8.7"})
@@ -127,8 +128,9 @@ class TestCLIEntrypoint:
     def test_venv_entrypoint_prepares_template(self, tmp_path: Path) -> None:
         """cli/.venv/bin/pecot を直接起動し、テンプレートを読むコマンドが動く。"""
         pecot = PROJECT_ROOT / ".venv" / "bin" / "pecot"
-        if not pecot.is_file():
-            pytest.skip("cli/.venv/bin/pecot が無い")
+        assert pecot.is_file(), (
+            "cli/.venv/bin/pecot が無い。cli で `uv sync` を実行して venv を作ること"
+        )
         project_dir = tmp_path / "project"
         project_dir.mkdir()
 

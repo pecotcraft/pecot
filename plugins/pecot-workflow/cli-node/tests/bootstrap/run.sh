@@ -2,7 +2,7 @@
 # bin/pecot / .mcp.json の CUJ テスト（pecot-tools の cli/tests/bootstrap/run.sh と同型）。
 #
 # vitest は `dist/cli.js` を直接起動する。そのため、手前にある bash wrapper と登録ファイルには検証が掛からない。
-# ここで押さえるのは 8 つ。
+# ここで押さえるのは 9 つ。
 #   CUJ 1  .mcp.json の登録内容（command / args）と、置換後パスが実行可能なこと。
 #   CUJ 2  Python と uv の無い PATH で、初回の `bin/pecot mcp` がデータ置き場に実行用ミラーを作る（install + build）。
 #          MCP サーバとして応答し、stdout が JSON-RPC 専有のまま、stdin の EOF で 0 終了すること。
@@ -13,6 +13,8 @@
 #   CUJ 6  pnpm と corepack が無く、npx だけある環境（Node.js 25 以降）で、npx 経由の pnpm が完走する。
 #   CUJ 7  Node が無い PATH では、`pnpm / corepack / npx not found` の行を出して非 0 で止まる。
 #   CUJ 8  プラグインルートの解決（CLAUDE_PLUGIN_ROOT の優先・無効なとき・symlink 経由）と、読み取り専用のルートでの初回の準備。
+#   CUJ 9  旧方式の venv の片づけの境界。消せない世代があっても起動する。symlink の先や旧方式でないものは消さない。
+#          旧版のロック（venv/.lock）を持つプロセスがいる間は消さない。flock の無い環境ではロックを見ずに消す。
 #
 # 依存と build 成果物はプラグインのデータ置き場（${データ置き場}/runtime/<hash>/）に作る。
 # データ置き場は $WORK_DIR 配下の一時ディレクトリで、CLAUDE_PLUGIN_DATA で渡す。
@@ -35,9 +37,11 @@ mkdir -p "$DATA_DIR"
 export CLAUDE_PLUGIN_DATA="$DATA_DIR"
 
 HOLDER_PID=""
+MCP_PID=""
 cleanup() {
   local exit_code=$?
   [ -z "$HOLDER_PID" ] || kill "$HOLDER_PID" 2>/dev/null || true
+  [ -z "$MCP_PID" ] || kill "$MCP_PID" 2>/dev/null || true
   chmod -R u+w "$WORK_DIR" >/dev/null 2>&1 || true
   rm -rf "$WORK_DIR" >/dev/null 2>&1 || true
   exit "$exit_code"
@@ -47,6 +51,27 @@ trap cleanup EXIT
 fail() {
   echo "[bootstrap-test] FAIL: $*" >&2
   exit 1
+}
+
+# ファイルにロックを保持する子プロセスを起こす（$1 = ロックするファイル、$2 = flock の種類 -s か -x）。
+# 子は stdin・stdout・stderr を継がず、60 秒で終わる。ロックを取ったら $WORK_DIR/holder.ready を書くので、それを待つ。
+# flock(1) は子プロセスで動くため、bash 自身を sleep に置き換え、kill が保持者へ届くようにする。
+start_holder() {
+  local ready="$WORK_DIR/holder.ready" _
+  rm -f "$ready"
+  bash -c 'exec 9<"$1"; flock "$3" 9 || exit 1; : > "$2"; exec sleep 60' _ "$1" "$ready" "$2" </dev/null >/dev/null 2>&1 &
+  HOLDER_PID=$!
+  for _ in $(seq 1 100); do
+    [ -e "$ready" ] && return 0
+    sleep 0.1
+  done
+  fail "ロックの保持者がロックを取れなかった: $1"
+}
+
+stop_holder() {
+  [ -z "$HOLDER_PID" ] || kill "$HOLDER_PID" 2>/dev/null || true
+  wait "$HOLDER_PID" 2>/dev/null || true
+  HOLDER_PID=""
 }
 
 assert_exit_zero() {
@@ -90,7 +115,7 @@ run_mcp_exchange() {
   local stdout_file="$1"; local stderr_file="$2"; local wait_seconds="$3"
   local root="${4:-$PLUGIN_ROOT}"
   local fifo="$WORK_DIR/mcp.stdin.fifo"
-  local pid deadline
+  local pid deadline exit_deadline
 
   rm -f "$fifo" "$stdout_file" "$stderr_file"
   mkfifo "$fifo"
@@ -98,6 +123,7 @@ run_mcp_exchange() {
   set +e
   env "${EXCHANGE_ENV[@]+"${EXCHANGE_ENV[@]}"}" CLAUDE_PLUGIN_ROOT="$root" "$root/bin/pecot" mcp <"$fifo" >"$stdout_file" 2>"$stderr_file" &
   pid=$!
+  MCP_PID=$pid
   # fd 7 を writer として保持し続けることで stdin の EOF を保留する。
   exec 7>"$fifo"
   printf '%s\n' "$INITIALIZE_REQUEST" >&7
@@ -109,8 +135,18 @@ run_mcp_exchange() {
   done
   sleep 0.5
   exec 7>&-
+  # EOF の後に終わらないものは、30 秒で止めて失敗にする。
+  exit_deadline=$(( $(date +%s) + 30 ))
+  while kill -0 "$pid" 2>/dev/null && [ "$(date +%s)" -le "$exit_deadline" ]; do
+    sleep 0.2
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    fail "stdin の EOF の後も bin/pecot mcp が終わらない（stderr: $stderr_file）"
+  fi
   wait "$pid"
   MCP_EXIT_CODE=$?
+  MCP_PID=""
   set -e
 
   rm -f "$fifo"
@@ -200,13 +236,10 @@ for venv_root in "$DATA_DIR/venv" "$DEFAULT_DATA/venv"; do
 done
 HOLD_DIR="$DEFAULT_DATA/venv/cccccccccccccccc-dddddddddddddddd"
 if command -v flock >/dev/null 2>&1; then
-  # flock(1) は子プロセスで動く。そのため bash 自身を sleep に置き換え、kill が保持者へ届くようにする。
-  bash -c 'exec 9<"$1"; flock -s 9; exec sleep 600' _ "$HOLD_DIR/.inuse" &
-  HOLDER_PID=$!
-  sleep 0.5
+  start_holder "$HOLD_DIR/.inuse" -s
 fi
-BEFORE_REF="$WORK_DIR/cuj2.before"
-: > "$BEFORE_REF"
+# 本体（plugins/pecot-workflow）の追跡と無視の状態を、起動の前後で比べる。
+PLUGIN_STATE_BEFORE="$(git -C "$REPO_ROOT" status --porcelain --ignored -- plugins/pecot-workflow)"
 STDOUT2="$WORK_DIR/cuj2.stdout"
 STDERR2="$WORK_DIR/cuj2.stderr"
 CUJ2_ENV=(PATH="$NOPY_BIN" HOME="$CUJ2_HOME" XDG_DATA_HOME= npm_config_store_dir="$PNPM_STORE")
@@ -222,8 +255,9 @@ if [ ! -f "$CURRENT_DIR/.complete" ] || [ ! -f "$CURRENT_DIR/cli-node/dist/cli.j
   fail "CUJ 2 の後に完成したミラーが無い: $DATA_DIR/runtime"
 fi
 # 本体のワークツリーには何も作らない。
-TOUCHED="$(find "$PLUGIN_ROOT/node_modules/.modules.yaml" "$PLUGIN_ROOT/runtime-lock.yaml" -newer "$BEFORE_REF" 2>/dev/null || true)"
-[ -z "$TOUCHED" ] || fail "CUJ 2 が本体へ書き込んだ: $TOUCHED"
+PLUGIN_STATE_AFTER="$(git -C "$REPO_ROOT" status --porcelain --ignored -- plugins/pecot-workflow)"
+PLUGIN_STATE_DIFF="$(diff <(printf '%s\n' "$PLUGIN_STATE_BEFORE") <(printf '%s\n' "$PLUGIN_STATE_AFTER") || true)"
+[ "$PLUGIN_STATE_BEFORE" = "$PLUGIN_STATE_AFTER" ] || fail "CUJ 2 が本体へ書き込んだ: $PLUGIN_STATE_DIFF"
 # 旧方式の venv
 for generation in aaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb cccccccccccccccc-dddddddddddddddd; do
   [ ! -e "$DATA_DIR/venv/$generation" ] || fail "CUJ 2 で解決した置き場の venv の世代が残っている: $generation"
@@ -232,9 +266,7 @@ done
 [ ! -e "$DEFAULT_DATA/venv/aaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb" ] || fail "CUJ 2 で既定の場所の venv の世代が残っている"
 if [ -n "$HOLDER_PID" ]; then
   [ -d "$HOLD_DIR" ] || fail "CUJ 2 が使用中の世代を消した: $HOLD_DIR"
-  kill "$HOLDER_PID" 2>/dev/null || true
-  wait "$HOLDER_PID" 2>/dev/null || true
-  HOLDER_PID=""
+  stop_holder
   # 使用中でなくなった世代は、次回の起動で消える（この起動は準備済みなので、片づけだけを行う）。
   EXCHANGE_ENV=("${CUJ2_ENV[@]}")
   run_mcp_exchange "$WORK_DIR/cuj2b.stdout" "$WORK_DIR/cuj2b.stderr" 60
@@ -376,5 +408,116 @@ assert_exit_zero "$code" "CUJ 8 読み取り専用のルートの exit ($WORK_DI
 case "$OUT_RO" in *"$VERSION_OF_ROOT"*) ;; *) fail "CUJ 8 読み取り専用のルートの出力が想定と違う: $OUT_RO" ;; esac
 [ ! -e "$RESOLVE_ROOT/node_modules" ] || fail "CUJ 8 が本体に node_modules を作った"
 echo "[bootstrap-test] CUJ 8 pass"
+
+# CUJ 9: 旧方式の venv の片づけ。完成済みのミラー（CUJ 2〜3 と同じ置き場）を使うので、起動は片づけだけを行う。
+# HOME を付け替える。既定の場所（実ホーム）の venv を触らないため。
+echo "[bootstrap-test] CUJ 9: legacy venv cleanup boundaries"
+CUJ9_HOME="$WORK_DIR/cuj9-home"
+mkdir -p "$CUJ9_HOME"
+GEN_A=1111111111111111-2222222222222222
+GEN_B=3333333333333333-4444444444444444
+VENV="$DATA_DIR/venv"
+VERSION_OF_PLUGIN=$(node -p 'require(process.argv[1]).version' "$PLUGIN_ROOT/.claude-plugin/plugin.json")
+RS_CODE=0
+# run_start [VAR=値 ...]: 完成済みのミラーで bin/pecot --version を起動する。結果は RS_CODE と cuj9.stdout / cuj9.stderr に残す。
+run_start() {
+  RS_CODE=0
+  env -u CLAUDE_PLUGIN_ROOT HOME="$CUJ9_HOME" XDG_DATA_HOME= npm_config_store_dir="$PNPM_STORE" "$@" \
+    "$PLUGIN_ROOT/bin/pecot" --version >"$WORK_DIR/cuj9.stdout" 2>"$WORK_DIR/cuj9.stderr" </dev/null || RS_CODE=$?
+}
+assert_started() {
+  [ "$RS_CODE" -eq 0 ] || { sed -n '1,20p' "$WORK_DIR/cuj9.stderr" >&2; fail "$1 が起動に失敗した (exit=$RS_CODE)"; }
+  CUJ9_STDOUT="$(cat "$WORK_DIR/cuj9.stdout")"
+  grep -q "$VERSION_OF_PLUGIN" "$WORK_DIR/cuj9.stdout" || fail "$1 が版を返していない: $CUJ9_STDOUT"
+}
+make_generation() {
+  mkdir -p "$1/bin"
+  : > "$1/.pecot-complete"
+  : > "$1/.inuse"
+}
+reset_venv() {
+  chmod -R u+w "$VENV" 2>/dev/null || true
+  rm -rf "$VENV" "$WORK_DIR/venv-target"
+}
+
+# (a) 消せない世代があっても起動して結果を返す。消せたものだけ消え、残りは次回に消える。root は権限を無視するので飛ばす。
+if [ "$(id -u)" -ne 0 ]; then
+  reset_venv
+  make_generation "$VENV/$GEN_A"
+  make_generation "$VENV/$GEN_B"
+  mkdir -p "$VENV/$GEN_A/locked"
+  : > "$VENV/$GEN_A/locked/file"
+  chmod a-w "$VENV/$GEN_A/locked"
+  ln -s "$GEN_A" "$VENV/current"
+  run_start
+  assert_started "CUJ 9 消せない世代がある"
+  [ -d "$VENV/$GEN_A/locked" ] || fail "CUJ 9 消せない世代が消えた"
+  [ ! -e "$VENV/$GEN_B" ] || fail "CUJ 9 消せる世代が残った"
+  [ -L "$VENV/current" ] || fail "CUJ 9 世代が残っているのに current を消した"
+  chmod -R u+w "$VENV"
+  run_start
+  assert_started "CUJ 9 消せない世代が消せるようになった後"
+  [ ! -e "$VENV" ] || fail "CUJ 9 消せるようになった次回の起動で venv が残った"
+fi
+
+# (b) venv が symlink なら、リンク先には何もしない。
+reset_venv
+mkdir -p "$WORK_DIR/venv-target"
+make_generation "$WORK_DIR/venv-target/$GEN_A"
+ln -s "$GEN_A" "$WORK_DIR/venv-target/current"
+: > "$WORK_DIR/venv-target/.lock"
+ln -s "$WORK_DIR/venv-target" "$VENV"
+run_start
+assert_started "CUJ 9 venv が symlink"
+[ -f "$WORK_DIR/venv-target/$GEN_A/.pecot-complete" ] || fail "CUJ 9 symlink の先の世代を消した"
+[ -L "$WORK_DIR/venv-target/current" ] && [ -e "$WORK_DIR/venv-target/.lock" ] || fail "CUJ 9 symlink の先の current か .lock を消した"
+
+# (c) 旧方式でないものは消さない。旧方式の世代と同居するときは、世代だけを消す。
+reset_venv
+mkdir -p "$VENV/notes" "$VENV/.stage-user"
+: > "$VENV/README"
+: > "$VENV/notes/memo"
+run_start
+assert_started "CUJ 9 旧方式でない venv"
+{ [ -f "$VENV/README" ] && [ -f "$VENV/notes/memo" ] && [ -d "$VENV/.stage-user" ]; } || fail "CUJ 9 旧方式でないものを消した"
+make_generation "$VENV/$GEN_A"
+ln -s "$GEN_A" "$VENV/current"
+run_start
+assert_started "CUJ 9 旧方式と同居"
+[ ! -e "$VENV/$GEN_A" ] || fail "CUJ 9 同居する旧方式の世代が残った"
+{ [ -f "$VENV/README" ] && [ -f "$VENV/notes/memo" ]; } || fail "CUJ 9 同居する旧方式でないものを消した"
+
+# (d) 旧版のロックを持つプロセスがいる間は消さない。放すと次回に消える。
+if command -v flock >/dev/null 2>&1; then
+  reset_venv
+  make_generation "$VENV/$GEN_A"
+  mkdir -p "$VENV/.stage-building"
+  : > "$VENV/.lock"
+  start_holder "$VENV/.lock" -x
+  run_start
+  assert_started "CUJ 9 旧版のロックが取られている"
+  { [ -d "$VENV/$GEN_A" ] && [ -d "$VENV/.stage-building" ]; } || fail "CUJ 9 旧版がロックを持つ間に、作成中のものを消した"
+  stop_holder
+  run_start
+  assert_started "CUJ 9 旧版のロックが放された後"
+  [ ! -e "$VENV" ] || fail "CUJ 9 旧版のロックが放された次回の起動で venv が残った"
+
+  # (e) flock の無い環境では、ロックを見ずに消す（使用中でも消える）。
+  reset_venv
+  make_generation "$VENV/$GEN_A"
+  : > "$VENV/.lock"
+  start_holder "$VENV/$GEN_A/.inuse" -s
+  NOFLOCK_BIN="$WORK_DIR/noflock-bin"
+  make_filtered_bin "$NOFLOCK_BIN" flock
+  if env PATH="$NOFLOCK_BIN" bash --noprofile --norc -c 'command -v flock' >/dev/null 2>&1; then
+    fail "CUJ 9 の PATH に flock が残っている"
+  fi
+  run_start PATH="$NOFLOCK_BIN"
+  assert_started "CUJ 9 flock の無い環境"
+  [ ! -e "$VENV" ] || fail "CUJ 9 flock の無い環境で、古い世代がロックを見ずに消えていない"
+  stop_holder
+fi
+reset_venv
+echo "[bootstrap-test] CUJ 9 pass"
 
 echo "[bootstrap-test] all CUJ passed"

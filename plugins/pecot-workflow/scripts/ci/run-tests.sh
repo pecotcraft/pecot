@@ -250,8 +250,10 @@ if [ "$RUN_CLI" = true ]; then
 fi
 
 if [ "$RUN_BOOTSTRAP" = true ]; then
-    # 実 pnpm でミラーを build する CUJ（run.sh）、データ置き場の解決順（data-dir.sh）、登録ファイルの整合（manifest.sh）。
-    for script in run.sh data-dir.sh manifest.sh; do
+    # run.sh は、実 pnpm でミラーを build する CUJ。
+    # data-dir.sh は、データ置き場の解決順。manifest.sh は、登録ファイルの整合。
+    # install-record.sh は、stub pnpm でミラーを作り直す条件と世代削除を確かめる。
+    for script in run.sh data-dir.sh manifest.sh install-record.sh; do
         echo "==> bash cli-node/tests/bootstrap/$script"
         bash "$PLUGIN_ROOT/cli-node/tests/bootstrap/$script"
     done

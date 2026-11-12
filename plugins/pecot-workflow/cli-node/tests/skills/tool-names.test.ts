@@ -3,17 +3,26 @@
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
+import { compareStrings } from '../parity/baseline.js'
 import { readDocuments, toolInputs } from './_helpers/documents.js'
 
 // 利用者が端末で打つコマンドの説明として、本文に残してよい `pecot <サブコマンド>`。
-// 書式は `<プラグインからの相対パス>:<行>`。いまは該当する箇所が無い。
-const TERMINAL_COMMANDS: readonly string[] = []
+// 書式は `<プラグインからの相対パス>:<行>`。載せるのは、w-help の、利用者が端末か `!` で打つ説明だけ。
+const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:52', 'skills/w-help/SKILL.md:54']
 
 // ツール名に似るが、入力の値や概念を指す語
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'issue_number', 'session_id'])
 
 const TOOL_LIKE = /\b(?:(?:issue|pr|project|session|worktree|release|security|dependabot)_[a-z_]+|add_to_project|update_issue_status|create_branch|delete_branch)\b/gu
-const CLI_FORM = /\bpecot"? +(?:issue|pr|project|session|worktree|release|security|dependabot|add-to-project|update-issue-status|create-branch|delete-branch)\b/u
+const TOP_WORDS = [...new Set(COMMANDS.map(command => command.path[0] ?? ''))].toSorted(compareStrings).join('|')
+// deny の hook の起動形を拾う。起動形は pecot・$PECOT・${PECOT}・.../bin/pecot で、クオート付きを含む。
+// 後ろに `--repo <値>` があってもよい。その後ろに、サブコマンドか `--help`・`--version` が来る形を拾う。
+// eslint-disable-next-line security/detect-non-literal-regexp -- サブコマンドの語は COMMANDS から作る
+const CLI_FORM = new RegExp(
+  String.raw`(?:^|[\s\x60(;&|'])"?(?:\$\{?PECOT\}?|[^\s"'=]*/bin/pecot|pecot)"?`
+  + String.raw`(?:\s+--repo(?:=|\s+)\S+)?\s+(?:${TOP_WORDS}|--help|--version)(?![\w-])`,
+  'u',
+)
 const PREFIXED = /mcp__plugin_pecot-w_pecot-workflow__([a-z_]+)/gu
 
 function lineNumberAt(text: string, index: number): number {
@@ -86,5 +95,36 @@ describe('`pecot <サブコマンド>` の残り（R-19）', () => {
       }
     }
     expect(residual).toEqual(TERMINAL_COMMANDS)
+  })
+})
+
+describe('`pecot <サブコマンド>` の検出式', () => {
+  const denied = [
+    'pecot issue read 1',
+    '$PECOT issue read o/r#1',
+    '${PECOT} pr create',
+    '"$PECOT" project info',
+    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" --repo o/r issue comment',
+    '/home/u/.claude/plugins/x/bin/pecot session status',
+    'pecot --repo o/r security sync',
+    'cd x && pecot --help',
+    'pecot --version',
+  ]
+  const allowed = [
+    'pecot-tools aws s3 ls',
+    'pecotv issue read',
+    'cd .pecot/work/350 && ls',
+    'pecot-workflow issue read',
+    '.pecot/state/pecot issue',
+    'pecot について説明する',
+    'pecot issue-tracker',
+  ]
+
+  it('deny の起動形の見本を、全部拾う', () => {
+    expect(denied.filter(sample => !CLI_FORM.test(sample))).toEqual([])
+  })
+
+  it('拾ってはいけない見本を、拾わない', () => {
+    expect(allowed.filter(sample => CLI_FORM.test(sample))).toEqual([])
   })
 })

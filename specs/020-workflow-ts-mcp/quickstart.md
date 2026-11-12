@@ -134,13 +134,28 @@ Node の中央値が Python の中央値以下（SC-009）。2 つの中央値�
 
 ## Python と uv の無い環境
 
-`PATH` に、必要なコマンドだけを置いたディレクトリを指すシェルを使う。devcontainer の外の素の Node 環境でもよい。
+`PATH` の各ディレクトリから、python・python3・uv・uvx 以外へのリンクを張ったディレクトリを作り、その `PATH` のシェルを使う。
+devcontainer の外の素の Node 環境でもよい。
 
 ```bash
-bin=.pecot/work/<Issue番号>/nopython-bin
+bin="$PWD/.pecot/work/<Issue番号>/nopython-bin"
 mkdir -p "$bin"
-for c in node npx git gh jq claude bash sh env cat sed grep awk tr dirname realpath mkdir rm ls; do ln -sf "$(command -v $c)" "$bin/$c"; done
-env PATH="$PWD/$bin" bash --noprofile --norc -c 'command -v python3 python uv uvx || echo "見つからない（期待どおり）"'
+(
+  IFS=:
+  for dir in $PATH; do
+    [ -d "$dir" ] || continue
+    for entry in "$dir"/*; do
+      name="${entry##*/}"
+      case "$name" in python*|uv|uvx|pip*) continue ;; esac
+      [ -x "$entry" ] && [ ! -d "$entry" ] || continue
+      [ -e "$bin/$name" ] || ln -s "$entry" "$bin/$name"
+    done
+  done
+)
+env PATH="$bin" bash --noprofile --norc -c 'type -P python3 python uv uvx || echo "見つからない（期待どおり）"'
+env PATH="$bin" bash --noprofile --norc -c 'type -P node shasum sort cut tar find xargs'
 ```
 
-2 つ目の `env` が「見つからない」と出れば、この `PATH` のシェルから CUJ 1 を起動する。足りないコマンドが出たら、`for` の一覧に足す。
+1 つ目の `env` が「見つからない」と出て、2 つ目の `env` が 7 つのコマンドのパスを出せば、この `PATH` のシェルから CUJ 1 を起動する。
+`type -P` は、alias や関数を拾わず、`PATH` 上のファイルだけを見る。
+同じ作り方は `plugins/pecot-workflow/cli-node/tests/bootstrap/run.sh` の `make_filtered_bin` にある。

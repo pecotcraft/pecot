@@ -5,7 +5,7 @@
 </div>
 
 <!-- markdownlint-disable MD013 -->
-![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![GitHub Copilot CLI](https://img.shields.io/badge/Copilot_CLI-1.0.97%2B-24292F?style=flat-square&logo=githubcopilot&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![MCP](https://img.shields.io/badge/MCP-stdio-1F1F1F?style=flat-square) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.141%2B-6B4FBB?style=flat-square&logo=anthropic&logoColor=white) ![GitHub Copilot CLI](https://img.shields.io/badge/Copilot_CLI-1.0.106%2B-24292F?style=flat-square&logo=githubcopilot&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-24.22.1%2B_%2F_26.12.1%2B-339933?style=flat-square&logo=node.js&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![MCP](https://img.shields.io/badge/MCP-stdio-1F1F1F?style=flat-square) ![GitHub Projects](https://img.shields.io/badge/GitHub_Projects_V2-181717?style=flat-square&logo=github&logoColor=white)
 <!-- markdownlint-enable MD013 -->
 
 GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリースまでの開発ワークフローを提供します。
@@ -58,7 +58,7 @@ Chrome が無い端末での入れ方は、[pecot-visual の README](../pecot-vi
 
 ## 動作要件
 
-- Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.97 以上
+- Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.106 以上
 - [gh CLI](https://cli.github.com/) — `gh auth refresh -s project` で `project` スコープを追加してください
 - Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上 — `pecot` の実行に使う。初回の実行時に、依存の導入とビルドを行う（pnpm・corepack・npx のいずれかが要る）
 

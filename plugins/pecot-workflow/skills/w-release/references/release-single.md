@@ -127,7 +127,9 @@ gh pr merge <PR番号> --repo <owner>/<repo> --squash
 
 #### 3-5. develop 最新化
 
-`<develop>` が checkout されている worktree に移動する。
+`release_preflight`・`release_create` は、セッションを始めたディレクトリを読む。`<develop>` が checkout されている worktree で始めたセッションで実行する。違うときは、そこで止めて、その worktree でセッションを始め直すよう利用者に伝える。
+
+次の `git pull` は、その worktree で打つ。
 
 ```bash
 git pull --ff-only origin <develop>

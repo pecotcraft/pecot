@@ -7,7 +7,7 @@
 `project_show_aggregation_repo` を引数なしで呼ぶ。
 
 - 未設定なら Step 4.1 Q1 は通常 3 択。
-- 既設定（`<owner/repo>` 表示）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与し、既存値の確認プロンプトを抑制する。例: `project_set_aggregation_repo` を `value: "<owner/repo>"`・`yes: true` で呼ぶ。
+- 既設定（`<owner/repo>` 表示）なら Q1 に「現状維持 `<現在値>`」を追加。以降で**上書き**する場合は `yes: true` を付与する。付けなくても上書きされ、`yes` は警告の末尾のヒントを消すだけである。例: `project_set_aggregation_repo` を `value: "<owner/repo>"`・`yes: true` で呼ぶ。
 
 ## 4.1 AskUserQuestion Q1: 方針選択
 

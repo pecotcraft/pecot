@@ -24,18 +24,15 @@ HOOK_COMMAND="$(_dequote "$HOOK_COMMAND")"
 GH_PR_MERGE_PATTERN="${_SEG_ANCHOR}${_GH}[[:space:]]+pr[[:space:]]+merge([[:space:]]|$)"
 
 # config キー有効かつ、いずれかのセグメントが pattern に一致した時点で ask（exit 11）する。
-# skip_pattern は同一セグメント内に一致したら素通し（空なら免除なし）。flag_file が存在すればコマンド全体を素通しする。
+# flag_file が存在すればコマンド全体を素通しする。
 # ループ入力は here-string で渡す。
 # パイプだとサブシェルになり、exit がスクリプト全体へ及ばず素通しになる。
 _external_post_check() {
-  local config_key="$1" pattern="$2" skip_pattern="$3" message="$4" flag_file="$5"
+  local config_key="$1" pattern="$2" message="$3" flag_file="$4"
   pecot_hook_enabled "$config_key" true || return 0
   local seg
   while IFS= read -r seg; do
     [[ "$seg" =~ $pattern ]] || continue
-    if [ -n "$skip_pattern" ] && [[ "$seg" =~ $skip_pattern ]]; then
-      continue
-    fi
     if [ -n "$flag_file" ] && [ -f "$flag_file" ]; then
       return 0
     fi
@@ -52,6 +49,6 @@ GH_MSG="$(mcp_guidance_pr_merge)"
 MERGE_SLASH_FLAG="${HOOK_WORKING_DIR}/.pecot/state/merge-slash-pending"
 
 # gh pr merge: 確認フラグ免除なし。/w-merge 起点フラグがあれば素通し（存在確認のみ・削除しない）。
-_external_post_check "gh-pr-merge-ask" "$GH_PR_MERGE_PATTERN" "" "$GH_MSG" "$MERGE_SLASH_FLAG"
+_external_post_check "gh-pr-merge-ask" "$GH_PR_MERGE_PATTERN" "$GH_MSG" "$MERGE_SLASH_FLAG"
 
 exit 0

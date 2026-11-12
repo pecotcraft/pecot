@@ -51,8 +51,8 @@ function outputOf(toolName: string, toolInput: unknown, project = createProject(
 // mcp-guidance.sh の関数が出す文を、hook_message の warning で包んだもの（ask の理由）。
 function expectedReason(guidance: string): string {
   const core = path.resolve(import.meta.dirname, '../../../hooks/lib/core')
-  const script = `source "${core}/hook-message.sh"; source "${core}/mcp-guidance.sh"; hook_message warning "$(${guidance})"`
-  const result = spawnSync('bash', ['-c', script], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
+  const script = 'source "$1/hook-message.sh"; source "$1/mcp-guidance.sh"; hook_message warning "$($2)"'
+  const result = spawnSync('bash', ['-c', script, '_', core, guidance], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
   expect(result.status).toBe(0)
   return result.stdout.trimEnd()
 }

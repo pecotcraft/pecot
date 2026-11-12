@@ -154,7 +154,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
-| CWD と Issue ref の owner/repo 不一致 | `create_branch` の冒頭 | `exit code: 2` + 対象リポ WT への移動誘導 | `allow_cross_repo` |
+| CWD と Issue ref の owner/repo 不一致 | `create_branch` の冒頭 | `exit code: 2` + 対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
 | `.pecot-active` に OPEN な別 Issue ref | `create_branch` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
 | `.pecot-active` の Issue が CLOSED | 同上 | stale の warning + 続行 | （バイパス不要） |
 

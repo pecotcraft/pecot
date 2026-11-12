@@ -18,6 +18,8 @@ pecot_hook_enabled "pecot-cli-deny" true || exit 0
 
 # ヒアドキュメントの本文の行と、区切り文字を含むクオートの範囲を除き、改行は ; にする。
 # 行末の `\` と改行は、空白 1 つに畳む（継続行は 1 つのコマンドの続き）。
+# クオートの外で語頭にある `#` から行末まではコメントで、末尾が `\` でも継続にしない。
+# ヒアドキュメントの本文の行に入ったら、継続の状態を戻す（終端の次の行を前の行とつなげない）。
 # `<<<` と、クオート内の `<<` は、ヒアドキュメントと扱わない。
 _strip_non_commands() {
   printf '%s\n' "$1" | awk '
@@ -25,6 +27,7 @@ _strip_non_commands() {
     {
       line = $0
       if (nh > 0) {
+        cont = 0
         cmp = line
         if (hdash[1]) sub(/^\t+/, "", cmp)
         if (cmp == hd[1]) {
@@ -48,6 +51,8 @@ _strip_non_commands() {
             span = span c substr(line, i + 1, 1); i++
           } else span = span c
           i++
+        } else if (c == "#" && (i == 1 || substr(line, i - 1, 1) ~ /[[:space:];&|(]/)) {
+          i = n + 1
         } else if (c == "\\" && i == n) {
           out = out " "; cont = 1; i++
         } else if (c == "\\") {

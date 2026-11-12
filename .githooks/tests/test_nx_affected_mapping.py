@@ -290,6 +290,10 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             "plugins/pecot-workflow/cli-node/tests/bootstrap/data-dir.sh",
             {"pecot-workflow:test-bootstrap"},
         ),
+        (
+            "plugins/pecot-workflow/cli-node/tests/bootstrap/install-record.sh",
+            {"pecot-workflow:test-bootstrap"},
+        ),
         # pecot-workflow の登録ファイルは test-bootstrap が確かめる。com.github.copilot/hooks/hooks.json は hooks のテストも読む。
         (
             "plugins/pecot-workflow/mcp.json",
@@ -704,9 +708,14 @@ _PECOTV_TEST_LANES = {
         ),
         # pecot-workflow の Node の CLI と Python の CLI は、それぞれのレーンだけを選ぶ (#1313)。
         # cli-node/src/ は COMMANDS を持ち、本文を確認する test-skills も読む。
+        # test-bootstrap の run.sh は、実の cli-node/src をミラーに build して tools/list を確かめる。
         (
             "plugins/pecot-workflow/cli-node/src/cli.ts",
-            {"pecot-workflow:test-cli", "pecot-workflow:test-skills"},
+            {
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-bootstrap",
+                "pecot-workflow:test-skills",
+            },
         ),
         ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow:test-py"}),
         # baseline.json は test-cli の閾値と、test-hooks の起動スクリプトの実在確認と、test-skills の並べ替えの関数（baseline.ts と対）が読む。

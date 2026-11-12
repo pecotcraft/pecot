@@ -106,6 +106,9 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/cli-node/tests/bootstrap/**/*",
+        "{projectRoot}/cli-node/src/**/*",
+        "!{projectRoot}/cli-node/src/**/tests/**/*",
+        "!{projectRoot}/cli-node/src/**/*.test.*",
         "{projectRoot}/cli-node/tsconfig.json",
         "{projectRoot}/cli-node/tsconfig.build.json",
         "{projectRoot}/cli-node/scripts/tsc.mjs",
@@ -124,7 +127,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest。約 1 分）。実 pnpm でミラーを build する run.sh は、cli-node/src を読まない。ミラーの build が使う型の確認は build-cli が担う。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest、install-record。約 1 分）。実 pnpm でミラーを build する run.sh は、実の cli-node/src をミラーに build し、tools/list の 34 件を確かめる。そのため cli-node/src を入力に置く（テストは除く）。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",

@@ -507,18 +507,30 @@ plugin_runtime_diagnose_failure() {
     return 0
 }
 
-# 旧方式の venv（${DATA}/venv/<世代>/）を片づける。`.inuse` の排他ロックが取れた世代だけ消し、使用中の世代は次回に回す。
-# flock(1) が無い環境では、ロックを見ずに消す。引数: $1 = venv のディレクトリ
-plugin_legacy_venv_remove() {
-    local root="$1" dir remaining=0
-    [ -d "$root" ] || return 0
+# 旧方式の世代か。名前が 16 桁の 16 進数 2 つの形か、完成印（.pecot-complete）か使用中の印（.inuse）を持つもの。引数: $1 = ディレクトリ
+plugin_legacy_venv_is_generation() {
+    local dir="$1" name
+    name="${dir##*/}"
+    [[ "$name" =~ ^[0-9a-f]{16}-[0-9a-f]{16}$ ]] || [ -e "$dir/.pecot-complete" ] || [ -e "$dir/.inuse" ]
+}
+
+# venv の中身を片づける本体。旧方式の venv と分かったときだけ消す。消せないものは残し、次回に回す。引数: $1 = venv のディレクトリ
+plugin_legacy_venv_sweep() {
+    local root="$1" dir legacy=0 remaining=0
+    for dir in "$root"/*/; do
+        dir="${dir%/}"
+        if [ -d "$dir" ] && [ ! -L "$dir" ] && plugin_legacy_venv_is_generation "$dir"; then legacy=1; fi
+    done
+    if [ -L "$root/current" ] || [ -e "$root/.lock" ]; then legacy=1; fi
+    [ "$legacy" -eq 1 ] || return 0
     for dir in "$root"/.stage-* "$root"/.current.*; do
         [ -e "$dir" ] || [ -L "$dir" ] || continue
-        rm -rf "$dir"
+        rm -rf "$dir" 2>/dev/null || remaining=1
     done
     for dir in "$root"/*/; do
         dir="${dir%/}"
         [ -d "$dir" ] && [ ! -L "$dir" ] || continue
+        plugin_legacy_venv_is_generation "$dir" || continue
         if [ -e "$dir/.inuse" ] && command -v flock >/dev/null 2>&1; then
             (
                 exec 8<"$dir/.inuse" || exit 1
@@ -526,12 +538,32 @@ plugin_legacy_venv_remove() {
                 rm -rf "$dir"
             ) 2>/dev/null || remaining=1
         else
-            rm -rf "$dir"
+            rm -rf "$dir" 2>/dev/null || remaining=1
         fi
     done
     [ "$remaining" -eq 0 ] || return 0
-    rm -rf "$root/current" "$root/.lock" "$root/.lock.pid" "$root"/.lock.pid.stale.*
+    rm -rf "$root/current" "$root/.lock" "$root/.lock.pid" "$root"/.lock.pid.stale.* 2>/dev/null || true
     rmdir "$root" 2>/dev/null || true
+}
+
+# 旧方式の venv（${DATA}/venv/<世代>/）を片づける。失敗しても戻り値は 0 で、残りは次回に回す。
+# - venv が symlink なら何もしない。
+# - 旧版のロック（venv/.lock）を flock で取れないとき（旧版が作成中）は、今回は何もしない。
+# - `.inuse` の排他ロックが取れた世代だけ消し、使用中の世代は残す。
+# flock(1) が無い環境では、ロックを見ずに消す。引数: $1 = venv のディレクトリ
+plugin_legacy_venv_remove() {
+    local root="$1"
+    [ -d "$root" ] && [ ! -L "$root" ] || return 0
+    if [ -e "$root/.lock" ] && command -v flock >/dev/null 2>&1; then
+        (
+            exec 9<"$root/.lock" || exit 0
+            flock -n 9 || exit 0
+            plugin_legacy_venv_sweep "$root"
+        ) 2>/dev/null || true
+    else
+        plugin_legacy_venv_sweep "$root" 2>/dev/null || true
+    fi
+    return 0
 }
 
 # 解決したデータ置き場と、クライアントの置き場を外して求めた既定の場所の、2 か所の venv を片づける。引数: $1 = 解決したデータ置き場

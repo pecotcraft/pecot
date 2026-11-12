@@ -71,7 +71,7 @@ function runDeny(command: string, projectDirectory = createProject()): HookRun {
 describe('pecot-cli-deny', () => {
   it('34 コマンドの MCP ツール名が、hooks の一覧と一致する', () => {
     const script = path.resolve(import.meta.dirname, '../../../hooks/lib/core/pecot-tool-names.sh')
-    const result = spawnSync('bash', ['-c', String.raw`source "${script}"; printf "%s\n" $PECOT_TOOL_NAMES`], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
+    const result = spawnSync('bash', ['-c', String.raw`source "$1"; printf "%s\n" $PECOT_TOOL_NAMES`, '_', script], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
     expect(commands.map(words => toolOf(words)).toSorted(compareText)).toEqual(result.stdout.split('\n').filter(Boolean).toSorted(compareText))
   })
 
@@ -122,10 +122,21 @@ describe('pecot-cli-deny', () => {
     { command: 'echo a && \\\npecot issue read 1', note: '&& の後ろの行継続' },
     { command: 'echo a \\\n  && pecot issue read 1', note: '行継続の次の行頭の &&' },
     { command: 'echo a\n\\\npecot issue read 1', note: '行頭の \\ だけの行の次' },
+    { command: '# note \\\npecot issue read x', note: 'コメント行の末尾の \\ は、継続にしない' },
   ])('行末の \\ で続く行は連結して判定する: $note', ({ command }) => {
     const run = runDeny(command)
     expect(run.status).toBe(1)
     expect(run.stdout).toContain('MCP tool issue_read ')
+  })
+
+  it.for([
+    { command: 'echo done # trailing \\\npecot project info', note: '行の途中から始まるコメントの末尾の \\ は、継続にしない' },
+    { command: 'cat <<EOF \\\nbody\nEOF\npecot project info', note: 'ヒアドキュメントを始める行の末尾の \\ は、終端の次の行につなげない' },
+    { command: 'cat <<-EOF \\\n\tbody\n\tEOF\npecot project info', note: '<<- を始める行の末尾の \\ も、終端の次の行につなげない' },
+  ])('継続の状態を持ち越さない: $note', ({ command }) => {
+    const run = runDeny(command)
+    expect(run.status).toBe(1)
+    expect(run.stdout).toContain('MCP tool project_info ')
   })
 
   it.for([
@@ -146,6 +157,7 @@ describe('pecot-cli-deny', () => {
     { command: 'git add \\\nplugins/pecot-workflow/bin/pecot \\\n  README.md', note: '継続行の先頭が …/bin/pecot で終わる語（git add）' },
     { command: 'ls \\\npecot', note: '継続行の先頭が pecot だけの語（ls の引数）' },
     { command: 'cat \\\n  $PECOT', note: '継続行の先頭が $PECOT（cat の引数）' },
+    { command: 'echo a # pecot issue read 1', note: 'コメントの中の pecot' },
   ])('pecot を起動しない形（$note）は、無出力で素通しにする', ({ command }) => {
     const run = runDeny(command)
     expect(run.status).toBe(0)

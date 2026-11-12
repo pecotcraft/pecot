@@ -43,8 +43,10 @@ function withMockBin(name: string): string {
 }
 
 describe('open_browser.sh', () => {
-  it('引数なしでは失敗する', () => {
-    expect(run([]).status).not.toBe(0)
+  it('引数なしでは、使い方の文を stderr に出して失敗する', () => {
+    const result = run([])
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Usage: open_browser.sh <url>')
   })
 
   it.skipIf(!isWsl())('WSL では powershell.exe を呼ぶ', () => {
