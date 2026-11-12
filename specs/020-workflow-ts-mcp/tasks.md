@@ -250,19 +250,19 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: 今の確認・阻止の条件が、MCP の入力 JSON で同じ判定と文言になる。2 つのクライアントの名前の形で通る。34 個のツール名にない名前（playwright など）は判定しない
 
-- [ ] T044 [P] [US3] `cli-node/tests/hooks/pecot-post-ask.test.ts` を先に書く。ツール名は、2 つのクライアントの形の両方で流す。
+- [x] T044 [P] [US3] `cli-node/tests/hooks/pecot-post-ask.test.ts` を先に書く。ツール名は、2 つのクライアントの形の両方で流す。
   Claude Code は `mcp__plugin_pecot-w_pecot-workflow__<tool>`、Copilot CLI は `pecot-workflow-<tool>` である。
   `issue_create`・`issue_quick` は ask を返す。`tool_input.prepare == true`、スラッシュコマンドのフラグ、config キーが false のどれかがあれば素通し。
   `pr_create` は ask を返す。`prepare` か `dry_run` が true、フラグ、config キーが false のどれかがあれば素通し。文言は今の `pecot-issue-create-ask`・`pecot-pr-create-ask` と一致させる。
   取り出した名前が 34 個のツール名にないとき（`pecot-workflow-playwright-browser_click` など）は判定しないことも確かめる。
-- [ ] T045 [US3] `hooks/lib/mcp-handlers/pecot-post-ask.sh` を作る。`PECOT_HOOK_TOOL_NAME` から `<tool>` を取り出し、34 個のツール名にあるときだけ判定する。`tool_input` を jq で読む。
+- [x] T045 [US3] `hooks/lib/mcp-handlers/pecot-post-ask.sh` を作る。`PECOT_HOOK_TOOL_NAME` から `<tool>` を取り出し、34 個のツール名にあるときだけ判定する。`tool_input` を jq で読む。
   `mcp-dispatcher.sh` からは、`pr-create-block.sh`（deny）の後、`context7-allow.sh`（allow）の前に呼ぶ。
   `mcp-dispatcher.sh` を変えるので、既存の pytest（`hooks/tests/test_pre_mcp.py` など）も同じ PR で直す。
-- [ ] T046 [P] [US3] `cli-node/tests/hooks/pecot-cli-deny.test.ts` を先に書く。定義書にある 34 コマンドの起動形のそれぞれで deny になり、理由に対応するツール名が入ることを確かめる。
+- [x] T046 [P] [US3] `cli-node/tests/hooks/pecot-cli-deny.test.ts` を先に書く。定義書にある 34 コマンドの起動形のそれぞれで deny になり、理由に対応するツール名が入ることを確かめる。
   起動形は、セグメントの先頭が `pecot`・`$PECOT`・`"$PECOT"`・`bin/pecot` のフルパス・クオート付きのパスのどれかである。`pecot issue read` なら理由に `issue_read` が入る。
   サブコマンドが分からない形（`pecot` だけ、`pecot --help`）は deny とし、理由に MCP ツールの一覧を使うよう書く。
-- [ ] T047 [US3] `hooks/lib/core/pecot-cli-deny.sh` を作る。セグメントの分け方と起動形の見つけ方は、`external-post-check.sh` の処理を使う。サブコマンド別の許可・阻止は持たない。`pre-tool-use-bash.sh` からはまだ呼ばない。
-- [ ] T048 [P] [US3] 案内文の移行後の文を `hooks/lib/core/mcp-guidance.sh`（新規）に用意する。
+- [x] T047 [US3] `hooks/lib/core/pecot-cli-deny.sh` を作る。セグメントの分け方と起動形の見つけ方は、`external-post-check.sh` の処理を使う。サブコマンド別の許可・阻止は持たない。`pre-tool-use-bash.sh` からはまだ呼ばない。
+- [x] T048 [P] [US3] 案内文の移行後の文を `hooks/lib/core/mcp-guidance.sh`（新規）に用意する。
   文は `cli-node/tests/hooks/mcp-guidance.test.ts`（新規）で固定する。どのスクリプトからもまだ読まない。
   案内文を持つ箇所は次の 6 つ。
   - `hooks/lib/core/gh-command-check.sh`（54・66〜67 行）は、`pr_create`・`issue_quick`・`issue_create` で案内する

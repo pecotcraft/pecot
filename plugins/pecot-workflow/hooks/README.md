@@ -70,8 +70,8 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下6つのコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。`pecot pr create` の使用を強制する | コアガード | `true` |
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。`pecot issue quick` / `issue create` の使用を強制する | コアガード | `true` |
-| `pecot-pr-create-ask` | `pecot pr create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p`/`--dry-run`/`-n` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | コアガード（external-post-check） | `true` |
-| `pecot-issue-create-ask` | `pecot issue quick` / `issue create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p` は素通し。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | コアガード（external-post-check） | `true` |
+| `pecot-pr-create-ask` | `pecot pr create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p`/`--dry-run`/`-n` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し。MCP ツールの `pr_create` でも同じキーで判定する（pecot-post-ask） | コアガード（external-post-check） | `true` |
+| `pecot-issue-create-ask` | `pecot issue quick` / `issue create`（実投稿）を検出しユーザー承認（ask）を要求。`--prepare`/`-p` は素通し。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し。MCP ツールの `issue_create` / `issue_quick` でも同じキーで判定する（pecot-post-ask） | コアガード（external-post-check） | `true` |
 | `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグ（`--dry-run`/`-n`）の免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは `pecot pr cleanup`） | コアガード（external-post-check） | `true` |
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
@@ -210,6 +210,7 @@ PreToolUse (Bash)               → pre-tool-use-bash.sh              → claude
                                                                        pecot-issue-pending-reminder
 PreToolUse (mcp__.*)            → pre-tool-use-mcp.sh               → mcp-dispatcher
                                                                        → pr-create-block →
+                                                                       pecot-post-ask →
                                                                        context7-allow (Claude Code)
 PreToolUse (WebSearch)          → pre-tool-use-websearch.sh         → websearch-allow
 
