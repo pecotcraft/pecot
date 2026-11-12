@@ -3,6 +3,8 @@ import path from 'node:path'
 import { PassThrough } from 'node:stream'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { executeMcpServe } from '../mcp/serve.js'
 import { z } from 'zod'
 
 import { exitQuietlyOnBrokenPipe, main, runCli } from '../cli.js'
@@ -21,6 +23,8 @@ import { createGitRepository, gitForTest } from './_helpers/git-repository.js'
 import { makeTemporaryDirectory } from './_helpers/temporary.js'
 
 useIsolatedEnvironment()
+
+vi.mock('../mcp/serve.js', () => ({ executeMcpServe: vi.fn(() => 0) }))
 
 // 実装と同じ readVersion() は使わず、plugin.json を直接読む
 
@@ -591,5 +595,32 @@ describe('main', () => {
     finally {
       process.argv = previousArgv
     }
+  })
+})
+
+describe('mcp', () => {
+  it('mcp は MCP サーバを起動して 0 を返し、何も出さない', async () => {
+    vi.mocked(executeMcpServe).mockClear()
+    expect(await run(['mcp'])).toEqual({ code: 0, stdout: '', stderr: '' })
+    expect(executeMcpServe).toHaveBeenCalledTimes(1)
+  })
+
+  it('mcp の起動が 1 を返したら、その終了コードで終わる', async () => {
+    vi.mocked(executeMcpServe).mockReturnValueOnce(1)
+    const result = await run(['mcp'])
+    expect(result.code).toBe(1)
+  })
+
+  it('mcp に余分な引数があると、サーバを起動せず使い方の誤りで 2', async () => {
+    vi.mocked(executeMcpServe).mockClear()
+    const result = await run(['mcp', 'extra'])
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain('Got unexpected extra argument(s) (extra)')
+    expect(executeMcpServe).not.toHaveBeenCalled()
+  })
+
+  it('mcp は help の一覧に出ない', async () => {
+    const help = await run(['--help'])
+    expect(help.stdout).not.toContain('mcp')
   })
 })

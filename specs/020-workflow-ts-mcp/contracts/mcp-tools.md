@@ -35,5 +35,7 @@
 | 確認 | 方法 |
 |---|---|
 | ツールの数と名前 | `tools/list` が定義書（`interface/generated.json`）の 34 項目と一致する。切り替えの後は、各項目の `surfaces.mcp.tool` と一致する |
+| 未知のキーの宣言 | `tools/list` の生の入力（`normalizeInput` を通す前）に `additionalProperties: false` がある。サーバは未知のキーを誤りにするので、公開する形も同じにする |
+| 中断 | 待ち行列の呼び出しは、順番が来た時点で `notifications/cancelled` か接続の切断で中断済みなら、本体を呼ばない。実行中の 1 件は完了まで動く |
 | 入力の対応 | `tools/list` の入力を `normalizeInput` を通した形にして、定義書の `input` と比べる。各ツールのプロパティが、CLI のオプション（`--show-repo`・`--version` を除く）と 1 対 1 |
-| 結果の同一性 | 前後比較のシナリオのうち MCP に写せる全件（[parity.md](./parity.md)）を MCP 経由でも流し、`structuredContent` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` が一致する |
+| 結果の同一性 | 前後比較のシナリオのうち MCP に写せる全件（[parity.md](./parity.md)）を MCP 経由でも流し、結果の `_meta['io.github.pecotcraft/outcome']` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` が一致する |

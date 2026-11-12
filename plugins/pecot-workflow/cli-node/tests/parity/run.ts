@@ -11,6 +11,7 @@ import { startFakeGithub } from '../fake-github/server.js'
 import { compareStrings } from './baseline.js'
 import type { Golden, Scenario, Substitution } from './scenario.js'
 import { normalizeDeep, normalizeText } from './scenario.js'
+import { runMcpChild } from './run-mcp.js'
 import { baseEnvironment, createSandbox, destroySandbox, pluginRoot } from './setup.js'
 
 /**
@@ -20,6 +21,10 @@ export interface Launcher {
   readonly command: string
   readonly args: readonly string[]
   readonly env: Readonly<Record<string, string>>
+  /**
+  'mcp' なら、`<args> mcp` のサーバを起動し、MCP のクライアントからツールを 1 回呼ぶ。無ければ CLI としてコマンドを打つ
+  */
+  readonly via?: 'mcp'
 }
 
 export interface Outcome {
@@ -116,7 +121,7 @@ function collectFiles(root: string, repositoryDirectory: string, dataDirectory: 
   return typeof normalized === 'object' && normalized !== null ? { ...normalized } : {}
 }
 
-interface ChildResult {
+export interface ChildResult {
   readonly stdout: string
   readonly stderr: string
   readonly code: number | undefined
@@ -200,7 +205,8 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
       ...scenario.setup.env,
       ...launcher.env,
     }
-    const child = await runChild(launcher, scenario, path.resolve(sandbox.repositoryDirectory, scenario.setup.cwd), environment)
+    const cwd = path.resolve(sandbox.repositoryDirectory, scenario.setup.cwd)
+    const child = launcher.via === 'mcp' ? await runMcpChild(launcher, scenario, cwd, environment) : await runChild(launcher, scenario, cwd, environment)
     const substitutions: readonly Substitution[] = [
       { from: sandbox.root, to: '{{TMP}}' },
       { from: pluginRoot, to: '{{PLUGIN_ROOT}}' },

@@ -4,6 +4,7 @@
 //   1. 解析の誤り（未知のオプション・値の欠け）。
 //   2. eager な --version・--help。他の引数が不正でも実行する。
 //   3. --repo の形式。不正なら使い方の誤りの枠を出して終了コード 2。
+//   3.5. `mcp`。コマンドではないので、名前の解決の前に MCP サーバを stdio で起動する（help の一覧と打ち間違いの候補に出さない）。
 //   4. コマンド名の解決。
 //   5. PECOT_GITHUB_API_URL の検証。不正なら文言を出して終了コード 1。
 //   6. --show-repo。解決して 2 行を出し、終了コード 0。
@@ -20,21 +21,20 @@ import { readAuthoredNotes } from './infra/authored-notes.js'
 import { gitRunnerFor } from './infra/git.js'
 import { resolveApiUrlOverride } from './infra/github/client.js'
 import { hasErrorCode } from './infra/os-error.js'
-import { isHelpRequested, runDefinition } from './commands/command-binding.js'
+import { extraArgumentsMessage, isHelpRequested, runDefinition } from './commands/command-binding.js'
 import { commandHelpText } from './commands/command-help.js'
 import { interfaceIdOf } from './commands/command-definition.js'
 import { invalidRepositoryMessage, parseGlobalOptions, ROOT_USAGE } from './commands/global-options.js'
-import { FAILURE_EXIT_CODE, isReportableFailure, reportFailure } from './commands/failure.js'
+import { exitCodeOfFailure } from './commands/failure.js'
 import { closeMatches } from './commands/fuzzy.js'
 import { helpText } from './commands/help.js'
 import { COMMANDS, findCommand } from './commands/registry.js'
 import type { CommandDefinition, CommandIo } from './commands/registry.js'
-import { AbortedError, createOutput, createProcessIo, reportAborted } from './commands/output.js'
+import { createOutput, createProcessIo } from './commands/output.js'
 import { formatResolvedRepository } from './commands/repository-display.js'
 import { outputWidth } from './commands/rich-panel.js'
 import {
   COMMAND_SYNOPSIS,
-  formatUsageError,
   MISSING_COMMAND_MESSAGE,
   noSuchCommandMessage,
   noSuchOptionMessage,
@@ -125,6 +125,21 @@ function showCommandHelp(definition: CommandDefinition, context: Readonly<CliCon
   return 0
 }
 
+const MCP_COMMAND = 'mcp'
+
+// mcp の待ち受け中は、stdout の EPIPE を serve.ts が終了コード 1 で報告する。main の静かな終了にしない
+const serving = { isActive: false }
+
+/**
+`pecot mcp` を stdio の MCP サーバとして起動する。待ち受けは stdin が閉じるまで続くので、起動の結果の終了コードを返す
+*/
+async function startMcp(extras: readonly string[]): Promise<number> {
+  if (extras.length > 0) throw new UsageError(extraArgumentsMessage(extras), { commandPath: [MCP_COMMAND], synopsis: '[OPTIONS]' })
+  const { executeMcpServe } = await import('./mcp/serve.js')
+  serving.isActive = true
+  return executeMcpServe()
+}
+
 async function execute(argv: readonly string[], context: Readonly<CliContext>, width: number): Promise<number> {
   const options = parseGlobalOptions(argv)
   if (argv.length === 0) {
@@ -140,6 +155,7 @@ async function execute(argv: readonly string[], context: Readonly<CliContext>, w
     return 0
   }
   validateRepository(options.repo)
+  if (options.rest[0] === MCP_COMMAND) return await startMcp(options.rest.slice(1))
   const resolution = options.rest.length === 0 ? undefined : resolveCommand([], options.rest, context.commands)
 
   try {
@@ -171,14 +187,7 @@ export async function runCli(argv: readonly string[], context: Readonly<CliConte
     return await execute(argv, context, width)
   }
   catch (error: unknown) {
-    if (error instanceof UsageError) {
-      context.io.stderr(formatUsageError(error, width))
-      return USAGE_EXIT_CODE
-    }
-    if (error instanceof AbortedError) return reportAborted(context.io)
-    if (!isReportableFailure(error)) throw error
-    reportFailure(error, context.io)
-    return FAILURE_EXIT_CODE
+    return exitCodeOfFailure(error, context.io, width)
   }
 }
 
@@ -205,6 +214,7 @@ export async function main(): Promise<void> {
   const io = createProcessIo()
   const pipe = { isClosed: false }
   const finish = (): void => {
+    if (serving.isActive) return
     pipe.isClosed = true
     process.exitCode = 0
     process.stdout.destroy()

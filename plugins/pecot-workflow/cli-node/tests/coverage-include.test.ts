@@ -23,6 +23,14 @@ describe('coverage', () => {
     expect(unmatched).toEqual([])
   })
 
+  it('cli project の include が、tests/mcp/ の実在するテストに当たる', () => {
+    const project = config.test?.projects?.find(entry => typeof entry === 'object' && 'test' in entry && entry.test.name === 'cli')
+    const include = typeof project === 'object' && 'test' in project ? project.test.include ?? [] : []
+    const matched = include.flatMap(pattern => globSync(pattern, { cwd: cliRoot })).filter(file => file.startsWith('tests/mcp/'))
+    expect(matched).toContain('tests/mcp/tools-list.test.ts')
+    expect(matched).toContain('tests/mcp/worktree-link.test.ts')
+  })
+
   it('lines の閾値は baseline の行カバレッジと 90 の大きいほう', () => {
     expect(coverage?.thresholds?.lines).toBe(Math.max(readBaseline().cli.lineCoverage, 90))
   })

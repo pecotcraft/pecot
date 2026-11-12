@@ -8,6 +8,7 @@ import { parseRemoteUrl } from '../domain/git-url.js'
 import type { RemoteLocation } from '../domain/git-url.js'
 import { BaseError, InvalidValueError } from '../domain/errors.js'
 import { normalizeNewlines, pythonRepr, pythonStrip } from '../domain/python-format.js'
+import { childStdin } from './child-stdin.js'
 import { isFileNotFound, toOsError } from './os-error.js'
 
 export interface GitOptions {
@@ -60,7 +61,7 @@ export function runGit(arguments_: readonly string[], options: Readonly<GitOptio
     env: options.stripGitEnvironment === true ? withoutGitVariables() : undefined,
     encoding: 'utf8',
     maxBuffer: MAX_OUTPUT_BYTES,
-    stdio: ['inherit', 'pipe', 'pipe'],
+    stdio: [childStdin(), 'pipe', 'pipe'],
   })
   if (result.error !== undefined) {
     // spawnSync の ENOENT は path が `git` で入る。cwd が無いときも同じ ENOENT になる

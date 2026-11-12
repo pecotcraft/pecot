@@ -20,6 +20,7 @@ import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
 import { isJsonArray, pythonStrip, ValidationFailure } from '../domain/python-format.js'
 import type { JsonValue, ValidationIssue } from '../domain/python-format.js'
+import { childStdin } from './child-stdin.js'
 import { isFile } from './file-kind.js'
 import { runGit } from './git.js'
 import { hasErrorCode, OsError, toOsError } from './os-error.js'
@@ -514,7 +515,7 @@ function ensurePecotGitignore(config: Readonly<WorktreeConfig>, worktreeRoot: st
     // interface-env: none
     env: { ...process.env, CLAUDE_PROJECT_DIR: worktreeRoot },
     encoding: 'utf8',
-    stdio: ['inherit', 'pipe', 'pipe'],
+    stdio: [childStdin(), 'pipe', 'pipe'],
   })
   if (result.error !== undefined) throw toOsError(result.error)
   if (result.status !== 0) diagnostics.warning(`could not generate ${PECOT_GITIGNORE_FILENAME}: ${result.stderr.trim()}`)

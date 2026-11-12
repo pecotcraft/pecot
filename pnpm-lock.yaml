@@ -824,6 +824,9 @@ importers:
 
   plugins/pecot-workflow/cli-node:
     dependencies:
+      '@modelcontextprotocol/server':
+        specifier: ^2.4.0
+        version: 2.4.0
       commander:
         specifier: ^15.1.0
         version: 15.1.0
@@ -837,6 +840,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.14.0(jiti@2.7.0)(supports-color@7.2.0))
+      '@modelcontextprotocol/client':
+        specifier: ^2.4.0
+        version: 2.4.0
       '@stylistic/eslint-plugin':
         specifier: ^5.10.0
         version: 5.10.0(eslint@10.14.0(jiti@2.7.0)(supports-color@7.2.0))
