@@ -23,7 +23,7 @@ export interface McpServerOptions {
   /**
   対象のリポを決められなかった理由。あるとき、どのツールの呼び出しもコマンドを呼ばず、この理由を失敗（exit code 1）で返す。tools/list は変わらない
   */
-  readonly unavailableReason?: string
+  readonly unavailableReason?: string | undefined
   /**
   プログラムの誤り（報告できる失敗でも使い方の誤りでもない例外）と、それまでに集めた出力を、切り分けのために伝える先。SDK は message だけの結果にする
   */

@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは makeTemporaryDirectory の一時ディレクトリ配下のみ */
-import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -91,9 +91,67 @@ describe('resolveSessionDirectory', () => {
 
   it('どちらの変数も無ければ（空文字を含む）、cwd を入れた理由で決められない', () => {
     const { pluginRoot } = layout()
-    const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD or CLAUDE_PROJECT_DIR); GitHub Copilot CLI passes it from 1.0.106`
+    const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository`
     expect(resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot }, pluginRoot)).toEqual({ kind: 'undetermined', reason })
     expect(resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: '', CLAUDE_PROJECT_DIR: '' }, pluginRoot)).toEqual({ kind: 'undetermined', reason })
+  })
+
+  it('COPILOT_PLUGIN_ROOT があるとき（Copilot CLI の起動）は、継いだ CLAUDE_PROJECT_DIR を使わず決められない', () => {
+    const { pluginRoot, project } = layout()
+    const result = resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: project }, pluginRoot)
+    expect(result.kind).toBe('undetermined')
+    expect(JSON.stringify(result)).toContain('upgrade GitHub Copilot CLI to 1.0.106 or later')
+  })
+
+  it('COPILOT_PLUGIN_ROOT があっても、COPILOT_SESSION_CWD が実在すれば、そこへ移る', () => {
+    const { pluginRoot, session, project } = layout()
+    const environment = { CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session, CLAUDE_PROJECT_DIR: project }
+    expect(resolveSessionDirectory(environment, pluginRoot)).toMatchObject({ kind: 'move', directory: session })
+  })
+
+  it('PLUGIN_ROOT だけがあっても、cwd がその中なら、COPILOT_SESSION_CWD へ移る', () => {
+    const { pluginRoot, session } = layout()
+    expect(resolveSessionDirectory({ PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session }, pluginRoot)).toMatchObject({ kind: 'move', directory: session })
+    expect(resolveSessionDirectory({ PLUGIN_ROOT: pluginRoot }, pluginRoot)).toMatchObject({ kind: 'undetermined' })
+  })
+
+  it('PLUGIN_ROOT だけがあって、cwd がその外なら、cwd のまま', () => {
+    const { pluginRoot, session, elsewhere } = layout()
+    expect(resolveSessionDirectory({ PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session }, elsewhere)).toEqual({ kind: 'stay' })
+  })
+
+  it('2 つの変数のうち一方の中にあれば、「中」と判定する', () => {
+    const { pluginRoot, session, elsewhere } = layout()
+    expect(resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: elsewhere, PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session }, pluginRoot)).toMatchObject({ kind: 'move' })
+  })
+
+  it('相対パスのセッションのディレクトリが無いとき、解決後の絶対パスを理由に入れる', () => {
+    const { pluginRoot } = layout()
+    const reason = resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: 'missing' }, pluginRoot)
+    expect(reason).toEqual({
+      kind: 'undetermined',
+      reason: `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: missing (resolved to ${path.join(pluginRoot, 'missing')})`,
+    })
+  })
+
+  it.skipIf(process.getuid?.() === 0)('実体パスを解決できない（権限が無い）ときは、cwd のままにせず、パスと元の失敗を理由にして決められない', () => {
+    const { pluginRoot, session } = layout()
+    const locked = path.join(pluginRoot, 'locked')
+    mkdirSync(path.join(locked, 'inner'), { recursive: true })
+    chmodSync(locked, 0)
+    try {
+      const result = resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session }, path.join(locked, 'inner'))
+      expect(result.kind).toBe('undetermined')
+      expect(JSON.stringify(result)).toContain(`cannot determine the target repository: cannot resolve the real path of ${path.join(locked, 'inner')}: `)
+    }
+    finally {
+      chmodSync(locked, 0o700)
+    }
+  })
+
+  it('cwd がプラグインの root の親にあるときは、cwd のまま', () => {
+    const { pluginRoot, session } = layout()
+    expect(resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session }, path.dirname(pluginRoot))).toEqual({ kind: 'stay' })
   })
 
   it('symlink 越しのプラグインの root でも、実体で比べて「中」と判定する', () => {

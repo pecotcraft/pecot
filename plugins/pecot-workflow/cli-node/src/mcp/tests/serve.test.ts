@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の型は mutable */
+import { realpathSync } from 'node:fs'
 import { PassThrough, Writable } from 'node:stream'
 
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
@@ -130,13 +131,13 @@ const COMMANDS = [
 
 function dependenciesOver(stdin: PassThrough, stderr: FakeTarget, serverTransport: InMemoryTransport): McpServeDependencies {
   return {
-    createServer: (reportUnexpected, unavailableReason) => createMcpServer(COMMANDS, { reportUnexpected, ...unavailableReason !== undefined && { unavailableReason } }),
+    createServer: options => createMcpServer(COMMANDS, options),
     createTransport: () => serverTransport,
     installStdoutGuard: () => new Writable(),
     stdin,
     stderr,
     environment: {},
-    cwd: process.cwd(),
+    cwd: () => process.cwd(),
     changeDirectory: vi.fn(),
   }
 }
@@ -241,17 +242,28 @@ describe('runMcpServe の失敗', () => {
 describe('defaultDependencies', () => {
   it('実際の stdio の transport とサーバを作る', () => {
     const dependencies = defaultDependencies()
-    expect(dependencies.createServer(vi.fn(), undefined)).toBeInstanceOf(McpServer)
+    expect(dependencies.createServer({ reportUnexpected: vi.fn() })).toBeInstanceOf(McpServer)
     expect(dependencies.createTransport(new PassThrough(), new PassThrough())).toBeInstanceOf(StdioServerTransport)
   })
 
   it('環境変数と cwd は実プロセスのもので、作業ディレクトリは process.chdir で移す', () => {
     const dependencies = defaultDependencies()
-    expect(dependencies.environment).toBe(process.env)
-    expect(dependencies.cwd).toBe(process.cwd())
-    expect(() => {
-      dependencies.changeDirectory(process.cwd())
-    }).not.toThrow()
+    expect(new Set(Object.keys(dependencies.environment))).toEqual(new Set(['CLAUDE_PLUGIN_ROOT', 'PLUGIN_ROOT', 'COPILOT_PLUGIN_ROOT', 'COPILOT_SESSION_CWD', 'CLAUDE_PROJECT_DIR']))
+    expect(dependencies.cwd()).toBe(process.cwd())
+  })
+
+  it('changeDirectory は実際に作業ディレクトリを移す', () => {
+    const original = process.cwd()
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- makeTemporaryDirectory の一時ディレクトリ
+    const target = realpathSync(makeTemporaryDirectory())
+    try {
+      defaultDependencies().changeDirectory(target)
+      expect(process.cwd()).toBe(target)
+    }
+    finally {
+      process.chdir(original)
+    }
+    expect(process.cwd()).toBe(original)
   })
 })
 
@@ -293,6 +305,8 @@ function environmentOf(pluginRoot: string, session?: string): Record<string, str
   return { CLAUDE_PLUGIN_ROOT: pluginRoot, ...session !== undefined && { COPILOT_SESSION_CWD: session } }
 }
 
+const CWD_READ_REASON = 'cannot determine the target repository: cannot read the current directory: ENOENT: no such file or directory, uv_cwd'
+
 describe('executeMcpServe のセッションのディレクトリ', () => {
   const hello = { name: 'hello', arguments: {} }
 
@@ -300,7 +314,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const pluginRoot = makeTemporaryDirectory()
     const changeDirectory = vi.fn()
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-    const dependencies = { ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport), environment: environmentOf(pluginRoot, pluginRoot), cwd: process.cwd(), changeDirectory }
+    const dependencies = { ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport), environment: environmentOf(pluginRoot, pluginRoot), cwd: () => process.cwd(), changeDirectory }
     expect(executeMcpServe(() => dependencies)).toBe(0)
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
@@ -316,7 +330,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const dependencies: McpServeDependencies = {
       ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport),
       environment: environmentOf(pluginRoot, session),
-      cwd: pluginRoot,
+      cwd: () => pluginRoot,
       changeDirectory: (directory) => {
         order.push(`chdir ${directory}`)
       },
@@ -335,9 +349,9 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const stderr = fakeTarget()
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const changeDirectory = vi.fn()
-    const dependencies = { ...dependenciesOver(new PassThrough(), stderr, serverTransport), environment: environmentOf(pluginRoot), cwd: pluginRoot, changeDirectory }
+    const dependencies = { ...dependenciesOver(new PassThrough(), stderr, serverTransport), environment: environmentOf(pluginRoot), cwd: () => pluginRoot, changeDirectory }
     expect(executeMcpServe(() => dependencies)).toBe(0)
-    const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD or CLAUDE_PROJECT_DIR); GitHub Copilot CLI passes it from 1.0.106`
+    const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository`
     expect(stderr.chunks).toEqual([`error: ${reason}\n`])
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
@@ -360,16 +374,51 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const dependencies: McpServeDependencies = {
       ...dependenciesOver(new PassThrough(), stderr, serverTransport),
       environment: environmentOf(pluginRoot, session),
-      cwd: pluginRoot,
+      cwd: () => pluginRoot,
       changeDirectory: () => {
         throw new Error('EACCES')
       },
     }
     expect(executeMcpServe(() => dependencies)).toBe(0)
-    const reason = `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${session}`
+    const reason = `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${session}: EACCES`
     expect(stderr.chunks).toEqual([`error: ${reason}\n`])
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
+  })
+
+  it('cwd を読めなくても（消えている）起動し、読めない旨と元の失敗を理由にして返す', async () => {
+    const stderr = fakeTarget()
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const changeDirectory = vi.fn()
+    const dependencies: McpServeDependencies = {
+      ...dependenciesOver(new PassThrough(), stderr, serverTransport),
+      cwd: () => {
+        throw new Error('ENOENT: no such file or directory, uv_cwd')
+      },
+      changeDirectory,
+    }
+    expect(executeMcpServe(() => dependencies)).toBe(0)
+    expect(stderr.chunks).toEqual([`error: ${CWD_READ_REASON}\n`])
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${CWD_READ_REASON}\n` })
+    expect(changeDirectory).not.toHaveBeenCalled()
+  })
+
+  it('依存の組み立てに失敗したら、stderr に error: の行を出して 1 を返す', () => {
+    // eslint-disable-next-line unicorn/consistent-boolean-name -- 差し替えた write のスパイで、真偽値ではない
+    const stderrSpy = vi.spyOn(process.stderr, 'write')
+    stderrSpy.mockImplementation(() => true)
+    try {
+      const code = executeMcpServe(() => {
+        throw new Error('no dependencies')
+      })
+      expect(code).toBe(1)
+      expect(stderrSpy).toHaveBeenCalledWith('error: no dependencies\n')
+    }
+    finally {
+      stderrSpy.mockRestore()
+    }
   })
 })

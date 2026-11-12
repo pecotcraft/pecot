@@ -21,7 +21,7 @@ function repositoryWithRemote(name: string): string {
 async function statusFrom(pluginRoot: string, environment: Readonly<Record<string, string>>): Promise<Outcome> {
   const base = readScenario('session-status-ok-no-flags')
   const scenario = { ...base, setup: { ...base.setup, cwd: pluginRoot } }
-  const launcher: Launcher = { command: process.execPath, args: [cliEntry], env: { CLAUDE_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: '', COPILOT_SESSION_CWD: '', ...environment }, via: 'mcp' }
+  const launcher: Launcher = { command: process.execPath, args: [cliEntry], env: { CLAUDE_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: '', COPILOT_SESSION_CWD: '', COPILOT_PLUGIN_ROOT: '', PLUGIN_ROOT: '', ...environment }, via: 'mcp' }
   return await runScenario(scenario, launcher)
 }
 
@@ -44,6 +44,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     const pluginRoot = repositoryWithRemote('plugin-root')
     const project = repositoryWithRemote('project-repo')
     const outcome = await statusFrom(pluginRoot, { CLAUDE_PROJECT_DIR: project })
+    expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden.exitCode).toBe(0)
     expect(outcome.golden.stdout).toContain('- Repository: acme/project-repo')
   })
@@ -55,13 +56,25 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     expect(outcome.golden.exitCode).toBe(1)
     expect(outcome.golden.stdout).toBe('')
     expect(outcome.golden.stderr).toContain(`error: ${REASON} (`)
-    expect(outcome.golden.stderr).toContain('GitHub Copilot CLI passes it from 1.0.106')
+    expect(outcome.golden.stderr).toContain('upgrade GitHub Copilot CLI to 1.0.106 or later')
+  })
+
+  it('Copilot CLI の起動で COPILOT_SESSION_CWD が無ければ、継いだ CLAUDE_PROJECT_DIR のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
+    const pluginRoot = repositoryWithRemote('plugin-root')
+    const inherited = repositoryWithRemote('inherited-repo')
+    const outcome = await statusFrom(pluginRoot, { COPILOT_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: inherited })
+    expect(outcome.spawnError).toBeUndefined()
+    expect(outcome.golden.exitCode).toBe(1)
+    expect(outcome.golden.stdout).toBe('')
+    expect(outcome.golden.stderr).toContain(`error: ${REASON} (`)
+    expect(outcome.golden.stderr).not.toContain('inherited-repo')
   })
 
   it('COPILOT_SESSION_CWD が実在しなければ、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
     const pluginRoot = repositoryWithRemote('plugin-root')
     const missing = `${pluginRoot}/missing`
     const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: missing })
+    expect(outcome.spawnError).toBeUndefined()
     expect(outcome.golden.exitCode).toBe(1)
     expect(outcome.golden.stderr).toBe(`error: cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${missing}\n`)
   })
