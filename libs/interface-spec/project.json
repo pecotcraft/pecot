@@ -65,6 +65,7 @@
         "{workspaceRoot}/plugins/pecot-workflow/cli-node/src/domain/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/cli-node/src/infra/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/cli-node/src/infra/github/*.ts",
+        "{workspaceRoot}/plugins/pecot-workflow/cli-node/src/mcp/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/skills/w-help/references/commands.md",
         "{workspaceRoot}/plugins/pecot-tools/cli/tests/**/*.ts",
         "{workspaceRoot}/plugins/pecot-tools/cli/src/**/tests/**/*.ts",

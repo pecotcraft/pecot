@@ -10,7 +10,7 @@ export default defineConfig({
       {
         test: {
           name: 'cli',
-          include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/output/**/*.test.ts', 'tests/parity/**/*.test.ts', 'tests/fake-github/**/*.test.ts', 'tests/interface/**/*.test.ts'],
+          include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/output/**/*.test.ts', 'tests/parity/**/*.test.ts', 'tests/fake-github/**/*.test.ts', 'tests/interface/**/*.test.ts', 'tests/mcp/**/*.test.ts'],
           exclude: ['node_modules/**', 'dist/**'],
         },
       },

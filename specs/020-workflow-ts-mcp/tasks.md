@@ -220,21 +220,21 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: `tools/list` が 34 個で定義書と一致する。MCP に写せるシナリオの全件（2026-11-11 の時点で 165 件）が、MCP 経由でも golden と一致する
 
-- [ ] T037 [US2] `cli-node/package.json` に `@modelcontextprotocol/server` を足す。devDependencies には `@modelcontextprotocol/client` を足す。版は `plugins/pecot-tools/cli/package.json` と同じにする。
-- [ ] T038 [US2] `cli-node/vitest.config.ts` の `cli` project の include に `tests/mcp/**/*.test.ts` を足す。`cli-node/tests/coverage-include.test.ts` に、`tests/mcp/` のテストが include に当たる確認を足す。
-- [ ] T039 [US2] `cli-node/tests/mcp/tools-list.test.ts` を先に書く。ツールの数と名前が registry と一致することを確かめる。
+- [x] T037 [US2] `cli-node/package.json` に `@modelcontextprotocol/server` を足す。devDependencies には `@modelcontextprotocol/client` を足す。版は `plugins/pecot-tools/cli/package.json` と同じにする。
+- [x] T038 [US2] `cli-node/vitest.config.ts` の `cli` project の include に `tests/mcp/**/*.test.ts` を足す。`cli-node/tests/coverage-include.test.ts` に、`tests/mcp/` のテストが include に当たる確認を足す。
+- [x] T039 [US2] `cli-node/tests/mcp/tools-list.test.ts` を先に書く。ツールの数と名前が registry と一致することを確かめる。
   各ツールの入力が、定義書の同じ項目の `input` に `repo` を足したものと一致することも確かめる。コマンド定義の入力は、`export-interface.ts` の `normalizeInput` を通した形で比べる（`export` して使う）。
-- [ ] T040 [US2] `cli-node/src/mcp/server.ts`・`serve.ts`・`result.ts` を作り、`COMMANDS` からツールを登録する。
+- [x] T040 [US2] `cli-node/src/mcp/server.ts`・`serve.ts`・`result.ts` を作り、`COMMANDS` からツールを登録する。
   結果の形は次のとおり。
   - `content[0].text` は stdout
   - `isError` は `exitCode !== 0`
   - `structuredContent` は `{ exitCode, stdout, stderr }`
   `libs/interface-spec/targets.json` の `sources` に `cli-node/src/mcp/*.ts` を足す。`interface-spec:lint-defs` が通ることを確かめる。
-- [ ] T041 [US2] `worktree_link` のテストを `cli-node/tests/mcp/worktree-link.test.ts` に書く。入力は定義書の `force` をそのまま使い、新しい入力は作らない。
+- [x] T041 [US2] `worktree_link` のテストを `cli-node/tests/mcp/worktree-link.test.ts` に書く。入力は定義書の `force` をそのまま使い、新しい入力は作らない。
   MCP ツールは標準入力を持たない。`force` が false で上書きの確認が要るときは、定義書の「入力の終端なら中止する」と同じ結果を返すことを確かめる。
-- [ ] T042 [US2] `cli-node/src/cli.ts` に `mcp` サブコマンドを足し、stdio で MCP サーバを起動する。`mcp` はツールにしない。`--help` の一覧と、打ち間違いの候補には出さない。
+- [x] T042 [US2] `cli-node/src/cli.ts` に `mcp` サブコマンドを足し、stdio で MCP サーバを起動する。`mcp` はツールにしない。`--help` の一覧と、打ち間違いの候補には出さない。
   `global-*` の golden は変えず、`parity.test.ts` が通ることを確かめる。
-- [ ] T043 [US2] `cli-node/tests/parity/parity.test.ts` に MCP 経由の起動を足す。各シナリオのツールを `@modelcontextprotocol/client` で呼び、golden と比べる。
+- [x] T043 [US2] `cli-node/tests/parity/parity.test.ts` に MCP 経由の起動を足す。各シナリオのツールを `@modelcontextprotocol/client` で呼び、golden と比べる。
   CLI の直接起動は全件（228 件）。MCP 経由は「MCP に写せるシナリオ」の全件で、次の 3 種を除く（2026-11-11 の時点で 63 件、残りは 165 件）。除く一覧と理由は `parity.test.ts` が持つ。
   `global-*` の 31 件。名前に `usage` を含むもののうち `global-*` 以外の 29 件（CLI の引数の誤り。MCP では入力の検証の誤りになる）。標準入力を使う `worktree-link-*-overwrite-confirmed`・`-declined`・`-eof` の 3 件。
   argv からツールの入力への写し方は、位置引数を `positional` の順に、フラグを名前の `-` を `_` にして渡す。比べる欄は、`structuredContent` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` である。

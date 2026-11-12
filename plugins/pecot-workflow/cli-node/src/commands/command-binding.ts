@@ -171,7 +171,7 @@ function toUsageError(
   }
 }
 
-function extraArgumentsMessage(extras: readonly string[]): string {
+export function extraArgumentsMessage(extras: readonly string[]): string {
   // click は個数によらず `argument(s)` と書く
   return `Got unexpected extra argument(s) (${extras.join(' ')})`
 }
@@ -234,7 +234,7 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
 /**
 run が投げた context 無しの UsageError（BadParameter）に、このコマンドの使い方を付ける。ほかの例外はそのまま返す
 */
-function withUsage(error: unknown, usage: UsageContext): unknown {
+export function withUsage(error: unknown, usage: UsageContext): unknown {
   return error instanceof UsageError && error.context === undefined ? new UsageError(error.message, usage) : error
 }
 
