@@ -115,13 +115,13 @@ function showRepository(repository: string | undefined, context: Readonly<CliCon
 }
 
 /**
-コマンドの help を stdout に出して 0 を返す。details・constraints・examples は定義書の手書きの側から読む。
-読めなければその 3 つの節を出さず、stderr に warning の行を 1 行出す（help を誤りで止めない）
+コマンドの help を stdout に出して 0 を返す。details・constraints・examples・default_notes は定義書の手書きの側から読む。
+読めなければ Constraints・Details・Examples と初期値の補足を出さず、stderr に場所と理由の warning を 1 行出す（help を誤りで止めない）
 */
 function showCommandHelp(definition: CommandDefinition, context: Readonly<CliContext>, width: number): number {
-  const notes = readAuthoredNotes(interfaceIdOf(definition.path))
-  if (notes === undefined) createOutput(false, context.io).warning(`could not read the details of '${definition.path.join(' ')}' from interface/authored.yaml; they are left out of this help`)
-  context.io.stdout(commandHelpText(definition, notes, width))
+  const result = readAuthoredNotes(interfaceIdOf(definition.path))
+  if (result.kind === 'unreadable') createOutput(false, context.io).warning(`could not read the details of '${definition.path.join(' ')}' from ${result.file}: ${result.reason}; they are left out of this help`)
+  context.io.stdout(commandHelpText(definition, result.kind === 'read' ? result.notes : undefined, width))
   return 0
 }
 

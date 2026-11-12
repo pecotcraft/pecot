@@ -208,6 +208,12 @@ describe('runDefinition', () => {
     expect(io.out).toEqual([])
   })
 
+  it('--help=値 は、値を取らない旨で断る（Possible options は付けない）', async () => {
+    const error = await usageErrorOf(runDefinition(preflight, ['--help=x'], capture()))
+    expect(error.message).toBe('Option \'--help\' does not take a value.')
+    expect(error.context).toBeUndefined()
+  })
+
   it('run の入力検証に失敗すれば Invalid value', async () => {
     const error = await usageErrorOf(runDefinition(preflight, ['-D', '.', '--mode', 'z'], capture()))
     expect(error.message).toMatch(/^Invalid value for '--mode': /u)

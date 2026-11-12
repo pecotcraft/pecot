@@ -4,6 +4,7 @@
 import { z } from 'zod'
 
 import { BaseError } from '../domain/errors.js'
+import { flagOf } from './names.js'
 
 /**
 コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
@@ -160,7 +161,7 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
 // 入力 no_x の `--no-x` と、入力 x の否定形 `--no-x` のように、同じ長いオプションになる組を断る
 function assertDistinctFlags(fields: readonly string[], positional: readonly string[], negations: ReadonlyMap<string, string>): void {
   const flags = [
-    ...fields.filter(name => !positional.includes(name)).map(name => `--${name.replaceAll('_', '-')}`),
+    ...fields.filter(name => !positional.includes(name)).map(name => flagOf(name)),
     ...negations.values(),
   ]
   const duplicate = flags.find((flag, index) => flags.indexOf(flag) !== index)

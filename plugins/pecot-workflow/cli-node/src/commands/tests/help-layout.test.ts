@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { bulletSection, definitionSection, examplesSection, HELP_OPTION, paragraph, usageLines } from '../help-layout.js'
+import { bulletSection, definitionSection, examplesSection, HELP_OPTION, helpWidth, paragraph, usageLines } from '../help-layout.js'
 import { cellLength } from '../rich-panel.js'
 
 describe('definitionSection', () => {
@@ -90,5 +90,55 @@ describe('examplesSection', () => {
       '      Create the branch from a directory',
       '      that is not a checkout.',
     ].join('\n'))
+  })
+})
+
+describe('幅より長い語の折り返し', () => {
+  const status = '(backlog/pending/ready/active/in_review/archived)'
+
+  it('`/` の後ろを折れる位置にして、語の途中では折らない', () => {
+    expect(paragraph(`Status ${status} Decided by the type`, 30)).toBe([
+      'Status',
+      '(backlog/pending/ready/active/',
+      'in_review/archived) Decided by',
+      'the type',
+    ].join('\n'))
+  })
+
+  it('語が行の先頭にあるときは、前に空行を入れない', () => {
+    expect(paragraph(status, 30)).toBe('(backlog/pending/ready/active/\nin_review/archived)')
+  })
+
+  it('塊を幅までつめる。それでも入らない塊と、`/` の無い語だけを幅で折る', () => {
+    expect(paragraph(`a/${'x'.repeat(12)}/b`, 8)).toBe(`a/\n${'x'.repeat(8)}\n${'x'.repeat(4)}/\nb`)
+    expect(paragraph('y'.repeat(12), 8)).toBe(`${'y'.repeat(8)}\n${'y'.repeat(4)}`)
+  })
+
+  it('幅に収まる語は、`/` を含んでいても折らない', () => {
+    expect(paragraph('a/b c/d', 80)).toBe('a/b c/d')
+  })
+
+  it('definitionSection の説明も同じ折り方になる', () => {
+    const text = definitionSection('Options', [{ name: '--status <str>', description: `Status ${status} Decided by the type` }], 60)
+    expect(text.split('\n').slice(1).every(line => line.length <= 60)).toBe(true)
+    expect(text).toContain('(backlog/pending/ready/active/in_review/\n')
+  })
+})
+
+describe('空の要素', () => {
+  it('bulletSection の空の項目は、行末に空白を残さない', () => {
+    expect(bulletSection('T', [''], 80)).toBe('T:\n  -')
+  })
+
+  it('examplesSection の空の note は、行を出さない', () => {
+    expect(examplesSection([{ run: 'pecot a', note: '' }, { run: 'pecot b', note: 'B.' }], 80)).toBe('Examples:\n  pecot a\n  pecot b\n      B.')
+  })
+})
+
+describe('helpWidth', () => {
+  it('40 を下限にする', () => {
+    expect(helpWidth(5)).toBe(40)
+    expect(helpWidth(40)).toBe(40)
+    expect(helpWidth(120)).toBe(120)
   })
 })

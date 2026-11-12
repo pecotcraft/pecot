@@ -11,6 +11,7 @@ import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.j
 import { generatedEntrySchema, generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { interfaceIdOf } from '../src/commands/command-definition.js'
 import { normalizeInput } from '../src/commands/input-schema.js'
+import { byName, flagOf } from '../src/commands/names.js'
 import type { InputSchema } from '../src/commands/input-schema.js'
 import { createOutput } from '../src/commands/output.js'
 import { COMMANDS } from '../src/commands/registry.js'
@@ -27,18 +28,13 @@ export interface InterfaceEntry {
   readonly cli: { readonly positional: readonly string[], readonly flags: Readonly<Record<string, readonly string[]>> }
 }
 
-function byName(left: string, right: string): number {
-  if (left < right) return -1
-  return left > right ? 1 : 0
-}
-
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function flagsOf(command: CommandDefinition, names: readonly string[]): Record<string, readonly string[]> {
   const positional = new Set(command.positional)
   const flags: [string, readonly string[]][] = []
   for (const name of names) {
     if (positional.has(name)) continue
-    const flag = [`--${name.replaceAll('_', '-')}`]
+    const flag = [flagOf(name)]
     const short = command.shortFlags.get(name)
     if (short !== undefined) flag.push(short)
     const alias = command.aliases.get(name)

@@ -1,7 +1,18 @@
 // help の共通の書式。枠を使わず、「見出し + 字下げした 2 列」で並べる。
-// ルート・グループ・コマンドの 3 種類の help が、ここの関数で節を作る。
 // どの関数も、行を改行でつないだ文字列を返す（末尾の改行は付けない）。
 import { cellLength, padCells, wrapText as wrapCells } from './rich-panel.js'
+
+/**
+help の幅の下限。これより狭い端末でも、Usage と名前の列が崩れないように 40 桁で組む
+*/
+const MIN_HELP_WIDTH = 40
+
+/**
+端末の幅から help を組む幅を返す。誤りの枠（rich-panel.ts の MIN_WIDTH）の下限は別
+*/
+export function helpWidth(columns: number): number {
+  return Math.max(MIN_HELP_WIDTH, columns)
+}
 
 /**
 2 列の節の 1 行。name は打つ形、description は説明（空でもよい）
@@ -28,10 +39,37 @@ const WRAPPED_DESCRIPTION_INDENT = 6
 const MIN_DESCRIPTION_WIDTH = 32
 
 /**
-幅で折り返す。wrapText は折り返した行に空白を残すことがあるので、行末の空白を落とす
+幅より長い語を、`/` の後ろで折れる塊に分ける。塊は幅まで詰め、1 つの塊が幅を超えるものだけ、後段の wrapText が幅で折る
+*/
+function chunksOfLongWord(word: string, width: number): readonly string[] {
+  const chunks: string[] = []
+  for (const segment of word.split(/(?<=\/)/u)) {
+    const last = chunks.at(-1)
+    if (last !== undefined && cellLength(last) + cellLength(segment) <= width) chunks[chunks.length - 1] = `${last}${segment}`
+    else chunks.push(segment)
+  }
+  return chunks
+}
+
+/**
+行の中の、幅より長い語を `/` の後ろで折る。幅より長い語は必ず新しい行から始まる（wrapText と同じ）ので、その前に改行を入れ、塊ごとに行を分ける。後ろの語は最後の塊の行に続く。
+`/` を持たない語は、そのまま後段の wrapText が幅で折る
+*/
+function breakLongWords(line: string, width: number): string {
+  const parts = line.split(/(\s+)/u)
+  return parts.map((part, index) => {
+    if (part.trim() === '' || cellLength(part) <= width || !part.includes('/')) return part
+    const hasTextBefore = parts.slice(0, index).join('').trim() !== ''
+    return `${hasTextBefore ? '\n' : ''}${chunksOfLongWord(part, width).join('\n')}`
+  }).join('')
+}
+
+/**
+幅で折り返す。幅より長い語は `/` の後ろを折れる位置として扱い、それでも入らない塊だけを幅で折る。
+wrapText は折り返した行に空白を残すことがあるので、行末の空白を落とす
 */
 function wrapText(text: string, width: number): readonly string[] {
-  return wrapCells(text, width).map(line => line.trimEnd())
+  return wrapCells(text.split('\n').map(line => breakLongWords(line, width)).join('\n'), width).map(line => line.trimEnd())
 }
 
 function indentOf(count: number): string {
@@ -83,7 +121,7 @@ export function paragraph(text: string, width: number): string {
 `- ` の箇条書きの節。続きの行は 4 桁下げる
 */
 export function bulletSection(title: string, items: readonly string[], width: number): string {
-  const lines = items.flatMap(item => wrapText(item, width - BULLET_CONTINUATION).map((line, index) => index === 0 ? `${indentOf(INDENT)}- ${line}` : `${indentOf(BULLET_CONTINUATION)}${line}`))
+  const lines = items.flatMap(item => wrapText(item, width - BULLET_CONTINUATION).map((line, index) => (index === 0 ? `${indentOf(INDENT)}- ${line}` : `${indentOf(BULLET_CONTINUATION)}${line}`).trimEnd()))
   return [`${title}:`, ...lines].join('\n')
 }
 
@@ -92,8 +130,8 @@ export function bulletSection(title: string, items: readonly string[], width: nu
 */
 export function examplesSection(examples: readonly Readonly<{ run: string, note: string }>[], width: number): string {
   const lines = examples.flatMap(example => [
-    `${indentOf(INDENT)}${example.run}`,
-    ...wrapText(example.note, width - WRAPPED_DESCRIPTION_INDENT).map(line => `${indentOf(WRAPPED_DESCRIPTION_INDENT)}${line}`),
+    `${indentOf(INDENT)}${example.run}`.trimEnd(),
+    ...example.note === '' ? [] : wrapText(example.note, width - WRAPPED_DESCRIPTION_INDENT).map(line => `${indentOf(WRAPPED_DESCRIPTION_INDENT)}${line}`),
   ])
   return ['Examples:', ...lines].join('\n')
 }

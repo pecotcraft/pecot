@@ -1,26 +1,17 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は readonly にできない */
-// コマンドごとの --help。引数とオプションは、コマンドの定義（zod）から作る。
-// 定義書（generated.json）の書き出しと同じ normalizeInput を通すので、中身は generated.json と同じになる。
-// 節は Usage、1 行の説明、Arguments、Options、Constraints、Details、Examples の順。中身の無い節は出さない。
+// コマンドごとの --help。引数とオプションは、定義書の書き出しと同じ normalizeInput を通して作る。
 import { z } from 'zod'
 
 import type { AuthoredNotes, Constraint } from '../infra/authored-notes.js'
-import { bulletSection, definitionSection, examplesSection, HELP_OPTION, paragraph, usageLines } from './help-layout.js'
+import { bulletSection, definitionSection, examplesSection, HELP_OPTION, helpWidth, paragraph, usageLines } from './help-layout.js'
 import type { DefinitionRow } from './help-layout.js'
-import { normalizeInput } from './input-schema.js'
+import { isRecord, normalizeInput } from './input-schema.js'
 import type { InputSchema, JsonObject } from './input-schema.js'
+import { flagOf } from './names.js'
 import type { CommandDefinition } from './registry.js'
 import { describeRange } from './value-types.js'
 
 const MAX_INLINE_CHOICES = 24
-
-function isRecord(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function flagOf(name: string): string {
-  return `--${name.replaceAll('_', '-')}`
-}
 
 function isList(property: JsonObject): boolean {
   return property['type'] === 'array'
@@ -79,13 +70,17 @@ interface Described {
   readonly isRequired: boolean
   readonly hasNegation: boolean
   readonly isOption: boolean
+  /**
+  定義書の default_notes の文。無ければ undefined
+  */
+  readonly defaultNote: string | undefined
 }
 
 /**
-説明と、末尾の `[repeatable]`・`[required]`・`[choices: …]`・`[default: …]`・`[0<=x<=20]`
+説明、初期値の補足の文、末尾の `[repeatable]`・`[required]`・`[choices: …]`・`[default: …]`・`[0<=x<=20]`
 */
 function describeProperty(described: Readonly<Described>): string {
-  const { name, property, isRequired, hasNegation, isOption } = described
+  const { name, property, isRequired, hasNegation, isOption, defaultNote = '' } = described
   const description = property['description']
   const fallback = defaultOf(name, property, hasNegation)
   const allChoices = choicesOf(property)
@@ -93,6 +88,7 @@ function describeProperty(described: Readonly<Described>): string {
   const range = rangeOf(property)
   return [
     typeof description === 'string' ? description : '',
+    defaultNote,
     isOption && isList(property) ? '[repeatable]' : '',
     isRequired && property['type'] !== 'boolean' ? '[required]' : '',
     choices === undefined ? '' : `[choices: ${choices.join(', ')}]`,
@@ -125,21 +121,17 @@ function positionalName(name: string, input: InputSchema, isRequired: boolean): 
 Usage 行の `[OPTIONS]` と位置引数。必須は `<名前>`、任意は `[名前]`、複数は `...`。
 使い方の誤りの `synopsisOf` は `{名前}` の書式で golden が固定しているので、別に持つ
 */
-export function helpSynopsisOf(definition: Readonly<CommandDefinition>): string {
-  return synopsisFrom(definition, inputOf(definition))
-}
-
 function synopsisFrom(definition: Readonly<CommandDefinition>, input: InputSchema): string {
   const names = definition.positional.map(name => positionalName(name, input, isRequiredField(definition, input, name)))
   return ['[OPTIONS]', ...names].join(' ')
 }
 
-function argumentRows(definition: Readonly<CommandDefinition>, input: InputSchema): readonly DefinitionRow[] {
+function argumentRows(definition: Readonly<CommandDefinition>, input: InputSchema, defaultNotes: ReadonlyMap<string, string>): readonly DefinitionRow[] {
   return definition.positional.map((name) => {
     const isRequired = isRequiredField(definition, input, name)
     return {
       name: positionalName(name, input, isRequired),
-      description: describeProperty({ name, property: propertyOf(input, name), isRequired, hasNegation: false, isOption: false }),
+      description: describeProperty({ name, property: propertyOf(input, name), isRequired, hasNegation: false, isOption: false, defaultNote: defaultNotes.get(name) }),
     }
   })
 }
@@ -153,7 +145,7 @@ function optionName(definition: Readonly<CommandDefinition>, name: string, prope
   return property['type'] === 'boolean' ? joined : `${joined} ${metavarOf(property)}`
 }
 
-function optionRows(definition: Readonly<CommandDefinition>, input: InputSchema): readonly DefinitionRow[] {
+function optionRows(definition: Readonly<CommandDefinition>, input: InputSchema, defaultNotes: ReadonlyMap<string, string>): readonly DefinitionRow[] {
   const rows = Object.keys(definition.input.shape)
     .filter(name => !definition.positional.includes(name) && Object.hasOwn(input.properties, name))
     .map((name): DefinitionRow => {
@@ -161,7 +153,7 @@ function optionRows(definition: Readonly<CommandDefinition>, input: InputSchema)
       const hasNegation = definition.negations.has(name)
       return {
         name: optionName(definition, name, property),
-        description: describeProperty({ name, property, isRequired: isRequiredField(definition, input, name), hasNegation, isOption: true }),
+        description: describeProperty({ name, property, isRequired: isRequiredField(definition, input, name), hasNegation, isOption: true, defaultNote: defaultNotes.get(name) }),
       }
     })
   return [...rows, HELP_OPTION]
@@ -192,18 +184,20 @@ function constraintSentences(definition: Readonly<CommandDefinition>, constraint
 }
 
 /**
-コマンドの help。notes が undefined（定義書の手書きの側が読めない）なら Constraints・Details・Examples を出さない。
-Examples の打つ形の行は折り返さないので、幅を超えることがある
+コマンドの help。notes が undefined（定義書の手書きの側が読めない）なら Constraints・Details・Examples と初期値の補足を出さない。
+Examples の打つ形の行は折り返さないので、幅を超えることがある。幅は 40 を下限にする
 */
-export function commandHelpText(definition: Readonly<CommandDefinition>, notes: Readonly<AuthoredNotes> | undefined, width: number): string {
+export function commandHelpText(definition: Readonly<CommandDefinition>, notes: Readonly<AuthoredNotes> | undefined, columns: number): string {
+  const width = helpWidth(columns)
   const input = inputOf(definition)
-  const positional = argumentRows(definition, input)
+  const defaultNotes = notes?.defaultNotes ?? new Map<string, string>()
+  const positional = argumentRows(definition, input, defaultNotes)
   const constraints = notes?.constraints.flatMap(constraint => constraintSentences(definition, constraint)) ?? []
   const sections = [
     usageLines(`pecot ${definition.path.join(' ')} ${synopsisFrom(definition, input)}`, width),
     paragraph(definition.description, width),
     ...positional.length === 0 ? [] : [definitionSection('Arguments', positional, width)],
-    definitionSection('Options', optionRows(definition, input), width),
+    definitionSection('Options', optionRows(definition, input, defaultNotes), width),
     ...constraints.length === 0 ? [] : [bulletSection('Constraints', constraints, width)],
     ...notes === undefined || notes.details.length === 0 ? [] : [bulletSection('Details', notes.details, width)],
     ...notes === undefined || notes.examples.length === 0 ? [] : [examplesSection(notes.examples, width)],

@@ -182,7 +182,7 @@ describe('コマンドごとの --help', () => {
     expect(result.stderr).toBe('')
     expect(result.stdout.startsWith('Usage: pecot create-branch [OPTIONS] <issue_ref> <branch_name>\n\nCreate a branch linked to an Issue\n\nArguments:\n')).toBe(true)
     expect(result.stdout).toContain('  <issue_ref>    Issue reference [required]\n  <branch_name>  Name of the branch [required]\n')
-    expect(result.stdout).toContain('  -b, --base <str>  Base branch\n  --help            Show this message and exit.\n')
+    expect(result.stdout).toContain('  -b, --base <str>  Base branch The develop_branch of the repository in the\n')
     // 定義書の PW-CREATE-BRANCH から読む
     expect(result.stdout).toContain('\nDetails:\n  - Creates a branch linked to an Issue through the GitHub GraphQL API')
     expect(result.stdout).toContain('\nExamples:\n  pecot create-branch example-org/my-repo/123 feat/my-change\n')
@@ -243,11 +243,41 @@ describe('コマンドごとの --help', () => {
     expect(url.stderr).toContain('error: ')
   })
 
-  it('定義書に項目が無いコマンドは、3 つの節を出さずに help を出して 0。stderr に warning を 1 行出す', async () => {
+  it('定義書に項目が無いコマンドは、定義書の節を出さずに help を出して 0。stderr に場所と理由の warning を 1 行出す', async () => {
     const result = await runBranch(['boom', '--help'], '80')
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('Usage: pecot boom [OPTIONS]\n\n落ちる\n\nOptions:\n  --help  Show this message and exit.\n')
-    expect(result.stderr).toBe('warning: could not read the details of \'boom\' from interface/authored.yaml; they are left out of this help\n')
+    expect(result.stderr).toBe(`warning: could not read the details of 'boom' from ${path.join(pluginRoot(), 'interface', 'authored.yaml')}: it has no entry PW-BOOM; they are left out of this help\n`)
+  })
+
+  it('--help を 2 回打っても help を出して 0', async () => {
+    const result = await runBranch(['create-branch', '--help', '--help'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('Usage: pecot create-branch [OPTIONS] <issue_ref> <branch_name>')
+    expect(result.stderr).toBe('')
+  })
+
+  it('-h は help ではなく、未知のオプションとして 2', async () => {
+    const result = await runBranch(['create-branch', '-h'])
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('No such option: -h')
+  })
+
+  it('--help=x は値を取らない旨の誤りで 2', async () => {
+    const result = await runBranch(['create-branch', '--help=x'])
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('Option \'--help\' does not take a value.')
+    expect(result.stderr).not.toContain('Possible options')
+  })
+
+  it('グループ名の後ろの --help は、後ろにサブコマンドがあってもグループの help', async () => {
+    const result = await run(['issue', '--help', 'create'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('Usage: pecot issue [OPTIONS] COMMAND [ARGS]...')
+    expect(result.stdout).toContain('Commands:\n')
+    expect(result.stderr).toBe('')
   })
 
   it('グループの中のコマンドも打てる', async () => {

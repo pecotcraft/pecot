@@ -99,6 +99,11 @@ describe('helpText', () => {
     expect(helpText([], commands, 80)).toBe(ROOT_80)
   })
 
+  it('幅が 40 より狭いときは、40 で組む', () => {
+    expect(helpText([], commands, 5)).toBe(helpText([], commands, 40))
+    expect(helpText(['issue'], commands, 1)).toBe(helpText(['issue'], commands, 40))
+  })
+
   it('既定の幅は 80', () => {
     expect(helpText([], commands)).toBe(ROOT_80)
   })
@@ -114,6 +119,7 @@ describe('helpText', () => {
     expect(helpText(['issue'], commands, 80)).toBe(GROUP_80)
   })
 
+  // COMMANDS の全グループが説明を持つことは、tests/help-definition.test.ts が見る
   it('説明を持たないグループは、説明の段落を出さない', () => {
     const text = helpText(['custom'], [define(['custom', 'run'], 'Run it')], 80)
     expect(text).toBe('Usage: pecot custom [OPTIONS] COMMAND [ARGS]...\n\nOptions:\n  --help  Show this message and exit.\n\nCommands:\n  run  Run it\n')

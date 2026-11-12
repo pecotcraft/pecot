@@ -5,6 +5,7 @@ import { Command, CommanderError, Option } from 'commander'
 import { z } from 'zod'
 
 import { closeMatches } from './fuzzy.js'
+import { flagOf } from './names.js'
 import type { CommandDefinition, CommandIo, PreparedCommand } from './registry.js'
 import {
   invalidValueMessage,
@@ -33,10 +34,6 @@ typer の Missing argument と Invalid value に出す名前。引数の名前�
 */
 function argumentLabel(name: string): string {
   return name
-}
-
-function flagOf(name: string): string {
-  return `--${name.replaceAll('_', '-')}`
 }
 
 function discard(): void {
@@ -154,7 +151,7 @@ function toUsageError(
     case 'commander.unknownOption': {
       // click は `--name=値` の値を落として名前だけで案内する。真偽のオプションなら、値は取らない旨にして Usage 行を付けない
       const typedName = quoted.startsWith('--') ? quoted.replace(/=.*$/su, '') : quoted
-      const booleanNames = bound.flatMap(entry => entry.kind === 'boolean' ? [entry.names[0], entry.negation] : [])
+      const booleanNames = ['--help', ...bound.flatMap(entry => entry.kind === 'boolean' ? [entry.names[0], entry.negation] : [])]
       if (typedName !== quoted && booleanNames.includes(typedName)) return new UsageError(optionTakesNoValueMessage(typedName))
       const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.filter(name => name.startsWith('--')), ...entry.negation === undefined ? [] : [entry.negation]])]
       const possibilities = typedName.startsWith('--') ? closeMatches(typedName, longNames) : []

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は readonly にできない */
 // ルートとグループの説明。枠を使わず、コマンドごとの --help と同じ「見出し + 字下げした 2 列」の書式で出す（help-layout.ts）。
 // 節は Usage、説明、Options、Commands の順。中身の無い節は出さない。
-import { definitionSection, HELP_OPTION, paragraph, usageLines } from './help-layout.js'
+import { definitionSection, HELP_OPTION, helpWidth, paragraph, usageLines } from './help-layout.js'
 import type { DefinitionRow } from './help-layout.js'
 import type { CommandDefinition } from './registry.js'
 
@@ -44,9 +44,10 @@ function entriesOf(path: readonly string[], commands: readonly CommandDefinition
 
 /**
 path のグループ（空ならルート）の説明。Usage、説明、Options、Commands の順で、ルートだけ末尾に 1 行の案内が付く。
-末尾は改行で終わる。--help と引数なしの呼び出しは、どちらもこの文字列をそのまま出す
+末尾は改行で終わる。幅は 40 を下限にする。--help と引数なしの呼び出しは、どちらもこの文字列をそのまま出す
 */
-export function helpText(path: readonly string[], commands: readonly CommandDefinition[], width = 80): string {
+export function helpText(path: readonly string[], commands: readonly CommandDefinition[], columns = 80): string {
+  const width = helpWidth(columns)
   const isRoot = path.length === 0
   const description = isRoot ? PROGRAM_DESCRIPTION : GROUP_DESCRIPTIONS.get(path.slice(0, 1).join('')) ?? ''
   const entries = entriesOf(path, commands)

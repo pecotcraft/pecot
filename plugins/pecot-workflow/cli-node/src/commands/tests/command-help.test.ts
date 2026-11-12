@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import type { AuthoredNotes } from '../../infra/authored-notes.js'
-import { commandHelpText, helpSynopsisOf } from '../command-help.js'
+import { commandHelpText } from '../command-help.js'
 import { defineCommand } from '../registry.js'
 import { cellLength } from '../rich-panel.js'
 import { exitWith } from './support.js'
@@ -65,6 +65,7 @@ const notes: AuthoredNotes = {
     { run: 'pecot demo run alpha --limit 3', note: 'Run alpha with at most 3.' },
     { run: 'pecot demo run alpha beta gamma delta --limit 3 --speed slow --tag one --tag two', note: 'Run many names with a very long command line that must not wrap.' },
   ],
+  defaultNotes: new Map(),
 }
 
 function linesOf(width: number): readonly string[] {
@@ -80,10 +81,10 @@ function optionNames(lines: readonly string[]): readonly string[] {
   return lines.slice(start + 1, end).filter(line => /^ {2}\S/u.test(line)).map(line => line.slice(2).split(/ {2,}/u, 1)[0] ?? '')
 }
 
-describe('helpSynopsisOf', () => {
+describe('Usage の行', () => {
   it('位置引数を、必須なら <名前>、任意なら [名前] で出し、複数なら ... を付ける', () => {
-    expect(helpSynopsisOf(demo)).toBe('[OPTIONS] <target> [extras]...')
-    expect(helpSynopsisOf(bare)).toBe('[OPTIONS]')
+    expect(commandHelpText(demo, undefined, 80).split('\n', 1)[0]).toBe('Usage: pecot demo run [OPTIONS] <target> [extras]...')
+    expect(commandHelpText(bare, undefined, 80).split('\n', 1)[0]).toBe('Usage: pecot bare [OPTIONS]')
   })
 })
 
@@ -204,7 +205,7 @@ describe('commandHelpText', () => {
   })
 
   it('中身の無い節は出さない（引数が無ければ Arguments も出さない）', () => {
-    const text = commandHelpText(bare, { details: [], constraints: [], examples: [] }, 80)
+    const text = commandHelpText(bare, { details: [], constraints: [], examples: [], defaultNotes: new Map() }, 80)
     expect(text).toBe('Usage: pecot bare [OPTIONS]\n\nDoes nothing\n\nOptions:\n  --help  Show this message and exit.\n')
   })
 
@@ -230,6 +231,10 @@ describe('commandHelpText', () => {
     for (const width of [40, 80]) expect(commandHelpText(demo, notes, width)).not.toMatch(/ $/mu)
   })
 
+  it('幅が 40 より狭くても、40 で組む（Usage と名前が崩れない）', () => {
+    for (const width of [1, 5, 20]) expect(commandHelpText(demo, notes, width)).toBe(commandHelpText(demo, notes, 40))
+  })
+
   it('全角の説明も、幅で数えて折り返す', () => {
     const wide = defineCommand({
       path: ['wide'],
@@ -242,6 +247,43 @@ describe('commandHelpText', () => {
     const lines = commandHelpText(wide, undefined, 40).split('\n')
     expect(lines.every(line => cellLength(line) <= 40)).toBe(true)
     expect(lines.join('')).toContain('名前をここに')
+  })
+})
+
+describe('初期値の補足（default_notes）', () => {
+  const withDefaultNotes: AuthoredNotes = {
+    ...notes,
+    defaultNotes: new Map([['limit', 'Counts above 20 are refused.'], ['target', 'The first target of the config.'], ['verbose', 'Only the first run prints more.']]),
+  }
+
+  it('説明の後ろに補足の文をそのまま 1 文として続け、その後ろに [required]・[default: …] などの印を置く', () => {
+    const text = commandHelpText(demo, withDefaultNotes, 200)
+    expect(text).toContain('  <target>     Target to run The first target of the config. [required]\n')
+    expect(text).toContain('Maximum count Counts above 20 are refused. [default: 5] [0<=x<=20]\n')
+    expect(text).toMatch(/-V, --verbose +Print more Only the first run prints more\.\n/u)
+  })
+
+  it('補足の無い引数は、説明のまま', () => {
+    expect(commandHelpText(demo, withDefaultNotes, 200)).toMatch(/--least <int> +Lower bound \[x>=1\]\n/u)
+  })
+
+  it('notes が undefined なら補足を出さない', () => {
+    expect(commandHelpText(demo, undefined, 200)).not.toContain('Counts above 20')
+  })
+})
+
+describe('未対応の zod のキー', () => {
+  it('JSON Schema の表に無いキーは、握らずに TypeError で伝える（help がスタックトレースになる）', () => {
+    const unsupported = defineCommand({
+      path: ['odd'],
+      description: 'Has a pattern',
+      input: z.object({ code: z.string().regex(/^[a-z]+$/u).describe('Lowercase code') }),
+      positional: [],
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(() => commandHelpText(unsupported, undefined, 80)).toThrow(TypeError)
+    expect(() => commandHelpText(unsupported, undefined, 80)).toThrow('odd: code: unsupported JSON Schema key pattern')
   })
 })
 

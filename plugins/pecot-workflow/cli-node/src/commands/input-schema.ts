@@ -1,5 +1,7 @@
 // コマンドの入力（zod）から JSON Schema を作り、定義書（generated.json）と同じ形にそろえる。
 // 定義書の書き出し（scripts/export-interface.ts）と、コマンドごとの --help が同じ関数を通す。
+import { byName } from './names.js'
+
 export type JsonObject = Readonly<Record<string, unknown>>
 
 export interface InputSchema {
@@ -24,13 +26,8 @@ contracts の表に載せる type
 */
 const TYPES = new Set(['string', 'integer', 'boolean', 'array'])
 
-function isRecord(value: unknown): value is JsonObject {
+export function isRecord(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function byName(left: string, right: string): number {
-  if (left < right) return -1
-  return left > right ? 1 : 0
 }
 
 function keyRank(key: string): number {
