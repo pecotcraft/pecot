@@ -116,6 +116,8 @@ assert_eq "リポ内を指す symlink は実体で判定して exit 1" "1" "$RC"
 
 # --- require_release_head ---
 GIT_REPO="$TMP/git-repo"
+export GIT_AUTHOR_NAME="mcp-publish-common test" GIT_AUTHOR_EMAIL="mcp-publish-common-test@example.invalid"
+export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
 mkdir -p "$GIT_REPO/plugins/p"
 git init --quiet --initial-branch=main "$GIT_REPO" || exit 1
 echo a > "$GIT_REPO/plugins/p/f"
