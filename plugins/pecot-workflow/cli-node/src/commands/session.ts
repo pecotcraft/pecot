@@ -14,8 +14,8 @@ import { loadActiveConfig } from '../infra/config-store.js'
 import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { hasFlag, readFlag } from '../infra/state-store.js'
-import { defineCommand } from './command.js'
-import type { CommandDefinition, CommandIo } from './command.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { FAILURE_EXIT_CODE } from './failure.js'
 import { createClient, runWithExit, throwExit } from './issue-shared.js'
 import { createOutput } from './output.js'
@@ -208,8 +208,7 @@ const RESTORE = defineCommand({
         output.error(error.message)
         return throwExit(FAILURE_EXIT_CODE)
       }
-      const code = recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
-      if (code !== undefined) throwExit(code)
+      recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
     })
   },
 })

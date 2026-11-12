@@ -10,7 +10,6 @@ import {
   buildIssueTitle,
   checkDuplicateOrder,
   createIssueOrExit,
-  ExitError,
   exitInvalidStatus,
   linkToParentEpic,
   loadConfigOrExit,
@@ -26,6 +25,7 @@ import {
 } from '../issue-shared.js'
 import { setEnvironment } from '../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { CommandExit } from '../command-definition.js'
 import { createOutput } from '../output.js'
 import { UsageError } from '../usage-error.js'
 import { capture } from './support.js'
@@ -72,8 +72,8 @@ describe('runWithExit', () => {
     expect(await runWithExit(succeed)).toBe(0)
   })
 
-  it('throwExit の終了コードを返す', async () => {
-    expect(await runWithExit(exitWith3)).toBe(3)
+  it('throwExit は、終了コードを持つ CommandExit を伝える', async () => {
+    await expect(runWithExit(exitWith3)).rejects.toMatchObject({ exitCode: 3 })
   })
 
   it('BadParameterError は context 無しの UsageError にして伝える', async () => {
@@ -85,7 +85,7 @@ describe('runWithExit', () => {
 
   it('ほかの例外はそのまま伝える', async () => {
     await expect(runWithExit(boom)).rejects.toThrow('boom')
-    expect(new ExitError(2).code).toBe(2)
+    expect(new CommandExit(2).exitCode).toBe(2)
   })
 })
 
@@ -165,7 +165,7 @@ describe('resolveParentEpicReference の大きな番号', () => {
 describe('resolveEpicTargetRepository', () => {
   it('省略して aggregation_repo も無ければ、終了コード 2', () => {
     const { io, output } = started()
-    expect(() => resolveEpicTargetRepository(output, ' ', config())).toThrow(ExitError)
+    expect(() => resolveEpicTargetRepository(output, ' ', config())).toThrow(CommandExit)
     expect(io.err).toEqual(['error: cannot decide where to create the Epic\n  declare aggregation_repo in the project config, or pass --repo\n'])
   })
 
@@ -190,7 +190,7 @@ describe('resolveEpicTargetRepository', () => {
 describe('status の検証', () => {
   it('enum 外の値は有効な値を案内して終了コード 1', () => {
     const { io, output } = started()
-    expect(() => exitInvalidStatus(output, 'foo')).toThrow(ExitError)
+    expect(() => exitInvalidStatus(output, 'foo')).toThrow(CommandExit)
     expect(io.err).toEqual(['error: invalid status: foo\n  valid values: backlog/pending/ready/active/in_review/archived\n'])
   })
 
@@ -205,7 +205,7 @@ describe('status の検証', () => {
     const { io, output } = started()
     expect(() => {
       validateStatusForType(output, 'bug', 'backlog')
-    }).toThrow(ExitError)
+    }).toThrow(CommandExit)
     expect(io.err).toEqual(['error: the status at creation for type \'bug\' is only \'ready\' (given: backlog)\n  hint: move it to pending or another status on the board after creation\n'])
   })
 
@@ -213,7 +213,7 @@ describe('status の検証', () => {
     const { io, output } = started()
     expect(() => {
       validateStatusForType(output, 'task', 'foo')
-    }).toThrow(ExitError)
+    }).toThrow(CommandExit)
     expect(io.err[0]).toMatch(/^error: invalid status: foo\n/u)
   })
 })
@@ -242,7 +242,7 @@ describe('checkDuplicateOrder', () => {
   it('同じ order があれば、次に使える order を案内して終了コード 1', async () => {
     const { client } = await startClient([epic([{ number: 11, state: 'CLOSED', title: '[Task] #353-01: a' }, { number: 12, state: 'OPEN', title: '[Task] #353-02: b' }])])
     const { io, output } = started()
-    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 1)).rejects.toThrow(ExitError)
+    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 1)).rejects.toThrow(CommandExit)
     expect(io.err).toEqual(['error: Epic #353 already has an Issue with order=1 (CLOSED)\n  #11 [Task] #353-01: a\n  next available order: 3\n'])
   })
 
@@ -256,14 +256,14 @@ describe('checkDuplicateOrder', () => {
   it('同じ枝の文字なら、次に使える番号を案内する', async () => {
     const { client } = await startClient([epic([{ number: 1, state: 'OPEN', title: '[Task] #353-04a: a' }])])
     const { io, output } = started()
-    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'a')).rejects.toThrow(ExitError)
+    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'a')).rejects.toThrow(CommandExit)
     expect(io.err).toEqual(['error: Epic #353 already has an Issue (04a) that conflicts with order=04a (OPEN)\n  #1 [Task] #353-04a: a\n  next available number: 04b\n'])
   })
 
   it('枝なしの Issue と枝ありの新規は重複で、次の order を案内する', async () => {
     const { client } = await startClient([epic([{ number: 1, state: 'OPEN', title: '[Task] #353-04: a' }])])
     const { io, output } = started()
-    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'a')).rejects.toThrow(ExitError)
+    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'a')).rejects.toThrow(CommandExit)
     expect(io.err).toEqual(['error: Epic #353 already has an Issue (04) that conflicts with order=04a (OPEN)\n  #1 [Task] #353-04: a\n  next available order: 5\n'])
   })
 
@@ -288,7 +288,7 @@ describe('createIssueOrExit', () => {
   it('失敗は error の行と終了コード 1', async () => {
     const { client } = await startClient([restResponse('POST', '/repos/o/r/issues', { status: 422, text: 'bad' })])
     const { io, output } = started()
-    await expect(createIssueOrExit(output, client, 'o', 'r', 'T', 'B', undefined)).rejects.toThrow(ExitError)
+    await expect(createIssueOrExit(output, client, 'o', 'r', 'T', 'B', undefined)).rejects.toThrow(CommandExit)
     expect(io.err[0]).toMatch(/^error: could not create an Issue in o\/r: /u)
   })
 })
@@ -309,7 +309,7 @@ describe('linkToParentEpic', () => {
   it('失敗は URL、error の順に出して終了コード 1', async () => {
     const { client } = await startClient([graphqlError('GetIssueNodeId', 'nope')])
     const { io, output } = started()
-    await expect(linkToParentEpic(output, client, 'Issue o/r/5', parent, 'I_child', 'https://x/5')).rejects.toThrow(ExitError)
+    await expect(linkToParentEpic(output, client, 'Issue o/r/5', parent, 'I_child', 'https://x/5')).rejects.toThrow(CommandExit)
     expect(io.out).toEqual(['https://x/5\n'])
     expect(io.err[0]).toMatch(/^error: could not add Issue o\/r\/5 as sub-issue of o\/agg\/353: /u)
   })
@@ -326,7 +326,7 @@ describe('validateIssueTemplate', () => {
     const { io, output } = started()
     expect(() => {
       validateIssueTemplate(output, 'task', 'ただの本文')
-    }).toThrow(ExitError)
+    }).toThrow(CommandExit)
     expect(io.err[0]).toMatch(/^error: the body does not follow the template .+task\.md\n {2}missing sections: /u)
   })
 })
@@ -340,14 +340,14 @@ describe('Issue 参照と設定', () => {
 
   it('不正な参照は error の行と終了コード 2', () => {
     const { io, output } = started()
-    expect(() => parseIssueReferenceOrExit(output, 'o/r', 'zzz')).toThrow(expect.objectContaining({ code: 2 }))
+    expect(() => parseIssueReferenceOrExit(output, 'o/r', 'zzz')).toThrow(expect.objectContaining({ exitCode: 2 }))
     expect(io.err[0]).toMatch(/^error: /u)
   })
 
   it('アクティブなプロジェクトが無ければ `no active project` で終了コード 1', () => {
     setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
     const { io, output } = started()
-    expect(() => loadConfigOrExit(output)).toThrow(ExitError)
+    expect(() => loadConfigOrExit(output)).toThrow(CommandExit)
     expect(io.err).toEqual(['error: no active project\n'])
   })
 })

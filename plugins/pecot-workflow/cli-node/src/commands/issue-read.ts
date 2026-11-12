@@ -3,8 +3,8 @@ import { z } from 'zod'
 
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { IssueSlim } from '../infra/github/issues.js'
-import { defineCommand } from './command.js'
-import type { CommandDefinition } from './command.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition } from './command-definition.js'
 import { createClient, ISSUE_REF_DESCRIPTION, issuePath, loadConfigOrExit, parseIssueReferenceOrExit, runWithExit, throwExit } from './issue-shared.js'
 import { createOutput } from './output.js'
 

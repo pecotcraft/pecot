@@ -10,18 +10,6 @@ import { capture, exitWith } from './support.js'
 Node へ未移植のコマンドの path。各 Phase が移植するたびに、ここから消す。Phase 7 で空になる
 */
 const PENDING_PATHS: readonly (readonly string[])[] = [
-  ['create-branch'],
-  ['delete-branch'],
-  ['project', 'list'],
-  ['project', 'search'],
-  ['project', 'init'],
-  ['project', 'create'],
-  ['project', 'info'],
-  ['project', 'activate'],
-  ['project', 'set-repo'],
-  ['project', 'set-aggregation-repo'],
-  ['project', 'unset-aggregation-repo'],
-  ['project', 'show-aggregation-repo'],
   ['pr', 'create'],
   ['pr', 'read'],
   ['pr', 'cleanup'],
@@ -131,11 +119,12 @@ describe('defineCommand', () => {
     expect(plain.interactive).toBe(true)
   })
 
-  it('input が repo を持つコマンドは、グローバルの repo を合成せず、自分の repo を使う', async () => {
+  it('hasOwnRepo のコマンドは、グローバルの repo を合成せず、自分の repo を使う', async () => {
     const received: unknown[] = []
     const own = defineCommand({
       path: ['own'],
       description: '',
+      hasOwnRepo: true,
       input: z.object({ repo: z.string().optional(), name: z.string() }),
       positional: [],
       interactive: false,
@@ -144,8 +133,8 @@ describe('defineCommand', () => {
         return await exitWith(0)
       },
     })
-    expect(own.ownsRepository).toBe(true)
-    expect(definition.ownsRepository).toBe(false)
+    expect(own.hasOwnRepo).toBe(true)
+    expect(definition.hasOwnRepo).toBe(false)
     expect(Object.keys(own.input.shape)).toEqual(['repo', 'name'])
     await own.run({ repo: 'a/b', name: 'x' }, capture())
     expect(received).toEqual([{ repo: 'a/b', name: 'x' }])

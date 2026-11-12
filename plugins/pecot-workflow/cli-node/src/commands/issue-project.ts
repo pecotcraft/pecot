@@ -8,8 +8,8 @@ import { getFieldId, getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { defineCommand } from './command.js'
-import type { CommandDefinition } from './command.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition } from './command-definition.js'
 import { addIssueToBoard, setIssueField } from './issue-board.js'
 import {
   createClient,

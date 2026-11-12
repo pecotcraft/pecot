@@ -1,6 +1,9 @@
-// コマンド 1 つの定義の型と、defineCommand()。一覧は registry.ts が持つ。
-// グローバルの --repo は、自分の repo を持たない全コマンドの入力 repo として合成する。
+// コマンドの定義の型と defineCommand()。コマンドのファイルが import する。
+// registry.ts が COMMANDS を持つために各コマンドのファイルを import するので、循環を避けて定義をここに分ける。
+// グローバルの --repo は、全コマンドの入力 repo として合成する。
 import { z } from 'zod'
+
+import { BaseError } from '../domain/errors.js'
 
 /**
 コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
@@ -8,6 +11,19 @@ import { z } from 'zod'
 export interface CommandIo {
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
+}
+
+/**
+コマンドの途中で、決めた終了コードで止めるための例外。defineCommand が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
+Python の `typer.Exit(n)` に当たる。`error:` の行や使い方の枠は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
+*/
+export class CommandExit extends BaseError {
+  readonly exitCode: number
+
+  constructor(exitCode: number) {
+    super(`exit ${String(exitCode)}`)
+    this.exitCode = exitCode
+  }
 }
 
 /**
@@ -28,9 +44,19 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly description: string
   /**
-  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。`repo` を持てば、そのコマンド自身の入力になる（グローバルの --repo は使わない）
+  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。
+  `repo` はグローバルの --repo 用の予約名。hasOwnRepo が真のコマンドだけ、自分の `--repo` として持てる
   */
   readonly input: Input
+  /**
+  自分の `--repo` を持つ印。真なら input に `repo` を書ける（説明は `.describe()`、形の検証は input の refine）。
+  実行時の `repo` は、サブコマンドの値を先に使い、無ければグローバルの値になる
+  */
+  readonly hasOwnRepo?: boolean
+  /**
+  真なら、グローバルの --repo を使わない。`repo` は自分のオプションの値だけになる（hasOwnRepo のコマンド用）
+  */
+  readonly ignoresGlobalRepo?: boolean
   /**
   input のうち CLI で位置引数になるもの（順序つき）
   */
@@ -70,14 +96,18 @@ export interface CommandDefinition {
   readonly toolName: string
   readonly description: string
   /**
-  グローバルの repo を足した入力。ownsRepository なら spec.input のまま
+  グローバルの repo を足した入力
   */
   readonly input: z.ZodObject
-  /**
-  コマンド自身が repo を入力に持つか。真ならグローバルの --repo は合成せず、run に渡る repo はコマンド自身の値
-  */
-  readonly ownsRepository: boolean
   readonly positional: readonly string[]
+  /**
+  自分の `--repo` を持つか。真のとき、input の repo はコマンド自身の引数
+  */
+  readonly hasOwnRepo: boolean
+  /**
+  グローバルの --repo を入力に渡さないか
+  */
+  readonly ignoresGlobalRepo: boolean
   /**
   input の名前から短いオプションへ
   */
@@ -118,32 +148,44 @@ function assertDistinctFlags(fields: readonly string[], positional: readonly str
   if (duplicate !== undefined) throw new TypeError(`オプション ${duplicate} が重複しています`)
 }
 
+async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promise<number>, input: Input, io: CommandIo): Promise<number> {
+  try {
+    return await run(input, io)
+  }
+  catch (error: unknown) {
+    if (error instanceof CommandExit) return error.exitCode
+    throw error
+  }
+}
+
 /**
 型付きの仕様から、型を消した定義を作る。parse が input で検証してから本体を呼ぶので、型を消しても安全に呼べる
 */
 
 export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandSpec<Input>>): CommandDefinition {
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
+  const hasOwnRepository = spec.hasOwnRepo === true
+  const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
+  if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
+  if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
   assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
-  const hasOwnRepository = Object.hasOwn(spec.input.shape, 'repo')
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
-    if (hasOwnRepository) {
-      const own: z.output<Input> & GlobalInput = spec.input.parse(raw)
-      return { run: async io => await spec.run(own, io) }
-    }
-    // 検証は spec.input で行う（全体の refine を保つ）。repo は strictObject が拒むので外し、別に検証する
-    const own: z.output<Input> = spec.input.parse(Object.fromEntries(Object.entries(raw).filter(([name]) => name !== 'repo')))
-    const parsed = { ...own, ...GLOBAL_SCHEMA.parse(raw) }
-    return { run: async io => await spec.run(parsed, io) }
+    // 検証は spec.input で行う（全体の refine を保つ）。グローバルの repo は strictObject が拒むので外し、別に検証する。
+    // 自分の repo を持つコマンドは、repo も spec.input が検証する
+    const parsed: z.output<Input> & GlobalInput = hasOwnRepository
+      ? spec.input.parse(raw)
+      : { ...spec.input.parse(Object.fromEntries(Object.entries(raw).filter(([name]) => name !== 'repo'))), ...GLOBAL_SCHEMA.parse(raw) }
+    return { run: async io => await runToExitCode(spec.run, parsed, io) }
   }
   return {
     path: spec.path,
     toolName: toolNameOf(spec.path),
     description: spec.description,
     input,
-    ownsRepository: hasOwnRepository,
     positional: spec.positional,
+    hasOwnRepo: hasOwnRepository,
+    ignoresGlobalRepo: spec.ignoresGlobalRepo === true,
     shortFlags: flagMap(spec.shortFlags),
     negations: flagMap(spec.negations),
     interactive: spec.interactive,

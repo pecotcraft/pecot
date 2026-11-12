@@ -1,5 +1,5 @@
 // issue のグループと、Issue をボードで動かすコマンドの一覧。
-import type { CommandDefinition } from './command.js'
+import type { CommandDefinition } from './command-definition.js'
 import { ISSUE_COMMENT_COMMANDS } from './issue-comment.js'
 import { ISSUE_CREATE_COMMANDS } from './issue-create.js'
 import { ISSUE_QUICK_COMMANDS } from './issue-quick.js'

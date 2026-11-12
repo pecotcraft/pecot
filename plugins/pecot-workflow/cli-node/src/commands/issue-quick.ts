@@ -12,8 +12,8 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { formatTimestamp } from '../infra/paths.js'
 import { consumeFlag, touchFlag } from '../infra/state-store.js'
-import { defineCommand } from './command.js'
-import type { CommandDefinition, CommandIo } from './command.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition, CommandIo } from './command-definition.js'
 import {
   addToBoardOrWarn,
   BACKLOG_TYPES,
@@ -128,6 +128,8 @@ async function finishIssue(output: Output, config: ProjectConfig, client: GitHub
 
 const ISSUE_QUICK = defineCommand({
   path: ['issue', 'quick'],
+  hasOwnRepo: true,
+  ignoresGlobalRepo: true,
   description: 'Create an Issue at once from a free-format message',
   input: z.object({
     message: z.string().describe('Issue message (free format)'),

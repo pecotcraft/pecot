@@ -1,47 +1,57 @@
-// 作業対象（.pecot-active）を記録して、結果の行を出す。cli/commands/_work_target.py の移植。
+// 作業対象（.pecot-active と .pecot-session-title、作業ディレクトリ）を記録して、結果の行を出す。
+import { InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
+import { OsError, hasErrorCode, toOsError } from '../infra/os-error.js'
 import { WORK_DIR } from '../infra/paths.js'
-import { toOsError } from '../infra/os-error.js'
 import { ensureWorkDirectory, writeWorkTarget } from '../infra/state-store.js'
-import { FAILURE_EXIT_CODE } from './failure.js'
+import { CommandExit } from './command-definition.js'
 import type { Output } from './output.js'
 
 export interface RecordWorkTargetOptions {
   /**
-  真なら、失敗を warning ではなく error にして、終了コードを返す
+  真なら、記録の失敗を warning ではなく error の行で出し、終了コード 1 で止める
   */
-  readonly failWithExit: boolean
+  readonly failWithExit?: boolean
 }
 
 /**
-.pecot-active を書き、`set: work target ...` の行を出す。
-失敗は warning で、undefined を返す。failWithExit なら error の行を出して 1 を返す。
-呼ぶ側は、数値が返ったらその値で run を終える
+記録の失敗として扱う例外か。OS の失敗・値の誤り・プロジェクトルート不明。プログラムの誤りは伝える
+*/
+function isRecordingFailure(error: unknown): error is Error {
+  return error instanceof OsError || error instanceof InvalidValueError || error instanceof ProjectRootNotFoundError || hasErrorCode(error)
+}
+
+function describeFailure(error: Readonly<Error>): string {
+  const converted = toOsError(error)
+  return converted instanceof Error ? converted.message : error.message
+}
+
+/**
+.pecot-active と .pecot-session-title を書き、`set: work target ...` の行を出す。
+失敗は warning の行にする。failWithExit なら error の行を出して CommandExit(1) を投げる
 */
 export function recordWorkTarget(
-  output: Output,
+  out: Readonly<Output>,
   owner: string,
   repository: string,
   issueNumber: number,
   title: string,
-  options: Readonly<RecordWorkTargetOptions>,
-): number | undefined {
-  const reference = `${owner}/${repository}/${String(issueNumber)}`
+  options: Readonly<RecordWorkTargetOptions> = {},
+): void {
+  const issueReference = `${owner}/${repository}/${String(issueNumber)}`
   let target: string
   try {
-    writeWorkTarget(reference, title)
-    target = `work target ${reference}`
-    if (ensureWorkDirectory(reference) !== undefined) target += ` (work directory ${WORK_DIR}/${String(issueNumber)}/)`
+    writeWorkTarget(issueReference, title)
+    target = `work target ${issueReference}`
+    if (ensureWorkDirectory(issueReference) !== undefined) target += ` (work directory ${WORK_DIR}/${String(issueNumber)}/)`
   }
   catch (error: unknown) {
-    const reason = toOsError(error)
-    const message = `could not record the work target: ${reason instanceof Error ? reason.message : String(reason)}`
-    if (!options.failWithExit) {
-      output.warning(message)
-      return undefined
+    if (!isRecordingFailure(error)) throw error
+    if (options.failWithExit === true) {
+      out.error(`could not record the work target: ${describeFailure(error)}`)
+      throw new CommandExit(1)
     }
-    output.error(message)
-    return FAILURE_EXIT_CODE
+    out.warning(`could not record the work target: ${describeFailure(error)}`)
+    return
   }
-  output.done({ verb: 'set', target })
-  return undefined
+  out.done({ verb: 'set', target })
 }

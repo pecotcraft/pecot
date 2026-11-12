@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // issue 系のコマンドが共有する関数と定数。cli/commands/issue.py の移植。
-// typer.Exit(n) に当たるのは throwExit(n) で、run の本体を runWithExit で包んで受ける。
+// typer.Exit(n) に当たるのは throwExit(n)（CommandExit）。BadParameter は、run の本体を包む runWithExit が受ける。
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { aggregationRepositoryReference, isRepositoryInProject } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { BaseError } from '../domain/errors.js'
+import { CommandExit } from './command-definition.js'
 import type { IssueFrontmatter } from '../domain/frontmatter.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
@@ -77,18 +78,6 @@ export const BACKLOG_TYPES: ReadonlySet<string> = new Set(['epic', 'tracker'])
 // --- 終了の表し方 ---
 
 /**
-終了コードを持つ例外。Python の typer.Exit。runWithExit が受けて、run の戻り値にする
-*/
-export class ExitError extends BaseError {
-  readonly code: number
-
-  constructor(code: number) {
-    super(`exit ${String(code)}`)
-    this.code = code
-  }
-}
-
-/**
 引数の値が不正。Python の typer.BadParameter。呼ぶ側が受けない場合は、runWithExit が使い方の誤り（終了コード 2）にする
 */
 class BadParameterError extends BaseError {}
@@ -97,12 +86,12 @@ class BadParameterError extends BaseError {}
 終了コード code で、コマンドを終える。error の行は先に出しておく
 */
 export function throwExit(code: number): never {
-  throw new ExitError(code)
+  throw new CommandExit(code)
 }
 
 /**
-run の本体を包む。終わったら 0、throwExit したらその終了コードを返す。
-BadParameterError は使い方の誤りにして伝える。それ以外の例外もそのまま伝える（本体の try/catch は ExitError を握りつぶさない）
+run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
+それ以外の例外はそのまま伝える。CommandExit は defineCommand が受けて終了コードにする
 */
 export async function runWithExit(body: () => Promise<void>): Promise<number> {
   try {
@@ -110,7 +99,6 @@ export async function runWithExit(body: () => Promise<void>): Promise<number> {
     return 0
   }
   catch (error: unknown) {
-    if (error instanceof ExitError) return error.code
     if (error instanceof BadParameterError) throw new UsageError(`Invalid value: ${error.message}`)
     throw error
   }

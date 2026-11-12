@@ -21,8 +21,10 @@ import {
   serializeProjectConfig,
   SIZES,
   WORKFLOW_STATUSES,
+  parsePackage,
   withAggregationRepository,
   withRepositoryAppended,
+  withRepositoryReplaced,
   workflowFieldName,
 } from '../config.js'
 import type { ProjectConfig, RepositoryMembership } from '../config.js'
@@ -482,5 +484,43 @@ describe('更新（コピーを作る）', () => {
     expect(updated.repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo', 'new'])
     expect(config.repositories).toHaveLength(2)
     expect(Object.isFrozen(updated.repositories)).toBe(true)
+  })
+
+  it('withRepositoryReplaced は同じ owner と name の 1 件を差し替えたコピーを返し、元は変えない', () => {
+    const config = sampleConfig()
+    const edited = withRepositories([{ owner: 'test-owner', name: 'test-repo', develop_branch: 'edited' }]).repositories[0]
+    expect(edited).toBeDefined()
+    if (edited === undefined) return
+    const updated = withRepositoryReplaced(config, edited)
+    expect(updated.repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo'])
+    expect(updated.repositories[0]?.develop_branch).toBe('edited')
+    expect(config.repositories[0]?.develop_branch).not.toBe('edited')
+    expect(Object.isFrozen(updated.repositories)).toBe(true)
+  })
+
+  it('withRepositoryReplaced は同じリポジトリが無いと、元と同じ並びを返す', () => {
+    const config = sampleConfig()
+    const other = withRepositories([{ owner: 'o', name: 'absent' }]).repositories[0]
+    expect(other).toBeDefined()
+    if (other === undefined) return
+    expect(withRepositoryReplaced(config, other).repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo'])
+  })
+
+  it('withRepositoryReplaced は同じ owner と name が重複していても、最初の 1 件だけを差し替える', () => {
+    const config = withRepositories([
+      { owner: 'o', name: 'dup', develop_branch: 'first' },
+      { owner: 'o', name: 'other' },
+      { owner: 'o', name: 'dup', develop_branch: 'second' },
+    ])
+    const edited = withRepositories([{ owner: 'o', name: 'dup', develop_branch: 'edited' }]).repositories[0]
+    expect(edited).toBeDefined()
+    if (edited === undefined) return
+    const updated = withRepositoryReplaced(config, edited)
+    expect(updated.repositories.map(repository => repository.develop_branch)).toEqual(['edited', undefined, 'second'])
+  })
+
+  it('parsePackage は NAME の形が不正だと、表題が Package の ValidationFailure を投げる', () => {
+    expect(parsePackage({ name: 'good.name-1_x', changelog: 'a.md' })).toEqual({ name: 'good.name-1_x', changelog: 'a.md' })
+    expect(() => parsePackage({ name: 'b!d', changelog: 'a.md' })).toThrow(/^1 validation error for Package\nname\n {2}String should match pattern '\^\[A-Za-z0-9_\.-\]\+\$'/u)
   })
 })

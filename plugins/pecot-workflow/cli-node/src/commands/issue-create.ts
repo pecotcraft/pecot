@@ -18,8 +18,8 @@ import { OutputPathReservationError, normalizePath, outputDirectory, resolveReal
 import { consumeFlag } from '../infra/state-store.js'
 import { templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
-import { defineCommand } from './command.js'
-import type { CommandDefinition, CommandIo } from './command.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition, CommandIo } from './command-definition.js'
 import {
   addToBoardOrWarn,
   buildIssueTitle,
@@ -404,6 +404,8 @@ async function createFromMessage(output: Output, input: Readonly<MessageInput>, 
 
 const ISSUE_CREATE = defineCommand({
   path: ['issue', 'create'],
+  hasOwnRepo: true,
+  ignoresGlobalRepo: true,
   description: 'Create Issues from Markdown files with frontmatter',
   input: z.object({
     files: FILES_SCHEMA,

@@ -18,8 +18,8 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { OutputPathReservationError, outputDirectory, withReservedOutputPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
-import { defineCommand } from './command.js'
-import type { CommandDefinition } from './command.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition } from './command-definition.js'
 import {
   COMMENT_VALIDATION_EXIT_CODE,
   createClient,
