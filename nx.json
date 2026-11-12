@@ -34,6 +34,7 @@
       { "env": "PECOT_HOOKS_CONFIG_PATH" },
       { "env": "CLAUDE_PLUGIN_ROOT" },
       { "env": "CLAUDE_PROJECT_DIR" },
+      { "env": "COPILOT_SESSION_CWD" },
       { "env": "PECOT_SESSION_PROJECT_DIR" },
       { "env": "CLAUDE_CONFIG_DIR" }
     ],

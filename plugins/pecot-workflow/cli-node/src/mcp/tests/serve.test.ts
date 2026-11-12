@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { childStdin, setChildStdin } from '../../infra/child-stdin.js'
 import { defineCommand } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
+import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { outcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import { defaultDependencies, executeMcpServe, installStdoutGuard, runMcpServe } from '../serve.js'
@@ -129,11 +130,14 @@ const COMMANDS = [
 
 function dependenciesOver(stdin: PassThrough, stderr: FakeTarget, serverTransport: InMemoryTransport): McpServeDependencies {
   return {
-    createServer: reportUnexpected => createMcpServer(COMMANDS, { reportUnexpected }),
+    createServer: (reportUnexpected, unavailableReason) => createMcpServer(COMMANDS, { reportUnexpected, ...unavailableReason !== undefined && { unavailableReason } }),
     createTransport: () => serverTransport,
     installStdoutGuard: () => new Writable(),
     stdin,
     stderr,
+    environment: {},
+    cwd: process.cwd(),
+    changeDirectory: vi.fn(),
   }
 }
 
@@ -237,8 +241,17 @@ describe('runMcpServe の失敗', () => {
 describe('defaultDependencies', () => {
   it('実際の stdio の transport とサーバを作る', () => {
     const dependencies = defaultDependencies()
-    expect(dependencies.createServer(vi.fn())).toBeInstanceOf(McpServer)
+    expect(dependencies.createServer(vi.fn(), undefined)).toBeInstanceOf(McpServer)
     expect(dependencies.createTransport(new PassThrough(), new PassThrough())).toBeInstanceOf(StdioServerTransport)
+  })
+
+  it('環境変数と cwd は実プロセスのもので、作業ディレクトリは process.chdir で移す', () => {
+    const dependencies = defaultDependencies()
+    expect(dependencies.environment).toBe(process.env)
+    expect(dependencies.cwd).toBe(process.cwd())
+    expect(() => {
+      dependencies.changeDirectory(process.cwd())
+    }).not.toThrow()
   })
 })
 
@@ -273,5 +286,90 @@ describe('executeMcpServe', () => {
       },
     }))
     expect(stderr.chunks).toEqual(['error: plain\n'])
+  })
+})
+
+function environmentOf(pluginRoot: string, session?: string): Record<string, string> {
+  return { CLAUDE_PLUGIN_ROOT: pluginRoot, ...session !== undefined && { COPILOT_SESSION_CWD: session } }
+}
+
+describe('executeMcpServe のセッションのディレクトリ', () => {
+  const hello = { name: 'hello', arguments: {} }
+
+  it('cwd がプラグインの root の外なら、移らずに起動する', async () => {
+    const pluginRoot = makeTemporaryDirectory()
+    const changeDirectory = vi.fn()
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const dependencies = { ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport), environment: environmentOf(pluginRoot, pluginRoot), cwd: process.cwd(), changeDirectory }
+    expect(executeMcpServe(() => dependencies)).toBe(0)
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    expect(changeDirectory).not.toHaveBeenCalled()
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 0, stdout: 'hello\n', stderr: '' })
+  })
+
+  it('決まったディレクトリへ、待ち受けを始める前に 1 回だけ移る', () => {
+    const pluginRoot = makeTemporaryDirectory()
+    const session = makeTemporaryDirectory()
+    const order: string[] = []
+    const [, serverTransport] = InMemoryTransport.createLinkedPair()
+    const dependencies: McpServeDependencies = {
+      ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport),
+      environment: environmentOf(pluginRoot, session),
+      cwd: pluginRoot,
+      changeDirectory: (directory) => {
+        order.push(`chdir ${directory}`)
+      },
+      createTransport: () => {
+        order.push('listen')
+        return serverTransport
+      },
+    }
+    expect(executeMcpServe(() => dependencies)).toBe(0)
+    expect(order).toEqual([`chdir ${session}`, 'listen'])
+  })
+
+  it('決められなくても起動し、tools/list は変わらず、どのツールも理由を返してコマンドを呼ばない', async () => {
+    started.length = 0
+    const pluginRoot = makeTemporaryDirectory()
+    const stderr = fakeTarget()
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const changeDirectory = vi.fn()
+    const dependencies = { ...dependenciesOver(new PassThrough(), stderr, serverTransport), environment: environmentOf(pluginRoot), cwd: pluginRoot, changeDirectory }
+    expect(executeMcpServe(() => dependencies)).toBe(0)
+    const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD or CLAUDE_PROJECT_DIR); GitHub Copilot CLI passes it from 1.0.106`
+    expect(stderr.chunks).toEqual([`error: ${reason}\n`])
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    const listed = await client.listTools()
+    expect(listed.tools.map(tool => tool.name)).toEqual(['slow', 'hello', 'noisy_bug', 'bug'])
+    const result = await client.callTool(hello)
+    expect(result.isError).toBe(true)
+    expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
+    expect(JSON.stringify(result.content)).toContain('exit code: 1')
+    await client.callTool({ name: 'slow', arguments: { name: 'x' } })
+    expect(started).toEqual([])
+    expect(changeDirectory).not.toHaveBeenCalled()
+  })
+
+  it('移るのに失敗したら、決められない扱いにして理由を返す', async () => {
+    const pluginRoot = makeTemporaryDirectory()
+    const session = makeTemporaryDirectory()
+    const stderr = fakeTarget()
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const dependencies: McpServeDependencies = {
+      ...dependenciesOver(new PassThrough(), stderr, serverTransport),
+      environment: environmentOf(pluginRoot, session),
+      cwd: pluginRoot,
+      changeDirectory: () => {
+        throw new Error('EACCES')
+      },
+    }
+    expect(executeMcpServe(() => dependencies)).toBe(0)
+    const reason = `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${session}`
+    expect(stderr.chunks).toEqual([`error: ${reason}\n`])
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    expect(outcomeOf(await client.callTool(hello))).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
   })
 })

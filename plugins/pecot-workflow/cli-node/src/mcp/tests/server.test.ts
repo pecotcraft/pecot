@@ -344,3 +344,31 @@ describe('入力の検証の誤り', () => {
     expect(result).toEqual({ content: [{ type: 'text', text: 'invalid input: a と b は同時に渡せません' }], isError: true })
   })
 })
+
+describe('対象のリポを決められなかったとき', () => {
+  const reason = 'cannot determine the target repository: test'
+
+  it('どのツールもコマンドを呼ばず、理由を stderr に持つ失敗を返す', async () => {
+    const { client } = await open(COMMANDS, { unavailableReason: reason })
+    for (const name of ['echo', 'own_repo', 'bug']) {
+      const result = await client.callTool({ name, arguments: {} })
+      expect(result.isError).toBe(true)
+      expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
+      expect(result.content).toEqual([{ type: 'text', text: `error: ${reason}\nexit code: 1\n` }])
+    }
+    expect(calls).toEqual([])
+  })
+
+  it('入力が誤りでも、入力の検証より先に理由を返す', async () => {
+    const { client } = await open(COMMANDS, { unavailableReason: reason })
+    const result = await client.callTool({ name: 'echo', arguments: { unknown: 1 } })
+    expect(outcomeOf(result).stderr).toBe(`error: ${reason}\n`)
+  })
+
+  it('tools/list は変わらない', async () => {
+    const available = await open(COMMANDS)
+    const unavailable = await open(COMMANDS, { unavailableReason: reason })
+    const [expected, actual] = await Promise.all([available.client.listTools(), unavailable.client.listTools()])
+    expect(actual.tools).toEqual(expected.tools)
+  })
+})

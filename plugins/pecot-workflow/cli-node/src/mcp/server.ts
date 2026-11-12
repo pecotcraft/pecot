@@ -8,6 +8,7 @@ import { InvalidValueError } from '../domain/errors.js'
 import { parseOwnerRepository } from '../domain/repository-resolver.js'
 import { resolveApiUrlOverride } from '../infra/github/client.js'
 import { usageOf, withUsage } from '../commands/command-binding.js'
+import { createOutput } from '../commands/output.js'
 import { exitCodeOfFailure } from '../commands/failure.js'
 import { isRecord } from '../commands/input-schema.js'
 import { COMMANDS } from '../commands/registry.js'
@@ -19,6 +20,10 @@ import { collectIo, toRejectedResult, toToolResult } from './result.js'
 export const MCP_SERVER_NAME = 'pecot-workflow'
 
 export interface McpServerOptions {
+  /**
+  対象のリポを決められなかった理由。あるとき、どのツールの呼び出しもコマンドを呼ばず、この理由を失敗（exit code 1）で返す。tools/list は変わらない
+  */
+  readonly unavailableReason?: string
   /**
   プログラムの誤り（報告できる失敗でも使い方の誤りでもない例外）と、それまでに集めた出力を、切り分けのために伝える先。SDK は message だけの結果にする
   */
@@ -80,7 +85,15 @@ function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Prepara
   }
 }
 
+// 対象のリポを決められなかったとき、コマンドを呼ばずに理由を失敗で返す
+function unavailableResult(reason: string): CallToolResult {
+  const collected = collectIo()
+  createOutput(false, collected.io).error(reason)
+  return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr() })
+}
+
 async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, options: Readonly<McpServerOptions>): Promise<CallToolResult> {
+  if (options.unavailableReason !== undefined) return unavailableResult(options.unavailableReason)
   const collected = collectIo()
   // interface-env: TERMINAL_WIDTH COLUMNS
   const width = outputWidth(process.env, undefined)
@@ -108,7 +121,7 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
   return toToolResult({ exitCode, stdout: collected.stdout(), stderr: collected.stderr() })
 }
 
-// コマンドは process.cwd() と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
+// コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
 const sequence: { tail: Promise<boolean> } = { tail: Promise.resolve(true) }
 
 async function inSequence(signal: Readonly<AbortSignal>, task: () => Promise<CallToolResult>): Promise<CallToolResult> {
