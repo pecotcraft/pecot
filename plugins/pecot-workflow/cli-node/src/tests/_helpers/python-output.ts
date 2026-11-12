@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは tests/python-output/ 配下の fixture だけ */
 // Python の CLI の出力を記録した fixture（tests/python-output/*.json）を読む補助。
 //
-// fixture は入力と Python の出力の対で、tests/python-output/record.py が Python で作り直す。
+// fixture は入力と Python の出力の対で、作り直さない記録。
 // テストは期待値を文字の組み立てで作らず、ここから逐語で受け取る。
 // 形は zod で確かめる。形が崩れていれば、読み込みの時点で落とす。
 //
@@ -12,6 +12,7 @@
 // - validationErrorOutput(id) は、id の入力と検証エラーの文を返す。入力が文字列なら validationErrorTextOutput(id)。
 // - inputValueOutputs() は、入力値と、エラー文に出る input_value を返す。
 // - httpQueryOutput() は、REST の要求に付くクエリ文字列を返す。
+// - queriesOutput() は、queries.py の定数名と、gql が送る形の文を返す。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -129,4 +130,15 @@ export function httpQueryOutput(): string {
   const [first] = HttpQuerySchema.parse(load('http-query')).cases
   if (first === undefined) throw new Error('http-query.json が空')
   return first.query
+}
+
+// queries
+
+const QueriesSchema = z.record(z.string(), z.string())
+
+/**
+queries.py の定数名と、gql が送る形の文
+*/
+export function queriesOutput(): Readonly<Record<string, string>> {
+  return QueriesSchema.parse(load('queries'))
 }

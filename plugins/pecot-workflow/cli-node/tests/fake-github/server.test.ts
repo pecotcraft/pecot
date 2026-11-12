@@ -1,10 +1,8 @@
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
 import { Server } from 'node:http'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import * as queries from '../../src/infra/github/queries.js'
 import { OPERATION_NAMES, operationNameOf, operationTable } from './operations.js'
 import type { FakeGithub, ResponseRule, StartOptions } from './server.js'
 import { isAvoidedPort, isSubset, MAX_LISTEN_ATTEMPTS, startFakeGithub } from './server.js'
@@ -210,12 +208,9 @@ describe('対応表', () => {
     expect(OPERATION_NAMES.size).toBe(table.length)
   })
 
-  it('cli/core/github/queries.py の query と mutation の全部が、表の名前に引ける', () => {
-    const source = readFileSync(path.resolve(import.meta.dirname, '../../../cli/core/github/queries.py'), 'utf8')
-    const queries = Array.from(source.matchAll(/^(?:QUERY|MUTATION)_\w+ = """([\s\S]*?)"""/gmu), match => match[1] ?? '')
-    expect(queries).toHaveLength(operationTable().length)
-    const names = queries.map(query => operationNameOf(query))
-    expect(names.filter(name => name === undefined)).toEqual([])
-    expect(new Set(names).size).toBe(queries.length)
+  it('queries.ts の全定数が、表の名前に引ける', () => {
+    const texts = Object.values(queries)
+    expect(texts).toHaveLength(operationTable().length)
+    expect(texts.map(query => operationNameOf(query)).filter(name => name === undefined)).toEqual([])
   })
 })

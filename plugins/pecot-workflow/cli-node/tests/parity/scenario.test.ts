@@ -3,12 +3,12 @@
 //   - シナリオが全件読め、golden の id の集合とシナリオの id の集合が一致する。
 //   - 34 サブコマンドの path がすべてシナリオにある。
 //   - 各 path に ok と ok 以外があり、全体で auth・4xx・5xx・usage の種類がそろう。
-//   - commands.ts の 34 個が cli/commands/main.py の登録と一致する。
-import { readdirSync, readFileSync } from 'node:fs'
-import path from 'node:path'
+//   - commands.ts の 34 個が src/commands/registry.ts の COMMANDS と一致する。
+import { readdirSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
+import { COMMANDS } from '../../src/commands/registry.js'
 import { compareStrings } from './baseline.js'
 import { COMMAND_PATHS } from './commands.js'
 import { goldenDirectory, kindOf, normalizeDeep, normalizeText, parseScenario, readScenario, scenarioIds } from './scenario.js'
@@ -116,19 +116,8 @@ describe('シナリオの網羅', () => {
     expect(goldenIds).toEqual(ids)
   })
 
-  it('commands.ts の 34 個が cli/commands/main.py の登録と一致する', () => {
-    const source = readFileSync(path.resolve(import.meta.dirname, '../../../cli/commands/main.py'), 'utf8')
-    const groups = new Map<string, string>()
-    for (const [, variable, name] of source.matchAll(/app\.add_typer\((\w+), name="([^"]+)"\)/gu)) {
-      if (variable !== undefined && name !== undefined) groups.set(variable, name)
-    }
-    const registered: string[] = []
-    for (const [, variable, name] of source.matchAll(/(\w+)\.command\(name="([^"]+)"\)/gu)) {
-      if (variable === undefined || name === undefined) continue
-      const group = variable === 'app' ? undefined : groups.get(variable)
-      if (variable !== 'app' && group === undefined) throw new Error(`add_typer に無い変数です: ${variable}`)
-      registered.push(group === undefined ? name : `${group} ${name}`)
-    }
+  it('commands.ts の 34 個が本番の登録（COMMANDS）と一致する', () => {
+    const registered = COMMANDS.map(definition => definition.path.join(' '))
     expect(registered.toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings))
   })
 

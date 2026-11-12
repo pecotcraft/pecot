@@ -122,7 +122,8 @@
       "{workspaceRoot}/plugins/pecot-workflow/cli/uv.lock",
       "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-tests.sh",
       "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/python-version.sh",
-      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/compare_junit.py"
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/compare_junit.py",
+      "{workspaceRoot}/plugins/pecot-workflow/cli-node/scripts/compare-junit.ts"
     ],
     "pecotPluginLintGlobals": [
       "runtime",

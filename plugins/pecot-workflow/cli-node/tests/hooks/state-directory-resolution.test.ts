@@ -6,18 +6,19 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { builtCliProblem, cliEntry } from '../parity/built-cli.js'
 import { createHookCase, hooksConfig } from './_helpers/environment.js'
 import { gitRepository } from './_helpers/git.js'
-import { hooksDirectory, pluginRoot } from './_helpers/paths.js'
+import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
 import { jsonDumps } from './_helpers/text.js'
 
 const EXIT_PLAN_MODE_ENTRY = path.join(hooksDirectory, 'post-tool-use-exit-plan-mode.sh')
-// cli/.venv の Python を使う。
-const CLI_PYTHON = path.join(pluginRoot, 'cli', '.venv', 'bin', 'python')
 
 describe('post-tool-use-exit-plan-mode.sh と pecot session status', () => {
   it('hook と CLI が、ツールの cwd の git toplevel を指す', () => {
+    // build 済みの Node の CLI（dist/cli.js）を使う
+    expect(builtCliProblem()).toBeUndefined()
     const hookCase = createHookCase()
     hooksConfig(hookCase).write({})
     // .pecot と .pecot-active を持つ git リポジトリと、そのサブディレクトリ
@@ -46,7 +47,7 @@ describe('post-tool-use-exit-plan-mode.sh と pecot session status', () => {
     // Bash ツールから呼ぶ CLI と同じ条件。CLAUDE_PROJECT_DIR なし、cwd はサブディレクトリ。
     const home = path.join(hookCase.temporaryPath, 'home')
     mkdirSync(home)
-    const status = run(hookCase, CLI_PYTHON, ['-m', 'cli', 'session', 'status', '-D', subdirectory], {
+    const status = run(hookCase, process.execPath, [cliEntry, 'session', 'status', '-D', subdirectory], {
       cwd: subdirectory,
       env: { CLAUDE_PROJECT_DIR: undefined, HOME: home },
     })

@@ -1,25 +1,11 @@
-// queries.ts が cli/core/github/queries.py の文字列を gql が送る形にしたものと一致すること、
-// 偽サーバの operation 対応表と矛盾しないことを固定する。
-/* eslint-disable security/detect-non-literal-fs-filename -- 読むのは固定パスの queries.py */
-import { readFileSync } from 'node:fs'
-
+// queries.ts が、Python の queries.py を記録した queries.json と一致することを固定する。
+// 偽サーバの operation 対応表と矛盾しないことも固定する。
 import { parse, print } from 'graphql'
 import { describe, expect, it } from 'vitest'
 
 import { OPERATION_NAMES, operationNameOf } from '../../../../tests/fake-github/operations.js'
+import { queriesOutput } from '../../../tests/_helpers/python-output.js'
 import * as queries from '../queries.js'
-
-const PYTHON_QUERIES = new URL('../../../../../cli/core/github/queries.py', import.meta.url)
-
-function readPythonQueries(): ReadonlyMap<string, string> {
-  const source = readFileSync(PYTHON_QUERIES, 'utf8')
-  const found = new Map<string, string>()
-  for (const match of source.matchAll(/^([A-Z][\dA-Z_]*) = """(.*?)"""$/gmsu)) {
-    // Python の gql は、文書を読んで整形し直した文を送る
-    found.set(match[1] ?? '', print(parse(match[2] ?? '')))
-  }
-  return found
-}
 
 function pascalCase(constantName: string): string {
   return constantName
@@ -35,16 +21,20 @@ function byName(a: string, b: string): number {
 
 const exported = new Map(Object.entries(queries))
 
-describe('queries.py との一致', () => {
-  const python = readPythonQueries()
+describe('queries.json との一致', () => {
+  const recorded = queriesOutput()
 
-  it('Python の 30 個の定数をすべて写している', () => {
-    expect(python.size).toBe(30)
-    expect(Object.keys(queries).toSorted(byName)).toEqual(Object.keys(Object.fromEntries(python)).toSorted(byName))
+  it('記録の 30 個の定数をすべて写している', () => {
+    expect(Object.keys(recorded)).toHaveLength(30)
+    expect(Object.keys(queries).toSorted(byName)).toEqual(Object.keys(recorded).toSorted(byName))
   })
 
-  it.each([...python])('%s は gql が送る文と一致する', (name, text) => {
+  it.each(Object.entries(recorded))('%s は記録した文と一致する', (name, text) => {
     expect(exported.get(name)).toBe(text)
+  })
+
+  it.each([...exported])('%s は print(parse(text)) で変わらない', (_name, text) => {
+    expect(print(parse(text))).toBe(text)
   })
 })
 

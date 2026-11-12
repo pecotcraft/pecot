@@ -128,3 +128,28 @@ describe('`pecot <サブコマンド>` の検出式', () => {
     expect(allowed.filter(sample => CLI_FORM.test(sample))).toEqual([])
   })
 })
+
+describe('pecot の起動のランチャー', () => {
+  // 単独の PECOT= の代入と、サブコマンドの付かない ${CLAUDE_PLUGIN_ROOT}/bin/pecot は、R-19 の検出式では拾えない
+  const LAUNCHER = /\$\{?PECOT\}?(?!\w)|^\s*PECOT=/mu
+  const skillDocuments = readDocuments().filter(({ file }) => file.startsWith('skills/'))
+
+  it('SKILL.md が 1 件以上ある', () => {
+    expect(skillDocuments.some(({ file }) => file.endsWith('/SKILL.md'))).toBe(true)
+  })
+
+  it('スキルの本文に、Claude Code だけで動く ${CLAUDE_PLUGIN_ROOT}/bin/pecot を置かない', () => {
+    const offenders = skillDocuments.filter(({ text }) => text.includes('${CLAUDE_PLUGIN_ROOT}/bin/pecot')).map(({ file }) => file)
+    expect(offenders).toEqual([])
+  })
+
+  it('スキルと hooks のテンプレートに、ランチャー変数（PECOT=... と $PECOT）を置かない', () => {
+    const offenders = readDocuments().filter(({ file }) => file.startsWith('skills/') || file.startsWith('hooks/templates/')).filter(({ text }) => LAUNCHER.test(text)).map(({ file }) => file)
+    expect(offenders).toEqual([])
+  })
+
+  it('ランチャー変数の検出式は、代入と参照を拾い、PECOT_HOME のような別の名前を拾わない', () => {
+    expect(['PECOT=pecot', '  PECOT="$X"', 'run $PECOT issue', 'run ${PECOT} x'].filter(sample => !LAUNCHER.test(sample))).toEqual([])
+    expect(['PECOT_HOME=1', 'echo $PECOT_HOME', 'MYPECOT=1'].filter(sample => LAUNCHER.test(sample))).toEqual([])
+  })
+})

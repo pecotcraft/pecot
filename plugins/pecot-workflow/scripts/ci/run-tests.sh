@@ -304,7 +304,8 @@ if [ "$RUN_HOOKS" = true ]; then
     _run_vitest_pass2 "$V_EMPTY" "$V_TMP2/junit.xml" || V_PASS2_RC=$?
 
     echo "==> compare JUnit XML (hooks vitest pass1 vs pass2)"
-    uv run --no-project --python "$PY" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" "$V_JUNIT1" "$V_TMP2/junit.xml" || V_CMP_RC=$?
+    # shellcheck disable=SC2086
+    ( cd "$PLUGIN_ROOT/cli-node" && $PNPM exec tsx scripts/compare-junit.ts "$V_JUNIT1" "$V_TMP2/junit.xml" ) || V_CMP_RC=$?
 
     if [ "$H_PASS1_RC" -ne 0 ] || [ "$H_PASS2_RC" -ne 0 ] || [ "$H_CMP_RC" -ne 0 ] \
         || [ "$V_PASS1_RC" -ne 0 ] || [ "$V_PASS2_RC" -ne 0 ] || [ "$V_CMP_RC" -ne 0 ]; then
