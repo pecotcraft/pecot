@@ -94,9 +94,9 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { id: 'PW-ISSUE-COMMENT-05', url: 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456' },
-    { id: 'PW-ISSUE-COMMENT-05', url: 'https://ghes.example.com/acme/demo/pull/7#issuecomment-456' },
-  ])('comment_url を持つファイルを渡すと、新しいコメントを投稿せずにそのコメントを書き換える ($url)', async ({ url }, context) => {
+    { name: 'issues の URL', url: 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456' },
+    { name: 'pull の URL', url: 'https://ghes.example.com/acme/demo/pull/7#issuecomment-456' },
+  ])('comment_url を持つファイルを渡すと、新しいコメントを投稿せずにそのコメントを書き換える（$name）', async ({ url }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-05')
     await verifies(context, 'PW-ISSUE-COMMENT-11')
     await verifies(context, 'PW-ISSUE-COMMENT-13')
@@ -181,9 +181,9 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { id: 'PW-ISSUE-COMMENT-17', message: MERGE_DIFF_BODY.replace('## Merge — 実装は半分まで進んだ', '## Merge — all done'), line: '  heading summary rule violations: ## Merge — ' },
-    { id: 'PW-ISSUE-COMMENT-18', message: `${MERGE_DIFF_BODY}\n- <次にやること> — 未定\n`, line: '  unusable notation: ' },
-  ])('-m の本文がテンプレに合わないとき、違反の行を出し、投稿せずに終了コード 3 で終わる ($id)', async ({ id, message, line }, context) => {
+    { id: 'PW-ISSUE-COMMENT-17', name: '見出しの要約が規則に反する', message: MERGE_DIFF_BODY.replace('## Merge — 実装は半分まで進んだ', '## Merge — all done'), line: '  heading summary rule violations: ## Merge — ' },
+    { id: 'PW-ISSUE-COMMENT-18', name: '<> の書き残しがある', message: `${MERGE_DIFF_BODY}\n- <次にやること> — 未定\n`, line: '  unusable notation: ' },
+  ])('-m の本文がテンプレに合わないとき、違反の行を出し、投稿せずに終了コード 3 で終わる（$name）', async ({ id, message, line }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-16')
     await verifies(context, id)
     setUpProject()
@@ -197,9 +197,9 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { id: 'prepare', argv: ['--prepare'] },
-    { id: 'message', argv: ['-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7'] },
-  ])('テンプレの種類を渡していないとき、終了コード 1 で終わる ($id)', async ({ argv }, context) => {
+    { name: '--prepare に -t が無い', argv: ['--prepare'] },
+    { name: '-m に -t が無い', argv: ['-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7'] },
+  ])('テンプレの種類を渡していない（$name）とき、終了コード 1 で終わる', async ({ argv }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-19')
     setUpProject()
 
@@ -260,11 +260,11 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { id: 'form', url: 'https://ghes.example.com/acme/demo/issues/7', message: 'comment_url has the wrong form: https://ghes.example.com/acme/demo/issues/7\nexpected: https://<host>/<owner>/<repo>/{issues|pull}/<number>#issuecomment-<id>' },
-    { id: 'host', url: 'https://github.com/acme/demo/issues/7#issuecomment-1', message: 'the host of comment_url (github.com) differs from the configured host (ghes.example.com)' },
-    { id: 'repository', url: 'https://ghes.example.com/acme/other/issues/7#issuecomment-1', message: 'comment_url (acme/other/7) points to a different Issue than issue_ref (acme/demo/7)' },
-    { id: 'number', url: 'https://ghes.example.com/acme/demo/pull/8#issuecomment-1', message: 'comment_url (acme/demo/8) points to a different Issue than issue_ref (acme/demo/7)' },
-  ])('comment_url が誤っているとき、API を呼ばずに終了コード 1 で終わる ($id)', async ({ url, message }, context) => {
+    { name: 'URL の形が誤っている', url: 'https://ghes.example.com/acme/demo/issues/7', message: 'comment_url has the wrong form: https://ghes.example.com/acme/demo/issues/7\nexpected: https://<host>/<owner>/<repo>/{issues|pull}/<number>#issuecomment-<id>' },
+    { name: 'ホストが設定と違う', url: 'https://github.com/acme/demo/issues/7#issuecomment-1', message: 'the host of comment_url (github.com) differs from the configured host (ghes.example.com)' },
+    { name: 'リポジトリが違う', url: 'https://ghes.example.com/acme/other/issues/7#issuecomment-1', message: 'comment_url (acme/other/7) points to a different Issue than issue_ref (acme/demo/7)' },
+    { name: '番号が違う', url: 'https://ghes.example.com/acme/demo/pull/8#issuecomment-1', message: 'comment_url (acme/demo/8) points to a different Issue than issue_ref (acme/demo/7)' },
+  ])('comment_url が誤っているとき、API を呼ばずに終了コード 1 で終わる（$name）', async ({ url, message }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-24')
     const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
     const github = await startGithub([])
@@ -276,9 +276,9 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { id: 'file', argv: (file: string): string[] => [file] },
-    { id: 'message', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7'] },
-  ])('アクティブなプロジェクトが無いとき、終了コード 1 で終わる ($id)', async ({ argv }, context) => {
+    { name: 'ファイルを渡した', argv: (file: string): string[] => [file] },
+    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7'] },
+  ])('アクティブなプロジェクトが無い（$name）とき、終了コード 1 で終わる', async ({ argv }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-25')
     const repository = enterGitRepository({ 'note.md': commentFileContent() })
 
@@ -287,7 +287,7 @@ describe('issue comment', () => {
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
   })
 
-  it.for([{ status: 500 }, { status: 404 }])('ファイルの投稿で GitHub API が $status を返したとき、終了コード 1 で終わる', async ({ status }, context) => {
+  it.for([{ status: 500 }, { status: 404 }])('ファイルの投稿で GitHub API が HTTP $status を返したとき、終了コード 1 で終わる', async ({ status }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-26')
     const { file } = setUpCommentProject()
     await startGithub([linkedRepositories(), failedPost(status)])
@@ -296,7 +296,7 @@ describe('issue comment', () => {
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toContain(`error: could not create a comment on Issue acme/demo/7: `)
+    expect(result.stderr).toContain('error: could not create a comment on Issue acme/demo/7: ')
     expect(readFileSync(file, 'utf8')).toBe(commentFileContent())
   })
 
@@ -320,18 +320,20 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { id: 'file', argv: (file: string): string[] => [file], issueRef: 'invalid-format' },
-    { id: 'message', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'invalid-format'], issueRef: 'acme/demo/7' },
-  ])('Issue の参照の形が誤っているとき、終了コード 2 で終わる ($id)', async ({ argv, issueRef }, context) => {
+    { name: 'ファイルの issue_ref', argv: (file: string): string[] => [file], issueRef: 'invalid-format' },
+    { name: '--issue', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'invalid-format'], issueRef: 'acme/demo/7' },
+  ])('Issue の参照の形が誤っている（$name）とき、終了コード 2 で終わる', async ({ argv, issueRef }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-27')
     const { file } = setUpCommentProject({ issueRef })
     const github = await startGithub([])
 
     const result = await comment(...argv(file))
 
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toContain('error: ')
+    expect(result).toEqual({
+      code: 2,
+      stdout: '',
+      stderr: 'error: invalid reference: invalid-format\n  accepted forms:\n    - full: \'owner/repo/N\'\n    - short: \'N\' (with a base repository)\n',
+    })
     expect(github.requests()).toEqual([])
   })
 })

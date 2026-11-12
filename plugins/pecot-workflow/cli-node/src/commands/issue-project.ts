@@ -1,17 +1,22 @@
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // add-to-project・update-issue-status・issue reopen。cli/commands/issue.py の移植。
 import { setTimeout as delay } from 'node:timers/promises'
 
 import { z } from 'zod'
 
-import { getFieldId, getOptionId, isRepositoryInProject } from '../domain/config.js'
+import { getFieldId, getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
+import type { GitHubClient } from '../infra/github/index.js'
 import { defineCommand } from './command.js'
 import type { CommandDefinition } from './command.js'
 import { addIssueToBoard, setIssueField } from './issue-board.js'
 import {
   createClient,
+  ensureRepositoryInProject,
   exitInvalidStatus,
+  ISSUE_REF_DESCRIPTION,
+  issuePath,
   loadConfigOrExit,
   parseIssueReferenceOrExit,
   runWithExit,
@@ -19,11 +24,17 @@ import {
   VALID_STATUSES,
 } from './issue-shared.js'
 import { createOutput } from './output.js'
-
-const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
+import type { Output } from './output.js'
 
 // Projects V2 の自動化が Issue をもう一度閉じることがあるため、status を設定した後に待つ
 const AUTOMATION_WAIT_MILLISECONDS = 3000
+
+// クライアントを作り、リポジトリがプロジェクトにあることを確かめる。無ければ error と終了コード 1
+async function connectToProject(output: Output, config: ProjectConfig, owner: string, repository: string): Promise<GitHubClient> {
+  const client = createClient(config, output)
+  await ensureRepositoryInProject(output, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
+  return client
+}
 
 function isStatusConfigured(config: ProjectConfig, status: string): boolean {
   const fieldId = getFieldId(config, 'workflow')
@@ -54,13 +65,9 @@ const ADD_TO_PROJECT = defineCommand({
       }
 
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
-      const target = `Issue ${owner}/${repository}/${String(number)}`
+      const target = `Issue ${issuePath(owner, repository, number)}`
       try {
-        const client = createClient(config, output)
-        if (!await isRepositoryInProject(config, owner, repository, client)) {
-          output.error(`repository ${owner}/${repository} is not in the project`)
-          throwExit(1)
-        }
+        const client = await connectToProject(output, config, owner, repository)
         const { itemId } = await addIssueToBoard(client, config, owner, repository, number, undefined)
         output.done({ verb: 'add', target: `${target} to project` })
         if (status !== '') {
@@ -94,13 +101,9 @@ const UPDATE_ISSUE_STATUS = defineCommand({
 
       const config = loadConfigOrExit(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
-      const target = `Issue ${owner}/${repository}/${String(number)}`
+      const target = `Issue ${issuePath(owner, repository, number)}`
       try {
-        const client = createClient(config, output)
-        if (!await isRepositoryInProject(config, owner, repository, client)) {
-          output.error(`repository ${owner}/${repository} is not in the project`)
-          throwExit(1)
-        }
+        const client = await connectToProject(output, config, owner, repository)
         const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
         if (itemId === undefined) {
           output.error(`${target} is not on the project board\nhint: add it to the board first with add-to-project`)
@@ -121,6 +124,52 @@ const UPDATE_ISSUE_STATUS = defineCommand({
   },
 })
 
+interface ReopenTarget {
+  readonly owner: string
+  readonly repository: string
+  readonly number: number
+}
+
+// 1 回目の reopen（status を更新する前提として open にする）と、ボードの status の更新。設定できたら自動化を待つ
+async function reopenAndSetStatus(output: Output, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string): Promise<void> {
+  const { owner, repository, number } = issue
+  const target = `Issue ${issuePath(owner, repository, number)}`
+  await client.reopenIssue(owner, repository, number)
+  const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
+  if (itemId === undefined) {
+    output.warning(`${target} is not on the project board`)
+  }
+  else if (await setIssueField(client, config, itemId, 'workflow', status)) {
+    output.done({ verb: 'set', target: `${target} status ${status}` })
+    await delay(AUTOMATION_WAIT_MILLISECONDS)
+  }
+  else {
+    output.warning(`status '${status}' is not configured in the project`)
+  }
+}
+
+// 2 回目の reopen（自動化による close への対策）で open を確かめ、--comment があれば理由を投稿する
+async function confirmReopened(output: Output, client: GitHubClient, issue: Readonly<ReopenTarget>, comment: string | undefined): Promise<void> {
+  const { owner, repository, number } = issue
+  const target = `Issue ${issuePath(owner, repository, number)}`
+  const result = await client.reopenIssue(owner, repository, number)
+  const state = result['state']
+  if (state !== 'open') {
+    output.error(`${target} did not become open (state: ${typeof state === 'string' ? state : 'None'})`)
+    throwExit(1)
+  }
+  output.done({ verb: 'reopen', target })
+
+  if (comment === undefined || comment === '') return
+  await client.addIssueComment(owner, repository, number, comment)
+  output.done({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
+}
+
+async function reopenIssue(output: Output, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
+  await reopenAndSetStatus(output, client, config, issue, status)
+  await confirmReopened(output, client, issue, comment)
+}
+
 const ISSUE_REOPEN = defineCommand({
   path: ['issue', 'reopen'],
   description: 'Reopen a closed Issue (also sets the status on the board)',
@@ -140,41 +189,10 @@ const ISSUE_REOPEN = defineCommand({
 
       const config = loadConfigOrExit(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
-      const target = `Issue ${owner}/${repository}/${String(number)}`
+      const target = `Issue ${issuePath(owner, repository, number)}`
       try {
-        const client = createClient(config, output)
-        if (!await isRepositoryInProject(config, owner, repository, client)) {
-          output.error(`repository ${owner}/${repository} is not in the project`)
-          throwExit(1)
-        }
-
-        // 1 回目は、status を更新する前提として open にする
-        await client.reopenIssue(owner, repository, number)
-        const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
-        if (itemId === undefined) {
-          output.warning(`${target} is not on the project board`)
-        }
-        else if (await setIssueField(client, config, itemId, 'workflow', status)) {
-          output.done({ verb: 'set', target: `${target} status ${status}` })
-          await delay(AUTOMATION_WAIT_MILLISECONDS)
-        }
-        else {
-          output.warning(`status '${status}' is not configured in the project`)
-        }
-
-        // 2 回目は、自動化による close への対策
-        const result = await client.reopenIssue(owner, repository, number)
-        const state = result['state']
-        if (state !== 'open') {
-          output.error(`${target} did not become open (state: ${typeof state === 'string' ? state : 'None'})`)
-          throwExit(1)
-        }
-        output.done({ verb: 'reopen', target })
-
-        if (comment !== undefined && comment !== '') {
-          await client.addIssueComment(owner, repository, number, comment)
-          output.done({ verb: 'create', target: `comment on ${owner}/${repository}/${String(number)}` })
-        }
+        const client = await connectToProject(output, config, owner, repository)
+        await reopenIssue(output, client, config, { owner, repository, number }, status, comment)
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error

@@ -246,14 +246,20 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-28')
       await verifies(context, 'PW-ISSUE-CREATE-39')
       const project = setUpIssueProject({ files: PENDING_FLAGS })
-      writeTree(project.root, { 'a.md': frontmatterFile(TASK_FRONTMATTER), 'b.md': frontmatterFile(TASK_FRONTMATTER) })
-      await startGithub([linkedRepositories(), failedIssueCreation(403)])
+      writeTree(project.root, {
+        'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
+        'b.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '2 件目' }),
+        'c.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '3 件目' }),
+      })
+      const github = await startGithub([linkedRepositories(2), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(3), failedIssueCreation(403)])
 
-      const result = await create(path.join(project.root, 'a.md'), path.join(project.root, 'b.md'))
+      const result = await create(...['a.md', 'b.md', 'c.md'].map(file => path.join(project.root, file)))
 
       expect(result.code).toBe(1)
-      expect(result.stdout).toBe('')
-      expect(result.stderr).toMatch(/^error: could not create an Issue in acme\/demo: .+\n$/u)
+      expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
+      expect(result.stderr).toMatch(/\nerror: could not create an Issue in acme\/demo: .+\n$/u)
+      const posts = github.requests().filter(request => request.type === 'rest' && request.method === 'POST' && request.path === '/repos/acme/demo/issues')
+      expect(posts).toHaveLength(2)
       expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(true)
     })
 

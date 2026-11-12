@@ -12,6 +12,7 @@ import {
   missingOptionMessage,
   noSuchOptionMessage,
   optionRequiresArgumentMessage,
+  optionTakesNoValueMessage,
   UsageError,
 } from './usage-error.js'
 import type { UsageContext } from './usage-error.js'
@@ -45,7 +46,6 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
   return schema !== undefined && flagKindOf(schema) === 'list'
 }
 
-/**
 /**
 Usage 行に出す書式。typer と同じく、必須の位置引数は `{issue_ref}`、任意は `[version]` にする。
 複数なら後ろに `...` を付ける。例は `{names}...` と `[files]...`
@@ -109,6 +109,10 @@ function bindOptions(definition: Readonly<CommandDefinition>): readonly BoundOpt
     .filter(bound => bound !== undefined)
 }
 
+function booleanFlagNames(bound: readonly BoundOption[]): readonly string[] {
+  return bound.flatMap(entry => entry.kind === 'boolean' ? [...entry.names.slice(0, 1), ...entry.negation === undefined ? [] : [entry.negation]] : [])
+}
+
 function toUsageError(
   error: Readonly<CommanderError>,
   argv: readonly string[],
@@ -120,6 +124,9 @@ function toUsageError(
   switch (error.code) {
     case 'commander.unknownOption': {
       const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.slice(0, 1), ...entry.negation === undefined ? [] : [entry.negation]])]
+      // 真偽値のフラグに `=値` を付けた形は、Python は Usage 行なしの枠だけで断る
+      const flagName = quoted.split('=', 1)[0] ?? quoted
+      if (quoted.includes('=') && booleanFlagNames(bound).includes(flagName)) return new UsageError(optionTakesNoValueMessage(flagName))
       const possibilities = quoted.startsWith('--') ? closeMatches(quoted, longNames) : []
       return new UsageError(noSuchOptionMessage(quoted, possibilities), usage)
     }
@@ -127,7 +134,7 @@ function toUsageError(
       // `-c, --comment-limit <value>` のうち、利用者が打った方の名前を出す
       const names = quoted.split(/[ ,]+/u).filter(part => part.startsWith('-'))
       const typed = argv.findLast(argument => names.includes(argument)) ?? names.at(-1) ?? quoted
-      return new UsageError(optionRequiresArgumentMessage(typed), usage)
+      return new UsageError(optionRequiresArgumentMessage(typed))
     }
     // 上の 2 つ以外の commander の誤りは、このバインドでは起きない（引数は任意、argParser は使わない）。
     // makeOptionMandatory・choices・InvalidArgumentError などを使い始めたら、この行を外して誤りごとに文とテストを足す
@@ -137,7 +144,7 @@ function toUsageError(
 }
 
 function extraArgumentsMessage(extras: readonly string[]): string {
-  return `Got unexpected extra argument${extras.length === 1 ? '' : 's'} (${extras.join(' ')})`
+  return `Got unexpected extra argument(s) (${extras.join(' ')})`
 }
 
 function convertOrFail(text: string, valueType: ValueType, names: string | readonly string[], usage: UsageContext): unknown {
@@ -196,6 +203,13 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
 }
 
 /**
+run が投げた context 無しの UsageError（BadParameter）に、このコマンドの使い方を付ける。ほかの例外はそのまま返す
+*/
+function withUsage(error: unknown, usage: UsageContext): unknown {
+  return error instanceof UsageError && error.context === undefined ? new UsageError(error.message, usage) : error
+}
+
+/**
 定義したコマンドを argv（コマンド名より後ろ）で実行して、終了コードを返す。
 グローバルの --repo は repo で渡し、入力 repo にする（コマンド自身が repo を持つなら捨てる）。
 使い方の誤りは UsageError を投げる。--help は説明を stdout に出して 0 を返す。
@@ -246,8 +260,6 @@ export async function runDefinition(
     return await prepared.run(io)
   }
   catch (error: unknown) {
-    // run が投げた context 無しの UsageError（BadParameter）に、このコマンドの使い方を付ける
-    if (error instanceof UsageError && error.context === undefined) throw new UsageError(error.message, usage)
-    throw error
+    throw withUsage(error, usage)
   }
 }

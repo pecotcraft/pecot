@@ -88,8 +88,8 @@ function linkedRepositoriesOf(project: JsonValue | undefined): readonly LinkedRe
 }
 
 export class ProjectsApi extends ReposApi {
-  // user のクエリ。GitHub の失敗は undefined にして、org のクエリに進ませる。
-  // 認証エラーとレート制限でも進む（Python と同じ。golden の issue-reopen-auth が要求の列を固定している）
+  // user のクエリ。GitHub の失敗は、認証エラーとレート制限も含めて undefined にし、org のクエリへ進む。
+  // Python と同じ動き
   private async queryAsUser(query: string, variables: Readonly<Record<string, JsonValue>>): Promise<JsonObject | undefined> {
     try {
       return await this.executeGraphql(query, variables)

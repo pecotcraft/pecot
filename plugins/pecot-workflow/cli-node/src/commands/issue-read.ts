@@ -5,7 +5,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command.js'
 import type { CommandDefinition } from './command.js'
-import { createClient, loadConfigOrExit, parseIssueReferenceOrExit, runWithExit, throwExit } from './issue-shared.js'
+import { createClient, ISSUE_REF_DESCRIPTION, issuePath, loadConfigOrExit, parseIssueReferenceOrExit, runWithExit, throwExit } from './issue-shared.js'
 import { createOutput } from './output.js'
 
 const MAX_COMMENT_LIMIT = 20
@@ -58,7 +58,7 @@ const ISSUE_READ = defineCommand({
   path: ['issue', 'read'],
   description: 'Fetch Issue details efficiently (GraphQL, only the needed fields)',
   input: z.object({
-    issue_ref: z.string().describe('Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'),
+    issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     json: z.boolean().default(false).describe('Output as JSON'),
     comment_limit: z.int().min(0).max(MAX_COMMENT_LIMIT).default(DEFAULT_COMMENT_LIMIT).describe('Number of comments to show (0-20; 0 hides them)'),
   }),
@@ -77,7 +77,7 @@ const ISSUE_READ = defineCommand({
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        output.error(`could not read Issue ${owner}/${repository}/${String(number)}: ${error.message}`)
+        output.error(`could not read Issue ${issuePath(owner, repository, number)}: ${error.message}`)
         return throwExit(1)
       }
 

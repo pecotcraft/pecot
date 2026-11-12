@@ -1,8 +1,9 @@
-// queries.ts が cli/core/github/queries.py の文字列と一致すること、
+// queries.ts が cli/core/github/queries.py の文字列を gql が送る形にしたものと一致すること、
 // 偽サーバの operation 対応表と矛盾しないことを固定する。
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは固定パスの queries.py */
 import { readFileSync } from 'node:fs'
 
+import { parse, print } from 'graphql'
 import { describe, expect, it } from 'vitest'
 
 import { OPERATION_NAMES, operationNameOf } from '../../../../tests/fake-github/operations.js'
@@ -14,7 +15,8 @@ function readPythonQueries(): ReadonlyMap<string, string> {
   const source = readFileSync(PYTHON_QUERIES, 'utf8')
   const found = new Map<string, string>()
   for (const match of source.matchAll(/^([A-Z][\dA-Z_]*) = """(.*?)"""$/gmsu)) {
-    found.set(match[1] ?? '', match[2] ?? '')
+    // Python の gql は、文書を読んで整形し直した文を送る
+    found.set(match[1] ?? '', print(parse(match[2] ?? '')))
   }
   return found
 }
@@ -41,7 +43,7 @@ describe('queries.py との一致', () => {
     expect(Object.keys(queries).toSorted(byName)).toEqual(Object.keys(Object.fromEntries(python)).toSorted(byName))
   })
 
-  it.each([...python])('%s は逐語で一致する', (name, text) => {
+  it.each([...python])('%s は gql が送る文と一致する', (name, text) => {
     expect(exported.get(name)).toBe(text)
   })
 })

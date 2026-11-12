@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者の引数とテンプレートの置き場で決まる */
 // issue comment。cli/commands/issue.py の issue_comment とその内部関数の移植。
 import { existsSync, writeFileSync } from 'node:fs'
@@ -13,6 +14,7 @@ import { pythonStrip } from '../domain/python-format.js'
 import { OsError, toOsError } from '../infra/os-error.js'
 import { parseCommentFile } from '../infra/frontmatter-file.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
+import type { GitHubClient } from '../infra/github/index.js'
 import { OutputPathReservationError, outputDirectory, withReservedOutputPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
@@ -22,6 +24,7 @@ import {
   COMMENT_VALIDATION_EXIT_CODE,
   createClient,
   hasReportedTemplateViolations,
+  issuePath,
   loadConfigOrExit,
   parseIssueReferenceOrExit,
   runWithExit,
@@ -106,6 +109,40 @@ function writeBackCommentUrl(output: Output, file: string, commentUrl: string): 
   }
 }
 
+// コメントを作って created の行と URL を出す。失敗は error の行と終了コード 1。作ったコメントの URL を返す
+async function createComment(output: Output, client: GitHubClient, target: IssueTarget, body: string): Promise<string> {
+  const display = issuePath(target.owner, target.repository, target.number)
+  let comment
+  try {
+    comment = await client.addIssueComment(target.owner, target.repository, target.number, body)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.error(`could not create a comment on Issue ${display}: ${error.message}`)
+    return throwExit(1)
+  }
+  const createdUrl = htmlUrlOf(comment, '')
+  output.done({ verb: 'create', target: `comment on ${display}` })
+  output.data(createdUrl)
+  return createdUrl
+}
+
+// comment_url のコメントを書き換える。失敗は error の行と終了コード 1
+async function updateComment(output: Output, client: GitHubClient, target: IssueTarget, commentId: number, commentUrl: string, body: string): Promise<void> {
+  const display = issuePath(target.owner, target.repository, target.number)
+  let comment
+  try {
+    comment = await client.updateIssueComment(target.owner, target.repository, commentId, body)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.error(`could not update the comment on Issue ${display}: ${error.message}`)
+    return throwExit(1)
+  }
+  output.done({ verb: 'update', target: `comment on ${display}` })
+  output.data(htmlUrlOf(comment, commentUrl))
+}
+
 async function postFromFile(output: Output, config: ProjectConfig, repository: string | undefined, file: string): Promise<void> {
   let parsed
   try {
@@ -126,8 +163,6 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   }
   if (hasReportedTemplateViolations(output, body, templateFile('comment', frontmatter.template))) throwExit(COMMENT_VALIDATION_EXIT_CODE)
 
-  const display = `${target.owner}/${target.repository}/${String(target.number)}`
-
   // comment_url は、issue_ref と同じ Issue のコメントに限る
   const commentUrl = frontmatter.comment_url
   const hasCommentUrl = commentUrl !== undefined && commentUrl !== ''
@@ -139,54 +174,19 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   }
 
   if (hasCommentUrl) {
-    let comment
-    try {
-      comment = await client.updateIssueComment(target.owner, target.repository, commentId, body)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      output.error(`could not update the comment on Issue ${display}: ${error.message}`)
-      return throwExit(1)
-    }
-    output.done({ verb: 'update', target: `comment on ${display}` })
-    output.data(htmlUrlOf(comment, commentUrl))
+    await updateComment(output, client, target, commentId, commentUrl, body)
     return
   }
-
-  let comment
-  try {
-    comment = await client.addIssueComment(target.owner, target.repository, target.number, body)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.error(`could not create a comment on Issue ${display}: ${error.message}`)
-    return throwExit(1)
-  }
-  const createdUrl = htmlUrlOf(comment, '')
-  output.done({ verb: 'create', target: `comment on ${display}` })
-  output.data(createdUrl)
-
+  const createdUrl = await createComment(output, client, target, body)
   if (createdUrl !== '') writeBackCommentUrl(output, file, createdUrl)
 }
 
 async function postDirect(output: Output, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
-  const display = `${target.owner}/${target.repository}/${String(target.number)}`
 
   if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throwExit(COMMENT_VALIDATION_EXIT_CODE)
 
-  const client = createClient(config, output)
-  let comment
-  try {
-    comment = await client.addIssueComment(target.owner, target.repository, target.number, message)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.error(`could not create a comment on Issue ${display}: ${error.message}`)
-    return throwExit(1)
-  }
-  output.done({ verb: 'create', target: `comment on ${display}` })
-  output.data(htmlUrlOf(comment, ''))
+  await createComment(output, createClient(config, output), target, message)
 }
 
 const ISSUE_COMMENT = defineCommand({

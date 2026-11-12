@@ -10,23 +10,26 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING, FLAG_PECOT_QUICK_MODE } from '../domain/state.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { requireNumber, requireString } from '../infra/github/payload.js'
 import { formatTimestamp } from '../infra/paths.js'
 import { consumeFlag, touchFlag } from '../infra/state-store.js'
 import { defineCommand } from './command.js'
-import type { CommandIo } from './command.js'
+import type { CommandDefinition, CommandIo } from './command.js'
 import {
   addToBoardOrWarn,
   BACKLOG_TYPES,
   buildIssueTitle,
   clientForIssueCreate,
   createIssueOrExit,
+  ISSUE_TYPE_SCHEMA,
+  issuePath,
   linkToParentEpic,
   loadConfigOrExit,
   normalizeParentEpicCli,
+  PARENT_EPIC_DESCRIPTION,
   resolveParentEpicReference,
   runWithExit,
   setIssueFields,
+  summarizeCreatedIssue,
   throwExit,
 } from './issue-shared.js'
 import type { IssueField, IssueType } from './issue-shared.js'
@@ -34,7 +37,9 @@ import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { recordWorkTarget } from './work-target.js'
 
-const TYPE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)')
+// Python の re の `\s` と同じ集合。JS の `\s` と違い、U+001C〜U+001F を含む。U+FEFF は含まない
+// eslint-disable-next-line no-control-regex -- Python の空白に含まれる制御文字
+const PYTHON_WHITESPACE_RUN = /[\p{White_Space}\u{1C}\u{1D}\u{1E}\u{1F}]+/gu
 
 // テンプレートの検証を飛ばす quick でも、起票規約への参照を本文の末尾に残す
 const BODY_FOOTER = '<!-- pecot issue quick で起票（テンプレ検証スキップ）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->'
@@ -103,10 +108,8 @@ interface QuickOptions {
 
 // 作った Issue の後始末。ボードへの追加に失敗したら、そこで止める
 async function finishIssue(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, issue: JsonObject, options: Readonly<QuickOptions>): Promise<void> {
-  const number = requireNumber(issue['number'], 'number')
-  const url = requireString(issue['html_url'], 'html_url')
-  const target = `Issue ${owner}/${repository}/${String(number)}`
-  const nodeId = typeof issue['node_id'] === 'string' ? issue['node_id'] : undefined
+  const { number, url, nodeId } = summarizeCreatedIssue(issue)
+  const target = `Issue ${issuePath(owner, repository, number)}`
 
   const added = await addToBoardOrWarn(output, client, config, owner, repository, number, nodeId, url)
   if (added === undefined) return
@@ -123,16 +126,16 @@ async function finishIssue(output: Output, config: ProjectConfig, client: GitHub
   output.data(url)
 }
 
-export const ISSUE_QUICK = defineCommand({
+const ISSUE_QUICK = defineCommand({
   path: ['issue', 'quick'],
   description: 'Create an Issue at once from a free-format message',
   input: z.object({
     message: z.string().describe('Issue message (free format)'),
     repo: z.string().describe('Repository (owner/repo form)'),
-    parent_epic: z.string().optional().describe('Parent Epic reference: an integer (relative to aggregation_repo) or the primary form \'owner/repo/N\''),
+    parent_epic: z.string().optional().describe(PARENT_EPIC_DESCRIPTION),
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     no_branch: z.boolean().default(false).describe('Skip creating a branch'),
-    type: TYPE_SCHEMA,
+    type: ISSUE_TYPE_SCHEMA,
   }),
   positional: [],
   shortFlags: { message: '-m', repo: '-r' },
@@ -147,7 +150,7 @@ export const ISSUE_QUICK = defineCommand({
       const parentReference = rawParent === undefined ? undefined : resolveParentEpicReference(rawParent, config, owner, repository)
 
       // タイトルは先頭 50 文字の空白を 1 つにまとめたもの
-      const cleaned = pythonStrip(truncateCodePoints(input.message, TITLE_LENGTH).replaceAll(/\s+/gu, ' '))
+      const cleaned = pythonStrip(truncateCodePoints(input.message, TITLE_LENGTH).replaceAll(PYTHON_WHITESPACE_RUN, ' '))
       const title = buildIssueTitle(input.type, cleaned, { parentEpic: parentReference?.number, order: input.order })
       const client = await clientForIssueCreate(output, config, owner, repository, input.repo, parentReference, input.order)
 
@@ -160,3 +163,5 @@ export const ISSUE_QUICK = defineCommand({
     })
   },
 })
+
+export const ISSUE_QUICK_COMMANDS: readonly CommandDefinition[] = [ISSUE_QUICK]

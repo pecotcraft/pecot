@@ -3,6 +3,8 @@
 // typer.Exit(n) に当たるのは throwExit(n) で、run の本体を runWithExit で包んで受ける。
 import path from 'node:path'
 
+import { z } from 'zod'
+
 import { aggregationRepositoryReference, isRepositoryInProject } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { BaseError } from '../domain/errors.js'
@@ -27,7 +29,7 @@ import { loadActiveConfig } from '../infra/config-store.js'
 import { gitRunnerFor } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { GitHubClient } from '../infra/github/index.js'
-import { requireNumber } from '../infra/github/payload.js'
+import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { addIssueToBoard, createIssue, setIssueField } from './issue-board.js'
 import type { BoardItem } from './issue-board.js'
@@ -41,12 +43,21 @@ issue comment のテンプレ検証失敗の終了コード。通信失敗・設
 */
 export const COMMENT_VALIDATION_EXIT_CODE = 3
 
+/**
+Issue 種別の入力。issue create と issue quick が共有する
+*/
+export const ISSUE_TYPE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)')
+
+export const PARENT_EPIC_DESCRIPTION = 'Parent Epic reference: an integer (relative to aggregation_repo) or the primary form \'owner/repo/N\''
+
+export const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
+
 export const VALID_STATUSES: ReadonlySet<string> = new Set(['backlog', 'pending', 'ready', 'active', 'in_review', 'archived'])
 
 /**
 Issue 種別 → タイトルの接頭辞
 */
-export const TYPE_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
+const TYPE_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
   ['task', '[Task]'],
   ['bug', '[Bug]'],
   ['epic', '[Epic]'],
@@ -80,7 +91,7 @@ export class ExitError extends BaseError {
 /**
 引数の値が不正。Python の typer.BadParameter。呼ぶ側が受けない場合は、runWithExit が使い方の誤り（終了コード 2）にする
 */
-export class BadParameterError extends BaseError {}
+class BadParameterError extends BaseError {}
 
 /**
 終了コード code で、コマンドを終える。error の行は先に出しておく
@@ -128,6 +139,13 @@ export function createClient(config: ProjectConfig, output: Output): GitHubClien
 
 // --- Issue 参照 ---
 
+/**
+`owner/repo/N` の表記。エラー文と done の行の対象に使う
+*/
+export function issuePath(owner: string, repository: string, number: number): string {
+  return `${owner}/${repository}/${String(number)}`
+}
+
 export interface IssueTarget {
   readonly owner: string
   readonly repository: string
@@ -138,7 +156,7 @@ export interface IssueTarget {
 グローバルの --repo（run の入力の repo）か、カレントの git から base のリポジトリを決める。
 曖昧なら undefined（`owner/repo/N` の主軸形を使う利用者のため）。--repo の形式が不正なら InvalidValueError を伝える
 */
-export function resolveBaseRepository(repository: string | undefined): RepositoryReference | undefined {
+function resolveBaseRepository(repository: string | undefined): RepositoryReference | undefined {
   try {
     return resolveRepository(repository, gitRunnerFor()).repository
   }
@@ -151,7 +169,7 @@ export function resolveBaseRepository(repository: string | undefined): Repositor
 /**
 Issue 参照（`owner/repo/N` または短縮形 `N`）を分ける。不正、または base が決まらない短縮形なら BadParameterError
 */
-export function parseIssueReferenceFromContext(repository: string | undefined, raw: string): IssueTarget {
+function parseIssueReferenceFromContext(repository: string | undefined, raw: string): IssueTarget {
   const base = resolveBaseRepository(repository)
   try {
     const reference = parseIssueReference(raw, base, { repositoryFlag: true })
@@ -203,22 +221,28 @@ export function validateStatusForType(output: Output, issueType: IssueType, stat
 // --- parent_epic・タイトル・order ---
 
 /**
-CLI のオプションで来た parent_epic。空・空白だけなら undefined、数字だけなら整数、それ以外は文字列
+CLI のオプションで来た parent_epic。空・空白だけなら undefined、数字だけなら整数（安全な整数を超えるなら数字の文字列）、それ以外は文字列
 */
 export function normalizeParentEpicCli(raw: string | undefined): number | string | undefined {
   if (raw === undefined) return undefined
   const stripped = pythonStrip(raw)
   if (stripped === '') return undefined
-  return /^\d+$/u.test(stripped) ? Number(stripped) : stripped
+  if (!/^\d+$/u.test(stripped)) return stripped
+  const value = Number(stripped)
+  // 安全な整数に収まらない数字は、丸めずに文字列のまま返す（先頭の 0 は Python の int() と同じく落とす）
+  return Number.isSafeInteger(value) ? value : stripped.replace(/^0+(?=\d)/u, '')
 }
 
 /**
 parent_epic を Issue 参照にする。整数は aggregation_repo の Issue（未設定なら task のリポジトリ）、`owner/repo/N` はそのまま。
-解決できなければ BadParameterError
+解決できなければ BadParameterError。番号が安全な整数を超える参照は、丸めずに解決できない参照として扱う
 */
 export function resolveParentEpicReference(raw: number | string, config: ProjectConfig, taskOwner: string, taskRepository: string): IssueReference {
   const base = aggregationRepositoryReference(config) ?? createRepositoryReference(taskOwner, taskRepository)
   try {
+    if (typeof raw === 'string' && /^\d+$/u.test(raw) && !Number.isSafeInteger(Number(raw))) {
+      throw new ReferenceParseError(`the number is too large: ${raw}`, raw)
+    }
     return parseIssueReference(String(raw), base)
   }
   catch (error: unknown) {
@@ -286,7 +310,7 @@ export function buildIssueTitle(issueType: string, title: string, options: Reado
 /**
 エラー文に出す番号。2 桁の order に、枝の文字を続ける
 */
-export function orderLabel(order: number, parallel = ''): string {
+function orderLabel(order: number, parallel = ''): string {
   return `${String(order).padStart(2, '0')}${parallel}`
 }
 
@@ -390,9 +414,30 @@ export async function createIssueOrExit(
     output.error(`could not create an Issue in ${owner}/${repository}: ${error.message}`)
     return throwExit(1)
   }
-  const target = `Issue ${owner}/${repository}/${String(requireNumber(issue['number'], 'number'))}`
+  const target = `Issue ${issuePath(owner, repository, requireNumber(issue['number'], 'number'))}`
   output.done({ verb: 'create', target: source === undefined || source === '' ? target : `${target} from ${source}` })
   return issue
+}
+
+export interface IssueSummary {
+  readonly number: number
+  readonly url: string
+  /**
+  作成の応答に node_id が無ければ undefined
+  */
+  readonly nodeId: string | undefined
+}
+
+/**
+Issue の作成の応答から、番号・URL・node id を取る
+*/
+export function summarizeCreatedIssue(issue: JsonObject): IssueSummary {
+  const nodeId = issue['node_id']
+  return {
+    number: requireNumber(issue['number'], 'number'),
+    url: requireString(issue['html_url'], 'html_url'),
+    nodeId: typeof nodeId === 'string' ? nodeId : undefined,
+  }
 }
 
 /**
@@ -414,11 +459,11 @@ export async function addToBoardOrWarn(
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    output.warning(`could not add Issue ${owner}/${repository}/${String(issueNumber)} to project: ${error.message}`)
+    output.warning(`could not add Issue ${issuePath(owner, repository, issueNumber)} to project: ${error.message}`)
     output.data(issueUrl)
     return undefined
   }
-  output.done({ verb: 'add', target: `Issue ${owner}/${repository}/${String(issueNumber)} to project` })
+  output.done({ verb: 'add', target: `Issue ${issuePath(owner, repository, issueNumber)} to project` })
   return added
 }
 
@@ -480,11 +525,11 @@ export async function linkToParentEpic(
 }
 
 /**
-リポジトリがプロジェクトにリンクされていなければ、`<display> is not linked to the project` を出して終了コード 1
+リポジトリがプロジェクトにリンクされていなければ、message を error に出して終了コード 1
 */
-export async function ensureRepositoryInProject(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, display: string): Promise<void> {
+export async function ensureRepositoryInProject(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, message: string): Promise<void> {
   if (await isRepositoryInProject(config, owner, repository, client)) return
-  output.error(`${display} is not linked to the project`)
+  output.error(message)
   throwExit(1)
 }
 
@@ -502,7 +547,7 @@ export async function clientForIssueCreate(
   parallel?: string,
 ): Promise<GitHubClient> {
   const client = createClient(config, output)
-  await ensureRepositoryInProject(output, config, client, owner, repository, display)
+  await ensureRepositoryInProject(output, config, client, owner, repository, `${display} is not linked to the project`)
   if (parentReference !== undefined && order !== undefined) {
     await checkDuplicateOrder(output, client, parentReference.repository.owner, parentReference.repository.repository, parentReference.number, order, parallel)
   }

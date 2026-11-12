@@ -310,8 +310,8 @@ function isKeyLine(line: string, key: string): boolean {
 }
 
 /**
-フロントマターに `key: "value"` の 1 行を足す（同じキーの行があれば置き換える）。
-フロントマターが無ければ FrontmatterError。置き換えた結果が元と同じ行の並びなら、足す（Python と同じ）
+フロントマターに `key: "value"` の 1 行を足す。同じキーの行があれば置き換えるだけで、足さない。
+フロントマターが無ければ FrontmatterError
 */
 export function setFrontmatterValue(content: string, key: string, value: string): string {
   const match = FRONTMATTER_PATTERN.exec(content)
@@ -320,6 +320,6 @@ export function setFrontmatterValue(content: string, key: string, value: string)
   const lines = (match[1] ?? '').split('\n')
   const entry = `${key}: "${value}"`
   const replaced = lines.map(line => isKeyLine(line, key) ? entry : line)
-  if (replaced.every((line, index) => line === lines.at(index))) replaced.push(entry)
+  if (lines.every(line => !isKeyLine(line, key))) replaced.push(entry)
   return content.slice(0, span[0]) + replaced.join('\n') + content.slice(span[1])
 }

@@ -1,5 +1,5 @@
 // session status・session restore。cli/commands/session.py の移植。
-import { statSync } from 'node:fs'
+import { accessSync, constants, statSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -13,11 +13,11 @@ import { pythonStringRepr } from '../domain/python-format.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
-import { GitHubClient } from '../infra/github/index.js'
 import { hasFlag, readFlag } from '../infra/state-store.js'
 import { defineCommand } from './command.js'
 import type { CommandDefinition, CommandIo } from './command.js'
 import { FAILURE_EXIT_CODE } from './failure.js'
+import { createClient, runWithExit, throwExit } from './issue-shared.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
@@ -27,16 +27,26 @@ const ALL_FLAGS: readonly string[] = [FLAG_PECOT_ACTIVE]
 
 const DIRECTORY_DESCRIPTION = 'Target Git repository (absolute or relative path)'
 
-// click の Path(exists=True, file_okay=False) と同じ検証。誤りの文も click と同じ
-const directorySchema = z.string().describe(DIRECTORY_DESCRIPTION).superRefine((value, context) => {
-  let problem: string | undefined
+// click の Path(exists=True, file_okay=False) と同じ順の確認（存在・ファイル・読める）。誤りの文も click と同じ
+function directoryProblem(value: string): string | undefined {
   try {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者が渡したパスを確かめる
-    if (!statSync(value).isDirectory()) problem = 'is a file'
+    if (!statSync(value).isDirectory()) return 'is a file'
   }
   catch {
-    problem = 'does not exist'
+    return 'does not exist'
   }
+  try {
+    accessSync(value, constants.R_OK)
+  }
+  catch {
+    return 'is not readable'
+  }
+  return undefined
+}
+
+const directorySchema = z.string().describe(DIRECTORY_DESCRIPTION).superRefine((value, context) => {
+  const problem = directoryProblem(value)
   if (problem !== undefined) context.addIssue({ code: 'custom', message: `Directory ${pythonStringRepr(value)} ${problem}.` })
 })
 
@@ -51,10 +61,6 @@ function collectFlagStatuses(): FlagStatus[] {
     const isSet = hasFlag(name)
     return { name, isSet, content: isSet ? readFlag(name) ?? '' : '' }
   })
-}
-
-function newClient(host: string, output: Output): GitHubClient {
-  return new GitHubClient({ host, diagnostics: output })
 }
 
 // .pecot-active の Issue を GitHub から読んで、Markdown の行にする。読めなければ warning だけ出して空にする
@@ -78,7 +84,7 @@ async function activeIssueLines(statuses: readonly FlagStatus[], output: Output)
       output.warning('cannot read the active Issue: no active project')
       return []
     }
-    issue = await newClient(config.host, output).getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
+    issue = await createClient(config, output).getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
   }
   catch (error: unknown) {
     if (error instanceof ConfigError || error instanceof GitHubAPIError) {
@@ -130,7 +136,7 @@ async function fetchIssueTitle(owner: string, repository: string, number: number
   try {
     const config = loadActiveConfig()
     if (config === undefined) return ''
-    const issue = await newClient(config.host, output).getIssueSlim(owner, repository, number, 0)
+    const issue = await createClient(config, output).getIssueSlim(owner, repository, number, 0)
     return issue.title
   }
   catch (error: unknown) {
@@ -146,24 +152,37 @@ interface RestoreTarget {
   readonly number: number
 }
 
-// --issue が無いときの、ブランチ名と remote からの推定。決められなければ error を出して終了コードを返す
-function inferTarget(directory: string, output: Output): RestoreTarget | number {
+// --issue が無いときの、ブランチ名と remote からの推定。決められなければ error を出して終了コード 1
+function inferTarget(directory: string, output: Output): RestoreTarget {
   const branch = gitCurrentBranch(directory)
   if (branch === undefined) {
     output.error('cannot read the branch name')
-    return FAILURE_EXIT_CODE
+    return throwExit(FAILURE_EXIT_CODE)
   }
   const number = extractIssueNumberFromBranch(branch)
   if (number === undefined) {
     output.error(`cannot infer the Issue number from the branch name: ${branch}\nrun: pecot session restore --issue <owner/repo/N>`)
-    return FAILURE_EXIT_CODE
+    return throwExit(FAILURE_EXIT_CODE)
   }
   const origin = primaryRemoteRepository(directory)
   if (origin === undefined) {
     output.error('cannot read the repository information')
-    return FAILURE_EXIT_CODE
+    return throwExit(FAILURE_EXIT_CODE)
   }
   return { owner: origin.owner, repository: origin.repository, number }
+}
+
+// --issue の参照を分ける。形が誤っていれば error を出して終了コード 2
+function parseTarget(issue: string, output: Output): RestoreTarget {
+  try {
+    const reference = parseIssueReference(issue)
+    return { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number }
+  }
+  catch (error: unknown) {
+    if (!(error instanceof ReferenceParseError)) throw error
+    output.error(error.message)
+    return throwExit(USAGE_EXIT_CODE)
+  }
 }
 
 const RESTORE = defineCommand({
@@ -178,33 +197,20 @@ const RESTORE = defineCommand({
   interactive: false,
   run: async (input, io: CommandIo) => {
     const output = createOutput(false, io)
-    let target: RestoreTarget | number
-    if (input.issue === undefined) {
-      target = inferTarget(path.resolve(input.directory), output)
-    }
-    else {
+    return await runWithExit(async () => {
+      const target = input.issue === undefined ? inferTarget(path.resolve(input.directory), output) : parseTarget(input.issue, output)
+      let title: string
       try {
-        const reference = parseIssueReference(input.issue)
-        target = { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number }
+        title = await fetchIssueTitle(target.owner, target.repository, target.number, output)
       }
       catch (error: unknown) {
-        if (!(error instanceof ReferenceParseError)) throw error
+        if (!(error instanceof ConfigError)) throw error
         output.error(error.message)
-        return USAGE_EXIT_CODE
+        return throwExit(FAILURE_EXIT_CODE)
       }
-    }
-    if (typeof target === 'number') return target
-
-    let title: string
-    try {
-      title = await fetchIssueTitle(target.owner, target.repository, target.number, output)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof ConfigError)) throw error
-      output.error(error.message)
-      return FAILURE_EXIT_CODE
-    }
-    return recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true }) ?? 0
+      const code = recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
+      if (code !== undefined) throwExit(code)
+    })
   },
 })
 

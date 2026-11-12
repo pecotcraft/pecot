@@ -59,9 +59,9 @@ describe('issue read', () => {
   })
 
   it.for([
-    { id: 'same-repository', parent: { number: 3, title: '親の Epic', state: 'OPEN', repository: { name: 'demo', owner: { login: 'acme' } } }, line: '**Parent:** #3 親の Epic (OPEN)' },
-    { id: 'other-repository', parent: { number: 3, title: '親の Epic', state: 'CLOSED', repository: { name: 'other', owner: { login: 'acme' } } }, line: '**Parent:** acme/other#3 親の Epic (CLOSED)' },
-  ])('親 Issue がある Issue を読むと、親 Issue を出す ($id)', async ({ parent, line }, context) => {
+    { name: '同じリポジトリの親', parent: { number: 3, title: '親の Epic', state: 'OPEN', repository: { name: 'demo', owner: { login: 'acme' } } }, line: '**Parent:** #3 親の Epic (OPEN)' },
+    { name: '別のリポジトリの親', parent: { number: 3, title: '親の Epic', state: 'CLOSED', repository: { name: 'other', owner: { login: 'acme' } } }, line: '**Parent:** acme/other#3 親の Epic (CLOSED)' },
+  ])('$name がある Issue を読むと、親 Issue を出す', async ({ parent, line }, context) => {
     await verifies(context, 'PW-ISSUE-READ-02')
     setUpProject()
     await startGithub([issueRule({ parent })])
@@ -192,20 +192,30 @@ describe('issue read', () => {
     expect(github.requests()).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
   })
 
-  it.for([{ reference: 'invalid-format' }, { reference: '#5' }])('Issue の参照の形が誤っているとき、API を呼ばずに終了コード 2 で終わる ($reference)', async ({ reference }, context) => {
+  it.for([
+    { name: '参照が owner/repo/N の形でない', reference: 'invalid-format' },
+    { name: '参照が # で始まる', reference: '#5' },
+  ])('Issue の参照の形が誤っている（$name）とき、API を呼ばずに終了コード 2 で終わる', async ({ reference }, context) => {
     await verifies(context, 'PW-ISSUE-READ-10')
     setUpProject()
     const github = await startGithub([])
 
     const result = await read(reference)
 
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/^error: .+\n/u)
+    expect(result).toEqual({
+      code: 2,
+      stdout: '',
+      stderr: `error: invalid reference: ${reference}\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)\n`,
+    })
     expect(github.requests()).toEqual([])
   })
 
-  it.for([{ limit: '21' }, { limit: '-0.5' }, { limit: 'many' }])('--comment-limit が 0 から 20 の外のとき、終了コード 2 で終わる ($limit)', async ({ limit }, context) => {
+  it.for([
+    { name: '上限を超える 21', limit: '21', message: '21 is not in the range 0<=x<=20.' },
+    { name: '下限を下回る -1', limit: '-1', message: '-1 is not in the range 0<=x<=20.' },
+    { name: '整数でない -0.5', limit: '-0.5', message: '\'-0.5\' is not a valid int range.' },
+    { name: '数でない many', limit: 'many', message: '\'many\' is not a valid int range.' },
+  ])('--comment-limit が $name のとき、API を呼ばずに終了コード 2 で終わる', async ({ limit, message }, context) => {
     await verifies(context, 'PW-ISSUE-READ-11')
     setUpProject()
     const github = await startGithub([])
@@ -214,7 +224,7 @@ describe('issue read', () => {
 
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toContain('Invalid value for \'--comment-limit\' / \'-c\'')
+    expect(result.stderr).toContain(`│ Invalid value for '--comment-limit' / '-c': ${message}`)
     expect(github.requests()).toEqual([])
   })
 
@@ -227,15 +237,38 @@ describe('issue read', () => {
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: no active project\n' })
   })
 
-  it.for([{ status: 401 }, { status: 404 }, { status: 500 }])('GitHub API が $status を返したとき、終了コード 1 で終わる', async ({ status }, context) => {
+  it.for([
+    { name: 'HTTP 401', rule: { status: 401, body: { message: 'Bad credentials' } } },
+    { name: 'HTTP 404', rule: { status: 404, body: { message: 'Not Found' } } },
+    { name: 'HTTP 500', rule: { status: 500, body: { message: 'failure' } } },
+  ])('GitHub API が $name を返したとき、終了コード 1 で終わる', async ({ rule }, context) => {
     await verifies(context, 'PW-ISSUE-READ-13')
     setUpProject()
-    await startGithub([{ match: { operation: 'GetIssueSlim' }, respond: { status, body: { message: 'failure' } }, times: 1 }])
+    await startGithub([{ match: { operation: 'GetIssueSlim' }, respond: rule, times: 1 }])
 
     const result = await read('acme/demo/7')
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: could not read Issue acme\/demo\/7: /u)
+  })
+
+  it('Issue が無くて GitHub API が 200 と GraphQL の errors を返したとき、その内容を添えて終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-READ-13')
+    setUpProject()
+    const errors = [{ type: 'NOT_FOUND', path: ['repository', 'issue'], locations: [{ line: 3, column: 5 }], message: 'Could not resolve to an Issue with the number of 7.' }]
+    // eslint-disable-next-line unicorn/no-null -- GitHub は無い Issue を null で返す
+    const data = { repository: { issue: null } }
+    await startGithub([{ match: { operation: 'GetIssueSlim' }, respond: { status: 200, body: { data, errors } }, times: 1 }])
+
+    const result = await read('acme/demo/7')
+
+    expect(result).toEqual({
+      code: 1,
+      stdout: '',
+      stderr: 'error: could not read Issue acme/demo/7: GraphQL query error: '
+        + '{\'type\': \'NOT_FOUND\', \'path\': [\'repository\', \'issue\'], \'locations\': [{\'line\': 3, \'column\': 5}], '
+        + '\'message\': \'Could not resolve to an Issue with the number of 7.\'}\n',
+    })
   })
 })

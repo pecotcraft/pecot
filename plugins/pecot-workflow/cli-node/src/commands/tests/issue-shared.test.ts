@@ -7,7 +7,6 @@ import { createIssueReference } from '../../domain/reference-parser.js'
 import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlData, graphqlError, rejection, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
 import {
-  BadParameterError,
   buildIssueTitle,
   checkDuplicateOrder,
   createIssueOrExit,
@@ -16,9 +15,7 @@ import {
   linkToParentEpic,
   loadConfigOrExit,
   normalizeParentEpicCli,
-  parseIssueReferenceFromContext,
   parseIssueReferenceOrExit,
-  orderLabel,
   resolveEpicTargetRepository,
   resolveParentEpicReference,
   runWithExit,
@@ -62,7 +59,7 @@ async function exitWith3(): Promise<void> {
 
 async function badParameter(): Promise<void> {
   await Promise.resolve()
-  throw new BadParameterError('bad')
+  resolveParentEpicReference('nope', config(), 'o', 'impl')
 }
 
 async function boom(): Promise<void> {
@@ -82,7 +79,8 @@ describe('runWithExit', () => {
   it('BadParameterError は context 無しの UsageError にして伝える', async () => {
     const error = await rejection(runWithExit(badParameter))
     expect(error).toBeInstanceOf(UsageError)
-    expect(error).toMatchObject({ message: 'Invalid value: bad', context: undefined })
+    expect(error).toMatchObject({ context: undefined })
+    expect(error instanceof Error ? error.message : '').toMatch(/^Invalid value: could not resolve parent_epic: /u)
   })
 
   it('ほかの例外はそのまま伝える', async () => {
@@ -117,9 +115,9 @@ describe('buildIssueTitle', () => {
     expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, parallel: 'a' })).toBe('[Task] タイトル')
   })
 
-  it('orderLabel は 2 桁に枝の文字を続ける', () => {
-    expect(orderLabel(4, 'b')).toBe('04b')
-    expect(orderLabel(10, undefined)).toBe('10')
+  it('order は 2 桁にして、枝の文字を続ける', () => {
+    expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, order: 4, parallel: 'b' })).toBe('[Task] #189-04b: タイトル')
+    expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, order: 10 })).toBe('[Task] #189-10: タイトル')
   })
 })
 
@@ -128,6 +126,10 @@ const parentEpicRows: readonly (readonly [string | undefined, number | string | 
   ['  ', undefined],
   [' 353 ', 353],
   ['o/r/353', 'o/r/353'],
+  ['9007199254740991', 9_007_199_254_740_991],
+  ['9007199254740993', '9007199254740993'],
+  ['  000012345678901234567890 ', '12345678901234567890'],
+  ['1000000000000000000000', '1000000000000000000000'],
 ]
 
 describe('normalizeParentEpicCli', () => {
@@ -150,8 +152,13 @@ describe('resolveParentEpicReference', () => {
   })
 
   it('解決できなければ受け付ける形を案内する BadParameterError', () => {
-    expect(() => resolveParentEpicReference('nope', config(), 'o', 'impl')).toThrow(BadParameterError)
     expect(() => resolveParentEpicReference('nope', config(), 'o', 'impl')).toThrow(/^could not resolve parent_epic: .+\naccepted forms: an integer \(Issue number in aggregation_repo\) or the primary form 'owner\/repo\/N'$/su)
+  })
+})
+
+describe('resolveParentEpicReference の大きな番号', () => {
+  it('安全な整数に収まらない番号は、丸めずに解決できない参照として案内する', () => {
+    expect(() => resolveParentEpicReference('12345678901234567890', config(), 'o', 'impl')).toThrow(/^could not resolve parent_epic: the number is too large: 12345678901234567890\naccepted forms: /u)
   })
 })
 
@@ -326,12 +333,12 @@ describe('validateIssueTemplate', () => {
 
 describe('Issue 参照と設定', () => {
   it('--repo を基準に短縮形と主軸形を分ける', () => {
-    expect(parseIssueReferenceFromContext('o/r', '5')).toEqual({ owner: 'o', repository: 'r', number: 5 })
-    expect(parseIssueReferenceFromContext('o/r', 'x/y/7')).toEqual({ owner: 'x', repository: 'y', number: 7 })
+    const { output } = started()
+    expect(parseIssueReferenceOrExit(output, 'o/r', '5')).toEqual({ owner: 'o', repository: 'r', number: 5 })
+    expect(parseIssueReferenceOrExit(output, 'o/r', 'x/y/7')).toEqual({ owner: 'x', repository: 'y', number: 7 })
   })
 
-  it('不正な参照は BadParameterError。OrExit なら error の行と終了コード 2', () => {
-    expect(() => parseIssueReferenceFromContext('o/r', 'zzz')).toThrow(BadParameterError)
+  it('不正な参照は error の行と終了コード 2', () => {
     const { io, output } = started()
     expect(() => parseIssueReferenceOrExit(output, 'o/r', 'zzz')).toThrow(expect.objectContaining({ code: 2 }))
     expect(io.err[0]).toMatch(/^error: /u)

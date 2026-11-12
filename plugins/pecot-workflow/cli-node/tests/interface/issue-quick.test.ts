@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
+import { ISSUE_QUICK_COMMANDS } from '../../src/commands/issue-quick.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
@@ -34,7 +34,7 @@ const PENDING_FLAGS = { '.pecot/state/issue-pending': '1\n', '.pecot/state/issue
 const MESSAGE = '一覧の状態列を直す'
 
 async function quick(...argv: readonly string[]): Promise<CliResult> {
-  return await runInProcess(['issue', 'quick', ...argv], ISSUE_CREATE_COMMANDS)
+  return await runInProcess(['issue', 'quick', ...argv], ISSUE_QUICK_COMMANDS)
 }
 
 function hasFile(root: string, relative: string): boolean {

@@ -9,13 +9,11 @@ import { z } from 'zod'
 import type { ProjectConfig } from '../domain/config.js'
 import { FrontmatterError, stripFrontmatter, stripLeadingHtmlComment } from '../domain/frontmatter.js'
 import type { IssueFrontmatter } from '../domain/frontmatter.js'
-import type { JsonObject } from '../domain/json.js'
 import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING } from '../domain/state.js'
-import { compareStrings, pythonStringRepr } from '../domain/python-format.js'
+import { compareStrings, pythonStrip, pythonStringRepr } from '../domain/python-format.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { parseIssueFile } from '../infra/frontmatter-file.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { requireNumber, requireString } from '../infra/github/payload.js'
 import { OutputPathReservationError, normalizePath, outputDirectory, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
 import { consumeFlag } from '../infra/state-store.js'
 import { templateFile } from '../infra/template-store.js'
@@ -27,13 +25,17 @@ import {
   buildIssueTitle,
   clientForIssueCreate,
   createIssueOrExit,
+  ISSUE_TYPE_SCHEMA,
+  issuePath,
   linkToParentEpic,
   loadConfigOrExit,
   normalizeParentEpicCli,
+  PARENT_EPIC_DESCRIPTION,
   resolveEpicTargetRepository,
   resolveParentEpicReference,
   runWithExit,
   setIssueFields,
+  summarizeCreatedIssue,
   throwExit,
   TYPE_DEFAULT_STATUS,
   validateIssueTemplate,
@@ -43,10 +45,8 @@ import {
 import type { IssueField, IssueType } from './issue-shared.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
-import { ISSUE_QUICK } from './issue-quick.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
-const TYPE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)')
 const FILES_SCHEMA = z.array(z.string()).optional().describe('Path of a Markdown file with frontmatter (several for a batch post)')
 const LABEL_SCHEMA = z.array(z.string()).optional().describe('Label (can be given several times)')
 const TEMPLATE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker', 'task-implement']).default('task').describe('Template type (with --prepare: task/bug/epic/tracker/task-implement)')
@@ -65,23 +65,18 @@ interface CreatedIssue {
 
 // --- 共通 ---
 
-// owner/repo の形が不正なら error と終了コード 2
-function validateRepositoryShape(output: Output, repository: string): void {
-  const parts = repository.split('/')
-  if (parts.length === 2 && parts.every(part => REPOSITORY_SEGMENT_PATTERN.test(part))) return
-  output.error(`invalid repository format: ${repository}\nexpected: owner/repo`)
-  throwExit(USAGE_EXIT_CODE)
-}
-
 function splitRepository(repository: string): readonly [string, string] | undefined {
   const parts = repository.split('/')
   const [owner, name] = parts
   return owner !== undefined && name !== undefined && parts.length === 2 ? [owner, name] : undefined
 }
 
-function optionalNodeId(issue: JsonObject): string | undefined {
-  const nodeId = issue['node_id']
-  return typeof nodeId === 'string' ? nodeId : undefined
+// owner/repo の形が不正なら error と終了コード 2。正しければ owner と name を返す
+function validateRepositoryShape(output: Output, repository: string): readonly [string, string] {
+  const parts = splitRepository(repository)
+  if (parts?.every(part => REPOSITORY_SEGMENT_PATTERN.test(part)) === true) return parts
+  output.error(`invalid repository format: ${repository}\nexpected: owner/repo`)
+  return throwExit(USAGE_EXIT_CODE)
 }
 
 interface Posting {
@@ -109,12 +104,11 @@ Issue を作ってボードへ足し、欄の設定・親 Epic への接続・UR
 async function postIssue(output: Output, client: GitHubClient, config: ProjectConfig, posting: Readonly<Posting>): Promise<number> {
   const { owner, repository } = posting
   const issue = await createIssueOrExit(output, client, owner, repository, posting.title, posting.body, posting.labels, posting.source)
-  const number = requireNumber(issue['number'], 'number')
-  const url = requireString(issue['html_url'], 'html_url')
-  const target = `Issue ${owner}/${repository}/${String(number)}`
+  const { number, url, nodeId } = summarizeCreatedIssue(issue)
+  const target = `Issue ${issuePath(owner, repository, number)}`
   consumeFlag(FLAG_ISSUE_PENDING)
 
-  const added = await addToBoardOrWarn(output, client, config, owner, repository, number, posting.useResponseNodeId ? optionalNodeId(issue) : undefined, url)
+  const added = await addToBoardOrWarn(output, client, config, owner, repository, number, posting.useResponseNodeId ? nodeId : undefined, url)
   if (added === undefined) return number
   await setIssueFields(output, client, config, added.itemId, target, posting.fields)
   if (posting.parentReference !== undefined) await linkToParentEpic(output, client, target, posting.parentReference, added.issueNodeId, url)
@@ -213,7 +207,7 @@ function validatePlaceholders(output: Output, files: readonly string[]): void {
 function fileTargetRepository(output: Output, frontmatter: IssueFrontmatter, config: ProjectConfig): readonly [string, string] {
   let resolved: string
   if (frontmatter.type === 'epic') {
-    const explicit = frontmatter.repository === '' ? undefined : frontmatter.repository.trim()
+    const explicit = frontmatter.repository === '' ? undefined : pythonStrip(frontmatter.repository)
     const target = resolveEpicTargetRepository(output, explicit, config)
     if (target.needsWarning) warnEpicRepositoryException(output, target.repository, config)
     resolved = target.repository
@@ -307,7 +301,8 @@ interface DirectOptions {
   readonly order: number | undefined
 }
 
-async function createDirect(output: Output, options: Readonly<DirectOptions>): Promise<void> {
+// config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
+async function createDirect(output: Output, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined): Promise<void> {
   const { issueType } = options
   // status は設定の取得や作成より前に確かめる
   let status: string
@@ -320,9 +315,8 @@ async function createDirect(output: Output, options: Readonly<DirectOptions>): P
     status = options.status
   }
 
-  const config = loadConfigOrExit(output)
-  validateRepositoryShape(output, options.repository)
-  const [owner, repository] = splitRepository(options.repository) ?? ['', '']
+  const config = loadedConfig ?? loadConfigOrExit(output)
+  const [owner, repository] = validateRepositoryShape(output, options.repository)
 
   const parentReference = parentReferenceOf(normalizeParentEpicCli(options.parentEpic), config, owner, repository)
   const title = buildIssueTitle(issueType, options.title, { parentEpic: parentReference?.number, order: options.order })
@@ -346,25 +340,67 @@ async function createDirect(output: Output, options: Readonly<DirectOptions>): P
   })
 }
 
+interface MessageTarget {
+  readonly repository: string
+  /**
+  epic は作成先を決めるときに読んだ設定。epic 以外は undefined
+  */
+  readonly config: ProjectConfig | undefined
+}
+
 // -m の作成先。epic 以外は --repo が要る。epic は aggregation_repo の方針で決める
-function messageModeRepository(output: Output, issueType: IssueType, repository: string | undefined): string {
+function messageModeTarget(output: Output, issueType: IssueType, repository: string | undefined): MessageTarget {
   if (issueType !== 'epic') {
     if (repository === undefined || repository === '') {
       output.error('-r (repository) is required with -m')
       throwExit(1)
     }
-    return repository
+    return { repository, config: undefined }
   }
   const config = loadConfigOrExit(output)
   const target = resolveEpicTargetRepository(output, repository, config)
   if (target.needsWarning) warnEpicRepositoryException(output, target.repository, config)
-  return target.repository
+  return { repository: target.repository, config }
 }
 
 const USAGE_TEXT = 'missing arguments\n'
   + 'direct posting: pecot issue create -t "TITLE" -r owner/repo -m "BODY"\n'
   + 'prepare a template: pecot issue create --prepare --template task --repo owner/repo\n'
   + 'from a file: pecot issue create <path>'
+
+interface MessageInput {
+  readonly title?: string | undefined
+  readonly repo?: string | undefined
+  readonly type: IssueType
+  readonly status?: string | undefined
+  readonly priority?: string | undefined
+  readonly size?: string | undefined
+  readonly parent_epic?: string | undefined
+  readonly label?: readonly string[] | undefined
+  readonly order?: number | undefined
+}
+
+// -m の直接投稿。入力の確認から作成まで
+async function createFromMessage(output: Output, input: Readonly<MessageInput>, message: string): Promise<void> {
+  if (input.title === undefined || input.title === '') {
+    output.error('-t (title) is required with -m')
+    throwExit(1)
+  }
+  const target = messageModeTarget(output, input.type, input.repo)
+  await createDirect(output, {
+    message,
+    title: input.title,
+    repository: target.repository,
+    issueType: input.type,
+    status: input.status,
+    priority: input.priority,
+    size: input.size,
+    parentEpic: input.parent_epic,
+    labels: input.label,
+    order: input.order,
+  }, target.config)
+  consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
+}
 
 const ISSUE_CREATE = defineCommand({
   path: ['issue', 'create'],
@@ -374,11 +410,11 @@ const ISSUE_CREATE = defineCommand({
     message: z.string().optional().describe('Issue body (direct posting mode)'),
     title: z.string().optional().describe('Issue title (direct posting mode, required with -m)'),
     repo: z.string().optional().describe('Repository (owner/repo form; required with -m / --prepare unless epic)'),
-    type: TYPE_SCHEMA,
+    type: ISSUE_TYPE_SCHEMA,
     status: z.string().optional().describe('Status (backlog/pending/ready/active/in_review/archived)'),
     priority: z.string().optional().describe('Priority (high/medium/low)'),
     size: z.string().optional().describe('Size (xs/s/m/l)'),
-    parent_epic: z.string().optional().describe('Parent Epic reference: an integer (relative to aggregation_repo) or the primary form \'owner/repo/N\''),
+    parent_epic: z.string().optional().describe(PARENT_EPIC_DESCRIPTION),
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
     prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
@@ -402,27 +438,10 @@ const ISSUE_CREATE = defineCommand({
         throwExit(1)
       }
       else {
-        if (input.title === undefined || input.title === '') {
-          output.error('-t (title) is required with -m')
-          throwExit(1)
-        }
-        const repository = messageModeRepository(output, input.type, input.repo)
-        await createDirect(output, {
-          message: input.message,
-          title: input.title,
-          repository,
-          issueType: input.type,
-          status: input.status,
-          priority: input.priority,
-          size: input.size,
-          parentEpic: input.parent_epic,
-          labels: input.label,
-          order: input.order,
-        })
-        consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
+        await createFromMessage(output, input, input.message)
       }
     })
   },
 })
 
-export const ISSUE_CREATE_COMMANDS: readonly CommandDefinition[] = [ISSUE_CREATE, ISSUE_QUICK]
+export const ISSUE_CREATE_COMMANDS: readonly CommandDefinition[] = [ISSUE_CREATE]

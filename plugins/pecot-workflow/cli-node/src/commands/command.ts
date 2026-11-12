@@ -108,12 +108,23 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
   return new Map(Object.entries(flags ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
 }
 
+// 入力 no_x の `--no-x` と、入力 x の否定形 `--no-x` のように、同じ長いオプションになる組を断る
+function assertDistinctFlags(fields: readonly string[], positional: readonly string[], negations: ReadonlyMap<string, string>): void {
+  const flags = [
+    ...fields.filter(name => !positional.includes(name)).map(name => `--${name.replaceAll('_', '-')}`),
+    ...negations.values(),
+  ]
+  const duplicate = flags.find((flag, index) => flags.indexOf(flag) !== index)
+  if (duplicate !== undefined) throw new TypeError(`オプション ${duplicate} が重複しています`)
+}
+
 /**
 型付きの仕様から、型を消した定義を作る。parse が input で検証してから本体を呼ぶので、型を消しても安全に呼べる
 */
 
 export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandSpec<Input>>): CommandDefinition {
   if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
+  assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
   const hasOwnRepository = Object.hasOwn(spec.input.shape, 'repo')
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {

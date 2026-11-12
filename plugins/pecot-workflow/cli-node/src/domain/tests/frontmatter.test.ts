@@ -556,6 +556,11 @@ describe('stripFrontmatter（frontmatter 除去ヘルパ）', () => {
 })
 
 describe('setFrontmatterValue', () => {
+  it('同じ値のキーの行がもうあるとき、行を足さずそのまま返す', () => {
+    const content = '---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n'
+    expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe(content)
+  })
+
   it('新しいキーを末尾に足し、本文はそのまま残す', () => {
     const content = '---\nissue_ref: "o/r/1"\n---\n\n## Plan\n'
     expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe('---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n')

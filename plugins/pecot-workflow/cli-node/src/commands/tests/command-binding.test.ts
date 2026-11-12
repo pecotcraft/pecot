@@ -169,8 +169,8 @@ describe('runDefinition', () => {
 
   it('余分な位置引数は Got unexpected extra argument', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(preflight, ['1', '2', '-D', '.'], io))).toBe('Got unexpected extra argument (2)')
-    expect(await messageOf(runDefinition(preflight, ['1', '2', '3', '-D', '.'], io))).toBe('Got unexpected extra arguments (2 3)')
+    expect(await messageOf(runDefinition(preflight, ['1', '2', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2)')
+    expect(await messageOf(runDefinition(preflight, ['1', '2', '3', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2 3)')
   })
 
   it('--help は説明を出して 0', async () => {
@@ -238,20 +238,38 @@ describe('型の変換', () => {
 
   it('範囲つきの整数は、click と同じ文で誤りにする', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['1', '-c', 'x'], io))).toBe('Invalid value for \'--count\' / \'-c\': \'x\' is not a valid integer range.')
+    expect(await messageOf(runDefinition(typed, ['1', '-c', 'x'], io))).toBe('Invalid value for \'--count\' / \'-c\': \'x\' is not a valid int range.')
     expect(await messageOf(runDefinition(typed, ['1', '-c', '99'], io))).toBe('Invalid value for \'--count\' / \'-c\': 99 is not in the range 0<=x<=20.')
     expect(await messageOf(runDefinition(typed, ['1', '--limit', '0'], io))).toBe('Invalid value for \'--limit\': 0 is not in the range x>=1.')
   })
 
   it('整数の項目に 1.5、実数の項目に abc を渡すと、範囲を言わない誤りの文を返す', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['1', '--step', '1.5'], io))).toBe('Invalid value for \'--step\': \'1.5\' is not a valid integer.')
+    expect(await messageOf(runDefinition(typed, ['1', '--step', '1.5'], io))).toBe('Invalid value for \'--step\': \'1.5\' is not a valid int.')
     expect(await messageOf(runDefinition(typed, ['1', '--ratio', 'abc'], io))).toBe('Invalid value for \'--ratio\': \'abc\' is not a valid float.')
   })
 
   it('位置引数の誤りは、入力の名前で出す', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid integer.')
+    expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid int.')
+  })
+
+  const tagType = z.enum(['a', 'b'])
+
+  it('選択肢の項目は、選択肢を全部並べて誤りにする', async () => {
+    const command = defineCommand({
+      path: ['pick'],
+      description: '',
+      input: z.object({ kind: z.enum(['task', 'bug']).optional(), tags: z.array(tagType).default([]) }),
+      positional: [],
+      shortFlags: { kind: '-k' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    const io = capture()
+    expect(await messageOf(runDefinition(command, ['--kind', 'bogus'], io))).toBe('Invalid value for \'--kind\' / \'-k\': \'bogus\' is not one of \'task\', \'bug\'.')
+    expect(await messageOf(runDefinition(command, ['--tags', 'a', '--tags', 'z'], io))).toBe('Invalid value for \'--tags\': \'z\' is not one of \'a\', \'b\'.')
+    expect(await runDefinition(command, ['-k', 'bug'], io)).toBe(0)
   })
 
   it('実数は指数と _ を受ける', async () => {
@@ -337,6 +355,19 @@ describe('誤りの扱い', () => {
     const io = capture()
     expect(await messageOf(runDefinition(read, ['1', '-c'], io))).toBe('Option \'-c\' requires an argument.')
     expect(await messageOf(runDefinition(read, ['1', '--comment-limit'], io))).toBe('Option \'--comment-limit\' requires an argument.')
+  })
+
+  it('値を取らないフラグに =値 を付けたら、Usage 行なしで断る', async () => {
+    const io = capture()
+    const error = await usageErrorOf(runDefinition(read, ['--json=1', '1'], io))
+    expect(error.message).toBe('Option \'--json\' does not take a value.')
+    expect(error.context).toBeUndefined()
+  })
+
+  it('値の無いオプションは、Usage 行なしで断る', async () => {
+    const error = await usageErrorOf(runDefinition(read, ['1', '-c'], capture()))
+    expect(error.context).toBeUndefined()
+    expect(formatUsageError(error)).toMatch(/^╭─ Error/u)
   })
 
   it('未知の長いオプションには候補を案内する。短いオプションには案内しない', async () => {

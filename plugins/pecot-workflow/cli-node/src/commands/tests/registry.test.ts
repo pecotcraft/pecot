@@ -194,6 +194,31 @@ describe('defineCommand', () => {
     expect(negated.negations).toEqual(new Map([['checkout', '--no-checkout']]))
   })
 
+  it('入力 no_x の `--no-x` と入力 x の否定形 `--no-x` が並んだら作れない', () => {
+    expect(() => defineCommand({
+      path: ['dup'],
+      description: '',
+      input: z.object({ x: z.boolean().default(true), no_x: z.boolean().default(false) }),
+      positional: [],
+      negations: { x: '--no-x' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })).toThrow(new TypeError('オプション --no-x が重複しています'))
+  })
+
+  it('入力 x の否定形 `--no-x` だけなら作れる', () => {
+    const command = defineCommand({
+      path: ['ok'],
+      description: '',
+      input: z.object({ x: z.boolean().default(true) }),
+      positional: [],
+      negations: { x: '--no-x' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(command.negations.get('x')).toBe('--no-x')
+  })
+
   it('path が空なら作れない', () => {
     expect(() => defineCommand({
       path: [],
