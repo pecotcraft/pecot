@@ -20,7 +20,7 @@ export const GIT_ENV_LEAK_KEYS: readonly string[] = [
   'GIT_CEILING_DIRECTORIES',
 ]
 
-export const PLUGIN_ENV_LEAK_KEYS: readonly string[] = ['PLUGIN_DATA', 'PECOT_BOOTSTRAP_SKIP']
+export const PLUGIN_ENV_LEAK_KEYS: readonly string[] = ['PLUGIN_DATA', 'PECOT_BOOTSTRAP_SKIP', 'PECOT_BOOTSTRAP_FORCE']
 
 export type EnvironmentOverrides = Readonly<Record<string, string | undefined>>
 

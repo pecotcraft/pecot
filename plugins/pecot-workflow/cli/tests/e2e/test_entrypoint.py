@@ -100,115 +100,50 @@ class TestCLIEntrypoint:
         assert result.returncode == 2
         assert "Usage:" in result.stdout
 
-    def test_bin_pecot_wrapper_skip_launches_local_cli(self, tmp_path: Path) -> None:
-        """bin/pecot wrapper が PECOT_BOOTSTRAP_SKIP=1 で本体ツリーの cli/.venv を直接起動できる。
+    def test_venv_entrypoint_reads_version_from_plugin_root(self, tmp_path: Path) -> None:
+        """cli/.venv/bin/pecot を直接起動し、CLAUDE_PLUGIN_ROOT の plugin.json の version が出る。
 
-        tmp_path に隔離した wrapper ツリーを組む（bin/pecot・bin/_lib.sh・plugin.json はコピー、
-        cli/ は実体への symlink）。
-        SKIP=1 の wrapper は ``<PLUGIN_ROOT>/cli/.venv/bin/pecot`` を実行する。
-        このとき CLAUDE_PLUGIN_ROOT を export する（cli のバージョン解決が手順 1 に乗る）。
-        データ置き場は使わない。
         前提: 実リポの cli/.venv が同期済み（``uv run pytest`` で作られる）。
-        データ置き場の venv を作る処理は hooks/lib/tests/test_bin_pecot_wrapper.py（stub uv）が検証する。
         """
-        # plugins/pecot-workflow/ が PLUGIN_ROOT。PROJECT_ROOT は plugins/pecot-workflow/cli/ なので親。
-        real_plugin_root = PROJECT_ROOT.parent
-        plugin_root = tmp_path / "plugin-root"
-        (plugin_root / "bin").mkdir(parents=True)
-        for name in ("pecot", "_lib.sh"):
-            shutil.copy2(real_plugin_root / "bin" / name, plugin_root / "bin" / name)
-        (plugin_root / ".claude-plugin").mkdir()
-        (plugin_root / ".claude-plugin" / "plugin.json").write_text(
+        pecot = PROJECT_ROOT / ".venv" / "bin" / "pecot"
+        assert pecot.is_file(), (
+            "cli/.venv/bin/pecot が無い。cli で `uv sync` を実行して venv を作ること"
+        )
+        (tmp_path / ".claude-plugin").mkdir()
+        (tmp_path / ".claude-plugin" / "plugin.json").write_text(
             json.dumps({"name": "pecot-w", "version": "9.8.7"})
         )
-        (plugin_root / "cli").symlink_to(PROJECT_ROOT, target_is_directory=True)
 
         result = subprocess.run(
-            [str(plugin_root / "bin" / "pecot"), "--version"],
+            [str(pecot), "--version"],
             capture_output=True,
             text=True,
-            env={
-                **{k: v for k, v in os.environ.items() if k != "CLAUDE_PLUGIN_ROOT"},
-                "PECOT_BOOTSTRAP_SKIP": "1",
-            },
+            env={**os.environ, "CLAUDE_PLUGIN_ROOT": str(tmp_path)},
             timeout=60,
         )
 
         assert result.returncode == 0, f"stderr: {result.stderr}"
         assert result.stdout.strip() == "pecot version 9.8.7"
 
-    @pytest.mark.timeout(240)
-    def test_bin_pecot_installs_non_editable_venv_into_data_dir(self, tmp_path: Path) -> None:
-        """実 uv で、データ置き場の非 editable な venv から pecot CLI が起動する（#1230）。
-
-        - ``--version`` が plugin.json のバージョンを返す。
-        - plugin.json だけを上げた更新は、building / installing の行が 0 のまま新バージョンを返す。
-        - templates を読むコマンドが、site-packages 内のパッケージから動く
-        - プラグインルートには何も書かない
-
-        uv のキャッシュとネットワークの両方が無い環境（venv を作れない）では skip する。
-        """
-        if not shutil.which("uv"):
-            pytest.skip("uv command not found in PATH")
-        real_plugin_root = PROJECT_ROOT.parent
-        plugin_root = tmp_path / "plugin-root"
-        (plugin_root / "bin").mkdir(parents=True)
-        for name in ("pecot", "_lib.sh"):
-            shutil.copy2(real_plugin_root / "bin" / name, plugin_root / "bin" / name)
-        shutil.copytree(
-            PROJECT_ROOT,
-            plugin_root / "cli",
-            ignore=shutil.ignore_patterns(".venv", "__pycache__", "*.egg-info", "build"),
+    def test_venv_entrypoint_prepares_template(self, tmp_path: Path) -> None:
+        """cli/.venv/bin/pecot を直接起動し、テンプレートを読むコマンドが動く。"""
+        pecot = PROJECT_ROOT / ".venv" / "bin" / "pecot"
+        assert pecot.is_file(), (
+            "cli/.venv/bin/pecot が無い。cli で `uv sync` を実行して venv を作ること"
         )
-        manifest = plugin_root / ".claude-plugin" / "plugin.json"
-        manifest.parent.mkdir()
-        manifest.write_text(json.dumps({"name": "pecot-w", "version": "1.0.0"}))
-        data_dir = tmp_path / "data"
-        data_dir.mkdir()
         project_dir = tmp_path / "project"
         project_dir.mkdir()
-        env = {
-            **{k: v for k, v in os.environ.items() if k != "CLAUDE_PLUGIN_ROOT"},
-            "CLAUDE_PLUGIN_DATA": str(data_dir),
-            "CLAUDE_PROJECT_DIR": str(project_dir),
-        }
-        wrapper = str(plugin_root / "bin" / "pecot")
 
-        def run(*args: str) -> subprocess.CompletedProcess[str]:
-            return subprocess.run(
-                [wrapper, *args], capture_output=True, text=True, env=env, timeout=200, check=False
-            )
-
-        before = sorted(p.relative_to(plugin_root) for p in plugin_root.rglob("*"))
-        first = run("--version")
-        if first.returncode != 0 and "failed to create the venv" in first.stderr:
-            pytest.skip(
-                f"uv で venv を作れない環境（キャッシュ・ネットワークなし）: {first.stderr}"
-            )
-        assert first.returncode == 0, first.stderr
-        assert first.stdout.strip() == "pecot version 1.0.0"
-        assert "pecot: building" in first.stderr
-
-        manifest.write_text(json.dumps({"name": "pecot-w", "version": "2.0.0"}))
-        second = run("--version")
-        assert second.returncode == 0, second.stderr
-        assert second.stdout.strip() == "pecot version 2.0.0"
-        assert "pecot: building" not in second.stderr
-        assert "pecot: installing dependencies" not in second.stderr
-
-        template = run("issue", "create", "--prepare", "--template", "epic")
-        assert template.returncode == 0, template.stderr
-        assert Path(template.stdout.strip()).is_file()
-        assert (
-            str(data_dir)
-            in subprocess.run(
-                ["readlink", "-f", str(data_dir / "venv" / "current")],
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout
+        result = subprocess.run(
+            [str(pecot), "issue", "create", "--prepare", "--template", "epic"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(project_dir)},
+            timeout=60,
         )
-        assert sorted(p.relative_to(plugin_root) for p in plugin_root.rglob("*")) == before
+
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert Path(result.stdout.strip()).is_file()
 
     def test_entrypoint_propagates_claude_project_dir(self, uv_command: str) -> None:
         """conftest autouse の CLAUDE_PROJECT_DIR が子プロセスに伝搬している"""

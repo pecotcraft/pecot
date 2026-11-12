@@ -2,7 +2,7 @@
 
 contracts/hook-flow.md PreToolUse/Bash 契約は次のとおり。
 core ガード群は、permission mode に依存せず発火する。
-対象は、external-post-check / git-no-verify-check / gh-command-check 等。
+対象は、external-post-check / pecot-cli-deny / git-no-verify-check / gh-command-check 等。
 通常モードの調査フェーズ（permission_mode=default）でも、plan mode 滞在中（permission_mode=plan）でも、同一の deny/ask を返す。
 これを、実 hook JSON（permission_mode フィールド込み）を entry スクリプトに流す end-to-end で固定する。
 
@@ -54,17 +54,17 @@ def _assert_deny(result: subprocess.CompletedProcess) -> None:
 _DECISIONS = {"ask": _assert_ask, "deny": _assert_deny}
 
 # 操作 × 期待判定（発火ガード）は次のとおり。
-#   pecot pr create <file>       → ask   （external-post-check / pecot-pr-create-ask）。
+#   pecot pr create <file>       → deny  （pecot-cli-deny）。
 #   gh pr merge <n>             → ask   （external-post-check / gh-pr-merge-ask）。
 #   git commit --no-verify      → deny  （git-no-verify-check）。
 #   gh pr create                → deny  （gh-command-check / gh-pr-create-check）。
-#   pecot issue quick -m <msg>   → ask   （external-post-check / pecot-issue-create-ask）。
+#   pecot issue quick -m <msg>   → deny  （pecot-cli-deny）。
 _CASES = [
-    ("pecot pr create x.md", "ask"),
+    ("pecot pr create x.md", "deny"),
     ("gh pr merge 1", "ask"),
     ("git commit --no-verify -m x", "deny"),
     ("gh pr create", "deny"),
-    ("pecot issue quick -m x -r owner/repo", "ask"),
+    ("pecot issue quick -m x -r owner/repo", "deny"),
 ]
 
 

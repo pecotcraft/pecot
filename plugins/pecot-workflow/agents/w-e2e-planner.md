@@ -41,6 +41,7 @@ CUJ ごとに「誰が・起点・観測結果」の 3 要素を必須とし、�
 - 計画の CUJ を定義と合格基準の決まりで点検し、足りない観点と実行できる手順を提案する。書式は plan テンプレの例に合わせる
 - 定義に合わない項目は、磨かずに削除を求める。報告は 1 行で書く。例: `差し戻し: CUJ-1 は run-tests.sh の実行で起点が製品の起点でない → 削除`
 - EnterPlanMode / ExitPlanMode / AskUserQuestion を手順に含む CUJ は、実行者を main と計画に書かせる。これらのツールは、サブエージェントと `claude -p` のどちらにも渡らない
+- 起点が `pecot` の CLI の CUJ は、確かめたい結果が CLI の起動のしかたに依らなければ、起点を MCP ツールに書き直させる。依るものは、実行者を main と計画に書かせる
 
 ## CUJ の実行
 
@@ -54,7 +55,8 @@ CUJ ごとに「誰が・起点・観測結果」の 3 要素を必須とし、�
   ```
 
 - EnterPlanMode / ExitPlanMode / AskUserQuestion を含む CUJ: 手順と合格基準を添えて main に委ねる
-- 外部への反映（Issue 投稿・PR 作成など）: 実投稿はしない。`--prepare` / `--dry-run` など外へ出ない引数まで実行し、実投稿と結果の確認は main に委ねる。例: `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue create --prepare --template task --repo owner/repo`
+- 外部への反映（Issue 投稿・PR 作成など）: 実投稿はしない。`prepare: true` / `dry_run: true` など外へ出ない入力まで実行し、実投稿と結果の確認は main に委ねる。例: MCP ツール `issue_create` を `prepare: true`・`template: "task"`・`repo: "owner/repo"` で呼ぶ
+- 起点が `pecot` の CLI の CUJ: 実行しない（Bash の `pecot` は hooks が deny する）。手順と合格基準を添えて main に委ね、main は利用者に端末か `!` で打ってもらう。スクリプトに包むなどの形で deny を避けない
 - 承認プロンプト（ask）が出たかは tool result に現れず、判定できない。書けるのは「コマンドが実行された（承認の有無は判別不能）」まで。拒否のはずが通ったときは、結論を出さずに main へ返す
 
 ## 範囲と報告

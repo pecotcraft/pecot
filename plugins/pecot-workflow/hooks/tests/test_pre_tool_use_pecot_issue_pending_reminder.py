@@ -3,7 +3,7 @@
 
 issue-pending フラグ（w-quick / w-ready / 未知値）と tool_name の組み合わせを検証する。
 検証するのは、リマインダーの出し分け。
-案内文は、`pecot issue quick` / `issue create` のコマンドを示す。
+案内文は、MCP ツールの `issue_quick` / `issue_create` を示す。
 """
 
 from __future__ import annotations
@@ -67,7 +67,8 @@ def test_quick_flag_edit_shows_quick_reminder(ctx, script):
     result = _run(script, '{"tool_name":"Edit","tool_input":{}}')
     assert result.returncode == 0
     assert "warning: Issue filing is not complete" in result.stdout
-    assert "pecot issue quick" in result.stdout
+    assert "MCP tool issue_quick" in result.stdout
+    assert "pecot issue quick" not in result.stdout
     assert "PreToolUse" in result.stdout
 
 
@@ -76,7 +77,8 @@ def test_ready_flag_enter_plan_mode_shows_ready_reminder(ctx, script):
     result = _run(script, '{"tool_name":"EnterPlanMode","tool_input":{}}')
     assert result.returncode == 0
     assert "warning: Subtask Issue" in result.stdout
-    assert "pecot issue create --prepare" in result.stdout
+    assert "MCP tool issue_create with prepare: true" in result.stdout
+    assert "pecot issue create" not in result.stdout
 
 
 def test_flag_bash_git_checkout_shows_reminder(ctx, script):
@@ -125,8 +127,8 @@ def test_unknown_flag_value_fallback_message(ctx, script):
     result = _run(script, '{"tool_name":"Edit","tool_input":{}}')
     assert result.returncode == 0
     assert "warning: Issue filing is not complete" in result.stdout
-    assert "pecot issue quick" in result.stdout
-    assert "pecot issue create" in result.stdout
+    assert "issue_quick or issue_create" in result.stdout
+    assert "pecot issue" not in result.stdout
 
 
 def test_flag_multiedit_shows_reminder(ctx, script):

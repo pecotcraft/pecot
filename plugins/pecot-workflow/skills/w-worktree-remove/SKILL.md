@@ -10,46 +10,34 @@ argument-hint: "[WT 名]"
 
 # ワークツリー削除
 
-`pecot worktree remove` でワークツリーを削除する。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
+`worktree_remove` でワークツリーを削除する。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
 
-削除は **ローカルブランチも同時に消す**（`--keep-branch` で残せる）。リモートブランチはこのコマンドの対象外。
+削除は **ローカルブランチも同時に消す**（`keep_branch: true` で残せる）。リモートブランチはこのツールの対象外。
 
 ## 手順
 
-### Step 1: remove を叩く
+### Step 1: remove を呼ぶ
 
-対象リポの main WT で実行:
+対象リポの main WT を指して、`worktree_remove` を `name: "<NAME>"`・`directory: "<project-root>/base/<repo>"` で呼ぶ。必要なら `force: true`・`keep_branch: true` を足す。ツールは作業ディレクトリを `directory` で受けるので、`cd` しない。
 
-```bash
-cd <project-root>/base/<repo>
-pecot worktree remove <NAME> -D . [--force] [--keep-branch]
-```
+`<NAME>` は `worktree_add` が付けた名前（`wt1` など）。サブ WT が機能ブランチに移っていても、この名前で削除できる。消えるローカルブランチは `<NAME>` で、機能ブランチは残る。
 
-`<NAME>` は `worktree add` が付けた名前（`wt1` など）。サブ WT が機能ブランチに移っていても、この名前で削除できる。消えるローカルブランチは `<NAME>` で、機能ブランチは残る。
-
-オプションは `pecot worktree remove --help`。変更が残っているサブ WT を消すときは `--force`。
+入力は `worktree_remove` の入力の定義で確かめる。変更が残っているサブ WT を消すときは `force: true`。
 
 `<project-root>/<NAME>/` ディレクトリが空になれば自動で rmdir される。
 
 ### Step 2: 並行作業セットを解体する
 
-セットに含まれる各リポで、順に remove を実行する。
+セットに含まれる各リポで、順に `worktree_remove` を呼ぶ。
 
-```bash
-cd <project-root>/base/<repo-A>
-pecot worktree remove wt1 -D . --force
-
-cd <project-root>/base/<repo-B>
-pecot worktree remove wt1 -D . --force
-```
+1. `name: "wt1"`・`directory: "<project-root>/base/<repo-A>"`・`force: true`
+2. `name: "wt1"`・`directory: "<project-root>/base/<repo-B>"`・`force: true`
 
 最後のリポを remove した時点で、`<project-root>/wt1/` が rmdir される。
 
 ### Step 3: リモートブランチも消す場合
 
-remove はローカルブランチまでしか消さない。リモートの同名ブランチまで消す場合は、別途次を実行する。
+remove はローカルブランチまでしか消さない。リモートの同名ブランチまで消す場合は、別途 `delete_branch` を呼ぶ。
 
-```bash
-pecot delete-branch <owner>/<repo-A> wt1
-pecot delete-branch <owner>/<repo-B> wt1
-```
+1. `repo_ref: "<owner>/<repo-A>"`・`branch: "wt1"`
+2. `repo_ref: "<owner>/<repo-B>"`・`branch: "wt1"`

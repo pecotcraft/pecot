@@ -13,8 +13,6 @@ _dequote() {
 
 # セグメント先頭アンカー（区切りは含めない。先頭と任意の環境変数前置だけ）。
 _SEG_ANCHOR='^[[:space:]]*([A-Z_]+=[^ ]*[[:space:]]+)*'
-# pecot 起動形（クオート正規化後の裸形）: $PECOT / フルパス(/…/pecot) / pecot。
-_PECOT='(\$PECOT|[^[:space:]]*/pecot|pecot)'
 # gh 起動形: gh / フルパス(/…/gh)。
 _GH='(/[^ ]*/)?gh'
 

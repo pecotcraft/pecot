@@ -1,7 +1,9 @@
 #!/bin/bash
 # Bash の pecot から MCP ツールへ移った後の案内文（source して使う）。
 # 各関数は文を stdout に出すだけ。hook_message の kind は呼ぶ側が付ける。
-# どのスクリプトからも読まない（切り替えのフェーズで、元の文を出している箇所を差し替える）。
+# 読むのは次の 5 つ。
+# core の gh-command-check.sh・git-worktree-branch-check.sh・external-post-check.sh。
+# mcp-handlers/pecot-post-ask.sh と pre-tool-use/pecot-issue-pending-reminder.sh。
 
 # gh-command-check.sh: gh pr create の阻止。
 mcp_guidance_gh_pr_create() {
@@ -81,14 +83,6 @@ external-post-check: gh pr merge publishes a PR merge externally.
 Do not run it until the user has explicitly approved.
 The canonical route for merging is /pecot-w:w-merge.
 Merge with gh pr merge, then clean up with the MCP tool pr_cleanup.
-EOF
-}
-
-# exit-plan-comment-update.md: 承認後の計画が投稿済みの計画と違うときの打ち直しの案内。
-mcp_guidance_plan_comment_update() {
-    cat <<'EOF'
-Plan comment update: if the approved plan differs from the posted one, fix the posted file.
-Then call the MCP tool issue_comment with that file again.
 EOF
 }
 

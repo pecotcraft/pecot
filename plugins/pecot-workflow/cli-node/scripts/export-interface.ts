@@ -1,14 +1,14 @@
 // cli-node のコマンド一覧（COMMANDS）から、interface/generated.json の項目を作る。
 // 形と決定性の決めは specs/022-interface-definitions/contracts/definition-format.md にある。
-import { readFileSync, realpathSync } from 'node:fs'
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
 import { z } from 'zod'
 
-import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.js'
-import { generatedEntrySchema, generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
+import { diffGenerated, formatStale } from '../../../../libs/interface-spec/src/domain/diff.js'
+import { generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { interfaceIdOf } from '../src/commands/command-definition.js'
 import { normalizeInput } from '../src/commands/input-schema.js'
 import { byName, flagOf } from '../src/commands/names.js'
@@ -71,11 +71,13 @@ export function exportEntries(commands: readonly CommandDefinition[]): Interface
 }
 
 export interface MainOptions {
-  // 比べる定義書。既定は plugins/pecot-workflow/interface/generated.json
+  // 比べる・書く定義書。既定は plugins/pecot-workflow/interface/generated.json
   readonly target?: string
 }
 
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, '../../../..')
 const DEFAULT_TARGET = path.resolve(import.meta.dirname, '../../interface/generated.json')
+const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli-node exec tsx scripts/export-interface.ts --write'
 
 function reasonOf(error: unknown): string {
   if (error instanceof z.ZodError) return issuesOf(error)
@@ -101,45 +103,60 @@ function duplicatesOf(ids: readonly string[]): string[] {
   return [...duplicated].toSorted(byName)
 }
 
-/**
-登録したコマンドの項目だけを、定義書の同じ ID の項目と、surfaces.mcp を除いて比べる
-*/
-function check(entries: readonly InterfaceEntry[], target: string, output: Readonly<ReturnType<typeof createOutput>>): number {
-  let authored: GeneratedFile
-  try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 既定は固定パス、テストは一時ファイルを渡す
-    authored = generatedFileSchema.parse(JSON.parse(readFileSync(target, 'utf8')))
-  }
-  catch (error) {
-    output.error(`cannot read ${target}: ${reasonOf(error)}`)
-    return 1
-  }
-  const duplicated = duplicatesOf(entries.map(entry => entry.id))
-  if (duplicated.length > 0) {
-    output.error(`duplicate ids: ${duplicated.join(', ')}`)
-    return 1
-  }
-  const ids = new Set(entries.map(entry => entry.id))
-  const nodeEntries: GeneratedFile['entries'] = []
-  for (const { surfaces, ...rest } of entries) {
-    const parsed = generatedEntrySchema.safeParse({ ...rest, surfaces: { cli: surfaces.cli } })
-    if (!parsed.success) {
-      output.error(`${rest.id}: invalid entry: ${issuesOf(parsed.error)}`)
-      return 1
-    }
-    nodeEntries.push(parsed.data)
-  }
-  const node: GeneratedFile = { format: authored.format, plugin: authored.plugin, prefix: authored.prefix, entries: nodeEntries }
-  const picked = authored.entries
-    .filter(entry => ids.has(entry.id))
-    .map(({ surfaces, ...rest }) => ({ ...rest, surfaces: { ...(surfaces.cli !== undefined && { cli: surfaces.cli }) } }))
-  const lines = diffGenerated({ ...authored, entries: picked }, node)
-  for (const line of lines) output.error(line)
-  return lines.length === 0 ? 0 : 1
+function shownOf(target: string): string {
+  const relative = path.relative(REPOSITORY_ROOT, target)
+  return relative.startsWith('..') ? target : relative.split(path.sep).join('/')
 }
 
 /**
-`--check` か `--write` を受ける。登録が 0 件の間は定義書に触れない
+コマンドの項目を、generated.json の書式（挿入順・字下げ 2・末尾に改行 1 つ）の文字列にする
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない
+function serialize(file: Readonly<GeneratedFile>): string {
+  return `${JSON.stringify(file, undefined, 2)}\n`
+}
+
+function build(entries: readonly InterfaceEntry[]): GeneratedFile {
+  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries })
+}
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない
+function write(file: Readonly<GeneratedFile>, target: string, io: CommandIo): number {
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 既定は固定パス、テストは一時ファイルを渡す
+    writeFileSync(target, serialize(file))
+  }
+  catch (error) {
+    io.stderr(`error: cannot write ${shownOf(target)}: ${reasonOf(error)}\n`)
+    return 1
+  }
+  io.stdout(`wrote: ${shownOf(target)}\n`)
+  return 0
+}
+
+/**
+定義書の全項目を、Node の COMMANDS から作った項目と比べる。絞り込みはしない
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない
+function check(file: Readonly<GeneratedFile>, target: string, io: CommandIo): number {
+  let lines: string[]
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 既定は固定パス、テストは一時ファイルを渡す
+    const current = readFileSync(target, 'utf8')
+    if (current === serialize(file)) return 0
+    lines = diffGenerated(generatedFileSchema.parse(JSON.parse(current)), file)
+  }
+  catch (error) {
+    io.stderr(`error: cannot read ${shownOf(target)}: ${reasonOf(error)}\n  run: ${WRITE_COMMAND}\n`)
+    return 1
+  }
+  const stale = formatStale(shownOf(target), lines, WRITE_COMMAND)
+  for (const line of stale) io.stderr(`${line}\n`)
+  return 1
+}
+
+/**
+`--check` か `--write` を受ける
 */
 export function main(argv: readonly string[], io: CommandIo, commands: readonly CommandDefinition[] = COMMANDS, options: Readonly<MainOptions> = {}): number {
   const output = createOutput(false, io)
@@ -147,15 +164,22 @@ export function main(argv: readonly string[], io: CommandIo, commands: readonly 
     output.error('usage: export-interface.ts --check | --write')
     return 2
   }
-  if (commands.length === 0) {
-    output.warning('no commands are registered in cli-node; generated.json is left as is')
-    return 0
+  const entries = exportEntries(commands)
+  const duplicated = duplicatesOf(entries.map(entry => entry.id))
+  if (duplicated.length > 0) {
+    output.error(`duplicate ids: ${duplicated.join(', ')}`)
+    return 1
   }
-  if (argv[0] === '--write') {
-    output.error('usage: --write is not supported until the switch; use --check')
-    return 2
+  let file: GeneratedFile
+  try {
+    file = build(entries)
   }
-  return check(exportEntries(commands), options.target ?? DEFAULT_TARGET, output)
+  catch (error) {
+    output.error(`invalid entries: ${reasonOf(error)}`)
+    return 1
+  }
+  const target = options.target ?? DEFAULT_TARGET
+  return argv[0] === '--write' ? write(file, target, io) : check(file, target, io)
 }
 
 // Node の import.meta.main は engines の範囲で実験的な扱いなので、起動したファイルかどうかを realpath で比べて判定する

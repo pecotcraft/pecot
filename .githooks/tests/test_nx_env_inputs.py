@@ -110,6 +110,9 @@ _EXEMPT: dict[str, str] = {
         "pre-push で動く run-tests.sh と conftest が unset して固定する。bin/pecot の SKIP は"
         "テストが自分で env に渡す"
     ),
+    "PECOT_BOOTSTRAP_FORCE": (
+        "run-tests.sh と conftest が unset して固定する。ミラーを作り直す bootstrap テストは、自分で env に渡す"
+    ),
     "PECOT_GITHUB_API_URL": (
         "cli/tests/conftest.py が unset して固定する。前後比較のテストは、子プロセスの env に偽サーバの URL を"
         "自分で渡す"

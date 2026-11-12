@@ -35,6 +35,7 @@ export const ISOLATED_ENVIRONMENT: readonly (string | RegExp)[] = [
   'PLUGIN_DATA',
   'PECOT_SESSION_PROJECT_DIR',
   'PECOT_BOOTSTRAP_SKIP',
+  'PECOT_BOOTSTRAP_FORCE',
   'XDG_DATA_HOME',
   'HOME',
 ]

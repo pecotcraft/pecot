@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下のみ */
 // README「フック実行フロー」の表と hooks.json とエントリスクリプト実体の、三者の突合の静的な確認。
-// 突合相手は Claude 側の hooks.json で、hooks-copilot.json からは Copilot 専用のエントリだけを補う。
+// 突合相手は Claude 側の hooks.json で、com.github.copilot/hooks/hooks.json からは Copilot 専用のエントリだけを補う。
 // lib は basename でしか一致を見ず、コアガード群の内訳と中継先の呼び出し順は対象外。
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -28,7 +28,7 @@ const EXCLUDED_LIBS: ReadonlySet<string> = new Set([
 // 列 3 の「→」を、別ディスパッチャへの中継と読む lib。新しい中継ディスパッチャの明示登録を強制する。
 const RELAY_DISPATCHERS: ReadonlySet<string> = new Set(['session-start-common', 'mcp-dispatcher'])
 
-// hooks-copilot.json にだけ配線され、表に Copilot 用の行として載るエントリ。
+// com.github.copilot/hooks/hooks.json にだけ配線され、表に Copilot 用の行として載るエントリ。
 const COPILOT_ONLY_SCRIPTS: ReadonlySet<string> = new Set(['stop-copilot.sh'])
 
 // 表の第 1 列で、matcher の指定なし（全ツールが対象）を表すラベル。
@@ -205,11 +205,11 @@ function configEntries(filename: string): ConfigEntry[] {
   }))
 }
 
-// hooks.json の全エントリと、hooks-copilot.json の Copilot 専用のエントリ。
+// hooks.json の全エントリと、com.github.copilot/hooks/hooks.json の Copilot 専用のエントリ。
 function hooksJsonEntries(): ConfigEntry[] {
   return [
     ...configEntries('hooks.json'),
-    ...configEntries('hooks-copilot.json').filter(entry => COPILOT_ONLY_SCRIPTS.has(entry.name)),
+    ...configEntries('../com.github.copilot/hooks/hooks.json').filter(entry => COPILOT_ONLY_SCRIPTS.has(entry.name)),
   ]
 }
 
@@ -339,8 +339,8 @@ describe('README のフロー表', () => {
     }
   })
 
-  it('Copilot 専用のエントリは hooks-copilot.json にだけ配線され、hooks.json には無い', () => {
-    const copilotNames = new Set(configEntries('hooks-copilot.json').map(entry => entry.name))
+  it('Copilot 専用のエントリは com.github.copilot/hooks/hooks.json にだけ配線され、hooks.json には無い', () => {
+    const copilotNames = new Set(configEntries('../com.github.copilot/hooks/hooks.json').map(entry => entry.name))
     const claudeNames = new Set(configEntries('hooks.json').map(entry => entry.name))
     expect(difference(COPILOT_ONLY_SCRIPTS, copilotNames)).toEqual([])
     expect([...claudeNames].filter(name => COPILOT_ONLY_SCRIPTS.has(name))).toEqual([])

@@ -8,10 +8,11 @@ cd "${PLUGIN_ROOT}/cli"
 # nx のレーン（pecot-workflow:test-<scope>）から呼び分けるためのパラメータ化。
 #   --scope=py     : cli の pytest 2パス + compare のみ（pecot-workflow:test-py）。
 #   --scope=cli    : cli-node の vitest（pecot-workflow:test-cli）。
+#   --scope=bootstrap : bin/pecot・登録ファイルの bash テスト（pecot-workflow:test-bootstrap）。cli-node/tests/bootstrap/ 配下。
 #   --scope=hooks  : hooks の pytest 2パス + compare（pecot-workflow:test-hooks）。
 #                    cli-node の vitest の hooks project も 2パス + compare で実行する。
 #                    vitest の 2 回目も、pytest の pass 2 と同じ hermetic な環境で流す。
-#   --scope=skills : skills のスクリプトテスト pytest 単発（pecot-workflow:test-skills）。
+#   --scope=skills : cli-node の vitest（project skills）。skills・agents・hooks テンプレートの本文の確認（pecot-workflow:test-skills）。
 #   引数なし       : 全部（手動実行用の既定）。
 # env PECOT_WORKFLOW_SKIP_INSTALL=1: Node 側の install を飛ばす。
 # nx 経由（test-* target）専用のスイッチ。install は nx の別 target（pecot-workflow:install）が、dependsOn 経由で 1 push 1 回だけ実行する (#1080)。
@@ -27,18 +28,18 @@ cd "${PLUGIN_ROOT}/cli"
 # 既定の場所を確かめるテストは、自分で CLAUDE_PLUGIN_DATA を空にして起動する。
 # pytest は conftest.py が CLAUDE_PLUGIN_DATA を別の一時ディレクトリへ向ける。
 # XDG_DATA_HOME は付け替えない（uv の Python の置き場まで動くため）。
-unset PLUGIN_DATA
+unset PLUGIN_DATA PECOT_BOOTSTRAP_SKIP PECOT_BOOTSTRAP_FORCE
 GATE_PLUGIN_DATA="$(mktemp -d)"
 export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 
 SCOPE="all"
 for arg in "$@"; do
     case "$arg" in
-        --scope=py | --scope=cli | --scope=hooks | --scope=skills | --scope=all)
+        --scope=py | --scope=cli | --scope=bootstrap | --scope=hooks | --scope=skills | --scope=all)
             SCOPE="${arg#--scope=}"
             ;;
         *)
-            echo "ERROR: 未対応の引数: $arg (使用可能: --scope=py|cli|hooks|skills|all)" >&2
+            echo "ERROR: 未対応の引数: $arg (使用可能: --scope=py|cli|bootstrap|hooks|skills|all)" >&2
             exit 1
             ;;
     esac
@@ -46,14 +47,16 @@ done
 
 RUN_PY=false
 RUN_CLI=false
+RUN_BOOTSTRAP=false
 RUN_HOOKS=false
 RUN_SKILLS=false
 case "$SCOPE" in
     py) RUN_PY=true ;;
     cli) RUN_CLI=true ;;
+    bootstrap) RUN_BOOTSTRAP=true ;;
     hooks) RUN_HOOKS=true ;;
     skills) RUN_SKILLS=true ;;
-    all) RUN_PY=true; RUN_CLI=true; RUN_HOOKS=true; RUN_SKILLS=true ;;
+    all) RUN_PY=true; RUN_CLI=true; RUN_BOOTSTRAP=true; RUN_HOOKS=true; RUN_SKILLS=true ;;
 esac
 
 SKIP_INSTALL=false
@@ -61,7 +64,7 @@ if [ "${PECOT_WORKFLOW_SKIP_INSTALL:-0}" = "1" ]; then
     SKIP_INSTALL=true
 fi
 
-if [ "$RUN_PY" = true ] || [ "$RUN_HOOKS" = true ] || [ "$RUN_SKILLS" = true ]; then
+if [ "$RUN_PY" = true ] || [ "$RUN_HOOKS" = true ]; then
     if ! command -v uv &>/dev/null; then
         echo "ERROR: plugins/pecot-workflow/ tests 実行に uv が必要です (nx test target / pre-push フック nx-affected-tests)。" >&2
         echo "  インストール: https://docs.astral.sh/uv/getting-started/installation/" >&2
@@ -80,8 +83,8 @@ fi
 # uv が排他する（venv 作成は lock_project_environment、導入は <venv>/.lock）ので安全。
 # shellcheck source=python-version.sh
 source "${SCRIPT_DIR}/python-version.sh"
-# cli は Node 側だけを使うので、Python の venv は py / hooks / skills のときだけ用意する。
-if [ "$RUN_PY" = true ] || [ "$RUN_HOOKS" = true ] || [ "$RUN_SKILLS" = true ]; then
+# cli と skills は Node 側だけを使うので、Python の venv は py / hooks のときだけ用意する。
+if [ "$RUN_PY" = true ] || [ "$RUN_HOOKS" = true ]; then
     uv sync --locked --python "$PY" || {
         echo "ERROR: cli/uv.lock が pyproject.toml と食い違うか、sync に失敗しました。修正手順: cd plugins/pecot-workflow/cli && uv lock (個別の版だけ上げるなら uv lock --upgrade-package <pkg>)" >&2
         exit 1
@@ -160,7 +163,7 @@ _run_vitest_pass2() {
 # pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
 # nx 経由では scripts/ci/install.sh（pecot-workflow:install target）が実行済み。
-if [ "$RUN_CLI" = true ] || [ "$RUN_HOOKS" = true ]; then
+if [ "$RUN_CLI" = true ] || [ "$RUN_HOOKS" = true ] || [ "$RUN_SKILLS" = true ]; then
     # shellcheck source=../../bin/_lib.sh
     . "$PLUGIN_ROOT/bin/_lib.sh"
     PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
@@ -246,6 +249,16 @@ if [ "$RUN_CLI" = true ]; then
     ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run test )
 fi
 
+if [ "$RUN_BOOTSTRAP" = true ]; then
+    # run.sh は、実 pnpm でミラーを build する CUJ。
+    # data-dir.sh は、データ置き場の解決順。manifest.sh は、登録ファイルの整合。
+    # install-record.sh は、stub pnpm でミラーを作り直す条件と世代削除を確かめる。
+    for script in run.sh data-dir.sh manifest.sh install-record.sh; do
+        echo "==> bash cli-node/tests/bootstrap/$script"
+        bash "$PLUGIN_ROOT/cli-node/tests/bootstrap/$script"
+    done
+fi
+
 if [ "$RUN_HOOKS" = true ]; then
     H_TMP1=$(mktemp -d); TMPDIRS+=("$H_TMP1")
     H_TMP2=$(mktemp -d); TMPDIRS+=("$H_TMP2")
@@ -263,14 +276,15 @@ if [ "$RUN_HOOKS" = true ]; then
     # --import-mode=importlib: test_config_dispatcher が hooks/tests と hooks/lib/tests に同名で存在するため必須。
     # pass 1 / pass 2 は並行させる (#1080)。
     echo "==> hooks pytest pass 1 (normal, parallel) + pass 2 (empty config + GIT_DIR export, parallel)"
-    uv run --no-sync pytest "$PLUGIN_ROOT/hooks/" -q \
+    # skills/w-merge/scripts/tests/ は merge-wait.sh の pytest。vitest に移すまで、ここで流す（旧 skills scope が流していた）。
+    uv run --no-sync pytest "$PLUGIN_ROOT/hooks/" "$PLUGIN_ROOT/skills/w-merge/scripts/tests/" -q \
         --no-cov -p no:cacheprovider \
         -n auto \
         --import-mode=importlib \
         --junitxml="$H_TMP1/junit.xml" &
     H_PASS1_PID=$!
 
-    _run_pytest_pass2 "$H_EMPTY" "$H_TMP2/junit.xml" --import-mode=importlib "$PLUGIN_ROOT/hooks/" &
+    _run_pytest_pass2 "$H_EMPTY" "$H_TMP2/junit.xml" --import-mode=importlib "$PLUGIN_ROOT/hooks/" "$PLUGIN_ROOT/skills/w-merge/scripts/tests/" &
     H_PASS2_PID=$!
 
     wait "$H_PASS1_PID" || H_PASS1_RC=$?
@@ -300,13 +314,14 @@ if [ "$RUN_HOOKS" = true ]; then
 fi
 
 if [ "$RUN_SKILLS" = true ]; then
-    # skills のテスト。scripts/ci/tests/ の SKILL.md 構造テストと、skills/ 配下のスクリプトテストを実行する。
-    # w-onboarding のスクリプトテストは OS 判定で WSL/macOS ケースが skip される環境依存系。
-    # cli/hooks の pass1/pass2 2 パス + compare の host 非対称検証は適用せず、単発で実行する。
-    echo "==> skills pytest (scripts/ci/tests/ と skills/)"
-    uv run --no-sync pytest "$PLUGIN_ROOT/scripts/ci/tests/" "$PLUGIN_ROOT/skills/" -q \
-        --no-cov -p no:cacheprovider \
-        --import-mode=importlib
+    # skills のテスト。本文のツール名・入力名の確認と、w-onboarding のスクリプトのテストを vitest で流す。
+    # w-onboarding のスクリプトのテストは OS 判定で WSL/macOS のケースが skip される、環境依存系。
+    # 単発で実行する（hooks のような 2 パス + compare は適用しない）。
+    V_JUNIT_SKILLS="$PLUGIN_ROOT/cli-node/test-results/junit-skills.xml"
+    rm -f "$V_JUNIT_SKILLS"
+    echo "==> skills vitest (project skills)"
+    # shellcheck disable=SC2086
+    ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run test:skills )
 fi
 
 echo "all checks passed"

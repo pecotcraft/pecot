@@ -41,12 +41,12 @@ interface SlashFlag {
 }
 
 // HOOK_WORKING_DIR 配下の .pecot/state にフラグを置く。
-function setUpSlashFlag(hookCase: HookCase, projectName: string, flagName: string, content = ''): SlashFlag {
+function setUpSlashFlag(hookCase: HookCase, projectName: string, flagName: string): SlashFlag {
   const project = path.join(hookCase.temporaryPath, projectName)
   const state = path.join(project, '.pecot', 'state')
   mkdirSync(state, { recursive: true })
   const flag = path.join(state, flagName)
-  writeFileSync(flag, content)
+  writeFileSync(flag, '')
   return { env: { HOOK_WORKING_DIR: project }, flag }
 }
 
@@ -291,44 +291,24 @@ describe('gh-command-check.sh', () => {
   })
 })
 
+// gh pr merge のユーザー承認ガード。pecot の起動は pecot-cli-deny.sh が deny し、
+// MCP ツールの投稿の ask は pecot-post-ask.sh が持つ。そのため external-post-check.sh は pecot の起動を判定しない。
 describe('external-post-check.sh', () => {
   it.for(commandRows([
-    // pecot pr create（実投稿）
-    'pecot pr create x.md',
-    'pecot pr create -m "fix bug" -t topic -b main',
-    '$PECOT pr create ./x.md',
-    // 引数なしでも承認を求める
-    'pecot pr create',
-    // クオート内の -n を除外フラグと誤認しない
-    'pecot pr create -m "fix -n bug" -t t -b main',
-    // 各起動形
-    '"$PECOT" pr create x.md',
-    '/home/vscode/.claude/plugins/pecot/pecot-w/bin/pecot pr create x.md',
-    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" pr create x.md',
-    // gh pr merge の各形
     'gh pr merge 789',
     'gh pr merge --squash',
     'GH_HOST=ghes.example.com gh pr merge 810',
     'git push && gh pr merge 1',
-    // 単独 & の後続も検出する
+    // 単独の & の後続も検出する
     'git push & gh pr merge 1',
     '/usr/bin/gh pr merge 1',
-    // 2>&1 は & 分割で断片になるが、起動形のセグメントは残る
-    'pecot pr create x.md 2>&1 | tail -5',
-    // 確認フラグは同一セグメント内にしか働かない
-    'pecot pr create --prepare && pecot pr create body.md',
-    'pecot pr create --prepare; pecot pr create body.md',
-    'pecot pr create body.md && pecot pr create --prepare',
-    'pecot pr create --prepare&&pecot pr create body.md',
-    'pecot pr create --prepare & pecot pr create body.md',
-    'pecot pr create --prepare\npecot pr create body.md',
-    'PECOT_DEBUG=1 pecot pr create --prepare && PECOT_DEBUG=1 pecot pr create body.md',
-    // 非先頭セグメントの環境変数前置
-    'pecot pr create --prepare && GH_HOST=ghes.example.com pecot pr create y.md',
-    '(pecot pr create --prepare) && (pecot pr create body.md)',
-    'echo $(pecot pr create --prepare) && pecot pr create x.md',
-    'pecot pr create --prepare | pecot pr create x.md',
-    'pecot pr create --help && pecot pr create body.md',
+    // リダイレクト 2>&1 は & で分割されるが、起動形のセグメントは残る
+    'gh pr merge 1 2>&1 | tail -5',
+    '(gh pr merge 1) && echo done',
+    'echo $(gh pr merge 1)',
+    'gh pr merge 1 --help && gh pr merge 2',
+    // pecot の起動があっても、gh pr merge 側で承認を求める
+    'pecot pr create --prepare && gh pr merge 810',
   ]))('コマンドが $label のとき、承認を求める（終了コード 11）', (row) => {
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: row.command } })
@@ -337,33 +317,21 @@ describe('external-post-check.sh', () => {
   })
 
   it.for(commandRows([
-    // 確認用フラグ（位置は問わない）は通す
+    // pecot の起動は判定しない（deny は pecot-cli-deny.sh）
+    'pecot pr create x.md',
     'pecot pr create --prepare',
-    'pecot pr create -p',
-    'pecot pr create --help',
-    'pecot pr create x.md --dry-run',
-    'pecot pr create x.md -n',
-    // 検出の対象外のサブコマンド
+    'pecot issue quick -r owner/repo -m x',
+    'pecot issue create x.md',
+    '$PECOT pr create ./x.md',
+    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue create x.md',
     'pecot pr cleanup 810',
-    'pecot pr cleanup 810 --delete-branch',
-    '"$PECOT" pr cleanup 810',
     'pecot pr read acme-labs/aist-plugin/810',
-    'pecot pr preflight',
     // 文字列内・ファイル名内
     'echo "gh pr merge"',
     'cat gh-pr-merge-notes.txt',
-    // ${PECOT} 展開形は対象外
-    '${PECOT} pr create x.md',
-    // 実投稿のセグメントが無ければ通す
-    'pecot pr create --prepare && pecot pr read acme-labs/aist-plugin/1',
-    'pecot pr create --prepare && pecot pr create --dry-run',
-    'pecot pr create --prepare && git push',
-    'pecot pr create --prepare | tee log.txt',
-    // 2>&1 の断片が確認フラグの比較を壊さない
-    'pecot pr create --prepare 2>&1',
-    'pecot pr create --dry-run x.md 2>&1 | tail -5',
-    // セグメント先頭のアンカーで先頭一致が緩んでいない
-    'mypecot pr create x.md',
+    // gh の別の操作
+    'gh pr view 810',
+    'gh pr list',
   ]))('コマンドが $label のとき、何も出力せず通す', (row) => {
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: row.command } })
@@ -371,22 +339,13 @@ describe('external-post-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('gh pr merge のとき、w-merge と pecot pr cleanup を案内する', () => {
+  it('gh pr merge のとき、w-merge と MCP ツールの pr_cleanup を案内する', () => {
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: 'gh pr merge 810' } })
     expect(result.exitCode).toBe(11)
     expect(result.stdout).toContain('/pecot-w:w-merge')
-    expect(result.stdout).toContain('pecot pr cleanup')
-  })
-
-  it('確認フラグ付きの pr create と gh pr merge が混在するとき、gh pr merge 側で承認を求める', () => {
-    const hookCase = createHookCase()
-    const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { HOOK_COMMAND: 'pecot pr create --prepare && gh pr merge 810' },
-    })
-    expect(result.exitCode).toBe(11)
-    expect(result.stdout).toContain('/pecot-w:w-merge')
-    expect(result.stdout).toContain('pecot pr cleanup')
+    expect(result.stdout).toContain('the MCP tool pr_cleanup')
+    expect(result.stdout).not.toContain('pecot pr cleanup')
   })
 
   it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
@@ -395,66 +354,7 @@ describe('external-post-check.sh', () => {
     expect(result.exitCode).toBe(2)
   })
 
-  // pr-create-slash-pending は存在だけで判定し、消費しない。どのケースもフラグの残存を確かめる。
-  it('pr-create-slash-pending があるとき、pecot pr create を通し、フラグを残す', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'pecot pr create x.md' } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it('pr-create-slash-pending があるとき、同じコマンドを繰り返しても免除が続く', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-    const first = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'pecot pr create x.md' } })
-    const second = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'pecot pr create x.md' } })
-    expect(first.exitCode).toBe(0)
-    expect(second.exitCode).toBe(0)
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it('pr-create-slash-pending があるとき、-m 形の pecot pr create も通し、フラグを残す', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-    const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { ...slash.env, HOOK_COMMAND: 'pecot pr create -m "fix" -t t -b main' },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it.for(commandRows(['pecot pr create --prepare', 'pecot pr create x.md --dry-run', 'pecot pr create x.md -n']))(
-    'pr-create-slash-pending があり、コマンドが $label のとき、通してフラグを残す',
-    (row) => {
-      const hookCase = createHookCase()
-      const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-      const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: row.command } })
-      expect(result.exitCode).toBe(0)
-      expect(isFile(slash.flag)).toBe(true)
-    },
-  )
-
-  it('pr-create-slash-pending があるとき、分割した連結コマンド全体を免除する', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-    const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { ...slash.env, HOOK_COMMAND: 'pecot pr create --prepare && pecot pr create x.md' },
-    })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it('pr-create-slash-pending があっても、gh pr merge は免除せず承認を求める', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'gh pr merge 810' } })
-    expect(result.exitCode).toBe(11)
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
+  // merge-slash-pending は存在だけで判定し、消費しない。どのケースもフラグの残存を確かめる。
   it.for(commandRows(['gh pr merge 810', 'gh pr merge 810 --squash --auto']))(
     'merge-slash-pending があり、コマンドが $label のとき、通してフラグを残す',
     (row) => {
@@ -477,60 +377,40 @@ describe('external-post-check.sh', () => {
     expect(result.stdout).toContain('warning: external-post-check:')
   })
 
-  it('merge-slash-pending があっても、pecot pr create は免除せず承認を求める', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'merge-slash-project', 'merge-slash-pending')
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'pecot pr create x.md' } })
-    expect(result.exitCode).toBe(11)
-  })
+  it.for(commandRows(['pr-create-slash-pending', 'issue-create-slash-pending']))(
+    '$label があっても、gh pr merge は免除せず承認を求める',
+    (row) => {
+      const hookCase = createHookCase()
+      const slash = setUpSlashFlag(hookCase, 'other-flag-project', row.command)
+      const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'gh pr merge 810' } })
+      expect(result.exitCode).toBe(11)
+      expect(isFile(slash.flag)).toBe(true)
+    },
+  )
 
-  it('pr-create-slash-pending が無いとき、pecot pr create は承認を求める', () => {
+  it('設定で gh-pr-merge-ask を無効にしているとき、gh pr merge を通す', () => {
     const hookCase = createHookCase()
-    const project = setUpProjectWithoutFlag(hookCase, 'noflag-project')
-    const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { HOOK_WORKING_DIR: project, HOOK_COMMAND: 'pecot pr create x.md' },
-    })
-    expect(result.exitCode).toBe(11)
-    expect(result.stdout).toContain('warning: external-post-check:')
-  })
-
-  it('設定で pecot-pr-create-ask を無効にしていても、pr-create-slash-pending があれば通す', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
     const config = path.join(hookCase.temporaryPath, 'hooks-config.json')
-    writeFileSync(config, '{"pecot-pr-create-ask": false}')
+    writeFileSync(config, '{"gh-pr-merge-ask": false}')
     const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { ...slash.env, HOOK_COMMAND: 'pecot pr create x.md', PECOT_HOOKS_CONFIG_PATH: config },
+      env: { HOOK_COMMAND: 'gh pr merge 810', PECOT_HOOKS_CONFIG_PATH: config },
     })
     expect(result.exitCode).toBe(0)
-    expect(isFile(slash.flag)).toBe(true)
+    expect(result.stdout).toBe('')
   })
 
-  // すり抜けの回帰（改行区切り・decoy のクオート文字列・シングルクオートのパス）
+  // すり抜けの回帰（改行区切り・decoy のクオート文字列）
   it.for(commandRows([
     // 改行区切りは ; と同じ区切りとして扱う
     'echo done\ngh pr merge 5',
     // decoy のクオート内の -n を除外フラグと誤認せず、後続の実コマンドを検出する
     'echo "&& gh pr merge -n stuff" && gh pr merge 5',
-    // シングルクオートで囲んだフルパスの起動
-    '\'/home/user/pecot\' pr create x.md',
   ]))('コマンドが $label のとき、すり抜けを許さず承認を求める', (row) => {
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(11)
     expect(result.stdout).toContain('warning: external-post-check:')
   })
-
-  // 別セグメントの --dry-run / -n を、同じコマンドの確認フラグと誤認しない
-  it.for(commandRows(['pecot pr create x.md && echo -n done', 'pecot pr create x.md | grep -n foo']))(
-    'コマンドが $label のとき、別セグメントのフラグを確認フラグと見なさず承認を求める',
-    (row) => {
-      const hookCase = createHookCase()
-      const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: row.command } })
-      expect(result.exitCode).toBe(11)
-      expect(result.stdout).toContain('warning: external-post-check:')
-    },
-  )
 
   // gh pr merge は確認フラグの免除を持たない
   it.for(commandRows(['gh pr merge 810 --dry-run', 'gh pr merge 810 -n']))(
@@ -542,115 +422,6 @@ describe('external-post-check.sh', () => {
       expect(result.stdout).toContain('warning: external-post-check:')
     },
   )
-
-  it.for(commandRows([
-    // pecot issue quick（実投稿）
-    'pecot issue quick -r owner/repo -m "fix"',
-    // 引数なしでも承認を求める
-    'pecot issue quick',
-    '$PECOT issue quick -r owner/repo -m x',
-    '"$PECOT" issue quick -r owner/repo -m x',
-    '/home/vscode/.claude/plugins/pecot/pecot-w/bin/pecot issue quick -m x',
-    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue quick -m x',
-    // pecot issue create（ファイル指定、-m の直接指定）
-    'pecot issue create x.md',
-    'pecot issue create phase1.md phase2.md',
-    'pecot issue create -t "t" -r owner/repo -m "body"',
-    // クオート内の -p を確認フラグと誤認しない
-    'pecot issue create x.md -m "fix -p bug"',
-    // 確認フラグは同一セグメント内にしか働かない
-    'pecot issue create --prepare --template task && pecot issue create x.md',
-    'pecot issue create --prepare; pecot issue create x.md',
-    'pecot issue create x.md && pecot issue create --prepare',
-    'pecot issue create --help && pecot issue create x.md',
-    'pecot issue quick --help && pecot issue quick -m x',
-    'PECOT_DEBUG=1 pecot issue quick -m x',
-    'git status && pecot issue quick -m x',
-    'echo done\npecot issue create x.md',
-  ]))('コマンドが $label のとき、canonical route を案内して承認を求める', (row) => {
-    const hookCase = createHookCase()
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: row.command } })
-    expect(result.exitCode).toBe(11)
-    expect(result.stdout).toContain('warning: external-post-check:')
-    expect(result.stdout).toContain('canonical route')
-  })
-
-  it.for(commandRows([
-    // 確認用フラグ（--prepare / -p）は通す
-    'pecot issue create --prepare --template task --repo owner/repo',
-    'pecot issue create -p --template task --repo owner/repo',
-    'pecot issue create --help',
-    'pecot issue quick --help',
-    'pecot issue create --prepare --template task-implement --suffix phase1 --repo o/r',
-    // 検出の対象外のサブコマンド
-    'pecot issue read acme-labs/aist-plugin/937',
-    'pecot issue reopen acme-labs/aist-plugin/937',
-    'pecot issue comment --prepare',
-    'pecot update-issue-status acme-labs/aist-plugin/1 active',
-    // 文字列内・ファイル名内
-    'echo "pecot issue quick"',
-    'cat pecot-issue-create-notes.txt',
-    // ${PECOT} 展開形は対象外（pr 側と同じ方針）
-    '${PECOT} issue quick -m x',
-    // セグメント先頭のアンカー
-    'mypecot issue quick -m x',
-    // 実投稿のセグメントが無ければ通す
-    'pecot issue create --prepare --template task --repo o/r && git status',
-  ]))('コマンドが $label のとき、issue 起票の確認を何も出力せず通す', (row) => {
-    const hookCase = createHookCase()
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { HOOK_COMMAND: row.command } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-  })
-
-  // issue-create-slash-pending は存在だけで判定し、消費しない（消費は CLI 側）。
-  it.for(commandRows([
-    'pecot issue quick -r owner/repo -m "fix"',
-    'pecot issue create x.md',
-    'pecot issue create phase1.md phase2.md',
-  ]))('issue-create-slash-pending があり、コマンドが $label のとき、通してフラグを残す', (row) => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'issue-slash-project', 'issue-create-slash-pending', 'w-quick\n')
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: row.command } })
-    expect(result.exitCode).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it('issue-create-slash-pending があっても、pecot pr create は免除せず承認を求める', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'issue-slash-project', 'issue-create-slash-pending', 'w-quick\n')
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'pecot pr create x.md' } })
-    expect(result.exitCode).toBe(11)
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it('pr-create-slash-pending があっても、pecot issue quick は免除せず承認を求める', () => {
-    const hookCase = createHookCase()
-    const slash = setUpSlashFlag(hookCase, 'slash-project', 'pr-create-slash-pending')
-    const result = runCore(hookCase, 'external-post-check.sh', { env: { ...slash.env, HOOK_COMMAND: 'pecot issue quick -m x' } })
-    expect(result.exitCode).toBe(11)
-    expect(isFile(slash.flag)).toBe(true)
-  })
-
-  it('issue-create-slash-pending が無いとき、pecot issue quick は承認を求める', () => {
-    const hookCase = createHookCase()
-    const project = setUpProjectWithoutFlag(hookCase, 'issue-noflag-project')
-    const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { HOOK_WORKING_DIR: project, HOOK_COMMAND: 'pecot issue quick -m x' },
-    })
-    expect(result.exitCode).toBe(11)
-  })
-
-  // どちらも終了コード 11 なので、issue 側のメッセージにしか無い語で見分ける。
-  it('issue と pr の承認が混在するとき、issue のチェックを先に確定する', () => {
-    const hookCase = createHookCase()
-    const result = runCore(hookCase, 'external-post-check.sh', {
-      env: { HOOK_COMMAND: 'pecot issue quick -m x && pecot pr create x.md' },
-    })
-    expect(result.exitCode).toBe(11)
-    expect(result.stdout).toContain('canonical route')
-  })
 })
 
 function runWorktreeCheck(hookCase: HookCase, repository: string, command: string, workingDirectory: string | undefined): RunResult {

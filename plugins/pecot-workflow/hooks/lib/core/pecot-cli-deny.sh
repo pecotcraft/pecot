@@ -1,9 +1,11 @@
 #!/bin/bash
 # Bash の pecot 起動を検出し、対応する MCP ツールの使用を促して阻止するコアチェック。入力は HOOK_COMMAND。
-# 起動形は共有の _PECOT より締める（pecot の後ろは空白か行末、パス部分に = を含めない）。接続は切り替えのフェーズ。
+# 起動形は pecot の後ろが空白か行末で、パス部分に = を含めない。
+# claude-bash-guards.sh が、git-no-verify-check の後、external-post-check の前に呼ぶ。exit 1 を deny にする。
+# 設定キー pecot-cli-deny（既定 true）で無効にできる。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-source "${SCRIPT_DIR}/hook-message.sh"
+source "${SCRIPT_DIR}/config-dispatcher.sh"
 source "${SCRIPT_DIR}/command-segments.sh"
 source "${SCRIPT_DIR}/pecot-tool-names.sh"
 
@@ -12,14 +14,20 @@ if [ -z "$HOOK_COMMAND" ]; then
   exit 2
 fi
 
+pecot_hook_enabled "pecot-cli-deny" true || exit 0
+
 # ヒアドキュメントの本文の行と、区切り文字を含むクオートの範囲を除き、改行は ; にする。
+# 行末の `\` と改行は、空白 1 つに畳む（継続行は 1 つのコマンドの続き）。
+# クオートの外で語頭にある `#` から行末まではコメントで、末尾が `\` でも継続にしない。
+# ヒアドキュメントの本文の行に入ったら、継続の状態を戻す（終端の次の行を前の行とつなげない）。
 # `<<<` と、クオート内の `<<` は、ヒアドキュメントと扱わない。
 _strip_non_commands() {
   printf '%s\n' "$1" | awk '
-    BEGIN { sq = sprintf("%c", 39); dq = "\""; inq = ""; out = ""; first = 1; nh = 0 }
+    BEGIN { sq = sprintf("%c", 39); dq = "\""; inq = ""; out = ""; first = 1; nh = 0; cont = 0 }
     {
       line = $0
       if (nh > 0) {
+        cont = 0
         cmp = line
         if (hdash[1]) sub(/^\t+/, "", cmp)
         if (cmp == hd[1]) {
@@ -28,8 +36,8 @@ _strip_non_commands() {
         }
         next
       }
-      if (!first) { if (inq == "") out = out ";"; else span = span "\n" }
-      first = 0
+      if (!first && !cont) { if (inq == "") out = out ";"; else span = span "\n" }
+      first = 0; cont = 0
       n = length(line); i = 1
       while (i <= n) {
         c = substr(line, i, 1)
@@ -37,10 +45,16 @@ _strip_non_commands() {
           if (c == inq) {
             if (span !~ /[[:space:];&|()`]/) out = out span
             inq = ""; span = ""
+          } else if (c == "\\" && inq == dq && i == n) {
+            cont = 1
           } else if (c == "\\" && inq == dq) {
             span = span c substr(line, i + 1, 1); i++
           } else span = span c
           i++
+        } else if (c == "#" && (i == 1 || substr(line, i - 1, 1) ~ /[[:space:];&|(]/)) {
+          i = n + 1
+        } else if (c == "\\" && i == n) {
+          out = out " "; cont = 1; i++
         } else if (c == "\\") {
           out = out c substr(line, i + 1, 1); i += 2
         } else if (c == sq || c == dq) {
@@ -68,8 +82,8 @@ _strip_non_commands() {
 
 HOOK_COMMAND="$(_strip_non_commands "$HOOK_COMMAND")"
 
-_DENY_PECOT='(\$PECOT|[^[:space:]=]*/pecot|pecot)'
-_DENY_PATTERN="${_SEG_ANCHOR}${_DENY_PECOT}([[:space:]]+(.*))?\$"
+_DENY_LAUNCHER='(\$PECOT|[^[:space:]=]*/pecot|pecot)'
+_DENY_PATTERN="${_SEG_ANCHOR}${_DENY_LAUNCHER}([[:space:]]+(.*))?\$"
 
 # 起動形のあとの語から、MCP ツール名を決める。2 語をつないだ名前を先に、無ければ 1 語目を見る。
 _tool_for_words() {

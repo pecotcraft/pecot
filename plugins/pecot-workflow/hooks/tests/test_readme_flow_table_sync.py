@@ -11,11 +11,11 @@ README 内の突合対象節も互いに重ならない。
 
 突合相手は Claude 側 `hooks.json` を基本とする。
 表が Claude 側の構成を記述しているため。
-`hooks-copilot.json` は次の点で意図的に非対称なため、Copilot 専用のエントリ（`_COPILOT_ONLY_SCRIPTS`）だけを補う。
-補う元は `hooks-copilot.json`。
+`com.github.copilot/hooks/hooks.json` は次の点で意図的に非対称なため、Copilot 専用のエントリ（`_COPILOT_ONLY_SCRIPTS`）だけを補う。
+補う元は `com.github.copilot/hooks/hooks.json`。
 
 - Notification イベントを持たない。Copilot CLI 非対応のため除外している
-  対象は `hooks-copilot.json` で、description に次の文言を明記している。
+  対象は `com.github.copilot/hooks/hooks.json` で、description に次の文言を明記している。
   "Notification event excluded for Copilot CLI compatibility"。
 - WebSearch の登録（`pre-tool-use-websearch.sh`）を持たない。
   `websearch-allow.sh` が返す `permissionDecision: allow` は Claude Code 形式。
@@ -86,7 +86,7 @@ _RELAY_DISPATCHERS: frozenset[str] = frozenset(
     }
 )
 
-# `hooks-copilot.json` にだけ配線され、表に Copilot 用の行として載るエントリ。
+# `com.github.copilot/hooks/hooks.json` にだけ配線され、表に Copilot 用の行として載るエントリ。
 _COPILOT_ONLY_SCRIPTS: frozenset[str] = frozenset({"stop-copilot.sh"})
 
 # 表の第 1 列で「matcher 指定なし（全ツール対象）」を表すラベル。
@@ -293,10 +293,13 @@ def _expand_pattern(hooks_dir: Path, pattern: str) -> list[str]:
 
 
 def _hooks_json_entries(hooks_dir: Path) -> set[tuple[str, str | None, str]]:
-    """hooks.json（と hooks-copilot.json の Copilot 専用エントリ）から (event, matcher, スクリプト basename) の 3 要素の組の集合を作る。"""
+    """hooks.json と、com.github.copilot/hooks/hooks.json の Copilot 専用エントリから集合を作る。要素は (event, matcher, スクリプト basename) の 3 つ組。"""
     entries: set[tuple[str, str | None, str]] = set()
-    for filename, only in (("hooks.json", None), ("hooks-copilot.json", _COPILOT_ONLY_SCRIPTS)):
-        config = json.loads((hooks_dir / filename).read_text(encoding="utf-8"))
+    for filename, only in (
+        ("hooks/hooks.json", None),
+        ("com.github.copilot/hooks/hooks.json", _COPILOT_ONLY_SCRIPTS),
+    ):
+        config = json.loads((hooks_dir.parent / filename).read_text(encoding="utf-8"))
         for event, blocks in config["hooks"].items():
             for block in blocks:
                 matcher = block.get("matcher")
@@ -496,9 +499,13 @@ def test_flow_table_relay_dispatch_matches_dispatcher_script(hooks_dir: Path):
 
 
 def test_copilot_only_scripts_are_wired_only_in_copilot_definition(hooks_dir: Path):
-    """Copilot 専用エントリは hooks-copilot.json にだけ配線され、hooks.json には無いこと。"""
+    """Copilot 専用エントリは com.github.copilot/hooks/hooks.json にだけ配線され、hooks.json には無いこと。"""
     claude = json.loads((hooks_dir / "hooks.json").read_text(encoding="utf-8"))
-    copilot = json.loads((hooks_dir / "hooks-copilot.json").read_text(encoding="utf-8"))
+    copilot = json.loads(
+        (hooks_dir.parent / "com.github.copilot" / "hooks" / "hooks.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
     def names(config: dict) -> set[str]:
         return {

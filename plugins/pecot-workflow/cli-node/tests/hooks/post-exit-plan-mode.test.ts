@@ -93,7 +93,7 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(result.exitCode).toBe(0)
     const text = additionalContext(result)
     expect(text).toContain('Plan comment update')
-    expect(text).toContain('pecot issue comment')
+    expect(text).toContain('MCP tool issue_comment')
     expect(text).toContain('Implementation handoff')
     expect(text).toContain('Committing is main\'s responsibility')
     expect(text).not.toContain('team_name')

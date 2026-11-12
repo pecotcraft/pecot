@@ -31,7 +31,7 @@ const MIN_GUARDED_SCRIPTS = 60
 const MIN_RESOLVED_REFERENCES = 90
 const MIN_RESOLVED_TEMPLATE_REFERENCES = 2
 
-const CONFIG_FILES: readonly string[] = ['hooks.json', 'hooks-copilot.json']
+const CONFIG_FILES: readonly string[] = ['hooks.json', '../com.github.copilot/hooks/hooks.json']
 const PLUGIN_ROOT_PREFIX = '${CLAUDE_PLUGIN_ROOT}/'
 
 // 抽出器とは独立な「鈍い」走査。

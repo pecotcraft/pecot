@@ -13,9 +13,9 @@ import { connectInMemory } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
 
 const GENERATED = path.resolve(import.meta.dirname, '../../../interface/generated.json')
-const PathSchema = z.array(z.string())
+const ToolSchema = z.object({ tool: z.string() })
 const EntrySchema = z.object({
-  surfaces: z.object({ cli: z.object({ path: PathSchema }) }),
+  surfaces: z.object({ mcp: ToolSchema }),
   input: z.looseObject({}),
 })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
@@ -62,7 +62,7 @@ describe('tools/list', () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
     const tool = tools.find(entry => entry.name === command.toolName)
-    const entry = generated.entries.find(item => item.surfaces.cli.path.join(' ') === command.path.join(' '))
+    const entry = generated.entries.find(item => item.surfaces.mcp.tool === command.toolName)
     expect(tool).toBeDefined()
     expect(entry).toBeDefined()
     expect(normalizeInput(tool?.inputSchema ?? {}, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)

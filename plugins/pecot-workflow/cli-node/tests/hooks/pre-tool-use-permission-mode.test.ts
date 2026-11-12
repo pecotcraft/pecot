@@ -18,13 +18,13 @@ const NO_FRAGMENTS: readonly string[] = []
 const ASK = { contains: ['"permissionDecision"', '"ask"'], absent: NO_FRAGMENTS }
 const DENY = { contains: ['"permissionDecision": "deny"'], absent: ['"decision"'] }
 
-// 操作と、発火するガードの期待判定。pr create / pr merge / issue quick は ask、--no-verify と gh pr create は deny。
+// 操作ごとに、発火するガードの期待判定を置く。ask になるのは gh pr merge。deny になるのは pecot の起動（pr create・issue quick）、--no-verify、gh pr create。
 const OPERATIONS = [
-  { command: 'pecot pr create x.md', expected: 'ask', decision: ASK },
+  { command: 'pecot pr create x.md', expected: 'deny', decision: DENY },
   { command: 'gh pr merge 1', expected: 'ask', decision: ASK },
   { command: 'git commit --no-verify -m x', expected: 'deny', decision: DENY },
   { command: 'gh pr create', expected: 'deny', decision: DENY },
-  { command: 'pecot issue quick -m x -r owner/repo', expected: 'ask', decision: ASK },
+  { command: 'pecot issue quick -m x -r owner/repo', expected: 'deny', decision: DENY },
 ]
 
 describe('pre-tool-use-bash.sh', () => {

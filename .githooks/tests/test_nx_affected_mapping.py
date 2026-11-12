@@ -244,7 +244,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         ),
         # w-e2e-planner.md を読むテストは 3 つある。
         # 1 つは CUJ 定義の単一化を確かめるテストで、test-hooks が持つ (#1091)。
-        # 1 つは skills の pecot 呼び出しを CLI のコマンド木と比べるテストで、test-skills が持つ (#1185)。
+        # 1 つは本文のツール名と入力名を COMMANDS の定義と比べるテスト（cli-node/tests/skills/）で、test-skills が持つ (#1185, #350)。
         # 残る 1 つは文書内の参照の実在を見るテストで、test-py が持つ。#1225 の strace 棚卸しで宣言した。
         (
             "plugins/pecot-workflow/agents/w-e2e-planner.md",
@@ -272,7 +272,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         ("plugins/pecot-visual/mcp.json", {"pecot-visual:test-bootstrap"}),
         (
             "plugins/pecot-visual/com.github.copilot/hooks/hooks.json",
-            {"pecot-visual:test-bootstrap", "pecot-visual:test-hooks"},
+            {"pecot-visual:test-bootstrap", "pecot-visual:test-hooks", "pecot-workflow:test-hooks"},
         ),
         # hook から実行用ミラーを引く解決のテストは hooks レーンだけ (#1230)。
         (
@@ -286,6 +286,23 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         ),
         ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
         ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
+        (
+            "plugins/pecot-workflow/cli-node/tests/bootstrap/data-dir.sh",
+            {"pecot-workflow:test-bootstrap"},
+        ),
+        (
+            "plugins/pecot-workflow/cli-node/tests/bootstrap/install-record.sh",
+            {"pecot-workflow:test-bootstrap"},
+        ),
+        # pecot-workflow の登録ファイルは test-bootstrap が確かめる。com.github.copilot/hooks/hooks.json は hooks のテストも読む。
+        (
+            "plugins/pecot-workflow/mcp.json",
+            {"pecot-workflow:test-bootstrap", "pecot-workflow:test-hooks"},
+        ),
+        (
+            "plugins/pecot-workflow/com.github.copilot/hooks/hooks.json",
+            {"pecot-workflow:test-bootstrap", "pecot-workflow:test-hooks"},
+        ),
         # 出力の行の期待値は、Python と Node の出力の一致のテストが両方読む (#205)。
         (
             "plugins/pecot-workflow/cli-node/tests/output/cases.json",
@@ -329,6 +346,21 @@ def test_skill_definition_change_runs_definition_check(
     レーンの inputs に直接宣言しないと、nx キャッシュが定義の変更を見逃し、確認が行われなくなる。
     """
     assert "pecot-workflow:test-hooks" in _lanes_reading(lane_input_files, changed_file)
+
+
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        "plugins/pecot-workflow/skills/w-pr/SKILL.md",
+        "plugins/pecot-workflow/agents/w-e2e-planner.md",
+        "plugins/pecot-workflow/cli-node/src/cli.ts",
+    ],
+)
+def test_skill_body_change_runs_skills_lane(
+    lane_input_files: dict[str, set[str]], changed_file: str
+) -> None:
+    """スキル・エージェント・hooks テンプレートの本文を確認する test-skills は、本文と COMMANDS の変更で動く (#350)。"""
+    assert "pecot-workflow:test-skills" in _lanes_reading(lane_input_files, changed_file)
 
 
 @pytest.mark.parametrize(
@@ -675,12 +707,21 @@ _PECOTV_TEST_LANES = {
             },
         ),
         # pecot-workflow の Node の CLI と Python の CLI は、それぞれのレーンだけを選ぶ (#1313)。
-        ("plugins/pecot-workflow/cli-node/src/cli.ts", {"pecot-workflow:test-cli"}),
+        # cli-node/src/ は COMMANDS を持ち、本文を確認する test-skills も読む。
+        # test-bootstrap の run.sh は、実の cli-node/src をミラーに build して tools/list を確かめる。
+        (
+            "plugins/pecot-workflow/cli-node/src/cli.ts",
+            {
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-bootstrap",
+                "pecot-workflow:test-skills",
+            },
+        ),
         ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow:test-py"}),
-        # baseline.json は test-cli の閾値と、test-hooks の起動スクリプトの実在確認の両方が読む。
+        # baseline.json は test-cli の閾値と、test-hooks の起動スクリプトの実在確認と、test-skills の並べ替えの関数（baseline.ts と対）が読む。
         (
             "plugins/pecot-workflow/cli-node/tests/parity/baseline.json",
-            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks"},
+            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks", "pecot-workflow:test-skills"},
         ),
         # hooks/ を読むテストは tests/hooks/ に置き、test-hooks だけが実行する。
         (
@@ -712,17 +753,20 @@ _PECOTV_TEST_LANES = {
         ),
         # 定義書の書き出し結果は、一致のテストの pecot-visual:test-cli に届く。
         ("plugins/pecot-visual/interface/generated.json", {"pecot-visual:test-cli"}),
-        # pecot-workflow の定義書は、test-cli と、Python の書き出しの確認の test-py に届く。
-        (
-            "plugins/pecot-workflow/interface/generated.json",
-            {"pecot-workflow:test-cli", "pecot-workflow:test-py"},
-        ),
+        # pecot-workflow の定義書は、一致のテストの test-cli に届く。Python の書き出しの確認は無くなったので、test-py には届かない。
+        ("plugins/pecot-workflow/interface/generated.json", {"pecot-workflow:test-cli"}),
         ("plugins/pecot-workflow/interface/authored.yaml", {"pecot-workflow:test-cli"}),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),
         (
             "plugins/pecot-workflow/runtime-lock.yaml",
-            {"pecot-workflow:test-cli", "pecot-workflow:test-hooks", *_GITHOOKS_CHECKS},
+            {
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-bootstrap",
+                "pecot-workflow:test-hooks",
+                "pecot-workflow:test-skills",
+                *_GITHOOKS_CHECKS,
+            },
         ),
         (
             "plugins/pecot-tools/runtime-lock.yaml",
@@ -888,11 +932,8 @@ def test_graph_lanes_read_every_workspace_package_json(
             "plugins/pecot-workflow/cli-node/src/cli.ts",
             {"pecot-workflow:lint-cli", "interface-spec:lint-defs"},
         ),
-        # cli のソースは、環境変数の確認のため lint-defs の inputs（targets.json の sources）にも入る。
-        (
-            "plugins/pecot-workflow/cli/core/state.py",
-            {"pecot-workflow:lint-py", "interface-spec:lint-defs"},
-        ),
+        # Python の cli のソースは、targets.json の sources から外したので、lint-defs には届かない。
+        ("plugins/pecot-workflow/cli/core/state.py", {"pecot-workflow:lint-py"}),
         # tests/hooks/ のテストも型の確認と eslint の対象。
         (
             "plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts",

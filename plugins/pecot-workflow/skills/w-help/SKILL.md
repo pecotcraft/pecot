@@ -34,7 +34,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 
 | 知りたいこと | 参照先 |
 |-------------|--------|
-| CLI コマンド一覧（引数は `--help`） | [コマンド一覧](references/commands.md) |
+| CLI コマンド一覧（MCP ツールは、コマンドの空白と `-` を `_` に替えた名前） | [コマンド一覧](references/commands.md) |
 | ボードステータスの意味 | [ボードステータス](references/board-status.md) |
 | マージ方法の使い分け | [マージ戦略](references/merge-strategy.md) |
 | スキル一覧・役割 | [スキル一覧](references/skills.md) |
@@ -46,16 +46,12 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 
 ## よくある操作
 
-CLI のヘルプは `--help` で確認できる。
+利用者が端末か `!` で打つ CLI のヘルプは `--help` で確認できる。エージェントは Bash で打たない（hooks が deny する）。エージェントは MCP ツールの入力の定義を読む。
 
-```bash
+```text
 pecot --help             # コマンド一覧
 pecot <command> --help   # サブコマンドの詳細
 pecot --version          # バージョン表示
 ```
 
-ボードの現在状態を確認したいとき:
-
-```bash
-pecot project info
-```
+ボードの現在状態を確認したいとき: `project_info` を引数なしで呼ぶ。

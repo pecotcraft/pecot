@@ -707,7 +707,6 @@ _PY_RUNTIME = (
         ("pecot-workflow:test-py", ["uv --version", _PY_RUNTIME]),
         ("pecot-workflow:lint-py", ["uv --version", _PY_RUNTIME]),
         ("pecot-workflow:test-hooks", ["uv --version"]),
-        ("pecot-workflow:test-skills", ["uv --version"]),
         ("pecot-tools:test-cli", ["aws --version | cut -d' ' -f1"]),
     ],
 )
@@ -716,6 +715,12 @@ def test_lane_specific_runtime_is_declared(
 ) -> None:
     runtime = _target_inputs(nx_bin, project_target).get("runtime", [])
     assert set(commands) <= set(runtime), runtime
+
+
+def test_skills_lane_does_not_declare_the_uv_runtime(nx_bin: Path) -> None:
+    """test-skills は vitest だけで動く。uv は要らないので、uv の版を入力に置かない。"""
+    runtime = _target_inputs(nx_bin, "pecot-workflow:test-skills").get("runtime", [])
+    assert "uv --version" not in runtime, runtime
 
 
 def test_python_runtime_does_not_duplicate_the_version(nx_bin: Path) -> None:

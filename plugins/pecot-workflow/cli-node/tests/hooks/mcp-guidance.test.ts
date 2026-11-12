@@ -1,9 +1,11 @@
 // 移行後の案内文（hooks/lib/core/mcp-guidance.sh）を固定する。
 // 各関数の出力の全文と、対応する MCP ツール名があり、pecot の起動形が無いことを確かめる。
-import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+
+import { createHookCase } from './_helpers/environment.js'
+import { runShell } from './_helpers/run.js'
 
 const guidanceScript = path.resolve(import.meta.dirname, '../../../hooks/lib/core/mcp-guidance.sh')
 
@@ -25,8 +27,6 @@ const guidances = [
       'Issue filing is not complete. Call the MCP tool issue_quick or issue_create first.\n' },
   { shellFunction: 'mcp_guidance_pr_merge', start: 'external-post-check: gh pr merge publishes a PR merge externally.', tools: ['pr_cleanup'], text:
       'external-post-check: gh pr merge publishes a PR merge externally.\n\nDo not run it until the user has explicitly approved.\nThe canonical route for merging is /pecot-w:w-merge.\nMerge with gh pr merge, then clean up with the MCP tool pr_cleanup.\n' },
-  { shellFunction: 'mcp_guidance_plan_comment_update', start: 'Plan comment update:', tools: ['issue_comment'], text:
-      'Plan comment update: if the approved plan differs from the posted one, fix the posted file.\nThen call the MCP tool issue_comment with that file again.\n' },
   { shellFunction: 'mcp_guidance_post_ask_issue', start: 'external-post-check: the MCP tools issue_create / issue_quick', tools: ['issue_create', 'issue_quick', 'prepare: true'], text:
       'external-post-check: the MCP tools issue_create / issue_quick (a real post) publish an Issue externally.\n\nDo not call them until the user has explicitly approved.\nThe canonical routes for filing are these skills:\n/pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.\nTo only generate a template, call issue_create with prepare: true.\nThe tool issue_quick has no prepare.\n' },
   { shellFunction: 'mcp_guidance_post_ask_pr', start: 'external-post-check: the MCP tool pr_create', tools: ['pr_create', 'prepare: true', 'dry_run: true'], text:
@@ -34,8 +34,8 @@ const guidances = [
 ]
 
 function guidanceOf(shellFunction: string): string {
-  const result = spawnSync('bash', ['-c', `source "${guidanceScript}"; ${shellFunction}`], { encoding: 'utf8', env: { PATH: process.env['PATH'] ?? '' } })
-  expect(result.status).toBe(0)
+  const result = runShell(createHookCase(), 'source "$1"; "$2"', [guidanceScript, shellFunction])
+  expect(result.exitCode).toBe(0)
   return result.stdout
 }
 

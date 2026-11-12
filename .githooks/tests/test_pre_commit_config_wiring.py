@@ -179,7 +179,6 @@ def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path
         "plugins/pecot-workflow/.claude-plugin/plugin.json",
         "plugins/pecot-visual/.github/plugin/plugin.json",
         "plugins/pecot-workflow/hooks/hooks.json",
-        "plugins/pecot-workflow/hooks/hooks-copilot.json",
         "plugins/pecot-tools/.mcp.json",
         "plugins/pecot-workflow/skills/w-pr/SKILL.md",
         "plugins/pecot-visual/skills/v-drawio/SKILL.md",

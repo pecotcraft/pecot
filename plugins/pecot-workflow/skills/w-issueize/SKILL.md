@@ -22,9 +22,7 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 - `SPECKIT_DIR`: speckit 一式が置かれているディレクトリ（例: `specs/263-plan-mode-reminder/`）。aist-roadmap など外部リポにある場合は `owner/repo:specs/NNN-*/` 形式で表す。
 - `TASKS_PATH`: 受け取った tasks.md の実パス
 
-```bash
-pecot issue read owner/repo/EPIC_NUMBER
-```
+`issue_read` を `issue_ref: "owner/repo/EPIC_NUMBER"` で呼ぶ。
 
 ### Step 2: フェーズ構造を把握し、番号を決める
 
@@ -59,17 +57,12 @@ Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本�
 
 ### Step 3: 各フェーズをIssueとして作成する
 
-フェーズ数だけテンプレートを生成する。
+フェーズ数だけテンプレートを生成する。`issue_create` を `prepare: true`・`template: "task-implement"`・`suffix: "phase1"`・`repo: "<owner/repo>"` で呼ぶ。`suffix` を `phase2`、`phase3` … と変えて、フェーズの数だけ繰り返す。
 
-```bash
-pecot issue create --prepare --template task-implement --suffix phase1 --repo <owner/repo>
-pecot issue create --prepare --template task-implement --suffix phase2 --repo <owner/repo>
-```
-
-`--repo <owner/repo>` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
+`repo: "<owner/repo>"` は、**実装コードを置くリポ** を指定する（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
-`title` / `parent_epic` を設定し、`order` に段、`parallel` に枝を Step 2 の表どおりに書く。`repository` には、`--repo` で指定した値が入っている。
+`title` / `parent_epic` を設定し、`order` に段、`parallel` に枝を Step 2 の表どおりに書く。`repository` には、`repo` で指定した値が入っている。
 
 tasks.md にある絵文字（`🎯 MVP` 等）は Issue ファイルに写さない。本文に絵文字があると投稿時の検証で落ち、一括投稿が途中で止まる。
 
@@ -84,12 +77,8 @@ before / after の例を示す。
 +`acme-labs/aist-roadmap:specs/263-plan-mode-reminder/`
 ```
 
-全フェーズ分のファイルを Step 2 の番号の順に並べ、1 回のコマンドで一括投稿する。
-複数回に分けて実行しない。
-
-```bash
-pecot issue create <phase1のファイル> <phase2のファイル> ...
-```
+全フェーズ分のファイルを Step 2 の番号の順に並べ、1 回の呼び出しで一括投稿する。
+複数回に分けて呼ばない。`issue_create` を `files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。
 
 ### Step 4: 完了報告
 

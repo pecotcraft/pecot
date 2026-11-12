@@ -145,7 +145,7 @@ def test_context7_copilot_tool_name_no_allow(state_dir, hook_script, hooks_confi
 def test_copilot_github_mcp_pr_create_denies(state_dir, hook_script, hooks_config):
     # Copilot CLI 1.0.103 の MCP ツール名は <mcpServers のキー>-<ツール名>。
     # 組み込みの GitHub MCP の PR 作成（--enable-all-github-mcp-tools）を、起点にして踏む。
-    # 経由する matcher は、hooks-copilot.json の `mcp__.*|github-mcp-server-create_pull_request`。
+    # 経由するのは Copilot の hooks.json の matcher。`mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*`。
     hooks_config.write({})
     input_json = '{"tool_name":"github-mcp-server-create_pull_request","tool_input":{}}'
     result = _run(hook_script, input_json)
@@ -176,7 +176,7 @@ def test_pecot_pr_create_asks(state_dir, hook_script, hooks_config):
     result = _run(hook_script, input_json)
     assert result.returncode == 0
     assert '"permissionDecision": "ask"' in result.stdout
-    assert "external-post-check: pecot pr create" in result.stdout
+    assert "external-post-check: the MCP tool pr_create" in result.stdout
 
 
 def test_pecot_issue_create_prepare_passes(state_dir, hook_script, hooks_config):

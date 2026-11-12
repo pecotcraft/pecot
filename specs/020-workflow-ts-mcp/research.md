@@ -258,7 +258,7 @@ pytest の差し替えの読み替えは次の表のとおり。
 | 項目 | 内容 |
 |---|---|
 | 計った式 | `git grep -ohE '\bpecot"? +(issue\|pr\|project\|session\|worktree\|release\|security\|dependabot\|add-to-project\|update-issue-status\|create-branch\|delete-branch)\b' -- 'plugins/pecot-workflow/skills/**' 'plugins/pecot-workflow/agents/**' 'plugins/pecot-workflow/hooks/templates/**' \| wc -l`。行ではなく、出現の数を数える |
-| 計った値 | 2026-11-11 に上の式で数え直した。28 ファイル 202 箇所。`skills/*/SKILL.md` が 15 ファイル 91 箇所、`skills/*/references/` が 11 ファイル 109 箇所、`agents/` が 1 ファイル 1 箇所、`hooks/templates/` が 1 ファイル 1 箇所。`$PECOT` の変数は 0 箇所 |
+| 計った値 | 2026-11-12 に上の式で数え直した。28 ファイル 203 箇所（2026-11-11 に 202 と書いたが、書き換えの前に数え直すと 203 だった）。`skills/*/SKILL.md` が 15 ファイル 92 箇所、`skills/*/references/` が 11 ファイル 109 箇所、`agents/` が 1 ファイル 1 箇所、`hooks/templates/` が 1 ファイル 1 箇所。`$PECOT` の変数は 0 箇所 |
 | 決定 | エージェントに Bash で実行させる記述を、MCP ツールの呼び出しに書き換える。利用者が端末で打つコマンドの説明は CLI のまま残してよい。`w-help` の `references/commands.md` は定義書の `surfaces.cli` だけを読むので、切り替えで変わらず、手で直さない |
 | 決定 | 書き換える対象には、`skills/*/SKILL.md` の frontmatter の `allowed-tools` にある `Bash(*/bin/pecot ...)`（MCP ツールの名前に替える）と、`agents/w-e2e-planner.md` の `"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue create --prepare` も入る |
 | 決定 | 書き換えるのは、コードブロックの中の呼び出しと、コードブロックの外で手順として実行を指示する文。フェーズ 11 のテスト（`tests/skills/tool-names.test.ts`）は、残す箇所のファイルと行の一覧を持ち、`pecot <サブコマンド>` の残りが一覧と同じであることを確かめる |

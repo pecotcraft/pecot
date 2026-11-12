@@ -50,7 +50,12 @@ def _isolate_plugin_data_env(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
-    for key in ("PLUGIN_DATA", "PECOT_BOOTSTRAP_SKIP", "PECOT_GITHUB_API_URL"):
+    for key in (
+        "PLUGIN_DATA",
+        "PECOT_BOOTSTRAP_SKIP",
+        "PECOT_BOOTSTRAP_FORCE",
+        "PECOT_GITHUB_API_URL",
+    ):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(tmp_path_factory.mktemp("plugin-data")))
 

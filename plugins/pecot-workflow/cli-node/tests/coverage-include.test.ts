@@ -31,6 +31,14 @@ describe('coverage', () => {
     expect(matched).toContain('tests/mcp/worktree-link.test.ts')
   })
 
+  it('skills project の include が、tests/skills/ の実在するテストに当たる', () => {
+    const project = config.test?.projects?.find(entry => typeof entry === 'object' && 'test' in entry && entry.test.name === 'skills')
+    const include = typeof project === 'object' && 'test' in project ? project.test.include ?? [] : []
+    const matched = include.flatMap(pattern => globSync(pattern, { cwd: cliRoot }))
+    expect(matched).toContain('tests/skills/tool-names.test.ts')
+    expect(matched).toContain('tests/skills/open-browser.test.ts')
+  })
+
   it('lines の閾値は baseline の行カバレッジと 90 の大きいほう', () => {
     expect(coverage?.thresholds?.lines).toBe(Math.max(readBaseline().cli.lineCoverage, 90))
   })

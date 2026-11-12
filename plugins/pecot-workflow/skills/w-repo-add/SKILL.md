@@ -16,12 +16,10 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 ### Step 1: アクティブプロジェクトの確認
 
-```bash
-pecot project info
-```
+`project_info` を引数なしで呼ぶ。
 
 プロジェクト情報が表示された場合は Step 2 へ。
-`error: no active project` が出力された場合は以下を案内して終了:
+結果に `error: no active project` が出た場合は以下を案内して終了:
 
 ```text
 アクティブなプロジェクトがありません。
@@ -92,43 +90,42 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 ### Step 3: リポジトリ追加
 
-ヒアリング結果に応じて `project set-repo` を実行する。
+ヒアリング結果に応じて `project_set_repo` を呼ぶ。
 
 **単一 CHANGELOG モード** (質問4 で「単一」を選択):
 
-```bash
-pecot project set-repo <owner/repo> --develop-branch <branch> --release-branch <branch> --changelog-file <ファイル名>
-```
+`project_set_repo` を次の入力で呼ぶ。
+
+- `owner_repo: "<owner/repo>"`
+- `develop_branch: "<branch>"`
+- `release_branch: "<branch>"`
+- `changelog_file: "<ファイル名>"`
 
 **monorepo モード** (質問4 で「monorepo」を選択):
 
-```bash
-pecot project set-repo <owner/repo> --develop-branch <branch> --release-branch <branch> \
-  --package <name1>:<changelog path1> \
-  --package <name2>:<changelog path2>
-```
+`project_set_repo` を次の入力で呼ぶ。
+
+- `owner_repo: "<owner/repo>"`
+- `develop_branch: "<branch>"`
+- `release_branch: "<branch>"`
+- `package: ["<name1>:<changelog path1>", "<name2>:<changelog path2>"]`
 
 **リリースブランチ未設定**（CHANGELOG 質問なし）の場合は次のとおり。
+`project_set_repo` を `owner_repo: "<owner/repo>"`・`develop_branch: "<branch>"` で呼ぶ。
 
-```bash
-pecot project set-repo <owner/repo> --develop-branch <branch>
-```
-
-| 引数・オプション | 説明 |
+| 入力 | 説明 |
 |------|------|
 | `owner_repo` | Step 2.2 で確認した owner/repo（必須） |
-| `--develop-branch, -b` | 質問1で選択した開発ブランチ名 |
-| `--release-branch` | 質問2で選択したリリースブランチ名（設定時のみ） |
-| `--changelog-file` | 単一モード時のみ。デフォルト以外の場合のみ指定 |
-| `--package NAME:PATH` | monorepo モード時のみ。package 数だけ繰り返し指定 |
+| `develop_branch` | 質問1で選択した開発ブランチ名 |
+| `release_branch` | 質問2で選択したリリースブランチ名（設定時のみ） |
+| `changelog_file` | 単一モード時のみ。デフォルト以外の場合のみ指定 |
+| `package` | monorepo モード時のみ。`NAME:PATH` の配列で、package 数だけ渡す |
 
-`--changelog-file` と `--package` は排他。`project set-repo` を経由しないと設定ファイルが更新されず、ボード表示が正しく動作しない。
+`changelog_file` と `package` は排他。`project_set_repo` を経由しないと設定ファイルが更新されず、ボード表示が正しく動作しない。
 
 ### Step 4: 動作確認
 
-```bash
-pecot project info
-```
+`project_info` を引数なしで呼ぶ。
 
 `Registered repositories` セクションに追加したリポジトリが表示されれば成功。
 

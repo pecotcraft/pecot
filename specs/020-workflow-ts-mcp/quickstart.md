@@ -82,13 +82,13 @@ npx nx run interface-spec:docs
 |---|---|---|---|---|---|
 | 1 | 人 | Claude Code | Python と uv の無い環境で `claude --plugin-dir plugins/pecot-workflow` を起動し、「ボードの状態を見せて」と頼む | データ置き場の `runtime/` にミラーがあり、記録に `project_info` の呼び出しと結果がある（SC-001） | フェーズ 11 の PR の中 |
 | 2 | 人 | Copilot CLI | 対象の Epic を決め、`/pecot-w:w-breakdown` を実行する。specify の手前（Epic を読んだところ）で止める | `project_info` と `issue_read` が呼ばれ、データ置き場が見つからずに止まることがない（SC-002） | フェーズ 11 の PR の中 |
-| 3 | 人 | 両方 | 検証用のリポで、スラッシュコマンドの外から、エージェントに `issue_create` を呼ばせる。確認の画面で拒否する | 確認の画面に `pecot-issue-create-ask` の理由が出る。文言は移行前と同じ（[contracts/hooks-guard.md](./contracts/hooks-guard.md)） | フェーズ 11 の PR の中 |
+| 3 | 人 | 両方 | 検証用のリポで、スラッシュコマンドの外から、エージェントに `issue_create` を呼ばせる。確認の画面で拒否する | 確認の画面に `pecot-issue-create-ask` の理由が出る。文は `mcp_guidance_post_ask_issue`（MCP の入力名で書いた版。[contracts/hooks-guard.md](./contracts/hooks-guard.md)） | フェーズ 11 の PR の中 |
 | 4 | エージェント | 両方 | エージェントに Bash で `pecot issue read owner/repo/1` を実行させる | deny され、`issue_read` を使うよう返る | フェーズ 11 の PR の中 |
 | 5 | 人 | 両方 | Claude Code は `! pecot project info`、Copilot CLI は端末で直接 `pecot project info` を打つ | 結果が出る（deny されない） | フェーズ 11 の PR の中 |
 | 6 | 人 | Claude Code | 今のリリース版で `pecot project info` を 1 回流して `venv/` を作る。同じデータ置き場のまま、`--plugin-dir` で切り替えの版を起動する | `venv/` が消え、ボードの設定とセッション状態はそのまま読める | `--plugin-dir` での確認はフェーズ 11 の PR の中、実際の更新はリリースの後 |
 | 7 | エージェント | 両方 | `worktree_link` を `force` なしで呼ぶ。上書き先に実ファイルがある | 上書きされずに中止する。実ファイルが残り、入力の終端と同じ結果になる | フェーズ 11 の PR の中 |
 | 8 | 人 | 両方 | プラグインを入れていない MCP クライアントに、1 エントリだけ登録する。リリースの前は、dry-run の配布ツリーを `npx -y <配布ツリーのパス>` で起動する。npm に出た後は `npx -y @pecot/workflow-mcp` | 34 個のツールが見え、`project_info` が結果を返す（SC-008） | 配布ツリーはフェーズ 13 の PR の中、npm に出た後の確認はリリースの後 |
-| 9 | エージェント | 両方 | 時間のかかるツール（`release_preflight`）を MCP で呼ぶ | タイムアウトせず、同じ引数の `pecot release preflight` の標準出力と一致する | フェーズ 11 の PR の中 |
+| 9 | エージェント | 両方 | 時間のかかるツール（`release_preflight`）を MCP で呼ぶ | タイムアウトせず、同じ引数の `pecot release preflight` と、標準出力・標準エラー・終了コードが一致する（標準出力が空なら、結果のブロックは標準エラーだけになる） | フェーズ 11 の PR の中 |
 | 10 | 人 | 両方 | `/pecot-w:w-quick` などでプランモードに入り、承認前に計画を Issue のコメントへ投稿してから、プランを承認する。計画が変われば `issue_comment` を打ち直す | 承認後の案内が `issue_comment` を指し、投稿と打ち直しが deny されない。計画が Issue のコメントに出る | フェーズ 11 の PR の中 |
 
 次の CUJ は、フェーズ 11 で `bin/pecot` と `.mcp.json` が切り替わった後に確かめる。
@@ -134,13 +134,28 @@ Node の中央値が Python の中央値以下（SC-009）。2 つの中央値�
 
 ## Python と uv の無い環境
 
-`PATH` に、必要なコマンドだけを置いたディレクトリを指すシェルを使う。devcontainer の外の素の Node 環境でもよい。
+`PATH` の各ディレクトリから、python・python3・uv・uvx 以外へのリンクを張ったディレクトリを作り、その `PATH` のシェルを使う。
+devcontainer の外の素の Node 環境でもよい。
 
 ```bash
-bin=.pecot/work/<Issue番号>/nopython-bin
+bin="$PWD/.pecot/work/<Issue番号>/nopython-bin"
 mkdir -p "$bin"
-for c in node npx git gh jq claude bash sh env cat sed grep awk tr dirname realpath mkdir rm ls; do ln -sf "$(command -v $c)" "$bin/$c"; done
-env PATH="$PWD/$bin" bash --noprofile --norc -c 'command -v python3 python uv uvx || echo "見つからない（期待どおり）"'
+(
+  IFS=:
+  for dir in $PATH; do
+    [ -d "$dir" ] || continue
+    for entry in "$dir"/*; do
+      name="${entry##*/}"
+      case "$name" in python*|uv|uvx|pip*) continue ;; esac
+      [ -x "$entry" ] && [ ! -d "$entry" ] || continue
+      [ -e "$bin/$name" ] || ln -s "$entry" "$bin/$name"
+    done
+  done
+)
+env PATH="$bin" bash --noprofile --norc -c 'type -P python3 python uv uvx || echo "見つからない（期待どおり）"'
+env PATH="$bin" bash --noprofile --norc -c 'type -P node shasum sort cut tar find xargs'
 ```
 
-2 つ目の `env` が「見つからない」と出れば、この `PATH` のシェルから CUJ 1 を起動する。足りないコマンドが出たら、`for` の一覧に足す。
+1 つ目の `env` が「見つからない」と出て、2 つ目の `env` が 7 つのコマンドのパスを出せば、この `PATH` のシェルから CUJ 1 を起動する。
+`type -P` は、alias や関数を拾わず、`PATH` 上のファイルだけを見る。
+同じ作り方は `plugins/pecot-workflow/cli-node/tests/bootstrap/run.sh` の `make_filtered_bin` にある。

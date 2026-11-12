@@ -7,10 +7,6 @@
       "entries": "complete",
       "coverage": "on",
       "sources": [
-        "cli/commands/**/*.py",
-        "cli/core/**/*.py",
-        "cli/__init__.py",
-        "cli/__main__.py",
         "bin/*",
         "hooks/**/*.sh",
         "cli-node/src/*.ts",

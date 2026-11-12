@@ -1,272 +1,70 @@
 #!/usr/bin/env bash
-# pecot CLI wrapper — プラグイン同梱の cli/ をデータ置き場の venv に導入して起動する。
+# pecot CLI wrapper — プラグインのデータ置き場に作る実行用ミラーの Node ランタイムを起動する。
 #
-# 処理の順:
-#   1. PECOT_BOOTSTRAP_SKIP=1 なら本体ツリーの cli/.venv を直接実行する（開発・ゲート専用。データ置き場は使わない）
-#   2. データ置き場を解決して作る（CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所）
-#   3. lock-hash（uv.lock）と src-hash（cli/ のソース）から venv のパス ${DATA}/venv/<lock>-<src> を決める
-#   4. 完成していなければ lock 下で、cli/ の作業用コピー（ステージ）から venv を作る
-#   5. 完成印を書き、current を切り替え、使われていない古い世代を消す
-#   6. CLAUDE_PLUGIN_ROOT を export し、<venv>/.inuse の共有ロックを持ったまま実体を exec する
+# 依存（node_modules）と build 成果物は、プラグイン本体（CLAUDE_PLUGIN_ROOT）ではなく
+# `${データ置き場}/runtime/<deps-hash>-<src-hash>/` に作る。ハッシュが同じなら何もせず、
+# ソースだけ変わったときは build だけ、依存が変わったときだけ install する。
 #
-# - 本体（プラグインルート）には何も書かない。本体を直接 --project にすると setuptools が
-#   本体配下に pecot.egg-info/ と build/ を書くため、作業用コピーから sync する
-# - venv は shebang に絶対パスを持ち移動できないので、最終パスに作って完成印で判定する
-# - VIRTUAL_ENV / UV_NO_SYNC を unset: 利用者環境の値で同期先・同期有無が変わらないようにする
-# - --quiet: uv の進捗・warning を CLI 出力に混ぜない。準備の進捗行は stderr にだけ出す
-set -uo pipefail
+#   1. SKIP（開発・ゲート専用）: 本体ツリーの成果物を直接実行する。データ置き場は使わない
+#   2. データ置き場を解決して作る（CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所。bin/_lib.sh の plugin_data_dir_ensure）
+#   3. ミラーを用意する（bin/_lib.sh の plugin_runtime_ensure）。使用中は `.inuse` の共有ロックで示す
+#   4. 旧方式の venv（${DATA}/venv と既定の場所の venv）を、使用中でないものから片づける
+#   5. ミラーの cli を exec する
+set -euo pipefail
 
-SELF="$(realpath "$0" 2>/dev/null || python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$0")"
-SELF_DIR="$(dirname "$SELF")"
-
+# PLUGIN_ROOT を解決
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" ]; then
   PLUGIN_ROOT="$CLAUDE_PLUGIN_ROOT"
 else
-  PLUGIN_ROOT="$(cd "$SELF_DIR/.." && pwd)"
+  SELF="$(realpath "$0")"
+  PLUGIN_ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
 fi
-
-# cli の版の解決（cli/__init__.py）と hooks の参照が、この値でプラグインルートを引く
+# cli は plugin.json・cli/templates/・interface/・hooks/ を、この値から本体で読む（ミラーには入らない）。
 export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
 
-# --- 1. SKIP ---
+# source path は symlink 経由起動でも壊れないよう PLUGIN_ROOT 基準で解決する。
+# shellcheck source=./_lib.sh
+. "$PLUGIN_ROOT/bin/_lib.sh"
+
+# 1. SKIP: 本体ツリーの成果物を直接実行する（開発・ゲート専用）。
 if [ "${PECOT_BOOTSTRAP_SKIP:-}" = "1" ]; then
-  DEV_ENTRY="${PLUGIN_ROOT}/cli/.venv/bin/pecot"
-  if [ ! -x "$DEV_ENTRY" ]; then
-    echo "pecot: PECOT_BOOTSTRAP_SKIP=1 is set but ${DEV_ENTRY} does not exist. Run uv sync in cli/." >&2
+  CLI_DIST="${PLUGIN_ROOT}/cli-node/dist/cli.js"
+  if [ ! -f "$CLI_DIST" ]; then
+    echo "error: ${CLI_DIST} is missing. Build first (PECOT_BOOTSTRAP_SKIP=1 runs the source tree directly)" >&2
     exit 1
   fi
-  exec env -u VIRTUAL_ENV -u UV_NO_SYNC "$DEV_ENTRY" "$@"
+  exec node "$CLI_DIST" "$@"
 fi
 
-# shellcheck source=_lib.sh
-. "$SELF_DIR/_lib.sh"
-
-# --- 2. データ置き場の解決 ---
+# 2. データ置き場。解決順は CLAUDE_PLUGIN_DATA → PLUGIN_DATA → 既定の場所（本体配下には何も作らない）。
 DATA="$(plugin_data_dir_ensure pecot-workflow)" || exit 1
+RUNTIME_BASE="$DATA/runtime"
+PLUGIN_RUNTIME_FORCE="${PECOT_BOOTSTRAP_FORCE:-}"
 
-CLI="${PLUGIN_ROOT}/cli"
-VENV_ROOT="${DATA}/venv"
-
-# --- 3. ハッシュ ---
-_sha256_stdin() {
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum | cut -c1-16
-  else
-    shasum -a 256 | cut -c1-16
-  fi
-}
-
-# cli/ のソース一式（生成物を除く）の相対パスを NUL 区切りで、LC_ALL=C の順に出す。
-# ハッシュとステージの複製が同じ集合を使う
-_cli_source_list() {
-  (
-    cd "$CLI" || exit 1
-    find . \( -name .venv -o -name __pycache__ -o -name '*.egg-info' -o -name build \
-      -o -name .pytest_cache -o -name .ruff_cache -o -name .mypy_cache \) -prune -o -type f -print0 |
-      LC_ALL=C sort -z
-  )
-}
-
-_src_hash() {
-  # 相対パスと内容の両方を入力にする（plugin.json と CHANGELOG は cli/ の外なので入らない）
-  _cli_source_list | (cd "$CLI" && xargs -0 sh -c 'for f in "$@"; do printf "%s\n" "$f"; cat "$f"; printf "\0"; done' sh) | _sha256_stdin
-}
-
-LOCK_HASH="$(_sha256_stdin <"${CLI}/uv.lock")"
-SRC_HASH="$(_src_hash)"
-NAME="${LOCK_HASH}-${SRC_HASH}"
-VENV="${VENV_ROOT}/${NAME}"
-MARK=".pecot-complete"
-PLUGIN_VERSION="$(sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' "${PLUGIN_ROOT}/.claude-plugin/plugin.json" 2>/dev/null | head -n 1)"
-
-_venv_ready() {
-  [ -f "$1/${MARK}" ] && [ -x "$1/bin/python" ]
-}
-
-# --- lock（flock が無い環境は pid を書いたロックファイルで代用する） ---
-# ロックファイルは bash の noclobber（set -C）で作る。bash が O_EXCL で開くので、作れるのは 1 人だけになる
-# （mkdir は実装によって不可分でなく、uutils coreutils の mkdir は同時に呼ぶと 2 人とも成功する）
-LOCK_FILE="${VENV_ROOT}/.lock.pid"
-
-_lock_fail() {
-  echo "pecot: cannot acquire the lock on ${VENV_ROOT}" >&2
-}
-
-# stale なロックの掃除は rename で行う。rename に成功した 1 人だけが掃除を続け、
-# 他の人は取り直しに戻る（rm だと、先に取り直した人のロックを後の人が消してしまう）
-_lock_reap_stale() {
-  local holder="$1" reaped="${LOCK_FILE}.stale.$$"
-  mv "$LOCK_FILE" "$reaped" 2>/dev/null || return 0
-  if [ "$(cat "$reaped" 2>/dev/null || true)" != "$holder" ]; then
-    # 生きているロックを掴んでしまった。空いていれば戻して待ち直す
-    ( set -C; cat "$reaped" >"$LOCK_FILE" ) 2>/dev/null || true
-  fi
-  rm -f "$reaped"
-}
-
-_lock_acquire() {
-  mkdir -p "$VENV_ROOT" 2>/dev/null || return 1
-  if command -v flock >/dev/null 2>&1; then
-    exec 9>"${VENV_ROOT}/.lock" || return 1
-    flock 9
-  else
-    local waited=0 holder
-    until ( set -C; echo $$ >"$LOCK_FILE" ) 2>/dev/null; do
-      holder="$(cat "$LOCK_FILE" 2>/dev/null || true)"
-      if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
-        _lock_reap_stale "$holder"
-        continue
-      fi
-      waited=$((waited + 1))
-      [ "$waited" -gt 600 ] && return 1
-      sleep 0.2
-    done
-  fi
-}
-
-_lock_release() {
-  if command -v flock >/dev/null 2>&1; then
-    exec 9>&-
-  else
-    rm -f "$LOCK_FILE"
-  fi
-}
-
-# current を ${VENV_ROOT}/<name> に rename(2) で切り替える。BSD の mv はディレクトリへの symlink を
-# 辿るので、GNU の -T か BSD の -h を使う。どちらも使えなければ失敗として返す（非 atomic な代替はしない）。
-# 新しい版が current のとき、古い版のセッションが build しても current を戻さない
-_switch_current() {
-  local tmp="${VENV_ROOT}/.current.$$" cur_version
-  cur_version="$(cat "${VENV_ROOT}/current/.pecot-version" 2>/dev/null || true)"
-  if [ -n "$cur_version" ] && [ -n "$PLUGIN_VERSION" ] && [ "$cur_version" != "$PLUGIN_VERSION" ] &&
-    [ "$(printf '%s\n%s\n' "$cur_version" "$PLUGIN_VERSION" | sort -V 2>/dev/null | tail -n 1)" = "$cur_version" ]; then
-    return 0
-  fi
-  ln -s "$NAME" "$tmp" || {
-    echo "pecot: cannot create the current symlink (${tmp})" >&2
-    return 1
-  }
-  if mv -T "$tmp" "${VENV_ROOT}/current" 2>/dev/null || mv -h "$tmp" "${VENV_ROOT}/current" 2>/dev/null; then
-    return 0
-  fi
-  rm -f "$tmp"
-  echo "pecot: cannot switch current by rename (${VENV_ROOT}/current)" >&2
-  return 1
-}
-
-# 世代削除: 完成印のある世代のうち、current の指す先と直近 2 つ以外で、使われていない（.inuse の
-# 排他ロックが取れる）ものを消す。印の無いディレクトリと残ったステージは lock 下では不要
-_collect_generations() {
-  local dir mark keep=0 name current
-  local marks=()
-  current="$(readlink "${VENV_ROOT}/current" 2>/dev/null || true)"
-  for dir in "${VENV_ROOT}"/.stage-*; do
-    [ -e "$dir" ] && rm -rf "$dir"
-  done
-  for dir in "${VENV_ROOT}"/*/; do
-    dir="${dir%/}"
-    [ -d "$dir" ] && [ ! -L "$dir" ] || continue
-    if [ -f "$dir/${MARK}" ]; then
-      marks+=("$dir/${MARK}")
-    else
-      rm -rf "$dir"
+# bootstrap 中の stdout を丸ごと stderr へ寄せ、stdin を /dev/null に差し替える。
+# `pecot mcp` は stdout を JSON-RPC チャネルとして専有し、stdin は JSON-RPC の入力パイプになる。
+# 本リダイレクトはブロック内に閉じるため、後段の `exec node` には影響しない。
+{
+  # 3. ミラーを用意し、使用中を示す共有ロックを取る。取った後に完成印が消えていたら（世代削除と
+  # 行き違った）、作り直しへ戻る。fd 6 は開いたまま `exec node` に継承される。
+  attempt=0
+  while :; do
+    plugin_runtime_ensure "$PLUGIN_ROOT" "$RUNTIME_BASE" || exit $?
+    RUNTIME_DIR="$PLUGIN_RUNTIME_DIR"
+    if { : >> "$RUNTIME_DIR/.inuse" && exec 6<"$RUNTIME_DIR/.inuse"; } 2>/dev/null; then
+      if command -v flock >/dev/null 2>&1; then flock -s 6; fi
+      if plugin_runtime_is_complete "$RUNTIME_DIR"; then break; fi
+      exec 6<&-
+    fi
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 3 ]; then
+      pecot_log "error: could not prepare the runtime mirror: ${RUNTIME_DIR}"
+      exit 1
     fi
   done
-  command -v flock >/dev/null 2>&1 || return 0
-  [ "${#marks[@]}" -gt 0 ] || return 0
-  # 完成印の新しい順
-  while IFS= read -r mark; do
-    dir="$(dirname "$mark")"
-    name="$(basename "$dir")"
-    keep=$((keep + 1))
-    [ "$keep" -le 2 ] && continue
-    [ "$name" = "$current" ] && continue
-    (
-      exec 8>>"$dir/.inuse" || exit 0
-      flock -xn 8 || exit 0
-      rm -f "$dir/${MARK}"
-      rm -rf "$dir"
-    ) 2>/dev/null || true
-  done < <(ls -1t -- "${marks[@]}")
-}
+  # 4. 旧方式の venv。毎回 venv の有無を見て、あるときだけ片づける。
+  plugin_legacy_venv_cleanup "$DATA" || true
+} >&2 </dev/null
 
-_build_venv() {
-  local stage="${VENV_ROOT}/.stage-${NAME}" other
-  # 他のプロセスが先に作り終えていれば何もしない
-  _venv_ready "$VENV" && return 0
-  rm -rf "$VENV" "$stage"
-  mkdir -p "$stage" || {
-    echo "pecot: cannot create the stage (${stage})" >&2
-    return 1
-  }
-  if ! _cli_source_list | tar -C "$CLI" --null -T - -cf - | tar -C "$stage" -xf -; then
-    rm -rf "$stage"
-    echo "pecot: cannot copy cli/ to the stage (${stage})" >&2
-    return 1
-  fi
-  # 同じ lock-hash の完成済み venv が 1 つも無いときだけ「依存の導入」を伴う
-  local has_same_lock=0
-  for other in "${VENV_ROOT}/${LOCK_HASH}"-*; do
-    _venv_ready "$other" && has_same_lock=1
-  done
-  [ "$has_same_lock" -eq 0 ] && echo "pecot: installing dependencies" >&2
-  echo "pecot: building" >&2
-  if ! env -u VIRTUAL_ENV -u UV_NO_SYNC UV_PROJECT_ENVIRONMENT="$VENV" \
-    uv sync --frozen --no-dev --no-editable --quiet --project "$stage" >&2; then
-    rm -rf "$stage" "$VENV"
-    echo "pecot: failed to create the venv (${VENV})" >&2
-    return 1
-  fi
-  rm -rf "$stage"
-  if [ ! -x "$VENV/bin/python" ]; then
-    echo "pecot: bin/python is missing in the venv (${VENV})" >&2
-    return 1
-  fi
-  printf '%s\n' "$PLUGIN_VERSION" >"$VENV/.pecot-version" 2>/dev/null || true
-  if ! : >"$VENV/${MARK}"; then
-    echo "pecot: cannot write the completion mark (${VENV}/${MARK})" >&2
-    return 1
-  fi
-  _switch_current || return 1
-  _collect_generations
-  return 0
-}
-
-# --- 4・5. 準備 ---
-if ! _venv_ready "$VENV"; then
-  _lock_acquire || {
-    _lock_fail
-    exit 1
-  }
-  _build_venv
-  rc=$?
-  _lock_release
-  [ "$rc" -eq 0 ] || exit 1
-fi
-
-# --- 6. exec（使用中は .inuse の共有ロックで示す） ---
-# fd 8 の共有ロックは exec した実体に継承され、プロセスが生きている間残る
-_hold_inuse() {
-  command -v flock >/dev/null 2>&1 || return 0
-  (: >>"${VENV}/.inuse") 2>/dev/null || return 1
-  exec 8>>"${VENV}/.inuse"
-  flock -s 8
-}
-
-if ! _hold_inuse || ! _venv_ready "$VENV"; then
-  # 世代削除と行き違った場合は、印と python を見直して作り直す
-  exec 8>&-
-  _lock_acquire || {
-    _lock_fail
-    exit 1
-  }
-  _build_venv
-  rc=$?
-  _lock_release
-  [ "$rc" -eq 0 ] || exit 1
-  _hold_inuse || {
-    echo "pecot: cannot lock ${VENV}/.inuse" >&2
-    exit 1
-  }
-fi
-exec env -u VIRTUAL_ENV -u UV_NO_SYNC "${VENV}/bin/pecot" "$@"
+# 5. ミラーの cli を実行する。
+exec node "$RUNTIME_DIR/cli-node/dist/cli.js" "$@"

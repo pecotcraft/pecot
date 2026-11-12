@@ -11,7 +11,7 @@ when_to_use: "Epic をサブタスクに分解したい、speckit で計画を�
 
 Epic の内容を読み取り、main が speckit コマンド（specify → clarify → plan → tasks）を
 逐次実行して分解する。speckit の成果物（ブランチ・`.specify/` 配下のファイル）は
-**w-breakdown を実行したリポジトリ** に作成する。ただし `pecot project info` に表示
+**w-breakdown を実行したリポジトリ** に作成する。ただし `project_info` の結果に表示
 される **ロードマップリポ** が設定されている場合、そのロードマップリポでのみ実行を許可
 する。ロードマップリポ設定があるのに別リポで起動された場合は中止し、ロードマップリポでの
 再実行を案内する。
@@ -22,13 +22,11 @@ Epic の内容を読み取り、main が speckit コマンド（specify → clar
 
 ### Step 1: ボードを確認する
 
-```bash
-pecot project info
-```
+`project_info` を引数なしで呼ぶ。
 
 ### Step 2: 成果物作成先の決定（ロードマップリポチェック）
 
-Step 1 の `pecot project info` 出力にある `Roadmap repo: ...` 行と CWD のリポを比べる。
+Step 1 の `project_info` の結果にある `Roadmap repo: ...` 行と CWD のリポを比べる。
 
 CWD のリポを取得:
 
@@ -49,11 +47,7 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 
 ### Step 3: 対象Epicを特定
 
-ユーザーの指示から対象Epicを特定する。Epic番号・タイトル指定なら直接使用、不明な場合は AskUserQuestion で Backlog 内の Epic を選択させる。
-
-```bash
-pecot issue read owner/repo/XXX
-```
+ユーザーの指示から対象Epicを特定する。Epic番号・タイトル指定なら直接使用、不明な場合は AskUserQuestion で Backlog 内の Epic を選択させる。`issue_read` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
 `owner/repo` は Epic Issue が置かれているリポ。speckit 成果物の作成先は Step 2 で確定済。
 

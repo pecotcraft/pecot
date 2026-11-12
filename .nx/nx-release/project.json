@@ -76,7 +76,7 @@
         "{workspaceRoot}/.githooks/pre-commit/check-text.sh",
         "{workspaceRoot}/.githooks/lib/text-rules-ready.sh",
         "{workspaceRoot}/plugins/pecot-workflow/.claude-plugin/plugin.json",
-        "{workspaceRoot}/plugins/pecot-workflow/.github/plugin/plugin.json",
+        "{workspaceRoot}/plugins/pecot-workflow/plugin.json",
         "{workspaceRoot}/plugins/pecot-visual/.claude-plugin/plugin.json",
         "{workspaceRoot}/plugins/pecot-visual/plugin.json",
         "{workspaceRoot}/plugins/pecot-tools/.claude-plugin/plugin.json",

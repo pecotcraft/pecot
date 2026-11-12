@@ -79,6 +79,8 @@ plugins/pecot-visual/setup.sh
 plugins/pecot-visual/skills/v-slidev/SKILL.md
 plugins/pecot-workflow/agents/w-e2e-planner.md
 plugins/pecot-workflow/cli-node/src/cli.ts
+plugins/pecot-workflow/cli-node/tests/bootstrap/data-dir.sh
+plugins/pecot-workflow/cli-node/tests/bootstrap/install-record.sh
 plugins/pecot-workflow/cli-node/tests/hooks/baseline-scripts.test.ts
 plugins/pecot-workflow/cli-node/tests/output/cases.json
 plugins/pecot-workflow/cli-node/tests/parity/baseline.json
@@ -86,9 +88,11 @@ plugins/pecot-workflow/cli/core/paths.py
 plugins/pecot-workflow/cli/core/state.py
 plugins/pecot-workflow/cli/pyproject.toml
 plugins/pecot-workflow/cli/uv.lock
+plugins/pecot-workflow/com.github.copilot/hooks/hooks.json
 plugins/pecot-workflow/hooks/lib/session-start/plugin-update-notice.sh
 plugins/pecot-workflow/interface/authored.yaml
 plugins/pecot-workflow/interface/generated.json
+plugins/pecot-workflow/mcp.json
 plugins/pecot-workflow/project.json
 plugins/pecot-workflow/runtime-lock.yaml
 plugins/pecot-workflow/scripts/ci/python-version.sh

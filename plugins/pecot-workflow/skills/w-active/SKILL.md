@@ -17,36 +17,30 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-`pecot create-branch` は、作業ディレクトリのリポが Issue のリポと違うときと、`.pecot-active` に別の Issue が残っているときに exit 2 で止まる。先に次のコマンドで確かめる。
+`create_branch` は、次の 2 つのときに、結果の `exit code: 2` の行を出して止まる。
 
-```bash
-pecot session status -D .
-```
+- 作業ディレクトリのリポが Issue のリポと違うとき
+- `.pecot-active` に別の Issue が残っているとき
+
+先に `session_status` を `directory: "."` で呼んで確かめる。
 
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
 
-1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`create-branch` は exit 2 になる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `--force-overwrite-active` を付ける。
-2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create-branch` は exit 2 になる。対象リポの既存 WT（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）へ `cd` してから着手する。
-   スクリプト経由など CWD 外発行のみ `--allow-cross-repo` を付ける。
+1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`create_branch` は `exit code: 2` で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
+2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create_branch` は `exit code: 2` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
+   MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
+   始め直せないときだけ `allow_cross_repo: true` を付ける。
 3. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
 
 #### プロジェクト情報表示
 
-ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する
-
-```bash
-pecot project info
-```
+ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`project_info` を引数なしで呼ぶ。
 
 ### Step 2: 対象タスクを確認
 
-ユーザーが選択したタスクのIssue内容を確認する
-
-```bash
-pecot issue read owner/repo/XXX
-```
+ユーザーが選択したタスクのIssue内容を確認する。`issue_read` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
 ### Step 3: ベースブランチを最新化
 
@@ -58,9 +52,7 @@ git pull
 
 ### Step 4: ブランチ作成
 
-```bash
-pecot create-branch owner/repo/XXX feat/description
-```
+`create_branch` を `issue_ref: "owner/repo/XXX"`・`branch_name: "feat/description"` で呼ぶ。
 
 **ブランチ名の決め方:**
 
@@ -69,7 +61,7 @@ pecot create-branch owner/repo/XXX feat/description
 
 ### Step 5: ブランチ切り替え
 
-`pecot create-branch` の出力の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
+`create_branch` の結果の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
 ブランチ名とリポを取り出し、ブランチを切り替える。
 **そのリポジトリの** ワークツリーで実行すること。
 
@@ -93,11 +85,8 @@ CWDが別リポジトリであっても、そのリポジトリのワークツ�
 
 ### Step 7: 計画ドラフト作成
 
-次のコマンドで plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
-
-```bash
-pecot issue comment --prepare -t plan -i <owner/repo/Issue番号>
-```
+plan テンプレのファイルを作り、テンプレの見出しと規則のとおりに計画を書く。
+`issue_comment` を `prepare: true`・`template: "plan"`・`issue: "<owner/repo/Issue番号>"` で呼ぶと、ファイルができる。
 
 w-issueize で作ったフェーズの Issue は、Artifacts に speckit の一式（`specs/NNN-*/`）を持つ。一式が active Issue のリポにあるときは、このフェーズの Tasks に並ぶタスクを、その一式の tasks.md で `[x]` にする変更を Files に入れる。
 tasks.md のチェックはタスクの単位の進捗で、並行で進められるタスクを探すときに読む。この PR のマージでフェーズの Issue が閉じるのと同時に、tasks.md のチェックもそろう。
@@ -118,13 +107,9 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 ### Step 9: 計画の投稿
 
-通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。
+通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-```bash
-pecot issue comment <書いたファイル>
-```
-
-exit 3 で止まったら、指摘を直して打ち直す。
+結果に `exit code: 3` の行が出て止まったら、指摘を直して呼び直す。
 
 ### Step 10: プランモードで承認を得る
 
@@ -135,4 +120,4 @@ EnterPlanMode tool:
   (パラメータなし)
 ```
 
-承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 9 のコマンドを打ち直す。投稿したコメントが書き換わる。
+承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 9 の呼び出しをやり直す。投稿したコメントが書き換わる。

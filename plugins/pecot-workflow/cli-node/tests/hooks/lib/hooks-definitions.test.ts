@@ -13,7 +13,8 @@ import { parseJson } from '../_helpers/text.js'
 const WORKFLOW = 'pecot-workflow'
 const VISUAL = 'pecot-visual'
 
-const COPILOT_VISUAL = 'com.github.copilot/hooks/hooks.json'
+const COPILOT_HOOKS = 'com.github.copilot/hooks/hooks.json'
+const COPILOT_VISUAL = COPILOT_HOOKS
 
 interface Definition {
   readonly label: string
@@ -27,12 +28,12 @@ function definition(plugin: string, name: string): Definition {
 
 const DEFINITIONS = [
   definition(WORKFLOW, 'hooks.json'),
-  definition(WORKFLOW, 'hooks-copilot.json'),
+  definition(WORKFLOW, COPILOT_HOOKS),
   definition(VISUAL, 'hooks.json'),
   definition(VISUAL, COPILOT_VISUAL),
 ]
 const CLAUDE_DEFINITIONS = [definition(WORKFLOW, 'hooks.json'), definition(VISUAL, 'hooks.json')]
-const COPILOT_DEFINITIONS = [definition(WORKFLOW, 'hooks-copilot.json'), definition(VISUAL, COPILOT_VISUAL)]
+const COPILOT_DEFINITIONS = [definition(WORKFLOW, COPILOT_HOOKS), definition(VISUAL, COPILOT_VISUAL)]
 
 const EDIT_MATCHER = 'Edit|Write|MultiEdit|NotebookEdit|EnterPlanMode'
 const NOTIFICATION_MATCHER = 'permission_prompt|idle_prompt|elicitation_dialog'
@@ -200,7 +201,7 @@ describe('全定義共通', () => {
 describe('PreToolUse の matcher', () => {
   it.for([
     { label: 'Claude', plugin: WORKFLOW, name: 'hooks.json' },
-    { label: 'Copilot', plugin: WORKFLOW, name: 'hooks-copilot.json' },
+    { label: 'Copilot', plugin: WORKFLOW, name: COPILOT_HOOKS },
   ])('$label の編集系エントリの matcher は、絞り込まれている', (row) => {
     const entries = entriesOf(load(row.plugin, row.name), 'PreToolUse').filter(entry => entry.hooks.some(hook => fileOf(hook) === 'pre-tool-use.sh'))
     expect(entries).toHaveLength(1)
@@ -229,11 +230,11 @@ describe('SessionStart', () => {
     expect(existsSync(path.join(pluginsDirectory, 'pecot-tools', 'hooks'))).toBe(false)
   })
 
-  // sessionTitle は Claude Code 専用の出力項目なので、hooks-copilot.json には載せない。
+  // sessionTitle は Claude Code 専用の出力項目なので、com.github.copilot/hooks/hooks.json には載せない。
   it('セッション名のエントリは、Claude の定義にだけ置く', () => {
     const claude = entriesOf(load(WORKFLOW, 'hooks.json'), 'UserPromptSubmit').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
     expect(claude).toEqual(['user-prompt-submit.sh', 'user-prompt-submit-title.sh'])
-    const copilot = entriesOf(load(WORKFLOW, 'hooks-copilot.json'), 'UserPromptSubmit').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
+    const copilot = entriesOf(load(WORKFLOW, COPILOT_HOOKS), 'UserPromptSubmit').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
     expect(copilot).not.toContain('user-prompt-submit-title.sh')
   })
 
@@ -257,7 +258,7 @@ describe('Stop と Notification', () => {
   })
 
   it('Copilot の Stop は、Copilot 用のエントリを指す', () => {
-    const stopFiles = entriesOf(load(WORKFLOW, 'hooks-copilot.json'), 'Stop').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
+    const stopFiles = entriesOf(load(WORKFLOW, COPILOT_HOOKS), 'Stop').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
     expect(stopFiles).toEqual(['stop-copilot.sh'])
   })
 })
@@ -272,12 +273,12 @@ describe('Copilot CLI の matcher', () => {
     { label: 'PreToolUse', event: 'PreToolUse', entry: 'pre-tool-use-skill.sh' },
     { label: 'PostToolUse', event: 'PostToolUse', entry: 'post-tool-use-skill.sh' },
   ])('pecot-workflow の $label の skill の matcher は、生の tool 名を含む', (row) => {
-    expect(matchersOf(load(WORKFLOW, 'hooks-copilot.json'), row.event, row.entry)).toEqual(['Skill|skill'])
+    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), row.event, row.entry)).toEqual(['Skill|skill'])
   })
 
   it('pecot-workflow の MCP の matcher は、GitHub MCP の PR 作成を含む', () => {
-    const matchers = matchersOf(load(WORKFLOW, 'hooks-copilot.json'), 'PreToolUse', 'pre-tool-use-mcp.sh')
-    expect(matchers).toEqual(['mcp__.*|github-mcp-server-create_pull_request'])
+    const matchers = matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-mcp.sh')
+    expect(matchers).toEqual(['mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*'])
   })
 
   it('pecot-visual の skill の matcher は、生の tool 名を含む', () => {

@@ -198,15 +198,14 @@ def test_pecot_skill_reminder_false_a_quick_no_warning(disable_env: Path, core_d
     assert result.stdout == ""
 
 
-# external-post-check の 3 キー: false で ask（exit 11）が抑止され、true で ask される
+# external-post-check のキー: false で ask（exit 11）が抑止され、true で ask される。
+# pecot-pr-create-ask・pecot-issue-create-ask は MCP ハンドラの pecot-post-ask.sh が見る。
 
 
 @pytest.mark.parametrize(
     ("config_key", "command"),
     [
-        ("pecot-pr-create-ask", "pecot pr create x.md"),
         ("gh-pr-merge-ask", "gh pr merge 810"),
-        ("pecot-issue-create-ask", "pecot issue quick -m x"),
     ],
 )
 def test_external_post_key_false_passes(
@@ -228,9 +227,7 @@ def test_external_post_key_false_passes(
 @pytest.mark.parametrize(
     ("config_key", "command", "expected_exit"),
     [
-        ("pecot-pr-create-ask", "pecot pr create x.md", 11),
         ("gh-pr-merge-ask", "gh pr merge 810", 11),
-        ("pecot-issue-create-ask", "pecot issue quick -m x", 11),
     ],
 )
 def test_external_post_key_true_asks(
@@ -248,3 +245,28 @@ def test_external_post_key_true_asks(
     result = _run(["bash", str(script)], "")
     assert result.returncode == expected_exit
     assert "warning: external-post-check:" in result.stdout
+
+
+# pecot-cli-deny: false で deny（exit 1）が抑止され、true で deny される
+
+
+def test_pecot_cli_deny_key_false_passes(
+    disable_env: Path, core_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    disable_env.write_text(json.dumps({"pecot-cli-deny": False}))
+    monkeypatch.setenv("HOOK_COMMAND", "pecot issue read 1")
+
+    result = _run(["bash", str(core_dir / "pecot-cli-deny.sh")], "")
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
+def test_pecot_cli_deny_key_true_denies(
+    disable_env: Path, core_dir: Path, monkeypatch: pytest.MonkeyPatch
+):
+    disable_env.write_text(json.dumps({"pecot-cli-deny": True}))
+    monkeypatch.setenv("HOOK_COMMAND", "pecot issue read 1")
+
+    result = _run(["bash", str(core_dir / "pecot-cli-deny.sh")], "")
+    assert result.returncode == 1
+    assert "MCP tool issue_read" in result.stdout

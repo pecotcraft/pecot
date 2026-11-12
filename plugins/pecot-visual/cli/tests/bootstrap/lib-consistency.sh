@@ -6,6 +6,7 @@
 # マーカーで囲んだブロックの一致をここで押さえる。
 #   data-dir        pecot-workflow / pecot-visual / pecot-tools の 3 本。データ置き場の解決と作成。
 #   runtime-mirror  pecot-visual / pecot-tools の 2 本。実行用ミラーの準備。
+#                   pecot-workflow は cli の置き場が cli-node/ のため、完成判定の 1 行だけ違う。その 1 行を置き換えると基準と一致する。
 #   tsc.mjs         pecot-visual cli を基準に 5 本。typescript7 の tsc の探索。
 # 食い違ったら、data-dir は pecot-workflow、runtime-mirror は pecot-visual の側を基準として写し直す。
 #
@@ -48,6 +49,17 @@ compare() {
 compare "data-dir" '# --- data-dir: 3 本で逐語一致 ---' '# --- end data-dir ---' "$WORKFLOW" "$VISUAL" "$TOOLS"
 compare "runtime-mirror" '# --- runtime-mirror: pecot-visual \/ pecot-tools で逐語一致 ---' '# --- end runtime-mirror ---' "$VISUAL" "$TOOLS"
 
+# pecot-workflow の runtime-mirror: cli/dist/cli.js の 1 行だけ cli-node/dist/cli.js に替わる。フェーズ 12 で cli-node/ が cli/ に移ると、逐語一致にできる。
+WORKFLOW_MIRROR="$(block "$WORKFLOW" '# --- runtime-mirror: pecot-visual \/ pecot-tools で逐語一致 ---' '# --- end runtime-mirror ---')"
+VISUAL_MIRROR="$(block "$VISUAL" '# --- runtime-mirror: pecot-visual \/ pecot-tools で逐語一致 ---' '# --- end runtime-mirror ---')"
+SWAPPED_LINES="$(diff <(printf '%s\n' "$VISUAL_MIRROR") <(printf '%s\n' "$WORKFLOW_MIRROR") | grep -c '^[<>]' || true)"
+if [ -n "$WORKFLOW_MIRROR" ] && [ "$(printf '%s\n' "$WORKFLOW_MIRROR" | sed 's#cli-node/dist/cli.js#cli/dist/cli.js#')" = "$VISUAL_MIRROR" ] && [ "$SWAPPED_LINES" = 2 ]; then
+  ok "runtime-mirror: plugins/pecot-workflow/bin/_lib.sh は cli-node/dist/cli.js の 1 行だけが基準と違う"
+else
+  ng "runtime-mirror: plugins/pecot-workflow/bin/_lib.sh が、cli-node/dist/cli.js の 1 行以外でも基準と食い違う"
+  diff <(printf '%s\n' "$VISUAL_MIRROR") <(printf '%s\n' "$WORKFLOW_MIRROR") | head -n 20 | sed 's/^/     /' || true
+fi
+
 # ブロックの数（マーカーの重複で片方が二重に入っていないこと）
 DATA_DIR_MARKER='# --- data-dir: 3 本で逐語一致 ---'
 for file in "$WORKFLOW" "$VISUAL" "$TOOLS"; do
@@ -55,7 +67,7 @@ for file in "$WORKFLOW" "$VISUAL" "$TOOLS"; do
   relative="${file#"$PLUGINS"/}"
   if [ "$count" = 1 ]; then ok "data-dir: $relative にブロックが 1 つ"; else ng "data-dir: $relative のブロックが $count 個"; fi
 done
-for file in "$VISUAL" "$TOOLS"; do
+for file in "$WORKFLOW" "$VISUAL" "$TOOLS"; do
   count="$(grep -c '^# --- runtime-mirror: ' "$file" || true)"
   relative="${file#"$PLUGINS"/}"
   if [ "$count" = 1 ]; then ok "runtime-mirror: $relative にブロックが 1 つ"; else ng "runtime-mirror: $relative のブロックが $count 個"; fi

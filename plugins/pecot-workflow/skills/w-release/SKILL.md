@@ -18,17 +18,15 @@ CHANGELOG を更新してリリースする。
 
 1. **対象リポの release_type を確認する**
 
-   ```bash
-   pecot project info
-   ```
+   `project_info` を引数なしで呼ぶ。
 
-   出力中の対象リポ行の直下にある `release_type: <...>` を読む:
+   結果の対象リポ行の直下にある `release_type: <...>` を読む:
 
    - `release_type: single` → **[references/release-single.md](references/release-single.md)** に従う
    - `release_type: multi`  → **[references/release-multi.md](references/release-multi.md)** に従う
    - `release_type: nx`     → **[references/release-nx.md](references/release-nx.md)** に従う
 
-   併せて **ブランチモード** も同じ出力から読む:
+   併せて **ブランチモード** も同じ結果から読む:
 
    - 対象リポ行の `develop:` と `release:` が異なる → **2ブランチモード**（開発ブランチ → release ブランチへ PR で反映）。
      例は `develop: develop-aist` と `release: main`。
@@ -49,6 +47,6 @@ CHANGELOG を更新してリリースする。
 
 ## release_type 未設定のリポへの対応
 
-`release_type` は `pecot project set-repo <owner>/<repo> --release-type <type>` で明示設定する。
+`release_type` は `project_set_repo` を `owner_repo: "<owner>/<repo>"`・`release_type: "<type>"` で呼んで明示設定する。
 未設定の場合は `packages` の有無から自動推測される（有り → `multi`、無し → `single`）。
 Nx Release 方式 (`nx`) は必ず明示設定が必要。

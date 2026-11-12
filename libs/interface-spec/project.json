@@ -54,10 +54,6 @@
         "{workspaceRoot}/plugins/*/interface/**/*",
         "{workspaceRoot}/plugins/pecot-tools/cli/src/**/*.ts",
         "{workspaceRoot}/plugins/pecot-visual/cli/src/**/*.ts",
-        "{workspaceRoot}/plugins/pecot-workflow/cli/commands/**/*.py",
-        "{workspaceRoot}/plugins/pecot-workflow/cli/core/**/*.py",
-        "{workspaceRoot}/plugins/pecot-workflow/cli/__init__.py",
-        "{workspaceRoot}/plugins/pecot-workflow/cli/__main__.py",
         "{workspaceRoot}/plugins/pecot-workflow/bin/*",
         "{workspaceRoot}/plugins/pecot-workflow/hooks/**/*.sh",
         "{workspaceRoot}/plugins/pecot-workflow/cli-node/src/*.ts",
@@ -103,7 +99,6 @@
       "inputs": [
         "default",
         "runtime",
-        "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/interface-export/typer-sample.json",
         "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/interface-export/node-sample.json",
         "env"
       ],

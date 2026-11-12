@@ -30,9 +30,9 @@ CHANGELOG の形式・commit メッセージ・タグ形式・GitHub Release の
 
 w-release SKILL.md の Step 1 で判定したブランチモードに従う。
 
-- `pecot project info` の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
+- `project_info` の結果の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
   （pecot は両方 `main`）。[単一ブランチモード（develop == release）](#単一ブランチモードdevelop--release) に従う。
-  `main` 上で `$NX release` を実行し、リリース PR と `pecot release merge` は行わない。
+  `main` 上で `$NX release` を実行し、リリース PR と `release_merge` は行わない。
 - 対象リポ行で `develop:` と `release:` が異なるなら、**2ブランチモード**になる。
   下記の [2ブランチモードの手順](#2ブランチモードの手順) に従う。
 
@@ -143,9 +143,9 @@ cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx
 開発ブランチと release ブランチが同一（`main`、trunk-based）のリポ向け。Nx Release は
 current branch に commit する。そのため `main` 上で `$NX release` を実行すれば、commit・タグ・
 push・GitHub Release の発行までが一括で完結する。**`develop` と `release` が同じブランチで
-中間 PR が存在しないため、リリース PR 作成と `pecot release merge` は行わない。**
+中間 PR が存在しないため、リリース PR 作成と `release_merge` は行わない。**
 
-以降、GitHub ホスト名を `<gh-host>` と表記。値は `pecot project info` の Host で決まる（例: `github.com`）。
+以降、GitHub ホスト名を `<gh-host>` と表記。値は `project_info` の結果の Host で決まる（例: `github.com`）。
 
 ### 手順の選び方（ランナーか手元か）
 
@@ -280,17 +280,15 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-```bash
-cd <project-root>/base/<repo> && pecot release preflight
-```
+`release_preflight` を `repo: "<owner>/<repo>"` で呼ぶ。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-後で対応する open の Dependabot alert は、`pecot security sync` が立てる security alert の Tracker で追う。
+後で対応する open の Dependabot alert は、`security_sync` が立てる security alert の Tracker で追う。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
-alerts 無効のリポは `skipped: Dependabot alerts (feature disabled)` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
+alerts 無効のリポは `skipped: Dependabot alerts (feature disabled)` と出て通る。nx のリポでは `version` と `package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
@@ -332,11 +330,11 @@ GitHub Release の発行までを完了する。
 ### 7. リリース PR・release merge はスキップ
 
 単一ブランチモードでは `<develop> → <release>` の PR が存在しない。2ブランチ手順の
-「リリース PR 作成」「リリース PR マージ」（`pr create --template release` /
-`pecot release merge`）は **丸ごとスキップする**。Step 6 で remote `main` への push と
+「リリース PR 作成」「リリース PR マージ」（`pr_create`（`template: "release"`）/
+`release_merge`）は **丸ごとスキップする**。Step 6 で remote `main` への push と
 GitHub Release 発行まで完結しているため追加操作は不要。
 
-`pecot release create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`pecot release preflight` は Step 3 で実行済み。
+`release_create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`release_preflight` は Step 3 で実行済み。
 
 ### 8. 完了報告
 
@@ -347,8 +345,8 @@ GitHub Release 発行まで完結しているため追加操作は不要。
 ## 2ブランチモードの手順
 
 開発ブランチと release ブランチが分かれているリポ向け。対象リポの `develop` branch は
-`pecot project info` で事前に確認。以降、開発ブランチを `<develop>`、GitHub ホスト名を
-`<gh-host>` と表記。値は `pecot project info` の Host で決まる（例: `github.com`）。
+`project_info` で事前に確認。以降、開発ブランチを `<develop>`、GitHub ホスト名を
+`<gh-host>` と表記。値は `project_info` の結果の Host で決まる（例: `github.com`）。
 
 ### 1. develop ブランチの worktree を最新化
 
@@ -377,17 +375,15 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-```bash
-cd <project-root>/base/<repo> && pecot release preflight
-```
+`release_preflight` を `repo: "<owner>/<repo>"` で呼ぶ。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-後で対応する open の Dependabot alert は、`pecot security sync` が立てる security alert の Tracker で追う。
+後で対応する open の Dependabot alert は、`security_sync` が立てる security alert の Tracker で追う。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
-alerts 無効のリポは `skipped: Dependabot alerts (feature disabled)` と出て通る。nx のリポでは version 引数と `--package` は指定できず、
+alerts 無効のリポは `skipped: Dependabot alerts (feature disabled)` と出て通る。nx のリポでは `version` と `package` は指定できず、
 version 整合・タグ・差分の検証は Nx Release が担う。
 
 ### 4. dry-run でプレビュー確認
@@ -454,11 +450,9 @@ branch にしか commit しないため、別途 PR で `<develop> → <release>
 
 ### 7. リリース PR 作成
 
-release-single / release-multi と同じ `--prepare --template release` フローを使う。
+release-single / release-multi と同じ `prepare: true`・`template: "release"` のフローを使う。
 
-```bash
-pecot pr create --prepare --template release
-```
+`pr_create` を `prepare: true`・`template: "release"` で呼ぶ。
 
 下書きファイルを編集:
 
@@ -471,30 +465,26 @@ pecot pr create --prepare --template release
   生成する節見出しには絵文字が付くので、外して `### Features` の形で転記する
   （本文に絵文字があると投稿時検証で弾かれる）。
 
-```bash
-pecot pr create --template release <ファイルパス>
-```
+編集したら、`pr_create` を `template: "release"`・`file: "<ファイルパス>"` で呼ぶ。
 
 **PR 作成用に feat ブランチを切る必要はない** — `<develop>` 自体を head にする（release commit が
 `<develop>` 上にあるため）。
 
 ### 8. リリース PR マージ
 
-```bash
-pecot release merge <owner>/<repo>/<PR番号>
-```
+`release_merge` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
 
-`--delete-branch` は**付けない**。Nx Release のリリースでは、PR の head が `<develop>` 自体になる。
+`delete_branch` は**付けない**。Nx Release のリリースでは、PR の head が `<develop>` 自体になる。
 このフラグを付けると `<develop>` ブランチが削除される。release-single / release-multi で
 付けない理由も同じ。
 
-`pecot release merge` は **regular merge（merge commit）を強制** し、base が `release_branch`
+`release_merge` は **regular merge（merge commit）を強制** し、base が `release_branch`
 設定と一致することを検証する。**必ずこれを使い、`gh pr merge` は使わない**。
 squash merge だと tag が指す commit が `<release>` の履歴から到達不能になり、
 GitHub Release が孤児 commit を参照する状態になる。
 
-`pecot release create` は Nx Release のリリースでは不要。Nx Release が version 整合確認・tag 作成・
-GitHub Release 発行を Step 6 で完結させている。`pecot release preflight` は Step 3 で実行済み。
+`release_create` は Nx Release のリリースでは不要。Nx Release が version 整合確認・tag 作成・
+GitHub Release 発行を Step 6 で完結させている。`release_preflight` は Step 3 で実行済み。
 
 ### 9. 完了報告
 

@@ -6,7 +6,7 @@ Copilot CLI 1.0.103 の skill ツールは、`tool_name: "skill"`（小文字）
 そのため、名前空間なしの名前は、自プラグインの `skills/<名前>/SKILL.md` が実在するときだけ、自プラグインのスキルとして扱う。
 
 エントリ（pre-tool-use-skill.sh / post-tool-use-skill.sh）に Copilot 形式の入力を流して固定する。
-hooks-copilot.json の matcher `Skill|skill` が起動を担保し、ここでは起動後の判定を見る。
+com.github.copilot/hooks/hooks.json の matcher `Skill|skill` が起動を担保し、ここでは起動後の判定を見る。
 """
 
 from __future__ import annotations
