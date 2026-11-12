@@ -244,3 +244,28 @@ describe('commandHelpText', () => {
     expect(lines.join('')).toContain('名前をここに')
   })
 })
+
+describe('選択肢の長いオプション', () => {
+  const long = defineCommand({
+    path: ['pick'],
+    description: 'Pick a template',
+    input: z.object({
+      template: z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution']).optional().describe('Template type'),
+      kind: z.enum(['task', 'bug']).optional().describe('Kind of the item'),
+    }),
+    positional: [],
+    interactive: false,
+    run: async () => await exitWith(0),
+  })
+
+  it('選択肢が 24 桁を超えるなら、型を <str> にして、説明の末尾に [choices: …] で出す', () => {
+    const text = commandHelpText(long, undefined, 120)
+    expect(text).toContain('--template <str>   Template type [choices: plan, merge-diff, review-findings, review-resolution]')
+  })
+
+  it('選択肢が 24 桁以内なら、型の位置に <a|b> で出す', () => {
+    const text = commandHelpText(long, undefined, 120)
+    expect(text).toContain('--kind <task|bug>')
+    expect(text).not.toContain('[choices: task')
+  })
+})

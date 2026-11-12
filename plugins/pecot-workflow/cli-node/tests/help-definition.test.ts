@@ -94,6 +94,13 @@ function defaultFragments(name: string, property: Readonly<Record<string, unknow
 }
 
 /**
+選択肢の出方。オプションの短い選択肢は型の位置に `<a|b>`、位置引数と 24 桁を超える選択肢は説明の末尾に `[choices: a, b]`
+*/
+function choicesFragment(choices: readonly string[], isPositional: boolean): string {
+  return isPositional || choices.join('|').length > 24 ? `[choices: ${choices.join(', ')}]` : `<${choices.join('|')}>`
+}
+
+/**
 generated.json の引数 1 つについて、help に出るはずの文字列
 */
 function propertyFragments(entry: Entry, name: string, property: Readonly<Record<string, unknown>>): readonly string[] {
@@ -107,7 +114,7 @@ function propertyFragments(entry: Entry, name: string, property: Readonly<Record
     ...flags,
     ...entry.cli.positional.includes(name) ? [positionalName] : [],
     ...typeof description === 'string' ? [description] : [],
-    ...Array.isArray(choices) ? [`<${choices.map(String).join('|')}>`] : [],
+    ...Array.isArray(choices) ? [choicesFragment(choices.map(String), entry.cli.positional.includes(name))] : [],
     ...rangeFragments(element),
     ...defaultFragments(name, property, flags.some(flag => flag.startsWith('--no-'))),
   ]

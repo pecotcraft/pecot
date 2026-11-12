@@ -12,6 +12,8 @@ import type { InputSchema, JsonObject } from './input-schema.js'
 import type { CommandDefinition } from './registry.js'
 import { describeRange } from './value-types.js'
 
+const MAX_INLINE_CHOICES = 24
+
 function isRecord(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -38,11 +40,18 @@ function choicesOf(property: JsonObject): readonly string[] | undefined {
 }
 
 /**
-値の型。`<str>`・`<int>`、選択肢は `<plan|merge-diff|…>`
+選択肢を名前の列に並べると、列が広がって説明を置けなくなる長さか。長いときは型を `<str>` にして、説明の末尾に `[choices: a, b]` の形で出す
+*/
+function isLongChoices(choices: readonly string[]): boolean {
+  return choices.join('|').length > MAX_INLINE_CHOICES
+}
+
+/**
+値の型。`<str>`・`<int>`、選択肢は `<task|bug|epic|tracker>`
 */
 function metavarOf(property: JsonObject): string {
   const choices = choicesOf(property)
-  if (choices !== undefined) return `<${choices.join('|')}>`
+  if (choices !== undefined && !isLongChoices(choices)) return `<${choices.join('|')}>`
   return elementOf(property)['type'] === 'integer' ? '<int>' : '<str>'
 }
 
@@ -79,13 +88,14 @@ function describeProperty(described: Readonly<Described>): string {
   const { name, property, isRequired, hasNegation, isOption } = described
   const description = property['description']
   const fallback = defaultOf(name, property, hasNegation)
-  const choices = isOption ? undefined : choicesOf(property)
+  const allChoices = choicesOf(property)
+  const choices = isOption && allChoices !== undefined && !isLongChoices(allChoices) ? undefined : allChoices
   const range = rangeOf(property)
   return [
     typeof description === 'string' ? description : '',
     isOption && isList(property) ? '[repeatable]' : '',
     isRequired && property['type'] !== 'boolean' ? '[required]' : '',
-    choices === undefined ? '' : `[choices: ${choices.join('|')}]`,
+    choices === undefined ? '' : `[choices: ${choices.join(', ')}]`,
     fallback === undefined ? '' : `[default: ${fallback}]`,
     range === undefined ? '' : `[${range}]`,
   ].filter(part => part !== '').join(' ')
