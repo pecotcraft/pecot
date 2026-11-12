@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはテストの一時ディレクトリ配下のみ */
 // w-onboarding の open_browser.sh が、OS ごとに正しいコマンドでブラウザを開くことと、開けないときの失敗を確かめる。
 import { spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import { accessSync, chmodSync, constants, existsSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -10,6 +10,25 @@ import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { pluginRoot } from './_helpers/documents.js'
 
 const SCRIPT = path.join(pluginRoot, 'skills/w-onboarding/scripts/open_browser.sh')
+
+// PATH の上で、実行できるファイルを探す。bash の組み込みではなく実体のパスを返す。
+function findExecutable(name: string): string | undefined {
+  return (process.env['PATH'] ?? '')
+    .split(path.delimiter)
+    .filter(directory => directory !== '')
+    .map(directory => path.join(directory, name))
+    .find(candidate => isExecutable(candidate))
+}
+
+function isExecutable(file: string): boolean {
+  try {
+    accessSync(file, constants.X_OK)
+    return true
+  }
+  catch {
+    return false
+  }
+}
 const URL_ARGUMENT = 'https://example.com'
 
 function isWsl(): boolean {
@@ -71,9 +90,9 @@ describe('open_browser.sh', () => {
     // xdg-open を PATH から外し、基本のコマンドだけをシンボリックリンクで置く
     const binDirectory = makeTemporaryDirectory()
     for (const command of ['bash', 'grep', 'uname', 'cat', 'echo', 'printf', 'sed', 'awk', 'rm', 'mkdir', 'chmod', 'ln', 'ls']) {
-      const real = spawnSync('bash', ['-c', `command -v ${command}`], { encoding: 'utf8' }).stdout.trim()
+      const real = findExecutable(command)
       const link = path.join(binDirectory, command)
-      if (real !== '' && !existsSync(link)) symlinkSync(real, link)
+      if (real !== undefined && !existsSync(link)) symlinkSync(real, link)
     }
     const result = run([URL_ARGUMENT], binDirectory)
     expect(result.status).toBe(1)
