@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { OsError } from '../os-error.js'
-import { readTextFile } from '../text-file.js'
+import { readTextFile, TextDecodeError } from '../text-file.js'
 
 describe('readTextFile', () => {
   it('UTF-8 で読む', () => {
@@ -25,6 +25,25 @@ describe('readTextFile', () => {
     const file = path.join(makeTemporaryDirectory(), 'a.txt')
     writeFileSync(file, '\u{FEFF}x')
     expect(readTextFile(file)).toBe('\u{FEFF}x')
+  })
+
+  it('普通の UTF-8（BOM なし）はそのまま読む', () => {
+    const file = path.join(makeTemporaryDirectory(), 'a.txt')
+    writeFileSync(file, 'abc\n日本語 \u{1F600}')
+    expect(readTextFile(file)).toBe('abc\n日本語 \u{1F600}')
+  })
+
+  it('不正な UTF-8 のバイトは置き換えず TextDecodeError にする', () => {
+    const file = path.join(makeTemporaryDirectory(), 'a.txt')
+    writeFileSync(file, Buffer.from([0x61, 0xFF, 0x62]))
+    expect(() => readTextFile(file)).toThrow(TextDecodeError)
+    expect(() => readTextFile(file)).toThrow(`'utf-8' codec can't decode file: ${file}`)
+  })
+
+  it('途中で切れた UTF-8 の列も TextDecodeError にする', () => {
+    const file = path.join(makeTemporaryDirectory(), 'a.txt')
+    writeFileSync(file, Buffer.from([0xE3, 0x81]))
+    expect(() => readTextFile(file)).toThrow(TextDecodeError)
   })
 
   it('無いファイルは Python の FileNotFoundError と同じ文の OsError', () => {

@@ -56,8 +56,8 @@ function nonBlankText(value: unknown): string | undefined {
 }
 
 /**
-GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える。
-本文が JSON でない（HTML など）・どちらも無いときは添えない。422 では理由が errors[].message にだけ入ることがある
+GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える（422 の理由は後者にだけ入ることがある）。
+本文が JSON でない・どちらも無いときは添えない
 */
 export function describeApiError(error: Readonly<GitHubAPIError>): string {
   const body = tryParseJsonText(error.responseBody ?? '')

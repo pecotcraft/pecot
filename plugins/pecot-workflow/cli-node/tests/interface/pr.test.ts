@@ -10,7 +10,7 @@ import { installFakeExecutable, prependToPath } from '../../src/tests/_helpers/f
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { verifies } from '../_helpers/verifies.js'
-import { graphql, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
+import { graphql, HOST, issueKindData, openWorkspace, pullRequestData, rest, rule } from '../_helpers/workspace.js'
 import type { ConfigOptions, PullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 
 useIsolatedEnvironment()
@@ -74,6 +74,10 @@ const IN_REVIEW_RULES: ResponseRuleList = [
   graphql('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_1', project: { id: 'PVT_1' } }] } } } }),
   graphql('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_1' } } }),
 ]
+const KIND_FAILURE = rule({ operation: 'GetIssueKind' }, { status: 500, body: { message: 'Server Error' } })
+// 種別の問い合わせが 500 を返したときの warning。httpx の文言が 2 行に分かれ、suffix は 2 行目の末尾に付く
+const KIND_WARNING_FILL = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; fill Closes by hand\n/mu
+const KIND_WARNING_UNPROTECTED = /^warning: kind check of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url '[^']+'\n {2}For more information check: [^\n]+\/500; not protected\n/mu
 const CREATED_RULE = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21, html_url: PULL_URL })
 const NOT_EPIC_RULE = graphql('GetIssueKind', issueKindData({ number: 12 }), { variables: { number: 12 } })
 const SUBMIT_RULES: ResponseRuleList = [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES]
@@ -202,6 +206,20 @@ describe('pr create', () => {
     expect(result.stderr).toContain('set: title scope hint to p-w\n')
   })
 
+  it('remote が upstream だけでも、--prepare のコピーに base の設定と scope の目安を入れる', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-03')
+    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
+    const workspace = await openWorkspace({ ...NX_OPTIONS, github: [NOT_EPIC_RULE] })
+    workspace.git(['remote', 'rename', 'origin', 'upstream'])
+    const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
+    const content = readFileSync(result.stdout.trim(), 'utf8')
+    expect(content).toMatch(/^base: "main"$/mu)
+    expect(content).toMatch(/^title: "" {2}# expected scope: p-w$/mu)
+    expect(result.stderr).toContain('set: base to main\n')
+    expect(result.stderr).toContain('set: title scope hint to p-w\n')
+  })
+
   it('default のテンプレで --prepare を付けて打つと、末尾の Closes に着手中の Issue の番号を入れる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-05')
     const workspace = await openWorkspace({
@@ -229,12 +247,34 @@ describe('pr create', () => {
     expect(result.stderr).toContain('warning: Issue #12 is an Epic; Closes left empty\n')
   })
 
+  it('Issue の種別を読めないまま --prepare を付けて打つと、warning の行を出して Closes を空のままにする', async () => {
+    const workspace = await pushedBranch({ github: [KIND_FAILURE] })
+    const result = await workspace.run(['pr', 'create', '--prepare'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(KIND_WARNING_FILL)
+    expect(readFileSync(result.stdout.trim(), 'utf8')).toMatch(/^Closes #\s*$/mu)
+    expect(result.stderr).not.toContain('set: Closes')
+  })
+
+  it('ファイルで作るとき末尾の番号の Issue の種別を読めないと、warning の行を出さずに Closes を足す', async () => {
+    const workspace = await pushedBranch({ github: [KIND_FAILURE, CREATED_RULE, ...IN_REVIEW_RULES] })
+    const file = writePrFile(workspace, { body: BODY_WITHOUT_REFERENCE })
+    const result = await workspace.run(['pr', 'create', file])
+    expect(result.code).toBe(0)
+    expect(result.stderr).not.toContain('kind check')
+    expect(postedBody(workspace)['body']).toBe(`${BODY_WITHOUT_REFERENCE.trimEnd()}\n\nCloses #12`)
+  })
+
   it('--prepare とファイルを一緒に渡すと、PR を作らずにテンプレのコピーだけを書く', async (context) => {
     await verifies(context, 'PW-PR-CREATE-08')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const file = writePrFile(workspace)
+    const before = readFileSync(file, 'utf8')
+    const outputDirectory = path.join(workspace.directory, '.pecot', 'tmp', 'output')
     const result = await workspace.run(['pr', 'create', '--prepare', file])
     expect(result.code).toBe(0)
+    expect(readFileSync(file, 'utf8')).toBe(before)
+    expect(readdirSync(outputDirectory).map(name => path.join(outputDirectory, name))).toStrictEqual([result.stdout.trim()])
     expect(result.stdout).toMatch(/\/\.pecot\/tmp\/output\/pr-create-[\w-]+\.md\n$/u)
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
     expect(result.stderr).not.toContain('created:')
@@ -291,13 +331,16 @@ describe('pr create', () => {
     expect(postedBody(workspace)['draft']).toBe(true)
   })
 
-  it('head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す', async (context) => {
+  it.for([{ mode: 'file' }, { mode: 'message' }])('$mode の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す', async (row, context) => {
     await verifies(context, 'PW-PR-CREATE-15')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const body = BODY_WITHOUT_REFERENCE
-    const result = await workspace.run(messageArguments([], body))
+    const argv = row.mode === 'file' ? ['pr', 'create', writePrFile(workspace, { body })] : messageArguments([], body)
+    const result = await workspace.run(argv)
     expect(result.code).toBe(0)
-    expect(postedBody(workspace)['body']).toBe(`${body.trimEnd()}\n\nCloses #12`)
+    const posted = postedBody(workspace)['body']
+    expect(posted).toBe(`${body.trimEnd()}\n\nCloses #12`)
+    expect(String(posted).endsWith('Closes #12')).toBe(true)
   })
 
   it('ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない', async (context) => {
@@ -425,7 +468,7 @@ describe('pr create', () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(messageArguments(['--dry-run'], `${VALID_BODY}\n- [ ] 残タスク\n`))
     expect(result.code).toBe(3)
-    expect(result.stderr).toMatch(/^error: disallowed syntax: .*checkbox syntax/u)
+    expect(result.stderr).toBe('error: disallowed syntax: checkbox syntax (- [ ] / 1. [ ]) is not allowed\n')
   })
 
   it('Summary に画像も screenshot の理由も無いと、終了コード 3 で終わる', async (context) => {
@@ -433,7 +476,7 @@ describe('pr create', () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'acme/demo', '--dry-run'])
     expect(result.code).toBe(3)
-    expect(result.stderr).toMatch(/^error: Summary has no image and `screenshot` gives no reason to omit one\. /u)
+    expect(result.stderr).toBe('error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `-m`)\n')
   })
 
   it('base が設定のブランチと違うと、終了コード 3 で終わる', async (context) => {
@@ -484,7 +527,7 @@ describe('pr create', () => {
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     const result = await workspace.run(messageArguments())
     expect(result.code).toBe(2)
-    expect(result.stderr).toMatch(/^error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: /u)
+    expect(result.stderr).toBe('error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n')
   })
 
   it('事前の確認が git のリポジトリでないなどの致命的な場合に当たると、終了コード 1 で終わる', async (context) => {
@@ -519,12 +562,27 @@ describe('pr create', () => {
     expect(result.stderr).toContain('warning: Issue #12 is not on the board; status not updated\n')
   })
 
+  it('ボードの status の更新で GitHub API がエラーを返すと、PR は作ったまま warning の行を標準エラーに出す', async (context) => {
+    await verifies(context, 'PW-PR-CREATE-39')
+    const failing = rule({ operation: 'UpdateProjectItemField' }, { status: 500, body: { message: 'Server Error' } })
+    const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), failing] })
+    const result = await workspace.run(messageArguments())
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe(`${PULL_URL}\n`)
+    expect(lines(result.stderr).slice(0, 2)).toStrictEqual([
+      `created: PR acme/demo ${BRANCH} -> main: ${TITLE}`,
+      expect.stringMatching(/^warning: status update of Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error'/u),
+    ])
+    expect(result.stderr).not.toContain('set: Issue #12 status')
+  })
+
   it('PR の作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-40')
-    const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })] })
+    const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })], files: { [stateFile('pr-create-slash-pending')]: '1\n' } })
     const result = await workspace.run(messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR creation failed: GitHub API error: 422\n' })
     expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls'])
+    expect(workspace.exists(stateFile('pr-create-slash-pending'))).toBe(true)
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
@@ -546,7 +604,7 @@ describe('pr create', () => {
     const workspace = await pushedBranch()
     const result = await workspace.run(['pr', 'create'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: missing arguments\n {2}usage:\n {2}pecot pr create --prepare\n/u)
+    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pecot pr create --prepare\n  pecot pr create <path>\n  pecot pr create -m "<body>" -t "<title>" -b <base-branch>\n')
   })
 
   it.for([
@@ -568,7 +626,7 @@ describe('pr create', () => {
   })
 
   it.for([
-    { title: 'フロントマターが無い', content: '本文だけ\n', expected: 'error: ' },
+    { title: 'フロントマターが無い', content: '本文だけ\n', expected: 'error: frontmatter not found (does not start with ---)\n' },
     { title: 'repository が owner/repo の形でない', content: '---\ntitle: "x"\nrepository: "invalid"\nbase: "main"\nhead: ""\ndraft: false\n---\n\n本文\n', expected: 'error: repository is required (e.g. owner/repo)\n' },
   ])('ファイルが次の形だと（$title）、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-PR-CREATE-46')
@@ -576,7 +634,8 @@ describe('pr create', () => {
     const result = await workspace.run(['pr', 'create', workspace.scratch('bad.md', row.content)])
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr.startsWith(row.expected)).toBe(true)
+    expect(result.stderr).toBe(row.expected)
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
   it.for([
@@ -587,6 +646,38 @@ describe('pr create', () => {
     const workspace = await pushedBranch({ config: row.config })
     const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', ...row.repo])
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: row.expected })
+  })
+
+  it.for([
+    { title: 'ファイルの repository', mode: 'file' },
+    { title: '-m の --repo', mode: 'message' },
+  ])('$title が owner/repo の形でない 3 つ組だと、終了コード 1 で終わり、PR を作らない', async (row) => {
+    const workspace = await pushedBranch({ github: SUBMIT_RULES })
+    const argv = row.mode === 'file'
+      ? ['pr', 'create', writePrFile(workspace, { repository: 'a/b/c' })]
+      : ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'a/b/c']
+    const result = await workspace.run(argv)
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: invalid repository format: a/b/c (expected: owner/repo)\n' })
+    expect(restRequests(workspace, 'POST')).toStrictEqual([])
+  })
+
+  it('PR の作成の応答に html_url が無いと、探す先を示す error の行を最後に出して終了コード 1 で終わる', async () => {
+    const created = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21 })
+    const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, created, ...IN_REVIEW_RULES] })
+    const result = await workspace.run(messageArguments())
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(lines(result.stderr).at(-1)).toBe('error: PR was created, but the response has no html_url; find it on GitHub')
+    expect(restRequests(workspace, 'POST')).toHaveLength(1)
+  })
+
+  it.for([{ title: 'nx.json が無い' }, { title: 'nx.json がディレクトリ' }])('release_type が nx で $title と、scope を検証しない', async (row) => {
+    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
+    const nxJson = row.title === 'nx.json が無い' ? { 'keep.txt': 'x\n' } : { 'nx.json/keep.txt': 'x\n' }
+    const workspace = await openWorkspace({ ...NX_OPTIONS, commits: [{ message: 'nx', files: nxJson }] })
+    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', 'feat(pecot): #12 見本の変更', '-b', 'main', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run'])
+    expect(result.code).toBe(0)
+    expect(lines(result.stderr)).toStrictEqual([`dry-run: would create PR acme/demo ${BRANCH} -> main: feat(pecot): #12 見本の変更`, 'dry-run: would set Issue #12 status to In Review'])
   })
 
   it('head ブランチを決められないと、終了コード 1 で終わる', async (context) => {
@@ -726,14 +817,19 @@ describe('pr read', () => {
   })
 
   it.for([
-    { title: '--repo', argv: ['--repo', 'acme/demo', 'pr', 'read', '21'] },
-    { title: 'git の remote', argv: ['pr', 'read', '21'] },
+    { title: '--repo（git の remote と違う値）', argv: ['--repo', 'acme/other', 'pr', 'read', '21'], remote: 'origin', expected: 'other' },
+    { title: 'origin の remote', argv: ['pr', 'read', '21'], remote: 'origin', expected: 'demo' },
+    { title: 'origin が無いときの upstream の remote', argv: ['pr', 'read', '21'], remote: 'upstream', expected: 'upstream-repo' },
   ])('短い形 N の参照を渡すと、$title で補って読む', async (row, context) => {
     await verifies(context, 'PW-PR-READ-10')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))] })
+    if (row.remote === 'upstream') {
+      workspace.git(['remote', 'rename', 'origin', 'upstream'])
+      workspace.git(['remote', 'set-url', 'upstream', `https://${HOST}/acme/upstream-repo.git`])
+    }
     const result = await workspace.run(row.argv)
     expect(result.code).toBe(0)
-    expect(workspace.requests()).toMatchObject([{ type: 'graphql', operation: 'GetPullRequestSlim', variables: { owner: 'acme', repo: 'demo', number: 21 } }])
+    expect(workspace.requests()).toMatchObject([{ type: 'graphql', operation: 'GetPullRequestSlim', variables: { owner: 'acme', repo: row.expected, number: 21 } }])
   })
 
   it('PR の参照の形が誤っていると、終了コード 2 で終わる', async (context) => {
@@ -799,6 +895,35 @@ describe('pr preflight', () => {
     expect(result.stdout).toContain('=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n')
     expect(result.stdout).toContain(`=== Current Branch ===\n${BRANCH}\n`)
     expect(result.stdout).toContain('=== Push Status ===\nin sync with origin/feat/demo/12\n')
+  })
+
+  it('プロセスの cwd がリポジトリの外でも、そのリポジトリの .git/info/exclude を Git Exclude の節に出す', async () => {
+    const workspace = await pushedBranch()
+    writeFileSync(path.join(workspace.directory, '.git', 'info', 'exclude'), '# 目印の行\n.marker-exclude\n')
+    const elsewhere = path.join(workspace.root, 'elsewhere')
+    mkdirSync(elsewhere)
+    const result = await workspace.run(['pr', 'preflight', '-D', workspace.directory], elsewhere)
+    expect(result.stdout).toContain('=== Git Exclude ===\n# 目印の行\n.marker-exclude\n')
+    expect(result.stdout).not.toContain('(no exclude)')
+  })
+
+  it('worktree を --directory に渡すと、Worktree Info の節に Is worktree environment: true を出す', async () => {
+    const workspace = await pushedBranch()
+    const worktree = path.join(workspace.root, 'linked')
+    workspace.git(['worktree', 'add', '-q', '-b', 'linked-work', worktree])
+    const elsewhere = path.join(workspace.root, 'elsewhere')
+    mkdirSync(elsewhere)
+    const result = await workspace.run(['pr', 'preflight', '-D', worktree], elsewhere)
+    expect(result.stdout).toContain('Is worktree environment: true\n')
+    const main = await preflight(workspace)
+    expect(main.stdout).toContain('Is worktree environment: false\n')
+  })
+
+  it('.gitignore が UTF-8 として読めないと、.gitignore の節に (read error) を出す', async () => {
+    const workspace = await pushedBranch()
+    writeFileSync(path.join(workspace.directory, '.gitignore'), Buffer.from([0x61, 0xFF, 0x0A]))
+    const result = await preflight(workspace)
+    expect(result.stdout).toContain('=== .gitignore ===\n(read error)\n')
   })
 
   it('warning があるときに打つと、11 の節を全部出す', async (context) => {
@@ -1015,12 +1140,12 @@ const NO_PULL_REQUEST = { repository: { pullRequest: null } }
 describe('pr cleanup', () => {
   it('マージ済みの PR の参照を渡すと、closing issues・本文の Closes / Fixes / Resolves・head ブランチ名の末尾の番号の Issue を close する', async (context) => {
     await verifies(context, 'PW-PR-CLEANUP-01')
-    const github = mergedRules({ closing: [[10, 'closing']], body: 'Fixes #11\n\nResolves #13\n' }, [10, 11, 12, 13].flatMap(number => [kindRule(number), closeRule(number)]))
+    const github = mergedRules({ closing: [[10, 'closing']], body: 'Fixes #11\n\nResolves #13\n\nCloses #14\n' }, [10, 11, 12, 13, 14].flatMap(number => [kindRule(number), closeRule(number)]))
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
     const closed = restRequests(workspace, 'PATCH')
-    expect(closed).toMatchObject([10, 11, 12, 13].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
+    expect(closed).toMatchObject([10, 11, 12, 13, 14].map(number => ({ path: `/repos/acme/demo/issues/${String(number)}`, body: { state: 'closed' } })))
   })
 
   it.for([
@@ -1028,11 +1153,21 @@ describe('pr cleanup', () => {
     { title: 'sub-issue を持つ Issue', options: { subIssues: 3 } },
   ])('次の Issue があると（$title）、その Issue を close しない', async (row, context) => {
     await verifies(context, 'PW-PR-CLEANUP-02')
-    const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, row.options)]) })
+    const workspace = await openWorkspace({ github: mergedRules({ closing: [[10, 'epic']] }, [kindRule(10, row.options), kindRule(12), closeRule(12)]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
-    expect(restRequests(workspace, 'PATCH')).toStrictEqual([])
-    expect(result.stderr).toContain('count: Issues to close: 0\n')
+    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
+    expect(result.stderr).toContain('count: Issues to close: 1\n')
+    expect(result.stderr).toContain('closed: Issue #12\n')
+  })
+
+  it('Issue の種別を読めないと、warning の行を出して、その Issue を Epic として守らずに close する', async () => {
+    const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE, closeRule(12)]) })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toMatch(KIND_WARNING_UNPROTECTED)
+    expect(result.stderr).toMatch(/\ncount: Issues to close: 1\nclosed: Issue #12\n$/u)
+    expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12', body: { state: 'closed' } }])
   })
 
   it('Epic か sub-issue を持つ Issue があると、skipped の行を標準エラーに出す', async (context) => {
@@ -1196,6 +1331,42 @@ describe('pr cleanup', () => {
     const result = await workspace.run(CLEANUP)
     expect(result.code).toBe(0)
     expect(result.stderr).toMatch(new RegExp(`\\nwarning: deleting local branch ${BRANCH} failed: .*\\n$`, 'u'))
+  })
+
+  it('--delete-branch を付けてローカルの片付けも通すと、結果の行を実行した順で標準エラーへ出す', async (context) => {
+    await verifies(context, 'PW-PR-CLEANUP-04')
+    await verifies(context, 'PW-PR-CLEANUP-13')
+    await verifies(context, 'PW-PR-CLEANUP-14')
+    await verifies(context, 'PW-PR-CLEANUP-15')
+    const workspace = await cleanupBranch({ github: mergedRules({}, [kindRule(12), closeRule(12), deleteRule(BRANCH), deleteRule(`wip/${BRANCH}`)]) })
+    const result = await workspace.run([...CLEANUP, '-d'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe('')
+    expect(result.stderr.split('\n')).toStrictEqual([
+      'count: Issues to close: 1',
+      'closed: Issue #12',
+      `deleted: remote branch ${BRANCH}`,
+      `deleted: remote branch wip/${BRANCH}`,
+      'set: current branch to main',
+      'updated: main from origin/main',
+      `deleted: local branch ${BRANCH}`,
+      '',
+    ])
+  })
+
+  it('origin の develop_branch が無く pull に失敗すると、warning の行を出したうえで、ローカルの head ブランチを削除する', async (context) => {
+    await verifies(context, 'PW-PR-CLEANUP-17')
+    const workspace = await cleanupBranch({ github: mergedRules() })
+    workspace.remoteGit(['update-ref', '-d', 'refs/heads/main'])
+    const result = await workspace.run(CLEANUP)
+    expect(result.code).toBe(0)
+    const output = lines(result.stderr)
+    expect(output.slice(0, 3)).toStrictEqual(['count: Issues to close: 1', 'closed: Issue #12', 'set: current branch to main'])
+    const pulling = output.findIndex(line => line.startsWith('warning: pulling main failed: '))
+    expect(pulling).toBe(3)
+    expect(output.at(-1)).toBe(`deleted: local branch ${BRANCH}`)
+    expect(hasBranch(workspace)).toBe(false)
+    expect(result.stderr).not.toContain('updated:')
   })
 
   it('カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す', async (context) => {

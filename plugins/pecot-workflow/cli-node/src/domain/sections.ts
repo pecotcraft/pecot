@@ -556,8 +556,8 @@ const IMAGE_ALT = String.raw`(?:[^[\]]|\[[^[\]]*\])*`
 const IMAGE_PATTERN = new RegExp(String.raw`!\[${IMAGE_ALT}\]\([^)]+\)|!\[${IMAGE_ALT}\]\[[^\]]*\]|<img(?![\p{L}\p{N}_])`, 'iu')
 
 /**
-Summary 節に画像の参照（Markdown 記法か `<img`）があるか。
-フェンス・インラインコード・HTML コメントの中は数えない。記法の網羅は目的ではなく、取りこぼしは screenshot の理由で避けられる
+Summary 節に画像の参照（Markdown 記法か `<img`）があるか。フェンス・インラインコード・HTML コメントの中は数えない。
+記法は網羅しない。取りこぼしは screenshot の理由で避けられる
 */
 export function hasSummaryImage(body: string): boolean {
   const { lines } = maskedLines(body)

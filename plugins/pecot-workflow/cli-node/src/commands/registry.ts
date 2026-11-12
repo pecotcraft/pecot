@@ -2,6 +2,8 @@
 // 各コマンドは defineCommand() で定義して command-list.ts の COMMANDS に足す。グローバルの --repo は、全コマンドの入力 repo として合成する。
 import { z } from 'zod'
 
+import { flagKindOf } from './value-types.js'
+
 /**
 コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
 */
@@ -116,6 +118,18 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
   return new Map(Object.entries(flags ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
 }
 
+// commander は `--no-x` を `--x` の否定として扱う。この解釈に合わない `no_` の名前は作れない。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
+function rejectNegationLikeFields(shape: Readonly<Record<string, z.core.$ZodType>>, positional: readonly string[]): void {
+  const options = Object.entries(shape).filter(([name]) => !positional.includes(name))
+  const names = new Set(options.map(([name]) => name))
+  for (const [name, schema] of options) {
+    if (!name.startsWith('no_')) continue
+    if (flagKindOf(schema) !== 'boolean') throw new TypeError(`no_ で始まる input の ${name} は真偽値にしてください`)
+    if (names.has(name.slice(3))) throw new TypeError(`input の ${name.slice(3)} と ${name} は commander が否定の対とみなすため、同時に定義できません`)
+  }
+}
+
 /**
 型付きの仕様から、型を消した定義を作る。parse が input で検証してから本体を呼ぶので、型を消しても安全に呼べる
 */
@@ -126,6 +140,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
   const hasRepository = Object.hasOwn(spec.input.shape, 'repo')
   if (!isOwner && hasRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
   if (isOwner && !hasRepository) throw new TypeError('ownsRepo のコマンドは input に repo が要ります')
+  rejectNegationLikeFields(spec.input.shape, spec.positional)
   const input = isOwner ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>, context?: Readonly<CommandContext>): PreparedCommand => {
     if (isOwner) {

@@ -109,9 +109,7 @@ export interface NxGraphOptions {
 }
 
 /**
-nx の project graph から `{プロジェクト名: NxProject}` を返す。
-`nx graph --file=<一時 json>` に書かせて読む（stdout のパイプでは大きな JSON が途中で切れる）。
-一時ファイルは `<toplevel>/.pecot/tmp` に作成し、終了時に削除する。
+nx の project graph から `{プロジェクト名: NxProject}` を返す。stdout では大きな JSON が切れるため、一時ファイルに書かせて読む。
 nx が無い・実行失敗・部分 graph・JSON の解析失敗なら undefined
 */
 export function nxProjects(toplevel: string, options: Readonly<NxGraphOptions> = {}): ReadonlyMap<string, NxProject> | undefined {
@@ -182,13 +180,8 @@ function isUnder(file: string, root: string): boolean {
 }
 
 /**
-変更ファイルから期待する scope の一覧を返す。
-- ファイルの持ち主は、project root との最長一致で決める（nx の `findProjectForPath` と同じ）。
-- 持ち主のプロジェクトの scope を使う。同じ scope の複数プロジェクトは 1 つにまとまる。
-- どのプロジェクトにも属さないファイルがあれば、末尾に `repo` を加える。
-- `.nx/version-plans/` 配下は数えない。
-
-結果は、scope の昇順に、必要なら `repo` を足したもの。数えるファイルが無ければ空。
+変更ファイルから期待する scope を、昇順で返す。持ち主は project root との最長一致で決め、どれにも属さないファイルがあれば末尾に `repo` を足す。
+`.nx/version-plans/` 配下は数えない。
 */
 export function expectedScope(files: readonly string[], projects: ReadonlyMap<string, NxProject>): readonly string[] {
   const ordered = [...projects].map(([, project]) => project).toSorted((a, b) => b.root.length - a.root.length)

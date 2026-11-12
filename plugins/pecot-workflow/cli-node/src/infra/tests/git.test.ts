@@ -14,6 +14,7 @@ import {
   gitCurrentBranch,
   gitRemoteUrl,
   gitRunnerFor,
+  gitStdout,
   gitToplevel,
   originRepository,
   primaryRemoteName,
@@ -235,5 +236,24 @@ describe('gitRunnerFor と resolveRepository（実 git）', () => {
 
   it('リポジトリの外では曖昧', () => {
     expect(() => resolveRepository(undefined, gitRunnerFor(makeTemporaryDirectory(), { stripGitEnvironment: true }))).toThrow(AmbiguousRepositoryError)
+  })
+})
+
+describe('gitStdout', () => {
+  it('標準出力を、前後の空白と改行を削らずに返す', () => {
+    const bin = makeTemporaryDirectory()
+    installFakeExecutable(bin, 'git', 'printf "  a\\n\\n"\n')
+    prependToPath(bin)
+    expect(gitStdout(['x'])).toBe('  a\n\n')
+  })
+
+  it('非 0 終了なら undefined を返す', () => {
+    const outside = makeTemporaryDirectory()
+    expect(gitStdout(['rev-parse', '--show-toplevel'], { cwd: outside, stripGitEnvironment: true })).toBeUndefined()
+  })
+
+  it('git が見つからなければ undefined を返す', () => {
+    withoutGit()
+    expect(gitStdout(['status'])).toBeUndefined()
   })
 })

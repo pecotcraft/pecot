@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // `pecot pr` の 4 コマンド（create・read・preflight・cleanup）。cli/commands/pr.py の移植。
 // 途中で抜ける箇所は ExitSignal を投げ、各コマンドの最初の層で終了コードにする。
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -37,7 +37,7 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_MERGE_SLASH_PENDING, FLAG_PECOT_ACTIVE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_PR_CREATE_SLASH_PENDING, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, GitCommandError, gitRemoteUrl, gitRunnerFor, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
+import { gitCurrentBranch, GitCommandError, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
 import { GitHubClient } from '../infra/github/index.js'
 import { describeApiError, GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestSlim } from '../infra/github/pulls.js'
@@ -101,8 +101,8 @@ function requireActiveConfig(out: Readonly<Output>): ProjectConfig {
   return config ?? fail(out, 'no active project')
 }
 
-function createClient(config: Readonly<ProjectConfig>, out: Readonly<Output>): GitHubClient {
-  return new GitHubClient({ host: config.host, diagnostics: out })
+function createClient(config: Readonly<ProjectConfig> | undefined, out: Readonly<Output>): GitHubClient {
+  return new GitHubClient({ host: config?.host, diagnostics: out })
 }
 
 function isPositive(value: number | undefined): value is number {
@@ -150,7 +150,17 @@ function nxScopeTarget(config: Readonly<ProjectConfig>, owner: string, repositor
   const isSameRepository = location?.owner.toLowerCase() === owner.toLowerCase() && location.repository.toLowerCase() === repository.toLowerCase()
   if (found === undefined || !isSameRepository) return undefined
   const toplevel = gitToplevel({ cwd: directory })
-  return toplevel === undefined || !existsSync(path.join(toplevel, 'nx.json')) ? undefined : { toplevel, remote: found.name }
+  return toplevel === undefined || !isRegularFile(path.join(toplevel, 'nx.json')) ? undefined : { toplevel, remote: found.name }
+}
+
+// Python の Path.is_file() と同じく、stat の失敗は「無い」と扱う
+function isRegularFile(file: string): boolean {
+  try {
+    return statSync(file).isFile()
+  }
+  catch {
+    return false
+  }
 }
 
 function expectedTitleScope(target: Readonly<ScopeTarget>, base: string, head: string, out: Readonly<Output>): readonly string[] | undefined {
@@ -172,12 +182,12 @@ interface TitleScopeQuery {
   readonly head: string
   readonly directory: string
   readonly template: string
+  readonly developBranch: string | undefined
+  readonly releaseBranch: string | undefined
 }
 
 function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<Output>): readonly string[] {
-  const { config, owner, repository, title, base, head, directory, template } = query
-  const developBranch = getDevelopBranch(config, owner, repository)
-  const releaseBranch = getReleaseBranch(config, owner, repository)
+  const { config, owner, repository, title, base, head, directory, template, developBranch, releaseBranch } = query
   if (isReleasePullRequest(template, base, head, developBranch, releaseBranch)) return []
   const target = nxScopeTarget(config, owner, repository, base, directory)
   if (target === undefined) return []
@@ -289,22 +299,12 @@ function printPreflightWarnings(out: Readonly<Output>, warnings: readonly Prefli
 
 // git の読み取り。失敗は Python の文字列の印にする
 
-function gitStdout(arguments_: readonly string[], cwd: string): string | undefined {
-  try {
-    return runGit(arguments_, { cwd, check: true }).stdout
-  }
-  catch (error: unknown) {
-    if (error instanceof GitCommandError || isFileNotFound(error)) return undefined
-    throw error
-  }
-}
-
 function getGitStatus(cwd: string): string {
-  return gitStdout(['status'], cwd) ?? '(git status failed)'
+  return gitStdout(['status'], { cwd }) ?? '(git status failed)'
 }
 
 function getStashList(cwd: string): string {
-  const stdout = gitStdout(['stash', 'list'], cwd)
+  const stdout = gitStdout(['stash', 'list'], { cwd })
   return stdout === undefined ? '(git stash list failed)' : pythonStrip(stdout) || '(no stash)'
 }
 
@@ -319,8 +319,8 @@ function getPushStatus(branch: string, cwd: string, remote: string): PushStatus 
     if (isFileNotFound(error)) return { isPushed: false, message: '(git rev-parse failed)' }
     throw error
   }
-  const ahead = gitStdout(['rev-list', '--count', `${remote}/${branch}..${branch}`], cwd)
-  const behind = ahead === undefined ? undefined : gitStdout(['rev-list', '--count', `${branch}..${remote}/${branch}`], cwd)
+  const ahead = gitStdout(['rev-list', '--count', `${remote}/${branch}..${branch}`], { cwd })
+  const behind = ahead === undefined ? undefined : gitStdout(['rev-list', '--count', `${branch}..${remote}/${branch}`], { cwd })
   const aheadCount = ahead === undefined ? undefined : parsePythonInteger(pythonStrip(ahead))
   const behindCount = behind === undefined ? undefined : parsePythonInteger(pythonStrip(behind))
   return aheadCount === undefined || behindCount === undefined ? failed : describePushStatus(remote, branch, aheadCount, behindCount)
@@ -369,7 +369,7 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, directory: str
   if (!draft.isRelease) await updateIssueStatusToInReview(config, client, draft.location, draft.head, out)
   consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   const url = jsonField(created, 'html_url')
-  if (typeof url !== 'string') throw new GitHubAPIError('PR creation response has no html_url')
+  if (typeof url !== 'string') return fail(out, 'PR was created, but the response has no html_url; find it on GitHub')
   out.data(url)
 }
 
@@ -407,7 +407,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
       screenshot: input.screenshot,
       requiredSections,
     }),
-    ...titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template }, out),
+    ...titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, directory, template, developBranch, releaseBranch }, out),
   ]
   exitOnValidationErrors(errors, out)
 
@@ -446,11 +446,7 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
   }
   const { frontmatter } = parsed
   if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return fail(out, 'repository is required (e.g. owner/repo)')
-  const [owner, repository, ...rest] = frontmatter.repository.split('/')
-  if (owner === undefined || repository === undefined || rest.length > 0) {
-    throw new InvalidValueError(`too many values to unpack (expected 2) in repository: ${frontmatter.repository}`)
-  }
-  const location = { owner, repository }
+  const location = splitRepository(frontmatter.repository, out)
   const head = resolveHeadBranch(frontmatter.head, directory, out)
 
   let body = parsed.body
@@ -536,7 +532,7 @@ function addScopeHint(content: string, config: Readonly<ProjectConfig>, location
   return hinted
 }
 
-async function fillClosesInTemplate(content: string, directory: string, location: RemoteLocation | undefined, out: Readonly<Output>): Promise<string> {
+async function fillClosesInTemplate(content: string, config: Readonly<ProjectConfig> | undefined, directory: string, location: RemoteLocation | undefined, out: Readonly<Output>): Promise<string> {
   let target: { readonly owner: string, readonly repository: string, readonly number: number } | undefined
   const segments = readFlag(FLAG_PECOT_ACTIVE)?.split('/')
   if (segments?.length === 3) {
@@ -552,10 +548,8 @@ async function fillClosesInTemplate(content: string, directory: string, location
   if (target === undefined || target.owner === '' || target.repository === '') return content
 
   const label = `Issue #${String(target.number)}`
-  const config = loadActiveConfig()
   try {
-    const client = new GitHubClient({ host: config?.host, diagnostics: out })
-    const kind = await client.getIssueKind(target.owner, target.repository, target.number)
+    const kind = await createClient(config, out).getIssueKind(target.owner, target.repository, target.number)
     if (isEpicIssue(kind)) {
       out.warning(`${label} is an Epic; Closes left empty`)
       return content
@@ -582,8 +576,8 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
   // release テンプレートは、base をテンプレートの既定（main）のままにする
   if (template !== 'release') {
     const location = primaryRemote(directory)?.location
+    const config = loadActiveConfig()
     if (location !== undefined) {
-      const config = loadActiveConfig()
       const developBranch = config === undefined ? undefined : getDevelopBranch(config, location.owner, location.repository)
       if (config !== undefined && developBranch !== undefined && developBranch !== '') {
         content = content.replace(/^base:\s*"[^"]*"/mu, () => `base: "${developBranch}"`)
@@ -591,7 +585,7 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
         content = addScopeHint(content, config, { owner: location.owner, repository: location.repository }, developBranch, directory, out)
       }
     }
-    content = await fillClosesInTemplate(content, directory, location, out)
+    content = await fillClosesInTemplate(content, config, directory, location, out)
   }
 
   const prefix = template === 'release' ? 'pr-release' : 'pr-create'
@@ -708,14 +702,7 @@ async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & Global
 // pr preflight
 
 function hasBranch(branch: string, cwd: string): boolean {
-  try {
-    runGit(['rev-parse', '--verify', branch], { cwd, check: true })
-    return true
-  }
-  catch (error: unknown) {
-    if (error instanceof GitCommandError) return false
-    throw error
-  }
+  return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
 }
 
 function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
@@ -744,9 +731,9 @@ function readGitignore(cwd: string): string {
 
 function readGitExclude(cwd: string): string {
   try {
-    const common = gitStdout(['rev-parse', '--git-common-dir'], cwd)
+    const common = gitStdout(['rev-parse', '--git-common-dir'], { cwd })
     if (common === undefined) return '(read error)'
-    const file = path.join(pythonStrip(common), 'info', 'exclude')
+    const file = path.join(path.resolve(cwd, pythonStrip(common)), 'info', 'exclude')
     return existsSync(file) ? readTextFile(file) : '(no exclude)'
   }
   catch {
@@ -755,15 +742,15 @@ function readGitExclude(cwd: string): string {
 }
 
 function getWorktreeInfo(cwd: string): string {
-  const listed = gitStdout(['worktree', 'list'], cwd)
+  const listed = gitStdout(['worktree', 'list'], { cwd })
   const lines = [listed === undefined ? '(git worktree list failed)' : pythonStrip(listed), '', `Current directory name: ${path.basename(cwd)}`]
-  const gitDirectory = gitStdout(['rev-parse', '--git-dir'], cwd)
-  const commonDirectory = gitDirectory === undefined ? undefined : gitStdout(['rev-parse', '--git-common-dir'], cwd)
+  const gitDirectory = gitStdout(['rev-parse', '--git-dir'], { cwd })
+  const commonDirectory = gitDirectory === undefined ? undefined : gitStdout(['rev-parse', '--git-common-dir'], { cwd })
   if (gitDirectory === undefined || commonDirectory === undefined) {
     lines.push('Is worktree environment: (unknown)')
   }
   else {
-    const isWorktree = resolveRealPath(pythonStrip(gitDirectory)) !== resolveRealPath(pythonStrip(commonDirectory))
+    const isWorktree = resolveRealPath(path.resolve(cwd, pythonStrip(gitDirectory))) !== resolveRealPath(path.resolve(cwd, pythonStrip(commonDirectory)))
     lines.push(`Is worktree environment: ${isWorktree ? 'true' : 'false'}`)
   }
   return lines.join('\n')
@@ -780,8 +767,8 @@ function runPreflight(input: Readonly<z.output<typeof PreflightInputSchema>>, io
   const baseBranch = determineBaseBranch(context.location, directory, context.remoteName, out)
 
   const gitStatus = getGitStatus(directory)
-  const commits = gitStdout(['log', '--oneline', `${baseBranch}..HEAD`], directory)
-  const diffSummary = gitStdout(['diff', '--stat', `${baseBranch}...HEAD`], directory)
+  const commits = gitStdout(['log', '--oneline', `${baseBranch}..HEAD`], { cwd: directory })
+  const diffSummary = gitStdout(['diff', '--stat', `${baseBranch}...HEAD`], { cwd: directory })
   const push = getPushStatus(context.currentBranch, directory, context.remoteName)
   const stashList = getStashList(directory)
 
@@ -951,7 +938,7 @@ function resolveCheckoutTarget(cwd: string, config: Readonly<ProjectConfig>, loc
   }
 }
 
-function isLocalStepOk(context: Readonly<Cleanup>, operation: Operation, cwd: string, arguments_: readonly string[], failure: string): boolean {
+function didRunLocalStep(context: Readonly<Cleanup>, operation: Operation, cwd: string, arguments_: readonly string[], failure: string): boolean {
   const { out, isDryRun } = context
   out.planned(operation)
   if (isDryRun) return true
@@ -984,16 +971,16 @@ function localCleanupAfterMerge(context: Readonly<Cleanup>, headBranch: string, 
   if (currentBranch === checkoutTarget) {
     settle(out, { verb: 'unchanged', target: `current branch ${checkoutTarget}` })
   }
-  else if (!isLocalStepOk(context, { verb: 'set', target: `current branch to ${checkoutTarget}` }, cwd, ['checkout', checkoutTarget], `checking out ${checkoutTarget}`)) {
+  else if (!didRunLocalStep(context, { verb: 'set', target: `current branch to ${checkoutTarget}` }, cwd, ['checkout', checkoutTarget], `checking out ${checkoutTarget}`)) {
     // checkout が失敗したら、pull と branch -D は別のブランチに当たるので止める
     return
   }
-  isLocalStepOk(context, { verb: 'update', target: `${checkoutTarget} from ${remote}/${developBranch}` }, cwd, ['pull', remote, developBranch], `pulling ${developBranch}`)
+  didRunLocalStep(context, { verb: 'update', target: `${checkoutTarget} from ${remote}/${developBranch}` }, cwd, ['pull', remote, developBranch], `pulling ${developBranch}`)
   if (headBranch === checkoutTarget) {
     settle(out, { verb: 'skip', target: `deleting local branch ${headBranch} (it is the checkout target)` })
   }
   else {
-    isLocalStepOk(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)
+    didRunLocalStep(context, { verb: 'delete', target: `local branch ${headBranch}` }, cwd, ['branch', '-D', headBranch], `deleting local branch ${headBranch}`)
   }
 }
 

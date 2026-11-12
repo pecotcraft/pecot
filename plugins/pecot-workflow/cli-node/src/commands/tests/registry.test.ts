@@ -274,6 +274,38 @@ describe('defineCommand の ownsRepo', () => {
   })
 })
 
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
+function define(input: z.ZodObject, positional: readonly string[] = []): unknown {
+  return defineCommand({
+    path: ['x'],
+    description: '',
+    input,
+    positional,
+    interactive: false,
+    run: async () => await exitWith(0),
+  })
+}
+
+describe('defineCommand の no_ で始まる input', () => {
+  it('真偽値の no_x は作れる', () => {
+    expect(() => define(z.object({ no_color: z.boolean().default(false) }))).not.toThrow()
+  })
+
+  it('真偽値でない no_x は TypeError', () => {
+    expect(() => define(z.object({ no_color: z.string().optional() }))).toThrow(TypeError)
+    expect(() => define(z.object({ no_color: z.string().optional() }))).toThrow('no_color は真偽値')
+  })
+
+  it('x と no_x が両方あると TypeError', () => {
+    expect(() => define(z.object({ color: z.boolean().default(false), no_color: z.boolean().default(false) }))).toThrow(TypeError)
+    expect(() => define(z.object({ color: z.boolean().default(false), no_color: z.boolean().default(false) }))).toThrow('color と no_color')
+  })
+
+  it('位置引数の no_x はオプションではないので数えない', () => {
+    expect(() => define(z.object({ no_name: z.string() }), ['no_name'])).not.toThrow()
+  })
+})
+
 describe('findCommand', () => {
   it('path が一致するコマンドを返し、一致しなければ undefined を返す', () => {
     const command = defineCommand({
