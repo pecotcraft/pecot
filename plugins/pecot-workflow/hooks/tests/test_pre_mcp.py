@@ -189,6 +189,17 @@ def test_pecot_issue_create_prepare_passes(state_dir, hook_script, hooks_config)
     assert result.stdout == ""
 
 
+def test_pecot_issue_quick_prepare_still_asks(state_dir, hook_script, hooks_config):
+    # issue_quick の入力に prepare は無いので、prepare: true でも ask にする。
+    hooks_config.write({})
+    input_json = (
+        f'{{"tool_name":"{_PECOT_TOOL_PREFIX}issue_quick","tool_input":{{"prepare":true}}}}'
+    )
+    result = _run(hook_script, input_json)
+    assert result.returncode == 0
+    assert '"permissionDecision": "ask"' in result.stdout
+
+
 def test_pecot_non_post_tool_no_output(state_dir, hook_script, hooks_config):
     hooks_config.write({})
     input_json = f'{{"tool_name":"{_PECOT_TOOL_PREFIX}issue_read","tool_input":{{}}}}'
@@ -197,8 +208,8 @@ def test_pecot_non_post_tool_no_output(state_dir, hook_script, hooks_config):
     assert result.stdout == ""
 
 
-def test_pr_create_block_wins_over_ask(state_dir, hook_script, hooks_config):
-    # deny 系（pr-create-block）が ask より先段で評価される。
+def test_pr_create_block_stays_deny_with_ask_stage(state_dir, hook_script, hooks_config):
+    # ask の段を足しても、GitHub の PR 作成は deny のまま。
     hooks_config.write({})
     input_json = '{"tool_name":"mcp__github__create_pull_request","tool_input":{}}'
     result = _run(hook_script, input_json)

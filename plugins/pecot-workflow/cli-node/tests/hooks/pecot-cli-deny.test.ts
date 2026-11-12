@@ -104,6 +104,12 @@ describe('pecot-cli-deny', () => {
     { command: 'git status\npecot issue read 1', note: '改行の後ろ' },
     { command: 'git log | pecot issue read 1', note: 'パイプの後ろ' },
     { command: 'echo $(pecot issue read 1)', note: 'コマンド置換の中' },
+    { command: 'cat > body.md <<EOF\ntext\nEOF\npecot issue read 1', note: 'ヒアドキュメントの終端の後ろの行' },
+    { command: 'cat <<\'EOF\'\ntext\nEOF\npecot issue read 1', note: '区切り語をクオートしたヒアドキュメントの後ろの行' },
+    { command: 'cat <<-EOF\n\ttext\n\tEOF\npecot issue read 1', note: '<<- のヒアドキュメントの後ろの行' },
+    { command: 'git commit -m "a << b"\npecot issue read 1', note: 'クオート内の << の後ろの行' },
+    { command: 'cat <<< foo\npecot issue read 1', note: 'here-string の後ろの行' },
+    { command: 'cd /x\npecot issue read 1 <<< "x"', note: 'here-string を引数に持つ行' },
   ])('$note でも、セグメントの先頭なら deny する', ({ command }) => {
     const run = runDeny(command)
     expect(run.status).toBe(1)
@@ -119,6 +125,11 @@ describe('pecot-cli-deny', () => {
     { command: 'pecot-tools aws s3 ls', note: '名前が pecot で始まる別のコマンド' },
     { command: '/work/pecot/scripts/run-tests.sh', note: 'パスの途中の pecot' },
     { command: 'cat <<EOF\npecot issue read 1\nEOF', note: 'ヒアドキュメントの本文の行' },
+    { command: 'cat <<\'EOF\'\nRun `pecot pr create` after review.\nEOF', note: '本文のバッククォート内' },
+    { command: 'cat <<EOF\nnote (pecot issue read is gone)\nEOF', note: '本文の括弧内' },
+    { command: 'grep -rnE "gh|pecot" plugins/', note: 'クオート内の | をはさむ pecot' },
+    { command: 'rg \'(uvx|pecot)\' hooks', note: 'クオート内の括弧と | をはさむ pecot' },
+    { command: 'echo "a;pecot issue read 1"', note: 'クオート内の ; の後ろ' },
   ])('pecot を起動しない形（$note）は、無出力で素通しにする', ({ command }) => {
     const run = runDeny(command)
     expect(run.status).toBe(0)
@@ -133,6 +144,15 @@ describe('pecot-cli-deny', () => {
     { command: 'bash -c "pecot issue read 1"', note: 'bash -c の中' },
     { command: '{ pecot issue read 1; }', note: '{ } の中' },
     { command: 'if pecot issue read 1; then echo ok; fi', note: 'if の後ろ' },
+    { command: 'foo=1 pecot issue read 1', note: '小文字の環境変数の前置き' },
+    { command: 'X1=1 pecot issue read 1', note: '数字を含む環境変数の前置き' },
+    { command: '! pecot issue read 1', note: '否定の記号の後ろ' },
+    { command: 'command pecot issue read 1', note: 'command の後ろ' },
+    { command: 'exec pecot issue read 1', note: 'exec の後ろ' },
+    { command: 'sudo pecot issue read 1', note: 'sudo の後ろ' },
+    { command: 'xargs pecot issue read 1', note: 'xargs の後ろ' },
+    { command: 'pecot>out issue read 1', note: 'pecot の直後のリダイレクト' },
+    { command: '"/my dir/bin/pecot" issue read 1', note: '空白を含むパスのクオート' },
   ])('今は素通しになる形（$note）を、そのまま固定する', ({ command }) => {
     const run = runDeny(command)
     expect(run.status).toBe(0)

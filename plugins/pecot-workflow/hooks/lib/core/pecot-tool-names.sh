@@ -13,12 +13,13 @@ pecot_tool_known() {
     return 1
 }
 
-# フックの tool_name（2 つのクライアントの形）から接頭辞を外し、一覧にあるときだけ名前を出力する。
+# フックの tool_name（Claude Code のプラグイン内・外の登録と、Copilot CLI の形）から接頭辞を外し、一覧にあるときだけ名前を出力する。
 # 一覧に無い（別の MCP サーバのツールを含む）ときは 1 を返し、何も出力しない。
 pecot_tool_from_hook_name() {
     local name="$1"
     case "$name" in
         mcp__plugin_pecot-w_pecot-workflow__*) name="${name#mcp__plugin_pecot-w_pecot-workflow__}" ;;
+        mcp__pecot-workflow__*) name="${name#mcp__pecot-workflow__}" ;;
         pecot-workflow-*) name="${name#pecot-workflow-}" ;;
         *) return 1 ;;
     esac

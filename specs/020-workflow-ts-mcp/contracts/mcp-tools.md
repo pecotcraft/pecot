@@ -19,7 +19,7 @@
 | ツール | CLI | hooks のガード |
 |---|---|---|
 | `issue_create` | `pecot issue create` | ask（`prepare` が true なら素通し） |
-| `issue_quick` | `pecot issue quick` | ask（同上） |
+| `issue_quick` | `pecot issue quick` | ask（入力に `prepare` が無いので、常に ask） |
 | `pr_create` | `pecot pr create` | ask（`prepare` か `dry_run` が true なら素通し） |
 | `worktree_link` | `pecot worktree link` | 入力 `force`（定義書にある。既定 false）。MCP ツールは標準入力を持たないので、`force` が false で上書きの確認が要るときは、入力の終端と同じく中止する（research R-7） |
 

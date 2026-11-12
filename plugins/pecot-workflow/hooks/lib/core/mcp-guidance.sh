@@ -1,7 +1,7 @@
 #!/bin/bash
 # Bash の pecot から MCP ツールへ移った後の案内文（source して使う）。
 # 各関数は文を stdout に出すだけ。hook_message の kind は呼ぶ側が付ける。
-# 現状はどのスクリプトからも読まない（切り替えのフェーズで、元の文を出している箇所を差し替える）。
+# どのスクリプトからも読まない（切り替えのフェーズで、元の文を出している箇所を差し替える）。
 
 # gh-command-check.sh: gh pr create の阻止。
 mcp_guidance_gh_pr_create() {
@@ -90,4 +90,27 @@ mcp_guidance_plan_comment_update() {
 Plan comment update: if the approved plan differs from the posted one, fix the posted file.
 Then call the MCP tool issue_comment with that file again.
 EOF
+}
+
+# pecot-post-ask.sh: Issue 投稿の ask の文を、MCP の入力名で書いた版。
+mcp_guidance_post_ask_issue() {
+    cat <<'EOT'
+external-post-check: the MCP tools issue_create / issue_quick (a real post) publish an Issue externally.
+
+Do not call them until the user has explicitly approved.
+The canonical routes for filing are these skills:
+/pecot-w:w-quick, /pecot-w:w-ready, /pecot-w:w-backlog, /pecot-w:w-issueize.
+To only generate a template, call issue_create with prepare: true.
+The tool issue_quick has no prepare.
+EOT
+}
+
+# pecot-post-ask.sh: PR 投稿の ask の文を、MCP の入力名で書いた版。
+mcp_guidance_post_ask_pr() {
+    cat <<'EOT'
+external-post-check: the MCP tool pr_create (a real post) publishes a PR externally.
+
+Do not call it until the user has explicitly approved.
+To only review the content, call pr_create with prepare: true (template generation) or dry_run: true.
+EOT
 }

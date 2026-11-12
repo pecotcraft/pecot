@@ -1,10 +1,6 @@
 #!/bin/bash
-# PreToolUse MCP handler: 投稿の ask（pecot-workflow の issue_create / issue_quick / pr_create）。
-#
-# 判定の入力は PECOT_HOOK_TOOL_NAME と stdin の tool_input。tool_input.prepare == true、
-# pr_create の dry_run == true、スラッシュコマンド起点のフラグ、config キー false のどれかで素通しにする。
-# ask の文言は external-post-check.sh の ISSUE_MSG / CREATE_MSG と同じ（切り替えまで 2 か所に置く）。
-# 出力は permissionDecision: "ask" の JSON。対象外は無出力。
+# PreToolUse MCP handler: pecot-workflow の issue_create / issue_quick / pr_create の投稿を ask にする。
+# ask の文は external-post-check.sh の ISSUE_MSG / CREATE_MSG と同じ。切り替えまで 2 か所に置く。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/core/config-dispatcher.sh"
@@ -41,11 +37,11 @@ case "$TOOL" in
         ;;
 esac
 
-# tool_input が文字列で届くクライアントは空のオブジェクトとして読む（ask にする）。真偽値の true だけを素通しにする。
+# issue_quick の入力に prepare は無いので素通しにしない。tool_input が文字列で届くクライアントは空のオブジェクトとして読む（ask にする）。真偽値の true だけを素通しにする。
 # jq が失敗したときは空のまま ask に進む（fail-safe）。
 FLAGS=$(jq -r '(.tool_input | if type == "object" then . else {} end) as $ti | [($ti.prepare == true), ($ti.dry_run == true)] | @tsv' 2>/dev/null)
 IFS=$'\t' read -r PREPARE DRY_RUN <<< "$FLAGS"
-[ "$PREPARE" = "true" ] && exit 0
+[ "$PREPARE" = "true" ] && [ "$TOOL" != "issue_quick" ] && exit 0
 [ "$TOOL" = "pr_create" ] && [ "$DRY_RUN" = "true" ] && exit 0
 [ -f "$FLAG" ] && exit 0
 

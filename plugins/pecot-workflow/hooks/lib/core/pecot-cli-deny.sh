@@ -1,13 +1,6 @@
 #!/bin/bash
-# Bash の pecot 起動を検出し、対応する MCP ツールの使用を促して阻止するコアチェック。
-#
-# 入力は環境変数 HOOK_COMMAND。出力は exit 0 + 空 stdout = 素通し、exit 1 + stdout = 阻止、exit 2 + stderr = 内部エラー。
-# セグメントの分け方とクオートの正規化は command-segments.sh を共有する。
-# 起動形は共有の _PECOT より締める。pecot の後ろに語の境界（空白か行末）を求め、パスの部分に = を含めない。
-# サブコマンド別の許可・阻止は持たない。
-# セグメント先頭に起動形が来ない形（${PECOT} / time / env / bash -c / { …; } / if）は素通しになる。
-#
-# どのスクリプトからも呼ばない（pre-tool-use-bash.sh への接続は切り替えのフェーズで行う）。
+# Bash の pecot 起動を検出し、対応する MCP ツールの使用を促して阻止するコアチェック。入力は HOOK_COMMAND。
+# 起動形は共有の _PECOT より締める（pecot の後ろは空白か行末、パス部分に = を含めない）。接続は切り替えのフェーズ。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/hook-message.sh"
@@ -19,13 +12,61 @@ if [ -z "$HOOK_COMMAND" ]; then
   exit 2
 fi
 
-# 改行は区切りに直す。ただし <<（ヒアドキュメント）を含むときは、本文の行を止めないよう空白にする。
-if [[ "$HOOK_COMMAND" == *"<<"* ]]; then
-  HOOK_COMMAND="${HOOK_COMMAND//$'\n'/ }"
-else
-  HOOK_COMMAND="${HOOK_COMMAND//$'\n'/;}"
-fi
-HOOK_COMMAND="$(_dequote "$HOOK_COMMAND")"
+# ヒアドキュメントの本文の行と、区切り文字を含むクオートの範囲を除き、改行は ; にする。
+# `<<<` と、クオート内の `<<` は、ヒアドキュメントと扱わない。
+_strip_non_commands() {
+  printf '%s\n' "$1" | awk '
+    BEGIN { sq = sprintf("%c", 39); dq = "\""; inq = ""; out = ""; first = 1; nh = 0 }
+    {
+      line = $0
+      if (nh > 0) {
+        cmp = line
+        if (hdash[1]) sub(/^\t+/, "", cmp)
+        if (cmp == hd[1]) {
+          for (k = 1; k < nh; k++) { hd[k] = hd[k + 1]; hdash[k] = hdash[k + 1] }
+          nh--
+        }
+        next
+      }
+      if (!first) { if (inq == "") out = out ";"; else span = span "\n" }
+      first = 0
+      n = length(line); i = 1
+      while (i <= n) {
+        c = substr(line, i, 1)
+        if (inq != "") {
+          if (c == inq) {
+            if (span !~ /[[:space:];&|()`]/) out = out span
+            inq = ""; span = ""
+          } else if (c == "\\" && inq == dq) {
+            span = span c substr(line, i + 1, 1); i++
+          } else span = span c
+          i++
+        } else if (c == "\\") {
+          out = out c substr(line, i + 1, 1); i += 2
+        } else if (c == sq || c == dq) {
+          inq = c; span = ""; i++
+        } else if (substr(line, i, 3) == "<<<") {
+          out = out "<<<"; i += 3
+        } else if (substr(line, i, 2) == "<<") {
+          j = i + 2; dash = 0
+          if (substr(line, j, 1) == "-") { dash = 1; j++ }
+          while (substr(line, j, 1) ~ /[ \t]/) j++
+          q = substr(line, j, 1); delim = ""
+          if (q == sq || q == dq) {
+            rest = substr(line, j + 1); k = index(rest, q)
+            if (k > 0) { delim = substr(rest, 1, k - 1); j += k + 1 } else j = n + 1
+          } else {
+            while (j <= n && substr(line, j, 1) !~ /[[:space:];&|()<>]/) { delim = delim substr(line, j, 1); j++ }
+          }
+          if (delim != "" && delim !~ /^[0-9]/) { nh++; hd[nh] = delim; hdash[nh] = dash }
+          out = out "<<"; i = j
+        } else { out = out c; i++ }
+      }
+    }
+    END { if (inq != "") out = out span; printf "%s", out }'
+}
+
+HOOK_COMMAND="$(_strip_non_commands "$HOOK_COMMAND")"
 
 _DENY_PECOT='(\$PECOT|[^[:space:]=]*/pecot|pecot)'
 _DENY_PATTERN="${_SEG_ANCHOR}${_DENY_PECOT}([[:space:]]+(.*))?\$"

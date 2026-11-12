@@ -1,5 +1,5 @@
 // 投稿の ask（hooks/lib/mcp-handlers/pecot-post-ask.sh）を、MCP の入力 JSON で確かめる。
-// エントリの pre-tool-use-mcp.sh から流し、mcp-dispatcher.sh の deny → ask → allow の順も通す。
+// エントリの pre-tool-use-mcp.sh から流し、ask の段を足しても deny と allow が変わらないことも確かめる。
 import { describe, expect, it } from 'vitest'
 
 import type { HookRun } from './_helpers/run-hook.js'
@@ -7,6 +7,7 @@ import { createProject, runHook, writeHooksConfig, writeStateFlag } from './_hel
 
 const forms = [
   { label: '接頭辞が長い形', prefix: 'mcp__plugin_pecot-w_pecot-workflow__' },
+  { label: 'プラグインの外で登録した形', prefix: 'mcp__pecot-workflow__' },
   { label: '接頭辞が短い形', prefix: 'pecot-workflow-' },
 ]
 
@@ -62,8 +63,13 @@ describe.for(forms)('ツール名が$label', (form) => {
       expect(result?.reason).toBe(bashReason(project, target.bash))
     })
 
-    it('prepare が true だと、素通しにする', () => {
+    // issue_quick の入力に prepare は無いので、素通しにしない。
+    it.skipIf(target.tool === 'issue_quick')('prepare が true だと、素通しにする', () => {
       expect(outputOf(toolName, { prepare: true })).toBe('')
+    })
+
+    it.runIf(target.tool === 'issue_quick')('prepare が true でも、ask を返す', () => {
+      expect(decisionOf(toolName, { prepare: true })).toBe('ask')
     })
 
     it('prepare が文字列の "true" だと、ask を返す', () => {
@@ -119,6 +125,8 @@ describe('ツール名が一覧に無いとき', () => {
     'pecot-workflow-playwright-browser_click',
     'mcp__plugin_pecot-w_pecot-workflow-playwright__browser_click',
     'mcp__plugin_pecot-w_pecot-workflow-playwright__issue_create',
+    'mcp__pecot-workflow-playwright__browser_click',
+    'mcp__pecot-workflow-playwright__issue_create',
     'other-server-issue_create',
     'issue_create',
   ])('%s は、無出力にする', (toolName) => {
@@ -126,12 +134,12 @@ describe('ツール名が一覧に無いとき', () => {
   })
 })
 
-describe('mcp-dispatcher の順', () => {
-  it('GitHub の PR 作成は、deny を返す', () => {
+describe('ask の段を足した後の mcp-dispatcher', () => {
+  it('GitHub の PR 作成は、deny のまま', () => {
     expect(decisionOf('mcp__github__create_pull_request', {})).toBe('deny')
   })
 
-  it.for(['resolve-library-id', 'query-docs'])('context7 の %s は、allow を返す', (tool) => {
+  it.for(['resolve-library-id', 'query-docs'])('context7 の %s は、allow のまま', (tool) => {
     expect(decisionOf(`mcp__plugin_pecot-w_context7__${tool}`, {})).toBe('allow')
   })
 })
