@@ -193,7 +193,7 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 
 **Goal**: 同期の 2 個（グループ `security` の `sync` と、グループ `dependabot` の `sync`）が Node で動き、registry が 34 個になる
 
-**Independent Test**: `parity.test.ts` の全件が一致する。`security-sync-*`・`dependabot-sync-*` と、34 個がそろって初めて合う `global-*` の 7 件を含む。
+**Independent Test**: `parity.test.ts` の全件が一致する。`security-sync-*`・`dependabot-sync-*` と、34 個がそろって初めて合う `global-*` の 7 件を含む。このうち help を stdout に出す 4 件は、stdout を除いて比べる（#362）。
 registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞いの項目 769 個（共通の 17 個を含む）が全部 vitest につながる
 
 - [x] T031 [P] [US1] `cli/commands/security.py` を `cli-node/src/commands/security.ts` に移す。`COMMANDS` にグループ `security` の `sync` を足す。
@@ -207,7 +207,7 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 - [x] T034 [US1] `cli-node/src/commands/tests/registry.test.ts` にテストを足す。`COMMANDS` が 34 個であることと、ID が `interface/generated.json` の項目の ID と同じ集合であることを確かめる。
   グループ無しは 4 個（`add-to-project`・`update-issue-status`・`create-branch`・`delete-branch`）、残りはグループの下のコマンドである。
   移行の途中で Python のコマンドが増えたとき、Node への足し忘れを止めるのはこのテストである。
-- [x] T035 [US1] 34 個がそろった状態で、`global-*` の 31 件が golden と一致することを確かめる。`parity.test.ts` の `SCENARIOS_NEEDING_ALL_COMMANDS` の 7 件は、ここで初めて合う。
+- [x] T035 [US1] 34 個がそろった状態で、`global-*` の 31 件が golden と一致することを確かめる。`parity.test.ts` の `SCENARIOS_NEEDING_ALL_COMMANDS` の 7 件は、ここで初めて合う。このうち help を stdout に出す 4 件は、#362 で stdout を比べる対象から外した（`SCENARIOS_WITH_NODE_HELP`）。
 - [x] T036 [US1] `export-interface.ts --check` を 34 個がそろった状態で流し、34 項目で差 0 件であることを確かめる。項目のつなぎの確認が 769 個で通ることも確かめる。
 
 **Checkpoint**: 全件が一致し、registry が 34 個。`--check` が 34 項目で差 0。配布物は Python のまま

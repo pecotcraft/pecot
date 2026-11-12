@@ -4,6 +4,7 @@
 import { z } from 'zod'
 
 import { BaseError } from '../domain/errors.js'
+import { flagOf } from './names.js'
 
 /**
 コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
@@ -146,6 +147,13 @@ export function toolNameOf(path: readonly string[]): string {
   return path.join('_').replaceAll('-', '_')
 }
 
+/**
+path から定義書（interface/）の項目の ID を作る。`['create-branch']` は PW-CREATE-BRANCH、`['issue', 'create']` は PW-ISSUE-CREATE
+*/
+export function interfaceIdOf(path: readonly string[]): string {
+  return `PW-${path.join(' ').toUpperCase().replaceAll(/[ _]/g, '-')}`
+}
+
 function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): ReadonlyMap<string, string> {
   return new Map(Object.entries(flags ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
 }
@@ -153,7 +161,7 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
 // 入力 no_x の `--no-x` と、入力 x の否定形 `--no-x` のように、同じ長いオプションになる組を断る
 function assertDistinctFlags(fields: readonly string[], positional: readonly string[], negations: ReadonlyMap<string, string>): void {
   const flags = [
-    ...fields.filter(name => !positional.includes(name)).map(name => `--${name.replaceAll('_', '-')}`),
+    ...fields.filter(name => !positional.includes(name)).map(name => flagOf(name)),
     ...negations.values(),
   ]
   const duplicate = flags.find((flag, index) => flags.indexOf(flag) !== index)

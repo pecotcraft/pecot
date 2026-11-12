@@ -93,7 +93,10 @@ function parsePythonFloat(text: string): number | undefined {
   return Number.isNaN(value) ? undefined : value
 }
 
-function describeRange(min: number | undefined, max: number | undefined): string {
+/**
+範囲の文。両側なら `0<=x<=20`、片側なら `x>=1` か `x<=9`
+*/
+export function describeRange(min: number | undefined, max: number | undefined): string {
   if (min !== undefined && max !== undefined) return `${String(min)}<=x<=${String(max)}`
   return min === undefined ? `x<=${String(max)}` : `x>=${String(min)}`
 }

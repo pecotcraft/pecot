@@ -156,6 +156,137 @@ describe('引数なしと --help', () => {
   })
 })
 
+const BRANCH_COMMAND = defineCommand({
+  path: ['create-branch'],
+  description: 'Create a branch linked to an Issue',
+  input: z.object({ issue_ref: z.string().describe('Issue reference'), branch_name: z.string().describe('Name of the branch'), base: z.string().optional().describe('Base branch') }),
+  positional: ['issue_ref', 'branch_name'],
+  shortFlags: { base: '-b' },
+  interactive: false,
+  run: async (input, io) => {
+    io.stdout(`ran ${input.branch_name}\n`)
+    return await exitWith(0)
+  },
+})
+
+async function runBranch(argv: readonly string[], width?: string, environment: Readonly<Record<string, string>> = {}): Promise<Run> {
+  const io = captureIo()
+  const code = await runCli(argv, { commands: [BRANCH_COMMAND, ...COMMANDS], cwd: process.cwd(), io, environment: { ...width !== undefined && { TERMINAL_WIDTH: width }, ...environment }, terminalColumns: undefined })
+  return { code, stdout: io.out.join(''), stderr: io.err.join('') }
+}
+
+describe('コマンドごとの --help', () => {
+  it('引数と定義書の details・examples を出して 0。幅 80 の枠なしの書式', async () => {
+    const result = await runBranch(['create-branch', '--help'], '80')
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('')
+    expect(result.stdout.startsWith('Usage: pecot create-branch [OPTIONS] <issue_ref> <branch_name>\n\nCreate a branch linked to an Issue\n\nArguments:\n')).toBe(true)
+    expect(result.stdout).toContain('  <issue_ref>    Issue reference [required]\n  <branch_name>  Name of the branch [required]\n')
+    expect(result.stdout).toContain('  -b, --base <str>  Base branch The develop_branch of the repository in the\n')
+    // 定義書の PW-CREATE-BRANCH から読む
+    expect(result.stdout).toContain('\nDetails:\n  - Creates a branch linked to an Issue through the GitHub GraphQL API')
+    expect(result.stdout).toContain('\nExamples:\n  pecot create-branch example-org/my-repo/123 feat/my-change\n')
+    expect(result.stdout).not.toMatch(/[╭│╰]/u)
+    expect(result.stdout).not.toContain('Constraints:')
+  })
+
+  it('幅 40 では説明を次の行に下げる', async () => {
+    const result = await runBranch(['create-branch', '--help'], '40')
+    expect(result.stdout).toContain('Arguments:\n  <issue_ref>\n      Issue reference [required]\n')
+  })
+
+  it('COLUMNS からも幅を決める', async () => {
+    const result = await runBranch(['create-branch', '--help'], undefined, { COLUMNS: '40' })
+    expect(result.stdout).toContain('  <issue_ref>\n      Issue reference [required]\n')
+  })
+
+  it.each([
+    ['必須の引数が欠けていても', ['create-branch', '--help']],
+    ['未知のオプションがあっても', ['create-branch', '--bogus', '--help']],
+    ['負数に見える語が後ろにあっても', ['create-branch', '--help', '-1']],
+    ['値を取るオプションの値の位置にあっても', ['create-branch', '--base', '--help']],
+    ['位置引数の後ろにあっても', ['create-branch', 'a/b/1', 'x', '--help']],
+    ['-- の前なら -- の後ろに語が続いても', ['create-branch', '--help', '--', 'x']],
+  ])('%s help を出して 0', async (_name, argv) => {
+    const result = await runBranch(argv)
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('Usage: pecot create-branch [OPTIONS] <issue_ref> <branch_name>')
+    expect(result.stderr).toBe('')
+  })
+
+  it('--base=--help は値として渡す（help にしない）', async () => {
+    const result = await runBranch(['create-branch', '--base=--help', 'a/b/1', 'x'])
+    expect(result).toEqual({ code: 0, stdout: 'ran x\n', stderr: '' })
+  })
+
+  it('-- の後ろの --help は位置引数', async () => {
+    const result = await runBranch(['create-branch', '--', '--help'])
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('Missing argument \'branch_name\'.')
+  })
+
+  it('グループ名の後の未知のオプションは、先頭の語だけを見るので --help があっても誤り', async () => {
+    const result = await runBranch(['issue', '--bogus', '--help'])
+    expect(result.code).toBe(2)
+    expect(result.stderr).toContain('No such option: --bogus')
+  })
+
+  it('--repo の形の誤りと PECOT_GITHUB_API_URL の誤りは、コマンドの help より先に出る', async () => {
+    const repository = await runBranch(['--repo', 'bad', 'create-branch', '--help'])
+    expect(repository.code).toBe(2)
+    expect(repository.stdout).toBe('')
+    setEnvironment({ PECOT_GITHUB_API_URL: 'https://x.com' })
+    const url = await runBranch(['create-branch', '--help'])
+    expect(url.code).toBe(1)
+    expect(url.stdout).toBe('')
+    expect(url.stderr).toContain('error: ')
+  })
+
+  it('定義書に項目が無いコマンドは、定義書の節を出さずに help を出して 0。stderr に場所と理由の warning を 1 行出す', async () => {
+    const result = await runBranch(['boom', '--help'], '80')
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe('Usage: pecot boom [OPTIONS]\n\n落ちる\n\nOptions:\n  --help  Show this message and exit.\n')
+    expect(result.stderr).toBe(`warning: could not read the details of 'boom' from ${path.join(pluginRoot(), 'interface', 'authored.yaml')}: it has no entry PW-BOOM; they are left out of this help\n`)
+  })
+
+  it('--help を 2 回打っても help を出して 0', async () => {
+    const result = await runBranch(['create-branch', '--help', '--help'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('Usage: pecot create-branch [OPTIONS] <issue_ref> <branch_name>')
+    expect(result.stderr).toBe('')
+  })
+
+  it('-h は help ではなく、未知のオプションとして 2', async () => {
+    const result = await runBranch(['create-branch', '-h'])
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('No such option: -h')
+  })
+
+  it('--help=x は値を取らない旨の誤りで 2', async () => {
+    const result = await runBranch(['create-branch', '--help=x'])
+    expect(result.code).toBe(2)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toContain('Option \'--help\' does not take a value.')
+    expect(result.stderr).not.toContain('Possible options')
+  })
+
+  it('グループ名の後ろの --help は、後ろにサブコマンドがあってもグループの help', async () => {
+    const result = await run(['issue', '--help', 'create'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('Usage: pecot issue [OPTIONS] COMMAND [ARGS]...')
+    expect(result.stdout).toContain('Commands:\n')
+    expect(result.stderr).toBe('')
+  })
+
+  it('グループの中のコマンドも打てる', async () => {
+    const result = await run(['issue', 'read', '--help'])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('Usage: pecot issue read [OPTIONS] <issue_ref>')
+  })
+})
+
 describe('--repo', () => {
   it('不正な値は枠付きの使い方の誤りで 2。stdout は空', async () => {
     expect(await run(['--repo', 'bad', '--show-repo'])).toEqual({ code: 2, stdout: '', stderr: readGolden('global-usage-bad-repo').stderr })

@@ -151,7 +151,7 @@ CLAUDE.md                                  # フェーズ 14
 | 3 issue・session・add-to-project・update-issue-status | issue 5 個、`add-to-project`、`update-issue-status`、session 2 個の 9 個を移す | 同上。項目は 211 個 | 変わらない |
 | 4 pr | 4 個（`create`・`read`・`preflight`・`cleanup`）を移す | 同上。項目は 107 個 | 変わらない |
 | 5 worktree と release | 7 個を移す。`worktree link` の対話は CLI だけに残す | 同上。項目は 217 個 | 変わらない |
-| 6 security sync と dependabot sync | 2 個を移して 34 個をそろえ、`global-*` の残り 7 件もここで一致を確かめる | 228 件全部が一致し、registry が 34 個。`--check` が 34 項目で差 0（SC-010）で、項目 769 個が全部 vitest につながる | 変わらない |
+| 6 security sync と dependabot sync | 2 個を移して 34 個をそろえ、`global-*` の残り 3 件もここで一致を確かめる（help の 4 件の stdout は #362 で比べる対象から外した） | 228 件全部が一致し（help の 4 件は stdout を除く）、registry が 34 個。`--check` が 34 項目で差 0（SC-010）で、項目 769 個が全部 vitest につながる | 変わらない |
 | 7 MCP サーバ | registry からツールを登録し、`mcp` サブコマンドと MCP 経由の前後比較を入れる。`tests/mcp/` の include も足す | `tools/list` が 34 個で定義書と一致。MCP に写せるシナリオの全件（165 件）が MCP 経由で一致 | 変わらない（登録しない） |
 | 8 hooks のガード | MCP の投稿の ask と、Bash の `pecot` の deny の判定・案内文を入れる。deny はまだ `pre-tool-use-bash.sh` から呼ばない | 今の確認・阻止の条件がすべて MCP の入力で同じ理由になる。2 つのクライアントの名前の形で通る | 変わらない |
 | 9 Copilot CLI の名前の確認 | `build-cli` の後の `node cli-node/dist/cli.js mcp` を開発用に登録し、Copilot CLI から起動する。実際のツール名と hooks の入力を採る | 実物のツール名が contracts/hooks-guard.md の形と一致する | 変わらない |

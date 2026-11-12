@@ -85,11 +85,11 @@
 |---|---|
 | 決定 | 済みの仕組みを使う。Node の CLI の直接起動は全件（2026-11-11 の時点で 228 件）、MCP 経由は MCP に写せるシナリオの全件を、golden と比べる |
 | 決定 | MCP に写せないのは 3 種で、2026-11-11 の時点で 63 件。残りは 165 件。`global-*` の 31 件（`--help`・`--version`・`--show-repo`・未知のコマンド・引数なし）、名前に `usage` を含む `global-*` 以外の 29 件（CLI の引数の誤りで、MCP では入力の検証の誤りになる）、標準入力を使う `worktree-link-*` の 3 件 |
-| 決定 | `global-*` はフェーズ 2 の対象から外す。31 件のうち 24 件は今も一致している。残りの 7 件（help の一覧と「近いコマンド」の案内）は、34 個がそろうフェーズ 6 で一致を確かめる。フェーズ 6 の後、`parity.test.ts` は全件を golden と比べる。`*-python-state` は 3 件で、フェーズ 2・3・5 が 1 件ずつ受け持つ |
+| 決定 | `global-*` はフェーズ 2 の対象から外す。31 件のうち 24 件は今も一致している。残りの 7 件（help の一覧と「近いコマンド」の案内）は、34 個がそろうフェーズ 6 で一致を確かめる。フェーズ 6 の後、`parity.test.ts` は全件を golden と比べる。help を stdout に出す 4 件だけは、#362 で stdout を比べる対象から外した。`*-python-state` は 3 件で、フェーズ 2・3・5 が 1 件ずつ受け持つ |
 | 決定 | 除く一覧と理由は `parity.test.ts` が持つ。argv からツールの入力への写し方と比べる欄は contracts/parity.md にある。入力の検証の誤りは、フェーズ 7 のツール一覧のテストが受け持つ |
 | 決定 | golden を記録し直すのは、Python の CLI か依存を変える PR だけ（spec FR-007）。その PR で Node も直す。対象は `record:parity:check` で差の出たシナリオに限る |
 | 決定 | フェーズ 1 で、R-0 の 5 件の差の原因を調べる。Python の出力が変わっていたなら記録し直す。実行する環境で変わる値なら、golden の置き換えの規則に足す |
-| 状態 | Node の使い方エラーとヘルプの整形（`usage-error.ts`・`help.ts`）は済み。`src/commands/tests/usage-error.test.ts` と `help.test.ts` が golden の実出力から期待値を読み、`cli.ts` が使っている。差が出たら Node 側を golden に合わせる |
+| 状態 | Node の使い方エラーの整形（`usage-error.ts`）は済み。`src/commands/tests/usage-error.test.ts` が golden の実出力から期待値を読む。差が出たら Node 側を golden に合わせる。help の書式は #362 で Node のものに変えた。golden とは比べず、`help.test.ts` が Node の期待値で確かめる |
 | 理由 | golden を Node に合わせて書き換えると、前後比較が意味を失う |
 
 ## R-7. 対話入力

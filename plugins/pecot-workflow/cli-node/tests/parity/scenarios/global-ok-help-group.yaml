@@ -1,4 +1,5 @@
-# グループの --help も同じ書式になる。全コマンドの移植後に比べる。
+# グループの --help も、ルートと同じ書式で stdout に出て exit 0 になる。golden は Python の出力。
+# Node の help は書式が違うので、stdout を除いて比べる（#362）。
 id: global-ok-help-group
 command:
   path: []

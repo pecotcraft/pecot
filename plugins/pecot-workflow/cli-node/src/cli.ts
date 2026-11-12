@@ -7,7 +7,8 @@
 //   4. コマンド名の解決。
 //   5. PECOT_GITHUB_API_URL の検証。不正なら文言を出して終了コード 1。
 //   6. --show-repo。解決して 2 行を出し、終了コード 0。
-//   7. コマンドの実行。コマンドが無ければ終了コード 0。
+//   7. コマンドの --help。`--` より前に --help があれば、ほかの引数を検証せずに help を出して終了コード 0。
+//   8. コマンドの実行。コマンドが無ければ終了コード 0。
 //
 // 例外は、使い方の誤りなら枠付きで終了コード 2、独自の例外なら failure.ts の文で終了コード 1 にする。
 import { realpathSync } from 'node:fs'
@@ -15,17 +16,20 @@ import { pathToFileURL } from 'node:url'
 
 import { InvalidValueError } from './domain/errors.js'
 import { AmbiguousRepositoryError, parseOwnerRepository, resolveRepository } from './domain/repository-resolver.js'
+import { readAuthoredNotes } from './infra/authored-notes.js'
 import { gitRunnerFor } from './infra/git.js'
 import { resolveApiUrlOverride } from './infra/github/client.js'
 import { hasErrorCode } from './infra/os-error.js'
-import { runDefinition } from './commands/command-binding.js'
+import { isHelpRequested, runDefinition } from './commands/command-binding.js'
+import { commandHelpText } from './commands/command-help.js'
+import { interfaceIdOf } from './commands/command-definition.js'
 import { invalidRepositoryMessage, parseGlobalOptions, ROOT_USAGE } from './commands/global-options.js'
 import { FAILURE_EXIT_CODE, isReportableFailure, reportFailure } from './commands/failure.js'
 import { closeMatches } from './commands/fuzzy.js'
 import { helpText } from './commands/help.js'
 import { COMMANDS, findCommand } from './commands/registry.js'
 import type { CommandDefinition, CommandIo } from './commands/registry.js'
-import { AbortedError, createProcessIo, reportAborted } from './commands/output.js'
+import { AbortedError, createOutput, createProcessIo, reportAborted } from './commands/output.js'
 import { formatResolvedRepository } from './commands/repository-display.js'
 import { outputWidth } from './commands/rich-panel.js'
 import {
@@ -110,6 +114,17 @@ function showRepository(repository: string | undefined, context: Readonly<CliCon
   }
 }
 
+/**
+コマンドの help を stdout に出して 0 を返す。details・constraints・examples・default_notes は定義書の手書きの側から読む。
+読めなければ Constraints・Details・Examples と初期値の補足を出さず、stderr に場所と理由の warning を 1 行出す（help を誤りで止めない）
+*/
+function showCommandHelp(definition: CommandDefinition, context: Readonly<CliContext>, width: number): number {
+  const result = readAuthoredNotes(interfaceIdOf(definition.path))
+  if (result.kind === 'unreadable') createOutput(false, context.io).warning(`could not read the details of '${definition.path.join(' ')}' from ${result.file}: ${result.reason}; they are left out of this help`)
+  context.io.stdout(commandHelpText(definition, result.kind === 'read' ? result.notes : undefined, width))
+  return 0
+}
+
 async function execute(argv: readonly string[], context: Readonly<CliContext>, width: number): Promise<number> {
   const options = parseGlobalOptions(argv)
   if (argv.length === 0) {
@@ -121,7 +136,7 @@ async function execute(argv: readonly string[], context: Readonly<CliContext>, w
     return 0
   }
   if (options.eager === 'help') {
-    context.io.stdout(`${helpText([], context.commands, width)}\n`)
+    context.io.stdout(helpText([], context.commands, width))
     return 0
   }
   validateRepository(options.repo)
@@ -138,10 +153,12 @@ async function execute(argv: readonly string[], context: Readonly<CliContext>, w
   if (options.showRepo) return showRepository(options.repo, context)
   if (resolution === undefined) return 0
   if (resolution.kind === 'help') {
-    context.io.stdout(`${helpText(resolution.path, context.commands, width)}\n`)
+    context.io.stdout(helpText(resolution.path, context.commands, width))
     return 0
   }
-  return await runDefinition(resolution.definition, resolution.argv, context.io, options.repo)
+  return isHelpRequested(resolution.argv)
+    ? showCommandHelp(resolution.definition, context, width)
+    : await runDefinition(resolution.definition, resolution.argv, context.io, options.repo)
 }
 
 /**

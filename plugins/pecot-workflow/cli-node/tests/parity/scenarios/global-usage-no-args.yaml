@@ -1,4 +1,5 @@
-# 引数なしは help を stdout に出して exit 2 になる。--help と違い、末尾の空行が無い。全コマンドの移植後に比べる。
+# 引数なしは help を stdout に出して exit 2 になる。golden は Python の出力で、--help と違い、末尾の空行が無い。
+# Node の help は書式が違うので、stdout を除いて比べる（#362）。Node では --help と同じ出力になる。
 id: global-usage-no-args
 command:
   path: []

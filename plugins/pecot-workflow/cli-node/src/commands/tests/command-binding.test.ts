@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { runDefinition, synopsisOf, usageOf } from '../command-binding.js'
+import { isHelpRequested, runDefinition, synopsisOf, usageOf } from '../command-binding.js'
 import { defineCommand } from '../registry.js'
 import { formatUsageError, UsageError } from '../usage-error.js'
 import { capture, exitWith, failWith, throwFailure } from './support.js'
@@ -201,10 +201,17 @@ describe('runDefinition', () => {
     expect(await messageOf(runDefinition(preflight, ['1', '2', '3', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2 3)')
   })
 
-  it('--help は説明を出して 0', async () => {
+  it('--help は commander の help を使わず、未知のオプションとして断る（help は cli.ts が先に出す）', async () => {
     const io = capture()
-    expect(await runDefinition(preflight, ['--help'], io)).toBe(0)
-    expect(io.out.join('')).toContain('リリース前の確認')
+    const error = await usageErrorOf(runDefinition(preflight, ['--help'], io))
+    expect(error.message).toBe('No such option: --help (Possible options: --help)')
+    expect(io.out).toEqual([])
+  })
+
+  it('--help=値 は、値を取らない旨で断る（Possible options は付けない）', async () => {
+    const error = await usageErrorOf(runDefinition(preflight, ['--help=x'], capture()))
+    expect(error.message).toBe('Option \'--help\' does not take a value.')
+    expect(error.context).toBeUndefined()
   })
 
   it('run の入力検証に失敗すれば Invalid value', async () => {
@@ -553,14 +560,31 @@ describe('click と同じ文にそろえた使い方の誤り', () => {
     expect(await runDefinition(flags, ['--', '-1'], capture())).toBe(0)
   })
 
-  it('負数に見える語より前に誤りがあれば、その誤りを先に出す。--help も先に返さない', async () => {
+  it('負数に見える語より前に誤りがあれば、その誤りを先に出す', async () => {
     const first = await messageOf(runDefinition(flags, ['a', '--yes=1', '-1'], capture()))
     expect(first).toBe('Option \'--yes\' does not take a value.')
     const second = await messageOf(runDefinition(flags, ['a', '--bogus', '-1'], capture()))
     expect(second).toBe('No such option: --bogus')
-    const io = capture()
-    const third = await messageOf(runDefinition(flags, ['--help', '-1'], io))
-    expect(third).toBe('No such option: -1')
-    expect(io.out).toEqual([])
+  })
+})
+
+describe('isHelpRequested', () => {
+  const cases: readonly (readonly [readonly string[], boolean])[] = [
+    [['--help'], true],
+    [['--help', '-1'], true],
+    [['--bogus', '--help'], true],
+    [['--base', '--help'], true],
+    [['a', 'b', '--help'], true],
+    [['--help', '--', 'x'], true],
+    [[], false],
+    [['a', 'b'], false],
+    [['-h'], false],
+    [['--base=--help', 'x', 'y'], false],
+    [['--', '--help'], false],
+    [['a', '--', '--help'], false],
+  ]
+
+  it.for(cases)('$0 を渡すと、$1 を返す', ([argv, expected]) => {
+    expect(isHelpRequested(argv)).toBe(expected)
   })
 })
