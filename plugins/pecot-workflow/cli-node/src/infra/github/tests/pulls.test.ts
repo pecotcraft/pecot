@@ -3,7 +3,9 @@
 // get_pull_request_slim・get_pull_request_with_reviews の期待値は、同じ応答を Python の GitHubClient に渡して得た辞書。
 import { describe, expect, it } from 'vitest'
 
+import { jsonField } from '../../../domain/json.js'
 import { JSON_NULL } from '../../../domain/json-null.js'
+import type { JsonValue } from '../../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
 import { failure, graphqlData, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
@@ -239,5 +241,52 @@ describe('mergePullRequest', () => {
     expect(await rejection(client.mergePullRequest('owner', 'repo', 42))).toMatchObject(
       failure(GitHubAPIError, `GitHub API error: ${String(status)}`, { statusCode: status, responseBody: text }),
     )
+  })
+})
+
+const BOT = { __typename: 'Bot', login: 'dependabot' }
+const LAST_PAGE = { hasNextPage: false, endCursor: JSON_NULL }
+
+function pullRequestPage(nodes: unknown, pageInfo: unknown): unknown {
+  return { repository: { pullRequests: { pageInfo, nodes } } }
+}
+
+function numbersOf(nodes: readonly JsonValue[]): readonly (JsonValue | undefined)[] {
+  return nodes.map(node => jsonField(node, 'number'))
+}
+
+describe('listOpenDependabotPullRequests', () => {
+  it('1 ページ目は after: null を送り、dependabot の PR だけを返す', async () => {
+    const mine = { number: 1, author: BOT }
+    const others = [
+      { number: 2, author: { __typename: 'User', login: 'dependabot' } },
+      { number: 3, author: { __typename: 'Bot', login: 'renovate' } },
+      { number: 4, author: JSON_NULL },
+      JSON_NULL,
+      {},
+    ]
+    const { client, server } = await startClient([graphqlData('ListOpenPullRequests', pullRequestPage([mine, ...others], LAST_PAGE))])
+    expect(await client.listOpenDependabotPullRequests('owner', 'repo')).toEqual([mine])
+    expect(graphqlRequests(server)).toEqual([{ operation: 'ListOpenPullRequests', variables: { owner: 'owner', repo: 'repo', after: JSON_NULL } }])
+  })
+
+  it('次のページは endCursor を after に渡して辿る', async () => {
+    const { client, server } = await startClient([
+      graphqlData('ListOpenPullRequests', pullRequestPage([{ number: 1, author: BOT }], { hasNextPage: true, endCursor: 'c1' })),
+      graphqlData('ListOpenPullRequests', pullRequestPage([{ number: 2, author: BOT }], LAST_PAGE)),
+    ])
+    const nodes = await client.listOpenDependabotPullRequests('owner', 'repo')
+    expect(numbersOf(nodes)).toEqual([1, 2])
+    expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([{ owner: 'owner', repo: 'repo', after: JSON_NULL }, { owner: 'owner', repo: 'repo', after: 'c1' }])
+  })
+
+  it.for([
+    { name: 'repository が null', data: { repository: JSON_NULL }, message: 'the PR list response has no repository.pullRequests' },
+    { name: 'pullRequests が null', data: { repository: { pullRequests: JSON_NULL } }, message: 'the PR list response has no repository.pullRequests' },
+    { name: 'nodes が配列でない', data: pullRequestPage('x', LAST_PAGE), message: 'nodes in the PR list response is not an array' },
+    { name: '次のページがあるのに endCursor が無い', data: pullRequestPage([], { hasNextPage: true, endCursor: JSON_NULL }), message: 'the next page of the PR list has no endCursor' },
+  ])('$name なら GitHubAPIError', async ({ data, message }) => {
+    const { client } = await startClient([graphqlData('ListOpenPullRequests', data)])
+    expect(await rejection(client.listOpenDependabotPullRequests('owner', 'repo'))).toMatchObject(failure(GitHubAPIError, message))
   })
 })
