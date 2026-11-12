@@ -187,7 +187,7 @@ CLAUDE.md                                  # フェーズ 14
 | 単体配布では hooks のガードが動かない | 配布の README に書く。投稿の確認は MCP クライアント自身に任せる |
 | MCP サーバが起動しない | 理由を返して止まる。Python や Bash の CLI に切り替えない。bootstrap のテストで固定する |
 | 切り替え直後に状態ファイルが読めない | Python が書いた `.pecot/` とデータ置き場を Node が読むシナリオ（`*-python-state`）が golden にある |
-| `@pecot/workflow-mcp` の初回の publish が trusted publishing で通らない | npm 側の trusted publisher の設定は利用者が行う。フェーズ 13 の Issue に手順を書き、承認を得てから実行する |
+| `@pecot/workflow-mcp` の初回の publish が trusted publishing で通らない | trusted publisher はレジストリにあるパッケージにしか登録できない。利用者の認証で placeholder の版を publish してから trusted publisher を登録し、2 日以内にリリースで最初の版を出す。手順はフェーズ 13 の Issue に書き、承認を得てから実行する |
 
 ## Complexity Tracking
 

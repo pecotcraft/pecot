@@ -429,15 +429,15 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: dry-run の配布ツリーを `npx` で起動し、34 個のツールが使える
 
-- [ ] T088 [US5] `plugins/pecot-tools/scripts/release/` のスクリプトとテストを `scripts/release/` に写す。
+- [x] T088 [US5] `plugins/pecot-tools/scripts/release/` のスクリプトとテストを `scripts/release/` に写す。
   写すのは `publish-mcp-dist.sh`・`finalize-dist.mjs`・`mcp-dist-README.md`・`tests/` の 4 つ。パッケージ名は `@pecot/workflow-mcp`、bin は `bin/pecot-workflow-mcp.mjs` にする。
-- [ ] T089 [US5] 配布の README に、hooks のガードが無いことを書く。投稿の確認は MCP クライアント自身に任せることも書く。置き場は `scripts/release/mcp-dist-README.md` である。
-- [ ] T090 [US5] `project.json` の `nx-release-publish` を publish スクリプトに置き換え、`test-release` レーンを足す。冪等性は pecot-tools と同じく、HEAD の `pecot-workflow-v<version>` タグで判定する。
+- [x] T089 [US5] 配布の README に、hooks のガードが無いことを書く。投稿の確認は MCP クライアント自身に任せることも書く。置き場は `scripts/release/mcp-dist-README.md` である。
+- [x] T090 [US5] `project.json` の `nx-release-publish` を publish スクリプトに置き換え、`test-release` レーンを足す。冪等性は pecot-tools と同じく、HEAD の `pecot-workflow-v<version>` タグで判定する。
   `test-release` に足すものは 5 つある。`project.json` の `test-release` target。`test` target の dependsOn。`scripts/ci/run-tests.sh` の `release` scope。
   `.githooks/tests/test_nx_affected_mapping.py` の対応表。root の `CLAUDE.md` のレーンの表。
-- [ ] T091 [US5] `.github/workflows/publish-npm.yml` のタグの形と説明に、`pecot-workflow-v<version>` を足す。このタグを `@pecot/workflow-mcp` に解決させる。
-- [ ] T092 [US5] dry-run の配布ツリーを `npx` で起動し、34 個のツールが見えることを確かめる。結果は `.pecot/work/<Issue番号>/` に残す。
-- [ ] T093 [US5] npm 側の trusted publisher の設定手順を PR の本文に書く。利用者の設定は PR の外で待つ。
+- [x] T091 [US5] `.github/workflows/publish-npm.yml` のタグの形と説明に、`pecot-workflow-v<version>` を足す。このタグを `@pecot/workflow-mcp` に解決させる。
+- [x] T092 [US5] dry-run の配布ツリーを `npx` で起動し、34 個のツールが見えることを確かめる。結果は `.pecot/work/<Issue番号>/` に残す。
+- [x] T093 [US5] npm 側の trusted publisher の設定手順を PR の本文に書く。利用者の設定は PR の外で待つ。
 
 **Checkpoint**: PR の合否は、dry-run の配布ツリーで 34 個のツールが使えること。リリースの後に確かめることは 2 つある。リリースで `@pecot/workflow-mcp` が npm に出ること。プラグインの無い MCP クライアントで、quickstart.md の CUJ 8 が通ること
 
