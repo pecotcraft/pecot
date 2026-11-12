@@ -9,10 +9,10 @@ import { formatBoardOutput } from '../domain/format.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
 import type { JsonValue } from '../domain/python-format.js'
-import { parseOwnerRepository } from '../domain/repository-resolver.js'
+import { parseOwnerRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
 import { InvalidValueError } from '../domain/errors.js'
 import { getActiveConfigPath, loadConfig, projectsDirectory, saveConfig } from '../infra/config-store.js'
-import { GitHubClient } from '../infra/github/index.js'
+import type { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
 import type { LinkResult, ProjectFieldOption } from '../infra/github/projects.js'
@@ -20,6 +20,7 @@ import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
+import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { collectAlertStatuses, infoJson, infoMarkdown, pruneArchivedItems, readBoard } from './project-info.js'
@@ -53,10 +54,6 @@ async function guarded<T>(out: Readonly<Output>, action: string, body: () => Pro
     if (error instanceof GitHubAPIError) return failApi(out, action, error)
     throw error
   }
-}
-
-function newClient(out: Readonly<Output>, host: string): GitHubClient {
-  return new GitHubClient({ host, diagnostics: out })
 }
 
 // パスが無い・辿れない（ENOENT・ENOTDIR・ELOOP）。Python の Path.exists() が False を返す場合と同じ
@@ -146,7 +143,7 @@ const searchCommand = defineCommand({
     const out = createOutput(false, io)
     const { owner, host } = input
     await guarded(out, 'list projects', async () => {
-      const projects = await newClient(out, host).listProjects(owner)
+      const projects = await createGitHubClient(out, host).listProjects(owner)
       if (projects.length === 0) stopWith(out, `no projects found for ${owner}`)
       const lines = [`=== Projects of ${owner} (${host}) ===`, '', `${padEndCodePoints('#', 4)} ${padEndCodePoints('Title', SEARCH_TITLE_WIDTH)} URL`, '-'.repeat(80)]
       for (const project of projects) {
@@ -166,7 +163,7 @@ const searchCommand = defineCommand({
 async function initializeFields(out: Readonly<Output>, target: Readonly<{ host: string, owner: string, name: string, suffix: string }>): Promise<void> {
   const { host, owner, name, suffix } = target
   await guarded(out, 'initialize project fields', async () => {
-    const client = newClient(out, host)
+    const client = createGitHubClient(out, host)
     const project = await findProjectByTitle(out, client, owner, name)
     const projectId = requireString(project['id'], 'project.id')
     const projectInfo = await client.getProjectFields(owner, requireNumber(project['number'], 'project.number'))
@@ -224,7 +221,7 @@ const projectCreationCommand = defineCommand({
     const out = createOutput(false, io)
     const { owner, title, host, suffix } = input
     await guarded(out, 'create project', async () => {
-      const client = newClient(out, host)
+      const client = createGitHubClient(out, host)
       let ownerId: string
       try {
         ownerId = await client.getOwnerNodeId(owner)
@@ -269,7 +266,7 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
     if (host !== undefined && config.host !== host) {
       out.warning(`--host (${host}) differs from the config file host (${config.host})\nusing the config file host`)
     }
-    const client = newClient(out, config.host)
+    const client = createGitHubClient(out, config.host)
     const projectInfo = await client.getProjectFields(config.owner, config.project.number)
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`)
     const title = projectInfo['title']
@@ -382,7 +379,7 @@ const activateCommand = defineCommand({
           + 'example: pecot project activate ghes.example.com_example-org_example-project_example-org',
         )
       }
-      const client = newClient(out, host)
+      const client = createGitHubClient(out, host)
       const owner = await resolveActivationOwner(out, client, input.owner)
       if (project === undefined) await echoInitializedProjects(out, client, host, owner)
       else await activateByReference(out, client, { host, owner, project })
@@ -418,7 +415,7 @@ const infoCommand = defineCommand({
     const configPath = getActiveConfigPath()
     const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
     try {
-      const client = newClient(out, config.host)
+      const client = createGitHubClient(out, config.host)
       const { allItems, items } = await readBoard(client, config, input.repo)
       const statuses = await collectAlertStatuses(client, config)
       await pruneArchivedItems(out, client, config, allItems)
@@ -499,10 +496,9 @@ function toReleaseType(value: string | undefined): Repository['release_type'] {
   return RELEASE_TYPES.find(type => type === value)
 }
 
-async function linkRepository(out: Readonly<Output>, config: ProjectConfig, ownerRepository: string): Promise<LinkResult> {
-  const [repositoryOwner = '', repositoryName = ''] = ownerRepository.split('/', 2)
+async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repositoryOwner: string, repositoryName: string): Promise<LinkResult> {
   try {
-    return await newClient(out, config.host).linkRepositoryToProject(config.owner, config.project.number, repositoryOwner, repositoryName)
+    return await createGitHubClient(out, config.host).linkRepositoryToProject(config.owner, config.project.number, repositoryOwner, repositoryName)
   }
   catch (error: unknown) {
     // API の失敗の文は、Python と同じく message をそのまま使う（応答の本文の詳細は、wip ブランチの削除の警告だけが足す）
@@ -535,9 +531,9 @@ const repositorySettingCommand = defineCommand({
     const packages = parsePackages(out, input)
     const { config, configPath } = requireActiveWithPath(out)
 
-    const parts = input.owner_repo.split('/')
-    const [owner = '', name = ''] = parts
-    if (parts.length !== 2) stopWith(out, 'give the repository as owner/repo\nexample: pecot project set-repo example-org/my-repo')
+    const parts = splitOwnerRepository(input.owner_repo)
+    if (parts === undefined) stopWith(out, 'give the repository as owner/repo\nexample: pecot project set-repo example-org/my-repo')
+    const { owner, repository: name } = parts
     if (owner !== config.owner) {
       stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
     }
@@ -546,7 +542,7 @@ const repositorySettingCommand = defineCommand({
     let next: ProjectConfig
     let saved: Operation
     if (existing === undefined) {
-      const outcome = await linkRepository(out, config, input.owner_repo)
+      const outcome = await linkRepository(out, config, owner, name)
       const projectNumber = String(config.project.number)
       if (outcome.status === 'failed') stopWith(out, `could not link ${input.owner_repo} to project #${projectNumber}: ${outcome.detail}`)
       out.done(outcome.status === 'already_linked'

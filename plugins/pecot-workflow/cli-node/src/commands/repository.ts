@@ -1,19 +1,22 @@
 // リポジトリのブランチを扱うコマンド（create-branch・delete-branch）。Python の cli/commands/repo.py の移植。
 import { z } from 'zod'
 
+import { describeApiError } from '../domain/api-error-detail.js'
 import { findRepository, getFieldId, getOptionId, isRepositoryInProject } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { ReferenceParseError, parseIssueReference, parseRepositoryReference } from '../domain/reference-parser.js'
 import { compareStrings, pythonStringRepr } from '../domain/python-format.js'
 import { repositoryFullName } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
-import { GitHubClient } from '../infra/github/index.js'
-import { GitHubAPIError, describeApiError, isMissingReferenceError } from '../infra/github/errors.js'
+import type { GitHubClient } from '../infra/github/index.js'
+import { GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.js'
 import { readFlag } from '../infra/state-store.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
-import { USAGE_EXIT, requireActiveConfig, stopWith } from './command-stop.js'
+import { requireActiveConfig, stopWith } from './command-stop.js'
+import { createGitHubClient } from './github-client.js'
+import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
 import { recordWorkTarget } from './work-target.js'
 
@@ -34,7 +37,7 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
     + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree\n'
     + 'to issue the command on purpose from outside the CWD (for example in a script), '
     + 'give --allow-cross-repo',
-    USAGE_EXIT,
+    USAGE_EXIT_CODE,
   )
 }
 
@@ -90,7 +93,7 @@ async function guardActiveOverwrite(out: Readonly<Output>, client: Readonly<GitH
       + 'finish the other Issue first, or create another worktree with '
       + '/pecot-w:w-worktree-add and run /pecot-w:w-active again in its session\n'
       + 'if it is stale and you want to overwrite it on purpose, give --force-overwrite-active',
-      USAGE_EXIT,
+      USAGE_EXIT_CODE,
     )
   }
   out.warning(state === 'CLOSED'
@@ -154,7 +157,7 @@ const branchCreationCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      return stopWith(out, error.message, USAGE_EXIT)
+      return stopWith(out, error.message, USAGE_EXIT_CODE)
     }
     const { owner, repository } = issue.repository
     const issueNumber = issue.number
@@ -167,7 +170,7 @@ const branchCreationCommand = defineCommand({
 
     const finalBranchName = `${input.branch_name}/${String(issueNumber)}`
     try {
-      const client = new GitHubClient({ host: config.host, diagnostics: out })
+      const client = createGitHubClient(out, config.host)
 
       // A-2. .pecot-active 上書きガード
       if (!input.force_overwrite_active) await guardActiveOverwrite(out, client, `${owner}/${repository}/${String(issueNumber)}`)
@@ -223,7 +226,7 @@ const branchDeletionCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      return stopWith(out, error.message, USAGE_EXIT)
+      return stopWith(out, error.message, USAGE_EXIT_CODE)
     }
     const { owner, repository } = target
 
@@ -239,7 +242,7 @@ const branchDeletionCommand = defineCommand({
 
     let client
     try {
-      client = new GitHubClient({ host: config.host, diagnostics: out })
+      client = createGitHubClient(out, config.host)
       protectedBranches.add(await client.getRepositoryDefaultBranch(owner, repository))
     }
     catch (error: unknown) {

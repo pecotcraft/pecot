@@ -12,19 +12,15 @@ import {
   createIssueOrExit,
   exitInvalidStatus,
   linkToParentEpic,
-  loadConfigOrExit,
   normalizeParentEpicCli,
   parseIssueReferenceOrExit,
   resolveEpicTargetRepository,
   resolveParentEpicReference,
   runWithExit,
-  throwExit,
   validateIssueTemplate,
   validateStatusForType,
   warnEpicRepositoryException,
 } from '../issue-shared.js'
-import { setEnvironment } from '../../tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { CommandExit } from '../command-definition.js'
 import { createOutput } from '../output.js'
 import { UsageError } from '../usage-error.js'
@@ -54,7 +50,7 @@ async function succeed(): Promise<void> {
 
 async function exitWith3(): Promise<void> {
   await Promise.resolve()
-  throwExit(3)
+  throw new CommandExit(3)
 }
 
 async function badParameter(): Promise<void> {
@@ -72,7 +68,7 @@ describe('runWithExit', () => {
     expect(await runWithExit(succeed)).toBe(0)
   })
 
-  it('throwExit は、終了コードを持つ CommandExit を伝える', async () => {
+  it('CommandExit は、終了コードを持ったまま伝える', async () => {
     await expect(runWithExit(exitWith3)).rejects.toMatchObject({ exitCode: 3 })
   })
 
@@ -342,12 +338,5 @@ describe('Issue 参照と設定', () => {
     const { io, output } = started()
     expect(() => parseIssueReferenceOrExit(output, 'o/r', 'zzz')).toThrow(expect.objectContaining({ exitCode: 2 }))
     expect(io.err[0]).toMatch(/^error: /u)
-  })
-
-  it('アクティブなプロジェクトが無ければ `no active project` で終了コード 1', () => {
-    setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
-    const { io, output } = started()
-    expect(() => loadConfigOrExit(output)).toThrow(CommandExit)
-    expect(io.err).toEqual(['error: no active project\n'])
   })
 })

@@ -2,12 +2,11 @@
 
 import type { ProjectConfig } from '../domain/config.js'
 import type { TrackerIssue } from '../domain/tracker-body.js'
-import { loadActiveConfig } from '../infra/config-store.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { CommandExit } from './command-definition.js'
-import { stopWith } from './command-stop.js'
+import { requireActiveConfigPlain } from './command-stop.js'
 import type { Operation, Output } from './output.js'
 import { resolveReleaseTargetRepository } from './release.js'
 
@@ -32,7 +31,7 @@ export interface SyncTarget {
 export function loadTarget(out: Readonly<Output>, explicitRepository: string | undefined): SyncTarget {
   const target = resolveReleaseTargetRepository(undefined, explicitRepository, out)
   if (target === undefined) throw new CommandExit(1)
-  const config = loadActiveConfig() ?? stopWith(out, 'no active project')
+  const config = requireActiveConfigPlain(out)
   return { config, owner: target.owner, repository: target.repository }
 }
 

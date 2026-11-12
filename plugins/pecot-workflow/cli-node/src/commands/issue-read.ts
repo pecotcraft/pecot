@@ -5,7 +5,9 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { createClient, ISSUE_REF_DESCRIPTION, issuePath, loadConfigOrExit, parseIssueReferenceOrExit, runWithExit, throwExit } from './issue-shared.js'
+import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { createGitHubClient } from './github-client.js'
+import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import { createOutput } from './output.js'
 
 const MAX_COMMENT_LIMIT = 20
@@ -68,17 +70,16 @@ const ISSUE_READ = defineCommand({
   run: async (input, io) => {
     const output = createOutput(false, io)
     return await runWithExit(async () => {
-      const config = loadConfigOrExit(output)
+      const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
 
       let issue: IssueSlim
       try {
-        issue = await createClient(config, output).getIssueSlim(owner, repository, number, input.comment_limit)
+        issue = await createGitHubClient(output, config.host).getIssueSlim(owner, repository, number, input.comment_limit)
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        output.error(`could not read Issue ${issuePath(owner, repository, number)}: ${error.message}`)
-        return throwExit(1)
+        return stopWith(output, `could not read Issue ${issuePath(owner, repository, number)}: ${error.message}`)
       }
 
       output.data(input.json ? JSON.stringify({ ...issue, owner, repo: repository }, undefined, 2) : formatIssueMarkdown(issue, owner, repository))

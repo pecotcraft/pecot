@@ -12,6 +12,7 @@ import {
   pickPrimaryRemote,
   repositoryFullName,
   resolveRepository,
+  splitOwnerRepository,
 } from '../repository-resolver.js'
 
 interface FakeGitOptions {
@@ -43,6 +44,20 @@ function fakeGit(options: FakeGitOptions = {}): GitRunner {
     throw new Error(`unexpected git args: ${arguments_.join(' ')}`)
   }
 }
+
+describe('splitOwnerRepository', () => {
+  it.each([
+    ['octo/hello', { owner: 'octo', repository: 'hello' }],
+    ['a/', { owner: 'a', repository: '' }],
+    ['/b', { owner: '', repository: 'b' }],
+  ])('%s は 2 つに分ける（中身は検証しない）', (raw, expected) => {
+    expect(splitOwnerRepository(raw)).toEqual(expected)
+  })
+
+  it.each(['octo', 'a/b/c', ''])('%j は 2 つにならないので undefined', (raw) => {
+    expect(splitOwnerRepository(raw)).toBeUndefined()
+  })
+})
 
 describe('parseOwnerRepository（成功）', () => {
   it.each([

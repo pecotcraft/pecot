@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
+import { describeApiError } from '../domain/api-error-detail.js'
 import { ChangelogFileNotFoundError, InvalidVersionError, validateSemver } from '../domain/changelog.js'
 import { effectiveReleaseType, findPackage, findRepository, getDevelopBranch, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig, Repository } from '../domain/config.js'
@@ -11,6 +12,7 @@ import { PecotError } from '../domain/errors.js'
 import { pythonStringRepr } from '../domain/python-format.js'
 import { parsePullRequestReference, ReferenceParseError } from '../domain/reference-parser.js'
 import { ReleaseError, runPreflight } from '../domain/release.js'
+import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { fetchCodeScanningStatus, fetchSecretScanningStatus, SecurityAlertError } from '../domain/security-alerts.js'
 import type { ScanAlertStatus } from '../domain/security-alerts.js'
@@ -19,19 +21,18 @@ import { loadActiveConfig } from '../infra/config-store.js'
 import { gitRunnerFor, gitToplevel, primaryRemoteName, primaryRemoteRepository } from '../infra/git.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
-import { describeApiError, GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
+import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
+import { NO_ACTIVE_PROJECT } from './command-stop.js'
 import { createGitHubClient, makeClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { requireRepositoryMatch } from './repository-match.js'
+import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const FAILURE = 1
-const USAGE_FAILURE = 2
-
-const NO_ACTIVE_PROJECT = 'no active project\nrun: pecot project activate <PROJECT>'
 
 /**
 順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して undefined を返す。
@@ -40,13 +41,12 @@ remote は process.cwd() から読む
 export function resolveReleaseTargetRepository(adopted: RepositoryReference | undefined, explicit: string | undefined, out: Readonly<Output>): RepositoryReference | undefined {
   if (adopted !== undefined) return adopted
   if (explicit !== undefined) {
-    const parts = explicit.split('/')
-    const [owner, repository] = parts
-    if (owner === undefined || repository === undefined || parts.length !== 2) {
+    const parts = splitOwnerRepository(explicit)
+    if (parts === undefined) {
       out.error(`invalid --repo format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`)
       return undefined
     }
-    return { owner, repository }
+    return parts
   }
   const remote = primaryRemoteRepository(process.cwd())
   if (remote === undefined) {
@@ -148,7 +148,7 @@ function warnAlertsUnavailable(out: Readonly<Output>, reason: string): void {
 async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string): Promise<void> {
   let status
   try {
-    const client = createGitHubClient(out, config)
+    const client = createGitHubClient(out, config.host)
     status = await fetchDependabotAlertStatus(createDependabotSource(client), config.host, owner, repository)
   }
   catch (error: unknown) {
@@ -212,8 +212,8 @@ async function areAlertsPassed(out: Readonly<Output>, config: ProjectConfig, own
       await checkDependabotAlerts(out, config, owner, repository)
       return true
     },
-    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(createGitHubClient(out, config)), config.host, owner, repository)),
-    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(createGitHubClient(out, config)), config.host, owner, repository)),
+    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository)),
+    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(createGitHubClient(out, config.host)), config.host, owner, repository)),
   ]
   let isPassed = true
   for (const check of checks) {
@@ -373,7 +373,7 @@ const merge = defineCommand({
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
       out.error(error.message)
-      return USAGE_FAILURE
+      return USAGE_EXIT_CODE
     }
     const { owner, repository } = reference.repository
     const number = reference.number
@@ -382,7 +382,7 @@ const merge = defineCommand({
     let client
     let pullRequest
     try {
-      client = createGitHubClient(out, config)
+      client = createGitHubClient(out, config.host)
       pullRequest = await client.getPullRequestSlim(owner, repository, number)
     }
     catch (error: unknown) {

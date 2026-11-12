@@ -3,7 +3,7 @@ import { InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js
 import { OsError, hasErrorCode, toOsError } from '../infra/os-error.js'
 import { WORK_DIR } from '../infra/paths.js'
 import { ensureWorkDirectory, writeWorkTarget } from '../infra/state-store.js'
-import { CommandExit } from './command-definition.js'
+import { stopWith } from './command-stop.js'
 import type { Output } from './output.js'
 
 export interface RecordWorkTargetOptions {
@@ -47,8 +47,7 @@ export function recordWorkTarget(
   catch (error: unknown) {
     if (!isRecordingFailure(error)) throw error
     if (options.failWithExit === true) {
-      out.error(`could not record the work target: ${describeFailure(error)}`)
-      throw new CommandExit(1)
+      stopWith(out, `could not record the work target: ${describeFailure(error)}`)
     }
     out.warning(`could not record the work target: ${describeFailure(error)}`)
     return

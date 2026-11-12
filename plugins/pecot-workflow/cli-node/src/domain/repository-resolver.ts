@@ -60,15 +60,23 @@ export function repositoryFullName(reference: RepositoryReference): string {
 }
 
 /**
+`/` で分けてちょうど 2 つなら owner と repository を返し、違えば undefined。
+中身は検証しない（`a/` や `/b` も通る）。検証は parseOwnerRepository の側
+*/
+export function splitOwnerRepository(raw: string): { readonly owner: string, readonly repository: string } | undefined {
+  const [owner, repository, ...rest] = raw.split('/')
+  return owner === undefined || repository === undefined || rest.length > 0 ? undefined : { owner, repository }
+}
+
+/**
 `owner/repo` 形式の文字列を分ける。形式が違えば InvalidValueError
 */
 export function parseOwnerRepository(raw: string): RepositoryReference {
-  const parts = raw.split('/')
-  const [owner, repository] = parts
-  if (owner === undefined || repository === undefined || parts.length !== 2) {
+  const parts = splitOwnerRepository(raw)
+  if (parts === undefined) {
     throw new InvalidValueError(`invalid owner/repo form: ${pythonStringRepr(raw)} (expected: 'owner/repo')`)
   }
-  return createRepositoryReference(owner, repository)
+  return createRepositoryReference(parts.owner, parts.repository)
 }
 
 /**

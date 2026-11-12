@@ -1,8 +1,8 @@
 // security alert の種類と、種類ごとの open の alert の取得、code scanning・secret scanning の状態判定。`release preflight` と `security sync` が使う。
 // 取得は ScanAlertSource と DependabotSource に任せる。
 
-import { describeErrorBody } from './api-error-detail.js'
-import type { DependabotFailure, DependabotResult, DependabotSource } from './dependabot-source.js'
+import { describeApiError } from './api-error-detail.js'
+import type { DependabotResult, DependabotSource } from './dependabot-source.js'
 import { PecotError } from './errors.js'
 import { jsonField } from './json.js'
 import type { JsonValue } from './python-format.js'
@@ -67,10 +67,6 @@ function unwrap(result: ScanListResult, kind: ScanKind, owner: string, repositor
   }
 }
 
-function describeFailure(failure: DependabotFailure): string {
-  return describeErrorBody(failure.message, failure.responseBody)
-}
-
 // forbidden は呼び出し側が分けて扱う。ここに来る forbidden は、有効 / 無効の判定の応答（レート制限以外の 403 は ok にならない）
 function unwrapDependabot<T>(result: DependabotResult<T>, owner: string, repository: string): T {
   switch (result.kind) {
@@ -83,7 +79,7 @@ function unwrapDependabot<T>(result: DependabotResult<T>, owner: string, reposit
     case 'forbidden':
     case 'rateLimited':
     case 'failure': {
-      throw new SecurityAlertError(`${owner}/${repository}: ${kindLabel('dependabot')}: ${describeFailure(result.failure)}`)
+      throw new SecurityAlertError(`${owner}/${repository}: ${kindLabel('dependabot')}: ${describeApiError(result.failure)}`)
     }
   }
 }

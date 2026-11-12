@@ -5,10 +5,10 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { Output } from './output.js'
 
 /**
-アクティブなプロジェクトのホスト向けのクライアントを作る。トークンが無いときは GitHubAuthError を投げる
+host 向けのクライアントを作る。host が undefined なら既定のホスト。トークンが無いときは GitHubAuthError を投げる
 */
-export function createGitHubClient(out: Readonly<Output>, config: Readonly<ProjectConfig>): GitHubClient {
-  return new GitHubClient({ host: config.host, diagnostics: out })
+export function createGitHubClient(out: Readonly<Output>, host: string | undefined): GitHubClient {
+  return new GitHubClient({ host, diagnostics: out })
 }
 
 /**
@@ -16,7 +16,7 @@ export function createGitHubClient(out: Readonly<Output>, config: Readonly<Proje
 */
 export function makeClient(out: Readonly<Output>, config: Readonly<ProjectConfig>): GitHubClient | undefined {
   try {
-    return createGitHubClient(out, config)
+    return createGitHubClient(out, config.host)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error

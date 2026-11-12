@@ -8,6 +8,7 @@ import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
+import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession } from '../_helpers/session-case.js'
 import type { SessionCase } from '../_helpers/session-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -146,15 +147,43 @@ describe('session restore', () => {
     expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
   })
 
-  it('--directory が存在するディレクトリでないとき、終了コード 2 で終わる', async (context) => {
+  it.for(INVALID_DIRECTORY_CASES)('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, locked, prepare }, context) => {
     await verifies(context, 'PW-SESSION-RESTORE-13')
+    if (locked && isRoot()) context.skip()
     const session = prepareSession()
-    const missing = path.join(session.repository, 'x')
+    const target = prepare(session.repository)
 
-    const result = await restore(missing)
+    try {
+      const result = await restore(target)
 
-    expect(result.code).toBe(2)
-    expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${missing}' does not exist.`)
+      expect(result.code).toBe(2)
+      expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${target}' ${reason}.`)
+    }
+    finally {
+      if (locked) unlock(target)
+    }
+  })
+
+  it('--directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
+    const session = prepareSession()
+    await startGithub([issueResponse({ number: 7, title: 't' })])
+
+    const result = await restore('')
+
+    expect(result.code).toBe(0)
+    expect(stateFile(session, '.pecot-active')).toBe('acme/demo/7')
+  })
+
+  it('--directory がファイルとディレクトリのどちらでもないパスのとき、Usage ではなく error の 1 行を出して終了コード 1 で終わる', async () => {
+    const session = prepareSession()
+
+    const result = await restore('/dev/null')
+
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: [^\n]+\n$/u)
+    expect(result.stderr).not.toContain('Invalid value')
+    expect(existsSync(path.join(session.project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 
   it('--issue を省いてブランチ名を読めないとき、終了コード 1 で終わる', async (context) => {

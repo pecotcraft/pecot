@@ -5,7 +5,8 @@ import { isJsonObject, tryParseJsonText } from '../../domain/json.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { ScanAlertSource, ScanListResult } from '../../domain/security-alerts-source.js'
 import { TransportFailure } from './client.js'
-import { describeApiError, GitHubAPIError, GitHubRateLimitError } from './errors.js'
+import { describeApiError } from '../../domain/api-error-detail.js'
+import { GitHubAPIError, GitHubRateLimitError } from './errors.js'
 
 const FORBIDDEN = 403
 const NOT_FOUND = 404

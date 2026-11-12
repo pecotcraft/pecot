@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // issue 系のコマンドが共有する関数と定数。cli/commands/issue.py の移植。
-// typer.Exit(n) に当たるのは throwExit(n)（CommandExit）。BadParameter は、run の本体を包む runWithExit が受ける。
+// typer.Exit(n) に当たるのは、error の行を出して止める stopWith(output, 文, n)。
+// 行を別の関数が先に出した後は、throw new CommandExit(n) で止める。
+// BadParameter は、run の本体を包む runWithExit が受ける。
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -26,12 +28,13 @@ import {
   validateSections,
 } from '../domain/sections.js'
 import type { JsonObject } from '../domain/json.js'
-import { loadActiveConfig } from '../infra/config-store.js'
 import { gitRunnerFor } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
-import { GitHubClient } from '../infra/github/index.js'
+import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
+import { stopWith } from './command-stop.js'
+import { createGitHubClient } from './github-client.js'
 import { addIssueToBoard, createIssue, setIssueField } from './issue-board.js'
 import type { BoardItem } from './issue-board.js'
 import type { Output } from './output.js'
@@ -83,13 +86,6 @@ export const BACKLOG_TYPES: ReadonlySet<string> = new Set(['epic', 'tracker'])
 class BadParameterError extends BaseError {}
 
 /**
-終了コード code で、コマンドを終える。error の行は先に出しておく
-*/
-export function throwExit(code: number): never {
-  throw new CommandExit(code)
-}
-
-/**
 run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
 それ以外の例外はそのまま伝える。CommandExit は defineCommand が受けて終了コードにする
 */
@@ -102,27 +98,6 @@ export async function runWithExit(body: () => Promise<void>): Promise<number> {
     if (error instanceof BadParameterError) throw new UsageError(`Invalid value: ${error.message}`)
     throw error
   }
-}
-
-// --- 設定・クライアント ---
-
-/**
-アクティブなプロジェクトの設定。無ければ `no active project` を出して終了コード 1
-*/
-export function loadConfigOrExit(output: Output): ProjectConfig {
-  const config = loadActiveConfig()
-  if (config === undefined) {
-    output.error('no active project')
-    throwExit(1)
-  }
-  return config
-}
-
-/**
-設定のホストへつなぐ GitHub クライアント。トークンの切り替えの案内は output に出る
-*/
-export function createClient(config: ProjectConfig, output: Output): GitHubClient {
-  return new GitHubClient({ host: config.host, diagnostics: output })
 }
 
 // --- Issue 参照 ---
@@ -178,8 +153,7 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
   }
   catch (error: unknown) {
     if (!(error instanceof BadParameterError)) throw error
-    output.error(error.message)
-    return throwExit(USAGE_EXIT_CODE)
+    return stopWith(output, error.message, USAGE_EXIT_CODE)
   }
 }
 
@@ -189,8 +163,7 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
 不正な status と、有効な値を出して終了コード 1
 */
 export function exitInvalidStatus(output: Output, status: string): never {
-  output.error(`invalid status: ${status}\nvalid values: backlog/pending/ready/active/in_review/archived`)
-  return throwExit(1)
+  return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/ready/active/in_review/archived`)
 }
 
 /**
@@ -202,8 +175,7 @@ export function validateStatusForType(output: Output, issueType: IssueType, stat
   // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
   const expected = TYPE_DEFAULT_STATUS[issueType]
   if (status === expected) return
-  output.error(`the status at creation for type '${issueType}' is only '${expected}' (given: ${status})\nhint: move it to pending or another status on the board after creation`)
-  throwExit(1)
+  stopWith(output, `the status at creation for type '${issueType}' is only '${expected}' (given: ${status})\nhint: move it to pending or another status on the board after creation`)
 }
 
 // --- parent_epic・タイトル・order ---
@@ -257,8 +229,7 @@ export function resolveEpicTargetRepository(output: Output, repository: string |
   const aggregation = config.aggregation_repo
   if (explicit === undefined) {
     if (aggregation === undefined) {
-      output.error('cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass --repo')
-      throwExit(USAGE_EXIT_CODE)
+      stopWith(output, 'cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass --repo', USAGE_EXIT_CODE)
     }
     return { repository: aggregation, needsWarning: false }
   }
@@ -373,8 +344,7 @@ export async function checkDuplicateOrder(
     conflict = `an Issue (${orderLabel(order, duplicate.parallel)}) that conflicts with order=${orderLabel(order, parallel)}`
   }
   const stateLabel = duplicate.state === 'OPEN' ? 'OPEN' : 'CLOSED'
-  output.error(`Epic #${String(parentEpic)} already has ${conflict} (${stateLabel})\n#${String(duplicate.number)} ${duplicate.title}\n${suggestion}`)
-  throwExit(1)
+  stopWith(output, `Epic #${String(parentEpic)} already has ${conflict} (${stateLabel})\n#${String(duplicate.number)} ${duplicate.title}\n${suggestion}`)
 }
 
 // --- Issue の作成・ボード・親 Epic ---
@@ -399,8 +369,7 @@ export async function createIssueOrExit(
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    output.error(`could not create an Issue in ${owner}/${repository}: ${error.message}`)
-    return throwExit(1)
+    return stopWith(output, `could not create an Issue in ${owner}/${repository}: ${error.message}`)
   }
   const target = `Issue ${issuePath(owner, repository, requireNumber(issue['number'], 'number'))}`
   output.done({ verb: 'create', target: source === undefined || source === '' ? target : `${target} from ${source}` })
@@ -506,8 +475,7 @@ export async function linkToParentEpic(
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     output.data(issueUrl)
-    output.error(`could not add ${target} as sub-issue of ${parent}: ${error.message}`)
-    throwExit(1)
+    stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}`)
   }
   output.done({ verb: 'add', target: `${target} as sub-issue of ${parent}` })
 }
@@ -517,8 +485,7 @@ export async function linkToParentEpic(
 */
 export async function ensureRepositoryInProject(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, message: string): Promise<void> {
   if (await isRepositoryInProject(config, owner, repository, client)) return
-  output.error(message)
-  throwExit(1)
+  stopWith(output, message)
 }
 
 /**
@@ -534,7 +501,7 @@ export async function clientForIssueCreate(
   order: number | undefined,
   parallel?: string,
 ): Promise<GitHubClient> {
-  const client = createClient(config, output)
+  const client = createGitHubClient(output, config.host)
   await ensureRepositoryInProject(output, config, client, owner, repository, `${display} is not linked to the project`)
   if (parentReference !== undefined && order !== undefined) {
     await checkDuplicateOrder(output, client, parentReference.repository.owner, parentReference.repository.repository, parentReference.number, order, parallel)
@@ -580,5 +547,5 @@ export function hasReportedTemplateViolations(output: Output, body: string, temp
 Issue 本文を種別のテンプレートと比べる。違反があれば error を出して終了コード 1
 */
 export function validateIssueTemplate(output: Output, templateType: NonNullable<IssueFrontmatter['template']>, body: string): void {
-  if (hasReportedTemplateViolations(output, body, templateFile('issue', templateType), { emDashHint: true })) throwExit(1)
+  if (hasReportedTemplateViolations(output, body, templateFile('issue', templateType), { emDashHint: true })) throw new CommandExit(1)
 }

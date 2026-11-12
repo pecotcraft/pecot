@@ -3065,7 +3065,7 @@ entries:
       - code: 1
         when: Without --issue, the branch name cannot be read, the Issue number cannot be inferred from the branch name or the repository of the origin remote, or of the first remote when there is no origin, cannot be read; the work target cannot be written, including when the project root cannot be determined; or the active config file is broken (an error line is printed).
       - code: 2
-        when: --issue is not in owner/repo/N form, --directory is missing or is not an existing directory, or another command line error occurs.
+        when: --issue is not in owner/repo/N form, --directory is missing, or is a path that does not exist, a file or an unreadable directory, or another command line error occurs.
     on_error: When writing .pecot-session-title fails after .pecot-active was written, .pecot-active stays written.
     effects:
       - target: file
@@ -3129,7 +3129,7 @@ entries:
         statement: もし --directory を省いたなら、終了コード 2 で終わる
       - id: PW-SESSION-RESTORE-13
         pattern: unwanted
-        statement: もし --directory が存在するディレクトリでないなら、終了コード 2 で終わる
+        statement: もし --directory が無いパス・ファイル・読めないディレクトリなら、終了コード 2 で終わる
       - id: PW-SESSION-RESTORE-14
         pattern: unwanted
         statement: もし --issue を省いてブランチ名を読めないなら、終了コード 1 で終わる
@@ -3178,7 +3178,7 @@ entries:
       - code: 1
         when: The project root cannot be determined (an error line is printed).
       - code: 2
-        when: --directory is missing or is not an existing directory, or another command line error occurs.
+        when: --directory is missing, or is a path that does not exist, a file or an unreadable directory, or another command line error occurs.
     on_error: default
     effects:
       - target: git
@@ -3256,7 +3256,7 @@ entries:
         statement: もし --directory を省いたなら、終了コード 2 で終わる
       - id: PW-SESSION-STATUS-20
         pattern: unwanted
-        statement: もし --directory が存在するディレクトリでないなら、終了コード 2 で終わる
+        statement: もし --directory が無いパス・ファイル・読めないディレクトリなら、終了コード 2 で終わる
       - id: PW-SESSION-STATUS-21
         pattern: unwanted
         statement: もし .pecot-active に Issue の参照があり、アクティブな設定ファイルの形式が不正なら、warning の行を標準エラーに出す
