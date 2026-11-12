@@ -368,7 +368,7 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 - [x] T072 [US1] SC-009 を計る。同じ端末で続けて、切り替えの前の `bin/pecot`（Python）と後の `bin/pecot`（Node のミラー）で、`project info` の起動から結果までを 5 回ずつ計る。初回の準備は数えない。
   接続先は偽の GitHub サーバ（`PECOT_GITHUB_API_URL` をループバックに向ける）にする。2 つの中央値を、PR の本文と `.pecot/work/<Issue番号>/` に残す。Node が Python 以下であることを確かめる。
 - [x] T073 version plan に、Node と MCP への切り替えを書く。旧形式の manifest の削除も書く。Python と uv が要らなくなったことも書く。
-- [ ] T074 quickstart.md の CUJ 1〜7・9・10 を、CUJ ごとの表のクライアントで実行する。結果は `.pecot/work/<Issue番号>/` に残す。
+- [x] T074 quickstart.md の CUJ 1〜7・9・10 を、CUJ ごとの表のクライアントで実行する。結果は `.pecot/work/<Issue番号>/` に残す。
   Claude Code は `claude --plugin-dir plugins/pecot-workflow` で起動する。
   CUJ 6 の更新と実投稿の確認は、リリースの後に人が確かめる。PR の本文に、確かめる手順と、リリースの後に確かめることを書く。
 
