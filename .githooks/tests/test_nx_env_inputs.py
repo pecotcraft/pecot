@@ -59,7 +59,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 # 足すときは理由を 1 行で書く。
 # 読まれなくなった変数は test_exempt_entries_are_still_read が落とす。そのときは行ごと消す。
 _EXEMPT: dict[str, str] = {
-    "COLUMNS": "枠の幅。cli-node のテストは幅を引数で渡し、前後比較は子プロセスに 80 を渡すので、外の値は結果を変えない",
+    "COLUMNS": "枠の幅。cli のテストは幅を引数で渡し、前後比較は子プロセスに 80 を渡すので、外の値は結果を変えない",
     "TERMINAL_WIDTH": "COLUMNS と同じ",
     "PATH": (
         "実行ファイルの版は runtime 入力（node / uv / aws の --version）で見る。値そのものは"
@@ -139,9 +139,8 @@ _EXEMPT: dict[str, str] = {
         "PLUGIN_DATA と同じ"
     ),
     "PECOT_GITHUB_*_TOKEN": (
-        "nx の env は 1 つの名前しか取らず、`*` の名前を宣言できない。読む cli/core/github/client.py が動くのは"
-        "test-py だけで、cli/tests/conftest.py の autouse が外して固定する。cli-node の同じ読みは"
-        "useIsolatedEnvironment が外す。秘密の値をハッシュに入れない点も合う"
+        "nx の env は 1 つの名前しか取らず、`*` の名前を宣言できない。cli の読みは"
+        "useIsolatedEnvironment が外して固定する。秘密の値をハッシュに入れない点も合う"
     ),
     "GITHUB_COM_TOKEN": "PECOT_GITHUB_*_TOKEN と同じ読みの組なので、同じ扱い",
     "SCRIPT_DIR": "bootstrap テストの stub-root.sh が自分の置き場所から求める内部変数",
@@ -363,7 +362,7 @@ _PLUGIN_ENV_INPUT = {
 }
 # プラグインのディレクトリ名 → そのプラグインの test / lint の Globals。
 _PLUGIN_GLOBALS = {
-    "pecot-workflow": ("pecotPluginTestGlobals", "pecotPluginLintGlobals"),
+    "pecot-workflow": ("pecotPluginTestGlobals",),
     "pecot-visual": ("pecotvPluginTestGlobals", "pecotvPluginLintGlobals"),
     "pecot-tools": ("pecotToolsPluginTestGlobals", "pecotToolsPluginLintGlobals"),
 }

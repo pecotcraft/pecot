@@ -11,7 +11,7 @@ packages:
   - plugins/pecot-workflow
   - plugins/pecot-tools
   - plugins/pecot-visual
-  - plugins/pecot-workflow/cli-node
+  - plugins/pecot-workflow/cli
   - plugins/pecot-tools/cli
   - plugins/pecot-visual/cli
   - plugins/pecot-visual/cli/tests/fixtures/hash-slidev

@@ -1,7 +1,6 @@
 ---
 paths:
   - "**/*.test.ts"
-  - "plugins/pecot-workflow/cli/tests/**/*.py"
 ---
 
 # テストの規約
@@ -14,7 +13,6 @@ paths:
 |---|---|---|
 | コマンド・ツールの公開面を確かめる vitest | 規約に従う。lint が止める | 振る舞いの項目を確かめるテストは、ID を書く |
 | ドメイン層などの単体の vitest | 規約に従う。lint が止める | 求めない |
-| pecot-workflow の pytest | 直さない。lint の対象にしない | 振る舞いの項目を確かめるテストは、ID を書く |
 
 新しく作る公開面のテストのファイルは、各 project の `tests/interface/` に置きます。
 今の公開面のテストは、観点ごとのファイルで全ツールを回す作りのまま残し、この置き場に入れません。
@@ -57,7 +55,7 @@ paths:
 
 - `plugins/pecot-tools/cli/eslint.config.js`
 - `plugins/pecot-visual/cli/eslint.config.js`
-- `plugins/pecot-workflow/cli-node/eslint.config.js`
+- `plugins/pecot-workflow/cli/eslint.config.js`
 - `libs/text-rules/eslint.config.js`
 - `libs/interface-spec/eslint.config.js`
 
@@ -68,7 +66,7 @@ paths:
 
 ## 項目へのつなぎ
 
-vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。`verifies` の関数は、各 project の `tests/_helpers/verifies.ts` にあります。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli-node/` です。
+vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。`verifies` の関数は、各 project の `tests/_helpers/verifies.ts` にあります。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/` です。
 
 ```ts
 it('バケット名に大文字があると、awscli を呼ばずに入力エラーを返す', async (ctx) => {
@@ -87,21 +85,24 @@ it.for([
 })
 ```
 
-pytest は、デコレータで書きます。関数の名前は直しません。
-
-```python
-@add_test_properties(verifies=["PW-SESSION-STATUS-02"])
-def test_unknown_branch(self, runner):
-    ...
-```
-
 | 決め | 内容 |
 |---|---|
-| 1 件のテストから複数の項目へ | `verifies` を項目ごとに呼ぶ。pytest は配列に並べる |
+| 1 件のテストから複数の項目へ | `verifies` を項目ごとに呼ぶ |
 | 1 つの項目に複数のテスト | よい。項目につながるテストは 1 件以上あればよい |
 | ID の書き方 | 文字列のリテラルだけ。変数で組み立てない。つなぎの確認が、テストのファイルの文字列から ID を集めるためだ |
 | 全ツールに共通の振る舞い | 共通の振る舞いの項目（`<接頭辞>-COMMON-NN`）につなぐ。ツールの数だけ項目を作らない |
 | どの項目も確かめないテスト | つながなくてよい。振る舞いの一覧には出ない |
+
+## テストから bash を呼ぶ
+
+`bash -c` に値を渡しません。スクリプトの文字列に埋め込むことも、`-c` の後ろの位置引数に並べることもしません。
+
+- 手順はファイルに書き、`bash <ファイル> <引数…>` で起動する
+- hooks のテストは `tests/hooks/_helpers/run.ts` の `runShell` を使う
+- ライブラリの関数は、各 project の `call-bash-function.sh` で呼ぶ
+- コマンドの場所は、bash の `command -v` でなく、Node で `PATH` を探して求める
+
+CodeQL は、`-c` を持つ引数の配列の全要素を、シェルが解釈する文字列とみなします。位置引数に置いた安全な値でも、パスなら alert になり、`code_scanning` のルールでマージが止まります。
 
 ## 従う考え方
 

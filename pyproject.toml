@@ -1,7 +1,6 @@
 [project]
 # pecot monorepo workspace の root placeholder。
 # リリース対象ではなく、root 共通の ruff 設定を束ねるためだけに存在する。
-# 個別 package（pecot）は plugins/pecot-workflow/pyproject.toml 側で管理。
 name = "pecot"
 version = "0.0.0"
 license = "MIT"

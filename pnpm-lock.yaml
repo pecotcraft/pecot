@@ -822,7 +822,7 @@ importers:
 
   plugins/pecot-workflow: {}
 
-  plugins/pecot-workflow/cli-node:
+  plugins/pecot-workflow/cli:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: ^2.4.0

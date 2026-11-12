@@ -5,8 +5,8 @@
 # data-dir ブロック（下の 2 本のマーカーの間）は pecot-visual / pecot-tools の bin/_lib.sh と逐語一致させる。
 # プラグインは導入先へ単体でコピーされるため、他プラグインのファイルを source する形にはできない。
 # project 名は引数で受けるので、ブロックの中に固有名は書かない。
-# pnpm ブロックは、Node 側（cli-node/）の依存導入に使う。scripts/ci/*.sh が source する。
-# runtime-mirror ブロックは pecot-visual / pecot-tools と cli の起動パスの 1 行だけ違う（lib-consistency.sh が差を固定する）。
+# pnpm ブロックは、Node 側（cli/）の依存導入に使う。scripts/ci/*.sh が source する。
+# runtime-mirror ブロックは pecot-visual / pecot-tools と逐語一致させる（lib-consistency.sh が固定する）。
 
 # --- data-dir: 3 本で逐語一致 ---
 
@@ -62,7 +62,7 @@ plugin_data_dir_ensure() {
 
 # --- end data-dir ---
 
-# --- pnpm: Node 側（cli-node/）の依存導入に使う helper。scripts/ci/*.sh が source する ---
+# --- pnpm: Node 側（cli/）の依存導入に使う helper。scripts/ci/*.sh が source する ---
 
 # pnpm の起動コマンドを返す（pnpm / corepack pnpm / plugin_npx_pnpm <版> / 空）。Node.js 25 以降は corepack が無いため npx で版を固定して起動する。
 # 引数: $1 = plugin root（package.json の packageManager から版を読む）
@@ -183,7 +183,7 @@ plugin_runtime_name() {
 # 完成済みか。完成印があり、実行する実体がある。
 # 引数: $1 = ミラーのディレクトリ
 plugin_runtime_is_complete() {
-    [ -f "$1/.complete" ] && [ -f "$1/cli-node/dist/cli.js" ]
+    [ -f "$1/.complete" ] && [ -f "$1/cli/dist/cli.js" ]
 }
 
 # 観測用の固定行（回数はこの行の数で数える）。
@@ -485,8 +485,8 @@ plugin_runtime_src_files() {
     local root="$1" file
     (
         cd "$root" || exit 0
-        printf '%s\n' cli-node/package.json cli-node/tsconfig.json cli-node/tsconfig.build.json cli-node/scripts/tsc.mjs
-        find cli-node/src -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
+        printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json cli/scripts/tsc.mjs
+        find cli/src -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
             ! -path '*/node_modules/*' ! -path '*/dist/*' 2>/dev/null || true
     ) | while IFS= read -r file; do
         if [ -f "$root/$file" ]; then printf '%s\n' "$file"; fi

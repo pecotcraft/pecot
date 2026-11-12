@@ -6,7 +6,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 | ディレクトリ | 役割 | nx project | test レーン（target） |
 |---|---|---|---|
-| `plugins/pecot-workflow` | Issue/PR/リリース運用のワークフロー管理 | `pecot-workflow` | `test-py` / `test-cli` / `test-bootstrap` / `test-hooks` / `test-skills` |
+| `plugins/pecot-workflow` | Issue/PR/リリース運用のワークフロー管理 | `pecot-workflow` | `test-cli` / `test-bootstrap` / `test-hooks` / `test-skills` |
 | `plugins/pecot-visual` | ビジュアル系スキル（Slidev / draw.io） | `pecot-visual` | `test-cli` / `test-bootstrap` / `test-slidev` / `test-hooks` / `test-compare` / `test-release` / `test-skills` |
 | `plugins/pecot-tools` | 許可リストで限定した awscli コマンドの MCP サーバ | `pecot-tools` | `test-cli` / `test-bootstrap` / `test-release` |
 | `libs/text-rules` | テキスト規則ライブラリ（pecot-visual への同梱と root フックが使う） | `text-rules` | `test-unit` |
@@ -27,7 +27,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 - 検証は PR ごとの CI（`ci.yml`）が担う。必須チェックは `ci-result` と `version-plan`
 - 手元では、変更箇所に絞ったテストと CI の失敗の再現だけを動かす。push 前にレーンの全量を動かさない
-  - 絞り方は、vitest / pytest はファイル・ケース、`*.test.sh` は 1 本
+  - 絞り方は、vitest・pytest はファイル・ケース、`*.test.sh` は 1 本
 - CI の失敗の再現は ci-repro スキルに従う
 - 手元の検証は pre-commit（lint は `nx-affected-lint`）と commit-msg が行う。仕組みと手で打つコマンドは `.githooks/README.md`
 

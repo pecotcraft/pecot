@@ -51,5 +51,4 @@ CLAUDE.local.md
 # vitest の JUnit 出力
 plugins/pecot-tools/cli/test-results/
 plugins/pecot-visual/cli/test-results/
-plugins/pecot-workflow/cli-node/test-results/
 plugins/pecot-workflow/cli/test-results/

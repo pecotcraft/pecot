@@ -143,7 +143,7 @@ test("版の割れた @types/node は、指定の変わった package だけに�
     declarations: {
       "@types/node": [
         decl("plugins/pecot-tools/cli/package.json", "dependencies", true),
-        decl("plugins/pecot-workflow/cli-node/package.json", "dependencies", false),
+        decl("plugins/pecot-workflow/cli/package.json", "dependencies", false),
         decl("libs/text-rules/package.json", "dependencies", false),
       ],
     },

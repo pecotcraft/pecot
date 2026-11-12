@@ -28,7 +28,7 @@ export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
 
 # 1. SKIP: 本体ツリーの成果物を直接実行する（開発・ゲート専用）。
 if [ "${PECOT_BOOTSTRAP_SKIP:-}" = "1" ]; then
-  CLI_DIST="${PLUGIN_ROOT}/cli-node/dist/cli.js"
+  CLI_DIST="${PLUGIN_ROOT}/cli/dist/cli.js"
   if [ ! -f "$CLI_DIST" ]; then
     echo "error: ${CLI_DIST} is missing. Build first (PECOT_BOOTSTRAP_SKIP=1 runs the source tree directly)" >&2
     exit 1
@@ -67,4 +67,4 @@ PLUGIN_RUNTIME_FORCE="${PECOT_BOOTSTRAP_FORCE:-}"
 } >&2 </dev/null
 
 # 5. ミラーの cli を実行する。
-exec node "$RUNTIME_DIR/cli-node/dist/cli.js" "$@"
+exec node "$RUNTIME_DIR/cli/dist/cli.js" "$@"

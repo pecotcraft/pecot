@@ -108,7 +108,7 @@ git grep -nE 'PECOT_(PR|ISSUE)_(CREATE|SKIP)_PATTERN|_PECOT=' -- 'plugins/pecot-
 # Python の残り（SC-006。フェーズ 12 の後）
 git ls-files 'plugins/pecot-workflow/**/*.py' 'plugins/pecot-workflow/**/pyproject.toml' 'plugins/pecot-workflow/**/uv.lock'
 # cli-node の参照（フェーズ 12 の後。specs/ と CHANGELOG を除く）
-git grep -n 'cli-node' -- . ':!specs' ':!**/CHANGELOG.md'
+git grep -n 'cli-node' -- . ':!specs' ':!**/CHANGELOG.md' ':!.nx/nx-release/tests/_fixtures' ':!.specify/memory/constitution.md'
 # 旧形式の manifest（フェーズ 11 の後）
 git ls-files 'plugins/pecot-workflow/.github/plugin/*' 'plugins/pecot-workflow/hooks/hooks-copilot.json'
 ```

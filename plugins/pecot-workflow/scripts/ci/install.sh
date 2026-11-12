@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # プラグインルート (= plugins/pecot-workflow/)
 PLUGIN_ROOT="$PWD"
 
-# pecot-workflow plugin の Node 側（cli-node/）の依存を導入する。
+# pecot-workflow plugin の Node 側（cli/）の依存を導入する。
 # 1 push につき 1 回だけ実行するための nx target `pecot-workflow:install` の実体 (#1080)。
 #
 # nx の task graph は同一 `project:target` を 1 run につき 1 タスクへ dedupe する。

@@ -99,7 +99,7 @@
       "{workspaceRoot}/.nx/nx-release/project.json",
       "{workspaceRoot}/libs/*/package.json",
       "{workspaceRoot}/plugins/*/package.json",
-      "{workspaceRoot}/plugins/pecot-workflow/cli-node/package.json",
+      "{workspaceRoot}/plugins/pecot-workflow/cli/package.json",
       "{workspaceRoot}/plugins/pecot-tools/cli/package.json",
       "{workspaceRoot}/plugins/pecot-visual/cli/package.json",
       "{workspaceRoot}/plugins/pecot-visual/cli/tests/fixtures/*-slidev/package.json",
@@ -111,35 +111,11 @@
       "runtime",
       "env",
       "pecotPluginEnv",
-      { "runtime": "uv --version" },
       { "runtime": "git --version" },
       { "runtime": "jq --version" },
-      {
-        "runtime": "bash -c '. plugins/pecot-workflow/scripts/ci/python-version.sh && uv python find --no-project --show-version \"$PY\"'"
-      },
-      "{workspaceRoot}/pyproject.toml",
-      "{workspaceRoot}/plugins/pecot-workflow/cli/pyproject.toml",
-      "{workspaceRoot}/plugins/pecot-workflow/cli/uv.lock",
+      "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-tests.sh",
-      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/python-version.sh",
-      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/compare_junit.py"
-    ],
-    "pecotPluginLintGlobals": [
-      "runtime",
-      "env",
-      "pecotPluginEnv",
-      { "runtime": "uv --version" },
-      {
-        "runtime": "bash -c '. plugins/pecot-workflow/scripts/ci/python-version.sh && uv python find --no-project --show-version \"$PY\"'"
-      },
-      "{workspaceRoot}/pyproject.toml",
-      "{workspaceRoot}/package.json",
-      "{workspaceRoot}/.npmrc",
-      "{workspaceRoot}/plugins/pecot-workflow/cli/pyproject.toml",
-      "{workspaceRoot}/plugins/pecot-workflow/cli/uv.lock",
-      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-lint.sh",
-      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/python-version.sh",
-      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/compare_junit.py"
+      "{workspaceRoot}/plugins/pecot-workflow/cli/scripts/compare-junit.ts"
     ],
     "pecotPluginNodeInputs": [
       "{workspaceRoot}/plugins/pecot-workflow/**/package.json",
@@ -334,7 +310,6 @@
         "plugins/pecot-visual/scripts/pptx-compare/",
         "plugins/pecot-visual/scripts/page-compare/",
         "plugins/*/cli/eslint.config.js",
-        "plugins/*/cli-node/eslint.config.js",
         "libs/text-rules/eslint.config.js",
         "plugins/pecot-visual/assets/slidev/tsconfig.test.json"
       ]

@@ -471,6 +471,7 @@ describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果
   // 比較の相手は実物の bin/_lib.sh（bash 3.2 でも通る書き方に限った関数）を source して呼ぶ。
 
   const LIB = path.join(import.meta.dirname, '..', '..', '..', '..', 'bin', '_lib.sh')
+  const CALL_FUNCTION = path.join(import.meta.dirname, '..', '..', '_helpers', 'call-bash-function.sh')
 
   interface Environment {
     readonly CLAUDE_PLUGIN_DATA?: string
@@ -487,7 +488,7 @@ describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果
     try {
       const output = execFileSync(
         'bash',
-        ['-c', '. "$1" && plugin_data_dir_resolve pecot-visual', 'bash', LIB],
+        [CALL_FUNCTION, LIB, 'plugin_data_dir_resolve', 'pecot-visual'],
         { env: { PATH: process.env['PATH'] ?? '/usr/bin:/bin', ...environment }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
       )
       return output.replace(/\n$/u, '')

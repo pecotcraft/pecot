@@ -266,10 +266,6 @@ def ws(
     repo = git_repo("ws", initial_branch="main")
     shutil.copyfile(_NX_JSON, repo / "nx.json")
     shutil.copyfile(_REPO_ROOT / ".nxignore", repo / ".nxignore")
-    # pecotPlugin*Globals の runtime 入力が workspace root からこのファイルを読む。
-    python_version = Path("plugins/pecot-workflow/scripts/ci/python-version.sh")
-    (repo / python_version).parent.mkdir(parents=True)
-    shutil.copyfile(_REPO_ROOT / python_version, repo / python_version)
     (repo / "package.json").write_text('{"name": "cache-fixture", "private": true}\n')
     (repo / ".gitignore").write_text("node_modules/\n.nx/\n.pecot/\n")
     (repo / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
@@ -499,7 +495,6 @@ def test_plugin_env_change_reruns_only_that_plugins_lanes(
         # 全レーン共通の runtime。
         ("node", set(_LANES)),
         # レーン固有の runtime は、その Globals を使うレーンだけを再実行する。
-        ("uv", {"lane-pecot"}),
         ("aws", {"lane-tools"}),
     ],
 )
@@ -694,21 +689,9 @@ def test_cacheable_target_declares_runtime_and_env(
     assert not leaked, f"{project_target} の env 入力に他プラグインの変数がある: {leaked}"
 
 
-# python-version.sh の PY（interpreter の版）を読む。版を複製せず、PY を変えれば入力も追随する。
-_PY_RUNTIME = (
-    "bash -c '. plugins/pecot-workflow/scripts/ci/python-version.sh && "
-    'uv python find --no-project --show-version "$PY"\''
-)
-
-
 @pytest.mark.parametrize(
     ("project_target", "commands"),
-    [
-        ("pecot-workflow:test-py", ["uv --version", _PY_RUNTIME]),
-        ("pecot-workflow:lint-py", ["uv --version", _PY_RUNTIME]),
-        ("pecot-workflow:test-hooks", ["uv --version"]),
-        ("pecot-tools:test-cli", ["aws --version | cut -d' ' -f1"]),
-    ],
+    [("pecot-tools:test-cli", ["aws --version | cut -d' ' -f1"])],
 )
 def test_lane_specific_runtime_is_declared(
     nx_bin: Path, project_target: str, commands: list[str]
@@ -717,21 +700,11 @@ def test_lane_specific_runtime_is_declared(
     assert set(commands) <= set(runtime), runtime
 
 
-def test_skills_lane_does_not_declare_the_uv_runtime(nx_bin: Path) -> None:
-    """test-skills は vitest だけで動く。uv は要らないので、uv の版を入力に置かない。"""
-    runtime = _target_inputs(nx_bin, "pecot-workflow:test-skills").get("runtime", [])
+@pytest.mark.parametrize("lane", ["test-hooks", "test-skills"])
+def test_pecot_workflow_lanes_do_not_declare_the_uv_runtime(nx_bin: Path, lane: str) -> None:
+    """pecot-workflow のレーンは vitest だけで動く。uv は要らないので、uv の版を入力に置かない。"""
+    runtime = _target_inputs(nx_bin, f"pecot-workflow:{lane}").get("runtime", [])
     assert "uv --version" not in runtime, runtime
-
-
-def test_python_runtime_does_not_duplicate_the_version(nx_bin: Path) -> None:
-    """interpreter の版は python-version.sh の PY を読む。nx.json に版を複製しない。"""
-    for project_target in ("pecot-workflow:test-py", "pecot-workflow:lint-py"):
-        commands = [
-            c
-            for c in _target_inputs(nx_bin, project_target).get("runtime", [])
-            if "show-version" in c
-        ]
-        assert commands == [_PY_RUNTIME], commands
 
 
 def test_nx_env_drops_the_variables_that_move_the_cache_location(
