@@ -270,8 +270,8 @@ Try 'pecot --help' for help.
     const result = await run(['issue', 'read'])
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toContain('Usage: pecot issue read [OPTIONS] ISSUE_REF')
-    expect(result.stderr).toContain('Missing argument \'ISSUE_REF\'.')
+    expect(result.stderr).toContain('Usage: pecot issue read [OPTIONS] {issue_ref}')
+    expect(result.stderr).toContain('Missing argument \'issue_ref\'.')
   })
 })
 

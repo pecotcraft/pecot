@@ -19,6 +19,7 @@ export class FrontmatterError extends PecotError {}
 const REQUIRED_MESSAGE = 'Field required'
 const STRING_MESSAGE = 'Input should be a valid string'
 const LIST_MESSAGE = 'Input should be a valid list'
+const PARALLEL_MESSAGE = 'String should match pattern \'^[a-z]$\''
 
 /**
 zod が渡す issue のうち、文を作るのに使う項目
@@ -118,11 +119,13 @@ const IssueFrontmatterSchema = z.object({
     return z.NEVER
   })),
   order: z.preprocess(value => convertToInteger(emptyStringToUndefined(value)), IntegerSchema.nullish().transform(value => value ?? undefined)),
+  parallel: z.preprocess(emptyStringToUndefined, z.string({ error: STRING_MESSAGE }).regex(/^[a-z]$/u, { error: PARALLEL_MESSAGE }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
 const CommentFrontmatterSchema = z.object({
   issue_ref: z.string({ error: stringMessage }),
   template: z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'], { error: choiceMessage }).nullish().transform(value => value ?? undefined),
+  comment_url: z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
 }).readonly()
 
 const PullRequestFrontmatterSchema = z.object({
@@ -177,11 +180,12 @@ function fieldErrors(issues: readonly ValidationIssueView[]): FrontmatterError {
 
 // parent_epic と order の相互検証。項目の誤りが無いときだけ行う
 function checkOrderWithParentEpic(frontmatter: IssueFrontmatter): void {
-  const { parent_epic: parentEpic, order } = frontmatter
+  const { parent_epic: parentEpic, order, parallel } = frontmatter
   let message: string | undefined
   if (parentEpic !== undefined && order === undefined) message = 'order is required when parent_epic is set'
   else if (parentEpic === undefined && order !== undefined) message = 'parent_epic is required when order is set'
   else if (order !== undefined && order <= 0) message = `order must be an integer of 1 or more: ${String(order)}`
+  else if (parallel !== undefined && order === undefined) message = 'order is required when parallel is set'
   if (message !== undefined) throw validationError([`  - : Value error, ${message}`])
 }
 

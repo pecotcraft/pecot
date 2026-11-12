@@ -23,7 +23,7 @@ const PORTED: readonly (readonly string[])[] = [[], ...COMMANDS.map(command => c
 
 /**
 help の一覧や「近いコマンド」の案内は、Python の全 34 コマンドの登録が前提になる。
-全コマンドが registry に入るまでは、golden と一致しないことを確かめる
+全コマンドが registry に入るまでは、登録の進み具合で結果が変わるので、golden と比べない
 */
 const SCENARIOS_NEEDING_ALL_COMMANDS: ReadonlySet<string> = new Set([
   'global-ok-help',
@@ -73,7 +73,8 @@ describe('前後比較', () => {
     expect(outcome.timedOut).toBe(false)
 
     const golden = readGolden(id)
-    const isPortedCommand = isPorted(scenario.command.path) && (!SCENARIOS_NEEDING_ALL_COMMANDS.has(id) || isAllCommandsPorted())
+    if (SCENARIOS_NEEDING_ALL_COMMANDS.has(id) && !isAllCommandsPorted()) return
+    const isPortedCommand = isPorted(scenario.command.path)
     // 移植済みのコマンドは、偽サーバの誤りと使われなかった応答も無いこと
     expect(isPortedCommand ? outcome.problems : []).toEqual([])
     expect(isPortedCommand ? outcome.unused : []).toEqual([])

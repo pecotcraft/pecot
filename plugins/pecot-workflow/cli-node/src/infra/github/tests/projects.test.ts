@@ -213,16 +213,23 @@ describe('getLinkedRepositories', () => {
 })
 
 describe('user のクエリの失敗の扱い', () => {
-  it('認証エラー（401）は org のクエリに進まず、GitHubAuthError', async () => {
-    const { client, server } = await startClient([{ match: { operation: 'GetLinkedRepositoriesUser' }, respond: { status: 401, text: 'Bad credentials' }, times: 1 }])
+  it('認証エラー（401）でも org のクエリに進み、org も 401 なら GitHubAuthError', async () => {
+    const unauthorized = { status: 401, text: 'Bad credentials' }
+    const { client, server } = await startClient([
+      { match: { operation: 'GetLinkedRepositoriesUser' }, respond: unauthorized, times: 1 },
+      { match: { operation: 'GetLinkedRepositoriesOrg' }, respond: unauthorized, times: 1 },
+    ])
     expect(await rejection(client.getLinkedRepositories('o', 1))).toMatchObject({ name: 'GitHubAuthError' })
-    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetLinkedRepositoriesUser'])
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetLinkedRepositoriesUser', 'GetLinkedRepositoriesOrg'])
   })
 
-  it('レート制限は org のクエリに進まず、GitHubRateLimitError', async () => {
-    const { client, server } = await startClient([graphqlError('ListProjectsUser', 'API rate limit exceeded')])
+  it('レート制限でも org のクエリに進み、org も同じなら GitHubRateLimitError', async () => {
+    const { client, server } = await startClient([
+      graphqlError('ListProjectsUser', 'API rate limit exceeded'),
+      graphqlError('ListProjectsOrg', 'API rate limit exceeded'),
+    ])
     expect(await rejection(client.listProjects('o'))).toMatchObject({ name: 'GitHubRateLimitError' })
-    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['ListProjectsUser'])
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['ListProjectsUser', 'ListProjectsOrg'])
   })
 })
 
@@ -441,10 +448,13 @@ describe('getOwnerNodeId', () => {
     expect(await client.getOwnerNodeId('testorg')).toBe('O_kgDOorg456')
   })
 
-  it('user のクエリの認証エラーは org に進まず、GitHubAuthError', async () => {
-    const { client, server } = await startClient([{ match: { operation: 'GetUserNodeId' }, respond: { status: 401, text: 'x' }, times: 1 }])
+  it('user のクエリの認証エラーでも org に進み、org も 401 なら GitHubAuthError', async () => {
+    const { client, server } = await startClient([
+      { match: { operation: 'GetUserNodeId' }, respond: { status: 401, text: 'x' }, times: 1 },
+      { match: { operation: 'GetOrgNodeId' }, respond: { status: 401, text: 'x' }, times: 1 },
+    ])
     expect(await rejection(client.getOwnerNodeId('o'))).toMatchObject({ name: 'GitHubAuthError' })
-    expect(graphqlRequests(server)).toHaveLength(1)
+    expect(graphqlRequests(server)).toHaveLength(2)
   })
 
   it('どちらにも無ければ GitHubNotFoundError', async () => {

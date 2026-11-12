@@ -6,7 +6,7 @@ import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from './errors.js'
+import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_TO_PROJECT,
@@ -88,14 +88,14 @@ function linkedRepositoriesOf(project: JsonValue | undefined): readonly LinkedRe
 }
 
 export class ProjectsApi extends ReposApi {
-  // user のクエリ。owner が organization のときの失敗（"Could not resolve" など）は undefined にして、org のクエリに進ませる。
-  // 認証エラーとレート制限は、org のクエリでも同じ原因で失敗するので、そのまま投げる
+  // user のクエリ。GitHub の失敗は undefined にして、org のクエリに進ませる。
+  // 認証エラーとレート制限でも進む（Python と同じ。golden の issue-reopen-auth が要求の列を固定している）
   private async queryAsUser(query: string, variables: Readonly<Record<string, JsonValue>>): Promise<JsonObject | undefined> {
     try {
       return await this.executeGraphql(query, variables)
     }
     catch (error: unknown) {
-      if (error instanceof GitHubAPIError && !(error instanceof GitHubAuthError) && !(error instanceof GitHubRateLimitError)) return undefined
+      if (error instanceof GitHubAPIError) return undefined
       throw error
     }
   }

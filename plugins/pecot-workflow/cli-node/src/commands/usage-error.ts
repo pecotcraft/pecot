@@ -10,7 +10,7 @@ const DEFAULT_OUTPUT_WIDTH = 80
 /**
 誤りが起きたコマンド。
 synopsis は Usage 行の `pecot <path>` の後ろに続く書式。
-例は `[OPTIONS] ISSUE_REF`。グループなら `[OPTIONS] COMMAND [ARGS]...` にする
+例は `[OPTIONS] {issue_ref}`。グループなら `[OPTIONS] COMMAND [ARGS]...` にする
 */
 export interface UsageContext {
   readonly commandPath: readonly string[]
@@ -72,7 +72,7 @@ export function optionTakesNoValueMessage(name: string): string {
 }
 
 /**
-names はオプションなら長い形・短い形の順、位置引数なら大文字の名前
+names はオプションなら長い形・短い形の順、位置引数なら入力の名前
 */
 export function invalidValueMessage(names: string | readonly string[], detail: string): string {
   const quoted = (typeof names === 'string' ? [names] : names).map(name => `'${name}'`).join(' / ')

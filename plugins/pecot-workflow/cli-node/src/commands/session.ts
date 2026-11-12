@@ -1,4 +1,211 @@
-// session status・session restore
-import type { CommandDefinition } from './command.js'
+// session status・session restore。cli/commands/session.py の移植。
+import { statSync } from 'node:fs'
+import path from 'node:path'
 
-export const SESSION_COMMANDS: readonly CommandDefinition[] = []
+import { z } from 'zod'
+
+import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
+import { ConfigError } from '../domain/config.js'
+import { PecotError } from '../domain/errors.js'
+import { parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
+import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
+import { pythonStringRepr } from '../domain/python-format.js'
+import { loadActiveConfig } from '../infra/config-store.js'
+import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
+import { GitHubClient } from '../infra/github/index.js'
+import { hasFlag, readFlag } from '../infra/state-store.js'
+import { defineCommand } from './command.js'
+import type { CommandDefinition, CommandIo } from './command.js'
+import { FAILURE_EXIT_CODE } from './failure.js'
+import { createOutput } from './output.js'
+import type { Output } from './output.js'
+import { USAGE_EXIT_CODE } from './usage-error.js'
+import { recordWorkTarget } from './work-target.js'
+
+const ALL_FLAGS: readonly string[] = [FLAG_PECOT_ACTIVE]
+
+const DIRECTORY_DESCRIPTION = 'Target Git repository (absolute or relative path)'
+
+// click の Path(exists=True, file_okay=False) と同じ検証。誤りの文も click と同じ
+const directorySchema = z.string().describe(DIRECTORY_DESCRIPTION).superRefine((value, context) => {
+  let problem: string | undefined
+  try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者が渡したパスを確かめる
+    if (!statSync(value).isDirectory()) problem = 'is a file'
+  }
+  catch {
+    problem = 'does not exist'
+  }
+  if (problem !== undefined) context.addIssue({ code: 'custom', message: `Directory ${pythonStringRepr(value)} ${problem}.` })
+})
+
+interface FlagStatus {
+  readonly name: string
+  readonly isSet: boolean
+  readonly content: string
+}
+
+function collectFlagStatuses(): FlagStatus[] {
+  return ALL_FLAGS.map((name) => {
+    const isSet = hasFlag(name)
+    return { name, isSet, content: isSet ? readFlag(name) ?? '' : '' }
+  })
+}
+
+function newClient(host: string, output: Output): GitHubClient {
+  return new GitHubClient({ host, diagnostics: output })
+}
+
+// .pecot-active の Issue を GitHub から読んで、Markdown の行にする。読めなければ warning だけ出して空にする
+async function activeIssueLines(statuses: readonly FlagStatus[], output: Output): Promise<string[]> {
+  const active = statuses.find(status => status.name === FLAG_PECOT_ACTIVE && status.isSet && status.content !== '')
+  if (active === undefined) return []
+
+  let reference
+  try {
+    reference = parseIssueReference(active.content)
+  }
+  catch (error: unknown) {
+    if (error instanceof ReferenceParseError) return []
+    throw error
+  }
+
+  let issue
+  try {
+    const config = loadActiveConfig()
+    if (config === undefined) {
+      output.warning('cannot read the active Issue: no active project')
+      return []
+    }
+    issue = await newClient(config.host, output).getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
+  }
+  catch (error: unknown) {
+    if (error instanceof ConfigError || error instanceof GitHubAPIError) {
+      output.warning(`cannot read the active Issue: ${error.message}`)
+      return []
+    }
+    throw error
+  }
+
+  const lines = ['', '## Active Issue', '', `#${String(issue.number)} ${issue.title} (${issue.state})`]
+  if (issue.body !== '') lines.push('', issue.body)
+  return lines
+}
+
+const STATUS = defineCommand({
+  path: ['session', 'status'],
+  description: 'Show the session flag state, branch information, and inferred Issue',
+  input: z.object({ directory: directorySchema }),
+  positional: [],
+  shortFlags: { directory: '-D' },
+  interactive: false,
+  run: async (input, io: CommandIo) => {
+    const output = createOutput(false, io)
+    const directory = path.resolve(input.directory)
+    const branch = gitCurrentBranch(directory)
+    const origin = primaryRemoteRepository(directory)
+    const issueNumber = branch === undefined ? undefined : extractIssueNumberFromBranch(branch)
+    const statuses = collectFlagStatuses()
+
+    const lines = [
+      '# Session status',
+      '',
+      `- Branch: ${branch ?? 'unknown'}`,
+      `- Repository: ${origin === undefined ? 'unknown' : `${origin.owner}/${origin.repository}`}`,
+      `- Inferred Issue: ${issueNumber === undefined ? 'none' : `#${String(issueNumber)}`}`,
+      '',
+      '| Flag | State | Content |',
+      '|------|-------|---------|',
+      ...statuses.map(status => `| ${status.name} | ${status.isSet ? 'set' : 'unset'} | ${status.content} |`),
+      ...await activeIssueLines(statuses, output),
+    ]
+    output.data(lines.join('\n'))
+    return 0
+  },
+})
+
+// セッション名に添える題名。設定が無いか API が失敗したときだけ空にする。設定が読めないなら ConfigError を伝える
+async function fetchIssueTitle(owner: string, repository: string, number: number, output: Output): Promise<string> {
+  try {
+    const config = loadActiveConfig()
+    if (config === undefined) return ''
+    const issue = await newClient(config.host, output).getIssueSlim(owner, repository, number, 0)
+    return issue.title
+  }
+  catch (error: unknown) {
+    if (error instanceof ConfigError) throw error
+    if (error instanceof PecotError) return ''
+    throw error
+  }
+}
+
+interface RestoreTarget {
+  readonly owner: string
+  readonly repository: string
+  readonly number: number
+}
+
+// --issue が無いときの、ブランチ名と remote からの推定。決められなければ error を出して終了コードを返す
+function inferTarget(directory: string, output: Output): RestoreTarget | number {
+  const branch = gitCurrentBranch(directory)
+  if (branch === undefined) {
+    output.error('cannot read the branch name')
+    return FAILURE_EXIT_CODE
+  }
+  const number = extractIssueNumberFromBranch(branch)
+  if (number === undefined) {
+    output.error(`cannot infer the Issue number from the branch name: ${branch}\nrun: pecot session restore --issue <owner/repo/N>`)
+    return FAILURE_EXIT_CODE
+  }
+  const origin = primaryRemoteRepository(directory)
+  if (origin === undefined) {
+    output.error('cannot read the repository information')
+    return FAILURE_EXIT_CODE
+  }
+  return { owner: origin.owner, repository: origin.repository, number }
+}
+
+const RESTORE = defineCommand({
+  path: ['session', 'restore'],
+  description: 'Restore lost session flags (such as .pecot-active) from the branch information',
+  input: z.object({
+    issue: z.string().optional().describe('Issue reference (owner/repo/number)'),
+    directory: directorySchema,
+  }),
+  positional: [],
+  shortFlags: { issue: '-i', directory: '-D' },
+  interactive: false,
+  run: async (input, io: CommandIo) => {
+    const output = createOutput(false, io)
+    let target: RestoreTarget | number
+    if (input.issue === undefined) {
+      target = inferTarget(path.resolve(input.directory), output)
+    }
+    else {
+      try {
+        const reference = parseIssueReference(input.issue)
+        target = { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number }
+      }
+      catch (error: unknown) {
+        if (!(error instanceof ReferenceParseError)) throw error
+        output.error(error.message)
+        return USAGE_EXIT_CODE
+      }
+    }
+    if (typeof target === 'number') return target
+
+    let title: string
+    try {
+      title = await fetchIssueTitle(target.owner, target.repository, target.number, output)
+    }
+    catch (error: unknown) {
+      if (!(error instanceof ConfigError)) throw error
+      output.error(error.message)
+      return FAILURE_EXIT_CODE
+    }
+    return recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true }) ?? 0
+  },
+})
+
+export const SESSION_COMMANDS: readonly CommandDefinition[] = [STATUS, RESTORE]

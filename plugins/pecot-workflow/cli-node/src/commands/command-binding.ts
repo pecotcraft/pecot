@@ -27,8 +27,9 @@ function isRequired(schema: z.ZodType): boolean {
   return !schema.safeParse(undefined).success
 }
 
+// typer は位置引数を入力名のまま出す（大文字にしない）
 function argumentLabel(name: string): string {
-  return name.toUpperCase()
+  return name
 }
 
 function flagOf(name: string): string {
@@ -45,21 +46,15 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
 }
 
 /**
-click の Usage 行と Missing argument に出す名前。可変長は `...` を付ける
-*/
-function labelWithEllipsis(definition: Readonly<CommandDefinition>, name: string): string {
-  return isListField(definition, name) ? `${argumentLabel(name)}...` : argumentLabel(name)
-}
-
 /**
-click の Usage 行に出す書式。
-位置引数は大文字で並べる。例は `[OPTIONS] ISSUE_REF`。任意なら `[VERSION]`、必須の複数なら `NAMES...`、任意の複数なら `[FILES]...`
+Usage 行に出す書式。typer と同じく、必須の位置引数は `{issue_ref}`、任意は `[version]` にする。
+複数なら後ろに `...` を付ける。例は `{names}...` と `[files]...`
 */
 export function synopsisOf(definition: Readonly<CommandDefinition>): string {
   const names = definition.positional.map((name) => {
     const schema = fieldSchemaOf(definition, name)
-    if (schema === undefined || isRequired(schema)) return labelWithEllipsis(definition, name)
-    return isListField(definition, name) ? `[${argumentLabel(name)}]...` : `[${argumentLabel(name)}]`
+    const label = schema === undefined || isRequired(schema) ? `{${argumentLabel(name)}}` : `[${argumentLabel(name)}]`
+    return isListField(definition, name) ? `${label}...` : label
   })
   return ['[OPTIONS]', ...names].join(' ')
 }
@@ -93,6 +88,8 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
   const valueType = valueTypeOf(schema)
   const flags = `${short === undefined ? '' : `${short}, `}${long}${kind === 'boolean' ? '' : ' <value>'}`
   const option = new Option(flags)
+  // commander は --no- で始まる名前を否定形と読む。入力名が no_ で始まる真偽値は、肯定のフラグとして扱う
+  if (kind === 'boolean' && long.startsWith('--no-')) option.negate = false
   if (kind === 'list') option.argParser((value: string, previous: readonly string[] | undefined) => [...previous ?? [], value])
   return {
     field,
@@ -167,7 +164,7 @@ function positionalInput(definition: Readonly<CommandDefinition>, command: Comma
       const valueType: ValueType = schema === undefined ? { type: 'string' } : valueTypeOf(schema)
       return [[name, convertField(value, kind, valueType, argumentLabel(name), usage)]]
     }
-    if (schema !== undefined && isRequired(schema)) throw new UsageError(missingArgumentMessage(labelWithEllipsis(definition, name)), usage)
+    if (schema !== undefined && isRequired(schema)) throw new UsageError(missingArgumentMessage(argumentLabel(name)), usage)
     return []
   })
   const lastName = definition.positional.at(-1)
@@ -245,5 +242,12 @@ export async function runDefinition(
     if (error instanceof z.ZodError) throw issueToUsageError(definition, error, bound, usage)
     throw error
   }
-  return await prepared.run(io)
+  try {
+    return await prepared.run(io)
+  }
+  catch (error: unknown) {
+    // run が投げた context 無しの UsageError（BadParameter）に、このコマンドの使い方を付ける
+    if (error instanceof UsageError && error.context === undefined) throw new UsageError(error.message, usage)
+    throw error
+  }
 }
