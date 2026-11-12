@@ -76,6 +76,8 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | 非同期のマージが時間内に終わらない | `error: merge did not finish in <秒>s. Check PR #N` | 1 |
 
 - マージの方法は squash に固定する。merge queue のあるブランチでは、キューの設定に従う
+  - merge queue の無いブランチでは、非同期のマージ API に `merge_method: "squash"` を渡す。省くと merge commit になる
+  - merge queue のあるブランチでは、`merge_method` を渡さない。渡すと GitHub が拒む（research.md の R5）
 - マージの後の片付けは行わない。`pecot pr cleanup` を続けて打つ
 - hook は、MCP のツール `pr_merge` を確認にかける。`gh pr merge` と同じ扱いだ
 
@@ -96,6 +98,8 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 
 - 書き換えるのは、今の作業ディレクトリのブランチだけだ
 - base の PR がマージ済みなら、開発ブランチへ載せ直し、記録の base を開発ブランチに変える
+  - GitHub は、リモートの今のブランチを先に載せ直している。手元に push していないコミットが無ければ、手元をリモートに合わせ、push しない
+  - push していないコミットがあれば、記録した古い base の位置で `rebase --onto` する（research.md の R6）
 - push は `--force-with-lease` を使う
 - 載せ直しの後、base の位置の記録を書き直す
 

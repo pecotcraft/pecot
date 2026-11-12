@@ -3,24 +3,37 @@
 **Date**: 2026-11-12
 
 調べ方は 3 つある。公式の文書、GraphQL のスキーマの読み取り、このリポの `cli-node/` のコードだ。
-GitHub への書き込みは行っていない。書き込まないと確かめられない点は、R14 にまとめ、実装の最初の段で確かめる。
+書き込まないと確かめられない点は R14 にまとめ、2026-11-12 に検証用のリポとボードで確かめた。
+使ったのは、`pecotcraft/pecot-sandbox`・`pecotcraft/pecot-sandbox-b` と、`pecotcraft` の Project #3 だ。
+結果は R14 の表に書き、分かったことを各 R の Rationale に足した。
 
 ## R1. 前提（blocked by）の読み書き
 
-- Decision: 付けるのは GraphQL の `addBlockedBy`、外すのは REST の DELETE、読むのは GraphQL の `Issue.blockedBy` にする
+- Decision: 前提の読み書きは、すべて GraphQL で行う
+  - 付けるのは `addBlockedBy`、外すのは `removeBlockedBy`、読むのは `Issue.blockedBy` だ
 - Rationale:
   - `addBlockedBy(input: {issueId, blockingIssueId})` と `removeBlockedBy` が、スキーマにある。ID は node ID だ
-  - Epic #50 の試行で、GraphQL の解除は GitHub の側のエラーで 2 回失敗した。REST の `DELETE /repos/{owner}/{repo}/issues/{n}/dependencies/blocked_by/{issue_id}` は通った
-  - REST の `issue_id` は Issue の数値の `id`（GraphQL の `databaseId`）で、番号ではない
+  - `issueId` が待つ側、`blockingIssueId` が待たれる側だ。応答の payload は `issue` と `blockingIssue` だ
+  - Epic #50 の試行で、GraphQL の解除は GitHub の側のエラーで 2 回失敗した
+  - R14 の確かめでは、`removeBlockedBy` は同じリポの組と別のリポの組の両方で通った。Epic #50 の失敗は再現しなかった
+  - 別のリポの Issue も node ID で指せる。待つ側の `blockedBy` と、待たれる側の `blocking` の両方に返る
   - 読み取りは `blockedBy(first: 50)` で足りる。GitHub の上限が、関係の種類ごとに 50 件だからだ
 - Alternatives considered:
   - `gh issue edit --add-blocked-by` を子プロセスで呼ぶ案。CLI は `gh` を鍵の取得にしか使っておらず、HTTP の境界を増やすので採らない
-  - 解除も GraphQL にする案。失敗の記録があるので採らない。R14 で通ることを確かめられたら、後で揃えられる
+  - 解除を REST の `DELETE /repos/{owner}/{repo}/issues/{n}/dependencies/blocked_by/{issue_id}` にする案。R14 では通った（200）
+    - 採らない。パスの `issue_id` に数値の `id`（GraphQL の `databaseId`）が要り、node ID のほかに読む値が増えるからだ
+    - GraphQL の解除が GitHub の側で失敗し続けるときの退路として残す
 
 ## R2. 輪の確認
 
 - Decision: 前提を付ける前に、pecot の側で輪を確かめる
-- Rationale: GitHub が輪を拒むかどうかは、文書に無い。拒まれたときの応答も分からない。付ける先の Issue から `blockedBy` をたどり、付ける元の Issue に戻れば輪だ
+- Rationale:
+  - 付ける先の Issue から `blockedBy` をたどり、付ける元の Issue に戻れば輪だ
+  - R14 で確かめると、GitHub は 2 つの Issue の輪と、自分自身を指す組だけを拒んだ。3 つ以上の輪は通した
+  - 拒むときの応答は HTTP 200 で、`errors[].type` が `VALIDATION` だ。文の末尾は次の 2 つだった
+    - 輪: `would create a cycle where the target is already blocked by the source` を含む
+    - 自分自身: `Target issue cannot be the same as the source issue`
+  - GitHub に任せると 3 つ以上の輪が付くので、pecot の側の確認が要る
 - Alternatives considered: GitHub の応答に任せる案。輪が付いた後では、判定がすべて「ブロック中」になるので採らない
 
 ## R3. 「済んだ前提」と「PR 中」の見分け方
@@ -29,6 +42,9 @@ GitHub への書き込みは行っていない。書き込まないと確かめ�
 - Rationale:
   - pecot は、着手のたびに、Issue へリンクしたブランチを作る。ブランチ名は `<名前>/<Issue番号>` だ
   - 閉じる参照は、base が既定のブランチでない PR では作られないと文書にある。積んだ PR はこれに当たる
+  - R14 で確かめると、上の段の PR の閉じる参照は、本文に `Closes #N` があっても空だった
+    - 下の段のマージで base が既定のブランチに変わった後も、空のままだった
+    - 下の段の PR（base が既定のブランチ）では作られた
   - `pr cleanup` は、head のブランチの番号からも Issue を見つけている。同じ決まりにそろう
   - 済んだ前提は、Issue が閉じていて、その PR がマージ済みのもの。PR 中は、Issue が開いていて、その PR が開いているもの
 - Alternatives considered:
@@ -59,6 +75,27 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
   - 上の段の PR をマージすると、それより下の未マージの PR も一緒にマージされる。pecot は、最下段でない PR のマージを止める
   - base が merge queue を使うときは、スタックはキューに入る。pecot は、キューに入ったことを伝えて終わる
   - スタックの中の PR には、auto-merge が使えない
+  - R14 で確かめたことは次のとおり
+    - 今までの API（`PUT .../pulls/{n}/merge`）は、スタックの最下段でも 403 で拒んだ
+      - 文は `Merging stacked PRs via this endpoint is not supported.` で、非同期の API を案内する
+    - auto-merge の設定（`enablePullRequestAutoMerge`）は、下の段でも上の段でも `UNPROCESSABLE` で拒まれた
+      - 文は `Auto-merge is not supported for stacked pull requests.`
+      - GA の告知には「数週間かけて使えるようにする」とある。pecot は auto-merge を使わないので、影響しない
+    - `merge-async` の応答は 202 と `{status: "pending", details: {uuid, ...}}` で、`GET .../merge-async/{uuid}` を読み直す
+      - `status` は `merged`・`enqueued`・`failed` のどれかで止まる。`failed` の理由は `details.message` にある
+      - merge queue の無いブランチでは、5〜8 秒で `merged` になった
+      - merge queue のあるブランチでは、3 秒で `enqueued` になり、キューの CI の後 58 秒でマージされた
+      - `enqueued` の後のマージは、`GET .../pulls/{n}/merge` の 204 で分かる
+  - マージの方法の渡し方は、merge queue の有無で変える
+    - merge queue の無いブランチでは、`merge_method: "squash"` を渡す
+      - 省くと merge commit になり、squash だけを許すリポでは `failed` になる
+      - 文は `Merge is not an allowed merge method in this repository.`
+    - merge queue のあるブランチでは、`merge_method` と `merge_action` を渡さない。方法はキューの設定に従う
+      - `merge_method` を渡すと `failed` になる
+      - 文は `Custom merge params are not supported when merging via a merge queue`
+      - `merge_action: "direct_merge"` は、キューを必須にした規則で `failed` になる
+      - 文は `Repository rule violations found` と `Changes must be made through the merge queue`
+    - merge queue の有無は、`GET /repos/{owner}/{repo}/rules/branches/{branch}` に `merge_queue` の規則があるかで分かる
 - Alternatives considered:
   - w-merge の `gh pr merge` を残す案。スタックの中の PR で必ず落ちるので採らない
   - `gh stack merge` を子プロセスで呼ぶ案。端末でないと確認なしでスタック全体をマージするので採らない
@@ -66,9 +103,19 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 ## R6. 下の段がマージされた後と、下の段を直した後
 
 - Decision: 積み直しは、上の段の作業ディレクトリで素の git を使う。`pecot pr restack` が、記録した base の位置を使って載せ直す
+  - 下の段のマージの後は、GitHub がリモートの上の段を先に載せ直している
+  - 手元に push していないコミットが無ければ、手元をリモートの上の段に合わせる。あれば、記録した位置で載せ直す
 - Rationale:
   - 下の段がマージされると、GitHub が残りのブランチを載せ直し、次の PR の base を開発ブランチに変える。手元のブランチは変わらない
+  - R14 で確かめると、マージから 15 秒以内に、上の段の PR の base が `main` に変わった
+    - リモートの上の段のブランチは、新しいコミットへ書き換わった。親は squash のコミットで、force push と同じだ
+    - 上の段の CI は、書き換わったコミットで動き直した
+    - 下の段のブランチは、`delete_branch_on_merge` で消えた。スタックは、上の段が開いている間は `open: true` のままだった
+    - 書き換わったコミットは、`verification.verified` が false だった（署名は付かなかった）
   - 手元は `git fetch` の後、`git rebase --onto <新しい base> <記録した古い base の位置>` で載せ直せる。squash の後でも、下の段のコミットが落ちる
+    - R14 で確かめると、載せ直した後の差分は上の段の変更だけで、木はリモートの上の段と同じだった。SHA はコミットの日時で違った
+    - このまま `--force-with-lease` で push すると、GitHub が書き換えたコミットを、木の同じ別のコミットで置き換えることになる
+    - 置き換えると CI が動き直すだけで害は無いが、手元をリモートに合わせれば、その push が要らない
   - 古い base の位置は、作業ディレクトリごとの状態のファイルに記録する。着手のときと、載せ直しのたびに書く
   - 自分のブランチだけを書き換えるので、ほかの作業ディレクトリには触れない
   - push は `--force-with-lease` を使う
@@ -82,6 +129,7 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 - Rationale:
   - `pr cleanup` は、閉じる参照・本文のキーワード・head のブランチの番号から Issue を見つけ、API で閉じる
   - 閉じるキーワードが積んだ PR で働くかどうかは、公式の記述が無い。働いた実例はあるが、保証は無い
+  - R14 の確かめでは、上の段の PR をマージすると、本文の `Closes #N` の Issue が閉じた（`ClosedEvent.closer` がその PR）。閉じる参照は空のままだった
   - pecot は GitHub の自動のクローズに頼らないので、どちらでも結果は同じだ
 - Alternatives considered: GitHub の自動のクローズに任せる案。保証が無いので採らない
 
@@ -91,6 +139,10 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 - Rationale:
   - `updateProjectV2Field` の `singleSelectOptions` は、選択肢の全体を置き換える。既存の選択肢を `id` 付きで並べ直し、新しい選択肢を `id` 無しで差し込む
   - `id` を落とすと、選択肢が作り直され、カードの値が消える
+  - 選択肢の入力（`ProjectV2SingleSelectFieldOptionInput`）は、`name`・`color`・`description` が必須だ
+    - 既存の選択肢は、`options { id name color description }` で読んだ値をそのまま送る
+  - R14 で確かめると、既存の選択肢の `id` とカードの値は保たれた。選択肢は渡した順に並んだ
+    - 既定の Status の Done の `id` も変わらず、既定の自動化（Item closed・Pull request merged）は札を Done に動かした
   - 今の `project init` は、名前の同じフィールドがあると何もしない。値を足せない
   - 進行の欄には `Blocked` を、`Backlog` と `Ready` の間に差し込む。既定の Status には `Needs Attention` を末尾に足す
   - spec 023 が計画している待ちの値の追加と同じ処理だ。どちらが先に入っても、後から入るほうが使う
@@ -150,18 +202,24 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 
 ## R14. 書き込まないと確かめられない点
 
-実装の最初の段で、検証用のリポとボードを使って確かめる。結果が下の「外れたとき」に当たれば、その段で設計を直す。
+実装の最初の段（#374）で、検証用のリポとボードを使って確かめた。結果が「外れたとき」に当たれば、その段で設計を直す。
 
-| 確かめること | 見込み | 外れたとき |
-|---|---|---|
-| 既定の Status に、API で選択肢を足せる | 足せる。型は進行の欄と同じだ | `Needs Attention` の追加を、画面で足す手順の案内に変える |
-| 既定の Status に選択肢を足した後も、既定の自動化が動く | 動く。既存の `id` を保つからだ | 上と同じ |
-| 選択肢の並びが、渡した順になる | なる | `Blocked` が末尾に来る。列の並べ替えを手順に書く |
-| 別のリポの Issue を、API で blocked by に指せる | 指せる。Epic #50 で画面から通っている | 別のリポの前提を、付けられない旨のエラーにする |
-| GitHub が輪を拒むか | 分からない | R2 のとおり pecot が先に確かめるので、影響しない |
-| 積んだ PR で、閉じる参照が作られるか | 分からない | R3 のとおりリンクしたブランチで見分けるので、影響しない |
-| 下の段のマージの後、手元の載せ直しが R6 の手順で通る | 通る | 記録する位置を、GitHub が載せ直した後の位置に変える |
-| 非同期のマージ API が、merge queue のあるブランチでキューに入れる | 入れる | キューに入れる操作を別に呼ぶ |
+| 確かめること | 見込み | 外れたとき | 結果 | 確かめた日 |
+|---|---|---|---|---|
+| 既定の Status に、API で選択肢を足せる | 足せる。型は進行の欄と同じだ | `Needs Attention` の追加を、画面で足す手順の案内に変える | 見込みどおり。`updateProjectV2Field` が 200 を返し、既存の 3 つの `id` と札の値が保たれた | 2026-11-12 |
+| 既定の Status に選択肢を足した後も、既定の自動化が動く | 動く。既存の `id` を保つからだ | 上と同じ | 見込みどおり。足した後に PR をマージすると、約 10 秒で Issue と PR の札が Done になった | 2026-11-12 |
+| 選択肢の並びが、渡した順になる | なる | `Blocked` が末尾に来る。列の並べ替えを手順に書く | 見込みどおり。`Blocked` が `Backlog` と `Ready` の間に並んだ（API の `options` の順） | 2026-11-12 |
+| 別のリポの Issue を、API で blocked by に指せる | 指せる。Epic #50 で画面から通っている | 別のリポの前提を、付けられない旨のエラーにする | 見込みどおり。`addBlockedBy` が 200 を返し、`blockedBy` と `blocking` の両方に返った。`removeBlockedBy` でも外せた | 2026-11-12 |
+| GitHub が輪を拒むか | 分からない | R2 のとおり pecot が先に確かめるので、影響しない | 一部だけ拒む。2 つの輪と自分自身は `VALIDATION` で拒み、3 つの輪は通した（R2） | 2026-11-12 |
+| 積んだ PR で、閉じる参照が作られるか | 分からない | R3 のとおりリンクしたブランチで見分けるので、影響しない | 作られない。base が `main` に変わった後も空だった。閉じるキーワードはマージで働いた（R3・R7） | 2026-11-12 |
+| 下の段のマージの後、手元の載せ直しが R6 の手順で通る | 通る | 記録する位置を、GitHub が載せ直した後の位置に変える | 見込みどおり。差分は上の段の変更だけで、木はリモートの上の段と同じだった（R6） | 2026-11-12 |
+| 非同期のマージ API が、merge queue のあるブランチでキューに入れる | 入れる | `merge_action: "merge_queue"` を明示する。それでも入らなければ、GraphQL の `enqueuePullRequest` を使う | 見込みどおり。ただし `merge_method` を渡さないときだけで、渡すと `failed` になる（R5） | 2026-11-12 |
+
+検証用のリポの設定は、本体の `main` の ruleset を写した。違いは次のとおり。
+
+- code scanning（CodeQL）の規則と、bypass の Integration は写していない
+- merge queue の規則は、行 1〜7 の後に足した。行 7 までは merge queue の無いブランチで確かめた
+- 必須チェックの `ci-result` と `version-plan` は、成功するだけの job で満たした
 
 ## R15. ほかの Epic との順番
 

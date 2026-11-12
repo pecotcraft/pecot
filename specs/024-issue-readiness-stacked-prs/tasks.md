@@ -59,15 +59,15 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: research.md の R14 の表のすべての行に、結果と、確かめた日が書かれている
 
-- [ ] T001 検証用のリポとボードを用意する。組織の下にリポを 1 つ作り、squash のマージと開発ブランチの ruleset をこのリポと同じにする。Projects のボードを作り、`pecot project create` で初期化する。作る前に、利用者の同意を得る
-- [ ] T002 [P] 既定の Status に、`updateProjectV2Field` で選択肢を 1 つ足す。既存の選択肢を `id` 付きで送り、カードの値が残ることを見る。足した後に PR を 1 本マージし、既定の自動化が札を `Done` にすることを見る
-- [ ] T003 [P] 進行の欄の選択肢を、`Backlog` と `Ready` の間に 1 つ差し込む。ボードの列が、渡した順に並ぶことを見る
-- [ ] T004 [P] `addBlockedBy` で、同じリポと別のリポの Issue を前提に付ける。輪になる組を付けたときの応答を記録する。REST の DELETE と `removeBlockedBy` の両方で外し、通るほうを記録する
-- [ ] T005 [P] 2 段の PR を作り、`POST /repos/{owner}/{repo}/stacks` でスタックに登録する。上の段の PR の `closingIssuesReferences` が作られるかを記録する
-- [ ] T006 2 段のスタックの下の段を、`PUT .../pulls/{n}/merge-async` でマージする。結果の読み方と、終わるまでの時間を記録する。上の段の PR の base とブランチの位置が、マージの後にどう変わるかを記録する
-- [ ] T007 T006 の後、上の段の手元のブランチで `git rebase --onto <開発ブランチ> <記録した古い base の位置>` を打つ。差分が上の段の変更だけになることを見る
-- [ ] T008 merge queue を有効にしたブランチで、T006 と同じマージを打つ。キューに入るかを記録する
-- [ ] T009 結果を `specs/024-issue-readiness-stacked-prs/research.md` の R14 の表に書く。見込みと違った点は、R14 の「外れたとき」の設計に合わせて、該当の R と contracts を直す
+- [x] T001 検証用のリポとボードを用意する。組織の下にリポを 1 つ作り、squash のマージと開発ブランチの ruleset をこのリポと同じにする。Projects のボードを作り、`pecot project create` で初期化する。作る前に、利用者の同意を得る
+- [x] T002 [P] 既定の Status に、`updateProjectV2Field` で選択肢を 1 つ足す。既存の選択肢を `id` 付きで送り、カードの値が残ることを見る。足した後に PR を 1 本マージし、既定の自動化が札を `Done` にすることを見る
+- [x] T003 [P] 進行の欄の選択肢を、`Backlog` と `Ready` の間に 1 つ差し込む。ボードの列が、渡した順に並ぶことを見る
+- [x] T004 [P] `addBlockedBy` で、同じリポと別のリポの Issue を前提に付ける。輪になる組を付けたときの応答を記録する。REST の DELETE と `removeBlockedBy` の両方で外し、通るほうを記録する
+- [x] T005 [P] 2 段の PR を作り、`POST /repos/{owner}/{repo}/stacks` でスタックに登録する。上の段の PR の `closingIssuesReferences` が作られるかを記録する
+- [x] T006 2 段のスタックの下の段を、`PUT .../pulls/{n}/merge-async` でマージする。結果の読み方と、終わるまでの時間を記録する。上の段の PR の base とブランチの位置が、マージの後にどう変わるかを記録する
+- [x] T007 T006 の後、上の段の手元のブランチで `git rebase --onto <開発ブランチ> <記録した古い base の位置>` を打つ。差分が上の段の変更だけになることを見る
+- [x] T008 merge queue を有効にしたブランチで、T006 と同じマージを打つ。キューに入るかを記録する
+- [x] T009 結果を `specs/024-issue-readiness-stacked-prs/research.md` の R14 の表に書く。見込みと違った点は、R14 の「外れたとき」の設計に合わせて、該当の R と contracts を直す
 
 **Checkpoint**: 後ろのフェーズが、確かめた事実の上で実装できる
 
@@ -102,7 +102,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 - [ ] T014 `p-w/cli/src/domain/prerequisites.ts` を足し、T012 を通す
 - [ ] T015 [P] `p-w/cli/src/infra/github/tests/` に、前提の読み書きの失敗するテストを書く
   - 追加は GraphQL の `addBlockedBy` で、`issueId` と `blockingIssueId` に node ID を渡す
-  - 解除は、Phase 1 の T004 で通ったほうを使う。REST なら、パスの `issue_id` に Issue の数値の `id` を渡す
+  - 解除は GraphQL の `removeBlockedBy` で、追加と同じ node ID を渡す（Phase 1 の T004 で、REST とどちらも通った。research.md の R1）
   - 読み取りは `blockedBy(first: 50)` で、番号・リポ・状態・列・札・リンクしたブランチ・その PR を返す
 - [ ] T016 `p-w/cli/src/infra/github/queries.ts` と `p-w/cli/src/infra/github/issues.ts` に、前提の追加・解除・読み取りを足す。`p-w/cli/tests/fake-github/operations.ts` に行を足す
 - [ ] T017 `p-w/cli/src/infra/github/pulls.ts` に、Issue にリンクしたブランチを head に持つ PR の読み取りを足す。返すのは、番号・状態・head・base・ドラフトか・fork からかだ（research.md の R3）
@@ -326,6 +326,8 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 **Independent Test**: quickstart.md の 6 を通す。上の段の PR のマージは止まる。下の段をマージして片付けると、`Readiness changed:` が出て、上の段のブランチが残る
 
 - [ ] T073 [P] [US5] `p-w/cli/src/infra/github/tests/` に、マージの API の失敗するテストを書く。単独の PR は今までのマージの API を、スタックの中の PR は `PUT .../pulls/{n}/merge-async` を呼ぶ。結果は `GET .../merge-async/{uuid}` で、終わるまで読む
+  - merge queue の無いブランチでは `merge_method: "squash"` を渡し、あるブランチでは `merge_method` を渡さない（research.md の R5）
+  - `enqueued` と `failed` の `details.message` を、そのまま返す
 - [ ] T074 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr merge` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr merge` の表の 7 行のとおりだ。マージの方法は squash に固定する。`--dry-run` は、要求を送らない
 - [ ] T075 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr cleanup` の失敗するテストを書く
   - 片付けの後、この PR の Issue を前提にしている Issue の列と札が動く。着手の跡がある Issue は動かない
