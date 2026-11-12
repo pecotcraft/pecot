@@ -1,6 +1,6 @@
 // GitHub GraphQL API のクエリ・mutation 文字列。
-// cli/core/github/queries.py の文字列を、Python の gql が送る形（GraphQL の文書を整形し直した文）にして写している。
-// 送る文が Python と同じなら、エラーの locations の行・列も同じになる。一致は infra/github/tests/queries.test.ts が固定する。
+// 先頭の 30 個は cli/core/github/queries.py を gql が送る形で写し、一致は infra/github/tests/queries.test.ts が固定する。
+// 末尾の blocked by 関係の 4 個は Python に無く、graphql-js の print の出力の形で書く。
 
 // プロジェクトアイテム一覧取得（ページネーション対応）
 export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String) {
@@ -718,3 +718,181 @@ export const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: Str
     }
   }
 }`
+
+// 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
+export const MUTATION_ADD_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
+  addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+    issue {
+      number
+    }
+    blockingIssue {
+      number
+    }
+  }
+}`
+
+// 前提（blocked by）を外す
+export const MUTATION_REMOVE_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
+  removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+    issue {
+      number
+    }
+    blockingIssue {
+      number
+    }
+  }
+}`
+
+const PULL_REQUEST_FIELDS = `fragment PullRequestFields on PullRequest {
+  number
+  state
+  headRefName
+  baseRefName
+  isDraft
+  isCrossRepository
+  repository {
+    owner {
+      login
+    }
+    name
+  }
+}`
+
+const PREREQUISITE_ISSUE_FIELDS = `fragment PrerequisiteIssueFields on Issue {
+  id
+  number
+  state
+  title
+  repository {
+    owner {
+      login
+    }
+    name
+  }
+  issueType {
+    name
+  }
+  subIssues(first: 1) {
+    totalCount
+  }
+  projectItems(first: 20, includeArchived: false) {
+    totalCount
+    nodes {
+      project {
+        id
+      }
+      column: fieldValueByName(name: $columnFieldName) {
+        ...SingleSelectValueFields
+      }
+      label: fieldValueByName(name: $labelFieldName) {
+        ...SingleSelectValueFields
+      }
+    }
+  }
+  linkedBranches(first: 10) {
+    totalCount
+    nodes {
+      ref {
+        name
+        associatedPullRequests(first: 10) {
+          totalCount
+          nodes {
+            ...PullRequestFields
+          }
+        }
+      }
+    }
+  }
+  closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+    totalCount
+    nodes {
+      ...PullRequestFields
+    }
+  }
+  timelineItems(
+    itemTypes: [CONNECTED_EVENT, DISCONNECTED_EVENT, CROSS_REFERENCED_EVENT]
+    first: 20
+  ) {
+    totalCount
+    nodes {
+      __typename
+      ... on ConnectedEvent {
+        subject {
+          ... on PullRequest {
+            ...PullRequestFields
+          }
+        }
+      }
+      ... on DisconnectedEvent {
+        subject {
+          ... on PullRequest {
+            ...PullRequestFields
+          }
+        }
+      }
+      ... on CrossReferencedEvent {
+        willCloseTarget
+        source {
+          ... on PullRequest {
+            ...PullRequestFields
+          }
+        }
+      }
+    }
+  }
+}`
+
+const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV2ItemFieldValue {
+  ... on ProjectV2ItemFieldSingleSelectValue {
+    name
+    optionId
+    field {
+      ... on ProjectV2SingleSelectField {
+        id
+      }
+    }
+  }
+}`
+
+// Issue と、その前提（blockedBy）を 1 回で読む。PR は 3 つの読み口から集める
+export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $columnFieldName: String!, $labelFieldName: String!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      ...PrerequisiteIssueFields
+      body
+      blockedBy(first: 50) {
+        totalCount
+        nodes {
+          ...PrerequisiteIssueFields
+        }
+      }
+    }
+  }
+}
+
+${PREREQUISITE_ISSUE_FIELDS}
+
+${SINGLE_SELECT_VALUE_FIELDS}
+
+${PULL_REQUEST_FIELDS}`
+
+// head のブランチ名で PR を引く（open・closed・merged。新しい順）
+export const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: String!, $headRefName: String!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(
+      headRefName: $headRefName
+      states: [OPEN, CLOSED, MERGED]
+      first: 20
+      orderBy: { field: CREATED_AT, direction: DESC }
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      nodes {
+        ...PullRequestFields
+      }
+    }
+  }
+}
+
+${PULL_REQUEST_FIELDS}`

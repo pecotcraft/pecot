@@ -872,6 +872,48 @@ const GRAPHQL_FAILURES: readonly GraphqlFailureCase[] = [
   { name: 'errors が数', respond: { status: 200, text: '{"errors":5}' }, expected: { error: GitHubAPIError, message: 'GraphQL query error: 5' } },
 ]
 
+function isUserPath(path: readonly JsonValue[]): boolean {
+  return path[0] === 'user'
+}
+
+async function runTolerating(body: unknown): ReturnType<GitHubClientBase['executeGraphqlTolerating']> {
+  await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body })])
+  return new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphqlTolerating(QUERY_GET_USER_NODE_ID, { login: 'x' }, isUserPath)
+}
+
+describe('executeGraphqlTolerating', () => {
+  beforeEach(() => {
+    useProject()
+    useFakeGh()
+  })
+
+  it('すべての errors が許す道筋なら、data と errors を返す', async () => {
+    const errors = [{ message: 'a', path: ['user', 'id'] }, { message: 'b', path: ['user', 'x', 0] }]
+    expect(await runTolerating({ data: { user: JSON_NULL }, errors })).toEqual({ data: { user: JSON_NULL }, errors })
+  })
+
+  it('errors が無ければ、errors は空', async () => {
+    expect(await runTolerating({ data: { user: { id: 'U' } } })).toEqual({ data: { user: { id: 'U' } }, errors: [] })
+  })
+
+  it('許さない道筋の errors が 1 つでもあれば、executeGraphql と同じ例外', async () => {
+    const errors = [{ message: 'a', path: ['user', 'id'] }, { message: 'b', path: ['organization'] }]
+    await expect(runTolerating({ data: { user: JSON_NULL }, errors })).rejects.toBeInstanceOf(GitHubAPIError)
+  })
+
+  it.each([
+    ['path が無い', [{ message: 'a' }]],
+    ['path が配列でない', [{ message: 'a', path: 'user' }]],
+    ['errors の要素が辞書でない', ['a']],
+  ])('%s errors は例外', async (_name, errors) => {
+    await expect(runTolerating({ data: { user: JSON_NULL }, errors })).rejects.toBeInstanceOf(GitHubAPIError)
+  })
+
+  it('data が無ければ、許す道筋の errors でも例外', async () => {
+    await expect(runTolerating({ errors: [{ message: 'a', path: ['user'] }] })).rejects.toBeInstanceOf(GitHubAPIError)
+  })
+})
+
 describe('executeGraphql', () => {
   beforeEach(() => {
     // 401 を含む失敗が gh に切り替えようとしても、devcontainer の実際の gh を拾わない

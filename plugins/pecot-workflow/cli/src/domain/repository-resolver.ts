@@ -59,6 +59,10 @@ export function repositoryFullName(reference: RepositoryReference): string {
   return `${reference.owner}/${reference.repository}`
 }
 
+export function isSameRepository(left: RepositoryReference, right: RepositoryReference): boolean {
+  return repositoryFullName(left).toLowerCase() === repositoryFullName(right).toLowerCase()
+}
+
 /**
 `/` で分けてちょうど 2 つなら owner と repository を返し、違えば undefined。
 中身は検証しない（`a/` や `/b` も通る）。検証は parseOwnerRepository の側
