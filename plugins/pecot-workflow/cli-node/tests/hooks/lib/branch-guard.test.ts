@@ -10,11 +10,11 @@ import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 
 function runIsFeatureBranch(hookCase: HookCase, repositoryDirectory: string): RunResult {
-  return run(hookCase, 'bash', ['-c', 'source "$1/branch-guard.sh" && is_feature_branch "$2"', '_', coreDirectory, repositoryDirectory])
+  return runShell(hookCase, 'source "$1/branch-guard.sh" && is_feature_branch "$2"', [coreDirectory, repositoryDirectory])
 }
 
 // -B は対象ブランチが既存でも作成（リセット）して checkout する。

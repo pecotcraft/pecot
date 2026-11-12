@@ -12,7 +12,7 @@ import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import type { MockBin } from '../_helpers/mock-bin.js'
 import { hooksDirectory } from '../_helpers/paths.js'
-import { run, runPostScript, runScript } from '../_helpers/run.js'
+import { run, runPostScript, runScript, runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps, splitLines } from '../_helpers/text.js'
 
@@ -34,7 +34,7 @@ function commitSuccessJson(branch = DEFAULT_BRANCH_NAME): string {
 
 // 実 git の絶対パスを返す。mock-bin を PATH へ足す前に呼ぶ。
 function resolveRealGit(hookCase: HookCase): string {
-  const found = run(hookCase, 'sh', ['-c', 'command -v git']).stdout.trim()
+  const found = runShell(hookCase, 'command -v git').stdout.trim()
   return found === '' ? 'git' : found
 }
 

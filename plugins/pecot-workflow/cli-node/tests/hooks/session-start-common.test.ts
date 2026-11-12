@@ -13,7 +13,7 @@ import type { HookCase } from './_helpers/environment.js'
 import { isFile } from './_helpers/files.js'
 import { pathWithoutCommand } from './_helpers/mock-bin.js'
 import { hooksDirectory } from './_helpers/paths.js'
-import { run } from './_helpers/run.js'
+import { run, runShell, shellFile } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
 import { splitLines } from './_helpers/text.js'
 
@@ -49,7 +49,7 @@ interface Holder {
 }
 
 function holdLock(hookCase: HookCase, lockFile: string, readyFile: string): Holder {
-  const child = spawn('bash', ['-c', 'exec 9>"$1" && flock -n 9 && touch "$2" && sleep 5', '_', lockFile, readyFile], {
+  const child = spawn('bash', [shellFile(hookCase, 'exec 9>"$1" && flock -n 9 && touch "$2" && sleep 5'), lockFile, readyFile], {
     env: hookCase.composeEnv(),
     cwd: hookCase.temporaryPath,
     stdio: 'ignore',
@@ -123,7 +123,7 @@ describe('session-start-common.sh', () => {
     mkdirSync(lockDirectory, { recursive: true })
     const lockFile = path.join(lockDirectory, '.session-start-common.lock')
 
-    const result = run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9 && echo ok', '_', lockFile])
+    const result = runShell(hookCase, 'exec 9>"$1" && flock -n 9 && echo ok', [lockFile])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout.trim()).toBe('ok')
@@ -139,7 +139,7 @@ describe('session-start-common.sh', () => {
     const holder = holdLock(hookCase, lockFile, readyFile)
     try {
       await waitUntilReady(readyFile, holder)
-      const result = run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9', '_', lockFile])
+      const result = runShell(hookCase, 'exec 9>"$1" && flock -n 9', [lockFile])
       expect(result.exitCode).not.toBe(0)
     }
     finally {
@@ -154,8 +154,8 @@ describe('session-start-common.sh', () => {
     const lockFile = path.join(lockDirectory, '.session-start-common.lock')
 
     // 取得したサブシェルが終われば、ロックは自動で解放される
-    run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9', '_', lockFile])
-    const result = run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9 && echo ok', '_', lockFile])
+    runShell(hookCase, 'exec 9>"$1" && flock -n 9', [lockFile])
+    const result = runShell(hookCase, 'exec 9>"$1" && flock -n 9 && echo ok', [lockFile])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout.trim()).toBe('ok')

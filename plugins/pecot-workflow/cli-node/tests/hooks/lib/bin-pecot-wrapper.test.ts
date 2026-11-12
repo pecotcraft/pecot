@@ -14,7 +14,7 @@ import { createHookCase } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
 import { mockBin, pathWithoutCommand } from '../_helpers/mock-bin.js'
 import { pluginRoot as realPluginRoot } from '../_helpers/paths.js'
-import { run, runAsync } from '../_helpers/run.js'
+import { run, runAsync, runShell, shellFile } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 import { compareStrings } from '../../parity/baseline.js'
@@ -238,7 +238,7 @@ async function holdSharedLock(hookCase: HookCase, file: string): Promise<SharedL
   const ready = `${file}.ready`
   const releaseFlag = `${file}.release`
   const script = 'touch "$1"; i=0; while [ ! -e "$2" ] && [ "$i" -lt 600 ]; do sleep 0.1; i=$((i+1)); done'
-  const holder = runAsync(hookCase, 'flock', ['-s', file, 'sh', '-c', script, '_', ready, releaseFlag])
+  const holder = runAsync(hookCase, 'flock', ['-s', file, 'sh', shellFile(hookCase, script), ready, releaseFlag])
   const state = { hasExited: false }
   const markExited = (): void => {
     state.hasExited = true
@@ -265,7 +265,7 @@ function removeFlockFromPath(hookCase: HookCase): void {
 }
 
 function commandPath(hookCase: HookCase, name: string): string {
-  return run(hookCase, 'sh', ['-c', 'command -v "$1"', '_', name]).stdout.trim()
+  return run(hookCase, 'sh', [shellFile(hookCase, 'command -v "$1"'), name]).stdout.trim()
 }
 
 describe('bin/pecot wrapper', () => {
@@ -882,7 +882,7 @@ describe('bin/pecot wrapper', () => {
       const stale = path.join(dataDirectory, 'venv', '.lock.pid')
       mkdirSync(path.dirname(stale), { recursive: true })
       // 終わったシェルの PID を、死んだ持ち主として書く
-      const deadPid = run(hookCase, 'sh', ['-c', 'echo $$']).stdout.trim()
+      const deadPid = runShell(hookCase, 'echo $$').stdout.trim()
       writeFileSync(stale, `${deadPid}\n`)
       const result = go(hookCase, wrapper, dataDirectory)
       expect(result.exitCode).toBe(0)

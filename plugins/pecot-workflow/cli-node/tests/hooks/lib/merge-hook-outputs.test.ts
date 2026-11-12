@@ -10,7 +10,7 @@ import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { toRecord } from '../_helpers/json.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps, parseJson } from '../_helpers/text.js'
 
@@ -52,7 +52,7 @@ function makeRawScript(scriptsDirectory: string, name: string, body: string): st
 }
 
 function runMerge(hookCase: HookCase, scripts: readonly string[], stdin = '{}'): RunResult {
-  return run(hookCase, 'bash', ['-c', LOAD_THEN_MERGE, '_', path.join(coreDirectory, 'hook-input.sh'), stdin, MERGE_SCRIPT, ...scripts], { stdin })
+  return runShell(hookCase, LOAD_THEN_MERGE, [path.join(coreDirectory, 'hook-input.sh'), stdin, MERGE_SCRIPT, ...scripts], { stdin })
 }
 
 function contextScript(scriptsDirectory: string, text = 'hello'): string {

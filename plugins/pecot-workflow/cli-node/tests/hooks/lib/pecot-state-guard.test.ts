@@ -11,7 +11,7 @@ import { claudeProjectDirectory, createHookCase } from '../_helpers/environment.
 import type { HookCase } from '../_helpers/environment.js'
 import { isFile } from '../_helpers/files.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 
@@ -20,7 +20,7 @@ const GUARD_SCRIPT = path.join(coreDirectory, 'pecot-state-guard.sh')
 // source guard && pecot_state_dir_ensure <dir> を実行する。shouldUnsetProjectDirectory のとき CLAUDE_PROJECT_DIR を unset してから呼ぶ。
 function runEnsure(hookCase: HookCase, targetDirectory: string, shouldUnsetProjectDirectory = false): RunResult {
   const prefix = shouldUnsetProjectDirectory ? 'unset CLAUDE_PROJECT_DIR; ' : ''
-  return run(hookCase, 'bash', ['-c', `${prefix}source "$1"; pecot_state_dir_ensure "$2"`, '_', GUARD_SCRIPT, targetDirectory])
+  return runShell(hookCase, `${prefix}source "$1"; pecot_state_dir_ensure "$2"`, [GUARD_SCRIPT, targetDirectory])
 }
 
 function isDirectory(target: string): boolean {

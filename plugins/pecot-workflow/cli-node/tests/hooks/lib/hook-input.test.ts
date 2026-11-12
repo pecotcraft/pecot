@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
 
 const HOOK_INPUT = path.join(coreDirectory, 'hook-input.sh')
@@ -36,7 +36,7 @@ const DUMP_TWICE = `source "$1" && pecot_hook_input_load "$2" && pecot_hook_inpu
 // 読み込んだ後の PECOT_HOOK_* の値を、変数名から引ける形で返す。
 function load(hookCase: HookCase, ...payloads: readonly string[]): ReadonlyMap<string, string> {
   const script = payloads.length === 1 ? DUMP : DUMP_TWICE
-  const out = run(hookCase, 'bash', ['-c', script, '_', HOOK_INPUT, ...payloads])
+  const out = runShell(hookCase, script, [HOOK_INPUT, ...payloads])
   expect(out).toMatchObject({ exitCode: 0 })
   const values = out.stdout.split('\0').slice(0, -1)
   expect(values).toHaveLength(VARIABLES.length)
@@ -166,7 +166,7 @@ describe('hook-input.sh', () => {
       const hookCase = createHookCase()
       // json.dumps(…, ensure_ascii=False) と同じバイト列にする（区切りは ", " と ": "、非 ASCII はそのまま）
       const payload = `{"tool_input": {"command": ${JSON.stringify(row.command)}}}`
-      const out = run(hookCase, 'bash', ['-c', SIZE_IN_SHELL, '_', HOOK_INPUT, payload])
+      const out = runShell(hookCase, SIZE_IN_SHELL, [HOOK_INPUT, payload])
       expect(out).toMatchObject({ exitCode: 0 })
       expect(out.stdout).toBe(`${String(row.chars)}|${row.oversize}|${String(row.childLength)}`)
     })

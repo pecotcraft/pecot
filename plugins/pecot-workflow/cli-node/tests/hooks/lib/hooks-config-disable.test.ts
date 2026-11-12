@@ -10,7 +10,7 @@ import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase, HooksConfig } from '../_helpers/environment.js'
 import { gitRepository } from '../_helpers/git.js'
 import { adapterDirectory, coreDirectory, hooksDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { run, runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
 
@@ -39,9 +39,9 @@ const SOURCE_POST_MATCH = [
 function runWithFront(hookCase: HookCase, script: string, stdin: string, cwd?: string): RunResult {
   const parent = path.dirname(script)
   const where = cwd === undefined ? {} : { cwd }
-  if (path.basename(parent) === 'post-tool-use') return run(hookCase, 'bash', ['-c', SOURCE_POST_MATCH, '_', script, stdin], where)
+  if (path.basename(parent) === 'post-tool-use') return runShell(hookCase, SOURCE_POST_MATCH, [script, stdin], where)
   if (path.basename(parent) === 'lib' || path.basename(path.dirname(parent)) === 'lib') {
-    return run(hookCase, 'bash', ['-c', SOURCE_HOOK_INPUT, '_', script, stdin], where)
+    return runShell(hookCase, SOURCE_HOOK_INPUT, [script, stdin], where)
   }
   return run(hookCase, 'bash', [script], { stdin, ...where })
 }

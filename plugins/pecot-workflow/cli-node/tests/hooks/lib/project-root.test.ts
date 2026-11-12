@@ -11,7 +11,7 @@ import { createHookCase } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
 import { gitOrThrow, gitRepository, workLayout } from '../_helpers/git.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
 
 const UNSET = '<unset>'
@@ -27,7 +27,7 @@ interface ResolveOptions {
 // project-root.sh を source した後の CLAUDE_PROJECT_DIR を返す（未設定は UNSET）。
 function resolve(hookCase: HookCase, payload: unknown, options: ResolveOptions): string {
   const inputJson = payload === undefined ? '' : jsonDumps(payload)
-  const result = run(hookCase, 'bash', ['-c', 'source "$1" "$2"; printf "%s" "${CLAUDE_PROJECT_DIR-$3}"', 'bash', PROJECT_ROOT_SH, inputJson, UNSET], {
+  const result = runShell(hookCase, 'source "$1" "$2"; printf "%s" "${CLAUDE_PROJECT_DIR-$3}"', [PROJECT_ROOT_SH, inputJson, UNSET], {
     cwd: options.cwd,
     env: { CLAUDE_PROJECT_DIR: options.projectDirectory, ...options.extraEnvironment },
   })
@@ -241,10 +241,7 @@ describe('project-root.sh の元の値の退避', () => {
     const hookCase = createHookCase()
     const origin = gitRepository(hookCase, 'origin-repo')
     const other = gitRepository(hookCase, 'other-repo')
-    const result = run(hookCase, 'bash', [
-      '-c',
-      'source "$1" "$2"; printf "%s|%s" "$CLAUDE_PROJECT_DIR" "$PECOT_ORIGINAL_CLAUDE_PROJECT_DIR"',
-      'bash',
+    const result = runShell(hookCase, 'source "$1" "$2"; printf "%s|%s" "$CLAUDE_PROJECT_DIR" "$PECOT_ORIGINAL_CLAUDE_PROJECT_DIR"', [
       PROJECT_ROOT_SH,
       jsonDumps({ cwd: other }),
     ], { cwd: other, env: { CLAUDE_PROJECT_DIR: origin } })

@@ -75,6 +75,17 @@ export function createHookCase(): HookCase {
   }
 }
 
+const scratchDirectories = new WeakMap<HookCase, string>()
+
+// テストが中身を見ない一時ディレクトリ。ケースの temporaryPath を汚さないために分ける。
+export function scratchDirectory(hookCase: HookCase): string {
+  const existing = scratchDirectories.get(hookCase)
+  if (existing !== undefined) return existing
+  const directory = makeTemporaryDirectory('pecot-hooks-scratch-')
+  scratchDirectories.set(hookCase, directory)
+  return directory
+}
+
 // CLAUDE_PROJECT_DIR を tmp/project に向け、project/.pecot を作る。
 export function claudeProjectDirectory(hookCase: HookCase): string {
   const project = path.join(hookCase.temporaryPath, 'project')

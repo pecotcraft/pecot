@@ -1,9 +1,12 @@
 // shell の起動。同期は spawnSync、並行に起動するケースは runAsync を使う。タイムアウトは 25 秒で、超えたら throw する。
 // stdout・stderr は Node の復号のまま返し、改行（\r\n）は直さない。
 import { spawn, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
 import { constants } from 'node:os'
 import path from 'node:path'
 
+import { scratchDirectory } from './environment.js'
 import type { EnvironmentOverrides, HookCase } from './environment.js'
 import { adapterDirectory, hooksDirectory } from './paths.js'
 import { jsonDumps } from './text.js'
@@ -93,6 +96,20 @@ export function runScript(hookCase: HookCase, script: string, argv: readonly str
   return run(hookCase, 'bash', [script, ...argv], options)
 }
 
+// 手順を一時ファイルに書き、そのパスを返す。bash -c に値を渡す形を避けるために使う。
+export function shellFile(hookCase: HookCase, snippet: string): string {
+  const name = createHash('sha256').update(snippet).digest('hex').slice(0, 16)
+  const file = path.join(scratchDirectory(hookCase), `${name}.sh`)
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- ケースの一時ディレクトリ配下
+  writeFileSync(file, `${snippet}\n`)
+  return file
+}
+
+// 手順を bash で起動する。argv は $1 から並ぶ。
+export function runShell(hookCase: HookCase, snippet: string, argv: readonly string[] = [], options: RunOptions = {}): RunResult {
+  return runScript(hookCase, shellFile(hookCase, snippet), argv, options)
+}
+
 // hooks/ 直下のエントリを JSON 入力で起動する。
 export function runHookEntry(hookCase: HookCase, entry: string, payload: unknown, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   return runScript(hookCase, path.join(hooksDirectory, entry), [], { ...options, stdin: jsonDumps(payload) })
@@ -116,10 +133,10 @@ const SOURCE_POST_MATCH_THEN_EXEC = [
 
 // サブスクリプトを hook-input.sh を source してから起動する。JSON は argv で渡す。
 export function runHookScript(hookCase: HookCase, script: string, json: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
-  return run(hookCase, 'bash', ['-c', SOURCE_HOOK_INPUT_THEN_EXEC, '_', script, json], options)
+  return runShell(hookCase, SOURCE_HOOK_INPUT_THEN_EXEC, [script, json], options)
 }
 
 // PostToolUse(Bash) のサブスクリプトを、エントリと同じ前段で起動する。JSON は argv で渡す。
 export function runPostScript(hookCase: HookCase, script: string, json: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
-  return run(hookCase, 'bash', ['-c', SOURCE_POST_MATCH_THEN_EXEC, '_', script, json], options)
+  return runShell(hookCase, SOURCE_POST_MATCH_THEN_EXEC, [script, json], options)
 }

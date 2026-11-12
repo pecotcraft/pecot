@@ -10,7 +10,7 @@ import { claudeProjectDirectory, createHookCase, hooksConfig } from '../_helpers
 import type { HookCase } from '../_helpers/environment.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import { coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 
@@ -28,13 +28,13 @@ done
 // jq を呼び出しの記録つきのシムに差し替え、記録のパスを返す。
 function installJqCalls(hookCase: HookCase): string {
   const log = path.join(hookCase.temporaryPath, 'jq-calls.log')
-  const realJq = run(hookCase, 'sh', ['-c', 'command -v jq']).stdout.trim()
+  const realJq = runShell(hookCase, 'command -v jq').stdout.trim()
   mockBin(hookCase).install('jq', `echo x >> "${log}"\nexec "${realJq}" "$@"\n`)
   return log
 }
 
 function runDispatcher(hookCase: HookCase, ...keys: readonly string[]): RunResult {
-  return run(hookCase, 'bash', ['-c', SCRIPT, '_', DISPATCHER, ...keys])
+  return runShell(hookCase, SCRIPT, [DISPATCHER, ...keys])
 }
 
 function countCalls(log: string): number {

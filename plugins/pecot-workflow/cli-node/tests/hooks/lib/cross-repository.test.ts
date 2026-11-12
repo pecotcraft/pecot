@@ -11,7 +11,7 @@ import type { HookCase, HooksConfig } from '../_helpers/environment.js'
 import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import { hooksDirectory } from '../_helpers/paths.js'
-import { run, runPostScript } from '../_helpers/run.js'
+import { runPostScript, runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
 
@@ -93,7 +93,7 @@ interface CrossRepositoryEnvironment {
 // auto-push は pecot 管理のリポジトリでだけ動き、pecot_state_dir_ensure が .pecot の存在を要求するため、.pecot も作る。
 function setUpCrossRepository(hookCase: HookCase): CrossRepositoryEnvironment {
   const bin = mockBin(hookCase)
-  const realGit = run(hookCase, 'sh', ['-c', 'command -v git']).stdout.trim() || 'git'
+  const realGit = runShell(hookCase, 'command -v git').stdout.trim() || 'git'
   const pushLog = path.join(hookCase.temporaryPath, 'mock-git-push.log')
   const config = hooksConfig(hookCase)
   config.write({ 'auto-push': true })

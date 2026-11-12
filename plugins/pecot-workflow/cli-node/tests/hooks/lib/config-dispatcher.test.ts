@@ -9,14 +9,14 @@ import { describe, expect, it } from 'vitest'
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { adapterDirectory, coreDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { run, runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 
 const DISPATCHER = path.join(coreDirectory, 'config-dispatcher.sh')
 
 // source dispatcher && pecot_hook_enabled test-hook <default> を実行する。
 function hookEnabled(hookCase: HookCase, defaultValue: string): RunResult {
-  return run(hookCase, 'bash', ['-c', 'source "$1"; pecot_hook_enabled "$2" "$3"', '_', DISPATCHER, 'test-hook', defaultValue])
+  return runShell(hookCase, 'source "$1"; pecot_hook_enabled "$2" "$3"', [DISPATCHER, 'test-hook', defaultValue])
 }
 
 describe('pecot_hook_enabled', () => {
@@ -136,10 +136,7 @@ describe('hooks-config.json によるスクリプトの無効化', () => {
     writeFileSync(config, '{"claude-adapter": false}')
     const project = path.join(hookCase.temporaryPath, 'adapter-project')
     mkdirSync(project, { recursive: true })
-    const result = run(hookCase, 'bash', [
-      '-c',
-      'source "$1"; echo \'{"tool_input":{"command":"gh pr create"}}\' | run_claude_guard "$2"',
-      '_',
+    const result = runShell(hookCase, 'source "$1"; echo \'{"tool_input":{"command":"gh pr create"}}\' | run_claude_guard "$2"', [
       path.join(adapterDirectory, 'claude-adapter.sh'),
       path.join(coreDirectory, 'gh-command-check.sh'),
     ], { env: { PECOT_HOOKS_CONFIG_PATH: config, CLAUDE_PROJECT_DIR: project } })

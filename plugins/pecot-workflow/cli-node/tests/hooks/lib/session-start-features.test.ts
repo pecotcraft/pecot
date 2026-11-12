@@ -12,7 +12,7 @@ import { gitRepository, installGitCallLog } from '../_helpers/git.js'
 import type { GitCallLog } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import { hooksDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { run, runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { containing, jsonDumps, parseJson } from '../_helpers/text.js'
 
@@ -443,7 +443,7 @@ describe('session-start のロジックスクリプト', () => {
       const environmentFile = makeEnvironmentFile(hookCase)
       const project = gitRepository(hookCase, 'my proj')
       runSessionProjectDirectory(hookCase, environmentFile, project)
-      const out = run(hookCase, 'bash', ['-c', 'source "$1"; printf %s "$PECOT_SESSION_PROJECT_DIR"', 'bash', environmentFile])
+      const out = runShell(hookCase, 'source "$1"; printf %s "$PECOT_SESSION_PROJECT_DIR"', [environmentFile])
       expect(out.exitCode).toBe(0)
       expect(out.stdout).toBe(realpathSync(project))
     })

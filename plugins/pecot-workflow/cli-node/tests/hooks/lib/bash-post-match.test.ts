@@ -10,7 +10,7 @@ import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitRepository } from '../_helpers/git.js'
 import { hooksDirectory } from '../_helpers/paths.js'
-import { run } from '../_helpers/run.js'
+import { runShell } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
 
 const SOURCE_AND_DUMP = [
@@ -70,7 +70,7 @@ function splitFirst(text: string, separator: string, count: number): string[] {
 }
 
 function match(hookCase: HookCase, payload: string, cwd: string): Matched {
-  const out = run(hookCase, 'bash', ['-c', SOURCE_AND_DUMP, '_', libraryDirectory, payload], { cwd })
+  const out = runShell(hookCase, SOURCE_AND_DUMP, [libraryDirectory, payload], { cwd })
   expect(out.exitCode).toBe(0)
   const [commit = '', matched = '', repositoryDirectory = '', project = '', rest = ''] = splitFirst(out.stdout, '\0', 4)
   // 判定結果を "commit" と "" にまとめる（MATCHED は COMMIT と一致する）。
@@ -179,7 +179,7 @@ describe('bash-post-match.sh', () => {
       'source "$1/core/project-root.sh" "$2" && source "$1/post-tool-use/bash-post-match.sh" "$2" && ',
       'printf "%s|%s" "$1" "$#"',
     ].join('')
-    const out = run(hookCase, 'bash', ['-c', script, '_', libraryDirectory, payloadOf('git commit -m x', COMMIT_OUT, { cwd: repository })], { cwd: repository })
+    const out = runShell(hookCase, script, [libraryDirectory, payloadOf('git commit -m x', COMMIT_OUT, { cwd: repository })], { cwd: repository })
     expect(out.stdout).toBe(`${libraryDirectory}|2`)
   })
 })
