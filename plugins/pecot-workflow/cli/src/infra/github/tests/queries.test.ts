@@ -17,6 +17,12 @@ function pascalCase(constantName: string): string {
 
 const exported = new Map(Object.entries(queries))
 
+describe('export', () => {
+  it('定数の数を固定する（足したら、operation 対応表とこの数を合わせる）', () => {
+    expect(exported.size).toBe(34)
+  })
+})
+
 describe('queries.json との一致', () => {
   const recorded = queriesOutput()
 
@@ -31,6 +37,16 @@ describe('queries.json との一致', () => {
 
   it.each([...exported])('%s は print(parse(text)) で変わらない', (_name, text) => {
     expect(print(parse(text))).toBe(text)
+  })
+})
+
+function namesOf(text: string, pattern: Readonly<RegExp>): ReadonlySet<string> {
+  return new Set(Array.from(text.matchAll(pattern), match => match[1] ?? ''))
+}
+
+describe('fragment', () => {
+  it.each([...exported].filter(([, text]) => text.includes('fragment ')))('%s は、参照する fragment をすべて定義し、使わない定義を持たない', (_name, text) => {
+    expect(namesOf(text, /\.\.\.(?!\s*on\b)(\w+)/gu)).toEqual(namesOf(text, /^fragment (\w+) on /gmu))
   })
 })
 

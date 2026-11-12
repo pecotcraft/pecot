@@ -68,7 +68,7 @@ export interface IssueReadout {
   */
   readonly closingPullRequests: readonly PullRequestReadout[]
   /**
-  timelineItems の ConnectedEvent・CrossReferencedEvent の PR
+  timelineItems の PR。ConnectedEvent のうち後で外されていないものと、CrossReferencedEvent のうち閉じる参照か、head が `/<Issue 番号>` で終わるもの
   */
   readonly timelinePullRequests: readonly PullRequestReadout[]
 }
@@ -78,7 +78,8 @@ export interface TargetIssueReadout extends IssueReadout {
 }
 
 /**
-blockedBy の読み取り結果。null の node があるか、件数が totalCount に足りないときは read-failed
+blockedBy の読み取り結果。読めない部分があるときは read-failed。
+読めない部分とは、blockedBy の null の node・エラー・件数不足と、対象と前提の Issue の connection の取りこぼし
 */
 export type BlockedByReadout
   = | { readonly kind: 'ok', readonly issues: readonly IssueReadout[] }
@@ -87,4 +88,29 @@ export type BlockedByReadout
 export interface IssuePrerequisitesReadout {
   readonly issue: TargetIssueReadout
   readonly blockedBy: BlockedByReadout
+}
+
+/**
+ボードのフィールド名。getIssuePrerequisites が値を取る 2 つ
+*/
+export interface PrerequisiteFieldNames {
+  /**
+  進行の欄のフィールド名
+  */
+  readonly columnFieldName: string
+  /**
+  札のフィールド名
+  */
+  readonly labelFieldName: string
+}
+
+/**
+head のブランチ名で引いた PR。新しい順
+*/
+export interface PullRequestsByHeadReadout {
+  readonly pullRequests: readonly PullRequestReadout[]
+  /**
+  先頭の件数に収まらず、続きがあるか
+  */
+  readonly hasNextPage: boolean
 }

@@ -309,20 +309,28 @@ describe('listPullRequestsByHead', () => {
   it('open・closed・merged の PR を、リポ・番号・状態・head・base・ドラフト・fork かで返す', async () => {
     const { client, server } = await startClient([
       graphqlData('ListPullRequestsByHead', {
-        repository: { pullRequests: { nodes: [node(5, 'MERGED'), node(6, 'OPEN', { isDraft: true, baseRefName: 'feat/issue-8' }), node(7, 'CLOSED', { isCrossRepository: true })] } },
+        repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes: [node(5, 'MERGED'), node(6, 'OPEN', { isDraft: true, baseRefName: 'feat/issue-8' }), node(7, 'CLOSED', { isCrossRepository: true })] } },
       }),
     ])
-    expect(await client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9')).toEqual([
-      { repository: { owner: 'owner', repository: 'repo' }, number: 5, state: 'MERGED', headRefName: 'feat/issue-9', baseRefName: 'main', isDraft: false, isCrossRepository: false },
-      { repository: { owner: 'owner', repository: 'repo' }, number: 6, state: 'OPEN', headRefName: 'feat/issue-9', baseRefName: 'feat/issue-8', isDraft: true, isCrossRepository: false },
-      { repository: { owner: 'owner', repository: 'repo' }, number: 7, state: 'CLOSED', headRefName: 'feat/issue-9', baseRefName: 'main', isDraft: false, isCrossRepository: true },
-    ])
+    expect(await client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9')).toEqual({
+      pullRequests: [
+        { repository: { owner: 'owner', repository: 'repo' }, number: 5, state: 'MERGED', headRefName: 'feat/issue-9', baseRefName: 'main', isDraft: false, isCrossRepository: false },
+        { repository: { owner: 'owner', repository: 'repo' }, number: 6, state: 'OPEN', headRefName: 'feat/issue-9', baseRefName: 'feat/issue-8', isDraft: true, isCrossRepository: false },
+        { repository: { owner: 'owner', repository: 'repo' }, number: 7, state: 'CLOSED', headRefName: 'feat/issue-9', baseRefName: 'main', isDraft: false, isCrossRepository: true },
+      ],
+      hasNextPage: false,
+    })
     expect(graphqlRequests(server)).toEqual([{ operation: 'ListPullRequestsByHead', variables }])
   })
 
   it('PR が無ければ空', async () => {
-    const { client } = await startClient([graphqlData('ListPullRequestsByHead', { repository: { pullRequests: { nodes: [] } } })])
-    expect(await client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9')).toEqual([])
+    const { client } = await startClient([graphqlData('ListPullRequestsByHead', { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes: [] } } })])
+    expect(await client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9')).toEqual({ pullRequests: [], hasNextPage: false })
+  })
+
+  it('先頭の 20 件に収まらないときは、hasNextPage が真', async () => {
+    const { client } = await startClient([graphqlData('ListPullRequestsByHead', { repository: { pullRequests: { pageInfo: { hasNextPage: true }, nodes: [node(5, 'OPEN')] } } })])
+    expect(await client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9')).toMatchObject({ pullRequests: [{ number: 5 }], hasNextPage: true })
   })
 
   it('リポが無ければ GitHubNotFoundError', async () => {
@@ -331,7 +339,7 @@ describe('listPullRequestsByHead', () => {
   })
 
   it('状態が未知の値なら GitHubAPIError', async () => {
-    const { client } = await startClient([graphqlData('ListPullRequestsByHead', { repository: { pullRequests: { nodes: [node(5, 'DRAFT')] } } })])
+    const { client } = await startClient([graphqlData('ListPullRequestsByHead', { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes: [node(5, 'DRAFT')] } } })])
     expect(await rejection(client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.state (DRAFT)'))
   })
 })

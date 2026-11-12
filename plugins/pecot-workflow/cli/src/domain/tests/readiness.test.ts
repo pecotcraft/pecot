@@ -205,9 +205,21 @@ describe('judgeReadiness の順', () => {
     expect(result.reason).toEqual({ code: 'diverged', issues: [reference(1), reference(2)] })
   })
 
-  it('順 8: base をたどる途中で輪になっても止まる', () => {
+  it('順 8: base をたどる途中で輪になっても止まり、開発ブランチに届かない列は diverged になる', () => {
     const result = judge([reviewing(1, 'b2'), reviewing(2, 'b1')])
-    expect(result.kind).toBe('stackable')
+    expect(result.kind).toBe('blocked')
+    expect(result.reason).toEqual({ code: 'diverged', issues: [reference(1), reference(2)] })
+  })
+
+  const untraversed: readonly { readonly name: string, readonly over: Partial<IssuePullRequest> }[] = [
+    { name: 'merged の PR', over: { state: 'merged' } },
+    { name: 'closed の PR', over: { state: 'closed' } },
+    { name: 'fork からの PR', over: { isCrossRepository: true } },
+  ]
+  it.for(untraversed)('順 8: head が同じ $name は、base をたどる先にしない', ({ over }) => {
+    const prerequisites = [reviewing(1), reviewing(3, 'b2')]
+    expect(judge(prerequisites, { byHead: [pullRequest(1002, 'b2', 'b1', over)] }).reason?.code).toBe('diverged')
+    expect(judge(prerequisites, { byHead: [pullRequest(1002, 'b2', 'b1')] }).kind).toBe('stackable')
   })
 
   it('順 8: 開発ブランチを head に持つ PR は、積む先の途中として通らない', () => {
@@ -256,7 +268,7 @@ describe('judgeReadiness の見直しと注記', () => {
     expect(judge([reviewing(1)], { cycle: ['a', 'a'] }).needsReview).toBe(false)
   })
 
-  it('閉じて済んでいない前提があっても、済んだ前提だけなら見直しは要らない', () => {
+  it('前提がすべて済んでいれば、見直しは要らない', () => {
     expect(judge([donePrerequisite(1)]).needsReview).toBe(false)
   })
 
@@ -269,6 +281,14 @@ describe('judgeReadiness の見直しと注記', () => {
     expect(stackable.kind).toBe('stackable')
     expect(stackable.attention).toEqual([reference(1)])
     expect(judge('read-failed').attention).toEqual([])
+  })
+
+  it('blocked でも、済んでいない前提の札が Needs Attention なら注記に入る', () => {
+    const flagged = need(issue(1, { label: 'Needs Attention' }))
+    const result = judge([flagged, reviewing(2)])
+    expect(result.kind).toBe('blocked')
+    expect(result.reason?.code).toBe('not-in-review')
+    expect(result.attention).toEqual([reference(1)])
   })
 })
 
@@ -354,6 +374,15 @@ describe('stackChains', () => {
     ])
   })
 
+  it('stack の輪があっても止まり、輪の外の道だけを出す', () => {
+    const progressions = new Map<string, Progression>([
+      ['x', { kind: 'stack', on: 'y' }],
+      ['y', { kind: 'stack', on: 'x' }],
+      ['b', { kind: 'stack', on: 'a' }],
+    ])
+    expect(stackChains(progressions)).toEqual([['a', 'b']])
+  })
+
   it('積む先の無いフェーズだけなら道を出さない', () => {
     const progressions = planned([phase('a'), phase('b', ['a', 'merge']), phase('c', ['a'], ['b'])])
     expect(stackChains(progressions)).toEqual([])
@@ -386,16 +415,24 @@ describe('進め方と判定の一致', () => {
     { name: 'quickstart の 5 フェーズ', phases: quickstart },
     { name: 'join を含む並び', phases: [phase('a'), phase('b'), phase('c', ['a'], ['b']), phase('d', ['a'])] },
     { name: '間接の前提を付けた並び', phases: [phase('a'), phase('b', ['a']), phase('c', ['a'], ['b'])] },
+    { name: 'merge の辺を届くかの判定に使わない並び', phases: [phase('a'), phase('b', ['a', 'merge']), phase('c', ['a'], ['b'])] },
+    { name: '既存の Issue を経由して届く並び', phases: [phase('a', ['acme/app/9']), phase('b', ['a'], ['acme/app/9'])] },
   ]
 
   it.for(cases)('$name では、判定の結果が進め方と一致する', ({ phases }) => {
     const progressions = planned(phases)
-    const heads = new Map(phases.map((value, index) => [value.key, `b${String(index + 1)}`]))
-    const facts = new Map(phases.map((value, index) => {
-      const progression = progressions.get(value.key)
-      return [value.key, inReview(index + 1, progression?.kind === 'stack' ? heads.get(progression.on) : DEV)]
+    // フェーズに無いキー（既存の Issue、`acme/app/9`）は、末尾の数字を番号にして PR 中に置く
+    const numbers = new Map(phases.map((value, index) => [value.key, index + 1]))
+    const prerequisiteKeys = phases.flatMap(value => value.prerequisites)
+    for (const { key } of prerequisiteKeys) {
+      if (!numbers.has(key)) numbers.set(key, Number(key.split('/').at(-1)))
+    }
+    const heads = new Map([...numbers].map(([key, number]) => [key, `b${String(number)}`]))
+    const facts = new Map([...numbers].map(([key, number]) => {
+      const progression = progressions.get(key)
+      return [key, inReview(number, progression?.kind === 'stack' ? heads.get(progression.on) : DEV)]
     }))
-    const byHead = phases.flatMap(value => facts.get(value.key)?.pullRequests ?? [])
+    const byHead = [...numbers].flatMap(([key]) => facts.get(key)?.pullRequests ?? [])
 
     const actual = phases.map((value) => {
       const prerequisites = value.prerequisites.map(({ key, wait }) => need(facts.get(key) ?? issue(0), wait, 'r'))

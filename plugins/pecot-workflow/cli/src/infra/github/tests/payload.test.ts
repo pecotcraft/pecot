@@ -13,6 +13,7 @@ import {
   requireString,
   requireValue,
   stringOrNull,
+  subIssuesTotal,
   throwMalformed,
   truthyNodes,
 } from '../payload.js'
@@ -93,5 +94,16 @@ describe('stringOrNull / numberOrNull', () => {
     expect(numberOrNull(0)).toBe(0)
     expect(numberOrNull('1')).toBe(JSON_NULL)
     expect(numberOrNull(undefined)).toBe(JSON_NULL)
+  })
+})
+
+describe('subIssuesTotal', () => {
+  it.each<[JsonValue, number]>([
+    [{ subIssues: { totalCount: 3 } }, 3],
+    [{ subIssues: { totalCount: 'x' } }, 0],
+    [{ subIssues: JSON_NULL }, 0],
+    [{}, 0],
+  ])('%j は %d', (issue, expected) => {
+    expect(subIssuesTotal(issue)).toBe(expected)
   })
 })

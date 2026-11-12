@@ -315,6 +315,30 @@ function firstErrorText(errors: JsonValue): string {
   return pythonString(typeof errors === 'string' ? splitCodePoints(errors).slice(0, 1).join('') : errors)
 }
 
+/**
+errors[].path（フィールドの道筋）を受けて、許す errors かを答える
+*/
+export type PathPredicate = (path: readonly JsonValue[]) => boolean
+
+/**
+executeGraphqlTolerating の結果。data と、許した errors
+*/
+export interface GraphqlOutcome {
+  readonly data: JsonObject
+  readonly errors: readonly JsonObject[]
+}
+
+// data があり、errors のすべてが道筋を持って isTolerated を満たすとき、その errors。それ以外は undefined
+function toleratedErrors(errors: JsonValue | undefined, data: JsonValue | undefined, isTolerated: PathPredicate | undefined): readonly JsonObject[] | undefined {
+  if (isTolerated === undefined || !isJsonObject(data) || !isJsonArray(errors) || errors.length === 0) return undefined
+  const objects = errors.filter(error => isJsonObject(error))
+  const areAllTolerated = objects.length === errors.length && objects.every((error) => {
+    const path = error['path']
+    return isJsonArray(path) && isTolerated(path)
+  })
+  return areAllTolerated ? objects : undefined
+}
+
 // 認証エラーの判定。文に 401 が入っていても（Issue 番号の 401 など）、認証エラーにはしない
 function isUnauthorized(failure: Readonly<GraphqlFailure>): boolean {
   return failure.statusCode === 401 || failure.errorType === 'UNAUTHORIZED'
@@ -506,8 +530,8 @@ or authenticate with the GitHub CLI:
     return this.send(method, url, headers, json === undefined ? undefined : JSON.stringify(json))
   }
 
-  // gql の HTTPXTransport.execute と同じ 4 つの失敗の文を作る。成功したら data
-  private async sendGraphql(query: string, variables: Readonly<Record<string, JsonValue>>): Promise<JsonObject> {
+  // gql の HTTPXTransport.execute と同じ 4 つの失敗の文を作る。成功したら data と、許した errors
+  private async sendGraphql(query: string, variables: Readonly<Record<string, JsonValue>>, isTolerated?: PathPredicate): Promise<GraphqlOutcome> {
     let response: RestResponse
     try {
       response = await this.send('POST', this.graphqlUrl, { ...this.requestHeaders(), 'Content-Type': 'application/json' }, JSON.stringify({ query, variables }))
@@ -547,13 +571,14 @@ or authenticate with the GitHub CLI:
       return raiseResponseError('No "data" or "errors" keys in answer')
     }
 
-    // errors は status を問わず先頭の要素の文になる
+    // errors は status を問わず先頭の要素の文になる。許す errors（isTolerated）だけで data もあるときは、data と一緒に返す
     const errors = object['errors']
-    if (errors !== undefined && isTruthy(errors)) throw new GraphqlFailure(firstErrorText(errors), { statusCode, errorType: firstErrorType(errors) })
-
     const data = object['data']
+    const tolerated = toleratedErrors(errors, data, isTolerated)
+    if (tolerated === undefined && errors !== undefined && isTruthy(errors)) throw new GraphqlFailure(firstErrorText(errors), { statusCode, errorType: firstErrorType(errors) })
+
     if (data === undefined || data === null) throw new GraphqlFailure('Transport returned an ExecutionResult without data or errors', { statusCode })
-    return isJsonObject(data) ? data : {}
+    return { data: isJsonObject(data) ? data : {}, errors: tolerated ?? [] }
   }
 
   private classifyGraphqlFailure(failure: Readonly<GraphqlFailure>): GitHubAPIError {
@@ -564,6 +589,23 @@ or authenticate with the GitHub CLI:
       return new GitHubRateLimitError(`GraphQL rate limit error: ${message}`, detail)
     }
     return new GitHubAPIError(`GraphQL query error: ${message}`, detail)
+  }
+
+  private async runGraphql(query: string, variables: Readonly<Record<string, JsonValue>>, isTolerated?: PathPredicate): Promise<GraphqlOutcome> {
+    try {
+      return await this.sendGraphql(query, variables, isTolerated)
+    }
+    catch (error: unknown) {
+      const failure = toGraphqlFailure(error)
+      if (!isUnauthorized(failure)) throw this.classifyGraphqlFailure(failure)
+      if (!this.retryWithFallbackToken()) throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure })
+      try {
+        return await this.sendGraphql(query, variables, isTolerated)
+      }
+      catch (retryError: unknown) {
+        throw this.classifyGraphqlFailure(toGraphqlFailure(retryError))
+      }
+    }
   }
 
   // 絶対 URL（Link ヘッダの next など）は、API と同じ origin だけを辿る。
@@ -629,20 +671,16 @@ or authenticate with the GitHub CLI:
   レート制限は GitHubRateLimitError、それ以外は GitHubAPIError
   */
   async executeGraphql(query: string, variables: Readonly<Record<string, JsonValue>> = {}): Promise<JsonObject> {
-    try {
-      return await this.sendGraphql(query, variables)
-    }
-    catch (error: unknown) {
-      const failure = toGraphqlFailure(error)
-      if (!isUnauthorized(failure)) throw this.classifyGraphqlFailure(failure)
-      if (!this.retryWithFallbackToken()) throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure })
-      try {
-        return await this.sendGraphql(query, variables)
-      }
-      catch (retryError: unknown) {
-        throw this.classifyGraphqlFailure(toGraphqlFailure(retryError))
-      }
-    }
+    const { data } = await this.runGraphql(query, variables)
+    return data
+  }
+
+  /**
+  executeGraphql の、部分エラーを許す版。data があり、errors のすべてが isTolerated を満たすとき、例外にせず data と errors を返す。
+  それ以外の errors は executeGraphql と同じ例外になる
+  */
+  async executeGraphqlTolerating(query: string, variables: Readonly<Record<string, JsonValue>>, isTolerated: PathPredicate): Promise<GraphqlOutcome> {
+    return this.runGraphql(query, variables, isTolerated)
   }
 
   /**

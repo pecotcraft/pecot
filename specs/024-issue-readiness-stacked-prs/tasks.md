@@ -82,9 +82,9 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 - [x] T010 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、着手の判定の失敗するテストを書く
   - data-model.md の 3 の表の 9 つの順を、1 行ずつ入力にする。区分・理由のコード・積む先・見直しが要るかを比べる
   - 順 7 は、前提の状態ごとに分ける。着手済みで PR が無い、未着手、PR が 2 本以上、fork からの PR、列が `Pending` の 5 つだ
-  - 順 8 は、隣どうしが PR の base と head でつながらない組を入れる
+  - 順 8 は、どの前提の PR から base をたどっても、ほかの前提に届かない組を入れる。間接の前提を挟む鎖と、開発ブランチに届かない鎖も入れる
   - 済んでいない前提が 3 件で 1 本の列に並ぶ組は `stackable` になり、積む先が最上段の head のブランチになる
-  - 前提の札が `Needs Attention` のとき、理由にその旨が付き、区分は変わらない
+  - 前提の札が `Needs Attention` のとき、理由とは別の注記にその前提が入り、区分は変わらない
   - Epic と Tracker は、判定を返さない
 - [x] T011 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、進め方と積める並びの失敗するテストを書く
   - data-model.md の 4 の表の 4 つの進め方を、1 行ずつ入力にする

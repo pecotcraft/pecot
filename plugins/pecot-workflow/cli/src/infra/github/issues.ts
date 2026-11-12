@@ -3,11 +3,12 @@
 
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
-import type { IssuePrerequisitesReadout } from '../../domain/issue-readout.js'
+import type { IssuePrerequisitesReadout, PrerequisiteFieldNames } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
+import type { GraphqlOutcome } from './client.js'
 import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
-import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, truthyNodes } from './payload.js'
+import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_BLOCKED_BY,
   MUTATION_ADD_SUB_ISSUE,
@@ -16,7 +17,6 @@ import {
   QUERY_GET_ISSUE_KIND_PHASE1,
   QUERY_GET_ISSUE_NODE_ID,
   QUERY_GET_ISSUE_PREREQUISITES,
-  QUERY_GET_ISSUE_PREREQUISITES_PHASE1,
   QUERY_GET_ISSUE_SLIM,
 } from './queries.js'
 import { readBlockedBy, readIssue } from './readout.js'
@@ -97,6 +97,19 @@ function isIssueTypeSchemaError(error: unknown): boolean {
   return error instanceof GitHubAPIError && error.message.includes('issueType') && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
 }
 
+const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
+
+// blockedBy・addBlockedBy・removeBlockedBy・issueType に対応しない GHES（3.19 より前）が返すスキーマの失敗なら、分かる失敗に替える
+function asDependenciesError(error: unknown): unknown {
+  const isSchemaError = error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
+  return isSchemaError && /blockedBy|issueType/iu.test(error.message) ? new GitHubAPIError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
+}
+
+// 部分エラーのうち、対象の Issue の blockedBy の下のもの
+function isBlockedByPath(path: readonly JsonValue[]): boolean {
+  return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy'
+}
+
 function stringOrEmpty(value: JsonValue | undefined): string {
   return typeof value === 'string' ? value : ''
 }
@@ -108,11 +121,6 @@ function issueNode(result: JsonObject, owner: string, repository: string, number
   const issue = jsonField(repositoryNode, 'issue')
   if (!isTruthy(issue)) throw new GitHubNotFoundError(`Issue not found: ${owner}/${repository}/${String(number)}`)
   return requireValue(issue, 'issue')
-}
-
-function subIssuesTotal(issue: JsonValue): number {
-  const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount')
-  return typeof total === 'number' ? total : 0
 }
 
 function formatParent(parent: JsonValue | undefined): IssueParent | null {
@@ -151,6 +159,15 @@ function extractLinkedPullRequests(timelineItems: JsonValue | undefined): readon
 }
 
 export class IssuesApi extends ProjectsApi {
+  private async executeDependencyMutation(mutation: string, variables: Readonly<{ issueId: string, blockingIssueId: string }>): Promise<void> {
+    try {
+      await this.executeGraphql(mutation, variables)
+    }
+    catch (error: unknown) {
+      throw asDependenciesError(error)
+    }
+  }
+
   // issueType フィールド非対応の GHES 用の判定
   private async getIssueKindPhase1(owner: string, repository: string, number: number): Promise<IssueKindResult> {
     const result = await this.executeGraphql(QUERY_GET_ISSUE_KIND_PHASE1, { owner, repo: repository, number })
@@ -226,37 +243,40 @@ export class IssuesApi extends ProjectsApi {
 
   /**
   前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提（どちらも node ID）。
-  GitHub の拒否（輪・件数の上限など）は HTTP 200 の VALIDATION で返り、GitHubAPIError になる
+  GitHub の拒否（輪・件数の上限など）は HTTP 200 の VALIDATION で返り、GitHubAPIError になる。
+  Issue の依存関係に対応しない GHES（3.19 より前）も GitHubAPIError
   */
   async addBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
-    await this.executeGraphql(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId })
+    await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId })
   }
 
   /**
-  前提（blocked by）を外す
+  前提（blocked by）を外す。addBlockedBy と同じ失敗をする
   */
   async removeBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
-    await this.executeGraphql(MUTATION_REMOVE_BLOCKED_BY, { issueId, blockingIssueId })
+    await this.executeDependencyMutation(MUTATION_REMOVE_BLOCKED_BY, { issueId, blockingIssueId })
   }
 
   /**
   Issue と、その前提（blockedBy 先頭 50 件）を 1 回のクエリで読む。ボードの値は projectId のものだけ。
-  issueType に対応しない GHES では、issueType を外したクエリで読み直す
+  blockedBy の部分エラーと、件数の上限による取りこぼしは、例外にせず blockedBy の read-failed で返す（呼ぶ側は判定の入力にする）。
+  Issue の依存関係に対応しない GHES（3.19 より前）、blockedBy 以外の失敗は GitHubAPIError
   */
-  async getIssuePrerequisites(owner: string, repository: string, number: number, projectId: string): Promise<IssuePrerequisitesReadout> {
-    const variables = { owner, repo: repository, number }
-    let result: JsonObject
+  async getIssuePrerequisites(owner: string, repository: string, number: number, projectId: string, fieldNames: Readonly<PrerequisiteFieldNames>): Promise<IssuePrerequisitesReadout> {
+    const variables = { owner, repo: repository, number, columnFieldName: fieldNames.columnFieldName, labelFieldName: fieldNames.labelFieldName }
+    let outcome: GraphqlOutcome
     try {
-      result = await this.executeGraphql(QUERY_GET_ISSUE_PREREQUISITES, variables)
+      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath)
     }
     catch (error: unknown) {
-      if (!isIssueTypeSchemaError(error)) throw error
-      result = await this.executeGraphql(QUERY_GET_ISSUE_PREREQUISITES_PHASE1, variables)
+      throw asDependenciesError(error)
     }
-    const issue = issueNode(result, owner, repository, number)
+    const { data, errors } = outcome
+    const issue = issueNode(data, owner, repository, number)
+    const messages = errors.map(error => stringOrEmpty(jsonField(error, 'message')))
     return {
-      issue: { ...readIssue(issue, projectId), body: requireString(jsonField(issue, 'body'), 'issue.body') },
-      blockedBy: readBlockedBy(jsonField(issue, 'blockedBy'), projectId),
+      issue: { ...readIssue(issue, projectId, fieldNames), body: requireString(jsonField(issue, 'body'), 'issue.body') },
+      blockedBy: readBlockedBy(issue, projectId, fieldNames, messages),
     }
   }
 

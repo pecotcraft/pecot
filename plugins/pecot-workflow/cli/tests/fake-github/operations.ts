@@ -36,9 +36,8 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],
   ['addBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'AddBlockedBy'],
   ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
-  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,blockedBy}|number,owner,repo', 'GetIssuePrerequisites'],
-  ['repository.issue{id,number,state,title,repository,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,blockedBy}|number,owner,repo', 'GetIssuePrerequisitesPhase1'],
-  ['repository.pullRequests.nodes{number,state,headRefName,baseRefName,isDraft,isCrossRepository,repository}|headRefName,owner,repo', 'ListPullRequestsByHead'],
+  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,blockedBy}|columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
+  ['repository.pullRequests{pageInfo,nodes}|headRefName,owner,repo', 'ListPullRequestsByHead'],
 ]
 
 export const OPERATION_NAMES: ReadonlySet<string> = new Set(OPERATION_TABLE.map(([, name]) => name))

@@ -4,7 +4,7 @@
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import { JSON_NULL } from '../../domain/json-null.js'
-import type { PullRequestReadout } from '../../domain/issue-readout.js'
+import type { PullRequestsByHeadReadout } from '../../domain/issue-readout.js'
 import { extractReferencesIssueNumbers } from '../../domain/reference-parser.js'
 import { isJsonArray } from '../../domain/python-format.js'
 import type { JsonValue } from '../../domain/python-format.js'
@@ -122,14 +122,18 @@ export class PullsApi extends IssuesApi {
   }
 
   /**
-  head のブランチ名で PR を引く（open・closed・merged。先頭 20 件）。
-  リポが無ければ GitHubNotFoundError
+  head のブランチ名で PR を引く（open・closed・merged。新しい順に先頭 20 件）。
+  20 件に収まらないときは hasNextPage が真。リポが無ければ GitHubNotFoundError
   */
-  async listPullRequestsByHead(owner: string, repository: string, headReferenceName: string): Promise<readonly PullRequestReadout[]> {
+  async listPullRequestsByHead(owner: string, repository: string, headReferenceName: string): Promise<PullRequestsByHeadReadout> {
     const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_HEAD, { owner, repo: repository, headRefName: headReferenceName })
     const repositoryNode = jsonField(result, 'repository')
     if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`)
-    return readPullRequests(truthyNodes(jsonField(repositoryNode, 'pullRequests')))
+    const connection = jsonField(repositoryNode, 'pullRequests')
+    return {
+      pullRequests: readPullRequests(truthyNodes(connection)),
+      hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
+    }
   }
 
   /**

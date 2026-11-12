@@ -3,9 +3,9 @@
 import { isEpicIssue } from './issue-kind.js'
 import type { IssuePrerequisitesReadout, IssueReadout, PullRequestReadout } from './issue-readout.js'
 import type { WaitsForMergeReadout } from './prerequisites.js'
-import { issueReferenceToString } from './reference-parser.js'
+import { issueReferenceKey } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'
-import { repositoryFullName } from './repository-resolver.js'
+import { isSameRepository } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
 
 export type Wait = 'stack' | 'merge'
@@ -75,7 +75,7 @@ export interface Readiness {
   */
   readonly needsReview: boolean
   /**
-  札が Needs Attention の、済んでいない前提
+  札が Needs Attention の、済んでいない前提だけ。済んだ前提は含めず、blocked にも付く
   */
   readonly attention: readonly IssueReference[]
 }
@@ -88,7 +88,7 @@ export interface JudgeReadinessInput {
   */
   readonly cycle: readonly string[] | undefined
   /**
-  head のブランチ名から PR を引く。順 8 で、間接の前提の PR を通って base をたどるのに使う
+  head のブランチ名から PR を引く。順 8 で base をたどるのに使い、open で fork からでない PR だけを通る
   */
   readonly pullRequestsByHead: ReadonlyMap<string, IssuePullRequest>
   readonly developmentBranch: string
@@ -97,14 +97,6 @@ export interface JudgeReadinessInput {
 export const PENDING_COLUMN = 'Pending'
 export const NEEDS_ATTENTION_LABEL = 'Needs Attention'
 export const TRACKER_TITLE_PREFIX = '[Tracker]'
-
-function isSameRepository(left: RepositoryReference, right: RepositoryReference): boolean {
-  return repositoryFullName(left).toLowerCase() === repositoryFullName(right).toLowerCase()
-}
-
-function referenceKey(reference: IssueReference): string {
-  return issueReferenceToString(reference).toLowerCase()
-}
 
 function openPullRequests(issue: IssueFacts): readonly IssuePullRequest[] {
   return issue.pullRequests.filter(pullRequest => pullRequest.state === 'open')
@@ -126,20 +118,34 @@ export function hasStarted(issue: IssueFacts): boolean {
   return issue.branches.length > 0 || issue.pullRequests.length > 0
 }
 
+function isPending(issue: IssueFacts): boolean {
+  return issue.column === PENDING_COLUMN
+}
+
+// 列が Pending の前提は、人が後回しにしたものなので、PR があっても積む先にしない
+function isStackable(issue: IssueFacts): boolean {
+  return isInReview(issue) && !isPending(issue)
+}
+
+function isStackBase(pullRequest: IssuePullRequest): boolean {
+  return pullRequest.state === 'open' && !pullRequest.isCrossRepository
+}
+
 function notInReviewState(issue: IssueFacts): NotInReviewState {
-  if (issue.column === PENDING_COLUMN) return 'pending'
+  if (isPending(issue)) return 'pending'
   const open = openPullRequests(issue)
   if (open.length > 1) return 'multiple-prs'
   if (open.length === 1) return 'fork-pr'
   return hasStarted(issue) ? 'started-without-pr' : 'not-started'
 }
 
-function reachedHeads(start: IssuePullRequest, byHead: ReadonlyMap<string, IssuePullRequest>, developmentBranch: string): ReadonlySet<string> {
+// 開発ブランチに届かない（途切れる・輪になる）列は undefined
+function headsToDevelopment(start: IssuePullRequest, byHead: ReadonlyMap<string, IssuePullRequest>, developmentBranch: string): ReadonlySet<string> | undefined {
   const reached = new Set([start.headRefName])
   let current = start
   while (current.baseRefName !== developmentBranch) {
     const next = byHead.get(current.baseRefName)
-    if (next === undefined || reached.has(next.headRefName)) break
+    if (next === undefined || reached.has(next.headRefName)) return undefined
     reached.add(next.headRefName)
     current = next
   }
@@ -152,11 +158,11 @@ function findStackTarget(unfinished: readonly Prerequisite[], input: JudgeReadin
     const [pullRequest] = openPullRequests(issue)
     return pullRequest === undefined ? [] : { issue: issue.ref, pullRequest }
   })
-  const byHead = new Map(input.pullRequestsByHead)
+  const byHead = new Map([...input.pullRequestsByHead].filter(([, pullRequest]) => isStackBase(pullRequest)))
   for (const { pullRequest } of entries) byHead.set(pullRequest.headRefName, pullRequest)
   for (const start of entries) {
-    const reached = reachedHeads(start.pullRequest, byHead, input.developmentBranch)
-    if (entries.every(other => reached.has(other.pullRequest.headRefName))) {
+    const reached = headsToDevelopment(start.pullRequest, byHead, input.developmentBranch)
+    if (reached !== undefined && entries.every(other => reached.has(other.pullRequest.headRefName))) {
       return { branch: start.pullRequest.headRefName, issue: start.issue }
     }
   }
@@ -187,7 +193,7 @@ export function judgeReadiness(input: JudgeReadinessInput): Readiness | undefine
   const blocked = (reason: ReadinessReason): Readiness => result('blocked', { reason, needsReview: isNeedsReview, attention })
 
   if (cycle !== undefined) return blocked({ code: 'cycle', cycle })
-  if (closedUnmerged.length > 0) return blocked({ code: 'closed-unmerged', issues: closedUnmerged.map(({ issue }) => issue.ref) })
+  if (isNeedsReview) return blocked({ code: 'closed-unmerged', issues: closedUnmerged.map(({ issue }) => issue.ref) })
   const waitsMerge = unfinished.filter(({ wait }) => wait === 'merge')
   if (waitsMerge.length > 0) {
     return blocked({ code: 'waits-merge', issues: waitsMerge.map(({ issue, reason }) => ({ issue: issue.ref, reason })) })
@@ -196,14 +202,15 @@ export function judgeReadiness(input: JudgeReadinessInput): Readiness | undefine
 
   const otherRepository = unfinished.filter(({ issue }) => !isSameRepository(issue.ref.repository, target.ref.repository))
   if (otherRepository.length > 0) return blocked({ code: 'other-repository', issues: otherRepository.map(({ issue }) => issue.ref) })
-  // 列が Pending の前提は、人が後回しにしたものなので、PR があっても積む先にしない
-  const notInReview = unfinished.filter(({ issue }) => !isInReview(issue) || issue.column === PENDING_COLUMN)
+  const notInReview = unfinished.filter(({ issue }) => !isStackable(issue))
   if (notInReview.length > 0) {
     return blocked({ code: 'not-in-review', issues: notInReview.map(({ issue }) => ({ issue: issue.ref, state: notInReviewState(issue) })) })
   }
 
   const stackOn = findStackTarget(unfinished, input)
-  return stackOn === undefined ? blocked({ code: 'diverged', issues: unfinished.map(({ issue }) => issue.ref) }) : result('stackable', { stackOn, needsReview: isNeedsReview, attention })
+  return stackOn === undefined
+    ? blocked({ code: 'diverged', issues: unfinished.map(({ issue }) => issue.ref) })
+    : result('stackable', { stackOn, needsReview: isNeedsReview, attention })
 }
 
 export interface PlannedPhase {
@@ -221,8 +228,10 @@ export type ProgressionPlan
   = | { readonly kind: 'cycle', readonly cycle: readonly string[] }
     | { readonly kind: 'planned', readonly progressions: ReadonlyMap<string, Progression> }
 
+// localeCompare は環境で順が変わるので、コード単位の順にする
 function compareKeys(left: string, right: string): number {
-  return left < right ? -1 : Number(left > right)
+  if (left < right) return -1
+  return left > right ? 1 : 0
 }
 
 /**
@@ -312,11 +321,11 @@ export function stackChains(progressions: ReadonlyMap<string, Progression>): rea
   }
   const roots = [...children].map(([key]) => key).filter(key => progressions.get(key)?.kind !== 'stack')
 
-  const walk = (path: readonly string[]): (readonly string[])[] => {
-    const next = children.get(path.at(-1) ?? '') ?? []
-    return next.length === 0 ? [path] : next.flatMap(child => walk([...path, child]))
+  const walk = (key: string, path: readonly string[]): (readonly string[])[] => {
+    const next = (children.get(key) ?? []).filter(child => !path.includes(child))
+    return next.length === 0 ? [path] : next.flatMap(child => walk(child, [...path, child]))
   }
-  return roots.flatMap(root => walk([root]))
+  return roots.flatMap(root => walk(root, [root]))
 }
 
 export interface FactsMismatch {
@@ -344,11 +353,13 @@ export interface ToIssueFactsOptions {
   readonly labelFieldName: string
 }
 
+const LOWER_STATE = { OPEN: 'open', MERGED: 'merged', CLOSED: 'closed' } satisfies Record<PullRequestReadout['state'], IssuePullRequest['state']>
+
 function toPullRequest(readout: PullRequestReadout): IssuePullRequest {
   return {
     repository: readout.repository,
     number: readout.number,
-    state: readout.state === 'OPEN' ? 'open' : (readout.state === 'MERGED' ? 'merged' : 'closed'),
+    state: LOWER_STATE[readout.state],
     headRefName: readout.headRefName,
     baseRefName: readout.baseRefName,
     isDraft: readout.isDraft,
@@ -363,12 +374,15 @@ function collectPullRequests(readout: IssueReadout): readonly IssuePullRequest[]
     ...readout.closingPullRequests,
     ...readout.timelinePullRequests,
   ]
-  const unique = new Map<string, IssuePullRequest>()
-  for (const source of sources) {
-    const key = `${repositoryFullName(source.repository).toLowerCase()}#${String(source.number)}`
-    if (!unique.has(key)) unique.set(key, toPullRequest(source))
-  }
-  return [...unique].map(([, value]) => value)
+  const seen = new Set<string>()
+  return sources
+    .filter((source) => {
+      const key = issueReferenceKey({ repository: source.repository, number: source.number })
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .map(source => toPullRequest(source))
 }
 
 function workKind(readout: IssueReadout): IssueWorkKind {
@@ -380,7 +394,7 @@ function toFacts(readout: IssueReadout, options: ToIssueFactsOptions): IssueFact
   const valueOf = (fieldName: string): string | undefined => readout.projectFieldValues.find(value => value.fieldName === fieldName)?.optionName
   return {
     ref: { repository: readout.repository, number: readout.number },
-    state: readout.state === 'OPEN' ? 'open' : 'closed',
+    state: LOWER_STATE[readout.state],
     column: valueOf(options.columnFieldName),
     label: valueOf(options.labelFieldName),
     kind: workKind(readout),
@@ -398,17 +412,17 @@ export function toIssueFacts(readout: IssuePrerequisitesReadout, section: WaitsF
   if (readout.blockedBy.kind === 'read-failed') return { target, prerequisites: 'read-failed', mismatches: [] }
 
   const lines = section.kind === 'ok' ? section.lines : []
-  const reasons = new Map(lines.map(line => [referenceKey(line.ref), line.reason]))
+  const reasons = new Map(lines.map(line => [issueReferenceKey(line.ref), line.reason]))
   const prerequisites = readout.blockedBy.issues.map((blocker): Prerequisite => {
     const issue = toFacts(blocker, options)
-    const reason = reasons.get(referenceKey(issue.ref))
+    const reason = reasons.get(issueReferenceKey(issue.ref))
     const wait: Wait = reason !== undefined || section.kind === 'malformed' ? 'merge' : 'stack'
     return { issue, wait, reason }
   })
 
-  const present = new Set(prerequisites.map(({ issue }) => referenceKey(issue.ref)))
+  const present = new Set(prerequisites.map(({ issue }) => issueReferenceKey(issue.ref)))
   const mismatches = lines
-    .filter(line => !present.has(referenceKey(line.ref)))
+    .filter(line => !present.has(issueReferenceKey(line.ref)))
     .map(line => ({ ref: line.ref, reason: line.reason }))
   return { target, prerequisites, mismatches }
 }

@@ -50,7 +50,9 @@
   - #375 で、Issue の PR を 3 つの読み口から集めることにした
     - リンクしたブランチの `ref.associatedPullRequests`
     - `closedByPullRequestsReferences(includeClosedPrs: true)`。引数を省くと open の PR しか返さない
-    - `timelineItems` の `ConnectedEvent`・`CrossReferencedEvent` の PR
+    - `timelineItems` の `ConnectedEvent` の PR。後の `DisconnectedEvent` で外したものは除く
+    - `timelineItems` の `CrossReferencedEvent` のうち、閉じる意図のある PR
+    - `CrossReferencedEvent` は、本文やコメントで触れただけの PR も返す。`willCloseTarget` が真か、head のブランチ名が `/<Issue番号>` で終わるものだけ採る（#394 の F-02）
   - 積んだ上の段の PR は閉じる参照を持たず、マージの後はブランチが消える。リンクしたブランチだけでは、済んだ前提の PR を見失う
 - Alternatives considered:
   - 閉じる参照だけで見分ける案。積んだ PR で空になるおそれがあるので採らない

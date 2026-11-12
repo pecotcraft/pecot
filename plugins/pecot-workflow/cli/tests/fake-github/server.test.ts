@@ -3,6 +3,7 @@ import { Server } from 'node:http'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import * as queries from '../../src/infra/github/queries.js'
+import { parseOperation } from './identify.js'
 import { OPERATION_NAMES, operationNameOf, operationTable } from './operations.js'
 import type { FakeGithub, ResponseRule, StartOptions } from './server.js'
 import { isAvoidedPort, isSubset, MAX_LISTEN_ATTEMPTS, startFakeGithub } from './server.js'
@@ -212,5 +213,33 @@ describe('対応表', () => {
     const texts = Object.values(queries)
     expect(texts).toHaveLength(operationTable().length)
     expect(texts.map(query => operationNameOf(query)).filter(name => name === undefined)).toEqual([])
+  })
+})
+
+function idOf(query: string): string {
+  return parseOperation(query).id
+}
+
+describe('識別子（fragment）', () => {
+  it('fragment の参照（...Name）は、定義の選択集合に展開する', () => {
+    const query = 'query ($n: Int!) { repository { issue(number: $n) { ...A id } } } fragment A on Issue { title body }'
+    expect(idOf(query)).toBe('repository.issue{title,body,id}|n')
+  })
+
+  it('inline fragment の中の参照と、fragment の中の fragment も展開する', () => {
+    const query = 'query { node { ... on Issue { ...A } } } fragment A on Issue { ...B state } fragment B on Issue { title }'
+    expect(idOf(query)).toBe('node{title,state}|')
+  })
+
+  it('子が 1 つの間は、fragment の中のフィールドも道筋に入れる', () => {
+    expect(idOf('query { repository { ...A } } fragment A on Repository { issue { ...B } } fragment B on Issue { title body }')).toBe('repository.issue{title,body}|')
+  })
+
+  it('定義の無い fragment は、理由つきで失敗する', () => {
+    expect(() => idOf('query { repository { ...Missing } }')).toThrow('GraphQL の fragment Missing の定義が見つかりません')
+  })
+
+  it('fragment が自分を参照しても止まる', () => {
+    expect(idOf('query { node { ...A } } fragment A on Issue { title ...A }')).toBe('node{title}|')
   })
 })

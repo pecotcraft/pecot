@@ -91,8 +91,8 @@ describe('upsertWaitsForMerge', () => {
     expect(upsertWaitsForMerge('## Goal\n\ntext\n', repository_, reference(5), '理由')).toBe(`## Goal\n\ntext\n\n${WAITS_FOR_MERGE_HEADING}\n\n- #5: 理由\n`)
   })
 
-  it('末尾に改行の無い本文にも節を足す', () => {
-    expect(upsertWaitsForMerge('text', repository_, reference(5), '理由')).toBe(`text\n\n${WAITS_FOR_MERGE_HEADING}\n\n- #5: 理由\n`)
+  it('末尾に改行の無い本文に足す節は、改行なしで終える', () => {
+    expect(upsertWaitsForMerge('text', repository_, reference(5), '理由')).toBe(`text\n\n${WAITS_FOR_MERGE_HEADING}\n\n- #5: 理由`)
   })
 
   it('末尾が空行の本文には空行を足さない', () => {
@@ -159,6 +159,33 @@ describe('upsertWaitsForMerge', () => {
 
   it('読めない節のある本文は書き換えずに拒否する', () => {
     expect(() => upsertWaitsForMerge(sectionBody('broken'), repository_, reference(1), 'a')).toThrow(InvalidValueError)
+  })
+})
+
+describe('足して外すと元の本文に戻る', () => {
+  it.for(['text\n', 'text\r\n', '', 'text', 'a\n\nb\n', 'a\r\n\r\nb'])('本文 %j に足して外すと元に戻る', (before) => {
+    const added = upsertWaitsForMerge(before, repository_, reference(1), 'a')
+    expect(removeWaitsForMerge(added, repository_, reference(1))).toBe(before)
+  })
+})
+
+describe('upsertWaitsForMerge の改行', () => {
+  it('LF の本文が \\r\\n の行を 1 つ含んでいても、足す位置の隣の行の改行で足す', () => {
+    const before = `${WAITS_FOR_MERGE_HEADING}\n\n- #1: a\n\n## Next\r\nnote\r\n`
+    expect(upsertWaitsForMerge(before, repository_, reference(2), 'b')).toBe(`${WAITS_FOR_MERGE_HEADING}\n\n- #1: a\n- #2: b\n\n## Next\r\nnote\r\n`)
+  })
+})
+
+describe('節の見出しの見分け', () => {
+  it('コードフェンスの中の見出しも節として読む', () => {
+    const body = '```\n' + sectionBody('- #1: a') + '\n```\n'
+    expect(readWaitsForMerge(body, repository_)).toEqual({ kind: 'malformed', reason: 'not a list item: ```' })
+  })
+
+  it('見出しの末尾に空白があると節と認めず、足すと別の節を作る', () => {
+    const body = `${WAITS_FOR_MERGE_HEADING} \n\n- #1: a\n`
+    expect(readWaitsForMerge(body, repository_)).toEqual({ kind: 'absent' })
+    expect(upsertWaitsForMerge(body, repository_, reference(2), 'b')).toBe(`${body}\n${WAITS_FOR_MERGE_HEADING}\n\n- #2: b\n`)
   })
 })
 
