@@ -190,7 +190,7 @@ overrides:
   micromark-extension-math>katex: ^0.18.7
 importers:
   .: {}
-  cli-node:
+  cli:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: ^2.4.0

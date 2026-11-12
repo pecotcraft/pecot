@@ -57,7 +57,7 @@
           "runtime": "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin"
         },
         {
-          "runtime": "git ls-files -- plugins/pecot-workflow/cli-node/src | git hash-object --stdin"
+          "runtime": "git ls-files -- plugins/pecot-workflow/cli/src | git hash-object --stdin"
         },
         "{workspaceRoot}/libs/interface-spec/targets.json",
         "{projectRoot}/tests/representative-files.txt"
@@ -71,7 +71,7 @@
         }
       ],
       "metadata": {
-        "description": "実 nx の affected とレーン入力の対応を確かめる。代表ファイルの実在は representative-files.txt の runtime 入力で見る。cli-node/src のファイルの増減は runtime 入力で見る。"
+        "description": "実 nx の affected とレーン入力の対応を確かめる。代表ファイルの実在は representative-files.txt の runtime 入力で見る。cli/src のファイルの増減は runtime 入力で見る。"
       },
       "options": {
         "command": ".githooks/tests/run.sh .githooks/tests/test_nx_affected_mapping.py",
@@ -154,7 +154,7 @@
         "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-tests.sh",
         "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-lint.sh",
         "{workspaceRoot}/plugins/*/hooks/lib/session-start/plugin-update-notice.sh",
-        "{workspaceRoot}/plugins/pecot-workflow/cli-node/tests/output/cases.json",
+        "{workspaceRoot}/plugins/pecot-workflow/cli/tests/output/cases.json",
         "{workspaceRoot}/plugins/pecot-visual/cli/tests/diagnostics-cases.json",
         "{workspaceRoot}/plugins/pecot-tools/cli/tests/diagnostics-cases.json",
         "{workspaceRoot}/plugins/*/runtime-lock.yaml",

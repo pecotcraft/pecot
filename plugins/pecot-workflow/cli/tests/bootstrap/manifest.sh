@@ -18,7 +18,7 @@
 #   - Copilot の hooks は com.github.copilot/hooks/hooks.json にある。
 #     旧 hooks-copilot.json と .github/plugin/plugin.json は無い。
 #
-#   bash plugins/pecot-workflow/cli-node/tests/bootstrap/manifest.sh
+#   bash plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

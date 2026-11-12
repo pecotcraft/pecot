@@ -251,7 +251,7 @@ assert_json_rpc_stdout "$STDOUT2" "CUJ 2 stdout が JSON-RPC 専有でない ($S
 grep -qx 'pecot: installing dependencies' "$STDERR2" || fail "CUJ 2 で install が実行されていない（stderr に 'pecot: installing dependencies' が無い）"
 grep -qx 'pecot: building' "$STDERR2" || fail "CUJ 2 で build が実行されていない（stderr に 'pecot: building' が無い）"
 CURRENT_DIR="$(readlink -f "$DATA_DIR/runtime/current")"
-if [ ! -f "$CURRENT_DIR/.complete" ] || [ ! -f "$CURRENT_DIR/cli-node/dist/cli.js" ]; then
+if [ ! -f "$CURRENT_DIR/.complete" ] || [ ! -f "$CURRENT_DIR/cli/dist/cli.js" ]; then
   fail "CUJ 2 の後に完成したミラーが無い: $DATA_DIR/runtime"
 fi
 # 本体のワークツリーには何も作らない。
@@ -296,7 +296,7 @@ mkdir -p "$COPY_ROOT"
   plugin_runtime_src_files "$PLUGIN_ROOT"
   printf '%s\n' bin/pecot bin/_lib.sh .claude-plugin/plugin.json
 } | LC_ALL=C sort -u | (cd "$PLUGIN_ROOT" && tar -cf - -T -) | (cd "$COPY_ROOT" && tar -xf -)
-printf '\n// source-only change\n' >> "$COPY_ROOT/cli-node/src/cli.ts"
+printf '\n// source-only change\n' >> "$COPY_ROOT/cli/src/cli.ts"
 STDOUT4="$WORK_DIR/cuj4.stdout"
 STDERR4="$WORK_DIR/cuj4.stderr"
 run_mcp_exchange "$STDOUT4" "$STDERR4" 300 "$COPY_ROOT"
@@ -307,9 +307,9 @@ if grep -qx 'pecot: installing dependencies' "$STDERR4"; then
 fi
 grep -qx 'pecot: building' "$STDERR4" || fail "CUJ 4 で build が実行されていない（stderr に 'pecot: building' が無い）"
 [ "$(readlink -f "$DATA_DIR/runtime/current")" != "$CURRENT_DIR" ] || fail "CUJ 4 で current が新しいミラーに切り替わっていない"
-[ -f "$CURRENT_DIR/cli-node/dist/cli.js" ] || fail "CUJ 4 が旧ミラーを壊した: $CURRENT_DIR"
-if [ -e "$COPY_ROOT/node_modules" ] || [ -e "$COPY_ROOT/cli-node/dist" ]; then
-  fail "CUJ 4 が複製したプラグインルートに node_modules / cli-node/dist を作った"
+[ -f "$CURRENT_DIR/cli/dist/cli.js" ] || fail "CUJ 4 が旧ミラーを壊した: $CURRENT_DIR"
+if [ -e "$COPY_ROOT/node_modules" ] || [ -e "$COPY_ROOT/cli/dist" ]; then
+  fail "CUJ 4 が複製したプラグインルートに node_modules / cli/dist を作った"
 fi
 echo "[bootstrap-test] CUJ 4 pass"
 
@@ -324,7 +324,7 @@ code=$?
 set -e
 assert_exit_zero "$code" "CUJ 5 exit ($STDERR5 を参照)"
 DEFAULT_CURRENT="$(readlink -f "$XDG_DIR/pecot/pecot-workflow/runtime/current")"
-[ -f "$DEFAULT_CURRENT/cli-node/dist/cli.js" ] || fail "CUJ 5 が既定の場所にミラーを作っていない: $XDG_DIR/pecot/pecot-workflow/runtime"
+[ -f "$DEFAULT_CURRENT/cli/dist/cli.js" ] || fail "CUJ 5 が既定の場所にミラーを作っていない: $XDG_DIR/pecot/pecot-workflow/runtime"
 echo "[bootstrap-test] CUJ 5 pass"
 
 # CUJ 6: pnpm 無し / corepack 無し / npx あり（Node.js 25 以降の corepack 非同梱環境）。

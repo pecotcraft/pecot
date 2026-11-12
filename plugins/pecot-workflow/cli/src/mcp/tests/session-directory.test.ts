@@ -44,7 +44,7 @@ describe('resolveSessionDirectory', () => {
 
   it('cwd がプラグインの root の配下でも、移る', () => {
     const { pluginRoot, session } = layout()
-    const nested = path.join(pluginRoot, 'cli-node')
+    const nested = path.join(pluginRoot, 'cli')
     mkdirSync(nested)
     expect(resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: pluginRoot, COPILOT_SESSION_CWD: session }, nested)).toMatchObject({ kind: 'move', directory: session })
   })
@@ -164,7 +164,7 @@ describe('resolveSessionDirectory', () => {
 
   it('相対パスの変数は、移る前の cwd を起点にして判定する', () => {
     const { pluginRoot } = layout()
-    const nested = path.join(pluginRoot, 'cli-node')
+    const nested = path.join(pluginRoot, 'cli')
     mkdirSync(path.join(pluginRoot, 'sessions', 'one'), { recursive: true })
     mkdirSync(nested)
     expect(resolveSessionDirectory({ CLAUDE_PLUGIN_ROOT: '..', COPILOT_SESSION_CWD: '../sessions/one' }, nested)).toEqual({

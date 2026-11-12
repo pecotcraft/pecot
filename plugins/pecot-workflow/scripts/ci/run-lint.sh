@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PLUGIN_ROOT}"
 
-# --scope で実行範囲を絞る（nx のレーン pecot-workflow:lint-cli から呼ぶ）。cli は cli-node の tsc / eslint / knip。引数なしは全部。
+# --scope で実行範囲を絞る（nx のレーン pecot-workflow:lint-cli から呼ぶ）。cli は tsc / eslint / knip。引数なしは全部。
 # env PECOT_WORKFLOW_SKIP_INSTALL=1: install を飛ばす（nx 経由では pecot-workflow:install が 1 回だけ流す）。
 # 本ファイルや lock を足したら、nx.json の pecotPluginNodeInputs に足す。
 for arg in "$@"; do
@@ -23,7 +23,7 @@ if [ "${PECOT_WORKFLOW_SKIP_INSTALL:-0}" = "1" ]; then
     SCRIPT_SKIP_INSTALL=true
 fi
 
-# Node 側（cli-node/）は repo root の 1 つの pnpm workspace に属する。
+# Node 側（cli/）は repo root の 1 つの pnpm workspace に属する。
 # pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
 # shellcheck source=../../bin/_lib.sh

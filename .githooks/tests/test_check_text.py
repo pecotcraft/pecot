@@ -535,7 +535,7 @@ def test_check_text_push_passes_without_text_targets(
     """範囲内の変更が対象外の拡張子と生成物（CHANGELOG・golden）だけなら、違反があっても通る。"""
     push_repo.write("logo.txt", _LONG_SENTENCE)
     push_repo.write(
-        "plugins/pecot-workflow/cli-node/tests/parity/golden/x.md",
+        "plugins/pecot-workflow/cli/tests/parity/golden/x.md",
         f"# 見出し\n\n{_LONG_SENTENCE}\n",
     )
     push_repo.write("pkg/CHANGELOG.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")

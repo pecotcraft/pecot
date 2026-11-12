@@ -1,4 +1,4 @@
-// cli-node のコマンド一覧（COMMANDS）から、interface/generated.json の項目を作る。
+// cli のコマンド一覧（COMMANDS）から、interface/generated.json の項目を作る。
 // 形と決定性の決めは specs/022-interface-definitions/contracts/definition-format.md にある。
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -77,7 +77,7 @@ export interface MainOptions {
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, '../../../..')
 const DEFAULT_TARGET = path.resolve(import.meta.dirname, '../../interface/generated.json')
-const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli-node exec tsx scripts/export-interface.ts --write'
+const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/export-interface.ts --write'
 
 function reasonOf(error: unknown): string {
   if (error instanceof z.ZodError) return issuesOf(error)

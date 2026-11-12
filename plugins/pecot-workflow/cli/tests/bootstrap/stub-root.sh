@@ -43,7 +43,7 @@ stub_root_init() {
   CALLS="$BASE/calls"
   OUT="$BASE/stdout"
   ERR="$BASE/stderr"
-  mkdir -p "$ROOT/bin" "$ROOT/.claude-plugin" "$ROOT/cli-node/src" "$ROOT/cli-node/scripts" "$DATA" "$STUB_BIN" "$BASE/home"
+  mkdir -p "$ROOT/bin" "$ROOT/.claude-plugin" "$ROOT/cli/src" "$ROOT/cli/scripts" "$DATA" "$STUB_BIN" "$BASE/home"
   : > "$CALLS"
   cp "$PLUGIN_ROOT_SRC/bin/pecot" "$PLUGIN_ROOT_SRC/bin/_lib.sh" "$ROOT/bin/"
   chmod +x "$ROOT/bin/pecot"
@@ -53,12 +53,12 @@ stub_root_init() {
 { "name": "stub-root", "private": true, "packageManager": "pnpm@12.15.0+sha512.aaaa", "devEngines": { "packageManager": { "name": "pnpm", "version": "12.15.0", "onFail": "download" } } }
 JSON
   printf 'lock: 1\n' > "$ROOT/runtime-lock.yaml"
-  printf 'packages:\n  - cli-node\n' > "$ROOT/runtime-workspace.yaml"
-  printf '{ "name": "@pecot/pecot-workflow-cli", "version": "0.0.0" }\n' > "$ROOT/cli-node/package.json"
-  printf '{}\n' > "$ROOT/cli-node/tsconfig.json"
-  printf '{}\n' > "$ROOT/cli-node/tsconfig.build.json"
-  printf 'v1\n' > "$ROOT/cli-node/src/index.ts"
-  printf '// tsc\n' > "$ROOT/cli-node/scripts/tsc.mjs"
+  printf 'packages:\n  - cli\n' > "$ROOT/runtime-workspace.yaml"
+  printf '{ "name": "@pecot/pecot-workflow-cli", "version": "0.0.0" }\n' > "$ROOT/cli/package.json"
+  printf '{}\n' > "$ROOT/cli/tsconfig.json"
+  printf '{}\n' > "$ROOT/cli/tsconfig.build.json"
+  printf 'v1\n' > "$ROOT/cli/src/index.ts"
+  printf '// tsc\n' > "$ROOT/cli/scripts/tsc.mjs"
 
   # pnpm の stub。呼び出しを「cwd|引数」で CALLS に記録する。標準出力へ雑音を出すのは、wrapper が
   # bootstrap の標準出力を JSON-RPC から外していること（MCP 起動）を見るため。
@@ -70,18 +70,18 @@ case "\$*" in
   *"install --frozen-lockfile"*)
     sleep "\${STUB_PNPM_DELAY:-0}"
     [ -z "\${STUB_FAIL_INSTALL:-}" ] || exit 1
-    mkdir -p node_modules/.pnpm cli-node/node_modules node_modules/.vite
+    mkdir -p node_modules/.pnpm cli/node_modules node_modules/.vite
     printf 'hoisted\n' > node_modules/.modules.yaml
     printf 'abs=%s\n' "\$PWD" > node_modules/.pnpm-workspace-state-v1.json
     printf 'cache\n' > node_modules/.vite/cache
-    printf 'pkg\n' > cli-node/node_modules/pkg.js
+    printf 'pkg\n' > cli/node_modules/pkg.js
     ;;
   *"@pecot/pecot-workflow-cli run build"*)
     sleep "\${STUB_PNPM_DELAY:-0}"
     [ -z "\${STUB_FAIL_BUILD:-}" ] || exit 1
-    mkdir -p cli-node/dist
-    src="\$(cat cli-node/src/index.ts)"
-    cat > cli-node/dist/cli.js <<JS
+    mkdir -p cli/dist
+    src="\$(cat cli/src/index.ts)"
+    cat > cli/dist/cli.js <<JS
 const fs = require("node:fs");
 const path = require("node:path");
 const args = process.argv.slice(2);

@@ -59,7 +59,7 @@ _run_vitest_pass2() {
     mkdir -p "$empty/.git" "$empty/tmp" \
         "$empty/xdg-config" "$empty/xdg-data" "$empty/xdg-cache"
     (
-        cd "$PLUGIN_ROOT/cli-node" &&
+        cd "$PLUGIN_ROOT/cli" &&
         env -i \
             PATH="$PATH" \
             LANG=C.UTF-8 \
@@ -77,7 +77,7 @@ _run_vitest_pass2() {
     )
 }
 
-# Node 側（cli-node/）は repo root の 1 つの pnpm workspace に属する。
+# Node 側（cli/）は repo root の 1 つの pnpm workspace に属する。
 # pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
 # nx 経由では scripts/ci/install.sh（pecot-workflow:install target）が実行済み。
@@ -115,8 +115,8 @@ if [ "$RUN_BOOTSTRAP" = true ]; then
     # data-dir.sh は、データ置き場の解決順。manifest.sh は、登録ファイルの整合。
     # install-record.sh は、stub pnpm でミラーを作り直す条件と世代削除を確かめる。
     for script in run.sh data-dir.sh manifest.sh install-record.sh; do
-        echo "==> bash cli-node/tests/bootstrap/$script"
-        bash "$PLUGIN_ROOT/cli-node/tests/bootstrap/$script"
+        echo "==> bash cli/tests/bootstrap/$script"
+        bash "$PLUGIN_ROOT/cli/tests/bootstrap/$script"
     done
 fi
 
@@ -129,7 +129,7 @@ if [ "$RUN_HOOKS" = true ]; then
     V_CMP_RC=0
 
     # vitest も 2 回流す。1 回目の JUnit は、古い合格を残さないよう先に消す。
-    V_JUNIT1="$PLUGIN_ROOT/cli-node/test-results/junit-hooks.xml"
+    V_JUNIT1="$PLUGIN_ROOT/cli/test-results/junit-hooks.xml"
     rm -f "$V_JUNIT1"
     echo "==> hooks vitest pass 1 (project hooks)"
     # shellcheck disable=SC2086
@@ -140,7 +140,7 @@ if [ "$RUN_HOOKS" = true ]; then
 
     echo "==> compare JUnit XML (hooks vitest pass1 vs pass2)"
     # shellcheck disable=SC2086
-    ( cd "$PLUGIN_ROOT/cli-node" && $PNPM exec tsx scripts/compare-junit.ts "$V_JUNIT1" "$V_TMP2/junit.xml" ) || V_CMP_RC=$?
+    ( cd "$PLUGIN_ROOT/cli" && $PNPM exec tsx scripts/compare-junit.ts "$V_JUNIT1" "$V_TMP2/junit.xml" ) || V_CMP_RC=$?
 
     if [ "$V_PASS1_RC" -ne 0 ] || [ "$V_PASS2_RC" -ne 0 ] || [ "$V_CMP_RC" -ne 0 ]; then
         echo "ERROR: hooks tests failed (vitest pass1=$V_PASS1_RC pass2=$V_PASS2_RC compare=$V_CMP_RC)" >&2
@@ -152,7 +152,7 @@ if [ "$RUN_SKILLS" = true ]; then
     # skills のテスト。本文のツール名・入力名の確認と、w-onboarding のスクリプトのテストを vitest で流す。
     # w-onboarding のスクリプトのテストは OS 判定で WSL/macOS のケースが skip される、環境依存系。
     # 単発で実行する（hooks のような 2 パス + compare は適用しない）。
-    V_JUNIT_SKILLS="$PLUGIN_ROOT/cli-node/test-results/junit-skills.xml"
+    V_JUNIT_SKILLS="$PLUGIN_ROOT/cli/test-results/junit-skills.xml"
     rm -f "$V_JUNIT_SKILLS"
     echo "==> skills vitest (project skills)"
     # shellcheck disable=SC2086

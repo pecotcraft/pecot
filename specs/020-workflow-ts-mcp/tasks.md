@@ -383,40 +383,40 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 **Independent Test**: Python と pytest の無い環境で、pecot-workflow の全レーンが通る。カバレッジが 91.0 以上。quickstart.md の「走査」で、Python の残りが 0 件。
 `interface-spec:lint-defs` に `has no test` の行が無い（SC-011）。`git ls-files 'plugins/pecot-workflow/**/*.py'` が 0 件。`git grep -n cli-node` の該当が、`specs/` と CHANGELOG を除いて 0 件
 
-- [ ] T075 [US4] `cli/` の Python を消す。対象は `commands/`・`core/`・`tests/`・`pyproject.toml`・`uv.lock`・`__init__.py`・`__main__.py`・`py.typed` である。`cli/templates/` は Node の CLI が読むので残す。
-- [ ] T076 [US4] ID を持たない pytest を、1 本ずつ移すか消すかを決める。対象は次の 6 本。
+- [x] T075 [US4] `cli/` の Python を消す。対象は `commands/`・`core/`・`tests/`・`pyproject.toml`・`uv.lock`・`__init__.py`・`__main__.py`・`py.typed` である。`cli/templates/` は Node の CLI が読むので残す。
+- [x] T076 [US4] ID を持たない pytest を、1 本ずつ移すか消すかを決める。対象は次の 6 本。
   - `cli/tests/unit/test_architecture.py`・`test_doc_reference_integrity.py`・`test_english_only.py`
   - `cli/tests/unit/test_skill_docs.py`・`test_template_rules.py`
   - `cli/tests/ci/test_run_tests_locked.py`
   スキルとテンプレートの文書を確かめるものは vitest に移す。Python の構成だけを確かめるものは消す。決めた結果を PR の本文に書く。
-- [ ] T077 [US4] hooks とスキルの pytest を消す。対象は次のとおり。
+- [x] T077 [US4] hooks とスキルの pytest を消す。対象は次のとおり。
   - `hooks/tests/`・`hooks/lib/tests/`・`hooks/conftest.py`
   - `skills/w-merge/scripts/tests/` の pytest。`merge-wait.sh` のテストで、vitest に移してから消す。フェーズ 11 では `test-hooks` の pytest が流す
   - `skills/w-onboarding/scripts/tests/` と `scripts/ci/tests/test_*.py` は、フェーズ 11 で vitest に移して消した
-- [ ] T078 [US4] Python のソースを読む Node のテスト 3 つを、固定の期待値に置き換える。
+- [x] T078 [US4] Python のソースを読む Node のテスト 3 つを、固定の期待値に置き換える。
   対象は次の 3 つ。
   - `cli-node/src/infra/github/tests/queries.test.ts`（`cli/core/github/queries.py` を読む）
   - `cli-node/tests/fake-github/server.test.ts`（同じ `queries.py` を読む）
   - `cli-node/tests/parity/scenario.test.ts`（`cli/commands/main.py` を読む）
   `project.json` の `test-cli` の inputs からも、`cli/core/github/queries.py` と `cli/commands/main.py` を外す。
-- [ ] T079 [US4] `cli-node/tests/python-output/record.py` を消す。`record.ts` と `record:parity*` のスクリプトも消す。
+- [x] T079 [US4] `cli-node/tests/python-output/record.py` を消す。`record.ts` と `record:parity*` のスクリプトも消す。
   golden、`tests/output/cases.json`、`tests/python-output/` の JSON は、Node の回帰テストの期待値として残す。
-- [ ] T080 [US4] `cli-node/` を `cli/` に移す。`project.json` の inputs と `--filter`、`bin/pecot`・`bin/_lib.sh` のパスを直す。`pnpm-workspace.yaml`、knip と ESLint の設定、`vitest.config.ts` の参照も直す。
-- [ ] T081 [US4] `project.json` から `test-py` と `lint-py` を外し、`test` と `lint` の dependsOn を直す。
+- [x] T080 [US4] `cli-node/` を `cli/` に移す。`project.json` の inputs と `--filter`、`bin/pecot`・`bin/_lib.sh` のパスを直す。`pnpm-workspace.yaml`、knip と ESLint の設定、`vitest.config.ts` の参照も直す。
+- [x] T081 [US4] `project.json` から `test-py` と `lint-py` を外し、`test` と `lint` の dependsOn を直す。
   `scripts/ci/run-tests.sh` と `run-lint.sh` から py と pytest を外す。`scripts/ci/python-version.sh` と `compare_junit.py` を消す。
-- [ ] T082 [US4] `libs/interface-spec/targets.json` の pecot-workflow を、移した後のパスに直す。`sources` は `cli/src` の分けた glob にする。`tests` は `cli/tests/**/*.ts`・`cli/src/**/tests/**/*.ts` にする。
+- [x] T082 [US4] `libs/interface-spec/targets.json` の pecot-workflow を、移した後のパスに直す。`sources` は `cli/src` の分けた glob にする。`tests` は `cli/tests/**/*.ts`・`cli/src/**/tests/**/*.ts` にする。
   `libs/interface-spec/project.json` の `lint-defs` の inputs も、`sources` と `tests` に合わせる。
   `libs/interface-spec/docs/conf.py` の `iface_junit` は、`cli/test-results/junit.xml`（Node）と `cli/test-results/junit-hooks.xml` の 2 本にする。
-- [ ] T083 [US4] `interface-spec:lint-defs` を流し、振る舞いの項目 769 個が全部つながることを確かめる（SC-011）。`libs/interface-spec/README.md` の手順で定義書の HTML を作り、Python を読まずに出来ることも確かめる。
+- [x] T083 [US4] `interface-spec:lint-defs` を流し、振る舞いの項目 769 個が全部つながることを確かめる（SC-011）。`libs/interface-spec/README.md` の手順で定義書の HTML を作り、Python を読まずに出来ることも確かめる。
   同じ README の手順 `nx run-many -t test-py test-cli test-hooks` も、今のレーンに直す。
-- [ ] T084 [US4] `nx.json` の `pecotPluginTestGlobals` / `pecotPluginLintGlobals` から、uv と Python の参照を外す。
+- [x] T084 [US4] `nx.json` の `pecotPluginTestGlobals` / `pecotPluginLintGlobals` から、uv と Python の参照を外す。
   外すのは runtime 入力、`cli/pyproject.toml`、`cli/uv.lock`、`python-version.sh` である。代わりに `pnpm-lock.yaml` などの Node の入力を足す。
-- [ ] T085 [US4] プラグインの外の `cli-node`・`test-py`・`lint-py`・`python-version.sh` の参照を直す。
+- [x] T085 [US4] プラグインの外の `cli-node`・`test-py`・`lint-py`・`python-version.sh` の参照を直す。
   `.githooks/project.json`、`.githooks/pre-push/check-text-push.sh`、`.gitignore`、`.pre-commit-config.yaml`（ruff の `--config` と `check-nx-env-inputs` の files）。
   `.githooks/tests/` の `test_nx_affected_mapping.py`・`test_nx_task_cache.py`・`test_python_range_parity.py`・`test_nx_env_inputs.py`・`test_pre_commit_config_wiring.py`・`test_gen_runtime_lock.py`・`representative-files.txt`。
   `plugins/pecot-visual/cli/tests/bootstrap/lib-consistency.sh`、`plugins/pecot-visual/scripts/ci/check-pm-guard.sh`、`libs/interface-spec/tests/sample-files.test.ts`（`node-sample.json` のパス）。
   `.claude/rules/test-conventions.md`、`plugins/pecot-workflow/runtime-workspace.yaml`。
-- [ ] T086 [P] [US4] `.github/dependabot.yml` から uv（`/plugins/pecot-workflow/cli`）のエントリを消す。ファイル先頭の uv についての説明も消す。
+- [x] T086 [P] [US4] `.github/dependabot.yml` から uv（`/plugins/pecot-workflow/cli`）のエントリを消す。ファイル先頭の uv についての説明も消す。
 - [ ] T087 [US4] `.specify/memory/constitution.md` の `cli-node/` と pytest の閾値の記述は、憲章の変更にあたる。利用者に確認してから直す。確認が取れるまでは直さず、PR の本文に確認待ちと書く。
 
 **Checkpoint**: Python なしで全レーンが通る。つながらない項目が 0 件。着手の時点の `authored.yaml` と、項目の ID と文に差が無い。Python と uv の無い環境の作り方は quickstart.md を指す

@@ -8,7 +8,7 @@
 
 ```bash
 # 1. JUnit を出す
-pnpm exec nx run-many -t test-py test-cli test-hooks --projects=pecot-workflow,pecot-tools,pecot-visual
+pnpm exec nx run-many -t test-cli test-hooks --projects=pecot-workflow,pecot-tools,pecot-visual
 
 # 2. HTML を作る（libs/interface-spec/docs/_build）
 pnpm exec nx run interface-spec:docs

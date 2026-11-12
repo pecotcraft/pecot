@@ -31,7 +31,7 @@ paths:
 - `.github/plugin/plugin.json` は持たない。Copilot CLI は 1.0 形式のプラグインでは読まない
 - Copilot CLI の hooks は `com.github.copilot/hooks/hooks.json` に置く。エージェントは `com.github.copilot/agents`（`../agents` への相対 symlink）に置く
 - リモートの MCP サーバの `type` は、`.mcp.json` が `"http"`、`mcp.json` が `"streamable-http"` にする。1.0 のスキーマは `http` を認めない。`url` は同値
-- 一致は `plugins/{pecot-visual,pecot-tools}/cli/tests/bootstrap/manifest.sh` が確認する。pecot-workflow は `plugins/pecot-workflow/cli-node/tests/bootstrap/manifest.sh` が確認する
+- 一致は `plugins/{pecot-visual,pecot-tools}/cli/tests/bootstrap/manifest.sh` が確認する。pecot-workflow は `plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh` が確認する
 
 ## データ置き場は 3 段で解決する
 
@@ -79,8 +79,7 @@ pecot-tools のパッケージ名・配布物名・MCP サーバのキーには 
 - 単体配布 README: 1 文の紹介 → 前提 → 登録（版の固定を含む） → 初回の操作 → ツール → 失敗したとき → 版
 - バッジは動作前提 → 技術スタックの順で、shields.io の `flat-square`。
   バージョンは実際の下限に合わせる。
-  Node.js は `plugins/pecot-visual/cli/src/node-runtime.ts` の表に合わせる。
-  Python は `plugins/pecot-workflow/cli/pyproject.toml` の `requires-python` に合わせる
+  Node.js は `plugins/pecot-visual/cli/src/node-runtime.ts` の表に合わせる
 
 置かないもの:
 

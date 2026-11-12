@@ -1,7 +1,7 @@
 // hooks のテストが使うパス。
 import path from 'node:path'
 
-// このファイルは plugins/pecot-workflow/cli-node/tests/hooks/_helpers/ にある。
+// このファイルは plugins/pecot-workflow/cli/tests/hooks/_helpers/ にある。
 export const projectRoot = path.resolve(import.meta.dirname, '../../../../../..')
 export const pluginRoot = path.join(projectRoot, 'plugins', 'pecot-workflow')
 export const hooksDirectory = path.join(pluginRoot, 'hooks')

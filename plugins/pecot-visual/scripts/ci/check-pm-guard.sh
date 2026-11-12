@@ -186,7 +186,7 @@ run_behavior_check() {
         assert_blocked "pecot-tools root × npm install" "$plugins_dir/pecot-tools" npm install
         assert_blocked "pecot-tools cli × npm install" "$plugins_dir/pecot-tools/cli" npm install
         assert_blocked "pecot-workflow root × npm install" "$plugins_dir/pecot-workflow" npm install
-        assert_blocked "pecot-workflow cli-node × npm install" "$plugins_dir/pecot-workflow/cli-node" npm install
+        assert_blocked "pecot-workflow cli × npm install" "$plugins_dir/pecot-workflow/cli" npm install
         # package.json の無い dir（plugins/pecot-workflow/cli）は、上の plugins/pecot-workflow/package.json の宣言を受ける。
         assert_npx_declaration "pecot-workflow cli（package.json の無い dir）× npx" "$plugins_dir/pecot-workflow" cli
         assert_npx_declaration "pecot-workflow cli（cwd を /）× npx" "$plugins_dir/pecot-workflow" cli root

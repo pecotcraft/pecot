@@ -50,8 +50,8 @@ iface_root = str(ROOT)
 iface_junit = {
     "pecot-workflow": [
         str(ROOT / "plugins/pecot-workflow/cli/test-results/junit.xml"),
-        str(ROOT / "plugins/pecot-workflow/cli-node/test-results/junit.xml"),
-        str(ROOT / "plugins/pecot-workflow/cli-node/test-results/junit-hooks.xml"),
+        str(ROOT / "plugins/pecot-workflow/cli/test-results/junit.xml"),
+        str(ROOT / "plugins/pecot-workflow/cli/test-results/junit-hooks.xml"),
     ],
     "pecot-tools": [str(ROOT / "plugins/pecot-tools/cli/test-results/junit.xml")],
     "pecot-visual": [str(ROOT / "plugins/pecot-visual/cli/test-results/junit.xml")],

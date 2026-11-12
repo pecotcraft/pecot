@@ -110,7 +110,7 @@ def test_member_dependency_change_stops_with_hint(repo: Path) -> None:
 
 def test_importer_missing_in_lock_stops(repo: Path) -> None:
     lock = repo / "plugins/pecot-workflow/runtime-lock.yaml"
-    _edit(lock, "  cli-node:\n", "  cli-gone:\n")
+    _edit(lock, "  cli:\n", "  cli-gone:\n")
     result = _check(repo)
     assert result.returncode == 1
     assert "plugins/pecot-workflow/runtime-lock.yaml: importers" in result.stderr

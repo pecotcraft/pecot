@@ -12,7 +12,7 @@
 #   プラグインルートが読み取り専用でも準備が通る。本体配下には何も作らない。
 #   MCP 起動の標準出力は、bootstrap の出力で汚れない。
 #
-#   bash plugins/pecot-workflow/cli-node/tests/bootstrap/install-record.sh
+#   bash plugins/pecot-workflow/cli/tests/bootstrap/install-record.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,7 +46,7 @@ assert_eq "初回: current がそのミラーを指す" "$(mirrors | head -n 1)"
 assert_eq "初回: 実行した cli の版は plugin.json の版" 1.0.0 "$(reported version)"
 assert_eq "初回: cli はミラーの中で動く" "$(mirrors | head -n 1)" "$(reported runtime)"
 assert_eq "初回: 本体に node_modules を作らない" no "$([ -e "$ROOT/node_modules" ] && echo yes || echo no)"
-assert_eq "初回: 本体に cli-node/dist を作らない" no "$([ -e "$ROOT/cli-node/dist" ] && echo yes || echo no)"
+assert_eq "初回: 本体に cli/dist を作らない" no "$([ -e "$ROOT/cli/dist" ] && echo yes || echo no)"
 FIRST="$(mirrors | head -n 1)"
 assert_eq "初回: ミラーの pnpm-lock.yaml は runtime-lock.yaml の中身" "$(cat "$ROOT/runtime-lock.yaml")" "$(cat "$FIRST/pnpm-lock.yaml")"
 assert_eq "初回: ミラーの pnpm-workspace.yaml は runtime-workspace.yaml の中身" "$(cat "$ROOT/runtime-workspace.yaml")" "$(cat "$FIRST/pnpm-workspace.yaml")"
@@ -68,14 +68,14 @@ assert_eq "版だけの更新: ディレクトリ名は変わらない" "$FIRST"
 assert_eq "版だけの更新: 報告される版は新版" 1.1.0 "$(reported version)"
 
 # --- ソースだけの更新 ---
-printf 'v2\n' > "$ROOT/cli-node/src/index.ts"
+printf 'v2\n' > "$ROOT/cli/src/index.ts"
 stub_run -- mcp
 check_counts "ソースだけの更新: install 0 / build 1" 0 1
 SECOND="$(current_target)"
 if [ "$SECOND" != "$FIRST" ]; then ok "ソースだけの更新: 新しいミラーへ current を切り替える"; else ng "ソースだけの更新: current が動かない"; fi
 assert_eq "ソースだけの更新: 新しい cli で実行する" v2 "$(reported built)"
 assert_eq "ソースだけの更新: node_modules は旧ミラーと同じ inode（ハードリンク複製）" \
-  "$(stat -c %i "$FIRST/cli-node/node_modules/pkg.js")" "$(stat -c %i "$SECOND/cli-node/node_modules/pkg.js")"
+  "$(stat -c %i "$FIRST/cli/node_modules/pkg.js")" "$(stat -c %i "$SECOND/cli/node_modules/pkg.js")"
 assert_eq "ソースだけの更新: pnpm の状態ファイルは複製しない" no "$([ -e "$SECOND/node_modules/.pnpm-workspace-state-v1.json" ] && echo yes || echo no)"
 assert_eq "ソースだけの更新: 実行時キャッシュは複製しない" no "$([ -e "$SECOND/node_modules/.vite" ] && echo yes || echo no)"
 assert_eq "ソースだけの更新: .modules.yaml は複製する" yes "$([ -e "$SECOND/node_modules/.modules.yaml" ] && echo yes || echo no)"
@@ -109,7 +109,7 @@ check_counts "pnpm の版が変わる: install 1 / build 1" 1 1
 
 # --- 途中で止まったディレクトリ ---
 before="$(current_target)"
-printf 'v3\n' > "$ROOT/cli-node/src/index.ts"
+printf 'v3\n' > "$ROOT/cli/src/index.ts"
 stub_run STUB_NODE_MAJOR=26 STUB_FAIL_BUILD=1 -- mcp
 if [ "$RC" != 0 ]; then ok "build が失敗: 非 0 で終わる (exit=$RC)"; else ng "build が失敗しても exit 0"; fi
 assert_eq "build が失敗: current は切り替えない" "$before" "$(current_target)"
@@ -136,20 +136,20 @@ stub_run STUB_NODE_MAJOR=26 -- mcp
 check_counts "install 失敗の次の起動: install 1 / build 1" 1 1
 
 # --- SKIP ---
-mkdir -p "$ROOT/cli-node/dist"
-printf 'console.log(JSON.stringify({ skipped: true }))\n' > "$ROOT/cli-node/dist/cli.js"
+mkdir -p "$ROOT/cli/dist"
+printf 'console.log(JSON.stringify({ skipped: true }))\n' > "$ROOT/cli/dist/cli.js"
 rm -rf "$DATA/runtime/.before"
 ls -A "$DATA/runtime" > "$BASE/runtime-before"
 stub_run STUB_NODE_MAJOR=26 PECOT_BOOTSTRAP_SKIP=1 -- mcp
-assert_eq "SKIP=1: 本体ツリーの cli-node/dist を実行する" true "$(reported skipped)"
+assert_eq "SKIP=1: 本体ツリーの cli/dist を実行する" true "$(reported skipped)"
 ls -A "$DATA/runtime" > "$BASE/runtime-after"
 assert_eq "SKIP=1: データ置き場に何も作らない" "$(cat "$BASE/runtime-before")" "$(cat "$BASE/runtime-after")"
 assert_eq "SKIP=1: install / build をしない" 0 "$(count_events 'installing dependencies|building')"
-rm -rf "$ROOT/cli-node/dist"
+rm -rf "$ROOT/cli/dist"
 
 # --- 世代削除 ---
 # 使用中の世代（cli が生きている）を 1 本立てたまま、ソースを 3 回変えて build する。
-printf 'g0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'g0\n' > "$ROOT/cli/src/index.ts"
 stub_run STUB_NODE_MAJOR=26 -- mcp
 HELD_DIR="$(current_target)"
 HOLD="$BASE/hold.pid"
@@ -160,7 +160,7 @@ for _ in $(seq 1 50); do [ -s "$HOLD" ] && break; sleep 0.1; done
 assert_eq "世代削除の準備: 使用中の cli が起動している" yes "$([ -s "$HOLD" ] && echo yes || echo no)"
 GEN=()
 for generation in g1 g2 g3 g4; do
-  printf '%s\n' "$generation" > "$ROOT/cli-node/src/index.ts"
+  printf '%s\n' "$generation" > "$ROOT/cli/src/index.ts"
   stub_run STUB_NODE_MAJOR=26 -- mcp
   GEN+=("$(basename "$(current_target)")")
 done
@@ -177,7 +177,7 @@ assert_eq "世代削除: current の指す先は消さない" yes "$([ -e "$(cur
 kill "$(cat "$HOLD")" 2>/dev/null || true
 kill "$HELD_PID" 2>/dev/null || true
 wait "$HELD_PID" 2>/dev/null || true
-printf 'g5\n' > "$ROOT/cli-node/src/index.ts"
+printf 'g5\n' > "$ROOT/cli/src/index.ts"
 stub_run STUB_NODE_MAJOR=26 -- mcp
 if command -v flock >/dev/null 2>&1; then
   assert_eq "世代削除: 使われなくなった世代は次の準備で消え、直近 2 つ（g5 と g4）が残る（名前で突き合わせ）" \
@@ -185,7 +185,7 @@ if command -v flock >/dev/null 2>&1; then
 fi
 
 # --- 同時起動 ---
-printf 'c0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'c0\n' > "$ROOT/cli/src/index.ts"
 printf 'lock: 4\n' > "$ROOT/runtime-lock.yaml"
 rm -rf "$DATA/runtime"
 : > "$CALLS"
@@ -205,7 +205,7 @@ assert_eq "同時に 3 本起動: どれも完成したミラーで実行する"
 
 # --- 読み取り専用のプラグインルート ---
 rm -rf "$DATA/runtime"
-printf 'ro0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'ro0\n' > "$ROOT/cli/src/index.ts"
 chmod -R a-w "$ROOT"
 stub_run STUB_NODE_MAJOR=26 -- mcp
 chmod -R u+w "$ROOT"
@@ -217,7 +217,7 @@ check_counts "プラグインルートが読み取り専用でも 2 回目は 0 
 # --- flock(1) が無い環境（macOS 標準）: ロックファイルで直列化し、世代削除はしない ---
 make_noflock_bin
 rm -rf "$DATA/runtime" "$BASE"/nf-err-*
-printf 'nf0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'nf0\n' > "$ROOT/cli/src/index.ts"
 for i in 1 2; do
   stub_spawn "$BASE/nf-out-$i" "$BASE/nf-err-$i" STUB_NODE_MAJOR=26 STUB_PNPM_DELAY=1 PATH="$STUB_BIN:$NOFLOCK_BIN" -- mcp &
 done
@@ -232,7 +232,7 @@ assert_eq "flock 無し: ロックを残さない" no "$([ -e "$DATA/runtime/.bo
 # mkdir が不可分でなくても（同時に呼ぶと 2 人とも成功する）、ロックは 1 人にしか取れない
 make_lax_mkdir_bin
 rm -rf "$DATA/runtime" "$BASE"/lax-err-*
-printf 'lax0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'lax0\n' > "$ROOT/cli/src/index.ts"
 for i in 1 2; do
   stub_spawn "$BASE/lax-out-$i" "$BASE/lax-err-$i" STUB_NODE_MAJOR=26 STUB_PNPM_DELAY=1 PATH="$STUB_BIN:$LAX_MKDIR_BIN:$NOFLOCK_BIN" -- mcp &
 done
@@ -244,12 +244,12 @@ for i in 1 2; do grep -q '"built":"lax0"' "$BASE/lax-out-$i" || all_ok=no; done
 assert_eq "flock 無し・不可分でない mkdir で同時に 2 本起動: どちらも完成したミラーで実行する" yes "$all_ok"
 # stale ロック（保持者が死んでいる）は rename で掃除して先へ進む
 printf '999999\n' > "$DATA/runtime/.bootstrap.lock.pid"
-printf 'nf1\n' > "$ROOT/cli-node/src/index.ts"
+printf 'nf1\n' > "$ROOT/cli/src/index.ts"
 stub_run STUB_NODE_MAJOR=26 PATH="$STUB_BIN:$NOFLOCK_BIN" -- mcp
 check_counts "flock 無し: stale ロックを掃除して build する（install 0 / build 1）" 0 1
 assert_eq "flock 無し: stale ロックの掃除の跡を残さない" 0 "$(find "$DATA/runtime" -maxdepth 1 -name '.bootstrap.lock.pid*' | wc -l | tr -d ' ')"
 for generation in nf2 nf3 nf4; do
-  printf '%s\n' "$generation" > "$ROOT/cli-node/src/index.ts"
+  printf '%s\n' "$generation" > "$ROOT/cli/src/index.ts"
   stub_run STUB_NODE_MAJOR=26 PATH="$STUB_BIN:$NOFLOCK_BIN" -- mcp
 done
 assert_eq "flock 無し: 世代削除はしない（使用中かを判定できないため。5 世代が残る）" 5 "$(mirrors | wc -l | tr -d ' ')"
@@ -258,13 +258,13 @@ assert_eq "flock 無し: current は最後の世代" nf4 "$(reported built)"
 # --- 版の並走: 新→旧→新の起動で current が往復しない ---
 # Claude は旧版のプラグインルートを残すので、旧版のセッションと新版のセッションが同じデータ置き場を使う。
 rm -rf "$DATA/runtime"
-printf 'old0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'old0\n' > "$ROOT/cli/src/index.ts"
 OLD_ROOT="$BASE/plugin-old"
 rm -rf "$OLD_ROOT"
 cp -a "$ROOT" "$OLD_ROOT"
 RUN_ROOT="$OLD_ROOT" stub_run STUB_NODE_MAJOR=26 -- mcp
 OLD_MIRROR="$(current_target)"
-printf 'new0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'new0\n' > "$ROOT/cli/src/index.ts"
 stub_run STUB_NODE_MAJOR=26 -- mcp
 NEW_MIRROR="$(current_target)"
 if [ "$NEW_MIRROR" != "$OLD_MIRROR" ]; then ok "版の並走: 新版の起動で current が新しいミラーに移る"; else ng "版の並走: current が動かない"; fi
@@ -280,7 +280,7 @@ assert_eq "版の並走: 旧版を繰り返し起動しても current は往復�
 
 # --- MCP 起動の標準出力 ---
 rm -rf "$DATA/runtime"
-printf 'mcp0\n' > "$ROOT/cli-node/src/index.ts"
+printf 'mcp0\n' > "$ROOT/cli/src/index.ts"
 stub_run STUB_NODE_MAJOR=26 -- mcp
 if grep -q 'stub-pnpm-stdout-noise' "$OUT"; then
   ng "MCP 起動: bootstrap の出力が標準出力に入った" "$(cat "$OUT")"

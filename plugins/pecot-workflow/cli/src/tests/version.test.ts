@@ -69,12 +69,12 @@ describe('loadVersionFromPluginJson', () => {
   })
 
   it('JSON として読めないファイルなら undefined', () => {
-    const target = path.join(pluginRoot(), 'cli-node/src/version.ts')
+    const target = path.join(pluginRoot(), 'cli/src/version.ts')
     expect(loadVersionFromPluginJson(target)).toBeUndefined()
   })
 
   it('version キーを持たない JSON なら undefined', () => {
-    const target = path.join(pluginRoot(), 'cli-node/tsconfig.json')
+    const target = path.join(pluginRoot(), 'cli/tsconfig.json')
     expect(loadVersionFromPluginJson(target)).toBeUndefined()
   })
 

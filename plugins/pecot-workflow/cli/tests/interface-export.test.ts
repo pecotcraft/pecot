@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない */
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは一時ファイルと定義書 */
-// cli-node の書き出しの形と、--check / --write の動きを確かめる。
+// cli の書き出しの形と、--check / --write の動きを確かめる。
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -232,7 +232,7 @@ const ProjectSchema = z.object({ test: IncludeSchema })
 const ConfigSchema = z.object({ test: z.object({ projects: z.array(ProjectSchema) }) })
 
 const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
-const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli-node exec tsx scripts/export-interface.ts --write'
+const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/export-interface.ts --write'
 
 function fileOf(commands: Parameters<typeof exportEntries>[0]): Record<string, unknown> {
   return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: exportEntries(commands) }

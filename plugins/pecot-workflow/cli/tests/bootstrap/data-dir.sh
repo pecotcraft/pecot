@@ -10,7 +10,7 @@
 #   止まる条件: HOME と有効な XDG_DATA_HOME のどちらも無いときだけ。
 #     stderr に 1 行を出し、stdout は空で、非 0 で終わる。何も作らない。
 #
-#   bash plugins/pecot-workflow/cli-node/tests/bootstrap/data-dir.sh
+#   bash plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -121,8 +121,8 @@ assert_eq "HOME が無くても有効な XDG_DATA_HOME で動く" 1 "$(built_in 
 rm -rf "$XDG"
 
 # --- SKIP はデータ置き場の解決より先（置き場を決められなくても動き、何も作らない） ---
-mkdir -p "$ROOT/cli-node/dist"
-printf 'console.log("skip-ran")\n' > "$ROOT/cli-node/dist/cli.js"
+mkdir -p "$ROOT/cli/dist"
+printf 'console.log("skip-ran")\n' > "$ROOT/cli/dist/cli.js"
 before="$(tree_of_base)"
 stub_run CLAUDE_PLUGIN_DATA= PLUGIN_DATA= XDG_DATA_HOME= HOME= "$SKIP_VAR=1" -- mcp
 assert_eq "SKIP=1: データ置き場を決められなくても停止せず本体ツリーを実行する" skip-ran "$(cat "$OUT")"
@@ -130,10 +130,10 @@ assert_eq "SKIP=1: 何も作らない" "$before" "$(tree_of_base)"
 assert_eq "SKIP=1: install / build をしない" 0 "$(wc -l < "$CALLS" | tr -d ' ')"
 
 # SKIP で成果物が無いときは、理由を出して止まる
-rm -rf "$ROOT/cli-node/dist"
+rm -rf "$ROOT/cli/dist"
 stub_run "$SKIP_VAR=1" -- mcp
-assert_eq "SKIP=1 で cli-node/dist/cli.js が無い: 非 0 で終わる" yes "$([ "$RC" != 0 ] && echo yes || echo no)"
-assert_eq "SKIP=1 で cli-node/dist/cli.js が無い: 理由に Build first がある" 1 "$(grep -c -F "Build first" "$ERR" || true)"
+assert_eq "SKIP=1 で cli/dist/cli.js が無い: 非 0 で終わる" yes "$([ "$RC" != 0 ] && echo yes || echo no)"
+assert_eq "SKIP=1 で cli/dist/cli.js が無い: 理由に Build first がある" 1 "$(grep -c -F "Build first" "$ERR" || true)"
 
 echo "pass=$PASS fail=$FAIL"
 [ "$FAIL" -eq 0 ]

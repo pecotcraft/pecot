@@ -19,11 +19,11 @@
     "build-cli": {
       "executor": "nx:run-commands",
       "inputs": [
-        "{projectRoot}/cli-node/**/*",
-        "!{projectRoot}/cli-node/**/*.md",
-        "!{projectRoot}/cli-node/**/tests/**/*",
-        "!{projectRoot}/cli-node/**/*.test.*",
-        "!{projectRoot}/cli-node/dist/**/*",
+        "{projectRoot}/cli/**/*",
+        "!{projectRoot}/cli/**/*.md",
+        "!{projectRoot}/cli/**/tests/**/*",
+        "!{projectRoot}/cli/**/*.test.*",
+        "!{projectRoot}/cli/dist/**/*",
         "sharedGlobals"
       ],
       "dependsOn": ["install"],
@@ -42,10 +42,10 @@
     "test-cli": {
       "executor": "nx:run-commands",
       "inputs": [
-        "{projectRoot}/cli-node/**/*",
-        "!{projectRoot}/cli-node/tests/hooks/**",
-        "!{projectRoot}/cli-node/tests/bootstrap/**",
-        "!{projectRoot}/cli-node/tests/skills/**",
+        "{projectRoot}/cli/**/*",
+        "!{projectRoot}/cli/tests/hooks/**",
+        "!{projectRoot}/cli/tests/bootstrap/**",
+        "!{projectRoot}/cli/tests/skills/**",
         "sharedGlobals",
         "runtime",
         { "runtime": "git --version" },
@@ -66,9 +66,9 @@
         { "runtime": "node -p \"require('nx/package.json').version\"" }
       ],
       "dependsOn": ["install", "build-cli"],
-      "outputs": ["{projectRoot}/cli-node/test-results/junit.xml"],
+      "outputs": ["{projectRoot}/cli/test-results/junit.xml"],
       "metadata": {
-        "description": "cli-node の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行するので、入力から tests/hooks/ を除く。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/templates/・plugin.json・hooks/lib/core の 2 つのスクリプト・interface/ の定義書は、それぞれを読むテストのために宣言する。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。install と build は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行するので、入力から tests/hooks/ を除く。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/templates/・plugin.json・hooks/lib/core の 2 つのスクリプト・interface/ の定義書は、それぞれを読むテストのために宣言する。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。install と build は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
@@ -78,13 +78,13 @@
     "test-bootstrap": {
       "executor": "nx:run-commands",
       "inputs": [
-        "{projectRoot}/cli-node/tests/bootstrap/**/*",
-        "{projectRoot}/cli-node/src/**/*",
-        "!{projectRoot}/cli-node/src/**/tests/**/*",
-        "!{projectRoot}/cli-node/src/**/*.test.*",
-        "{projectRoot}/cli-node/tsconfig.json",
-        "{projectRoot}/cli-node/tsconfig.build.json",
-        "{projectRoot}/cli-node/scripts/tsc.mjs",
+        "{projectRoot}/cli/tests/bootstrap/**/*",
+        "{projectRoot}/cli/src/**/*",
+        "!{projectRoot}/cli/src/**/tests/**/*",
+        "!{projectRoot}/cli/src/**/*.test.*",
+        "{projectRoot}/cli/tsconfig.json",
+        "{projectRoot}/cli/tsconfig.build.json",
+        "{projectRoot}/cli/scripts/tsc.mjs",
         "{projectRoot}/.claude-plugin/plugin.json",
         "{projectRoot}/plugin.json",
         "{projectRoot}/mcp.json",
@@ -100,7 +100,7 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest、install-record。約 1 分）。実 pnpm でミラーを build する run.sh は、実の cli-node/src をミラーに build し、tools/list の 34 件を確かめる。そのため cli-node/src を入力に置く（テストは除く）。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest、install-record。約 1 分）。実 pnpm でミラーを build する run.sh は、実の cli/src をミラーに build し、tools/list の 34 件を確かめる。そのため cli/src を入力に置く（テストは除く）。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
@@ -114,13 +114,13 @@
         "{projectRoot}/agents/*.md",
         "{projectRoot}/hooks/templates/*.md",
         "{projectRoot}/cli/templates/pr/create.md",
-        "{projectRoot}/cli-node/tests/skills/**/*",
-        "{projectRoot}/cli-node/src/**/*",
-        "{projectRoot}/cli-node/tests/_helpers/**/*",
-        "{projectRoot}/cli-node/vitest.config.ts",
-        "{projectRoot}/cli-node/tsconfig.json",
-        "{projectRoot}/cli-node/tests/parity/baseline.ts",
-        "{projectRoot}/cli-node/tests/parity/baseline.json",
+        "{projectRoot}/cli/tests/skills/**/*",
+        "{projectRoot}/cli/src/**/*",
+        "{projectRoot}/cli/tests/_helpers/**/*",
+        "{projectRoot}/cli/vitest.config.ts",
+        "{projectRoot}/cli/tsconfig.json",
+        "{projectRoot}/cli/tests/parity/baseline.ts",
+        "{projectRoot}/cli/tests/parity/baseline.json",
         "{projectRoot}/scripts/ci/run-tests.sh",
         "sharedGlobals",
         "runtime",
@@ -130,9 +130,9 @@
         "{projectRoot}/.claude-plugin/plugin.json"
       ],
       "dependsOn": ["install"],
-      "outputs": ["{projectRoot}/cli-node/test-results/junit-skills.xml"],
+      "outputs": ["{projectRoot}/cli/test-results/junit-skills.xml"],
       "metadata": {
-        "description": "skills テスト（cli-node/tests/skills/）の vitest（project skills）。skills・agents・hooks テンプレートの本文のツール名と入力名を、cli-node/src の COMMANDS の定義と照らして確かめる。w-release の docs PR の例は PR のテンプレート（cli/templates/pr/create.md）の節と照らす。tests/parity/baseline.ts は、並べ替えの関数を借りる。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "skills テスト（cli/tests/skills/）の vitest（project skills）。skills・agents・hooks テンプレートの本文のツール名と入力名を、cli/src の COMMANDS の定義と照らして確かめる。w-release の docs PR の例は PR のテンプレート（cli/templates/pr/create.md）の節と照らす。tests/parity/baseline.ts は、並べ替えの関数を借りる。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",
@@ -146,13 +146,13 @@
         "sharedGlobals",
         "pecotPluginTestGlobals",
         "pecotPluginNodeInputs",
-        "{projectRoot}/cli-node/tests/hooks/**/*",
-        "{projectRoot}/cli-node/src/**/*",
-        "!{projectRoot}/cli-node/src/**/tests/**/*",
-        "!{projectRoot}/cli-node/src/**/*.test.*",
-        "{projectRoot}/cli-node/tests/parity/baseline.json",
-        "{projectRoot}/cli-node/tests/parity/baseline.ts",
-        "{projectRoot}/cli-node/vitest.config.ts",
+        "{projectRoot}/cli/tests/hooks/**/*",
+        "{projectRoot}/cli/src/**/*",
+        "!{projectRoot}/cli/src/**/tests/**/*",
+        "!{projectRoot}/cli/src/**/*.test.*",
+        "{projectRoot}/cli/tests/parity/baseline.json",
+        "{projectRoot}/cli/tests/parity/baseline.ts",
+        "{projectRoot}/cli/vitest.config.ts",
         "{workspaceRoot}/.githooks/pre-commit/check-entry-point-logic.sh",
         "{projectRoot}/agents/*.md",
         "{workspaceRoot}/plugins/pecot-visual/agents/*.md",
@@ -180,9 +180,9 @@
         "{workspaceRoot}/plugins/pecot-visual/com.github.copilot/hooks/hooks.json"
       ],
       "dependsOn": ["install", "build-cli"],
-      "outputs": ["{projectRoot}/cli-node/test-results/junit-hooks.xml"],
+      "outputs": ["{projectRoot}/cli/test-results/junit-hooks.xml"],
       "metadata": {
-        "description": "hooks テスト（cli-node/tests/hooks/）の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回流して結果を比べる。テストが読む hooks・agents・SKILL.md・plugin.json・bin/pecot・各 project.json と run-*.sh を宣言する。state-directory-resolution は build 済みの CLI を起動するので、build-cli を dependsOn に、cli-node/src を入力に置く。skills/w-merge/scripts/ は merge-wait.sh で、merge-wait.test.ts が読む。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "hooks テスト（cli/tests/hooks/）の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回流して結果を比べる。テストが読む hooks・agents・SKILL.md・plugin.json・bin/pecot・各 project.json と run-*.sh を宣言する。state-directory-resolution は build 済みの CLI を起動するので、build-cli を dependsOn に、cli/src を入力に置く。skills/w-merge/scripts/ は merge-wait.sh で、merge-wait.test.ts が読む。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
@@ -199,7 +199,7 @@
     "lint-cli": {
       "executor": "nx:run-commands",
       "inputs": [
-        "{projectRoot}/cli-node/**/*",
+        "{projectRoot}/cli/**/*",
         "sharedGlobals",
         "runtime",
         "env",
@@ -215,7 +215,7 @@
       ],
       "dependsOn": ["install"],
       "metadata": {
-        "description": "cli-node の tsc / eslint / knip。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli の tsc / eslint / knip。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-lint.sh --scope=cli",

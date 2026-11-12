@@ -9,18 +9,16 @@
       "sources": [
         "bin/*",
         "hooks/**/*.sh",
-        "cli-node/src/*.ts",
-        "cli-node/src/commands/*.ts",
-        "cli-node/src/domain/*.ts",
-        "cli-node/src/infra/*.ts",
-        "cli-node/src/infra/github/*.ts",
-        "cli-node/src/mcp/*.ts"
+        "cli/src/*.ts",
+        "cli/src/commands/*.ts",
+        "cli/src/domain/*.ts",
+        "cli/src/infra/*.ts",
+        "cli/src/infra/github/*.ts",
+        "cli/src/mcp/*.ts"
       ],
       "tests": [
-        "cli/tests/**/*.py",
-        "cli-node/tests/**/*.ts",
-        "cli-node/src/**/tests/**/*.ts",
-        "hooks/**/test_*.py"
+        "cli/tests/**/*.ts",
+        "cli/src/**/tests/**/*.ts"
       ]
     }
   }

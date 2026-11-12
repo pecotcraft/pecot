@@ -13,7 +13,7 @@ import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 
 const RULES_DOC = 'skills/w-help/references/issue-flow-rules.md'
-const QUICK_SOURCE = 'cli-node/src/commands/issue-quick.ts'
+const QUICK_SOURCE = 'cli/src/commands/issue-quick.ts'
 
 const MD_LINK = /\[[^\]]*\]\(([^)]+)\)/gu
 const INLINE_CODE = /`[^`]*`/gu
