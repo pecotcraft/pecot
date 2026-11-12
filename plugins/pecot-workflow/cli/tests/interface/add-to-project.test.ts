@@ -60,6 +60,19 @@ describe('add-to-project', () => {
     expect(github.requests().at(-1)).toMatchObject({ operation: 'UpdateProjectItemField', variables: { optionId: 'o4' } })
   })
 
+  it('設定に blocked があるとき、--status blocked で blocked の option に設定して set の行を出す', async (context) => {
+    await verifies(context, 'PW-ADD-TO-PROJECT-03')
+    await verifies(context, 'PW-ADD-TO-PROJECT-08')
+    prepareProject({ hasBlocked: true })
+    const github = await startGithub([linkedRepositories(), issueNodeId(), addedToBoard(), fieldUpdated('o7')])
+
+    const result = await add(['add-to-project', 'acme/demo/7', '--status', 'blocked'])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('added: Issue acme/demo/7 to project\nset: Issue acme/demo/7 status blocked\n')
+    expect(github.requests().at(-1)).toMatchObject({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o7' } })
+  })
+
   it('--status が空文字だと、Status を設定せず、ボードへの追加だけを行う', async (context) => {
     await verifies(context, 'PW-ADD-TO-PROJECT-04')
     prepareProject()
@@ -167,6 +180,23 @@ describe('add-to-project', () => {
     const result = await add(['add-to-project', 'acme/demo/7', '--status', 'active'])
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: status \'active\' is not configured in the project\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('ボードに Blocked が無いとき、--status blocked は足さずに、足し方の hint を添えた error を出す', async (context) => {
+    await verifies(context, 'PW-ADD-TO-PROJECT-16')
+    await verifies(context, 'PW-ADD-TO-PROJECT-17')
+    await verifies(context, 'PW-ADD-TO-PROJECT-18')
+    prepareProject()
+    const github = await startGithub([])
+
+    const result = await add(['add-to-project', 'acme/demo/7', '--status', 'blocked'])
+
+    expect(result).toEqual({
+      code: 1,
+      stdout: '',
+      stderr: 'error: status \'blocked\' is not configured in the project\n  hint: run pecot project init to add the Blocked option to the board\n',
+    })
     expect(github.requests()).toEqual([])
   })
 })

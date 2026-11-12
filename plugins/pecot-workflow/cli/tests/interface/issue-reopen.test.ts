@@ -61,6 +61,19 @@ describe('issue reopen', () => {
     expect(github.requests()[3]).toMatchObject({ variables: { itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o4' } })
   })
 
+  it('設定に blocked があるとき、--status blocked でボードの status を blocked の option にして set の行を出す', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-02')
+    await verifies(context, 'PW-ISSUE-REOPEN-07')
+    prepareProject({ hasBlocked: true })
+    const github = await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o7'), reopened()])
+
+    const result = await reopen(['acme/demo/7', '--status', 'blocked'])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('set: Issue acme/demo/7 status blocked\nreopened: Issue acme/demo/7\n')
+    expect(github.requests()[3]).toMatchObject({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o7' } })
+  })
+
   it('--status を省くと、ボードの status を ready にする', async (context) => {
     await verifies(context, 'PW-ISSUE-REOPEN-03')
     await verifies(context, 'PW-ISSUE-REOPEN-07')
@@ -159,6 +172,22 @@ describe('issue reopen', () => {
       code: 0,
       stdout: '',
       stderr: 'warning: status \'active\' is not configured in the project\nreopened: Issue acme/demo/7\n',
+    })
+    expect(github.requests().map(request => labelOf(request))).not.toContain('UpdateProjectItemField')
+  })
+
+  it('blocked がプロジェクトに設定されていないとき、足し方の hint を添えた warning を出して reopen する', async (context) => {
+    await verifies(context, 'PW-ISSUE-REOPEN-12')
+    await verifies(context, 'PW-ISSUE-REOPEN-20')
+    prepareProject()
+    const github = await startGithub([linkedRepositories(), reopened(), boardItems(), reopened()])
+
+    const result = await reopen(['acme/demo/7', '--status', 'blocked'])
+
+    expect(result).toEqual({
+      code: 0,
+      stdout: '',
+      stderr: 'warning: status \'blocked\' is not configured in the project\n  hint: run pecot project init to add the Blocked option to the board\nreopened: Issue acme/demo/7\n',
     })
     expect(github.requests().map(request => labelOf(request))).not.toContain('UpdateProjectItemField')
   })

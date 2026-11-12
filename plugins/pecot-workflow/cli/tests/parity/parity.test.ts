@@ -1,4 +1,4 @@
-// Node の CLI でシナリオを流し、Python の CLI から作った golden と一致することを確かめる。コマンドの足し忘れは registry.test.ts が止める。
+// Node の CLI でシナリオを流し、golden と一致することを確かめる。golden は Node の回帰の控えで、挙動を変えたら再生成して差分を確かめ、手で直す。コマンドの足し忘れは registry.test.ts が止める。
 import { describe, expect, it } from 'vitest'
 
 import { cliEntry, builtCliProblem } from './built-cli.js'

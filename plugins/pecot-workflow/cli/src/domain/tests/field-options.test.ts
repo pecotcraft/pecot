@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { insertOption } from '../field-options.js'
+import { choosePlacement, insertOption } from '../field-options.js'
 
 const existing = [
   { id: 'a', name: 'Pending', color: 'GRAY', description: 'p' },
@@ -50,5 +50,20 @@ describe('insertOption', () => {
 
   it('既存が空なら新しい選択肢だけの一覧になる', () => {
     expect(insertOption([], blocked, { end: true })).toEqual([blocked])
+  })
+})
+
+describe('choosePlacement', () => {
+  it('基準の名前が既存にある最初の候補を選ぶ（大文字と小文字は区別しない）', () => {
+    expect(choosePlacement(existing, [{ after: 'backlog' }, { before: 'Ready' }])).toEqual({ after: 'backlog' })
+  })
+
+  it('先の候補の基準が無ければ、次の候補を選ぶ', () => {
+    expect(choosePlacement(existing, [{ after: 'Nothing' }, { before: 'Ready' }])).toEqual({ before: 'Ready' })
+  })
+
+  it('どの候補の基準も無ければ、末尾を選ぶ', () => {
+    expect(choosePlacement(existing, [{ after: 'Nothing' }, { before: 'Nothing' }])).toEqual({ end: true })
+    expect(choosePlacement(existing, [])).toEqual({ end: true })
   })
 })

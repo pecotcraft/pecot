@@ -41,6 +41,12 @@ function isStatusConfigured(config: ProjectConfig, status: string): boolean {
   return fieldId !== undefined && fieldId !== '' && optionId !== undefined && optionId !== ''
 }
 
+// blocked は後から足せる option なので、足し方の hint を添える
+function notConfiguredMessage(status: string): string {
+  const base = `status '${status}' is not configured in the project`
+  return status === 'blocked' ? `${base}\nhint: run pecot project init to add the Blocked option to the board` : base
+}
+
 const ADD_TO_PROJECT = defineCommand({
   path: ['add-to-project'],
   description: 'Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)',
@@ -59,7 +65,7 @@ const ADD_TO_PROJECT = defineCommand({
 
       const config = requireActiveConfigPlain(output)
       if (status !== '' && !isStatusConfigured(config, status)) {
-        stopWith(output, `status '${status}' is not configured in the project`)
+        stopWith(output, notConfiguredMessage(status))
       }
 
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
@@ -106,7 +112,7 @@ const UPDATE_ISSUE_STATUS = defineCommand({
           stopWith(output, `${target} is not on the project board\nhint: add it to the board first with add-to-project`)
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {
-          stopWith(output, `status '${status}' is not configured in the project`)
+          stopWith(output, notConfiguredMessage(status))
         }
         output.done({ verb: 'set', target: `${target} status ${status}` })
       }
@@ -138,7 +144,7 @@ async function reopenAndSetStatus(output: Output, client: GitHubClient, config: 
     await delay(AUTOMATION_WAIT_MILLISECONDS)
   }
   else {
-    output.warning(`status '${status}' is not configured in the project`)
+    output.warning(notConfiguredMessage(status))
   }
 }
 

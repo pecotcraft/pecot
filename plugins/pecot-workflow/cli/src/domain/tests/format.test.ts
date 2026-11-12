@@ -326,10 +326,10 @@ describe('formatBoardOutput', () => {
     expect(formatBoardOutput([])).toBe('_No items_')
   })
 
-  it('表示順は Active・In Review・Ready・Pending・Backlog・Archived', () => {
-    const statuses = ['Archived', 'Backlog', 'Pending', 'Ready', 'In Review', 'Active']
+  it('表示順は Active・In Review・Blocked・Ready・Pending・Backlog・Archived', () => {
+    const statuses = ['Archived', 'Backlog', 'Pending', 'Ready', 'Blocked', 'In Review', 'Active']
     const items: readonly BoardItem[] = statuses.map((workflow, index) => ({ id: String(index), workflow, title: 't', updatedAt: '', content: { number: index, labels: [] } }))
-    expect(formatBoardOutput(items).split('\n').filter(line => line.startsWith('### ')).map(line => line.split(' (', 1)[0])).toEqual(['### Active', '### In Review', '### Ready', '### Pending', '### Backlog', '### Archived'])
+    expect(formatBoardOutput(items).split('\n').filter(line => line.startsWith('### ')).map(line => line.split(' (', 1)[0])).toEqual(['### Active', '### In Review', '### Blocked', '### Ready', '### Pending', '### Backlog', '### Archived'])
   })
 })
 
