@@ -10,8 +10,7 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import { COMMANDS } from '../src/commands/command-list.js'
-import { defineCommand, type CommandIo } from '../src/commands/registry.js'
+import { COMMANDS, defineCommand, type CommandIo } from '../src/commands/registry.js'
 import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
 import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
@@ -119,22 +118,31 @@ describe('exportEntries', () => {
     expect(Object.keys(entries[0]?.input.properties ?? {})).not.toContain('repo')
   })
 
-  it('ownsRepo のコマンドは、repo を input と cli.flags に残す', () => {
-    const owner = defineCommand({
-      path: ['owner'],
-      description: 'Owns repo.',
-      input: z.strictObject({ repo: z.string().optional().describe('Target repository.'), title: z.string().optional().describe('Title.') }),
+  it('自分の --repo を持つコマンド（hasOwnRepo）は、repo を input と cli.flags に出し、required には入れない', () => {
+    const own = defineCommand({
+      path: ['own'],
+      description: 'Has its own repo.',
+      input: z.strictObject({
+        json: z.boolean().default(false).describe('Print JSON.'),
+        repo: z.string().optional().describe('Target repository.'),
+      }),
+      hasOwnRepo: true,
       positional: [],
-      shortFlags: { repo: '-r' },
-      ownsRepo: true,
+      shortFlags: { json: '-j' },
       run: () => Promise.resolve(0),
       interactive: false,
     })
-    const [entry] = exportEntries([owner])
-    expect(Object.keys(entry?.input.properties ?? {})).toStrictEqual(['repo', 'title'])
-    expect(entry?.input.properties['repo']).toStrictEqual({ type: 'string', description: 'Target repository.' })
-    expect(entry?.input.required).toStrictEqual([])
-    expect(entry?.cli.flags['repo']).toStrictEqual(['--repo', '-r'])
+    const [entry] = exportEntries([own])
+    expect(entry?.input).toStrictEqual({
+      type: 'object',
+      properties: {
+        json: { type: 'boolean', default: false, description: 'Print JSON.' },
+        repo: { type: 'string', description: 'Target repository.' },
+      },
+      required: [],
+      additionalProperties: false,
+    })
+    expect(entry?.cli).toStrictEqual({ positional: [], flags: { json: ['--json', '-j'], repo: ['--repo'] } })
   })
 
   it('input.properties と cli.flags のキーは名前の順、引数の中のキーは決めた順', () => {
@@ -219,7 +227,7 @@ describe('exportEntries の失敗と refine', () => {
 describe('main', () => {
   const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
 
-  it('コマンドが空なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
+  it('COMMANDS が空なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
     const before = readFileSync(generated)
     const { io, out, error } = capture()
     expect(main(['--check'], io, [])).toBe(0)

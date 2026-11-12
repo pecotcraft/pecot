@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { COMMANDS } from '../../src/commands/command-list.js'
+import { COMMANDS } from '../../src/commands/registry.js'
 import { COMMAND_PATHS } from './commands.js'
 import { runScenario } from './run.js'
 import type { Launcher } from './run.js'

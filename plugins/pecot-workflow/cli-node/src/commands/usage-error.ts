@@ -10,7 +10,7 @@ const DEFAULT_OUTPUT_WIDTH = 80
 /**
 誤りが起きたコマンド。
 synopsis は Usage 行の `pecot <path>` の後ろに続く書式。
-例は `[OPTIONS] ISSUE_REF`。グループなら `[OPTIONS] COMMAND [ARGS]...` にする
+例は `[OPTIONS] {issue_ref}`。グループなら `[OPTIONS] COMMAND [ARGS]...` にする
 */
 export interface UsageContext {
   readonly commandPath: readonly string[]

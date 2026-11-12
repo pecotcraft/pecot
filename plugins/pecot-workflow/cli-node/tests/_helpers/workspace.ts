@@ -11,7 +11,7 @@ import path from 'node:path'
 import { afterEach } from 'vitest'
 
 import { runCli } from '../../src/cli.js'
-import { COMMANDS } from '../../src/commands/command-list.js'
+import { COMMANDS } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
 import { setEnvironment } from '../../src/tests/_helpers/environment.js'
 import { gitEnvironment } from '../../src/tests/_helpers/git-repository.js'

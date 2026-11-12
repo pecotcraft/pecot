@@ -48,30 +48,23 @@ export class GitHubNotFoundError extends GitHubAPIError {}
 */
 export class GitHubRateLimitError extends GitHubAPIError {}
 
-// 文字列で、前後の空白を落として空でないものだけ返す
-function nonBlankText(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-  const stripped = pythonStrip(value)
-  return stripped === '' ? undefined : stripped
-}
-
 /**
-GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える（422 の理由は後者にだけ入ることがある）。
-本文が JSON でない・どちらも無いときは添えない
+GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える。
+本文が JSON でない（HTML など）・どちらも無いときは添えない。
+422 では理由が errors[].message にだけ入ることがある（例: "Validation Failed" の詳細）
 */
 export function describeApiError(error: Readonly<GitHubAPIError>): string {
   const body = tryParseJsonText(error.responseBody ?? '')
   if (!isJsonObject(body)) return error.message
+  const top = jsonField(body, 'message')
   const errors = jsonField(body, 'errors')
-  const details = [
-    nonBlankText(jsonField(body, 'message')),
-    ...(isJsonArray(errors) ? errors.map(item => nonBlankText(jsonField(item, 'message'))) : []),
-  ].filter(detail => detail !== undefined)
+  const messages = [top, ...(isJsonArray(errors) ? errors.map(item => jsonField(item, 'message')) : [])]
+  const details = messages.filter(message => typeof message === 'string').map(message => pythonStrip(message)).filter(message => message !== '')
   return details.length === 0 ? error.message : `${error.message} ${details.join(' ')}`
 }
 
 /**
-ブランチ（ref）がもう無いことを示すエラーか（404 か 422 で、本文に「Reference does not exist」）
+このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす
 */
 export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
   return (error.statusCode === 404 || error.statusCode === 422) && error.responseBody?.includes('Reference does not exist') === true

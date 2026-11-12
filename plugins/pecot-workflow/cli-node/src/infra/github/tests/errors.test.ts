@@ -40,35 +40,44 @@ describe('継承', () => {
 })
 
 describe('describeApiError', () => {
-  it('本文の message と errors[].message を message の後ろに添える', () => {
-    const error = new GitHubAPIError('422 Unprocessable', { responseBody: '{"message": " Validation Failed ", "errors": [{"message": "No commits"}, {"message": "  "}, {"code": "x"}, "text"]}' })
-    expect(describeApiError(error)).toBe('422 Unprocessable Validation Failed No commits')
+  it('本文が無ければ message のまま', () => {
+    expect(describeApiError(new GitHubAPIError('GitHub API error: 500', { statusCode: 500 }))).toBe('GitHub API error: 500')
   })
 
-  it('errors[].message だけでも添える', () => {
-    expect(describeApiError(new GitHubAPIError('m', { responseBody: '{"errors": [{"message": "理由"}]}' }))).toBe('m 理由')
+  it('本文が JSON でなければ message のまま', () => {
+    expect(describeApiError(new GitHubAPIError('GitHub API error: 502', { statusCode: 502, responseBody: '<html>bad gateway</html>' }))).toBe('GitHub API error: 502')
   })
 
-  it.each([
-    ['本文なし', undefined],
-    ['JSON でない', '<html>'],
-    ['オブジェクトでない', '[1]'],
-    ['添える文が無い', '{"message": " ", "errors": "x"}'],
-    ['message が文字列でない', '{"message": 3}'],
-  ])('%s なら message のまま', (_name, responseBody) => {
-    expect(describeApiError(new GitHubAPIError('m', { responseBody }))).toBe('m')
+  it('本文の message を後ろに足す', () => {
+    expect(describeApiError(new GitHubAPIError('access denied', { statusCode: 403, responseBody: '{"message":"Forbidden"}' }))).toBe('access denied Forbidden')
+  })
+
+  it('errors[].message も足し、前後の空白は落とす', () => {
+    const body = '{"message":" Validation Failed ","errors":[{"message":"first"},{"code":"x"},{"message":"second "}]}'
+    expect(describeApiError(new GitHubAPIError('GitHub API error: 422', { statusCode: 422, responseBody: body }))).toBe('GitHub API error: 422 Validation Failed first second')
+  })
+
+  it('message が空の本文は足さない', () => {
+    expect(describeApiError(new GitHubAPIError('x', { responseBody: '{"message":"  "}' }))).toBe('x')
   })
 })
 
 describe('isMissingReferenceError', () => {
-  it.each([
-    [404, 'Reference does not exist', true],
-    [422, '{"message":"Reference does not exist"}', true],
-    [422, 'other', false],
-    [500, 'Reference does not exist', false],
-    [404, undefined, false],
-  ])('状態 %s・本文 %j は %s', (statusCode, responseBody, expected) => {
-    expect(isMissingReferenceError(new GitHubAPIError('m', { statusCode, responseBody }))).toBe(expected)
+  it.for([
+    { status: 404, expected: true },
+    { status: 422, expected: true },
+    { status: 403, expected: false },
+    { status: 500, expected: false },
+  ])('状態コード $status で本文に Reference does not exist があると $expected', ({ status, expected }) => {
+    expect(isMissingReferenceError(new GitHubAPIError('x', { statusCode: status, responseBody: '{"message":"Reference does not exist"}' }))).toBe(expected)
+  })
+
+  it('本文が別の理由なら、404 でも false', () => {
+    expect(isMissingReferenceError(new GitHubAPIError('x', { statusCode: 404, responseBody: '{"message":"Not Found"}' }))).toBe(false)
+  })
+
+  it('本文が無ければ false', () => {
+    expect(isMissingReferenceError(new GitHubAPIError('x', { statusCode: 422 }))).toBe(false)
   })
 })
 

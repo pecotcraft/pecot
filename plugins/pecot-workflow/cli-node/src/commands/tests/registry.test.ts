@@ -3,8 +3,7 @@ import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
 import { COMMAND_PATHS } from '../../../tests/parity/commands.js'
-import { COMMANDS } from '../command-list.js'
-import { defineCommand, findCommand, toolNameOf } from '../registry.js'
+import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
 /**
@@ -13,18 +12,6 @@ Node へ未移植のコマンドの path。各 Phase が移植するたびに、
 const PENDING_PATHS: readonly (readonly string[])[] = [
   ['add-to-project'],
   ['update-issue-status'],
-  ['create-branch'],
-  ['delete-branch'],
-  ['project', 'list'],
-  ['project', 'search'],
-  ['project', 'init'],
-  ['project', 'create'],
-  ['project', 'info'],
-  ['project', 'activate'],
-  ['project', 'set-repo'],
-  ['project', 'set-aggregation-repo'],
-  ['project', 'unset-aggregation-repo'],
-  ['project', 'show-aggregation-repo'],
   ['issue', 'create'],
   ['issue', 'quick'],
   ['issue', 'read'],
@@ -54,7 +41,6 @@ describe('コマンドの一覧', () => {
     expect([...registered, ...pending].toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(path => keyOf(path)).toSorted(compareStrings))
     expect(registered.filter(key => pending.includes(key))).toEqual([])
     expect(registered.length + pending.length).toBe(34)
-    expect(registered).toHaveLength(4)
     expect(new Set([...registered, ...pending]).size).toBe(34)
   })
 
@@ -66,7 +52,7 @@ describe('コマンドの一覧', () => {
 
   it('未移植の path は toolName が重複しない', () => {
     const names = PENDING_PATHS.map(path => toolNameOf(path))
-    expect(new Set(names).size).toBe(30)
+    expect(new Set(names).size).toBe(PENDING_PATHS.length)
   })
 })
 
@@ -149,10 +135,6 @@ describe('defineCommand', () => {
     })).toThrow('予約名')
   })
 
-  it('ownsRepo が無ければ、定義は ownsRepo: false', () => {
-    expect(definition.ownsRepo).toBe(false)
-  })
-
   it('全体の refine を保ち、strictObject でも repo を受ける', async () => {
     const received: unknown[] = []
     const strict = defineCommand({
@@ -207,105 +189,6 @@ describe('defineCommand', () => {
   })
 })
 
-describe('defineCommand の ownsRepo', () => {
-  const received: unknown[] = []
-  const owner = defineCommand({
-    path: ['pr', 'create'],
-    description: '',
-    input: z.object({ title: z.string().optional(), repo: z.string().optional() }),
-    positional: [],
-    shortFlags: { repo: '-r' },
-    ownsRepo: true,
-    interactive: false,
-    run: async (input, _io, context) => {
-      received.push([input, context])
-      return await exitWith(4)
-    },
-  })
-
-  it('印を定義に出し、グローバルの repo を input に足さない', () => {
-    expect(owner.ownsRepo).toBe(true)
-    expect(Object.keys(owner.input.shape)).toEqual(['title', 'repo'])
-  })
-
-  it('自前の repo を検証して入力に入れ、グローバルの値は context で渡す', async () => {
-    received.length = 0
-    expect(await owner.run({ repo: 'own/repo' }, capture(), { globalRepository: 'global/repo' })).toBe(4)
-    expect(received).toEqual([[{ repo: 'own/repo' }, { globalRepository: 'global/repo' }]])
-  })
-
-  it('context が無ければ globalRepository は undefined で、自前の repo が無くても入力に入らない', async () => {
-    received.length = 0
-    await owner.run({ title: 't' }, capture())
-    expect(received).toEqual([[{ title: 't' }, { globalRepository: undefined }]])
-  })
-
-  it('自前の repo の型が違えば ZodError', () => {
-    expect(() => owner.parse({ repo: 1 })).toThrow(z.ZodError)
-  })
-
-  it('印が無いコマンドも、グローバルの値を context で受け取る', async () => {
-    received.length = 0
-    const plain = defineCommand({
-      path: ['plain'],
-      description: '',
-      input: z.object({}),
-      positional: [],
-      interactive: false,
-      run: async (_input, _io, context) => {
-        received.push(context)
-        return await exitWith(0)
-      },
-    })
-    await plain.run({ repo: 'x/y' }, capture(), { globalRepository: 'ignored/repo' })
-    expect(received).toEqual([{ globalRepository: 'x/y' }])
-  })
-
-  it('印があるのに input に repo が無いと作れない', () => {
-    expect(() => defineCommand({
-      path: ['x'],
-      description: '',
-      input: z.object({}),
-      positional: [],
-      ownsRepo: true,
-      interactive: false,
-      run: async () => await exitWith(0),
-    })).toThrow('repo が要ります')
-  })
-})
-
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-function define(input: z.ZodObject, positional: readonly string[] = []): unknown {
-  return defineCommand({
-    path: ['x'],
-    description: '',
-    input,
-    positional,
-    interactive: false,
-    run: async () => await exitWith(0),
-  })
-}
-
-describe('defineCommand の no_ で始まる input', () => {
-  it('真偽値の no_x は作れる', () => {
-    expect(() => define(z.object({ no_color: z.boolean().default(false) }))).not.toThrow()
-  })
-
-  it('真偽値でない no_x は TypeError', () => {
-    expect(() => define(z.object({ no_color: z.string().optional() }))).toThrow(TypeError)
-    expect(() => define(z.object({ no_color: z.string().optional() }))).toThrow('no_color は真偽値')
-  })
-
-  it('x と no_x が両方あると TypeError', () => {
-    expect(() => define(z.object({ color: z.boolean().default(false), no_color: z.boolean().default(false) }))).toThrow(TypeError)
-    expect(() => define(z.object({ color: z.boolean().default(false), no_color: z.boolean().default(false) }))).toThrow('color と no_color')
-  })
-
-  it('位置引数の no_x はオプションではないので数えない', () => {
-    expect(() => define(z.object({ no_name: z.string() }), ['no_name'])).not.toThrow()
-  })
-})
-
 describe('findCommand', () => {
   it('path が一致するコマンドを返し、一致しなければ undefined を返す', () => {
     const command = defineCommand({
@@ -318,5 +201,6 @@ describe('findCommand', () => {
     })
     expect(findCommand(['pr', 'read'], [command])).toBe(command)
     expect(findCommand(['pr', 'merge'], [command])).toBeUndefined()
+    expect(findCommand(['pr', 'merge'])).toBeUndefined()
   })
 })

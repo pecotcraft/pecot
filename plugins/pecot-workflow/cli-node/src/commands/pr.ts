@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者が指定する */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // `pecot pr` の 4 コマンド（create・read・preflight・cleanup）。cli/commands/pr.py の移植。
-// 途中で抜ける箇所は ExitSignal を投げ、各コマンドの最初の層で終了コードにする。
+// 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
 import { existsSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { extractIssueNumberFromBranch } from '../domain/branch-issue.js'
 import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
-import { BaseError, InvalidValueError } from '../domain/errors.js'
+import { InvalidValueError } from '../domain/errors.js'
 import { FrontmatterError } from '../domain/frontmatter.js'
 import type { ParsedPullRequest } from '../domain/frontmatter.js'
 import { parseRemoteUrl } from '../domain/git-url.js'
@@ -51,8 +51,8 @@ import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree
 import { directorySchema } from './directory-option.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { defineCommand } from './registry.js'
-import type { CommandIo, GlobalInput } from './registry.js'
+import { CommandExit, defineCommand } from './command-definition.js'
+import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { settle } from './tracker-sync.js'
 
 const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
@@ -61,30 +61,9 @@ const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short for
 const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
 
-// typer.Exit(n) に当たる。コマンドの最初の層でだけ捕まえて、終了コードにする
-class ExitSignal extends BaseError {
-  readonly exitCode: number
-
-  constructor(exitCode: number) {
-    super(`exit ${String(exitCode)}`)
-    this.exitCode = exitCode
-  }
-}
-
 function fail(out: Readonly<Output>, message: string, exitCode = 1): never {
   out.error(message)
-  throw new ExitSignal(exitCode)
-}
-
-async function guarded(body: () => Promise<void> | void): Promise<number> {
-  try {
-    await body()
-    return 0
-  }
-  catch (error: unknown) {
-    if (error instanceof ExitSignal) return error.exitCode
-    throw error
-  }
+  throw new CommandExit(exitCode)
 }
 
 // Python の `{e}` に当たる、例外の文
@@ -274,7 +253,7 @@ async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: 
 function exitOnValidationErrors(errors: readonly string[], out: Readonly<Output>): void {
   if (errors.length === 0) return
   for (const error of errors) out.error(error)
-  throw new ExitSignal(VALIDATION_EXIT_CODE)
+  throw new CommandExit(VALIDATION_EXIT_CODE)
 }
 
 interface PullRequestDraft {
@@ -351,7 +330,7 @@ function runPreflightChecksOrExit(directory: string, out: Readonly<Output>): voi
   if (warnings.length === 0) return
   out.error('preflight found warnings; fix them before creating a PR')
   printPreflightWarnings(out, warnings)
-  throw new ExitSignal(PREFLIGHT_EXIT_CODE)
+  throw new CommandExit(PREFLIGHT_EXIT_CODE)
 }
 
 async function submitPullRequest(config: Readonly<ProjectConfig>, directory: string, draft: Readonly<PullRequestDraft>, out: Readonly<Output>): Promise<void> {
@@ -794,7 +773,7 @@ function runPreflight(input: Readonly<z.output<typeof PreflightInputSchema>>, io
   const warnings = collectPreflightWarnings({ gitStatus, stashList, isPushed: push.isPushed, pushMessage: push.message })
   out.count('preflight warnings', warnings.length)
   printPreflightWarnings(out, warnings)
-  if (warnings.length > 0) throw new ExitSignal(PREFLIGHT_EXIT_CODE)
+  if (warnings.length > 0) throw new CommandExit(PREFLIGHT_EXIT_CODE)
 }
 
 // pr cleanup
@@ -1027,43 +1006,57 @@ async function runCleanup(input: Readonly<z.output<typeof CleanupInputSchema> & 
   consumeFlag(FLAG_MERGE_SLASH_PENDING)
 }
 
-export const prCreate = defineCommand({
+const prCreate = defineCommand({
   path: ['pr', 'create'],
   description: 'Create a PR (pull request)',
   input: CreateInputSchema,
   positional: ['file'],
   shortFlags: { message: '-m', title: '-t', base: '-b', draft: '-d', prepare: '-p', dry_run: '-n', repo: '-r' },
-  ownsRepo: true,
+  hasOwnRepo: true,
   interactive: false,
-  run: async (input, io) => await guarded(() => runCreate(input, io)),
+  run: async (input, io) => {
+    await runCreate(input, io)
+    return 0
+  },
 })
 
-export const prRead = defineCommand({
+const prRead = defineCommand({
   path: ['pr', 'read'],
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
   input: ReadInputSchema,
   positional: ['pr_ref'],
   shortFlags: { json: '-j', reviews: '-r' },
   interactive: false,
-  run: async (input, io) => await guarded(() => runRead(input, io)),
+  run: async (input, io) => {
+    await runRead(input, io)
+    return 0
+  },
 })
 
-export const prPreflight = defineCommand({
+const prPreflight = defineCommand({
   path: ['pr', 'preflight'],
   description: 'Show all the information to check before creating a PR',
   input: PreflightInputSchema,
   positional: [],
   shortFlags: { directory: '-D' },
   interactive: false,
-  run: async (input, io) => await guarded(() => { runPreflight(input, io) }),
+  run: (input, io) => {
+    runPreflight(input, io)
+    return Promise.resolve(0)
+  },
 })
 
-export const prCleanup = defineCommand({
+const prCleanup = defineCommand({
   path: ['pr', 'cleanup'],
   description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
   input: CleanupInputSchema,
   positional: ['pr_ref'],
   shortFlags: { dry_run: '-n', delete_branch: '-d' },
   interactive: false,
-  run: async (input, io) => await guarded(() => runCleanup(input, io)),
+  run: async (input, io) => {
+    await runCleanup(input, io)
+    return 0
+  },
 })
+
+export const PR_COMMANDS: readonly CommandDefinition[] = [prCleanup, prCreate, prPreflight, prRead]
