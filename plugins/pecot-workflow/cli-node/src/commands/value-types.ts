@@ -2,7 +2,7 @@
 // オプションと位置引数の型。zod のスキーマの形から、click と同じ型変換と誤りの文を決める。
 import { z } from 'zod'
 
-import { parsePythonInteger, pythonStringRepr } from '../domain/python-format.js'
+import { parsePythonInteger, pythonFloatRepr, pythonStringRepr } from '../domain/python-format.js'
 
 /**
 CLI の値の形。真偽値は値を取らない旗、list は繰り返して渡す
@@ -15,7 +15,21 @@ export interface IntegerType {
   readonly max: number | undefined
 }
 
-export type ValueType = IntegerType | { readonly type: 'float' } | { readonly type: 'string' }
+export interface FloatType {
+  readonly type: 'float'
+  readonly min: number | undefined
+  readonly max: number | undefined
+}
+
+/**
+選択肢の型（z.enum）。値は選択肢のどれかに一致しなければならない
+*/
+export interface ChoiceType {
+  readonly type: 'choice'
+  readonly choices: readonly string[]
+}
+
+export type ValueType = ChoiceType | FloatType | IntegerType | { readonly type: 'string' }
 
 /**
 包んでいる側のスキーマ。Optional・Default・Nullable・Readonly・Prefault・Catch・NonOptional は中を見る。
@@ -56,9 +70,10 @@ export function valueTypeOf(schema: z.core.$ZodType): ValueType {
   const current = outer instanceof z.ZodArray ? unwrapped(outer.element) : outer
   if (current instanceof z.ZodNumber) {
     const isInteger = (current.format ?? '').includes('int')
-    return isInteger ? { type: 'integer', min: boundOf(current.minValue), max: boundOf(current.maxValue) } : { type: 'float' }
+    const range = { min: boundOf(current.minValue), max: boundOf(current.maxValue) }
+    return isInteger ? { type: 'integer', ...range } : { type: 'float', ...range }
   }
-  return { type: 'string' }
+  return current instanceof z.ZodEnum ? { type: 'choice', choices: current.options.map(String) } : { type: 'string' }
 }
 
 const SPECIAL_FLOAT = /^[+-]?(?:inf|infinity|nan)$/iu
@@ -87,23 +102,23 @@ export type Conversion
   = | { readonly isValid: true, readonly value: unknown }
     | { readonly isValid: false, readonly message: string }
 
+function isOutside(value: number, min: number | undefined, max: number | undefined): boolean {
+  return (min !== undefined && value < min) || (max !== undefined && value > max)
+}
+
 /**
-コマンドラインの文字列を、型に応じて変換する。誤りの文は click と同じ
+コマンドラインの文字列を、型に応じて変換する。誤りの文は typer 同梱の click と同じ
 */
 export function convertValue(text: string, valueType: ValueType): Conversion {
   if (valueType.type === 'string') return { isValid: true, value: text }
-  if (valueType.type === 'float') {
-    const value = parsePythonFloat(text)
-    return value === undefined ? { isValid: false, message: `${pythonStringRepr(text)} is not a valid float.` } : { isValid: true, value }
+  if (valueType.type === 'choice') {
+    return valueType.choices.includes(text) ? { isValid: true, value: text } : { isValid: false, message: `${pythonStringRepr(text)} is not one of ${valueType.choices.map(choice => pythonStringRepr(choice)).join(', ')}.` }
   }
   const { min, max } = valueType
-  const hasRange = min !== undefined || max !== undefined
-  const value = parsePythonInteger(text)
-  if (value === undefined) {
-    return { isValid: false, message: `${pythonStringRepr(text)} is not a valid integer${hasRange ? ' range' : ''}.` }
-  }
-  if ((min !== undefined && value < min) || (max !== undefined && value > max)) {
-    return { isValid: false, message: `${String(value)} is not in the range ${describeRange(min, max)}.` }
-  }
-  return { isValid: true, value }
+  const name = `${valueType.type === 'float' ? 'float' : 'int'}${min === undefined && max === undefined ? '' : ' range'}`
+  const value = valueType.type === 'float' ? parsePythonFloat(text) : parsePythonInteger(text)
+  if (value === undefined) return { isValid: false, message: `${pythonStringRepr(text)} is not a valid ${name}.` }
+  if (!isOutside(value, min, max)) return { isValid: true, value }
+  const shown = valueType.type === 'float' ? pythonFloatRepr(value) : String(value)
+  return { isValid: false, message: `${shown} is not in the range ${describeRange(min, max)}.` }
 }

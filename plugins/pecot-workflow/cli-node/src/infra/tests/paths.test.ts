@@ -16,6 +16,7 @@ import {
   PECOT_GITIGNORE_FILENAME,
   CONFIG_DIR,
   dataDirectory,
+  formatTimestamp,
   HOOKS_CONFIG_FILENAME,
   OUTPUT_DIR,
   outputDirectory,
@@ -417,5 +418,12 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
   it('bash の解決結果が実際に得られている（テストの前提）', () => {
     expect(execFileSync('bash', ['-c', `. "$1"; plugin_data_dir_resolve "$2"`, 'bash', libraryPath, PROJECT_NAME], { env: { PATH: process.env['PATH'] ?? '', HOME: '/home/u' }, encoding: 'utf8' }))
       .toBe(`/home/u/.local/share/pecot/${PROJECT_NAME}\n`)
+  })
+})
+
+describe('formatTimestamp', () => {
+  it('ローカル時刻を YYYYMMDD-HHMMSS にし、1 桁は 0 で埋める', () => {
+    expect(formatTimestamp(new Date(2026, 0, 2, 3, 4, 5).getTime())).toBe('20260102-030405')
+    expect(formatTimestamp(new Date(2026, 11, 31, 23, 59, 59).getTime())).toBe('20261231-235959')
   })
 })

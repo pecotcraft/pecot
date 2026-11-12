@@ -1,9 +1,9 @@
 // GitHub GraphQL API のクエリ・mutation 文字列。
-// cli/core/github/queries.py の文字列を逐語で写している。一致は infra/github/tests/queries.test.ts が固定する。
+// cli/core/github/queries.py の文字列を、Python の gql が送る形（GraphQL の文書を整形し直した文）にして写している。
+// 送る文が Python と同じなら、エラーの locations の行・列も同じになる。一致は infra/github/tests/queries.test.ts が固定する。
 
 // プロジェクトアイテム一覧取得（ページネーション対応）
-export const QUERY_LIST_PROJECT_ITEMS = `
-query($projectId: ID!, $cursor: String) {
+export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
       items(first: 100, after: $cursor) {
@@ -63,12 +63,10 @@ query($projectId: ID!, $cursor: String) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクトアイテム一覧取得（フィルタリング対応）
-export const QUERY_LIST_PROJECT_ITEMS_FILTERED = `
-query($projectId: ID!, $cursor: String, $filterQuery: String) {
+export const QUERY_LIST_PROJECT_ITEMS_FILTERED = `query ($projectId: ID!, $cursor: String, $filterQuery: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
       items(first: 100, after: $cursor, query: $filterQuery) {
@@ -128,24 +126,20 @@ query($projectId: ID!, $cursor: String, $filterQuery: String) {
       }
     }
   }
-}
-`
+}`
 
 // Issue Node ID・タイトル取得
-export const QUERY_GET_ISSUE_NODE_ID = `
-query($owner: String!, $repo: String!, $number: Int!) {
+export const QUERY_GET_ISSUE_NODE_ID = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       id
       title
     }
   }
-}
-`
+}`
 
 // リンクリポジトリ取得（user版）
-export const QUERY_GET_LINKED_REPOSITORIES_USER = `
-query($owner: String!, $projectNumber: Int!) {
+export const QUERY_GET_LINKED_REPOSITORIES_USER = `query ($owner: String!, $projectNumber: Int!) {
   user(login: $owner) {
     projectV2(number: $projectNumber) {
       repositories(first: 100) {
@@ -158,12 +152,10 @@ query($owner: String!, $projectNumber: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // リンクリポジトリ取得（organization版）
-export const QUERY_GET_LINKED_REPOSITORIES_ORG = `
-query($owner: String!, $projectNumber: Int!) {
+export const QUERY_GET_LINKED_REPOSITORIES_ORG = `query ($owner: String!, $projectNumber: Int!) {
   organization(login: $owner) {
     projectV2(number: $projectNumber) {
       repositories(first: 100) {
@@ -176,108 +168,80 @@ query($owner: String!, $projectNumber: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクトNode ID取得（user版）
-export const QUERY_GET_PROJECT_ID_USER = `
-query($owner: String!, $projectNumber: Int!) {
+export const QUERY_GET_PROJECT_ID_USER = `query ($owner: String!, $projectNumber: Int!) {
   user(login: $owner) {
     projectV2(number: $projectNumber) {
       id
     }
   }
-}
-`
+}`
 
 // プロジェクトNode ID取得（organization版）
-export const QUERY_GET_PROJECT_ID_ORG = `
-query($owner: String!, $projectNumber: Int!) {
+export const QUERY_GET_PROJECT_ID_ORG = `query ($owner: String!, $projectNumber: Int!) {
   organization(login: $owner) {
     projectV2(number: $projectNumber) {
       id
     }
   }
-}
-`
+}`
 
 // リポジトリNode ID取得
-export const QUERY_GET_REPOSITORY_ID = `
-query($owner: String!, $name: String!) {
+export const QUERY_GET_REPOSITORY_ID = `query ($owner: String!, $name: String!) {
   repository(owner: $owner, name: $name) {
     id
   }
-}
-`
+}`
 
 // プロジェクトにリポジトリをリンク
-export const MUTATION_LINK_PROJECT_REPOSITORY = `
-mutation($projectId: ID!, $repositoryId: ID!) {
-  linkProjectV2ToRepository(input: {
-    projectId: $projectId
-    repositoryId: $repositoryId
-  }) {
+export const MUTATION_LINK_PROJECT_REPOSITORY = `mutation ($projectId: ID!, $repositoryId: ID!) {
+  linkProjectV2ToRepository(
+    input: { projectId: $projectId, repositoryId: $repositoryId }
+  ) {
     repository {
       id
       nameWithOwner
     }
   }
-}
-`
+}`
 
 // ボードにアイテム追加
-export const MUTATION_ADD_TO_PROJECT = `
-mutation($projectId: ID!, $contentId: ID!) {
-  addProjectV2ItemById(input: {
-    projectId: $projectId
-    contentId: $contentId
-  }) {
+export const MUTATION_ADD_TO_PROJECT = `mutation ($projectId: ID!, $contentId: ID!) {
+  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
     item {
       id
     }
   }
-}
-`
+}`
 
 // プロジェクトアイテムフィールド更新
-export const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `
-mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-  updateProjectV2ItemFieldValue(input: {
-    projectId: $projectId
-    itemId: $itemId
-    fieldId: $fieldId
-    value: {
-      singleSelectOptionId: $optionId
+export const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { singleSelectOptionId: $optionId }
     }
-  }) {
+  ) {
     projectV2Item {
       id
     }
   }
-}
-`
+}`
 
 // プロジェクトアイテム削除
-export const MUTATION_DELETE_PROJECT_ITEM = `
-mutation($projectId: ID!, $itemId: ID!) {
-  deleteProjectV2Item(
-    input: {
-      projectId: $projectId
-      itemId: $itemId
-    }
-  ) {
+export const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
+  deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
     deletedItemId
   }
-}
-`
+}`
 
 // サブIssue紐づけ
-export const MUTATION_ADD_SUB_ISSUE = `
-mutation($parentId: ID!, $childId: ID!) {
-  addSubIssue(input: {
-    issueId: $parentId
-    subIssueId: $childId
-  }) {
+export const MUTATION_ADD_SUB_ISSUE = `mutation ($parentId: ID!, $childId: ID!) {
+  addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
     issue {
       number
     }
@@ -285,12 +249,10 @@ mutation($parentId: ID!, $childId: ID!) {
       number
     }
   }
-}
-`
+}`
 
 // リンクブランチ作成（Issueに紐づいたブランチ）
-export const MUTATION_CREATE_LINKED_BRANCH = `
-mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) {
+export const MUTATION_CREATE_LINKED_BRANCH = `mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) {
   createLinkedBranch(input: $input) {
     linkedBranch {
       ref {
@@ -299,12 +261,10 @@ mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) {
       }
     }
   }
-}
-`
+}`
 
 // Issue番号からプロジェクトアイテム取得（高速版）
-export const QUERY_GET_ISSUE_PROJECT_ITEMS = `
-query($owner: String!, $repo: String!, $number: Int!) {
+export const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       projectItems(first: 20) {
@@ -328,12 +288,10 @@ query($owner: String!, $repo: String!, $number: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクト一覧取得（user版）
-export const QUERY_LIST_PROJECTS_USER = `
-query($owner: String!, $first: Int!) {
+export const QUERY_LIST_PROJECTS_USER = `query ($owner: String!, $first: Int!) {
   user(login: $owner) {
     projectsV2(first: $first) {
       nodes {
@@ -344,12 +302,10 @@ query($owner: String!, $first: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクト一覧取得（organization版）
-export const QUERY_LIST_PROJECTS_ORG = `
-query($owner: String!, $first: Int!) {
+export const QUERY_LIST_PROJECTS_ORG = `query ($owner: String!, $first: Int!) {
   organization(login: $owner) {
     projectsV2(first: $first) {
       nodes {
@@ -360,12 +316,10 @@ query($owner: String!, $first: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクトフィールド取得（user版）
-export const QUERY_GET_PROJECT_FIELDS_USER = `
-query($owner: String!, $projectNumber: Int!) {
+export const QUERY_GET_PROJECT_FIELDS_USER = `query ($owner: String!, $projectNumber: Int!) {
   user(login: $owner) {
     projectV2(number: $projectNumber) {
       id
@@ -395,12 +349,10 @@ query($owner: String!, $projectNumber: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクトフィールド取得（organization版）
-export const QUERY_GET_PROJECT_FIELDS_ORG = `
-query($owner: String!, $projectNumber: Int!) {
+export const QUERY_GET_PROJECT_FIELDS_ORG = `query ($owner: String!, $projectNumber: Int!) {
   organization(login: $owner) {
     projectV2(number: $projectNumber) {
       id
@@ -430,18 +382,18 @@ query($owner: String!, $projectNumber: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // プロジェクトフィールド作成（SingleSelect用）
-export const MUTATION_CREATE_PROJECT_FIELD = `
-mutation($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
-  createProjectV2Field(input: {
-    projectId: $projectId
-    dataType: SINGLE_SELECT
-    name: $name
-    singleSelectOptions: $options
-  }) {
+export const MUTATION_CREATE_PROJECT_FIELD = `mutation ($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+  createProjectV2Field(
+    input: {
+      projectId: $projectId
+      dataType: SINGLE_SELECT
+      name: $name
+      singleSelectOptions: $options
+    }
+  ) {
     projectV2Field {
       ... on ProjectV2SingleSelectField {
         id
@@ -453,34 +405,25 @@ mutation($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectFieldO
       }
     }
   }
-}
-`
+}`
 
 // ユーザーNode ID取得
-export const QUERY_GET_USER_NODE_ID = `
-query($login: String!) {
+export const QUERY_GET_USER_NODE_ID = `query ($login: String!) {
   user(login: $login) {
     id
   }
-}
-`
+}`
 
 // 組織Node ID取得
-export const QUERY_GET_ORG_NODE_ID = `
-query($login: String!) {
+export const QUERY_GET_ORG_NODE_ID = `query ($login: String!) {
   organization(login: $login) {
     id
   }
-}
-`
+}`
 
 // プロジェクト作成
-export const MUTATION_CREATE_PROJECT = `
-mutation($ownerId: ID!, $title: String!) {
-  createProjectV2(input: {
-    ownerId: $ownerId
-    title: $title
-  }) {
+export const MUTATION_CREATE_PROJECT = `mutation ($ownerId: ID!, $title: String!) {
+  createProjectV2(input: { ownerId: $ownerId, title: $title }) {
     projectV2 {
       id
       number
@@ -488,40 +431,40 @@ mutation($ownerId: ID!, $title: String!) {
       url
     }
   }
-}
-`
+}`
 
 // Issue 種別判定用クエリ（軽量・Epic 判定専用）
 // Phase2: issueType.name == "Epic" を一次判定
-export const QUERY_GET_ISSUE_KIND = `
-query($owner: String!, $repo: String!, $number: Int!) {
+export const QUERY_GET_ISSUE_KIND = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number
       state
-      issueType { name }
-      subIssues(first: 1) { totalCount }
+      issueType {
+        name
+      }
+      subIssues(first: 1) {
+        totalCount
+      }
     }
   }
-}
-`
+}`
 
 // issueType フィールド非対応 GHES 向けのフォールバック（Phase1 単独）
-export const QUERY_GET_ISSUE_KIND_PHASE1 = `
-query($owner: String!, $repo: String!, $number: Int!) {
+export const QUERY_GET_ISSUE_KIND_PHASE1 = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number
       state
-      subIssues(first: 1) { totalCount }
+      subIssues(first: 1) {
+        totalCount
+      }
     }
   }
-}
-`
+}`
 
 // Issue詳細取得（スリム版 - 必要なフィールドのみ）
-export const QUERY_GET_ISSUE_SLIM = `
-query($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
+export const QUERY_GET_ISSUE_SLIM = `query ($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number
@@ -531,7 +474,9 @@ query($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
       comments(last: $commentLimit) {
         totalCount
         nodes {
-          author { login }
+          author {
+            login
+          }
           createdAt
           body
         }
@@ -540,7 +485,12 @@ query($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
         number
         title
         state
-        repository { owner { login } name }
+        repository {
+          owner {
+            login
+          }
+          name
+        }
       }
       subIssues(first: 20) {
         nodes {
@@ -548,35 +498,46 @@ query($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
           state
           title
         }
-        pageInfo { hasNextPage endCursor }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
       linkedBranches(first: 10) {
         nodes {
-          ref { name }
+          ref {
+            name
+          }
         }
       }
       timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
         nodes {
           ... on ConnectedEvent {
             subject {
-              ... on PullRequest { number title state }
+              ... on PullRequest {
+                number
+                title
+                state
+              }
             }
           }
           ... on CrossReferencedEvent {
             source {
-              ... on PullRequest { number title state }
+              ... on PullRequest {
+                number
+                title
+                state
+              }
             }
           }
         }
       }
     }
   }
-}
-`
+}`
 
 // Python 版 queries.py の QUERY_GET_SUB_ISSUES_PAGE と逐語で一致させる。
-export const QUERY_GET_SUB_ISSUES_PAGE = `
-query($owner: String!, $repo: String!, $number: Int!, $after: String!) {
+export const QUERY_GET_SUB_ISSUES_PAGE = `query ($owner: String!, $repo: String!, $number: Int!, $after: String!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       subIssues(first: 100, after: $after) {
@@ -585,16 +546,17 @@ query($owner: String!, $repo: String!, $number: Int!, $after: String!) {
           state
           title
         }
-        pageInfo { hasNextPage endCursor }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   }
-}
-`
+}`
 
 // PR詳細取得（スリム版 - 必要なフィールドのみ）
-export const QUERY_GET_PULL_REQUEST_SLIM = `
-query($owner: String!, $repo: String!, $number: Int!) {
+export const QUERY_GET_PULL_REQUEST_SLIM = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       number
@@ -605,7 +567,9 @@ query($owner: String!, $repo: String!, $number: Int!) {
       baseRefName
       isDraft
       mergeable
-      comments { totalCount }
+      comments {
+        totalCount
+      }
       closingIssuesReferences(first: 10) {
         nodes {
           number
@@ -615,17 +579,17 @@ query($owner: String!, $repo: String!, $number: Int!) {
       reviews(first: 10) {
         nodes {
           state
-          author { login }
+          author {
+            login
+          }
         }
       }
     }
   }
-}
-`
+}`
 
 // PR詳細取得（レビュー詳細付き - --reviews オプション用）
-export const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `
-query($owner: String!, $repo: String!, $number: Int!) {
+export const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       number
@@ -636,7 +600,9 @@ query($owner: String!, $repo: String!, $number: Int!) {
       baseRefName
       isDraft
       mergeable
-      comments { totalCount }
+      comments {
+        totalCount
+      }
       closingIssuesReferences(first: 10) {
         nodes {
           number
@@ -647,7 +613,9 @@ query($owner: String!, $repo: String!, $number: Int!) {
         nodes {
           state
           body
-          author { login }
+          author {
+            login
+          }
           submittedAt
         }
       }
@@ -658,7 +626,9 @@ query($owner: String!, $repo: String!, $number: Int!) {
           line
           comments(first: 10) {
             nodes {
-              author { login }
+              author {
+                login
+              }
               body
               createdAt
             }
@@ -667,17 +637,20 @@ query($owner: String!, $repo: String!, $number: Int!) {
       }
     }
   }
-}
-`
+}`
 
 // open の PR の一覧。dependabot の PR の待ち状態の判定に使う。ページを辿る
 // 入れ子の connection が多く、ノード数の上限に近づくので first は 25 にしている。
 // timelineItems は、2 種のイベントを合わせて last: N だと force-push が多いときに片方が押し出されるため、
 // 種類ごとに別名で最後の 1 件だけを取る。
-export const QUERY_LIST_OPEN_PULL_REQUESTS = `
-query($owner: String!, $repo: String!, $after: String) {
+export const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: String!, $after: String) {
   repository(owner: $owner, name: $repo) {
-    pullRequests(first: 25, states: OPEN, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
+    pullRequests(
+      first: 25
+      states: OPEN
+      after: $after
+      orderBy: { field: CREATED_AT, direction: ASC }
+    ) {
       pageInfo {
         hasNextPage
         endCursor
@@ -744,5 +717,4 @@ query($owner: String!, $repo: String!, $after: String) {
       }
     }
   }
-}
-`
+}`

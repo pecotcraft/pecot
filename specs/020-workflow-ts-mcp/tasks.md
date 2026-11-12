@@ -141,14 +141,14 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 **Independent Test**: `parity.test.ts` の次のシナリオが golden と一致する。`issue-*`・`session-*`・`add-to-project-*`・`update-issue-status-*`
 この PR で足した 9 個が登録され、登録済みの全部で `--check` の差が 0。振る舞いの項目 211 個（issue 138、`add-to-project` 17、`update-issue-status` 13、session 43）が vitest につながる
 
-- [ ] T016 [P] [US1] `cli/commands/issue.py` の issue の 5 個を `cli-node/src/commands/issue.ts` に移し、`COMMANDS` に足す。`--prepare` の下書きと、実投稿の成功時にスラッシュコマンドのフラグを消す処理を含める。
+- [x] T016 [P] [US1] `cli/commands/issue.py` の issue の 5 個を `cli-node/src/commands/issue.ts` に移し、`COMMANDS` に足す。`--prepare` の下書きと、実投稿の成功時にスラッシュコマンドのフラグを消す処理を含める。
   `cli/core/issue_board.py` の `create_issue`・`put_on_board` などは、フェーズ 6 の同期も使う。`cli-node/src/` の共有の置き場に移す。
-- [ ] T017 [US1] `issue.py` の `add_to_project` と `update_issue_status` を同じ `issue.ts` に移し、`COMMANDS` に 2 個を足す。`_validate_status_for_type` も含める。
-- [ ] T018 [P] [US1] `cli/commands/session.py` を `cli-node/src/commands/session.ts` に移し、`COMMANDS` に 2 個を足す。
+- [x] T017 [US1] `issue.py` の `add_to_project` と `update_issue_status` を同じ `issue.ts` に移し、`COMMANDS` に 2 個を足す。`_validate_status_for_type` も含める。
+- [x] T018 [P] [US1] `cli/commands/session.py` を `cli-node/src/commands/session.ts` に移し、`COMMANDS` に 2 個を足す。
   `cli/commands/pr.py` の `extract_issue_number_from_branch` も要る。フェーズ 4 も同じ関数を使うので、共有の置き場に置く。
-- [ ] T019 [US1] Python が書いた状態を Node が読む `session-status-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
-- [ ] T020 [US1] 振る舞いの項目 211 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/` の下。ファイルはコマンドごとに分ける。
-- [ ] T021 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。差があればコマンド定義を直す。
+- [x] T019 [US1] Python が書いた状態を Node が読む `session-status-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
+- [x] T020 [US1] 振る舞いの項目 211 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/` の下。ファイルはコマンドごとに分ける。
+- [x] T021 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。差があればコマンド定義を直す。
 
 **Checkpoint**: 該当シナリオが全部一致する。この PR で足した 9 個が登録され、登録済みの全部で `--check` の差が 0。該当の項目 211 個が全部つながる
 

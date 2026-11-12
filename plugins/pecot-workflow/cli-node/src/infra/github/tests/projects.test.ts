@@ -213,16 +213,23 @@ describe('getLinkedRepositories', () => {
 })
 
 describe('user のクエリの失敗の扱い', () => {
-  it('認証エラー（401）は org のクエリに進まず、GitHubAuthError', async () => {
-    const { client, server } = await startClient([{ match: { operation: 'GetLinkedRepositoriesUser' }, respond: { status: 401, text: 'Bad credentials' }, times: 1 }])
+  it('認証エラー（401）でも org のクエリに進み、org も 401 なら GitHubAuthError', async () => {
+    const unauthorized = { status: 401, text: 'Bad credentials' }
+    const { client, server } = await startClient([
+      { match: { operation: 'GetLinkedRepositoriesUser' }, respond: unauthorized, times: 1 },
+      { match: { operation: 'GetLinkedRepositoriesOrg' }, respond: unauthorized, times: 1 },
+    ])
     expect(await rejection(client.getLinkedRepositories('o', 1))).toMatchObject({ name: 'GitHubAuthError' })
-    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetLinkedRepositoriesUser'])
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetLinkedRepositoriesUser', 'GetLinkedRepositoriesOrg'])
   })
 
-  it('レート制限は org のクエリに進まず、GitHubRateLimitError', async () => {
-    const { client, server } = await startClient([graphqlError('ListProjectsUser', 'API rate limit exceeded')])
+  it('レート制限でも org のクエリに進み、org も同じなら GitHubRateLimitError', async () => {
+    const { client, server } = await startClient([
+      graphqlError('ListProjectsUser', 'API rate limit exceeded'),
+      graphqlError('ListProjectsOrg', 'API rate limit exceeded'),
+    ])
     expect(await rejection(client.listProjects('o'))).toMatchObject({ name: 'GitHubRateLimitError' })
-    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['ListProjectsUser'])
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['ListProjectsUser', 'ListProjectsOrg'])
   })
 })
 
@@ -441,10 +448,13 @@ describe('getOwnerNodeId', () => {
     expect(await client.getOwnerNodeId('testorg')).toBe('O_kgDOorg456')
   })
 
-  it('user のクエリの認証エラーは org に進まず、GitHubAuthError', async () => {
-    const { client, server } = await startClient([{ match: { operation: 'GetUserNodeId' }, respond: { status: 401, text: 'x' }, times: 1 }])
+  it('user のクエリの認証エラーでも org に進み、org も 401 なら GitHubAuthError', async () => {
+    const { client, server } = await startClient([
+      { match: { operation: 'GetUserNodeId' }, respond: { status: 401, text: 'x' }, times: 1 },
+      { match: { operation: 'GetOrgNodeId' }, respond: { status: 401, text: 'x' }, times: 1 },
+    ])
     expect(await rejection(client.getOwnerNodeId('o'))).toMatchObject({ name: 'GitHubAuthError' })
-    expect(graphqlRequests(server)).toHaveLength(1)
+    expect(graphqlRequests(server)).toHaveLength(2)
   })
 
   it('どちらにも無ければ GitHubNotFoundError', async () => {
@@ -469,5 +479,37 @@ describe('createProject', () => {
   it('GraphQL の失敗は GitHubAPIError', async () => {
     const { client } = await startClient([graphqlError('CreateProject', 'GraphQL error')])
     expect(await rejection(client.createProject('U_owner123', 'New Project'))).toMatchObject({ name: 'GitHubAPIError' })
+  })
+})
+
+function fieldValue(fieldId: unknown): unknown {
+  return { field: { id: fieldId } }
+}
+
+async function lookupSetFieldIds(response: unknown): Promise<{ readonly result: ReadonlySet<string>, readonly variables: unknown }> {
+  const { client, server } = await startClient([graphqlData('GetIssueProjectItems', response)])
+  const result = await client.getItemSetFieldIds('PVT_proj', 'owner', 'repo', 123, 'PVTI_item')
+  return { result, variables: graphqlRequests(server).map(request => request.variables) }
+}
+
+describe('getItemSetFieldIds', () => {
+  it('指定のプロジェクトの指定のアイテムの、値が入っているフィールド ID を返す', async () => {
+    const { result, variables } = await lookupSetFieldIds({ repository: { issue: { projectItems: { nodes: [
+      { id: 'PVTI_other', project: { id: 'PVT_proj' }, fieldValues: { nodes: [fieldValue('F_other')] } },
+      { id: 'PVTI_item', project: { id: 'PVT_other' }, fieldValues: { nodes: [fieldValue('F_wrong_project')] } },
+      { id: 'PVTI_item', project: { id: 'PVT_proj' }, fieldValues: { nodes: [fieldValue('F_workflow'), {}, JSON_NULL, fieldValue(1), fieldValue('F_priority')] } },
+    ] } } } })
+    expect(result).toEqual(new Set(['F_workflow', 'F_priority']))
+    expect(variables).toEqual([{ owner: 'owner', repo: 'repo', number: 123 }])
+  })
+
+  it.each([
+    ['Issue が無い', { repository: { issue: JSON_NULL } }],
+    ['リポジトリが無い', { repository: JSON_NULL }],
+    ['アイテムが無い', { repository: { issue: { projectItems: { nodes: [] } } } }],
+    ['値が入っていない', { repository: { issue: { projectItems: { nodes: [{ id: 'PVTI_item', project: { id: 'PVT_proj' }, fieldValues: { nodes: [] } }] } } } }],
+  ])('%sときは空', async (_label, response) => {
+    const { result } = await lookupSetFieldIds(response)
+    expect(result.size).toBe(0)
   })
 })

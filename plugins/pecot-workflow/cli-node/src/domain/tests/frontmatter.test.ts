@@ -7,6 +7,7 @@ import {
   parseCommentContent,
   parseFrontmatter,
   parsePullRequestContent,
+  setFrontmatterValue,
   stripFrontmatter,
   stripLeadingHtmlComment,
   validateCommentFrontmatter,
@@ -78,6 +79,23 @@ describe('validateIssueFrontmatter', () => {
 
   it('parent_epic 指定時に order がないとエラー', () => {
     expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353 })).toThrow('order is required when parent_epic is set')
+  })
+
+  it('parallel に a〜z の 1 文字を渡すと、その値を返す', () => {
+    expect(validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: 'b' }).parallel).toBe('b')
+  })
+
+  it('parallel が空文字だと、undefined にして返す', () => {
+    expect(validateIssueFrontmatter({ ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: '' }).parallel).toBeUndefined()
+  })
+
+  it.for(['A', 'ab', '1', '-', ' '])('parallel が %j だと、pattern の誤りにする', (value) => {
+    const input = { ...ISSUE_BASE, parent_epic: 353, order: 4, parallel: value }
+    expect(() => validateIssueFrontmatter(input)).toThrow('  - parallel: String should match pattern \'^[a-z]$\'')
+  })
+
+  it('parallel 指定時に order がないとエラー', () => {
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, parallel: 'a' })).toThrow('order is required when parallel is set')
   })
 
   it('order 指定時に parent_epic がないとエラー', () => {
@@ -356,6 +374,11 @@ describe('validateCommentFrontmatter', () => {
   it('issue_ref がない場合はエラー', () => {
     expect(() => validateCommentFrontmatter({})).toThrow('  - issue_ref: Field required')
   })
+
+  it('comment_url を渡すと、その値を返し、省くと undefined にする', () => {
+    expect(validateCommentFrontmatter({ issue_ref: 'o/r/1', comment_url: 'https://x/1' }).comment_url).toBe('https://x/1')
+    expect(validateCommentFrontmatter({ issue_ref: 'o/r/1' }).comment_url).toBeUndefined()
+  })
 })
 
 describe('parseCommentContent', () => {
@@ -529,5 +552,31 @@ describe('stripFrontmatter（frontmatter 除去ヘルパ）', () => {
   it('閉じていないフロントマターも原文を返す', () => {
     const content = '---\ntitle: x\n本文\n'
     expect(stripFrontmatter(content)).toBe(content)
+  })
+})
+
+describe('setFrontmatterValue', () => {
+  it('同じ値のキーの行がもうあるとき、行を足さずそのまま返す', () => {
+    const content = '---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n'
+    expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe(content)
+  })
+
+  it('新しいキーを末尾に足し、本文はそのまま残す', () => {
+    const content = '---\nissue_ref: "o/r/1"\n---\n\n## Plan\n'
+    expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe('---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n')
+  })
+
+  it('同じキーの行があれば置き換える', () => {
+    const content = '---\ncomment_url: "old"\nissue_ref: "o/r/1"\n---\nbody\n'
+    expect(setFrontmatterValue(content, 'comment_url', 'new')).toBe('---\ncomment_url: "new"\nissue_ref: "o/r/1"\n---\nbody\n')
+  })
+
+  it('キーに正規表現の記号があっても、その文字どおりの行だけを置き換える', () => {
+    const content = '---\na.c: "1"\nabc: "2"\n---\nbody\n'
+    expect(setFrontmatterValue(content, 'a.c', 'x')).toBe('---\na.c: "x"\nabc: "2"\n---\nbody\n')
+  })
+
+  it('フロントマターが無ければ FrontmatterError を投げる', () => {
+    expect(() => setFrontmatterValue('## Plan\n', 'comment_url', 'x')).toThrow(new FrontmatterError('frontmatter not found'))
   })
 })

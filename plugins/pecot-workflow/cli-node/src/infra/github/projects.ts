@@ -6,7 +6,7 @@ import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from './errors.js'
+import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_TO_PROJECT,
@@ -88,14 +88,14 @@ function linkedRepositoriesOf(project: JsonValue | undefined): readonly LinkedRe
 }
 
 export class ProjectsApi extends ReposApi {
-  // user のクエリ。owner が organization のときの失敗（"Could not resolve" など）は undefined にして、org のクエリに進ませる。
-  // 認証エラーとレート制限は、org のクエリでも同じ原因で失敗するので、そのまま投げる
+  // user のクエリ。GitHub の失敗は、認証エラーとレート制限も含めて undefined にし、org のクエリへ進む。
+  // Python と同じ動き
   private async queryAsUser(query: string, variables: Readonly<Record<string, JsonValue>>): Promise<JsonObject | undefined> {
     try {
       return await this.executeGraphql(query, variables)
     }
     catch (error: unknown) {
-      if (error instanceof GitHubAPIError && !(error instanceof GitHubAuthError) && !(error instanceof GitHubRateLimitError)) return undefined
+      if (error instanceof GitHubAPIError) return undefined
       throw error
     }
   }
@@ -243,6 +243,25 @@ export class ProjectsApi extends ReposApi {
       if (jsonField(jsonField(item, 'project'), 'id') === projectId) return requireString(jsonField(item, 'id'), 'projectItems.nodes.id')
     }
     return undefined
+  }
+
+  /**
+  プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
+  */
+  async getItemSetFieldIds(projectId: string, owner: string, repository: string, issueNumber: number, itemId: string): Promise<ReadonlySet<string>> {
+    const result = await this.executeGraphql(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
+    const issue = jsonField(jsonField(result, 'repository'), 'issue')
+    const fieldIds = new Set<string>()
+    const items = truthyNodes(jsonField(issue, 'projectItems'))
+    for (const item of items) {
+      if (jsonField(item, 'id') !== itemId || jsonField(jsonField(item, 'project'), 'id') !== projectId) continue
+      const values = truthyNodes(jsonField(item, 'fieldValues'))
+      for (const value of values) {
+        const fieldId = jsonField(jsonField(value, 'field'), 'id')
+        if (typeof fieldId === 'string') fieldIds.add(fieldId)
+      }
+    }
+    return fieldIds
   }
 
   /**
