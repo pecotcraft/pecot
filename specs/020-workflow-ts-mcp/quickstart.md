@@ -87,7 +87,7 @@ npx nx run interface-spec:docs
 | 5 | 人 | 両方 | Claude Code は `! pecot project info`、Copilot CLI は端末で直接 `pecot project info` を打つ | 結果が出る（deny されない） | フェーズ 11 の PR の中 |
 | 6 | 人 | Claude Code | 今のリリース版で `pecot project info` を 1 回流して `venv/` を作る。同じデータ置き場のまま、`--plugin-dir` で切り替えの版を起動する | `venv/` が消え、ボードの設定とセッション状態はそのまま読める | `--plugin-dir` での確認はフェーズ 11 の PR の中、実際の更新はリリースの後 |
 | 7 | エージェント | 両方 | `worktree_link` を `force` なしで呼ぶ。上書き先に実ファイルがある | 上書きされずに中止する。実ファイルが残り、入力の終端と同じ結果になる | フェーズ 11 の PR の中 |
-| 8 | 人 | 両方 | プラグインを入れていない MCP クライアントに、1 エントリだけ登録する。リリースの前は、dry-run の配布ツリーを `npx -y <配布ツリーのパス>` で起動する。npm に出た後は `npx -y @pecot/workflow-mcp` | 34 個のツールが見え、`project_info` が結果を返す（SC-008） | 配布ツリーはフェーズ 13 の PR の中、npm に出た後の確認はリリースの後 |
+| 8 | 人 | 両方 | プラグインを入れていない MCP クライアントに、1 エントリだけ登録する。リリースの前は、dry-run の配布ツリーを `npm pack` した tgz を `npx -y --package=<tgz の絶対パス> pecot-workflow-mcp` で起動する（ディレクトリを渡すと依存が入らず起動しない）。npm に出た後は `npx -y @pecot/workflow-mcp` | 34 個のツールが見え、`project_info` が結果を返す（SC-008） | 配布ツリーはフェーズ 13 の PR の中、npm に出た後の確認はリリースの後 |
 | 9 | エージェント | 両方 | 時間のかかるツール（`release_preflight`）を MCP で呼ぶ | タイムアウトせず、同じ引数の `pecot release preflight` と、標準出力・標準エラー・終了コードが一致する（標準出力が空なら、結果のブロックは標準エラーだけになる） | フェーズ 11 の PR の中 |
 | 10 | 人 | 両方 | `/pecot-w:w-quick` などでプランモードに入り、承認前に計画を Issue のコメントへ投稿してから、プランを承認する。計画が変われば `issue_comment` を打ち直す | 承認後の案内が `issue_comment` を指し、投稿と打ち直しが deny されない。計画が Issue のコメントに出る | フェーズ 11 の PR の中 |
 

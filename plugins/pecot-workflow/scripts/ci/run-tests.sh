@@ -5,7 +5,7 @@ PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PLUGIN_ROOT}"
 
 # --scope で実行範囲を絞る（nx のレーン pecot-workflow:test-<scope> から呼ぶ）。引数なしは全部。
-#   cli / bootstrap / hooks / skills。hooks は vitest の hooks project を、通常の環境と空の設定の環境で 2 回流して比べる。
+#   cli / bootstrap / hooks / skills / release。hooks は vitest の hooks project を、通常の環境と空の設定の環境で 2 回流して比べる。
 # env PECOT_WORKFLOW_SKIP_INSTALL=1: install を飛ばす（nx 経由では pecot-workflow:install が 1 回だけ流す）。
 # 本ファイルや lock を足したら、nx.json の pecotPluginTestGlobals か pecotPluginNodeInputs に足す。
 # CLAUDE_PLUGIN_DATA は一時ディレクトリに固定し、bin/pecot 経由のテストが導入先のデータ置き場を触らないようにする。
@@ -16,11 +16,11 @@ export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 SCOPE="all"
 for arg in "$@"; do
     case "$arg" in
-        --scope=cli | --scope=bootstrap | --scope=hooks | --scope=skills | --scope=all)
+        --scope=cli | --scope=bootstrap | --scope=hooks | --scope=skills | --scope=release | --scope=all)
             SCOPE="${arg#--scope=}"
             ;;
         *)
-            echo "ERROR: 未対応の引数: $arg (使用可能: --scope=cli|bootstrap|hooks|skills|all)" >&2
+            echo "ERROR: 未対応の引数: $arg (使用可能: --scope=cli|bootstrap|hooks|skills|release|all)" >&2
             exit 1
             ;;
     esac
@@ -30,12 +30,14 @@ RUN_CLI=false
 RUN_BOOTSTRAP=false
 RUN_HOOKS=false
 RUN_SKILLS=false
+RUN_RELEASE=false
 case "$SCOPE" in
     cli) RUN_CLI=true ;;
     bootstrap) RUN_BOOTSTRAP=true ;;
     hooks) RUN_HOOKS=true ;;
     skills) RUN_SKILLS=true ;;
-    all) RUN_CLI=true; RUN_BOOTSTRAP=true; RUN_HOOKS=true; RUN_SKILLS=true ;;
+    release) RUN_RELEASE=true ;;
+    all) RUN_CLI=true; RUN_BOOTSTRAP=true; RUN_HOOKS=true; RUN_SKILLS=true; RUN_RELEASE=true ;;
 esac
 
 SKIP_INSTALL=false
@@ -157,6 +159,23 @@ if [ "$RUN_SKILLS" = true ]; then
     echo "==> skills vitest (project skills)"
     # shellcheck disable=SC2086
     ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run test:skills )
+fi
+
+if [ "$RUN_RELEASE" = true ]; then
+    # テストは publish を --skip-build で流すので、cli/dist が要る。
+    if [ ! -d "$PLUGIN_ROOT/cli/dist" ]; then
+        echo "ERROR: $PLUGIN_ROOT/cli/dist がありません。先に build してください（nx では pecot-workflow:build-cli）。" >&2
+        exit 1
+    fi
+    mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)
+    if [ "${#release_test_files[@]}" -eq 0 ]; then
+        echo "ERROR: scripts/release/tests/ 配下に *.test.sh が見つかりません (消失 or find 失敗の疑い)。" >&2
+        exit 1
+    fi
+    for test_file in "${release_test_files[@]}"; do
+        echo "==> bash $test_file"
+        bash "$test_file"
+    done
 fi
 
 echo "all checks passed"

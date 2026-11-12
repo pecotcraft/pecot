@@ -185,7 +185,7 @@
 | 決定 | bin は `bin/pecot-workflow-mcp.mjs`。登録は `npx -y @pecot/workflow-mcp` |
 | データ置き場 | 単体配布は `bin/pecot` を通らない。CLI 自身が `CLAUDE_PLUGIN_DATA` → `PLUGIN_DATA` → 既定の場所の順で解決する（済みの `infra/paths.ts`） |
 | hooks | 含まれない。`issue_create`・`issue_quick`・`pr_create` の確認は動かず、MCP クライアント自身の確認だけになる。配布の README に書く |
-| 初回の publish | npm の trusted publisher は、パッケージごとに npm 側で設定する。`@pecot/workflow-mcp` の初回の設定は利用者が行う。フェーズ 13 の Issue に手順を書く |
+| 初回の publish | npm の trusted publisher は、レジストリに既にあるパッケージにしか登録できない（https://docs.npmjs.com/cli/v11/commands/npm-trust ）。初回は利用者の認証で placeholder の版を publish してパッケージを作り、trusted publisher を登録してから、2 日以内にリリースで最初の版を出す。フェーズ 13 の Issue に手順を書く |
 | 時期 | Python の削除と `cli/` への移動の後。スクリプトのパスを 2 回直さずに済む |
 
 ## R-15. 移行中の Python の依存

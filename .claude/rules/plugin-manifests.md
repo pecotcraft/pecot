@@ -59,7 +59,7 @@ paths:
 | 利用者が入力する層 | `pecot-w` / `pecot-v` / `pecot-t` | プラグイン名、スキルの名前空間、Copilot のインストール先 |
 | リポの層 | `pecot-workflow` / `pecot-visual` / `pecot-tools` | ディレクトリ、nx project、release group、タグ、MCP サーバのキー |
 | CLI の層 | `pecot` / `pecotv` / `pecot-tools` | コマンド名、作業ディレクトリ（`.pecot/` / `.pecotv/`）、npm・Python のパッケージ名、stderr の接頭辞。据え置く |
-| 単体配布の層 | `@pecot/visual-mcp` / `@pecot/tools-mcp`（bin は `pecot-visual-mcp` / `pecot-tools-mcp`） | MCP の単体配布の npm のパッケージ名と bin。スコープ `@pecot` の後ろに機能の名前を置く |
+| 単体配布の層 | `@pecot/visual-mcp` / `@pecot/tools-mcp` / `@pecot/workflow-mcp`（bin は `pecot-visual-mcp` / `pecot-tools-mcp` / `pecot-workflow-mcp`） | MCP の単体配布の npm のパッケージ名と bin。スコープ `@pecot` の後ろに機能の名前を置く |
 
 MCP サーバのキーはリポの層（`pecot-visual` / `pecot-visual-playwright` / `pecot-tools`）にします。Copilot CLI はキーを
 そのままツール名の前置きにし、同名のキーは後から読んだものが勝つためです。キー・`MCP_SERVER_NAME`・スキルとエージェント本文の
