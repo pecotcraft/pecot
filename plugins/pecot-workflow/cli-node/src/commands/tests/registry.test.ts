@@ -19,15 +19,8 @@ const PENDING_PATHS: readonly (readonly string[])[] = [
   ['issue', 'reopen'],
   ['session', 'status'],
   ['session', 'restore'],
-  ['release', 'preflight'],
-  ['release', 'create'],
-  ['release', 'merge'],
   ['security', 'sync'],
   ['dependabot', 'sync'],
-  ['worktree', 'init'],
-  ['worktree', 'add'],
-  ['worktree', 'link'],
-  ['worktree', 'remove'],
 ]
 
 function keyOf(path: readonly string[]): string {
@@ -162,6 +155,33 @@ describe('defineCommand', () => {
     expect(io.out).toEqual([])
     expect(await prepared.run(io)).toBe(3)
     expect(io.out).toEqual(['a/b/1 5 -\n'])
+  })
+
+  it('aliases を持てる。無ければ空', () => {
+    const aliased = defineCommand({
+      path: ['al'],
+      description: '',
+      input: z.object({ allow_existing_branch: z.boolean().default(false) }),
+      positional: [],
+      aliases: { allow_existing_branch: '--force' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(aliased.aliases).toEqual(new Map([['allow_existing_branch', '--force']]))
+    expect(definition.aliases).toEqual(new Map())
+  })
+
+  it('短いオプションと別名を同じ入力に持つと作れない', () => {
+    expect(() => defineCommand({
+      path: ['both'],
+      description: '',
+      input: z.object({ force: z.boolean().default(false) }),
+      positional: [],
+      shortFlags: { force: '-f' },
+      aliases: { force: '--yes' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })).toThrow(TypeError)
   })
 
   it('negations を持てる', () => {

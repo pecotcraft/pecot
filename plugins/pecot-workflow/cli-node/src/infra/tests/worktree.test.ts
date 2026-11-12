@@ -582,12 +582,12 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('origin が無ければ WorktreeRuntimeError', () => {
     const { repository } = createProject()
     gitForTest(repository, ['remote', 'remove', 'origin'])
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that the git remote origin is set')
+    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
   })
 
   it('origin の owner が不正な名前でも WorktreeRuntimeError', () => {
     const { repository } = createProject({ originUrl: 'https://github.com/bad%20owner/myrepo.git' })
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that the git remote origin is set')
+    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
   })
 
   it('アクティブなプロジェクト設定が無ければ WorktreeRuntimeError', () => {

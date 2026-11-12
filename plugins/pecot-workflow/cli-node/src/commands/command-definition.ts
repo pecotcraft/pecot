@@ -4,7 +4,6 @@
 import { z } from 'zod'
 
 import { BaseError } from '../domain/errors.js'
-import { flagKindOf } from './value-types.js'
 
 /**
 コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
@@ -12,6 +11,10 @@ import { flagKindOf } from './value-types.js'
 export interface CommandIo {
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
+  /**
+  標準入力から 1 行読む（末尾の改行は含めない）。終端は undefined。渡されない io（MCP）は、入力の終端と同じ扱い
+  */
+  readonly readLine?: () => string | undefined
 }
 
 /**
@@ -63,6 +66,10 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly shortFlags?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
   /**
+  CLI の別名の長いオプション。キーは input の名前、値は `--force` の形。短いオプションとは併用できない
+  */
+  readonly aliases?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
+  /**
   CLI の否定形のオプション。キーは input の名前、値は `--no-checkout` の形。
   `--checkout/--no-checkout` の形で、既定値が真の真偽値を偽にできる
   */
@@ -106,6 +113,10 @@ export interface CommandDefinition {
   */
   readonly shortFlags: ReadonlyMap<string, string>
   /**
+  input の名前から別名の長いオプションへ
+  */
+  readonly aliases: ReadonlyMap<string, string>
+  /**
   input の名前から否定形のオプションへ
   */
   readonly negations: ReadonlyMap<string, string>
@@ -141,18 +152,6 @@ async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promis
   }
 }
 
-// commander は `--no-x` を `--x` の否定として扱う。この解釈に合わない `no_` の名前は作れない。
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-function rejectNegationLikeFields(shape: Readonly<Record<string, z.core.$ZodType>>, positional: readonly string[]): void {
-  const options = Object.entries(shape).filter(([name]) => !positional.includes(name))
-  const names = new Set(options.map(([name]) => name))
-  for (const [name, schema] of options) {
-    if (!name.startsWith('no_')) continue
-    if (flagKindOf(schema) !== 'boolean') throw new TypeError(`no_ で始まる input の ${name} は真偽値にしてください`)
-    if (names.has(name.slice(3))) throw new TypeError(`input の ${name.slice(3)} と ${name} は commander が否定の対とみなすため、同時に定義できません`)
-  }
-}
-
 /**
 型付きの仕様から、型を消した定義を作る。parse が input で検証してから本体を呼ぶので、型を消しても安全に呼べる
 */
@@ -163,7 +162,10 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
   const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
   if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
-  rejectNegationLikeFields(spec.input.shape, spec.positional)
+  const aliased = Object.keys(spec.aliases ?? {})
+  for (const name of aliased) {
+    if (spec.shortFlags !== undefined && Object.hasOwn(spec.shortFlags, name)) throw new TypeError(`${name}: 短いオプションと別名は併用できません`)
+  }
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
     // 検証は spec.input で行う（全体の refine を保つ）。グローバルの repo は strictObject が拒むので外し、別に検証する。
@@ -181,6 +183,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     positional: spec.positional,
     hasOwnRepo: hasOwnRepository,
     shortFlags: flagMap(spec.shortFlags),
+    aliases: flagMap(spec.aliases),
     negations: flagMap(spec.negations),
     interactive: spec.interactive,
     parse,

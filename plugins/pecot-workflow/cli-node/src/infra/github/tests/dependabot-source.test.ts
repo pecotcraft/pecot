@@ -111,6 +111,7 @@ describe('fetchDependabotAlertStatus につないだとき', () => {
       openCount: 3,
       maxSeverity: 'critical',
       alertsUrl: 'https://github.com/owner/repo/security/dependabot',
+      openAlerts: [],
     })
   })
 
@@ -124,6 +125,7 @@ describe('fetchDependabotAlertStatus につないだとき', () => {
       openCount: 0,
       maxSeverity: undefined,
       alertsUrl: 'https://ghes.example.com/owner/repo/security/dependabot',
+      openAlerts: [],
     })
   })
 

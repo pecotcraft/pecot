@@ -10,7 +10,8 @@ import { z } from 'zod'
 import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.js'
 import { generatedEntrySchema, generatedFileSchema, type GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { createOutput } from '../src/commands/output.js'
-import { COMMANDS, type CommandDefinition, type CommandIo } from '../src/commands/registry.js'
+import { COMMANDS } from '../src/commands/registry.js'
+import type { CommandDefinition, CommandIo } from '../src/commands/registry.js'
 
 const PREFIX = 'PW'
 
@@ -105,6 +106,8 @@ function flagsOf(command: CommandDefinition, names: readonly string[]): Record<s
     const flag = [`--${name.replaceAll('_', '-')}`]
     const short = command.shortFlags.get(name)
     if (short !== undefined) flag.push(short)
+    const alias = command.aliases.get(name)
+    if (alias !== undefined) flag.push(alias)
     const negation = command.negations.get(name)
     if (negation !== undefined) flag.push(negation)
     flags.push([name, flag])

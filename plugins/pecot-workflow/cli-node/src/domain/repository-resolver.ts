@@ -99,9 +99,7 @@ export function pickPrimaryRemote(remotes: readonly string[]): string | undefine
 /**
 現在の git の remote からリポジトリを取り出す。git の外・remote 無しは undefined。
 URL の形式が不正なときは、InvalidValueError をそのまま伝える（バグ扱い）。
-Python の `_detect_current_git_repo` と同じで、infra/git.ts の originRepository（不正なら undefined を返す）とは契約が違う。
-解決の失敗を利用者に見せたい resolveRepository は例外にする。
-値が取れなくてもよい originRepository は undefined にする
+Python の `_detect_current_git_repo` と同じで、不正なら undefined を返す infra/git.ts の remoteRepository とは契約が違う
 */
 export function detectCurrentGitRepository(git: GitRunner): { readonly repository: RepositoryReference, readonly remoteName: string } | undefined {
   const inside = git(['rev-parse', '--is-inside-work-tree'])

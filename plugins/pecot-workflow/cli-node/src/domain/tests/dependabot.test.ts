@@ -95,7 +95,7 @@ describe('DependabotAlertError', () => {
 describe('open な alert がある', () => {
   it('最高 severity は critical。有効判定は呼ばない', async () => {
     const fake = sourceWithSeverities('low', 'critical', 'high', 'medium')
-    expect(await fetchStatus(fake)).toStrictEqual({ enabled: true, openCount: 4, maxSeverity: 'critical', alertsUrl: URL })
+    expect(await fetchStatus(fake)).toStrictEqual({ enabled: true, openCount: 4, maxSeverity: 'critical', alertsUrl: URL, openAlerts: [{ number: 1, package: undefined, severity: 'low' }, { number: 1, package: undefined, severity: 'critical' }, { number: 1, package: undefined, severity: 'high' }, { number: 1, package: undefined, severity: 'medium' }] })
     expect(fake.enabledCalls).toStrictEqual([])
   })
 
@@ -128,7 +128,7 @@ describe('open な alert がある', () => {
 
   it('0 件なら enabled=true で maxSeverity なし', async () => {
     const status = await fetchStatus(fakeSource(ok([])))
-    expect(status).toStrictEqual({ enabled: true, openCount: 0, maxSeverity: undefined, alertsUrl: URL })
+    expect(status).toStrictEqual({ enabled: true, openCount: 0, maxSeverity: undefined, alertsUrl: URL, openAlerts: [] })
   })
 
   it('alertsUrl は host・owner・repository から作る', async () => {
@@ -141,7 +141,7 @@ describe('一覧が 403', () => {
   it('vulnerability-alerts が 404 なら無効', async () => {
     const fake = fakeSource(FORBIDDEN_RESULT, { kind: 'ok', value: false })
     const status = await fetchStatus(fake)
-    expect(status).toStrictEqual({ enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: URL })
+    expect(status).toStrictEqual({ enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: URL, openAlerts: [] })
     expect(fake.enabledCalls).toStrictEqual([['owner', 'repo']])
   })
 
@@ -182,7 +182,31 @@ describe('一覧が 403', () => {
   })
 })
 
+describe('openAlerts', () => {
+  it('番号が整数の alert から、番号・パッケージ名・severity を取る', async () => {
+    const alerts = [
+      { number: 3, dependency: { package: { name: 'lodash' } }, security_vulnerability: { severity: 'high' } },
+      { number: 4 },
+      { number: 'x', dependency: { package: { name: 'skip' } } },
+      { number: 1.5 },
+      { number: 5, dependency: { package: { name: 1 } }, security_vulnerability: { severity: 7 } },
+    ]
+    const status = await fetchStatus(fakeSource(ok(alerts)))
+    expect(status.openCount).toBe(5)
+    expect(status.openAlerts).toStrictEqual([
+      { number: 3, package: 'lodash', severity: 'high' },
+      { number: 4, package: undefined, severity: undefined },
+      { number: 5, package: undefined, severity: undefined },
+    ])
+  })
+})
+
 describe('エラー', () => {
+  it('errors[].message も添える', async () => {
+    const body = '{"message":"Validation Failed","errors":[{"message":"detail"}]}'
+    expect(await messageForFailure({ message: 'GitHub API error: 422', statusCode: 422, responseBody: body })).toBe('owner/repo: GitHub API error: 422 Validation Failed detail')
+  })
+
   it('JSON の本文は message だけを添える', async () => {
     const body = '{"message":"Server Error","documentation_url":"https://docs"}'
     expect(await messageForFailure({ message: 'GitHub API error: 500', statusCode: 500, responseBody: body })).toBe('owner/repo: GitHub API error: 500 Server Error')

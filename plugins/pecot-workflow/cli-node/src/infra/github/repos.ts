@@ -24,6 +24,24 @@ const NOT_FOUND = 404
 
 export class ReposApi extends GitHubClientBase {
   /**
+  Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
+  */
+  private async listAll(path: string, firstParameters: Readonly<Record<string, number | string>>): Promise<readonly JsonValue[]> {
+    const items: JsonValue[] = []
+    let target = path
+    let parameters: Readonly<Record<string, number | string>> | undefined = firstParameters
+    for (;;) {
+      const response = await this.restRequest('GET', target, { params: parameters })
+      if (!response.isSuccess) this.handleHttpError(response)
+      items.push(...asArray(response.json()))
+      const next = response.links.get('next')
+      if (next === undefined) return items
+      target = next.url
+      parameters = undefined
+    }
+  }
+
+  /**
   リポジトリの GraphQL Node ID。見つからなければ GitHubNotFoundError
   */
   async getRepositoryId(owner: string, name: string): Promise<string> {
@@ -91,23 +109,36 @@ export class ReposApi extends GitHubClientBase {
 
   /**
   open な Dependabot alert を全件取得する（REST）。
-  一覧は cursor 方式で page を持たない。2 ページ目以降は Link ヘッダの next の絶対 URL をそのまま辿る。
-  params を再送すると cursor と二重指定になるため、送らない。
   alerts が無効（403）などで取得できなければ GitHubAPIError
   */
   async listOpenDependabotAlerts(owner: string, repository: string): Promise<readonly JsonValue[]> {
-    const alerts: JsonValue[] = []
-    let target = `${repositoryPath(owner, repository)}/dependabot/alerts`
-    let parameters: Readonly<Record<string, number | string>> | undefined = { state: 'open', per_page: ALERTS_PER_PAGE }
-    for (;;) {
-      const response = await this.restRequest('GET', target, { params: parameters })
-      if (!response.isSuccess) this.handleHttpError(response)
-      alerts.push(...asArray(response.json()))
-      const next = response.links.get('next')
-      if (next === undefined) return alerts
-      target = next.url
-      parameters = undefined
-    }
+    return this.listAll(`${repositoryPath(owner, repository)}/dependabot/alerts`, { state: 'open', per_page: ALERTS_PER_PAGE })
+  }
+
+  /**
+  open な code scanning alert を全件取得する（REST）。ref は付けず、既定ブランチが対象になる。
+  GHAS が無い（403）・解析が無い（404）などで取得できなければ GitHubAPIError
+  */
+  async listOpenCodeScanningAlerts(owner: string, repository: string): Promise<readonly JsonValue[]> {
+    return this.listAll(`${repositoryPath(owner, repository)}/code-scanning/alerts`, { state: 'open', per_page: ALERTS_PER_PAGE })
+  }
+
+  /**
+  open な secret scanning alert を全件取得する（REST）。secret の値が応答に載らないよう、hide_secret を必ず付ける。
+  secret scanning が無効（404）などで取得できなければ GitHubAPIError
+  */
+  async listOpenSecretScanningAlerts(owner: string, repository: string): Promise<readonly JsonValue[]> {
+    return this.listAll(`${repositoryPath(owner, repository)}/secret-scanning/alerts`, { state: 'open', hide_secret: 'true', per_page: ALERTS_PER_PAGE })
+  }
+
+  /**
+  リポジトリの secret scanning の状態（enabled・disabled）。
+  security_and_analysis は admin 権限が無いと応答に載らない。載っていなければ undefined
+  */
+  async getSecretScanningStatus(owner: string, repository: string): Promise<string | undefined> {
+    const analysis = jsonField(await this.restJson('GET', repositoryPath(owner, repository)), 'security_and_analysis')
+    const status = jsonField(jsonField(analysis, 'secret_scanning'), 'status')
+    return typeof status === 'string' ? status : undefined
   }
 
   /**
