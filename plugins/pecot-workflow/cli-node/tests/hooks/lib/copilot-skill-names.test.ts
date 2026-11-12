@@ -1,13 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// Copilot CLI の Skill 入力（名前空間なしのスキル名）のテスト（#1229 T050 追加確認）。
-//
-// Copilot CLI 1.0.103 の skill ツールは、tool_name: "skill"（小文字）で、tool_input.skill が名前空間なし（w-help）で届く。
-// 同名のスキルが複数あるときだけ、<プラグイン名>:<名前> で届く。
-// 接頭辞（w-）だけで判定すると、他のプラグインの同名スキルを取り違える。
-// そのため、名前空間なしの名前は、自プラグインの skills/<名前>/SKILL.md が実在するときだけ、自プラグインのスキルとして扱う。
-//
-// エントリ（pre-tool-use-skill.sh / post-tool-use-skill.sh）に Copilot 形式の入力を流して固定する。
-// hooks-copilot.json の matcher Skill|skill が起動を担保し、ここでは起動後の判定を見る。
+// Copilot CLI の Skill 入力（名前空間なしのスキル名）のテスト。
+// 名前空間なしの名前は、自プラグインの skills/<名前>/SKILL.md が実在するときだけ自プラグインのスキルとして扱う。
+// 接頭辞だけで判定すると、他のプラグインの同名スキルを取り違えるため。
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -16,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { gitRepository } from '../_helpers/git.js'
+import { toRecord } from '../_helpers/json.js'
 import { pluginRoot } from '../_helpers/paths.js'
 import { runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -41,11 +36,6 @@ function runEntry(hookCase: HookCase, entry: string, event: string, skill: strin
   })
 }
 
-function asRecord(value: unknown): Readonly<Record<string, unknown>> {
-  if (typeof value !== 'object' || value === null) throw new Error('オブジェクトではありません')
-  return Object.fromEntries(Object.entries(value))
-}
-
 function isDirectory(target: string): boolean {
   return existsSync(target) && statSync(target).isDirectory()
 }
@@ -60,7 +50,7 @@ describe('pre-tool-use-skill.sh', () => {
     const project = setUpProject(hookCase)
     const result = runEntry(hookCase, 'pre-tool-use-skill.sh', 'PreToolUse', row.skill, project)
     expect(result.exitCode).toBe(0)
-    const specific = asRecord(asRecord(parseJson(result.stdout))['hookSpecificOutput'])
+    const specific = toRecord(toRecord(parseJson(result.stdout), '出力')['hookSpecificOutput'], 'hookSpecificOutput')
     expect(specific['hookEventName']).toBe('PreToolUse')
     expect(specific).toMatchObject({ additionalContext: containing('note: notes for the pecot-workflow skills') })
   })
@@ -104,8 +94,8 @@ describe('post-tool-use-skill.sh', () => {
     })
     expect(result.exitCode).toBe(0)
     expect(readFileSync(path.join(project, '.pecot', 'state', 'issue-pending'), 'utf8').trim()).toBe('w-quick')
-    const out = asRecord(parseJson(result.stdout))
-    const specific = asRecord(out['hookSpecificOutput'])
+    const out = toRecord(parseJson(result.stdout), '出力')
+    const specific = toRecord(out['hookSpecificOutput'], 'hookSpecificOutput')
     expect(specific).toMatchObject({ additionalContext: containing('note: pecot-workflow skill started') })
     // Copilot CLI の PostToolUse はトップレベルの additionalContext だけをモデルに渡す。
     expect(out['additionalContext']).toBe(specific['additionalContext'])
@@ -139,8 +129,8 @@ describe('post-tool-use-skill.sh', () => {
     writeFileSync(path.join(project, '.pecot', 'state', '.pecot-active'), 'org/repo/1\n')
     const result = runEntry(hookCase, 'post-tool-use-exit-plan-mode.sh', 'PostToolUse', 'x', project, { tool_name: 'ExitPlanMode' })
     expect(result.exitCode).toBe(0)
-    const out = asRecord(parseJson(result.stdout))
-    const specific = asRecord(out['hookSpecificOutput'])
+    const out = toRecord(parseJson(result.stdout), '出力')
+    const specific = toRecord(out['hookSpecificOutput'], 'hookSpecificOutput')
     expect(out).toMatchObject({ additionalContext: containing('Plan comment update') })
     expect(specific['additionalContext']).toBe(out['additionalContext'])
     expect(specific['hookEventName']).toBe('PostToolUse')

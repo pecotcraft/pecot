@@ -1,6 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// 通知音のエントリ（stop.sh / notification.sh / stop-copilot.sh）のテスト（#1229 T059）。
-// Claude Code の Stop / Notification は hook 出力のトップレベル terminalSequence で BEL を出す。
+// 通知音のエントリ（stop.sh / notification.sh / stop-copilot.sh）のテスト。
 // Copilot CLI の hook 出力には terminalSequence が無いため、stop-copilot.sh が PTY へ直接書く。
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'

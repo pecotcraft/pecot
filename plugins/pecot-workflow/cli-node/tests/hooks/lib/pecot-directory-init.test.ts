@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// pecot-dir-init.sh のテスト。
-// 対象は、新規作成、CLAUDE_PROJECT_DIR ガード、mtime ガード、冪等性、hosts.json/.env 保護。
-// あわせて、gitignore-ensure の先行化（コピーより前に .gitignore を更新する契約）も対象とする。
+// pecot-dir-init.sh のテスト。新規作成、CLAUDE_PROJECT_DIR ガード、mtime ガード、冪等性、hosts.json/.env 保護を確かめる。
+// gitignore-ensure は、コピーより前に .gitignore を更新する。
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -45,10 +44,8 @@ function modifiedSeconds(target: string): number {
   return Math.floor(statSync(target).mtimeMs / 1000)
 }
 
-// PLUGIN_HOOKS をテスト用コピーに切り替え、plugin.json の mtime を固定する。
-// plugin.json の mtime は 2020 年に固定する。
-// スクリプトは ${_HOOKS_ROOT}/../.claude-plugin/plugin.json を読む。
-// それに合わせ、plugin-root の下に hooks と .claude-plugin を並べる。
+// PLUGIN_HOOKS をテスト用コピーに切り替え、plugin.json の mtime を 2020 年に固定する。
+// スクリプトが ${_HOOKS_ROOT}/../.claude-plugin/plugin.json を読むので、plugin-root 下に hooks と .claude-plugin を置く。
 function setUpIsolatedPluginHooks(hookCase: HookCase): void {
   const isolated = path.join(hookCase.temporaryPath, 'plugin-isolated')
   mkdirSync(isolated, { recursive: true })

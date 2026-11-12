@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
+import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { coreDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -17,16 +17,10 @@ function runIsFeatureBranch(hookCase: HookCase, repositoryDirectory: string): Ru
   return run(hookCase, 'bash', ['-c', 'source "$1/branch-guard.sh" && is_feature_branch "$2"', '_', coreDirectory, repositoryDirectory])
 }
 
-function runGit(hookCase: HookCase, repositoryDirectory: string, argv: readonly string[]): RunResult {
-  const result = run(hookCase, 'git', ['-C', repositoryDirectory, ...argv])
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
-  return result
-}
-
 // -B は対象ブランチが既存でも作成（リセット）して checkout する。
 // 初期コミットが乗る既定ブランチ名は init.defaultBranch に依存し、main の行で衝突しても失敗しないようにする。
 function checkout(hookCase: HookCase, repositoryDirectory: string, branch: string): void {
-  runGit(hookCase, repositoryDirectory, ['checkout', '-B', branch])
+  gitOrThrow(hookCase, repositoryDirectory, ['checkout', '-B', branch])
 }
 
 describe('branch-guard.sh の is_feature_branch', () => {
@@ -86,8 +80,8 @@ describe('branch-guard.sh の is_feature_branch', () => {
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const repositoryDirectory = gitRepository(hookCase)
-    const commitHash = runGit(hookCase, repositoryDirectory, ['rev-parse', 'HEAD']).stdout.trim()
-    runGit(hookCase, repositoryDirectory, ['checkout', commitHash])
+    const commitHash = gitOrThrow(hookCase, repositoryDirectory, ['rev-parse', 'HEAD']).stdout.trim()
+    gitOrThrow(hookCase, repositoryDirectory, ['checkout', commitHash])
 
     const result = runIsFeatureBranch(hookCase, repositoryDirectory)
 

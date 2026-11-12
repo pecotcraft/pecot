@@ -23,13 +23,34 @@ const INDIRECT_SCRIPTS: Readonly<Record<string, readonly string[]>> = {
   'hooks/lib/pre-tool-use/websearch-allow.sh': ['hooks/pre-tool-use-websearch.sh'],
 }
 
-const SHELL_LITERAL = /'(?<name>[\w./-]+\.sh)'/gu
+// hooks のスクリプトを起動せず、ファイルの中身を読むだけのテスト。名指しの走査から外す。
+const NON_LAUNCHING_TESTS: ReadonlySet<string> = new Set([
+  'ci-scope-consistency.test.ts',
+  'cuj-definition-single-source.test.ts',
+  'english-only.test.ts',
+  'entry-point-library-references.test.ts',
+  'hooks-config-parity.test.ts',
+  'hooks-config-sample-sync.test.ts',
+  'lib/agent-definitions.test.ts',
+  'lib/entry-point-linter.test.ts',
+  'lib/hooks-definitions.test.ts',
+  'lib/mcp-definitions.test.ts',
+  'lib/pecot-state-write-convention.test.ts',
+  'project-root-convention.test.ts',
+  'readme-flow-table-sync.test.ts',
+  'regex-posix-convention.test.ts',
+  'skill-name-prefix-convention.test.ts',
+])
+
+// 引用符の種類によらず、コードの行にあるスクリプト名を拾う。bash -c の文字列に埋めた名前も含む。
+// "$1/x.sh" のような変数つきの名前は、変数を除いた "/x.sh" から読む。
+const SHELL_NAME = /(?:(?<![\w./$-])|(?<=\$\{?\w+\}?))\/?(?<name>[\w./-]*[\w-]\.sh)(?![\w-])/gu
 const COMMENT_LINE = /^\s*(?:\/\/|\*|\/\*)/u
 const TITLE_LINE = /^\s*(?:describe|it)(?:\.for)?\(/u
 
 function scriptsNamedByTests(candidates: readonly string[]): Set<string> {
   const files = globSync('**/*.test.ts', { cwd: import.meta.dirname })
-    .filter(relative => !relative.startsWith('_helpers/') && relative !== 'baseline-scripts.test.ts')
+    .filter(relative => !relative.startsWith('_helpers/') && relative !== 'baseline-scripts.test.ts' && !NON_LAUNCHING_TESTS.has(relative))
   const named = new Set<string>()
   for (const relative of files) {
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- tests/hooks 配下の固定の相対パス
@@ -37,13 +58,13 @@ function scriptsNamedByTests(candidates: readonly string[]): Set<string> {
     const codeOnly = lines.filter(item => !COMMENT_LINE.test(item) && !TITLE_LINE.test(item))
     for (const line of codeOnly) {
       const code = line.replace(/\s\/\/.*$/u, '')
-      for (const match of code.matchAll(SHELL_LITERAL)) {
+      for (const match of code.matchAll(SHELL_NAME)) {
         const literal = match.groups?.['name'] ?? ''
         let matched = candidates.filter(script => (literal.includes('/')
           ? script === `hooks/${literal}` || script.endsWith(`/${literal}`)
           : path.basename(script) === literal))
-        // 同じ名前が複数あるときは、同じ行に親ディレクトリ名のリテラルがあるものだけを採る。
-        if (matched.length > 1) matched = matched.filter(script => code.includes(`'${path.basename(path.dirname(script))}'`))
+        // 同じ名前が複数あるときは、同じ行に親ディレクトリ名があるものだけを採る。
+        if (matched.length > 1) matched = matched.filter(script => code.split(NOT_NAME_CHAR).includes(path.basename(path.dirname(script))))
         for (const script of matched) named.add(script)
       }
     }
@@ -51,6 +72,8 @@ function scriptsNamedByTests(candidates: readonly string[]): Set<string> {
   return named
 }
 
+// 名前の一部にならない文字。親ディレクトリ名を単語として探すのに使う。
+const NOT_NAME_CHAR = /[^\w-]+/u
 const SHELL_TOKEN = /[\w.-]*[\w-]\.sh(?![\w-])/gu
 
 function isNamedBy(referrer: string, script: string): boolean {

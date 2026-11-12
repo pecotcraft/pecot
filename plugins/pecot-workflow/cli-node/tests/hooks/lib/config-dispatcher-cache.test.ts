@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// config-dispatcher.sh の hooks-config.json キャッシュのテスト（#1229 T054）。
-// 最初の pecot_hook_enabled 呼び出しで hooks-config.json を 1 回の jq で読み、同一プロセス内の以降の判定では jq を起動しない。
-// 判定結果（キーなし・空値・false・パース失敗）は従来どおり。
+// config-dispatcher.sh の hooks-config.json キャッシュのテスト。
+// 最初の pecot_hook_enabled で jq を 1 回だけ起動し、同一プロセス内の以降の判定では起動しない。
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -29,7 +28,7 @@ done
 // jq を呼び出しの記録つきのシムに差し替え、記録のパスを返す。
 function installJqCalls(hookCase: HookCase): string {
   const log = path.join(hookCase.temporaryPath, 'jq-calls.log')
-  const realJq = run(hookCase, 'which', ['jq']).stdout.trim()
+  const realJq = run(hookCase, 'sh', ['-c', 'command -v jq']).stdout.trim()
   mockBin(hookCase).install('jq', `echo x >> "${log}"\nexec "${realJq}" "$@"\n`)
   return log
 }

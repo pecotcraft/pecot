@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // hooks と pecot CLI が同じ .pecot/state を指すことの結合テスト。
-// hooks には CLAUDE_PROJECT_DIR（セッション開始時のディレクトリ）と入力 JSON の cwd（Bash ツールの cd に追随）が渡る。
-// Bash ツールから呼ぶ CLI には CLAUDE_PROJECT_DIR が渡らず、CLI は cwd の git toplevel を使う。
+// hooks には CLAUDE_PROJECT_DIR と入力 JSON の cwd が渡り、CLI には渡らず cwd の git toplevel を使う。
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -14,7 +13,7 @@ import { run } from './_helpers/run.js'
 import { jsonDumps } from './_helpers/text.js'
 
 const EXIT_PLAN_MODE_ENTRY = path.join(hooksDirectory, 'post-tool-use-exit-plan-mode.sh')
-// pytest と同じく、cli/.venv の Python を使う。
+// cli/.venv の Python を使う。
 const CLI_PYTHON = path.join(pluginRoot, 'cli', '.venv', 'bin', 'python')
 
 describe('post-tool-use-exit-plan-mode.sh と pecot session status', () => {

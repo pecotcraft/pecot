@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // session-title.sh（Claude Code のセッション名）のテスト。
-// セッション名は、.pecot/state/.pecot-active と .pecot-session-title から組む。
-// session-title-sent に残した `<session_id>:<題名>` と違うときだけ、sessionTitle を出す。
+// セッション名は .pecot-active と .pecot-session-title から組み、session-title-sent の `<session_id>:<題名>` と違うときだけ出す。
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 

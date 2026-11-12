@@ -1,7 +1,5 @@
-// shell の起動。conftest.py の run_script・run_hook_entry・run_hook_script・run_post_script・claude_adapter に当たる。
-//
-// 同期は spawnSync、並行に起動するケースは runAsync を使う。タイムアウトは 25 秒で、超えたら throw する。
-// stdout・stderr は Node の復号のまま返す。Python の text=True と違い、改行（\r\n）は直さない。
+// shell の起動。同期は spawnSync、並行に起動するケースは runAsync を使う。タイムアウトは 25 秒で、超えたら throw する。
+// stdout・stderr は Node の復号のまま返し、改行（\r\n）は直さない。
 import { spawn, spawnSync } from 'node:child_process'
 import { constants } from 'node:os'
 import path from 'node:path'
@@ -30,7 +28,7 @@ function description(command: string, argv: readonly string[]): string {
   return [command, ...argv].join(' ').slice(0, 200)
 }
 
-// シグナルで終わった子は、subprocess.run の returncode と同じく負の値にする。
+// シグナルで終わった子は、負の値にする。
 function exitCodeOf(status: number | null, signal: NodeJS.Signals | null): number {
   if (status !== null) return status
   if (signal === null) return -1
@@ -90,17 +88,17 @@ export function runAsync(hookCase: HookCase, command: string, argv: readonly str
   })
 }
 
-// bash <script> [args...]（run_script）
+// bash <script> [args...]
 export function runScript(hookCase: HookCase, script: string, argv: readonly string[] = [], options: RunOptions = {}): RunResult {
   return run(hookCase, 'bash', [script, ...argv], options)
 }
 
-// hooks/ 直下のエントリを JSON 入力で起動する（run_hook_entry）。
+// hooks/ 直下のエントリを JSON 入力で起動する。
 export function runHookEntry(hookCase: HookCase, entry: string, payload: unknown, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   return runScript(hookCase, path.join(hooksDirectory, entry), [], { ...options, stdin: jsonDumps(payload) })
 }
 
-// claude-adapter.sh 経由でコアスクリプトを起動する（claude_adapter）。
+// claude-adapter.sh 経由でコアスクリプトを起動する。
 export function runClaudeAdapter(hookCase: HookCase, command: string, coreScript: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   const stdin = jsonDumps({ tool_input: { command } })
   return runScript(hookCase, path.join(adapterDirectory, 'claude-adapter.sh'), [coreScript], { ...options, stdin })
@@ -108,7 +106,7 @@ export function runClaudeAdapter(hookCase: HookCase, command: string, coreScript
 
 const SOURCE_HOOK_INPUT_THEN_EXEC = 'source "$(dirname "$1")/../core/hook-input.sh" && pecot_hook_input_load "$2" && exec bash "$1"'
 
-// project-root の解決（git toplevel）は無効化する。CLAUDE_PROJECT_DIR はテストが用意した値のままにするため。
+// pecot_export_project_root を無効にして起動する。CLAUDE_PROJECT_DIR はテストが用意した値のままにするため。
 const SOURCE_POST_MATCH_THEN_EXEC = [
   'PECOT_PROJECT_ROOT_LAZY=1; ',
   'source "$(dirname "$1")/../core/project-root.sh" "$2" && ',
@@ -116,12 +114,12 @@ const SOURCE_POST_MATCH_THEN_EXEC = [
   'source "$(dirname "$1")/bash-post-match.sh" "$2" && exec bash "$1"',
 ].join('')
 
-// サブスクリプトを hook-input.sh を source してから起動する。JSON は argv で渡す（run_hook_script）。
+// サブスクリプトを hook-input.sh を source してから起動する。JSON は argv で渡す。
 export function runHookScript(hookCase: HookCase, script: string, json: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   return run(hookCase, 'bash', ['-c', SOURCE_HOOK_INPUT_THEN_EXEC, '_', script, json], options)
 }
 
-// PostToolUse(Bash) のサブスクリプトを、エントリと同じ前段で起動する。JSON は argv で渡す（run_post_script）。
+// PostToolUse(Bash) のサブスクリプトを、エントリと同じ前段で起動する。JSON は argv で渡す。
 export function runPostScript(hookCase: HookCase, script: string, json: string, options: Omit<RunOptions, 'stdin'> = {}): RunResult {
   return run(hookCase, 'bash', ['-c', SOURCE_POST_MATCH_THEN_EXEC, '_', script, json], options)
 }

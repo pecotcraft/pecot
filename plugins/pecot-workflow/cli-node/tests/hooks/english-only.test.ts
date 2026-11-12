@@ -1,11 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下のみ */
 // hooks がエージェントへ返す文言に日本語が無いことの静的な確認（spec 021 FR-014・SC-007）。
-// 範囲は hooks/**/*.sh・hooks/hooks*.json・hooks/templates/*.md。テストは hooks/ の外にあるので範囲に入らない。
-//
-// コメントの判定は次のとおり。
-// - .sh は、先頭の空白を除いて # で始まる行をコメントとして外す。heredoc の中と、複数行の引用符の文字列の中は外さない。
-// - .md は <!-- ... --> だけを外す。# の見出しは本文として扱う。
-// - .json は全行を調べる。
+// 範囲は hooks/**/*.sh・hooks/hooks*.json・hooks/templates/*.md。
+// .sh は # で始まる行、.md は <!-- ... --> だけをコメントとして外す。.json は全行を調べる。
 import { globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -13,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { compareStrings } from '../parity/baseline.js'
 import { hooksDirectory } from './_helpers/paths.js'
-import { splitLines } from './_helpers/text.js'
+import { comparePathParts, splitLines } from './_helpers/text.js'
 
 // 日本語の区間（コードポイントの範囲）。
 const JAPANESE_RANGES: readonly (readonly [number, number])[] = [
@@ -40,14 +36,6 @@ const EXEMPT: readonly (readonly [string, string])[] = [
 ]
 
 type NumberedLine = readonly [number, string]
-
-// Python のパスの並びに合わせる。パスを構成要素ごとに比べる。
-function comparePathParts(left: string, right: string): number {
-  const leftParts = left.split('/')
-  const rightParts = right.split('/')
-  const firstDifference = leftParts.map((part, index) => compareStrings(part, rightParts.at(index) ?? '')).find(order => order !== 0)
-  return firstDifference ?? leftParts.length - rightParts.length
-}
 
 // 1 行を走査して、行末で開いている引用符の種類を返す。閉じていれば undefined。
 function scanQuotes(line: string, initial: string | undefined): string | undefined {

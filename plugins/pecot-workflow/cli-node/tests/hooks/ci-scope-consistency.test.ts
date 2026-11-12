@@ -1,12 +1,13 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはリポ内の project.json と run-*.sh のみ */
 // project.json の target が指定する --scope= の値を、起動先の run-*.sh が受理することの静的な確認。
 // スクリプトは実行せず、command の文字列と case 文を付き合わせる。
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { compareStrings, isRecord } from '../parity/baseline.js'
+import { isFile } from './_helpers/files.js'
 import { projectRoot } from './_helpers/paths.js'
 import { parseJson } from './_helpers/text.js'
 
@@ -21,10 +22,6 @@ interface ScopeTarget {
   readonly projectRelative: string
   readonly target: string
   readonly scriptRelative: string
-}
-
-function isFile(target: string): boolean {
-  return statSync(target, { throwIfNoEntry: false })?.isFile() ?? false
 }
 
 function readProject(relative: string): Readonly<Record<string, unknown>> {

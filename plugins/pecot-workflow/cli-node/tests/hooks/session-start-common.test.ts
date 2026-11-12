@@ -2,7 +2,7 @@
 // session-start-common.sh のテスト。CLAUDE_ENV_FILE への環境変数の追記、flock の排他制御、.pecot/.gitignore の生成を確かめる。
 // flock のケースは、ロックを持つ子プロセス（holder）を spawn で保持し、終了時に必ず止める。
 import { spawn } from 'node:child_process'
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 
@@ -10,6 +10,8 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from './_helpers/environment.js'
 import type { HookCase } from './_helpers/environment.js'
+import { isFile } from './_helpers/files.js'
+import { pathWithoutCommand } from './_helpers/mock-bin.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
@@ -47,7 +49,7 @@ interface Holder {
 }
 
 function holdLock(hookCase: HookCase, lockFile: string, readyFile: string): Holder {
-  const child = spawn('bash', ['-c', `exec 9>"${lockFile}" && flock -n 9 && touch "${readyFile}" && sleep 5`], {
+  const child = spawn('bash', ['-c', 'exec 9>"$1" && flock -n 9 && touch "$2" && sleep 5', '_', lockFile, readyFile], {
     env: hookCase.composeEnv(),
     cwd: hookCase.temporaryPath,
     stdio: 'ignore',
@@ -72,7 +74,6 @@ const READY_TIMEOUT_MS = 10_000
 
 // holder がロックを取った後に置く ready ファイルの出現を待つ。
 // 待つ側が flock -n を試すと holder とロックを取り合うので、ファイルの出現だけを見る。
-// holder が取得前に終わったら、すぐ失敗させる。
 async function waitUntilReady(readyFile: string, holder: Holder): Promise<void> {
   const deadline = Date.now() + READY_TIMEOUT_MS
   while (Date.now() < deadline) {
@@ -88,31 +89,6 @@ function lockFileFor(hookCase: HookCase, temporaryDirectory: string, projectDire
   const cksum = run(hookCase, 'cksum', [], { stdin: projectDirectory })
   expect(cksum.exitCode).toBe(0)
   return path.join(temporaryDirectory, `.session-start-common-${cksum.stdout.trim().split(/\s+/u, 1)[0] ?? ''}.lock`)
-}
-
-// PATH 上の実行ファイルを、flock だけ除いて symlink した bin ディレクトリ。
-function pathWithoutFlock(hookCase: HookCase): string {
-  const binDirectory = path.join(hookCase.temporaryPath, 'bin-no-flock')
-  mkdirSync(binDirectory)
-  const entries = (hookCase.getEnv('PATH') ?? '').split(path.delimiter)
-  for (const entry of entries) {
-    if (!existsSync(entry)) continue
-    for (const name of readdirSync(entry)) {
-      const target = path.join(entry, name)
-      if (name !== 'flock' && isExecutable(target) && !existsSync(path.join(binDirectory, name))) symlinkSync(target, path.join(binDirectory, name))
-    }
-  }
-  return binDirectory
-}
-
-function isExecutable(target: string): boolean {
-  try {
-    accessSync(target, constants.X_OK)
-    return true
-  }
-  catch {
-    return false
-  }
 }
 
 describe('session-start-common.sh', () => {
@@ -147,7 +123,7 @@ describe('session-start-common.sh', () => {
     mkdirSync(lockDirectory, { recursive: true })
     const lockFile = path.join(lockDirectory, '.session-start-common.lock')
 
-    const result = run(hookCase, 'bash', ['-c', `exec 9>"${lockFile}" && flock -n 9 && echo ok`])
+    const result = run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9 && echo ok', '_', lockFile])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout.trim()).toBe('ok')
@@ -163,7 +139,7 @@ describe('session-start-common.sh', () => {
     const holder = holdLock(hookCase, lockFile, readyFile)
     try {
       await waitUntilReady(readyFile, holder)
-      const result = run(hookCase, 'bash', ['-c', `exec 9>"${lockFile}" && flock -n 9`])
+      const result = run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9', '_', lockFile])
       expect(result.exitCode).not.toBe(0)
     }
     finally {
@@ -178,8 +154,8 @@ describe('session-start-common.sh', () => {
     const lockFile = path.join(lockDirectory, '.session-start-common.lock')
 
     // 取得したサブシェルが終われば、ロックは自動で解放される
-    run(hookCase, 'bash', ['-c', `exec 9>"${lockFile}" && flock -n 9`])
-    const result = run(hookCase, 'bash', ['-c', `exec 9>"${lockFile}" && flock -n 9 && echo ok`])
+    run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9', '_', lockFile])
+    const result = run(hookCase, 'bash', ['-c', 'exec 9>"$1" && flock -n 9 && echo ok', '_', lockFile])
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout.trim()).toBe('ok')
@@ -218,7 +194,7 @@ describe('session-start-common.sh', () => {
 
   it('flock が PATH に無くても、サブスクリプトが動き、ロックを残さない', () => {
     const hookCase = createHookCase()
-    const binDirectory = pathWithoutFlock(hookCase)
+    const binDirectory = pathWithoutCommand(hookCase, 'flock')
     expect(existsSync(path.join(binDirectory, 'flock'))).toBe(false)
     const projectDirectory = makeGitProject(hookCase, true)
     const temporaryDirectory = path.join(hookCase.temporaryPath, 'tmpdir')
@@ -237,7 +213,7 @@ describe('session-start-common.sh', () => {
     })
 
     expect(result.exitCode).toBe(0)
-    expect(existsSync(path.join(projectDirectory, '.pecot', '.gitignore'))).toBe(true)
+    expect(isFile(path.join(projectDirectory, '.pecot', '.gitignore'))).toBe(true)
     expect(readFileSync(environmentFile, 'utf8')).toContain('export PECOT_SESSION_PROJECT_DIR=')
     // flock が無いときは、ロックを掛けない
     expect(readdirSync(temporaryDirectory)).toEqual([])
@@ -267,7 +243,7 @@ describe('session-start-common.sh', () => {
     run(hookCase, 'bash', [COMMON_SCRIPT])
 
     const gitignore = path.join(projectDirectory, '.pecot', '.gitignore')
-    expect(existsSync(gitignore)).toBe(true)
+    expect(isFile(gitignore)).toBe(true)
     const lines = splitLines(readFileSync(gitignore, 'utf8'))
     expect(lines).toContain('*')
     expect(lines.at(lines.indexOf('*') + 1)).toBe('!/config/')

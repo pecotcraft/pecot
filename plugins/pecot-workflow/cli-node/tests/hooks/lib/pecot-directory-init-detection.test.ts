@@ -3,9 +3,7 @@
 // user-prompt-submit.sh と pre-tool-use-skill.sh が `/pecot:` プレフィックスを正しく検知するかを確かめる。
 // 判定は、.pecot ディレクトリを生成するか（= init 発火）で行う。
 //
-// user-prompt-submit.sh は LIB_DIR 配下の実装スクリプトを呼ぶ。
-// 副作用を避けるため、LIB_DIR を「何もしないモック」へ差し替えたコピーを作って実行する。
-// CORE_DIR（検知スクリプト）は検証対象そのものなので、実体の絶対パスへ差し替える。
+// user-prompt-submit.sh は、LIB_DIR を何もしないモックへ、CORE_DIR を実体の絶対パスへ差し替えたコピーで実行する。
 // pre-tool-use-skill.sh は、副作用が .pecot 生成に限られるため、実体をそのまま実行する。
 import { chmodSync, mkdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
@@ -36,8 +34,7 @@ const DIRECTORY_ASSIGN = /^\s*(?:LIB_DIR|CORE_DIR)=/u
 const UPS_DIRECTORY_ASSIGN_ANY = /^(?<name>[A-Z][A-Z_0-9]*_DIR)=/gmu
 
 // <entry> が呼ぶ <librarySubdirectory> 配下のスクリプト名を返す。
-// 抽出は共有の抽出器（hooks/tests の実在ガードと同一）を使う。
-// ここで regex を持つと、サブディレクトリ精度差のある二重実装になる。
+// 抽出は共有の抽出器（実在ガードと同一）を使う。
 function extractSubdirectoryReferences(entry: string, librarySubdirectory: string): string[] {
   const source = readFileSync(path.join(hooksDirectory, entry), 'utf8')
   const targetDirectory = path.join(hooksDirectory, librarySubdirectory)
@@ -72,12 +69,8 @@ function setUpDetection(hookCase: HookCase): DetectionEnvironment {
 
   const upsSource = readFileSync(path.join(hooksDirectory, 'user-prompt-submit.sh'), 'utf8')
 
-  // コピーで実行すると、SCRIPT_DIR は tmp を指す。
-  // そのため、SCRIPT_DIR 相対の *_DIR 代入は、すべて絶対パスへ差し替える。
-  // 差し替え先は、LIB_DIR がモック、CORE_DIR が実体。
-  // SCRIPT_DIR 自体は標準形のまま残す。
-  // 差し替え抜けを防ぐため、対象の網羅をここで固定する。
-  // 差し替え抜けとは、新しい *_DIR が増えたのに tmp を指したまま、rc 127 で空振りすること。
+  // コピーでは SCRIPT_DIR が tmp を指すため、SCRIPT_DIR 相対の *_DIR 代入はすべて絶対パスへ差し替える。
+  // 新しい *_DIR が増えて差し替え忘れになると、rc 127 で空振りするので、網羅をここで固定する。
   const libraryDirectory = mockLibrary
   const coreDirectoryPath = path.join(hooksDirectory, 'lib', 'core')
   const names = Array.from(upsSource.matchAll(UPS_DIRECTORY_ASSIGN_ANY), match => match.groups?.['name'] ?? '')
@@ -99,18 +92,11 @@ function isPecotDirectoryCreated(project: string): boolean {
   return existsSync(pecot) && statSync(pecot).isDirectory()
 }
 
-// 静的ガード（#842: モック突合・生パス禁止・変数解決先の突合）。
-// 検知スクリプトを呼ぶエントリ 2 本（user-prompt-submit.sh / pre-tool-use-skill.sh）へ、同じガードを掛ける。
-// どちらもチェーン途中の呼び出しの rc を見ない。
-// そのため、参照先が崩れて rc 127 になっても、実行時には表面化しない。
-// 参照先の実在自体は hooks/tests の entry-point-lib-refs が全エントリポイント分を担保する（#852）。
-// ここに残るのは setUpDetection の忠実性を守るエントリ固有ガードのみ。
+// 静的ガード（モック突合・生パス禁止・変数解決先の突合）。
+// どちらのエントリもチェーン途中の rc を見ないため、参照先が崩れても実行時には表面化しない。
 describe('検知スクリプトを呼ぶエントリの静的ガード', () => {
-  // _DIR_REF_CASES の lib_subdir は、下のモック突合・生パス迂回ガードが探す literal になっている。
-  // 変数の実際の解決先が別ディレクトリへ移ると、それらのガードは何にもマッチせず、常に pass する（fail-open）。
-  // literal と実態を、ここで繋ぐ。
-  // 解決先が合っていても、当該 subdir 配下への参照が 0 件になると、モック突合は空集合同士の一致で pass しうる。
-  // そこで、ケースごとに参照の存在も併せて固定する。
+  // 解決先が別ディレクトリへ移ると、下のガードは何にもマッチせず常に通る。literal と実態をここで繋ぐ。
+  // 参照が 0 件でも空集合同士の一致で通るため、参照の存在も固定する。
   it.for(DIRECTORY_REFERENCE_ROWS)('$label は、期待のサブディレクトリへ解決し、その配下への参照が 1 件以上ある', (row) => {
     const source = readFileSync(path.join(hooksDirectory, row.entry), 'utf8')
     const directoryVariables = resolveDirectoryVariables(source, hooksDirectory, pluginRoot)
@@ -118,21 +104,14 @@ describe('検知スクリプトを呼ぶエントリの静的ガード', () => {
     expect(extractSubdirectoryReferences(row.entry, row.librarySubdirectory).length).toBeGreaterThan(0)
   })
 
-  // injector が増減したときにモック生成が追随しないと、未登録の injector は `<mock_lib>/<名前>.sh` として解決され、rc 127 で終わる。
-  // このとき実体は実行されない。
-  // entry point の `exit 0` がこれを握り潰すため、当該 injector は「モックによる no-op」ではなく「実行エラー」になる。
-  // その結果、検知系テストが ups チェーンを忠実に再現しなくなる。不要なモックが残ることもある。
-  // どちらも実行時には表面化しないため、参照集合との一致をここで固定する。
-  // pre-tool-use-skill.sh 側は実体をそのまま実行する（モック差し替えをしない）ため、この突合は user-prompt-submit.sh のみが対象。
+  // 未登録の injector は rc 127 で終わるが、エントリの `exit 0` が握り潰す。表面化しないので、参照集合との一致を固定する。
+  // pre-tool-use-skill.sh は実体を実行するため、対象は user-prompt-submit.sh のみ。
   it('モックの一覧は、user-prompt-submit.sh の実参照と一致する', () => {
     const referenced = new Set(extractSubdirectoryReferences('user-prompt-submit.sh', 'lib/user-prompt-submit'))
     expect(referenced, 'user-prompt-submit.sh の $LIB_DIR 参照とモックの一覧が一致しません').toEqual(new Set(MOCK_LIB_SCRIPTS))
   })
 
-  // `$SCRIPT_DIR/lib/core/foo.sh` のような生パス呼び出しは、参照抽出（実在チェック・モック突合）にも、setUpDetection の *_DIR 差し替えにも掛からない。
-  // その結果、ガードをすべてすり抜ける。
-  // 参照手段を変数一本に固定して、抜け道を塞ぐ。
-  // 変数自体の定義行のみ、生パスを許す。
+  // `$SCRIPT_DIR/lib/core/foo.sh` のような生パスは、参照抽出と *_DIR の差し替えのどちらにも掛からない。変数経由に固定し、定義行だけ生パスを許す。
   it.for(DIRECTORY_REFERENCE_ROWS)('$label の配下は、変数経由でだけ参照する', (row) => {
     const source = readFileSync(path.join(hooksDirectory, row.entry), 'utf8')
     const rawReferences = splitLines(source)
@@ -188,13 +167,8 @@ describe('UserPromptSubmit', () => {
   })
 })
 
-// jq or 統合式の意味論（クロス payload）。
-// pecot-dir-init-detect.sh は、単一の `or` 式で 2 つを判定する。
-// 判定対象は、`/pecot:` プレフィックス（UserPromptSubmit）と、`pecot:` skill（PreToolUse(Skill)）。
-// ホスト payload スキーマは、UserPromptSubmit 入力に .tool_input が無く、PreToolUse 入力に .prompt が無い前提になっている。
-// この前提のもとでは、実害がない。
-// これは設計判断だが、その前提自体はテストで固定されていない。
-// 以下 2 件で、統合式の意味論を宣言として明示する。
+// pecot-dir-init-detect.sh は `/pecot:` プレフィックスと `pecot:` skill を単一の `or` 式で判定する。
+// UserPromptSubmit に .tool_input が無く PreToolUse に .prompt が無い前提は固定されていないので、以下 2 件で意味論を示す。
 describe('統合式の意味論（クロス payload）', () => {
   // prompt が非 pecot でも `.tool_input.skill` が `pecot:` なら、init が動く。これが `or` 統合式の意味論になる。
   // ホスト payload にクロスフィールドが現れた場合の挙動を、宣言として固定する（変わったら意図的に判断し直す）。

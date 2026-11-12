@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // PreToolUse の応答形式のテスト。
-// 確認が必要な操作は hookSpecificOutput.permissionDecision の ask で返し、deny に置き換えない。
-// 拒否は permissionDecision の deny と permissionDecisionReason で返し、トップレベルの decision は使わない。
+// 確認は permissionDecision の ask、拒否は deny と permissionDecisionReason で返し、トップレベルの decision は使わない。
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 

@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// config-dispatcher.sh のテスト。
-// pecot_hook_enabled 関数の 8 パターンと、hooks-config.json による各 hook 無効化の統合テスト、PLUGIN_HOOKS 解決を検証する。
-// pecot_hook_enabled は source が必要な関数のため bash -c で source してから呼ぶ。
+// config-dispatcher.sh のテスト。pecot_hook_enabled の判定、hooks-config.json による無効化、PLUGIN_HOOKS 解決を検証する。
+// pecot_hook_enabled は source が要る関数なので、bash -c で source してから呼ぶ。
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 

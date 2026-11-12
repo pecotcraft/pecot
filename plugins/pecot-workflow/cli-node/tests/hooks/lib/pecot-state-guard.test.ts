@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pecot-state-guard.sh のテスト。
 // .pecot 配下への書き込みガード（gitignore-before-write 規約）の単一実装を検証する。
-// pecot_state_dir_ensure を source 経由で呼び、終了コードと副作用（.gitignore 生成・ディレクトリ作成）を観測する。
+// pecot_state_dir_ensure を source して呼び、終了コードと副作用を観測する。
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { claudeProjectDirectory, createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
+import { isFile } from '../_helpers/files.js'
 import { coreDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -24,10 +25,6 @@ function runEnsure(hookCase: HookCase, targetDirectory: string, shouldUnsetProje
 
 function isDirectory(target: string): boolean {
   return existsSync(target) && statSync(target).isDirectory()
-}
-
-function isFile(target: string): boolean {
-  return existsSync(target) && statSync(target).isFile()
 }
 
 // claudeProjectDirectory は .pecot を作成済みなので、ガード本来の「.pecot 不在」のケースを作れるよう削除して、そのパスを返す。

@@ -1,8 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // lib/core/project-root.sh の解決順のテスト。
-// 入力 JSON の .cwd → CLAUDE_PROJECT_DIR → プロセスの pwd の順に、候補を試す。
-// GIT_* を外した `git rev-parse --show-toplevel` が成功した最初の値を、CLAUDE_PROJECT_DIR に export する。
-// どれも git 外なら、CLAUDE_PROJECT_DIR は変更しない。
+// 入力 JSON の .cwd → CLAUDE_PROJECT_DIR → プロセスの pwd の順に試す。
+// GIT_* を外した `git rev-parse --show-toplevel` が成功した最初の値を export し、どれも git 外なら変更しない。
 import { mkdirSync, realpathSync, statSync, symlinkSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
 
@@ -10,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
-import { gitRepository, workLayout } from '../_helpers/git.js'
+import { gitOrThrow, gitRepository, workLayout } from '../_helpers/git.js'
 import { coreDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
@@ -28,7 +27,7 @@ interface ResolveOptions {
 // project-root.sh を source した後の CLAUDE_PROJECT_DIR を返す（未設定は UNSET）。
 function resolve(hookCase: HookCase, payload: unknown, options: ResolveOptions): string {
   const inputJson = payload === undefined ? '' : jsonDumps(payload)
-  const result = run(hookCase, 'bash', ['-c', `source "$1" "$2"; printf "%s" "\${CLAUDE_PROJECT_DIR-${UNSET}}"`, 'bash', PROJECT_ROOT_SH, inputJson], {
+  const result = run(hookCase, 'bash', ['-c', 'source "$1" "$2"; printf "%s" "${CLAUDE_PROJECT_DIR-$3}"', 'bash', PROJECT_ROOT_SH, inputJson, UNSET], {
     cwd: options.cwd,
     env: { CLAUDE_PROJECT_DIR: options.projectDirectory, ...options.extraEnvironment },
   })
@@ -38,11 +37,6 @@ function resolve(hookCase: HookCase, payload: unknown, options: ResolveOptions):
 
 function real(target: string): string {
   return realpathSync(target)
-}
-
-function git(hookCase: HookCase, cwd: string, ...argv: readonly string[]): void {
-  const result = run(hookCase, 'git', argv, { cwd })
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
 }
 
 describe('project-root.sh', () => {
@@ -212,7 +206,7 @@ describe('project-root.sh の .pecot/work 配下', () => {
     const layout = workLayout(hookCase)
     const nested = path.join(layout.work, '1244', 'clone')
     mkdirSync(nested)
-    git(hookCase, nested, 'init', '--quiet')
+    gitOrThrow(hookCase, nested, ['init', '--quiet'])
     mkdirSync(path.join(nested, 'src'))
     const resolvedAtTop = resolve(hookCase, { cwd: nested }, { cwd: nested, projectDirectory: layout.wt })
     const resolvedInSub = resolve(hookCase, { cwd: path.join(nested, 'src') }, { cwd: path.join(nested, 'src'), projectDirectory: layout.wt })
@@ -224,7 +218,7 @@ describe('project-root.sh の .pecot/work 配下', () => {
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const nested = path.join(layout.work, '1244', 'linked')
-    git(hookCase, layout.base, 'worktree', 'add', '-q', '-b', 'nested/x', nested)
+    gitOrThrow(hookCase, layout.base, ['worktree', 'add', '-q', '-b', 'nested/x', nested])
     expect(statSync(path.join(nested, '.git')).isFile()).toBe(true)
     const resolved = resolve(hookCase, { cwd: nested }, { cwd: nested, projectDirectory: layout.wt })
     expect(resolved).toBe(real(nested))

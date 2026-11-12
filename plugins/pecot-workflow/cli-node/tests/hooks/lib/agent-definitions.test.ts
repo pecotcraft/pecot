@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはリポジトリ内の定義ファイルのみ */
 // エージェント定義（agents/*.md）とスキル定義（skills/*/SKILL.md）の frontmatter の検証。
-// frontmatter は PyYAML の safe_load と同じ YAML 1.1 で読む。
+// frontmatter は YAML 1.1 で読む。
 import { existsSync, globSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { projectRoot } from '../_helpers/paths.js'
 import { splitLines } from '../_helpers/text.js'
+import { compareStrings } from '../../parity/baseline.js'
 
 const agentsDirectory = path.join(projectRoot, 'plugins', 'pecot-workflow', 'agents')
 const PLUGINS = ['pecot-workflow', 'pecot-visual']
@@ -25,7 +26,7 @@ interface AgentRow {
 
 const ASK = 'AskUserQuestion'
 const PLAN = ['EnterPlanMode', 'ExitPlanMode']
-// pytest の sorted(タプル) と同じ並びにする。
+// label の昇順に並べる。
 const AGENT_ROWS: readonly AgentRow[] = [
   { label: 'pecot-visual/v-diagram-creator', plugin: 'pecot-visual', agent: 'v-diagram-creator', tools: ['Agent', 'WebSearch', 'WebFetch', ...PLAN, ASK], window: 200_000 },
   { label: 'pecot-visual/v-slide-creator', plugin: 'pecot-visual', agent: 'v-slide-creator', tools: ['Agent', 'WebSearch', 'WebFetch', 'Bash', 'PowerShell', ...PLAN, ASK], window: 200_000 },
@@ -53,7 +54,7 @@ function asRecord(value: unknown): Readonly<Record<string, unknown>> {
   return Object.fromEntries(Object.entries(value))
 }
 
-// 先頭の ---〜--- を YAML 1.1 で読む。重複キーは PyYAML と同じく許す。
+// 先頭の ---〜--- を YAML 1.1 で読む。重複キーは許す。
 function frontmatter(file: string): Readonly<Record<string, unknown>> {
   const lines = splitLines(readFileSync(file, 'utf8'))
   expect(lines.at(0), `${file}: frontmatter が無い`).toBe('---')
@@ -76,25 +77,20 @@ function modelOf(file: string): string | undefined {
   return undefined
 }
 
-// Python の len と同じ、コードポイント数。
+// コードポイント数。
 function codePoints(text: string): number {
   // eslint-disable-next-line @typescript-eslint/no-misused-spread -- コードポイント単位で数える
   return [...text].length
 }
 
-function compare(left: string, right: string): number {
-  if (left < right) return -1
-  return left > right ? 1 : 0
-}
-
 function keysOf<V>(map: ReadonlyMap<string, V>): string[] {
-  return Array.from(map, ([key]) => key).toSorted(compare)
+  return Array.from(map, ([key]) => key).toSorted(compareStrings)
 }
 
 function keyed(kind: string, pattern: string, name: (found: string) => string): Map<string, string> {
   const entries = PLUGINS.flatMap((plugin) => {
     const base = path.join(projectRoot, 'plugins', plugin, kind)
-    return globSync(pattern, { cwd: base }).toSorted(compare).map((found): [string, string] => [`${plugin}/${name(found)}`, path.join(base, found)])
+    return globSync(pattern, { cwd: base }).toSorted(compareStrings).map((found): [string, string] => [`${plugin}/${name(found)}`, path.join(base, found)])
   })
   return new Map(entries)
 }
@@ -173,7 +169,7 @@ describe('型と内容', () => {
   })
 
   it('スキルの集合が期待どおりになっている', () => {
-    expect(keysOf(skillFiles())).toEqual(EXPECTED_SKILLS.toSorted(compare))
+    expect(keysOf(skillFiles())).toEqual(EXPECTED_SKILLS.toSorted(compareStrings))
   })
 
   it('どのスキルにも disable-model-invocation を付けない', () => {

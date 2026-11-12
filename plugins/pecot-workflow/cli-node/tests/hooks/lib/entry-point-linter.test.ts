@@ -99,11 +99,7 @@ const PASS_FIXTURES = [
   },
 ]
 
-// 実エントリポイント全件（ガード本体と一覧のドリフト検知）。
-// guard は .pre-commit-config.yaml では、staged ファイルのみを確認する。
-// そのため、「全 entry point が違反 0」と「一覧が実ファイルと一致」は、ここで担保する。
-// .githooks/tests/ 側の同名ファイルは、files: ^\.githooks/ の pre-push でしか動かない。
-// entry point の変更では発火しない。
+// 実エントリポイント全件の確認。pre-commit の guard は staged ファイルしか見ないため、全件の違反 0 と一覧の一致はここで担保する。
 
 // 引数なし実行（= guard 内蔵の ALL_ENTRY_POINTS を対象）。パスはリポルート相対。
 function runLinterAllEntryPoints(hookCase: HookCase): RunResult {

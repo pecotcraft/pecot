@@ -6,17 +6,9 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { compareStrings } from '../parity/baseline.js'
-import { codeLines } from './_helpers/script-references.js'
 import { hooksDirectory } from './_helpers/paths.js'
-
-// Python の Path の並びに合わせる。パスを構成要素ごとに比べる。
-function comparePathParts(left: string, right: string): number {
-  const leftParts = left.split('/')
-  const rightParts = right.split('/')
-  const firstDifference = leftParts.map((part, index) => compareStrings(part, rightParts.at(index) ?? '')).find(order => order !== 0)
-  return firstDifference ?? leftParts.length - rightParts.length
-}
+import { codeLines } from './_helpers/script-references.js'
+import { comparePathParts } from './_helpers/text.js'
 
 const scripts = [...globSync('*.sh', { cwd: hooksDirectory }), ...globSync('lib/**/*.sh', { cwd: hooksDirectory })]
   .filter(relative => !relative.split('/').includes('tests'))

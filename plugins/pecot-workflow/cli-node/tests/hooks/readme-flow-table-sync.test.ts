@@ -1,19 +1,14 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下のみ */
 // README「フック実行フロー」の表と hooks.json とエントリスクリプト実体の、三者の突合の静的な確認。
-// 表・hooks.json・スクリプト実体から独立に対応関係を取り出し、双方向に一致することを見る。
-// 突合相手は Claude 側の hooks.json を基本とし、hooks-copilot.json からは Copilot 専用のエントリだけを補う。
-// 検知できない範囲は次のとおり。
-// - lib は basename でしか一致を見ない。ディレクトリの取り違えは、解決したパスの実在確認で防ぐ。
-// - 「コアガード群」は内訳を表が列挙していないので、中身の増減は対象外。
-// - 中継の追跡は 1 段まで。中継先の呼び出し順も見ない。
-// - 括弧内の注記は 1 段深い呼び出しの参考記載で、エントリの直接の呼び出しとはみなさない。
-// - session-start-*.sh の行は matcher の集合の一致までしか担保しない。
+// 突合相手は Claude 側の hooks.json で、hooks-copilot.json からは Copilot 専用のエントリだけを補う。
+// lib は basename でしか一致を見ず、コアガード群の内訳と中継先の呼び出し順は対象外。
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { compareStrings, isRecord } from '../parity/baseline.js'
+import { compareStrings } from '../parity/baseline.js'
+import { toArray, toRecord } from './_helpers/json.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { parseJson, splitLines } from './_helpers/text.js'
 
@@ -73,16 +68,6 @@ interface ConfigEntry {
   readonly event: string
   readonly matcher: string | undefined
   readonly name: string
-}
-
-function toArray(value: unknown, what: string): readonly unknown[] {
-  if (!Array.isArray(value)) throw new TypeError(`${what} が配列ではありません`)
-  return value
-}
-
-function toRecord(value: unknown, what: string): Readonly<Record<string, unknown>> {
-  if (!isRecord(value)) throw new TypeError(`${what} がオブジェクトではありません`)
-  return value
 }
 
 function readText(relative: string): string {

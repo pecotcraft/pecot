@@ -1,23 +1,18 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// テスト用の git。conftest.py の git_repo・work_layout・git_call_log に当たる。
-//
-// 使い方は次のとおり。
-// - gitRepository(hookCase, name) は、初期コミット済みのリポを tmp 配下に作る。名前を省くと test-repo-N になる。
-// - workLayout(hookCase) は、base と worktree（wt）を作る。wt/.pecot/work は base への相対 symlink になる。
-// - installGitCallLog(hookCase) は、PATH の先頭に git のシムを置き、呼び出しを記録する。
-// git の起動は run.ts と同じ env（PATH の mock-bin を含む）で行う。
+// テスト用の git のリポ・worktree 配置・呼び出しの記録。起動は run.ts と同じ env（PATH の mock-bin を含む）で行う。
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
 import type { HookCase } from './environment.js'
 import { mockBin } from './mock-bin.js'
-import { run } from './run.js'
+import { run, type RunResult } from './run.js'
 import { splitLines } from './text.js'
 
-function git(hookCase: HookCase, cwd: string, argv: readonly string[]): void {
+export function gitOrThrow(hookCase: HookCase, cwd: string, argv: readonly string[]): RunResult {
   const result = run(hookCase, 'git', argv, { cwd })
   if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
+  return result
 }
 
 const repositoryCounters = new WeakMap<HookCase, number>()
@@ -31,13 +26,13 @@ export function gitRepository(hookCase: HookCase, name?: string): string {
   }
   const repositoryDirectory = path.join(hookCase.temporaryPath, repositoryName)
   mkdirSync(repositoryDirectory, { recursive: true })
-  git(hookCase, repositoryDirectory, ['init', '--quiet'])
-  git(hookCase, repositoryDirectory, ['config', 'user.email', 'test@example.com'])
-  git(hookCase, repositoryDirectory, ['config', 'user.name', 'Test User'])
-  git(hookCase, repositoryDirectory, ['config', 'commit.gpgsign', 'false'])
+  gitOrThrow(hookCase, repositoryDirectory, ['init', '--quiet'])
+  gitOrThrow(hookCase, repositoryDirectory, ['config', 'user.email', 'test@example.com'])
+  gitOrThrow(hookCase, repositoryDirectory, ['config', 'user.name', 'Test User'])
+  gitOrThrow(hookCase, repositoryDirectory, ['config', 'commit.gpgsign', 'false'])
   writeFileSync(path.join(repositoryDirectory, '.gitkeep'), '')
-  git(hookCase, repositoryDirectory, ['add', '.gitkeep'])
-  git(hookCase, repositoryDirectory, ['commit', '--quiet', '-m', 'initial commit'])
+  gitOrThrow(hookCase, repositoryDirectory, ['add', '.gitkeep'])
+  gitOrThrow(hookCase, repositoryDirectory, ['commit', '--quiet', '-m', 'initial commit'])
   return repositoryDirectory
 }
 
@@ -56,7 +51,7 @@ export interface WorkLayout {
 export function workLayout(hookCase: HookCase): WorkLayout {
   const base = gitRepository(hookCase, 'base')
   const wt = path.join(hookCase.temporaryPath, 'wt')
-  git(hookCase, base, ['worktree', 'add', '-q', '-b', 'feat/x', wt])
+  gitOrThrow(hookCase, base, ['worktree', 'add', '-q', '-b', 'feat/x', wt])
   const work = path.join(base, '.pecot', 'work')
   mkdirSync(path.join(work, '1244', 'sub'), { recursive: true })
   mkdirSync(path.join(base, '.pecot', 'work2'))

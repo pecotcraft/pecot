@@ -1,12 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// モックコマンドの配置。conftest.py の mock_bin・pecot_bin_mock に当たる。
-//
-// 使い方は次のとおり。
-// - mockBin(hookCase).install('gh', 'echo mocked') は、PATH の先頭の mock-bin にコマンドを置く。
-//   同じケースでは同じ mock-bin を返す。
-// - pecotBinMock(hookCase).install(pluginRoot) は、${CLAUDE_PLUGIN_ROOT}/bin/pecot の実体を置く。
-//   PECOT_MOCK_EXIT と PECOT_MOCK_STDERR で振る舞いを変える。
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
+// モックコマンドの配置。mockBin は同じケースなら同じ mock-bin を返し、pecotBinMock は bin/pecot の代役を置く。
+import { chmodSync, existsSync, mkdirSync, readdirSync, symlinkSync, writeFileSync, accessSync, constants } from 'node:fs'
 import path from 'node:path'
 
 import type { HookCase } from './environment.js'
@@ -76,4 +70,29 @@ export function pecotBinMock(hookCase: HookCase): PecotBinMock {
       return marker
     },
   }
+}
+
+function isExecutable(target: string): boolean {
+  try {
+    accessSync(target, constants.X_OK)
+    return true
+  }
+  catch {
+    return false
+  }
+}
+
+// PATH 上の実行ファイルを name だけ除いて symlink した bin ディレクトリを作り、そのパスを返す。
+export function pathWithoutCommand(hookCase: HookCase, name: string): string {
+  const binDirectory = path.join(hookCase.temporaryPath, `bin-no-${name}`)
+  mkdirSync(binDirectory)
+  const entries = (hookCase.getEnv('PATH') ?? '').split(path.delimiter)
+  for (const entry of entries) {
+    if (!existsSync(entry)) continue
+    for (const file of readdirSync(entry)) {
+      const target = path.join(entry, file)
+      if (file !== name && isExecutable(target) && !existsSync(path.join(binDirectory, file))) symlinkSync(target, path.join(binDirectory, file))
+    }
+  }
+  return binDirectory
 }

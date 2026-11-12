@@ -12,11 +12,12 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
-import { mockBin } from '../_helpers/mock-bin.js'
+import { mockBin, pathWithoutCommand } from '../_helpers/mock-bin.js'
 import { pluginRoot as realPluginRoot } from '../_helpers/paths.js'
 import { run, runAsync } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { compareStrings } from '../../parity/baseline.js'
 
 // CLAUDE_PLUGIN_DATA は消さない。ケースの一時ディレクトリを指しており、実ホームの置き場への書き込みを防ぐ。
 // 「変数なし」を試すケースだけが、値に undefined を渡して外す。XDG_DATA_HOME は付け替えない。
@@ -131,19 +132,13 @@ function counts(result: RunResult): [number, number] {
   return [lines.filter(line => line === INSTALLING).length, lines.filter(line => line === BUILDING).length]
 }
 
-// コードポイント順（Python の sorted と同じ）
-function compareText(left: string, right: string): number {
-  if (left < right) return -1
-  return left > right ? 1 : 0
-}
-
 function venvDirectories(dataDirectory: string): string[] {
   const venv = path.join(dataDirectory, 'venv')
   return existsSync(venv) && statSync(venv).isDirectory()
     ? readdirSync(venv, { withFileTypes: true })
         .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
         .map(entry => entry.name)
-        .toSorted(compareText)
+        .toSorted(compareStrings)
     : []
 }
 
@@ -155,7 +150,7 @@ function currentOf(dataDirectory: string): string {
 function snapshot(root: string): [string, string][] {
   return readdirSync(root, { recursive: true, encoding: 'utf8' })
     .map(entry => path.join(root, entry))
-    .toSorted(compareText)
+    .toSorted(compareStrings)
     .map(entry => [entry, String(lstatSync(entry, { bigint: true }).mtimeNs)])
 }
 
@@ -232,6 +227,8 @@ async function startConcurrently(hookCase: HookCase, wrapper: string, dataDirect
   }
 }
 
+const HOLD_READY_TIMEOUT_MS = 5000
+
 interface SharedLock {
   release(): Promise<void>
 }
@@ -240,9 +237,19 @@ interface SharedLock {
 async function holdSharedLock(hookCase: HookCase, file: string): Promise<SharedLock> {
   const ready = `${file}.ready`
   const releaseFlag = `${file}.release`
-  const script = `touch "${ready}"; i=0; while [ ! -e "${releaseFlag}" ] && [ "$i" -lt 600 ]; do sleep 0.1; i=$((i+1)); done`
-  const holder = runAsync(hookCase, 'flock', ['-s', file, 'sh', '-c', script])
-  for (let attempt = 0; attempt < 100 && !existsSync(ready); attempt += 1) await sleep(50)
+  const script = 'touch "$1"; i=0; while [ ! -e "$2" ] && [ "$i" -lt 600 ]; do sleep 0.1; i=$((i+1)); done'
+  const holder = runAsync(hookCase, 'flock', ['-s', file, 'sh', '-c', script, '_', ready, releaseFlag])
+  const state = { hasExited: false }
+  const markExited = (): void => {
+    state.hasExited = true
+  }
+  void holder.then(markExited).catch(markExited)
+  const deadline = Date.now() + HOLD_READY_TIMEOUT_MS
+  while (!existsSync(ready)) {
+    if (state.hasExited) throw new Error('ロックを取る前に flock が終了した')
+    if (Date.now() >= deadline) throw new Error('ロックが取得されなかった')
+    await sleep(50)
+  }
   return {
     async release() {
       writeFileSync(releaseFlag, '')
@@ -253,21 +260,12 @@ async function holdSharedLock(hookCase: HookCase, file: string): Promise<SharedL
 
 // flock を除いた PATH（macOS 相当）にする。mock uv の PATH 先頭は維持する。
 function removeFlockFromPath(hookCase: HookCase): void {
-  const shim = path.join(hookCase.temporaryPath, 'noflock-bin')
-  mkdirSync(shim)
-  for (const directory of ['/usr/bin', '/bin']) {
-    for (const name of readdirSync(directory)) {
-      const target = path.join(shim, name)
-      if (name !== 'flock' && lstatSync(target, { throwIfNoEntry: false }) === undefined) symlinkSync(path.join(directory, name), target)
-    }
-  }
-  const kept = (hookCase.getEnv('PATH') ?? '').split(':')
-    .filter(directory => directory !== '/usr/bin' && directory !== '/bin' && !existsSync(path.join(directory, 'flock')))
-  hookCase.setEnv('PATH', [...kept, shim].join(':'))
+  const binDirectory = pathWithoutCommand(hookCase, 'flock')
+  hookCase.setEnv('PATH', [mockBin(hookCase).binDirectory, binDirectory].join(path.delimiter))
 }
 
 function commandPath(hookCase: HookCase, name: string): string {
-  return run(hookCase, 'sh', ['-c', `command -v ${name}`]).stdout.trim()
+  return run(hookCase, 'sh', ['-c', 'command -v "$1"', '_', name]).stdout.trim()
 }
 
 describe('bin/pecot wrapper', () => {
@@ -724,7 +722,7 @@ describe('bin/pecot wrapper', () => {
         setMtime(path.join(dataDirectory, 'venv', currentOf(dataDirectory), '.pecot-complete'), n * 1000)
       }
       expect(new Set(names).size).toBe(4)
-      expect(venvDirectories(dataDirectory)).toEqual(names.slice(-2).toSorted(compareText))
+      expect(venvDirectories(dataDirectory)).toEqual(names.slice(-2).toSorted(compareStrings))
       expect(currentOf(dataDirectory)).toBe(names.at(-1))
     })
 
@@ -762,7 +760,9 @@ describe('bin/pecot wrapper', () => {
       const { wrapper } = setUp(hookCase)
       const dataDirectory = makeDataDirectory(hookCase)
       expect(go(hookCase, wrapper, dataDirectory).exitCode).toBe(0)
-      const name = venvDirectories(dataDirectory)[0] ?? ''
+      const names = venvDirectories(dataDirectory)
+      expect(names).toHaveLength(1)
+      const name = names[0] ?? ''
       writeFileSync(path.join(dataDirectory, 'venv', name, 'bin', 'pecot'), '#!/bin/sh\nsleep 3\n')
       const running = runWrapperAsync(hookCase, wrapper, ['x'], { CLAUDE_PLUGIN_DATA: dataDirectory })
       const inuse = path.join(dataDirectory, 'venv', name, '.inuse')

@@ -28,9 +28,7 @@ function pecotSkillJson(skill: string): string {
   return jsonDumps({ tool_input: { skill } })
 }
 
-// サブスクリプトは stdin の JSON を読まず PECOT_HOOK_* / PECOT_POST_* を読む。
-// エントリと同じ前段（hook-input.sh / project-root.sh + bash-post-match.sh）を source してから起動する。
-// エントリ（hooks/ 直下）は stdin をそのまま渡す。
+// サブスクリプトは stdin ではなく PECOT_HOOK_* / PECOT_POST_* を読むので、エントリと同じ前段を source してから起動する。
 const SOURCE_HOOK_INPUT = 'source "$(dirname "$1")/../core/hook-input.sh" && pecot_hook_input_load "$2" && exec bash "$1"'
 const SOURCE_POST_MATCH = [
   'PECOT_PROJECT_ROOT_LAZY=1; ',

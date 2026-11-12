@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// hook-input.sh（hook 入力 JSON を PECOT_HOOK_* に export する）のテスト（#1229 T054）。
+// hook-input.sh（hook 入力 JSON を PECOT_HOOK_* に export する）のテスト。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 

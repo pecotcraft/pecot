@@ -1,10 +1,12 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはプラグインのリポジトリ内のファイルのみ */
 // hooks 定義 4 本の timeout・matcher・イベントの構成と、command が指すファイルの実在を固定する。
-import { accessSync, constants, existsSync, readFileSync, statSync } from 'node:fs'
+import { accessSync, constants, existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { isFile } from '../_helpers/files.js'
+import { toArray, toRecord } from '../_helpers/json.js'
 import { projectRoot } from '../_helpers/paths.js'
 import { parseJson } from '../_helpers/text.js'
 
@@ -56,34 +58,24 @@ interface Entry {
 
 type Hooks = ReadonlyMap<string, readonly Entry[]>
 
-function asRecord(value: unknown): Readonly<Record<string, unknown>> {
-  if (typeof value !== 'object' || value === null) throw new Error('オブジェクトではありません')
-  return Object.fromEntries(Object.entries(value))
-}
-
-function asArray(value: unknown): readonly unknown[] {
-  if (!Array.isArray(value)) throw new TypeError('配列ではありません')
-  return value
-}
-
 function toHook(value: unknown): Hook {
-  const record = asRecord(value)
+  const record = toRecord(value, 'hook')
   if (typeof record['command'] !== 'string') throw new TypeError('command が文字列ではありません')
   return { type: record['type'], command: record['command'], hasTimeout: 'timeout' in record, timeout: record['timeout'] }
 }
 
 function toEntry(value: unknown): Entry {
-  const record = asRecord(value)
+  const record = toRecord(value, 'entry')
   const matcher = record['matcher']
   return {
     hasMatcher: 'matcher' in record,
     matcher: typeof matcher === 'string' ? matcher : undefined,
-    hooks: asArray(record['hooks']).map(hook => toHook(hook)),
+    hooks: toArray(record['hooks'], 'hooks').map(hook => toHook(hook)),
   }
 }
 
 function toEntries(value: unknown): Entry[] {
-  return asArray(value).map(entry => toEntry(entry))
+  return toArray(value, 'entries').map(entry => toEntry(entry))
 }
 
 function definitionPath(plugin: string, name: string): string {
@@ -92,8 +84,8 @@ function definitionPath(plugin: string, name: string): string {
 
 function load(plugin: string, name: string): Hooks {
   const text = readFileSync(definitionPath(plugin, name), 'utf8')
-  const root = asRecord(parseJson(text))
-  const pairs = Object.entries(asRecord(root['hooks']))
+  const root = toRecord(parseJson(text), '定義')
+  const pairs = Object.entries(toRecord(root['hooks'], 'hooks'))
   const converted = pairs.map(([event, entries]): [string, Entry[]] => [event, toEntries(entries)])
   return new Map(converted)
 }
@@ -158,10 +150,6 @@ function isExecutable(target: string): boolean {
   catch {
     return false
   }
-}
-
-function isFile(target: string): boolean {
-  return existsSync(target) && statSync(target).isFile()
 }
 
 // 全定義共通。

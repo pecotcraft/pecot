@@ -1,9 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// session-start のロジックスクリプトのテスト。対象は git-sync.sh・vscode-workspace-detector.sh・
-// session-project-dir.sh と、session-start.sh の出力の形。
-// git・uvx・code を stub にして PATH の先頭に置き、出力を確かめる。
-// git-sync と vscode-workspace-detector の基準ディレクトリは CLAUDE_PROJECT_DIR で、git は `git -C <基準>` で呼ぶ。
-// git の stub は、-C の値が FAKE_REPO_ROOT と違えば exit 99 で落とす。
+// git-sync.sh・vscode-workspace-detector.sh・session-project-dir.sh と、session-start.sh の出力の形のテスト。
+// git・uvx・code を stub にして PATH の先頭に置く。git の stub は、-C の値が FAKE_REPO_ROOT と違えば exit 99 で落とす。
 import { chmodSync, mkdirSync, readFileSync, realpathSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 

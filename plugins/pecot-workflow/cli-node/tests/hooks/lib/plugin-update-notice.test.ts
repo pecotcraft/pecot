@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // plugin-update-notice.sh のテスト。
-// インストール済みプラグインと marketplace の clone にある最新版の version のずれを見つけ、
-// installed が古いときだけ更新の案内を出すことを確かめる。
+// installed が marketplace の clone の最新版より古いときだけ、更新の案内を出すことを確かめる。
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 

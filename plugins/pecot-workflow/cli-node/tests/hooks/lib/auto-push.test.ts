@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { claudeProjectDirectory, createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HooksConfig, HookCase } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
+import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import type { MockBin } from '../_helpers/mock-bin.js'
 import { hooksDirectory } from '../_helpers/paths.js'
@@ -127,12 +127,6 @@ function git(hookCase: HookCase, repository: string, argv: readonly string[]): R
   return run(hookCase, 'git', ['-C', repository, ...argv])
 }
 
-function gitOrThrow(hookCase: HookCase, repository: string, argv: readonly string[]): string {
-  const result = git(hookCase, repository, argv)
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が失敗しました: ${result.stderr}`)
-  return result.stdout
-}
-
 // auto-push を有効にし、push と gh の標準モックを置き、テスト用リポを作る。
 function setUpEnvironment(hookCase: HookCase): Setup {
   const project = claudeProjectDirectory(hookCase)
@@ -176,7 +170,7 @@ function writePecotActive(setup: Setup): void {
 
 // wip の追跡 ref の一覧
 function listWipTrackingReferences(hookCase: HookCase, repository: string): string {
-  return gitOrThrow(hookCase, repository, ['for-each-ref', 'refs/remotes/origin/wip/'])
+  return gitOrThrow(hookCase, repository, ['for-each-ref', 'refs/remotes/origin/wip/']).stdout
 }
 
 function fetchRefspecs(hookCase: HookCase, repository: string): string[] {
@@ -619,7 +613,7 @@ describe('auto-push.sh', () => {
       setup.mock.install('git', `#!/bin/bash\nexec ${JSON.stringify(setup.realGit)} "$@"\n`)
       const result = runAutoPush(hookCase, setup)
       expect(result.exitCode).toBe(0)
-      const remoteReferences = gitOrThrow(hookCase, bare, ['for-each-ref', 'refs/heads/wip/'])
+      const remoteReferences = gitOrThrow(hookCase, bare, ['for-each-ref', 'refs/heads/wip/']).stdout
       expect(remoteReferences).toContain('refs/heads/wip/feat/add-auth/1443')
       expect(listWipTrackingReferences(hookCase, setup.repository)).toBe('')
       gitOrThrow(hookCase, setup.repository, ['-c', `url.${bare}.insteadOf=${DEFAULT_ORIGIN}`, 'fetch', 'origin'])

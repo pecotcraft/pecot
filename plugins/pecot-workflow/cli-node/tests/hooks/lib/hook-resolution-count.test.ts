@@ -1,23 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// Bash の PreToolUse / PostToolUse でのリポジトリ解決回数と commit 検出のテスト（#1229 T053）。
-//
-// PATH 先頭に置いた git のシム（installGitCallLog）で rev-parse の呼び出しをサブコマンド別に数える。
-// 数えるのは「リポジトリ解決」で、次の 2 つがある。
-// - --show-toplevel: project-root.sh によるプロジェクトルート解決
-// - --is-inside-work-tree: git-repo-resolver.sh の _resolve_repo_dir / is_feature_branch の判定
-//
-// 期待値は次のとおり（contracts/hooks.md §SC-009）。
-// - ls: Pre の --show-toplevel 1 回だけ。Post は解決しない
-// - commit: Pre / Post 各 1 回の --show-toplevel。Post の _resolve_repo_dir は 1 回。
-//   is_feature_branch の判定を含めて、--is-inside-work-tree は 2 回まで。
-// - pecot issue create: Pre 1、Post は解決しない
-// - cwd が .pecot/work 配下: 判定が通れば 1 回（セッションの toplevel）。
-//   判定が外れるのは、別リポの .pecot/work・入れ子のリポ・link 切れのとき。
-//   この場合は、セッションの toplevel と cwd の候補で 2 回。
-//
-// 後半は、移行前から通るべき特性テスト。
-// 対象は git -C <path> commit と cd <path> && ... && git commit の Claude 形式 Post。
-// どちらでも commit-info-display と auto-push が揃って動く。
+// Bash の PreToolUse / PostToolUse でのリポジトリ解決回数と commit 検出のテスト。
+// git のシム（installGitCallLog）で rev-parse の呼び出しを数える。--show-toplevel はルート解決、--is-inside-work-tree は feature ブランチの判定。
+// 後半は、git -C <path> commit と cd <path> && ... && git commit の Post で、commit-info-display と auto-push が揃って動くことを見る。
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -25,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
-import { gitRepository, installGitCallLog, workLayout } from '../_helpers/git.js'
+import { gitOrThrow, gitRepository, installGitCallLog, workLayout } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import { run, runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -39,24 +23,16 @@ interface Sandbox {
   readonly bare: string
 }
 
-function git(hookCase: HookCase, cwd: string, ...argv: readonly string[]): RunResult {
-  const result = run(hookCase, 'git', argv, { cwd })
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
-  return result
-}
-
-// (repo, bare) を用意する。
-// 条件は、active な Issue の feat ブランチ・.pecot あり・auto-push 有効・gh は常に失敗。
-// auto-push は origin の URL を owner/repo として読むため、origin は GitHub 形式の URL にする。
-// push だけを pushInsteadOf で bare に向ける。
+// (repo, bare) を用意する。active な Issue の feat ブランチ・auto-push 有効・gh は常に失敗にする。
+// origin は GitHub 形式の URL にし、push だけを pushInsteadOf で bare に向ける。
 function setUpSandbox(hookCase: HookCase): Sandbox {
   const config = hooksConfig(hookCase)
   const repository = gitRepository(hookCase, 'proj')
   const bare = path.join(hookCase.temporaryPath, 'remote.git')
-  git(hookCase, hookCase.temporaryPath, 'init', '-q', '--bare', bare)
-  git(hookCase, repository, 'remote', 'add', 'origin', ORIGIN_URL)
-  git(hookCase, repository, 'config', `url.${bare}.pushInsteadOf`, ORIGIN_URL)
-  git(hookCase, repository, 'checkout', '-q', '-b', BRANCH)
+  gitOrThrow(hookCase, hookCase.temporaryPath, ['init', '-q', '--bare', bare])
+  gitOrThrow(hookCase, repository, ['remote', 'add', 'origin', ORIGIN_URL])
+  gitOrThrow(hookCase, repository, ['config', `url.${bare}.pushInsteadOf`, ORIGIN_URL])
+  gitOrThrow(hookCase, repository, ['checkout', '-q', '-b', BRANCH])
   mkdirSync(path.join(repository, '.pecot', 'state'), { recursive: true })
   writeFileSync(path.join(repository, '.pecot', 'state', '.pecot-active'), 'testowner/testrepo/1229\n')
   config.write({ 'auto-push': true })
@@ -69,8 +45,8 @@ function setUpSandbox(hookCase: HookCase): Sandbox {
 function commit(hookCase: HookCase, repository: string): string {
   const name = 'f.txt'
   writeFileSync(path.join(repository, name), name)
-  git(hookCase, repository, 'add', name)
-  return git(hookCase, repository, 'commit', '-m', 'x').stdout
+  gitOrThrow(hookCase, repository, ['add', name])
+  return gitOrThrow(hookCase, repository, ['commit', '-m', 'x']).stdout
 }
 
 function pre(command: string, cwd: string): Record<string, unknown> {
@@ -94,8 +70,8 @@ function postClaude(command: string, stdout: string, cwd: string): Record<string
   }
 }
 
-// Copilot CLI 1.0.103: tool_response は来ず、tool_result.text_result_for_llm に出力が入る。
-// Bash は末尾に `<shellId: N completed with exit code 0>` が付く。
+// Copilot CLI は tool_response を送らず、tool_result.text_result_for_llm に出力を入れる。
+// Bash の出力の末尾には `<shellId: N completed with exit code 0>` が付く。
 function postCopilot(command: string, stdout: string, cwd: string): Record<string, unknown> {
   return {
     hook_event_name: 'PostToolUse',
@@ -208,14 +184,14 @@ describe('リポジトリ解決回数', () => {
     const gitCallLog = installGitCallLog(hookCase)
     const nested = path.join(layout.work, '1244', 'clone')
     mkdirSync(nested)
-    git(hookCase, nested, 'init', '--quiet')
+    gitOrThrow(hookCase, nested, ['init', '--quiet'])
     gitCallLog.reset()
     runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre('ls', nested), { env: { CLAUDE_PROJECT_DIR: layout.wt } })
     expect(gitCallLog.revParseCounts()).toEqual({ '--show-toplevel': 2 })
   })
 })
 
-// 特性テスト（移行前から通る）: commit の検出形。
+// commit の検出形。
 function expectWipPushed(hookCase: HookCase, bare: string): void {
   const reference = run(hookCase, 'git', ['--git-dir', bare, 'rev-parse', '--verify', `refs/heads/wip/${BRANCH}`])
   expect(reference, `bare に wip/${BRANCH} が push されていない`).toMatchObject({ exitCode: 0 })

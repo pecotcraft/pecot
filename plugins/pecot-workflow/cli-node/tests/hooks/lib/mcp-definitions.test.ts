@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { toRecord } from '../_helpers/json.js'
 import { pluginRoot, projectRoot } from '../_helpers/paths.js'
 import { parseJson } from '../_helpers/text.js'
 
@@ -17,20 +18,15 @@ interface McpServer {
   readonly keys: readonly string[]
 }
 
-function asRecord(value: unknown): Readonly<Record<string, unknown>> {
-  if (typeof value !== 'object' || value === null) throw new Error('オブジェクトではありません')
-  return Object.fromEntries(Object.entries(value))
-}
-
 function asStrings(value: unknown): readonly string[] {
   if (!Array.isArray(value) || !value.every((item): item is string => typeof item === 'string')) throw new Error('文字列の配列ではありません')
   return value
 }
 
 function mcpServer(file: string, name: string): McpServer {
-  const root = asRecord(parseJson(readFileSync(file, 'utf8')))
-  const servers = asRecord(root['mcpServers'])
-  const server = asRecord(Reflect.get(servers, name))
+  const root = toRecord(parseJson(readFileSync(file, 'utf8')), file)
+  const servers = toRecord(root['mcpServers'], 'mcpServers')
+  const server = toRecord(Reflect.get(servers, name), name)
   return { command: server['command'], args: asStrings(server['args']), keys: Object.keys(server) }
 }
 

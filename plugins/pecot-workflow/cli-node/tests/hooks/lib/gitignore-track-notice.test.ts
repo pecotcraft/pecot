@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
+import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { coreDirectory, hooksDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -29,11 +29,6 @@ function setUpNoConfig(hookCase: HookCase): void {
   hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'no-such-hooks-config.json'))
 }
 
-function git(hookCase: HookCase, repository: string, ...argv: readonly string[]): void {
-  const result = run(hookCase, 'git', ['-C', repository, ...argv])
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
-}
-
 function runNotice(hookCase: HookCase, projectDirectory: string): RunResult {
   return run(hookCase, NOTICE_SCRIPT, [], { env: { CLAUDE_PROJECT_DIR: projectDirectory } })
 }
@@ -43,8 +38,8 @@ function repositoryWithGitignore(hookCase: HookCase, content: string, isTracked:
   mkdirSync(path.join(repository, '.pecot'))
   writeFileSync(path.join(repository, '.pecot', '.gitignore'), Buffer.from(content, 'utf8'))
   if (isTracked) {
-    git(hookCase, repository, 'add', '-f', '.pecot/.gitignore')
-    git(hookCase, repository, 'commit', '--quiet', '-m', 'track gitignore')
+    gitOrThrow(hookCase, repository, ['add', '-f', '.pecot/.gitignore'])
+    gitOrThrow(hookCase, repository, ['commit', '--quiet', '-m', 'track gitignore'])
   }
   return repository
 }

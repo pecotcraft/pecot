@@ -1,7 +1,7 @@
-// hooks スクリプトの lib・テンプレ参照の静的な抽出。conftest.py の _code_lines〜_extract_template_refs に当たる。
+// hooks スクリプトの lib・テンプレ参照の静的な抽出。
 //
 // 解決できない参照が 1 件でもあれば throw する（fail-closed）。dir 変数の写像は Map<変数名, 実パス>。
-// Python との差: パスの連結は path.join なので `..` を畳む。
+// パスの連結は path.join なので `..` を畳む。
 import path from 'node:path'
 
 import { splitLines } from './text.js'

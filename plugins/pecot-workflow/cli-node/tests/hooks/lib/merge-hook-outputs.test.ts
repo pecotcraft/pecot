@@ -1,9 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // merge-hook-outputs.sh のテスト。SDK 全出力フィールドの安全マージを検証する。
-// 対象のフィールドは、次のとおり。
-// additionalContext / permissionDecision / continue / systemMessage。
-// suppressOutput / updatedInput / hookEventName。
-// サブスクリプトを生成して merge スクリプトに渡し、出力 JSON をパースして比較する。
+// サブスクリプトを生成して merge スクリプトに渡し、出力 JSON を比べる。
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -11,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
+import { toRecord } from '../_helpers/json.js'
 import { coreDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -22,18 +20,13 @@ const MERGE_SCRIPT = path.join(coreDirectory, 'merge-hook-outputs.sh')
 // 本番と同じく hook-input.sh を source してから merge を起動する（stdin はサブスクリプトへ転送される）。
 const LOAD_THEN_MERGE = 'source "$1" && pecot_hook_input_load "$2" && shift 2 && exec "$@"'
 
-function asRecord(value: unknown): Readonly<Record<string, unknown>> {
-  if (typeof value !== 'object' || value === null) throw new Error('オブジェクトではありません')
-  return Object.fromEntries(Object.entries(value))
-}
-
 // 出力の JSON をオブジェクトとして読む。
 function parseRecord(text: string): Readonly<Record<string, unknown>> {
-  return asRecord(parseJson(text))
+  return toRecord(parseJson(text), 'マージの出力')
 }
 
 function hookSpecificOutput(record: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
-  return asRecord(record['hookSpecificOutput'])
+  return toRecord(record['hookSpecificOutput'], 'hookSpecificOutput')
 }
 
 // scripts ディレクトリを作る。
@@ -168,9 +161,7 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(parseRecord(result.stdout))['hookEventName']).toBe('PostToolUse')
   })
 
-  // 入力 JSON に hook_event_name があると、MERGED_HOOK_EVENT_NAME が埋まる。
-  // ただし、hookEventName 以外の HSO フィールドが無いケースでは、空 HSO を作らないことを検証する（F-06）。
-  // 空 HSO は、旧 stop.sh の直接出力からの形状差分にあたる。
+  // hookEventName 以外の hookSpecificOutput のフィールドが無いときは、空の hookSpecificOutput を作らない。
   it('systemMessage だけのとき、hookSpecificOutput を出さない', () => {
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)

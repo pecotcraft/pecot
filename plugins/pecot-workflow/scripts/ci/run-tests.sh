@@ -108,7 +108,7 @@ trap cleanup EXIT
 _run_pytest_pass2() {
     local empty="$1" junit="$2" extra_opts="$3"
     shift 3
-    mkdir -p "$empty/.git" "$empty/tmp" "$empty/uv-cache" \
+    mkdir -p "$empty/.git" "$empty/tmp" \
         "$empty/xdg-config" "$empty/xdg-data" "$empty/xdg-cache"
     env -i \
         PATH="$PATH" \
@@ -151,7 +151,6 @@ _run_vitest_pass2() {
             GIT_DIR="$empty/.git" \
             GIT_CONFIG_GLOBAL=/dev/null \
             GIT_CONFIG_SYSTEM=/dev/null \
-            UV_CACHE_DIR="$empty/uv-cache" \
             node "$PLUGIN_ROOT/../../node_modules/vitest/vitest.mjs" run --project hooks \
                 --outputFile.junit="$junit"
     )

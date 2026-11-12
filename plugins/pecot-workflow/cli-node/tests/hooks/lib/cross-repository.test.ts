@@ -1,6 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// cross-repo のテスト。フックがワークスペース内のどのリポジトリでも正しく動くことを確かめる。
-// PROJECT_ROOT とは別パスのリポジトリを作る。
+// PROJECT_ROOT とは別パスのリポジトリで、フックが正しく動くことのテスト。
 // -C フラグ・cd チェイン・pwd フォールバックの各手段で、WIP push と比較 URL の書き込み先を見る。
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -9,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase, hooksConfig } from '../_helpers/environment.js'
 import type { HookCase, HooksConfig } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
+import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { mockBin } from '../_helpers/mock-bin.js'
 import { hooksDirectory } from '../_helpers/paths.js'
 import { run, runPostScript } from '../_helpers/run.js'
@@ -90,11 +89,6 @@ interface CrossRepositoryEnvironment {
   readonly flagFile: string
 }
 
-function git(hookCase: HookCase, repositoryDirectory: string, argv: readonly string[]): void {
-  const result = run(hookCase, 'git', ['-C', repositoryDirectory, ...argv])
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
-}
-
 // auto-push を有効にし、別リポジトリと mock の git・gh を用意する。
 // auto-push は pecot 管理のリポジトリでだけ動き、pecot_state_dir_ensure が .pecot の存在を要求するため、.pecot も作る。
 function setUpCrossRepository(hookCase: HookCase): CrossRepositoryEnvironment {
@@ -111,7 +105,7 @@ function setUpCrossRepository(hookCase: HookCase): CrossRepositoryEnvironment {
 
   // PROJECT_ROOT とは異なるパスの別リポジトリ
   const crossRepository = gitRepository(hookCase, 'cross-repo')
-  git(hookCase, crossRepository, ['remote', 'add', 'origin', SSH_REMOTE])
+  gitOrThrow(hookCase, crossRepository, ['remote', 'add', 'origin', SSH_REMOTE])
   const stateDirectory = path.join(project, '.pecot', 'state')
   mkdirSync(stateDirectory, { recursive: true })
   writeFileSync(path.join(stateDirectory, '.pecot-active'), 'otherorg/otherrepo/999\n')
@@ -123,11 +117,11 @@ function setUpCrossRepository(hookCase: HookCase): CrossRepositoryEnvironment {
 }
 
 function checkout(hookCase: HookCase, repositoryDirectory: string, branch: string): void {
-  git(hookCase, repositoryDirectory, ['checkout', '-b', branch])
+  gitOrThrow(hookCase, repositoryDirectory, ['checkout', '-b', branch])
 }
 
 function setRemote(hookCase: HookCase, repositoryDirectory: string, url: string): void {
-  git(hookCase, repositoryDirectory, ['remote', 'set-url', 'origin', url])
+  gitOrThrow(hookCase, repositoryDirectory, ['remote', 'set-url', 'origin', url])
 }
 
 function runPost(hookCase: HookCase, script: string, json: string, cwd?: string): RunResult {

@@ -1,12 +1,14 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下と、ケースの一時ディレクトリ配下のみ */
 // hooks 全域のスクリプトが参照する lib とテンプレが実在するかの静的な確認。抽出は _helpers/script-references.ts を使う。
-import { globSync, mkdirSync, readFileSync, statSync, symlinkSync } from 'node:fs'
+import { globSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { compareStrings, isRecord } from '../parity/baseline.js'
+import { compareStrings } from '../parity/baseline.js'
 import { createHookCase } from './_helpers/environment.js'
+import { isFile } from './_helpers/files.js'
+import { toArray, toRecord } from './_helpers/json.js'
 import { hooksDirectory, pluginRoot } from './_helpers/paths.js'
 import {
   codeLines,
@@ -15,15 +17,7 @@ import {
   resolveDirectoryVariables,
 } from './_helpers/script-references.js'
 import type { LibraryReference } from './_helpers/script-references.js'
-import { parseJson } from './_helpers/text.js'
-
-// Python の Path の並びに合わせる。パスを構成要素ごとに比べる。
-function comparePathParts(left: string, right: string): number {
-  const leftParts = left.split('/')
-  const rightParts = right.split('/')
-  const firstDifference = leftParts.map((part, index) => compareStrings(part, rightParts.at(index) ?? '')).find(order => order !== 0)
-  return firstDifference ?? leftParts.length - rightParts.length
-}
+import { comparePathParts, parseJson } from './_helpers/text.js'
 
 const entryPoints = globSync('*.sh', { cwd: hooksDirectory }).toSorted(comparePathParts)
 // lib/tests/ はテスト資材なので外す。
@@ -40,7 +34,7 @@ const MIN_RESOLVED_TEMPLATE_REFERENCES = 2
 const CONFIG_FILES: readonly string[] = ['hooks.json', 'hooks-copilot.json']
 const PLUGIN_ROOT_PREFIX = '${CLAUDE_PLUGIN_ROOT}/'
 
-// 抽出器とは独立な「鈍い」走査。conftest の _VAR_SH_REF_RE と語境界を揃えてある。
+// 抽出器とは独立な「鈍い」走査。
 const BLUNT_SH_TOKEN = /[\w./${}%*-]*\.sh(?![\w-])/gu
 // `templates/` の直前の否定後読みは、`mytemplates/x.md` から切り出さないためのセグメント境界。
 
@@ -54,10 +48,6 @@ function scriptPath(relative: string): string {
 
 function readText(target: string): string {
   return readFileSync(target, 'utf8')
-}
-
-function isFile(target: string): boolean {
-  return statSync(target, { throwIfNoEntry: false })?.isFile() ?? false
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- RegExp は読むだけ
@@ -84,16 +74,6 @@ function tokenAccounting(text: string, references: readonly LibraryReference[], 
 function templateTokenAccounting(text: string, references: readonly LibraryReference[]): [string[], string[]] {
   const blunt = codeLines(text).flatMap(line => allMatches(line, BLUNT_TEMPLATE_TOKEN))
   return [blunt.toSorted(compareStrings), references.map(reference => reference.token).toSorted(compareStrings)]
-}
-
-function toArray(value: unknown, what: string): readonly unknown[] {
-  if (!Array.isArray(value)) throw new TypeError(`${what} が配列ではありません`)
-  return value
-}
-
-function toRecord(value: unknown, what: string): Readonly<Record<string, unknown>> {
-  if (!isRecord(value)) throw new TypeError(`${what} がオブジェクトではありません`)
-  return value
 }
 
 // hooks 設定の command から、plugin root 相対のスクリプトのパスを取り出す。

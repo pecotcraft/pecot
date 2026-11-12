@@ -1,7 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは hooks 配下のみ */
 // hooks-config.json.sample と README の設定キー一覧とスクリプト実体の、三者の突合の静的な確認。
-// 3 つの出所から独立にキーの集合を取り出し、双方向に一致することを見る。sample の値は、スクリプトの
-// pecot_hook_enabled の第 2 引数（既定の値）と揃っていなければならない。
+// 3 つの出所から独立にキーの集合を取り出し、双方向に一致することを見る。
 import { globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import { compareStrings, isRecord } from '../parity/baseline.js'
 import { hooksDirectory } from './_helpers/paths.js'
-import { jsonDumps, parseJson, splitLines } from './_helpers/text.js'
+import { comparePathParts, jsonDumps, parseJson, splitLines } from './_helpers/text.js'
 
 // 意図的に sample の値をスクリプトの既定から離すキー。足すときは離す理由をコメントで残す。
 const ALLOWED_VALUE_DIVERGENCE: ReadonlySet<string> = new Set()
@@ -42,14 +41,6 @@ function gateScriptPaths(): string[] {
   return globSync('**/*.sh', { cwd: hooksDirectory })
     .filter(relative => !relative.split('/').includes('tests'))
     .toSorted(comparePathParts)
-}
-
-// Python の Path の並びに合わせる。パスを構成要素ごとに比べる。
-function comparePathParts(left: string, right: string): number {
-  const leftParts = left.split('/')
-  const rightParts = right.split('/')
-  const firstDifference = leftParts.map((part, index) => compareStrings(part, rightParts.at(index) ?? '')).find(order => order !== 0)
-  return firstDifference ?? leftParts.length - rightParts.length
 }
 
 // 行末のコメントを落とす。pecot_hook_enabled の呼び出し行の引用符の中に # を含む例は無い。

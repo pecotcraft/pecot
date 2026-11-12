@@ -1,11 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp で作った一時ディレクトリ配下のみ */
-// ケースごとの env と一時ディレクトリ。conftest.py の tmp_path・monkeypatch.setenv・autouse の隔離に当たる。
-//
-// 使い方は次のとおり。
-// - createHookCase() は、it の中で 1 回呼ぶ。後始末は afterEach が行う。
-// - hookCase.setEnv(name, value) は、子に渡す env を上書きする。undefined は外す。process.env は書き換えない。
-// - run.ts の関数に hookCase を渡すと、cwd は hookCase.temporaryPath になる。
-//   CLAUDE_PLUGIN_DATA は一時ディレクトリを指す。
+// ケースごとの env と一時ディレクトリ。createHookCase は it の中で 1 回呼び、後始末は afterEach が行う。
+// setEnv は子に渡す env だけを上書きし、process.env は書き換えない。
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -80,7 +75,7 @@ export function createHookCase(): HookCase {
   }
 }
 
-// CLAUDE_PROJECT_DIR を tmp/project に向け、project/.pecot を作る（claude_project_dir）。
+// CLAUDE_PROJECT_DIR を tmp/project に向け、project/.pecot を作る。
 export function claudeProjectDirectory(hookCase: HookCase): string {
   const project = path.join(hookCase.temporaryPath, 'project')
   mkdirSync(path.join(project, '.pecot'), { recursive: true })
@@ -93,7 +88,7 @@ export interface HooksConfig {
   write(config: unknown): void
 }
 
-// PECOT_HOOKS_CONFIG_PATH を tmp/hooks-config.json に向ける（hooks_config）。
+// PECOT_HOOKS_CONFIG_PATH を tmp/hooks-config.json に向ける。
 export function hooksConfig(hookCase: HookCase): HooksConfig {
   const file = path.join(hookCase.temporaryPath, 'hooks-config.json')
   hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', file)

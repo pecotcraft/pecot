@@ -1,13 +1,14 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // コアスクリプト（lib/core）の単体テスト。HOOK_COMMAND などを env で渡して直接起動する。
-import { chmodSync, copyFileSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from '../_helpers/environment.js'
 import type { EnvironmentOverrides, HookCase } from '../_helpers/environment.js'
-import { gitRepository } from '../_helpers/git.js'
+import { isFile } from '../_helpers/files.js'
+import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { adapterDirectory, coreDirectory } from '../_helpers/paths.js'
 import { run, runHookScript } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
@@ -26,22 +27,12 @@ function runCore(hookCase: HookCase, scriptName: string, options: { readonly cwd
   return run(hookCase, path.join(coreDirectory, scriptName), [], options)
 }
 
-function runGit(hookCase: HookCase, repository: string, argv: readonly string[]): RunResult {
-  const result = run(hookCase, 'git', ['-C', repository, ...argv])
-  if (result.exitCode !== 0) throw new Error(`git ${argv.join(' ')} が ${String(result.exitCode)} で終わりました: ${result.stderr}`)
-  return result
-}
-
 function checkout(hookCase: HookCase, repository: string, branch: string): void {
-  runGit(hookCase, repository, ['checkout', '-b', branch, '--quiet'])
+  gitOrThrow(hookCase, repository, ['checkout', '-b', branch, '--quiet'])
 }
 
 function touch(file: string): void {
   writeFileSync(file, '')
-}
-
-function isFile(file: string): boolean {
-  return statSync(file, { throwIfNoEntry: false })?.isFile() === true
 }
 
 interface SlashFlag {
@@ -804,8 +795,8 @@ describe('git-worktree-branch-check.sh', () => {
   it('detached HEAD で commit するとき、何も出力せず通す', () => {
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
-    const head = runGit(hookCase, repository, ['rev-parse', 'HEAD']).stdout.trim()
-    runGit(hookCase, repository, ['checkout', head, '--quiet'])
+    const head = gitOrThrow(hookCase, repository, ['rev-parse', 'HEAD']).stdout.trim()
+    gitOrThrow(hookCase, repository, ['checkout', head, '--quiet'])
     const result = runWorktreeCheck(hookCase, repository, 'git commit -m "test"', repository)
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')

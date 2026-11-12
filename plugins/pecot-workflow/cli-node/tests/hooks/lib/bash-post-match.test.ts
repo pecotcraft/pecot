@@ -1,8 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // bash-post-match.sh（PostToolUse(Bash) の一致判定）のテスト。
-// 成功した git commit を PECOT_POST_COMMIT で判定して export する。
-// 一致したときだけ、project-root と対象リポジトリ（PECOT_POST_REPO_DIR）を解決する。
-// tool の出力（stdout）は export しない。環境変数 1 個が 128KiB を超えると execve が失敗するため。
+// 一致したときだけ対象リポジトリを解決する。環境変数 1 個が 128KiB を超えると execve が失敗するため、tool の stdout は export しない。
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
@@ -57,7 +55,7 @@ interface Matched {
   readonly rest: string
 }
 
-// 先頭から count 個の区切りで分ける。残りは最後の要素に入れる（Python の split(sep, count) と同じ）。
+// 先頭から count 個の区切りで分ける。残りは最後の要素に入れる。
 function splitFirst(text: string, separator: string, count: number): string[] {
   const parts: string[] = []
   let rest = text

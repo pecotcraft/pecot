@@ -6,22 +6,12 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { isRecord } from '../parity/baseline.js'
+import { toArray, toRecord } from './_helpers/json.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { parseJson } from './_helpers/text.js'
 
 const PLAN_MATCHERS: ReadonlySet<string> = new Set(['EnterPlanMode', 'ExitPlanMode'])
 const PLAN_EVENTS: readonly string[] = ['PreToolUse', 'PostToolUse']
-
-function toArray(value: unknown, what: string): readonly unknown[] {
-  if (!Array.isArray(value)) throw new TypeError(`${what} が配列ではありません`)
-  return value
-}
-
-function toRecord(value: unknown, what: string): Readonly<Record<string, unknown>> {
-  if (!isRecord(value)) throw new TypeError(`${what} がオブジェクトではありません`)
-  return value
-}
 
 // plan 系エントリを、キー（イベントと matcher）から command への写像にする。
 function planEntryMap(configName: string): Map<string, string> {
