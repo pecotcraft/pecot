@@ -3,17 +3,23 @@
 
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
+import type { IssuePrerequisitesReadout } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, truthyNodes } from './payload.js'
 import {
+  MUTATION_ADD_BLOCKED_BY,
   MUTATION_ADD_SUB_ISSUE,
+  MUTATION_REMOVE_BLOCKED_BY,
   QUERY_GET_ISSUE_KIND,
   QUERY_GET_ISSUE_KIND_PHASE1,
   QUERY_GET_ISSUE_NODE_ID,
+  QUERY_GET_ISSUE_PREREQUISITES,
+  QUERY_GET_ISSUE_PREREQUISITES_PHASE1,
   QUERY_GET_ISSUE_SLIM,
 } from './queries.js'
+import { readBlockedBy, readIssue } from './readout.js'
 import { ProjectsApi } from './projects.js'
 import { repositoryPath } from './rest-path.js'
 
@@ -85,6 +91,11 @@ export interface IssueSlim {
 
 const DEFAULT_COMMENT_LIMIT = 5
 const SCHEMA_ERROR_PHRASES = ['Cannot query field', 'doesn\'t exist', 'Unknown field']
+
+// issueType フィールドに対応しない GHES が返すスキーマの失敗
+function isIssueTypeSchemaError(error: unknown): boolean {
+  return error instanceof GitHubAPIError && error.message.includes('issueType') && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
+}
 
 function stringOrEmpty(value: JsonValue | undefined): string {
   return typeof value === 'string' ? value : ''
@@ -214,6 +225,42 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
+  前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提（どちらも node ID）。
+  GitHub の拒否（輪・件数の上限など）は HTTP 200 の VALIDATION で返り、GitHubAPIError になる
+  */
+  async addBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
+    await this.executeGraphql(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId })
+  }
+
+  /**
+  前提（blocked by）を外す
+  */
+  async removeBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
+    await this.executeGraphql(MUTATION_REMOVE_BLOCKED_BY, { issueId, blockingIssueId })
+  }
+
+  /**
+  Issue と、その前提（blockedBy 先頭 50 件）を 1 回のクエリで読む。ボードの値は projectId のものだけ。
+  issueType に対応しない GHES では、issueType を外したクエリで読み直す
+  */
+  async getIssuePrerequisites(owner: string, repository: string, number: number, projectId: string): Promise<IssuePrerequisitesReadout> {
+    const variables = { owner, repo: repository, number }
+    let result: JsonObject
+    try {
+      result = await this.executeGraphql(QUERY_GET_ISSUE_PREREQUISITES, variables)
+    }
+    catch (error: unknown) {
+      if (!isIssueTypeSchemaError(error)) throw error
+      result = await this.executeGraphql(QUERY_GET_ISSUE_PREREQUISITES_PHASE1, variables)
+    }
+    const issue = issueNode(result, owner, repository, number)
+    return {
+      issue: { ...readIssue(issue, projectId), body: requireString(jsonField(issue, 'body'), 'issue.body') },
+      blockedBy: readBlockedBy(jsonField(issue, 'blockedBy'), projectId),
+    }
+  }
+
+  /**
   Issue 種別を軽く取る。issueType フィールドに対応しない GHES では、subIssues だけで判定する
   */
   async getIssueKind(owner: string, repository: string, number: number): Promise<IssueKindResult> {
@@ -223,7 +270,7 @@ export class IssuesApi extends ProjectsApi {
       result = await this.executeGraphql(QUERY_GET_ISSUE_KIND, variables)
     }
     catch (error: unknown) {
-      if (error instanceof GitHubAPIError && error.message.includes('issueType') && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))) {
+      if (isIssueTypeSchemaError(error)) {
         return this.getIssueKindPhase1(owner, repository, number)
       }
       throw error

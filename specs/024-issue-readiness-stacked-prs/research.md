@@ -47,6 +47,11 @@
     - 下の段の PR（base が既定のブランチ）では作られた
   - `pr cleanup` は、head のブランチの番号からも Issue を見つけている。同じ決まりにそろう
   - 済んだ前提は、Issue が閉じていて、その PR がマージ済みのもの。PR 中は、Issue が開いていて、その PR が開いているもの
+  - #375 で、Issue の PR を 3 つの読み口から集めることにした
+    - リンクしたブランチの `ref.associatedPullRequests`
+    - `closedByPullRequestsReferences(includeClosedPrs: true)`。引数を省くと open の PR しか返さない
+    - `timelineItems` の `ConnectedEvent`・`CrossReferencedEvent` の PR
+  - 積んだ上の段の PR は閉じる参照を持たず、マージの後はブランチが消える。リンクしたブランチだけでは、済んだ前提の PR を見失う
 - Alternatives considered:
   - 閉じる参照だけで見分ける案。積んだ PR で空になるおそれがあるので採らない
   - Issue のタイムラインの `ClosedEvent.closer` を読む案。`pr cleanup` は API で Issue を閉じるので、closer が PR にならない

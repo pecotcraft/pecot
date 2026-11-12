@@ -1,4 +1,4 @@
-// queries.ts が、Python の queries.py を記録した queries.json と一致することを固定する。
+// queries.ts の先頭の 30 個が、Python の queries.py を記録した queries.json と逐語で一致することを固定する。
 // 偽サーバの operation 対応表と矛盾しないことも固定する。
 import { parse, print } from 'graphql'
 import { describe, expect, it } from 'vitest'
@@ -15,18 +15,14 @@ function pascalCase(constantName: string): string {
     .join('')
 }
 
-function byName(a: string, b: string): number {
-  return a.localeCompare(b)
-}
-
 const exported = new Map(Object.entries(queries))
 
 describe('queries.json との一致', () => {
   const recorded = queriesOutput()
 
-  it('記録の 30 個の定数をすべて写している', () => {
+  it('記録の 30 個の定数がすべて export にある', () => {
     expect(Object.keys(recorded)).toHaveLength(30)
-    expect(Object.keys(queries).toSorted(byName)).toEqual(Object.keys(recorded).toSorted(byName))
+    expect(Object.keys(recorded).filter(name => !exported.has(name))).toEqual([])
   })
 
   it.each(Object.entries(recorded))('%s は記録した文と一致する', (name, text) => {

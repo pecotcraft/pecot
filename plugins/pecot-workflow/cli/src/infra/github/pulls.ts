@@ -4,13 +4,15 @@
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import { JSON_NULL } from '../../domain/json-null.js'
+import type { PullRequestReadout } from '../../domain/issue-readout.js'
 import { extractReferencesIssueNumbers } from '../../domain/reference-parser.js'
 import { isJsonArray } from '../../domain/python-format.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { IssuesApi } from './issues.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
-import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS } from './queries.js'
+import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS, QUERY_LIST_PULL_REQUESTS_BY_HEAD } from './queries.js'
+import { readPullRequests } from './readout.js'
 import { repositoryPath } from './rest-path.js'
 
 export interface ClosingIssue {
@@ -117,6 +119,17 @@ export class PullsApi extends IssuesApi {
     const pullRequest = jsonField(repositoryNode, 'pullRequest')
     if (!isTruthy(pullRequest)) throw new GitHubNotFoundError(`PR not found: ${owner}/${repository}/${String(number)}`)
     return requireValue(pullRequest, 'pullRequest')
+  }
+
+  /**
+  head のブランチ名で PR を引く（open・closed・merged。先頭 20 件）。
+  リポが無ければ GitHubNotFoundError
+  */
+  async listPullRequestsByHead(owner: string, repository: string, headReferenceName: string): Promise<readonly PullRequestReadout[]> {
+    const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_HEAD, { owner, repo: repository, headRefName: headReferenceName })
+    const repositoryNode = jsonField(result, 'repository')
+    if (!isTruthy(repositoryNode)) throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`)
+    return readPullRequests(truthyNodes(jsonField(repositoryNode, 'pullRequests')))
   }
 
   /**

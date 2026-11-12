@@ -79,34 +79,34 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: data-model.md の 3 の判定の表と、4 の進め方の表の、すべての行に当たる入力でテストが通る。偽の GitHub サーバに対して、前提の追加・解除・読み取りが、決めた形の要求を送る
 
-- [ ] T010 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、着手の判定の失敗するテストを書く
+- [x] T010 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、着手の判定の失敗するテストを書く
   - data-model.md の 3 の表の 9 つの順を、1 行ずつ入力にする。区分・理由のコード・積む先・見直しが要るかを比べる
   - 順 7 は、前提の状態ごとに分ける。着手済みで PR が無い、未着手、PR が 2 本以上、fork からの PR、列が `Pending` の 5 つだ
   - 順 8 は、隣どうしが PR の base と head でつながらない組を入れる
   - 済んでいない前提が 3 件で 1 本の列に並ぶ組は `stackable` になり、積む先が最上段の head のブランチになる
   - 前提の札が `Needs Attention` のとき、理由にその旨が付き、区分は変わらない
   - Epic と Tracker は、判定を返さない
-- [ ] T011 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、進め方と積める並びの失敗するテストを書く
+- [x] T011 [P] `p-w/cli/src/domain/tests/readiness.test.ts` に、進め方と積める並びの失敗するテストを書く
   - data-model.md の 4 の表の 4 つの進め方を、1 行ずつ入力にする
   - `merge` の前提があれば、ほかの前提の形にかかわらず「マージ待ち」になる
   - 枝分かれのある前提の形で、積める並びが 2 本に分かれて出る
   - quickstart.md の 1 の 5 つのフェーズを入力にし、期待の表と並びに合う
   - 輪のある入力で、輪になるキーの並びを返す
-- [ ] T012 [P] `p-w/cli/src/domain/tests/prerequisites.test.ts` に、本文の節の読み書きの失敗するテストを書く
+- [x] T012 [P] `p-w/cli/src/domain/tests/prerequisites.test.ts` に、本文の節の読み書きの失敗するテストを書く
   - 形は contracts/prerequisite-table.md の 3 のとおり。見出しは `## Waits for merge`、行は `- <参照>: <理由>`
   - 節の無い本文に行を足すと、末尾に節ができる。ほかの節は 1 文字も変わらない
   - 行を外して節が空になると、節ごと消える
   - 同じリポは `#N`、別のリポは `owner/repo#N` で書く
   - 形に合わない行が 1 つでもある節は、読めないものとして返す
-- [ ] T013 `p-w/cli/src/domain/readiness.ts` を足し、T010 と T011 を通す。判定・進め方・積める並び・輪の確認を置く。区分は `startable`・`stackable`・`blocked` の 3 つで、理由のコードは data-model.md の 3 の表の 7 つだ
-- [ ] T014 `p-w/cli/src/domain/prerequisites.ts` を足し、T012 を通す
-- [ ] T015 [P] `p-w/cli/src/infra/github/tests/` に、前提の読み書きの失敗するテストを書く
+- [x] T013 `p-w/cli/src/domain/readiness.ts` を足し、T010 と T011 を通す。判定・進め方・積める並び・輪の確認を置く。区分は `startable`・`stackable`・`blocked` の 3 つで、理由のコードは data-model.md の 3 の表の 7 つだ
+- [x] T014 `p-w/cli/src/domain/prerequisites.ts` を足し、T012 を通す
+- [x] T015 [P] `p-w/cli/src/infra/github/tests/` に、前提の読み書きの失敗するテストを書く
   - 追加は GraphQL の `addBlockedBy` で、`issueId` と `blockingIssueId` に node ID を渡す
   - 解除は GraphQL の `removeBlockedBy` で、追加と同じ node ID を渡す（Phase 1 の T004 で、REST とどちらも通った。research.md の R1）
   - 読み取りは `blockedBy(first: 50)` で、番号・リポ・状態・列・札・リンクしたブランチ・その PR を返す
-- [ ] T016 `p-w/cli/src/infra/github/queries.ts` と `p-w/cli/src/infra/github/issues.ts` に、前提の追加・解除・読み取りを足す。`p-w/cli/tests/fake-github/operations.ts` に行を足す
-- [ ] T017 `p-w/cli/src/infra/github/pulls.ts` に、Issue にリンクしたブランチを head に持つ PR の読み取りを足す。返すのは、番号・状態・head・base・ドラフトか・fork からかだ（research.md の R3）
-- [ ] T018 `p-w/cli/src/domain/readiness.ts` に、GitHub から読んだ値を「Issue の実態」にまとめる関数を足す
+- [x] T016 `p-w/cli/src/infra/github/queries.ts` と `p-w/cli/src/infra/github/issues.ts` に、前提の追加・解除・読み取りを足す。`p-w/cli/tests/fake-github/operations.ts` に行を足す
+- [x] T017 `p-w/cli/src/infra/github/pulls.ts` に、Issue にリンクしたブランチを head に持つ PR の読み取りを足す。返すのは、番号・状態・head・base・ドラフトか・fork からかだ（research.md の R3）
+- [x] T018 `p-w/cli/src/domain/readiness.ts` に、GitHub から読んだ値を「Issue の実態」にまとめる関数を足す
   - 形は data-model.md の 2 のとおり。済んだ・PR 中・着手の跡があるの 3 つの値を、表のとおりに決める
   - Issue の PR は、リンクしたブランチの PR と、閉じる参照の PR を合わせる
   - `p-w/cli/src/commands/` は、読んだ値を渡すだけにする

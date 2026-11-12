@@ -1,6 +1,7 @@
 // GitHub GraphQL API のクエリ・mutation 文字列。
-// cli/core/github/queries.py の文字列を、Python の gql が送る形（GraphQL の文書を整形し直した文）にして写している。
+// 先頭の 30 個は cli/core/github/queries.py の文字列を、Python の gql が送る形（GraphQL の文書を整形し直した文）にして写している。
 // 送る文が Python と同じなら、エラーの locations の行・列も同じになる。一致は infra/github/tests/queries.test.ts が固定する。
+// 末尾の blocked by 関係の 5 個は Python に無く、graphql-js の print の出力の形で書く。
 
 // プロジェクトアイテム一覧取得（ページネーション対応）
 export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String) {
@@ -713,6 +714,542 @@ export const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: Str
               createdAt
             }
           }
+        }
+      }
+    }
+  }
+}`
+
+// 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
+export const MUTATION_ADD_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
+  addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+    issue {
+      number
+    }
+    blockingIssue {
+      number
+    }
+  }
+}`
+
+// 前提（blocked by）を外す
+export const MUTATION_REMOVE_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
+  removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+    issue {
+      number
+    }
+    blockingIssue {
+      number
+    }
+  }
+}`
+
+// Issue と、その前提（blockedBy）を 1 回で読む。PR は 3 つの読み口から集める
+export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      number
+      state
+      title
+      repository {
+        owner {
+          login
+        }
+        name
+      }
+      issueType {
+        name
+      }
+      subIssues(first: 1) {
+        totalCount
+      }
+      projectItems(first: 20) {
+        nodes {
+          project {
+            id
+          }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                optionId
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      linkedBranches(first: 10) {
+        nodes {
+          ref {
+            name
+            associatedPullRequests(first: 10) {
+              nodes {
+                number
+                state
+                headRefName
+                baseRefName
+                isDraft
+                isCrossRepository
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+      closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+        nodes {
+          number
+          state
+          headRefName
+          baseRefName
+          isDraft
+          isCrossRepository
+          repository {
+            owner {
+              login
+            }
+            name
+          }
+        }
+      }
+      timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
+        nodes {
+          ... on ConnectedEvent {
+            subject {
+              ... on PullRequest {
+                number
+                state
+                headRefName
+                baseRefName
+                isDraft
+                isCrossRepository
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+            }
+          }
+          ... on CrossReferencedEvent {
+            source {
+              ... on PullRequest {
+                number
+                state
+                headRefName
+                baseRefName
+                isDraft
+                isCrossRepository
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+      body
+      blockedBy(first: 50) {
+        totalCount
+        nodes {
+          id
+          number
+          state
+          title
+          repository {
+            owner {
+              login
+            }
+            name
+          }
+          issueType {
+            name
+          }
+          subIssues(first: 1) {
+            totalCount
+          }
+          projectItems(first: 20) {
+            nodes {
+              project {
+                id
+              }
+              fieldValues(first: 20) {
+                nodes {
+                  ... on ProjectV2ItemFieldSingleSelectValue {
+                    name
+                    optionId
+                    field {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          linkedBranches(first: 10) {
+            nodes {
+              ref {
+                name
+                associatedPullRequests(first: 10) {
+                  nodes {
+                    number
+                    state
+                    headRefName
+                    baseRefName
+                    isDraft
+                    isCrossRepository
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+          closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+            nodes {
+              number
+              state
+              headRefName
+              baseRefName
+              isDraft
+              isCrossRepository
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
+            }
+          }
+          timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
+            nodes {
+              ... on ConnectedEvent {
+                subject {
+                  ... on PullRequest {
+                    number
+                    state
+                    headRefName
+                    baseRefName
+                    isDraft
+                    isCrossRepository
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                  }
+                }
+              }
+              ... on CrossReferencedEvent {
+                source {
+                  ... on PullRequest {
+                    number
+                    state
+                    headRefName
+                    baseRefName
+                    isDraft
+                    isCrossRepository
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+// issueType フィールド非対応 GHES 向けのフォールバック（issueType を外したもの）
+export const QUERY_GET_ISSUE_PREREQUISITES_PHASE1 = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      number
+      state
+      title
+      repository {
+        owner {
+          login
+        }
+        name
+      }
+      subIssues(first: 1) {
+        totalCount
+      }
+      projectItems(first: 20) {
+        nodes {
+          project {
+            id
+          }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                optionId
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      linkedBranches(first: 10) {
+        nodes {
+          ref {
+            name
+            associatedPullRequests(first: 10) {
+              nodes {
+                number
+                state
+                headRefName
+                baseRefName
+                isDraft
+                isCrossRepository
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+      closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+        nodes {
+          number
+          state
+          headRefName
+          baseRefName
+          isDraft
+          isCrossRepository
+          repository {
+            owner {
+              login
+            }
+            name
+          }
+        }
+      }
+      timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
+        nodes {
+          ... on ConnectedEvent {
+            subject {
+              ... on PullRequest {
+                number
+                state
+                headRefName
+                baseRefName
+                isDraft
+                isCrossRepository
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+            }
+          }
+          ... on CrossReferencedEvent {
+            source {
+              ... on PullRequest {
+                number
+                state
+                headRefName
+                baseRefName
+                isDraft
+                isCrossRepository
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+      body
+      blockedBy(first: 50) {
+        totalCount
+        nodes {
+          id
+          number
+          state
+          title
+          repository {
+            owner {
+              login
+            }
+            name
+          }
+          subIssues(first: 1) {
+            totalCount
+          }
+          projectItems(first: 20) {
+            nodes {
+              project {
+                id
+              }
+              fieldValues(first: 20) {
+                nodes {
+                  ... on ProjectV2ItemFieldSingleSelectValue {
+                    name
+                    optionId
+                    field {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          linkedBranches(first: 10) {
+            nodes {
+              ref {
+                name
+                associatedPullRequests(first: 10) {
+                  nodes {
+                    number
+                    state
+                    headRefName
+                    baseRefName
+                    isDraft
+                    isCrossRepository
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+          closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+            nodes {
+              number
+              state
+              headRefName
+              baseRefName
+              isDraft
+              isCrossRepository
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
+            }
+          }
+          timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
+            nodes {
+              ... on ConnectedEvent {
+                subject {
+                  ... on PullRequest {
+                    number
+                    state
+                    headRefName
+                    baseRefName
+                    isDraft
+                    isCrossRepository
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                  }
+                }
+              }
+              ... on CrossReferencedEvent {
+                source {
+                  ... on PullRequest {
+                    number
+                    state
+                    headRefName
+                    baseRefName
+                    isDraft
+                    isCrossRepository
+                    repository {
+                      owner {
+                        login
+                      }
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+// head のブランチ名で PR を引く（open・closed・merged）
+export const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: String!, $headRefName: String!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(
+      headRefName: $headRefName
+      states: [OPEN, CLOSED, MERGED]
+      first: 20
+    ) {
+      nodes {
+        number
+        state
+        headRefName
+        baseRefName
+        isDraft
+        isCrossRepository
+        repository {
+          owner {
+            login
+          }
+          name
         }
       }
     }
