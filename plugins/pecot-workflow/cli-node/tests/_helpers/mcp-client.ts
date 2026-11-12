@@ -2,6 +2,21 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の型は mutable */
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import type { McpServer } from '@modelcontextprotocol/server'
+import { z } from 'zod'
+
+import { OUTCOME_META_KEY } from '../../src/mcp/result.js'
+
+const OutcomeSchema = z.object({ exitCode: z.number(), stdout: z.string(), stderr: z.string() })
+const MetaSchema = z.object({ _meta: z.record(z.string(), OutcomeSchema) })
+
+/**
+ツールの結果の _meta から、終了コードと stdout・stderr を読む。_meta が無ければ例外
+*/
+export function outcomeOf(result: Readonly<Record<string, unknown>>): z.output<typeof OutcomeSchema> {
+  const outcome = new Map(Object.entries(MetaSchema.parse(result)._meta)).get(OUTCOME_META_KEY)
+  if (outcome === undefined) throw new Error('結果の _meta に outcome がありません')
+  return outcome
+}
 
 export interface ConnectedClient {
   readonly client: Client

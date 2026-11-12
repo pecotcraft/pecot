@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { childStdin, setChildStdin } from '../../infra/child-stdin.js'
 import { defineCommand } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
+import { outcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import { defaultDependencies, executeMcpServe, installStdoutGuard, runMcpServe } from '../serve.js'
 import type { McpServeDependencies, WritableTarget } from '../serve.js'
@@ -116,7 +117,7 @@ describe('runMcpServe', () => {
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const result = await client.callTool({ name: 'hello', arguments: {} })
-    expect(result.structuredContent).toEqual({ exitCode: 0, stdout: 'hello\n', stderr: '' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'hello\n', stderr: '' })
     const closed = new Promise<void>((resolve) => {
       // eslint-disable-next-line unicorn/prefer-add-event-listener -- SDK の Client は onclose 経由で通知する
       client.onclose = resolve

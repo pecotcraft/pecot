@@ -80,7 +80,7 @@ CLI の直接起動は全件（228 件）。MCP 経由は「MCP に写せるシ�
 
 ### 比べる欄
 
-`structuredContent` の `stdout`・`stderr`・`exitCode` を、golden の同じ名前の欄と比べる。golden の `requests` と `files` も、直接起動と同じく比べる。
+結果の `_meta['pecot/outcome']` の `stdout`・`stderr`・`exitCode` を、golden の同じ名前の欄と比べる。golden の `requests` と `files` も、直接起動と同じく比べる。
 
 ## 規則
 

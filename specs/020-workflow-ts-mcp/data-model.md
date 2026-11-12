@@ -27,11 +27,18 @@
 
 | フィールド | 型 | 内容 |
 |---|---|---|
-| `content[0].text` | `string` | `stdout` そのもの。スキルは今の CLI の出力と同じ Markdown を読む |
+| `content` の 1 個目 | text | `stdout` そのもの。空文字なら付けない。スキルは今の CLI の出力と同じ Markdown を読む |
+| `content` の 2 個目 | text | `stderr` が空でないとき、または `exitCode` が 0 でないときに付ける。本文は `stderr` で、`exitCode` が 0 でなければ末尾に `exit code: <n>` の行を足す |
 | `isError` | `boolean` | `exitCode !== 0` |
-| `structuredContent.exitCode` | `number` | CLI の終了コード |
-| `structuredContent.stdout` | `string` | |
-| `structuredContent.stderr` | `string` | 失敗時の文言。今の CLI と同じ |
+| `structuredContent` | — | 付けない |
+| `_meta['pecot/outcome']` | `{ exitCode, stdout, stderr }` | CLI の終了コードと 2 つの出力。モデルには届かず、SDK のクライアントには届く。前後比較とテストが読む |
+
+stdout・stderr が空で `exitCode` が 0 なら、`content` は空の配列。入力の検証の誤りは、誤りの文だけの `content` と `isError` で、`_meta` は付けない。
+
+`structuredContent` を付けない理由は、2026-11-12 に確かめた 2 つのクライアントの挙動による。
+
+- Claude Code 2.1.322 は、`structuredContent` があると `content` を落とし、その JSON 文字列だけをモデルに渡す。`isError` のときは `structuredContent` を落とす
+- GitHub Copilot CLI 1.0.108 は、`content` と `structuredContent` の両方を渡すので、stdout が二重になる
 
 ## ParityScenario と Golden（済み）
 

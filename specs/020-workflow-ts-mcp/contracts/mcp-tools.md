@@ -36,4 +36,4 @@
 |---|---|
 | ツールの数と名前 | `tools/list` が定義書（`interface/generated.json`）の 34 項目と一致する。切り替えの後は、各項目の `surfaces.mcp.tool` と一致する |
 | 入力の対応 | `tools/list` の入力を `normalizeInput` を通した形にして、定義書の `input` と比べる。各ツールのプロパティが、CLI のオプション（`--show-repo`・`--version` を除く）と 1 対 1 |
-| 結果の同一性 | 前後比較のシナリオのうち MCP に写せる全件（[parity.md](./parity.md)）を MCP 経由でも流し、`structuredContent` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` が一致する |
+| 結果の同一性 | 前後比較のシナリオのうち MCP に写せる全件（[parity.md](./parity.md)）を MCP 経由でも流し、結果の `_meta['pecot/outcome']` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` が一致する |

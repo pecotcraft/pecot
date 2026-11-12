@@ -226,9 +226,9 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
   各ツールの入力が、定義書の同じ項目の `input` に `repo` を足したものと一致することも確かめる。コマンド定義の入力は、`export-interface.ts` の `normalizeInput` を通した形で比べる（`export` して使う）。
 - [x] T040 [US2] `cli-node/src/mcp/server.ts`・`serve.ts`・`result.ts` を作り、`COMMANDS` からツールを登録する。
   結果の形は次のとおり。
-  - `content[0].text` は stdout
+  - `content` は stdout、続けて stderr（あれば）。失敗なら末尾に `exit code: <n>` の行
   - `isError` は `exitCode !== 0`
-  - `structuredContent` は `{ exitCode, stdout, stderr }`
+  - `structuredContent` は付けず、`_meta['pecot/outcome']` に `{ exitCode, stdout, stderr }` を載せる
   `libs/interface-spec/targets.json` の `sources` に `cli-node/src/mcp/*.ts` を足す。`interface-spec:lint-defs` が通ることを確かめる。
 - [x] T041 [US2] `worktree_link` のテストを `cli-node/tests/mcp/worktree-link.test.ts` に書く。入力は定義書の `force` をそのまま使い、新しい入力は作らない。
   MCP ツールは標準入力を持たない。`force` が false で上書きの確認が要るときは、定義書の「入力の終端なら中止する」と同じ結果を返すことを確かめる。
@@ -237,7 +237,7 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 - [x] T043 [US2] `cli-node/tests/parity/parity.test.ts` に MCP 経由の起動を足す。各シナリオのツールを `@modelcontextprotocol/client` で呼び、golden と比べる。
   CLI の直接起動は全件（228 件）。MCP 経由は「MCP に写せるシナリオ」の全件で、次の 3 種を除く（2026-11-11 の時点で 63 件、残りは 165 件）。除く一覧と理由は `parity.test.ts` が持つ。
   `global-*` の 31 件。名前に `usage` を含むもののうち `global-*` 以外の 29 件（CLI の引数の誤り。MCP では入力の検証の誤りになる）。標準入力を使う `worktree-link-*-overwrite-confirmed`・`-declined`・`-eof` の 3 件。
-  argv からツールの入力への写し方は、位置引数を `positional` の順に、フラグを名前の `-` を `_` にして渡す。比べる欄は、`structuredContent` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` である。
+  argv からツールの入力への写し方は、位置引数を `positional` の順に、フラグを名前の `-` を `_` にして渡す。比べる欄は、`_meta['pecot/outcome']` の `stdout`・`stderr`・`exitCode` と、golden の `requests`・`files` である。
   時間のかかる `release_*` も完了まで待つ。入力の検証の誤りは、ツール一覧のテストが受け持つ。
 
 **Checkpoint**: MCP に写せるシナリオの全件が MCP 経由でも一致する。プラグインの `.mcp.json` は変えていない

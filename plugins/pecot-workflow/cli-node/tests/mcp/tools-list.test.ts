@@ -81,7 +81,7 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_quick', arguments: { message: 'm', repo: 'acme/demo', prepare: true } })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toBeUndefined()
+    expect(result._meta).toBeUndefined()
     expect(result.content).toEqual([{ type: 'text', text: 'invalid input: unknown key \'prepare\'' }])
   })
 
@@ -89,7 +89,7 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', force: 'true' } })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toBeUndefined()
+    expect(result._meta).toBeUndefined()
     expect(JSON.stringify(result.content)).toContain('force')
   })
 
@@ -97,7 +97,7 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: {} })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toBeUndefined()
+    expect(result._meta).toBeUndefined()
     expect(JSON.stringify(result.content)).toContain('directory')
   })
 
@@ -105,7 +105,7 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', repo: 'not-a-repo' } })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toBeUndefined()
+    expect(result._meta).toBeUndefined()
     expect(JSON.stringify(result.content)).toContain('repo')
   })
 })

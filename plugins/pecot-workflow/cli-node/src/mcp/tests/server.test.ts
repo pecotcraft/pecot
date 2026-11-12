@@ -9,7 +9,7 @@ import type { CommandDefinition } from '../../commands/registry.js'
 import { UsageError } from '../../commands/usage-error.js'
 import { exitWith, failWith, throwFailure } from '../../commands/tests/support.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { connectInMemory } from '../../../tests/_helpers/mcp-client.js'
+import { connectInMemory, outcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import type { ConnectedClient } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import type { McpServerOptions } from '../server.js'
@@ -136,29 +136,30 @@ afterEach(async () => {
 })
 
 describe('ツールの呼び出し', () => {
-  it('終了コード 0 なら、stdout を本文にし、isError を付けずに返す', async () => {
+  it('終了コード 0 なら、stdout と stderr を本文にし、isError を付けずに返す', async () => {
     const result = await call('echo', { text: 'hi', count: 2 })
     expect(result.isError).toBeUndefined()
-    expect(result.content).toEqual([{ type: 'text', text: 'echo hi\n' }])
-    expect(result.structuredContent).toEqual({ exitCode: 0, stdout: 'echo hi\n', stderr: 'note\n' })
+    expect(result.content).toEqual([{ type: 'text', text: 'echo hi\n' }, { type: 'text', text: 'note\n' }])
+    expect(result.structuredContent).toBeUndefined()
+    expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'echo hi\n', stderr: 'note\n' })
     expect(calls).toEqual([{ text: 'hi', count: 2 }])
   })
 
   it('終了コードが 0 でなければ、isError を付けて、終了コードをそのまま返す', async () => {
     const result = await call('exit_three')
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toEqual({ exitCode: 3, stdout: 'partial\n', stderr: '' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 3, stdout: 'partial\n', stderr: '' })
   })
 
   it('確認が要るのに入力が無いと、Aborted. を stderr に出して終了コード 1 にする', async () => {
     const result = await call('ask')
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toEqual({ exitCode: 1, stdout: ' ', stderr: 'Overwrite? [y/N]:Aborted.\n' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: ' ', stderr: 'Overwrite? [y/N]:Aborted.\n' })
   })
 
   it('本体が投げた context の無い使い方の誤りには、コマンドの使い方を付けて終了コード 2 にする', async () => {
     const result = await call('bad_parameter')
-    const structured = z.object({ exitCode: z.number(), stderr: z.string() }).parse(result.structuredContent)
+    const structured = outcomeOf(result)
     expect(structured.exitCode).toBe(2)
     expect(structured.stderr).toContain('Usage: ')
     expect(structured.stderr).toContain('bad-parameter')
@@ -167,7 +168,7 @@ describe('ツールの呼び出し', () => {
 
   it('報告できる失敗は、error: の行を stderr に出して終了コード 1 にする', async () => {
     const result = await call('pecot_failure')
-    expect(result.structuredContent).toEqual({ exitCode: 1, stdout: '', stderr: 'error: ルートがありません\n' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: 'error: ルートがありません\n' })
   })
 
   it('プログラムの誤りは、isError の結果にして、報告先にも伝える', async () => {
@@ -186,7 +187,7 @@ describe('ツールの呼び出し', () => {
 
   it('自分の repo を持つコマンドの repo は、コマンド自身の入力として届く', async () => {
     const result = await call('own_repo', { repo: 'acme/demo' })
-    expect(result.structuredContent).toEqual({ exitCode: 0, stdout: 'acme/demo\n', stderr: '' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'acme/demo\n', stderr: '' })
   })
 
   it('呼び出しは並行に来ても、1 件ずつ順に実行する', async () => {
@@ -206,7 +207,7 @@ describe('ツールの呼び出し', () => {
       client.callTool({ name: 'echo', arguments: { text: 'after' } }),
     ])
     expect(broken.isError).toBe(true)
-    expect(fine.structuredContent).toEqual({ exitCode: 0, stdout: 'echo after\n', stderr: 'note\n' })
+    expect(outcomeOf(fine)).toEqual({ exitCode: 0, stdout: 'echo after\n', stderr: 'note\n' })
   })
 })
 
@@ -215,7 +216,7 @@ describe('PECOT_GITHUB_API_URL', () => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'https://example.com' })
     const result = await call('echo', { unknown: true })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toEqual({
+    expect(outcomeOf(result)).toEqual({
       exitCode: 1,
       stdout: '',
       stderr: 'error: PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://example.com\n',
@@ -226,7 +227,7 @@ describe('PECOT_GITHUB_API_URL', () => {
   it('ループバックの http なら、そのまま実行する', async () => {
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.0.0.1:9' })
     const result = await call('echo', { text: 'hi' })
-    expect(result.structuredContent).toEqual({ exitCode: 0, stdout: 'echo hi\n', stderr: 'note\n' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'echo hi\n', stderr: 'note\n' })
   })
 })
 
@@ -240,7 +241,7 @@ describe('入力の検証の誤り', () => {
   it('グローバルの repo の形が owner/repo でないと、本体を呼ばない', async () => {
     const result = await call('echo', { text: 'hi', repo: 'nope' })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toBeUndefined()
+    expect(result._meta).toBeUndefined()
     expect(JSON.stringify(result.content)).toContain('invalid input: repo: ')
     expect(calls).toEqual([])
   })
@@ -254,7 +255,7 @@ describe('入力の検証の誤り', () => {
   it('型の違いは、入力の名前を添えて断る', async () => {
     const result = await call('echo', { text: 'hi', flag: 'true' })
     expect(result.isError).toBe(true)
-    expect(result.structuredContent).toBeUndefined()
+    expect(result._meta).toBeUndefined()
     expect(JSON.stringify(result.content)).toContain('invalid input: flag: ')
     expect(calls).toEqual([])
   })
@@ -286,7 +287,7 @@ describe('入力の検証の誤り', () => {
   it('引数が無くても、空の入力として検証する', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'exit_three' })
-    expect(result.structuredContent).toEqual({ exitCode: 3, stdout: 'partial\n', stderr: '' })
+    expect(outcomeOf(result)).toEqual({ exitCode: 3, stdout: 'partial\n', stderr: '' })
   })
 
   it('入力の全体を見る検証の誤りは、名前を付けずに文だけを返す', async () => {
