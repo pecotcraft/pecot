@@ -9,9 +9,29 @@
 
 | 用意するもの | 内容 |
 |---|---|
-| 検証用のリポ | 組織の下に 1 つ。squash のマージと、開発ブランチの ruleset を、このリポと同じにする |
-| 検証用のボード | 検証用のリポを登録した Projects のボード |
-| 作業ディレクトリ | 検証用のリポの clone と、worktree を 2 つ |
+| 検証用のリポ | `pecotcraft/pecot-sandbox`。squash のマージと、開発ブランチの ruleset を、このリポと同じにする。別のリポの前提用に `pecotcraft/pecot-sandbox-b` も使う |
+| 検証用のボード | 組織 `pecotcraft` の Project #3（https://github.com/orgs/pecotcraft/projects/3） |
+| 作業ディレクトリ | `.pecot/work/<Issue番号>/pecot-sandbox/` に clone し、worktree を 2 つ作る |
+
+clone で、次の 3 点を確かめる。
+
+| 確かめるもの | 期待 |
+|---|---|
+| `echo "${CLAUDE_PROJECT_DIR:-unset}"` | `unset` |
+| `git rev-parse --show-toplevel` | clone のパス |
+| 本体の worktree の `git status --short .pecot/config` | 出力が空。`.pecot/config/projects/.active` が変わっていない |
+
+R14 の確かめの跡を片付ける。
+
+- 作った Issue・PR（`pecot-sandbox` の #1〜#12、`pecot-sandbox-b` の #1）を閉じ、ボードからアーカイブする
+- 残した blocked by（#5 ← #3）を外す
+
+Project #3 の Status には `Needs Attention`、pecot-workflow-sandbox には `Blocked` が、R14 の確かめで既に入っている。
+`pecot project init` の前に、`updateProjectV2Field` でこの 2 つを外す。
+既存の選択肢を id・name・color・description 付きで送り、2 つだけを抜く。
+外しても、ほかのカードの値が残っていることを見る。
+
+ボードの画面で、進行の欄の列が `Pending` / `Backlog` / `Blocked` / `Ready` / `Active` / `In Review` / `Archived` の順に並ぶことを見る。`Blocked` の列が隠れていてはならない。
 
 ```bash
 pecot project init          # Blocked と Needs Attention を足す
@@ -20,7 +40,7 @@ pecot project info          # 列と値がそろっていることを見る
 
 | 見るもの | 期待 |
 |---|---|
-| `pecot project init` の出力 | `added: option Blocked` と `added: option Needs Attention` が出る。2 回目は `unchanged:` になる |
+| `pecot project init` の出力 | 外した後の 1 回目は、`added: option Blocked` と `added: option Needs Attention` が出る。2 回目は `unchanged:` になる |
 | ボードの画面 | `Blocked` の列が `Ready` の左にある。既にあったカードの列と札が変わっていない |
 | 既定の自動化 | PR を 1 本マージし、札が `Done` になる |
 
@@ -133,6 +153,9 @@ worktree A と B が同じ行を変えた状態でも試す。
 
 ## 6. 下からマージする（US5）
 
+`pecot-sandbox` の main の ruleset（id 27130266）には、merge queue の規則がある。
+この節の本筋は merge queue を通さないので、先にその規則を外す。
+
 ```bash
 pecot pr merge <owner/repo/Phase 2 の PR>     # 止まる
 pecot pr merge <owner/repo/Phase 1 の PR>
@@ -147,19 +170,25 @@ pecot pr cleanup <owner/repo/Phase 1 の PR> --delete-branch
 | Phase 2 の PR | 開いたまま、base が開発ブランチになっている |
 | Phase 2 のブランチ | リモートに残っている |
 
-worktree B で載せ直す。
+worktree B で載せ直す。手元に足したコミットが無い場合と、push していないコミットを 1 つ足した場合で、2 回通す。
 
 ```bash
 pecot pr restack
 ```
 
+| 場面 | 期待 |
+|---|---|
+| (a) 手元に足したコミットが無い | `updated: <branch> synced with origin/<branch>`。push しない（PR の CI が動き直さない） |
+| (b) push していないコミットを 1 つ足した | `updated: <branch> restacked on <開発ブランチ>`。`--force-with-lease` で push する |
+
 | 見るもの | 期待 |
 |---|---|
-| 出力 | `restacked on <開発ブランチ>` |
 | PR の差分 | Phase 2 の変更だけ |
 | `session status` | `## Stack` の節が出ない |
 
+merge queue の規則は、ここで戻す。`pecot-sandbox` の main の ruleset（id 27130266）に規則を足し直す。
 merge queue のあるブランチでも 1 回通す。`pecot pr merge` が `added: ... to merge queue` を出し、キューを通ってマージされることを見る。
+その後も `pecot pr restack` を続け、キューを通った後の載せ直しを見る。GitHub は、キュー経由でも上の段を載せ直す。
 
 ## 7. 前提と種類を直す（US7・US9）
 
@@ -177,6 +206,7 @@ pecot issue block <Phase 1> --by <Phase 3>      # 輪
 | 3 行目の後 | 本文の節が消える。判定が計算し直される |
 | 4 行目の後 | GitHub の画面から blocked by が消える。Phase 3 が `Ready` に移る |
 | 5 行目 | 終了コード 2。輪になる Issue の並びが出る |
+| `issue block <Phase 2> --by <Phase 2>` | 終了コード 2。GitHub の文ではなく、pecot の文が出る |
 | 同じコマンドの 2 回目 | `unchanged:` が出る |
 
 ## 8. 誤操作を直す（US2）

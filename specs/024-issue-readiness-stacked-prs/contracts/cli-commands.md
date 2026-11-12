@@ -58,7 +58,7 @@ Issue から前提を外す。
 
 ### `pecot pr merge <pr_ref>`
 
-PR をマージする。スタックの中の PR と、単独の PR の両方を扱う。
+PR をマージする。スタックの中の PR と、単独の PR の両方を、`PUT .../pulls/{n}/merge-async` で扱う。同期のマージ API は merge queue を扱わないためだ。
 
 | 引数 | 内容 |
 |---|---|
@@ -74,10 +74,20 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | ドラフト | `error: PR #N is a draft` | 2 |
 | GitHub が規則で拒んだ | `error: merge was rejected: <GitHub の文>` | 1 |
 | 非同期のマージが時間内に終わらない | `error: merge did not finish in <秒>s. Check PR #N` | 1 |
+| 既にマージ済みか、キューの中（200） | `merged: PR #N into <base>` か `added: PR #N to merge queue of <base>` | 0 |
+| 閉じている PR など（400） | `error: merge was rejected: <GitHub の文>` | 1 |
+| 同じ PR の要求が既にある（409） | 既存の uuid の結果を読み続ける | 0 か 1 |
 
-- マージの方法は squash に固定する。merge queue のあるブランチでは、キューの設定に従う
-  - merge queue の無いブランチでは、非同期のマージ API に `merge_method: "squash"` を渡す。省くと merge commit になる
-  - merge queue のあるブランチでは、`merge_method` を渡さない。渡すと GitHub が拒む（research.md の R5）
+- merge queue の有無は、GraphQL の `PullRequest.isMergeQueueEnabled` で判定する
+- 非同期のマージの応答は、次のとおり扱う
+  - 202 は `{status: "pending", details: {uuid, ...}}` を返す。結果は `GET .../merge-async/{uuid}` を読み直して得る
+  - 200 は、既にマージ済みか、キューの中だ
+  - 400 は、閉じている PR などで、マージできない
+  - 409 は、同じ PR の要求が既にある。既存の uuid が返るので、その結果を読む
+  - uuid の結果は 24 時間で消える
+- マージの方法の値は、merge queue の有無で変える
+  - merge queue の無いブランチでは、`merge_method: "squash"` を渡す。省くと `default` になり、squash だけを許すリポで `failed` になった
+  - merge queue のあるブランチでは、`merge_method`・`commit_title`・`commit_message`・`merge_action` を渡さない。`merge_method`・`commit_title`・`commit_message` は direct merge だけの値だ（research.md の R5）
 - マージの後の片付けは行わない。`pecot pr cleanup` を続けて打つ
 - hook は、MCP のツール `pr_merge` を確認にかける。`gh pr merge` と同じ扱いだ
 
@@ -91,6 +101,7 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | `--check` で、載せ直しが要る | stdout に `needs restack: <branch> on <base> (base moved)` | 0 |
 | `--check` で、base の PR がマージ済み | stdout に `needs restack: <branch> onto <develop> (base #N merged)` | 0 |
 | 載せ直して push した | `updated: <branch> restacked on <base>` | 0 |
+| GitHub が先に載せ直していて、手元をリモートに合わせた（push しない） | `updated: <branch> synced with origin/<branch>` | 0 |
 | 載せ直しが要らなかった | `unchanged: <branch> is up to date` | 0 |
 | 衝突した | `error: conflict in <files>`、続けて `--continue` と `--abort` の案内 | 3 |
 | 未コミットの変更がある | `error: working tree has uncommitted changes` | 2 |
@@ -98,10 +109,11 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 
 - 書き換えるのは、今の作業ディレクトリのブランチだけだ
 - base の PR がマージ済みなら、開発ブランチへ載せ直し、記録の base を開発ブランチに変える
-  - GitHub は、リモートの今のブランチを先に載せ直している。手元に push していないコミットが無ければ、手元をリモートに合わせ、push しない
-  - push していないコミットがあれば、記録した古い base の位置で `rebase --onto` する（research.md の R6）
-- push は `--force-with-lease` を使う
+  - `git fetch` の後、まず記録した古い base の位置から `rebase --onto <新しい base>` を打つ（research.md の R6）
+  - 結果が `git diff --quiet HEAD origin/<branch>` で同じ木なら、GitHub が先に載せ直している。`origin/<branch>` に合わせ、push しない
+  - 木が違えば、`--force-with-lease` で push する
 - 載せ直しの後、base の位置の記録を書き直す
+  - 合わせた場合は、`git merge-base origin/<branch> <開発ブランチ>` の結果を記録する
 
 ## 振る舞いを変えるコマンド
 

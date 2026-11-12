@@ -61,7 +61,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 - [x] T001 検証用のリポとボードを用意する。組織の下にリポを 1 つ作り、squash のマージと開発ブランチの ruleset をこのリポと同じにする。Projects のボードを作り、`pecot project create` で初期化する。作る前に、利用者の同意を得る
 - [x] T002 [P] 既定の Status に、`updateProjectV2Field` で選択肢を 1 つ足す。既存の選択肢を `id` 付きで送り、カードの値が残ることを見る。足した後に PR を 1 本マージし、既定の自動化が札を `Done` にすることを見る
-- [x] T003 [P] 進行の欄の選択肢を、`Backlog` と `Ready` の間に 1 つ差し込む。ボードの列が、渡した順に並ぶことを見る
+- [x] T003 [P] 進行の欄の選択肢を、`Backlog` と `Ready` の間に 1 つ差し込む。ボードの列が、渡した順に並ぶことを見る（API の順まで確かめた。画面の列の順は未確認で、quickstart の準備で確かめる）
 - [x] T004 [P] `addBlockedBy` で、同じリポと別のリポの Issue を前提に付ける。輪になる組を付けたときの応答を記録する。REST の DELETE と `removeBlockedBy` の両方で外し、通るほうを記録する
 - [x] T005 [P] 2 段の PR を作り、`POST /repos/{owner}/{repo}/stacks` でスタックに登録する。上の段の PR の `closingIssuesReferences` が作られるかを記録する
 - [x] T006 2 段のスタックの下の段を、`PUT .../pulls/{n}/merge-async` でマージする。結果の読み方と、終わるまでの時間を記録する。上の段の PR の base とブランチの位置が、マージの後にどう変わるかを記録する
@@ -325,10 +325,16 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 6 を通す。上の段の PR のマージは止まる。下の段をマージして片付けると、`Readiness changed:` が出て、上の段のブランチが残る
 
-- [ ] T073 [P] [US5] `p-w/cli/src/infra/github/tests/` に、マージの API の失敗するテストを書く。単独の PR は今までのマージの API を、スタックの中の PR は `PUT .../pulls/{n}/merge-async` を呼ぶ。結果は `GET .../merge-async/{uuid}` で、終わるまで読む
-  - merge queue の無いブランチでは `merge_method: "squash"` を渡し、あるブランチでは `merge_method` を渡さない（research.md の R5）
+- [ ] T073 [P] [US5] `p-w/cli/src/infra/github/tests/` に、マージの API の失敗するテストを書く。単独の PR もスタックの中の PR も、`PUT .../pulls/{n}/merge-async` を呼ぶ（同期の API は merge queue を扱わない）。結果は `GET .../merge-async/{uuid}` で、終わるまで読む
+  - merge queue の有無は、GraphQL の `PullRequest.isMergeQueueEnabled` で判定する。有りと無しの両方でテストする
+  - merge queue の無いブランチでは `merge_method: "squash"` を渡す
+  - merge queue のあるブランチでは `merge_method`・`commit_title`・`commit_message`・`merge_action` を渡さない（research.md の R5）
+  - 応答は 202（pending）、200（既にマージ済みかキューの中）、400（閉じている PR など）、409（同じ PR の要求が既にある。既存の uuid を読む）を分ける
+  - uuid の結果は 24 時間で消える。消えた後に読んだ場合の扱いも確かめる
   - `enqueued` と `failed` の `details.message` を、そのまま返す
-- [ ] T074 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr merge` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr merge` の表の 7 行のとおりだ。マージの方法は squash に固定する。`--dry-run` は、要求を送らない
+- [ ] T074 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr merge` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr merge` の表の 10 行のとおりだ
+  - merge queue の無いブランチでは squash を渡し、あるブランチでは渡さない（research.md の R5）
+  - `--dry-run` は、要求を送らない
 - [ ] T075 [P] [US5] `p-w/cli/tests/interface/pr.test.ts` に、`pr cleanup` の失敗するテストを書く
   - 片付けの後、この PR の Issue を前提にしている Issue の列と札が動く。着手の跡がある Issue は動かない
   - base が開発ブランチでない PR の片付けでも、その PR の Issue が閉じる
@@ -362,9 +368,13 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 下の段にコミットを足すと、上の段が `git rebase --onto <新しい位置> <記録の位置>` で載る
   - 下の段を squash で開発ブランチへ入れた後、上の段が開発ブランチへ載り、下の段のコミットが落ちる
   - もう一方の worktree の、未コミットの変更とブランチの位置が変わらない
+  - 載せ直した結果の木が `origin/<branch>` と同じなら、手元が origin と同じ SHA になり、push しない
+  - 木が違えば、`rebase --onto` した結果を `--force-with-lease` で push する
   - 衝突のとき、衝突したファイルの一覧を返す。取りやめると、載せ直しの前の位置に戻る
 - [ ] T084 [US6] `p-w/cli/src/infra/git.ts` に、載せ直し・続行・取りやめ・`--force-with-lease` の push を足し、T083 を通す
-- [ ] T085 [P] [US6] `p-w/cli/tests/interface/pr.test.ts` に、`pr restack` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr restack` の表の 8 行のとおりだ。載せ直しの後に、base の位置の記録が書き直される
+  - `rebase --onto` の後に `git diff --quiet HEAD origin/<branch>` で木を比べ、同じなら `origin/<branch>` に合わせて push しない
+  - 合わせた後の base の位置は `git merge-base origin/<branch> <開発ブランチ>` で求める
+- [ ] T085 [P] [US6] `p-w/cli/tests/interface/pr.test.ts` に、`pr restack` の失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot pr restack` の表の 9 行のとおりだ。載せ直しの後に、base の位置の記録が書き直される
 - [ ] T086 [US6] `p-w/cli/src/commands/pr.ts` に `pr restack` を足し、T085 を通す。`PR_COMMANDS` に登録する
 - [ ] T087 [US6] `p-w/cli/src/commands/session.ts` の `## Stack` の節に、載せ直しが要るかを足す
 - [ ] T088 [US6] `p-w/skills/w-revise/SKILL.md` を、contracts/skill-flow.md の w-revise の表のとおりに直す。上の段の作業ディレクトリには入らず、載せ直しが要る旨を報告に入れる
