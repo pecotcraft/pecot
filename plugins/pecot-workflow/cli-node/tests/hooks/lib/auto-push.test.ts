@@ -616,7 +616,10 @@ describe('auto-push.sh', () => {
       const remoteReferences = gitOrThrow(hookCase, bare, ['for-each-ref', 'refs/heads/wip/']).stdout
       expect(remoteReferences).toContain('refs/heads/wip/feat/add-auth/1443')
       expect(listWipTrackingReferences(hookCase, setup.repository)).toBe('')
-      gitOrThrow(hookCase, setup.repository, ['-c', `url.${bare}.insteadOf=${DEFAULT_ORIGIN}`, 'fetch', 'origin'])
+      // git の設定は env で渡す（引数の -c を使わない）。
+      const fetchConfig = { GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: `url.${bare}.insteadOf`, GIT_CONFIG_VALUE_0: DEFAULT_ORIGIN }
+      const fetched = run(hookCase, 'git', ['fetch', 'origin'], { cwd: setup.repository, env: fetchConfig })
+      expect(fetched.exitCode).toBe(0)
       expect(listWipTrackingReferences(hookCase, setup.repository)).toBe('')
     })
   })
