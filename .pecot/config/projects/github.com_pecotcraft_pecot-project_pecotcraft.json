@@ -5,13 +5,14 @@
   "project": {
     "number": 1,
     "id": "PVT_kwDOFO6i_s4BpvQe",
-    "board_url": "https://github.com/orgs/pecotcraft/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=436827128&filterQuery=%20pecot-workflow-pecotcraft%3APending%2CBacklog%2CReady%2CActive%2CArchived%2C%22In%20Review%22",
+    "board_url": "https://github.com/orgs/pecotcraft/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=436827128&filterQuery=%20pecot-workflow-pecotcraft%3APending%2CBacklog%2CBlocked%2CReady%2CActive%2CArchived%2C%22In%20Review%22",
     "fields": {
       "workflow": {
         "id": "PVTSSF_lADOFO6i_s4BpvQezhoJc_g",
         "options": {
           "backlog": "278717f8",
           "pending": "f0a824af",
+          "blocked": "f2c7bc2f",
           "ready": "5b81a334",
           "active": "24697fc9",
           "in_review": "111f75e8",
@@ -33,6 +34,13 @@
           "s": "44dfb99b",
           "m": "2aff4403",
           "l": "8d1fc8ef"
+        }
+      },
+      "status": {
+        "id": "PVTSSF_lADOFO6i_s4BpvQezhoJc9k",
+        "options": {
+          "todo": "f75ad846",
+          "needs_attention": "4a11fe5d"
         }
       }
     }
