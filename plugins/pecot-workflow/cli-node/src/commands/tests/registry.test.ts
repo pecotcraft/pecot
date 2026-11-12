@@ -3,8 +3,7 @@ import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
 import { COMMAND_PATHS } from '../../../tests/parity/commands.js'
-import { COMMANDS, findCommand } from '../index.js'
-import { defineCommand, toolNameOf } from '../registry.js'
+import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
 /**
@@ -13,18 +12,6 @@ Node へ未移植のコマンドの path。各 Phase が移植するたびに、
 const PENDING_PATHS: readonly (readonly string[])[] = [
   ['add-to-project'],
   ['update-issue-status'],
-  ['create-branch'],
-  ['delete-branch'],
-  ['project', 'list'],
-  ['project', 'search'],
-  ['project', 'init'],
-  ['project', 'create'],
-  ['project', 'info'],
-  ['project', 'activate'],
-  ['project', 'set-repo'],
-  ['project', 'set-aggregation-repo'],
-  ['project', 'unset-aggregation-repo'],
-  ['project', 'show-aggregation-repo'],
   ['issue', 'create'],
   ['issue', 'quick'],
   ['issue', 'read'],
@@ -62,7 +49,7 @@ describe('コマンドの一覧', () => {
 
   it('未移植の path は toolName が重複しない', () => {
     const names = PENDING_PATHS.map(path => toolNameOf(path))
-    expect(new Set(names).size).toBe(names.length)
+    expect(new Set(names).size).toBe(PENDING_PATHS.length)
   })
 })
 
@@ -174,19 +161,6 @@ describe('defineCommand', () => {
     expect(io.out).toEqual(['a/b/1 5 -\n'])
   })
 
-  it('negations を持てる', () => {
-    const negated = defineCommand({
-      path: ['neg'],
-      description: '',
-      input: z.object({ checkout: z.boolean().default(true) }),
-      positional: [],
-      negations: { checkout: '--no-checkout' },
-      interactive: false,
-      run: async () => await exitWith(0),
-    })
-    expect(negated.negations).toEqual(new Map([['checkout', '--no-checkout']]))
-  })
-
   it('aliases を持てる。無ければ空', () => {
     const aliased = defineCommand({
       path: ['al'],
@@ -214,6 +188,19 @@ describe('defineCommand', () => {
     })).toThrow(TypeError)
   })
 
+  it('negations を持てる', () => {
+    const negated = defineCommand({
+      path: ['neg'],
+      description: '',
+      input: z.object({ checkout: z.boolean().default(true) }),
+      positional: [],
+      negations: { checkout: '--no-checkout' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(negated.negations).toEqual(new Map([['checkout', '--no-checkout']]))
+  })
+
   it('path が空なら作れない', () => {
     expect(() => defineCommand({
       path: [],
@@ -238,6 +225,6 @@ describe('findCommand', () => {
     })
     expect(findCommand(['pr', 'read'], [command])).toBe(command)
     expect(findCommand(['pr', 'merge'], [command])).toBeUndefined()
-    expect(findCommand(['pr', 'read'])).toBe(COMMANDS.find(candidate => candidate.path.join(' ') === 'pr read'))
+    expect(findCommand(['pr', 'read'])).toBeUndefined()
   })
 })

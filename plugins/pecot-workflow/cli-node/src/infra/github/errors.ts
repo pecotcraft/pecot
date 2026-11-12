@@ -48,8 +48,17 @@ export class GitHubNotFoundError extends GitHubAPIError {}
 export class GitHubRateLimitError extends GitHubAPIError {}
 
 /**
-GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える
+GitHubAPIError の message に、応答本文 JSON の message と errors[].message を添える。
+本文が JSON でない（HTML など）・どちらも無いときは添えない。
+422 では理由が errors[].message にだけ入ることがある（例: "Validation Failed" の詳細）
 */
 export function describeApiError(error: Readonly<GitHubAPIError>): string {
   return describeErrorBody(error.message, error.responseBody)
+}
+
+/**
+このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす
+*/
+export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
+  return (error.statusCode === 404 || error.statusCode === 422) && error.responseBody?.includes('Reference does not exist') === true
 }

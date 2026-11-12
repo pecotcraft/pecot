@@ -52,17 +52,6 @@ const remove = defineCommand({
   },
 })
 
-const optionalNames = z.array(z.string()).optional()
-
-const optionalList = defineCommand({
-  path: ['optional-list'],
-  description: '任意の可変長',
-  input: z.object({ names: optionalNames }),
-  positional: ['names'],
-  interactive: false,
-  run: async () => await exitWith(0),
-})
-
 const add = defineCommand({
   path: ['worktree', 'add'],
   description: '作る',
@@ -106,11 +95,10 @@ async function usageErrorOf(promise: Promise<unknown>): Promise<UsageError> {
 }
 
 describe('synopsisOf・usageOf', () => {
-  it('位置引数は小文字。必須は波括弧、任意は角括弧、複数は ... を付ける（typer 0.28 と同じ）', () => {
+  it('位置引数は名前のまま。必須なら波括弧、任意なら角括弧、複数なら ...', () => {
     expect(synopsisOf(read)).toBe('[OPTIONS] {issue_ref}')
     expect(synopsisOf(preflight)).toBe('[OPTIONS] [version]')
     expect(synopsisOf(remove)).toBe('[OPTIONS] {names}...')
-    expect(synopsisOf(optionalList)).toBe('[OPTIONS] [names]...')
     expect(usageOf(read)).toEqual({ commandPath: ['issue', 'read'], synopsis: '[OPTIONS] {issue_ref}' })
   })
 })
@@ -134,20 +122,6 @@ describe('runDefinition', () => {
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false }])
   })
 
-  it('名前が no_ で始まる真偽値は、指定が無ければ false で、--no-copy を付けると true', async () => {
-    seen.length = 0
-    await runDefinition(skipping, [], capture())
-    await runDefinition(skipping, ['--no-copy'], capture())
-    expect(seen).toEqual([{ no_copy: false }, { no_copy: true }])
-  })
-
-  it('--no-copy の否定形 --copy は、未知のオプションで No such option になる', async () => {
-    seen.length = 0
-    const error = await usageErrorOf(runDefinition(skipping, ['--copy'], capture()))
-    expect(error.message).toBe('No such option: --copy (Possible options: --no-copy)')
-    expect(seen).toEqual([])
-  })
-
   it('複数の位置引数は配列にする', async () => {
     seen.length = 0
     await runDefinition(remove, ['one', 'two'], capture())
@@ -156,14 +130,13 @@ describe('runDefinition', () => {
 
   it('必須の位置引数が無ければ Missing argument', async () => {
     const error = await usageErrorOf(runDefinition(read, [], capture()))
-    expect(formatUsageError(error)).toBe([
-      'Usage: pecot issue read [OPTIONS] {issue_ref}',
-      'Try \'pecot issue read --help\' for help.',
-      '╭─ Error ──────────────────────────────────────────────────────────────────────╮',
-      '│ Missing argument \'issue_ref\'.                                                │',
-      '╰──────────────────────────────────────────────────────────────────────────────╯',
-      '',
-    ].join('\n'))
+    // eslint-disable-next-line unicorn/no-incorrect-template-string-interpolation -- typer の使い方の行に出る波括弧
+    expect(formatUsageError(error)).toBe(`Usage: pecot issue read [OPTIONS] {issue_ref}
+Try 'pecot issue read --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ Missing argument 'issue_ref'.                                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+`)
   })
 
   it('必須のオプションが無ければ Missing option（長い形・短い形の順）', async () => {
@@ -187,10 +160,10 @@ describe('runDefinition', () => {
     expect(error.message).toBe('Option \'--directory\' requires an argument.')
   })
 
-  it('余分な位置引数は Got unexpected extra argument', async () => {
+  it('余分な位置引数は、個数によらず Got unexpected extra argument(s)', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(preflight, ['1', '2', '-D', '.'], io))).toBe('Got unexpected extra argument (2)')
-    expect(await messageOf(runDefinition(preflight, ['1', '2', '3', '-D', '.'], io))).toBe('Got unexpected extra arguments (2 3)')
+    expect(await messageOf(runDefinition(preflight, ['1', '2', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2)')
+    expect(await messageOf(runDefinition(preflight, ['1', '2', '3', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2 3)')
   })
 
   it('--help は説明を出して 0', async () => {
@@ -269,7 +242,7 @@ describe('型の変換', () => {
     expect(await messageOf(runDefinition(typed, ['1', '--ratio', 'abc'], io))).toBe('Invalid value for \'--ratio\': \'abc\' is not a valid float.')
   })
 
-  it('位置引数の誤りは、名前を大文字で出す', async () => {
+  it('位置引数の誤りは、名前を引数の名前のまま出す', async () => {
     const io = capture()
     expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid integer.')
   })
@@ -326,6 +299,20 @@ describe('否定形と包んだスキーマ', () => {
     const io = capture()
     expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'files...\'.')
     expect(synopsisOf(flags)).toBe('[OPTIONS] {files}...')
+  })
+
+  it('名前が no_ で始まる真偽値は、指定が無ければ false で、--no-copy を付けると true', async () => {
+    seen.length = 0
+    await runDefinition(skipping, [], capture())
+    await runDefinition(skipping, ['--no-copy'], capture())
+    expect(seen).toEqual([{ no_copy: false }, { no_copy: true }])
+  })
+
+  it('--no-copy の否定形 --copy は、未知のオプションで No such option になる', async () => {
+    seen.length = 0
+    const error = await usageErrorOf(runDefinition(skipping, ['--copy'], capture()))
+    expect(error.message).toBe('No such option: --copy (Possible options: --no-copy)')
+    expect(seen).toEqual([])
   })
 
   it('別名は長い形のまま、元の名前の入力にする', async () => {
@@ -393,5 +380,69 @@ describe('誤りの扱い', () => {
       },
     })
     await expect(runDefinition(command, [], capture())).rejects.toBeInstanceOf(z.ZodError)
+  })
+})
+
+describe('click と同じ文にそろえた使い方の誤り', () => {
+  const flags = defineCommand({
+    path: ['project', 'set'],
+    description: '設定する',
+    input: z.object({ value: z.string(), yes: z.boolean(), checkout: z.boolean().default(true), branch: z.string().optional() }),
+    positional: ['value'],
+    shortFlags: { branch: '-b' },
+    negations: { checkout: '--no-checkout' },
+    interactive: false,
+    run: async () => await exitWith(0),
+  })
+
+  it('値を取るオプションに値が無いとき、Usage 行・Try 行は付けない', async () => {
+    const error = await usageErrorOf(runDefinition(flags, ['a', '-b'], capture()))
+    expect(error.context).toBeUndefined()
+    expect(formatUsageError(error)).toBe(`╭─ Error ──────────────────────────────────────────────────────────────────────╮
+│ Option '-b' requires an argument.                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+`)
+  })
+
+  it('真偽のオプションに値を付けると does not take a value。Usage 行は付けない', async () => {
+    const cases: readonly (readonly [string, string])[] = [['--yes=1', '--yes'], ['--yes=', '--yes'], ['--no-checkout=1', '--no-checkout']]
+    for (const [argument, name] of cases) {
+      const error = await usageErrorOf(runDefinition(flags, ['a', argument], capture()))
+      expect(error.message).toBe(`Option '${name}' does not take a value.`)
+      expect(error.context).toBeUndefined()
+    }
+  })
+
+  it('未知のオプションに = で値を付けても、名前だけで案内する', async () => {
+    const plain = await messageOf(runDefinition(flags, ['a', '--bogus=1'], capture()))
+    expect(plain).toBe('No such option: --bogus')
+    const close = await messageOf(runDefinition(flags, ['a', '--yse=1'], capture()))
+    expect(close).toBe('No such option: --yse (Possible options: --yes)')
+  })
+
+  it('負数に見える語は、位置引数として受けず、No such option: -N で止める（先頭の 2 文字だけ）', async () => {
+    const cases: readonly (readonly [readonly string[], string])[] = [[['-1'], '-1'], [['a', '-1'], '-1'], [['a', '-12'], '-1'], [['a', '-1x'], '-1'], [['a', '--yes', '-5'], '-5']]
+    for (const [argv, name] of cases) {
+      const error = await usageErrorOf(runDefinition(flags, argv, capture()))
+      expect(error.message).toBe(`No such option: ${name}`)
+      expect(error.context).toEqual({ commandPath: ['project', 'set'], synopsis: '[OPTIONS] {value}' })
+    }
+  })
+
+  it('値を取るオプションの値の位置、-- の後ろの負数は誤りにしない', async () => {
+    expect(await runDefinition(flags, ['a', '-b', '-1'], capture())).toBe(0)
+    expect(await runDefinition(flags, ['a', '--branch', '-1'], capture())).toBe(0)
+    expect(await runDefinition(flags, ['--', '-1'], capture())).toBe(0)
+  })
+
+  it('負数に見える語より前に誤りがあれば、その誤りを先に出す。--help も先に返さない', async () => {
+    const first = await messageOf(runDefinition(flags, ['a', '--yes=1', '-1'], capture()))
+    expect(first).toBe('Option \'--yes\' does not take a value.')
+    const second = await messageOf(runDefinition(flags, ['a', '--bogus', '-1'], capture()))
+    expect(second).toBe('No such option: --bogus')
+    const io = capture()
+    const third = await messageOf(runDefinition(flags, ['--help', '-1'], io))
+    expect(third).toBe('No such option: -1')
+    expect(io.out).toEqual([])
   })
 })

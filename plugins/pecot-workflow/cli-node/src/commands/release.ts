@@ -24,8 +24,8 @@ import { createScanAlertSource } from '../infra/github/security-alerts-source.js
 import { createGitHubClient, makeClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { defineCommand } from './registry.js'
-import type { CommandDefinition } from './registry.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition } from './command-definition.js'
 import { requireRepositoryMatch } from './repository-match.js'
 
 const FAILURE = 1
@@ -239,11 +239,10 @@ const preflight = defineCommand({
   positional: ['version'],
   interactive: false,
   run: async (input, io) => {
-    const match = requireRepositoryMatch('warn', input.repo, io)
-    if (match.kind === 'exit') return match.exitCode
+    const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
     const out = createOutput(false, io)
     const cwd = process.cwd()
-    const context = loadReleaseContext(out, match.adopted, input.repo, input.package, { version: input.version, nxAlertsOnly: true })
+    const context = loadReleaseContext(out, adopted, input.repo, input.package, { version: input.version, nxAlertsOnly: true })
     if (context === undefined) return FAILURE
     const { config, owner, repository } = context
 
@@ -290,8 +289,7 @@ const create = defineCommand({
   positional: ['version'],
   interactive: false,
   run: async (input, io) => {
-    const match = requireRepositoryMatch('warn', input.repo, io)
-    if (match.kind === 'exit') return match.exitCode
+    const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
     const out = createOutput(input.dry_run, io)
 
     try {
@@ -303,7 +301,7 @@ const create = defineCommand({
       return FAILURE
     }
 
-    const context = loadReleaseContext(out, match.adopted, input.repo, input.package)
+    const context = loadReleaseContext(out, adopted, input.repo, input.package)
     if (context === undefined) return FAILURE
     const { config, owner, repository, tagPrefix } = context
 
@@ -360,8 +358,7 @@ const merge = defineCommand({
   shortFlags: { dry_run: '-n', delete_branch: '-d' },
   interactive: false,
   run: async (input, io) => {
-    const match = requireRepositoryMatch('reject', input.repo, io)
-    if (match.kind === 'exit') return match.exitCode
+    requireRepositoryMatch('reject', input.repo, io, process.cwd())
     const out = createOutput(input.dry_run, io)
     const config = loadActiveConfig()
     if (config === undefined) {

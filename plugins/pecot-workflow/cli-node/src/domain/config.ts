@@ -81,6 +81,11 @@ const PackageSchema = model('Package', {
 const ReleaseTypeSchema = z.enum(['single', 'multi', 'nx'])
 export type ReleaseType = z.infer<typeof ReleaseTypeSchema>
 
+/**
+release_type の取れる値（single・multi・nx）
+*/
+export const RELEASE_TYPES: readonly ReleaseType[] = ReleaseTypeSchema.options
+
 const RepositorySchema = model('Repository', {
   owner: z.string(),
   name: z.string(),
@@ -225,6 +230,15 @@ export function parseProjectConfig(data: JsonValue): ProjectConfig {
 }
 
 /**
+パッケージ 1 件を作る。NAME の形が不正なら ValidationFailure（表題は Package）。保存より前の検証で使う
+*/
+export function parsePackage(data: JsonValue): Package {
+  const result = PackageSchema.safeParse(data)
+  if (!result.success) throw new ValidationFailure('Package', result.error.issues.map(issue => toValidationIssue(issue, data)))
+  return result.data
+}
+
+/**
 設定ファイルの中身。2 スペースのインデントで、末尾に改行を置く。
 値の無い項目は出さず、非 ASCII の文字はそのまま出す。
 キーの順はモデルの定義順
@@ -324,4 +338,13 @@ export function withAggregationRepository(config: ProjectConfig, value: string |
 */
 export function withRepositoryAppended(config: ProjectConfig, repository: Repository): ProjectConfig {
   return Object.freeze({ ...config, repositories: Object.freeze([...config.repositories, repository]) })
+}
+
+/**
+同じ owner と name のリポジトリのうち、最初の 1 件を差し替えたコピー（find_repository と同じ）。無ければ元のまま
+*/
+export function withRepositoryReplaced(config: ProjectConfig, repository: Repository): ProjectConfig {
+  const index = config.repositories.findIndex(item => item.owner === repository.owner && item.name === repository.name)
+  const replaced = config.repositories.map((item, position) => position === index ? repository : item)
+  return Object.freeze({ ...config, repositories: Object.freeze(replaced) })
 }

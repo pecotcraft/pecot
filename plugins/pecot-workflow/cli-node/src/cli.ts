@@ -23,7 +23,7 @@ import { invalidRepositoryMessage, parseGlobalOptions, ROOT_USAGE } from './comm
 import { FAILURE_EXIT_CODE, isReportableFailure, reportFailure } from './commands/failure.js'
 import { closeMatches } from './commands/fuzzy.js'
 import { helpText } from './commands/help.js'
-import { COMMANDS, findCommand } from './commands/index.js'
+import { COMMANDS, findCommand } from './commands/registry.js'
 import type { CommandDefinition, CommandIo } from './commands/registry.js'
 import { AbortedError, createProcessIo, reportAborted } from './commands/output.js'
 import { formatResolvedRepository } from './commands/repository-display.js'

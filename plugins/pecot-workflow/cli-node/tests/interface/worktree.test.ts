@@ -7,7 +7,7 @@ import path from 'node:path'
 
 import { expect, it, describe, beforeEach, vi } from 'vitest'
 
-import { COMMANDS } from '../../src/commands/index.js'
+import { COMMANDS } from '../../src/commands/registry.js'
 import { runCli } from '../../src/cli.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'

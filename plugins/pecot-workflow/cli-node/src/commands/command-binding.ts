@@ -12,6 +12,7 @@ import {
   missingOptionMessage,
   noSuchOptionMessage,
   optionRequiresArgumentMessage,
+  optionTakesNoValueMessage,
   UsageError,
 } from './usage-error.js'
 import type { UsageContext } from './usage-error.js'
@@ -25,6 +26,13 @@ function fieldSchemaOf(definition: Readonly<CommandDefinition>, name: string): z
 
 function isRequired(schema: z.ZodType): boolean {
   return !schema.safeParse(undefined).success
+}
+
+/**
+typer の Missing argument と Invalid value に出す名前。引数の名前のまま（小文字）
+*/
+function argumentLabel(name: string): string {
+  return name
 }
 
 function flagOf(name: string): string {
@@ -41,21 +49,22 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
 }
 
 /**
-Missing argument に出す名前。可変長は `...` を付ける
+typer の Missing argument に出す名前。可変長は `...` を付ける
 */
 function labelWithEllipsis(definition: Readonly<CommandDefinition>, name: string): string {
-  return isListField(definition, name) ? `${name}...` : name
+  return isListField(definition, name) ? `${argumentLabel(name)}...` : argumentLabel(name)
 }
 
 /**
-click の Usage 行に出す書式（typer 0.28 と同じ）。
-位置引数は入力の名前のまま並べる。必須は `{issue_ref}`、任意は `[version]`、複数は後ろに `...` を付ける
+typer の Usage 行に出す書式。
+位置引数は名前のまま並べ、必須なら `{issue_ref}`、任意なら `[version]` にする。複数なら `...` を付ける
 */
 export function synopsisOf(definition: Readonly<CommandDefinition>): string {
   const names = definition.positional.map((name) => {
     const schema = fieldSchemaOf(definition, name)
-    const label = schema === undefined || isRequired(schema) ? `{${name}}` : `[${name}]`
-    return isListField(definition, name) ? `${label}...` : label
+    const label = argumentLabel(name)
+    const suffix = isListField(definition, name) ? '...' : ''
+    return schema === undefined || isRequired(schema) ? `{${label}}${suffix}` : `[${label}]${suffix}`
   })
   return ['[OPTIONS]', ...names].join(' ')
 }
@@ -107,9 +116,28 @@ function bindOption(definition: Readonly<CommandDefinition>, field: string): Bou
 
 function bindOptions(definition: Readonly<CommandDefinition>): readonly BoundOption[] {
   return Object.keys(definition.input.shape)
-    .filter(name => name !== 'repo' && !definition.positional.includes(name))
+    .filter(name => (name !== 'repo' || definition.hasOwnRepo) && !definition.positional.includes(name))
     .map(name => bindOption(definition, name))
     .filter(bound => bound !== undefined)
+}
+
+/**
+click は `-1` のような負数に見える語を位置引数にせず、未定義の短いオプションとして断る（`-12` も `-1`）。
+その語の位置を返す。`--` より後ろと、値を取るオプションの値の位置にある語は対象にしない
+*/
+function negativeNumberIndex(argv: readonly string[], bound: readonly BoundOption[]): number | undefined {
+  const valueTaking = new Set(bound.filter(entry => entry.kind !== 'boolean').flatMap(entry => entry.names))
+  let isValueNext = false
+  for (const [index, argument] of argv.entries()) {
+    if (isValueNext) {
+      isValueNext = false
+      continue
+    }
+    if (argument === '--') return undefined
+    if (/^-\d/u.test(argument)) return index
+    isValueNext = valueTaking.has(argument)
+  }
+  return undefined
 }
 
 function toUsageError(
@@ -122,15 +150,20 @@ function toUsageError(
   const quoted = error.message.replace(/^[^']*'([^']*)'.*$/su, '$1')
   switch (error.code) {
     case 'commander.unknownOption': {
+      // click は `--name=値` の値を落として名前だけで案内する。真偽のオプションなら、値は取らない旨にして Usage 行を付けない
+      const typedName = quoted.startsWith('--') ? quoted.replace(/=.*$/su, '') : quoted
+      const booleanNames = bound.flatMap(entry => entry.kind === 'boolean' ? [entry.names[0], entry.negation] : [])
+      if (typedName !== quoted && booleanNames.includes(typedName)) return new UsageError(optionTakesNoValueMessage(typedName))
       const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.filter(name => name.startsWith('--')), ...entry.negation === undefined ? [] : [entry.negation]])]
-      const possibilities = quoted.startsWith('--') ? closeMatches(quoted, longNames) : []
-      return new UsageError(noSuchOptionMessage(quoted, possibilities), usage)
+      const possibilities = typedName.startsWith('--') ? closeMatches(typedName, longNames) : []
+      return new UsageError(noSuchOptionMessage(typedName, possibilities), usage)
     }
     case 'commander.optionMissingArgument': {
       // `-c, --comment-limit <value>` のうち、利用者が打った方の名前を出す
       const names = quoted.split(/[ ,]+/u).filter(part => part.startsWith('-'))
       const typed = argv.findLast(argument => names.includes(argument)) ?? names.at(-1) ?? quoted
-      return new UsageError(optionRequiresArgumentMessage(typed), usage)
+      // click はこの誤りに Usage 行・Try 行を付けない
+      return new UsageError(optionRequiresArgumentMessage(typed))
     }
     // 上の 2 つ以外の commander の誤りは、このバインドでは起きない（引数は任意、argParser は使わない）。
     // makeOptionMandatory・choices・InvalidArgumentError などを使い始めたら、この行を外して誤りごとに文とテストを足す
@@ -140,7 +173,8 @@ function toUsageError(
 }
 
 function extraArgumentsMessage(extras: readonly string[]): string {
-  return `Got unexpected extra argument${extras.length === 1 ? '' : 's'} (${extras.join(' ')})`
+  // click は個数によらず `argument(s)` と書く
+  return `Got unexpected extra argument(s) (${extras.join(' ')})`
 }
 
 function convertOrFail(text: string, valueType: ValueType, names: string | readonly string[], usage: UsageContext): unknown {
@@ -165,7 +199,7 @@ function positionalInput(definition: Readonly<CommandDefinition>, command: Comma
     if (Array.isArray(value) ? value.length > 0 : value !== undefined) {
       const kind = schema === undefined ? 'value' : flagKindOf(schema)
       const valueType: ValueType = schema === undefined ? { type: 'string' } : valueTypeOf(schema)
-      return [[name, convertField(value, kind, valueType, name, usage)]]
+      return [[name, convertField(value, kind, valueType, argumentLabel(name), usage)]]
     }
     if (schema !== undefined && isRequired(schema)) throw new UsageError(missingArgumentMessage(labelWithEllipsis(definition, name)), usage)
     return []
@@ -193,9 +227,17 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
   const [issue] = error.issues
   const field = issue?.path.at(0)
   const names = definition.positional.includes(String(field))
-    ? String(field)
+    ? argumentLabel(String(field))
     : bound.find(entry => entry.field === field)?.names ?? 'input'
   return new UsageError(invalidValueMessage(names, issue?.message ?? error.message), usage)
+}
+
+/**
+グローバルの --repo を入力 repo にする。自分の `--repo` を持つコマンドは、サブコマンドの値を先に使い、無ければグローバルの値を使う
+*/
+function withRepository(definition: Readonly<CommandDefinition>, input: Readonly<Record<string, unknown>>, repository: string | undefined): Readonly<Record<string, unknown>> {
+  if (repository === undefined) return input
+  return definition.hasOwnRepo ? { repo: repository, ...input } : { ...input, repo: repository }
 }
 
 /**
@@ -220,26 +262,32 @@ export async function runDefinition(
     .exitOverride()
     .configureOutput({ writeOut: io.stdout, writeErr: discard, outputError: discard })
   for (const name of definition.positional) {
-    command.argument(isListField(definition, name) ? `[${name}...]` : `[${name}]`)
+    command.argument(isListField(definition, name) ? `[${argumentLabel(name)}...]` : `[${argumentLabel(name)}]`)
   }
   for (const { option, negation } of bound) {
     command.addOption(option)
     if (negation !== undefined) command.addOption(new Option(negation))
   }
 
+  // 負数に見える語があれば、その手前までを解析する。手前の誤りを先に出し、--help も出さずに、その語を断る
+  const negativeIndex = negativeNumberIndex(argv, bound)
+  if (negativeIndex !== undefined) command.configureOutput({ writeOut: discard, writeErr: discard, outputError: discard })
   try {
-    await command.parseAsync([...argv], { from: 'user' })
+    await command.parseAsync(negativeIndex === undefined ? [...argv] : argv.slice(0, negativeIndex), { from: 'user' })
   }
   catch (error: unknown) {
     if (!(error instanceof CommanderError)) throw error
-    if (error.code === 'commander.helpDisplayed' || error.code === 'commander.help') return 0
-    throw toUsageError(error, argv, bound, usage)
+    const isHelp = error.code === 'commander.helpDisplayed' || error.code === 'commander.help'
+    if (!isHelp) throw toUsageError(error, argv, bound, usage)
+    if (negativeIndex === undefined) return 0
   }
+  const negativeWord = negativeIndex === undefined ? undefined : argv.at(negativeIndex)
+  if (negativeWord !== undefined) throw new UsageError(noSuchOptionMessage(negativeWord.slice(0, 2)), usage)
   const entries = [...positionalInput(definition, command, usage), ...optionInput(command, bound, usage)]
   const input = Object.fromEntries(entries)
   let prepared: PreparedCommand
   try {
-    prepared = definition.parse(repository === undefined ? input : { ...input, repo: repository })
+    prepared = definition.parse(withRepository(definition, input, repository))
   }
   catch (error: unknown) {
     if (error instanceof z.ZodError) throw issueToUsageError(definition, error, bound, usage)

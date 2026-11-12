@@ -10,7 +10,7 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import { COMMANDS } from '../src/commands/index.js'
+import { COMMANDS } from '../src/commands/registry.js'
 import { defineCommand, type CommandIo } from '../src/commands/registry.js'
 import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
@@ -117,6 +117,33 @@ describe('exportEntries', () => {
 
   it('グローバルの repo は input に出さない', () => {
     expect(Object.keys(entries[0]?.input.properties ?? {})).not.toContain('repo')
+  })
+
+  it('自分の --repo を持つコマンド（hasOwnRepo）は、repo を input と cli.flags に出し、required には入れない', () => {
+    const own = defineCommand({
+      path: ['own'],
+      description: 'Has its own repo.',
+      input: z.strictObject({
+        json: z.boolean().default(false).describe('Print JSON.'),
+        repo: z.string().optional().describe('Target repository.'),
+      }),
+      hasOwnRepo: true,
+      positional: [],
+      shortFlags: { json: '-j' },
+      run: () => Promise.resolve(0),
+      interactive: false,
+    })
+    const [entry] = exportEntries([own])
+    expect(entry?.input).toStrictEqual({
+      type: 'object',
+      properties: {
+        json: { type: 'boolean', default: false, description: 'Print JSON.' },
+        repo: { type: 'string', description: 'Target repository.' },
+      },
+      required: [],
+      additionalProperties: false,
+    })
+    expect(entry?.cli).toStrictEqual({ positional: [], flags: { json: ['--json', '-j'], repo: ['--repo'] } })
   })
 
   it('input.properties と cli.flags のキーは名前の順、引数の中のキーは決めた順', () => {

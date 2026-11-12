@@ -36,8 +36,8 @@ import {
 import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-links.js'
 import { createOutput, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
-import { defineCommand } from './registry.js'
-import type { CommandDefinition, CommandIo, GlobalInput } from './registry.js'
+import { defineCommand } from './command-definition.js'
+import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
 import { requireRepositoryMatch } from './repository-match.js'
 
 const FAILURE = 1
@@ -134,8 +134,7 @@ const worktreeAddCommand = defineCommand({
 })
 
 function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>, io: CommandIo): number {
-  const match = requireRepositoryMatch('reject', input.repo, io)
-  if (match.kind === 'exit') return match.exitCode
+  requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(input.dry_run, io)
   try {
     ensureDevcontainerEnvironment()
@@ -179,8 +178,7 @@ const worktreeRemoveCommand = defineCommand({
 })
 
 function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & GlobalInput>, io: CommandIo): number {
-  const match = requireRepositoryMatch('reject', input.repo, io)
-  if (match.kind === 'exit') return match.exitCode
+  requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(false, io)
   try {
     ensureDevcontainerEnvironment()
@@ -230,8 +228,7 @@ function writeInitFiles(configFile: string, ignoreFile: string, config: Readonly
 }
 
 function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInput>, io: CommandIo): number {
-  const match = requireRepositoryMatch('reject', input.repo, io)
-  if (match.kind === 'exit') return match.exitCode
+  requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(false, io)
   let mainWorktree: string
   try {
@@ -350,8 +347,7 @@ function applyLinks(target: string, config: Readonly<WorktreeConfig>, projectRoo
 }
 
 function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInput>, io: CommandIo): number {
-  const match = requireRepositoryMatch('reject', input.repo, io)
-  if (match.kind === 'exit') return match.exitCode
+  requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(input.dry_run, io)
   try {
     ensureDevcontainerEnvironment()

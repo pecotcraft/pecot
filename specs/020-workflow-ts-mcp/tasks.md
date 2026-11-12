@@ -121,14 +121,14 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 **Independent Test**: `parity.test.ts` の `project-*`・`create-branch-*`・`delete-branch-*` が golden と一致する。`global-*` は対象外で、フェーズ 6 で確かめる。
 この PR で足した 12 個が登録され、登録済みの全部で `--check` の差が 0。振る舞いの項目 127 個（project 82、`create-branch` 27、`delete-branch` 18）が vitest につながる
 
-- [ ] T010 [P] [US1] `cli/commands/project.py` を `cli-node/src/commands/project.ts` に移す。`registry.ts` の `COMMANDS` に 10 個を足す。
+- [x] T010 [P] [US1] `cli/commands/project.py` を `cli-node/src/commands/project.ts` に移す。`registry.ts` の `COMMANDS` に 10 個を足す。
   `cli/commands/_tracker_sync.py` の `api_error_detail` も要る。フェーズ 4・6 も使うので、`cli-node/src/commands/` の共有のファイルに置く。
-- [ ] T011 [P] [US1] `cli/commands/repo.py` の 2 個を `cli-node/src/commands/repo.ts` に移す。対象は `create_branch` と `delete_branch`。`COMMANDS` に 2 個を足す。
+- [x] T011 [P] [US1] `cli/commands/repo.py` の 2 個を `cli-node/src/commands/repo.ts` に移す。対象は `create_branch` と `delete_branch`。`COMMANDS` に 2 個を足す。
   共有の `_repo_policy.py` の `require_repo_match` と `_work_target.py` の `record_work_target` も要る。Node に無ければ、`cli-node/src/commands/` に置く。
-- [ ] T012 [US1] rich の表の整形を、golden と文字単位で一致させる。直す先は `cli-node/src/domain/format.ts` と `src/commands/cell-table.ts` である。
-- [ ] T013 [US1] Python が書いた状態を Node が読む `project-info-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
-- [ ] T014 [US1] 振る舞いの項目 127 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/project.test.ts`・`create-branch.test.ts`・`delete-branch.test.ts` である。
-- [ ] T015 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。差があれば `project.ts` と `repo.ts` のコマンド定義を直す。
+- [x] T012 [US1] rich の表の整形を、golden と文字単位で一致させる。直す先は `cli-node/src/domain/format.ts` と `src/commands/cell-table.ts` である。
+- [x] T013 [US1] Python が書いた状態を Node が読む `project-info-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
+- [x] T014 [US1] 振る舞いの項目 127 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/project.test.ts`・`create-branch.test.ts`・`delete-branch.test.ts` である。
+- [x] T015 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。差があれば `project.ts` と `repo.ts` のコマンド定義を直す。
 
 **Checkpoint**: 該当シナリオが全部一致する。この PR で足した 12 個が登録され、登録済みの全部で `--check` の差が 0。該当の項目 127 個が全部つながる
 
