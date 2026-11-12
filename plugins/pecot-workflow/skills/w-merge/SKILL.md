@@ -43,26 +43,39 @@ gh pr merge <PR番号> --repo <owner>/<repo> --squash
 
 #### 2.2 マージを待つ
 
-Claude Code では Monitor ツールで次の until ループを動かし、抜けるまで待つ。`<owner>` などは置き換える。
+Claude Code では Monitor ツールで、このスキルのディレクトリの `scripts/merge-wait.sh` を動かし、抜けるまで待つ。`<owner>` などは置き換える。
 
 ```bash
-until s=$(gh api graphql -F o=<owner> -F r=<repo> -F n=<PR番号> \
-  -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){state isInMergeQueue mergeable autoMergeRequest{enabledAt} commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{... on CheckRun{conclusion isRequired(pullRequestNumber:$n)} ... on StatusContext{state isRequired(pullRequestNumber:$n)}}}}}}}}}}' \
-  --jq '.data.repository.pullRequest | "\(.state) \(.isInMergeQueue) \(.autoMergeRequest != null) \(.mergeable) \(if ([.commits.nodes[]?.commit.statusCheckRollup.contexts.nodes[]? | select(.isRequired) | (.conclusion // .state)] | any(IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE"))) then "required-failed" else "-" end)"'); \
-  case "$s" in MERGED*|CLOSED*|"OPEN false false "*|*" CONFLICTING "*|*" required-failed") true ;; *) false ;; esac; do sleep 30; done; echo "$s"
+bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>
 ```
 
-出力は次の 5 語になる。state、queue に入っているか、auto-merge の予約の有無、mergeable、必須チェックの結果の順に並ぶ。必須チェックの結果は、落ちたものがあれば `required-failed`、なければ `-` になる。判定の対象は、最新の commit の先頭 100 件のチェックだけになる。
+- Monitor の期限（timeout_ms）は、最長の 30 分（1800000）で渡す。省くと既定の 5 分で打ち切られる
+- 期限の通知が来たら、スクリプトは止まっているので、同じコマンドで 2.2 を起動し直す
+- 待つのは、merge queue の中にいるときと、auto-merge の予約があってチェックが終わっていないときだけ。ほかの状態は理由を出して抜ける
 
-抜けたら、次の項目を上から順に見て、合った最初の項目を実行する。片付けをするのは `MERGED` のときだけで、ほかは止まる。
+抜けたときの出力は、1 行目が理由、2 行目が最後の状態になる。`blocked` と `stalled` のときだけ、3 行目以降が付く。中身は、base のルールの種類と、code scanning の開いているアラートの番号。
 
-1. `MERGED ...` なら 2.3 へ進む
-2. `CLOSED ...` なら、ユーザーに伝えて止まる
-3. 4 語目が `CONFLICTING` なら、ユーザーに伝える。`git fetch origin main` の後に `git merge origin/main` で取り込み直し、コンフリクトを直して push する
-4. 5 語目が `required-failed` なら、`gh pr checks <PR番号> --repo <owner>/<repo> --required` で落ちたチェックを読んでユーザーに伝える。直して push する
-5. `OPEN false false ...` なら、queue から外れている。`gh pr checks <PR番号> --repo <owner>/<repo>` で落ちたチェックを読んでユーザーに伝える。直して push する
+```
+merge-wait: blocked
+state: OPEN queue=false auto-merge=true mergeable=MERGEABLE mergeStateStatus=BLOCKED required=passed checks-pending=0
+rules(main): pull_request, required_status_checks, merge_queue, code_scanning
+code-scanning open alerts: #28 #29
+```
 
-- 3〜5 で push した後は、抜けた行の 3 語目が `true`（auto-merge の予約が残っている）なら 2.2 から、`false` なら 2.1 からやり直す
+1 行目の理由に合う行を実行する。片付けをするのは `merged` のときだけで、ほかは止まる。
+
+| 1 行目の理由 | 次の手順 |
+|---|---|
+| `merged` | 2.3 へ進む |
+| `closed` | ユーザーに伝えて止まる |
+| `conflicting` | ユーザーに伝える。`git fetch origin main` の後に `git merge origin/main` で取り込み直し、コンフリクトを直して push する |
+| `required-failed` | `gh pr checks <PR番号> --repo <owner>/<repo> --required` で落ちたチェックを読んでユーザーに伝える。直して push する |
+| `not-queued` | queue から外れている。`gh pr checks <PR番号> --repo <owner>/<repo>` で落ちたチェックを読んでユーザーに伝える。直して push し、2.1 からやり直す |
+| `blocked` | チェックは通っているが、ルールが止めている。出力のルールとアラートを調べ、止まった理由をユーザーに伝えて止まる。`pecot pr cleanup` は打たない |
+| `stalled` | 状態が変わらないまま 15 分を超えた。最後の状態を伝え、待ち直すかをユーザーに聞く |
+| `query-failed` | `gh` が 3 回続けて失敗した。出力の `gh` のエラーをユーザーに伝えて止まる |
+
+- `conflicting` と `required-failed` で push した後は、2 行目の `auto-merge=` を見る。`true`（auto-merge の予約が残っている）なら 2.2 から、`false` なら 2.1 からやり直す
 - GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を打ち直す。未マージなら exit 1 で何もしない
 
 #### 2.3 片付け
