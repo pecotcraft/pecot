@@ -12,18 +12,6 @@ Node へ未移植のコマンドの path。各 Phase が移植するたびに、
 const PENDING_PATHS: readonly (readonly string[])[] = [
   ['add-to-project'],
   ['update-issue-status'],
-  ['create-branch'],
-  ['delete-branch'],
-  ['project', 'list'],
-  ['project', 'search'],
-  ['project', 'init'],
-  ['project', 'create'],
-  ['project', 'info'],
-  ['project', 'activate'],
-  ['project', 'set-repo'],
-  ['project', 'set-aggregation-repo'],
-  ['project', 'unset-aggregation-repo'],
-  ['project', 'show-aggregation-repo'],
   ['issue', 'create'],
   ['issue', 'quick'],
   ['issue', 'read'],
@@ -68,7 +56,7 @@ describe('コマンドの一覧', () => {
 
   it('未移植の path は toolName が重複しない', () => {
     const names = PENDING_PATHS.map(path => toolNameOf(path))
-    expect(new Set(names).size).toBe(34)
+    expect(new Set(names).size).toBe(PENDING_PATHS.length)
   })
 })
 
