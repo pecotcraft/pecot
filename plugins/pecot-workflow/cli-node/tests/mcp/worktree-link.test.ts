@@ -1,17 +1,19 @@
 // worktree_link は process.cwd() を読むので、実際に stdio でサーバを起動して呼ぶ（前後比較の起動方法と sandbox を使う）。
-import path from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
+import { cliEntry, builtCliProblem } from '../parity/built-cli.js'
 import { runScenario } from '../parity/run.js'
 import type { Launcher } from '../parity/run.js'
 import { readGolden, readScenario } from '../parity/scenario.js'
-import { pluginRoot } from '../parity/setup.js'
 
 const TEST_TIMEOUT_MS = 30_000
-const mcp: Launcher = { command: process.execPath, args: [path.join(pluginRoot, 'cli-node', 'dist', 'cli.js')], env: {}, via: 'mcp' }
+const mcp: Launcher = { command: process.execPath, args: [cliEntry], env: {}, via: 'mcp' }
 
 describe('worktree_link', () => {
+  it('Node の CLI がビルドされている', () => {
+    expect(builtCliProblem()).toBeUndefined()
+  })
+
   it('force が false で上書きの確認が要ると、入力の終端と同じ結果で中止する', { timeout: TEST_TIMEOUT_MS }, async () => {
     const scenario = readScenario('worktree-link-state-overwrite-eof')
     expect(scenario.command.args).not.toContain('--force')

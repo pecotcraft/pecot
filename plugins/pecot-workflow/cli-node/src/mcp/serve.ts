@@ -1,4 +1,5 @@
 // `pecot mcp` の実装。cli.ts が dynamic import で読む。stdout は JSON-RPC 専用にし、stdin が閉じたら接続を閉じる。
+// pecot-tools の serve.ts と骨格が同じ。SIGTERM・SIGINT の配線と子の kill は、子が短命で git が同期なので持たない（共有は別途）。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数は Node の stream。mutable な型でしか公開されていない */
 import { Writable } from 'node:stream'
 import type { Readable } from 'node:stream'
@@ -10,6 +11,7 @@ import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 import { setChildStdin } from '../infra/child-stdin.js'
 import { createOutput } from '../commands/output.js'
 import { createMcpServer } from './server.js'
+import type { McpServerOptions } from './server.js'
 
 /**
 process.stdout / process.stderr のうち、ガードが使う面
@@ -20,6 +22,9 @@ export interface WritableTarget {
 
 // 二重に張ると、2 回目が転送用の write を元の write として束縛し、JSON-RPC が stderr へ回る。張り済みなら初回の Writable を返す
 const installedGuards = new WeakMap<WritableTarget, Writable>()
+
+// stdout の書き込み失敗は、ガードと SDK の onerror に同じ Error で届く。1 回だけ報告する
+const reportedErrors = new WeakSet<Readonly<Error>>()
 
 function discard(): void {
   // stdout には何も出さない
@@ -72,6 +77,7 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
   })
   // EPIPE は error イベントで上がる。拾わないと uncaught 例外で落ちる
   protocolStdout.on('error', (error: Readonly<Error>) => {
+    reportedErrors.add(error)
     reportTo(stderr)(`failed to write to stdout: ${error.message}`)
     process.exitCode = 1
   })
@@ -79,8 +85,10 @@ export function installStdoutGuard(stdout: WritableTarget, stderr: WritableTarge
   return protocolStdout
 }
 
+type McpReportUnexpected = NonNullable<McpServerOptions['reportUnexpected']>
+
 export interface McpServeDependencies {
-  readonly createServer: (reportUnexpected: (error: unknown) => void) => McpServer
+  readonly createServer: (reportUnexpected: McpReportUnexpected) => McpServer
   readonly createTransport: (stdin: Readable, stdout: Writable) => Transport
   /**
   stdout のガードを張り、JSON-RPC 専用の Writable を返す
@@ -104,14 +112,15 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
   const reportError = reportTo(dependencies.stderr)
 
   // 接続とインスタンスの onerror に同じ Error が流れるので、1 回だけ報告する
-  const reported = new WeakSet<Readonly<Error>>()
   const report = (error: Readonly<Error>): void => {
-    if (reported.has(error)) return
-    reported.add(error)
+    if (reportedErrors.has(error)) return
+    reportedErrors.add(error)
     reportError(error.message)
   }
-  const reportUnexpected = (error: unknown): void => {
+  const reportUnexpected: McpReportUnexpected = (error, collected) => {
     reportError(error instanceof Error ? (error.stack ?? error.message) : String(error))
+    if (collected.stdout !== '') reportError(`stdout so far: ${collected.stdout}`)
+    if (collected.stderr !== '') reportError(`stderr so far: ${collected.stderr}`)
   }
 
   const handle = serveStdio(
@@ -131,9 +140,6 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
     },
     { transport, onerror: report },
   )
-  dependencies.stdin.once('end', () => {
-    void closeQuietly(handle)
-  })
   return handle
 }
 
@@ -149,17 +155,18 @@ export function defaultDependencies(): McpServeDependencies {
 }
 
 /**
-`pecot mcp` の本体。子プロセスの stdin を切り離してから待ち受ける。起動の失敗は stderr に出し、終了コードを 1 にする
+`pecot mcp` の本体。子プロセスの stdin を切り離してから待ち受ける。起動できたら 0、同期の起動の失敗は stderr に出して 1 を返す
 */
-export function executeMcpServe(buildDependencies: () => McpServeDependencies = defaultDependencies): void {
+export function executeMcpServe(buildDependencies: () => McpServeDependencies = defaultDependencies): number {
   const dependencies = buildDependencies()
   // 子が JSON-RPC のパイプ（fd 0）を読むと、メッセージを食う
   setChildStdin('ignore')
   try {
     runMcpServe(dependencies)
+    return 0
   }
   catch (error: unknown) {
     reportTo(dependencies.stderr)(messageOf(error))
-    process.exitCode = 1
+    return 1
   }
 }

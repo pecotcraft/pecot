@@ -284,6 +284,46 @@ describe('入力の検証の誤り', () => {
     expect(unexpected).toHaveLength(1)
   })
 
+  it('待っている間にキャンセルされた呼び出しは、本体を呼ばない', async () => {
+    const { client } = await connect()
+    const first = client.callTool({ name: 'slow', arguments: { name: 'first' } })
+    const controller = new AbortController()
+    const second = client.callTool({ name: 'slow', arguments: { name: 'second' } }, { signal: controller.signal })
+    const settled = Promise.allSettled([second])
+    await new Promise((resolve) => {
+      setTimeout(resolve, 5)
+    })
+    controller.abort()
+    const results = await settled
+    expect(results.map(entry => entry.status)).toEqual(['rejected'])
+    await first
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20)
+    })
+    expect(calls).toEqual(['start first', 'end first'])
+  })
+
+  it('プログラムの誤りのとき、それまでに集めた出力も伝える', async () => {
+    const noisy = defineCommand({
+      path: ['noisy'],
+      description: '出力の後の誤り',
+      input: z.object({}),
+      positional: [],
+      interactive: false,
+      run: async (_input, io) => {
+        io.stdout('half\n')
+        io.stderr('warn\n')
+        return await failWith('boom')
+      },
+    })
+    const reported: unknown[] = []
+    const { client } = await open([noisy], { reportUnexpected: (_error, collected) => {
+      reported.push(collected)
+    } })
+    await client.callTool({ name: 'noisy', arguments: {} })
+    expect(reported).toEqual([{ stdout: 'half\n', stderr: 'warn\n' }])
+  })
+
   it('引数が無くても、空の入力として検証する', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'exit_three' })

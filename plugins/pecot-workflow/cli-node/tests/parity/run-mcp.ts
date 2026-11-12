@@ -1,6 +1,6 @@
 // シナリオ 1 件を、MCP のクライアントからツールを 1 回呼ぶ形で流す。サーバは Node の CLI の `mcp` を子プロセスで起動し、シナリオの cwd と env を渡す。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の Client と stream は mutable */
-import { Client } from '@modelcontextprotocol/client'
+import { Client, SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { z } from 'zod'
 
@@ -38,10 +38,11 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
   const client = new Client({ name: 'parity', version: '0.0.0' })
   const failed = (error: unknown): ChildResult => {
     const message = messageOf(error)
-    return { stdout: '', stderr: '', code: undefined, signal: undefined, spawnError: `${message}${serverStderr === '' ? '' : `\n${serverStderr}`}`, timedOut: /timed out/iu.test(message) }
+    return { stdout: '', stderr: '', code: undefined, signal: undefined, spawnError: `${message}${serverStderr === '' ? '' : `\n${serverStderr}`}`, timedOut: SdkError.isInstance(error) && error.code === SdkErrorCode.RequestTimeout }
   }
   try {
     await client.connect(transport, { timeout: CHILD_TIMEOUT_MS })
+    // scenario.stdin は渡さない。MCP のツールは標準入力を持たず、stdin のシナリオは呼び出し側で除いている
     const input = toolInputOf(readToolShape(scenario.command.path), scenario.command.args)
     const result = await client.callTool({ name: toolNameOf(scenario.command.path), arguments: { ...input } }, { timeout: CHILD_TIMEOUT_MS })
     const meta = MetaSchema.safeParse(result).data?._meta

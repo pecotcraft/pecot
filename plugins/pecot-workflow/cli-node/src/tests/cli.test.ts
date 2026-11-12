@@ -24,7 +24,7 @@ import { makeTemporaryDirectory } from './_helpers/temporary.js'
 
 useIsolatedEnvironment()
 
-vi.mock('../mcp/serve.js', () => ({ executeMcpServe: vi.fn() }))
+vi.mock('../mcp/serve.js', () => ({ executeMcpServe: vi.fn(() => 0) }))
 
 // 実装と同じ readVersion() は使わず、plugin.json を直接読む
 
@@ -603,6 +603,12 @@ describe('mcp', () => {
     vi.mocked(executeMcpServe).mockClear()
     expect(await run(['mcp'])).toEqual({ code: 0, stdout: '', stderr: '' })
     expect(executeMcpServe).toHaveBeenCalledTimes(1)
+  })
+
+  it('mcp の起動が 1 を返したら、その終了コードで終わる', async () => {
+    vi.mocked(executeMcpServe).mockReturnValueOnce(1)
+    const result = await run(['mcp'])
+    expect(result.code).toBe(1)
   })
 
   it('mcp に余分な引数があると、サーバを起動せず使い方の誤りで 2', async () => {

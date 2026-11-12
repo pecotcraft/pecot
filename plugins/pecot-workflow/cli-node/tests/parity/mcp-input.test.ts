@@ -41,8 +41,37 @@ describe('toolInputOf', () => {
     expect(() => toolInputOf(readToolShape(['session', 'status']), ['-D'])).toThrow('値がありません')
   })
 
-  it('整数でない値は例外にする', () => {
-    expect(() => toolInputOf(readToolShape(['issue', 'read']), ['acme/demo/7', '--comment-limit', 'x'])).toThrow('整数')
+  it('整数でない値は、数に読める文字でも例外にする', () => {
+    const shape = readToolShape(['issue', 'read'])
+    for (const text of ['x', '', ' ', '1e3', '0x10', '1.5', '+1', ' 7', '7 ', '1_0']) {
+      expect(() => toolInputOf(shape, ['acme/demo/7', '--comment-limit', text])).toThrow('整数')
+    }
+    expect(toolInputOf(shape, ['acme/demo/7', '--comment-limit', '-3'])).toMatchObject({ comment_limit: -3 })
+    expect(toolInputOf(shape, ['acme/demo/7', '--comment-limit=007'])).toMatchObject({ comment_limit: 7 })
+  })
+
+  it('値を取らない真偽値のフラグに --flag=value で値を付けると、例外にする', () => {
+    expect(() => toolInputOf(readToolShape(['create-branch']), ['acme/demo/7', '--no-checkout=false'])).toThrow('値を取らない')
+    expect(() => toolInputOf(readToolShape(['create-branch']), ['acme/demo/7', '--checkout='])).toThrow('値を取らない')
+  })
+
+  it('位置引数が定義書より余ると、例外にする。最後が配列なら余らない', () => {
+    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', 'active', 'extra'])).toThrow('多すぎ')
+    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', 'active', '--', 'extra'])).toThrow('多すぎ')
+    expect(toolInputOf(readToolShape(['issue', 'create']), ['one.md', 'two.md', 'three.md'])).toMatchObject({ files: ['one.md', 'two.md', 'three.md'] })
+  })
+
+  it('値を取るフラグの値が -- のときは、区切りでなく値にする', () => {
+    expect(toolInputOf(readToolShape(['session', 'status']), ['-D', '--'])).toEqual({ directory: '--' })
+    expect(toolInputOf(readToolShape(['update-issue-status']), ['--', 'acme/demo/7', 'active'])).toEqual({ issue_ref: 'acme/demo/7', status: 'active' })
+  })
+
+  it('負数に見える語は、-- より前なら写せない入力として例外にし、理由を示す', () => {
+    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['-1', 'active'])).toThrow('負数')
+    expect(() => toolInputOf(readToolShape(['update-issue-status']), ['acme/demo/7', '-12'])).toThrow('負数')
+    // 値を取るフラグの値と、-- より後ろは、負数に見えても値・位置引数にする
+    expect(toolInputOf(readToolShape(['issue', 'read']), ['acme/demo/7', '--comment-limit', '-3'])).toMatchObject({ comment_limit: -3 })
+    expect(toolInputOf(readToolShape(['update-issue-status']), ['--', '-1', 'active'])).toEqual({ issue_ref: '-1', status: 'active' })
   })
 
   it('定義書に無いコマンドは例外にする', () => {

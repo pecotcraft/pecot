@@ -77,7 +77,23 @@ describe('installStdoutGuard', () => {
   })
 })
 
+const started: string[] = []
+
 const COMMANDS = [
+  defineCommand({
+    path: ['slow'],
+    description: '時間がかかる',
+    input: z.object({ name: z.string() }),
+    positional: ['name'],
+    interactive: false,
+    run: async (input) => {
+      started.push(input.name)
+      await new Promise((resolve) => {
+        setTimeout(resolve, input.name === 'first' ? 80 : 0)
+      })
+      return await exitWith(0)
+    },
+  }),
   defineCommand({
     path: ['hello'],
     description: 'あいさつ',
@@ -87,6 +103,18 @@ const COMMANDS = [
     run: async (_input, io) => {
       io.stdout('hello\n')
       return await exitWith(0)
+    },
+  }),
+  defineCommand({
+    path: ['noisy-bug'],
+    description: '出力の後にプログラムの誤り',
+    input: z.object({}),
+    positional: [],
+    interactive: false,
+    run: async (_input, io) => {
+      io.stdout('half\n')
+      io.stderr('warn\n')
+      return await failWith('boom')
     },
   }),
   defineCommand({
@@ -109,23 +137,57 @@ function dependenciesOver(stdin: PassThrough, stderr: FakeTarget, serverTranspor
   }
 }
 
+function stdioDependencies(stdin: PassThrough, stdout: PassThrough): McpServeDependencies {
+  return {
+    ...dependenciesOver(stdin, fakeTarget(), InMemoryTransport.createLinkedPair()[1]),
+    createTransport: (input, output) => new StdioServerTransport(input, output),
+    installStdoutGuard: () => stdout,
+  }
+}
+
+function sendLine(stdin: PassThrough, message: Readonly<Record<string, unknown>>): void {
+  stdin.write(`${JSON.stringify({ jsonrpc: '2.0', ...message })}\n`)
+}
+
+function slowCall(id: number, name: string): Record<string, unknown> {
+  return { id, method: 'tools/call', params: { name: 'slow', arguments: { name } } }
+}
+
+async function initialize(stdin: PassThrough, stdout: PassThrough): Promise<void> {
+  const answered = new Promise<void>((resolve) => {
+    stdout.once('data', () => {
+      resolve()
+    })
+  })
+  sendLine(stdin, { id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'raw', version: '0' } } })
+  await answered
+  sendLine(stdin, { method: 'notifications/initialized' })
+}
+
 describe('runMcpServe', () => {
-  it('クライアントのツールの呼び出しに答え、stdin が閉じたら接続を閉じる', async () => {
+  it('クライアントのツールの呼び出しに答える', async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-    const stdin = new PassThrough()
-    runMcpServe(dependenciesOver(stdin, fakeTarget(), serverTransport))
+    runMcpServe(dependenciesOver(new PassThrough(), fakeTarget(), serverTransport))
     const client = new Client({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const result = await client.callTool({ name: 'hello', arguments: {} })
     expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'hello\n', stderr: '' })
-    const closed = new Promise<void>((resolve) => {
-      // eslint-disable-next-line unicorn/prefer-add-event-listener -- SDK の Client は onclose 経由で通知する
-      client.onclose = resolve
-    })
-    // 実際は stdio の transport が stdin を読む。ここでは読み手がいないので、流れを起こして end を出す
-    stdin.resume()
+  })
+
+  it('実行中に stdin が閉じたら、待っている呼び出しは本体を呼ばない', async () => {
+    started.length = 0
+    const stdin = new PassThrough()
+    const stdout = new PassThrough()
+    const handle = runMcpServe(stdioDependencies(stdin, stdout))
+    await initialize(stdin, stdout)
+    sendLine(stdin, slowCall(2, 'first'))
+    sendLine(stdin, slowCall(3, 'second'))
     stdin.end()
-    await closed
+    await new Promise((resolve) => {
+      setTimeout(resolve, 250)
+    })
+    await handle.close()
+    expect(started).toEqual(['first'])
   })
 })
 
@@ -139,6 +201,21 @@ describe('runMcpServe のプログラムの誤り', () => {
     const result = await client.callTool({ name: 'bug', arguments: {} })
     expect(result.isError).toBe(true)
     expect(stderr.chunks.join('')).toContain('error: Error: boom')
+    expect(stderr.chunks.join('')).not.toContain('so far')
+  })
+})
+
+describe('runMcpServe の途中までの出力', () => {
+  it('プログラムの誤りのとき、途中まで集めた stdout と stderr も stderr に出す', async () => {
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+    const stderr = fakeTarget()
+    runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
+    const client = new Client({ name: 'test-client', version: '0.0.0' })
+    await client.connect(clientTransport)
+    await client.callTool({ name: 'noisy_bug', arguments: {} })
+    const text = stderr.chunks.join('')
+    expect(text).toContain('error: stdout so far: half')
+    expect(text).toContain('error: stderr so far: warn')
   })
 })
 
@@ -169,21 +246,21 @@ describe('executeMcpServe', () => {
   it('待ち受けを始める前に、子プロセスの stdin を切り離す', () => {
     const [, serverTransport] = InMemoryTransport.createLinkedPair()
     const stdin = new PassThrough()
-    executeMcpServe(() => dependenciesOver(stdin, fakeTarget(), serverTransport))
+    expect(executeMcpServe(() => dependenciesOver(stdin, fakeTarget(), serverTransport))).toBe(0)
     expect(childStdin()).toBe('ignore')
     stdin.end()
   })
 
-  it('起動に失敗したら、stderr に error: の行を出して終了コードを 1 にする', () => {
+  it('起動に失敗したら、stderr に error: の行を出して 1 を返す', () => {
     const stderr = fakeTarget()
-    executeMcpServe(() => ({
+    const code = executeMcpServe(() => ({
       ...dependenciesOver(new PassThrough(), stderr, InMemoryTransport.createLinkedPair()[1]),
       createTransport: () => {
         throw new Error('no transport')
       },
     }))
     expect(stderr.chunks).toEqual(['error: no transport\n'])
-    expect(process.exitCode).toBe(1)
+    expect(code).toBe(1)
   })
 
   it('Error でない値で失敗しても、文字にして伝える', () => {

@@ -52,6 +52,7 @@ function typeOf(shape: Readonly<ToolShape>, field: string): string {
 
 function convert(type: string, field: string, text: string): unknown {
   if (type !== 'integer') return text
+  if (!/^-?\d+$/u.test(text)) throw new TypeError(`${field}: 整数ではありません: ${text}`)
   const value = Number(text)
   if (!Number.isSafeInteger(value)) throw new TypeError(`${field}: 整数ではありません: ${text}`)
   return value
@@ -78,41 +79,56 @@ function targetOf(targets: ReadonlyMap<string, FlagTarget>, flag: string): FlagT
   return target
 }
 
+// CLI（click）は `-1` のような負数に見える語を未定義の短いオプションとして断る。MCP の入力には写せない
+const NEGATIVE_NUMBER = /^-\d/u
+
 function parseFlags(shape: Readonly<ToolShape>, argv: readonly string[]): Parsed {
   const targets = flagTargets(shape)
   const input: ToolInput = {}
-  const end = argv.includes('--') ? argv.indexOf('--') : argv.length
-  const options = argv.slice(0, end)
   const positional: string[] = []
-  for (let index = 0; index < options.length; index += 1) {
-    const token = options.at(index) ?? ''
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv.at(index) ?? ''
+    // 区切りは、値に使われなかった `--` だけ。値の位置の `--` は下で値にする
+    // eslint-disable-next-line security/detect-possible-timing-attacks -- 秘密ではない argv の比較
+    if (token === '--') {
+      positional.push(...argv.slice(index + 1))
+      break
+    }
     if (!token.startsWith('-')) {
       positional.push(token)
       continue
     }
+    if (NEGATIVE_NUMBER.test(token)) throw new Error(`負数に見える語は、CLI が未定義のオプションとして断るので写せません: ${token}`)
     const equals = token.startsWith('--') ? token.indexOf('=') : -1
     const flag = equals === -1 ? token : token.slice(0, equals)
     const inlineValue = equals === -1 ? undefined : token.slice(equals + 1)
     const target = targetOf(targets, flag)
     if (target.field !== 'repo' && typeOf(shape, target.field) === 'boolean') {
+      if (inlineValue !== undefined) throw new Error(`${flag} は値を取らないフラグです: ${token}`)
       Reflect.set(input, target.field, !target.isNegation)
       continue
     }
-    const value = inlineValue ?? options.at(index + 1)
+    const value = inlineValue ?? argv.at(index + 1)
     if (value === undefined) throw new Error(`${flag} に値がありません`)
     if (inlineValue === undefined) index += 1
     if (target.field === 'repo') Reflect.set(input, 'repo', value)
     else assign(input, shape, target.field, value)
   }
-  return { input, positional: [...positional, ...argv.slice(end + 1)] }
+  return { input, positional }
 }
 
 /**
 argv（コマンド名より後ろ）を、ツールの入力にする。位置引数は cli.positional の順に入れ、最後が配列ならその先を全部集める。
-フラグは cli.flags で入力の名前に引き、値を取らない真偽値は true（否定形は false）。グローバルの --repo は repo
+フラグは cli.flags で入力の名前に引き、値を取らない真偽値は true（否定形は false）。グローバルの --repo は repo。
+写せない argv（未知のフラグ・負数に見える語・余った位置引数・真偽値への値など）は例外にする
 */
 export function toolInputOf(shape: Readonly<ToolShape>, argv: readonly string[]): Readonly<ToolInput> {
   const { input, positional } = parseFlags(shape, argv)
+  const last = shape.cli.positional.at(-1)
+  const isVariadic = last !== undefined && typeOf(shape, last) === 'array'
+  if (!isVariadic && positional.length > shape.cli.positional.length) {
+    throw new Error(`位置引数が多すぎます: ${positional.slice(shape.cli.positional.length).join(' ')}`)
+  }
   for (const [position, field] of shape.cli.positional.entries()) {
     const isLast = position === shape.cli.positional.length - 1
     const rest = positional.slice(position)

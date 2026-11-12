@@ -127,14 +127,17 @@ function showCommandHelp(definition: CommandDefinition, context: Readonly<CliCon
 
 const MCP_COMMAND = 'mcp'
 
+// mcp の待ち受け中は、stdout の EPIPE を serve.ts が終了コード 1 で報告する。main の静かな終了にしない
+const serving = { isActive: false }
+
 /**
-`pecot mcp` を stdio の MCP サーバとして起動する。待ち受けは stdin が閉じるまで続くので、起動できたら 0 を返す
+`pecot mcp` を stdio の MCP サーバとして起動する。待ち受けは stdin が閉じるまで続くので、起動の結果の終了コードを返す
 */
 async function startMcp(extras: readonly string[]): Promise<number> {
   if (extras.length > 0) throw new UsageError(extraArgumentsMessage(extras), { commandPath: [MCP_COMMAND], synopsis: '[OPTIONS]' })
   const { executeMcpServe } = await import('./mcp/serve.js')
-  executeMcpServe()
-  return 0
+  serving.isActive = true
+  return executeMcpServe()
 }
 
 async function execute(argv: readonly string[], context: Readonly<CliContext>, width: number): Promise<number> {
@@ -211,6 +214,7 @@ export async function main(): Promise<void> {
   const io = createProcessIo()
   const pipe = { isClosed: false }
   const finish = (): void => {
+    if (serving.isActive) return
     pipe.isClosed = true
     process.exitCode = 0
     process.stdout.destroy()

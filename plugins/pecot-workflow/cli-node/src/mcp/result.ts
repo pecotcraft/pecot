@@ -41,7 +41,7 @@ export function collectIo(): CollectedIo {
 /**
 結果の _meta で、終了コードと stdout・stderr を載せるキー。モデルには届かず、SDK のクライアントには届く
 */
-export const OUTCOME_META_KEY = 'pecot/outcome'
+export const OUTCOME_META_KEY = 'io.github.pecotcraft/outcome'
 
 interface TextBlock {
   readonly type: 'text'

@@ -1,14 +1,12 @@
 // Node の CLI でシナリオを流し、Python の CLI から作った golden と一致することを確かめる。コマンドの足し忘れは registry.test.ts が止める。
-import { existsSync } from 'node:fs'
-import path from 'node:path'
-
 import { describe, expect, it } from 'vitest'
 
+import { cliEntry, builtCliProblem } from './built-cli.js'
+import { readToolShape, toolInputOf } from './mcp-input.js'
 import { runScenario } from './run.js'
 import type { Launcher, Outcome } from './run.js'
 import type { Golden } from './scenario.js'
 import { readGolden, readScenario, scenarioIds } from './scenario.js'
-import { pluginRoot } from './setup.js'
 
 // issue reopen は 3 秒待つ。子プロセスの時間切れ（25 秒）より長くする
 const TEST_TIMEOUT_MS = 30_000
@@ -28,14 +26,39 @@ const MCP_UNMAPPABLE_STDIN: ReadonlySet<string> = new Set([
   'worktree-link-state-overwrite-eof',
 ])
 
+// 名前に usage を含む CLI の引数の誤りのうち、MCP 経由では golden と比べないもの。理由は 2 種類
+//   unmappable: argv を入力に写せない（未知のフラグなど）。toolInputOf が例外にする
+//   rejected: 入力には写せるが、入力の検証で断られる（必須の欠けなど）。本体を呼ばないので `_meta` が無い
+// ここに無い usage のシナリオは MCP 経由でも流し、golden と比べる
+const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new Map([
+  ['add-to-project-usage', 'rejected'],
+  ['dependabot-sync-usage-unknown-option', 'unmappable'],
+  ['issue-read-usage', 'rejected'],
+  ['pr-preflight-usage', 'rejected'],
+  ['project-init-usage', 'rejected'],
+  ['project-search-usage', 'rejected'],
+  ['project-set-aggregation-repo-usage', 'rejected'],
+  ['project-set-repo-usage', 'rejected'],
+  ['release-create-usage-no-version', 'rejected'],
+  ['release-preflight-usage-unknown-option', 'unmappable'],
+  ['security-sync-usage-unknown-option', 'unmappable'],
+  ['session-status-usage', 'rejected'],
+  ['worktree-add-usage', 'rejected'],
+  ['worktree-init-usage', 'rejected'],
+  ['worktree-link-usage', 'rejected'],
+  ['worktree-remove-usage', 'rejected'],
+])
+
 // global-*: --help・--version・--show-repo・未知のコマンド・引数なしは、ツールの呼び出しに写せない。
-// usage を含む名前: CLI の引数の誤りで、MCP では入力の検証の誤りになる（tests/mcp/tools-list.test.ts が確かめる）。
 // 標準入力を使う 3 件: MCP のツールは標準入力を持たない
 function isMcpMappable(id: string): boolean {
-  return !id.startsWith('global-') && !id.includes('usage') && !MCP_UNMAPPABLE_STDIN.has(id)
+  return !id.startsWith('global-') && !MCP_USAGE_EXCLUDED.has(id) && !MCP_UNMAPPABLE_STDIN.has(id)
 }
 
-const cliEntry = path.join(pluginRoot, 'cli-node', 'dist', 'cli.js')
+function excludedBy(reason: 'unmappable' | 'rejected'): readonly string[] {
+  return [...MCP_USAGE_EXCLUDED].filter(([, kind]) => kind === reason).map(([id]) => id)
+}
+
 const node: Launcher = { command: process.execPath, args: [cliEntry], env: {} }
 const nodeMcp: Launcher = { ...node, via: 'mcp' }
 
@@ -57,8 +80,7 @@ const COMPLETED = { spawnError: undefined, signal: undefined, timedOut: false, p
 
 describe('前後比較', () => {
   it('Node の CLI がビルドされている', () => {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 固定の dist/cli.js の有無を見るだけ
-    expect(existsSync(cliEntry), `${cliEntry} がありません。pnpm run build を先に流してください`).toBe(true)
+    expect(builtCliProblem()).toBeUndefined()
   })
 
   it.for(scenarioIds())('シナリオ %s を動かすと、golden と同じ出力になる（help の 4 件は stdout を除く）', { timeout: TEST_TIMEOUT_MS }, async (id) => {
@@ -80,5 +102,26 @@ describe('前後比較', () => {
     const { outcome, actual, expected } = await compareWithGolden(id, nodeMcp, false)
     expect(outcome).toMatchObject(COMPLETED)
     expect(actual).toEqual(expected)
+  })
+
+  it('MCP 経由で除く usage の一覧は、実在する usage のシナリオだけで、残りの usage は流す', () => {
+    const usageIds = scenarioIds().filter(id => id.includes('usage') && !id.startsWith('global-'))
+    expect([...excludedBy('unmappable'), ...excludedBy('rejected')].filter(id => !usageIds.includes(id))).toEqual([])
+    expect(usageIds.filter(id => isMcpMappable(id)).length).toBeGreaterThan(0)
+  })
+
+  it.for(excludedBy('unmappable'))('usage のシナリオ %s は、argv を入力に写せず、例外になる', (id) => {
+    const { command } = readScenario(id)
+    expect(() => toolInputOf(readToolShape(command.path), command.args)).toThrow()
+  })
+
+  it.for(excludedBy('rejected'))('usage のシナリオ %s は、MCP が入力の検証で断り、本体を呼ばない', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+    const { command } = readScenario(id)
+    expect(() => toolInputOf(readToolShape(command.path), command.args)).not.toThrow()
+    const outcome = await runScenario(readScenario(id), nodeMcp)
+    expect(outcome).toMatchObject(COMPLETED)
+    // _meta が無いので終了コードは -1。本体が呼ばれていれば、偽サーバに要求が届く
+    expect(outcome.golden).toMatchObject({ exitCode: -1, requests: [] })
+    expect(outcome.golden.stdout).toMatch(/^invalid input: /u)
   })
 })

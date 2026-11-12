@@ -68,6 +68,12 @@ describe('tools/list', () => {
     expect(normalizeInput(tool?.inputSchema ?? {}, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)
   })
 
+  it('全ツールの生の入力が、additionalProperties: false を持つ', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(COMMANDS.map(() => false))
+  })
+
   it('全ツールが入力 repo（文字列）を持つ', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
