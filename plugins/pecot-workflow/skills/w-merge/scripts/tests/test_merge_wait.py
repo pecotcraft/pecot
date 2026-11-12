@@ -56,9 +56,17 @@ if argv[1] == "graphql":
     emit(src)
 elif "/rules/branches/" in argv[1]:
     log("rules")
+    counter = os.path.join(base, "rules_count")
+    done = int(open(counter).read()) if os.path.exists(counter) else 0
+    open(counter, "w").write(str(done + 1))
+    failures = os.path.join(base, "rules_failures")
+    if os.path.exists(failures) and done < int(open(failures).read()):
+        sys.stderr.write("gh: Bad Gateway (HTTP 502)\n")
+        sys.exit(1)
+    assert "per_page=100" in argv[1], argv[1]
     emit(os.path.join(base, "rules.json"))
 elif "/code-scanning/alerts" in argv[1]:
-    assert "state=open" in argv[1] and "pr=" in argv[1], argv[1]
+    assert "state=open" in argv[1] and "pr=" in argv[1] and "per_page=100" in argv[1], argv[1]
     log("code-scanning")
     emit(os.path.join(base, "alerts.json"))
 else:
@@ -87,6 +95,7 @@ def _variant(
     mergeable=None,
     mss=None,
     contexts="keep",
+    rollup="keep",
 ) -> dict:
     """fixture を元にして、判定が読む欄だけ差し替える。contexts を替えたら件数の欄も揃える。"""
     data = copy.deepcopy(_load(base))
@@ -114,6 +123,8 @@ def _variant(
             )
         for entry in ctx["statusContextCountsByState"]:
             entry["count"] = sum(1 for c in stats if c["state"] == entry["state"])
+    if rollup is None:
+        pr["commits"]["nodes"][0]["commit"]["statusCheckRollup"] = None
     return data
 
 
@@ -127,6 +138,9 @@ def _run_pending(name, required=True, status="IN_PROGRESS") -> dict:
 
 def _ctx_status(name, state, required=True) -> dict:
     return {"context": name, "state": state, "isRequired": required}
+
+
+PASSED = [_run_check("ci-result"), _run_check("version-plan")]
 
 
 def _make_runner(tmp_path: Path):
@@ -144,6 +158,7 @@ def _make_runner(tmp_path: Path):
         *args: str,
         rules=None,
         alerts=None,
+        rules_failures=0,
         default_args=("--interval", "0", "--settle-seconds", "0"),
     ) -> subprocess.CompletedProcess:
         for i, resp in enumerate(responses, start=1):
@@ -154,6 +169,7 @@ def _make_runner(tmp_path: Path):
         (base / "alerts.json").write_text(
             json.dumps(_alerts() if alerts is None else alerts), encoding="utf-8"
         )
+        (base / "rules_failures").write_text(str(rules_failures), encoding="utf-8")
         env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"}
         return subprocess.run(
             ["bash", str(SCRIPT), "pecotcraft/pecot/361", *default_args, *args],
@@ -248,22 +264,6 @@ DECIDE_CASES = [
         ("OPEN", "false", "true", "SOME_FUTURE_VALUE", "false", "false", "BLOCKED"),
         "exit:blocked",
         id="unknown-mergeable",
-    ),
-    pytest.param(
-        ("OPEN", "false", "true", "UNKNOWN", "false", "false", "UNKNOWN"),
-        "exit:blocked",
-        id="mss-unknown-computing",
-    ),
-    # 必須の名前が未報告（running=true）の間は待つ。チェックが 1 件も無く必須の名前も取れないなら待たない
-    pytest.param(
-        ("OPEN", "false", "true", "MERGEABLE", "false", "true", "BLOCKED"),
-        "wait:checks-running",
-        id="required-unreported",
-    ),
-    pytest.param(
-        ("OPEN", "false", "true", "MERGEABLE", "false", "false", "BLOCKED"),
-        "exit:blocked",
-        id="no-checks-at-all",
     ),
 ]
 
@@ -402,6 +402,10 @@ WAIT_CASES = [
         _variant("262", queue=True, auto=False),
         id="in-merge-queue",
     ),
+    pytest.param(
+        _variant("262", auto=True, rollup=None),
+        id="rollup-null-required-unreported",
+    ),
 ]
 
 
@@ -414,6 +418,52 @@ def test_loop_keeps_waiting_until_next_response(runner, response):
     assert runner.calls().count("graphql") == 2
 
 
+# 完了したチェックだけで、予約もある状態は blocked で抜ける。完了の扱いと mergeable の未確定を確かめる。
+BLOCKED_CASES = [
+    pytest.param(
+        _variant(
+            "262",
+            auto=True,
+            contexts=[
+                _run_check("ci-result", "SKIPPED"),
+                _run_check("version-plan", "NEUTRAL"),
+                _run_check("tests (x)", "SUCCESS", required=False),
+                _ctx_status("legacy", "SUCCESS", required=False),
+            ],
+        ),
+        "required=passed checks-pending=0",
+        id="required-passed-skipped-neutral-success",
+    ),
+    pytest.param(
+        _variant("262", auto=True, mergeable="UNKNOWN"),
+        "mergeable=UNKNOWN",
+        id="mergeable-unknown",
+    ),
+]
+
+
+@pytest.mark.parametrize(("response", "fragment"), BLOCKED_CASES)
+def test_loop_exits_blocked_when_nothing_is_pending(runner, response, fragment):
+    proc = runner([response])
+    assert proc.returncode == 1, proc.stderr
+    lines = proc.stdout.splitlines()
+    assert lines[0] == "merge-wait: blocked"
+    assert fragment in lines[1]
+
+
+def test_unreported_required_check_is_not_counted_over_100_reports(runner):
+    # 報告が 100 件を超えると名前を見切れないので、必須の未報告を数えず blocked で抜ける
+    resp = _variant("262", auto=True, contexts=[_run_check("version-plan")])
+    resp["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+        "contexts"
+    ]["checkRunCount"] = 101
+    proc = runner([resp])
+    assert proc.returncode == 1, proc.stderr
+    lines = proc.stdout.splitlines()
+    assert lines[0] == "merge-wait: blocked"
+    assert "checks-pending=0" in lines[1]
+
+
 def test_rules_are_read_once_at_start(runner):
     runner(
         [_variant("262", auto=True, contexts=[_run_pending("ci-result")]) for _ in range(3)]
@@ -423,7 +473,7 @@ def test_rules_are_read_once_at_start(runner):
     assert runner.calls().count("graphql") == 4
 
 
-def test_rules_read_failure_does_not_stop_waiting(runner, tmp_path):
+def test_rules_read_failure_does_not_stop_waiting(runner):
     # rules が読めなくても、queue の中は待ち、MERGED で抜ける
     proc = runner(
         [_variant("262", queue=True, auto=False), MERGED],
@@ -431,6 +481,28 @@ def test_rules_read_failure_does_not_stop_waiting(runner, tmp_path):
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.splitlines()[0] == "merge-wait: merged"
+
+
+def test_rules_read_is_retried_until_it_succeeds(runner):
+    # 1 回目の取得が失敗しても取り直し、必須の ci-result が未報告の間は待つ
+    running = _variant("262", auto=True, contexts=[_run_pending("ci-result")])
+    unreported = _variant("262", auto=True, contexts=[_run_check("version-plan")])
+    proc = runner([running, unreported, MERGED], rules_failures=1)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.splitlines()[0] == "merge-wait: merged"
+    assert runner.calls().count("rules") == 2
+    assert runner.calls().count("graphql") == 3
+
+
+def test_rules_read_gives_up_after_three_failures(runner):
+    running = _variant("262", auto=True, contexts=[_run_pending("ci-result")])
+    # 4 回目の応答で blocked になる。それまでに取得は 3 回で止まる
+    blocked = _variant("262", auto=True, mss="BLOCKED", contexts=PASSED)
+    proc = runner([running, running, running, blocked], rules_failures=9)
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.splitlines()[0] == "merge-wait: blocked"
+    assert "rules(main): 取得できない (HTTP 502)" in proc.stdout.splitlines()
+    assert runner.calls().count("rules") == 3
 
 
 # --- blocked の出力 ---------------------------------------------------------------
@@ -558,9 +630,38 @@ def test_blocked_exits_once_settle_elapsed(runner):
         mss="BLOCKED",
         contexts=[_run_check("ci-result"), _run_check("version-plan")],
     )
-    proc = runner([blocked, blocked], "--settle-seconds", "0")
+    proc = runner([blocked, blocked])
     assert proc.returncode == 1
     assert runner.calls().count("graphql") == 1
+
+
+def test_settle_exits_after_repeated_blocked(runner):
+    blocked = _variant("262", auto=True, mss="BLOCKED", contexts=PASSED)
+    proc = runner([blocked, blocked, blocked], "--interval", "1", "--settle-seconds", "1")
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.splitlines()[0] == "merge-wait: blocked"
+    assert runner.calls().count("graphql") >= 2
+
+
+def test_settle_clock_survives_blocked_and_not_queued_alternating(runner):
+    # 2 つの理由が入れ替わっても、時計は戻らない。抜ける理由は直近のもの
+    blocked = _variant("262", auto=True, mss="BLOCKED", contexts=PASSED)
+    left = _load("262")
+    proc = runner([blocked, left, blocked, left], "--interval", "1", "--settle-seconds", "1")
+    assert proc.returncode == 1, proc.stderr
+    assert proc.stdout.splitlines()[0] == "merge-wait: not-queued"
+    assert runner.calls().count("graphql") == 2
+
+
+def test_settle_clock_resets_after_a_wait_state(runner):
+    blocked = _variant("262", auto=True, mss="BLOCKED", contexts=PASSED)
+    running = _variant("262", auto=True, contexts=[_run_pending("ci-result")])
+    proc = runner(
+        [blocked, running, blocked, blocked, blocked], "--interval", "1", "--settle-seconds", "2"
+    )
+    assert proc.returncode == 1, proc.stderr
+    # 時計が戻らなければ 3 回目で抜ける。戻れば 4 回目以降になる（周回が遅い環境では 4 回、通常は 5 回）。
+    assert runner.calls().count("graphql") in (4, 5)
 
 
 # --- stalled ----------------------------------------------------------------------
@@ -601,6 +702,15 @@ def test_three_consecutive_gh_failures_exit_query_failed(runner):
     assert lines[0] == "merge-wait: query-failed"
     assert lines[1] == "state: 取得できない"
     assert "gh: Bad Gateway (HTTP 502)" in proc.stdout
+    assert runner.calls().count("graphql") == 3
+
+
+def test_missing_pull_request_exits_query_failed(runner):
+    null_pr = {"data": {"repository": {"pullRequest": None}}}
+    proc = runner([null_pr, null_pr, null_pr, MERGED])
+    assert proc.returncode == 1
+    assert proc.stdout.splitlines()[0] == "merge-wait: query-failed"
+    assert "PR not found" in proc.stdout
     assert runner.calls().count("graphql") == 3
 
 
@@ -652,3 +762,21 @@ def test_skill_calls_script_without_until_loop():
     assert block == 'bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>'
     assert "until" not in block
     assert SCRIPT.exists()
+
+
+REASONS = [
+    "merged",
+    "closed",
+    "conflicting",
+    "required-failed",
+    "not-queued",
+    "blocked",
+    "stalled",
+    "query-failed",
+]
+
+
+def test_skill_table_has_a_row_for_each_reason():
+    section = _step_2_2()
+    rows = set(re.findall(r"^\| `([a-z-]+)` \|", section, re.MULTILINE))
+    assert rows == set(REASONS)

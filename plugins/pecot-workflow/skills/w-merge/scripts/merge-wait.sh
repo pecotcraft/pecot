@@ -48,21 +48,21 @@ merge_wait_decide() {
 merge_wait_query() {
   local owner="$1" repo="$2" pr="$3"
   local query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){state isInMergeQueue mergeable mergeStateStatus baseRefName autoMergeRequest{enabledAt} commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){checkRunCount statusContextCount checkRunCountsByState{state count} statusContextCountsByState{state count} nodes{... on CheckRun{name conclusion isRequired(pullRequestNumber:$n)} ... on StatusContext{context state isRequired(pullRequestNumber:$n)}}}}}}}}}}'
-  local expr='.data.repository.pullRequest as $p
+  local expr='(.data.repository.pullRequest // error("PR not found")) as $p
     | ($p.commits.nodes[0].commit.statusCheckRollup.contexts // {}) as $c
     | [($c.nodes // [])[] | {name: (.name // .context // ""), r: (.isRequired // false), s: (.conclusion // .state // "")}] as $n
     | [ $p.state, $p.isInMergeQueue, ($p.autoMergeRequest != null), $p.mergeable, $p.mergeStateStatus, $p.baseRefName,
         ([$n[] | select(.r and (.s | IN("FAILURE","ERROR","CANCELLED","TIMED_OUT","ACTION_REQUIRED","STARTUP_FAILURE")))] | length),
         ([$n[] | select(.r and (.s | IN("","PENDING","EXPECTED")))] | length),
-        (([($c.checkRunCountsByState // [])[] | select(.state | IN("IN_PROGRESS","PENDING","QUEUED","WAITING","REQUESTED")) | .count] | add // 0)
+        (([($c.checkRunCountsByState // [])[] | select(.state | IN("IN_PROGRESS","PENDING","QUEUED","WAITING")) | .count] | add // 0)
           + ([($c.statusContextCountsByState // [])[] | select(.state | IN("PENDING","EXPECTED")) | .count] | add // 0)),
         (($c.checkRunCount // 0) + ($c.statusContextCount // 0)),
         ($n | map(.name) | join("|")) ]
       | map(tostring) | join("|")'
-  gh api graphql -F o="$owner" -F r="$repo" -F n="$pr" -f query="$query" --jq "$expr"
+  gh api graphql -f o="$owner" -f r="$repo" -F n="$pr" -f query="$query" --jq "$expr"
 }
 
-# base に掛かっているルールの type と、必須チェックの名前を取る（起動後 1 回）。
+# base に掛かっているルールの type と、必須チェックの名前を取る（成功するまで最大 3 回）。
 # 結果は MW_RULES_TYPES（", " 区切り）と MW_RULES_REQUIRED（"|" 区切り）、失敗は MW_RULES_ERROR に入れる。
 merge_wait_rules() {
   local owner="$1" repo="$2" base="$3" out err_file
@@ -70,7 +70,7 @@ merge_wait_rules() {
   err_file="$MW_ERR_FILE"
   local expr='([.[].type] | reduce .[] as $t ([]; if index($t) then . else . + [$t] end) | join(", ")),
     ([.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | join("|"))'
-  if ! out=$(gh api "repos/${owner}/${repo}/rules/branches/${base}" --jq "$expr" 2>"$err_file"); then
+  if ! out=$(gh api "repos/${owner}/${repo}/rules/branches/${base}?per_page=100" --jq "$expr" 2>"$err_file"); then
     MW_RULES_ERROR=$(merge_wait_http_status "$(cat "$err_file")")
     return 0
   fi
@@ -99,7 +99,7 @@ merge_wait_explain() {
     echo "rules(${base}): ${MW_RULES_TYPES}"
   fi
   if [[ ", ${MW_RULES_TYPES}," == *", code_scanning,"* ]]; then
-    if out=$(gh api "repos/${owner}/${repo}/code-scanning/alerts?state=open&pr=${pr}" \
+    if out=$(gh api "repos/${owner}/${repo}/code-scanning/alerts?state=open&pr=${pr}&per_page=100" \
       --jq '[sort_by(.number)[].number | "#\(.)"] | join(" ")' 2>"$MW_ERR_FILE"); then
       echo "code-scanning open alerts: ${out:-なし}"
     else
@@ -163,8 +163,8 @@ main() {
   trap 'rm -f "$MW_ERR_FILE"' EXIT
   MW_RULES_TYPES="" MW_RULES_REQUIRED="" MW_RULES_ERROR=""
 
-  local fails=0 rules_loaded=false base="" out
-  local last_line="" same_since=0 prev_reason="" reason_since=0 now
+  local fails=0 rules_loaded=false rules_tries=0 base="" out
+  local last_line="" same_since=0 settle_since=0 now
   local state queue auto mergeable mss failed rpend pend total names
   local missing running required state_line decision kind reason n
   local -a req_names
@@ -186,7 +186,8 @@ main() {
     IFS='|' read -r state queue auto mergeable mss base failed rpend pend total names <<<"$out"
     if [[ "$rules_loaded" == "false" ]]; then
       merge_wait_rules "$owner" "$repo" "$base"
-      rules_loaded=true
+      rules_tries=$((rules_tries + 1))
+      if [[ -z "$MW_RULES_ERROR" ]] || ((rules_tries >= 3)); then rules_loaded=true; fi
     fi
 
     # ruleset が必須にしているチェックの名前のうち、まだ報告されていないものを数える。
@@ -217,12 +218,9 @@ main() {
     if [[ "$kind" == "exit" ]]; then
       case "$reason" in
         blocked | not-queued)
-          # GitHub が queue へ入れるまでの数十秒や、mergeStateStatus の計算中は、この判定に当たる。続いてから抜ける。
-          if [[ "$reason" != "$prev_reason" ]]; then
-            prev_reason="$reason"
-            reason_since="$now"
-          fi
-          if ((now - reason_since >= settle)); then
+          # queue へ入れるまでの数十秒や mergeStateStatus の計算中に当たる。blocked と not-queued が続く間は時計を持つ。
+          if ((settle_since == 0)); then settle_since="$now"; fi
+          if ((now - settle_since >= settle)); then
             merge_wait_emit "$reason" "$state_line" "$owner" "$repo" "$pr" "$base"
             return 1
           fi
@@ -237,7 +235,7 @@ main() {
           ;;
       esac
     else
-      prev_reason=""
+      settle_since=0
     fi
 
     # 状態の行が変わらないまま上限を超えたら、待つ判定でも抜ける。

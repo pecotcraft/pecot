@@ -49,9 +49,10 @@ Claude Code では Monitor ツールで、このスキルのディレクトリ�
 bash "${CLAUDE_SKILL_DIR}/scripts/merge-wait.sh" <owner>/<repo>/<PR番号>
 ```
 
-- Monitor の期限（timeout_ms）は、最長の 30 分（1800000）で渡す。省くと既定の 5 分で打ち切られる
+- Monitor の期限（timeout_ms）は、最長の 30 分（1800000）で渡す。省くと既定の 5 分で打ち切られる。`-p`（非対話）の実行では、上限が 10 分になる
 - 期限の通知が来たら、スクリプトは止まっているので、同じコマンドで 2.2 を起動し直す
 - 待つのは、merge queue の中にいるときと、auto-merge の予約があってチェックが終わっていないときだけ。ほかの状態は理由を出して抜ける
+- 状態が 15 分変わらないと `stalled` で抜ける。merge queue の中や、1 本の長いジョブが続くときにも出る。CI や queue が 15 分を超えるリポでは、`--stall-minutes <分>` を付けて起動する。Monitor の期限（最長 30 分）より長くしても、期限で先に止まるので、起動し直して待つ
 
 抜けたときの出力は、1 行目が理由、2 行目が最後の状態になる。`blocked` と `stalled` のときだけ、3 行目以降が付く。中身は、base のルールの種類と、code scanning の開いているアラートの番号。
 
@@ -62,7 +63,7 @@ rules(main): pull_request, required_status_checks, merge_queue, code_scanning
 code-scanning open alerts: #28 #29
 ```
 
-1 行目の理由に合う行を実行する。片付けをするのは `merged` のときだけで、ほかは止まる。
+1 行目の理由に合う行を実行する。片付けへ進むのは `merged` だけ。
 
 | 1 行目の理由 | 次の手順 |
 |---|---|
@@ -70,12 +71,17 @@ code-scanning open alerts: #28 #29
 | `closed` | ユーザーに伝えて止まる |
 | `conflicting` | ユーザーに伝える。`git fetch origin main` の後に `git merge origin/main` で取り込み直し、コンフリクトを直して push する |
 | `required-failed` | `gh pr checks <PR番号> --repo <owner>/<repo> --required` で落ちたチェックを読んでユーザーに伝える。直して push する |
-| `not-queued` | queue から外れている。`gh pr checks <PR番号> --repo <owner>/<repo>` で落ちたチェックを読んでユーザーに伝える。直して push し、2.1 からやり直す |
-| `blocked` | チェックは通っているが、ルールが止めている。出力のルールとアラートを調べ、止まった理由をユーザーに伝えて止まる。`pecot pr cleanup` は打たない |
-| `stalled` | 状態が変わらないまま 15 分を超えた。最後の状態を伝え、待ち直すかをユーザーに聞く |
+| `not-queued` | queue から外れている。落ちたチェックがあれば直して push し、2.1 からやり直す。無ければ理由をユーザーに伝えて止まる |
+| `blocked` | 列挙に無い状態はすべてここに来る。2 行目の `mergeStateStatus` を先に読み、止まった理由をユーザーに伝えて止まる。`pecot pr cleanup` は打たない |
+| `stalled` | 状態が変わらないまま 15 分を超えた。2 行目と 3 行目以降をユーザーに伝え、進んでいる見込みなら待ち直しを勧める |
 | `query-failed` | `gh` が 3 回続けて失敗した。出力の `gh` のエラーをユーザーに伝えて止まる |
 
 - `conflicting` と `required-failed` で push した後は、2 行目の `auto-merge=` を見る。`true`（auto-merge の予約が残っている）なら 2.2 から、`false` なら 2.1 からやり直す
+- `not-queued` の落ちたチェックは、`gh pr checks <PR番号> --repo <owner>/<repo>` で読む。落ちたチェックが無いときの理由は、auto-merge の予約の取り消しなどが考えられる
+- `blocked` の `mergeStateStatus` は、`BEHIND` が base より遅れている、`DRAFT` が draft、`BLOCKED` がルールや承認が満たされていない、を指す。調べるコマンドは次のとおり
+  - アラート: `gh api repos/<owner>/<repo>/code-scanning/alerts/<番号>`
+  - 承認: `gh pr view <PR番号> --repo <owner>/<repo> --json reviewDecision`
+- `stalled` では、2 行目の `queue=` と `checks-pending=`、3 行目以降のルールとアラートを伝える。`queue=true` か `checks-pending` が 1 以上なら、進んでいる見込みなので待ち直しを勧める
 - GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を打ち直す。未マージなら exit 1 で何もしない
 
 #### 2.3 片付け
