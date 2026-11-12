@@ -8,8 +8,9 @@ cd "${PLUGIN_ROOT}/cli"
 # nx のレーン（pecot-workflow:test-<scope>）から呼び分けるためのパラメータ化。
 #   --scope=py     : cli の pytest 2パス + compare のみ（pecot-workflow:test-py）。
 #   --scope=cli    : cli-node の vitest（pecot-workflow:test-cli）。
-#   --scope=hooks  : hooks pytest 2パス + compare（pecot-workflow:test-hooks）。
-#                    cli-node の vitest の hooks project も実行する。
+#   --scope=hooks  : hooks の pytest 2パス + compare（pecot-workflow:test-hooks）。
+#                    cli-node の vitest の hooks project も 2パス + compare で実行する。
+#                    vitest の 2 回目も、pytest の pass 2 と同じ hermetic な環境で流す。
 #   --scope=skills : skills のスクリプトテスト pytest 単発（pecot-workflow:test-skills）。
 #   引数なし       : 全部（手動実行用の既定）。
 # env PECOT_WORKFLOW_SKIP_INSTALL=1: Node 側の install を飛ばす。
@@ -107,7 +108,7 @@ trap cleanup EXIT
 _run_pytest_pass2() {
     local empty="$1" junit="$2" extra_opts="$3"
     shift 3
-    mkdir -p "$empty/.git" "$empty/tmp" "$empty/uv-cache" \
+    mkdir -p "$empty/.git" "$empty/tmp" \
         "$empty/xdg-config" "$empty/xdg-data" "$empty/xdg-cache"
     env -i \
         PATH="$PATH" \
@@ -128,6 +129,31 @@ _run_pytest_pass2() {
             --tb=short \
             ${extra_opts:+$extra_opts} \
             --junitxml="$junit"
+}
+
+# vitest の pass 2。pnpm は hoisted のため、vitest はリポジトリのルートの node_modules にある。
+# usage: _run_vitest_pass2 <empty_dir> <junit_path>
+_run_vitest_pass2() {
+    local empty="$1" junit="$2"
+    mkdir -p "$empty/.git" "$empty/tmp" "$empty/uv-cache" \
+        "$empty/xdg-config" "$empty/xdg-data" "$empty/xdg-cache"
+    (
+        cd "$PLUGIN_ROOT/cli-node" &&
+        env -i \
+            PATH="$PATH" \
+            LANG=C.UTF-8 \
+            TMPDIR="$empty/tmp" \
+            HOME="$empty" \
+            XDG_CONFIG_HOME="$empty/xdg-config" \
+            XDG_DATA_HOME="$empty/xdg-data" \
+            XDG_CACHE_HOME="$empty/xdg-cache" \
+            CLAUDE_PROJECT_DIR="$empty" \
+            GIT_DIR="$empty/.git" \
+            GIT_CONFIG_GLOBAL=/dev/null \
+            GIT_CONFIG_SYSTEM=/dev/null \
+            node "$PLUGIN_ROOT/../../node_modules/vitest/vitest.mjs" run --project hooks \
+                --outputFile.junit="$junit"
+    )
 }
 
 # Node 側（cli-node/）は repo root の 1 つの pnpm workspace に属する。
@@ -224,20 +250,18 @@ if [ "$RUN_HOOKS" = true ]; then
     H_TMP1=$(mktemp -d); TMPDIRS+=("$H_TMP1")
     H_TMP2=$(mktemp -d); TMPDIRS+=("$H_TMP2")
     H_EMPTY=$(mktemp -d); TMPDIRS+=("$H_EMPTY")
+    V_TMP2=$(mktemp -d); TMPDIRS+=("$V_TMP2")
+    V_EMPTY=$(mktemp -d); TMPDIRS+=("$V_EMPTY")
 
     H_PASS1_RC=0
     H_PASS2_RC=0
     H_CMP_RC=0
+    V_PASS1_RC=0
+    V_PASS2_RC=0
+    V_CMP_RC=0
 
-    # `pytest hooks/` は hooks/ に専用 pyproject.toml/pytest.ini を持たない。
-    # そのため CWD（plugins/pecot-workflow/）の pyproject.toml [tool.pytest.ini_options] を暗黙に継承する。
-    # 継承する設定は、cli 用の addopts="-v --tb=short" / timeout=30 / pythonpath=["cli"] になる。
-    # hooks テストは bash スクリプトを subprocess で叩く構成で cli pythonpath に依存しない。
-    # 継承で問題ないが、設定の出所が cli 用 ini である点を明示する。
-    # --import-mode=importlib: test_config_dispatcher が hooks/tests と hooks/lib/tests に同名で存在する。
-    # `pytest hooks/` の 1 呼び出し内でモジュール名が衝突するため必須。
-    # py scope と同じく pass 1 / pass 2 を並行させる (#1080)。
-    # hooks は --no-cov のため、coverage データファイルの隔離は不要。
+    # --import-mode=importlib: test_config_dispatcher が hooks/tests と hooks/lib/tests に同名で存在するため必須。
+    # pass 1 / pass 2 は並行させる (#1080)。
     echo "==> hooks pytest pass 1 (normal, parallel) + pass 2 (empty config + GIT_DIR export, parallel)"
     uv run --no-sync pytest "$PLUGIN_ROOT/hooks/" -q \
         --no-cov -p no:cacheprovider \
@@ -255,16 +279,24 @@ if [ "$RUN_HOOKS" = true ]; then
     echo "==> compare JUnit XML (hooks pass1 vs pass2)"
     uv run --no-project --python "$PY" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" "$H_TMP1/junit.xml" "$H_TMP2/junit.xml" || H_CMP_RC=$?
 
-    if [ "$H_PASS1_RC" -ne 0 ] || [ "$H_PASS2_RC" -ne 0 ] || [ "$H_CMP_RC" -ne 0 ]; then
-        echo "ERROR: hooks tests failed (pytest pass1=$H_PASS1_RC pass2=$H_PASS2_RC compare=$H_CMP_RC)" >&2
+    # vitest も 2 回流す。1 回目の JUnit は、古い合格を残さないよう先に消す。
+    V_JUNIT1="$PLUGIN_ROOT/cli-node/test-results/junit-hooks.xml"
+    rm -f "$V_JUNIT1"
+    echo "==> hooks vitest pass 1 (project hooks)"
+    # shellcheck disable=SC2086
+    ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run test:hooks ) || V_PASS1_RC=$?
+
+    echo "==> hooks vitest pass 2 (empty config + GIT_DIR export)"
+    _run_vitest_pass2 "$V_EMPTY" "$V_TMP2/junit.xml" || V_PASS2_RC=$?
+
+    echo "==> compare JUnit XML (hooks vitest pass1 vs pass2)"
+    uv run --no-project --python "$PY" "$PLUGIN_ROOT/scripts/ci/compare_junit.py" "$V_JUNIT1" "$V_TMP2/junit.xml" || V_CMP_RC=$?
+
+    if [ "$H_PASS1_RC" -ne 0 ] || [ "$H_PASS2_RC" -ne 0 ] || [ "$H_CMP_RC" -ne 0 ] \
+        || [ "$V_PASS1_RC" -ne 0 ] || [ "$V_PASS2_RC" -ne 0 ] || [ "$V_CMP_RC" -ne 0 ]; then
+        echo "ERROR: hooks tests failed (pytest pass1=$H_PASS1_RC pass2=$H_PASS2_RC compare=$H_CMP_RC / vitest pass1=$V_PASS1_RC pass2=$V_PASS2_RC compare=$V_CMP_RC)" >&2
         exit 1
     fi
-
-    # hooks/ 配下を読む cli-node のテスト（vitest の project hooks）。coverage は付けない。
-    # test-cli と並行しても、coverage の出力先を消し合わない。
-    echo "==> hooks vitest (project hooks)"
-    # shellcheck disable=SC2086
-    ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run test:hooks )
 fi
 
 if [ "$RUN_SKILLS" = true ]; then
