@@ -13,9 +13,9 @@ const SECRET = '/repos/owner/repo/secret-scanning/alerts'
 const REPOSITORY = '/repos/owner/repo'
 
 describe('code scanning', () => {
-  it('取得できたら件数と、整数の番号だけを返す', async () => {
+  it('取得できたら、応答の alert をそのまま返す', async () => {
     const { client } = await startClient([restResponse('GET', CODE, { status: 200, body: [{ number: 3 }, { number: 'x' }, {}, 5] })])
-    expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', count: 4, numbers: [3] })
+    expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', alerts: [{ number: 3 }, { number: 'x' }, {}, 5] })
   })
 
   it.each([
@@ -41,7 +41,7 @@ describe('code scanning', () => {
 
   it('404 で本文が no analysis found なら、alert 0 件の ok', async () => {
     const { client } = await startClient([restResponse('GET', CODE, { status: 404, text: '{"message":"No analysis found"}' })])
-    expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', count: 0, numbers: [] })
+    expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', alerts: [] })
   })
 
   it('404 で本文が別の文なら failure', async () => {
@@ -57,9 +57,9 @@ describe('code scanning', () => {
 })
 
 describe('secret scanning', () => {
-  it('取得できたら件数と番号を返す', async () => {
+  it('取得できたら応答の alert を返す', async () => {
     const { client } = await startClient([restResponse('GET', SECRET, { status: 200, body: [{ number: 9 }] })])
-    expect(await createScanAlertSource(client).listOpenAlerts('secret-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', count: 1, numbers: [9] })
+    expect(await createScanAlertSource(client).listOpenAlerts('secret-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', alerts: [{ number: 9 }] })
   })
 
   it('404 でリポの状態が disabled なら disabled', async () => {

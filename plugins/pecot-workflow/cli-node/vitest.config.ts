@@ -19,6 +19,10 @@ export default defineConfig({
           name: 'hooks',
           include: ['tests/hooks/**/*.test.ts'],
           exclude: ['node_modules/**', 'dist/**'],
+          // 子の shell を起動するので長めにする。$key の題を 40 字で切らない（JUnit の name を重ねないため）。
+          testTimeout: 30_000,
+          setupFiles: ['tests/hooks/_helpers/setup.ts'],
+          taskTitleValueFormatTruncate: 0,
         },
       },
     ],

@@ -193,22 +193,22 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 
 **Goal**: 同期の 2 個（グループ `security` の `sync` と、グループ `dependabot` の `sync`）が Node で動き、registry が 34 個になる
 
-**Independent Test**: `parity.test.ts` の全件が一致する。`security-sync-*`・`dependabot-sync-*` と、34 個がそろって初めて合う `global-*` の 3 件を含む。help を stdout に出す 4 件は、stdout を除いて比べる（#362）。
+**Independent Test**: `parity.test.ts` の全件が一致する。`security-sync-*`・`dependabot-sync-*` と、34 個がそろって初めて合う `global-*` の 7 件を含む。このうち help を stdout に出す 4 件は、stdout を除いて比べる（#362）。
 registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞いの項目 769 個（共通の 17 個を含む）が全部 vitest につながる
 
-- [ ] T031 [P] [US1] `cli/commands/security.py` を `cli-node/src/commands/security.ts` に移す。`COMMANDS` にグループ `security` の `sync` を足す。
+- [x] T031 [P] [US1] `cli/commands/security.py` を `cli-node/src/commands/security.ts` に移す。`COMMANDS` にグループ `security` の `sync` を足す。
   ツール名は `security_sync`、CLI は `pecot security sync` である。
   `_tracker_sync.py` の残り、`cli/core/security_alerts.py`、`cli/core/tracker_body.py` の `find_tracker`・`render_tracker_body` も移す。
   `cli/core/issue_board.py` の `create_issue`・`put_on_board` は、issue の移植と共有する。Node に既にあればそれを使う。
-- [ ] T032 [P] [US1] `cli/commands/dependabot.py` を `cli-node/src/commands/dependabot.ts` に移す。`COMMANDS` にグループ `dependabot` の `sync` を足す。
+- [x] T032 [P] [US1] `cli/commands/dependabot.py` を `cli-node/src/commands/dependabot.ts` に移す。`COMMANDS` にグループ `dependabot` の `sync` を足す。
   ツール名は `dependabot_sync`、CLI は `pecot dependabot sync` である。
   `cli/core/dependabot_prs.py` の要る分と、`resolve_release_target_repo`（`release.ts`）も使う。
-- [ ] T033 [US1] 同期の 2 個の項目 90 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/security.test.ts` と `dependabot.test.ts` である。
-- [ ] T034 [US1] `cli-node/src/commands/tests/registry.test.ts` にテストを足す。`COMMANDS` が 34 個であることと、ID が `interface/generated.json` の項目の ID と同じ集合であることを確かめる。
+- [x] T033 [US1] 同期の 2 個の項目 90 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/security.test.ts` と `dependabot.test.ts` である。
+- [x] T034 [US1] `cli-node/src/commands/tests/registry.test.ts` にテストを足す。`COMMANDS` が 34 個であることと、ID が `interface/generated.json` の項目の ID と同じ集合であることを確かめる。
   グループ無しは 4 個（`add-to-project`・`update-issue-status`・`create-branch`・`delete-branch`）、残りはグループの下のコマンドである。
   移行の途中で Python のコマンドが増えたとき、Node への足し忘れを止めるのはこのテストである。
-- [ ] T035 [US1] 34 個がそろった状態で、`global-*` の 31 件が golden と一致することを確かめる。`parity.test.ts` の `SCENARIOS_NEEDING_ALL_COMMANDS` の 3 件は、ここで初めて合う。help を stdout に出す 4 件（`SCENARIOS_WITH_NODE_HELP`）は、stdout を除いて比べる（#362）。
-- [ ] T036 [US1] `export-interface.ts --check` を 34 個がそろった状態で流し、34 項目で差 0 件であることを確かめる。項目のつなぎの確認が 769 個で通ることも確かめる。
+- [x] T035 [US1] 34 個がそろった状態で、`global-*` の 31 件が golden と一致することを確かめる。`parity.test.ts` の `SCENARIOS_NEEDING_ALL_COMMANDS` の 7 件は、ここで初めて合う。このうち help を stdout に出す 4 件は、#362 で stdout を比べる対象から外した（`SCENARIOS_WITH_NODE_HELP`）。
+- [x] T036 [US1] `export-interface.ts --check` を 34 個がそろった状態で流し、34 項目で差 0 件であることを確かめる。項目のつなぎの確認が 769 個で通ることも確かめる。
 
 **Checkpoint**: 全件が一致し、registry が 34 個。`--check` が 34 項目で差 0。配布物は Python のまま
 
@@ -299,13 +299,13 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: 移した pytest のケースのすべてに、対応する vitest のケースがある。件数は、移行元のケースとの対応でファイルごとに比べる。起動スクリプトの一覧が `baseline.json` の `hooks.scripts` を全部含む
 
-- [ ] T051 [P] [US4] `hooks/tests/` の pytest（27 ファイル）を、vitest で `cli-node/tests/hooks/` に移す。
+- [x] T051 [P] [US4] `hooks/tests/` の pytest（27 ファイル）を、vitest で `cli-node/tests/hooks/` に移す。
   shell は `child_process.spawnSync` で起動し、stdin・env・終了コード・stdout を確かめる。今の pass 2 の条件（空の設定と `GIT_DIR` の export）も残す。
-- [ ] T052 [P] [US4] `hooks/lib/tests/` の pytest（35 ファイル）を、同じ方法で移す。
-- [ ] T053 [US4] 移したファイルごとに、pytest のケースと vitest のケースの対応を作り、件数を比べる。対応表は `.pecot/work/<Issue番号>/` に残す。
+- [x] T052 [P] [US4] `hooks/lib/tests/` の pytest（35 ファイル）を、同じ方法で移す。
+- [x] T053 [US4] 移したファイルごとに、pytest のケースと vitest のケースの対応を作り、件数を比べる。対応表は `.pecot/work/<Issue番号>/` に残す。
   比べるのは、pytest の JUnit と vitest の JUnit（`cli-node/test-results/junit-hooks.xml`）である。`scripts/ci/compare_junit.py` を使うなら、ケース名をそろえて移す。
   フェーズ 8 が足した新しいケースは、`baseline.json` の `hooks.testCount`（1,569 件）との比較から除く。
-- [ ] T054 [US4] `cli-node/tests/hooks/baseline-scripts.test.ts` に確認を足す。テストが起動するスクリプトの一覧が `hooks.scripts` を全部含むことを見る。消したスクリプトは除く。
+- [x] T054 [US4] `cli-node/tests/hooks/baseline-scripts.test.ts` に確認を足す。テストが起動するスクリプトの一覧が `hooks.scripts` を全部含むことを見る。消したスクリプトは除く。
   `test-hooks` レーンは、移行中は pytest と vitest の両方を流す。直す先は `project.json` と `scripts/ci/run-tests.sh` である。
 
 **Checkpoint**: vitest だけで hooks の全ケースが流れる。移行元の全ケースに対応が付いている。pytest もまだ残っている。`.mcp.json`・`bin/pecot`・`skills/` に差分が無い

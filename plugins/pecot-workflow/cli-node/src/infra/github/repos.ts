@@ -26,7 +26,7 @@ export class ReposApi extends GitHubClientBase {
   /**
   Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
   */
-  private async listAll(path: string, firstParameters: Readonly<Record<string, number | string>>): Promise<readonly JsonValue[]> {
+  protected async listAll(path: string, firstParameters: Readonly<Record<string, number | string>>): Promise<readonly JsonValue[]> {
     const items: JsonValue[] = []
     let target = path
     let parameters: Readonly<Record<string, number | string>> | undefined = firstParameters

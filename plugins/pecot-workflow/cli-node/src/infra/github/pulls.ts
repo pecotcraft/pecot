@@ -1,15 +1,16 @@
 // Pull Request 操作の API。cli/core/github/pulls.py の移植。
 // 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
 
-import { jsonField } from '../../domain/json.js'
+import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import { extractReferencesIssueNumbers } from '../../domain/reference-parser.js'
+import { isJsonArray } from '../../domain/python-format.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import { GitHubNotFoundError } from './errors.js'
+import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { IssuesApi } from './issues.js'
-import { isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
-import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS } from './queries.js'
+import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, throwMalformed, truthyNodes } from './payload.js'
+import { QUERY_GET_PULL_REQUEST_SLIM, QUERY_GET_PULL_REQUEST_WITH_REVIEWS, QUERY_LIST_OPEN_PULL_REQUESTS } from './queries.js'
 import { repositoryPath } from './rest-path.js'
 
 export interface ClosingIssue {
@@ -97,6 +98,12 @@ function formatPullRequestBase(pullRequest: JsonValue, owner: string, repository
   }
 }
 
+function isDependabotAuthor(node: JsonValue): node is JsonObject {
+  if (!isJsonObject(node)) return false
+  const author = jsonField(node, 'author')
+  return jsonField(author, '__typename') === 'Bot' && jsonField(author, 'login') === 'dependabot'
+}
+
 function requiredTextOrEmpty(value: JsonValue | undefined): string {
   return isTruthy(value) ? requireString(value, 'text') : ''
 }
@@ -168,5 +175,29 @@ export class PullsApi extends IssuesApi {
     return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
       json: { merge_method: mergeMethod },
     })
+  }
+
+  /**
+  open の dependabot の PR を全件取る（GraphQL）。pullRequests に author の引数が無いので、全ページを辿ってから絞る。
+  GraphQL のノードをそのまま返す
+  */
+  async listOpenDependabotPullRequests(owner: string, repository: string): Promise<readonly JsonObject[]> {
+    const nodes: JsonValue[] = []
+    let after: string | null = JSON_NULL
+    for (;;) {
+      const result = await this.executeGraphql(QUERY_LIST_OPEN_PULL_REQUESTS, { owner, repo: repository, after })
+      const connection = jsonField(jsonField(result, 'repository'), 'pullRequests')
+      // null を PR 0 件と読むと、sync が待つ PR は無いと判断して Tracker を閉じてしまう
+      if (!isJsonObject(connection)) throw new GitHubAPIError('the PR list response has no repository.pullRequests')
+      const pageNodes = jsonField(connection, 'nodes')
+      if (!isJsonArray(pageNodes)) throw new GitHubAPIError('nodes in the PR list response is not an array')
+      nodes.push(...pageNodes.filter(node => isTruthy(node)))
+      const pageInfo = asObject(jsonField(connection, 'pageInfo'))
+      if (!isTruthy(pageInfo['hasNextPage'])) break
+      const cursor = pageInfo['endCursor']
+      if (typeof cursor !== 'string' || cursor === '') throw new GitHubAPIError('the next page of the PR list has no endCursor')
+      after = cursor
+    }
+    return nodes.filter(node => isDependabotAuthor(node))
   }
 }

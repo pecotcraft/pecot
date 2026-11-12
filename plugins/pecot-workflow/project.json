@@ -161,7 +161,7 @@
       "dependsOn": ["install"],
       "outputs": ["{projectRoot}/cli-node/test-results/junit-hooks.xml"],
       "metadata": {
-        "description": "hooks テスト（test_cuj_definition_single_source）が agents/w-e2e-planner.md を読む。strace で棚卸しした実際の読み込み (#1225) として、agents 全件・plugin.json・bin/pecot・issue-flow-rules.md を入れる。CI スコープの整合は test_ci_scope_consistency が確かめる。このテストは 3 プラグインの project.json と run-*.sh を読むため、それらも入れる。test_hooks_definitions が読む pecot-visual の hooks*.json も宣言する (#1229)。test_agent_definitions は、両プラグインの agents と skills/*/SKILL.md を読む。読むのは frontmatter（disallowedTools・argument-hint・when_to_use）で、これらも宣言する (#1231)。hooks scope は cli-node の vitest（project hooks）も実行する。読むのは cli-node/tests/hooks/ のテストと、vitest.config.ts、baseline.json、baseline.ts で、これらを宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "hooks テスト（test_cuj_definition_single_source）が agents/w-e2e-planner.md を読む。strace で棚卸しした実際の読み込み (#1225) として、agents 全件・plugin.json・bin/pecot・issue-flow-rules.md を入れる。CI スコープの整合は test_ci_scope_consistency が確かめる。このテストは 3 プラグインの project.json と run-*.sh を読むため、それらも入れる。test_hooks_definitions が読む pecot-visual の hooks*.json も宣言する (#1229)。test_agent_definitions は、両プラグインの agents と skills/*/SKILL.md を読む。読むのは frontmatter（disallowedTools・argument-hint・when_to_use）で、これらも宣言する (#1231)。hooks scope は pytest と cli-node の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回ずつ流し、結果を比べる。読むのは cli-node/tests/hooks/ のテストと、vitest.config.ts、baseline.json、baseline.ts で、これらを宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",

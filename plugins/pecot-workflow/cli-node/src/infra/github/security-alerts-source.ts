@@ -41,19 +41,14 @@ function isNoAnalysis(error: Readonly<GitHubAPIError>): boolean {
   return error.statusCode === NOT_FOUND && bodyMessage(error).includes('no analysis found')
 }
 
-function okOf(alerts: readonly JsonValue[]): ScanListResult {
-  const numbers = alerts.map(alert => (isJsonObject(alert) ? alert['number'] : undefined)).filter((number): number is number => Number.isSafeInteger(number))
-  return { kind: 'ok', count: alerts.length, numbers }
-}
-
 async function listCodeScanning(client: ScanAlertClient, owner: string, repository: string): Promise<ScanListResult> {
   try {
-    return okOf(await client.listOpenCodeScanningAlerts(owner, repository))
+    return { kind: 'ok', alerts: await client.listOpenCodeScanningAlerts(owner, repository) }
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     if (isCodeScanningDisabled(error)) return { kind: 'disabled' }
-    if (isNoAnalysis(error)) return { kind: 'ok', count: 0, numbers: [] }
+    if (isNoAnalysis(error)) return { kind: 'ok', alerts: [] }
     throw error
   }
 }
@@ -61,7 +56,7 @@ async function listCodeScanning(client: ScanAlertClient, owner: string, reposito
 // 404 は「無効」だけでなく、権限不足（admin でない）でも起きる。無効と確かめられたときだけ無効にする
 async function listSecretScanning(client: ScanAlertClient, owner: string, repository: string): Promise<ScanListResult> {
   try {
-    return okOf(await client.listOpenSecretScanningAlerts(owner, repository))
+    return { kind: 'ok', alerts: await client.listOpenSecretScanningAlerts(owner, repository) }
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError) || error.statusCode !== NOT_FOUND) throw error
