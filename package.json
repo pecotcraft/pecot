@@ -17,7 +17,7 @@
     "@types/node": "^25.9.9",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
-    "nx": "^24.0.5",
+    "nx": "^24.0.6",
     "typescript7": "npm:typescript@^7.0.2",
     "yaml": "^2.9.1"
   },
