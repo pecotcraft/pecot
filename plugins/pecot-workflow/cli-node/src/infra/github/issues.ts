@@ -1,7 +1,7 @@
 // Issue 操作の API。cli/core/github/issues.py の移植。
 // 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
 
-import { jsonField } from '../../domain/json.js'
+import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
@@ -16,6 +16,8 @@ import {
 } from './queries.js'
 import { ProjectsApi } from './projects.js'
 import { repositoryPath } from './rest-path.js'
+
+const ISSUES_PER_PAGE = 100
 
 export interface IssueNodeIdAndTitle {
   readonly id: string
@@ -283,5 +285,20 @@ export class IssuesApi extends ProjectsApi {
     return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
       json: { state: 'open', state_reason: 'reopened' },
     })
+  }
+
+  /**
+  ラベルの付いた Issue を open・closed の両方で全件取る（REST）。Pull Request は除く
+  */
+  async listIssuesByLabel(owner: string, repository: string, label: string): Promise<readonly JsonValue[]> {
+    const items = await this.listAll(`${repositoryPath(owner, repository)}/issues`, { state: 'all', labels: label, per_page: ISSUES_PER_PAGE })
+    return items.filter(item => !(isJsonObject(item) && 'pull_request' in item))
+  }
+
+  /**
+  Issue の本文を丸ごと置き換える。本文が上限を超える 422 は GitHubAPIError
+  */
+  async updateIssueBody(owner: string, repository: string, number: number, body: string): Promise<JsonObject> {
+    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: { body } })
   }
 }

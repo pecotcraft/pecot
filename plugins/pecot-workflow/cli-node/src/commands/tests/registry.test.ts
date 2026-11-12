@@ -1,42 +1,40 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
-import { COMMAND_PATHS } from '../../../tests/parity/commands.js'
 import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
 
-/**
-Node へ未移植のコマンドの path。各 Phase が移植するたびに、ここから消す。Phase 7 で空になる
-*/
-const PENDING_PATHS: readonly (readonly string[])[] = [
-  ['security', 'sync'],
-  ['dependabot', 'sync'],
-]
-
-function keyOf(path: readonly string[]): string {
-  return path.join(' ')
-}
+const COMMAND_COUNT = 34
+const GENERATED = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
+const EntrySchema = z.object({ id: z.string() })
+const GeneratedSchema = z.object({ prefix: z.string(), entries: z.array(EntrySchema) })
 
 describe('コマンドの一覧', () => {
-  it('未移植と移植済みを合わせて、前後比較の 34 個と一致する', () => {
-    const registered = COMMANDS.map(command => keyOf(command.path))
-    const pending = PENDING_PATHS.map(path => keyOf(path))
-    expect([...registered, ...pending].toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(path => keyOf(path)).toSorted(compareStrings))
-    expect(registered.filter(key => pending.includes(key))).toEqual([])
-    expect(registered.length + pending.length).toBe(34)
-    expect(new Set([...registered, ...pending]).size).toBe(34)
+  it('34 個が登録され、path は重複しない', () => {
+    expect(COMMANDS).toHaveLength(COMMAND_COUNT)
+    expect(new Set(COMMANDS.map(command => command.path.join(' '))).size).toBe(COMMAND_COUNT)
+  })
+
+  it('ID の集合が、定義書の項目の ID と同じになる', () => {
+    const generated = GeneratedSchema.parse(JSON.parse(readFileSync(GENERATED, 'utf8')))
+    const ids = COMMANDS.map(command => `${generated.prefix}-${command.path.join('-').toUpperCase().replaceAll('_', '-')}`)
+    expect(ids.toSorted(compareStrings)).toEqual(generated.entries.map(entry => entry.id).toSorted(compareStrings))
+  })
+
+  it('グループの無いコマンドは 4 個で、残りはグループの下にある', () => {
+    const single = COMMANDS.filter(command => command.path.length === 1).map(command => command.path.join(' '))
+    expect(single.toSorted(compareStrings)).toEqual(['add-to-project', 'create-branch', 'delete-branch', 'update-issue-status'])
+    expect(COMMANDS.filter(command => command.path.length !== 1).every(command => command.path.length === 2)).toBe(true)
   })
 
   it('toolName は重複せず、path から作られている', () => {
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)
     for (const command of COMMANDS) expect(command.toolName).toBe(toolNameOf(command.path))
-  })
-
-  it('未移植の path は toolName が重複しない', () => {
-    const names = PENDING_PATHS.map(path => toolNameOf(path))
-    expect(new Set(names).size).toBe(PENDING_PATHS.length)
   })
 })
 

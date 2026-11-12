@@ -6,10 +6,13 @@ import { ISSUE_QUICK_COMMANDS } from './issue-quick.js'
 import { ISSUE_PROJECT_COMMANDS } from './issue-project.js'
 import { ISSUE_READ_COMMANDS } from './issue-read.js'
 
+// 並びは Python の登録順（help の一覧に出る順）にそろえる
+export const ISSUE_BOARD_COMMANDS: readonly CommandDefinition[] = ISSUE_PROJECT_COMMANDS.filter(command => command.path.length === 1)
+
 export const ISSUE_COMMANDS: readonly CommandDefinition[] = [
-  ...ISSUE_PROJECT_COMMANDS,
   ...ISSUE_CREATE_COMMANDS,
   ...ISSUE_QUICK_COMMANDS,
   ...ISSUE_READ_COMMANDS,
   ...ISSUE_COMMENT_COMMANDS,
+  ...ISSUE_PROJECT_COMMANDS.filter(command => command.path.length !== 1),
 ]

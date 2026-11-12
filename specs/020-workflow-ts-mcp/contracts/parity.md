@@ -92,5 +92,5 @@ CLI の直接起動は全件（228 件）。MCP 経由は「MCP に写せるシ�
   - `session-status-ok-python-state` はフェーズ 3 で確かめる
   - `worktree-add-ok-python-state` はフェーズ 5 で確かめる
 - `global-*` は、フェーズ 2〜5 の対象から外す。31 件のうち 24 件は今も一致している
-- 残りの 7 件（`parity.test.ts` の `SCENARIOS_NEEDING_ALL_COMMANDS`）は、34 個がそろうフェーズ 6 で一致を確かめる
+- 残りの 7 件（help の一覧と「近いコマンド」の案内）は、34 個がそろったフェーズ 6 から一致を確かめている。`parity.test.ts` は全件を golden と比べる
 - `PECOT_GITHUB_API_URL` は `http://127.0.0.1` と `http://localhost` だけを受け付ける。他の値なら CLI は起動時に失敗する
