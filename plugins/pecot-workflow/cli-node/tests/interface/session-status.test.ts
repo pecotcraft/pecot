@@ -1,4 +1,5 @@
-import { rmSync } from 'node:fs'
+/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -164,16 +165,45 @@ describe('session status', () => {
     expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
   })
 
-  it('--directory が存在するディレクトリでないとき、終了コード 2 で終わる', async (context) => {
+  it.for([
+    { name: '無いパス', reason: 'does not exist', prepare: (root: string): string => path.join(root, 'x') },
+    { name: 'ファイル', reason: 'is a file', prepare: (root: string): string => {
+      const file = path.join(root, 'plain.txt')
+      writeFileSync(file, '')
+      return file
+    } },
+    { name: '読めないディレクトリ', reason: 'is not readable', prepare: (root: string): string => {
+      const locked = path.join(root, 'locked')
+      mkdirSync(locked)
+      chmodSync(locked, 0o000)
+      return locked
+    } },
+  ])('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, prepare }, context) => {
     await verifies(context, 'PW-SESSION-STATUS-20')
+    if (reason === 'is not readable' && process.getuid?.() === 0) context.skip()
     const { repository } = prepareSession()
-    const missing = path.join(repository, 'x')
+    const target = prepare(repository)
 
-    const result = await status(missing)
+    try {
+      const result = await status(target)
 
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${missing}' does not exist.`)
+      expect(result.code).toBe(2)
+      expect(result.stdout).toBe('')
+      expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${target}' ${reason}.`)
+    }
+    finally {
+      if (reason === 'is not readable') chmodSync(target, 0o700)
+    }
+  })
+
+  it('--directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
+    prepareSession()
+
+    const result = await status('')
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toContain('# Session status')
+    expect(result.stdout).toContain('- Branch: feat/demo/7')
   })
 
   it('アクティブな設定ファイルの形式が不正なとき、warning を標準エラーに出して終了コード 0 で終わる', async (context) => {

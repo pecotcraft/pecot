@@ -1,4 +1,4 @@
-// API エラーの message に、応答本文 JSON の message と errors[].message を添える。infra の describeApiError と dependabot.ts が共有する。
+// API エラーの message に、応答本文 JSON の message と errors[].message を添える。commands・infra・domain の全てが共有する。
 
 import { isJsonObject, jsonField, tryParseJsonText } from './json.js'
 import type { JsonValue } from './python-format.js'
@@ -18,9 +18,16 @@ function errorMessages(errors: JsonValue | undefined): readonly (string | undefi
 本文が JSON でない（HTML 等）か、添える文が無いときは message のまま返す。
 422 では理由が errors[].message にだけ入ることがある
 */
-export function describeErrorBody(message: string, responseBody = ''): string {
+function describeErrorBody(message: string, responseBody = ''): string {
   const body = tryParseJsonText(responseBody)
   if (!isJsonObject(body)) return message
   const details = [textOf(body['message']), ...errorMessages(body['errors'])].filter(detail => detail !== undefined)
   return details.length === 0 ? message : `${message} ${details.join(' ')}`
+}
+
+/**
+API の失敗の message に、応答本文の詳細を添える。GitHubAPIError と DependabotFailure をそのまま渡せる
+*/
+export function describeApiError(failure: Readonly<{ message: string, responseBody?: string | undefined }>): string {
+  return describeErrorBody(failure.message, failure.responseBody)
 }

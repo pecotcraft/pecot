@@ -18,17 +18,16 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { OutputPathReservationError, outputDirectory, withReservedOutputPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
-import { defineCommand } from './command-definition.js'
+import { defineCommand, CommandExit } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
+import { createGitHubClient } from './github-client.js'
 import {
   COMMENT_VALIDATION_EXIT_CODE,
-  createClient,
   hasReportedTemplateViolations,
   issuePath,
-  loadConfigOrExit,
   parseIssueReferenceOrExit,
   runWithExit,
-  throwExit,
 } from './issue-shared.js'
 import type { IssueTarget } from './issue-shared.js'
 import { createOutput } from './output.js'
@@ -49,8 +48,7 @@ function htmlUrlOf(comment: JsonObject, fallback: string): string {
 function prepareTemplate(output: Output, template: string, issueReference: string | undefined): void {
   const templatePath = templateFile('comment', template)
   if (!existsSync(templatePath)) {
-    output.error(`template not found: ${templatePath}`)
-    throwExit(1)
+    stopWith(output, `template not found: ${templatePath}`)
   }
   let content = readTextFile(templatePath)
   if (issueReference !== undefined && issueReference !== '') {
@@ -64,8 +62,7 @@ function prepareTemplate(output: Output, template: string, issueReference: strin
   }
   catch (error: unknown) {
     if (!(error instanceof OutputPathReservationError)) throw error
-    output.error(error.message)
-    throwExit(1)
+    stopWith(output, error.message)
   }
 }
 
@@ -73,24 +70,16 @@ function prepareTemplate(output: Output, template: string, issueReference: strin
 function commentIdFor(output: Output, commentUrl: string, host: string, target: IssueTarget): number {
   const groups = COMMENT_URL_PATTERN.exec(pythonStrip(commentUrl))?.groups
   if (groups === undefined) {
-    output.error(`comment_url has the wrong form: ${commentUrl}\nexpected: https://<host>/<owner>/<repo>/{issues|pull}/<number>#issuecomment-<id>`)
-    return throwExit(1)
+    return stopWith(output, `comment_url has the wrong form: ${commentUrl}\nexpected: https://<host>/<owner>/<repo>/{issues|pull}/<number>#issuecomment-<id>`)
   }
   const { host: urlHost = '', owner = '', repo: urlRepository = '', number = '', id = '' } = groups
   if (urlHost.toLowerCase() !== host.toLowerCase()) {
-    output.error(`the host of comment_url (${urlHost}) differs from the configured host (${host})`)
-    return throwExit(1)
+    return stopWith(output, `the host of comment_url (${urlHost}) differs from the configured host (${host})`)
   }
   const isSameIssue = owner.toLowerCase() === target.owner.toLowerCase()
     && urlRepository.toLowerCase() === target.repository.toLowerCase()
     && Number(number) === target.number
-  if (!isSameIssue) {
-    output.error(
-      `comment_url (${owner}/${urlRepository}/${number}) points to a different Issue than issue_ref (${target.owner}/${target.repository}/${String(target.number)})`,
-    )
-    return throwExit(1)
-  }
-  return Number(id)
+  return isSameIssue ? Number(id) : stopWith(output, `comment_url (${owner}/${urlRepository}/${number}) points to a different Issue than issue_ref (${target.owner}/${target.repository}/${String(target.number)})`)
 }
 
 // 次に同じファイルを渡したとき更新になるよう、URL を書き戻す。できなければ warning だけ出す
@@ -118,8 +107,7 @@ async function createComment(output: Output, client: GitHubClient, target: Issue
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    output.error(`could not create a comment on Issue ${display}: ${error.message}`)
-    return throwExit(1)
+    return stopWith(output, `could not create a comment on Issue ${display}: ${error.message}`)
   }
   const createdUrl = htmlUrlOf(comment, '')
   output.done({ verb: 'create', target: `comment on ${display}` })
@@ -136,8 +124,7 @@ async function updateComment(output: Output, client: GitHubClient, target: Issue
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    output.error(`could not update the comment on Issue ${display}: ${error.message}`)
-    return throwExit(1)
+    return stopWith(output, `could not update the comment on Issue ${display}: ${error.message}`)
   }
   output.done({ verb: 'update', target: `comment on ${display}` })
   output.data(htmlUrlOf(comment, commentUrl))
@@ -150,25 +137,23 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   }
   catch (error: unknown) {
     if (!(error instanceof FrontmatterError)) throw error
-    output.error(error.message)
-    return throwExit(1)
+    return stopWith(output, error.message)
   }
   const { frontmatter, body } = parsed
 
   const target = parseIssueReferenceOrExit(output, repository, frontmatter.issue_ref)
 
   if (frontmatter.template === undefined) {
-    output.error(`specify template in the frontmatter (${TEMPLATE_CHOICES})`)
-    return throwExit(1)
+    return stopWith(output, `specify template in the frontmatter (${TEMPLATE_CHOICES})`)
   }
-  if (hasReportedTemplateViolations(output, body, templateFile('comment', frontmatter.template))) throwExit(COMMENT_VALIDATION_EXIT_CODE)
+  if (hasReportedTemplateViolations(output, body, templateFile('comment', frontmatter.template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE)
 
   // comment_url は、issue_ref と同じ Issue のコメントに限る
   const commentUrl = frontmatter.comment_url
   const hasCommentUrl = commentUrl !== undefined && commentUrl !== ''
   const commentId = hasCommentUrl ? commentIdFor(output, commentUrl, config.host, target) : 0
 
-  const client = createClient(config, output)
+  const client = createGitHubClient(output, config.host)
   if (!await isRepositoryInProject(config, target.owner, target.repository, client)) {
     output.warning(`${target.owner}/${target.repository} is not in the project`)
   }
@@ -184,9 +169,9 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
 async function postDirect(output: Output, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
 
-  if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throwExit(COMMENT_VALIDATION_EXIT_CODE)
+  if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE)
 
-  await createComment(output, createClient(config, output), target, message)
+  await createComment(output, createGitHubClient(output, config.host), target, message)
 }
 
 const ISSUE_COMMENT = defineCommand({
@@ -209,32 +194,27 @@ const ISSUE_COMMENT = defineCommand({
     return await runWithExit(async () => {
       const { file, message, issue, prepare, template } = input
       if (template === undefined && (prepare || (message !== undefined && file === undefined))) {
-        output.error(`specify a template with -t (${TEMPLATE_CHOICES})`)
-        throwExit(1)
+        stopWith(output, `specify a template with -t (${TEMPLATE_CHOICES})`)
       }
       if (prepare && template !== undefined) {
         prepareTemplate(output, template, issue)
         return
       }
       if (file !== undefined) {
-        await postFromFile(output, loadConfigOrExit(output), input.repo, file)
+        await postFromFile(output, requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT), input.repo, file)
         return
       }
       if (message !== undefined && template !== undefined) {
         if (issue === undefined || issue === '') {
-          output.error('--issue (Issue reference) is required with -m')
-          throwExit(1)
+          stopWith(output, '--issue (Issue reference) is required with -m')
         }
-        await postDirect(output, loadConfigOrExit(output), input.repo, issue, message, template)
+        await postDirect(output, requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT), input.repo, issue, message, template)
         return
       }
-      output.error(
-        'missing arguments\n'
-        + 'direct posting: pecot issue comment -m "MESSAGE" -t <template> --issue owner/repo/123\n'
-        + 'prepare a template: pecot issue comment --prepare -t <template>\n'
-        + 'from a file: pecot issue comment <path>',
-      )
-      throwExit(1)
+      stopWith(output, 'missing arguments\n'
+      + 'direct posting: pecot issue comment -m "MESSAGE" -t <template> --issue owner/repo/123\n'
+      + 'prepare a template: pecot issue comment --prepare -t <template>\n'
+      + 'from a file: pecot issue comment <path>')
     })
   },
 })

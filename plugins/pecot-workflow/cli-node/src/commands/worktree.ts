@@ -1,12 +1,11 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは検証済みの -D と、main worktree 配下の設定ファイル */
 // worktree add / remove / init / link。4 個とも、本体の前に --repo と git の remote の食い違いを reject で止める。
-import { accessSync, constants, mkdirSync, statSync, writeFileSync } from 'node:fs'
+import { mkdirSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { z } from 'zod'
 
 import { InvalidValueError } from '../domain/errors.js'
-import { pythonStringRepr } from '../domain/python-format.js'
 import { aggregationRepositoryReference, ConfigError } from '../domain/config.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { gitToplevel } from '../infra/git.js'
@@ -38,6 +37,7 @@ import { createOutput, isConfirmed } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
+import { directorySchema } from './directory-option.js'
 import { requireRepositoryMatch } from './repository-match.js'
 
 const FAILURE = 1
@@ -53,37 +53,6 @@ function lenientRealPath(value: string): string {
   }
 }
 
-// typer の DirectoryOption と同じ検証と文にする。
-// stat の失敗は、どの理由でも does not exist と出す。
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-function checkDirectory(value: string, context: z.RefinementCtx): void {
-  const fail = (reason: string): void => {
-    context.addIssue({ code: 'custom', message: `Directory ${pythonStringRepr(value)} ${reason}` })
-  }
-  const resolved = lenientRealPath(value)
-  let isFile: boolean
-  try {
-    isFile = statSync(resolved).isFile()
-  }
-  catch (error: unknown) {
-    if (!hasErrorCode(error)) throw error
-    fail('does not exist.')
-    return
-  }
-  if (isFile) {
-    fail('is a file.')
-    return
-  }
-  try {
-    accessSync(resolved, constants.R_OK)
-  }
-  catch (error: unknown) {
-    if (!hasErrorCode(error)) throw error
-    fail('is not readable.')
-  }
-}
-
-const directoryInput = z.string().superRefine(checkDirectory).transform(lenientRealPath).describe('Target Git repository (absolute or relative path)')
 const dryRunInput = z.boolean().default(false).describe('Show what would happen without changing anything')
 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
@@ -112,7 +81,7 @@ function countCopyResults(results: readonly CopyResult[], out: Readonly<Output>)
 }
 
 const worktreeAddInput = z.object({
-  directory: directoryInput,
+  directory: directorySchema,
   base: z.string().optional().describe('Base branch (default: the develop_branch of the repository in the active project)'),
   path: z.string().transform(lenientRealPath).optional().describe('Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)'),
   no_copy: z.boolean().default(false).describe('Skip copying untracked files'),
@@ -162,7 +131,7 @@ function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>
 
 const worktreeRemoveInput = z.object({
   name: z.string().describe('Name of the worktree to remove (the recorded wtN, the wtN directory, or the branch name)'),
-  directory: directoryInput,
+  directory: directorySchema,
   force: z.boolean().default(false).describe('Force removal even if there are changes'),
   keep_branch: z.boolean().default(false).describe('Keep the branch'),
 })
@@ -195,7 +164,7 @@ function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & Global
   }
 }
 
-const worktreeInitInput = z.object({ directory: directoryInput })
+const worktreeInitInput = z.object({ directory: directorySchema })
 
 const worktreeInitCommand = defineCommand({
   path: ['worktree', 'init'],
@@ -277,7 +246,7 @@ function isExistingFile(file: string): boolean {
 }
 
 const worktreeLinkInput = z.object({
-  directory: directoryInput,
+  directory: directorySchema,
   force: z.boolean().default(false).describe('Overwrite real files and directories without asking'),
   all: z.boolean().default(false).describe('Apply to all sub-worktrees'),
   dry_run: dryRunInput,

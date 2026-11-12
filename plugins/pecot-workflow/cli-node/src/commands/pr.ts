@@ -7,6 +7,7 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
+import { describeApiError } from '../domain/api-error-detail.js'
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
@@ -32,14 +33,14 @@ import {
 import type { PreflightWarning, PushStatus } from '../domain/pull-request.js'
 import { parsePythonInteger, pythonStrip } from '../domain/python-format.js'
 import { ReferenceParseError, parsePullRequestReference } from '../domain/reference-parser.js'
-import { AmbiguousRepositoryError, resolveRepository } from '../domain/repository-resolver.js'
+import { AmbiguousRepositoryError, resolveRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { FLAG_MERGE_SLASH_PENDING, FLAG_PECOT_ACTIVE, FLAG_PECOT_QUICK_MODE, FLAG_PECOT_SESSION_TITLE, FLAG_PR_CREATE_SLASH_PENDING, FLAG_WIP_BRANCH_LINKED } from '../domain/state.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { parsePullRequestFile } from '../infra/frontmatter-file.js'
 import { gitCurrentBranch, GitCommandError, gitRemoteUrl, gitRunnerFor, gitStdout, gitToplevel, primaryRemoteName, runGit } from '../infra/git.js'
-import { GitHubClient } from '../infra/github/index.js'
-import { describeApiError, GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
+import type { GitHubClient } from '../infra/github/index.js'
+import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '../infra/github/errors.js'
 import type { PullRequestSlim } from '../infra/github/pulls.js'
 import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
 import { isFileNotFound } from '../infra/os-error.js'
@@ -48,7 +49,9 @@ import { consumeFlag, readFlag, removeFlag } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
+import { NO_ACTIVE_PROJECT_SHORT, requireActiveConfig, stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
+import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { CommandExit, defineCommand } from './command-definition.js'
@@ -61,11 +64,6 @@ const PR_REFERENCE_DESCRIPTION = 'PR reference (`owner/repo/N`, or the short for
 const VALIDATION_EXIT_CODE = 3
 const PREFLIGHT_EXIT_CODE = 2
 
-function fail(out: Readonly<Output>, message: string, exitCode = 1): never {
-  out.error(message)
-  throw new CommandExit(exitCode)
-}
-
 // Python の `{e}` に当たる、例外の文
 function reasonOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -73,15 +71,6 @@ function reasonOf(error: unknown): string {
 
 function templateKindOf(template: string): 'create' | 'release' {
   return template === 'release' ? 'release' : 'create'
-}
-
-function requireActiveConfig(out: Readonly<Output>): ProjectConfig {
-  const config = loadActiveConfig()
-  return config ?? fail(out, 'no active project')
-}
-
-function createClient(config: Readonly<ProjectConfig> | undefined, out: Readonly<Output>): GitHubClient {
-  return new GitHubClient({ host: config?.host, diagnostics: out })
 }
 
 function isPositive(value: number | undefined): value is number {
@@ -224,22 +213,22 @@ async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, clie
 function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
   const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
   if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    fail(out, 'release_branch is not set\nset it with: pecot project set-repo owner/repo --release-branch main')
+    stopWith(out, 'release_branch is not set\nset it with: pecot project set-repo owner/repo --release-branch main')
   }
   if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    fail(out, 'develop_branch is not set\nset it with: pecot project set-repo owner/repo --develop-branch develop')
+    stopWith(out, 'develop_branch is not set\nset it with: pecot project set-repo owner/repo --develop-branch develop')
   }
 }
 
 function resolveHeadBranch(head: string | undefined, directory: string, out: Readonly<Output>): string {
   if (head !== undefined && head !== '') return head
   const current = gitCurrentBranch(directory)
-  return current === undefined || current === '' ? fail(out, 'cannot determine the head branch') : current
+  return current === undefined || current === '' ? stopWith(out, 'cannot determine the head branch') : current
 }
 
 async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
   try {
-    const kind = await createClient(config, out).getIssueKind(location.owner, location.repository, issueNumber)
+    const kind = await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber)
     if (!isEpicIssue(kind)) return appendIssueCloseIfNeeded(body, issueNumber)
     out.warning(`Issue #${String(issueNumber)} at the end of the branch is an Epic; Closes not added`)
     return body
@@ -314,12 +303,12 @@ interface PullRequestContext {
 
 // pr create の早い確認と pr preflight が共有する前提。満たさなければ終了コード 1
 function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
-  if (gitToplevel({ cwd: directory }) === undefined) fail(out, 'not a git repository')
+  if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository')
   const found = primaryRemote(directory)
-  if (found === undefined) return fail(out, 'git remote not found')
+  if (found === undefined) return stopWith(out, 'git remote not found')
   const currentBranch = gitCurrentBranch(directory)
-  if (currentBranch === undefined) return fail(out, 'cannot determine the current branch')
-  if (found.location === undefined) return fail(out, 'cannot read repository info from the remote URL\ncheck it with: git remote -v')
+  if (currentBranch === undefined) return stopWith(out, 'cannot determine the current branch')
+  if (found.location === undefined) return stopWith(out, 'cannot read repository info from the remote URL\ncheck it with: git remote -v')
   return { remoteUrl: found.url, currentBranch, location: found.location, remoteName: found.name }
 }
 
@@ -335,20 +324,20 @@ function runPreflightChecksOrExit(directory: string, out: Readonly<Output>): voi
 
 async function submitPullRequest(config: Readonly<ProjectConfig>, directory: string, draft: Readonly<PullRequestDraft>, out: Readonly<Output>): Promise<void> {
   runPreflightChecksOrExit(directory, out)
-  const client = createClient(config, out)
+  const client = createGitHubClient(out, config.host)
   let created: JsonObject
   try {
     created = await client.createPullRequest(draft.location.owner, draft.location.repository, draft.title, draft.body, draft.head, draft.base, draft.isDraft)
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return fail(out, `PR creation failed: ${error.message}`)
+    if (error instanceof GitHubAPIError) return stopWith(out, `PR creation failed: ${error.message}`)
     throw error
   }
   out.done(createOperation(draft))
   if (!draft.isRelease) await updateIssueStatusToInReview(config, client, draft.location, draft.head, out)
   consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   const url = jsonField(created, 'html_url')
-  if (typeof url !== 'string') return fail(out, 'PR was created, but the response has no html_url; find it on GitHub')
+  if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub')
   out.data(url)
 }
 
@@ -401,9 +390,8 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
   if (!isRelease && issueNumber !== undefined) out.planned(inReviewOperation(issueNumber))
 }
 
-function splitRepository(value: string, out: Readonly<Output>): RepositoryReference {
-  const [owner, repository, ...rest] = value.split('/')
-  return owner === undefined || repository === undefined || rest.length > 0 ? fail(out, `invalid repository format: ${value} (expected: owner/repo)`) : { owner, repository }
+function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {
+  return splitOwnerRepository(value) ?? stopWith(out, `invalid repository format: ${value} (expected: owner/repo)`)
 }
 
 interface FileModeInput {
@@ -414,18 +402,18 @@ interface FileModeInput {
 }
 
 async function createFromFile(input: Readonly<FileModeInput>, directory: string, out: Readonly<Output>): Promise<void> {
-  const config = requireActiveConfig(out)
+  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
   let parsed: ParsedPullRequest
   try {
     parsed = parsePullRequestFile(input.file)
   }
   catch (error: unknown) {
-    if (error instanceof FrontmatterError) return fail(out, error.message)
+    if (error instanceof FrontmatterError) return stopWith(out, error.message)
     throw error
   }
   const { frontmatter } = parsed
-  if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return fail(out, 'repository is required (e.g. owner/repo)')
-  const location = splitRepository(frontmatter.repository, out)
+  if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)')
+  const location = requireRepository(frontmatter.repository, out)
   const head = resolveHeadBranch(frontmatter.head, directory, out)
 
   let body = parsed.body
@@ -463,15 +451,15 @@ interface DirectModeInput {
 }
 
 async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output>): Promise<void> {
-  const config = requireActiveConfig(out)
+  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
   let location: RepositoryReference
   if (input.repository === undefined || input.repository === '') {
     const [only] = config.repositories
-    if (only === undefined || config.repositories.length !== 1) return fail(out, 'specify the repository (-r owner/repo)')
+    if (only === undefined || config.repositories.length !== 1) return stopWith(out, 'specify the repository (-r owner/repo)')
     location = { owner: only.owner, repository: only.name }
   }
   else {
-    location = splitRepository(input.repository, out)
+    location = requireRepository(input.repository, out)
   }
   const head = resolveHeadBranch(input.head, directory, out)
 
@@ -528,7 +516,7 @@ async function fillClosesInTemplate(content: string, config: Readonly<ProjectCon
 
   const label = `Issue #${String(target.number)}`
   try {
-    const kind = await createClient(config, out).getIssueKind(target.owner, target.repository, target.number)
+    const kind = await createGitHubClient(out, config?.host).getIssueKind(target.owner, target.repository, target.number)
     if (isEpicIssue(kind)) {
       out.warning(`${label} is an Epic; Closes left empty`)
       return content
@@ -549,7 +537,7 @@ async function fillClosesInTemplate(content: string, config: Readonly<ProjectCon
 
 async function prepareTemplate(directory: string, out: Readonly<Output>, template: string): Promise<void> {
   const templatePath = templateFile('pr', templateKindOf(template))
-  if (!existsSync(templatePath)) fail(out, `template not found: ${templatePath}`)
+  if (!existsSync(templatePath)) stopWith(out, `template not found: ${templatePath}`)
   let content = readTextFile(templatePath)
 
   // release テンプレートは、base をテンプレートの既定（main）のままにする
@@ -575,7 +563,7 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
     })
   }
   catch (error: unknown) {
-    if (error instanceof OutputPathReservationError) return fail(out, error.message)
+    if (error instanceof OutputPathReservationError) return stopWith(out, error.message)
     throw error
   }
 }
@@ -598,20 +586,20 @@ const CreateInputSchema = z.strictObject({
 async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
   const directory = process.cwd()
   const out = createOutput(input.dry_run, io)
-  if (input.template !== 'default' && input.template !== 'release') fail(out, `--template must be 'default' or 'release' (given: ${input.template})`)
+  if (input.template !== 'default' && input.template !== 'release') stopWith(out, `--template must be 'default' or 'release' (given: ${input.template})`)
 
   if (input.prepare) {
     await prepareTemplate(directory, createOutput(false, io), input.template)
   }
   else if (input.file !== undefined) {
-    if (input.screenshot !== undefined) fail(out, '--screenshot is for -m; write the reason in the `screenshot` frontmatter field instead')
+    if (input.screenshot !== undefined) stopWith(out, '--screenshot is for -m; write the reason in the `screenshot` frontmatter field instead')
     await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run }, directory, out)
   }
   else if (input.message === undefined) {
-    fail(out, 'missing arguments\nusage:\npecot pr create --prepare\npecot pr create <path>\npecot pr create -m "<body>" -t "<title>" -b <base-branch>')
+    stopWith(out, 'missing arguments\nusage:\npecot pr create --prepare\npecot pr create <path>\npecot pr create -m "<body>" -t "<title>" -b <base-branch>')
   }
   else {
-    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') fail(out, '-t (title) and -b (base branch) are required with -m')
+    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, '-t (title) and -b (base branch) are required with -m')
     await createDirect({
       message: input.message,
       title: input.title,
@@ -646,7 +634,7 @@ function parseReference(reference: string, globalRepository: string | undefined,
     return { owner: parsed.repository.owner, repository: parsed.repository.repository, number: parsed.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) return fail(out, error.message, 2)
+    if (error instanceof ReferenceParseError) return stopWith(out, error.message, 2)
     throw error
   }
 }
@@ -659,10 +647,10 @@ const ReadInputSchema = z.strictObject({
 
 async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput(false, io)
-  const config = requireActiveConfig(out)
+  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
   const { owner, repository, number } = parseReference(input.pr_ref, input.repo, out)
   try {
-    const client = createClient(config, out)
+    const client = createGitHubClient(out, config.host)
     if (input.reviews) {
       const pr = await client.getPullRequestWithReviews(owner, repository, number)
       out.data(`${input.json ? JSON.stringify(pr, undefined, 2) : formatPullRequestWithReviewsMarkdown(pr, owner, repository)}\n`)
@@ -673,7 +661,7 @@ async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & Global
     }
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return fail(out, error.message)
+    if (error instanceof GitHubAPIError) return stopWith(out, error.message)
     throw error
   }
 }
@@ -686,13 +674,13 @@ function hasBranch(branch: string, cwd: string): boolean {
 
 function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
   const config = loadActiveConfig()
-  if (config === undefined) return fail(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
+  if (config === undefined) return stopWith(out, 'project config not found\nactivate a project with: pecot project activate <PROJECT>')
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
-    return fail(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project set-repo ${location.owner}/${location.repository} --develop-branch develop`)
+    return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}\nset it with: pecot project set-repo ${location.owner}/${location.repository} --develop-branch develop`)
   }
   const branchName = `${remote}/${developBranch}`
-  return hasBranch(branchName, cwd) ? branchName : fail(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
+  return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
 }
 
 function readGitignore(cwd: string): string {
@@ -785,12 +773,12 @@ interface Cleanup {
 
 async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, location: Readonly<RepositoryReference & { readonly number: number }>, out: Readonly<Output>): Promise<{ readonly client: GitHubClient, readonly pr: PullRequestSlim }> {
   try {
-    const client = createClient(config, out)
+    const client = createGitHubClient(out, config.host)
     return { client, pr: await client.getPullRequestSlim(location.owner, location.repository, location.number) }
   }
   catch (error: unknown) {
-    if (error instanceof GitHubNotFoundError) return fail(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`)
-    if (error instanceof GitHubAPIError) return fail(out, error.message)
+    if (error instanceof GitHubNotFoundError) return stopWith(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`)
+    if (error instanceof GitHubAPIError) return stopWith(out, error.message)
     throw error
   }
 }
@@ -982,12 +970,12 @@ const CleanupInputSchema = z.strictObject({
 async function runCleanup(input: Readonly<z.output<typeof CleanupInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput(input.dry_run, io)
   const context: Cleanup = { out, isDryRun: input.dry_run }
-  const config = requireActiveConfig(out)
+  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
   const reference = parseReference(input.pr_ref, input.repo, out)
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
 
   const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
-  if (pr.state !== 'MERGED') fail(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`)
+  if (pr.state !== 'MERGED') stopWith(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`)
 
   const closing = collectClosingIssueNumbers(pr)
   const epicProtected = await findEpicProtectedNumbers(client, location, closing, out)

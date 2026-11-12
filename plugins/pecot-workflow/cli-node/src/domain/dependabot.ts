@@ -1,8 +1,8 @@
 // Dependabot alert の状態判定。`release preflight` と `project info` が同じ判定を共有する。
 // 有効 / 無効・open 件数・最高 severity・一覧 URL をまとめて返す。取得は DependabotSource に任せる。
 
-import { describeErrorBody } from './api-error-detail.js'
-import type { DependabotAlert, DependabotFailure, DependabotResult, DependabotSource } from './dependabot-source.js'
+import { describeApiError } from './api-error-detail.js'
+import type { DependabotAlert, DependabotResult, DependabotSource } from './dependabot-source.js'
 import { PecotError } from './errors.js'
 import { isJsonObject, jsonField } from './json.js'
 
@@ -68,10 +68,6 @@ function maxSeverity(alerts: readonly DependabotAlert[]): string | undefined {
   return best
 }
 
-function describe(failure: DependabotFailure): string {
-  return describeErrorBody(failure.message, failure.responseBody)
-}
-
 function stringOrUndefined(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined
 }
@@ -101,7 +97,7 @@ function unwrap<T>(result: DependabotResult<T>, owner: string, repository: strin
     case 'forbidden':
     case 'rateLimited':
     case 'failure': {
-      throw new DependabotAlertError(`${owner}/${repository}: ${describe(result.failure)}`)
+      throw new DependabotAlertError(`${owner}/${repository}: ${describeApiError(result.failure)}`)
     }
   }
 }

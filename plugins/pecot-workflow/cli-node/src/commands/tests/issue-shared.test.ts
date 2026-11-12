@@ -12,13 +12,11 @@ import {
   createIssueOrExit,
   exitInvalidStatus,
   linkToParentEpic,
-  loadConfigOrExit,
   normalizeParentEpicCli,
   parseIssueReferenceOrExit,
   resolveEpicTargetRepository,
   resolveParentEpicReference,
   runWithExit,
-  throwExit,
   validateIssueTemplate,
   validateStatusForType,
   warnEpicRepositoryException,
@@ -26,6 +24,7 @@ import {
 import { setEnvironment } from '../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { CommandExit } from '../command-definition.js'
+import { NO_ACTIVE_PROJECT_SHORT, requireActiveConfig, stopWith } from '../command-stop.js'
 import { createOutput } from '../output.js'
 import { UsageError } from '../usage-error.js'
 import { capture } from './support.js'
@@ -54,7 +53,7 @@ async function succeed(): Promise<void> {
 
 async function exitWith3(): Promise<void> {
   await Promise.resolve()
-  throwExit(3)
+  throw new CommandExit(3)
 }
 
 async function badParameter(): Promise<void> {
@@ -72,7 +71,7 @@ describe('runWithExit', () => {
     expect(await runWithExit(succeed)).toBe(0)
   })
 
-  it('throwExit は、終了コードを持つ CommandExit を伝える', async () => {
+  it('CommandExit は、終了コードを持ったまま伝える', async () => {
     await expect(runWithExit(exitWith3)).rejects.toMatchObject({ exitCode: 3 })
   })
 
@@ -343,11 +342,34 @@ describe('Issue 参照と設定', () => {
     expect(() => parseIssueReferenceOrExit(output, 'o/r', 'zzz')).toThrow(expect.objectContaining({ exitCode: 2 }))
     expect(io.err[0]).toMatch(/^error: /u)
   })
+})
 
-  it('アクティブなプロジェクトが無ければ `no active project` で終了コード 1', () => {
+describe('stopWith', () => {
+  it('error の行を出して、既定は終了コード 1 で止める', () => {
+    const { io, output } = started()
+    expect(() => stopWith(output, 'boom')).toThrow(expect.objectContaining({ exitCode: 1 }))
+    expect(io.err).toEqual(['error: boom\n'])
+  })
+
+  it('終了コードを渡せる', () => {
+    const { io, output } = started()
+    expect(() => stopWith(output, 'bad usage', 2)).toThrow(expect.objectContaining({ exitCode: 2 }))
+    expect(io.err).toEqual(['error: bad usage\n'])
+  })
+})
+
+describe('requireActiveConfig', () => {
+  it('アクティブなプロジェクトが無ければ、渡した文で終了コード 1', () => {
     setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
     const { io, output } = started()
-    expect(() => loadConfigOrExit(output)).toThrow(CommandExit)
+    expect(() => requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)).toThrow(CommandExit)
     expect(io.err).toEqual(['error: no active project\n'])
+  })
+
+  it('文を省くと、activate の案内を添える', () => {
+    setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
+    const { io, output } = started()
+    expect(() => requireActiveConfig(output)).toThrow(expect.objectContaining({ exitCode: 1 }))
+    expect(io.err).toEqual(['error: no active project\n  run: pecot project activate <PROJECT>\n'])
   })
 })

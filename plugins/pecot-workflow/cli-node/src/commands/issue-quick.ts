@@ -3,6 +3,7 @@
 import { z } from 'zod'
 
 import type { ProjectConfig } from '../domain/config.js'
+import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { findRepository } from '../domain/config.js'
 import type { JsonObject } from '../domain/json.js'
 import { pythonRightStrip, pythonStrip, truncateCodePoints } from '../domain/python-format.js'
@@ -14,6 +15,7 @@ import { formatTimestamp } from '../infra/paths.js'
 import { consumeFlag, touchFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
+import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
 import {
   addToBoardOrWarn,
   BACKLOG_TYPES,
@@ -23,14 +25,12 @@ import {
   ISSUE_TYPE_SCHEMA,
   issuePath,
   linkToParentEpic,
-  loadConfigOrExit,
   normalizeParentEpicCli,
   PARENT_EPIC_DESCRIPTION,
   resolveParentEpicReference,
   runWithExit,
   setIssueFields,
   summarizeCreatedIssue,
-  throwExit,
 } from './issue-shared.js'
 import type { IssueField, IssueType } from './issue-shared.js'
 import { createOutput } from './output.js'
@@ -49,15 +49,13 @@ const TITLE_LENGTH = 50
 // 空のメッセージと owner/repo の形の誤りを止める
 function parseQuickArguments(output: Output, message: string, repository: string): readonly [string, string] {
   if (pythonStrip(message) === '') {
-    output.error('the message is empty')
-    throwExit(1)
+    stopWith(output, 'the message is empty')
   }
-  const [owner, name, ...rest] = repository.split('/')
-  if (owner === undefined || name === undefined || rest.length > 0) {
-    output.error(`invalid repository format: ${repository}\nexpected: owner/repo`)
-    throwExit(1)
+  const parts = splitOwnerRepository(repository)
+  if (parts === undefined) {
+    stopWith(output, `invalid repository format: ${repository}\nexpected: owner/repo`)
   }
-  return [owner, name]
+  return [parts.owner, parts.repository]
 }
 
 // status は Backlog に置く型なら backlog、それ以外は active。priority は medium、size は s（Backlog に置く型は付けない）
@@ -75,8 +73,7 @@ function quickFields(issueType: IssueType): readonly IssueField[] {
 async function createBranch(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, issueNumber: number, issueNodeId: string, title: string): Promise<void> {
   const base = findRepository(config, owner, repository)?.develop_branch
   if (base === undefined || base === '') {
-    output.error(`develop_branch is not set for repository ${owner}/${repository}\nset it with: pecot project set-repo ${owner}/${repository} --develop-branch develop\n(or --develop-branch develop-aist / --develop-branch main)`)
-    throwExit(1)
+    stopWith(output, `develop_branch is not set for repository ${owner}/${repository}\nset it with: pecot project set-repo ${owner}/${repository} --develop-branch develop\n(or --develop-branch develop-aist / --develop-branch main)`)
   }
   const name = `feat/${formatTimestamp(Date.now())}/${String(issueNumber)}`
   const sha = await client.getBranchSha(owner, repository, base)
@@ -146,7 +143,7 @@ const ISSUE_QUICK = defineCommand({
     const output = createOutput(false, io)
     return await runWithExit(async () => {
       const [owner, repository] = parseQuickArguments(output, input.message, input.repo)
-      const config = loadConfigOrExit(output)
+      const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
 
       const rawParent = normalizeParentEpicCli(input.parent_epic)
       const parentReference = rawParent === undefined ? undefined : resolveParentEpicReference(rawParent, config, owner, repository)

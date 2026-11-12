@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -146,15 +146,34 @@ describe('session restore', () => {
     expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
   })
 
-  it('--directory が存在するディレクトリでないとき、終了コード 2 で終わる', async (context) => {
+  it.for([
+    { name: '無いパス', reason: 'does not exist', prepare: (root: string): string => path.join(root, 'x') },
+    { name: 'ファイル', reason: 'is a file', prepare: (root: string): string => {
+      const file = path.join(root, 'plain.txt')
+      writeFileSync(file, '')
+      return file
+    } },
+    { name: '読めないディレクトリ', reason: 'is not readable', prepare: (root: string): string => {
+      const locked = path.join(root, 'locked')
+      mkdirSync(locked)
+      chmodSync(locked, 0o000)
+      return locked
+    } },
+  ])('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, prepare }, context) => {
     await verifies(context, 'PW-SESSION-RESTORE-13')
+    if (reason === 'is not readable' && process.getuid?.() === 0) context.skip()
     const session = prepareSession()
-    const missing = path.join(session.repository, 'x')
+    const target = prepare(session.repository)
 
-    const result = await restore(missing)
+    try {
+      const result = await restore(target)
 
-    expect(result.code).toBe(2)
-    expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${missing}' does not exist.`)
+      expect(result.code).toBe(2)
+      expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${target}' ${reason}.`)
+    }
+    finally {
+      if (reason === 'is not readable') chmodSync(target, 0o700)
+    }
   })
 
   it('--issue を省いてブランチ名を読めないとき、終了コード 1 で終わる', async (context) => {

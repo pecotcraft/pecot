@@ -72,6 +72,18 @@ describe('directorySchema', () => {
     expect(seen).toEqual([realpathSync(real)])
   })
 
+  it('空文字は cwd にする', async () => {
+    seen.length = 0
+    await runDefinition(preflight, ['-D', ''], capture())
+    expect(seen).toEqual([realpathSync(process.cwd())])
+  })
+
+  it('ファイルとディレクトリのどちらでもないパス（/dev/null）は検証を通す', async () => {
+    seen.length = 0
+    expect(await runDefinition(preflight, ['-D', '/dev/null'], capture())).toBe(0)
+    expect(seen).toEqual(['/dev/null'])
+  })
+
   it('無いパスは does not exist。値は入力のまま repr で出す', async () => {
     const { root } = fixture()
     const missing = path.join(root, 'it\'s-missing')

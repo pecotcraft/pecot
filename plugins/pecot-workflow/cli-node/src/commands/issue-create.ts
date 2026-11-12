@@ -7,6 +7,7 @@ import path from 'node:path'
 import { z } from 'zod'
 
 import type { ProjectConfig } from '../domain/config.js'
+import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import { FrontmatterError, stripFrontmatter, stripLeadingHtmlComment } from '../domain/frontmatter.js'
 import type { IssueFrontmatter } from '../domain/frontmatter.js'
 import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING } from '../domain/state.js'
@@ -20,6 +21,7 @@ import { templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
+import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
 import {
   addToBoardOrWarn,
   buildIssueTitle,
@@ -28,7 +30,6 @@ import {
   ISSUE_TYPE_SCHEMA,
   issuePath,
   linkToParentEpic,
-  loadConfigOrExit,
   normalizeParentEpicCli,
   PARENT_EPIC_DESCRIPTION,
   resolveEpicTargetRepository,
@@ -36,7 +37,6 @@ import {
   runWithExit,
   setIssueFields,
   summarizeCreatedIssue,
-  throwExit,
   TYPE_DEFAULT_STATUS,
   validateIssueTemplate,
   validateStatusForType,
@@ -65,18 +65,10 @@ interface CreatedIssue {
 
 // --- 共通 ---
 
-function splitRepository(repository: string): readonly [string, string] | undefined {
-  const parts = repository.split('/')
-  const [owner, name] = parts
-  return owner !== undefined && name !== undefined && parts.length === 2 ? [owner, name] : undefined
-}
-
 // owner/repo の形が不正なら error と終了コード 2。正しければ owner と name を返す
 function validateRepositoryShape(output: Output, repository: string): readonly [string, string] {
-  const parts = splitRepository(repository)
-  if (parts?.every(part => REPOSITORY_SEGMENT_PATTERN.test(part)) === true) return parts
-  output.error(`invalid repository format: ${repository}\nexpected: owner/repo`)
-  return throwExit(USAGE_EXIT_CODE)
+  const parts = splitOwnerRepository(repository)
+  return parts !== undefined && REPOSITORY_SEGMENT_PATTERN.test(parts.owner) && REPOSITORY_SEGMENT_PATTERN.test(parts.repository) ? [parts.owner, parts.repository] : stopWith(output, `invalid repository format: ${repository}\nexpected: owner/repo`, USAGE_EXIT_CODE)
 }
 
 interface Posting {
@@ -124,15 +116,13 @@ function parentReferenceOf(raw: number | string | undefined, config: ProjectConf
 
 function prepareTemplate(output: Output, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined): void {
   if (template !== 'epic' && repository === undefined) {
-    output.error('--repo owner/repo is required with --template task|bug|tracker|task-implement')
-    throwExit(USAGE_EXIT_CODE)
+    stopWith(output, '--repo owner/repo is required with --template task|bug|tracker|task-implement', USAGE_EXIT_CODE)
   }
   if (repository !== undefined) validateRepositoryShape(output, repository)
 
   const source = templateFile('issue', template)
   if (!existsSync(source)) {
-    output.error(`template not found: ${source}`)
-    throwExit(1)
+    stopWith(output, `template not found: ${source}`)
   }
   let content = readTextFile(source)
   // 置き換えの文字列に `$` があっても、そのまま入れる
@@ -147,8 +137,7 @@ function prepareTemplate(output: Output, template: IssueType | 'task-implement',
   }
   catch (error: unknown) {
     if (!(error instanceof OutputPathReservationError)) throw error
-    output.error(error.message)
-    throwExit(1)
+    stopWith(output, error.message)
   }
 }
 
@@ -178,26 +167,22 @@ function validatePlaceholders(output: Output, files: readonly string[]): void {
   for (const file of files) {
     const resolved = resolveRealPath(file)
     if (seen.has(resolved)) {
-      output.error(`file specified more than once: ${normalizePath(file)}`)
-      throwExit(1)
+      stopWith(output, `file specified more than once: ${normalizePath(file)}`)
     }
     seen.add(resolved)
     if (!isFile(file)) {
-      output.error(`file not found: ${normalizePath(file)}`)
-      throwExit(1)
+      stopWith(output, `file not found: ${normalizePath(file)}`)
     }
     // フロントマターと冒頭のガイドコメントは投稿本文に出ないので、走査から外す
     const body = stripLeadingHtmlComment(stripFrontmatter(readTextFile(file)))
     for (const [, reference] of body.matchAll(PLACEHOLDER_PATTERN)) {
       if (reference === undefined || available.has(reference)) continue
-      output.error(`{{issue:${reference}}} in ${path.basename(file)} does not point to an earlier file (forward reference or unknown key)\nput the file it depends on earlier in the arguments`)
-      throwExit(1)
+      stopWith(output, `{{issue:${reference}}} in ${path.basename(file)} does not point to an earlier file (forward reference or unknown key)\nput the file it depends on earlier in the arguments`)
     }
     const keys = fileKeys(file)
     const collided = [...keys].filter(key => available.has(key)).toSorted(compareStrings)
     if (collided.length > 0) {
-      output.error(`placeholder keys collide: ${collided.join(', ')} (${path.basename(file)})`)
-      throwExit(1)
+      stopWith(output, `placeholder keys collide: ${collided.join(', ')} (${path.basename(file)})`)
     }
     for (const key of keys) available.add(key)
   }
@@ -215,12 +200,11 @@ function fileTargetRepository(output: Output, frontmatter: IssueFrontmatter, con
   else {
     resolved = frontmatter.repository
   }
-  const parts = resolved.includes('/') ? splitRepository(resolved) : undefined
+  const parts = splitOwnerRepository(resolved)
   if (parts === undefined) {
-    output.error(`invalid repository format in the frontmatter: ${pythonStringRepr(frontmatter.repository)}`)
-    throwExit(1)
+    stopWith(output, `invalid repository format in the frontmatter: ${pythonStringRepr(frontmatter.repository)}`)
   }
-  return parts
+  return [parts.owner, parts.repository]
 }
 
 function expandPlaceholders(body: string, created: ReadonlyMap<string, CreatedIssue>, owner: string, repository: string): string {
@@ -239,15 +223,14 @@ function frontmatterFields(frontmatter: IssueFrontmatter): readonly IssueField[]
 }
 
 async function createFromFile(output: Output, file: string, created: ReadonlyMap<string, CreatedIssue>): Promise<CreatedIssue> {
-  const config = loadConfigOrExit(output)
+  const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
   let parsed
   try {
     parsed = parseIssueFile(file)
   }
   catch (error: unknown) {
     if (!(error instanceof FrontmatterError)) throw error
-    output.error(error.message)
-    return throwExit(1)
+    return stopWith(output, error.message)
   }
   const { frontmatter } = parsed
 
@@ -315,7 +298,7 @@ async function createDirect(output: Output, options: Readonly<DirectOptions>, lo
     status = options.status
   }
 
-  const config = loadedConfig ?? loadConfigOrExit(output)
+  const config = loadedConfig ?? requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
   const [owner, repository] = validateRepositoryShape(output, options.repository)
 
   const parentReference = parentReferenceOf(normalizeParentEpicCli(options.parentEpic), config, owner, repository)
@@ -352,12 +335,11 @@ interface MessageTarget {
 function messageModeTarget(output: Output, issueType: IssueType, repository: string | undefined): MessageTarget {
   if (issueType !== 'epic') {
     if (repository === undefined || repository === '') {
-      output.error('-r (repository) is required with -m')
-      throwExit(1)
+      stopWith(output, '-r (repository) is required with -m')
     }
     return { repository, config: undefined }
   }
-  const config = loadConfigOrExit(output)
+  const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
   const target = resolveEpicTargetRepository(output, repository, config)
   if (target.needsWarning) warnEpicRepositoryException(output, target.repository, config)
   return { repository: target.repository, config }
@@ -383,8 +365,7 @@ interface MessageInput {
 // -m の直接投稿。入力の確認から作成まで
 async function createFromMessage(output: Output, input: Readonly<MessageInput>, message: string): Promise<void> {
   if (input.title === undefined || input.title === '') {
-    output.error('-t (title) is required with -m')
-    throwExit(1)
+    stopWith(output, '-t (title) is required with -m')
   }
   const target = messageModeTarget(output, input.type, input.repo)
   await createDirect(output, {
@@ -436,8 +417,7 @@ const ISSUE_CREATE = defineCommand({
         await createFromFiles(output, input.files)
       }
       else if (input.message === undefined) {
-        output.error(USAGE_TEXT)
-        throwExit(1)
+        stopWith(output, USAGE_TEXT)
       }
       else {
         await createFromMessage(output, input, input.message)
