@@ -20,7 +20,7 @@ const WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
 /**
 前提を待つ Issue を pecot が置く列。既存のボードに無くても設定の同期は止めない
 */
-export const BLOCKED_OPTION: ProjectFieldOption = { name: 'Blocked', color: 'ORANGE', description: 'Waiting for prerequisite Issues. Set by pecot.' }
+export const BLOCKED_OPTION: ProjectFieldOption = { name: 'Blocked', color: 'GRAY', description: 'Waiting for prerequisite Issues. Set by pecot.' }
 
 /**
 人の判断を待つ Issue の札。既定の Status に足す

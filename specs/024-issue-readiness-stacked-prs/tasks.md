@@ -131,7 +131,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 - [x] T021 選択肢の追加と、既定の Status の読み書きを足す（research.md の R8）
   - 置き場は `p-w/cli/src/infra/github/queries.ts` と `p-w/cli/src/infra/github/projects.ts`
 - [x] T022 `p-w/cli/src/commands/project-sync.ts` を直す
-  - `WORKFLOW_FIELD_OPTIONS` に `Blocked` を足す。色は ORANGE、説明は英語で、前提を待つ Issue を pecot が置く列と書く
+  - `WORKFLOW_FIELD_OPTIONS` に `Blocked` を足す。色は `Pending` と同じ GRAY、説明は英語で、前提を待つ Issue を pecot が置く列と書く
   - `Pending` の説明から「or blocked」を外す（FR-082）
   - `validateWorkflowField` は、`Blocked` を「あれば使う値」として扱う（research.md の R9）
   - `WORKFLOW_KEYS` と `buildBoardUrl` に `blocked` を足す

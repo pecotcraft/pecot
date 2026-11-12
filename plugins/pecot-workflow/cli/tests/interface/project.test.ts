@@ -276,7 +276,7 @@ describe('project init', () => {
     const existing = [...titleOnly, workflowField(WORKFLOW_NAMES), ...otherFields()]
     const result = await init([...base(existing), updateField('PVTSSF_old'), updateField('PVTSSF_status'), ...syncRules()])
     const kept = (names: readonly string[]): Json[] => options(names)
-    const blocked = { name: 'Blocked', color: 'ORANGE', description: 'Waiting for prerequisite Issues. Set by pecot.' }
+    const blocked = { name: 'Blocked', color: 'GRAY', description: 'Waiting for prerequisite Issues. Set by pecot.' }
     const attention = { name: 'Needs Attention', color: 'RED', description: 'Waiting for a human decision or action.' }
     expect(graphqlVariables(result, 'UpdateProjectField')).toEqual([
       { fieldId: 'PVTSSF_old', options: [...kept(WORKFLOW_NAMES).slice(0, 1), blocked, ...kept(WORKFLOW_NAMES).slice(1)] },

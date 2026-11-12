@@ -40,7 +40,7 @@
           },
           {
             "name": "Blocked",
-            "color": "ORANGE",
+            "color": "GRAY",
             "description": "Waiting for prerequisite Issues. Set by pecot."
           },
           {
