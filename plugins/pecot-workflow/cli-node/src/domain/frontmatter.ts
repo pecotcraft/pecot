@@ -84,6 +84,11 @@ function convertToBoolean(value: unknown): unknown {
   return value
 }
 
+// 文字列なら前後の空白を落とし、空なら未指定にする（Python の OptionalText）。文字列以外はそのまま
+function normalizeOptionalText(value: unknown): unknown {
+  return typeof value === 'string' ? emptyStringToUndefined(pythonStrip(value)) : value
+}
+
 // parent_epic の入力の正規化。未指定・空文字 → 未指定、数字だけの文字列 → 整数、それ以外の文字列 → 前後の空白を落とした文字列
 function normalizeParentEpic(value: unknown): unknown {
   if (value === null || emptyStringToUndefined(value) === undefined) return undefined
@@ -134,6 +139,7 @@ const PullRequestFrontmatterSchema = z.object({
   base: z.string({ error: stringMessage }),
   head: z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
   draft: z.preprocess(convertToBoolean, z.boolean({ error: issue => booleanMessage(issue.input) })).prefault(false),
+  screenshot: z.preprocess(normalizeOptionalText, z.string({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
 // 種別などの列挙は IssueFrontmatter['type'] のように項目の型から取る

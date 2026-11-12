@@ -160,12 +160,12 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 
 **Independent Test**: `parity.test.ts` の `pr-*` のシナリオが golden と一致する。この PR で足した 4 個が登録され、登録済みの全部で `--check` の差が 0。振る舞いの項目 107 個が vitest につながる
 
-- [ ] T022 [US1] `cli/commands/pr.py` の `create` と `read` を `cli-node/src/commands/pr.ts` に移し、`COMMANDS` に足す。`--prepare` と `--dry-run` を含める。
+- [x] T022 [US1] `cli/commands/pr.py` の `create` と `read` を `cli-node/src/commands/pr.ts` に移し、`COMMANDS` に足す。`--prepare` と `--dry-run` を含める。
   `cli/commands/_tracker_sync.py` の `settle` も要る。フェーズ 6 も使うので、共有の置き場に置く。
-- [ ] T023 [US1] `pr.py` の `preflight` と `cleanup` を同じ `pr.ts` に移し、`COMMANDS` に足す。git の呼び出しは `src/infra/git.ts` を通す。
+- [x] T023 [US1] `pr.py` の `preflight` と `cleanup` を同じ `pr.ts` に移し、`COMMANDS` に足す。git の呼び出しは `src/infra/git.ts` を通す。
   `extract_issue_number_from_branch` は、フェーズ 3 も使う。共有の置き場に置く。
-- [ ] T024 [US1] pr の項目 107 個を、`cli-node/tests/interface/pr.test.ts` のケースにつなぐ。
-- [ ] T025 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。
+- [x] T024 [US1] pr の項目 107 個を、`cli-node/tests/interface/pr.test.ts` のケースにつなぐ。
+- [x] T025 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。
 
 **Checkpoint**: 該当シナリオが全部一致する。この PR で足した 4 個が登録され、登録済みの全部で `--check` の差が 0。該当の項目 107 個が全部つながる
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PecotError } from '../../../domain/errors.js'
-import { describeApiError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError, isMissingReferenceError } from '../errors.js'
+import { describeApiError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError, isClosedByAnotherRequest, isMissingReferenceError } from '../errors.js'
 
 describe('GitHubAPIError', () => {
   it('基本的なエラーは状態コードと本文を持たない', () => {
@@ -78,5 +78,16 @@ describe('isMissingReferenceError', () => {
 
   it('本文が無ければ false', () => {
     expect(isMissingReferenceError(new GitHubAPIError('x', { statusCode: 422 }))).toBe(false)
+  })
+})
+
+describe('isClosedByAnotherRequest', () => {
+  it.each([
+    [422, 'Issue was closed by another request', true],
+    [422, 'other', false],
+    [404, 'closed by another request', false],
+    [422, undefined, false],
+  ])('状態 %s・本文 %j は %s', (statusCode, responseBody, expected) => {
+    expect(isClosedByAnotherRequest(new GitHubAPIError('m', { statusCode, responseBody }))).toBe(expected)
   })
 })

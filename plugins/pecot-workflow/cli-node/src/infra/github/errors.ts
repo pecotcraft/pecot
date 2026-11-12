@@ -62,3 +62,10 @@ export function describeApiError(error: Readonly<GitHubAPIError>): string {
 export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
   return (error.statusCode === 404 || error.statusCode === 422) && error.responseBody?.includes('Reference does not exist') === true
 }
+
+/**
+別の要求が同時に閉じたことを示す 422 か（PR の Closes による自動 close など）
+*/
+export function isClosedByAnotherRequest(error: Readonly<GitHubAPIError>): boolean {
+  return error.statusCode === 422 && error.responseBody?.includes('closed by another request') === true
+}

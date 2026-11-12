@@ -8,10 +8,12 @@ export const FLAG_PECOT_ACTIVE = '.pecot-active'
 // セッション名（hooks の session-title.sh が Claude Code の sessionTitle に流す）。.pecot-active と同じタイミングで書く
 export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
 export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
+export const FLAG_WIP_BRANCH_LINKED = '.wip-branch-linked'
 
 // スラッシュコマンド起点の外部反映免除フラグ。設置は hooks の create-slash-flag.sh、確認は external-post-check.sh。CLI が実投稿成功時に削除する
 export const FLAG_PR_CREATE_SLASH_PENDING = 'pr-create-slash-pending'
 export const FLAG_ISSUE_CREATE_SLASH_PENDING = 'issue-create-slash-pending'
+export const FLAG_MERGE_SLASH_PENDING = 'merge-slash-pending'
 
 // 起票未完了のリマインド用フラグ。設置は hooks、確認は pecot-issue-pending-reminder.sh。CLI が起票成功時に削除する
 export const FLAG_ISSUE_PENDING = 'issue-pending'

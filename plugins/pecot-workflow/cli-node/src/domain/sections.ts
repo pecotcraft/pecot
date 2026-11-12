@@ -548,3 +548,26 @@ export function validateFoldSummaries(body: string, expected: string): readonly 
   }
   return errors
 }
+
+const SUMMARY_HEADING_PATTERN = /^ {0,3}##\s+Summary(?:\s|$)/u
+const LEVEL_1_OR_2_HEADING_PATTERN = /^ {0,3}#{1,2}(?:\s|$)/u
+const IMAGE_ALT = String.raw`(?:[^[\]]|\[[^[\]]*\])*`
+// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列から組み立てる。代替文は角括弧の入れ子 1 段までで、再試行は入力の長さに比例して増えない
+const IMAGE_PATTERN = new RegExp(String.raw`!\[${IMAGE_ALT}\]\([^)]+\)|!\[${IMAGE_ALT}\]\[[^\]]*\]|<img(?![\p{L}\p{N}_])`, 'iu')
+
+/**
+Summary 節に画像の参照（Markdown 記法か `<img`）があるか。フェンス・インラインコード・HTML コメントの中は数えない。
+記法は網羅しない。取りこぼしは screenshot の理由で避けられる
+*/
+export function hasSummaryImage(body: string): boolean {
+  const { lines } = maskedLines(body)
+  const start = lines.findIndex(line => SUMMARY_HEADING_PATTERN.test(line))
+  if (start === -1) return false
+  const section: string[] = []
+  const following = lines.slice(start + 1)
+  for (const line of following) {
+    if (LEVEL_1_OR_2_HEADING_PATTERN.test(line)) break
+    section.push(line)
+  }
+  return IMAGE_PATTERN.test(section.join('\n'))
+}

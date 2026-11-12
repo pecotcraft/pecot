@@ -78,14 +78,22 @@ export function gitRunnerFor(cwd?: string, options: Readonly<Pick<GitOptions, 's
   return arguments_ => runGit(arguments_, { cwd, stripGitEnvironment: options.stripGitEnvironment })
 }
 
-function runForValue(arguments_: readonly string[], options: Readonly<GitOptions>): string | undefined {
+/**
+標準出力を削らずに返す。非 0 終了・git が無いときは undefined
+*/
+export function gitStdout(arguments_: readonly string[], options: Readonly<Omit<GitOptions, 'check'>> = {}): string | undefined {
   try {
-    return pythonStrip(runGit(arguments_, { ...options, check: true }).stdout)
+    return runGit(arguments_, { ...options, check: true }).stdout
   }
   catch (error: unknown) {
     if (error instanceof GitCommandError || isFileNotFound(error)) return undefined
     throw error
   }
+}
+
+function runForValue(arguments_: readonly string[], options: Readonly<GitOptions>): string | undefined {
+  const stdout = gitStdout(arguments_, options)
+  return stdout === undefined ? undefined : pythonStrip(stdout)
 }
 
 /**

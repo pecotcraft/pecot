@@ -2,6 +2,7 @@
 // 各コマンドは defineCommand() で定義して COMMANDS に足す。定義の型と defineCommand は command-definition.ts にあり、ここから再公開する。
 import type { CommandDefinition } from './command-definition.js'
 import { ISSUE_COMMANDS } from './issue.js'
+import { PR_COMMANDS } from './pr.js'
 import { PROJECT_COMMANDS } from './project.js'
 import { RELEASE_COMMANDS } from './release.js'
 import { REPOSITORY_COMMANDS } from './repository.js'
@@ -21,6 +22,7 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...SESSION_COMMANDS,
   ...WORKTREE_COMMANDS,
   ...RELEASE_COMMANDS,
+  ...PR_COMMANDS,
 ]
 
 export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {

@@ -10,7 +10,8 @@ import { accessSync, constants, mkdirSync, mkdtempSync, rmSync, statSync } from 
 import path from 'node:path'
 
 import { isJsonObject, jsonField, tryParseJsonText } from '../domain/json.js'
-import { compareStrings, pythonRepr } from '../domain/python-format.js'
+import type { JsonValue } from '../domain/python-format.js'
+import { compareStrings, isJsonArray, pythonRepr } from '../domain/python-format.js'
 import { GitCommandError, runGit } from './git.js'
 import { isFileNotFound } from './os-error.js'
 import { TMP_DIR } from './paths.js'
@@ -25,6 +26,9 @@ export const NX_GRAPH_TIMEOUT_SECONDS = 120
 どの nx プロジェクトにも属さないファイルを表す scope
 */
 export const REPOSITORY_SCOPE = 'repo'
+
+// PR タイトルの scope を宣言する nx の tag の接頭辞
+const SCOPE_TAG_PREFIX = 'scope:'
 
 // nx 固定のリリース用メタデータ。scope の算出から除外する
 const VERSION_PLANS_PREFIX = '.nx/version-plans/'
@@ -59,18 +63,42 @@ export function resolveNx(toplevel: string): string | undefined {
   return isExecutableFile(local) ? local : whichExecutable('nx')
 }
 
-function rootsFromGraph(text: string): ReadonlyMap<string, string> | undefined {
+// tag `scope:<名前>` の値。無い・空ならプロジェクト名
+function scopeOf(name: string, tags: JsonValue | undefined): string {
+  if (!isJsonArray(tags)) return name
+  for (const tag of tags) {
+    if (typeof tag === 'string' && tag.startsWith(SCOPE_TAG_PREFIX) && tag.length > SCOPE_TAG_PREFIX.length) return tag.slice(SCOPE_TAG_PREFIX.length)
+  }
+  return name
+}
+
+function projectsFromGraph(text: string): ReadonlyMap<string, NxProject> | undefined {
   const graph = tryParseJsonText(text)
-  const roots = new Map<string, string>()
+  const projects = new Map<string, NxProject>()
   const nodes = jsonField(jsonField(graph, 'graph'), 'nodes')
   if (!isJsonObject(nodes)) return undefined
   for (const [name, node] of Object.entries(nodes)) {
-    const root = jsonField(jsonField(node, 'data'), 'root')
+    const data = jsonField(node, 'data')
+    const root = jsonField(data, 'root')
     // root は文字列のはず。他の型も Python の str() と同じ文字列にする
     if (root === undefined) return undefined
-    roots.set(name, (typeof root === 'string' ? root : pythonRepr(root)).replace(/\/+$/u, '') || '.')
+    projects.set(name, {
+      root: (typeof root === 'string' ? root : pythonRepr(root)).replace(/\/+$/u, '') || '.',
+      scope: scopeOf(name, jsonField(data, 'tags')),
+    })
   }
-  return roots
+  return projects
+}
+
+export interface NxProject {
+  /**
+  リポジトリ直下からの root（`.` はリポジトリ直下）
+  */
+  readonly root: string
+  /**
+  PR タイトルの scope。tag `scope:<名前>` の値、無ければプロジェクト名
+  */
+  readonly scope: string
 }
 
 export interface NxGraphOptions {
@@ -81,12 +109,10 @@ export interface NxGraphOptions {
 }
 
 /**
-nx の project graph から `{プロジェクト名: root}` を返す。root の `.` はリポジトリ直下。
-`nx graph --file=<一時 json>` に書かせて読む（stdout のパイプでは大きな JSON が途中で切れる）。
-一時ファイルは `<toplevel>/.pecot/tmp` に作成し、終了時に削除する。
+nx の project graph から `{プロジェクト名: NxProject}` を返す。stdout では大きな JSON が切れるため、一時ファイルに書かせて読む。
 nx が無い・実行失敗・部分 graph・JSON の解析失敗なら undefined
 */
-export function nxProjectRoots(toplevel: string, options: Readonly<NxGraphOptions> = {}): ReadonlyMap<string, string> | undefined {
+export function nxProjects(toplevel: string, options: Readonly<NxGraphOptions> = {}): ReadonlyMap<string, NxProject> | undefined {
   const nx = resolveNx(toplevel)
   if (nx === undefined) return undefined
   const temporaryBase = path.join(toplevel, TMP_DIR)
@@ -117,8 +143,8 @@ export function nxProjectRoots(toplevel: string, options: Readonly<NxGraphOption
     catch {
       return undefined
     }
-    const roots = rootsFromGraph(text)
-    return roots === undefined || roots.size === 0 ? undefined : roots
+    const projects = projectsFromGraph(text)
+    return projects === undefined || projects.size === 0 ? undefined : projects
   }
   finally {
     try {
@@ -154,25 +180,21 @@ function isUnder(file: string, root: string): boolean {
 }
 
 /**
-変更ファイルから期待する scope（プロジェクト名の一覧）を返す。
-- ファイルの持ち主は、project root との最長一致で決める（nx の `findProjectForPath` と同じ）。
-- どのプロジェクトにも属さないファイルがあれば、末尾に `repo` を加える。
-- `.nx/version-plans/` 配下は数えない。
-
-結果は、プロジェクト名の昇順に、必要なら `repo` を足したもの。数えるファイルが無ければ空。
+変更ファイルから期待する scope を、昇順で返す。持ち主は project root との最長一致で決め、どれにも属さないファイルがあれば末尾に `repo` を足す。
+`.nx/version-plans/` 配下は数えない。
 */
-export function expectedScope(files: readonly string[], roots: ReadonlyMap<string, string>): readonly string[] {
-  const ordered = [...roots].toSorted((a, b) => b[1].length - a[1].length)
-  const names = new Set<string>()
+export function expectedScope(files: readonly string[], projects: ReadonlyMap<string, NxProject>): readonly string[] {
+  const ordered = [...projects].map(([, project]) => project).toSorted((a, b) => b.root.length - a.root.length)
+  const scopes = new Set<string>()
   let hasOutside = false
   const counted = files.filter(item => !item.startsWith(VERSION_PLANS_PREFIX))
   for (const file of counted) {
-    const owner = ordered.find(([, root]) => isUnder(file, root))
+    const owner = ordered.find(project => isUnder(file, project.root))
     if (owner === undefined) hasOutside = true
-    else names.add(owner[0])
+    else scopes.add(owner.scope)
   }
-  const scope = [...names].toSorted(compareStrings)
-  return hasOutside ? [...scope, REPOSITORY_SCOPE] : scope
+  const scope = [...scopes].filter(item => item !== REPOSITORY_SCOPE).toSorted(compareStrings)
+  return hasOutside || scopes.has(REPOSITORY_SCOPE) ? [...scope, REPOSITORY_SCOPE] : scope
 }
 
 /**

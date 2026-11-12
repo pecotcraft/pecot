@@ -409,6 +409,27 @@ describe('否定形と包んだスキーマ', () => {
   })
 })
 
+describe('名前が no_ で始まる旗', () => {
+  const skip = defineCommand({
+    path: ['skip'],
+    description: '省く',
+    input: z.object({ no_issue_ref: z.boolean().default(false) }),
+    positional: [],
+    interactive: false,
+    run: async (input) => {
+      seen.push(input)
+      return await exitWith(0)
+    },
+  })
+
+  it('--no-issue-ref を渡さなければ偽、渡せば真になる', async () => {
+    seen.length = 0
+    await runDefinition(skip, [], capture())
+    await runDefinition(skip, ['--no-issue-ref'], capture())
+    expect(seen).toEqual([{ no_issue_ref: false }, { no_issue_ref: true }])
+  })
+})
+
 describe('誤りの扱い', () => {
   it('値の無いオプションは、利用者が打った名前で案内する', async () => {
     const io = capture()

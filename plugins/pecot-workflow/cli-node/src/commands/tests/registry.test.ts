@@ -10,10 +10,6 @@ import { capture, exitWith } from './support.js'
 Node へ未移植のコマンドの path。各 Phase が移植するたびに、ここから消す。Phase 7 で空になる
 */
 const PENDING_PATHS: readonly (readonly string[])[] = [
-  ['pr', 'create'],
-  ['pr', 'read'],
-  ['pr', 'cleanup'],
-  ['pr', 'preflight'],
   ['security', 'sync'],
   ['dependabot', 'sync'],
 ]
@@ -252,6 +248,6 @@ describe('findCommand', () => {
     })
     expect(findCommand(['pr', 'read'], [command])).toBe(command)
     expect(findCommand(['pr', 'merge'], [command])).toBeUndefined()
-    expect(findCommand(['pr', 'read'])).toBeUndefined()
+    expect(findCommand(['pr', 'merge'])).toBeUndefined()
   })
 })

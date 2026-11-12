@@ -10,18 +10,32 @@ import { createGitRepository, gitForTest } from '../../tests/_helpers/git-reposi
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { pluginRoot } from '../../version.js'
 import { OsError } from '../os-error.js'
-import { changedFiles, expectedScope, nxProjectRoots, parseTitleScope, resolveNx } from '../nx-scope.js'
+import type { NxProject } from '../nx-scope.js'
+import { changedFiles, expectedScope, nxProjects, parseTitleScope, resolveNx } from '../nx-scope.js'
 
 useIsolatedEnvironment()
 
-const ROOTS: ReadonlyMap<string, string> = new Map([
-  ['pecot-workflow', 'plugins/pecot-workflow'],
-  ['pecot-visual', 'plugins/pecot-visual'],
-  ['nx-release', '.nx/nx-release'],
+// [root, tags]
+const GRAPH: Readonly<Record<string, readonly [string, readonly string[]]>> = {
+  'pecot-workflow': ['plugins/pecot-workflow', ['type:plugin', 'scope:p-w']],
+  'pecot-visual': ['plugins/pecot-visual', ['scope:p-v']],
+  'nx-release': ['.nx/nx-release', ['scope:repo']],
+  'text-rules': ['libs/text-rules', ['scope:libs']],
+  'slide-kit': ['libs/slide-kit', ['scope:libs']],
+  'no-tag': ['tools/no-tag', ['type:tool']],
+}
+
+const PROJECTS: ReadonlyMap<string, NxProject> = new Map([
+  ['pecot-workflow', { root: 'plugins/pecot-workflow', scope: 'p-w' }],
+  ['pecot-visual', { root: 'plugins/pecot-visual', scope: 'p-v' }],
+  ['nx-release', { root: '.nx/nx-release', scope: 'repo' }],
+  ['text-rules', { root: 'libs/text-rules', scope: 'libs' }],
+  ['slide-kit', { root: 'libs/slide-kit', scope: 'libs' }],
+  ['no-tag', { root: 'tools/no-tag', scope: 'no-tag' }],
 ])
 
-function graphOf(roots: ReadonlyMap<string, string>): string {
-  return JSON.stringify({ graph: { nodes: Object.fromEntries([...roots].map(([name, root]) => [name, { name, data: { root } }])) } })
+function graphOf(projects: Readonly<Record<string, readonly [string, readonly string[]]>>): string {
+  return JSON.stringify({ graph: { nodes: Object.fromEntries(Object.entries(projects).map(([name, [root, tags]]) => [name, { name, data: { root, tags } }])) } })
 }
 
 /**
@@ -88,12 +102,12 @@ describe('resolveNx', () => {
   })
 })
 
-describe('nxProjectRoots', () => {
-  it('graph ファイルから root を読む。nx は toplevel を作業ディレクトリにして、デーモン無しで呼ぶ', () => {
+describe('nxProjects', () => {
+  it('graph ファイルから root と scope の tag を読む。nx は toplevel を作業ディレクトリにして、デーモン無しで呼ぶ', () => {
     const toplevel = makeTemporaryDirectory()
     const info = path.join(makeTemporaryDirectory(), 'info')
-    const nx = installLocalNx(toplevel, writeGraphBody(graphOf(ROOTS), info))
-    expect(nxProjectRoots(toplevel)).toEqual(ROOTS)
+    const nx = installLocalNx(toplevel, writeGraphBody(graphOf(GRAPH), info))
+    expect(nxProjects(toplevel)).toEqual(PROJECTS)
     expect(readFileSync(info, 'utf8')).toBe(`${toplevel} false`)
     const [call] = readFakeCalls(path.dirname(nx), 'nx')
     expect(call?.[0]).toBe('graph')
@@ -102,46 +116,70 @@ describe('nxProjectRoots', () => {
 
   it('graph ファイルは .pecot/tmp の下に作り、終わったら消す', () => {
     const toplevel = makeTemporaryDirectory()
-    installGraphNx(toplevel, graphOf(ROOTS))
-    nxProjectRoots(toplevel)
+    installGraphNx(toplevel, graphOf(GRAPH))
+    nxProjects(toplevel)
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
   it('root が . のプロジェクトは . のまま。末尾の / は落とし、空になれば .', () => {
     const toplevel = makeTemporaryDirectory()
-    const graph = graphOf(new Map([['root', '.'], ['lib', 'packages/lib/'], ['slash', '/']]))
+    const graph = graphOf({ root: ['.', []], lib: ['packages/lib/', []], slash: ['/', []] })
     installGraphNx(toplevel, graph)
-    expect(nxProjectRoots(toplevel)).toEqual(new Map([['root', '.'], ['lib', 'packages/lib'], ['slash', '.']]))
+    expect(nxProjects(toplevel)).toEqual(new Map([
+      ['root', { root: '.', scope: 'root' }],
+      ['lib', { root: 'packages/lib', scope: 'lib' }],
+      ['slash', { root: '.', scope: 'slash' }],
+    ]))
+  })
+
+  it.each([
+    ['tags が無い', undefined],
+    ['tags が空', []],
+    ['値が空の scope: だけ', ['scope:']],
+    ['tags が配列でない', 'scope:x'],
+    ['scope: で始まらない tag だけ', ['type:lib', 'xscope:x']],
+  ])('scope の tag が使えなければ、プロジェクト名を scope にする（%s）', (_title, tags) => {
+    const toplevel = makeTemporaryDirectory()
+    const data = tags === undefined ? { root: 'a' } : { root: 'a', tags }
+    installGraphNx(toplevel, JSON.stringify({ graph: { nodes: { 'a-b': { name: 'a-b', data } } } }))
+    expect(nxProjects(toplevel)).toEqual(new Map([['a-b', { root: 'a', scope: 'a-b' }]]))
+  })
+
+  it('scope の tag が複数あれば、先頭のものを使う。文字列でない tag は飛ばす', () => {
+    const toplevel = makeTemporaryDirectory()
+    const data = { root: 'a', tags: [1, 'scope:first', 'scope:second'] }
+    installGraphNx(toplevel, JSON.stringify({ graph: { nodes: { a: { data } } } }))
+    expect(nxProjects(toplevel)?.get('a')?.scope).toBe('first')
   })
 
   it('nx が無ければ undefined', () => {
     setEnvironment({ PATH: makeTemporaryDirectory() })
-    expect(nxProjectRoots(makeTemporaryDirectory())).toBeUndefined()
+    expect(nxProjects(makeTemporaryDirectory())).toBeUndefined()
   })
 
   it('PATH 上の偽の nx も使える', () => {
     const bin = makeTemporaryDirectory()
-    installFakeExecutable(bin, 'nx', writeGraphBody(graphOf(ROOTS), path.join(bin, 'info')))
+    installFakeExecutable(bin, 'nx', writeGraphBody(graphOf(GRAPH), path.join(bin, 'info')))
     prependToPath(bin)
-    expect(nxProjectRoots(makeTemporaryDirectory())).toEqual(ROOTS)
+    expect(nxProjects(makeTemporaryDirectory())).toEqual(PROJECTS)
   })
 
   it('終了コードが 0 でなければ undefined', () => {
     const toplevel = makeTemporaryDirectory()
-    installGraphNx(toplevel, graphOf(ROOTS), { exitCode: 1 })
-    expect(nxProjectRoots(toplevel)).toBeUndefined()
+    installGraphNx(toplevel, graphOf(GRAPH), { exitCode: 1 })
+    expect(nxProjects(toplevel)).toBeUndefined()
   })
 
   it('部分 graph（stderr に Showing partial graph）なら undefined', () => {
     const toplevel = makeTemporaryDirectory()
-    installGraphNx(toplevel, graphOf(ROOTS), { stderr: 'Showing partial graph (errors)' })
-    expect(nxProjectRoots(toplevel)).toBeUndefined()
+    installGraphNx(toplevel, graphOf(GRAPH), { stderr: 'Showing partial graph (errors)' })
+    expect(nxProjects(toplevel)).toBeUndefined()
   })
 
   it('timeout を超えたら undefined。graph ファイルは消す', () => {
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'sleep 5\n')
-    expect(nxProjectRoots(toplevel, { timeoutSeconds: 0.3 })).toBeUndefined()
+    expect(nxProjects(toplevel, { timeoutSeconds: 0.3 })).toBeUndefined()
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
@@ -149,11 +187,11 @@ describe('nxProjectRoots', () => {
     const toplevel = makeTemporaryDirectory()
     const info = path.join(makeTemporaryDirectory(), 'info')
     // graph を書いた後、作業ディレクトリを書き込み不可にして、中身を消せなくする
-    const body = writeGraphBody(graphOf(ROOTS), info).replace(/exit 0\n$/u, 'chmod 555 "$(dirname "$f")"\nexit 0\n')
+    const body = writeGraphBody(graphOf(GRAPH), info).replace(/exit 0\n$/u, 'chmod 555 "$(dirname "$f")"\nexit 0\n')
     installLocalNx(toplevel, body)
     const temporary = path.join(toplevel, '.pecot', 'tmp')
     try {
-      expect(nxProjectRoots(toplevel)).toEqual(ROOTS)
+      expect(nxProjects(toplevel)).toEqual(PROJECTS)
     }
     finally {
       for (const name of readdirSync(temporary)) chmodSync(path.join(temporary, name), 0o755)
@@ -165,20 +203,20 @@ describe('nxProjectRoots', () => {
     const nx = installLocalNx(toplevel, 'exit 0\n')
     writeFileSync(nx, '\0\0 not executable format')
     chmodSync(nx, 0o755)
-    expect(nxProjectRoots(toplevel)).toBeUndefined()
+    expect(nxProjects(toplevel)).toBeUndefined()
   })
 
   it('graph ファイルが書かれなければ undefined', () => {
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'exit 0\n')
-    expect(nxProjectRoots(toplevel)).toBeUndefined()
+    expect(nxProjects(toplevel)).toBeUndefined()
   })
 
   it('.pecot/tmp を作れなければ undefined', () => {
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'exit 0\n')
     writeFileSync(path.join(toplevel, '.pecot'), 'a file')
-    expect(nxProjectRoots(toplevel)).toBeUndefined()
+    expect(nxProjects(toplevel)).toBeUndefined()
   })
 
   it.each([
@@ -194,14 +232,18 @@ describe('nxProjectRoots', () => {
   ])('graph が解釈できなければ undefined（%s）', (_title, text) => {
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, text)
-    expect(nxProjectRoots(toplevel)).toBeUndefined()
+    expect(nxProjects(toplevel)).toBeUndefined()
   })
 
   it('root が文字列でなくても Python の str() と同じ文字列にする', () => {
     const toplevel = makeTemporaryDirectory()
     const graph = '{"graph": {"nodes": {"n": {"data": {"root": 5}}, "b": {"data": {"root": true}}, "z": {"data": {"root": null}}}}}'
     installGraphNx(toplevel, graph)
-    expect(nxProjectRoots(toplevel)).toEqual(new Map([['n', '5'], ['b', 'True'], ['z', 'None']]))
+    expect(nxProjects(toplevel)).toEqual(new Map([
+      ['n', { root: '5', scope: 'n' }],
+      ['b', { root: 'True', scope: 'b' }],
+      ['z', { root: 'None', scope: 'z' }],
+    ]))
   })
 })
 
@@ -263,46 +305,64 @@ describe('changedFiles（実 git）', () => {
   })
 })
 
+function projectsOf(roots: Readonly<Record<string, string>>): ReadonlyMap<string, NxProject> {
+  return new Map(Object.entries(roots).map(([name, root]) => [name, { root, scope: name }]))
+}
+
 describe('expectedScope', () => {
-  it('差分が 1 つのプロジェクトだけに属するとき、そのプロジェクト名だけを返す', () => {
-    expect(expectedScope(['plugins/pecot-workflow/cli/a.py', 'plugins/pecot-workflow/README.md'], ROOTS)).toEqual(['pecot-workflow'])
+  it('差分が 1 つのプロジェクトだけに属するとき、その scope だけを返す', () => {
+    expect(expectedScope(['plugins/pecot-workflow/cli/a.py', 'plugins/pecot-workflow/README.md'], PROJECTS)).toEqual(['p-w'])
   })
 
-  it('複数のプロジェクトは名前の昇順', () => {
-    expect(expectedScope(['plugins/pecot-workflow/a.py', 'plugins/pecot-visual/b.ts'], ROOTS)).toEqual(['pecot-visual', 'pecot-workflow'])
+  it('複数のプロジェクトは scope の昇順', () => {
+    expect(expectedScope(['plugins/pecot-workflow/a.py', 'plugins/pecot-visual/b.ts'], PROJECTS)).toEqual(['p-v', 'p-w'])
   })
 
   it('持ち主は project root との最長一致で決める', () => {
-    const roots = new Map([['outer', 'plugins/x'], ['inner', 'plugins/x/sub']])
-    expect(expectedScope(['plugins/x/sub/f.py'], roots)).toEqual(['inner'])
-    expect(expectedScope(['plugins/x/other.py'], roots)).toEqual(['outer'])
+    const projects = projectsOf({ outer: 'plugins/x', inner: 'plugins/x/sub' })
+    expect(expectedScope(['plugins/x/sub/f.py'], projects)).toEqual(['inner'])
+    expect(expectedScope(['plugins/x/other.py'], projects)).toEqual(['outer'])
   })
 
   it('ディレクトリ名の前方一致は一致とみなさない', () => {
-    expect(expectedScope(['plugins/pecot-workflow-extra/a.py'], ROOTS)).toEqual(['repo'])
+    expect(expectedScope(['plugins/pecot-workflow-extra/a.py'], PROJECTS)).toEqual(['repo'])
   })
 
   it('どのプロジェクトにも属さないファイルがあれば、末尾に repo を加える', () => {
-    expect(expectedScope(['plugins/pecot-workflow/a.py', 'CLAUDE.md'], ROOTS)).toEqual(['pecot-workflow', 'repo'])
-    expect(expectedScope(['.githooks/pre-commit/x.sh'], ROOTS)).toEqual(['repo'])
+    expect(expectedScope(['plugins/pecot-workflow/a.py', 'CLAUDE.md'], PROJECTS)).toEqual(['p-w', 'repo'])
+    expect(expectedScope(['.githooks/pre-commit/x.sh'], PROJECTS)).toEqual(['repo'])
   })
 
   it('root が . のプロジェクトは全てを持つ', () => {
-    const roots = new Map([['root', '.'], ['lib', 'packages/lib']])
-    expect(expectedScope(['README.md', 'packages/lib/a.ts'], roots)).toEqual(['lib', 'root'])
+    const projects = projectsOf({ root: '.', lib: 'packages/lib' })
+    expect(expectedScope(['README.md', 'packages/lib/a.ts'], projects)).toEqual(['lib', 'root'])
   })
 
   it('.nx/version-plans/ 配下は数えない。それだけなら空', () => {
-    expect(expectedScope(['plugins/pecot-workflow/a.py', '.nx/version-plans/1-x.md'], ROOTS)).toEqual(['pecot-workflow'])
-    expect(expectedScope(['.nx/version-plans/1-x.md'], ROOTS)).toEqual([])
+    expect(expectedScope(['plugins/pecot-workflow/a.py', '.nx/version-plans/1-x.md'], PROJECTS)).toEqual(['p-w'])
+    expect(expectedScope(['.nx/version-plans/1-x.md'], PROJECTS)).toEqual([])
   })
 
   it('.nx/nx-release のプロジェクトは version-plans ではない', () => {
-    expect(expectedScope(['.nx/nx-release/src/x.js'], ROOTS)).toEqual(['nx-release'])
+    expect(expectedScope(['.nx/nx-release/src/x.js'], PROJECTS)).toEqual(['repo'])
   })
 
   it('差分が空なら空', () => {
-    expect(expectedScope([], ROOTS)).toEqual([])
+    expect(expectedScope([], PROJECTS)).toEqual([])
+  })
+
+  it('同じ scope の tag を持つ複数のプロジェクトは 1 つにまとまる', () => {
+    const files = ['libs/text-rules/a.ts', 'libs/slide-kit/b.ts', 'plugins/pecot-workflow/c.py']
+    expect(expectedScope(files, PROJECTS)).toEqual(['libs', 'p-w'])
+  })
+
+  it('scope が repo のプロジェクトを、昇順の並びから外して末尾へ置く', () => {
+    const files = ['.nx/nx-release/src/x.js', 'plugins/pecot-workflow/c.py', 'CLAUDE.md']
+    expect(expectedScope(files, PROJECTS)).toEqual(['p-w', 'repo'])
+  })
+
+  it('scope の tag が無いプロジェクトは、プロジェクト名を使う', () => {
+    expect(expectedScope(['tools/no-tag/a.sh'], PROJECTS)).toEqual(['no-tag'])
   })
 })
 
@@ -328,9 +388,9 @@ describe('実 nx の契約（graph の出力形式）', () => {
   const repositoryRoot = path.resolve(pluginRoot(), '..', '..')
 
   it.skipIf(!existsSync(path.join(repositoryRoot, 'node_modules', '.bin', 'nx')))('リポジトリ実体の nx の graph から plugin の root を読める', () => {
-    const roots = nxProjectRoots(repositoryRoot)
-    expect(roots?.get('pecot-workflow')).toBe('plugins/pecot-workflow')
-    expect(roots?.get('pecot-visual')).toBe('plugins/pecot-visual')
-    expect(roots === undefined ? undefined : expectedScope(['plugins/pecot-workflow/cli/x.py'], roots)).toEqual(['pecot-workflow'])
+    const projects = nxProjects(repositoryRoot)
+    expect(projects?.get('pecot-workflow')?.root).toBe('plugins/pecot-workflow')
+    expect(projects?.get('pecot-visual')?.root).toBe('plugins/pecot-visual')
+    expect(projects === undefined ? undefined : expectedScope(['plugins/pecot-workflow/cli/x.py'], projects)).toEqual(['p-w'])
   }, 120_000)
 })

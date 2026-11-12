@@ -6,6 +6,7 @@ import {
   EMOJI_ERROR,
   extractSectionsFromTemplate,
   FOLD_SUMMARY_BY_TEMPLATE,
+  hasSummaryImage,
   HORIZONTAL_RULE_ERROR,
   PLAN_FOLD_SUMMARY,
   SOFT_BREAK_ERROR,
@@ -716,5 +717,41 @@ describe('validateBodyStyle: 段落の中の改行（GitHub は改行のまま�
     ['コメント', '<!--\n冒頭の\n説明\n-->\n'],
   ])('%s は止めない', (_name, body) => {
     expect(validateBodyStyle(body)).not.toContain(SOFT_BREAK_ERROR)
+  })
+})
+
+describe('hasSummaryImage', () => {
+  const image = '![shot](./a.png)'
+
+  it.each([
+    ['Markdown の画像', `## Summary — 要点\n\n${image}\n\n## Changes\n\nなし\n`],
+    ['参照形式の画像', '## Summary\n\n![shot][ref]\n'],
+    ['代替文に角括弧を含む画像', '## Summary\n\n![a [b] c](./a.png)\n'],
+    ['img タグ', '## Summary\n\n<IMG src="a.png">\n'],
+    ['先頭に空白 3 つまでの見出し', `   ## Summary\n\n${image}\n`],
+    ['Summary より後ろの節の画像ではなく Summary の中', `## Summary\n\n${image}\n\n## Changes\n\n${image}\n`],
+  ])('%s があれば真', (_name, body) => {
+    expect(hasSummaryImage(body)).toBe(true)
+  })
+
+  it.each([
+    ['画像の無い Summary', '## Summary — 要点\n\n本文。\n\n## Changes\n\nなし\n'],
+    ['Summary の見出しが無い', `## Changes\n\n${image}\n`],
+    ['URL が空の画像', '## Summary\n\n![a]()\n'],
+    ['参照形式の閉じ角括弧が無い', '## Summary\n\n![x]\n'],
+    ['リンク', '## Summary\n\n[x](./x.png)\n'],
+    ['別の節の画像', `## Summary\n\n本文\n\n## Changes\n\n${image}\n`],
+    ['見出しの下に ## だけの行がある', `## Summary\n\n##\n\n${image}\n`],
+    ['空白 4 つの見出しは別の節の終わりにならないが Summary でもない', `    ## Summary\n\n${image}\n`],
+    ['フェンスの中', `## Summary\n\n\`\`\`\n${image}\n\`\`\`\n`],
+    ['インラインコードの中', `## Summary\n\n\`${image}\`\n`],
+    ['HTML コメントの中', `## Summary\n\n<!-- ${image} -->\n`],
+    ['img に続く英数字', '## Summary\n\n<imgx src="a.png">\n'],
+  ])('%s は偽', (_name, body) => {
+    expect(hasSummaryImage(body)).toBe(false)
+  })
+
+  it('Summary の次の 1 段目の見出しで節が終わる', () => {
+    expect(hasSummaryImage(`## Summary\n\n# 題\n\n${image}\n`)).toBe(false)
   })
 })
