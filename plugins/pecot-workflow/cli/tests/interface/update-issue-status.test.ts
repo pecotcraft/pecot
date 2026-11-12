@@ -65,7 +65,7 @@ describe('update-issue-status', () => {
     expect(result).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'error: invalid status: foo\n  valid values: backlog/pending/ready/active/in_review/archived\n',
+      stderr: 'error: invalid status: foo\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\n',
     })
     expect(github.requests()).toEqual([])
   })

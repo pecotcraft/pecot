@@ -21,8 +21,9 @@ argument-hint: "[Epic の内容]"
 | ステータス | 意味 |
 |-----------|------|
 | Active | 別ワークツリーで作業中 |
-| Ready | 未着手タスク |
-| Pending | 後回し・保留中（Epic／タスク） |
+| Ready | 今、着手できるタスク |
+| Blocked | 前提を待っているタスク（pecot が置く。ボードに無ければ `project_init` で足す） |
+| Pending | 人が後回しにした（Epic／タスク） |
 | Backlog | Epic置き場 |
 
 ### Step 2: 既存Epicを確認

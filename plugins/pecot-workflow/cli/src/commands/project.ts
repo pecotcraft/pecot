@@ -5,8 +5,11 @@ import { z } from 'zod'
 
 import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
 import type { Package, ProjectConfig, Repository } from '../domain/config.js'
+import { insertOption } from '../domain/field-options.js'
+import type { OptionPlacement } from '../domain/field-options.js'
 import { formatBoardOutput } from '../domain/format.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
+import type { JsonObject } from '../domain/json.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
 import type { JsonValue } from '../domain/python-format.js'
 import { parseOwnerRepository, splitOwnerRepository } from '../domain/repository-resolver.js'
@@ -25,14 +28,18 @@ import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { collectAlertStatuses, infoJson, infoMarkdown, pruneArchivedItems, readBoard } from './project-info.js'
 import {
+  BLOCKED_OPTION,
+  NEEDS_ATTENTION_OPTION,
   PRIORITY_FIELD_OPTIONS,
   SIZE_FIELD_OPTIONS,
+  STATUS_FIELD_NAME,
   WORKFLOW_FIELD_OPTIONS,
   buildRepository,
   failApi,
   fieldNodesOf,
   findProjectByTitle,
   hasWorkflowField,
+  lastFieldNamed,
   syncProjectConfig,
   textOf,
 } from './project-sync.js'
@@ -160,17 +167,71 @@ const searchCommand = defineCommand({
 
 // project init
 
-async function initializeFields(out: Readonly<Output>, target: Readonly<{ host: string, owner: string, name: string, suffix: string }>): Promise<void> {
-  const { host, owner, name, suffix } = target
-  await guarded(out, 'initialize project fields', async () => {
-    const client = createGitHubClient(out, host)
+function stringOr(value: JsonValue | undefined, fallback: string): string {
+  return typeof value === 'string' ? value : fallback
+}
+
+// 読んだ選択肢を、更新の入力に渡す 4 つの値にそろえる
+function optionInputsOf(field: Readonly<JsonObject>): readonly Readonly<{ id: string, name: string, color: string, description: string }>[] {
+  return asArray(field['options']).map(option => ({
+    id: requireString(jsonField(option, 'id'), 'option.id'),
+    name: requireString(jsonField(option, 'name'), 'option.name'),
+    color: stringOr(jsonField(option, 'color'), 'GRAY'),
+    description: stringOr(jsonField(option, 'description'), ''),
+  }))
+}
+
+// Blocked は Backlog の直後（無ければ Ready の直前、どちらも無ければ末尾）。Needs Attention は末尾
+function placementFor(option: ProjectFieldOption, names: ReadonlySet<string>): OptionPlacement {
+  if (option.name !== BLOCKED_OPTION.name) return { end: true }
+  if (names.has('backlog')) return { after: 'Backlog' }
+  return names.has('ready') ? { before: 'Ready' } : { end: true }
+}
+
+// 既にあるフィールドに選択肢を 1 つ足し、足した数（0 か 1）を返す。失敗は warning を出して続ける
+async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, option: ProjectFieldOption): Promise<number> {
+  const fieldName = textOf(field['name'])
+  const existing = optionInputsOf(field)
+  const names = new Set(existing.map(item => item.name.toLowerCase()))
+  const merged = insertOption(existing, option, placementFor(option, names))
+  if (merged === undefined) {
+    out.done({ verb: 'unchanged', target: `option ${option.name} in field ${fieldName}` })
+    return 0
+  }
+  try {
+    await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), merged)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    out.warning(`could not add option ${option.name} to field ${fieldName}: ${error.message}`)
+    return 0
+  }
+  out.done({ verb: 'add', target: `option ${option.name} to field ${fieldName}` })
+  return 1
+}
+
+// 既にあるフィールドに足す選択肢。足した数を返す
+async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowFieldName: string): Promise<number> {
+  const workflowField = lastFieldNamed(fields, workflowFieldName)
+  const workflowCount = workflowField === undefined ? 0 : await addFieldOption(out, client, workflowField, BLOCKED_OPTION)
+  const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
+  if (statusField !== undefined) return workflowCount + await addFieldOption(out, client, statusField, NEEDS_ATTENTION_OPTION)
+  out.done({ verb: 'skip', target: `field ${STATUS_FIELD_NAME} (not found)` })
+  return workflowCount
+}
+
+// フィールドを作り、既にあるフィールドには足りない選択肢を足す。足した選択肢の数を返す
+async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, suffix: string }>): Promise<number> {
+  const { owner, name, suffix } = target
+  return await guarded(out, 'initialize project fields', async () => {
     const project = await findProjectByTitle(out, client, owner, name)
     const projectId = requireString(project['id'], 'project.id')
     const projectInfo = await client.getProjectFields(owner, requireNumber(project['number'], 'project.number'))
     if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `could not read project fields: ${name}`)
     const fields = fieldNodesOf(projectInfo)
+    const workflowFieldName = `pecot-workflow-${suffix}`
     const wanted: readonly (readonly [string, readonly ProjectFieldOption[]])[] = [
-      [`pecot-workflow-${suffix}`, WORKFLOW_FIELD_OPTIONS],
+      [workflowFieldName, WORKFLOW_FIELD_OPTIONS],
       ['pecot-priority', PRIORITY_FIELD_OPTIONS],
       ['pecot-size', SIZE_FIELD_OPTIONS],
     ]
@@ -182,12 +243,13 @@ async function initializeFields(out: Readonly<Output>, target: Readonly<{ host: 
       const created = await client.createProjectField(projectId, fieldName, options)
       out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
     }
+    return await addMissingOptions(out, client, fields, workflowFieldName)
   })
 }
 
 const initCommand = defineCommand({
   path: ['project', 'init'],
-  description: 'Add pecot-workflow fields to an existing project',
+  description: 'Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     name: z.string().describe('Project title'),
@@ -198,7 +260,12 @@ const initCommand = defineCommand({
   shortFlags: { host: '-h', suffix: '-s' },
   interactive: false,
   run: async (input, io) => {
-    await initializeFields(createOutput(false, io), input)
+    const out = createOutput(false, io)
+    const { owner, name, host } = input
+    await guarded(out, 'initialize project fields', async () => {
+      const client = createGitHubClient(out, host)
+      if (await initializeFields(out, client, input) > 0) await syncProjectConfig(out, client, { owner, name, host })
+    })
     return 0
   },
 })
@@ -236,7 +303,7 @@ const projectCreationCommand = defineCommand({
 
       const created = await client.createProject(ownerId, title)
       out.done({ verb: 'create', target: `project #${textOf(created['number'])} ${textOf(created['url'])}` })
-      await initializeFields(out, { host, owner, name: title, suffix })
+      await initializeFields(out, client, { owner, name: title, suffix })
       await syncProjectConfig(out, client, { owner, name: title, host })
     })
     return 0

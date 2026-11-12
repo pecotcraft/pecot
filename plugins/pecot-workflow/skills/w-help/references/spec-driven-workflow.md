@@ -118,8 +118,9 @@ Phase内の全サブIssue完了後：
 | ステータス | 用途 |
 |-----------|------|
 | **Backlog** | Epic（Phase単位）・Tracker置き場 |
-| **Pending** | 後回し・保留中のEpicまたはタスク。Ready／Backlog から手動で移動 |
-| **Ready** | 着手可能なサブIssue |
+| **Pending** | 人が後回しにしたEpicまたはタスク。Ready／Backlog から手動で移動。人だけが出し入れする |
+| **Blocked** | 前提を待っているサブIssue。pecot が置き、pecot が出す。ボードに無ければ `project_init` で足す |
+| **Ready** | 今、着手できるサブIssue |
 | **Active** | 作業中（同時1-2個まで） |
 | **Archived** | 完了後退避 |
 

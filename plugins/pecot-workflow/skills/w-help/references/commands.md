@@ -36,7 +36,7 @@
 | `project activate` | Activate an initialized project |
 | `project create` | Create a new project (to add the fields to an existing project, use project init) |
 | `project info` | Show the project info dashboard |
-| `project init` | Add pecot-workflow fields to an existing project |
+| `project init` | Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist |
 | `project list` | List available projects |
 | `project search` | Search projects through the GitHub API |
 | `project set-aggregation-repo` | Set the Epic aggregation repository (``aggregation_repo``) |

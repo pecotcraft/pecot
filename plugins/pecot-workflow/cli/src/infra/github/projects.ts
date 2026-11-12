@@ -14,6 +14,7 @@ import {
   MUTATION_CREATE_PROJECT_FIELD,
   MUTATION_DELETE_PROJECT_ITEM,
   MUTATION_LINK_PROJECT_REPOSITORY,
+  MUTATION_UPDATE_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
   QUERY_GET_ISSUE_PROJECT_ITEMS,
   QUERY_GET_LINKED_REPOSITORIES_ORG,
@@ -48,7 +49,7 @@ export interface ListProjectItemsOptions {
 /**
 SingleSelect フィールドの選択肢
 */
-export type ProjectFieldOption = Readonly<{ name: string, color: string, description: string }>
+export type ProjectFieldOption = Readonly<{ id?: string, name: string, color: string, description: string }>
 
 /**
 プロジェクトへのリンクの結果。detail は GitHub の message をそのまま入れる（成功時は空文字列）
@@ -324,6 +325,17 @@ export class ProjectsApi extends ReposApi {
     const created = jsonField(jsonField(result, 'createProjectV2Field'), 'projectV2Field')
     if (!isTruthy(created)) throw new GitHubAPIError('failed to create the field')
     return asObject(created)
+  }
+
+  /**
+  SingleSelect フィールドの選択肢を、渡した一覧に置き換え、更新後のフィールド（id・name・options）を返す。
+  既存の選択肢は id を付けて渡す（外すと選択肢が作り直され、カードの値が消える）
+  */
+  async updateProjectFieldOptions(fieldId: string, options: readonly ProjectFieldOption[]): Promise<JsonObject> {
+    const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_FIELD, { fieldId, options })
+    const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field')
+    if (!isTruthy(updated)) throw new GitHubAPIError('failed to update the field')
+    return asObject(updated)
   }
 
   /**

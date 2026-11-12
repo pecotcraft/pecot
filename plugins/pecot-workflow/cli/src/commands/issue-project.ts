@@ -46,7 +46,7 @@ const ADD_TO_PROJECT = defineCommand({
   description: 'Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
-    status: z.string().default('ready').describe('Initial status (backlog/pending/ready/active/in_review/archived)'),
+    status: z.string().default('ready').describe('Initial status (backlog/pending/blocked/ready/active/in_review/archived)'),
   }),
   positional: ['issue_ref'],
   shortFlags: { status: '-s' },
@@ -86,7 +86,7 @@ const UPDATE_ISSUE_STATUS = defineCommand({
   description: 'Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
-    status: z.string().describe('Status (backlog/pending/ready/active/in_review/archived)'),
+    status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
   }),
   positional: ['issue_ref', 'status'],
   interactive: false,
@@ -168,7 +168,7 @@ const ISSUE_REOPEN = defineCommand({
   description: 'Reopen a closed Issue (also sets the status on the board)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
-    status: z.string().default('ready').describe('Status after reopening (backlog/pending/ready/active/in_review/archived)'),
+    status: z.string().default('ready').describe('Status after reopening (backlog/pending/blocked/ready/active/in_review/archived)'),
     comment: z.string().optional().describe('Reason for reopening (posted as a comment)'),
   }),
   positional: ['issue_ref'],

@@ -56,7 +56,7 @@ export const PARENT_EPIC_DESCRIPTION = 'Parent Epic reference: an integer (relat
 
 export const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `--repo`, or else of the git remote of the current directory)'
 
-export const VALID_STATUSES: ReadonlySet<string> = new Set(['backlog', 'pending', 'ready', 'active', 'in_review', 'archived'])
+export const VALID_STATUSES: ReadonlySet<string> = new Set(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
 
 /**
 Issue 種別 → タイトルの接頭辞
@@ -163,7 +163,7 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
 不正な status と、有効な値を出して終了コード 1
 */
 export function exitInvalidStatus(output: Output, status: string): never {
-  return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/ready/active/in_review/archived`)
+  return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`)
 }
 
 /**

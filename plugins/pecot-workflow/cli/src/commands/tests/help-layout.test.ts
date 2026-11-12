@@ -94,19 +94,19 @@ describe('examplesSection', () => {
 })
 
 describe('幅より長い語の折り返し', () => {
-  const status = '(backlog/pending/ready/active/in_review/archived)'
+  const status = '(backlog/pending/blocked/ready/active/in_review/archived)'
 
   it('`/` の後ろを折れる位置にして、語の途中では折らない', () => {
     expect(paragraph(`Status ${status} Decided by the type`, 30)).toBe([
       'Status',
-      '(backlog/pending/ready/active/',
-      'in_review/archived) Decided by',
-      'the type',
+      '(backlog/pending/blocked/',
+      'ready/active/in_review/',
+      'archived) Decided by the type',
     ].join('\n'))
   })
 
   it('語が行の先頭にあるときは、前に空行を入れない', () => {
-    expect(paragraph(status, 30)).toBe('(backlog/pending/ready/active/\nin_review/archived)')
+    expect(paragraph(status, 30)).toBe('(backlog/pending/blocked/\nready/active/in_review/\narchived)')
   })
 
   it('塊を幅までつめる。それでも入らない塊と、`/` の無い語だけを幅で折る', () => {
@@ -121,7 +121,7 @@ describe('幅より長い語の折り返し', () => {
   it('definitionSection の説明も同じ折り方になる', () => {
     const text = definitionSection('Options', [{ name: '--status <str>', description: `Status ${status} Decided by the type` }], 60)
     expect(text.split('\n').slice(1).every(line => line.length <= 60)).toBe(true)
-    expect(text).toContain('(backlog/pending/ready/active/in_review/\n')
+    expect(text).toContain('(backlog/pending/blocked/ready/active/\n')
   })
 })
 

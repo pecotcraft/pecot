@@ -18,11 +18,27 @@ import type { Output } from './output.js'
 const WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
 
 /**
-workflow フィールドに要る選択肢。作る順でもある
+前提を待つ Issue を pecot が置く列。既存のボードに無くても設定の同期は止めない
+*/
+export const BLOCKED_OPTION: ProjectFieldOption = { name: 'Blocked', color: 'ORANGE', description: 'Waiting for prerequisite Issues. Set by pecot.' }
+
+/**
+人の判断を待つ Issue の札。既定の Status に足す
+*/
+export const NEEDS_ATTENTION_OPTION: ProjectFieldOption = { name: 'Needs Attention', color: 'RED', description: 'Waiting for a human decision or action.' }
+
+/**
+既定の Status のフィールド名
+*/
+export const STATUS_FIELD_NAME = 'Status'
+
+/**
+workflow フィールドに作る選択肢。作る順でもある
 */
 export const WORKFLOW_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
-  { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized or blocked.' },
+  { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized.' },
   { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' },
+  BLOCKED_OPTION,
   { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' },
   { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' },
   { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' },
@@ -91,12 +107,12 @@ interface ValidatedFields {
   readonly viewNumber: JsonValue | undefined
 }
 
-// workflow フィールドと、足りない選択肢（要る順）。フィールドが無ければ undefined
+// workflow フィールドと、足りない選択肢（要る順。Blocked は無くても足りないに数えない）。フィールドが無ければ undefined
 function validateWorkflowField(fields: readonly JsonValue[]): { readonly field: JsonObject, readonly missing: readonly string[] } | undefined {
   for (const field of fields) {
     if (!isJsonObject(field) || !isWorkflowField(field['name']) || !Object.hasOwn(field, 'options')) continue
     const existing = new Set(asArray(field['options']).map(option => jsonField(option, 'name')))
-    return { field, missing: WORKFLOW_FIELD_OPTIONS.map(option => option.name).filter(name => !existing.has(name)) }
+    return { field, missing: WORKFLOW_FIELD_OPTIONS.map(option => option.name).filter(name => name !== BLOCKED_OPTION.name && !existing.has(name)) }
   }
   return undefined
 }
@@ -140,7 +156,8 @@ function quote(text: string): string {
 function buildBoardUrl(projectUrl: string, workflowField: JsonObject, viewNumber: JsonValue | undefined): string {
   const databaseId = workflowField['databaseId']
   // 空白入りの値（In Review）を末尾に置く（URL の解析の誤りを避ける）
-  const names = WORKFLOW_FIELD_OPTIONS.map(option => option.name)
+  const present = new Set(asArray(workflowField['options']).map(option => jsonField(option, 'name')))
+  const names = WORKFLOW_FIELD_OPTIONS.map(option => option.name).filter(name => name !== BLOCKED_OPTION.name || present.has(name))
   const plain = names.filter(name => !name.includes(' '))
   const spaced = names.filter(name => name.includes(' '))
   const values = [...plain, ...spaced]
@@ -149,7 +166,8 @@ function buildBoardUrl(projectUrl: string, workflowField: JsonObject, viewNumber
   return isTruthy(databaseId) && isTruthy(viewNumber) ? `${projectUrl}/views/${textOf(viewNumber)}?layout=board&verticalGroupedBy%5BcolumnId%5D=${textOf(databaseId)}&filterQuery=${filterQuery}` : `${projectUrl}?filterQuery=${filterQuery}`
 }
 
-function fieldOptionsConfig(field: JsonObject, keys: readonly (readonly [string, string])[]): FieldOptions {
+// optional のキーは、ボードに選択肢が無ければ書かない。それ以外は無ければ空文字列で書く
+function fieldOptionsConfig(field: JsonObject, keys: readonly (readonly [string, string])[], optional: ReadonlySet<string> = new Set()): FieldOptions {
   const idsByName = new Map<string, string>()
   const optionNodes = asArray(field['options'])
   for (const option of optionNodes) {
@@ -157,16 +175,24 @@ function fieldOptionsConfig(field: JsonObject, keys: readonly (readonly [string,
     const id = jsonField(option, 'id')
     if (typeof name === 'string' && typeof id === 'string') idsByName.set(name.toLowerCase(), id)
   }
-  return { id: requireString(field['id'], 'field.id'), options: Object.fromEntries(keys.map(([key, label]) => [key, idsByName.get(label) ?? ''])) }
+  const entries: (readonly [string, string])[] = []
+  for (const [key, label] of keys) {
+    const id = idsByName.get(label)
+    if (id !== undefined || !optional.has(key)) entries.push([key, id ?? ''])
+  }
+  return { id: requireString(field['id'], 'field.id'), options: Object.fromEntries(entries) }
 }
 
 type KeyTable = readonly (readonly [string, string])[]
-const WORKFLOW_KEYS: KeyTable = [['backlog', 'backlog'], ['pending', 'pending'], ['ready', 'ready'], ['active', 'active'], ['in_review', 'in review'], ['archived', 'archived']]
+const WORKFLOW_KEYS: KeyTable = [['backlog', 'backlog'], ['pending', 'pending'], ['blocked', 'blocked'], ['ready', 'ready'], ['active', 'active'], ['in_review', 'in review'], ['archived', 'archived']]
+const STATUS_KEYS: KeyTable = [['todo', 'todo'], ['needs_attention', 'needs attention']]
+const OPTIONAL_WORKFLOW_KEYS: ReadonlySet<string> = new Set(['blocked'])
+const OPTIONAL_STATUS_KEYS: ReadonlySet<string> = new Set(['todo', 'needs_attention'])
 const PRIORITY_KEYS: KeyTable = [['high', 'high'], ['medium', 'medium'], ['low', 'low']]
 const SIZE_KEYS: KeyTable = [['xs', 'xs'], ['s', 's'], ['m', 'm'], ['l', 'l']]
 
 // 同じ名前のフィールドが複数あれば、後のものを使う
-function lastFieldNamed(fields: readonly JsonValue[], name: string): JsonObject | undefined {
+export function lastFieldNamed(fields: readonly JsonValue[], name: string): JsonObject | undefined {
   return fields.findLast((field): field is JsonObject => isJsonObject(field) && field['name'] === name && Object.hasOwn(field, 'options'))
 }
 
@@ -236,6 +262,7 @@ export async function syncProjectConfig(out: Readonly<Output>, client: Readonly<
   const linked = await client.getLinkedRepositories(owner, number)
   const priorityField = lastFieldNamed(fields, 'pecot-priority')
   const sizeField = lastFieldNamed(fields, 'pecot-size')
+  const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
   const config: ProjectConfig = {
     host,
     owner,
@@ -245,9 +272,10 @@ export async function syncProjectConfig(out: Readonly<Output>, client: Readonly<
       id: requireString(project['id'], 'project.id'),
       board_url: buildBoardUrl(typeof project['url'] === 'string' ? project['url'] : '', workflowField, viewNumber),
       fields: {
-        workflow: fieldOptionsConfig(workflowField, WORKFLOW_KEYS),
+        workflow: fieldOptionsConfig(workflowField, WORKFLOW_KEYS, OPTIONAL_WORKFLOW_KEYS),
         priority: priorityField === undefined ? undefined : fieldOptionsConfig(priorityField, PRIORITY_KEYS),
         size: sizeField === undefined ? undefined : fieldOptionsConfig(sizeField, SIZE_KEYS),
+        status: statusField === undefined ? undefined : fieldOptionsConfig(statusField, STATUS_KEYS, OPTIONAL_STATUS_KEYS),
       },
     },
     repositories: buildRepositories(linked, existing?.repositories ?? []),

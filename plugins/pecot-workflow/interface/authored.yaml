@@ -42,7 +42,7 @@ entries:
       - The short form N refers to the Issue of the repository given by the global pecot --repo.
       - Without --repo, the short form N refers to the Issue of the repository of the git remote.
       - The repository of the Issue must be registered in the active project.
-      - --status takes backlog, pending, ready, active, in_review or archived, and the Status is set to that value.
+      - --status takes backlog, pending, blocked, ready, active, in_review or archived, and the Status is set to that value.
       - An empty --status skips the Status update and only adds the Issue.
       - An Issue that is already on the board is not added twice.
       - A --status value that is not one of these values stops the command before anything is added.
@@ -107,13 +107,13 @@ entries:
         statement: Status を設定すると、set の行を標準エラーに出す
       - id: PW-ADD-TO-PROJECT-09
         pattern: unwanted
-        statement: もし --status が backlog・pending・ready・active・in_review・archived のどれでもないなら、有効な値を並べた error の行を標準エラーに出す
+        statement: もし --status が 7 つの有効な値のどれでもないなら、有効な値を並べた error の行を標準エラーに出す
       - id: PW-ADD-TO-PROJECT-10
         pattern: unwanted
-        statement: もし --status が backlog・pending・ready・active・in_review・archived のどれでもないなら、Issue をボードに足さない
+        statement: もし --status が backlog・pending・blocked・ready・active・in_review・archived のどれでもないなら、Issue をボードに足さない
       - id: PW-ADD-TO-PROJECT-11
         pattern: unwanted
-        statement: もし --status が backlog・pending・ready・active・in_review・archived のどれでもないなら、終了コード 1 で終わる
+        statement: もし --status が backlog・pending・blocked・ready・active・in_review・archived のどれでもないなら、終了コード 1 で終わる
       - id: PW-ADD-TO-PROJECT-12
         pattern: unwanted
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる
@@ -1796,6 +1796,8 @@ entries:
       - The develop branch, release branch, changelog_file, packages and release type of each repository, and aggregation_repo, already in the config file are kept.
       - A repository that is no longer linked to the project is removed from the config file.
       - A newly linked repository is appended to the end of the repository list.
+      - The Blocked option of the pecot-workflow field and the Todo and Needs Attention options of the Status field are written to the config file only when the board has them.
+      - A board without the Blocked option is accepted; the other six options of the pecot-workflow field are required.
     stdin: none
     output:
       format: text
@@ -1886,18 +1888,33 @@ entries:
       - id: PW-PROJECT-ACTIVATE-18
         pattern: unwanted
         statement: もし --host が渡した設定ファイルの host と違うなら、設定ファイルの host で同期する
+      - id: PW-PROJECT-ACTIVATE-19
+        pattern: unwanted
+        statement: もし進行の欄に Blocked が無いなら、止めずに同期し、設定ファイルに blocked のキーを書かない
+      - id: PW-PROJECT-ACTIVATE-20
+        pattern: event
+        statement: Blocked か Needs Attention がボードにあると、同期でその id を設定ファイルに書く
+      - id: PW-PROJECT-ACTIVATE-21
+        pattern: unwanted
+        statement: もし Status のフィールドが無いなら、設定ファイルに fields.status を書かない
+      - id: PW-PROJECT-ACTIVATE-22
+        pattern: unwanted
+        statement: もし進行の欄に必須の値（Blocked を除く 6 つ）が欠けているなら、終了コード 1 で終わる
   PW-PROJECT-CREATE:
     constraints: []
     details:
       - Creates a GitHub Projects V2 project for the owner.
       - Adds the pecot-workflow, pecot-priority and pecot-size fields to the project.
+      - The pecot-workflow field is created with seven options, including Blocked.
+      - Adds the Needs Attention option to the Status field of the project.
+      - When an option cannot be added, a warning line is written and the command continues.
       - Writes the config file and makes the project active.
       - Stops without creating anything when the owner is not found.
       - Stops without creating anything when a project with the same title already exists.
     stdin: none
     output:
       format: none
-    diagnostics: Result lines on stderr for the created project, each created field, the config file and the active project.
+    diagnostics: Result lines on stderr for the created project, each created field, the added Needs Attention option, the config file and the active project. A warning line when an option cannot be added.
     environment: []
     exit_status:
       - code: 0
@@ -1910,7 +1927,7 @@ entries:
     effects:
       - target: github
         kind: write
-        what: Creates a project and its three fields.
+        what: Creates a project and its three fields, and adds the Needs Attention option to the Status field.
       - target: github
         kind: read
         what: Reads the owner, the existing projects, the fields and the linked repositories.
@@ -1952,11 +1969,14 @@ entries:
       - id: PW-PROJECT-CREATE-09
         pattern: unwanted
         statement: もし作ったプロジェクトが pecot-workflow に準拠しないなら、終了コード 1 で終わる
+      - id: PW-PROJECT-CREATE-10
+        pattern: unwanted
+        statement: もし Status に Needs Attention を足せなかったなら、warning の行を出して設定ファイルを作る
   PW-PROJECT-INFO:
     constraints: []
     details:
       - Shows the active project, its registered repositories and the board status.
-      - The board status covers the open items in Backlog, Pending, Ready, Active and In Review.
+      - The board status covers the open items in Backlog, Pending, Blocked, Ready, Active and In Review.
       - Each registered repository line carries the release type and the Dependabot alert status.
       - A repository whose alerts cannot be read shows the reason and does not stop the command.
       - Narrows the board items to one repository when --repo or the global pecot --repo is given.
@@ -2040,32 +2060,41 @@ entries:
       - Adds the pecot-workflow-<suffix>, pecot-priority and pecot-size fields to an existing project.
       - A field that already exists is skipped.
       - The other fields are still created.
+      - Adds the Blocked option to a pecot-workflow-<suffix> field that already exists, placed right after Backlog (right before Ready when there is no Backlog, at the end when there is neither).
+      - Adds the Needs Attention option at the end of the Status field. When the project has no Status field, nothing is added.
+      - Names are compared without regard to case, and an option that already exists is left as it is.
+      - The whole option list is sent again with the existing options keeping their id, name, color and description, so the values on the cards stay.
+      - When an option cannot be added, a warning line is written and the command continues; the option is not sent again without its id.
+      - Only when it added an option, regenerates the config file from GitHub and makes the project active.
     stdin: none
     output:
       format: none
-    diagnostics: A result line on stderr for each field, created or skipped.
+    diagnostics: A result line on stderr for each field (created or skipped) and for each option (added or unchanged), and for the Status field that is not found (skipped). A warning line when an option cannot be added. When an option was added, result lines for the config file (created or updated) and for the active project (set).
     environment: []
     exit_status:
       - code: 0
-        when: Every field was created or already existed.
+        when: Every field was created or already existed. Options that could not be added do not change the status.
       - code: 1
-        when: The project is not found, its fields cannot be read, the GitHub API returned an error, or the project root cannot be determined.
+        when: The project is not found, its fields cannot be read, the GitHub API returned an error other than the failure to add an option, the project does not conform to pecot-workflow when the config file is generated, or the project root cannot be determined.
       - code: 2
         when: A required argument or --suffix is missing, or another command line error occurs.
-    on_error: Fields created before the failing one remain on the project.
+    on_error: Fields created and options added before the failing step remain on the project.
     effects:
       - target: github
         kind: read
-        what: Reads the projects of the owner and the fields of the target project.
+        what: Reads the projects of the owner and the fields of the target project. When an option was added, also reads the linked repositories.
       - target: github
         kind: write
-        what: Creates the missing fields on the project.
+        what: Creates the missing fields on the project and adds the Blocked and Needs Attention options to the fields that already exist.
+      - target: file
+        kind: write
+        what: Only when an option was added, writes the config file under .pecot/config/projects/ and sets the active project.
     prerequisites:
       - A GitHub token is available for the host, with permission to edit the project.
     idempotent: true
     examples:
       - run: pecot project init example-org "Example Project" --suffix example
-        note: Add the pecot-workflow fields to an existing project.
+        note: Add the pecot-workflow fields to an existing project, and the Blocked and Needs Attention options to the fields that already exist.
     default_notes: {}
     behaviors:
       - id: PW-PROJECT-INIT-01
@@ -2083,6 +2112,24 @@ entries:
       - id: PW-PROJECT-INIT-05
         pattern: unwanted
         statement: もしフィールドの作成で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-PROJECT-INIT-06
+        pattern: event
+        statement: 既にあるフィールドに Blocked か Needs Attention が無いと、その選択肢を足して added の行を標準エラーに出す
+      - id: PW-PROJECT-INIT-07
+        pattern: event
+        statement: 選択肢を足すと、既存の選択肢を id・name・color・description のまま送り、Blocked は Backlog の直後、Needs Attention は末尾に置く
+      - id: PW-PROJECT-INIT-08
+        pattern: event
+        statement: 選択肢を足すと、設定ファイルを同期して Blocked と Needs Attention の id を書く
+      - id: PW-PROJECT-INIT-09
+        pattern: unwanted
+        statement: もし足す選択肢が既にあるなら、書き込まずに unchanged の行を標準エラーに出し、設定ファイルも同期しない
+      - id: PW-PROJECT-INIT-10
+        pattern: unwanted
+        statement: もし Status のフィールドが無いなら、何も足さずに skipped の行を標準エラーに出す
+      - id: PW-PROJECT-INIT-11
+        pattern: unwanted
+        statement: もし選択肢を足せなかったなら、warning の行を標準エラーに出して続け、終了コード 0 で終わる
   PW-PROJECT-LIST:
     constraints: []
     details:
@@ -3276,7 +3323,7 @@ entries:
       - The Issue reference is owner/repo/N or the short form N.
       - The short form N refers to the Issue of the repository given by the global pecot --repo.
       - Without --repo, the short form N refers to the Issue of the repository of the git remote.
-      - The status is backlog, pending, ready, active, in_review or archived.
+      - The status is backlog, pending, blocked, ready, active, in_review or archived.
       - The status is checked before the config file is read.
       - The repository of the Issue must be registered in the active project, and the Issue must be on the board.
       - Unlike add-to-project, which only warns, a status that the board does not define stops the command with exit status 1.
@@ -3326,10 +3373,10 @@ entries:
         statement: Status を設定すると、set の行を標準エラーに出す
       - id: PW-UPDATE-ISSUE-STATUS-05
         pattern: unwanted
-        statement: もし Status が backlog・pending・ready・active・in_review・archived のどれでもないなら、有効な値を並べた error の行を標準エラーに出す
+        statement: もし Status が 7 つの有効な値のどれでもないなら、有効な値を並べた error の行を標準エラーに出す
       - id: PW-UPDATE-ISSUE-STATUS-06
         pattern: unwanted
-        statement: もし Status が backlog・pending・ready・active・in_review・archived のどれでもないなら、終了コード 1 で終わる
+        statement: もし Status が backlog・pending・blocked・ready・active・in_review・archived のどれでもないなら、終了コード 1 で終わる
       - id: PW-UPDATE-ISSUE-STATUS-07
         pattern: unwanted
         statement: もしアクティブなプロジェクトが無いなら、終了コード 1 で終わる

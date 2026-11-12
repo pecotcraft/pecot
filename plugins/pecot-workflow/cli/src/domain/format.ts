@@ -14,6 +14,7 @@ import type { JsonValue } from './python-format.js'
 const STATUS_PATTERNS: ReadonlyMap<string, readonly string[]> = new Map([
   ['Active', ['Active']],
   ['In Review', ['In Review']],
+  ['Blocked', ['Blocked']],
   ['Ready', ['Ready']],
   ['Pending', ['Pending']],
   ['Backlog', ['Backlog']],
@@ -21,7 +22,7 @@ const STATUS_PATTERNS: ReadonlyMap<string, readonly string[]> = new Map([
 ])
 
 // 表示順序
-const STATUS_ORDER: readonly string[] = ['Active', 'In Review', 'Ready', 'Pending', 'Backlog', 'Archived']
+const STATUS_ORDER: readonly string[] = ['Active', 'In Review', 'Blocked', 'Ready', 'Pending', 'Backlog', 'Archived']
 
 // Archived は直近これだけ表示する
 const ARCHIVED_DISPLAY_LIMIT = 5

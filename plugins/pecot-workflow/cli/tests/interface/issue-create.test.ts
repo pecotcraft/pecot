@@ -403,7 +403,7 @@ describe('issue create', () => {
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, '--status', 'doing')
 
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: invalid status: doing\n  valid values: backlog/pending/ready/active/in_review/archived\n' })
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: invalid status: doing\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\n' })
     })
 
     it('--status が有効な値で型の既定の値でないとき、error の行を出して終了コード 1 で終わる', async (context) => {

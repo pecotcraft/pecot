@@ -23,7 +23,7 @@ Dependabot alert を並列に取る数の上限（Python の _ALERT_FETCH_MAX_WO
 */
 const ALERT_FETCH_MAX_WORKERS = 8
 
-const DISPLAY_STATUSES: ReadonlySet<string> = new Set(['Backlog', 'Pending', 'Ready', 'Active', 'In Review'])
+const DISPLAY_STATUSES: ReadonlySet<string> = new Set(['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review'])
 
 /**
 取得に失敗したリポジトリは、理由の文字列
@@ -193,7 +193,7 @@ export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: stri
 export interface BoardRead {
   readonly allItems: readonly BoardItem[]
   /**
-  表示するアイテム（OPEN の Backlog・Pending・Ready・Active・In Review。リポジトリの指定があれば絞る）
+  表示するアイテム（OPEN の Backlog・Pending・Blocked・Ready・Active・In Review。リポジトリの指定があれば絞る）
   */
   readonly items: readonly BoardItem[]
 }

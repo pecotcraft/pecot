@@ -29,7 +29,7 @@
           "status": {
             "type": "string",
             "default": "ready",
-            "description": "Initial status (backlog/pending/ready/active/in_review/archived)"
+            "description": "Initial status (backlog/pending/blocked/ready/active/in_review/archived)"
           }
         },
         "required": [
@@ -622,7 +622,7 @@
           "status": {
             "type": "string",
             "default": "ready",
-            "description": "Status after reopening (backlog/pending/ready/active/in_review/archived)"
+            "description": "Status after reopening (backlog/pending/blocked/ready/active/in_review/archived)"
           }
         },
         "required": [
@@ -1094,7 +1094,7 @@
     {
       "id": "PW-PROJECT-INIT",
       "name": "project init",
-      "description": "Add pecot-workflow fields to an existing project",
+      "description": "Add pecot-workflow fields to an existing project, and add the Blocked and Needs Attention options to the fields that already exist",
       "surfaces": {
         "cli": {
           "path": [
@@ -1727,7 +1727,7 @@
           },
           "status": {
             "type": "string",
-            "description": "Status (backlog/pending/ready/active/in_review/archived)"
+            "description": "Status (backlog/pending/blocked/ready/active/in_review/archived)"
           }
         },
         "required": [

@@ -334,6 +334,8 @@ export const QUERY_GET_PROJECT_FIELDS_USER = `query ($owner: String!, $projectNu
             options {
               id
               name
+              color
+              description
             }
           }
           ... on ProjectV2Field {
@@ -367,6 +369,8 @@ export const QUERY_GET_PROJECT_FIELDS_ORG = `query ($owner: String!, $projectNum
             options {
               id
               name
+              color
+              description
             }
           }
           ... on ProjectV2Field {
@@ -393,6 +397,24 @@ export const MUTATION_CREATE_PROJECT_FIELD = `mutation ($projectId: ID!, $name: 
       name: $name
       singleSelectOptions: $options
     }
+  ) {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+        options {
+          id
+          name
+        }
+      }
+    }
+  }
+}`
+
+// プロジェクトフィールドの選択肢の置き換え（SingleSelect用。一覧の全体を送る）
+export const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+  updateProjectV2Field(
+    input: { fieldId: $fieldId, singleSelectOptions: $options }
   ) {
     projectV2Field {
       ... on ProjectV2SingleSelectField {

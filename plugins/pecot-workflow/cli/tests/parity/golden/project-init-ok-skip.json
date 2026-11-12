@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n",
+  "stderr": "skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\nunchanged: option Blocked in field pecot-workflow-acme\nskipped: field Status (not found)\n",
   "exitCode": 0,
   "requests": [
     {

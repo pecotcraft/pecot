@@ -76,8 +76,8 @@ function validationMessage(data: JsonValue): string {
 }
 
 describe('列挙値', () => {
-  it('ワークフローのステータスの列挙値は、backlog から archived までの 6 つを並べて返す', () => {
-    expect(WORKFLOW_STATUSES).toEqual(['backlog', 'pending', 'ready', 'active', 'in_review', 'archived'])
+  it('ワークフローのステータスの列挙値は、backlog から archived までの 7 つを並べて返す', () => {
+    expect(WORKFLOW_STATUSES).toEqual(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
   })
 
   it('優先度の列挙値は、high・medium・low の 3 つを並べて返す', () => {

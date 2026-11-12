@@ -24,8 +24,8 @@ const exported = new Map(Object.entries(queries))
 describe('queries.json との一致', () => {
   const recorded = queriesOutput()
 
-  it('記録の 30 個の定数をすべて写している', () => {
-    expect(Object.keys(recorded)).toHaveLength(30)
+  it('記録の 31 個の定数をすべて写している', () => {
+    expect(Object.keys(recorded)).toHaveLength(31)
     expect(Object.keys(queries).toSorted(byName)).toEqual(Object.keys(recorded).toSorted(byName))
   })
 

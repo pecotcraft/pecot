@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "created: project #1 https://ghes.example.com/users/acme/projects/1\ncreated: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\nset: active project to ghes.example.com_acme_board_acme\n",
+  "stderr": "created: project #1 https://ghes.example.com/users/acme/projects/1\ncreated: field pecot-workflow-acme (ID: PVTSSF_w)\ncreated: field pecot-priority (ID: PVTSSF_p)\ncreated: field pecot-size (ID: PVTSSF_s)\nskipped: field Status (not found)\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\nset: active project to ghes.example.com_acme_board_acme\n",
   "exitCode": 0,
   "requests": [
     {
@@ -57,12 +57,17 @@
           {
             "name": "Pending",
             "color": "GRAY",
-            "description": "Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized or blocked."
+            "description": "Items on hold (Epic or Task). Moved from Ready/Backlog when deprioritized."
           },
           {
             "name": "Backlog",
             "color": "RED",
             "description": "Items waiting to be planned. Not for direct work - break down into smaller tasks first."
+          },
+          {
+            "name": "Blocked",
+            "color": "ORANGE",
+            "description": "Waiting for prerequisite Issues. Set by pecot."
           },
           {
             "name": "Ready",
