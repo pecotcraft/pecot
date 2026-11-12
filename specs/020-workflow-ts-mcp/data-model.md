@@ -117,7 +117,7 @@ stdout・stderr が空で `exitCode` が 0 なら、`content` は空の配列。
 | クライアント | 形 | 取り出し |
 |---|---|---|
 | Claude Code | `mcp__plugin_pecot-w_pecot-workflow__<tool>` | 接頭辞 `mcp__plugin_pecot-w_pecot-workflow__` を外す |
-| Copilot CLI | `pecot-workflow-<tool>`（フェーズ 9 で確かめる） | 接頭辞 `pecot-workflow-` を外す |
+| Copilot CLI | `pecot-workflow-<tool>`（2026-11-12 に Copilot CLI 1.0.107 と 1.0.109 で確かめた） | 接頭辞 `pecot-workflow-` を外す |
 
 取り出した名前が 34 個のツール名にあるときだけ判定する。Copilot CLI では matcher `pecot-workflow-.*` が `pecot-workflow-playwright` のツールにも当たるため。
 

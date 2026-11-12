@@ -283,10 +283,10 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: 実物のツール名が contracts/hooks-guard.md の形と一致する。違えば、直した後にフェーズ 8 の投稿の ask のテストが通る
 
-- [ ] T049 [US3] 開発用の登録で、GitHub Copilot CLI から MCP サーバを起動する。`build-cli` の後に、`node <作業ツリー>/plugins/pecot-workflow/cli-node/dist/cli.js mcp` を直接起動する形で登録する。
+- [x] T049 [US3] 開発用の登録で、GitHub Copilot CLI から MCP サーバを起動する。`build-cli` の後に、`node <作業ツリー>/plugins/pecot-workflow/cli-node/dist/cli.js mcp` を直接起動する形で登録する。
   `bin/pecot` はフェーズ 11 まで Python を起動するので使わない。`project_info` を呼ぶ。
   PreToolUse の hooks が受ける JSON は、開発用の一時の matcher（`.*`）で採り、`.pecot/work/<Issue番号>/` に保存する。採り終えたら matcher を戻す。
-- [ ] T050 [US3] 採ったツール名が `pecot-workflow-<tool>` と違えば、`hooks/lib/mcp-handlers/pecot-post-ask.sh` の取り出しを直す。contracts/hooks-guard.md、data-model.md、投稿の ask のテストの名前も直す。
+- [x] T050 [US3] 採ったツール名が `pecot-workflow-<tool>` と違えば、`hooks/lib/mcp-handlers/pecot-post-ask.sh` の取り出しを直す。contracts/hooks-guard.md、data-model.md、投稿の ask のテストの名前も直す。
   同じなら、確かめた日付と Copilot CLI の版を research.md の R-5 に書く。
 
 **Checkpoint**: Copilot CLI の名前の形が確定している。`.mcp.json`・`bin/pecot`・`skills/` に差分が無い

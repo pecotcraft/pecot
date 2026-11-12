@@ -12,12 +12,15 @@ hooks の本体は shell と jq のまま（FR-013）。判定の入力を Bash 
 | Claude Code（プラグインの外で登録したとき） | `mcp__pecot-workflow__<tool>` | `mcp__pecot-workflow__issue_create` |
 | Copilot CLI | `pecot-workflow-<tool>` | `pecot-workflow-issue_create` |
 
+Copilot CLI の形は、2026-11-12 に Copilot CLI 1.0.107 と 1.0.109 の実物で確かめた（research R-5）。`tool_name` はこの形、`tool_input` はオブジェクトで届く。
+
 Copilot CLI の matcher `pecot-workflow-.*` は、playwright のツールにも当たる。
 例は `pecot-workflow-playwright-browser_click`。
 接頭辞を外すと `playwright-browser_click` になる。34 個のツール名に無いので素通しになる。
 Claude Code の接頭辞は `pecot-workflow__` で終わるので、playwright のツールには当たらない。
 
 matcher は `hooks.json` の `mcp__.*` のままで足りる。Copilot CLI 向けの matcher には `pecot-workflow-.*` を足す。置き場は `com.github.copilot/hooks/hooks.json`（`hooks/hooks-copilot.json` から移す）。
+hooks の定義を移すときも、イベント名は `PreToolUse` のままにする。`preToolUse` にすると、入力の欄が `tool_name`・`tool_input` から `toolName`・`toolArgs` に変わる。
 今の `hooks-copilot.json` の matcher は `mcp__.*|github-mcp-server-create_pull_request`。
 
 ## 投稿の ask（`lib/mcp-handlers/pecot-post-ask.sh`）
