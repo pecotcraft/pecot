@@ -216,6 +216,8 @@ Issue 化の前に、フェーズごとに出す見込み。Issue の状態を�
 次の決まりで扱う。
 
 - 書くのは `pecot create-branch` と `pecot pr restack` だ
+- 手元を `origin/<branch>` に合わせたときは、base の位置を次の結果にする
+  - `git merge-base origin/<branch> <開発ブランチ>`
 - 消すのは `pecot pr cleanup` で、`.pecot-active` と一緒に消す
 - 開発ブランチから着手したときも書く。base が開発ブランチだと分かるようにするためだ
 - ファイルが無い作業ディレクトリは、開発ブランチから着手したものとして扱う。この機能の前に着手したブランチがこれに当たる
