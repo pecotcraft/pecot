@@ -12,6 +12,7 @@ import {
   missingOptionMessage,
   noSuchOptionMessage,
   optionRequiresArgumentMessage,
+  optionTakesNoValueMessage,
   UsageError,
 } from './usage-error.js'
 import type { UsageContext } from './usage-error.js'
@@ -116,6 +117,25 @@ function bindOptions(definition: Readonly<CommandDefinition>): readonly BoundOpt
     .filter(bound => bound !== undefined)
 }
 
+/**
+click は `-1` のような負数に見える語を位置引数にせず、未定義の短いオプションとして断る（`-12` も `-1`）。
+その語の位置を返す。`--` より後ろと、値を取るオプションの値の位置にある語は対象にしない
+*/
+function negativeNumberIndex(argv: readonly string[], bound: readonly BoundOption[]): number | undefined {
+  const valueTaking = new Set(bound.filter(entry => entry.kind !== 'boolean').flatMap(entry => entry.names))
+  let isValueNext = false
+  for (const [index, argument] of argv.entries()) {
+    if (isValueNext) {
+      isValueNext = false
+      continue
+    }
+    if (argument === '--') return undefined
+    if (/^-\d/u.test(argument)) return index
+    isValueNext = valueTaking.has(argument)
+  }
+  return undefined
+}
+
 function toUsageError(
   error: Readonly<CommanderError>,
   argv: readonly string[],
@@ -126,15 +146,20 @@ function toUsageError(
   const quoted = error.message.replace(/^[^']*'([^']*)'.*$/su, '$1')
   switch (error.code) {
     case 'commander.unknownOption': {
+      // click は `--name=値` の値を落として名前だけで案内する。真偽のオプションなら、値は取らない旨にして Usage 行を付けない
+      const typedName = quoted.startsWith('--') ? quoted.replace(/=.*$/su, '') : quoted
+      const booleanNames = bound.flatMap(entry => entry.kind === 'boolean' ? [entry.names[0], entry.negation] : [])
+      if (typedName !== quoted && booleanNames.includes(typedName)) return new UsageError(optionTakesNoValueMessage(typedName))
       const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.slice(0, 1), ...entry.negation === undefined ? [] : [entry.negation]])]
-      const possibilities = quoted.startsWith('--') ? closeMatches(quoted, longNames) : []
-      return new UsageError(noSuchOptionMessage(quoted, possibilities), usage)
+      const possibilities = typedName.startsWith('--') ? closeMatches(typedName, longNames) : []
+      return new UsageError(noSuchOptionMessage(typedName, possibilities), usage)
     }
     case 'commander.optionMissingArgument': {
       // `-c, --comment-limit <value>` のうち、利用者が打った方の名前を出す
       const names = quoted.split(/[ ,]+/u).filter(part => part.startsWith('-'))
       const typed = argv.findLast(argument => names.includes(argument)) ?? names.at(-1) ?? quoted
-      return new UsageError(optionRequiresArgumentMessage(typed), usage)
+      // click はこの誤りに Usage 行・Try 行を付けない
+      return new UsageError(optionRequiresArgumentMessage(typed))
     }
     // 上の 2 つ以外の commander の誤りは、このバインドでは起きない（引数は任意、argParser は使わない）。
     // makeOptionMandatory・choices・InvalidArgumentError などを使い始めたら、この行を外して誤りごとに文とテストを足す
@@ -144,7 +169,8 @@ function toUsageError(
 }
 
 function extraArgumentsMessage(extras: readonly string[]): string {
-  return `Got unexpected extra argument${extras.length === 1 ? '' : 's'} (${extras.join(' ')})`
+  // click は個数によらず `argument(s)` と書く
+  return `Got unexpected extra argument(s) (${extras.join(' ')})`
 }
 
 function convertOrFail(text: string, valueType: ValueType, names: string | readonly string[], usage: UsageContext): unknown {
@@ -239,14 +265,20 @@ export async function runDefinition(
     if (negation !== undefined) command.addOption(new Option(negation))
   }
 
+  // 負数に見える語があれば、その手前までを解析する。手前の誤りを先に出し、--help も出さずに、その語を断る
+  const negativeIndex = negativeNumberIndex(argv, bound)
+  if (negativeIndex !== undefined) command.configureOutput({ writeOut: discard, writeErr: discard, outputError: discard })
   try {
-    await command.parseAsync([...argv], { from: 'user' })
+    await command.parseAsync(negativeIndex === undefined ? [...argv] : argv.slice(0, negativeIndex), { from: 'user' })
   }
   catch (error: unknown) {
     if (!(error instanceof CommanderError)) throw error
-    if (error.code === 'commander.helpDisplayed' || error.code === 'commander.help') return 0
-    throw toUsageError(error, argv, bound, usage)
+    const isHelp = error.code === 'commander.helpDisplayed' || error.code === 'commander.help'
+    if (!isHelp) throw toUsageError(error, argv, bound, usage)
+    if (negativeIndex === undefined) return 0
   }
+  const negativeWord = negativeIndex === undefined ? undefined : argv.at(negativeIndex)
+  if (negativeWord !== undefined) throw new UsageError(noSuchOptionMessage(negativeWord.slice(0, 2)), usage)
   const entries = [...positionalInput(definition, command, usage), ...optionInput(command, bound, usage)]
   const input = Object.fromEntries(entries)
   let prepared: PreparedCommand

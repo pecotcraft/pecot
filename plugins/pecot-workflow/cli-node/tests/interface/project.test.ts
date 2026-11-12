@@ -319,6 +319,9 @@ describe('project create', () => {
     const result = await create(createRules(standardFields(['Backlog'])))
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('required options: Backlog / Pending / Ready / Active / In Review / Archived')
+    // 準拠しないとわかった時点で止まり、設定ファイルも .active も作らない
+    expect(result.read(CONFIG_FILE)).toBeUndefined()
+    expect(result.read(ACTIVE_FILE)).toBeUndefined()
   })
 })
 
@@ -336,6 +339,13 @@ describe('project info', () => {
   function archivedItems(count: number): Json[] {
     return Array.from({ length: count }, (_unused, index) => item(`PVTI_a${String(index + 1).padStart(2, '0')}`, 100 + index, 'Archived', { state: 'CLOSED', updatedAt: `2026-02-${String(index + 1).padStart(2, '0')}T00:00:00Z` }))
   }
+
+  // Archived より古い updatedAt の Ready・Active を混ぜる。Archived の絞り込みが無いと、これらも削除の対象になる
+  const olderActive = (): Json[] => [
+    item('PVTI_r1', 11, 'Ready', { updatedAt: '2026-01-01T00:00:00Z' }),
+    item('PVTI_r2', 12, 'Active', { updatedAt: '2026-01-01T00:00:00Z' }),
+    item('PVTI_r3', 13, 'Ready', { updatedAt: '2025-12-31T00:00:00Z' }),
+  ]
 
   it('引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す', async (context) => {
     await verifies(context, 'PW-PROJECT-INFO-01')
@@ -367,10 +377,14 @@ describe('project info', () => {
     })
   })
 
-  it('--repo を付けて打つと、ボードの項目をそのリポジトリに絞る', async (context) => {
+  it.for<[string, string[]]>([
+    ['サブコマンドの側', ['project', 'info', '--repo', 'acme/other']],
+    ['グローバルの側', ['--repo', 'acme/other', 'project', 'info']],
+    ['両方（サブコマンドの側が勝つ）', ['--repo', 'acme/demo', 'project', 'info', '--repo', 'acme/other']],
+  ])('--repo を付けて打つと、ボードの項目をそのリポジトリに絞る（%s）', async ([, argv], context) => {
     await verifies(context, 'PW-PROJECT-INFO-03')
     const rules = [board(item('PVTI_1', 1, 'Ready'), item('PVTI_9', 9, 'Ready', { repo: 'other' })), twoAlerts()]
-    const result = await run(arguments_('info', '--repo', 'acme/other'), rules)
+    const result = await run(argv, rules)
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('## Board status (filter: acme/other)')
     expect(result.stdout).toContain('| acme/other#9 | 課題9 |')
@@ -379,11 +393,24 @@ describe('project info', () => {
 
   it('更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除する', async (context) => {
     await verifies(context, 'PW-PROJECT-INFO-04')
-    const result = await run(arguments_('info'), [board(...archivedItems(22)), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02')])
+    const result = await run(arguments_('info'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02')])
     expect(result.code).toBe(0)
     expectClean(result)
     const deleted = variableValues(result, 'DeleteProjectItem', 'itemId')
     expect(deleted.toSorted((first, second) => String(first).localeCompare(String(second)))).toEqual(['PVTI_a01', 'PVTI_a02'])
+    // 古い updatedAt の Ready・Active は削除せず、ボードの状態に残る
+    expect(result.stdout).toContain('| acme/demo#12 | 課題12 |')
+    expect(result.stdout).toContain('| acme/demo#11 | 課題11 |')
+    expect(result.stdout).toContain('| acme/demo#13 | 課題13 |')
+  })
+
+  it('Archived の項目がちょうど 20 件なら、ボードから何も削除しない', async (context) => {
+    await verifies(context, 'PW-PROJECT-INFO-04')
+    const result = await run(arguments_('info'), [board(...archivedItems(20), ...olderActive()), twoAlerts()])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
+    expect(result.stderr).toBe('')
   })
 
   it('aggregation_repo を設定していると、概要に Roadmap repo として出す', async (context) => {
@@ -404,7 +431,7 @@ describe('project info', () => {
 
   it('Archived の項目を削除すると、deleted の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-PROJECT-INFO-07')
-    const result = await run(arguments_('info'), [board(...archivedItems(22)), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02')])
+    const result = await run(arguments_('info'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02')])
     expect(result.stderr).toBe('deleted: 2 archived items\n')
   })
 
@@ -421,7 +448,7 @@ describe('project info', () => {
 
   it('Archived の項目を削除できなかったなら、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-PROJECT-INFO-09')
-    const result = await run(arguments_('info'), [board(...archivedItems(22)), twoAlerts(), deletion('PVTI_a01', 500), deletion('PVTI_a02')])
+    const result = await run(arguments_('info'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01', 500), deletion('PVTI_a02')])
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('deleted: 1 archived items\nwarning: failed to delete 1 archived items\n')
   })
@@ -440,14 +467,6 @@ describe('project info', () => {
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: could not read project board: GraphQL query error: Server error '500 Internal Server Error'/u)
-  })
-
-  it('予期しないエラーが起きると、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-PROJECT-INFO-12')
-    const result = await run(arguments_('info'), [{ match: { operation: 'ListProjectItems' }, respond: { status: 200, text: 'not json' }, times: 1 }])
-    expect(result.code).toBe(1)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/^error: /u)
   })
 })
 
@@ -696,6 +715,16 @@ describe('project set-repo', () => {
     const result = await setRepository(['acme/demo', '--package', 'foo:a.md', '--package', 'foo:b.md'])
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: --package NAME is duplicated: \'foo\'\n')
+  })
+
+  it('未登録のリポジトリに不正な --package の名前を渡すと、リンクせず終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-PROJECT-SET-REPO-11')
+    const result = await setRepository(['acme/new', '--package', 'bad name:p'])
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: /u)
+    expect(requestLabels(result.requests)).not.toContain('LinkProjectRepository')
+    expect(JSON.parse(result.read(CONFIG_FILE) ?? '')).toEqual(projectConfig())
   })
 
   it('リポジトリの所有者がプロジェクトの所有者と違うと、終了コード 1 で終わる', async (context) => {

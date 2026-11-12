@@ -12,8 +12,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import type { GitHubAPIError } from '../infra/github/errors.js'
 import type { ProjectFieldOption } from '../infra/github/projects.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
-import { apiErrorDetail } from './api-error.js'
-import { CommandExit } from './command-definition.js'
+import { stopWith } from './command-stop.js'
 import type { Output } from './output.js'
 
 const WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
@@ -44,24 +43,12 @@ export const SIZE_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
 ]
 
 /**
-error の行を出して終了コード 1 で止める
-*/
-export function fail(out: Readonly<Output>, message: string): never {
-  out.error(message)
-  throw new CommandExit(1)
-}
-
-/**
 `could not <action>` に API の失敗の文（と状態コード）を添えて、終了コード 1 で止める
 */
 export function failApi(out: Readonly<Output>, action: string, error: Readonly<GitHubAPIError>): never {
-  const detail = apiErrorDetail(error)
+  const detail = error.message
   const status = error.statusCode ?? 0
-  return fail(out, status === 0 ? `could not ${action}: ${detail}` : `could not ${action} (status ${String(status)}): ${detail}`)
-}
-
-export function failNoActiveProject(out: Readonly<Output>): never {
-  return fail(out, 'no active project\nrun: pecot project activate <PROJECT>')
+  return stopWith(out, status === 0 ? `could not ${action}: ${detail}` : `could not ${action} (status ${String(status)}): ${detail}`)
 }
 
 /**
@@ -95,7 +82,7 @@ export async function findProjectByTitle(out: Readonly<Output>, client: Readonly
   const found = projects.find(project => jsonField(project, 'title') === name)
   if (found !== undefined) return found
   const titles = projects.map(project => `- ${textOf(jsonField(project, 'title'))}`).join('\n')
-  return fail(out, `project not found: ${name}\navailable projects:\n${titles}`)
+  return stopWith(out, `project not found: ${name}\navailable projects:\n${titles}`)
 }
 
 interface ValidatedFields {
@@ -117,11 +104,11 @@ function validateWorkflowField(fields: readonly JsonValue[]): { readonly field: 
 async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string, number: number }>): Promise<ValidatedFields> {
   const { owner, name, host, number } = target
   const projectInfo = await client.getProjectFields(owner, number)
-  if (projectInfo === undefined || !isTruthy(projectInfo)) return fail(out, `could not read project fields: ${name}`)
+  if (projectInfo === undefined || !isTruthy(projectInfo)) return stopWith(out, `could not read project fields: ${name}`)
   const fields = fieldNodesOf(projectInfo)
   const validated = validateWorkflowField(fields)
   if (validated === undefined) {
-    return fail(
+    return stopWith(
       out,
       `project "${name}" has no pecot-workflow-* field\n`
       + 'required field: pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)\n'
@@ -129,7 +116,7 @@ async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitH
     )
   }
   if (validated.missing.length > 0) {
-    return fail(out, `pecot-workflow field is missing options: ${validated.missing.join(', ')}\nrequired options: Backlog / Pending / Ready / Active / In Review / Archived`)
+    return stopWith(out, `pecot-workflow field is missing options: ${validated.missing.join(', ')}\nrequired options: Backlog / Pending / Ready / Active / In Review / Archived`)
   }
   const views = asArray(jsonField(jsonField(projectInfo, 'views'), 'nodes'))
   const viewNumber = jsonField(views.at(0), 'number')
@@ -216,18 +203,15 @@ function buildRepositories(linked: readonly Readonly<{ owner: string, name: stri
     if (!linkedKeys.has(key)) linkedKeys.set(key, entry)
   }
   const previous = new Map(existing.map(repository => [`${repository.owner}/${repository.name}`, repository]))
-  const keys: string[] = []
+  const keys: (readonly [string, Readonly<{ owner: string, name: string }>])[] = []
   for (const key of previous.keys()) {
-    if (linkedKeys.has(key)) keys.push(key)
-  }
-  for (const key of linkedKeys.keys()) {
-    if (!previous.has(key)) keys.push(key)
-  }
-  return keys.map((key) => {
     const entry = linkedKeys.get(key)
-    const before = previous.get(key)
-    return buildRepository({ ...before, owner: entry?.owner ?? '', name: entry?.name ?? '' })
-  })
+    if (entry !== undefined) keys.push([key, entry])
+  }
+  for (const [key, entry] of linkedKeys) {
+    if (!previous.has(key)) keys.push([key, entry])
+  }
+  return keys.map(([key, entry]) => buildRepository({ ...previous.get(key), owner: entry.owner, name: entry.name }))
 }
 
 function loadExistingConfig(configPath: string): ProjectConfig | undefined {

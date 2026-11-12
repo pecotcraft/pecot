@@ -7,35 +7,15 @@ import { ReferenceParseError, parseIssueReference, parseRepositoryReference } fr
 import { compareStrings, pythonStringRepr } from '../domain/python-format.js'
 import { repositoryFullName } from '../domain/repository-resolver.js'
 import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
-import { loadActiveConfig } from '../infra/config-store.js'
 import { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, describeApiError, isMissingReferenceError } from '../infra/github/errors.js'
 import { readFlag } from '../infra/state-store.js'
-import { apiErrorDetail } from './api-error.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { CommandExit, defineCommand } from './command-definition.js'
+import { defineCommand } from './command-definition.js'
+import { USAGE_EXIT, requireActiveConfig, stopWith } from './command-stop.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
 import { recordWorkTarget } from './work-target.js'
-
-const NO_ACTIVE_PROJECT = 'no active project\nrun: pecot project activate <PROJECT>'
-
-/**
-使い方の誤り（コマンドの引数の形）の終了コード
-*/
-const USAGE_EXIT = 2
-
-/**
-設定を読む。アクティブなプロジェクトが無ければ error の行を出して止める
-*/
-function requireActiveConfig(out: Readonly<Output>): ProjectConfig {
-  const config = loadActiveConfig()
-  if (config === undefined) {
-    out.error(NO_ACTIVE_PROJECT)
-    throw new CommandExit(1)
-  }
-  return config
-}
 
 /**
 A-1. 作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違えば、終了コード 2 で止める
@@ -45,7 +25,8 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
   if (resolved?.source !== 'current-git') return
   const current = resolved.repository
   if (current.owner === owner && current.repository === repository) return
-  out.error(
+  stopWith(
+    out,
     `the repository of the work Issue (${owner}/${repository}) differs from `
     + `the CWD git remote (${repositoryFullName(current)})\n`
     + 'move to the worktree of the target repository and run again:\n'
@@ -53,8 +34,8 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
     + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree\n'
     + 'to issue the command on purpose from outside the CWD (for example in a script), '
     + 'give --allow-cross-repo',
+    USAGE_EXIT,
   )
-  throw new CommandExit(USAGE_EXIT)
 }
 
 interface BaseBranchQuery {
@@ -74,12 +55,12 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
   if (base !== undefined && base !== '') return base
   const developBranch = findRepository(config, owner, repository)?.develop_branch
   if (developBranch === undefined || developBranch === '') {
-    out.error(
+    stopWith(
+      out,
       `develop_branch is not set for ${owner}/${repository}\n`
       + `set it with: pecot project set-repo ${owner}/${repository} --develop-branch develop\n`
       + `or give the base: pecot create-branch ${owner}/${repository}/${String(issueNumber)} ${branchName} --base main`,
     )
-    throw new CommandExit(1)
   }
   return developBranch
 }
@@ -102,14 +83,15 @@ async function guardActiveOverwrite(out: Readonly<Output>, client: Readonly<GitH
   const { repository, number } = existingReference
   const { state } = await client.getIssueSlim(repository.owner, repository.repository, number)
   if (state === 'OPEN') {
-    out.error(
+    stopWith(
+      out,
       `this worktree is already working on another Issue (${existing}, OPEN)\n`
       + 'overwriting .pecot-active could mix up the tasks\n'
       + 'finish the other Issue first, or create another worktree with '
       + '/pecot-w:w-worktree-add and run /pecot-w:w-active again in its session\n'
       + 'if it is stale and you want to overwrite it on purpose, give --force-overwrite-active',
+      USAGE_EXIT,
     )
-    throw new CommandExit(USAGE_EXIT)
   }
   out.warning(state === 'CLOSED'
     ? `.pecot-active points to closed Issue ${existing}; overwriting it`
@@ -140,7 +122,7 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
   catch (error: unknown) {
     // ブランチは作成済みなので、ステータスの失敗でコマンドは止めない
     if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(`could not set ${target}: ${apiErrorDetail(error)}`)
+    out.warning(`could not set ${target}: ${error.message}`)
   }
 }
 
@@ -172,8 +154,7 @@ const branchCreationCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      out.error(error.message)
-      throw new CommandExit(USAGE_EXIT)
+      return stopWith(out, error.message, USAGE_EXIT)
     }
     const { owner, repository } = issue.repository
     const issueNumber = issue.number
@@ -193,8 +174,7 @@ const branchCreationCommand = defineCommand({
 
       // 4. リポジトリがプロジェクトに含まれているか確認
       if (!await isRepositoryInProject(config, owner, repository, client)) {
-        out.error(`${owner}/${repository} is not in the project`)
-        throw new CommandExit(1)
+        stopWith(out, `${owner}/${repository} is not in the project`)
       }
 
       // 5. Issue Node ID とタイトル取得（タイトルはセッション名用）
@@ -216,7 +196,7 @@ const branchCreationCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not create branch ${finalBranchName} in ${owner}/${repository}: ${apiErrorDetail(error)}`)
+      out.error(`could not create branch ${finalBranchName} in ${owner}/${repository}: ${error.message}`)
       return 1
     }
   },
@@ -243,8 +223,7 @@ const branchDeletionCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      out.error(error.message)
-      throw new CommandExit(USAGE_EXIT)
+      return stopWith(out, error.message, USAGE_EXIT)
     }
     const { owner, repository } = target
 
@@ -265,7 +244,7 @@ const branchDeletionCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not read the default branch of ${owner}/${repository}: ${apiErrorDetail(error)}`)
+      out.error(`could not read the default branch of ${owner}/${repository}: ${error.message}`)
       return 1
     }
 
@@ -288,7 +267,7 @@ const branchDeletionCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not delete remote branch ${input.branch} in ${owner}/${repository}: ${apiErrorDetail(error)}`)
+      out.error(`could not delete remote branch ${input.branch} in ${owner}/${repository}: ${error.message}`)
       return 1
     }
     out.done(operation)
@@ -300,7 +279,7 @@ const branchDeletionCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      // 存在しない場合は何も出さない
+      // wip ブランチの削除の失敗だけは、API の応答の本文の詳細も見せる（Python の describe_api_error と同じ）。存在しない場合は何も出さない
       if (!isMissingReferenceError(error)) out.warning(`could not delete remote branch ${wipBranch} in ${owner}/${repository}: ${describeApiError(error)}`)
       return 0
     }

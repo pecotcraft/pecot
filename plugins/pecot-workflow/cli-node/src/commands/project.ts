@@ -3,7 +3,7 @@ import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 
-import { findRepository, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
+import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig } from '../domain/config.js'
 import type { Package, ProjectConfig, Repository } from '../domain/config.js'
 import { formatBoardOutput } from '../domain/format.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
@@ -11,14 +11,15 @@ import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncat
 import type { JsonValue } from '../domain/python-format.js'
 import { parseOwnerRepository } from '../domain/repository-resolver.js'
 import { InvalidValueError } from '../domain/errors.js'
-import { getActiveConfigPath, loadActiveConfig, loadConfig, projectsDirectory, saveConfig } from '../infra/config-store.js'
+import { getActiveConfigPath, loadConfig, projectsDirectory, saveConfig } from '../infra/config-store.js'
 import { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
 import type { LinkResult, ProjectFieldOption } from '../infra/github/projects.js'
 import { resolveRealPath } from '../infra/paths.js'
-import { isFileNotFound } from '../infra/os-error.js'
+import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
+import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { collectAlertStatuses, infoJson, infoMarkdown, pruneArchivedItems, readBoard } from './project-info.js'
@@ -27,9 +28,7 @@ import {
   SIZE_FIELD_OPTIONS,
   WORKFLOW_FIELD_OPTIONS,
   buildRepository,
-  fail,
   failApi,
-  failNoActiveProject,
   fieldNodesOf,
   findProjectByTitle,
   hasWorkflowField,
@@ -39,7 +38,7 @@ import {
 
 const DEFAULT_HOST = 'github.com'
 const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u
-const RELEASE_TYPES: readonly string[] = ['multi', 'nx', 'single']
+const MISSING_PATH_CODES: ReadonlySet<string> = new Set(['ENOENT', 'ENOTDIR', 'ELOOP'])
 const SEARCH_TITLE_LIMIT = 38
 const SEARCH_TITLE_WIDTH = 40
 
@@ -60,6 +59,11 @@ function newClient(out: Readonly<Output>, host: string): GitHubClient {
   return new GitHubClient({ host, diagnostics: out })
 }
 
+// パスが無い・辿れない（ENOENT・ENOTDIR・ELOOP）。Python の Path.exists() が False を返す場合と同じ
+function isMissingPath(error: unknown): boolean {
+  return hasErrorCode(error) && MISSING_PATH_CODES.has(error.code)
+}
+
 // projects/ の *.json のファイル名（名前順）。ディレクトリが無ければ空
 function readProjectFiles(directory: string): readonly string[] {
   try {
@@ -67,7 +71,7 @@ function readProjectFiles(directory: string): readonly string[] {
     return readdirSync(directory).filter(name => name.endsWith('.json')).toSorted(compareStrings)
   }
   catch (error: unknown) {
-    if (isFileNotFound(error)) return []
+    if (isMissingPath(error)) return []
     throw error
   }
 }
@@ -78,7 +82,7 @@ function isFile(target: string): boolean {
     return statSync(target).isFile()
   }
   catch (error: unknown) {
-    if (isFileNotFound(error)) return false
+    if (isMissingPath(error)) return false
     throw error
   }
 }
@@ -87,13 +91,9 @@ function padEndCodePoints(text: string, width: number): string {
   return text + ' '.repeat(Math.max(0, width - splitCodePoints(text).length))
 }
 
-function requireActive(out: Readonly<Output>): ProjectConfig {
-  return loadActiveConfig() ?? failNoActiveProject(out)
-}
-
 function requireActiveWithPath(out: Readonly<Output>): { readonly config: ProjectConfig, readonly configPath: string } {
-  const config = requireActive(out)
-  const configPath = getActiveConfigPath() ?? fail(out, 'cannot determine the config file path')
+  const config = requireActiveConfig(out)
+  const configPath = getActiveConfigPath() ?? stopWith(out, 'cannot determine the config file path')
   return { config, configPath }
 }
 
@@ -147,7 +147,7 @@ const searchCommand = defineCommand({
     const { owner, host } = input
     await guarded(out, 'list projects', async () => {
       const projects = await newClient(out, host).listProjects(owner)
-      if (projects.length === 0) fail(out, `no projects found for ${owner}`)
+      if (projects.length === 0) stopWith(out, `no projects found for ${owner}`)
       const lines = [`=== Projects of ${owner} (${host}) ===`, '', `${padEndCodePoints('#', 4)} ${padEndCodePoints('Title', SEARCH_TITLE_WIDTH)} URL`, '-'.repeat(80)]
       for (const project of projects) {
         const number = project['number'] === undefined ? '?' : textOf(project['number'])
@@ -170,7 +170,7 @@ async function initializeFields(out: Readonly<Output>, target: Readonly<{ host: 
     const project = await findProjectByTitle(out, client, owner, name)
     const projectId = requireString(project['id'], 'project.id')
     const projectInfo = await client.getProjectFields(owner, requireNumber(project['number'], 'project.number'))
-    if (projectInfo === undefined || !isTruthy(projectInfo)) fail(out, `could not read project fields: ${name}`)
+    if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `could not read project fields: ${name}`)
     const fields = fieldNodesOf(projectInfo)
     const wanted: readonly (readonly [string, readonly ProjectFieldOption[]])[] = [
       [`pecot-workflow-${suffix}`, WORKFLOW_FIELD_OPTIONS],
@@ -230,12 +230,12 @@ const projectCreationCommand = defineCommand({
         ownerId = await client.getOwnerNodeId(owner)
       }
       catch (error: unknown) {
-        if (error instanceof GitHubNotFoundError) fail(out, `owner not found: ${owner}`)
+        if (error instanceof GitHubNotFoundError) stopWith(out, `owner not found: ${owner}`)
         throw error
       }
       const owned = await client.listProjects(owner)
       const existing = owned.find(project => jsonField(project, 'title') === title)
-      if (existing !== undefined) fail(out, `project already exists: ${title}\nurl: ${textOf(existing['url'])}`)
+      if (existing !== undefined) stopWith(out, `project already exists: ${title}\nurl: ${textOf(existing['url'])}`)
 
       const created = await client.createProject(ownerId, title)
       out.done({ verb: 'create', target: `project #${textOf(created['number'])} ${textOf(created['url'])}` })
@@ -261,8 +261,9 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
     config = loadConfig(configPath)
   }
   catch (error: unknown) {
+    // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
     if (!(error instanceof Error) || error instanceof CommandExit) throw error
-    return fail(out, `could not load config file ${path.basename(configPath)}: ${error.message}`)
+    return stopWith(out, `could not load config file ${path.basename(configPath)}: ${error.message}`)
   }
   await guarded(out, 'sync project', async () => {
     if (host !== undefined && config.host !== host) {
@@ -270,9 +271,9 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
     }
     const client = newClient(out, config.host)
     const projectInfo = await client.getProjectFields(config.owner, config.project.number)
-    if (projectInfo === undefined || !isTruthy(projectInfo)) fail(out, `project #${String(config.project.number)} not found`)
+    if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`)
     const title = projectInfo['title']
-    if (typeof title !== 'string' || title === '') fail(out, `could not read the title of project #${String(config.project.number)}`)
+    if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`)
     await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host })
   })
 }
@@ -284,10 +285,10 @@ async function resolveActivationOwner(out: Readonly<Output>, client: Readonly<Gi
     login = jsonField(await client.getAuthenticatedUser(), 'login')
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return fail(out, `could not read the authenticated user: ${error.message}\npass --owner to give the owner explicitly`)
+    if (error instanceof GitHubAPIError) return stopWith(out, `could not read the authenticated user: ${error.message}\npass --owner to give the owner explicitly`)
     throw error
   }
-  return typeof login === 'string' && login !== '' ? login : fail(out, 'could not read the authenticated user')
+  return typeof login === 'string' && login !== '' ? login : stopWith(out, 'could not read the authenticated user')
 }
 
 // 一覧の表示モード。初期化済みのプロジェクトに [ACTIVE] を付ける
@@ -324,7 +325,7 @@ function activeProjectNumber(host: string, owner: string): number | undefined {
     return active.host === host && active.owner === owner ? active.project.number : undefined
   }
   catch (error: unknown) {
-    // 読めない設定は、アクティブの印を付けないだけにする
+    // 読めない設定は、アクティブの印を付けないだけにする。Python の `except Exception` と同じ範囲で捕まえる
     if (error instanceof Error) return undefined
     throw error
   }
@@ -334,11 +335,11 @@ function activeProjectNumber(host: string, owner: string): number | undefined {
 async function fetchProjectInfoByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, owner: string, project: string): Promise<Readonly<Record<string, JsonValue>>> {
   if (/^\d+$/u.test(project)) {
     const number = Number(project)
-    return await client.getProjectFields(owner, number) ?? fail(out, `project #${String(number)} not found`)
+    return await client.getProjectFields(owner, number) ?? stopWith(out, `project #${String(number)} not found`)
   }
   const found = await findProjectByTitle(out, client, owner, project)
   const info = await client.getProjectFields(owner, requireNumber(found['number'], 'project.number'))
-  return info !== undefined && isTruthy(info) ? info : fail(out, `could not read project fields: ${project}`)
+  return info !== undefined && isTruthy(info) ? info : stopWith(out, `could not read project fields: ${project}`)
 }
 
 async function activateByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string }>): Promise<void> {
@@ -346,7 +347,7 @@ async function activateByReference(out: Readonly<Output>, client: Readonly<GitHu
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    fail(out, `project "${title}" is not initialized\nrun: pecot project init --host ${host} --suffix <suffix> ${owner} "${title}"`)
+    stopWith(out, `project "${title}" is not initialized\nrun: pecot project init --host ${host} --suffix <suffix> ${owner} "${title}"`)
   }
   await syncProjectConfig(out, client, { owner, name: title, host })
 }
@@ -373,7 +374,7 @@ const activateCommand = defineCommand({
     }
     await guarded(out, 'activate project', async () => {
       if (host === undefined) {
-        fail(
+        stopWith(
           out,
           '--host is required\n'
           + 'example: pecot project activate --host github.com --owner example-org\n'
@@ -413,7 +414,7 @@ const infoCommand = defineCommand({
   interactive: false,
   run: async (input, io) => {
     const out = createOutput(false, io)
-    const config = requireActive(out)
+    const config = requireActiveConfig(out)
     const configPath = getActiveConfigPath()
     const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
     try {
@@ -426,7 +427,8 @@ const infoCommand = defineCommand({
     }
     catch (error: unknown) {
       if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)
-      if (error instanceof Error && !(error instanceof CommandExit)) return fail(out, `unexpected error: ${error.message}`)
+      // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
+      if (error instanceof Error && !(error instanceof CommandExit)) return stopWith(out, `unexpected error: ${error.message}`)
       throw error
     }
     return 0
@@ -440,19 +442,20 @@ const packageList = z.array(z.string())
 function parsePackages(out: Readonly<Output>, input: Readonly<{ package?: readonly string[] | undefined, changelog_file?: string | undefined, clear_packages: boolean }>): readonly Package[] | undefined {
   const specs = input.package
   if (specs === undefined || specs.length === 0) return undefined
-  if (input.changelog_file !== undefined) fail(out, '--package and --changelog-file cannot be used together')
-  if (input.clear_packages) fail(out, '--package and --clear-packages cannot be used together')
+  if (input.changelog_file !== undefined) stopWith(out, '--package and --changelog-file cannot be used together')
+  if (input.clear_packages) stopWith(out, '--package and --clear-packages cannot be used together')
   const parsed: Package[] = []
   const seen = new Set<string>()
   for (const spec of specs) {
     const separator = spec.indexOf(':')
-    if (separator === -1) fail(out, `give --package as NAME:PATH: ${pythonStringRepr(spec)}`)
+    if (separator === -1) stopWith(out, `give --package as NAME:PATH: ${pythonStringRepr(spec)}`)
     const name = pythonStrip(spec.slice(0, separator))
     const changelog = pythonStrip(spec.slice(separator + 1))
-    if (name === '' || changelog === '') fail(out, `--package NAME and PATH must not be empty: ${pythonStringRepr(spec)}`)
-    if (seen.has(name)) fail(out, `--package NAME is duplicated: ${pythonStringRepr(name)}`)
+    if (name === '' || changelog === '') stopWith(out, `--package NAME and PATH must not be empty: ${pythonStringRepr(spec)}`)
+    if (seen.has(name)) stopWith(out, `--package NAME is duplicated: ${pythonStringRepr(name)}`)
     seen.add(name)
-    parsed.push({ name, changelog })
+    // Python も Package(...) の作成で NAME の形を確かめるので、設定を読む前に止まる
+    parsed.push(parsePackage({ name, changelog }))
   }
   return parsed
 }
@@ -478,7 +481,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
   }
   if (edit.changelog_file !== undefined) {
     if (packages !== undefined && packages.length > 0) {
-      fail(out, 'this repository has packages set\nrun with --clear-packages before switching to --changelog-file')
+      stopWith(out, 'this repository has packages set\nrun with --clear-packages before switching to --changelog-file')
     }
     changelogFile = edit.changelog_file
   }
@@ -493,7 +496,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
 }
 
 function toReleaseType(value: string | undefined): Repository['release_type'] {
-  return value === 'single' || value === 'multi' || value === 'nx' ? value : undefined
+  return RELEASE_TYPES.find(type => type === value)
 }
 
 async function linkRepository(out: Readonly<Output>, config: ProjectConfig, ownerRepository: string): Promise<LinkResult> {
@@ -502,6 +505,7 @@ async function linkRepository(out: Readonly<Output>, config: ProjectConfig, owne
     return await newClient(out, config.host).linkRepositoryToProject(config.owner, config.project.number, repositoryOwner, repositoryName)
   }
   catch (error: unknown) {
+    // API の失敗の文は、Python と同じく message をそのまま使う（応答の本文の詳細は、wip ブランチの削除の警告だけが足す）
     if (error instanceof GitHubAPIError) return { status: 'failed', detail: error.message }
     throw error
   }
@@ -524,17 +528,18 @@ const repositorySettingCommand = defineCommand({
   interactive: false,
   run: async (input, io) => {
     const out = createOutput(false, io)
-    if (input.release_type !== undefined && !['single', 'multi', 'nx'].includes(input.release_type)) {
-      fail(out, `--release-type must be one of [${RELEASE_TYPES.map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`)
+    if (input.release_type !== undefined && toReleaseType(input.release_type) === undefined) {
+      // Python は sorted() の順（multi, nx, single）で見せる
+      stopWith(out, `--release-type must be one of [${RELEASE_TYPES.toSorted(compareStrings).map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`)
     }
     const packages = parsePackages(out, input)
     const { config, configPath } = requireActiveWithPath(out)
 
     const parts = input.owner_repo.split('/')
     const [owner = '', name = ''] = parts
-    if (parts.length !== 2) fail(out, 'give the repository as owner/repo\nexample: pecot project set-repo example-org/my-repo')
+    if (parts.length !== 2) stopWith(out, 'give the repository as owner/repo\nexample: pecot project set-repo example-org/my-repo')
     if (owner !== config.owner) {
-      fail(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
+      stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
     }
 
     const existing = findRepository(config, owner, name)
@@ -543,7 +548,7 @@ const repositorySettingCommand = defineCommand({
     if (existing === undefined) {
       const outcome = await linkRepository(out, config, input.owner_repo)
       const projectNumber = String(config.project.number)
-      if (outcome.status === 'failed') fail(out, `could not link ${input.owner_repo} to project #${projectNumber}: ${outcome.detail}`)
+      if (outcome.status === 'failed') stopWith(out, `could not link ${input.owner_repo} to project #${projectNumber}: ${outcome.detail}`)
       out.done(outcome.status === 'already_linked'
         ? { verb: 'unchanged', target: `${input.owner_repo} in project #${projectNumber}` }
         : { verb: 'add', target: `${input.owner_repo} to project #${projectNumber}` })
@@ -583,7 +588,7 @@ const aggregationSettingCommand = defineCommand({
   run: (input, io) => {
     const out = createOutput(false, io)
     const { value, yes } = input
-    if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) fail(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`)
+    if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`)
     const { config, configPath } = requireActiveWithPath(out)
     const current = config.aggregation_repo
     if (current !== undefined && current !== '' && current !== value) {
@@ -627,7 +632,7 @@ const showAggregationCommand = defineCommand({
   interactive: false,
   run: (_input, io) => {
     const out = createOutput(false, io)
-    out.data(requireActive(out).aggregation_repo ?? 'none')
+    out.data(requireActiveConfig(out).aggregation_repo ?? 'none')
     return Promise.resolve(0)
   },
 })

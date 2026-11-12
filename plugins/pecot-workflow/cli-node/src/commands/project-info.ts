@@ -18,6 +18,11 @@ Archived のうち、ボードに残す件数
 */
 const ARCHIVED_KEEP = 20
 
+/**
+Dependabot alert を並列に取る数の上限（Python の _ALERT_FETCH_MAX_WORKERS と同じ）
+*/
+const ALERT_FETCH_MAX_WORKERS = 8
+
 const DISPLAY_STATUSES: ReadonlySet<string> = new Set(['Backlog', 'Pending', 'Ready', 'Active', 'In Review'])
 
 /**
@@ -33,14 +38,16 @@ function updatedAtOf(item: Readonly<BoardItem>): string {
 Archived のアイテムを updatedAt の新しい順に並べ、最新の 20 件を残して、残りをボードから消す。
 消せなかった分は warning にとどめる
 */
-export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, allItems: readonly BoardItem[]): Promise<void> {
+export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly<Pick<GitHubClient, 'deleteProjectItem'>>, config: ProjectConfig, allItems: readonly BoardItem[]): Promise<void> {
   const archived = allItems.filter(item => item.workflow === 'Archived').toSorted((first, second) => compareStrings(updatedAtOf(second), updatedAtOf(first)))
   if (archived.length <= ARCHIVED_KEEP) return
   const targets = archived.slice(ARCHIVED_KEEP)
   let deleted = 0
   for (const item of targets) {
+    // ID が文字列でないアイテムは、API を呼ばず、失敗として数える
+    if (typeof item.id !== 'string') continue
     try {
-      await client.deleteProjectItem(config.project.id, typeof item.id === 'string' ? item.id : '')
+      await client.deleteProjectItem(config.project.id, item.id)
       deleted += 1
     }
     catch (error: unknown) {
@@ -59,7 +66,7 @@ export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly
 */
 export async function collectAlertStatuses(client: Readonly<GitHubClient>, config: ProjectConfig): Promise<readonly AlertStatus[]> {
   const source = createDependabotSource(client)
-  return await Promise.all(config.repositories.map(async (entry): Promise<AlertStatus> => {
+  return await mapWithLimit(config.repositories, ALERT_FETCH_MAX_WORKERS, async (entry): Promise<AlertStatus> => {
     try {
       return await fetchDependabotAlertStatus(source, config.host, entry.owner, entry.name)
     }
@@ -67,7 +74,31 @@ export async function collectAlertStatuses(client: Readonly<GitHubClient>, confi
       if (error instanceof DependabotAlertError) return error.message
       throw error
     }
-  }))
+  })
+}
+
+/**
+items を最大 limit 件ずつ並列に処理し、結果を items の順で返す。1 件でも投げたら、その例外で止まる
+*/
+export async function mapWithLimit<Item, Result>(items: readonly Item[], limit: number, task: (item: Item) => Promise<Result>): Promise<readonly Result[]> {
+  const results: Result[] = []
+  // 全ての worker が同じ iterator から次の項目を取る
+  const pending = items.entries()
+  const worker = async (): Promise<void> => {
+    // eslint-disable-next-line security/detect-object-injection -- index は entries() の添字
+    for (const [index, item] of pending) results[index] = await task(item)
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return results
+}
+
+/**
+index 番目の取得結果。件数が登録のリポジトリとずれていたら投げる
+*/
+function statusAt(statuses: readonly AlertStatus[], index: number): AlertStatus {
+  const status = statuses.at(index)
+  if (status === undefined) throw new RangeError(`no Dependabot alert status for repository #${String(index)}`)
+  return status
 }
 
 function alertsJson(status: AlertStatus): JsonObject {
@@ -105,7 +136,7 @@ export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[]):
       name: entry.name,
       develop_branch: entry.develop_branch ?? JSON_NULL,
       release_branch: entry.release_branch ?? JSON_NULL,
-      dependabot_alerts: alertsJson(statuses.at(index) ?? ''),
+      dependabot_alerts: alertsJson(statusAt(statuses, index)),
     })),
     board: formatItemsJson(items),
   }
@@ -124,7 +155,7 @@ function repositoryLines(view: Readonly<InfoView>): readonly string[] {
     lines.push(
       branches.length > 0 ? `- ${fullName} (${branches.join(', ')})` : `- ${fullName}`,
       `    release_type: ${effectiveReleaseType(entry)}`,
-      alertsLine(statuses.at(index) ?? ''),
+      alertsLine(statusAt(statuses, index)),
     )
     if (entry.packages !== undefined && entry.packages.length > 0) {
       for (const item of entry.packages) lines.push(`    package: ${item.name} → ${item.changelog}`)

@@ -11,7 +11,8 @@
 //   - 偽の GitHub サーバ。API の URL とトークンの環境変数を、このサーバに向ける
 // 動かし方:
 //   process.chdir でリポに入って runCli を呼び、後で cwd を戻す。CliContext.cwd にも同じディレクトリを渡す。
-//   env は useIsolatedEnvironment が各テストの後に戻す
+//   env は runCommand が終わるときに、書き換える前の値へ戻す。useIsolatedEnvironment も各テストの後に戻す
+//   process.chdir を使うので、it.concurrent と pool: threads のテストでは使えない
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -160,17 +161,18 @@ function prepareDirectory(run: Readonly<CommandRun>): string {
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runCommand(run: Readonly<CommandRun>): Promise<CommandResult> {
-  const directory = prepareDirectory(run)
-  if (run.config !== false) {
-    writeTree(directory, {
-      [CONFIG_FILE]: `${JSON.stringify(run.config ?? projectConfig(), undefined, 2)}\n`,
-      '.pecot/config/projects/.active': `${path.basename(CONFIG_FILE)}\n`,
-    })
-  }
-  writeTree(directory, run.files ?? {})
-  const server = await startFakeGithub(run.github ?? [])
   const originalDirectory = process.cwd()
+  const originalEnvironment = { ...process.env }
+  const server = await startFakeGithub(run.github ?? [])
   try {
+    const directory = prepareDirectory(run)
+    if (run.config !== false) {
+      writeTree(directory, {
+        [CONFIG_FILE]: `${JSON.stringify(run.config ?? projectConfig(), undefined, 2)}\n`,
+        '.pecot/config/projects/.active': `${path.basename(CONFIG_FILE)}\n`,
+      })
+    }
+    writeTree(directory, run.files ?? {})
     setEnvironment({
       CLAUDE_PROJECT_DIR: directory,
       PECOT_GITHUB_API_URL: server.url,
@@ -199,8 +201,15 @@ export async function runCommand(run: Readonly<CommandRun>): Promise<CommandResu
   }
   finally {
     process.chdir(originalDirectory)
+    restoreEnvironment(originalEnvironment)
     await server.close()
   }
+}
+
+// 書き換えた env を、呼ぶ前の値へ戻す。呼ぶ前に無かったキーは外す
+function restoreEnvironment(original: Readonly<Record<string, string | undefined>>): void {
+  const removed = Object.fromEntries(Object.keys(process.env).map(name => [name, undefined]))
+  setEnvironment({ ...removed, ...original })
 }
 
 /**

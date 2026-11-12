@@ -21,6 +21,7 @@ import {
   serializeProjectConfig,
   SIZES,
   WORKFLOW_STATUSES,
+  parsePackage,
   withAggregationRepository,
   withRepositoryAppended,
   withRepositoryReplaced,
@@ -503,5 +504,23 @@ describe('更新（コピーを作る）', () => {
     expect(other).toBeDefined()
     if (other === undefined) return
     expect(withRepositoryReplaced(config, other).repositories.map(repository => repository.name)).toEqual(['test-repo', 'another-repo'])
+  })
+
+  it('withRepositoryReplaced は同じ owner と name が重複していても、最初の 1 件だけを差し替える', () => {
+    const config = withRepositories([
+      { owner: 'o', name: 'dup', develop_branch: 'first' },
+      { owner: 'o', name: 'other' },
+      { owner: 'o', name: 'dup', develop_branch: 'second' },
+    ])
+    const edited = withRepositories([{ owner: 'o', name: 'dup', develop_branch: 'edited' }]).repositories[0]
+    expect(edited).toBeDefined()
+    if (edited === undefined) return
+    const updated = withRepositoryReplaced(config, edited)
+    expect(updated.repositories.map(repository => repository.develop_branch)).toEqual(['edited', undefined, 'second'])
+  })
+
+  it('parsePackage は NAME の形が不正だと、表題が Package の ValidationFailure を投げる', () => {
+    expect(parsePackage({ name: 'good.name-1_x', changelog: 'a.md' })).toEqual({ name: 'good.name-1_x', changelog: 'a.md' })
+    expect(() => parsePackage({ name: 'b!d', changelog: 'a.md' })).toThrow(/^1 validation error for Package\nname\n {2}String should match pattern '\^\[A-Za-z0-9_\.-\]\+\$'/u)
   })
 })

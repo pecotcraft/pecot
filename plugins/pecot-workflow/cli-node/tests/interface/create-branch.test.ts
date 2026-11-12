@@ -312,6 +312,19 @@ describe('create-branch', () => {
     expect(result.read(ACTIVE)).toBeUndefined()
   })
 
+  it('ブランチの作成の mutation が GraphQL の errors を返すと、ステータスの更新へ進まず終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-CREATE-BRANCH-24')
+    const rejected: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { errors: [{ type: 'UNPROCESSABLE', message: 'Ref already exists' }] } }, times: 1 }
+    const result = await create({ github: [linkedRepositories(), issueNode(), baseSha('main'), rejected] })
+    expect(result.code).toBe(1)
+    expectClean(result)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: could not create branch feat\/7 in acme\/demo: .*Ref already exists/u)
+    expect(requestLabels(result.requests)).not.toContain('GetIssueProjectItems')
+    expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
+    expect(result.read(ACTIVE)).toBeUndefined()
+  })
+
   it('--repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-CREATE-BRANCH-25')
     const result = await create({ github: [] }, ['--repo', 'other/tree', 'create-branch', 'acme/demo/7', 'feat'])
