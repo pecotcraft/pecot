@@ -98,7 +98,8 @@ function formatPullRequestBase(pullRequest: JsonValue, owner: string, repository
   }
 }
 
-function isDependabotAuthor(node: JsonValue): boolean {
+function isDependabotAuthor(node: JsonValue): node is JsonObject {
+  if (!isJsonObject(node)) return false
   const author = jsonField(node, 'author')
   return jsonField(author, '__typename') === 'Bot' && jsonField(author, 'login') === 'dependabot'
 }
@@ -180,7 +181,7 @@ export class PullsApi extends IssuesApi {
   open の dependabot の PR を全件取る（GraphQL）。pullRequests に author の引数が無いので、全ページを辿ってから絞る。
   GraphQL のノードをそのまま返す
   */
-  async listOpenDependabotPullRequests(owner: string, repository: string): Promise<readonly JsonValue[]> {
+  async listOpenDependabotPullRequests(owner: string, repository: string): Promise<readonly JsonObject[]> {
     const nodes: JsonValue[] = []
     let after: string | null = JSON_NULL
     for (;;) {

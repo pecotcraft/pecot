@@ -16,32 +16,23 @@ import {
   waitingReasons,
 } from '../domain/dependabot-pull-requests.js'
 import type { PrEntry, PrPlan } from '../domain/dependabot-pull-requests.js'
-import { isJsonObject, jsonField } from '../domain/json.js'
+import { jsonField } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
-import type { ProjectConfig } from '../domain/config.js'
 import { findTracker } from '../domain/tracker-body.js'
-import { TransportFailure } from '../infra/github/client.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
+import { requireNumber } from '../infra/github/payload.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { makeClient } from './github-client.js'
 import { createIssue, putOnBoard } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { loadTarget, warnExtraTrackers } from './tracker-sync.js'
+import { apiErrorDetail, isBodyUnchanged, loadTarget, todayUtc, warnExtraTrackers } from './tracker-sync.js'
+import type { SyncApplyContext, SyncStages } from './tracker-sync.js'
 
 const FAILURE = 1
-const DATE_LENGTH = 10
 
-interface Stages {
-  readonly create: readonly Operation[]
-  readonly rewrite: readonly Operation[]
+interface Stages extends SyncStages {
   readonly close: readonly Operation[]
-}
-
-function apiErrorDetail(error: unknown): string | undefined {
-  return error instanceof GitHubAPIError || error instanceof TransportFailure ? error.message : undefined
 }
 
 function textOrEmpty(value: unknown): string {
@@ -51,7 +42,7 @@ function textOrEmpty(value: unknown): string {
 function entryOf(pr: JsonObject): PrEntry {
   const number = jsonField(pr, 'number')
   return {
-    number: typeof number === 'number' ? number : 0,
+    number: requireNumber(number, 'number'),
     title: textOrEmpty(jsonField(pr, 'title')),
     url: textOrEmpty(jsonField(pr, 'url')),
     reasons: [],
@@ -73,17 +64,9 @@ function operationsFor(plan: PrPlan, tracker: number | undefined, title: string,
   return { create: [], rewrite, close: plan.close ? [{ verb: 'close', target: `Tracker #${String(tracker)}` }] : [] }
 }
 
-interface ApplyInput {
-  readonly client: GitHubClient
-  readonly config: ProjectConfig
-  readonly owner: string
-  readonly repository: string
+interface ApplyInput extends SyncApplyContext {
   readonly plan: PrPlan
-  readonly title: string
-  readonly body: string
   readonly stages: Stages
-  readonly number: number | undefined
-  readonly isUnchanged: boolean
 }
 
 // Tracker を作る・書き直す・閉じる・ボードに載せる。失敗の数を返す。
@@ -98,9 +81,7 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
       }
       const issue = await createIssue(client, owner, repository, title, body, [PR_LABEL])
       for (const operation of stages.create) out.done(operation)
-      const created = jsonField(issue, 'number')
-      if (typeof created !== 'number') throw new GitHubAPIError('failed to read the number of the created Tracker')
-      await putOnBoard(client, config, owner, repository, created, PRIORITY, { onlyIfEmpty: false })
+      await putOnBoard(client, config, owner, repository, requireNumber(issue['number'], 'number'), PRIORITY, { onlyIfEmpty: false })
       return 0
     }
     if (!isUnchanged) {
@@ -183,16 +164,16 @@ const sync = defineCommand({
     }
 
     const now = new Date()
-    const nodes = pullRequests.filter(node => isJsonObject(node))
+    const nodes = pullRequests
     const waiting = nodes.map(node => ({ node, reasons: waitingReasons(node, now) })).filter(item => item.reasons.length > 0)
     out.count('open dependabot PRs', nodes.length)
     out.count('PRs awaiting a decision', waiting.length)
     out.count('PRs awaiting a decision without check results', waiting.filter(item => rollupState(item.node) === undefined).length)
     const plan = planTracker(waiting.map(item => ({ ...entryOf(item.node), reasons: item.reasons })), oldNumbers)
-    const title = buildTrackerTitle(now.toISOString().slice(0, DATE_LENGTH))
+    const title = buildTrackerTitle(todayUtc(now))
     const body = renderTrackerBody(plan.entries, existingBody)
     const number = tracker?.number
-    const isUnchanged = number !== undefined && body === (existingBody ?? '').replaceAll('\r\n', '\n')
+    const isUnchanged = isBodyUnchanged(body, existingBody)
     const stages = operationsFor(plan, number, title, isUnchanged)
     for (const operation of [...stages.create, ...stages.rewrite, ...stages.close]) out.planned(operation)
 

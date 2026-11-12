@@ -3,6 +3,9 @@
 import type { ProjectConfig } from '../domain/config.js'
 import type { TrackerIssue } from '../domain/tracker-body.js'
 import { loadActiveConfig } from '../infra/config-store.js'
+import { TransportFailure } from '../infra/github/client.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
+import type { GitHubClient } from '../infra/github/index.js'
 import { CommandExit } from './command-definition.js'
 import { stopWith } from './command-stop.js'
 import type { Operation, Output } from './output.js'
@@ -41,4 +44,50 @@ export function warnExtraTrackers(out: Readonly<Output>, tracker: Readonly<Track
   const listed = others.map(number => `#${String(number)}`).join(', ')
   const used = tracker === undefined ? 'none' : `#${String(tracker.number)}`
   out.warning(`multiple open Trackers; using ${used} (lowest number) and leaving ${listed} open`)
+}
+
+/**
+API エラーと通信エラーの文。ほかの例外なら undefined
+*/
+export function apiErrorDetail(error: unknown): string | undefined {
+  return error instanceof GitHubAPIError || error instanceof TransportFailure ? error.message : undefined
+}
+
+/**
+書き直した本文が今の本文と同じか。比べるのは改行を `\n` に直したものどうし
+*/
+export function isBodyUnchanged(body: string, existingBody: string | undefined): boolean {
+  return existingBody?.replaceAll('\r\n', '\n') === body
+}
+
+/**
+Tracker の題に入れる、立てた日（UTC）の YYYY-MM-DD
+*/
+export function todayUtc(now: Readonly<Date>): string {
+  return now.toISOString().slice(0, 10)
+}
+
+/**
+操作を段ごとに分けたもの。作る段と書き直す段は 2 つの sync に共通
+*/
+export interface SyncStages {
+  readonly create: readonly Operation[]
+  readonly rewrite: readonly Operation[]
+}
+
+/**
+Tracker を反映する処理に渡す共通の入力
+*/
+export interface SyncApplyContext {
+  readonly client: GitHubClient
+  readonly config: ProjectConfig
+  readonly owner: string
+  readonly repository: string
+  readonly title: string
+  readonly body: string
+  /**
+  使う Tracker の番号。open の Tracker が無ければ undefined
+  */
+  readonly number: number | undefined
+  readonly isUnchanged: boolean
 }

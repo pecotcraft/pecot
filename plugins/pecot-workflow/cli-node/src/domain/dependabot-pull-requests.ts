@@ -7,11 +7,11 @@ import { isJsonObject, jsonField } from './json.js'
 import type { JsonObject } from './json.js'
 import { isJsonArray, normalizeNewlines, parsePythonInteger, pythonStrip } from './python-format.js'
 import type { JsonValue } from './python-format.js'
-import { listRegion, PYTHON_SPACE } from './tracker-body.js'
+import { compilePattern, listRegion, markerPatterns, NON_SPACE, SPACE } from './tracker-body.js'
 import { parseYamlDocument } from './yaml-document.js'
 
 export const PR_LABEL = 'dependabot-pr'
-export const TRACKER_MARKER = '<!-- pecot-dependabot-pr: tracker -->'
+const TRACKER_MARKER = '<!-- pecot-dependabot-pr: tracker -->'
 export const LIST_BEGIN = '<!-- pecot-dependabot-pr: list-begin -->'
 export const LIST_END = '<!-- pecot-dependabot-pr: list-end -->'
 export const PRIORITY = 'medium'
@@ -31,29 +31,21 @@ const MICROSECONDS_PER_MINUTE = 60_000_000n
 const GRACE = 30n * MICROSECONDS_PER_MINUTE
 const CHECKS_TIMEOUT = 24n * 60n * MICROSECONDS_PER_MINUTE
 
-const SPACE = `[${PYTHON_SPACE}]`
-const NOT_SPACE = `[^${PYTHON_SPACE}]`
 const LINE_START = '(?<![^\\n])'
 const LINE_END = '(?![^\\n])'
 const BACKTICK = '`'
 const DIGIT = '\\p{Nd}'
 
-function compile(source: string, flags: string): RegExp {
-  // eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列から組み立てる
-  return new RegExp(source, flags)
-}
-
-const ROW_MARKER_PATTERN = compile(`<!--${SPACE}*pecot-dependabot-pr:${SPACE}*pr/(${DIGIT}+)${SPACE}*-->`, 'u')
-const LIST_BEGIN_PATTERN = compile(`<!--${SPACE}*pecot-dependabot-pr:${SPACE}*list-begin${SPACE}*-->`, 'gu')
-const LIST_END_PATTERN = compile(`<!--${SPACE}*pecot-dependabot-pr:${SPACE}*list-end${SPACE}*-->`, 'gu')
-export const TRACKER_PATTERN = compile(`<!--${SPACE}*pecot-dependabot-pr:${SPACE}*tracker${SPACE}*-->`, 'u')
-const TABLE_LINE_PATTERN = compile(String.raw`^${SPACE}*\|`, 'u')
-const LINE_BREAK_RUN = compile(String.raw`${SPACE}*[\r\n]+${SPACE}*`, 'gu')
+const ROW_MARKER_PATTERN = compilePattern(`<!--${SPACE}*pecot-dependabot-pr:${SPACE}*pr/(${DIGIT}+)${SPACE}*-->`, 'u')
+const MARKERS = markerPatterns('pecot-dependabot-pr')
+export const TRACKER_PATTERN = MARKERS.tracker
+const TABLE_LINE_PATTERN = compilePattern(String.raw`^${SPACE}*\|`, 'u')
+const LINE_BREAK_RUN = compilePattern(String.raw`${SPACE}*[\r\n]+${SPACE}*`, 'gu')
 
 // fetch-metadata v3.1.0 の parse・parseMetadataLinks と同じ。commit の message から YAML と版の記述を抜く
-const YAML_PATTERN = compile(String.raw`${LINE_START}-{3}\n([\s\S]*?)\n${LINE_START}\.{3}\n`, 'u')
-const BUMP_PATTERN = compile(String.raw`${LINE_START}Bumps [^\n]* from (v?${DIGIT}[^ ]*) to (v?${DIGIT}[^ ]*)\.${LINE_END}`, 'u')
-const UPDATES_PATTERN = compile(`${LINE_START}Updates ${BACKTICK}(${NOT_SPACE}+)${BACKTICK} (?:from (${NOT_SPACE}+) )?to (${NOT_SPACE}+)${LINE_END}`, 'gu')
+const YAML_PATTERN = compilePattern(String.raw`${LINE_START}-{3}\n([\s\S]*?)\n${LINE_START}\.{3}\n`, 'u')
+const BUMP_PATTERN = compilePattern(String.raw`${LINE_START}Bumps [^\n]* from (v?${DIGIT}[^ ]*) to (v?${DIGIT}[^ ]*)\.${LINE_END}`, 'u')
+const UPDATES_PATTERN = compilePattern(`${LINE_START}Updates ${BACKTICK}(${NON_SPACE}+)${BACKTICK} (?:from (${NON_SPACE}+) )?to (${NON_SPACE}+)${LINE_END}`, 'gu')
 // eslint-disable-next-line security/detect-unsafe-regex -- 入力は GitHub が返す固定の形の時刻で、量指定子は入れ子にならない
 const TIME_PATTERN = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})(?:\.(?<fraction>\d+))?(?:Z|(?<sign>[+-])(?<offsetHour>\d{2}):(?<offsetMinute>\d{2}))$/u
 const UPDATE_TYPES: ReadonlySet<string> = new Set(['patch', 'minor', 'major'])
@@ -333,7 +325,7 @@ list-begin / list-end の印が 1 組でなければ DependabotPrError
 */
 export function parseTrackerPullRequestNumbers(body = ''): readonly number[] {
   const text = normalizeNewlines(body)
-  const { begin, end } = listRegion(text, LIST_BEGIN_PATTERN, LIST_END_PATTERN, DependabotPrError)
+  const { begin, end } = listRegion(text, MARKERS.begin, MARKERS.end, DependabotPrError)
   const numbers = new Set<number>()
   for (const line of text.slice(begin, end).split('\n')) {
     if (!TABLE_LINE_PATTERN.test(line)) continue
@@ -354,7 +346,7 @@ export function renderTrackerBody(entries: readonly PrEntry[], existingBody?: st
   const section = `${SECTION_HEADING}\n\n${table}`
   if (existingBody === undefined) return `${TRACKER_MARKER}\n\n${LIST_BEGIN}\n${section}\n${LIST_END}\n`
   const text = normalizeNewlines(existingBody)
-  const { begin, end } = listRegion(text, LIST_BEGIN_PATTERN, LIST_END_PATTERN, DependabotPrError)
+  const { begin, end } = listRegion(text, MARKERS.begin, MARKERS.end, DependabotPrError)
   return `${text.slice(0, begin)}\n${section}\n${text.slice(end)}`
 }
 

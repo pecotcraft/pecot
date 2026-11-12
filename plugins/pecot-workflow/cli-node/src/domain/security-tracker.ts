@@ -6,11 +6,11 @@ import { normalizeNewlines, parsePythonInteger, pythonStrip } from './python-for
 import type { JsonValue } from './python-format.js'
 import { ALERT_KINDS, kindLabel, SecurityAlertError } from './security-alerts.js'
 import type { AlertKind } from './security-alerts.js'
-import { cell, listRegion, PYTHON_SPACE } from './tracker-body.js'
+import { cell, compilePattern, listRegion, markerPatterns, NON_SPACE, SPACE } from './tracker-body.js'
 
 export const ALERT_LABEL = 'security-alert'
-export const TRACKER_MARKER = '<!-- pecot-alert: tracker -->'
-export const LIST_BEGIN = '<!-- pecot-alert: list-begin -->'
+const TRACKER_MARKER = '<!-- pecot-alert: tracker -->'
+const LIST_BEGIN = '<!-- pecot-alert: list-begin -->'
 export const LIST_END = '<!-- pecot-alert: list-end -->'
 
 const SEVERITY_PRIORITY: ReadonlyMap<string, string> = new Map([['critical', 'high'], ['high', 'high'], ['medium', 'medium'], ['low', 'low']])
@@ -18,39 +18,28 @@ const RULE_SEVERITY_PRIORITY: ReadonlyMap<string, string> = new Map([['error', '
 const PRIORITY_RANK: ReadonlyMap<string, number> = new Map([['low', 0], ['medium', 1], ['high', 2]])
 const DEFAULT_PRIORITY = 'medium'
 
-// Python の `\s`・`\S`・`\d`（str）と同じ範囲を、文字クラスで明示する
-const SPACE = `[${PYTHON_SPACE}]`
-const NON_SPACE = `[^${PYTHON_SPACE}]`
 const MARKER_SOURCE = String.raw`<!--${SPACE}*pecot-alert:${SPACE}*(dependabot|code-scanning|secret-scanning)/(\p{Nd}+)((?:${SPACE}+[a-z]+=${NON_SPACE}+)*)${SPACE}*-->`
 
-// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列
-const MARKER_PATTERN = new RegExp(MARKER_SOURCE, 'gu')
-// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列
-const ATTRIBUTE_PATTERN = new RegExp(`([a-z]+)=(${NON_SPACE}+)`, 'gu')
+const MARKER_PATTERN = compilePattern(MARKER_SOURCE, 'gu')
+const ATTRIBUTE_PATTERN = compilePattern(`([a-z]+)=(${NON_SPACE}+)`, 'gu')
 // 行の 1 列目の先頭に並ぶ印（1 行に複数あってよい）
-// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列
-const ROW_MARKERS_PATTERN = new RegExp(String.raw`^\|${SPACE}*((?:<!--[^>]*?-->${SPACE}*)+)`, 'u')
-// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列
-const LIST_BEGIN_PATTERN = new RegExp(`<!--${SPACE}*pecot-alert:${SPACE}*list-begin${SPACE}*-->`, 'gu')
-// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列
-const LIST_END_PATTERN = new RegExp(`<!--${SPACE}*pecot-alert:${SPACE}*list-end${SPACE}*-->`, 'gu')
-// eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列
-export const TRACKER_PATTERN = new RegExp(`<!--${SPACE}*pecot-alert:${SPACE}*tracker${SPACE}*-->`, 'u')
+const ROW_MARKERS_PATTERN = compilePattern(String.raw`^\|${SPACE}*((?:<!--[^>]*?-->${SPACE}*)+)`, 'u')
+const MARKERS = markerPatterns('pecot-alert')
+export const TRACKER_PATTERN = MARKERS.tracker
 // Python の `$` は末尾の改行 1 つの手前にも合う
 // eslint-disable-next-line security/detect-unsafe-regex -- 繰り返しは固定の 3 回
 const GHSA_PATTERN = /^GHSA(?:-[a-z0-9]{4}){3}\n?$/u
 
 /**
-open の alert 1 件の要点（Issue に出してよい情報だけ）
+Tracker の表の 1 行（open の alert）。表に出してよい情報だけ
 */
-export interface Alert {
+export interface TrackerEntry {
   readonly kind: AlertKind
   readonly number: number
   /**
   high / medium / low
   */
   readonly priority: string
-  readonly url: string
   /**
   Dependabot のパッケージ名（ほかの種類は undefined）
   */
@@ -66,15 +55,10 @@ export interface Alert {
 }
 
 /**
-Tracker の表の 1 行（open の alert）
+open の alert 1 件の要点（行に URL を足したもの）
 */
-export interface TrackerEntry {
-  readonly kind: AlertKind
-  readonly number: number
-  readonly priority: string
-  readonly package: string | undefined
-  readonly ghsa: string | undefined
-  readonly summary: string | undefined
+export interface Alert extends TrackerEntry {
+  readonly url: string
 }
 
 /**
@@ -338,7 +322,7 @@ export function renderTrackerBody(entries: readonly TrackerEntry[], host: string
   const sections = ALERT_KINDS.map(kind => section(kind, entries, statusOf(kind), host, owner, repository)).join('\n\n')
   if (existingBody === undefined) return `${TRACKER_MARKER}\n\n${LIST_BEGIN}\n${sections}\n${LIST_END}\n`
   const text = normalizeNewlines(existingBody)
-  const region = listRegion(text, LIST_BEGIN_PATTERN, LIST_END_PATTERN, SecurityAlertError)
+  const region = listRegion(text, MARKERS.begin, MARKERS.end, SecurityAlertError)
   return `${text.slice(0, region.begin)}\n${sections}\n${text.slice(region.end)}`
 }
 
@@ -382,7 +366,7 @@ list-begin / list-end の印が 1 組でなければ SecurityAlertError
 */
 export function parseTrackerEntries(body = ''): readonly TrackerEntry[] {
   const text = normalizeNewlines(body)
-  const region = listRegion(text, LIST_BEGIN_PATTERN, LIST_END_PATTERN, SecurityAlertError)
+  const region = listRegion(text, MARKERS.begin, MARKERS.end, SecurityAlertError)
   const entries = new Map<string, TrackerEntry>()
   for (const line of text.slice(region.begin, region.end).split('\n')) {
     const markers = ROW_MARKERS_PATTERN.exec(pythonStrip(line))?.[1]

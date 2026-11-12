@@ -260,7 +260,7 @@ describe('listOpenDependabotPullRequests', () => {
     const mine = { number: 1, author: BOT }
     const others = [
       { number: 2, author: { __typename: 'User', login: 'dependabot' } },
-      { number: 3, author: { __typename: 'Bot', login: 'renovate' } },
+      { number: 3, author: { __typename: 'Bot', login: 'other-bot' } },
       { number: 4, author: JSON_NULL },
       JSON_NULL,
       {},

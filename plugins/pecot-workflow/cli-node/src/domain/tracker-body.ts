@@ -10,8 +10,41 @@ Python の正規表現の `\s`（str）と同じ範囲の文字クラスの中�
 */
 export const PYTHON_SPACE = String.raw`\t\n\v\f\r \u001C-\u001F\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000`
 
-// eslint-disable-next-line security/detect-non-literal-regexp -- PYTHON_SPACE は固定の文字クラス
-const LINE_BREAK_RUN = new RegExp(String.raw`[${PYTHON_SPACE}]*[\r\n][${PYTHON_SPACE}]*`, 'gu')
+export const SPACE = `[${PYTHON_SPACE}]`
+export const NON_SPACE = `[^${PYTHON_SPACE}]`
+
+/**
+固定の文字列から正規表現を作る。呼び出し側は利用者の入力を渡さない
+*/
+export function compilePattern(source: string, flags: string): RegExp {
+  // eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列から組み立てる
+  return new RegExp(source, flags)
+}
+
+export interface MarkerPatterns {
+  /**
+  g フラグ付き
+  */
+  readonly begin: RegExp
+  /**
+  g フラグ付き
+  */
+  readonly end: RegExp
+  /**
+  g フラグなし
+  */
+  readonly tracker: RegExp
+}
+
+/**
+`<!-- <prefix>: list-begin -->` などの印の正規表現。空白は Python の `\s` と同じ範囲
+*/
+export function markerPatterns(prefix: string): MarkerPatterns {
+  const marker = (name: string): string => `<!--${SPACE}*${prefix}:${SPACE}*${name}${SPACE}*-->`
+  return { begin: compilePattern(marker('list-begin'), 'gu'), end: compilePattern(marker('list-end'), 'gu'), tracker: compilePattern(marker('tracker'), 'u') }
+}
+
+const LINE_BREAK_RUN = compilePattern(`${SPACE}*[\r\n]${SPACE}*`, 'gu')
 
 export const MARKER_PAIR_MESSAGE = 'cannot rewrite the list: the Tracker body does not have exactly one pair of list-begin / list-end markers'
 

@@ -2,31 +2,28 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { DEPENDABOT_COMMANDS } from '../../src/commands/dependabot.js'
+import type { JsonObject } from '../../src/domain/json.js'
 import { JSON_NULL } from '../../src/domain/json-null.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import {
-  boardRules,
-  createdTracker,
   failedRule,
-  freezeClock,
   HOUR,
   issueList,
   listings,
   MINUTE,
   patched,
-  PRIORITY_FIELD,
-  prepareSync,
   pullRequest,
   pullRequestList,
   TODAY_TITLE,
   trackerBody,
   trackerIssue,
-  WORKFLOW_FIELD,
 } from '../_helpers/dependabot-case.js'
-import type { PrOptions, SyncSetup } from '../_helpers/dependabot-case.js'
+import type { PrOptions } from '../_helpers/dependabot-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import type { ResponseRule } from '../fake-github/server.js'
+import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
+import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -64,12 +61,21 @@ function stderrAfterCounts(result: Readonly<CliResult>): string {
   return result.stderr.split('\n').slice(3).join('\n')
 }
 
+const OLD_ROW = trackerBody([[1, 'Bump old', 'failed']])
+const NO_PRS_COUNTS = 'count: open dependabot PRs: 0\ncount: PRs awaiting a decision: 0\ncount: PRs awaiting a decision without check results: 0\n'
+const OTHER_WARNING = 'warning: multiple open Trackers; using #9 (lowest number) and leaving #12 open\n'
+
+// 使う Tracker のほかに、open の別の Tracker・閉じた Tracker・印の無い Issue を混ぜる。どれも番号は使う Tracker と違う
+function withOthers(tracker: Readonly<JsonObject>): JsonObject[] {
+  return [trackerIssue(12, OLD_ROW), tracker, trackerIssue(5, OLD_ROW, 'closed'), { number: 7, state: 'open', body: 'マーカーの無い Issue' }]
+}
+
 const READS = ['ListOpenPullRequests', 'GET /repos/acme/demo/issues']
 const ROW_2 = '| <!-- pecot-dependabot-pr: pr/2 --> `Bump left-pad` | [#2](https://ghes.example.com/acme/demo/pull/2) | passed |'
 
 async function createNewTracker(): Promise<Run> {
   const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 3, name: 'lodash' })]
-  return await sync([...listings(nodes), createdTracker(100), ...boardRules(100, { onlyIfEmpty: false })])
+  return await sync([...listings(nodes), createdTracker(100), ...boardRules(100, { priority: 'medium', onlyIfEmpty: false })])
 }
 
 describe('dependabot sync', () => {
@@ -120,7 +126,7 @@ describe('dependabot sync', () => {
   it('open の Tracker があると、list-begin と list-end の間の表を、判断を待つ PR の行に書き直す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-07')
     const existing = trackerBody([[1, 'Bump old', 'failed']], '\n人の注記\n')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']], '\n人の注記\n') }), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']], '\n人の注記\n') }), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
     expect(labelsOf(github)).toContain('PATCH /repos/acme/demo/issues/9')
@@ -136,11 +142,13 @@ describe('dependabot sync', () => {
     { name: '検証が ERROR', pr: { rollup: 'ERROR' }, reason: 'checks failed', id: 'PW-DEPENDABOT-SYNC-09' },
     { name: '検証が 25 時間たっても終わらない', pr: { rollup: 'PENDING', age: 25 * HOUR }, reason: 'checks not finishing', id: 'PW-DEPENDABOT-SYNC-10' },
     { name: '検証が結果なしのまま 25 時間たつ', pr: { rollup: JSON_NULL, age: 25 * HOUR }, reason: 'checks not finishing', id: 'PW-DEPENDABOT-SYNC-10' },
+    { name: 'auto-merge が無く、検証が 25 時間たっても終わらない', pr: { hasAutoMerge: false, rollup: 'PENDING', age: 25 * HOUR }, reason: 'no auto-merge', id: 'PW-DEPENDABOT-SYNC-10' },
     { name: '検証が 23 時間しかたっていない', pr: { rollup: 'PENDING', age: 23 * HOUR }, reason: undefined, id: 'PW-DEPENDABOT-SYNC-10' },
     { name: 'base が 31 分前に進んで競合している', pr: { mergeable: 'CONFLICTING', age: 2 * HOUR, baseAge: 31 * MINUTE }, reason: 'conflict', id: 'PW-DEPENDABOT-SYNC-11' },
     { name: 'base が 29 分前に進んで競合している', pr: { mergeable: 'CONFLICTING', age: 2 * HOUR, baseAge: 29 * MINUTE }, reason: undefined, id: 'PW-DEPENDABOT-SYNC-11' },
     { name: '最後の push が 31 分前で競合している', pr: { mergeable: 'CONFLICTING', age: 31 * MINUTE }, reason: 'conflict', id: 'PW-DEPENDABOT-SYNC-11' },
     { name: '最後の push の後に merge queue から外された', pr: { hasAutoMerge: false, age: 2 * HOUR, dequeuedAge: 5 * MINUTE }, reason: 'dequeued', id: 'PW-DEPENDABOT-SYNC-12' },
+    { name: '最後の push の前に merge queue から外された', pr: { hasAutoMerge: false, age: 10 * MINUTE, dequeuedAge: 20 * MINUTE }, reason: undefined, id: 'PW-DEPENDABOT-SYNC-12' },
     { name: 'auto-merge が無く、最後の push が 31 分前', pr: { hasAutoMerge: false, age: 31 * MINUTE }, reason: 'no auto-merge', id: 'PW-DEPENDABOT-SYNC-13' },
     { name: 'auto-merge が無く、最後の push が 29 分前', pr: { hasAutoMerge: false, age: 29 * MINUTE }, reason: undefined, id: 'PW-DEPENDABOT-SYNC-13' },
     { name: '自動マージの対象で、待つ理由が無い', pr: {}, reason: undefined, id: 'PW-DEPENDABOT-SYNC-14' },
@@ -169,7 +177,7 @@ describe('dependabot sync', () => {
   it('表に PR を足すと、added の行を理由とともに標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-16')
     const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 6, rollup: 'FAILURE', mergeable: 'CONFLICTING', age: 2 * HOUR })]
-    const rules = [...listings(nodes, [trackerIssue(9, trackerBody([[2, 'Bump left-pad', 'passed']]))]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings(nodes, [trackerIssue(9, trackerBody([[2, 'Bump left-pad', 'passed']]))]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('added: PR #6 to Tracker #9 (checks failed, conflict)\n')
   })
@@ -177,7 +185,7 @@ describe('dependabot sync', () => {
   it('表から PR を外すと、removed の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-17')
     const existing = trackerBody([[1, 'Bump old', 'failed'], [2, 'Bump left-pad', 'passed']])
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('removed: PR #1 from Tracker #9\n')
   })
@@ -186,7 +194,7 @@ describe('dependabot sync', () => {
 
   it('行の足し外しが無く本文だけが変わると、本文を書き直す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-18')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']]) }), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']]) }), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
     expect(writtenBodies(github)).toEqual([{ body: trackerBody([[2, 'Bump left-pad', 'passed']]) }])
@@ -194,7 +202,7 @@ describe('dependabot sync', () => {
 
   it('行の足し外しが無く本文だけが変わると、updated の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-19')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result } = await sync(rules)
     expect(result.stdout).toBe('')
     expect(stderrAfterCounts(result)).toBe('updated: Tracker #9 body\n')
@@ -207,7 +215,7 @@ describe('dependabot sync', () => {
     { name: 'CRLF', body: SAME.replaceAll('\n', '\r\n') },
   ])('書き直した本文が今の本文（$name）と同じだと、本文を書き直さない', async (row, context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-20')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, row.body)]), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, row.body)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
     expect(writtenBodies(github).filter(body => body !== undefined)).toEqual([])
@@ -215,46 +223,45 @@ describe('dependabot sync', () => {
 
   it('書き直した本文が今の本文と同じだと、unchanged の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-21')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('unchanged: Tracker #9\n')
   })
 
+  const CLOSING_ISSUES = withOthers(trackerIssue(9, OLD_ROW))
   const CLOSING = [patched(9, { body: trackerBody([]) }), patched(9, { state: 'closed', state_reason: 'completed' })]
-  const OLD_ROW = trackerBody([[1, 'Bump old', 'failed']])
-
   it('判断を待つ PR が無く open の Tracker があると、表を none に書き直す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-22')
-    const { result, github } = await sync([...listings([], [trackerIssue(9, OLD_ROW)]), ...CLOSING])
+    const { result, github } = await sync([...listings([], CLOSING_ISSUES), ...CLOSING])
     expect(result.code).toBe(0)
     expect(writtenBodies(github)[0]).toEqual({ body: trackerBody([]) })
   })
 
   it('表を none に書き直すと、Tracker を completed の理由で閉じる', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-23')
-    const { github } = await sync([...listings([], [trackerIssue(9, OLD_ROW)]), ...CLOSING])
+    const { github } = await sync([...listings([], CLOSING_ISSUES), ...CLOSING])
     expect(writtenBodies(github)[1]).toEqual({ state: 'closed', state_reason: 'completed' })
   })
 
   it('Tracker を閉じると、closed の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-24')
-    const { result } = await sync([...listings([], [trackerIssue(9, OLD_ROW)]), ...CLOSING])
-    expect(stderrAfterCounts(result)).toBe('removed: PR #1 from Tracker #9\nclosed: Tracker #9\n')
+    const { result } = await sync([...listings([], CLOSING_ISSUES), ...CLOSING])
+    expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}removed: PR #1 from Tracker #9\nclosed: Tracker #9\n`)
   })
 
-  const EMPTY_TRACKER = trackerIssue(9, trackerBody([]))
+  const EMPTY_ISSUES = withOthers(trackerIssue(9, trackerBody([])))
 
   it('表が既に none の open の Tracker があると、本文を書き直さない', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-25')
-    const { result, github } = await sync([...listings([], [EMPTY_TRACKER]), patched(9, { state: 'closed' })])
+    const { result, github } = await sync([...listings([], EMPTY_ISSUES), patched(9, { state: 'closed' })])
     expect(result.code).toBe(0)
     expect(writtenBodies(github)).toEqual([{ state: 'closed', state_reason: 'completed' }])
   })
 
   it('表が既に none の open の Tracker があると、Tracker を閉じる', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-26')
-    const { result } = await sync([...listings([], [EMPTY_TRACKER]), patched(9, { state: 'closed', state_reason: 'completed' })])
-    expect(stderrAfterCounts(result)).toBe('closed: Tracker #9\n')
+    const { result } = await sync([...listings([], EMPTY_ISSUES), patched(9, { state: 'closed', state_reason: 'completed' })])
+    expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}closed: Tracker #9\n`)
   })
 
   it.for([
@@ -262,7 +269,7 @@ describe('dependabot sync', () => {
     { name: 'Priority', filled: [PRIORITY_FIELD], updated: WORKFLOW_FIELD },
   ])('閉じない open の Tracker の $name だけが埋まっていると、空の欄だけに値を入れる', async (row, context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-27')
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: row.filled })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: row.filled })]
     const { github } = await sync(rules)
     const updates = github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
     expect(updates).toMatchObject([{ variables: { fieldId: row.updated } }])
@@ -276,7 +283,7 @@ describe('dependabot sync', () => {
   ]
 
   async function syncWithTwoTrackers(): Promise<Run> {
-    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], TWO_TRACKERS), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: BOTH_FILLED })]
+    const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], TWO_TRACKERS), patched(9), ...boardRules(9, { priority: 'medium', onlyIfEmpty: true, filled: BOTH_FILLED })]
     return await sync(rules)
   }
 
@@ -296,7 +303,7 @@ describe('dependabot sync', () => {
   it('open の Tracker が複数あると、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-30')
     const { result } = await syncWithTwoTrackers()
-    expect(result.stderr).toContain('warning: multiple open Trackers; using #9 (lowest number) and leaving #12 open\n')
+    expect(result.stderr).toBe(`${OTHER_WARNING}${COUNTS_ONE}added: PR #2 to Tracker #9 (major)\nremoved: PR #1 from Tracker #9\n`)
   })
 
   it('--dry-run を付けて打つと、GitHub への書き込みをしない', async (context) => {
@@ -329,18 +336,18 @@ describe('dependabot sync', () => {
     expect(github.requests()).toEqual([])
   })
 
-  async function syncWithoutToken(): Promise<Run> {
+  async function syncWithoutToken(): Promise<Run & { readonly root: string }> {
     const project = prepareSync()
     setEnvironment({ [project.tokenVariable]: undefined })
     const github = await startGithub([])
     const result = await runInProcess(['dependabot', 'sync', '--dry-run'], DEPENDABOT_COMMANDS)
-    return { result, github }
+    return { result, github, root: project.root }
   }
 
   it('GitHub のトークンが見つからないと、error の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-35')
-    const { result } = await syncWithoutToken()
-    expect(result.stderr).toMatch(/^error: authentication error: could not get a GitHub API token/u)
+    const { result, root } = await syncWithoutToken()
+    expect(result.stderr).toBe(missingTokenStderr(root))
     expect(result.stdout).toBe('')
   })
 
@@ -354,18 +361,18 @@ describe('dependabot sync', () => {
   const TRACKER_WITH_OLD_ROW = trackerIssue(9, OLD_ROW)
 
   it.for([
-    { name: 'PR の一覧', rules: [failedRule({ operation: 'ListOpenPullRequests' })], reads: ['ListOpenPullRequests'] },
-    { name: 'Issue の一覧', rules: [pullRequestList([]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })], reads: READS },
+    { name: 'PR の一覧', rules: [failedRule({ operation: 'ListOpenPullRequests' })], reads: ['ListOpenPullRequests'], message: graphqlServerError },
+    { name: 'Issue の一覧', rules: [pullRequestList([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })], reads: READS, message: () => 'GitHub API error: 500' },
   ])('$name を取れないと、何も書かない', async (row, context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-37')
     const { result, github } = await sync(row.rules)
-    expect(result.stderr).toMatch(/^error: could not list pull requests or issues: /u)
+    expect(result.stderr).toBe(`error: could not list pull requests or issues: ${row.message(github.url)}\n`)
     expect(labelsOf(github)).toEqual(row.reads)
   })
 
   it.for([
     { name: 'PR の一覧', rules: [failedRule({ operation: 'ListOpenPullRequests' })] },
-    { name: 'Issue の一覧', rules: [pullRequestList([]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })] },
+    { name: 'Issue の一覧', rules: [pullRequestList([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })] },
   ])('$name を取れないと、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-38')
     const { result } = await sync(row.rules)
@@ -392,13 +399,13 @@ describe('dependabot sync', () => {
   })
 
   async function syncWithFailedRewrite(): Promise<Run> {
-    return await sync([...listings([], [TRACKER_WITH_OLD_ROW]), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9' }, 422)])
+    return await sync([...listings([], withOthers(TRACKER_WITH_OLD_ROW)), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9' }, 422)])
   }
 
   it('Tracker の本文の書き直しに失敗すると、Tracker を閉じない', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-41')
     const { result, github } = await syncWithFailedRewrite()
-    expect(result.stderr).toMatch(/^count: .*\ncount: .*\ncount: .*\nerror: could not update Tracker #9 body: /u)
+    expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}error: could not update Tracker #9 body: GitHub API error: 422\n`)
     expect(labelsOf(github).filter(label => label.startsWith('PATCH'))).toEqual(['PATCH /repos/acme/demo/issues/9'])
   })
 
@@ -410,17 +417,14 @@ describe('dependabot sync', () => {
   })
 
   async function syncWithFailedClose(): Promise<Run> {
-    const rules = [...listings([], [TRACKER_WITH_OLD_ROW]), patched(9, { body: trackerBody([]) }), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9', body: { state: 'closed' } })]
+    const rules = [...listings([], withOthers(TRACKER_WITH_OLD_ROW)), patched(9, { body: trackerBody([]) }), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9', body: { state: 'closed' } })]
     return await sync(rules)
   }
 
   it('表を none に書き直した後で Tracker を閉じられないと、次の実行でやり直す旨の error の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-43')
     const { result } = await syncWithFailedClose()
-    const lines = result.stderr.split('\n')
-    expect(lines[3]).toBe('removed: PR #1 from Tracker #9')
-    expect(lines[4]).toMatch(/^error: could not close Tracker #9 after setting its list to none; will retry on the next run: /u)
-    expect(result.stderr).not.toContain('closed:')
+    expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}removed: PR #1 from Tracker #9\nerror: could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500\n`)
   })
 
   it('表を none に書き直した後で Tracker を閉じられないと、終了コード 1 で終わる', async (context) => {
@@ -430,7 +434,7 @@ describe('dependabot sync', () => {
   })
 
   async function syncWithFailedBoard(): Promise<Run> {
-    const [nodeId] = boardRules(100, { onlyIfEmpty: false })
+    const [nodeId] = boardRules(100, { priority: 'medium', onlyIfEmpty: false })
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })]
     return await sync(rules)
   }
@@ -438,11 +442,9 @@ describe('dependabot sync', () => {
   it('Tracker の作成かボードへの追加に失敗すると、Tracker の error の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-45')
     const created = await syncWithFailedBoard()
-    const lines = stderrAfterCounts(created.result).split('\n')
-    expect(lines.slice(0, 2)).toEqual([`created: Tracker "${TODAY_TITLE}"`, 'added: PR #2 to new Tracker (major)'])
-    expect(lines[2]).toMatch(/^error: Tracker: /u)
+    expect(stderrAfterCounts(created.result)).toBe(`created: Tracker "${TODAY_TITLE}"\nadded: PR #2 to new Tracker (major)\nerror: Tracker: ${graphqlServerError(created.github.url)}\n`)
     const creation = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'POST', path: '/repos/acme/demo/issues' })])
-    expect(stderrAfterCounts(creation.result)).toMatch(/^error: Tracker: /u)
+    expect(stderrAfterCounts(creation.result)).toBe('error: Tracker: GitHub API error: 500\n')
   })
 
   it('Tracker の作成かボードへの追加に失敗すると、終了コード 1 で終わる', async (context) => {
@@ -454,11 +456,11 @@ describe('dependabot sync', () => {
   it('open の Tracker のボード登録に失敗すると、error の行を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-DEPENDABOT-SYNC-45')
     await verifies(context, 'PW-DEPENDABOT-SYNC-46')
-    const [nodeId] = boardRules(9, { onlyIfEmpty: true })
+    const [nodeId] = boardRules(9, { priority: 'medium', onlyIfEmpty: true })
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })]
-    const { result } = await sync(rules)
+    const { result, github } = await sync(rules)
     expect(result.code).toBe(FAILURE_CODE)
-    expect(result.stderr).toMatch(/\nerror: Tracker: /u)
+    expect(result.stderr).toBe(`${COUNTS_ONE}unchanged: Tracker #9\nerror: Tracker: ${graphqlServerError(github.url)}\n`)
   })
 
   it('Issue の一覧にラベルと state=all を付けて要求する', async () => {

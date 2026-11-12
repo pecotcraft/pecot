@@ -6,21 +6,15 @@ import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import {
-  boardRules,
   codeScanningAlert,
   createdBody,
-  createdTracker,
   dependabotAlert,
   dependabotEntry,
   failure,
-  FILLED_PRIORITY,
-  FILLED_WORKFLOW,
-  freezeClock,
   graphqlOperations,
   issueList,
   listings,
   patchedTracker,
-  prepareSync,
   restWrites,
   secretScanningAlert,
   secretScanningStatus,
@@ -32,6 +26,7 @@ import {
   vulnerabilityAlertsEnabled,
 } from '../_helpers/security-case.js'
 import type { AlertResponses } from '../_helpers/security-case.js'
+import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -47,6 +42,29 @@ const TRACKER_5 = '/repos/acme/demo/issues/5'
 
 const ONE_DEPENDABOT: AlertResponses = { dependabot: [dependabotAlert(1)] }
 const NO_ALERTS: AlertResponses = {}
+// startCreating の alert から作る本文。期待値は Python の render_tracker_body で出した（同じ GHSA の Dependabot の 2 件は 1 行にまとまる）
+const CREATED_BODY = [
+  '<!-- pecot-alert: tracker -->',
+  '',
+  '<!-- pecot-alert: list-begin -->',
+  '## Dependabot',
+  '',
+  '| title | alert | Priority |',
+  '|---|---|---|',
+  '| <!-- pecot-alert: dependabot/1 priority=low pkg=pkg ghsa=GHSA-aaaa-bbbb-cccc --> <!-- pecot-alert: dependabot/2 priority=high pkg=pkg ghsa=GHSA-aaaa-bbbb-cccc --> [GHSA-aaaa-bbbb-cccc](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](https://ghes.example.com/acme/demo/security/dependabot/1) [#2](https://ghes.example.com/acme/demo/security/dependabot/2) | high |',
+  '',
+  '## code scanning',
+  '',
+  '| title | alert | Priority |',
+  '|---|---|---|',
+  '| <!-- pecot-alert: code-scanning/10 priority=high --> masked | [#10](https://ghes.example.com/acme/demo/security/code-scanning/10) | high |',
+  '',
+  '## secret scanning',
+  '',
+  'none',
+  '<!-- pecot-alert: list-end -->',
+  '',
+].join('\n')
 const BODY_WITH_ONE = trackerBody(dependabotEntry(1))
 
 // 古い形式の行を 1 行持つ本文。行の足し外しは無く、本文だけが変わる
@@ -99,7 +117,8 @@ async function boardUpdates(filled: readonly string[]): Promise<unknown[]> {
   return fieldUpdates(github.requests())
 }
 
-const SEVERAL_TRACKERS = [trackerIssue(9, trackerBody()), trackerIssue(5, trackerBody())]
+// 番号がいちばん小さい、印の無い open の Issue（label は security-alert）を含む
+const SEVERAL_TRACKERS = [trackerIssue(9, trackerBody()), trackerIssue(5, trackerBody()), trackerIssue(3, 'マーカーの無い本文')]
 
 function severalTrackers(): ResponseRule[] {
   return [...listings(ONE_DEPENDABOT, SEVERAL_TRACKERS), patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]
@@ -115,15 +134,15 @@ function failingUpdate(): ResponseRule[] {
   return [...listings(ONE_DEPENDABOT, [trackerIssue(5, trackerBody())]), patchedTracker(5, 422), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]
 }
 
-async function withoutToken(): Promise<CliResult> {
+async function withoutToken(): Promise<{ readonly result: CliResult, readonly root: string }> {
   const project = prepareSync()
   await startGithub([])
   setEnvironment({ [project.tokenVariable]: undefined })
-  return await sync('--dry-run')
+  return { result: await sync('--dry-run'), root: project.root }
 }
 
 function unlistable(): ResponseRule[] {
-  return [...listings(NO_ALERTS, []).slice(0, 3), issueList([], 500)]
+  return [...listings(ONE_DEPENDABOT, []).slice(0, 3), issueList([], 500)]
 }
 
 function brokenMarkers(): ResponseRule[] {
@@ -139,7 +158,7 @@ describe('security sync', () => {
       const result = await sync()
       expect(result.code).toBe(0)
       expect(result.stdout).toBe('')
-      expect(createdBody(github.requests())).toMatchObject({ title: TODAY_TITLE, labels: ['security-alert'] })
+      expect(createdBody(github.requests())).toEqual({ title: TODAY_TITLE, body: CREATED_BODY, labels: ['security-alert'] })
       const lines = result.stderr.split('\n')
       expect(lines[0]).toBe(`created: Tracker "${TODAY_TITLE}" with priority high`)
       expect(lines.slice(1)).toEqual(['added: dependabot #1 to new Tracker', 'added: dependabot #2 to new Tracker', 'added: code-scanning #10 to new Tracker', ''])
@@ -206,9 +225,9 @@ describe('security sync', () => {
       await verifies(context, 'PW-SECURITY-SYNC-43')
       freezeClock()
       prepareSync()
-      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
+      const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
       const result = await sync()
-      expect(result.stderr).toMatch(/\nerror: Tracker: GraphQL query error: /u)
+      expect(result.stderr).toBe(`created: Tracker "${TODAY_TITLE}" with priority medium\nadded: dependabot #1 to new Tracker\nerror: Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}\n`)
     })
 
     it('Tracker の作成に失敗すると、終了コード 1 で終わる', async (context) => {
@@ -351,7 +370,7 @@ describe('security sync', () => {
       prepareSync()
       await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]))
       const result = await sync()
-      expect(result.stderr).toContain('skipped: secret scanning alerts (feature disabled)\n')
+      expect(result.stderr).toBe('skipped: secret scanning alerts (feature disabled)\nadded: dependabot #1 to Tracker #5\nremoved: secret-scanning #1 from Tracker #5\n')
     })
 
     it('code scanning の解析が無いリポジトリだと、code scanning の alert を 0 件として扱う', async (context) => {
@@ -370,8 +389,8 @@ describe('security sync', () => {
       const workflow = { projectId: 'PVT_1', itemId: 'PVTI_5', fieldId: 'PVTSSF_workflow', optionId: 'o1' }
       const priority = { projectId: 'PVT_1', itemId: 'PVTI_5', fieldId: 'PVTSSF_priority', optionId: 'p2' }
       expect(await boardUpdates([])).toEqual([workflow, priority])
-      expect(await boardUpdates([FILLED_WORKFLOW])).toEqual([priority])
-      expect(await boardUpdates([FILLED_WORKFLOW, FILLED_PRIORITY])).toEqual([])
+      expect(await boardUpdates([WORKFLOW_FIELD])).toEqual([priority])
+      expect(await boardUpdates([WORKFLOW_FIELD, PRIORITY_FIELD])).toEqual([])
     })
 
     it('open の Tracker が複数あると、番号が最小のものを使う', async (context) => {
@@ -396,7 +415,7 @@ describe('security sync', () => {
       prepareSync()
       await startGithub(severalTrackers())
       const result = await sync()
-      expect(result.stderr).toContain('warning: multiple open Trackers; using #5 (lowest number) and leaving #9 open\n')
+      expect(result.stderr).toBe('warning: multiple open Trackers; using #5 (lowest number) and leaving #9 open\nadded: dependabot #1 to Tracker #5\n')
     })
 
     it('Tracker の本文の書き直しに失敗したなら、error の行を標準エラーに出す', async (context) => {
@@ -404,9 +423,7 @@ describe('security sync', () => {
       prepareSync()
       await startGithub(failingUpdate())
       const result = await sync()
-      expect(result.stderr).toMatch(/^error: could not update Tracker #5 body: /u)
-      expect(result.stderr).not.toContain('updated:')
-      expect(result.stderr).not.toContain('added:')
+      expect(result.stderr).toBe('error: could not update Tracker #5 body: GitHub API error: 422\n')
     })
 
     it('Tracker の本文の書き直しに失敗したなら、終了コード 1 で終わる', async (context) => {
@@ -475,15 +492,14 @@ describe('security sync', () => {
 
     it('GitHub のトークンが見つからないと、error の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-SECURITY-SYNC-28')
-      const result = await withoutToken()
+      const { result, root } = await withoutToken()
       expect(result.stdout).toBe('')
-      expect(result.stderr).toMatch(/^error: authentication error: could not get a GitHub API token\n/u)
-      expect(result.stderr).toContain('PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN')
+      expect(result.stderr).toBe(missingTokenStderr(root))
     })
 
     it('GitHub のトークンが見つからないと、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-SECURITY-SYNC-29')
-      const result = await withoutToken()
+      const { result } = await withoutToken()
       expect(result.code).toBe(1)
     })
   })
@@ -512,7 +528,7 @@ describe('security sync', () => {
       prepareSync()
       await startGithub(failedSecret(SECRET_ROW_BODY))
       const result = await sync()
-      expect(result.stderr).toMatch(/^error: could not list secret scanning alerts \(leaving its rows untouched\): /u)
+      expect(result.stderr).toBe('error: could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: GitHub API error: 500 boom\nadded: dependabot #1 to Tracker #5\n')
     })
 
     it('ほかの種類を書き直す', async (context) => {
@@ -548,7 +564,7 @@ describe('security sync', () => {
       await startGithub([...listings({ dependabotFailure: failure(403, 'Resource not accessible by integration') }, []), vulnerabilityAlertsEnabled()])
       const result = await sync()
       expect(result.code).toBe(1)
-      expect(result.stderr).toContain('error: could not list Dependabot alerts (leaving its rows untouched): acme/demo: Dependabot alerts are enabled but the list cannot be fetched')
+      expect(result.stderr).toBe('error: could not list Dependabot alerts (leaving its rows untouched): acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)\nskipped: Tracker creation\n')
     })
 
     it('secret scanning の一覧を 404 で取れず、無効とも確かめられないと、その種類を取れなかったものとして扱う', async (context) => {
@@ -557,8 +573,7 @@ describe('security sync', () => {
       const github = await startGithub(secretNotFound('enabled', NO_ALERTS, boardRules(5, { onlyIfEmpty: true, priority: 'medium' })))
       const result = await sync()
       expect(result.code).toBe(1)
-      expect(result.stderr).toContain('error: could not list secret scanning alerts (leaving its rows untouched): ')
-      expect(result.stderr).toContain('unchanged: Tracker #5\n')
+      expect(result.stderr).toBe('error: could not list secret scanning alerts (leaving its rows untouched): acme/demo: cannot fetch the secret scanning list (permission may be missing; it cannot be confirmed as disabled)\nunchanged: Tracker #5\n')
       expect(restWrites(github.requests())).toEqual([])
     })
   })
@@ -569,7 +584,7 @@ describe('security sync', () => {
       prepareSync()
       const github = await startGithub(unlistable())
       const result = await sync()
-      expect(result.stderr).toMatch(/^error: could not list issues: /u)
+      expect(result.stderr).toBe('error: could not list issues: GitHub API error: 500\n')
       expect(restWrites(github.requests())).toEqual([])
       expect(graphqlOperations(github.requests())).toEqual([])
     })
@@ -589,7 +604,7 @@ describe('security sync', () => {
       prepareSync()
       const github = await startGithub(brokenMarkers())
       const result = await sync()
-      expect(result.stderr).toMatch(/^error: Tracker #5: cannot rewrite the list: /u)
+      expect(result.stderr).toBe('error: Tracker #5: cannot rewrite the list: the Tracker body does not have exactly one pair of list-begin / list-end markers\n')
       expect(restWrites(github.requests())).toEqual([])
       expect(graphqlOperations(github.requests())).toEqual([])
     })

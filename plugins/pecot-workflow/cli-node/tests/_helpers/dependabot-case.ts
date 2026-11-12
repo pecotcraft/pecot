@@ -1,22 +1,13 @@
 // dependabot sync のテストが共有する準備。PR のノード・Tracker の Issue・偽の GitHub の応答を組み立てる。
 // 時刻に頼る理由（30 分・24 時間）は、NOW を基準にした経過時間で PR を作って確かめる。
-import { vi } from 'vitest'
-
 import type { JsonObject } from '../../src/domain/json.js'
 import { JSON_NULL } from '../../src/domain/json-null.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { ResponseRule } from '../fake-github/server.js'
-import { enterGitRepository, setUpProject } from './interface-case.js'
-import type { ProjectFixture } from './interface-case.js'
+import { issueListRule, NOW } from './tracker-sync-case.js'
 
-export const NOW = new Date('2026-11-09T12:00:00Z')
 export const TODAY_TITLE = '[Tracker] dependabot PR — 2026-11-09'
 export const MINUTE = 60_000
 export const HOUR = 60 * MINUTE
-
-export function freezeClock(): void {
-  vi.useFakeTimers({ toFake: ['Date'], now: NOW })
-}
 
 function iso(ageMilliseconds: number): string {
   return new Date(NOW.getTime() - ageMilliseconds).toISOString().replace('.000Z', 'Z')
@@ -95,7 +86,7 @@ export function pullRequestList(nodes: readonly JsonObject[]): ResponseRule {
 }
 
 export function issueList(issues: readonly JsonObject[]): ResponseRule {
-  return { match: { method: 'GET', path: '/repos/acme/demo/issues' }, respond: { status: 200, body: issues }, times: 1 }
+  return issueListRule('dependabot-pr', issues)
 }
 
 /**
@@ -105,10 +96,6 @@ export function listings(nodes: readonly JsonObject[], issues: readonly JsonObje
   return [pullRequestList(nodes), issueList(issues)]
 }
 
-export function createdTracker(number: number): ResponseRule {
-  return { match: { method: 'POST', path: '/repos/acme/demo/issues' }, respond: { status: 201, body: { number, title: TODAY_TITLE } }, times: 1 }
-}
-
 export function patched(number: number, body?: unknown): ResponseRule {
   const match = { method: 'PATCH', path: `/repos/acme/demo/issues/${String(number)}`, ...(body !== undefined && { body }) }
   return { match, respond: { status: 200, body: { number } }, times: 1 }
@@ -116,59 +103,4 @@ export function patched(number: number, body?: unknown): ResponseRule {
 
 export function failedRule(match: ResponseRule['match'], status = 500): ResponseRule {
   return { match, respond: { status, body: { message: 'failure' } }, times: 1 }
-}
-
-export const WORKFLOW_FIELD = 'PVTSSF_workflow'
-export const PRIORITY_FIELD = 'PVTSSF_priority'
-
-export interface BoardOptions {
-  /**
-  真なら、空の欄だけに入れる（作った後でない Tracker）
-  */
-  readonly onlyIfEmpty: boolean
-  /**
-  既に値が入っている欄の ID
-  */
-  readonly filled?: readonly string[]
-}
-
-/**
-Tracker をボードに載せ、Status を Backlog、Priority を medium にする応答
-*/
-export function boardRules(number: number, options: Readonly<BoardOptions>): ResponseRule[] {
-  const { onlyIfEmpty, filled = [] } = options
-  const itemId = `PVTI_${String(number)}`
-  const nodeId = `I_${String(number)}`
-  const rules: ResponseRule[] = [
-    { match: { operation: 'GetIssueNodeId', variables: { owner: 'acme', repo: 'demo', number } }, respond: { status: 200, body: { data: { repository: { issue: { id: nodeId, title: 'Tracker' } } } } }, times: 1 },
-    { match: { operation: 'AddToProject', variables: { projectId: 'PVT_1', contentId: nodeId } }, respond: { status: 200, body: { data: { addProjectV2ItemById: { item: { id: itemId } } } } }, times: 1 },
-  ]
-  if (onlyIfEmpty) {
-    const fieldValues = { nodes: filled.map(id => ({ field: { id } })) }
-    const items = { nodes: [{ id: itemId, project: { id: 'PVT_1' }, fieldValues }] }
-    rules.push({ match: { operation: 'GetIssueProjectItems', variables: { owner: 'acme', repo: 'demo', number } }, respond: { status: 200, body: { data: { repository: { issue: { projectItems: items } } } } }, times: 2 })
-  }
-  const defaults: readonly (readonly [string, string])[] = [[WORKFLOW_FIELD, 'o1'], [PRIORITY_FIELD, 'p2']]
-  for (const [fieldId, optionId] of defaults) {
-    if (filled.includes(fieldId)) continue
-    const variables = { projectId: 'PVT_1', itemId, fieldId, optionId }
-    rules.push({ match: { operation: 'UpdateProjectItemField', variables }, respond: { status: 200, body: { data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: itemId } } } } }, times: 1 })
-  }
-  return rules
-}
-
-export interface SyncSetup {
-  readonly hasConfig?: boolean
-  readonly hasRemote?: boolean
-}
-
-/**
-設定と origin（acme/demo）を持つ一時 git リポジトリへ移る
-*/
-export function prepareSync(setup: Readonly<SyncSetup> = {}): ProjectFixture {
-  const { hasConfig = true, hasRemote = true } = setup
-  const project = setUpProject(hasConfig ? {} : { files: { '.pecot/config/projects/.active': '' } })
-  const repository = enterGitRepository()
-  if (hasRemote) gitForTest(repository, ['remote', 'add', 'origin', 'https://ghes.example.com/acme/demo.git'])
-  return project
 }

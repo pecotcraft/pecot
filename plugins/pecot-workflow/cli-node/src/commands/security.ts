@@ -1,18 +1,13 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // `pecot security sync`。cli/commands/security.py の移植。open の Tracker の一覧を、open の security alert に書き直す。
 // 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
 import { z } from 'zod'
 
-import type { ProjectConfig } from '../domain/config.js'
 import { ALERT_KINDS, kindLabel, listOpenAlerts, SecurityAlertError } from '../domain/security-alerts.js'
 import type { AlertKind, AlertSources } from '../domain/security-alerts.js'
 import { ALERT_LABEL, buildTrackerTitle, maxPriority, normalizeAlerts, parseTrackerEntries, planTracker, renderTrackerBody, TRACKER_PATTERN } from '../domain/security-tracker.js'
 import type { Alert, TrackerPlan } from '../domain/security-tracker.js'
 import { findTracker } from '../domain/tracker-body.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
 import { requireNumber } from '../infra/github/payload.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
 import { CommandExit, defineCommand } from './command-definition.js'
@@ -21,14 +16,10 @@ import { makeClient } from './github-client.js'
 import { createIssue, putOnBoard } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { loadTarget, settle, warnExtraTrackers } from './tracker-sync.js'
+import { apiErrorDetail, isBodyUnchanged, loadTarget, settle, todayUtc, warnExtraTrackers } from './tracker-sync.js'
+import type { SyncApplyContext, SyncStages } from './tracker-sync.js'
 
 const FAILURE = 1
-
-// Python の `{e}` に当たる、API エラーと通信エラーの文
-function failureText(error: unknown): string | undefined {
-  return error instanceof GitHubAPIError || error instanceof TransportFailure ? error.message : undefined
-}
 
 interface FetchedAlerts {
   readonly alerts: ReadonlyMap<AlertKind, readonly Alert[]>
@@ -62,12 +53,7 @@ async function fetchOpenAlerts(out: Readonly<Output>, sources: AlertSources, hos
   return { alerts, failed, disabled }
 }
 
-interface Stages {
-  readonly create: readonly Operation[]
-  readonly rewrite: readonly Operation[]
-}
-
-function operationsOf(plan: TrackerPlan, tracker: number | undefined, title: string, isUnchanged: boolean): Stages {
+function operationsOf(plan: TrackerPlan, tracker: number | undefined, title: string, isUnchanged: boolean): SyncStages {
   if (tracker === undefined) {
     if (!plan.create) return { create: [{ verb: 'skip', target: 'Tracker creation' }], rewrite: [] }
     const created: Operation[] = [{ verb: 'create', target: `Tracker "${title}" with priority ${String(maxPriority(plan.entries))}` }]
@@ -83,21 +69,15 @@ function operationsOf(plan: TrackerPlan, tracker: number | undefined, title: str
   return { create: [], rewrite: rewrite.length === 0 ? [{ verb: 'update', target: `Tracker ${label} body` }] : rewrite }
 }
 
-interface ApplyInput {
-  readonly config: ProjectConfig
-  readonly owner: string
-  readonly repository: string
+interface ApplyInput extends SyncApplyContext {
   readonly plan: TrackerPlan
-  readonly title: string
-  readonly body: string
-  readonly stages: Stages
-  readonly number: number | undefined
-  readonly isUnchanged: boolean
+  readonly stages: SyncStages
 }
 
-// Tracker を作る・書き直す・ボードに載せる。失敗の数を返す
-async function applyChanges(out: Readonly<Output>, client: GitHubClient, input: ApplyInput): Promise<number> {
-  const { config, owner, repository, plan, title, body, stages, number, isUnchanged } = input
+// Tracker を作る・書き直す・ボードに載せる。失敗の数を返す。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は可変
+async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>): Promise<number> {
+  const { client, config, owner, repository, plan, title, body, stages, number, isUnchanged } = input
   const priority = maxPriority(plan.entries)
   try {
     if (number === undefined) {
@@ -117,7 +97,7 @@ async function applyChanges(out: Readonly<Output>, client: GitHubClient, input: 
         await client.updateIssueBody(owner, repository, number, body)
       }
       catch (error: unknown) {
-        const text = failureText(error)
+        const text = apiErrorDetail(error)
         if (text === undefined) throw error
         // 422 を含む。本文は書き直されていないので、次の実行でやり直す
         failures += 1
@@ -131,7 +111,7 @@ async function applyChanges(out: Readonly<Output>, client: GitHubClient, input: 
     return failures
   }
   catch (error: unknown) {
-    const text = failureText(error)
+    const text = apiErrorDetail(error)
     if (text === undefined) throw error
     out.error(`Tracker: ${text}`)
     return 1
@@ -160,7 +140,7 @@ const sync = defineCommand({
       issues = await client.listIssuesByLabel(owner, repository, ALERT_LABEL)
     }
     catch (error: unknown) {
-      const text = failureText(error)
+      const text = apiErrorDetail(error)
       if (text === undefined) throw error
       out.error(`could not list issues: ${text}`)
       return FAILURE
@@ -180,14 +160,14 @@ const sync = defineCommand({
     }
 
     const plan = planTracker(alerts, entries, failed, disabled)
-    const title = buildTrackerTitle(new Date().toISOString().slice(0, 10))
+    const title = buildTrackerTitle(todayUtc(new Date()))
     const body = renderTrackerBody(plan.entries, config.host, owner, repository, { existingBody, disabledKinds: disabled, failedKinds: failed })
     const number = tracker?.number
-    const isUnchanged = number !== undefined && body === (existingBody ?? '').replaceAll('\r\n', '\n')
+    const isUnchanged = isBodyUnchanged(body, existingBody)
     const stages = operationsOf(plan, number, title, isUnchanged)
     for (const operation of [...stages.create, ...stages.rewrite]) out.planned(operation)
 
-    const failures = input.dry_run ? 0 : await applyChanges(out, client, { config, owner, repository, plan, title, body, stages, number, isUnchanged })
+    const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged })
     if (failed.size > 0 || failures > 0) throw new CommandExit(FAILURE)
     return 0
   },
