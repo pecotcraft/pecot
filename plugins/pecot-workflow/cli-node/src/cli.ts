@@ -25,7 +25,7 @@ import { closeMatches } from './commands/fuzzy.js'
 import { helpText } from './commands/help.js'
 import { COMMANDS, findCommand } from './commands/registry.js'
 import type { CommandDefinition, CommandIo } from './commands/registry.js'
-import { createProcessIo } from './commands/output.js'
+import { AbortedError, createProcessIo, reportAborted } from './commands/output.js'
 import { formatResolvedRepository } from './commands/repository-display.js'
 import { outputWidth } from './commands/rich-panel.js'
 import {
@@ -146,7 +146,7 @@ async function execute(argv: readonly string[], context: Readonly<CliContext>, w
 
 /**
 argv（node とスクリプトを除く）を実行して終了コードを返す。
-使い方の誤りは枠付きで stderr に出して 2。独自の例外は error の行で 1。それ以外の例外は伝える
+使い方の誤りは枠付きで stderr に出して 2。確認の中止は Aborted. で 1。独自の例外は error の行で 1。それ以外の例外は伝える
 */
 export async function runCli(argv: readonly string[], context: Readonly<CliContext>): Promise<number> {
   const width = outputWidth(context.environment, context.terminalColumns)
@@ -158,6 +158,7 @@ export async function runCli(argv: readonly string[], context: Readonly<CliConte
       context.io.stderr(formatUsageError(error, width))
       return USAGE_EXIT_CODE
     }
+    if (error instanceof AbortedError) return reportAborted(context.io)
     if (!isReportableFailure(error)) throw error
     reportFailure(error, context.io)
     return FAILURE_EXIT_CODE

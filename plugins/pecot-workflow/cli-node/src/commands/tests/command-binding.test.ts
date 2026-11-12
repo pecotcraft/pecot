@@ -52,6 +52,32 @@ const remove = defineCommand({
   },
 })
 
+const add = defineCommand({
+  path: ['worktree', 'add'],
+  description: '作る',
+  input: z.object({ allow_existing_branch: z.boolean().default(false), directory: z.string().optional() }),
+  positional: [],
+  shortFlags: { directory: '-D' },
+  aliases: { allow_existing_branch: '--force' },
+  interactive: false,
+  run: async (input) => {
+    seen.push(input)
+    return await exitWith(0)
+  },
+})
+
+const skipping = defineCommand({
+  path: ['skipping'],
+  description: '名前が no_ で始まる入力',
+  input: z.object({ no_copy: z.boolean().default(false) }),
+  positional: [],
+  interactive: false,
+  run: async (input) => {
+    seen.push(input)
+    return await exitWith(0)
+  },
+})
+
 async function messageOf(promise: Promise<unknown>): Promise<string> {
   const error = await usageErrorOf(promise)
   return error.message
@@ -273,6 +299,37 @@ describe('否定形と包んだスキーマ', () => {
     const io = capture()
     expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'files...\'.')
     expect(synopsisOf(flags)).toBe('[OPTIONS] {files}...')
+  })
+
+  it('名前が no_ で始まる真偽値は、指定が無ければ false で、--no-copy を付けると true', async () => {
+    seen.length = 0
+    await runDefinition(skipping, [], capture())
+    await runDefinition(skipping, ['--no-copy'], capture())
+    expect(seen).toEqual([{ no_copy: false }, { no_copy: true }])
+  })
+
+  it('--no-copy の否定形 --copy は、未知のオプションで No such option になる', async () => {
+    seen.length = 0
+    const error = await usageErrorOf(runDefinition(skipping, ['--copy'], capture()))
+    expect(error.message).toBe('No such option: --copy (Possible options: --no-copy)')
+    expect(seen).toEqual([])
+  })
+
+  it('別名は長い形のまま、元の名前の入力にする', async () => {
+    seen.length = 0
+    await runDefinition(add, ['--allow-existing-branch'], capture())
+    await runDefinition(add, ['--force'], capture())
+    await runDefinition(add, [], capture())
+    expect(seen).toEqual([
+      { allow_existing_branch: true },
+      { allow_existing_branch: true },
+      { allow_existing_branch: false },
+    ])
+  })
+
+  it('別名も未知のオプションの候補になる', async () => {
+    const message = await messageOf(runDefinition(add, ['--forc'], capture()))
+    expect(message).toBe('No such option: --forc (Possible options: --force)')
   })
 
   it('否定形も未知のオプションの候補になる', async () => {

@@ -1,11 +1,13 @@
 // 共通の出力関数が、期待の行の一覧（cases.json）どおりに出すことを確かめる。
-import { readFileSync } from 'node:fs'
+import { closeSync, openSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import { createOutput, createProcessIo, VerbSchema } from '../../src/commands/output.js'
+import { AbortedError, createLineReader, createOutput, createProcessIo, isConfirmed, reportAborted, VerbSchema } from '../../src/commands/output.js'
+import type { CommandIo } from '../../src/commands/registry.js'
+import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temporary.js'
 import { parseJson } from '../../src/tests/_helpers/json.js'
 
 const StreamSchema = z.enum(['stdout', 'stderr']).nullable()
@@ -129,5 +131,148 @@ describe('createProcessIo', () => {
     const errors = captureWrites('stderr')
     createOutput(false, createProcessIo()).warning('first\nsecond')
     expect(errors).toEqual(['warning: first\n  second\n'])
+  })
+})
+
+function openInput(content: string): number {
+  const directory = makeTemporaryDirectory()
+  writeTree(directory, { 'input.txt': content })
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 一時ディレクトリの中のファイル
+  return openSync(`${directory}/input.txt`, 'r')
+}
+
+describe('readLine', () => {
+  it('ファイルの fd から 1 行ずつ読み、読み残しを作らない', () => {
+    const fd = openInput('yes\nno\n')
+    try {
+      const io = createProcessIo(fd)
+      expect(io.readLine?.()).toBe('yes')
+      expect(io.readLine?.()).toBe('no')
+      expect(io.readLine?.()).toBeUndefined()
+    }
+    finally {
+      closeSync(fd)
+    }
+  })
+
+  it('末尾の改行が無い最後の行は返し、その次は終端', () => {
+    const fd = openInput('a\n\nlast')
+    try {
+      const readLine = createLineReader(fd)
+      expect([readLine(), readLine(), readLine(), readLine()]).toEqual(['a', '', 'last', undefined])
+    }
+    finally {
+      closeSync(fd)
+    }
+  })
+
+  it('空の入力は終端', () => {
+    const fd = openInput('')
+    try {
+      expect(createLineReader(fd)()).toBeUndefined()
+    }
+    finally {
+      closeSync(fd)
+    }
+  })
+
+  it('UTF-8 の複数バイトの文字を壊さない', () => {
+    const fd = openInput('はい\n')
+    try {
+      expect(createLineReader(fd)()).toBe('はい')
+    }
+    finally {
+      closeSync(fd)
+    }
+  })
+
+  it('EAGAIN は待って読み直す', () => {
+    const script: (string | number)[] = ['EAGAIN', 121, 'EAGAIN', 10]
+    let waited = 0
+    const readLine = createLineReader(
+      0,
+      (_fd, buffer) => {
+        const next = script.shift()
+        if (next === 'EAGAIN') throw Object.assign(new Error('try again'), { code: 'EAGAIN' })
+        if (typeof next !== 'number') return 0
+        buffer[0] = next
+        return 1
+      },
+      () => {
+        waited += 1
+      },
+    )
+    expect(readLine()).toBe('y')
+    expect(waited).toBe(2)
+  })
+
+  it('EAGAIN 以外の読みの失敗は伝える', () => {
+    const readLine = createLineReader(0, () => {
+      throw Object.assign(new Error('bad fd'), { code: 'EBADF' })
+    })
+    expect(() => readLine()).toThrow('bad fd')
+  })
+})
+
+interface Session {
+  readonly io: CommandIo
+  readonly out: string[]
+  readonly errors: string[]
+}
+
+function sessionWith(lines: readonly string[] | undefined): Session {
+  const out: string[] = []
+  const errors: string[] = []
+  const queue = [...lines ?? []]
+  const base: CommandIo = {
+    stdout: (text) => { out.push(text) },
+    stderr: (text) => { errors.push(text) },
+  }
+  const io: CommandIo = lines === undefined ? base : { ...base, readLine: () => queue.shift() }
+  return { io, out, errors }
+}
+
+describe('isConfirmed', () => {
+  it.each([
+    ['y', true], ['yes', true], ['Y', true], [' YES ', true],
+    ['n', false], ['no', false], ['N', false], ['', false],
+  ])('答え %j は %s', (answer, expected) => {
+    const { io, out, errors } = sessionWith([answer])
+    expect(isConfirmed(io, 'overwrite it?')).toBe(expected)
+    expect(errors).toEqual(['overwrite it? [y/N]:'])
+    expect(out).toEqual([' '])
+  })
+
+  it('それ以外の答えは Error: invalid input を出して問い直す', () => {
+    const { io, out, errors } = sessionWith(['maybe', 'y'])
+    expect(isConfirmed(io, 'go?')).toBe(true)
+    expect(errors).toEqual(['go? [y/N]:', 'Error: invalid input\n', 'go? [y/N]:'])
+    expect(out).toEqual([' ', ' '])
+  })
+
+  it('終端なら AbortedError を投げる。code は持たない', () => {
+    const { io, errors } = sessionWith([])
+    let caught: unknown
+    try {
+      isConfirmed(io, 'go?')
+    }
+    catch (error: unknown) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(AbortedError)
+    expect(caught).not.toHaveProperty('code')
+    expect(errors).toEqual(['go? [y/N]:'])
+  })
+
+  it('readLine が無い io（MCP）は終端と同じ', () => {
+    expect(() => isConfirmed(sessionWith(undefined).io, 'go?')).toThrow(AbortedError)
+  })
+})
+
+describe('reportAborted', () => {
+  it('Aborted. を stderr に出して終了コード 1 を返す', () => {
+    const { io, errors } = sessionWith(undefined)
+    expect(reportAborted(io)).toBe(1)
+    expect(errors).toEqual(['Aborted.\n'])
   })
 })

@@ -9,7 +9,9 @@ import { exitQuietlyOnBrokenPipe, main, runCli } from '../cli.js'
 import { InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { OsError } from '../infra/os-error.js'
+import { isConfirmed } from '../commands/output.js'
 import { defineCommand } from '../commands/registry.js'
+import type { CommandIo } from '../commands/registry.js'
 import { capture as captureIo, exitWith, failWith, throwFailure } from '../commands/tests/support.js'
 import { pluginRoot } from '../version.js'
 import { setEnvironment, useIsolatedEnvironment } from './_helpers/environment.js'
@@ -55,6 +57,14 @@ const COMMANDS = [
     run: async () => await failWith('boom'),
   }),
   defineCommand({
+    path: ['abort'],
+    description: '中止する',
+    input: z.object({}),
+    positional: [],
+    interactive: true,
+    run: async (_input, io) => await abortWith(io),
+  }),
+  defineCommand({
     path: ['add-to-project'],
     description: 'Project へ追加する',
     input: z.object({}),
@@ -81,6 +91,19 @@ function outsideGit(): string {
   setEnvironment({ GIT_CEILING_DIRECTORIES: directory.slice(0, directory.lastIndexOf('/')) })
   return directory
 }
+
+async function abortWith(io: CommandIo): Promise<never> {
+  await Promise.resolve()
+  isConfirmed(io, 'go on?')
+  throw new Error('unreachable')
+}
+
+describe('確認の中止', () => {
+  it('入力の終端で中止すると、Aborted. を出して 1', async () => {
+    const result = await run(['abort'])
+    expect(result).toEqual({ code: 1, stdout: ' ', stderr: 'go on? [y/N]:Aborted.\n' })
+  })
+})
 
 describe('--version', () => {
   it.each([['-v'], ['--version'], ['--repo', 'bad', '-v'], ['-v', '--repo', 'bad'], ['--show-repo', '-v']])('%s は pecot version を出して 0', async (...argv) => {

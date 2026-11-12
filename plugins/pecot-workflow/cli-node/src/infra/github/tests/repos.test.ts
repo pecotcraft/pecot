@@ -187,6 +187,64 @@ describe('listOpenDependabotAlerts', () => {
   })
 })
 
+describe('listOpenCodeScanningAlerts', () => {
+  it('state=open・per_page=100 で取り、ref は付けない', async () => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/code-scanning/alerts', { status: 200, body: [{ number: 3 }] })])
+    expect(await client.listOpenCodeScanningAlerts('owner', 'repo')).toEqual([{ number: 3 }])
+    expect(restRequests(server).map(({ query }) => query)).toEqual([{ per_page: '100', state: 'open' }])
+  })
+
+  it('2 ページ目は Link ヘッダの next を params 無しで辿る', async () => {
+    const { client, server } = await startClient([
+      restResponse('GET', '/repos/owner/repo/code-scanning/alerts', { status: 200, body: [{ number: 1 }], headers: { link: '<{{GITHUB_API}}/repos/owner/repo/code-scanning/alerts?after=x>; rel="next"' } }),
+      restResponse('GET', '/repos/owner/repo/code-scanning/alerts', { status: 200, body: [{ number: 2 }] }),
+    ])
+    expect(await client.listOpenCodeScanningAlerts('owner', 'repo')).toEqual([{ number: 1 }, { number: 2 }])
+    expect(restRequests(server).map(({ query }) => query)).toEqual([{ per_page: '100', state: 'open' }, { after: 'x' }])
+  })
+
+  it('404 は状態コードと本文を持つ GitHubNotFoundError', async () => {
+    const body = '{"message":"no analysis found"}'
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/code-scanning/alerts', { status: 404, text: body })])
+    expect(await rejection(client.listOpenCodeScanningAlerts('owner', 'repo'))).toMatchObject({ name: 'GitHubNotFoundError', statusCode: 404, responseBody: body })
+  })
+})
+
+describe('listOpenSecretScanningAlerts', () => {
+  it('hide_secret=true を必ず付けて取る', async () => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/secret-scanning/alerts', { status: 200, body: [{ number: 7 }] })])
+    expect(await client.listOpenSecretScanningAlerts('owner', 'repo')).toEqual([{ number: 7 }])
+    expect(restRequests(server).map(({ query }) => query)).toEqual([{ hide_secret: 'true', per_page: '100', state: 'open' }])
+  })
+
+  it('404 は GitHubNotFoundError', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/secret-scanning/alerts', { status: 404, text: 'Not Found' })])
+    await expect(client.listOpenSecretScanningAlerts('owner', 'repo')).rejects.toBeInstanceOf(GitHubNotFoundError)
+  })
+})
+
+describe('getSecretScanningStatus', () => {
+  it.each(['enabled', 'disabled'])('security_and_analysis.secret_scanning.status の %s を返す', async (status) => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { security_and_analysis: { secret_scanning: { status } } } })])
+    expect(await client.getSecretScanningStatus('owner', 'repo')).toBe(status)
+    expect(restRequests(server).map(({ path }) => path)).toEqual(['/repos/owner/repo'])
+  })
+
+  it.each([
+    ['security_and_analysis が無い', {}],
+    ['secret_scanning が無い', { security_and_analysis: {} }],
+    ['status が文字列でない', { security_and_analysis: { secret_scanning: { status: 1 } } }],
+  ])('%s と undefined', async (_name, body) => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body })])
+    expect(await client.getSecretScanningStatus('owner', 'repo')).toBeUndefined()
+  })
+
+  it('リポジトリが無ければ GitHubNotFoundError', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 404, text: 'Not Found' })])
+    await expect(client.getSecretScanningStatus('owner', 'repo')).rejects.toBeInstanceOf(GitHubNotFoundError)
+  })
+})
+
 describe('listOpenDependabotAlerts の next', () => {
   it('next が API と異なるホストなら、辿らずに GitHubAPIError。要求は 1 回だけ', async () => {
     const { client, server } = await startClient([

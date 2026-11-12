@@ -11,6 +11,10 @@ import { BaseError } from '../domain/errors.js'
 export interface CommandIo {
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
+  /**
+  標準入力から 1 行読む（末尾の改行は含めない）。終端は undefined。渡されない io（MCP）は、入力の終端と同じ扱い
+  */
+  readonly readLine?: () => string | undefined
 }
 
 /**
@@ -62,6 +66,10 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly shortFlags?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
   /**
+  CLI の別名の長いオプション。キーは input の名前、値は `--force` の形。短いオプションとは併用できない
+  */
+  readonly aliases?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
+  /**
   CLI の否定形のオプション。キーは input の名前、値は `--no-checkout` の形。
   `--checkout/--no-checkout` の形で、既定値が真の真偽値を偽にできる
   */
@@ -104,6 +112,10 @@ export interface CommandDefinition {
   input の名前から短いオプションへ
   */
   readonly shortFlags: ReadonlyMap<string, string>
+  /**
+  input の名前から別名の長いオプションへ
+  */
+  readonly aliases: ReadonlyMap<string, string>
   /**
   input の名前から否定形のオプションへ
   */
@@ -150,6 +162,10 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
   const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
   if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
+  const aliased = Object.keys(spec.aliases ?? {})
+  for (const name of aliased) {
+    if (spec.shortFlags !== undefined && Object.hasOwn(spec.shortFlags, name)) throw new TypeError(`${name}: 短いオプションと別名は併用できません`)
+  }
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
     // 検証は spec.input で行う（全体の refine を保つ）。グローバルの repo は strictObject が拒むので外し、別に検証する。
@@ -167,6 +183,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     positional: spec.positional,
     hasOwnRepo: hasOwnRepository,
     shortFlags: flagMap(spec.shortFlags),
+    aliases: flagMap(spec.aliases),
     negations: flagMap(spec.negations),
     interactive: spec.interactive,
     parse,

@@ -41,6 +41,10 @@ export interface PreflightOptions {
   タグの prefix（monorepo 用）。空でなければ `<prefix>-v<ver>`、省略か空なら `v<ver>`
   */
   readonly tagPrefix: string | undefined
+  /**
+  ls-remote・fetch・差分確認に使う remote 名。省略すると origin
+  */
+  readonly remote?: string | undefined
 }
 
 /**
@@ -82,6 +86,7 @@ function countDifference(output: string): number {
 export function runPreflight(options: PreflightOptions, git: GitRunner): PreflightResult {
   const { changelogContent, developBranch, releaseBranch } = options
   if (changelogContent === undefined) throw new ReleaseError(changelogNotFoundMessage(options.changelogPath))
+  const remote = options.remote ?? 'origin'
 
   const version = determineVersion(options, changelogContent)
 
@@ -89,14 +94,14 @@ export function runPreflight(options: PreflightOptions, git: GitRunner): Preflig
   const localTags = runGit(git, ['tag', '-l', tagName])
   if (localTags.split('\n').includes(tagName)) throw new ReleaseError(`tag already exists locally: ${tagName}`)
 
-  const remoteTags = runGit(git, ['ls-remote', '--tags', 'origin', `refs/tags/${tagName}`])
+  const remoteTags = runGit(git, ['ls-remote', '--tags', remote, `refs/tags/${tagName}`])
   if (remoteTags !== '') throw new ReleaseError(`tag already exists on the remote: ${tagName}`)
 
-  runGit(git, ['fetch', 'origin', releaseBranch, developBranch])
-  const diffCount = countDifference(runGit(git, ['rev-list', '--count', `origin/${releaseBranch}..origin/${developBranch}`]))
+  runGit(git, ['fetch', remote, releaseBranch, developBranch])
+  const diffCount = countDifference(runGit(git, ['rev-list', '--count', `${remote}/${releaseBranch}..${remote}/${developBranch}`]))
   if (diffCount === 0) {
     throw new ReleaseError(
-      `no difference between origin/${releaseBranch} and origin/${developBranch}: `
+      `no difference between ${remote}/${releaseBranch} and ${remote}/${developBranch}: `
       + 'there is nothing to release',
     )
   }
