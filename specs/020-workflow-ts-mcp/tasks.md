@@ -141,14 +141,14 @@ description: "pecot-workflow の TypeScript 化と MCP 化（再設計）のタ�
 **Independent Test**: `parity.test.ts` の次のシナリオが golden と一致する。`issue-*`・`session-*`・`add-to-project-*`・`update-issue-status-*`
 この PR で足した 9 個が登録され、登録済みの全部で `--check` の差が 0。振る舞いの項目 211 個（issue 138、`add-to-project` 17、`update-issue-status` 13、session 43）が vitest につながる
 
-- [ ] T016 [P] [US1] `cli/commands/issue.py` の issue の 5 個を `cli-node/src/commands/issue.ts` に移し、`COMMANDS` に足す。`--prepare` の下書きと、実投稿の成功時にスラッシュコマンドのフラグを消す処理を含める。
+- [x] T016 [P] [US1] `cli/commands/issue.py` の issue の 5 個を `cli-node/src/commands/issue.ts` に移し、`COMMANDS` に足す。`--prepare` の下書きと、実投稿の成功時にスラッシュコマンドのフラグを消す処理を含める。
   `cli/core/issue_board.py` の `create_issue`・`put_on_board` などは、フェーズ 6 の同期も使う。`cli-node/src/` の共有の置き場に移す。
-- [ ] T017 [US1] `issue.py` の `add_to_project` と `update_issue_status` を同じ `issue.ts` に移し、`COMMANDS` に 2 個を足す。`_validate_status_for_type` も含める。
-- [ ] T018 [P] [US1] `cli/commands/session.py` を `cli-node/src/commands/session.ts` に移し、`COMMANDS` に 2 個を足す。
+- [x] T017 [US1] `issue.py` の `add_to_project` と `update_issue_status` を同じ `issue.ts` に移し、`COMMANDS` に 2 個を足す。`_validate_status_for_type` も含める。
+- [x] T018 [P] [US1] `cli/commands/session.py` を `cli-node/src/commands/session.ts` に移し、`COMMANDS` に 2 個を足す。
   `cli/commands/pr.py` の `extract_issue_number_from_branch` も要る。フェーズ 4 も同じ関数を使うので、共有の置き場に置く。
-- [ ] T019 [US1] Python が書いた状態を Node が読む `session-status-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
-- [ ] T020 [US1] 振る舞いの項目 211 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/` の下。ファイルはコマンドごとに分ける。
-- [ ] T021 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。差があればコマンド定義を直す。
+- [x] T019 [US1] Python が書いた状態を Node が読む `session-status-ok-python-state` が、golden と一致することを確かめる。食い違えば `cli-node/src/infra/state-store.ts` と `config-store.ts` を直す。
+- [x] T020 [US1] 振る舞いの項目 211 個を、vitest のケースにつなぐ。置き場は `cli-node/tests/interface/` の下。ファイルはコマンドごとに分ける。
+- [x] T021 [US1] `export-interface.ts --check` を流し、登録済みの全部で `surfaces.mcp` 以外の差を 0 にする。差があればコマンド定義を直す。
 
 **Checkpoint**: 該当シナリオが全部一致する。この PR で足した 9 個が登録され、登録済みの全部で `--check` の差が 0。該当の項目 211 個が全部つながる
 
@@ -250,19 +250,19 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Independent Test**: 今の確認・阻止の条件が、MCP の入力 JSON で同じ判定と文言になる。2 つのクライアントの名前の形で通る。34 個のツール名にない名前（playwright など）は判定しない
 
-- [ ] T044 [P] [US3] `cli-node/tests/hooks/pecot-post-ask.test.ts` を先に書く。ツール名は、2 つのクライアントの形の両方で流す。
+- [x] T044 [P] [US3] `cli-node/tests/hooks/pecot-post-ask.test.ts` を先に書く。ツール名は、2 つのクライアントの形の両方で流す。
   Claude Code は `mcp__plugin_pecot-w_pecot-workflow__<tool>`、Copilot CLI は `pecot-workflow-<tool>` である。
   `issue_create`・`issue_quick` は ask を返す。`tool_input.prepare == true`、スラッシュコマンドのフラグ、config キーが false のどれかがあれば素通し。
   `pr_create` は ask を返す。`prepare` か `dry_run` が true、フラグ、config キーが false のどれかがあれば素通し。文言は今の `pecot-issue-create-ask`・`pecot-pr-create-ask` と一致させる。
   取り出した名前が 34 個のツール名にないとき（`pecot-workflow-playwright-browser_click` など）は判定しないことも確かめる。
-- [ ] T045 [US3] `hooks/lib/mcp-handlers/pecot-post-ask.sh` を作る。`PECOT_HOOK_TOOL_NAME` から `<tool>` を取り出し、34 個のツール名にあるときだけ判定する。`tool_input` を jq で読む。
+- [x] T045 [US3] `hooks/lib/mcp-handlers/pecot-post-ask.sh` を作る。`PECOT_HOOK_TOOL_NAME` から `<tool>` を取り出し、34 個のツール名にあるときだけ判定する。`tool_input` を jq で読む。
   `mcp-dispatcher.sh` からは、`pr-create-block.sh`（deny）の後、`context7-allow.sh`（allow）の前に呼ぶ。
   `mcp-dispatcher.sh` を変えるので、既存の pytest（`hooks/tests/test_pre_mcp.py` など）も同じ PR で直す。
-- [ ] T046 [P] [US3] `cli-node/tests/hooks/pecot-cli-deny.test.ts` を先に書く。定義書にある 34 コマンドの起動形のそれぞれで deny になり、理由に対応するツール名が入ることを確かめる。
+- [x] T046 [P] [US3] `cli-node/tests/hooks/pecot-cli-deny.test.ts` を先に書く。定義書にある 34 コマンドの起動形のそれぞれで deny になり、理由に対応するツール名が入ることを確かめる。
   起動形は、セグメントの先頭が `pecot`・`$PECOT`・`"$PECOT"`・`bin/pecot` のフルパス・クオート付きのパスのどれかである。`pecot issue read` なら理由に `issue_read` が入る。
   サブコマンドが分からない形（`pecot` だけ、`pecot --help`）は deny とし、理由に MCP ツールの一覧を使うよう書く。
-- [ ] T047 [US3] `hooks/lib/core/pecot-cli-deny.sh` を作る。セグメントの分け方と起動形の見つけ方は、`external-post-check.sh` の処理を使う。サブコマンド別の許可・阻止は持たない。`pre-tool-use-bash.sh` からはまだ呼ばない。
-- [ ] T048 [P] [US3] 案内文の移行後の文を `hooks/lib/core/mcp-guidance.sh`（新規）に用意する。
+- [x] T047 [US3] `hooks/lib/core/pecot-cli-deny.sh` を作る。セグメントの分け方と起動形の見つけ方は、`external-post-check.sh` の処理を使う。サブコマンド別の許可・阻止は持たない。`pre-tool-use-bash.sh` からはまだ呼ばない。
+- [x] T048 [P] [US3] 案内文の移行後の文を `hooks/lib/core/mcp-guidance.sh`（新規）に用意する。
   文は `cli-node/tests/hooks/mcp-guidance.test.ts`（新規）で固定する。どのスクリプトからもまだ読まない。
   案内文を持つ箇所は次の 6 つ。
   - `hooks/lib/core/gh-command-check.sh`（54・66〜67 行）は、`pr_create`・`issue_quick`・`issue_create` で案内する

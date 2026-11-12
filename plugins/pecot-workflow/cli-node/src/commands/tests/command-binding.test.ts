@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { runDefinition, synopsisOf, usageOf } from '../command-binding.js'
 import { defineCommand } from '../registry.js'
 import { formatUsageError, UsageError } from '../usage-error.js'
-import { capture, exitWith, failWith } from './support.js'
+import { capture, exitWith, failWith, throwFailure } from './support.js'
 
 const seen: unknown[] = []
 
@@ -45,6 +45,32 @@ const remove = defineCommand({
   description: '消す',
   input: namesInput,
   positional: ['names'],
+  interactive: false,
+  run: async (input) => {
+    seen.push(input)
+    return await exitWith(0)
+  },
+})
+
+const optionalStrings = z.array(z.string()).optional()
+
+const optionalFiles = defineCommand({
+  path: ['quick'],
+  description: '任意の複数',
+  input: z.object({ files: optionalStrings }),
+  positional: ['files'],
+  interactive: false,
+  run: async () => await exitWith(0),
+})
+
+const ownRepository = defineCommand({
+  path: ['issue', 'quick'],
+  description: '自分の repo を持つ',
+  hasOwnRepo: true,
+  ignoresGlobalRepo: true,
+  input: z.object({ repo: z.string().optional(), title: z.string() }),
+  positional: ['title'],
+  shortFlags: { repo: '-r' },
   interactive: false,
   run: async (input) => {
     seen.push(input)
@@ -95,10 +121,11 @@ async function usageErrorOf(promise: Promise<unknown>): Promise<UsageError> {
 }
 
 describe('synopsisOf・usageOf', () => {
-  it('位置引数は名前のまま。必須なら波括弧、任意なら角括弧、複数なら ...', () => {
+  it('必須の位置引数は波括弧、任意なら角括弧、複数なら ... を付ける', () => {
     expect(synopsisOf(read)).toBe('[OPTIONS] {issue_ref}')
     expect(synopsisOf(preflight)).toBe('[OPTIONS] [version]')
     expect(synopsisOf(remove)).toBe('[OPTIONS] {names}...')
+    expect(synopsisOf(optionalFiles)).toBe('[OPTIONS] [files]...')
     expect(usageOf(read)).toEqual({ commandPath: ['issue', 'read'], synopsis: '[OPTIONS] {issue_ref}' })
   })
 })
@@ -116,6 +143,13 @@ describe('runDefinition', () => {
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false, repo: 'x/y' }])
   })
 
+  it('ignoresGlobalRepo のコマンドは、自分の -r を使い、グローバルの --repo は捨てる', async () => {
+    seen.length = 0
+    await runDefinition(ownRepository, ['t', '-r', 'y/z'], capture(), 'x/y')
+    await runDefinition(ownRepository, ['t'], capture(), 'x/y')
+    expect(seen).toEqual([{ title: 't', repo: 'y/z' }, { title: 't' }])
+  })
+
   it('指定の無い真偽値は false。既定値は zod が足す', async () => {
     seen.length = 0
     await runDefinition(read, ['a/b/1'], capture())
@@ -130,13 +164,14 @@ describe('runDefinition', () => {
 
   it('必須の位置引数が無ければ Missing argument', async () => {
     const error = await usageErrorOf(runDefinition(read, [], capture()))
-    // eslint-disable-next-line unicorn/no-incorrect-template-string-interpolation -- typer の使い方の行に出る波括弧
-    expect(formatUsageError(error)).toBe(`Usage: pecot issue read [OPTIONS] {issue_ref}
-Try 'pecot issue read --help' for help.
-╭─ Error ──────────────────────────────────────────────────────────────────────╮
-│ Missing argument 'issue_ref'.                                                │
-╰──────────────────────────────────────────────────────────────────────────────╯
-`)
+    expect(formatUsageError(error)).toBe([
+      'Usage: pecot issue read [OPTIONS] {issue_ref}',
+      'Try \'pecot issue read --help\' for help.',
+      '╭─ Error ──────────────────────────────────────────────────────────────────────╮',
+      '│ Missing argument \'issue_ref\'.                                                │',
+      '╰──────────────────────────────────────────────────────────────────────────────╯',
+      '',
+    ].join('\n'))
   })
 
   it('必須のオプションが無ければ Missing option（長い形・短い形の順）', async () => {
@@ -231,20 +266,38 @@ describe('型の変換', () => {
 
   it('範囲つきの整数は、click と同じ文で誤りにする', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['1', '-c', 'x'], io))).toBe('Invalid value for \'--count\' / \'-c\': \'x\' is not a valid integer range.')
+    expect(await messageOf(runDefinition(typed, ['1', '-c', 'x'], io))).toBe('Invalid value for \'--count\' / \'-c\': \'x\' is not a valid int range.')
     expect(await messageOf(runDefinition(typed, ['1', '-c', '99'], io))).toBe('Invalid value for \'--count\' / \'-c\': 99 is not in the range 0<=x<=20.')
     expect(await messageOf(runDefinition(typed, ['1', '--limit', '0'], io))).toBe('Invalid value for \'--limit\': 0 is not in the range x>=1.')
   })
 
   it('整数の項目に 1.5、実数の項目に abc を渡すと、範囲を言わない誤りの文を返す', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['1', '--step', '1.5'], io))).toBe('Invalid value for \'--step\': \'1.5\' is not a valid integer.')
+    expect(await messageOf(runDefinition(typed, ['1', '--step', '1.5'], io))).toBe('Invalid value for \'--step\': \'1.5\' is not a valid int.')
     expect(await messageOf(runDefinition(typed, ['1', '--ratio', 'abc'], io))).toBe('Invalid value for \'--ratio\': \'abc\' is not a valid float.')
   })
 
-  it('位置引数の誤りは、名前を引数の名前のまま出す', async () => {
+  it('位置引数の誤りは、入力の名前で出す', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid integer.')
+    expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid int.')
+  })
+
+  const tagType = z.enum(['a', 'b'])
+
+  it('選択肢の項目は、選択肢を全部並べて誤りにする', async () => {
+    const command = defineCommand({
+      path: ['pick'],
+      description: '',
+      input: z.object({ kind: z.enum(['task', 'bug']).optional(), tags: z.array(tagType).default([]) }),
+      positional: [],
+      shortFlags: { kind: '-k' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    const io = capture()
+    expect(await messageOf(runDefinition(command, ['--kind', 'bogus'], io))).toBe('Invalid value for \'--kind\' / \'-k\': \'bogus\' is not one of \'task\', \'bug\'.')
+    expect(await messageOf(runDefinition(command, ['--tags', 'a', '--tags', 'z'], io))).toBe('Invalid value for \'--tags\': \'z\' is not one of \'a\', \'b\'.')
+    expect(await runDefinition(command, ['-k', 'bug'], io)).toBe(0)
   })
 
   it('実数は指数と _ を受ける', async () => {
@@ -289,15 +342,33 @@ describe('否定形と包んだスキーマ', () => {
     ])
   })
 
+  it('入力名が no_ で始まる真偽値は、付けると true になり、省くと既定値の false になる', async () => {
+    const quick = defineCommand({
+      path: ['quick'],
+      description: '起票する',
+      input: z.object({ no_branch: z.boolean().default(false) }),
+      positional: [],
+      interactive: false,
+      run: async (input) => {
+        seen.push(input)
+        return await exitWith(0)
+      },
+    })
+    seen.length = 0
+    await runDefinition(quick, ['--no-branch'], capture())
+    await runDefinition(quick, [], capture())
+    expect(seen).toEqual([{ no_branch: true }, { no_branch: false }])
+  })
+
   it('readonly の配列は繰り返しで渡し、transform つきの真偽値は旗になる', async () => {
     seen.length = 0
     await runDefinition(flags, ['a', '--names', 'x', '--names', 'y', '--verbose'], capture())
     expect(seen).toEqual([{ files: ['a'], checkout: true, verbose: true, names: ['x', 'y'] }])
   })
 
-  it('必須の可変長の位置引数が無ければ ... を付けて案内する', async () => {
+  it('必須の可変長の位置引数が無ければ、入力の名前で案内する', async () => {
     const io = capture()
-    expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'files...\'.')
+    expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'files\'.')
     expect(synopsisOf(flags)).toBe('[OPTIONS] {files}...')
   })
 
@@ -366,6 +437,19 @@ describe('誤りの扱い', () => {
     expect(await messageOf(runDefinition(read, ['1', '--comment-limit'], io))).toBe('Option \'--comment-limit\' requires an argument.')
   })
 
+  it('値を取らないフラグに =値 を付けたら、Usage 行なしで断る', async () => {
+    const io = capture()
+    const error = await usageErrorOf(runDefinition(read, ['--json=1', '1'], io))
+    expect(error.message).toBe('Option \'--json\' does not take a value.')
+    expect(error.context).toBeUndefined()
+  })
+
+  it('値の無いオプションは、Usage 行なしで断る', async () => {
+    const error = await usageErrorOf(runDefinition(read, ['1', '-c'], capture()))
+    expect(error.context).toBeUndefined()
+    expect(formatUsageError(error)).toMatch(/^╭─ Error/u)
+  })
+
   it('未知の長いオプションには候補を案内する。短いオプションには案内しない', async () => {
     const io = capture()
     expect(await messageOf(runDefinition(read, ['1', '--jso'], io))).toBe('No such option: --jso (Possible options: --json)')
@@ -386,6 +470,19 @@ describe('誤りの扱い', () => {
     const io = capture()
     const error = await usageErrorOf(runDefinition(command, ['--mode', 'z'], io))
     expect(error.message).toMatch(/^Invalid value for '--mode': /u)
+  })
+
+  it('本体（run）が投げた context 無しの UsageError には、このコマンドの使い方を付ける', async () => {
+    const command = defineCommand({
+      path: ['issue', 'read'],
+      description: '',
+      input: z.object({ issue_ref: z.string() }),
+      positional: ['issue_ref'],
+      interactive: false,
+      run: async () => await throwFailure(new UsageError('Invalid value: bad')),
+    })
+    const error = await usageErrorOf(runDefinition(command, ['1'], capture()))
+    expect(formatUsageError(error)).toContain('Usage: pecot issue read [OPTIONS] {issue_ref}')
   })
 
   it('本体（run）が投げた ZodError は、使い方の誤りにしない', async () => {

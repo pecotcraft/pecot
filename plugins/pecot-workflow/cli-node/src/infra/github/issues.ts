@@ -163,6 +163,13 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
+  Issue のコメントを書き換える。見つからなければ GitHubNotFoundError
+  */
+  async updateIssueComment(owner: string, repository: string, commentId: number, body: string): Promise<JsonObject> {
+    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/comments/${String(commentId)}`, { json: { body } })
+  }
+
+  /**
   Issue にコメントを足す
   */
   async addIssueComment(owner: string, repository: string, number: number, body: string): Promise<JsonObject> {

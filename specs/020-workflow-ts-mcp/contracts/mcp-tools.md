@@ -19,11 +19,12 @@
 | ツール | CLI | hooks のガード |
 |---|---|---|
 | `issue_create` | `pecot issue create` | ask（`prepare` が true なら素通し） |
-| `issue_quick` | `pecot issue quick` | ask（同上） |
+| `issue_quick` | `pecot issue quick` | ask（入力に `prepare` が無いので、常に ask） |
 | `pr_create` | `pecot pr create` | ask（`prepare` か `dry_run` が true なら素通し） |
 | `worktree_link` | `pecot worktree link` | 入力 `force`（定義書にある。既定 false）。MCP ツールは標準入力を持たないので、`force` が false で上書きの確認が要るときは、入力の終端と同じく中止する（research R-7） |
 
 グローバルオプション `--repo` は、全ツールの入力 `repo`（省略可）で受ける。`--show-repo` と `--version` はツールにしない（CLI の表示用）。
+自分の `--repo` を持つ 4 個（`issue_create`・`issue_quick`・`pr_create`・`project_info`）は例外で、入力 `repo` はコマンド自身のオプションの値になる。グローバルの `--repo` は合成しない。
 
 ## 結果
 

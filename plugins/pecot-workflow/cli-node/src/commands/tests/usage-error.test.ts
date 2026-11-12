@@ -44,7 +44,7 @@ describe('golden の usage エラー', () => {
 
 describe('メッセージ', () => {
   it('click の文言になる', () => {
-    expect(missingArgumentMessage('ISSUE_REF')).toBe('Missing argument \'ISSUE_REF\'.')
+    expect(missingArgumentMessage('issue_ref')).toBe('Missing argument \'issue_ref\'.')
     expect(missingOptionMessage(['--directory', '-D'])).toBe('Missing option \'--directory\' / \'-D\'.')
     expect(missingOptionMessage(['--suffix'])).toBe('Missing option \'--suffix\'.')
     expect(noSuchOptionMessage('--bogus')).toBe('No such option: --bogus')

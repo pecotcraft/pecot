@@ -19,6 +19,7 @@ export class FrontmatterError extends PecotError {}
 const REQUIRED_MESSAGE = 'Field required'
 const STRING_MESSAGE = 'Input should be a valid string'
 const LIST_MESSAGE = 'Input should be a valid list'
+const PARALLEL_MESSAGE = 'String should match pattern \'^[a-z]$\''
 
 /**
 zod が渡す issue のうち、文を作るのに使う項目
@@ -123,11 +124,13 @@ const IssueFrontmatterSchema = z.object({
     return z.NEVER
   })),
   order: z.preprocess(value => convertToInteger(emptyStringToUndefined(value)), IntegerSchema.nullish().transform(value => value ?? undefined)),
+  parallel: z.preprocess(emptyStringToUndefined, z.string({ error: STRING_MESSAGE }).regex(/^[a-z]$/u, { error: PARALLEL_MESSAGE }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
 const CommentFrontmatterSchema = z.object({
   issue_ref: z.string({ error: stringMessage }),
   template: z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'], { error: choiceMessage }).nullish().transform(value => value ?? undefined),
+  comment_url: z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
 }).readonly()
 
 const PullRequestFrontmatterSchema = z.object({
@@ -183,11 +186,12 @@ function fieldErrors(issues: readonly ValidationIssueView[]): FrontmatterError {
 
 // parent_epic と order の相互検証。項目の誤りが無いときだけ行う
 function checkOrderWithParentEpic(frontmatter: IssueFrontmatter): void {
-  const { parent_epic: parentEpic, order } = frontmatter
+  const { parent_epic: parentEpic, order, parallel } = frontmatter
   let message: string | undefined
   if (parentEpic !== undefined && order === undefined) message = 'order is required when parent_epic is set'
   else if (parentEpic === undefined && order !== undefined) message = 'parent_epic is required when order is set'
   else if (order !== undefined && order <= 0) message = `order must be an integer of 1 or more: ${String(order)}`
+  else if (parallel !== undefined && order === undefined) message = 'order is required when parallel is set'
   if (message !== undefined) throw validationError([`  - : Value error, ${message}`])
 }
 
@@ -225,7 +229,7 @@ export function validatePullRequestFrontmatter(data: unknown): PullRequestFrontm
 // 先頭の空白の連続と、本文の最短一致が、空白を取り合う。入力はフロントマター付きの Markdown 1 ファイルで、
 // Python の同名の正規表現と同じ範囲を取るため、この形を保つ。
 // eslint-disable-next-line regexp/no-super-linear-backtracking -- 空白の連続が長い入力でだけ遅くなる。取る範囲を Python と揃えるため書き換えない
-const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/su
+const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/dsu
 
 // 本文先頭のガイドコメント（`--prepare` 雛形の「読者:／書き方:／フィールド:」ブロック）。
 // 前後の空白・空行ごと 1 ブロックだけ食う。本文途中のコメントは対象外。
@@ -304,4 +308,24 @@ export function parseCommentContent(content: string): ParsedComment {
 export function parsePullRequestContent(content: string): ParsedPullRequest {
   const { data, body } = splitFrontmatter(content)
   return { frontmatter: validatePullRequestFrontmatter(data), body }
+}
+
+// `key` の直後に空白を挟んで `:` が続く行か（Python の `^key\s*:`）
+function isKeyLine(line: string, key: string): boolean {
+  return line.startsWith(key) && /^\s*:/u.test(line.slice(key.length))
+}
+
+/**
+フロントマターに `key: "value"` の 1 行を足す。同じキーの行があれば置き換えるだけで、足さない。
+フロントマターが無ければ FrontmatterError
+*/
+export function setFrontmatterValue(content: string, key: string, value: string): string {
+  const match = FRONTMATTER_PATTERN.exec(content)
+  const span = match?.indices?.[1]
+  if (match === null || span === undefined) throw new FrontmatterError('frontmatter not found')
+  const lines = (match[1] ?? '').split('\n')
+  const entry = `${key}: "${value}"`
+  const replaced = lines.map(line => isKeyLine(line, key) ? entry : line)
+  if (lines.every(line => !isKeyLine(line, key))) replaced.push(entry)
+  return content.slice(0, span[0]) + replaced.join('\n') + content.slice(span[1])
 }

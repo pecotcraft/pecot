@@ -222,7 +222,7 @@ describe('pickPrimaryRemote', () => {
     [['upstream', 'origin'], 'origin'],
     [['upstream', 'fork'], 'upstream'],
     [[], undefined],
-  ])('%j から主の remote を選ぶ', (remotes, expected) => {
+  ])('remote %j から %j を選ぶ', (remotes, expected) => {
     expect(pickPrimaryRemote(remotes)).toBe(expected)
   })
 })

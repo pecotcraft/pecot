@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { convertValue, flagKindOf, valueTypeOf } from '../value-types.js'
+import type { ValueType } from '../value-types.js'
 
 const strings = z.array(z.string())
 const flag = z.boolean()
@@ -33,7 +34,10 @@ const unbounded = { type: 'integer', min: undefined, max: undefined }
 const TYPE_CASES: readonly (readonly [string, z.ZodType, unknown])[] = [
   ['範囲つきの整数', z.number().int().min(0).max(20), { type: 'integer', min: 0, max: 20 }],
   ['z.int() の端は範囲にしない', z.int(), unbounded],
-  ['実数', z.number(), { type: 'float' }],
+  ['実数', z.number(), { type: 'float', min: undefined, max: undefined }],
+  ['範囲つきの実数', z.number().min(0).max(5), { type: 'float', min: 0, max: 5 }],
+  ['選択肢', z.enum(['a', 'b']).optional(), { type: 'choice', choices: ['a', 'b'] }],
+  ['配列の選択肢', z.array(z.enum(['a', 'b'])).default([]), { type: 'choice', choices: ['a', 'b'] }],
   ['文字列', z.string(), { type: 'string' }],
   ['配列は要素の型', z.array(z.int()).readonly(), unbounded],
 ]
@@ -63,17 +67,30 @@ describe('convertValue', () => {
   })
 
   it('整数でなければ、範囲があるかで文が変わる', () => {
-    expect(convertValue('a', { type: 'integer', min: undefined, max: undefined })).toEqual({ isValid: false, message: '\'a\' is not a valid integer.' })
-    expect(convertValue('a', { type: 'integer', min: 0, max: undefined })).toEqual({ isValid: false, message: '\'a\' is not a valid integer range.' })
+    expect(convertValue('a', { type: 'integer', min: undefined, max: undefined })).toEqual({ isValid: false, message: '\'a\' is not a valid int.' })
+    expect(convertValue('a', { type: 'integer', min: 0, max: undefined })).toEqual({ isValid: false, message: '\'a\' is not a valid int range.' })
   })
 
   it('実数は指数・inf・nan を受け、不正な形は断る', () => {
-    expect(convertValue('1e3', { type: 'float' })).toEqual({ isValid: true, value: 1000 })
-    expect(convertValue('-Infinity', { type: 'float' })).toEqual({ isValid: true, value: -Infinity })
-    expect(convertValue('inf', { type: 'float' })).toEqual({ isValid: true, value: Infinity })
-    expect(convertValue('NaN', { type: 'float' })).toEqual({ isValid: true, value: NaN })
-    expect(convertValue('1.2.3', { type: 'float' })).toEqual({ isValid: false, message: '\'1.2.3\' is not a valid float.' })
-    expect(convertValue('0x10', { type: 'float' })).toEqual({ isValid: false, message: '\'0x10\' is not a valid float.' })
-    expect(convertValue('', { type: 'float' })).toEqual({ isValid: false, message: '\'\' is not a valid float.' })
+    expect(convertValue('1e3', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: true, value: 1000 })
+    expect(convertValue('-Infinity', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: true, value: -Infinity })
+    expect(convertValue('inf', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: true, value: Infinity })
+    expect(convertValue('NaN', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: true, value: NaN })
+    expect(convertValue('1.2.3', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: false, message: '\'1.2.3\' is not a valid float.' })
+    expect(convertValue('0x10', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: false, message: '\'0x10\' is not a valid float.' })
+    expect(convertValue('', { type: 'float', min: undefined, max: undefined })).toEqual({ isValid: false, message: '\'\' is not a valid float.' })
+  })
+
+  it('実数に範囲があれば float range と呼び、範囲外の値は Python の float の表記で出す', () => {
+    const range: ValueType = { type: 'float', min: 0, max: 5 }
+    expect(convertValue('a', range)).toEqual({ isValid: false, message: '\'a\' is not a valid float range.' })
+    expect(convertValue('9', range)).toEqual({ isValid: false, message: '9.0 is not in the range 0<=x<=5.' })
+    expect(convertValue('3', range)).toEqual({ isValid: true, value: 3 })
+  })
+
+  it('選択肢に無い値は、全部の選択肢を並べて断る', () => {
+    const choice: ValueType = { type: 'choice', choices: ['plan', 'merge-diff'] }
+    expect(convertValue('plan', choice)).toEqual({ isValid: true, value: 'plan' })
+    expect(convertValue('bogus', choice)).toEqual({ isValid: false, message: '\'bogus\' is not one of \'plan\', \'merge-diff\'.' })
   })
 })

@@ -58,6 +58,10 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly hasOwnRepo?: boolean
   /**
+  真なら、グローバルの --repo を使わない。`repo` は自分のオプションの値だけになる（hasOwnRepo のコマンド用）
+  */
+  readonly ignoresGlobalRepo?: boolean
+  /**
   input のうち CLI で位置引数になるもの（順序つき）
   */
   readonly positional: readonly (keyof Input['shape'] & string)[]
@@ -109,6 +113,10 @@ export interface CommandDefinition {
   */
   readonly hasOwnRepo: boolean
   /**
+  グローバルの --repo を入力に渡さないか
+  */
+  readonly ignoresGlobalRepo: boolean
+  /**
   input の名前から短いオプションへ
   */
   readonly shortFlags: ReadonlyMap<string, string>
@@ -142,6 +150,16 @@ function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): 
   return new Map(Object.entries(flags ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
 }
 
+// 入力 no_x の `--no-x` と、入力 x の否定形 `--no-x` のように、同じ長いオプションになる組を断る
+function assertDistinctFlags(fields: readonly string[], positional: readonly string[], negations: ReadonlyMap<string, string>): void {
+  const flags = [
+    ...fields.filter(name => !positional.includes(name)).map(name => `--${name.replaceAll('_', '-')}`),
+    ...negations.values(),
+  ]
+  const duplicate = flags.find((flag, index) => flags.indexOf(flag) !== index)
+  if (duplicate !== undefined) throw new TypeError(`オプション ${duplicate} が重複しています`)
+}
+
 async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promise<number>, input: Input, io: CommandIo): Promise<number> {
   try {
     return await run(input, io)
@@ -162,6 +180,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
   const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
   if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
+  assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
   const aliased = Object.keys(spec.aliases ?? {})
   for (const name of aliased) {
     if (spec.shortFlags !== undefined && Object.hasOwn(spec.shortFlags, name)) throw new TypeError(`${name}: 短いオプションと別名は併用できません`)
@@ -182,6 +201,7 @@ export function defineCommand<Input extends z.ZodObject>(spec: Readonly<CommandS
     input,
     positional: spec.positional,
     hasOwnRepo: hasOwnRepository,
+    ignoresGlobalRepo: spec.ignoresGlobalRepo === true,
     shortFlags: flagMap(spec.shortFlags),
     aliases: flagMap(spec.aliases),
     negations: flagMap(spec.negations),

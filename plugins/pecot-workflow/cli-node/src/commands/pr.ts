@@ -7,7 +7,7 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
-import { extractIssueNumberFromBranch } from '../domain/branch-issue.js'
+import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { InvalidValueError } from '../domain/errors.js'

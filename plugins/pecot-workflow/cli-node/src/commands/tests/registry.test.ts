@@ -10,15 +10,6 @@ import { capture, exitWith } from './support.js'
 Node へ未移植のコマンドの path。各 Phase が移植するたびに、ここから消す。Phase 7 で空になる
 */
 const PENDING_PATHS: readonly (readonly string[])[] = [
-  ['add-to-project'],
-  ['update-issue-status'],
-  ['issue', 'create'],
-  ['issue', 'quick'],
-  ['issue', 'read'],
-  ['issue', 'comment'],
-  ['issue', 'reopen'],
-  ['session', 'status'],
-  ['session', 'restore'],
   ['security', 'sync'],
   ['dependabot', 'sync'],
 ]
@@ -117,15 +108,26 @@ describe('defineCommand', () => {
     expect(plain.interactive).toBe(true)
   })
 
-  it('repo は予約名なので、input に持てない', () => {
-    expect(() => defineCommand({
-      path: ['x'],
+  it('hasOwnRepo のコマンドは、グローバルの repo を合成せず、自分の repo を使う', async () => {
+    const received: unknown[] = []
+    const own = defineCommand({
+      path: ['own'],
       description: '',
-      input: z.object({ repo: z.string() }),
+      hasOwnRepo: true,
+      input: z.object({ repo: z.string().optional(), name: z.string() }),
       positional: [],
       interactive: false,
-      run: async () => await exitWith(0),
-    })).toThrow('予約名')
+      run: async (input) => {
+        received.push(input)
+        return await exitWith(0)
+      },
+    })
+    expect(own.hasOwnRepo).toBe(true)
+    expect(definition.hasOwnRepo).toBe(false)
+    expect(Object.keys(own.input.shape)).toEqual(['repo', 'name'])
+    await own.run({ repo: 'a/b', name: 'x' }, capture())
+    expect(received).toEqual([{ repo: 'a/b', name: 'x' }])
+    expect(() => own.parse({ name: 'x', repo: 1 })).toThrow(z.ZodError)
   })
 
   it('全体の refine を保ち、strictObject でも repo を受ける', async () => {
@@ -195,6 +197,31 @@ describe('defineCommand', () => {
       run: async () => await exitWith(0),
     })
     expect(negated.negations).toEqual(new Map([['checkout', '--no-checkout']]))
+  })
+
+  it('入力 no_x の `--no-x` と入力 x の否定形 `--no-x` が並んだら作れない', () => {
+    expect(() => defineCommand({
+      path: ['dup'],
+      description: '',
+      input: z.object({ x: z.boolean().default(true), no_x: z.boolean().default(false) }),
+      positional: [],
+      negations: { x: '--no-x' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })).toThrow(new TypeError('オプション --no-x が重複しています'))
+  })
+
+  it('入力 x の否定形 `--no-x` だけなら作れる', () => {
+    const command = defineCommand({
+      path: ['ok'],
+      description: '',
+      input: z.object({ x: z.boolean().default(true) }),
+      positional: [],
+      negations: { x: '--no-x' },
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(command.negations.get('x')).toBe('--no-x')
   })
 
   it('path が空なら作れない', () => {

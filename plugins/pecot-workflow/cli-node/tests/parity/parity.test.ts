@@ -23,7 +23,7 @@ const PORTED: readonly (readonly string[])[] = [[], ...COMMANDS.map(command => c
 
 /**
 help の一覧や「近いコマンド」の案内は、Python の全 34 コマンドの登録が前提になる。
-全コマンドが registry に入るまでは、golden と一致しないことを確かめる
+全コマンドが registry に入るまでは、登録の進み具合で結果が変わるので、golden と比べない
 */
 const SCENARIOS_NEEDING_ALL_COMMANDS: ReadonlySet<string> = new Set([
   'global-ok-help',
@@ -63,7 +63,7 @@ describe('前後比較', () => {
     expect(existsSync(cliEntry), `${cliEntry} がありません。pnpm run build を先に流してください`).toBe(true)
   })
 
-  it.for(scenarioIds())('シナリオ %s を動かすと、移植済みなら golden と同じ出力になり、未移植なら違う出力になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(scenarioIds())('シナリオ %s を動かすと、移植済みなら golden と同じ出力になり、未移植なら違う出力になる', { timeout: TEST_TIMEOUT_MS }, async (id, context) => {
     const scenario = readScenario(id)
     const outcome = await runScenario(scenario, node)
 
@@ -73,7 +73,9 @@ describe('前後比較', () => {
     expect(outcome.timedOut).toBe(false)
 
     const golden = readGolden(id)
-    const isPortedCommand = isPorted(scenario.command.path) && (!SCENARIOS_NEEDING_ALL_COMMANDS.has(id) || isAllCommandsPorted())
+    // 全コマンドが登録されるまでは比べない。合格に見せず skipped と出す
+    if (SCENARIOS_NEEDING_ALL_COMMANDS.has(id) && !isAllCommandsPorted()) context.skip()
+    const isPortedCommand = isPorted(scenario.command.path)
     // 移植済みのコマンドは、偽サーバの誤りと使われなかった応答も無いこと
     expect(isPortedCommand ? outcome.problems : []).toEqual([])
     expect(isPortedCommand ? outcome.unused : []).toEqual([])

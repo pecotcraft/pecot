@@ -90,7 +90,7 @@ export function createResolvedRepository(resolved: ResolvedRepository): Resolved
 }
 
 /**
-remote 名の一覧から主の remote を選ぶ。origin、無ければ最初の remote。一覧が空なら undefined
+remote 名の一覧から主の remote を選ぶ（origin、無ければ最初）。一覧が空なら undefined
 */
 export function pickPrimaryRemote(remotes: readonly string[]): string | undefined {
   return remotes.includes('origin') ? 'origin' : remotes[0]
@@ -110,7 +110,6 @@ export function detectCurrentGitRepository(git: GitRunner): { readonly repositor
   const remotes = remotesResult.stdout.split('\n').map(line => line.trim()).filter(line => line !== '')
   const remoteName = pickPrimaryRemote(remotes)
   if (remoteName === undefined) return undefined
-
   const url = git(['remote', 'get-url', remoteName])
   if (url.exitCode !== 0) return undefined
   const { owner, repository } = parseRemoteUrl(url.stdout.trim())

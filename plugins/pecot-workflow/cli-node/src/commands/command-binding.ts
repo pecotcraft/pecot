@@ -49,13 +49,6 @@ function isListField(definition: Readonly<CommandDefinition>, name: string): boo
 }
 
 /**
-typer の Missing argument に出す名前。可変長は `...` を付ける
-*/
-function labelWithEllipsis(definition: Readonly<CommandDefinition>, name: string): string {
-  return isListField(definition, name) ? `${argumentLabel(name)}...` : argumentLabel(name)
-}
-
-/**
 typer の Usage 行に出す書式。
 位置引数は名前のまま並べ、必須なら `{issue_ref}`、任意なら `[version]` にする。複数なら `...` を付ける
 */
@@ -201,7 +194,7 @@ function positionalInput(definition: Readonly<CommandDefinition>, command: Comma
       const valueType: ValueType = schema === undefined ? { type: 'string' } : valueTypeOf(schema)
       return [[name, convertField(value, kind, valueType, argumentLabel(name), usage)]]
     }
-    if (schema !== undefined && isRequired(schema)) throw new UsageError(missingArgumentMessage(labelWithEllipsis(definition, name)), usage)
+    if (schema !== undefined && isRequired(schema)) throw new UsageError(missingArgumentMessage(argumentLabel(name)), usage)
     return []
   })
   const lastName = definition.positional.at(-1)
@@ -233,10 +226,18 @@ function issueToUsageError(definition: Readonly<CommandDefinition>, error: Reado
 }
 
 /**
-グローバルの --repo を入力 repo にする。自分の `--repo` を持つコマンドは、サブコマンドの値を先に使い、無ければグローバルの値を使う
+run が投げた context 無しの UsageError（BadParameter）に、このコマンドの使い方を付ける。ほかの例外はそのまま返す
+*/
+function withUsage(error: unknown, usage: UsageContext): unknown {
+  return error instanceof UsageError && error.context === undefined ? new UsageError(error.message, usage) : error
+}
+
+/**
+グローバルの --repo を入力 repo にする。自分の `--repo` を持つコマンドは、サブコマンドの値を先に使い、無ければグローバルの値を使う。
+ignoresGlobalRepo のコマンドには、グローバルの値を渡さない
 */
 function withRepository(definition: Readonly<CommandDefinition>, input: Readonly<Record<string, unknown>>, repository: string | undefined): Readonly<Record<string, unknown>> {
-  if (repository === undefined) return input
+  if (repository === undefined || definition.ignoresGlobalRepo) return input
   return definition.hasOwnRepo ? { repo: repository, ...input } : { ...input, repo: repository }
 }
 
@@ -293,5 +294,10 @@ export async function runDefinition(
     if (error instanceof z.ZodError) throw issueToUsageError(definition, error, bound, usage)
     throw error
   }
-  return await prepared.run(io)
+  try {
+    return await prepared.run(io)
+  }
+  catch (error: unknown) {
+    throw withUsage(error, usage)
+  }
 }

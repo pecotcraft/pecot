@@ -254,7 +254,13 @@ describe('exportEntries の失敗と refine', () => {
 describe('main', () => {
   const generated = path.resolve(import.meta.dirname, '../../interface/generated.json')
 
-  it('COMMANDS が空なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
+  it('登録済みのコマンドは、定義書と差が無く 0 を返す', () => {
+    const { io, out, error } = capture()
+    expect(main(['--check'], io)).toBe(0)
+    expect({ out, error }).toStrictEqual({ out: [], error: [] })
+  })
+
+  it('登録が 0 件なら、警告を標準エラーに出して 0 を返し、generated.json を変えない', () => {
     const before = readFileSync(generated)
     const { io, out, error } = capture()
     expect(main(['--check'], io, [])).toBe(0)

@@ -49,6 +49,23 @@ describe('addIssueComment', () => {
   })
 })
 
+describe('updateIssueComment', () => {
+  it('コメント ID 宛てに PATCH する', async () => {
+    const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/comments/456', { status: 200, body: { id: 456, body: 'New' } })])
+    expect(await client.updateIssueComment('owner', 'repo', 456, 'New')).toEqual({ id: 456, body: 'New' })
+    expect(restRequests(server).map(({ method, path, body }) => ({ method, path, body }))).toEqual([
+      { method: 'PATCH', path: '/repos/owner/repo/issues/comments/456', body: { body: 'New' } },
+    ])
+  })
+
+  it('404 は GitHubNotFoundError', async () => {
+    const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/comments/999', { status: 404, text: 'Not Found' })])
+    expect(await rejection(client.updateIssueComment('owner', 'repo', 999, 'x'))).toMatchObject(
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/issues/comments/999`, { statusCode: 404 }),
+    )
+  })
+})
+
 describe('addIssueComment の失敗', () => {
   it('404 は GitHubNotFoundError', async () => {
     const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/issues/999/comments', { status: 404, text: 'Not Found' })])
