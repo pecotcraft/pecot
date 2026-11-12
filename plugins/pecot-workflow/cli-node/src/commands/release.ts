@@ -30,9 +30,9 @@ import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { requireRepositoryMatch } from './repository-match.js'
+import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const FAILURE = 1
-const USAGE_FAILURE = 2
 
 /**
 順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して undefined を返す。
@@ -373,7 +373,7 @@ const merge = defineCommand({
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
       out.error(error.message)
-      return USAGE_FAILURE
+      return USAGE_EXIT_CODE
     }
     const { owner, repository } = reference.repository
     const number = reference.number

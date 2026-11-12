@@ -49,7 +49,8 @@ import { consumeFlag, readFlag, removeFlag } from '../infra/state-store.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
-import { NO_ACTIVE_PROJECT_SHORT, requireActiveConfig, stopWith } from './command-stop.js'
+import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
@@ -402,7 +403,7 @@ interface FileModeInput {
 }
 
 async function createFromFile(input: Readonly<FileModeInput>, directory: string, out: Readonly<Output>): Promise<void> {
-  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(out)
   let parsed: ParsedPullRequest
   try {
     parsed = parsePullRequestFile(input.file)
@@ -451,7 +452,7 @@ interface DirectModeInput {
 }
 
 async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output>): Promise<void> {
-  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(out)
   let location: RepositoryReference
   if (input.repository === undefined || input.repository === '') {
     const [only] = config.repositories
@@ -634,7 +635,7 @@ function parseReference(reference: string, globalRepository: string | undefined,
     return { owner: parsed.repository.owner, repository: parsed.repository.repository, number: parsed.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) return stopWith(out, error.message, 2)
+    if (error instanceof ReferenceParseError) return stopWith(out, error.message, USAGE_EXIT_CODE)
     throw error
   }
 }
@@ -647,7 +648,7 @@ const ReadInputSchema = z.strictObject({
 
 async function runRead(input: Readonly<z.output<typeof ReadInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput(false, io)
-  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(out)
   const { owner, repository, number } = parseReference(input.pr_ref, input.repo, out)
   try {
     const client = createGitHubClient(out, config.host)
@@ -970,7 +971,7 @@ const CleanupInputSchema = z.strictObject({
 async function runCleanup(input: Readonly<z.output<typeof CleanupInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput(input.dry_run, io)
   const context: Cleanup = { out, isDryRun: input.dry_run }
-  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(out)
   const reference = parseReference(input.pr_ref, input.repo, out)
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
 

@@ -5,7 +5,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
+import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import { createOutput } from './output.js'
@@ -70,7 +70,7 @@ const ISSUE_READ = defineCommand({
   run: async (input, io) => {
     const output = createOutput(false, io)
     return await runWithExit(async () => {
-      const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+      const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
 
       let issue: IssueSlim

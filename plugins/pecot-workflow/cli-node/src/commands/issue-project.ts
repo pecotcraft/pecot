@@ -11,7 +11,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { addIssueToBoard, setIssueField } from './issue-board.js'
-import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
+import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import {
   ensureRepositoryInProject,
@@ -57,7 +57,7 @@ const ADD_TO_PROJECT = defineCommand({
       const { status } = input
       if (status !== '' && !VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
 
-      const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+      const config = requireActiveConfigPlain(output)
       if (status !== '' && !isStatusConfigured(config, status)) {
         stopWith(output, `status '${status}' is not configured in the project`)
       }
@@ -96,7 +96,7 @@ const UPDATE_ISSUE_STATUS = defineCommand({
       const { status } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
 
-      const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+      const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
       const target = `Issue ${issuePath(owner, repository, number)}`
       try {
@@ -180,7 +180,7 @@ const ISSUE_REOPEN = defineCommand({
       const { status, comment } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
 
-      const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+      const config = requireActiveConfigPlain(output)
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
       const target = `Issue ${issuePath(owner, repository, number)}`
       try {

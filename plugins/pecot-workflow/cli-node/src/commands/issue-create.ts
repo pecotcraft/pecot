@@ -21,7 +21,7 @@ import { templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
-import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
+import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import {
   addToBoardOrWarn,
   buildIssueTitle,
@@ -68,7 +68,9 @@ interface CreatedIssue {
 // owner/repo の形が不正なら error と終了コード 2。正しければ owner と name を返す
 function validateRepositoryShape(output: Output, repository: string): readonly [string, string] {
   const parts = splitOwnerRepository(repository)
-  return parts !== undefined && REPOSITORY_SEGMENT_PATTERN.test(parts.owner) && REPOSITORY_SEGMENT_PATTERN.test(parts.repository) ? [parts.owner, parts.repository] : stopWith(output, `invalid repository format: ${repository}\nexpected: owner/repo`, USAGE_EXIT_CODE)
+  const isValid = parts !== undefined && REPOSITORY_SEGMENT_PATTERN.test(parts.owner) && REPOSITORY_SEGMENT_PATTERN.test(parts.repository)
+  const message = `invalid repository format: ${repository}\nexpected: owner/repo`
+  return isValid ? [parts.owner, parts.repository] : stopWith(output, message, USAGE_EXIT_CODE)
 }
 
 interface Posting {
@@ -223,7 +225,7 @@ function frontmatterFields(frontmatter: IssueFrontmatter): readonly IssueField[]
 }
 
 async function createFromFile(output: Output, file: string, created: ReadonlyMap<string, CreatedIssue>): Promise<CreatedIssue> {
-  const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(output)
   let parsed
   try {
     parsed = parseIssueFile(file)
@@ -298,7 +300,7 @@ async function createDirect(output: Output, options: Readonly<DirectOptions>, lo
     status = options.status
   }
 
-  const config = loadedConfig ?? requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+  const config = loadedConfig ?? requireActiveConfigPlain(output)
   const [owner, repository] = validateRepositoryShape(output, options.repository)
 
   const parentReference = parentReferenceOf(normalizeParentEpicCli(options.parentEpic), config, owner, repository)
@@ -339,7 +341,7 @@ function messageModeTarget(output: Output, issueType: IssueType, repository: str
     }
     return { repository, config: undefined }
   }
-  const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(output)
   const target = resolveEpicTargetRepository(output, repository, config)
   if (target.needsWarning) warnEpicRepositoryException(output, target.repository, config)
   return { repository: target.repository, config }

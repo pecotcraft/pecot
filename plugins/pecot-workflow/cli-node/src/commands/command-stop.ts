@@ -5,9 +5,9 @@ import { CommandExit } from './command-definition.js'
 import type { Output } from './output.js'
 
 /**
-アクティブなプロジェクトが無いときの 1 行だけの案内
+アクティブなプロジェクトが無いときの、案内を添えない文
 */
-export const NO_ACTIVE_PROJECT_SHORT = 'no active project'
+const NO_ACTIVE_PROJECT_PLAIN = 'no active project'
 
 /**
 アクティブなプロジェクトが無いときの案内
@@ -23,8 +23,15 @@ export function stopWith(out: Readonly<Output>, message: string, code = 1): neve
 }
 
 /**
-アクティブなプロジェクトの設定を読む。無ければ message（既定は案内付きの NO_ACTIVE_PROJECT）を error の行にして止める
+アクティブなプロジェクトの設定を読む。無ければ案内付きの NO_ACTIVE_PROJECT を error の行にして止める
 */
-export function requireActiveConfig(out: Readonly<Output>, message = NO_ACTIVE_PROJECT): ProjectConfig {
-  return loadActiveConfig() ?? stopWith(out, message)
+export function requireActiveConfig(out: Readonly<Output>): ProjectConfig {
+  return loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT)
+}
+
+/**
+requireActiveConfig の、案内を添えない形。無ければ NO_ACTIVE_PROJECT_PLAIN を error の行にして止める
+*/
+export function requireActiveConfigPlain(out: Readonly<Output>): ProjectConfig {
+  return loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT_PLAIN)
 }

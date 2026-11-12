@@ -6,7 +6,7 @@ import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { CommandExit } from './command-definition.js'
-import { NO_ACTIVE_PROJECT_SHORT, requireActiveConfig } from './command-stop.js'
+import { requireActiveConfigPlain } from './command-stop.js'
 import type { Operation, Output } from './output.js'
 import { resolveReleaseTargetRepository } from './release.js'
 
@@ -31,7 +31,7 @@ export interface SyncTarget {
 export function loadTarget(out: Readonly<Output>, explicitRepository: string | undefined): SyncTarget {
   const target = resolveReleaseTargetRepository(undefined, explicitRepository, out)
   if (target === undefined) throw new CommandExit(1)
-  const config = requireActiveConfig(out, NO_ACTIVE_PROJECT_SHORT)
+  const config = requireActiveConfigPlain(out)
   return { config, owner: target.owner, repository: target.repository }
 }
 

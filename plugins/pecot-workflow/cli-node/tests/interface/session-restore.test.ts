@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -8,6 +8,7 @@ import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
+import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession } from '../_helpers/session-case.js'
 import type { SessionCase } from '../_helpers/session-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -146,22 +147,9 @@ describe('session restore', () => {
     expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
   })
 
-  it.for([
-    { name: '無いパス', reason: 'does not exist', prepare: (root: string): string => path.join(root, 'x') },
-    { name: 'ファイル', reason: 'is a file', prepare: (root: string): string => {
-      const file = path.join(root, 'plain.txt')
-      writeFileSync(file, '')
-      return file
-    } },
-    { name: '読めないディレクトリ', reason: 'is not readable', prepare: (root: string): string => {
-      const locked = path.join(root, 'locked')
-      mkdirSync(locked)
-      chmodSync(locked, 0o000)
-      return locked
-    } },
-  ])('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, prepare }, context) => {
+  it.for(INVALID_DIRECTORY_CASES)('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, locked, prepare }, context) => {
     await verifies(context, 'PW-SESSION-RESTORE-13')
-    if (reason === 'is not readable' && process.getuid?.() === 0) context.skip()
+    if (locked && isRoot()) context.skip()
     const session = prepareSession()
     const target = prepare(session.repository)
 
@@ -172,8 +160,30 @@ describe('session restore', () => {
       expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${target}' ${reason}.`)
     }
     finally {
-      if (reason === 'is not readable') chmodSync(target, 0o700)
+      if (locked) unlock(target)
     }
+  })
+
+  it('--directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
+    const session = prepareSession()
+    await startGithub([issueResponse({ number: 7, title: 't' })])
+
+    const result = await restore('')
+
+    expect(result.code).toBe(0)
+    expect(stateFile(session, '.pecot-active')).toBe('acme/demo/7')
+  })
+
+  it('--directory がファイルとディレクトリのどちらでもないパスのとき、Usage ではなく error の 1 行を出して終了コード 1 で終わる', async () => {
+    const session = prepareSession()
+
+    const result = await restore('/dev/null')
+
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: [^\n]+\n$/u)
+    expect(result.stderr).not.toContain('Invalid value')
+    expect(existsSync(path.join(session.project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 
   it('--issue を省いてブランチ名を読めないとき、終了コード 1 で終わる', async (context) => {

@@ -135,7 +135,8 @@ function inferTarget(directory: string, output: Output): RestoreTarget {
     return stopWith(output, `cannot infer the Issue number from the branch name: ${branch}\nrun: pecot session restore --issue <owner/repo/N>`, FAILURE_EXIT_CODE)
   }
   const origin = primaryRemoteRepository(directory)
-  return origin === undefined ? stopWith(output, 'cannot read the repository information', FAILURE_EXIT_CODE) : { owner: origin.owner, repository: origin.repository, number }
+  const message = 'cannot read the repository information'
+  return origin === undefined ? stopWith(output, message, FAILURE_EXIT_CODE) : { owner: origin.owner, repository: origin.repository, number }
 }
 
 // --issue の参照を分ける。形が誤っていれば error を出して終了コード 2

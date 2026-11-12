@@ -15,7 +15,7 @@ import { formatTimestamp } from '../infra/paths.js'
 import { consumeFlag, touchFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
-import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
+import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import {
   addToBoardOrWarn,
   BACKLOG_TYPES,
@@ -143,7 +143,7 @@ const ISSUE_QUICK = defineCommand({
     const output = createOutput(false, io)
     return await runWithExit(async () => {
       const [owner, repository] = parseQuickArguments(output, input.message, input.repo)
-      const config = requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT)
+      const config = requireActiveConfigPlain(output)
 
       const rawParent = normalizeParentEpicCli(input.parent_epic)
       const parentReference = rawParent === undefined ? undefined : resolveParentEpicReference(rawParent, config, owner, repository)

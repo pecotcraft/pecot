@@ -1,5 +1,4 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { rmSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -8,6 +7,7 @@ import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
+import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession } from '../_helpers/session-case.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -165,22 +165,9 @@ describe('session status', () => {
     expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
   })
 
-  it.for([
-    { name: '無いパス', reason: 'does not exist', prepare: (root: string): string => path.join(root, 'x') },
-    { name: 'ファイル', reason: 'is a file', prepare: (root: string): string => {
-      const file = path.join(root, 'plain.txt')
-      writeFileSync(file, '')
-      return file
-    } },
-    { name: '読めないディレクトリ', reason: 'is not readable', prepare: (root: string): string => {
-      const locked = path.join(root, 'locked')
-      mkdirSync(locked)
-      chmodSync(locked, 0o000)
-      return locked
-    } },
-  ])('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, prepare }, context) => {
+  it.for(INVALID_DIRECTORY_CASES)('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, locked, prepare }, context) => {
     await verifies(context, 'PW-SESSION-STATUS-20')
-    if (reason === 'is not readable' && process.getuid?.() === 0) context.skip()
+    if (locked && isRoot()) context.skip()
     const { repository } = prepareSession()
     const target = prepare(repository)
 
@@ -192,7 +179,7 @@ describe('session status', () => {
       expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${target}' ${reason}.`)
     }
     finally {
-      if (reason === 'is not readable') chmodSync(target, 0o700)
+      if (locked) unlock(target)
     }
   })
 
@@ -204,6 +191,17 @@ describe('session status', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('# Session status')
     expect(result.stdout).toContain('- Branch: feat/demo/7')
+  })
+
+  it('--directory がファイルとディレクトリのどちらでもないパスのとき、Usage ではなく error の 1 行を出して終了コード 1 で終わる', async () => {
+    prepareSession()
+
+    const result = await status('/dev/null')
+
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: [^\n]+\n$/u)
+    expect(result.stderr).not.toContain('Invalid value')
   })
 
   it('アクティブな設定ファイルの形式が不正なとき、warning を標準エラーに出して終了コード 0 で終わる', async (context) => {

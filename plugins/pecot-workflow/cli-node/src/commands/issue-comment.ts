@@ -20,7 +20,7 @@ import { readTextFile } from '../infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
 import { defineCommand, CommandExit } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { stopWith, requireActiveConfig, NO_ACTIVE_PROJECT_SHORT } from './command-stop.js'
+import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import {
   COMMENT_VALIDATION_EXIT_CODE,
@@ -79,7 +79,8 @@ function commentIdFor(output: Output, commentUrl: string, host: string, target: 
   const isSameIssue = owner.toLowerCase() === target.owner.toLowerCase()
     && urlRepository.toLowerCase() === target.repository.toLowerCase()
     && Number(number) === target.number
-  return isSameIssue ? Number(id) : stopWith(output, `comment_url (${owner}/${urlRepository}/${number}) points to a different Issue than issue_ref (${target.owner}/${target.repository}/${String(target.number)})`)
+  const message = `comment_url (${owner}/${urlRepository}/${number}) points to a different Issue than issue_ref (${target.owner}/${target.repository}/${String(target.number)})`
+  return isSameIssue ? Number(id) : stopWith(output, message)
 }
 
 // 次に同じファイルを渡したとき更新になるよう、URL を書き戻す。できなければ warning だけ出す
@@ -201,20 +202,23 @@ const ISSUE_COMMENT = defineCommand({
         return
       }
       if (file !== undefined) {
-        await postFromFile(output, requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT), input.repo, file)
+        await postFromFile(output, requireActiveConfigPlain(output), input.repo, file)
         return
       }
       if (message !== undefined && template !== undefined) {
         if (issue === undefined || issue === '') {
           stopWith(output, '--issue (Issue reference) is required with -m')
         }
-        await postDirect(output, requireActiveConfig(output, NO_ACTIVE_PROJECT_SHORT), input.repo, issue, message, template)
+        await postDirect(output, requireActiveConfigPlain(output), input.repo, issue, message, template)
         return
       }
-      stopWith(output, 'missing arguments\n'
-      + 'direct posting: pecot issue comment -m "MESSAGE" -t <template> --issue owner/repo/123\n'
-      + 'prepare a template: pecot issue comment --prepare -t <template>\n'
-      + 'from a file: pecot issue comment <path>')
+      stopWith(
+        output,
+        'missing arguments\n'
+        + 'direct posting: pecot issue comment -m "MESSAGE" -t <template> --issue owner/repo/123\n'
+        + 'prepare a template: pecot issue comment --prepare -t <template>\n'
+        + 'from a file: pecot issue comment <path>',
+      )
     })
   },
 })

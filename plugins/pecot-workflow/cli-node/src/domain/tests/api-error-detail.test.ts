@@ -5,9 +5,6 @@ import { describeApiError } from '../api-error-detail.js'
 describe('describeApiError', () => {
   it('本文が無ければ message のまま', () => {
     expect(describeApiError({ message: 'GitHub API error: 500' })).toBe('GitHub API error: 500')
-  })
-
-  it('本文が undefined でも message のまま', () => {
     expect(describeApiError({ message: 'GitHub API error: 500', responseBody: undefined })).toBe('GitHub API error: 500')
   })
 

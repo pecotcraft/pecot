@@ -1,4 +1,4 @@
-// API エラーの message に、応答本文 JSON の message と errors[].message を添える。commands・infra・domain の全てが共有する。
+// API エラーの message に、応答本文 JSON の message と errors[].message を添える。GitHub API の失敗の説明の、唯一の実装。
 
 import { isJsonObject, jsonField, tryParseJsonText } from './json.js'
 import type { JsonValue } from './python-format.js'
@@ -15,19 +15,13 @@ function errorMessages(errors: JsonValue | undefined): readonly (string | undefi
 }
 
 /**
+API の失敗の message に、応答本文の詳細を添える。GitHubAPIError と DependabotFailure をそのまま渡せる。
 本文が JSON でない（HTML 等）か、添える文が無いときは message のまま返す。
 422 では理由が errors[].message にだけ入ることがある
 */
-function describeErrorBody(message: string, responseBody = ''): string {
-  const body = tryParseJsonText(responseBody)
-  if (!isJsonObject(body)) return message
-  const details = [textOf(body['message']), ...errorMessages(body['errors'])].filter(detail => detail !== undefined)
-  return details.length === 0 ? message : `${message} ${details.join(' ')}`
-}
-
-/**
-API の失敗の message に、応答本文の詳細を添える。GitHubAPIError と DependabotFailure をそのまま渡せる
-*/
 export function describeApiError(failure: Readonly<{ message: string, responseBody?: string | undefined }>): string {
-  return describeErrorBody(failure.message, failure.responseBody)
+  const body = tryParseJsonText(failure.responseBody ?? '')
+  if (!isJsonObject(body)) return failure.message
+  const details = [textOf(body['message']), ...errorMessages(body['errors'])].filter(detail => detail !== undefined)
+  return details.length === 0 ? failure.message : `${failure.message} ${details.join(' ')}`
 }
