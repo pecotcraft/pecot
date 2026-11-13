@@ -465,7 +465,7 @@ const activateCommand = defineCommand({
 
 function mismatchNote(count: number): string {
   const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
-  return `${subject} in a column that does not match its judgment; run pecot board sync (--dry-run to preview) to fix`
+  return `${subject} in a column or Status that does not match its judgment; run pecot board sync (--dry-run to preview) to fix`
 }
 
 const infoCommand = defineCommand({

@@ -1,34 +1,24 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // project info の着手の判定。盤上の Ready・Blocked の Issue の前提を読んで表示する。列と札は動かさない。
+import { homeRepositoryOf } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem, BoardProgress, StackableChain } from '../domain/format.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
 import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
-import { cycleThrough, describeReadiness, describeUnknown, displayReference, hasStarted, progressionsFromReadiness, stackChains, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
+import { describeReadiness, describeUnknown, displayReference, progressionsFromReadiness, stackChains } from '../domain/readiness.js'
 import type { Readiness } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
-import { createReadinessCache, judgeSnapshot, prerequisiteKeys, readinessJson, readIssueSnapshot, snapshotWithoutPrerequisites } from './issue-readiness.js'
-import type { IssueReadiness, IssueSnapshot } from './issue-readiness.js'
+import { boardMoveOf, judgeBoard } from './board-judgment.js'
+import type { BoardTarget } from './board-judgment.js'
+import { readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
+import type { IssueSnapshot } from './issue-readiness.js'
 import type { Output } from './output.js'
-import { mapWithLimit } from './project-info.js'
-
-/**
-前提の読み取りを並列に行う数の上限
-*/
-const READINESS_MAX_WORKERS = 8
-
-/**
-前提を読む件数の下限。一覧を読んでから足された前提も取りこぼさない
-*/
-const MIN_BLOCKED_BY_READ = 8
 
 const JUDGED_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked'])
 
@@ -43,35 +33,13 @@ export interface BoardReadiness {
   readonly json: ReadonlyMap<string, JsonObject> | undefined
   readonly chains: readonly StackableChain[]
   /**
-  列と判定が食い違いそうな Ready・Blocked の Issue の数。着手の跡を読んでいない Blocked も数える
+  board sync が列か札を動かしそうな Ready・Blocked の Issue の数
   */
   readonly mismatches: number
 }
 
-interface Target {
-  readonly item: BoardItem
-  readonly key: string
-  readonly ref: IssueReference
-}
-
-// 判定の対象にする列の Issue か。PR と Tracker は対象にしない
-function isJudgedItem(item: BoardItem): boolean {
-  const url = typeof item.content.url === 'string' ? item.content.url : ''
-  const title = typeof item.title === 'string' ? item.title : ''
-  const isExcluded = url.includes('/pull/') || title.startsWith(TRACKER_TITLE_PREFIX)
-  return !isExcluded && typeof item.workflow === 'string' && JUDGED_STATUSES.has(item.workflow)
-}
-
-function toTarget(item: BoardItem): Target | undefined {
-  const key = boardItemKey(item)
-  const split = splitOwnerRepository(item.content.repository ?? '')
-  const { number } = item.content
-  const isTarget = isJudgedItem(item) && key !== undefined && split !== undefined && typeof number === 'number'
-  return isTarget ? { item, key, ref: createIssueReference(createRepositoryReference(split.owner, split.repository), number) } : undefined
-}
-
 // 前提の無い Issue を、一覧の値だけで判定の入力にする。前提の件数が一覧に無ければ undefined
-function localSnapshot(config: ProjectConfig, target: Target, progress: BoardProgress | undefined): IssueSnapshot | undefined {
+function localSnapshot(config: ProjectConfig, target: BoardTarget, progress: BoardProgress | undefined): IssueSnapshot | undefined {
   if (progress?.blockedBy !== 0) return undefined
   const split = splitOwnerRepository(progress.parent?.repository ?? '')
   const parent = split === undefined || progress.parent === undefined ? undefined : createIssueReference(createRepositoryReference(split.owner, split.repository), progress.parent.number)
@@ -85,17 +53,11 @@ function localSnapshot(config: ProjectConfig, target: Target, progress: BoardPro
       column: target.item.workflow ?? undefined,
       label: progress.label,
       kind: isEpic ? 'epic' : 'task',
+      // 着手の跡は一覧に無いので、info の案内は「may be」と書く
       branches: [],
       pullRequests: [],
     },
   })
-}
-
-export function homeOf(config: ProjectConfig, repository = ''): RepositoryReference | undefined {
-  const split = splitOwnerRepository(repository)
-  if (split !== undefined) return split
-  const [first] = config.repositories
-  return first === undefined ? undefined : { owner: first.owner, repository: first.name }
 }
 
 // 小文字のキーを、元の参照（無ければキーから作る）に戻して表記する
@@ -110,67 +72,35 @@ function unsupportedWarning(out: Readonly<Output>): void {
   out.warning('this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted')
 }
 
+const PLAIN: BoardReadiness = { texts: undefined, json: undefined, chains: [], mismatches: 0 }
+
 /**
 判定を読まずに、依存関係に対応しない GHES と同じ扱いにする。warning を 1 回出す
 */
 export function skipBoardReadiness(out: Readonly<Output>): BoardReadiness {
   unsupportedWarning(out)
-  return { texts: undefined, json: undefined, chains: [], mismatches: 0 }
+  return PLAIN
 }
 
 /**
 Ready・Blocked の Issue の前提を読んで判定する。items は表示するアイテム（--repo で絞った後）。列と札は動かさない
 */
 export async function readBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined, progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
-  type Snapshot = IssueSnapshot | Extract<IssueReadiness, { kind: 'unreadable' }>
-  const plain: BoardReadiness = { texts: undefined, json: undefined, chains: [], mismatches: 0 }
-  const targets = items.flatMap(item => toTarget(item) ?? [])
-  const home = homeOf(config, repository)
-  const cache = createReadinessCache()
-
-  const state = { isUnsupported: false }
-  const reads = await mapWithLimit(targets, READINESS_MAX_WORKERS, async (target): Promise<{ target: Target, snapshot: Snapshot } | undefined> => {
-    if (state.isUnsupported) return undefined
-    const known = progress.get(target.key)
-    const local = localSnapshot(config, target, known)
-    if (local !== undefined) return { target, snapshot: local }
-    try {
-      const first = known?.blockedBy === undefined ? undefined : Math.min(Math.max(known.blockedBy, MIN_BLOCKED_BY_READ), MAX_BLOCKED_BY)
-      return { target, snapshot: await readIssueSnapshot(client, config, target.ref, first) }
-    }
-    catch (error: unknown) {
-      if (!(error instanceof DependenciesUnsupportedError)) throw error
-      state.isUnsupported = true
-      return undefined
-    }
+  const judged = await judgeBoard(client, config, items, progress, {
+    columns: JUDGED_STATUSES,
+    withoutRead: (target, known) => localSnapshot(config, target, known),
   })
-  if (state.isUnsupported) {
+  if (judged === undefined) {
     unsupportedWarning(out)
-    return plain
+    return PLAIN
   }
-  const pairs = reads.flatMap(read => read ?? [])
-
-  const edges = new Map<string, readonly string[]>()
-  for (const { target, snapshot } of pairs) {
-    if (snapshot.kind === 'snapshot') edges.set(issueReferenceKey(target.ref), prerequisiteKeys(snapshot))
-  }
-
-  const judged = await mapWithLimit(pairs, READINESS_MAX_WORKERS, async ({ target, snapshot }): Promise<{ target: Target, result: IssueReadiness }> => {
-    if (snapshot.kind === 'unreadable') return { target, result: snapshot }
-    try {
-      return { target, result: await judgeSnapshot(client, snapshot, cache, cycleThrough(issueReferenceKey(target.ref), edges)) }
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubAPIError) return { target, result: { kind: 'unreadable', reason: error.message } }
-      throw error
-    }
-  })
+  const home = homeRepositoryOf(config, repository)
 
   const texts = new Map<string, string>()
   const json = new Map<string, JsonObject>()
   const readinessByKey = new Map<string, Readiness>()
   const parents = new Map<string, IssueReference>()
-  const references = new Map<string, IssueReference>(targets.map(target => [target.key, target.ref]))
+  const references = new Map<string, IssueReference>(judged.map(({ target }) => [target.key, target.ref]))
   let mismatches = 0
 
   for (const { target, result } of judged) {
@@ -187,8 +117,8 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
     texts.set(target.key, text)
     json.set(target.key, readinessJson(readiness, text))
     readinessByKey.set(target.key, readiness)
-    const isBlocked = readiness.kind === 'blocked'
-    if (!hasStarted(result.target) && (target.item.workflow === 'Ready' ? isBlocked : !isBlocked)) mismatches += 1
+    const move = boardMoveOf(config, target, result)
+    if (move?.column !== undefined || move?.label !== undefined) mismatches += 1
     if (readiness.stackOn !== undefined) references.set(issueReferenceKey(readiness.stackOn.issue), readiness.stackOn.issue)
   }
 

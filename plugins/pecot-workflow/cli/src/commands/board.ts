@@ -3,72 +3,29 @@
 import path from 'node:path'
 import { z } from 'zod'
 
-import { decideBoardMove } from '../domain/board-move.js'
-import { getOptionId } from '../domain/config.js'
+import type { MissingValue } from '../domain/board-move.js'
+import { homeRepositoryOf } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
-import { boardItemKey } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
 import { compareStrings } from '../domain/python-format.js'
-import { cycleThrough, describeReadiness, hasStarted, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
-import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
-import type { IssueReference } from '../domain/reference-parser.js'
-import { createRepositoryReference, splitOwnerRepository } from '../domain/repository-resolver.js'
+import { describeReadiness, displayReference } from '../domain/readiness.js'
 import { loadActiveConfig, listProjectConfigNames, loadConfig, projectsDirectory } from '../infra/config-store.js'
-import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { GraphqlRateLimit } from '../infra/github/repos.js'
-import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
+import { boardMoveOf, judgeBoard } from './board-judgment.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
 import { makeClient } from './github-client.js'
 import { applyBoardMove, planBoardMove } from './issue-board.js'
-import { createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
-import type { IssueReadiness, IssueSnapshot } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
-import { mapWithLimit, readBoard } from './project-info.js'
-import { homeOf } from './project-readiness.js'
+import { readBoard } from './project-info.js'
+import type { BoardRead } from './project-info.js'
 import { failApi } from './project-sync.js'
-import type { MissingValue } from '../domain/board-move.js'
 
-const READ_MAX_WORKERS = 8
-// 一覧を読んでから足された前提も取りこぼさない件数の下限
-const MIN_BLOCKED_BY_READ = 8
 const SYNCED_COLUMNS: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
-const CONFIG_NAME_PATTERN = /^[\w.-]+$/u
-
-export interface SyncOptions {
-  readonly dryRun: boolean
-}
-
-export interface SyncResult {
-  /**
-  Issue の依存関係に対応しない GHES で、何も読まずに終えた
-  */
-  readonly isUnsupported: boolean
-}
-
-interface Target {
-  readonly item: BoardItem
-  readonly key: string
-  readonly ref: IssueReference
-}
-
-function toTarget(item: BoardItem): Target | undefined {
-  const key = boardItemKey(item)
-  const split = splitOwnerRepository(item.content.repository ?? '')
-  const { number } = item.content
-  const url = typeof item.content.url === 'string' ? item.content.url : ''
-  const title = typeof item.title === 'string' ? item.title : ''
-  const isTarget = key !== undefined && split !== undefined && typeof number === 'number' && !url.includes('/pull/') && !title.startsWith(TRACKER_TITLE_PREFIX) && typeof item.workflow === 'string' && SYNCED_COLUMNS.has(item.workflow)
-  return isTarget ? { item, key, ref: createIssueReference(createRepositoryReference(split.owner, split.repository), number) } : undefined
-}
-
-// Ready の列にある前提 0 件の Issue は、一覧の値だけで「動かさない」と決まる
-function isSkippable(target: Target, progress: BoardProgress | undefined): boolean {
-  return target.item.workflow === 'Ready' && progress?.blockedBy === 0
-}
 
 function unsupportedWarning(out: Readonly<Output>): void {
   out.warning('this GitHub Enterprise Server does not support issue dependencies (blockedBy); no column is moved')
@@ -79,92 +36,43 @@ function missingWarning(missing: ReadonlySet<MissingValue>): string {
   return `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with pecot project init`
 }
 
-type Snapshot = IssueSnapshot | Extract<IssueReadiness, { kind: 'unreadable' }>
-
-async function readSnapshot(client: GitHubClient, config: ProjectConfig, target: Target, progress: BoardProgress | undefined): Promise<Snapshot> {
-  const count = progress?.blockedBy
-  const first = count === undefined ? undefined : Math.min(Math.max(count, MIN_BLOCKED_BY_READ), MAX_BLOCKED_BY)
-  return await readIssueSnapshot(client, config, target.ref, first)
-}
-
 /**
 対象の Issue の前提と着手の跡を読み、判定に合わせて列と札を直す。dryRun は同じ文を予定の行で出し、書かない。
-書き込みの失敗は warning にして続ける
+書き込みの失敗は warning にして続け、失敗した Issue の数を返す
 */
-export async function syncBoard(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], progress: ReadonlyMap<string, BoardProgress>, options: Readonly<SyncOptions>): Promise<SyncResult> {
-  const targets = items.flatMap(item => toTarget(item) ?? []).filter(target => !isSkippable(target, progress.get(target.key)))
-  const home = homeOf(config)
-  const cache = createReadinessCache()
-
-  const state = { isUnsupported: false }
-  const snapshots = await mapWithLimit(targets, READ_MAX_WORKERS, async (target): Promise<Snapshot | undefined> => {
-    if (state.isUnsupported) return undefined
-    try {
-      return await readSnapshot(client, config, target, progress.get(target.key))
-    }
-    catch (error: unknown) {
-      if (!(error instanceof DependenciesUnsupportedError)) throw error
-      state.isUnsupported = true
-      return undefined
-    }
+async function syncBoard(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], progress: ReadonlyMap<string, BoardProgress>, isDryRun: boolean): Promise<number> {
+  // 着手の跡は一覧に無いので、info と違い、一覧の値だけでは判定しない。Ready で前提 0 件なら動かさないと決まるので読まない
+  const judged = await judgeBoard(client, config, items, progress, {
+    columns: SYNCED_COLUMNS,
+    withoutRead: (target, known) => (target.item.workflow === 'Ready' && known?.blockedBy === 0 ? 'skip' : undefined),
   })
-  if (state.isUnsupported) {
+  if (judged === undefined) {
     unsupportedWarning(out)
-    return { isUnsupported: true }
+    return 0
   }
-
-  const edges = new Map<string, readonly string[]>()
-  for (const [index, snapshot] of snapshots.entries()) {
-    const target = targets.at(index)
-    if (target !== undefined && snapshot?.kind === 'snapshot') edges.set(issueReferenceKey(target.ref), prerequisiteKeys(snapshot))
-  }
-
-  const judged = await mapWithLimit(targets.map((target, index) => ({ target, index })), READ_MAX_WORKERS, async ({ target, index }): Promise<IssueReadiness> => {
-    const snapshot = snapshots.at(index)
-    if (snapshot === undefined) return { kind: 'unreadable', reason: 'not read' }
-    if (snapshot.kind === 'unreadable') return snapshot
-    try {
-      return await judgeSnapshot(client, snapshot, cache, cycleThrough(issueReferenceKey(target.ref), edges))
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubAPIError) return { kind: 'unreadable', reason: error.message }
-      throw error
-    }
-  })
-
+  const home = homeRepositoryOf(config)
   const missing = new Set<MissingValue>()
-  const available = {
-    blocked: getOptionId(config, 'workflow', 'blocked') !== undefined,
-    needsAttention: getOptionId(config, 'status', 'needs_attention') !== undefined,
-    todo: getOptionId(config, 'status', 'todo') !== undefined,
-  }
-  for (const [index, target] of targets.entries()) {
-    const result = judged.at(index)
-    if (result === undefined || result.kind === 'unreadable' || result.readiness === undefined) continue
+  let failures = 0
+  for (const { target, result } of judged) {
+    if (result.kind === 'unreadable') {
+      out.warning(`could not judge ${displayReference(target.ref, home)}: ${result.reason.replaceAll(/\s+/gu, ' ')}`)
+      continue
+    }
     const { readiness } = result
-    const move = decideBoardMove({
-      eligible: true,
-      column: target.item.workflow ?? undefined,
-      label: result.target.label,
-      hasStarted: hasStarted(result.target),
-      hasPrerequisites: result.prerequisites.length > 0,
-      readiness,
-      labelWrittenByAutomation: false,
-      available,
-    })
-    if (move === undefined) continue
+    const move = boardMoveOf(config, target, result)
+    if (readiness === undefined || move === undefined) continue
     for (const value of move.missing) missing.add(value)
     const text = describeReadiness(readiness, result.prerequisites, target.ref.repository)
     const destination = { ref: target.ref, home }
-    if (options.dryRun) {
-      planBoardMove(out, destination, move, text)
-      continue
-    }
     const itemId = target.item.id
-    if (typeof itemId === 'string') await applyBoardMove(out, client, config, itemId, destination, move, text)
+    if (isDryRun) planBoardMove(out, destination, move, text)
+    else if (typeof itemId === 'string') {
+      const applied = await applyBoardMove(out, client, config, itemId, destination, move, text)
+      if (applied.hasFailed) failures += 1
+    }
   }
   if (missing.size > 0) out.warning(missingWarning(missing))
-  return { isUnsupported: false }
+  return failures
 }
 
 function availableNames(): string {
@@ -174,9 +82,9 @@ function availableNames(): string {
 // --project、次にアクティブ設定。どちらも無く設定が 1 つだけなら、それを使う
 function resolveConfig(out: Readonly<Output>, project: string | undefined): ProjectConfig {
   if (project !== undefined) {
+    // 一覧は projects/ の *.json の名前なので、一致すれば ../ などの外のパスにならない
     const name = project.endsWith('.json') ? project.slice(0, -'.json'.length) : project
-    const isKnown = CONFIG_NAME_PATTERN.test(name) && listProjectConfigNames().includes(name)
-    return isKnown ? loadConfig(path.join(projectsDirectory(), `${name}.json`)) : stopWith(out, `project config not found: ${project}\navailable: ${availableNames()}`)
+    return listProjectConfigNames().includes(name) ? loadConfig(path.join(projectsDirectory(), `${name}.json`)) : stopWith(out, `project config not found: ${project}\navailable: ${availableNames()}`)
   }
   const active = loadActiveConfig()
   if (active !== undefined) return active
@@ -187,11 +95,16 @@ function resolveConfig(out: Readonly<Output>, project: string | undefined): Proj
   return stopWith(out, `no active project, and ${String(names.length)} project configs exist\nrun: pecot board sync --project <NAME>\navailable: ${names.join(', ')}`)
 }
 
+// 窓が途中で切り替わると前後の used を比べられないので、使用量の行を省く
 function reportPoints(out: Readonly<Output>, before: GraphqlRateLimit | undefined, after: GraphqlRateLimit | undefined): void {
   if (before === undefined || after === undefined) return
   const used = after.used - before.used
-  if (used >= 0) out.count('GraphQL points used', used)
+  if (before.reset === after.reset && used >= 0) out.count('GraphQL points used', used)
   out.count('GraphQL points remaining', after.remaining)
+}
+
+function failureMessage(failures: number): string {
+  return failures === 1 ? 'could not write 1 Issue to the board' : `could not write ${String(failures)} Issues to the board`
 }
 
 const syncCommand = defineCommand({
@@ -208,18 +121,22 @@ const syncCommand = defineCommand({
     const config = resolveConfig(out, input.project)
     const client = makeClient(out, config)
     if (client === undefined) return 1
+    const before = await client.getGraphqlRateLimit()
+    let read: BoardRead
     try {
-      const before = await client.getGraphqlRateLimit()
-      const { items, progress, isLegacy } = await readBoard(client, config, undefined)
-      if (isLegacy) unsupportedWarning(out)
-      else await syncBoard(out, client, config, items, progress, { dryRun: input.dry_run })
-      reportPoints(out, before, await client.getGraphqlRateLimit())
+      read = await readBoard(client, config, undefined)
     }
     catch (error: unknown) {
-      if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)
-      throw error
+      if (!(error instanceof GitHubAPIError)) throw error
+      reportPoints(out, before, await client.getGraphqlRateLimit())
+      return failApi(out, 'read project board', error)
     }
-    return 0
+    if (read.isLegacy) unsupportedWarning(out)
+    const failures = read.isLegacy ? 0 : await syncBoard(out, client, config, read.items, read.progress, input.dry_run)
+    reportPoints(out, before, await client.getGraphqlRateLimit())
+    if (failures === 0) return 0
+    out.error(failureMessage(failures))
+    return 1
   },
 })
 

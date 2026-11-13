@@ -6,12 +6,15 @@
 #
 # Set one of the two token setups in Settings > Secrets and variables > Actions.
 # The job is skipped until one of them exists.
-#   GitHub App (default):
-#     variable PECOT_BOARD_SYNC_APP_CLIENT_ID.
-#     secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY.
-#   Personal access token:
-#     variable PECOT_BOARD_SYNC_USE_PAT, set to true.
-#     secret PECOT_BOARD_SYNC_TOKEN.
+#   GitHub App.
+#     Use it when the board and this repository have the same organization as owner.
+#     The token covers only the installation on that owner (owner: github.repository_owner).
+#     Set variable PECOT_BOARD_SYNC_APP_CLIENT_ID.
+#     Set secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY.
+#   Personal access token.
+#     Use it for a personal account board, or when the board owner differs from the repository.
+#     Set variable PECOT_BOARD_SYNC_USE_PAT to true.
+#     Set secret PECOT_BOARD_SYNC_TOKEN.
 #
 # GitHub Enterprise Server names the token variable after the host.
 # The name is PECOT_GITHUB_<HOST>_TOKEN, with the host upper-cased and dots replaced by underscores.
@@ -43,8 +46,9 @@ concurrency:
 jobs:
   sync:
     # A job-level if cannot read secrets, so variables tell whether a token is set up.
-    # PRs from Dependabot are skipped because secrets are not always passed to them.
-    if: ${{ (vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' || vars.PECOT_BOARD_SYNC_USE_PAT == 'true') && !(github.event_name == 'pull_request_target' && github.event.pull_request.user.login == 'dependabot[bot]') }}
+    # Runs started by Dependabot are skipped because secrets are not always passed to them.
+    # The actor is whoever started the run, so a human merging a Dependabot PR still runs.
+    if: ${{ (vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' || vars.PECOT_BOARD_SYNC_USE_PAT == 'true') && github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -73,6 +77,7 @@ jobs:
           permission-contents: read
 
       # Pin the major version here. Raise it when the plugin's major version is raised.
+      # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Sync the board
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}

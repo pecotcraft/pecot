@@ -145,10 +145,11 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 | 札を変えた | `set: Status of #N to <値>` | 0 |
 | `--dry-run` | 上の 2 行を、書かずに予定として出す | 0 |
 | 着手の跡がある Issue が判定とずれている | `warning: #N is in Active but blocked by #M`。列と札は変えない | 0 |
-| 書き込みに失敗した | `warning:` を出し、残りの Issue へ続ける | 0 |
+| 書き込みに失敗した | `warning:` を出し、残りの Issue へ続ける。全件の後に、失敗した件数を `error:` で出す | 1 |
+| 判定が読めない（`develop_branch` が無い、API の失敗など） | `warning: could not judge #N: <理由>`。その Issue は動かさない | 0 |
 | 動かす先の値がボードに無い | `warning:` を 1 回出す | 0 |
 | Issue の依存関係に対応しない GHES | `warning:` を出して何もしない | 0 |
-| 実行の前後の点数 | stderr に使用量と残りの行。`GET /rate_limit` を読めない環境では省く | 0 |
+| 実行の前後の点数 | stderr に使用量と残りの行。`GET /rate_limit` を読めない環境では省く。窓が途中で切り替わると、使用量の行だけ省く | 0 |
 
 - 対象の列は `Ready`・`Blocked`・`Active`・`In Review`。`Backlog`・`Pending`・`Archived` は動かさない（FR-080）
 - 判断は `decideBoardMove`、書き込みは `applyBoardMove` が行い、pecot の各操作と同じ処理を使う（FR-083）
@@ -269,7 +270,7 @@ Readiness changed:
 
 ### `pecot project info`
 
-`Ready` と `Blocked` の表に、判定の列を足す。列と判定の食い違いそうな Issue を見つけたときは、stderr に件数と `board_sync` で直す案内を 1 行出す。
+`Ready` と `Blocked` の表に、判定の列を足す。`board_sync` が列か札を動かしそうな Issue を見つけたときは、stderr に件数と直す案内を 1 行出す。数え方は `board_sync` と同じ規則を使う。
 
 ```text
 ### Blocked (2)

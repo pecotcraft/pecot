@@ -126,6 +126,10 @@ export interface AppliedMove {
   */
   readonly column: MovableColumn | undefined
   readonly missing: readonly MissingValue[]
+  /**
+  書き込みに失敗した。列だけ書けて札で失敗したときも真
+  */
+  readonly hasFailed: boolean
 }
 
 interface MoveTarget {
@@ -162,6 +166,7 @@ export async function applyBoardMove(
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
   let moved: MovableColumn | undefined
+  let hasFailed = false
   try {
     if (move.column !== undefined && await setIssueField(client, config, itemId, 'workflow', COLUMN_CONFIG_KEYS[move.column.to])) {
       moved = move.column.to
@@ -174,17 +179,17 @@ export async function applyBoardMove(
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     out.warning(`could not move ${name}: ${error.message}`)
+    hasFailed = true
   }
-  return { column: moved, missing: move.missing }
+  return { column: moved, missing: move.missing, hasFailed }
 }
 
 /**
 applyBoardMove と同じ文を、書かずに予定の行として出す（--dry-run）
 */
-export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: Readonly<BoardMove>, text: string): AppliedMove {
+export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: Readonly<BoardMove>, text: string): void {
   const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) warnConflict(out, name, target, move.conflict)
   if (move.column !== undefined) out.planned(moveOperation(name, move.column, text))
   if (move.label !== undefined) out.planned(labelOperation(name, move.label))
-  return { column: move.column?.to, missing: move.missing }
 }

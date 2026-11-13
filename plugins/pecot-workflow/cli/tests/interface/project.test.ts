@@ -687,7 +687,7 @@ describe('project info', () => {
     const info = async (rules: ResponseRule[], config: Json = boardConfig(), ...rest: string[]): Promise<CommandResult> => await run(arguments_('info', ...rest), [twoAlerts(), ...rules], { config })
     const boardItems = (result: Readonly<CommandResult>): unknown => asJson(asJson(JSON.parse(result.stdout))['board'])['items']
     const notStarted = { number: 9 }
-    const NOTE_ONE = 'warning: 1 Ready or Blocked Issue may be in a column that does not match its judgment; run pecot board sync (--dry-run to preview) to fix'
+    const NOTE_ONE = 'warning: 1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run pecot board sync (--dry-run to preview) to fix'
     const NOTE_TWO = NOTE_ONE.replace('1 Ready or Blocked Issue may be', '2 Ready or Blocked Issues may be')
     const failedRead = (): ResponseRule => ({ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
 
@@ -718,6 +718,19 @@ describe('project info', () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_TWO}\n`)
+    })
+
+    it('board sync と同じ規則で数え、札の食い違いを数え、動かす先の値がボードに無い Issue は数えない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INFO-33')
+      const withoutBlocked = boardConfig()
+      const project = asJson(withoutBlocked['project'])
+      const fields = asJson(project['fields'])
+      const workflow = asJson(fields['workflow'])
+      const options = Object.fromEntries(Object.entries(asJson(workflow['options'])).filter(([name]) => name !== 'blocked'))
+      const config = { ...withoutBlocked, project: { ...project, fields: { ...fields, workflow: { ...workflow, options } } } }
+      const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }] })], config)
+      expectClean(result)
+      expect(result.stderr).toBe(`${NOTE_ONE}\n`)
     })
 
     it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async (context) => {
