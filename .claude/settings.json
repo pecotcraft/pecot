@@ -38,7 +38,7 @@
       "Bash(touch *)",
       "Bash(chmod *)",
       "Bash(gh *)",
-      "Bash(GH_HOST=* gh *)",
+      "Bash(GH_HOST=github.com gh *)",
       "Bash(*/plugins/pecot-workflow/bin/pecot *)",
       "Bash(\"*/plugins/pecot-workflow/bin/pecot\" *)",
       "Bash(pecot *)",
