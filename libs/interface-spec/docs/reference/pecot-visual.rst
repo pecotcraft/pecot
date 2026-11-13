@@ -7,9 +7,4 @@ pecot-visual
    :hidden:
    :glob:
 
-   _generated/pecot-visual/*
-
-テスト
-------
-
-.. iface-tests:: pecot-visual
+   /_generated/pecot-visual/*

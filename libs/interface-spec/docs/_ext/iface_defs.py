@@ -254,8 +254,6 @@ def _get(data: dict[str, Any], dotted: str) -> object:
 
 
 COMMON = "common"
-COMMON_PAGE = "_common"
-COMMON_TITLE = "共通の要件"
 PAGES_DIR = Path("_generated")
 
 OUTCOME_LABELS = {PASSED: "合格", FAILED: "不合格", NOT_RUN: "未実行"}
@@ -803,15 +801,6 @@ class IfaceIndex(_Base):
             ]
             for c in plan.commands
         ]
-        if any(b.belongs is None for b in plan.behaviors):
-            rows.append(
-                [
-                    f":doc:`{COMMON_TITLE} <{base}/{COMMON_PAGE}>`",
-                    "このプラグインのすべてのコマンドに共通する要件です。",
-                    "",
-                    _esc(_summary(outcomes(None))),
-                ]
-            )
         lines = [".. list-table::", "   :header-rows: 1", "   :widths: 22 50 8 20", ""]
         for row in [["名前", "説明", "型", "状態"], *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
@@ -844,15 +833,6 @@ def write_pages(app: Sphinx) -> None:
                 "=" * (len(c.name) * 2),
                 "",
                 f".. iface-defs:: {plugin} {c.id}",
-                "",
-            ]
-        if any(b.belongs is None for b in plan.behaviors):
-            title = COMMON_TITLE
-            pages[COMMON_PAGE] = [
-                title,
-                "=" * (len(title) * 2),
-                "",
-                f".. iface-defs:: {plugin} {COMMON}",
                 "",
             ]
         directory = Path(app.srcdir) / PAGES_DIR / plugin

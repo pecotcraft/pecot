@@ -7,9 +7,4 @@ pecot-tools
    :hidden:
    :glob:
 
-   _generated/pecot-tools/*
-
-テスト
-------
-
-.. iface-tests:: pecot-tools
+   /_generated/pecot-tools/*

@@ -34,9 +34,10 @@ html_theme_options = {
     "logo_light": "../../../.github/assets/pecot-icon-light.svg",
     "logo_dark": "../../../.github/assets/pecot-icon-dark.svg",
     "main_nav_links": {
-        "pecot-workflow": "pecot-workflow",
-        "pecot-tools": "pecot-tools",
-        "pecot-visual": "pecot-visual",
+        "はじめに": "introduction",
+        "ガイド": "guides/index",
+        "リファレンス": "reference/index",
+        "開発者向け": "development/index",
     },
     "extra_header_link_icons": {
         "GitHub": {"link": "https://github.com/pecotcraft/pecot", "icon": _GITHUB_ICON},

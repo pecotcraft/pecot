@@ -253,9 +253,7 @@ def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixtu
         "one run": ("_generated/sample/one-run.html", "合格 2・未実行 1"),
         "sample_two": ("_generated/sample/sample_two.html", "合格 1・不合格 1・未実行 1"),
         "half entry": ("_generated/sample/half-entry.html", "—"),
-        "共通の要件": ("_generated/sample/_common.html", "未実行 1"),
     }
-    assert "このプラグインのすべてのコマンドに共通する要件です。" in html
 
 
 def test_pages_are_written_and_stale_ones_removed(
@@ -281,7 +279,6 @@ def test_pages_are_written_and_stale_ones_removed(
         "one-run.rst",
         "sample_two.rst",
         "half-entry.rst",
-        "_common.rst",
     }
     assert not (generated / "gone").exists()
     assert (generated / "junit" / "keep.xml").is_file()

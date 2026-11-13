@@ -7,9 +7,4 @@ pecot-workflow
    :hidden:
    :glob:
 
-   _generated/pecot-workflow/*
-
-テスト
-------
-
-.. iface-tests:: pecot-workflow
+   /_generated/pecot-workflow/*

@@ -3,10 +3,20 @@ pecot
 
 Claude Code 向けのプラグインのマーケットプレイスです。
 
-.. toctree::
-   :maxdepth: 2
+- :doc:`introduction`
+- :doc:`installation`
+- :doc:`guides/index`
+- :doc:`reference/index`
+- :doc:`troubleshooting`
+- :doc:`development/index`
 
-   pecot-workflow
-   pecot-tools
-   pecot-visual
-   field-map
+.. toctree::
+   :hidden:
+   :maxdepth: 3
+
+   introduction
+   installation
+   guides/index
+   reference/index
+   troubleshooting
+   development/index
