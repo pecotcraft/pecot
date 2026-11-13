@@ -108,7 +108,7 @@ git grep -nE 'PECOT_(PR|ISSUE)_(CREATE|SKIP)_PATTERN|_PECOT=' -- 'plugins/pecot-
 # Python の残り（SC-006。フェーズ 12 の後）
 git ls-files 'plugins/pecot-workflow/**/*.py' 'plugins/pecot-workflow/**/pyproject.toml' 'plugins/pecot-workflow/**/uv.lock'
 # cli-node の参照（フェーズ 12 の後。specs/ と CHANGELOG を除く）
-git grep -n 'cli-node' -- . ':!specs' ':!**/CHANGELOG.md' ':!.nx/nx-release/tests/_fixtures' ':!.specify/memory/constitution.md'
+git grep -n 'cli-node' -- . ':!specs' ':!**/CHANGELOG.md' ':!.nx/nx-release/tests/_fixtures'
 # 旧形式の manifest（フェーズ 11 の後）
 git ls-files 'plugins/pecot-workflow/.github/plugin/*' 'plugins/pecot-workflow/hooks/hooks-copilot.json'
 ```
@@ -118,7 +118,7 @@ git ls-files 'plugins/pecot-workflow/.github/plugin/*' 'plugins/pecot-workflow/h
 - 1 つ目は、切り替えの前は 202 箇所（28 ファイル）。切り替えの後は、利用者向けの説明として一覧に載せた箇所だけ
 - 2 つ目は、その場所を示す
 - 3 つ目は 0 件。deny だけを持つ `lib/core/pecot-cli-deny.sh` は、この式に当たらない
-- 4 つ目以降は 0 件
+- 4 つ目以降は 0 件。ただし `cli-node` の参照は、憲章の Sync Impact Report（過去の記録）の行だけ残る
 
 ## 性能
 

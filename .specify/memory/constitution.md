@@ -2,7 +2,7 @@
   =========================================================================
   Sync Impact Report
   =========================================================================
-  Version change: 3.0.0 → 3.1.0
+  Version change: 3.1.0 → 3.1.1
   Modified principles:
     - I. ドメイン駆動設計: MUST の規範（レイヤー分離・循環依存禁止・domain の I/O 排除）は
       残し、強制の手段の記述を実態に合わせた（再定義ではない）。
@@ -15,6 +15,8 @@
       このリポジトリでの置き場の表を役割で短くした（内訳の正は .githooks/README.md）。
       カバレッジは II を参照する形にした
     - IV. シンプルさとYAGNI: 未使用コードの検出は III を参照する形にした
+    - 3.1.1: I と II から Python の CLI と pytest の閾値の記述を消し、`cli-node/` を `cli/` に直した
+      （pecot-workflow の CLI は TS に移ったため。規範は変えない）
   Added sections: II の「定義書とテストのつなぎ」、I の「強制の扱い」「リンターで強制するもの」「PR レビューで確かめるもの」
   Removed sections: なし
   Templates requiring updates:
@@ -49,17 +51,14 @@
   強制の手段が揃っているかどうかは規範の強さを変えない。
   守っているかは、リンターで強制するものと、PR レビューで確かめるものに分けて運用する。
 - **リンターで強制するもの**: 違反は CI で検出できなければならない。
-  - TS の CLI（pecot-tools・pecot-visual の `cli/`、pecot-workflow の `cli-node/`、
+  - TS の CLI（pecot-tools・pecot-visual の `cli/`、pecot-workflow の `cli/`、
     `libs/interface-spec`）は、各 `eslint.config.js` の `import-x/no-restricted-paths` が
     層の向きを止める。
-  - pecot-workflow の `cli-node/` は、`eslint.config.js` が `src/domain/` からの
+  - pecot-workflow の `cli/` は、`eslint.config.js` が `src/domain/` からの
     I/O の import（`node:fs`・`node:child_process` など）と `fetch`・`process` を止める。
-  - Python の CLI（pecot-workflow の `cli/`）は、ruff の T20（print）と
-    TID251 の banned-api が、`Output` を経ない直接の出力を止める。
 - **PR レビューで確かめるもの（SHOULD）**: 次はリンターの強制が無いので、
   PR レビューで違反が無いか確かめるべきである。
   - 循環 import（`no-cycle` はどのプロジェクトにも無い）
-  - Python の CLI の層の向きと、Python の domain からの I/O
   - pecot-tools・pecot-visual の `cli/` と `libs/interface-spec` の domain からの I/O
 
 **根拠**: ドメイン中心の構造はビジネス要件の変化に強く、
@@ -81,10 +80,8 @@
   目的に応じて使い分ける。DDDのレイヤー境界ごとにテスト戦略を定める。
 - **カバレッジの閾値**: カバレッジの値はここだけが持ち、下回ると失敗させる（MUST）。
   - TS の vitest は lines・branches・functions・statements を 90% 以上とする
-    （pecot-workflow の `cli-node/` の lines は、移行前の baseline と 90 の大きい方）。
+    （pecot-workflow の `cli/` の lines は、移行前の baseline と 90 の大きい方）。
     値の正は各 `vitest.config.ts` の `thresholds`。
-  - pecot-workflow の pytest は 80% とする。
-    値の正は `pyproject.toml` の `fail_under` と、`scripts/ci/run-tests.sh` の `--cov-fail-under`。
   - pecot-visual の slidev の補助スクリプトは c8 で測る。
     値の正は `plugins/pecot-visual/assets/slidev/.c8rc.json`。
 
@@ -234,4 +231,4 @@ AIエージェントは成果物の体裁整理や小さな改善よりも、
 - **スコープ**: この憲法は、このリポジトリ（`pecotcraft/pecot`）の speckit 成果物
   （`specs/`・`.specify/`）と実装に適用する。
 
-**Version**: 3.1.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-11
+**Version**: 3.1.1 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-13
