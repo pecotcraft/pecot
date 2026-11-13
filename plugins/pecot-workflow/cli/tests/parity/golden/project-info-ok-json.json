@@ -29,6 +29,7 @@
         "owner": "acme",
         "repo": "demo",
         "number": 1,
+        "blockedByFirst": 50,
         "columnFieldName": "pecot-workflow-acme",
         "labelFieldName": "Status"
       },
@@ -41,6 +42,7 @@
         "owner": "acme",
         "repo": "demo",
         "number": 2,
+        "blockedByFirst": 50,
         "columnFieldName": "pecot-workflow-acme",
         "labelFieldName": "Status"
       },

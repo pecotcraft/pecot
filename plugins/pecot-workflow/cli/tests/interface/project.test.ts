@@ -94,13 +94,32 @@ const linkRules = (): ResponseRule[] => [
 
 const unresolvedRepository = (): ResponseRule => ({ match: { operation: 'GetRepositoryId' }, respond: { status: 200, body: { errors: [{ type: 'NOT_FOUND', message: 'Could not resolve to a Repository with the name acme/other.' }] } }, times: 1 })
 
-function item(id: string, number: number, workflow: string, extra: { state?: string, updatedAt?: string, repo?: string } = {}): Json {
+// 一覧の応答に載る、着手の判定の軽い入力
+interface ListProgress {
+  readonly blockedBy: number
+  readonly branches?: number
+  readonly closing?: number
+  readonly issueType?: string
+}
+
+function progressFields(progress: ListProgress): Json {
+  return {
+    issueType: progress.issueType === undefined ? null : { name: progress.issueType },
+    subIssues: { totalCount: 0 },
+    parent: null,
+    issueDependenciesSummary: { totalBlockedBy: progress.blockedBy },
+    linkedBranches: { totalCount: progress.branches ?? 0 },
+    closedByPullRequestsReferences: { totalCount: progress.closing ?? 0 },
+  }
+}
+
+function item(id: string, number: number, workflow: string, extra: { state?: string, updatedAt?: string, repo?: string, progress?: ListProgress } = {}): Json {
   const { state = 'OPEN', updatedAt = '2026-01-02T03:04:05Z', repo: repository = 'demo' } = extra
   return {
     id,
     updatedAt,
     fieldValues: { nodes: [{ field: { name: 'pecot-workflow-acme' }, name: workflow }] },
-    content: { id: `I_${String(number)}`, number, title: `課題${String(number)}`, state, url: `https://${DEFAULT_HOST}/acme/${repository}/issues/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository } },
+    content: { id: `I_${String(number)}`, number, title: `課題${String(number)}`, state, url: `https://${DEFAULT_HOST}/acme/${repository}/issues/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...extra.progress !== undefined && progressFields(extra.progress) },
   }
 }
 
@@ -740,6 +759,41 @@ describe('project info', () => {
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
     })
 
+    it('一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する', async (context) => {
+      await verifies(context, 'PW-PROJECT-INFO-30')
+      const result = await info([
+        board(item('PVTI_4', 4, 'Blocked', { progress: { blockedBy: 0 } }), item('PVTI_2', 2, 'Active', { progress: { blockedBy: 0 } }), item('PVTI_3', 3, 'Active', { progress: { blockedBy: 0, branches: 1 } })),
+        write('PVTI_4', 'o3'),
+        write('PVTI_2', 'o3'),
+      ])
+      expectClean(result)
+      expect(result.stderr).toBe('moved: #4 Blocked -> Ready (startable)\nmoved: #2 Active -> Ready (startable)\n')
+      expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
+      expect(result.stdout).toContain('### Active (1)')
+    })
+
+    it('一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INFO-30')
+      const result = await info([board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0, issueType: 'Epic' } }))], boardConfig(), '--json')
+      expectClean(result)
+      expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
+      expect(boardItems(result)).toMatchObject([{ readiness: null }])
+    })
+
+    it('一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む', async (context) => {
+      await verifies(context, 'PW-PROJECT-INFO-31')
+      const result = await info([
+        board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } })),
+        prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
+        prerequisitesRule({ number: 6, blockedBy: [notStarted] }),
+        write('PVTI_1', 'ob'),
+        write('PVTI_6', 'ob'),
+      ])
+      expectClean(result)
+      expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1, 6])
+      expect(variableValues(result, 'GetIssuePrerequisites', 'blockedByFirst')).toEqual([1, 50])
+    })
+
     it('読み取りに失敗した Issue は unknown と出し、列を動かさない', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-18')
       const result = await info([board(item('PVTI_1', 1, 'Ready')), failedRead()])
@@ -831,6 +885,18 @@ describe('project info', () => {
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted and no column is moved\n')
       expect(result.stdout).toContain('### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 課題1 |')
+    })
+
+    it('一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、判定を出さない', async (context) => {
+      await verifies(context, 'PW-PROJECT-INFO-25')
+      const rejected: ResponseRule = { match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'issueDependenciesSummary\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      const legacy = graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })
+      const result = await info([rejected, legacy])
+      expectClean(result)
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted and no column is moved\n')
+      expect(result.stdout).toContain('### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 課題1 |')
+      expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
     })
 
     describe('積める並び', () => {

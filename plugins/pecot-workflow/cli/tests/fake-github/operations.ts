@@ -6,6 +6,8 @@ import { parseOperation } from './identify.js'
 const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['node.items{nodes,pageInfo}|cursor,projectId', 'ListProjectItems'],
   ['node.items{nodes,pageInfo}|cursor,filterQuery,projectId', 'ListProjectItemsFiltered'],
+  // 構造は ListProjectItems と同じなので、query に書いた名前で引く。識別子は重ならない印を付ける
+  ['node.items{nodes,pageInfo}|cursor,projectId#named', 'ListProjectItemsLegacy'],
   ['repository.issue{id,title}|number,owner,repo', 'GetIssueNodeId'],
   ['user.projectV2.repositories.nodes{owner,name}|owner,projectNumber', 'GetLinkedRepositoriesUser'],
   ['organization.projectV2.repositories.nodes{owner,name}|owner,projectNumber', 'GetLinkedRepositoriesOrg'],
@@ -37,7 +39,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],
   ['addBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'AddBlockedBy'],
   ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
-  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,parent,blockedBy}|columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
+  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,parent,blockedBy}|blockedByFirst,columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
   ['repository.pullRequests{pageInfo,nodes}|headRefName,owner,repo', 'ListPullRequestsByHead'],
 ]
 

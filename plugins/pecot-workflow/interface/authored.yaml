@@ -2137,6 +2137,12 @@ entries:
       - id: PW-PROJECT-INFO-29
         pattern: event
         statement: 前提を持つ Issue の見直しが要らなくなると、Needs Attention の札を Todo に戻す
+      - id: PW-PROJECT-INFO-30
+        pattern: event
+        statement: 一覧で前提が 0 件の Issue があると、前提を個別に読まず、一覧の値で判定する
+      - id: PW-PROJECT-INFO-31
+        pattern: event
+        statement: 一覧で前提が 1 件以上の Issue があると、その件数（最大 50）で前提を読む
   PW-PROJECT-INIT:
     constraints: []
     details:

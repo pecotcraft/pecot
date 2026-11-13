@@ -458,7 +458,7 @@ function target(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Rec
   return { ...prerequisiteIssue(10), body: '本文', parent: JSON_NULL, blockedBy: { totalCount: 0, nodes: [] }, ...overrides }
 }
 
-const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, columnFieldName: FIELDS.columnFieldName, labelFieldName: FIELDS.labelFieldName }
+const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, columnFieldName: FIELDS.columnFieldName, labelFieldName: FIELDS.labelFieldName, blockedByFirst: 50 }
 
 const blockedByCases: readonly Readonly<{ method: 'addBlockedBy' | 'removeBlockedBy', operation: string }>[] = [
   { method: 'addBlockedBy', operation: 'AddBlockedBy' },
@@ -586,6 +586,14 @@ describe('getIssuePrerequisites', () => {
         timelinePullRequests: [],
       }],
     })
+  })
+
+  it('blockedBy の件数を渡すと、その件数で読む', async () => {
+    const { client, server } = await startClient([
+      graphqlData('GetIssuePrerequisites', { repository: { issue: target({ blockedBy: { totalCount: 0, nodes: [] } }) } }),
+    ])
+    await client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS, 3)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssuePrerequisites', variables: { ...prerequisitesVariables, blockedByFirst: 3 } }])
   })
 
   it('PR を 3 つの読み口から読む', async () => {

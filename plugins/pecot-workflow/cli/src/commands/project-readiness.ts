@@ -4,12 +4,13 @@ import { decideBoardMove } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
-import type { BoardItem, StackableChain } from '../domain/format.js'
+import type { BoardItem, BoardProgress, StackableChain } from '../domain/format.js'
+import { isEpicIssue } from '../domain/issue-kind.js'
 import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { compareStrings } from '../domain/python-format.js'
 import { cycleThrough, describeReadiness, describeUnknown, hasStarted, progressionsFromReadiness, stackChains, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
-import type { Readiness } from '../domain/readiness.js'
+import type { IssueFacts, Readiness } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, splitOwnerRepository } from '../domain/repository-resolver.js'
@@ -17,7 +18,7 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { applyBoardMove, issueLabel } from './issue-board.js'
-import { createReadinessCache, judgeSnapshot, prerequisiteKeys, readinessJson, readIssueSnapshot } from './issue-readiness.js'
+import { createReadinessCache, judgeSnapshot, prerequisiteKeys, readinessJson, readIssueSnapshot, snapshotWithoutPrerequisites } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot } from './issue-readiness.js'
 import type { Output } from './output.js'
 import { mapWithLimit } from './project-info.js'
@@ -26,6 +27,11 @@ import { mapWithLimit } from './project-info.js'
 前提の読み取りを並列に行う数の上限
 */
 const READINESS_MAX_WORKERS = 8
+
+/**
+前提を 1 回で読む件数の上限
+*/
+const MAX_BLOCKED_BY = 50
 
 const JUDGED_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
 
@@ -61,6 +67,32 @@ function toTarget(item: BoardItem): Target | undefined {
   return url.includes('/pull/') || title.startsWith(TRACKER_TITLE_PREFIX) || item.workflow === null || item.workflow === undefined || !JUDGED_STATUSES.has(item.workflow) ? undefined : { item, key, ref: createIssueReference(createRepositoryReference(split.owner, split.repository), number) }
 }
 
+// 前提の無い Issue を、一覧の値だけで判定の入力にする。前提の件数か着手の跡の件数が一覧に無ければ undefined
+function localSnapshot(config: ProjectConfig, target: Target, progress: BoardProgress | undefined): IssueSnapshot | undefined {
+  if (progress?.blockedBy !== 0 || progress.hasTrace === undefined) return undefined
+  const split = splitOwnerRepository(progress.parent?.repository ?? '')
+  const parent = split === undefined || progress.parent === undefined ? undefined : createIssueReference(createRepositoryReference(split.owner, split.repository), progress.parent.number)
+  const isEpic = isEpicIssue({ issue_type: progress.issueType, sub_issues_total: progress.subIssues })
+  return snapshotWithoutPrerequisites(config, {
+    title: typeof target.item.title === 'string' ? target.item.title : '',
+    parent,
+    target: {
+      ref: target.ref,
+      state: 'open',
+      column: target.item.workflow ?? undefined,
+      label: progress.label,
+      kind: isEpic ? 'epic' : 'task',
+      branches: [],
+      pullRequests: [],
+    },
+  })
+}
+
+// 一覧の値だけで判定した Issue の着手の跡は、件数から決める。facts は PR とブランチを持たない
+function isStarted(facts: IssueFacts, progress: BoardProgress | undefined): boolean {
+  return progress?.blockedBy === 0 && progress.hasTrace !== undefined ? progress.hasTrace : hasStarted(facts)
+}
+
 function homeOf(config: ProjectConfig, repository = ''): RepositoryReference | undefined {
   const split = splitOwnerRepository(repository)
   if (split !== undefined) return split
@@ -85,10 +117,18 @@ function missingWarning(missing: ReadonlySet<string>): string {
 }
 
 /**
+判定を読まずに、依存関係に対応しない GHES と同じ扱いにする。warning を 1 回出し、列は動かさない
+*/
+export function skipBoardReadiness(out: Readonly<Output>, items: readonly BoardItem[]): BoardReadiness {
+  unsupportedWarning(out)
+  return { items, texts: undefined, json: undefined, chains: [] }
+}
+
+/**
 Ready・Blocked・Active・In Review の Issue の前提を読み、判定に合わせて列と札を直す。
 items は表示するアイテム（--repo で絞った後）。書き込みの失敗は warning にして続ける
 */
-export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined): Promise<BoardReadiness> {
+export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined, progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
   type Snapshot = IssueSnapshot | Extract<IssueReadiness, { kind: 'unreadable' }>
   const plain: BoardReadiness = { items, texts: undefined, json: undefined, chains: [] }
   const targets = items.flatMap(item => toTarget(item) ?? [])
@@ -98,8 +138,11 @@ export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubC
   const state = { isUnsupported: false }
   const snapshots = await mapWithLimit(targets, READINESS_MAX_WORKERS, async (target): Promise<Snapshot | undefined> => {
     if (state.isUnsupported) return undefined
+    const known = progress.get(target.key)
+    const local = localSnapshot(config, target, known)
+    if (local !== undefined) return local
     try {
-      return await readIssueSnapshot(client, config, target.ref)
+      return await readIssueSnapshot(client, config, target.ref, known?.blockedBy === undefined ? undefined : Math.min(Math.max(known.blockedBy, 1), MAX_BLOCKED_BY))
     }
     catch (error: unknown) {
       if (!(error instanceof DependenciesUnsupportedError)) throw error
@@ -164,7 +207,7 @@ export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubC
       eligible: true,
       column: target.item.workflow ?? undefined,
       label: result.target.label,
-      hasStarted: hasStarted(result.target),
+      hasStarted: isStarted(result.target, progress.get(target.key)),
       hasPrerequisites: result.prerequisites.length > 0,
       readiness,
       labelWrittenByAutomation: false,

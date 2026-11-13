@@ -7,7 +7,7 @@ import type { IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueRead
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { GraphqlOutcome } from './client.js'
-import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError } from './errors.js'
+import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_BLOCKED_BY,
@@ -90,19 +90,17 @@ export interface IssueSlim {
 }
 
 const DEFAULT_COMMENT_LIMIT = 5
-const SCHEMA_ERROR_PHRASES = ['Cannot query field', 'doesn\'t exist', 'Unknown field']
 
 // issueType フィールドに対応しない GHES が返すスキーマの失敗
 function isIssueTypeSchemaError(error: unknown): boolean {
-  return error instanceof GitHubAPIError && error.message.includes('issueType') && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
+  return isSchemaError(error) && error.message.includes('issueType')
 }
 
 const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
 
 // blockedBy・addBlockedBy・removeBlockedBy・issueType に対応しない GHES（3.19 より前）が返すスキーマの失敗なら、分かる失敗に替える
 function asDependenciesError(error: unknown): unknown {
-  const isSchemaError = error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
-  return isSchemaError && /blockedBy|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
+  return isSchemaError(error) && /blockedBy|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
 }
 
 // 部分エラーのうち、対象の Issue の blockedBy の下のもの
@@ -269,12 +267,12 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
-  Issue と、その前提（blockedBy 先頭 50 件）を 1 回のクエリで読む。ボードの値は projectId のものだけ。
+  Issue と、その前提（blockedBy 先頭 blockedByFirst 件）を 1 回のクエリで読む。ボードの値は projectId のものだけ。
   blockedBy の部分エラーと、件数の上限による取りこぼしは、例外にせず blockedBy の read-failed で返す（呼ぶ側は判定の入力にする）。
   Issue の依存関係に対応しない GHES（3.19 より前）、blockedBy 以外の失敗は GitHubAPIError
   */
-  async getIssuePrerequisites(owner: string, repository: string, number: number, projectId: string, fieldNames: Readonly<PrerequisiteFieldNames>): Promise<IssuePrerequisitesReadout> {
-    const variables = { owner, repo: repository, number, columnFieldName: fieldNames.columnFieldName, labelFieldName: fieldNames.labelFieldName }
+  async getIssuePrerequisites(owner: string, repository: string, number: number, projectId: string, fieldNames: Readonly<PrerequisiteFieldNames>, blockedByFirst = 50): Promise<IssuePrerequisitesReadout> {
+    const variables = { owner, repo: repository, number, columnFieldName: fieldNames.columnFieldName, labelFieldName: fieldNames.labelFieldName, blockedByFirst }
     let outcome: GraphqlOutcome
     try {
       outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath)

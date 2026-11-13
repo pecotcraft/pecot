@@ -64,3 +64,12 @@ export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolea
 export function isClosedByAnotherRequest(error: Readonly<GitHubAPIError>): boolean {
   return error.statusCode === 422 && error.responseBody?.includes('closed by another request') === true
 }
+
+const SCHEMA_ERROR_PHRASES = ['Cannot query field', 'doesn\'t exist', 'Unknown field']
+
+/**
+古い GHES が、対応しないフィールドに返すスキーマの失敗か
+*/
+export function isSchemaError(error: unknown): error is GitHubAPIError {
+  return error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
+}

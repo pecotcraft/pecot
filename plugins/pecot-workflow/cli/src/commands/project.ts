@@ -27,7 +27,7 @@ import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { applyBoardReadiness, readinessOf } from './project-readiness.js'
+import { applyBoardReadiness, readinessOf, skipBoardReadiness } from './project-readiness.js'
 import { collectAlertStatuses, infoJson, infoMarkdown, pruneArchivedItems, readBoard } from './project-info.js'
 import type { OptionSpec } from './project-sync.js'
 import {
@@ -489,11 +489,11 @@ const infoCommand = defineCommand({
     const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
     try {
       const client = createGitHubClient(out, config.host)
-      const { allItems, items } = await readBoard(client, config, input.repo)
+      const { allItems, items, progress, isLegacy } = await readBoard(client, config, input.repo)
       const statuses = await collectAlertStatuses(client, config)
       await pruneArchivedItems(out, client, config, allItems)
       const view = { config, projectName, statuses }
-      const readiness = await applyBoardReadiness(out, client, config, items, input.repo)
+      const readiness = isLegacy ? skipBoardReadiness(out, items) : await applyBoardReadiness(out, client, config, items, input.repo, progress)
       const json = readiness.json === undefined ? undefined : (item: BoardItem) => readinessOf(readiness, item)
       out.data(input.json
         ? infoJson(view, readiness.items, json)

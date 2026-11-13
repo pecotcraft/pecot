@@ -86,14 +86,14 @@ function titlesOf(readout: IssuePrerequisitesReadout): ReadonlyMap<string, strin
 対象の Issue と前提を読む。API の失敗と blockedBy の読み取りの失敗は、読めない理由で返す。
 DependenciesUnsupportedError は GitHubAPIError だが、対応しない GHES を呼ぶ側で見分けるため、そのまま投げる
 */
-export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference): Promise<IssueSnapshot | UnreadableIssue> {
+export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, blockedByFirst?: number): Promise<IssueSnapshot | UnreadableIssue> {
   const { owner, repository } = reference.repository
   let readout: IssuePrerequisitesReadout
   try {
     readout = await client.getIssuePrerequisites(owner, repository, reference.number, config.project.id, {
       columnFieldName: workflowFieldName(config),
       labelFieldName: STATUS_FIELD_NAME,
-    })
+    }, blockedByFirst)
   }
   catch (error: unknown) {
     if (error instanceof GitHubAPIError && !(error instanceof DependenciesUnsupportedError)) return unreadable(error.message)
@@ -116,6 +116,25 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
     malformedReason: section.kind === 'malformed' ? section.reason : undefined,
     parent: parent === null ? undefined : { repository: parent.repository, number: parent.number },
     developmentBranch: findRepository(config, owner, repository)?.develop_branch,
+  }
+}
+
+/**
+前提の無い Issue の読み取り結果。一覧の値から作るので、API は呼ばない
+*/
+export function snapshotWithoutPrerequisites(config: ProjectConfig, input: { readonly title: string, readonly target: IssueFacts, readonly parent: IssueReference | undefined }): IssueSnapshot {
+  const { repository } = input.target.ref
+  return {
+    kind: 'snapshot',
+    ref: input.target.ref,
+    title: input.title,
+    target: input.target,
+    prerequisites: [],
+    titles: new Map(),
+    mismatches: [],
+    malformedReason: undefined,
+    parent: input.parent,
+    developmentBranch: findRepository(config, repository.owner, repository.repository)?.develop_branch,
   }
 }
 

@@ -29,6 +29,93 @@ export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String
               title
               state
               url
+              issueType {
+                name
+              }
+              subIssues(first: 1) {
+                totalCount
+              }
+              parent {
+                number
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+              issueDependenciesSummary {
+                totalBlockedBy
+              }
+              linkedBranches(first: 1) {
+                totalCount
+              }
+              closedByPullRequestsReferences(first: 1, includeClosedPrs: true) {
+                totalCount
+              }
+              labels(first: 10) {
+                nodes {
+                  name
+                }
+              }
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
+            }
+            ... on PullRequest {
+              id
+              number
+              title
+              state
+              url
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+}`
+
+// 上の一覧から、Issue の依存関係に対応しない GHES で通らないフィールドを除いたもの
+export const QUERY_LIST_PROJECT_ITEMS_LEGACY = `query ListProjectItemsLegacy($projectId: ID!, $cursor: String) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      items(first: 100, after: $cursor) {
+        nodes {
+          id
+          updatedAt
+          fieldValues(first: 10) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    name
+                  }
+                }
+                name
+              }
+            }
+          }
+          content {
+            ... on Issue {
+              id
+              number
+              title
+              state
+              url
               labels(first: 10) {
                 nodes {
                   name
@@ -877,7 +964,7 @@ const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV
 }`
 
 // Issue と、その前提（blockedBy）を 1 回で読む。PR は 3 つの読み口から集める
-export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $columnFieldName: String!, $labelFieldName: String!) {
+export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $columnFieldName: String!, $labelFieldName: String!, $blockedByFirst: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       ...PrerequisiteIssueFields
@@ -891,7 +978,7 @@ export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: Str
           name
         }
       }
-      blockedBy(first: 50) {
+      blockedBy(first: $blockedByFirst) {
         totalCount
         nodes {
           ...PrerequisiteIssueFields

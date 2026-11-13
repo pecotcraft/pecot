@@ -44,6 +44,30 @@ export interface BoardItem {
   }
 }
 
+/**
+一覧の応答から読む、着手の判定の軽い入力。JSON の出力には出さない
+*/
+export interface BoardProgress {
+  readonly issueType: string | undefined
+  readonly subIssues: number
+  /**
+  親の Issue。無ければ undefined
+  */
+  readonly parent: { readonly repository: string, readonly number: number } | undefined
+  /**
+  前提の件数。応答に無ければ undefined
+  */
+  readonly blockedBy: number | undefined
+  /**
+  Status の値（札）
+  */
+  readonly label: string | undefined
+  /**
+  リンクしたブランチか、閉じる参照の PR があるか。応答に件数が無ければ undefined
+  */
+  readonly hasTrace: boolean | undefined
+}
+
 // 辞書の値を取る（辞書でなければ undefined）。null は無いものとして扱う
 function member(value: JsonValue | undefined, key: string): JsonValue | undefined {
   return jsonField(value, key) ?? undefined
@@ -137,6 +161,44 @@ export function transformItems(rawItems: readonly JsonObject[], workflowFieldNam
     })
   }
   return transformed
+}
+
+function countMember(value: JsonValue | undefined, key: string): number | undefined {
+  const found = member(member(value, key), 'totalCount')
+  return typeof found === 'number' ? found : undefined
+}
+
+function parentOf(content: JsonValue | undefined): BoardProgress['parent'] {
+  const parent = member(content, 'parent')
+  const repository = extractRepository(parent)
+  const number = member(parent, 'number')
+  return repository === '' || typeof number !== 'number' ? undefined : { repository, number }
+}
+
+/**
+一覧の応答から、Issue ごとの着手の判定の入力を取る。キーは boardItemKey と同じ。Issue 以外と、番号の無いものは含めない
+*/
+export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldName: string): ReadonlyMap<string, BoardProgress> {
+  const progress = new Map<string, BoardProgress>()
+  for (const item of rawItems) {
+    const content = member(item, 'content')
+    if (isEmptyValue(content) || member(content, 'issueDependenciesSummary') === undefined) continue
+    const key = boardItemKey({ content: { number: member(content, 'number'), repository: extractRepository(content) } })
+    if (key === undefined) continue
+    const branches = countMember(content, 'linkedBranches')
+    const closing = countMember(content, 'closedByPullRequestsReferences')
+    const issueType = member(member(content, 'issueType'), 'name')
+    const blockedBy = member(member(content, 'issueDependenciesSummary'), 'totalBlockedBy')
+    progress.set(key, {
+      issueType: typeof issueType === 'string' ? issueType : undefined,
+      subIssues: countMember(content, 'subIssues') ?? 0,
+      parent: parentOf(content),
+      blockedBy: typeof blockedBy === 'number' ? blockedBy : undefined,
+      label: extractWorkflowStatus(item, labelFieldName),
+      hasTrace: branches === undefined || closing === undefined ? undefined : branches + closing > 0,
+    })
+  }
+  return progress
 }
 
 /**
