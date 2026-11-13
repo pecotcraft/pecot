@@ -522,7 +522,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 }
 
 # tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している（cli/tests/bootstrap/run.sh と同値）。
-EXPECTED_TOOL_COUNT=34
+EXPECTED_TOOL_COUNT=35
 EXPECTED_FIRST_TOOL="add_to_project"
 
 # smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
@@ -670,6 +670,11 @@ node "$DIST/bin/pecot-workflow-mcp.mjs" --version > "$TMP/version.out" 2> "$TMP/
 assert_eq "--version が exit 0 で終わる" "0" "$VERSION_RC"
 assert_eq "--version が配布ツリーの plugin.json の版を返す" "pecot version $PLUGIN_VERSION" \
     "$(tr -d '\n' < "$TMP/version.out")"
+
+# 配布物の bin に引数を渡すと CLI として動く。GitHub Actions のワークフローは、この形で board sync を打つ。
+BOARD_HELP_RC=0
+node "$DIST/bin/pecot-workflow-mcp.mjs" board sync --help > "$TMP/board-help.out" 2> "$TMP/board-help.err" || BOARD_HELP_RC=$?
+assert_eq "board sync --help が exit 0 で終わる" "0" "$BOARD_HELP_RC"
 
 # smoke 用に張った symlink は配布ツリーの一部ではない。以降の publish は $DIST を使わないが、
 # 消し残すと、「配布物に node_modules が無い」の判定が smoke の副作用に依存してしまう。

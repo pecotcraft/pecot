@@ -4,6 +4,12 @@
 
 引数と詳しい振る舞いは `pecot <コマンド> --help` で確かめてください。
 
+## board
+
+| コマンド | 説明 |
+| --- | --- |
+| `board sync` | Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for |
+
 ## dependabot
 
 | コマンド | 説明 |

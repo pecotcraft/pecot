@@ -111,6 +111,7 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `release_merge` | リリースの PR を通常のマージで取り込む |
 | `security_sync` | 開いている Tracker のセキュリティアラートの一覧を書き直す |
 | `dependabot_sync` | 開いている Tracker の Dependabot PR の一覧を書き直す |
+| `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`dry_run`・`project` を取る） |
 | `worktree_add` | worktree を作る |
 | `worktree_remove` | worktree を削除する |
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |

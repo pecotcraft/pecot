@@ -79,6 +79,19 @@ export function loadActiveConfig(): ProjectConfig | undefined {
 }
 
 /**
+projects/ にある設定の名前（拡張子 .json を除く。名前順）。ディレクトリが無ければ空
+*/
+export function listProjectConfigNames(): readonly string[] {
+  try {
+    return readdirSync(projectsDirectory()).filter(name => name.endsWith('.json')).map(name => name.slice(0, -'.json'.length)).toSorted(compareStrings)
+  }
+  catch (error: unknown) {
+    if (isFileNotFound(error)) return []
+    throw error
+  }
+}
+
+/**
 アクティブ設定を設定する。.active には .active のあるディレクトリ基準の相対パスを書く。ファイルが無ければ ConfigError
 */
 export function setActiveConfig(file: string): void {

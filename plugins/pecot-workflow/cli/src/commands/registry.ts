@@ -1,6 +1,7 @@
 // コマンド定義の一覧。CLI と MCP の両方がこの一覧から作られる。
 // 各コマンドは defineCommand() で定義して COMMANDS に足す。定義の型と defineCommand は command-definition.ts にあり、ここから再公開する。
 import type { CommandDefinition } from './command-definition.js'
+import { BOARD_COMMANDS } from './board.js'
 import { DEPENDABOT_COMMANDS } from './dependabot.js'
 import { ISSUE_BOARD_COMMANDS, ISSUE_COMMANDS } from './issue.js'
 import { PR_COMMANDS } from './pr.js'
@@ -25,6 +26,7 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...RELEASE_COMMANDS,
   ...SECURITY_COMMANDS,
   ...DEPENDABOT_COMMANDS,
+  ...BOARD_COMMANDS,
   ...WORKTREE_COMMANDS,
 ]
 

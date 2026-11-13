@@ -11,22 +11,19 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, repositoryFullName } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
 import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
-import { createReadinessCache, judgeSnapshot, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
+import { blockedByReadCount, createReadinessCache, judgeSnapshot, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
 import type { IssueSnapshot, JudgedIssue } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 
 const MAX_COMMENT_LIMIT = 20
 const DEFAULT_COMMENT_LIMIT = 5
-// 一覧の件数を読んだ後に前提が足されても読み切れるよう、前提の読み取りの件数の下限を持つ
-const MIN_BLOCKED_BY_READ = 8
 
 function parentLine(issue: IssueSlim, owner: string, repository: string): string | undefined {
   const { parent } = issue
@@ -139,7 +136,7 @@ async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, c
   try {
     const result = issue.blockedByCount === 0
       ? await readWithoutPrerequisites(client, config, issue, reference)
-      : await readIssueReadiness(client, config, reference, createReadinessCache(), undefined, issue.blockedByCount === undefined ? undefined : Math.min(Math.max(issue.blockedByCount, MIN_BLOCKED_BY_READ), MAX_BLOCKED_BY))
+      : await readIssueReadiness(client, config, reference, createReadinessCache(), undefined, blockedByReadCount(issue.blockedByCount))
     if (result.kind === 'unreadable') {
       const { snapshot } = result
       if (snapshot === undefined) {

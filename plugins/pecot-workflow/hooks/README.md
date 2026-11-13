@@ -70,7 +70,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下7つのコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_quick` / `issue_create` の使用を強制する | コアガード | `true` |
-| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（34 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
+| `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（35 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
 | `pecot-pr-create-ask` | MCP ツールの `pr_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `pecot-issue-create-ask` | MCP ツールの `issue_create` / `issue_quick`（実投稿）を検出しユーザー承認（ask）を要求。`issue_create` の `prepare: true` は素通し（`issue_quick` に `prepare` は無く、素通しにしない）。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグの免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは MCP ツールの `pr_cleanup`） | コアガード（external-post-check） | `true` |
@@ -130,7 +130,7 @@ ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `exit-plan-remind` | ExitPlanMode後に案内を返す。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode) | `true` |
+| `exit-plan-remind` | ExitPlanMode後に案内を返す（Copilot では `exit_plan_mode` で届く）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode。Copilot は exit_plan_mode) | `true` |
 
 ### セッション管理
 
@@ -204,6 +204,7 @@ MCPツールやdraw.io等の外部ツールとの連携。
 ただし、Notification イベントと WebSearch の配線を持たない。
 SessionStart は matcher なし、Stop は `stop-copilot.sh` を指す。
 Skill の matcher は `Skill|skill`、MCP の matcher は `mcp__.*|github-mcp-server-create_pull_request` 。
+ExitPlanMode の matcher は `ExitPlanMode|exit_plan_mode`。
 各エントリの `timeout`（秒）は SessionStart 120、PreToolUse 10、PostToolUse は Bash 30・ExitPlanMode 90・その他 10 になる。
 UserPromptSubmit / Notification / Stop は 10。
 pecot-visual の PostToolUse（Write / Edit）は 80 で、中の lint の打ち切り 10 + 30 + 30 秒より長くする。
@@ -332,6 +333,7 @@ Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification
 | 両方 | Read | pecot の PreToolUse は起動しない | 変更前と同じ | — | 2026-10-25 |
 | 両方 | MCP（pecot-v / pecot-t、#1258 のキー改名後） | — | Claude は `mcp__plugin_pecot-v_pecot-visual__drawio_create`、Copilot は `pecot-visual-drawio_create` / `pecot-tools-aws_lambda_list_event_source_mappings`（キーがそのまま前置きになる） | ツールが呼ばれ、cli はそれぞれのクライアントのデータ置き場から起動する | 2026-10-26 |
 | Copilot 1.0.103 | スキル w-help / v-drawio | pecot-w / pecot-v の Skill 系エントリが起動 | `tool_name: "skill"`、名前空間なし | pecot-w のスキル準拠の案内が届く。他のプラグインのスキルには応答しない | 2026-10-25 |
+| Copilot 1.0.110 | プランの承認（`-p --plan --mode autopilot`） | PostToolUse: `post-tool-use-exit-plan-mode.sh`（matcher `ExitPlanMode\|exit_plan_mode`） | `tool_name: "exit_plan_mode"`（Claude の `ExitPlanMode` に置き換わらず、そのまま届く）、`tool_result.result_type: "success"` | `hook.end` の `output.additionalContext` に、計画の打ち直しと実装の引き継ぎの案内が入る（#403） | 2026-11-13 |
 | 両方 | `gh pr merge 999999` | Pre: `pre-tool-use-bash.sh` | snake_case | `permissionDecision: "ask"` と理由。`-p` と Copilot の autopilot ではクライアントが拒否し、実行なし | 2026-10-25 |
 | 両方 | `git commit --no-verify` | Pre: `pre-tool-use-bash.sh` | snake_case | `hookSpecificOutput.permissionDecision: "deny"` で拒否、理由が tool_result に届く | 2026-10-25 |
 | 両方 | `git commit -m` / `git -C <path> commit` | Post: `post-tool-use-bash.sh` | Claude は `tool_response.stdout`、Copilot は `tool_result.text_result_for_llm` | `note: commit complete`が 1 回届き、auto-push が wip を push する。`--show-toplevel` は Pre / Post 各 1 回 | 2026-10-25 |

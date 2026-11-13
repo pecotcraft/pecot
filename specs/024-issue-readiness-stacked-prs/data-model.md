@@ -225,7 +225,7 @@ Issue 化の前に、フェーズごとに出す見込み。Issue の状態を�
 | 前提の PR ができた | `pecot pr create` | その Issue を前提にしている Issue |
 | 前提の PR がマージされた | `pecot pr cleanup` | 同上 |
 | 前提と種類が変わった | `pecot issue block`・`unblock` | 待つ側の Issue |
-| 上のどれも通らなかった | GitHub Actions のワークフロー | Ready と Blocked にある Issue と、着手の跡が無い Active・In Review の Issue |
+| 上のどれも通らなかった | `pecot board sync`（手元か、任意のワークフロー） | Ready と Blocked にある Issue と、着手の跡が無い Active・In Review の Issue |
 
 ## 8. 積んだブランチの記録
 

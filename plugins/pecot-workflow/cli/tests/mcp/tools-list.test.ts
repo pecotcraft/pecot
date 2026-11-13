@@ -1,4 +1,4 @@
-// tools/list が、COMMANDS の 34 個と定義書の入力に一致し、入力の検証の誤りがコマンドを呼ばずに返ることを確かめる。
+// tools/list が、COMMANDS の 35 個と定義書の入力に一致し、入力の検証の誤りがコマンドを呼ばずに返ることを確かめる。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -39,10 +39,10 @@ afterEach(async () => {
 })
 
 describe('tools/list', () => {
-  it('COMMANDS と同じ 34 個の名前を、同じ並びで返す', async () => {
+  it('COMMANDS と同じ 35 個の名前を、同じ並びで返す', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools).toHaveLength(34)
+    expect(tools).toHaveLength(35)
     expect(tools.map(tool => tool.name)).toEqual(COMMANDS.map(command => command.toolName))
   })
 
