@@ -1,29 +1,43 @@
 format: 1
 plugin: pecot-tools
+prose: ja
 environment:
   - name: CLAUDE_PLUGIN_ROOT
-    effect: Locates the plugin directory from which the server reads the version it reports.
+    effect: 'プラグインのディレクトリです。サーバは、報告する版をここから読みます。'
   - name: AWS_PROFILE
-    effect: Selects the awscli profile when a tool call gives no profile; read by awscli.
+    effect: 'ツールの呼び出しが `profile` を渡さないときに使う、awscli のプロファイルです。awscli が読みます。'
   - name: AWS_REGION
-    effect: Selects the region when a tool call gives no region; read by awscli.
+    effect: 'ツールの呼び出しが `region` を渡さないときに使うリージョンです。awscli が読みます。'
   - name: AWS_DEFAULT_REGION
-    effect: Selects the region when neither a region input nor AWS_REGION is set; read by awscli.
+    effect: '`region` を渡さず、`AWS_REGION` も無いときに使うリージョンです。awscli が読みます。'
   - name: AWS_CONFIG_FILE
-    effect: Moves the awscli config file that holds the profiles; read by awscli.
+    effect: 'プロファイルを書いた awscli の設定ファイルの場所を変えます。awscli が読みます。'
   - name: AWS_SHARED_CREDENTIALS_FILE
-    effect: Moves the awscli credentials file; read by awscli.
+    effect: 'awscli の認証情報ファイルの場所を変えます。awscli が読みます。'
   - name: PATH
-    effect: Decides where the server looks for the awscli executable; a missing awscli yields awscli-missing.
+    effect: 'サーバが awscli の実行ファイルを探す場所です。awscli が無いと、`awscli-missing` の失敗になります。'
 entries:
   PT-AWS-ATHENA-GET-QUERY-EXECUTION:
+    summary: Athena のクエリの実行 1 件の状態と統計を返します。
+    arguments:
+      profile: AWS のプロファイルの名前です。
+      query_execution_id: '`aws_athena_start_query_execution` が返した ID です。'
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
     constraints: []
     details:
-      - Returns the state (QUEUED, RUNNING, SUCCEEDED, FAILED or CANCELLED) and statistics of one query execution.
+      - 'クエリの実行 1 件の状態（`QUEUED`・`RUNNING`・`SUCCEEDED`・`FAILED`・`CANCELLED` のどれか）と統計を返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -64,46 +78,63 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls athena get-query-execution.
+        what: '`athena get-query-execution` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_athena_get_query_execution {"query_execution_id": "11111111-2222-3333-4444-555555555555"}'
-        note: Check whether a query finished.
+        note: クエリが終わったかどうかを確かめます。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-ATHENA-GET-QUERY-EXECUTION-01
         pattern: event
-        statement: query_execution_id を渡して呼ぶと、awscli の athena get-query-execution を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`query_execution_id` を渡して呼ぶと、awscli の `athena get-query-execution` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
   PT-AWS-ATHENA-GET-QUERY-RESULTS:
+    summary: 終わった Athena のクエリの結果の行を返します。
+    arguments:
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      query_execution_id: '`aws_athena_start_query_execution` が返した ID です。'
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Returns the result rows of a completed query, one page per call.
+      - 終わったクエリの結果の行を、1 回の呼び出しで 1 ページずつ返します。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -144,54 +175,73 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls athena get-query-results.
+        what: '`athena get-query-results` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_athena_get_query_results {"query_execution_id": "11111111-2222-3333-4444-555555555555", "max_items": 100}'
-        note: Get the first 100 rows.
+        note: 最初の 100 行を取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-ATHENA-GET-QUERY-RESULTS-01
         pattern: event
-        statement: query_execution_id を渡して呼ぶと、awscli の athena get-query-results を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`query_execution_id` を渡して呼ぶと、awscli の `athena get-query-results` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-ATHENA-GET-QUERY-RESULTS-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-ATHENA-START-QUERY-EXECUTION:
+    summary: 参照専用の Athena のクエリを 1 つ始めます。
+    arguments:
+      catalog: 'データカタログの名前です。`database` と一緒に渡します。`catalog` だけでは渡せません。'
+      database: 既定のデータベースの名前です。
+      output_location: '結果の出力先です。`s3://` で始めます。'
+      profile: AWS のプロファイルの名前です。
+      query_string: '実行する参照専用のクエリです。`SELECT`・`WITH`・`SHOW`・`DESCRIBE`・`EXPLAIN` のどれかで始まる文を 1 つだけ渡します。全体を括弧で囲みません。'
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      work_group: ワークグループの名前です。
     constraints:
       - requires:
           catalog:
             - database
     details:
-      - Starts one read-only Athena query (SELECT, WITH, SHOW, DESCRIBE or EXPLAIN) and returns its query execution ID.
-      - Queries that change data and inputs with several statements are rejected before awscli runs.
-      - Completion is checked with aws_athena_get_query_execution.
+      - '参照専用の Athena のクエリ（`SELECT`・`WITH`・`SHOW`・`DESCRIBE`・`EXPLAIN`）を 1 つ始め、クエリ実行 ID を返します。'
+      - データを変えるクエリと、複数の文を含む入力は、awscli を動かす前に拒否します。
+      - '終わったかどうかは、`aws_athena_get_query_execution` で確かめます。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -232,66 +282,89 @@ entries:
     environment: []
     exit_status:
       - kind: not-allowed
-        when: The input asks for an operation outside the exposed ones (exitCode 2); awscli is not started.
+        code: 2
+        when: 入力が、公開している操作の外の操作を求めています。awscli は起動しません。
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: write
-        what: Calls athena start-query-execution, which starts the query and writes its result to S3.
+        what: '`athena start-query-execution` を呼びます。クエリが始まり、その結果が S3 に書かれます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
-      - The workgroup or output_location has a query result location.
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
+      - 'ワークグループか `output_location` に、クエリの結果の置き場所が要ります。'
     idempotent: false
     examples:
       - run: 'aws_athena_start_query_execution {"query_string": "SELECT 1", "work_group": "primary"}'
-        note: Start a query in the primary workgroup.
+        note: '`primary` のワークグループでクエリを始めます。'
     default_notes:
-      catalog: Defaults to the resolution of Athena.
-      database: Defaults to the resolution of Athena.
-      output_location: Defaults to the result location setting of the workgroup.
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
-      work_group: Defaults to the workgroup resolution of Athena.
+      catalog: 省くと、Athena の決め方に従います。
+      database: 省くと、Athena の決め方に従います。
+      output_location: 省くと、ワークグループの結果の置き場所の設定に従います。
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
+      work_group: 省くと、Athena のワークグループの決め方に従います。
     behaviors:
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-01
         pattern: event
-        statement: 参照専用のクエリを渡して呼ぶと、awscli の athena start-query-execution を実行し、クエリ実行 ID を含む JSON 出力を data に載せて返す
+        statement: '参照専用のクエリを渡して呼ぶと、awscli の `athena start-query-execution` を実行し、クエリ実行 ID を含む JSON 出力を `data` に載せて返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-02
         pattern: unwanted
-        statement: もし query_string が参照専用でないなら、awscli を起動せず not-allowed・exitCode 2 の失敗を返す
+        statement: 'もし `query_string` が参照専用でないなら、awscli を起動せず `not-allowed`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-03
         pattern: unwanted
-        statement: もし query_string が複数の文を含むなら、awscli を起動せず not-allowed・exitCode 2 の失敗を返す
+        statement: 'もし `query_string` が複数の文を含むなら、awscli を起動せず `not-allowed`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-04
         pattern: unwanted
-        statement: もし catalog を database なしで渡したなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `catalog` を `database` なしで渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-ATHENA-START-QUERY-EXECUTION-05
         pattern: unwanted
-        statement: もし database・catalog・output_location に , = { } を含むなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `database`・`catalog`・`output_location` に `,` `=` `{` `}` を含むなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
   PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS:
+    summary: CloudWatch のメトリクス 1 つのデータポイントを返します。
+    arguments:
+      dimensions: 絞り込むディメンションです。メトリクスが持つ組み合わせと、ちょうど同じ組み合わせを渡します。
+      end_time: '終了時刻です。タイムゾーンを付けた ISO 8601 の形式（`Z` か `+09:00` の形）で、`start_time` と同じように渡します。'
+      metric_name: 'メトリクスの名前です（例: `NumberOfMessagesSent`）。'
+      namespace: 'メトリクスの名前空間です（例: `AWS/SQS`、`AWS/Lambda`）。'
+      period: 集計する間隔の秒数です。60 の倍数で渡します。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      start_time: '開始時刻です。タイムゾーンを付けた ISO 8601 の形式（`Z` か `+09:00` の形）で渡します。例は `2026-09-01T00:00:00Z` と `2026-09-01T09:00:00+09:00` です。'
+      statistics: 取得する統計です。1〜5 個を渡します。
+      unit: 絞り込む単位です。データの単位と合わないと、結果は空になります。
     constraints: []
     details:
-      - Returns the data points of one metric for a time range, aggregated by period for the requested statistics.
-      - Percentile statistics are not exposed.
+      - 'メトリクス 1 つの、ある時間の範囲のデータポイントを返します。データポイントは、求めた統計を `period` ごとに集計した値です。'
+      - パーセンタイルの統計は公開していません。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -332,53 +405,71 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls cloudwatch get-metric-statistics.
+        what: '`cloudwatch get-metric-statistics` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_cloudwatch_get_metric_statistics {"namespace": "AWS/SQS", "metric_name": "NumberOfMessagesSent", "dimensions": [{"name": "QueueName", "value": "my-queue"}], "start_time": "2026-09-01T00:00:00Z", "end_time": "2026-09-01T01:00:00Z", "period": 300, "statistics": ["Sum"]}'
-        note: Get the messages sent to a queue in 5-minute sums.
+        note: キューに送られたメッセージの数を、5 分ごとの合計で取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-01
         pattern: event
-        statement: 必須の引数を渡して呼ぶと、awscli の cloudwatch get-metric-statistics を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '必須の引数を渡して呼ぶと、awscli の `cloudwatch get-metric-statistics` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-02
         pattern: unwanted
-        statement: もし start_time または end_time がタイムゾーンの無い日時なら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `start_time` または `end_time` がタイムゾーンの無い日時なら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-CLOUDWATCH-GET-METRIC-STATISTICS-03
         pattern: unwanted
-        statement: もし dimensions の要素に宣言外のキーがあるなら、入力検証エラーを返し、awscli を起動しない
+        statement: 'もし `dimensions` の要素に宣言外のキーがあるなら、入力検証エラーを返し、awscli を起動しません'
   PT-AWS-EC2-DESCRIBE-INSTANCES:
+    summary: EC2 のインスタンスを一覧にします。
+    arguments:
+      filters: 絞り込みの条件です。複数渡すと、すべてに合うインスタンスだけを返します。
+      instance_ids: '取得するインスタンスの ID です（`i-...` の形）。'
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists EC2 instances, optionally narrowed by instance IDs or filters.
-      - With several filters, only instances matching all of them are returned.
+      - EC2 のインスタンスを一覧にします。インスタンスの ID かフィルタで絞り込めます。
+      - 複数のフィルタを渡すと、すべてに合うインスタンスだけを返します。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -419,56 +510,76 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls ec2 describe-instances.
+        what: '`ec2 describe-instances` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_ec2_describe_instances {"filters": [{"name": "instance-state-name", "values": ["running"]}]}'
-        note: List the running instances.
+        note: 動いているインスタンスを一覧にします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-EC2-DESCRIBE-INSTANCES-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の ec2 describe-instances を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `ec2 describe-instances` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-EC2-DESCRIBE-INSTANCES-02
         pattern: unwanted
-        statement: もし filters の要素に宣言外のキーがあるなら、入力検証エラーを返し、awscli を起動しない
+        statement: 'もし `filters` の要素に宣言外のキーがあるなら、入力検証エラーを返し、awscli を起動しません'
       - id: PT-AWS-EC2-DESCRIBE-INSTANCES-03
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-ECR-DESCRIBE-IMAGES:
+    summary: ECR のリポジトリ 1 つのイメージを返します。
+    arguments:
+      image_ids: '取得するイメージです。各要素には、`image_tag` と `image_digest` の少なくとも一方が要ります。`starting_token` と一緒には渡せません。'
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      registry_id: レジストリの AWS アカウント ID です（12 桁）。
+      repository_name: リポジトリの名前です。
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
+      tag_status: イメージにタグが付いているかどうかで絞り込みます。省くと、絞り込みません。
     constraints:
       - conflicts:
           - image_ids
           - starting_token
     details:
-      - Returns the images of one ECR repository, optionally narrowed by image IDs or tag status.
-      - Only active images are returned.
+      - ECR のリポジトリ 1 つのイメージを返します。イメージの ID かタグの状態で絞り込めます。
+      - active のイメージだけを返します。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -509,56 +620,72 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls ecr describe-images.
+        what: '`ecr describe-images` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_ecr_describe_images {"repository_name": "my-repo", "tag_status": "TAGGED", "max_items": 20}'
-        note: List up to 20 tagged images.
+        note: タグの付いたイメージを 20 件まで一覧にします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
-      registry_id: Defaults to the registry of the calling account.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
+      registry_id: 省くと、呼び出すアカウントのレジストリです。
     behaviors:
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-01
         pattern: event
-        statement: repository_name を渡して呼ぶと、awscli の ecr describe-images を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`repository_name` を渡して呼ぶと、awscli の `ecr describe-images` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-02
         pattern: event
-        statement: tag_status を渡して呼ぶと、そのタグ状態のイメージだけに絞って取得する
+        statement: '`tag_status` を渡して呼ぶと、そのタグ状態のイメージだけに絞って取得します'
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-03
         pattern: unwanted
-        statement: もし image_ids と starting_token を同時に渡したなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `image_ids` と `starting_token` を同時に渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-ECR-DESCRIBE-IMAGES-04
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION:
+    summary: Lambda の関数 1 つの設定を返します。
+    arguments:
+      function_name: 関数の名前か、部分的な ARN か、完全な ARN です。
+      profile: AWS のプロファイルの名前です。
+      qualifier: バージョンの番号かエイリアスの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
     constraints: []
     details:
-      - Returns the configuration of one Lambda function, or of one version or alias when qualifier is given.
+      - 'Lambda の関数 1 つの設定を返します。`qualifier` を渡すと、そのバージョンかエイリアスの設定を返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -599,53 +726,71 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls lambda get-function-configuration.
+        what: '`lambda get-function-configuration` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_lambda_get_function_configuration {"function_name": "my-function", "qualifier": "prod"}'
-        note: Get the configuration of the prod alias.
+        note: '`prod` のエイリアスの設定を取得します。'
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      qualifier: Defaults to $LATEST.
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      qualifier: '省くと、`$LATEST` です。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-01
         pattern: event
-        statement: function_name を渡して呼ぶと、awscli の lambda get-function-configuration を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`function_name` を渡して呼ぶと、awscli の `lambda get-function-configuration` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LAMBDA-GET-FUNCTION-CONFIGURATION-02
         pattern: event
-        statement: qualifier を渡して呼ぶと、そのバージョンまたはエイリアスの設定を取得する
+        statement: '`qualifier` を渡して呼ぶと、そのバージョンまたはエイリアスの設定を取得します'
   PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS:
+    summary: Lambda のイベントソースマッピングを一覧にします。
+    arguments:
+      event_source_arn: 'イベントソースの ARN です。`arn:` で始まります。'
+      function_name: 関数の名前か、部分的な ARN か、完全な ARN です。
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists the event source mappings between Lambda functions and event sources such as SQS queues.
-      - event_source_arn and function_name can be given alone or together.
+      - Lambda の関数とイベントソース（SQS のキューなど）を結ぶ、イベントソースマッピングを一覧にします。
+      - '`event_source_arn` と `function_name` は、片方だけを渡すことも、両方を渡すこともできます。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -686,50 +831,66 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls lambda list-event-source-mappings.
+        what: '`lambda list-event-source-mappings` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_lambda_list_event_source_mappings {"function_name": "my-function"}'
-        note: List the mappings of one function.
+        note: 関数 1 つのマッピングを一覧にします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の lambda list-event-source-mappings を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `lambda list-event-source-mappings` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-LAMBDA-LIST-FUNCTIONS:
+    summary: リージョンの Lambda の関数を一覧にします。
+    arguments:
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists the Lambda functions of the region, one page per call.
-      - Returns data.nextToken when more pages remain.
+      - リージョンの Lambda の関数を、1 回の呼び出しで 1 ページずつ一覧にします。
+      - '続きのページが残っているときは、`data.nextToken` を返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -770,49 +931,66 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls lambda list-functions.
+        what: '`lambda list-functions` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_lambda_list_functions {"region": "ap-northeast-1", "max_items": 20}'
-        note: List up to 20 functions.
+        note: 関数を 20 件まで一覧にします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LAMBDA-LIST-FUNCTIONS-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の lambda list-functions を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `lambda list-functions` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LAMBDA-LIST-FUNCTIONS-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-LOGS-DESCRIBE-LOG-GROUPS:
+    summary: CloudWatch Logs のロググループを一覧にします。
+    arguments:
+      log_group_name_prefix: ロググループの名前の接頭辞です。
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists CloudWatch Logs log groups, optionally narrowed by name prefix.
+      - CloudWatch Logs のロググループを一覧にします。名前の接頭辞で絞り込めます。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -853,50 +1031,70 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls logs describe-log-groups.
+        what: '`logs describe-log-groups` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_logs_describe_log_groups {"log_group_name_prefix": "/aws/lambda/"}'
-        note: List the Lambda log groups.
+        note: Lambda のロググループを一覧にします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の logs describe-log-groups を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `logs describe-log-groups` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-DESCRIBE-LOG-GROUPS-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-LOGS-DESCRIBE-LOG-STREAMS:
+    summary: ロググループ 1 つのログストリームを一覧にします。
+    arguments:
+      descending: '`true` にすると、降順で並べます。'
+      log_group_name: 対象のロググループの名前です。
+      log_stream_name_prefix: ログストリームの名前の接頭辞です。
+      max_items: 1 回の応答で返す項目の数の上限です。
+      order_by: 並べ替えのキーです。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists the log streams of one log group.
-      - Sorting by LastEventTime in descending order returns the latest stream first.
+      - ロググループ 1 つのログストリームを一覧にします。
+      - '`LastEventTime` の降順で並べると、最新のストリームが先頭になります。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -937,57 +1135,79 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls logs describe-log-streams.
+        what: '`logs describe-log-streams` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_logs_describe_log_streams {"log_group_name": "/aws/lambda/my-function", "order_by": "LastEventTime", "descending": true, "max_items": 1}'
-        note: Find the latest log stream.
+        note: 最新のログストリームを探します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-01
         pattern: event
-        statement: log_group_name を渡して呼ぶと、awscli の logs describe-log-streams を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`log_group_name` を渡して呼ぶと、awscli の `logs describe-log-streams` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-02
         pattern: event
-        statement: descending を省いて呼ぶと、昇順を表す --no-descending を付けて実行する
+        statement: '`descending` を省いて呼ぶと、昇順を表す `--no-descending` を付けて実行します'
       - id: PT-AWS-LOGS-DESCRIBE-LOG-STREAMS-03
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-LOGS-FILTER-LOG-EVENTS:
+    summary: ロググループのイベントを、フィルタパターンで検索します。
+    arguments:
+      end_time: 終了時刻です（UNIX エポックからのミリ秒）。
+      filter_pattern: CloudWatch Logs のフィルタパターンです。
+      log_group_name: 対象のロググループの名前です。
+      log_stream_name_prefix: '検索するログストリームの名前の接頭辞です。`log_stream_names` と一緒には渡せません。'
+      log_stream_names: '検索するログストリームの名前です。`log_stream_name_prefix` と一緒には渡せません。'
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      start_time: 開始時刻です（UNIX エポックからのミリ秒）。
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints:
       - conflicts:
           - log_stream_names
           - log_stream_name_prefix
     details:
-      - Searches the events of a log group with a filter pattern, across all streams or the selected ones.
+      - ロググループのイベントを、フィルタパターンで検索します。全部のストリームか、選んだストリームが対象です。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1028,55 +1248,76 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls logs filter-log-events.
+        what: '`logs filter-log-events` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_logs_filter_log_events {"log_group_name": "/aws/lambda/my-function", "filter_pattern": "ERROR", "max_items": 50}'
-        note: Find ERROR events.
+        note: '`ERROR` のイベントを探します。'
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LOGS-FILTER-LOG-EVENTS-01
         pattern: event
-        statement: log_group_name を渡して呼ぶと、awscli の logs filter-log-events を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`log_group_name` を渡して呼ぶと、awscli の `logs filter-log-events` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-FILTER-LOG-EVENTS-02
         pattern: unwanted
-        statement: もし log_stream_names と log_stream_name_prefix を同時に渡したなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `log_stream_names` と `log_stream_name_prefix` を共に渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-LOGS-FILTER-LOG-EVENTS-03
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-LOGS-GET-LOG-EVENTS:
+    summary: ログストリーム 1 つのイベントを返します。
+    arguments:
+      end_time: 終了時刻です（UNIX エポックからのミリ秒）。
+      limit: 返すイベントの数の上限です（1〜10000）。
+      log_group_name: 対象のロググループの名前です。
+      log_stream_name: 対象のログストリームの名前です。
+      next_token: '前の応答の `nextForwardToken` か `nextBackwardToken` です。'
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      start_from_head: '`true` にすると、古いイベントから先に返します。'
+      start_time: 開始時刻です（UNIX エポックからのミリ秒）。
     constraints: []
     details:
-      - Returns the events of one log stream, with the pagination tokens of the API in data.
-      - Pass nextForwardToken of a response as next_token to continue.
+      - 'ログストリーム 1 つのイベントを返します。API のページ送りのトークンは、`data` に入ります。'
+      - '続きを取得するには、応答の `nextForwardToken` を `next_token` に渡します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1117,51 +1358,68 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls logs get-log-events.
+        what: '`logs get-log-events` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_logs_get_log_events {"log_group_name": "/aws/lambda/my-function", "log_stream_name": "2026/09/01/[$LATEST]abc", "limit": 100}'
-        note: Get 100 events of one stream.
+        note: ストリーム 1 つのイベントを 100 件取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-LOGS-GET-LOG-EVENTS-01
         pattern: event
-        statement: ロググループとストリームの名前を渡して呼ぶと、awscli の logs get-log-events を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: 'ロググループとストリームの名前を渡して呼ぶと、awscli の `logs get-log-events` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-LOGS-GET-LOG-EVENTS-02
         pattern: event
-        statement: start_from_head を省いて呼ぶと、新しい側から返すことを表す --no-start-from-head を付けて実行する
+        statement: '`start_from_head` を省いて呼ぶと、新しい側から返すことを表す `--no-start-from-head` を付けて実行します'
   PT-AWS-RDS-DESCRIBE-DB-CLUSTERS:
+    summary: RDS の DB クラスターを一覧にします。
+    arguments:
+      db_cluster_identifier: クラスターの識別子か ARN です。省くと、すべてのクラスターが対象です。
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists RDS DB clusters, or returns one cluster when db_cluster_identifier is given.
+      - 'RDS の DB クラスターを一覧にします。`db_cluster_identifier` を渡すと、そのクラスター 1 つを返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1202,49 +1460,66 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls rds describe-db-clusters.
+        what: '`rds describe-db-clusters` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_rds_describe_db_clusters {"db_cluster_identifier": "my-cluster"}'
-        note: Get one cluster.
+        note: クラスターを 1 つ取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の rds describe-db-clusters を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `rds describe-db-clusters` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-RDS-DESCRIBE-DB-CLUSTERS-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-RDS-DESCRIBE-DB-INSTANCES:
+    summary: RDS の DB インスタンスを一覧にします。
+    arguments:
+      db_instance_identifier: インスタンスの識別子か ARN です。省くと、すべてのインスタンスが対象です。
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists RDS DB instances, or returns one instance when db_instance_identifier is given.
+      - 'RDS の DB インスタンスを一覧にします。`db_instance_identifier` を渡すと、そのインスタンス 1 つを返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1285,42 +1560,56 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls rds describe-db-instances.
+        what: '`rds describe-db-instances` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_rds_describe_db_instances {"db_instance_identifier": "my-db"}'
-        note: Get one instance.
+        note: インスタンスを 1 つ取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-RDS-DESCRIBE-DB-INSTANCES-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の rds describe-db-instances を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `rds describe-db-instances` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-RDS-DESCRIBE-DB-INSTANCES-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-RDS-DESCRIBE-EVENTS:
+    summary: RDS のイベントを返します。
+    arguments:
+      duration: '今からさかのぼる分数です。`start_time`・`end_time` と一緒には渡せません。'
+      end_time: '終了時刻です。タイムゾーンを付けた ISO 8601 の形式（`Z` か `+09:00` の形）で、`start_time` と同じように渡します。'
+      event_categories: '絞り込むイベントのカテゴリです（例: `availability`、`failover`）。'
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      source_identifier: 'イベントの発生元の識別子です。渡すときは、`source_type` も渡します。'
+      source_type: イベントの発生元の種類です。
+      start_time: '開始時刻です。タイムゾーンを付けた ISO 8601 の形式（`Z` か `+09:00` の形）で渡します。例は `2026-09-01T00:00:00Z` と `2026-09-01T09:00:00+09:00` です。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints:
       - conflicts:
           - start_time
@@ -1329,12 +1618,20 @@ entries:
           - end_time
           - duration
     details:
-      - Returns the events of RDS sources such as DB instances and clusters, for example stops and failovers.
-      - duration cannot be combined with start_time or end_time.
+      - DB インスタンスやクラスターといった RDS の発生元のイベント（停止やフェイルオーバーなど）を返します。
+      - '`duration` は、`start_time`・`end_time` のどちらとも一緒に渡せません。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1375,57 +1672,74 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls rds describe-events.
+        what: '`rds describe-events` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_rds_describe_events {"source_type": "db-instance", "source_identifier": "my-db", "duration": 1440}'
-        note: Get the events of the last 24 hours.
+        note: 直近 24 時間のイベントを取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の rds describe-events を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `rds describe-events` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-02
         pattern: unwanted
-        statement: もし start_time または end_time と duration を同時に渡したなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `start_time` または `end_time` と `duration` を同時に渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-03
         pattern: unwanted
-        statement: もし start_time または end_time がタイムゾーンの無い日時なら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `start_time` または `end_time` がタイムゾーンの無い日時なら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-RDS-DESCRIBE-EVENTS-04
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-S3-CP:
+    summary: S3 のオブジェクト 1 つを、ローカルにダウンロードします。
+    arguments:
+      local_path: 書き出し先の、ローカルの絶対パスです。
+      overwrite: '`true` にすると、書き出し先が既にあっても上書きします。'
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      s3_uri: 'コピー元です（`s3://bucket/key`）。'
     constraints: []
     details:
-      - Downloads one S3 object to a local absolute path.
-      - Uploads and recursive copies are not exposed.
-      - The absolute path of the written file is returned in artifacts.
+      - S3 のオブジェクト 1 つを、ローカルの絶対パスにダウンロードします。
+      - アップロードと再帰的なコピーは公開していません。
+      - '書いたファイルの絶対パスは、`artifacts` に入ります。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1466,67 +1780,82 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The bucket or the object does not exist.
+        when: バケットかオブジェクトがありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls s3 cp to read the object.
+        what: '`s3 cp` を呼び、オブジェクトを読みます。'
       - target: file
         kind: destructive
-        what: Writes the object to local_path and replaces an existing file when overwrite is true.
+        what: 'オブジェクトを `local_path` に書きます。`overwrite` が `true` のときは、既にあるファイルを置き換えます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: false
     examples:
       - run: 'aws_s3_cp {"s3_uri": "s3://my-bucket/report.json", "local_path": "/data/report.json", "overwrite": false}'
-        note: Download one object to a new file.
+        note: オブジェクト 1 つを、新しいファイルにダウンロードします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-S3-CP-01
         pattern: event
-        statement: s3_uri と local_path を渡して呼ぶと、オブジェクトを local_path に書き出し、パスを artifacts に載せて返す
+        statement: '`s3_uri` と `local_path` を渡して呼ぶと、オブジェクトを `local_path` に書き出し、パスを `artifacts` に載せて返します'
       - id: PT-AWS-S3-CP-02
         pattern: unwanted
-        statement: もし local_path が既存のファイルで overwrite が true でないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `local_path` が既存のファイルで `overwrite` が `true` でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3-CP-03
         pattern: unwanted
-        statement: もし local_path がディレクトリなら、overwrite に関わらず awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `local_path` がディレクトリなら、`overwrite` に関わらず awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3-CP-04
         pattern: unwanted
-        statement: もし s3_uri が s3://<bucket>/<key> の形でないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `s3_uri` が `s3://<bucket>/<key>` の形でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3-CP-05
         pattern: unwanted
-        statement: もし local_path が絶対パスでないか s3:// で始まるなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `local_path` が絶対パスでないか `s3://` で始まるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3-CP-06
         pattern: event
-        statement: overwrite を true にして、既存のファイルがある local_path を渡して呼ぶと、そのファイルを置き換えて書き出す
+        statement: '`overwrite` を `true` にして、既存のファイルがある `local_path` を渡して呼ぶと、そのファイルを置き換えて書き出します'
   PT-AWS-S3-LS:
+    summary: S3 のバケットかプレフィックスの直下を一覧にします。
+    arguments:
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      s3_uri: '一覧にする対象です（`s3://bucket` か `s3://bucket/prefix/`）。省くと、バケットを一覧にします。'
     constraints: []
     details:
-      - Lists the entries directly under an S3 bucket or prefix, or the buckets when s3_uri is omitted.
-      - The command has no JSON output, so data.lines holds one output line per element.
+      - 'S3 のバケットかプレフィックスの直下の項目を一覧にします。`s3_uri` を省くと、バケットを一覧にします。'
+      - 'このコマンドは JSON を出しません。出力は、1 行を 1 要素にして `data.lines` へ入れます。'
     stdin: none
     output:
       format: json
-      description: Structured result whose data.lines holds the lines awscli printed.
+      description: '結果は JSON のオブジェクトです。awscli が出した行は、`data.lines` に並びます。'
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: 'awscli が出した行の配列（`lines`）です。'
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1567,56 +1896,76 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The bucket does not exist (NoSuchBucket).
+        when: 'バケットがありません（`NoSuchBucket`）。'
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls s3 ls.
+        what: '`s3 ls` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_s3_ls {"s3_uri": "s3://my-bucket/logs/"}'
-        note: List the entries under a prefix.
+        note: プレフィックスの下の項目を一覧にします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-S3-LS-01
         pattern: event
-        statement: s3_uri を渡して呼ぶと、awscli の s3 ls を実行し、その出力を 1 行 1 要素にして data.lines に載せる
+        statement: '`s3_uri` を渡して呼ぶと、awscli の `s3 ls` を実行し、その出力を 1 行 1 要素にして `data.lines` に載せます'
       - id: PT-AWS-S3-LS-02
         pattern: event
-        statement: s3_uri を省いて呼ぶと、バケットの一覧を data.lines に載せる
+        statement: '`s3_uri` を省いて呼ぶと、バケットの一覧を `data.lines` に載せます'
       - id: PT-AWS-S3-LS-03
         pattern: unwanted
-        statement: もし s3_uri が s3:// で始まる形でないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `s3_uri` が `s3://` で始まる形でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
   PT-AWS-S3API-GET-OBJECT:
+    summary: S3 のオブジェクト 1 つをローカルに書き、メタデータを返します。
+    arguments:
+      bucket: バケットの名前です。
+      key: オブジェクトのキーです。
+      outfile: 書き出し先の、ローカルの絶対パスです。
+      overwrite: '`true` にすると、書き出し先が既にあっても上書きします。'
+      profile: AWS のプロファイルの名前です。
+      range: '取得するバイトの範囲です（`bytes=0-1023`）。'
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      version_id: 取得するバージョンの ID です。
     constraints: []
     details:
-      - Gets one S3 object by bucket and key, writes it to a local absolute path, and returns the object metadata as JSON.
-      - version_id picks a version and range downloads a byte range.
-      - The absolute path of the written file is returned in artifacts.
+      - バケットとキーで S3 のオブジェクト 1 つを取得し、ローカルの絶対パスに書きます。オブジェクトのメタデータを JSON で返します。
+      - '`version_id` を渡すと、そのバージョンを取得します。`range` を渡すと、そのバイトの範囲だけをダウンロードします。'
+      - '書いたファイルの絶対パスは、`artifacts` に入ります。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1657,63 +2006,79 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The bucket or the object does not exist.
+        when: バケットかオブジェクトがありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls s3api get-object to read the object.
+        what: '`s3api get-object` を呼び、オブジェクトを読みます。'
       - target: file
         kind: destructive
-        what: Writes the object to outfile and replaces an existing file when overwrite is true.
+        what: 'オブジェクトを `outfile` に書きます。`overwrite` が `true` のときは、既にあるファイルを置き換えます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: false
     examples:
       - run: 'aws_s3api_get_object {"bucket": "my-bucket", "key": "report.json", "outfile": "/data/report.json", "range": "bytes=0-1023"}'
-        note: Download the first 1 KiB of an object.
+        note: オブジェクトの先頭の 1 KiB をダウンロードします。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-S3API-GET-OBJECT-01
         pattern: event
-        statement: bucket・key・outfile を渡して呼ぶと、オブジェクトを outfile に書き出し、メタデータを data に、パスを artifacts に載せて返す
+        statement: '`bucket`・`key`・`outfile` を渡して呼ぶと、オブジェクトを `outfile` に書き出し、メタデータを `data` に、パスを `artifacts` に載せて返します'
       - id: PT-AWS-S3API-GET-OBJECT-02
         pattern: unwanted
-        statement: もし outfile が既存のファイルで overwrite が true でないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `outfile` が既存のファイルで `overwrite` が `true` でないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3API-GET-OBJECT-03
         pattern: unwanted
-        statement: もし outfile がディレクトリなら、overwrite に関わらず awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `outfile` がディレクトリなら、`overwrite` に関わらず awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3API-GET-OBJECT-04
         pattern: unwanted
-        statement: もし range が bytes= で始まらないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `range` が `bytes=` で始まらないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-S3API-GET-OBJECT-05
         pattern: unwanted
-        statement: もし outfile が絶対パスでないか s3:// で始まるなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `outfile` が絶対パスでないか `s3://` で始まるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
   PT-AWS-SCHEDULER-GET-SCHEDULE:
+    summary: EventBridge Scheduler のスケジュール 1 つの定義を返します。
+    arguments:
+      group_name: スケジュールグループの名前です。
+      name: スケジュールの名前です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
     constraints: []
     details:
-      - Returns the definition of one EventBridge Scheduler schedule.
+      - EventBridge Scheduler のスケジュール 1 つの定義を返します。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1754,49 +2119,68 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls scheduler get-schedule.
+        what: '`scheduler get-schedule` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_scheduler_get_schedule {"name": "nightly-job", "group_name": "default"}'
-        note: Get one schedule.
+        note: スケジュールを 1 つ取得します。
     default_notes:
-      group_name: Defaults to the default group.
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      group_name: 省くと、既定のグループです。
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-SCHEDULER-GET-SCHEDULE-01
         pattern: event
-        statement: name を渡して呼ぶと、awscli の scheduler get-schedule を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`name` を渡して呼ぶと、awscli の `scheduler get-schedule` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
   PT-AWS-SCHEDULER-LIST-SCHEDULES:
+    summary: EventBridge Scheduler のスケジュールを一覧にします。
+    arguments:
+      group_name: 絞り込むスケジュールグループの名前です。
+      max_items: 1 回の応答で返す項目の数の上限です。
+      name_prefix: スケジュールの名前の接頭辞です。
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
+      state: 絞り込む状態です。
     constraints: []
     details:
-      - Lists EventBridge Scheduler schedules, optionally narrowed by group, name prefix or state.
+      - EventBridge Scheduler のスケジュールを一覧にします。グループ・名前の接頭辞・状態で絞り込めます。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1837,51 +2221,67 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls scheduler list-schedules.
+        what: '`scheduler list-schedules` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_scheduler_list_schedules {"state": "ENABLED"}'
-        note: List the enabled schedules.
+        note: 有効なスケジュールを一覧にします。
     default_notes:
-      group_name: Defaults to schedules of all groups.
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      group_name: 省くと、すべてのグループのスケジュールが対象です。
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-SCHEDULER-LIST-SCHEDULES-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の scheduler list-schedules を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `scheduler list-schedules` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-SCHEDULER-LIST-SCHEDULES-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-SQS-GET-QUEUE-ATTRIBUTES:
+    summary: SQS のキュー 1 つの属性を返します。
+    arguments:
+      attribute_names: 取得する属性の名前です。省くと、すべての属性を取得します。
+      profile: AWS のプロファイルの名前です。
+      queue_url: 'キューの URL です。`https://` で始まります。'
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
     constraints: []
     details:
-      - Returns the attributes of one SQS queue.
-      - Returns all attributes when attribute_names is omitted.
+      - SQS のキュー 1 つの属性を返します。
+      - '`attribute_names` を省くと、すべての属性を返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -1922,51 +2322,68 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls sqs get-queue-attributes.
+        what: '`sqs get-queue-attributes` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_sqs_get_queue_attributes {"queue_url": "https://sqs.ap-northeast-1.amazonaws.com/123456789012/my-queue"}'
-        note: Get all attributes of one queue.
+        note: キュー 1 つの属性をすべて取得します。
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-SQS-GET-QUEUE-ATTRIBUTES-01
         pattern: event
-        statement: queue_url を渡して呼ぶと、awscli の sqs get-queue-attributes を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '`queue_url` を渡して呼ぶと、awscli の `sqs get-queue-attributes` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-SQS-GET-QUEUE-ATTRIBUTES-02
         pattern: event
-        statement: attribute_names を省いて呼ぶと、All を指定して全属性を取得する
+        statement: '`attribute_names` を省いて呼ぶと、`All` を指定して全属性を取得します'
   PT-AWS-SQS-LIST-QUEUES:
+    summary: リージョンの SQS のキューの URL を一覧にします。
+    arguments:
+      max_items: 1 回の応答で返す項目の数の上限です。
+      profile: AWS のプロファイルの名前です。
+      queue_name_prefix: キューの名前の接頭辞です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
+      starting_token: '前の応答の `nextToken` です。渡すと、次のページを取得します。'
     constraints: []
     details:
-      - Lists the SQS queue URLs of the region, optionally narrowed by name prefix.
+      - リージョンの SQS のキューの URL を一覧にします。名前の接頭辞で絞り込めます。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2007,51 +2424,64 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls sqs list-queues.
+        what: '`sqs list-queues` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_sqs_list_queues {"queue_name_prefix": "orders-"}'
-        note: List the queues whose name starts with orders-.
+        note: '名前が `orders-` で始まるキューを一覧にします。'
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-SQS-LIST-QUEUES-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の sqs list-queues を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `sqs list-queues` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
       - id: PT-AWS-SQS-LIST-QUEUES-02
         pattern: event
-        statement: 応答に NextToken が含まれると、その値を data.nextToken に載せる
+        statement: '応答に `NextToken` が含まれると、その値を `data.nextToken` に載せます'
   PT-AWS-SSO-LOGIN:
+    summary: AWS SSO のデバイス認可を始め、確認用の URL とユーザーコードを返します。
+    arguments:
+      profile: AWS のプロファイルの名前です。
     constraints: []
     details:
-      - Starts AWS SSO device authorization for the profile and returns the verification URL and user code without waiting for approval.
-      - Calling it again for a profile whose authorization is still pending returns the same URL and code.
-      - Completion is checked with aws_sso_login_status.
+      - プロファイルの AWS SSO のデバイス認可を始めます。承認を待たずに、確認用の URL とユーザーコードを返します。
+      - 認可がまだ承認待ちのプロファイルでもう一度呼ぶと、同じ URL とコードを返します。
+      - '終わったかどうかは、`aws_sso_login_status` で確かめます。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2092,61 +2522,74 @@ entries:
     environment: []
     exit_status:
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: The verification URL and user code do not appear within 15 seconds, or the user does not approve within 10 minutes (exitCode 124).
+        code: 124
+        when: 確認用の URL とユーザーコードが 15 秒以内に出ません。または、ユーザーが 10 分以内に承認しません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
-    on_error: A started authorization stays pending until it completes, fails, or times out after 10 minutes. A failed or timed-out authorization is reported by aws_sso_login_status.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
+    on_error: '始めた認可は、完了・失敗・10 分での時間切れのどれかになるまで、承認待ちのままです。失敗と時間切れは、`aws_sso_login_status` が報告します。'
     effects:
       - target: process
         kind: write
-        what: Starts `aws sso login --no-browser --use-device-code` in the background.
+        what: '`aws sso login --no-browser --use-device-code` をバックグラウンドで始めます。'
       - target: file
         kind: write
-        what: Writes the SSO token cache of awscli after the user approves.
+        what: ユーザーが承認した後で、awscli の SSO のトークンキャッシュを書きます。
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - The profile has SSO settings (sso_start_url and sso_region).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - 'プロファイルに、SSO の設定（`sso_start_url` と `sso_region`）が要ります。'
     idempotent: false
     examples:
       - run: 'aws_sso_login {"profile": "dev"}'
-        note: Start device authorization for the dev profile.
+        note: '`dev` のプロファイルのデバイス認可を始めます。'
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
     behaviors:
       - id: PT-AWS-SSO-LOGIN-01
         pattern: event
-        statement: デバイス認可を開始できると、確認用の URL とユーザーコードを data に載せ、state が pending の応答を承認の完了を待たずに返す
+        statement: 'デバイス認可を開始できると、確認用の URL とユーザーコードを `data` に載せ、`state` が `pending` の応答を承認の完了を待たずに返します'
       - id: PT-AWS-SSO-LOGIN-02
         pattern: state
-        statement: 同じ profile の認可が pending の間、新しい認可を始めず、既存の URL とコードを返す
+        statement: '同じ `profile` の認可が `pending` の間、新しい認可を始めず、既存の URL とコードを返します'
       - id: PT-AWS-SSO-LOGIN-03
         pattern: unwanted
-        statement: もし awscli が 2.22 未満なら、認可を始めずに category awscli-missing・exitCode 127 の失敗を返す
+        statement: 'もし awscli が 2.22 未満なら、認可を始めずに `category` `awscli-missing`・`exitCode` 127 の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-04
         pattern: unwanted
-        statement: もし profile に SSO 設定が無いなら、category auth-missing の失敗を返す
+        statement: 'もし `profile` に SSO 設定が無いなら、`category` `auth-missing` の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-05
         pattern: unwanted
-        statement: もし awscli が URL とコードを出す前に終了コード 0 で終わったなら、state が completed の応答を返す
+        statement: 'もし awscli が URL とコードを出す前に終了コード 0 で終わったなら、`state` が `completed` の応答を返します'
   PT-AWS-SSO-LOGIN-STATUS:
+    summary: '`aws_sso_login` で始めた認可の状態を返します。'
+    arguments:
+      profile: AWS のプロファイルの名前です。
     constraints: []
     details:
-      - Returns the state (pending, completed, failed or timed-out) of the authorization started by aws_sso_login for the profile.
-      - Does not start awscli.
+      - 'そのプロファイルで `aws_sso_login` が始めた認可の状態（`pending`・`completed`・`failed`・`timed-out` のどれか）を返します。'
+      - awscli は起動しません。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2187,56 +2630,70 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: aws_sso_login was not called for the profile (exitCode 2); awscli is not started.
+        code: 2
+        when: 'そのプロファイルで `aws_sso_login` を呼んでいません。awscli は起動しません。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: resource-not-found
-        when: The named resource does not exist in the region.
+        when: 名前で指したリソースが、そのリージョンにありません。
       - kind: timeout
-        when: The authorization started by aws_sso_login does not finish within 10 minutes (exitCode 124).
+        code: 124
+        when: '`aws_sso_login` で始めた認可が、10 分以内に終わりません。'
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: process
         kind: read
-        what: Reads the state of the login that aws_sso_login started and the MCP server holds.
+        what: 'MCP サーバが持っている、`aws_sso_login` で始めたログインの状態を読みます。'
     prerequisites:
-      - aws_sso_login was called for the same profile.
+      - '同じプロファイルで、先に `aws_sso_login` を呼んでおきます。'
     idempotent: true
     examples:
       - run: 'aws_sso_login_status {"profile": "dev"}'
-        note: Check whether the dev profile authorization was approved.
+        note: '`dev` のプロファイルの認可が承認されたかどうかを確かめます。'
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
     behaviors:
       - id: PT-AWS-SSO-LOGIN-STATUS-01
         pattern: event
-        statement: 承認が済んでから呼ぶと、state が completed の応答を返す
+        statement: '承認が済んでから呼ぶと、`state` が `completed` の応答を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-02
         pattern: state
-        statement: 承認を待っている間、state が pending で、承認前であることを示す応答を返す
+        statement: '承認を待っている間、`state` が `pending` で、承認前であることを示す応答を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-03
         pattern: unwanted
-        statement: もし aws_sso_login で認可を開始していないなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+        statement: 'もし `aws_sso_login` で認可を開始していないなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-04
         pattern: unwanted
-        statement: もし認可が失敗していたなら、失敗の種別と awscli の出力を含む応答を返す
+        statement: 'もし認可が失敗していたなら、失敗の種別と awscli の出力を含む応答を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-05
         pattern: unwanted
-        statement: もし認可が 10 分以内に完了しなかったなら、category timeout・exitCode 124 の失敗を返す
+        statement: 'もし認可が 10 分以内に完了しなかったなら、`category` `timeout`・`exitCode` 124 の失敗を返します'
   PT-AWS-STS-GET-CALLER-IDENTITY:
+    summary: プロファイルが指す ID のアカウント・ユーザー ID・ARN を返します。
+    arguments:
+      profile: AWS のプロファイルの名前です。
+      region: 'AWS のリージョンです（例: `ap-northeast-1`）。'
     constraints: []
     details:
-      - Returns the account, user ID and ARN of the identity the profile resolves to.
+      - プロファイルから決まる ID の、アカウント・ユーザー ID・ARN を返します。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, data, artifacts and message, plus category and stderr on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書き出したローカルのファイルの絶対パスです。
+        category: 失敗の種別です。成功したときは、この項目はありません。
+        data: awscli の JSON 出力か、出力の行の配列です。
+        exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 秘匿化した awscli の標準エラー出力です。失敗したときだけあります。
       schema:
         additionalProperties: false
         properties:
@@ -2277,81 +2734,83 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-input
-        when: An input breaks a format or exclusivity rule checked before awscli runs (exitCode 2), or awscli rejects its arguments.
+        when: '入力が、書式か排他の規則に反しています。awscli を動かす前に確かめ、このときの `exitCode` は 2 です。awscli が引数を受け付けなかったときも、この種別になります。'
       - kind: awscli-missing
-        when: awscli is not installed, is not on PATH, or is older than 2.22 (exitCode 127).
+        code: 127
+        when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
       - kind: auth-missing
-        when: No credentials or SSO configuration can be found for the profile.
+        when: プロファイルの認証情報も SSO の設定も見つかりません。
       - kind: auth-expired
-        when: The SSO session or the credentials have expired.
+        when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
-        when: The profile lacks permission for the operation.
+        when: プロファイルに、その操作の権限がありません。
       - kind: timeout
-        when: awscli does not finish within 120 seconds (exitCode 124).
+        code: 124
+        when: awscli が 120 秒以内に終わりません。
       - kind: other
-        when: awscli fails for any other reason; the awscli exit code is returned.
+        when: 'awscli が、上のどれにも当てはまらない理由で失敗しました。`exitCode` は、awscli の終了コードです。'
     on_error: default
     effects:
       - target: aws
         kind: read
-        what: Calls sts get-caller-identity.
+        what: '`sts get-caller-identity` を呼びます。'
     prerequisites:
-      - awscli v2 (2.22 or later) is on PATH.
-      - Credentials for the target profile are available (run aws_sso_login for an SSO profile).
+      - '`PATH` にある awscli v2（2.22 以降）が要ります。'
+      - '対象のプロファイルの認証情報が要ります。SSO のプロファイルでは、先に `aws_sso_login` を呼びます。'
     idempotent: true
     examples:
       - run: 'aws_sts_get_caller_identity {"profile": "dev"}'
-        note: Confirm which identity the dev profile uses.
+        note: '`dev` のプロファイルがどの ID を使うかを確かめます。'
     default_notes:
-      profile: "Defaults to the awscli profile resolution: AWS_PROFILE, then the default profile."
-      region: Defaults to AWS_REGION, then AWS_DEFAULT_REGION, then the profile configuration.
+      profile: '省くと、awscli の決め方に従います。`AWS_PROFILE`、既定のプロファイルの順で決まります。'
+      region: '省くと、`AWS_REGION`、`AWS_DEFAULT_REGION`、プロファイルの設定の順で決まります。'
     behaviors:
       - id: PT-AWS-STS-GET-CALLER-IDENTITY-01
         pattern: event
-        statement: 引数なしで呼ぶと、awscli の sts get-caller-identity を実行し、JSON 出力を data に載せた成功の応答を返す
+        statement: '引数なしで呼ぶと、awscli の `sts get-caller-identity` を実行し、JSON 出力を `data` に載せた成功の応答を返します'
 common_behaviors:
   - id: PT-COMMON-01
     pattern: unwanted
-    statement: もし inputSchema が宣言した型・範囲・列挙・必須・書式に反する入力を渡したなら、awscli を起動せず入力検証エラーを返す
+    statement: 'もし `inputSchema` が宣言した型・範囲・列挙・必須・書式に反する入力を渡したなら、awscli を起動せず入力検証エラーを返します'
   - id: PT-COMMON-02
     pattern: event
-    statement: 最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行する
+    statement: '最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行します'
   - id: PT-COMMON-03
     pattern: unwanted
-    statement: もし配列の要素に宣言外のキーがあるなら、awscli を起動せずに入力検証エラーを返す
+    statement: 'もし配列の要素に宣言外のキーがあるなら、awscli を起動せずに入力検証エラーを返します'
   - id: PT-COMMON-04
     pattern: unwanted
-    statement: もし公開していないツール名で呼ばれたなら、awscli を起動せずに JSON-RPC エラー -32602 を返す
+    statement: 'もし公開していないツール名で呼ばれたなら、awscli を起動せずに JSON-RPC エラー -32602 を返します'
   - id: PT-COMMON-05
     pattern: unwanted
-    statement: もし位置引数または文字列の配列の要素の値が - で始まるなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+    statement: 'もし位置引数または文字列の配列の要素の値が `-` で始まるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
   - id: PT-COMMON-06
     pattern: unwanted
-    statement: もし値に制御文字が含まれるなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+    statement: 'もし値に制御文字が含まれるなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
   - id: PT-COMMON-07
     pattern: unwanted
-    statement: もし awscli が見つからないか 2.22 未満なら、awscli-missing・exitCode 127 の失敗を返す
+    statement: 'もし awscli が見つからないか 2.22 未満なら、`awscli-missing`・`exitCode` 127 の失敗を返します'
   - id: PT-COMMON-08
     pattern: unwanted
-    statement: もし awscli が 120 秒以内に終わらないなら、category timeout・exitCode 124 の失敗を返す
+    statement: 'もし awscli が 120 秒以内に終わらないなら、`category` `timeout`・`exitCode` 124 の失敗を返します'
   - id: PT-COMMON-09
     pattern: unwanted
-    statement: もし awscli が 0 以外の終了コードで終わったなら、ok が false で、失敗の種別 category と秘匿化済みの stderr を含む応答を isError を真にして返す
+    statement: 'もし awscli が 0 以外の終了コードで終わったなら、`ok` が `false` で、失敗の種別 `category` と秘匿化済みの `stderr` を含む応答を `isError` を真にして返します'
   - id: PT-COMMON-10
     pattern: ubiquitous
-    statement: 常に、応答の structuredContent と同じ内容の JSON を content のテキストにも載せる
+    statement: '常に、応答の `structuredContent` と同じ内容の JSON を `content` のテキストにも載せます'
   - id: PT-COMMON-11
     pattern: unwanted
-    statement: もし awscli の出力が 256 KiB を超えたなら、先頭の 256 KiB を data.output に載せ、data.truncated を true にする
+    statement: 'もし awscli の出力が 256 KiB を超えたなら、先頭の 256 KiB を `data.output` に載せ、`data.truncated` を `true` にします'
   - id: PT-COMMON-12
     pattern: ubiquitous
-    statement: "常に、出力中の aws_secret_access_key=・aws_session_token=・x-amz-security-token: の値を [redacted] にする"
+    statement: '常に、出力中の `aws_secret_access_key=`・`aws_session_token=`・`x-amz-security-token:` の値を `[redacted]` にします'
   - id: PT-COMMON-13
     pattern: event
-    statement: ツールの呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応える
+    statement: 'ツールの呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応えます'
   - id: PT-COMMON-14
     pattern: unwanted
-    statement: もし許可リストの書式の規則に反する入力を渡したなら、awscli を起動せず invalid-input・exitCode 2 の失敗を返す
+    statement: 'もし許可リストの書式の規則に反する入力を渡したなら、awscli を起動せず `invalid-input`・`exitCode` 2 の失敗を返します'
   - id: PT-COMMON-15
     pattern: ubiquitous
-    statement: 常に、出力中の AKIA または ASIA で始まるアクセスキー ID を [redacted] にする
+    statement: '常に、出力中の `AKIA` または `ASIA` で始まるアクセスキー ID を `[redacted]` にします'
