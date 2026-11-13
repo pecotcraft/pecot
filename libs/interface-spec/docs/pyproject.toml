@@ -7,6 +7,7 @@ dependencies = [
   "sphinx-needs==9.2.*",
   "sphinx-test-reports==4.0.*",
   "pyyaml",
+  "sphinxawesome-theme>=6.0.6",
 ]
 
 [dependency-groups]

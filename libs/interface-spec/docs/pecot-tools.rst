@@ -1,18 +1,13 @@
 pecot-tools
 ===========
 
-コマンド・ツール
-----------------
+.. iface-index:: pecot-tools
 
-.. iface-defs:: pecot-tools
+.. toctree::
+   :hidden:
+   :glob:
 
-振る舞いと合否
---------------
-
-.. needtable::
-   :types: behavior
-   :columns: id;title;outcome;verifies_back
-   :style: table
+   _generated/pecot-tools/*
 
 テスト
 ------

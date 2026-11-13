@@ -1,6 +1,7 @@
 """iface_defs 拡張のテスト。小さいリポジトリの形の fixture を Sphinx で実際にビルドし、needs.json・HTML・警告を読む。"""
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -42,8 +43,8 @@ class Built:
         versions: dict[str, Any] = data["versions"]
         self.needs: dict[str, dict[str, Any]] = next(iter(versions.values()))["needs"]
 
-    def html(self) -> str:
-        return (self.out / "index.html").read_text(encoding="utf-8")
+    def html(self, page: str = "index.html") -> str:
+        return (self.out / page).read_text(encoding="utf-8")
 
 
 def build(
@@ -51,10 +52,15 @@ def build(
     junit: list[Path],
     capfd: pytest.CaptureFixture[str],
     extra_junit: dict[str, list[Path]] | None = None,
+    files: dict[str, str] | None = None,
+    pages: bool = False,
 ) -> Built:
     src = tmp_path / "src"
-    src.mkdir()
+    src.mkdir(exist_ok=True)
     (src / "index.rst").write_text(INDEX, encoding="utf-8")
+    for name, text in (files or {}).items():
+        (src / name).parent.mkdir(parents=True, exist_ok=True)
+        (src / name).write_text(text, encoding="utf-8")
     junit_map = {"sample": [str(p) for p in junit]}
     if extra_junit is not None:
         junit_map.update({k: [str(p) for p in v] for k, v in extra_junit.items()})
@@ -64,7 +70,8 @@ def build(
         "globals().update({k: v for k, v in _ns.items() if not k.startswith('__')})\n"
         f"iface_root = {str(FIXTURES / 'repo')!r}\n"
         f"iface_junit = {junit_map!r}\n"
-        f"iface_field_map = {str(FIXTURES / 'field-map.json')!r}\n",
+        f"iface_field_map = {str(FIXTURES / 'field-map.json')!r}\n"
+        f"iface_pages = {pages!r}\n",
         encoding="utf-8",
     )
     out = tmp_path / "out"
@@ -111,13 +118,11 @@ def test_types(full: Built) -> None:
     assert full.needs["SM-ONE-01"]["title"] == "target を渡して打つと、対象を 1 回動かす"
 
 
-def test_body_follows_posix_section_order(full: Built) -> None:
+def test_body_follows_page_section_order(full: Built) -> None:
     content: str = full.needs["SM-ONE"]["content"]
-    name = content.index("Runs one thing")
     description = content.index("Stops at the first failure.")
     exit_status = content.index("The target is missing.")
-    assert name < description < exit_status
-    assert "Skip the check" not in content
+    assert description < content.index("Skip the check") < exit_status
 
 
 def test_outcomes(full: Built) -> None:
@@ -127,13 +132,13 @@ def test_outcomes(full: Built) -> None:
         if i.startswith("SM-") and full.needs[i]["type"] == "behavior"
     }
     assert got == {
-        "SM-ONE-01": "合格",
-        "SM-ONE-02": "合格",
-        "SM-ONE-03": "未実行",
-        "SM-TWO-01": "合格",
-        "SM-TWO-02": "失敗",
-        "SM-TWO-03": "未実行",
-        "SM-COMMON-01": "未実行",
+        "SM-ONE-01": "passed",
+        "SM-ONE-02": "passed",
+        "SM-ONE-03": "not run",
+        "SM-TWO-01": "passed",
+        "SM-TWO-02": "failed",
+        "SM-TWO-03": "not run",
+        "SM-COMMON-01": "not run",
     }
 
 
@@ -189,8 +194,8 @@ def test_without_junit_everything_is_not_run(
     assert built.code == 0
     assert {
         built.needs[i]["outcome"] for i in built.needs if built.needs[i]["type"] == "behavior"
-    } == {"未実行"}
-    assert "JUnit が無いため、合否は未実行" in built.html()
+    } == {"not run"}
+    assert "JUnit のファイルが見つからない" in built.html()
     assert not [n for n in built.needs.values() if n["type"] == "testcase"]
 
 
@@ -205,8 +210,149 @@ def test_junit_without_connected_cases(tmp_path: Path, capfd: pytest.CaptureFixt
     assert built.code == 0
     assert {
         built.needs[i]["outcome"] for i in built.needs if built.needs[i]["type"] == "behavior"
-    } == {"未実行"}
+    } == {"not run"}
     assert "項目につながるテストが無い" in built.html()
+
+
+PAGES_INDEX = """\
+Sample
+======
+
+.. iface-index:: sample
+
+.. toctree::
+   :hidden:
+   :glob:
+
+   _generated/sample/*
+
+.. iface-tests:: sample
+"""
+
+
+def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+    built = build(
+        tmp_path,
+        [JUNIT_VITEST, JUNIT_PYTEST],
+        capfd,
+        files={"index.rst": PAGES_INDEX},
+        pages=True,
+    )
+    assert built.code == 0
+    html = built.html()
+    rows = {
+        name: (href, counts)
+        for href, name, counts in re.findall(
+            r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>'
+            r"(?:\s*<td>.*?</td>){2}\s*<td><p>([^<]*)</p></td>",
+            html,
+            flags=re.S,
+        )
+    }
+    assert rows == {
+        "one run": ("_generated/sample/one-run.html", "合格 2・未実行 1"),
+        "sample_two": ("_generated/sample/sample_two.html", "合格 1・不合格 1・未実行 1"),
+        "half entry": ("_generated/sample/half-entry.html", "—"),
+        "共通の要件": ("_generated/sample/_common.html", "未実行 1"),
+    }
+    assert "このプラグインのすべてのコマンドに共通する要件です。" in html
+
+
+def test_pages_are_written_and_stale_ones_removed(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    generated = tmp_path / "src" / "_generated"
+    (generated / "sample").mkdir(parents=True)
+    (generated / "sample" / "old-name.rst").write_text("Old\n===\n", encoding="utf-8")
+    (generated / "gone").mkdir()
+    (generated / "gone" / "x.rst").write_text("X\n=\n", encoding="utf-8")
+    (generated / "junit").mkdir()
+    (generated / "junit" / "keep.xml").write_text("<testsuites/>", encoding="utf-8")
+    (generated / "field-map.json").write_text("{}", encoding="utf-8")
+    built = build(
+        tmp_path,
+        [JUNIT_VITEST, JUNIT_PYTEST],
+        capfd,
+        files={"index.rst": PAGES_INDEX},
+        pages=True,
+    )
+    assert built.code == 0
+    assert {p.name for p in (generated / "sample").glob("*.rst")} == {
+        "one-run.rst",
+        "sample_two.rst",
+        "half-entry.rst",
+        "_common.rst",
+    }
+    assert not (generated / "gone").exists()
+    assert (generated / "junit" / "keep.xml").is_file()
+    assert (generated / "field-map.json").is_file()
+    assert ".. iface-defs:: sample SM-ONE" in (generated / "sample" / "one-run.rst").read_text(
+        encoding="utf-8"
+    )
+
+
+PAGE_ONLY = """\
+Page
+====
+
+.. iface-defs:: sample {arg}
+"""
+
+
+def page_build(tmp_path: Path, capfd: pytest.CaptureFixture[str], arg: str) -> Built:
+    index = "Sample\n======\n\n.. toctree::\n\n   page\n\n.. iface-tests:: sample\n"
+    return build(
+        tmp_path,
+        [JUNIT_VITEST, JUNIT_PYTEST],
+        capfd,
+        files={"index.rst": index, "page.rst": PAGE_ONLY.format(arg=arg)},
+    )
+
+
+def behaviors_of(built: Built) -> set[str]:
+    return {i for i, n in built.needs.items() if n["type"] == "behavior" and i.startswith("SM-")}
+
+
+def test_defs_with_item_builds_only_that_item(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = page_build(tmp_path, capfd, "SM-ONE")
+    assert built.code == 0
+    assert {i for i in built.needs if i.startswith("SM-")} == {
+        "SM-ONE",
+        "SM-ONE-01",
+        "SM-ONE-02",
+        "SM-ONE-03",
+    }
+
+
+def test_defs_common_builds_only_common_behaviors(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = page_build(tmp_path, capfd, "common")
+    assert built.code == 0
+    assert {i for i in built.needs if i.startswith("SM-")} == {"SM-COMMON-01"}
+
+
+def test_defs_with_unknown_id_warns(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+    built = page_build(tmp_path, capfd, "SM-NOPE")
+    assert "SM-NOPE" in built.warnings
+    assert not {i for i in built.needs if i.startswith("SM-")}
+
+
+def test_page_with_only_defs_shows_verifies_links_and_failed(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = page_build(tmp_path, capfd, "SM-TWO")
+    assert built.code == 0
+    html = built.html("page.html")
+    assert "failed" in html
+    case_id = next(
+        i
+        for i in built.needs["SM-TWO-02"]["verifies_back"]
+        if built.needs[i]["title"] == "test_broken"
+    )
+    assert re.search(rf'<a [^>]*href="index\.html#{case_id}"', html, flags=re.S)
 
 
 def case(result: str) -> Case:
@@ -224,13 +370,13 @@ def case(result: str) -> Case:
 @pytest.mark.parametrize(
     ("results", "expected"),
     [
-        ([], "未実行"),
-        (["passed"], "合格"),
-        (["passed", "passed"], "合格"),
-        (["passed", "failed"], "失敗"),
-        (["error"], "失敗"),
-        (["passed", "skipped"], "未実行"),
-        (["disabled"], "未実行"),
+        ([], "not run"),
+        (["passed"], "passed"),
+        (["passed", "passed"], "passed"),
+        (["passed", "failed"], "failed"),
+        (["error"], "failed"),
+        (["passed", "skipped"], "not run"),
+        (["disabled"], "not run"),
     ],
 )
 def test_outcome_of(results: list[str], expected: str) -> None:

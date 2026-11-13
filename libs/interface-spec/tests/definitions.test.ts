@@ -211,3 +211,116 @@ describe('authored.yaml checks', () => {
     ])
   })
 })
+
+function japanize(data: Record<string, unknown>): Record<string, unknown> {
+  const target = entry(data, 'PW-ISSUE-CREATE')
+  target['details'] = ['結果を返す']
+  target['stdin'] = 'none'
+  target['output'] = { format: 'text', description: '標準出力に書く' }
+  target['diagnostics'] = 'default'
+  target['environment'] = [{ name: 'PECOT_X', effect: '挙動が変わる' }]
+  target['exit_status'] = [{ code: 0, when: '成功したとき' }]
+  target['on_error'] = 'default'
+  target['effects'] = [{ target: 'github', kind: 'write', what: '作る' }]
+  target['prerequisites'] = ['認証済み']
+  target['examples'] = [{ run: 'pecot x', note: '例' }]
+  target['default_notes'] = { title: '既定は空' }
+  data['environment'] = [{ name: 'PECOT_Y', effect: '共通の挙動' }]
+  return target
+}
+
+describe('prose（人が書く欄の言語）', () => {
+  const TEXT_FIELDS = ['details[0]', 'output.description', 'exit_status[0].when', 'effects[0].what', 'prerequisites[0]', 'examples[0].note', 'default_notes.title']
+
+  it('prose: ja で、決まった値以外の欄に日本語があれば、通る', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      japanize(data)
+    })
+    expect(lines.filter(line => line.includes('Japanese') && line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
+    expect(lines).not.toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
+  })
+
+  it('prose: ja で、日本語の無い欄は止める（決まった値の stdin・diagnostics・on_error は止めない）', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      const target = japanize(data)
+      target['details'] = ['English']
+      target['output'] = { format: 'text', description: 'English' }
+      target['exit_status'] = [{ code: 0, when: 'English' }]
+      target['effects'] = [{ target: 'github', kind: 'write', what: 'English' }]
+      target['prerequisites'] = ['English']
+      target['examples'] = [{ run: 'pecot x', note: 'English' }]
+      target['default_notes'] = { title: 'English' }
+      target['environment'] = [{ name: 'PECOT_X', effect: 'English' }]
+      data['environment'] = [{ name: 'PECOT_Y', effect: 'English' }]
+    })
+    const reason = 'has no Japanese text (write Japanese)'
+    for (const field of [...TEXT_FIELDS, 'environment[0].effect']) {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|${field}|${reason}`)
+    }
+    expect(lines).toContain(`${AUTHORED}||environment[0].effect|${reason}`)
+    expect(lines.filter(line => line.endsWith(reason) && !line.includes('|PW-ISSUE-QUICK|'))).toHaveLength(TEXT_FIELDS.length + 2)
+  })
+
+  it('prose: ja で、stdin・diagnostics・on_error が決まった値以外の英語だと、止める', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      const target = japanize(data)
+      target['stdin'] = 'JSON from stdin'
+      target['diagnostics'] = 'warning lines'
+      target['on_error'] = 'nothing changes'
+    })
+    for (const field of ['stdin', 'diagnostics', 'on_error']) {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|${field}|has no Japanese text (write Japanese)`)
+    }
+  })
+
+  it('prose: ja でも、generated.json の欄は英語のまま', async () => {
+    const plugin = await validPlugin()
+    if (plugin.authored.kind !== 'ok' || plugin.generated.kind !== 'ok') throw new Error('fixture must load')
+    const authored = record(clone(plugin.authored.data))
+    authored['prose'] = 'ja'
+    const generated = record(clone(plugin.generated.data))
+    generatedEntry(generated, 0)['description'] = '日本語の説明'
+    const lines = validateDefinitions([{ ...plugin, authored: { kind: 'ok', data: authored }, generated: { kind: 'ok', data: generated } }])
+      .map(finding => `${finding.file}|${finding.scope ?? ''}|${finding.field ?? ''}|${finding.reason}`)
+    expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|description|contains Japanese text (write English)`)
+  })
+
+  it('prose: ja でも、behavior の statement は日本語を求める', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      data['common_behaviors'] = [{ id: 'PW-COMMON-01', pattern: 'event', statement: 'English only' }]
+    })
+    expect(lines).toContain(`${AUTHORED}|PW-COMMON-01|statement|has no Japanese text (write Japanese)`)
+  })
+
+  it('prose: en と、prose を省いたときは、日本語の欄を止める', async () => {
+    for (const prose of [undefined, 'en']) {
+      const lines = await withAuthored((data) => {
+        if (prose !== undefined) data['prose'] = prose
+        entry(data, 'PW-ISSUE-CREATE')['prerequisites'] = ['認証済み']
+        entry(data, 'PW-ISSUE-CREATE')['stdin'] = 'none'
+      })
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|prerequisites[0]|contains Japanese text (write English)`)
+      expect(lines.filter(line => line.endsWith('(write English)'))).toHaveLength(1)
+    }
+  })
+
+  it('prose が ja・en 以外だと、止める', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'fr'
+    })
+    expect(lines.some(line => line.startsWith(`${AUTHORED}||prose|`))).toBe(true)
+  })
+
+  it('形が崩れた authored.yaml でも、prose: ja の environment の effect を確かめる', async () => {
+    const lines = await withAuthored((data) => {
+      data['prose'] = 'ja'
+      data['environment'] = [{ name: 'PECOT_Y', effect: 'English' }]
+      data['common_behaviors'] = 'broken'
+    })
+    expect(lines).toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
+  })
+})

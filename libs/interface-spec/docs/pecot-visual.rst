@@ -1,18 +1,13 @@
 pecot-visual
 ============
 
-コマンド・ツール
-----------------
+.. iface-index:: pecot-visual
 
-.. iface-defs:: pecot-visual
+.. toctree::
+   :hidden:
+   :glob:
 
-振る舞いと合否
---------------
-
-.. needtable::
-   :types: behavior
-   :columns: id;title;outcome;verifies_back
-   :style: table
+   _generated/pecot-visual/*
 
 テスト
 ------

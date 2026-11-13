@@ -21,6 +21,19 @@ wheels = [
 ]
 
 [[package]]
+name = "beautifulsoup4"
+version = "4.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "soupsieve" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/65/318323f98dbee45d42dff61d8f047181bc6f2268a9068cfad035a46be5af/beautifulsoup4-4.15.0.tar.gz", hash = "sha256:288e3ca7d54b06f2ac191970bc275c1939cb46d450b255bf6718b04aa37ab4f7", size = 632571, upload-time = "2026-06-07T16:44:20.453Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/c6/92fcd42f1ba33e1184263f25bfabf3d27c383410470f169e4b8163bf9c17/beautifulsoup4-4.15.0-py3-none-any.whl", hash = "sha256:d6f88de62e1d4e38ecb1077eb9724cd0eff29d2a08ca16a401e9b9e93f117cf9", size = 109924, upload-time = "2026-06-07T16:44:21.566Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.10.23"
 source = { registry = "https://pypi.org/simple" }
@@ -197,6 +210,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "sphinx-needs" },
     { name = "sphinx-test-reports" },
+    { name = "sphinxawesome-theme" },
 ]
 
 [package.dev-dependencies]
@@ -211,6 +225,7 @@ requires-dist = [
     { name = "pyyaml" },
     { name = "sphinx-needs", specifier = "==9.2.*" },
     { name = "sphinx-test-reports", specifier = "==4.0.*" },
+    { name = "sphinxawesome-theme", specifier = ">=6.0.6" },
 ]
 
 [package.metadata.requires-dev]
@@ -600,6 +615,15 @@ wheels = [
 ]
 
 [[package]]
+name = "soupsieve"
+version = "4.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/95/48/21a393ff731b8f928fa4f8176f9a7ceba2252ee60a5149f25b45c292aa5c/soupsieve-4.1.tar.gz", hash = "sha256:ca9abf7126667010d8f6e9b39bfc1bc3b23c8aed9bcb0f54a754dde969bb8aab", size = 161955, upload-time = "2026-11-10T01:59:50.399Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/73/6a2087c72975cfc07394623bca8d17654342ea4055ae368deafe5a81a542/soupsieve-4.1-py3-none-any.whl", hash = "sha256:e4d667b3974ce6e038e7390486b8093369854a1d345ffdd4c121dfc4a782e809", size = 52302, upload-time = "2026-11-10T01:59:48.571Z" },
+]
+
+[[package]]
 name = "sphinx"
 version = "9.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -674,6 +698,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/6d/118fa89dfd71973fefdf5d47d2f10f221b52e397d13337fed74a077c58d2/sphinx_test_reports-4.0.0.tar.gz", hash = "sha256:f4900b1e419729f3f4c84c59c343ad7cc99365d0fe3c07bd093fc44b6645ac79", size = 39373, upload-time = "2026-11-04T09:31:02.169Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/57/a7/910358b1bcd4e204f06293144c3cfe23aa7883a03416de3967187f04ee1e/sphinx_test_reports-4.0.0-py3-none-any.whl", hash = "sha256:49311328b358d9e2641d79922f832972ee8ac299a6134f9432738fe58c4a01af", size = 48290, upload-time = "2026-11-04T09:31:00.97Z" },
+]
+
+[[package]]
+name = "sphinxawesome-theme"
+version = "6.0.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "sphinx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/69/53/49bfe364ea42084bfcc726d16b3dc9bb45cfe813473e55cfbabc6573f3d7/sphinxawesome_theme-6.0.6.tar.gz", hash = "sha256:66bced542e96b2f657c3f535247033842a7155db237198d810f5bfc9911d62f1", size = 347626, upload-time = "2026-10-22T08:38:24.375Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/2d/a48b81f8dd73da924b70b4d9d03142f13ab515e0f4d637b0384ee9dabae6/sphinxawesome_theme-6.0.6-py3-none-any.whl", hash = "sha256:58f7ceaa2a8e4216547911d91cfcb4abd8b9ddbd556024d4e606a0d7396e3b9a", size = 380428, upload-time = "2026-10-22T08:38:22.597Z" },
 ]
 
 [[package]]

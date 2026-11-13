@@ -1,18 +1,13 @@
 pecot-workflow
 ==============
 
-コマンド・ツール
-----------------
+.. iface-index:: pecot-workflow
 
-.. iface-defs:: pecot-workflow
+.. toctree::
+   :hidden:
+   :glob:
 
-振る舞いと合否
---------------
-
-.. needtable::
-   :types: behavior
-   :columns: id;title;outcome;verifies_back
-   :style: table
+   _generated/pecot-workflow/*
 
 テスト
 ------
