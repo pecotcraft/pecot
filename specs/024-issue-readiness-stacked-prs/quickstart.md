@@ -35,8 +35,11 @@ Project #3 の Status には `Needs Attention`、pecot-workflow-sandbox には `
 
 ```bash
 pecot project init          # Blocked と Needs Attention を足す
+pecot project set-repo pecotcraft/pecot-sandbox --develop-branch main
 pecot project info          # 列と値がそろっていることを見る
 ```
+
+開発ブランチの無い設定では、前提を持つ Issue の判定が `unknown (develop_branch is not set for …)` になる。`project set-repo` で先に入れる。
 
 | 見るもの | 期待 |
 |---|---|
