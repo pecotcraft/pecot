@@ -12,6 +12,8 @@ import type { ProjectConfig } from '../domain/config.js'
 import { BaseError } from '../domain/errors.js'
 import { CommandExit } from './command-definition.js'
 import type { IssueFrontmatter } from '../domain/frontmatter.js'
+import { planOrders, usedOrdersOf } from '../domain/issue-order.js'
+import type { UsedOrder } from '../domain/issue-order.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
@@ -167,15 +169,15 @@ export function exitInvalidStatus(output: Output, status: string): never {
 }
 
 /**
-起票時の status が、型対応テンプレートの既定値と一致するか確かめる。違えば終了コード 1。
-enum 外の値（`--status foo`）と、型に合わない別テンプレートの既定値（`--type bug --status backlog`）は文を分ける
+起票時の status が、許す値のどれかと一致するか確かめる。違えば終了コード 1。許す値の既定は、型対応テンプレートの既定値だけ。
+enum 外の値（`--status foo`）と、許さない値（`--type bug --status backlog`）は文を分ける
 */
-export function validateStatusForType(output: Output, issueType: IssueType, status: string): void {
+export function validateStatusForType(output: Output, issueType: IssueType, status: string, allowed?: readonly string[]): void {
   if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
   // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
-  const expected = TYPE_DEFAULT_STATUS[issueType]
-  if (status === expected) return
-  stopWith(output, `the status at creation for type '${issueType}' is only '${expected}' (given: ${status})\nhint: move it to pending or another status on the board after creation`)
+  const accepted = allowed ?? [TYPE_DEFAULT_STATUS[issueType]]
+  if (accepted.includes(status)) return
+  stopWith(output, `the status at creation for type '${issueType}' is only ${accepted.map(value => `'${value}'`).join(' or ')} (given: ${status})\nhint: move it to pending or another status on the board after creation`)
 }
 
 // --- parent_epic・タイトル・order ---
@@ -246,61 +248,53 @@ export function warnEpicRepositoryException(output: Output, resolvedRepository: 
 export interface IssueTitleOptions {
   readonly parentEpic?: number | undefined
   readonly order?: number | undefined
-  /**
-  同じ段の中の枝の文字（a-z）。order が無ければ使わない
-  */
-  readonly parallel?: string | undefined
 }
 
 /**
-タイトルに接頭辞と、Epic 番号・order（・枝の文字）を付ける。例は `[Task] #353-04a: タイトル`
+タイトルに接頭辞と、Epic 番号・order を付ける。例は `[Task] #353-04: タイトル`
 */
 export function buildIssueTitle(issueType: string, title: string, options: Readonly<IssueTitleOptions> = {}): string {
   const prefix = TYPE_PREFIX_MAP.get(issueType) ?? ''
   const hasPrefix = prefix !== '' && title.startsWith(prefix)
   const baseTitle = hasPrefix ? pythonStrip(title.slice(prefix.length)) : title
   if (options.parentEpic !== undefined && options.order !== undefined) {
-    const number = `#${String(options.parentEpic)}-${orderLabel(options.order, options.parallel)}`
+    const number = `#${String(options.parentEpic)}-${orderLabel(options.order)}`
     return prefix === '' ? `${number}: ${baseTitle}` : `${prefix} ${number}: ${baseTitle}`
   }
   return prefix === '' || hasPrefix ? title : `${prefix} ${title}`
 }
 
 /**
-エラー文に出す番号。2 桁の order に、枝の文字を続ける
+タイトルの番号。2 桁にそろえる
 */
-function orderLabel(order: number, parallel = ''): string {
-  return `${String(order).padStart(2, '0')}${parallel}`
-}
-
-// タイトルの `#123-01:` と `#123-01a:` から、Epic 番号・段・枝を取る
-const ORDER_PATTERN = /#(\d+)-(\d+)([a-z])?:/u
-
-const LOWERCASE_LETTERS: readonly string[] = Array.from({ length: 26 }, (_, index) => String.fromCodePoint(97 + index))
-
-interface UsedOrder {
-  readonly number: number
-  readonly stage: number
-  readonly title: string
-  readonly state: string
-  readonly parallel: string | undefined
-}
-
-function usedOrdersOf(subIssues: readonly { readonly number: number, readonly state: string, readonly title: string }[], parentEpic: number): { readonly orders: readonly UsedOrder[], readonly values: readonly number[] } {
-  const orders: UsedOrder[] = []
-  const values: number[] = []
-  for (const sub of subIssues) {
-    const [, epic, stage, letter] = ORDER_PATTERN.exec(sub.title) ?? []
-    if (epic === undefined || stage === undefined || Number(epic) !== parentEpic) continue
-    values.push(Number(stage))
-    orders.push({ ...sub, stage: Number(stage), parallel: letter })
-  }
-  return { orders, values }
+function orderLabel(order: number): string {
+  return String(order).padStart(2, '0')
 }
 
 /**
-同じ Epic に、同じ（段, 枝の文字）の Issue が無いことを確かめる。OPEN でも CLOSED でも、一度使った番号は再利用できない。
-同じ段では、枝ありと枝なしも重複。最初の一致を error にして終了コード 1。Epic を取れなければ warning だけで続ける
+親 Epic のサブ Issue から、使われた番号を読む。全件を読む。Epic を取れなければ warning を出して undefined
+*/
+export async function readUsedOrders(output: Output, client: GitHubClient, owner: string, repository: string, parentEpic: number): Promise<readonly UsedOrder[] | undefined> {
+  try {
+    return usedOrdersOf(await client.getAllSubIssues(owner, repository, parentEpic), parentEpic)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.warning(`could not fetch the parent Epic #${String(parentEpic)}: ${error.message}`)
+    return undefined
+  }
+}
+
+/**
+明示の order が既存の Issue と重なったときの error を出して終了コード 1。一度使った番号は、OPEN でも CLOSED でも再利用できない
+*/
+export function stopForDuplicateOrder(output: Output, parentEpic: number, order: number, existing: UsedOrder, nextAvailable: number): never {
+  const stateLabel = existing.state === 'OPEN' ? 'OPEN' : 'CLOSED'
+  return stopWith(output, `Epic #${String(parentEpic)} already has an Issue with order=${String(order)} (${stateLabel})\n#${String(existing.number)} ${existing.title}\nnext available order: ${String(nextAvailable)}`)
+}
+
+/**
+同じ Epic に、同じ order の Issue が無いことを確かめる。最初の一致を error にして終了コード 1。Epic を取れなければ warning だけで続ける
 */
 export async function checkDuplicateOrder(
   output: Output,
@@ -309,42 +303,11 @@ export async function checkDuplicateOrder(
   repository: string,
   parentEpic: number,
   order: number,
-  parallel?: string,
 ): Promise<void> {
-  let subIssues
-  try {
-    const slim = await client.getIssueSlim(owner, repository, parentEpic, 0)
-    subIssues = slim.sub_issues
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.warning(`could not fetch the parent Epic #${String(parentEpic)}: ${error.message}`)
-    return
-  }
-  const used = usedOrdersOf(subIssues, parentEpic)
-  const sameOrder = used.orders.filter(sub => sub.stage === order)
-  const duplicate = sameOrder.find(sub => sub.parallel === undefined || parallel === undefined || sub.parallel === parallel)
-  if (duplicate === undefined) return
-
-  const usedValues = new Set(used.values)
-  let nextOrder = 1
-  while (usedValues.has(nextOrder)) nextOrder += 1
-  let conflict: string
-  let suggestion: string
-  if (parallel === undefined && duplicate.parallel === undefined) {
-    conflict = `an Issue with order=${String(order)}`
-    suggestion = `next available order: ${String(nextOrder)}`
-  }
-  else {
-    const usedLetters = new Set(sameOrder.map(sub => sub.parallel))
-    const letter = LOWERCASE_LETTERS.find(candidate => !usedLetters.has(candidate))
-    suggestion = letter === undefined || usedLetters.has(undefined)
-      ? `next available order: ${String(Math.max(...usedValues) + 1)}`
-      : `next available number: ${orderLabel(order, letter)}`
-    conflict = `an Issue (${orderLabel(order, duplicate.parallel)}) that conflicts with order=${orderLabel(order, parallel)}`
-  }
-  const stateLabel = duplicate.state === 'OPEN' ? 'OPEN' : 'CLOSED'
-  stopWith(output, `Epic #${String(parentEpic)} already has ${conflict} (${stateLabel})\n#${String(duplicate.number)} ${duplicate.title}\n${suggestion}`)
+  const used = await readUsedOrders(output, client, owner, repository, parentEpic)
+  if (used === undefined) return
+  const plan = planOrders(used, [{ file: '', order }])
+  if (plan.kind === 'duplicate-existing') stopForDuplicateOrder(output, parentEpic, order, plan.existing, plan.nextAvailable)
 }
 
 // --- Issue の作成・ボード・親 Epic ---
@@ -499,12 +462,11 @@ export async function clientForIssueCreate(
   display: string,
   parentReference: IssueReference | undefined,
   order: number | undefined,
-  parallel?: string,
 ): Promise<GitHubClient> {
   const client = createGitHubClient(output, config.host)
   await ensureRepositoryInProject(output, config, client, owner, repository, `${display} is not linked to the project`)
   if (parentReference !== undefined && order !== undefined) {
-    await checkDuplicateOrder(output, client, parentReference.repository.owner, parentReference.repository.repository, parentReference.number, order, parallel)
+    await checkDuplicateOrder(output, client, parentReference.repository.owner, parentReference.repository.repository, parentReference.number, order)
   }
   return client
 }

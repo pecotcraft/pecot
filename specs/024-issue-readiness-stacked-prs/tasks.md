@@ -192,13 +192,13 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 1 を通す。5 つのフェーズの Issue に、表の行と合う blocked by が付く。マージを待つ前提のある Issue の本文にだけ、節が付く
 
-- [ ] T039 [P] [US1] `p-w/cli/src/domain/tests/` に、frontmatter の失敗するテストを書く
+- [x] T039 [P] [US1] `p-w/cli/src/domain/tests/` に、frontmatter の失敗するテストを書く
   - `blocked_by` は一覧で、各要素は `issue`・`wait`・`reason` を持つ。`wait` は `stack` か `merge` で、省くと `stack` だ
   - `wait: merge` に `reason` が無いと、検証で落ちる
   - `order` と `status` は省ける。`parallel` を書くと、使えなくなった旨の検証の誤りになる
   - `blocked_by` と `status: ready` を両方書くと、検証で落ちる
-- [ ] T040 [US1] `p-w/cli/src/domain/frontmatter.ts` を直し、T039 を通す
-- [ ] T041 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、`issue create --plan` の失敗するテストを書く
+- [x] T040 [US1] `p-w/cli/src/domain/frontmatter.ts` を直し、T039 を通す
+- [x] T041 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、`issue create --plan` の失敗するテストを書く
   - 出力の表と積める並びは、contracts/cli-commands.md の `--plan` の形のとおりだ
   - 投稿の要求を 1 件も送らない
   - 次の 5 つの入力で、決めた `error:` を出して終了コード 1 で止まる
@@ -207,7 +207,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
     - 前提が輪になる
     - `wait: merge` に `reason` が無い
     - `parallel` が書かれている
-- [ ] T042 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、一括投稿の失敗するテストを書く
+- [x] T042 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、一括投稿の失敗するテストを書く
   - 作った Issue に、前提ごとに `addBlockedBy` を送る。ファイルのキーは、作った Issue の番号に置き換わる
   - 前提に `owner/repo/N` を書くと、既存の Issue を指す
   - マージを待つ前提のある Issue だけ、本文の末尾に節が付く
@@ -215,27 +215,27 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 前提の追加が 1 件失敗しても、Issue の作成は取り消されない。失敗した組と、付け直すコマンドが出て、終了コードは 1 になる
   - 最後に、Issue の番号での積める並びが出る
   - Issue の作成が途中で失敗したときは、作られた Issue どうしの前提だけを付ける
-- [ ] T043 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、通し番号の失敗するテストを書く
+- [x] T043 [P] [US1] `p-w/cli/tests/interface/issue.test.ts` に、通し番号の失敗するテストを書く
   - `order` を省くと、既存のサブタスクの番号の最大の次から、ファイルの順に振る
   - 既存の番号に枝の文字（`18a`）があるときは、数字の部分で数える
   - 親のサブタスクが 20 件を超えていても、全件を読んで最大を決める
   - `order` を書いたときは、その番号を使う
   - タイトルに枝の文字が付かない
-- [ ] T044 [US1] 一括投稿を直し、T041〜T043 を通す
+- [x] T044 [US1] 一括投稿を直し、T041〜T043 を通す
   - 直すのは `p-w/cli/src/commands/issue-create.ts` と `p-w/cli/src/commands/issue-shared.ts`
   - 投稿の前の確認は、どのファイルの投稿よりも先に全部済ませる
   - 列は Phase 4 の共通の処理で置く
   - `validateStatusForType` を緩め、タスクとバグを `blocked` でも作れるようにする
-- [ ] T045 [US1] `p-w/cli/templates/issue/task-implement.md` を直す。frontmatter に `blocked_by` を足し、`parallel` を外す。冒頭のコメントから、段と枝の文字の説明を外し、`blocked_by` の書き方を足す。`order` と `status` は省く旨を書く
-- [ ] T046 [US1] `p-w/skills/w-issueize/SKILL.md` を、contracts/skill-flow.md の w-issueize の表のとおりに直す
+- [x] T045 [US1] `p-w/cli/templates/issue/task-implement.md` を直す。frontmatter に `blocked_by` を足し、`parallel` を外す。冒頭のコメントから、段と枝の文字の説明を外し、`blocked_by` の書き方を足す。`order` と `status` は省く旨を書く
+- [x] T046 [US1] `p-w/skills/w-issueize/SKILL.md` を、contracts/skill-flow.md の w-issueize の表のとおりに直す
   - Step 2 は、前提の表を読む。段と枝の文字の計算と、「番号が示すのは着手の条件」の記述を外す
   - Step 3 は、`blocked_by` を書く。投稿の前に `pecot issue create --plan` を打ち、出力を前提の表と並べて示す
   - 4 列の表が無い tasks.md の扱いを、contracts/prerequisite-table.md の 4 のとおりに書く
   - Step 4 は、進め方・積める並び・最初に着手できる Issue を報告する
-- [ ] T047 [P] [US1] `p-w/skills/w-help/references/issue-flow-rules.md` の `order` の説明を通し番号に直し、前提と種類の決まりを足す
-- [ ] T048 [US1] スキルの文書のテストを直す。w-issueize の Step の順と、打つコマンドが、直した文と合う
-- [ ] T049 [US1] `issue create` の定義書を直す。`p-w/interface/authored.yaml` に、`--plan`・前提の登録・通し番号の振る舞いの項目を足す
-- [ ] T050 [US1] version plan を `.nx/version-plans/` に足す
+- [x] T047 [P] [US1] `p-w/skills/w-help/references/issue-flow-rules.md` の `order` の説明を通し番号に直し、前提と種類の決まりを足す
+- [x] T048 [US1] スキルの文書のテストを直す。w-issueize の Step の順と、打つコマンドが、直した文と合う
+- [x] T049 [US1] `issue create` の定義書を直す。`p-w/interface/authored.yaml` に、`--plan`・前提の登録・通し番号の振る舞いの項目を足す
+- [x] T050 [US1] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: tasks.md の前提の表から、blocked by の付いた Issue がボードの正しい列にできる
 

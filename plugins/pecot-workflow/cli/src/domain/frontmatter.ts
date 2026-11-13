@@ -12,14 +12,27 @@ import { PecotError } from './errors.js'
 import { normalizeNewlines, parsePythonInteger, pythonStrip, pythonStringRepr } from './python-format.js'
 import { parseYamlDocument } from './yaml-document.js'
 
-export class FrontmatterError extends PecotError {}
+/**
+コマンドが契約の文を作る誤り。`parallel` は使えなくなった項目、`merge-without-reason` は理由の無い `wait: merge`
+*/
+export type FrontmatterErrorKind = 'parallel' | 'merge-without-reason'
+
+export class FrontmatterError extends PecotError {
+  readonly kind: FrontmatterErrorKind | undefined
+
+  constructor(message: string, options?: Readonly<ErrorOptions & { kind?: FrontmatterErrorKind }>) {
+    super(message, options)
+    this.kind = options?.kind
+  }
+}
 
 // 検証のエラー文
 
 const REQUIRED_MESSAGE = 'Field required'
 const STRING_MESSAGE = 'Input should be a valid string'
 const LIST_MESSAGE = 'Input should be a valid list'
-const PARALLEL_MESSAGE = 'String should match pattern \'^[a-z]$\''
+const SINGLE_LINE_MESSAGE = 'Value error, reason must be a single line'
+const NOT_EMPTY_MESSAGE = 'String should have at least 1 character'
 
 /**
 zod が渡す issue のうち、文を作るのに使う項目
@@ -105,12 +118,23 @@ const IntegerSchema = z.number({ error: issue => integerMessage(issue.input) }).
 const IssueTypeSchema = z.enum(['task', 'bug', 'epic', 'tracker'], { error: choiceMessage })
 const WorkflowStatusSchema = z.enum(WORKFLOW_STATUSES, { error: choiceMessage })
 
+function stripString(value: unknown): unknown {
+  return typeof value === 'string' ? pythonStrip(value) : value
+}
+
+const BlockedByEntrySchema = z.object({
+  issue: z.preprocess(stripString, z.string({ error: stringMessage }).min(1, { error: NOT_EMPTY_MESSAGE })),
+  wait: z.enum(['stack', 'merge'], { error: choiceMessage }).prefault('stack'),
+  reason: z.preprocess(normalizeOptionalText, z.string({ error: stringMessage }).refine(value => !/[\r\n]/u.test(value), { error: SINGLE_LINE_MESSAGE }).nullish().transform(value => value ?? undefined)),
+}).readonly()
+
 const IssueFrontmatterSchema = z.object({
   title: z.string({ error: stringMessage }),
   type: IssueTypeSchema,
   template: z.preprocess(emptyStringToUndefined, z.enum(['task', 'bug', 'epic', 'tracker', 'task-implement'], { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
   repository: z.string({ error: stringMessage }),
-  status: WorkflowStatusSchema,
+  status: WorkflowStatusSchema.optional(),
+  blocked_by: z.preprocess(value => value === null ? undefined : value, z.array(BlockedByEntrySchema, { error: listMessage }).readonly().prefault([])),
   priority: z.preprocess(emptyStringToUndefined, z.enum(PRIORITIES, { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
   size: z.preprocess(emptyStringToUndefined, z.enum(SIZES, { error: choiceMessage }).nullish().transform(value => value ?? undefined)),
   labels: z.array(z.string({ error: STRING_MESSAGE }), { error: listMessage }).readonly().prefault([]),
@@ -124,7 +148,6 @@ const IssueFrontmatterSchema = z.object({
     return z.NEVER
   })),
   order: z.preprocess(value => convertToInteger(emptyStringToUndefined(value)), IntegerSchema.nullish().transform(value => value ?? undefined)),
-  parallel: z.preprocess(emptyStringToUndefined, z.string({ error: STRING_MESSAGE }).regex(/^[a-z]$/u, { error: PARALLEL_MESSAGE }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
 const CommentFrontmatterSchema = z.object({
@@ -184,15 +207,24 @@ function fieldErrors(issues: readonly ValidationIssueView[]): FrontmatterError {
   return validationError(issues.map(issue => issueLine(issue)))
 }
 
-// parent_epic と order の相互検証。項目の誤りが無いときだけ行う
-function checkOrderWithParentEpic(frontmatter: IssueFrontmatter): void {
-  const { parent_epic: parentEpic, order, parallel } = frontmatter
+// parent_epic・order・blocked_by・status の相互検証。項目の誤りが無いときだけ行う
+function checkCrossFields(frontmatter: IssueFrontmatter): void {
+  const { parent_epic: parentEpic, order, blocked_by: blockedBy, status, type } = frontmatter
+  if (blockedBy.some(entry => entry.wait === 'merge' && entry.reason === undefined)) {
+    throw new FrontmatterError('blocked_by needs reason for wait: merge', { kind: 'merge-without-reason' })
+  }
   let message: string | undefined
-  if (parentEpic !== undefined && order === undefined) message = 'order is required when parent_epic is set'
-  else if (parentEpic === undefined && order !== undefined) message = 'parent_epic is required when order is set'
+  if (parentEpic === undefined && order !== undefined) message = 'parent_epic is required when order is set'
   else if (order !== undefined && order <= 0) message = `order must be an integer of 1 or more: ${String(order)}`
-  else if (parallel !== undefined && order === undefined) message = 'order is required when parallel is set'
+  else if (blockedBy.length > 0 && (type === 'epic' || type === 'tracker')) message = `blocked_by cannot be set for type ${type}`
+  else if (status === 'ready' && blockedBy.length > 0) message = 'status: ready cannot be set together with blocked_by'
+  else if (status === 'blocked' && blockedBy.length === 0) message = 'status: blocked requires blocked_by'
   if (message !== undefined) throw validationError([`  - : Value error, ${message}`])
+}
+
+function hasParallel(data: unknown): boolean {
+  const value = typeof data === 'object' && data !== null && 'parallel' in data ? data.parallel : undefined
+  return typeof value === 'string' ? value !== '' : value !== undefined && value !== null
 }
 
 /**
@@ -201,7 +233,8 @@ function checkOrderWithParentEpic(frontmatter: IssueFrontmatter): void {
 export function validateIssueFrontmatter(data: unknown): IssueFrontmatter {
   const result = IssueFrontmatterSchema.safeParse(data)
   if (!result.success) throw fieldErrors(result.error.issues)
-  checkOrderWithParentEpic(result.data)
+  if (hasParallel(data)) throw new FrontmatterError('parallel is no longer supported', { kind: 'parallel' })
+  checkCrossFields(result.data)
   return result.data
 }
 

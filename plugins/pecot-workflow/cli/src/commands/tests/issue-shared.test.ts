@@ -26,6 +26,7 @@ import { createOutput } from '../output.js'
 import { UsageError } from '../usage-error.js'
 import { capture } from './support.js'
 import type { CapturedIo } from './support.js'
+import { JSON_NULL } from '../../domain/json-null.js'
 
 useFakeGithub()
 
@@ -106,13 +107,8 @@ describe('buildIssueTitle', () => {
     expect(buildIssueTitle('unknown', 'タイトル', { parentEpic: 50, order: 1 })).toBe('#50-01: タイトル')
   })
 
-  it('parallel は order があるときだけ付ける', () => {
-    expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, order: 4, parallel: 'a' })).toBe('[Task] #189-04a: タイトル')
-    expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, parallel: 'a' })).toBe('[Task] タイトル')
-  })
-
-  it('order は 2 桁にして、枝の文字を続ける', () => {
-    expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, order: 4, parallel: 'b' })).toBe('[Task] #189-04b: タイトル')
+  it('order は 2 桁にして付ける', () => {
+    expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, order: 4 })).toBe('[Task] #189-04: タイトル')
     expect(buildIssueTitle('task', 'タイトル', { parentEpic: 189, order: 10 })).toBe('[Task] #189-10: タイトル')
   })
 })
@@ -205,6 +201,22 @@ describe('status の検証', () => {
     expect(io.err).toEqual(['error: the status at creation for type \'bug\' is only \'ready\' (given: backlog)\n  hint: move it to pending or another status on the board after creation\n'])
   })
 
+  it('許す値を渡すと、その値でも通し、違えば許す値を並べる', () => {
+    const { io, output } = started()
+    validateStatusForType(output, 'task', 'blocked', ['ready', 'blocked'])
+    expect(() => {
+      validateStatusForType(output, 'task', 'active', ['ready', 'blocked'])
+    }).toThrow(CommandExit)
+    expect(io.err).toEqual(['error: the status at creation for type \'task\' is only \'ready\' or \'blocked\' (given: active)\n  hint: move it to pending or another status on the board after creation\n'])
+  })
+
+  it('許す値を渡さないと、blocked は型の既定値でないので止める', () => {
+    const { output } = started()
+    expect(() => {
+      validateStatusForType(output, 'task', 'blocked')
+    }).toThrow(CommandExit)
+  })
+
   it('enum 外の値は先に弾く', () => {
     const { io, output } = started()
     expect(() => {
@@ -242,25 +254,22 @@ describe('checkDuplicateOrder', () => {
     expect(io.err).toEqual(['error: Epic #353 already has an Issue with order=1 (CLOSED)\n  #11 [Task] #353-01: a\n  next available order: 3\n'])
   })
 
-  it('枝の文字が違えば重複にしない', async () => {
+  it('既存のタイトルの枝の文字（04a）は数えず、番号 4 の重複にする', async () => {
     const { client } = await startClient([epic([{ number: 1, state: 'OPEN', title: '[Task] #353-04a: a' }])])
     const { io, output } = started()
-    await checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'b')
-    expect(io.err).toEqual([])
+    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4)).rejects.toThrow(CommandExit)
+    expect(io.err).toEqual(['error: Epic #353 already has an Issue with order=4 (OPEN)\n  #1 [Task] #353-04a: a\n  next available order: 1\n'])
   })
 
-  it('同じ枝の文字なら、次に使える番号を案内する', async () => {
-    const { client } = await startClient([epic([{ number: 1, state: 'OPEN', title: '[Task] #353-04a: a' }])])
+  it('サブ Issue が 1 ページ目に収まらなくても、全件を読んで重複を見つける', async () => {
+    const nodes = Array.from({ length: 20 }, (_, index) => ({ number: index + 1, state: 'OPEN', title: `[Task] #353-${String(index + 1).padStart(2, '0')}: a` }))
+    const { client } = await startClient([
+      graphqlData('GetIssueSlim', { repository: { issue: { number: 353, state: 'OPEN', title: 'E', body: '', comments: { totalCount: 0 }, subIssues: { nodes, pageInfo: { hasNextPage: true, endCursor: 'c1' } } } } }),
+      graphqlData('GetSubIssuesPage', { repository: { issue: { subIssues: { nodes: [{ number: 21, state: 'CLOSED', title: '[Task] #353-21: z' }], pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } } } }),
+    ])
     const { io, output } = started()
-    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'a')).rejects.toThrow(CommandExit)
-    expect(io.err).toEqual(['error: Epic #353 already has an Issue (04a) that conflicts with order=04a (OPEN)\n  #1 [Task] #353-04a: a\n  next available number: 04b\n'])
-  })
-
-  it('枝なしの Issue と枝ありの新規は重複で、次の order を案内する', async () => {
-    const { client } = await startClient([epic([{ number: 1, state: 'OPEN', title: '[Task] #353-04: a' }])])
-    const { io, output } = started()
-    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4, 'a')).rejects.toThrow(CommandExit)
-    expect(io.err).toEqual(['error: Epic #353 already has an Issue (04) that conflicts with order=04a (OPEN)\n  #1 [Task] #353-04: a\n  next available order: 5\n'])
+    await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 21)).rejects.toThrow(CommandExit)
+    expect(io.err).toEqual(['error: Epic #353 already has an Issue with order=21 (CLOSED)\n  #21 [Task] #353-21: z\n  next available order: 22\n'])
   })
 
   it('親 Epic を取れなければ warning だけで続ける', async () => {

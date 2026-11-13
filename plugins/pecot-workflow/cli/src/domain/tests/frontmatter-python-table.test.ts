@@ -8,13 +8,23 @@ import { FrontmatterError, parseCommentContent, parseFrontmatter, parsePullReque
 // フロントマターの YAML → 検証後の値、または FrontmatterError の文。
 const OUTPUTS = frontmatterOutputs()
 
+// #378 で意図して変えた入力。status と order を省けるようにし、blocked_by を足した
+const CHANGED_ISSUE_OUTPUTS: ReadonlyMap<string, FrontmatterResult> = new Map([
+  ['title: T\ntype: task\nrepository: o/r\nstatus: ready\nparent_epic: 3\n', { ok: { title: 'T', type: 'task', repository: 'o/r', status: 'ready', labels: [], parent_epic: 3 } }],
+  ['title: T\ntype: task\nrepository: o/r\nstatus: ready\nparent_epic: false\n', { ok: { title: 'T', type: 'task', repository: 'o/r', status: 'ready', labels: [], parent_epic: 0 } }],
+  ['title: T\n', { error: 'validation error:\n  - type: Field required\n  - repository: Field required' }],
+])
+
 function issueContent(yamlText: string): string {
   return `---\n${yamlText}---\n\nbody\n`
 }
 
 function run(parse: (content: string) => { readonly frontmatter: object }, yamlText: string): FrontmatterResult {
   try {
-    return { ok: { ...parse(issueContent(yamlText)).frontmatter } }
+    // blocked_by の空の一覧は #378 で足した既定の値なので、Python の記録との比較から外す
+    const parsed: Record<string, unknown> = { ...parse(issueContent(yamlText)).frontmatter }
+    const { blocked_by: blockedBy, ...rest } = parsed
+    return { ok: Array.isArray(blockedBy) && blockedBy.length === 0 ? rest : parsed }
   }
   catch (error: unknown) {
     if (error instanceof FrontmatterError) return { error: error.message }
@@ -33,8 +43,8 @@ describe('Python の出力との一致', () => {
     expect(Object.values(result)[0]).toMatch(/^failed to parse YAML: /u)
   })
 
-  it.each(OUTPUTS.issue)('issue のフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
-    expect(run(parseFrontmatter, yamlText)).toEqual(expected)
+  it.each(OUTPUTS.issue)('issue のフロントマターが %j のとき、Python の出力と一致する（意図して変えた入力を除く）', (yamlText, recorded) => {
+    expect(run(parseFrontmatter, yamlText)).toEqual(CHANGED_ISSUE_OUTPUTS.get(yamlText) ?? recorded)
   })
 
   it.each(OUTPUTS.comment)('コメントのフロントマターが %j のとき、Python の出力と一致する', (yamlText, expected) => {
