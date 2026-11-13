@@ -54,6 +54,23 @@ GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。
 ブラウザは、端末に入っている Google Chrome を使います。
 Chrome が無い端末での入れ方は、[pecot-visual の README](../pecot-visual/README.md) を参照してください。
 
+Agent Plugins 1.0 に対応したクライアントが読み込むのは、スキルと MCP サーバです。
+スキルの手順の一部は、クライアントの機能（質問の UI・プランモード）に頼ります。
+hooks とエージェントは、Claude Code と GitHub Copilot CLI でだけ動きます。
+
+プラグインを入れずにツールだけ使う場合は、npm のパッケージ `@pecot/workflow-mcp` の README を参照してください。
+
+### MCP サーバにつながらないとき
+
+Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 分覚えます。
+その間に始めたセッションは、15 分が過ぎても、そのセッションの中では試し直しません。
+症状は、`Skipping connection (recent failure cached` で始まる文言です。
+
+直し方は、次のどちらかです。
+
+- `/mcp` でサーバを選んで Reconnect する
+- 15 分たってから新しいセッションを始める
+
 ---
 
 ## 動作要件

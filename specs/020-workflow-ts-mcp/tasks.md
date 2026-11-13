@@ -417,7 +417,7 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
   `plugins/pecot-visual/cli/tests/bootstrap/lib-consistency.sh`、`plugins/pecot-visual/scripts/ci/check-pm-guard.sh`、`libs/interface-spec/tests/sample-files.test.ts`（`node-sample.json` のパス）。
   `.claude/rules/test-conventions.md`、`plugins/pecot-workflow/runtime-workspace.yaml`。
 - [x] T086 [P] [US4] `.github/dependabot.yml` から uv（`/plugins/pecot-workflow/cli`）のエントリを消す。ファイル先頭の uv についての説明も消す。
-- [ ] T087 [US4] `.specify/memory/constitution.md` の `cli-node/` と pytest の閾値の記述は、憲章の変更にあたる。利用者に確認してから直す。確認が取れるまでは直さず、PR の本文に確認待ちと書く。
+- [x] T087 [US4] `.specify/memory/constitution.md` の `cli-node/` と pytest の閾値の記述は、憲章の変更にあたる。利用者に確認してから直す。確認が取れるまでは直さず、PR の本文に確認待ちと書く。
 
 **Checkpoint**: Python なしで全レーンが通る。つながらない項目が 0 件。着手の時点の `authored.yaml` と、項目の ID と文に差が無い。Python と uv の無い環境の作り方は quickstart.md を指す
 
@@ -447,10 +447,10 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
 
 **Purpose**: 移行の結果を文書と関連 Epic に反映する
 
-- [ ] T094 [P] `plugins/pecot-workflow/` の `README.md` と `CONTRIBUTING.md` から、Python と uv の前提を消す。MCP ツールの使い方と、単体配布の登録を書く。
+- [x] T094 [P] `plugins/pecot-workflow/` の `README.md` と `CONTRIBUTING.md` から、Python と uv の前提を消す。MCP ツールの使い方と、単体配布の登録を書く。
   root の `README.md` に、pecot-workflow の Python と uv の前提があれば、同じように直す。
-- [ ] T095 [P] `CLAUDE.md` のリポジトリ構成の表から `test-py` を外し、pecot-workflow のレーンを今の形に直す。`.githooks/README.md` に Python のレーンの記述があれば、同じに直す。
-- [ ] T096 Epic #41 に、pecot-workflow の manifest と準拠範囲が片づいたことをコメントする。#41 の本文は書き換えない。
+- [x] T095 [P] `CLAUDE.md` のリポジトリ構成の表から `test-py` を外し、pecot-workflow のレーンを今の形に直す。`.githooks/README.md` に Python のレーンの記述があれば、同じに直す。
+- [x] T096 Epic #41 に、pecot-workflow の manifest と準拠範囲が片づいたことをコメントする。#41 の本文は書き換えない。
 - [ ] T097 quickstart.md を最初から最後まで実行し、SC-001〜SC-011 の結果を `.pecot/work/<Issue番号>/` に残す。
 
 ---
