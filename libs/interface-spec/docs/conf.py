@@ -12,7 +12,13 @@ project = "pecot"
 html_title = "pecot"
 language = "ja"
 html_search_language = "ja"
-extensions = ["sphinx_needs", "sphinx_test_reports", "sphinxawesome_theme", "iface_defs"]
+extensions = [
+    "sphinx_needs",
+    "sphinx_test_reports",
+    "sphinx_design",
+    "sphinxawesome_theme",
+    "iface_defs",
+]
 exclude_patterns = ["_build", "_generated/junit", ".venv", "tests", "_ext"]
 html_theme = "sphinxawesome_theme"
 # ヘッダーに置くものは、テーマが用意している設定項目だけで決める。
@@ -49,14 +55,14 @@ needs_id_regex = r"^[A-Z0-9_\-]{4,}"
 needs_types = [
     {
         "directive": "cmd",
-        "title": "コマンド",
+        "title": "ツール",
         "prefix": "C_",
         "color": "#BFD8D2",
         "style": "node",
     },
     {
         "directive": "behavior",
-        "title": "要件",
+        "title": "機能要件",
         "prefix": "B_",
         "color": "#FEDCD2",
         "style": "node",
@@ -90,7 +96,8 @@ iface_junit = {
     "pecot-tools": [str(ROOT / "plugins/pecot-tools/cli/test-results/junit.xml")],
     "pecot-visual": [str(ROOT / "plugins/pecot-visual/cli/test-results/junit.xml")],
 }
-iface_field_map = str(DOCS / "_generated/field-map.json")
 
 # コマンド・ツールごとのページを _generated/<plugin>/ に書く。テストは 1 ページで組むので切る。
 iface_pages = True
+# 本文の用語を、その説明のページへのリンクにする。
+iface_terms = {"EvidenceSpec": "/reference/file-formats/evidence-spec"}

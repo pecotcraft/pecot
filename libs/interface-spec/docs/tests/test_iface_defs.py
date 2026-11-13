@@ -25,8 +25,6 @@ Sample
    :columns: id;title;outcome;verifies_back
 
 .. iface-tests:: sample
-
-.. iface-field-map::
 """
 
 JUNIT_VITEST = FIXTURES / "junit" / "vitest.xml"
@@ -70,7 +68,6 @@ def build(
         "globals().update({k: v for k, v in _ns.items() if not k.startswith('__')})\n"
         f"iface_root = {str(FIXTURES / 'repo')!r}\n"
         f"iface_junit = {junit_map!r}\n"
-        f"iface_field_map = {str(FIXTURES / 'field-map.json')!r}\n"
         f"iface_pages = {pages!r}\n",
         encoding="utf-8",
     )
@@ -180,13 +177,6 @@ def test_broken_entries_become_warnings_and_are_skipped(full: Built) -> None:
     assert full.code == 0
 
 
-def test_field_map_page(full: Built) -> None:
-    html = full.html()
-    assert "CHANGE HISTORY" in html
-    assert "AWS CLI" in html
-    assert "EXIT STATUS" in html
-
-
 def test_without_junit_everything_is_not_run(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
@@ -266,7 +256,6 @@ def test_pages_are_written_and_stale_ones_removed(
     (generated / "gone" / "x.rst").write_text("X\n=\n", encoding="utf-8")
     (generated / "junit").mkdir()
     (generated / "junit" / "keep.xml").write_text("<testsuites/>", encoding="utf-8")
-    (generated / "field-map.json").write_text("{}", encoding="utf-8")
     built = build(
         tmp_path,
         [JUNIT_VITEST, JUNIT_PYTEST],
@@ -282,7 +271,6 @@ def test_pages_are_written_and_stale_ones_removed(
     }
     assert not (generated / "gone").exists()
     assert (generated / "junit" / "keep.xml").is_file()
-    assert (generated / "field-map.json").is_file()
     assert ".. iface-defs:: sample SM-ONE" in (generated / "sample" / "one-run.rst").read_text(
         encoding="utf-8"
     )

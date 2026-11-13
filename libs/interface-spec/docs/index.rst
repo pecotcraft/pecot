@@ -12,7 +12,7 @@ Claude Code 向けのプラグインのマーケットプレイスです。
 
 .. toctree::
    :hidden:
-   :maxdepth: 3
+   :maxdepth: 4
 
    introduction
    installation

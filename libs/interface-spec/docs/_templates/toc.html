@@ -1,0 +1,14 @@
+{#- 右の欄。テーマが用意している差し込み口（toc_after）に、ページの付帯情報を足す。 -#}
+{% extends "!toc.html" %}
+{%- block toc_after %}
+{%- if meta and meta.get("iface-id") %}
+<dl class="iface-about pt-6">
+  <dt class="font-medium">ID</dt>
+  <dd class="font-mono text-xs text-muted-foreground">{{ meta.get("iface-id") }}</dd>
+  <dt class="font-medium">Group</dt>
+  <dd class="text-muted-foreground">{{ meta.get("iface-plugin") }}</dd>
+  <dt class="font-medium">Interface</dt>
+  <dd class="text-muted-foreground">{{ meta.get("iface-kind") }}</dd>
+</dl>
+{%- endif %}
+{%- endblock %}

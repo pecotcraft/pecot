@@ -208,6 +208,7 @@ version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "pyyaml" },
+    { name = "sphinx-design" },
     { name = "sphinx-needs" },
     { name = "sphinx-test-reports" },
     { name = "sphinxawesome-theme" },
@@ -223,6 +224,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pyyaml" },
+    { name = "sphinx-design", specifier = ">=0.8.0" },
     { name = "sphinx-needs", specifier = "==9.2.*" },
     { name = "sphinx-test-reports", specifier = "==4.0.*" },
     { name = "sphinxawesome-theme", specifier = ">=6.0.6" },
@@ -661,6 +663,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/71/3a/7aeeb805327af5b0e6f072312f9bc660615045e791a5a8f7258276fdddd1/sphinx_data_viewer-0.1.5.tar.gz", hash = "sha256:a7d5e58613562bb745380bfe61ca8b69997998167fd6fa9aea55606c9a4b17e4", size = 103260, upload-time = "2024-08-28T10:34:21.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/57/60/5e902d53a5eb3ec7166a8eda602bd78d4b8671a73917567edc8f13a3b366/sphinx_data_viewer-0.1.5-py3-none-any.whl", hash = "sha256:b74b1d304c505c464d07c7b225ed0d84ea02dcc88bc1c49cdad7c2275fbbdad4", size = 8215, upload-time = "2024-08-28T10:34:20.136Z" },
+]
+
+[[package]]
+name = "sphinx-design"
+version = "0.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sphinx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b0/c3/5d0f3aff52337edea9fe1d3f35ecba8a235b0490afb185544299a03a97d0/sphinx_design-0.8.0.tar.gz", hash = "sha256:57fa4d96378525122947ab6109c6e490190e3119dc10f3e3adf6b71444bf3bb4", size = 2254778, upload-time = "2026-11-10T17:16:39.673Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/9a/e929b7fb9497d8e12bcda1777a7076f7c38d644216e91665bcfff6cab90d/sphinx_design-0.8.0-py3-none-any.whl", hash = "sha256:861fecb064c3da5ff48031a237692ccb7c2e671f8c4aa84d4b9eef3cb8fd9c91", size = 2288922, upload-time = "2026-11-10T17:16:37.538Z" },
 ]
 
 [[package]]

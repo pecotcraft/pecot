@@ -72,7 +72,8 @@ const output = z.discriminatedUnion('format', [
 export const conflictConstraintSchema = z.strictObject({ conflicts: z.array(z.string()).min(2) })
 export const dependencyConstraintSchema = z.strictObject({ requires: z.record(z.string(), z.array(z.string())) })
 export const exitCodeSchema = z.strictObject({ code: z.int().min(0).max(255), when: authoredText })
-export const exitKindSchema = z.strictObject({ kind: authoredText, when: authoredText })
+// kind の要素は、終了コードが決まっていれば code に書く。
+export const exitKindSchema = z.strictObject({ kind: authoredText, code: z.int().min(0).max(255).optional(), when: authoredText })
 
 export const authoredEntrySchema = z.strictObject({
   // summary と arguments は、実装の description と引数の説明（英語）に当たる日本語の文。

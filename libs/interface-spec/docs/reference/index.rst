@@ -1,11 +1,8 @@
 リファレンス
 ============
 
-プラグインごとの、コマンドとツールの仕様です。
-
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   pecot-workflow
-   pecot-tools
-   pecot-visual
+   tools/index
+   file-formats/index

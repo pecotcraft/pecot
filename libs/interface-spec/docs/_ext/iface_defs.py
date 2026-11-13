@@ -4,7 +4,6 @@
   outcome を決める。2 つ目を渡すと、その項目とその振る舞いだけ（``common`` は共通の振る舞いだけ）を出す
 - ``iface-index <plugin>``: コマンド・ツールの一覧を、各ページへのリンクと合否の数の表にする
 - ``iface-tests <plugin>``: 項目につながるケースだけの JUnit を書き、test-file で描く
-- ``iface-field-map``: 欄と POSIX の節の対応の表を描く
 
 定義書の形式は lint-defs が守る。ここでは欠けた欄を警告にして、その項目を飛ばす。
 """
@@ -201,14 +200,33 @@ def collect(paths: list[Path], known: frozenset[str]) -> Collected:
 # ---------------------------------------------------------------- 定義書
 
 
-def _esc(value: object) -> str:
-    """list-table のセルや段落に入れる文字列。rst の記号を無効にし、改行を空白にする。"""
+# 用語と、その説明のページ。conf.py の iface_terms から入る。本文に出た用語をページへのリンクにする。
+_TERMS: dict[str, str] = {}
+
+
+def _load_terms(_app: Sphinx, config: Config) -> None:
+    _TERMS.clear()
+    _TERMS.update(cast("dict[str, str]", config.iface_terms))
+
+
+def _plain(part: str, link: bool = False) -> str:
+    """等幅にしない部分。rst の記号を無効にする。link のときは、用語の最初の 1 つをリンクにする。"""
+    escaped = "".join("\\" + ch if ch in "*`|_\\" else ch for ch in part)
+    if link:
+        for term, target in _TERMS.items():
+            # 前後に「\ 」を置くと、日本語の文字に続けて書いた用語も role として読まれる。
+            escaped = escaped.replace(term, f"\\ :doc:`{term} <{target}>`\\ ", 1)
+    return escaped
+
+
+def _esc(value: object, link: bool = False) -> str:
+    """list-table のセルや段落に入れる文字列。rst の記号を無効にし、改行を空白にする。
+
+    link を付けるのは、ページの冒頭の文と引数の説明だけ。用語が出るたびにリンクにはしない。
+    """
     text = " ".join(str(value).split())
     parts = re.split(r"`([^`]+)`", text)
-    return "".join(
-        _lit(part) if i % 2 else "".join("\\" + ch if ch in "*`|_\\" else ch for ch in part)
-        for i, part in enumerate(parts)
-    )
+    return "".join(_lit(part) if i % 2 else _plain(part, link) for i, part in enumerate(parts))
 
 
 def _lit(value: object) -> str:
@@ -223,7 +241,7 @@ def _table(
     """表。先頭の code 列は識別子なので等幅にする。"""
     if not rows:
         return []
-    out = [f".. list-table:: {_esc(title)}".rstrip(), "   :header-rows: 1", ""]
+    out = [f".. list-table:: {_esc(title)}".rstrip(), "   :header-rows: 1", "   :widths: auto", ""]
     out += [("   * - " if i == 0 else "     - ") + _esc(cell) for i, cell in enumerate(header)]
     for row in rows:
         out += [
@@ -285,47 +303,8 @@ def _schema(value: object) -> tuple[dict[str, dict[str, Any]], list[str]]:
     return properties, cast("list[str]", body.get("required", []))
 
 
-def _choices(spec: dict[str, Any]) -> str:
-    values = cast("list[Any]", spec.get("enum", []))
-    return " {" + ", ".join(str(v) for v in values) + "}" if values else ""
-
-
-def _syntax_block(head: str, parameters: list[str]) -> list[str]:
-    """構文。Azure CLI のリファレンスと同じく、引数を 1 行に 1 つ、コマンドの名前の右にそろえて並べる。"""
-    pad = " " * (len(head) + 1)
-    rows = [f"{head} {parameters[0]}", *(pad + p for p in parameters[1:])] if parameters else [head]
-    return _code_block("\n".join(rows))
-
-
-def _syntax(entry: dict[str, Any]) -> list[str]:
-    """構文。省ける引数は [ ] で囲み、選べる値は { } に並べる。"""
-    properties, required = _schema(entry.get("input"))
-    surfaces = cast("dict[str, dict[str, Any]]", entry["surfaces"])
-    detail = cast("dict[str, Any]", entry.get("cli", {}))
-    positional = cast("list[str]", detail.get("positional", []))
-    flags = cast("dict[str, list[str]]", detail.get("flags", {}))
-
-    def wrap(name: str, text: str) -> str:
-        text += _choices(properties.get(name, {}))
-        return text if name in required else f"[{text}]"
-
-    blocks: list[list[str]] = []
-    if "cli" in surfaces:
-        examples = cast("list[dict[str, str]]", entry.get("examples", []))
-        path = cast("list[str]", surfaces["cli"]["path"])
-        binary = examples[0]["run"].split()[0] if examples and examples[0]["run"].split() else ""
-        head = " ".join([binary, *path] if binary and binary != path[0] else path)
-        names = [*positional, *(n for n in flags if n not in positional)]
-        parameters = [wrap(n, f"<{n}>" if n in positional else flags[n][0]) for n in names]
-        blocks.append(_syntax_block(head, parameters))
-    if "mcp" in surfaces:
-        parameters = [wrap(n, n) for n in properties]
-        blocks.append(_syntax_block(str(surfaces["mcp"]["tool"]), parameters))
-    return [line for block in blocks for line in block]
-
-
-def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any]) -> list[str]:
-    """引数 1 つ。Azure CLI のリファレンスと同じく、名前の行、説明、プロパティと値の表の順に書く。"""
+def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required: bool) -> list[str]:
+    """引数 1 つ。Sphinx 標準の option で、名前・説明・項目（field list）の順に書く。"""
     detail = cast("dict[str, Any]", entry.get("cli", {}))
     flags = cast("dict[str, list[str]]", detail.get("flags", {}))
     written = cast("dict[str, str]", entry.get("arguments", {}))
@@ -339,27 +318,29 @@ def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any]) -> list[s
     text = " ".join(
         t for t in (written.get(name, spec.get("description", "")), notes.get(name)) if t
     )
-    rows: list[list[object]] = [
-        ["型:", _type(spec) if "enum" not in spec else spec.get("type", "")]
+    rows: list[tuple[str, object]] = [
+        ("指定", "必須" if required else "省略可"),
+        ("型", _type(spec) if "enum" not in spec else spec.get("type", "")),
     ]
     if label != name and "mcp" in cast("dict[str, Any]", entry["surfaces"]):
-        rows.append(["MCP での名前:", name])
+        rows.append(("MCP での名前", name))
     if "default" in spec:
-        rows.append(["既定値:", json.dumps(spec["default"], ensure_ascii=False)])
+        rows.append(("既定値", json.dumps(spec["default"], ensure_ascii=False)))
     if "enum" in spec:
-        rows.append(["指定可能な値:", ", ".join(str(v) for v in cast("list[Any]", spec["enum"]))])
-    # Sphinx 標準の option で描く。名前が見出し語になり、プロパティは field list になる。
-    body = [_esc(text), "", *(f":{str(k).rstrip(chr(58))}: {_esc(v)}" for k, v in rows), ""]
+        rows.append(("指定可能な値", ", ".join(str(v) for v in cast("list[Any]", spec["enum"]))))
+    body = [_esc(text, link=True), "", *(f":{key}: {_esc(value)}" for key, value in rows), ""]
     return [f".. option:: {label}", "", *(f"   {line}" if line else "" for line in body)]
 
 
-def _parameters(entry: dict[str, Any], required_ones: bool) -> list[str]:
+def _parameters(entry: dict[str, Any]) -> list[str]:
+    """引数の一覧。必須のものを先に、省略できるものを後に並べる。"""
     properties, required = _schema(entry.get("input"))
     return [
         line
+        for wanted in (True, False)
         for name, spec in properties.items()
-        if (name in required) == required_ones
-        for line in _parameter(entry, name, spec)
+        if (name in required) == wanted
+        for line in _parameter(entry, name, spec, wanted)
     ]
 
 
@@ -391,18 +372,17 @@ def _output(entry: dict[str, Any]) -> list[str]:
     elif output.get("description"):
         lines += _para(output["description"])
     schema = output.get("schema", _get(entry, "mcp.output"))
-    properties, required = _schema(None if schema is _MISSING else schema)
+    properties, _ = _schema(None if schema is _MISSING else schema)
     written = cast("dict[str, str]", output.get("fields", {}))
     rows = [
         [
             name,
             _type(spec),
-            "○" if name in required else "",
             written.get(name, spec.get("description", "")),
         ]
         for name, spec in properties.items()
     ]
-    lines += _table("", ["名前", "型", "必須", "説明"], rows)
+    lines += _table("", ["項目名", "型", "説明"], rows)
     extra = [
         (label, entry[key])
         for key, label in (("stdin", "標準入力"), ("diagnostics", "標準エラー"))
@@ -414,22 +394,18 @@ def _output(entry: dict[str, Any]) -> list[str]:
 def _failures(entry: dict[str, Any]) -> tuple[str, list[str]]:
     """エラーの表。終了コードで返す項目は戻り値の表。エラーの後に残る状態を、その下に書く。"""
     items = cast("list[dict[str, Any]]", entry.get("exit_status", []))
-    coded = any("code" in e for e in items)
-    rows = [[e.get("code", e.get("kind", "")), e["when"]] for e in items]
-    lines = _table("", ["戻り値", "意味"] if coded else ["エラー", "主な要因"], rows)
+    named = any("kind" in e for e in items)
+    if not named:
+        lines = _table("", ["戻り値", "意味"], [[e.get("code", ""), e["when"]] for e in items])
+    elif any("code" in e for e in items):
+        rows = [[e.get("kind", ""), e["when"], e.get("code", "")] for e in items]
+        lines = _table("", ["エラー名", "説明", "終了コード"], rows)
+        lines.insert(1, "   :class: iface-errors")
+    else:
+        lines = _table("", ["エラー名", "説明"], [[e.get("kind", ""), e["when"]] for e in items])
     if "on_error" in entry and entry["on_error"] != _NOTHING["on_error"]:
         lines += _para(entry["on_error"])
-    return ("戻り値" if coded else "エラー"), lines
-
-
-def _notices(entry: dict[str, Any]) -> list[str]:
-    """書き換えるものと、呼び直したときの結果。読むだけのものは出さない。"""
-    effects = cast("list[dict[str, str]]", entry.get("effects", []))
-    items = [e["what"] for e in effects if e["kind"] != "read"]
-    if "idempotent" in entry:
-        again = "変わりません" if entry["idempotent"] else "変わることがあります"
-        items.append(f"同じ引数でもう一度呼んでも、結果は{again}。")
-    return [*(f"- {_esc(text)}" for text in items), ""] if items else []
+    return ("エラー" if named or not items else "戻り値"), lines
 
 
 def _prerequisites(entry: dict[str, Any]) -> list[str]:
@@ -439,30 +415,32 @@ def _prerequisites(entry: dict[str, Any]) -> list[str]:
 
 def _environment(entry: dict[str, Any]) -> list[str]:
     env = cast("list[dict[str, str]]", entry.get("environment", []))
-    return _table("", ["名前", "効果"], [[e["name"], e["effect"]] for e in env])
+    return _table("", ["変数名", "説明"], [[e["name"], e["effect"]] for e in env])
 
 
 def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
     """項目のページの節。中身のある節だけを、見出しと rst の行の組で返す。
 
-    構文からオプションのパラメータまでは、Azure CLI の日本語リファレンスの並びと見出しに合わせる。
+    構文と引数の書き方は、Azure CLI のリファレンスに合わせる。
     見出しが空の節は、冒頭の説明と構文で、見出しを付けずに出す。
     """
-    details = [line for text in cast("list[str]", entry.get("details", [])) for line in _para(text)]
+    details = [
+        line
+        for text in cast("list[str]", entry.get("details", []))
+        for line in (_esc(text, link=True), "")
+    ]
     constraints = cast("list[object]", entry.get("constraints", []))
-    optional = _parameters(entry, False)
-    if optional and constraints:
-        optional = [*(f"- {_esc(_constraint(c))}" for c in constraints), "", *optional]
+    arguments = _parameters(entry)
+    if arguments and constraints:
+        arguments = [*(f"- {_esc(_constraint(c))}" for c in constraints), "", *arguments]
     failure_title, failures = _failures(entry)
     sections = [
-        ("", [*details, *_syntax(entry)]),
+        ("", details),
+        ("使用例", _examples(entry)),
         ("前提条件", _prerequisites(entry)),
-        ("例", _examples(entry)),
-        ("必須パラメータ", _parameters(entry, True)),
-        ("オプションのパラメータ", optional),
+        ("引数", arguments),
         ("出力", _output(entry)),
         (failure_title, failures),
-        ("注意事項", _notices(entry)),
         ("環境変数", _environment(entry)),
     ]
     return [(title, lines) for title, lines in sections if lines]
@@ -659,29 +637,36 @@ class IfaceDefs(_Base):
         lines += [
             ".. rst-class:: iface-lead",
             "",
-            _esc(command.description),
-            "",
-            ".. rst-class:: iface-meta",
-            "",
-            f"{_lit(command.id)} {' '.join(f':iface-tag:`{_esc(t)}`' for t in command.tags)}",
+            _esc(command.description, link=True),
             "",
         ]
         lines += [f".. program:: {command.name}", ""]
         if command.deprecated:
-            lines += [".. warning::", "", "   このコマンドは非推奨です。", ""]
+            lines += [".. warning::", "", "   このツールは非推奨です。", ""]
         for title, body in command.sections:
             lines += [title, sub * (len(title) * 2 + 4), "", *body] if title else body
         if behaviors:
-            lines += ["要件", sub * 12, "", *self._behavior_table(behaviors, collected)]
+            lines += [
+                "機能要件",
+                sub * 16,
+                "",
+                self._behavior_lead(behaviors),
+                "",
+                *self._behavior_table(behaviors, collected),
+            ]
         parsed = self.parse_text_to_nodes("\n".join(lines), allow_section_headings=True)
         anchor = nodes.raw("", f'<span id="{command.id}"></span>', format="html")
         return [anchor, *self._anchored_nodes(parsed, behaviors)]
+
+    def _behavior_lead(self, behaviors: list[Behavior]) -> str:
+        """表の前の 1 文。使う人に、動作を機能要件として決め、テストで確かめていることを伝える。"""
+        return f"次の {len(behaviors)} 件の機能要件を自動テストで検証しています。"
 
     def _behavior_table(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
         lines = [
             ".. list-table::",
             "   :header-rows: 1",
-            "   :widths: 24 50 10 16",
+            "   :widths: auto",
             "   :class: iface-behaviors",
             "",
             "   * - ID",
@@ -828,7 +813,13 @@ def write_pages(app: Sphinx) -> None:
             if c.slug in pages:
                 logger.warning("%s: ページ名 %s が別の項目と重なるため、飛ばしました", c.id, c.slug)
                 continue
+            kinds = {"cli": "CLI", "mcp": "MCP"}
             pages[c.slug] = [
+                # 文書の先頭の field list は、Sphinx がページの付帯情報として読む。右の欄に出す。
+                f":iface-id: {c.id}",
+                f":iface-plugin: {plugin}",
+                f":iface-kind: {'・'.join(kinds.get(t, t) for t in c.tags)}",
+                "",
                 c.name,
                 "=" * (len(c.name) * 2),
                 "",
@@ -888,28 +879,6 @@ class IfaceTests(_Base):
         return [nodes.paragraph(text=text)]
 
 
-class IfaceFieldMap(_Base):
-    def run(self) -> list[nodes.Node]:
-        path = Path(self.config.iface_field_map)
-        self.env.note_dependency(str(path))
-        if not path.is_file():
-            logger.warning(
-                "欄の対応表 %s がありません", path, location=(self.env.docname, self.lineno)
-            )
-            return []
-        data = cast("dict[str, list[dict[str, Any]]]", _load_json(path))
-        posix = [
-            [r["section"], ", ".join(r["fields"]) or "（なし）", r["writer"], r["mcp"]]
-            for r in data["posix"]
-        ]
-        borrowed = [[", ".join(r["fields"]), r["source"]] for r in data["borrowed"]]
-        lines = [
-            *_table("POSIX の節と欄", ["節", "欄", "書き手", "MCP"], posix, 0),
-            *_table("ほかの枠組みから借りた欄", ["欄", "出どころ"], borrowed, 0),
-        ]
-        return self.parse_text_to_nodes("\n".join(lines))
-
-
 def _tests_role(
     _name: str,
     rawtext: str,
@@ -945,8 +914,9 @@ def _class_role(name: str) -> Any:
 def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value("iface_root", "", "env", types=[str])
     app.add_config_value("iface_junit", {}, "env", types=[dict])
-    app.add_config_value("iface_field_map", "", "env", types=[str])
     app.add_config_value("iface_pages", False, "env", types=[bool])
+    app.add_config_value("iface_terms", {}, "env", types=[dict])
+    app.connect("config-inited", _load_terms)
     app.connect("builder-inited", write_pages)
     app.add_role("iface-tests", _tests_role)
     for name in ("iface-tag", "iface-passed", "iface-failed", "iface-not-run"):
@@ -954,5 +924,4 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
     app.add_directive("iface-tests", IfaceTests)
-    app.add_directive("iface-field-map", IfaceFieldMap)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

@@ -41,3 +41,28 @@
 #content a:not(.toc-backref) {
   text-decoration-color: hsl(var(--ring));
 }
+
+/* 表の見出しを折り返さない。「終了コード」のような短い見出しが 2 行に割れるのを防ぐ。 */
+#content th {
+  white-space: nowrap;
+}
+
+/* 要件の表の合否（「未実行」など）を折り返さない。 */
+#content table.iface-behaviors td:nth-child(3) {
+  white-space: nowrap;
+}
+
+/* エラーの表の終了コードは、短い数なので列の中央に置く。 */
+#content table.iface-errors th:nth-child(3),
+#content table.iface-errors td:nth-child(3) {
+  text-align: center;
+}
+
+/* 右の欄の付帯情報。項目名と値を縦に並べる。 */
+.iface-about dt {
+  margin-top: 0.75rem;
+}
+
+.iface-about dd {
+  margin: 0.125rem 0 0;
+}
