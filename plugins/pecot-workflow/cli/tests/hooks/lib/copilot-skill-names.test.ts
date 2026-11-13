@@ -121,7 +121,8 @@ describe('post-tool-use-skill.sh', () => {
     expect(existsSync(path.join(project, '.pecot', 'state', 'issue-pending'))).toBe(false)
   })
 
-  // ExitPlanMode の案内も merge を通り、Copilot CLI が読むトップレベルの additionalContext に出る。
+  // 案内は ExitPlanMode（Claude）でも exit_plan_mode（Copilot）でも merge を通る。
+  // Copilot CLI が読むトップレベルの additionalContext に出る。
   it.for(['ExitPlanMode', 'exit_plan_mode'])('%s の案内を、トップレベルの additionalContext に出す', (toolName) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)

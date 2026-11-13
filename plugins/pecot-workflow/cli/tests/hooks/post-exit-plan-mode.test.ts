@@ -114,17 +114,19 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     writeFileSync(context.pecotActive, 'org/repo/123\n')
+    writeFileSync(context.quickMode, '')
     const result = runHook(hookCase, jsonDumps({ tool_name: 'exit_plan' }))
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
+    expect(existsSync(context.quickMode)).toBe(true)
   })
 
-  it('quick モードでは、コメントの更新だけを案内し、quick モードのフラグを消す', () => {
+  it.for(['ExitPlanMode', 'exit_plan_mode'])('quick モードでは、%s でも、コメントの更新だけを案内し、quick モードのフラグを消す', (toolName) => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     writeFileSync(context.pecotActive, 'org/repo/123\n')
     writeFileSync(context.quickMode, '')
-    const result = runHook(hookCase, EXIT_PLAN)
+    const result = runHook(hookCase, jsonDumps({ tool_name: toolName }))
     expect(result.exitCode).toBe(0)
     const text = additionalContext(result)
     expect(text).toContain('Plan comment update')
