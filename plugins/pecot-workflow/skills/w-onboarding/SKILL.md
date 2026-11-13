@@ -95,6 +95,7 @@ printf '%s\n' "$board_url"
   次のステップ:
     - devcontainer を用意する（各リポを sibling clone し、コンテナ内で `/workspaces/<project>/base/<repo>` に整列するマウント構成が必要）
     - 初回リポジトリを登録: /pecot-w:w-repo-add
+    - 任意: 列を自動で直すワークフローを置く（w-help の「ボードを自動で直すワークフロー」）
 
   Epic は集約リポ <owner/repo> に自動作成される。
   ```
@@ -106,6 +107,7 @@ printf '%s\n' "$board_url"
   次のステップ:
     - devcontainer を用意する（各リポを sibling clone し、コンテナ内で `/workspaces/<project>/base/<repo>` に整列するマウント構成が必要）
     - 初回リポジトリを登録: /pecot-w:w-repo-add
+    - 任意: 列を自動で直すワークフローを置く（w-help の「ボードを自動で直すワークフロー」）
 
   Epic 作成時は repo: "<owner/repo>" で作成先を明示する。
   後から /pecot-w:w-onboarding を再実行するか、project_set_aggregation_repo で設定できる。

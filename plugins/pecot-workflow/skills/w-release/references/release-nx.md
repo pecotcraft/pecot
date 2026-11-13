@@ -420,6 +420,9 @@ Step 4 の dry-run 出力をもとに、ユーザーへ以下を提示して明�
   `major` plan として起票していないか
 - 後方互換のある追加が `major` になっていないか
 - バグ修正のみのはずが `minor` 以上になっていないか
+- major を上げるリリースでは、`cli/templates/workflow/pecot-board-sync.yml` の
+  `@pecot/workflow-mcp@<major>` も新しい major に直す。
+  `cli/tests/board-sync-workflow-template.test.ts` が plugin.json の major との一致を確かめる
 
 過去に #205 で、機能削除を `major` plan で起票したまま流し、`1.0.0 → 2.0.0` に過剰 bump した。
 「削除」だからといって自動的に破壊的変更ではない（未使用・内部限定なら patch が妥当）。

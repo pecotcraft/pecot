@@ -135,6 +135,115 @@ entries:
       - id: PW-ADD-TO-PROJECT-18
         pattern: unwanted
         statement: もし --status が blocked でボードが Blocked を定義していないなら、project init で足し方を案内する hint の行を標準エラーに出す
+  PW-BOARD-SYNC:
+    constraints: []
+    details:
+      - Reads the whole board and moves the open Issues in Ready, Blocked, Active and In Review to the column and Status that their judgment calls for.
+      - The judgment, the column move and the Status write are the same as the rest of the workflow (blocked-by, branches and PRs).
+      - An Issue with a branch or a PR is never moved; when it is blocked, a warning line says so.
+      - An Issue in Backlog, Pending or Archived, a PR card, a Tracker and an Epic are not moved.
+      - Reads each Issue of Blocked, Active and In Review one by one, because the branches and PRs are not in the board list. Skips only the Ready Issues that the list shows with no prerequisites.
+      - With --dry-run, prints the same sentences as dry-run lines and writes nothing to the board.
+      - The config is --project, else the active project, else the only config in .pecot/config/projects. With two or more configs and no active project, stops and asks for --project.
+      - Reads the GraphQL rate limit (REST, no points) before and after the run and prints the points used and the remaining points. When it cannot be read, the line is left out.
+      - On a GitHub Enterprise Server without Issue dependencies, prints one warning and moves nothing.
+    stdin: none
+    output:
+      format: none
+    diagnostics: A result line for each move (moved) and each Status write (set), or a dry-run line with --dry-run. A warning line for an Issue with a branch or a PR that is blocked, for a failed write, for a value the board does not define, and for a GitHub Enterprise Server without Issue dependencies. Count lines with the GraphQL points used and remaining. An error line for each failure.
+    environment: []
+    exit_status:
+      - code: 0
+        when: The board was synchronized, --dry-run printed the plan, or the GitHub Enterprise Server does not support Issue dependencies. A failed write of one Issue does not change the status.
+      - code: 1
+        when: There is no active project and no single config, --project names no config, the config file is broken, the board cannot be read, or the GitHub token cannot be found.
+      - code: 2
+        when: A command line error occurs.
+    on_error: Moves already written stay. A failed write is a warning and the other Issues are still synchronized.
+    effects:
+      - target: github
+        kind: read
+        what: Reads the board items, the blocked-by, branches and PRs of the Issues in Blocked, Active, In Review and Ready with prerequisites, and the GraphQL rate limit.
+      - target: github
+        kind: write
+        what: Sets the column (pecot-workflow field) and Status of the Issues that do not match their judgment.
+      - target: file
+        kind: read
+        what: Reads the config file.
+    prerequisites:
+      - A config exists under .pecot/config/projects, active or named by --project or the only one.
+      - A GitHub token is available for the host, with permission to edit the project.
+    idempotent: true
+    examples:
+      - run: pecot board sync --dry-run
+        note: Show the planned moves without writing to the board.
+      - run: pecot board sync --project example-config
+        note: Synchronize the board of the named config, for a checkout without an active project.
+    default_notes: {}
+    behaviors:
+      - id: PW-BOARD-SYNC-01
+        pattern: event
+        statement: 打つと、Blocked の Issue の判定が startable か stackable なら、Ready へ動かす
+      - id: PW-BOARD-SYNC-02
+        pattern: event
+        statement: Ready の Issue に済んでいない前提があると、Blocked へ動かす
+      - id: PW-BOARD-SYNC-03
+        pattern: event
+        statement: 着手の跡の無い Issue が Active か In Review にあると、判定に合った列（Ready か Blocked）へ戻す
+      - id: PW-BOARD-SYNC-04
+        pattern: unwanted
+        statement: もし着手の跡（ブランチか PR）のある Issue が blocked なら、列と札を変えず、warning の行を標準エラーに出す
+      - id: PW-BOARD-SYNC-05
+        pattern: unwanted
+        statement: もし前提の無い Blocked の Issue に着手の跡があるなら、Ready へ動かさない
+      - id: PW-BOARD-SYNC-06
+        pattern: state
+        statement: Backlog・Pending・Archived の間、その Issue の前提を読まず、列と札を動かさない
+      - id: PW-BOARD-SYNC-07
+        pattern: event
+        statement: 前提がマージされずに閉じると、待っていた Issue の札を Needs Attention にする
+      - id: PW-BOARD-SYNC-08
+        pattern: event
+        statement: 札が Needs Attention の Issue の前提がすべて済むと、札を Todo に戻す
+      - id: PW-BOARD-SYNC-09
+        pattern: event
+        statement: --dry-run を付けて打つと、動かす予定を dry-run の行で標準エラーに出し、ボードに書かない
+      - id: PW-BOARD-SYNC-10
+        pattern: unwanted
+        statement: もし 1 件の書き込みに失敗したなら、warning の行を出して、ほかの Issue を続ける
+      - id: PW-BOARD-SYNC-11
+        pattern: event
+        statement: 一覧で前提が 0 件の Ready の Issue があると、前提を個別に読まない。Blocked・Active・In Review の Issue は、前提の件数によらず個別に読む
+      - id: PW-BOARD-SYNC-12
+        pattern: unwanted
+        statement: もし動かす先の値がボードに無いなら、その Issue を動かさず、warning の行を 1 回出す
+      - id: PW-BOARD-SYNC-13
+        pattern: unwanted
+        statement: もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、warning の行を 1 回出し、何も動かさず、終了コード 0 で終わる
+      - id: PW-BOARD-SYNC-14
+        pattern: event
+        statement: 打つと、実行の前後の GraphQL の点数から、使用量と残りを count の行で標準エラーに出す。差が負のときは使用量の行を省く
+      - id: PW-BOARD-SYNC-15
+        pattern: unwanted
+        statement: もし点数を読めないなら、その行を出さずに続ける
+      - id: PW-BOARD-SYNC-16
+        pattern: unwanted
+        statement: もしボードの取得で GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-17
+        pattern: state
+        statement: アクティブなプロジェクトが無く、設定がちょうど 1 つの間、その設定を使う
+      - id: PW-BOARD-SYNC-18
+        pattern: unwanted
+        statement: もしアクティブなプロジェクトが無く、設定が 2 つ以上あるなら、--project を求める error の行を出して、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-19
+        pattern: event
+        statement: --project に設定の名前を渡して打つと、アクティブな設定ではなく、その設定を使う
+      - id: PW-BOARD-SYNC-20
+        pattern: unwanted
+        statement: もし --project の設定が無いなら、使える設定の名前を添えた error の行を出して、終了コード 1 で終わる
+      - id: PW-BOARD-SYNC-21
+        pattern: unwanted
+        statement: もし設定が 1 つも無いなら、終了コード 1 で終わる
   PW-CREATE-BRANCH:
     constraints: []
     details:
@@ -2021,11 +2130,12 @@ entries:
       - Only shows the judgment. It never changes the column or the Status of an Issue, even when they do not match the judgment.
       - An Issue whose prerequisites cannot be read is shown as unknown.
       - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
+      - When a Ready or Blocked Issue seems to be in a column that does not match its judgment, writes one warning line with the count and points to pecot board sync. A Blocked Issue without prerequisites is counted even though its branches and PRs are not read, so the line says the column may not match.
     stdin: none
     output:
       format: text
       description: Markdown with Overview, Registered repositories and Board status sections. The Ready and Blocked tables have a Readiness column, and a Stackable chains section follows when Issues can be stacked. With --json, a JSON object with project, repositories (each with dependabot_alerts) and board, where each item has readiness.
-    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted. One warning line when the GitHub Enterprise Server does not support Issue dependencies.
+    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted. One warning line when the GitHub Enterprise Server does not support Issue dependencies. One warning line when Ready or Blocked Issues may be in a column that does not match their judgment.
     environment: []
     exit_status:
       - code: 0
@@ -2138,6 +2248,9 @@ entries:
       - id: PW-PROJECT-INFO-32
         pattern: event
         statement: --json を付けて打つと、判定を読めない Issue の readiness の stackOn と reason を null にする
+      - id: PW-PROJECT-INFO-33
+        pattern: event
+        statement: 列と判定が食い違いそうな Ready か Blocked の Issue があると、件数と pecot board sync の案内を warning の行で標準エラーに出す
   PW-PROJECT-INIT:
     constraints: []
     details:

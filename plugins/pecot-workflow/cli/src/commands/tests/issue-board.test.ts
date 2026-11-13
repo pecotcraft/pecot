@@ -7,8 +7,9 @@ import { GitHubAPIError } from '../../infra/github/errors.js'
 import { createIssueReference } from '../../domain/reference-parser.js'
 import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlData, graphqlError, graphqlRequests, rejection, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
-import { addIssueToBoard, applyBoardMove, createIssue, itemHasFieldValue, putOnBoard, setIssueField } from '../issue-board.js'
+import { addIssueToBoard, applyBoardMove, createIssue, itemHasFieldValue, planBoardMove, putOnBoard, setIssueField } from '../issue-board.js'
 
+import type { Readiness } from '../../domain/readiness.js'
 import { createOutput } from '../output.js'
 import { capture } from './support.js'
 
@@ -192,5 +193,13 @@ describe('applyBoardMove', () => {
     expect(applied).toEqual({ column: undefined, missing: [] })
     expect(io.err.join('')).toBe('warning: #7 is in Active but blocked by o/other#3\n')
     expect(graphqlRequests(server)).toEqual([])
+  })
+
+  it('planBoardMove は、applyBoardMove と同じ文を dry-run の行で出し、書かない', () => {
+    const io = capture()
+    const reason: Readiness = { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: true, attention: [] }
+    const planned = planBoardMove(createOutput(true, io), target, { column: { from: 'Ready', to: 'Blocked', reason }, label: 'Todo', missing: [] }, 'blocked by #3')
+    expect(planned).toEqual({ column: 'Blocked', missing: [] })
+    expect(io.err.join('')).toBe('dry-run: would move #7 Ready -> Blocked (blocked by #3)\ndry-run: would set Status of #7 to Todo\n')
   })
 })

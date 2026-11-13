@@ -130,6 +130,32 @@ PR をマージする。スタックの中の PR と、単独の PR の両方を
 - 載せ直しの後、base の位置の記録を書き直す
   - 合わせた場合は、`git merge-base origin/<branch> <開発ブランチ>` の結果を記録する
 
+### `pecot board sync [--dry-run] [--project <設定名>]`
+
+ボード全体を判定に合わせて、列と札を直す。手元でも GitHub Actions のワークフローからも同じ形で打つ。MCP ツールは `board_sync`。
+
+| 入力 | 意味 |
+|---|---|
+| `--dry-run` | 動かす予定の行を出し、ボードに書かない |
+| `--project <設定名>` | 使う設定の JSON を選ぶ。`.active` が無く、`.pecot/config/projects/*.json` がちょうど 1 つなら省ける。2 つ以上あるときに省くと、`error:` で指定を求めて止まる |
+
+| 場面 | 出力 | 終了コード |
+|---|---|---|
+| 列を動かした | `moved: #N <元> -> <先> (<理由>)` | 0 |
+| 札を変えた | `set: Status of #N to <値>` | 0 |
+| `--dry-run` | 上の 2 行を、書かずに予定として出す | 0 |
+| 着手の跡がある Issue が判定とずれている | `warning: #N is in Active but blocked by #M`。列と札は変えない | 0 |
+| 書き込みに失敗した | `warning:` を出し、残りの Issue へ続ける | 0 |
+| 動かす先の値がボードに無い | `warning:` を 1 回出す | 0 |
+| Issue の依存関係に対応しない GHES | `warning:` を出して何もしない | 0 |
+| 実行の前後の点数 | stderr に使用量と残りの行。`GET /rate_limit` を読めない環境では省く | 0 |
+
+- 対象の列は `Ready`・`Blocked`・`Active`・`In Review`。`Backlog`・`Pending`・`Archived` は動かさない（FR-080）
+- 判断は `decideBoardMove`、書き込みは `applyBoardMove` が行い、pecot の各操作と同じ処理を使う（FR-083）
+- 着手の跡がある Issue の列と札は変えない（FR-084）
+- 契機ごとの絞り込みは無く、毎回ボード全体を見る
+- ワークフローの雛形は `cli/templates/workflow/pecot-board-sync.yml`。コマンドは雛形を読まない
+
 ## 振る舞いを変えるコマンド
 
 ### `pecot issue create`
@@ -243,7 +269,7 @@ Readiness changed:
 
 ### `pecot project info`
 
-`Ready` と `Blocked` の表に、判定の列を足す。
+`Ready` と `Blocked` の表に、判定の列を足す。列と判定の食い違いそうな Issue を見つけたときは、stderr に件数と `board_sync` で直す案内を 1 行出す。
 
 ```text
 ### Blocked (2)

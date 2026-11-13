@@ -463,6 +463,11 @@ const activateCommand = defineCommand({
 
 // project info
 
+function mismatchNote(count: number): string {
+  const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
+  return `${subject} in a column that does not match its judgment; run pecot board sync (--dry-run to preview) to fix`
+}
+
 const infoCommand = defineCommand({
   path: ['project', 'info'],
   description: 'Show the project info dashboard',
@@ -494,6 +499,7 @@ const infoCommand = defineCommand({
       await pruneArchivedItems(out, client, config, allItems)
       const view = { config, projectName, statuses }
       const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)
+      if (readiness.mismatches > 0) out.warning(mismatchNote(readiness.mismatches))
       const json = readiness.json === undefined ? undefined : (item: BoardItem) => readinessOf(readiness, item)
       out.data(input.json
         ? infoJson(view, items, json)

@@ -18,6 +18,12 @@ export interface CreateReleaseOptions {
   readonly prerelease?: boolean | undefined
 }
 
+export interface GraphqlRateLimit {
+  readonly limit: number
+  readonly used: number
+  readonly remaining: number
+}
+
 const ALERTS_PER_PAGE = 100
 const NO_CONTENT = 204
 const NOT_FOUND = 404
@@ -39,6 +45,25 @@ export class ReposApi extends GitHubClientBase {
       target = next.url
       parameters = undefined
     }
+  }
+
+  /**
+  GraphQL の点数の上限・使用量・残り（REST の /rate_limit。点数を使わない）。読めない・形が違うときは undefined
+  */
+  async getGraphqlRateLimit(): Promise<GraphqlRateLimit | undefined> {
+    let body: JsonValue
+    try {
+      body = await this.restJson('GET', '/rate_limit')
+    }
+    catch (error: unknown) {
+      if (error instanceof GitHubAPIError) return undefined
+      throw error
+    }
+    const graphql = jsonField(jsonField(body, 'resources'), 'graphql')
+    const limit = jsonField(graphql, 'limit')
+    const used = jsonField(graphql, 'used')
+    const remaining = jsonField(graphql, 'remaining')
+    return typeof limit === 'number' && typeof used === 'number' && typeof remaining === 'number' ? { limit, used, remaining } : undefined
   }
 
   /**

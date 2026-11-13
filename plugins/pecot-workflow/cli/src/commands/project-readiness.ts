@@ -6,7 +6,7 @@ import type { BoardItem, BoardProgress, StackableChain } from '../domain/format.
 import { isEpicIssue } from '../domain/issue-kind.js'
 import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
-import { cycleThrough, describeReadiness, describeUnknown, displayReference, progressionsFromReadiness, stackChains, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
+import { cycleThrough, describeReadiness, describeUnknown, displayReference, hasStarted, progressionsFromReadiness, stackChains, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
 import type { Readiness } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
@@ -42,6 +42,10 @@ export interface BoardReadiness {
   */
   readonly json: ReadonlyMap<string, JsonObject> | undefined
   readonly chains: readonly StackableChain[]
+  /**
+  列と判定が食い違いそうな Ready・Blocked の Issue の数。着手の跡を読んでいない Blocked も数える
+  */
+  readonly mismatches: number
 }
 
 interface Target {
@@ -87,7 +91,7 @@ function localSnapshot(config: ProjectConfig, target: Target, progress: BoardPro
   })
 }
 
-function homeOf(config: ProjectConfig, repository = ''): RepositoryReference | undefined {
+export function homeOf(config: ProjectConfig, repository = ''): RepositoryReference | undefined {
   const split = splitOwnerRepository(repository)
   if (split !== undefined) return split
   const [first] = config.repositories
@@ -111,7 +115,7 @@ function unsupportedWarning(out: Readonly<Output>): void {
 */
 export function skipBoardReadiness(out: Readonly<Output>): BoardReadiness {
   unsupportedWarning(out)
-  return { texts: undefined, json: undefined, chains: [] }
+  return { texts: undefined, json: undefined, chains: [], mismatches: 0 }
 }
 
 /**
@@ -119,7 +123,7 @@ Ready・Blocked の Issue の前提を読んで判定する。items は表示す
 */
 export async function readBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined, progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
   type Snapshot = IssueSnapshot | Extract<IssueReadiness, { kind: 'unreadable' }>
-  const plain: BoardReadiness = { texts: undefined, json: undefined, chains: [] }
+  const plain: BoardReadiness = { texts: undefined, json: undefined, chains: [], mismatches: 0 }
   const targets = items.flatMap(item => toTarget(item) ?? [])
   const home = homeOf(config, repository)
   const cache = createReadinessCache()
@@ -167,6 +171,7 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
   const readinessByKey = new Map<string, Readiness>()
   const parents = new Map<string, IssueReference>()
   const references = new Map<string, IssueReference>(targets.map(target => [target.key, target.ref]))
+  let mismatches = 0
 
   for (const { target, result } of judged) {
     if (result.kind === 'unreadable') {
@@ -182,6 +187,8 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
     texts.set(target.key, text)
     json.set(target.key, readinessJson(readiness, text))
     readinessByKey.set(target.key, readiness)
+    const isBlocked = readiness.kind === 'blocked'
+    if (!hasStarted(result.target) && (target.item.workflow === 'Ready' ? isBlocked : !isBlocked)) mismatches += 1
     if (readiness.stackOn !== undefined) references.set(issueReferenceKey(readiness.stackOn.issue), readiness.stackOn.issue)
   }
 
@@ -190,7 +197,7 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
     const parent = parentKey === undefined ? undefined : parents.get(parentKey)
     return { epic: parent === undefined ? undefined : displayReference(parent, home), chain: chain.map(key => displayKey(key, references, home)) }
   })
-  return { texts, json, chains }
+  return { texts, json, chains, mismatches }
 }
 
 /**

@@ -1,4 +1,4 @@
-// COMMANDS の 34 個を MCP のツールとして登録するサーバ。CLI と同じ定義の run を呼び、結果の形だけが違う。
+// COMMANDS の 35 個を MCP のツールとして登録するサーバ。CLI と同じ定義の run を呼び、結果の形だけが違う。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod と SDK の型は readonly にできない */
 import { McpServer } from '@modelcontextprotocol/server'
 import type { CallToolResult, StandardSchemaWithJSON } from '@modelcontextprotocol/server'

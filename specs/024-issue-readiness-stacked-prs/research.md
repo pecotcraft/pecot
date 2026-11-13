@@ -191,11 +191,12 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 
 ## R10. 列を動かす仕組み
 
-- Decision: 列は、pecot の操作と、GitHub Actions のワークフローの 2 つで動かす。一覧を出す操作は列を直さない。Projects の組み込みの Workflows は使わない
+- Decision: 列は、pecot の操作と、`pecot board sync` の 2 つで動かす。`pecot board sync` は手元でも GitHub Actions のワークフローからも打てる。ワークフローは任意の打ち手の 1 つだ。一覧を出す操作は列を直さない。Projects の組み込みの Workflows は使わない
 - Rationale:
   - Projects の組み込みの Workflows は、そのカード自身の出来事で、そのカード自身の既定の Status を書き換えるだけだ。ほかの Issue の状態と blocked by を条件にできない。進行の欄を動かすこともできない
-  - GitHub Actions なら pecot の判定を動かせる。ただし、組織のボードへ書くには GitHub App の鍵が要る。Actions の標準のトークンは、組織のボードに書けない
-  - 依存の変更（`issue_dependencies`）とカードの移動（`projects_v2_item`）は webhook だけで、Actions の契機に無い。Actions を入れても、この 2 つは定期の実行でしか拾えない
+  - GitHub Actions なら pecot の判定を動かせる。ただし、組織のボードへ書くには GitHub App か PAT の token が要る。Actions の標準のトークンは、組織のボードに書けない
+  - private のリポでは Actions の実行に費用がかかる。直す処理をコマンドに置けば、Actions が無くても手元で直せる（2026-11-13 にユーザーが決定）
+  - 依存の変更（`issue_dependencies`）とカードの移動（`projects_v2_item`）は webhook だけで、Actions の契機に無い（GitHub の公式文書で確認した）。この 2 つは、`schedule` を有効にするか、手元で `board_sync` を打って直す
   - 列がずれていても、着手の操作は判定を計算し直す。害は、ブラウザのボードが古く見えることだけだ
   - 一覧は判定を出すので、エージェントは列でなく判定で着手の対象を選べる
 - Alternatives considered:
@@ -204,10 +205,10 @@ spec の FR-041 と User Story 4 の受け入れシナリオ 6 は、拡張が�
 
 ## R11. 列を直す処理の置き場
 
-- Decision: 列を直す判断は domain の純粋な関数 1 つに置く。列を動かす各コマンドと、ワークフローから打つコマンドがそれを呼ぶ
+- Decision: 列を直す判断は domain の純粋な関数 1 つに置く。列を動かす各コマンドと、`pecot board sync` がそれを呼ぶ
 - Rationale:
   - 入力は、Issue の今の列・着手の判定・着手の跡の有無で、出力は動かす先の列だ。GitHub を呼ばないので、表で網羅してテストできる
-  - 規則を 1 か所に置くと、操作のその場の移動と、ワークフローの直しが食い違わない
+  - 規則を 1 か所に置くと、操作のその場の移動と、`pecot board sync` の直しが食い違わない
 - Alternatives considered: 各コマンドが自分の移動を書く案。規則が 5 か所に散るので採らない
 
 ## R12. tasks.md の前提の表と、Issue の本文の形
