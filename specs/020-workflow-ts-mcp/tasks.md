@@ -451,7 +451,7 @@ registry の数が 34。`--check` が 34 項目で差 0（SC-010）。振る舞�
   root の `README.md` に、pecot-workflow の Python と uv の前提があれば、同じように直す。
 - [x] T095 [P] `CLAUDE.md` のリポジトリ構成の表から `test-py` を外し、pecot-workflow のレーンを今の形に直す。`.githooks/README.md` に Python のレーンの記述があれば、同じに直す。
 - [x] T096 Epic #41 に、pecot-workflow の manifest と準拠範囲が片づいたことをコメントする。#41 の本文は書き換えない。
-- [ ] T097 quickstart.md を最初から最後まで実行し、SC-001〜SC-011 の結果を `.pecot/work/<Issue番号>/` に残す。
+- [x] T097 quickstart.md を最初から最後まで実行し、SC-001〜SC-011 の結果を `.pecot/work/<Issue番号>/` に残す。
 
 ---
 
