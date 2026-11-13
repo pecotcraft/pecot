@@ -22,7 +22,7 @@ trusted publisher は、レジストリにあるパッケージにしか登録�
 1. 配布ツリーを placeholder の版で作る。
 
    ```bash
-   plugins/<plugin>/scripts/release/publish-mcp-dist.sh --dry-run --version=0.0.0-placeholder.0 --out-dir="$(mktemp -d)"
+   bash plugins/<plugin>/scripts/release/publish-mcp-dist.sh --dry-run --version=0.0.0-placeholder.0 --out-dir="$(mktemp -d)"
    ```
 
    dry-run はタグの確認を飛ばし、`npm pack` までを行う。out-dir は実体のパスでリポの外にあり、空である必要がある。出力の `==> 配布ツリー:` の行のパスを使う。
