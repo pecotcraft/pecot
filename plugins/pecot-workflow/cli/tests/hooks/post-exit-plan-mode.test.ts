@@ -99,6 +99,26 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).not.toContain('team_name')
   })
 
+  it('Copilot の tool 名 exit_plan_mode でも、コメントの更新と引き継ぎを案内する', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    const result = runHook(hookCase, jsonDumps({ tool_name: 'exit_plan_mode' }))
+    expect(result.exitCode).toBe(0)
+    const text = additionalContext(result)
+    expect(text).toContain('Plan comment update')
+    expect(text).toContain('Implementation handoff')
+  })
+
+  it('exit_plan のような別の tool 名では、何も出力しない', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    const result = runHook(hookCase, jsonDumps({ tool_name: 'exit_plan' }))
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe('')
+  })
+
   it('quick モードでは、コメントの更新だけを案内し、quick モードのフラグを消す', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)

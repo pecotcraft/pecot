@@ -122,12 +122,12 @@ describe('post-tool-use-skill.sh', () => {
   })
 
   // ExitPlanMode の案内も merge を通り、Copilot CLI が読むトップレベルの additionalContext に出る。
-  it('ExitPlanMode の案内を、トップレベルの additionalContext に出す', () => {
+  it.for(['ExitPlanMode', 'exit_plan_mode'])('%s の案内を、トップレベルの additionalContext に出す', (toolName) => {
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     mkdirSync(path.join(project, '.pecot', 'state'), { recursive: true })
     writeFileSync(path.join(project, '.pecot', 'state', '.pecot-active'), 'org/repo/1\n')
-    const result = runEntry(hookCase, 'post-tool-use-exit-plan-mode.sh', 'PostToolUse', 'x', project, { tool_name: 'ExitPlanMode' })
+    const result = runEntry(hookCase, 'post-tool-use-exit-plan-mode.sh', 'PostToolUse', 'x', project, { tool_name: toolName })
     expect(result.exitCode).toBe(0)
     const out = toRecord(parseJson(result.stdout), '出力')
     const specific = toRecord(out['hookSpecificOutput'], 'hookSpecificOutput')

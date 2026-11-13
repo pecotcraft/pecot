@@ -130,7 +130,7 @@ ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `exit-plan-remind` | ExitPlanMode後に案内を返す。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode) | `true` |
+| `exit-plan-remind` | ExitPlanMode後に案内を返す（Copilot では `exit_plan_mode` で届く）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。クイックモードでなければ実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足す。クイックモードフラグをクリアする。計画の投稿はしない（確認の前にエージェントが投稿する） | PostToolUse (ExitPlanMode) | `true` |
 
 ### セッション管理
 
@@ -204,6 +204,7 @@ MCPツールやdraw.io等の外部ツールとの連携。
 ただし、Notification イベントと WebSearch の配線を持たない。
 SessionStart は matcher なし、Stop は `stop-copilot.sh` を指す。
 Skill の matcher は `Skill|skill`、MCP の matcher は `mcp__.*|github-mcp-server-create_pull_request` 。
+ExitPlanMode の matcher は `ExitPlanMode|exit_plan_mode`。
 各エントリの `timeout`（秒）は SessionStart 120、PreToolUse 10、PostToolUse は Bash 30・ExitPlanMode 90・その他 10 になる。
 UserPromptSubmit / Notification / Stop は 10。
 pecot-visual の PostToolUse（Write / Edit）は 80 で、中の lint の打ち切り 10 + 30 + 30 秒より長くする。

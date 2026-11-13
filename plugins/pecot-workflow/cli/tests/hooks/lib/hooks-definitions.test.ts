@@ -125,6 +125,7 @@ const EXPECTED_TIMEOUTS = new Map([
   ['pecot-workflow|PostToolUse|Skill|skill', 10],
   ['pecot-workflow|PostToolUse|EnterPlanMode', 10],
   ['pecot-workflow|PostToolUse|ExitPlanMode', 90],
+  ['pecot-workflow|PostToolUse|ExitPlanMode|exit_plan_mode', 90],
   ['pecot-workflow|Stop|', 10],
   ['pecot-workflow|UserPromptSubmit|', 10],
   ['pecot-workflow|Notification|', 10],
@@ -276,6 +277,10 @@ describe('Copilot CLI の matcher', () => {
     expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), row.event, row.entry)).toEqual(['Skill|skill'])
   })
 
+  it('pecot-workflow の ExitPlanMode の matcher は、Copilot の exit_plan_mode を含む', () => {
+    expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PostToolUse', 'post-tool-use-exit-plan-mode.sh')).toEqual(['ExitPlanMode|exit_plan_mode'])
+  })
+
   it('pecot-workflow の MCP の matcher は、GitHub MCP の PR 作成を含む', () => {
     const matchers = matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'PreToolUse', 'pre-tool-use-mcp.sh')
     expect(matchers).toEqual(['mcp__.*|github-mcp-server-create_pull_request|pecot-workflow-.*'])
@@ -288,6 +293,7 @@ describe('Copilot CLI の matcher', () => {
 
   it('Claude の skill と MCP の matcher は、変えない', () => {
     const workflow = load(WORKFLOW, 'hooks.json')
+    expect(matchersOf(workflow, 'PostToolUse', 'post-tool-use-exit-plan-mode.sh')).toEqual(['ExitPlanMode'])
     expect(matchersOf(workflow, 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill'])
     expect(matchersOf(workflow, 'PreToolUse', 'pre-tool-use-mcp.sh')).toEqual(['mcp__.*'])
     expect(matchersOf(load(VISUAL, 'hooks.json'), 'PreToolUse', 'pre-tool-use-skill.sh')).toEqual(['Skill'])
