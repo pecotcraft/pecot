@@ -131,7 +131,7 @@ export interface AppliedMove {
 /**
 decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
 text は列を動かす理由の判定の文。
-#404 の Actions のワークフローが使う。今は呼び元が無い
+issue block / unblock が使う。#404 の Actions のワークフローも使う予定
 */
 export async function applyBoardMove(
   out: Readonly<Output>,

@@ -33,7 +33,9 @@ const MCP_UNMAPPABLE_STDIN: ReadonlySet<string> = new Set([
 const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new Map([
   ['add-to-project-usage', 'rejected'],
   ['dependabot-sync-usage-unknown-option', 'unmappable'],
+  ['issue-block-usage-without-by', 'rejected'],
   ['issue-read-usage', 'rejected'],
+  ['issue-unblock-usage-without-by', 'rejected'],
   ['pr-preflight-usage', 'rejected'],
   ['project-init-usage', 'rejected'],
   ['project-search-usage', 'rejected'],

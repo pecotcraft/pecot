@@ -967,3 +967,50 @@ export const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: 
 }
 
 ${PULL_REQUEST_FIELDS}`
+
+const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
+  id
+  number
+  state
+  repository {
+    owner {
+      login
+    }
+    name
+  }
+}`
+
+// 前提の追加・削除の前の読み取り。判定の読み取りより軽く、本文と前提の参照だけを取る
+export const QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockedByFirst: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      body
+      blockedBy(first: $blockedByFirst) {
+        totalCount
+        nodes {
+          ...BlockedByReferenceFields
+        }
+      }
+    }
+  }
+}
+
+${BLOCKED_BY_REFERENCE_FIELDS}`
+
+// 輪をたどる 1 段分。node ID の並びのそれぞれの前提を、まとめて読む
+export const QUERY_GET_BLOCKED_BY_OF_NODES = `query ($ids: [ID!]!, $blockedByFirst: Int!) {
+  nodes(ids: $ids) {
+    ... on Issue {
+      id
+      blockedBy(first: $blockedByFirst) {
+        totalCount
+        nodes {
+          ...BlockedByReferenceFields
+        }
+      }
+    }
+  }
+}
+
+${BLOCKED_BY_REFERENCE_FIELDS}`

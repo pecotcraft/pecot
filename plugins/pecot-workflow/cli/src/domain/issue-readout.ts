@@ -118,3 +118,30 @@ export interface PullRequestsByHeadReadout {
   */
   readonly hasNextPage: boolean
 }
+
+/**
+前提 1 件の参照。block / unblock が、付ける前の確認と輪の探索に使う
+*/
+export interface BlockedByReference {
+  /**
+  GraphQL の node ID
+  */
+  readonly id: string
+  readonly repository: RepositoryReference
+  readonly number: number
+  readonly state: IssueStateReadout
+}
+
+/**
+前提の参照の読み取り結果。total は件数で、issues は読めた分（total に足りないことがある）。
+null の node と部分エラーは read-failed
+*/
+export type BlockedByReferences
+  = | { readonly kind: 'ok', readonly total: number, readonly issues: readonly BlockedByReference[] }
+    | { readonly kind: 'read-failed', readonly reason: string }
+
+export interface IssueBlockedByReferences {
+  readonly id: string
+  readonly body: string
+  readonly blockedBy: BlockedByReferences
+}

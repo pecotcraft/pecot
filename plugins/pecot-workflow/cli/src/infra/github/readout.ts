@@ -4,6 +4,7 @@ import { jsonField } from '../../domain/json.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type {
   BlockedByReadout,
+  BlockedByReference,
   IssueReadout,
   IssueStateReadout,
   LinkedBranchReadout,
@@ -175,4 +176,16 @@ export function readBlockedBy(target: JsonValue, projectId: string, fieldNames: 
   if (nodes.length < total) return { kind: 'read-failed', reason: `blockedBy returned ${String(nodes.length)} of ${String(total)} issues` }
   const [gap] = [target, ...nodes].flatMap(issue => connectionShortfalls(issue))
   return gap === undefined ? { kind: 'ok', issues: nodes.map(node => readIssue(node, projectId, fieldNames)) } : { kind: 'read-failed', reason: gap }
+}
+
+/**
+前提 1 件の参照（node ID・番号・リポ・状態）。node は BlockedByReferenceFields の形
+*/
+export function readIssueReference(node: JsonValue | undefined): BlockedByReference {
+  return {
+    id: requireString(jsonField(node, 'id'), 'blockedBy.nodes.id'),
+    repository: readRepository(node, 'blockedBy.nodes'),
+    number: requireNumber(jsonField(node, 'number'), 'blockedBy.nodes.number'),
+    state: readState(node, ['OPEN', 'CLOSED'], 'blockedBy.nodes'),
+  }
 }

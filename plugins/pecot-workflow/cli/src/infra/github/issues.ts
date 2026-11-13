@@ -3,16 +3,18 @@
 
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
-import type { IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
+import type { BlockedByReference, BlockedByReferences, IssueBlockedByReferences, IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { GraphqlOutcome } from './client.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
-import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
+import { asArray, asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_BLOCKED_BY,
   MUTATION_ADD_SUB_ISSUE,
   MUTATION_REMOVE_BLOCKED_BY,
+  QUERY_GET_BLOCKED_BY_OF_NODES,
+  QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES,
   QUERY_GET_ISSUE_KIND,
   QUERY_GET_ISSUE_KIND_PHASE1,
   QUERY_GET_ISSUE_NODE_ID,
@@ -20,7 +22,7 @@ import {
   QUERY_GET_ISSUE_SLIM,
   QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY,
 } from './queries.js'
-import { readBlockedBy, readIssue } from './readout.js'
+import { readBlockedBy, readIssue, readIssueReference } from './readout.js'
 import { ProjectsApi } from './projects.js'
 import { repositoryPath } from './rest-path.js'
 
@@ -113,9 +115,35 @@ function asDependenciesError(error: unknown): unknown {
   return isSchemaError(error) && /blockedBy|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
 }
 
+/**
+nodes(ids:) の 1 回で渡せる node ID の上限
+*/
+const MAX_NODES_PER_QUERY = 100
+
 // 部分エラーのうち、対象の Issue の blockedBy の下のもの
 function isBlockedByPath(path: readonly JsonValue[]): boolean {
   return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy'
+}
+
+// nodes(ids:) の部分エラーのうち、node の下のもの
+function isNodesPath(path: readonly JsonValue[]): boolean {
+  return path[0] === 'nodes'
+}
+
+// blockedBy の connection を前提の参照にする。件数が足りないのは呼ぶ側が見るので、ここでは失敗にしない
+function readBlockedByReferences(connection: JsonValue | undefined): BlockedByReferences {
+  if (!isTruthy(connection)) return { kind: 'read-failed', reason: 'blockedBy is null' }
+  const nodes = asArray(jsonField(connection, 'nodes'))
+  if (nodes.some(node => !isTruthy(node))) return { kind: 'read-failed', reason: 'blockedBy has a null node' }
+  const issues: readonly BlockedByReference[] = nodes.map(node => readIssueReference(node))
+  return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), 'blockedBy.totalCount'), issues }
+}
+
+// nodes(ids:) の 1 件を前提にする。message は、その node の部分エラー
+function readNodeBlockedBy(node: JsonValue | undefined, id: string, message: string | undefined): BlockedByReferences {
+  if (message !== undefined) return { kind: 'read-failed', reason: `blockedBy could not be read: ${message}` }
+  if (!isTruthy(node) || jsonField(node, 'id') !== id) return { kind: 'read-failed', reason: 'the node is not an Issue or was not found' }
+  return readBlockedByReferences(jsonField(node, 'blockedBy'))
 }
 
 function numberOrUndefined(value: JsonValue | undefined): number | undefined {
@@ -301,6 +329,53 @@ export class IssuesApi extends ProjectsApi {
       issue: { ...readIssue(issue, projectId, fieldNames), body: requireString(jsonField(issue, 'body'), 'issue.body'), parent: readParentReference(issue) },
       blockedBy: readBlockedBy(issue, projectId, fieldNames, messages),
     }
+  }
+
+  /**
+  Issue の node ID・本文・前提（先頭 blockedByFirst 件の参照と全体の件数）を、判定の読み取りより軽く読む。
+  blockedBy の部分エラーと null の node は、例外にせず read-failed で返す。
+  Issue の依存関係に対応しない GHES（3.19 より前）は DependenciesUnsupportedError
+  */
+  async getIssueBlockedByReferences(owner: string, repository: string, number: number, blockedByFirst = MAX_BLOCKED_BY): Promise<IssueBlockedByReferences> {
+    let outcome: GraphqlOutcome
+    try {
+      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES, { owner, repo: repository, number, blockedByFirst }, isBlockedByPath)
+    }
+    catch (error: unknown) {
+      throw asDependenciesError(error)
+    }
+    const issue = issueNode(outcome.data, owner, repository, number)
+    const messages = outcome.errors.map(error => stringOrEmpty(jsonField(error, 'message')))
+    return {
+      id: requireString(jsonField(issue, 'id'), 'issue.id'),
+      body: requireString(jsonField(issue, 'body'), 'issue.body'),
+      blockedBy: messages.length > 0 ? { kind: 'read-failed', reason: `blockedBy could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blockedBy')),
+    }
+  }
+
+  /**
+  node ID の並びのそれぞれの前提を、まとめて読む（輪の探索の 1 段）。結果の鍵は node ID。
+  Issue でない・見つからない node と部分エラーは、その node だけ read-failed。
+  Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
+  */
+  async getBlockedByOfNodes(ids: readonly string[]): Promise<ReadonlyMap<string, BlockedByReferences>> {
+    const result = new Map<string, BlockedByReferences>()
+    for (let start = 0; start < ids.length; start += MAX_NODES_PER_QUERY) {
+      const chunk = ids.slice(start, start + MAX_NODES_PER_QUERY)
+      let outcome: GraphqlOutcome
+      try {
+        outcome = await this.executeGraphqlTolerating(QUERY_GET_BLOCKED_BY_OF_NODES, { ids: [...chunk], blockedByFirst: MAX_BLOCKED_BY }, isNodesPath)
+      }
+      catch (error: unknown) {
+        throw asDependenciesError(error)
+      }
+      const nodes = asArray(jsonField(outcome.data, 'nodes'))
+      const failed = new Map(outcome.errors.map(error => [asArray(error['path'])[1], stringOrEmpty(jsonField(error, 'message'))]))
+      for (const [index, id] of chunk.entries()) {
+        result.set(id, readNodeBlockedBy(nodes.at(index), id, failed.get(index)))
+      }
+    }
+    return result
   }
 
   /**

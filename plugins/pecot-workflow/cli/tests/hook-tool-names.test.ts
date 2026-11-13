@@ -43,10 +43,10 @@ function runShell(script: string): string {
 }
 
 describe('hooks のツール名の一覧', () => {
-  it('定義書の 34 項目と一致する', () => {
+  it('定義書の 36 項目と一致する', () => {
     const fromShell = runShell('printf "%s\\n" $PECOT_TOOL_NAMES').split('\n').filter(Boolean)
     const fromDefinitions = namesFromDefinitions()
-    expect(fromDefinitions).toHaveLength(34)
+    expect(fromDefinitions).toHaveLength(36)
     expect(fromShell.toSorted(compareText)).toEqual(fromDefinitions.toSorted(compareText))
   })
 
