@@ -251,4 +251,4 @@ repos:
     rev: v1.7.12
     hooks:
       - id: actionlint-system
-        files: ^\.github/workflows/.*\.ya?ml$
+        files: ^(\.github/workflows|plugins/pecot-workflow/cli/templates/workflow)/.*\.ya?ml$

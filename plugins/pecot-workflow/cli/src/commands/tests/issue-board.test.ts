@@ -7,8 +7,9 @@ import { GitHubAPIError } from '../../infra/github/errors.js'
 import { createIssueReference } from '../../domain/reference-parser.js'
 import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlData, graphqlError, graphqlRequests, rejection, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
-import { addIssueToBoard, applyBoardMove, createIssue, itemHasFieldValue, putOnBoard, setIssueField } from '../issue-board.js'
+import { addIssueToBoard, applyBoardMove, createIssue, itemHasFieldValue, planBoardMove, putOnBoard, setIssueField } from '../issue-board.js'
 
+import type { Readiness } from '../../domain/readiness.js'
 import { createOutput } from '../output.js'
 import { capture } from './support.js'
 
@@ -162,7 +163,7 @@ describe('applyBoardMove', () => {
     const { client, server } = await startClient([updateRule(1)])
     const io = capture()
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 'blocked by #3')
-    expect(applied).toEqual({ column: 'Blocked', missing: [] })
+    expect(applied).toEqual({ column: 'Blocked', missing: [], hasFailed: false })
     expect(io.err.join('')).toBe('moved: #7 Ready -> Blocked (blocked by #3)\n')
     expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_workflow', optionId: 'O_blocked' } }])
   })
@@ -171,7 +172,7 @@ describe('applyBoardMove', () => {
     const { client } = await startClient([graphqlError('UpdateProjectItemField', 'boom')])
     const io = capture()
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 't')
-    expect(applied.column).toBeUndefined()
+    expect(applied).toEqual({ column: undefined, missing: [], hasFailed: true })
     expect(io.err.join('')).toMatch(/^warning: could not move #7: /u)
   })
 
@@ -179,7 +180,7 @@ describe('applyBoardMove', () => {
     const { client, server } = await startClient([updateRule(1)])
     const io = capture()
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { label: 'Todo', missing: [] }, 'startable')
-    expect(applied).toEqual({ column: undefined, missing: [] })
+    expect(applied).toEqual({ column: undefined, missing: [], hasFailed: false })
     expect(io.err.join('')).toBe('set: Status of #7 to Todo\n')
     expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_status', optionId: 'O_todo' } }])
   })
@@ -189,8 +190,15 @@ describe('applyBoardMove', () => {
     const io = capture()
     const blocker = createIssueReference(createRepositoryReference('o', 'other'), 3)
     const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { conflict: { column: 'Active', issues: [blocker] }, missing: [] }, 'blocked by o/other#3')
-    expect(applied).toEqual({ column: undefined, missing: [] })
+    expect(applied).toEqual({ column: undefined, missing: [], hasFailed: false })
     expect(io.err.join('')).toBe('warning: #7 is in Active but blocked by o/other#3\n')
     expect(graphqlRequests(server)).toEqual([])
+  })
+
+  it('planBoardMove は、applyBoardMove と同じ文を dry-run の行で出し、書かない', () => {
+    const io = capture()
+    const reason: Readiness = { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: true, attention: [] }
+    planBoardMove(createOutput(true, io), target, { column: { from: 'Ready', to: 'Blocked', reason }, label: 'Todo', missing: [] }, 'blocked by #3')
+    expect(io.err.join('')).toBe('dry-run: would move #7 Ready -> Blocked (blocked by #3)\ndry-run: would set Status of #7 to Todo\n')
   })
 })

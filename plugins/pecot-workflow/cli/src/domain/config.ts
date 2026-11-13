@@ -10,7 +10,7 @@ import { PecotError } from './errors.js'
 import { isJsonObject, jsonField } from './json.js'
 import { isJsonArray, pythonRepr, pythonStrip, pythonStringRepr, ValidationFailure } from './python-format.js'
 import type { JsonValue, ValidationIssue } from './python-format.js'
-import { parseOwnerRepository } from './repository-resolver.js'
+import { parseOwnerRepository, splitOwnerRepository } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
 
 const WorkflowStatusSchema = z.enum(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
@@ -316,6 +316,16 @@ aggregation_repo を RepositoryReference にする（未設定なら undefined�
 */
 export function aggregationRepositoryReference(config: ProjectConfig): RepositoryReference | undefined {
   return config.aggregation_repo === undefined || config.aggregation_repo === '' ? undefined : parseOwnerRepository(config.aggregation_repo)
+}
+
+/**
+Issue の表記で `#N` だけにするリポジトリ。repository（owner/repo）があればそれ、無ければ設定の最初のリポジトリ
+*/
+export function homeRepositoryOf(config: ProjectConfig, repository = ''): RepositoryReference | undefined {
+  const split = splitOwnerRepository(repository)
+  if (split !== undefined) return split
+  const [first] = config.repositories
+  return first === undefined ? undefined : { owner: first.owner, repository: first.name }
 }
 
 /**

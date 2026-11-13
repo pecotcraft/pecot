@@ -50,6 +50,51 @@
       }
     },
     {
+      "id": "PW-BOARD-SYNC",
+      "name": "board sync",
+      "description": "Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "board",
+            "sync"
+          ]
+        },
+        "mcp": {
+          "tool": "board_sync"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the planned moves without writing to the board"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the active project; when none is active and only one config exists, that one"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
+          ],
+          "project": [
+            "--project"
+          ]
+        }
+      }
+    },
+    {
       "id": "PW-CREATE-BRANCH",
       "name": "create-branch",
       "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",

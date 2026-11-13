@@ -45,7 +45,7 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、`pecot` CLI の 34 個のコマンドを MCP ツールとして公開します。
+MCP サーバ `pecot-workflow` が、`pecot` CLI の 35 個のコマンドを MCP ツールとして公開します。
 ツール名は、コマンドの空白と `-` を `_` に置き換えた形です（`issue create` は `issue_create`、`add-to-project` は `add_to_project`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
 GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。

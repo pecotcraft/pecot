@@ -155,7 +155,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ## Phase 4: User Story 2 — 一覧と Issue の表示に判定が出る (Priority: P1)
 
-**Goal**: `pecot project info` が、`Ready` と `Blocked` の Issue に判定と理由を出す。列と札は直さない。直す役は Phase 13 の Actions のワークフローへ移した。`pecot issue read` が、前提の一覧と判定を出す
+**Goal**: `pecot project info` が、`Ready` と `Blocked` の Issue に判定と理由を出す。列と札は直さない。直す役は Phase 13 の `pecot board sync` へ移した。`pecot issue read` が、前提の一覧と判定を出す
 
 **Independent Test**: quickstart.md の 2・8・9・10 を通す。前提の状態が「済んだ」「PR 中」「未着手」の Issue が、順に `startable`・`stackable on`・`blocked by` と出る。手で動かしたカードを戻す確かめは、Phase 13 に移した
 
@@ -165,7 +165,8 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 着手の跡がある Issue は、どの列にあっても、列と札を動かさない（FR-084）。判定が `blocked` のときは、食い違いを返す
   - `Blocked` の値が無いボードでは、動かす先を返さず、足りない値を返す
 - [x] T030 [US2] `p-w/cli/src/domain/board-move.ts` を足し、T029 を通す
-- [x] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す（一覧が呼ぶ部分は Phase 13 へ移した）。処理は残し、ほかのコマンドとワークフローが使う。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
+- [x] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す（一覧が呼ぶ部分は Phase 13 へ移した）
+  - 処理は残し、ほかのコマンドと `pecot board sync` が使う。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
 - [x] T032 [P] [US2] `p-w/cli/tests/interface/project.test.ts` に、`project info` の失敗するテストを書く
   - `Ready` と `Blocked` の表に `Readiness` の列が出る。形は contracts/cli-commands.md の `pecot project info` のとおりだ
   - 判定と違う列にある Issue も動かさず、`moved:`・`set:` は出ない（列と札を直すテストは Phase 13 へ移した）
@@ -420,29 +421,31 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ---
 
-## Phase 13: 拾えなかったずれを GitHub Actions のワークフローで直す
+## Phase 13: 拾えなかったずれを `pecot board sync` で直す
 
-**Goal**: 画面でのマージ・blocked by の付け外し・手で動かしたカードによる列と札のずれを、ワークフローが直す。一覧を出す操作は、列を直さない
+**Goal**: 画面でのマージ・blocked by の付け外し・手で動かしたカードによる列と札のずれを、`pecot board sync` が直す。手元でも、任意のワークフローからでも打てる。一覧を出す操作は、列を直さない
 
-**Independent Test**: quickstart.md の 8・9 を通す。手で動かしたカードと、画面で閉じた前提の Issue が、実行の後は判定に合った列と札になる
+**Independent Test**: quickstart.md の 8・9 を通す。手で動かしたカードと、画面で閉じた前提の Issue が、`board_sync` の後は判定に合った列と札になる
 
-- [ ] T103 [P] 列と札を直すコマンドの失敗するテストを書く
+- [x] T103 [P] 列と札を直すコマンドの失敗するテストを書く
   - `Ready`・`Blocked`・`Active`・`In Review` の Issue の判定を読み、`decideBoardMove` の結果を `applyBoardMove` で書く
   - 動かした Issue ごとに `moved:`・`set:` の行を出す。書き込みの失敗は `warning:` にして続ける
   - 着手の跡がある Issue と、人が動かす列の Issue は動かさない（FR-080、FR-084）
-- [ ] T104 列を直すコマンドを足し、T103 を通す。判断は `p-w/cli/src/domain/board-move.ts`、書き込みは `p-w/cli/src/commands/issue-board.ts` の処理を使う（FR-083）
-- [ ] T105 ワークフローの雛形を、配布物の `p-w/cli/templates/` へ足す。契機は `pull_request: closed`・`issues: closed/reopened`・`schedule` とし、T104 のコマンドを打つ
-- [ ] T106 定義書（`p-w/interface/authored.yaml`）に T104 のコマンドを足し、w-help に雛形の使い方を書く
-- [ ] T107 quickstart.md の 8・9 を、ワークフローを動かして通す
-- [ ] T108 version plan を `.nx/version-plans/` に足す
+- [x] T104 列を直すコマンドを足し、T103 を通す。判断は `p-w/cli/src/domain/board-move.ts`、書き込みは `p-w/cli/src/commands/issue-board.ts` の処理を使う（FR-083）
+- [x] T105 ワークフローの雛形を、配布物の `p-w/cli/templates/workflow/pecot-board-sync.yml` へ足す。置くかは利用者が選ぶ
+  - 契機は `pull_request_target`・`issues: closed/reopened`・`workflow_dispatch` とし、`schedule` はコメントにする
+  - T104 のコマンドを `npx -y --prefix=/ @pecot/workflow-mcp@<major> board sync` で打つ
+- [x] T106 定義書（`p-w/interface/authored.yaml`）に `pecot board sync` を足す。雛形の使い方は、w-help の `references/board-sync-workflow.md` に書く
+- [x] T107 quickstart.md の 8・9 を、`board_sync` とワークフローの `workflow_dispatch` で通す
+- [x] T108 version plan を `.nx/version-plans/` に足す
 
 補足は次のとおり。
 
-- ワークフローのトークンは、PAT か GitHub App の secret が要る。標準のトークンは、組織のボードに書けない
-- blocked by の付け外し（`issue_dependencies`）が、Actions の契機になるかは未確認だ。ならなければ、`schedule` で拾う
-- カードの移動（`projects_v2_item`）は Actions の契機に無いので、`schedule` で拾う
+- ワークフローの token は、GitHub App か classic PAT が要る。標準のトークンは、組織のボードに書けない
+- blocked by の付け外し（`issue_dependencies`）は、Actions の契機に無いと確認した。`schedule` を有効にするか、手元で `board_sync` を打って直す
+- カードの移動（`projects_v2_item`）も Actions の契機に無い。直し方は blocked by と同じだ
 
-**Checkpoint**: 拾えなかったずれの列と札が、ワークフローの実行の後に判定へ合う
+**Checkpoint**: 拾えなかったずれの列と札が、`board_sync` の実行の後に判定へ合う
 
 ---
 
@@ -536,7 +539,7 @@ Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue
 | 6 | Phase 6 | 計画が変わったときに、前提を直せる |
 | 7 | Phase 11 | 前提の読み違いが、表の形で防がれる |
 | 8 | Phase 12 | このリポの運用に使い始められる |
-| 9 | Phase 13 | 拾えなかったずれの列と札が、Actions のワークフローで直る |
+| 9 | Phase 13 | 拾えなかったずれの列と札が、`pecot board sync` で直る |
 
 ### 人の作業が要るところ
 
