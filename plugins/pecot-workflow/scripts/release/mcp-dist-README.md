@@ -18,7 +18,7 @@ MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボ
   "mcpServers": {
     "pecot-workflow": {
       "command": "npx",
-      "args": ["-y", "--prefix=/", "--package=@pecot/workflow-mcp", "pecot-workflow-mcp"]
+      "args": ["-y", "--prefix=/", "@pecot/workflow-mcp"]
     }
   }
 }
@@ -26,6 +26,11 @@ MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボ
 
 `--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
 `--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
+npm には devEngines の判定だけを外す公式の手段が無く、要望（npm/rfcs#830）は not_planned で閉じています。
+
+パッケージは `--package=` ではなく、位置引数で渡してください。
+`--package=` で渡すと、npm が `npm_config_package` をサーバの子プロセスに残します。
+すると、`worktree_add` の `setup_command` などが打つ npx が、これを読んで別のパッケージを実行します。
 
 `--prefix=/` には次の副作用があります。
 
@@ -51,7 +56,7 @@ Windows の MCP クライアントから使う場合は WSL2 経由で起動し�
   "mcpServers": {
     "pecot-workflow": {
       "command": "wsl",
-      "args": ["npx", "-y", "--prefix=/", "--package=@pecot/workflow-mcp", "pecot-workflow-mcp"]
+      "args": ["npx", "-y", "--prefix=/", "@pecot/workflow-mcp"]
     }
   }
 }
@@ -60,10 +65,10 @@ Windows の MCP クライアントから使う場合は WSL2 経由で起動し�
 WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` を次に差し替えます。
 
 ```json
-["-e", "bash", "-lc", "npx -y --prefix=/ --package=@pecot/workflow-mcp pecot-workflow-mcp"]
+["-e", "bash", "-lc", "npx -y --prefix=/ @pecot/workflow-mcp"]
 ```
 
-版を固定するときは、`--package=@pecot/workflow-mcp@1.2.3` のように版を付けます。
+版を固定するときは、`@pecot/workflow-mcp@1.2.3` のように版を付けます。
 依存は `npm-shrinkwrap.json` で固定されているため、同じ版なら同じ依存が入ります。
 
 ツールが対象にするリポジトリは、サーバを起動したディレクトリを含むリポジトリです。

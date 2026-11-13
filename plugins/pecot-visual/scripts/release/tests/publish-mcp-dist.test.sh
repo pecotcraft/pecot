@@ -662,7 +662,14 @@ assert_eq ".claude-plugin/plugin.json が実版を持つ" "$PLUGIN_VERSION" \
 assert_eq "README に未置換のプレースホルダ（__NAME__）が残っていない" "0" \
     "$(grep -cE '__[A-Za-z0-9_]+__' "$DIST/README.md" | tr -d ' ')"
 assert_eq "README の登録例 4 件が公開名を指す" "4" \
-    "$(grep -cF '"@pecot/visual-mcp"' "$DIST/README.md" | tr -d ' ')"
+    "$(grep -cF '"--prefix=/", "@pecot/visual-mcp"' "$DIST/README.md" | tr -d ' ')"
+assert_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1" \
+    "$(grep -cF 'npx -y --prefix=/ @pecot/visual-mcp' "$DIST/README.md" | tr -d ' ')"
+assert_eq "README の直接登録の例が bin 名 pecot-visual-mcp を使う" "1" \
+    "$(grep -cF '"command": "pecot-visual-mcp"' "$DIST/README.md" | tr -d ' ')"
+# --package= で渡すと子に npm_config_package が残り、子の npx が別のパッケージを実行する。
+assert_eq "README の登録例が --package= で渡していない" "0" \
+    "$(grep -cF -- '--package=@' "$DIST/README.md" | tr -d ' ')"
 assert_eq "README に git の URL を指す登録例が残っていない" "0" \
     "$(grep -c 'git+' "$DIST/README.md" | tr -d ' ')"
 assert_eq "README が版の固定を @<version> で案内する" "1" \
@@ -1650,13 +1657,23 @@ write_requests "$TMP/npx-requests.json" \
     tools/call "$(call_params slide_lint "{\"dir\":\"$TEXT_DIR\"}")" \
     || exit 1
 mkdir -p "$TMP/home-npx"
+# pnpm の devEngines を宣言した利用者のリポジトリを再現する。onFail は書かない（warn にすると退行を見逃す）。
+printf '%s\n' '{"name":"devengines-repo","private":true,"devEngines":{"packageManager":{"name":"pnpm"}}}' \
+    > "$TMP/home-npx/package.json"
+# --prefix=/ が無ければ、この cwd の npx は EBADDEVENGINES で止まる。
+if (cd "$TMP/home-npx" && env HOME="$TMP/home-npx" npx --yes "--cache=$NPX_CACHE" node -v) > "$TMP/npx-noprefix.out" 2>&1; then
+    fail "--prefix=/ 無しの npx が devEngines の cwd で止まらなかった。npm が exec で devEngines を見なくなった可能性がある。--prefix=/ の要否を見直す ($(log_tail npx-noprefix.out 3))"
+else
+    assert_eq "--prefix=/ 無しの npx が devEngines の cwd で EBADDEVENGINES になる" "yes" \
+        "$(grep -q EBADDEVENGINES "$TMP/npx-noprefix.out" && echo yes || echo no)"
+    # 別の理由で止まったときは、原因が追えるように出力の末尾を出す。
+    grep -q EBADDEVENGINES "$TMP/npx-noprefix.out" || echo "  npx-noprefix.out: $(log_tail npx-noprefix.out 3)"
+fi
 for run in cold warm; do
     NPX_JSON="$TMP/npx-$run.json"
-    # 利用者は自分の dir で npx を打つ。nx はこのテストを plugin の dir から起動するため、cwd を plugin の外へ移す。
-    # plugin の dir のままだと、package.json の devEngines（pnpm）を見た npm が EBADDEVENGINES を出して止まる。
     (cd "$TMP/home-npx" && env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME -u CLAUDE_PLUGIN_ROOT HOME="$TMP/home-npx" \
         SMOKE_BIN="$(command -v npx)" PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-        node "$TMP/smoke.mjs" "$TMP/npx-requests.json" "${NPX_FLAGS[@]}" "--package=$GH_UPLOAD_COPY" pecot-visual-mcp) \
+        node "$TMP/smoke.mjs" "$TMP/npx-requests.json" "${NPX_FLAGS[@]}" --prefix=/ "file:$GH_UPLOAD_COPY") \
         > "$NPX_JSON" 2> "$TMP/npx-$run.err"
     case "$(head -c 5 "$NPX_JSON")" in
         FAIL:) fail "npx の $run 起動が MCP サーバとして起動しない ($(log_cat npx-$run.json))" ;;

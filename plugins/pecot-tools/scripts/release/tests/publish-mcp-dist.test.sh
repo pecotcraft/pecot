@@ -380,17 +380,23 @@ fi
 # --- 3. README の登録例 ---
 
 # 登録例は npm のパッケージ名を直に書く。URL のプレースホルダも git の URL も残らない。
-# 2 件 = 直接起動の登録例 + WSL 経由の登録例（bash -lc の行は引用符が付かず対象外）。
+# 2 件 = npx 起動の登録例 + WSL 経由の登録例（bash -lc の行は引用符が付かず対象外）。
 assert_eq "README に git の URL が残っていない" "0" \
     "$(grep -c 'git+' "$DIST/README.md" | tr -d ' ')"
 # プレースホルダの名前は固定せず、`__` で囲んだ語が未置換で残っていないことを見る。
 assert_eq "README に未置換のプレースホルダ（__NAME__）が残っていない" "0" \
     "$(grep -cE '__[A-Za-z0-9_]+__' "$DIST/README.md" | tr -d ' ')"
-assert_eq "README の登録例 2 件が @pecot/tools-mcp を指す" "2" \
-    "$(grep -cF '"@pecot/tools-mcp"]' "$DIST/README.md" | tr -d ' ')"
+assert_eq "README の登録例 2 件が --prefix=/ 付きで @pecot/tools-mcp を指す" "2" \
+    "$(grep -cF '"--prefix=/", "@pecot/tools-mcp"]' "$DIST/README.md" | tr -d ' ')"
+# --package= で渡すと子に npm_config_package が残り、子の npx が別のパッケージを実行する。
+assert_eq "README の登録例が --package= で渡していない" "0" \
+    "$(grep -cF -- '--package=@' "$DIST/README.md" | tr -d ' ')"
+assert_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1" \
+    "$(grep -cF 'npx -y --prefix=/ @pecot/tools-mcp' "$DIST/README.md" | tr -d ' ')"
 # 登録例のサーバ名は同梱 .mcp.json のキーおよび MCP_SERVER_NAME（initialize の
 # serverInfo.name）に合わせる。
-assert_eq "README の登録例 2 件がサーバ名 pecot-tools を使う" "2" \
+# 3 件 = npx 起動 + 事前インストール後の直接起動 + WSL 経由。
+assert_eq "README の登録例 3 件がサーバ名 pecot-tools を使う" "3" \
     "$(grep -cF '"pecot-tools":' "$DIST/README.md" | tr -d ' ')"
 
 # --- 4. 配布ツリーの起動 smoke ---
