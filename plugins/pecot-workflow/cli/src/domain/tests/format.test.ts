@@ -389,6 +389,11 @@ describe('formatItemsJson', () => {
 })
 
 describe('formatTableRow', () => {
+  it('追加のセルを Title の後ろに足す', () => {
+    const item: BoardItem = { id: 'item1', workflow: 'Ready', title: 'T', content: { number: 1, labels: [], repository: 'owner/repo' } }
+    expect(formatTableRow(item, ['startable'])).toBe('| owner/repo#1 | T | startable |')
+  })
+
   it('Ref と Title を並べた表の行を返す', () => {
     const item: BoardItem = { id: 'item1', workflow: 'Active', title: 'Test Issue', updatedAt: '2026-01-14T10:00:00Z', content: { number: 123, labels: ['bug', 'urgent'], repository: 'owner/repo' } }
     expect(formatTableRow(item)).toBe('| owner/repo#123 | Test Issue |')

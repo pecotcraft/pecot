@@ -361,10 +361,12 @@ export function progressionsFromReadiness(readiness: ReadonlyMap<string, Readine
   ]))
 }
 
-// 対象と同じリポジトリの Issue は `#N`、別のリポジトリは `owner/repo#N`
-function displayReference(reference: IssueReference, targetRepository: RepositoryReference): string {
+/**
+メッセージに出す Issue の表記。home と同じリポジトリは `#N`、別のリポジトリは `owner/repo#N`。home が無ければ常に `owner/repo#N`
+*/
+export function displayReference(reference: IssueReference, home?: RepositoryReference): string {
   const number = `#${String(reference.number)}`
-  return isSameRepository(reference.repository, targetRepository) ? number : `${repositoryFullName(reference.repository)}${number}`
+  return home !== undefined && isSameRepository(reference.repository, home) ? number : `${repositoryFullName(reference.repository)}${number}`
 }
 
 const NOT_IN_REVIEW_TEXT: ReadonlyMap<NotInReviewState, string> = new Map([
@@ -376,11 +378,12 @@ const NOT_IN_REVIEW_TEXT: ReadonlyMap<NotInReviewState, string> = new Map([
 ])
 
 /**
-前提 1 件の状態の文。`done`・`in review`・`wait: merge — <理由>`、または積めない理由（not started など）
+前提 1 件の状態の文。`done`・`closed without merge`・`in review`・`wait: merge — <理由>`、または積めない理由（not started など）
 */
 export function describePrerequisiteState(prerequisite: Readonly<Prerequisite>): string {
   const { issue, wait, reason } = prerequisite
   if (isDone(issue)) return 'done'
+  if (issue.state === 'closed') return 'closed without merge'
   if (wait === 'merge') return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`
   const state = notInReviewState(issue)
   return isStackable(issue) ? 'in review' : (NOT_IN_REVIEW_TEXT.get(state) ?? state)

@@ -104,7 +104,7 @@ function progressFields(progress: ListProgress): Json {
     issueType: progress.issueType === undefined ? null : { name: progress.issueType },
     subIssues: { totalCount: 0 },
     parent: null,
-    issueDependenciesSummary: { totalBlockedBy: progress.blockedBy },
+    blockedBy: { totalCount: progress.blockedBy },
   }
 }
 
@@ -741,13 +741,14 @@ describe('project info', () => {
     it('一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-31')
       const result = await info([
-        board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } })),
+        board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } }), item('PVTI_7', 7, 'Ready', { progress: { blockedBy: 9 } })),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
         prerequisitesRule({ number: 6, blockedBy: [notStarted] }),
+        prerequisitesRule({ number: 7, blockedBy: [notStarted] }),
       ])
       expectClean(result)
-      expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1, 6])
-      expect(variableValues(result, 'GetIssuePrerequisites', 'blockedByFirst')).toEqual([1, 50])
+      expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1, 6, 7])
+      expect(variableValues(result, 'GetIssuePrerequisites', 'blockedByFirst')).toEqual([8, 50, 9])
     })
 
     it('読み取りに失敗した Issue は unknown と出し、列を動かさない', async (context) => {
@@ -757,6 +758,13 @@ describe('project info', () => {
       expect(result.code).toBe(0)
       expect(result.stdout).toMatch(/\| acme\/demo#1 \| 課題1 \| unknown \(GraphQL query error: Server error '500 Internal Server Error' for url '[^']+' For more information check: [^)]+\) \|/u)
       expect(result.stderr).toBe('')
+    })
+
+    it('読み取りに失敗した Issue の JSON の readiness は、stackOn と reason を null で持つ', async (context) => {
+      await verifies(context, 'PW-PROJECT-INFO-32')
+      const result = await info([board(item('PVTI_1', 1, 'Ready')), failedRead()], boardConfig(), '--json')
+      expectClean(result)
+      expect(boardItems(result)).toMatchObject([{ readiness: { kind: 'unknown', stackOn: null, reason: null } }])
     })
 
     it('前提の無い Issue だけのボードでは、すべて startable で、列を動かさない', async (context) => {
@@ -814,7 +822,7 @@ describe('project info', () => {
 
     it('一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、判定を出さない', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-25')
-      const rejected: ResponseRule = { match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'issueDependenciesSummary\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      const rejected: ResponseRule = { match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       const legacy = graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })
       const result = await info([rejected, legacy])
       expectClean(result)

@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// Issue の作成・ボードへの追加・フィールドの設定。cli/core/issue_board.py の移植。
+// Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
 // 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
 import { COLUMN_CONFIG_KEYS, LABEL_CONFIG_KEYS } from '../domain/board-move.js'
 import type { BoardMove, MissingValue, MovableColumn } from '../domain/board-move.js'
 import { getFieldId, getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
+import { displayReference } from '../domain/readiness.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import { isSameRepository, repositoryFullName } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { JsonObject } from '../domain/json.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -120,14 +120,6 @@ export async function putOnBoard(
   }
 }
 
-/**
-メッセージに出す Issue の表記。home と同じリポジトリは `#N`、別のリポジトリは `owner/repo#N`。home が無ければ常に `#N`
-*/
-export function issueLabel(reference: IssueReference, home: RepositoryReference | undefined): string {
-  const number = `#${String(reference.number)}`
-  return home === undefined || isSameRepository(reference.repository, home) ? number : `${repositoryFullName(reference.repository)}${number}`
-}
-
 export interface AppliedMove {
   /**
   実際に動いた先の列。動かなかったら undefined
@@ -138,7 +130,8 @@ export interface AppliedMove {
 
 /**
 decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
-text は列を動かす理由の判定の文
+text は列を動かす理由の判定の文。
+#404 の Actions のワークフローが使う。今は呼び元が無い
 */
 export async function applyBoardMove(
   out: Readonly<Output>,
@@ -149,9 +142,9 @@ export async function applyBoardMove(
   move: Readonly<BoardMove>,
   text: string,
 ): Promise<AppliedMove> {
-  const name = issueLabel(target.ref, target.home)
+  const name = displayReference(target.ref, target.home)
   if (move.conflict !== undefined) {
-    const blockers = move.conflict.issues.map(issue => issueLabel(issue, target.home))
+    const blockers = move.conflict.issues.map(issue => displayReference(issue, target.home))
     out.warning(`${name} is in ${move.conflict.column} but blocked${blockers.length > 0 ? ` by ${blockers.join(', ')}` : ''}`)
   }
   let moved: MovableColumn | undefined

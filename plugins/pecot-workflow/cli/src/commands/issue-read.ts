@@ -4,25 +4,29 @@ import { z } from 'zod'
 import type { ProjectConfig } from '../domain/config.js'
 import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
-import { describePrerequisiteState, describeReadiness } from '../domain/readiness.js'
+import { describePrerequisiteState, describeReadiness, describeUnknown, displayReference, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
+import type { IssueFacts, Readiness } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
+import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, repositoryFullName } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
 import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
-import { createReadinessCache, readIssueReadiness, readinessJson } from './issue-readiness.js'
-import type { JudgedIssue } from './issue-readiness.js'
+import { createReadinessCache, judgeSnapshot, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
+import type { IssueSnapshot, JudgedIssue } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
-import { issueLabel } from './issue-board.js'
 
 const MAX_COMMENT_LIMIT = 20
 const DEFAULT_COMMENT_LIMIT = 5
+// 一覧の件数を読んだ後に前提が足されても読み切れるよう、前提の読み取りの件数の下限を持つ
+const MIN_BLOCKED_BY_READ = 8
 
 function parentLine(issue: IssueSlim, owner: string, repository: string): string | undefined {
   const { parent } = issue
@@ -70,26 +74,33 @@ function formatIssueMarkdown(issue: IssueSlim, owner: string, repository: string
 
 interface ReadinessView {
   readonly lines: readonly string[]
-  readonly blockedBy: readonly JsonObject[]
+  readonly blockedBy: readonly JsonObject[] | typeof JSON_NULL
   readonly readiness: JsonObject | typeof JSON_NULL
 }
 
-const UNREAD: ReadinessView = { lines: [], blockedBy: [], readiness: JSON_NULL }
+// 前提と判定を読めなかったとき
+const UNREAD: ReadinessView = { lines: [], blockedBy: JSON_NULL, readiness: JSON_NULL }
 
-function readinessView(judged: Readonly<JudgedIssue>): ReadinessView {
-  const home = judged.ref.repository
-  const { prerequisites, readiness } = judged
-  const text = readiness === undefined ? undefined : describeReadiness(readiness, prerequisites, home)
-  const entries = prerequisites.map(({ issue, wait, reason }) => ({
-    label: issueLabel(issue.ref, home),
-    title: judged.titles.get(issueReferenceKey(issue.ref)) ?? '',
-    state: issue.state === 'open' ? 'OPEN' : 'CLOSED',
-    status: describePrerequisiteState({ issue, wait, reason }),
-    wait,
-    reason,
-    ref: issue.ref,
-  }))
-  const lines = prerequisites.length === 0
+type PrerequisiteSource = Pick<IssueSnapshot, 'ref' | 'prerequisites' | 'titles'>
+
+/**
+前提の行と JSON。Readiness の行は text が渡されたときだけ足す（Epic と Tracker は判定が無い）
+*/
+function readinessView(source: Readonly<PrerequisiteSource>, readiness: Readiness | undefined, text: string | undefined): ReadinessView {
+  const home = source.ref.repository
+  const entries = source.prerequisites.map((prerequisite) => {
+    const { issue, wait, reason } = prerequisite
+    return {
+      label: displayReference(issue.ref, home),
+      title: source.titles.get(issueReferenceKey(issue.ref)) ?? '',
+      state: issue.state === 'open' ? 'OPEN' : 'CLOSED',
+      status: describePrerequisiteState(prerequisite),
+      wait,
+      reason,
+      ref: issue.ref,
+    }
+  })
+  const lines = entries.length === 0
     ? []
     : [`**Blocked by:** ${entries.map(entry => `${entry.label} ${entry.title} (${entry.state}, ${entry.status})`).join(', ')}`, ...text === undefined ? [] : [`**Readiness:** ${text}`]]
   return {
@@ -99,30 +110,52 @@ function readinessView(judged: Readonly<JudgedIssue>): ReadinessView {
   }
 }
 
-function warnAboutSections(out: Readonly<Output>, judged: Readonly<JudgedIssue>): void {
-  const home = judged.ref.repository
-  const self = issueLabel(judged.ref, undefined)
-  for (const mismatch of judged.mismatches) {
-    out.warning(`Waits for merge of ${self} lists ${issueLabel(mismatch.ref, home)}, which is not a blocked-by of it`)
+function judgedView(judged: Readonly<JudgedIssue>): ReadinessView {
+  const { readiness } = judged
+  return readinessView(judged, readiness, readiness === undefined ? undefined : describeReadiness(readiness, judged.prerequisites, judged.ref.repository))
+}
+
+function warnAboutSections(out: Readonly<Output>, source: Readonly<Pick<IssueSnapshot, 'ref' | 'mismatches' | 'malformedReason'>>): void {
+  const home = source.ref.repository
+  const self = displayReference(source.ref, home)
+  for (const mismatch of source.mismatches) {
+    out.warning(`Waits for merge of ${self} lists ${displayReference(mismatch.ref, home)}, which is not a blocked-by of it`)
   }
-  if (judged.malformedReason !== undefined) out.warning(`Waits for merge of ${self} is malformed: ${judged.malformedReason}`)
+  if (source.malformedReason !== undefined) out.warning(`Waits for merge of ${self} is malformed: ${source.malformedReason}`)
+}
+
+// 前提が無いと分かっている Issue の判定。API は呼ばない。Epic と Tracker は判定を出さない
+async function readWithoutPrerequisites(client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueSlim>, reference: IssueReference): Promise<JudgedIssue> {
+  const isGrouping = issue.sub_issues.length > 0 || issue.title.startsWith(TRACKER_TITLE_PREFIX)
+  const target: IssueFacts = { ref: reference, state: issue.state.toLowerCase() === 'open' ? 'open' : 'closed', column: undefined, label: undefined, kind: isGrouping ? 'epic' : 'task', branches: issue.linked_branches, pullRequests: [] }
+  const result = await judgeSnapshot(client, snapshotWithoutPrerequisites(config, { title: issue.title, target, parent: undefined }), createReadinessCache())
+  if (result.kind === 'unreadable') throw new Error('unreachable: a snapshot without prerequisites is always judged')
+  return result
 }
 
 // 判定が読めなくても、今までの出力は止めない
-async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, target: Readonly<{ owner: string, repository: string, number: number }>): Promise<ReadinessView> {
-  const reference = createIssueReference(createRepositoryReference(target.owner, target.repository), target.number)
+async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueSlim>, reference: IssueReference): Promise<ReadinessView> {
+  const label = displayReference(reference, reference.repository)
   try {
-    const result = await readIssueReadiness(client, config, reference, createReadinessCache())
+    const result = issue.blockedByCount === 0
+      ? await readWithoutPrerequisites(client, config, issue, reference)
+      : await readIssueReadiness(client, config, reference, createReadinessCache(), undefined, issue.blockedByCount === undefined ? undefined : Math.min(Math.max(issue.blockedByCount, MIN_BLOCKED_BY_READ), MAX_BLOCKED_BY))
     if (result.kind === 'unreadable') {
-      out.warning(`could not read blocked-by of #${String(target.number)}: ${result.reason}`)
-      return UNREAD
+      const { snapshot } = result
+      if (snapshot === undefined) {
+        out.warning(`could not read blocked-by of ${label}: ${result.reason}`)
+        return UNREAD
+      }
+      out.warning(`could not judge readiness of ${label}: ${result.reason}`)
+      warnAboutSections(out, snapshot)
+      return readinessView(snapshot, undefined, describeUnknown(result.reason))
     }
     warnAboutSections(out, result)
-    return readinessView(result)
+    return judgedView(result)
   }
   catch (error: unknown) {
     if (!(error instanceof DependenciesUnsupportedError)) throw error
-    out.warning(`could not read blocked-by of #${String(target.number)}: ${error.message}`)
+    out.warning(`could not read blocked-by of ${label}: ${error.message}`)
     return UNREAD
   }
 }
@@ -154,9 +187,10 @@ const ISSUE_READ = defineCommand({
         return stopWith(output, `could not read Issue ${issuePath(owner, repository, number)}: ${error.message}`)
       }
 
-      const view = await readView(output, client, config, { owner, repository, number })
+      const jsonFields = { ...issue, blockedByCount: undefined }
+      const view = await readView(output, client, config, issue, createIssueReference(createRepositoryReference(owner, repository), number))
       output.data(input.json
-        ? JSON.stringify({ ...issue, owner, repo: repository, blockedBy: view === UNREAD ? JSON_NULL : view.blockedBy, readiness: view.readiness }, undefined, 2)
+        ? JSON.stringify({ ...jsonFields, owner, repo: repository, blockedBy: view.blockedBy, readiness: view.readiness }, undefined, 2)
         : formatIssueMarkdown(issue, owner, repository, view))
     })
   },

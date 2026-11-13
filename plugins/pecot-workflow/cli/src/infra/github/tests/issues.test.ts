@@ -267,6 +267,27 @@ describe('getIssueSlim', () => {
     expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([{ owner: 'owner', repo: 'repo', number: 460, commentLimit: 20 }])
   })
 
+  it('前提の件数（blockedBy.totalCount）を blockedByCount で返す', async () => {
+    const { client } = await startClient([graphqlData('GetIssueSlim', { repository: { issue: { ...response.repository.issue, blockedBy: { totalCount: 3 } } } })])
+    const issue = await client.getIssueSlim('owner', 'repo', 460)
+    expect(issue.blockedByCount).toBe(3)
+  })
+
+  it('blockedBy に対応しない GHES では、件数なしのクエリで読み直し、blockedByCount は undefined', async () => {
+    const { client, server } = await startClient([
+      graphqlError('GetIssueSlim', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\''),
+      graphqlData('GetIssueSlimWithoutBlockedBy', response),
+    ])
+    const issue = await client.getIssueSlim('owner', 'repo', 460)
+    expect(issue.blockedByCount).toBeUndefined()
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetIssueSlim', 'GetIssueSlimWithoutBlockedBy'])
+  })
+
+  it('blockedBy と関係の無いスキーマの失敗は、読み直さずに投げる', async () => {
+    const { client } = await startClient([graphqlError('GetIssueSlim', 'Field \'linkedBranches\' doesn\'t exist on type \'Issue\'')])
+    expect(await rejection(client.getIssueSlim('owner', 'repo', 460))).toBeInstanceOf(GitHubAPIError)
+  })
+
   it('親・サブ Issue・timelineItems が無い Issue は、空の子要素を持つ形で返す', async () => {
     const { client } = await startClient([graphqlData('GetIssueSlim', {
       repository: { issue: {

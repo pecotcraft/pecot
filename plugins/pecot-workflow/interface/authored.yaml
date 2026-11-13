@@ -1166,6 +1166,18 @@ entries:
       - id: PW-ISSUE-READ-18
         pattern: unwanted
         statement: もし前提を読めないなら、warning の行を出し、今までの出力を止めない
+      - id: PW-ISSUE-READ-19
+        pattern: unwanted
+        statement: もし済んでいない前提があり、リポに develop_branch が無いなら、Blocked by の行と unknown の判定を出し、warning の行を出す
+      - id: PW-ISSUE-READ-20
+        pattern: unwanted
+        statement: もし前提の積む先の PR を読めないなら、warning の行を出し、Blocked by の行と unknown の判定を出す
+      - id: PW-ISSUE-READ-21
+        pattern: unwanted
+        statement: もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、warning の行を出し、Blocked by と Readiness の行を省く
+      - id: PW-ISSUE-READ-22
+        pattern: event
+        statement: 前提が 0 件の Issue を読むと、前提を個別に読まず、判定を startable にする
   PW-ISSUE-REOPEN:
     constraints: []
     details:
@@ -2013,7 +2025,7 @@ entries:
     output:
       format: text
       description: Markdown with Overview, Registered repositories and Board status sections. The Ready and Blocked tables have a Readiness column, and a Stackable chains section follows when Issues can be stacked. With --json, a JSON object with project, repositories (each with dependabot_alerts) and board, where each item has readiness.
-    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted.
+    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted. One warning line when the GitHub Enterprise Server does not support Issue dependencies.
     environment: []
     exit_status:
       - code: 0
@@ -2122,7 +2134,10 @@ entries:
         statement: 一覧で前提が 0 件の Issue があると、前提を個別に読まず、一覧の値で判定する
       - id: PW-PROJECT-INFO-31
         pattern: event
-        statement: 一覧で前提が 1 件以上の Issue があると、その件数（最大 50）で前提を読む
+        statement: 一覧で前提が 1 件以上の Issue があると、その件数（下限 8、上限 50）で前提を読む
+      - id: PW-PROJECT-INFO-32
+        pattern: event
+        statement: --json を付けて打つと、判定を読めない Issue の readiness の stackOn と reason を null にする
   PW-PROJECT-INIT:
     constraints: []
     details:

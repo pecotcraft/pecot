@@ -239,7 +239,7 @@ pecot issue block <Phase 2> --by <Phase 4>
 | `issue block` の stderr | `warning:` に、着手済みの Issue がブロック中である旨が出る |
 | worktree B の `pecot session status` | `## Stack` の節に、判定の食い違いが出る |
 
-## 9. マージされずに閉じた前提（US2、Actions のフェーズで確かめる）
+## 9. マージされずに閉じた前提（US2。判定は一覧のフェーズ、札は Actions のフェーズで確かめる）
 
 Phase 4 の Issue を、PR をマージせずに画面で閉じる。札を `Needs Attention` にするのは、ワークフローだ。
 
@@ -250,7 +250,7 @@ pecot issue unblock <Phase 5> --by <Phase 4>
 
 | 見るもの | 期待 |
 |---|---|
-| Phase 5 の判定 | `blocked`。前提がマージされずに閉じられた旨と、外すコマンドが出る |
+| Phase 5 の判定 | `blocked by #<Phase 4> (closed without merge: #<Phase 4>)`。`issue read` の `**Readiness:**` にも同じ文が出る |
 | Phase 5 の札 | ワークフローが動いた後に `Needs Attention` |
 | `unblock` の後 | 札が `Todo` に戻り、列が判定に合わせて動く |
 

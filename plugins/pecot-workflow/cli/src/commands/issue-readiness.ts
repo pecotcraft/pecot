@@ -62,6 +62,10 @@ export interface IssueSnapshot {
 export interface UnreadableIssue {
   readonly kind: 'unreadable'
   readonly reason: string
+  /**
+  前提まで読めていたときの読み取り結果。判定だけが読めなかった（develop_branch が無い、PR の引き足しに失敗した）ときに付く
+  */
+  readonly snapshot?: IssueSnapshot
 }
 
 export interface JudgedIssue extends Omit<IssueSnapshot, 'developmentBranch' | 'kind'> {
@@ -74,8 +78,8 @@ export interface JudgedIssue extends Omit<IssueSnapshot, 'developmentBranch' | '
 
 export type IssueReadiness = JudgedIssue | UnreadableIssue
 
-function unreadable(reason: string): UnreadableIssue {
-  return { kind: 'unreadable', reason }
+function unreadable(reason: string, snapshot?: IssueSnapshot): UnreadableIssue {
+  return snapshot === undefined ? { kind: 'unreadable', reason } : { kind: 'unreadable', reason, snapshot }
 }
 
 function titlesOf(readout: IssuePrerequisitesReadout): ReadonlyMap<string, string> {
@@ -179,21 +183,18 @@ function prerequisitePullRequests(prerequisites: readonly Prerequisite[]): reado
   return prerequisites.flatMap(({ issue }) => issue.pullRequests).filter(pullRequest => pullRequest.state === 'open' && !pullRequest.isCrossRepository)
 }
 
-/**
-前提を判定する。cycle は呼ぶ側が findCycle で求めた輪。
-前提の PR が開発ブランチに届かないときだけ、base のブランチを head に持つ PR を引き足して、判定をやり直す
-*/
-export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Readonly<IssueSnapshot>, cache: ReadinessCache, cycle?: readonly string[]): Promise<IssueReadiness> {
-  const { developmentBranch, prerequisites, target } = snapshot
-  const hasUnfinished = prerequisites.some(({ issue }) => !(issue.state === 'closed' && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged')))
-  if (hasUnfinished && (developmentBranch === undefined || developmentBranch === '')) {
-    return unreadable(`develop_branch is not set for ${repositoryFullName(snapshot.ref.repository)}`)
-  }
-  const branch = developmentBranch ?? ''
-  const byHead = new Map<string, IssuePullRequest>()
-  const judge = (): Readiness | undefined => judgeReadiness({ target, prerequisites, cycle, pullRequestsByHead: byHead, developmentBranch: branch })
-
-  let readiness = judge()
+// diverged の間、base のブランチを head に持つ PR を引き足して判定をやり直す
+async function traceStacks(
+  client: Readonly<GitHubClient>,
+  snapshot: Readonly<IssueSnapshot>,
+  cache: ReadinessCache,
+  byHead: Map<string, IssuePullRequest>,
+  first: Readiness | undefined,
+  judge: () => Readiness | undefined,
+  branch: string,
+): Promise<Readiness | undefined> {
+  const { prerequisites } = snapshot
+  let readiness = first
   const traced = new Set<string>()
   for (let step = 0; step < MAX_STACK_TRACE_STEPS && readiness?.reason?.code === 'diverged'; step += 1) {
     const known = new Set([...prerequisitePullRequests(prerequisites), ...byHead.values()].map(pullRequest => pullRequest.headRefName))
@@ -206,6 +207,33 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
       if (base !== undefined) byHead.set(base.headRefName, base)
     }
     readiness = judge()
+  }
+  return readiness
+}
+
+/**
+前提を判定する。cycle は呼ぶ側が findCycle で求めた輪。
+develop_branch が無いときと、PR の引き足しの API が失敗したときは、読み取り結果を添えた unreadable を返す。
+DependenciesUnsupportedError はそのまま投げる。
+前提の PR が開発ブランチに届かないときだけ、base のブランチを head に持つ PR を引き足して、判定をやり直す
+*/
+export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Readonly<IssueSnapshot>, cache: ReadinessCache, cycle?: readonly string[]): Promise<IssueReadiness> {
+  const { developmentBranch, prerequisites, target } = snapshot
+  const hasUnfinished = prerequisites.some(({ issue }) => !(issue.state === 'closed' && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged')))
+  if (hasUnfinished && (developmentBranch === undefined || developmentBranch === '')) {
+    return unreadable(`develop_branch is not set for ${repositoryFullName(snapshot.ref.repository)}`, snapshot)
+  }
+  const branch = developmentBranch ?? ''
+  const byHead = new Map<string, IssuePullRequest>()
+  const judge = (): Readiness | undefined => judgeReadiness({ target, prerequisites, cycle, pullRequestsByHead: byHead, developmentBranch: branch })
+
+  let readiness = judge()
+  try {
+    readiness = await traceStacks(client, snapshot, cache, byHead, readiness, judge, branch)
+  }
+  catch (error: unknown) {
+    if (error instanceof GitHubAPIError && !(error instanceof DependenciesUnsupportedError)) return unreadable(error.message, snapshot)
+    throw error
   }
   return {
     kind: 'judged',
@@ -224,8 +252,8 @@ export async function judgeSnapshot(client: Readonly<GitHubClient>, snapshot: Re
 /**
 Issue 1 件の読み取りから判定までを通す。輪は呼ぶ側が渡す（issue read は輪を見ない）
 */
-export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[]): Promise<IssueReadiness> {
-  const snapshot = await readIssueSnapshot(client, config, reference)
+export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[], blockedByFirst?: number): Promise<IssueReadiness> {
+  const snapshot = await readIssueSnapshot(client, config, reference, blockedByFirst)
   return snapshot.kind === 'unreadable' ? snapshot : await judgeSnapshot(client, snapshot, cache, cycle)
 }
 

@@ -30,13 +30,14 @@ interface IssueFields {
   readonly subIssues?: readonly unknown[]
   readonly branches?: readonly string[]
   readonly timeline?: readonly unknown[]
+  readonly blockedByCount?: number
 }
 
 /**
 GetIssueSlim の 200 の応答
 */
 function issueRule(fields: Readonly<IssueFields> = {}): ResponseRule {
-  const { number = 7, title = '見本の Issue', body = '本文の 1 行目\n', parent, comments = { totalCount: 0, nodes: [] }, subIssues = [], branches = [], timeline = [] } = fields
+  const { number = 7, title = '見本の Issue', body = '本文の 1 行目\n', parent, comments = { totalCount: 0, nodes: [] }, subIssues = [], branches = [], timeline = [], blockedByCount } = fields
   const issue = {
     number,
     state: 'OPEN',
@@ -47,8 +48,15 @@ function issueRule(fields: Readonly<IssueFields> = {}): ResponseRule {
     subIssues: { nodes: subIssues },
     linkedBranches: { nodes: branches.map(name => ({ ref: { name } })) },
     timelineItems: { nodes: timeline },
+    ...blockedByCount !== undefined && { blockedBy: { totalCount: blockedByCount } },
   }
   return { match: { operation: 'GetIssueSlim' }, respond: { status: 200, body: { data: { repository: { issue } } } }, times: 1 }
+}
+
+function withoutDevelopBranch(): string {
+  const fields = { workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } } }
+  const project = { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields }
+  return `${JSON.stringify({ host: 'ghes.example.com', owner: 'acme', workflow_suffix: 'acme', project, repositories: [{ owner: 'acme', name: 'demo' }] }, undefined, 2)}\n`
 }
 
 const HEAD = '## #7 見本の Issue\n\n**State:** OPEN\n\n'
@@ -378,6 +386,72 @@ describe('issue read', () => {
       const result = await read('acme/demo/7', '--json')
 
       expect(JSON.parse(result.stdout)).toMatchObject({ blockedBy: null, readiness: null })
+    })
+
+    it('依存関係に対応しない GHES では、warning を出し、今までの出力に 2 行を足さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-21')
+      setUpProject()
+      const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      await startGithub([issueRule(), unsupported])
+
+      const result = await read('acme/demo/7', '--json')
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('warning: could not read blocked-by of #7: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required\n')
+      expect(JSON.parse(result.stdout)).toMatchObject({ number: 7, title: '見本の Issue', blockedBy: null, readiness: null })
+    })
+
+    it('develop_branch が無いリポジトリで済んでいない前提があると、前提を出し、Readiness を unknown にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-19')
+      setUpProject({ files: { '.pecot/config/projects/ghes.example.com_acme_board_acme.json': withoutDevelopBranch() } })
+      await startGithub([issueRule(), prerequisitesRule(dependent())])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('warning: could not judge readiness of #7: develop_branch is not set for acme/demo\n')
+      const lines = [
+        '**Blocked by:** #3 Base (OPEN, in review), #4 待つ前提 (OPEN, wait: merge — 公開後に確かめる)',
+        '**Readiness:** unknown (develop_branch is not set for acme/demo)',
+      ]
+      expect(result.stdout).toBe(`${HEAD}${lines.join('\n')}\n\n${BODY}`)
+    })
+
+    it('develop_branch が無いとき、--json は前提を出し、readiness を null にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-19')
+      setUpProject({ files: { '.pecot/config/projects/ghes.example.com_acme_board_acme.json': withoutDevelopBranch() } })
+      await startGithub([issueRule(), prerequisitesRule(dependent())])
+
+      const result = await read('acme/demo/7', '--json')
+
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        blockedBy: [{ number: 3, wait: 'stack' }, { number: 4, wait: 'merge' }],
+        readiness: null,
+      })
+    })
+
+    it('base を引き足す API が失敗すると、warning を出し、前提と Readiness: unknown を出して止まらない', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-20')
+      setUpProject()
+      const diverged = { number: 7, blockedBy: [{ number: 3, title: 'Base', column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, base: 'feat/2' }] }] }
+      await startGithub([issueRule(), prerequisitesRule(diverged), { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toMatch(/^warning: could not judge readiness of #7: GraphQL query error: Server error '500/u)
+      expect(result.stdout).toContain('**Blocked by:** #3 Base (OPEN, in review)\n**Readiness:** unknown (GraphQL query error')
+    })
+
+    it('前提の件数が 0 の Issue を読むと、前提を読まずに startable を出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-22')
+      setUpProject()
+      const github = await startGithub([issueRule({ blockedByCount: 0 })])
+
+      const result = await read('acme/demo/7', '--json')
+
+      expect(JSON.parse(result.stdout)).toMatchObject({ blockedBy: [], readiness: { kind: 'startable', text: 'startable' } })
+      expect(github.requests().map(request => request.type === 'graphql' ? request.operation : '')).toEqual(['GetIssueSlim'])
     })
   })
 })

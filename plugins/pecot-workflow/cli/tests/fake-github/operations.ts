@@ -32,7 +32,9 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['createProjectV2.projectV2{id,number,title,url}|ownerId,title', 'CreateProject'],
   ['repository.issue{number,state,issueType,subIssues}|number,owner,repo', 'GetIssueKind'],
   ['repository.issue{number,state,subIssues}|number,owner,repo', 'GetIssueKindPhase1'],
-  ['repository.issue{number,state,title,body,comments,parent,subIssues,linkedBranches,timelineItems}|commentLimit,number,owner,repo', 'GetIssueSlim'],
+  ['repository.issue{number,state,title,body,comments,parent,subIssues,linkedBranches,timelineItems,blockedBy}|commentLimit,number,owner,repo', 'GetIssueSlim'],
+  // 構造は GetIssueSlim から blockedBy を除いたもの。query に書いた名前で引く。識別子は重ならない
+  ['repository.issue{number,state,title,body,comments,parent,subIssues,linkedBranches,timelineItems}|commentLimit,number,owner,repo#named', 'GetIssueSlimWithoutBlockedBy'],
   ['repository.issue.subIssues{nodes,pageInfo}|after,number,owner,repo', 'GetSubIssuesPage'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews}|number,owner,repo', 'GetPullRequestSlim'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews,reviewThreads}|number,owner,repo', 'GetPullRequestWithReviews'],

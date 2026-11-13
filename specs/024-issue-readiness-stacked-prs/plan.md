@@ -26,7 +26,7 @@ w-breakdown が前提の表を書かせ、w-issueize がそれを blocked by に
 | Testing | vitest（単体と `tests/interface/`）、偽の GitHub サーバ（`tests/fake-github/`）、スキルの文書のテスト、このリポでの CUJ |
 | Target Platform | 利用者の端末（Claude Code と GitHub Copilot CLI） |
 | Project Type | 配布するプラグイン（CLI・スキル・テンプレート・hooks） |
-| Performance Goals | `pecot project info` は、Ready と Blocked が合わせて 50 件のボードで、判定の分の増加を 5 秒以内に収める。GraphQL の点数は 1 回あたり 60 点以下にする（前提の無い Issue は個別に読まない） |
+| Performance Goals | `pecot project info` は、Ready と Blocked が合わせて 50 件のボードで、判定の分の増加を 5 秒以内に収める。GraphQL の点数は 1 回あたり 60 点以下にする（前提の無い Issue は個別に読まない）。この点数は、一覧が 1 ページで、前提が 8 件以下の Issue を 1 件 1 点で数えた値だ。前提が 9 件以上の Issue と、積む先の PR を base からたどる読み取りは、この外にある |
 
 **Constraints**:
 

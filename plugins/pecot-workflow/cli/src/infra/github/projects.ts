@@ -33,6 +33,9 @@ import {
 } from './queries.js'
 import { ReposApi } from './repos.js'
 
+// 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
+const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u
+
 export interface ListProjectItemsOptions {
   /**
   取得する最大件数。省略または 0 なら全件
@@ -123,8 +126,8 @@ export class ProjectsApi extends ReposApi {
         result = await this.executeGraphql(query, { projectId, cursor })
       }
       catch (error: unknown) {
-        // 古い GHES は issueDependenciesSummary などを知らない。足す前のクエリで先頭から読み直す
-        if (query === QUERY_LIST_PROJECT_ITEMS_LEGACY || !isSchemaError(error) || !/issueDependenciesSummary|issueType|subIssues|parent/u.test(error.message)) throw error
+        // 古い GHES は blockedBy などを知らない。足す前のクエリで先頭から読み直す
+        if (query === QUERY_LIST_PROJECT_ITEMS_LEGACY || !isSchemaError(error) || !READINESS_FIELD_ERROR.test(error.message)) throw error
         query = QUERY_LIST_PROJECT_ITEMS_LEGACY
         allItems = []
         cursor = JSON_NULL

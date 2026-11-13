@@ -2,33 +2,8 @@
 // 先頭の 30 個は cli/core/github/queries.py を gql が送る形で写し、一致は infra/github/tests/queries.test.ts が固定する。
 // 末尾の blocked by 関係の 4 個は Python に無く、graphql-js の print の出力の形で書く。
 
-// プロジェクトアイテム一覧取得（ページネーション対応）
-export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100, after: $cursor) {
-        nodes {
-          id
-          updatedAt
-          fieldValues(first: 10) {
-            nodes {
-              ... on ProjectV2ItemFieldSingleSelectValue {
-                field {
-                  ... on ProjectV2SingleSelectField {
-                    name
-                  }
-                }
-                name
-              }
-            }
-          }
-          content {
-            ... on Issue {
-              id
-              number
-              title
-              state
-              url
+// 着手の判定に使う、Issue の依存関係・種別・親のフィールド。Issue の依存関係に対応しない GHES では通らない
+const ISSUE_READINESS_FIELDS = `
               issueType {
                 name
               }
@@ -44,47 +19,13 @@ export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String
                   name
                 }
               }
-              issueDependenciesSummary {
-                totalBlockedBy
-              }
-              labels(first: 10) {
-                nodes {
-                  name
-                }
-              }
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-            ... on PullRequest {
-              id
-              number
-              title
-              state
-              url
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-}`
+              blockedBy(first: 1) {
+                totalCount
+              }`
 
-// 上の一覧から、Issue の依存関係に対応しない GHES で通らないフィールドを除いたもの
-export const QUERY_LIST_PROJECT_ITEMS_LEGACY = `query ListProjectItemsLegacy($projectId: ID!, $cursor: String) {
+// 一覧のクエリ。operationName が空なら無名。readinessFields は Issue の枝に足すフィールド
+function listProjectItemsQuery(operationName: string, readinessFields: string): string {
+  return `query${operationName === '' ? ' ' : ` ${operationName}`}($projectId: ID!, $cursor: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
       items(first: 100, after: $cursor) {
@@ -109,7 +50,7 @@ export const QUERY_LIST_PROJECT_ITEMS_LEGACY = `query ListProjectItemsLegacy($pr
               number
               title
               state
-              url
+              url${readinessFields}
               labels(first: 10) {
                 nodes {
                   name
@@ -145,6 +86,13 @@ export const QUERY_LIST_PROJECT_ITEMS_LEGACY = `query ListProjectItemsLegacy($pr
     }
   }
 }`
+}
+
+// プロジェクトアイテム一覧取得（ページネーション対応）
+export const QUERY_LIST_PROJECT_ITEMS = listProjectItemsQuery('', ISSUE_READINESS_FIELDS)
+
+// 上の一覧から、Issue の依存関係に対応しない GHES で通らないフィールドを除いたもの
+export const QUERY_LIST_PROJECT_ITEMS_LEGACY = listProjectItemsQuery('ListProjectItemsLegacy', '')
 
 // プロジェクトアイテム一覧取得（フィルタリング対応）
 export const QUERY_LIST_PROJECT_ITEMS_FILTERED = `query ($projectId: ID!, $cursor: String, $filterQuery: String) {
@@ -566,8 +514,9 @@ export const QUERY_GET_ISSUE_KIND_PHASE1 = `query ($owner: String!, $repo: Strin
   }
 }`
 
-// Issue詳細取得（スリム版 - 必要なフィールドのみ）
-export const QUERY_GET_ISSUE_SLIM = `query ($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
+// Issue詳細取得のクエリ。blockedByCount は前提の件数のフィールド。Issue の依存関係に対応しない GHES では通らない
+function getIssueSlimQuery(operationName: string, blockedByCount: string): string {
+  return `query${operationName === '' ? ' ' : ` ${operationName}`}($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       number
@@ -634,10 +583,20 @@ export const QUERY_GET_ISSUE_SLIM = `query ($owner: String!, $repo: String!, $nu
             }
           }
         }
-      }
+      }${blockedByCount}
     }
   }
 }`
+}
+
+// Issue詳細取得（スリム版 - 必要なフィールドのみ。前提の件数つき）
+export const QUERY_GET_ISSUE_SLIM = getIssueSlimQuery('', `
+      blockedBy(first: 1) {
+        totalCount
+      }`)
+
+// 上のクエリから、前提の件数を除いたもの。Issue の依存関係を持たない GHES で読み直すのに使う
+export const QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY = getIssueSlimQuery('GetIssueSlimWithoutBlockedBy', '')
 
 // Python 版 queries.py の QUERY_GET_SUB_ISSUES_PAGE と逐語で一致させる。
 export const QUERY_GET_SUB_ISSUES_PAGE = `query ($owner: String!, $repo: String!, $number: Int!, $after: String!) {

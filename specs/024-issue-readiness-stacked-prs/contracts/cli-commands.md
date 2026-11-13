@@ -249,7 +249,7 @@ Readiness changed:
 ### Blocked (2)
 | Ref | Title | Readiness |
 |-----|-------|-----------|
-| acme/app#350 | [Task] #42-21: ... | blocked by #348, #349 (not in review: #349) |
+| acme/app#350 | [Task] #42-21: ... | blocked by #348, #349 (not in review: #349 (not started)) |
 
 ### Ready (2)
 | Ref | Title | Readiness |
@@ -265,7 +265,9 @@ Readiness changed:
   - 並びが無ければ、節を出さない
 - 判定の読み取りに失敗した Issue は、判定の列に `unknown (<理由>)` と出す
 - Issue の依存関係に対応しない GHES では止めない。`warning:` を 1 回出し、判定の列の無い表を出す
-- JSON の出力の各 Issue に `readiness` を足す
+- JSON の出力の各 Issue に `readiness`（`kind`・`stackOn`・`reason`・`text`）を足す
+  - `kind` は `startable`・`stackable`・`blocked`・`unknown` のどれかだ。`unknown` の `stackOn` と `reason` は `null` だ
+  - 判定を持たない Issue の `readiness` は `null` だ
 
 ### `pecot session status`
 

@@ -8,6 +8,7 @@ import type { WaitsForMergeReadout } from '../prerequisites.js'
 import { JSON_NULL } from '../json-null.js'
 import {
   cycleThrough,
+  describePrerequisiteState,
   describeReadiness,
   describeUnknown,
   findCycle,
@@ -705,5 +706,27 @@ describe('progressionsFromReadiness', () => {
     expect(progressions.get('acme/app#3')).toEqual({ kind: 'alone' })
     expect(progressions.get('acme/app#4')).toEqual({ kind: 'alone' })
     expect(stackChains(progressions)).toEqual([['acme/app#1', 'acme/app#2']])
+  })
+})
+
+describe('describePrerequisiteState', () => {
+  it('マージされて閉じた前提は done', () => {
+    const prerequisite = need(merged(3))
+    expect(describePrerequisiteState(prerequisite)).toBe('done')
+  })
+
+  it('マージされずに閉じた前提は、wait が stack でも closed without merge', () => {
+    const closed = issue(3, { state: 'closed' })
+    const stacked = need(closed)
+    const waiting = need(closed, 'merge', '理由')
+    expect(describePrerequisiteState(stacked)).toBe('closed without merge')
+    expect(describePrerequisiteState(waiting)).toBe('closed without merge')
+  })
+
+  it('open の前提は、PR があれば in review、無ければ not started', () => {
+    const inReviewed = reviewing(3)
+    const notStarted = need(issue(3))
+    expect(describePrerequisiteState(inReviewed)).toBe('in review')
+    expect(describePrerequisiteState(notStarted)).toBe('not started')
   })
 })

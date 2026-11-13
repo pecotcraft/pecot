@@ -178,11 +178,11 @@ export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldNam
   const progress = new Map<string, BoardProgress>()
   for (const item of rawItems) {
     const content = member(item, 'content')
-    if (isEmptyValue(content) || member(content, 'issueDependenciesSummary') === undefined) continue
+    if (isEmptyValue(content) || member(content, 'blockedBy') === undefined) continue
     const key = boardItemKey({ content: { number: member(content, 'number'), repository: extractRepository(content) } })
     if (key === undefined) continue
     const issueType = member(member(content, 'issueType'), 'name')
-    const blockedBy = member(member(content, 'issueDependenciesSummary'), 'totalBlockedBy')
+    const blockedBy = member(member(content, 'blockedBy'), 'totalCount')
     progress.set(key, {
       issueType: typeof issueType === 'string' ? issueType : undefined,
       subIssues: countMember(content, 'subIssues') ?? 0,
@@ -195,11 +195,11 @@ export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldNam
 }
 
 /**
-1 アイテムを Markdown 表の行 `| Ref | Title |` にする。
+1 アイテムを Markdown 表の行 `| Ref | Title |` にする。extraCells は、Title の後ろに足すセル。
 Ref は GitHub 慣習に倣い `owner/repo#N` で合成する。
 リポジトリ情報または番号が欠落している場合は可能な範囲で埋め、両方欠落しているときは `-` を表示する
 */
-export function formatTableRow(item: BoardItem): string {
+export function formatTableRow(item: BoardItem, extraCells: readonly string[] = []): string {
   const { number } = item.content
   const repository = item.content.repository ?? ''
   const numberText = number === undefined || number === null ? '' : displayText(number)
@@ -209,7 +209,7 @@ export function formatTableRow(item: BoardItem): string {
   else if (numberText !== '') reference = `#${numberText}`
   const { title } = item
   const titleText = title === undefined || isEmptyValue(title) ? '-' : displayText(title)
-  return `| ${reference} | ${titleText} |`
+  return `| ${[reference, titleText, ...extraCells].join(' | ')} |`
 }
 
 function updatedAtOf(item: BoardItem): string {
@@ -260,7 +260,7 @@ export function formatBoardOutput(items: readonly BoardItem[], readiness?: Reado
     const displayItems = isTruncated ? statusItems.toSorted(newestFirst).slice(0, ARCHIVED_DISPLAY_LIMIT) : statusItems
     const heading = isTruncated ? `### ${status} (latest ${String(ARCHIVED_DISPLAY_LIMIT)} of ${String(totalCount)})` : `### ${status} (${String(totalCount)})`
     if (readiness !== undefined && READINESS_STATUSES.has(status)) {
-      const rows = displayItems.map(item => `${formatTableRow(item).slice(0, -1)}| ${readinessCell(item, readiness)} |`)
+      const rows = displayItems.map(item => formatTableRow(item, [readinessCell(item, readiness)]))
       sections.push([heading, '| Ref | Title | Readiness |', '|-----|----------|-----------|', ...rows])
     }
     else {

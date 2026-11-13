@@ -19,7 +19,7 @@ const exported = new Map(Object.entries(queries))
 
 describe('export', () => {
   it('定数の数を固定する（足したら、operation 対応表とこの数を合わせる）', () => {
-    expect(exported.size).toBe(36)
+    expect(exported.size).toBe(37)
   })
 })
 
