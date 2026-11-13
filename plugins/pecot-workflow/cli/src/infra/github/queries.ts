@@ -47,12 +47,6 @@ export const QUERY_LIST_PROJECT_ITEMS = `query ($projectId: ID!, $cursor: String
               issueDependenciesSummary {
                 totalBlockedBy
               }
-              linkedBranches(first: 1) {
-                totalCount
-              }
-              closedByPullRequestsReferences(first: 1, includeClosedPrs: true) {
-                totalCount
-              }
               labels(first: 10) {
                 nodes {
                   name

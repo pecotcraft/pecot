@@ -78,9 +78,3 @@ github:
     respond:
       status: 200
       body: {"data": {"repository": {"issue": {"id": "I_1", "number": 1, "state": "OPEN", "title": "課題1", "repository": {"owner": {"login": "acme"}, "name": "demo"}, "issueType": {"name": "Task"}, "subIssues": {"totalCount": 0}, "projectItems": {"totalCount": 0, "nodes": []}, "linkedBranches": {"totalCount": 0, "nodes": []}, "closedByPullRequestsReferences": {"totalCount": 0, "nodes": []}, "timelineItems": {"totalCount": 0, "nodes": []}, "body": "本文", "parent": null, "blockedBy": {"totalCount": 0, "nodes": []}}}}}
-  - match:
-      operation: GetIssuePrerequisites
-      variables: {owner: acme, repo: demo, number: 2}
-    respond:
-      status: 200
-      body: {"data": {"repository": {"issue": {"id": "I_2", "number": 2, "state": "OPEN", "title": "課題2", "repository": {"owner": {"login": "acme"}, "name": "demo"}, "issueType": {"name": "Task"}, "subIssues": {"totalCount": 0}, "projectItems": {"totalCount": 0, "nodes": []}, "linkedBranches": {"totalCount": 1, "nodes": [{"ref": {"name": "feat/2", "associatedPullRequests": {"totalCount": 0, "nodes": []}}}]}, "closedByPullRequestsReferences": {"totalCount": 0, "nodes": []}, "timelineItems": {"totalCount": 0, "nodes": []}, "body": "本文", "parent": null, "blockedBy": {"totalCount": 0, "nodes": []}}}}}

@@ -4,8 +4,13 @@ import { describe, expect, it } from 'vitest'
 import { parseProjectConfig } from '../../domain/config.js'
 import type { ProjectConfig } from '../../domain/config.js'
 import { GitHubAPIError } from '../../infra/github/errors.js'
+import { createIssueReference } from '../../domain/reference-parser.js'
+import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlData, graphqlError, graphqlRequests, rejection, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
-import { addIssueToBoard, createIssue, itemHasFieldValue, putOnBoard, setIssueField } from '../issue-board.js'
+import { addIssueToBoard, applyBoardMove, createIssue, itemHasFieldValue, putOnBoard, setIssueField } from '../issue-board.js'
+
+import { createOutput } from '../output.js'
+import { capture } from './support.js'
 
 useFakeGithub()
 
@@ -140,5 +145,33 @@ describe('putOnBoard', () => {
     await putOnBoard(client, config(), 'o', 'r', 5, undefined, { onlyIfEmpty: false })
     expect(graphqlRequests(server).at(-1)).toEqual(WORKFLOW)
     expect(graphqlRequests(server)).toHaveLength(3)
+  })
+})
+
+describe('applyBoardMove', () => {
+  const reference = createIssueReference(createRepositoryReference('o', 'r'), 7)
+  const target = { ref: reference, home: createRepositoryReference('o', 'r') }
+  const withBlocked = parseProjectConfig({
+    host: 'github.com',
+    owner: 'o',
+    workflow_suffix: 'o',
+    project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'F_workflow', options: { ready: 'O_ready', blocked: 'O_blocked' } } } },
+  })
+
+  it('列を動かし、動いた先と move の行を返す', async () => {
+    const { client, server } = await startClient([updateRule(1)])
+    const io = capture()
+    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 'blocked by #3')
+    expect(applied).toEqual({ column: 'Blocked', missing: [] })
+    expect(io.err.join('')).toBe('moved: #7 Ready -> Blocked (blocked by #3)\n')
+    expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_workflow', optionId: 'O_blocked' } }])
+  })
+
+  it('書き込みに失敗したら warning を出し、元の列のままにする', async () => {
+    const { client } = await startClient([graphqlError('UpdateProjectItemField', 'boom')])
+    const io = capture()
+    const applied = await applyBoardMove(createOutput(false, io), client, withBlocked, 'ITEM', target, { column: { from: 'Ready', to: 'Blocked', reason: { kind: 'blocked', stackOn: undefined, reason: undefined, needsReview: false, attention: [] } }, missing: [] }, 't')
+    expect(applied.column).toBeUndefined()
+    expect(io.err.join('')).toMatch(/^warning: could not move #7: /u)
   })
 })

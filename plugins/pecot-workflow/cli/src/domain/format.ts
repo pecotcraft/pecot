@@ -62,10 +62,6 @@ export interface BoardProgress {
   Status の値（札）
   */
   readonly label: string | undefined
-  /**
-  リンクしたブランチか、閉じる参照の PR があるか。応答に件数が無ければ undefined
-  */
-  readonly hasTrace: boolean | undefined
 }
 
 // 辞書の値を取る（辞書でなければ undefined）。null は無いものとして扱う
@@ -185,8 +181,6 @@ export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldNam
     if (isEmptyValue(content) || member(content, 'issueDependenciesSummary') === undefined) continue
     const key = boardItemKey({ content: { number: member(content, 'number'), repository: extractRepository(content) } })
     if (key === undefined) continue
-    const branches = countMember(content, 'linkedBranches')
-    const closing = countMember(content, 'closedByPullRequestsReferences')
     const issueType = member(member(content, 'issueType'), 'name')
     const blockedBy = member(member(content, 'issueDependenciesSummary'), 'totalBlockedBy')
     progress.set(key, {
@@ -195,7 +189,6 @@ export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldNam
       parent: parentOf(content),
       blockedBy: typeof blockedBy === 'number' ? blockedBy : undefined,
       label: extractWorkflowStatus(item, labelFieldName),
-      hasTrace: branches === undefined || closing === undefined ? undefined : branches + closing > 0,
     })
   }
   return progress

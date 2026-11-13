@@ -1,23 +1,20 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// project info の着手の判定。盤上の Issue の前提を読み、判定に合わせて列と札を直す。
-import { decideBoardMove } from '../domain/board-move.js'
-import { getOptionId } from '../domain/config.js'
+// project info の着手の判定。盤上の Ready・Blocked の Issue の前提を読んで表示する。列と札は動かさない。
 import type { ProjectConfig } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem, BoardProgress, StackableChain } from '../domain/format.js'
 import { isEpicIssue } from '../domain/issue-kind.js'
 import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
-import { compareStrings } from '../domain/python-format.js'
-import { cycleThrough, describeReadiness, describeUnknown, hasStarted, progressionsFromReadiness, stackChains, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
-import type { IssueFacts, Readiness } from '../domain/readiness.js'
+import { cycleThrough, describeReadiness, describeUnknown, progressionsFromReadiness, stackChains, TRACKER_TITLE_PREFIX } from '../domain/readiness.js'
+import type { Readiness } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { applyBoardMove, issueLabel } from './issue-board.js'
+import { issueLabel } from './issue-board.js'
 import { createReadinessCache, judgeSnapshot, prerequisiteKeys, readinessJson, readIssueSnapshot, snapshotWithoutPrerequisites } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot } from './issue-readiness.js'
 import type { Output } from './output.js'
@@ -33,13 +30,9 @@ const READINESS_MAX_WORKERS = 8
 */
 const MAX_BLOCKED_BY = 50
 
-const JUDGED_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
+const JUDGED_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked'])
 
 export interface BoardReadiness {
-  /**
-  判定を出した場合の、直した後のアイテム。判定を出せなかった（対応しない GHES）ときは元のアイテム
-  */
-  readonly items: readonly BoardItem[]
   /**
   boardItemKey → 表の Readiness の列の文。undefined なら列を出さない
   */
@@ -67,9 +60,9 @@ function toTarget(item: BoardItem): Target | undefined {
   return url.includes('/pull/') || title.startsWith(TRACKER_TITLE_PREFIX) || item.workflow === null || item.workflow === undefined || !JUDGED_STATUSES.has(item.workflow) ? undefined : { item, key, ref: createIssueReference(createRepositoryReference(split.owner, split.repository), number) }
 }
 
-// 前提の無い Issue を、一覧の値だけで判定の入力にする。前提の件数か着手の跡の件数が一覧に無ければ undefined
+// 前提の無い Issue を、一覧の値だけで判定の入力にする。前提の件数が一覧に無ければ undefined
 function localSnapshot(config: ProjectConfig, target: Target, progress: BoardProgress | undefined): IssueSnapshot | undefined {
-  if (progress?.blockedBy !== 0 || progress.hasTrace === undefined) return undefined
+  if (progress?.blockedBy !== 0) return undefined
   const split = splitOwnerRepository(progress.parent?.repository ?? '')
   const parent = split === undefined || progress.parent === undefined ? undefined : createIssueReference(createRepositoryReference(split.owner, split.repository), progress.parent.number)
   const isEpic = isEpicIssue({ issue_type: progress.issueType, sub_issues_total: progress.subIssues })
@@ -88,11 +81,6 @@ function localSnapshot(config: ProjectConfig, target: Target, progress: BoardPro
   })
 }
 
-// 一覧の値だけで判定した Issue の着手の跡は、件数から決める。facts は PR とブランチを持たない
-function isStarted(facts: IssueFacts, progress: BoardProgress | undefined): boolean {
-  return progress?.blockedBy === 0 && progress.hasTrace !== undefined ? progress.hasTrace : hasStarted(facts)
-}
-
 function homeOf(config: ProjectConfig, repository = ''): RepositoryReference | undefined {
   const split = splitOwnerRepository(repository)
   if (split !== undefined) return split
@@ -108,29 +96,23 @@ function displayKey(key: string, home: RepositoryReference | undefined): string 
 }
 
 function unsupportedWarning(out: Readonly<Output>): void {
-  out.warning('this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted and no column is moved')
-}
-
-function missingWarning(missing: ReadonlySet<string>): string {
-  const names = [...missing].toSorted(compareStrings)
-  return `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with pecot project init`
+  out.warning('this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted')
 }
 
 /**
-判定を読まずに、依存関係に対応しない GHES と同じ扱いにする。warning を 1 回出し、列は動かさない
+判定を読まずに、依存関係に対応しない GHES と同じ扱いにする。warning を 1 回出す
 */
-export function skipBoardReadiness(out: Readonly<Output>, items: readonly BoardItem[]): BoardReadiness {
+export function skipBoardReadiness(out: Readonly<Output>): BoardReadiness {
   unsupportedWarning(out)
-  return { items, texts: undefined, json: undefined, chains: [] }
+  return { texts: undefined, json: undefined, chains: [] }
 }
 
 /**
-Ready・Blocked・Active・In Review の Issue の前提を読み、判定に合わせて列と札を直す。
-items は表示するアイテム（--repo で絞った後）。書き込みの失敗は warning にして続ける
+Ready・Blocked の Issue の前提を読んで判定する。items は表示するアイテム（--repo で絞った後）。列と札は動かさない
 */
-export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined, progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
+export async function readBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined, progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
   type Snapshot = IssueSnapshot | Extract<IssueReadiness, { kind: 'unreadable' }>
-  const plain: BoardReadiness = { items, texts: undefined, json: undefined, chains: [] }
+  const plain: BoardReadiness = { texts: undefined, json: undefined, chains: [] }
   const targets = items.flatMap(item => toTarget(item) ?? [])
   const home = homeOf(config, repository)
   const cache = createReadinessCache()
@@ -178,13 +160,6 @@ export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubC
   const json = new Map<string, JsonObject>()
   const readinessByKey = new Map<string, Readiness>()
   const parents = new Map<string, IssueReference>()
-  const moved = new Map<string, string>()
-  const missing = new Set<string>()
-  const available = {
-    blocked: getOptionId(config, 'workflow', 'blocked') !== undefined,
-    needsAttention: getOptionId(config, 'status', 'needs_attention') !== undefined,
-    todo: getOptionId(config, 'status', 'todo') !== undefined,
-  }
 
   for (const [index, target] of targets.entries()) {
     const result = judged.at(index)
@@ -202,38 +177,14 @@ export async function applyBoardReadiness(out: Readonly<Output>, client: GitHubC
     texts.set(target.key, text)
     json.set(target.key, readinessJson(readiness, text))
     readinessByKey.set(target.key, readiness)
-
-    const move = decideBoardMove({
-      eligible: true,
-      column: target.item.workflow ?? undefined,
-      label: result.target.label,
-      hasStarted: isStarted(result.target, progress.get(target.key)),
-      hasPrerequisites: result.prerequisites.length > 0,
-      readiness,
-      labelWrittenByAutomation: false,
-      available,
-    })
-    if (move === undefined) continue
-    const itemId = target.item.id
-    for (const value of move.missing) missing.add(value)
-    if (typeof itemId !== 'string') continue
-
-    const applied = await applyBoardMove(out, client, config, itemId, { ref: target.ref, home }, move, text)
-    if (applied.column !== undefined) moved.set(target.key, applied.column)
   }
-  if (missing.size > 0) out.warning(missingWarning(missing))
 
-  const updated = items.map((item) => {
-    const key = boardItemKey(item)
-    const column = key === undefined ? undefined : moved.get(key)
-    return column === undefined ? item : { ...item, workflow: column }
-  })
   const chains = stackChains(progressionsFromReadiness(readinessByKey)).filter(chain => chain.length >= 2).map((chain): StackableChain => {
     const parentKey = chain.find(key => parents.has(key))
     const parent = parentKey === undefined ? undefined : parents.get(parentKey)
     return { epic: parent === undefined ? undefined : issueLabel(parent, home), chain: chain.map(key => displayKey(key, home)) }
   })
-  return { items: updated, texts, json, chains }
+  return { texts, json, chains }
 }
 
 /**

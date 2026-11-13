@@ -11,7 +11,6 @@ import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
-import type { IssueSpec } from '../_helpers/prerequisites.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
@@ -97,8 +96,6 @@ const unresolvedRepository = (): ResponseRule => ({ match: { operation: 'GetRepo
 // 一覧の応答に載る、着手の判定の軽い入力
 interface ListProgress {
   readonly blockedBy: number
-  readonly branches?: number
-  readonly closing?: number
   readonly issueType?: string
 }
 
@@ -108,8 +105,6 @@ function progressFields(progress: ListProgress): Json {
     subIssues: { totalCount: 0 },
     parent: null,
     issueDependenciesSummary: { totalBlockedBy: progress.blockedBy },
-    linkedBranches: { totalCount: progress.branches ?? 0 },
-    closedByPullRequestsReferences: { totalCount: progress.closing ?? 0 },
   }
 }
 
@@ -517,10 +512,9 @@ describe('project create', () => {
 })
 
 describe('project info', () => {
-  // 前提の無い Issue の読み取り。Active の Issue は着手の跡（ブランチ）を持つ
+  // 前提の無い Issue の読み取り。Active・In Review の Issue は読まれない
   const quietReady = (...numbers: number[]): ResponseRule[] => numbers.map(number => prerequisitesRule({ number }))
-  const quietActive = (...numbers: number[]): ResponseRule[] => numbers.map(number => prerequisitesRule({ number, branch: `feat/${String(number)}` }))
-  const standardBoard = (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'Archived', { state: 'CLOSED' })), twoAlerts(), ...quietReady(1), ...quietActive(2)]
+  const standardBoard = (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'Archived', { state: 'CLOSED' })), twoAlerts(), ...quietReady(1)]
   const MARKDOWN = [
     '# Project info', '', '## Overview', `- Project: ${DEFAULT_HOST}_acme_board_acme`, `- Host: ${DEFAULT_HOST}`, '- Owner: acme', '- Roadmap repo: none', '',
     '## Registered repositories', '- acme/demo (develop: main)', '    release_type: single', '    dependabot_alerts: open 2', '',
@@ -541,7 +535,7 @@ describe('project info', () => {
     item('PVTI_r3', 13, 'Ready', { updatedAt: '2025-12-31T00:00:00Z' }),
   ]
 
-  const olderRules = (): ResponseRule[] => [...quietReady(11, 13), ...quietActive(12)]
+  const olderRules = (): ResponseRule[] => quietReady(11, 13)
 
   it('引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す', async (context) => {
     await verifies(context, 'PW-PROJECT-INFO-01')
@@ -582,7 +576,7 @@ describe('project info', () => {
       }],
       board: { items: [
         { id: 'PVTI_1', workflow: 'Ready', title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'startable', stackOn: null, reason: null, text: 'startable' } },
-        { id: 'PVTI_2', workflow: 'Active', title: '課題2', updatedAt: '2026-01-02T03:04:05Z', content: { number: 2, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/2`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'startable', stackOn: null, reason: null, text: 'startable' } },
+        { id: 'PVTI_2', workflow: 'Active', title: '課題2', updatedAt: '2026-01-02T03:04:05Z', content: { number: 2, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/2`, labels: [], repository: 'acme/demo' }, readiness: null },
       ] },
     })
   })
@@ -690,86 +684,50 @@ describe('project info', () => {
       return { ...base, project: { ...project, fields: { ...asJson(project['fields']), status: STATUS } } }
     }
 
-    const write = (itemId: string, optionId: string): ResponseRule => graphqlRule('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: itemId } } }, { itemId, optionId })
     const info = async (rules: ResponseRule[], config: Json = boardConfig(), ...rest: string[]): Promise<CommandResult> => await run(arguments_('info', ...rest), [twoAlerts(), ...rules], { config })
     const boardItems = (result: Readonly<CommandResult>): unknown => asJson(asJson(JSON.parse(result.stdout))['board'])['items']
     const notStarted = { number: 9 }
     const failedRead = (): ResponseRule => ({ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
 
-    it('Ready と Blocked の表に Readiness の列を出し、判定のずれた Issue を動かす', async (context) => {
+    it('Ready と Blocked の表に Readiness の列を出し、判定とずれた列にあっても動かさない', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-14')
       const result = await info([
         board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
         prerequisitesRule({ number: 4 }),
-        write('PVTI_1', 'ob'),
-        write('PVTI_4', 'o3'),
       ])
       expect(result.code).toBe(0)
       expectClean(result)
-      expect(result.stderr).toBe('moved: #1 Ready -> Blocked (blocked by #9 (not in review: #9 (not started)))\nmoved: #4 Blocked -> Ready (startable)\n')
+      expect(result.stderr).toBe('')
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
       expect(result.stdout).toContain([
         '### Blocked (1)',
         READINESS_HEADER,
-        '| acme/demo#1 | 課題1 | blocked by #9 (not in review: #9 (not started)) |',
+        '| acme/demo#4 | 課題4 | startable |',
         '',
         '### Ready (1)',
         READINESS_HEADER,
-        '| acme/demo#4 | 課題4 | startable |',
+        '| acme/demo#1 | 課題1 | blocked by #9 (not in review: #9 (not started)) |',
       ].join('\n'))
     })
 
-    it('着手の跡の無い Active の Issue を、判定に合った列へ戻す', async (context) => {
+    it('Active と In Review の Issue は、前提を読まず、Readiness の列も出さない', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-15')
-      const result = await info([board(item('PVTI_2', 2, 'Active')), prerequisitesRule({ number: 2 }), write('PVTI_2', 'o3')])
+      const result = await info([board(item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review'), item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1 })], boardConfig(), '--json')
       expectClean(result)
-      expect(result.stderr).toBe('moved: #2 Active -> Ready (startable)\n')
-      expect(result.stdout).toContain('### Ready (1)\n| Ref | Title | Readiness |')
-      expect(result.stdout).not.toContain('### Active')
-    })
-
-    it('着手の跡のある Issue は、blocked でも列と札を変えず、warning を出す', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-16')
-      const result = await info([board(item('PVTI_2', 2, 'Active')), prerequisitesRule({ number: 2, branch: 'feat/2', blockedBy: [notStarted] })])
-      expectClean(result)
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe('warning: #2 is in Active but blocked by #9\n')
-      expect(result.stdout).toContain('### Active (1)')
-      expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
-    })
-
-    it('前提がマージされずに閉じた Issue の札を Needs Attention にする', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-17')
-      const result = await info([
-        board(item('PVTI_1', 1, 'Ready')),
-        prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }),
-        write('PVTI_1', 'ob'),
-        write('PVTI_1', 'st4'),
-      ])
-      expectClean(result)
-      expect(result.stderr).toBe('moved: #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\nset: Status of #1 to Needs Attention\n')
-    })
-
-    it('前提がすべて済んだ Issue の Needs Attention を、Todo に戻す', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-29')
-      const done: IssueSpec = { number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }
-      const result = await info([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), write('PVTI_1', 'st1')])
-      expectClean(result)
-      expect(result.stderr).toBe('set: Status of #1 to Todo\n')
-      expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
+      expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1])
+      expect(boardItems(result)).toMatchObject([{ readiness: null }, { readiness: null }, { readiness: { kind: 'startable' } }])
     })
 
     it('一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-30')
-      const result = await info([
-        board(item('PVTI_4', 4, 'Blocked', { progress: { blockedBy: 0 } }), item('PVTI_2', 2, 'Active', { progress: { blockedBy: 0 } }), item('PVTI_3', 3, 'Active', { progress: { blockedBy: 0, branches: 1 } })),
-        write('PVTI_4', 'o3'),
-        write('PVTI_2', 'o3'),
-      ])
+      const result = await info([board(item('PVTI_4', 4, 'Blocked', { progress: { blockedBy: 0 } }), item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 0 } }))])
       expectClean(result)
-      expect(result.stderr).toBe('moved: #4 Blocked -> Ready (startable)\nmoved: #2 Active -> Ready (startable)\n')
+      expect(result.stderr).toBe('')
       expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
-      expect(result.stdout).toContain('### Active (1)')
+      expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
+      expect(result.stdout).toContain('| acme/demo#4 | 課題4 | startable |')
+      expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
     })
 
     it('一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない', async (context) => {
@@ -786,8 +744,6 @@ describe('project info', () => {
         board(item('PVTI_1', 1, 'Ready', { progress: { blockedBy: 1 } }), item('PVTI_5', 5, 'Ready', { progress: { blockedBy: 0 } }), item('PVTI_6', 6, 'Ready', { progress: { blockedBy: 60 } })),
         prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
         prerequisitesRule({ number: 6, blockedBy: [notStarted] }),
-        write('PVTI_1', 'ob'),
-        write('PVTI_6', 'ob'),
       ])
       expectClean(result)
       expect(variableValues(result, 'GetIssuePrerequisites', 'number')).toEqual([1, 6])
@@ -803,45 +759,14 @@ describe('project info', () => {
       expect(result.stderr).toBe('')
     })
 
-    it('Blocked の値が無いボードでは、列を動かさず、warning に足し方を出して終了コード 0 で終わる', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-19')
-      const result = await info([board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] })], projectConfig())
-      expectClean(result)
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe('warning: the board has no option Blocked; add it with pecot project init\n')
-      expect(result.stdout).toContain('### Ready (1)')
-      expect(result.stdout).toContain('| blocked by #9 (not in review: #9 (not started)) |')
-    })
-
     it('前提の無い Issue だけのボードでは、すべて startable で、列を動かさない', async (context) => {
       await verifies(context, 'PW-PROJECT-INFO-20')
-      const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 1 }), prerequisitesRule({ number: 2, branch: 'feat/2' }), prerequisitesRule({ number: 3, branch: 'feat/3', pullRequests: [{ number: 30 }] })])
+      const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 1 })])
       expectClean(result)
       expect(result.stderr).toBe('')
       expect(result.stdout).toContain('| acme/demo#1 | 課題1 | startable |')
       expect(result.stdout).not.toContain('## Stackable chains')
       expect(requestLabels(result.requests)).not.toContain('UpdateProjectItemField')
-    })
-
-    it('書き込みに失敗した Issue は、warning を出し、元の列のまま表示して続ける', async (context) => {
-      await verifies(context, 'PW-PROJECT-INFO-21')
-      const failedWrite: ResponseRule = { match: { operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_1' } }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
-      const result = await info([
-        board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')),
-        prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
-        prerequisitesRule({ number: 4 }),
-        failedWrite,
-        write('PVTI_4', 'o3'),
-      ])
-      expectClean(result)
-      expect(result.code).toBe(0)
-      expect(result.stderr).toMatch(/^warning: could not move #1: GraphQL query error: [^\n]+\n[^\n]*\nmoved: #4 Blocked -> Ready \(startable\)\n$/u)
-      expect(result.stdout).toContain([
-        '### Ready (2)',
-        READINESS_HEADER,
-        '| acme/demo#1 | 課題1 | blocked by #9 (not in review: #9 (not started)) |',
-        '| acme/demo#4 | 課題4 | startable |',
-      ].join('\n'))
     })
 
     it('PR のカードと Tracker は、前提を読まない', async (context) => {
@@ -883,7 +808,7 @@ describe('project info', () => {
       const result = await info([board(item('PVTI_1', 1, 'Ready')), unsupported])
       expectClean(result)
       expect(result.code).toBe(0)
-      expect(result.stderr).toBe('warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted and no column is moved\n')
+      expect(result.stderr).toBe('warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted\n')
       expect(result.stdout).toContain('### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 課題1 |')
     })
 
@@ -894,7 +819,7 @@ describe('project info', () => {
       const result = await info([rejected, legacy])
       expectClean(result)
       expect(result.code).toBe(0)
-      expect(result.stderr).toBe('warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted and no column is moved\n')
+      expect(result.stderr).toBe('warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted\n')
       expect(result.stdout).toContain('### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 課題1 |')
       expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
     })
@@ -903,8 +828,7 @@ describe('project info', () => {
       // Epic #10 の子 #2 が PR 中で、#3 がその上に積める
       const chain = (): ResponseRule[] => [
         board(item('PVTI_2', 2, 'In Review'), item('PVTI_3', 3, 'Ready')),
-        prerequisitesRule({ number: 2, branch: 'feat/2', pullRequests: [{ number: 20, head: 'feat/2' }], parent: { number: 10 } }),
-        prerequisitesRule({ number: 3, blockedBy: [{ number: 2, column: 'In Review', branch: 'feat/2', pullRequests: [{ number: 20, head: 'feat/2' }] }] }),
+        prerequisitesRule({ number: 3, parent: { number: 10 }, blockedBy: [{ number: 2, column: 'In Review', branch: 'feat/2', pullRequests: [{ number: 20, head: 'feat/2' }] }] }),
       ]
 
       it('積める並びを、Epic ごとに ## Stackable chains の節へ出す', async (context) => {
@@ -921,7 +845,7 @@ describe('project info', () => {
         const result = await info(chain(), boardConfig(), '--json')
         expectClean(result)
         expect(boardItems(result)).toMatchObject([
-          { readiness: { kind: 'startable', stackOn: null, reason: null, text: 'startable' } },
+          { readiness: null },
           { readiness: { kind: 'stackable', stackOn: { number: 2, repository: 'acme/demo', branch: 'feat/2' }, reason: null, text: 'stackable on #2' } },
         ])
       })

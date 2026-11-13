@@ -36,7 +36,7 @@ Project #3 の Status には `Needs Attention`、pecot-workflow-sandbox には `
 ```bash
 pecot project init          # Blocked と Needs Attention を足す
 pecot project set-repo pecotcraft/pecot-sandbox --develop-branch main
-pecot project info          # 列と値がそろっていることを見る
+pecot project info          # 判定が出ることを見る
 ```
 
 開発ブランチの無い設定では、前提を持つ Issue の判定が `unknown (develop_branch is not set for …)` になる。`project set-repo` で先に入れる。
@@ -212,36 +212,36 @@ pecot issue block <Phase 1> --by <Phase 3>      # 輪
 | `issue block <Phase 2> --by <Phase 2>` | 終了コード 2。GitHub の文ではなく、pecot の文が出る |
 | 同じコマンドの 2 回目 | `unchanged:` が出る |
 
-## 8. 誤操作を直す（US2）
+## 8. 誤操作を直す（US2、Actions のフェーズで確かめる）
+
+列を直すのは GitHub Actions のワークフローで、`pecot project info` は直さない。ここは tasks.md の Phase 13 が入ってから通す。
 
 ボードの画面で、`Blocked` のカードを `Ready` と `Active` へ、`Ready` のカードを `Blocked` へ、手で動かす。別の `Blocked` のカードを `Pending` へ動かす。
 
-```bash
-pecot project info
-```
+ワークフローを動かす（`schedule` の実行を待つか、手で起動する）。
 
 | 見るもの | 期待 |
 |---|---|
-| stderr | 動かしたカードごとに `moved:` の行が出る。元の列・新しい列・理由が読める |
+| ワークフローのログ | 動かしたカードごとに `moved:` の行が出る。元の列・新しい列・理由が読める |
 | ボード | 3 枚が判定に合った列に戻る |
+| `pecot project info` | 列は動かない。判定だけが出る |
 | `Pending` へ動かしたカード | 動かない。それを前提にしている Issue の理由に、前提が `Pending` にある旨が出る |
 
 着手済みの Issue（worktree B の Phase 2）に、別の作業ディレクトリから前提を足す。
 
 ```bash
 pecot issue block <Phase 2> --by <Phase 4>
-pecot project info
 ```
 
 | 見るもの | 期待 |
 |---|---|
 | Phase 2 の列と札 | 変わらない |
-| `issue block` と `project info` の stderr | `warning:` に、着手済みの Issue がブロック中である旨が出る |
+| `issue block` の stderr | `warning:` に、着手済みの Issue がブロック中である旨が出る |
 | worktree B の `pecot session status` | `## Stack` の節に、判定の食い違いが出る |
 
-## 9. マージされずに閉じた前提（US2）
+## 9. マージされずに閉じた前提（US2、Actions のフェーズで確かめる）
 
-Phase 4 の Issue を、PR をマージせずに画面で閉じる。
+Phase 4 の Issue を、PR をマージせずに画面で閉じる。札を `Needs Attention` にするのは、ワークフローだ。
 
 ```bash
 pecot project info
@@ -251,14 +251,14 @@ pecot issue unblock <Phase 5> --by <Phase 4>
 | 見るもの | 期待 |
 |---|---|
 | Phase 5 の判定 | `blocked`。前提がマージされずに閉じられた旨と、外すコマンドが出る |
-| Phase 5 の札 | `Needs Attention` |
+| Phase 5 の札 | ワークフローが動いた後に `Needs Attention` |
 | `unblock` の後 | 札が `Todo` に戻り、列が判定に合わせて動く |
 
 ## 10. 値の無いボードと、前提の無いリポ
 
 | 手順 | 期待 |
 |---|---|
-| ボードから `Blocked` の値を消して `pecot project info` を打つ | 一覧と判定は出る。列は動かず、`warning:` に足し方が出る。終了コードは 0 |
+| ボードから `Blocked` の値を消して `pecot project info` を打つ | 一覧と判定は出る。列は動かない。終了コードは 0 |
 | 前提の付いていない Issue だけのリポで、着手から片付けまでを通す | 出力と列の動きが、この機能の前と変わらない |
 | `gh stack` 拡張を外した環境で、3 の手順を通す | 拡張を求めずに、スタックとして登録される |
 | エージェントに `gh stack submit` を打たせる | hook が止め、pecot のコマンドを案内する |
