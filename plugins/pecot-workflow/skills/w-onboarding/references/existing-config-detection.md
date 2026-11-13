@@ -13,35 +13,50 @@
 親ディレクトリ直下の兄弟リポを走査し、カレントリポと同じ `host`/`owner` を持つ設定ファイルを探す。
 
 ```bash
-python3 - <<'EOF'
-import json, pathlib, re, subprocess
+node --input-type=commonjs - <<'EOF'
+const fs = require('fs')
+const path = require('path')
+const { execFileSync } = require('child_process')
 
-# git remote origin URL から host と owner を抽出
-origin = subprocess.check_output(["git", "remote", "get-url", "origin"], text=True).strip()
-m = re.match(r"git@([^:]+):([^/]+)/", origin) or re.match(r"https?://([^/]+)/([^/]+)/", origin)
-if not m:
-    print("ERROR: origin URL を解析できませんでした:", origin)
-    raise SystemExit(1)
-host, owner = m.group(1), m.group(2)
+// git remote origin URL から host と owner を抽出
+const origin = execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim()
+const m = origin.match(/^git@([^:]+):([^/]+)\//) || origin.match(/^https?:\/\/([^/]+)\/([^/]+)\//)
+if (!m) {
+  console.log('ERROR: origin URL を解析できませんでした:', origin)
+  process.exit(1)
+}
+const host = m[1]
+const owner = m[2]
 
-# 兄弟リポの設定ファイルを走査して host/owner が一致するものを列挙
-matches = []
-for p in pathlib.Path("..").glob("*/.pecot/config/projects/*.json"):
-    try:
-        cfg = json.loads(p.read_text())
-        if cfg.get("host") == host and cfg.get("owner") == owner:
-            matches.append(p)
-    except Exception:
-        pass
+// 兄弟リポの設定ファイルを走査して host/owner が一致するものを列挙
+const matches = []
+for (const sibling of fs.readdirSync('..').sort()) {
+  const dir = path.join('..', sibling, '.pecot', 'config', 'projects')
+  let names
+  try {
+    names = fs.readdirSync(dir).filter((n) => n.endsWith('.json')).sort()
+  } catch {
+    continue
+  }
+  for (const name of names) {
+    const file = path.join(dir, name)
+    try {
+      const cfg = JSON.parse(fs.readFileSync(file, 'utf8'))
+      if (cfg.host === host && cfg.owner === owner) matches.push(file)
+    } catch {
+      // 解析できない JSON は読み飛ばす
+    }
+  }
+}
 
-if not matches:
-    print("兄弟リポに一致する設定ファイルが見つかりませんでした")
-elif len(matches) == 1:
-    print(f"MATCH: {matches[0]}")
-else:
-    print("複数見つかりました（AskUserQuestion で選択）:")
-    for p in matches:
-        print(f"  {p}")
+if (matches.length === 0) {
+  console.log('兄弟リポに一致する設定ファイルが見つかりませんでした')
+} else if (matches.length === 1) {
+  console.log(`MATCH: ${matches[0]}`)
+} else {
+  console.log('複数見つかりました（AskUserQuestion で選択）:')
+  for (const p of matches) console.log(`  ${p}`)
+}
 EOF
 ```
 

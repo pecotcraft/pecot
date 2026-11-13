@@ -25,7 +25,7 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 最初のチェックには、`project_list` を引数なしで呼ぶ。
 
-各パターンの検出手順・兄弟リポ走査 Python スクリプトの詳細は [既存設定検出の詳細](references/existing-config-detection.md) を参照。
+各パターンの検出手順・兄弟リポを走査するスクリプトの詳細は [既存設定検出の詳細](references/existing-config-detection.md) を参照。
 
 ### Step 2: プロジェクト新規作成
 
@@ -62,12 +62,17 @@ AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ�
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
 
 ```bash
-board_url=$(python3 -c "
-import json, pathlib
-active = pathlib.Path('.pecot/config/projects/.active').read_text().strip()
-config = json.loads(pathlib.Path(f'.pecot/config/projects/{active}.json').read_text())
-print(config['project']['board_url'])
-")
+board_url=$(node -e '
+const fs = require("fs"), path = require("path");
+const active = path.resolve(".pecot/config/projects/.active");
+const target = path.resolve(path.dirname(active), fs.readFileSync(active, "utf8").trim());
+const url = (JSON.parse(fs.readFileSync(target, "utf8")).project || {}).board_url;
+if (typeof url !== "string" || url === "") {
+  console.error("project.board_url がありません: " + target);
+  process.exit(1);
+}
+console.log(url);
+')
 printf '%s\n' "$board_url"
 ```
 
