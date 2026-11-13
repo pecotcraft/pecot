@@ -781,6 +781,13 @@ export const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: Str
   }
 }`
 
+// 前提（blocked by）を付ける入力の型があるか。対応しない GHES（3.19 より前）では null になる
+export const QUERY_HAS_ADD_BLOCKED_BY_INPUT = `{
+  __type(name: "AddBlockedByInput") {
+    name
+  }
+}`
+
 // 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
 export const MUTATION_ADD_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
   addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {

@@ -25,11 +25,12 @@ case "$TOOL" in
         ;;
 esac
 
-# issue_quick の入力に prepare は無いので素通しにしない。tool_input が文字列で届くクライアントは空のオブジェクトとして読む（ask にする）。真偽値の true だけを素通しにする。
+# issue_quick の入力に prepare・plan は無いので素通しにしない。tool_input が文字列で届くクライアントは空のオブジェクトとして読む（ask にする）。真偽値の true だけを素通しにする。
 # jq が失敗したときは空のまま ask に進む（fail-safe）。
-FLAGS=$(jq -r '(.tool_input | if type == "object" then . else {} end) as $ti | [($ti.prepare == true), ($ti.dry_run == true)] | @tsv' 2>/dev/null)
-IFS=$'\t' read -r PREPARE DRY_RUN <<< "$FLAGS"
+FLAGS=$(jq -r '(.tool_input | if type == "object" then . else {} end) as $ti | [($ti.prepare == true), ($ti.dry_run == true), ($ti.plan == true)] | @tsv' 2>/dev/null)
+IFS=$'\t' read -r PREPARE DRY_RUN PLAN <<< "$FLAGS"
 [ "$PREPARE" = "true" ] && [ "$TOOL" != "issue_quick" ] && exit 0
+[ "$PLAN" = "true" ] && [ "$TOOL" = "issue_create" ] && exit 0
 [ "$TOOL" = "pr_create" ] && [ "$DRY_RUN" = "true" ] && exit 0
 [ -f "$FLAG" ] && exit 0
 

@@ -89,6 +89,27 @@ describe.for(forms)('ツール名が$label', (form) => {
       expect(decisionOf(toolName, '{"prepare":true}')).toBe('ask')
     })
 
+    // plan は issue_create だけの入力。issue_quick・pr_create では素通しにしない。
+    it.runIf(target.tool === 'issue_create')('plan が true だと、素通しにする', () => {
+      expect(outputOf(toolName, { plan: true })).toBe('')
+    })
+
+    it.skipIf(target.tool === 'issue_create')('plan が true でも、ask を返す', () => {
+      expect(decisionOf(toolName, { plan: true })).toBe('ask')
+    })
+
+    it('plan が文字列の "true" だと、ask を返す', () => {
+      expect(decisionOf(toolName, { plan: 'true' })).toBe('ask')
+    })
+
+    it('plan が false だと、ask を返す', () => {
+      expect(decisionOf(toolName, { plan: false })).toBe('ask')
+    })
+
+    it('tool_input が文字列で届く plan は、ask を返す', () => {
+      expect(decisionOf(toolName, '{"plan":true}')).toBe('ask')
+    })
+
     it('スラッシュコマンド起点のフラグがあると、素通しにする', () => {
       const project = createProject()
       writeStateFlag(project, target.flag)

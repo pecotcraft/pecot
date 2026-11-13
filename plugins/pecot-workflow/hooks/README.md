@@ -72,7 +72,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_quick` / `issue_create` の使用を強制する | コアガード | `true` |
 | `pecot-cli-deny` | Bash での pecot の起動（`pecot …`・`$PECOT …`・`…/bin/pecot …`。セグメントの先頭、環境変数の前置きのみ許す）を検出しブロック（deny）。理由に、対応する MCP ツール名（35 コマンド分）を入れる。ヒアドキュメントの本文、クオート内、行末の `\` で続く行の先頭（継続行は 1 つのコマンドとして連結する）は起動と扱わない。`env pecot …`・`bash -c "pecot …"`・`time pecot …` など先頭に別語が来る形は捕捉しない（検出抜け） | コアガード | `true` |
 | `pecot-pr-create-ask` | MCP ツールの `pr_create`（実投稿）を検出しユーザー承認（ask）を要求。`prepare: true`・`dry_run: true` は素通し。`/pecot-w:w-pr`（短縮形 `/w-pr` を含む）起点フラグ（`pr-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
-| `pecot-issue-create-ask` | MCP ツールの `issue_create` / `issue_quick`（実投稿）を検出しユーザー承認（ask）を要求。`issue_create` の `prepare: true` は素通し（`issue_quick` に `prepare` は無く、素通しにしない）。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
+| `pecot-issue-create-ask` | MCP ツールの `issue_create` / `issue_quick`（実投稿）を検出しユーザー承認（ask）を要求。`issue_create` の `prepare: true`・`plan: true` は素通し（`issue_quick` に `prepare`・`plan` は無く、素通しにしない）。起票系スラッシュコマンド起点フラグ（`issue-create-slash-pending`）存在時も素通し | MCP ハンドラ（pecot-post-ask） | `true` |
 | `gh-pr-merge-ask` | `gh pr merge` を検出しユーザー承認（ask）を要求。確認フラグの免除は持たない。`/pecot-w:w-merge`（短縮形 `/w-merge` を含む）起点フラグ（`merge-slash-pending`）存在時は素通し。案内文は `/pecot-w:w-merge`（マージは `gh pr merge`、片付けは MCP ツールの `pr_cleanup`） | コアガード（external-post-check） | `true` |
 | `git-checkout-check` | `git checkout/switch` 実行前にuntrackedファイルの存在を警告する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `git-no-verify-check` | `git commit/push --no-verify` を検出しブロック。フックバイパスを禁止する | コアガード | `true` |
@@ -110,9 +110,9 @@ deny は、両クライアントとも `hookSpecificOutput.permissionDecision: "
 含まれるのは、`claude-bash-guards` / `claude-adapter` / `pr-create-block` など。
 PostToolUse の `decision: "block"` は変えない。
 
-確認フラグによる素通しは、MCP ツールの `pr_create`（`prepare: true`・`dry_run: true`）と
-`issue_create`（`prepare: true`）に適用する。`gh pr merge` はこれらのフラグを
-免除しない。`pr_read` / `pr_cleanup` / `pr_preflight` /
+確認フラグによる素通しは、MCP ツールの 2 つに適用する。
+`pr_create` は `prepare: true`・`dry_run: true`、`issue_create` は `prepare: true`・`plan: true`。
+`gh pr merge` はこれらのフラグを免除しない。`pr_read` / `pr_cleanup` / `pr_preflight` /
 `issue_read` / `issue_comment` はそもそも検出対象外。
 `gh pr create` / `gh issue create` の deny（`gh-pr-create-check` / `gh-issue-create-check`）は
 従来どおり温存する。

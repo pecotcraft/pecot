@@ -167,3 +167,59 @@ describe('w-revise の手順', () => {
     expect(body).not.toContain('$threadId')
   })
 })
+
+describe('w-issueize の手順', () => {
+  const text = readSkill('w-issueize')
+  const headings = stepHeadings(text)
+
+  it('前提の読み取り、ファイルの編集、完了報告の順に並ぶ', () => {
+    expect(titleIndex(headings, '前提')).toBeLessThan(titleIndex(headings, 'Issueとして作成'))
+    expect(titleIndex(headings, 'Issueとして作成')).toBeLessThan(titleIndex(headings, '完了報告'))
+  })
+
+  it('Step 2 は、4 列の表が無い tasks.md の扱いを持つ', () => {
+    const body = sectionBody(text, titleIndex(headings, '前提'))
+    expect(body).toContain('4 列の表が無い tasks.md')
+    expect(body).toContain('種類はすべて「積める」とする')
+    expect(body).toContain('表が無かった旨を伝える')
+  })
+
+  it('Step 3 は、plan: true の出力を前提の表と並べて示す', () => {
+    const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('前提の表と並べて')
+  })
+
+  it('Step 3 は、exit code 1 でも URL の行があれば呼び直さないと書く', () => {
+    const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
+    expect(body).toContain('`exit code: 1` でも、URL の行が出ていれば Issue は作られている')
+    expect(body).toContain('同じ `files` で呼び直さない')
+    expect(body).toContain('URL の行が 1 つも出ずに `error:` で止まったときは')
+  })
+
+  it('plan: true の呼び出しは、投稿の呼び出しより前にある', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    const planned = body.indexOf('`plan: true`')
+    const posted = body.indexOf('`plan` なしで')
+    expect(planned).toBeGreaterThanOrEqual(0)
+    expect(posted).toBeGreaterThan(planned)
+    expect(body).toContain('合意を得てから投稿する')
+  })
+
+  it('blocked_by を書き、order・parallel・status は書かせない', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('`blocked_by`')
+    expect(body).toContain('`order`・`parallel`・`status` は書かない')
+  })
+
+  it('段と枝の文字の計算を書かない', () => {
+    expect(text).not.toMatch(/`a`・`b`・`c`/u)
+    expect(text).not.toContain('番号が示すのは着手の条件')
+    expect(text).not.toContain('続番')
+    expect(text).not.toMatch(/段を決める/u)
+  })
+
+  it('完了報告に、進め方・積める並び・最初に着手できる Issue を入れる', () => {
+    const body = sectionBody(text, numberIndex(headings, 4))
+    for (const word of ['進め方', '積める並び', '最初に着手できる Issue']) expect(body).toContain(word)
+  })
+})

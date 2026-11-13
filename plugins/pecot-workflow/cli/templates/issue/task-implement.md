@@ -3,13 +3,11 @@ title: ""
 type: task
 template: task-implement
 repository: ""
-status: ready
 priority: ""
 size: ""
 labels: []
 parent_epic: ""
-order: ""
-parallel: ""
+blocked_by: []
 ---
 
 <!--
@@ -23,9 +21,18 @@ parallel: ""
 フィールド:
 - repository: 実装が行われるリポ `owner/repo` 必須
 - parent_epic: 親 Epic を `owner/repo/number` で指定（推奨）
-- order: フェーズの段（依存グラフの層）。タイトル先頭が `#{epic}-NN`（`NN` は `order` を 2 桁に 0 で埋めたもの）で自動生成
-- parallel: 同じ段に 2 件以上あるときだけ入れる枝の文字（`a`〜`z`）。タイトル先頭が `#{epic}-NN{parallel}`（`NN` は `order` を 2 桁に 0 で埋めたもの）になる
-- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / order の判定基準）
+- blocked_by: このフェーズの着手を止める前提の一覧。前提が無ければ `[]` のまま
+  - `issue` は、同じ一括投稿のファイルのキー（`suffix`）か、Issue 化済みのフェーズを指す `owner/repo/N`
+  - マージを待つ前提だけ、`wait: merge` と 1 行の `reason` を足す
+  ```yaml
+  blocked_by:
+    - issue: phase3
+    - issue: phase4
+      wait: merge
+      reason: "action は、既定のブランチのプラグインを入れる"
+  ```
+- order・status: 書かない。通し番号と置く列は CLI が決める
+- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / blocked_by の判定基準）
 
 例:
 

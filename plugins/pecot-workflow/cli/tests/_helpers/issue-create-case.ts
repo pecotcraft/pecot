@@ -1,4 +1,5 @@
 // issue create・issue quick のテストが共有する準備。設定の組み立てと、偽の GitHub の応答の組み立て。
+import { JSON_NULL } from '../../src/domain/json-null.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
@@ -22,12 +23,16 @@ export interface IssueProjectOptions {
   プロジェクトルートに足すファイル（相対パス → 内容）
   */
   readonly files?: Readonly<Record<string, string>>
+  /**
+  真なら、進行の欄に Blocked の列を作らない
+  */
+  readonly withoutBlockedColumn?: boolean
 }
 
 function configText(options: Readonly<IssueProjectOptions>): string {
   const { aggregation } = options
   const developBranch = Object.hasOwn(options, 'developBranch') ? options.developBranch : 'main'
-  const status = { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' }
+  const status = { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6', ...options.withoutBlockedColumn !== true && { blocked: 'o7' } }
   const fields = {
     workflow: { id: 'PVTSSF_workflow', options: status },
     priority: { id: 'PVTSSF_priority', options: { high: 'p1', medium: 'p2', low: 'p3' } },
@@ -63,9 +68,10 @@ export function linkedRepositories(times = 1, names: readonly string[] = ['demo'
   return { match: { operation: 'GetLinkedRepositoriesUser' }, times, respond: { status: 200, body: { data: { user: { projectV2: { repositories: { nodes } } } } } } }
 }
 
-export function createdIssue(number: number, options: Readonly<{ title?: string, repository?: string }> = {}): ResponseRule {
+export function createdIssue(number: number, options: Readonly<{ title?: string, repository?: string, withoutNodeId?: boolean }> = {}): ResponseRule {
   const { title = '作成された Issue', repository = 'demo' } = options
-  const body = { number, title, node_id: `I_kwDO${String(number)}`, html_url: `https://ghes.example.com/acme/${repository}/issues/${String(number)}` }
+  const nodeId = options.withoutNodeId === true ? {} : { node_id: `I_kwDO${String(number)}` }
+  const body = { number, title, ...nodeId, html_url: `https://ghes.example.com/acme/${repository}/issues/${String(number)}` }
   return { match: { method: 'POST', path: `/repos/acme/${repository}/issues` }, times: 1, respond: { status: 201, body } }
 }
 
@@ -73,9 +79,9 @@ export function failedIssueCreation(status: number): ResponseRule {
   return { match: { method: 'POST', path: '/repos/acme/demo/issues' }, times: 1, respond: { status, body: { message: 'failure' } } }
 }
 
-export function issueNodeId(number: number, times = 1): ResponseRule {
+export function issueNodeId(number: number, times = 1, repository = 'demo'): ResponseRule {
   const issue = { id: `I_kwDO${String(number)}`, title: 'Issue' }
-  return { match: { operation: 'GetIssueNodeId', variables: { owner: 'acme', repo: 'demo', number } }, times, respond: { status: 200, body: { data: { repository: { issue } } } } }
+  return { match: { operation: 'GetIssueNodeId', variables: { owner: 'acme', repo: repository, number } }, times, respond: { status: 200, body: { data: { repository: { issue } } } } }
 }
 
 export function addedToProject(times = 1): ResponseRule {
@@ -98,6 +104,29 @@ export function failedSubIssue(): ResponseRule {
   return { match: { operation: 'AddSubIssue' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'cannot link' }] } } }
 }
 
+export function blockedByAdded(times = 1): ResponseRule {
+  return { match: { operation: 'AddBlockedBy' }, times, respond: { status: 200, body: { data: { addBlockedBy: { issue: { number: 1 } } } } } }
+}
+
+export function failedBlockedBy(): ResponseRule {
+  return { match: { operation: 'AddBlockedBy' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'cannot block' }] } } }
+}
+
+/**
+前提を付ける入力の型があるかの確認。対応しない GHES では型が無い
+*/
+export function blockedBySupported(times = 1): ResponseRule {
+  return { match: { operation: 'HasAddBlockedByInput' }, times, respond: { status: 200, body: { data: { __type: { name: 'AddBlockedByInput' } } } } }
+}
+
+export function blockedByUnsupported(): ResponseRule {
+  return { match: { operation: 'HasAddBlockedByInput' }, times: 1, respond: { status: 200, body: { data: { __type: JSON_NULL } } } }
+}
+
+export function failedFieldUpdate(): ResponseRule {
+  return { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'cannot write' }] } } }
+}
+
 export interface SubIssue {
   readonly number: number
   readonly state: string
@@ -107,7 +136,7 @@ export interface SubIssue {
 /**
 親 Epic の読み取り（order の重複の確認）
 */
-export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], times = 1): ResponseRule {
+export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], times = 1, nextCursor?: string): ResponseRule {
   const issue = {
     number,
     state: 'OPEN',
@@ -116,7 +145,7 @@ export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], 
     comments: { totalCount: 0, nodes: [] },
     // eslint-disable-next-line unicorn/no-null -- GraphQL の応答の null
     parent: null,
-    subIssues: { nodes: subIssues },
+    subIssues: nextCursor === undefined ? { nodes: subIssues } : { nodes: subIssues, pageInfo: { hasNextPage: true, endCursor: nextCursor } },
     linkedBranches: { nodes: [] },
     timelineItems: { nodes: [] },
   }
@@ -124,10 +153,25 @@ export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], 
 }
 
 /**
+親 Epic のサブ Issue の 2 ページ目以降
+*/
+export function subIssuesPage(subIssues: readonly SubIssue[]): ResponseRule {
+  const issue = { subIssues: { nodes: subIssues, pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } }
+  return { match: { operation: 'GetSubIssuesPage' }, times: 1, respond: { status: 200, body: { data: { repository: { issue } } } } }
+}
+
+/**
 フロントマター付きの Markdown。fields の順に書く
 */
 export function frontmatterFile(fields: Readonly<Record<string, string | number>>, body = TASK_BODY): string {
   const lines = Object.entries(fields).map(([key, value]) => `${key}: ${String(value)}`)
+  return `---\n${lines.join('\n')}\n---\n\n${body}`
+}
+
+/**
+行をそのまま並べたフロントマター。blocked_by のような入れ子の値を書くのに使う
+*/
+export function rawFrontmatterFile(lines: readonly string[], body = TASK_BODY): string {
   return `---\n${lines.join('\n')}\n---\n\n${body}`
 }
 

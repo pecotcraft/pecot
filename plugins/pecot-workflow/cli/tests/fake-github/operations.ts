@@ -39,6 +39,7 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews}|number,owner,repo', 'GetPullRequestSlim'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews,reviewThreads}|number,owner,repo', 'GetPullRequestWithReviews'],
   ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],
+  ['__type{name}|', 'HasAddBlockedByInput'],
   ['addBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'AddBlockedBy'],
   ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
   ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,parent,blockedBy}|blockedByFirst,columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],

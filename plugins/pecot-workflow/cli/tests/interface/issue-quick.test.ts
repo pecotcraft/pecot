@@ -156,7 +156,7 @@ describe('issue quick', () => {
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
-    expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n$/u)
+    expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
   })
 
   it('develop_branch が設定に無いとき、error の行を出して終了コード 1 で終わり、URL とフラグを出さない', async (context) => {
@@ -235,7 +235,7 @@ describe('issue quick', () => {
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: Epic #3 already has an Issue with order=2 (OPEN)\n  #9 #3-02: 先の子\n  next available order: 1\n')
+    expect(result.stderr).toBe('error: Epic #3 already has an Issue with order=2 (OPEN)\n  #9 #3-02: 先の子\n  next available order: 3\n')
   })
 
   it('GitHub API がエラーを返したとき、error の行を出して終了コード 1 で終わる', async (context) => {

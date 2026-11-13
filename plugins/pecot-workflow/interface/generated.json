@@ -384,6 +384,11 @@
             "type": "string",
             "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
           },
+          "plan": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the progression table and stackable chains of the files without posting"
+          },
           "prepare": {
             "type": "boolean",
             "default": false,
@@ -458,6 +463,9 @@
           ],
           "parent_epic": [
             "--parent-epic"
+          ],
+          "plan": [
+            "--plan"
           ],
           "prepare": [
             "--prepare",

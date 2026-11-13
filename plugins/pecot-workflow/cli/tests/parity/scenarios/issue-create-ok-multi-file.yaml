@@ -101,7 +101,6 @@ setup:
 github:
   - match:
       operation: GetLinkedRepositoriesUser
-    times: 2
     respond:
       status: 200
       body:
@@ -114,7 +113,6 @@ github:
   - match:
       operation: GetIssueSlim
       variables: {owner: acme, repo: demo, number: 3}
-    times: 2
     respond:
       status: 200
       body:
