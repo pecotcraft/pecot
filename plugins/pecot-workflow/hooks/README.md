@@ -333,6 +333,7 @@ Notification (permission_prompt|idle_prompt|elicitation_dialog) → notification
 | 両方 | Read | pecot の PreToolUse は起動しない | 変更前と同じ | — | 2026-10-25 |
 | 両方 | MCP（pecot-v / pecot-t、#1258 のキー改名後） | — | Claude は `mcp__plugin_pecot-v_pecot-visual__drawio_create`、Copilot は `pecot-visual-drawio_create` / `pecot-tools-aws_lambda_list_event_source_mappings`（キーがそのまま前置きになる） | ツールが呼ばれ、cli はそれぞれのクライアントのデータ置き場から起動する | 2026-10-26 |
 | Copilot 1.0.103 | スキル w-help / v-drawio | pecot-w / pecot-v の Skill 系エントリが起動 | `tool_name: "skill"`、名前空間なし | pecot-w のスキル準拠の案内が届く。他のプラグインのスキルには応答しない | 2026-10-25 |
+| Copilot 1.0.110 | プランの承認（`-p --plan --mode autopilot`） | PostToolUse: `post-tool-use-exit-plan-mode.sh`（matcher `ExitPlanMode\|exit_plan_mode`） | `tool_name: "exit_plan_mode"`（置き換わらない）、`tool_result.result_type: "success"` | `hook.end` の `output.additionalContext` に、計画の打ち直しと実装の引き継ぎの案内が入る（#403） | 2026-11-13 |
 | 両方 | `gh pr merge 999999` | Pre: `pre-tool-use-bash.sh` | snake_case | `permissionDecision: "ask"` と理由。`-p` と Copilot の autopilot ではクライアントが拒否し、実行なし | 2026-10-25 |
 | 両方 | `git commit --no-verify` | Pre: `pre-tool-use-bash.sh` | snake_case | `hookSpecificOutput.permissionDecision: "deny"` で拒否、理由が tool_result に届く | 2026-10-25 |
 | 両方 | `git commit -m` / `git -C <path> commit` | Post: `post-tool-use-bash.sh` | Claude は `tool_response.stdout`、Copilot は `tool_result.text_result_for_llm` | `note: commit complete`が 1 回届き、auto-push が wip を push する。`--show-toplevel` は Pre / Post 各 1 回 | 2026-10-25 |
