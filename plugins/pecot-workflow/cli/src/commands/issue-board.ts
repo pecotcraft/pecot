@@ -1,10 +1,17 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // Issue の作成・ボードへの追加・フィールドの設定。cli/core/issue_board.py の移植。
 // 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
+import { COLUMN_CONFIG_KEYS, LABEL_CONFIG_KEYS } from '../domain/board-move.js'
+import type { BoardMove, MissingValue, MovableColumn } from '../domain/board-move.js'
 import { getFieldId, getOptionId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
+import type { IssueReference } from '../domain/reference-parser.js'
+import { isSameRepository, repositoryFullName } from '../domain/repository-resolver.js'
+import type { RepositoryReference } from '../domain/repository-resolver.js'
 import type { JsonObject } from '../domain/json.js'
 import type { GitHubClient } from '../infra/github/index.js'
+import type { Output } from './output.js'
 
 // 作ったボード項目の Status（Tracker はここから始める）
 const BOARD_STATUS = 'backlog'
@@ -111,4 +118,55 @@ export async function putOnBoard(
     if (options.onlyIfEmpty && await itemHasFieldValue(client, config, owner, repository, issueNumber, itemId, fieldName)) continue
     await setIssueField(client, config, itemId, fieldName, option)
   }
+}
+
+/**
+メッセージに出す Issue の表記。home と同じリポジトリは `#N`、別のリポジトリは `owner/repo#N`。home が無ければ常に `#N`
+*/
+export function issueLabel(reference: IssueReference, home: RepositoryReference | undefined): string {
+  const number = `#${String(reference.number)}`
+  return home === undefined || isSameRepository(reference.repository, home) ? number : `${repositoryFullName(reference.repository)}${number}`
+}
+
+export interface AppliedMove {
+  /**
+  実際に動いた先の列。動かなかったら undefined
+  */
+  readonly column: MovableColumn | undefined
+  readonly missing: readonly MissingValue[]
+}
+
+/**
+decideBoardMove の結果をボードに書く。書き込みの失敗は warning にして続ける（元の列のまま）。
+text は列を動かす理由の判定の文
+*/
+export async function applyBoardMove(
+  out: Readonly<Output>,
+  client: GitHubClient,
+  config: ProjectConfig,
+  itemId: string,
+  target: { readonly ref: IssueReference, readonly home: RepositoryReference | undefined },
+  move: Readonly<BoardMove>,
+  text: string,
+): Promise<AppliedMove> {
+  const name = issueLabel(target.ref, target.home)
+  if (move.conflict !== undefined) {
+    const blockers = move.conflict.issues.map(issue => issueLabel(issue, target.home))
+    out.warning(`${name} is in ${move.conflict.column} but blocked${blockers.length > 0 ? ` by ${blockers.join(', ')}` : ''}`)
+  }
+  let moved: MovableColumn | undefined
+  try {
+    if (move.column !== undefined && await setIssueField(client, config, itemId, 'workflow', COLUMN_CONFIG_KEYS[move.column.to])) {
+      moved = move.column.to
+      out.done({ verb: 'move', target: `${name} ${move.column.from} -> ${move.column.to} (${text})` })
+    }
+    if (move.label !== undefined && await setIssueField(client, config, itemId, 'status', LABEL_CONFIG_KEYS[move.label])) {
+      out.done({ verb: 'set', target: `Status of ${name} to ${move.label}` })
+    }
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    out.warning(`could not move ${name}: ${error.message}`)
+  }
+  return { column: moved, missing: move.missing }
 }

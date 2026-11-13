@@ -1,16 +1,24 @@
+/* eslint-disable unicorn/no-null -- JSON の null を確かめる */
+/* eslint-disable unicorn/consistent-function-scoping -- 補助は、使う describe の近くに置く */
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_READ_COMMANDS } from '../../src/commands/issue-read.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
+import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
 async function read(...argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
   return await runInProcess(['issue', 'read', ...argv], ISSUE_READ_COMMANDS)
+}
+
+function slimRequests(github: Readonly<RunningGithub>): readonly RecordedRequest[] {
+  return github.requests().filter(request => request.type === 'graphql' && request.operation === 'GetIssueSlim')
 }
 
 interface IssueFields {
@@ -50,12 +58,12 @@ describe('issue read', () => {
   it('Issue の参照を渡すと、見出し・状態・本文を Markdown で標準出力に出す', async (context) => {
     await verifies(context, 'PW-ISSUE-READ-01')
     setUpProject()
-    const github = await startGithub([issueRule()])
+    const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule()])
 
     const result = await read('acme/demo/7')
 
     expect(result).toEqual({ code: 0, stdout: `${HEAD}${BODY}`, stderr: '' })
-    expect(github.requests()).toMatchObject([{ type: 'graphql', operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'demo', number: 7, commentLimit: 5 } }])
+    expect(slimRequests(github)).toMatchObject([{ type: 'graphql', operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'demo', number: 7, commentLimit: 5 } }])
   })
 
   it.for([
@@ -64,7 +72,7 @@ describe('issue read', () => {
   ])('$name がある Issue を読むと、親 Issue を出す', async ({ parent, line }, context) => {
     await verifies(context, 'PW-ISSUE-READ-02')
     setUpProject()
-    await startGithub([issueRule({ parent })])
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule({ parent })])
 
     const result = await read('acme/demo/7')
 
@@ -74,7 +82,7 @@ describe('issue read', () => {
   it('リンクされたブランチがある Issue を読むと、そのブランチを出す', async (context) => {
     await verifies(context, 'PW-ISSUE-READ-03')
     setUpProject()
-    await startGithub([issueRule({ branches: ['feat/7', 'fix/7'] })])
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule({ branches: ['feat/7', 'fix/7'] })])
 
     const result = await read('acme/demo/7')
 
@@ -89,7 +97,7 @@ describe('issue read', () => {
       { source: { number: 12, title: '不具合の修正', state: 'OPEN' } },
       { subject: { number: 11, title: '機能の追加', state: 'MERGED' } },
     ]
-    await startGithub([issueRule({ timeline })])
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule({ timeline })])
 
     const result = await read('acme/demo/7')
 
@@ -99,7 +107,7 @@ describe('issue read', () => {
   it('sub-issue がある Issue を読むと、sub-issue を出す', async (context) => {
     await verifies(context, 'PW-ISSUE-READ-05')
     setUpProject()
-    await startGithub([issueRule({ subIssues: [{ number: 8, state: 'OPEN', title: '子の Issue' }, { number: 9, state: 'CLOSED', title: '終えた子' }] })])
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule({ subIssues: [{ number: 8, state: 'OPEN', title: '子の Issue' }, { number: 9, state: 'CLOSED', title: '終えた子' }] })])
 
     const result = await read('acme/demo/7')
 
@@ -116,7 +124,7 @@ describe('issue read', () => {
         { author: undefined, createdAt: '2026-02-03T00:00:00Z', body: '2 件目' },
       ],
     }
-    const github = await startGithub([issueRule({ comments })])
+    const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule({ comments })])
 
     const result = await read('acme/demo/7', '--comment-limit', '2')
 
@@ -126,24 +134,24 @@ describe('issue read', () => {
       + '---\n\n**@reviewer** - 2026-01-02\n\n1 件目\n\n'
       + '---\n\n**@ghost** - 2026-02-03\n\n2 件目\n',
     )
-    expect(github.requests()).toMatchObject([{ variables: { commentLimit: 2 } }])
+    expect(slimRequests(github)).toMatchObject([{ variables: { commentLimit: 2 } }])
   })
 
   it('--comment-limit 0 を渡すと、コメントを出さない', async (context) => {
     await verifies(context, 'PW-ISSUE-READ-07')
     setUpProject()
-    const github = await startGithub([issueRule({ comments: { totalCount: 4, nodes: [] } })])
+    const github = await startGithub([prerequisitesRule({ number: 7 }), issueRule({ comments: { totalCount: 4, nodes: [] } })])
 
     const result = await read('acme/demo/7', '-c', '0')
 
     expect(result.stdout).toBe(`## #7 見本の Issue\n\n**State:** OPEN | **Comments:** 4\n\n${BODY}`)
-    expect(github.requests()).toMatchObject([{ variables: { commentLimit: 0 } }])
+    expect(slimRequests(github)).toMatchObject([{ variables: { commentLimit: 0 } }])
   })
 
   it('--json を渡すと、同じ内容を JSON で標準出力に出す', async (context) => {
     await verifies(context, 'PW-ISSUE-READ-08')
     setUpProject()
-    await startGithub([issueRule({
+    await startGithub([prerequisitesRule({ number: 7 }), issueRule({
       comments: { totalCount: 1, nodes: [{ author: { login: 'reviewer' }, createdAt: '2026-01-02T03:04:05Z', body: 'コメントの本文' }] },
       subIssues: [{ number: 8, state: 'OPEN', title: '子の Issue' }],
       branches: ['feat/7'],
@@ -158,25 +166,27 @@ describe('issue read', () => {
       title: '見本の Issue',
       body: '本文の 1 行目\n',
       comments: { total_count: 1, nodes: [{ author: 'reviewer', created_at: '2026-01-02T03:04:05Z', body: 'コメントの本文' }] },
-      // eslint-disable-next-line unicorn/no-null -- JSON の null
+
       parent: null,
       sub_issues: [{ number: 8, state: 'OPEN', title: '子の Issue' }],
       linked_branches: ['feat/7'],
       linked_prs: [],
       owner: 'acme',
       repo: 'demo',
+      blockedBy: [],
+      readiness: { kind: 'startable', stackOn: null, reason: null, text: 'startable' },
     }, undefined, 2)}\n`)
   })
 
   it('短い形 N の参照を --repo で補って読む', async (context) => {
     await verifies(context, 'PW-ISSUE-READ-09')
     setUpProject()
-    const github = await startGithub([issueRule({ number: 5 })])
+    const github = await startGithub([issueRule({ number: 5 }), prerequisitesRule({ number: 5 })])
 
     const result = await runInProcess(['--repo', 'acme/demo', 'issue', 'read', '5'], ISSUE_READ_COMMANDS)
 
     expect(result.code).toBe(0)
-    expect(github.requests()).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
+    expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
   })
 
   it('短い形 N の参照を --repo なしで渡すと、git の remote で補って読む', async (context) => {
@@ -184,12 +194,12 @@ describe('issue read', () => {
     setUpProject()
     const repository = enterGitRepository()
     gitForTest(repository, ['remote', 'add', 'origin', 'https://ghes.example.com/acme/demo.git'])
-    const github = await startGithub([issueRule({ number: 5 })])
+    const github = await startGithub([issueRule({ number: 5 }), prerequisitesRule({ number: 5 })])
 
     const result = await read('5')
 
     expect(result.code).toBe(0)
-    expect(github.requests()).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
+    expect(slimRequests(github)).toMatchObject([{ variables: { owner: 'acme', repo: 'demo', number: 5 } }])
   })
 
   it.for([
@@ -257,7 +267,7 @@ describe('issue read', () => {
     await verifies(context, 'PW-ISSUE-READ-13')
     setUpProject()
     const errors = [{ type: 'NOT_FOUND', path: ['repository', 'issue'], locations: [{ line: 3, column: 5 }], message: 'Could not resolve to an Issue with the number of 7.' }]
-    // eslint-disable-next-line unicorn/no-null -- GitHub は無い Issue を null で返す
+
     const data = { repository: { issue: null } }
     await startGithub([{ match: { operation: 'GetIssueSlim' }, respond: { status: 200, body: { data, errors } }, times: 1 }])
 
@@ -269,6 +279,105 @@ describe('issue read', () => {
       stderr: 'error: could not read Issue acme/demo/7: GraphQL query error: '
         + '{\'type\': \'NOT_FOUND\', \'path\': [\'repository\', \'issue\'], \'locations\': [{\'line\': 3, \'column\': 5}], '
         + '\'message\': \'Could not resolve to an Issue with the number of 7.\'}\n',
+    })
+  })
+  describe('前提（blocked by）', () => {
+    const dependent = (extra: Partial<Parameters<typeof prerequisitesRule>[0]> = {}): Parameters<typeof prerequisitesRule>[0] => ({
+      number: 7,
+      blockedBy: [
+        { number: 3, title: 'Base', column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30 }] },
+        { number: 4, title: '待つ前提' },
+      ],
+      body: '本文\n\n## Waits for merge\n- #4: 公開後に確かめる\n',
+      ...extra,
+    })
+
+    it('前提がある Issue を読むと、Parent の下に Blocked by と Readiness の 2 行を出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-14')
+      setUpProject()
+      await startGithub([issueRule(), prerequisitesRule(dependent())])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.code).toBe(0)
+      const [blockedBy, readiness] = [
+        '**Blocked by:** #3 Base (OPEN, in review), #4 待つ前提 (OPEN, wait: merge — 公開後に確かめる)',
+        '**Readiness:** blocked by #3, #4 (waits for merge)',
+      ]
+      expect(result.stdout).toBe(`${HEAD}${blockedBy}\n${readiness}\n\n${BODY}`)
+      expect(result.stderr).toBe('')
+    })
+
+    it('前提が無い Issue を読むと、2 行を出さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-15')
+      setUpProject()
+      await startGithub([issueRule(), prerequisitesRule({ number: 7 })])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.stdout).toBe(`${HEAD}${BODY}`)
+    })
+
+    it('本文の節にあって blocked by に無い Issue があると、warning を出して読み続ける', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-16')
+      setUpProject()
+      await startGithub([issueRule(), prerequisitesRule(dependent({ body: '## Waits for merge\n- #4: 理由\n- #9: 外した前提\n' }))])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('warning: Waits for merge of #7 lists #9, which is not a blocked-by of it\n')
+      expect(result.stdout).toContain('**Readiness:** blocked by #3, #4 (waits for merge)')
+    })
+
+    it('本文の節が読めないと、warning を出し、前提をすべて merge 待ちにする', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-16')
+      setUpProject()
+      await startGithub([issueRule(), prerequisitesRule(dependent({ body: '## Waits for merge\n\nbroken\n' }))])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.stderr).toMatch(/^warning: Waits for merge of #7 is malformed: .+\n$/u)
+      expect(result.stdout).toContain('#3 Base (OPEN, wait: merge)')
+    })
+
+    it('--json を渡すと、blockedBy と readiness を足す', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-17')
+      setUpProject()
+      await startGithub([issueRule(), prerequisitesRule(dependent())])
+
+      const result = await read('acme/demo/7', '--json')
+
+      const output: unknown = JSON.parse(result.stdout)
+      expect(output).toMatchObject({
+        blockedBy: [
+          { number: 3, repository: 'acme/demo', state: 'OPEN', wait: 'stack', reason: null },
+          { number: 4, repository: 'acme/demo', state: 'OPEN', wait: 'merge', reason: '公開後に確かめる' },
+        ],
+        readiness: { kind: 'blocked', stackOn: null, reason: 'waits-merge', text: 'blocked by #3, #4 (waits for merge)' },
+      })
+    })
+
+    it('前提を読めないと、warning を出し、今までの出力に 2 行を足さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-18')
+      setUpProject()
+      await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toBe(`${HEAD}${BODY}`)
+      expect(result.stderr).toMatch(/^warning: could not read blocked-by of #7: GraphQL query error: Server error '500/u)
+    })
+
+    it('前提を読めないとき、--json は blockedBy と readiness を null にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-READ-18')
+      setUpProject()
+      await startGithub([issueRule(), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const result = await read('acme/demo/7', '--json')
+
+      expect(JSON.parse(result.stdout)).toMatchObject({ blockedBy: null, readiness: null })
     })
   })
 })

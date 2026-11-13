@@ -159,14 +159,14 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 2・8・9・10 を通す。前提の状態が「済んだ」「PR 中」「未着手」の Issue が、順に `startable`・`stackable on`・`blocked by` と出る。手で動かしたカードが、`moved:` の行とともに戻る
 
-- [ ] T029 [P] [US2] `p-w/cli/src/domain/tests/board-move.test.ts` に、列を直す判断の失敗するテストを書く
+- [x] T029 [P] [US2] `p-w/cli/src/domain/tests/board-move.test.ts` に、列を直す判断の失敗するテストを書く
   - data-model.md の 6 の列の表の 8 行と、札の表の 3 行を、1 行ずつ入力にする
   - `Backlog`・`Pending`・`Archived` の Issue は、どの判定でも動かさない
   - 着手の跡がある Issue は、どの列にあっても、列と札を動かさない（FR-084）。判定が `blocked` のときは、食い違いを返す
   - `Blocked` の値が無いボードでは、動かす先を返さず、足りない値を返す
-- [ ] T030 [US2] `p-w/cli/src/domain/board-move.ts` を足し、T029 を通す
-- [ ] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
-- [ ] T032 [P] [US2] `p-w/cli/tests/interface/project.test.ts` に、`project info` の失敗するテストを書く
+- [x] T030 [US2] `p-w/cli/src/domain/board-move.ts` を足し、T029 を通す
+- [x] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
+- [x] T032 [P] [US2] `p-w/cli/tests/interface/project.test.ts` に、`project info` の失敗するテストを書く
   - `Ready` と `Blocked` の表に `Readiness` の列が出る。形は contracts/cli-commands.md の `pecot project info` のとおりだ
   - 判定と違う列にある Issue が動き、stderr に `moved:` が出る
   - 着手の跡が無い `Active` の Issue が、判定に合った列へ戻る
@@ -175,15 +175,15 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
   - 判定の読み取りに失敗した Issue は `unknown` と出て、列が動かない
   - `Blocked` の値が無いボードでは、列が動かず、`warning:` に足し方が出る。終了コードは 0 だ
   - 前提の付いていない Issue だけのボードでは、`Readiness` の列がすべて `startable` で、列が動かない
-- [ ] T033 [US2] `p-w/cli/src/commands/project-info.ts` と `p-w/cli/src/commands/project.ts` を直し、T032 を通す
+- [x] T033 [US2] `p-w/cli/src/commands/project-info.ts` と `p-w/cli/src/commands/project.ts` を直し、T032 を通す
   - 判定の計算は `mapWithLimit` で並べる
   - 同じ Epic の積める並びを `## Stackable chains` に出す（FR-051）
   - JSON の出力の各 Issue に `readiness` を足す
-- [ ] T034 [P] [US2] `p-w/cli/tests/interface/issue.test.ts` に、`issue read` の失敗するテストを書く。`Blocked by:` と `Readiness:` の 2 行が出る。前提の無い Issue では出ない。本文の節と blocked by が食い違うときに `warning:` が出る
-- [ ] T035 [US2] `p-w/cli/src/commands/issue-read.ts` を直し、T034 を通す。JSON の出力に `blockedBy` と `readiness` を足す
-- [ ] T036 [US2] `project info` と `issue read` の定義書を直す。`p-w/interface/authored.yaml` の `details`・`effects`・振る舞いの項目に、判定の表示と列の移動を書く
-- [ ] T037 [US2] 50 件の `Ready` と `Blocked` を持つボードで `pecot project info` を打ち、判定の分の増加が 5 秒以内であることを測る。超えるときは、前提の読み取りを 1 つのクエリにまとめる
-- [ ] T038 [US2] version plan を `.nx/version-plans/` に足す
+- [x] T034 [P] [US2] `p-w/cli/tests/interface/issue.test.ts` に、`issue read` の失敗するテストを書く。`Blocked by:` と `Readiness:` の 2 行が出る。前提の無い Issue では出ない。本文の節と blocked by が食い違うときに `warning:` が出る
+- [x] T035 [US2] `p-w/cli/src/commands/issue-read.ts` を直し、T034 を通す。JSON の出力に `blockedBy` と `readiness` を足す
+- [x] T036 [US2] `project info` と `issue read` の定義書を直す。`p-w/interface/authored.yaml` の `details`・`effects`・振る舞いの項目に、判定の表示と列の移動を書く
+- [x] T037 [US2] 50 件の `Ready` と `Blocked` を持つボードで `pecot project info` を打ち、判定の分の増加が 5 秒以内であることを測る。超えるときは、前提の読み取りを 1 つのクエリにまとめる
+- [x] T038 [US2] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 画面で付けた blocked by が、一覧の判定とボードの列に出る
 

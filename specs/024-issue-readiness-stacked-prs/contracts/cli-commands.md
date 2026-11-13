@@ -14,6 +14,20 @@
 | `stackable` | `stackable on #N` |
 | `blocked` | `blocked by #N, #M` と、理由の文 |
 
+`blocked by` の後には、済んでいない前提をすべて並べる。別のリポの前提は `owner/repo#N` で出す。
+括弧の中の理由の文は、次の表で決める。括弧の中の Issue は、その理由に当たったものだ。
+
+| 理由のコード | 括弧の中 |
+|---|---|
+| `waits-merge` | `waits for merge` |
+| `closed-unmerged` | `closed without merge: #N` |
+| `not-in-review` | `not in review: #N (<状態>)` |
+| `other-repository` | `other repository: owner/repo#N` |
+| `diverged` | `not in one chain` |
+| `cycle` | `cycle: #A -> #B -> #A` |
+
+`not-in-review` の状態は、`not started`・`no PR`・`multiple PRs`・`PR from fork`・`in Pending` の 5 つだ。
+
 ## 新しいコマンド
 
 ### `pecot issue block <issue_ref> --by <issue_ref> [--wait merge --reason <text>]`
@@ -244,12 +258,16 @@ Readiness changed:
 ```
 
 - 表を出す前に、列と札を判定に合わせて直す。直した Issue は stderr に `moved: #N <元> -> <先> (<理由>)` で出す
-- 同じ Epic の積める並びを、`## Stackable chains` の節に出す
+- 同じ Epic の積める並びを、`## Stackable chains` の節に出す。1 本の並びを `- #<Epic>: #P -> #B -> #C` の 1 行にする
+  - Epic は、並びの一番上の Issue の親で決める。親の無い並びは `- (no epic): …` と出す
+  - 並びが無ければ、節を出さない
 - 判定の読み取りに失敗した Issue は、判定の列に `unknown (<理由>)` と出す。その Issue の列は動かさない
 - 着手の跡が無い `Active`・`In Review` の Issue は、判定に合った列へ戻す
 - 着手の跡がある Issue の列と札は変えない。判定が `blocked` のときは、`warning: #N is in <列> but blocked by #M` を出す
 - 列を直すのは既定の動きだ。直さずに見るだけの指定は置かない。hook の確認にはかけない
 - `Blocked` の値が無いボードでは、列を動かさずに `warning:` で足し方を出す
+- 列と札の書き込みに失敗した Issue は、`warning: could not move #N: <理由>` を出して続ける。終了コードは 0 だ
+- Issue の依存関係に対応しない GHES では止めない。`warning:` を 1 回出し、判定の列の無い表を出す
 - JSON の出力の各 Issue に `readiness` を足す
 
 ### `pecot session status`

@@ -1,5 +1,5 @@
 {
-  "stdout": "{\n  \"project\": {\n    \"name\": \"ghes.example.com_acme_board_acme\",\n    \"host\": \"ghes.example.com\",\n    \"owner\": \"acme\",\n    \"number\": 1,\n    \"aggregation_repo\": null\n  },\n  \"repositories\": [\n    {\n      \"full_name\": \"acme/demo\",\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"main\",\n      \"release_branch\": null,\n      \"dependabot_alerts\": {\n        \"enabled\": true,\n        \"open_count\": 2,\n        \"max_severity\": \"high\",\n        \"alerts_url\": \"https://ghes.example.com/acme/demo/security/dependabot\"\n      }\n    }\n  ],\n  \"board\": {\n    \"items\": [\n      {\n        \"id\": \"PVTI_1\",\n        \"workflow\": \"Ready\",\n        \"title\": \"準備済みの課題\",\n        \"updatedAt\": \"2026-01-02T03:04:05Z\",\n        \"content\": {\n          \"number\": 1,\n          \"state\": \"OPEN\",\n          \"url\": \"https://ghes.example.com/acme/demo/issues/1\",\n          \"labels\": [\n            \"bug\"\n          ],\n          \"repository\": \"acme/demo\"\n        }\n      },\n      {\n        \"id\": \"PVTI_2\",\n        \"workflow\": \"Active\",\n        \"title\": \"作業中の課題\",\n        \"updatedAt\": \"2026-01-02T03:04:05Z\",\n        \"content\": {\n          \"number\": 2,\n          \"state\": \"OPEN\",\n          \"url\": \"https://ghes.example.com/acme/demo/issues/2\",\n          \"labels\": [\n            \"bug\"\n          ],\n          \"repository\": \"acme/demo\"\n        }\n      }\n    ]\n  }\n}\n",
+  "stdout": "{\n  \"project\": {\n    \"name\": \"ghes.example.com_acme_board_acme\",\n    \"host\": \"ghes.example.com\",\n    \"owner\": \"acme\",\n    \"number\": 1,\n    \"aggregation_repo\": null\n  },\n  \"repositories\": [\n    {\n      \"full_name\": \"acme/demo\",\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"main\",\n      \"release_branch\": null,\n      \"dependabot_alerts\": {\n        \"enabled\": true,\n        \"open_count\": 2,\n        \"max_severity\": \"high\",\n        \"alerts_url\": \"https://ghes.example.com/acme/demo/security/dependabot\"\n      }\n    }\n  ],\n  \"board\": {\n    \"items\": [\n      {\n        \"id\": \"PVTI_1\",\n        \"workflow\": \"Ready\",\n        \"title\": \"準備済みの課題\",\n        \"updatedAt\": \"2026-01-02T03:04:05Z\",\n        \"content\": {\n          \"number\": 1,\n          \"state\": \"OPEN\",\n          \"url\": \"https://ghes.example.com/acme/demo/issues/1\",\n          \"labels\": [\n            \"bug\"\n          ],\n          \"repository\": \"acme/demo\"\n        },\n        \"readiness\": {\n          \"kind\": \"startable\",\n          \"stackOn\": null,\n          \"reason\": null,\n          \"text\": \"startable\"\n        }\n      },\n      {\n        \"id\": \"PVTI_2\",\n        \"workflow\": \"Active\",\n        \"title\": \"作業中の課題\",\n        \"updatedAt\": \"2026-01-02T03:04:05Z\",\n        \"content\": {\n          \"number\": 2,\n          \"state\": \"OPEN\",\n          \"url\": \"https://ghes.example.com/acme/demo/issues/2\",\n          \"labels\": [\n            \"bug\"\n          ],\n          \"repository\": \"acme/demo\"\n        },\n        \"readiness\": {\n          \"kind\": \"startable\",\n          \"stackOn\": null,\n          \"reason\": null,\n          \"text\": \"startable\"\n        }\n      }\n    ]\n  }\n}\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -19,6 +19,30 @@
       "query": {
         "per_page": "100",
         "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssuePrerequisites",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 1,
+        "columnFieldName": "pecot-workflow-acme",
+        "labelFieldName": "Status"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssuePrerequisites",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 2,
+        "columnFieldName": "pecot-workflow-acme",
+        "labelFieldName": "Status"
       },
       "auth": "token"
     }

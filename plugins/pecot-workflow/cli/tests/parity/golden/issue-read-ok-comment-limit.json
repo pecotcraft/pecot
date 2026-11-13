@@ -13,6 +13,18 @@
         "commentLimit": 2
       },
       "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssuePrerequisites",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7,
+        "columnFieldName": "pecot-workflow-acme",
+        "labelFieldName": "Status"
+      },
+      "auth": "token"
     }
   ],
   "files": {

@@ -375,6 +375,17 @@ const NOT_IN_REVIEW_TEXT: ReadonlyMap<NotInReviewState, string> = new Map([
   ['pending', 'in Pending'],
 ])
 
+/**
+前提 1 件の状態の文。`done`・`in review`・`wait: merge — <理由>`、または積めない理由（not started など）
+*/
+export function describePrerequisiteState(prerequisite: Readonly<Prerequisite>): string {
+  const { issue, wait, reason } = prerequisite
+  if (isDone(issue)) return 'done'
+  if (wait === 'merge') return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`
+  const state = notInReviewState(issue)
+  return isStackable(issue) ? 'in review' : (NOT_IN_REVIEW_TEXT.get(state) ?? state)
+}
+
 function describeReason(reason: ReadinessReason, targetRepository: RepositoryReference): string {
   const show = (reference: IssueReference): string => displayReference(reference, targetRepository)
   switch (reason.code) {

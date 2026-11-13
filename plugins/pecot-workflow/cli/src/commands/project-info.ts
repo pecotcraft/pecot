@@ -118,9 +118,14 @@ export interface InfoView {
 }
 
 /**
+アイテムの JSON の readiness を引く。判定の無いアイテムは null
+*/
+export type ReadinessSource = (item: BoardItem) => JsonObject | typeof JSON_NULL
+
+/**
 info --json の出力
 */
-export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[]): string {
+export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[], readiness?: ReadinessSource): string {
   const { config, projectName, statuses } = view
   const output = {
     project: {
@@ -138,7 +143,7 @@ export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[]):
       release_branch: entry.release_branch ?? JSON_NULL,
       dependabot_alerts: alertsJson(statusAt(statuses, index)),
     })),
-    board: formatItemsJson(items),
+    board: readiness === undefined ? formatItemsJson(items) : { items: items.map(item => ({ ...item, readiness: readiness(item) })) },
   }
   return JSON.stringify(output, undefined, 2)
 }
@@ -170,7 +175,7 @@ function repositoryLines(view: Readonly<InfoView>): readonly string[] {
 /**
 info の Markdown の出力
 */
-export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: string | undefined, boardOutput: string): string {
+export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string): string {
   const { config, projectName } = view
   const aggregation = config.aggregation_repo === undefined || config.aggregation_repo === '' ? 'none' : `\`${config.aggregation_repo}\``
   return [
@@ -187,6 +192,7 @@ export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: stri
     effectiveRepository === undefined || effectiveRepository === '' ? '## Board status' : `## Board status (filter: ${effectiveRepository})`,
     '',
     boardOutput,
+    ...(chainsSection === undefined ? [] : ['', chainsSection]),
   ].join('\n')
 }
 

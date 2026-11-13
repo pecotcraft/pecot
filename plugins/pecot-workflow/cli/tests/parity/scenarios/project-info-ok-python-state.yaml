@@ -60,3 +60,15 @@ github:
     respond:
       status: 200
       body: {"data": {"node": {"items": {"nodes": [{"id": "PVTI_1", "updatedAt": "2026-01-02T03:04:05Z", "fieldValues": {"nodes": [{"field": {"name": "pecot-workflow-acme"}, "name": "Ready"}]}, "content": {"id": "I_1", "number": 1, "title": "準備済みの課題", "state": "OPEN", "url": "https://ghes.example.com/acme/demo/issues/1", "labels": {"nodes": [{"name": "bug"}]}, "repository": {"owner": {"login": "acme"}, "name": "demo"}}}, {"id": "PVTI_2", "updatedAt": "2026-01-02T03:04:05Z", "fieldValues": {"nodes": [{"field": {"name": "pecot-workflow-acme"}, "name": "Active"}]}, "content": {"id": "I_2", "number": 2, "title": "作業中の課題", "state": "OPEN", "url": "https://ghes.example.com/acme/demo/issues/2", "labels": {"nodes": [{"name": "bug"}]}, "repository": {"owner": {"login": "acme"}, "name": "demo"}}}, {"id": "PVTI_3", "updatedAt": "2026-01-02T03:04:05Z", "fieldValues": {"nodes": [{"field": {"name": "pecot-workflow-acme"}, "name": "Archived"}]}, "content": {"id": "I_3", "number": 3, "title": "完了した課題", "state": "CLOSED", "url": "https://ghes.example.com/acme/demo/issues/3", "labels": {"nodes": [{"name": "bug"}]}, "repository": {"owner": {"login": "acme"}, "name": "demo"}}}], "pageInfo": {"hasNextPage": false, "endCursor": null}}}}}
+  - match:
+      operation: GetIssuePrerequisites
+      variables: {owner: acme, repo: demo, number: 1}
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"id": "I_1", "number": 1, "state": "OPEN", "title": "課題1", "repository": {"owner": {"login": "acme"}, "name": "demo"}, "issueType": {"name": "Task"}, "subIssues": {"totalCount": 0}, "projectItems": {"totalCount": 0, "nodes": []}, "linkedBranches": {"totalCount": 0, "nodes": []}, "closedByPullRequestsReferences": {"totalCount": 0, "nodes": []}, "timelineItems": {"totalCount": 0, "nodes": []}, "body": "本文", "parent": null, "blockedBy": {"totalCount": 0, "nodes": []}}}}}
+  - match:
+      operation: GetIssuePrerequisites
+      variables: {owner: acme, repo: demo, number: 2}
+    respond:
+      status: 200
+      body: {"data": {"repository": {"issue": {"id": "I_2", "number": 2, "state": "OPEN", "title": "課題2", "repository": {"owner": {"login": "acme"}, "name": "demo"}, "issueType": {"name": "Task"}, "subIssues": {"totalCount": 0}, "projectItems": {"totalCount": 0, "nodes": []}, "linkedBranches": {"totalCount": 1, "nodes": [{"ref": {"name": "feat/2", "associatedPullRequests": {"totalCount": 0, "nodes": []}}}]}, "closedByPullRequestsReferences": {"totalCount": 0, "nodes": []}, "timelineItems": {"totalCount": 0, "nodes": []}, "body": "本文", "parent": null, "blockedBy": {"totalCount": 0, "nodes": []}}}}}
