@@ -8,8 +8,6 @@ AI は推測で埋めない。ここで定義される手順に従い、ユー�
 
 ## 1. `repository` の決定
 
-実装ファイル: `commands/issue.py::_resolve_epic_target_repo`
-
 Epic と、task / bug / tracker で挙動が異なる。
 
 | 種類 | 投稿先の決まり方 |
@@ -35,8 +33,6 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 
 ## 2. `parent_epic` の指定
 
-実装ファイル: `commands/issue.py::_resolve_parent_epic_ref` / `core/frontmatter.py::_normalize_parent_epic`
-
 受理形式は 2 通り。
 
 | 形式 | 解釈 |
@@ -58,18 +54,9 @@ note: parent_epic=123 を aggregation_repo (acme-labs/aist-roadmap) の #123 と
 これは **エラーではなく挙動の確認通知**。AI は警告メッセージとして再投稿を試みたり、
 ユーザーに「失敗しました」と報告しない。フォーマットを誤検知して止めないこと。
 
-CLI 受理後のフロントマター正規化（`_normalize_parent_epic`）は次のとおり。
-
-- `None` / 空文字 → `None`
-- `int` → そのまま
-- 数字文字列 `"21"` → `int(21)`
-- 任意文字列 `"owner/repo/21"` → `str` のまま（CLI 層で `parse_issue_ref` 対象）
+`parent_epic` は、フロントマターに書いても引数で渡しても、同じく整える。前後の空白を落とし、空なら未指定、数字だけなら整数（Issue 番号）、それ以外は `owner/repo/N` の参照として解決する。解決できない値は使い方の誤りとして止まる。
 
 ## 3. `order` と タイトル prefix
-
-実装ファイル: `commands/issue.py::_build_issue_title` / `_check_duplicate_order`
-
-フロントマター側の実装ファイル: `core/frontmatter.py::IssueFrontmatter.validate_order_with_parent_epic`
 
 `parent_epic` を指定した場合 `order` は **必須かつ 1 以上の整数**。`parent_epic` と `order` は
 相互依存で、片方だけ指定するとフロントマター validation が失敗する。
@@ -80,23 +67,23 @@ CLI 受理後のフロントマター正規化（`_normalize_parent_epic`）は�
 タイトルは CLI が自動生成する。形式は次のとおり。
 
 ```
-[Task] #{epic}-{order:02d}{parallel}: <title>
-[Bug]  #{epic}-{order:02d}{parallel}: <title>
+[Task] #{epic}-{order}{parallel}: <title>
+[Bug]  #{epic}-{order}{parallel}: <title>
 ```
 
-`parallel` が無いときは `#{epic}-{order:02d}` のままになる。
+`order` は 2 桁に 0 で埋める（例: `03`）。`parallel` が無いときは `#{epic}-{order}` のままになる。
 
 `order` の続番決定:
 
-- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を `_check_duplicate_order` で
-  チェックし、重複時は `exit code: 1` で失敗する
+- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が
+  確かめ、重複時は `exit code: 1` で失敗する
 - 重複の判定は (`order`, `parallel`) の組で行う。同じ段で枝が違えば重複ではない。
   同じ段の枝なしと枝ありは、どちらが既存でも重複とする
 - 続番を決めるときは、`issue_read` を `issue_ref: "<Epic の owner/repo/N>"` で呼んだ結果の sub-issue 一覧で既存 `order` を確認する。
   一覧のタイトルには `#<Epic番号>-NN`（枝があれば `NNa`）が含まれる。確認してから次の番号を指定する。
   再利用はできない（CLOSED でも空き番号にしない）
 
-タイトル prefix（`[Task]` / `[Bug]` / `[Epic]` / `[Tracker]`）は `_build_issue_title` が type から自動付与する。
+タイトル prefix（`[Task]` / `[Bug]` / `[Epic]` / `[Tracker]`）は CLI が type から自動で付ける。
 ユーザー入力のタイトルに先頭で同じ prefix が入っていれば剥がしてから付け直す。
 
 ## 4. テンプレート選択

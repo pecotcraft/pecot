@@ -20,7 +20,7 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
   - tests の job は job 内に nx リモートキャッシュのサーバを持ち、同じ PR の前の run で成功したレーンの結果だけを取り込む
 - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる（`.claude/rules/devcontainer.md`）
 - `release.yml`: 人が手で起動する。入力 `dry-run`（既定 `true`）では案だけを出す。本番は一時ブランチへ push してタグと Release を出し、その後で `main` を取り込んで push する
-- `publish-npm.yml`: MCP サーバの tgz を npm へ publish する
+- `publish-npm.yml`: MCP サーバの tgz を npm へ publish する。初回の公開は `.claude/rules/npm-publish.md`
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる
