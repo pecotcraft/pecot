@@ -81,3 +81,11 @@ export function numberOrNull(value: JsonValue | undefined): number | null {
 export function requireValue(value: JsonValue | undefined, path: string): JsonValue {
   return value === undefined ? throwMalformed(path) : value
 }
+
+/**
+Issue の subIssues.totalCount。無いときは 0
+*/
+export function subIssuesTotal(issue: JsonValue): number {
+  const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount')
+  return typeof total === 'number' ? total : 0
+}

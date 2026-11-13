@@ -4,6 +4,7 @@ import { InvalidValueError } from '../errors.js'
 import {
   createIssueReference,
   extractReferencesIssueNumbers as extractReferencesIssueNumbers,
+  issueReferenceKey,
   issueReferenceToCliReference,
   issueReferenceToString,
   parseIssueReference,
@@ -141,6 +142,15 @@ describe('parseRepositoryReference', () => {
     const error = thrownBy(() => parseRepositoryReference('a b/c'))
     expect(error.reference).toBe('a b/c')
     expect(error.message).toContain('1 validation error for RepoRef\nowner\n')
+  })
+})
+
+describe('issueReferenceKey', () => {
+  it('リポ名の大文字小文字を区別しないキーを返す', () => {
+    const upper = createIssueReference(createRepositoryReference('ACME', 'App'), 3)
+    const lower = createIssueReference(createRepositoryReference('acme', 'app'), 3)
+    expect(issueReferenceKey(upper)).toBe('acme/app#3')
+    expect(issueReferenceKey(lower)).toBe(issueReferenceKey(upper))
   })
 })
 

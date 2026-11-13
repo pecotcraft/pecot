@@ -369,6 +369,7 @@ def test_skill_body_change_runs_skills_lane(
         ("plugins/pecot-visual/skills/v-slidev/SKILL.md", "pecot-visual:test-release"),
         ("plugins/pecot-visual/hooks/hooks.json", "pecot-visual:test-release"),
         ("plugins/pecot-tools/cli/src/cli.ts", "pecot-tools:test-release"),
+        ("plugins/pecot-workflow/cli/src/cli.ts", "pecot-workflow:test-release"),
     ],
 )
 def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
@@ -753,6 +754,50 @@ _PECOTV_TEST_LANES = {
         ),
         # 定義書の書き出し結果は、一致のテストの pecot-visual:test-cli に届く。
         ("plugins/pecot-visual/interface/generated.json", {"pecot-visual:test-cli"}),
+        # 配布物と配布スクリプトの変更は、pecot-workflow の test-release に届く。
+        (
+            "plugins/pecot-workflow/cli/templates/comment/plan.md",
+            {"pecot-workflow:test-cli", "pecot-workflow:test-release"},
+        ),
+        (
+            "plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh",
+            {
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-hooks",
+                "pecot-workflow:test-release",
+            },
+        ),
+        (
+            "plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh",
+            {"pecot-workflow:test-release"},
+        ),
+        (
+            ".githooks/scripts/attach-mcp-tgz.sh",
+            {
+                "pecot-tools:test-release",
+                "pecot-visual:test-release",
+                "pecot-workflow:test-release",
+            },
+        ),
+        # 3 つの publish-mcp-dist.sh が source する共通の関数と、そのテストの変更は、3 つの test-release に届く（lib は githooks のレーンにも届く）。
+        (
+            ".githooks/lib/mcp-publish-common.sh",
+            {
+                "pecot-tools:test-release",
+                "pecot-visual:test-release",
+                "pecot-workflow:test-release",
+                "githooks:test-ci",
+                *_GITHOOKS_GRAPH,
+            },
+        ),
+        (
+            ".githooks/scripts/tests/mcp-publish-common.test.sh",
+            {
+                "pecot-tools:test-release",
+                "pecot-visual:test-release",
+                "pecot-workflow:test-release",
+            },
+        ),
         # pecot-workflow の定義書は、一致のテストの test-cli に届く。
         ("plugins/pecot-workflow/interface/generated.json", {"pecot-workflow:test-cli"}),
         ("plugins/pecot-workflow/interface/authored.yaml", {"pecot-workflow:test-cli"}),
@@ -764,6 +809,7 @@ _PECOTV_TEST_LANES = {
                 "pecot-workflow:test-cli",
                 "pecot-workflow:test-bootstrap",
                 "pecot-workflow:test-hooks",
+                "pecot-workflow:test-release",
                 "pecot-workflow:test-skills",
                 *_GITHOOKS_CHECKS,
             },

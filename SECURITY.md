@@ -16,7 +16,7 @@ GitHub の非公開の脆弱性報告で受け付けます。[Report a vulnerabi
 ## 対象
 
 - 3 プラグインのコード（スキル・hooks・CLI・MCP サーバ）
-- npm のパッケージ `@pecot/visual-mcp` / `@pecot/tools-mcp` の配布物
+- npm のパッケージ `@pecot/visual-mcp` / `@pecot/tools-mcp` / `@pecot/workflow-mcp` の配布物
 - 依存ライブラリの脆弱性は、このプラグインの使い方で悪用できる場合に、advisory の URL を添えて報告する
 - Claude Code / GitHub Copilot CLI 本体や、awscli などの外部ツール本体の脆弱性は対象外。それぞれの提供元に報告する
 

@@ -1,5 +1,5 @@
 // GraphQL の要求の識別子（identify.ts）と、シナリオに書く operation 名の対応表。
-// 名前は cli/core/github/queries.py の定数名を PascalCase にしたもの。
+// 名前は src/infra/github/queries.ts の定数名を PascalCase にしたもの。
 // 名前を持つ operation（CreateLinkedBranch）は、query に書かれた名前をそのまま使う。
 import { parseOperation } from './identify.js'
 
@@ -35,6 +35,10 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews}|number,owner,repo', 'GetPullRequestSlim'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews,reviewThreads}|number,owner,repo', 'GetPullRequestWithReviews'],
   ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],
+  ['addBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'AddBlockedBy'],
+  ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
+  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,blockedBy}|columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
+  ['repository.pullRequests{pageInfo,nodes}|headRefName,owner,repo', 'ListPullRequestsByHead'],
 ]
 
 export const OPERATION_NAMES: ReadonlySet<string> = new Set(OPERATION_TABLE.map(([, name]) => name))

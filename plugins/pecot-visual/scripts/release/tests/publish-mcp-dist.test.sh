@@ -310,6 +310,8 @@ cp -a "$PECOTV_ROOT/scripts/release" "$TEST_PECOTV/scripts/release" || exit 1
 # 共通スクリプト（pack から gh まで）も同じ理由で作業ツリーから置く。
 mkdir -p "$TEST_REPO/.githooks/scripts" || exit 1
 cp -a "$REPO_ROOT/.githooks/scripts/attach-mcp-tgz.sh" "$REPO_ROOT/.githooks/scripts/origin-slug.mjs" "$TEST_REPO/.githooks/scripts/" || exit 1
+mkdir -p "$TEST_REPO/.githooks/lib" || exit 1
+cp -a "$REPO_ROOT/.githooks/lib/mcp-publish-common.sh" "$TEST_REPO/.githooks/lib/" || exit 1
 # runtime の manifest も同じ理由で作業ツリーから置く。追加直後の未追跡の状態でも、git archive の対象が揃う。
 rm -rf "$TEST_PECOTV/assets/slidev/runtime" || exit 1
 mkdir -p "$TEST_PECOTV/assets/slidev" || exit 1
@@ -1521,6 +1523,8 @@ SOLO_REPO="$TMP/solo-repo"
 mkdir -p "$SOLO_REPO/plugins/pecot-visual/scripts"
 git init --quiet --initial-branch=main "$SOLO_REPO" || exit 1
 cp -a "$PECOTV_ROOT/scripts/release" "$SOLO_REPO/plugins/pecot-visual/scripts/release" || exit 1
+mkdir -p "$SOLO_REPO/.githooks/lib" || exit 1
+cp -a "$REPO_ROOT/.githooks/lib/mcp-publish-common.sh" "$SOLO_REPO/.githooks/lib/" || exit 1
 git -C "$SOLO_REPO" add -A > /dev/null 2>&1 || exit 1
 git -C "$SOLO_REPO" commit --quiet -m "solo fixture" > /dev/null 2>&1 || exit 1
 git -C "$SOLO_REPO" tag "$TEST_TAG" HEAD || exit 1

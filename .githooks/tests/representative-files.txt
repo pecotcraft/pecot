@@ -7,9 +7,12 @@
 .devcontainer/tmux/pecot-open.sh
 .githooks/ci/run-affected-tests.sh
 .githooks/ci/run-pr-checks.sh
+.githooks/lib/mcp-publish-common.sh
 .githooks/pre-commit/check-engines-node-drift.sh
+.githooks/scripts/attach-mcp-tgz.sh
 .githooks/scripts/gen-runtime-lock.mjs
 .githooks/scripts/run-pnpm.sh
+.githooks/scripts/tests/mcp-publish-common.test.sh
 .githooks/tests/test_nx_task_cache.py
 .githooks/tests/test_ruleset_main.py
 .github/board-sync/handler.mjs
@@ -79,12 +82,14 @@ plugins/pecot-visual/setup.sh
 plugins/pecot-visual/skills/v-slidev/SKILL.md
 plugins/pecot-workflow/agents/w-e2e-planner.md
 plugins/pecot-workflow/cli/src/cli.ts
+plugins/pecot-workflow/cli/templates/comment/plan.md
 plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-workflow/cli/tests/bootstrap/install-record.sh
 plugins/pecot-workflow/cli/tests/hooks/baseline-scripts.test.ts
 plugins/pecot-workflow/cli/tests/output/cases.json
 plugins/pecot-workflow/cli/tests/parity/baseline.json
 plugins/pecot-workflow/com.github.copilot/hooks/hooks.json
+plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh
 plugins/pecot-workflow/hooks/lib/session-start/plugin-update-notice.sh
 plugins/pecot-workflow/interface/authored.yaml
 plugins/pecot-workflow/interface/generated.json
@@ -93,6 +98,7 @@ plugins/pecot-workflow/project.json
 plugins/pecot-workflow/runtime-lock.yaml
 plugins/pecot-workflow/scripts/ci/run-lint.sh
 plugins/pecot-workflow/scripts/ci/run-tests.sh
+plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh
 plugins/pecot-workflow/skills/w-help/references/commands.md
 plugins/pecot-workflow/skills/w-pr/SKILL.md
 pnpm-workspace.yaml

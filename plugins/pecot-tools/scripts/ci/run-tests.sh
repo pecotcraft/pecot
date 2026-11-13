@@ -155,8 +155,9 @@ if [ "$RUN_RELEASE" = true ]; then
         echo "ERROR: scripts/release/tests/ 配下に *.test.sh が見つかりません (消失 or find 失敗の疑い)。" >&2
         exit 1
     fi
-    # publish が共通で呼ぶ attach-mcp-tgz.sh（pack から gh まで）のテストも、このレーンで実行する。
+    # publish が共通で使う attach-mcp-tgz.sh と mcp-publish-common.sh のテストも、このレーンで実行する。
     release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/attach-mcp-tgz.test.sh")
+    release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/mcp-publish-common.test.sh")
     for test_file in "${release_test_files[@]}"; do
         echo "==> bash $test_file"
         bash "$test_file"

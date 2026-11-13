@@ -8,6 +8,7 @@ import {
   createRepositoryReference,
   createResolvedRepository,
   detectCurrentGitRepository,
+  isSameRepository,
   parseOwnerRepository,
   pickPrimaryRemote,
   repositoryFullName,
@@ -133,6 +134,13 @@ describe('repositoryFullName', () => {
 
   it('名前にドットを含む owner/repo を、そのまま owner/repo の形で返す', () => {
     expect(repositoryFullName(parseOwnerRepository('a.io/b.c'))).toBe('a.io/b.c')
+  })
+})
+
+describe('isSameRepository', () => {
+  it('大文字小文字を区別せず同じリポを同一とし、違うリポは同一としない', () => {
+    expect(isSameRepository(createRepositoryReference('Acme', 'App'), createRepositoryReference('acme', 'app'))).toBe(true)
+    expect(isSameRepository(createRepositoryReference('acme', 'app'), createRepositoryReference('acme', 'other'))).toBe(false)
   })
 })
 

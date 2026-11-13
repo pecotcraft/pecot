@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { JSON_NULL } from '../../../domain/json-null.js'
 import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError } from '../errors.js'
+import type { ResponseRule } from '../../../../tests/fake-github/server.js'
 import type { GitHubClient } from '../index.js'
 import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
@@ -400,5 +401,336 @@ describe('updateIssueBody', () => {
   it('422 は GitHubAPIError', async () => {
     const { client } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/7', { status: 422, text: 'too long' })])
     expect(await rejection(client.updateIssueBody('owner', 'repo', 7, 'x'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: 'too long' }))
+  })
+})
+
+const PROJECT_ID = 'PVT_board'
+const OTHER_PROJECT_ID = 'PVT_other'
+const FIELDS = { columnFieldName: 'pecot-workflow-abc', labelFieldName: 'Status' }
+
+function prNode(number: number, overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  return {
+    number,
+    state: 'OPEN',
+    headRefName: `feat/issue-${String(number)}`,
+    baseRefName: 'main',
+    isDraft: false,
+    isCrossRepository: false,
+    repository: { owner: { login: 'owner' }, name: 'repo' },
+    ...overrides,
+  }
+}
+
+function singleSelect(fieldId: string, optionName: string): Readonly<Record<string, unknown>> {
+  return { name: optionName, optionId: `opt_${optionName}`, field: { id: fieldId } }
+}
+
+function boardItem(projectId: string, labelName: string, columnName?: string): Readonly<Record<string, unknown>> {
+  return {
+    project: { id: projectId },
+    column: columnName === undefined ? JSON_NULL : singleSelect('FIELD_column', columnName),
+    label: singleSelect('FIELD_status', labelName),
+  }
+}
+
+function connection(nodes: readonly unknown[], totalCount = nodes.length): Readonly<Record<string, unknown>> {
+  return { totalCount, nodes }
+}
+
+function prerequisiteIssue(number: number, overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  return {
+    id: `I_${String(number)}`,
+    number,
+    state: 'OPEN',
+    title: `Issue ${String(number)}`,
+    repository: { owner: { login: 'owner' }, name: 'repo' },
+    issueType: { name: 'Task' },
+    subIssues: { totalCount: 0 },
+    projectItems: connection([]),
+    linkedBranches: connection([]),
+    closedByPullRequestsReferences: connection([]),
+    timelineItems: connection([]),
+    ...overrides,
+  }
+}
+
+function target(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  return { ...prerequisiteIssue(10), body: '本文', blockedBy: { totalCount: 0, nodes: [] }, ...overrides }
+}
+
+const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, columnFieldName: FIELDS.columnFieldName, labelFieldName: FIELDS.labelFieldName }
+
+const blockedByCases: readonly Readonly<{ method: 'addBlockedBy' | 'removeBlockedBy', operation: string }>[] = [
+  { method: 'addBlockedBy', operation: 'AddBlockedBy' },
+  { method: 'removeBlockedBy', operation: 'RemoveBlockedBy' },
+]
+
+describe('addBlockedBy・removeBlockedBy', () => {
+  it.for(blockedByCases)('$method は node ID を issueId・blockingIssueId で送る', async ({ method, operation }) => {
+    const { client, server } = await startClient([graphqlData(operation, { issue: { number: 10 }, blockingIssue: { number: 9 } })])
+    await (method === 'addBlockedBy' ? client.addBlockedBy('I_10', 'I_9') : client.removeBlockedBy('I_10', 'I_9'))
+    expect(graphqlRequests(server)).toEqual([{ operation, variables: { issueId: 'I_10', blockingIssueId: 'I_9' } }])
+  })
+
+  it.for(blockedByCases)('$method の VALIDATION の拒否（HTTP 200）は GitHubAPIError', async ({ method, operation }) => {
+    const { client } = await startClient([{
+      match: { operation },
+      respond: { status: 200, body: { data: JSON_NULL, errors: [{ type: 'VALIDATION', message: 'Blocking relationship would create a cycle' }] } },
+      times: 1,
+    }])
+    const error = await rejection(method === 'addBlockedBy' ? client.addBlockedBy('I_10', 'I_9') : client.removeBlockedBy('I_10', 'I_9'))
+    expect(error).toMatchObject({ name: 'GitHubAPIError' })
+    expect(error instanceof Error ? error.message : '').toMatch(/^GraphQL query error: .*Blocking relationship would create a cycle/u)
+  })
+
+  it.for(blockedByCases)('$method は、Mutation に無い GHES では 3.19 以上が要ると伝える', async ({ method, operation }) => {
+    const field = method
+    const { client } = await startClient([graphqlError(operation, `Field '${field}' doesn't exist on type 'Mutation'`)])
+    const error = await rejection(method === 'addBlockedBy' ? client.addBlockedBy('I_10', 'I_9') : client.removeBlockedBy('I_10', 'I_9'))
+    expect(error).toMatchObject(failure(GitHubAPIError, 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'))
+  })
+})
+
+async function readWith(issue: Readonly<Record<string, unknown>>): ReturnType<GitHubClient['getIssuePrerequisites']> {
+  const { client } = await startClient([graphqlData('GetIssuePrerequisites', { repository: { issue } })])
+  return client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS)
+}
+
+async function readError(client: Readonly<GitHubClient>): Promise<unknown> {
+  return rejection(client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS))
+}
+
+function connectedEvent(number: number): Readonly<Record<string, unknown>> {
+  return { __typename: 'ConnectedEvent', subject: prNode(number) }
+}
+
+function disconnectedEvent(number: number): Readonly<Record<string, unknown>> {
+  return { __typename: 'DisconnectedEvent', subject: prNode(number) }
+}
+
+function referencedEvent(number: number, willCloseTarget: boolean, head?: string): Readonly<Record<string, unknown>> {
+  return { __typename: 'CrossReferencedEvent', willCloseTarget, source: prNode(number, head === undefined ? {} : { headRefName: head }) }
+}
+
+function partialResponse(errors: readonly unknown[], issue: Readonly<Record<string, unknown>>): ResponseRule {
+  return {
+    match: { operation: 'GetIssuePrerequisites' },
+    respond: { status: 200, body: { data: { repository: { issue } }, errors } },
+    times: 1,
+  }
+}
+
+const timelineCases: readonly Readonly<{ name: string, events: readonly unknown[], expected: readonly number[] }>[] = [
+  { name: '本文やコメントで触れただけの PR（閉じる参照でなく、head が /10 で終わらない）は読まない', events: [referencedEvent(30, false, 'feat/readiness/11')], expected: [] },
+  { name: '閉じる参照でなくても、head が /10 で終わる PR は読む', events: [referencedEvent(31, false, 'feat/readiness/10')], expected: [31] },
+  { name: 'head が /10 で終わらなくても、閉じる参照なら読む', events: [referencedEvent(32, true, 'fix/something')], expected: [32] },
+  { name: '後で DisconnectedEvent が外した ConnectedEvent の PR は読まない', events: [connectedEvent(33), connectedEvent(34), disconnectedEvent(33)], expected: [34] },
+  { name: '外した後に繋ぎ直した PR は読む', events: [connectedEvent(35), disconnectedEvent(35), connectedEvent(35)], expected: [35] },
+  { name: 'DisconnectedEvent は、別の PR や、閉じる参照で読んだ PR を消さない', events: [referencedEvent(36, true), disconnectedEvent(36), disconnectedEvent(37)], expected: [36] },
+  { name: 'PR が空の node は読まない', events: [{ __typename: 'ConnectedEvent', subject: {} }, { __typename: 'DisconnectedEvent', subject: {} }, { __typename: 'CrossReferencedEvent', willCloseTarget: true, source: {} }], expected: [] },
+]
+
+describe('getIssuePrerequisites', () => {
+  it('対象の Issue と blockedBy を読み、ボードの値は projectId のものだけにする', async () => {
+    const blocking = prerequisiteIssue(9, {
+      state: 'CLOSED',
+      issueType: JSON_NULL,
+      projectItems: connection([boardItem(OTHER_PROJECT_ID, 'Done'), boardItem(PROJECT_ID, 'In Progress', 'In Review')]),
+    })
+    const { client, server } = await startClient([
+      graphqlData('GetIssuePrerequisites', { repository: { issue: target({ blockedBy: { totalCount: 1, nodes: [blocking] } }) } }),
+    ])
+    const result = await client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssuePrerequisites', variables: prerequisitesVariables }])
+    expect(result.issue).toEqual({
+      id: 'I_10',
+      repository: { owner: 'owner', repository: 'repo' },
+      number: 10,
+      state: 'OPEN',
+      title: 'Issue 10',
+      body: '本文',
+      issueType: 'Task',
+      subIssuesTotal: 0,
+      projectFieldValues: [],
+      linkedBranches: [],
+      closingPullRequests: [],
+      timelinePullRequests: [],
+    })
+    expect(result.blockedBy).toEqual({
+      kind: 'ok',
+      issues: [{
+        id: 'I_9',
+        repository: { owner: 'owner', repository: 'repo' },
+        number: 9,
+        state: 'CLOSED',
+        title: 'Issue 9',
+        issueType: JSON_NULL,
+        subIssuesTotal: 0,
+        projectFieldValues: [
+          { fieldId: 'FIELD_column', fieldName: FIELDS.columnFieldName, optionId: 'opt_In Review', optionName: 'In Review' },
+          { fieldId: 'FIELD_status', fieldName: 'Status', optionId: 'opt_In Progress', optionName: 'In Progress' },
+        ],
+        linkedBranches: [],
+        closingPullRequests: [],
+        timelinePullRequests: [],
+      }],
+    })
+  })
+
+  it('PR を 3 つの読み口から読む', async () => {
+    const fromBranch = prNode(21, { headRefName: 'feat/issue-9' })
+    const fromClosing = prNode(22, { state: 'MERGED' })
+    const fork = prNode(23, { isCrossRepository: true, isDraft: true, headRefName: 'feat/issue-10', repository: { owner: { login: 'upstream' }, name: 'other' } })
+    const issue = target({
+      linkedBranches: connection([JSON_NULL, { ref: JSON_NULL }, { ref: { name: 'feat/issue-9', associatedPullRequests: connection([fromBranch]) } }]),
+      closedByPullRequestsReferences: connection([fromClosing]),
+      timelineItems: connection([
+        { __typename: 'ConnectedEvent', subject: fork },
+        { __typename: 'CrossReferencedEvent', willCloseTarget: true, source: prNode(24) },
+        { __typename: 'CrossReferencedEvent', willCloseTarget: false, source: JSON_NULL },
+        { __typename: 'ConnectedEvent', subject: {} },
+        {},
+      ]),
+    })
+    const { issue: read } = await readWith(issue)
+    expect(read.linkedBranches).toEqual([{
+      name: 'feat/issue-9',
+      pullRequests: [{ repository: { owner: 'owner', repository: 'repo' }, number: 21, state: 'OPEN', headRefName: 'feat/issue-9', baseRefName: 'main', isDraft: false, isCrossRepository: false }],
+    }])
+    expect(read.closingPullRequests.map(({ number, state }) => ({ number, state }))).toEqual([{ number: 22, state: 'MERGED' }])
+    expect(read.timelinePullRequests).toEqual([
+      { repository: { owner: 'upstream', repository: 'other' }, number: 23, state: 'OPEN', headRefName: 'feat/issue-10', baseRefName: 'main', isDraft: true, isCrossRepository: true },
+      { repository: { owner: 'owner', repository: 'repo' }, number: 24, state: 'OPEN', headRefName: 'feat/issue-24', baseRefName: 'main', isDraft: false, isCrossRepository: false },
+    ])
+  })
+
+  it.for(timelineCases)('タイムライン: $name', async ({ events, expected }) => {
+    const timelineItems = connection(events)
+    const { issue } = await readWith(target({ timelineItems }))
+    expect(issue.timelinePullRequests.map(({ number }) => number)).toEqual(expected)
+  })
+
+  it('number の無い PR の node は GitHubAPIError', async () => {
+    const broken = { state: 'OPEN', headRefName: 'feat/issue-10' }
+    const issue = target({ closedByPullRequestsReferences: connection([broken]) })
+    const error = await rejection(readWith(issue))
+    expect(error).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.number'))
+  })
+
+  it('ボードに無い Issue の値は空', async () => {
+    const projectItems = connection([boardItem(OTHER_PROJECT_ID, 'Ready')])
+    const { issue } = await readWith(target({ projectItems }))
+    expect(issue.projectFieldValues).toEqual([])
+  })
+
+  it('列だけ、札だけの値は、あるほうだけ読む', async () => {
+    const onlyColumn = { project: { id: PROJECT_ID }, column: singleSelect('FIELD_column', 'Done'), label: JSON_NULL }
+    const { issue } = await readWith(target({ projectItems: connection([onlyColumn]) }))
+    expect(issue.projectFieldValues).toEqual([{ fieldId: 'FIELD_column', fieldName: FIELDS.columnFieldName, optionId: 'opt_Done', optionName: 'Done' }])
+  })
+
+  it('blockedBy が空で totalCount も 0 なら、前提なしの ok', async () => {
+    const { blockedBy } = await readWith(target())
+    expect(blockedBy).toEqual({ kind: 'ok', issues: [] })
+  })
+
+  it('blockedBy に null の node があれば read-failed（落とさない）', async () => {
+    const { blockedBy } = await readWith(target({ blockedBy: { totalCount: 2, nodes: [prerequisiteIssue(9), JSON_NULL] } }))
+    expect(blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy has a null node' })
+  })
+
+  it('blockedBy の件数が totalCount に足りなければ read-failed', async () => {
+    const { blockedBy } = await readWith(target({ blockedBy: { totalCount: 51, nodes: [prerequisiteIssue(9)] } }))
+    expect(blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy returned 1 of 51 issues' })
+  })
+
+  describe('connection の取りこぼし', () => {
+    const cut = connection([], 3)
+    const nested = { ref: { name: 'feat/issue-9', associatedPullRequests: connection([prNode(21)], 2) } }
+    const cases: readonly Readonly<{ name: string, overrides: Readonly<Record<string, unknown>>, reason: string }>[] = [
+      { name: 'projectItems', overrides: { projectItems: cut }, reason: 'projectItems of owner/repo#9 returned 0 of 3' },
+      { name: 'linkedBranches', overrides: { linkedBranches: cut }, reason: 'linkedBranches of owner/repo#9 returned 0 of 3' },
+      { name: 'associatedPullRequests', overrides: { linkedBranches: connection([nested]) }, reason: 'associatedPullRequests of owner/repo#9 returned 1 of 2' },
+      { name: 'closedByPullRequestsReferences', overrides: { closedByPullRequestsReferences: cut }, reason: 'closedByPullRequestsReferences of owner/repo#9 returned 0 of 3' },
+      { name: 'timelineItems', overrides: { timelineItems: cut }, reason: 'timelineItems of owner/repo#9 returned 0 of 3' },
+    ]
+
+    it.for(cases)('前提の Issue の $name が足りなければ read-failed', async ({ overrides, reason }) => {
+      const { blockedBy } = await readWith(target({ blockedBy: { totalCount: 1, nodes: [prerequisiteIssue(9, overrides)] } }))
+      expect(blockedBy).toEqual({ kind: 'read-failed', reason })
+    })
+
+    it('対象の Issue の timelineItems が足りなくても read-failed', async () => {
+      const { blockedBy } = await readWith(target({ timelineItems: cut, blockedBy: { totalCount: 1, nodes: [prerequisiteIssue(9)] } }))
+      expect(blockedBy).toEqual({ kind: 'read-failed', reason: 'timelineItems of owner/repo#10 returned 0 of 3' })
+    })
+
+    it('上限に届いていても、totalCount と同じなら ok', async () => {
+      const full = connection([{ __typename: 'ConnectedEvent', subject: prNode(21) }])
+      const { blockedBy } = await readWith(target({ blockedBy: { totalCount: 1, nodes: [prerequisiteIssue(9, { timelineItems: full })] } }))
+      expect(blockedBy).toMatchObject({ kind: 'ok' })
+    })
+  })
+
+  describe('部分エラー', () => {
+    it('errors が blockedBy の下だけなら、例外にせず blockedBy を read-failed にする', async () => {
+      const errors = [{ message: 'Could not resolve to an Issue', path: ['repository', 'issue', 'blockedBy', 'nodes', 1] }]
+      const blockedBy = { totalCount: 2, nodes: [prerequisiteIssue(9), JSON_NULL] }
+      const { client } = await startClient([partialResponse(errors, target({ blockedBy }))])
+      const result = await client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS)
+      expect(result.issue.number).toBe(10)
+      expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy could not be read: Could not resolve to an Issue' })
+    })
+
+    it('blockedBy ごと null になっても read-failed', async () => {
+      const errors = [{ message: 'forbidden', path: ['repository', 'issue', 'blockedBy'] }]
+      const { client } = await startClient([partialResponse(errors, target({ blockedBy: JSON_NULL }))])
+      const result = await client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS)
+      expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy could not be read: forbidden' })
+    })
+
+    it('blockedBy の外の errors がひとつでもあれば、今までどおり例外にする', async () => {
+      const errors = [
+        { message: 'ok to tolerate', path: ['repository', 'issue', 'blockedBy', 'nodes', 0] },
+        { message: 'broken elsewhere', path: ['repository', 'issue', 'timelineItems'] },
+      ]
+      const { client } = await startClient([partialResponse(errors, target())])
+      const error = await readError(client)
+      expect(error).toBeInstanceOf(GitHubAPIError)
+      expect(error instanceof Error ? error.message : '').toContain('ok to tolerate')
+    })
+
+    it('path の無い errors は例外にする', async () => {
+      const { client } = await startClient([partialResponse([{ message: 'no path' }], target())])
+      expect(await readError(client)).toBeInstanceOf(GitHubAPIError)
+    })
+  })
+
+  describe('Issue の依存関係に対応しない GHES', () => {
+    const unsupported = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
+
+    it.for(['Field \'blockedBy\' doesn\'t exist on type \'Issue\'', 'Cannot query field \'issueType\' on type \'Issue\''])('スキーマの失敗（%s）は、3.19 以上が要ると伝える。読み直しはしない', async (message) => {
+      const { client, server } = await startClient([graphqlError('GetIssuePrerequisites', message)])
+      expect(await readError(client)).toMatchObject(failure(GitHubAPIError, unsupported))
+      expect(graphqlRequests(server)).toHaveLength(1)
+    })
+  })
+
+  it('blockedBy と関係の無い失敗は、そのまま例外にする', async () => {
+    const { client, server } = await startClient([graphqlError('GetIssuePrerequisites', 'Something else broke')])
+    const error = await readError(client)
+    expect(error).toBeInstanceOf(GitHubAPIError)
+    expect(error instanceof Error ? error.message : '').toContain('Something else broke')
+    expect(graphqlRequests(server)).toHaveLength(1)
+  })
+
+  it('Issue が無ければ GitHubNotFoundError', async () => {
+    const { client } = await startClient([graphqlData('GetIssuePrerequisites', { repository: { issue: JSON_NULL } })])
+    expect(await readError(client)).toMatchObject(failure(GitHubNotFoundError, 'Issue not found: owner/repo/10'))
+  })
+
+  it('必須の値が無ければ GitHubAPIError', async () => {
+    const error = await rejection(readWith(target({ id: JSON_NULL })))
+    expect(error).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: issue.id'))
   })
 })

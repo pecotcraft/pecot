@@ -59,7 +59,7 @@ paths:
 | 利用者が入力する層 | `pecot-w` / `pecot-v` / `pecot-t` | プラグイン名、スキルの名前空間、Copilot のインストール先 |
 | リポの層 | `pecot-workflow` / `pecot-visual` / `pecot-tools` | ディレクトリ、nx project、release group、タグ、MCP サーバのキー |
 | CLI の層 | `pecot` / `pecotv` / `pecot-tools` | コマンド名、作業ディレクトリ（`.pecot/` / `.pecotv/`）、npm・Python のパッケージ名、stderr の接頭辞。据え置く |
-| 単体配布の層 | `@pecot/visual-mcp` / `@pecot/tools-mcp`（bin は `pecot-visual-mcp` / `pecot-tools-mcp`） | MCP の単体配布の npm のパッケージ名と bin。スコープ `@pecot` の後ろに機能の名前を置く |
+| 単体配布の層 | `@pecot/visual-mcp` / `@pecot/tools-mcp` / `@pecot/workflow-mcp`（bin は `pecot-visual-mcp` / `pecot-tools-mcp` / `pecot-workflow-mcp`） | MCP の単体配布の npm のパッケージ名と bin。スコープ `@pecot` の後ろに機能の名前を置く |
 
 MCP サーバのキーはリポの層（`pecot-visual` / `pecot-visual-playwright` / `pecot-tools`）にします。Copilot CLI はキーを
 そのままツール名の前置きにし、同名のキーは後から読んだものが勝つためです。キー・`MCP_SERVER_NAME`・スキルとエージェント本文の
@@ -70,7 +70,7 @@ pecot-tools のパッケージ名・配布物名・MCP サーバのキーには 
 
 ## 利用者向け README を書く
 
-対象はルート `README.md`、3 プラグインの `README.md`、単体配布の `scripts/release/mcp-dist-README.md` 2 本です。読者は導入して使う人です。
+対象はルート `README.md`、3 プラグインの `README.md`、単体配布の `scripts/release/mcp-dist-README.md` 3 本です。読者は導入して使う人です。
 各行に「読者がこれで何をするか」があるものだけ残します。
 
 骨組みは次のとおりです。持たない節は作りません。

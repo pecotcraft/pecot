@@ -39,6 +39,13 @@ export function issueReferenceToString(reference: IssueReference): string {
   return `${repositoryFullName(reference.repository)}#${String(reference.number)}`
 }
 
+/**
+リポ名の大文字小文字を区別しない、Issue / PR の同一判定用のキー
+*/
+export function issueReferenceKey(reference: IssueReference): string {
+  return issueReferenceToString(reference).toLowerCase()
+}
+
 export function issueReferenceToCliReference(reference: IssueReference): string {
   return `${repositoryFullName(reference.repository)}/${String(reference.number)}`
 }
