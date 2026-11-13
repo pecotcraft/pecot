@@ -1,6 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // exit-plan-remind.sh の tool 名ガードのテスト。
-// Copilot CLI は matcher を honor せず全ツールで発火するため、冒頭の tool 名ガードで ExitPlanMode 以外を弾く。
+// Copilot CLI は matcher を honor せず全ツールで発火する。
+// そのため冒頭の tool 名ガードで、ExitPlanMode と exit_plan_mode 以外を弾く。
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -29,6 +30,16 @@ describe('exit-plan-remind.sh', () => {
     const result = runScript(hookCase, EXIT_PLAN_REMIND, [], { stdin: '{"tool_name":"bash","tool_input":{"command":"ls"}}' })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
+  })
+
+  it('Copilot CLI の exit_plan_mode のとき、ガードを通って quick-mode のフラグを消す', () => {
+    const hookCase = createHookCase()
+    const stateDirectory = setUpGuard(hookCase)
+    const quickMode = path.join(stateDirectory, '.pecot-quick-mode')
+    writeFileSync(quickMode, '')
+    const result = runScript(hookCase, EXIT_PLAN_REMIND, [], { stdin: '{"tool_name":"exit_plan_mode"}' })
+    expect(result.exitCode).toBe(0)
+    expect(existsSync(quickMode)).toBe(false)
   })
 
   it('Bash ツールのとき、quick-mode のフラグを残す', () => {
