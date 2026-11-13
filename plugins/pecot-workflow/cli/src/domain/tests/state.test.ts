@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { InvalidValueError } from '../errors.js'
+import { createIssueReference } from '../reference-parser.js'
+import { createRepositoryReference } from '../repository-resolver.js'
 import { splitCodePoints } from '../python-format.js'
 import {
   FLAG_PECOT_ACTIVE,
+  FLAG_PECOT_BASE,
+  formatBaseRecord,
+  interpretBaseRecord,
   FLAG_PECOT_QUICK_MODE,
   FLAG_PECOT_SESSION_TITLE,
   FLAG_ISSUE_CREATE_SLASH_PENDING,
@@ -96,5 +101,43 @@ describe('planWorkTarget', () => {
   it('番号が数字でなければ値の不正。文は int() と同じ', () => {
     expect(() => planWorkTarget('owner/repo/abc', '題名')).toThrow(InvalidValueError)
     expect(() => planWorkTarget('owner/repo/abc', '題名')).toThrow('invalid literal for int() with base 10: \'abc\'')
+  })
+})
+
+describe('.pecot-base の 1 行', () => {
+  const SHA = '0123456789abcdef0123456789abcdef01234567'
+  const issue = createIssueReference(createRepositoryReference('Acme', 'Demo'), 3)
+
+  it('ファイル名は .pecot-base', () => {
+    expect(FLAG_PECOT_BASE).toBe('.pecot-base')
+  })
+
+  it('積んだときは、ブランチ・SHA・積んだ先を空白で区切る（リポ名は小文字）', () => {
+    expect(formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue })).toBe(`feat/3 ${SHA} acme/demo#3`)
+  })
+
+  it('開発ブランチから着手したときは、ブランチと SHA だけにする', () => {
+    expect(formatBaseRecord({ branch: 'main', sha: SHA, stackedOn: undefined })).toBe(`main ${SHA}`)
+  })
+
+  it('書いた形を読み戻す', () => {
+    const stacked = interpretBaseRecord(formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue }))
+    expect(stacked).toMatchObject({ kind: 'stacked', record: { branch: 'feat/3', sha: SHA }, stackedOn: { repository: { owner: 'acme', repository: 'demo' }, number: 3 } })
+    expect(interpretBaseRecord(`main ${SHA}`)).toEqual({ kind: 'development', record: { branch: 'main', sha: SHA, stackedOn: undefined } })
+  })
+
+  it('ファイルが無ければ、開発ブランチから着手したものとして読む', () => {
+    expect(interpretBaseRecord(undefined)).toEqual({ kind: 'development', record: undefined })
+  })
+
+  it.for([
+    { name: '空', content: '' },
+    { name: 'SHA が無い', content: 'main' },
+    { name: 'SHA の形が違う', content: 'main abc123' },
+    { name: '積んだ先の形が違う', content: `main ${SHA} #3` },
+    { name: '積んだ先の番号が 0', content: `main ${SHA} acme/demo#0` },
+    { name: '項目が多い', content: `main ${SHA} acme/demo#3 extra` },
+  ])('形が誤っている（$name）と malformed', ({ content }) => {
+    expect(interpretBaseRecord(content)).toEqual({ kind: 'malformed', content })
   })
 })

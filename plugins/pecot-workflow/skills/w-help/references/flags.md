@@ -16,6 +16,7 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 |--------|------|--------|--------|--------|
 | `.pecot-active` | 作業中の Issue ref（`owner/repo/N`） | `create_branch`、`issue_quick`、`session_restore` | `create_branch`（別 Issue 上書きガード）、`session_status`、`pr_create`（`prepare: true`。Closes 補完）、`exit-plan-remind.sh`、`auto-push.sh`（post-tool-use） | `pr_cleanup`（`skip_local_cleanup` なし） |
 | `.pecot-session-title` | Claude Code のセッション名（`#<番号> <Issue タイトル>`。種別接頭辞なし・全体 40 文字） | `.pecot-active` と同じ 3 ツール（`write_work_target`） | `session-title.sh`（SessionStart / UserPromptSubmit。`.pecot-active` の番号と一致するときだけ採用） | `pr_cleanup`（`.pecot-active` と同時） |
+| `.pecot-base` | 着手時に選んだ base（`<branch> <sha> [<owner/repo#N>]`。積んだときだけ末尾に積んだ先の Issue） | `create_branch` | `session_status`（`## Stack`） | `pr_cleanup`（`.pecot-active` と同時） |
 | `.wip-branch-linked` | Issue に紐づけ済みの WIP ブランチ名（`wip/<ブランチ名>`） | `auto-push.sh`（post-tool-use） | `auto-push.sh`（同じ名前なら紐づけを飛ばす） | `pr_cleanup`（`skip_local_cleanup` なし） |
 | `.pecot-quick-mode` | 空（存在のみ） | `issue_quick`（Epic 以外） | `exit-plan-remind.sh` | `pr_cleanup`、`exit-plan-remind.sh` |
 | `pr-create-slash-pending` | 空（存在のみ） | `create-slash-flag.sh`（`/pecot-w:w-pr` 起動時） | `pecot-post-ask.sh` | `pr_create`（実投稿成功時）、`create-slash-cleanup.sh` |

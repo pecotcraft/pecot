@@ -2,11 +2,16 @@
 
 import { InvalidValueError } from './errors.js'
 import { parsePythonInteger, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from './python-format.js'
+import { createIssueReference, issueReferenceKey } from './reference-parser.js'
+import type { IssueReference } from './reference-parser.js'
+import { createRepositoryReference } from './repository-resolver.js'
 
 // フラグファイル名
 export const FLAG_PECOT_ACTIVE = '.pecot-active'
 // セッション名（hooks の session-title.sh が Claude Code の sessionTitle に流す）。.pecot-active と同じタイミングで書く
 export const FLAG_PECOT_SESSION_TITLE = '.pecot-session-title'
+// 着手のときに選んだ base（ブランチ・位置・積んだ先の Issue）。create-branch が書き、pr cleanup が消す
+export const FLAG_PECOT_BASE = '.pecot-base'
 export const FLAG_PECOT_QUICK_MODE = '.pecot-quick-mode'
 export const FLAG_WIP_BRANCH_LINKED = '.wip-branch-linked'
 
@@ -64,4 +69,52 @@ export function planWorkTarget(issueReference: string, title: string): WorkTarge
   const number = parsePythonInteger(text)
   if (number === undefined) throw new InvalidValueError(`invalid literal for int() with base 10: ${pythonStringRepr(text)}`)
   return { active: issueReference, sessionTitle: formatSessionTitle(number, title) }
+}
+
+export interface BaseRecord {
+  readonly branch: string
+  readonly sha: string
+  /**
+  積んだ先の Issue。開発ブランチから着手したときは undefined
+  */
+  readonly stackedOn: IssueReference | undefined
+}
+
+export type BaseReading
+  = | { readonly kind: 'development', readonly record: BaseRecord | undefined }
+    | { readonly kind: 'stacked', readonly record: BaseRecord, readonly stackedOn: IssueReference }
+    | { readonly kind: 'malformed', readonly content: string }
+
+// ブランチ名に空白は入らないので、空白で区切る
+const BASE_SHA_PATTERN = /^(?:[\da-f]{40}|[\da-f]{64})$/u
+const BASE_ISSUE_PATTERN = /^([^\s#/]+)\/([^\s#/]+)#(\d+)$/u
+
+/**
+.pecot-base の 1 行。`<branch> <sha>` に、積んだときは ` <owner/repo#N>` を続ける
+*/
+export function formatBaseRecord(record: Readonly<BaseRecord>): string {
+  const fields = [record.branch, record.sha]
+  if (record.stackedOn !== undefined) fields.push(issueReferenceKey(record.stackedOn))
+  return fields.join(' ')
+}
+
+function parseStackedOn(text: string): IssueReference | undefined {
+  const match = BASE_ISSUE_PATTERN.exec(text)
+  const [, owner, repository, digits] = match ?? []
+  if (owner === undefined || repository === undefined || digits === undefined) return undefined
+  const number = Number(digits)
+  return number > 0 ? createIssueReference(createRepositoryReference(owner, repository), number) : undefined
+}
+
+/**
+.pecot-base の内容を読む。ファイルが無いのは、この機能の前に着手したものも含めて、開発ブランチから着手したものとして扱う。
+形が誤っていれば malformed
+*/
+export function interpretBaseRecord(content: string | undefined): BaseReading {
+  if (content === undefined) return { kind: 'development', record: undefined }
+  const [branch, sha, issue, ...rest] = content.split(' ')
+  if (branch === undefined || branch === '' || sha === undefined || !BASE_SHA_PATTERN.test(sha) || rest.length > 0) return { kind: 'malformed', content }
+  if (issue === undefined) return { kind: 'development', record: { branch, sha, stackedOn: undefined } }
+  const stackedOn = parseStackedOn(issue)
+  return stackedOn === undefined ? { kind: 'malformed', content } : { kind: 'stacked', record: { branch, sha, stackedOn }, stackedOn }
 }

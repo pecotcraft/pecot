@@ -17,10 +17,12 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-`create_branch` は、次の 2 つのときに、結果の `exit code: 2` の行を出して止まる。
+`create_branch` は、次のときに、結果の `exit code: 2` の行を出して止まる。
 
 - 作業ディレクトリのリポが Issue のリポと違うとき
 - `.pecot-active` に別の Issue が残っているとき
+- Issue の判定が blocked のとき
+- `base` を渡していて、判定の積む先と違うとき
 
 先に `session_status` を `directory: "."` で呼んで確かめる。
 
@@ -30,7 +32,8 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`create_branch` は `exit code: 2` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
    MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
    始め直せないときだけ `allow_cross_repo: true` を付ける。
-3. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
+3. 判定が blocked のとき、`create_branch` は `exit code: 2` で止まり、出力に `is blocked by` が出る。出力の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
+4. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
 
@@ -38,9 +41,13 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`project_info` を引数なしで呼ぶ。
 
+出力の判定の列（`Readiness`）、列を直した行（`moved:`）、食い違いの警告（`warning:`）を、利用者に伝える。
+
 ### Step 2: 対象タスクを確認
 
 ユーザーが選択したタスクのIssue内容を確認する。`issue_read` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
+
+利用者がタスクを選ぶ材料に、判定（`startable`・`stackable`・`blocked`）を示す。`Blocked` の Issue が選ばれたら、理由を伝えて止める。
 
 ### Step 3: ベースブランチを最新化
 
@@ -52,7 +59,7 @@ git pull
 
 ### Step 4: ブランチ作成
 
-`create_branch` を `issue_ref: "owner/repo/XXX"`・`branch_name: "feat/description"` で呼ぶ。
+`create_branch` を `issue_ref: "owner/repo/XXX"`・`branch_name: "feat/description"` で呼ぶ。`base` は渡さない。base は CLI が選ぶ。
 
 **ブランチ名の決め方:**
 
@@ -63,6 +70,7 @@ git pull
 
 `create_branch` の結果の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
 ブランチ名とリポを取り出し、ブランチを切り替える。
+行に `(stacked on #N)` があれば、#N の上に積んで着手した旨を利用者に伝える。
 **そのリポジトリの** ワークツリーで実行すること。
 
 ```bash

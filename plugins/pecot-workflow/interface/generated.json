@@ -75,7 +75,7 @@
           },
           "base": {
             "type": "string",
-            "description": "Base branch (default: develop_branch from the config)"
+            "description": "Base branch (default: chosen by readiness, else develop_branch from the config)"
           },
           "branch_name": {
             "type": "string",

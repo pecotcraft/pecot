@@ -5,12 +5,16 @@ import { describeApiError } from '../domain/api-error-detail.js'
 import { findRepository, getFieldId, getOptionId, isRepositoryInProject } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { ReferenceParseError, parseIssueReference, parseRepositoryReference } from '../domain/reference-parser.js'
+import type { IssueReference } from '../domain/reference-parser.js'
 import { compareStrings, pythonStringRepr } from '../domain/python-format.js'
 import { repositoryFullName } from '../domain/repository-resolver.js'
-import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
+import { displayReference } from '../domain/readiness.js'
+import { FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE } from '../domain/state.js'
+import { decideStart, describeBaseMismatch } from '../domain/work-start.js'
+import type { StartDecision } from '../domain/work-start.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.js'
-import { readFlag } from '../infra/state-store.js'
+import { DependenciesUnsupportedError, GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.js'
+import { consumeFlag, readFlag } from '../infra/state-store.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
@@ -18,7 +22,8 @@ import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
-import { recordWorkTarget } from './work-target.js'
+import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
+import { recordBase, recordWorkTarget } from './work-target.js'
 
 /**
 A-1. 作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違えば、終了コード 2 で止める
@@ -66,6 +71,26 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
     )
   }
   return developBranch
+}
+
+/**
+3.5. 着手の判定を読み、積む先を決める。blocked と読めないときは止める。依存関係を持たない GHES は、判定なしで進める
+*/
+async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueReference>): Promise<Exclude<StartDecision, { kind: 'blocked' }>> {
+  const label = displayReference(issue, issue.repository)
+  let result
+  try {
+    result = await readIssueReadiness(client, config, issue, createReadinessCache())
+  }
+  catch (error: unknown) {
+    if (error instanceof DependenciesUnsupportedError) return { kind: 'start' }
+    throw error
+  }
+  if (result.kind === 'unreadable') {
+    return stopWith(out, result.snapshot === undefined ? `could not read blocked-by of ${label}: ${result.reason}` : `could not judge readiness of ${label}: ${result.reason}`)
+  }
+  const decision = decideStart(result.readiness, result.prerequisites, issue)
+  return decision.kind === 'blocked' ? stopWith(out, decision.message, USAGE_EXIT_CODE) : decision
 }
 
 /**
@@ -135,7 +160,7 @@ const branchCreationCommand = defineCommand({
   input: z.strictObject({
     issue_ref: z.string().describe('Issue reference (owner/repo/123)'),
     branch_name: z.string().describe('Name of the branch to create'),
-    base: z.string().optional().describe('Base branch (default: develop_branch from the config)'),
+    base: z.string().optional().describe('Base branch (default: chosen by readiness, else develop_branch from the config)'),
     checkout: z.boolean().default(true).describe('Kept for compatibility; has no effect'),
     allow_cross_repo: z.boolean().default(false).describe('Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)'),
     force_overwrite_active: z.boolean().default(false).describe('Disable the .pecot-active overwrite guard (when sure it is stale)'),
@@ -166,7 +191,7 @@ const branchCreationCommand = defineCommand({
     if (!input.allow_cross_repo) rejectCwdRepositoryMismatch(out, owner, repository)
 
     // 3. ベースブランチ決定（ローカル設定から）
-    const baseBranch = resolveBaseBranch(out, { config, owner, repository, issueNumber, branchName: input.branch_name, base: input.base })
+    const defaultBase = resolveBaseBranch(out, { config, owner, repository, issueNumber, branchName: input.branch_name, base: input.base })
 
     const finalBranchName = `${input.branch_name}/${String(issueNumber)}`
     try {
@@ -180,6 +205,12 @@ const branchCreationCommand = defineCommand({
         stopWith(out, `${owner}/${repository} is not in the project`)
       }
 
+      // 4.5. 着手の判定で base を選ぶ。--base は積む先と比べる
+      const decision = await decideWorkStart(out, client, config, issue)
+      const mismatch = describeBaseMismatch(input.base, decision, issue)
+      if (mismatch !== undefined) stopWith(out, mismatch, USAGE_EXIT_CODE)
+      const baseBranch = decision.kind === 'stack' ? decision.branch : defaultBase
+
       // 5. Issue Node ID とタイトル取得（タイトルはセッション名用）
       const { id: issueNodeId, title: issueTitle } = await client.getIssueNodeIdAndTitle(owner, repository, issueNumber)
 
@@ -188,13 +219,17 @@ const branchCreationCommand = defineCommand({
 
       // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
       const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
-      out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}` })
+      const stackedNote = decision.kind === 'stack' ? ` (stacked on ${displayReference(decision.issue, issue.repository)})` : ''
+      out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
 
       // 7.5. プロジェクトアイテムのステータスを active に更新
       await setIssueStatusActive(out, client, config, { owner, repository, number: issueNumber })
 
       // 9. 作業対象を .pecot-active と .pecot-session-title に保存（hook の自動投稿とセッション名用）
-      recordWorkTarget(out, owner, repository, issueNumber, issueTitle)
+      consumeFlag(FLAG_PECOT_BASE)
+      if (recordWorkTarget(out, owner, repository, issueNumber, issueTitle) === 'recorded') {
+        recordBase({ branch: baseBranch, sha: baseSha, stackedOn: decision.kind === 'stack' ? decision.issue : undefined })
+      }
       return 0
     }
     catch (error: unknown) {

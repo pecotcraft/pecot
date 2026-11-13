@@ -194,13 +194,16 @@ Markdown の出力に 2 行を足す。前提が無い Issue では出さない�
 |---|---|---|---|
 | `startable` | 開発ブランチから作る | `created: branch <b> in <repo> from <develop>` | 0 |
 | `stackable` | 積む先のブランチから作る | `created: branch <b> in <repo> from <base> (stacked on #N)` | 0 |
-| `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて直し方の案内 | 2 |
-| 判定の読み取りに失敗 | 作らない | `error: could not read blocked-by of #A` | 1 |
+| `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて済んでいない前提ごとの `- #B: <状態>` の行、直し方の案内 | 2 |
+| `stackable` で `--base` が積む先と違う | 作らない | `error: --base <x> differs from the base chosen by readiness: <branch> (stacked on #N)` | 2 |
+| 前提の読み取りに失敗 | 作らない | `error: could not read blocked-by of #A: <理由>` | 1 |
+| 判定に失敗（PR の引き足しの失敗など） | 作らない | `error: could not judge readiness of #A: <理由>` | 1 |
 
-- `--base` を指定したときは、判定で選んだ base と比べる。違えば止まる（終了コード 2）
+- `--base` を比べるのは、判定が `stackable` のときだけだ。違えば止まる（終了コード 2）。`startable` では比べない。`blocked` は比べる前に止まる
 - ブロックを無視する指定は置かない
-- base のブランチと位置を、状態のファイルに記録する
-- 直し方の案内は、`pecot issue unblock` と `pecot issue block --wait` の 2 行だ
+- base のブランチと位置（積んだときは積んだ先の Issue も）を、状態のファイルに 1 行で記録する
+- 前提ごとの行の状態は、マージを待つ理由（`wait: merge — <理由>`）まで読める
+- 直し方の案内は、`pecot issue unblock <A> --by <B>` の行だ。理由が `waits-merge` のときだけ、`pecot issue block <A> --by <B> --wait stack` の行も足す。済んでいない前提が 2 件以上のときは、`<B>` を `<owner/repo/N>` のまま出す
 
 ### `pecot pr create`
 
@@ -277,5 +280,8 @@ Readiness changed:
 ## Stack
 - base: feat/registry/348 (#348, PR #361 OPEN)
 - needs restack: no
-- readiness: blocked by #348 (base PR was closed without merge)
+- readiness: blocked by #348 (closed without merge: #348)
 ```
+
+- `readiness` の行は、着手中の Issue の判定が `blocked` のときだけ出す。文は `describeReadiness` の文だ
+- `needs restack` の行は、T087（US6）で足す

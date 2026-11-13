@@ -271,20 +271,20 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: quickstart.md の 3 の前半と 4 を通す。`startable` は開発ブランチから、`stackable` は前提のブランチからブランチができる。`blocked` は終了コード 2 で止まり、リモートにブランチができない
 
-- [ ] T057 [P] [US3] `p-w/cli/tests/interface/create-branch.test.ts` に、失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot create-branch` の表の 4 行のとおりだ
+- [x] T057 [P] [US3] `p-w/cli/tests/interface/create-branch.test.ts` に、失敗するテストを書く。場面と出力は、contracts/cli-commands.md の `pecot create-branch` の表の 4 行のとおりだ
   - `stackable` のとき、`createLinkedBranch` に渡す位置が、積む先のブランチの先頭になる
   - `blocked` のとき、ブランチを作る要求を送らない。直し方の 2 行が出る
   - `--base` が判定で選んだ base と違うと、終了コード 2 で止まる
   - 前提の付いていない Issue では、出力が今までと 1 文字も変わらない
-- [ ] T058 [P] [US3] `p-w/cli/src/infra/tests/` に、base の記録の失敗するテストを書く。`.pecot/state/.pecot-base` に、base のブランチ・位置・積んだ先の Issue を 1 行で書く。ファイルが無いときは、開発ブランチから着手したものとして読む（data-model.md の 8）
-- [ ] T059 [US3] `p-w/cli/src/domain/state.ts` と `p-w/cli/src/infra/state-store.ts` に、base の記録を足し、T058 を通す
-- [ ] T060 [US3] `p-w/cli/src/commands/repository.ts` を直し、T057 を通す。`resolveBaseBranch` の前に判定を計算する。ブロックを無視する指定は足さない（FR-021）
-- [ ] T061 [US3] `p-w/cli/src/commands/session.ts` を直す。テストは `p-w/cli/tests/interface/session.test.ts` に書く
+- [x] T058 [P] [US3] `p-w/cli/src/infra/tests/` に、base の記録の失敗するテストを書く。`.pecot/state/.pecot-base` に、base のブランチ・位置・積んだ先の Issue を 1 行で書く。ファイルが無いときは、開発ブランチから着手したものとして読む（data-model.md の 8）
+- [x] T059 [US3] `p-w/cli/src/domain/state.ts` と `p-w/cli/src/infra/state-store.ts` に、base の記録を足し、T058 を通す
+- [x] T060 [US3] `p-w/cli/src/commands/repository.ts` を直し、T057 を通す。`resolveBaseBranch` の前に判定を計算する。ブロックを無視する指定は足さない（FR-021）
+- [x] T061 [US3] `p-w/cli/src/commands/session.ts` を直す。テストは `p-w/cli/tests/interface/session.test.ts` に書く
   - 積んで着手した作業ディレクトリで、`## Stack` の節に base と、その Issue の PR を出す
   - 着手中の Issue の判定が `blocked` のときは、同じ節に食い違いを出す
-- [ ] T062 [US3] `p-w/skills/w-active/SKILL.md` を、contracts/skill-flow.md の w-active の表のとおりに直す。base の選び方をスキルの文に書かない。ブロック中で止まったときに、案内の 2 行を利用者に示す手順を足す
-- [ ] T063 [US3] `create-branch` と `session status` の定義書を直す。スキルの文書のテストを直す
-- [ ] T064 [US3] version plan を `.nx/version-plans/` に足す
+- [x] T062 [US3] `p-w/skills/w-active/SKILL.md` を、contracts/skill-flow.md の w-active の表のとおりに直す。base の選び方をスキルの文に書かない。ブロック中で止まったときに、案内の 2 行を利用者に示す手順を足す
+- [x] T063 [US3] `create-branch` と `session status` の定義書を直す。スキルの文書のテストを直す
+- [x] T064 [US3] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 前提が PR 中の Issue に、base を選ばずに着手できる
 

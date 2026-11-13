@@ -3,19 +3,25 @@ import { z } from 'zod'
 
 import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
 import { ConfigError } from '../domain/config.js'
+import type { ProjectConfig } from '../domain/config.js'
 import { PecotError } from '../domain/errors.js'
+import { describeReadiness } from '../domain/readiness.js'
 import { parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
+import type { IssueReference } from '../domain/reference-parser.js'
 import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
+import { describeStackBase, pickBasePullRequest } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import { hasFlag, readFlag } from '../infra/state-store.js'
+import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
+import type { GitHubClient } from '../infra/github/index.js'
+import { hasFlag, readBaseRecord, readFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { FAILURE_EXIT_CODE } from './failure.js'
 import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
+import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
@@ -36,40 +42,88 @@ function collectFlagStatuses(): FlagStatus[] {
   })
 }
 
-// .pecot-active の Issue を GitHub から読んで、Markdown の行にする。読めなければ warning だけ出して空にする
-async function activeIssueLines(statuses: readonly FlagStatus[], output: Output): Promise<string[]> {
+interface ActiveIssue {
+  readonly reference: IssueReference
+  readonly config: Readonly<ProjectConfig>
+  readonly client: Readonly<GitHubClient>
+  readonly lines: readonly string[]
+}
+
+// .pecot-active の Issue を GitHub から読んで、Markdown の行にする。読めなければ warning だけ出して undefined にする
+async function readActiveIssue(statuses: readonly FlagStatus[], output: Output): Promise<ActiveIssue | undefined> {
   const active = statuses.find(status => status.name === FLAG_PECOT_ACTIVE && status.isSet && status.content !== '')
-  if (active === undefined) return []
+  if (active === undefined) return undefined
 
   let reference
   try {
     reference = parseIssueReference(active.content)
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) return []
+    if (error instanceof ReferenceParseError) return undefined
     throw error
   }
 
   let issue
+  let config
+  let client
   try {
-    const config = loadActiveConfig()
+    config = loadActiveConfig()
     if (config === undefined) {
       output.warning('cannot read the active Issue: no active project')
-      return []
+      return undefined
     }
-    issue = await createGitHubClient(output, config.host).getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
+    client = createGitHubClient(output, config.host)
+    issue = await client.getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
   }
   catch (error: unknown) {
     if (error instanceof ConfigError || error instanceof GitHubAPIError) {
       output.warning(`cannot read the active Issue: ${error.message}`)
-      return []
+      return undefined
     }
     throw error
   }
 
   const lines = ['', '## Active Issue', '', `#${String(issue.number)} ${issue.title} (${issue.state})`]
   if (issue.body !== '') lines.push('', issue.body)
-  return lines
+  return { reference, config, client, lines }
+}
+
+// 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
+async function stackLines(active: Readonly<ActiveIssue>, output: Output): Promise<string[]> {
+  const reading = readBaseRecord()
+  if (reading.kind !== 'stacked') return []
+  const { record, stackedOn } = reading
+  const { owner, repository } = stackedOn.repository
+  let pullRequest: ReturnType<typeof pickBasePullRequest> | 'unknown'
+  try {
+    const found = await active.client.listPullRequestsByHead(owner, repository, record.branch)
+    pullRequest = pickBasePullRequest(found.pullRequests)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.warning(`cannot read the PR of the base branch: ${error.message}`)
+    pullRequest = 'unknown'
+  }
+  const readiness = await readinessLines(active, output)
+  return ['', '## Stack', describeStackBase(record.branch, stackedOn, pullRequest), ...readiness]
+}
+
+// 着手中の Issue の判定が blocked のときだけ出す
+async function readinessLines(active: Readonly<ActiveIssue>, output: Output): Promise<string[]> {
+  let result
+  try {
+    result = await readIssueReadiness(active.client, active.config, active.reference, createReadinessCache())
+  }
+  catch (error: unknown) {
+    if (error instanceof DependenciesUnsupportedError) return []
+    throw error
+  }
+  if (result.kind === 'unreadable') {
+    output.warning(`cannot judge readiness of the active Issue: ${result.reason}`)
+    return []
+  }
+  const { readiness } = result
+  return readiness?.kind === 'blocked' ? [`- readiness: ${describeReadiness(readiness, result.prerequisites, active.reference.repository)}`] : []
 }
 
 const STATUS = defineCommand({
@@ -85,6 +139,7 @@ const STATUS = defineCommand({
     const origin = primaryRemoteRepository(input.directory)
     const issueNumber = branch === undefined ? undefined : extractIssueNumberFromBranch(branch)
     const statuses = collectFlagStatuses()
+    const active = await readActiveIssue(statuses, output)
 
     const lines = [
       '# Session status',
@@ -96,7 +151,8 @@ const STATUS = defineCommand({
       '| Flag | State | Content |',
       '|------|-------|---------|',
       ...statuses.map(status => `| ${status.name} | ${status.isSet ? 'set' : 'unset'} | ${status.content} |`),
-      ...await activeIssueLines(statuses, output),
+      ...active?.lines ?? [],
+      ...active === undefined ? [] : await stackLines(active, output),
     ]
     output.data(lines.join('\n'))
     return 0

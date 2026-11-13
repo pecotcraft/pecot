@@ -111,6 +111,24 @@ describe('w-active の手順', () => {
     expect(body).toContain(PARALLEL_SPAWN_NOTE)
     expect(body).not.toContain('spawn してよい')
   })
+
+  it('ブロック中で止まったときは、出力の案内の行を利用者に示す', () => {
+    const body = sectionBody(text, titleIndex(headings, '事前確認'))
+    for (const word of ['is blocked by', 'issue unblock', '--wait stack', '前提を見直すかどうかは利用者が決める']) expect(body).toContain(word)
+  })
+
+  it('ブランチ作成では base を渡さず、積んで着手した旨を伝える', () => {
+    const create = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
+    const switching = sectionBody(text, titleIndex(headings, 'ブランチ切り替え'))
+    expect(create).toContain('`base` は渡さない')
+    expect(switching).toContain('(stacked on #N)')
+    expect(switching).toContain('積んで着手した旨を利用者に伝える')
+  })
+
+  it('base の選び方を、スキルの文に書かない', () => {
+    expect(text).not.toContain('--base')
+    expect(text).not.toContain('develop_branch')
+  })
 })
 
 describe('w-quick の手順', () => {

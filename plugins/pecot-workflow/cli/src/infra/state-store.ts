@@ -6,7 +6,8 @@ import path from 'node:path'
 
 import { ProjectRootNotFoundError } from '../domain/errors.js'
 import { pythonStrip } from '../domain/python-format.js'
-import { FLAG_PECOT_ACTIVE, FLAG_PECOT_SESSION_TITLE, planWorkTarget, workDirectoryName } from '../domain/state.js'
+import { FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, workDirectoryName } from '../domain/state.js'
+import type { BaseReading, BaseRecord } from '../domain/state.js'
 import { OsError, hasErrorCode, isFileNotFound, isSystemCallError } from './os-error.js'
 import { projectRoot, STATE_DIR, WORK_DIR } from './paths.js'
 import { readTextFile } from './text-file.js'
@@ -115,6 +116,20 @@ export function readFlag(flagName: string): string | undefined {
     if (error instanceof OsError && (error.code === 'ENOENT' || error.code === 'EISDIR')) return undefined
     throw error
   }
+}
+
+/**
+着手のときに選んだ base を .pecot-base に 1 行で書く
+*/
+export function writeBaseRecord(record: Readonly<BaseRecord>): void {
+  writeFlag(FLAG_PECOT_BASE, formatBaseRecord(record))
+}
+
+/**
+.pecot-base を読む。無ければ開発ブランチから着手したものとして返す
+*/
+export function readBaseRecord(): BaseReading {
+  return interpretBaseRecord(readFlag(FLAG_PECOT_BASE))
 }
 
 /**
