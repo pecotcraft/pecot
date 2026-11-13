@@ -34,16 +34,19 @@ MCP クライアントに 1 エントリ登録するだけで pecot-visual の�
 
 `--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
 `--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
-npm には、`devEngines` の判定だけを外す公式の手段がありません。
-パッケージは `--package=` ではなく位置引数で渡します。`--package=` で渡すと環境変数 `npm_config_package` が子プロセスに残り、子の npx が別のパッケージを実行するためです。
+npm には devEngines の判定だけを外す公式の手段が無く、要望（npm/rfcs#830）は not_planned で閉じています。
+
+パッケージは `--package=` ではなく、位置引数で渡してください。
+`--package=` で渡すと、npm が `npm_config_package` をサーバの子プロセスに残します。
+すると、テーマの依存の取得（pnpm と corepack のどちらも無いとき）が打つ npx が、これを読んで別のパッケージを実行します。
 
 `--prefix=/` には次の副作用があります。
 
 - 利用者のリポジトリの `.npmrc` を読まず、globalconfig も `/etc/npmrc` になる。registry・proxy・cafile は `~/.npmrc` に置く
-- `npm_config_prefix=/` がサーバに引き継がれる
+- `npm_config_prefix=/` などの環境変数がサーバに引き継がれる。サーバの子で `npm i -g` を打つと `/lib/node_modules` を向く
 
 `setup` は `npm install --prefix` で置き場を明示します。
-テーマの依存の取得（pnpm）は talk-dir を cwd にします。どちらも、この副作用の影響を受けません。
+テーマの依存の取得（pnpm）は、talk-dir を cwd か `--dir` で指します。どちらも、この副作用の影響を受けません。
 
 この副作用を避けたいときは、先に `npm i -g @pecot/visual-mcp` で入れて、コマンドを直接登録します。
 

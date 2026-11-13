@@ -26,7 +26,7 @@ MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボ
 
 `--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
 `--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
-npm には devEngines の判定だけを外す公式の手段が無く、要望（npm/rfcs#830）も not_planned で閉じています。
+npm には devEngines の判定だけを外す公式の手段が無く、要望（npm/rfcs#830）は not_planned で閉じています。
 
 パッケージは `--package=` ではなく、位置引数で渡してください。
 `--package=` で渡すと、npm が `npm_config_package` をサーバの子プロセスに残します。

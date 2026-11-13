@@ -30,15 +30,16 @@ MCP クライアントに 1 エントリ登録するだけで pecot-tools のツ
 
 `--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
 `--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
-npm には、`devEngines` の判定だけを外す公式の手段がありません。
+npm には devEngines の判定だけを外す公式の手段が無く、要望（npm/rfcs#830）は not_planned で閉じています。
 
-パッケージは `--package=` ではなく位置引数で渡します。
-`--package=` で渡すと環境変数 `npm_config_package` が子プロセスに残り、子の npx が別のパッケージを実行してしまうためです。
+パッケージは `--package=` ではなく、位置引数で渡してください。
+`--package=` で渡すと、npm が `npm_config_package` をサーバの子プロセスに残します。
+すると、サーバから起動したプロセスで動く npx が、これを読んで別のパッケージを実行します。
 
 `--prefix=/` には次の副作用があります。
 
 - 利用者のリポジトリの `.npmrc` を読まず、globalconfig も `/etc/npmrc` になる。registry・proxy・cafile は `~/.npmrc` に置く
-- `npm_config_prefix=/` がサーバに引き継がれる
+- `npm_config_prefix=/` などの環境変数がサーバに引き継がれる。サーバの子で `npm i -g` を打つと `/lib/node_modules` を向く
 
 この副作用を避けたいときは、先に `npm i -g @pecot/tools-mcp` で入れて、コマンドを直接登録します。
 
@@ -133,9 +134,7 @@ SSO で認証するときは、開始と完了確認の 2 つのツールを順�
 | `timeout` | 時間切れ。取得範囲を狭めて再実行する |
 | `other` | 上記以外。応答の `stderr` を確認する |
 
-サーバが起動しないときは、次を確認します。
-
-- `EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認する
+`EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認してください。
 
 ## 版
 

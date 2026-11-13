@@ -663,7 +663,12 @@ assert_eq "README に未置換のプレースホルダ（__NAME__）が残って
     "$(grep -cE '__[A-Za-z0-9_]+__' "$DIST/README.md" | tr -d ' ')"
 assert_eq "README の登録例 4 件が公開名を指す" "4" \
     "$(grep -cF '"--prefix=/", "@pecot/visual-mcp"' "$DIST/README.md" | tr -d ' ')"
-assert_eq "README の登録例が --package= を使わない" "0" \
+assert_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1" \
+    "$(grep -cF 'npx -y --prefix=/ @pecot/visual-mcp' "$DIST/README.md" | tr -d ' ')"
+assert_eq "README の直接登録の例が bin 名 pecot-visual-mcp を使う" "1" \
+    "$(grep -cF '"command": "pecot-visual-mcp"' "$DIST/README.md" | tr -d ' ')"
+# --package= で渡すと子に npm_config_package が残り、子の npx が別のパッケージを実行する。
+assert_eq "README の登録例が --package= で渡していない" "0" \
     "$(grep -cF -- '--package=@' "$DIST/README.md" | tr -d ' ')"
 assert_eq "README に git の URL を指す登録例が残っていない" "0" \
     "$(grep -c 'git+' "$DIST/README.md" | tr -d ' ')"
@@ -1657,10 +1662,12 @@ printf '%s\n' '{"name":"devengines-repo","private":true,"devEngines":{"packageMa
     > "$TMP/home-npx/package.json"
 # --prefix=/ が無ければ、この cwd の npx は EBADDEVENGINES で止まる。
 if (cd "$TMP/home-npx" && env HOME="$TMP/home-npx" npx --yes "--cache=$NPX_CACHE" node -v) > "$TMP/npx-noprefix.out" 2>&1; then
-    fail "--prefix=/ 無しの npx が devEngines の cwd で止まらなかった ($(log_tail npx-noprefix.out 3))"
+    fail "--prefix=/ 無しの npx が devEngines の cwd で止まらなかった。npm が exec で devEngines を見なくなった可能性がある。--prefix=/ の要否を見直す ($(log_tail npx-noprefix.out 3))"
 else
     assert_eq "--prefix=/ 無しの npx が devEngines の cwd で EBADDEVENGINES になる" "yes" \
         "$(grep -q EBADDEVENGINES "$TMP/npx-noprefix.out" && echo yes || echo no)"
+    # 別の理由で止まったときは、原因が追えるように出力の末尾を出す。
+    grep -q EBADDEVENGINES "$TMP/npx-noprefix.out" || echo "  npx-noprefix.out: $(log_tail npx-noprefix.out 3)"
 fi
 for run in cold warm; do
     NPX_JSON="$TMP/npx-$run.json"
