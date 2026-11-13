@@ -19,6 +19,10 @@ export interface ProjectCaseOptions {
   ボードが定義しない status
   */
   readonly missingStatus?: string
+  /**
+  設定の workflow に blocked（o7）を載せる
+  */
+  readonly hasBlocked?: boolean
 }
 
 export interface ProjectCase {
@@ -29,8 +33,9 @@ export interface ProjectCase {
   readonly repository: string
 }
 
-function configWithout(missingStatus: string, repositories: readonly string[]): string {
-  const options = Object.fromEntries(Object.entries(WORKFLOW_OPTIONS).filter(([name]) => name !== missingStatus))
+function buildConfig(missingStatus: string | undefined, hasBlocked: boolean, repositories: readonly string[]): string {
+  const base = hasBlocked ? { ...WORKFLOW_OPTIONS, blocked: 'o7' } : WORKFLOW_OPTIONS
+  const options = Object.fromEntries(Object.entries(base).filter(([name]) => name !== missingStatus))
   const fields = { workflow: { id: 'PVTSSF_workflow', options } }
   const project = { number: 1, id: 'PVT_1', board_url: 'https://ghes.example.com/users/acme/projects/1', fields }
   const config = {
@@ -47,8 +52,8 @@ function configWithout(missingStatus: string, repositories: readonly string[]): 
 一時のプロジェクトルートと、origin を持つ一時 git リポジトリを用意する
 */
 export function prepareProject(options: Readonly<ProjectCaseOptions> = {}): ProjectCase {
-  const { repositories = ['demo'], missingStatus } = options
-  const files = missingStatus === undefined ? {} : { [`.pecot/config/projects/${CONFIG_FILE}`]: configWithout(missingStatus, repositories) }
+  const { repositories = ['demo'], missingStatus, hasBlocked = false } = options
+  const files = missingStatus === undefined && !hasBlocked ? {} : { [`.pecot/config/projects/${CONFIG_FILE}`]: buildConfig(missingStatus, hasBlocked, repositories) }
   const project = setUpProject({ repositories, files })
   const repository = enterGitRepository()
   gitForTest(repository, ['remote', 'add', 'origin', ORIGIN_URL])

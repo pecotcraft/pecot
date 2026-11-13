@@ -122,32 +122,32 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: `pecot project init` を 2 回打つ。1 回目で 2 つの値が足され、2 回目は何も足さない。カードの列と札が変わっていない。`Blocked` の無いボードでも、`pecot project info` が終了コード 0 を返す
 
-- [ ] T019 [P] `p-w/cli/src/commands/tests/` に、選択肢の追加の失敗するテストを書く
+- [x] T019 [P] `p-w/cli/src/commands/tests/` に、選択肢の追加の失敗するテストを書く
   - 今の選択肢を `id` 付きで全部読み、1 つ差し込んだ一覧を `updateProjectV2Field` に渡す
   - 渡す一覧の既存の選択肢が、どれも `id` を持つ。`id` の無い既存の選択肢があればテストが落ちる
   - `Blocked` は `Backlog` と `Ready` の間に入る。`Needs Attention` は末尾に入る
   - 値が既にあれば、mutation を呼ばずに `unchanged:` を出す
-- [ ] T020 [P] `p-w/cli/src/commands/tests/` に、値の無いボードの失敗するテストを書く。`Blocked` の無い進行の欄で、設定の検証が止まらない。既存の 6 つの値のどれかが無いときは、今までどおり終了コード 1 で止まる
-- [ ] T021 選択肢の追加と、既定の Status の読み書きを足す（research.md の R8）
+- [x] T020 [P] `p-w/cli/src/commands/tests/` に、値の無いボードの失敗するテストを書く。`Blocked` の無い進行の欄で、設定の検証が止まらない。既存の 6 つの値のどれかが無いときは、今までどおり終了コード 1 で止まる
+- [x] T021 選択肢の追加と、既定の Status の読み書きを足す（research.md の R8）
   - 置き場は `p-w/cli/src/infra/github/queries.ts` と `p-w/cli/src/infra/github/projects.ts`
-- [ ] T022 `p-w/cli/src/commands/project-sync.ts` を直す
-  - `WORKFLOW_FIELD_OPTIONS` に `Blocked` を足す。色は ORANGE、説明は英語で、前提を待つ Issue を pecot が置く列と書く
+- [x] T022 `p-w/cli/src/commands/project-sync.ts` を直す
+  - `WORKFLOW_FIELD_OPTIONS` に `Blocked` を足す。色は `Pending` と同じ GRAY、説明は英語で、前提を待つ Issue を pecot が置く列と書く
   - `Pending` の説明から「or blocked」を外す（FR-082）
   - `validateWorkflowField` は、`Blocked` を「あれば使う値」として扱う（research.md の R9）
   - `WORKFLOW_KEYS` と `buildBoardUrl` に `blocked` を足す
-- [ ] T023 `p-w/cli/src/domain/config.ts` に、`workflow.options.blocked` と `fields.status` を足す。キーは data-model.md の 5 の「設定ファイル」のとおりだ。`status` の無い設定は、今までどおり読める
-- [ ] T024 `p-w/cli/src/commands/project.ts` の `initializeFields` を直す。既にあるフィールドには足りない選択肢を足し、足した後に設定ファイルを同期する。出力は contracts/cli-commands.md の `pecot project init` のとおりだ
-- [ ] T025 [P] 状態の値を直書きしている場所に `blocked` を足す
+- [x] T023 `p-w/cli/src/domain/config.ts` に、`workflow.options.blocked` と `fields.status` を足す。キーは data-model.md の 5 の「設定ファイル」のとおりだ。`status` の無い設定は、今までどおり読める
+- [x] T024 `p-w/cli/src/commands/project.ts` の `initializeFields` を直す。既にあるフィールドには足りない選択肢を足し、足した後に設定ファイルを同期する。出力は contracts/cli-commands.md の `pecot project init` のとおりだ
+- [x] T025 [P] 状態の値を直書きしている場所に `blocked` を足す
   - `p-w/cli/src/commands/issue-shared.ts` の `VALID_STATUSES`
   - `p-w/cli/src/domain/format.ts` の `STATUS_PATTERNS` と `STATUS_ORDER`
   - `p-w/cli/src/commands/project-info.ts` の `DISPLAY_STATUSES`
   - `--status` の説明の 3 か所（`issue-project.ts` の 2 つと `issue-create.ts`）
-- [ ] T026 [P] 列の説明を直す（FR-065、FR-075）
+- [x] T026 [P] 列の説明を直す（FR-065、FR-075）
   - `p-w/skills/w-help/references/board-status.md` に `Blocked` と `Needs Attention` を足す。`Ready` の用途を「着手できる」に直す
   - 同じファイルに、`Pending`・`Blocked`・`Ready` の違いを、置く理由・動かす者・出る条件の表で書く
   - `p-w/skills/w-help/references/spec-driven-workflow.md` と `p-w/skills/w-backlog/SKILL.md` の列の表を直す
-- [ ] T027 このリポのボードで `pecot project init` を打つ。`Blocked` の列が `Ready` の左にあることと、カードの列と札が前後で変わっていないことを、画面で確かめる。`.pecot/config/projects/` の設定の差分をコミットする
-- [ ] T028 version plan を `.nx/version-plans/` に足す
+- [x] T027 このリポのボードで `pecot project init` を打つ。`Blocked` の列が `Ready` の左にあることと、カードの列と札が前後で変わっていないことを、画面で確かめる。`.pecot/config/projects/` の設定の差分をコミットする
+- [x] T028 version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: ボードに `Blocked` と `Needs Attention` があり、設定ファイルから ID を引ける
 

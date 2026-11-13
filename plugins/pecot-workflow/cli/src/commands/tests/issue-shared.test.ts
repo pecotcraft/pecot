@@ -187,7 +187,7 @@ describe('status の検証', () => {
   it('enum 外の値は有効な値を案内して終了コード 1', () => {
     const { io, output } = started()
     expect(() => exitInvalidStatus(output, 'foo')).toThrow(CommandExit)
-    expect(io.err).toEqual(['error: invalid status: foo\n  valid values: backlog/pending/ready/active/in_review/archived\n'])
+    expect(io.err).toEqual(['error: invalid status: foo\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\n'])
   })
 
   it('型の既定値と同じなら通す', () => {

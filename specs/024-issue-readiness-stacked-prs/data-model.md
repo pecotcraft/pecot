@@ -139,7 +139,7 @@ Issue 化の前に、フェーズごとに出す見込み。Issue の状態を�
 | Archived | 退避 | 人と GitHub の自動化 |
 
 - 並びは上の順にする。`Blocked` は `Backlog` と `Ready` の間に差し込む
-- `Blocked` の色は ORANGE、説明は英語で、前提を待つ Issue を pecot が置く列と書く
+- `Blocked` の色は `Pending` と同じ GRAY、説明は英語で、前提を待つ Issue を pecot が置く列と書く
 - `Pending` の説明から「or blocked」を外す
 
 ### 既定の Status

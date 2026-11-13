@@ -1,0 +1,140 @@
+{
+  "stdout": "",
+  "stderr": "skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\nadded: option Blocked to field pecot-workflow-acme\nadded: option Needs Attention to field Status\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\nset: active project to ghes.example.com_acme_board_acme\n",
+  "exitCode": 0,
+  "requests": [
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "UpdateProjectField",
+      "variables": {
+        "fieldId": "MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2",
+        "options": [
+          {
+            "id": "o1",
+            "name": "Pending",
+            "color": "GRAY",
+            "description": "Pending desc"
+          },
+          {
+            "id": "o2",
+            "name": "Backlog",
+            "color": "GRAY",
+            "description": "Backlog desc"
+          },
+          {
+            "name": "Blocked",
+            "color": "GRAY",
+            "description": "Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start."
+          },
+          {
+            "id": "o3",
+            "name": "Ready",
+            "color": "GRAY",
+            "description": "Ready desc"
+          },
+          {
+            "id": "o4",
+            "name": "Active",
+            "color": "GRAY",
+            "description": "Active desc"
+          },
+          {
+            "id": "o5",
+            "name": "In Review",
+            "color": "GRAY",
+            "description": "In Review desc"
+          },
+          {
+            "id": "o6",
+            "name": "Archived",
+            "color": "GRAY",
+            "description": "Archived desc"
+          }
+        ]
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "UpdateProjectField",
+      "variables": {
+        "fieldId": "PVTSSF_status",
+        "options": [
+          {
+            "id": "t1",
+            "name": "Todo",
+            "color": "GRAY",
+            "description": "Todo desc"
+          },
+          {
+            "id": "t2",
+            "name": "In Progress",
+            "color": "GRAY",
+            "description": "In Progress desc"
+          },
+          {
+            "id": "t3",
+            "name": "Done",
+            "color": "GRAY",
+            "description": "Done desc"
+          },
+          {
+            "name": "Needs Attention",
+            "color": "RED",
+            "description": "Waiting for a human decision or action."
+          }
+        ]
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetLinkedRepositoriesUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    }
+  ],
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-workflow-acme%3APending%2CBacklog%2CBlocked%2CReady%2CActive%2CArchived%2C%22In%20Review%22\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2\",\n        \"options\": {\n          \"backlog\": \"o2\",\n          \"pending\": \"o1\",\n          \"blocked\": \"o3\",\n          \"ready\": \"o4\",\n          \"active\": \"o5\",\n          \"in_review\": \"o6\",\n          \"archived\": \"o7\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      },\n      \"status\": {\n        \"id\": \"PVTSSF_status\",\n        \"options\": {\n          \"todo\": \"t1\",\n          \"needs_attention\": \"t4\"\n        }\n      }\n    }\n  },\n  \"repositories\": []\n}\n"
+  }
+}

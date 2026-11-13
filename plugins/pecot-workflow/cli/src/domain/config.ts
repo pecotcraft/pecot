@@ -13,7 +13,7 @@ import type { JsonValue, ValidationIssue } from './python-format.js'
 import { parseOwnerRepository } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
 
-const WorkflowStatusSchema = z.enum(['backlog', 'pending', 'ready', 'active', 'in_review', 'archived'])
+const WorkflowStatusSchema = z.enum(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
 export type WorkflowStatus = z.infer<typeof WorkflowStatusSchema>
 export const WORKFLOW_STATUSES: readonly WorkflowStatus[] = WorkflowStatusSchema.options
 
@@ -64,6 +64,7 @@ const ProjectFieldsSchema = model('ProjectFields', {
   workflow: FieldOptionsSchema,
   priority: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
   size: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
+  status: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
 }).readonly()
 
 const ProjectSchema = model('Project', {
@@ -258,6 +259,7 @@ function fieldOf(config: ProjectConfig, fieldName: string): FieldOptions | undef
     case 'workflow': { return config.project.fields.workflow }
     case 'priority': { return config.project.fields.priority }
     case 'size': { return config.project.fields.size }
+    case 'status': { return config.project.fields.status }
     default: { return undefined }
   }
 }

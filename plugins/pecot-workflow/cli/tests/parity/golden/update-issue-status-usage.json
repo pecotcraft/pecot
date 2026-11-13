@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: invalid status: bogus\n  valid values: backlog/pending/ready/active/in_review/archived\n",
+  "stderr": "error: invalid status: bogus\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

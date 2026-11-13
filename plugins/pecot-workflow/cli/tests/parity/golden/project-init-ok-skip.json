@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\n",
+  "stderr": "skipped: field pecot-workflow-acme (already exists)\nskipped: field pecot-priority (already exists)\nskipped: field pecot-size (already exists)\nunchanged: option Blocked in field pecot-workflow-acme\nskipped: field Status (not found)\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\nset: active project to ghes.example.com_acme_board_acme\n",
   "exitCode": 0,
   "requests": [
     {
@@ -20,7 +20,37 @@
         "projectNumber": 1
       },
       "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "ListProjectsUser",
+      "variables": {
+        "owner": "acme",
+        "first": 20
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetProjectFieldsUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetLinkedRepositoriesUser",
+      "variables": {
+        "owner": "acme",
+        "projectNumber": 1
+      },
+      "auth": "token"
     }
   ],
-  "files": {}
+  "files": {
+    ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",
+    ".pecot/config/projects/ghes.example.com_acme_board_acme.json": "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-workflow-acme%3APending%2CBacklog%2CBlocked%2CReady%2CActive%2CArchived%2C%22In%20Review%22\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"MDEyOlByb2plY3RWMlNpbmdsZVNlbGVjdEZpZWxkNDU2\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o3\",\n          \"blocked\": \"o2\",\n          \"ready\": \"o4\",\n          \"active\": \"o5\",\n          \"in_review\": \"o6\",\n          \"archived\": \"o7\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": []\n}\n"
+  }
 }

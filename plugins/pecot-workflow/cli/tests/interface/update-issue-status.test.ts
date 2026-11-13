@@ -32,6 +32,33 @@ describe('update-issue-status', () => {
     ])
   })
 
+  it('設定に blocked があるとき、blocked を渡すと set の行を出し、blocked の option で更新する', async (context) => {
+    await verifies(context, 'PW-UPDATE-ISSUE-STATUS-01')
+    await verifies(context, 'PW-UPDATE-ISSUE-STATUS-04')
+    prepareProject({ hasBlocked: true })
+    const github = await startGithub([linkedRepositories(), boardItems(), fieldUpdated('o7')])
+
+    const result = await update(['update-issue-status', 'acme/demo/7', 'blocked'])
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'set: Issue acme/demo/7 status blocked\n' })
+    expect(github.requests().at(-1)).toMatchObject({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_7', fieldId: 'PVTSSF_workflow', optionId: 'o7' } })
+  })
+
+  it('ボードに Blocked が無いとき、blocked を渡すと、足し方の hint を添えた error を出す', async (context) => {
+    await verifies(context, 'PW-UPDATE-ISSUE-STATUS-12')
+    await verifies(context, 'PW-UPDATE-ISSUE-STATUS-14')
+    prepareProject()
+    await startGithub([linkedRepositories(), boardItems()])
+
+    const result = await update(['update-issue-status', 'acme/demo/7', 'blocked'])
+
+    expect(result).toEqual({
+      code: 1,
+      stdout: '',
+      stderr: 'error: status \'blocked\' is not configured in the project\n  hint: run pecot project init to add the Blocked option to the board\n',
+    })
+  })
+
   it('番号だけを渡して --repo を付けると、そのリポジトリの Issue の Status を設定する', async (context) => {
     await verifies(context, 'PW-UPDATE-ISSUE-STATUS-02')
     prepareProject({ repositories: ['demo', 'other'] })
@@ -65,7 +92,7 @@ describe('update-issue-status', () => {
     expect(result).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'error: invalid status: foo\n  valid values: backlog/pending/ready/active/in_review/archived\n',
+      stderr: 'error: invalid status: foo\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\n',
     })
     expect(github.requests()).toEqual([])
   })

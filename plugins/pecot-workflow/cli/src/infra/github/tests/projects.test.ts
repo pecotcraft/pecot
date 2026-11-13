@@ -424,6 +424,32 @@ describe('createProjectField', () => {
   })
 })
 
+describe('updateProjectFieldOptions', () => {
+  const options = [
+    { id: 'opt1', name: 'Backlog', color: 'RED', description: 'Epic置き場' },
+    { name: 'Blocked', color: 'ORANGE', description: '待ち' },
+  ]
+
+  it('更新後のフィールドを返す。変数は fieldId・options で、options は id 付きのまま送る', async () => {
+    const updated = { id: 'PVTSSF_f1', name: 'pecot-workflow', options: [{ id: 'opt1', name: 'Backlog' }, { id: 'opt9', name: 'Blocked' }] }
+    const { client, server } = await startClient([graphqlData('UpdateProjectField', { updateProjectV2Field: { projectV2Field: updated } })])
+    expect(await client.updateProjectFieldOptions('PVTSSF_f1', options)).toEqual(updated)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'UpdateProjectField', variables: { fieldId: 'PVTSSF_f1', options } }])
+  })
+
+  it('projectV2Field が null なら GitHubAPIError', async () => {
+    const { client } = await startClient([graphqlData('UpdateProjectField', { updateProjectV2Field: { projectV2Field: JSON_NULL } })])
+    expect(await rejection(client.updateProjectFieldOptions('PVTSSF_f1', options))).toMatchObject(failure(GitHubAPIError, 'failed to update the field'))
+  })
+
+  it('GraphQL の失敗は GraphQLクエリ実行エラー', async () => {
+    const { client } = await startClient([graphqlError('UpdateProjectField', 'GraphQL error')])
+    expect(await rejection(client.updateProjectFieldOptions('PVTSSF_f1', options))).toMatchObject(
+      failure(GitHubAPIError, 'GraphQL query error: {\'message\': \'GraphQL error\'}'),
+    )
+  })
+})
+
 describe('getOwnerNodeId', () => {
   it('user の Node ID を返し、login を変数に送る', async () => {
     const { client, server } = await startClient([graphqlData('GetUserNodeId', { user: { id: 'U_kgDOtest123' } })])

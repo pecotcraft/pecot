@@ -4,6 +4,7 @@
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
 import type { LinkedRepository } from '../../domain/config.js'
+import type { FieldOptionInput } from '../../domain/field-options.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
@@ -14,6 +15,7 @@ import {
   MUTATION_CREATE_PROJECT_FIELD,
   MUTATION_DELETE_PROJECT_ITEM,
   MUTATION_LINK_PROJECT_REPOSITORY,
+  MUTATION_UPDATE_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
   QUERY_GET_ISSUE_PROJECT_ITEMS,
   QUERY_GET_LINKED_REPOSITORIES_ORG,
@@ -324,6 +326,17 @@ export class ProjectsApi extends ReposApi {
     const created = jsonField(jsonField(result, 'createProjectV2Field'), 'projectV2Field')
     if (!isTruthy(created)) throw new GitHubAPIError('failed to create the field')
     return asObject(created)
+  }
+
+  /**
+  SingleSelect フィールドの選択肢を、渡した一覧に置き換え、更新後のフィールド（id・name・options）を返す。
+  既存の選択肢は id を付けて渡す（外すと選択肢が作り直され、カードの値が消える）
+  */
+  async updateProjectFieldOptions(fieldId: string, options: readonly FieldOptionInput[]): Promise<JsonObject> {
+    const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_FIELD, { fieldId, options })
+    const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field')
+    if (!isTruthy(updated)) throw new GitHubAPIError('failed to update the field')
+    return asObject(updated)
   }
 
   /**

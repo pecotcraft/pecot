@@ -41,12 +41,18 @@ function isStatusConfigured(config: ProjectConfig, status: string): boolean {
   return fieldId !== undefined && fieldId !== '' && optionId !== undefined && optionId !== ''
 }
 
+// blocked は後から足せる option なので、足し方の hint を添える
+function notConfiguredMessage(status: string): string {
+  const base = `status '${status}' is not configured in the project`
+  return status === 'blocked' ? `${base}\nhint: run pecot project init to add the Blocked option to the board` : base
+}
+
 const ADD_TO_PROJECT = defineCommand({
   path: ['add-to-project'],
   description: 'Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
-    status: z.string().default('ready').describe('Initial status (backlog/pending/ready/active/in_review/archived)'),
+    status: z.string().default('ready').describe('Initial status (backlog/pending/blocked/ready/active/in_review/archived)'),
   }),
   positional: ['issue_ref'],
   shortFlags: { status: '-s' },
@@ -59,7 +65,7 @@ const ADD_TO_PROJECT = defineCommand({
 
       const config = requireActiveConfigPlain(output)
       if (status !== '' && !isStatusConfigured(config, status)) {
-        stopWith(output, `status '${status}' is not configured in the project`)
+        stopWith(output, notConfiguredMessage(status))
       }
 
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
@@ -86,7 +92,7 @@ const UPDATE_ISSUE_STATUS = defineCommand({
   description: 'Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
-    status: z.string().describe('Status (backlog/pending/ready/active/in_review/archived)'),
+    status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
   }),
   positional: ['issue_ref', 'status'],
   interactive: false,
@@ -106,7 +112,7 @@ const UPDATE_ISSUE_STATUS = defineCommand({
           stopWith(output, `${target} is not on the project board\nhint: add it to the board first with add-to-project`)
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {
-          stopWith(output, `status '${status}' is not configured in the project`)
+          stopWith(output, notConfiguredMessage(status))
         }
         output.done({ verb: 'set', target: `${target} status ${status}` })
       }
@@ -138,7 +144,7 @@ async function reopenAndSetStatus(output: Output, client: GitHubClient, config: 
     await delay(AUTOMATION_WAIT_MILLISECONDS)
   }
   else {
-    output.warning(`status '${status}' is not configured in the project`)
+    output.warning(notConfiguredMessage(status))
   }
 }
 
@@ -168,7 +174,7 @@ const ISSUE_REOPEN = defineCommand({
   description: 'Reopen a closed Issue (also sets the status on the board)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
-    status: z.string().default('ready').describe('Status after reopening (backlog/pending/ready/active/in_review/archived)'),
+    status: z.string().default('ready').describe('Status after reopening (backlog/pending/blocked/ready/active/in_review/archived)'),
     comment: z.string().optional().describe('Reason for reopening (posted as a comment)'),
   }),
   positional: ['issue_ref'],
