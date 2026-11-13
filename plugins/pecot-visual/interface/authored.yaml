@@ -1,45 +1,59 @@
 format: 1
 plugin: pecot-visual
+prose: ja
 environment:
   - name: CLAUDE_PLUGIN_ROOT
-    effect: Locates the plugin directory from which the server reads its assets, scripts and version, and a runtime dependency root in a plugin install.
+    effect: 'プラグインのディレクトリです。サーバは、ここからアセット・スクリプト・版を読みます。プラグインとして入れたときは、実行時依存を探す起点にもなります。'
   - name: CLAUDE_PLUGIN_DATA
-    effect: Sets the data directory that holds the runtime dependencies (mcp-dist) and the fetched themes; read first.
+    effect: '実行時依存（`mcp-dist`）と、取得したテーマを置くデータディレクトリです。最初に読みます。'
   - name: PLUGIN_DATA
-    effect: Sets the data directory when CLAUDE_PLUGIN_DATA is not set; both need an absolute path.
+    effect: '`CLAUDE_PLUGIN_DATA` が無いときのデータディレクトリです。どちらも絶対パスで渡します。'
   - name: XDG_DATA_HOME
-    effect: Sets the base of the data directory (<XDG_DATA_HOME>/pecot/pecot-visual) when neither CLAUDE_PLUGIN_DATA nor PLUGIN_DATA is set; an absolute path.
+    effect: '`CLAUDE_PLUGIN_DATA` と `PLUGIN_DATA` のどちらも無いときに、データディレクトリ（`<XDG_DATA_HOME>/pecot/pecot-visual`）の起点になります。絶対パスで渡します。'
   - name: HOME
-    effect: Sets the base of the data directory (~/.local/share/pecot/pecot-visual) as the last choice, and of the Playwright browsers directory (~/.cache/ms-playwright).
+    effect: '最後の候補のデータディレクトリ（`~/.local/share/pecot/pecot-visual`）の起点になります。Playwright のブラウザを置くディレクトリ（`~/.cache/ms-playwright`）の起点にもなります。'
   - name: PATH
-    effect: Decides where the server looks for the pnpm executable; the same value is passed to the child processes.
+    effect: 'サーバが pnpm の実行ファイルを探す場所です。同じ値を子プロセスにも渡します。'
   - name: PLAYWRIGHT_BROWSERS_PATH
-    effect: Moves the directory in which Playwright Chromium is installed and looked for; 0 selects the location inside the package.
+    effect: 'Playwright の Chromium を入れて探すディレクトリを変えます。`0` にすると、パッケージの中に置きます。'
   - name: NODE_EXTRA_CA_CERTS
-    effect: Passed to the child processes (pnpm, npm and the Chromium download) as the PEM file with the CA of a proxy that intercepts SSL.
+    effect: 'SSL を中継するプロキシの CA を書いた PEM ファイルです。子プロセス（pnpm・npm・Chromium のダウンロード）に渡します。'
   - name: PECOTV_DEPENDENCY_ROOT
-    effect: Names the runtime mirror of the plugin from which the dependencies are resolved; passed by bin/pecotv and used before CLAUDE_PLUGIN_ROOT.
+    effect: '依存を解決する起点にする、プラグインの実行用の写しです。`bin/pecotv` が渡し、`CLAUDE_PLUGIN_ROOT` より先に使います。'
   - name: PECOTV_RUNTIME_DIR
-    effect: Names the running mirror of the plugin (runtime/<hash>) that bin/pecotv passes; its parent holds the Chromium download lock and the OS library check stamp.
+    effect: '`bin/pecotv` が渡す、動いているプラグインの写し（`runtime/<hash>`）です。その親に、Chromium のダウンロードのロックと、OS のライブラリを確かめた記録を置きます。'
   - name: PECOTV_AUTO_INSTALL_BROWSER
-    effect: Lets a tool that needs Chromium download it on the spot when set to 1; otherwise a missing Chromium makes the tool tell to call setup.
+    effect: '`1` にすると、Chromium を使うツールが、その場で Chromium をダウンロードします。それ以外では、Chromium が無いときに `setup` の呼び出しを案内します。'
   - name: WSL_DISTRO_NAME
-    effect: Names the current WSL distribution; a \\wsl.localhost\<distro>\ path of this distribution is converted to a path inside WSL.
+    effect: '今の WSL のディストリビューションの名前です。このディストリビューションの `\\wsl.localhost\<distro>\` のパスを、WSL の中のパスに変換します。'
   - name: PECOTV_WSL_MOUNT_ROOT
-    effect: Moves the root under which a Windows drive path (C:\...) is converted; /mnt when not set.
+    effect: 'Windows のドライブのパス（`C:\...`）を変換する先の起点を変えます。無いときは `/mnt` です。'
 entries:
   PV-DRAWIO-CREATE:
+    summary: draw.io の図を、ブラウザで開ける HTML と PNG にします。
+    arguments:
+      input_path: '入力の `.drawio` ファイルの絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      mode: 'URL の用途です。`view` と `edit` のどちらでも、作る URL は同じです。'
+      out_path: '表示用の HTML を書き出す `.html` の絶対パスです。Windows 形式のパスも、`input_path` と同じように渡せます。'
+      png: '`out_path` を渡したときに、PNG も書くかどうかです。PNG の書き出し先は、`out_path` の拡張子を `.png` に替えたパスです。'
+      theme: 'フォントとフォントサイズを確かめるテーマです。`git+https://<host>/<owner>/<repo>.git#<tag>`、`file:<絶対パス>`、talk-dir かテーマのルートの絶対パスのどれかで渡します。スライドに使う図を talk-dir の外に置くときは、talk-dir の絶対パスを渡します。Windows 形式のパスも、`input_path` と同じように渡せます。'
     constraints: []
     details:
-      - Turns one .drawio file into a viewer HTML that redirects to draw.io, and returns the URL in data.url.
-      - Writes the HTML to out_path and, unless png is false, a PNG next to it; without out_path it writes nothing and returns only the URL.
-      - Resolves icon:// references into embedded data URIs.
-      - Checks the labels against the text rules and the font and font size against the theme declaration before generating; data.theme reports the theme used.
-      - Returns ok true with exitCode 3 when the PNG could not be written; the HTML is still written and data.pngFailed is true.
+      - '`.drawio` ファイルを 1 つ読み、draw.io で開く URL を作ります。HTML を開くと、その URL へ移ります。'
+      - '図の中の `icon://` の参照は、データ URI にして埋め込みます。'
+      - '作る前に、ラベルの文面を文面の規則と照らし、フォントとフォントサイズをテーマの宣言と照らします。使ったテーマは `data.theme` に入ります。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: '書いた HTML と PNG の絶対パスです。`out_path` を省いたときと、失敗したときは空です。'
+        data: '図の URL（`url`）、使ったテーマ（`theme`）、PNG を書けなかったかどうか（`pngFailed`）です。失敗したときは `reason` と `detail` です。'
+        exitCode: '成功は 0、HTML は書けたが PNG を書けなかったときは 3、失敗は 1、引数が不正なら 2 です。'
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。PNG だけを書けなかったときも `true` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -79,112 +93,145 @@ entries:
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_PNG_FAIL
-        effect: Makes the PNG rendering fail on purpose when set to 1; the call then returns exitCode 3 without a PNG. Used to test the failure path.
+        effect: '`1` にすると、PNG の描画をわざと失敗させます。呼び出しは、PNG を書かずに `exitCode` 3 を返します。失敗したときの動きを試すために使います。'
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: invalid-option
-        when: "theme is a relative path or a file: path that cannot be converted (exitCode 2)."
+        code: 2
+        when: '`theme` が、相対パスか、変換できない `file:` のパスです。'
       - kind: invalid-output-extension
-        when: out_path does not end in .html (exitCode 2).
+        code: 2
+        when: '`out_path` の拡張子が `.html` ではありません。'
       - kind: invalid-theme
-        when: theme is not a theme spec, a talk-dir or a theme root (exitCode 2).
+        code: 2
+        when: '`theme` が、テーマの指定・talk-dir・テーマのルートのどれでもありません。'
       - kind: input-not-found
-        when: input_path does not exist (exitCode 1).
+        code: 1
+        when: '`input_path` のファイルがありません。'
       - kind: icon-unresolved
-        when: An icon:// reference in the diagram is not found under the bundled icon catalog (exitCode 1).
+        code: 1
+        when: '図の中の `icon://` の参照が、同梱のアイコンのカタログにありません。'
       - kind: text-violation
-        when: A label or the font breaks the text rules or the theme declaration (exitCode 1); nothing is written and data.violations lists every violation.
+        code: 1
+        when: 'ラベルの文面が文面の規則に反しているか、フォントがテーマの宣言に反しています。ファイルは書きません。違反は、全件が `data.violations` に並びます。'
       - kind: text-lint-failed
-        when: The text check could not run (exitCode 1).
+        code: 1
+        when: '文面の規則を確かめる処理が動きませんでした。'
       - kind: theme-invalid-shape
-        when: The theme declaration does not have the expected shape (exitCode 1).
+        code: 1
+        when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+        code: 1
+        when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: theme-connection
-        when: The theme repository cannot be reached (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        when: The theme repository rejects the credentials (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        when: The tag of the theme does not exist in the repository (exitCode 1).
+        code: 1
+        when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+        code: 1
+        when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        when: Fetching the theme failed for another reason (exitCode 1).
+        code: 1
+        when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-tag-required
-        when: "The git URL of theme has no #<tag> (exitCode 2)."
+        code: 2
+        when: '`theme` の git URL に `#<tag>` がありません。'
       - kind: theme-tag-format
-        when: The tag of theme is not in the accepted format (exitCode 2).
+        code: 2
+        when: '`theme` の tag が、受け付ける形式ではありません。'
       - kind: theme-semver-range
-        when: The tag of theme is a version range (exitCode 2).
+        code: 2
+        when: '`theme` の tag が、版の範囲になっています。'
       - kind: theme-unsupported-spec
-        when: "theme is neither a git+https URL nor a file: path (exitCode 2)."
+        code: 2
+        when: '`theme` が、`git+https` の URL でも `file:` のパスでもありません。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
-    on_error: Nothing is written when the text check or the input check fails. A failed PNG leaves the HTML and is reported as exitCode 3, not as a failure.
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
+    on_error: '文面の確認か入力の確認で失敗したときは、ファイルを 1 つも書きません。PNG を書けなかったときは、HTML を残し、失敗ではなく `exitCode` 3 で返します。'
     effects:
       - target: file
         kind: read
-        what: Reads input_path, the bundled icon catalog, and the theme declaration of the theme or of the talk-dir above the diagram.
+        what: '`input_path` のファイル、同梱のアイコンのカタログ、テーマの宣言を読みます。テーマは、`theme` のものか、図の上にある talk-dir のものです。'
       - target: file
         kind: write
-        what: Writes the viewer HTML to out_path and the PNG to the same path with the extension replaced by .png; replaces files that already exist.
+        what: '表示用の HTML を `out_path` に書きます。PNG の書き出し先は、拡張子を `.png` に替えたパスです。同じパスにファイルがあれば、置き換えます。'
       - target: process
         kind: write
-        what: Launches Chromium to render the PNG, which loads viewer.diagrams.net and web fonts over the network.
+        what: 'PNG を描くために Chromium を起動します。Chromium は、ネットワークから viewer.diagrams.net と Web フォントを読みます。'
       - target: process
         kind: write
-        what: Runs git and pnpm to fetch the theme when theme is a git URL that is not yet fetched.
+        what: '`theme` が、まだ取得していない git URL のときは、git と pnpm を動かしてテーマを取得します。'
     prerequisites:
-      - Playwright Chromium is installed when out_path is given and png is true; call setup otherwise. Without it the call degrades to exitCode 3 without a PNG.
+      - '`out_path` を渡して PNG も書くときは、Playwright の Chromium が要ります。入っていなければ、先に `setup` を呼びます。入っていないときは、HTML だけを書いて `exitCode` 3 を返します。'
     idempotent: true
     examples:
       - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"out_path\": \"/work/diagram.html\"}"
-        note: Write the viewer HTML and a PNG next to it.
+        note: '表示用の HTML と、同じ名前の PNG を書きます。'
       - run: "drawio_create {\"input_path\": \"/work/diagram.drawio\", \"mode\": \"edit\"}"
-        note: Return only the editing URL.
+        note: 'ファイルを書かずに、編集用の URL だけを受け取ります。'
     default_notes:
-      out_path: Not written when omitted; only data.url is returned.
-      theme: The theme of the talk-dir when the diagram is under its public/ directory; otherwise the built-in default (sans-serif).
+      out_path: '省くと、ファイルを書かずに `data.url` だけを返します。'
+      theme: '省くと、図が talk-dir の `public/` の下にあれば、その talk-dir のテーマを使います。それ以外は、組み込みの既定（sans-serif）を使います。'
     behaviors:
       - id: PV-DRAWIO-CREATE-01
         pattern: event
-        statement: input_path を渡して呼ぶと、データ URI に解決した図の URL を data.url に載せた成功の応答を返す
+        statement: '`input_path` を渡して呼ぶと、データ URI に解決した図の URL を `data.url` に載せた成功の応答を返します'
       - id: PV-DRAWIO-CREATE-02
         pattern: event
-        statement: out_path を渡して呼ぶと、その .html に表示用の HTML を書き、artifacts に載せる
+        statement: '`out_path` を渡して呼ぶと、その `.html` に表示用の HTML を書き、`artifacts` に載せます'
       - id: PV-DRAWIO-CREATE-03
         pattern: event
-        statement: out_path を渡して png を省くと、同じ名前で拡張子を .png にした PNG も書く
+        statement: '`out_path` を渡して `png` を省くと、同じ名前で拡張子を `.png` にした PNG も書きます'
       - id: PV-DRAWIO-CREATE-04
         pattern: event
-        statement: png を false にして呼ぶと、PNG を書かず Chromium を起動しない
+        statement: '`png` を `false` にして呼ぶと、PNG を書かず、Chromium を起動しません'
       - id: PV-DRAWIO-CREATE-05
         pattern: unwanted
-        statement: もしラベルの文面が文面の規則に反するなら、何も書かず text-violation の失敗を返し、違反の全件を data.violations に載せる
+        statement: 'もしラベルの文面が文面の規則に反するなら、何も書かずに `text-violation` の失敗を返し、違反の全件を `data.violations` に載せます'
       - id: PV-DRAWIO-CREATE-06
         pattern: unwanted
-        statement: もし PNG を書けなかったなら、HTML は残し、exitCode 3・data.pngFailed が true の成功の応答を返す
+        statement: 'もし PNG を書けなかったなら、HTML は残し、`exitCode` 3・`data.pngFailed` が `true` の成功の応答を返します'
       - id: PV-DRAWIO-CREATE-07
         pattern: unwanted
-        statement: もし Chromium が入っていないなら、HTML だけを書き、exitCode 3 の成功の応答を返し、message に setup の呼び出しを案内する
+        statement: 'もし Chromium が入っていないなら、HTML だけを書き、`exitCode` 3 の成功の応答を返し、`message` で `setup` の呼び出しを案内します'
       - id: PV-DRAWIO-CREATE-08
         pattern: unwanted
-        statement: もし out_path の拡張子が .html でないなら、何も書かず invalid-output-extension・exitCode 2 の失敗を返す
+        statement: 'もし `out_path` の拡張子が `.html` でないなら、何も書かずに `invalid-output-extension`・`exitCode` 2 の失敗を返します'
       - id: PV-DRAWIO-CREATE-09
         pattern: unwanted
-        statement: もし input_path が存在しないなら、input-not-found・exitCode 1 の失敗を返す
+        statement: 'もし `input_path` のファイルが無いなら、`input-not-found`・`exitCode` 1 の失敗を返します'
   PV-DRAWIO-EXPORT:
+    summary: draw.io の図を、SVG と PDF に書き出します。
+    arguments:
+      icons_dir: '`icon://` の参照を解決する起点のディレクトリの絶対パスです。プロジェクト独自のアイコンのカタログを使う図では、必ず渡します。省いてもエラーになりません。Windows 形式のパスも、`input_path` と同じように渡せます。'
+      input_path: '入力の `.drawio` ファイルの絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      out_path: '書き出す SVG の絶対パスです。PDF の書き出し先は、拡張子を `.pdf` に替えたパスです。Windows 形式のパスも、`input_path` と同じように渡せます。'
+      pdf: 'SVG と一緒に PDF も書くかどうかです。'
+      print_hash: '`true` にすると、書き出さずに、図が古くなっていないかを確かめるための合成ハッシュだけを返します。'
     constraints: []
     details:
-      - Exports one .drawio file to a static SVG and, unless pdf is false, a PDF next to it.
-      - With print_hash it exports nothing and returns only the composite hash used for staleness checks in data.sourceSha256.
-      - Does not check the diagram text; the input is expected to have gone through drawio_create.
-      - Returns ok true with exitCode 3 when the PDF could not be written; the SVG is still written and data.pdfFailed is true.
+      - '`.drawio` ファイルを 1 つ読み、静的な SVG と、同じ名前の PDF を書きます。'
+      - '図の文面は確かめません。`drawio_create` を通した `.drawio` を渡します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: '書いた SVG と PDF の絶対パスです。`print_hash` を `true` にしたときと、失敗したときは空です。'
+        data: '合成ハッシュ（`sourceSha256`）と、PDF を書けなかったかどうか（`pdfFailed`）です。失敗したときは `reason` と `detail` です。'
+        exitCode: '成功は 0、SVG は書けたが PDF を書けなかったときは 3、失敗は 1、引数が不正なら 2 です。'
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。PDF だけを書けなかったときも `true` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -224,81 +271,99 @@ entries:
     diagnostics: default
     environment:
       - name: PECOTV_FORCE_SVG_FAIL
-        effect: Makes the SVG export fail on purpose when set to 1; the call then fails with export-failed. Used to test the failure path.
+        effect: '`1` にすると、SVG の書き出しをわざと失敗させます。呼び出しは `export-failed` で失敗します。失敗したときの動きを試すために使います。'
       - name: PECOTV_FORCE_PDF_FAIL
-        effect: Makes the PDF export fail on purpose when set to 1; the call then returns exitCode 3 without a PDF. Used to test the failure path.
+        effect: '`1` にすると、PDF の書き出しをわざと失敗させます。呼び出しは、PDF を書かずに `exitCode` 3 を返します。失敗したときの動きを試すために使います。'
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: invalid-output-extension
-        when: out_path ends in .pdf while print_hash is false (exitCode 2).
+        code: 2
+        when: '`print_hash` が `false` で、`out_path` の拡張子が `.pdf` です。'
       - kind: input-not-found
-        when: input_path does not exist (exitCode 1).
+        code: 1
+        when: '`input_path` のファイルがありません。'
       - kind: icon-unresolved
-        when: An icon:// reference in the diagram is not found under icons_dir (exitCode 1).
+        code: 1
+        when: '図の中の `icon://` の参照が、`icons_dir` の下にありません。'
       - kind: export-failed
-        when: The SVG export through draw.io failed (exitCode 1).
+        code: 1
+        when: 'draw.io での SVG の書き出しに失敗しました。'
       - kind: chromium-not-installed
-        when: Playwright Chromium is not installed and PECOTV_AUTO_INSTALL_BROWSER is not 1 (exitCode 1); the message tells to call setup.
+        code: 1
+        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
-        when: PECOTV_AUTO_INSTALL_BROWSER is 1 and the Chromium download failed (exitCode 1).
+        code: 1
+        when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
-    on_error: Nothing is written when the input check or the SVG export fails. A failed PDF leaves the SVG and is reported as exitCode 3, not as a failure.
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
+    on_error: '入力の確認か SVG の書き出しで失敗したときは、ファイルを 1 つも書きません。PDF を書けなかったときは、SVG を残し、失敗ではなく `exitCode` 3 で返します。'
     effects:
       - target: file
         kind: read
-        what: Reads input_path and the icon catalog under icons_dir.
+        what: '`input_path` のファイルと、`icons_dir` の下のアイコンのカタログを読みます。'
       - target: file
         kind: write
-        what: Writes the SVG to out_path and the PDF to the same path with the extension replaced by .pdf; replaces files that already exist. Nothing is written with print_hash.
+        what: 'SVG を `out_path` に書きます。PDF の書き出し先は、拡張子を `.pdf` に替えたパスです。同じパスにファイルがあれば、置き換えます。`print_hash` を `true` にしたときは、何も書きません。'
       - target: process
         kind: write
-        what: Launches Chromium, which loads embed.diagrams.net and web fonts over the network to export the SVG, and prints the PDF. Not started with print_hash.
+        what: 'Chromium を起動し、SVG を書き出して PDF を印刷します。Chromium は、ネットワークから embed.diagrams.net と Web フォントを読みます。`print_hash` を `true` にしたときは、起動しません。'
     prerequisites:
-      - Playwright Chromium is installed unless print_hash is true; call setup otherwise.
-      - The diagram has gone through drawio_create, because this tool does not check the text.
+      - 'Playwright の Chromium が要ります。入っていなければ、先に `setup` を呼びます。`print_hash` を `true` にするときは、要りません。'
+      - '図は、先に `drawio_create` を通しておきます。このツールは、図の文面を確かめません。'
     idempotent: true
     examples:
       - run: "drawio_export {\"input_path\": \"/work/diagram.drawio\"}"
-        note: Write diagram.drawio.svg and diagram.drawio.pdf next to the input.
+        note: '入力と同じディレクトリに、`diagram.drawio.svg` と `diagram.drawio.pdf` を書きます。'
       - run: "drawio_export {\"input_path\": \"/work/diagram.drawio\", \"print_hash\": true}"
-        note: Get the hash for a staleness check without exporting.
+        note: '書き出さずに、図が古くなっていないかを確かめるためのハッシュだけを受け取ります。'
     default_notes:
-      icons_dir: The icon catalog bundled with the plugin.
-      out_path: The input path with .svg appended.
+      icons_dir: '省くと、プラグインに同梱のアイコンのカタログを使います。'
+      out_path: '省くと、`input_path` に `.svg` を付けたパスに書きます。'
     behaviors:
       - id: PV-DRAWIO-EXPORT-01
         pattern: event
-        statement: input_path を渡して呼ぶと、SVG と同じ名前の PDF を書き、artifacts に両方を載せた成功の応答を返す
+        statement: '`input_path` を渡して呼ぶと、SVG と同じ名前の PDF を書き、`artifacts` に両方を載せた成功の応答を返します'
       - id: PV-DRAWIO-EXPORT-02
         pattern: event
-        statement: pdf を false にして呼ぶと、SVG だけを書く
+        statement: '`pdf` を `false` にして呼ぶと、SVG だけを書きます'
       - id: PV-DRAWIO-EXPORT-03
         pattern: event
-        statement: print_hash を true にして呼ぶと、何も書かず Chromium を起動せず、data.sourceSha256 に合成ハッシュを載せて返す
+        statement: '`print_hash` を `true` にして呼ぶと、何も書かず、Chromium を起動せずに、`data.sourceSha256` に合成ハッシュを載せて返します'
       - id: PV-DRAWIO-EXPORT-04
         pattern: unwanted
-        statement: もし PDF を書けなかったなら、SVG は残し、exitCode 3・data.pdfFailed が true の成功の応答を返す
+        statement: 'もし PDF を書けなかったなら、SVG は残し、`exitCode` 3・`data.pdfFailed` が `true` の成功の応答を返します'
       - id: PV-DRAWIO-EXPORT-05
         pattern: unwanted
-        statement: もし SVG の出力に失敗したなら、何も書かず export-failed・exitCode 1 の失敗を返す
+        statement: 'もし SVG の書き出しに失敗したなら、何も書かずに `export-failed`・`exitCode` 1 の失敗を返します'
       - id: PV-DRAWIO-EXPORT-06
         pattern: unwanted
-        statement: もし out_path の拡張子が .svg でないなら、何も書かず invalid-output-extension・exitCode 2 の失敗を返す
+        statement: 'もし `out_path` の拡張子が `.svg` でないなら、何も書かずに `invalid-output-extension`・`exitCode` 2 の失敗を返します'
       - id: PV-DRAWIO-EXPORT-07
         pattern: unwanted
-        statement: もし Chromium が入っていないなら、何も書かず chromium-not-installed の失敗を返し、message に setup の呼び出しを案内する
+        statement: 'もし Chromium が入っていないなら、何も書かずに `chromium-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
   PV-EVIDENCE-CREATE:
+    summary: スクリーンショットを貼った作業エビデンスの xlsx を作ります。
+    arguments:
+      input_path: 'EvidenceSpec を書いた JSON ファイルの絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      out_path: '書き出す xlsx の絶対パスです。Windows 形式のパスも、`input_path` と同じように渡せます。'
     constraints: []
     details:
-      - Builds one work-evidence xlsx from an EvidenceSpec JSON, placing the listed screenshots in order and adding the annotations.
-      - Checks the title, captions and annotations against the text rules before generating.
-      - Reports in data how many items and annotations were placed and which images were skipped, with the reason each was skipped.
+      - EvidenceSpec の JSON を読み、スクリーンショットを書いた順で並べた xlsx を 1 つ作ります。注釈は、スクリーンショットの上に重なります。
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 作った xlsx の絶対パスです。失敗したときは空です。
+        data: '貼った項目の数（`items`）、注釈の数（`annotations`）、飛ばした画像（`skipped`）です。失敗したときは `reason` と `detail` です。'
+        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 空の文字列です。
+        stdout: 空の文字列です。
       schema:
         additionalProperties: false
         properties:
@@ -339,67 +404,84 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: input-not-found
-        when: input_path does not exist (exitCode 1).
+        code: 1
+        when: '`input_path` のファイルがありません。'
       - kind: invalid-json
-        when: The file at input_path is not valid JSON (exitCode 1).
+        code: 1
+        when: '`input_path` のファイルを JSON として読めません。'
       - kind: invalid-spec
-        when: The JSON does not match the EvidenceSpec format (exitCode 1).
+        code: 1
+        when: 'JSON が EvidenceSpec の形式に合っていません。'
       - kind: text-violation
-        when: The title, a caption or an annotation breaks the text rules (exitCode 1); nothing is written and data.violations lists every violation.
+        code: 1
+        when: '題・見出し・注釈のどれかが文面の規則に反しています。xlsx は書きません。違反は、全件が `data.violations` に並びます。'
       - kind: text-lint-failed
-        when: The text check could not run (exitCode 1).
+        code: 1
+        when: '文面の規則を確かめる処理が動きませんでした。'
       - kind: no-valid-images
-        when: No image in the spec could be placed (exitCode 1).
+        code: 1
+        when: 'EvidenceSpec の画像を 1 枚も貼れませんでした。'
       - kind: output-write-failed
-        when: The xlsx could not be written (exitCode 1).
+        code: 1
+        when: 'xlsx を書き込めませんでした。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
-    on_error: Nothing is written when the spec check or the text check fails.
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
+    on_error: EvidenceSpec の確認か文面の規則の確認で失敗したときは、ファイルを 1 つも書きません。
     effects:
       - target: file
         kind: read
-        what: Reads input_path and the image files listed in it.
+        what: '`input_path` のファイルと、EvidenceSpec に書かれた画像のファイルを読みます。'
       - target: file
         kind: write
-        what: Writes the xlsx to out_path; replaces a file that already exists.
-    prerequisites:
-      - The image files in the EvidenceSpec exist; a missing, unreadable or unsupported image is skipped and reported in data.skipped.
+        what: 'xlsx を `out_path` に書きます。同じパスにファイルがあれば、置き換えます。'
+    prerequisites: []
     idempotent: true
     examples:
       - run: "evidence_create {\"input_path\": \"/work/evidence/spec.json\"}"
-        note: Write evidence.xlsx next to the spec.
+        note: 'EvidenceSpec のファイルと同じディレクトリに `evidence.xlsx` を作ります。'
     default_notes:
-      out_path: evidence.xlsx in the same directory as input_path.
+      out_path: '省くと、`input_path` と同じディレクトリの `evidence.xlsx` に書きます。'
     behaviors:
       - id: PV-EVIDENCE-CREATE-01
         pattern: event
-        statement: input_path を渡して呼ぶと、仕様の順に画像を貼った xlsx を書き、artifacts にそのパスを載せた成功の応答を返す
+        statement: '`input_path` を渡して呼ぶと、EvidenceSpec の順に画像を貼った xlsx を書き、`artifacts` にそのパスを載せた成功の応答を返します'
       - id: PV-EVIDENCE-CREATE-02
         pattern: event
-        statement: 貼れない画像が仕様に含まれると、その画像を飛ばし、飛ばした画像と理由を data.skipped に載せる
+        statement: '貼れない画像が EvidenceSpec に含まれると、その画像を飛ばし、飛ばした画像と理由を `data.skipped` に載せます'
       - id: PV-EVIDENCE-CREATE-03
         pattern: unwanted
-        statement: もし題・見出し・注釈が文面の規則に反するなら、何も書かず text-violation の失敗を返し、違反の全件を data.violations に載せる
+        statement: 'もし題・見出し・注釈が文面の規則に反するなら、何も書かずに `text-violation` の失敗を返し、違反の全件を `data.violations` に載せます'
       - id: PV-EVIDENCE-CREATE-04
         pattern: unwanted
-        statement: もし input_path の中身が JSON として読めないなら、invalid-json・exitCode 1 の失敗を返す
+        statement: 'もし `input_path` の中身を JSON として読めないなら、`invalid-json`・`exitCode` 1 の失敗を返します'
       - id: PV-EVIDENCE-CREATE-05
         pattern: unwanted
-        statement: もし input_path が存在しないなら、input-not-found・exitCode 1 の失敗を返す
+        statement: 'もし `input_path` のファイルが無いなら、`input-not-found`・`exitCode` 1 の失敗を返します'
   PV-SETUP:
+    summary: スライドと図のツールが使う実行時依存と Chromium を入れます。
     constraints: []
     details:
-      - Downloads the runtime dependencies (@slidev/cli, dom-to-pptx, @slidev/parser and others) and Playwright Chromium, and checks the OS libraries Chromium needs.
-      - The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium.
-      - Skips what is already installed, so a repeated call finishes quickly.
-      - Runs the Chromium and OS library steps even when the runtime dependencies fail; ok is true only when all steps succeed.
-      - Installs missing OS libraries with apt-get where sudo is available, and otherwise returns the command to run.
+      - '実行時依存（`@slidev/cli`・`dom-to-pptx`・`@slidev/parser` など）と Playwright の Chromium をダウンロードします。Chromium の起動に要る OS のライブラリも確かめます。'
+      - 'ほかのツールが `runtime-dependencies-not-installed` で失敗したときに呼びます。Chromium が入っていないと知らされたときにも呼びます。'
+      - '初回は、実行時依存を約 600MB、Chromium を約 120MB ダウンロードします。数十秒かかります。'
+      - '入っているものは飛ばします。繰り返し呼んでも、すぐに終わります。'
+      - 'OS のライブラリが足りないときは、sudo を使えれば apt-get で入れます。使えなければ、入れるためのコマンドを返します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 空です。
+        data: '実行時依存（`runtime`）、Chromium（`chromium`）、OS のライブラリ（`hostDeps`）のそれぞれの結果です。ダウンロードしたかどうかは `downloaded`、失敗の理由は `detail` に入ります。'
+        exitCode: '成功は 0、どれかの手順が失敗したら 1 です。'
+        message: 結果を 1 行にまとめた文です。
+        ok: 'すべての手順が成功したら `true`、どれかが失敗したら `false` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -440,62 +522,84 @@ entries:
     environment: []
     exit_status:
       - kind: runtime-install-failed
-        when: Installing the runtime dependencies failed (exitCode 1); data.runtime.detail gives the cause, and a TLS certificate failure adds a hint about NODE_EXTRA_CA_CERTS.
+        code: 1
+        when: '実行時依存のインストールに失敗しました。原因は `data.runtime.detail` に入ります。TLS の証明書の検証で失敗したときは、`NODE_EXTRA_CA_CERTS` の案内が加わります。'
       - kind: chromium-install-failed
-        when: Downloading Chromium failed (exitCode 1 when the runtime dependencies were installed, otherwise the runtime failure decides the code).
+        code: 1
+        when: 'Chromium のダウンロードに失敗しました。'
       - kind: chromium-host-deps-missing
-        when: The OS libraries Chromium needs are missing and could not be installed (exitCode 1); data.hostDeps.detail gives the command to run.
-    on_error: Whatever was downloaded before a failing step stays installed, and a call after the cause is fixed continues from there.
+        code: 1
+        when: 'Chromium の起動に要る OS のライブラリが足りず、入れられませんでした。入れるためのコマンドは `data.hostDeps.detail` に入ります。'
+    on_error: '失敗した手順より前にダウンロードしたものは、入ったまま残ります。原因を直してから呼ぶと、続きから進みます。実行時依存で失敗しても、Chromium と OS のライブラリの手順は続けます。'
     effects:
       - target: file
         kind: destructive
-        what: Writes the runtime dependencies under <data-dir>/mcp-dist, replacing its package.json and install stamp, and writes the Chromium browser to the Playwright browsers directory.
+        what: '実行時依存を `<data-dir>/mcp-dist` の下に書き、その `package.json` とインストールの記録を置き換えます。Chromium は、Playwright のブラウザのディレクトリに書きます。'
       - target: process
         kind: write
-        what: Runs npm to install the runtime dependencies, and runs Playwright to download Chromium over the network.
+        what: 'npm を動かして実行時依存を入れ、Playwright を動かして Chromium をネットワークからダウンロードします。'
       - target: process
         kind: write
-        what: Runs sudo apt-get to install the OS libraries for Chromium when they are missing and sudo is available without a password.
+        what: 'Chromium の起動に要る OS のライブラリが足りず、パスワードなしで sudo を使えるときは、`sudo apt-get` で入れます。'
     prerequisites:
-      - Network access to the npm registry and to the Playwright download host; behind a proxy that intercepts SSL, NODE_EXTRA_CA_CERTS points at the proxy CA.
+      - 'npm のレジストリと、Playwright のダウンロード元にネットワークで届くことが要ります。SSL を中継するプロキシの内側では、`NODE_EXTRA_CA_CERTS` にプロキシの CA を渡します。'
     idempotent: true
     examples:
       - run: setup {}
-        note: Prepare the runtime before the first slide_create or drawio_export.
+        note: '最初の `slide_create` や `drawio_export` の前に、実行時依存と Chromium を入れます。'
     default_notes: {}
     behaviors:
       - id: PV-SETUP-01
         pattern: event
-        statement: 実行時依存が未導入の状態で呼ぶと、実行時依存を取得し、data.runtime.downloaded を true にする
+        statement: '実行時依存が未導入の状態で呼ぶと、実行時依存を取得し、`data.runtime.downloaded` を `true` にします'
       - id: PV-SETUP-02
         pattern: event
-        statement: 実行時依存が導入済みの状態で呼ぶと、取得を飛ばし、data.runtime.downloaded を false にする
+        statement: '実行時依存が導入済みの状態で呼ぶと、取得を飛ばし、`data.runtime.downloaded` を `false` にします'
       - id: PV-SETUP-03
         pattern: event
-        statement: Chromium が未導入の状態で呼ぶと、Chromium を取得し、data.chromium.downloaded を true にする
+        statement: 'Chromium が未導入の状態で呼ぶと、Chromium を取得し、`data.chromium.downloaded` を `true` にします'
       - id: PV-SETUP-04
         pattern: event
-        statement: すべて導入済みの状態で呼ぶと、data.event を setup.skipped にした成功の応答を返す
+        statement: 'すべて導入済みの状態で呼ぶと、`data.event` を `setup.skipped` にした成功の応答を返します'
       - id: PV-SETUP-05
         pattern: unwanted
-        statement: もし実行時依存の取得に失敗したなら、Chromium の取得は続けて行う
+        statement: 'もし実行時依存の取得に失敗したなら、Chromium の取得は続けて行います'
       - id: PV-SETUP-06
         pattern: unwanted
-        statement: もし Chromium の起動に要る OS のライブラリが無くて入れられないなら、chromium-host-deps-missing の失敗を返し、実行する導入コマンドを message に載せる
+        statement: 'もし Chromium の起動に要る OS のライブラリが無くて入れられないなら、`chromium-host-deps-missing` の失敗を返し、入れるためのコマンドを `message` に載せます'
       - id: PV-SETUP-07
         pattern: unwanted
-        statement: もし取得の失敗が TLS 証明書の検証によるなら、NODE_EXTRA_CA_CERTS で証明書を渡す案内を detail に加える
+        statement: 'もし取得の失敗が TLS の証明書の検証によるなら、`NODE_EXTRA_CA_CERTS` で証明書を渡す案内を `detail` に加えます'
   PV-SLIDE-CONVERT:
+    summary: Slidev のスライドを PPTX に変換します。
+    arguments:
+      cache: '差分のキャッシュを読むかどうかです。`false` にしても、変換が終わるとキャッシュを作り直します。'
+      href_json_path: 'ハイパーリンクの JSON の絶対パスです。Windows 形式のパスも、`project_dir` と同じように渡せます。'
+      morph_option: 'morph の切り替え効果の粒度です。`transition_type` が `morph` のときだけ使います。'
+      out_path: '書き出す `.pptx` の絶対パスです。Windows 形式のパスも、`project_dir` と同じように渡せます。'
+      project_dir: 'Slidev のプロジェクト（talk-dir）の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      spacing_json_path: '字間の JSON の絶対パスです。Windows 形式のパスも、`project_dir` と同じように渡せます。'
+      theme: '`slidev --theme` に渡す名前です。使える文字は `[a-zA-Z0-9@/_.-]` です。'
+      transition_duration_ms: 'スライドの切り替えにかける時間です。ミリ秒の正の整数で渡します。省くと 500 です。'
+      transition_type: 'スライドの切り替え効果の種類です。省くと `fade` です。'
     constraints: []
     details:
-      - Converts one Slidev project to a PPTX file and returns its path in artifacts.
-      - The duration is proportional to the number of slides; 55 slides take just under 30 seconds.
-      - Reads the diff cache in the output directory and reconverts only the changed steps; the cache is rebuilt after every conversion, also with cache false.
-      - Relinks the theme in node_modules and aligns the generated files of the talk-dir first, so a stale theme link is repaired by the call.
+      - 'Slidev のプロジェクトを 1 つ読み、PPTX を 1 つ書きます。'
+      - 'かかる時間は、スライドの枚数に比例します。55 枚で 30 秒弱です。'
+      - '出力先のディレクトリにある差分のキャッシュを読み、変わった工程だけを変換し直します。'
+      - '変換の前に、`node_modules` のテーマのリンクを張り直し、talk-dir の生成ファイルをそろえます。古くなったテーマのリンクは、この呼び出しで直ります。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 書いた PPTX の絶対パスです。失敗したときは空です。
+        data: '変換の詳細です。ビルドの警告は `warnings`、エラーは `errors` に入ります。失敗したときは `reason` と `detail` です。'
+        exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -535,127 +639,161 @@ entries:
     diagnostics: default
     environment:
       - name: PECOTV_SINGLE_PASS
-        effect: Turns the single-pass rendering off when set to 0; any other value or no value keeps it on.
+        effect: '`0` にすると、1 回でまとめて描く処理を切ります。ほかの値のときと、無いときは、入ったままです。'
       - name: PECOTV_SINGLE_PASS_CONCURRENCY
-        effect: Sets the number of groups rendered at the same time in single-pass rendering; an integer of 1 or more, and any other value is ignored.
+        effect: '1 回でまとめて描く処理で、同時に描く組の数です。1 以上の整数で渡します。ほかの値は無視します。'
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+        code: 1
+        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
       - kind: chromium-not-installed
-        when: Playwright Chromium is not installed and PECOTV_AUTO_INSTALL_BROWSER is not 1 (exitCode 1); the message tells to call setup.
+        code: 1
+        when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `setup` の呼び出しを案内します。'
       - kind: chromium-install-failed
-        when: PECOTV_AUTO_INSTALL_BROWSER is 1 and the Chromium download failed (exitCode 1).
+        code: 1
+        when: '`PECOTV_AUTO_INSTALL_BROWSER` が `1` で、Chromium のダウンロードに失敗しました。'
       - kind: project-not-found
-        when: project_dir does not exist or is not a Slidev project (exitCode 1).
+        code: 1
+        when: '`project_dir` が無いか、Slidev のプロジェクトではありません。'
       - kind: invalid-theme
-        when: theme contains a character outside [a-zA-Z0-9@/_.-] (exitCode 2).
+        code: 2
+        when: '`theme` に、`[a-zA-Z0-9@/_.-]` の外の文字があります。'
       - kind: invalid-staging-json
-        when: The letter-spacing JSON or the hyperlink JSON is unreadable or has the wrong shape (exitCode 1).
+        code: 1
+        when: '字間の JSON かハイパーリンクの JSON を読めないか、形が違います。'
       - kind: slidev-build-failed
-        when: slidev build exited with an error (exitCode 1); data.warnings and data.errors give the diagnostics.
+        code: 1
+        when: '`slidev build` がエラーで終わりました。診断は `data.warnings` と `data.errors` に入ります。'
       - kind: slidev-build-timeout
-        when: slidev build did not finish within its time limit (exitCode 1).
+        code: 1
+        when: '`slidev build` が、制限時間の内に終わりませんでした。'
       - kind: pptx-convert-failed
-        when: Rendering the slides or building the PPTX failed (exitCode 1).
+        code: 1
+        when: 'スライドの描画か、PPTX の組み立てに失敗しました。'
       - kind: pptx-convert-timeout
-        when: The conversion did not finish within its time limit (exitCode 1).
+        code: 1
+        when: '変換が、制限時間の内に終わりませんでした。'
       - kind: merge-failed
-        when: Merging the converted slides or writing the output failed (exitCode 1).
+        code: 1
+        when: '変換したスライドの結合か、出力の書き込みに失敗しました。'
       - kind: cancelled
-        when: The client cancelled the call (exitCode 1).
+        code: 1
+        when: 'クライアントが呼び出しを取り消しました。'
       - kind: theme-none
-        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+        code: 1
+        when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+        code: 1
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-connection
-        when: The theme repository cannot be reached (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        when: The theme repository rejects the credentials (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        when: The tag of the theme does not exist in the repository (exitCode 1).
+        code: 1
+        when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+        code: 1
+        when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        when: Fetching the theme failed for another reason (exitCode 1).
+        code: 1
+        when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-name-mismatch
-        when: The key of the theme in dependencies does not match the name of the theme (exitCode 1).
+        code: 1
+        when: '`dependencies` のテーマのキーが、テーマの名前と合っていません。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
-    on_error: The dist directory and index.html of project_dir are already removed when a later step fails, and no PPTX is written.
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
+    on_error: 'ビルドより後の手順で失敗したときは、`project_dir` の `dist` ディレクトリと `index.html` は消えたままで、PPTX は書きません。'
     effects:
       - target: file
         kind: read
-        what: Reads slides.md, pages/, public/, the theme and the optional letter-spacing and hyperlink JSON in project_dir.
+        what: '`project_dir` の `slides.md`・`pages/`・`public/`・テーマと、字間の JSON・ハイパーリンクの JSON を読みます。'
       - target: file
         kind: write
-        what: Writes the PPTX to out_path and the diff cache to the output directory; relinks node_modules and rewrites vite.config.ts and start.mjs of project_dir when they differ from the plugin.
+        what: 'PPTX を `out_path` に、差分のキャッシュを出力先のディレクトリに書きます。`project_dir` の `node_modules` を張り直し、`vite.config.ts` と `start.mjs` がプラグインのものと違えば書き直します。'
       - target: file
         kind: destructive
-        what: Deletes the dist directory and index.html of project_dir before the build, and replaces an existing PPTX at out_path.
+        what: 'ビルドの前に、`project_dir` の `dist` ディレクトリと `index.html` を消します。`out_path` に PPTX があれば、置き換えます。'
       - target: process
         kind: write
-        what: Runs slidev build, and launches Chromium to render the slides.
+        what: '`slidev build` を動かし、スライドを描くために Chromium を起動します。'
       - target: process
         kind: write
-        what: Runs git and pnpm to fetch the theme when it is not yet fetched.
+        what: 'テーマをまだ取得していないときは、git と pnpm を動かして取得します。'
     prerequisites:
-      - The runtime dependencies and Playwright Chromium are installed; call setup otherwise.
-      - project_dir is a talk-dir that references a theme.
+      - '実行時依存と Playwright の Chromium が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '`project_dir` は、テーマを参照する talk-dir です。'
     idempotent: true
     examples:
       - run: "slide_convert {\"project_dir\": \"/work/talk\"}"
-        note: Convert the talk-dir to a PPTX under its pptx directory.
+        note: 'talk-dir の `pptx` ディレクトリに PPTX を書きます。'
       - run: "slide_convert {\"project_dir\": \"/work/talk\", \"out_path\": \"/work/out/talk.pptx\", \"transition_type\": \"morph\", \"morph_option\": \"byWord\"}"
-        note: Convert with a word-level morph transition.
+        note: '単語ごとの morph の切り替え効果を付けて変換します。'
     default_notes:
-      out_path: project_dir/pptx/<title of slides.md, or the basename of project_dir>.pptx.
-      spacing_json_path: staging/slides/letter-spacing.json in project_dir when it exists.
-      href_json_path: staging/slides/href-map.json in project_dir when it exists.
+      out_path: '省くと、`project_dir/pptx/` の下に書きます。ファイル名は、`slides.md` の title か、`project_dir` の最後の名前に `.pptx` を付けたものです。'
+      spacing_json_path: '省くと、`project_dir` に `staging/slides/letter-spacing.json` があれば、それを使います。'
+      href_json_path: '省くと、`project_dir` に `staging/slides/href-map.json` があれば、それを使います。'
     behaviors:
       - id: PV-SLIDE-CONVERT-01
         pattern: event
-        statement: project_dir を渡して呼ぶと、PPTX を書き、artifacts にそのパスを載せた成功の応答を返す
+        statement: '`project_dir` を渡して呼ぶと、PPTX を書き、`artifacts` にそのパスを載せた成功の応答を返します'
       - id: PV-SLIDE-CONVERT-02
         pattern: event
-        statement: out_path を渡して呼ぶと、その場所に PPTX を書く
+        statement: '`out_path` を渡して呼ぶと、その場所に PPTX を書きます'
       - id: PV-SLIDE-CONVERT-03
         pattern: event
-        statement: cache を省いて再度呼ぶと、変わっていない工程の変換を省く
+        statement: '`cache` を省いて再度呼ぶと、変わっていない工程の変換を省きます'
       - id: PV-SLIDE-CONVERT-04
         pattern: event
-        statement: cache を false にして呼ぶと、キャッシュを読まずに全工程を変換し、キャッシュを作り直す
+        statement: '`cache` を `false` にして呼ぶと、キャッシュを読まずに全工程を変換し、キャッシュを作り直します'
       - id: PV-SLIDE-CONVERT-05
         pattern: event
-        statement: transition_type を morph にして呼ぶと、morph_option の粒度で切り替え効果を付ける
+        statement: '`transition_type` を `morph` にして呼ぶと、`morph_option` の粒度で切り替え効果を付けます'
       - id: PV-SLIDE-CONVERT-06
         pattern: unwanted
-        statement: もし実行時依存が未導入なら、runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+        statement: 'もし実行時依存が未導入なら、`runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
       - id: PV-SLIDE-CONVERT-07
         pattern: unwanted
-        statement: もし Chromium が入っていないなら、chromium-not-installed の失敗を返し、message に setup の呼び出しを案内する
+        statement: 'もし Chromium が入っていないなら、`chromium-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
       - id: PV-SLIDE-CONVERT-08
         pattern: unwanted
-        statement: もし project_dir が Slidev のプロジェクトでないなら、project-not-found・exitCode 1 の失敗を返す
+        statement: 'もし `project_dir` が Slidev のプロジェクトでないなら、`project-not-found`・`exitCode` 1 の失敗を返します'
       - id: PV-SLIDE-CONVERT-09
         pattern: unwanted
-        statement: もし talk-dir がテーマを参照していないなら、theme-none の失敗を返す
+        statement: 'もし talk-dir がテーマを参照していないなら、`theme-none` の失敗を返します'
       - id: PV-SLIDE-CONVERT-10
         pattern: unwanted
-        statement: もしクライアントが呼び出しを取り消したなら、変換を打ち切り cancelled の失敗を返す
+        statement: 'もしクライアントが呼び出しを取り消したなら、変換を打ち切り、`cancelled` の失敗を返します'
   PV-SLIDE-CREATE:
+    summary: テーマを参照する talk-dir を新しく作ります。
+    arguments:
+      force: '`project_dir` が既にあるときに、消して作り直すかどうかです。'
+      project_dir: '作る talk-dir の絶対パスです。後で編集できるように、呼び出すエージェントが書き込める場所（作業ディレクトリの下など）を渡します。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      theme: '参照するテーマです。tag 付きの git URL（`git+https://<host>/<owner>/<repo>.git#<tag>`）か、ローカルのパス（`file:<絶対パス>`）で渡します。tag の無い git URL は受け付けません。'
     constraints: []
     details:
-      - Creates a talk-dir at project_dir that references the Slidev theme given by theme, and returns the directory in artifacts.
-      - theme is a git URL with a tag (git+https://<host>/<owner>/<repo>.git#<tag>) or a local path (file:<absolute path>).
-      - Returns the presentation categories in data.categories and the selectable layouts in data.layouts.
-      - Lints the whole deck right after generation and returns the result in data.lint; the generation counts as successful even with violations.
-      - The generated start.mjs starts the dev server on the port in SLIDEV_PORT when that is set.
+      - '`project_dir` に、`theme` の Slidev のテーマを参照する talk-dir を作ります。'
+      - 'テーマの提示カテゴリを `data.categories` に、選べるレイアウトを `data.layouts` に返します。'
+      - '作った直後にデッキ全体を lint し、結果を `data.lint` に返します。違反があっても、作成は成功です。'
+      - '作られる `start.mjs` は、`SLIDEV_PORT` があれば、そのポートで dev サーバを起動します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: '作った talk-dir の絶対パスです。失敗したときは空です。'
+        data: 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、作った直後の lint の結果（`lint`）です。失敗したときは `reason` と `detail` です。'
+        exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。lint の違反があっても `true` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -695,111 +833,141 @@ entries:
     diagnostics: default
     environment:
       - name: SLIDEV_PORT
-        effect: Read by the generated start.mjs, not by the tool; sets the port of the dev server started from the talk-dir.
+        effect: 'talk-dir から起動する dev サーバのポートです。ツールではなく、作られる `start.mjs` が読みます。'
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+        code: 1
+        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
       - kind: invalid-option
-        when: "The file: path of theme is relative or cannot be converted (exitCode 2)."
+        code: 2
+        when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
       - kind: dest-exists
-        when: project_dir already exists and force is false (exitCode 2).
+        code: 2
+        when: '`project_dir` が既にあり、`force` が `false` です。'
       - kind: theme-tag-required
-        when: "The git URL of theme has no #<tag> (exitCode 2)."
+        code: 2
+        when: '`theme` の git URL に `#<tag>` がありません。'
       - kind: theme-tag-format
-        when: The tag of theme is not in the accepted format (exitCode 2).
+        code: 2
+        when: '`theme` の tag が、受け付ける形式ではありません。'
       - kind: theme-semver-range
-        when: The tag of theme is a version range (exitCode 2).
+        code: 2
+        when: '`theme` の tag が、版の範囲になっています。'
       - kind: theme-unsupported-spec
-        when: "theme is neither a git+https URL nor a file: path (exitCode 2)."
+        code: 2
+        when: '`theme` が、`git+https` の URL でも `file:` のパスでもありません。'
       - kind: theme-connection
-        when: The theme repository cannot be reached (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        when: The theme repository rejects the credentials (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        when: The tag of the theme does not exist in the repository (exitCode 1).
+        code: 1
+        when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+        code: 1
+        when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        when: Fetching the theme failed for another reason (exitCode 1).
+        code: 1
+        when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-invalid-shape
-        when: The theme declaration does not have the expected shape (exitCode 1).
+        code: 1
+        when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+        code: 1
+        when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: copy-failed
-        when: Building the talk-dir files failed (exitCode 1).
+        code: 1
+        when: 'talk-dir のファイルの組み立てに失敗しました。'
       - kind: symlink-failed
-        when: Linking node_modules failed (exitCode 1).
+        code: 1
+        when: '`node_modules` のリンクを張れませんでした。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
-    on_error: An existing project_dir is kept unchanged when any step fails, also with force, and the temporary directory is removed.
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
+    on_error: 'どの手順で失敗しても、既にある `project_dir` はそのまま残り、一時ディレクトリは消えます。`force` を `true` にしたときも同じです。'
     effects:
       - target: file
         kind: write
-        what: Creates project_dir with slides.md, package.json, pages/, public/slides/, vite.config.ts, start.mjs and node_modules links; stores a fetched theme under <data-dir>/themes.
+        what: '`project_dir` を作り、`slides.md`・`package.json`・`pages/`・`public/slides/`・`vite.config.ts`・`start.mjs` を置きます。`node_modules` のリンクも張ります。取得したテーマは、`<data-dir>/themes` の下に置きます。'
       - target: file
         kind: destructive
-        what: Deletes the existing project_dir after the new one is assembled when force is true.
+        what: '`force` が `true` のときは、新しい talk-dir を組み立てた後で、既にある `project_dir` を消します。'
       - target: process
         kind: write
-        what: Runs git to resolve the tag and pnpm to install the theme dependencies from the network when a git theme is not yet fetched.
+        what: 'git のテーマをまだ取得していないときは、git で tag を解決し、pnpm でテーマの依存をネットワークから入れます。'
       - target: process
         kind: read
-        what: Runs eslint over the generated deck for data.lint.
+        what: '`data.lint` のために、作ったデッキに eslint を動かします。'
     prerequisites:
-      - The runtime dependencies are installed; call setup otherwise.
-      - The caller can write to project_dir and its parent.
+      - '実行時依存が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '`project_dir` とその親に、書き込めることが要ります。'
     idempotent: false
     examples:
       - run: "slide_create {\"project_dir\": \"/work/talk\", \"theme\": \"git+https://github.com/example/slidev-theme.git#v1.0.0\"}"
-        note: Create a talk-dir that references a tagged theme.
+        note: 'tag 付きのテーマを参照する talk-dir を作ります。'
       - run: "slide_create {\"project_dir\": \"/work/talk\", \"theme\": \"file:/work/theme\", \"force\": true}"
-        note: Recreate the talk-dir from a local theme.
+        note: 'ローカルのテーマから、talk-dir を作り直します。'
     default_notes: {}
     behaviors:
       - id: PV-SLIDE-CREATE-01
         pattern: event
-        statement: project_dir と theme を渡して呼ぶと、テーマを参照する talk-dir を作り、artifacts に project_dir を載せた成功の応答を返す
+        statement: '`project_dir` と `theme` を渡して呼ぶと、テーマを参照する talk-dir を作り、`artifacts` に `project_dir` を載せた成功の応答を返します'
       - id: PV-SLIDE-CREATE-02
         pattern: event
-        statement: 呼ぶと、data.categories と data.layouts にテーマの提示カテゴリと選べるレイアウトを載せる
+        statement: '呼ぶと、`data.categories` と `data.layouts` に、テーマの提示カテゴリと選べるレイアウトを載せます'
       - id: PV-SLIDE-CREATE-03
         pattern: event
-        statement: 呼ぶと、生成直後のデッキ全体の lint の結果を data.lint に載せる
+        statement: '呼ぶと、作った直後のデッキ全体の lint の結果を `data.lint` に載せます'
       - id: PV-SLIDE-CREATE-04
         pattern: unwanted
-        statement: もし生成直後の lint が違反を見つけたなら、生成は成功として返す
+        statement: 'もし作った直後の lint が違反を見つけたなら、作成は成功として返します'
       - id: PV-SLIDE-CREATE-05
         pattern: event
-        statement: force を true にして呼ぶと、組み立てが済んだ後で既存の project_dir を置き換える
+        statement: '`force` を `true` にして呼ぶと、組み立てが済んだ後で、既にある `project_dir` を置き換えます'
       - id: PV-SLIDE-CREATE-06
         pattern: unwanted
-        statement: もし project_dir が既にあり force が false なら、何も変えず dest-exists・exitCode 2 の失敗を返す
+        statement: 'もし `project_dir` が既にあり `force` が `false` なら、何も変えずに `dest-exists`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-CREATE-07
         pattern: unwanted
-        statement: もし theme が tag の無い git URL なら、何も作らず theme-tag-required・exitCode 2 の失敗を返す
+        statement: 'もし `theme` が tag の無い git URL なら、何も作らずに `theme-tag-required`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-CREATE-08
         pattern: unwanted
-        statement: "もし file: の theme が相対パスなら、何も作らず invalid-option・exitCode 2 の失敗を返す"
+        statement: 'もし `file:` の `theme` が相対パスなら、何も作らずに `invalid-option`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-CREATE-09
         pattern: unwanted
-        statement: もし実行時依存が未導入なら、何も作らず runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+        statement: 'もし実行時依存が未導入なら、何も作らずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
       - id: PV-SLIDE-CREATE-10
         pattern: unwanted
-        statement: もし組み立ての途中で失敗したなら、既存の project_dir を残し、一時ディレクトリを消す
+        statement: 'もし組み立ての途中で失敗したなら、既にある `project_dir` を残し、一時ディレクトリを消します'
   PV-SLIDE-DEV:
+    summary: talk-dir の Slidev の dev サーバを起動し、プレビューの URL を返します。
+    arguments:
+      dir: 'dev サーバを起動する talk-dir の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      port: '起動するポートです。使用中のときは、別のポートへ移らずに失敗します。起動中の talk-dir に別のポートを渡すと、そのポートで開き直します。'
+      stop: '`true` にすると、その talk-dir の dev サーバを止めます。止めるときは、`dir` のほかの引数を無視します。'
     constraints: []
     details:
-      - Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser in data.url, with the port in data.port.
-      - Calling again for the same talk-dir returns the running server unchanged, with data.reused true.
-      - With stop true it stops the dev server of the talk-dir; data.stopped tells whether one was running.
-      - The server runs only while the MCP server process is alive, so the preview ends with the session.
-      - Relinks the theme in node_modules and aligns the generated files of the talk-dir before starting; a running server is stopped and started again in that case.
+      - 'ブラウザで開ける URL を `data.url` に、ポートを `data.port` に返します。'
+      - '同じ talk-dir にもう一度呼ぶと、起動中のサーバをそのまま返します。`data.reused` が `true` になります。'
+      - 'サーバが動くのは、MCP サーバのプロセスが生きている間だけです。プレビューは、セッションと一緒に終わります。'
+      - '起動の前に、`node_modules` のテーマのリンクを張り直し、talk-dir の生成ファイルをそろえます。そのとき起動中のサーバがあれば、止めて起動し直します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 空です。
+        data: 'プレビューの URL（`url`）、ポート（`port`）、起動中のサーバを使ったかどうか（`reused`）です。止めたときは、動いていたかどうか（`stopped`）です。失敗したときは `reason` と `detail` です。'
+        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 'dev サーバが出した標準エラー出力です。捕捉していなければ、この項目はありません。'
+        stdout: 'dev サーバが出した標準出力です。捕捉していなければ、この項目はありません。'
       schema:
         additionalProperties: false
         properties:
@@ -840,105 +1008,133 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+        code: 1
+        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
       - kind: talk-dir-not-found
-        when: dir does not exist or is not a directory (exitCode 1).
+        code: 1
+        when: '`dir` が無いか、ディレクトリではありません。'
       - kind: slides-md-not-found
-        when: dir has no slides.md, so it is not a talk-dir (exitCode 1).
+        code: 1
+        when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: node-modules-unresolved
-        when: node_modules of dir cannot be resolved even after relinking the theme (exitCode 1); the message gives the slide_sync call.
+        code: 1
+        when: 'テーマを張り直しても、`dir` の `node_modules` を解決できません。`message` が `slide_sync` の呼び出しを示します。'
       - kind: dev-server-port-in-use
-        when: The requested port is in use, or every port from 3030 to 3034 is in use (exitCode 1).
+        code: 1
+        when: '渡したポートが使用中か、3030 から 3034 のポートがすべて使用中です。'
       - kind: dev-server-spawn-failed
-        when: The dev server process could not be started (exitCode 1).
+        code: 1
+        when: 'dev サーバのプロセスを起動できませんでした。'
       - kind: dev-server-exited
-        when: The dev server exited right after starting (exitCode 1); stderr gives the reason.
+        code: 1
+        when: 'dev サーバが、起動してすぐに終わりました。理由は `stderr` に入ります。'
       - kind: dev-server-timeout
-        when: The dev server did not answer within 15 seconds (exitCode 1).
+        code: 1
+        when: 'dev サーバが、15 秒の内に応答しませんでした。'
       - kind: dev-server-cancelled
-        when: The client cancelled the call before the server started (exitCode 1).
+        code: 1
+        when: 'サーバが起動する前に、クライアントが呼び出しを取り消しました。'
       - kind: theme-none
-        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+        code: 1
+        when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-connection
-        when: The theme repository cannot be reached (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        when: The theme repository rejects the credentials (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        when: The tag of the theme does not exist in the repository (exitCode 1).
+        code: 1
+        when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+        code: 1
+        when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        when: Fetching the theme failed for another reason (exitCode 1).
+        code: 1
+        when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
-    on_error: A server that failed to become ready is stopped and not left running.
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
+    on_error: '応答できるようにならなかったサーバは止めます。動いたまま残しません。'
     effects:
       - target: file
         kind: write
-        what: Relinks node_modules and rewrites vite.config.ts and start.mjs in dir when they differ from the theme and the plugin.
+        what: '`dir` の `node_modules` を張り直し、`vite.config.ts` と `start.mjs` がテーマとプラグインのものと違えば書き直します。'
       - target: process
         kind: write
-        what: Starts the Slidev dev server as a child process of the MCP server, listening on a local port until it is stopped or the MCP server ends.
+        what: 'Slidev の dev サーバを、MCP サーバの子プロセスとして起動します。サーバは、止めるか MCP サーバが終わるまで、ローカルのポートで待ち受けます。'
       - target: process
         kind: destructive
-        what: Stops the running dev server of the talk-dir when stop is true, and when a relink requires a restart.
+        what: '`stop` が `true` のときと、張り直しで起動し直すときに、その talk-dir の起動中の dev サーバを止めます。'
       - target: process
         kind: write
-        what: Runs git and pnpm to fetch the theme when it is not yet fetched.
+        what: 'テーマをまだ取得していないときは、git と pnpm を動かして取得します。'
     prerequisites:
-      - The runtime dependencies are installed; call setup otherwise.
-      - dir is a talk-dir that references a theme.
+      - '実行時依存が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '`dir` は、テーマを参照する talk-dir です。'
     idempotent: false
     examples:
       - run: "slide_dev {\"dir\": \"/work/talk\"}"
-        note: Start the preview and get its URL.
+        note: 'プレビューを起動し、URL を受け取ります。'
       - run: "slide_dev {\"dir\": \"/work/talk\", \"stop\": true}"
-        note: Stop the preview.
+        note: 'プレビューを止めます。'
     default_notes:
-      port: The first free port from 3030 to 3034.
+      port: '省くと、3030 から 3034 を小さい順に試し、最初に空いていたポートを使います。'
     behaviors:
       - id: PV-SLIDE-DEV-01
         pattern: event
-        statement: dir を渡して呼ぶと、dev サーバを起動し、URL と port を data に載せた成功の応答を返す
+        statement: '`dir` を渡して呼ぶと、dev サーバを起動し、URL とポートを `data` に載せた成功の応答を返します'
       - id: PV-SLIDE-DEV-02
         pattern: event
-        statement: 起動中の talk-dir に同じ呼び出しをすると、起動中のサーバをそのまま返し、data.reused を true にする
+        statement: '起動中の talk-dir に同じ呼び出しをすると、起動中のサーバをそのまま返し、`data.reused` を `true` にします'
       - id: PV-SLIDE-DEV-03
         pattern: event
-        statement: port を渡して呼ぶと、そのポートで起動する
+        statement: '`port` を渡して呼ぶと、そのポートで起動します'
       - id: PV-SLIDE-DEV-04
         pattern: event
-        statement: stop を true にして呼ぶと、その talk-dir の dev サーバを止め、data.stopped を true にする
+        statement: '`stop` を `true` にして呼ぶと、その talk-dir の dev サーバを止め、`data.stopped` を `true` にします'
       - id: PV-SLIDE-DEV-05
         pattern: event
-        statement: 起動していない talk-dir に stop を true にして呼ぶと、何も止めず data.stopped を false にした成功の応答を返す
+        statement: '起動していない talk-dir に `stop` を `true` にして呼ぶと、何も止めずに、`data.stopped` を `false` にした成功の応答を返します'
       - id: PV-SLIDE-DEV-06
         pattern: unwanted
-        statement: もし port を渡して、そのポートが使用中なら、別のポートへ移らず dev-server-port-in-use の失敗を返す
+        statement: 'もし `port` を渡して、そのポートが使用中なら、別のポートへ移らずに `dev-server-port-in-use` の失敗を返します'
       - id: PV-SLIDE-DEV-07
         pattern: unwanted
-        statement: もし dir が talk-dir でないなら、サーバを起動せず talk-dir-not-found または slides-md-not-found の失敗を返す
+        statement: 'もし `dir` が talk-dir でないなら、サーバを起動せずに `talk-dir-not-found` または `slides-md-not-found` の失敗を返します'
       - id: PV-SLIDE-DEV-08
         pattern: unwanted
-        statement: もし talk-dir がテーマを参照していないなら、サーバを起動せず theme-none の失敗を返す
+        statement: 'もし talk-dir がテーマを参照していないなら、サーバを起動せずに `theme-none` の失敗を返します'
       - id: PV-SLIDE-DEV-09
         pattern: unwanted
-        statement: もし実行時依存が未導入なら、サーバを起動せず runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+        statement: 'もし実行時依存が未導入なら、サーバを起動せずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
       - id: PV-SLIDE-DEV-10
         pattern: unwanted
-        statement: もしサーバが 15 秒以内に応答しないなら、そのサーバを止め dev-server-timeout の失敗を返す
+        statement: 'もしサーバが 15 秒以内に応答しないなら、そのサーバを止め、`dev-server-timeout` の失敗を返します'
   PV-SLIDE-LINT:
+    summary: talk-dir のデッキ全体を lint し、違反の一覧を返します。
+    arguments:
+      dir: 'lint する talk-dir の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
     constraints: []
     details:
-      - Lints the whole talk-dir (pages/**/*.md and slides.md) with the rules of its theme and returns the violations in data.violations.
-      - "Violations are not a failure: the call returns ok true with exitCode 1 and data.event slide.lint.violations; with none it returns exitCode 0."
-      - Reports directories under pages/ that are symlinks and are not scanned in data.skippedSymlinkDirectories.
+      - 'talk-dir の全体（`pages/**/*.md` と `slides.md`）を、テーマの規則で lint します。ファイルは直しません。'
+      - '違反があっても、呼び出しは失敗ではありません。`ok` は `true` のままで、`exitCode` が 1 になります。'
+      - '`pages/` の下のシンボリックリンクのディレクトリは調べません。飛ばしたディレクトリは、`data.skippedSymlinkDirectories` に入ります。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 空です。
+        data: '違反の一覧（`violations`）、結果の種類（`event`）、飛ばしたシンボリックリンクのディレクトリ（`skippedSymlinkDirectories`）です。失敗したときは `reason` と `detail` です。'
+        exitCode: '違反が無ければ 0、違反があるか失敗したら 1、パスの引数が不正なら 2 です。'
+        message: 結果を 1 行にまとめた文です。
+        ok: 'lint を最後まで動かせたら `true`、動かせなかったら `false` です。違反があっても `true` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -979,76 +1175,103 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: dir-not-found
-        when: dir does not exist (exitCode 1).
+        code: 1
+        when: '`dir` がありません。'
       - kind: not-a-directory
-        when: dir is not a directory (exitCode 1).
+        code: 1
+        when: '`dir` がディレクトリではありません。'
       - kind: not-talk-dir
-        when: dir has no slides.md, so it is not a talk-dir (exitCode 1).
+        code: 1
+        when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: eslint-not-launched
-        when: eslint could not be started (exitCode 1).
+        code: 1
+        when: 'eslint を起動できませんでした。'
       - kind: eslint-timeout
-        when: eslint did not finish within its time limit (exitCode 1).
+        code: 1
+        when: 'eslint が、制限時間の内に終わりませんでした。'
       - kind: eslint-failed
-        when: eslint exited with an error that is not a lint violation (exitCode 1).
+        code: 1
+        when: 'eslint が、lint の違反ではないエラーで終わりました。'
       - kind: invalid-report
-        when: The eslint report could not be read (exitCode 1).
+        code: 1
+        when: 'eslint の結果を読めませんでした。'
       - kind: theme-none
-        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+        code: 1
+        when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+        code: 1
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
-        when: The theme declaration does not have the expected shape (exitCode 1).
+        code: 1
+        when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+        code: 1
+        when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: file
         kind: read
-        what: Reads slides.md, pages/**/*.md and the theme declaration of dir.
+        what: '`dir` の `slides.md`・`pages/**/*.md` と、テーマの宣言を読みます。'
       - target: process
         kind: read
-        what: Runs eslint over the deck and reads its report; nothing is fixed or written.
+        what: 'デッキに eslint を動かし、その結果を読みます。ファイルは直さず、書きません。'
     prerequisites:
-      - dir is a talk-dir that references a theme.
+      - '`dir` は、テーマを参照する talk-dir です。'
     idempotent: true
     examples:
       - run: "slide_lint {\"dir\": \"/work/talk\"}"
-        note: Lint the whole deck.
+        note: 'デッキ全体を lint します。'
     default_notes: {}
     behaviors:
       - id: PV-SLIDE-LINT-01
         pattern: event
-        statement: dir を渡して呼ぶと、デッキ全体を lint し、違反の一覧を data.violations に載せて返す
+        statement: '`dir` を渡して呼ぶと、デッキ全体を lint し、違反の一覧を `data.violations` に載せて返します'
       - id: PV-SLIDE-LINT-02
         pattern: unwanted
-        statement: もし違反が 1 件以上あるなら、ok を true のまま exitCode 1 で返し、data.event を slide.lint.violations にする
+        statement: 'もし違反が 1 件以上あるなら、`ok` を `true` のまま `exitCode` 1 で返し、`data.event` を `slide.lint.violations` にします'
       - id: PV-SLIDE-LINT-03
         pattern: event
-        statement: 違反が無いデッキを渡すと、exitCode 0・data.event が slide.lint.done の成功の応答を返す
+        statement: '違反が無いデッキを渡すと、`exitCode` 0・`data.event` が `slide.lint.done` の成功の応答を返します'
       - id: PV-SLIDE-LINT-04
         pattern: ubiquitous
-        statement: 常に、ファイルを書き換えない
+        statement: '常に、ファイルを書き換えません'
       - id: PV-SLIDE-LINT-05
         pattern: unwanted
-        statement: もし dir が talk-dir でないなら、lint を起動せず not-talk-dir の失敗を返す
+        statement: 'もし `dir` が talk-dir でないなら、lint を起動せずに `not-talk-dir` の失敗を返します'
       - id: PV-SLIDE-LINT-06
         pattern: unwanted
-        statement: もし talk-dir がテーマを参照していないなら、lint を起動せず theme-none の失敗を返す
+        statement: 'もし talk-dir がテーマを参照していないなら、lint を起動せずに `theme-none` の失敗を返します'
   PV-SLIDE-PAGE:
+    summary: レイアウトを 1 つ選び、骨組みのページを talk-dir に作ります。
+    arguments:
+      dir: 'ページを作る talk-dir の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      file: '`pages/` の直下に作るファイルの名前です。`.md` は省けます。パスの区切りを含む名前と、数字で始まる名前は受け付けません。'
+      force: '同じ名前のページが既にあるときに、上書きするかどうかです。'
+      layout: 'レイアウトの名前です。`slide_create` か `slide_sync` の応答の `data.categories` で見せ方を決め、そのカテゴリの `data.layouts` にある名前から選びます。'
     constraints: []
     details:
-      - Writes a skeleton page for one layout to pages/<file>.md of the talk-dir and returns its path in artifacts.
-      - Returns the specification of the layout in data.reference and the common specifications it includes in data.includes.
-      - "The page is not registered in slides.md; the caller adds the src: entry."
-      - An unknown layout fails and returns data.categories and data.layouts so the caller can choose a name.
+      - 'レイアウト 1 つの骨組みのページを、talk-dir の `pages/<file>.md` に書きます。'
+      - 'レイアウトの仕様（props・文字数の制約・クリックの数・良い例と悪い例）を `data.reference` に、その仕様が取り込む共通の仕様を `data.includes` に返します。'
+      - '作ったページは、`slides.md` には登録しません。`src:` の行は、呼び出した側が足します。'
+      - 'テーマに無いレイアウトの名前を渡すと失敗し、`data.categories` と `data.layouts` を返します。そこから名前を選び直せます。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 作ったページの絶対パスです。失敗したときは空です。
+        data: 'レイアウトの仕様（`reference`）と、共通の仕様（`includes`）です。レイアウトの名前がテーマに無いときは、`categories` と `layouts` です。失敗したときは `reason` と `detail` も入ります。'
+        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -1089,93 +1312,119 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: invalid-file-name
-        when: file is empty, contains a path separator, or contains a character that a page name cannot use (exitCode 1).
+        code: 1
+        when: '`file` が空か、パスの区切りを含むか、ページの名前に使えない文字を含みます。'
       - kind: numeric-filename-prefix
-        when: file starts with a digit (exitCode 1).
+        code: 1
+        when: '`file` が数字で始まります。'
       - kind: unknown-layout
-        when: layout is not in the theme of the talk-dir (exitCode 1); data.categories and data.layouts list the choices.
+        code: 1
+        when: '`layout` が、talk-dir のテーマにありません。選べる名前は、`data.categories` と `data.layouts` に並びます。'
       - kind: skeleton-unavailable
-        when: The reference yaml of the layout is missing or has no usable skeleton (exitCode 1).
+        code: 1
+        when: 'レイアウトの仕様の yaml が無いか、使える骨組みがありません。'
       - kind: reference-read-failed
-        when: The reference yaml could not be read (exitCode 1).
+        code: 1
+        when: 'レイアウトの仕様の yaml を読めませんでした。'
       - kind: broken-reference
-        when: A common specification that the reference yaml includes is missing (exitCode 1).
+        code: 1
+        when: 'レイアウトの仕様の yaml が取り込む共通の仕様がありません。'
       - kind: file-exists
-        when: pages/<file>.md already exists and force is false (exitCode 1).
+        code: 1
+        when: '`pages/<file>.md` が既にあり、`force` が `false` です。'
       - kind: write-failed
-        when: The page could not be written (exitCode 1).
+        code: 1
+        when: 'ページを書き込めませんでした。'
       - kind: theme-none
-        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+        code: 1
+        when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+        code: 1
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
-        when: The theme declaration does not have the expected shape (exitCode 1).
+        code: 1
+        when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+        code: 1
+        when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: file
         kind: read
-        what: Reads the theme declaration and the reference yaml of the layout.
+        what: 'テーマの宣言と、レイアウトの仕様の yaml を読みます。'
       - target: file
         kind: write
-        what: Writes pages/<file>.md in dir; replaces an existing page only when force is true.
+        what: '`dir` の `pages/<file>.md` を書きます。既にあるページを置き換えるのは、`force` が `true` のときだけです。'
     prerequisites:
-      - dir is a talk-dir that references a theme.
-      - The layout name is taken from data.layouts of slide_create or slide_sync.
+      - '`dir` は、テーマを参照する talk-dir です。'
+      - 'レイアウトの名前は、`slide_create` か `slide_sync` の `data.layouts` から選びます。'
     idempotent: false
     examples:
       - run: "slide_page {\"layout\": \"cover\", \"dir\": \"/work/talk\", \"file\": \"cover\"}"
-        note: Write pages/cover.md from the cover layout.
+        note: '`cover` のレイアウトから、`pages/cover.md` を作ります。'
     default_notes: {}
     behaviors:
       - id: PV-SLIDE-PAGE-01
         pattern: event
-        statement: layout・dir・file を渡して呼ぶと、pages/ に骨組みのページを書き、artifacts にそのパスを載せた成功の応答を返す
+        statement: '`layout`・`dir`・`file` を渡して呼ぶと、`pages/` に骨組みのページを書き、`artifacts` にそのパスを載せた成功の応答を返します'
       - id: PV-SLIDE-PAGE-02
         pattern: event
-        statement: 呼ぶと、レイアウトの仕様を data.reference に、その共通仕様を data.includes に載せる
+        statement: '呼ぶと、レイアウトの仕様を `data.reference` に、その共通の仕様を `data.includes` に載せます'
       - id: PV-SLIDE-PAGE-03
         pattern: event
-        statement: file を .md なしで渡すと、.md を補ったファイル名で書く
+        statement: '`file` を `.md` なしで渡すと、`.md` を補ったファイル名で書きます'
       - id: PV-SLIDE-PAGE-04
         pattern: event
-        statement: force を true にして呼ぶと、同名のページがあっても上書きする
+        statement: '`force` を `true` にして呼ぶと、同じ名前のページがあっても上書きします'
       - id: PV-SLIDE-PAGE-05
         pattern: unwanted
-        statement: もし同名のページがあり force が false なら、何も書かず file-exists の失敗を返す
+        statement: 'もし同じ名前のページがあり `force` が `false` なら、何も書かずに `file-exists` の失敗を返します'
       - id: PV-SLIDE-PAGE-06
         pattern: unwanted
-        statement: もし layout がテーマに無いなら、何も書かず unknown-layout の失敗を返し、data.categories と data.layouts を載せる
+        statement: 'もし `layout` がテーマに無いなら、何も書かずに `unknown-layout` の失敗を返し、`data.categories` と `data.layouts` を載せます'
       - id: PV-SLIDE-PAGE-07
         pattern: unwanted
-        statement: もし file が数字で始まるなら、何も書かず numeric-filename-prefix の失敗を返す
+        statement: 'もし `file` が数字で始まるなら、何も書かずに `numeric-filename-prefix` の失敗を返します'
       - id: PV-SLIDE-PAGE-08
         pattern: unwanted
-        statement: もし file にパス区切りが含まれるなら、何も書かず invalid-file-name の失敗を返す
+        statement: 'もし `file` にパスの区切りが含まれるなら、何も書かずに `invalid-file-name` の失敗を返します'
       - id: PV-SLIDE-PAGE-09
         pattern: ubiquitous
-        statement: 常に、slides.md を書き換えない
+        statement: '常に、`slides.md` を書き換えません'
   PV-SLIDE-SYNC:
+    summary: 既にある talk-dir を、テーマとプラグインの今の内容にそろえます。
+    arguments:
+      dir: 'そろえる talk-dir の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
+      node_modules_only: '`true` にすると、`node_modules` の張り直しと、生成ファイル（`vite.config.ts`・`start.mjs`）をそろえることだけを行います。`package.json` のテーマは、先に取得してから張ります。取得済みなら、ネットワークを使いません。移行済みの talk-dir では、省いても同じ動きです。'
+      theme: '移行前の talk-dir に参照させるテーマです。`git+https://<host>/<owner>/<repo>.git#<tag>` か `file:<絶対パス>` で渡します。移行前の talk-dir では必須です。移行済みの talk-dir では使いません。'
     constraints:
       - conflicts:
           - theme
           - node_modules_only
     details:
-      - Brings an existing talk-dir in line with the plugin and returns its directory in artifacts.
-      - "A pre-migration talk-dir (one that holds a copy of the template) is moved to a form that references theme: the files from the template are deleted and the work area (slides.md, pages/*.md, public/slides/) is kept; the deleted names are in data.migration.removed."
-      - A migrated talk-dir fetches the theme at the version in the dependency of package.json, relinks node_modules and aligns vite.config.ts and start.mjs with the plugin; other files are not changed.
-      - "To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling."
-      - Returns data.categories, data.layouts and the lint result of the whole deck after the sync.
-      - A running slide_dev has to be stopped with stop true and started again.
+      - '移行前の talk-dir（テンプレートの写しを持つもの）は、`theme` のテーマを参照する形へ移します。テンプレートから来たファイルを消し、作業の領域（`slides.md`・`pages/*.md`・`public/slides/`）を残します。消した名前は、`data.migration.removed` に入ります。'
+      - '移行済みの talk-dir は、`package.json` の依存に書かれた版でテーマを取得し、`node_modules` を張り直します。`vite.config.ts` と `start.mjs` は、プラグインの今の内容にそろえます。ほかのファイルは変えません。'
+      - 'テーマの版を上げるときは、呼ぶ前に、`package.json` の依存の `#<tag>` を書き換えます。'
+      - 'テーマの提示カテゴリ（`data.categories`）、選べるレイアウト（`data.layouts`）、そろえた後のデッキ全体の lint の結果を返します。'
+      - '起動中の `slide_dev` は、`stop` を `true` にして止めてから、起動し直します。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 'そろえた talk-dir の絶対パスです。失敗したときは空です。'
+        data: 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、そろえた後の lint の結果（`lint`）です。移行したときは、消した名前が `migration.removed` に入ります。失敗したときは `reason` と `detail` です。'
+        exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -1216,114 +1465,146 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: runtime-dependencies-not-installed
-        when: The runtime dependencies are not installed (exitCode 1); the message tells to call setup.
+        code: 1
+        when: '実行時依存が入っていません。`message` が `setup` の呼び出しを案内します。'
       - kind: invalid-option
-        when: "The file: path of theme is relative or cannot be converted (exitCode 2)."
+        code: 2
+        when: '`theme` の `file:` のパスが、相対パスか、変換できないパスです。'
       - kind: dir-not-found
-        when: dir does not exist (exitCode 1).
+        code: 1
+        when: '`dir` がありません。'
       - kind: not-a-directory
-        when: dir is not a directory (exitCode 1).
+        code: 1
+        when: '`dir` がディレクトリではありません。'
       - kind: not-talk-dir
-        when: dir has no slides.md, so it is not a talk-dir (exitCode 1).
+        code: 1
+        when: '`dir` に `slides.md` がありません。talk-dir ではありません。'
       - kind: theme-required
-        when: dir is a pre-migration talk-dir and theme is not given (exitCode 2).
+        code: 2
+        when: '`dir` が移行前の talk-dir で、`theme` を渡していません。'
       - kind: theme-with-node-modules-only
-        when: theme and node_modules_only are given together (exitCode 2).
+        code: 2
+        when: '`theme` と `node_modules_only` を同時に渡しています。'
       - kind: theme-root
-        when: "The directory of a file: theme is not a theme root (exitCode 1)."
+        code: 1
+        when: '`file:` のテーマのディレクトリが、テーマのルートではありません。'
       - kind: theme-name-mismatch
-        when: The key of the theme in dependencies does not match the name of the theme (exitCode 1).
+        code: 1
+        when: '`dependencies` のテーマのキーが、テーマの名前と合っていません。'
       - kind: migrate-failed
-        when: Moving the pre-migration talk-dir to the theme form failed (exitCode 1).
+        code: 1
+        when: '移行前の talk-dir を、テーマを参照する形へ移せませんでした。'
       - kind: symlink-failed
-        when: Linking node_modules failed (exitCode 1).
+        code: 1
+        when: '`node_modules` のリンクを張れませんでした。'
       - kind: theme-tag-required
-        when: "The git URL of theme has no #<tag> (exitCode 2)."
+        code: 2
+        when: '`theme` の git URL に `#<tag>` がありません。'
       - kind: theme-tag-format
-        when: The tag of theme is not in the accepted format (exitCode 2).
+        code: 2
+        when: '`theme` の tag が、受け付ける形式ではありません。'
       - kind: theme-semver-range
-        when: The tag of theme is a version range (exitCode 2).
+        code: 2
+        when: '`theme` の tag が、版の範囲になっています。'
       - kind: theme-unsupported-spec
-        when: "theme is neither a git+https URL nor a file: path (exitCode 2)."
+        code: 2
+        when: '`theme` が、`git+https` の URL でも `file:` のパスでもありません。'
       - kind: theme-connection
-        when: The theme repository cannot be reached (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリに接続できません。'
       - kind: theme-auth
-        when: The theme repository rejects the credentials (exitCode 1).
+        code: 1
+        when: 'テーマのリポジトリが、認証情報を受け付けません。'
       - kind: theme-tag
-        when: The tag of the theme does not exist in the repository (exitCode 1).
+        code: 1
+        when: 'テーマの tag が、リポジトリにありません。'
       - kind: theme-install
-        when: Installing the dependencies of the theme with pnpm failed (exitCode 1).
+        code: 1
+        when: 'pnpm でのテーマの依存のインストールに失敗しました。'
       - kind: theme-unknown
-        when: Fetching the theme failed for another reason (exitCode 1).
+        code: 1
+        when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
       - kind: theme-unlinked
-        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+        code: 1
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: file
         kind: destructive
-        what: Deletes the files that came from the template when migrating a pre-migration talk-dir; the work area is kept.
+        what: '移行前の talk-dir を移すときに、テンプレートから来たファイルを消します。作業の領域は残します。'
       - target: file
         kind: write
-        what: Rewrites package.json, slides.md, vite.config.ts, start.mjs and the node_modules links of dir; stores a fetched theme under <data-dir>/themes.
+        what: '`dir` の `package.json`・`slides.md`・`vite.config.ts`・`start.mjs` と、`node_modules` のリンクを書き直します。取得したテーマは、`<data-dir>/themes` の下に置きます。'
       - target: process
         kind: write
-        what: Runs git and pnpm to fetch the theme from the network when it is not yet fetched.
+        what: 'テーマをまだ取得していないときは、git と pnpm を動かして、ネットワークから取得します。'
       - target: process
         kind: read
-        what: Runs eslint over the deck for data.lint.
+        what: '`data.lint` のために、デッキに eslint を動かします。'
     prerequisites:
-      - The runtime dependencies are installed; call setup otherwise.
-      - A running slide_dev of dir is stopped.
+      - '実行時依存が要ります。入っていなければ、先に `setup` を呼びます。'
+      - '`dir` の `slide_dev` が起動中なら、先に止めます。'
     idempotent: true
     examples:
       - run: "slide_sync {\"dir\": \"/work/talk\", \"theme\": \"git+https://github.com/example/slidev-theme.git#v1.0.0\"}"
-        note: Move a pre-migration talk-dir to a theme reference.
+        note: '移行前の talk-dir を、テーマを参照する形へ移します。'
       - run: "slide_sync {\"dir\": \"/work/talk\", \"node_modules_only\": true}"
-        note: Relink node_modules only.
+        note: '`node_modules` だけを張り直します。'
     default_notes: {}
     behaviors:
       - id: PV-SLIDE-SYNC-01
         pattern: event
-        statement: 移行前の talk-dir に theme を渡して呼ぶと、テンプレート由来のファイルを消してテーマを参照する形へ移し、消した名前を data.migration.removed に載せる
+        statement: '移行前の talk-dir に `theme` を渡して呼ぶと、テンプレートから来たファイルを消してテーマを参照する形へ移し、消した名前を `data.migration.removed` に載せます'
       - id: PV-SLIDE-SYNC-02
         pattern: event
-        statement: 移行前の talk-dir を移すと、slides.md・pages/*.md・public/slides/ を残す
+        statement: '移行前の talk-dir を移すと、`slides.md`・`pages/*.md`・`public/slides/` を残します'
       - id: PV-SLIDE-SYNC-03
         pattern: event
-        statement: 移行済みの talk-dir を渡して呼ぶと、package.json の依存の版でテーマを取得し、node_modules を張り直す
+        statement: '移行済みの talk-dir を渡して呼ぶと、`package.json` の依存の版でテーマを取得し、`node_modules` を張り直します'
       - id: PV-SLIDE-SYNC-04
         pattern: event
-        statement: 移行済みの talk-dir を渡して呼ぶと、vite.config.ts と start.mjs をプラグインの今の内容にそろえる
+        statement: '移行済みの talk-dir を渡して呼ぶと、`vite.config.ts` と `start.mjs` をプラグインの今の内容にそろえます'
       - id: PV-SLIDE-SYNC-05
         pattern: event
-        statement: node_modules_only を true にして呼ぶと、node_modules の張り直しと生成ファイルのそろえだけを行う
+        statement: '`node_modules_only` を `true` にして呼ぶと、`node_modules` の張り直しと、生成ファイルをそろえることだけを行います'
       - id: PV-SLIDE-SYNC-06
         pattern: event
-        statement: 呼ぶと、同期の後のデッキ全体の lint の結果を data.lint に載せる
+        statement: '呼ぶと、そろえた後のデッキ全体の lint の結果を `data.lint` に載せます'
       - id: PV-SLIDE-SYNC-07
         pattern: unwanted
-        statement: もし移行前の talk-dir に theme を渡さないなら、何も変えず theme-required・exitCode 2 の失敗を返す
+        statement: 'もし移行前の talk-dir に `theme` を渡さないなら、何も変えずに `theme-required`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-SYNC-08
         pattern: unwanted
-        statement: もし theme と node_modules_only を同時に渡したなら、何も変えず theme-with-node-modules-only・exitCode 2 の失敗を返す
+        statement: 'もし `theme` と `node_modules_only` を同時に渡したなら、何も変えずに `theme-with-node-modules-only`・`exitCode` 2 の失敗を返します'
       - id: PV-SLIDE-SYNC-09
         pattern: unwanted
-        statement: もし実行時依存が未導入なら、何も変えず runtime-dependencies-not-installed の失敗を返し、message に setup の呼び出しを案内する
+        statement: 'もし実行時依存が未導入なら、何も変えずに `runtime-dependencies-not-installed` の失敗を返し、`message` で `setup` の呼び出しを案内します'
   PV-SLIDE-THEME:
+    summary: talk-dir が参照するテーマの宣言と、レイアウトの一覧を返します。
+    arguments:
+      dir: 'テーマを調べる talk-dir の絶対パスです。Windows 形式のパス（`C:\...` と `\\wsl.localhost\<distro>\...`）も渡せます。Windows 形式のパスは、`/mnt/<drive>/` の下か WSL の中の絶対パスに変換します。'
     constraints: []
     details:
-      - "Returns the theme that a talk-dir references: its name, spec and root in data.theme, and the declaration in data.declaration."
-      - The declaration covers fonts, font sizes, PPTX fonts, link colors and lint rules.
-      - Also returns the selectable layouts in data.layouts, the presentation categories in data.categories, the lint settings in data.lint and the warnings in data.warnings.
-      - Skills use it to read the theme values.
+      - 'テーマの宣言には、フォント・フォントサイズ・PPTX のフォント・リンクの色・lint の規則が入ります。'
+      - 'ファイルは書き換えず、テーマも取得しません。スキルが、テーマの値を読むために使います。'
     stdin: none
     output:
       format: json
-      description: Structured result with ok, exitCode, artifacts, data and message, plus stdout and stderr when output was captured. data carries event, and reason and detail on failure.
+      description: 結果は JSON のオブジェクトです。
+      fields:
+        artifacts: 空です。
+        data: 'テーマの名前・指定・ルート（`theme`）、宣言（`declaration`）、選べるレイアウト（`layouts`）、提示カテゴリ（`categories`）です。lint の設定（`lint`）と警告（`warnings`）も入ります。失敗したときは `reason` と `detail` です。'
+        exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        message: 結果を 1 行にまとめた文です。
+        ok: '成功なら `true`、失敗なら `false` です。'
+        stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
+        stdout: 捕捉した標準出力です。捕捉していなければ、この項目はありません。
       schema:
         additionalProperties: false
         properties:
@@ -1364,85 +1645,91 @@ entries:
     environment: []
     exit_status:
       - kind: invalid-path
-        when: A path input is relative, or is a Windows-style path that cannot be converted (exitCode 2); data.invalidPaths lists the values as given.
+        code: 2
+        when: 'パスの引数が、相対パスか、変換できない Windows 形式のパスです。渡された値は、そのまま `data.invalidPaths` に並びます。'
       - kind: theme-none
-        when: The talk-dir does not reference a theme, so it is a pre-migration talk-dir (exitCode 1).
+        code: 1
+        when: 'talk-dir がテーマを参照していません。移行前の talk-dir です。'
       - kind: theme-unlinked
-        when: The theme of the talk-dir is not linked in node_modules, or package.json cannot be read (exitCode 1); the message gives the slide_sync call that restores it.
+        code: 1
+        when: 'talk-dir のテーマが `node_modules` に張られていないか、`package.json` を読めません。`message` が、直すための `slide_sync` の呼び出しを示します。'
       - kind: theme-invalid-shape
-        when: The theme declaration does not have the expected shape (exitCode 1).
+        code: 1
+        when: 'テーマの宣言が、決まった形ではありません。'
       - kind: theme-unknown-rule
-        when: The theme declaration names a lint rule that does not exist (exitCode 1).
+        code: 1
+        when: 'テーマの宣言に、存在しない lint の規則の名前があります。'
       - kind: unknown
-        when: The run failed for a reason the tool does not classify (exitCode 1).
+        code: 1
+        when: '上のどのエラーにも当てはまらない理由で失敗しました。'
     on_error: default
     effects:
       - target: file
         kind: read
-        what: Reads package.json, slides.md and the linked theme of dir.
+        what: '`dir` の `package.json`・`slides.md` と、張られているテーマを読みます。'
     prerequisites:
-      - dir is a talk-dir that references a theme and has the theme linked in node_modules.
+      - '`dir` は、テーマを参照する talk-dir で、テーマが `node_modules` に張られています。'
     idempotent: true
     examples:
       - run: "slide_theme {\"dir\": \"/work/talk\"}"
-        note: Get the fonts, font sizes and layouts of the theme.
+        note: 'テーマのフォント・フォントサイズ・レイアウトを受け取ります。'
     default_notes: {}
     behaviors:
       - id: PV-SLIDE-THEME-01
         pattern: event
-        statement: dir を渡して呼ぶと、参照するテーマの名前・宣言・レイアウト・カテゴリを data に載せた成功の応答を返す
+        statement: '`dir` を渡して呼ぶと、参照するテーマの名前・宣言・レイアウト・カテゴリを `data` に載せた成功の応答を返します'
       - id: PV-SLIDE-THEME-02
         pattern: ubiquitous
-        statement: 常に、ファイルを書き換えず、テーマを取得しない
+        statement: '常に、ファイルを書き換えず、テーマを取得しません'
       - id: PV-SLIDE-THEME-03
         pattern: unwanted
-        statement: もし talk-dir がテーマを参照していないなら、theme-none の失敗を返す
+        statement: 'もし talk-dir がテーマを参照していないなら、`theme-none` の失敗を返します'
       - id: PV-SLIDE-THEME-04
         pattern: unwanted
-        statement: もしテーマが node_modules に張られていないなら、theme-unlinked の失敗を返し、slide_sync の呼び出しを message に案内する
+        statement: 'もしテーマが `node_modules` に張られていないなら、`theme-unlinked` の失敗を返し、`message` で `slide_sync` の呼び出しを案内します'
       - id: PV-SLIDE-THEME-05
         pattern: unwanted
-        statement: もしテーマの宣言が決まった形でないなら、theme-invalid-shape の失敗を返す
+        statement: 'もしテーマの宣言が決まった形でないなら、`theme-invalid-shape` の失敗を返します'
 common_behaviors:
   - id: PV-COMMON-01
     pattern: unwanted
-    statement: もし inputSchema が宣言した型・範囲・列挙・必須に反する入力を渡したなら、ツールを実行せず入力検証エラーを返し、structuredContent を返さない
+    statement: 'もし `inputSchema` が宣言した型・範囲・列挙・必須に反する入力を渡したなら、ツールを実行せずに入力検証エラーを返し、`structuredContent` を返しません'
   - id: PV-COMMON-02
     pattern: event
-    statement: 最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行する
+    statement: '最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行します'
   - id: PV-COMMON-03
     pattern: unwanted
-    statement: もしパスを渡す入力が相対パスなら、処理を始めず ok が false・exitCode 2 の失敗を返し、渡した値を data.invalidPaths に載せる
+    statement: 'もしパスを渡す入力が相対パスなら、処理を始めずに `ok` が `false`・`exitCode` 2 の失敗を返し、渡した値を `data.invalidPaths` に載せます'
   - id: PV-COMMON-04
     pattern: event
-    statement: Windows 形式のパスを渡すと、/mnt/<ドライブ>/ の下か WSL 内の絶対パスに変換して処理する
+    statement: 'Windows 形式のパスを渡すと、`/mnt/<ドライブ>/` の下か WSL の中の絶対パスに変換して処理します'
   - id: PV-COMMON-05
     pattern: unwanted
-    statement: もし Windows 形式のパスを POSIX の絶対パスに変換できないなら、処理を始めず ok が false・exitCode 2 の失敗を返す
+    statement: 'もし Windows 形式のパスを POSIX の絶対パスに変換できないなら、処理を始めずに `ok` が `false`・`exitCode` 2 の失敗を返します'
   - id: PV-COMMON-06
     pattern: ubiquitous
-    statement: 常に、応答の structuredContent と同じ内容の JSON を content のテキストにも載せる
+    statement: '常に、応答の `structuredContent` と同じ内容の JSON を、`content` のテキストにも載せます'
   - id: PV-COMMON-07
     pattern: unwanted
-    statement: もし ok が false なら、応答の isError を真にする
+    statement: 'もし `ok` が `false` なら、応答の `isError` を真にします'
   - id: PV-COMMON-08
     pattern: event
-    statement: 呼び出しが同時に届くと、1 件ずつ到着順に実行する
+    statement: '呼び出しが同時に届くと、1 件ずつ到着順に実行します'
   - id: PV-COMMON-09
     pattern: event
-    statement: progressToken を付けて呼ぶと、キューでの待機中と実行中の 10 秒ごとに progress 通知を送る
+    statement: '`progressToken` を付けて呼ぶと、キューでの待機中と実行中の 10 秒ごとに progress 通知を送ります'
   - id: PV-COMMON-10
     pattern: unwanted
-    statement: もしクライアントが呼び出しを取り消したなら、取り消した呼び出しへの progress 通知を止める
+    statement: 'もしクライアントが呼び出しを取り消したなら、取り消した呼び出しへの progress 通知を止めます'
   - id: PV-COMMON-11
     pattern: unwanted
-    statement: もし捕捉した stdout または stderr が 64 KiB を超えたなら、先頭を捨てて末尾の 64 KiB を残し、先頭に切り詰めを示す行を付ける
+    statement: 'もし捕捉した stdout または stderr が 64 KiB を超えたなら、先頭を捨てて末尾の 64 KiB を残し、先頭に切り詰めを示す行を付けます'
   - id: PV-COMMON-12
     pattern: event
-    statement: 呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応える
+    statement: '呼び出しが失敗した後に次の呼び出しが来ると、同じ接続でその呼び出しに応えます'
   - id: PV-COMMON-13
     pattern: unwanted
-    statement: もし公開していないツール名で呼ばれたなら、JSON-RPC エラー -32602 を返す
+    statement: 'もし公開していないツール名で呼ばれたなら、JSON-RPC エラー -32602 を返します'
   - id: PV-COMMON-14
     pattern: unwanted
-    statement: もしハンドラの中で捕捉されない例外が起きたなら、その呼び出しだけを失敗させ、サーバは次の呼び出しを受け付ける
+    statement: 'もしハンドラの中で捕捉されない例外が起きたなら、その呼び出しだけを失敗させ、サーバは次の呼び出しを受け付けます'
