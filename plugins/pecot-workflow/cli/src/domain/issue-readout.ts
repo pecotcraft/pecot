@@ -75,6 +75,10 @@ export interface IssueReadout {
 
 export interface TargetIssueReadout extends IssueReadout {
   readonly body: string
+  /**
+  親の Issue（sub-issue の親）。親が無い、または応答に無ければ null
+  */
+  readonly parent: { readonly repository: RepositoryReference, readonly number: number } | null
 }
 
 /**

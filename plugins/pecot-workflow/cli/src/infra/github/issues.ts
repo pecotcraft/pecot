@@ -3,11 +3,11 @@
 
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
-import type { IssuePrerequisitesReadout, PrerequisiteFieldNames } from '../../domain/issue-readout.js'
+import type { IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { GraphqlOutcome } from './client.js'
-import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
+import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError } from './errors.js'
 import { asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_BLOCKED_BY,
@@ -102,7 +102,7 @@ const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support
 // blockedBy・addBlockedBy・removeBlockedBy・issueType に対応しない GHES（3.19 より前）が返すスキーマの失敗なら、分かる失敗に替える
 function asDependenciesError(error: unknown): unknown {
   const isSchemaError = error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
-  return isSchemaError && /blockedBy|issueType/iu.test(error.message) ? new GitHubAPIError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
+  return isSchemaError && /blockedBy|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
 }
 
 // 部分エラーのうち、対象の Issue の blockedBy の下のもの
@@ -121,6 +121,17 @@ function issueNode(result: JsonObject, owner: string, repository: string, number
   const issue = jsonField(repositoryNode, 'issue')
   if (!isTruthy(issue)) throw new GitHubNotFoundError(`Issue not found: ${owner}/${repository}/${String(number)}`)
   return requireValue(issue, 'issue')
+}
+
+// 対象の Issue の親の参照。親が無い、またはリポジトリが読めない応答なら null
+function readParentReference(issue: JsonValue): TargetIssueReadout['parent'] {
+  const parent = jsonField(issue, 'parent')
+  if (!isTruthy(parent)) return JSON_NULL
+  const repository = jsonField(parent, 'repository')
+  const owner = stringOrNull(jsonField(jsonField(repository, 'owner'), 'login'))
+  const name = stringOrNull(jsonField(repository, 'name'))
+  const number = jsonField(parent, 'number')
+  return owner === JSON_NULL || name === JSON_NULL || typeof number !== 'number' ? JSON_NULL : { repository: { owner, repository: name }, number }
 }
 
 function formatParent(parent: JsonValue | undefined): IssueParent | null {
@@ -275,7 +286,7 @@ export class IssuesApi extends ProjectsApi {
     const issue = issueNode(data, owner, repository, number)
     const messages = errors.map(error => stringOrEmpty(jsonField(error, 'message')))
     return {
-      issue: { ...readIssue(issue, projectId, fieldNames), body: requireString(jsonField(issue, 'body'), 'issue.body') },
+      issue: { ...readIssue(issue, projectId, fieldNames), body: requireString(jsonField(issue, 'body'), 'issue.body'), parent: readParentReference(issue) },
       blockedBy: readBlockedBy(issue, projectId, fieldNames, messages),
     }
   }

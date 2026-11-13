@@ -882,6 +882,15 @@ export const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: Str
     issue(number: $number) {
       ...PrerequisiteIssueFields
       body
+      parent {
+        number
+        repository {
+          owner {
+            login
+          }
+          name
+        }
+      }
       blockedBy(first: 50) {
         totalCount
         nodes {

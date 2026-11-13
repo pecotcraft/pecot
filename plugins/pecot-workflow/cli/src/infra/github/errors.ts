@@ -47,6 +47,11 @@ export class GitHubNotFoundError extends GitHubAPIError {}
 export class GitHubRateLimitError extends GitHubAPIError {}
 
 /**
+Issue の依存関係（blockedBy など）に対応しない GHES（3.19 より前）のエラー。スキーマの失敗を、ほかの GitHubAPIError と見分けるために使う
+*/
+export class DependenciesUnsupportedError extends GitHubAPIError {}
+
+/**
 このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす
 */
 export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
