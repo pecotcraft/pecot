@@ -1,7 +1,7 @@
 // ProjectsApi のテスト。GitHub は偽サーバ（tests/fake-github）にする。
 // 対応する Python のテストは cli/tests/core/test_github.py（対応表は .pecot/work/1315/test-map-D2.md）。
 // user のクエリが失敗したら organization を試す流れは、GitHub が返す失敗（errors を 200 で返す）で確かめる。
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { JSON_NULL } from '../../../domain/json-null.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
@@ -94,6 +94,22 @@ describe('listProjectItems', () => {
     const { client, server } = await startClient([graphqlData('ListProjectItems', page(items, false, JSON_NULL))])
     const result = await client.listProjectItems('PVT', { excludeArchived: true, workflowFieldName: 'pecot-workflow' })
     expect(result.map(item => item['id'])).toEqual(['mid'])
+    expect(graphqlRequests(server)).toHaveLength(1)
+  })
+})
+
+describe('listProjectItems の古い GHES への読み直し', () => {
+  it.for(['Field \'blockedBy\' doesn\'t exist on type \'Issue\'', 'Cannot query field "parent" on type "Issue"'])('着手の判定のフィールド（%s）のスキーマの失敗は、足す前のクエリで先頭から読み直す', async (message) => {
+    const { client, server } = await startClient([graphqlError('ListProjectItems', message), graphqlData('ListProjectItemsLegacy', page([{ id: 'a' }], false, JSON_NULL))])
+    const onLegacy = vi.fn()
+    expect(await client.listProjectItems('PVT', { onLegacy })).toEqual([{ id: 'a' }])
+    expect(onLegacy).toHaveBeenCalledTimes(1)
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['ListProjectItems', 'ListProjectItemsLegacy'])
+  })
+
+  it('フィールド名でないところに parent を含むスキーマの失敗は、読み直さずに投げる', async () => {
+    const { client, server } = await startClient([graphqlError('ListProjectItems', 'Field \'labels\' doesn\'t exist on type \'Issue\' (parent query)')])
+    expect(await rejection(client.listProjectItems('PVT'))).toBeInstanceOf(GitHubAPIError)
     expect(graphqlRequests(server)).toHaveLength(1)
   })
 })

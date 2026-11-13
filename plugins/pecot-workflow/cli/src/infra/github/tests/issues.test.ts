@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { JSON_NULL } from '../../../domain/json-null.js'
-import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError } from '../errors.js'
+import { DependenciesUnsupportedError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError } from '../errors.js'
 import type { ResponseRule } from '../../../../tests/fake-github/server.js'
 import type { GitHubClient } from '../index.js'
 import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
@@ -267,6 +267,27 @@ describe('getIssueSlim', () => {
     expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([{ owner: 'owner', repo: 'repo', number: 460, commentLimit: 20 }])
   })
 
+  it('前提の件数（blockedBy.totalCount）を blockedByCount で返す', async () => {
+    const { client } = await startClient([graphqlData('GetIssueSlim', { repository: { issue: { ...response.repository.issue, blockedBy: { totalCount: 3 } } } })])
+    const issue = await client.getIssueSlim('owner', 'repo', 460)
+    expect(issue.blockedByCount).toBe(3)
+  })
+
+  it('blockedBy に対応しない GHES では、件数なしのクエリで読み直し、blockedByCount は undefined', async () => {
+    const { client, server } = await startClient([
+      graphqlError('GetIssueSlim', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\''),
+      graphqlData('GetIssueSlimWithoutBlockedBy', response),
+    ])
+    const issue = await client.getIssueSlim('owner', 'repo', 460)
+    expect(issue.blockedByCount).toBeUndefined()
+    expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetIssueSlim', 'GetIssueSlimWithoutBlockedBy'])
+  })
+
+  it('blockedBy と関係の無いスキーマの失敗は、読み直さずに投げる', async () => {
+    const { client } = await startClient([graphqlError('GetIssueSlim', 'Field \'linkedBranches\' doesn\'t exist on type \'Issue\'')])
+    expect(await rejection(client.getIssueSlim('owner', 'repo', 460))).toBeInstanceOf(GitHubAPIError)
+  })
+
   it('親・サブ Issue・timelineItems が無い Issue は、空の子要素を持つ形で返す', async () => {
     const { client } = await startClient([graphqlData('GetIssueSlim', {
       repository: { issue: {
@@ -455,10 +476,10 @@ function prerequisiteIssue(number: number, overrides: Readonly<Record<string, un
 }
 
 function target(overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
-  return { ...prerequisiteIssue(10), body: '本文', blockedBy: { totalCount: 0, nodes: [] }, ...overrides }
+  return { ...prerequisiteIssue(10), body: '本文', parent: JSON_NULL, blockedBy: { totalCount: 0, nodes: [] }, ...overrides }
 }
 
-const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, columnFieldName: FIELDS.columnFieldName, labelFieldName: FIELDS.labelFieldName }
+const prerequisitesVariables = { owner: 'owner', repo: 'repo', number: 10, columnFieldName: FIELDS.columnFieldName, labelFieldName: FIELDS.labelFieldName, blockedByFirst: 50 }
 
 const blockedByCases: readonly Readonly<{ method: 'addBlockedBy' | 'removeBlockedBy', operation: string }>[] = [
   { method: 'addBlockedBy', operation: 'AddBlockedBy' },
@@ -487,7 +508,7 @@ describe('addBlockedBy・removeBlockedBy', () => {
     const field = method
     const { client } = await startClient([graphqlError(operation, `Field '${field}' doesn't exist on type 'Mutation'`)])
     const error = await rejection(method === 'addBlockedBy' ? client.addBlockedBy('I_10', 'I_9') : client.removeBlockedBy('I_10', 'I_9'))
-    expect(error).toMatchObject(failure(GitHubAPIError, 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'))
+    expect(error).toMatchObject(failure(DependenciesUnsupportedError, 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'))
   })
 })
 
@@ -531,6 +552,16 @@ const timelineCases: readonly Readonly<{ name: string, events: readonly unknown[
 ]
 
 describe('getIssuePrerequisites', () => {
+  it('親の Issue があれば、親のリポジトリと番号を読む', async () => {
+    const result = await readWith(target({ parent: { number: 353, repository: { owner: { login: 'parent-owner' }, name: 'parent-repo' } } }))
+    expect(result.issue.parent).toEqual({ repository: { owner: 'parent-owner', repository: 'parent-repo' }, number: 353 })
+  })
+
+  it('親が null なら parent は null', async () => {
+    const result = await readWith(target({ parent: JSON_NULL }))
+    expect(result.issue.parent).toBe(JSON_NULL)
+  })
+
   it('対象の Issue と blockedBy を読み、ボードの値は projectId のものだけにする', async () => {
     const blocking = prerequisiteIssue(9, {
       state: 'CLOSED',
@@ -549,6 +580,7 @@ describe('getIssuePrerequisites', () => {
       state: 'OPEN',
       title: 'Issue 10',
       body: '本文',
+      parent: JSON_NULL,
       issueType: 'Task',
       subIssuesTotal: 0,
       projectFieldValues: [],
@@ -575,6 +607,14 @@ describe('getIssuePrerequisites', () => {
         timelinePullRequests: [],
       }],
     })
+  })
+
+  it('blockedBy の件数を渡すと、その件数で読む', async () => {
+    const { client, server } = await startClient([
+      graphqlData('GetIssuePrerequisites', { repository: { issue: target({ blockedBy: { totalCount: 0, nodes: [] } }) } }),
+    ])
+    await client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS, 3)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssuePrerequisites', variables: { ...prerequisitesVariables, blockedByFirst: 3 } }])
   })
 
   it('PR を 3 つの読み口から読む', async () => {
@@ -711,7 +751,7 @@ describe('getIssuePrerequisites', () => {
 
     it.for(['Field \'blockedBy\' doesn\'t exist on type \'Issue\'', 'Cannot query field \'issueType\' on type \'Issue\''])('スキーマの失敗（%s）は、3.19 以上が要ると伝える。読み直しはしない', async (message) => {
       const { client, server } = await startClient([graphqlError('GetIssuePrerequisites', message)])
-      expect(await readError(client)).toMatchObject(failure(GitHubAPIError, unsupported))
+      expect(await readError(client)).toMatchObject(failure(DependenciesUnsupportedError, unsupported))
       expect(graphqlRequests(server)).toHaveLength(1)
     })
   })
@@ -720,6 +760,7 @@ describe('getIssuePrerequisites', () => {
     const { client, server } = await startClient([graphqlError('GetIssuePrerequisites', 'Something else broke')])
     const error = await readError(client)
     expect(error).toBeInstanceOf(GitHubAPIError)
+    expect(error).not.toBeInstanceOf(DependenciesUnsupportedError)
     expect(error instanceof Error ? error.message : '').toContain('Something else broke')
     expect(graphqlRequests(server)).toHaveLength(1)
   })

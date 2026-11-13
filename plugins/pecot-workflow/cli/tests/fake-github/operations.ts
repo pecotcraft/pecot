@@ -6,6 +6,8 @@ import { parseOperation } from './identify.js'
 const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['node.items{nodes,pageInfo}|cursor,projectId', 'ListProjectItems'],
   ['node.items{nodes,pageInfo}|cursor,filterQuery,projectId', 'ListProjectItemsFiltered'],
+  // 構造は ListProjectItems と同じなので、query に書いた名前で引く。識別子は重ならない印を付ける
+  ['node.items{nodes,pageInfo}|cursor,projectId#named', 'ListProjectItemsLegacy'],
   ['repository.issue{id,title}|number,owner,repo', 'GetIssueNodeId'],
   ['user.projectV2.repositories.nodes{owner,name}|owner,projectNumber', 'GetLinkedRepositoriesUser'],
   ['organization.projectV2.repositories.nodes{owner,name}|owner,projectNumber', 'GetLinkedRepositoriesOrg'],
@@ -30,14 +32,16 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['createProjectV2.projectV2{id,number,title,url}|ownerId,title', 'CreateProject'],
   ['repository.issue{number,state,issueType,subIssues}|number,owner,repo', 'GetIssueKind'],
   ['repository.issue{number,state,subIssues}|number,owner,repo', 'GetIssueKindPhase1'],
-  ['repository.issue{number,state,title,body,comments,parent,subIssues,linkedBranches,timelineItems}|commentLimit,number,owner,repo', 'GetIssueSlim'],
+  ['repository.issue{number,state,title,body,comments,parent,subIssues,linkedBranches,timelineItems,blockedBy}|commentLimit,number,owner,repo', 'GetIssueSlim'],
+  // 構造は GetIssueSlim から blockedBy を除いたもの。query に書いた名前で引く。識別子は重ならない
+  ['repository.issue{number,state,title,body,comments,parent,subIssues,linkedBranches,timelineItems}|commentLimit,number,owner,repo#named', 'GetIssueSlimWithoutBlockedBy'],
   ['repository.issue.subIssues{nodes,pageInfo}|after,number,owner,repo', 'GetSubIssuesPage'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews}|number,owner,repo', 'GetPullRequestSlim'],
   ['repository.pullRequest{number,state,title,body,headRefName,baseRefName,isDraft,mergeable,comments,closingIssuesReferences,reviews,reviewThreads}|number,owner,repo', 'GetPullRequestWithReviews'],
   ['repository.pullRequests{pageInfo,nodes}|after,owner,repo', 'ListOpenPullRequests'],
   ['addBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'AddBlockedBy'],
   ['removeBlockedBy{issue,blockingIssue}|blockingIssueId,issueId', 'RemoveBlockedBy'],
-  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,blockedBy}|columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
+  ['repository.issue{id,number,state,title,repository,issueType,subIssues,projectItems,linkedBranches,closedByPullRequestsReferences,timelineItems,body,parent,blockedBy}|blockedByFirst,columnFieldName,labelFieldName,number,owner,repo', 'GetIssuePrerequisites'],
   ['repository.pullRequests{pageInfo,nodes}|headRefName,owner,repo', 'ListPullRequestsByHead'],
 ]
 

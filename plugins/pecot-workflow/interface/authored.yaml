@@ -1074,14 +1074,16 @@ entries:
     details:
       - Fetches one Issue with a single GraphQL query.
       - Prints the title, state, parent Issue, linked branches, linked PRs, sub-issues, body and comments.
+      - For an Issue with blocked-by, also prints a Blocked by line with each prerequisite and a Readiness line with the judgment.
+      - When the blocked-by cannot be read, prints a warning and the rest of the Issue as before.
       - Shows at most --comment-limit comments, from 0 to 20; 0 hides them.
       - With --json, prints the same data as JSON.
       - The short form N of the reference is completed from the value of pecot --repo, or else from the git remote of the current directory.
     stdin: none
     output:
       format: text
-      description: "Markdown that starts with a ## #<N> <title> heading, followed by the state, the parent, the linked branches, the linked PRs, the sub-issues, the body and the comments. With --json, a JSON object with the same data."
-    diagnostics: default
+      description: "Markdown that starts with a ## #<N> <title> heading, followed by the state, the parent, the Blocked by and Readiness lines, the linked branches, the linked PRs, the sub-issues, the body and the comments. With --json, a JSON object with the same data plus blockedBy and readiness."
+    diagnostics: Warning lines when the Waits for merge section disagrees with the blocked-by or is malformed, and when the blocked-by cannot be read.
     environment: []
     exit_status:
       - code: 0
@@ -1094,7 +1096,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: Reads the Issue, its parent, sub-issues, linked branches, linked PRs and comments.
+        what: Reads the Issue, its parent, sub-issues, linked branches, linked PRs, comments and blocked-by with the state of each prerequisite.
       - target: file
         kind: read
         what: Reads the active config file.
@@ -1149,6 +1151,33 @@ entries:
       - id: PW-ISSUE-READ-13
         pattern: unwanted
         statement: もし GitHub API がエラーを返したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-READ-14
+        pattern: event
+        statement: 前提がある Issue を読むと、Blocked by と Readiness の 2 行を出す
+      - id: PW-ISSUE-READ-15
+        pattern: event
+        statement: 前提が無い Issue を読むと、Blocked by と Readiness の行を出さない
+      - id: PW-ISSUE-READ-16
+        pattern: unwanted
+        statement: もし本文の Waits for merge の節が blocked by と食い違うか読めないなら、warning の行を出して読み続ける
+      - id: PW-ISSUE-READ-17
+        pattern: event
+        statement: --json を付けて打つと、blockedBy と readiness を足す
+      - id: PW-ISSUE-READ-18
+        pattern: unwanted
+        statement: もし前提を読めないなら、warning の行を出し、今までの出力を止めない
+      - id: PW-ISSUE-READ-19
+        pattern: unwanted
+        statement: もし済んでいない前提があり、リポに develop_branch が無いなら、Blocked by の行と unknown の判定を出し、warning の行を出す
+      - id: PW-ISSUE-READ-20
+        pattern: unwanted
+        statement: もし前提の積む先の PR を読めないなら、warning の行を出し、Blocked by の行と unknown の判定を出す
+      - id: PW-ISSUE-READ-21
+        pattern: unwanted
+        statement: もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、warning の行を出し、Blocked by と Readiness の行を省く
+      - id: PW-ISSUE-READ-22
+        pattern: event
+        statement: 前提が 0 件の Issue を読むと、前提を個別に読まず、判定を startable にする
   PW-ISSUE-REOPEN:
     constraints: []
     details:
@@ -1988,11 +2017,15 @@ entries:
       - Narrows the board items to one repository when --repo or the global pecot --repo is given.
       - Deletes Archived items from the board except the 20 most recently updated.
       - An Archived item that cannot be deleted is skipped and the command continues.
+      - Reads the blocked-by of the open Issues in Ready and Blocked, and judges each as startable, stackable or blocked. Issues in Active and In Review are not read.
+      - Only shows the judgment. It never changes the column or the Status of an Issue, even when they do not match the judgment.
+      - An Issue whose prerequisites cannot be read is shown as unknown.
+      - On a GitHub Enterprise Server without Issue dependencies, prints the board without the Readiness column.
     stdin: none
     output:
       format: text
-      description: Markdown with Overview, Registered repositories and Board status sections. With --json, a JSON object with project, repositories (each with dependabot_alerts) and board.
-    diagnostics: A result line on stderr for the deleted Archived items, and a warning line when some of them could not be deleted.
+      description: Markdown with Overview, Registered repositories and Board status sections. The Ready and Blocked tables have a Readiness column, and a Stackable chains section follows when Issues can be stacked. With --json, a JSON object with project, repositories (each with dependabot_alerts) and board, where each item has readiness.
+    diagnostics: A result line on stderr for the deleted Archived items. Warning lines for Archived items that could not be deleted. One warning line when the GitHub Enterprise Server does not support Issue dependencies.
     environment: []
     exit_status:
       - code: 0
@@ -2005,7 +2038,7 @@ entries:
     effects:
       - target: github
         kind: read
-        what: Reads the board items and the Dependabot alert status of each registered repository.
+        what: Reads the board items, the blocked-by of the Ready and Blocked Issues and the Dependabot alert status of each registered repository.
       - target: github
         kind: destructive
         what: Deletes the Archived items beyond the 20 most recently updated from the project board.
@@ -2063,6 +2096,48 @@ entries:
       - id: PW-PROJECT-INFO-13
         pattern: event
         statement: Blocked の項目があると、Blocked の節を Ready の節の上に出す
+      - id: PW-PROJECT-INFO-14
+        pattern: event
+        statement: Ready か Blocked の Issue があると、その表に Readiness の列を出す。判定とずれた列にあっても動かさない
+      - id: PW-PROJECT-INFO-15
+        pattern: event
+        statement: Active か In Review の Issue があると、前提を読まず、Readiness の列も出さない
+      - id: PW-PROJECT-INFO-18
+        pattern: unwanted
+        statement: もし Issue の前提を読めないなら、判定を unknown と出す
+      - id: PW-PROJECT-INFO-20
+        pattern: state
+        statement: 前提の無い Issue だけがボードにある間、判定をすべて startable と出し、列を動かさない
+      - id: PW-PROJECT-INFO-22
+        pattern: event
+        statement: PR のカードか Tracker があると、その前提を読まない
+      - id: PW-PROJECT-INFO-23
+        pattern: event
+        statement: Epic があると、判定を出さず、JSON の readiness を null にする
+      - id: PW-PROJECT-INFO-24
+        pattern: unwanted
+        statement: もし develop_branch の無いリポジトリの Issue に済んでいない前提があるなら、判定を unknown と出す
+      - id: PW-PROJECT-INFO-25
+        pattern: unwanted
+        statement: もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、warning の行を 1 回出し、Readiness の列の無い表を出す
+      - id: PW-PROJECT-INFO-26
+        pattern: event
+        statement: 積める並びがあると、Epic ごとの 1 行で Stackable chains の節に出す
+      - id: PW-PROJECT-INFO-27
+        pattern: event
+        statement: --json を付けて打つと、各 Issue に readiness を足す
+      - id: PW-PROJECT-INFO-28
+        pattern: event
+        statement: 前提が輪になっている Issue があると、判定を cycle の blocked にする
+      - id: PW-PROJECT-INFO-30
+        pattern: event
+        statement: 一覧で前提が 0 件の Issue があると、前提を個別に読まず、一覧の値で判定する
+      - id: PW-PROJECT-INFO-31
+        pattern: event
+        statement: 一覧で前提が 1 件以上の Issue があると、その件数（下限 8、上限 50）で前提を読む
+      - id: PW-PROJECT-INFO-32
+        pattern: event
+        statement: --json を付けて打つと、判定を読めない Issue の readiness の stackOn と reason を null にする
   PW-PROJECT-INIT:
     constraints: []
     details:

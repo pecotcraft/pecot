@@ -7,7 +7,7 @@ import type { LinkedRepository } from '../../domain/config.js'
 import type { FieldOptionInput } from '../../domain/field-options.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import { GitHubAPIError, GitHubNotFoundError } from './errors.js'
+import { GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_TO_PROJECT,
@@ -27,10 +27,14 @@ import {
   QUERY_GET_PROJECT_ID_USER,
   QUERY_GET_USER_NODE_ID,
   QUERY_LIST_PROJECT_ITEMS,
+  QUERY_LIST_PROJECT_ITEMS_LEGACY,
   QUERY_LIST_PROJECTS_ORG,
   QUERY_LIST_PROJECTS_USER,
 } from './queries.js'
 import { ReposApi } from './repos.js'
+
+// 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
+const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u
 
 export interface ListProjectItemsOptions {
   /**
@@ -45,6 +49,10 @@ export interface ListProjectItemsOptions {
   excludeArchived のとき、ステータスを見るフィールド名
   */
   readonly workflowFieldName?: string | undefined
+  /**
+  Issue の依存関係に対応しない GHES で、足したフィールドを除いたクエリで読み直したときに呼ぶ
+  */
+  readonly onLegacy?: (() => void) | undefined
 }
 
 /**
@@ -106,13 +114,27 @@ export class ProjectsApi extends ReposApi {
   プロジェクトボードのアイテムを取得する（ページネーション対応）
   */
   async listProjectItems(projectId: string, options: Readonly<ListProjectItemsOptions> = {}): Promise<readonly JsonObject[]> {
-    const { limit, excludeArchived = false, workflowFieldName = '' } = options
+    const { limit, excludeArchived = false, workflowFieldName = '', onLegacy } = options
+    let query = QUERY_LIST_PROJECT_ITEMS
     let allItems: JsonValue[] = []
     let cursor: string | null = JSON_NULL
     let archivedConsecutive = 0
 
     for (;;) {
-      const result = await this.executeGraphql(QUERY_LIST_PROJECT_ITEMS, { projectId, cursor })
+      let result: JsonObject
+      try {
+        result = await this.executeGraphql(query, { projectId, cursor })
+      }
+      catch (error: unknown) {
+        // 古い GHES は blockedBy などを知らない。足す前のクエリで先頭から読み直す
+        if (query === QUERY_LIST_PROJECT_ITEMS_LEGACY || !isSchemaError(error) || !READINESS_FIELD_ERROR.test(error.message)) throw error
+        query = QUERY_LIST_PROJECT_ITEMS_LEGACY
+        allItems = []
+        cursor = JSON_NULL
+        archivedConsecutive = 0
+        onLegacy?.()
+        continue
+      }
       const node = jsonField(result, 'node')
       if (!isTruthy(node)) break
 

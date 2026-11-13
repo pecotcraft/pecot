@@ -47,6 +47,11 @@ export class GitHubNotFoundError extends GitHubAPIError {}
 export class GitHubRateLimitError extends GitHubAPIError {}
 
 /**
+Issue の依存関係（blockedBy など）に対応しない GHES（3.19 より前）のエラー。スキーマの失敗を、ほかの GitHubAPIError と見分けるために使う
+*/
+export class DependenciesUnsupportedError extends GitHubAPIError {}
+
+/**
 このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす
 */
 export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
@@ -58,4 +63,13 @@ export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolea
 */
 export function isClosedByAnotherRequest(error: Readonly<GitHubAPIError>): boolean {
   return error.statusCode === 422 && error.responseBody?.includes('closed by another request') === true
+}
+
+const SCHEMA_ERROR_PHRASES = ['Cannot query field', 'doesn\'t exist', 'Unknown field']
+
+/**
+古い GHES が、対応しないフィールドに返すスキーマの失敗か
+*/
+export function isSchemaError(error: unknown): error is GitHubAPIError {
+  return error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase))
 }

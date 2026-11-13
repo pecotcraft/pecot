@@ -1,5 +1,5 @@
 {
-  "stdout": "# Project info\n\n## Overview\n- Project: ghes.example.com_acme_board_acme\n- Host: ghes.example.com\n- Owner: acme\n- Roadmap repo: none\n\n## Registered repositories\n- acme/demo (develop: main)\n    release_type: single\n    dependabot_alerts: open 2\n\n## Board status\n\n### Active (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#2 | 作業中の課題 |\n\n### Ready (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#1 | 準備済みの課題 |\n",
+  "stdout": "# Project info\n\n## Overview\n- Project: ghes.example.com_acme_board_acme\n- Host: ghes.example.com\n- Owner: acme\n- Roadmap repo: none\n\n## Registered repositories\n- acme/demo (develop: main)\n    release_type: single\n    dependabot_alerts: open 2\n\n## Board status\n\n### Active (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#2 | 作業中の課題 |\n\n### Ready (1)\n| Ref | Title | Readiness |\n|-----|----------|-----------|\n| acme/demo#1 | 準備済みの課題 | startable |\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -19,6 +19,19 @@
       "query": {
         "per_page": "100",
         "state": "open"
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssuePrerequisites",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 1,
+        "blockedByFirst": 50,
+        "columnFieldName": "pecot-workflow-acme",
+        "labelFieldName": "Status"
       },
       "auth": "token"
     }

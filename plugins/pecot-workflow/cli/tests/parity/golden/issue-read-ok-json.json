@@ -1,5 +1,5 @@
 {
-  "stdout": "{\n  \"number\": 7,\n  \"state\": \"OPEN\",\n  \"title\": \"見本の Issue\",\n  \"body\": \"本文の 1 行目\\n本文の 2 行目\\n\",\n  \"comments\": {\n    \"total_count\": 1,\n    \"nodes\": [\n      {\n        \"author\": \"reviewer\",\n        \"created_at\": \"2026-01-02T03:04:05Z\",\n        \"body\": \"コメントの本文\"\n      }\n    ]\n  },\n  \"parent\": null,\n  \"sub_issues\": [\n    {\n      \"number\": 8,\n      \"state\": \"OPEN\",\n      \"title\": \"子の Issue\"\n    }\n  ],\n  \"linked_branches\": [\n    \"feat/7\"\n  ],\n  \"linked_prs\": [],\n  \"owner\": \"acme\",\n  \"repo\": \"demo\"\n}\n",
+  "stdout": "{\n  \"number\": 7,\n  \"state\": \"OPEN\",\n  \"title\": \"見本の Issue\",\n  \"body\": \"本文の 1 行目\\n本文の 2 行目\\n\",\n  \"comments\": {\n    \"total_count\": 1,\n    \"nodes\": [\n      {\n        \"author\": \"reviewer\",\n        \"created_at\": \"2026-01-02T03:04:05Z\",\n        \"body\": \"コメントの本文\"\n      }\n    ]\n  },\n  \"parent\": null,\n  \"sub_issues\": [\n    {\n      \"number\": 8,\n      \"state\": \"OPEN\",\n      \"title\": \"子の Issue\"\n    }\n  ],\n  \"linked_branches\": [\n    \"feat/7\"\n  ],\n  \"linked_prs\": [],\n  \"owner\": \"acme\",\n  \"repo\": \"demo\",\n  \"blockedBy\": [],\n  \"readiness\": {\n    \"kind\": \"startable\",\n    \"stackOn\": null,\n    \"reason\": null,\n    \"text\": \"startable\"\n  }\n}\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [
@@ -11,6 +11,19 @@
         "repo": "demo",
         "number": 7,
         "commentLimit": 5
+      },
+      "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssuePrerequisites",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7,
+        "blockedByFirst": 50,
+        "columnFieldName": "pecot-workflow-acme",
+        "labelFieldName": "Status"
       },
       "auth": "token"
     }

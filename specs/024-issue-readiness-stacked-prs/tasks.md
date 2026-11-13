@@ -153,39 +153,36 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ---
 
-## Phase 4: User Story 2 — 一覧と Issue の表示に判定が出て、一覧が列を直す (Priority: P1)
+## Phase 4: User Story 2 — 一覧と Issue の表示に判定が出る (Priority: P1)
 
-**Goal**: `pecot project info` が、`Ready` と `Blocked` の Issue に判定と理由を出し、列と札を判定に合わせて直す。`pecot issue read` が、前提の一覧と判定を出す
+**Goal**: `pecot project info` が、`Ready` と `Blocked` の Issue に判定と理由を出す。列と札は直さない。直す役は Phase 13 の Actions のワークフローへ移した。`pecot issue read` が、前提の一覧と判定を出す
 
-**Independent Test**: quickstart.md の 2・8・9・10 を通す。前提の状態が「済んだ」「PR 中」「未着手」の Issue が、順に `startable`・`stackable on`・`blocked by` と出る。手で動かしたカードが、`moved:` の行とともに戻る
+**Independent Test**: quickstart.md の 2・8・9・10 を通す。前提の状態が「済んだ」「PR 中」「未着手」の Issue が、順に `startable`・`stackable on`・`blocked by` と出る。手で動かしたカードを戻す確かめは、Phase 13 に移した
 
-- [ ] T029 [P] [US2] `p-w/cli/src/domain/tests/board-move.test.ts` に、列を直す判断の失敗するテストを書く
+- [x] T029 [P] [US2] `p-w/cli/src/domain/tests/board-move.test.ts` に、列を直す判断の失敗するテストを書く
   - data-model.md の 6 の列の表の 8 行と、札の表の 3 行を、1 行ずつ入力にする
   - `Backlog`・`Pending`・`Archived` の Issue は、どの判定でも動かさない
   - 着手の跡がある Issue は、どの列にあっても、列と札を動かさない（FR-084）。判定が `blocked` のときは、食い違いを返す
   - `Blocked` の値が無いボードでは、動かす先を返さず、足りない値を返す
-- [ ] T030 [US2] `p-w/cli/src/domain/board-move.ts` を足し、T029 を通す
-- [ ] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
-- [ ] T032 [P] [US2] `p-w/cli/tests/interface/project.test.ts` に、`project info` の失敗するテストを書く
+- [x] T030 [US2] `p-w/cli/src/domain/board-move.ts` を足し、T029 を通す
+- [x] T031 [US2] `p-w/cli/src/commands/issue-board.ts` に、判定から列と札を動かす共通の処理を足す（一覧が呼ぶ部分は Phase 13 へ移した）。処理は残し、ほかのコマンドとワークフローが使う。動かしたときは `moved: #N <元> -> <先> (<理由>)` を出す。札は `set: Status of #N to <値>` を出す（FR-079、FR-083）
+- [x] T032 [P] [US2] `p-w/cli/tests/interface/project.test.ts` に、`project info` の失敗するテストを書く
   - `Ready` と `Blocked` の表に `Readiness` の列が出る。形は contracts/cli-commands.md の `pecot project info` のとおりだ
-  - 判定と違う列にある Issue が動き、stderr に `moved:` が出る
-  - 着手の跡が無い `Active` の Issue が、判定に合った列へ戻る
-  - 着手の跡がある Issue は、判定が `blocked` でも列と札が変わらず、`warning:` が出る
-  - 前提がマージされずに閉じられた Issue の札が `Needs Attention` になる
+  - 判定と違う列にある Issue も動かさず、`moved:`・`set:` は出ない（列と札を直すテストは Phase 13 へ移した）
+  - `Active` と `In Review` の Issue の前提は読まない
   - 判定の読み取りに失敗した Issue は `unknown` と出て、列が動かない
-  - `Blocked` の値が無いボードでは、列が動かず、`warning:` に足し方が出る。終了コードは 0 だ
   - 前提の付いていない Issue だけのボードでは、`Readiness` の列がすべて `startable` で、列が動かない
-- [ ] T033 [US2] `p-w/cli/src/commands/project-info.ts` と `p-w/cli/src/commands/project.ts` を直し、T032 を通す
+- [x] T033 [US2] `p-w/cli/src/commands/project-info.ts` と `p-w/cli/src/commands/project.ts` を直し、T032 を通す。列と札を直す部分は外し、Phase 13 へ移した
   - 判定の計算は `mapWithLimit` で並べる
   - 同じ Epic の積める並びを `## Stackable chains` に出す（FR-051）
   - JSON の出力の各 Issue に `readiness` を足す
-- [ ] T034 [P] [US2] `p-w/cli/tests/interface/issue.test.ts` に、`issue read` の失敗するテストを書く。`Blocked by:` と `Readiness:` の 2 行が出る。前提の無い Issue では出ない。本文の節と blocked by が食い違うときに `warning:` が出る
-- [ ] T035 [US2] `p-w/cli/src/commands/issue-read.ts` を直し、T034 を通す。JSON の出力に `blockedBy` と `readiness` を足す
-- [ ] T036 [US2] `project info` と `issue read` の定義書を直す。`p-w/interface/authored.yaml` の `details`・`effects`・振る舞いの項目に、判定の表示と列の移動を書く
-- [ ] T037 [US2] 50 件の `Ready` と `Blocked` を持つボードで `pecot project info` を打ち、判定の分の増加が 5 秒以内であることを測る。超えるときは、前提の読み取りを 1 つのクエリにまとめる
-- [ ] T038 [US2] version plan を `.nx/version-plans/` に足す
+- [x] T034 [P] [US2] `p-w/cli/tests/interface/issue.test.ts` に、`issue read` の失敗するテストを書く。`Blocked by:` と `Readiness:` の 2 行が出る。前提の無い Issue では出ない。本文の節と blocked by が食い違うときに `warning:` が出る
+- [x] T035 [US2] `p-w/cli/src/commands/issue-read.ts` を直し、T034 を通す。JSON の出力に `blockedBy` と `readiness` を足す
+- [x] T036 [US2] `project info` と `issue read` の定義書を直す。`p-w/interface/authored.yaml` の `details`・`effects`・振る舞いの項目に、判定の表示と列の移動を書く
+- [x] T037 [US2] 50 件の `Ready` と `Blocked` を持つボードで `pecot project info` を打ち、判定の分の増加が 5 秒以内であることを測る。超えるときは、前提の読み取りを 1 つのクエリにまとめる
+- [x] T038 [US2] version plan を `.nx/version-plans/` に足す
 
-**Checkpoint**: 画面で付けた blocked by が、一覧の判定とボードの列に出る
+**Checkpoint**: 画面で付けた blocked by が、一覧の判定に出る
 
 ---
 
@@ -423,6 +420,32 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 ---
 
+## Phase 13: 拾えなかったずれを GitHub Actions のワークフローで直す
+
+**Goal**: 画面でのマージ・blocked by の付け外し・手で動かしたカードによる列と札のずれを、ワークフローが直す。一覧を出す操作は、列を直さない
+
+**Independent Test**: quickstart.md の 8・9 を通す。手で動かしたカードと、画面で閉じた前提の Issue が、実行の後は判定に合った列と札になる
+
+- [ ] T103 [P] 列と札を直すコマンドの失敗するテストを書く
+  - `Ready`・`Blocked`・`Active`・`In Review` の Issue の判定を読み、`decideBoardMove` の結果を `applyBoardMove` で書く
+  - 動かした Issue ごとに `moved:`・`set:` の行を出す。書き込みの失敗は `warning:` にして続ける
+  - 着手の跡がある Issue と、人が動かす列の Issue は動かさない（FR-080、FR-084）
+- [ ] T104 列を直すコマンドを足し、T103 を通す。判断は `p-w/cli/src/domain/board-move.ts`、書き込みは `p-w/cli/src/commands/issue-board.ts` の処理を使う（FR-083）
+- [ ] T105 ワークフローの雛形を、配布物の `p-w/cli/templates/` へ足す。契機は `pull_request: closed`・`issues: closed/reopened`・`schedule` とし、T104 のコマンドを打つ
+- [ ] T106 定義書（`p-w/interface/authored.yaml`）に T104 のコマンドを足し、w-help に雛形の使い方を書く
+- [ ] T107 quickstart.md の 8・9 を、ワークフローを動かして通す
+- [ ] T108 version plan を `.nx/version-plans/` に足す
+
+補足は次のとおり。
+
+- ワークフローのトークンは、PAT か GitHub App の secret が要る。標準のトークンは、組織のボードに書けない
+- blocked by の付け外し（`issue_dependencies`）が、Actions の契機になるかは未確認だ。ならなければ、`schedule` で拾う
+- カードの移動（`projects_v2_item`）は Actions の契機に無いので、`schedule` で拾う
+
+**Checkpoint**: 拾えなかったずれの列と札が、ワークフローの実行の後に判定へ合う
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -444,6 +467,7 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 | 12 | 9 | マージを待つ | 同上 |
 | 12 | 10 | マージを待つ | 同上 |
 | 12 | 11 | マージを待つ | 同上 |
+| 13 | 4 | 積める | 列を直すコマンドが、判定の関数と列を直す処理を使う |
 
 Phase 3 の T027 は、このリポのボードに値を足す。値の無いボードでも動くので、ほかのフェーズはこれを待たない。
 Phase 9 の hook の案内は `pecot pr restack` の名前を出す。コマンドは Phase 10 で入るが、案内の文だけなので Phase 9 は Phase 10 を待たない。
@@ -512,6 +536,7 @@ Phase 1〜5 で、tasks.md の前提の表から、blocked by の付いた Issue
 | 6 | Phase 6 | 計画が変わったときに、前提を直せる |
 | 7 | Phase 11 | 前提の読み違いが、表の形で防がれる |
 | 8 | Phase 12 | このリポの運用に使い始められる |
+| 9 | Phase 13 | 拾えなかったずれの列と札が、Actions のワークフローで直る |
 
 ### 人の作業が要るところ
 

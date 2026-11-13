@@ -5,7 +5,7 @@ import type { IssuePrerequisitesReadout, IssueReadout, PullRequestReadout } from
 import type { WaitsForMergeReadout } from './prerequisites.js'
 import { issueReferenceKey } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'
-import { isSameRepository } from './repository-resolver.js'
+import { isSameRepository, repositoryFullName } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
 
 export type Wait = 'stack' | 'merge'
@@ -326,6 +326,116 @@ export function stackChains(progressions: ReadonlyMap<string, Progression>): rea
     return next.length === 0 ? [path] : next.flatMap(child => walk(child, [...path, child]))
   }
   return roots.flatMap(root => walk(root, [root]))
+}
+
+/**
+target から前提をたどって届く部分のグラフに findCycle をかけ、輪が target を含むときだけ返す。
+別の Issue の輪に行き当たっただけの Issue には、輪を付けない
+*/
+export function cycleThrough(target: string, edges: ReadonlyMap<string, readonly string[]>): readonly string[] | undefined {
+  const reached = new Set([target])
+  const pending = [target]
+  for (let key = pending.pop(); key !== undefined; key = pending.pop()) {
+    const nextKeys = edges.get(key) ?? []
+    for (const next of nextKeys) {
+      if (reached.has(next)) continue
+      reached.add(next)
+      pending.push(next)
+    }
+  }
+  const subgraph = new Map([...reached].map(key => [key, edges.get(key) ?? []]))
+  const cycle = findCycle(subgraph)
+  return cycle?.includes(target) === true ? cycle : undefined
+}
+
+/**
+判定の一覧（Issue のキー → 判定）から、stackChains に渡す進め方を作る。
+stackable は積む先の Issue の上に積み、それ以外は単独として扱う
+*/
+export function progressionsFromReadiness(readiness: ReadonlyMap<string, Readiness>): ReadonlyMap<string, Progression> {
+  return new Map([...readiness].map(([key, judged]): [string, Progression] => [
+    key,
+    judged.kind === 'stackable' && judged.stackOn !== undefined
+      ? { kind: 'stack', on: issueReferenceKey(judged.stackOn.issue) }
+      : { kind: 'alone' },
+  ]))
+}
+
+/**
+メッセージに出す Issue の表記。home と同じリポジトリは `#N`、別のリポジトリは `owner/repo#N`。home が無ければ常に `owner/repo#N`
+*/
+export function displayReference(reference: IssueReference, home?: RepositoryReference): string {
+  const number = `#${String(reference.number)}`
+  return home !== undefined && isSameRepository(reference.repository, home) ? number : `${repositoryFullName(reference.repository)}${number}`
+}
+
+const NOT_IN_REVIEW_TEXT: ReadonlyMap<NotInReviewState, string> = new Map([
+  ['not-started', 'not started'],
+  ['started-without-pr', 'no PR'],
+  ['multiple-prs', 'multiple PRs'],
+  ['fork-pr', 'PR from fork'],
+  ['pending', 'in Pending'],
+])
+
+/**
+前提 1 件の状態の文。`done`・`closed without merge`・`in review`・`wait: merge — <理由>`、または積めない理由（not started など）
+*/
+export function describePrerequisiteState(prerequisite: Readonly<Prerequisite>): string {
+  const { issue, wait, reason } = prerequisite
+  if (isDone(issue)) return 'done'
+  if (issue.state === 'closed') return 'closed without merge'
+  if (wait === 'merge') return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`
+  const state = notInReviewState(issue)
+  return isStackable(issue) ? 'in review' : (NOT_IN_REVIEW_TEXT.get(state) ?? state)
+}
+
+function describeReason(reason: ReadinessReason, targetRepository: RepositoryReference): string {
+  const show = (reference: IssueReference): string => displayReference(reference, targetRepository)
+  switch (reason.code) {
+    case 'unreadable': {
+      return 'unreadable'
+    }
+    case 'waits-merge': {
+      return 'waits for merge'
+    }
+    case 'diverged': {
+      return 'not in one chain'
+    }
+    case 'closed-unmerged': {
+      return `closed without merge: ${reason.issues.map(issue => show(issue)).join(', ')}`
+    }
+    case 'other-repository': {
+      return `other repository: ${reason.issues.map(issue => show(issue)).join(', ')}`
+    }
+    case 'not-in-review': {
+      return `not in review: ${reason.issues.map(({ issue, state }) => `${show(issue)} (${NOT_IN_REVIEW_TEXT.get(state) ?? state})`).join(', ')}`
+    }
+    case 'cycle': {
+      const prefix = `${repositoryFullName(targetRepository).toLowerCase()}#`
+      return `cycle: ${reason.cycle.map(key => (key.startsWith(prefix) ? `#${key.slice(prefix.length)}` : key)).join(' -> ')}`
+    }
+  }
+}
+
+/**
+判定を 1 行の文にする。`startable`・`stackable on #N`・`blocked by #N, #M (<理由>)`。
+blocked by の後には、済んでいない前提をすべて並べる。別のリポジトリの Issue は `owner/repo#N`
+*/
+export function describeReadiness(readiness: Readiness, prerequisites: readonly Prerequisite[], targetRepository: RepositoryReference): string {
+  if (readiness.kind === 'startable') return 'startable'
+  if (readiness.kind === 'stackable') {
+    return readiness.stackOn === undefined ? 'stackable' : `stackable on ${displayReference(readiness.stackOn.issue, targetRepository)}`
+  }
+  const unfinished = prerequisites.filter(({ issue }) => !isDone(issue)).map(({ issue }) => displayReference(issue.ref, targetRepository))
+  const reason = readiness.reason === undefined ? '' : ` (${describeReason(readiness.reason, targetRepository)})`
+  return `blocked${unfinished.length === 0 ? '' : ` by ${unfinished.join(', ')}`}${reason}`
+}
+
+/**
+読めなかった Issue の表示。列と札は動かさない
+*/
+export function describeUnknown(reason: string): string {
+  return `unknown (${reason})`
 }
 
 export interface FactsMismatch {

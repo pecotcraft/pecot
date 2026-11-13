@@ -3,8 +3,8 @@ import { effectiveReleaseType, workflowFieldName } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'
 import type { DependabotAlertStatus } from '../domain/dependabot.js'
-import { formatItemsJson, transformItems } from '../domain/format.js'
-import type { BoardItem } from '../domain/format.js'
+import { formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
+import type { BoardItem, BoardProgress } from '../domain/format.js'
 import type { JsonObject } from '../domain/json.js'
 import { JSON_NULL } from '../domain/json-null.js'
 import { compareStrings } from '../domain/python-format.js'
@@ -12,6 +12,7 @@ import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import type { Output } from './output.js'
+import { STATUS_FIELD_NAME } from './project-sync.js'
 
 /**
 Archived のうち、ボードに残す件数
@@ -118,9 +119,14 @@ export interface InfoView {
 }
 
 /**
+アイテムの JSON の readiness を引く。判定の無いアイテムは null
+*/
+export type ReadinessSource = (item: BoardItem) => JsonObject | typeof JSON_NULL
+
+/**
 info --json の出力
 */
-export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[]): string {
+export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[], readiness?: ReadinessSource): string {
   const { config, projectName, statuses } = view
   const output = {
     project: {
@@ -138,7 +144,7 @@ export function infoJson(view: Readonly<InfoView>, items: readonly BoardItem[]):
       release_branch: entry.release_branch ?? JSON_NULL,
       dependabot_alerts: alertsJson(statusAt(statuses, index)),
     })),
-    board: formatItemsJson(items),
+    board: readiness === undefined ? formatItemsJson(items) : { items: items.map(item => ({ ...item, readiness: readiness(item) })) },
   }
   return JSON.stringify(output, undefined, 2)
 }
@@ -170,7 +176,7 @@ function repositoryLines(view: Readonly<InfoView>): readonly string[] {
 /**
 info の Markdown の出力
 */
-export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: string | undefined, boardOutput: string): string {
+export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string): string {
   const { config, projectName } = view
   const aggregation = config.aggregation_repo === undefined || config.aggregation_repo === '' ? 'none' : `\`${config.aggregation_repo}\``
   return [
@@ -187,6 +193,7 @@ export function infoMarkdown(view: Readonly<InfoView>, effectiveRepository: stri
     effectiveRepository === undefined || effectiveRepository === '' ? '## Board status' : `## Board status (filter: ${effectiveRepository})`,
     '',
     boardOutput,
+    ...(chainsSection === undefined ? [] : ['', chainsSection]),
   ].join('\n')
 }
 
@@ -196,6 +203,14 @@ export interface BoardRead {
   表示するアイテム（OPEN の Backlog・Pending・Blocked・Ready・Active・In Review。リポジトリの指定があれば絞る）
   */
   readonly items: readonly BoardItem[]
+  /**
+  boardItemKey → 着手の判定の軽い入力。前提の無い Issue の個別の読み取りを省く
+  */
+  readonly progress: ReadonlyMap<string, BoardProgress>
+  /**
+  一覧を足す前のクエリで読み直した（Issue の依存関係に対応しない GHES）
+  */
+  readonly isLegacy: boolean
 }
 
 /**
@@ -203,9 +218,12 @@ export interface BoardRead {
 */
 export async function readBoard(client: Readonly<GitHubClient>, config: ProjectConfig, effectiveRepository: string | undefined): Promise<BoardRead> {
   const fieldName = workflowFieldName(config)
-  const rawItems = await client.listProjectItems(config.project.id, { workflowFieldName: fieldName })
+  const state = { isLegacy: false }
+  const rawItems = await client.listProjectItems(config.project.id, { workflowFieldName: fieldName, onLegacy: () => {
+    state.isLegacy = true
+  } })
   const allItems = transformItems(rawItems, fieldName)
   const open = allItems.filter(item => item.content.state === 'OPEN' && typeof item.workflow === 'string' && DISPLAY_STATUSES.has(item.workflow))
   const items = effectiveRepository === undefined || effectiveRepository === '' ? open : open.filter(item => item.content.repository === effectiveRepository)
-  return { allItems, items }
+  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy }
 }

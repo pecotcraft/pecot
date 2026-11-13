@@ -10,7 +10,7 @@ pecot-workflow に、Issue の前後関係を GitHub の blocked by で持たせ
 判定は 3 つある。着手できる、積めば着手できる、ブロック中だ。
 判定の規則は domain の純粋な関数に置く。一覧・着手・PR の作成・マージの片付けが、同じ関数を使う。
 ボードの進行の欄に `Blocked` の列を足す。`Ready` の列は、今着手できる Issue だけにする。
-列は判定の写しで、pecot の操作と一覧を出す操作が動かす。着手の操作は列を読まない。
+列は判定の写しで、pecot の操作と Actions のワークフローが動かす。一覧を出す操作は動かさない。着手の操作は列を読まない。
 前提が PR 中の Issue は、前提のブランチを base にして着手する。PR は GitHub のスタックとして登録する。
 スタックの登録とマージは、GitHub の REST の API を直接呼ぶ。`gh stack` 拡張には依存しない。
 前提には種類がある。積める前提と、マージを待つ前提だ。種類は tasks.md の前提の表で決め、マージを待つ前提だけを Issue の本文に残す。
@@ -26,7 +26,7 @@ w-breakdown が前提の表を書かせ、w-issueize がそれを blocked by に
 | Testing | vitest（単体と `tests/interface/`）、偽の GitHub サーバ（`tests/fake-github/`）、スキルの文書のテスト、このリポでの CUJ |
 | Target Platform | 利用者の端末（Claude Code と GitHub Copilot CLI） |
 | Project Type | 配布するプラグイン（CLI・スキル・テンプレート・hooks） |
-| Performance Goals | `pecot project info` は、Ready と Blocked が合わせて 50 件のボードで、判定の分の増加を 5 秒以内に収める |
+| Performance Goals | `pecot project info` は、Ready と Blocked が合わせて 50 件のボードで、判定の分の増加を 5 秒以内に収める。GraphQL の点数は 1 回あたり 60 点以下にする（前提の無い Issue は個別に読まない）。この点数は、一覧が 1 ページで、前提が 8 件以下の Issue を 1 件 1 点で数えた値だ。前提が 9 件以上の Issue と、積む先の PR を base からたどる読み取りは、この外にある |
 
 **Constraints**:
 
@@ -112,7 +112,7 @@ plugins/pecot-workflow/
 │   │       ├── issue-board.ts          # 列を動かす共通の処理
 │   │       ├── repository.ts           # create-branch が判定で base を選ぶ
 │   │       ├── pr.ts                   # create・cleanup の変更、merge・restack の追加
-│   │       ├── project.ts              # init が値を足す、info が列を直す
+│   │       ├── project.ts              # init が値を足す、info が判定を表示する
 │   │       ├── project-info.ts         # 判定の計算と表示
 │   │       ├── project-sync.ts         # 値の定義と、足りない値の扱い
 │   │       └── session.ts              # status にスタックの位置
@@ -150,7 +150,7 @@ specs/023-label-triggered-autofix/      # 待ちの値の名前だけを直す
 | 1 | 書き込まないと確かめられない点を、検証用のリポで確かめる（[research.md](research.md) の R14） | — |
 | 2 | 前提の読み書きと、着手の判定の関数 | FR-010〜FR-015、FR-059〜FR-061、FR-063 |
 | 3 | ボードの値の追加と、列の定義の文書。`project init` の拡張 | FR-064〜FR-067、FR-071〜FR-075、FR-082 |
-| 4 | 一覧と個別の表示に判定を出す。一覧が列を直す | US2、FR-016、FR-017、FR-069、FR-070、FR-078〜FR-081、FR-083、FR-084 |
+| 4 | 一覧と個別の表示に判定を出す。一覧は列を直さない | US2、FR-016、FR-017、FR-069、FR-070、FR-078〜FR-081、FR-083、FR-084 |
 | 5 | 一括投稿が前提を付ける。進め方と通し番号。テンプレートと w-issueize | US1、FR-001〜FR-006、FR-018、FR-043、FR-046〜FR-051、FR-055〜FR-058 |
 | 6 | 前提の付け外しと種類の変更 | US7、US9、FR-007〜FR-009、FR-062 |
 | 7 | 着手が判定で base を選ぶ。w-active | US3、FR-019〜FR-024 |

@@ -44,6 +44,26 @@ export interface BoardItem {
   }
 }
 
+/**
+一覧の応答から読む、着手の判定の軽い入力。JSON の出力には出さない
+*/
+export interface BoardProgress {
+  readonly issueType: string | undefined
+  readonly subIssues: number
+  /**
+  親の Issue。無ければ undefined
+  */
+  readonly parent: { readonly repository: string, readonly number: number } | undefined
+  /**
+  前提の件数。応答に無ければ undefined
+  */
+  readonly blockedBy: number | undefined
+  /**
+  Status の値（札）
+  */
+  readonly label: string | undefined
+}
+
 // 辞書の値を取る（辞書でなければ undefined）。null は無いものとして扱う
 function member(value: JsonValue | undefined, key: string): JsonValue | undefined {
   return jsonField(value, key) ?? undefined
@@ -139,12 +159,47 @@ export function transformItems(rawItems: readonly JsonObject[], workflowFieldNam
   return transformed
 }
 
+function countMember(value: JsonValue | undefined, key: string): number | undefined {
+  const found = member(member(value, key), 'totalCount')
+  return typeof found === 'number' ? found : undefined
+}
+
+function parentOf(content: JsonValue | undefined): BoardProgress['parent'] {
+  const parent = member(content, 'parent')
+  const repository = extractRepository(parent)
+  const number = member(parent, 'number')
+  return repository === '' || typeof number !== 'number' ? undefined : { repository, number }
+}
+
 /**
-1 アイテムを Markdown 表の行 `| Ref | Title |` にする。
+一覧の応答から、Issue ごとの着手の判定の入力を取る。キーは boardItemKey と同じ。Issue 以外と、番号の無いものは含めない
+*/
+export function readBoardProgress(rawItems: readonly JsonObject[], labelFieldName: string): ReadonlyMap<string, BoardProgress> {
+  const progress = new Map<string, BoardProgress>()
+  for (const item of rawItems) {
+    const content = member(item, 'content')
+    if (isEmptyValue(content) || member(content, 'blockedBy') === undefined) continue
+    const key = boardItemKey({ content: { number: member(content, 'number'), repository: extractRepository(content) } })
+    if (key === undefined) continue
+    const issueType = member(member(content, 'issueType'), 'name')
+    const blockedBy = member(member(content, 'blockedBy'), 'totalCount')
+    progress.set(key, {
+      issueType: typeof issueType === 'string' ? issueType : undefined,
+      subIssues: countMember(content, 'subIssues') ?? 0,
+      parent: parentOf(content),
+      blockedBy: typeof blockedBy === 'number' ? blockedBy : undefined,
+      label: extractWorkflowStatus(item, labelFieldName),
+    })
+  }
+  return progress
+}
+
+/**
+1 アイテムを Markdown 表の行 `| Ref | Title |` にする。extraCells は、Title の後ろに足すセル。
 Ref は GitHub 慣習に倣い `owner/repo#N` で合成する。
 リポジトリ情報または番号が欠落している場合は可能な範囲で埋め、両方欠落しているときは `-` を表示する
 */
-export function formatTableRow(item: BoardItem): string {
+export function formatTableRow(item: BoardItem, extraCells: readonly string[] = []): string {
   const { number } = item.content
   const repository = item.content.repository ?? ''
   const numberText = number === undefined || number === null ? '' : displayText(number)
@@ -154,7 +209,7 @@ export function formatTableRow(item: BoardItem): string {
   else if (numberText !== '') reference = `#${numberText}`
   const { title } = item
   const titleText = title === undefined || isEmptyValue(title) ? '-' : displayText(title)
-  return `| ${reference} | ${titleText} |`
+  return `| ${[reference, titleText, ...extraCells].join(' | ')} |`
 }
 
 function updatedAtOf(item: BoardItem): string {
@@ -169,10 +224,30 @@ function newestFirst(first: BoardItem, second: BoardItem): number {
 }
 
 /**
-プロジェクトボードを Markdown 形式で出力する。件数が 0 のステータスは出さない。
-Archived は 6 件以上あるとき、更新が新しい直近 5 件だけを出す
+判定の文の表（readiness 引数）を引くキー。`owner/repo#N` の小文字で、issueReferenceKey と同じ形になる。
+リポジトリか番号が欠けたアイテムは undefined
 */
-export function formatBoardOutput(items: readonly BoardItem[]): string {
+export function boardItemKey(item: BoardItem): string | undefined {
+  const { number } = item.content
+  const repository = item.content.repository ?? ''
+  return repository === '' || number === undefined || number === null ? undefined : `${repository}#${displayText(number)}`.toLowerCase()
+}
+
+// 判定の列を足す節（Ready・Blocked）
+const READINESS_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked'])
+
+function readinessCell(item: BoardItem, readiness: ReadonlyMap<string, string>): string {
+  const key = boardItemKey(item)
+  return (key === undefined ? undefined : readiness.get(key)) ?? '-'
+}
+
+/**
+プロジェクトボードを Markdown 形式で出力する。件数が 0 のステータスは出さない。
+Archived は 6 件以上あるとき、更新が新しい直近 5 件だけを出す。
+readiness（boardItemKey → 判定の文）を渡したときだけ、Ready と Blocked の節に Readiness の列を足す。
+表に無いアイテムのセルは `-`
+*/
+export function formatBoardOutput(items: readonly BoardItem[], readiness?: ReadonlyMap<string, string>): string {
   const sections: (readonly string[])[] = []
 
   for (const status of STATUS_ORDER) {
@@ -184,10 +259,36 @@ export function formatBoardOutput(items: readonly BoardItem[]): string {
     const isTruncated = status === 'Archived' && totalCount > ARCHIVED_DISPLAY_LIMIT
     const displayItems = isTruncated ? statusItems.toSorted(newestFirst).slice(0, ARCHIVED_DISPLAY_LIMIT) : statusItems
     const heading = isTruncated ? `### ${status} (latest ${String(ARCHIVED_DISPLAY_LIMIT)} of ${String(totalCount)})` : `### ${status} (${String(totalCount)})`
-    sections.push([heading, '| Ref | Title |', '|-----|----------|', ...displayItems.map(item => formatTableRow(item))])
+    if (readiness !== undefined && READINESS_STATUSES.has(status)) {
+      const rows = displayItems.map(item => formatTableRow(item, [readinessCell(item, readiness)]))
+      sections.push([heading, '| Ref | Title | Readiness |', '|-----|----------|-----------|', ...rows])
+    }
+    else {
+      sections.push([heading, '| Ref | Title |', '|-----|----------|', ...displayItems.map(item => formatTableRow(item))])
+    }
   }
 
   return sections.length === 0 ? '_No items_' : sections.map(section => section.join('\n')).join('\n\n')
+}
+
+export interface StackableChain {
+  /**
+  並びの一番上の Issue の親（表示用の `#N`）。親が無ければ undefined
+  */
+  readonly epic: string | undefined
+  /**
+  下から並べた Issue（表示用の `#N`）
+  */
+  readonly chain: readonly string[]
+}
+
+/**
+`## Stackable chains` の節を作る。1 行が 1 つの並びで、並びが無ければ undefined
+*/
+export function formatStackableChains(chains: readonly StackableChain[]): string | undefined {
+  if (chains.length === 0) return undefined
+  const lines = chains.map(({ epic = '(no epic)', chain }) => `- ${epic}: ${chain.join(' -> ')}`)
+  return ['## Stackable chains', '', ...lines].join('\n')
 }
 
 /**

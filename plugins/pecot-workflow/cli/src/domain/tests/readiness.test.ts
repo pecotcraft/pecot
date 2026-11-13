@@ -7,12 +7,17 @@ import { readWaitsForMerge } from '../prerequisites.js'
 import type { WaitsForMergeReadout } from '../prerequisites.js'
 import { JSON_NULL } from '../json-null.js'
 import {
+  cycleThrough,
+  describePrerequisiteState,
+  describeReadiness,
+  describeUnknown,
   findCycle,
   hasStarted,
   isDone,
   isInReview,
   judgeReadiness,
   planProgression,
+  progressionsFromReadiness,
   stackChains,
   toIssueFacts,
 } from '../readiness.js'
@@ -499,7 +504,7 @@ function issueReadout(number: number, over: Partial<IssueReadout> = {}): IssueRe
 }
 
 function readout(blockers: IssuePrerequisitesReadout['blockedBy'], target: Partial<IssueReadout> = {}): IssuePrerequisitesReadout {
-  return { issue: { ...issueReadout(100, target), body: '' }, blockedBy: blockers }
+  return { issue: { ...issueReadout(100, target), body: '', parent: JSON_NULL }, blockedBy: blockers }
 }
 
 const options = { columnFieldName: 'pecot-workflow-x', labelFieldName: 'Status' }
@@ -610,5 +615,118 @@ describe('toIssueFacts', () => {
     const result = toIssueFacts(readout({ kind: 'read-failed', reason: 'null node' }), absent, options)
     expect(result.prerequisites).toBe('read-failed')
     expect(result.mismatches).toEqual([])
+  })
+})
+
+function describeFor(prerequisites: readonly Prerequisite[], over: Parameters<typeof judge>[1] = {}): string {
+  return describeReadiness(judge(prerequisites, over), prerequisites, repository_)
+}
+
+describe('describeReadiness', () => {
+  it('前提が無ければ startable', () => {
+    expect(describeFor([])).toBe('startable')
+  })
+
+  it('積める前提には stackable on #N を返す', () => {
+    expect(describeFor([reviewing(1)])).toBe('stackable on #1')
+  })
+
+  it('済んでいない前提をすべて並べ、済んだ前提は除く', () => {
+    expect(describeFor([donePrerequisite(9), reviewingMerge(1, '理由'), reviewing(2)])).toBe('blocked by #1, #2 (waits for merge)')
+  })
+
+  it('closed-unmerged は閉じた前提を括弧に示す', () => {
+    expect(describeFor([closedPrerequisite(), reviewing(2)])).toBe('blocked by #1, #2 (closed without merge: #1)')
+  })
+
+  it('not-in-review は前提ごとの状態を示す', () => {
+    const forked = need(issue(4, { pullRequests: [pullRequest(1004, 'b4', DEV, { isCrossRepository: true })] }))
+    const multiple = need(issue(5, { pullRequests: [pullRequest(1005, 'a'), pullRequest(1006, 'b')] }))
+    const pending = need(inReview(6, DEV, { column: 'Pending' }))
+    expect(describeFor([unstarted(1), startedOnly(2), forked, multiple, pending])).toBe(
+      'blocked by #1, #2, #4, #5, #6 (not in review: #1 (not started), #2 (no PR), #4 (PR from fork), #5 (multiple PRs), #6 (in Pending))',
+    )
+  })
+
+  it('別のリポジトリの前提は owner/repo#N で示す', () => {
+    const other = reviewing(5, DEV, {}, otherRepository)
+    expect(describeFor([other, reviewing(1)])).toBe('blocked by acme/other#5, #1 (other repository: acme/other#5)')
+  })
+
+  it('diverged は not in one chain を示す', () => {
+    const prerequisites = [reviewing(1), reviewing(2)]
+    expect(describeFor(prerequisites)).toBe('blocked by #1, #2 (not in one chain)')
+  })
+
+  it('cycle は輪を #N の並びで示す', () => {
+    expect(describeFor([reviewing(1)], { cycle: ['acme/app#100', 'acme/app#1', 'acme/app#100'] })).toBe('blocked by #1 (cycle: #100 -> #1 -> #100)')
+  })
+
+  it('unreadable は括弧に unreadable を示す', () => {
+    expect(describeReadiness(judge('read-failed'), [], repository_)).toBe('blocked (unreadable)')
+  })
+
+  it('describeUnknown は理由を括弧に入れる', () => {
+    expect(describeUnknown('no dependencies api')).toBe('unknown (no dependencies api)')
+  })
+})
+
+describe('cycleThrough', () => {
+  it('target を含む輪だけを返す', () => {
+    const edges = new Map([['a', ['b']], ['b', ['a']]])
+    expect(cycleThrough('a', edges)).toEqual(['a', 'b', 'a'])
+  })
+
+  it('輪に行き当たるだけの target には返さない', () => {
+    const edges = new Map([['t', ['a']], ['a', ['b']], ['b', ['a']]])
+    expect(cycleThrough('t', edges)).toBeUndefined()
+  })
+
+  it('届かない部分の輪は見ない', () => {
+    const edges = new Map([['t', ['a']], ['a', []], ['x', ['y']], ['y', ['x']]])
+    expect(cycleThrough('t', edges)).toBeUndefined()
+  })
+
+  it('自分自身への辺は長さ 1 の輪になる', () => {
+    expect(cycleThrough('a', new Map([['a', ['a']]]))).toEqual(['a', 'a'])
+  })
+})
+
+describe('progressionsFromReadiness', () => {
+  it('stackable は積む先の上に積み、ほかは単独にする', () => {
+    const stackable = judge([reviewing(1)])
+    const startable = judge([])
+    const blocked = judge([unstarted(1)])
+    const progressions = progressionsFromReadiness(new Map([
+      ['acme/app#2', stackable],
+      ['acme/app#3', startable],
+      ['acme/app#4', blocked],
+    ]))
+    expect(progressions.get('acme/app#2')).toEqual({ kind: 'stack', on: 'acme/app#1' })
+    expect(progressions.get('acme/app#3')).toEqual({ kind: 'alone' })
+    expect(progressions.get('acme/app#4')).toEqual({ kind: 'alone' })
+    expect(stackChains(progressions)).toEqual([['acme/app#1', 'acme/app#2']])
+  })
+})
+
+describe('describePrerequisiteState', () => {
+  it('マージされて閉じた前提は done', () => {
+    const prerequisite = need(merged(3))
+    expect(describePrerequisiteState(prerequisite)).toBe('done')
+  })
+
+  it('マージされずに閉じた前提は、wait が stack でも closed without merge', () => {
+    const closed = issue(3, { state: 'closed' })
+    const stacked = need(closed)
+    const waiting = need(closed, 'merge', '理由')
+    expect(describePrerequisiteState(stacked)).toBe('closed without merge')
+    expect(describePrerequisiteState(waiting)).toBe('closed without merge')
+  })
+
+  it('open の前提は、PR があれば in review、無ければ not started', () => {
+    const inReviewed = reviewing(3)
+    const notStarted = need(issue(3))
+    expect(describePrerequisiteState(inReviewed)).toBe('in review')
+    expect(describePrerequisiteState(notStarted)).toBe('not started')
   })
 })

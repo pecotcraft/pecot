@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { JSON_NULL } from '../json-null.js'
-import { extractWorkflowStatus, formatBoardOutput, formatItemsJson, formatTableRow, transformItems } from '../format.js'
+import { boardItemKey, extractWorkflowStatus, formatBoardOutput, formatItemsJson, formatStackableChains, formatTableRow, transformItems } from '../format.js'
 import type { BoardItem } from '../format.js'
 import type { JsonValue } from '../python-format.js'
 
@@ -333,6 +333,51 @@ describe('formatBoardOutput', () => {
   })
 })
 
+describe('formatBoardOutput の Readiness の列', () => {
+  const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
+
+  it('判定の表を渡すと、Ready の節だけ Readiness の列を持つ', () => {
+    const output = formatBoardOutput(items, new Map([['test/repo#101', 'startable']]))
+    expect(output).toContain('### Ready (1)\n| Ref | Title | Readiness |\n|-----|----------|-----------|\n| test/repo#101 | Ready Issue | startable |')
+    expect(output).toContain('### Active (1)\n| Ref | Title |\n')
+    expect(output).toContain('### Backlog (1)\n| Ref | Title |\n')
+  })
+
+  it('Blocked の節にも列を足し、表に無い Issue のセルは - にする', () => {
+    const blocked = transformItems([{
+      id: 'b',
+      fieldValues: { nodes: [{ field: { name: 'pecot-workflow-test' }, name: 'Blocked' }] },
+      content: { number: 7, title: 'Blocked Issue', repository: { owner: { login: 'Test' }, name: 'Repo' } },
+    }], 'pecot-workflow-test')
+    expect(formatBoardOutput(blocked, new Map())).toContain('| Test/Repo#7 | Blocked Issue | - |')
+    expect(formatBoardOutput(blocked, new Map([['test/repo#7', 'blocked by #3 (waits for merge)']]))).toContain('| Test/Repo#7 | Blocked Issue | blocked by #3 (waits for merge) |')
+  })
+
+  it('判定の表を渡さないときの出力は変わらない', () => {
+    expect(formatBoardOutput(items)).not.toContain('Readiness')
+  })
+
+  it('boardItemKey は owner/repo#N の小文字にし、欠けていれば undefined', () => {
+    const [first] = transformItems([{ content: { number: 5, title: 't', repository: { owner: { login: 'Acme' }, name: 'App' } } }], 'x')
+    expect(first === undefined ? undefined : boardItemKey(first)).toBe('acme/app#5')
+    expect(boardItemKey({ content: { number: 5 } })).toBeUndefined()
+    expect(boardItemKey({ content: { repository: 'a/b' } })).toBeUndefined()
+  })
+})
+
+describe('formatStackableChains', () => {
+  it('Epic ごとの並びを 1 行ずつ出す', () => {
+    expect(formatStackableChains([
+      { epic: '#10', chain: ['#1', '#2', '#3'] },
+      { epic: undefined, chain: ['#4', '#5'] },
+    ])).toBe('## Stackable chains\n\n- #10: #1 -> #2 -> #3\n- (no epic): #4 -> #5')
+  })
+
+  it('並びが無ければ節を出さない', () => {
+    expect(formatStackableChains([])).toBeUndefined()
+  })
+})
+
 describe('formatItemsJson', () => {
   it('items だけをキーに持つ JSON を返す', () => {
     const items = transformItems(SAMPLE_RAW_ITEMS, 'pecot-workflow-test')
@@ -344,6 +389,11 @@ describe('formatItemsJson', () => {
 })
 
 describe('formatTableRow', () => {
+  it('追加のセルを Title の後ろに足す', () => {
+    const item: BoardItem = { id: 'item1', workflow: 'Ready', title: 'T', content: { number: 1, labels: [], repository: 'owner/repo' } }
+    expect(formatTableRow(item, ['startable'])).toBe('| owner/repo#1 | T | startable |')
+  })
+
   it('Ref と Title を並べた表の行を返す', () => {
     const item: BoardItem = { id: 'item1', workflow: 'Active', title: 'Test Issue', updatedAt: '2026-01-14T10:00:00Z', content: { number: 123, labels: ['bug', 'urgent'], repository: 'owner/repo' } }
     expect(formatTableRow(item)).toBe('| owner/repo#123 | Test Issue |')

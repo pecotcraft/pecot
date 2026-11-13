@@ -192,6 +192,8 @@ Issue 化の前に、フェーズごとに出す見込み。Issue の状態を�
 | 無し | 偽 | `Needs Attention` で、自動処理が書いたもの | 書かない |
 | 有り | どちらでも | どれでも | 書かない |
 
+- `Todo` に戻すのは、前提を 1 つ以上持つ Issue だけだ。前提の無い Issue の `Needs Attention` は、人が付けたものとして残す
+
 次の決まりで扱う。
 
 - 対象は、open で、着手の対象になる Issue だけだ
@@ -223,7 +225,7 @@ Issue 化の前に、フェーズごとに出す見込み。Issue の状態を�
 | 前提の PR ができた | `pecot pr create` | その Issue を前提にしている Issue |
 | 前提の PR がマージされた | `pecot pr cleanup` | 同上 |
 | 前提と種類が変わった | `pecot issue block`・`unblock` | 待つ側の Issue |
-| 上のどれも通らなかった | `pecot project info` | Ready と Blocked にある Issue と、着手の跡が無い Active・In Review の Issue |
+| 上のどれも通らなかった | GitHub Actions のワークフロー | Ready と Blocked にある Issue と、着手の跡が無い Active・In Review の Issue |
 
 ## 8. 積んだブランチの記録
 

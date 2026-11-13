@@ -7,7 +7,8 @@ import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository,
 import type { Package, ProjectConfig, Repository } from '../domain/config.js'
 import { choosePlacement, insertOption } from '../domain/field-options.js'
 import type { FieldOptionInput } from '../domain/field-options.js'
-import { formatBoardOutput } from '../domain/format.js'
+import { formatBoardOutput, formatStackableChains } from '../domain/format.js'
+import type { BoardItem } from '../domain/format.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
@@ -26,6 +27,7 @@ import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
+import { readBoardReadiness, readinessOf, skipBoardReadiness } from './project-readiness.js'
 import { collectAlertStatuses, infoJson, infoMarkdown, pruneArchivedItems, readBoard } from './project-info.js'
 import type { OptionSpec } from './project-sync.js'
 import {
@@ -487,11 +489,15 @@ const infoCommand = defineCommand({
     const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
     try {
       const client = createGitHubClient(out, config.host)
-      const { allItems, items } = await readBoard(client, config, input.repo)
+      const { allItems, items, progress, isLegacy } = await readBoard(client, config, input.repo)
       const statuses = await collectAlertStatuses(client, config)
       await pruneArchivedItems(out, client, config, allItems)
       const view = { config, projectName, statuses }
-      out.data(input.json ? infoJson(view, items) : infoMarkdown(view, input.repo, formatBoardOutput(items)))
+      const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)
+      const json = readiness.json === undefined ? undefined : (item: BoardItem) => readinessOf(readiness, item)
+      out.data(input.json
+        ? infoJson(view, items, json)
+        : infoMarkdown(view, input.repo, formatBoardOutput(items, readiness.texts), formatStackableChains(readiness.chains)))
     }
     catch (error: unknown) {
       if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)
