@@ -22,7 +22,31 @@ MCP クライアントに 1 エントリ登録するだけで pecot-tools のツ
   "mcpServers": {
     "pecot-tools": {
       "command": "npx",
-      "args": ["-y", "@pecot/tools-mcp"]
+      "args": ["-y", "--prefix=/", "@pecot/tools-mcp"]
+    }
+  }
+}
+```
+
+`--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
+`--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
+npm には、`devEngines` の判定だけを外す公式の手段がありません。
+
+パッケージは `--package=` ではなく位置引数で渡します。
+`--package=` で渡すと環境変数 `npm_config_package` が子プロセスに残り、子の npx が別のパッケージを実行してしまうためです。
+
+`--prefix=/` には次の副作用があります。
+
+- 利用者のリポジトリの `.npmrc` を読まず、globalconfig も `/etc/npmrc` になる。registry・proxy・cafile は `~/.npmrc` に置く
+- `npm_config_prefix=/` がサーバに引き継がれる
+
+この副作用を避けたいときは、先に `npm i -g @pecot/tools-mcp` で入れて、コマンドを直接登録します。
+
+```json
+{
+  "mcpServers": {
+    "pecot-tools": {
+      "command": "pecot-tools-mcp"
     }
   }
 }
@@ -35,14 +59,14 @@ Windows の MCP クライアントから使う場合は WSL2 経由で起動し�
   "mcpServers": {
     "pecot-tools": {
       "command": "wsl",
-      "args": ["npx", "-y", "@pecot/tools-mcp"]
+      "args": ["npx", "-y", "--prefix=/", "@pecot/tools-mcp"]
     }
   }
 }
 ```
 
 WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` を差し替えます。
-差し替え後は `"args": ["-e", "bash", "-lc", "npx -y @pecot/tools-mcp"]` です。
+差し替え後は `"args": ["-e", "bash", "-lc", "npx -y --prefix=/ @pecot/tools-mcp"]` です。
 
 版を固定するときは、`@pecot/tools-mcp@1.2.3` のように版を付けます。
 依存は `npm-shrinkwrap.json` で固定されているため、同じ版なら同じ依存が入ります。
@@ -108,6 +132,10 @@ SSO で認証するときは、開始と完了確認の 2 つのツールを順�
 | `resource-not-found` | 対象が無い。名前とリージョンを確認する |
 | `timeout` | 時間切れ。取得範囲を狭めて再実行する |
 | `other` | 上記以外。応答の `stderr` を確認する |
+
+サーバが起動しないときは、次を確認します。
+
+- `EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認する
 
 ## 版
 

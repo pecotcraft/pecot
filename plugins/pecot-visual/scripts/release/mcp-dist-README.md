@@ -26,7 +26,32 @@ MCP クライアントに 1 エントリ登録するだけで pecot-visual の�
   "mcpServers": {
     "pecot-visual": {
       "command": "npx",
-      "args": ["-y", "@pecot/visual-mcp"]
+      "args": ["-y", "--prefix=/", "@pecot/visual-mcp"]
+    }
+  }
+}
+```
+
+`--prefix=/` は、pnpm の `devEngines` を宣言したリポジトリの中で起動しても止まらないようにするための指定です。
+`--prefix` を付けないと、そのリポジトリを cwd にした npx が `EBADDEVENGINES` で止まります。
+npm には、`devEngines` の判定だけを外す公式の手段がありません。
+パッケージは `--package=` ではなく位置引数で渡します。`--package=` で渡すと環境変数 `npm_config_package` が子プロセスに残り、子の npx が別のパッケージを実行するためです。
+
+`--prefix=/` には次の副作用があります。
+
+- 利用者のリポジトリの `.npmrc` を読まず、globalconfig も `/etc/npmrc` になる。registry・proxy・cafile は `~/.npmrc` に置く
+- `npm_config_prefix=/` がサーバに引き継がれる
+
+`setup` は `npm install --prefix` で置き場を明示します。
+テーマの依存の取得（pnpm）は talk-dir を cwd にします。どちらも、この副作用の影響を受けません。
+
+この副作用を避けたいときは、先に `npm i -g @pecot/visual-mcp` で入れて、コマンドを直接登録します。
+
+```json
+{
+  "mcpServers": {
+    "pecot-visual": {
+      "command": "pecot-visual-mcp"
     }
   }
 }
@@ -40,7 +65,7 @@ MCP クライアントに 1 エントリ登録するだけで pecot-visual の�
   "mcpServers": {
     "pecot-visual": {
       "command": "npx",
-      "args": ["-y", "@pecot/visual-mcp"],
+      "args": ["-y", "--prefix=/", "@pecot/visual-mcp"],
       "env": { "PLUGIN_DATA": "/home/<user>/pecot-visual-data" }
     }
   }
@@ -54,7 +79,7 @@ Windows の MCP クライアントから使う場合は WSL2 経由で起動し�
   "mcpServers": {
     "pecot-visual": {
       "command": "wsl",
-      "args": ["npx", "-y", "@pecot/visual-mcp"]
+      "args": ["npx", "-y", "--prefix=/", "@pecot/visual-mcp"]
     }
   }
 }
@@ -67,14 +92,14 @@ WSL 側に `PLUGIN_DATA` を渡すには、`env` を `args` に含めます。Wi
   "mcpServers": {
     "pecot-visual": {
       "command": "wsl",
-      "args": ["env", "PLUGIN_DATA=/home/<user>/pecot-visual-data", "npx", "-y", "@pecot/visual-mcp"]
+      "args": ["env", "PLUGIN_DATA=/home/<user>/pecot-visual-data", "npx", "-y", "--prefix=/", "@pecot/visual-mcp"]
     }
   }
 }
 ```
 
 WSL 内の npx が非ログインシェルの PATH に無い場合は、次のように指定します。
-`"args": ["-e", "bash", "-lc", "npx -y @pecot/visual-mcp"]`
+`"args": ["-e", "bash", "-lc", "npx -y --prefix=/ @pecot/visual-mcp"]`
 
 ツールのパス引数には `C:\...` と `\\wsl.localhost\<distro>\...` をそのまま渡せます。
 変換の対象はツール引数のみです。spec ファイル等の中身に書かれたパスは変換しません。
@@ -128,6 +153,8 @@ Chromium を使うため `setup` が必要です。
 ## 失敗したとき
 
 `setup` が必要なツールを `setup` 前に呼ぶと、`setup` を案内する応答が返ります。`setup` を呼んでから再実行してください。
+
+`EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認してください。
 
 ## 版
 

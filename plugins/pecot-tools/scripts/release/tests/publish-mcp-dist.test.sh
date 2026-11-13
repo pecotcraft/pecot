@@ -386,11 +386,15 @@ assert_eq "README に git の URL が残っていない" "0" \
 # プレースホルダの名前は固定せず、`__` で囲んだ語が未置換で残っていないことを見る。
 assert_eq "README に未置換のプレースホルダ（__NAME__）が残っていない" "0" \
     "$(grep -cE '__[A-Za-z0-9_]+__' "$DIST/README.md" | tr -d ' ')"
-assert_eq "README の登録例 2 件が @pecot/tools-mcp を指す" "2" \
-    "$(grep -cF '"@pecot/tools-mcp"]' "$DIST/README.md" | tr -d ' ')"
+assert_eq "README の登録例 2 件が --prefix=/ 付きで @pecot/tools-mcp を指す" "2" \
+    "$(grep -cF '"--prefix=/", "@pecot/tools-mcp"]' "$DIST/README.md" | tr -d ' ')"
+# --package= だと npm_config_package が子の npx に残るので、位置引数で渡す。
+assert_eq "README に --package= の登録例が無い" "0" \
+    "$(grep -cF -- '--package=@' "$DIST/README.md" | tr -d ' ')"
 # 登録例のサーバ名は同梱 .mcp.json のキーおよび MCP_SERVER_NAME（initialize の
 # serverInfo.name）に合わせる。
-assert_eq "README の登録例 2 件がサーバ名 pecot-tools を使う" "2" \
+# 3 件 = npx 起動 + 事前インストール後の直接起動 + WSL 経由。
+assert_eq "README の登録例 3 件がサーバ名 pecot-tools を使う" "3" \
     "$(grep -cF '"pecot-tools":' "$DIST/README.md" | tr -d ' ')"
 
 # --- 4. 配布ツリーの起動 smoke ---

@@ -376,10 +376,10 @@ assert_eq "README に git の URL が残っていない" "0" \
 assert_eq "README に未置換のプレースホルダ（__NAME__）が残っていない" "0" \
     "$(grep -cE '__[A-Za-z0-9_]+__' "$DIST/README.md" | tr -d ' ')"
 assert_eq "README の登録例 2 件が @pecot/workflow-mcp を指す" "2" \
-    "$(grep -cF '"--package=@pecot/workflow-mcp", "pecot-workflow-mcp"]' "$DIST/README.md" | tr -d ' ')"
-# devEngines を持つリポの中でも起動できるよう、登録例は --prefix を付ける。
-assert_eq "README の登録例 2 件が --prefix を付ける" "2" \
-    "$(grep -cF '"--prefix=/"' "$DIST/README.md" | tr -d ' ')"
+    "$(grep -cF '"--prefix=/", "@pecot/workflow-mcp"]' "$DIST/README.md" | tr -d ' ')"
+# --package= で渡すと子に npm_config_package が残り、子の npx が別のパッケージを実行する。
+assert_eq "README の登録例が --package で渡していない" "0" \
+    "$(grep -cF -- '--package=@' "$DIST/README.md" | tr -d ' ')"
 # 登録例のサーバ名は initialize の serverInfo.name に合わせる。
 # 3 件 = npx 起動 + 事前インストール後の直接起動 + WSL 経由。
 assert_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3" \
