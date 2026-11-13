@@ -9,8 +9,12 @@ Agent tool:
   prompt: (paste the task instructions, target files, and expected_output of the plan as they are)
 ```
 
-Take the name and the model of each unit from the work unit table in the Files of the plan. The criteria for the model are in `skills/w-help/references/agent-models.md` of the pecot-w plugin.
-In GitHub Copilot CLI, omit `model` or pass a Copilot model name. `sonnet` and `opus` are Claude Code aliases.
+Take the name and the model of each unit from the work unit table in the Files of the plan. The criteria for the model are in the reference "agent-models.md" of the w-help skill.
+The path is `skills/w-help/references/agent-models.md` in the pecot-w plugin.
+In GitHub Copilot CLI, omit `model` or pass a Copilot model name.
+Copilot CLI also accepts `sonnet` and `opus` as aliases since 1.0.64.
+It is not confirmed that they resolve in a definition or in the task tool's `model`.
+Under auto, the session's model is used.
 
 Start w-implementer-2, -3... in parallel, one per independent work unit.
 Spawn them with multiple `Agent` calls in one message. Spawning them in separate messages runs them serially.

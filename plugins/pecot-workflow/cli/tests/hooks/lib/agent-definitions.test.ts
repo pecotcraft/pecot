@@ -140,6 +140,21 @@ describe('model フィールド', () => {
   ])('$label の model は $expected になっている', (row) => {
     expect(modelOf(path.join(agentsDirectory, `${row.agent}.md`))).toBe(row.expected)
   })
+
+  it.for(['w-tech-advisor', 'w-e2e-planner'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
+    const text = readFileSync(path.join(agentsDirectory, '..', 'skills', 'w-help', 'references', 'agent-models.md'), 'utf8')
+    const lines = splitLines(text)
+    const start = lines.indexOf('## 役ごとのモデル')
+    expect(start, '「## 役ごとのモデル」の節が無い').toBeGreaterThanOrEqual(0)
+    const next = lines.findIndex((line, index) => index > start && line.startsWith('## '))
+    const section = lines.slice(start, next === -1 ? lines.length : next)
+    const cells = section
+      .filter(line => line.startsWith('|'))
+      .map(line => line.split('|').slice(1, -1).map(cell => cell.trim()))
+      .find(row => row[1] === agent)
+    expect(cells, `${agent} の行が表に無い`).toBeDefined()
+    expect(cells?.[2]).toBe(`\`${modelOf(path.join(agentsDirectory, `${agent}.md`)) ?? ''}\``)
+  })
 })
 
 describe('本文の規則', () => {
