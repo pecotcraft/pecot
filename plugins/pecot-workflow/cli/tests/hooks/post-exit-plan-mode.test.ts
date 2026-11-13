@@ -99,6 +99,17 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).not.toContain('team_name')
   })
 
+  it('implementer への引き継ぎは、計画の作業単位のモデルを渡すよう案内し、Copilot CLI での渡し方も示す', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    const text = additionalContext(runHook(hookCase, EXIT_PLAN))
+    expect(text).toContain('the model the plan gives')
+    expect(text).not.toMatch(/^\s*model: sonnet\s*$/mu)
+    expect(text).toContain('skills/w-help/references/agent-models.md')
+    expect(text).toContain('In GitHub Copilot CLI, omit `model` or pass a Copilot model name')
+  })
+
   it('Copilot の tool 名 exit_plan_mode でも、コメントの更新と引き継ぎを案内する', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)

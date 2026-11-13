@@ -1,7 +1,11 @@
+/* eslint-disable security/detect-non-literal-fs-filename -- 確かめるのはプラグイン内のリンク先のみ */
 // w-active・w-quick・w-revise の手順（Step の順序と見出し）が崩れていないことを確かめる。
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
-import { readPluginFile } from './_helpers/documents.js'
+import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 
 const PARALLEL_SPAWN_NOTE = '1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。'
 const SERIAL_REASON_MARKER = '(直列の理由: ...)'
@@ -139,6 +143,14 @@ describe('w-revise の手順', () => {
     expect(body).toContain('複数 w-implementer の並列起動を既定とする')
     expect(body).toContain(SERIAL_REASON_MARKER)
     expect(body).toContain(PARALLEL_SPAWN_NOTE)
+  })
+
+  it('Step 5 は、割り当て表の書式とモデルの基準へのリンクを持ち、リンク先が実在する', () => {
+    const body = sectionBody(text, numberIndex(headings, 5))
+    expect(body).toContain('実装者名 / モデル / 担当 F-NN / 担当ファイル群')
+    const link = '../w-help/references/agent-models.md'
+    expect(body).toContain(link)
+    expect(existsSync(path.join(pluginRoot, 'skills', 'w-revise', link))).toBe(true)
   })
 
   it('Step 2 は、3 体のレビューアを並列 spawn する', () => {

@@ -1,7 +1,7 @@
 ---
 name: w-e2e-planner
 description: CUJ の設計レビューと実行を担う E2E 専門エージェント。計画の CUJ を点検するときと、実装後に CUJ を実行して合否を確かめるときに使う。
-model: inherit
+model: opus
 autoCompactWindow: 400000
 disallowedTools:
   - AskUserQuestion

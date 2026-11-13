@@ -8,7 +8,7 @@ import { readDocuments, toolInputs } from './_helpers/documents.js'
 
 // 利用者が端末で打つコマンドの説明として、本文に残してよい `pecot <サブコマンド>`。
 // 書式は `<プラグインからの相対パス>:<行>`。載せるのは、w-help の、利用者が端末か `!` で打つ説明だけ。
-const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:53', 'skills/w-help/SKILL.md:55']
+const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:54', 'skills/w-help/SKILL.md:56']
 
 // ツール名に似るが、入力の値や概念を指す語
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'issue_number', 'session_id'])
