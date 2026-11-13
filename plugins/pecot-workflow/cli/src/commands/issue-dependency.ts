@@ -53,10 +53,8 @@ function messageOf(error: unknown): string {
   throw error
 }
 
-async function ensureLinked(out: Output, config: ProjectConfig, client: GitHubClient, ...targets: readonly IssueTarget[]): Promise<void> {
-  for (const { owner, repository } of targets) {
-    await ensureRepositoryInProject(out, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
-  }
+async function ensureLinked(out: Output, config: ProjectConfig, client: GitHubClient, { owner, repository }: IssueTarget): Promise<void> {
+  await ensureRepositoryInProject(out, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
 }
 
 async function wrapped<T>(out: Output, context: string, run: () => Promise<T>): Promise<T> {
@@ -183,7 +181,7 @@ async function runBlock(out: Output, input: BlockInput): Promise<void> {
   const reason = checkBlockUsage(out, input, target, by)
 
   const client = createGitHubClient(out, config.host)
-  await ensureLinked(out, config, client, targetIssue, byIssue)
+  await ensureLinked(out, config, client, targetIssue)
   const home = target.repository
   const context: Context = { out, client, config, home, target, by }
   const name = displayReference(target, home)
@@ -250,7 +248,7 @@ async function runUnblock(out: Output, input: UnblockInput): Promise<void> {
   const by = toReference(byIssue)
 
   const client = createGitHubClient(out, config.host)
-  await ensureLinked(out, config, client, targetIssue, byIssue)
+  await ensureLinked(out, config, client, targetIssue)
   const home = target.repository
   const context: Context = { out, client, config, home, target, by }
   const name = displayReference(target, home)

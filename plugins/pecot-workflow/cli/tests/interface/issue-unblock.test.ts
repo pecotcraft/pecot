@@ -44,6 +44,21 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'PATCH /repos/acme/demo/issues/7', 'UpdateProjectItemField'])
   })
 
+  it('--by がプロジェクトに無い別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を外す', async (context) => {
+    await verifies(context, 'PW-ISSUE-UNBLOCK-17')
+    prepareDependencyProject()
+    const github = await startGithub([
+      bothLinked(), targetReferences(7, BODY, [{ number: 5, repo: 'other' }]), removeBlockedByRule(7, 5, 'other'),
+      prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [] }), boardItems(), fieldUpdated('o3'),
+    ])
+
+    const result = await unblock('acme/demo/7', '--by', 'acme/other/5')
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('removed: blocked-by acme/other#5 from #7\n')
+    expect(requestLabels(github.requests()).filter(label => label === 'GetLinkedRepositoriesUser')).toHaveLength(1)
+  })
+
   it('節に前提が 2 行あるとき、外した前提の行だけを節から消す', async (context) => {
     await verifies(context, 'PW-ISSUE-UNBLOCK-03')
     prepareDependencyProject()

@@ -85,6 +85,21 @@ describe('issue block', () => {
     expect(result.stderr).toBe('added: blocked-by acme/other#9 to #7\nmoved: #7 Ready -> Blocked (blocked by acme/other#9 (waits for merge))\n')
   })
 
+  it('--by がプロジェクトに無い別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を付ける', async (context) => {
+    await verifies(context, 'PW-ISSUE-BLOCK-23')
+    prepareDependencyProject()
+    const github = await startGithub([
+      bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5, 'other'), levelRule([nodeId(5, 'other')], {}), addBlockedByRule(7, 5, 'other'),
+      prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5, repo: 'other' }] }), boardItems(), fieldUpdated('o7'),
+    ])
+
+    const result = await block('acme/demo/7', '--by', 'acme/other/5')
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('added: blocked-by acme/other#5 to #7\n')
+    expect(requestLabels(github.requests()).filter(label => label === 'GetLinkedRepositoriesUser')).toHaveLength(1)
+  })
+
   it('既に付いていて種類と理由が同じなら、書き込まずに unchanged の行を出す', async (context) => {
     await verifies(context, 'PW-ISSUE-BLOCK-04')
     prepareDependencyProject()

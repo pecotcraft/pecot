@@ -81,9 +81,9 @@ export function addBlockedByRule(issue: number, blocking: number, blockingReposi
   return graphqlRule('AddBlockedBy', data, { issueId: nodeId(issue), blockingIssueId: nodeId(blocking, blockingRepository) })
 }
 
-export function removeBlockedByRule(issue: number, blocking: number): ResponseRule {
+export function removeBlockedByRule(issue: number, blocking: number, blockingRepository = 'demo'): ResponseRule {
   const data = { removeBlockedBy: { issue: { number: issue }, blockingIssue: { number: blocking } } }
-  return graphqlRule('RemoveBlockedBy', data, { issueId: nodeId(issue), blockingIssueId: nodeId(blocking) })
+  return graphqlRule('RemoveBlockedBy', data, { issueId: nodeId(issue), blockingIssueId: nodeId(blocking, blockingRepository) })
 }
 
 /**

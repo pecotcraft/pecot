@@ -601,7 +601,7 @@ entries:
       - code: 0
         when: The blocked-by was added or changed, or nothing needed to change. A warning about the board still gives 0.
       - code: 1
-        when: There is no active project, the repository is not in the project, the Issue already has 50 blocked-by issues, a cycle could not be ruled out, the GitHub Enterprise Server does not support issue dependencies, or the GitHub API returned an error.
+        when: There is no active project, the repository of the waiting Issue is not in the project, the Issue already has 50 blocked-by issues, a cycle could not be ruled out, the GitHub Enterprise Server does not support issue dependencies, or the GitHub API returned an error.
       - code: 2
         when: The Issue reference is malformed, --by forms a cycle (including the Issue itself), --reason is missing with --wait merge or given with --wait stack, or another command line error occurs.
       - code: 3
@@ -693,6 +693,9 @@ entries:
       - id: PW-ISSUE-BLOCK-22
         pattern: unwanted
         statement: もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-BLOCK-23
+        pattern: event
+        statement: --by でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を付ける
   PW-ISSUE-COMMENT:
     constraints:
       - requires: {message: [issue, template]}
@@ -1421,7 +1424,7 @@ entries:
       - code: 0
         when: The blocked-by was removed, or it was not there. A warning about the section or the board still gives 0.
       - code: 1
-        when: There is no active project, the repository is not in the project, the blocked-by could not be read in full, the GitHub Enterprise Server does not support issue dependencies, or the GitHub API returned an error.
+        when: There is no active project, the repository of the waiting Issue is not in the project, the blocked-by could not be read in full, the GitHub Enterprise Server does not support issue dependencies, or the GitHub API returned an error.
       - code: 2
         when: The Issue reference is malformed, or another command line error occurs.
     on_error: When the body write fails after the blocked-by was removed, the blocked-by stays removed and the command exits with 1. When the board cannot be written, the blocked-by and the body stay and the command only warns.
@@ -1493,6 +1496,9 @@ entries:
       - id: PW-ISSUE-UNBLOCK-16
         pattern: unwanted
         statement: もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、終了コード 1 で終わる
+      - id: PW-ISSUE-UNBLOCK-17
+        pattern: event
+        statement: --by でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を外す
   PW-PR-CLEANUP:
     constraints: []
     details:
