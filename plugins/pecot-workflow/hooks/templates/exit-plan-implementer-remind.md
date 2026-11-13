@@ -5,9 +5,12 @@ note: **Implementation handoff** — split independent work units from the Files
 Agent tool:
   name: w-implementer-1  (match the name in the plan)
   subagent_type: w-implementer
-  model: sonnet
+  model: (the model the plan gives the unit; sonnet when the plan gives none)
   prompt: (paste the task instructions, target files, and expected_output of the plan as they are)
 ```
+
+Take the name and the model of each unit from the work unit table in the Files of the plan. The criteria for the model are in `skills/w-help/references/agent-models.md` of the pecot-w plugin.
+In GitHub Copilot CLI, omit `model` or pass a Copilot model name. `sonnet` and `opus` are Claude Code aliases.
 
 Start w-implementer-2, -3... in parallel, one per independent work unit.
 Spawn them with multiple `Agent` calls in one message. Spawning them in separate messages runs them serially.

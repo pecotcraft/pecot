@@ -43,6 +43,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | フラグシステムの仕組み | [フラグ一覧](references/flags.md) |
 | speckit / spec 駆動ワークフロー | [spec 駆動ワークフロー](references/spec-driven-workflow.md) |
 | Issue/PR 起票時のフロー基本ルール | [Issue/PR フロー基本ルール](references/issue-flow-rules.md) |
+| スキルが起こすエージェントのモデルの決め方 | [エージェントのモデル](references/agent-models.md) |
 
 ## よくある操作
 

@@ -135,8 +135,8 @@ describe('model フィールド', () => {
 
   it.for([
     { label: 'w-implementer', agent: 'w-implementer', expected: 'sonnet' },
-    { label: 'w-tech-advisor', agent: 'w-tech-advisor', expected: 'inherit' },
-    { label: 'w-e2e-planner', agent: 'w-e2e-planner', expected: 'inherit' },
+    { label: 'w-tech-advisor', agent: 'w-tech-advisor', expected: 'opus' },
+    { label: 'w-e2e-planner', agent: 'w-e2e-planner', expected: 'opus' },
   ])('$label の model は $expected になっている', (row) => {
     expect(modelOf(path.join(agentsDirectory, `${row.agent}.md`))).toBe(row.expected)
   })

@@ -99,6 +99,16 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).not.toContain('team_name')
   })
 
+  it('implementer への引き継ぎは、計画の作業単位のモデルを渡すよう案内し、Copilot CLI での渡し方も示す', () => {
+    const hookCase = createHookCase()
+    const context = setUpContext(hookCase)
+    writeFileSync(context.pecotActive, 'org/repo/123\n')
+    const text = additionalContext(runHook(hookCase, EXIT_PLAN))
+    expect(text).toContain('model: (the model the plan gives the unit')
+    expect(text).toContain('skills/w-help/references/agent-models.md')
+    expect(text).toContain('In GitHub Copilot CLI, omit `model` or pass a Copilot model name')
+  })
+
   it('quick モードでは、コメントの更新だけを案内し、quick モードのフラグを消す', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
