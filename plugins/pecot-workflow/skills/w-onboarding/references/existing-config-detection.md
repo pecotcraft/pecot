@@ -14,12 +14,18 @@
 
 ```bash
 node --input-type=commonjs - <<'EOF'
-const fs = require('fs')
-const path = require('path')
-const { execFileSync } = require('child_process')
+const fs = require('node:fs')
+const path = require('node:path')
+const { execFileSync } = require('node:child_process')
 
 // git remote origin URL から host と owner を抽出
-const origin = execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim()
+let origin
+try {
+  origin = execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+} catch {
+  console.log('ERROR: origin URL を取得できませんでした')
+  process.exit(1)
+}
 const m = origin.match(/^git@([^:]+):([^/]+)\//) || origin.match(/^https?:\/\/([^/]+)\/([^/]+)\//)
 if (!m) {
   console.log('ERROR: origin URL を解析できませんでした:', origin)
@@ -30,7 +36,14 @@ const owner = m[2]
 
 // 兄弟リポの設定ファイルを走査して host/owner が一致するものを列挙
 const matches = []
-for (const sibling of fs.readdirSync('..').sort()) {
+let siblings
+try {
+  siblings = fs.readdirSync('..').sort()
+} catch {
+  console.log('ERROR: 親ディレクトリを読めませんでした')
+  process.exit(1)
+}
+for (const sibling of siblings) {
   const dir = path.join('..', sibling, '.pecot', 'config', 'projects')
   let names
   try {

@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest'
 
 import { readDocuments } from './_helpers/documents.js'
 
-const PYTHON = /\bpython3?\b/u
+const PYTHON = /\bpython[23]?\b/iu
 
 describe('本文が呼ぶ実行環境', () => {
-  it('スキル・エージェント・hooks のテンプレートの本文に、python の呼び出しを置かない', () => {
+  it('スキル・エージェント・hooks のテンプレートの本文に、python の語を置かない', () => {
     const offenders: string[] = []
     for (const { file, text } of readDocuments()) {
       for (const [index, line] of text.split('\n').entries()) {

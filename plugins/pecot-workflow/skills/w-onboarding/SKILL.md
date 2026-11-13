@@ -62,17 +62,25 @@ AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ�
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
 
 ```bash
-board_url=$(node -e '
-const fs = require("fs"), path = require("path");
+board_url=$(node --input-type=commonjs -e '
+const fs = require("node:fs"), path = require("node:path");
+const fail = (msg) => { console.error(msg); process.exit(1); };
 const active = path.resolve(".pecot/config/projects/.active");
-const target = path.resolve(path.dirname(active), fs.readFileSync(active, "utf8").trim());
-const url = (JSON.parse(fs.readFileSync(target, "utf8")).project || {}).board_url;
-if (typeof url !== "string" || url === "") {
-  console.error("project.board_url がありません: " + target);
-  process.exit(1);
+let target;
+try {
+  target = path.resolve(path.dirname(active), fs.readFileSync(active, "utf8").trim());
+} catch {
+  fail("アクティブなプロジェクトの指定を読めません: " + active);
 }
+let url;
+try {
+  url = (JSON.parse(fs.readFileSync(target, "utf8")).project || {}).board_url;
+} catch {
+  fail("プロジェクト設定を読めません（ファイルが無い、または JSON が壊れています）: " + target);
+}
+if (typeof url !== "string" || url === "") fail("project.board_url がありません: " + target);
 console.log(url);
-')
+') || exit 1
 printf '%s\n' "$board_url"
 ```
 

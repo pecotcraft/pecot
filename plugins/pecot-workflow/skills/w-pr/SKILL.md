@@ -64,7 +64,9 @@ Summary に画像があれば `screenshot` は空のままにする。画像と�
 3. 下の配信のスクリプトで、`.pecot/work/<Issue番号>` を起点に静的配信を立てる。`cd` と組み合わせない。
    Playwright MCP は初期設定で `file://` を開けないので、http で配信する。
    background で立てる（Claude Code は Bash の background 実行、GitHub Copilot CLI は非同期の実行）。撮り終えたら止める
-4. `http://localhost:<port>/<file>.html` を Playwright MCP で開く。
+4. スクリプトが `Serving http://127.0.0.1:<port>/` と出してから、次の URL を Playwright MCP で開く。
+   `http://127.0.0.1:<port>/<file>.html`
+   `配信を立てられません:` と出て終了したら、port や起点を直して立て直す。
    Playwright MCP の screenshot のツールで撮る。ツール名は Claude Code と GitHub Copilot CLI で違う
 5. screenshot のツールの `filename` に相対名を渡すと、workspace root（セッションの作業ディレクトリ）を起点に解かれる。
    `.playwright-mcp/<名前>.png` と書く。名前だけを渡すと、作業ディレクトリの直下に保存される。`git add` に混ぜない
@@ -76,29 +78,27 @@ node --input-type=commonjs - .pecot/work/<Issue番号> <port> <<'EOF'
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
+const fail = (message) => { console.error(`配信を立てられません: ${message}`); process.exit(1) }
 const root = path.resolve(process.argv[2])
+const port = Number(process.argv[3])
+if (!Number.isInteger(port)) fail(`port が整数ではありません（${process.argv[3]}）`)
+if (!fs.statSync(root, { throwIfNoEntry: false })?.isDirectory()) fail(`起点がディレクトリではありません（${root}）`)
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml' }
 http.createServer((req, res) => {
-  let pathname
   try {
-    pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname)
+    const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname)
+    if (pathname.includes('\0')) return res.writeHead(400).end()
+    const file = path.resolve(root, '.' + pathname)
+    if (file !== root && !file.startsWith(root + path.sep)) return res.writeHead(403).end()
+    fs.readFile(file, (error, body) => {
+      if (error) return res.writeHead(404).end()
+      res.writeHead(200, { 'Content-Type': types[path.extname(file)] ?? 'application/octet-stream' }).end(body)
+    })
   } catch {
     res.writeHead(400).end()
-    return
   }
-  const file = path.resolve(root, '.' + pathname)
-  if (file !== root && !file.startsWith(root + path.sep)) {
-    res.writeHead(403).end()
-    return
-  }
-  fs.readFile(file, (error, body) => {
-    if (error) {
-      res.writeHead(404).end()
-      return
-    }
-    res.writeHead(200, { 'Content-Type': types[path.extname(file)] ?? 'application/octet-stream' }).end(body)
-  })
-}).listen(Number(process.argv[3]), '127.0.0.1')
+}).on('error', (error) => fail(error.message))
+  .listen(port, '127.0.0.1', () => console.log(`Serving http://127.0.0.1:${port}/`))
 EOF
 ```
 
