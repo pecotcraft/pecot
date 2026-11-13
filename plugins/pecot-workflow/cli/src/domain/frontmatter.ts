@@ -231,9 +231,10 @@ function hasParallel(data: unknown): boolean {
 値から Issue のフロントマターを作る。不正なら FrontmatterError
 */
 export function validateIssueFrontmatter(data: unknown): IssueFrontmatter {
+  // 使えなくなった項目の案内は、ほかの誤りと重なっても先に出す
+  if (hasParallel(data)) throw new FrontmatterError('parallel is no longer supported', { kind: 'parallel' })
   const result = IssueFrontmatterSchema.safeParse(data)
   if (!result.success) throw fieldErrors(result.error.issues)
-  if (hasParallel(data)) throw new FrontmatterError('parallel is no longer supported', { kind: 'parallel' })
   checkCrossFields(result.data)
   return result.data
 }

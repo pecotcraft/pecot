@@ -29,3 +29,8 @@ export class ProjectRootNotFoundError extends PecotError {}
 値の形式が不正（Python の ValueError に当たる）。PecotError ではない
 */
 export class InvalidValueError extends BaseError {}
+
+/**
+起きないはずの分岐に入った。実装の誤りで、利用者の入力のせいではない
+*/
+export class InternalError extends BaseError {}

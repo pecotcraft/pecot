@@ -1,4 +1,5 @@
 // issue create・issue quick のテストが共有する準備。設定の組み立てと、偽の GitHub の応答の組み立て。
+import { JSON_NULL } from '../../src/domain/json-null.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
@@ -111,6 +112,21 @@ export function failedBlockedBy(): ResponseRule {
   return { match: { operation: 'AddBlockedBy' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'cannot block' }] } } }
 }
 
+/**
+前提を付ける入力の型があるかの確認。対応しない GHES では型が無い
+*/
+export function blockedBySupported(times = 1): ResponseRule {
+  return { match: { operation: 'HasAddBlockedByInput' }, times, respond: { status: 200, body: { data: { __type: { name: 'AddBlockedByInput' } } } } }
+}
+
+export function blockedByUnsupported(): ResponseRule {
+  return { match: { operation: 'HasAddBlockedByInput' }, times: 1, respond: { status: 200, body: { data: { __type: JSON_NULL } } } }
+}
+
+export function failedFieldUpdate(): ResponseRule {
+  return { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'cannot write' }] } } }
+}
+
 export interface SubIssue {
   readonly number: number
   readonly state: string
@@ -120,7 +136,7 @@ export interface SubIssue {
 /**
 親 Epic の読み取り（order の重複の確認）
 */
-export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], times = 1): ResponseRule {
+export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], times = 1, nextCursor?: string): ResponseRule {
   const issue = {
     number,
     state: 'OPEN',
@@ -129,11 +145,19 @@ export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], 
     comments: { totalCount: 0, nodes: [] },
     // eslint-disable-next-line unicorn/no-null -- GraphQL の応答の null
     parent: null,
-    subIssues: { nodes: subIssues },
+    subIssues: nextCursor === undefined ? { nodes: subIssues } : { nodes: subIssues, pageInfo: { hasNextPage: true, endCursor: nextCursor } },
     linkedBranches: { nodes: [] },
     timelineItems: { nodes: [] },
   }
   return { match: { operation: 'GetIssueSlim', variables: { owner: 'acme', repo: 'demo', number } }, times, respond: { status: 200, body: { data: { repository: { issue } } } } }
+}
+
+/**
+親 Epic のサブ Issue の 2 ページ目以降
+*/
+export function subIssuesPage(subIssues: readonly SubIssue[]): ResponseRule {
+  const issue = { subIssues: { nodes: subIssues, pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } }
+  return { match: { operation: 'GetSubIssuesPage' }, times: 1, respond: { status: 200, body: { data: { repository: { issue } } } } }
 }
 
 /**

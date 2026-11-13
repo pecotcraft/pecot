@@ -258,7 +258,7 @@ describe('checkDuplicateOrder', () => {
     const { client } = await startClient([epic([{ number: 1, state: 'OPEN', title: '[Task] #353-04a: a' }])])
     const { io, output } = started()
     await expect(checkDuplicateOrder(output, client, 'o', 'r', 353, 4)).rejects.toThrow(CommandExit)
-    expect(io.err).toEqual(['error: Epic #353 already has an Issue with order=4 (OPEN)\n  #1 [Task] #353-04a: a\n  next available order: 1\n'])
+    expect(io.err).toEqual(['error: Epic #353 already has an Issue with order=4 (OPEN)\n  #1 [Task] #353-04a: a\n  next available order: 5\n'])
   })
 
   it('サブ Issue が 1 ページ目に収まらなくても、全件を読んで重複を見つける', async () => {

@@ -397,7 +397,7 @@ export interface IssueField {
 }
 
 /**
-カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。失敗したフィールドは、何も出さずに飛ばす
+カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。失敗したフィールドは、何も出さずに飛ばす。設定できたフィールドの名前を返す
 */
 export async function setIssueFields(
   output: Output,
@@ -406,39 +406,44 @@ export async function setIssueFields(
   itemId: string,
   target: string,
   fields: readonly IssueField[],
-): Promise<void> {
+): Promise<readonly string[]> {
   const labels: string[] = []
+  const written: string[] = []
   for (const { fieldName, optionName, label } of fields) {
     try {
-      if (await setIssueField(client, config, itemId, fieldName, optionName)) labels.push(label)
+      if (await setIssueField(client, config, itemId, fieldName, optionName)) {
+        labels.push(label)
+        written.push(fieldName)
+      }
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
     }
   }
   if (labels.length > 0) output.done({ verb: 'set', target: `${target} ${labels.join(', ')}` })
+  return written
 }
 
 /**
-親 Epic のサブ Issue にする。失敗は Issue の URL、error の行の順に出して終了コード 1
+親 Epic のサブ Issue にする。失敗は Issue の URL（issueUrl が undefined なら出し済みとして省く）、error の行の順に出して終了コード 1。issueNodeId は、無ければ取り直す関数
 */
 export async function linkToParentEpic(
   output: Output,
   client: GitHubClient,
   target: string,
   parentReference: IssueReference,
-  issueNodeId: string,
-  issueUrl: string,
+  issueNodeId: string | (() => Promise<string>),
+  issueUrl: string | undefined,
 ): Promise<void> {
   const parent = issueReferenceToCliReference(parentReference)
   try {
     const parentNodeId = await client.getIssueNodeId(parentReference.repository.owner, parentReference.repository.repository, parentReference.number)
-    await client.addSubIssue(parentNodeId, issueNodeId)
+    await client.addSubIssue(parentNodeId, typeof issueNodeId === 'string' ? issueNodeId : await issueNodeId())
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    output.data(issueUrl)
-    stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}`)
+    if (issueUrl !== undefined) output.data(issueUrl)
+    stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}\nthe order in its title is not counted for the next numbering until it is linked to the parent; link it by hand`)
   }
   output.done({ verb: 'add', target: `${target} as sub-issue of ${parent}` })
 }

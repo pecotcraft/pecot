@@ -22,11 +22,17 @@ blocked_by: []
 - repository: 実装が行われるリポ `owner/repo` 必須
 - parent_epic: 親 Epic を `owner/repo/number` で指定（推奨）
 - blocked_by: このフェーズの着手を止める前提の一覧。前提が無ければ `[]` のまま
-  - 要素は `issue`（必須）。同じ一括投稿の Issue ファイルのキー（`suffix`）か、Issue 化済みのフェーズを指す `owner/repo/N`
-  - 積める前提は `issue` だけを書く。マージを待つ前提だけ、`wait: merge` と、1 行の `reason` を足す
-  - 書き方は `- issue: phase3` と、`- issue: phase4` に `wait: merge`・`reason: "..."` を続ける形
+  - `issue` は、同じ一括投稿のファイルのキー（`suffix`）か、Issue 化済みのフェーズを指す `owner/repo/N`
+  - マージを待つ前提だけ、`wait: merge` と 1 行の `reason` を足す
+  ```yaml
+  blocked_by:
+    - issue: phase3
+    - issue: phase4
+      wait: merge
+      reason: "action は、既定のブランチのプラグインを入れる"
+  ```
 - order・status: 書かない。通し番号と置く列は CLI が決める
-- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / order の判定基準）
+- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / blocked_by の判定基準）
 
 例:
 

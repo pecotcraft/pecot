@@ -173,6 +173,10 @@ describe('validateIssueFrontmatter の parallel と order', () => {
     expect(error.kind).toBe('parallel')
   })
 
+  it('type の誤りなどほかの誤りと重なっても、種類 parallel の誤りを先にする', () => {
+    expect(catchFrontmatterError(() => validateIssueFrontmatter({ ...ISSUE_BASE, type: 'nope', parallel: 'a' })).kind).toBe('parallel')
+  })
+
   it('order が無くても、parallel に値があれば種類 parallel の誤りにする', () => {
     expect(catchFrontmatterError(() => validateIssueFrontmatter({ ...ISSUE_BASE, parallel: 'a' })).kind).toBe('parallel')
   })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { lowestUnusedOrder, planOrders, usedOrdersOf } from '../issue-order.js'
+import { findBatchDuplicate, planOrders, usedOrdersOf } from '../issue-order.js'
 import type { UsedOrder } from '../issue-order.js'
 
 const sub = (number: number, title: string): { number: number, state: string, title: string } => ({ number, state: 'OPEN', title })
@@ -12,18 +12,17 @@ describe('usedOrdersOf', () => {
     expect(result.map(({ number, order }) => [number, order])).toEqual([[9, 2], [12, 7]])
   })
 
+  it.for([
+    { title: '[Task] #353-04a: a', expected: [4] },
+    { title: '#3-02: a', expected: [2] },
+    { title: 'Fix #3-4: foo', expected: [] },
+    { title: 'Fix #3-04: foo', expected: [] },
+  ])('タイトル $title は、先頭の番号だけを数える', ({ title, expected }) => {
+    expect(usedOrdersOf([sub(9, title)], title.includes('#353') ? 353 : 3).map(({ order }) => order)).toEqual(expected)
+  })
+
   it('枝の文字（18a）は数えず、数字の部分を番号にする', () => {
     expect(usedOrdersOf([sub(9, '#3-18a: a'), sub(10, '#3-18b: b')], 3).map(({ order }) => order)).toEqual([18, 18])
-  })
-})
-
-describe('lowestUnusedOrder', () => {
-  it.for([
-    { orders: [], expected: 1 },
-    { orders: [1, 2, 4], expected: 3 },
-    { orders: [2, 3], expected: 1 },
-  ])('$orders のとき $expected を返す', ({ orders, expected }) => {
-    expect(lowestUnusedOrder(orders)).toBe(expected)
   })
 })
 
@@ -42,14 +41,14 @@ describe('planOrders', () => {
     expect(plan).toEqual({ kind: 'planned', orders: [11, 10, 12] })
   })
 
-  it('20 件を超える既存の番号も、最大を数える', () => {
-    const many = Array.from({ length: 25 }, (_, index) => used(index + 1))
-    expect(planOrders(many, [{ file: 'a.md', order: undefined }])).toEqual({ kind: 'planned', orders: [26] })
-  })
-
   it('明示の番号が既存の番号と重なると、既存の Issue と次の空きを返す', () => {
     const plan = planOrders([used(1), used(2, 9)], [{ file: 'a.md', order: 2 }])
     expect(plan).toEqual({ kind: 'duplicate-existing', order: 2, existing: used(2, 9), nextAvailable: 3 })
+  })
+
+  it('案内の次の空きは、自動の採番と同じく既存と明示の最大の次になる', () => {
+    const plan = planOrders([used(1), used(2, 9), used(5)], [{ file: 'a.md', order: 2 }])
+    expect(plan).toEqual({ kind: 'duplicate-existing', order: 2, existing: used(2, 9), nextAvailable: 6 })
   })
 
   it('明示の番号が一括の中で重なると、そのファイルを返す', () => {
@@ -63,5 +62,15 @@ describe('planOrders', () => {
 
   it('使われた番号を読めなくても、すべて明示の番号なら、そのまま返す', () => {
     expect(planOrders(undefined, [{ file: 'a.md', order: 1 }, { file: 'b.md', order: 3 }])).toEqual({ kind: 'planned', orders: [1, 3] })
+  })
+})
+
+describe('findBatchDuplicate', () => {
+  it('一括の中で重なる明示の番号と、そのファイルを返す', () => {
+    expect(findBatchDuplicate([{ file: 'a.md', order: 4 }, { file: 'b.md', order: undefined }, { file: 'c.md', order: 4 }])).toEqual({ order: 4, files: ['a.md', 'c.md'] })
+  })
+
+  it('重なりが無ければ undefined を返す', () => {
+    expect(findBatchDuplicate([{ file: 'a.md', order: 4 }, { file: 'b.md', order: undefined }])).toBeUndefined()
   })
 })

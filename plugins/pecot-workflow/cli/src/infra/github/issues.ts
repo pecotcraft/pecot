@@ -14,6 +14,7 @@ import {
   MUTATION_ADD_SUB_ISSUE,
   MUTATION_REMOVE_BLOCKED_BY,
   QUERY_GET_ISSUE_KIND,
+  QUERY_HAS_ADD_BLOCKED_BY_INPUT,
   QUERY_GET_ISSUE_KIND_PHASE1,
   QUERY_GET_ISSUE_NODE_ID,
   QUERY_GET_ISSUE_PREREQUISITES,
@@ -107,7 +108,7 @@ function isIssueTypeSchemaError(error: unknown): boolean {
   return isSchemaError(error) && error.message.includes('issueType')
 }
 
-const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
+export const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
 
 // blockedBy・addBlockedBy・removeBlockedBy・issueType に対応しない GHES（3.19 より前）が返すスキーマの失敗なら、分かる失敗に替える
 function asDependenciesError(error: unknown): unknown {
@@ -294,6 +295,14 @@ export class IssuesApi extends ProjectsApi {
   */
   async addBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
     await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId })
+  }
+
+  /**
+  Issue の依存関係（blocked by）に対応するか。対応しない GHES（3.19 より前）は false
+  */
+  async supportsBlockedBy(): Promise<boolean> {
+    const result = await this.executeGraphql(QUERY_HAS_ADD_BLOCKED_BY_INPUT, {})
+    return jsonField(result, '__type') !== JSON_NULL
   }
 
   /**

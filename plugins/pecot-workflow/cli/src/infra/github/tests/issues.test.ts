@@ -554,6 +554,17 @@ describe('addBlockedBy・removeBlockedBy', () => {
   })
 })
 
+describe('supportsBlockedBy', () => {
+  it.for([
+    { name: '型がある', type: { name: 'AddBlockedByInput' }, expected: true },
+    { name: '型が無い（3.19 より前の GHES）', type: JSON_NULL, expected: false },
+  ])('AddBlockedByInput の $name とき $expected を返す', async ({ type, expected }) => {
+    const { client, server } = await startClient([graphqlData('HasAddBlockedByInput', { __type: type })])
+    expect(await client.supportsBlockedBy()).toBe(expected)
+    expect(graphqlRequests(server)).toEqual([{ operation: 'HasAddBlockedByInput', variables: {} }])
+  })
+})
+
 async function readWith(issue: Readonly<Record<string, unknown>>): ReturnType<GitHubClient['getIssuePrerequisites']> {
   const { client } = await startClient([graphqlData('GetIssuePrerequisites', { repository: { issue } })])
   return client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS)

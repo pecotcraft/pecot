@@ -13,10 +13,13 @@ import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import {
   addedToProject,
   blockedByAdded,
+  blockedBySupported,
+  blockedByUnsupported,
   createdIssue,
   EPIC_BODY,
   failedAddToProject,
   failedBlockedBy,
+  failedFieldUpdate,
   failedIssueCreation,
   failedSubIssue,
   frontmatterFile,
@@ -27,6 +30,7 @@ import {
   rawFrontmatterFile,
   setUpIssueProject,
   subIssueAdded,
+  subIssuesPage,
   TASK_BODY,
   TASK_FRONTMATTER,
   updatedFields,
@@ -238,6 +242,19 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\ncreated: Issue acme\/demo\/13 from b\.md\nadded: Issue acme\/demo\/13 to project\nset: Issue acme\/demo\/13 status ready, priority high, size s\n$/u)
     })
 
+    it('ボードへの追加に失敗しても、親 Epic へつなぎ、Issue の URL を 1 回だけ出して終了コード 0 で終わる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-21')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
+
+      const result = await create(path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
+      expect(result.stderr).toMatch(/^created: Issue acme\/demo\/12 from a\.md\nwarning: could not add Issue acme\/demo\/12 to project: .+\nadded: Issue acme\/demo\/12 as sub-issue of acme\/demo\/3\n$/u)
+    })
+
     it('欄の設定に失敗したとき、失敗を出さずに残りの欄を設定して続ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
       const project = setUpIssueProject()
@@ -269,7 +286,7 @@ describe('issue create', () => {
 
       expect(result.code).toBe(1)
       expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
-      expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n$/u)
+      expect(result.stderr).toMatch(/\nerror: could not add Issue acme\/demo\/12 as sub-issue of acme\/demo\/3: .+\n {2}the order in its title is not counted for the next numbering until it is linked to the parent; link it by hand\n$/u)
     })
 
     it('途中のファイルで作成に失敗したとき、後のファイルを処理せず、終了コード 1 で終わり、免除のフラグを残す', async (context) => {
@@ -368,7 +385,7 @@ describe('issue create', () => {
 
       expect(result.code).toBe(1)
       expect(result.stdout).toBe('')
-      expect(result.stderr).toBe('error: Epic #3 already has an Issue with order=2 (OPEN)\n  #9 #3-02: 先の子\n  next available order: 1\n')
+      expect(result.stderr).toBe('error: Epic #3 already has an Issue with order=2 (OPEN)\n  #9 #3-02: 先の子\n  next available order: 3\n')
     })
 
     it('リポジトリがプロジェクトにつながっていないとき、error の行を出して終了コード 1 で終わる', async (context) => {
@@ -554,7 +571,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-45')
       const project = setUpIssueProject()
       const files = chainFiles(project.root)
-      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE])])
+      const github = await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE])])
 
       const result = await create('--plan', ...files)
 
@@ -572,7 +589,7 @@ describe('issue create', () => {
         '- a -> b -> c',
         '',
       ].join('\n'))
-      expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'GetIssueSlim'])
+      expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput', 'GetIssueSlim'])
     })
 
     it.for([
@@ -590,14 +607,17 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^error: --plan /u)
     })
 
-    it.for([
+    const REJECTED_INPUTS = [
       { id: 'PW-ISSUE-CREATE-52', name: '前提が一括のどのファイルのキーにも当たらない', second: blockedBy('nope'), first: [], expected: 'error: blocked_by in b.md refers to unknown key nope\n' },
       { id: 'PW-ISSUE-CREATE-52', name: '前提が輪になる', second: blockedBy('a'), first: blockedBy('b'), expected: 'error: blocked_by forms a cycle: a -> b -> a\n' },
       { id: 'PW-ISSUE-CREATE-52', name: '前提が後ろのファイルを指す', second: [], first: blockedBy('b'), expected: 'error: blocked_by in a.md refers to b, which comes later\n' },
       { id: 'PW-ISSUE-CREATE-52', name: '同じ前提を 2 回書く', second: [...blockedBy('a'), '  - issue: a'], first: [], expected: 'error: blocked_by in b.md refers to a more than once\n' },
       { id: 'PW-ISSUE-CREATE-53', name: 'parallel を書く', second: ['parallel: true'], first: [], expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
+      { id: 'PW-ISSUE-CREATE-53', name: 'parallel とほかの誤りを両方書く', second: ['parallel: true', 'size: zzz'], first: [], expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
       { id: 'PW-ISSUE-CREATE-54', name: 'wait: merge に reason が無い', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
-    ])('$name とき、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
+    ].flatMap(row => [{ ...row, isPlan: false }, { ...row, isPlan: true }])
+
+    it.for(REJECTED_INPUTS)('$name とき（--plan: $isPlan）、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
       await verifies(context, row.id)
       const project = setUpIssueProject()
       writeTree(project.root, {
@@ -605,7 +625,8 @@ describe('issue create', () => {
         'b.md': taskFile('次', ...row.second),
       })
 
-      const result = await create(path.join(project.root, 'a.md'), path.join(project.root, 'b.md'))
+      const files = [path.join(project.root, 'a.md'), path.join(project.root, 'b.md')]
+      const result = await create(...row.isPlan ? ['--plan', ...files] : files)
 
       expect(result).toEqual({ code: 1, stdout: '', stderr: row.expected })
     })
@@ -614,7 +635,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-52')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/99')) })
-      await startGithub([linkedRepositories(), { match: { operation: 'GetIssueNodeId' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'not found' }] } } }])
+      await startGithub([linkedRepositories(), blockedBySupported(), { match: { operation: 'GetIssueNodeId' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'not found' }] } } }])
 
       const result = await create(path.join(project.root, 'a.md'))
 
@@ -635,6 +656,7 @@ describe('issue create', () => {
       })
       const github = await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         parentEpic(3, [{ number: 9, state: 'OPEN', title: '#3-02: 先の子' }, { number: 10, state: 'OPEN', title: '#3-18a: 枝の子' }]),
         createdIssue(12),
         createdIssue(13),
@@ -675,6 +697,7 @@ describe('issue create', () => {
       })
       const github = await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         createdIssue(12),
         createdIssue(13),
         createdIssue(14),
@@ -702,6 +725,7 @@ describe('issue create', () => {
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       const github = await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         issueNodeId(12),
         createdIssue(13),
         blockedByAdded(),
@@ -714,7 +738,7 @@ describe('issue create', () => {
       const result = await create(path.join(project.root, 'a.md'))
 
       expect(result.code).toBe(0)
-      expect(result.stdout).toBe(`${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
+      expect(result.stdout).toBe(`${BASE}/13\n`)
       expect(result.stderr).toBe(
         'created: Issue acme/demo/13 from a.md\nadded: blocked-by #12 to #13\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status blocked\nmoved: #13 Blocked -> Ready (startable)\n',
       )
@@ -730,6 +754,7 @@ describe('issue create', () => {
       })
       const github = await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         createdIssue(12),
         createdIssue(13, { withoutNodeId: true }),
         issueNodeId(12),
@@ -757,6 +782,7 @@ describe('issue create', () => {
       })
       await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         createdIssue(12),
         createdIssue(13),
         issueNodeId(12),
@@ -771,7 +797,7 @@ describe('issue create', () => {
       expect(result.code).toBe(1)
       expect(result.stdout).toBe(`${BASE}/12\n${BASE}/13\n`)
       expect(result.stderr).toMatch(/\nwarning: could not add blocked-by #12 to #13: .+\nadded: Issue acme\/demo\/13 to project\n/u)
-      expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12 --wait merge --reason "配られる"\n$/u)
+      expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12 --wait merge --reason '配られる'\n$/u)
       expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(false)
     })
 
@@ -785,6 +811,7 @@ describe('issue create', () => {
       })
       await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         createdIssue(12),
         createdIssue(13),
         createdIssue(14),
@@ -811,7 +838,7 @@ describe('issue create', () => {
         'b.md': taskFile('次', ...blockedBy('a')),
         'c.md': taskFile('最後', ...blockedBy('b')),
       })
-      await startGithub([linkedRepositories()])
+      await startGithub([linkedRepositories(), blockedBySupported()])
 
       const result = await create('--plan', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
 
@@ -828,6 +855,7 @@ describe('issue create', () => {
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       const github = await startGithub([
         linkedRepositories(),
+        blockedBySupported(),
         issueNodeId(12),
         createdIssue(13),
         blockedByAdded(),
@@ -842,6 +870,159 @@ describe('issue create', () => {
       expect(result.code).toBe(0)
       expect(result.stderr).toBe(`created: Issue acme/demo/13 from a.md\nadded: blocked-by #12 to #13\nadded: Issue acme/demo/13 to project\nset: Issue acme/demo/13 status blocked\n${row.expected}`)
       expect(github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toHaveLength(1)
+    })
+
+    const UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
+
+    it.for([{ isPlan: false }, { isPlan: true }])('依存関係に対応しないサーバで blocked_by を書いたとき（--plan: $isPlan）、何も作らずに error を出して終了コード 1 で終わる', async (row, context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-58')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
+      const github = await startGithub([linkedRepositories(), blockedByUnsupported()])
+
+      const files = inRoot(project.root, 'a.md', 'b.md')
+      const result = await create(...row.isPlan ? ['--plan', ...files] : files)
+
+      expect(result).toEqual({ code: 1, stdout: '', stderr: `error: ${UNSUPPORTED}\n` })
+      expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput'])
+    })
+
+    it('付け直すコマンドの --reason は、シェルに展開されないよう単一引用符で包む', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-51')
+      const project = setUpIssueProject()
+      writeTree(project.root, {
+        'a.md': taskFile('先頭'),
+        'b.md': taskFile('次', 'blocked_by:', '  - issue: a', '    wait: merge', '    reason: "tick ` $(rm -rf x) it\'s"'),
+      })
+      await startGithub([linkedRepositories(), blockedBySupported(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), failedBlockedBy(), addedToProject(2), updatedFields(2)])
+
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md'))
+
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('pecot issue block acme/demo/13 --by acme/demo/12 --wait merge --reason \'tick ` $(rm -rf x) it\'\\\'\'s\'\n')
+    })
+
+    it('前提を 1 件付けられなくても、同じ Issue の残りの前提と、あとのファイルを作り終える', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-51')
+      const project = setUpIssueProject()
+      writeTree(project.root, {
+        'a.md': taskFile('先頭'),
+        'b.md': taskFile('次', ...blockedBy('a')),
+        'c.md': taskFile('3 番目', ...blockedBy('a', 'b')),
+        'd.md': taskFile('最後'),
+      })
+      await startGithub([
+        linkedRepositories(),
+        blockedBySupported(),
+        createdIssue(12),
+        createdIssue(13),
+        createdIssue(14),
+        createdIssue(15),
+        issueNodeId(12),
+        issueNodeId(13),
+        issueNodeId(14),
+        issueNodeId(15),
+        failedBlockedBy(),
+        blockedByAdded(2),
+        addedToProject(4),
+        updatedFields(4),
+      ])
+
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md', 'c.md', 'd.md'))
+
+      expect(result.code).toBe(1)
+      expect(result.stdout).toBe([12, 13, 14, 15].map(number => `${BASE}/${String(number)}\n`).join(''))
+      expect(result.stderr.match(/warning: could not add blocked-by/gu)).toHaveLength(1)
+      expect(result.stderr).toContain('added: blocked-by #12 to #14\nadded: blocked-by #13 to #14\n')
+      expect(result.stderr).toContain('created: Issue acme/demo/15 from d.md\n')
+      expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12\n$/u)
+    })
+
+    it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付け、免除のフラグを残す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-59')
+      const project = setUpIssueProject({ files: PENDING_FLAGS })
+      writeTree(project.root, {
+        'a.md': taskFile('先頭'),
+        'b.md': taskFile('次', ...blockedBy('a')),
+        'c.md': taskFile('最後', ...blockedBy('b')),
+      })
+      const github = await startGithub([
+        linkedRepositories(),
+        blockedBySupported(),
+        createdIssue(12),
+        createdIssue(13),
+        failedIssueCreation(403),
+        issueNodeId(12),
+        issueNodeId(13),
+        blockedByAdded(),
+        addedToProject(2),
+        updatedFields(2),
+      ])
+
+      const result = await create(...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
+
+      expect(result.code).toBe(1)
+      expect(result.stderr).toContain('added: blocked-by #12 to #13\n')
+      expect(result.stderr).not.toContain('to #14')
+      expect(variablesOf(github, 'AddBlockedBy')).toHaveLength(1)
+      expect(hasFlag(project.root, 'issue-create-slash-pending')).toBe(true)
+    })
+
+    it('列を書けなかったとき、前提の判定を読まず、列を動かさない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-48')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
+      await startGithub([linkedRepositories(), blockedBySupported(), issueNodeId(12), createdIssue(13), blockedByAdded(), issueNodeId(13), addedToProject(), failedFieldUpdate()])
+
+      const result = await create(path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('created: Issue acme/demo/13 from a.md\nadded: blocked-by #12 to #13\nadded: Issue acme/demo/13 to project\n')
+      expect(result.stdout).toBe(`${BASE}/13\n\nStackable chains:\n- #12 -> #13\n`)
+    })
+
+    it('既存の Issue の表記は、一括の先頭のファイルのリポジトリを基準にそろえる', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-45')
+      const project = setUpIssueProject()
+      writeTree(project.root, {
+        'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')),
+        'b.md': rawFrontmatterFile(['type: task', 'repository: acme/other', 'title: 別のリポ', ...blockedBy('acme/demo/12')]),
+        'c.md': taskFile('最後', ...blockedBy('acme/other/7')),
+      })
+      await startGithub([linkedRepositories(1, ['demo', 'other']), blockedBySupported(), issueNodeId(12), issueNodeId(7, 1, 'other')])
+
+      const result = await create('--plan', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toBe([
+        '| File | Number | Blocked by | Approach |',
+        '|---|---|---|---|',
+        '| a | - | #12 | stack on #12 |',
+        '| b | - | #12 | stack on #12 |',
+        '| c | - | acme/other#7 | stack on acme/other#7 |',
+        '',
+        'Stackable chains:',
+        '- #12 -> a',
+        '- #12 -> b',
+        '- acme/other#7 -> c',
+        '',
+      ].join('\n'))
+    })
+
+    it('親 Epic のサブ Issue が複数のページにわたっても、全ページの最大の次の番号を振る', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-49')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
+      await startGithub([
+        linkedRepositories(),
+        parentEpic(3, [EXISTING_SUB_ISSUE], 1, 'cursor1'),
+        subIssuesPage([{ number: 30, state: 'OPEN', title: '#3-21: 2 ページ目の子' }]),
+      ])
+
+      const result = await create('--plan', path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toBe('| File | Number | Blocked by | Approach |\n|---|---|---|---|\n| a | 22 | - | alone |\n')
     })
 
     it('一括の中で同じ親 Epic に同じ order を書いたファイルがあるとき、何も作らずに終了コード 1 で終わる', async (context) => {

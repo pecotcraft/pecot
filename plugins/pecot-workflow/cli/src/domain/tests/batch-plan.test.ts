@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { displayTarget, formatPlanTable, formatStackableChains, resolveBatch } from '../batch-plan.js'
+import { formatPlanTable, formatStackableChains, resolveBatch } from '../batch-plan.js'
 import type { BatchEntry, BatchFile, PlanRow } from '../batch-plan.js'
 import type { Progression } from '../readiness.js'
 import { createRepositoryReference } from '../repository-resolver.js'
@@ -71,6 +71,10 @@ describe('resolveBatch', () => {
     expect(resolveBatch(files)).toEqual({ kind: 'error', message: expected })
   })
 
+  it('数字だけのキーは、既存の Issue ではなくファイルのキーとして探す', () => {
+    expect(resolveBatch([file('12'), file('b', ['12'])]).kind).toBe('ok')
+  })
+
   it('知らないキーは、輪や後ろのファイルより先に止める', () => {
     expect(resolveBatch([file('a', ['b']), file('b', ['a', 'zzz'])])).toEqual({ kind: 'error', message: 'blocked_by in b.md refers to unknown key zzz' })
   })
@@ -88,7 +92,6 @@ function rowsOf(files: readonly BatchFile[], orders: readonly (number | undefine
     order: orders.at(index),
     prerequisites: result.prerequisites.at(index) ?? [],
     progression: result.progressions.get(entry.key),
-    home: HOME,
   }))
   return { rows, progressions: result.progressions }
 }
@@ -97,7 +100,7 @@ describe('formatPlanTable', () => {
   it('契約の形の表にする', () => {
     const files = [file('phase3'), file('phase4', ['phase3']), file('phase5', [merge('phase4')]), file('phase6', ['phase4', 'phase5'])]
     const { rows } = rowsOf(files, [19, 20, 21, 22])
-    expect(formatPlanTable(files, rows)).toBe([
+    expect(formatPlanTable(rows, HOME)).toBe([
       '| File | Number | Blocked by | Approach |',
       '|---|---|---|---|',
       '| phase3 | 19 | - | alone |',
@@ -109,22 +112,16 @@ describe('formatPlanTable', () => {
 
   it('マージを待つ前提と積める前提の両方があると、Blocked by には両方を出し、Approach にはマージを待つ前提だけを出す', () => {
     const { rows } = rowsOf(QUICKSTART, [1, 2, 3, 4, 5])
-    expect(formatPlanTable(QUICKSTART, rows).split('\n').at(-1)).toBe('| phase5 | 5 | phase3, phase4 (merge) | wait for merge of phase4 |')
+    expect(formatPlanTable(rows, HOME).split('\n').at(-1)).toBe('| phase5 | 5 | phase3, phase4 (merge) | wait for merge of phase4 |')
   })
 
   it('親 Epic の無いファイルの Number は - にし、既存の Issue は home と同じリポなら #N、別のリポなら owner/repo#N で出す', () => {
     const files = [file('a', ['acme/demo/12']), file('b', ['other/lib/7'])]
     const { rows } = rowsOf(files, [undefined, undefined])
-    expect(formatPlanTable(files, rows).split('\n').slice(2)).toEqual([
+    expect(formatPlanTable(rows, HOME).split('\n').slice(2)).toEqual([
       '| a | - | #12 | stack on #12 |',
       '| b | - | other/lib#7 | stack on other/lib#7 |',
     ])
-  })
-})
-
-describe('displayTarget', () => {
-  it('ファイルは代表のキーで出す', () => {
-    expect(displayTarget(QUICKSTART, { kind: 'file', index: 2 }, HOME)).toBe('phase3')
   })
 })
 
