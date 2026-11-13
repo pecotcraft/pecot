@@ -186,7 +186,7 @@ describe('コマンドごとの --help', () => {
     expect(result.stderr).toBe('')
     expect(result.stdout.startsWith('Usage: pecot create-branch [OPTIONS] <issue_ref> <branch_name>\n\nCreate a branch linked to an Issue\n\nArguments:\n')).toBe(true)
     expect(result.stdout).toContain('  <issue_ref>    Issue reference [required]\n  <branch_name>  Name of the branch [required]\n')
-    expect(result.stdout).toContain('  -b, --base <str>  Base branch The develop_branch of the repository in the\n')
+    expect(result.stdout).toContain('  -b, --base <str>  Base branch The branch of the PR the Issue stacks on when\n')
     // 定義書の PW-CREATE-BRANCH から読む
     expect(result.stdout).toContain('\nDetails:\n  - Creates a branch linked to an Issue through the GitHub GraphQL API')
     expect(result.stdout).toContain('\nExamples:\n  pecot create-branch example-org/my-repo/123 feat/my-change\n')
