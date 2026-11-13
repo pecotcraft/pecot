@@ -1,3 +1,13 @@
+## 0.2.7 (2026-11-13)
+
+### 🩹 Fixes
+
+- 公開面のテストのいちばん外の `describe` の題が定義書の `name` に無いと、lint が止める。 ([#331](https://github.com/pecotcraft/pecot/pull/331), [#279](https://github.com/pecotcraft/pecot/issues/279))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.6 (2026-11-11)
 
 ### 🩹 Fixes

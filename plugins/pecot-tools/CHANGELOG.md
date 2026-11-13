@@ -1,3 +1,16 @@
+## 1.1.1 (2026-11-13)
+
+### 🩹 Fixes
+
+- 公開面のテストのいちばん外の `describe` の題が定義書の `name` に無いと、lint が止める。 ([#331](https://github.com/pecotcraft/pecot/pull/331), [#279](https://github.com/pecotcraft/pecot/issues/279))
+- MCP 単体配布の組み立て手順を 3 プラグインで共通にし、pecot-visual の依存解決にも取得のタイムアウトと再試行の上限を設ける。 ([#393](https://github.com/pecotcraft/pecot/pull/393), [#352](https://github.com/pecotcraft/pecot/issues/352))
+- MCP の単体配布の登録例が、pnpm の `devEngines` を持つリポを cwd にしても起動する。 ([#398](https://github.com/pecotcraft/pecot/pull/398), [#391](https://github.com/pecotcraft/pecot/issues/391))
+  登録例はパッケージを位置引数で渡し、`npm_config_package` をサーバの子の npx に残さない。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 1.1.0 (2026-11-11)
 
 ### 🚀 Features

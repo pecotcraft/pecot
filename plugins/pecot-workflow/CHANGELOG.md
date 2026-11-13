@@ -1,3 +1,67 @@
+# 5.0.0 (2026-11-13)
+
+### 🚀 Features
+
+- MCP サーバを npm の `@pecot/workflow-mcp` として単体で配る。 ([#393](https://github.com/pecotcraft/pecot/pull/393), [#352](https://github.com/pecotcraft/pecot/issues/352))
+  プラグインを入れなくても、MCP クライアントに 1 エントリを登録すれば使える。
+
+- `pecot project init` が、既にあるボードに `Blocked` と `Needs Attention` を足す。 ([#395](https://github.com/pecotcraft/pecot/pull/395), [#376](https://github.com/pecotcraft/pecot/issues/376))
+  `Blocked` の無いボードでも、設定の読み込みは止まらない。
+  旧版の CLI で設定ファイルを保存し直すと、`fields.status` は消える。
+
+
+### 🩹 Fixes
+
+- 外部投稿のフックが、`pecot issue create` などに `--help` を付けた呼び出しを実投稿として止めない。 ([#330](https://github.com/pecotcraft/pecot/pull/330), [#261](https://github.com/pecotcraft/pecot/issues/261))
+- 公開面のテストのいちばん外の `describe` の題が定義書の `name` に無いと、lint が止める。 ([#331](https://github.com/pecotcraft/pecot/pull/331), [#279](https://github.com/pecotcraft/pecot/issues/279))
+- `pecot worktree remove <名前>` は、機能ブランチに移った worktree も削除する。 ([#320](https://github.com/pecotcraft/pecot/pull/320), [#316](https://github.com/pecotcraft/pecot/issues/316))
+  `worktree add` が記録した名前、`<project root>/<名前>/<repo>` の置き場所、ブランチ名の順で worktree を探す。
+  `pecot worktree` のコマンドは、空白を含むパスの worktree を一覧から正しく読む。
+
+- `pecot worktree add` は、origin の無いリポで、アクティブなプロジェクトに登録済みのリポを指す remote（無ければ最初の remote）を使う。 ([#319](https://github.com/pecotcraft/pecot/pull/319), [#317](https://github.com/pecotcraft/pecot/issues/317))
+- Node への移植の準備で、配布物の振る舞いは変わらない。定義書の `environment` に、データ置き場と枠の幅を決める環境変数の説明を足す。 ([#354](https://github.com/pecotcraft/pecot/pull/354), [#340](https://github.com/pecotcraft/pecot/issues/340))
+- Node への移植の準備で、配布物の振る舞いは変わらない。project の 10 個と `create-branch`・`delete-branch` を、Node の CLI に移す。 ([#356](https://github.com/pecotcraft/pecot/pull/356), [#341](https://github.com/pecotcraft/pecot/issues/341))
+- Node への移植の途中で、配布物の振る舞いは変わらない。issue と session のコマンド 9 個が、Node でも同じ結果を返す。 ([#360](https://github.com/pecotcraft/pecot/pull/360), [#342](https://github.com/pecotcraft/pecot/issues/342))
+- Node への移植の途中で、配布物の振る舞いは変わらない。pr の 4 コマンド（`create`・`read`・`preflight`・`cleanup`）を Node の CLI に足す。 ([#359](https://github.com/pecotcraft/pecot/pull/359), [#343](https://github.com/pecotcraft/pecot/issues/343))
+- 配布物の振る舞いは変わらない。 ([#358](https://github.com/pecotcraft/pecot/pull/358), [#344](https://github.com/pecotcraft/pecot/issues/344))
+  TypeScript への移行の途中で、`pecot worktree` の 4 個と `pecot release` の 3 個を、開発用の Node の CLI に移した。
+
+- hooks に、MCP ツールの投稿の確認（ask）を足す。Bash の `pecot` の deny と移行後の案内文も用意するが、まだ呼ばないので、配布物の振る舞いは変わらない。 ([#357](https://github.com/pecotcraft/pecot/pull/357), [#345](https://github.com/pecotcraft/pecot/issues/345))
+- hooks のテストを vitest からも流せるようにした。pytest は残す。配布物の振る舞いは変わらない。 ([#361](https://github.com/pecotcraft/pecot/pull/361), [#346](https://github.com/pecotcraft/pecot/issues/346))
+- 配布物の振る舞いは変わらない。 ([#365](https://github.com/pecotcraft/pecot/pull/365), [#347](https://github.com/pecotcraft/pecot/issues/347))
+  TypeScript への移行の途中で、同期の 2 個を開発用の Node の CLI に移した。
+  対象は `pecot security sync` と `pecot dependabot sync` で、34 個のコマンドがそろった。
+
+- 配布物の振る舞いは変わらない。 ([#369](https://github.com/pecotcraft/pecot/pull/369), [#348](https://github.com/pecotcraft/pecot/issues/348))
+  開発用の `pecot mcp` が、34 個のコマンドを MCP のツールとして公開する（プラグインには登録しない）。
+  利用者の runtime の依存として、MCP の SDK が増える。
+
+- Python の CLI と pytest を消し、Node の CLI の置き場を `cli/` にした。配布物の振る舞いは変わらない。 ([#388](https://github.com/pecotcraft/pecot/pull/388), [#351](https://github.com/pecotcraft/pecot/issues/351))
+- Node への移植の途中で、配布物の振る舞いは変わらない。Node の CLI の help が同じ書式になり、定義書の説明を出す。 ([#366](https://github.com/pecotcraft/pecot/pull/366), [#362](https://github.com/pecotcraft/pecot/issues/362))
+- Node への移植の途中で、配布物の振る舞いは変わらない。Node の CLI で、`-D` の検証や終了の扱いなど、コマンドの間で重なっていた実装を 1 つにまとめた。 ([#368](https://github.com/pecotcraft/pecot/pull/368), [#363](https://github.com/pecotcraft/pecot/issues/363))
+- w-merge のマージ待ちが、チェックが通ったあとにルールで止まった PR を待ち続けない。 ([#367](https://github.com/pecotcraft/pecot/pull/367), [#364](https://github.com/pecotcraft/pecot/issues/364))
+  待つのは merge queue の中とチェックの実行中だけで、ほかは止まった理由を出して抜ける。
+
+- 配布物の振る舞いは変わらない。 ([#372](https://github.com/pecotcraft/pecot/pull/372), [#371](https://github.com/pecotcraft/pecot/issues/371))
+  開発用の `pecot mcp` が、GitHub Copilot CLI のプラグインから起動されたときも、セッションのリポを対象にする。
+  対象のリポを決められないときは、別のリポを使わず、どのツールも理由を返して止まる。
+
+- Issue の前提（blocked by）の読み書きと、着手の判定の関数を足す。コマンドからはまだ呼ばず、配布物の振る舞いは変わらない。 ([#394](https://github.com/pecotcraft/pecot/pull/394), [#375](https://github.com/pecotcraft/pecot/issues/375))
+- MCP の単体配布の登録例が、pnpm の `devEngines` を持つリポを cwd にしても起動する。 ([#398](https://github.com/pecotcraft/pecot/pull/398), [#391](https://github.com/pecotcraft/pecot/issues/391))
+  登録例はパッケージを位置引数で渡し、`npm_config_package` をサーバの子の npx に残さない。
+
+- **pytest の JUnit** を `cli/test-results/junit.xml` に残し、テストが失敗した回の結果も残す。 ([#322](https://github.com/pecotcraft/pecot/pull/322), [#260](https://github.com/pecotcraft/pecot/issues/260))
+
+### ⚠️  Breaking Changes
+
+- `pecot` の CLI が Node（`^24.22.1` か `>=26.12.1`）で動き、スキルは MCP ツールを呼ぶ。Python と uv は要らない。 ([#386](https://github.com/pecotcraft/pecot/pull/386), [#350](https://github.com/pecotcraft/pecot/issues/350))
+  エージェントの Bash の `pecot` は hooks が deny する（設定のキー `pecot-cli-deny`）。
+  GitHub Copilot CLI は 1.0.106 以降が要る。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 4.1.0 (2026-11-11)
 
 ### 🚀 Features
