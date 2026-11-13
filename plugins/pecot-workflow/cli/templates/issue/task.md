@@ -19,7 +19,7 @@ order: ""
 フィールド:
 - repository: 起票先 `owner/repo` 必須
 - parent_epic: `owner/repo/number` 推奨。番号のみは aggregation_repo 解釈なので別リポの Epic を指すなら full path 必須
-- order: 親 Epic 内の通し番号。タイトル先頭が `#{epic}-{order:02d}` で自動生成
+- order: 親 Epic 内の通し番号。タイトル先頭が `#{epic}-NN`（`NN` は `order` を 2 桁に 0 で埋めたもの）で自動生成
 - 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / order の判定基準）
 
 例:

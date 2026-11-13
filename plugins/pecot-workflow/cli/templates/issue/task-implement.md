@@ -23,8 +23,8 @@ parallel: ""
 フィールド:
 - repository: 実装が行われるリポ `owner/repo` 必須
 - parent_epic: 親 Epic を `owner/repo/number` で指定（推奨）
-- order: フェーズの段（依存グラフの層）。タイトル先頭が `#{epic}-{order:02d}` で自動生成
-- parallel: 同じ段に 2 件以上あるときだけ入れる枝の文字（`a`〜`z`）。タイトル先頭が `#{epic}-{order:02d}{parallel}` になる
+- order: フェーズの段（依存グラフの層）。タイトル先頭が `#{epic}-NN`（`NN` は `order` を 2 桁に 0 で埋めたもの）で自動生成
+- parallel: 同じ段に 2 件以上あるときだけ入れる枝の文字（`a`〜`z`）。タイトル先頭が `#{epic}-NN{parallel}`（`NN` は `order` を 2 桁に 0 で埋めたもの）になる
 - 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / order の判定基準）
 
 例:

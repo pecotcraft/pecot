@@ -45,16 +45,14 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 のように書く。整数 `123` だけだと aggregation_repo 解釈になるため、サブタスクの task repo と
 aggregation_repo が同じ場合のみ意図通り動く。
 
-整数指定で aggregation_repo と task repo が異なるとき、CLI は stderr に note を出す。形式は次のとおり。
+整数指定で aggregation_repo と task repo が異なっても、CLI は何も出さずに aggregation_repo の Issue #N として解決する。
+確認の通知やエラーは出ないので、task repo の Issue を指したいときは `owner/repo/N` で書く。
 
-```
-note: parent_epic=123 を aggregation_repo (acme-labs/aist-roadmap) の #123 として解決しました。
-```
+`parent_epic` は、フロントマターに書いても引数で渡しても、次の順で整える。
 
-これは **エラーではなく挙動の確認通知**。AI は警告メッセージとして再投稿を試みたり、
-ユーザーに「失敗しました」と報告しない。フォーマットを誤検知して止めないこと。
-
-`parent_epic` は、フロントマターに書いても引数で渡しても、同じく整える。前後の空白を落とし、空なら未指定、数字だけなら整数（Issue 番号）、それ以外は `owner/repo/N` の参照として解決する。解決できない値は使い方の誤りとして止まる。
+- 数字だけなら整数（Issue 番号）にする
+- それ以外は `owner/repo/N` の参照として解決する。解決できない値は使い方の誤りとして止まる
+- 空なら未指定にする。引数では、前後の空白を落としてから空かを見るので、空白だけの値も未指定になる。フロントマターでは `""` だけが未指定で、空白だけの値は未指定にならず、解決できない値として止まる
 
 ## 3. `order` と タイトル prefix
 
@@ -64,19 +62,19 @@ note: parent_epic=123 を aggregation_repo (acme-labs/aist-roadmap) の #123 と
 `parallel` は任意で、`a`〜`z` の小文字 1 文字を入れる。
 入れるのは、並列に進められる Issue が同じ段（`order`）で 2 件以上あるときだけ。`order` が無いと指定できない。
 
-タイトルは CLI が自動生成する。形式は次のとおり。
+タイトルは CLI が自動生成する。
+`{order}` は、2 桁に満たなければ 0 で埋めた値（例: `3` は `03`）を指す。
+`parallel` が無いときは `#{epic}-{order}` のままになる。形式は次のとおり。
 
 ```
 [Task] #{epic}-{order}{parallel}: <title>
 [Bug]  #{epic}-{order}{parallel}: <title>
 ```
 
-`order` は 2 桁に 0 で埋める（例: `03`）。`parallel` が無いときは `#{epic}-{order}` のままになる。
-
 `order` の続番決定:
 
-- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が
-  確かめ、重複時は `exit code: 1` で失敗する
+- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が確かめ、
+  重複時は `exit code: 1` で失敗する
 - 重複の判定は (`order`, `parallel`) の組で行う。同じ段で枝が違えば重複ではない。
   同じ段の枝なしと枝ありは、どちらが既存でも重複とする
 - 続番を決めるときは、`issue_read` を `issue_ref: "<Epic の owner/repo/N>"` で呼んだ結果の sub-issue 一覧で既存 `order` を確認する。
@@ -88,7 +86,7 @@ note: parent_epic=123 を aggregation_repo (acme-labs/aist-roadmap) の #123 と
 
 ## 4. テンプレート選択
 
-実装ファイル: `cli/templates/issue/{task,bug,epic,tracker,task-implement}.md`
+テンプレートの場所: `cli/templates/issue/{task,bug,epic,tracker,task-implement}.md`
 
 スキル ↔ テンプレート対応:
 
