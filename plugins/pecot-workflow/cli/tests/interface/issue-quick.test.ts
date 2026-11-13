@@ -131,6 +131,17 @@ describe('issue quick', () => {
     expect(github.requests().some(request => request.type === 'rest' && request.method === 'GET')).toBe(false)
   })
 
+  it('前の作業対象の .pecot-base が残っていても、--no-branch で作業対象を替えると消す', async (context) => {
+    await verifies(context, 'PW-ISSUE-QUICK-36')
+    const project = setUpIssueProject({ files: { '.pecot/state/.pecot-base': `feat/3 ${'0'.repeat(40)} acme/demo#3` } })
+    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+
+    const result = await quick('-m', MESSAGE, '-r', 'acme/demo', '--no-branch')
+
+    expect(result.code).toBe(0)
+    expect(hasFile(project.root, '.pecot/state/.pecot-base')).toBe(false)
+  })
+
   it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定とブランチの作成をしない', async (context) => {
     await verifies(context, 'PW-ISSUE-QUICK-18')
     await verifies(context, 'PW-ISSUE-QUICK-19')

@@ -9,12 +9,12 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import { compareStrings, pythonStringRepr } from '../domain/python-format.js'
 import { repositoryFullName } from '../domain/repository-resolver.js'
 import { displayReference } from '../domain/readiness.js'
-import { FLAG_PECOT_ACTIVE, FLAG_PECOT_BASE } from '../domain/state.js'
+import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
 import { decideStart, describeBaseMismatch } from '../domain/work-start.js'
 import type { StartDecision } from '../domain/work-start.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { DependenciesUnsupportedError, GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.js'
-import { consumeFlag, readFlag } from '../infra/state-store.js'
+import { GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.js'
+import { readFlag } from '../infra/state-store.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
@@ -22,8 +22,8 @@ import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
-import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
-import { recordBase, recordWorkTarget } from './work-target.js'
+import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
+import { recordWorkTarget } from './work-target.js'
 
 /**
 A-1. 作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違えば、終了コード 2 で止める
@@ -56,6 +56,13 @@ interface BaseBranchQuery {
 }
 
 /**
+develop_branch を設定する直し方の行
+*/
+function developBranchGuide(owner: string, repository: string): string {
+  return `set it with: pecot project set-repo ${owner}/${repository} --develop-branch develop`
+}
+
+/**
 3. ベースブランチを決める（--base を先に、無ければ設定の develop_branch）
 */
 function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuery>): string {
@@ -66,7 +73,7 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
     stopWith(
       out,
       `develop_branch is not set for ${owner}/${repository}\n`
-      + `set it with: pecot project set-repo ${owner}/${repository} --develop-branch develop\n`
+      + `${developBranchGuide(owner, repository)}\n`
       + `or give the base: pecot create-branch ${owner}/${repository}/${String(issueNumber)} ${branchName} --base main`,
     )
   }
@@ -74,20 +81,20 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
 }
 
 /**
-3.5. 着手の判定を読み、積む先を決める。blocked と読めないときは止める。依存関係を持たない GHES は、判定なしで進める
+3.5. 着手の判定を読み、積む先を決める。blocked と読めないときは止める。依存関係を持たない GHES は、warning を出して判定なしで進める
 */
 async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueReference>): Promise<Exclude<StartDecision, { kind: 'blocked' }>> {
   const label = displayReference(issue, issue.repository)
-  let result
-  try {
-    result = await readIssueReadiness(client, config, issue, createReadinessCache())
+  const warnNotChecked = (reason: string): void => {
+    out.warning(`readiness is not checked: ${reason}`)
   }
-  catch (error: unknown) {
-    if (error instanceof DependenciesUnsupportedError) return { kind: 'start' }
-    throw error
-  }
+  const result = await readIssueReadinessIfSupported(client, config, issue, createReadinessCache(), warnNotChecked)
+  if (result === undefined) return { kind: 'start' }
   if (result.kind === 'unreadable') {
-    return stopWith(out, result.snapshot === undefined ? `could not read blocked-by of ${label}: ${result.reason}` : `could not judge readiness of ${label}: ${result.reason}`)
+    if (result.snapshot === undefined) return stopWith(out, `could not read blocked-by of ${label}: ${result.reason}`)
+    const isUnset = result.snapshot.developmentBranch === undefined || result.snapshot.developmentBranch === ''
+    const guide = isUnset ? `\n${developBranchGuide(issue.repository.owner, issue.repository.repository)}` : ''
+    return stopWith(out, `could not judge readiness of ${label}: ${result.reason}${guide}`)
   }
   const decision = decideStart(result.readiness, result.prerequisites, issue)
   return decision.kind === 'blocked' ? stopWith(out, decision.message, USAGE_EXIT_CODE) : decision
@@ -190,9 +197,6 @@ const branchCreationCommand = defineCommand({
     // A-1. 作業ディレクトリと Issue ref のリポジトリの整合チェック
     if (!input.allow_cross_repo) rejectCwdRepositoryMismatch(out, owner, repository)
 
-    // 3. ベースブランチ決定（ローカル設定から）
-    const defaultBase = resolveBaseBranch(out, { config, owner, repository, issueNumber, branchName: input.branch_name, base: input.base })
-
     const finalBranchName = `${input.branch_name}/${String(issueNumber)}`
     try {
       const client = createGitHubClient(out, config.host)
@@ -209,13 +213,24 @@ const branchCreationCommand = defineCommand({
       const decision = await decideWorkStart(out, client, config, issue)
       const mismatch = describeBaseMismatch(input.base, decision, issue)
       if (mismatch !== undefined) stopWith(out, mismatch, USAGE_EXIT_CODE)
-      const baseBranch = decision.kind === 'stack' ? decision.branch : defaultBase
+      // 3. ベースブランチ決定（積まないときだけ、--base か設定の develop_branch を求める）
+      const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branchName: input.branch_name, base: input.base })
 
       // 5. Issue Node ID とタイトル取得（タイトルはセッション名用）
       const { id: issueNodeId, title: issueTitle } = await client.getIssueNodeIdAndTitle(owner, repository, issueNumber)
 
       // 6. ベースブランチの commit SHA 取得
-      const baseSha = await client.getBranchSha(owner, repository, baseBranch)
+      let baseSha: string
+      try {
+        baseSha = await client.getBranchSha(owner, repository, baseBranch)
+      }
+      catch (error: unknown) {
+        if (error instanceof GitHubAPIError && decision.kind === 'stack') {
+          out.error(`base branch ${baseBranch} of ${displayReference(decision.issue, issue.repository)} not found: ${error.message}`)
+          return 1
+        }
+        throw error
+      }
 
       // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
       const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
@@ -226,10 +241,9 @@ const branchCreationCommand = defineCommand({
       await setIssueStatusActive(out, client, config, { owner, repository, number: issueNumber })
 
       // 9. 作業対象を .pecot-active と .pecot-session-title に保存（hook の自動投稿とセッション名用）
-      consumeFlag(FLAG_PECOT_BASE)
-      if (recordWorkTarget(out, owner, repository, issueNumber, issueTitle) === 'recorded') {
-        recordBase({ branch: baseBranch, sha: baseSha, stackedOn: decision.kind === 'stack' ? decision.issue : undefined })
-      }
+      recordWorkTarget(out, owner, repository, issueNumber, issueTitle, {
+        base: { branch: baseBranch, sha: baseSha, stackedOn: decision.kind === 'stack' ? decision.issue : undefined },
+      })
       return 0
     }
     catch (error: unknown) {

@@ -53,4 +53,20 @@ describe('recordWorkTarget', () => {
     expect(thrown).toMatchObject({ exitCode: 1 })
     expect(io.err.join('')).toMatch(/^error: could not record the work target: .+\n$/u)
   })
+
+  it('前の .pecot-base を消し、options.base があれば新しく書く', () => {
+    const directory = projectDirectory({ '.pecot/state/.pecot-base': 'old' })
+    const base = path.join(directory, '.pecot/state/.pecot-base')
+    recordWorkTarget(createOutput(false, capture()), 'acme', 'demo', 7, 't')
+    expect(existsSync(base)).toBe(false)
+    recordWorkTarget(createOutput(false, capture()), 'acme', 'demo', 7, 't', { base: { branch: 'main', sha: '0'.repeat(40), stackedOn: undefined } })
+    expect(readFileSync(base, 'utf8')).toBe(`main ${'0'.repeat(40)}`)
+  })
+
+  it('.pecot-base を消せないと、could not record the base の warning を出す', () => {
+    projectDirectory({ '.pecot/state/.pecot-base/keep': 'x' })
+    const io = capture()
+    recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't')
+    expect(io.err.join('')).toMatch(/^warning: could not record the base: .+\n/u)
+  })
 })

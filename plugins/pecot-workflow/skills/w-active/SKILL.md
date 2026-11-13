@@ -33,7 +33,10 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
    MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
    始め直せないときだけ `allow_cross_repo: true` を付ける。
 3. 判定が blocked のとき、`create_branch` は `exit code: 2` で止まり、出力に `is blocked by` が出る。出力の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
-4. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
+4. 前提を読めないか判定できないとき、`create_branch` は `exit code: 1` で止まる。出力に `could not read blocked-by` か `could not judge readiness` が出る。
+   積む先のブランチが無くなったときも `exit code: 1` で、出力に `not found` が出る。
+   出力（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
+5. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
 
@@ -47,7 +50,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 ユーザーが選択したタスクのIssue内容を確認する。`issue_read` を `issue_ref: "owner/repo/XXX"` で呼ぶ。
 
-利用者がタスクを選ぶ材料に、判定（`startable`・`stackable`・`blocked`）を示す。`Blocked` の Issue が選ばれたら、理由を伝えて止める。
+利用者がタスクを選ぶ材料に、判定（`startable`・`stackable`・`blocked`）を示す。判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。
 
 ### Step 3: ベースブランチを最新化
 

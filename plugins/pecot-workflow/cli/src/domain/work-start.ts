@@ -11,22 +11,16 @@ export type StartDecision
     | { readonly kind: 'stack', readonly branch: string, readonly issue: IssueReference }
     | { readonly kind: 'blocked', readonly message: string }
 
-// 2 件以上のときは、どれを指すか決められないので、形だけ出す
-function byReference(unfinished: readonly Prerequisite[]): string {
-  const [only, ...others] = unfinished
-  return only === undefined || others.length > 0 ? '<owner/repo/N>' : issueReferenceToCliReference(only.issue.ref)
-}
-
 function blockedMessage(target: IssueReference, readiness: Readiness, prerequisites: readonly Prerequisite[]): string {
   const home = target.repository
   const unfinished = prerequisites.filter(({ issue }) => !isDone(issue))
   const subject = issueReferenceToCliReference(target)
-  const by = byReference(unfinished)
+  const waitsMerge = readiness.reason?.code === 'waits-merge' ? readiness.reason.issues : []
   return [
     `${displayReference(target, home)} is ${describeReadiness(readiness, prerequisites, home)}`,
     ...unfinished.map(prerequisite => `- ${displayReference(prerequisite.issue.ref, home)}: ${describePrerequisiteState(prerequisite)}`),
-    `to remove the prerequisite: pecot issue unblock ${subject} --by ${by}`,
-    ...readiness.reason?.code === 'waits-merge' ? [`to stack on it instead of waiting for merge: pecot issue block ${subject} --by ${by} --wait stack`] : [],
+    ...unfinished.map(({ issue }) => `to remove the prerequisite: pecot issue unblock ${subject} --by ${issueReferenceToCliReference(issue.ref)}`),
+    ...waitsMerge.map(({ issue }) => `to stack on it instead of waiting for merge: pecot issue block ${subject} --by ${issueReferenceToCliReference(issue)} --wait stack`),
   ].join('\n')
 }
 
@@ -43,7 +37,7 @@ export function decideStart(readiness: Readiness | undefined, prerequisites: rea
 /**
 --base が、判定で選んだ積む先と違うときの文。stackable のときだけ比べる
 */
-export function describeBaseMismatch(base: string | undefined, decision: Readonly<StartDecision>, target: IssueReference): string | undefined {
+export function describeBaseMismatch(base: string | undefined, decision: Exclude<StartDecision, { kind: 'blocked' }>, target: IssueReference): string | undefined {
   const isDifferent = base !== undefined && base !== '' && decision.kind === 'stack' && base !== decision.branch
   return isDifferent ? `--base ${base} differs from the base chosen by readiness: ${decision.branch} (stacked on ${displayReference(decision.issue, target.repository)})` : undefined
 }

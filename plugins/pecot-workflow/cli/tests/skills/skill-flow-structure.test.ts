@@ -117,6 +117,15 @@ describe('w-active の手順', () => {
     for (const word of ['is blocked by', 'issue unblock', '--wait stack', '前提を見直すかどうかは利用者が決める']) expect(body).toContain(word)
   })
 
+  it('終了コード 1 で止まったときは、出力を利用者に示して止まる', () => {
+    const body = sectionBody(text, titleIndex(headings, '事前確認'))
+    for (const word of ['exit code: 1', 'could not read blocked-by', 'could not judge readiness', '利用者に示して止まる']) expect(body).toContain(word)
+  })
+
+  it('Step 2 では、判定が blocked の Issue を選んだら、列が Ready でも止める', () => {
+    expect(text).toContain('判定が `blocked` の Issue（列が `Ready` でも）が選ばれたら、理由を伝えて止める。')
+  })
+
   it('ブランチ作成では base を渡さず、積んで着手した旨を伝える', () => {
     const create = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
     const switching = sectionBody(text, titleIndex(headings, 'ブランチ切り替え'))

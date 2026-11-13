@@ -285,6 +285,44 @@ describe('session status', () => {
       expect(result.stderr).toMatch(/^warning: cannot read the PR of the base branch: .+500/u)
     })
 
+    it('.pecot-base の形が誤っていると、warning を出し、Stack の節を出さない', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-26')
+      const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': 'garbage\n' } })
+      await startGithub([issueResponse({ number: 7, title: 't' })])
+
+      const result = await status(repository)
+
+      expect(result.stdout).not.toContain('## Stack')
+      expect(result.stderr).toBe('warning: .pecot-base is malformed: garbage\n')
+    })
+
+    it('判定を読めないとき、warning を出し、Stack の節の base の行は残す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-27')
+      const { repository } = prepareSession({ files: STACKED })
+      const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), failing])
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toContain('## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')
+      expect(result.stdout).not.toContain('readiness:')
+      expect(result.stderr).toMatch(/^warning: cannot judge readiness of the active Issue: .+500/u)
+    })
+
+    it('依存関係に対応しない GHES では、readiness の行と warning を出さず、base の行は残す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-24')
+      const { repository } = prepareSession({ files: STACKED })
+      const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), unsupported])
+
+      const result = await status(repository)
+
+      expect(result.stdout).toContain('## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')
+      expect(result.stdout).not.toContain('readiness:')
+      expect(result.stderr).toBe('')
+    })
+
     it.for([
       { name: '.pecot-base が無い', files: ACTIVE },
       { name: '開発ブランチから着手した', files: { ...ACTIVE, '.pecot/state/.pecot-base': `main ${SHA}\n` } },

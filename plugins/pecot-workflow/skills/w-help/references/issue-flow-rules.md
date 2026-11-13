@@ -143,6 +143,8 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 | `.pecot-active` に OPEN な別 Issue ref | `create_branch` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
 | `.pecot-active` の Issue が CLOSED | 同上 | stale の warning + 続行 | （バイパス不要） |
 | Issue の判定が blocked | 同上 | `exit code: 2` + 前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
+| 前提を読めない・判定できない | 同上 | `exit code: 1` + `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（出力を利用者に示す） |
+| 積む先のブランチが判定の後に無くなった | `create_branch` のブランチ作成前 | `exit code: 1` + `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
 | `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `exit code: 2` + `--base <x> differs from the base chosen by readiness` | `--base` を外す |
 
 状況を着手前に把握したいときは、ユーザー / AI が `session_status` を `directory: "."` で呼ぶ。

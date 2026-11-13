@@ -194,16 +194,22 @@ Markdown の出力に 2 行を足す。前提が無い Issue では出さない�
 |---|---|---|---|
 | `startable` | 開発ブランチから作る | `created: branch <b> in <repo> from <develop>` | 0 |
 | `stackable` | 積む先のブランチから作る | `created: branch <b> in <repo> from <base> (stacked on #N)` | 0 |
-| `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて済んでいない前提ごとの `- #B: <状態>` の行、直し方の案内 | 2 |
+| `blocked` | 作らない | `error: #A is blocked by #B (<理由>)`、続けて済んでいない前提ごとの `- #B: <状態>` の行、直し方の案内（2 行目以降は 2 字下がる） | 2 |
 | `stackable` で `--base` が積む先と違う | 作らない | `error: --base <x> differs from the base chosen by readiness: <branch> (stacked on #N)` | 2 |
 | 前提の読み取りに失敗 | 作らない | `error: could not read blocked-by of #A: <理由>` | 1 |
-| 判定に失敗（PR の引き足しの失敗など） | 作らない | `error: could not judge readiness of #A: <理由>` | 1 |
+| 判定に失敗（PR の引き足しの失敗など） | 作らない | `error: could not judge readiness of #A: <理由>`。開発ブランチが未設定なのが原因なら、続けて `set it with: pecot project set-repo <owner/repo> --develop-branch develop` の行 | 1 |
+| `stackable` で、判定の後に積む先のブランチが無くなった | 作らない | `error: base branch <branch> of #N not found: <理由>` | 1 |
+| 依存関係を持たない GHES | 判定を省いて開発ブランチから作る | `warning: readiness is not checked: <理由>` の後、`startable` と同じ | 0 |
 
 - `--base` を比べるのは、判定が `stackable` のときだけだ。違えば止まる（終了コード 2）。`startable` では比べない。`blocked` は比べる前に止まる
+- 開発ブランチ（と `--base`）を求めるのは、判定の後で、積まないときだけだ。`blocked` は開発ブランチが無くても、`blocked` の説明で止まる
 - ブロックを無視する指定は置かない
 - base のブランチと位置（積んだときは積んだ先の Issue も）を、状態のファイルに 1 行で記録する
 - 前提ごとの行の状態は、マージを待つ理由（`wait: merge — <理由>`）まで読める
-- 直し方の案内は、`pecot issue unblock <A> --by <B>` の行だ。理由が `waits-merge` のときだけ、`pecot issue block <A> --by <B> --wait stack` の行も足す。済んでいない前提が 2 件以上のときは、`<B>` を `<owner/repo/N>` のまま出す
+- 直し方の案内は、`pecot issue unblock <A> --by <B>` の行だ
+  - `unblock` の行は、済んでいない前提ごとに 1 行ずつ、その前提の参照を `<B>` に入れて出す
+  - 理由が `waits-merge` のときだけ、マージを待つ前提ごとに `pecot issue block <A> --by <B> --wait stack` の行も足す
+  - `<owner/repo/N>` のままの行は出さない
 
 ### `pecot pr create`
 

@@ -112,8 +112,8 @@ describe('.pecot-base の 1 行', () => {
     expect(FLAG_PECOT_BASE).toBe('.pecot-base')
   })
 
-  it('積んだときは、ブランチ・SHA・積んだ先を空白で区切る（リポ名は小文字）', () => {
-    expect(formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue })).toBe(`feat/3 ${SHA} acme/demo#3`)
+  it('積んだときは、ブランチ・SHA・積んだ先を空白で区切る', () => {
+    expect(formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue })).toBe(`feat/3 ${SHA} Acme/Demo#3`)
   })
 
   it('開発ブランチから着手したときは、ブランチと SHA だけにする', () => {
@@ -122,8 +122,14 @@ describe('.pecot-base の 1 行', () => {
 
   it('書いた形を読み戻す', () => {
     const stacked = interpretBaseRecord(formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue }))
-    expect(stacked).toMatchObject({ kind: 'stacked', record: { branch: 'feat/3', sha: SHA }, stackedOn: { repository: { owner: 'acme', repository: 'demo' }, number: 3 } })
+    expect(stacked).toMatchObject({ kind: 'stacked', record: { branch: 'feat/3', sha: SHA }, stackedOn: { repository: { owner: 'Acme', repository: 'Demo' }, number: 3 } })
     expect(interpretBaseRecord(`main ${SHA}`)).toEqual({ kind: 'development', record: { branch: 'main', sha: SHA, stackedOn: undefined } })
+  })
+
+  it('リポ名の大文字小文字を残して書き、読み戻しても残る', () => {
+    const written = formatBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: issue })
+    expect(written).toBe(`feat/3 ${SHA} Acme/Demo#3`)
+    expect(interpretBaseRecord(written)).toMatchObject({ kind: 'stacked', stackedOn: { repository: { owner: 'Acme', repository: 'Demo' } } })
   })
 
   it('ファイルが無ければ、開発ブランチから着手したものとして読む', () => {

@@ -12,7 +12,7 @@ import { FLAG_PECOT_ACTIVE } from '../domain/state.js'
 import { describeStackBase, pickBasePullRequest } from '../domain/work-start.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
-import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
+import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { hasFlag, readBaseRecord, readFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
@@ -21,7 +21,7 @@ import { FAILURE_EXIT_CODE } from './failure.js'
 import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
-import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
+import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
@@ -91,6 +91,7 @@ async function readActiveIssue(statuses: readonly FlagStatus[], output: Output):
 // 積んで着手した作業ディレクトリの `## Stack` の節。積んでいなければ空
 async function stackLines(active: Readonly<ActiveIssue>, output: Output): Promise<string[]> {
   const reading = readBaseRecord()
+  if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
   if (reading.kind !== 'stacked') return []
   const { record, stackedOn } = reading
   const { owner, repository } = stackedOn.repository
@@ -110,14 +111,8 @@ async function stackLines(active: Readonly<ActiveIssue>, output: Output): Promis
 
 // 着手中の Issue の判定が blocked のときだけ出す
 async function readinessLines(active: Readonly<ActiveIssue>, output: Output): Promise<string[]> {
-  let result
-  try {
-    result = await readIssueReadiness(active.client, active.config, active.reference, createReadinessCache())
-  }
-  catch (error: unknown) {
-    if (error instanceof DependenciesUnsupportedError) return []
-    throw error
-  }
+  const result = await readIssueReadinessIfSupported(active.client, active.config, active.reference, createReadinessCache())
+  if (result === undefined) return []
   if (result.kind === 'unreadable') {
     output.warning(`cannot judge readiness of the active Issue: ${result.reason}`)
     return []

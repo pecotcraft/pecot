@@ -2,7 +2,7 @@
 
 import { InvalidValueError } from './errors.js'
 import { parsePythonInteger, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from './python-format.js'
-import { createIssueReference, issueReferenceKey } from './reference-parser.js'
+import { createIssueReference, issueReferenceToString } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'
 import { createRepositoryReference } from './repository-resolver.js'
 
@@ -94,7 +94,7 @@ const BASE_ISSUE_PATTERN = /^([^\s#/]+)\/([^\s#/]+)#(\d+)$/u
 */
 export function formatBaseRecord(record: Readonly<BaseRecord>): string {
   const fields = [record.branch, record.sha]
-  if (record.stackedOn !== undefined) fields.push(issueReferenceKey(record.stackedOn))
+  if (record.stackedOn !== undefined) fields.push(issueReferenceToString(record.stackedOn))
   return fields.join(' ')
 }
 

@@ -94,6 +94,17 @@ describe('session restore', () => {
     expect(existsSync(path.join(session.project.root, '.pecot/work/7'))).toBe(true)
   })
 
+  it('前の作業対象の .pecot-base が残っていても、作業対象を替えると消す', async (context) => {
+    await verifies(context, 'PW-SESSION-RESTORE-22')
+    const session = prepareSession({ files: { '.pecot/state/.pecot-active': 'acme/demo/1', '.pecot/state/.pecot-base': `feat/3 ${'0'.repeat(40)} acme/demo#3` } })
+    await startGithub([issueResponse({ number: 7, title: 't' })])
+
+    const result = await restore(session.repository)
+
+    expect(result.code).toBe(0)
+    expect(existsSync(path.join(session.project.root, '.pecot/state/.pecot-base'))).toBe(false)
+  })
+
   it('作業対象が既に記録されているとき、新しい作業対象で上書きする', async (context) => {
     await verifies(context, 'PW-SESSION-RESTORE-07')
     const session = prepareSession({ files: { '.pecot/state/.pecot-active': 'acme/demo/1', '.pecot/state/.pecot-session-title': '#1 古い' } })

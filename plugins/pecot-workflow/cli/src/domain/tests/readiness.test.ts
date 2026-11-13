@@ -154,6 +154,18 @@ describe('judgeReadiness の順', () => {
     expect(result.reason).toEqual({ code: 'other-repository', issues: [reference(1, otherRepository)] })
   })
 
+  it('順 6: 前提の Issue が同じリポでも、その PR が別のリポにあると other-repository で blocked になる', () => {
+    const facts = issue(1, { pullRequests: [pullRequest(1001, 'b1', DEV, { repository: otherRepository })] })
+    const result = judge([need(facts)])
+    expect(result.kind).toBe('blocked')
+    expect(result.reason).toEqual({ code: 'other-repository', issues: [reference(1)] })
+  })
+
+  it('順 8: 別のリポの PR は、base をたどる先にしない', () => {
+    const prerequisites = [reviewing(1), reviewing(3, 'b2')]
+    expect(judge(prerequisites, { byHead: [pullRequest(1002, 'b2', 'b1', { repository: otherRepository })] }).reason?.code).toBe('diverged')
+  })
+
   it('順 6 の判定では、リポ名の大文字小文字を区別しない', () => {
     const upper = createRepositoryReference('ACME', 'App')
     expect(judge([reviewing(1, DEV, {}, upper)]).kind).toBe('stackable')

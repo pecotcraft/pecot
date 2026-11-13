@@ -269,3 +269,23 @@ export function readinessJson(readiness: Readonly<Readiness>, text: string): Jso
     text,
   }
 }
+
+/**
+readIssueReadiness の、依存関係を持たない GHES を判定なしで通す形。GHES なら undefined を返し、onUnsupported に理由を渡す
+*/
+export async function readIssueReadinessIfSupported(
+  client: Readonly<GitHubClient>,
+  config: ProjectConfig,
+  reference: IssueReference,
+  cache: ReadinessCache,
+  onUnsupported?: (reason: string) => void,
+): Promise<IssueReadiness | undefined> {
+  try {
+    return await readIssueReadiness(client, config, reference, cache)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof DependenciesUnsupportedError)) throw error
+    onUnsupported?.(error.message)
+    return undefined
+  }
+}
