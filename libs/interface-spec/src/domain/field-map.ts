@@ -17,7 +17,7 @@ export interface BorrowedRow {
 
 // contracts/definition-format.md「欄が従う枠組み」の 2 つの表。欄は schema.ts の項目の欄のパスで書く。
 export const POSIX_MAP: readonly PosixRow[] = [
-  { section: 'NAME', fields: ['id', 'name', 'description'], writer: '書き出し', mcp: 'Tool の name・description' },
+  { section: 'NAME', fields: ['id', 'name', 'description', 'summary'], writer: '書き出し。summary は人', mcp: 'Tool の name・description' },
   {
     section: 'SYNOPSIS',
     fields: ['surfaces.cli.path', 'cli.positional', 'cli.flags', 'constraints', 'surfaces.mcp.tool'],
@@ -25,7 +25,7 @@ export const POSIX_MAP: readonly PosixRow[] = [
     mcp: 'surfaces.mcp.tool',
   },
   { section: 'DESCRIPTION', fields: ['details'], writer: '人', mcp: '同じ' },
-  { section: 'OPTIONS・OPERANDS', fields: ['input', 'default_notes'], writer: '書き出し。default_notes は人', mcp: 'Tool の inputSchema' },
+  { section: 'OPTIONS・OPERANDS', fields: ['input', 'arguments', 'default_notes'], writer: '書き出し。arguments と default_notes は人', mcp: 'Tool の inputSchema' },
   { section: 'STDIN', fields: ['stdin'], writer: '人', mcp: '常に none' },
   { section: 'INPUT FILES・OUTPUT FILES', fields: ['effects'], writer: '人', mcp: '同じ' },
   { section: 'ENVIRONMENT VARIABLES', fields: ['environment'], writer: '人。ソースの文字列と比べる', mcp: '同じ' },
