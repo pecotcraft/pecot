@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest'
 import { SESSION_COMMANDS } from '../../src/commands/session.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
+import type { ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
+import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import type { TargetSpec } from '../_helpers/prerequisites.js'
 import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-option-case.js'
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession } from '../_helpers/session-case.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -20,6 +23,20 @@ const TABLE_HEAD = '| Flag | State | Content |\n|------|-------|---------|\n'
 async function status(directory: string): Promise<Awaited<ReturnType<typeof runInProcess>>> {
   return await runInProcess(['session', 'status', '-D', directory], SESSION_COMMANDS)
 }
+
+const pullRequest = (number: number, state: string, isCrossRepository = false): Record<string, unknown> => ({
+  number, state, headRefName: 'feat/3', baseRefName: 'main', isDraft: false, isCrossRepository, repository: { owner: { login: 'acme' }, name: 'demo' },
+})
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
+const pullRequests = (...nodes: readonly Record<string, unknown>[]): ResponseRule => ({
+  match: { operation: 'ListPullRequestsByHead' },
+  respond: { status: 200, body: { data: { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes } } } } },
+  times: 1,
+})
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
+const rules = (spec: Partial<TargetSpec>, ...nodes: readonly Record<string, unknown>[]): ResponseRule[] => [
+  issueResponse({ number: 7, title: 't' }), pullRequests(...nodes), prerequisitesRule({ number: 7, ...spec }),
+]
 
 describe('session status', () => {
   it('--directory を渡すと、ブランチ・リポジトリ・推定した Issue・フラグの表を標準出力に出す', async (context) => {
@@ -214,5 +231,120 @@ describe('session status', () => {
     expect(result.code).toBe(0)
     expect(result.stdout).not.toContain('## Active Issue')
     expect(result.stderr).toMatch(/^warning: cannot read the active Issue: invalid config file/u)
+  })
+
+  describe('Stack の節', () => {
+    const SHA = '0123456789abcdef0123456789abcdef01234567'
+    const STACKED = { ...ACTIVE, '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
+    const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
+    it('積んで着手した作業ディレクトリでは、積んだ先の Issue と PR を Stack の節に出す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-23')
+      const { repository } = prepareSession({ files: STACKED })
+      await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('')
+      expect(result.stdout.endsWith('\n## Active Issue\n\n#7 t (OPEN)\n\n## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')).toBe(true)
+      expect(result.stdout).not.toContain('readiness:')
+    })
+
+    it('open の PR が無ければ fork でない最新の PR を、PR が無ければ no PR を出す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-23')
+      const { repository } = prepareSession({ files: STACKED })
+      await startGithub(rules({ blockedBy: [inReview] }, pullRequest(32, 'OPEN', true), pullRequest(31, 'MERGED'), pullRequest(29, 'CLOSED')))
+      const merged = await status(repository)
+      expect(merged.stdout).toContain('- base: feat/3 (#3, PR #31 MERGED)\n')
+
+      await startGithub(rules({ blockedBy: [inReview] }))
+      const none = await status(repository)
+      expect(none.stdout).toContain('- base: feat/3 (#3, no PR)\n')
+    })
+
+    it('着手中の Issue の判定が blocked なら、readiness の行を足す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-24')
+      const { repository } = prepareSession({ files: STACKED })
+      await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
+
+      const result = await status(repository)
+
+      expect(result.stdout.endsWith('- base: feat/3 (#3, PR #30 CLOSED)\n- readiness: blocked by #3 (not in review: #3 (not started))\n')).toBe(true)
+    })
+
+    it('PR を読めなければ warning を出し、PR unknown と出す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-25')
+      const { repository } = prepareSession({ files: STACKED })
+      const failing: ResponseRule = { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+      await startGithub([issueResponse({ number: 7, title: 't' }), failing, prerequisitesRule({ number: 7, blockedBy: [inReview] })])
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toContain('- base: feat/3 (#3, PR unknown)\n')
+      expect(result.stderr).toMatch(/^warning: cannot read the PR of the base branch: .+500/u)
+    })
+
+    it('.pecot-base の形が誤っていると、warning を出し、Stack の節を出さない', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-26')
+      const { repository } = prepareSession({ files: { ...ACTIVE, '.pecot/state/.pecot-base': 'garbage\n' } })
+      await startGithub([issueResponse({ number: 7, title: 't' })])
+
+      const result = await status(repository)
+
+      expect(result.stdout).not.toContain('## Stack')
+      expect(result.stderr).toBe('warning: .pecot-base is malformed: garbage\n')
+    })
+
+    it('判定を読めないとき、warning を出し、Stack の節の base の行は残す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-27')
+      const { repository } = prepareSession({ files: STACKED })
+      const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), failing])
+
+      const result = await status(repository)
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toContain('## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')
+      expect(result.stdout).not.toContain('readiness:')
+      expect(result.stderr).toMatch(/^warning: cannot judge readiness of the active Issue: .+500/u)
+    })
+
+    it('依存関係に対応しない GHES では、readiness の行と warning を出さず、base の行は残す', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-24')
+      const { repository } = prepareSession({ files: STACKED })
+      const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), unsupported])
+
+      const result = await status(repository)
+
+      expect(result.stdout).toContain('## Stack\n- base: feat/3 (#3, PR #30 OPEN)\n')
+      expect(result.stdout).not.toContain('readiness:')
+      expect(result.stderr).toBe('')
+    })
+
+    it.for([
+      { name: '.pecot-base が無い', files: ACTIVE },
+      { name: '開発ブランチから着手した', files: { ...ACTIVE, '.pecot/state/.pecot-base': `main ${SHA}\n` } },
+      { name: '.pecot-base の形が誤っている', files: { ...ACTIVE, '.pecot/state/.pecot-base': 'garbage\n' } },
+    ])('$name ときは、Stack の節を出さず、判定も読まない', async ({ files }, context) => {
+      await verifies(context, 'PW-SESSION-STATUS-23')
+      const { repository } = prepareSession({ files })
+      const github = await startGithub([issueResponse({ number: 7, title: 't' })])
+
+      const result = await status(repository)
+
+      expect(result.stdout).not.toContain('## Stack')
+      expect(github.requests()).toHaveLength(1)
+    })
+
+    it('.pecot-active が無ければ、.pecot-base があっても Stack の節を出さない', async (context) => {
+      await verifies(context, 'PW-SESSION-STATUS-23')
+      const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
+
+      const result = await status(repository)
+
+      expect(result.stdout).not.toContain('## Stack')
+    })
   })
 })

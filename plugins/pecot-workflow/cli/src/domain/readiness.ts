@@ -153,12 +153,14 @@ function headsToDevelopment(start: IssuePullRequest, byHead: ReadonlyMap<string,
 }
 
 // 済んでいない前提はすべて PR 中なので、open の PR がちょうど 1 本ある
+// 辿る PR も、対象と同じリポのものだけにする
 function findStackTarget(unfinished: readonly Prerequisite[], input: JudgeReadinessInput): StackTarget | undefined {
+  const targetRepository = input.target.ref.repository
   const entries = unfinished.flatMap(({ issue }) => {
     const [pullRequest] = openPullRequests(issue)
     return pullRequest === undefined ? [] : { issue: issue.ref, pullRequest }
   })
-  const byHead = new Map([...input.pullRequestsByHead].filter(([, pullRequest]) => isStackBase(pullRequest)))
+  const byHead = new Map([...input.pullRequestsByHead].filter(([, pullRequest]) => isStackBase(pullRequest) && isSameRepository(pullRequest.repository, targetRepository)))
   for (const { pullRequest } of entries) byHead.set(pullRequest.headRefName, pullRequest)
   for (const start of entries) {
     const reached = headsToDevelopment(start.pullRequest, byHead, input.developmentBranch)
@@ -200,7 +202,9 @@ export function judgeReadiness(input: JudgeReadinessInput): Readiness | undefine
   }
   if (unfinished.length === 0) return result('startable', { needsReview: isNeedsReview, attention })
 
-  const otherRepository = unfinished.filter(({ issue }) => !isSameRepository(issue.ref.repository, target.ref.repository))
+  // 前提の Issue か、その PR が別のリポにあると、積む先のブランチを対象のリポで引けない
+  const otherRepository = unfinished.filter(({ issue }) => !isSameRepository(issue.ref.repository, target.ref.repository)
+    || (isInReview(issue) && openPullRequests(issue).some(pullRequest => !isSameRepository(pullRequest.repository, target.ref.repository))))
   if (otherRepository.length > 0) return blocked({ code: 'other-repository', issues: otherRepository.map(({ issue }) => issue.ref) })
   const notInReview = unfinished.filter(({ issue }) => !isStackable(issue))
   if (notInReview.length > 0) {

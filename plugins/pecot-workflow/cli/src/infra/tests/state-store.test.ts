@@ -5,6 +5,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { InvalidValueError, ProjectRootNotFoundError } from '../../domain/errors.js'
+import { createIssueReference } from '../../domain/reference-parser.js'
+import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import {
@@ -12,9 +14,11 @@ import {
   ensureWorkDirectory,
   hasFlag,
   getStateDirectory,
+  readBaseRecord,
   readFlag,
   removeFlag,
   touchFlag,
+  writeBaseRecord,
   writeFlag,
   writeWorkTarget,
 } from '../state-store.js'
@@ -268,5 +272,27 @@ describe('writeWorkTarget', () => {
     finally {
       process.chdir(previous)
     }
+  })
+})
+
+describe('writeBaseRecord / readBaseRecord', () => {
+  const SHA = '0123456789abcdef0123456789abcdef01234567'
+
+  it('積んだ base を書いて読み戻す', () => {
+    const root = useProject()
+    writeBaseRecord({ branch: 'feat/3', sha: SHA, stackedOn: createIssueReference(createRepositoryReference('acme', 'demo'), 3) })
+    expect(readFileSync(path.join(root, '.pecot', 'state', '.pecot-base'), 'utf8')).toBe(`feat/3 ${SHA} acme/demo#3`)
+    expect(readBaseRecord()).toMatchObject({ kind: 'stacked', record: { branch: 'feat/3', sha: SHA }, stackedOn: { number: 3 } })
+  })
+
+  it('ファイルが無ければ、開発ブランチから着手したものとして読む', () => {
+    useProject()
+    expect(readBaseRecord()).toEqual({ kind: 'development', record: undefined })
+  })
+
+  it('形が誤っていれば malformed', () => {
+    useProject()
+    writeFlag('.pecot-base', 'garbage')
+    expect(readBaseRecord()).toEqual({ kind: 'malformed', content: 'garbage' })
   })
 })

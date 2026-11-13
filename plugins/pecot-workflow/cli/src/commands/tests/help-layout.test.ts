@@ -5,15 +5,15 @@ import { cellLength } from '../rich-panel.js'
 
 describe('definitionSection', () => {
   const rows = [
-    { name: '-b, --base <str>', description: 'Base branch (default: develop_branch from the config)' },
+    { name: '-b, --base <str>', description: 'Base branch (default: chosen by readiness, else develop_branch from the config)' },
     { name: '-F, --force-overwrite-active', description: 'Disable the guard' },
   ]
 
   it('名前の列を「字下げ 2 + 最長の名前 + 間 2」で取り、説明を並べる', () => {
     expect(definitionSection('Options', rows, 80)).toBe([
       'Options:',
-      '  -b, --base <str>              Base branch (default: develop_branch from the',
-      '                                config)',
+      '  -b, --base <str>              Base branch (default: chosen by readiness, else',
+      '                                develop_branch from the config)',
       '  -F, --force-overwrite-active  Disable the guard',
     ].join('\n'))
   })
@@ -22,8 +22,9 @@ describe('definitionSection', () => {
     expect(definitionSection('Options', rows, 40)).toBe([
       'Options:',
       '  -b, --base <str>',
-      '      Base branch (default:',
-      '      develop_branch from the config)',
+      '      Base branch (default: chosen by',
+      '      readiness, else develop_branch',
+      '      from the config)',
       '  -F, --force-overwrite-active',
       '      Disable the guard',
     ].join('\n'))
