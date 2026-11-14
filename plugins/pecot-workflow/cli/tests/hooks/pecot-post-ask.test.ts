@@ -137,7 +137,7 @@ describe.for(forms)('ツール名が$label', (form) => {
     expect(decisionOf(`${form.prefix}${tool}`, { dry_run: true })).toBe('ask')
   })
 
-  it.for(['issue_read', 'pr_read', 'pr_cleanup', 'session_status'])('対象でない %s は、無出力にする', (tool) => {
+  it.for(['issue_show', 'pr_show', 'session_finish', 'session_show'])('対象でない %s は、無出力にする', (tool) => {
     expect(outputOf(`${form.prefix}${tool}`, {})).toBe('')
   })
 

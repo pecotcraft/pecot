@@ -1,7 +1,0 @@
-# 必須の引数が無い。typer の使い方エラーを記録する。
-id: project-set-repo-usage
-command:
-  path: [project, set-repo]
-  args: []
-setup: {}
-github: []

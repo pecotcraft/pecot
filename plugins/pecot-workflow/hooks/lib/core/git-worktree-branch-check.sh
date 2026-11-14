@@ -82,7 +82,7 @@ Work on a feature branch:
     if [ "$OPERATION" = "push" ]; then
         MSG="${MSG}
 
-$(mcp_guidance_delete_branch)"
+$(mcp_guidance_branch_delete)"
     fi
     hook_message error "$MSG"
     exit 1

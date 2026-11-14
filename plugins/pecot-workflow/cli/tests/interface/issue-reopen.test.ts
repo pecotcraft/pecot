@@ -3,11 +3,11 @@ import path from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { ISSUE_PROJECT_COMMANDS } from '../../src/commands/issue-project.js'
+import { ISSUE_REOPEN_COMMANDS } from '../../src/commands/issue-reopen.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
-import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/issue-project-case.js'
+import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
 import type { RecordedRequest } from '../fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -15,7 +15,7 @@ useIsolatedEnvironment()
 
 async function reopen(argv: readonly string[]): Promise<CliResult> {
   useFakeDelays()
-  return await settleWithFakeDelays(runInProcess(['issue', 'reopen', ...argv], ISSUE_PROJECT_COMMANDS))
+  return await settleWithFakeDelays(runInProcess(['issue', 'reopen', ...argv], ISSUE_REOPEN_COMMANDS))
 }
 
 function labelOf(request: RecordedRequest): string {
@@ -93,7 +93,7 @@ describe('issue reopen', () => {
     const github = await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), reopened()])
     useFakeDelays()
 
-    const pending = runInProcess(['issue', 'reopen', 'acme/demo/7'], ISSUE_PROJECT_COMMANDS)
+    const pending = runInProcess(['issue', 'reopen', 'acme/demo/7'], ISSUE_REOPEN_COMMANDS)
     await waitForRequests(() => github.requests().length, 4)
     await vi.advanceTimersByTimeAsync(2999)
     await waitForRequests(() => github.requests().length, 4)

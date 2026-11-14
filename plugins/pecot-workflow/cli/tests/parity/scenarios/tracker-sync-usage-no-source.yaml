@@ -1,0 +1,7 @@
+# source を省いた。typer の使い方エラーを記録する。
+id: tracker-sync-usage-no-source
+command:
+  path: [tracker, sync]
+  args: []
+setup: {}
+github: []

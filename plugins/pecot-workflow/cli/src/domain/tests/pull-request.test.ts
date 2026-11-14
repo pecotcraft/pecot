@@ -262,8 +262,8 @@ describe('formatPullRequestWithReviewsMarkdown', () => {
   it('Issue ごとに詳細のコマンドを添え、レビューと行コメントを続ける', () => {
     expect(formatPullRequestWithReviewsMarkdown(FULL, 'o', 'r')).toBe(
       '## PR #7 題\n\n**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2\n\n**Branch:** `feat/x/7` → `main`\n\n'
-      + '**Closing Issues:**\n  - #7 T7\n    → details: pecot issue read o/r/7\n\n'
-      + '**Referenced Issues:**\n  - #8\n    → details: pecot issue read o/r/8\n  - #9 T9\n    → details: pecot issue read o/r/9\n\n'
+      + '**Closing Issues:**\n  - #7 T7\n    → details: issue show o/r/7\n\n'
+      + '**Referenced Issues:**\n  - #8\n    → details: issue show o/r/8\n  - #9 T9\n    → details: issue show o/r/9\n\n'
       + '---\n\n本文\n\n---\n\n## Reviews\n\n### @alice (APPROVED) - 2026-11-01\n\nOK\n\n### @(unknown) (COMMENTED)\n\n### @bob (COMMENTED)\n\n'
       + '---\n\n## Line Comments\n\n### `a.ts:12` [Resolved]\n\n**@alice** (2026-11-02):\n> 行1\n> 行2\n\n**@(unknown)**:\n\n### `(unknown file)` [Open]\n',
     )

@@ -1,4 +1,4 @@
-// Tracker に反映するコマンドと、PR の後片付けが共有する出力の補助。
+// tracker sync と session finish が共有する出力の補助。
 
 import type { ProjectConfig } from '../domain/config.js'
 import type { TrackerIssue } from '../domain/tracker-body.js'
@@ -16,6 +16,14 @@ API を呼ばない操作の行を出す。dry-run では計画、実行では�
 export function settle(out: Output, operation: Operation): void {
   out.planned(operation)
   out.done(operation)
+}
+
+/**
+tracker sync の各 source の本体が受ける入力
+*/
+export interface TrackerSyncInput {
+  readonly dry_run: boolean
+  readonly repo?: string | undefined
 }
 
 export interface SyncTarget {

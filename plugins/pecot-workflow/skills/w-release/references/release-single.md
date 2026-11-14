@@ -12,14 +12,14 @@
 
 ### 1. 対象確認
 
-`project_info` を引数なしで呼ぶ。
+`board_show` を引数なしで呼ぶ。
 
 対象リポの `develop` branch と `release` branch を控える。リリースバージョンを `<ver>` と表記。
 
 ### 2. bump 種別のユーザー確認
 
 `<ver>` を確定する前に、ユーザーへ以下を提示して明示的承認を得る。
-承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_preflight`・
+承認を得るまで Step 3 以降（CHANGELOG 編集・docs PR・`release_check`・
 `release_create` 等）には進まない。
 
 提示項目:
@@ -123,11 +123,11 @@ pr_create
 gh pr merge <PR番号> --repo <owner>/<repo> --squash
 ```
 
-マージしたら、`pr_cleanup` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
+マージしたら、`session_finish` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
 
 #### 3-5. develop 最新化
 
-`release_preflight`・`release_create` は、セッションを始めたディレクトリを読む。`<develop>` が checkout されている worktree で始めたセッションで実行する。違うときは、そこで止めて、その worktree でセッションを始め直すよう利用者に伝える。
+`release_check`・`release_create` は、セッションを始めたディレクトリを読む。`<develop>` が checkout されている worktree で始めたセッションで実行する。違うときは、そこで止めて、その worktree でセッションを始め直すよう利用者に伝える。
 
 次の `git pull` は、その worktree で打つ。
 
@@ -137,7 +137,7 @@ git pull --ff-only origin <develop>
 
 ### 4. プリフライト
 
-`release_preflight` を `version: "<ver>"` で呼ぶ。
+`release_check` を `version: "<ver>"` で呼ぶ。
 
 Dependabot の open の alert と、その一覧の取得の失敗は、警告を出すだけで止めない。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。

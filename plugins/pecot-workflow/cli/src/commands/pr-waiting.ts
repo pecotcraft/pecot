@@ -16,7 +16,7 @@ import { boardMoveOf, judgeBoard, missingWarning, SYNCED_COLUMNS } from './board
 import type { JudgedTarget } from './board-judgment.js'
 import { applyBoardMove } from './issue-board.js'
 import type { Output } from './output.js'
-import { readBoard } from './project-info.js'
+import { readBoard } from './board-view.js'
 
 export interface CreatedPullRequest {
   readonly repository: RepositoryReference

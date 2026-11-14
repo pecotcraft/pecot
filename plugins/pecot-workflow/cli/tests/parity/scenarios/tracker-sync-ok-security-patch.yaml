@@ -1,0 +1,97 @@
+# open の Tracker に dependabot #7 の行だけがある。code scanning #3 が open に増えたので、本文を PATCH で書き直す。
+# Tracker の本文は sync の出力と同じ値を、JSON のエスケープで書く。表の行が文の長さの規則に当たるため。
+id: tracker-sync-ok-security-patch
+command:
+  path: [tracker, sync]
+  args: [security]
+setup:
+  repo:
+    files:
+      .pecot/config/projects/ghes.example.com_acme_board_acme.json: "{\n  \"host\": \"ghes.example.com\",\n  \"owner\": \"acme\",\n  \"workflow_suffix\": \"acme\",\n  \"project\": {\n    \"number\": 1,\n    \"id\": \"PVT_1\",\n    \"board_url\": \"https://ghes.example.com/users/acme/projects/1\",\n    \"fields\": {\n      \"workflow\": {\n        \"id\": \"PVTSSF_workflow\",\n        \"options\": {\n          \"backlog\": \"o1\",\n          \"pending\": \"o2\",\n          \"ready\": \"o3\",\n          \"active\": \"o4\",\n          \"in_review\": \"o5\",\n          \"archived\": \"o6\"\n        }\n      },\n      \"priority\": {\n        \"id\": \"PVTSSF_priority\",\n        \"options\": {\n          \"high\": \"p1\",\n          \"medium\": \"p2\",\n          \"low\": \"p3\"\n        }\n      },\n      \"size\": {\n        \"id\": \"PVTSSF_size\",\n        \"options\": {\n          \"xs\": \"s1\",\n          \"s\": \"s2\",\n          \"m\": \"s3\",\n          \"l\": \"s4\"\n        }\n      }\n    }\n  },\n  \"repositories\": [\n    {\n      \"owner\": \"acme\",\n      \"name\": \"demo\",\n      \"develop_branch\": \"develop\",\n      \"release_branch\": \"main\"\n    }\n  ]\n}\n"
+      .pecot/config/projects/.active: "ghes.example.com_acme_board_acme.json\n"
+  env:
+    PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
+github:
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/dependabot/alerts"
+      query: {"state": "open", "per_page": "100"}
+    respond:
+      status: 200
+      body: [{"number": 7, "html_url": "https://ghes.example.com/acme/demo/security/dependabot/7", "security_vulnerability": {"severity": "high"}, "security_advisory": {"ghsa_id": "GHSA-aaaa-bbbb-cccc", "summary": "Prototype Pollution in left-pad"}, "dependency": {"package": {"name": "left-pad"}}}]
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/code-scanning/alerts"
+      query: {"state": "open", "per_page": "100"}
+    respond:
+      status: 200
+      body: [{"number": 3, "html_url": "https://ghes.example.com/acme/demo/security/code-scanning/3", "rule": {"security_severity_level": "medium"}}]
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/secret-scanning/alerts"
+      query: {"state": "open", "hide_secret": "true", "per_page": "100"}
+    respond:
+      status: 200
+      body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/issues"
+      query: {"state": "all", "labels": "security-alert", "per_page": "100"}
+    respond:
+      status: 200
+      body:
+        - number: 20
+          title: '[Tracker] security alert — 2026-01-01'
+          state: open
+          body: "<!-- pecot-alert: tracker -->\n\n<!-- pecot-alert: list-begin -->\n## Dependabot\n\n| title | alert | Priority |\n|---|---|---|\n| <!-- pecot-alert: dependabot/7 priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc sum=Prototype%20Pollution%20in%20left%2Dpad --> [Prototype Pollution in left-pad](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#7](https://ghes.example.com/acme/demo/security/dependabot/7) | high |\n\n## code scanning\n\nnone\n\n## secret scanning\n\nnone\n<!-- pecot-alert: list-end -->\n"
+          labels:
+            - name: security-alert
+  - match:
+      method: PATCH
+      path: /repos/acme/demo/issues/20
+    respond:
+      status: 200
+      body:
+        number: 20
+        title: Tracker
+        html_url: https://ghes.example.com/acme/demo/issues/20
+  - match:
+      operation: GetIssueNodeId
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue: {id: I_kwDO20, title: Tracker}
+  - match:
+      operation: AddToProject
+    respond:
+      status: 200
+      body:
+        data:
+          addProjectV2ItemById:
+            item: {id: PVTI_20}
+  - match:
+      operation: GetIssueProjectItems
+    times: 2
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue:
+              projectItems:
+                nodes:
+                  - id: PVTI_20
+                    project: {id: PVT_1}
+                    fieldValues:
+                      nodes: []
+  - match:
+      operation: UpdateProjectItemField
+    times: 2
+    respond:
+      status: 200
+      body:
+        data:
+          updateProjectV2ItemFieldValue:
+            projectV2Item: {id: PVTI_20}

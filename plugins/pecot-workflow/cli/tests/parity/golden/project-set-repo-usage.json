@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "Usage: pecot project set-repo [OPTIONS] {owner_repo}\nTry 'pecot project set-repo --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'owner_repo'.                                               │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

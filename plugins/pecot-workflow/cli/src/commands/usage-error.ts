@@ -63,6 +63,13 @@ export function noSuchCommandMessage(name: string, possibilities: readonly strin
   return `No such command '${name}'.${hint}`
 }
 
+/**
+古い名前のコマンドを打たれたときの案内。名前はどちらも空白でつないだ path
+*/
+export function renamedCommandMessage(oldName: string, newName: string): string {
+  return `'${oldName}' was renamed to '${newName}'.`
+}
+
 export function optionRequiresArgumentMessage(name: string): string {
   return `Option '${name}' requires an argument.`
 }

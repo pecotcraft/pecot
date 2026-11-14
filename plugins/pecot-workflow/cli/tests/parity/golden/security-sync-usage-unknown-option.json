@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "Usage: pecot security sync [OPTIONS]\nTry 'pecot security sync --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --bogus                                                      │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

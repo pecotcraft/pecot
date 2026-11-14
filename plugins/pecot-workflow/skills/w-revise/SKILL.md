@@ -17,9 +17,9 @@ when_to_use: "PR のレビュー指摘に対応したい、マージ前に PR �
 
 対象 PR の本文・diff・既存レビューを読む。引数が無ければ、会話から一意に決まる PR を使う。決まらなければユーザーに聞く。
 
-`pr_read` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`reviews: true` で呼ぶ。
+`pr_show` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`reviews: true` で呼ぶ。
 
-紐づいた Issue があれば、それも読む。`issue_read` を `issue_ref: "<owner>/<repo>/<Issue番号>"` で呼ぶ。
+紐づいた Issue があれば、それも読む。`issue_show` を `issue_ref: "<owner>/<repo>/<Issue番号>"` で呼ぶ。
 
 ### Step 2: 各レビュアーに専門視点でレビューを依頼
 
@@ -156,7 +156,7 @@ Step 3 のコメントの URL を示し、AskUserQuestion で次の 3 択（と 
 
 - 複数 w-implementer の並列起動を既定とする。直列にする場合のみ、理由を `w-implementer-1` の Goal 末尾に括弧書きで添える（例: `(直列の理由: ...)`）
 - 採用した F-NN をファイル群で分け、1 群に 1 体を割り当てる。同じファイルを 2 体に渡さない。ファイルに紐づかない F-NN は main が直す
-- 群ごとに実装者のモデル（`sonnet` / `opus`）を選び、`Agent` の `model` に渡す。基準は w-help の [エージェントのモデル](../w-help/references/agent-models.md)
+- 群ごとに実装者のモデル（`sonnet` / `opus`）を選び、`Agent` の `model` に渡す。基準は w-help の [エージェントのモデル](../w-help/references/agent-models.md)。GitHub Copilot CLI では `model` を省く（auto で名前を渡すと `400 model_not_supported` で失敗する）
 - spawn の前に、割り当て表（実装者名 / モデル / 担当 F-NN / 担当ファイル群）をチャットに書く
 - 1 メッセージ内の複数 `Agent` 呼び出しで spawn する。別メッセージで順に spawn すると直列になる。
 - 全員の結果がそろったら、main が 1 コミットにまとめる。コミットメッセージに対応した F-NN を書く

@@ -1,6 +1,6 @@
 // `--repo` 不一致方針（FR-009a / FR-009b）の判定。
 //
-// ローカル Git を破壊する操作系（worktree・create-branch・delete-branch など）は reject にする。
+// ローカル Git を破壊する操作系（worktree・session start・branch delete など）は reject にする。
 // GitHub API 側への操作が中心のもの（release など）は warn にする。
 // 判定だけを純粋な関数にする。stderr への出力と終了は、呼ぶ側（commands 層）が行う。
 //

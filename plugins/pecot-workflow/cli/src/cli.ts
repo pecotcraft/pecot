@@ -38,9 +38,11 @@ import {
   MISSING_COMMAND_MESSAGE,
   noSuchCommandMessage,
   noSuchOptionMessage,
+  renamedCommandMessage,
   USAGE_EXIT_CODE,
   UsageError,
 } from './commands/usage-error.js'
+import { findRenamedCommand } from './commands/renamed-commands.js'
 import { readVersion } from './version.js'
 
 export interface CliContext {
@@ -81,6 +83,8 @@ function resolveCommand(group: readonly string[], rest: readonly string[], comma
     .filter(command => command.path.length > group.length && isUnderGroup(command.path, group))
     .map(command => command.path.slice(group.length, group.length + 1).join(''))
   if (!names.includes(name)) {
+    const renamed = findRenamedCommand(path)
+    if (renamed !== undefined) throw new UsageError(renamedCommandMessage(...renamed), context)
     const possibilities = closeMatches(name, [...new Set(names)])
     throw new UsageError(noSuchCommandMessage(name, possibilities), context)
   }

@@ -4,7 +4,7 @@ import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { graphqlRule } from './command-harness.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
-import { CONFIG_FILE, linkedRepositories, ORIGIN_URL } from './issue-project-case.js'
+import { CONFIG_FILE, linkedRepositories, ORIGIN_URL } from './board-issue-case.js'
 
 export type BoardValue = 'blocked' | 'needs_attention' | 'todo'
 

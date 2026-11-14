@@ -54,4 +54,4 @@ jobs:
       - name: Sync dependabot PRs
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: plugins/pecot-workflow/bin/pecot dependabot sync
+        run: plugins/pecot-workflow/bin/pecot tracker sync dependabot

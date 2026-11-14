@@ -1,4 +1,4 @@
-// Dependabot alert の状態判定。`release preflight` と `project info` が同じ判定を共有する。
+// Dependabot alert の状態判定。`release check` と `board show` が同じ判定を共有する。
 // 有効 / 無効・open 件数・最高 severity・一覧 URL をまとめて返す。取得は DependabotSource に任せる。
 
 import { describeApiError } from './api-error-detail.js'

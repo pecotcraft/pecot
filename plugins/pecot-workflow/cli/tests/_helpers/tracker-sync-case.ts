@@ -1,4 +1,4 @@
-// security sync と dependabot sync のテストが共有する準備。時計・設定・git・ボードの応答・Tracker の作成と Issue の一覧の応答を置く。
+// tracker sync security と tracker sync dependabot のテストが共有する準備。時計・設定・git・ボードの応答・Tracker の作成と Issue の一覧の応答を置く。
 import { vi } from 'vitest'
 
 import type { JsonObject } from '../../src/domain/json.js'

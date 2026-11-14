@@ -1,4 +1,4 @@
-// PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr read` の Markdown の整形、preflight の警告の判定。
+// PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr show` の Markdown の整形、preflight の警告の判定。
 // 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
 
 import type { PullRequestReadout } from './issue-readout.js'
@@ -193,7 +193,7 @@ export function describeBaseStop(stop: Readonly<PullRequestBaseStop>): readonly 
   }
 }
 
-// `pr read` の整形
+// `pr show` の整形
 
 export interface IssueSummary {
   readonly number: number
@@ -255,7 +255,7 @@ function referencedIssueLine(issue: IssueSummary): string {
 }
 
 /**
-`pr read` の既定の Markdown
+`pr show` の既定の Markdown
 */
 export function formatPullRequestMarkdown(pr: PullRequestSlimView): string {
   const lines = [`## PR #${String(pr.number)} ${pr.title}`, '', metaLine(pr), '', `**Branch:** \`${pr.head_ref}\` → \`${pr.base_ref}\``, '']
@@ -314,11 +314,11 @@ export function formatReviewThreadsMarkdown(threads: readonly ReviewThreadView[]
 }
 
 /**
-`pr read --reviews` の Markdown。Issue ごとに詳細を見るコマンドを添え、レビュー本文と行コメントを続ける
+`pr show --reviews` の Markdown。Issue ごとに詳細を見るコマンドを添え、レビュー本文と行コメントを続ける
 */
 export function formatPullRequestWithReviewsMarkdown(pr: PullRequestWithReviewsView, owner: string, repository: string): string {
   const lines = [`## PR #${String(pr.number)} ${pr.title}`, '', metaLine(pr), '', `**Branch:** \`${pr.head_ref}\` → \`${pr.base_ref}\``, '']
-  const detailsLine = (issue: IssueSummary): string => `    → details: pecot issue read ${owner}/${repository}/${String(issue.number)}`
+  const detailsLine = (issue: IssueSummary): string => `    → details: issue show ${owner}/${repository}/${String(issue.number)}`
 
   if (pr.closing_issues.length > 0) {
     lines.push('**Closing Issues:**')

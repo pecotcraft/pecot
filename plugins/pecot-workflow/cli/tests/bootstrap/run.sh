@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 REPO_ROOT="$(cd "$PLUGIN_ROOT/../.." && pwd)"
 MCP_JSON="$PLUGIN_ROOT/.mcp.json"
-TOOL_COUNT=37
+TOOL_COUNT=36
 
 WORK_DIR="$REPO_ROOT/.pecot/tmp/pecot-workflow-bootstrap-test"
 rm -rf "$WORK_DIR"
@@ -175,7 +175,7 @@ assert_json_rpc_stdout() {
       process.exit(1);
     }
     const names = tools.map((tool) => tool.name);
-    for (const required of ["project_info", "issue_read", "pr_create"]) {
+    for (const required of ["board_show", "issue_show", "pr_create"]) {
       if (!names.includes(required)) { console.error(`tools/list lacks ${required}`); process.exit(1); }
     }
   ' "$stdout_file" "$TOOL_COUNT" || fail "$label"

@@ -428,7 +428,7 @@ function requireRegisteredRepository(cwd: string): { readonly repository: Reposi
     + `${registered}\n`
     + '\n'
     + 'to add this repository to the pecot project:\n'
-    + `  pecot project set-repo ${repository.owner}/${repository.repository}\n`
+    + `  pecot project link ${repository.owner}/${repository.repository}\n`
     + '\n'
     + 'to switch to another project:\n'
     + '  pecot project activate <PROJECT>',

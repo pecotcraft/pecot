@@ -185,7 +185,7 @@ describe('pecot-cli-deny', () => {
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
     config.write({ 'pecot-cli-deny': false })
-    hookCase.setEnv('HOOK_COMMAND', 'pecot issue read 1')
+    hookCase.setEnv('HOOK_COMMAND', 'pecot issue show 1')
 
     const result = runWithFront(hookCase, path.join(coreDirectory, 'pecot-cli-deny.sh'), '')
     expect(result.exitCode).toBe(0)
@@ -196,10 +196,10 @@ describe('pecot-cli-deny', () => {
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
     config.write({ 'pecot-cli-deny': true })
-    hookCase.setEnv('HOOK_COMMAND', 'pecot issue read 1')
+    hookCase.setEnv('HOOK_COMMAND', 'pecot issue show 1')
 
     const result = runWithFront(hookCase, path.join(coreDirectory, 'pecot-cli-deny.sh'), '')
     expect(result.exitCode).toBe(1)
-    expect(result.stdout).toContain('MCP tool issue_read')
+    expect(result.stdout).toContain('MCP tool issue_show')
   })
 })

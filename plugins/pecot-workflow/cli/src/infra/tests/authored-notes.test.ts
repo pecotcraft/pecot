@@ -156,7 +156,7 @@ describe('readAuthoredNotes', () => {
   })
 
   it('root を渡さなければ、配布している authored.yaml から読む', () => {
-    const notes = notesFrom(readAuthoredNotes('PW-CREATE-BRANCH'))
+    const notes = notesFrom(readAuthoredNotes('PW-SESSION-START'))
     expect(notes.details.length).toBeGreaterThan(0)
     expect(notes.examples.length).toBeGreaterThan(0)
     expect(notes.defaultNotes.get('base')).toContain('develop_branch')

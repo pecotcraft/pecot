@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "Usage: pecot issue [OPTIONS] COMMAND [ARGS]...\nTry 'pecot issue --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such command 'reed'. Did you mean 'read', 'reopen', 'create'?             │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+  "stderr": "Usage: pecot issue [OPTIONS] COMMAND [ARGS]...\nTry 'pecot issue --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such command 'reed'. Did you mean 'reopen', 'create'?                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

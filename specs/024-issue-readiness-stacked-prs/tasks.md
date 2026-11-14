@@ -389,14 +389,14 @@ description: "Issue の着手の可否を依存関係から判定し、前提が
 
 **Independent Test**: main に入らないと確かめられないフェーズを含む Epic を、w-breakdown にかける。できた tasks.md の表に、そのフェーズの前提が「マージを待つ」と理由つきで載る。その tasks.md を `pecot issue create --plan` にかけ、表の行と出力が 1 対 1 で合う
 
-- [ ] T091 [US8] `p-w/skills/w-breakdown/SKILL.md` を、contracts/skill-flow.md の w-breakdown の表のとおりに直す
+- [x] T091 [US8] `p-w/skills/w-breakdown/SKILL.md` を、contracts/skill-flow.md の w-breakdown の表のとおりに直す
   - `/speckit.tasks` へ渡す指示に、前提の表の形を書く。形は contracts/prerequisite-table.md の 1 のとおりだ
   - 種類を決める 2 つの問いと、「マージを待つ」になる例の 3 つを、指示に入れる
   - tasks の工程の後に、4 列の表があることを確かめる手順を足す
   - spec-kit のテンプレートは変えない
-- [ ] T092 [P] [US8] `p-w/skills/w-help/references/spec-driven-workflow.md` に、前提の表から Issue 化までの流れを足す
-- [ ] T093 [US8] スキルの文書のテストを直す。w-breakdown の Step の順と、tasks の工程に渡す指示の中身が、直した文と合う
-- [ ] T094 [US8] version plan を `.nx/version-plans/` に足す
+- [x] T092 [P] [US8] `p-w/skills/w-help/references/spec-driven-workflow.md` に、前提の表から Issue 化までの流れを足す
+- [x] T093 [US8] スキルの文書のテストを直す。w-breakdown の Step の順と、tasks の工程に渡す指示の中身が、直した文と合う
+- [x] T094 [US8] version plan を `.nx/version-plans/` に足す
 
 **Checkpoint**: 前提の読み違いが、表の形で防がれる
 

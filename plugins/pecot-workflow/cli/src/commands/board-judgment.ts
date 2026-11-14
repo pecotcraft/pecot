@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// ボードの Issue の読み取り・判定と、列と札の動かし方。project info（数えるだけ）と board sync（書く）が共有する。
+// ボードの Issue の読み取り・判定と、列と札の動かし方。board show（数えるだけ）と board sync（書く）が共有する。
 import { decideBoardMove } from '../domain/board-move.js'
 import type { BoardMove, MissingValue } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'
@@ -15,7 +15,7 @@ import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/er
 import type { GitHubClient } from '../infra/github/index.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot, JudgedIssue, UnreadableIssue } from './issue-readiness.js'
-import { mapWithLimit } from './project-info.js'
+import { mapWithLimit } from './board-view.js'
 
 /**
 前提の読み取りを並列に行う数の上限

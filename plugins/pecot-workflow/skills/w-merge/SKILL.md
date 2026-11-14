@@ -17,9 +17,9 @@ PRをマージし、マージ後にブランチ削除とワークツリー環境
 
 引数 `owner/repo/PR番号` 形式（例: `acme-labs/ai-engineer-starter-kit/759`）を受け取る。省略された場合は、直前の会話から対象 PR が一意に特定できる（同じセッションで作成・レビューした PR が 1 件しかない等）ならそれを採用して進んでよい。曖昧な場合にのみユーザーに確認する。
 
-`pr_read` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
+`pr_show` を `pr_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
 
-PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_preflight` を `directory: "."` で呼ぶ。
+PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_check` を `directory: "."` で呼ぶ。
 
 結果に `exit code: 1` か `exit code: 2` の行が出たら、結果を見て解決し、呼び直してからマージに進む。
 
@@ -66,7 +66,7 @@ code-scanning open alerts: #28 #29
 | `conflicting` | ユーザーに伝える。`git fetch origin main` の後に `git merge origin/main` で取り込み直し、コンフリクトを直して push する |
 | `required-failed` | `gh pr checks <PR番号> --repo <owner>/<repo> --required` で落ちたチェックを読んでユーザーに伝える。直して push する |
 | `not-queued` | queue から外れている。落ちたチェックがあれば直して push し、2.1 からやり直す。無ければ理由をユーザーに伝えて止まる |
-| `blocked` | 列挙に無い状態はすべてここに来る。2 行目の `mergeStateStatus` を先に読み、止まった理由をユーザーに伝えて止まる。`pr_cleanup` は呼ばない |
+| `blocked` | 列挙に無い状態はすべてここに来る。2 行目の `mergeStateStatus` を先に読み、止まった理由をユーザーに伝えて止まる。`session_finish` は呼ばない |
 | `stalled` | 状態が変わらないまま 15 分を超えた。2 行目と 3 行目以降をユーザーに伝え、進んでいる見込みなら待ち直しを勧める |
 | `query-failed` | `gh` が 3 回続けて失敗した。出力の `gh` のエラーをユーザーに伝えて止まる |
 
@@ -80,11 +80,11 @@ code-scanning open alerts: #28 #29
 
 #### 2.3 片付け
 
-`pr_cleanup` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
+`session_finish` を `pr_ref: "<owner>/<repo>/<PR番号>"`・`delete_branch: true` で呼ぶ。
 
-> 注意: マージ後の片付けは必ず `pr_cleanup` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
+> 注意: マージ後の片付けは必ず `session_finish` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
 
-`pr_cleanup` は PR が MERGED のときだけ動く。それ以外は何もせず `exit code: 1` で終わる。
+`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず `exit code: 1` で終わる。
 
 **入力**:
 
@@ -94,7 +94,7 @@ code-scanning open alerts: #28 #29
 
 ### Step 3: ローカルクリーンアップの確認
 
-`pr_cleanup` が自動的に以下を実行する。
+`session_finish` が自動的に以下を実行する。
 
 - WT環境では、wtXブランチへ切替 → `git pull <remote> <開発ブランチ>`（remote は origin、無ければ最初の remote）→ ローカルフィーチャーブランチ削除
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
@@ -115,12 +115,12 @@ code-scanning open alerts: #28 #29
 
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
-- `pr_cleanup` の結果に `closed: Issue #<n>` の行がない（Issue未紐付けPR）
+- `session_finish` の結果に `closed: Issue #<n>` の行がない（Issue未紐付けPR）
 - `closed:` の行のIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-`pr_cleanup` の結果の `closed: Issue #<n>` の行からIssue番号を取得し、Issueを読む。`issue_read` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
+`session_finish` の結果の `closed: Issue #<n>` の行からIssue番号を取得し、Issueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
 
 - `Parent:` フィールドから親EpicのIssue番号を取得 → なければ **Step 4-5 をスキップ**
 
@@ -161,7 +161,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 
 #### 5.1 後続フェーズの特定
 
-`issue_read` を `issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
+`issue_show` を `issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
 
 `Sub-issues:` セクションから次を行う。
 

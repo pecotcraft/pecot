@@ -3,21 +3,14 @@
 // 節は Usage、説明、Options、Commands の順。中身の無い節は出さない。
 import { definitionSection, HELP_OPTION, helpWidth, paragraph, usageLines } from './help-layout.js'
 import type { DefinitionRow } from './help-layout.js'
+import { COMMAND_GROUPS } from './names.js'
 import type { CommandDefinition } from './registry.js'
 
 export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - work tracking on GitHub Projects'
 
-const GROUP_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
-  ['project', 'Manage projects through the GitHub API'],
-  ['issue', 'Work with Issues'],
-  ['pr', 'Work with PRs'],
-  ['session', 'Manage the session'],
-  ['release', 'Work with releases'],
-  ['security', 'Put security alerts into a Tracker'],
-  ['dependabot', 'Put Dependabot PRs waiting for a human decision into a Tracker'],
-  ['board', 'Keep the board columns in line with the judgment'],
-  ['worktree', 'Work with worktrees'],
-])
+function groupHelp(name: string): string {
+  return COMMAND_GROUPS.find(group => group.name === name)?.help ?? ''
+}
 
 const ROOT_OPTIONS: readonly DefinitionRow[] = [
   { name: '-v, --version', description: 'Show the version' },
@@ -29,7 +22,8 @@ const ROOT_OPTIONS: readonly DefinitionRow[] = [
 const ROOT_FOOTER = 'Run \'pecot COMMAND --help\' for the arguments and options of a command.'
 
 /**
-path の直下のコマンドとグループ。単独のコマンドが先、グループが後で、それぞれ登録順
+path の直下のコマンドとグループを、コマンドを先にして登録順で並べる。
+コマンドはどれも 2 語なので、ルートにはグループだけ、グループの下にはコマンドだけが並ぶ
 */
 function entriesOf(path: readonly string[], commands: readonly CommandDefinition[]): readonly DefinitionRow[] {
   const level = path.length
@@ -39,7 +33,7 @@ function entriesOf(path: readonly string[], commands: readonly CommandDefinition
     .map(command => command.path.slice(level, level + 1).join(''))
   return [
     ...direct.map(command => ({ name: command.path.slice(level, level + 1).join(''), description: command.description })),
-    ...[...new Set(groups)].map(name => ({ name, description: GROUP_DESCRIPTIONS.get(name) ?? '' })),
+    ...[...new Set(groups)].map(name => ({ name, description: groupHelp(name) })),
   ]
 }
 
@@ -50,7 +44,7 @@ path のグループ（空ならルート）の説明。Usage、説明、Options
 export function helpText(path: readonly string[], commands: readonly CommandDefinition[], columns = 80): string {
   const width = helpWidth(columns)
   const isRoot = path.length === 0
-  const description = isRoot ? PROGRAM_DESCRIPTION : GROUP_DESCRIPTIONS.get(path.slice(0, 1).join('')) ?? ''
+  const description = isRoot ? PROGRAM_DESCRIPTION : groupHelp(path.slice(0, 1).join(''))
   const entries = entriesOf(path, commands)
   const sections = [
     usageLines(['pecot', ...path, '[OPTIONS] COMMAND [ARGS]...'].join(' '), width),
