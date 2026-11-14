@@ -106,10 +106,10 @@ function propertyOf(input: InputSchema, name: string): JsonObject {
 }
 
 /**
-グローバルの --repo でも満たせるので、自分の `--repo` を持つコマンドの repo は必須として出さない
+グローバルの --repo でも満たせるので、自分の `--repo` を持つコマンドの repo は必須として出さない。位置引数の repo は必須と出す
 */
 function isRequiredField(definition: Readonly<CommandDefinition>, input: InputSchema, name: string): boolean {
-  return input.required.includes(name) && !(name === 'repo' && definition.hasOwnRepo)
+  return input.required.includes(name) && (name !== 'repo' || !definition.hasOwnRepo || definition.positional.includes('repo'))
 }
 
 function positionalName(name: string, input: InputSchema, isRequired: boolean): string {

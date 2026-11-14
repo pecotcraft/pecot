@@ -2,6 +2,36 @@
   "format": 1,
   "plugin": "pecot-workflow",
   "prefix": "PW",
+  "names": {
+    "separator": " ",
+    "positions": [
+      [
+        {
+          "word": "issue",
+          "meaning": "Issue"
+        },
+        {
+          "word": "pr",
+          "meaning": "PR"
+        }
+      ],
+      [
+        {
+          "word": "create",
+          "meaning": "create"
+        },
+        {
+          "word": "quick",
+          "meaning": "create and start"
+        },
+        {
+          "word": "old",
+          "meaning": "deprecated sample"
+        }
+      ]
+    ],
+    "rest": false
+  },
   "entries": [
     {
       "id": "PW-PR-CREATE",

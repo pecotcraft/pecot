@@ -77,14 +77,32 @@ describe('pruneArchivedItems', () => {
     repositories: [],
   })
 
-  it('ID が文字列でないアイテムは、削除を呼ばず、失敗として数える', async () => {
+  it('ID が文字列でないアイテムは、削除を呼ばず、失敗として数えて返す', async () => {
     // 新しい順に 20 件を残し、後ろの 3 件が対象。そのうち 1 件は ID が数値
     const items = Array.from({ length: 23 }, (_, index) => archived(index, index === 21 ? 7 : `item-${String(index)}`))
     const deleteProjectItem = vi.fn().mockResolvedValue(undefined)
     const io = capture()
-    await pruneArchivedItems(createOutput(false, io), { deleteProjectItem }, config, items)
+    expect(await pruneArchivedItems(createOutput(false, io), { deleteProjectItem }, config, items, false)).toBe(1)
     expect(deleteProjectItem.mock.calls).toEqual([['PVT_1', 'item-20'], ['PVT_1', 'item-22']])
     expect(io.err.join('')).toBe('deleted: 2 archived items\nwarning: failed to delete 1 archived items\n')
+  })
+
+  it('dry-run では削除を呼ばず、消す予定の件数を出す', async () => {
+    const items = Array.from({ length: 23 }, (_, index) => archived(index, `item-${String(index)}`))
+    const deleteProjectItem = vi.fn().mockResolvedValue(undefined)
+    const io = capture()
+    await pruneArchivedItems(createOutput(true, io), { deleteProjectItem }, config, items, true)
+    expect(deleteProjectItem).not.toHaveBeenCalled()
+    expect(io.err.join('') + io.out.join('')).toBe('dry-run: would delete 3 archived items\n')
+  })
+
+  it('Archived が 20 件以下なら、削除を呼ばず、行を出さない', async () => {
+    const items = Array.from({ length: 20 }, (_, index) => archived(index, `item-${String(index)}`))
+    const deleteProjectItem = vi.fn().mockResolvedValue(undefined)
+    const io = capture()
+    expect(await pruneArchivedItems(createOutput(false, io), { deleteProjectItem }, config, items, false)).toBe(0)
+    expect(deleteProjectItem).not.toHaveBeenCalled()
+    expect(io.err.join('') + io.out.join('')).toBe('')
   })
 })
 

@@ -1,4 +1,4 @@
-// board show。表示と Archived の整理と alert の収集は board-view.ts、着手の判定は board-readiness.ts が持つ。
+// board show。表示と alert の収集は board-view.ts、着手の判定は board-readiness.ts が持つ。何も書き換えない。
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -11,16 +11,20 @@ import { getActiveConfigPath } from '../infra/config-store.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { commandHint, hinted, inputHint } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import { readBoardReadiness, readinessOf, skipBoardReadiness } from './board-readiness.js'
-import { boardShowJson, boardShowMarkdown, collectAlertStatuses, pruneArchivedItems, readBoard } from './board-view.js'
+import { boardShowJson, boardShowMarkdown, collectAlertStatuses, readBoard } from './board-view.js'
 import { failApi } from './project-sync.js'
 
-function mismatchNote(count: number): string {
+const SYNC_PATH = ['board', 'sync']
+
+function mismatchNote(count: number): HintedText {
   const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
-  return `${subject} in a column or Status that does not match its judgment; run pecot board sync (--dry-run to preview) to fix`
+  return hinted`${subject} in a column or Status that does not match its judgment; run ${commandHint(SYNC_PATH)} (${inputHint(SYNC_PATH, 'dry_run')} to preview) to fix`
 }
 
 const boardShowCommand = defineCommand({
@@ -49,9 +53,8 @@ const boardShowCommand = defineCommand({
     const projectName = configPath === undefined ? `${config.host}_${config.owner}_${String(config.project.number)}` : path.parse(configPath).name
     try {
       const client = createGitHubClient(out, config.host)
-      const { allItems, items, progress, isLegacy } = await readBoard(client, config, input.repo)
+      const { items, progress, isLegacy } = await readBoard(client, config, input.repo)
       const statuses = await collectAlertStatuses(client, config)
-      await pruneArchivedItems(out, client, config, allItems)
       const view = { config, projectName, statuses }
       const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)
       if (readiness.mismatches > 0) out.warning(mismatchNote(readiness.mismatches))

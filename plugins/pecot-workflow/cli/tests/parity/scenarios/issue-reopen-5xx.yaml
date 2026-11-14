@@ -71,6 +71,17 @@ github:
                 nodes:
                   - {name: demo, owner: {login: acme}}
   - match:
+      operation: GetIssueProjectItems
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue:
+              projectItems:
+                nodes:
+                  - {id: PVTI_7, project: {id: PVT_1}}
+  - match:
       method: PATCH
       path: /repos/acme/demo/issues/7
     respond:

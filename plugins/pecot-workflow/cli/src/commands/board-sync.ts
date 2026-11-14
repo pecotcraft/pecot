@@ -12,11 +12,12 @@ import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.j
 import type { BoardContext } from './board-judgment.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { commandHint, hinted, placeholder } from './command-hint.js'
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
 import { makeClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
-import { readBoard } from './board-view.js'
+import { pruneArchivedItems, readBoard } from './board-view.js'
 import type { BoardRead } from './board-view.js'
 import { failApi } from './project-sync.js'
 
@@ -59,7 +60,7 @@ function resolveConfig(out: Readonly<Output>, project: string | undefined): Proj
   const [only] = names
   if (only === undefined) return stopWith(out, NO_ACTIVE_PROJECT)
   if (names.length === 1) return loadConfig(path.join(projectsDirectory(), `${only}.json`))
-  return stopWith(out, `no active project, and ${String(names.length)} project configs exist\nrun: pecot board sync --project <NAME>\navailable: ${names.join(', ')}`)
+  return stopWith(out, hinted`no active project, and ${String(names.length)} project configs exist\nrun: ${commandHint(['board', 'sync'], { project: placeholder('NAME') })}\navailable: ${names.join(', ')}`)
 }
 
 // 窓が途中で切り替わると前後の used を比べられないので、使用量の行を省く
@@ -74,9 +75,13 @@ function failureMessage(failures: number): string {
   return failures === 1 ? 'could not write 1 Issue to the board' : `could not write ${String(failures)} Issues to the board`
 }
 
+function deleteFailureMessage(failures: number): string {
+  return failures === 1 ? 'could not delete 1 archived item from the board' : `could not delete ${String(failures)} archived items from the board`
+}
+
 const boardSyncCommand = defineCommand({
   path: ['board', 'sync'],
-  description: 'Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for',
+  description: 'Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board',
   input: z.strictObject({
     dry_run: z.boolean().default(false).describe('Show the planned moves without writing to the board'),
     project: z.string().optional().describe('Name of the project config under .pecot/config/projects (without .json). Without it, the active project; when none is active and only one config exists, that one'),
@@ -100,9 +105,11 @@ const boardSyncCommand = defineCommand({
     }
     if (read.isLegacy) unsupportedWarning(out)
     const failures = read.isLegacy ? 0 : await syncBoard({ out, client, config, home: homeRepositoryOf(config) }, read, input.dry_run)
+    const pruneFailures = await pruneArchivedItems(out, client, config, read.allItems, input.dry_run)
     reportPoints(out, before, await client.getGraphqlRateLimit())
-    if (failures === 0) return 0
-    out.error(failureMessage(failures))
+    if (failures === 0 && pruneFailures === 0) return 0
+    if (failures > 0) out.error(failureMessage(failures))
+    if (pruneFailures > 0) out.error(deleteFailureMessage(pruneFailures))
     return 1
   },
 })

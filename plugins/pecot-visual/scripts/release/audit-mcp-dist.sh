@@ -8,7 +8,7 @@
 #
 # 監査するのは 2 ツリーで、どちらも利用者の環境へ入る依存であり、ビルド成果物には依存しない。
 #   配布ツリー: publish と同じ関数（dist-manifest.mjs）が組む、配布 package.json の依存。
-#   永続層:     setup ツールが置き場の mcp-dist/ へ入れる依存（runtime-manifest.mjs）。
+#   永続層:     runtime_setup ツールが置き場の mcp-dist/ へ入れる依存（runtime-manifest.mjs）。
 #
 #   --dist=<dir>       package.json と npm-shrinkwrap.json を持つ既存ディレクトリを、
 #                      配布ツリーとして監査する。テスト用で、manifest 生成と依存解決は省く。
@@ -333,7 +333,7 @@ if [ "$CANARY_RC" -ne 0 ]; then
 fi
 
 # --- 4. ツリー 1 本分の依存解決と監査 ---
-# 依存を解決する。レジストリは publish / setup と同じ npm 既定設定のままにする。
+# 依存を解決する。レジストリは publish / runtime_setup と同じ npm 既定設定のままにする。
 # 差し替えるのは監査エンドポイントだけにとどめ、解決結果を配布や実 install と揃える。
 resolve_tree() {
     local label="$1" dir="$2" slug="$3" rc=0
@@ -442,7 +442,7 @@ DIST_BLOCKING_FILE="$TREE_BLOCKING_FILE"
 DIST_BLOCKING="$TREE_BLOCKING"
 
 # --- 6. 永続層の監査 ---
-# setup ツールが置き場の mcp-dist/ へ入れるのと同じ依存集合を監査する。
+# runtime_setup ツールが置き場の mcp-dist/ へ入れるのと同じ依存集合を監査する。
 # 実 install は --no-package-lock で毎回解決し直す。ここで得る shrinkwrap は、監査した時点の解決結果になる。
 if [ -n "$RUNTIME_DIST" ]; then
     if [ ! -f "$RUNTIME_DIST/package.json" ]; then

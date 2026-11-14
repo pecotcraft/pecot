@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { verifies } from '../_helpers/verifies.js'
-import { alertPath, alertRules, createProject, DEFAULT_REPOSITORY, failRemoteLookupFrom, NOTES_0_2_0, pathsOf, pullRequestResponse, rest, runRelease } from '../_helpers/release-sandbox.js'
+import { alertPath, alertRules, compareRule, createProject, DEFAULT_REPOSITORY, failRemoteLookupFrom, NOTES_0_2_0, pathsOf, pullRequestResponse, rest, runRelease } from '../_helpers/release-sandbox.js'
 import type { Project, ProjectOptions } from '../_helpers/release-sandbox.js'
 import type { ResponseRule } from '../fake-github/server.js'
 
@@ -19,6 +19,10 @@ const WITHOUT_RELEASE_BRANCH: ProjectOptions = { repositories: [{ owner: 'acme',
 
 function runPreflight(project: Readonly<Project>, arguments_: readonly string[] = [], rules: readonly ResponseRule[] = alertRules(), global: readonly string[] = []): ReturnType<typeof runRelease> {
   return runRelease(project, [...global, 'release', 'check', ...arguments_], rules)
+}
+
+function runCounted(project: Readonly<Project>, arguments_: readonly string[] = [], rules: readonly ResponseRule[] = alertRules(), global: readonly string[] = [], ahead = 1, repository = 'acme/demo'): ReturnType<typeof runRelease> {
+  return runPreflight(project, arguments_, [...rules, compareRule(ahead, repository)], global)
 }
 
 function runCreate(project: Readonly<Project>, arguments_: readonly string[], rules: readonly ResponseRule[] = [], global: readonly string[] = []): ReturnType<typeof runRelease> {
@@ -61,39 +65,40 @@ const NOT_FOUND = { message: 'Not Found' }
 describe('release check', () => {
   it('版を省いて打つと、CHANGELOG の最初の版を対象にチェックする', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-01')
-    const result = await runPreflight(project(WITH_BRANCHES))
+    const result = await runCounted(project(WITH_BRANCHES))
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('version: 0.2.0\ntag: v0.2.0\n')
   })
 
   it('版を渡して打つと、その版を対象にチェックする', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-02')
-    const result = await runPreflight(project(WITH_BRANCHES), ['0.1.0'])
+    const result = await runCounted(project(WITH_BRANCHES), ['0.1.0'])
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('version: 0.1.0\ntag: v0.1.0\n\n### 追加\n\n- 初回リリース\n')
   })
 
   it('--package を付けて打つと、パッケージ名を接頭辞にしたタグ名でチェックする', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-03')
-    const result = await runPreflight(project({ ...WITH_BRANCHES, repositories: [PACKAGES], files: PACKAGE_FILES }), ['--package', 'pkg-a'])
+    const result = await runCounted(project({ ...WITH_BRANCHES, repositories: [PACKAGES], files: PACKAGE_FILES }), ['--package', 'pkg-a'])
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('tag: pkg-a-v0.2.0\n')
   })
 
   it('打つと、Dependabot・code scanning・secret scanning の open の alert を調べる', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-04')
-    const result = await runPreflight(project(WITH_BRANCHES))
+    const result = await runCounted(project(WITH_BRANCHES))
     expect(pathsOf(result)).toEqual([
       `GET ${alertPath('dependabot')}`,
       `GET ${alertPath('code')}`,
       `GET ${alertPath('secret')}`,
+      'GET /repos/acme/demo/compare/release...develop',
     ])
-    expect(result.requests.map(request => request.type === 'rest' ? request.query['state'] : undefined)).toEqual(['open', 'open', 'open'])
+    expect(result.requests.slice(0, 3).map(request => request.type === 'rest' ? request.query['state'] : undefined)).toEqual(['open', 'open', 'open'])
   })
 
   it('打つと、alert の結果の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-05')
-    const result = await runPreflight(project(WITH_BRANCHES))
+    const result = await runCounted(project(WITH_BRANCHES))
     expect(result.stderr).toContain('count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n')
   })
 
@@ -104,7 +109,7 @@ describe('release check', () => {
       code: [rest('GET', alertPath('code'), 403, { message: 'Advanced Security must be enabled for this repository to use code scanning.' })],
       secret: [rest('GET', alertPath('secret'), 404, NOT_FOUND), rest('GET', '/repos/acme/demo', 200, { security_and_analysis: { secret_scanning: { status: 'disabled' } } })],
     })
-    const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+    const result = await runCounted(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('skipped: Dependabot alerts (feature disabled)\nskipped: code scanning (feature disabled)\nskipped: secret scanning (feature disabled)\n')
   })
@@ -112,7 +117,7 @@ describe('release check', () => {
   it('open の Dependabot alert があると、件数と最も重い severity を添えた warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-06')
     const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, DEPENDABOT_ALERTS)] })
-    const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+    const result = await runCounted(project(WITH_BRANCHES), [], rules)
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: 2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n')
     expect(result.stderr).toContain('#1 (minimatch, medium)')
@@ -132,20 +137,20 @@ describe('release check', () => {
 
   it('--repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-08')
-    const result = await runPreflight(project({ ...WITH_BRANCHES, repositories: [DEFAULT_REPOSITORY, OTHER] }), [], alertRules({}, 'acme/other'), ['--repo', 'acme/other'])
+    const result = await runCounted(project({ ...WITH_BRANCHES, repositories: [DEFAULT_REPOSITORY, OTHER] }), [], alertRules({}, 'acme/other'), ['--repo', 'acme/other'], 1, 'acme/other')
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: using --repo acme/other (current Git remote: acme/demo)\n')
   })
 
   it('チェックが通ると、version・tag の行とリリースノートを標準出力に出す', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-09')
-    const result = await runPreflight(project(WITH_BRANCHES))
+    const result = await runCounted(project(WITH_BRANCHES))
     expect(result.stdout).toBe(`version: 0.2.0\ntag: v0.2.0\n\n${NOTES_0_2_0}\n`)
   })
 
   it('チェックが通ると、release へ入るコミット数の count の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-10')
-    const result = await runPreflight(project({ ...WITH_BRANCHES, developAhead: 2 }))
+    const result = await runCounted(project(WITH_BRANCHES), [], alertRules(), [], 2)
     expect(result.stderr).toContain('count: commits to release (origin/develop -> origin/release): 2\n')
   })
 
@@ -154,14 +159,14 @@ describe('release check', () => {
 
     it('もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-RELEASE-CHECK-11')
-      const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+      const result = await runCounted(project(WITH_BRANCHES), [], rules)
       expect(result.stderr).toContain('warning: could not check Dependabot alerts. The release is not blocked.\n')
       expect(result.stderr).toContain('reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)')
     })
 
     it('もし Dependabot alert の状態を読めないなら、残りの確認を続ける', async (context) => {
       await verifies(context, 'PW-RELEASE-CHECK-12')
-      const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+      const result = await runCounted(project(WITH_BRANCHES), [], rules)
       expect(result.code).toBe(0)
       expect(result.stderr).toContain('count: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n')
       expect(result.stdout).toContain('version: 0.2.0')
@@ -332,14 +337,42 @@ describe('release check', () => {
 
   it('もし <remote>/<release_branch> に無いコミットが <remote>/<develop_branch> から 1 つも見つからないなら、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-31')
-    const result = await runPreflight(project({ ...WITH_BRANCHES, developAhead: 0 }))
+    const result = await runCounted(project(WITH_BRANCHES), [], alertRules(), [], 0)
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: no difference between origin/release and origin/develop: there is nothing to release\n')
   })
 
+  it('打つと、release から develop までのコミットを compare API で数え、git fetch を打たない', async (context) => {
+    await verifies(context, 'PW-RELEASE-CHECK-38')
+    const created = project(WITH_BRANCHES)
+    const result = await runCounted(created, [], alertRules(), [], 3)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('count: commits to release (origin/develop -> origin/release): 3\n')
+    expect(pathsOf(result)).toContain('GET /repos/acme/demo/compare/release...develop')
+    expect(result.stderr).not.toContain('fetch')
+  })
+
+  it('もしコミットの数を GitHub から数えられないなら、error の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-CHECK-39')
+    const rules = [...alertRules(), rest('GET', '/repos/acme/demo/compare/release...develop', 404, NOT_FOUND)]
+    const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/error: could not count the commits from release to develop: .+\n/u)
+    expect(result.stdout).toBe('')
+  })
+
+  it('もし compare の通信が切れたなら、error の行を出して終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-RELEASE-CHECK-39')
+    const dropped: ResponseRule = { match: { method: 'GET', path: '/repos/acme/demo/compare/release...develop' }, respond: { status: 200, disconnect: true }, times: 1 }
+    const result = await runPreflight(project(WITH_BRANCHES), [], [...alertRules(), dropped])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/error: could not count the commits from release to develop: .+\n/u)
+    expect(result.stderr).not.toContain('    at ')
+  })
+
   it('もし CHANGELOG に渡した版の節が無いなら、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-RELEASE-CHECK-32')
-    const result = await runPreflight(project(WITH_BRANCHES), ['9.9.9'])
+    const result = await runCounted(project(WITH_BRANCHES), ['9.9.9'])
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('9.9.9')
   })

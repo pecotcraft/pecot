@@ -48,7 +48,8 @@ describe('pecot-issue-pending-reminder.sh', () => {
     const result = runReminder(hookCase, '{"tool_name":"Edit","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('warning: Issue filing is not complete')
-    expect(result.stdout).toContain('MCP tool issue_quick')
+    expect(result.stdout).toContain('MCP tool issue_create with freeform: true')
+    expect(result.stdout).not.toContain('issue_quick')
     expect(result.stdout).not.toContain('pecot issue quick')
     expect(result.stdout).toContain('PreToolUse')
   })
@@ -109,14 +110,14 @@ describe('pecot-issue-pending-reminder.sh', () => {
     expect(result.stdout).toContain('Issue')
   })
 
-  it('フラグの値が未知のとき、quick と create の両方を案内する代替の文言を返す', () => {
+  it('フラグの値が未知のとき、issue_create を案内する代替の文言を返す', () => {
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     writeFileSync(context.flag, 'w-unknown\n')
     const result = runReminder(hookCase, '{"tool_name":"Edit","tool_input":{}}')
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('warning: Issue filing is not complete')
-    expect(result.stdout).toContain('issue_quick or issue_create')
+    expect(result.stdout).toContain('Call the MCP tool issue_create first')
     expect(result.stdout).not.toContain('pecot issue')
   })
 

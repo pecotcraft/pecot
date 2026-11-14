@@ -1,7 +1,7 @@
 // slide_page ツール。指定レイアウトのスケルトンページを talk-dir の pages/ 配下に生成し、
 // そのレイアウトの使い方 (参照 yaml 全文 + includes) を応答で返す。
 //
-// 対応する CLI サブコマンドは持たない (`slide_dev` / `setup` と同じ MCP 専用ツール)。
+// 対応する CLI サブコマンドは持たない (`slide_dev` / `runtime_setup` と同じ MCP 専用ツール)。
 // 目的はエージェントの「`pages/_references/<layout>.yaml` を Read してから手書きする」ルートを
 // 1 回の呼び出しに畳むことなので、CLI から使う需要が無い。
 //
@@ -224,7 +224,7 @@ function themeFailure(error: unknown): Omit<ToolResult, 'stdout' | 'stderr'> {
 引数検証後の実処理。stdout / stderr は呼び出し側が一括で載せる。
 
 実行時依存 (永続層) と Chromium は要らない。参照 yaml の読み取りと 1 ファイルの書き込み
-だけなので、`setup` 前の環境でも通る。
+だけなので、`runtime_setup` 前の環境でも通る。
 */
 async function generatePage(
   input: Readonly<z.infer<typeof slidePageInput>>,

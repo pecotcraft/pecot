@@ -53,6 +53,15 @@ export async function addIssueToBoard(
 }
 
 /**
+設定の workflow に、その status のオプションがあるか
+*/
+export function isStatusConfigured(config: ProjectConfig, status: string): boolean {
+  const fieldId = getFieldId(config, 'workflow')
+  const optionId = getOptionId(config, 'workflow', status)
+  return fieldId !== undefined && fieldId !== '' && optionId !== undefined && optionId !== ''
+}
+
+/**
 カスタムフィールドを 1 つ設定する。設定したら true。
 設定に無いフィールド・オプションは何もせず false。更新に失敗したら GitHubAPIError
 */

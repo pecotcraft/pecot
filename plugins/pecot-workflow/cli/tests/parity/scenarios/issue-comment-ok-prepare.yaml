@@ -2,6 +2,6 @@
 id: issue-comment-ok-prepare
 command:
   path: [issue, comment]
-  args: [-t, merge-diff, --prepare, --issue, acme/demo/7]
+  args: [-t, merge-diff, --prepare, --issue-ref, acme/demo/7]
 setup: {}
 github: []

@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { PecotError } from '../../domain/errors.js'
 import { isConfirmed } from '../../commands/output.js'
-import { defineCommand } from '../../commands/registry.js'
+import { COMMANDS as REAL_COMMANDS, defineCommand } from '../../commands/registry.js'
 import type { CommandDefinition } from '../../commands/registry.js'
 import { UsageError } from '../../commands/usage-error.js'
 import { exitWith, failWith, throwFailure } from '../../commands/tests/support.js'
@@ -236,6 +236,12 @@ describe('入力の検証の誤り', () => {
     const result = await call('echo', { text: 'hi', one: 1, two: 2 })
     expect(result).toEqual({ content: [{ type: 'text', text: 'invalid input: unknown keys \'one\', \'two\'' }], isError: true })
     expect(calls).toEqual([])
+  })
+
+  it('改名した古い入力名のキーは、今の入力名を添えて断る', async () => {
+    const { client } = await open(REAL_COMMANDS.filter(command => command.path.join(' ') === 'issue comment'))
+    const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'o/r/1', message: 'm' } })
+    expect(result).toEqual({ content: [{ type: 'text', text: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' }], isError: true })
   })
 
   it('グローバルの repo の形が owner/repo でないと、本体を呼ばない', async () => {

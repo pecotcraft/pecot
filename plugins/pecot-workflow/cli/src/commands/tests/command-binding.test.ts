@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { isHelpRequested, runDefinition, synopsisOf, usageOf } from '../command-binding.js'
-import { defineCommand } from '../registry.js'
+import { defineCommand, findCommand } from '../registry.js'
 import { formatUsageError, UsageError } from '../usage-error.js'
 import { capture, exitWith, failWith, throwFailure } from './support.js'
 
@@ -188,6 +188,20 @@ describe('runDefinition', () => {
   it('未知のオプションは No such option', async () => {
     const error = await usageErrorOf(runDefinition(preflight, ['--bogus'], capture()))
     expect(error.message).toBe('No such option: --bogus')
+  })
+
+  it.for([
+    { path: ['issue', 'comment'], argv: ['--issue', 'o/r/1'], expected: 'No such option: --issue (\'--issue\' was renamed to \'--issue-ref\')' },
+    { path: ['session', 'restore'], argv: ['--issue', 'o/r/1'], expected: 'No such option: --issue (\'--issue\' was renamed to \'--issue-ref\')' },
+    { path: ['branch', 'delete'], argv: ['--repo-ref', 'o/r'], expected: 'No such option: --repo-ref (\'--repo-ref\' was renamed to \'--repo\')' },
+    { path: ['project', 'link'], argv: ['--owner-repo', 'o/r'], expected: 'No such option: --owner-repo (\'--owner-repo\' was renamed to \'--repo\')' },
+    { path: ['session', 'start'], argv: ['--branch-name', 'b'], expected: 'No such option: --branch-name (\'--branch-name\' was renamed to \'--branch\')' },
+    { path: ['issue', 'create'], argv: ['--plan'], expected: 'No such option: --plan (\'--plan\' was renamed to \'--dry-run\')' },
+  ])('$path の古い入力名は、No such option に今の名前を添える', async ({ path, argv, expected }) => {
+    const definition = findCommand(path)
+    if (definition === undefined) throw new Error(`コマンドが無い: ${path.join(' ')}`)
+    const error = await usageErrorOf(runDefinition(definition, argv, capture()))
+    expect(error.message).toBe(expected)
   })
 
   it('値の無いオプションは requires an argument', async () => {

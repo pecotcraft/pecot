@@ -20,6 +20,7 @@ import { readTextFile } from '../infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
 import { defineCommand, CommandExit } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { commandHint, hinted, inputNameHint, placeholder } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import {
@@ -45,10 +46,14 @@ function htmlUrlOf(comment: JsonObject, fallback: string): string {
 }
 
 // テンプレートをコピーして、そのパスを標準出力に出す。issue_ref が渡されていれば、コピーの issue_ref に入れる
-function prepareTemplate(output: Output, template: string, issueReference: string | undefined): void {
+function prepareTemplate(output: Output, template: string, issueReference: string | undefined, isDryRun: boolean): void {
   const templatePath = templateFile('comment', template)
   if (!existsSync(templatePath)) {
     stopWith(output, `template not found: ${templatePath}`)
+  }
+  if (isDryRun) {
+    output.planned({ verb: 'create', target: `comment template ${template} in ${outputDirectory()}` })
+    return
   }
   let content = readTextFile(templatePath)
   if (issueReference !== undefined && issueReference !== '') {
@@ -131,7 +136,7 @@ async function updateComment(output: Output, client: GitHubClient, target: Issue
   output.data(htmlUrlOf(comment, commentUrl))
 }
 
-async function postFromFile(output: Output, config: ProjectConfig, repository: string | undefined, file: string): Promise<void> {
+async function postFromFile(output: Output, config: ProjectConfig, repository: string | undefined, file: string, isDryRun: boolean): Promise<void> {
   let parsed
   try {
     parsed = parseCommentFile(file)
@@ -158,6 +163,12 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   if (!await isRepositoryInProject(config, target.owner, target.repository, client)) {
     output.warning(`${target.owner}/${target.repository} is not in the project`)
   }
+  if (isDryRun) {
+    const display = issuePath(target.owner, target.repository, target.number)
+    output.planned({ verb: hasCommentUrl ? 'update' : 'create', target: `comment on ${display}` })
+    if (!hasCommentUrl) output.planned({ verb: 'set', target: `comment_url in ${file}` })
+    return
+  }
 
   if (hasCommentUrl) {
     await updateComment(output, client, target, commentId, commentUrl, body)
@@ -167,57 +178,64 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   if (createdUrl !== '') writeBackCommentUrl(output, file, createdUrl)
 }
 
-async function postDirect(output: Output, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string): Promise<void> {
+async function postDirect(output: Output, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
 
   if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE)
 
+  if (isDryRun) {
+    output.planned({ verb: 'create', target: `comment on ${issuePath(target.owner, target.repository, target.number)}` })
+    return
+  }
   await createComment(output, createGitHubClient(output, config.host), target, message)
 }
 
+const COMMENT_PATH = ['issue', 'comment']
+
 const ISSUE_COMMENT = defineCommand({
-  path: ['issue', 'comment'],
+  path: COMMENT_PATH,
   description: 'Post a comment on an Issue',
   input: z.object({
     file: z.string().optional().describe('Path of a Markdown file with frontmatter'),
     message: z.string().optional().describe('Comment body'),
-    issue: z.string().optional().describe('Issue reference (owner/repo/123 form, required with -m)'),
+    issue_ref: z.string().optional().describe('Issue reference (owner/repo/123 form, required with -m)'),
     prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
     template: TEMPLATE_SCHEMA.optional().describe(
       'Template type (required with --prepare and -m; plan/merge-diff/review-findings/review-resolution/precede-notify)',
     ),
+    dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
   positional: ['file'],
-  shortFlags: { message: '-m', issue: '-i', prepare: '-p', template: '-t' },
+  shortFlags: { message: '-m', issue_ref: '-i', prepare: '-p', template: '-t', dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const output = createOutput(false, io)
+    const output = createOutput(input.dry_run, io)
     return await runWithExit(async () => {
-      const { file, message, issue, prepare, template } = input
+      const { file, message, issue_ref: issue, prepare, template } = input
       if (template === undefined && (prepare || (message !== undefined && file === undefined))) {
-        stopWith(output, `specify a template with -t (${TEMPLATE_CHOICES})`)
+        stopWith(output, hinted`specify a template with ${inputNameHint(COMMENT_PATH, 'template')} (${TEMPLATE_CHOICES})`)
       }
       if (prepare && template !== undefined) {
-        prepareTemplate(output, template, issue)
+        prepareTemplate(output, template, issue, input.dry_run)
         return
       }
       if (file !== undefined) {
-        await postFromFile(output, requireActiveConfigPlain(output), input.repo, file)
+        await postFromFile(output, requireActiveConfigPlain(output), input.repo, file, input.dry_run)
         return
       }
       if (message !== undefined && template !== undefined) {
         if (issue === undefined || issue === '') {
-          stopWith(output, '--issue (Issue reference) is required with -m')
+          stopWith(output, hinted`${inputNameHint(COMMENT_PATH, 'issue_ref')} (Issue reference) is required with ${inputNameHint(COMMENT_PATH, 'message')}`)
         }
-        await postDirect(output, requireActiveConfigPlain(output), input.repo, issue, message, template)
+        await postDirect(output, requireActiveConfigPlain(output), input.repo, issue, message, template, input.dry_run)
         return
       }
       stopWith(
         output,
-        'missing arguments\n'
-        + 'direct posting: pecot issue comment -m "MESSAGE" -t <template> --issue owner/repo/123\n'
-        + 'prepare a template: pecot issue comment --prepare -t <template>\n'
-        + 'from a file: pecot issue comment <path>',
+        hinted`missing arguments
+direct posting: ${commandHint(COMMENT_PATH, { message: placeholder('MESSAGE'), template: placeholder('template'), issue_ref: 'owner/repo/123' })}
+prepare a template: ${commandHint(COMMENT_PATH, { prepare: true, template: placeholder('template') })}
+from a file: ${commandHint(COMMENT_PATH, { file: placeholder('path') })}`,
       )
     })
   },

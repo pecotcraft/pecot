@@ -17,6 +17,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
 import type { BoardContext, JudgedTarget } from './board-judgment.js'
 import { mapWithLimit } from './board-view.js'
+import { commandHint, hinted } from './command-hint.js'
 import { apiFailureMessage } from './github-client.js'
 import type { Output } from './output.js'
 
@@ -120,7 +121,7 @@ async function moveWaiting(waiting: Readonly<Waiting>, issues: readonly BlockedB
   if (judged === undefined) return
   await applyJudgedMoves(context, judged.confirmed)
   for (const { target } of judged.unconfirmed) {
-    context.out.warning(`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${displayReference(target.ref, context.home)}; its column was not moved; run pecot board sync later to move it`)
+    context.out.warning(hinted`could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${displayReference(target.ref, context.home)}; its column was not moved; run ${commandHint(['board', 'sync'])} later to move it`)
   }
 }
 

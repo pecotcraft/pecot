@@ -16,6 +16,8 @@
 //
 // 文言は contracts/cli-commands.md の固定文言と一致させる（stderr を e2e で確かめるため）。
 
+import { globalRepositoryHint, hinted, placeholder } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { InvalidValueError } from './errors.js'
 import { pythonStringRepr } from './python-format.js'
 import { parseOwnerRepository, repositoryFullName } from './repository-resolver.js'
@@ -36,15 +38,15 @@ export interface PolicyInput {
 }
 
 /**
-結果の種類は kind で判別する。stderr は改行を含まない行の並びで、呼ぶ側が 1 行ずつ出す。
+結果の種類は kind で判別する。stderr は改行を含まない行の並びで、呼ぶ側が出し先の形にして 1 行ずつ出す。
 - proceed は、続行する。adopted は明示値から採用したリポジトリ（--repo が無ければ undefined）。
 - exit は、stderr を出して指定の終了コードで終わる。
 */
 export type PolicyOutcome
-  = | { readonly kind: 'proceed', readonly adopted: RepositoryReference | undefined, readonly stderr: readonly string[] }
-    | { readonly kind: 'exit', readonly exitCode: 1, readonly stderr: readonly string[] }
+  = | { readonly kind: 'proceed', readonly adopted: RepositoryReference | undefined, readonly stderr: readonly (string | HintedText)[] }
+    | { readonly kind: 'exit', readonly exitCode: 1, readonly stderr: readonly (string | HintedText)[] }
 
-function exitWith(...stderr: readonly string[]): PolicyOutcome {
+function exitWith(...stderr: readonly (string | HintedText)[]): PolicyOutcome {
   return { kind: 'exit', exitCode: 1, stderr }
 }
 
@@ -66,12 +68,12 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
 
   if (explicit === undefined) {
     return resolved === undefined
-      ? exitWith('error: the repository is ambiguous', '  give --repo <owner/repo>')
+      ? exitWith('error: the repository is ambiguous', hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`)
       : { kind: 'proceed', adopted: undefined, stderr: [] }
   }
 
   const explicitReference = parseExplicit(explicit)
-  if (explicitReference === undefined) return exitWith(`error: --repo has an invalid form: ${pythonStringRepr(explicit)}`)
+  if (explicitReference === undefined) return exitWith(hinted`error: ${globalRepositoryHint()} has an invalid form: ${pythonStringRepr(explicit)}`)
 
   // Git 外 / remote 不在は比較対象が無いので、明示値を採用する
   if (resolved?.source !== 'current-git') return { kind: 'proceed', adopted: explicitReference, stderr: [] }
@@ -85,13 +87,13 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
   const currentName = repositoryFullName(current)
   if (mode === 'reject') {
     return exitWith(
-      `error: --repo ${explicitName} differs from the current Git remote (${currentName})`,
+      hinted`error: ${globalRepositoryHint()} ${explicitName} differs from the current Git remote (${currentName})`,
       '  this command works only on the repository of the current Git remote',
     )
   }
   return {
     kind: 'proceed',
     adopted: explicitReference,
-    stderr: [`warning: using --repo ${explicitName} (current Git remote: ${currentName})`],
+    stderr: [hinted`warning: using ${globalRepositoryHint()} ${explicitName} (current Git remote: ${currentName})`],
   }
 }

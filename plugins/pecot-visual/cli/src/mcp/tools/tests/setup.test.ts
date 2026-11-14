@@ -1,4 +1,4 @@
-// setup ツールのハンドラ単体テスト。
+// runtime_setup ツールのハンドラ単体テスト。
 //
 // tools/list 側の契約 (annotations・outputSchema・引数を取らないこと) は
 // src/mcp/tests/contract.test.ts が持つ。ここは応答の中身だけを見る。
@@ -75,7 +75,7 @@ function fakeDependencies(options: Readonly<{
   let signal: AbortSignal | undefined
   const dependencies: ChromiumDependencies = {
     isInstalled: () => Promise.resolve(isInstalled),
-    // setup は明示的な呼び出しなので opt-in の有無に関わらず取得する。
+    // runtime_setup は明示的な呼び出しなので opt-in の有無に関わらず取得する。
     isAutoInstallEnabled: () => false,
     browsersRoot: options.browsersRoot ?? (() => BROWSERS_ROOT),
     install: async (received?: AbortSignal) => {
@@ -166,15 +166,15 @@ async function callSetup(
 }
 
 /**
-setup の応答 data から `detail` を文字列で取り出す。
+runtime_setup の応答 data から `detail` を文字列で取り出す。
 */
 async function setupDetail(...callArguments: Parameters<typeof callSetup>): Promise<string> {
   return String(dataOf(await callSetup(...callArguments))['detail'])
 }
 
-describe('setup: chromium', () => {
+describe('runtime_setup: chromium', () => {
   it('未取得なら取得して成功を返す', async (context) => {
-    await verifies(context, 'PV-SETUP-03')
+    await verifies(context, 'PV-RUNTIME-SETUP-03')
     const { deps, installCalls } = fakeDependencies({ installed: false })
 
     const result = await callSetup(deps)
@@ -196,7 +196,7 @@ describe('setup: chromium', () => {
   })
 
   it('取得済みでも取得コマンドは実行し、ダウンロードなしとして返す', async (context) => {
-    await verifies(context, 'PV-SETUP-04')
+    await verifies(context, 'PV-RUNTIME-SETUP-04')
     // 早期 return はしない。判定が「取得済み」でも実体が欠けていることがある。
     // 例はダウンロード途中、必要リビジョンだけ未取得の状態。
     // 早期 return は、取得と案内のどちらも行われない行き止まりを作る。
@@ -297,9 +297,9 @@ describe('setup: chromium', () => {
   })
 })
 
-describe('setup: 実行時依存 (永続層)', () => {
+describe('runtime_setup: 実行時依存 (永続層)', () => {
   it('未取得なら npm install を実行し、取得先を成果物に載せる', async (context) => {
-    await verifies(context, 'PV-SETUP-01')
+    await verifies(context, 'PV-RUNTIME-SETUP-01')
     const runtime = fakeRuntimeDependencies({ installed: false })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, runtime.deps)
@@ -316,9 +316,9 @@ describe('setup: 実行時依存 (永続層)', () => {
   })
 
   it('取得済みなら install を呼ばない', async (context) => {
-    await verifies(context, 'PV-SETUP-02')
+    await verifies(context, 'PV-RUNTIME-SETUP-02')
 
-    await verifies(context, 'PV-SETUP-04')
+    await verifies(context, 'PV-RUNTIME-SETUP-04')
     // chromium と違い install は 600MB 級の依存解決を毎回やり直すため、取得済みなら飛ばす。
     // プラグインルートは常にこのルートを通る (実行時依存が同梱されている)。
     const runtime = fakeRuntimeDependencies({ installed: true })
@@ -344,7 +344,7 @@ describe('setup: 実行時依存 (永続層)', () => {
   })
 
   it('取得に失敗したら runtime-install-failed として返し、chromium は続行する', async (context) => {
-    await verifies(context, 'PV-SETUP-05')
+    await verifies(context, 'PV-RUNTIME-SETUP-05')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, stderr: 'ERR_PNPM' })),
@@ -435,7 +435,7 @@ describe('setup: 実行時依存 (永続層)', () => {
 })
 
 /**
-実行時依存と chromium の両方が失敗する setup 呼び出し。
+実行時依存と chromium の両方が失敗する runtime_setup 呼び出し。
 */
 function callSetupWithBothFailing(): Promise<CallToolResult> {
   const runtime = fakeRuntimeDependencies({
@@ -451,14 +451,14 @@ function callSetupWithBothFailing(): Promise<CallToolResult> {
   return callSetup(chromium, runtime.deps)
 }
 
-describe('setup: TLS 証明書の検証で落ちた場合', () => {
-  // SSL を中継するプロキシの CA が無いと TLS で落ちる。利用者が見るのは README ではなく setup の戻り値なので、
+describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
+  // SSL を中継するプロキシの CA が無いと TLS で落ちる。利用者が見るのは README ではなく runtime_setup の戻り値なので、
   // stderr が TLS の証明書検証の失敗を示すときだけ detail に分けの 1 文を足す。
 
   const TLS_HINT = 'NODE_EXTRA_CA_CERTS'
 
   it('実行時依存側: npm の検証コードを含む失敗には誘導が付く', async (context) => {
-    await verifies(context, 'PV-SETUP-07')
+    await verifies(context, 'PV-RUNTIME-SETUP-07')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({
@@ -488,7 +488,7 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
   })
 
   it('chromium 側: playwright の文言を含む失敗には同じ誘導が付く', async (context) => {
-    await verifies(context, 'PV-SETUP-07')
+    await verifies(context, 'PV-RUNTIME-SETUP-07')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({
@@ -530,7 +530,7 @@ describe('setup: TLS 証明書の検証で落ちた場合', () => {
   })
 })
 
-describe('setup: 両系統が失敗した場合', () => {
+describe('runtime_setup: 両系統が失敗した場合', () => {
   // ネットワーク断・プロキシ誤設定では両方が落ちる。片方の理由しか message に載らないと、
   // 利用者は data.<系統>.detail を読み比べないと全体像が分からない。
 
@@ -567,7 +567,7 @@ describe('setup: 両系統が失敗した場合', () => {
   })
 })
 
-describe('setup: Chromium の OS ライブラリ', () => {
+describe('runtime_setup: Chromium の OS ライブラリ', () => {
   it('起動できれば何も入れずに成功を返し、確認に通ったことを記録する', async () => {
     const host = fakeHostDependencies()
 
@@ -609,7 +609,7 @@ describe('setup: Chromium の OS ライブラリ', () => {
   })
 
   it('sudo を使えなければ chromium-host-deps-missing として入れるコマンドを返す', async (context) => {
-    await verifies(context, 'PV-SETUP-06')
+    await verifies(context, 'PV-RUNTIME-SETUP-06')
     const host = fakeHostDependencies({ probes: [LIBATK_FAILURE], sudoExitCode: 1 })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { PecotError, InvalidValueError } from '../errors.js'
+import { PecotError } from '../errors.js'
 import type { GitResult, GitRunner } from '../git-runner.js'
 import { InvalidVersionError } from '../changelog.js'
 import { ReleaseError, runPreflight } from '../release.js'
-import type { PreflightOptions } from '../release.js'
+import type { CountCommitsAhead, PreflightOptions } from '../release.js'
 
 const SAMPLE_CHANGELOG = `# 変更履歴
 
@@ -47,6 +47,33 @@ function scriptedGit(results: readonly (string | GitResult)[]): Script {
   return { git, calls }
 }
 
+interface AheadScript {
+  readonly countAhead: CountCommitsAhead
+  readonly calls: readonly (readonly [string, string])[]
+}
+
+// GitHub の compare の代わり。呼ばれた (base, head) を記録して count を返す
+function aheadBy(count: number): AheadScript {
+  const calls: (readonly [string, string])[] = []
+  const countAhead: CountCommitsAhead = async (base, head) => {
+    calls.push([base, head])
+    await Promise.resolve()
+    return count
+  }
+  return { countAhead, calls }
+}
+
+// 差分を数える前に止まるケース用。呼ばれたら失敗にする
+const neverCounted: CountCommitsAhead = async () => {
+  await Promise.resolve()
+  throw new Error('想定外の差分の数え上げ')
+}
+
+const failingCount: CountCommitsAhead = async () => {
+  await Promise.resolve()
+  throw new PecotError('compare failed')
+}
+
 function options(overrides: Partial<PreflightOptions> = {}): PreflightOptions {
   return {
     changelogPath: '/repo/CHANGELOG.md',
@@ -68,9 +95,10 @@ describe('ReleaseError', () => {
 })
 
 describe('runPreflight', () => {
-  it('バージョンを指定すると、版・リリースノート・ブランチ名・差分数・タグ名を返す', () => {
-    const { git, calls } = scriptedGit(['', '', '', '5\n'])
-    const result = runPreflight(options(), git)
+  it('バージョンを指定すると、版・リリースノート・ブランチ名・差分数・タグ名を返す', async () => {
+    const { git, calls } = scriptedGit(['', ''])
+    const ahead = aheadBy(5)
+    const result = await runPreflight(options(), git, ahead.countAhead)
     expect(result).toStrictEqual({
       version: '0.6.1',
       releaseNotes: '### 追加\n\n- 新機能A\n- 新機能B\n\n### 修正\n\n- バグ修正',
@@ -82,126 +110,118 @@ describe('runPreflight', () => {
     expect(calls).toStrictEqual([
       ['tag', '-l', 'v0.6.1'],
       ['ls-remote', '--tags', 'origin', 'refs/tags/v0.6.1'],
-      ['fetch', 'origin', 'main', 'develop-aist'],
-      ['rev-list', '--count', 'origin/main..origin/develop-aist'],
     ])
+    expect(ahead.calls).toStrictEqual([['main', 'develop-aist']])
   })
 
-  it('remote を渡すと、ls-remote・fetch・差分確認と誤りの文にその remote を使う', () => {
-    const { git, calls } = scriptedGit(['', '', '', '0'])
-    expect(() => runPreflight(options({ remote: 'upstream' }), git)).toThrow('no difference between upstream/main and upstream/develop-aist: there is nothing to release')
+  it('差分は git の fetch・rev-list でなく、渡した数え方で release から develop へ数える', async () => {
+    const { git, calls } = scriptedGit(['', ''])
+    const ahead = aheadBy(1)
+    await runPreflight(options({ releaseBranch: 'release', developBranch: 'develop' }), git, ahead.countAhead)
+    expect(calls.map(call => call[0])).toStrictEqual(['tag', 'ls-remote'])
+    expect(ahead.calls).toStrictEqual([['release', 'develop']])
+  })
+
+  it('remote を渡すと、ls-remote と誤りの文にその remote を使う', async () => {
+    const { git, calls } = scriptedGit(['', ''])
+    await expect(runPreflight(options({ remote: 'upstream' }), git, aheadBy(0).countAhead)).rejects.toThrow('no difference between upstream/main and upstream/develop-aist: there is nothing to release')
     expect(calls).toStrictEqual([
       ['tag', '-l', 'v0.6.1'],
       ['ls-remote', '--tags', 'upstream', 'refs/tags/v0.6.1'],
-      ['fetch', 'upstream', 'main', 'develop-aist'],
-      ['rev-list', '--count', 'upstream/main..upstream/develop-aist'],
     ])
   })
 
-  it('バージョン省略時は CHANGELOG から検出する', () => {
-    const { git } = scriptedGit(['', '', '', '3'])
-    expect(runPreflight(options({ version: undefined }), git).version).toBe('0.6.1')
+  it('バージョン省略時は CHANGELOG から検出する', async () => {
+    const { git } = scriptedGit(['', ''])
+    const result = await runPreflight(options({ version: undefined }), git, aheadBy(3).countAhead)
+    expect(result.version).toBe('0.6.1')
   })
 
-  it('CHANGELOG の内容が無ければ ReleaseError（git は呼ばない）', () => {
+  it('CHANGELOG の内容が無ければ ReleaseError（git と差分の数え上げを呼ばない）', async () => {
     const { git, calls } = scriptedGit([])
-    expect(() => runPreflight(options({ changelogContent: undefined }), git)).toThrow(ReleaseError)
-    expect(() => runPreflight(options({ changelogContent: undefined }), git)).toThrow('CHANGELOG.md not found: /repo/CHANGELOG.md')
+    await expect(runPreflight(options({ changelogContent: undefined }), git, neverCounted)).rejects.toThrow(ReleaseError)
+    await expect(runPreflight(options({ changelogContent: undefined }), git, neverCounted)).rejects.toThrow('CHANGELOG.md not found: /repo/CHANGELOG.md')
     expect(calls).toStrictEqual([])
   })
 
-  it('CHANGELOG の内容が無いときの文は、実際のファイル名を使う', () => {
-    const { git } = scriptedGit([])
+  it('CHANGELOG の内容が無いときの文は、実際のファイル名を使う', async () => {
     const missing = options({ changelogPath: '/repo/AIST-CHANGELOG.md', changelogContent: undefined })
-    expect(() => runPreflight(missing, git)).toThrow('AIST-CHANGELOG.md not found: /repo/AIST-CHANGELOG.md')
+    await expect(runPreflight(missing, scriptedGit([]).git, neverCounted)).rejects.toThrow('AIST-CHANGELOG.md not found: /repo/AIST-CHANGELOG.md')
   })
 
-  it('バージョンが無いときの文も、実際のファイル名を使う', () => {
+  it('バージョンが無いときの文も、実際のファイル名を使う', async () => {
     const changelogPath = '/repo/AIST-CHANGELOG.md'
     const detect = options({ changelogPath, version: undefined, changelogContent: '## [Unreleased]\n' })
-    expect(() => runPreflight(detect, scriptedGit([]).git)).toThrow('no version found in AIST-CHANGELOG.md')
+    await expect(runPreflight(detect, scriptedGit([]).git, neverCounted)).rejects.toThrow('no version found in AIST-CHANGELOG.md')
     const specified = options({ changelogPath, version: '9.9.9' })
-    expect(() => runPreflight(specified, scriptedGit(['', '', '', '5']).git)).toThrow('version not found in AIST-CHANGELOG.md: 9.9.9')
+    await expect(runPreflight(specified, scriptedGit(['', '']).git, aheadBy(5).countAhead)).rejects.toThrow('version not found in AIST-CHANGELOG.md: 9.9.9')
   })
 
-  it('バージョン省略で CHANGELOG にバージョンが無ければ ReleaseError に包む', () => {
-    const { git } = scriptedGit([])
-    expect(() => runPreflight(options({ version: undefined, changelogContent: '## [Unreleased]\n' }), git)).toThrow(ReleaseError)
-    expect(() => runPreflight(options({ version: undefined, changelogContent: '## [Unreleased]\n' }), git)).toThrow('no version found in CHANGELOG.md')
+  it('バージョン省略で CHANGELOG にバージョンが無ければ ReleaseError に包む', async () => {
+    const empty = options({ version: undefined, changelogContent: '## [Unreleased]\n' })
+    await expect(runPreflight(empty, scriptedGit([]).git, neverCounted)).rejects.toThrow(ReleaseError)
+    await expect(runPreflight(empty, scriptedGit([]).git, neverCounted)).rejects.toThrow('no version found in CHANGELOG.md')
   })
 
-  it('指定バージョンが X.Y.Z でなければ InvalidVersionError（ReleaseError ではない）', () => {
-    const { git } = scriptedGit([])
-    expect(() => runPreflight(options({ version: 'v0.6.1' }), git)).toThrow(InvalidVersionError)
+  it('指定バージョンが X.Y.Z でなければ InvalidVersionError（ReleaseError ではない）', async () => {
+    await expect(runPreflight(options({ version: 'v0.6.1' }), scriptedGit([]).git, neverCounted)).rejects.toThrow(InvalidVersionError)
   })
 
-  it('空文字列のバージョンは省略扱いにしない（検証で落ちる）', () => {
-    const { git } = scriptedGit([])
-    expect(() => runPreflight(options({ version: '' }), git)).toThrow(InvalidVersionError)
+  it('空文字列のバージョンは省略扱いにしない（検証で落ちる）', async () => {
+    await expect(runPreflight(options({ version: '' }), scriptedGit([]).git, neverCounted)).rejects.toThrow(InvalidVersionError)
   })
 
-  it('ローカルタグが既にあれば ReleaseError', () => {
-    const { git } = scriptedGit(['v0.6.1'])
-    expect(() => runPreflight(options(), git)).toThrow('tag already exists locally: v0.6.1')
+  it('ローカルタグが既にあれば ReleaseError', async () => {
+    await expect(runPreflight(options(), scriptedGit(['v0.6.1']).git, neverCounted)).rejects.toThrow('tag already exists locally: v0.6.1')
   })
 
-  it('tag -l の出力は行ごとに完全一致で比べる', () => {
-    const { git } = scriptedGit(['v0.6.1-rc1\nv0.6.10\n', '', '', '1'])
-    expect(runPreflight(options(), git).tagName).toBe('v0.6.1')
+  it('tag -l の出力は行ごとに完全一致で比べる', async () => {
+    const { git } = scriptedGit(['v0.6.1-rc1\nv0.6.10\n', ''])
+    const result = await runPreflight(options(), git, aheadBy(1).countAhead)
+    expect(result.tagName).toBe('v0.6.1')
   })
 
-  it('ローカルタグが複数行の中にあっても検出する', () => {
-    const { git } = scriptedGit(['v0.6.0\nv0.6.1\n'])
-    expect(() => runPreflight(options(), git)).toThrow('tag already exists locally')
+  it('ローカルタグが複数行の中にあっても検出する', async () => {
+    await expect(runPreflight(options(), scriptedGit(['v0.6.0\nv0.6.1\n']).git, neverCounted)).rejects.toThrow('tag already exists locally')
   })
 
-  it('リモートタグが既にあれば ReleaseError', () => {
-    const { git } = scriptedGit(['', 'abc123\trefs/tags/v0.6.1'])
-    expect(() => runPreflight(options(), git)).toThrow('tag already exists on the remote: v0.6.1')
+  it('リモートタグが既にあれば ReleaseError', async () => {
+    await expect(runPreflight(options(), scriptedGit(['', 'abc123\trefs/tags/v0.6.1']).git, neverCounted)).rejects.toThrow('tag already exists on the remote: v0.6.1')
   })
 
-  it('差分が 0 件なら ReleaseError', () => {
-    const { git } = scriptedGit(['', '', '', '0'])
-    expect(() => runPreflight(options(), git)).toThrow('no difference between origin/main and origin/develop-aist: there is nothing to release')
+  it('差分が 0 件なら ReleaseError', async () => {
+    await expect(runPreflight(options(), scriptedGit(['', '']).git, aheadBy(0).countAhead)).rejects.toThrow('no difference between origin/main and origin/develop-aist: there is nothing to release')
   })
 
-  it('tagPrefix なしの tagName は v<ver>', () => {
-    const { git } = scriptedGit(['', '', '', '5'])
-    expect(runPreflight(options(), git).tagName).toBe('v0.6.1')
+  it('tagPrefix なしの tagName は v<ver>', async () => {
+    const result = await runPreflight(options(), scriptedGit(['', '']).git, aheadBy(5).countAhead)
+    expect(result.tagName).toBe('v0.6.1')
   })
 
-  it('tagPrefix 指定時の tagName は <prefix>-v<ver>。タグ検索も prefix 付きで行う', () => {
-    const { git, calls } = scriptedGit(['', '', '', '5'])
-    const result = runPreflight(options({ tagPrefix: 'pecot-workflow' }), git)
+  it('tagPrefix 指定時の tagName は <prefix>-v<ver>。タグ検索も prefix 付きで行う', async () => {
+    const { git, calls } = scriptedGit(['', ''])
+    const result = await runPreflight(options({ tagPrefix: 'pecot-workflow' }), git, aheadBy(5).countAhead)
     expect(result.tagName).toBe('pecot-workflow-v0.6.1')
     expect(calls[0]).toContain('pecot-workflow-v0.6.1')
     expect(calls[1]).toContain('refs/tags/pecot-workflow-v0.6.1')
   })
 
-  it('空文字列の tagPrefix は prefix なし扱い（Python の if tag_prefix と同じ）', () => {
-    const { git } = scriptedGit(['', '', '', '5'])
-    expect(runPreflight(options({ tagPrefix: '' }), git).tagName).toBe('v0.6.1')
+  it('空文字列の tagPrefix は prefix なし扱い（Python の if tag_prefix と同じ）', async () => {
+    const result = await runPreflight(options({ tagPrefix: '' }), scriptedGit(['', '']).git, aheadBy(5).countAhead)
+    expect(result.tagName).toBe('v0.6.1')
   })
 
-  it('指定バージョンが CHANGELOG に無ければ ReleaseError に包む', () => {
-    const { git } = scriptedGit(['', '', '', '5'])
-    expect(() => runPreflight(options({ version: '9.9.9' }), git)).toThrow(ReleaseError)
-    expect(() => runPreflight(options({ version: '9.9.9' }), scriptedGit(['', '', '', '5']).git)).toThrow('version not found in CHANGELOG.md: 9.9.9')
+  it('指定バージョンが CHANGELOG に無ければ ReleaseError に包む', async () => {
+    await expect(runPreflight(options({ version: '9.9.9' }), scriptedGit(['', '']).git, aheadBy(5).countAhead)).rejects.toThrow(ReleaseError)
+    await expect(runPreflight(options({ version: '9.9.9' }), scriptedGit(['', '']).git, aheadBy(5).countAhead)).rejects.toThrow('version not found in CHANGELOG.md: 9.9.9')
   })
 
-  it('git が非 0 で終わったら、コマンドと標準エラーを含む ReleaseError', () => {
+  it('git が非 0 で終わったら、コマンドと標準エラーを含む ReleaseError', async () => {
     const { git } = scriptedGit(['', { exitCode: 128, stdout: '', stderr: '  fatal: no remote\n' }])
-    expect(() => runPreflight(options(), git)).toThrow('git command failed: git ls-remote --tags origin refs/tags/v0.6.1\nfatal: no remote')
+    await expect(runPreflight(options(), git, neverCounted)).rejects.toThrow('git command failed: git ls-remote --tags origin refs/tags/v0.6.1\nfatal: no remote')
   })
 
-  it('rev-list の出力が整数でなければ Python の int() と同じ文の InvalidValueError', () => {
-    const { git } = scriptedGit(['', '', '', 'many'])
-    expect(() => runPreflight(options(), git)).toThrow(InvalidValueError)
-    expect(() => runPreflight(options(), scriptedGit(['', '', '', 'many']).git)).toThrow('invalid literal for int() with base 10: \'many\'')
-  })
-
-  it('rev-list の出力の前後の空白は落とす', () => {
-    const { git } = scriptedGit(['  \n', ' \n', '', ' 12 \n'])
-    expect(runPreflight(options(), git).diffCount).toBe(12)
+  it('差分の数え上げの失敗は、そのまま伝える', async () => {
+    await expect(runPreflight(options(), scriptedGit(['', '']).git, failingCount)).rejects.toThrow('compare failed')
   })
 })

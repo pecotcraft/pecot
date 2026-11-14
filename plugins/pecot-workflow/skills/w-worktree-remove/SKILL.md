@@ -39,5 +39,5 @@ argument-hint: "[WT 名]"
 
 remove はローカルブランチまでしか消さない。リモートの同名ブランチまで消す場合は、別途 `branch_delete` を呼ぶ。
 
-1. `repo_ref: "<owner>/<repo-A>"`・`branch: "wt1"`
-2. `repo_ref: "<owner>/<repo-B>"`・`branch: "wt1"`
+1. `repo: "<owner>/<repo-A>"`・`branch: "wt1"`
+2. `repo: "<owner>/<repo-B>"`・`branch: "wt1"`

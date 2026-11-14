@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse MCP handler: pecot-workflow の issue_create / issue_quick / pr_create の投稿を ask にする。
+# PreToolUse MCP handler: pecot-workflow の issue_create / pr_create の投稿を ask にする。
 # ask の文は core/mcp-guidance.sh の mcp_guidance_post_ask_issue / mcp_guidance_post_ask_pr。
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -10,7 +10,7 @@ source "${SCRIPT_DIR%/*}/core/mcp-guidance.sh"
 TOOL=$(pecot_tool_from_hook_name "${PECOT_HOOK_TOOL_NAME:-}") || exit 0
 
 case "$TOOL" in
-    issue_create | issue_quick)
+    issue_create)
         pecot_hook_enabled "pecot-issue-create-ask" true || exit 0
         MESSAGE="$(mcp_guidance_post_ask_issue)"
         FLAG="${CLAUDE_PROJECT_DIR}/.pecot/state/issue-create-slash-pending"
@@ -25,13 +25,12 @@ case "$TOOL" in
         ;;
 esac
 
-# issue_quick の入力に prepare・plan は無いので素通しにしない。tool_input が文字列で届くクライアントは空のオブジェクトとして読む（ask にする）。真偽値の true だけを素通しにする。
+# prepare・dry_run が true のときは、何も投稿しないので素通しにする。tool_input が文字列で届くクライアントは空のオブジェクトとして読む（ask にする）。真偽値の true だけを素通しにする。
 # jq が失敗したときは空のまま ask に進む（fail-safe）。
-FLAGS=$(jq -r '(.tool_input | if type == "object" then . else {} end) as $ti | [($ti.prepare == true), ($ti.dry_run == true), ($ti.plan == true)] | @tsv' 2>/dev/null)
-IFS=$'\t' read -r PREPARE DRY_RUN PLAN <<< "$FLAGS"
-[ "$PREPARE" = "true" ] && [ "$TOOL" != "issue_quick" ] && exit 0
-[ "$PLAN" = "true" ] && [ "$TOOL" = "issue_create" ] && exit 0
-[ "$TOOL" = "pr_create" ] && [ "$DRY_RUN" = "true" ] && exit 0
+FLAGS=$(jq -r '(.tool_input | if type == "object" then . else {} end) as $ti | [($ti.prepare == true), ($ti.dry_run == true)] | @tsv' 2>/dev/null)
+IFS=$'\t' read -r PREPARE DRY_RUN <<< "$FLAGS"
+[ "$PREPARE" = "true" ] && exit 0
+[ "$DRY_RUN" = "true" ] && exit 0
 [ -f "$FLAG" ] && exit 0
 
 REASON=$(hook_message warning "$MESSAGE")

@@ -1,7 +1,7 @@
 // `slidev build` を子プロセスで起動する SlidevRunner 実装。
 // `@slidev/cli` の bin を依存ルート (infra/_shared/dependency-root.ts) から解決し、
 // `node <slidev-bin>` で起動する。プラグイン形態では cli の direct dep として hoist された
-// 実体が、単体配布形態では `setup` が置いた永続層の実体が引かれる。利用者 project 側に
+// 実体が、単体配布形態では `runtime_setup` が置いた永続層の実体が引かれる。利用者 project 側に
 // slidev bin が無くても動作する。bin の解決そのものは dev サーバ起動 (mcp/dev-server-registry.ts)
 // と共有するため infra/_shared/slidev-bin.ts に置く。
 // `--theme` は command 側で許容文字 validate 済の前提で受け取る。

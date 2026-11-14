@@ -13,6 +13,8 @@ import { BaseError } from '../domain/errors.js'
 import { existsSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { commandHint, formatHinted, hinted, inputHint, inputNameHint, placeholder } from '../domain/command-hint.js'
+import type { HintedText } from '../domain/command-hint.js'
 import { findRepository, getDevelopBranch } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { pythonStrip, ValidationFailure } from '../domain/python-format.js'
@@ -37,10 +39,20 @@ import type { CopyResult } from './worktree-copy.js'
 import { runSetupCommand } from './worktree-setup.js'
 import type { SetupResult } from './worktree-setup.js'
 
+const WORKTREE_ADD_PATH = ['worktree', 'add']
+
 /**
 ワークツリー操作に失敗した（Python の RuntimeError に当たる）。メッセージは利用者に見せる文
 */
-export class WorktreeRuntimeError extends BaseError {}
+export class WorktreeRuntimeError extends BaseError {
+  readonly hintedText: HintedText | undefined
+
+  // message は CLI の形。MCP では最上位が hintedText から描き直す
+  constructor(message: string | HintedText, options?: Readonly<ErrorOptions>) {
+    super(formatHinted(message, 'cli'), options)
+    this.hintedText = typeof message === 'string' ? undefined : message
+  }
+}
 
 // 環境ガード
 
@@ -391,13 +403,13 @@ function readRemoteCandidates(cwd: string): readonly RemoteCandidate[] {
 function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnostics): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
   const configPath = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
   if (!existsSync(configPath)) {
-    throw new WorktreeRuntimeError(`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run pecot worktree init to generate the template`)
+    throw new WorktreeRuntimeError(hinted`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run ${commandHint(['worktree', 'init'])} to generate the template`)
   }
   try {
     return { configPath, spec: loadCopyExcludeSpec(mainWorktree, diagnostics) }
   }
   catch (error: unknown) {
-    if (error instanceof WorktreeConfigError) throw new WorktreeRuntimeError(error.message, { cause: error })
+    if (error instanceof WorktreeConfigError) throw new WorktreeRuntimeError(error.hintedText ?? error.message, { cause: error })
     throw error
   }
 }
@@ -408,7 +420,7 @@ function requireRegisteredRepository(cwd: string): { readonly repository: Reposi
   if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE)
   const config = loadActiveConfig()
   if (config === undefined) {
-    throw new WorktreeRuntimeError('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
+    throw new WorktreeRuntimeError(hinted`project config not found\n  hint: run ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })} to set the project`)
   }
   for (const candidate of candidates) {
     if (candidate.repository !== undefined && findRepository(config, candidate.repository.owner, candidate.repository.repository) !== undefined) {
@@ -420,30 +432,25 @@ function requireRegisteredRepository(cwd: string): { readonly repository: Reposi
   const registered = config.repositories.length > 0
     ? config.repositories.map(item => `  - ${item.owner}/${item.name}`).join('\n')
     : '  (none registered)'
-  throw new WorktreeRuntimeError(
-    `repository ${repository.owner}/${repository.repository} is not registered in the `
-    + 'active pecot project\n'
-    + '\n'
-    + 'registered repositories:\n'
-    + `${registered}\n`
-    + '\n'
-    + 'to add this repository to the pecot project:\n'
-    + `  pecot project link ${repository.owner}/${repository.repository}\n`
-    + '\n'
-    + 'to switch to another project:\n'
-    + '  pecot project activate <PROJECT>',
-  )
+  throw new WorktreeRuntimeError(hinted`repository ${repository.owner}/${repository.repository} is not registered in the active pecot project
+
+registered repositories:
+${registered}
+
+to add this repository to the pecot project:
+  ${commandHint(['project', 'link'], { repo: `${repository.owner}/${repository.repository}` })}
+
+to switch to another project:
+  ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`)
 }
 
 // ベースブランチ決定（プロジェクト設定の develop_branch を使用）
 function defaultBaseBranch(config: ProjectConfig, repository: RepositoryReference): string {
   const developBranch = getDevelopBranch(config, repository.owner, repository.repository)
   if (developBranch === undefined || developBranch === '') {
-    throw new WorktreeRuntimeError(
-      `develop_branch is not set for repository ${repository.owner}/${repository.repository}\n`
-      + '  add develop_branch to repositories in the project config file\n'
-      + '  or pass --base explicitly',
-    )
+    throw new WorktreeRuntimeError(hinted`develop_branch is not set for repository ${repository.owner}/${repository.repository}
+  add develop_branch to repositories in the project config file
+  or pass ${inputNameHint(WORKTREE_ADD_PATH, 'base')} explicitly`)
   }
   return developBranch
 }
@@ -597,11 +604,8 @@ function addGitWorktree(cwd: string, worktreePath: string, name: string, base: R
     const currentUpstream = pythonStrip(runGit(['for-each-ref', '--format=%(upstream:short)', `refs/heads/${name}`], { cwd }).stdout)
     const expectedUpstream = baseBranch === '' ? undefined : `${remote}/${baseBranch}`
     if ((currentUpstream === '' ? undefined : currentUpstream) !== expectedUpstream) {
-      throw new WorktreeRuntimeError(
-        `branch '${name}' already exists and its upstream differs from the expected one `
-        + `(current: ${currentUpstream === '' ? '(unset)' : currentUpstream}, expected: ${expectedUpstream ?? 'None'}): `
-        + 'pass --allow-existing-branch to reuse it',
-      )
+      const current = currentUpstream === '' ? '(unset)' : currentUpstream
+      throw new WorktreeRuntimeError(hinted`branch '${name}' already exists and its upstream differs from the expected one (current: ${current}, expected: ${expectedUpstream ?? 'None'}): pass ${inputHint(WORKTREE_ADD_PATH, 'allow_existing_branch')} to reuse it`)
     }
 
     // upstream 一致かつ bind なし → prune に取り残された孤児ブランチとみなし除去
@@ -651,18 +655,26 @@ function findWorktreePathByName(cwd: string, name: string): string | undefined {
 /**
 ワークツリーを削除する。name は worktree add が付けた名前（wtN）か、checkout しているブランチ名。
 WT が見つからない・削除に失敗した場合は WorktreeRuntimeError。
-ローカルブランチを消せなかったときは、その理由を返す。成功時と shouldKeepBranch は undefined
+ローカルブランチを消せなかったときは、その理由を返す。成功時と shouldKeepBranch は undefined。isDryRun は WT を探すだけで何も消さない
 */
-export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): string | undefined {
+export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined, readonly isDryRun?: boolean | undefined }> = {}): string | undefined {
   // 1. WTパスを特定
   const worktreePath = findWorktreePathByName(cwd, name)
   if (worktreePath === undefined) throw new WorktreeRuntimeError(`worktree not found: ${name}`)
+  if (options.isDryRun === true) return undefined
 
   // 2. git worktree remove
   const gitArguments = ['worktree', 'remove', worktreePath]
   if (options.isForced === true) gitArguments.push('--force')
   const removed = runGit(gitArguments, { cwd })
-  if (removed.exitCode !== 0) throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
+  if (removed.exitCode !== 0) {
+    const reason = pythonStrip(removed.stderr)
+    // git の文は CLI の `--force` を案内するので、MCP でも打てる形の案内を添える
+    if (options.isForced !== true && reason.includes('contains modified or untracked files')) {
+      throw new WorktreeRuntimeError(hinted`failed to remove the worktree: ${reason}\nhint: to remove it with its changes, pass ${inputHint(['worktree', 'remove'], 'force')}`)
+    }
+    throw new WorktreeRuntimeError(`failed to remove the worktree: ${removed.stderr}`)
+  }
 
   // 3. ブランチ削除（ローカルブランチ）
   let branchError: string | undefined

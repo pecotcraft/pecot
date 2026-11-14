@@ -15,6 +15,8 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { commandHint, formatHinted, hinted } from '../domain/command-hint.js'
+import type { HintedText } from '../domain/command-hint.js'
 import { PecotError, InvalidValueError } from '../domain/errors.js'
 import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
@@ -100,7 +102,15 @@ export interface SymlinkResult {
 /**
 ワークツリー設定の操作に失敗した
 */
-export class WorktreeConfigError extends PecotError {}
+export class WorktreeConfigError extends PecotError {
+  readonly hintedText: HintedText | undefined
+
+  // message は CLI の形。MCP では最上位が hintedText から描き直す
+  constructor(message: string | HintedText, options?: Readonly<ErrorOptions>) {
+    super(formatHinted(message, 'cli'), options)
+    this.hintedText = typeof message === 'string' ? undefined : message
+  }
+}
 
 /**
 個別リンク定義。キーは設定ファイルの JSON と同じ
@@ -313,7 +323,7 @@ function splitLines(text: string): readonly string[] {
 export function loadCopyExcludeSpec(mainWorktree: string, diagnostics: Diagnostics): GitIgnoreSpec {
   const file = path.join(mainWorktree, WORKTREE_IGNORE_FILENAME)
   if (!existsSync(file)) {
-    throw new WorktreeConfigError(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
+    throw new WorktreeConfigError(hinted`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run ${commandHint(['worktree', 'init'])} to generate the template`)
   }
 
   const rawLines = splitLines(readTextFile(file))

@@ -3,8 +3,10 @@ import { diffGenerated, formatStale } from '../src/domain/diff.js'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import type { GeneratedFile } from '../src/domain/schema.js'
 
+const NAMES = { separator: ' ', positions: [[{ word: 'issue', meaning: 'Issue' }], [{ word: 'show', meaning: 'show one', read_only: true }]], rest: false }
+
 function file(entries: readonly object[], header: object = {}): GeneratedFile {
-  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries, ...header })
+  return generatedFileSchema.parse({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: NAMES, entries, ...header })
 }
 
 function entry(id: string, input: object, extra: object = {}): object {
@@ -51,6 +53,14 @@ describe('diffGenerated', () => {
 
   it('ファイルの先頭部が変わると、報告する', () => {
     expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
+  })
+
+  it('語彙の語の追加と読むだけの印の削除があると、names の欄のパスで報告する', () => {
+    const after = { ...NAMES, positions: [[{ word: 'issue', meaning: 'Issue' }, { word: 'pr', meaning: 'PR' }], [{ word: 'show', meaning: 'show one' }]] }
+    expect(diffGenerated(file([]), file([], { names: after }))).toEqual([
+      'file: names.positions[0][1]: added',
+      'file: names.positions[1][0].read_only: removed',
+    ])
   })
 })
 

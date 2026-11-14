@@ -131,7 +131,7 @@ export function slideCreateTool(
       }
 
       // 生成の最後に行う node_modules の張り直しは依存ルートの実体を要る。実処理より前に見る。
-      // 見ずに進むと、テーマの取得 (git) を終えた後で symlink-failed になり、setup の案内も出ない。
+      // 見ずに進むと、テーマの取得 (git) を終えた後で symlink-failed になり、runtime_setup の案内も出ない。
       // 失敗した生成は一時 dir を消すため、途中まで作った talk-dir は残らない。
       const missingRuntime = ensureRuntimeDependencies('slide_create', buildRuntimeDependencies())
       if (missingRuntime !== undefined) return toCallToolResult(missingRuntime)
@@ -231,7 +231,7 @@ export function slideConvertTool(
 
       // pipeline (infra/slidev-to-pptx) は @slidev/cli / dom-to-pptx / @slidev/parser を
       // 起動時ではなく実行時に解決する。単体配布ルートではこれらが永続層にしか無いため、
-      // 未取得なら `setup` を案内して実行前に返す。
+      // 未取得なら `runtime_setup` を案内して実行前に返す。
       const missingRuntime = ensureRuntimeDependencies('slide_convert', buildRuntimeDependencies())
       if (missingRuntime !== undefined) return toCallToolResult(missingRuntime)
 

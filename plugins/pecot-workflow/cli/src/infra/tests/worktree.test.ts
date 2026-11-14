@@ -29,6 +29,8 @@ import {
   WorktreeRuntimeError,
 } from '../worktree.js'
 import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
+// 案内の文を描くには、コマンドの形の登録が要る
+import '../../commands/registry.js'
 
 useIsolatedEnvironment()
 
@@ -741,6 +743,19 @@ describe('removeWorktree', () => {
     expect(existsSync(worktree)).toBe(false)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     expect(gitForTest(repository, ['branch', '--list', 'wt1'])).toBe('')
+  })
+
+  it('isDryRun なら WT を探すだけで、WT・ブランチ・<root>/<name>/ を残す', () => {
+    const { repository, root, worktree } = projectWithWorktree()
+    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics, { isDryRun: true })).toBeUndefined()
+    expect(existsSync(worktree)).toBe(true)
+    expect(existsSync(path.join(root, 'wt1'))).toBe(true)
+    expect(gitForTest(repository, ['branch', '--list', '--format=%(refname:short)', 'wt1']).trim()).toBe('wt1')
+  })
+
+  it('isDryRun でも、無い WT は WorktreeRuntimeError', () => {
+    const { repository } = projectWithWorktree()
+    expect(() => removeWorktree(repository, 'nope', ignoredDiagnostics, { isDryRun: true })).toThrow(WorktreeRuntimeError)
   })
 
   it('ブランチ wt1 が無い worktree を名前で消すと、ブランチを消せなかった理由を返す', () => {

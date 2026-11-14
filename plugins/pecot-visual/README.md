@@ -35,7 +35,7 @@ MCP サーバ `pecot-visual` が、スキルの実行部として次のツール
 
 - スライド系: `slide_create` / `slide_sync` / `slide_lint` / `slide_convert` / `slide_dev` / `slide_page` / `slide_theme`
 - ダイアグラム系: `drawio_create` / `drawio_export`
-- その他: `setup` / `evidence_create`
+- その他: `runtime_setup` / `evidence_create`
 
 スライドの見た目は、本体の外にあるテーマが決めます。
 `slide_create` は `theme` に、テーマの指定（`git+https://<host>/<owner>/<repo>.git#<tag>` か `file:<絶対パス>`）を受けます。
@@ -70,7 +70,7 @@ npx -y @playwright/mcp@0.0.83 install-browser chromium
 - Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.97 以上
 - Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上（脆弱性の修正を含まないバージョンでは起動しない）
 - 初回の起動で依存（約 1GB）を、クライアントが MCP に渡すデータ置き場へ取得する。プラグインを入れずに使う場合の置き場と指定方法は、npm のパッケージ `@pecot/visual-mcp` の README にある
-- PPTX 変換・PNG 出力に使う Chromium は、`setup` ツールで取得する。未取得のまま呼ぶと `setup` の案内が返る
+- PPTX 変換・PNG 出力に使う Chromium は、`runtime_setup` ツールで取得する。未取得のまま呼ぶと `runtime_setup` の案内が返る
 
 インストール手順は[リポジトリルートの README](../../README.md) を参照してください。
 
@@ -80,7 +80,7 @@ npx -y @playwright/mcp@0.0.83 install-browser chromium
 
 | 環境変数 | 内容 |
 |:--------|:----|
-| `PECOTV_AUTO_INSTALL_BROWSER` | `1` にすると、Chromium が未取得のときに `setup` の案内を返す代わりにその場で取得します |
+| `PECOTV_AUTO_INSTALL_BROWSER` | `1` にすると、Chromium が未取得のときに `runtime_setup` の案内を返す代わりにその場で取得します |
 | `PECOTV_WSL_MOUNT_ROOT` | `/etc/wsl.conf` で automount root を変えているときに、その値を設定します。ツールのパス引数に渡した Windows 形式のパス（ドライブレター形式・UNC 形式）を `/mnt/<drive>/` 配下または WSL 内の絶対パスへ変換するために使います |
 | `NODE_EXTRA_CA_CERTS` | 通信を復号するプロキシの配下で、プロキシの CA 証明書を PEM ファイルのパスで渡します。対象は Node のプロセス（npm・pnpm・Playwright の取得）です。テーマを git の URL から取るときは、git 自身の CA の設定が使われます。プラグインは証明書を同梱しません |
 

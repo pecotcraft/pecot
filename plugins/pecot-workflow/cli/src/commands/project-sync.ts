@@ -14,6 +14,7 @@ import type { GitHubClient } from '../infra/github/index.js'
 import type { GitHubAPIError } from '../infra/github/errors.js'
 import type { ProjectFieldOption } from '../infra/github/projects.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
+import { commandHint, hinted, placeholder } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import type { Output } from './output.js'
 
@@ -164,9 +165,9 @@ async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitH
   if (workflowField === undefined) {
     return stopWith(
       out,
-      `project "${name}" has no pecot-workflow-* field\n`
-      + 'required field: pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)\n'
-      + `run: pecot project init --host ${host} --suffix <suffix> ${owner} "${name}"`,
+      hinted`project "${name}" has no pecot-workflow-* field
+required field: pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)
+run: ${commandHint(['project', 'init'], { owner, name, host, suffix: placeholder('suffix') })}`,
     )
   }
   const missing = missingRequiredOptions(workflowField)
@@ -292,12 +293,12 @@ function loadExistingConfig(configPath: string): ProjectConfig | undefined {
 /**
 GitHub Projects V2 の情報から設定ファイルを作るか更新し、アクティブにする。作った設定ファイルのパスを返す。
 pecot-workflow に合うプロジェクトだけを扱う。suffix はその名前の workflow フィールドを使う。
-skipIfUnchanged は、設定ファイルの内容が同じなら何も書かない
+skipIfUnchanged は、設定ファイルの内容が同じなら何も書かない。isDryRun は読むだけで、書く操作を planned で出す
 */
 export async function syncProjectConfig(
   out: Readonly<Output>,
   client: Readonly<GitHubClient>,
-  target: Readonly<{ owner: string, name: string, host: string, suffix?: string | undefined, skipIfUnchanged?: boolean | undefined }>,
+  target: Readonly<{ owner: string, name: string, host: string, suffix?: string | undefined, skipIfUnchanged?: boolean | undefined, isDryRun?: boolean | undefined }>,
 ): Promise<string> {
   const { owner, name, host, skipIfUnchanged = false } = target
   const project = await findProjectByTitle(out, client, owner, name)
@@ -333,8 +334,16 @@ export async function syncProjectConfig(
 
   // 読み直して保存と同じ形にそろえてから比べる
   const normalized = parseProjectConfig(parseJsonText(serializeProjectConfig(config)))
-  if (skipIfUnchanged && existing !== undefined && serializeProjectConfig(existing) === serializeProjectConfig(normalized)) return configPath
+  if (skipIfUnchanged && existing !== undefined && serializeProjectConfig(existing) === serializeProjectConfig(normalized)) {
+    out.planned({ verb: 'unchanged', target: `config file ${configPath}` })
+    return configPath
+  }
   const verb = existing === undefined ? 'create' : 'update'
+  if (target.isDryRun === true) {
+    out.planned({ verb, target: `config file ${configPath}` })
+    out.planned({ verb: 'set', target: `active project to ${path.parse(configPath).name}` })
+    return configPath
+  }
   saveConfig(config, configPath)
   out.done({ verb, target: `config file ${configPath}` })
   setActiveConfig(configPath)

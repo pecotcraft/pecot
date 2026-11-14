@@ -129,7 +129,7 @@ gh api --hostname <対象ホスト> graphql \
 
 テンプレを取り、ガイドに従って書いて、修正の前に投稿する。General にはインラインにできなかった指摘だけを書く。Disposition には全 F-NN を 1 行ずつ並べ、コメントの URL を添える。
 
-1. `issue_comment` を `prepare: true`・`template: "review-findings"`・`issue: "<owner>/<repo>/<PR番号>"` で呼ぶ
+1. `issue_comment` を `prepare: true`・`template: "review-findings"`・`issue_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ
 2. 書いたら、`issue_comment` を `file: "<書いたファイル>"` で呼ぶ
 
 ### Step 4: 対応可否をユーザーに一括確認
@@ -148,7 +148,7 @@ Step 3 のコメントの URL を示し、AskUserQuestion で次の 3 択（と 
 
 まず、選択に関わらず次の 2 つを行う。
 
-1. `review-resolution` のテンプレを取り、Decision 節と Declined 節を埋める。`issue_comment` を `prepare: true`・`template: "review-resolution"`・`issue: "<owner>/<repo>/<PR番号>"` で呼ぶ。
+1. `review-resolution` のテンプレを取り、Decision 節と Declined 節を埋める。`issue_comment` を `prepare: true`・`template: "review-resolution"`・`issue_ref: "<owner>/<repo>/<PR番号>"` で呼ぶ。
 
 2. 対応不要の F-NN のスレッドに、理由を返信する（Step 3 の `in_reply_to`）。
 

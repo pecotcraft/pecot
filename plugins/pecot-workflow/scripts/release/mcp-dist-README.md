@@ -74,7 +74,7 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 ツールが対象にするリポジトリは、サーバを起動したディレクトリを含むリポジトリです。
 Claude Code では、Claude Code がサーバを起動するディレクトリ（通常はプロジェクトの root）になります。
 
-プラグインの hooks は働きません。`issue_create`・`issue_quick`・`pr_create` の確認は、MCP クライアント自身の確認だけになります。
+プラグインの hooks は働きません。`issue_create`・`pr_create` の確認は、MCP クライアント自身の確認だけになります。
 これらのツールは自動で許可しないでください。また、`--help` を打つと、プラグインで出る補足の節は出ません。
 
 ## ツール
@@ -96,8 +96,7 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 | `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
 | `board_move` | Issue 番号でボードのステータスを更新する |
 | `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`dry_run`・`project` を取る） |
-| `issue_create` | frontmatter 付きの Markdown から Issue を作る |
-| `issue_quick` | 自由形式のメッセージから Issue をすぐ作る |
+| `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る。`dry_run: true` は作らずに予定だけ出す） |
 | `issue_show` | Issue の詳細を必要な項目だけ取得する |
 | `issue_comment` | Issue にコメントを投稿する |
 | `issue_block` | Issue に前提（blocked by）を付ける。付いている前提の種類と理由を変えるのにも使う |
@@ -142,9 +141,38 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 - `dependabot_sync` → `tracker_sync`（`source: "dependabot"` を足す）
 - `security_sync` → `tracker_sync`（`source: "security"` を足す）
 
+`issue_quick` は、なくなりました。Issue の作成と作業の開始を 2 回の呼び出しに分けます。
+
+- `issue_quick` の代わりに、次の 2 つを順に呼ぶ
+  - `issue_create`（`freeform: true`・`repo`・`message`）で Issue を作る
+  - `session_start`（`issue_ref`・`branch`）でブランチを作って作業を始める
+- `issue_create` は Issue だけを作る。ブランチの作成と作業対象の記録はしない
+
 許可の設定に古い名前を書いているときは、`mcp__pecot-workflow__<ツール名>` の `<ツール名>` を新しい名前に書き換えてください。
 書き換えるまでは、確認のダイアログが出るだけで、失敗はしません。
 入力の `delete_branch`（`session_finish`・`release_merge`）は変わりません。
+
+## 古い入力名からの移行
+
+同じものを指す入力の名前をそろえました。古い入力名を渡すと、実行せずに失敗します。結果は、新しい名前を案内する形です。
+
+`invalid input: unknown key 'issue' ('issue' was renamed to 'issue_ref')`
+
+- `issue_comment`・`session_restore`: `issue` → `issue_ref`
+- `branch_delete`: `repo_ref` → `repo`
+- `project_link`: `owner_repo` → `repo`
+- `session_start`: `branch_name` → `branch`
+- `issue_create`: `plan` → `dry_run`
+
+書き込む 15 個のツールに、何も書かずに予定だけを出す `dry_run` が付きました。
+
+- `board_add`・`board_move`
+- `issue_comment`・`issue_create`・`issue_reopen`
+- `project_activate`・`project_create`・`project_init`・`project_link`・`project_set`・`project_unset`
+- `session_restore`・`session_start`
+- `worktree_init`・`worktree_remove`
+
+`board_show` は Archived の古い項目を消さなくなり（整理は `board_sync`）、`release_check` は `git fetch` をしなくなりました。
 
 ## 失敗したとき
 

@@ -1,7 +1,7 @@
 // chromium 依存ツールの実行時ガード (src/mcp/tools/_shared.ts の ensureChromium) の単体テスト。
 //
 // 見たいのは 2 系統。
-//   1. 標準 (PECOTV_AUTO_INSTALL_BROWSER なし) — 取得を試みず、`setup` ツールの呼び出しを案内する。
+//   1. 標準 (PECOTV_AUTO_INSTALL_BROWSER なし) — 取得を試みず、`runtime_setup` ツールの呼び出しを案内する。
 //   2. env オプトイン時 — その場で取得し、成功なら処理を続行、失敗なら理由と誘導を返す。
 //
 // 実取得は 120MB 級のダウンロードなので、deps を差し替えてルートだけを見る。
@@ -126,7 +126,7 @@ afterEach(() => {
   for (const directory of workDirectories.splice(0)) rmSync(directory, { recursive: true, force: true })
 })
 
-describe('ensureChromium: 既定は取得せず setup ツールを案内する', () => {
+describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内する', () => {
   it('取得済みなら undefined を返し、実処理を止めない', async () => {
     const { deps, installCalls } = fakeDependencies({ installed: true, autoInstall: false })
 
@@ -158,7 +158,7 @@ describe('ensureChromium: 既定は取得せず setup ツールを案内する',
 
     expect(detail).toContain('Chromium')
     expect(detail).toContain('/fake/ms-playwright')
-    expect(detail).toContain('call the `setup` tool')
+    expect(detail).toContain('call the `runtime_setup` tool')
     // 単体配布では存在しないため、setup.sh のパスを案内しない。
     expect(detail).not.toContain('setup.sh')
     // 許可判断ができるようダウンロード量を明記する。
@@ -178,14 +178,14 @@ describe('ensureChromium: 既定は取得せず setup ツールを案内する',
     expect(String(rejected?.data['detail'])).not.toContain('undefined')
   })
 
-  it('message は 1 行で setup ツールを名指しする', async () => {
+  it('message は 1 行で runtime_setup ツールを名指しする', async () => {
     const { deps } = fakeDependencies({ installed: false, autoInstall: false })
 
     const rejected = await ensureChromium('slide_convert', deps)
     const message = rejected?.message ?? ''
 
     expect(message).toContain('slide_convert')
-    expect(message).toContain('call the `setup` tool')
+    expect(message).toContain('call the `runtime_setup` tool')
   })
 })
 
@@ -230,7 +230,7 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
   it('TLS の証明書検証で落ちた場合は NODE_EXTRA_CA_CERTS の確認を促す', async () => {
     // SSL を中継するプロキシの CA が無いと TLS で落ちる。
-    // pecot は証明書を同梱しないので、setup ツール側と同じ判定・同じ文言で NODE_EXTRA_CA_CERTS を案内する。
+    // pecot は証明書を同梱しないので、runtime_setup ツール側と同じ判定・同じ文言で NODE_EXTRA_CA_CERTS を案内する。
     const { deps } = fakeDependencies({
       installed: false,
       autoInstall: true,
@@ -346,7 +346,7 @@ describe('chromium 未取得時のツール応答', () => {
     expect(result.isError).toBe(true)
     expect(structuredOf(result)['exitCode']).toBe(1)
     expect(dataOf(result)['reason']).toBe('chromium-not-installed')
-    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
     expect(snapshotTree(workDirectory)).toEqual(new Map())
   })
 
@@ -374,7 +374,7 @@ describe('chromium 未取得時のツール応答', () => {
 
     expect(result.isError).toBe(true)
     expect(dataOf(result)['reason']).toBe('chromium-not-installed')
-    expect(String(structuredOf(result)['message'])).toContain('call the `setup` tool')
+    expect(String(structuredOf(result)['message'])).toContain('call the `runtime_setup` tool')
   })
 
   it('drawio_create は PNG を諦めて表示用 HTML は書く (CLI の degrade と同じ)', async (context) => {
@@ -398,7 +398,7 @@ describe('chromium 未取得時のツール応答', () => {
     // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
     expect(dataOf(degraded)).toMatchObject({ png: null, pngFailed: true, warnings: 1 })
     // 復旧手段は message に載せる (data は CLI の PNG 失敗時と同形に保つ)。
-    expect(String(structured['message'])).toContain('call the `setup` tool')
+    expect(String(structured['message'])).toContain('call the `runtime_setup` tool')
   })
 
   it('drawio_create は out_path 省略なら chromium 未取得でも URL を返す', async () => {

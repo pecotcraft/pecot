@@ -196,7 +196,7 @@ export interface InstallRuntimeDependenciesOptions {
 /**
 永続層へ実行時依存を install する。取得先は無ければここで作る。
 `--prefix` を使うには install 先に package.json が要る（無いと npm は上位へ遡る）ので、毎回書き直す。
-複数セッションの `setup` が並走し得るため、flock(1) で直列化する（無い環境ではロックなし）。
+複数セッションの `runtime_setup` が並走し得るため、flock(1) で直列化する（無い環境ではロックなし）。
 stamp は成功時だけ置き、先に消す。途中で失敗した残骸を取得済みと誤判定させないため。
 manifest から plan を組めないときは、起動失敗（exitCode: null, failedStage: 'npm'）として返す。
 */

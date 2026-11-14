@@ -2,6 +2,8 @@
 import type { ProjectConfig } from '../domain/config.js'
 import { loadActiveConfig } from '../infra/config-store.js'
 import { CommandExit } from './command-definition.js'
+import { commandHint, hinted, placeholder } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import type { Output } from './output.js'
 
 /**
@@ -12,12 +14,12 @@ const NO_ACTIVE_PROJECT_PLAIN = 'no active project'
 /**
 アクティブなプロジェクトが無いときの案内
 */
-export const NO_ACTIVE_PROJECT = 'no active project\nrun: pecot project activate <PROJECT>'
+export const NO_ACTIVE_PROJECT: HintedText = hinted`no active project\nrun: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`
 
 /**
 error の行を出して、指定の終了コード（既定は 1）で止める
 */
-export function stopWith(out: Readonly<Output>, message: string, code = 1): never {
+export function stopWith(out: Readonly<Output>, message: string | HintedText, code = 1): never {
   out.error(message)
   throw new CommandExit(code)
 }

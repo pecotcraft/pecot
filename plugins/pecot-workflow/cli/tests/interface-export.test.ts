@@ -15,7 +15,8 @@ import { compareText } from '../../../../libs/interface-spec/src/domain/utility.
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
 import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
 import vitestConfig from '../vitest.config.js'
-import { exportEntries, main } from '../scripts/export-interface.js'
+import { exportEntries, exportNames, main } from '../scripts/export-interface.js'
+import { COMMAND_GROUPS, COMMAND_VERBS } from '../src/commands/names.js'
 
 const alpha = defineCommand({
   path: ['alpha'],
@@ -67,11 +68,34 @@ function capture(): { io: CommandIo, out: string[], error: string[] } {
 
 const samples = [alpha, beta]
 
+const SAMPLE_NAMES = exportNames([{ name: 'alpha', meaning: '見本のグループ' }], [{ name: 'show', meaning: '見本の読む動詞', readOnly: true }, { name: 'add', meaning: '見本の書く動詞' }])
+
+describe('exportNames', () => {
+  it('区切りは空白で、語の位置はグループと動詞の 2 つ。後ろに自由な語を許さない', () => {
+    const names = exportNames()
+    expect(names.separator).toBe(' ')
+    expect(names.rest).toBe(false)
+    expect(names.positions.map(words => words.map(item => item.word))).toStrictEqual([COMMAND_GROUPS.map(group => group.name), COMMAND_VERBS.map(verb => verb.name)])
+  })
+
+  it('読むだけの動詞（list・search・show・get・check）にだけ read_only を付ける', () => {
+    const marked = exportNames().positions.flat().filter(item => item.read_only === true).map(item => item.word)
+    expect(marked).toStrictEqual(['list', 'search', 'show', 'get', 'check'])
+  })
+
+  it('語と意味だけを書き、グループの help は書かない', () => {
+    expect(SAMPLE_NAMES.positions).toStrictEqual([
+      [{ word: 'alpha', meaning: '見本のグループ' }],
+      [{ word: 'show', meaning: '見本の読む動詞', read_only: true }, { word: 'add', meaning: '見本の書く動詞' }],
+    ])
+  })
+})
+
 describe('exportEntries', () => {
   const entries = exportEntries([beta, alpha])
 
   it('見本の書き出し全体が node-sample.json と同じバイト列になる', () => {
-    const file = { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: exportEntries(samples) }
+    const file = { format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: SAMPLE_NAMES, entries: exportEntries(samples) }
     const expected = readFileSync(path.resolve(import.meta.dirname, 'interface-export/node-sample.json'), 'utf8')
     expect(`${JSON.stringify(file, undefined, 2)}\n`).toBe(expected)
   })
@@ -235,7 +259,7 @@ const generated = path.resolve(import.meta.dirname, '../../interface/generated.j
 const WRITE_COMMAND = 'pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/export-interface.ts --write'
 
 function fileOf(commands: Parameters<typeof exportEntries>[0]): Record<string, unknown> {
-  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: exportEntries(commands) }
+  return { format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: exportEntries(commands) }
 }
 
 const EntriesSchema = z.array(z.custom<Record<string, unknown>>(value => typeof value === 'object' && value !== null))
@@ -291,7 +315,7 @@ describe('main の --write', () => {
   it('登録が 0 件でも、空の項目で書く', () => {
     const target = temporaryTarget()
     expect(run('--write', target, []).code).toBe(0)
-    expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', entries: [] }, undefined, 2)}\n`)
+    expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: [] }, undefined, 2)}\n`)
   })
 
   it('モードの指定が無い・不正なら 2 を返す', () => {
@@ -352,6 +376,14 @@ describe('main の --check', () => {
     const result = checkOf(file)
     expect(result.code).toBe(1)
     expect(result.error).toContain('  PW-ALPHA: surfaces.mcp.tool: "renamed" -> "alpha"\n')
+  })
+
+  it('語彙の差も 1 を返し、names の欄のパスを出す', () => {
+    const file = fileOf(samples)
+    file['names'] = { ...exportNames(), rest: true }
+    const result = checkOf(file)
+    expect(result.code).toBe(1)
+    expect(result.error).toContain('  file: names.rest: true -> false\n')
   })
 
   it('Node にあって定義書に無い ID は 1 を返し、entry: added の行を出す', () => {

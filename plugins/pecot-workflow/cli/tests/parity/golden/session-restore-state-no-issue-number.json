@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: cannot infer the Issue number from the branch name: feat/no-number\n  run: pecot session restore --issue <owner/repo/N>\n",
+  "stderr": "error: cannot infer the Issue number from the branch name: feat/no-number\n  run: pecot session restore --issue-ref <owner/repo/N>\n",
   "exitCode": 1,
   "requests": [],
   "files": {}

@@ -3,6 +3,8 @@
 // `owner/repo/N` 形式を IssueReference にする。短縮形 `N` は基準リポ（baseRepository）で補う。
 // 参照の形式が不正なときの文は、Python の CLI が出していた文に揃える。
 
+import { formatHinted, globalRepositoryHint, hinted, placeholder } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { PecotError, InvalidValueError } from './errors.js'
 import { parsePythonInteger, ValidationFailure } from './python-format.js'
 import { createRepositoryReference, parseOwnerRepository, repositoryFullName } from './repository-resolver.js'
@@ -13,10 +15,13 @@ import type { RepositoryReference } from './repository-resolver.js'
 */
 export class ReferenceParseError extends PecotError {
   readonly reference: string
+  readonly hintedText: HintedText | undefined
 
-  constructor(message: string, reference: string, options?: Readonly<ErrorOptions>) {
-    super(message, options)
+  // message は CLI の形。出し先の形は hintedText から描き直す
+  constructor(message: string | HintedText, reference: string, options?: Readonly<ErrorOptions>) {
+    super(formatHinted(message, 'cli'), options)
     this.reference = reference
+    this.hintedText = typeof message === 'string' ? undefined : message
   }
 }
 
@@ -77,7 +82,7 @@ export function parseIssueReference(raw: string, baseRepository?: RepositoryRefe
     if (baseRepository === undefined) {
       throw new ReferenceParseError(
         repositoryFlag
-          ? 'the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\''
+          ? hinted`the short form 'N' needs a base_repo: pass ${globalRepositoryHint(placeholder('owner/repo'))} or use the full form 'owner/repo/N'`
           : 'the short form \'N\' is not accepted here: use the full form \'owner/repo/N\'',
         raw,
       )

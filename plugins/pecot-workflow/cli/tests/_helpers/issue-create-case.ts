@@ -1,4 +1,4 @@
-// issue create・issue quick のテストが共有する準備。設定の組み立てと、偽の GitHub の応答の組み立て。
+// issue create（freeform を含む）のテストが共有する準備。設定の組み立てと、偽の GitHub の応答の組み立て。
 import { JSON_NULL } from '../../src/domain/json-null.js'
 import type { ResponseRule } from '../fake-github/server.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
@@ -50,7 +50,7 @@ function configText(options: Readonly<IssueProjectOptions>): string {
 }
 
 /**
-プロジェクトルートに設定を置き、そのルートの一時 git リポジトリへ移る。issue create・issue quick は、カレントで動かす
+プロジェクトルートに設定を置き、そのルートの一時 git リポジトリへ移る。issue create は、カレントで動かす
 */
 export function setUpIssueProject(options: Readonly<IssueProjectOptions> = {}): ProjectFixture {
   const project = setUpProject({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: configText(options), ...options.files } })
@@ -176,24 +176,3 @@ export function rawFrontmatterFile(lines: readonly string[], body = TASK_BODY): 
 }
 
 export const TASK_FRONTMATTER: Readonly<Record<string, string>> = { title: '一覧に状態を出す', type: 'task', repository: 'acme/demo', status: 'ready', priority: 'high', size: 's' }
-
-export const BRANCH_SHA = '0123456789abcdef0123456789abcdef01234567'
-
-/**
-develop ブランチの先頭の取得
-*/
-export function developBranchHead(): ResponseRule {
-  return { match: { method: 'GET', path: '/repos/acme/demo/git/ref/heads/main' }, times: 1, respond: { status: 200, body: { object: { sha: BRANCH_SHA } } } }
-}
-
-export function missingDevelopBranch(): ResponseRule {
-  return { match: { method: 'GET', path: '/repos/acme/demo/git/ref/heads/main' }, times: 1, respond: { status: 404, body: { message: 'Not Found' } } }
-}
-
-/**
-リンク付きブランチの作成。応答の名前は、作成した Issue の番号の branch
-*/
-export function linkedBranchCreated(number: number): ResponseRule {
-  const reference = { name: `feat/20260101-000000/${String(number)}`, prefix: 'refs/heads/' }
-  return { match: { operation: 'CreateLinkedBranch' }, times: 1, respond: { status: 200, body: { data: { createLinkedBranch: { linkedBranch: { ref: reference } } } } } }
-}

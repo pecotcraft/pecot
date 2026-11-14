@@ -60,7 +60,7 @@ SDK の request timeout。既定の 60s だと hang したときに it の timeo
 const REQUEST_TIMEOUT_MS = 15_000
 
 /**
-setup は取得済みでも playwright install を 1 回起動するため、他のツールより長く待つ。
+runtime_setup は取得済みでも playwright install を 1 回起動するため、他のツールより長く待つ。
 */
 const SETUP_TIMEOUT_MS = 90_000
 
@@ -654,7 +654,7 @@ describe('pecotv mcp のツール (stdio)', () => {
     }
   }, 120_000)
 
-  it('chromium 未取得でも serve は続き、依存ツールは setup を案内する', async () => {
+  it('chromium 未取得でも serve は続き、依存ツールは runtime_setup を案内する', async () => {
     // `pecotv mcp` は接続を MCP_TIMEOUT に収めるため chromium を起動条件から外し、デフォルトでは
     // 取得もしない (bin/pecotv)。未取得のまま呼ばれたときの見え方は、サーバプロセス側の
     // 環境でしか作れないのでここで観測する。空の browsers root を向けて未取得を作る。
@@ -676,7 +676,7 @@ describe('pecotv mcp のツール (stdio)', () => {
           reason: 'chromium-not-installed',
           expectedAt: emptyBrowsersRoot,
         })
-        expect(String(dataOf(blocked)['detail'])).toContain('`setup` tool')
+        expect(String(dataOf(blocked)['detail'])).toContain('`runtime_setup` tool')
 
         // chromium を要さない呼び出しは同じプロセスでそのまま通る (サーバは落ちていない)。
         const succeeded = await client.callTool(
@@ -693,16 +693,16 @@ describe('pecotv mcp のツール (stdio)', () => {
     }
   }, 60_000)
 
-  it.skipIf(!isChromiumReady)('setup は chromium 取得済みならダウンロードせずに成功を返す', async () => {
-    // 実プロセス経由で setup が呼べること (dist に含まれ、引数なしで通ること) を見る。
-    // setup は取得済みでも `playwright install chromium` を実行する (判定が「取得済み」に
+  it.skipIf(!isChromiumReady)('runtime_setup は chromium 取得済みならダウンロードせずに成功を返す', async () => {
+    // 実プロセス経由で runtime_setup が呼べること (dist に含まれ、引数なしで通ること) を見る。
+    // runtime_setup は取得済みでも `playwright install chromium` を実行する (判定が「取得済み」に
     // 倒れていても実体が欠けていることがあるため)。取得済みホストでは Playwright 側が
     // skip して数秒で返る。取得済みでないホストでは 120MB を落としに行くので skip する
     // — 実ダウンロードを伴う処理は bootstrap CUJ 13 が持つ。
     // browsers root は上書きしない (上書きすると必ず実ダウンロードになる)。
     await withClient(async (client, readStderr) => {
       const called = await client.callTool(
-        { name: 'setup', arguments: {} },
+        { name: 'runtime_setup', arguments: {} },
         { timeout: SETUP_TIMEOUT_MS },
       )
 

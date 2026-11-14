@@ -13,6 +13,16 @@
       "auth": "token"
     },
     {
+      "type": "graphql",
+      "operation": "GetIssueProjectItems",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 7
+      },
+      "auth": "token"
+    },
+    {
       "type": "rest",
       "method": "PATCH",
       "path": "/repos/acme/demo/issues/7",

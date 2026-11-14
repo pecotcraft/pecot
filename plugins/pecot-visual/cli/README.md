@@ -294,7 +294,7 @@ stdio（stdin / stdout）で待ち受ける MCP サーバとして起動しま�
 | `drawio_create` | `pecotv drawio url` |
 | `drawio_export` | `pecotv drawio export` |
 | `evidence_create` | `pecotv evidence create` |
-| `setup` | 対応 CLI なし（他ツールの前提となる実行時依存と Chromium を取得する） |
+| `runtime_setup` | 対応 CLI なし（他ツールの前提となる実行時依存と Chromium を取得する） |
 
 `slide lint` / `pptx preview` / `drawio export` は本 README に節がありません。引数・オプションは
 `pecotv <cmd> --help` で確認してください。
@@ -322,7 +322,7 @@ CLI の `invalid-option` による 2 は inputSchema の検証が先に済ませ
 `drawio_export` の PDF も同様に、生成に失敗しても SVG は書き出します。
 その場合は警告 1 件（`exitCode` 3 / `pdf: null` / `pdfFailed: true`）として返ります。
 
-**`setup` が前提になるツール**
+**`runtime_setup` が前提になるツール**
 
-- 実行時依存（`setup` が取得する永続層）が要るのは `slide_create` / `slide_convert` / `slide_sync` の 3 件
+- 実行時依存（`runtime_setup` が取得する永続層）が要るのは `slide_create` / `slide_convert` / `slide_sync` の 3 件
 - Chromium が要るのは `slide_convert`、`drawio_export`（`print_hash: true` なら不要）、`drawio_create`（PNG 出力時のみ）

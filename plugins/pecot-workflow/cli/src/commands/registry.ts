@@ -3,6 +3,7 @@
 import { BOARD_COMMANDS } from './board.js'
 import { BRANCH_COMMANDS } from './branch.js'
 import type { CommandDefinition } from './command-definition.js'
+import { registerCommandHints } from './command-hint.js'
 import { ISSUE_COMMANDS } from './issue.js'
 import { PR_COMMANDS } from './pr.js'
 import { PROJECT_COMMANDS } from './project.js'
@@ -26,6 +27,8 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...WORKTREE_COMMANDS,
   ...BRANCH_COMMANDS,
 ]
+
+registerCommandHints(COMMANDS)
 
 export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {
   return commands.find(command => command.path.join(' ') === path.join(' '))

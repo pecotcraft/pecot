@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: worktree config not found\n  run: pecot worktree init -D <directory>\n",
+  "stderr": "error: worktree config not found\n  run: pecot worktree init --directory <directory>\n",
   "exitCode": 1,
   "requests": [],
   "files": {

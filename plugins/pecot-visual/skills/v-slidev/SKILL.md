@@ -18,8 +18,8 @@ PR で対応します）。既存 talk-dir のテーマの版上げと移行に�
 
 - パス引数（`project_dir` / `dir` / `input_path`）はすべて絶対パスで渡す。相対パスは実行前に拒否される。
 - `slide_create` / `slide_convert` / `slide_sync` / `slide_dev` は実行時依存を必要とする。未取得の環境では
-  `setup` ツールを実行するよう案内する応答が返るので、`pecot-visual` サーバの `setup` を呼んでから再実行する。
-- `slide_convert` は Playwright Chromium も必要とする。未取得なら同じく `setup` の案内が返る（約 120MB のダウンロード）。
+  `runtime_setup` ツールを実行するよう案内する応答が返るので、`pecot-visual` サーバの `runtime_setup` を呼んでから再実行する。
+- `slide_convert` は Playwright Chromium も必要とする。未取得なら同じく `runtime_setup` の案内が返る（約 120MB のダウンロード）。
 - `<talk-dir>/node_modules` は `slide_create` 時に項目ごとの symlink を持つ実ディレクトリとして作られる。
 
 ## 既存 talk-dir を同期する

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者の引数で決まる */
-// issue create。--prepare・ファイル・-m の 3 つの形と、ファイルの一括投稿の前提を確かめる --plan がある。
+// issue create。--prepare・ファイル・-m・--freeform の 4 つの形があり、どの形も --dry-run で予行できる。
 import { existsSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -20,8 +20,8 @@ import type { IssueFrontmatter } from '../domain/frontmatter.js'
 import { findBatchDuplicate, planOrders } from '../domain/issue-order.js'
 import type { OrderRequest } from '../domain/issue-order.js'
 import { upsertWaitsForMerge } from '../domain/prerequisites.js'
-import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING } from '../domain/state.js'
-import { compareStrings, pythonStrip, pythonStringRepr } from '../domain/python-format.js'
+import { FLAG_ISSUE_CREATE_SLASH_PENDING, FLAG_ISSUE_PENDING, FLAG_PECOT_QUICK_MODE } from '../domain/state.js'
+import { compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
 import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
 import { describeReadiness, displayReference, hasStarted } from '../domain/readiness.js'
@@ -31,11 +31,13 @@ import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/er
 import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { OutputPathReservationError, normalizePath, outputDirectory, resolveRealPath, withReservedOutputPath } from '../infra/paths.js'
-import { consumeFlag } from '../infra/state-store.js'
+import { consumeFlag, touchFlag } from '../infra/state-store.js'
 import { templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
+import type { CommandHint } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { applyBoardMove } from './issue-board.js'
@@ -44,6 +46,7 @@ import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
 import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
 import {
   addToBoardOrWarn,
+  BACKLOG_TYPES,
   buildIssueTitle,
   clientForIssueCreate,
   createIssueOrExit,
@@ -72,6 +75,8 @@ import { USAGE_EXIT_CODE } from './usage-error.js'
 
 const FILES_SCHEMA = z.array(z.string()).optional().describe('Path of a Markdown file with frontmatter (several for a batch post)')
 const LABEL_SCHEMA = z.array(z.string()).optional().describe('Label (can be given several times)')
+const CREATE_PATH = ['issue', 'create']
+
 const TEMPLATE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker', 'task-implement']).default('task').describe('Template type (with --prepare: task/bug/epic/tracker/task-implement)')
 
 // 一括投稿の先行 Issue 番号の置き場所。key は先行ファイルの --suffix 由来か、ファイルの stem
@@ -124,13 +129,17 @@ interface Posting {
   真なら、前提をすべて付けた後に判定を読み、Blocked の列を直す。既存の Issue を前提に持ち、Blocked で作った Issue だけが真
   */
   readonly settleColumn: boolean
+  /**
+  真なら、Issue を作った直後に issue-create-slash-pending を消す（後の例外でフラグを残さない）
+  */
+  readonly consumeSlashPending?: boolean | undefined
 }
 
 /**
 1 回の投稿の間の記録。failures は付け直すコマンド
 */
 interface PostingSession {
-  readonly failures: string[]
+  readonly failures: CommandHint[]
   readonly cache: ReadinessCache
 }
 
@@ -144,16 +153,12 @@ interface PostedIssue {
   列を Blocked から Ready へ動かしたか
   */
   readonly isMovedToReady: boolean
+  readonly isOnBoard: boolean
 }
 
-function reAddCommand(issue: IssueReference, prerequisite: Readonly<PostPrerequisite>): string {
-  const base = `pecot issue block ${issueReferenceToCliReference(issue)} --by ${issueReferenceToCliReference(prerequisite.reference)}`
-  return prerequisite.wait === 'merge' ? `${base} --wait merge --reason ${shellQuote(prerequisite.reason ?? '')}` : base
-}
-
-// シェルに展開されないよう、単一引用符で包む
-function shellQuote(value: string): string {
-  return `'${value.replaceAll('\'', '\'\\\'\'')}'`
+function reAddCommand(issue: IssueReference, prerequisite: Readonly<PostPrerequisite>): CommandHint {
+  const base = { issue_ref: issueReferenceToCliReference(issue), by: issueReferenceToCliReference(prerequisite.reference) }
+  return commandHint(['issue', 'block'], prerequisite.wait === 'merge' ? { ...base, wait: 'merge', reason: prerequisite.reason ?? '' } : base)
 }
 
 // 前提を 1 件ずつ付ける。失敗は warning にして続け、付け直すコマンドを session に積む。付けた数を返す
@@ -234,6 +239,7 @@ async function postIssue(output: Output, client: GitHubClient, config: ProjectCo
   const target = `Issue ${issuePath(owner, repository, number)}`
   const reference = createIssueReference(createRepositoryReference(owner, repository), number)
   consumeFlag(FLAG_ISSUE_PENDING)
+  if (posting.consumeSlashPending === true) consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
 
   // 応答に node_id が無いときだけ、ボードへの追加の結果から取るので、先にボードへ足す
   let added: BoardItem | undefined
@@ -260,7 +266,14 @@ async function postIssue(output: Output, client: GitHubClient, config: ProjectCo
     await linkToParentEpic(output, client, target, posting.parentReference, knownNodeId ?? (() => client.getIssueNodeId(owner, repository, number)), added === undefined ? undefined : url)
   }
   if (added !== undefined) output.data(url)
-  return { number, nodeId: knownNodeId, isMovedToReady }
+  return { number, nodeId: knownNodeId, isMovedToReady, isOnBoard: added !== undefined }
+}
+
+/**
+予行の行。番号の要るボード・欄・親 Epic の書き込みは出さない
+*/
+function planIssue(output: Output, owner: string, repository: string, title: string): void {
+  output.planned({ verb: 'create', target: `Issue in ${owner}/${repository}: ${title}` })
 }
 
 function parentReferenceOf(raw: number | string | undefined, config: ProjectConfig, owner: string, repository: string): IssueReference | undefined {
@@ -269,15 +282,19 @@ function parentReferenceOf(raw: number | string | undefined, config: ProjectConf
 
 // --- --prepare ---
 
-function prepareTemplate(output: Output, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined): void {
+function prepareTemplate(output: Output, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined, isDryRun: boolean): void {
   if (template !== 'epic' && repository === undefined) {
-    stopWith(output, '--repo owner/repo is required with --template task|bug|tracker|task-implement', USAGE_EXIT_CODE)
+    stopWith(output, hinted`${inputHint(CREATE_PATH, 'repo', placeholder('owner/repo'))} is required with ${inputHint(CREATE_PATH, 'prepare')} unless ${inputHint(CREATE_PATH, 'template', 'epic')}`, USAGE_EXIT_CODE)
   }
   if (repository !== undefined) validateRepositoryShape(output, repository)
 
   const source = templateFile('issue', template)
   if (!existsSync(source)) {
     stopWith(output, `template not found: ${source}`)
+  }
+  if (isDryRun) {
+    output.planned({ verb: 'create', target: `Issue template ${template} in ${outputDirectory()}` })
+    return
   }
   let content = readTextFile(source)
   // 置き換えの文字列に `$` があっても、そのまま入れる
@@ -695,7 +712,7 @@ async function postFiles(output: Output, context: Readonly<BatchContext>): Promi
     }
   }
   finally {
-    if (session.failures.length > 0) output.error(`could not add some blocked-by; add them again with:\n${session.failures.join('\n')}`)
+    if (session.failures.length > 0) output.error(joinHinted(['could not add some blocked-by; add them again with:', ...session.failures.map(hint => [hint])]))
   }
   consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
   if (session.failures.length > 0) throw new CommandExit(1)
@@ -708,9 +725,9 @@ function isBatchReference(reference: IssueReference, posted: readonly (PostedFil
   return posted.some(entry => entry !== undefined && issueReferenceKey(entry.reference) === issueReferenceKey(reference))
 }
 
-async function createFromFiles(output: Output, files: readonly string[], isPlan: boolean): Promise<void> {
+async function createFromFiles(output: Output, files: readonly string[], isDryRun: boolean): Promise<void> {
   const context = await prepareBatch(output, files)
-  if (isPlan) {
+  if (isDryRun) {
     printPlan(output, context)
     return
   }
@@ -733,7 +750,7 @@ interface DirectOptions {
 }
 
 // config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
-async function createDirect(output: Output, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined): Promise<void> {
+async function createDirect(output: Output, options: Readonly<DirectOptions>, loadedConfig: ProjectConfig | undefined, isDryRun: boolean): Promise<void> {
   const { issueType } = options
   // status は設定の取得や作成より前に確かめる
   let status: string
@@ -753,6 +770,10 @@ async function createDirect(output: Output, options: Readonly<DirectOptions>, lo
   const title = buildIssueTitle(issueType, options.title, { parentEpic: parentReference?.number, order: options.order })
   validateIssueTemplate(output, issueType, options.message)
   const client = await clientForIssueCreate(output, config, owner, repository, options.repository, parentReference, options.order)
+  if (isDryRun) {
+    planIssue(output, owner, repository, title)
+    return
+  }
 
   const fields: IssueField[] = [{ fieldName: 'workflow', optionName: status, label: `status ${status}` }]
   if (options.priority !== undefined && options.priority !== '') fields.push({ fieldName: 'priority', optionName: options.priority, label: `priority ${options.priority}` })
@@ -785,7 +806,7 @@ interface MessageTarget {
 function messageModeTarget(output: Output, issueType: IssueType, repository: string | undefined): MessageTarget {
   if (issueType !== 'epic') {
     if (repository === undefined || repository === '') {
-      stopWith(output, '-r (repository) is required with -m')
+      stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputNameHint(CREATE_PATH, 'message')}`)
     }
     return { repository, config: undefined }
   }
@@ -795,10 +816,90 @@ function messageModeTarget(output: Output, issueType: IssueType, repository: str
   return { repository: target.repository, config }
 }
 
-const USAGE_TEXT = 'missing arguments\n'
-  + 'direct posting: pecot issue create -t "TITLE" -r owner/repo -m "BODY"\n'
-  + 'prepare a template: pecot issue create --prepare --template task --repo owner/repo\n'
-  + 'from a file: pecot issue create <path>'
+const USAGE_TEXT = hinted`missing arguments
+direct posting: ${commandHint(CREATE_PATH, { title: placeholder('TITLE'), repo: 'owner/repo', message: placeholder('BODY') })}
+free format: ${commandHint(CREATE_PATH, { freeform: true, repo: 'owner/repo', message: placeholder('BODY') })}
+prepare a template: ${commandHint(CREATE_PATH, { prepare: true, template: 'task', repo: 'owner/repo' })}
+from a file: ${commandHint(CREATE_PATH, { files: placeholder('path') })}`
+
+// --- --freeform ---
+
+// Python の re の `\s` と同じ集合。JS の `\s` と違い、U+001C〜U+001F を含む。U+FEFF は含まない
+// eslint-disable-next-line no-control-regex -- Python の空白に含まれる制御文字
+const PYTHON_WHITESPACE_RUN = /[\p{White_Space}\u{1C}\u{1D}\u{1E}\u{1F}]+/gu
+
+// テンプレートの検証を飛ばす freeform でも、起票規約への参照を本文の末尾に残す
+const FREEFORM_FOOTER = '<!-- issue create の freeform で起票（テンプレ検証スキップ）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->'
+
+const FREEFORM_TITLE_LENGTH = 50
+
+/**
+freeform の Issue の欄。priority の既定は medium、size の既定は s（Backlog に置く型には既定を付けない）
+*/
+function freeformFields(issueType: IssueType, status: string, priority: string | undefined, size: string | undefined): readonly IssueField[] {
+  const chosenPriority = priority === undefined || priority === '' ? 'medium' : priority
+  const chosenSize = size === undefined || size === '' ? (BACKLOG_TYPES.has(issueType) ? undefined : 's') : size
+  return [
+    { fieldName: 'workflow', optionName: status, label: `status ${status}` },
+    { fieldName: 'priority', optionName: chosenPriority, label: `priority ${chosenPriority}` },
+    ...chosenSize === undefined ? [] : [{ fieldName: 'size', optionName: chosenSize, label: `size ${chosenSize}` }],
+  ]
+}
+
+interface FreeformInput {
+  readonly message?: string | undefined
+  readonly repo?: string | undefined
+  readonly type: IssueType
+  readonly status?: string | undefined
+  readonly priority?: string | undefined
+  readonly size?: string | undefined
+  readonly parent_epic?: string | undefined
+  readonly order?: number | undefined
+  readonly label?: readonly string[] | undefined
+}
+
+// テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは先頭 50 文字の空白を 1 つにまとめたもの
+async function createFreeform(output: Output, input: Readonly<FreeformInput>, isDryRun: boolean): Promise<void> {
+  const { message, repo, type: issueType } = input
+  if (message === undefined || pythonStrip(message) === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'message')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, USAGE_EXIT_CODE)
+  if (repo === undefined || repo === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, USAGE_EXIT_CODE)
+  let status: string
+  if (input.status === undefined) {
+    // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
+    status = TYPE_DEFAULT_STATUS[issueType]
+  }
+  else {
+    validateStatusForType(output, issueType, input.status)
+    status = input.status
+  }
+  const [owner, repository] = validateRepositoryShape(output, repo)
+  const config = requireActiveConfigPlain(output)
+  const parentReference = parentReferenceOf(normalizeParentEpicCli(input.parent_epic), config, owner, repository)
+  const cleaned = pythonStrip(truncateCodePoints(message, FREEFORM_TITLE_LENGTH).replaceAll(PYTHON_WHITESPACE_RUN, ' '))
+  const title = buildIssueTitle(issueType, cleaned, { parentEpic: parentReference?.number, order: input.order })
+  const client = await clientForIssueCreate(output, config, owner, repository, repo, parentReference, input.order)
+  if (parentReference !== undefined && issueType === 'epic') output.warning('giving a parent Epic to an Epic is not recommended')
+  if (isDryRun) {
+    planIssue(output, owner, repository, title)
+    return
+  }
+
+  const posted = await postIssue(output, client, config, { failures: [], cache: createReadinessCache() }, {
+    owner,
+    repository,
+    title,
+    body: `${pythonRightStrip(message)}\n\n${FREEFORM_FOOTER}`,
+    labels: input.label !== undefined && input.label.length > 0 ? input.label : undefined,
+    source: undefined,
+    useResponseNodeId: true,
+    fields: freeformFields(issueType, status, input.priority, input.size),
+    parentReference,
+    prerequisites: [],
+    settleColumn: false,
+    consumeSlashPending: true,
+  })
+  if (posted.isOnBoard && !BACKLOG_TYPES.has(issueType)) touchFlag(FLAG_PECOT_QUICK_MODE)
+}
 
 interface MessageInput {
   readonly title?: string | undefined
@@ -813,9 +914,9 @@ interface MessageInput {
 }
 
 // -m の直接投稿。入力の確認から作成まで
-async function createFromMessage(output: Output, input: Readonly<MessageInput>, message: string): Promise<void> {
+async function createFromMessage(output: Output, input: Readonly<MessageInput>, message: string, isDryRun: boolean): Promise<void> {
   if (input.title === undefined || input.title === '') {
-    stopWith(output, '-t (title) is required with -m')
+    stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'title')} is required with ${inputNameHint(CREATE_PATH, 'message')}`)
   }
   const target = messageModeTarget(output, input.type, input.repo)
   await createDirect(output, {
@@ -829,8 +930,8 @@ async function createFromMessage(output: Output, input: Readonly<MessageInput>, 
     parentEpic: input.parent_epic,
     labels: input.label,
     order: input.order,
-  }, target.config)
-  consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
+  }, target.config, isDryRun)
+  if (!isDryRun) consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
 }
 
 const ISSUE_CREATE = defineCommand({
@@ -850,34 +951,36 @@ const ISSUE_CREATE = defineCommand({
     parent_epic: z.string().optional().describe(PARENT_EPIC_DESCRIPTION),
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
-    plan: z.boolean().default(false).describe('Show the progression table and stackable chains of the files without posting'),
+    dry_run: z.boolean().default(false).describe('Show what would be created without writing anything (with files: the progression table and stackable chains)'),
+    freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters; priority medium and size s unless given)'),
     prepare: z.boolean().default(false).describe('Copy a template to the work directory'),
     template: TEMPLATE_SCHEMA,
     suffix: z.string().optional().describe('Suffix of the output file name (only with --prepare)'),
   }),
   positional: ['files'],
-  shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l', prepare: '-p', suffix: '-s' },
+  shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l', prepare: '-p', suffix: '-s', dry_run: '-n' },
   interactive: false,
   run: async (input, io: CommandIo) => {
-    const output = createOutput(false, io)
+    const output = createOutput(input.dry_run, io)
+    const hasFiles = input.files !== undefined && input.files.length > 0
     return await runWithExit(async () => {
-      if (input.plan && (input.prepare || input.message !== undefined)) {
-        stopWith(output, '--plan cannot be used with --prepare or -m', USAGE_EXIT_CODE)
+      if ((hasFiles || input.prepare || input.title !== undefined) && input.freeform) {
+        stopWith(output, hinted`${inputHint(CREATE_PATH, 'freeform')} cannot be used with ${inputHint(CREATE_PATH, 'prepare')}, ${inputNameHint(CREATE_PATH, 'files')} or ${inputNameHint(CREATE_PATH, 'title')}`, USAGE_EXIT_CODE)
       }
-      if (input.plan && (input.files === undefined || input.files.length === 0)) {
-        stopWith(output, '--plan needs at least one file', USAGE_EXIT_CODE)
+      if (input.freeform) {
+        await createFreeform(output, input, input.dry_run)
       }
-      if (input.prepare) {
-        prepareTemplate(output, input.template, input.repo, input.suffix)
+      else if (input.prepare) {
+        prepareTemplate(output, input.template, input.repo, input.suffix, input.dry_run)
       }
-      else if (input.files !== undefined && input.files.length > 0) {
-        await createFromFiles(output, input.files, input.plan)
+      else if (hasFiles) {
+        await createFromFiles(output, input.files ?? [], input.dry_run)
       }
       else if (input.message === undefined) {
         stopWith(output, USAGE_TEXT)
       }
       else {
-        await createFromMessage(output, input, input.message)
+        await createFromMessage(output, input, input.message, input.dry_run)
       }
     })
   },

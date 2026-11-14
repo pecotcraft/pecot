@@ -18,6 +18,7 @@ import { hasFlag, readBaseRecord, readFlag } from '../infra/state-store.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { FAILURE_EXIT_CODE } from './failure.js'
+import { commandHint, hinted, placeholder } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
@@ -27,7 +28,7 @@ import type { Output } from './output.js'
 import { SESSION_FINISH_COMMANDS } from './session-finish.js'
 import { SESSION_START_COMMANDS } from './session-start.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
-import { recordWorkTarget } from './work-target.js'
+import { planWorkTarget, recordWorkTarget } from './work-target.js'
 
 const ALL_FLAGS: readonly string[] = [FLAG_PECOT_ACTIVE]
 
@@ -177,7 +178,7 @@ interface RestoreTarget {
   readonly number: number
 }
 
-// --issue が無いときの、ブランチ名と remote からの推定。決められなければ error を出して終了コード 1
+// issue_ref が無いときの、ブランチ名と remote からの推定。決められなければ error を出して終了コード 1
 function inferTarget(directory: string, output: Output): RestoreTarget {
   const branch = gitCurrentBranch(directory)
   if (branch === undefined) {
@@ -185,14 +186,14 @@ function inferTarget(directory: string, output: Output): RestoreTarget {
   }
   const number = extractIssueNumberFromBranch(branch)
   if (number === undefined) {
-    return stopWith(output, `cannot infer the Issue number from the branch name: ${branch}\nrun: pecot session restore --issue <owner/repo/N>`, FAILURE_EXIT_CODE)
+    return stopWith(output, hinted`cannot infer the Issue number from the branch name: ${branch}\nrun: ${commandHint(['session', 'restore'], { issue_ref: placeholder('owner/repo/N') })}`, FAILURE_EXIT_CODE)
   }
   const origin = primaryRemoteRepository(directory)
   const message = 'cannot read the repository information'
   return origin === undefined ? stopWith(output, message, FAILURE_EXIT_CODE) : { owner: origin.owner, repository: origin.repository, number }
 }
 
-// --issue の参照を分ける。形が誤っていれば error を出して終了コード 2
+// issue_ref の参照を分ける。形が誤っていれば error を出して終了コード 2
 function parseTarget(issue: string, output: Output): RestoreTarget {
   try {
     const reference = parseIssueReference(issue)
@@ -208,15 +209,16 @@ const SESSION_RESTORE = defineCommand({
   path: ['session', 'restore'],
   description: 'Restore lost session flags (such as .pecot-active) from the branch information',
   input: z.object({
-    issue: z.string().optional().describe('Issue reference (owner/repo/number)'),
+    issue_ref: z.string().optional().describe('Issue reference (owner/repo/number)'),
     directory: directorySchema,
+    dry_run: z.boolean().default(false).describe('Show what would be recorded without writing anything'),
   }),
   positional: [],
-  shortFlags: { issue: '-i', directory: '-D' },
+  shortFlags: { issue_ref: '-i', directory: '-D', dry_run: '-n' },
   interactive: false,
   run: async (input, io: CommandIo) => {
-    const output = createOutput(false, io)
-    const target = input.issue === undefined ? inferTarget(input.directory, output) : parseTarget(input.issue, output)
+    const output = createOutput(input.dry_run, io)
+    const target = input.issue_ref === undefined ? inferTarget(input.directory, output) : parseTarget(input.issue_ref, output)
     let title: string
     try {
       title = await fetchIssueTitle(target.owner, target.repository, target.number, output)
@@ -225,7 +227,8 @@ const SESSION_RESTORE = defineCommand({
       if (!(error instanceof ConfigError)) throw error
       return stopWith(output, error.message, FAILURE_EXIT_CODE)
     }
-    recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
+    if (input.dry_run) planWorkTarget(output, target.owner, target.repository, target.number)
+    else recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })
     return 0
   },
 })

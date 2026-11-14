@@ -45,7 +45,7 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、`pecot` CLI の 36 個のコマンドを MCP ツールとして公開します。
+MCP サーバ `pecot-workflow` が、`pecot` CLI の 35 個のコマンドを MCP ツールとして公開します。
 ツール名は、`<対象> <動詞>` の空白を `_` に置き換えた形です（`issue create` は `issue_create`、`session start` は `session_start`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
 GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。
@@ -99,7 +99,7 @@ Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 
 | `dependabot sync` | `tracker sync dependabot` | `tracker_sync` |
 | `security sync` | `tracker sync security` | `tracker_sync` |
 
-残りのコマンドの名前は変わりません。ツールは 36 個になります。
+残りのコマンドの名前は変わりません。ツールは、次の `issue quick` の廃止と合わせて 35 個になります。
 設定のキー `aggregation_repo` と、入力名・フラグの `delete_branch`・`--delete-branch` も変わりません。
 
 - 引数が増えるもの
@@ -115,6 +115,73 @@ Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 
   - `pecot` を呼ぶ自分のスクリプトは、表のとおり古い名前を新しい名前に書き換える
   - 古い名前を打つと、実行せずに新しい名前を案内して終了コード 2 で止まる（例: `'pr cleanup' was renamed to 'session finish'.`）
 - スキル・hook・雛形は、同じ版で新しい名前に変わる。直すものは無い
+
+### `issue quick` の廃止
+
+`issue quick`（ツールは `issue_quick`）はなくなり、Issue の作成と作業の開始を、次の 2 回の呼び出しに分けました。
+古い名前を打つと、実行せずに `issue create --freeform` を案内して終了コード 2 で止まります。
+
+| 順 | 古い | 新しい |
+|:---|:---|:---|
+| 1 | `issue quick -r <owner/repo> -m <メッセージ>`（Issue の作成とブランチの作成） | `issue create --freeform -r <owner/repo> -m <メッセージ>`（MCP は `issue_create` を `freeform: true`・`repo`・`message` で呼ぶ） |
+| 2 | （ブランチは 1 で作られた） | `session start <Issue> <ブランチ名>`（MCP は `session_start` を `issue_ref`・`branch` で呼ぶ） |
+
+- `issue create --freeform` は、`--message` と `--repo` が要る。`--prepare`・ファイル・`--title` とは組めない。Issue を作るだけで、ブランチの作成と作業対象の記録はしない
+- ブランチ名は、時刻の形（`feat/<時刻>/<N>`）ではなく、呼ぶ側が決めて `session start` へ渡す。ブランチが要らないときは `session start` を呼ばない（`no_branch` は無くなった）
+- ブランチの作成に失敗すると、warning ではなく `session start` の終了コード 1 になる
+- `session start` は、作業ディレクトリのリポが Issue のリポと違うとき、`.pecot-active` に別の OPEN の Issue が残っているときに止まる。w-quick は、Issue を作る前に `session_show` で確かめる
+
+### 入力名の変更
+
+同じものを指す入力の名前をそろえました。Issue は `issue_ref`、リポは `repo`、操作するブランチは `branch` です。
+次の 6 個は入力名が変わり、古い入力名は使えません。
+
+| コマンド | 古い入力 | 新しい入力 | CLI |
+|:---|:---|:---|:---|
+| `issue comment` | `issue` | `issue_ref` | `--issue` → `--issue-ref` |
+| `session restore` | `issue` | `issue_ref` | `--issue` → `--issue-ref` |
+| `branch delete` | `repo_ref` | `repo` | 位置引数のまま（打ち方は変わらない） |
+| `project link` | `owner_repo` | `repo` | 位置引数のまま（打ち方は変わらない） |
+| `session start` | `branch_name` | `branch` | 位置引数のまま（打ち方は変わらない） |
+| `issue create` | `plan` | `dry_run` | `--plan` → `--dry-run` |
+
+- 古い入力名は、実行せずに新しい名前を案内して終了コード 2 で止まる
+  - CLI: `No such option: --issue ('--issue' was renamed to '--issue-ref')`
+  - MCP: `invalid input: unknown key 'issue' ('issue' was renamed to 'issue_ref')`
+- `branch delete` は、グローバルの `--repo` を使わない。位置引数の `repo` だけを見る
+- `base`・`head`（PR の両端の役割）と `delete_branch`（真偽値）は変わらない
+- 許可の設定に入力名は書かないので、直すものは無い。入力名を書いた自分のスクリプトと、MCP の呼び出しを書き換える
+
+### 読むコマンドが書き換えなくなったこと
+
+- `board show` は、Status が Archived の古い項目を消さなくなった。整理は `board sync` が行う
+  - `board sync` を呼んだとき（手で呼んだときと、board sync のワークフロー）にだけ、Archived の古い項目を消す。`--dry-run` では `dry-run: would delete N archived items` の行だけ出す
+  - board sync のワークフローを置いていないリポは、`board sync` を手で呼ぶまで Archived が整理されない
+- `release check` は、`git fetch` をしなくなった。GitHub の API（compare）で、リリースと開発ブランチの差分の commit を数える
+
+### `--dry-run` の追加
+
+書き込む 15 個のコマンドに、何も書かずに予定だけを出す `--dry-run`（短いオプションは `-n`。MCP は `dry_run: true`）が付きました。
+`issue create` は、`--plan` が `--dry-run` になりました。
+
+| グループ | コマンド |
+|:---|:---|
+| `board` | `add`・`move` |
+| `issue` | `comment`・`create`・`reopen` |
+| `project` | `activate`・`create`・`init`・`link`・`set`・`unset` |
+| `session` | `restore`・`start` |
+| `worktree` | `init`・`remove` |
+
+入力の検証と読み取りは予行でも行い、書き込みの直前で `dry-run: would ...` の行を出して終わります。
+
+### 案内の形
+
+次の操作の案内は、CLI と MCP のそれぞれの形で出ます。
+
+- CLI: `pecot project link o/r --develop-branch develop`
+- MCP: `project_link with repo: "o/r", develop_branch: "develop"`
+
+MCP で呼ぶエージェントは、案内をそのままツールの呼び出しに使えます。
 
 ## 動作要件
 

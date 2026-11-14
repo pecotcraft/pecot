@@ -1,8 +1,8 @@
-# Issue の作成が 500 で失敗する。
-id: issue-quick-5xx
+# 設定に develop_branch の無いリポで止まり、project link で設定する案内を出す。
+id: session-start-state-no-develop-branch
 command:
-  path: [issue, quick]
-  args: [-m, 一覧の状態列を直す, -r, acme/demo]
+  path: [session, start]
+  args: [acme/demo/7, feat]
 setup:
   repo:
     files:
@@ -49,8 +49,7 @@ setup:
           "repositories": [
             {
               "owner": "acme",
-              "name": "demo",
-              "develop_branch": "main"
+              "name": "demo"
             }
           ]
         }
@@ -61,6 +60,7 @@ setup:
 github:
   - match:
       operation: GetLinkedRepositoriesUser
+      variables: {owner: acme, projectNumber: 1}
     respond:
       status: 200
       body:
@@ -71,9 +71,9 @@ github:
                 nodes:
                   - {name: demo, owner: {login: acme}}
   - match:
-      method: POST
-      path: /repos/acme/demo/issues
+      operation: GetIssuePrerequisites
+      variables: {owner: acme, repo: demo, number: 7}
     respond:
-      status: 500
+      status: 200
       body:
-        message: Server Error
+        data: {"repository":{"issue":{"id":"I_demo_7", "number":7, "state":"OPEN", "title":"課題7", "repository":{"owner":{"login":"acme"}, "name":"demo"}, "issueType":{"name":"Task"}, "subIssues":{"totalCount":0}, "projectItems":{"totalCount":0, "nodes":[]}, "linkedBranches":{"totalCount":0, "nodes":[]}, "closedByPullRequestsReferences":{"totalCount":0, "nodes":[]}, "timelineItems":{"totalCount":0, "nodes":[]}, "body":"本文", "parent":null, "blockedBy":{"totalCount":0, "nodes":[]}}}}

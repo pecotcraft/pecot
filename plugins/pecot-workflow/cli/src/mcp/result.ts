@@ -32,6 +32,7 @@ export function collectIo(): CollectedIo {
       stderr: (text) => {
         error.push(text)
       },
+      surface: 'mcp',
     },
     stdout: () => out.join(''),
     stderr: () => error.join(''),

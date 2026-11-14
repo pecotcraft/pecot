@@ -9,6 +9,7 @@ import { z } from 'zod'
 
 import { aggregationRepositoryReference, isRepositoryInProject } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
+import { formatHinted } from '../domain/command-hint.js'
 import { BaseError } from '../domain/errors.js'
 import { CommandExit } from './command-definition.js'
 import type { IssueFrontmatter } from '../domain/frontmatter.js'
@@ -35,12 +36,17 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { requireNumber, requireString } from '../infra/github/payload.js'
 import { readTemplateSections, templateFile } from '../infra/template-store.js'
+import { commandHint, hinted, inputHint, inputNameHint } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { addIssueToBoard, createIssue, setIssueField } from './issue-board.js'
 import type { BoardItem } from './issue-board.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE, UsageError } from './usage-error.js'
+
+// Epic を作るコマンド。作成先の案内に使う
+const EPIC_CREATE_PATH = ['issue', 'create']
 
 export type IssueType = IssueFrontmatter['type']
 
@@ -50,7 +56,7 @@ issue comment のテンプレ検証失敗の終了コード。通信失敗・設
 export const COMMENT_VALIDATION_EXIT_CODE = 3
 
 /**
-Issue 種別の入力。issue create と issue quick が共有する
+Issue 種別の入力。issue create が使う
 */
 export const ISSUE_TYPE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)')
 
@@ -76,7 +82,7 @@ const TYPE_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
 export const TYPE_DEFAULT_STATUS: Readonly<Record<IssueType, string>> = { epic: 'backlog', tracker: 'backlog', task: 'ready', bug: 'ready' }
 
 /**
-Backlog に置く型（quick の status / size / quick フラグの扱いが Epic と同じ）
+Backlog に置く型（freeform の size と quick-mode フラグの扱いが Epic と同じ）
 */
 export const BACKLOG_TYPES: ReadonlySet<string> = new Set(['epic', 'tracker'])
 
@@ -85,7 +91,15 @@ export const BACKLOG_TYPES: ReadonlySet<string> = new Set(['epic', 'tracker'])
 /**
 引数の値が不正。Python の typer.BadParameter。呼ぶ側が受けない場合は、runWithExit が使い方の誤り（終了コード 2）にする
 */
-class BadParameterError extends BaseError {}
+class BadParameterError extends BaseError {
+  readonly text: string | HintedText
+
+  // message は CLI の形。text は出し先の形で描き直すために持つ
+  constructor(text: string | HintedText) {
+    super(formatHinted(text, 'cli'))
+    this.text = text
+  }
+}
 
 /**
 run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
@@ -141,7 +155,7 @@ function parseIssueReferenceFromContext(repository: string | undefined, raw: str
     return { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) throw new BadParameterError(error.message)
+    if (error instanceof ReferenceParseError) throw new BadParameterError(error.hintedText ?? error.message)
     throw error
   }
 }
@@ -155,7 +169,7 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
   }
   catch (error: unknown) {
     if (!(error instanceof BadParameterError)) throw error
-    return stopWith(output, error.message, USAGE_EXIT_CODE)
+    return stopWith(output, error.text, USAGE_EXIT_CODE)
   }
 }
 
@@ -231,7 +245,7 @@ export function resolveEpicTargetRepository(output: Output, repository: string |
   const aggregation = config.aggregation_repo
   if (explicit === undefined) {
     if (aggregation === undefined) {
-      stopWith(output, 'cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass --repo', USAGE_EXIT_CODE)
+      stopWith(output, hinted`cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass ${inputNameHint(EPIC_CREATE_PATH, 'repo')}`, USAGE_EXIT_CODE)
     }
     return { repository: aggregation, needsWarning: false }
   }
@@ -242,7 +256,7 @@ export function resolveEpicTargetRepository(output: Output, repository: string |
 Epic の作成先が aggregation_repo と違うときの警告
 */
 export function warnEpicRepositoryException(output: Output, resolvedRepository: string, config: ProjectConfig): void {
-  output.warning(`--repo ${resolvedRepository} differs from aggregation_repo (${String(config.aggregation_repo)})\ncontinuing as an exception for an Epic in an implementation repo`)
+  output.warning(hinted`${inputHint(EPIC_CREATE_PATH, 'repo', resolvedRepository)} differs from aggregation_repo (${String(config.aggregation_repo)})\ncontinuing as an exception for an Epic in an implementation repo`)
 }
 
 export interface IssueTitleOptions {
@@ -468,9 +482,9 @@ export async function connectToProject(output: Output, config: ProjectConfig, ow
 /**
 ボードに無い status の error の文。blocked は後から足せる option なので、足し方の hint を添える
 */
-export function notConfiguredMessage(status: string): string {
+export function notConfiguredMessage(status: string): string | HintedText {
   const base = `status '${status}' is not configured in the project`
-  return status === 'blocked' ? `${base}\nhint: run pecot project init to add the Blocked option to the board` : base
+  return status === 'blocked' ? hinted`${base}\nhint: run ${commandHint(['project', 'init'])} to add the Blocked option to the board` : base
 }
 
 /**

@@ -2,6 +2,29 @@
   "format": 1,
   "plugin": "pecot-workflow",
   "prefix": "PW",
+  "names": {
+    "separator": " ",
+    "positions": [
+      [
+        {
+          "word": "alpha",
+          "meaning": "見本のグループ"
+        }
+      ],
+      [
+        {
+          "word": "show",
+          "meaning": "見本の読む動詞",
+          "read_only": true
+        },
+        {
+          "word": "add",
+          "meaning": "見本の書く動詞"
+        }
+      ]
+    ],
+    "rest": false
+  },
   "entries": [
     {
       "id": "PW-ALPHA",

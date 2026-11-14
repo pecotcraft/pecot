@@ -135,7 +135,7 @@ code-scanning open alerts: #28 #29
 
 #### 4.3 差分サマリーの生成
 
-Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。`issue_comment` を `prepare: true`・`template: "merge-diff"`・`issue: "<owner>/<repo>/<epic番号>"` で呼ぶ。
+Issue本文の計画と実際の変更を比較し、テンプレ実体に従ってサマリーを生成する。`issue_comment` を `prepare: true`・`template: "merge-diff"`・`issue_ref: "<owner>/<repo>/<epic番号>"` で呼ぶ。
 
 - 出力されたファイル冒頭の `<!-- 読者:/書き方: -->` コメントに従い、必須見出しを維持したまま本文を埋める
 - 見出しレベル・記号・節構成はテンプレを基準とする。SKILL.md にはフォーマット例示を持たない
@@ -172,7 +172,7 @@ Issue本文の計画と実際の変更を比較し、テンプレ実体に従っ
 
 後続フェーズに影響する変更がある場合、テンプレ実体に従って影響コメントを生成・投稿する。
 
-1. `issue_comment` を `prepare: true`・`template: "precede-notify"`・`issue: "<owner>/<repo>/<後続issue番号>"` で呼ぶ
+1. `issue_comment` を `prepare: true`・`template: "precede-notify"`・`issue_ref: "<owner>/<repo>/<後続issue番号>"` で呼ぶ
 2. 出力された `.pecot/tmp/output/` 配下の md を編集する
 3. `issue_comment` を `file: "<編集後ファイル>"` で呼ぶ
 

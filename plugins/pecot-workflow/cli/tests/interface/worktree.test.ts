@@ -1043,7 +1043,7 @@ describe('worktree link', () => {
     rmSync(path.join(project.repository, '.pecot', 'config', 'worktree-config.json'))
     const result = await pecot(['worktree', 'link', '-D', worktree])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init -D <directory>\n')
+    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init --directory <directory>\n')
   })
 
   it('設定ファイルの形式が不正だと、error の行を標準エラーに出し、終了コード 1 で終わる', async (context) => {
@@ -1081,7 +1081,7 @@ describe('worktree link', () => {
     const result = await pecot(['worktree', 'link', '-D', outsideGit(), '--all'])
     expect(result.code).toBe(1)
     // メインの worktree が無いと設定ファイルも見つからないので、文は設定ファイルが無いときと同じ
-    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init -D <directory>\n')
+    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init --directory <directory>\n')
   })
 
   it('--repo が今の git の remote と食い違うと、何も変えず、終了コード 1 で終わる', async (context) => {
@@ -1238,6 +1238,16 @@ describe('worktree remove', () => {
     expect(result.stderr).toMatch(/^error: failed to remove the worktree: .*use --force/u)
     expect(existsSync(worktree)).toBe(true)
     expect(branches(repository)).toContain('wt1')
+  })
+
+  it('--force を付けずに変更のある worktree を削除しようとすると、git の文に続けて --force の案内の hint の行を出す', async (context) => {
+    await verifies(context, 'PW-WORKTREE-REMOVE-27')
+    const { repository } = createProject()
+    const worktree = await addWorktree()
+    writeFileSync(path.join(worktree, 'untracked.txt'), 'x')
+    const result = await pecot(['worktree', 'remove', 'wt1', '-D', repository])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/^error: failed to remove the worktree: fatal: '.+' contains modified or untracked files, use --force to delete it\n {2}hint: to remove it with its changes, pass --force\n$/u)
   })
 
   it('--repo が今の git の remote と食い違うと、何も削除せず、終了コード 1 で終わる', async (context) => {

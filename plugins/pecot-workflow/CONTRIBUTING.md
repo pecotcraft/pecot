@@ -99,12 +99,49 @@ artifact template が見つかったら本ルールに従って `plugins/pecot-w
   - `sync`: 判定や一覧に合わせて書き直す
   - `move`・`merge`: 列を移す・PR を取り込む
 - Issue
-  - `comment`・`reopen`・`block`・`unblock`・`quick`
+  - `comment`・`reopen`・`block`・`unblock`
 
 語彙に無い語を使うときは、先に `cli/src/commands/names.ts` の一覧に意味と一緒に足す。足さないと、テストが落ちる。
 
+`quick` は語彙から外した。Issue の作成と作業の開始を 1 つのコマンドが行う動詞は置かない。作成は `issue create`（`freeform`）、作業の開始は `session start` が行う。
+
+読む動詞（`list`・`search`・`show`・`get`・`check`）は、何も書き換えない。GitHub・ボード・ファイル・状態を書くコマンドは、読む動詞に置かず、作る・消す・設定・作業の流れの動詞に置く。
+
+### 入力名の決まり
+
+同じものを指す入力は、コマンドが違っても同じ名前にする。
+
+| 指すもの | 入力名 | 例 |
+|:---|:---|:---|
+| Issue | `issue_ref` | `issue comment`・`session start`・`board move` |
+| PR | `pr_ref` | `pr show`・`pr check` |
+| リポ | `repo` | `branch delete`・`project link` |
+| 操作するブランチ | `branch` | `session start`・`branch delete` |
+
+- `base`・`head` は PR の両端の役割の名前なので、`branch` にしない。真偽値の `delete_branch` も変えない
+- 古い名前で別名を作らない。改名したら、古い入力名の表（`cli/src/commands/renamed-commands.ts`）に足し、古い入力名は新しい名前を案内して止める
+- 書き込むコマンド（effects に write か destructive を持つもの）は、入力 `dry_run`（CLI は `--dry-run`・`-n`）を持つ。入力の検証と読み取りは予行でも行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
+
+### 次の操作の案内
+
+出力に次の操作を案内するときは、`pecot <グループ> <動詞>` の文字列を直に書かない。MCP で呼ぶエージェントは、`pecot` の行を打てない。
+案内は、コマンドの path と入力のデータで持つ。文にするのは案内の関数で、置き場は `cli/src/domain/command-hint.ts` と `cli/src/commands/command-hint.ts`。
+
+- CLI では `pecot project link o/r --develop-branch develop` の形で出る
+- MCP では `project_link with repo: "o/r", develop_branch: "develop"` の形で出る
+- 定義に無い path や入力名を渡すと、例外になる
+- `cli/src/` の出力の文字列に `pecot <グループ>` の直書きが無いことは、`cli/tests/direct-hint-lint.test.ts` が確かめる
+- `--help` の examples は、CLI だけに出るので `pecot ...` のまま書いてよい
+
 ### 確かめる場所
 
+- `libs/interface-spec` の検証が、定義書（`interface/generated.json`）の全項目の名前を、最上位の `names` と比べる
+  - `names` は、区切り・語の位置ごとの語彙・読むだけの動詞を持つ
+  - 語彙を変えたときは、書き出し（`cli/scripts/export-interface.ts`）を回して `generated.json` を直す。直さないと `diffGenerated` が落ちる
+  - pecot-visual と pecot-tools の定義書にも、同じ検証が掛かる
 - `cli/src/commands/names.ts` の関数が、path の一覧から決まりに合わないものを理由つきで返す
 - `cli/src/commands/tests/registry.test.ts` が、COMMANDS の全部を関数に当てて、違反が空であることを確かめる
-- 名前を変えるときは、古い名前の案内の表（`cli/src/cli.ts`）と README の「コマンド名の移行」も直す
+- `cli/tests/interface/` のテストが、次の 2 つを確かめる
+  - write か destructive の effects を持つ項目は `dry_run` を持つ
+  - 対象ごとに使える入力名は 1 つだけ
+- 名前を変えるときは、古い名前の案内の表（`cli/src/commands/renamed-commands.ts`）と README の「コマンド名の移行」も直す

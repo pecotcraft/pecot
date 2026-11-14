@@ -137,7 +137,7 @@ describe('issue create', () => {
 
       const result = await create('--prepare', '--template', 'task')
 
-      expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --repo owner/repo is required with --template task|bug|tracker|task-implement\n' })
+      expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --repo <owner/repo> is required with --prepare unless --template epic\n' })
     })
 
     it('--repo が owner/repo の形でないとき、error の行を出して終了コード 2 で終わる', async (context) => {
@@ -470,7 +470,7 @@ describe('issue create', () => {
 
       const result = await create('-r', 'acme/demo', '-m', TASK_BODY)
 
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: -t (title) is required with -m\n' })
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --title is required with --message\n' })
     })
 
     it('epic 以外で --repo を渡していないとき、error の行を出して終了コード 1 で終わる', async (context) => {
@@ -479,7 +479,7 @@ describe('issue create', () => {
 
       const result = await create('-t', '題', '-m', TASK_BODY)
 
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: -r (repository) is required with -m\n' })
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --repo is required with --message\n' })
     })
 
     it('--repo が owner/repo の形でないとき、error の行を出して終了コード 2 で終わる', async (context) => {
@@ -547,7 +547,8 @@ describe('issue create', () => {
       expect(result.code).toBe(1)
       expect(result.stdout).toBe('')
       expect(result.stderr).toBe(
-        'error: missing arguments\n  direct posting: pecot issue create -t "TITLE" -r owner/repo -m "BODY"\n'
+        'error: missing arguments\n  direct posting: pecot issue create --title <TITLE> --repo owner/repo --message <BODY>\n'
+        + '  free format: pecot issue create --freeform --repo owner/repo --message <BODY>\n'
         + '  prepare a template: pecot issue create --prepare --template task --repo owner/repo\n  from a file: pecot issue create <path>\n',
       )
     })
@@ -567,13 +568,13 @@ describe('issue create', () => {
       return inRoot(root, 'a.md', 'b.md', 'c.md', 'd.md')
     }
 
-    it('--plan を付けると、投稿せずに進め方の表と積める並びを標準出力に出す', async (context) => {
+    it('--dry-run を付けると、投稿せずに進め方の表と積める並びを標準出力に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-45')
       const project = setUpIssueProject()
       const files = chainFiles(project.root)
       const github = await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE])])
 
-      const result = await create('--plan', ...files)
+      const result = await create('--dry-run', ...files)
 
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('')
@@ -592,21 +593,6 @@ describe('issue create', () => {
       expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput', 'GetIssueSlim'])
     })
 
-    it.for([
-      { name: '-m と一緒に打った', argv: ['--plan', '-t', '題', '-r', 'acme/demo', '-m', TASK_BODY] },
-      { name: '--prepare と一緒に打った', argv: ['--plan', '--prepare', '--template', 'task', '--repo', 'acme/demo'] },
-      { name: 'ファイルを渡さずに打った', argv: ['--plan'] },
-    ])('--plan を $name とき、何も投稿せずに終了コード 2 で終わる', async (row, context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-55')
-      setUpIssueProject()
-
-      const result = await create(...row.argv)
-
-      expect(result.code).toBe(2)
-      expect(result.stdout).toBe('')
-      expect(result.stderr).toMatch(/^error: --plan /u)
-    })
-
     const REJECTED_INPUTS = [
       { id: 'PW-ISSUE-CREATE-52', name: '前提が一括のどのファイルのキーにも当たらない', second: blockedBy('nope'), first: [], expected: 'error: blocked_by in b.md refers to unknown key nope\n' },
       { id: 'PW-ISSUE-CREATE-52', name: '前提が輪になる', second: blockedBy('a'), first: blockedBy('b'), expected: 'error: blocked_by forms a cycle: a -> b -> a\n' },
@@ -617,7 +603,7 @@ describe('issue create', () => {
       { id: 'PW-ISSUE-CREATE-54', name: 'wait: merge に reason が無い', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
     ].flatMap(row => [{ ...row, isPlan: false }, { ...row, isPlan: true }])
 
-    it.for(REJECTED_INPUTS)('$name とき（--plan: $isPlan）、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
+    it.for(REJECTED_INPUTS)('$name とき（--dry-run: $isPlan）、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
       await verifies(context, row.id)
       const project = setUpIssueProject()
       writeTree(project.root, {
@@ -626,7 +612,7 @@ describe('issue create', () => {
       })
 
       const files = [path.join(project.root, 'a.md'), path.join(project.root, 'b.md')]
-      const result = await create(...row.isPlan ? ['--plan', ...files] : files)
+      const result = await create(...row.isPlan ? ['--dry-run', ...files] : files)
 
       expect(result).toEqual({ code: 1, stdout: '', stderr: row.expected })
     })
@@ -830,7 +816,7 @@ describe('issue create', () => {
       expect(result.stderr.match(/set: Issue acme\/demo\/\d+ status ready\n/gu)).toHaveLength(3)
     })
 
-    it('ボードに Blocked の列が無いとき、--plan ではこれからの動きとして warning を 1 回だけ出す', async (context) => {
+    it('ボードに Blocked の列が無いとき、--dry-run ではこれからの動きとして warning を 1 回だけ出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-47')
       const project = setUpIssueProject({ withoutBlockedColumn: true })
       writeTree(project.root, {
@@ -840,7 +826,7 @@ describe('issue create', () => {
       })
       await startGithub([linkedRepositories(), blockedBySupported()])
 
-      const result = await create('--plan', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
+      const result = await create('--dry-run', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
 
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('warning: the board has no Blocked column; Issues with blocked-by will be created in Ready\n')
@@ -874,14 +860,14 @@ describe('issue create', () => {
 
     const UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required'
 
-    it.for([{ isPlan: false }, { isPlan: true }])('依存関係に対応しないサーバで blocked_by を書いたとき（--plan: $isPlan）、何も作らずに error を出して終了コード 1 で終わる', async (row, context) => {
+    it.for([{ isPlan: false }, { isPlan: true }])('依存関係に対応しないサーバで blocked_by を書いたとき（--dry-run: $isPlan）、何も作らずに error を出して終了コード 1 で終わる', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-58')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
       const github = await startGithub([linkedRepositories(), blockedByUnsupported()])
 
       const files = inRoot(project.root, 'a.md', 'b.md')
-      const result = await create(...row.isPlan ? ['--plan', ...files] : files)
+      const result = await create(...row.isPlan ? ['--dry-run', ...files] : files)
 
       expect(result).toEqual({ code: 1, stdout: '', stderr: `error: ${UNSUPPORTED}\n` })
       expect(github.requests().map(request => request.type === 'rest' ? request.method : request.operation)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput'])
@@ -991,7 +977,7 @@ describe('issue create', () => {
       })
       await startGithub([linkedRepositories(1, ['demo', 'other']), blockedBySupported(), issueNodeId(12), issueNodeId(7, 1, 'other')])
 
-      const result = await create('--plan', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
+      const result = await create('--dry-run', ...inRoot(project.root, 'a.md', 'b.md', 'c.md'))
 
       expect(result.code).toBe(0)
       expect(result.stdout).toBe([
@@ -1019,7 +1005,7 @@ describe('issue create', () => {
         subIssuesPage([{ number: 30, state: 'OPEN', title: '#3-21: 2 ページ目の子' }]),
       ])
 
-      const result = await create('--plan', path.join(project.root, 'a.md'))
+      const result = await create('--dry-run', path.join(project.root, 'a.md'))
 
       expect(result.code).toBe(0)
       expect(result.stdout).toBe('| File | Number | Blocked by | Approach |\n|---|---|---|---|\n| a | 22 | - | alone |\n')

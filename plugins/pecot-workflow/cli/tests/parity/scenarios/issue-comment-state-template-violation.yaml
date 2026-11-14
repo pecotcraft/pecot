@@ -2,7 +2,7 @@
 id: issue-comment-state-template-violation
 command:
   path: [issue, comment]
-  args: [-t, merge-diff, -m, 進捗です, --issue, acme/demo/7]
+  args: [-t, merge-diff, -m, 進捗です, --issue-ref, acme/demo/7]
 setup:
   repo:
     files:

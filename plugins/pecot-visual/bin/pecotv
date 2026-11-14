@@ -235,7 +235,7 @@ PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
   # 既定では取得もしない。モデルが呼ぶ MCP ツールが 120MB 級のバイナリを黙って
   # 取得しないための方針で、未取得のまま chromium 依存ツールを呼ばれたときは
   # cli 側の実行時ガード (src/mcp/tools/_shared.ts の ensureChromium) が
-  # `setup` ツールの呼び出しを案内する（サーバは serve を継続する）。
+  # `runtime_setup` ツールの呼び出しを案内する（サーバは serve を継続する）。
   # 取得を自動化したい CI・コンテナ・繰り返し使う開発者は、本 env を立てることで
   # 起動時のバックグラウンド取得とツール実行時の自動取得の両方を有効にできる。
   #
@@ -248,12 +248,12 @@ PLUGIN_RUNTIME_FORCE="${PECOTV_BOOTSTRAP_FORCE:-}"
     && ! _pecotv_has_chromium; then
     PNPM_FOR_CHROMIUM="$(resolve_pnpm "$PLUGIN_ROOT")"
     if [ -z "$PNPM_FOR_CHROMIUM" ]; then
-      pecotv_log "note: chromium is not installed and cannot be fetched because pnpm / corepack / npx is missing; drawio export / drawio url (PNG) / slide convert return the setup tool guidance"
+      pecotv_log "note: chromium is not installed and cannot be fetched because pnpm / corepack / npx is missing; drawio export / drawio url (PNG) / slide convert return the runtime_setup tool guidance"
       HINT="$(pnpm_resolution_hint "$PLUGIN_ROOT")"
       [ -n "$HINT" ] && pecotv_log "  $HINT"
     else
       pecotv_log "note: chromium is not installed; fetching it in the background because PECOTV_AUTO_INSTALL_BROWSER=1: $CHROMIUM_INSTALL_LOG"
-      pecotv_log "  until the fetch finishes, drawio export / drawio url (PNG) / slide convert return the setup tool guidance"
+      pecotv_log "  until the fetch finishes, drawio export / drawio url (PNG) / slide convert return the runtime_setup tool guidance"
       # 子プロセスの stdout / stderr は MCP の stdio から完全に切り離してログファイルへ
       # 落とす（stdout は JSON-RPC 専有、stderr もクライアントが読む）。stdin は /dev/null。
       # 外側の /dev/null は、専有ロックを取れずに何もせず抜けるときに既存ログを

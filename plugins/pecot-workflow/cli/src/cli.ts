@@ -111,6 +111,7 @@ function showRepository(repository: string | undefined, context: Readonly<CliCon
     return 0
   }
   catch (error: unknown) {
+    // eslint-disable-next-line no-restricted-syntax -- CLI の最上位でグローバルの --repo を読むときだけ出る
     if (error instanceof InvalidValueError) context.io.stderr(`error: --repo: ${error.message}\n`)
     else if (error instanceof AmbiguousRepositoryError) context.io.stderr(`error: ${error.message}\n`)
     else throw error

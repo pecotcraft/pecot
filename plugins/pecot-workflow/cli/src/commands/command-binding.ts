@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { closeMatches } from './fuzzy.js'
 import { flagOf } from './names.js'
 import type { CommandDefinition, CommandIo, PreparedCommand } from './registry.js'
+import { findRenamedInput, renamedInputNote } from './renamed-commands.js'
 import {
   invalidValueMessage,
   missingArgumentMessage,
@@ -153,6 +154,8 @@ function toUsageError(
       const typedName = quoted.startsWith('--') ? quoted.replace(/=.*$/su, '') : quoted
       const booleanNames = ['--help', ...bound.flatMap(entry => entry.kind === 'boolean' ? [entry.names[0], entry.negation] : [])]
       if (typedName !== quoted && booleanNames.includes(typedName)) return new UsageError(optionTakesNoValueMessage(typedName))
+      const renamed = typedName.startsWith('--') ? findRenamedInput(usage.commandPath, typedName.slice(2).replaceAll('-', '_')) : undefined
+      if (renamed !== undefined) return new UsageError(`${noSuchOptionMessage(typedName)}${renamedInputNote(typedName, flagOf(renamed))}`, usage)
       const longNames = ['--help', ...bound.flatMap(entry => [...entry.names.filter(name => name.startsWith('--')), ...entry.negation === undefined ? [] : [entry.negation]])]
       const possibilities = typedName.startsWith('--') ? closeMatches(typedName, longNames) : []
       return new UsageError(noSuchOptionMessage(typedName, possibilities), usage)

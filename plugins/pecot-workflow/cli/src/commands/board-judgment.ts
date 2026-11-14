@@ -17,6 +17,8 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot, JudgedIssue, UnreadableIssue } from './issue-readiness.js'
 import { mapWithLimit } from './board-view.js'
+import { commandHint, hinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { applyBoardMove, planBoardMove } from './issue-board.js'
 import type { Output } from './output.js'
 
@@ -33,9 +35,9 @@ export const SYNCED_COLUMNS: ReadonlySet<string> = new Set(['Ready', 'Blocked', 
 /**
 動かす先の値がボードに無いときの warning の文
 */
-export function missingWarning(missing: ReadonlySet<MissingValue>): string {
+export function missingWarning(missing: ReadonlySet<MissingValue>): HintedText {
   const names = [...missing].toSorted(compareStrings)
-  return `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with pecot project init`
+  return hinted`the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with ${commandHint(['project', 'init'])}`
 }
 
 export interface BoardTarget {

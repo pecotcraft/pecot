@@ -697,7 +697,7 @@ export async function convertToPptx(
         ? deps.resolveDomToPptx()
         : (() => {
             // 依存ルート越しに解決する。
-            // プラグイン配布では同梱の実体が、単体配布では `setup` が置いた永続層の実体が引かれる。
+            // プラグイン配布では同梱の実体が、単体配布では `runtime_setup` が置いた永続層の実体が引かれる。
             const entry = resolveDependency('dom-to-pptx', import.meta.url)
             if (entry === undefined) {
               throw new Error(

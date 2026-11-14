@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { formatHinted } from '../command-hint.js'
 import { InvalidValueError } from '../errors.js'
 import {
   createIssueReference,
@@ -61,6 +62,11 @@ describe('parseIssueReference', () => {
   it('--repo で解決するコマンドで基準リポが無いと、--repo も案内する', () => {
     const error = thrownBy(() => parseIssueReference('123', undefined, { repositoryFlag: true }))
     expect(error.message).toBe('the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'')
+  })
+
+  it('基準リポの案内は、MCP では入力名 repo で出す', () => {
+    const error = thrownBy(() => parseIssueReference('123', undefined, { repositoryFlag: true }))
+    expect(formatHinted(error.hintedText ?? error.message, 'mcp')).toBe('the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'')
   })
 
   it('短縮形は ASCII の数字だけ（全角・丸数字は不可）', () => {

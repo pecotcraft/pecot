@@ -3,7 +3,7 @@
 # 入力は HOOK_COMMAND。出力は exit 0 + 空 stdout = 素通し、exit 11 + stdout = ask、exit 2 + stderr = 内部エラー。
 # HOOK_COMMAND をセグメントに分け、セグメント先頭（環境変数前置のみ許容）の起動形で判定する。
 # time / xargs / { …; } など、別語を前置した形や展開形は捕捉できない（検出抜け）。
-# pecot の起動は pecot-cli-deny.sh が deny する。MCP ツールの issue_create / issue_quick / pr_create の ask は mcp-handlers/pecot-post-ask.sh が持つ。
+# pecot の起動は pecot-cli-deny.sh が deny する。MCP ツールの issue_create / pr_create の ask は mcp-handlers/pecot-post-ask.sh が持つ。
 # スラッシュコマンド起点のフラグ（.pecot/state/merge-slash-pending）は存在確認のみで削除しない。消費は MCP ツール session_finish の成功時。
 # 正規表現は POSIX ERE の [[:space:]] を使う。
 

@@ -14,10 +14,11 @@ import {
   exitKindSchema,
   generatedFileSchema,
   dependencyConstraintSchema,
+  NAME_WORD_PATTERN,
   targetsSchema,
 } from './schema.js'
 import { compareText, isRecord } from './utility.js'
-import type { AuthoredEntry, AuthoredFile, Behavior, GeneratedEntry, GeneratedFile, Targets } from './schema.js'
+import type { AuthoredEntry, AuthoredFile, Behavior, GeneratedEntry, GeneratedFile, Names, Targets } from './schema.js'
 
 export const TARGETS_PATH = 'libs/interface-spec/targets.json'
 
@@ -166,7 +167,38 @@ function checkGenerated(file: string, name: string, data: GeneratedFile): Findin
     findings.push(
       ...japaneseFindings(file, scope, [['name', entry.name], ['description', entry.description], ...inputDescriptions(entry.input, 'input')]),
       ...inputNameFindings(file, scope, entry),
+      ...nameRuleFindings(file, scope, entry.name, data.names),
     )
+  }
+  return [...duplicateWordFindings(file, data.names), ...findings]
+}
+
+function duplicateWordFindings(file: string, names: Names): Finding[] {
+  return names.positions.flatMap((words, index) => {
+    const listed = words.map(item => item.word)
+    const duplicated = [...new Set(listed.filter((word, at) => listed.indexOf(word) !== at))]
+    return duplicated.map(word => ({ file, field: `names.positions[${String(index)}]`, reason: `${quote(word)} is listed more than once` }))
+  })
+}
+
+// 名前を区切りで語に分け、語の数と位置ごとの一覧を比べる。rest の語は形だけを見る。
+function nameRuleFindings(file: string, scope: string, name: string, names: Names): Finding[] {
+  const words = name.split(names.separator)
+  const fixed = names.positions.length
+  const finding = (reason: string): Finding => ({ file, scope, field: 'name', reason })
+  const findings: Finding[] = []
+  if (names.rest ? words.length <= fixed : words.length !== fixed) {
+    const expected = names.rest ? `${String(fixed + 1)} or more` : String(fixed)
+    findings.push(finding(`${quote(name)} has ${String(words.length)} word(s) but names expects ${expected}`))
+  }
+  for (const [index, word] of words.entries()) {
+    const listed = names.positions[index]
+    if (listed === undefined) {
+      if (names.rest && !NAME_WORD_PATTERN.test(word)) findings.push(finding(`word ${String(index + 1)} ${quote(word)} must be lower-case letters and digits`))
+    }
+    else if (listed.every(item => item.word !== word)) {
+      findings.push(finding(`word ${String(index + 1)} ${quote(word)} is not in names.positions[${String(index)}]`))
+    }
   }
   return findings
 }
@@ -289,7 +321,19 @@ function helpFindings(file: string, scope: string, entry: AuthoredEntry, generat
   return findings
 }
 
-function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry, prose: NonNullable<Prose>): Finding[] {
+function readOnlyWordOf(name: string, names: Names): string | undefined {
+  return name.split(names.separator).find((word, index) => names.positions[index]?.some(item => item.word === word && item.read_only === true))
+}
+
+function readOnlyFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry, names: Names): Finding[] {
+  const word = readOnlyWordOf(generated.name, names)
+  if (word === undefined) return []
+  return entry.effects.entries().filter(([, effect]) => effect.kind !== 'read').map(([index, effect]) => ({
+    file, scope, field: `effects[${String(index)}]`, reason: `has kind ${quote(effect.kind)} but ${quote(word)} is a read-only word in names`,
+  })).toArray()
+}
+
+function entryFindings(file: string, id: string, entry: AuthoredEntry, generated: GeneratedEntry, names: Names, prose: NonNullable<Prose>): Finding[] {
   const texts: TextPair[] = [
     ...(entry.summary === undefined ? [] : [['summary', entry.summary] as const]),
     ...Object.entries(entry.arguments ?? {}).map(([name, text]) => [`arguments.${name}`, text] as const),
@@ -311,6 +355,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...helpFindings(file, id, entry, generated, prose),
     ...namesFindings(file, id, entry, generated),
     ...annotationFindings(file, id, entry, generated),
+    ...readOnlyFindings(file, id, entry, generated, names),
     ...behaviorFindings(file, entry.behaviors, id, id, 'behaviors'),
     ...environmentNameFindings(file, id, entry.environment),
   ]
@@ -349,7 +394,7 @@ function checkAuthored(file: string, name: string, mode: PluginInput['mode'], au
   for (const [id, entry] of Object.entries(authored.entries)) {
     const counterpart = byId.get(id)
     if (counterpart === undefined) findings.push({ file, scope: id, reason: 'entry is not in generated.json (remove it)' })
-    else findings.push(...entryFindings(file, id, entry, counterpart, authored.prose ?? 'en'))
+    else findings.push(...entryFindings(file, id, entry, counterpart, generated.names, authored.prose ?? 'en'))
   }
   return findings
 }

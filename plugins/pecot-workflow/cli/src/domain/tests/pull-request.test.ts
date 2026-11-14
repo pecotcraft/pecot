@@ -22,6 +22,8 @@ import {
 } from '../pull-request.js'
 import type { PullRequestBaseDecision, PullRequestContentOptions, PullRequestSlimView, PullRequestWithReviewsView } from '../pull-request.js'
 import type { PullRequestReadout } from '../issue-readout.js'
+import '../../commands/registry.js'
+import { formatHinted } from '../command-hint.js'
 import { JSON_NULL } from '../json-null.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
@@ -143,7 +145,9 @@ describe('validatePullRequestContent', () => {
 
   it('Issue 参照が無いと止める。skipIssueReferenceCheck なら止めない', () => {
     const body = `## Summary\n\n${IMAGE}\n\n## Changes\n\n- 変更\n`
-    expect(validatePullRequestContent(options({ body }))).toEqual(['PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)'])
+    const errors = validatePullRequestContent(options({ body }))
+    expect(errors.map(error => formatHinted(error, 'cli'))).toEqual(['PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)'])
+    expect(errors.map(error => formatHinted(error, 'mcp'))).toEqual(['PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)'])
     expect(validatePullRequestContent(options({ body, skipIssueReferenceCheck: true }))).toEqual([])
   })
 
@@ -172,6 +176,11 @@ describe('validatePullRequestContent', () => {
     expect(validatePullRequestContent(options({ body }))).toEqual([SCREENSHOT_MISSING_ERROR])
     expect(validatePullRequestContent(options({ body, screenshot: '画面は変わらない' }))).toEqual([])
     expect(validatePullRequestContent(options({ body, screenshot: '' }))).toEqual([SCREENSHOT_MISSING_ERROR])
+  })
+
+  it('screenshot の理由の案内は、CLI ではフラグ名、MCP では入力名で出す', () => {
+    expect(formatHinted(SCREENSHOT_MISSING_ERROR, 'cli')).toMatch(/\(`--screenshot` with `--message`\)$/u)
+    expect(formatHinted(SCREENSHOT_MISSING_ERROR, 'mcp')).toMatch(/\(`screenshot` with `message`\)$/u)
   })
 
   it('base が develop でないと止める。develop 未設定なら比べない', () => {

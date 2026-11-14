@@ -129,12 +129,11 @@ CLI が生成した prepared file を見れば、AI は判定基準に辿り着�
 
 計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、テンプレ既定の status で起票する。
 既定は task/bug=ready、epic=backlog、tracker=backlog で、#669 で CLI が型既定以外の status を拒否するようになった。
-これらは未着手の置き場であり、着手時に `branch create` がボード Status を active に設定する。
+これらは未着手の置き場であり、着手時に `session start` がボード Status を active に設定する。
 
-`issue quick` は task/bug を active で起票する。
-quick は即着手フローで、起票時点が作業開始時点になる。
-board-status.md の `作業開始時に必ず設定` を起票と同時に適用したものであり、`issue create` との矛盾ではない。
-違いは、active を設定する担い手が `branch create` か起票時かだけ。
+`issue create` の `freeform` も、task/bug を型の既定の status で起票する。
+即着手フロー（w-quick）は、起票の直後に `session start` を呼び、`session start` がボード Status を active にする。
+active を設定する担い手は、どの起票でも `session start` だけ。
 
 ## 5. セッションスコープ（着手前の前提）
 
@@ -143,7 +142,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 `.pecot-active` の役割:
 
 - 配置: `.pecot/state/.pecot-active`（`CLAUDE_PROJECT_DIR` 単位 = WT ごとに独立）
-- 書き手: `session_start` / `issue_quick` / `session_restore`（実行時に上書き）
+- 書き手: `session_start` / `session_restore`（実行時に上書き）
 - `session_finish` が消す。`session_finish` を通さずに片付けた場合は残存し stale 化する。ボード Status 列の Active とは別レイヤ。詳細は [`flags.md`](./flags.md)。
 
 ツールのガード（この表が最終の基準）は次のとおり。

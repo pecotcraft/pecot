@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { diffGenerated } from '../../../../libs/interface-spec/src/domain/diff.js'
 import { generatedFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import { buildGenerated, GENERATED_PATH, listTools, repositoryRoot, run, serialize } from '../scripts/export-interface.js'
+import { buildGenerated, exportNames, GENERATED_PATH, listTools, repositoryRoot, run, serialize } from '../scripts/export-interface.js'
 
 async function capture(argv: readonly string[], options: Parameters<typeof run>[2] = {}): Promise<{ code: number, stdout: string, stderr: string }> {
   const out = { stdout: '', stderr: '' }
@@ -57,6 +57,21 @@ describe('generated.json の書き出し', () => {
     const modernTools = await listTools('modern')
 
     expect(serialize(buildGenerated(modernTools))).toBe(serialize(buildGenerated(tools)))
+  })
+
+  it('names は区切りが _ で、aws とサービスの後ろに自由な語を許し、どのツール名もサービスが語彙にある', () => {
+    const names = exportNames()
+    expect({ separator: names.separator, rest: names.rest, first: names.positions[0]?.map(item => item.word) }).toEqual({ separator: '_', rest: true, first: ['aws'] })
+    const services = new Set(names.positions[1]?.map(item => item.word))
+    const outside = tools.map(tool => tool.name).filter(name => !name.startsWith('aws_') || !services.has(name.split('_', 2)[1] ?? ''))
+    expect(outside).toEqual([])
+  })
+
+  it('語彙に語を足すと差の行に names の欄のパスが出る', () => {
+    const before = buildGenerated(tools)
+    const services = before.names.positions[1] ?? []
+    const after = { ...before, names: { ...before.names, positions: [before.names.positions[0] ?? [], [...services, { word: 'iam', meaning: 'AWS IAM' }]] } }
+    expect(diffGenerated(before, after)).toEqual([`file: names.positions[1][${String(services.length)}]: added`])
   })
 
   it('書き出しが generatedFileSchema を通る', () => {

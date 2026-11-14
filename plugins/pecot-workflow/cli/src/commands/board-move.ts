@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { setIssueField } from './issue-board.js'
+import { isStatusConfigured, setIssueField } from './issue-board.js'
+import { commandHint, hinted } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
 import {
   connectToProject,
@@ -24,11 +25,13 @@ const BOARD_MOVE = defineCommand({
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
+    dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   positional: ['issue_ref', 'status'],
+  shortFlags: { dry_run: '-n' },
   interactive: false,
   run: async (input, io) => {
-    const output = createOutput(false, io)
+    const output = createOutput(input.dry_run, io)
     return await runWithExit(async () => {
       const { status } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
@@ -40,7 +43,12 @@ const BOARD_MOVE = defineCommand({
         const client = await connectToProject(output, config, owner, repository)
         const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
         if (itemId === undefined) {
-          stopWith(output, `${target} is not on the project board\nhint: add it to the board first with pecot board add`)
+          stopWith(output, hinted`${target} is not on the project board\nhint: add it to the board first with ${commandHint(['board', 'add'], { issue_ref: `${owner}/${repository}/${String(number)}` })}`)
+        }
+        if (input.dry_run) {
+          if (!isStatusConfigured(config, status)) stopWith(output, notConfiguredMessage(status))
+          output.planned({ verb: 'set', target: `${target} status ${status}` })
+          return
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {
           stopWith(output, notConfiguredMessage(status))

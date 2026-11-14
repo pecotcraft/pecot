@@ -97,3 +97,10 @@ github:
     respond:
       status: 200
       body: []
+  - match:
+      method: "GET"
+      path: "/repos/acme/demo/compare/release...main"
+      query: {"per_page": "1"}
+    respond:
+      status: 200
+      body: {ahead_by: 0}

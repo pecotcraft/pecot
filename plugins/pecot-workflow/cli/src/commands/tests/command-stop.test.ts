@@ -6,6 +6,8 @@ import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import { requireActiveConfig, requireActiveConfigPlain, stopWith } from '../command-stop.js'
 import { createOutput } from '../output.js'
 import { capture } from './support.js'
+// 案内の文を描くには、コマンドの形の登録が要る
+import '../registry.js'
 
 function started(): { readonly io: ReturnType<typeof capture>, readonly output: ReturnType<typeof createOutput> } {
   const io = capture()

@@ -273,7 +273,7 @@
       "deprecated": false,
       "description": "Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. Call it when slide_create / slide_convert / slide_sync fail with \"runtime dependencies are not installed\", or when drawio_export / slide_convert / drawio_create PNG output fails with \"Playwright Chromium is not installed\". The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium, so it takes tens of seconds. If OS libraries needed to launch Chromium are missing, it installs them with apt-get where sudo is available, and otherwise returns the command to install them. It skips what is already installed, so it finishes quickly and is safe to call repeatedly.",
       "hidden": false,
-      "id": "PV-SETUP",
+      "id": "PV-RUNTIME-SETUP",
       "input": {
         "properties": {},
         "type": "object"
@@ -333,10 +333,10 @@
           "type": "object"
         }
       },
-      "name": "setup",
+      "name": "runtime_setup",
       "surfaces": {
         "mcp": {
-          "tool": "setup"
+          "tool": "runtime_setup"
         }
       }
     },
@@ -960,6 +960,68 @@
     }
   ],
   "format": 1,
+  "names": {
+    "positions": [
+      [
+        {
+          "meaning": "draw.io diagrams",
+          "word": "drawio"
+        },
+        {
+          "meaning": "evidence workbooks built from screenshots",
+          "word": "evidence"
+        },
+        {
+          "meaning": "Slidev decks and talk directories",
+          "word": "slide"
+        },
+        {
+          "meaning": "runtime dependencies and Playwright Chromium",
+          "word": "runtime"
+        }
+      ],
+      [
+        {
+          "meaning": "generate a new file or directory",
+          "word": "create"
+        },
+        {
+          "meaning": "write a diagram out as SVG and PDF",
+          "word": "export"
+        },
+        {
+          "meaning": "convert a deck to PPTX",
+          "word": "convert"
+        },
+        {
+          "meaning": "start the dev server",
+          "word": "dev"
+        },
+        {
+          "meaning": "list rule violations in a talk directory",
+          "word": "lint"
+        },
+        {
+          "meaning": "generate a page skeleton for a layout",
+          "word": "page"
+        },
+        {
+          "meaning": "bring a talk directory in line with its theme",
+          "word": "sync"
+        },
+        {
+          "meaning": "return the theme declaration and its layouts",
+          "word": "theme"
+        },
+        {
+          "meaning": "download what other tools need at run time",
+          "word": "setup"
+        }
+      ]
+    ],
+    "rest": false,
+    "separator": "_"
+  },
   "plugin": "pecot-visual",
   "prefix": "PV"
 }

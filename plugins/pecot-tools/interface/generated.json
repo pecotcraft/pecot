@@ -2736,6 +2736,72 @@
     }
   ],
   "format": 1,
+  "names": {
+    "positions": [
+      [
+        {
+          "meaning": "a command of the AWS CLI",
+          "word": "aws"
+        }
+      ],
+      [
+        {
+          "meaning": "Amazon Athena",
+          "word": "athena"
+        },
+        {
+          "meaning": "Amazon CloudWatch metrics",
+          "word": "cloudwatch"
+        },
+        {
+          "meaning": "Amazon EC2",
+          "word": "ec2"
+        },
+        {
+          "meaning": "Amazon ECR",
+          "word": "ecr"
+        },
+        {
+          "meaning": "AWS Lambda",
+          "word": "lambda"
+        },
+        {
+          "meaning": "Amazon CloudWatch Logs",
+          "word": "logs"
+        },
+        {
+          "meaning": "Amazon RDS",
+          "word": "rds"
+        },
+        {
+          "meaning": "Amazon S3 (high-level commands)",
+          "word": "s3"
+        },
+        {
+          "meaning": "Amazon S3 (API commands)",
+          "word": "s3api"
+        },
+        {
+          "meaning": "Amazon EventBridge Scheduler",
+          "word": "scheduler"
+        },
+        {
+          "meaning": "Amazon SQS",
+          "word": "sqs"
+        },
+        {
+          "meaning": "AWS IAM Identity Center sign-in",
+          "word": "sso"
+        },
+        {
+          "meaning": "AWS STS",
+          "word": "sts"
+        }
+      ]
+    ],
+    "rest": true,
+    "separator": "_"
+  },
   "plugin": "pecot-tools",
   "prefix": "PT"
 }

@@ -18,12 +18,16 @@ import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
+import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
+import type { HintedText } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { createGitHubClient } from './github-client.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from './issue-readiness.js'
-import { recordWorkTarget } from './work-target.js'
+import { planWorkTarget, recordWorkTarget } from './work-target.js'
+
+const START_PATH = ['session', 'start']
 
 /**
 A-1. 作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違えば、終了コード 2 で止める
@@ -35,13 +39,15 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
   if (current.owner === owner && current.repository === repository) return
   stopWith(
     out,
-    `the repository of the work Issue (${owner}/${repository}) differs from `
-    + `the CWD git remote (${repositoryFullName(current)})\n`
-    + 'move to the worktree of the target repository and run again:\n'
-    + `<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\n`
-    + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree\n'
-    + 'to issue the command on purpose from outside the CWD (for example in a script), '
-    + 'give --allow-cross-repo',
+    joinHinted([
+      `the repository of the work Issue (${owner}/${repository}) differs from `
+      + `the CWD git remote (${repositoryFullName(current)})\n`
+      + 'move to the worktree of the target repository and run again:\n'
+      + `<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\n`
+      + 'create one with /pecot-w:w-worktree-add only if the repository has no worktree\n'
+      + 'to issue the command on purpose from outside the CWD (for example in a script), ',
+      hinted`give ${inputHint(START_PATH, 'allow_cross_repo')}`,
+    ], ''),
     USAGE_EXIT_CODE,
   )
 }
@@ -51,31 +57,27 @@ interface BaseBranchQuery {
   readonly owner: string
   readonly repository: string
   readonly issueNumber: number
-  readonly branchName: string
+  readonly branch: string
   readonly base: string | undefined
 }
 
 /**
 develop_branch を設定する直し方の行
 */
-function developBranchGuide(owner: string, repository: string): string {
-  return `set it with: pecot project link ${owner}/${repository} --develop-branch develop`
+function developBranchGuide(owner: string, repository: string): HintedText {
+  return hinted`set it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, develop_branch: 'develop' })}`
 }
 
 /**
 3. ベースブランチを決める（--base を先に、無ければ設定の develop_branch）
 */
 function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuery>): string {
-  const { config, owner, repository, issueNumber, branchName, base } = query
+  const { config, owner, repository, issueNumber, branch, base } = query
   if (base !== undefined && base !== '') return base
   const developBranch = findRepository(config, owner, repository)?.develop_branch
   if (developBranch === undefined || developBranch === '') {
-    stopWith(
-      out,
-      `develop_branch is not set for ${owner}/${repository}\n`
-      + `${developBranchGuide(owner, repository)}\n`
-      + `or give the base: pecot session start ${owner}/${repository}/${String(issueNumber)} ${branchName} --base main`,
-    )
+    const withBase = commandHint(START_PATH, { issue_ref: `${owner}/${repository}/${String(issueNumber)}`, branch, base: 'main' })
+    stopWith(out, joinHinted([`develop_branch is not set for ${owner}/${repository}`, developBranchGuide(owner, repository), hinted`or give the base: ${withBase}`]))
   }
   return developBranch
 }
@@ -93,8 +95,8 @@ async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubCli
   if (result.kind === 'unreadable') {
     if (result.snapshot === undefined) return stopWith(out, `could not read blocked-by of ${label}: ${result.reason}`)
     const isUnset = result.snapshot.developmentBranch === undefined || result.snapshot.developmentBranch === ''
-    const guide = isUnset ? `\n${developBranchGuide(issue.repository.owner, issue.repository.repository)}` : ''
-    return stopWith(out, `could not judge readiness of ${label}: ${result.reason}${guide}`)
+    const guide = isUnset ? [developBranchGuide(issue.repository.owner, issue.repository.repository)] : []
+    return stopWith(out, joinHinted([`could not judge readiness of ${label}: ${result.reason}`, ...guide]))
   }
   const decision = decideStart(result.readiness, result.prerequisites, issue)
   return decision.kind === 'blocked' ? stopWith(out, decision.message, USAGE_EXIT_CODE) : decision
@@ -120,11 +122,13 @@ async function guardActiveOverwrite(out: Readonly<Output>, client: Readonly<GitH
   if (state === 'OPEN') {
     stopWith(
       out,
-      `this worktree is already working on another Issue (${existing}, OPEN)\n`
-      + 'overwriting .pecot-active could mix up the tasks\n'
-      + 'finish the other Issue first, or create another worktree with '
-      + '/pecot-w:w-worktree-add and run /pecot-w:w-active again in its session\n'
-      + 'if it is stale and you want to overwrite it on purpose, give --force-overwrite-active',
+      joinHinted([
+        `this worktree is already working on another Issue (${existing}, OPEN)\n`
+        + 'overwriting .pecot-active could mix up the tasks\n'
+        + 'finish the other Issue first, or create another worktree with '
+        + '/pecot-w:w-worktree-add and run /pecot-w:w-active again in its session',
+        hinted`if it is stale and you want to overwrite it on purpose, give ${inputHint(START_PATH, 'force_overwrite_active')}`,
+      ]),
       USAGE_EXIT_CODE,
     )
   }
@@ -162,23 +166,24 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
 }
 
 const sessionStartCommand = defineCommand({
-  path: ['session', 'start'],
+  path: START_PATH,
   description: 'Create a branch linked to an Issue (shown in the Development section of the Issue)',
   input: z.strictObject({
     issue_ref: z.string().describe('Issue reference (owner/repo/123)'),
-    branch_name: z.string().describe('Name of the branch to create'),
+    branch: z.string().describe('Name of the branch to create'),
     base: z.string().optional().describe('Base branch (default: chosen by readiness, else develop_branch from the config)'),
     checkout: z.boolean().default(true).describe('Kept for compatibility; has no effect'),
     allow_cross_repo: z.boolean().default(false).describe('Allow the CWD repository to differ from the Issue ref (for scripts and runs outside the CWD)'),
     force_overwrite_active: z.boolean().default(false).describe('Disable the .pecot-active overwrite guard (when sure it is stale)'),
+    dry_run: z.boolean().default(false).describe('Show what would be created and recorded without writing anything'),
   }),
-  positional: ['issue_ref', 'branch_name'],
-  shortFlags: { base: '-b', allow_cross_repo: '-X', force_overwrite_active: '-F' },
+  positional: ['issue_ref', 'branch'],
+  shortFlags: { base: '-b', allow_cross_repo: '-X', force_overwrite_active: '-F', dry_run: '-n' },
   negations: { checkout: '--no-checkout' },
   interactive: false,
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
-    const out = createOutput(false, io)
+    const out = createOutput(input.dry_run, io)
     // 1. 設定取得
     const config = requireActiveConfig(out)
 
@@ -197,7 +202,7 @@ const sessionStartCommand = defineCommand({
     // A-1. 作業ディレクトリと Issue ref のリポジトリの整合チェック
     if (!input.allow_cross_repo) rejectCwdRepositoryMismatch(out, owner, repository)
 
-    const finalBranchName = `${input.branch_name}/${String(issueNumber)}`
+    const finalBranchName = `${input.branch}/${String(issueNumber)}`
     try {
       const client = createGitHubClient(out, config.host)
 
@@ -214,7 +219,7 @@ const sessionStartCommand = defineCommand({
       const mismatch = describeBaseMismatch(input.base, decision, issue)
       if (mismatch !== undefined) stopWith(out, mismatch, USAGE_EXIT_CODE)
       // 3. ベースブランチ決定（積まないときだけ、--base か設定の develop_branch を求める）
-      const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branchName: input.branch_name, base: input.base })
+      const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branch: input.branch, base: input.base })
 
       // 5. Issue Node ID とタイトル取得（タイトルはセッション名用）
       const { id: issueNodeId, title: issueTitle } = await client.getIssueNodeIdAndTitle(owner, repository, issueNumber)
@@ -232,9 +237,15 @@ const sessionStartCommand = defineCommand({
         throw error
       }
 
+      const stackedNote = decision.kind === 'stack' ? ` (stacked on ${displayReference(decision.issue, issue.repository)})` : ''
+      if (input.dry_run) {
+        out.planned({ verb: 'create', target: `branch ${finalBranchName} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
+        out.planned({ verb: 'set', target: `Issue ${owner}/${repository}/${String(issueNumber)} status active` })
+        planWorkTarget(out, owner, repository, issueNumber)
+        return 0
+      }
       // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
       const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
-      const stackedNote = decision.kind === 'stack' ? ` (stacked on ${displayReference(decision.issue, issue.repository)})` : ''
       out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
 
       // 7.5. プロジェクトアイテムのステータスを active に更新

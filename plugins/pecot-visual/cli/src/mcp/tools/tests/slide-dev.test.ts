@@ -647,7 +647,7 @@ function runtimeDependencies(isInstalled: boolean): RuntimeDependencies {
     isInstalled: () => isInstalled,
     root: () => '/fake/pecotv-runtime',
     install: () => {
-      throw new Error('ツールは実行時依存を取得しない (取得は setup ツールの責務)')
+      throw new Error('ツールは実行時依存を取得しない (取得は runtime_setup ツールの責務)')
     },
   }
 }

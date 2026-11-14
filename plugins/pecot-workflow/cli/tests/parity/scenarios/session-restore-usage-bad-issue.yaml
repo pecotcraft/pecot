@@ -5,7 +5,7 @@ command:
   args:
     - "-D"
     - "."
-    - "--issue"
+    - "--issue-ref"
     - "9"
 setup: {}
 github: []

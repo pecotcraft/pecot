@@ -121,10 +121,6 @@ function item(id: string, number: number, workflow: string, extra: { state?: str
 const board = (...nodes: Json[]): ResponseRule => graphqlRule('ListProjectItems', { node: { items: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } })
 const alerts = (repository: string, body: unknown, status = 200): ResponseRule => restRule('GET', `/repos/acme/${repository}/dependabot/alerts`, status, body)
 const twoAlerts = (repository = 'demo'): ResponseRule => alerts(repository, [{ security_vulnerability: { severity: 'high' } }, { security_vulnerability: { severity: 'low' } }])
-const deletion = (itemId: string, status = 200): ResponseRule => status === 200
-  ? graphqlRule('DeleteProjectItem', { deleteProjectV2Item: { deletedItemId: itemId } }, { projectId: 'PVT_1', itemId })
-  : { match: { operation: 'DeleteProjectItem', variables: { projectId: 'PVT_1', itemId } }, respond: { status, body: { message: 'Server Error' } }, times: 1 }
-
 // 動かす補助
 
 const GHES: Partial<CommandRun> = { remote: { host: DEFAULT_HOST } }
@@ -424,6 +420,16 @@ describe('project init', () => {
     expect(result.stderr).toMatch(/error: could not sync project config: /u)
     expect(result.stderr).not.toContain('could not initialize project fields')
   })
+
+  it('--dry-run で、フィールドが揃っていて足す選択肢だけがあると、設定ファイルの予行の行を出さない', async (context) => {
+    await verifies(context, 'PW-PROJECT-INIT-17')
+    const existing = [...titleOnly, workflowField(BOARD_ORDER), ...otherFields()]
+    const result = await run(arguments_('init', 'acme', 'board', '--suffix', 'acme', '--host', DEFAULT_HOST, '--dry-run'), base(existing), { config: false })
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(result.stderr).toBe(`${skippedFields.replaceAll('skipped:', 'dry-run: would skip')}dry-run: would add option Blocked to field pecot-workflow-acme\ndry-run: would add option Needs Attention to field Status\n`)
+    expect(requestLabels(result.requests)).not.toContain('UpdateProjectField')
+  })
 })
 
 describe('project create', () => {
@@ -596,26 +602,17 @@ describe('board show', () => {
     expect(result.stdout).not.toContain('acme/demo#1')
   })
 
-  it('更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除する', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-04')
-    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02'), ...olderRules()])
-    expect(result.code).toBe(0)
-    expectClean(result)
-    const deleted = variableValues(result, 'DeleteProjectItem', 'itemId')
-    expect(deleted.toSorted((first, second) => String(first).localeCompare(String(second)))).toEqual(['PVTI_a01', 'PVTI_a02'])
-    // 古い updatedAt の Ready・Active は削除せず、ボードの状態に残る
-    expect(result.stdout).toContain('| acme/demo#12 | 課題12 |')
-    expect(result.stdout).toContain('| acme/demo#11 | 課題11 |')
-    expect(result.stdout).toContain('| acme/demo#13 | 課題13 |')
-  })
-
-  it('Archived の項目がちょうど 20 件なら、ボードから何も削除しない', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-04')
-    const result = await run(boardArguments('show'), [board(...archivedItems(20), ...olderActive()), twoAlerts(), ...olderRules()])
+  it('Archived の項目が 20 件を超えていても、ボードから何も削除しない', async (context) => {
+    await verifies(context, 'PW-BOARD-SHOW-34')
+    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), ...olderRules()])
     expect(result.code).toBe(0)
     expectClean(result)
     expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
     expect(result.stderr).toBe('')
+    // 古い updatedAt の Ready・Active も、ボードの状態に残る
+    expect(result.stdout).toContain('| acme/demo#12 | 課題12 |')
+    expect(result.stdout).toContain('| acme/demo#11 | 課題11 |')
+    expect(result.stdout).toContain('| acme/demo#13 | 課題13 |')
   })
 
   it('aggregation_repo を設定していると、概要に Roadmap repo として出す', async (context) => {
@@ -634,12 +631,6 @@ describe('board show', () => {
     expect(result.stdout).toContain('- acme/other\n    release_type: single\n    dependabot_alerts: disabled\n')
   })
 
-  it('Archived の項目を削除すると、deleted の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-07')
-    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01'), deletion('PVTI_a02'), ...olderRules()])
-    expect(result.stderr).toBe('deleted: 2 archived items\n')
-  })
-
   it('登録したリポジトリの Dependabot alert を取れないと、その行に失敗の理由を出す', async (context) => {
     await verifies(context, 'PW-BOARD-SHOW-08')
     const rules = [board(), twoAlerts('demo'), alerts('other', { message: 'Boom' }, 500)]
@@ -649,13 +640,6 @@ describe('board show', () => {
     expect(result.stdout).toMatch(/- acme\/other\n {4}release_type: single\n {4}dependabot_alerts: fetch failed \(acme\/other: .*Boom\)\n/u)
     // 取得は並行して送るので、受けた順は問わない
     expect(sorted(requestLabels(result.requests))).toEqual(sorted(['ListProjectItems', 'GET /repos/acme/demo/dependabot/alerts', 'GET /repos/acme/other/dependabot/alerts']))
-  })
-
-  it('Archived の項目を削除できなかったなら、warning の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SHOW-09')
-    const result = await run(boardArguments('show'), [board(...archivedItems(22), ...olderActive()), twoAlerts(), deletion('PVTI_a01', 500), deletion('PVTI_a02'), ...olderRules()])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe('deleted: 1 archived items\nwarning: failed to delete 1 archived items\n')
   })
 
   it('アクティブなプロジェクトが無いと、終了コード 1 で終わる', async (context) => {
@@ -1013,7 +997,7 @@ describe('project activate', () => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-14')
     const result = await run(reference('1'), [projectFields(titleOnly, 'Not Initialized Project')], { config: false })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe(`error: project "Not Initialized Project" is not initialized\n  run: pecot project init --host ${DEFAULT_HOST} --suffix <suffix> acme "Not Initialized Project"\n`)
+    expect(result.stderr).toBe(`error: project "Not Initialized Project" is not initialized\n  run: pecot project init acme 'Not Initialized Project' --host ${DEFAULT_HOST} --suffix <suffix>\n`)
     expect(result.read(CONFIG_FILE)).toBeUndefined()
   })
 
@@ -1036,7 +1020,7 @@ describe('project activate', () => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-17')
     const result = await run(arguments_('activate', NAME, '--host', 'github.com'), [projectFields(), ...syncRules()])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: --host (github.com) differs from the config file host (${DEFAULT_HOST})\n  using the config file host\nupdated: config file ${configPathOf(result)}\nset: active project to ${NAME}\n`)
+    expect(result.stderr).toBe(`warning: --host github.com differs from the config file host (${DEFAULT_HOST})\n  using the config file host\nupdated: config file ${configPathOf(result)}\nset: active project to ${NAME}\n`)
   })
 
   it('--host が渡した設定ファイルの host と違うと、設定ファイルの host で同期する', async (context) => {
@@ -1183,7 +1167,7 @@ describe('project link', () => {
     await verifies(context, 'PW-PROJECT-LINK-11')
     const result = await setRepository(['acme/demo', '--package', 'nocolon'])
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: give --package as NAME:PATH: \'nocolon\'\n')
+    expect(result.stderr).toBe('error: give --package <NAME:PATH>: \'nocolon\'\n')
   })
 
   it('--package の NAME が重なると、終了コード 1 で終わる', async (context) => {

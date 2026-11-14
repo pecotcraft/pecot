@@ -40,11 +40,11 @@ describe('issue comment', () => {
     expect(readFileSync(written, 'utf8')).toBe(readFileSync(templateFile('comment', 'merge-diff'), 'utf8'))
   })
 
-  it('--prepare に --issue を渡すと、コピーの issue_ref に渡した参照を入れる', async (context) => {
+  it('--prepare に --issue-ref を渡すと、コピーの issue_ref に渡した参照を入れる', async (context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-02')
     const { root } = setUpProject()
 
-    await comment('--prepare', '-t', 'plan', '--issue', 'acme/demo/123')
+    await comment('--prepare', '-t', 'plan', '--issue-ref', 'acme/demo/123')
 
     const [name = ''] = outputFiles(root)
     const content = readFileSync(path.join(root, '.pecot', 'tmp', 'output', name), 'utf8')
@@ -80,14 +80,14 @@ describe('issue comment', () => {
     ])
   })
 
-  it('-m に --issue とテンプレの種類を渡すと、その Issue にコメントを投稿する', async (context) => {
+  it('-m に --issue-ref とテンプレの種類を渡すと、その Issue にコメントを投稿する', async (context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-04')
     await verifies(context, 'PW-ISSUE-COMMENT-10')
     await verifies(context, 'PW-ISSUE-COMMENT-12')
     setUpProject()
     const github = await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7')
+    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
     expect(github.requests()).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/comments', body: { body: MERGE_DIFF_BODY } }])
@@ -127,7 +127,7 @@ describe('issue comment', () => {
     const { file } = setUpCommentProject()
     const github = await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    const result = await comment(file, '-m', '## 別の本文', '--issue', 'acme/demo/999')
+    const result = await comment(file, '-m', '## 別の本文', '--issue-ref', 'acme/demo/999')
 
     expect(result.code).toBe(0)
     expect(github.requests()).toMatchObject([{ type: 'graphql' }, { type: 'rest', path: '/repos/acme/demo/issues/7/comments', body: { body: POSTED_BODY } }])
@@ -189,7 +189,7 @@ describe('issue comment', () => {
     setUpProject()
     const github = await startGithub([])
 
-    const result = await comment('-t', 'merge-diff', '-m', message, '--issue', 'acme/demo/7')
+    const result = await comment('-t', 'merge-diff', '-m', message, '--issue-ref', 'acme/demo/7')
 
     expect(result.code).toBe(3)
     expect(result.stderr.split('\n').some(entry => entry.startsWith(line))).toBe(true)
@@ -198,7 +198,7 @@ describe('issue comment', () => {
 
   it.for([
     { name: '--prepare に -t が無い', argv: ['--prepare'] },
-    { name: '-m に -t が無い', argv: ['-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7'] },
+    { name: '-m に -t が無い', argv: ['-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
   ])('テンプレの種類を渡していない（$name）とき、終了コード 1 で終わる', async ({ argv }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-19')
     setUpProject()
@@ -208,17 +208,17 @@ describe('issue comment', () => {
     expect(result).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'error: specify a template with -t (plan / merge-diff / review-findings / review-resolution / precede-notify)\n',
+      stderr: 'error: specify a template with --template (plan / merge-diff / review-findings / review-resolution / precede-notify)\n',
     })
   })
 
-  it('-m で --issue を渡していないとき、終了コード 1 で終わる', async (context) => {
+  it('-m で --issue-ref を渡していないとき、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-20')
     setUpProject()
 
     const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY)
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --issue (Issue reference) is required with -m\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --issue-ref (Issue reference) is required with --message\n' })
   })
 
   it('--prepare・ファイル・-m のどれも渡していないとき、使い方を添えて終了コード 1 で終わる', async (context) => {
@@ -230,8 +230,8 @@ describe('issue comment', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(
       'error: missing arguments\n'
-      + '  direct posting: pecot issue comment -m "MESSAGE" -t <template> --issue owner/repo/123\n'
-      + '  prepare a template: pecot issue comment --prepare -t <template>\n'
+      + '  direct posting: pecot issue comment --message <MESSAGE> --template <template> --issue-ref owner/repo/123\n'
+      + '  prepare a template: pecot issue comment --prepare --template <template>\n'
       + '  from a file: pecot issue comment <path>\n',
     )
   })
@@ -277,7 +277,7 @@ describe('issue comment', () => {
 
   it.for([
     { name: 'ファイルを渡した', argv: (file: string): string[] => [file] },
-    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7'] },
+    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
   ])('アクティブなプロジェクトが無い（$name）とき、終了コード 1 で終わる', async ({ argv }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-25')
     const repository = enterGitRepository({ 'note.md': commentFileContent() })
@@ -311,7 +311,7 @@ describe('issue comment', () => {
     ])
 
     const updated = await comment(file)
-    const direct = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'acme/demo/7')
+    const direct = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
 
     expect(updated.code).toBe(1)
     expect(updated.stderr).toContain('error: could not update the comment on Issue acme/demo/7: ')
@@ -321,7 +321,7 @@ describe('issue comment', () => {
 
   it.for([
     { name: 'ファイルの issue_ref', argv: (file: string): string[] => [file], issueRef: 'invalid-format' },
-    { name: '--issue', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue', 'invalid-format'], issueRef: 'acme/demo/7' },
+    { name: '--issue-ref', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'invalid-format'], issueRef: 'acme/demo/7' },
   ])('Issue の参照の形が誤っている（$name）とき、終了コード 2 で終わる', async ({ argv, issueRef }, context) => {
     await verifies(context, 'PW-ISSUE-COMMENT-27')
     const { file } = setUpCommentProject({ issueRef })

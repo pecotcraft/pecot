@@ -15,6 +15,7 @@ import {
   MUTATION_CREATE_PROJECT,
   MUTATION_CREATE_PROJECT_FIELD,
   MUTATION_DELETE_PROJECT_ITEM,
+  MUTATION_UNARCHIVE_PROJECT_ITEM,
   MUTATION_LINK_PROJECT_REPOSITORY,
   MUTATION_UPDATE_PROJECT_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
@@ -37,6 +38,14 @@ import { ReposApi } from './repos.js'
 
 // 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
 const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u
+
+/**
+Issue のボードのアイテム。isArchived はアイテムのアーカイブで、Status の Archived とは別
+*/
+export interface IssueProjectItem {
+  readonly id: string
+  readonly isArchived: boolean
+}
 
 export interface ListProjectItemsOptions {
   /**
@@ -195,6 +204,14 @@ export class ProjectsApi extends ReposApi {
   }
 
   /**
+  アーカイブ済みのアイテムをボードに戻す
+  */
+  async unarchiveProjectItem(projectId: string, itemId: string): Promise<void> {
+    const result = await this.executeGraphql(MUTATION_UNARCHIVE_PROJECT_ITEM, { projectId, itemId })
+    if (!isTruthy(jsonField(jsonField(result, 'unarchiveProjectV2Item'), 'item'))) throw new GitHubAPIError('failed to unarchive the project item')
+  }
+
+  /**
   プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
   */
   async deleteProjectItem(projectId: string, itemId: string): Promise<string> {
@@ -258,6 +275,14 @@ export class ProjectsApi extends ReposApi {
   Issue から直接引くので、全アイテムの走査は要らない。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
   */
   async getItemIdByIssue(projectId: string, owner: string, repository: string, issueNumber: number): Promise<string | undefined> {
+    const item = await this.getIssueProjectItem(projectId, owner, repository, issueNumber)
+    return item?.id
+  }
+
+  /**
+  getItemIdByIssue と同じ引き方で、アイテムの ID とアーカイブ済みかを取る
+  */
+  async getIssueProjectItem(projectId: string, owner: string, repository: string, issueNumber: number): Promise<IssueProjectItem | undefined> {
     const result = await this.executeGraphql(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
     const repositoryNode = jsonField(result, 'repository')
     if (!isTruthy(repositoryNode)) return undefined
@@ -266,7 +291,8 @@ export class ProjectsApi extends ReposApi {
 
     const projectItems = truthyNodes(jsonField(issue, 'projectItems'))
     for (const item of projectItems) {
-      if (jsonField(jsonField(item, 'project'), 'id') === projectId) return requireString(jsonField(item, 'id'), 'projectItems.nodes.id')
+      if (jsonField(jsonField(item, 'project'), 'id') !== projectId) continue
+      return { id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'), isArchived: jsonField(item, 'isArchived') === true }
     }
     return undefined
   }

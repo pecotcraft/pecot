@@ -10,10 +10,12 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio'
 
 import { diffGenerated, formatStale } from '../../../../libs/interface-spec/src/domain/diff.js'
 import { generatedFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import type { GeneratedFile } from '../../../../libs/interface-spec/src/domain/schema.js'
+import type { GeneratedFile, Names } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
 import { createMcpServer } from '../src/mcp/server.js'
 import { allTools } from '../src/mcp/tools/index.js'
+import { TOOL_NAME_SEPARATOR, TOOL_SUBJECTS, TOOL_VERBS } from '../src/mcp/tool-names.js'
+import type { ToolNameWord } from '../src/mcp/tool-names.js'
 
 export const GENERATED_PATH = 'plugins/pecot-visual/interface/generated.json'
 const WRITE_COMMAND = 'pnpm --dir plugins/pecot-visual/cli exec tsx scripts/export-interface.ts --write'
@@ -63,6 +65,15 @@ function normalize(value: unknown): unknown {
   )
 }
 
+function wordsOf(words: readonly ToolNameWord[]): Names['positions'][number] {
+  return words.map(({ word, meaning }) => ({ word, meaning }))
+}
+
+// ツール名の語彙（`<対象>_<動詞>` の 2 語）を names の形にする。
+export function exportNames(): Names {
+  return { separator: TOOL_NAME_SEPARATOR, positions: [wordsOf(TOOL_SUBJECTS), wordsOf(TOOL_VERBS)], rest: false }
+}
+
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- SDK の Tool は mutable
 export function buildGenerated(tools: readonly Tool[]): GeneratedFile {
   const entries = tools.map(tool => ({
@@ -78,7 +89,7 @@ export function buildGenerated(tools: readonly Tool[]): GeneratedFile {
       ...(tool.annotations !== undefined && { annotations: tool.annotations }),
     },
   })).toSorted((left, right) => compareText(left.id, right.id))
-  return generatedFileSchema.parse(normalize({ format: 1, plugin: 'pecot-visual', prefix: 'PV', entries }))
+  return generatedFileSchema.parse(normalize({ format: 1, plugin: 'pecot-visual', prefix: 'PV', names: exportNames(), entries }))
 }
 
 export function serialize(file: unknown): string {
