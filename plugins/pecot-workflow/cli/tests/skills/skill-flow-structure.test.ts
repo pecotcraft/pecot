@@ -341,4 +341,15 @@ describe('w-issueize の前提の表の読み方', () => {
     expect(body).toContain('「前提が無い」と読む')
     expect(body).toContain('文から前提を読まない')
   })
+
+  it('reason は、表の理由の文をそのまま写し、言い換えさせない', () => {
+    const step = sectionBody(text, titleIndex(stepHeadings(text), 'Issueとして作成'))
+    expect(step).toContain('そのまま写した `reason`')
+    expect(step).toContain('言い換えない')
+    expect(step).not.toContain('1 行で写した')
+    // 例の表の理由と、例の reason が同じ文
+    const reason = /reason: "(.+)"/u.exec(step)?.[1]
+    expect(reason).toBeDefined()
+    expect(step).toContain(`| マージを待つ | ${reason ?? ''} |`)
+  })
 })
