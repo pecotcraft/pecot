@@ -14,6 +14,7 @@ import {
   formatReviewThreadsMarkdown,
   hasIssueReference,
   isReleasePullRequest,
+  pickLowerPullRequest,
   SCREENSHOT_MISSING_ERROR,
   hasStashEntries,
   hasStatusChanges,
@@ -365,18 +366,18 @@ describe('decidePullRequestBase', () => {
     { name: '記録が無い', reading: NO_RECORD },
     { name: '開発ブランチからの着手の記録', reading: DEVELOPMENT_RECORD },
   ])('$name とき、渡された base をそのまま使い、スタックに登録しない', ({ reading }) => {
-    expect(decide(reading, 'develop')).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: undefined })
+    expect(decide(reading, 'develop')).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: undefined, isLowerMerged: false })
   })
 
   it('積んだ記録があり下の段の PR が開いているとき、下の段のブランチを base にしてその PR のスタックに登録する', () => {
-    expect(decide(STACKED, 'feat/a/11', lower('OPEN'))).toEqual({ kind: 'use', base: 'feat/a/11', stackOn: 21, stackedBase: 'feat/a/11' })
+    expect(decide(STACKED, 'feat/a/11', lower('OPEN'))).toEqual({ kind: 'use', base: 'feat/a/11', stackOn: 21, stackedBase: 'feat/a/11', isLowerMerged: false })
   })
 
   it.for([
     { name: '記録の base', base: 'feat/a/11' },
     { name: '開発ブランチ', base: 'develop' },
   ])('下の段の PR がマージ済みで $name を渡したとき、開発ブランチを base にしてスタックに登録しない', ({ base }) => {
-    expect(decide(STACKED, base, lower('MERGED'))).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: 'feat/a/11' })
+    expect(decide(STACKED, base, lower('MERGED'))).toEqual({ kind: 'use', base: 'develop', stackOn: undefined, stackedBase: 'feat/a/11', isLowerMerged: true })
   })
 
   it.for([
@@ -395,7 +396,27 @@ describe('decidePullRequestBase', () => {
   })
 
   it('記録の base でも開発ブランチでもない base は、そのまま返して内容の検証に任せる', () => {
-    expect(decide(STACKED, 'main', lower('OPEN'))).toEqual({ kind: 'use', base: 'main', stackOn: undefined, stackedBase: 'feat/a/11' })
+    expect(decide(STACKED, 'main', lower('OPEN'))).toEqual({ kind: 'use', base: 'main', stackOn: undefined, stackedBase: 'feat/a/11', isLowerMerged: false })
+  })
+})
+
+// 下の段のブランチの PR。番号と状態と fork かを変える
+function pullRequestIn(number: number, state: PullRequestReadout['state'], isCrossRepository = false): PullRequestReadout {
+  return { ...lower(state), number, isCrossRepository }
+}
+
+describe('pickLowerPullRequest', () => {
+  it.for([
+    { name: '閉じた PR が新しく、マージ済みの PR が古い', pullRequests: [pullRequestIn(30, 'CLOSED'), pullRequestIn(21, 'MERGED')], expected: 21 },
+    { name: '開いた PR が閉じた PR とマージ済みの PR より古い', pullRequests: [pullRequestIn(31, 'CLOSED'), pullRequestIn(30, 'MERGED'), pullRequestIn(21, 'OPEN')], expected: 21 },
+    { name: '閉じた PR しか無い', pullRequests: [pullRequestIn(31, 'CLOSED'), pullRequestIn(30, 'CLOSED')], expected: 31 },
+    { name: 'fork の開いた PR と、自分のリポのマージ済みの PR がある', pullRequests: [pullRequestIn(40, 'OPEN', true), pullRequestIn(21, 'MERGED')], expected: 21 },
+  ])('$name とき、開いている・マージ済み・閉じた の順に選ぶ', ({ pullRequests, expected }) => {
+    expect(pickLowerPullRequest(pullRequests)?.number).toBe(expected)
+  })
+
+  it('fork の PR しか無いとき、undefined を返す', () => {
+    expect(pickLowerPullRequest([pullRequestIn(40, 'OPEN', true)])).toBeUndefined()
   })
 })
 

@@ -962,6 +962,15 @@ describe('getIssueBlockingReferences', () => {
     expect(await rejection(client.getIssueBlockingReferences('acme', 'demo', 7))).toBeInstanceOf(GitHubNotFoundError)
   })
 
+  it.for([
+    { name: 'Issue', data: { repository: { issue: JSON_NULL } }, path: ['repository', 'issue'], message: 'Issue not found: acme/demo/7' },
+    { name: 'リポジトリ', data: { repository: JSON_NULL }, path: ['repository'], message: 'repository not found: acme/demo' },
+  ])('GitHub が $name を NOT_FOUND の errors で返すと、GitHubNotFoundError', async (row) => {
+    const errors = [{ type: 'NOT_FOUND', path: row.path, message: 'Could not resolve' }]
+    const { client } = await startClient([{ match: { operation: 'GetIssueBlockingReferences' }, respond: { status: 200, body: { data: row.data, errors } }, times: 1 }])
+    expect(await rejection(client.getIssueBlockingReferences('acme', 'demo', 7))).toMatchObject(failure(GitHubNotFoundError, row.message))
+  })
+
   it('依存関係に対応しない GHES は DependenciesUnsupportedError', async () => {
     const { client } = await startClient([graphqlError('GetIssueBlockingReferences', 'Field \'blocking\' doesn\'t exist on type \'Issue\'')])
     expect(await rejection(client.getIssueBlockingReferences('acme', 'demo', 7))).toBeInstanceOf(DependenciesUnsupportedError)

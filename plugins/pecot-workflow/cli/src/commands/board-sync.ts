@@ -3,21 +3,17 @@
 import path from 'node:path'
 import { z } from 'zod'
 
-import type { MissingValue } from '../domain/board-move.js'
 import { homeRepositoryOf } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
-import type { BoardItem, BoardProgress } from '../domain/format.js'
-import { describeReadiness, displayReference } from '../domain/readiness.js'
 import { loadActiveConfig, listProjectConfigNames, loadConfig, projectsDirectory } from '../infra/config-store.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
 import type { GraphqlRateLimit } from '../infra/github/repos.js'
-import { boardMoveOf, judgeBoard, missingWarning, SYNCED_COLUMNS } from './board-judgment.js'
+import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
+import type { BoardContext } from './board-judgment.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
 import { makeClient } from './github-client.js'
-import { applyBoardMove, planBoardMove } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { readBoard } from './board-view.js'
@@ -32,9 +28,10 @@ function unsupportedWarning(out: Readonly<Output>): void {
 対象の Issue の前提と着手の跡を読み、判定に合わせて列と札を直す。dryRun は同じ文を予定の行で出し、書かない。
 書き込みの失敗は warning にして続け、失敗した Issue の数を返す
 */
-async function syncBoard(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], progress: ReadonlyMap<string, BoardProgress>, isDryRun: boolean): Promise<number> {
+async function syncBoard(context: Readonly<BoardContext>, read: Readonly<BoardRead>, isDryRun: boolean): Promise<number> {
+  const { out, client, config } = context
   // 着手の跡は一覧に無いので、info と違い、一覧の値だけでは判定しない。Ready で前提 0 件なら動かさないと決まるので読まない
-  const judged = await judgeBoard(client, config, items, progress, {
+  const judged = await judgeBoard(client, config, read.items, read.progress, {
     columns: SYNCED_COLUMNS,
     withoutRead: (target, known) => (target.item.workflow === 'Ready' && known?.blockedBy === 0 ? 'skip' : undefined),
   })
@@ -42,29 +39,7 @@ async function syncBoard(out: Readonly<Output>, client: GitHubClient, config: Pr
     unsupportedWarning(out)
     return 0
   }
-  const home = homeRepositoryOf(config)
-  const missing = new Set<MissingValue>()
-  let failures = 0
-  for (const { target, result } of judged) {
-    if (result.kind === 'unreadable') {
-      out.warning(`could not judge ${displayReference(target.ref, home)}: ${result.reason.replaceAll(/\s+/gu, ' ')}`)
-      continue
-    }
-    const { readiness } = result
-    const move = boardMoveOf(config, target, result)
-    if (readiness === undefined || move === undefined) continue
-    for (const value of move.missing) missing.add(value)
-    const text = describeReadiness(readiness, result.prerequisites, target.ref.repository)
-    const destination = { ref: target.ref, home }
-    const itemId = target.item.id
-    if (isDryRun) planBoardMove(out, destination, move, text)
-    else if (typeof itemId === 'string') {
-      const applied = await applyBoardMove(out, client, config, itemId, destination, move, text)
-      if (applied.hasFailed) failures += 1
-    }
-  }
-  if (missing.size > 0) out.warning(missingWarning(missing))
-  return failures
+  return await applyJudgedMoves(context, judged, isDryRun)
 }
 
 function availableNames(): string {
@@ -124,7 +99,7 @@ const boardSyncCommand = defineCommand({
       return failApi(out, 'read project board', error)
     }
     if (read.isLegacy) unsupportedWarning(out)
-    const failures = read.isLegacy ? 0 : await syncBoard(out, client, config, read.items, read.progress, input.dry_run)
+    const failures = read.isLegacy ? 0 : await syncBoard({ out, client, config, home: homeRepositoryOf(config) }, read, input.dry_run)
     reportPoints(out, before, await client.getGraphqlRateLimit())
     if (failures === 0) return 0
     out.error(failureMessage(failures))

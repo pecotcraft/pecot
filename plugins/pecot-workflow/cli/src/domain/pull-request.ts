@@ -155,6 +155,10 @@ export interface PullRequestBaseUse {
   内容の検証（validatePullRequestContent）に渡す記録の base
   */
   readonly stackedBase: string | undefined
+  /**
+  下の段の PR がマージ済みか。題の scope を記録のコミットから比べるのは、マージ済みのときだけ
+  */
+  readonly isLowerMerged: boolean
 }
 
 export type PullRequestBaseDecision = PullRequestBaseStop | PullRequestBaseUse
@@ -166,14 +170,24 @@ base の記録と下の段の PR の状態から、PR を作る base とスタ�
 export function decidePullRequestBase(input: Readonly<PullRequestBaseInput>): PullRequestBaseDecision {
   const { reading, base, developBranch } = input
   if (reading.kind === 'malformed') return { kind: 'stop', reason: 'malformed', content: reading.content }
-  if (reading.kind === 'development') return { kind: 'use', base, stackOn: undefined, stackedBase: undefined }
+  if (reading.kind === 'development') return { kind: 'use', base, stackOn: undefined, stackedBase: undefined, isLowerMerged: false }
   const { branch } = reading.record
   const lower = input.lowerPullRequest
   if (lower === undefined || lower.state === 'CLOSED') return { kind: 'stop', reason: 'no-open-pr', branch }
   const isKnownBase = base === branch || base === developBranch
-  if (lower.state === 'MERGED') return { kind: 'use', base: isKnownBase ? developBranch : base, stackOn: undefined, stackedBase: branch }
+  if (lower.state === 'MERGED') return { kind: 'use', base: isKnownBase ? developBranch : base, stackOn: undefined, stackedBase: branch, isLowerMerged: true }
   if (base === developBranch) return { kind: 'stop', reason: 'lower-open', branch, pullRequest: lower.number, base }
-  return { kind: 'use', base, stackOn: base === branch ? lower.number : undefined, stackedBase: branch }
+  return { kind: 'use', base, stackOn: base === branch ? lower.number : undefined, stackedBase: branch, isLowerMerged: false }
+}
+
+const LOWER_STATE_ORDER: readonly PullRequestReadout['state'][] = ['OPEN', 'MERGED', 'CLOSED']
+
+/**
+下の段のブランチを head に持つ PR から、base を決める 1 本を選ぶ。fork でないもののうち、開いている・マージ済み・閉じた の順（同じ状態なら渡した順の先頭）
+*/
+export function pickLowerPullRequest(pullRequests: readonly PullRequestReadout[]): PullRequestReadout | undefined {
+  const own = pullRequests.filter(pullRequest => !pullRequest.isCrossRepository)
+  return LOWER_STATE_ORDER.map(state => own.find(pullRequest => pullRequest.state === state)).find(found => found !== undefined)
 }
 
 /**

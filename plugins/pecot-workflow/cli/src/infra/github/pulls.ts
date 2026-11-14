@@ -84,6 +84,15 @@ function readStack(value: JsonValue | undefined): PullRequestStack {
   }
 }
 
+// 番号の型を問わずに、その PR を含むか。数でない番号でも含めば、readStack が形の誤りとして止める
+function hasPullRequestNumber(stack: JsonValue, pullRequestNumber: number): boolean {
+  const pullRequests = jsonField(stack, 'pull_requests')
+  return isJsonArray(pullRequests) && pullRequests.some((pullRequest) => {
+    const number = jsonField(pullRequest, 'number')
+    return number === pullRequestNumber || number === String(pullRequestNumber)
+  })
+}
+
 export interface PullRequestWithReviews extends PullRequestBase {
   readonly reviews: readonly PullRequestReview[]
   readonly review_threads: readonly ReviewThread[]
@@ -227,7 +236,9 @@ export class PullsApi extends IssuesApi {
       apiVersion: STACKS_API_VERSION,
     })
     if (!isJsonArray(stacks)) throwMalformed('stacks')
-    return stacks.map(stack => readStack(stack)).find(stack => stack.pullRequests.includes(pullRequestNumber))
+    // 関係の無いスタックの形の誤りで登録を止めないよう、探している PR を含むものだけ厳しく読む
+    const found = stacks.find(stack => hasPullRequestNumber(stack, pullRequestNumber))
+    return found === undefined ? undefined : readStack(found)
   }
 
   /**

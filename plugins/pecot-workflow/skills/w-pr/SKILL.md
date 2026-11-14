@@ -44,6 +44,7 @@ feature PR の `base` は `prepare: true` の呼び出しが config 由来で自
 積んで着手したブランチでは、開発ブランチではなく、下の段のブランチが入る。これも書き換えない。
 
 `pr_create` の結果に `exit code: 3` の行が出て止まったら、出た指摘を直して呼び直す。
+`base branch must be ... while its PR #N is open` が出たときは、`base` を、示されたブランチに戻して呼び直す。
 
 `pr_create` の結果に `exit code: 2` の行と `has no open PR` が出て止まったら、下の段の PR が開いていない。
 出力を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
@@ -52,6 +53,9 @@ PR を作った後は、出力を見て利用者に伝える。
 
 - `added: PR ... to stack` があれば、PR がスタックに入ったと伝える
 - `moved:` の行があれば、この PR を待っていた Issue が動いたと伝える。動いた Issue と列も添える
+
+結果に `warning:` の行が出ても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。
+スタックを手で作らず、`pr_create` を呼び直さない。PR は作られている。
 
 本文に、上下の PR やスタックの中の位置を書かない。GitHub の画面が示す情報だからだ。
 

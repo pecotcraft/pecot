@@ -10,6 +10,7 @@ import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/env
 import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
 import {
+  GIT_TIMED_OUT,
   GitCommandError,
   gitCurrentBranch,
   gitRemoteUrl,
@@ -57,6 +58,23 @@ describe('runGit', () => {
     expect(stripped).toContain('PECOT_TEST_KEEP=1')
 
     expect(runGit(['x']).stdout).toContain('GIT_DIR=/elsewhere/.git')
+  })
+
+  it('env を渡すと、今の環境変数に重ねて渡す', () => {
+    const bin = makeTemporaryDirectory()
+    installFakeExecutable(bin, 'git', 'env\n')
+    prependToPath(bin)
+    setEnvironment({ PECOT_TEST_KEEP: '1' })
+    const shown = runGit(['x'], { env: { GIT_TERMINAL_PROMPT: '0' } }).stdout
+    expect(shown).toMatch(/^GIT_TERMINAL_PROMPT=0$/mu)
+    expect(shown).toContain('PECOT_TEST_KEEP=1')
+  })
+
+  it('時間切れを過ぎると止めて、終了コード GIT_TIMED_OUT の結果を返す', () => {
+    const bin = makeTemporaryDirectory()
+    installFakeExecutable(bin, 'git', 'exec sleep 5\n')
+    prependToPath(bin)
+    expect(runGit(['x'], { timeoutMilliseconds: 200 })).toEqual({ exitCode: GIT_TIMED_OUT, stdout: '', stderr: '' })
   })
 
   it('改行は \\n に揃える（universal newlines）', () => {

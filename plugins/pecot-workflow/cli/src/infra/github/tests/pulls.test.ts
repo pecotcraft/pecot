@@ -369,6 +369,16 @@ describe('getStackOfPullRequest', () => {
     expect(await client.getStackOfPullRequest('owner', 'repo', 11)).toBeUndefined()
   })
 
+  it('その PR を含まないスタックの形が誤っていても、飛ばして含むスタックを返す', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: [{ number: 'x', pull_requests: 'broken' }, { pull_requests: [{ number: 20 }] }, stackOf(3, [11, 12])] })])
+    expect(await client.getStackOfPullRequest('owner', 'repo', 11)).toEqual({ number: 3, pullRequests: [11, 12] })
+  })
+
+  it('その PR を含むスタックの番号が数でなければ GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: [{ number: 'x', pull_requests: [{ number: 11 }] }] })])
+    expect(await rejection(client.getStackOfPullRequest('owner', 'repo', 11))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: stack.number'))
+  })
+
   it('応答が配列でなければ GitHubAPIError', async () => {
     const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: { number: 3 } })])
     expect(await rejection(client.getStackOfPullRequest('owner', 'repo', 11))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: stacks'))

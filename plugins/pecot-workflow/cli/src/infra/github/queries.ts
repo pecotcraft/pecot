@@ -1037,3 +1037,34 @@ export const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $rep
 }
 
 ${BLOCKED_BY_REFERENCE_FIELDS}`
+
+// Issue 1 件の、指定のプロジェクトの項目と進行の列。ボード全体を読まずに、列を動かす対象を読む
+export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $number: Int!, $workflowFieldName: String!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number
+      title
+      state
+      url
+      repository {
+        owner {
+          login
+        }
+        name
+      }
+      projectItems(first: 20, includeArchived: false) {
+        nodes {
+          id
+          project {
+            id
+          }
+          workflow: fieldValueByName(name: $workflowFieldName) {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}`

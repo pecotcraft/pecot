@@ -139,6 +139,11 @@ function isBlockingPath(path: readonly JsonValue[]): boolean {
   return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blocking'
 }
 
+// GitHub は無い Issue・リポを、data の null と、その道筋の NOT_FOUND の errors で返す。null を見て GitHubNotFoundError にする
+function isIssueOrRepositoryPath(path: readonly JsonValue[]): boolean {
+  return path[0] === 'repository' && (path.length === 1 || (path[1] === 'issue' && path.length === 2))
+}
+
 // blockedBy（または blocking）の connection を参照にする。件数が足りないのは呼ぶ側が見るので、ここでは失敗にしない
 function readBlockedByReferences(connection: JsonValue | undefined, field: 'blockedBy' | 'blocking' = 'blockedBy'): BlockedByReferences {
   if (!isTruthy(connection)) return { kind: 'read-failed', reason: `${field} is null` }
@@ -400,13 +405,14 @@ export class IssuesApi extends ProjectsApi {
   async getIssueBlockingReferences(owner: string, repository: string, number: number, blockingFirst = MAX_BLOCKED_BY): Promise<BlockedByReferences> {
     let outcome: GraphqlOutcome
     try {
-      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKING_REFERENCES, { owner, repo: repository, number, blockingFirst }, isBlockingPath)
+      const variables = { owner, repo: repository, number, blockingFirst }
+      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKING_REFERENCES, variables, path => isBlockingPath(path) || isIssueOrRepositoryPath(path))
     }
     catch (error: unknown) {
       throw asDependenciesError(error)
     }
     const issue = issueNode(outcome.data, owner, repository, number)
-    const messages = outcome.errors.map(error => stringOrEmpty(jsonField(error, 'message')))
+    const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')))
     return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking')
   }
 
