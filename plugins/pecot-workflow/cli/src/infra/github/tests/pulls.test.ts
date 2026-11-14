@@ -343,3 +343,102 @@ describe('listPullRequestsByHead', () => {
     expect(await rejection(client.listPullRequestsByHead('owner', 'repo', 'feat/issue-9'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: pullRequest.state (DRAFT)'))
   })
 })
+
+const STACK_VERSION = '2026-03-10'
+
+function stackOf(number: number, pullRequests: readonly number[]): Readonly<Record<string, unknown>> {
+  return { id: 900 + number, number, open: true, base: { ref: 'main' }, pull_requests: pullRequests.map(pr => ({ number: pr, state: 'open', head: { ref: `feat/x/${String(pr)}` } })) }
+}
+
+describe('getStackOfPullRequest', () => {
+  it('pull_request で絞って GET し、その PR が入っているスタックの番号と、下からの PR 番号を返す', async () => {
+    const { client, server } = await startClient([
+      { match: { method: 'GET', path: '/repos/owner/repo/stacks', query: { pull_request: '11' }, apiVersion: STACK_VERSION }, respond: { status: 200, body: [stackOf(3, [11, 12])] }, times: 1 },
+    ])
+    expect(await client.getStackOfPullRequest('owner', 'repo', 11)).toEqual({ number: 3, pullRequests: [11, 12] })
+    expect(restRequests(server).map(({ method, path, query }) => ({ method, path, query }))).toEqual([{ method: 'GET', path: '/repos/owner/repo/stacks', query: { pull_request: '11' } }])
+  })
+
+  it('空の配列なら undefined', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: [] })])
+    expect(await client.getStackOfPullRequest('owner', 'repo', 11)).toBeUndefined()
+  })
+
+  it('その PR を含まないスタックしか無ければ undefined', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: [stackOf(3, [20, 21])] })])
+    expect(await client.getStackOfPullRequest('owner', 'repo', 11)).toBeUndefined()
+  })
+
+  it('応答が配列でなければ GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: { number: 3 } })])
+    expect(await rejection(client.getStackOfPullRequest('owner', 'repo', 11))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: stacks'))
+  })
+
+  it('pull_requests の番号が数でなければ GitHubAPIError', async () => {
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 200, body: [{ number: 3, pull_requests: [{ number: '11' }] }] })])
+    expect(await rejection(client.getStackOfPullRequest('owner', 'repo', 11))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: stack.pull_requests.number'))
+  })
+
+  it('404（スタックの機能が無いリポ）は GitHubNotFoundError', async () => {
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/stacks', { status: 404, text: 'Not Found' })])
+    expect(await rejection(client.getStackOfPullRequest('owner', 'repo', 11))).toMatchObject(
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/stacks?pull_request=11`, { statusCode: 404 }),
+    )
+  })
+})
+
+describe('createStack', () => {
+  it('PR 番号を渡した順（下から）のまま POST し、できたスタックを返す', async () => {
+    const { client, server } = await startClient([
+      { match: { method: 'POST', path: '/repos/owner/repo/stacks', apiVersion: STACK_VERSION }, respond: { status: 201, body: stackOf(4, [11, 12]) }, times: 1 },
+    ])
+    expect(await client.createStack('owner', 'repo', [11, 12])).toEqual({ number: 4, pullRequests: [11, 12] })
+    expect(restRequests(server).map(request => JSON.stringify(request.body))).toEqual([JSON.stringify({ pull_requests: [11, 12] })])
+  })
+
+  it('404 は GitHubNotFoundError', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/stacks', { status: 404, text: 'Not Found' })])
+    expect(await rejection(client.createStack('owner', 'repo', [11, 12]))).toMatchObject(
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/stacks`, { statusCode: 404 }),
+    )
+  })
+
+  it('422（base が下の段の head と合わない）は GitHubAPIError', async () => {
+    const text = 'Validation Failed'
+    const { client } = await startClient([restResponse('POST', '/repos/owner/repo/stacks', { status: 422, text })])
+    expect(await rejection(client.createStack('owner', 'repo', [11, 12]))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: text }))
+  })
+})
+
+describe('addToStack', () => {
+  it('スタックの番号のパスへ、PR 番号を POST し、足した後のスタックを返す', async () => {
+    const { client, server } = await startClient([
+      { match: { method: 'POST', path: '/repos/owner/repo/stacks/4/add', apiVersion: STACK_VERSION }, respond: { status: 200, body: stackOf(4, [11, 12, 13]) }, times: 1 },
+    ])
+    expect(await client.addToStack('owner', 'repo', 4, [13])).toEqual({ number: 4, pullRequests: [11, 12, 13] })
+    expect(restRequests(server).map(request => JSON.stringify(request.body))).toEqual([JSON.stringify({ pull_requests: [13] })])
+  })
+
+  it('404 は GitHubNotFoundError', async () => {
+    const { client, server } = await startClient([restResponse('POST', '/repos/owner/repo/stacks/4/add', { status: 404, text: 'Not Found' })])
+    expect(await rejection(client.addToStack('owner', 'repo', 4, [13]))).toMatchObject(
+      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/stacks/4/add`, { statusCode: 404 }),
+    )
+  })
+
+  it.each([409, 422])('%i は GitHubAPIError', async (status) => {
+    const { client } = await startClient([restResponse('POST', '/repos/owner/repo/stacks/4/add', { status, text: 'conflict' })])
+    expect(await rejection(client.addToStack('owner', 'repo', 4, [13]))).toMatchObject(
+      failure(GitHubAPIError, `GitHub API error: ${String(status)}`, { statusCode: status, responseBody: 'conflict' }),
+    )
+  })
+})
+
+describe('API の版', () => {
+  it('版を渡さない要求は、今までどおり 2022-11-28 を送る', async () => {
+    const { client } = await startClient([
+      { match: { method: 'PUT', path: '/repos/owner/repo/pulls/42/merge', apiVersion: '2022-11-28' }, respond: { status: 200, body: { merged: true } }, times: 1 },
+    ])
+    expect(await client.mergePullRequest('owner', 'repo', 42)).toEqual({ merged: true })
+  })
+})

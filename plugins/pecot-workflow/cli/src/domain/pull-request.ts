@@ -1,9 +1,11 @@
 // PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr read` の Markdown の整形、preflight の警告の判定。
 // 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
 
+import type { PullRequestReadout } from './issue-readout.js'
 import { parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
 import { hasSummaryImage, validateBodyStyle, validateHeadingSummaries, validateSections } from './sections.js'
 import type { SectionHeading } from './sections.js'
+import type { BaseReading } from './state.js'
 
 // Issue 参照（`#N`、URL 内のフラグメントは除く）。`owner/repo#N` の形も受ける
 const ISSUE_REFERENCE_PATTERN = /(?:^|[^/])#\d+|[\w-]+\/[\w.-]+#\d+/u
@@ -77,6 +79,10 @@ export interface PullRequestContentOptions {
   テンプレートから取り出した必須の節。空なら節の検証をしない
   */
   readonly requiredSections: readonly SectionHeading[]
+  /**
+  積んで着手した記録の base（下の段のブランチ）。開発ブランチのほか、この base も通す
+  */
+  readonly stackedBase?: string | undefined
 }
 
 /**
@@ -109,9 +115,82 @@ export function validatePullRequestContent(options: Readonly<PullRequestContentO
     if (releaseBranch !== undefined && releaseBranch !== '' && base !== releaseBranch) errors.push(`release PR base branch must be ${releaseBranch} (given: ${base})`)
   }
   else if (developBranch !== undefined && developBranch !== '' && base !== developBranch) {
-    errors.push(`base branch must be ${developBranch} (given: ${base})`)
+    const { stackedBase } = options
+    const isStacked = stackedBase !== undefined && stackedBase !== '' && stackedBase !== developBranch
+    if (!isStacked) errors.push(`base branch must be ${developBranch} (given: ${base})`)
+    else if (base !== stackedBase) errors.push(`base branch must be ${developBranch} or ${stackedBase} (given: ${base})`)
   }
   return errors
+}
+
+export interface PullRequestBaseInput {
+  readonly reading: BaseReading
+  /**
+  渡された base（テンプレートの base か --base）
+  */
+  readonly base: string
+  readonly developBranch: string
+  /**
+  下の段のブランチを head に持つ PR（pickBasePullRequest で選んだもの）。積んだ記録のときだけ見る
+  */
+  readonly lowerPullRequest?: Readonly<PullRequestReadout> | undefined
+}
+
+export type PullRequestBaseStop
+  = | { readonly kind: 'stop', readonly reason: 'malformed', readonly content: string }
+    | { readonly kind: 'stop', readonly reason: 'no-open-pr', readonly branch: string }
+    | { readonly kind: 'stop', readonly reason: 'lower-open', readonly branch: string, readonly pullRequest: number, readonly base: string }
+
+export interface PullRequestBaseUse {
+  readonly kind: 'use'
+  /**
+  PR を作る base
+  */
+  readonly base: string
+  /**
+  新しい PR と一緒にスタックへ登録する、下の段の PR の番号。登録しなければ undefined
+  */
+  readonly stackOn: number | undefined
+  /**
+  内容の検証（validatePullRequestContent）に渡す記録の base
+  */
+  readonly stackedBase: string | undefined
+}
+
+export type PullRequestBaseDecision = PullRequestBaseStop | PullRequestBaseUse
+
+/**
+base の記録と下の段の PR の状態から、PR を作る base とスタックへの登録を決める。
+記録の base でも開発ブランチでもない base は、そのまま返して内容の検証で落とす
+*/
+export function decidePullRequestBase(input: Readonly<PullRequestBaseInput>): PullRequestBaseDecision {
+  const { reading, base, developBranch } = input
+  if (reading.kind === 'malformed') return { kind: 'stop', reason: 'malformed', content: reading.content }
+  if (reading.kind === 'development') return { kind: 'use', base, stackOn: undefined, stackedBase: undefined }
+  const { branch } = reading.record
+  const lower = input.lowerPullRequest
+  if (lower === undefined || lower.state === 'CLOSED') return { kind: 'stop', reason: 'no-open-pr', branch }
+  const isKnownBase = base === branch || base === developBranch
+  if (lower.state === 'MERGED') return { kind: 'use', base: isKnownBase ? developBranch : base, stackOn: undefined, stackedBase: branch }
+  if (base === developBranch) return { kind: 'stop', reason: 'lower-open', branch, pullRequest: lower.number, base }
+  return { kind: 'use', base, stackOn: base === branch ? lower.number : undefined, stackedBase: branch }
+}
+
+/**
+止めた理由の文（`error: ` の前置きを含まない）。下の段の PR が無いときは、直し方の行を続ける
+*/
+export function describeBaseStop(stop: Readonly<PullRequestBaseStop>): readonly string[] {
+  switch (stop.reason) {
+    case 'malformed': {
+      return [`.pecot-base is malformed: ${stop.content}`]
+    }
+    case 'no-open-pr': {
+      return [`base branch ${stop.branch} has no open PR`, `reopen the PR of ${stop.branch}, or create a new one, then run pr create again`]
+    }
+    case 'lower-open': {
+      return [`base branch must be ${stop.branch} while its PR #${String(stop.pullRequest)} is open (given: ${stop.base})`]
+    }
+  }
 }
 
 // `pr read` の整形
