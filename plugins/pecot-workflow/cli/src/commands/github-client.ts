@@ -3,6 +3,8 @@ import type { ProjectConfig } from '../domain/config.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { GitHubClient } from '../infra/github/index.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
+import { stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import type { Output } from './output.js'
 
 /**
@@ -21,15 +23,14 @@ export function apiFailureMessage(error: unknown): string {
 }
 
 /**
-クライアントを作る。認証などの失敗は error の行にして undefined を返すので、呼び出し側は終了コード 1 で終わる
+クライアントを作る。認証などの失敗は error の行にして終了コード 1 で止める
 */
-export function makeClient(out: Readonly<Output>, config: Readonly<ProjectConfig>): GitHubClient | undefined {
+export function makeClient(out: Readonly<Output>, config: Readonly<ProjectConfig>): GitHubClient {
   try {
     return createGitHubClient(out, config.host)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    out.error(error.message)
-    return undefined
+    return stopWith(out, error.message, kindOfFailure(error))
   }
 }

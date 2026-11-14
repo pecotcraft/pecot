@@ -21,11 +21,13 @@ import {
 import {
   drawioUrlDefaultDependencies,
   errorData as drawioUrlErrorData,
+  errorToReason as drawioUrlErrorToReason,
   executeDrawioUrl,
   toExitCode as drawioUrlToExitCode,
   type DrawioUrlExecution,
 } from '../../commands/drawio/url.js'
 import { createDiagnostics } from '../../diagnostics.js'
+import { failureKindOf } from '../../domain/_shared/failure-kind.js'
 import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import { defaultIconRoot } from '../../infra/drawio/icons.js'
 import { parsePathArguments, toCallToolResult, type ToolResult } from '../result.js'
@@ -124,6 +126,7 @@ const handleDrawioCreate = async (
     return toCallToolResult({
       ok: false,
       exitCode: 2,
+      kind: 'invalid-option',
       artifacts: [],
       data: { event: 'drawio.url.error', reason: 'invalid-option', detail },
       message: `pecotv drawio url: ${detail}`,
@@ -164,6 +167,7 @@ const handleDrawioCreate = async (
     const result: ToolResult = {
       ok: false,
       exitCode: drawioUrlToExitCode(error),
+      kind: failureKindOf(drawioUrlErrorToReason(error)),
       artifacts: [],
       data,
       message: violationCount === undefined ? `pecotv drawio url: ${formatError(error)}` : textViolationMessage(violationCount),
@@ -233,11 +237,13 @@ drawio_export の失敗を CLI の `--json` エラーと同形の ToolResult に
 */
 function drawioExportFailure(error: unknown): ToolResult {
   const detail = formatError(error)
+  const reason = drawioExportErrorToReason(error)
   return {
     ok: false,
     exitCode: drawioExportToExitCode(error),
+    kind: failureKindOf(reason),
     artifacts: [],
-    data: { event: 'drawio.export.error', reason: drawioExportErrorToReason(error), detail },
+    data: { event: 'drawio.export.error', reason, detail },
     message: `pecotv drawio export: ${detail}`,
   }
 }

@@ -172,10 +172,12 @@ h ≥ 1 × 14.7 × 1.2 / 600 = 0.0294   → 余裕を見て h = 0.05
 ## エラー（`evidence.create.error`）
 
 実行失敗の応答は `ok: false` / `exitCode: 1` で返る。`data` は `{"event":"evidence.create.error","reason":"...","detail":"..."}` になる。
-絶対パス違反だけは別系統で、`exitCode: 2` かつ `data` は `{"invalidPaths":[...]}` のみ（`event` と `reason` を持たない）。
+絶対パス違反だけは別系統で、`exitCode: 2` かつ `kind` は `invalid-path` になる。
+`data` は `{"invalidPaths":[...]}` のみで、`event` と `reason` を持たない。
+下の表の名前は `kind` で読む。`data.reason` にも同じ値が入る。
 出力ファイルの保証は次節の `exitCode` 表にまとめている（`exitCode: 1` は `output-write-failed` かどうかで異なる）。
 
-| `reason` | 条件 | `exitCode` | 回復手順 |
+| `kind` | 条件 | `exitCode` | 回復手順 |
 |---|---|---|---|
 | `input-not-found` | `input_path` の仕様 JSON が読めない | 1 | 仕様 JSON を書き出したか確認し、`input_path` を絶対パスで組み直す |
 | `invalid-json` | 仕様 JSON の parse に失敗 | 1 | 書き出した JSON を読み直し、構文（末尾カンマ・引用符など）を直す |

@@ -17,17 +17,22 @@ describe('CommandExit', () => {
       interactive: false,
       run: async () => {
         await exitWith(0)
-        throw new CommandExit(2)
+        throw new CommandExit(2, 'invalid-input')
       },
     })
-    expect(await runDefinition(command, [], capture())).toBe(2)
+    const kinds: string[] = []
+    expect(await runDefinition(command, [], { ...capture(), failureKind: (kind) => {
+      kinds.push(kind)
+    } })).toBe(2)
+    expect(kinds).toEqual(['invalid-input'])
   })
 
   it('既存のエラーの型（PecotError・UsageError など）を継承しない', () => {
-    const exit = new CommandExit(1)
+    const exit = new CommandExit(1, 'other')
     expect(exit).toBeInstanceOf(BaseError)
     expect(exit).not.toBeInstanceOf(UsageError)
     expect(exit.exitCode).toBe(1)
+    expect(exit.kind).toBe('other')
   })
 
   it('CommandExit 以外の例外は握りつぶさずに伝える', async () => {

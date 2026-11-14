@@ -11,14 +11,14 @@ import { requireNumber } from '../infra/github/payload.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
+import { stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { makeClient } from './github-client.js'
 import { createIssue, putOnBoard } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { apiErrorDetail, isBodyUnchanged, loadTarget, settle, todayUtc, warnExtraTrackers } from './tracker-sync.js'
 import type { SyncApplyContext, SyncStages, TrackerSyncInput } from './tracker-sync.js'
-
-const FAILURE = 1
 
 interface FetchedAlerts {
   readonly alerts: ReadonlyMap<AlertKind, readonly Alert[]>
@@ -120,11 +120,10 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
 /**
 tracker sync の source security の本体。Tracker の open security alerts の一覧を書き直す
 */
-export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<number> {
+export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<0> {
   const out = createOutput(input.dry_run, io)
   const { config, owner, repository } = loadTarget(out, input.repo)
   const client = makeClient(out, config)
-  if (client === undefined) return FAILURE
 
   const sources: AlertSources = { scan: createScanAlertSource(client), dependabot: createDependabotSource(client) }
   const { alerts, failed, disabled } = await fetchOpenAlerts(out, sources, config.host, owner, repository)
@@ -136,8 +135,7 @@ export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: Com
   catch (error: unknown) {
     const text = apiErrorDetail(error)
     if (text === undefined) throw error
-    out.error(`could not list issues: ${text}`)
-    return FAILURE
+    return stopWith(out, `could not list issues: ${text}`, kindOfFailure(error))
   }
 
   const { tracker, others } = findTracker(issues, TRACKER_PATTERN)
@@ -149,8 +147,7 @@ export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: Com
   }
   catch (error: unknown) {
     if (!(error instanceof SecurityAlertError)) throw error
-    out.error(`${tracker === undefined ? 'Tracker' : `Tracker #${String(tracker.number)}`}: ${error.message}`)
-    return FAILURE
+    return stopWith(out, `${tracker === undefined ? 'Tracker' : `Tracker #${String(tracker.number)}`}: ${error.message}`, 'content-invalid')
   }
 
   const plan = planTracker(alerts, entries, failed, disabled)
@@ -162,6 +159,6 @@ export async function runSecuritySync(input: Readonly<TrackerSyncInput>, io: Com
   for (const operation of [...stages.create, ...stages.rewrite]) out.planned(operation)
 
   const failures = input.dry_run ? 0 : await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged })
-  if (failed.size > 0 || failures > 0) throw new CommandExit(FAILURE)
+  if (failed.size > 0 || failures > 0) throw new CommandExit(1, 'partial-failure')
   return 0
 }

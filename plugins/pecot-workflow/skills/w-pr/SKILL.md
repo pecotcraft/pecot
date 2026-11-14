@@ -18,7 +18,7 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 `pr_check` を `directory: "."` で呼ぶ。
 
-結果に `exit code: 1` か `exit code: 2` の行が出たら、結果を見て解決し、呼び直してから次へ進む。
+結果の `ok` が `false` なら、`kind`・`message`・`stderr` を見て解決し、呼び直してから次へ進む。`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が `stderr` に出る。
 
 ### Step 2: 変更内容の確認とコミット
 
@@ -43,18 +43,18 @@ feature PR の `base` は `prepare: true` の呼び出しが config 由来で自
 リポは `main`。自動設定された `base` を書き換えない。
 積んで着手したブランチでは、開発ブランチではなく、下の段のブランチが入る。これも書き換えない。
 
-`pr_create` の結果に `exit code: 3` の行が出て止まったら、出た指摘を直して呼び直す。
-`base branch must be ... while its PR #N is open` が出たときは、`base` を、示されたブランチに戻して呼び直す。
+`pr_create` の結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、`stderr` に出た指摘を直して呼び直す。
+`stderr` に `base branch must be ... while its PR #N is open` があるときは、`base` を、示されたブランチに戻して呼び直す。
 
-`pr_create` の結果に `exit code: 2` の行と `has no open PR` が出て止まったら、下の段の PR が開いていない。
-出力を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
+`kind` が `pr-state`（`exitCode` は 2）で、`stderr` に `has no open PR` があるときは、下の段の PR が開いていない。
+`stderr` を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
 
-PR を作った後は、出力を見て利用者に伝える。
+PR を作った後は、結果の `stderr` を見て利用者に伝える。
 
-- `added: PR ... to stack` があれば、PR がスタックに入ったと伝える
+- `added: PR ... to stack` の行があれば、PR がスタックに入ったと伝える
 - `moved:` の行があれば、この PR を待っていた Issue が動いたと伝える。動いた Issue と列も添える
 
-結果に `warning:` の行が出ても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。
+`stderr` に `warning:` の行があっても（`could not register stack`、待っている Issue の warning など）、利用者に示すだけにする。
 スタックを手で作らず、`pr_create` を呼び直さない。PR は作られている。
 
 本文に、上下の PR やスタックの中の位置を書かない。GitHub の画面が示す情報だからだ。

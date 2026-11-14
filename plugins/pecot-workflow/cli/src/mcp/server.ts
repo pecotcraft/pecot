@@ -15,18 +15,19 @@ import { COMMANDS } from '../commands/registry.js'
 import { findRenamedInput, renamedInputNote } from '../commands/renamed-commands.js'
 import type { CommandDefinition, PreparedCommand } from '../commands/registry.js'
 import { outputWidth } from '../commands/rich-panel.js'
+import { UsageError } from '../commands/usage-error.js'
 import { readVersion } from '../version.js'
-import { collectIo, toRejectedResult, toToolResult } from './result.js'
+import { collectIo, TOOL_OUTPUT_SCHEMA, toAbortedResult, toRejectedResult, toToolResult } from './result.js'
 
 export const MCP_SERVER_NAME = 'pecot-workflow'
 
 export interface McpServerOptions {
   /**
-  対象のリポを決められなかった理由。あるとき、どのツールの呼び出しもコマンドを呼ばず、この理由を失敗（exit code 1）で返す。tools/list は変わらない
+  対象のリポを決められなかった理由。あるとき、どのツールの呼び出しもコマンドを呼ばず、この理由を失敗（終了コード 1、kind は session-directory-unresolved）で返す。tools/list は変わらない
   */
   readonly unavailableReason?: string | undefined
   /**
-  プログラムの誤り（報告できる失敗でも使い方の誤りでもない例外）と、それまでに集めた出力を、切り分けのために伝える先。SDK は message だけの結果にする
+  プログラムの誤り（報告できる失敗でも使い方の誤りでもない例外）と、それまでに集めた出力を、切り分けのために伝える先。結果は kind が other の失敗にする
   */
   readonly reportUnexpected?: (error: unknown, collected: { readonly stdout: string, readonly stderr: string }) => void
 }
@@ -96,7 +97,11 @@ function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Prepara
 function unavailableResult(reason: string): CallToolResult {
   const collected = collectIo()
   createOutput(false, collected.io).error(reason)
-  return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr() })
+  return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'session-directory-unresolved' })
+}
+
+function unexpectedMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, options: Readonly<McpServerOptions>): Promise<CallToolResult> {
@@ -105,6 +110,7 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
   // interface-env: TERMINAL_WIDTH COLUMNS
   const width = outputWidth(process.env, undefined)
   let exitCode: number
+  let message: string | undefined
   try {
     resolveApiUrlOverride()
     const preparation = prepare(definition, raw)
@@ -117,15 +123,17 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     }
   }
   catch (error: unknown) {
+    // 使い方の誤りは枠で出すので、error の行の代わりに例外の文の 1 行目を message にする
+    if (error instanceof UsageError) message = error.message.split('\n', 1)[0]
     try {
       exitCode = exitCodeOfFailure(error, collected.io, width)
     }
     catch (error_: unknown) {
       options.reportUnexpected?.(error_, { stdout: collected.stdout(), stderr: collected.stderr() })
-      throw error_
+      return toToolResult({ exitCode: 1, stdout: collected.stdout(), stderr: collected.stderr(), kind: 'other', message: unexpectedMessage(error_) })
     }
   }
-  return toToolResult({ exitCode, stdout: collected.stdout(), stderr: collected.stderr() })
+  return toToolResult({ exitCode, stdout: collected.stdout(), stderr: collected.stderr(), kind: collected.kind(), message, resultLine: collected.resultLine() })
 }
 
 // コマンドは process.cwd()（起動のときに serve.ts が決めたセッションのディレクトリ）と .pecot/ の状態ファイルを読み書きするので、呼び出しは 1 件ずつ実行する。接続が複数あっても共有する
@@ -137,8 +145,8 @@ async function inSequence(signal: Readonly<AbortSignal>, task: () => Promise<Cal
   sequence.tail = turn.promise
   await previous
   try {
-    // 待っている間に中断（notifications/cancelled）か接続の切断があれば、本体を呼ばない。応答は届かないので中身は何でもよい
-    return signal.aborted ? toRejectedResult('cancelled') : await task()
+    // 待っている間に中断（notifications/cancelled）か接続の切断があれば、本体を呼ばない。応答は届かない
+    return signal.aborted ? toAbortedResult() : await task()
   }
   finally {
     turn.resolve(true)
@@ -153,7 +161,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,
-      { description: definition.description, inputSchema: passthroughSchema(definition) },
+      { description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: TOOL_OUTPUT_SCHEMA },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, async () => await invoke(definition, arguments_, options)),
     )
   }

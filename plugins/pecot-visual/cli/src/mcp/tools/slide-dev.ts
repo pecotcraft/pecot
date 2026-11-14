@@ -24,6 +24,7 @@ import {
   type EnsureThemeLinkedResult,
   type ThemeLinkContext,
 } from '../../commands/slidev-project/linked-theme.js'
+import { failureKindOf, type FailureReason } from '../../domain/_shared/failure-kind.js'
 import { pluginDependencyRoot } from '../../infra/_shared/dependency-root.js'
 import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import { devServerRegistry, type DevServerRegistry } from '../dev-server-registry.js'
@@ -88,7 +89,7 @@ const slideDevInput = z.object({
 talk-dir の不備 1 件。spawn 前に返すため、reason は起動失敗系と混在しない名前にする。
 */
 interface TalkDirectoryDefect {
-  readonly reason: string
+  readonly reason: FailureReason
   readonly detail: string
 }
 
@@ -148,6 +149,7 @@ function guardFailure(defect: Readonly<TalkDirectoryDefect>, directory: string, 
   return {
     ok: false,
     exitCode: DEV_SERVER_EXIT_CODE,
+    kind: failureKindOf(defect.reason),
     artifacts: [],
     data: {
       event: 'slide.dev.error',
@@ -244,6 +246,7 @@ export function slideDevTool(
       return toCallToolResult({
         ok: false,
         exitCode: DEV_SERVER_EXIT_CODE,
+        kind: started.reason,
         artifacts: [],
         data: { event: 'slide.dev.error', reason: started.reason, detail: started.detail, dir: input.dir },
         message: started.detail,

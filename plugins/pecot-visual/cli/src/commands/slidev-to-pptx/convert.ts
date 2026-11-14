@@ -9,6 +9,7 @@
 // 本コマンド自身が出力ディレクトリを生成する責務を持つ。
 // そのため本ファイル全体で security/detect-non-literal-fs-filename を disable する。
 /* eslint-disable security/detect-non-literal-fs-filename */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { performance } from 'node:perf_hooks'
 import { access, readFile, mkdir, readdir, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
@@ -207,7 +208,7 @@ export interface OuterTiming {
 }
 
 export class SlideConvertUsageError extends Error {
-  constructor(message: string, readonly reason: string) {
+  constructor(message: string, readonly reason: FailureReason) {
     super(message)
     this.name = 'SlideConvertUsageError'
   }
@@ -225,7 +226,7 @@ export class SlideConvertRuntimeError extends Error {
   */
   pipelineErrors?: readonly PipelineError[]
 
-  constructor(message: string, readonly reason: string) {
+  constructor(message: string, readonly reason: FailureReason) {
     super(message)
     this.name = 'SlideConvertRuntimeError'
   }
@@ -1014,7 +1015,7 @@ async function loadSingleSlidePptxes(
   return { inputs, originalSlideNumbers }
 }
 
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof SlideConvertUsageError) return error.reason
   if (error instanceof SlideConvertRuntimeError) return error.reason
   // テーマの張り直しの失敗 (テーマの名前の不一致など) は、原因ごとの reason を持つ。
@@ -1406,7 +1407,7 @@ function optionalMorphOption(
 function optionalPositiveInt(
   raw: Readonly<Record<string, unknown>>,
   key: string,
-  reason: string,
+  reason: FailureReason,
 ): number | undefined {
   const value = optionalString(raw, key)
   if (value === undefined) return undefined

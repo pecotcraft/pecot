@@ -7,6 +7,7 @@
 // 実体ロジックは domain/slidev-project/sync.ts、fs 操作は infra/slidev-project/fs.ts に分離している。
 
 /* eslint-disable security/detect-non-literal-fs-filename */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -394,7 +395,7 @@ async function prepareMigrationTheme(
   }
 }
 
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof SlideSyncUsageError) return error.reason
   if (error instanceof SlideSyncRuntimeError) return error.reason
   // infra/slidev-project/fs.ts は SlideCreate{Runtime,Usage}Error を投げる。

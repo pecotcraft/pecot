@@ -122,6 +122,49 @@ def test_body_follows_page_section_order(full: Built) -> None:
     assert description < content.index("Skip the check") < exit_status
 
 
+SECTION_TITLES = ["使用例", "前提条件", "引数", "出力", "エラー", "環境変数"]
+
+
+def _heading(title: str) -> str:
+    return f"**{title}**"
+
+
+def test_every_section_heading_appears_in_order_even_when_empty(full: Built) -> None:
+    for need_id in ("SM-ONE", "SM-TWO"):
+        content: str = full.needs[need_id]["content"]
+        positions = [content.index(_heading(title)) for title in SECTION_TITLES]
+        assert positions == sorted(positions)
+    body: str = full.needs["SM-TWO"]["content"]
+    assert f"{_heading('使用例')}\n\nありません。" in body.replace("\r", "")
+
+
+def test_page_headings_run_through_requirements_in_one_order(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(
+        tmp_path,
+        [JUNIT_VITEST, JUNIT_PYTEST],
+        capfd,
+        files={"index.rst": PAGES_INDEX},
+        pages=True,
+    )
+    assert built.code == 0
+    # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、実物の全ページで「機能要件」が付き、並びは 1 通りになる。
+    for page in ("one-run", "sample_two"):
+        html = built.html(f"_generated/sample/{page}.html")
+        headings = re.findall(r"<h2>(.*?)<a ", html, flags=re.S)
+        assert headings == [*SECTION_TITLES, "機能要件"], page
+
+
+def test_failures_table_always_has_three_columns(full: Built) -> None:
+    filled: str = full.needs["SM-ONE"]["content"]
+    assert "エラー名" in filled and "終了コード" in filled
+    assert "target-missing" in filled
+    empty: str = full.needs["SM-TWO"]["content"]
+    assert "エラー名" not in empty
+    assert f"{_heading('エラー')}\n\nありません。" in empty.replace("\r", "")
+
+
 def test_outcomes(full: Built) -> None:
     got = {
         i: full.needs[i]["outcome"]

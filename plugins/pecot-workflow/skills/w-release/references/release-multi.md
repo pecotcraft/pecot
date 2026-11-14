@@ -15,7 +15,7 @@
 
 `board_show` を引数なしで呼ぶ。
 
-`package: NAME → CHANGELOG パス` の行から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
+`board_show` の結果の `stdout` にある `package: NAME → CHANGELOG パス` の行から対象 package 名を選ぶ。1 PR = 1 package（複数同時リリース不可）。
 リリース package を `<package>`、バージョンを `<ver>` と表記。
 
 ### 2. bump 種別のユーザー確認
@@ -58,7 +58,7 @@ git checkout -b docs/changelog-<package>-v<ver> origin/<develop>
 
 #### 3-2. 対象 CHANGELOG 編集
 
-`board_show` の結果の `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
+`board_show` の結果の `stdout` にある `package: <package> → <CHANGELOG パス>` 行で矢印右側のファイルを編集する。
 前回タグ `<package>@v<前バージョン>` からの差分をまとめる。
 
 ```bash

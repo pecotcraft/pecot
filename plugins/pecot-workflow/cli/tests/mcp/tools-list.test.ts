@@ -9,7 +9,7 @@ import { normalizeInput } from '../../src/commands/input-schema.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { parseJson } from '../../src/tests/_helpers/json.js'
-import { connectInMemory } from '../_helpers/mcp-client.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
 
 const GENERATED = path.resolve(import.meta.dirname, '../../../interface/generated.json')
@@ -17,6 +17,7 @@ const ToolSchema = z.object({ tool: z.string() })
 const EntrySchema = z.object({
   surfaces: z.object({ mcp: ToolSchema }),
   input: z.looseObject({}),
+  mcp: z.object({ output: z.looseObject({}) }),
 })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 const RepositorySchema = z.looseObject({ type: z.literal('string') })
@@ -68,6 +69,14 @@ describe('tools/list', () => {
     expect(normalizeInput(tool?.inputSchema ?? {}, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)
   })
 
+  it('全ツールの outputSchema は、$schema を除いて定義書の mcp.output に一致する', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const outputs = tools.map(({ outputSchema }) => Object.fromEntries(Object.entries(outputSchema ?? {}).filter(([key]) => key !== '$schema')))
+    const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.output)
+    expect(outputs).toEqual(expected)
+  })
+
   it('全ツールの生の入力が、additionalProperties: false を持つ', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
@@ -87,39 +96,37 @@ describe('入力の検証の誤り', () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_create', arguments: { message: 'm', repo: 'acme/demo', bogus: true } })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(result.content).toEqual([{ type: 'text', text: 'invalid input: unknown key \'bogus\'' }])
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: {}, message: 'invalid input: unknown key \'bogus\'' })
   })
 
   it('改名前の入力名を渡すと、新しい名前を添えて、コマンドを呼ばずに isError で返す', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'acme/demo/7', message: 'm', template: 'plan' } })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(result.content).toEqual([{ type: 'text', text: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' }])
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: {}, message: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', force: 'true' } })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(JSON.stringify(result.content)).toContain('force')
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+    expect(structuredOf(result).message).toContain('force')
   })
 
   it('必須の入力が無いと、コマンドを呼ばずに isError で返す', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: {} })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(JSON.stringify(result.content)).toContain('directory')
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+    expect(structuredOf(result).message).toContain('directory')
   })
 
   it('repo の形が owner/repo でないと、コマンドを呼ばずに isError で返す', async () => {
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', repo: 'not-a-repo' } })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(JSON.stringify(result.content)).toContain('repo')
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+    expect(structuredOf(result).message).toContain('repo')
   })
 })

@@ -137,12 +137,12 @@ describe('authored.yaml checks', () => {
     expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[1]|must be an object with "conflicts" or "requires"`)
   })
 
-  it('exit_status が kind を持つと受け入れ、code と kind の両方が無いと止める', async () => {
+  it('exit_status が kind を持つと受け入れ、kind が無い要素（code だけの形を含む）を止める', async () => {
     const lines = await withAuthored((data) => {
-      entry(data, 'PW-ISSUE-CREATE')['exit_status'] = [{ kind: 'auth-expired', when: 'Authentication expired.' }, { when: 'x' }, 7]
+      entry(data, 'PW-ISSUE-CREATE')['exit_status'] = [{ kind: 'auth-expired', when: 'Authentication expired.' }, { code: 1, when: 'x' }, 7]
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].code|field is missing`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[2]|must be an object with "code" or "kind"`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].kind|field is missing`)
+    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[2]|must be an object with "kind"`)
     expect(lines.some(line => line.includes('exit_status[0]'))).toBe(false)
   })
 
@@ -219,7 +219,7 @@ function japanize(data: Record<string, unknown>): Record<string, unknown> {
   target['output'] = { format: 'text', description: '標準出力に書く' }
   target['diagnostics'] = 'default'
   target['environment'] = [{ name: 'PECOT_X', effect: '挙動が変わる' }]
-  target['exit_status'] = [{ code: 0, when: '成功したとき' }]
+  target['exit_status'] = [{ kind: 'ok', when: '成功したとき' }]
   target['on_error'] = 'default'
   target['effects'] = [{ target: 'github', kind: 'write', what: '作る' }]
   target['prerequisites'] = ['認証済み']
@@ -247,7 +247,7 @@ describe('prose（人が書く欄の言語）', () => {
       const target = japanize(data)
       target['details'] = ['English']
       target['output'] = { format: 'text', description: 'English' }
-      target['exit_status'] = [{ code: 0, when: 'English' }]
+      target['exit_status'] = [{ kind: 'ok', when: 'English' }]
       target['effects'] = [{ target: 'github', kind: 'write', what: 'English' }]
       target['prerequisites'] = ['English']
       target['examples'] = [{ run: 'pecot x', note: 'English' }]

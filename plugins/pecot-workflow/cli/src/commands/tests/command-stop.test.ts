@@ -15,15 +15,15 @@ function started(): { readonly io: ReturnType<typeof capture>, readonly output: 
 }
 
 describe('stopWith', () => {
-  it('error の行を出して、既定は終了コード 1 で止める', () => {
+  it('error の行を出して、原因の名前と既定の終了コード 1 で止める', () => {
     const { io, output } = started()
-    expect(() => stopWith(output, 'boom')).toThrow(expect.objectContaining({ exitCode: 1 }))
+    expect(() => stopWith(output, 'boom', 'other')).toThrow(expect.objectContaining({ exitCode: 1, kind: 'other' }))
     expect(io.err).toEqual(['error: boom\n'])
   })
 
   it('終了コードを渡せる', () => {
     const { io, output } = started()
-    expect(() => stopWith(output, 'bad usage', 2)).toThrow(expect.objectContaining({ exitCode: 2 }))
+    expect(() => stopWith(output, 'bad usage', 'invalid-input', 2)).toThrow(expect.objectContaining({ exitCode: 2, kind: 'invalid-input' }))
     expect(io.err).toEqual(['error: bad usage\n'])
   })
 })
@@ -32,7 +32,7 @@ describe('requireActiveConfig', () => {
   it('アクティブなプロジェクトが無ければ、activate の案内を添えて終了コード 1', () => {
     setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
     const { io, output } = started()
-    expect(() => requireActiveConfig(output)).toThrow(expect.objectContaining({ exitCode: 1 }))
+    expect(() => requireActiveConfig(output)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'no-active-project' }))
     expect(io.err).toEqual(['error: no active project\n  run: pecot project activate <PROJECT>\n'])
   })
 })
@@ -41,7 +41,7 @@ describe('requireActiveConfigPlain', () => {
   it('アクティブなプロジェクトが無ければ、案内を添えずに終了コード 1', () => {
     setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
     const { io, output } = started()
-    expect(() => requireActiveConfigPlain(output)).toThrow(expect.objectContaining({ exitCode: 1 }))
+    expect(() => requireActiveConfigPlain(output)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'no-active-project' }))
     expect(io.err).toEqual(['error: no active project\n'])
   })
 })

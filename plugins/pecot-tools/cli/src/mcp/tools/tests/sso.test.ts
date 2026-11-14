@@ -105,7 +105,7 @@ describe('ssoTools', () => {
     expect(result.structuredContent).toMatchObject({
       ok: false,
       exitCode: TIMEOUT_EXIT_CODE,
-      category: 'timeout',
+      kind: 'timeout',
     })
     expect(String(isRecord(result.structuredContent) ? result.structuredContent['message'] : ''))
       .toContain('Call aws_sso_login again')

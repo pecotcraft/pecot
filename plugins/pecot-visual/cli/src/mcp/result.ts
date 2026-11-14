@@ -10,6 +10,7 @@ import { Writable } from 'node:stream'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import type { z } from 'zod'
 
+import type { FailureKind } from '../domain/_shared/failure-kind.js'
 import { toPosixPath } from './windows-path.js'
 
 /**
@@ -31,11 +32,7 @@ const OUTPUT_CAPTURE_LIMIT_BYTES = 64 * 1024
 */
 const TRUNCATION_MARKER = `[pecotv] output exceeded the ${String(OUTPUT_CAPTURE_LIMIT_BYTES)}-byte limit; the beginning was truncated\n`
 
-export interface ToolResult {
-  /**
-  ツールが目的を達成したか。false のとき CallToolResult は isError: true になる。
-  */
-  readonly ok: boolean
+interface ToolResultFields {
   /**
   対応する CLI コマンドの exit code 規約をそのまま載せる (0 = success, 3 = warnings 等)。
   */
@@ -63,6 +60,20 @@ export interface ToolResult {
 }
 
 /**
+ok が false のとき CallToolResult は isError: true になり、kind に失敗の名前が入る。
+*/
+export type ToolResult = SucceededToolResult | FailedToolResult
+
+export type SucceededToolResult = ToolResultFields & { readonly ok: true, readonly kind?: never }
+
+export type FailedToolResult = ToolResultFields & { readonly ok: false, readonly kind: FailureKind }
+
+/**
+stdout / stderr を呼び出し側が付ける前の ToolResult。Omit<ToolResult> では ok と kind の対応が崩れる。
+*/
+export type ToolResultBody = Omit<SucceededToolResult, 'stdout' | 'stderr'> | Omit<FailedToolResult, 'stdout' | 'stderr'>
+
+/**
 ToolResult を MCP の CallToolResult へ変換する。
 
 content には structuredContent と同じ内容の JSON テキストを載せる。structuredContent を
@@ -86,6 +97,7 @@ function toStructuredContent(result: Readonly<ToolResult>): Record<string, unkno
   return {
     ok: result.ok,
     exitCode: result.exitCode,
+    ...(!result.ok && { kind: result.kind }),
     artifacts: [...result.artifacts],
     data: { ...result.data },
     message: result.message,
@@ -182,6 +194,7 @@ export function parsePathArguments<Output extends Readonly<Record<string, unknow
       rejected: {
         ok: false,
         exitCode: USAGE_ERROR_EXIT_CODE,
+        kind: 'invalid-path',
         artifacts: [],
         data: { invalidPaths, ...convertedPart },
         message: messages.join('; '),

@@ -29,7 +29,7 @@ function rejectNonReadOnlyQuery(
   const classified = classifyAthenaQuery(query)
   return classified.allowed
     ? undefined
-    : { category: 'not-allowed', message: classified.message }
+    : { kind: 'not-allowed', message: classified.message }
 }
 
 /**
@@ -41,7 +41,7 @@ function rejectCatalogWithoutDatabase(
   if ((typeof arguments_['catalog'] !== 'string') || (typeof arguments_['database'] === 'string')) return undefined
 
   return {
-    category: 'invalid-input',
+    kind: 'invalid-input',
     message: 'Specify catalog together with database',
   }
 }

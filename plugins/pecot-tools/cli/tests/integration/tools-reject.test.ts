@@ -118,7 +118,7 @@ describe('S3 の方向（research R7）', () => {
       local_path: '/var/data/copy.json',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('s3_uri')
   })
 
@@ -129,7 +129,7 @@ describe('S3 の方向（research R7）', () => {
       local_path: 's3://example-bucket/copy.json',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('local_path')
   })
 
@@ -141,7 +141,7 @@ describe('S3 の方向（research R7）', () => {
       outfile: 'data/report.json',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('absolute path')
   })
 
@@ -153,7 +153,7 @@ describe('S3 の方向（research R7）', () => {
       outfile: 's3://example-bucket/copy.json',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('outfile')
     expect(structured['message']).toContain('s3://')
   })
@@ -165,7 +165,7 @@ describe('S3 の方向（research R7）', () => {
       local_path: 'data/report.json',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('local_path')
   })
 })
@@ -184,14 +184,14 @@ describe('Athena の変更系・複文（research R6）', () => {
     await verifies(context, id)
     const structured = await expectIsError('aws_athena_start_query_execution', { query_string: query })
 
-    expect(structured['category']).toBe('not-allowed')
+    expect(structured['kind']).toBe('not-allowed')
   })
 
   it('参照だけの文でも複数あれば not-allowed で拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-03')
     const structured = await expectIsError('aws_athena_start_query_execution', { query_string: 'SELECT 1; SELECT 2' })
 
-    expect(structured['category']).toBe('not-allowed')
+    expect(structured['kind']).toBe('not-allowed')
     expect(structured['message']).toContain('Multiple statements')
   })
 
@@ -213,7 +213,7 @@ describe('Athena の変更系・複文（research R6）', () => {
       database: 'analytics,Catalog=injected',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('database')
   })
 
@@ -230,7 +230,7 @@ describe('Athena の変更系・複文（research R6）', () => {
       ...row.args,
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain(row.name)
   })
 
@@ -243,7 +243,7 @@ describe('Athena の変更系・複文（research R6）', () => {
       output_location: 's3://b/p,ExpectedBucketOwner=123456789012',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('output_location')
   })
 
@@ -255,7 +255,7 @@ describe('Athena の変更系・複文（research R6）', () => {
       catalog: 'awsdatacatalog',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('database')
   })
 })
@@ -269,7 +269,7 @@ describe('`-` 始まりの値（research R3）', () => {
       outfile: '--endpoint-url',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('\'-\'')
   })
 
@@ -343,7 +343,7 @@ describe('shorthand-list の項目値', () => {
       filters: [{ name: '', values: ['running'] }],
     })
 
-    expect(normal['category']).toBe('invalid-input')
+    expect(normal['kind']).toBe('invalid-input')
     expect(normal['message']).toContain('must not be empty')
   })
 
@@ -354,7 +354,7 @@ describe('shorthand-list の項目値', () => {
       image_ids: [{}],
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('image_ids')
   })
 
@@ -394,7 +394,7 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
       local_path: existingFile(),
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('overwrite')
   })
 
@@ -406,7 +406,7 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
       outfile: existingFile(),
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('overwrite')
   })
 
@@ -454,7 +454,7 @@ describe('既存ファイルの上書き（research R7 の Edge Case）', () => 
     // 書き出し先（/dir）と実体がずれる。
     const structured = await expectIsError(name, args())
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('must not be a directory')
   })
 
@@ -480,7 +480,7 @@ describe('排他指定', () => {
       log_stream_name_prefix: 'p',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('cannot be combined')
   })
 
@@ -493,7 +493,7 @@ describe('排他指定', () => {
       starting_token: 'token-1',
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('cannot be combined')
   })
 
@@ -505,7 +505,7 @@ describe('排他指定', () => {
       duration: 60,
     })
 
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
     expect(structured['message']).toContain('cannot be combined')
   })
 })
@@ -572,8 +572,8 @@ describe('inputSchema 段階で落ちる違反', () => {
       local_path: '/var/data/copy.json',
     })
 
-    expect(notAllowed['category']).toBe('not-allowed')
-    expect(invalidInput['category']).toBe('invalid-input')
+    expect(notAllowed['kind']).toBe('not-allowed')
+    expect(invalidInput['kind']).toBe('invalid-input')
   })
 })
 
@@ -615,7 +615,7 @@ describe('許可リストの書式の規則', () => {
     const structured = await expectIsError(row.tool, row.args)
 
     expect(structured['ok']).toBe(false)
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
   })
 
   it('値に制御文字を含むとき、invalid-input で拒否し awscli を起動しない', async (context) => {
@@ -623,6 +623,6 @@ describe('許可リストの書式の規則', () => {
     const structured = await expectIsError('aws_lambda_get_function_configuration', { function_name: 'a\u{1}b' })
 
     expect(structured['ok']).toBe(false)
-    expect(structured['category']).toBe('invalid-input')
+    expect(structured['kind']).toBe('invalid-input')
   })
 })

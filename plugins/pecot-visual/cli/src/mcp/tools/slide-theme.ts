@@ -14,6 +14,7 @@ import {
   slideThemeDefaultDependencies,
 } from '../../commands/slidev-project/theme.js'
 import type { SlideThemeDependencies } from '../../commands/slidev-project/theme.js'
+import { failureKindOf } from '../../domain/_shared/failure-kind.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import { formatError, TOOL_OUTPUT_SCHEMA, WINDOWS_PATH_NOTE } from './_shared.js'
@@ -64,11 +65,13 @@ export function slideThemeTool(
       }
       catch (error: unknown) {
         const detail = formatError(error)
+        const reason = errorToReason(error)
         return toCallToolResult({
           ok: false,
           exitCode: SLIDE_THEME_EXIT_CODE,
+          kind: failureKindOf(reason),
           artifacts: [],
-          data: { event: 'slide.theme.error', reason: errorToReason(error), detail },
+          data: { event: 'slide.theme.error', reason, detail },
           message: detail,
         })
       }

@@ -39,6 +39,7 @@ import type { CommandDefinition, CommandIo } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
 import type { CommandHint } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { applyBoardMove } from './issue-board.js'
 import type { BoardItem } from './issue-board.js'
@@ -98,7 +99,7 @@ function validateRepositoryShape(output: Output, repository: string): readonly [
   const parts = splitOwnerRepository(repository)
   const isValid = parts !== undefined && REPOSITORY_SEGMENT_PATTERN.test(parts.owner) && REPOSITORY_SEGMENT_PATTERN.test(parts.repository)
   const message = `invalid repository format: ${repository}\nexpected: owner/repo`
-  return isValid ? [parts.owner, parts.repository] : stopWith(output, message, USAGE_EXIT_CODE)
+  return isValid ? [parts.owner, parts.repository] : stopWith(output, message, 'invalid-input', USAGE_EXIT_CODE)
 }
 
 interface PostPrerequisite {
@@ -284,13 +285,13 @@ function parentReferenceOf(raw: number | string | undefined, config: ProjectConf
 
 function prepareTemplate(output: Output, template: IssueType | 'task-implement', repository: string | undefined, suffix: string | undefined, isDryRun: boolean): void {
   if (template !== 'epic' && repository === undefined) {
-    stopWith(output, hinted`${inputHint(CREATE_PATH, 'repo', placeholder('owner/repo'))} is required with ${inputHint(CREATE_PATH, 'prepare')} unless ${inputHint(CREATE_PATH, 'template', 'epic')}`, USAGE_EXIT_CODE)
+    stopWith(output, hinted`${inputHint(CREATE_PATH, 'repo', placeholder('owner/repo'))} is required with ${inputHint(CREATE_PATH, 'prepare')} unless ${inputHint(CREATE_PATH, 'template', 'epic')}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   if (repository !== undefined) validateRepositoryShape(output, repository)
 
   const source = templateFile('issue', template)
   if (!existsSync(source)) {
-    stopWith(output, `template not found: ${source}`)
+    stopWith(output, `template not found: ${source}`, 'other')
   }
   if (isDryRun) {
     output.planned({ verb: 'create', target: `Issue template ${template} in ${outputDirectory()}` })
@@ -309,7 +310,7 @@ function prepareTemplate(output: Output, template: IssueType | 'task-implement',
   }
   catch (error: unknown) {
     if (!(error instanceof OutputPathReservationError)) throw error
-    stopWith(output, error.message)
+    stopWith(output, error.message, 'other')
   }
 }
 
@@ -338,22 +339,22 @@ function validatePlaceholders(output: Output, files: readonly string[]): void {
   for (const file of files) {
     const resolved = resolveRealPath(file)
     if (seen.has(resolved)) {
-      stopWith(output, `file specified more than once: ${normalizePath(file)}`)
+      stopWith(output, `file specified more than once: ${normalizePath(file)}`, 'invalid-input')
     }
     seen.add(resolved)
     if (!isFile(file)) {
-      stopWith(output, `file not found: ${normalizePath(file)}`)
+      stopWith(output, `file not found: ${normalizePath(file)}`, 'invalid-input')
     }
     // フロントマターと冒頭のガイドコメントは投稿本文に出ないので、走査から外す
     const body = stripLeadingHtmlComment(stripFrontmatter(readTextFile(file)))
     for (const [, reference] of body.matchAll(PLACEHOLDER_PATTERN)) {
       if (reference === undefined || available.has(reference)) continue
-      stopWith(output, `{{issue:${reference}}} in ${path.basename(file)} does not point to an earlier file (forward reference or unknown key)\nput the file it depends on earlier in the arguments`)
+      stopWith(output, `{{issue:${reference}}} in ${path.basename(file)} does not point to an earlier file (forward reference or unknown key)\nput the file it depends on earlier in the arguments`, 'content-invalid')
     }
     const { keys } = fileKeys(file)
     const collided = keys.filter(key => available.has(key)).toSorted(compareStrings)
     if (collided.length > 0) {
-      stopWith(output, `placeholder keys collide: ${collided.join(', ')} (${path.basename(file)})`)
+      stopWith(output, `placeholder keys collide: ${collided.join(', ')} (${path.basename(file)})`, 'content-invalid')
     }
     for (const key of keys) available.add(key)
   }
@@ -373,7 +374,7 @@ function fileTargetRepository(output: Output, frontmatter: IssueFrontmatter, con
   }
   const parts = splitOwnerRepository(resolved)
   if (parts === undefined) {
-    stopWith(output, `invalid repository format in the frontmatter: ${pythonStringRepr(frontmatter.repository)}`)
+    stopWith(output, `invalid repository format in the frontmatter: ${pythonStringRepr(frontmatter.repository)}`, 'content-invalid')
   }
   return [parts.owner, parts.repository]
 }
@@ -398,9 +399,9 @@ interface LocalFile {
 }
 
 function stopForFrontmatter(output: Output, error: FrontmatterError, name: string): never {
-  if (error.kind === 'parallel') return stopWith(output, `parallel is no longer supported in ${name}. Remove it`)
-  if (error.kind === 'merge-without-reason') return stopWith(output, `blocked_by in ${name} needs reason for wait: merge`)
-  return stopWith(output, error.message)
+  if (error.kind === 'parallel') return stopWith(output, `parallel is no longer supported in ${name}. Remove it`, 'content-invalid')
+  if (error.kind === 'merge-without-reason') return stopWith(output, `blocked_by in ${name} needs reason for wait: merge`, 'content-invalid')
+  return stopWith(output, error.message, 'content-invalid')
 }
 
 // 投稿の前に、`## Waits for merge` の節が書ける本文かを確かめる（番号は仮）
@@ -412,7 +413,7 @@ function checkWaitsForMergeWritable(output: Output, name: string, body: string, 
   }
   catch (error: unknown) {
     if (!(error instanceof InvalidValueError)) throw error
-    stopWith(output, `cannot write the Waits for merge section of ${name}: ${error.message}`)
+    stopWith(output, `cannot write the Waits for merge section of ${name}: ${error.message}`, 'content-invalid')
   }
 }
 
@@ -493,7 +494,7 @@ function orderRequests(group: Readonly<ParentGroup>): readonly OrderRequest[] {
 }
 
 function stopForBatchDuplicate(output: Output, duplicate: Readonly<{ order: number, files: readonly string[] }>): never {
-  return stopWith(output, `order ${String(duplicate.order)} is specified by more than one file: ${duplicate.files.join(', ')}`)
+  return stopWith(output, `order ${String(duplicate.order)} is specified by more than one file: ${duplicate.files.join(', ')}`, 'order-conflict')
 }
 
 function stopForOrderPlan(output: Output, parent: IssueReference, plan: Exclude<ReturnType<typeof planOrders>, { readonly kind: 'planned' }>): never {
@@ -505,7 +506,7 @@ function stopForOrderPlan(output: Output, parent: IssueReference, plan: Exclude<
       return stopForDuplicateOrder(output, parent.number, plan.order, plan.existing, plan.nextAvailable)
     }
     case 'unreadable-parent': {
-      return stopWith(output, `cannot assign order numbers: the parent Epic #${String(parent.number)} could not be read\nspecify order in the frontmatter, or try again`)
+      return stopWith(output, `cannot assign order numbers: the parent Epic #${String(parent.number)} could not be read\nspecify order in the frontmatter, or try again`, 'github-api')
     }
   }
 }
@@ -543,7 +544,7 @@ async function readExistingPrerequisites(output: Output, client: GitHubClient, f
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        stopWith(output, `blocked_by in ${file.name} refers to ${issueReferenceToCliReference(target.reference)}, which could not be read: ${error.message}`)
+        stopWith(output, `blocked_by in ${file.name} refers to ${issueReferenceToCliReference(target.reference)}, which could not be read: ${error.message}`, 'dependency-unreadable')
       }
     }
   }
@@ -584,9 +585,9 @@ async function ensureDependenciesSupported(output: Output, client: GitHubClient,
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    stopWith(output, `could not check whether blocked-by is supported: ${error.message}`)
+    stopWith(output, `could not check whether blocked-by is supported: ${error.message}`, kindOfFailure(error))
   }
-  stopWith(output, DEPENDENCIES_UNSUPPORTED)
+  stopWith(output, DEPENDENCIES_UNSUPPORTED, 'dependency-rejected')
 }
 
 // 1 件も投稿しないうちに確かめられることをすべて確かめ、投稿に要るものをそろえる
@@ -605,7 +606,7 @@ async function prepareBatch(output: Output, files: readonly string[]): Promise<B
     blockedBy: local.frontmatter.blocked_by.map(({ issue, wait, reason }) => ({ issue, wait, reason })),
   }))
   const resolution = resolveBatch(batchFiles)
-  if (resolution.kind === 'error') stopWith(output, resolution.message)
+  if (resolution.kind === 'error') stopWith(output, resolution.message, 'invalid-input')
 
   const groups = groupByParent(locals)
   for (const group of groups) {
@@ -715,7 +716,7 @@ async function postFiles(output: Output, context: Readonly<BatchContext>): Promi
     if (session.failures.length > 0) output.error(joinHinted(['could not add some blocked-by; add them again with:', ...session.failures.map(hint => [hint])]))
   }
   consumeFlag(FLAG_ISSUE_CREATE_SLASH_PENDING)
-  if (session.failures.length > 0) throw new CommandExit(1)
+  if (session.failures.length > 0) throw new CommandExit(1, 'partial-failure')
   const chains = chainsText(progressions, labels)
   if (chains !== undefined) output.data(`\n${chains}`)
 }
@@ -806,7 +807,7 @@ interface MessageTarget {
 function messageModeTarget(output: Output, issueType: IssueType, repository: string | undefined): MessageTarget {
   if (issueType !== 'epic') {
     if (repository === undefined || repository === '') {
-      stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputNameHint(CREATE_PATH, 'message')}`)
+      stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputNameHint(CREATE_PATH, 'message')}`, 'invalid-input')
     }
     return { repository, config: undefined }
   }
@@ -861,8 +862,8 @@ interface FreeformInput {
 // テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは先頭 50 文字の空白を 1 つにまとめたもの
 async function createFreeform(output: Output, input: Readonly<FreeformInput>, isDryRun: boolean): Promise<void> {
   const { message, repo, type: issueType } = input
-  if (message === undefined || pythonStrip(message) === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'message')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, USAGE_EXIT_CODE)
-  if (repo === undefined || repo === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, USAGE_EXIT_CODE)
+  if (message === undefined || pythonStrip(message) === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'message')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
+  if (repo === undefined || repo === '') stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'repo')} is required with ${inputHint(CREATE_PATH, 'freeform')}`, 'invalid-input', USAGE_EXIT_CODE)
   let status: string
   if (input.status === undefined) {
     // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
@@ -916,7 +917,7 @@ interface MessageInput {
 // -m の直接投稿。入力の確認から作成まで
 async function createFromMessage(output: Output, input: Readonly<MessageInput>, message: string, isDryRun: boolean): Promise<void> {
   if (input.title === undefined || input.title === '') {
-    stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'title')} is required with ${inputNameHint(CREATE_PATH, 'message')}`)
+    stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'title')} is required with ${inputNameHint(CREATE_PATH, 'message')}`, 'invalid-input')
   }
   const target = messageModeTarget(output, input.type, input.repo)
   await createDirect(output, {
@@ -965,7 +966,7 @@ const ISSUE_CREATE = defineCommand({
     const hasFiles = input.files !== undefined && input.files.length > 0
     return await runWithExit(async () => {
       if ((hasFiles || input.prepare || input.title !== undefined) && input.freeform) {
-        stopWith(output, hinted`${inputHint(CREATE_PATH, 'freeform')} cannot be used with ${inputHint(CREATE_PATH, 'prepare')}, ${inputNameHint(CREATE_PATH, 'files')} or ${inputNameHint(CREATE_PATH, 'title')}`, USAGE_EXIT_CODE)
+        stopWith(output, hinted`${inputHint(CREATE_PATH, 'freeform')} cannot be used with ${inputHint(CREATE_PATH, 'prepare')}, ${inputNameHint(CREATE_PATH, 'files')} or ${inputNameHint(CREATE_PATH, 'title')}`, 'invalid-input', USAGE_EXIT_CODE)
       }
       if (input.freeform) {
         await createFreeform(output, input, input.dry_run)
@@ -977,7 +978,7 @@ const ISSUE_CREATE = defineCommand({
         await createFromFiles(output, input.files ?? [], input.dry_run)
       }
       else if (input.message === undefined) {
-        stopWith(output, USAGE_TEXT)
+        stopWith(output, USAGE_TEXT, 'invalid-input')
       }
       else {
         await createFromMessage(output, input, input.message, input.dry_run)

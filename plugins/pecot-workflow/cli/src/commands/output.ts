@@ -23,7 +23,7 @@ export type Verb = z.infer<typeof VerbSchema>
 /**
 動詞の過去分詞。done の前置きになる
 */
-function pastOf(verb: Verb): string {
+export function pastOf(verb: Verb): string {
   switch (verb) {
     case 'create': { return 'created' }
     case 'update': { return 'updated' }
@@ -46,6 +46,10 @@ plan と result の元になる操作
 export interface Operation {
   readonly verb: Verb
   readonly target: string
+  /**
+  本題でない片付けの操作。行は同じに出し、MCP の結果の message には選ばない
+  */
+  readonly aside?: boolean
 }
 
 export interface Output {
@@ -82,15 +86,19 @@ function formatMessage(prefix: string, message: string): string {
 
 export function createOutput(isDryRun: boolean, io: CommandIo): Output {
   const render = (message: string | HintedText): string => formatHinted(message, io.surface ?? 'cli')
+  const writeResult = (line: string, aside: boolean | undefined): void => {
+    io.stderr(`${line}\n`)
+    if (aside !== true) io.resultLine?.(line)
+  }
   return {
-    planned: ({ verb, target }) => {
+    planned: ({ verb, target, aside }) => {
       if (!isDryRun) return
       // unchanged に現在形は無いので、文を変える
-      io.stderr(verb === 'unchanged' ? `dry-run: would leave ${target} unchanged\n` : `dry-run: would ${verb} ${target}\n`)
+      writeResult(verb === 'unchanged' ? `dry-run: would leave ${target} unchanged` : `dry-run: would ${verb} ${target}`, aside)
     },
-    done: ({ verb, target }) => {
+    done: ({ verb, target, aside }) => {
       if (isDryRun) return
-      io.stderr(`${pastOf(verb)}: ${target}\n`)
+      writeResult(`${pastOf(verb)}: ${target}`, aside)
     },
     warning: (message) => {
       io.stderr(formatMessage('warning', render(message)))

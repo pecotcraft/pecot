@@ -39,6 +39,7 @@ import { readTemplateSections, templateFile } from '../infra/template-store.js'
 import { commandHint, hinted, inputHint, inputNameHint } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { addIssueToBoard, createIssue, setIssueField } from './issue-board.js'
 import type { BoardItem } from './issue-board.js'
@@ -105,7 +106,7 @@ class BadParameterError extends BaseError {
 run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
 それ以外の例外はそのまま伝える。CommandExit は defineCommand が受けて終了コードにする
 */
-export async function runWithExit(body: () => Promise<void>): Promise<number> {
+export async function runWithExit(body: () => Promise<void>): Promise<0> {
   try {
     await body()
     return 0
@@ -169,7 +170,7 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
   }
   catch (error: unknown) {
     if (!(error instanceof BadParameterError)) throw error
-    return stopWith(output, error.text, USAGE_EXIT_CODE)
+    return stopWith(output, error.text, 'invalid-input', USAGE_EXIT_CODE)
   }
 }
 
@@ -179,7 +180,7 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
 不正な status と、有効な値を出して終了コード 1
 */
 export function exitInvalidStatus(output: Output, status: string): never {
-  return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`)
+  return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`, 'invalid-input')
 }
 
 /**
@@ -191,7 +192,7 @@ export function validateStatusForType(output: Output, issueType: IssueType, stat
   // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
   const accepted = allowed ?? [TYPE_DEFAULT_STATUS[issueType]]
   if (accepted.includes(status)) return
-  stopWith(output, `the status at creation for type '${issueType}' is only ${accepted.map(value => `'${value}'`).join(' or ')} (given: ${status})\nhint: move it to pending or another status on the board after creation`)
+  stopWith(output, `the status at creation for type '${issueType}' is only ${accepted.map(value => `'${value}'`).join(' or ')} (given: ${status})\nhint: move it to pending or another status on the board after creation`, 'invalid-input')
 }
 
 // --- parent_epic・タイトル・order ---
@@ -245,7 +246,7 @@ export function resolveEpicTargetRepository(output: Output, repository: string |
   const aggregation = config.aggregation_repo
   if (explicit === undefined) {
     if (aggregation === undefined) {
-      stopWith(output, hinted`cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass ${inputNameHint(EPIC_CREATE_PATH, 'repo')}`, USAGE_EXIT_CODE)
+      stopWith(output, hinted`cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass ${inputNameHint(EPIC_CREATE_PATH, 'repo')}`, 'repo-setting-missing', USAGE_EXIT_CODE)
     }
     return { repository: aggregation, needsWarning: false }
   }
@@ -304,7 +305,7 @@ export async function readUsedOrders(output: Output, client: GitHubClient, owner
 */
 export function stopForDuplicateOrder(output: Output, parentEpic: number, order: number, existing: UsedOrder, nextAvailable: number): never {
   const stateLabel = existing.state === 'OPEN' ? 'OPEN' : 'CLOSED'
-  return stopWith(output, `Epic #${String(parentEpic)} already has an Issue with order=${String(order)} (${stateLabel})\n#${String(existing.number)} ${existing.title}\nnext available order: ${String(nextAvailable)}`)
+  return stopWith(output, `Epic #${String(parentEpic)} already has an Issue with order=${String(order)} (${stateLabel})\n#${String(existing.number)} ${existing.title}\nnext available order: ${String(nextAvailable)}`, 'order-conflict')
 }
 
 /**
@@ -346,7 +347,7 @@ export async function createIssueOrExit(
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    return stopWith(output, `could not create an Issue in ${owner}/${repository}: ${error.message}`)
+    return stopWith(output, `could not create an Issue in ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
   }
   const target = `Issue ${issuePath(owner, repository, requireNumber(issue['number'], 'number'))}`
   output.done({ verb: 'create', target: source === undefined || source === '' ? target : `${target} from ${source}` })
@@ -457,7 +458,7 @@ export async function linkToParentEpic(
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     if (issueUrl !== undefined) output.data(issueUrl)
-    stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}\nthe order in its title is not counted for the next numbering until it is linked to the parent; link it by hand`)
+    stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}\nthe order in its title is not counted for the next numbering until it is linked to the parent; link it by hand`, kindOfFailure(error))
   }
   output.done({ verb: 'add', target: `${target} as sub-issue of ${parent}` })
 }
@@ -467,7 +468,7 @@ export async function linkToParentEpic(
 */
 export async function ensureRepositoryInProject(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, message: string): Promise<void> {
   if (await isRepositoryInProject(config, owner, repository, client)) return
-  stopWith(output, message)
+  stopWith(output, message, 'repo-not-in-project')
 }
 
 /**
@@ -545,5 +546,5 @@ export function hasReportedTemplateViolations(output: Output, body: string, temp
 Issue 本文を種別のテンプレートと比べる。違反があれば error を出して終了コード 1
 */
 export function validateIssueTemplate(output: Output, templateType: NonNullable<IssueFrontmatter['template']>, body: string): void {
-  if (hasReportedTemplateViolations(output, body, templateFile('issue', templateType), { emDashHint: true })) throw new CommandExit(1)
+  if (hasReportedTemplateViolations(output, body, templateFile('issue', templateType), { emDashHint: true })) throw new CommandExit(1, 'content-invalid')
 }

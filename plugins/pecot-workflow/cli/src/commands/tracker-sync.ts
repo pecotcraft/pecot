@@ -5,10 +5,9 @@ import type { TrackerIssue } from '../domain/tracker-body.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { CommandExit } from './command-definition.js'
 import { requireActiveConfigPlain } from './command-stop.js'
 import type { Operation, Output } from './output.js'
-import { resolveReleaseTargetRepository } from './release.js'
+import { requireReleaseTargetRepository } from './release.js'
 
 /**
 API を呼ばない操作の行を出す。dry-run では計画、実行では結果になる
@@ -37,8 +36,7 @@ export interface SyncTarget {
 設定が無いときの文は Python の sync と同じ 1 行で、案内の行を付けない
 */
 export function loadTarget(out: Readonly<Output>, explicitRepository: string | undefined): SyncTarget {
-  const target = resolveReleaseTargetRepository(undefined, explicitRepository, out)
-  if (target === undefined) throw new CommandExit(1)
+  const target = requireReleaseTargetRepository(undefined, explicitRepository, out)
   const config = requireActiveConfigPlain(out)
   return { config, owner: target.owner, repository: target.repository }
 }

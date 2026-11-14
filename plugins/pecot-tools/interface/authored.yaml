@@ -32,7 +32,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -46,8 +46,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -88,6 +88,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -129,7 +131,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -143,8 +145,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -185,6 +187,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -236,7 +240,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -250,8 +254,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -295,6 +299,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -359,7 +365,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -373,8 +379,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -415,6 +421,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -464,7 +472,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -478,8 +486,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -520,6 +528,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -574,7 +584,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -588,8 +598,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -630,6 +640,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -680,7 +692,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -694,8 +706,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -785,7 +797,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -799,8 +811,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -841,6 +853,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -885,7 +899,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -899,8 +913,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -941,6 +955,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -985,7 +1001,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -999,8 +1015,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1041,6 +1057,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -1089,7 +1107,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1103,8 +1121,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1202,7 +1220,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1216,8 +1234,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1312,7 +1330,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1326,8 +1344,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1414,7 +1432,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1428,8 +1446,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1470,6 +1488,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -1514,7 +1534,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1528,8 +1548,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1570,6 +1590,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -1626,7 +1648,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1640,8 +1662,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1682,6 +1704,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -1734,7 +1758,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1748,8 +1772,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1850,7 +1874,7 @@ entries:
       description: '結果は JSON のオブジェクトです。awscli が出した行は、`data.lines` に並びます。'
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: 'awscli が出した行の配列（`lines`）です。'
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1864,8 +1888,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -1960,7 +1984,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -1974,8 +1998,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2073,7 +2097,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2087,8 +2111,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2175,7 +2199,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2189,8 +2213,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2231,6 +2255,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -2276,7 +2302,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2290,8 +2316,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2378,7 +2404,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2392,8 +2418,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2434,6 +2460,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -2476,7 +2504,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2490,8 +2518,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2521,6 +2549,8 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
+      - kind: invalid-input
+        when: awscli が引数を受け付けませんでした。
       - kind: awscli-missing
         code: 127
         when: 'awscli が入っていないか、`PATH` にないか、2.22 より古い版です。'
@@ -2563,10 +2593,10 @@ entries:
         statement: '同じ `profile` の認可が `pending` の間、新しい認可を始めず、既存の URL とコードを返します'
       - id: PT-AWS-SSO-LOGIN-03
         pattern: unwanted
-        statement: 'もし awscli が 2.22 未満なら、認可を始めずに `category` `awscli-missing`・`exitCode` 127 の失敗を返します'
+        statement: 'もし awscli が 2.22 未満なら、認可を始めずに `kind` `awscli-missing`・`exitCode` 127 の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-04
         pattern: unwanted
-        statement: 'もし `profile` に SSO 設定が無いなら、`category` `auth-missing` の失敗を返します'
+        statement: 'もし `profile` に SSO 設定が無いなら、`kind` `auth-missing` の失敗を返します'
       - id: PT-AWS-SSO-LOGIN-05
         pattern: unwanted
         statement: 'もし awscli が URL とコードを出す前に終了コード 0 で終わったなら、`state` が `completed` の応答を返します'
@@ -2584,7 +2614,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2598,8 +2628,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2673,7 +2703,7 @@ entries:
         statement: 'もし認可が失敗していたなら、失敗の種別と awscli の出力を含む応答を返します'
       - id: PT-AWS-SSO-LOGIN-STATUS-05
         pattern: unwanted
-        statement: 'もし認可が 10 分以内に完了しなかったなら、`category` `timeout`・`exitCode` 124 の失敗を返します'
+        statement: 'もし認可が 10 分以内に完了しなかったなら、`kind` `timeout`・`exitCode` 124 の失敗を返します'
   PT-AWS-STS-GET-CALLER-IDENTITY:
     summary: プロファイルが指す ID のアカウント・ユーザー ID・ARN を返します。
     arguments:
@@ -2688,7 +2718,7 @@ entries:
       description: 結果は JSON のオブジェクトです。
       fields:
         artifacts: 書き出したローカルのファイルの絶対パスです。
-        category: 失敗の種別です。成功したときは、この項目はありません。
+        kind: 失敗の種別です。成功したときは、この項目はありません。
         data: awscli の JSON 出力か、出力の行の配列です。
         exitCode: 成功は 0、実行前の拒否は 2、時間切れは 124、awscli が無いときは 127 です。
         message: 結果を 1 行にまとめた文です。
@@ -2702,8 +2732,8 @@ entries:
             items:
               type: string
             type: array
-          category:
-            description: Failure category (omitted on success)
+          kind:
+            description: Failure kind (omitted on success)
             type: string
           data:
             additionalProperties: {}
@@ -2744,6 +2774,8 @@ entries:
         when: SSO のセッションか認証情報の期限が切れています。
       - kind: permission-denied
         when: プロファイルに、その操作の権限がありません。
+      - kind: resource-not-found
+        when: awscli が、対象のリソースが無いと返しました。
       - kind: timeout
         code: 124
         when: awscli が 120 秒以内に終わりません。
@@ -2792,10 +2824,10 @@ common_behaviors:
     statement: 'もし awscli が見つからないか 2.22 未満なら、`awscli-missing`・`exitCode` 127 の失敗を返します'
   - id: PT-COMMON-08
     pattern: unwanted
-    statement: 'もし awscli が 120 秒以内に終わらないなら、`category` `timeout`・`exitCode` 124 の失敗を返します'
+    statement: 'もし awscli が 120 秒以内に終わらないなら、`kind` `timeout`・`exitCode` 124 の失敗を返します'
   - id: PT-COMMON-09
     pattern: unwanted
-    statement: 'もし awscli が 0 以外の終了コードで終わったなら、`ok` が `false` で、失敗の種別 `category` と秘匿化済みの `stderr` を含む応答を `isError` を真にして返します'
+    statement: 'もし awscli が 0 以外の終了コードで終わったなら、`ok` が `false` で、失敗の種別 `kind` と秘匿化済みの `stderr` を含む応答を `isError` を真にして返します'
   - id: PT-COMMON-10
     pattern: ubiquitous
     statement: '常に、応答の `structuredContent` と同じ内容の JSON を `content` のテキストにも載せます'

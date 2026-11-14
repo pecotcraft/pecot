@@ -30,7 +30,7 @@ CHANGELOG の形式・commit メッセージ・タグ形式・GitHub Release の
 
 w-release SKILL.md の Step 1 で判定したブランチモードに従う。
 
-- `board_show` の結果の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
+- `board_show` の結果の `stdout` の対象リポ行で `develop:` と `release:` が同じなら、**単一ブランチモード**になる
   （pecot は両方 `main`）。[単一ブランチモード（develop == release）](#単一ブランチモードdevelop--release) に従う。
   `main` 上で `$NX release` を実行し、リリース PR と `release_merge` は行わない。
 - 対象リポ行で `develop:` と `release:` が異なるなら、**2ブランチモード**になる。
@@ -145,7 +145,7 @@ current branch に commit する。そのため `main` 上で `$NX release` を�
 push・GitHub Release の発行までが一括で完結する。**`develop` と `release` が同じブランチで
 中間 PR が存在しないため、リリース PR 作成と `release_merge` は行わない。**
 
-以降、GitHub ホスト名を `<gh-host>` と表記。値は `board_show` の結果の Host で決まる（例: `github.com`）。
+以降、GitHub ホスト名を `<gh-host>` と表記。値は `board_show` の結果の `stdout` にある Host で決まる（例: `github.com`）。
 
 ### 手順の選び方（ランナーか手元か）
 
@@ -346,7 +346,7 @@ GitHub Release 発行まで完結しているため追加操作は不要。
 
 開発ブランチと release ブランチが分かれているリポ向け。対象リポの `develop` branch は
 `board_show` で事前に確認。以降、開発ブランチを `<develop>`、GitHub ホスト名を
-`<gh-host>` と表記。値は `board_show` の結果の Host で決まる（例: `github.com`）。
+`<gh-host>` と表記。値は `board_show` の結果の `stdout` にある Host で決まる（例: `github.com`）。
 
 ### 1. develop ブランチの worktree を最新化
 

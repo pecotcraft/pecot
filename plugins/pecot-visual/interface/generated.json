@@ -62,6 +62,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -154,6 +158,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -235,6 +243,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -305,6 +317,10 @@
             "exitCode": {
               "description": "Exit code (0 = success)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -424,6 +440,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -507,6 +527,10 @@
             "exitCode": {
               "description": "Exit code (0 = success)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -593,6 +617,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -670,6 +698,10 @@
             "exitCode": {
               "description": "Exit code (0 = success)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -763,6 +795,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -846,6 +882,10 @@
               "description": "Exit code (0 = success)",
               "type": "number"
             },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
             "message": {
               "description": "One-line summary for the calling agent",
               "type": "string"
@@ -923,6 +963,10 @@
             "exitCode": {
               "description": "Exit code (0 = success)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",

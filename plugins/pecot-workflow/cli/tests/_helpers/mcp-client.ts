@@ -4,18 +4,23 @@ import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import { OUTCOME_META_KEY } from '../../src/mcp/result.js'
+import { TOOL_OUTPUT_SCHEMA } from '../../src/mcp/result.js'
 
-const OutcomeSchema = z.object({ exitCode: z.number(), stdout: z.string(), stderr: z.string() })
-const MetaSchema = z.object({ _meta: z.record(z.string(), OutcomeSchema) })
+const StructuredSchema = z.object({ structuredContent: TOOL_OUTPUT_SCHEMA })
 
 /**
-ツールの結果の _meta から、終了コードと stdout・stderr を読む。_meta が無ければ例外
+ツールの結果の structuredContent を読む。無いか形が違えば例外
 */
-export function outcomeOf(result: Readonly<Record<string, unknown>>): z.output<typeof OutcomeSchema> {
-  const outcome = new Map(Object.entries(MetaSchema.parse(result)._meta)).get(OUTCOME_META_KEY)
-  if (outcome === undefined) throw new Error('結果の _meta に outcome がありません')
-  return outcome
+export function structuredOf(result: Readonly<Record<string, unknown>>): z.output<typeof TOOL_OUTPUT_SCHEMA> {
+  return StructuredSchema.parse(result).structuredContent
+}
+
+/**
+structuredContent から、終了コードと stdout・stderr（無ければ空）を読む
+*/
+export function outcomeOf(result: Readonly<Record<string, unknown>>): { readonly exitCode: number, readonly stdout: string, readonly stderr: string } {
+  const { exitCode, stdout = '', stderr = '' } = structuredOf(result)
+  return { exitCode, stdout, stderr }
 }
 
 export interface ConnectedClient {

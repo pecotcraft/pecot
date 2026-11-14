@@ -4,7 +4,7 @@
 これらの Issue 起票に共通する、判定ルールを定める。
 判定ルールは 4 つあり、投稿先リポ・親 Epic 参照・タイトル連番・テンプレート選択を扱う。
 着手前のセッションスコープ前提（§5）と、着手後の変更対象リポジトリ限定（§6）も、このファイルが定義元になる。
-AI は推測で埋めない。ここで定義される手順に従い、ユーザー指示と CLI 出力を組み合わせて決定する。
+AI は推測で埋めない。ここで定義される手順に従い、ユーザー指示とツールの結果を組み合わせて決定する。
 
 ## 1. `repository` の決定
 
@@ -26,10 +26,10 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 2. 集約リポと実装リポが異なる場合、サブタスクは実装リポ側を `repo` で指定する
 3. どちらに作るべきか判断材料が無い場合は AskUserQuestion で確認する（推測で埋めない）
 
-`issue_create` が `exit code: 2` で失敗する代表ケース:
+`issue_create` の結果の `ok` が `false` になる代表ケース:
 
-- Epic で `repo` 未指定かつ `aggregation_repo` も未設定（決定不能）
-- 通常 Issue（task / bug / tracker）で `repository: ""` のまま投稿（必須フィールド欠落）
+- Epic で `repo` 未指定かつ `aggregation_repo` も未設定（決定不能）。`kind` は `repo-setting-missing`（`exitCode` は 2）
+- 通常 Issue（task / bug / tracker）で `repository: ""` のまま投稿（必須フィールド欠落）。`kind` は `content-invalid`（`exitCode` は 1）
 
 ## 2. `parent_epic` の指定
 
@@ -70,8 +70,8 @@ aggregation_repo が同じ場合のみ意図通り動く。
 
 `order` の決定:
 
-- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が確かめ、
-  明示した `order` が重複すれば `exit code: 1` で失敗する
+- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が確かめる。
+  明示した `order` が重複すれば、`kind` が `order-conflict`（`exitCode` は 1）で失敗する
 - 再利用はできない（CLOSED でも空き番号にしない）
 - 省いたファイルの番号は、既存のサブタスクの最大の番号と、同じ一括で明示した番号の最大の、次から振る。確認は CLI が行う
 
@@ -149,13 +149,13 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
-| CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | `exit code: 2` + 対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
-| `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | `exit code: 2` + WT 分離誘導 | `force_overwrite_active` |
-| `.pecot-active` の Issue が CLOSED | 同上 | stale の warning + 続行 | （バイパス不要） |
-| Issue の判定が blocked | 同上 | `exit code: 2` + 前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
-| 前提を読めない・判定できない | 同上 | `exit code: 1` + `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（出力を利用者に示す） |
-| 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `exit code: 1` + `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
-| `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `exit code: 2` + `--base <x> differs from the base chosen by readiness` | `--base` を外す |
+| CWD と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | `kind` が `repo-mismatch`（`exitCode` は 2）+ `stderr` の、対象リポの worktree でセッションを始め直す誘導 | `allow_cross_repo` |
+| `.pecot-active` に OPEN な別 Issue ref | `session_start` ブランチ作成前 | `kind` が `guard-blocked`（`exitCode` は 2）+ `stderr` の WT 分離誘導 | `force_overwrite_active` |
+| `.pecot-active` の Issue が CLOSED | 同上 | `stderr` の stale の `warning:` + 続行 | （バイパス不要） |
+| Issue の判定が blocked | 同上 | `kind` が `not-ready`（`exitCode` は 2）+ `stderr` の、前提ごとの状態と直し方の行（`issue unblock ...`） | なし（前提を見直す） |
+| 前提を読めない・判定できない | 同上 | `kind` が `dependency-unreadable`（`exitCode` は 1）+ `stderr` の `could not read blocked-by` か `could not judge readiness` の行（開発ブランチが原因なら設定の直し方の行も） | なし（`stderr` を利用者に示す） |
+| 積む先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | `kind` が `git-unresolved`（`exitCode` は 1）+ `stderr` の `base branch <ブランチ> of #N not found` の行 | なし（判定をやり直す） |
+| `--base` が判定の積む先と違う（stackable のときだけ比べる） | 同上 | `kind` が `invalid-input`（`exitCode` は 2）+ `stderr` の `--base <x> differs from the base chosen by readiness` | `--base` を外す |
 
 状況を着手前に把握したいときは、ユーザー / AI が `session_show` を `directory: "."` で呼ぶ。
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が表示される。

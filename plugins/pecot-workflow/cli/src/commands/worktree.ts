@@ -38,10 +38,9 @@ import type { Operation, Output } from './output.js'
 import { defineCommand } from './command-definition.js'
 import { commandHint, hinted, hintedTextOf, inputHint, placeholder } from './command-hint.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
+import { stopWith } from './command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { requireRepositoryMatch } from './repository-match.js'
-
-const FAILURE = 1
 
 // click の realpath と同じく、解決できない所は字面のまま残して投げない
 function lenientRealPath(value: string): string {
@@ -57,10 +56,9 @@ function lenientRealPath(value: string): string {
 const dryRunInput = z.boolean().default(false).describe('Show what would happen without changing anything')
 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
-function reportRuntimeError(out: Readonly<Output>, error: unknown): number {
+function reportRuntimeError(out: Readonly<Output>, error: unknown): never {
   if (!(error instanceof WorktreeRuntimeError)) throw error
-  out.error(hintedTextOf(error) ?? error.message)
-  return FAILURE
+  return stopWith(out, hintedTextOf(error) ?? error.message, error.failure)
 }
 
 function countLinkResults(results: readonly SymlinkResult[], out: Readonly<Output>): void {
@@ -103,7 +101,7 @@ const worktreeAddCommand = defineCommand({
   run: (input, io) => Promise.resolve(runAdd(input, io)),
 })
 
-function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>, io: CommandIo): number {
+function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(input.dry_run, io)
   try {
@@ -148,7 +146,7 @@ const worktreeRemoveCommand = defineCommand({
   run: (input, io) => Promise.resolve(runRemove(input, io)),
 })
 
-function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & GlobalInput>, io: CommandIo): number {
+function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(input.dry_run, io)
   try {
@@ -204,7 +202,7 @@ function writeInitFiles(configFile: string, ignoreFile: string, config: Readonly
   }
 }
 
-function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInput>, io: CommandIo): number {
+function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(input.dry_run, io)
   let mainWorktree: string
@@ -219,10 +217,7 @@ function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInpu
   const configFile = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
   const ignoreFile = path.join(mainWorktree, WORKTREE_IGNORE_FILENAME)
   const existing = [configFile, ignoreFile].filter(file => isExistingFile(file))
-  if (existing.length > 0) {
-    out.error(['worktree config already exists', ...existing].join('\n'))
-    return FAILURE
-  }
+  if (existing.length > 0) stopWith(out, ['worktree config already exists', ...existing].join('\n'), 'already-exists')
 
   let targetRepository: string
   try {
@@ -230,8 +225,7 @@ function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInpu
   }
   catch (error: unknown) {
     if (!(error instanceof InvalidValueError || error instanceof OsError || error instanceof ConfigError)) throw error
-    out.error(`could not read the active config: ${error.message}`)
-    return FAILURE
+    return stopWith(out, `could not read the active config: ${error.message}`, 'config-invalid')
   }
 
   if (input.dry_run) {
@@ -328,25 +322,19 @@ function applyLinks(target: string, config: Readonly<WorktreeConfig>, projectRoo
   return [created.length, skipped.length, results.filter(result => result.action === 'error').length]
 }
 
-function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInput>, io: CommandIo): number {
+function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
   const out = createOutput(input.dry_run, io)
   try {
     ensureDevcontainerEnvironment()
     const configFile = findWorktreeConfigFile(input.directory)
-    if (configFile === undefined) {
-      out.error(hinted`worktree config not found\nrun: ${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`)
-      return FAILURE
-    }
+    if (configFile === undefined) stopWith(out, hinted`worktree config not found\nrun: ${commandHint(['worktree', 'init'], { directory: placeholder('directory') })}`, 'not-initialized')
     const config = loadConfig(configFile)
     const mainWorktree = findMainWorktree(input.directory)
     const projectRoot = detectProjectRoot(input.directory)
 
     const resolved = linkTargets(input.directory, mainWorktree, input.all)
-    if (resolved.kind === 'main-needs-all') {
-      out.error(hinted`use ${inputHint(['worktree', 'link'], 'all')} in the main worktree`)
-      return FAILURE
-    }
+    if (resolved.kind === 'main-needs-all') stopWith(out, hinted`use ${inputHint(['worktree', 'link'], 'all')} in the main worktree`, 'invalid-input')
     const targets = resolved.directories
     if (targets.length === 0) {
       out.count('sub-worktrees', 0)
@@ -372,10 +360,7 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
     return 0
   }
   catch (error: unknown) {
-    if (error instanceof WorktreeConfigError) {
-      out.error(error.message)
-      return FAILURE
-    }
+    if (error instanceof WorktreeConfigError) stopWith(out, error.message, 'config-invalid')
     return reportRuntimeError(out, error)
   }
 }

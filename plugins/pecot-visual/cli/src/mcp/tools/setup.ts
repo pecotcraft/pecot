@@ -31,6 +31,7 @@ import { z } from 'zod'
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 
+import type { FailureKind } from '../../domain/_shared/failure-kind.js'
 import type { SpawnResult } from '../../domain/_shared/spawn-result.js'
 import { LOCK_CONFLICT_EXIT_CODE, LOCK_WAIT_SECONDS } from '../../infra/_shared/flock.js'
 import type { RuntimeInstallResult } from '../../infra/_shared/runtime-install.js'
@@ -64,6 +65,12 @@ interface StageOutcome {
   readonly location: string | undefined
   readonly detail: string | undefined
   readonly spawned: SpawnResult | undefined
+}
+
+interface StageFailure {
+  readonly label: string
+  readonly reason: FailureKind
+  readonly stage: StageOutcome
 }
 
 /**
@@ -295,11 +302,11 @@ export function setupTool(
     // 片方だけを見ると、もう片方の理由が data.<系統>.detail にしか残らず message から
     // 消えるため、失敗した系統を全て畳んで載せる。
     const failures = [
-      ...(runtime.installed ? [] : [{ label: 'runtime dependencies', reason: 'runtime-install-failed', stage: runtime }]),
-      ...(chromium.installed ? [] : [{ label: 'Playwright Chromium', reason: 'chromium-install-failed', stage: chromium }]),
+      ...(runtime.installed ? [] : [{ label: 'runtime dependencies', reason: 'runtime-install-failed', stage: runtime } satisfies StageFailure]),
+      ...(chromium.installed ? [] : [{ label: 'Playwright Chromium', reason: 'chromium-install-failed', stage: chromium } satisfies StageFailure]),
       ...(hostDependencies === undefined || hostDependencies.installed
         ? []
-        : [{ label: 'Chromium OS libraries', reason: 'chromium-host-deps-missing', stage: hostDependencies }]),
+        : [{ label: 'Chromium OS libraries', reason: 'chromium-host-deps-missing', stage: hostDependencies } satisfies StageFailure]),
     ]
     const detail = failures.map(failure => `${failure.label}: ${failure.stage.detail ?? ''}`).join(' / ')
     // OS ライブラリの失敗は「取得」ではなく「足りない」ことを案内するため、取得の失敗と分ける。
@@ -316,6 +323,8 @@ export function setupTool(
     const result: ToolResult = {
       ok: false,
       exitCode: runtime.installed ? CHROMIUM_UNAVAILABLE_EXIT_CODE : RUNTIME_UNAVAILABLE_EXIT_CODE,
+      // data.reason は失敗した段をカンマでつなぐ。kind には最初に失敗した段の名前を入れる。
+      kind: failures[0]?.reason ?? 'unknown',
       artifacts,
       data: {
         event: 'setup.error',

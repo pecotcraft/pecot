@@ -4,7 +4,7 @@
 // そのためコマンド固有の戻り値ではなく、ExecutionResult に正規化してからプロトコル表現へ変換する。
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
-import type { FailureCategory } from '../domain/allowlist.js'
+import type { FailureKind } from '../domain/allowlist.js'
 // 上限（research R8）の定義は infra 側に置く。子プロセスの捕捉上限が同じ値を基準にするが、
 // 依存方向が infra → mcp を許さないため。
 import { OUTPUT_LIMIT_BYTES } from '../infra/awscli.js'
@@ -21,7 +21,7 @@ export interface ExecutionResult {
   /**
   失敗時のみ。ok が true のときはキーごと無い。
   */
-  readonly category?: FailureCategory
+  readonly kind?: FailureKind
   readonly data: Readonly<Record<string, unknown>>
   /**
   書き出したローカルファイルの絶対パス。
@@ -68,7 +68,7 @@ function toStructuredContent(result: Readonly<ExecutionResult>): Record<string, 
   return {
     ok: result.ok,
     exitCode: result.exitCode,
-    ...(result.category !== undefined && { category: result.category }),
+    ...(result.kind !== undefined && { kind: result.kind }),
     data: { ...result.data },
     artifacts: [...result.artifacts],
     message: result.message,

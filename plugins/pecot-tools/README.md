@@ -22,7 +22,7 @@ awscli を起動する前に拒否します。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-t_pecot-tools__<ツール名>` です。
 GitHub Copilot CLI では `pecot-tools-<ツール名>` です。
 
-ツールの一覧と、失敗した応答が返す `category` の一覧は
+ツールの一覧と、失敗した応答が返す `kind` の一覧は
 [scripts/release/mcp-dist-README.md](scripts/release/mcp-dist-README.md) にあります。
 
 プラグインを入れずにツールだけ使う場合は、npm のパッケージ `@pecot/tools-mcp` の README を参照してください。

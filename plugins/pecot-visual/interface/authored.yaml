@@ -50,6 +50,7 @@ entries:
         artifacts: '書いた HTML と PNG の絶対パスです。`out_path` を省いたときと、失敗したときは空です。'
         data: '図の URL（`url`）、使ったテーマ（`theme`）、PNG を書けなかったかどうか（`pngFailed`）です。失敗したときは `reason` と `detail` です。'
         exitCode: '成功は 0、HTML は書けたが PNG を書けなかったときは 3、失敗は 1、引数が不正なら 2 です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。PNG だけを書けなかったときも `true` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -71,6 +72,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -110,9 +114,9 @@ entries:
       - kind: input-not-found
         code: 1
         when: '`input_path` のファイルがありません。'
-      - kind: icon-unresolved
+      - kind: output-write-failed
         code: 1
-        when: '図の中の `icon://` の参照が、同梱のアイコンのカタログにありません。'
+        when: '`out_path` のファイルを書けませんでした。'
       - kind: text-violation
         code: 1
         when: 'ラベルの文面が文面の規則に反しているか、フォントがテーマの宣言に反しています。ファイルは書きません。違反は、全件が `data.violations` に並びます。'
@@ -140,6 +144,12 @@ entries:
       - kind: theme-unknown
         code: 1
         when: 'テーマの取得が、上のどれにも当てはまらない理由で失敗しました。'
+      - kind: theme-none
+        code: 1
+        when: '`theme` で指した talk-dir が、テーマを参照していません。'
+      - kind: theme-unlinked
+        code: 1
+        when: 'talk-dir の `theme:` で指したパッケージは、`dependencies` にありません。'
       - kind: theme-tag-required
         code: 2
         when: '`theme` の git URL に `#<tag>` がありません。'
@@ -228,6 +238,7 @@ entries:
         artifacts: '書いた SVG と PDF の絶対パスです。`print_hash` を `true` にしたときと、失敗したときは空です。'
         data: '合成ハッシュ（`sourceSha256`）と、PDF を書けなかったかどうか（`pdfFailed`）です。失敗したときは `reason` と `detail` です。'
         exitCode: '成功は 0、SVG は書けたが PDF を書けなかったときは 3、失敗は 1、引数が不正なら 2 です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。PDF だけを書けなかったときも `true` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -249,6 +260,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -290,6 +304,9 @@ entries:
       - kind: export-failed
         code: 1
         when: 'draw.io での SVG の書き出しに失敗しました。'
+      - kind: output-write-failed
+        code: 1
+        when: '`out_path` のファイルを書けませんでした。'
       - kind: chromium-not-installed
         code: 1
         when: 'Playwright の Chromium が入っておらず、`PECOTV_AUTO_INSTALL_BROWSER` が `1` ではありません。`message` が `runtime_setup` の呼び出しを案内します。'
@@ -360,6 +377,7 @@ entries:
         artifacts: 作った xlsx の絶対パスです。失敗したときは空です。
         data: '貼った項目の数（`items`）、注釈の数（`annotations`）、飛ばした画像（`skipped`）です。失敗したときは `reason` と `detail` です。'
         exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
         stderr: 空の文字列です。
@@ -381,6 +399,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -478,6 +499,7 @@ entries:
         artifacts: 空です。
         data: '実行時依存（`runtime`）、Chromium（`chromium`）、OS のライブラリ（`hostDeps`）のそれぞれの結果です。ダウンロードしたかどうかは `downloaded`、失敗の理由は `detail` に入ります。'
         exitCode: '成功は 0、どれかの手順が失敗したら 1 です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。複数の手順が失敗したときは、最初に失敗した手順の名前です。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: 'すべての手順が成功したら `true`、どれかが失敗したら `false` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -499,6 +521,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -596,6 +621,7 @@ entries:
         artifacts: 書いた PPTX の絶対パスです。失敗したときは空です。
         data: '変換の詳細です。ビルドの警告は `warnings`、エラーは `errors` に入ります。失敗したときは `reason` と `detail` です。'
         exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -617,6 +643,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -790,6 +819,7 @@ entries:
         artifacts: '作った talk-dir の絶対パスです。失敗したときは空です。'
         data: 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、作った直後の lint の結果（`lint`）です。失敗したときは `reason` と `detail` です。'
         exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。lint の違反があっても `true` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -811,6 +841,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -964,6 +997,7 @@ entries:
         artifacts: 空です。
         data: 'プレビューの URL（`url`）、ポート（`port`）、起動中のサーバを使ったかどうか（`reused`）です。止めたときは、動いていたかどうか（`stopped`）です。失敗したときは `reason` と `detail` です。'
         exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
         stderr: 'dev サーバが出した標準エラー出力です。捕捉していなければ、この項目はありません。'
@@ -985,6 +1019,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -1131,6 +1168,7 @@ entries:
         artifacts: 空です。
         data: '違反の一覧（`violations`）、結果の種類（`event`）、飛ばしたシンボリックリンクのディレクトリ（`skippedSymlinkDirectories`）です。失敗したときは `reason` と `detail` です。'
         exitCode: '違反が無ければ 0、違反があるか失敗したら 1、パスの引数が不正なら 2 です。'
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: 'lint を最後まで動かせたら `true`、動かせなかったら `false` です。違反があっても `true` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -1152,6 +1190,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -1268,6 +1309,7 @@ entries:
         artifacts: 作ったページの絶対パスです。失敗したときは空です。
         data: 'レイアウトの仕様（`reference`）と、共通の仕様（`includes`）です。レイアウトの名前がテーマに無いときは、`categories` と `layouts` です。失敗したときは `reason` と `detail` も入ります。'
         exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -1289,6 +1331,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -1421,6 +1466,7 @@ entries:
         artifacts: 'そろえた talk-dir の絶対パスです。失敗したときは空です。'
         data: 'テーマの提示カテゴリ（`categories`）、選べるレイアウト（`layouts`）、そろえた後の lint の結果（`lint`）です。移行したときは、消した名前が `migration.removed` に入ります。失敗したときは `reason` と `detail` です。'
         exitCode: 成功は 0、失敗は 1、引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -1442,6 +1488,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string
@@ -1601,6 +1650,7 @@ entries:
         artifacts: 空です。
         data: 'テーマの名前・指定・ルート（`theme`）、宣言（`declaration`）、選べるレイアウト（`layouts`）、提示カテゴリ（`categories`）です。lint の設定（`lint`）と警告（`warnings`）も入ります。失敗したときは `reason` と `detail` です。'
         exitCode: 成功は 0、失敗は 1、パスの引数が不正なら 2 です。
+        kind: '失敗の原因の名前です。値は、エラーの表のエラー名のどれかです。`ok` が `true` のときは、この項目はありません。'
         message: 結果を 1 行にまとめた文です。
         ok: '成功なら `true`、失敗なら `false` です。'
         stderr: 捕捉した標準エラー出力です。捕捉していなければ、この項目はありません。
@@ -1622,6 +1672,9 @@ entries:
           exitCode:
             description: Exit code (0 = success)
             type: number
+          kind:
+            description: Failure kind (omitted on success)
+            type: string
           message:
             description: One-line summary for the calling agent
             type: string

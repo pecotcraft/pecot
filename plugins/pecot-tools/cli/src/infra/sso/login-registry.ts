@@ -7,7 +7,7 @@
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 
-import type { FailureCategory } from '../../domain/allowlist.js'
+import type { FailureKind } from '../../domain/allowlist.js'
 import { classifyFailure } from '../../domain/failure.js'
 import { redactSecrets } from '../../domain/redact.js'
 import { AUTOFILL_MARKER, parseSsoLoginOutput, type SsoLoginPrompt } from '../../domain/sso-output.js'
@@ -54,7 +54,7 @@ export interface SsoLoginSession {
   /**
   `failed` のときの失敗種別。
   */
-  readonly category?: FailureCategory
+  readonly kind?: FailureKind
   /**
   awscli の終了コード。子がまだ終わっていなければキーごと無い。シグナルで終わった子は null。
   */
@@ -88,7 +88,7 @@ export interface LoginRegistry {
 }
 
 /**
-レジストリ内部で持つ 1 件。state / prompt / category は遷移で書き換わる。
+レジストリ内部で持つ 1 件。state / prompt / kind は遷移で書き換わる。
 */
 interface LoginProcess {
   readonly profile: string
@@ -102,7 +102,7 @@ interface LoginProcess {
   readonly timers: NodeJS.Timeout[]
   state: SsoLoginState
   prompt: SsoLoginPrompt | undefined
-  category: FailureCategory | undefined
+  kind: FailureKind | undefined
   /**
   close で受けた終了コード。未終了は undefined、シグナル終了は null。
   */
@@ -169,7 +169,7 @@ function snapshotOf(record: Readonly<LoginProcess>): SsoLoginSession {
     }),
     startedAt: record.startedAt,
     output: outputOf(record),
-    ...(record.category !== undefined && { category: record.category }),
+    ...(record.kind !== undefined && { kind: record.kind }),
     ...(record.exitCode !== undefined && { exitCode: record.exitCode }),
   }
 }
@@ -224,7 +224,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
         timers: [],
         state: 'pending',
         prompt: undefined,
-        category: undefined,
+        kind: undefined,
         exitCode: undefined,
         spawnErrorCode: undefined,
         spawnErrorMessage: '',
@@ -245,7 +245,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
       */
       const fail = (exitCode: number | null): void => {
         record.state = 'failed'
-        record.category = classifyFailure({
+        record.kind = classifyFailure({
           exitCode,
           stderr: mergeStderr(record.stderr?.text() ?? '', record.spawnErrorMessage),
           timedOut: false,
@@ -310,7 +310,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
       const promptTimer = setTimeout(() => {
         if (isSettled) return
         record.state = 'failed'
-        record.category = 'timeout'
+        record.kind = 'timeout'
         child.kill('SIGTERM')
         settle()
       }, promptTimeoutMs)
@@ -336,7 +336,7 @@ export function createLoginRegistry(options: Readonly<LoginRegistryOptions> = {}
         state: 'failed',
         startedAt: Date.now(),
         output: 'Cannot start a new login because the server is shutting down',
-        category: 'other',
+        kind: 'other',
       }
     }
 

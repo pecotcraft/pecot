@@ -36,7 +36,7 @@ type InputValue = string | number | boolean | readonly string[]
 検証で弾いたときの戻り値。awscli は起動しない。
 */
 export interface InvalidInput {
-  readonly category: 'invalid-input'
+  readonly kind: 'invalid-input'
   readonly message: string
 }
 
@@ -56,7 +56,7 @@ function specsOf(entry: Readonly<AllowlistEntry>): readonly InputSpec[] {
 }
 
 function invalid(message: string): InvalidInput {
-  return { category: 'invalid-input', message }
+  return { kind: 'invalid-input', message }
 }
 
 /**

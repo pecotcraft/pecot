@@ -7,6 +7,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { isStatusConfigured, setIssueField } from './issue-board.js'
 import { commandHint, hinted } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -43,21 +44,21 @@ const BOARD_MOVE = defineCommand({
         const client = await connectToProject(output, config, owner, repository)
         const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
         if (itemId === undefined) {
-          stopWith(output, hinted`${target} is not on the project board\nhint: add it to the board first with ${commandHint(['board', 'add'], { issue_ref: `${owner}/${repository}/${String(number)}` })}`)
+          stopWith(output, hinted`${target} is not on the project board\nhint: add it to the board first with ${commandHint(['board', 'add'], { issue_ref: `${owner}/${repository}/${String(number)}` })}`, 'not-on-board')
         }
         if (input.dry_run) {
-          if (!isStatusConfigured(config, status)) stopWith(output, notConfiguredMessage(status))
+          if (!isStatusConfigured(config, status)) stopWith(output, notConfiguredMessage(status), 'status-not-configured')
           output.planned({ verb: 'set', target: `${target} status ${status}` })
           return
         }
         if (!await setIssueField(client, config, itemId, 'workflow', status)) {
-          stopWith(output, notConfiguredMessage(status))
+          stopWith(output, notConfiguredMessage(status), 'status-not-configured')
         }
         output.done({ verb: 'set', target: `${target} status ${status}` })
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        stopWith(output, `could not set ${target} status ${status}: ${error.message}`)
+        stopWith(output, `could not set ${target} status ${status}: ${error.message}`, kindOfFailure(error))
       }
     })
   },

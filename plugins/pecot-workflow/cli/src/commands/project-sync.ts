@@ -16,6 +16,7 @@ import type { ProjectFieldOption } from '../infra/github/projects.js'
 import { asArray, isTruthy, requireNumber, requireString } from '../infra/github/payload.js'
 import { commandHint, hinted, placeholder } from './command-hint.js'
 import { stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import type { Output } from './output.js'
 
 const WORKFLOW_FIELD_PREFIX = 'pecot-workflow-'
@@ -88,7 +89,7 @@ export const SIZE_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
 export function failApi(out: Readonly<Output>, action: string, error: Readonly<GitHubAPIError>): never {
   const detail = error.message
   const status = error.statusCode ?? 0
-  return stopWith(out, status === 0 ? `could not ${action}: ${detail}` : `could not ${action} (status ${String(status)}): ${detail}`)
+  return stopWith(out, status === 0 ? `could not ${action}: ${detail}` : `could not ${action} (status ${String(status)}): ${detail}`, kindOfFailure(error))
 }
 
 /**
@@ -122,7 +123,7 @@ export async function findProjectByTitle(out: Readonly<Output>, client: Readonly
   const found = projects.find(project => jsonField(project, 'title') === name)
   if (found !== undefined) return found
   const titles = projects.map(project => `- ${textOf(jsonField(project, 'title'))}`).join('\n')
-  return stopWith(out, `project not found: ${name}\navailable projects:\n${titles}`)
+  return stopWith(out, `project not found: ${name}\navailable projects:\n${titles}`, 'project-not-found')
 }
 
 interface ValidatedFields {
@@ -143,7 +144,7 @@ export function missingRequiredOptions(field: Readonly<JsonObject>): readonly st
 必須の選択肢が欠けたときの、終了コード 1 の止め方
 */
 export function stopMissingOptions(out: Readonly<Output>, missing: readonly string[]): never {
-  return stopWith(out, `pecot-workflow field is missing options: ${missing.join(', ')}\nrequired options: Backlog / Pending / Ready / Active / In Review / Archived`)
+  return stopWith(out, `pecot-workflow field is missing options: ${missing.join(', ')}\nrequired options: Backlog / Pending / Ready / Active / In Review / Archived`, 'not-initialized')
 }
 
 function lowerName(option: JsonValue | undefined): string {
@@ -159,7 +160,7 @@ function findWorkflowField(fields: readonly JsonValue[], suffix: string | undefi
 async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string, number: number, suffix?: string | undefined }>): Promise<ValidatedFields> {
   const { owner, name, host, number, suffix } = target
   const projectInfo = await client.getProjectFields(owner, number)
-  if (projectInfo === undefined || !isTruthy(projectInfo)) return stopWith(out, `could not read project fields: ${name}`)
+  if (projectInfo === undefined || !isTruthy(projectInfo)) return stopWith(out, `could not read project fields: ${name}`, 'not-initialized')
   const fields = fieldNodesOf(projectInfo)
   const workflowField = findWorkflowField(fields, suffix)
   if (workflowField === undefined) {
@@ -168,6 +169,7 @@ async function fetchValidatedFields(out: Readonly<Output>, client: Readonly<GitH
       hinted`project "${name}" has no pecot-workflow-* field
 required field: pecot-workflow-<suffix> (Backlog/Pending/Ready/Active/In Review/Archived)
 run: ${commandHint(['project', 'init'], { owner, name, host, suffix: placeholder('suffix') })}`,
+      'not-initialized',
     )
   }
   const missing = missingRequiredOptions(workflowField)

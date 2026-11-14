@@ -47,8 +47,9 @@ import type {
   SlideConvertDependencies,
   SlideConvertOptions,
 } from '../../commands/slidev-to-pptx/convert.js'
+import { failureKindOf, type FailureReason } from '../../domain/_shared/failure-kind.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
-import type { ToolResult } from '../result.js'
+import type { FailedToolResult } from '../result.js'
 import type { ToolContext, ToolDefinition, ToolCallContext } from '../server.js'
 import {
   captureCommandOutput,
@@ -68,15 +69,16 @@ import {
 */
 function failureResult(
   event: string,
-  reason: string,
+  reason: FailureReason,
   exitCode: number,
   error: unknown,
   extra: Readonly<Record<string, unknown>> = {},
-): Omit<ToolResult, 'stdout' | 'stderr'> {
+): Omit<FailedToolResult, 'stdout' | 'stderr'> {
   const detail = formatError(error)
   return {
     ok: false,
     exitCode,
+    kind: failureKindOf(reason),
     artifacts: [],
     data: { event, reason, detail, ...extra },
     message: detail,

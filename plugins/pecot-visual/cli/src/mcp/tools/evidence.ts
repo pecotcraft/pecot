@@ -10,11 +10,13 @@ import { z } from 'zod'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import {
   errorData,
+  errorToReason,
   EVIDENCE_CREATE_FAILURE_EXIT_CODE,
   evidenceCreateDefaultDependencies,
   executeEvidenceCreate,
   type EvidenceCreateDependencies,
 } from '../../commands/evidence-xlsx/create.js'
+import { failureKindOf } from '../../domain/_shared/failure-kind.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import { captureCommandOutput, formatError, textViolationMessage, TOOL_OUTPUT_SCHEMA, violationCountOf, WINDOWS_PATH_NOTE } from './_shared.js'
@@ -75,6 +77,7 @@ async function handleEvidenceCreate(
       // usage エラー (exit 2) は commander の引数検証にしか無い。MCP では
       // inputSchema と parsePathArguments が先に弾くため、ここは実行失敗の 1 のみ。
       exitCode: EVIDENCE_CREATE_FAILURE_EXIT_CODE,
+      kind: failureKindOf(errorToReason(error)),
       artifacts: [],
       data,
       message: violationCount === undefined ? formatError(error) : textViolationMessage(violationCount),

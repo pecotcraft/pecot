@@ -10,7 +10,6 @@ import {
   authoredFileSchema,
   behaviorSchema,
   conflictConstraintSchema,
-  exitCodeSchema,
   exitKindSchema,
   generatedFileSchema,
   dependencyConstraintSchema,
@@ -77,16 +76,11 @@ function selectConstraint(value: unknown): z.ZodType | undefined {
   return Object.hasOwn(value, 'requires') ? dependencyConstraintSchema : undefined
 }
 
-function selectExit(value: unknown): z.ZodType | undefined {
-  if (!isRecord(value)) return undefined
-  return Object.hasOwn(value, 'kind') ? exitKindSchema : exitCodeSchema
-}
-
 function elementFindings(data: unknown, file: string, entries: Readonly<Record<string, unknown>>): Finding[] {
   const findings: Finding[] = []
   const selectors = [
     { field: 'constraints', select: selectConstraint, expected: 'an object with "conflicts" or "requires"' },
-    { field: 'exit_status', select: selectExit, expected: 'an object with "code" or "kind"' },
+    { field: 'exit_status', select: (value: unknown) => isRecord(value) ? exitKindSchema : undefined, expected: 'an object with "kind"' },
   ] as const
   for (const [id, entry] of Object.entries(entries)) {
     if (!isRecord(entry)) continue
@@ -289,9 +283,7 @@ function namesFindings(file: string, scope: string, entry: AuthoredEntry, genera
 
 function exitTexts(entry: AuthoredEntry): TextPair[] {
   return entry.exit_status.flatMap((element, index) => {
-    const schema = selectExit(element)
-    if (schema === undefined) return []
-    const parsed = schema === exitKindSchema ? exitKindSchema.safeParse(element) : exitCodeSchema.safeParse(element)
+    const parsed = exitKindSchema.safeParse(element)
     return parsed.success ? [[`exit_status[${String(index)}].when`, parsed.data.when] as const] : []
   })
 }

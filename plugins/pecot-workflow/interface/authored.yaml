@@ -81,12 +81,42 @@ entries:
     diagnostics: '標準エラーに、足した Issue の結果の行（`added`）と、Status の結果の行（`set`）を出します。`--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。`--status` の値をボードが定義していないときも、`error` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'Issue をボードに足しました。`--status` が空でなければ、Status も設定しました。'
-      - code: 1
-        when: '次のどれかです。`--status` が有効な値ではありません。`--status` の値をボードが定義していません。アクティブなプロジェクトがありません。リポジトリがプロジェクトにありません。GitHub API がエラーを返しました。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。Issue の参照の形が誤っています。リポジトリが決まらないのに短い形を渡しました。ほかのコマンドラインの誤りがあります。'
+      - kind: invalid-input
+        code: 1
+        when: '`--status` が有効な値ではありません。'
+      - kind: status-not-configured
+        code: 1
+        when: '`--status` の値をボードが定義していません。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っています。リポジトリが決まらないのに短い形を渡したときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '`--status` が有効な値でないか、ボードが定義していない値のときは、Issue を足す前に止まります。Issue を足した後で Status の設定に失敗したときは、Issue はボードに残ります。'
     effects:
       - target: github
@@ -208,12 +238,45 @@ entries:
     diagnostics: '標準エラーに、Status の結果の行（`set`）を出します。status が有効な値でないときは、有効な値を並べた `error` の行を出します。ボードが Blocked を定義していないときは、`hint` の行が `pecot project init` の実行を案内します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'Status を設定しました。'
-      - code: 1
-        when: '次のどれかです。status が有効な値ではありません。アクティブなプロジェクトがありません。リポジトリがプロジェクトにありません。Issue がボードにありません。ボードがその status を定義していません。GitHub API がエラーを返しました。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。Issue の参照の形が誤っています。リポジトリが決まらないのに短い形を渡しました。ほかのコマンドラインの誤りがあります。'
+      - kind: invalid-input
+        code: 1
+        when: 'status が有効な値ではありません。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: not-on-board
+        code: 1
+        when: 'Issue がボードにありません。'
+      - kind: status-not-configured
+        code: 1
+        when: 'ボードがその status を定義していません。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っています。リポジトリが決まらないのに短い形を渡したときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: github
@@ -324,12 +387,39 @@ entries:
     diagnostics: 'GitHub Enterprise Server が Issue の依存関係に対応していないときは、標準エラーに `warning` の行を 1 つ出します。Ready か Blocked の Issue の列か Status が判定に合っていないおそれがあるときも、`warning` の行を 1 つ出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'ダッシュボードを出しました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。GitHub API がエラーを返しました。予期しないエラーが起きました。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルの内容が不正です。'
+      - kind: other
+        code: 1
+        when: '予期しないエラーが起きました。'
+      - kind: invalid-input
+        code: 2
         when: '`--repo` が `owner/repo` の形でないか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: github
@@ -471,13 +561,43 @@ entries:
     diagnostics: '移動ごとの結果の行（`moved`）と、Status の書き込みごとの結果の行（`set`）と、削除した Archived の項目の結果の行（`deleted`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。ブランチか PR のある Issue が blocked のとき。判定を読めない Issue があるとき。書き込みに失敗したとき。Archived の項目を削除できなかったとき。ボードが定義していない値があるとき。GitHub Enterprise Server が Issue の依存関係に対応していないとき。`count` の行には、使った GraphQL の点数と残りを出します。rate limit を読んだ後にエラーで止まったときも出します。最後に、書き込みに失敗した Issue の数を `error` の行で出します。失敗ごとにも `error` の行を出します。削除できなかった Archived の項目の数も、別の `error` の行で出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: '次のどれかです。書き込みの失敗なしでボードを同期しました。`--dry-run` で予定を出しました。GitHub Enterprise Server が Issue の依存関係に対応していません。判定を読めない Issue があっても、終了コードは変わりません。'
-      - code: 1
-        when: '次のどれかです。ボードへの書き込みが 1 件以上の Issue で失敗しました（ほかの Issue をすべて同期した後で終わります）。Archived の項目を 1 件以上削除できませんでした。アクティブなプロジェクトが無く、設定も 1 つに決まりません。`--project` の名前の設定がありません。設定ファイルの内容が不正です。ボードを読めません。GitHub トークンが見つかりません。'
-      - code: 2
+      - kind: partial-failure
+        code: 1
+        when: 'ボードへの書き込みが 1 件以上の Issue で失敗したか、Archived の項目を 1 件以上削除できませんでした。ほかの Issue をすべて同期した後で終わります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトが無く、設定も 1 つに決まりません。'
+      - kind: project-not-found
+        code: 1
+        when: '`--project` の名前の設定がありません。'
+      - kind: config-invalid
+        code: 1
+        when: '設定ファイルの内容が不正です。'
+      - kind: invalid-input
+        code: 2
         when: 'コマンドラインの誤りがあります。'
-    on_error: '既に書いた移動と、既に削除した Archived の項目は、そのまま残ります。書き込みの失敗は `warning` として扱い、ほかの Issue の同期を続けてから、終了コード 1 で終わります。Archived の項目を削除できないときも `warning` にして続け、終了コード 1 で終わります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '既に書いた移動と、既に削除した Archived の項目は、そのまま残ります。書き込みの失敗は `warning` として扱い、ほかの Issue の同期を続けてから、終了コード 1 で終わります。Archived の項目を削除できないときも `warning` にして続け、終了コード 1 で終わります。判定を読めない Issue があるときと、Issue の依存関係に対応していない GitHub Enterprise Server のときは、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: read
@@ -635,12 +755,39 @@ entries:
     diagnostics: '標準エラーに、削除したブランチごとの結果の行（`deleted`）を出します。`--dry-run` のときは、予定の行（`dry-run`）を出します。`wip/<branch>` を、無い以外の理由で削除できないときは、`warning` の行を出します。ブランチが保護されているときは、保護するブランチを並べた `error` の行を出します。ほかの失敗でも `error` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'ブランチを削除しました。または、`--dry-run` で予定の行を書きました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。既定ブランチを読めません。ブランチが保護されています。ブランチを削除できません。git の外で打ったので、リポジトリが決まりません。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: guard-blocked
+        code: 1
+        when: 'ブランチが保護されています。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git の外で打ったので、リポジトリが決まりません。'
+      - kind: invalid-input
+        code: 2
         when: '`repo` が `owner/repo` の形でないか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '`wip/<branch>` の削除に失敗しても、ブランチそのものは削除されたままです。`wip/<branch>` が無い場合を除いて `warning` を書き、終了コード 0 で終わります。'
     effects:
       - target: github
@@ -749,7 +896,7 @@ entries:
       - '`--wait` は `stack`（省くとこちら）か `merge` です。`--wait merge` のときは `--reason` が必須で、待つ側の Issue の本文の `Waits for merge` の節に、前提と理由の行を足します。`stack` のときは、その行を節から外します。'
       - '`--wait stack` で `--reason` を渡すと、使い方の誤りです。'
       - '書き込むのは、`Waits for merge` の節にある前提の行だけです。節のほかの部分と、本文のほかの節は変えません。'
-      - 'まず、待つ側の Issue の blocked-by を読みます。既に付いていて種類と理由が同じ前提は、そのままにします。種類か理由が違う前提は、節だけを書き換えます。既にその状態の組には、追加と削除は求めません。'
+      - 'まず、待つ側の Issue の blocked-by を読みます。既に付いていて種類と理由が同じ前提は、そのままにします。種類か理由が違う前提は、節だけを書き換えます。既にその状態の組には、追加と削除は求めません。何も変えないときの終了コードは 0 です。'
       - '輪の探索は、新しく blocked-by を足すときだけ行います。`--by` の blocked-by を 1 段ずつたどり、200 件の Issue まで調べます。確かめきれないときは、止まります。GitHub は 3 件以上の Issue でできる輪を受け付けてしまうためです。'
       - '書き込みは、blocked-by、本文、ボードの順に行います。本文の書き込みに失敗しても、blocked-by は残ります。同じコマンドをもう一度打てば、本文が直ります。'
       - '書き込みの後で、待つ側の Issue の判定を読み直します。読み直した blocked-by と節が書いた内容と違うときは、もう一度読みます。それでも違うときは、列と Status の札を動かしません。'
@@ -763,15 +910,49 @@ entries:
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'blocked-by を付けたか変えました。または、何も変える必要がありませんでした。ボードに関する `warning` が出ても、終了コードは 0 です。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。待つ側の Issue のリポジトリがプロジェクトにありません。Issue が既に 50 件の blocked-by を持っています。輪を除けると確かめられませんでした。GitHub Enterprise Server が Issue の依存関係に対応していません。GitHub API がエラーを返しました。'
-      - code: 2
-        when: '次のどれかです。Issue の参照の形が誤っています。`--by` が輪（Issue 自身を含みます）になります。`--wait merge` で `--reason` がありません。`--wait stack` で `--reason` を渡しました。ほかのコマンドラインの誤りがあります。'
-      - code: 3
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '待つ側の Issue のリポジトリがプロジェクトにありません。'
+      - kind: dependency-rejected
+        code: 1
+        when: 'Issue が既に 50 件の blocked-by を持っています。GitHub Enterprise Server が Issue の依存関係に対応していないときも含みます。'
+      - kind: dependency-unreadable
+        code: 1
+        when: '輪を除けると確かめられませんでした。blocked-by を読めないときも含みます。'
+      - kind: dependency-rejected
+        code: 2
+        when: '`--by` が輪（Issue 自身を含みます）になります。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っています。`--wait merge` で `--reason` が無いとき、`--wait stack` で `--reason` を渡したとき、ほかのコマンドラインの誤りも含みます。'
+      - kind: content-invalid
+        code: 3
         when: '本文の `Waits for merge` の節を読めません。'
-    on_error: '前提を付けた後で本文の書き込みに失敗したときは、blocked-by は残り、終了コード 1 で終わります。ボードに書けないときは、blocked-by と本文は残り、`warning` を出すだけです。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '前提を付けた後で本文の書き込みに失敗したときは、blocked-by は残り、終了コード 1 で終わります。ボードに書けないときは、blocked-by と本文は残り、`warning` を出すだけです。ボードに関する `warning` だけのときは、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: write
@@ -917,14 +1098,48 @@ entries:
     diagnostics: '標準エラーに、コメントの結果の行（`created` か `updated`）を出します。ファイルのリポジトリがプロジェクトに無いときと、`comment_url` を書き戻せないときは、`warning` の行を出します。本文がテンプレートに合わないときは、`error` の行を 1 つ出します。その 1 行目はテンプレートのパスです。続けて、字下げした行で次の違反を出します。足りない節、見出しの要約の規則の違反、使えない記法、折りたたみの規則の違反、テンプレートに無い見出しです。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'テンプレートをコピーしました。または、コメントを投稿したか書き換えました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。モードの引数がありません。`--prepare` か `-m` に `-t` がありません。`-m` に `--issue-ref` がありません。フロントマターを読めないか、フロントマターに `template` がありません。`comment_url` の形が誤っているか、別のホストか別の Issue を指しています。GitHub API がエラーを返しました。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: invalid-input
+        code: 1
+        when: 'モードの引数がありません。`--prepare` か `-m` に `-t` が無いとき、`-m` に `--issue-ref` が無いときも含みます。'
+      - kind: content-invalid
+        code: 1
+        when: 'フロントマターを読めないか、フロントマターに `template` がありません。'
+      - kind: invalid-input
+        code: 1
+        when: '`comment_url` の形が誤っているか、別のホストか別の Issue を指しています。'
+      - kind: other
+        code: 1
+        when: 'テンプレートが見つかりません。'
+      - kind: invalid-input
+        code: 2
         when: 'Issue の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
-      - code: 3
+      - kind: content-invalid
+        code: 3
         when: '本文がテンプレートに合いません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '本文がテンプレートに合わないときは、何も投稿しません。コメントを投稿した後で `comment_url` を書き戻せないときは、コメントは GitHub に残り、ファイルは元のままです。`--prepare` が書いたテンプレートのコピーは、`.pecot/tmp/output/` に残ります。'
     effects:
       - target: github
@@ -1169,13 +1384,67 @@ entries:
     diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status・priority・size）と `moved`（Blocked から Ready）もあります。`--dry-run` のときは、`created` などの代わりに `dry-run` の行を出します。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。blocked-by を足せなかったときは、付け直す `pecot issue block` のコマンドを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`-m` で渡した `--status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。形の誤った `--parent-epic` は、`error` の行ではなく、コマンドラインの解析が使い方のエラーとして知らせます。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'テンプレートをコピーしたか、予定を出したか、すべての Issue を作りました。Issue をプロジェクトのボードに足せなかったときも 0 です。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。モードの引数がありません。`-m` に `-t` か `-r` がありません。ファイルが無いか、同じファイルを重ねて渡しました。プレースホルダが先のファイルを指していません。フロントマターを読めないか、リポジトリの形が誤っています。本文がテンプレートに合いません（3 ではなく 1 です）。`-m` で渡した `--status` が有効な値ではありません。status が type の既定の値ではありません。リポジトリがプロジェクトにつながっていません。親 Epic の別の Issue が同じ order を持っています。一括の 2 つのファイルが同じ order を持っています。`blocked_by` が、知らない key・輪・後のファイル・重複した前提のどれかを指しています。`blocked_by` に書いた Issue を読めません。`wait: merge` に reason がありません。ファイルに `parallel` があります。blocked-by を足せませんでした。親 Epic へのつなぎに失敗しました。GitHub API がエラーを返しました。'
-      - code: 2
-        when: '次のどれかです。`--freeform` に `--message` か `--repo` がありません。`--freeform` を `--prepare`・ファイル・`--title` と一緒に渡しました。リポジトリが `owner/repo` の形ではありません。`epic` 以外の type の `--prepare` に `--repo` がありません。Epic の作り先を決められません。`--parent-epic` の形が誤っています。ほかのコマンドラインの誤りがあります。'
-    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。フラグ `issue-create-slash-pending` を消すのは、一括のすべてのファイルを処理した後だけです。blocked-by を足せなかったときも消します。一括が途中で止まったときは残ります。`issue-pending` は、Issue を作るたびに消します。blocked-by を足せなかったときは、`warning` を書き、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、失敗した blocked-by を付け直すコマンドを書き、終了コード 1 で終わります。プロジェクトのボードに足せなかったときは、`warning` を書きます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`error` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、`error` を書き、何も作りません。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: invalid-input
+        code: 1
+        when: 'モードの引数がありません。`-m` に `-t` か `-r` が無いとき、ファイルが無いとき、同じファイルを重ねて渡したときも含みます。'
+      - kind: invalid-input
+        code: 1
+        when: '`-m` で渡した `--status` が有効な値ではありません。status が type の既定の値でないときも含みます。'
+      - kind: content-invalid
+        code: 1
+        when: 'フロントマターか本文が誤っています。プレースホルダが先のファイルを指していないとき、リポジトリの形が誤っているとき、本文がテンプレートに合わないとき（3 ではなく 1 です）も含みます。'
+      - kind: content-invalid
+        code: 1
+        when: '`blocked_by` が、知らない key・輪・後のファイル・重複した前提のどれかを指しています。`wait: merge` に reason が無いときと、ファイルに `parallel` があるときも含みます。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにつながっていません。'
+      - kind: order-conflict
+        code: 1
+        when: '親 Epic の別の Issue が同じ order を持っています。一括の 2 つのファイルが同じ order を持つときも含みます。'
+      - kind: dependency-unreadable
+        code: 1
+        when: '`blocked_by` に書いた Issue を読めません。'
+      - kind: dependency-rejected
+        code: 1
+        when: 'GitHub Enterprise Server が Issue の依存関係に対応していません。'
+      - kind: partial-failure
+        code: 1
+        when: 'blocked-by を足せなかった Issue があります。'
+      - kind: other
+        code: 1
+        when: 'テンプレートが見つかりません。'
+      - kind: invalid-input
+        code: 2
+        when: '`--freeform` に `--message` か `--repo` がありません。`--freeform` を `--prepare`・ファイル・`--title` と一緒に渡したときも含みます。リポジトリが `owner/repo` の形でないときも含みます。`epic` 以外の type の `--prepare` に `--repo` が無いときも含みます。`--parent-epic` の形が誤っているときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: repo-setting-missing
+        code: 2
+        when: 'Epic の作り先を決められません。設定に `aggregation_repo` が無く、`--repo` もありません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。フラグ `issue-create-slash-pending` を消すのは、一括のすべてのファイルを処理した後だけです。blocked-by を足せなかったときも消します。一括が途中で止まったときは残ります。`issue-pending` は、Issue を作るたびに消します。blocked-by を足せなかったときは、`warning` を書き、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、失敗した blocked-by を付け直すコマンドを書き、終了コード 1 で終わります。プロジェクトのボードに足せなかったときは、`warning` を書きます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`error` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、`error` を書き、何も作りません。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。失敗がボードへの追加だけのときは、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: write
@@ -1473,12 +1742,42 @@ entries:
     diagnostics: '標準エラーに、結果の行を出します。`updated`（アーカイブの解除）、`set`（status）、`reopened`（Issue）、`created`（コメント）です。Issue がボードに無いときと、status がプロジェクトに設定されていないときは、`warning` の行を出します。値が `blocked` のときは、`hint` の行が `pecot project init` の実行を案内します。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'Issue を開き直しました。'
-      - code: 1
-        when: '次のどれかです。status が有効な値ではありません。アクティブなプロジェクトがありません。リポジトリがプロジェクトにありません。2 回目に開き直した後も、Issue が open ではありません。コメントの投稿に失敗しました。GitHub API がエラーを返しました。'
-      - code: 2
+      - kind: invalid-input
+        code: 1
+        when: 'status が有効な値ではありません。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: other
+        code: 1
+        when: '2 回目に開き直した後も、Issue が open ではありません。'
+      - kind: invalid-input
+        code: 2
         when: 'Issue の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: 'コメントの投稿に失敗したときは、Issue は新しい status で open のまま残り、終了コード 1 で終わります。2 回目に開き直した後も Issue が open でないときは、status は変わったまま残り、終了コード 1 で終わります。'
     effects:
       - target: github
@@ -1609,12 +1908,33 @@ entries:
     diagnostics: '本文の Waits for merge の節が blocked-by と食い違うか、形が誤っているときは、`warning` の行を出します。blocked-by を読めないときも、`warning` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'Issue を出しました。'
-      - code: 1
-        when: 'アクティブなプロジェクトが無いか、GitHub API がエラーを返しました。'
-      - code: 2
-        when: '次のどれかです。Issue の参照の形が誤っています。`--comment-limit` が 0 から 20 の外です。ほかのコマンドラインの誤りがあります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っています。`--comment-limit` が 0 から 20 の外のときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: github
@@ -1729,7 +2049,7 @@ entries:
     details:
       - 'Issue から blocked-by（前提）を外します。'
       - '`issue_ref` は待つ側の Issue で、`--by` は外す前提です。`--by` は別のリポジトリの Issue でもかまいません。'
-      - 'まず、待つ側の Issue の blocked-by を読みます。付いていない前提は外しません。`Waits for merge` の節に残った古い行も、そのままにします。食い違いは `pecot issue show` が `warning` で知らせます。'
+      - 'まず、待つ側の Issue の blocked-by を読みます。付いていない前提は外しません。`Waits for merge` の節に残った古い行も、そのままにします。食い違いは `pecot issue show` が `warning` で知らせます。前提が付いていなければ、何も書かずに終了コード 0 で終わります。'
       - '節に前提の行があるときは、その行を外します。節が空になったときは、見出しごと消します。'
       - '節を読めないときは、blocked-by だけを外し、節を直していない旨を `warning` で知らせます。外すことが利用者の求めることだからです。'
       - '書き込みの後で、待つ側の Issue の判定を読み直して確かめ、`pecot issue block` と同じやり方で、列と Status の札を動かします。'
@@ -1744,13 +2064,43 @@ entries:
     diagnostics: '標準エラーに、結果の行を出します。blocked-by には `removed` か `unchanged` を出し、列か札を変えたときは続けて `moved` と `set` を出します。`warning` の行は、次のときに出します。`Waits for merge` の節を読めないとき。判定を出せないか、確かめられないとき。ボードに Todo の選択肢が無いとき。ボードに書けなかったとき。Todo が無いときは、`pecot project init` の実行を案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'blocked-by を外しました。または、もともと付いていませんでした。節かボードに関する `warning` が出ても、終了コードは 0 です。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。待つ側の Issue のリポジトリがプロジェクトにありません。blocked-by を全部は読めませんでした。GitHub Enterprise Server が Issue の依存関係に対応していません。GitHub API がエラーを返しました。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: '待つ側の Issue のリポジトリがプロジェクトにありません。'
+      - kind: dependency-unreadable
+        code: 1
+        when: 'blocked-by を全部は読めませんでした。'
+      - kind: dependency-rejected
+        code: 1
+        when: 'GitHub Enterprise Server が Issue の依存関係に対応していません。'
+      - kind: invalid-input
+        code: 2
         when: 'Issue の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
-    on_error: '前提を外した後で本文の書き込みに失敗したときは、blocked-by は外れたままで、終了コード 1 で終わります。ボードに書けないときは、blocked-by と本文は残り、`warning` を出すだけです。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '前提を外した後で本文の書き込みに失敗したときは、blocked-by は外れたままで、終了コード 1 で終わります。ボードに書けないときは、blocked-by と本文は残り、`warning` を出すだけです。節かボードに関する `warning` だけのときは、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: write
@@ -1863,12 +2213,36 @@ entries:
     diagnostics: '標準エラーに、`warning` の数の `count` の行を出し、続けて `warning` ごとに行を 1 つ出します。行の形は `<label>: <message> (fix: <hint>)` です。下の段のブランチに手元の追跡参照が無いときは、`git fetch` を案内する `warning` の行を足します。この行は数に入りません。'
     environment: []
     exit_status:
-      - code: 0
-        when: '節を出し、`warning` はありませんでした。'
-      - code: 1
-        when: '次のどれかです。ディレクトリが git のリポジトリではありません。git remote がありません。今のブランチかリポジトリを決められません。アクティブなプロジェクトがありません。`develop_branch` が未設定です。`<remote>/<develop_branch>` がありません。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。積んだ base の記録の形が誤っています。'
-      - code: 2
-        when: '次のどれかです。`warning` が 1 件以上あります。`--directory` がありません。ほかのコマンドラインの誤りがあります。'
+      - kind: git-unresolved
+        code: 1
+        when: 'ディレクトリが git のリポジトリではありません。git remote が無いときと、今のブランチかリポジトリを決められないときも含みます。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`develop_branch` が未設定です。'
+      - kind: git-unresolved
+        code: 1
+        when: '`<remote>/<develop_branch>` がありません。`<remote>` は remote の `origin` で、`origin` が無ければ最初の remote です。'
+      - kind: content-invalid
+        code: 1
+        when: '積んだ base の記録の形が誤っています。'
+      - kind: preflight-failed
+        code: 2
+        when: '`warning` が 1 件以上あります。'
+      - kind: invalid-input
+        code: 2
+        when: '`--directory` が無いか、ほかのコマンドラインの誤りがあります。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: git
@@ -2043,15 +2417,70 @@ entries:
     diagnostics: '標準エラーに、PR の結果の行（`created`）と、ボードの status の結果の行（`set`）を出します。積んだ base のときは、スタックの結果の行（`added: PR #N to stack #S`）も出します。待っていた Issue を動かしたときは、`moved:` の行も出します。`--prepare` のときは、base・題の scope の目安・`Closes` の `set` の行を出します。`--dry-run` のときは、PR と status の `dry-run: would` の行を出し、下の段の PR が開いていれば、登録の予定の行も出します。行は `dry-run: would add the new PR to the stack of PR #<下>` です。検証の失敗ごとに、`error` の行を 1 つ出します。事前の確認が `warning` を見つけたときは、`error` の行に続けて、`warning` ごとの行を出します。ボードの status を設定できないときと、Issue の種類を読めないときは、`warning` の行を出します。スタックに登録できないときは、`warning: could not register stack: <理由>` の行を出します。下の段の PR がスタックの一番上に無いときは、`warning: could not register stack: PR #<下> is not the top ...` の行を出します。待っている Issue を読めないか動かせないときも、`warning` の行を出します。確かめられないときは、`warning: could not confirm that GitHub reflects PR #<N> ...` の行を出します。下の段の PR が無いときは、`error: base branch <base> has no open PR` の行と直し方の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'テンプレートをコピーしたか、PR を作ったか、`--dry-run` の検証を通りました。ボードの status を設定できなかったときも 0 です。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。`--template` が `default` でも `release` でもありません。モードの引数がありません。`-m` に `-t` か `-b` がありません。ファイルと一緒に `--screenshot` を渡しました。フロントマターを読めないか、正しいリポジトリがありません。リポジトリを決められないか、`owner/repo` の形ではありません。head ブランチを決められません。積んだ base の記録の形が誤っていて、base を決められません。`develop_branch` か `release_branch` が未設定です。事前の確認が致命的な場合に当たりました（git のリポジトリでない、git remote が無い、今のブランチが無い）。GitHub API がエラーを返しました。積んだ base の記録のコミットが head の履歴にありません（ファイルと `-m` の投稿）。'
-      - code: 2
-        when: '事前の確認が `warning` を見つけたか（push していない、コミットしていない変更がある、stash がある）。または、下の段の PR が開いておらず、マージもされていないので、積んだ base の PR を作れません。ほかのコマンドラインの誤りがあります。'
-      - code: 3
-        when: '次のどれかです。Issue の参照 `#N` がありません。必須の節がありません。見出しの要約の規則に反しています。使えない記法があります。Summary に画像もスクリーンショットの理由もありません。base ブランチが誤っています。nx のリポジトリでは、題の scope が誤っているときも 3 です。'
-    on_error: '検証に失敗したときと、事前の確認が `warning` を見つけたときは、PR を作りません。PR を作った後でボードの status を設定できないときは、PR は残り、`warning` を書きます。`--prepare` が書いたテンプレートのコピーは、`.pecot/tmp/output/` に残ります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: invalid-input
+        code: 1
+        when: '`--template` が `default` でも `release` でもありません。モードの引数が無いとき、`-m` に `-t` か `-b` が無いとき、ファイルと一緒に `--screenshot` を渡したときも含みます。'
+      - kind: content-invalid
+        code: 1
+        when: 'フロントマターを読めないか、正しいリポジトリがありません。'
+      - kind: invalid-input
+        code: 1
+        when: 'リポジトリが `owner/repo` の形ではありません。'
+      - kind: git-unresolved
+        code: 1
+        when: 'リポジトリか head ブランチを決められません。'
+      - kind: content-invalid
+        code: 1
+        when: '積んだ base の記録の形が誤っていて、base を決められません。'
+      - kind: git-unresolved
+        code: 1
+        when: '積んだ base の記録のコミットが head の履歴にありません。ファイルと `-m` の投稿のときです。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`develop_branch` か `release_branch` が未設定です。'
+      - kind: preflight-failed
+        code: 1
+        when: '事前の確認が致命的な場合に当たりました。git のリポジトリでない、git remote が無い、今のブランチが無い、のどれかです。'
+      - kind: other
+        code: 1
+        when: 'テンプレートが見つかりません。'
+      - kind: preflight-failed
+        code: 2
+        when: '事前の確認が `warning` を見つけました。push していない、コミットしていない変更がある、stash がある、のどれかです。'
+      - kind: pr-state
+        code: 2
+        when: '下の段の PR が開いておらず、マージもされていないので、積んだ base の PR を作れません。'
+      - kind: invalid-input
+        code: 2
+        when: 'コマンドラインの誤りがあります。'
+      - kind: content-invalid
+        code: 3
+        when: '本文が規則に反しています。次のどれかです。Issue の参照 `#N` がありません。必須の節がありません。見出しの要約の規則に反します。使えない記法があります。Summary に画像もスクリーンショットの理由もありません。base ブランチが誤っています。nx のリポジトリでは、題の scope が誤っているときも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '検証に失敗したときと、事前の確認が `warning` を見つけたときは、PR を作りません。PR を作った後でボードの status を設定できないときは、PR は残り、`warning` を書きます。`--prepare` が書いたテンプレートのコピーは、`.pecot/tmp/output/` に残ります。ボードの status だけを設定できなかったときの終了コードは 0 です。'
     effects:
       - target: github
         kind: write
@@ -2313,12 +2742,33 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
-        when: 'PR を出しました。'
-      - code: 1
-        when: 'アクティブなプロジェクトが無いか、GitHub API がエラーを返しました。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: invalid-input
+        code: 2
         when: 'PR の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: github
@@ -2432,12 +2882,42 @@ entries:
     diagnostics: 'プロジェクトを渡したときは、標準エラーに、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。`--host` が渡した設定ファイルのホストと違うときは、`warning` の行を出します。このときは、設定ファイルのホストを使います。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'プロジェクトを一覧したか、プロジェクトをアクティブにしました。'
-      - code: 1
-        when: '次のどれかです。必須の `--host` がありません。プロジェクトが見つからないか、初期化されていません。設定ファイルを読み込めません。GitHub API がエラーを返しました。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: invalid-input
+        code: 1
+        when: '必須の `--host` がありません。'
+      - kind: project-not-found
+        code: 1
+        when: 'プロジェクトが見つかりません。'
+      - kind: not-initialized
+        code: 1
+        when: 'プロジェクトが初期化されていません。'
+      - kind: config-invalid
+        code: 1
+        when: '設定ファイルを読み込めません。'
+      - kind: invalid-input
+        code: 2
         when: '知らないオプションなど、コマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: github
@@ -2574,12 +3054,42 @@ entries:
     diagnostics: '標準エラーに、次のものの結果の行を出します。作ったプロジェクト、作ったフィールドそれぞれ、足した Needs Attention の選択肢、設定ファイル、アクティブなプロジェクトです。選択肢を足せないときは、`warning` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'プロジェクトを作り、初期化し、アクティブにしました。'
-      - code: 1
-        when: '次のどれかです。所有者が見つかりません。同じ題のプロジェクトがあります。GitHub API がエラーを返しました。設定ファイルを作るときに、プロジェクトが pecot-workflow に準拠していません。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: github-not-found
+        code: 1
+        when: '所有者が見つかりません。'
+      - kind: already-exists
+        code: 1
+        when: '同じ題のプロジェクトがあります。'
+      - kind: not-initialized
+        code: 1
+        when: '設定ファイルを作るときに、プロジェクトが pecot-workflow に準拠していません。'
+      - kind: project-not-found
+        code: 1
+        when: '作った直後のプロジェクトを、所有者のプロジェクトの一覧で見つけられません。'
+      - kind: invalid-input
+        code: 2
         when: '必須の引数か `--suffix` が無いか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: 'プロジェクトを作った後の手順で失敗すると、プロジェクトと、そこまでに作ったフィールドは GitHub に残ります。設定ファイルの生成に失敗すると、プロジェクトと 3 つのフィールドは残り、設定ファイルは書きません。'
     effects:
       - target: github
@@ -2657,12 +3167,24 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
-        when: '値を出しました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。キーの引数がありません。キーが `aggregation_repo` ではありません。知らないオプションなど、ほかのコマンドラインの誤りがあります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルの内容が不正です。'
+      - kind: invalid-input
+        code: 2
+        when: 'キーの引数がありません。キーが `aggregation_repo` でないときと、知らないオプションなどほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -2734,13 +3256,37 @@ entries:
     diagnostics: '標準エラーに、フィールドごとの結果の行（`created` か `skipped`）と、選択肢ごとの結果の行（`added` か `unchanged`）を出します。Status のフィールドが見つからないときは、`skipped` の行を出します。選択肢を足せないときは、`warning` の行を出します。設定ファイルを書いたときは、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'どのフィールドも、作ったか、既にありました。足せなかった選択肢があっても、終了コードは変わりません。'
-      - code: 1
-        when: '次のどれかです。プロジェクトが見つかりません。プロジェクトのフィールドを読めません。既にある `pecot-workflow-<suffix>` のフィールドに、必須の選択肢がありません。GitHub API が、選択肢を足せない失敗のほかのエラーを返しました。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: project-not-found
+        code: 1
+        when: 'プロジェクトが見つかりません。'
+      - kind: not-initialized
+        code: 1
+        when: 'プロジェクトのフィールドを読めません。既にある `pecot-workflow-<suffix>` のフィールドに必須の選択肢が無いときも含みます。'
+      - kind: invalid-input
+        code: 2
         when: '必須の引数か `--suffix` が無いか、ほかのコマンドラインの誤りがあります。'
-    on_error: '失敗した手順より前に作ったフィールドと足した選択肢は、プロジェクトに残ります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '失敗した手順より前に作ったフィールドと足した選択肢は、プロジェクトに残ります。選択肢を足せずに `warning` を書いたときも、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: read
@@ -2858,12 +3404,45 @@ entries:
     diagnostics: '標準エラーに、プロジェクトへのつなぎの結果の行（`added`、既につながっていれば `unchanged`）を出します。設定ファイルの結果の行（`added` か `updated`）も出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'リポジトリを登録したか、更新しました。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。リポジトリが `owner/repo` の形でないか、所有者がプロジェクトの所有者と違います。つなぐのに失敗しました。`--package` を `--changelog-file` か `--clear-packages` と一緒に渡したか、`--package` の形が誤っています。packages を持つリポジトリに `--changelog-file` を渡しました。`--release-type` が `single`・`multi`・`nx` のどれでもありません。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルの内容が不正です。'
+      - kind: invalid-input
+        code: 1
+        when: 'リポジトリが `owner/repo` の形でないか、所有者がプロジェクトの所有者と違います。'
+      - kind: invalid-input
+        code: 1
+        when: '`--package` を `--changelog-file` か `--clear-packages` と一緒に渡したか、`--package` の形が誤っています。packages を持つリポジトリに `--changelog-file` を渡したときと、`--release-type` が `single`・`multi`・`nx` のどれでもないときも含みます。'
+      - kind: github-api
+        code: 1
+        when: 'リポジトリとプロジェクトをつなぐ処理が失敗しました。'
+      - kind: invalid-input
+        code: 2
         when: 'リポジトリの引数が無いか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: 'リポジトリをつなぐのに失敗したときは、設定ファイルを書きません。'
     effects:
       - target: github
@@ -2964,12 +3543,18 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
-        when: '一覧を出しました。'
-      - code: 1
-        when: 'プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: invalid-input
+        code: 2
         when: '知らないオプションなど、コマンドラインの誤りがあります。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -3015,12 +3600,33 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
-        when: 'プロジェクトを出しました。'
-      - code: 1
-        when: '次のどれかです。所有者にプロジェクトがありません。GitHub API がエラーを返しました。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: project-not-found
+        code: 1
+        when: '所有者にプロジェクトがありません。'
+      - kind: invalid-input
+        code: 2
         when: '所有者の引数が無いか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: github
@@ -3075,7 +3681,7 @@ entries:
       - '`pecot issue create --type epic` は、保存したリポジトリを作り先に使います。'
       - '違う値を上書きするときは、必ず `warning` の行を書きます。'
       - '`--yes` は、`warning` の行から確認の案内を省くだけです。'
-      - '既に保存してある値と同じ値を渡すと、何も変えません。'
+      - '既に保存してある値と同じ値を渡すと、何も変えずに終了コード 0 で終わります。'
       - '`--dry-run` を付けると、キーを書く代わりに、前の値を添えた `dry-run` の行を出します。上書きの `warning` は出しません。'
     stdin: none
     output:
@@ -3083,12 +3689,27 @@ entries:
     diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: '値を設定したか、既に設定してありました。'
-      - code: 1
-        when: '次のどれかです。値が `owner/repo` の形ではありません。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。キーか値の引数がありません。キーが `aggregation_repo` ではありません。ほかのコマンドラインの誤りがあります。'
+      - kind: invalid-input
+        code: 1
+        when: '値が `owner/repo` の形ではありません。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルの内容が不正です。'
+      - kind: invalid-input
+        code: 2
+        when: 'キーか値の引数がありません。キーが `aggregation_repo` でないときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -3155,7 +3776,7 @@ entries:
     details:
       - 'アクティブなプロジェクトの設定ファイルから、Epic を集めるリポジトリを消します。'
       - 'キーは `aggregation_repo` だけです。ほかのキーを渡すと、使い方の誤りとして止まります。'
-      - '未設定の値を消しても、何も変わりません。'
+      - '未設定の値を消しても、何も変えずに終了コード 0 で終わります。'
       - '`--dry-run` を付けると、キーを消す代わりに、前の値を添えた `dry-run` の行を出します。'
     stdin: none
     output:
@@ -3163,12 +3784,24 @@ entries:
     diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: '値を消したか、未設定でした。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。アクティブな設定ファイルの内容が不正です。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。キーの引数がありません。キーが `aggregation_repo` ではありません。知らないオプションなど、ほかのコマンドラインの誤りがあります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルの内容が不正です。'
+      - kind: invalid-input
+        code: 2
+        when: 'キーの引数がありません。キーが `aggregation_repo` でないときと、知らないオプションなどほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -3273,13 +3906,46 @@ entries:
     diagnostics: 'alert の種類ごとに、`count` の行、`skipped` の行、`warning` の行のどれかを出します。code scanning と secret scanning には、`error` の行も出します。リリースするコミットの `count` の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。コミットの数を数えられなかったときは、`error: could not count the commits from <release> to <develop>: ...` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'すべての確認を通りました。open か読めなかったものが Dependabot alert だけのときも含みます。'
-      - code: 1
-        when: '次のどれかです。git のリポジトリのルートが見つかりません。アクティブなプロジェクトがありません。`--package` の決まりに反しています。nx のリポジトリに版か `--package` を渡しました。alert の確認が失敗しました。`develop_branch` か `release_branch` が未設定です。CHANGELOG か、その中の版が見つかりません。タグが既にあります。リリースするものがありません。コミットの数を GitHub から数えられません。git のコマンドが失敗しました。版が `X.Y.Z` の形ではありません。`--repo` を省いたのに git remote を読めません。git の外で `--repo` を省いたので、リポジトリが決まりません。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: git-unresolved
+        code: 1
+        when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: invalid-input
+        code: 1
+        when: '`--package` の決まりに反しています。nx のリポジトリに版か `--package` を渡したときと、版が `X.Y.Z` の形でないときも含みます。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`develop_branch` か `release_branch` が未設定です。'
+      - kind: preflight-failed
+        code: 1
+        when: 'リリースの確認に通りません。次のどれかです。alert の確認が失敗しました。CHANGELOG かその中の版が見つかりません。タグが既にあります。リリースするものがありません。git のコマンドが失敗しました。'
+      - kind: invalid-input
+        code: 2
         when: '知らないオプションなど、コマンドラインの誤りがあります。'
-    on_error: 'GitHub と作業ツリーのどちらにも、何も作りません。手元の ref も動かしません。'
+      - kind: github-auth
+        code: 1
+        when: 'コミットの数を数えるとき、GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'コミットの数を数えるとき、GitHub にブランチかリポジトリが見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'コミットの数を数えるとき、GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'コミットの数を数えるとき、GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。GitHub に届かずにコミットの数を数えられないときも含みます。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'GitHub と作業ツリーのどちらにも、何も作りません。手元の ref も動かしません。open の alert か読めない alert が Dependabot だけのときは、`warning` を出して終了コード 0 で終わります。'
     effects:
       - target: github
         kind: read
@@ -3478,12 +4144,45 @@ entries:
     diagnostics: '標準エラーに、作ったリリースの結果の行を出します。`--dry-run` のときは、予定の行を出します。`--repo` が git remote と違うときは、`warning` の行を出します。失敗したときは、`error` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'リリースを作りました。または、`--dry-run` で予定を出しました。'
-      - code: 1
-        when: '次のどれかです。版が `X.Y.Z` の形ではありません。git のリポジトリのルートが見つかりません。アクティブなプロジェクトがありません。`--package` の決まりに反しています。CHANGELOG か、その中の版が見つかりません。`release_branch` が未設定です。GitHub API がエラーを返しました。`--repo` を省いたのに git remote を読めません。git の外で `--repo` を省いたので、リポジトリが決まりません。GitHub トークンが見つかりません。プロジェクトのルートを決められません。'
-      - code: 2
+      - kind: invalid-input
+        code: 1
+        when: '版が `X.Y.Z` の形ではありません。`--package` の決まりに反するときも含みます。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git のリポジトリのルートが見つかりません。`--repo` を省いたのに git remote を読めないときと、git の外で `--repo` を省いたときも含みます。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: preflight-failed
+        code: 1
+        when: 'CHANGELOG か、その中の版が見つかりません。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`release_branch` が未設定です。'
+      - kind: invalid-input
+        code: 2
         when: '版の引数が無いか、ほかのコマンドラインの誤りがあります。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '手順のどれかで失敗したときは、GitHub に何も作りません。'
     effects:
       - target: github
@@ -3641,12 +4340,51 @@ entries:
     diagnostics: '標準エラーに、マージの結果の行と、削除したブランチの結果の行を出します。`--dry-run` のときは、予定の行を出します。ブランチの削除に失敗したときは、`warning` の行を出します。失敗したときは、`error` の行を出します。`--repo` が git remote と違うときも含みます。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'PR をマージしました。または、`--dry-run` で予定を出しました。'
-      - code: 1
-        when: '次のどれかです。`--repo` が今の git remote と違います。アクティブなプロジェクトがありません。PR が見つからないか、読めません。PR が既にマージ済みか、閉じています。PR に衝突があり、`--admin` がありません。`release_branch` が未設定です。PR の base ブランチが `release_branch` ではありません。GitHub API がマージを拒みました。git の外で `--repo` を省いたので、リポジトリが決まりません。プロジェクトのルートを決められません。'
-      - code: 2
-        when: '次のどれかです。PR の参照が `owner/repo/N` の形ではありません。PR の参照がありません。ほかのコマンドラインの誤りがあります。'
+      - kind: repo-mismatch
+        code: 1
+        when: '`--repo` が今の git remote と違います。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git の外で `--repo` を省いたので、リポジトリが決まりません。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: github-not-found
+        code: 1
+        when: 'PR が見つかりません。'
+      - kind: pr-state
+        code: 1
+        when: 'PR をマージできる状態ではありません。次のどれかです。既にマージ済みか、閉じています。衝突があるのに `--admin` を付けていません。base ブランチが `release_branch` ではありません。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`release_branch` が未設定です。'
+      - kind: github-api
+        code: 1
+        when: 'PR を読めないか、GitHub API がマージを拒みました。'
+      - kind: invalid-input
+        code: 2
+        when: 'PR の参照が無いか、`owner/repo/N` の形ではありません。ほかのコマンドラインの誤りも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: 'マージに成功した後で head ブランチの削除に失敗したときは、PR はマージされたままで、head ブランチはリモートに残ります。'
     effects:
       - target: github
@@ -3800,13 +4538,40 @@ entries:
     diagnostics: '標準エラーに、閉じる Issue の `count` の行を出し、続けて手順ごとに結果の行を 1 つ出します。結果の行は、`closed`・`skipped`・`unchanged`・`deleted`・`set`・`updated` です。`--dry-run` のときは、結果の行の代わりに `dry-run: would` の行を出します。失敗した手順には、`warning` の行を出します。`wip/<head>` があるのに削除できないときも含みます。ローカルの片付けを飛ばしたときも、`warning` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: '後片付けが終わりました。`warning` を出して失敗した手順があっても 0 です。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。PR を取得できないか、PR がありません。PR がマージされていません。'
-      - code: 2
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: github-not-found
+        code: 1
+        when: 'PR がありません。'
+      - kind: pr-state
+        code: 1
+        when: 'PR がマージされていません。'
+      - kind: invalid-input
+        code: 2
         when: 'PR の参照の形が誤っているか、ほかのコマンドラインの誤りがあります。'
-    on_error: 'マージされていない PR はそのまま残し、何も変えません。Issue を閉じられなかったときは `warning` として扱い、ほかの Issue と後の手順を続けます。巻き戻しはしません。リモートの head ブランチの削除に失敗したときは、`wip/<head>` の削除を飛ばします。`wip/<head>` があるのに削除できないときは、`warning` を書いて後の手順を続けます。checkout に失敗したときは、pull とブランチの削除を飛ばし、フラグは消します。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'マージされていない PR はそのまま残し、何も変えません。Issue を閉じられなかったときは `warning` として扱い、ほかの Issue と後の手順を続けます。巻き戻しはしません。リモートの head ブランチの削除に失敗したときは、`wip/<head>` の削除を飛ばします。`wip/<head>` があるのに削除できないときは、`warning` を書いて後の手順を続けます。checkout に失敗したときは、pull とブランチの削除を飛ばし、フラグは消します。`warning` を出して飛ばした手順があっても、終了コード 0 で終わります。'
     effects:
       - target: github
         kind: read
@@ -3988,12 +4753,27 @@ entries:
     diagnostics: '標準エラーに、記録した作業対象の `set` の行を出します。作業ディレクトリを作ったときは、行にそのディレクトリも載せます。失敗したときは、`error` の行を出します。アクティブな設定ファイルの内容が不正なときも含みます。ブランチ名から Issue の番号を推定できないときは、`error` の行に続けて、`--issue-ref` を渡す案内を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: '作業対象を記録しました。'
-      - code: 1
-        when: '次のどれかです。`--issue-ref` が無く、ブランチ名を読めません。`--issue-ref` が無く、ブランチ名から Issue の番号を推定できません。`--issue-ref` が無く、remote の `origin`（無ければ最初の remote）のリポジトリを読めません。作業対象を書けません。プロジェクトのルートを決められないときも含みます。アクティブな設定ファイルの内容が不正です（`error` の行を出します）。'
-      - code: 2
-        when: '次のどれかです。`--issue-ref` が `owner/repo/N` の形ではありません。`--directory` がありません。`--directory` が、無いパス・ファイル・読めないディレクトリのどれかです。ほかのコマンドラインの誤りがあります。'
+      - kind: git-unresolved
+        code: 1
+        when: '`--issue-ref` が無く、ブランチ名を読めません。ブランチ名から Issue の番号を推定できないときと、remote の `origin`（無ければ最初の remote）のリポジトリを読めないときも含みます。'
+      - kind: other
+        code: 1
+        when: '作業対象を書けません。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルの内容が不正です（`error` の行を出します）。'
+      - kind: invalid-input
+        code: 2
+        when: '`--issue-ref` が `owner/repo/N` の形ではありません。`--directory` が無いか、無いパス・ファイル・読めないディレクトリのどれかのときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '`.pecot-active` を書いた後で `.pecot-session-title` を書けなかったときは、`.pecot-active` は書かれたまま残ります。'
     effects:
       - target: file
@@ -4133,13 +4913,19 @@ entries:
     diagnostics: '標準エラーに `warning` の行を出すのは、次のときです。`.pecot-active` に Issue の参照があり、アクティブな Issue を読めないとき。base のブランチの PR を読めないとき。`.pecot-base` の形が誤っているとき。アクティブな Issue の着手の判定ができないとき。アクティブなプロジェクトが無いときと、アクティブな設定ファイルの内容が不正なときも含みます。プロジェクトのルートを決められないときは、`error` の行を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: '状態を出しました。ブランチ・リポジトリ・アクティブな Issue を読めなかったときも含みます。`.pecot-active` に Issue の参照があり、アクティブな設定ファイルの内容が不正なときも含みます。'
-      - code: 1
+      - kind: invalid-input
+        code: 2
+        when: '`--directory` が無いか、無いパス・ファイル・読めないディレクトリのどれかです。ほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
         when: 'プロジェクトのルートを決められません（`error` の行を出します）。'
-      - code: 2
-        when: '次のどれかです。`--directory` がありません。`--directory` が、無いパス・ファイル・読めないディレクトリのどれかです。ほかのコマンドラインの誤りがあります。'
-    on_error: default
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'ブランチ・リポジトリ・アクティブな Issue を読めないときも、終了コード 0 で終わります。`.pecot-active` に Issue の参照があり、アクティブな設定ファイルの内容が不正なときも同じです。'
     effects:
       - target: git
         kind: read
@@ -4325,12 +5111,57 @@ entries:
     diagnostics: '標準エラーに、作ったブランチ（`created`）・Status（`set`）・作業対象（`set`）の結果の行を出します。Status・作業対象・`.pecot-base` を設定できなかったときと、`.pecot-active` を上書きしたときは、`warning` の行を出します。Issue の依存関係に対応していない GitHub Enterprise Server で判定を確かめなかったときも、`warning` の行を出します。Issue が blocked のときは、`error` の行に続けて、済んでいない前提ごとの行と直すコマンドを出します。2 行目からは、空白 2 つで字下げします。`--base` が判定の選んだ分岐元と違うときは、`error` の行を出します。積む先のブランチが無くなったときは、ブランチと Issue を添えた `error` の行を出します。前提を読めないか判定できないときも、`error` の行を出します。`develop_branch` が原因のときは、続けて設定の仕方を出します。'
     environment: []
     exit_status:
-      - code: 0
-        when: 'ブランチを作りました。Status の設定か作業対象の記録に失敗したときも含みます。'
-      - code: 1
-        when: '次のどれかです。アクティブなプロジェクトがありません。`develop_branch` が未設定で、`--base` もありません。リポジトリがプロジェクトにありません。GitHub API がエラーを返しました。積む先のブランチが無くなりました。`--repo` が今の git remote と違います。git の外で `--repo` を省いたので、リポジトリが決まりません。プロジェクトのルートを決められません。Issue の前提を読めないか、着手の判定ができません。'
-      - code: 2
-        when: '次のどれかです。Issue の参照がフル形式ではありません。作業ディレクトリのリポジトリが Issue のリポジトリと違います。`.pecot-active` に別の OPEN の Issue が残っています。Issue が前提で blocked です。`stackable` の Issue で、`--base` が選ばれた分岐元と違います。ほかのコマンドラインの誤りがあります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`develop_branch` が未設定で、`--base` もありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: git-unresolved
+        code: 1
+        when: '積む先のブランチが無くなりました。git の外で `--repo` を省いたときも含みます。'
+      - kind: repo-mismatch
+        code: 1
+        when: '`--repo` が今の git remote と違います。'
+      - kind: dependency-unreadable
+        code: 1
+        when: 'Issue の前提を読めないか、着手の判定ができません。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照がフル形式ではありません。`stackable` の Issue で、`--base` が選ばれた分岐元と違うときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: repo-mismatch
+        code: 2
+        when: '作業ディレクトリのリポジトリが Issue のリポジトリと違います。'
+      - kind: guard-blocked
+        code: 2
+        when: '`.pecot-active` に別の OPEN の Issue が残っています。'
+      - kind: not-ready
+        code: 2
+        when: 'Issue が前提で blocked です。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: 'ブランチを作った後で Status の設定か作業対象の記録に失敗したときは、ブランチは Issue に紐づいたまま残り、終了コード 0 で終わります。`.pecot-active` を書いた後で `.pecot-session-title` を書けなかったときは、先のファイルは書かれたまま残ります。作業対象を記録できなかったときは、`.pecot-base` を書きません。前の Issue の記録も残りません。`.pecot-base` を消せないか書けないときは、`warning` の行で知らせます。Issue が blocked のとき、判定を読めないとき、積む先のブランチが無くなったときは、何も作らず、何も書きません。'
     effects:
       - target: github
@@ -4581,12 +5412,42 @@ entries:
     diagnostics: '`dependabot` では、`count` の行で、open の Dependabot の PR の数、判断を待つ PR の数、判断を待つ PR のうち検証の結果が無いものの数を出します。変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`closed`・`skipped`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。`security` では、変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`skipped`）を出します。`--dry-run` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。一覧を取れなかった種類ごとの行も含みます。'
     environment: []
     exit_status:
-      - code: 0
-        when: '`dependabot` では、Tracker を同期しました。または、`--dry-run` で予定を出しました。`security` では、Tracker を同期したか、`--dry-run` で予定を出しました。どの種類も、取れたか無効でした。'
-      - code: 1
-        when: '`dependabot` では、次のどれかです。アクティブなプロジェクトがありません。git remote からリポジトリを読めません。PR か Issue の一覧を取れません。Tracker の本文にある `list-begin` と `list-end` の印が、ちょうど 1 組ではありません。Tracker の作成・書き直し・クローズ・ボードへの配置のどれかに失敗しました。GitHub トークンが見つかりません。`security` では、次のどれかです。アクティブなプロジェクトがありません。git remote からリポジトリを読めません。Issue の一覧を取れません。ある種類の一覧を取れません。Tracker の本文にある `list-begin` と `list-end` の印が、ちょうど 1 組ではありません。Tracker の作成・書き直し・ボードへの配置のどれかに失敗しました。GitHub トークンが見つかりません。取れない種類があるときは、`--dry-run` でも終了コードは 1 です。'
-      - code: 2
-        when: '次のどれかです。`source` を省きました。`source` が `dependabot` でも `security` でもありません。ほかのコマンドラインの誤りがあります。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git remote からリポジトリを読めません。'
+      - kind: content-invalid
+        code: 1
+        when: 'Tracker の本文にある `list-begin` と `list-end` の印が、ちょうど 1 組ではありません。'
+      - kind: partial-failure
+        code: 1
+        when: 'Tracker の作成・書き直し・クローズ・ボードへの配置のどれかに失敗しました。`security` で取れない種類があるときも含み、`--dry-run` でも 1 です。'
+      - kind: invalid-input
+        code: 2
+        when: '`source` を省いたか、`dependabot` でも `security` でもありません。ほかのコマンドラインの誤りも含みます。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '`dependabot` では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、Tracker は open のままです。クローズに失敗したときは、一覧は none のまま、Tracker は open のままで、次の実行で閉じます。済んだ変更は巻き戻しません。`security` では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、次の実行でやり直します。済んだ変更は巻き戻しません。'
     effects:
       - target: github
@@ -4979,13 +5840,43 @@ entries:
       - name: DEVCONTAINER
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
-      - code: 0
-        when: 'worktree を作りました。または、`--dry-run` で予定を出しました。次のものがあっても変わりません。飛ばしたリンク、コピーできなかったファイル、失敗した setup のコマンド、書けなかった `wtN` の記録です。'
-      - code: 1
-        when: '次のどれかです。`--repo` が今の git remote と違います。git のリポジトリの外で `--repo` を省きました。メインの worktree が見つかりません。リポジトリが `base/` の配置にありません。`worktree-config.json` か `.worktreeignore` が無いか、`worktree-config.json` の内容が不正です。選んだ remote のリポジトリを、GitHub の `owner/repo` として読めません。アクティブなプロジェクトがありません。リポジトリがそのプロジェクトに登録されていません。`develop_branch` が未設定で、`--base` もありません。`wt1` から `wt9` までのセットがすべて使われています。ブランチ `wtN` が別の upstream で既にあります。`git worktree add` が失敗しました。devcontainer の外で動かしました。'
-      - code: 2
+      - kind: repo-mismatch
+        code: 1
+        when: '`--repo` が今の git remote と違います。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git のリポジトリの外で `--repo` を省きました。選んだ remote のリポジトリを GitHub の `owner/repo` として読めないときも含みます。'
+      - kind: not-initialized
+        code: 1
+        when: '`worktree-config.json` か `.worktreeignore` がありません。'
+      - kind: config-invalid
+        code: 1
+        when: '`worktree-config.json` の内容が不正です。'
+      - kind: no-active-project
+        code: 1
+        when: 'アクティブなプロジェクトがありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがそのプロジェクトに登録されていません。'
+      - kind: repo-setting-missing
+        code: 1
+        when: '`develop_branch` が未設定で、`--base` もありません。'
+      - kind: other
+        code: 1
+        when: 'worktree を作れません。次のどれかです。メインの worktree が見つかりません。リポジトリが `base/` の配置にありません。`wt1` から `wt9` までのセットをすべて使っています。ブランチ `wtN` が別の upstream で既にあります。`git worktree add` が失敗しました。devcontainer の外で動かしました。'
+      - kind: invalid-input
+        code: 2
         when: '`-D` が無いか、既にあるディレクトリでないか、ほかのコマンドラインの誤りがあります。'
-    on_error: '最初のエラーで止まります。`git worktree add` の後で `worktree-config.json` の内容が不正だと分かったときは、worktree とブランチは残ります。リンク・コピーしたファイル・setup の実行はありません。`wtN` の記録を書けなくても、worktree はそのままです。prune した管理情報と、消した未使用のブランチは、元に戻しません。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '最初のエラーで止まります。`git worktree add` の後で `worktree-config.json` の内容が不正だと分かったときは、worktree とブランチは残ります。リンク・コピーしたファイル・setup の実行はありません。`wtN` の記録を書けなくても、worktree はそのままです。prune した管理情報と、消した未使用のブランチは、元に戻しません。飛ばしたリンク・コピーできなかったファイル・失敗した setup のコマンド・書けなかった `wtN` の記録があっても、終了コード 0 で終わります。'
     effects:
       - target: git
         kind: write
@@ -5222,12 +6113,33 @@ entries:
       - name: DEVCONTAINER
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
-      - code: 0
-        when: '2 つのファイルを作りました。'
-      - code: 1
-        when: '次のどれかです。`--repo` が今の git remote と違います。git のリポジトリの外で `--repo` を省きました。メインの worktree が見つかりません。2 つのファイルのどちらかが既にあります。アクティブな設定ファイルを読めないか、形が誤っています。ファイルを書けません（トレースバックを出します）。devcontainer の外で動かしました。'
-      - code: 2
+      - kind: repo-mismatch
+        code: 1
+        when: '`--repo` が今の git remote と違います。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git のリポジトリの外で `--repo` を省きました。'
+      - kind: already-exists
+        code: 1
+        when: '2 つのファイルのどちらかが既にあります。'
+      - kind: config-invalid
+        code: 1
+        when: 'アクティブな設定ファイルを読めないか、形が誤っています。'
+      - kind: other
+        code: 1
+        when: 'メインの worktree が見つかりません。devcontainer の外で動かしたときと、ファイルを書けないとき（トレースバックを出します）も含みます。'
+      - kind: invalid-input
+        code: 2
         when: '`-D` が無いか、既にあるディレクトリでないか、ほかのコマンドラインの誤りがあります。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: '`worktree-config.json` を書いた後で `.worktreeignore` を書けなかったときは、`worktree-config.json` は残ります。ファイルが既にあるときと、アクティブな設定ファイルを読めないときは、何も書きません。'
     effects:
       - target: git
@@ -5365,13 +6277,40 @@ entries:
       - name: DEVCONTAINER
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
-      - code: 0
-        when: 'リンクを張ったか、予定を出しました。飛ばしたリンクや作れなかったリンクがあるときも含みます。'
-      - code: 1
-        when: '次のどれかです。`--repo` が今の git remote と違います。git のリポジトリの外で `--repo` を省きました。設定ファイルがありません。設定ファイルの内容が不正です。devcontainer の外で動かしました。メインの worktree かプロジェクトのルートが見つかりません。`--all` なしで、`-D` がメインの worktree です。worktree の一覧を読めません。上書きの確認を中断しました。'
-      - code: 2
+      - kind: repo-mismatch
+        code: 1
+        when: '`--repo` が今の git remote と違います。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git のリポジトリの外で `--repo` を省きました。'
+      - kind: not-initialized
+        code: 1
+        when: '設定ファイルがありません。'
+      - kind: config-invalid
+        code: 1
+        when: '設定ファイルの内容が不正です。'
+      - kind: invalid-input
+        code: 1
+        when: '`--all` なしで、`-D` がメインの worktree です。'
+      - kind: aborted
+        code: 1
+        when: '上書きの確認を中断しました。'
+      - kind: other
+        code: 1
+        when: 'メインの worktree かプロジェクトのルートが見つかりません。devcontainer の外で動かしたときと、worktree の一覧を読めないときも含みます。'
+      - kind: invalid-input
+        code: 2
         when: '`-D` が無いか、既にあるディレクトリでないか、ほかのコマンドラインの誤りがあります。'
-    on_error: 'この実行で既に張ったリンクは残ります。作れなかったリンクは元のままで、ほかのリンクの処理は続けます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'この実行で既に張ったリンクは残ります。作れなかったリンクは元のままで、ほかのリンクの処理は続けます。飛ばしたリンクや作れなかったリンクがあっても、終了コード 0 で終わります。'
     effects:
       - target: git
         kind: read
@@ -5563,13 +6502,28 @@ entries:
       - name: DEVCONTAINER
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
-      - code: 0
-        when: 'worktree を削除しました。ブランチを削除できなかったときも含みます。'
-      - code: 1
-        when: '次のどれかです。`--repo` が今の git remote と違います。git のリポジトリの外で `--repo` を省きました。渡した名前に当たる worktree がありません。`git worktree remove` が失敗しました。devcontainer の外で動かしました。'
-      - code: 2
-        when: '次のどれかです。名前か `-D` がありません。`-D` が既にあるディレクトリではありません。ほかのコマンドラインの誤りがあります。'
-    on_error: '最初のエラーで止まります。`git worktree remove` が失敗したときは、worktree とブランチは残ります。worktree を削除した後でブランチの削除に失敗したときは、`warning` を書き、ブランチを残します。'
+      - kind: repo-mismatch
+        code: 1
+        when: '`--repo` が今の git remote と違います。'
+      - kind: git-unresolved
+        code: 1
+        when: 'git のリポジトリの外で `--repo` を省きました。'
+      - kind: other
+        code: 1
+        when: '渡した名前に当たる worktree がありません。`git worktree remove` が失敗したときと、devcontainer の外で動かしたときも含みます。'
+      - kind: invalid-input
+        code: 2
+        when: '名前か `-D` がありません。`-D` が既にあるディレクトリでないときと、ほかのコマンドラインの誤りも含みます。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '最初のエラーで止まります。`git worktree remove` が失敗したときは、worktree とブランチは残ります。worktree を削除した後でブランチの削除に失敗したときは、`warning` を書き、ブランチを残します。ブランチだけを削除できなかったときの終了コードは 0 です。'
     effects:
       - target: git
         kind: read

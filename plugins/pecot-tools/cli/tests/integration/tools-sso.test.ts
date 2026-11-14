@@ -116,7 +116,7 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login_status')
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 2, category: 'invalid-input' })
+    expect(structured).toMatchObject({ ok: false, exitCode: 2, kind: 'invalid-input' })
     expect(String(structured['message'])).toContain('aws_sso_login')
     expect(commandCallCount(instance)).toBe(0)
   })
@@ -131,7 +131,7 @@ describe('SSO の 2 段構成', () => {
 
     const structured = await call('aws_sso_login')
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 127, category: 'awscli-missing' })
+    expect(structured).toMatchObject({ ok: false, exitCode: 127, kind: 'awscli-missing' })
     expect(String(structured['message'])).toContain('2.22.0 or later')
     expect(commandCallCount(instance)).toBe(0)
   })
@@ -144,7 +144,7 @@ describe('SSO の 2 段構成', () => {
     const structured = await call('aws_sso_login', { profile: 'plain' })
 
     // exitCode は awscli の終了コードをそのまま返す（許可リストの呼び出しと同じ規約）。
-    expect(structured).toMatchObject({ ok: false, exitCode: 253, category: 'auth-missing' })
+    expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
     expect(String(structured['stderr'])).toContain('Missing the following required SSO configuration')
     expect(String(structured['message'])).toContain('aws configure sso')
   })
@@ -159,7 +159,7 @@ describe('SSO の 2 段構成', () => {
     await call('aws_sso_login', { profile: 'plain' })
     const structured = await call('aws_sso_login_status', { profile: 'plain' })
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 253, category: 'auth-missing' })
+    expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
     expect(dataOf(structured)).toMatchObject({ state: 'failed' })
     expect(String(structured['stderr'])).toContain('Missing the following required SSO configuration')
   })
@@ -176,7 +176,7 @@ describe('SSO の 2 段構成', () => {
     }, { timeout: TRANSITION_TIMEOUT_MS })
 
     const structured = await call('aws_sso_login_status')
-    expect(structured).toMatchObject({ ok: false, exitCode: 124, category: 'timeout' })
+    expect(structured).toMatchObject({ ok: false, exitCode: 124, kind: 'timeout' })
     expect(String(structured['message'])).toContain('Call aws_sso_login again')
   })
 
@@ -192,7 +192,7 @@ describe('SSO の 2 段構成', () => {
       bogus: 'unexpected',
     })
 
-    expect(structured).toMatchObject({ ok: false, exitCode: 253, category: 'auth-missing' })
+    expect(structured).toMatchObject({ ok: false, exitCode: 253, kind: 'auth-missing' })
     expect(instance.callLog().filter(call => call[0] !== '--version')).toEqual([
       ['sso', 'login', '--profile=plain', '--no-browser', '--use-device-code'],
     ])
@@ -204,7 +204,7 @@ describe('SSO の 2 段構成', () => {
     fakeAws.install({ fixture: 'sso-login.no-config' })
     await connect()
 
-    expect(await call('aws_sso_login')).toMatchObject({ ok: false, category: 'auth-missing' })
+    expect(await call('aws_sso_login')).toMatchObject({ ok: false, kind: 'auth-missing' })
 
     reinstall({ exitWhenFile: true })
     const retried = await call('aws_sso_login')

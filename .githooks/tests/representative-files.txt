@@ -50,6 +50,7 @@ plugins/pecot-tools/cli/tests/_fixtures/fake-aws/aws
 plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-tools/cli/tests/bootstrap/run.sh
 plugins/pecot-tools/cli/tests/diagnostics-cases.json
+plugins/pecot-tools/interface/generated.json
 plugins/pecot-tools/package.json
 plugins/pecot-tools/plugin.json
 plugins/pecot-tools/runtime-lock.yaml

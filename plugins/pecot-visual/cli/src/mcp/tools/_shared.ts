@@ -56,6 +56,7 @@ record として受け、同形性の検証は contract / parity テスト側で
 export const TOOL_OUTPUT_SCHEMA = z.object({
   ok: z.boolean().describe('Whether the tool completed its intended run'),
   exitCode: z.number().describe('Exit code (0 = success)'),
+  kind: z.string().optional().describe('Failure kind (omitted on success)'),
   artifacts: z.array(z.string()).describe('Absolute paths of files and directories created or updated'),
   data: z.record(z.string(), z.unknown()).describe('Object with the details of the run'),
   message: z.string().describe('One-line summary for the calling agent'),
@@ -273,6 +274,7 @@ export async function ensureChromium(
       ok: false,
       exitCode: CHROMIUM_UNAVAILABLE_EXIT_CODE,
       artifacts: [],
+      kind: 'chromium-not-installed',
       data: {
         event: 'chromium.unavailable',
         reason: 'chromium-not-installed',
@@ -297,6 +299,7 @@ export async function ensureChromium(
     ok: false,
     exitCode: CHROMIUM_UNAVAILABLE_EXIT_CODE,
     artifacts: [],
+    kind: 'chromium-install-failed',
     data: {
       event: 'chromium.unavailable',
       reason: 'chromium-install-failed',
@@ -367,6 +370,7 @@ export function ensureRuntimeDependencies(
     ok: false,
     exitCode: RUNTIME_UNAVAILABLE_EXIT_CODE,
     artifacts: [],
+    kind: 'runtime-dependencies-not-installed',
     data: {
       event: 'runtime-dependencies.unavailable',
       reason: 'runtime-dependencies-not-installed',

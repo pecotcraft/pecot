@@ -9,6 +9,7 @@
 // 本ファイルは、`slide create` / `slide sync` 末尾の自動 lint の供給元も兼ねる。
 // 対象は `runAutoDeckLint` と `writeAutoDeckLintReport`。
 
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import path from 'node:path'
 
 import { Command } from 'commander'
@@ -304,7 +305,7 @@ export function autoDeckLintJsonField(
   }
 }
 
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof SlideLintUsageError) return error.reason
   // テーマの解決・宣言・取得の失敗は `theme-<reason>` の形で載せる（slide theme と同じ）
   const themeReason = themeErrorReason(error)

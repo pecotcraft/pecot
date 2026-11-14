@@ -19,7 +19,7 @@ import path from 'node:path'
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FailureCategory } from '../../src/domain/allowlist.js'
+import type { FailureKind } from '../../src/domain/allowlist.js'
 import { ALLOWLIST, findAllowlistEntry } from '../../src/domain/allowlist.js'
 import { buildArguments } from '../../src/domain/arguments.js'
 import { classifyFailure } from '../../src/domain/failure.js'
@@ -71,7 +71,7 @@ function skipWithoutAwscli(context: Readonly<{ skip: () => void }>): void {
 /**
 SpawnResult を FailureSignals へ移して種別を得る（executeAllowlisted と同じ組み立て）。
 */
-function categorize(result: Readonly<SpawnResult>): FailureCategory {
+function categorize(result: Readonly<SpawnResult>): FailureKind {
   return classifyFailure({
     exitCode: result.exitCode,
     stderr: result.stderr,

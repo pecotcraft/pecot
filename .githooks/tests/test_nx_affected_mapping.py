@@ -761,7 +761,15 @@ _PECOTV_TEST_LANES = {
             },
         ),
         # 定義書の書き出し結果は、一致のテストの pecot-visual:test-cli に届く。
-        ("plugins/pecot-visual/interface/generated.json", {"pecot-visual:test-cli"}),
+        # 3 つのプラグインの generated.json は、interface-spec の出力の形のテストも読む。
+        (
+            "plugins/pecot-visual/interface/generated.json",
+            {"pecot-visual:test-cli", "interface-spec:test-unit"},
+        ),
+        (
+            "plugins/pecot-tools/interface/generated.json",
+            {"pecot-tools:test-cli", "interface-spec:test-unit"},
+        ),
         # 配布物と配布スクリプトの変更は、pecot-workflow の test-release に届く。
         (
             "plugins/pecot-workflow/cli/templates/comment/plan.md",
@@ -807,7 +815,10 @@ _PECOTV_TEST_LANES = {
             },
         ),
         # pecot-workflow の定義書は、一致のテストの test-cli に届く。
-        ("plugins/pecot-workflow/interface/generated.json", {"pecot-workflow:test-cli"}),
+        (
+            "plugins/pecot-workflow/interface/generated.json",
+            {"pecot-workflow:test-cli", "interface-spec:test-unit"},
+        ),
         ("plugins/pecot-workflow/interface/authored.yaml", {"pecot-workflow:test-cli"}),
         # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
         ("pnpm-lock.yaml", set()),

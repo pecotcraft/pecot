@@ -12,6 +12,10 @@ export interface GitHubErrorDetail {
   */
   readonly responseBody?: string | undefined
   /**
+  GraphQL の errors[0] の type（NOT_FOUND など。該当する場合）
+  */
+  readonly errorType?: string | undefined
+  /**
   元の例外
   */
   readonly cause?: unknown
@@ -23,11 +27,13 @@ GitHub API 操作エラーの基底
 export class GitHubAPIError extends PecotError {
   readonly statusCode: number | undefined
   readonly responseBody: string | undefined
+  readonly errorType: string | undefined
 
   constructor(message: string, detail: Readonly<GitHubErrorDetail> = {}) {
     super(message, detail.cause === undefined ? undefined : { cause: detail.cause })
     this.statusCode = detail.statusCode
     this.responseBody = detail.responseBody
+    this.errorType = detail.errorType
   }
 }
 
@@ -50,6 +56,15 @@ export class GitHubRateLimitError extends GitHubAPIError {}
 Issue の依存関係（blockedBy など）に対応しない GHES（3.19 より前）のエラー。スキーマの失敗を、ほかの GitHubAPIError と見分けるために使う
 */
 export class DependenciesUnsupportedError extends GitHubAPIError {}
+
+/**
+GraphQL の errors の NOT_FOUND を GitHubNotFoundError にする。文は変えない。GitHub は無い Issue を data の null でなくこの形で返すことがある
+*/
+export function asNotFoundError(error: unknown): unknown {
+  return error instanceof GitHubAPIError && !(error instanceof GitHubNotFoundError) && error.errorType === 'NOT_FOUND'
+    ? new GitHubNotFoundError(error.message, { cause: error, errorType: error.errorType })
+    : error
+}
 
 /**
 このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす

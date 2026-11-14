@@ -296,6 +296,16 @@ describe('drawio_export', () => {
     expect(dataOf(result)['invalidPaths']).toEqual(['icons_dir=assets/drawio-icons'])
   })
 
+  it('icons_dir が空文字なら、invalid-path で弾き、missing-icons-root は返さない', async () => {
+    const result = await drawioExportTool.handler({ input_path: ICON_RESOLVABLE, icons_dir: '' }, CALL)
+    const structured = structuredOf(result)
+
+    expect(result.isError).toBe(true)
+    expect(structured['kind']).toBe('invalid-path')
+    expect(dataOf(result)['invalidPaths']).toEqual(['icons_dir='])
+    expect(dataOf(result)['reason']).toBeUndefined()
+  })
+
   it('icons_dir 省略時は plugin-root 同梱のカタログを既定に使う', async () => {
     // 標準の指す先が別の root なら、解決できる icon の集合が変わり、合成ハッシュがずれる。
     const explicit = await drawioExportTool.handler(

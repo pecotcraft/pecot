@@ -17,7 +17,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 #### 着手前の確認
 
-`session_start` は、次のときに、結果の `exit code: 2` の行を出して止まる。
+`session_start` は、次のときに、結果の `ok` を `false` にして止まる。`kind` は、前から順に `repo-mismatch`・`guard-blocked`・`not-ready`・`invalid-input` で、`exitCode` はどれも 2 になる。
 
 - 作業ディレクトリのリポが Issue のリポと違うとき
 - `.pecot-active` に別の Issue が残っているとき
@@ -28,14 +28,14 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 `.pecot-active` の内容と `## Active Issue` の OPEN/CLOSED が出る。違反時の対応:
 
-1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`session_start` は `exit code: 2` で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
-2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`session_start` は `exit code: 2` で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
+1. `.pecot-active` に OPEN な別 Issue ref が残っている場合、`session_start` は `kind` が `guard-blocked`（`exitCode` は 2）で止まる。前 Issue を片付けてから着手する。stale だと確信できるケースのみ `force_overwrite_active: true` を付ける。
+2. CWD のリポが対象 Issue の `owner/repo` と異なる場合、`session_start` は `kind` が `repo-mismatch`（`exitCode` は 2）で止まる。対象リポの worktree（`<project-root>/base/<repo>/` または `<project-root>/<wtN>/<repo>/`）でセッションを始め直してから着手する。
    MCP ツールはセッションを始めたディレクトリのリポを見るので、`cd` では変わらない。
    始め直せないときだけ `allow_cross_repo: true` を付ける。
-3. 判定が blocked のとき、`session_start` は `exit code: 2` で止まり、出力に `is blocked by` が出る。出力の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
-4. 前提を読めないか判定できないとき、`session_start` は `exit code: 1` で止まる。出力に `could not read blocked-by` か `could not judge readiness` が出る。
-   積む先のブランチが無くなったときも `exit code: 1` で、出力に `not found` が出る。
-   出力（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
+3. 判定が blocked のとき、`session_start` は `kind` が `not-ready`（`exitCode` は 2）で止まり、`stderr` に `is blocked by` が出る。`stderr` の案内の行（`issue unblock ...` の行。待つ理由がマージのときは `issue block ... --wait stack` の行も）を、そのまま利用者に示す。前提を見直すかどうかは利用者が決める。エージェントの判断で前提を外さない。
+4. 前提を読めないか判定できないとき、`session_start` は `kind` が `dependency-unreadable`（`exitCode` は 1）で止まる。`stderr` に `could not read blocked-by` か `could not judge readiness` が出る。
+   積む先のブランチが無くなったときは `kind` が `git-unresolved`（`exitCode` は 1）で、`stderr` に `not found` が出る。
+   `stderr`（開発ブランチの設定の直し方の行を含む）を利用者に示して止まる。エージェントの判断で `base` を渡して先へ進めない。
 5. 未コミット差分が新 Issue のスコープ外にある場合、CLI ガードの対象外になる。commit / stash / 破棄で clean にしてから着手する。前 Issue 由来なら先にその Issue を完了させる。
 
 詳細根拠は [`w-help/references/issue-flow-rules.md`](../w-help/references/issue-flow-rules.md) §5。
@@ -44,7 +44,7 @@ when_to_use: "Ready のタスクに着手したい、次のタスクを始めた
 
 ボード状態とIssue一覧を確認し、どのタスクを選択するか判断する。`board_show` を引数なしで呼ぶ。
 
-出力の判定の列（`Readiness`）、列を直した行（`moved:`）、食い違いの警告（`warning:`）を、利用者に伝える。
+`stdout` の表にある判定の列（`Readiness`）と、`stderr` の食い違いの警告（`warning:`）を、利用者に伝える。
 
 ### Step 2: 対象タスクを確認
 
@@ -71,7 +71,7 @@ git pull
 
 ### Step 5: ブランチ切り替え
 
-`session_start` の結果の `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
+`session_start` の結果の `stderr` にある `created: branch <ブランチ名> in <owner/repo> from <base>` の行を読む。
 ブランチ名とリポを取り出し、ブランチを切り替える。
 行に `(stacked on #N)` があれば、#N の上に積んで着手した旨を利用者に伝える。
 **そのリポジトリの** ワークツリーで実行すること。
@@ -83,7 +83,7 @@ git checkout feat/description/XXX
 
 **CWDと対象リポジトリが異なる場合:**
 
-`created: branch` の行の `in <owner/repo>` は、ブランチを作成したリポジトリを指す。
+`stderr` の `created: branch` の行の `in <owner/repo>` は、ブランチを作成したリポジトリを指す。
 CWDが別リポジトリであっても、そのリポジトリのワークツリーで `git checkout` を実行する。
 ワークスペース内に該当リポジトリのワークツリーがあれば、そのディレクトリで実行すればよい。
 
@@ -120,7 +120,7 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 通常モードのまま、計画を Issue に投稿する。EnterPlanMode を呼ばない。`issue_comment` を `file: "<書いたファイル>"` で呼ぶ。
 
-結果に `exit code: 3` の行が出て止まったら、指摘を直して呼び直す。
+結果の `ok` が `false` で、`kind` が `content-invalid`（`exitCode` は 3）で止まったら、`stderr` に出た指摘を直して呼び直す。
 
 ### Step 10: プランモードで承認を得る
 

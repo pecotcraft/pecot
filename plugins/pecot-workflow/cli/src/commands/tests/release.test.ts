@@ -2,7 +2,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { resolveReleaseTargetRepository } from '../release.js'
+import { CommandExit } from '../command-definition.js'
+import { requireReleaseTargetRepository } from '../release.js'
 import { createOutput } from '../output.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
@@ -31,11 +32,18 @@ function repositoryWithOrigin(): string {
 
 function resolve(directory: string, adopted: Readonly<{ owner: string, repository: string }> | undefined, explicit: string | undefined): { result: unknown, stderr: string } {
   const io = capture()
-  const result = inDirectory(directory, () => resolveReleaseTargetRepository(adopted, explicit, createOutput(false, io)))
+  let result: unknown
+  try {
+    result = inDirectory(directory, () => requireReleaseTargetRepository(adopted, explicit, createOutput(false, io)))
+  }
+  catch (error: unknown) {
+    if (!(error instanceof CommandExit)) throw error
+    result = { exitCode: error.exitCode, kind: error.kind }
+  }
   return { result, stderr: io.err.join('') }
 }
 
-describe('resolveReleaseTargetRepository', () => {
+describe('requireReleaseTargetRepository', () => {
   it('採用済みのリポジトリがあると、--repo や remote を見ずにそれを返す', () => {
     const adopted = { owner: 'a', repository: 'b' }
     expect(resolve(repositoryWithOrigin(), adopted, 'c/d')).toEqual({ result: adopted, stderr: '' })
@@ -49,17 +57,19 @@ describe('resolveReleaseTargetRepository', () => {
     expect(resolve(repositoryWithOrigin(), undefined, undefined)).toEqual({ result: { owner: 'acme', repository: 'demo' }, stderr: '' })
   })
 
-  it.for(['noslash', 'a/b/c'])('--repo が %j だと、形式の error の行を出して undefined を返す', (explicit) => {
-    const { result, stderr } = resolve(repositoryWithOrigin(), undefined, explicit)
-    expect(result).toBeUndefined()
-    expect(stderr).toBe(`error: invalid --repo format: '${explicit}'\n  specify it as owner/repo\n`)
+  it.for(['noslash', 'a/b/c'])('--repo が %j だと、形式の error の行を出し、invalid-input で終了コード 1 にする', (explicit) => {
+    expect(resolve(repositoryWithOrigin(), undefined, explicit)).toEqual({
+      result: { exitCode: 1, kind: 'invalid-input' },
+      stderr: `error: invalid --repo format: '${explicit}'\n  specify it as owner/repo\n`,
+    })
   })
 
-  it('主の remote が読めないと、error の行を出して undefined を返す', () => {
+  it('主の remote が読めないと、error の行を出し、git-unresolved で終了コード 1 にする', () => {
     const directory = makeTemporaryDirectory('pecot-nogit-')
     setEnvironment({ GIT_CEILING_DIRECTORIES: path.dirname(directory) })
-    const { result, stderr } = resolve(directory, undefined, undefined)
-    expect(result).toBeUndefined()
-    expect(stderr).toBe('error: could not read the repository from the git remote\n')
+    expect(resolve(directory, undefined, undefined)).toEqual({
+      result: { exitCode: 1, kind: 'git-unresolved' },
+      stderr: 'error: could not read the repository from the git remote\n',
+    })
   })
 })

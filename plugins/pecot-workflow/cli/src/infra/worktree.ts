@@ -42,15 +42,22 @@ import type { SetupResult } from './worktree-setup.js'
 const WORKTREE_ADD_PATH = ['worktree', 'add']
 
 /**
+WorktreeRuntimeError の原因の名前。commands の FailureKind の一部
+*/
+export type WorktreeFailure = 'config-invalid' | 'no-active-project' | 'not-initialized' | 'other' | 'repo-not-in-project' | 'repo-setting-missing'
+
+/**
 ワークツリー操作に失敗した（Python の RuntimeError に当たる）。メッセージは利用者に見せる文
 */
 export class WorktreeRuntimeError extends BaseError {
   readonly hintedText: HintedText | undefined
+  readonly failure: WorktreeFailure
 
   // message は CLI の形。MCP では最上位が hintedText から描き直す
-  constructor(message: string | HintedText, options?: Readonly<ErrorOptions>) {
-    super(formatHinted(message, 'cli'), options)
+  constructor(message: string | HintedText, options: Readonly<ErrorOptions & { readonly failure?: WorktreeFailure }> = {}) {
+    super(formatHinted(message, 'cli'), options.cause === undefined ? undefined : { cause: options.cause })
     this.hintedText = typeof message === 'string' ? undefined : message
+    this.failure = options.failure ?? 'other'
   }
 }
 
@@ -403,13 +410,14 @@ function readRemoteCandidates(cwd: string): readonly RemoteCandidate[] {
 function loadCopyExcludeSpecOrRaise(mainWorktree: string, diagnostics: Diagnostics): { readonly configPath: string, readonly spec: GitIgnoreSpec } {
   const configPath = path.join(mainWorktree, WORKTREE_CONFIG_FILENAME)
   if (!existsSync(configPath)) {
-    throw new WorktreeRuntimeError(hinted`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run ${commandHint(['worktree', 'init'])} to generate the template`)
+    throw new WorktreeRuntimeError(hinted`worktree config not found: ${WORKTREE_CONFIG_FILENAME}\n  run ${commandHint(['worktree', 'init'])} to generate the template`, { failure: 'not-initialized' })
   }
   try {
     return { configPath, spec: loadCopyExcludeSpec(mainWorktree, diagnostics) }
   }
   catch (error: unknown) {
-    if (error instanceof WorktreeConfigError) throw new WorktreeRuntimeError(error.hintedText ?? error.message, { cause: error })
+    // loadCopyExcludeSpec の WorktreeConfigError は、.worktreeignore が無いときだけ
+    if (error instanceof WorktreeConfigError) throw new WorktreeRuntimeError(error.hintedText ?? error.message, { cause: error, failure: 'not-initialized' })
     throw error
   }
 }
@@ -420,7 +428,7 @@ function requireRegisteredRepository(cwd: string): { readonly repository: Reposi
   if (candidates.length === 0) throw new WorktreeRuntimeError(NO_REMOTE_MESSAGE)
   const config = loadActiveConfig()
   if (config === undefined) {
-    throw new WorktreeRuntimeError(hinted`project config not found\n  hint: run ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })} to set the project`)
+    throw new WorktreeRuntimeError(hinted`project config not found\n  hint: run ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })} to set the project`, { failure: 'no-active-project' })
   }
   for (const candidate of candidates) {
     if (candidate.repository !== undefined && findRepository(config, candidate.repository.owner, candidate.repository.repository) !== undefined) {
@@ -441,7 +449,7 @@ to add this repository to the pecot project:
   ${commandHint(['project', 'link'], { repo: `${repository.owner}/${repository.repository}` })}
 
 to switch to another project:
-  ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`)
+  ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`, { failure: 'repo-not-in-project' })
 }
 
 // ベースブランチ決定（プロジェクト設定の develop_branch を使用）
@@ -450,7 +458,7 @@ function defaultBaseBranch(config: ProjectConfig, repository: RepositoryReferenc
   if (developBranch === undefined || developBranch === '') {
     throw new WorktreeRuntimeError(hinted`develop_branch is not set for repository ${repository.owner}/${repository.repository}
   add develop_branch to repositories in the project config file
-  or pass ${inputNameHint(WORKTREE_ADD_PATH, 'base')} explicitly`)
+  or pass ${inputNameHint(WORKTREE_ADD_PATH, 'base')} explicitly`, { failure: 'repo-setting-missing' })
   }
   return developBranch
 }
@@ -462,7 +470,7 @@ function loadWorktreeConfigOrRaise(configPath: string): WorktreeConfig {
   }
   catch (error: unknown) {
     if (error instanceof WorktreeConfigError) {
-      throw new WorktreeRuntimeError(`failed to load the worktree config: ${normalizePath(configPath)}: ${error.message}\n  fix the config file and run it again`, { cause: error })
+      throw new WorktreeRuntimeError(`failed to load the worktree config: ${normalizePath(configPath)}: ${error.message}\n  fix the config file and run it again`, { cause: error, failure: 'config-invalid' })
     }
     throw error
   }

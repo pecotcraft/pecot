@@ -13,7 +13,7 @@ const BASE_RESULT: ExecutionResult = {
 }
 
 describe('toCallToolResult', () => {
-  it('成功時は isError と category を持たない', () => {
+  it('成功時は isError と kind を持たない', () => {
     const converted = toCallToolResult(BASE_RESULT)
 
     expect(converted.isError).toBeUndefined()
@@ -35,19 +35,19 @@ describe('toCallToolResult', () => {
     expect(JSON.parse(block?.type === 'text' ? block.text : '')).toEqual(converted.structuredContent)
   })
 
-  it('ok: false を isError: true に連動させ、category と stderr を載せる', () => {
+  it('ok: false を isError: true に連動させ、kind と stderr を載せる', () => {
     const converted = toCallToolResult({
       ...BASE_RESULT,
       ok: false,
       exitCode: 254,
-      category: 'permission-denied',
+      kind: 'permission-denied',
       message: '権限が不足しています',
       stderr: 'An error occurred (AccessDenied)',
     })
 
     expect(converted.isError).toBe(true)
     expect(converted.structuredContent).toMatchObject({
-      category: 'permission-denied',
+      kind: 'permission-denied',
       exitCode: 254,
       stderr: 'An error occurred (AccessDenied)',
     })

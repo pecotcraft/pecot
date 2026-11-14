@@ -21,6 +21,7 @@
 
 // input/output は CLI 引数として受理する想定で、信頼境界外ではあるが open API 仕様。
 /* eslint-disable security/detect-non-literal-fs-filename */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -46,14 +47,14 @@ const PDF_EXTENSION = '.pdf'
 const WARNING_EXIT_CODE = 3
 
 export class DrawioExportUsageError extends Error {
-  constructor(message: string, readonly reason: string) {
+  constructor(message: string, readonly reason: FailureReason) {
     super(message)
     this.name = 'DrawioExportUsageError'
   }
 }
 
 export class DrawioExportRuntimeError extends Error {
-  constructor(message: string, readonly reason: string) {
+  constructor(message: string, readonly reason: FailureReason) {
     super(message)
     this.name = 'DrawioExportRuntimeError'
   }
@@ -337,7 +338,7 @@ function formatError(error: unknown): string {
 /* c8 ignore stop */
 
 /* c8 ignore start -- 上記 2 種以外の throw は実装内に存在しない、防御網のみ */
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof DrawioExportUsageError) return error.reason
   if (error instanceof DrawioExportRuntimeError) return error.reason
   return 'unknown'

@@ -151,8 +151,8 @@ describe('listSkippedSymlinkPageDirectories', () => {
 
 describe('SlideCreateRuntimeError', () => {
   it('reason フィールドを name や message とは独立に取得できる', () => {
-    const error = new SlideCreateRuntimeError('msg', 'some-reason')
-    expect(error.reason).toBe('some-reason')
+    const error = new SlideCreateRuntimeError('msg', 'copy-failed')
+    expect(error.reason).toBe('copy-failed')
     expect(error.message).toBe('msg')
     expect(error.name).toBe('SlideCreateRuntimeError')
   })

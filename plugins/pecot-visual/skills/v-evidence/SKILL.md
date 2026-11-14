@@ -95,21 +95,21 @@ argument-hint: "[画像のパス]"
 失敗は 2 系統ある。
 
 - **絶対パス違反**（`input_path` / `out_path` に相対パスを渡した）: `ok: false` / `exitCode: 2` で、`data` は
-  `{"invalidPaths":["out_path=..."]}` のみ。`event` も `reason` も持たないので、`reason` を探さず
+  `{"invalidPaths":["out_path=..."]}` のみ。`kind` は `invalid-path` である。
   `invalidPaths` に挙がった引数を絶対パスに直して呼び直す
-- 実行失敗は `ok: false` / `exitCode: 1` で返る。`data` は `{"event":"evidence.create.error","reason":"...","detail":"..."}` になる。
-  `reason` は 8 値で、それぞれ回復手順が決まっている（対応表は `references/evidence-spec.md`）。
+- 実行失敗は `ok: false` / `exitCode: 1` で返る。原因は `kind` で読み、`data` は `{"event":"evidence.create.error","reason":"...","detail":"..."}` になる。
+  `kind` は 8 値で、それぞれ回復手順が決まっている（対応表は `references/evidence-spec.md`）。
   うち `invalid-option` は引数の検証が先に済むこの場面では返らない
 
-検証エラー（`reason: "invalid-spec"`）は `detail` に全件が `items[0].annotations[0].box.w` 形式のパス付きで列挙される。
+検証エラー（`kind: "invalid-spec"`）は `detail` に全件が `items[0].annotations[0].box.w` 形式のパス付きで列挙される。
 1 件ずつ試さず、列挙されたパスをすべて直してから再実行する。
 
-文言に文章規則の違反があると、xlsx は書き出されず `reason: "text-violation"` が返る。
+文言に文章規則の違反があると、xlsx は書き出されず `kind: "text-violation"` が返る。
 `data.violations[].item` が直す先を名指しする。形は `title` / `items[i].caption` / `items[i].annotations[j].text` で、`i` は 0 始まりの添字を指す。
 `j` は `annotations` の添字で、highlight と arrow も数える。callout の `text` だけが判定の対象になる。
 `caption` を省いてファイル名で補った項目は、確かめない。
 `item` の全件を言い換えてから再実行する。規則・除外は変えない。
-判定器が動かなかったときは `reason: "text-lint-failed"` が返る。`detail` を読み、原因を直して再実行する。
+判定器が動かなかったときは `kind: "text-lint-failed"` が返る。`detail` を読み、原因を直して再実行する。
 
 ## 6. 結果報告
 

@@ -3,11 +3,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_SHOW_COMMANDS } from '../../src/commands/issue-show.js'
+import { createMcpServer } from '../../src/mcp/server.js'
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
+import { connectInMemory, structuredOf } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -288,6 +290,25 @@ describe('issue show', () => {
         + '{\'type\': \'NOT_FOUND\', \'path\': [\'repository\', \'issue\'], \'locations\': [{\'line\': 3, \'column\': 5}], '
         + '\'message\': \'Could not resolve to an Issue with the number of 7.\'}\n',
     })
+  })
+
+  it('MCP のツールで Issue が無くて GraphQL の errors が NOT_FOUND のとき、kind を github-not-found にし、CLI と同じ行と終了コードを返す', async (context) => {
+    await verifies(context, 'PW-ISSUE-SHOW-13')
+    setUpProject()
+    const errors = [{ type: 'NOT_FOUND', path: ['repository', 'issue'], message: 'Could not resolve to an Issue with the number of 7.' }]
+    const rule: ResponseRule = { match: { operation: 'GetIssueSlim' }, respond: { status: 200, body: { data: { repository: { issue: null } }, errors } }, times: 2 }
+    await startGithub([rule])
+
+    const cli = await read('acme/demo/7')
+    const connected = await connectInMemory(createMcpServer(ISSUE_SHOW_COMMANDS))
+    try {
+      const structured = structuredOf(await connected.client.callTool({ name: 'issue_show', arguments: { issue_ref: 'acme/demo/7' } }))
+      expect(structured).toMatchObject({ ok: false, exitCode: cli.code, kind: 'github-not-found', stderr: cli.stderr })
+      expect(cli.code).toBe(1)
+    }
+    finally {
+      await connected.close()
+    }
   })
   describe('前提（blocked by）', () => {
     const dependent = (extra: Partial<Parameters<typeof prerequisitesRule>[0]> = {}): Parameters<typeof prerequisitesRule>[0] => ({

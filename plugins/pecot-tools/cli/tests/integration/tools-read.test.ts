@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-import type { FailureCategory } from '../../src/domain/allowlist.js'
+import type { FailureKind } from '../../src/domain/allowlist.js'
 import { ALLOWLIST } from '../../src/domain/allowlist.js'
 import { resetAwscliProbe, OUTPUT_LIMIT_BYTES } from '../../src/infra/awscli.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from '../../src/mcp/tests/_client.js'
@@ -359,7 +359,7 @@ describe('全 24 ツールの正常系', () => {
 
     expect(structured['ok'], `${command.name}: ${JSON.stringify(structured)}`).toBe(true)
     expect(structured['exitCode']).toBe(0)
-    expect(structured['category']).toBeUndefined()
+    expect(structured['kind']).toBeUndefined()
     expect(commandCalls(instance), `${command.name} の引数`).toEqual([expectedArgumentsOf(command.name)])
 
     if (!command.jsonOutput) return
@@ -738,19 +738,19 @@ describe('応答の中身', () => {
 describe('失敗種別', () => {
   const FAILURES: readonly {
     readonly fixture: string
-    readonly category: FailureCategory
+    readonly kind: FailureKind
     readonly exitCode: number
   }[] = [
-    { fixture: 'no-credentials', category: 'auth-missing', exitCode: 253 },
-    { fixture: 'profile-not-found', category: 'auth-missing', exitCode: 255 },
-    { fixture: 'sso-token-expired', category: 'auth-expired', exitCode: 255 },
-    { fixture: 'invalid-token', category: 'auth-expired', exitCode: 254 },
-    { fixture: 'access-denied', category: 'permission-denied', exitCode: 254 },
-    { fixture: 'resource-not-found', category: 'resource-not-found', exitCode: 254 },
-    { fixture: 'invalid-input', category: 'invalid-input', exitCode: 252 },
+    { fixture: 'no-credentials', kind: 'auth-missing', exitCode: 253 },
+    { fixture: 'profile-not-found', kind: 'auth-missing', exitCode: 255 },
+    { fixture: 'sso-token-expired', kind: 'auth-expired', exitCode: 255 },
+    { fixture: 'invalid-token', kind: 'auth-expired', exitCode: 254 },
+    { fixture: 'access-denied', kind: 'permission-denied', exitCode: 254 },
+    { fixture: 'resource-not-found', kind: 'resource-not-found', exitCode: 254 },
+    { fixture: 'invalid-input', kind: 'invalid-input', exitCode: 252 },
   ]
 
-  it.for(FAILURES)('fixture $fixture を $category にする', async (failure, context) => {
+  it.for(FAILURES)('fixture $fixture を $kind にする', async (failure, context) => {
     await verifies(context, 'PT-COMMON-09')
     fakeAws.install({ fixture: failure.fixture })
 
@@ -760,9 +760,9 @@ describe('失敗種別', () => {
     expect(result.structured).toMatchObject({
       ok: false,
       exitCode: failure.exitCode,
-      category: failure.category,
+      kind: failure.kind,
     })
-    expect(result.structured['message']).toContain(failure.category)
+    expect(result.structured['message']).toContain(failure.kind)
     const stderr = result.structured['stderr']
     expect(typeof stderr === 'string' && stderr.length > 0, `stderr: ${JSON.stringify(stderr)}`).toBe(true)
   })
@@ -775,7 +775,7 @@ describe('失敗種別', () => {
       local_path: '/var/data/report.json',
     })
 
-    expect(result.structured).toMatchObject({ ok: false, exitCode: 1, category: 'auth-missing' })
+    expect(result.structured).toMatchObject({ ok: false, exitCode: 1, kind: 'auth-missing' })
   })
 
   it('awscli 未導入は awscli-missing にする', async (context) => {
@@ -784,7 +784,7 @@ describe('失敗種別', () => {
 
     const result = await call('aws_sts_get_caller_identity', {})
 
-    expect(result.structured).toMatchObject({ ok: false, exitCode: 127, category: 'awscli-missing' })
+    expect(result.structured).toMatchObject({ ok: false, exitCode: 127, kind: 'awscli-missing' })
   })
 })
 
@@ -793,11 +793,11 @@ describe('SC-008 失敗の直後も同じ接続が次の呼び出しへ応答す
     await verifies(context, 'PT-COMMON-13')
     fakeAws.withoutAws()
     const missing = await call('aws_sts_get_caller_identity', {})
-    expect(missing.structured['category']).toBe('awscli-missing')
+    expect(missing.structured['kind']).toBe('awscli-missing')
 
     reinstall({ fixture: 'sso-token-expired' })
     const expired = await call('aws_sts_get_caller_identity', {})
-    expect(expired.structured['category']).toBe('auth-expired')
+    expect(expired.structured['kind']).toBe('auth-expired')
 
     reinstall({ fixture: 'large-output', fixtureDir: largeOutputDirectory() })
     const truncated = await call('aws_lambda_list_functions', {})
@@ -815,7 +815,7 @@ describe('SC-008 失敗の直後も同じ接続が次の呼び出しへ応答す
     fakeAws.install({ hang: true })
     const timedOut = await call('aws_sts_get_caller_identity', {})
 
-    expect(timedOut.structured).toMatchObject({ exitCode: 124, category: 'timeout' })
+    expect(timedOut.structured).toMatchObject({ exitCode: 124, kind: 'timeout' })
 
     reinstall()
     const recovered = await call('aws_sts_get_caller_identity', {})

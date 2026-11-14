@@ -56,10 +56,10 @@ draw.ioのXMLダイアグラムを生成し、ブラウザで直接開けるリ�
   - PNG は図の XML ソースを内包するため、ラスター画像のみを配布したい場合は `--no-png`（MCP は `png: false`）を指定する
 - XML内のvalue属性にHTML実体参照（`&lt;font&gt;`等）を含めるのは問題ない
 - エッジ（edge）には必ず `<mxGeometry relative="1" as="geometry"/>` を含める（省略するとVSCodeでキャンバスが崩れる）
-- 図のラベルに文章規則の違反があると、`drawio_create` は何も書き出さず `data.reason: text-violation` と `data.violations[].item` を返す。
+- 図のラベルに文章規則の違反があると、`drawio_create` は何も書き出さず `kind: text-violation` と `data.violations[].item` を返す。
   `item` は `mxCell id="..."` の形で、直す先のセルを名指しする。`<object>` や `<UserObject>` で包んだセルは、包んだ側の `label` が直す先になる。
   `html=1` のセルは、タグを除いた文言で判定される。全件を直してから `drawio_create` を再実行する。規則・除外は変えない
-- 判定器が動かなかったときは `data.reason: text-lint-failed` が返り、同じく何も書き出さない。
+- 判定器が動かなかったときは `kind: text-lint-failed` が返り、同じく何も書き出さない。
   `data.detail` を読み、圧縮形式の XML が原因なら、非圧縮の XML で保存し直して再実行する
 - `icon://` 参照は `drawio_create` が自動的にdata URIに変換して埋め込む
   - アイコンカタログのルートは `${CLAUDE_PLUGIN_ROOT}/assets/drawio-icons/`（`ls` で選定する際はこの絶対パスを使う）

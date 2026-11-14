@@ -32,7 +32,7 @@ const MCP_UNMAPPABLE_STDIN: ReadonlySet<string> = new Set([
 
 // 名前に usage を含む CLI の引数の誤りのうち、MCP 経由では golden と比べないもの。理由は 2 種類
 //   unmappable: argv を入力に写せない（未知のフラグなど）。toolInputOf が例外にする
-//   rejected: 入力には写せるが、入力の検証で断られる（必須の欠けなど）。本体を呼ばないので `_meta` が無い
+//   rejected: 入力には写せるが、入力の検証で断られる（必須の欠けなど）。本体を呼ばないので出力が無い
 // ここに無い usage のシナリオは MCP 経由でも流し、golden と比べる
 const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new Map([
   ['board-add-usage', 'rejected'],
@@ -148,7 +148,7 @@ describe('前後比較', () => {
     expect(() => toolInputOf(readToolShape(command.path), command.args)).not.toThrow()
     const outcome = await runScenario(readScenario(id), nodeMcp)
     expect(outcome).toMatchObject(COMPLETED)
-    // _meta が無いので終了コードは -1。本体が呼ばれていれば、偽サーバに要求が届く
+    // 本体の終了コードと分けて -1 にする。本体が呼ばれていれば、偽サーバに要求が届く
     expect(outcome.golden).toMatchObject({ exitCode: -1, requests: [] })
     expect(outcome.golden.stdout).toMatch(/^invalid input: /u)
   })

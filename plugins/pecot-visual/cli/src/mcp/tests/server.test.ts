@@ -291,6 +291,7 @@ describe('createMcpServer', () => {
       handler: () => Promise.resolve(toCallToolResult({
         ok: false,
         exitCode: 3,
+        kind: 'export-failed',
         artifacts: ['/tmp/out.png'],
         data: { warnings: 1 },
         message: '警告あり',
@@ -302,6 +303,7 @@ describe('createMcpServer', () => {
     const expectedStructured = {
       ok: false,
       exitCode: 3,
+      kind: 'export-failed',
       artifacts: ['/tmp/out.png'],
       data: { warnings: 1 },
       message: '警告あり',

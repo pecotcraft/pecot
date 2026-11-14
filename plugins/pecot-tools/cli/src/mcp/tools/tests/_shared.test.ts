@@ -13,7 +13,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import type { AllowlistEntry, FailureCategory } from '../../../domain/allowlist.js'
+import type { AllowlistEntry, FailureKind } from '../../../domain/allowlist.js'
 import { OUTPUT_LIMIT_BYTES, resetAwscliProbe } from '../../../infra/awscli.js'
 import { toCallToolResult } from '../../result.js'
 import type { ToolDefinition } from '../../server.js'
@@ -118,7 +118,7 @@ describe('共通スキーマ', () => {
 
   it('outputSchema は ExecutionResult と同形', () => {
     expect(Object.keys(TOOL_OUTPUT_SCHEMA.shape))
-      .toEqual(['ok', 'exitCode', 'category', 'data', 'artifacts', 'message', 'stderr'])
+      .toEqual(['ok', 'exitCode', 'kind', 'data', 'artifacts', 'message', 'stderr'])
   })
 
   it('既定の制限時間は 120 秒', async (context) => {
@@ -135,7 +135,7 @@ describe('executeAllowlisted', () => {
 
     expect(result).toMatchObject({ ok: true, exitCode: 0 })
     expect(result.data).toMatchObject({ Account: '123456789012' })
-    expect(result.category).toBeUndefined()
+    expect(result.kind).toBeUndefined()
     expect(commandCalls(fake)).toEqual([
       ['sts', 'get-caller-identity', '--output', 'json', '--no-cli-pager', '--region', 'ap-northeast-1'],
     ])
@@ -146,7 +146,7 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, { max_items: 0 }, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 2, category: 'invalid-input' })
+    expect(result).toMatchObject({ ok: false, exitCode: 2, kind: 'invalid-input' })
     expect(commandCalls(fake)).toEqual([])
   })
 
@@ -156,7 +156,7 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 254, category: 'permission-denied' })
+    expect(result).toMatchObject({ ok: false, exitCode: 254, kind: 'permission-denied' })
     expect(result.message).toContain('permission-denied')
     expect(result.stderr).toContain('AccessDeniedException')
     expect(result.stderr).toContain('[redacted]')
@@ -168,7 +168,7 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 252, category: 'invalid-input' })
+    expect(result).toMatchObject({ ok: false, exitCode: 252, kind: 'invalid-input' })
   })
 
   // 実 awscli 2.36.40（2026-09-07 採取）の stderr と終了コードをそのまま置いた fixture。
@@ -176,16 +176,16 @@ describe('executeAllowlisted', () => {
   const CAPTURED_FIXTURES: readonly {
     readonly fixture: string
     readonly exitCode: number
-    readonly category: FailureCategory
+    readonly kind: FailureKind
   }[] = [
-    { fixture: 'no-credentials', exitCode: 253, category: 'auth-missing' },
-    { fixture: 's3-cp-no-credentials', exitCode: 1, category: 'auth-missing' },
-    { fixture: 'profile-not-found', exitCode: 255, category: 'auth-missing' },
-    { fixture: 'sso-token-expired', exitCode: 255, category: 'auth-expired' },
-    { fixture: 'invalid-token', exitCode: 254, category: 'auth-expired' },
+    { fixture: 'no-credentials', exitCode: 253, kind: 'auth-missing' },
+    { fixture: 's3-cp-no-credentials', exitCode: 1, kind: 'auth-missing' },
+    { fixture: 'profile-not-found', exitCode: 255, kind: 'auth-missing' },
+    { fixture: 'sso-token-expired', exitCode: 255, kind: 'auth-expired' },
+    { fixture: 'invalid-token', exitCode: 254, kind: 'auth-expired' },
   ]
 
-  it.each(CAPTURED_FIXTURES)('実採取 fixture $fixture を $category にする', async (captured) => {
+  it.each(CAPTURED_FIXTURES)('実採取 fixture $fixture を $kind にする', async (captured) => {
     fakeAws.install({ fixture: captured.fixture })
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
@@ -193,7 +193,7 @@ describe('executeAllowlisted', () => {
     expect(result).toMatchObject({
       ok: false,
       exitCode: captured.exitCode,
-      category: captured.category,
+      kind: captured.kind,
     })
   })
 
@@ -203,7 +203,7 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, { timeoutMs: 500 })
 
-    expect(result).toMatchObject({ ok: false, exitCode: 124, category: 'timeout' })
+    expect(result).toMatchObject({ ok: false, exitCode: 124, kind: 'timeout' })
     expect(result.message).toContain('Narrow the range')
   })
 
@@ -212,7 +212,7 @@ describe('executeAllowlisted', () => {
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT)
 
-    expect(result).toMatchObject({ ok: false, exitCode: 127, category: 'awscli-missing' })
+    expect(result).toMatchObject({ ok: false, exitCode: 127, kind: 'awscli-missing' })
     expect(result.message).toContain('PATH')
   })
 
@@ -345,7 +345,7 @@ describe('executeAllowlisted', () => {
 
     const result = await running
     expect(result.ok).toBe(false)
-    expect(result.category).not.toBe('timeout')
+    expect(result.kind).not.toBe('timeout')
   })
 })
 
@@ -371,13 +371,13 @@ describe('実行前拒否 (reject)', () => {
     const fake = fakeAws.install()
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, {
-      reject: () => ({ category: 'not-allowed', message: '変更系クエリは実行できません' }),
+      reject: () => ({ kind: 'not-allowed', message: '変更系クエリは実行できません' }),
     })
 
     expect(result).toMatchObject({
       ok: false,
       exitCode: 2,
-      category: 'not-allowed',
+      kind: 'not-allowed',
       message: '変更系クエリは実行できません',
     })
     expect(fake.callLog()).toEqual([])
@@ -387,10 +387,10 @@ describe('実行前拒否 (reject)', () => {
     const fake = fakeAws.install()
 
     const result = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, {
-      reject: () => ({ category: 'invalid-input', message: '書き出し先が既にあります' }),
+      reject: () => ({ kind: 'invalid-input', message: '書き出し先が既にあります' }),
     })
 
-    expect(result).toMatchObject({ ok: false, exitCode: 2, category: 'invalid-input' })
+    expect(result).toMatchObject({ ok: false, exitCode: 2, kind: 'invalid-input' })
     expect(fake.callLog()).toEqual([])
   })
 
@@ -408,14 +408,14 @@ describe('実行前拒否 (reject)', () => {
     fakeAws.withoutAws()
 
     const rejectedByValidation = await executeAllowlisted(LIST_ENTRY, { max_items: 0 }, CONTEXT, {
-      reject: () => ({ category: 'not-allowed', message: '拒否' }),
+      reject: () => ({ kind: 'not-allowed', message: '拒否' }),
     })
     const rejectedByHook = await executeAllowlisted(LIST_ENTRY, {}, CONTEXT, {
-      reject: () => ({ category: 'not-allowed', message: '拒否' }),
+      reject: () => ({ kind: 'not-allowed', message: '拒否' }),
     })
 
-    expect(rejectedByValidation.category).toBe('invalid-input')
-    expect(rejectedByHook.category).toBe('not-allowed')
+    expect(rejectedByValidation.kind).toBe('invalid-input')
+    expect(rejectedByHook.kind).toBe('not-allowed')
   })
 })
 
@@ -537,14 +537,14 @@ describe('allowlistedTool', () => {
       entry: IDENTITY_ENTRY,
       ...SPEC,
       reject: arguments_ => (arguments_['region'] === undefined
-        ? { category: 'invalid-input', message: 'region が要ります' }
+        ? { kind: 'invalid-input', message: 'region が要ります' }
         : undefined),
     })
 
     const rejected = await callTool(tool, {})
 
     expect(rejected['isError']).toBe(true)
-    expect(rejected['structuredContent']).toMatchObject({ exitCode: 2, category: 'invalid-input' })
+    expect(rejected['structuredContent']).toMatchObject({ exitCode: 2, kind: 'invalid-input' })
     expect(commandCalls(instance)).toEqual([])
   })
 
@@ -555,7 +555,7 @@ describe('allowlistedTool', () => {
     const result = await callTool(tool, {})
 
     // hang する偽 awscli が 500ms で打ち切られる = timeoutMs が届いている。
-    expect(result['structuredContent']).toMatchObject({ exitCode: 124, category: 'timeout' })
+    expect(result['structuredContent']).toMatchObject({ exitCode: 124, kind: 'timeout' })
   })
 })
 

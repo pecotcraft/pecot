@@ -279,7 +279,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
 
   describe('結果の outputSchema 検証', () => {
     it('失敗結果 (isError + structuredContent) もスキーマ拒否とは区別されてクライアントへ届く', async () => {
-      const failure = toCallToolResult({ ok: false, exitCode: 1, artifacts: [], data: { event: 'x' }, message: 'failed' })
+      const failure = toCallToolResult({ ok: false, exitCode: 1, kind: 'unknown', artifacts: [], data: { event: 'x' }, message: 'failed' })
 
       const called = await callLintWith(era, () => failure)
 

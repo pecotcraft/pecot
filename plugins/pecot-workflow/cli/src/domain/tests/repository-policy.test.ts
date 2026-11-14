@@ -20,7 +20,7 @@ function policy(input: PolicyInput, surface: HintSurface = 'cli'): unknown {
 
 describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mode) => {
   it('--repo 無し + Git 外は曖昧で終了コード 1', () => {
-    expect(policy({ explicit: undefined, resolved: undefined, mode })).toStrictEqual({ kind: 'exit', exitCode: 1, stderr: AMBIGUOUS_LINES })
+    expect(policy({ explicit: undefined, resolved: undefined, mode })).toStrictEqual({ kind: 'exit', exitCode: 1, failure: 'git-unresolved', stderr: AMBIGUOUS_LINES })
   })
 
   it('--repo 無し + Git 内は従来挙動で続行（採用値なし）', () => {
@@ -46,6 +46,7 @@ describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mod
     expect(policy({ explicit: 'not-a-repo', resolved: undefined, mode })).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
+      failure: 'invalid-input',
       stderr: ['error: --repo has an invalid form: \'not-a-repo\''],
     })
   })
@@ -54,11 +55,13 @@ describe.each<PolicyMode>(['reject', 'warn'])('mode=%s で共通の分岐', (mod
     expect(policy({ explicit: 'a/b c', resolved: undefined, mode })).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
+      failure: 'invalid-input',
       stderr: ['error: --repo has an invalid form: \'a/b c\''],
     })
     expect(policy({ explicit: 'it\'s/x', resolved: undefined, mode })).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
+      failure: 'invalid-input',
       stderr: ['error: --repo has an invalid form: "it\'s/x"'],
     })
   })
@@ -70,6 +73,7 @@ describe('不一致', () => {
     expect(result).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
+      failure: 'repo-mismatch',
       stderr: [
         'error: --repo acme-labs/aist-plugin differs from the current Git remote (acme-labs/pecot-cli)',
         '  this command works only on the repository of the current Git remote',
@@ -101,6 +105,7 @@ describe('MCP の出し先', () => {
     expect(policy({ explicit: undefined, resolved: undefined, mode: 'reject' }, 'mcp')).toStrictEqual({
       kind: 'exit',
       exitCode: 1,
+      failure: 'git-unresolved',
       stderr: ['error: the repository is ambiguous', '  give repo: <owner/repo>'],
     })
     expect(policy({ explicit: 'acme-labs/aist-plugin', resolved: CURRENT, mode: 'warn' }, 'mcp')).toMatchObject({

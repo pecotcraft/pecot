@@ -10,6 +10,7 @@
 // 出力 path / report path / mkdtemp 先は CLI 引数由来で、リテラルではない。
 // 本コマンド自身が出力先を生成する責務を持つため、本ファイル全体で security/detect-non-literal-fs-filename を disable する。
 /* eslint-disable security/detect-non-literal-fs-filename */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { performance } from 'node:perf_hooks'
 import { createHash } from 'node:crypto'
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
@@ -71,7 +72,7 @@ export interface PreviewResultSummary {
 }
 
 export class PreviewRuntimeError extends Error {
-  constructor(message: string, readonly reason: string) {
+  constructor(message: string, readonly reason: FailureReason) {
     super(message)
     this.name = 'PreviewRuntimeError'
   }
@@ -457,7 +458,7 @@ export async function executePptxPreview(
 */
 export const PPTX_PREVIEW_FAILURE_EXIT_CODE = 1
 
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   /* c8 ignore next -- unknown フォールバックは防御網 */
   return error instanceof PreviewRuntimeError ? error.reason : 'unknown'
 }

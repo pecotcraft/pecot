@@ -8,6 +8,7 @@
 //   3 = warnings present (validateHtml の warning or icon resolver warn が 1 件以上)。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- input は CLI 引数として受理する想定。信頼境界外だが open API 仕様 */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { performance } from 'node:perf_hooks'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -344,7 +345,7 @@ function formatError(error: unknown): string {
 /**
 失敗の reason。テーマの解決・取得・宣言・指定の失敗は `theme-<reason>`（`themeErrorReason`）にする。
 */
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof DrawioUrlUsageError) return error.reason
   if (error instanceof DrawioUrlRuntimeError) return error.reason
   return themeErrorReason(error) ?? 'unknown'

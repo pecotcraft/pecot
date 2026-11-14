@@ -87,10 +87,9 @@ const output = z.discriminatedUnion('format', [
   z.strictObject({ format: z.literal('none') }),
 ])
 
-// constraints と exit_status の要素は、持っているキーで schema を選んでから parse する（z.union にしない）。
+// constraints の要素は、持っているキーで schema を選んでから parse する（z.union にしない）。
 export const conflictConstraintSchema = z.strictObject({ conflicts: z.array(z.string()).min(2) })
 export const dependencyConstraintSchema = z.strictObject({ requires: z.record(z.string(), z.array(z.string())) })
-export const exitCodeSchema = z.strictObject({ code: z.int().min(0).max(255), when: authoredText })
 // kind の要素は、終了コードが決まっていれば code に書く。
 export const exitKindSchema = z.strictObject({ kind: authoredText, code: z.int().min(0).max(255).optional(), when: authoredText })
 

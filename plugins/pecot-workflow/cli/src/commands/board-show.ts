@@ -66,7 +66,7 @@ const boardShowCommand = defineCommand({
     catch (error: unknown) {
       if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)
       // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
-      if (error instanceof Error && !(error instanceof CommandExit)) return stopWith(out, `unexpected error: ${error.message}`)
+      if (error instanceof Error && !(error instanceof CommandExit)) return stopWith(out, `unexpected error: ${error.message}`, 'other')
       throw error
     }
     return 0

@@ -107,18 +107,19 @@ before / after の例を示す。
 
 全フェーズ分のファイルを Phase の順に並べる。前提が後ろのフェーズを指すときは、前提にされるフェーズのファイルを先にする。
 
-投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、番号・前提・進め方の表と、積める並びが出る。出力を Step 2 の前提の表と並べてユーザーに示し、前提の食い違いが無いかを見てもらう。
-食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。`error:` で止まったときも、文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
+投稿の前に、`issue_create` を `dry_run: true`・`files: ["<phase1のファイル>", "<phase2のファイル>", ...]` で呼ぶ。投稿はされず、番号・前提・進め方の表と、積める並びが出る。`stdout` の表を Step 2 の前提の表と並べてユーザーに示し、前提の食い違いが無いかを見てもらう。
+食い違いがあればファイルを直して、もう一度 `dry_run: true` で呼ぶ。結果の `ok` が `false` で、`stderr` の `error:` で止まったときも、文に従ってファイルか並びを直し、もう一度 `dry_run: true` で呼ぶ。合意を得てから投稿する。
 
 投稿は、同じ `files` で `issue_create` を `dry_run` なしで 1 回だけ呼ぶ。複数回に分けて呼ばない。
 
 投稿の結果は、次のとおり読み分ける。
 
-- `exit code: 1` でも、URL の行が出ていれば Issue は作られている。同じ `files` で呼び直さない。呼び直すと Issue が重複する
-- `error: could not add some blocked-by; add them again with:` の後ろに並ぶ付け直すコマンドの行は、打たずにそのままユーザーへ示す
-- URL の行が 1 つも出ずに `error:` で止まったときは、投稿の前の確認で止まっている。文に従ってファイルを直し、呼び直してよい
+- 結果の `ok` が `false`（`exitCode` は 1）でも、`stdout` に URL の行が出ていれば Issue は作られている。同じ `files` で呼び直さない。呼び直すと Issue が重複する
+  - 前提の付け直しだけに失敗したときは、`kind` が `partial-failure` になる
+- `stderr` の `error: could not add some blocked-by; add them again with:` の後ろに、付け直すコマンドの行が並ぶ。打たずにそのままユーザーへ示す
+- `stdout` に URL の行が 1 つも出ずに `stderr` の `error:` で止まったときは、投稿の前の確認で止まっている。文に従ってファイルを直し、呼び直してよい
 
 ### Step 4: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の出力の `Approach` 列）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
-投稿の出力のうち、`set:` の行の `status ready` と、`moved:` の行の `-> Ready` から読む。CLI が `warning:` を出したときは、そのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`dry_run: true` の結果の `stdout` にある表の `Approach` 列）を足す。あわせて、積める並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+投稿の結果の `stderr` のうち、`set:` の行の `status ready` と、`moved:` の行の `-> Ready` から読む。`stderr` に `warning:` の行があるときは、そのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。
