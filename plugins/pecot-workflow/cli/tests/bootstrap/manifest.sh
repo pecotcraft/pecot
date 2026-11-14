@@ -17,6 +17,8 @@
 #     そのためプラグインの名前で揃える。
 #   - Copilot の hooks は com.github.copilot/hooks/hooks.json にある。
 #     旧 hooks-copilot.json と .github/plugin/plugin.json は無い。
+#   - エージェントの定義は、Claude Code が agents/、Copilot CLI が com.github.copilot/agents/ から読む。
+#     後者は agents/ の同名のファイルから frontmatter の model: の行だけを除いた実ファイル（#416）。
 #
 #   bash plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh
 set -euo pipefail
@@ -128,16 +130,33 @@ check('旧 hooks/hooks-copilot.json は無い', !exists('hooks/hooks-copilot.jso
 JSON.parse(fs.readFileSync(path.join(root, 'com.github.copilot/hooks/hooks.json'), 'utf8'))
 check('旧 .github/plugin/plugin.json は無い（1.0 形式では Copilot が読まない）', !exists('.github/plugin/plugin.json'))
 
-// --- エージェント: Copilot は com.github.copilot/agents から読む。agents/ への相対 symlink ---
-const linkPath = path.join(root, 'com.github.copilot/agents')
-let linkTarget
-try { linkTarget = fs.readlinkSync(linkPath) } catch { /* 下で報告 */ }
-check('com.github.copilot/agents が ../agents を指す相対 symlink', linkTarget === '../agents', String(linkTarget))
-const agentFiles = fs.readdirSync(path.join(root, 'agents')).filter((f) => f.endsWith('.md'))
-let visible = []
-try { visible = fs.readdirSync(linkPath) } catch { /* 下で報告 */ }
+// --- エージェント: Copilot は com.github.copilot/agents から読む。model の行を除いた写しの実ファイル ---
+// GitHub Copilot CLI の auto は、定義に model があると 400 model_not_supported で失敗する（#416）。
+const agentsDir = path.join(root, 'agents')
+const copilotAgentsDir = path.join(root, 'com.github.copilot/agents')
+const fix = '直し方: agents/ の定義から frontmatter の model: の行を除いて、com.github.copilot/agents/ に写す'
+const stripModel = (text) => {
+  const m = text.match(/^---\n([\s\S]*?)\n---\n/)
+  if (!m) return text
+  const fm = m[1].split('\n').filter((l) => !/^model:/.test(l)).join('\n')
+  return `---\n${fm}\n---\n` + text.slice(m[0].length)
+}
+const agentFiles = fs.readdirSync(agentsDir).filter((f) => f.endsWith('.md')).sort()
 check('agents/*.md が 1 つ以上ある', agentFiles.length > 0)
-check('com.github.copilot/agents の中に agents/*.md が全部見える', agentFiles.every((f) => visible.includes(f)), visible.join(','))
+let copilotIsDir = false
+try { copilotIsDir = fs.lstatSync(copilotAgentsDir).isDirectory() } catch { /* 下で報告 */ }
+check('com.github.copilot/agents が symlink でない実ディレクトリ', copilotIsDir, fix)
+const copilotFiles = copilotIsDir ? fs.readdirSync(copilotAgentsDir).filter((f) => f.endsWith('.md')).sort() : []
+check('com.github.copilot/agents のファイル名の集合が agents/*.md と同じ', agentFiles.join(',') === copilotFiles.join(','), `${copilotFiles.join(',')}。${fix}`)
+for (const f of copilotFiles) {
+  const copy = fs.readFileSync(path.join(copilotAgentsDir, f), 'utf8')
+  const fm = copy.match(/^---\n([\s\S]*?)\n---\n/)
+  check(`com.github.copilot/agents/${f}: frontmatter に model: の行が無い`, !!fm && !fm[1].split('\n').some((l) => /^model:/.test(l)), fix)
+  if (agentFiles.includes(f)) {
+    const orig = fs.readFileSync(path.join(agentsDir, f), 'utf8')
+    check(`com.github.copilot/agents/${f}: agents/${f} から model: の行を除いたものと一致する`, stripModel(orig) === copy, fix)
+  }
+}
 
 console.log(`pass=${pass} fail=${fail}`)
 process.exit(fail === 0 ? 0 : 1)

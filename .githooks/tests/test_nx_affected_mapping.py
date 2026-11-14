@@ -240,14 +240,22 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         # もう 1 つは、スキルとエージェント定義の型を確認するテストで、pecot-workflow の test_agent_definitions (#1231) を指す。
         (
             "plugins/pecot-visual/agents/v-diagram-creator.md",
-            {"pecot-visual:test-skills", "pecot-workflow:test-hooks"},
+            {
+                "pecot-visual:test-skills",
+                "pecot-workflow:test-hooks",
+                "pecot-visual:test-bootstrap",
+            },
         ),
         # w-e2e-planner.md を読むテストは 2 つある。
         # 1 つは CUJ 定義の単一化を確かめるテストで、test-hooks が持つ (#1091)。
         # 1 つは本文のツール名と入力名を COMMANDS の定義と比べるテスト（cli/tests/skills/）で、test-skills が持つ (#1185, #350)。
         (
             "plugins/pecot-workflow/agents/w-e2e-planner.md",
-            {"pecot-workflow:test-hooks", "pecot-workflow:test-skills"},
+            {
+                "pecot-workflow:test-hooks",
+                "pecot-workflow:test-skills",
+                "pecot-workflow:test-bootstrap",
+            },
         ),
         # scripts/ci/tests の *.test.sh を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
         # pecotvPluginTestGlobals（pecot-visual 全レーン共有）に置くと、1 ファイルの変更で全レーンが再実行される。
