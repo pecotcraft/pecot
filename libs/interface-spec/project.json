@@ -98,6 +98,7 @@
         "default",
         "runtime",
         "{workspaceRoot}/plugins/pecot-workflow/cli/tests/interface-export/node-sample.json",
+        "{workspaceRoot}/plugins/*/interface/generated.json",
         "env"
       ],
       "dependsOn": [

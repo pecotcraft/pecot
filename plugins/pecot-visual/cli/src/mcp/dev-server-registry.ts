@@ -28,6 +28,7 @@ import { mergeStderr } from '../infra/_shared/process.js'
 import { resolveSlidevBin } from '../infra/_shared/slidev-bin.js'
 import { createOutputCapture } from './result.js'
 import { memoize } from '../domain/_shared/memoize.js'
+import type { FailureKind } from '../domain/_shared/failure-kind.js'
 
 /**
 ready を待つ上限 (ms)。待っている間は直列キューを占有するため短くする (計測の ready は約 1 秒)。
@@ -122,12 +123,7 @@ export interface DevServerDependencies {
   readonly killEscalationMs: number
 }
 
-export type DevServerFailureReason
-  = 'dev-server-spawn-failed'
-    | 'dev-server-exited'
-    | 'dev-server-timeout'
-    | 'dev-server-cancelled'
-    | 'dev-server-port-in-use'
+export type DevServerFailureReason = Extract<FailureKind, `dev-server-${string}`>
 
 export interface DevServerStartOptions {
   /**

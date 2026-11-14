@@ -21,6 +21,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
@@ -48,6 +49,7 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
       + 'to issue the command on purpose from outside the CWD (for example in a script), ',
       hinted`give ${inputHint(START_PATH, 'allow_cross_repo')}`,
     ], ''),
+    'repo-mismatch',
     USAGE_EXIT_CODE,
   )
 }
@@ -77,7 +79,7 @@ function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuer
   const developBranch = findRepository(config, owner, repository)?.develop_branch
   if (developBranch === undefined || developBranch === '') {
     const withBase = commandHint(START_PATH, { issue_ref: `${owner}/${repository}/${String(issueNumber)}`, branch, base: 'main' })
-    stopWith(out, joinHinted([`develop_branch is not set for ${owner}/${repository}`, developBranchGuide(owner, repository), hinted`or give the base: ${withBase}`]))
+    stopWith(out, joinHinted([`develop_branch is not set for ${owner}/${repository}`, developBranchGuide(owner, repository), hinted`or give the base: ${withBase}`]), 'repo-setting-missing')
   }
   return developBranch
 }
@@ -93,13 +95,13 @@ async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubCli
   const result = await readIssueReadinessIfSupported(client, config, issue, createReadinessCache(), warnNotChecked)
   if (result === undefined) return { kind: 'start' }
   if (result.kind === 'unreadable') {
-    if (result.snapshot === undefined) return stopWith(out, `could not read blocked-by of ${label}: ${result.reason}`)
+    if (result.snapshot === undefined) return stopWith(out, `could not read blocked-by of ${label}: ${result.reason}`, 'dependency-unreadable')
     const isUnset = result.snapshot.developmentBranch === undefined || result.snapshot.developmentBranch === ''
     const guide = isUnset ? [developBranchGuide(issue.repository.owner, issue.repository.repository)] : []
-    return stopWith(out, joinHinted([`could not judge readiness of ${label}: ${result.reason}`, ...guide]))
+    return stopWith(out, joinHinted([`could not judge readiness of ${label}: ${result.reason}`, ...guide]), 'dependency-unreadable')
   }
   const decision = decideStart(result.readiness, result.prerequisites, issue)
-  return decision.kind === 'blocked' ? stopWith(out, decision.message, USAGE_EXIT_CODE) : decision
+  return decision.kind === 'blocked' ? stopWith(out, decision.message, 'not-ready', USAGE_EXIT_CODE) : decision
 }
 
 /**
@@ -129,6 +131,7 @@ async function guardActiveOverwrite(out: Readonly<Output>, client: Readonly<GitH
         + '/pecot-w:w-worktree-add and run /pecot-w:w-active again in its session',
         hinted`if it is stale and you want to overwrite it on purpose, give ${inputHint(START_PATH, 'force_overwrite_active')}`,
       ]),
+      'guard-blocked',
       USAGE_EXIT_CODE,
     )
   }
@@ -194,7 +197,7 @@ const sessionStartCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      return stopWith(out, error.message, USAGE_EXIT_CODE)
+      return stopWith(out, error.message, 'invalid-input', USAGE_EXIT_CODE)
     }
     const { owner, repository } = issue.repository
     const issueNumber = issue.number
@@ -211,13 +214,13 @@ const sessionStartCommand = defineCommand({
 
       // 4. リポジトリがプロジェクトに含まれているか確認
       if (!await isRepositoryInProject(config, owner, repository, client)) {
-        stopWith(out, `${owner}/${repository} is not in the project`)
+        stopWith(out, `${owner}/${repository} is not in the project`, 'repo-not-in-project')
       }
 
       // 4.5. 着手の判定で base を選ぶ。--base は積む先と比べる
       const decision = await decideWorkStart(out, client, config, issue)
       const mismatch = describeBaseMismatch(input.base, decision, issue)
-      if (mismatch !== undefined) stopWith(out, mismatch, USAGE_EXIT_CODE)
+      if (mismatch !== undefined) stopWith(out, mismatch, 'invalid-input', USAGE_EXIT_CODE)
       // 3. ベースブランチ決定（積まないときだけ、--base か設定の develop_branch を求める）
       const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branch: input.branch, base: input.base })
 
@@ -231,8 +234,7 @@ const sessionStartCommand = defineCommand({
       }
       catch (error: unknown) {
         if (error instanceof GitHubAPIError && decision.kind === 'stack') {
-          out.error(`base branch ${baseBranch} of ${displayReference(decision.issue, issue.repository)} not found: ${error.message}`)
-          return 1
+          return stopWith(out, `base branch ${baseBranch} of ${displayReference(decision.issue, issue.repository)} not found: ${error.message}`, 'git-unresolved')
         }
         throw error
       }
@@ -259,8 +261,7 @@ const sessionStartCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not create branch ${finalBranchName} in ${owner}/${repository}: ${error.message}`)
-      return 1
+      return stopWith(out, `could not create branch ${finalBranchName} in ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
     }
   },
 })

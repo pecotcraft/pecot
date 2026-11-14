@@ -15,6 +15,7 @@ import type { IssueSlim } from '../infra/github/issues.js'
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, readIssueReadiness, readinessJson, snapshotWithoutPrerequisites } from './issue-readiness.js'
@@ -181,7 +182,7 @@ const ISSUE_SHOW = defineCommand({
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        return stopWith(output, `could not read Issue ${issuePath(owner, repository, number)}: ${error.message}`)
+        return stopWith(output, `could not read Issue ${issuePath(owner, repository, number)}: ${error.message}`, kindOfFailure(error))
       }
 
       const jsonFields = { ...issue, blockedByCount: undefined }

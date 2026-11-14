@@ -112,7 +112,7 @@ describe('exportEntries', () => {
   })
 
   it('項目のキーは contracts の例の順', () => {
-    expect(Object.keys(entries[0] ?? {})).toStrictEqual(['id', 'name', 'description', 'surfaces', 'hidden', 'deprecated', 'input', 'cli'])
+    expect(Object.keys(entries[0] ?? {})).toStrictEqual(['id', 'name', 'description', 'surfaces', 'hidden', 'deprecated', 'input', 'cli', 'mcp'])
   })
 
   it('グローバルの repo は input に出さない', () => {
@@ -407,8 +407,8 @@ describe('main の --check', () => {
 
   it('定義書にだけある欄のキーは 1 を返し、removed の行を出す', () => {
     const file = fileOf(samples)
-    entryOf(file, 'PW-BETA')['mcp'] = {}
-    expect(checkOf(file).error).toContain('  PW-BETA: mcp: removed\n')
+    entryOf(file, 'PW-BETA')['mcp'] = { output: exportEntries([beta])[0]?.mcp.output, annotations: { readOnlyHint: true } }
+    expect(checkOf(file).error).toContain('  PW-BETA: mcp.annotations: removed\n')
   })
 
   describe('定義書を読めないとき', () => {

@@ -22,6 +22,7 @@ import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { apiFailureMessage, createGitHubClient } from './github-client.js'
 import { applyBoardMove } from './issue-board.js'
 import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
@@ -59,7 +60,7 @@ async function wrapped<T>(out: Output, context: string, run: () => Promise<T>): 
     return await run()
   }
   catch (error: unknown) {
-    return stopWith(out, `${context}: ${apiFailureMessage(error)}`)
+    return stopWith(out, `${context}: ${apiFailureMessage(error)}`, kindOfFailure(error))
   }
 }
 
@@ -148,12 +149,12 @@ function checkBlockUsage(out: Output, input: BlockInput, target: IssueReference,
   const reason = input.reason?.trim()
   const reasonFlag = inputNameHint(BLOCK_PATH, 'reason')
   const waitMerge = inputHint(BLOCK_PATH, 'wait', 'merge')
-  if (input.wait === 'merge' && (reason === undefined || reason === '')) stopWith(out, hinted`${reasonFlag} is required with ${waitMerge}`, USAGE_EXIT_CODE)
-  if (input.wait === 'stack' && input.reason !== undefined) stopWith(out, hinted`${reasonFlag} is only valid with ${waitMerge}`, USAGE_EXIT_CODE)
-  if (reason !== undefined && /[\r\n]/u.test(reason)) stopWith(out, hinted`${reasonFlag} must be a single line`, USAGE_EXIT_CODE)
+  if (input.wait === 'merge' && (reason === undefined || reason === '')) stopWith(out, hinted`${reasonFlag} is required with ${waitMerge}`, 'invalid-input', USAGE_EXIT_CODE)
+  if (input.wait === 'stack' && input.reason !== undefined) stopWith(out, hinted`${reasonFlag} is only valid with ${waitMerge}`, 'invalid-input', USAGE_EXIT_CODE)
+  if (reason !== undefined && /[\r\n]/u.test(reason)) stopWith(out, hinted`${reasonFlag} must be a single line`, 'invalid-input', USAGE_EXIT_CODE)
   if (issueReferenceKey(target) === issueReferenceKey(by)) {
     const name = displayReference(target, target.repository)
-    stopWith(out, `blocked-by would form a cycle: ${name} -> ${name}`, USAGE_EXIT_CODE)
+    stopWith(out, `blocked-by would form a cycle: ${name} -> ${name}`, 'dependency-rejected', USAGE_EXIT_CODE)
   }
   return reason
 }
@@ -167,8 +168,8 @@ async function checkNoCycle(context: Context, byId: string): Promise<void> {
     read: async ids => await client.getBlockedByOfNodes(ids),
     limit: MAX_CYCLE_ISSUES,
   }))
-  if (result.kind === 'cycle') stopWith(out, `blocked-by would form a cycle: ${result.path.map(reference => displayReference(reference, home)).join(' -> ')}`, USAGE_EXIT_CODE)
-  else if (result.kind === 'unverifiable') stopWith(out, `could not check blocked-by cycle of ${displayReference(target, home)}: ${result.reason}`)
+  if (result.kind === 'cycle') stopWith(out, `blocked-by would form a cycle: ${result.path.map(reference => displayReference(reference, home)).join(' -> ')}`, 'dependency-rejected', USAGE_EXIT_CODE)
+  else if (result.kind === 'unverifiable') stopWith(out, `could not check blocked-by cycle of ${displayReference(target, home)}: ${result.reason}`, 'dependency-unreadable')
 }
 
 async function runBlock(out: Output, input: BlockInput): Promise<void> {
@@ -187,14 +188,14 @@ async function runBlock(out: Output, input: BlockInput): Promise<void> {
   const byName = displayReference(by, home)
 
   const read = await wrapped(out, `could not read blocked-by of ${name}`, async () => await client.getIssueBlockedByReferences(targetIssue.owner, targetIssue.repository, targetIssue.number))
-  if (read.blockedBy.kind === 'read-failed') stopWith(out, `could not read blocked-by of ${name}: ${read.blockedBy.reason}`)
+  if (read.blockedBy.kind === 'read-failed') stopWith(out, `could not read blocked-by of ${name}: ${read.blockedBy.reason}`, 'dependency-unreadable')
   const { issues, total } = read.blockedBy
   const linked = issues.find(issue => issueReferenceKey({ repository: issue.repository, number: issue.number }) === issueReferenceKey(by))
-  if (linked === undefined && total >= MAX_BLOCKED_BY) stopWith(out, `${name} already has ${String(MAX_BLOCKED_BY)} blocked-by issues`)
+  if (linked === undefined && total >= MAX_BLOCKED_BY) stopWith(out, `${name} already has ${String(MAX_BLOCKED_BY)} blocked-by issues`, 'dependency-rejected')
 
   const decision = decideBlock({ body: read.body, home, by, wait: input.wait, reason, isLinked: linked !== undefined })
   if (decision.kind === 'malformed') {
-    stopWith(out, `Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and run the command again`, CONTENT_EXIT_CODE)
+    stopWith(out, `Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and run the command again`, 'content-invalid', CONTENT_EXIT_CODE)
   }
   else if (decision.kind === 'unchanged') {
     out.planned({ verb: 'unchanged', target: `blocked-by ${byName} on ${name}` })
@@ -254,10 +255,10 @@ async function runUnblock(out: Output, input: UnblockInput): Promise<void> {
   const byName = displayReference(by, home)
 
   const read = await wrapped(out, `could not read blocked-by of ${name}`, async () => await client.getIssueBlockedByReferences(targetIssue.owner, targetIssue.repository, targetIssue.number))
-  if (read.blockedBy.kind === 'read-failed') stopWith(out, `could not read blocked-by of ${name}: ${read.blockedBy.reason}`)
+  if (read.blockedBy.kind === 'read-failed') stopWith(out, `could not read blocked-by of ${name}: ${read.blockedBy.reason}`, 'dependency-unreadable')
   const { issues, total } = read.blockedBy
   const linked = issues.find(issue => issueReferenceKey({ repository: issue.repository, number: issue.number }) === issueReferenceKey(by))
-  if (linked === undefined && total > issues.length) stopWith(out, `could not read blocked-by of ${name}: ${String(issues.length)} of ${String(total)} issues were read`)
+  if (linked === undefined && total > issues.length) stopWith(out, `could not read blocked-by of ${name}: ${String(issues.length)} of ${String(total)} issues were read`, 'dependency-unreadable')
 
   const decision = decideUnblock({ body: read.body, home, by, isLinked: linked !== undefined })
   if (linked === undefined || decision.kind === 'unchanged') {

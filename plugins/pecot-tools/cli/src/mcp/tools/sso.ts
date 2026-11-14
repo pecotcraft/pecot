@@ -3,7 +3,7 @@
 
 import { z } from 'zod'
 
-import type { FailureCategory } from '../../domain/allowlist.js'
+import type { FailureKind } from '../../domain/allowlist.js'
 import { ensureAwscli } from '../../infra/awscli.js'
 import {
   loginRegistry as sharedLoginRegistry,
@@ -25,7 +25,7 @@ import {
 /**
 SSO 専用の失敗種別ごとの再試行方法。共通表は「aws_sso_login を実行」と案内するので、SSO 自身の失敗に使うと循環する。
 */
-const SSO_FAILURE_HINTS: Record<FailureCategory, string> = {
+const SSO_FAILURE_HINTS: Record<FailureKind, string> = {
   'not-allowed': 'Operation not allowed. Use only the exposed tools',
   'invalid-input': 'Fix the profile and run again',
   'awscli-missing': 'Install awscli v2 (2.22 or later) and add it to PATH',
@@ -75,9 +75,9 @@ function pendingMessage(session: Readonly<SsoLoginSession>): string {
     + 'After approval, check completion with aws_sso_login_status.'
 }
 
-function hintOf(category: FailureCategory): string {
-  // eslint-disable-next-line security/detect-object-injection -- category は FailureCategory の列挙値
-  return SSO_FAILURE_HINTS[category]
+function hintOf(kind: FailureKind): string {
+  // eslint-disable-next-line security/detect-object-injection -- kind は FailureKind の列挙値
+  return SSO_FAILURE_HINTS[kind]
 }
 
 /**
@@ -87,11 +87,11 @@ function failureResult(
   session: Readonly<SsoLoginSession>,
   data: Readonly<Record<string, unknown>>,
 ): ExecutionResult {
-  /* c8 ignore next -- レジストリは failed に必ず category を付ける。既定値は型を閉じるための防御網 */
-  const category = session.category ?? 'other'
+  /* c8 ignore next -- レジストリは failed に必ず kind を付ける。既定値は型を閉じるための防御網 */
+  const kind = session.kind ?? 'other'
   const limited = limitOutput(session.output)
   // awscli の終了コードをそのまま返す（SSO 設定なしなら 253）。ok: false と同居できないので、0 以下とシグナル終了は 1 にする。
-  const resolved = resolveExitCode(category, session.exitCode)
+  const resolved = resolveExitCode(kind, session.exitCode)
 
   return {
     ok: false,
@@ -99,10 +99,10 @@ function failureResult(
     // 0 以下にならず、false 分岐は型を閉じるための防御。
     /* c8 ignore next */
     exitCode: resolved > 0 ? resolved : UNKNOWN_FAILURE_EXIT_CODE,
-    category,
+    kind,
     data: { ...data },
     artifacts: [],
-    message: `SSO authentication failed (${category}). ${hintOf(category)}`
+    message: `SSO authentication failed (${kind}). ${hintOf(kind)}`
       + (limited.truncated ? OUTPUT_TRUNCATION_NOTE : ''),
     stderr: limited.text,
   }
@@ -115,7 +115,7 @@ function timedOutResult(data: Readonly<Record<string, unknown>>): ExecutionResul
   return {
     ok: false,
     exitCode: TIMEOUT_EXIT_CODE,
-    category: 'timeout',
+    kind: 'timeout',
     data: { ...data },
     artifacts: [],
     message: `SSO authentication timed out. ${hintOf('timeout')}`,
@@ -132,8 +132,8 @@ async function startLogin(
   if (!probe.ok) {
     return {
       ok: false,
-      exitCode: resolveExitCode(probe.category),
-      category: probe.category,
+      exitCode: resolveExitCode(probe.kind),
+      kind: probe.kind,
       data: {},
       artifacts: [],
       message: probe.message,
@@ -180,7 +180,7 @@ function loginStatus(
     return {
       ok: false,
       exitCode: PRE_EXECUTION_EXIT_CODE,
-      category: 'invalid-input',
+      kind: 'invalid-input',
       data: {},
       artifacts: [],
       message: 'No SSO login in progress. Call aws_sso_login first',

@@ -12,7 +12,7 @@ import { childStdin, setChildStdin } from '../../infra/child-stdin.js'
 import { defineCommand } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
 import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
-import { outcomeOf } from '../../../tests/_helpers/mcp-client.js'
+import { outcomeOf, structuredOf } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import { defaultDependencies, executeMcpServe, installStdoutGuard, runMcpServe } from '../serve.js'
 import type { McpServeDependencies, WritableTarget } from '../serve.js'
@@ -360,7 +360,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const result = await client.callTool(hello)
     expect(result.isError).toBe(true)
     expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
-    expect(JSON.stringify(result.content)).toContain('exit code: 1')
+    expect(structuredOf(result)).toMatchObject({ kind: 'session-directory-unresolved', message: reason })
     await client.callTool({ name: 'slow', arguments: { name: 'x' } })
     expect(started).toEqual([])
     expect(changeDirectory).not.toHaveBeenCalled()

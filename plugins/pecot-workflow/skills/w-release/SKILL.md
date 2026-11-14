@@ -20,13 +20,13 @@ CHANGELOG を更新してリリースする。
 
    `board_show` を引数なしで呼ぶ。
 
-   結果の対象リポ行の直下にある `release_type: <...>` を読む:
+   結果の `stdout` の対象リポ行の直下にある `release_type: <...>` を読む:
 
    - `release_type: single` → **[references/release-single.md](references/release-single.md)** に従う
    - `release_type: multi`  → **[references/release-multi.md](references/release-multi.md)** に従う
    - `release_type: nx`     → **[references/release-nx.md](references/release-nx.md)** に従う
 
-   併せて **ブランチモード** も同じ結果から読む:
+   併せて **ブランチモード** も同じ `stdout` から読む:
 
    - 対象リポ行の `develop:` と `release:` が異なる → **2ブランチモード**（開発ブランチ → release ブランチへ PR で反映）。
      例は `develop: develop-aist` と `release: main`。

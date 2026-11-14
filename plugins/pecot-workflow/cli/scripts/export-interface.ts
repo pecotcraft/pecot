@@ -17,6 +17,7 @@ import type { InputSchema } from '../src/commands/input-schema.js'
 import { createOutput } from '../src/commands/output.js'
 import { COMMANDS } from '../src/commands/registry.js'
 import type { CommandDefinition, CommandIo } from '../src/commands/registry.js'
+import { TOOL_OUTPUT_SCHEMA } from '../src/mcp/result.js'
 
 export interface InterfaceEntry {
   readonly id: string
@@ -27,7 +28,11 @@ export interface InterfaceEntry {
   readonly deprecated: false
   readonly input: InputSchema
   readonly cli: { readonly positional: readonly string[], readonly flags: Readonly<Record<string, readonly string[]>> }
+  readonly mcp: { readonly output: unknown }
 }
+
+// input と同じく $schema を外す
+const OUTPUT = Object.fromEntries(Object.entries(z.toJSONSchema(TOOL_OUTPUT_SCHEMA, { io: 'output' })).filter(([key]) => key !== '$schema'))
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
 function flagsOf(command: CommandDefinition, names: readonly string[]): Record<string, readonly string[]> {
@@ -60,6 +65,7 @@ function entryOf(command: CommandDefinition): InterfaceEntry {
     deprecated: false,
     input,
     cli: { positional: command.positional, flags: flagsOf(command, Object.keys(input.properties)) },
+    mcp: { output: OUTPUT },
   }
 }
 

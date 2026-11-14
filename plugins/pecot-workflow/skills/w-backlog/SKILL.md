@@ -61,7 +61,7 @@ Epic の作成先を決定するため、`aggregation_repo` の設定状況を�
 **リポジトリの特定方法:**
 
 - 集約リポ設定済（Step 3 で `owner/repo` が返った）→ `repository: ""` のまま。ツールが自動で集約リポに作成する
-- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が `exit code: 2` で失敗する
+- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が `kind` が `repo-setting-missing`（`exitCode` は 2）で失敗する
 - ユーザーが実装リポ名を言及しても安易に `repo` で上書きせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ `repo: "<impl-repo>"` で明示する（ツールは警告を出しつつ作成を許可する）
 - 詳細マトリクス: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 

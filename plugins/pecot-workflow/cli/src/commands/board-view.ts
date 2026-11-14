@@ -60,7 +60,7 @@ export async function pruneArchivedItems(out: Readonly<Output>, client: Readonly
       if (!(error instanceof GitHubAPIError)) throw error
     }
   }
-  if (deleted > 0) out.done({ verb: 'delete', target: `${String(deleted)} archived items` })
+  if (deleted > 0) out.done({ verb: 'delete', target: `${String(deleted)} archived items`, aside: true })
   const failed = targets.length - deleted
   if (failed > 0) out.warning(`failed to delete ${String(failed)} archived items`)
   return failed

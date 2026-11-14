@@ -117,10 +117,14 @@ function thrownError(action: () => void): unknown {
   return new Error('例外が投げられなかった')
 }
 
-function runtimeMessage(action: () => void): string {
+function runtimeError(action: () => void): WorktreeRuntimeError {
   const error = thrownError(action)
-  expect(error).toBeInstanceOf(WorktreeRuntimeError)
-  return error instanceof Error ? error.message : ''
+  if (error instanceof WorktreeRuntimeError) return error
+  throw new Error(`WorktreeRuntimeError でない: ${String(error)}`)
+}
+
+function runtimeMessage(action: () => void): string {
+  return runtimeError(action).message
 }
 
 /**
@@ -453,12 +457,13 @@ describe('createWorktree（実 git・実ファイル）', () => {
 
   it('--base を明示すれば develop_branch が未設定でも作れる。未設定で省略するとエラー', () => {
     const { repository } = createProject({ repositories: [{ owner: 'myowner', name: 'myrepo' }] })
-    const message = runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { isDryRun: true }))
-    expect(message).toBe([
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { isDryRun: true }))
+    expect(error.message).toBe([
       'develop_branch is not set for repository myowner/myrepo',
       '  add develop_branch to repositories in the project config file',
       '  or pass --base explicitly',
     ].join('\n'))
+    expect(error.failure).toBe('repo-setting-missing')
     expect(createWorktree(repository, ignoredDiagnostics, { baseBranch: 'main', isDryRun: true }).baseBranch).toBe('main')
   })
 
@@ -572,19 +577,25 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('worktree-config.json が無ければ init を促すエラー', () => {
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', 'worktree-config.json'))
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('worktree config not found: .pecot/config/worktree-config.json\n  run pecot worktree init to generate the template')
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    expect(error.message).toBe('worktree config not found: .pecot/config/worktree-config.json\n  run pecot worktree init to generate the template')
+    expect(error.failure).toBe('not-initialized')
   })
 
   it('.worktreeignore が無ければ init を促すエラー', () => {
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', '.worktreeignore'))
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('copy exclude config not found: .pecot/config/.worktreeignore\n  run pecot worktree init to generate the template')
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    expect(error.message).toBe('copy exclude config not found: .pecot/config/.worktreeignore\n  run pecot worktree init to generate the template')
+    expect(error.failure).toBe('not-initialized')
   })
 
   it('origin が無ければ WorktreeRuntimeError', () => {
     const { repository } = createProject()
     gitForTest(repository, ['remote', 'remove', 'origin'])
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    expect(error.message).toBe('cannot get the repository information: check that a git remote is set to a GitHub repository URL')
+    expect(error.failure).toBe('other')
   })
 
   it('origin の owner が不正な名前でも WorktreeRuntimeError', () => {
@@ -595,7 +606,9 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('アクティブなプロジェクト設定が無ければ WorktreeRuntimeError', () => {
     const { repository, configRoot } = createProject()
     rmSync(path.join(configRoot, '.pecot', 'config', 'projects', '.active'))
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics))).toBe('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics))
+    expect(error.message).toBe('project config not found\n  hint: run pecot project activate <PROJECT> to set the project')
+    expect(error.failure).toBe('no-active-project')
   })
 
   it('アクティブなプロジェクトに登録されていないリポジトリはエラー。登録済みの一覧と追加手順を示す', () => {
@@ -613,7 +626,9 @@ describe('createWorktree（実 git・実ファイル）', () => {
       'to switch to another project:',
       '  pecot project activate <PROJECT>',
     ].join('\n')
-    expect(runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))).toBe(expected)
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))
+    expect(error.message).toBe(expected)
+    expect(error.failure).toBe('repo-not-in-project')
   })
 
   it('登録が 1 件も無ければ「(登録なし)」', () => {
@@ -668,7 +683,9 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('不正な JSON の worktree-config.json は、WT を作った後に WorktreeRuntimeError', () => {
     const { repository, root } = createProject({ worktreeConfig: '{ this is not valid json' })
     const configPath = path.join(repository, '.pecot', 'config', 'worktree-config.json')
-    const message = runtimeMessage(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
+    const error = runtimeError(() => createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
+    const { message } = error
+    expect(error.failure).toBe('config-invalid')
     expect(message.startsWith(`failed to load the worktree config: ${configPath}: JSON parse error: ${configPath}: `)).toBe(true)
     expect(message.endsWith('\n  fix the config file and run it again')).toBe(true)
     expect(existsSync(path.join(root, 'wt1', 'myrepo'))).toBe(true)

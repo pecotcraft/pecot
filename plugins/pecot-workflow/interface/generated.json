@@ -204,6 +204,60 @@
             "-s"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -257,6 +311,60 @@
             "-n"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -303,6 +411,60 @@
             "--repo"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -347,6 +509,60 @@
           "project": [
             "--project"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -400,6 +616,60 @@
             "--dry-run",
             "-n"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -473,6 +743,60 @@
           "wait": [
             "--wait"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -558,6 +882,60 @@
             "--template",
             "-t"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -731,6 +1109,60 @@
             "--type"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -795,6 +1227,60 @@
             "-s"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -853,6 +1339,60 @@
             "-j"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -907,6 +1447,60 @@
             "--dry-run"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -946,6 +1540,60 @@
             "--directory",
             "-D"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1072,6 +1720,60 @@
             "-t"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1127,6 +1829,60 @@
             "--reviews",
             "-r"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1188,6 +1944,60 @@
             "--owner",
             "-o"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1260,6 +2070,60 @@
             "-s"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1300,6 +2164,60 @@
           "key"
         ],
         "flags": {}
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1370,6 +2288,60 @@
             "--suffix",
             "-s"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1465,6 +2437,60 @@
             "--release-type"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1493,6 +2519,60 @@
       "cli": {
         "positional": [],
         "flags": {}
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1539,6 +2619,60 @@
             "--host",
             "-h"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1605,6 +2739,60 @@
             "-y"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1655,6 +2843,60 @@
             "-n"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1697,6 +2939,60 @@
           "package": [
             "--package"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1750,6 +3046,60 @@
           "package": [
             "--package"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -1815,6 +3165,60 @@
             "-n"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1879,6 +3283,60 @@
             "--skip-local-cleanup"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1936,6 +3394,60 @@
             "-i"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -1975,6 +3487,60 @@
             "--directory",
             "-D"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -2064,6 +3630,60 @@
             "-F"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -2113,6 +3733,60 @@
           "dry_run": [
             "--dry-run"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -2208,6 +3882,60 @@
             "--setup"
           ]
         }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     {
@@ -2256,6 +3984,60 @@
             "--dry-run",
             "-n"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -2320,6 +4102,60 @@
           "force": [
             "--force"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     },
@@ -2392,6 +4228,60 @@
           "keep_branch": [
             "--keep-branch"
           ]
+        }
+      },
+      "mcp": {
+        "output": {
+          "type": "object",
+          "properties": {
+            "ok": {
+              "type": "boolean",
+              "description": "Whether the tool completed its intended run"
+            },
+            "exitCode": {
+              "type": "number",
+              "description": "Exit code (0 = success)"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Absolute paths of files and directories created or updated"
+            },
+            "data": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {},
+              "description": "Object with the details of the run"
+            },
+            "message": {
+              "type": "string",
+              "description": "One-line summary for the calling agent. On success, the first result line or else the first stdout line; empty when there is neither"
+            },
+            "stdout": {
+              "description": "Captured stdout (omitted when empty)",
+              "type": "string"
+            },
+            "stderr": {
+              "description": "Captured stderr (omitted when empty)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "exitCode",
+            "artifacts",
+            "data",
+            "message"
+          ],
+          "additionalProperties": false
         }
       }
     }

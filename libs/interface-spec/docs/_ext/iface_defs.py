@@ -260,6 +260,7 @@ def _fields(pairs: list[tuple[str, object]]) -> list[str]:
 
 
 _MISSING = object()
+_NONE = "ありません。"
 
 
 def _get(data: dict[str, Any], dotted: str) -> object:
@@ -392,20 +393,15 @@ def _output(entry: dict[str, Any]) -> list[str]:
 
 
 def _failures(entry: dict[str, Any]) -> tuple[str, list[str]]:
-    """エラーの表。終了コードで返す項目は戻り値の表。エラーの後に残る状態を、その下に書く。"""
+    """エラーの表。終了コードの決まっていない行は空にする。エラーの後に残る状態を、その下に書く。"""
     items = cast("list[dict[str, Any]]", entry.get("exit_status", []))
-    named = any("kind" in e for e in items)
-    if not named:
-        lines = _table("", ["戻り値", "意味"], [[e.get("code", ""), e["when"]] for e in items])
-    elif any("code" in e for e in items):
-        rows = [[e.get("kind", ""), e["when"], e.get("code", "")] for e in items]
-        lines = _table("", ["エラー名", "説明", "終了コード"], rows)
+    rows = [[e.get("kind", ""), e["when"], e.get("code", "")] for e in items]
+    lines = _table("", ["エラー名", "説明", "終了コード"], rows)
+    if lines:
         lines.insert(1, "   :class: iface-errors")
-    else:
-        lines = _table("", ["エラー名", "説明"], [[e.get("kind", ""), e["when"]] for e in items])
     if "on_error" in entry and entry["on_error"] != _NOTHING["on_error"]:
         lines += _para(entry["on_error"])
-    return ("エラー" if named or not items else "戻り値"), lines
+    return "エラー", lines
 
 
 def _prerequisites(entry: dict[str, Any]) -> list[str]:
@@ -419,7 +415,7 @@ def _environment(entry: dict[str, Any]) -> list[str]:
 
 
 def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
-    """項目のページの節。中身のある節だけを、見出しと rst の行の組で返す。
+    """項目のページの節。見出しは、いつも同じ順で返す。中身の無い節は「ありません。」の 1 行にする。
 
     構文と引数の書き方は、Azure CLI のリファレンスに合わせる。
     見出しが空の節は、冒頭の説明と構文で、見出しを付けずに出す。
@@ -443,7 +439,11 @@ def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
         (failure_title, failures),
         ("環境変数", _environment(entry)),
     ]
-    return [(title, lines) for title, lines in sections if lines]
+    return [
+        (title, lines or ([_NONE, ""] if title else []))
+        for title, lines in sections
+        if title or lines
+    ]
 
 
 def render_body(sections: list[tuple[str, list[str]]]) -> list[str]:

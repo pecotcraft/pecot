@@ -431,7 +431,7 @@ describe('pecot-tools mcp (stdio)', () => {
         { timeout: REQUEST_TIMEOUT_MS },
       )
       expect(next.structuredContent, `子プロセス stderr: ${readStderr()}`)
-        .toMatchObject({ ok: false, category: 'invalid-input' })
+        .toMatchObject({ ok: false, kind: 'invalid-input' })
     }
     finally {
       await client.close()

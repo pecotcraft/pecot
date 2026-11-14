@@ -54,7 +54,7 @@ export function recordWorkTarget(
   catch (error: unknown) {
     if (!isRecordingFailure(error)) throw error
     if (options.failWithExit === true) {
-      stopWith(out, `could not record the work target: ${describeFailure(error)}`)
+      stopWith(out, `could not record the work target: ${describeFailure(error)}`, 'other')
     }
     out.warning(`could not record the work target: ${describeFailure(error)}`)
     return 'failed'

@@ -6,7 +6,7 @@
 // 例えば `Found invalid choice` は、R4 の `Invalid choice` と大小文字が異なる。
 // AccessDenied / ResourceNotFound 系は実アカウントを使っていないため R4 転記のまま。
 
-import type { FailureCategory } from './allowlist.js'
+import type { FailureKind } from './allowlist.js'
 
 /**
 awscli v2 の「構文不正」終了コード。
@@ -27,7 +27,7 @@ export interface FailureSignals {
 }
 
 interface StderrRule {
-  readonly category: FailureCategory
+  readonly kind: FailureKind
   /**
   部分一致で比較する断片。
   */
@@ -47,7 +47,7 @@ permission-denied は resource-not-found より先に置く。権限不足を「
 */
 const STDERR_RULES: readonly StderrRule[] = [
   {
-    category: 'auth-expired',
+    kind: 'auth-expired',
     fragments: [
       'Error loading SSO Token',
       'The SSO session associated with this profile has expired',
@@ -57,7 +57,7 @@ const STDERR_RULES: readonly StderrRule[] = [
     ],
   },
   {
-    category: 'auth-missing',
+    kind: 'auth-missing',
     fragments: [
       'Unable to locate credentials',
       'Missing the following required SSO configuration',
@@ -69,7 +69,7 @@ const STDERR_RULES: readonly StderrRule[] = [
     patterns: [/The config profile \(.+\) could not be found/],
   },
   {
-    category: 'permission-denied',
+    kind: 'permission-denied',
     fragments: [
       'AccessDenied',
       'AccessDeniedException',
@@ -78,7 +78,7 @@ const STDERR_RULES: readonly StderrRule[] = [
     ],
   },
   {
-    category: 'resource-not-found',
+    kind: 'resource-not-found',
     fragments: [
       'ResourceNotFoundException',
       'NoSuchBucket',
@@ -89,7 +89,7 @@ const STDERR_RULES: readonly StderrRule[] = [
     ],
   },
   {
-    category: 'invalid-input',
+    kind: 'invalid-input',
     fragments: [
       'Unknown options',
       // 実採取は `argument operation: Found invalid choice 'bogus-op'`。R4 転記の
@@ -114,13 +114,13 @@ function doesMatch(rule: Readonly<StderrRule>, stderr: string): boolean {
 ENOENT を最優先にするのは、awscli 未導入では stderr に何が出ていても打つ手が
 「awscli を入れる」しかないため。
 */
-export function classifyFailure(signals: Readonly<FailureSignals>): FailureCategory {
+export function classifyFailure(signals: Readonly<FailureSignals>): FailureKind {
   if (signals.spawnErrorCode === 'ENOENT') return 'awscli-missing'
   if (signals.timedOut) return 'timeout'
   if (signals.exitCode === SYNTAX_ERROR_EXIT_CODE) return 'invalid-input'
 
   for (const rule of STDERR_RULES) {
-    if (doesMatch(rule, signals.stderr)) return rule.category
+    if (doesMatch(rule, signals.stderr)) return rule.kind
   }
   return 'other'
 }

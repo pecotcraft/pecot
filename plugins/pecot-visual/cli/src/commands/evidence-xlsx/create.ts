@@ -10,6 +10,7 @@
 //       ただし --help / --version は commander の想定内終了なので exit 0 とする。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- --input / --out は CLI 引数として受理する仕様 */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -284,7 +285,7 @@ function doesArgvWantJson(argv: readonly string[]): boolean {
   return argv.includes('--json')
 }
 
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof EvidenceCreateError) return error.reason
   if (error instanceof EvidenceWorkbookError) return error.reason
   /* c8 ignore next -- 上記 2 種以外の throw は実装内に存在しない、防御網のみ */

@@ -258,11 +258,11 @@ export class IssuesApi extends ProjectsApi {
     const variables = { owner, repo: repository, number, commentLimit }
     let result: JsonObject
     try {
-      result = await this.executeGraphql(QUERY_GET_ISSUE_SLIM, variables)
+      result = await this.queryIssue(QUERY_GET_ISSUE_SLIM, variables)
     }
     catch (error: unknown) {
       if (!isSchemaError(error) || !/blockedBy/iu.test(error.message)) throw error
-      result = await this.executeGraphql(QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY, variables)
+      result = await this.queryIssue(QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY, variables)
     }
     return issueNode(result, owner, repository, number)
   }
@@ -305,7 +305,7 @@ export class IssuesApi extends ProjectsApi {
   Issue 番号から GraphQL Node ID とタイトルを、1 回のクエリで取る
   */
   async getIssueNodeIdAndTitle(owner: string, repository: string, number: number): Promise<IssueNodeIdAndTitle> {
-    const result = await this.executeGraphql(QUERY_GET_ISSUE_NODE_ID, { owner, repo: repository, number })
+    const result = await this.queryIssue(QUERY_GET_ISSUE_NODE_ID, { owner, repo: repository, number })
     const issue = issueNode(result, owner, repository, number)
     return {
       id: requireString(jsonField(issue, 'id'), 'issue.id'),
@@ -361,7 +361,7 @@ export class IssuesApi extends ProjectsApi {
     const variables = { owner, repo: repository, number, columnFieldName: fieldNames.columnFieldName, labelFieldName: fieldNames.labelFieldName, blockedByFirst }
     let outcome: GraphqlOutcome
     try {
-      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath)
+      outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath)
     }
     catch (error: unknown) {
       throw asDependenciesError(error)
@@ -383,7 +383,7 @@ export class IssuesApi extends ProjectsApi {
   async getIssueBlockedByReferences(owner: string, repository: string, number: number, blockedByFirst = MAX_BLOCKED_BY): Promise<IssueBlockedByReferences> {
     let outcome: GraphqlOutcome
     try {
-      outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES, { owner, repo: repository, number, blockedByFirst }, isBlockedByPath)
+      outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES, { owner, repo: repository, number, blockedByFirst }, isBlockedByPath)
     }
     catch (error: unknown) {
       throw asDependenciesError(error)
@@ -477,7 +477,7 @@ export class IssuesApi extends ProjectsApi {
       const pageInfo = jsonField(connection, 'pageInfo')
       const cursor = jsonField(pageInfo, 'endCursor')
       if (typeof cursor !== 'string' || jsonField(pageInfo, 'hasNextPage') !== true) return subIssues
-      const result = await this.executeGraphql(QUERY_GET_SUB_ISSUES_PAGE, { owner, repo: repository, number, after: cursor })
+      const result = await this.queryIssue(QUERY_GET_SUB_ISSUES_PAGE, { owner, repo: repository, number, after: cursor })
       connection = jsonField(issueNode(result, owner, repository, number), 'subIssues')
     }
   }

@@ -221,7 +221,7 @@ describe('createMcpServer', () => {
       handler: () => Promise.resolve(toCallToolResult({
         ok: false,
         exitCode: 254,
-        category: 'permission-denied',
+        kind: 'permission-denied',
         artifacts: [],
         data: {},
         message: '権限が不足しています',
@@ -234,7 +234,7 @@ describe('createMcpServer', () => {
       const called = await connected.client.callTool({ name: 'failing', arguments: {} })
 
       expect(called.isError).toBe(true)
-      expect(called.structuredContent).toMatchObject({ category: 'permission-denied', exitCode: 254 })
+      expect(called.structuredContent).toMatchObject({ kind: 'permission-denied', exitCode: 254 })
     }
     finally {
       await closeMcp(connected)

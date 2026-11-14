@@ -131,7 +131,7 @@ describe('createLoginRegistry', () => {
     const session = await registry.start('plain')
 
     expect(session.state).toBe('failed')
-    expect(session.category).toBe('auth-missing')
+    expect(session.kind).toBe('auth-missing')
     // awscli の終了コードをそのまま持つ（応答の exitCode の材料になる）。
     expect(session.exitCode).toBe(253)
     expect(session.output).toContain('Missing the following required SSO configuration values')
@@ -144,7 +144,7 @@ describe('createLoginRegistry', () => {
     const session = await registry.start()
 
     expect(session.state).toBe('failed')
-    expect(session.category).toBe('awscli-missing')
+    expect(session.kind).toBe('awscli-missing')
   })
 
   it('制限時間を過ぎると timed-out にして子を落とす', async () => {
@@ -169,7 +169,7 @@ describe('createLoginRegistry', () => {
     const session = await registry.start()
 
     expect(session.state).toBe('failed')
-    expect(session.category).toBe('timeout')
+    expect(session.kind).toBe('timeout')
     await waitForTermination(livePid(fake))
   })
 
@@ -219,7 +219,7 @@ describe('createLoginRegistry', () => {
     const session = await registry.start()
 
     expect(session.state).toBe('failed')
-    expect(session.category).toBe('other')
+    expect(session.kind).toBe('other')
     expect(fake.callLog()).toEqual([])
   })
 

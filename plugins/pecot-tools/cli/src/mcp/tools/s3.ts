@@ -38,7 +38,7 @@ function rejectExistingTarget(
 
     if (isDirectory(target)) {
       return {
-        category: 'invalid-input',
+        kind: 'invalid-input',
         message: `${name} must not be a directory. Specify the absolute path of the file to write: ${target}`,
       }
     }
@@ -46,7 +46,7 @@ function rejectExistingTarget(
     if ((arguments_['overwrite'] === true) || !doesFileExist(target)) return
 
     return {
-      category: 'invalid-input',
+      kind: 'invalid-input',
       message: `${name} already exists. To overwrite, set overwrite to true: ${target}`,
     }
   }

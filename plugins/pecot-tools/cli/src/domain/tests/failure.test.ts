@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null -- exitCode は SpawnResult 契約で null（spawn 失敗・シグナル終了）を取る */
 import { describe, expect, it } from 'vitest'
 
-import type { FailureCategory } from '../allowlist.js'
+import type { FailureKind } from '../allowlist.js'
 import { classifyFailure, type FailureSignals } from '../failure.js'
 
 /**
@@ -16,7 +16,7 @@ interface CapturedFailure {
   readonly label: string
   readonly exitCode: number
   readonly stderr: string
-  readonly expected: FailureCategory
+  readonly expected: FailureKind
 }
 
 const CAPTURED_FAILURES: readonly CapturedFailure[] = [

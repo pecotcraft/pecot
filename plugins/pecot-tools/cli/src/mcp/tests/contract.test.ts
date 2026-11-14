@@ -158,7 +158,7 @@ describe('MCP ツール契約 (tools/list)', () => {
     const exposedKeys = Object.keys(propertiesOf(outputSchema))
 
     expect(sorted(exposedKeys)).toEqual(sorted(Object.keys(TOOL_OUTPUT_SCHEMA.shape)))
-    // category / stderr は失敗時のみ載るため必須にしない。
+    // kind / stderr は失敗時のみ載るため必須にしない。
     expect(sorted(asStringArray(outputSchema?.['required']))).toEqual(['artifacts', 'data', 'exitCode', 'message', 'ok'])
   })
 

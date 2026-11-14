@@ -443,7 +443,7 @@ cat > "$TMP/smoke.mjs" << 'SMOKE'
 //
 // 使い方: node smoke.mjs <script> [args...]  （script は node で起動する）
 // 環境変数 SMOKE_TOOL_CALLS に [{"name":..,"arguments":{..}}, ...] の JSON を渡すと、
-// tools/list の後に続けて tools/call を送り、各応答の structuredContent.ok / .category を
+// tools/list の後に続けて tools/call を送り、各応答の structuredContent.ok / .kind を
 // 返り値の calls 配列（呼び出し順）に載せる（配布ツリーが実際に起動して応答することの検証。
 // tools/list が緑のまま tools/call だけ壊れる回帰を拾うため）。
 import { spawn } from 'node:child_process'
@@ -511,7 +511,7 @@ const tools = listed?.result?.tools ?? []
 const calls = CALLS.map((_, index) => {
   const response = seen.get(CALL_ID_BASE + index)
   const structured = response?.result?.structuredContent ?? {}
-  return { ok: structured.ok ?? null, category: structured.category ?? null }
+  return { ok: structured.ok ?? null, kind: structured.kind ?? null }
 })
 const initialized = seen.get(1)
 process.stdout.write(JSON.stringify({
@@ -589,7 +589,7 @@ assert_eq "README の登録名が initialize の serverInfo.name と一致する
 # 偽 awscli を PATH 先頭に置き、読み取り系 (aws_s3_ls) と実行前拒否系 (Athena の DROP TABLE) を配布ツリーへ実際に投げる。
 # 起動の手順そのものを固定する。
 call_value() {
-    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'ok' か 'category'
+    # $1 = smoke の出力 json, $2 = calls 配列の index, $3 = 'ok' か 'kind'
     node -e "
 const fs = require('node:fs')
 let value
@@ -621,8 +621,8 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
             "$(call_value "$SMOKE_CALLS_OUT" 0 ok)"
         assert_eq "DROP TABLE の tools/call が ok:false を返す" "false" \
             "$(call_value "$SMOKE_CALLS_OUT" 1 ok)"
-        assert_eq "DROP TABLE の tools/call が category:not-allowed を返す" "not-allowed" \
-            "$(call_value "$SMOKE_CALLS_OUT" 1 category)"
+        assert_eq "DROP TABLE の tools/call が kind:not-allowed を返す" "not-allowed" \
+            "$(call_value "$SMOKE_CALLS_OUT" 1 kind)"
         ;;
 esac
 

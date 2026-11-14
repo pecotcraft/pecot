@@ -8,7 +8,8 @@ import type { FieldOptionInput } from '../../domain/field-options.js'
 import type { BoardItem } from '../../domain/format.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import { GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
+import type { GraphqlOutcome, PathPredicate } from './client.js'
+import { asNotFoundError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
 import {
   MUTATION_ADD_TO_PROJECT,
@@ -118,6 +119,30 @@ export class ProjectsApi extends ReposApi {
     catch (error: unknown) {
       if (error instanceof GitHubAPIError) return undefined
       throw error
+    }
+  }
+
+  /**
+  Issue を読むクエリ。無い Issue・リポジトリの NOT_FOUND を GitHubNotFoundError にする
+  */
+  protected async queryIssue(query: string, variables: Readonly<Record<string, JsonValue>>): Promise<JsonObject> {
+    try {
+      return await this.executeGraphql(query, variables)
+    }
+    catch (error: unknown) {
+      throw asNotFoundError(error)
+    }
+  }
+
+  /**
+  queryIssue の、部分エラーを許す版
+  */
+  protected async queryIssueTolerating(query: string, variables: Readonly<Record<string, JsonValue>>, isTolerated: PathPredicate): Promise<GraphqlOutcome> {
+    try {
+      return await this.executeGraphqlTolerating(query, variables, isTolerated)
+    }
+    catch (error: unknown) {
+      throw asNotFoundError(error)
     }
   }
 
@@ -283,7 +308,7 @@ export class ProjectsApi extends ReposApi {
   getItemIdByIssue と同じ引き方で、アイテムの ID とアーカイブ済みかを取る
   */
   async getIssueProjectItem(projectId: string, owner: string, repository: string, issueNumber: number): Promise<IssueProjectItem | undefined> {
-    const result = await this.executeGraphql(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
+    const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
     const repositoryNode = jsonField(result, 'repository')
     if (!isTruthy(repositoryNode)) return undefined
     const issue = jsonField(repositoryNode, 'issue')
@@ -326,7 +351,7 @@ export class ProjectsApi extends ReposApi {
   プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
   */
   async getItemSetFieldIds(projectId: string, owner: string, repository: string, issueNumber: number, itemId: string): Promise<ReadonlySet<string>> {
-    const result = await this.executeGraphql(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
+    const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber })
     const issue = jsonField(jsonField(result, 'repository'), 'issue')
     const fieldIds = new Set<string>()
     const items = truthyNodes(jsonField(issue, 'projectItems'))

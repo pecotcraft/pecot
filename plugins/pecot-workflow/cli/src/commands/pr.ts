@@ -42,6 +42,7 @@ import { readTextFile } from '../infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from './github-client.js'
@@ -225,17 +226,17 @@ const PR_CREATE_PATH = ['pr', 'create']
 function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
   const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
   if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    stopWith(out, hinted`release_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', release_branch: 'main' })}`)
+    stopWith(out, hinted`release_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', release_branch: 'main' })}`, 'repo-setting-missing')
   }
   if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    stopWith(out, hinted`develop_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', develop_branch: 'develop' })}`)
+    stopWith(out, hinted`develop_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', develop_branch: 'develop' })}`, 'repo-setting-missing')
   }
 }
 
 function resolveHeadBranch(head: string | undefined, directory: string, out: Readonly<Output>): string {
   if (head !== undefined && head !== '') return head
   const current = gitCurrentBranch(directory)
-  return current === undefined || current === '' ? stopWith(out, 'cannot determine the head branch') : current
+  return current === undefined || current === '' ? stopWith(out, 'cannot determine the head branch', 'git-unresolved') : current
 }
 
 async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
@@ -254,7 +255,7 @@ async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: 
 function exitOnValidationErrors(errors: readonly (string | HintedText)[], out: Readonly<Output>): void {
   if (errors.length === 0) return
   for (const error of errors) out.error(error)
-  throw new CommandExit(VALIDATION_EXIT_CODE)
+  throw new CommandExit(VALIDATION_EXIT_CODE, 'content-invalid')
 }
 
 interface PullRequestDraft {
@@ -315,12 +316,12 @@ interface PullRequestContext {
 
 // pr create の早い確認と pr check が共有する前提。満たさなければ終了コード 1
 function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
-  if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository')
+  if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository', 'git-unresolved')
   const found = primaryRemote(directory)
-  if (found === undefined) return stopWith(out, 'git remote not found')
+  if (found === undefined) return stopWith(out, 'git remote not found', 'git-unresolved')
   const currentBranch = gitCurrentBranch(directory)
-  if (currentBranch === undefined) return stopWith(out, 'cannot determine the current branch')
-  if (found.location === undefined) return stopWith(out, 'cannot read repository info from the remote URL\ncheck it with: git remote -v')
+  if (currentBranch === undefined) return stopWith(out, 'cannot determine the current branch', 'git-unresolved')
+  if (found.location === undefined) return stopWith(out, 'cannot read repository info from the remote URL\ncheck it with: git remote -v', 'git-unresolved')
   return { remoteUrl: found.url, currentBranch, location: found.location, remoteName: found.name }
 }
 
@@ -331,7 +332,7 @@ function runPreflightChecksOrExit(directory: string, out: Readonly<Output>): voi
   if (warnings.length === 0) return
   out.error('preflight found warnings; fix them before creating a PR')
   printPreflightWarnings(out, warnings)
-  throw new CommandExit(PREFLIGHT_EXIT_CODE)
+  throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
 }
 
 // PR を作った後の処理の失敗は warning にとどめ、URL の出力まで進める
@@ -394,7 +395,7 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
     created = await client().createPullRequest(draft.location.owner, draft.location.repository, draft.title, draft.body, draft.head, draft.base, draft.isDraft)
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, `PR creation failed: ${error.message}`)
+    if (error instanceof GitHubAPIError) return stopWith(out, `PR creation failed: ${error.message}`, kindOfFailure(error))
     throw error
   }
   out.done(createOperation(draft))
@@ -406,7 +407,7 @@ async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => 
   if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out)
   consumeFlag(FLAG_PR_CREATE_SLASH_PENDING)
   const url = jsonField(created, 'html_url')
-  if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub')
+  if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub', 'other')
   out.data(url)
 }
 
@@ -430,7 +431,7 @@ interface ValidatedInput {
 }
 
 function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output>): void {
-  if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'))
+  if (reading.kind === 'malformed') stopWith(out, describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content }).join('\n'), 'content-invalid')
 }
 
 // merge-base --is-ancestor は、祖先でなければ 1、コミットを知らなければ 128 を返す
@@ -446,7 +447,7 @@ function readBaseRecordFor(head: string, template: string, directory: string, ou
   const { branch, sha } = reading.record
   const isForeign = runGit(['merge-base', '--is-ancestor', sha, head], { cwd: directory }).exitCode === NOT_ANCESTOR
   return isForeign
-    ? stopWith(out, hinted`.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}\nrun pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`)
+    ? stopWith(out, hinted`.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}\nrun pr create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`, 'git-unresolved')
     : reading
 }
 
@@ -461,7 +462,7 @@ async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubC
     return decidePullRequestBase({ reading, base, developBranch, lowerPullRequest: pickLowerPullRequest(found.pullRequests) })
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(error)}`)
+    if (error instanceof GitHubAPIError) return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(error)}`, kindOfFailure(error))
     throw error
   }
 }
@@ -471,9 +472,8 @@ function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { 
   if (decision.kind === 'use') return { use: decision, errors: [] }
   const lines = describeBaseStop(decision)
   if (decision.reason === 'lower-open') return { use: undefined, errors: lines }
-  if (decision.reason === 'malformed') return stopWith(out, lines.join('\n'))
-  out.error(lines.join('\n'))
-  throw new CommandExit(NO_OPEN_BASE_EXIT_CODE)
+  if (decision.reason === 'malformed') return stopWith(out, lines.join('\n'), 'content-invalid')
+  return stopWith(out, lines.join('\n'), 'pr-state', NO_OPEN_BASE_EXIT_CODE)
 }
 
 // 下の段がマージ済みなら記録のコミットから、開いていてそのブランチへ作るならそのブランチから、題の scope を比べる
@@ -525,7 +525,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
 }
 
 function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {
-  return splitOwnerRepository(value) ?? stopWith(out, `invalid repository format: ${value} (expected: owner/repo)`)
+  return splitOwnerRepository(value) ?? stopWith(out, `invalid repository format: ${value} (expected: owner/repo)`, 'invalid-input')
 }
 
 interface FileModeInput {
@@ -542,11 +542,11 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
     parsed = parsePullRequestFile(input.file)
   }
   catch (error: unknown) {
-    if (error instanceof FrontmatterError) return stopWith(out, error.message)
+    if (error instanceof FrontmatterError) return stopWith(out, error.message, 'content-invalid')
     throw error
   }
   const { frontmatter } = parsed
-  if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)')
+  if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)', 'content-invalid')
   const location = requireRepository(frontmatter.repository, out)
   const head = resolveHeadBranch(frontmatter.head, directory, out)
   const reading = readBaseRecordFor(head, input.template, directory, out)
@@ -591,7 +591,7 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
   let location: RepositoryReference
   if (input.repository === undefined || input.repository === '') {
     const [only] = config.repositories
-    if (only === undefined || config.repositories.length !== 1) return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`)
+    if (only === undefined || config.repositories.length !== 1) return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`, 'invalid-input')
     location = { owner: only.owner, repository: only.name }
   }
   else {
@@ -675,7 +675,7 @@ async function fillClosesInTemplate(content: string, config: Readonly<ProjectCon
 
 async function prepareTemplate(directory: string, out: Readonly<Output>, template: string): Promise<void> {
   const templatePath = templateFile('pr', templateKindOf(template))
-  if (!existsSync(templatePath)) stopWith(out, `template not found: ${templatePath}`)
+  if (!existsSync(templatePath)) stopWith(out, `template not found: ${templatePath}`, 'other')
   let content = readTextFile(templatePath)
 
   // release テンプレートは、base をテンプレートの既定（main）のままにする
@@ -706,7 +706,7 @@ async function prepareTemplate(directory: string, out: Readonly<Output>, templat
     })
   }
   catch (error: unknown) {
-    if (error instanceof OutputPathReservationError) return stopWith(out, error.message)
+    if (error instanceof OutputPathReservationError) return stopWith(out, error.message, 'other')
     throw error
   }
 }
@@ -729,20 +729,20 @@ const CreateInputSchema = z.strictObject({
 async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
   const directory = process.cwd()
   const out = createOutput(input.dry_run, io)
-  if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`)
+  if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`, 'invalid-input')
 
   if (input.prepare) {
     await prepareTemplate(directory, createOutput(false, io), input.template)
   }
   else if (input.file !== undefined) {
-    if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`)
+    if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`, 'invalid-input')
     await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run }, directory, out)
   }
   else if (input.message === undefined) {
-    stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { prepare: true })}\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`)
+    stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { prepare: true })}\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`, 'invalid-input')
   }
   else {
-    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'title')} and ${inputNameHint(PR_CREATE_PATH, 'base')} (base branch) are required with ${inputNameHint(PR_CREATE_PATH, 'message')}`)
+    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'title')} and ${inputNameHint(PR_CREATE_PATH, 'base')} (base branch) are required with ${inputNameHint(PR_CREATE_PATH, 'message')}`, 'invalid-input')
     await createDirect({
       message: input.message,
       title: input.title,
@@ -777,7 +777,7 @@ export function parseReference(reference: string, globalRepository: string | und
     return { owner: parsed.repository.owner, repository: parsed.repository.repository, number: parsed.number }
   }
   catch (error: unknown) {
-    if (error instanceof ReferenceParseError) return stopWith(out, error.hintedText ?? error.message, USAGE_EXIT_CODE)
+    if (error instanceof ReferenceParseError) return stopWith(out, error.hintedText ?? error.message, 'invalid-input', USAGE_EXIT_CODE)
     throw error
   }
 }
@@ -804,7 +804,7 @@ async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & Global
     }
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, error.message)
+    if (error instanceof GitHubAPIError) return stopWith(out, error.message, kindOfFailure(error))
     throw error
   }
 }
@@ -832,16 +832,16 @@ function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<O
 
 function determineBaseBranch(location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): string {
   const config = loadActiveConfig()
-  if (config === undefined) return stopWith(out, hinted`project config not found\nactivate a project with: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`)
+  if (config === undefined) return stopWith(out, hinted`project config not found\nactivate a project with: ${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`, 'no-active-project')
   const reading = readBaseRecord()
   stopOnMalformedRecord(reading, out)
   if (reading.kind === 'stacked' && isOnRemote(reading.record.branch, cwd, remote, out)) return `${remote}/${reading.record.branch}`
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') {
-    return stopWith(out, hinted`develop_branch is not set for ${location.owner}/${location.repository}\nset it with: ${commandHint(LINK_PATH, { repo: `${location.owner}/${location.repository}`, develop_branch: 'develop' })}`)
+    return stopWith(out, hinted`develop_branch is not set for ${location.owner}/${location.repository}\nset it with: ${commandHint(LINK_PATH, { repo: `${location.owner}/${location.repository}`, develop_branch: 'develop' })}`, 'repo-setting-missing')
   }
   const branchName = `${remote}/${developBranch}`
-  return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
+  return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`, 'git-unresolved')
 }
 
 function readGitignore(cwd: string): string {
@@ -922,7 +922,7 @@ function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readon
   const warnings = collectPreflightWarnings({ gitStatus, stashList, isPushed: push.isPushed, pushMessage: push.message })
   out.count('preflight warnings', warnings.length)
   printPreflightWarnings(out, warnings)
-  if (warnings.length > 0) throw new CommandExit(PREFLIGHT_EXIT_CODE)
+  if (warnings.length > 0) throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
 }
 
 const prCreate = defineCommand({

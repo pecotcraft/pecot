@@ -11,6 +11,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { isStatusConfigured, setIssueField } from './issue-board.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -45,7 +46,7 @@ async function reopenAndSetStatus(output: Output, client: GitHubClient, config: 
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      stopWith(output, `could not unarchive ${target} on the board: ${error.message}`)
+      stopWith(output, `could not unarchive ${target} on the board: ${error.message}`, kindOfFailure(error))
     }
     output.done({ verb: 'update', target: `${target} unarchived on the board` })
   }
@@ -70,7 +71,7 @@ async function confirmReopened(output: Output, client: GitHubClient, issue: Read
   const result = await client.reopenIssue(owner, repository, number)
   const state = result['state']
   if (state !== 'open') {
-    stopWith(output, `${target} did not become open (state: ${typeof state === 'string' ? state : 'None'})`)
+    stopWith(output, `${target} did not become open (state: ${typeof state === 'string' ? state : 'None'})`, 'other')
   }
   output.done({ verb: 'reopen', target })
 
@@ -125,7 +126,7 @@ const ISSUE_REOPEN = defineCommand({
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        stopWith(output, `could not reopen ${target}: ${error.message}`)
+        stopWith(output, `could not reopen ${target}: ${error.message}`, kindOfFailure(error))
       }
     })
   },

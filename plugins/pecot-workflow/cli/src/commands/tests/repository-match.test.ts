@@ -58,7 +58,7 @@ describe('requireRepositoryMatch', () => {
       thrown = error
     }
     expect(thrown).toBeInstanceOf(CommandExit)
-    expect(thrown).toMatchObject({ exitCode: 1 })
+    expect(thrown).toMatchObject({ exitCode: 1, kind: 'repo-mismatch' })
     expect(io.err.join('')).toBe('error: --repo other/tree differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote\n')
   })
 
@@ -73,7 +73,7 @@ describe('requireRepositoryMatch', () => {
     const io = capture()
     const directory = makeTemporaryDirectory('pecot-nogit-')
     setEnvironment({ GIT_CEILING_DIRECTORIES: directory.slice(0, directory.lastIndexOf('/')) })
-    expect(() => requireRepositoryMatch('reject', undefined, io, directory)).toThrow(CommandExit)
+    expect(() => requireRepositoryMatch('reject', undefined, io, directory)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'git-unresolved' }))
     expect(io.err.join('')).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
   })
 })

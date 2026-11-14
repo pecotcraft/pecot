@@ -24,37 +24,28 @@ import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../infra/github/errors.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
-import { NO_ACTIVE_PROJECT } from './command-stop.js'
+import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient, makeClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
-import { defineCommand } from './command-definition.js'
+import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { requireRepositoryMatch } from './repository-match.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
-const FAILURE = 1
 const CHECK_PATH = ['release', 'check']
 
 /**
-順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して undefined を返す。
+順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して終了コード 1 で止める。
 remote は process.cwd() から読む
 */
-export function resolveReleaseTargetRepository(adopted: RepositoryReference | undefined, explicit: string | undefined, out: Readonly<Output>): RepositoryReference | undefined {
+export function requireReleaseTargetRepository(adopted: RepositoryReference | undefined, explicit: string | undefined, out: Readonly<Output>): RepositoryReference {
   if (adopted !== undefined) return adopted
   if (explicit !== undefined) {
-    const parts = splitOwnerRepository(explicit)
-    if (parts === undefined) {
-      out.error(hinted`invalid ${inputNameHint(CHECK_PATH, 'repo')} format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`)
-      return undefined
-    }
-    return parts
+    return splitOwnerRepository(explicit) ?? stopWith(out, hinted`invalid ${inputNameHint(CHECK_PATH, 'repo')} format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`, 'invalid-input')
   }
-  const remote = primaryRemoteRepository(process.cwd())
-  if (remote === undefined) {
-    out.error('could not read the repository from the git remote')
-    return undefined
-  }
+  const remote = primaryRemoteRepository(process.cwd()) ?? stopWith(out, 'could not read the repository from the git remote', 'git-unresolved')
   return { owner: remote.owner, repository: remote.repository }
 }
 
@@ -75,64 +66,37 @@ interface ContextOptions {
   readonly nxAlertsOnly?: boolean
 }
 
-// 4 つの場合（packages の有無と --package の有無）を分ける。矛盾があれば error の行を出して undefined を返す
-function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Repository | undefined, packageName: string | undefined, gitRoot: string, owner: string, repository: string): { readonly changelogPath: string, readonly tagPrefix: string | undefined } | undefined {
+// 4 つの場合（packages の有無と --package の有無）を分ける。矛盾があれば error の行を出して止める
+function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Repository | undefined, packageName: string | undefined, gitRoot: string, owner: string, repository: string): { readonly changelogPath: string, readonly tagPrefix: string | undefined } {
   const packages = repositoryConfig?.packages ?? []
   if (repositoryConfig !== undefined && packages.length > 0) {
     const names = packages.map(item => item.name).join(', ')
-    if (packageName === undefined) {
-      out.error(hinted`${owner}/${repository} is a monorepo\nspecify ${inputNameHint(['release', 'check'], 'package')} (available: ${names})`)
-      return undefined
-    }
-    const found = findPackage(repositoryConfig, packageName)
-    if (found === undefined) {
-      out.error(`package '${packageName}' is not registered in ${owner}/${repository}\navailable: ${names}`)
-      return undefined
-    }
+    if (packageName === undefined) stopWith(out, hinted`${owner}/${repository} is a monorepo\nspecify ${inputNameHint(['release', 'check'], 'package')} (available: ${names})`, 'invalid-input')
+    const found = findPackage(repositoryConfig, packageName) ?? stopWith(out, `package '${packageName}' is not registered in ${owner}/${repository}\navailable: ${names}`, 'invalid-input')
     return { changelogPath: path.isAbsolute(found.changelog) ? found.changelog : path.join(gitRoot, found.changelog), tagPrefix: found.name }
   }
-  if (packageName !== undefined) {
-    out.error(`${owner}/${repository} has no packages configured\n--package can only be used in a monorepo`)
-    return undefined
-  }
+  if (packageName !== undefined) stopWith(out, `${owner}/${repository} has no packages configured\n--package can only be used in a monorepo`, 'invalid-input')
   return { changelogPath: resolveChangelogPath(gitRoot, repositoryConfig?.changelog_file), tagPrefix: undefined }
 }
 
-function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string | undefined {
-  if (branch === undefined || branch === '') {
-    out.error(hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`)
-    return undefined
-  }
-  return branch
+function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string {
+  return branch === undefined || branch === '' ? stopWith(out, hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch
 }
 
-function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference | undefined, explicit: string | undefined, packageName: string | undefined, options: Readonly<ContextOptions> = {}): ReleaseContext | undefined {
+function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference | undefined, explicit: string | undefined, packageName: string | undefined, options: Readonly<ContextOptions> = {}): ReleaseContext {
   const cwd = process.cwd()
-  const gitRoot = gitToplevel({ cwd })
-  if (gitRoot === undefined) {
-    out.error('could not find the root directory of the git repository')
-    return undefined
-  }
-  const target = resolveReleaseTargetRepository(adopted, explicit, out)
-  if (target === undefined) return undefined
-  const { owner, repository } = target
-
-  const config = loadActiveConfig()
-  if (config === undefined) {
-    out.error(NO_ACTIVE_PROJECT)
-    return undefined
-  }
+  const gitRoot = gitToplevel({ cwd }) ?? stopWith(out, 'could not find the root directory of the git repository', 'git-unresolved')
+  const { owner, repository } = requireReleaseTargetRepository(adopted, explicit, out)
+  const config = loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
 
   const repositoryConfig = findRepository(config, owner, repository)
   if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
     if (packageName !== undefined || options.version !== undefined) {
-      out.error(hinted`the version argument and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\nrun it without arguments (Nx Release decides the version)`)
-      return undefined
+      stopWith(out, hinted`the version argument and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\nrun it without arguments (Nx Release decides the version)`, 'invalid-input')
     }
     return { config, owner, repository, repositoryConfig, changelogPath: resolveChangelogPath(gitRoot, repositoryConfig.changelog_file), tagPrefix: undefined }
   }
-  const resolved = resolvePackageContext(out, repositoryConfig, packageName, gitRoot, owner, repository)
-  return resolved === undefined ? undefined : { config, owner, repository, repositoryConfig, ...resolved }
+  return { config, owner, repository, repositoryConfig, ...resolvePackageContext(out, repositoryConfig, packageName, gitRoot, owner, repository) }
 }
 
 function alertLabel(number: number, packageName: string | undefined, severity: string | undefined): string {
@@ -166,7 +130,7 @@ async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfi
   }
 
   if (!status.enabled) {
-    out.done({ verb: 'skip', target: 'Dependabot alerts (feature disabled)' })
+    out.done({ verb: 'skip', target: 'Dependabot alerts (feature disabled)', aside: true })
     return
   }
   if (status.openCount === 0) {
@@ -193,7 +157,7 @@ async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus
     return false
   }
   if (!status.enabled) {
-    out.done({ verb: 'skip', target: `${name} (feature disabled)` })
+    out.done({ verb: 'skip', target: `${name} (feature disabled)`, aside: true })
     return true
   }
   if (status.openCount === 0) {
@@ -245,17 +209,14 @@ const releaseCheckCommand = defineCommand({
     const out = createOutput(false, io)
     const cwd = process.cwd()
     const context = loadReleaseContext(out, adopted, input.repo, input.package, { version: input.version, nxAlertsOnly: true })
-    if (context === undefined) return FAILURE
     const { config, owner, repository } = context
 
     const isAlertsPassed = await areAlertsPassed(out, config, owner, repository)
-    if (!isAlertsPassed) return FAILURE
+    if (!isAlertsPassed) throw new CommandExit(1, 'preflight-failed')
     if (context.repositoryConfig !== undefined && effectiveReleaseType(context.repositoryConfig) === 'nx') return 0
 
     const developBranch = requireBranchSetting(out, getDevelopBranch(config, owner, repository), 'develop', owner, repository)
-    if (developBranch === undefined) return FAILURE
     const releaseBranch = requireBranchSetting(out, getReleaseBranch(config, owner, repository), 'release', owner, repository)
-    if (releaseBranch === undefined) return FAILURE
 
     const remote = primaryRemoteName(cwd) ?? 'origin'
     try {
@@ -275,12 +236,10 @@ const releaseCheckCommand = defineCommand({
     }
     catch (error: unknown) {
       if (error instanceof GitHubAPIError || error instanceof TransportFailure) {
-        out.error(`could not count the commits from ${releaseBranch} to ${developBranch}: ${error.message}`)
-        return FAILURE
+        return stopWith(out, `could not count the commits from ${releaseBranch} to ${developBranch}: ${error.message}`, kindOfFailure(error))
       }
       if (!(error instanceof ReleaseError)) throw error
-      out.error(error.message)
-      return FAILURE
+      return stopWith(out, error.message, 'preflight-failed')
     }
   },
 })
@@ -304,12 +263,10 @@ const releaseCreateCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof InvalidVersionError)) throw error
-      out.error(error.message)
-      return FAILURE
+      return stopWith(out, error.message, 'invalid-input')
     }
 
     const context = loadReleaseContext(out, adopted, input.repo, input.package)
-    if (context === undefined) return FAILURE
     const { config, owner, repository, tagPrefix } = context
 
     let releaseNotes: string
@@ -318,12 +275,10 @@ const releaseCreateCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof PecotError) && !(error instanceof ChangelogFileNotFoundError)) throw error
-      out.error(error.message)
-      return FAILURE
+      return stopWith(out, error.message, 'preflight-failed')
     }
 
     const releaseBranch = requireBranchSetting(out, getReleaseBranch(config, owner, repository), 'release', owner, repository)
-    if (releaseBranch === undefined) return FAILURE
 
     const tagName = tagPrefix === undefined ? `v${input.version}` : `${tagPrefix}-v${input.version}`
     const releaseName = tagPrefix === undefined ? tagName : `${tagPrefix} v${input.version}`
@@ -336,7 +291,6 @@ const releaseCreateCommand = defineCommand({
     }
 
     const client = makeClient(out, config)
-    if (client === undefined) return FAILURE
     try {
       const result = await client.createRelease(owner, repository, tagName, releaseName, releaseNotes, { targetCommitish: releaseBranch })
       out.done(operation)
@@ -346,8 +300,7 @@ const releaseCreateCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not create release ${tagName} in ${owner}/${repository}: ${describeApiError(error)}`)
-      return FAILURE
+      return stopWith(out, `could not create release ${tagName} in ${owner}/${repository}: ${describeApiError(error)}`, kindOfFailure(error))
     }
   },
 })
@@ -367,11 +320,7 @@ const releaseMergeCommand = defineCommand({
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
     const out = createOutput(input.dry_run, io)
-    const config = loadActiveConfig()
-    if (config === undefined) {
-      out.error(NO_ACTIVE_PROJECT)
-      return FAILURE
-    }
+    const config = loadActiveConfig() ?? stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
 
     let reference
     try {
@@ -379,8 +328,7 @@ const releaseMergeCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      out.error(error.message)
-      return USAGE_EXIT_CODE
+      return stopWith(out, error.message, 'invalid-input', USAGE_EXIT_CODE)
     }
     const { owner, repository } = reference.repository
     const number = reference.number
@@ -393,32 +341,19 @@ const releaseMergeCommand = defineCommand({
       pullRequest = await client.getPullRequestSlim(owner, repository, number)
     }
     catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) {
-        out.error(`PR ${pullRequestName} not found`)
-        return FAILURE
-      }
+      if (error instanceof GitHubNotFoundError) return stopWith(out, `PR ${pullRequestName} not found`, 'github-not-found')
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not read PR ${pullRequestName}: ${describeApiError(error)}`)
-      return FAILURE
+      return stopWith(out, `could not read PR ${pullRequestName}: ${describeApiError(error)}`, kindOfFailure(error))
     }
 
-    if (pullRequest.state === 'MERGED') {
-      out.error(`PR #${String(number)} is already merged`)
-      return FAILURE
-    }
-    if (pullRequest.state === 'CLOSED') {
-      out.error(`PR #${String(number)} is closed`)
-      return FAILURE
-    }
+    if (pullRequest.state === 'MERGED') stopWith(out, `PR #${String(number)} is already merged`, 'pr-state')
+    else if (pullRequest.state === 'CLOSED') stopWith(out, `PR #${String(number)} is closed`, 'pr-state')
     if (pullRequest.mergeable === 'CONFLICTING' && !input.admin) {
-      out.error(hinted`PR #${String(number)} has conflicts that must be resolved\nto try a forced merge, add ${inputHint(['release', 'merge'], 'admin')}`)
-      return FAILURE
+      stopWith(out, hinted`PR #${String(number)} has conflicts that must be resolved\nto try a forced merge, add ${inputHint(['release', 'merge'], 'admin')}`, 'pr-state')
     }
     const releaseBranch = requireBranchSetting(out, getReleaseBranch(config, owner, repository), 'release', owner, repository)
-    if (releaseBranch === undefined) return FAILURE
     if (pullRequest.base_ref !== releaseBranch) {
-      out.error(`the base branch of PR #${String(number)} does not match release_branch\nbase: ${pullRequest.base_ref}\nrelease_branch: ${releaseBranch}`)
-      return FAILURE
+      stopWith(out, `the base branch of PR #${String(number)} does not match release_branch\nbase: ${pullRequest.base_ref}\nrelease_branch: ${releaseBranch}`, 'pr-state')
     }
 
     const headBranch = pullRequest.head_ref
@@ -433,8 +368,7 @@ const releaseMergeCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not merge PR ${pullRequestName}: ${describeApiError(error)}`)
-      return FAILURE
+      return stopWith(out, `could not merge PR ${pullRequestName}: ${describeApiError(error)}`, kindOfFailure(error))
     }
     out.done(operation)
 

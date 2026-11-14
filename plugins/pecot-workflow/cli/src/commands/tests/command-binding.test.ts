@@ -515,7 +515,7 @@ describe('誤りの扱い', () => {
       interactive: false,
       run: async () => {
         await Promise.resolve()
-        return z.string().parse(1) === '' ? 0 : 1
+        return z.string().parse(1) === '' ? 0 : await exitWith(1)
       },
     })
     await expect(runDefinition(command, [], capture())).rejects.toBeInstanceOf(z.ZodError)

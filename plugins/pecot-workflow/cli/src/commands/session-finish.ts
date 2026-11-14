@@ -19,6 +19,7 @@ import { isFileNotFound } from '../infra/os-error.js'
 import { consumeFlag, removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
 import { requireActiveConfigPlain, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
@@ -38,8 +39,8 @@ async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, locat
     return { client, pr: await client.getPullRequestSlim(location.owner, location.repository, location.number) }
   }
   catch (error: unknown) {
-    if (error instanceof GitHubNotFoundError) return stopWith(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`)
-    if (error instanceof GitHubAPIError) return stopWith(out, error.message)
+    if (error instanceof GitHubNotFoundError) return stopWith(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`, 'github-not-found')
+    if (error instanceof GitHubAPIError) return stopWith(out, error.message, kindOfFailure(error))
     throw error
   }
 }
@@ -236,7 +237,7 @@ async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & Gl
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
 
   const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
-  if (pr.state !== 'MERGED') stopWith(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`)
+  if (pr.state !== 'MERGED') stopWith(out, `PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with gh pr merge first`, 'pr-state')
 
   const closing = collectClosingIssueNumbers(pr)
   const epicProtected = await findEpicProtectedNumbers(client, location, closing, out)

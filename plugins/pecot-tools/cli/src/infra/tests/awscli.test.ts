@@ -234,7 +234,7 @@ describe('ensureAwscli', () => {
 
     const probe = await ensureAwscli()
 
-    expect(probe).toMatchObject({ ok: false, category: 'awscli-missing' })
+    expect(probe).toMatchObject({ ok: false, kind: 'awscli-missing' })
     expect(probe.ok ? '' : probe.message).toContain('2.21.0')
   })
 
@@ -243,7 +243,7 @@ describe('ensureAwscli', () => {
 
     const probe = await ensureAwscli()
 
-    expect(probe).toMatchObject({ ok: false, category: 'awscli-missing' })
+    expect(probe).toMatchObject({ ok: false, kind: 'awscli-missing' })
     expect(probe.ok ? '' : probe.message).toContain('Could not determine the awscli version')
   })
 
@@ -252,7 +252,7 @@ describe('ensureAwscli', () => {
 
     const probe = await ensureAwscli()
 
-    expect(probe).toMatchObject({ ok: false, category: 'awscli-missing' })
+    expect(probe).toMatchObject({ ok: false, kind: 'awscli-missing' })
     expect(probe.ok ? '' : probe.message).toContain('awscli not found')
   })
 
@@ -260,7 +260,7 @@ describe('ensureAwscli', () => {
     // 失敗を memo すると、利用者が awscli を導入してもサーバ再起動まで awscli-missing が続く。
     const fake = fakeAws.install({ version: 'aws-cli/2.21.0 Python/3.12.6 Linux/6.1 exe/x86_64' })
 
-    expect(await ensureAwscli()).toMatchObject({ ok: false, category: 'awscli-missing' })
+    expect(await ensureAwscli()).toMatchObject({ ok: false, kind: 'awscli-missing' })
 
     // PATH 上の awscli が要件を満たす版に入れ替わった状況。
     vi.stubEnv('FAKE_AWS_VERSION', 'aws-cli/2.27.0 Python/3.12.6 Linux/6.1 exe/x86_64')

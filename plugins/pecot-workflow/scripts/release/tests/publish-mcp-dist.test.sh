@@ -428,7 +428,7 @@ cat > "$TMP/smoke.mjs" << 'SMOKE'
 //
 // 使い方: node smoke.mjs <script> [args...]  （script は node で起動する）
 // 環境変数 SMOKE_TOOL_CALLS に [{"name":..,"arguments":{..}}, ...] の JSON を渡すと、
-// tools/list の後に続けて tools/call を送り、各応答の終了コード（_meta）と本文を
+// tools/list の後に続けて tools/call を送り、各応答の終了コードと出力（structuredContent）を
 // 返り値の calls 配列（呼び出し順）に載せる（配布ツリーが実際に起動して応答することの検証。
 // tools/list が緑のまま tools/call だけ壊れる回帰を拾うため）。
 // 環境変数 SMOKE_CWD があれば、それをサーバの cwd にする。
@@ -496,8 +496,8 @@ if (listed?.error !== undefined) {
 const tools = listed?.result?.tools ?? []
 const calls = CALLS.map((_, index) => {
   const response = seen.get(CALL_ID_BASE + index)
-  const outcome = response?.result?._meta?.['io.github.pecotcraft/outcome']
-  const text = (response?.result?.content ?? []).map((block) => block.text ?? '').join('')
+  const outcome = response?.result?.structuredContent
+  const text = `${outcome?.stdout ?? ''}${outcome?.stderr ?? ''}`
   return { exitCode: outcome?.exitCode ?? null, isError: response?.result?.isError ?? false, text }
 })
 const initialized = seen.get(1)

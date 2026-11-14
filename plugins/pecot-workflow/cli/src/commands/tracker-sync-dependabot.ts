@@ -20,14 +20,15 @@ import type { JsonObject } from '../domain/json.js'
 import { findTracker } from '../domain/tracker-body.js'
 import { requireNumber } from '../infra/github/payload.js'
 import type { CommandIo } from './command-definition.js'
+import { CommandExit } from './command-definition.js'
+import { stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { makeClient } from './github-client.js'
 import { createIssue, putOnBoard } from './issue-board.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
 import { apiErrorDetail, isBodyUnchanged, loadTarget, todayUtc, warnExtraTrackers } from './tracker-sync.js'
 import type { SyncApplyContext, SyncStages, TrackerSyncInput } from './tracker-sync.js'
-
-const FAILURE = 1
 
 interface Stages extends SyncStages {
   readonly close: readonly Operation[]
@@ -124,11 +125,10 @@ async function applyChanges(out: Readonly<Output>, input: Readonly<ApplyInput>):
 /**
 tracker sync の source dependabot の本体。Tracker の Dependabot PRs waiting for a human decision の一覧を書き直す
 */
-export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<number> {
+export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: CommandIo): Promise<0> {
   const out = createOutput(input.dry_run, io)
   const { config, owner, repository } = loadTarget(out, input.repo)
   const client = makeClient(out, config)
-  if (client === undefined) return FAILURE
 
   let pullRequests
   let issues
@@ -139,8 +139,7 @@ export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: C
   catch (error: unknown) {
     const detail = apiErrorDetail(error)
     if (detail === undefined) throw error
-    out.error(`could not list pull requests or issues: ${detail}`)
-    return FAILURE
+    return stopWith(out, `could not list pull requests or issues: ${detail}`, kindOfFailure(error))
   }
 
   const { tracker, others } = findTracker(issues, TRACKER_PATTERN)
@@ -152,8 +151,7 @@ export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: C
   }
   catch (error: unknown) {
     if (tracker === undefined || !(error instanceof DependabotPrError)) throw error
-    out.error(`Tracker #${String(tracker.number)}: ${error.message}`)
-    return FAILURE
+    return stopWith(out, `Tracker #${String(tracker.number)}: ${error.message}`, 'content-invalid')
   }
 
   const now = new Date()
@@ -172,5 +170,6 @@ export async function runDependabotSync(input: Readonly<TrackerSyncInput>, io: C
 
   if (input.dry_run) return 0
   const failures = await applyChanges(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged })
-  return failures > 0 ? FAILURE : 0
+  if (failures > 0) throw new CommandExit(1, 'partial-failure')
+  return 0
 }

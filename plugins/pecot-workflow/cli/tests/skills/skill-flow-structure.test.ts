@@ -121,9 +121,9 @@ describe('w-active の手順', () => {
     for (const word of ['is blocked by', 'issue unblock', '--wait stack', '前提を見直すかどうかは利用者が決める']) expect(body).toContain(word)
   })
 
-  it('終了コード 1 で止まったときは、出力を利用者に示して止まる', () => {
+  it('kind が dependency-unreadable で止まったときは、出力を利用者に示して止まる', () => {
     const body = sectionBody(text, titleIndex(headings, '事前確認'))
-    for (const word of ['exit code: 1', 'could not read blocked-by', 'could not judge readiness', '利用者に示して止まる']) expect(body).toContain(word)
+    for (const word of ['dependency-unreadable', 'could not read blocked-by', 'could not judge readiness', '利用者に示して止まる']) expect(body).toContain(word)
   })
 
   it('Step 2 では、判定が blocked の Issue を選んだら、列が Ready でも止める', () => {
@@ -228,11 +228,11 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('前提の表と並べて')
   })
 
-  it('Step 3 は、exit code 1 でも URL の行があれば呼び直さないと書く', () => {
+  it('Step 3 は、ok が false でも URL の行があれば呼び直さないと書く', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
-    expect(body).toContain('`exit code: 1` でも、URL の行が出ていれば Issue は作られている')
+    expect(body).toContain('`stdout` に URL の行が出ていれば Issue は作られている')
     expect(body).toContain('同じ `files` で呼び直さない')
-    expect(body).toContain('URL の行が 1 つも出ずに `error:` で止まったときは')
+    expect(body).toContain('`stdout` に URL の行が 1 つも出ずに `stderr` の `error:` で止まったときは')
   })
 
   it('dry_run: true の呼び出しは、投稿の呼び出しより前にある', () => {

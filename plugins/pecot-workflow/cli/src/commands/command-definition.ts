@@ -4,6 +4,7 @@
 import { z } from 'zod'
 
 import { BaseError } from '../domain/errors.js'
+import type { FailureKind } from './failure-kind.js'
 import { flagOf } from './names.js'
 
 /**
@@ -20,6 +21,14 @@ export interface CommandIo {
   案内の出し先。MCP の io（collectIo）だけが mcp を入れる。無ければ CLI の形
   */
   readonly surface?: 'cli' | 'mcp'
+  /**
+  失敗の原因の名前を受け取る。MCP だけが渡す
+  */
+  readonly failureKind?: (kind: FailureKind) => void
+  /**
+  結果の行（created: など。改行を含まない）を受け取る。片付けの行は渡さない。MCP だけが渡す
+  */
+  readonly resultLine?: (line: string) => void
 }
 
 /**
@@ -28,10 +37,12 @@ Python の `typer.Exit(n)` に当たる。`error:` の行や使い方の枠は�
 */
 export class CommandExit extends BaseError {
   readonly exitCode: number
+  readonly kind: FailureKind
 
-  constructor(exitCode: number) {
+  constructor(exitCode: number, kind: FailureKind) {
     super(`exit ${String(exitCode)}`)
     this.exitCode = exitCode
+    this.kind = kind
   }
 }
 
@@ -84,10 +95,10 @@ export interface CommandSpec<Input extends z.ZodObject> {
   */
   readonly negations?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
   /**
-  実行して終了コードを返す。出力は io に書く
+  実行して 0 を返す。出力は io に書く。失敗は CommandExit で止め、原因の名前を運ぶ
   */
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-  readonly run: (input: z.output<Input> & GlobalInput, io: CommandIo) => Promise<number>
+  readonly run: (input: z.output<Input> & GlobalInput, io: CommandIo) => Promise<0>
   /**
   CLI でだけ利用者に問うか
   */
@@ -177,8 +188,9 @@ async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promis
     return await run(input, io)
   }
   catch (error: unknown) {
-    if (error instanceof CommandExit) return error.exitCode
-    throw error
+    if (!(error instanceof CommandExit)) throw error
+    io.failureKind?.(error.kind)
+    return error.exitCode
   }
 }
 

@@ -177,7 +177,7 @@ Claude Code では、Claude Code がサーバを起動するディレクトリ�
 ## 失敗したとき
 
 - 初回の起動は依存の取得に時間がかかる。Claude Code で起動が 30 秒を超えて失敗したら、環境変数 `MCP_TIMEOUT` を延ばす
-- ツールが失敗すると、結果の末尾に `exit code: <n>` の行が付く。標準出力が空のときは、結果は標準エラーだけになる
+- ツールの結果は JSON で返る。失敗すると `ok` が `false` になり、原因の名前が `kind`、終了コードが `exitCode` に入る。標準出力と標準エラーは `stdout` と `stderr` に入る
 - `EBADDEVENGINES` で止まるときは、登録の `args` に `--prefix=/` が付いているか確認する
 
 ## 版

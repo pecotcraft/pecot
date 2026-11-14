@@ -23,7 +23,7 @@ main WT は `<project-root>/base/<repo>/`、新 WT は `<project-root>/<wtN>/<�
 
 ### Step 1: （初回のみ）ワークツリー設定を用意
 
-対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると `worktree_add` は `exit code: 1` で失敗する。
+対象リポの main WT に `.pecot/config/worktree-config.json` と `.pecot/config/.worktreeignore` の両方が必要。どちらかが欠けていると、`worktree_add` の結果は `ok` が `false`、`kind` が `not-initialized`（`exitCode` は 1）になる。
 init は両ファイルを同時に生成する。`worktree_init` を `directory: "<project-root>/base/<repo>"` で呼ぶ。
 
 生成される `worktree-config.json` の `links[]` を編集する（symlink 不要なら空でよい）。
@@ -46,8 +46,8 @@ WT 作成直後に依存インストール等を実行したい場合は、`work
 }
 ```
 
-`worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（`exit code` の行が付かない）になる。
-失敗のときだけ `warning: setup command ...` の行が出て、コマンドの stdout/stderr が続く。成功のときは何も表示されない。
+`worktree_add` に `setup: "<cmd>"` を渡した場合はそちらが優先される（config の `setup_command` は無視）。setup が非ゼロ終了または時間切れでも、WT 作成自体は成功扱い（結果の `ok` は `true` のまま）になる。
+失敗のときだけ、結果の `stderr` に `warning: setup command ...` の行が出て、コマンドの stdout/stderr が続く。成功のときは何も表示されない。
 
 ### Step 2: add を呼ぶ
 

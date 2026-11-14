@@ -11,7 +11,7 @@ import {
   PROFILE_PATTERN,
   REGION_PATTERN,
   type AllowlistEntry,
-  type FailureCategory,
+  type FailureKind,
 } from '../../domain/allowlist.js'
 import { buildArguments, validateInput, type CommonOptions } from '../../domain/arguments.js'
 import { classifyFailure } from '../../domain/failure.js'
@@ -85,7 +85,7 @@ ExecutionResult と同形の outputSchema。全ツールで共有する。
 export const TOOL_OUTPUT_SCHEMA = z.object({
   ok: z.boolean().describe('Whether the awscli run succeeded'),
   exitCode: z.number().describe('Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)'),
-  category: z.string().optional().describe('Failure category (omitted on success)'),
+  kind: z.string().optional().describe('Failure kind (omitted on success)'),
   data: z.record(z.string(), z.unknown()).describe('awscli JSON output, or an array of lines'),
   artifacts: z.array(z.string()).describe('Absolute paths of the local files written'),
   message: z.string().describe('One-line summary for the calling agent'),
@@ -95,7 +95,7 @@ export const TOOL_OUTPUT_SCHEMA = z.object({
 /**
 失敗種別ごとの再試行方法。message の後半に載せる。
 */
-const FAILURE_HINTS: Record<FailureCategory, string> = {
+const FAILURE_HINTS: Record<FailureKind, string> = {
   'not-allowed': 'Operation not allowed. Use only the exposed tools',
   'invalid-input': 'Fix the input and run again',
   'awscli-missing': 'Install awscli v2 (2.22 or later) and add it to PATH',
@@ -123,7 +123,7 @@ const STDERR_TRUNCATION_NOTE = '(stderr exceeded the limit, so only the beginnin
 実行前に拒否したときの理由。awscli は起動しない。
 */
 export interface PreExecutionRejection {
-  readonly category: 'not-allowed' | 'invalid-input'
+  readonly kind: 'not-allowed' | 'invalid-input'
   readonly message: string
 }
 
@@ -197,15 +197,15 @@ function toLines(text: string): string[] {
 /**
 失敗種別と awscli の終了コードから応答の exitCode を決める。exitCode を持たない失敗は 1 以上へ畳む。
 */
-export function resolveExitCode(category: FailureCategory, exitCode?: number | null): number {
-  if (category === 'timeout') return TIMEOUT_EXIT_CODE
-  if (category === 'awscli-missing') return COMMAND_NOT_FOUND_EXIT_CODE
+export function resolveExitCode(kind: FailureKind, exitCode?: number | null): number {
+  if (kind === 'timeout') return TIMEOUT_EXIT_CODE
+  if (kind === 'awscli-missing') return COMMAND_NOT_FOUND_EXIT_CODE
   return exitCode ?? UNKNOWN_FAILURE_EXIT_CODE
 }
 
-function failureMessage(toolName: string, category: FailureCategory): string {
-  // eslint-disable-next-line security/detect-object-injection -- category は FailureCategory の列挙値
-  return `${toolName} failed (${category}). ${FAILURE_HINTS[category]}`
+function failureMessage(toolName: string, kind: FailureKind): string {
+  // eslint-disable-next-line security/detect-object-injection -- kind は FailureKind の列挙値
+  return `${toolName} failed (${kind}). ${FAILURE_HINTS[kind]}`
 }
 
 /**
@@ -233,7 +233,7 @@ export async function executeAllowlisted(
     return {
       ok: false,
       exitCode: PRE_EXECUTION_EXIT_CODE,
-      category: invalid.category,
+      kind: invalid.kind,
       data: {},
       artifacts: [],
       message: invalid.message,
@@ -245,7 +245,7 @@ export async function executeAllowlisted(
     return {
       ok: false,
       exitCode: PRE_EXECUTION_EXIT_CODE,
-      category: rejected.category,
+      kind: rejected.kind,
       data: {},
       artifacts: [],
       message: rejected.message,
@@ -257,7 +257,7 @@ export async function executeAllowlisted(
     return {
       ok: false,
       exitCode: COMMAND_NOT_FOUND_EXIT_CODE,
-      category: probe.category,
+      kind: probe.kind,
       data: {},
       artifacts: [],
       message: probe.message,
@@ -270,7 +270,7 @@ export async function executeAllowlisted(
   })
 
   if (result.timedOut || result.exitCode !== 0) {
-    const category = classifyFailure({
+    const kind = classifyFailure({
       exitCode: result.exitCode,
       stderr: result.stderr,
       timedOut: result.timedOut,
@@ -281,11 +281,11 @@ export async function executeAllowlisted(
     const limitedStderr = limitOutput(redactSecrets(result.stderr))
     return {
       ok: false,
-      exitCode: resolveExitCode(category, result.exitCode),
-      category,
+      exitCode: resolveExitCode(kind, result.exitCode),
+      kind,
       data: {},
       artifacts: [],
-      message: failureMessage(entry.toolName, category)
+      message: failureMessage(entry.toolName, kind)
         + (limitedStderr.truncated ? STDERR_TRUNCATION_NOTE : ''),
       stderr: limitedStderr.text,
     }

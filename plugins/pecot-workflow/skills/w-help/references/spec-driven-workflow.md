@@ -124,7 +124,7 @@ Phase の前後関係は、tasks.md の前提の表に書く。表が `blocked_b
 
 1. w-breakdown が、tasks の工程に、`### Phase Dependencies` の下の 4 列の表（Phase・前提・種類・理由）を書かせる
 2. w-issueize が、表の行を Issue ファイルの `blocked_by` に写す
-3. `issue_create` を `dry_run: true` で呼び、出力の表と tasks.md の表を並べて確かめる。食い違いは、投稿の前に直す
+3. `issue_create` を `dry_run: true` で呼び、結果の `stdout` の表と tasks.md の表を並べて確かめる。食い違いは、投稿の前に直す
 4. 投稿する。前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ `Ready` で作る
 
 表の例を挙げる。

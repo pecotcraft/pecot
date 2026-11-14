@@ -43,10 +43,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -58,6 +54,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -142,10 +142,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -157,6 +153,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -247,10 +247,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -262,6 +258,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -431,10 +431,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -446,6 +442,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -557,10 +557,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -572,6 +568,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -688,10 +688,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -703,6 +699,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -781,10 +781,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -796,6 +792,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -881,10 +881,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -896,6 +892,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -973,10 +973,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -988,6 +984,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1069,10 +1069,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1084,6 +1080,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1185,10 +1185,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1200,6 +1196,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1311,10 +1311,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1326,6 +1322,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1432,10 +1432,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1447,6 +1443,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1528,10 +1528,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1543,6 +1539,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1624,10 +1624,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1639,6 +1635,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1759,10 +1759,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1774,6 +1770,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1858,10 +1858,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1873,6 +1869,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -1944,10 +1944,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -1959,6 +1955,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2056,10 +2056,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2071,6 +2067,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2149,10 +2149,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2164,6 +2160,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2257,10 +2257,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2272,6 +2268,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2356,10 +2356,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2371,6 +2367,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2452,10 +2452,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2467,6 +2463,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2529,10 +2529,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2544,6 +2540,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2606,10 +2606,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2621,6 +2617,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",
@@ -2688,10 +2688,6 @@
               },
               "type": "array"
             },
-            "category": {
-              "description": "Failure category (omitted on success)",
-              "type": "string"
-            },
             "data": {
               "additionalProperties": {},
               "description": "awscli JSON output, or an array of lines",
@@ -2703,6 +2699,10 @@
             "exitCode": {
               "description": "Exit code (0 = success, 2 = rejected before running, 124 = timeout, 127 = not installed)",
               "type": "number"
+            },
+            "kind": {
+              "description": "Failure kind (omitted on success)",
+              "type": "string"
             },
             "message": {
               "description": "One-line summary for the calling agent",

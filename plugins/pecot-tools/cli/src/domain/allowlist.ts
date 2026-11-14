@@ -7,16 +7,20 @@
 /**
 失敗理由の種別（research R4）。
 */
-export type FailureCategory
-  = | 'not-allowed'
-    | 'invalid-input'
-    | 'awscli-missing'
-    | 'auth-missing'
-    | 'auth-expired'
-    | 'permission-denied'
-    | 'resource-not-found'
-    | 'timeout'
-    | 'other'
+// eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
+export const FAILURE_KINDS = [
+  'not-allowed',
+  'invalid-input',
+  'awscli-missing',
+  'auth-missing',
+  'auth-expired',
+  'permission-denied',
+  'resource-not-found',
+  'timeout',
+  'other',
+] as const
+
+export type FailureKind = (typeof FAILURE_KINDS)[number]
 
 /**
 入力 1 項目の値の種類。検証規則と awscli 引数への写し方の双方を決める。

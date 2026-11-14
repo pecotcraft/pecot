@@ -22,6 +22,7 @@ import { defineCommand, CommandExit } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputNameHint, placeholder } from './command-hint.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import {
   COMMENT_VALIDATION_EXIT_CODE,
@@ -49,7 +50,7 @@ function htmlUrlOf(comment: JsonObject, fallback: string): string {
 function prepareTemplate(output: Output, template: string, issueReference: string | undefined, isDryRun: boolean): void {
   const templatePath = templateFile('comment', template)
   if (!existsSync(templatePath)) {
-    stopWith(output, `template not found: ${templatePath}`)
+    stopWith(output, `template not found: ${templatePath}`, 'other')
   }
   if (isDryRun) {
     output.planned({ verb: 'create', target: `comment template ${template} in ${outputDirectory()}` })
@@ -67,7 +68,7 @@ function prepareTemplate(output: Output, template: string, issueReference: strin
   }
   catch (error: unknown) {
     if (!(error instanceof OutputPathReservationError)) throw error
-    stopWith(output, error.message)
+    stopWith(output, error.message, 'other')
   }
 }
 
@@ -75,17 +76,17 @@ function prepareTemplate(output: Output, template: string, issueReference: strin
 function commentIdFor(output: Output, commentUrl: string, host: string, target: IssueTarget): number {
   const groups = COMMENT_URL_PATTERN.exec(pythonStrip(commentUrl))?.groups
   if (groups === undefined) {
-    return stopWith(output, `comment_url has the wrong form: ${commentUrl}\nexpected: https://<host>/<owner>/<repo>/{issues|pull}/<number>#issuecomment-<id>`)
+    return stopWith(output, `comment_url has the wrong form: ${commentUrl}\nexpected: https://<host>/<owner>/<repo>/{issues|pull}/<number>#issuecomment-<id>`, 'invalid-input')
   }
   const { host: urlHost = '', owner = '', repo: urlRepository = '', number = '', id = '' } = groups
   if (urlHost.toLowerCase() !== host.toLowerCase()) {
-    return stopWith(output, `the host of comment_url (${urlHost}) differs from the configured host (${host})`)
+    return stopWith(output, `the host of comment_url (${urlHost}) differs from the configured host (${host})`, 'invalid-input')
   }
   const isSameIssue = owner.toLowerCase() === target.owner.toLowerCase()
     && urlRepository.toLowerCase() === target.repository.toLowerCase()
     && Number(number) === target.number
   const message = `comment_url (${owner}/${urlRepository}/${number}) points to a different Issue than issue_ref (${target.owner}/${target.repository}/${String(target.number)})`
-  return isSameIssue ? Number(id) : stopWith(output, message)
+  return isSameIssue ? Number(id) : stopWith(output, message, 'invalid-input')
 }
 
 // 次に同じファイルを渡したとき更新になるよう、URL を書き戻す。できなければ warning だけ出す
@@ -113,7 +114,7 @@ async function createComment(output: Output, client: GitHubClient, target: Issue
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    return stopWith(output, `could not create a comment on Issue ${display}: ${error.message}`)
+    return stopWith(output, `could not create a comment on Issue ${display}: ${error.message}`, kindOfFailure(error))
   }
   const createdUrl = htmlUrlOf(comment, '')
   output.done({ verb: 'create', target: `comment on ${display}` })
@@ -130,7 +131,7 @@ async function updateComment(output: Output, client: GitHubClient, target: Issue
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
-    return stopWith(output, `could not update the comment on Issue ${display}: ${error.message}`)
+    return stopWith(output, `could not update the comment on Issue ${display}: ${error.message}`, kindOfFailure(error))
   }
   output.done({ verb: 'update', target: `comment on ${display}` })
   output.data(htmlUrlOf(comment, commentUrl))
@@ -143,16 +144,16 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
   }
   catch (error: unknown) {
     if (!(error instanceof FrontmatterError)) throw error
-    return stopWith(output, error.message)
+    return stopWith(output, error.message, 'content-invalid')
   }
   const { frontmatter, body } = parsed
 
   const target = parseIssueReferenceOrExit(output, repository, frontmatter.issue_ref)
 
   if (frontmatter.template === undefined) {
-    return stopWith(output, `specify template in the frontmatter (${TEMPLATE_CHOICES})`)
+    return stopWith(output, `specify template in the frontmatter (${TEMPLATE_CHOICES})`, 'content-invalid')
   }
-  if (hasReportedTemplateViolations(output, body, templateFile('comment', frontmatter.template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE)
+  if (hasReportedTemplateViolations(output, body, templateFile('comment', frontmatter.template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
   // comment_url は、issue_ref と同じ Issue のコメントに限る
   const commentUrl = frontmatter.comment_url
@@ -181,7 +182,7 @@ async function postFromFile(output: Output, config: ProjectConfig, repository: s
 async function postDirect(output: Output, config: ProjectConfig, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
 
-  if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE)
+  if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
   if (isDryRun) {
     output.planned({ verb: 'create', target: `comment on ${issuePath(target.owner, target.repository, target.number)}` })
@@ -213,7 +214,7 @@ const ISSUE_COMMENT = defineCommand({
     return await runWithExit(async () => {
       const { file, message, issue_ref: issue, prepare, template } = input
       if (template === undefined && (prepare || (message !== undefined && file === undefined))) {
-        stopWith(output, hinted`specify a template with ${inputNameHint(COMMENT_PATH, 'template')} (${TEMPLATE_CHOICES})`)
+        stopWith(output, hinted`specify a template with ${inputNameHint(COMMENT_PATH, 'template')} (${TEMPLATE_CHOICES})`, 'invalid-input')
       }
       if (prepare && template !== undefined) {
         prepareTemplate(output, template, issue, input.dry_run)
@@ -225,7 +226,7 @@ const ISSUE_COMMENT = defineCommand({
       }
       if (message !== undefined && template !== undefined) {
         if (issue === undefined || issue === '') {
-          stopWith(output, hinted`${inputNameHint(COMMENT_PATH, 'issue_ref')} (Issue reference) is required with ${inputNameHint(COMMENT_PATH, 'message')}`)
+          stopWith(output, hinted`${inputNameHint(COMMENT_PATH, 'issue_ref')} (Issue reference) is required with ${inputNameHint(COMMENT_PATH, 'message')}`, 'invalid-input')
         }
         await postDirect(output, requireActiveConfigPlain(output), input.repo, issue, message, template, input.dry_run)
         return
@@ -236,6 +237,7 @@ const ISSUE_COMMENT = defineCommand({
 direct posting: ${commandHint(COMMENT_PATH, { message: placeholder('MESSAGE'), template: placeholder('template'), issue_ref: 'owner/repo/123' })}
 prepare a template: ${commandHint(COMMENT_PATH, { prepare: true, template: placeholder('template') })}
 from a file: ${commandHint(COMMENT_PATH, { file: placeholder('path') })}`,
+        'invalid-input',
       )
     })
   },

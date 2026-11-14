@@ -607,7 +607,7 @@ describe('isUsageError', () => {
   })
 
   it('SlideCreateUsageError も usage error 扱い', () => {
-    expect(isUsageError(new SlideCreateUsageError('m', 'unknown-template'))).toBe(true)
+    expect(isUsageError(new SlideCreateUsageError('m', 'missing-option'))).toBe(true)
   })
 
   it('テーマの指定の誤り (ThemeSpecError) も usage error', () => {

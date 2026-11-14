@@ -110,7 +110,7 @@ function reasonOf(issue: z.core.$ZodIssue, root: unknown, path: readonly PathPar
   }
   if (isEmpty) return withHint('is empty')
   if (issue.code === 'too_small' && issue.origin === 'array') return `must have at least ${String(issue.minimum)} item(s)`
-  // 数の範囲を持つ欄は exit_status[].code だけ（schema.ts の exitCodeSchema の 0〜255）。
+  // 数の範囲を持つ欄は exit_status[].code だけ（schema.ts の exitKindSchema の 0〜255）。
   if ((issue.code === 'too_small' || issue.code === 'too_big') && issue.origin === 'number') return 'must be between 0 and 255'
   if (issue.code === 'custom') return issue.message
   return `unknown validation issue (${issue.code}): ${issue.message}`

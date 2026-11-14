@@ -9,6 +9,7 @@ import { GitHubAPIError, isMissingReferenceError } from '../infra/github/errors.
 import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation } from './output.js'
@@ -39,7 +40,7 @@ const branchDeleteCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ReferenceParseError)) throw error
-      return stopWith(out, error.message, USAGE_EXIT_CODE)
+      return stopWith(out, error.message, 'invalid-input', USAGE_EXIT_CODE)
     }
     const { owner, repository } = target
 
@@ -60,14 +61,12 @@ const branchDeleteCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not read the default branch of ${owner}/${repository}: ${error.message}`)
-      return 1
+      return stopWith(out, `could not read the default branch of ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
     }
 
     // 4. 保護ブランチチェック
     if (protectedBranches.has(input.branch)) {
-      out.error(`${input.branch} is a protected branch\nprotected: ${[...protectedBranches].toSorted(compareStrings).join(', ')}`)
-      return 1
+      return stopWith(out, `${input.branch} is a protected branch\nprotected: ${[...protectedBranches].toSorted(compareStrings).join(', ')}`, 'guard-blocked')
     }
 
     // 5. dry-run
@@ -83,8 +82,7 @@ const branchDeleteCommand = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof GitHubAPIError)) throw error
-      out.error(`could not delete remote branch ${input.branch} in ${owner}/${repository}: ${error.message}`)
-      return 1
+      return stopWith(out, `could not delete remote branch ${input.branch} in ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
     }
     out.done(operation)
 

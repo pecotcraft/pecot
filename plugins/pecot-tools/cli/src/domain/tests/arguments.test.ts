@@ -315,7 +315,7 @@ describe('validateInput', () => {
   it('必須入力が無ければ invalid-input', () => {
     const entry = entryOf({ inputs: [inputOf({ name: 'function_name', required: true })] })
 
-    expect(validateInput(entry, {})).toMatchObject({ category: 'invalid-input' })
+    expect(validateInput(entry, {})).toMatchObject({ kind: 'invalid-input' })
     expect(validateInput(entry, {})?.message).toContain('function_name')
   })
 
@@ -390,7 +390,7 @@ describe('validateInput', () => {
   it('values を持たない enum は全て拒否する', () => {
     const entry = entryOf({ inputs: [inputOf({ name: 'order_by', kind: 'enum' })] })
 
-    expect(validateInput(entry, { order_by: 'LogStreamName' })?.category).toBe('invalid-input')
+    expect(validateInput(entry, { order_by: 'LogStreamName' })?.kind).toBe('invalid-input')
   })
 
   it('boolean は真偽値だけを受ける', () => {
@@ -441,8 +441,8 @@ describe('validateInput', () => {
 
     expect(validateInput(entry, { database: 'analytics' })).toBeUndefined()
     expect(validateInput(entry, { database: 'a,Catalog=x' })?.message).toContain(', = { }')
-    expect(validateInput(entry, { catalog: 'x=y' })?.category).toBe('invalid-input')
-    expect(validateInput(entry, { catalog: 'x{y}' })?.category).toBe('invalid-input')
+    expect(validateInput(entry, { catalog: 'x=y' })?.kind).toBe('invalid-input')
+    expect(validateInput(entry, { catalog: 'x{y}' })?.kind).toBe('invalid-input')
   })
 
   it('shorthand 自身は入力レコードから読まない', () => {
@@ -509,7 +509,7 @@ describe('validateInput', () => {
     const listValue = shorthandListEntry()
 
     expect(validateInput(stringEntry, { log_group_name: `g${NUL}x` })?.message).toContain('control characters')
-    expect(validateInput(listEntry, { names: [`a${NUL}b`] })?.category).toBe('invalid-input')
+    expect(validateInput(listEntry, { names: [`a${NUL}b`] })?.kind).toBe('invalid-input')
     expect(validateInput(listValue, { filters: [{ name: `state${NUL}` }] })?.message)
       .toContain('control characters')
     expect(validateInput(listValue, { filters: [{ name: 'state', values: [`a${NUL}`] }] })?.message)

@@ -182,15 +182,15 @@ interface RestoreTarget {
 function inferTarget(directory: string, output: Output): RestoreTarget {
   const branch = gitCurrentBranch(directory)
   if (branch === undefined) {
-    return stopWith(output, 'cannot read the branch name', FAILURE_EXIT_CODE)
+    return stopWith(output, 'cannot read the branch name', 'git-unresolved', FAILURE_EXIT_CODE)
   }
   const number = extractIssueNumberFromBranch(branch)
   if (number === undefined) {
-    return stopWith(output, hinted`cannot infer the Issue number from the branch name: ${branch}\nrun: ${commandHint(['session', 'restore'], { issue_ref: placeholder('owner/repo/N') })}`, FAILURE_EXIT_CODE)
+    return stopWith(output, hinted`cannot infer the Issue number from the branch name: ${branch}\nrun: ${commandHint(['session', 'restore'], { issue_ref: placeholder('owner/repo/N') })}`, 'git-unresolved', FAILURE_EXIT_CODE)
   }
   const origin = primaryRemoteRepository(directory)
   const message = 'cannot read the repository information'
-  return origin === undefined ? stopWith(output, message, FAILURE_EXIT_CODE) : { owner: origin.owner, repository: origin.repository, number }
+  return origin === undefined ? stopWith(output, message, 'git-unresolved', FAILURE_EXIT_CODE) : { owner: origin.owner, repository: origin.repository, number }
 }
 
 // issue_ref の参照を分ける。形が誤っていれば error を出して終了コード 2
@@ -201,7 +201,7 @@ function parseTarget(issue: string, output: Output): RestoreTarget {
   }
   catch (error: unknown) {
     if (!(error instanceof ReferenceParseError)) throw error
-    return stopWith(output, error.message, USAGE_EXIT_CODE)
+    return stopWith(output, error.message, 'invalid-input', USAGE_EXIT_CODE)
   }
 }
 
@@ -225,7 +225,7 @@ const SESSION_RESTORE = defineCommand({
     }
     catch (error: unknown) {
       if (!(error instanceof ConfigError)) throw error
-      return stopWith(output, error.message, FAILURE_EXIT_CODE)
+      return stopWith(output, error.message, 'config-invalid', FAILURE_EXIT_CODE)
     }
     if (input.dry_run) planWorkTarget(output, target.owner, target.repository, target.number)
     else recordWorkTarget(output, target.owner, target.repository, target.number, title, { failWithExit: true })

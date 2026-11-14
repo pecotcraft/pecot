@@ -28,7 +28,7 @@
 
 ## 4.2a 既存リポを指定
 
-`board_show` の結果の `Registered repositories` の節から候補を取得する。`board_show` を引数なしで呼ぶ。
+`board_show` の結果の `stdout` にある `Registered repositories` の節から候補を取得する。`board_show` を引数なしで呼ぶ。
 
 AskUserQuestion Q2a で選択:
 

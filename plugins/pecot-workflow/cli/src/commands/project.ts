@@ -23,6 +23,7 @@ import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, inputHint, inputNameHint, placeholder } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import { createGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Operation, Output } from './output.js'
@@ -100,7 +101,7 @@ function padEndCodePoints(text: string, width: number): string {
 
 function requireActiveWithPath(out: Readonly<Output>): { readonly config: ProjectConfig, readonly configPath: string } {
   const config = requireActiveConfig(out)
-  const configPath = getActiveConfigPath() ?? stopWith(out, 'cannot determine the config file path')
+  const configPath = getActiveConfigPath() ?? stopWith(out, 'cannot determine the config file path', 'config-invalid')
   return { config, configPath }
 }
 
@@ -154,7 +155,7 @@ const searchCommand = defineCommand({
     const { owner, host } = input
     await guarded(out, 'list projects', async () => {
       const projects = await createGitHubClient(out, host).listProjects(owner)
-      if (projects.length === 0) stopWith(out, `no projects found for ${owner}`)
+      if (projects.length === 0) stopWith(out, `no projects found for ${owner}`, 'project-not-found')
       const lines = [`=== Projects of ${owner} (${host}) ===`, '', `${padEndCodePoints('#', 4)} ${padEndCodePoints('Title', SEARCH_TITLE_WIDTH)} URL`, '-'.repeat(80)]
       for (const project of projects) {
         const number = project['number'] === undefined ? '?' : textOf(project['number'])
@@ -238,7 +239,7 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
   const project = await findProjectByTitle(out, client, owner, name)
   const projectId = requireString(project['id'], 'project.id')
   const projectInfo = await client.getProjectFields(owner, requireNumber(project['number'], 'project.number'))
-  if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `could not read project fields: ${name}`)
+  if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `could not read project fields: ${name}`, 'not-initialized')
   const fields = fieldNodesOf(projectInfo)
   const workflowFieldName = `pecot-workflow-${suffix}`
   const existingWorkflow = lastFieldNamed(fields, workflowFieldName)
@@ -320,12 +321,12 @@ const projectCreationCommand = defineCommand({
         ownerId = await client.getOwnerNodeId(owner)
       }
       catch (error: unknown) {
-        if (error instanceof GitHubNotFoundError) stopWith(out, `owner not found: ${owner}`)
+        if (error instanceof GitHubNotFoundError) stopWith(out, `owner not found: ${owner}`, 'github-not-found')
         throw error
       }
       const owned = await client.listProjects(owner)
       const existing = owned.find(project => jsonField(project, 'title') === title)
-      if (existing !== undefined) stopWith(out, `project already exists: ${title}\nurl: ${textOf(existing['url'])}`)
+      if (existing !== undefined) stopWith(out, `project already exists: ${title}\nurl: ${textOf(existing['url'])}`, 'already-exists')
       // フィールドと設定ファイルは作ったプロジェクトの ID を使うので、予行ではプロジェクトの行だけ出す
       if (input.dry_run) {
         out.planned({ verb: 'create', target: `project ${title} for ${owner}` })
@@ -362,7 +363,7 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
   catch (error: unknown) {
     // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
     if (!(error instanceof Error) || error instanceof CommandExit) throw error
-    return stopWith(out, `could not load config file ${path.basename(configPath)}: ${error.message}`)
+    return stopWith(out, `could not load config file ${path.basename(configPath)}: ${error.message}`, 'config-invalid')
   }
   await guarded(out, 'sync project', async () => {
     if (host !== undefined && config.host !== host) {
@@ -370,9 +371,9 @@ async function activateFromConfigFile(out: Readonly<Output>, configPath: string,
     }
     const client = createGitHubClient(out, config.host)
     const projectInfo = await client.getProjectFields(config.owner, config.project.number)
-    if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`)
+    if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
     const title = projectInfo['title']
-    if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`)
+    if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
     await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, isDryRun })
   })
 }
@@ -384,10 +385,10 @@ async function resolveActivationOwner(out: Readonly<Output>, client: Readonly<Gi
     login = jsonField(await client.getAuthenticatedUser(), 'login')
   }
   catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, hinted`could not read the authenticated user: ${error.message}\npass ${inputNameHint(ACTIVATE_PATH, 'owner')} to give the owner explicitly`)
+    if (error instanceof GitHubAPIError) return stopWith(out, hinted`could not read the authenticated user: ${error.message}\npass ${inputNameHint(ACTIVATE_PATH, 'owner')} to give the owner explicitly`, kindOfFailure(error))
     throw error
   }
-  return typeof login === 'string' && login !== '' ? login : stopWith(out, 'could not read the authenticated user')
+  return typeof login === 'string' && login !== '' ? login : stopWith(out, 'could not read the authenticated user', 'github-api')
 }
 
 // 一覧の表示モード。初期化済みのプロジェクトに [ACTIVE] を付ける
@@ -434,11 +435,11 @@ function activeProjectNumber(host: string, owner: string): number | undefined {
 async function fetchProjectInfoByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, owner: string, project: string): Promise<Readonly<Record<string, JsonValue>>> {
   if (/^\d+$/u.test(project)) {
     const number = Number(project)
-    return await client.getProjectFields(owner, number) ?? stopWith(out, `project #${String(number)} not found`)
+    return await client.getProjectFields(owner, number) ?? stopWith(out, `project #${String(number)} not found`, 'project-not-found')
   }
   const found = await findProjectByTitle(out, client, owner, project)
   const info = await client.getProjectFields(owner, requireNumber(found['number'], 'project.number'))
-  return info !== undefined && isTruthy(info) ? info : stopWith(out, `could not read project fields: ${project}`)
+  return info !== undefined && isTruthy(info) ? info : stopWith(out, `could not read project fields: ${project}`, 'not-initialized')
 }
 
 async function activateByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string, isDryRun: boolean }>): Promise<void> {
@@ -446,7 +447,7 @@ async function activateByReference(out: Readonly<Output>, client: Readonly<GitHu
   const info = await fetchProjectInfoByReference(out, client, owner, project)
   const title = textOf(info['title'] ?? '')
   if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`)
+    stopWith(out, hinted`project "${title}" is not initialized\nrun: ${commandHint(['project', 'init'], { owner, name: title, host, suffix: placeholder('suffix') })}`, 'not-initialized')
   }
   await syncProjectConfig(out, client, { owner, name: title, host, isDryRun })
 }
@@ -483,6 +484,7 @@ const activateCommand = defineCommand({
 example: ${commandHint(ACTIVATE_PATH, { host: 'github.com', owner: 'example-org' })}
 example: ${commandHint(ACTIVATE_PATH, { host: 'ghes.example.com', owner: 'example-org' })}
 example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_example-project_example-org' })}`,
+          'invalid-input',
         )
       }
       const client = createGitHubClient(out, host)
@@ -502,17 +504,17 @@ function parsePackages(out: Readonly<Output>, input: Readonly<{ package?: readon
   const specs = input.package
   if (specs === undefined || specs.length === 0) return undefined
   const packageFlag = inputNameHint(LINK_PATH, 'package')
-  if (input.changelog_file !== undefined) stopWith(out, hinted`${packageFlag} and ${inputNameHint(LINK_PATH, 'changelog_file')} cannot be used together`)
-  if (input.clear_packages) stopWith(out, hinted`${packageFlag} and ${inputHint(LINK_PATH, 'clear_packages')} cannot be used together`)
+  if (input.changelog_file !== undefined) stopWith(out, hinted`${packageFlag} and ${inputNameHint(LINK_PATH, 'changelog_file')} cannot be used together`, 'invalid-input')
+  if (input.clear_packages) stopWith(out, hinted`${packageFlag} and ${inputHint(LINK_PATH, 'clear_packages')} cannot be used together`, 'invalid-input')
   const parsed: Package[] = []
   const seen = new Set<string>()
   for (const spec of specs) {
     const separator = spec.indexOf(':')
-    if (separator === -1) stopWith(out, hinted`give ${inputHint(LINK_PATH, 'package', placeholder('NAME:PATH'))}: ${pythonStringRepr(spec)}`)
+    if (separator === -1) stopWith(out, hinted`give ${inputHint(LINK_PATH, 'package', placeholder('NAME:PATH'))}: ${pythonStringRepr(spec)}`, 'invalid-input')
     const name = pythonStrip(spec.slice(0, separator))
     const changelog = pythonStrip(spec.slice(separator + 1))
-    if (name === '' || changelog === '') stopWith(out, hinted`${packageFlag} NAME and PATH must not be empty: ${pythonStringRepr(spec)}`)
-    if (seen.has(name)) stopWith(out, hinted`${packageFlag} NAME is duplicated: ${pythonStringRepr(name)}`)
+    if (name === '' || changelog === '') stopWith(out, hinted`${packageFlag} NAME and PATH must not be empty: ${pythonStringRepr(spec)}`, 'invalid-input')
+    if (seen.has(name)) stopWith(out, hinted`${packageFlag} NAME is duplicated: ${pythonStringRepr(name)}`, 'invalid-input')
     seen.add(name)
     // Python も Package(...) の作成で NAME の形を確かめるので、設定を読む前に止まる
     parsed.push(parsePackage({ name, changelog }))
@@ -541,7 +543,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
   }
   if (edit.changelog_file !== undefined) {
     if (packages !== undefined && packages.length > 0) {
-      stopWith(out, hinted`this repository has packages set\nrun with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`)
+      stopWith(out, hinted`this repository has packages set\nrun with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`, 'invalid-input')
     }
     changelogFile = edit.changelog_file
   }
@@ -605,16 +607,16 @@ const projectLinkCommand = defineCommand({
     const out = createOutput(input.dry_run, io)
     if (input.release_type !== undefined && toReleaseType(input.release_type) === undefined) {
       // Python は sorted() の順（multi, nx, single）で見せる
-      stopWith(out, hinted`${inputNameHint(LINK_PATH, 'release_type')} must be one of [${RELEASE_TYPES.toSorted(compareStrings).map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`)
+      stopWith(out, hinted`${inputNameHint(LINK_PATH, 'release_type')} must be one of [${RELEASE_TYPES.toSorted(compareStrings).map(type => pythonStringRepr(type)).join(', ')}] (got: ${pythonStringRepr(input.release_type)})`, 'invalid-input')
     }
     const packages = parsePackages(out, input)
     const { config, configPath } = requireActiveWithPath(out)
 
     const parts = splitOwnerRepository(input.repo)
-    if (parts === undefined) stopWith(out, hinted`give the repository as owner/repo\nexample: ${commandHint(['project', 'link'], { repo: 'example-org/my-repo' })}`)
+    if (parts === undefined) stopWith(out, hinted`give the repository as owner/repo\nexample: ${commandHint(['project', 'link'], { repo: 'example-org/my-repo' })}`, 'invalid-input')
     const { owner, repository: name } = parts
     if (owner !== config.owner) {
-      stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`)
+      stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`, 'invalid-input')
     }
 
     const existing = findRepository(config, owner, name)
@@ -623,7 +625,7 @@ const projectLinkCommand = defineCommand({
     if (existing === undefined) {
       const projectNumber = String(config.project.number)
       const outcome = input.dry_run ? await plannedLink(out, config, owner, name) : await linkRepository(out, config, owner, name)
-      if (outcome.status === 'failed') stopWith(out, `could not link ${input.repo} to project #${projectNumber}: ${outcome.detail}`)
+      if (outcome.status === 'failed') stopWith(out, `could not link ${input.repo} to project #${projectNumber}: ${outcome.detail}`, 'github-api')
       const linked: Operation = outcome.status === 'already_linked'
         ? { verb: 'unchanged', target: `${input.repo} in project #${projectNumber}` }
         : { verb: 'add', target: `${input.repo} to project #${projectNumber}` }
@@ -669,7 +671,7 @@ interface ConfigKeyOperations {
 }
 
 function setAggregationRepository(out: Readonly<Output>, value: string, options: Readonly<{ isConfirmed: boolean, isDryRun: boolean }>): void {
-  if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`)
+  if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) stopWith(out, `give aggregation_repo as owner/repo: ${pythonStringRepr(value)}`, 'invalid-input')
   const { config, configPath } = requireActiveWithPath(out)
   const current = config.aggregation_repo
   if (current === value) {

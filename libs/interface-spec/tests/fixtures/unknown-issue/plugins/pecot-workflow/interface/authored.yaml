@@ -20,9 +20,11 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
+      - kind: ok
+        code: 0
         when: Every issue was created.
-      - code: 300
+      - kind: invalid-input
+        code: 300
         when: The front matter is invalid, or the GitHub API returned an error.
     on_error: Issues created before the failing file remain on GitHub.
     effects:
@@ -57,7 +59,8 @@ entries:
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
+      - kind: ok
+        code: 0
         when: The issue and the branch were created.
     on_error: default
     effects:

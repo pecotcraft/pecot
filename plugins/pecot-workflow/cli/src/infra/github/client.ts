@@ -591,7 +591,7 @@ or authenticate with the GitHub CLI:
 
   private classifyGraphqlFailure(failure: Readonly<GraphqlFailure>): GitHubAPIError {
     const { message } = failure
-    const detail = { cause: failure }
+    const detail = { cause: failure, errorType: failure.errorType }
     if (isUnauthorized(failure)) return new GitHubAuthError(`GraphQL authentication error: ${message}`, detail)
     if (isRateLimited({ statusCode: failure.statusCode, errorType: failure.errorType, text: message })) {
       return new GitHubRateLimitError(`GraphQL rate limit error: ${message}`, detail)

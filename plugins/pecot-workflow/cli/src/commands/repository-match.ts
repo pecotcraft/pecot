@@ -35,6 +35,6 @@ export function requireRepositoryMatch(
 ): RepositoryReference | undefined {
   const outcome = applyRepositoryPolicy({ explicit, resolved: resolveCurrentRepository(cwd), mode })
   for (const line of outcome.stderr) io.stderr(`${formatHinted(line, io.surface ?? 'cli')}\n`)
-  if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode)
+  if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted
 }

@@ -201,7 +201,7 @@ awscli の存在と版の確認結果。
 */
 export type AwscliProbe
   = | { readonly ok: true, readonly version: string }
-    | { readonly ok: false, readonly category: 'awscli-missing', readonly message: string }
+    | { readonly ok: false, readonly kind: 'awscli-missing', readonly message: string }
 
 /**
 確認結果の memo。外から差し替えられるよう、プロパティを持つ入れ物にしている。
@@ -224,7 +224,7 @@ async function probeAwscli(): Promise<AwscliProbe> {
   if (result.spawnErrorCode === 'ENOENT') {
     return {
       ok: false,
-      category: 'awscli-missing',
+      kind: 'awscli-missing',
       message: `awscli not found. Install awscli v2 (${MINIMUM_VERSION_TEXT} or later) and add it to PATH`,
     }
   }
@@ -233,7 +233,7 @@ async function probeAwscli(): Promise<AwscliProbe> {
   if (matched === undefined) {
     return {
       ok: false,
-      category: 'awscli-missing',
+      kind: 'awscli-missing',
       message: `Could not determine the awscli version: ${result.stdout.trim()}`,
     }
   }
@@ -247,7 +247,7 @@ async function probeAwscli(): Promise<AwscliProbe> {
     ? { ok: true, version }
     : {
         ok: false,
-        category: 'awscli-missing',
+        kind: 'awscli-missing',
         message: `awscli ${MINIMUM_VERSION_TEXT} or later is required (detected: ${version})`,
       }
 }

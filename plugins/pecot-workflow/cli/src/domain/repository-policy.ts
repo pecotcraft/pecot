@@ -44,10 +44,15 @@ export interface PolicyInput {
 */
 export type PolicyOutcome
   = | { readonly kind: 'proceed', readonly adopted: RepositoryReference | undefined, readonly stderr: readonly (string | HintedText)[] }
-    | { readonly kind: 'exit', readonly exitCode: 1, readonly stderr: readonly (string | HintedText)[] }
+    | { readonly kind: 'exit', readonly exitCode: 1, readonly failure: PolicyFailure, readonly stderr: readonly (string | HintedText)[] }
 
-function exitWith(...stderr: readonly (string | HintedText)[]): PolicyOutcome {
-  return { kind: 'exit', exitCode: 1, stderr }
+/**
+止める原因の名前。commands の FailureKind の一部
+*/
+export type PolicyFailure = 'git-unresolved' | 'invalid-input' | 'repo-mismatch'
+
+function exitWith(failure: PolicyFailure, ...stderr: readonly (string | HintedText)[]): PolicyOutcome {
+  return { kind: 'exit', exitCode: 1, failure, stderr }
 }
 
 function parseExplicit(explicit: string): RepositoryReference | undefined {
@@ -68,12 +73,12 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
 
   if (explicit === undefined) {
     return resolved === undefined
-      ? exitWith('error: the repository is ambiguous', hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`)
+      ? exitWith('git-unresolved', 'error: the repository is ambiguous', hinted`  give ${globalRepositoryHint(placeholder('owner/repo'))}`)
       : { kind: 'proceed', adopted: undefined, stderr: [] }
   }
 
   const explicitReference = parseExplicit(explicit)
-  if (explicitReference === undefined) return exitWith(hinted`error: ${globalRepositoryHint()} has an invalid form: ${pythonStringRepr(explicit)}`)
+  if (explicitReference === undefined) return exitWith('invalid-input', hinted`error: ${globalRepositoryHint()} has an invalid form: ${pythonStringRepr(explicit)}`)
 
   // Git 外 / remote 不在は比較対象が無いので、明示値を採用する
   if (resolved?.source !== 'current-git') return { kind: 'proceed', adopted: explicitReference, stderr: [] }
@@ -87,6 +92,7 @@ export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
   const currentName = repositoryFullName(current)
   if (mode === 'reject') {
     return exitWith(
+      'repo-mismatch',
       hinted`error: ${globalRepositoryHint()} ${explicitName} differs from the current Git remote (${currentName})`,
       '  this command works only on the repository of the current Git remote',
     )

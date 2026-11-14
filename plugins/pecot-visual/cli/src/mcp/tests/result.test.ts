@@ -43,10 +43,18 @@ describe('toCallToolResult', () => {
 
   it('exitCode を保持しつつ ok: false を isError: true に連動させる', async (context) => {
     await verifies(context, 'PV-COMMON-07')
-    const converted = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 3, message: 'warnings' })
+    const converted = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 3, kind: 'unknown', message: 'warnings' })
 
     expect(converted.isError).toBe(true)
     expect(converted.structuredContent).toMatchObject({ ok: false, exitCode: 3, message: 'warnings' })
+  })
+
+  it('失敗のときだけ kind を exitCode の次に出す', () => {
+    const failed = toCallToolResult({ ...BASE_RESULT, ok: false, exitCode: 1, kind: 'export-failed' })
+
+    expect(Object.keys(failed.structuredContent ?? {})).toEqual(['ok', 'exitCode', 'kind', 'artifacts', 'data', 'message'])
+    expect(failed.structuredContent).toMatchObject({ kind: 'export-failed' })
+    expect(toCallToolResult(BASE_RESULT).structuredContent).not.toHaveProperty('kind')
   })
 
   it('stdout / stderr は与えられたときだけ structuredContent に現れる', () => {
@@ -127,12 +135,25 @@ describe('parsePathArguments', () => {
     expect(parsed.rejected).toMatchObject({
       ok: false,
       exitCode: 2,
+      kind: 'invalid-path',
       artifacts: [],
       data: { invalidPaths: ['out_path=relative/c.png'] },
     })
     expect(parsed.rejected?.message).toContain('must be an absolute path')
     // 変換が 1 件も起きていないので convertedPaths は載せない。
     expect(parsed.rejected?.data).not.toHaveProperty('convertedPaths')
+  })
+
+  it('拒否結果の structuredContent は最上位に kind: invalid-path を持つ', () => {
+    const parsed = parsePathArguments(PATH_SCHEMA, { input_path: 'talks/demo' }, ['input_path'])
+    if (parsed.rejected === undefined) throw new Error('相対パスが受理された')
+
+    expect(toCallToolResult(parsed.rejected).structuredContent).toMatchObject({
+      ok: false,
+      exitCode: 2,
+      kind: 'invalid-path',
+      data: { invalidPaths: ['input_path=talks/demo'] },
+    })
   })
 
   it('複数の相対パスを全件列挙する', () => {
@@ -169,6 +190,7 @@ describe('parsePathArguments', () => {
     expect(parsed.rejected).toMatchObject({
       ok: false,
       exitCode: 2,
+      kind: 'invalid-path',
       artifacts: [],
       data: {
         invalidPaths: [String.raw`input_path=\\wsl.localhost\Debian\home\a.drawio`],

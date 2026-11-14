@@ -11,6 +11,7 @@
 //
 // commander DI / exitOverride / configureOutput.writeErr の形は slidev-project/lint.ts を踏襲する。
 
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import path from 'node:path'
 
 import { Command } from 'commander'
@@ -135,7 +136,7 @@ export async function executeSlideTheme(
 失敗の reason。テーマに関わる例外は `theme-<reason>` で、それ以外は `unknown`。
 変換は domain の `themeErrorReason` が 1 か所で持つ。
 */
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   return themeErrorReason(error) ?? 'unknown'
 }
 

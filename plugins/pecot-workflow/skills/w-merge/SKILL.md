@@ -21,7 +21,7 @@ PRをマージし、マージ後にブランチ削除とワークツリー環境
 
 PRがマージ可能な状態であることを確認する。続いて、ローカルに取り込んでいない変更がないかを確認する。`pr_check` を `directory: "."` で呼ぶ。
 
-結果に `exit code: 1` か `exit code: 2` の行が出たら、結果を見て解決し、呼び直してからマージに進む。
+結果の `ok` が `false` なら、`kind`・`message`・`stderr` を見て解決し、呼び直してからマージに進む。`kind` が `preflight-failed`（`exitCode` は 2）のときは、事前確認を通らなかった理由が `stderr` に出る。
 
 ### Step 2: マージと片付け
 
@@ -76,7 +76,7 @@ code-scanning open alerts: #28 #29
   - アラート: `gh api repos/<owner>/<repo>/code-scanning/alerts/<番号>`
   - 承認: `gh pr view <PR番号> --repo <owner>/<repo> --json reviewDecision`
 - `stalled` では、2 行目の `queue=` と `checks-pending=`、3 行目以降のルールとアラートを伝える。`queue=true` か `checks-pending` が 1 以上なら、進んでいる見込みなので待ち直しを勧める
-- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を呼び直す。未マージなら `exit code: 1` で何もしない
+- GitHub Copilot CLI など Monitor のない環境では、数分おいて 2.3 を呼び直す。未マージなら `kind` が `pr-state`（`exitCode` は 1）で何もしない
 
 #### 2.3 片付け
 
@@ -84,7 +84,7 @@ code-scanning open alerts: #28 #29
 
 > 注意: マージ後の片付けは必ず `session_finish` で行う。`gh pr merge` の `--delete-branch` は使わない（ローカルの片付けとフラグの削除が漏れる）
 
-`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず `exit code: 1` で終わる。
+`session_finish` は PR が MERGED のときだけ動く。それ以外は何もせず、`ok` が `false`、`kind` が `pr-state`（`exitCode` は 1）で終わる。
 
 **入力**:
 
@@ -100,7 +100,7 @@ code-scanning open alerts: #28 #29
 - 通常環境では、開発ブランチへ切替 → `git pull` → ローカルフィーチャーブランチ削除
 - クロスリポでは、現在のリポとPRのリポが異なる場合、ローカルクリーンアップはスキップされる
 
-結果に `warning:` の行があれば以下で手動対応:
+結果の `stderr` に `warning:` の行があれば以下で手動対応:
 
 - ワーキングツリーが汚れている場合: 変更を一時的な WIP commit で退避してから再実行する。stash は全ワークツリーで共有されるので、使うときは `git stash push -u -m "<名前>"` で名前を付け、戻すときもその entry を指定する
 - `skip_local_cleanup: true` でローカル後処理をスキップし、手動で対応
@@ -115,12 +115,12 @@ code-scanning open alerts: #28 #29
 
 スキップ条件は次のとおりで、いずれかに該当する場合は Step 4-5 をスキップする。
 
-- `session_finish` の結果に `closed: Issue #<n>` の行がない（Issue未紐付けPR）
-- `closed:` の行のIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
+- `session_finish` の結果の `stderr` に `closed: Issue #<n>` の行がない（Issue未紐付けPR）
+- `stderr` の `closed:` の行のIssueに `Parent:` フィールドがない（独立タスク、フォローアップ修正等）
 
 #### 4.1 サブタスクIssueの確認
 
-`session_finish` の結果の `closed: Issue #<n>` の行からIssue番号を取得し、Issueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
+`session_finish` の結果の `stderr` にある `closed: Issue #<n>` の行からIssue番号を取得し、Issueを読む。`issue_show` を `issue_ref: "<owner>/<repo>/<issue_number>"` で呼ぶ。
 
 - `Parent:` フィールドから親EpicのIssue番号を取得 → なければ **Step 4-5 をスキップ**
 

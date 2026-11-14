@@ -3,13 +3,15 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { PecotError } from '../../domain/errors.js'
+import { BOARD_ADD_COMMANDS } from '../../commands/board-add.js'
 import { isConfirmed } from '../../commands/output.js'
 import { COMMANDS as REAL_COMMANDS, defineCommand } from '../../commands/registry.js'
 import type { CommandDefinition } from '../../commands/registry.js'
 import { UsageError } from '../../commands/usage-error.js'
 import { exitWith, failWith, throwFailure } from '../../commands/tests/support.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { connectInMemory, outcomeOf } from '../../../tests/_helpers/mcp-client.js'
+import { prepareProject } from '../../../tests/_helpers/board-issue-case.js'
+import { connectInMemory, outcomeOf, structuredOf } from '../../../tests/_helpers/mcp-client.js'
 import type { ConnectedClient } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import type { McpServerOptions } from '../server.js'
@@ -136,11 +138,11 @@ afterEach(async () => {
 })
 
 describe('ツールの呼び出し', () => {
-  it('終了コード 0 なら、stdout と stderr を本文にし、isError を付けずに返す', async () => {
+  it('終了コード 0 なら、stdout と stderr を structuredContent と同じ JSON の本文にし、isError を付けずに返す', async () => {
     const result = await call('echo', { text: 'hi', count: 2 })
     expect(result.isError).toBeUndefined()
-    expect(result.content).toEqual([{ type: 'text', text: 'echo hi\n' }, { type: 'text', text: 'note\n' }])
-    expect(result.structuredContent).toBeUndefined()
+    expect(structuredOf(result)).toEqual({ ok: true, exitCode: 0, artifacts: [], data: {}, message: 'echo hi', stdout: 'echo hi\n', stderr: 'note\n' })
+    expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
     expect(outcomeOf(result)).toEqual({ exitCode: 0, stdout: 'echo hi\n', stderr: 'note\n' })
     expect(calls).toEqual([{ text: 'hi', count: 2 }])
   })
@@ -149,6 +151,7 @@ describe('ツールの呼び出し', () => {
     const result = await call('exit_three')
     expect(result.isError).toBe(true)
     expect(outcomeOf(result)).toEqual({ exitCode: 3, stdout: 'partial\n', stderr: '' })
+    expect(structuredOf(result).kind).toBe('other')
   })
 
   it('確認が要るのに入力が無いと、Aborted. を stderr に出して終了コード 1 にする', async () => {
@@ -164,17 +167,20 @@ describe('ツールの呼び出し', () => {
     expect(structured.stderr).toContain('Usage: ')
     expect(structured.stderr).toContain('bad parameter')
     expect(structured.stderr).toContain('Invalid value for x')
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input', message: 'Invalid value for x' })
   })
 
   it('報告できる失敗は、error: の行を stderr に出して終了コード 1 にする', async () => {
     const result = await call('pecot_failure')
     expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: 'error: ルートがありません\n' })
+    expect(structuredOf(result)).toMatchObject({ kind: 'other', message: 'ルートがありません' })
   })
 
-  it('プログラムの誤りは、isError の結果にして、報告先にも伝える', async () => {
+  it('プログラムの誤りは、kind が other の JSON の結果にして、報告先にも伝える', async () => {
     const result = await call('bug')
     expect(result.isError).toBe(true)
-    expect(JSON.stringify(result.content)).toContain('boom')
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 1, kind: 'other', artifacts: [], data: {}, message: 'boom' })
+    expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(Error)
   })
@@ -234,21 +240,23 @@ describe('PECOT_GITHUB_API_URL', () => {
 describe('入力の検証の誤り', () => {
   it('定義に無いキーが複数あると、全部を名指しして、本体を呼ばない', async () => {
     const result = await call('echo', { text: 'hi', one: 1, two: 2 })
-    expect(result).toEqual({ content: [{ type: 'text', text: 'invalid input: unknown keys \'one\', \'two\'' }], isError: true })
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: {}, message: 'invalid input: unknown keys \'one\', \'two\'' })
     expect(calls).toEqual([])
   })
 
   it('改名した古い入力名のキーは、今の入力名を添えて断る', async () => {
     const { client } = await open(REAL_COMMANDS.filter(command => command.path.join(' ') === 'issue comment'))
     const result = await client.callTool({ name: 'issue_comment', arguments: { issue: 'o/r/1', message: 'm' } })
-    expect(result).toEqual({ content: [{ type: 'text', text: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' }], isError: true })
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 2, kind: 'invalid-input', artifacts: [], data: {}, message: 'invalid input: unknown key \'issue\' (\'issue\' was renamed to \'issue_ref\')' })
   })
 
   it('グローバルの repo の形が owner/repo でないと、本体を呼ばない', async () => {
     const result = await call('echo', { text: 'hi', repo: 'nope' })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(JSON.stringify(result.content)).toContain('invalid input: repo: ')
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+    expect(structuredOf(result).message).toContain('invalid input: repo: ')
     expect(calls).toEqual([])
   })
 
@@ -261,14 +269,14 @@ describe('入力の検証の誤り', () => {
   it('型の違いは、入力の名前を添えて断る', async () => {
     const result = await call('echo', { text: 'hi', flag: 'true' })
     expect(result.isError).toBe(true)
-    expect(result._meta).toBeUndefined()
-    expect(JSON.stringify(result.content)).toContain('invalid input: flag: ')
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+    expect(structuredOf(result).message).toContain('invalid input: flag: ')
     expect(calls).toEqual([])
   })
 
   it('必須の入力が無いと、入力の名前を添えて断る', async () => {
     const result = await call('echo')
-    expect(JSON.stringify(result.content)).toContain('invalid input: text: ')
+    expect(structuredOf(result).message).toContain('invalid input: text: ')
   })
 
   it('検証の途中で投げたプログラムの誤りは、isError の結果にして、報告先にも伝える', async () => {
@@ -287,6 +295,7 @@ describe('入力の検証の誤り', () => {
     } })
     const result = await client.callTool({ name: 'broken', arguments: {} })
     expect(result.isError).toBe(true)
+    expect(structuredOf(result)).toMatchObject({ ok: false, exitCode: 1, kind: 'other', message: 'refine bug' })
     expect(unexpected).toHaveLength(1)
   })
 
@@ -326,8 +335,9 @@ describe('入力の検証の誤り', () => {
     const { client } = await open([noisy], { reportUnexpected: (_error, collected) => {
       reported.push(collected)
     } })
-    await client.callTool({ name: 'noisy', arguments: {} })
+    const result = await client.callTool({ name: 'noisy', arguments: {} })
     expect(reported).toEqual([{ stdout: 'half\n', stderr: 'warn\n' }])
+    expect(structuredOf(result)).toEqual({ ok: false, exitCode: 1, kind: 'other', artifacts: [], data: {}, message: 'boom', stdout: 'half\n', stderr: 'warn\n' })
   })
 
   it('引数が無くても、空の入力として検証する', async () => {
@@ -347,7 +357,7 @@ describe('入力の検証の誤り', () => {
     })
     const { client } = await open([refined])
     const result = await client.callTool({ name: 'refined', arguments: { a: 'x', b: 'y' } })
-    expect(result).toEqual({ content: [{ type: 'text', text: 'invalid input: a と b は同時に渡せません' }], isError: true })
+    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input', message: 'invalid input: a と b は同時に渡せません' })
   })
 })
 
@@ -360,7 +370,7 @@ describe('対象のリポを決められなかったとき', () => {
       const result = await client.callTool({ name, arguments: {} })
       expect(result.isError).toBe(true)
       expect(outcomeOf(result)).toEqual({ exitCode: 1, stdout: '', stderr: `error: ${reason}\n` })
-      expect(result.content).toEqual([{ type: 'text', text: `error: ${reason}\nexit code: 1\n` }])
+      expect(structuredOf(result)).toMatchObject({ kind: 'session-directory-unresolved', message: reason })
     }
     expect(calls).toEqual([])
   })
@@ -376,5 +386,23 @@ describe('対象のリポを決められなかったとき', () => {
     const unavailable = await open(COMMANDS, { unavailableReason: reason })
     const [expected, actual] = await Promise.all([available.client.listTools(), unavailable.client.listTools()])
     expect(actual.tools).toEqual(expected.tools)
+  })
+})
+
+describe('失敗の原因の名前', () => {
+  it('board_add でボードが定義していない status を渡すと、kind を status-not-configured にする', async () => {
+    prepareProject({ missingStatus: 'active' })
+    const { client } = await open(BOARD_ADD_COMMANDS)
+    const result = await client.callTool({ name: 'board_add', arguments: { issue_ref: 'acme/demo/7', status: 'active' } })
+    expect(result.isError).toBe(true)
+    expect(structuredOf(result)).toEqual({
+      ok: false,
+      exitCode: 1,
+      kind: 'status-not-configured',
+      artifacts: [],
+      data: {},
+      message: 'status \'active\' is not configured in the project',
+      stderr: 'error: status \'active\' is not configured in the project\n',
+    })
   })
 })

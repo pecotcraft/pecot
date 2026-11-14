@@ -6,6 +6,7 @@
 // 組み立ては同じ親の下の一時 dir で行い、最後に入れ替える。失敗したら一時 dir を消す。
 
 /* eslint-disable security/detect-non-literal-fs-filename */
+import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { randomBytes } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
@@ -321,7 +322,7 @@ function formatError(error: unknown): string {
 /**
 失敗の reason。テーマの取得・宣言・指定の失敗は `theme-<reason>`（`themeErrorReason`）にする。
 */
-export function errorToReason(error: unknown): string {
+export function errorToReason(error: unknown): FailureReason {
   if (error instanceof SlideCreateUsageError) return error.reason
   if (error instanceof SlideCreateRuntimeError) return error.reason
   return themeErrorReason(error) ?? 'unknown'

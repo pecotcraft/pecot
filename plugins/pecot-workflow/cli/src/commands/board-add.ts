@@ -6,6 +6,7 @@ import { defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { addIssueToBoard, isStatusConfigured, setIssueField } from './issue-board.js'
 import { stopWith, requireActiveConfigPlain } from './command-stop.js'
+import { kindOfFailure } from './failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -37,7 +38,7 @@ const BOARD_ADD = defineCommand({
 
       const config = requireActiveConfigPlain(output)
       if (status !== '' && !isStatusConfigured(config, status)) {
-        stopWith(output, notConfiguredMessage(status))
+        stopWith(output, notConfiguredMessage(status), 'status-not-configured')
       }
 
       const { owner, repository, number } = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
@@ -60,7 +61,7 @@ const BOARD_ADD = defineCommand({
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
-        stopWith(output, `could not add ${target} to project: ${error.message}`)
+        stopWith(output, `could not add ${target} to project: ${error.message}`, kindOfFailure(error))
       }
     })
   },

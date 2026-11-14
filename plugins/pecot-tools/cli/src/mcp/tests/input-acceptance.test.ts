@@ -540,7 +540,7 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       const failure = toCallToolResult({
         ok: false,
         exitCode: 254,
-        category: 'permission-denied',
+        kind: 'permission-denied',
         data: {},
         artifacts: [],
         message: '権限が不足しています',

@@ -16,9 +16,8 @@ entries:
       - name: SAMPLE_HOME
         effect: Moves the sample directory.
     exit_status:
-      - code: 0
-        when: The target ran.
-      - code: 2
+      - kind: target-missing
+        code: 2
         when: The target is missing.
     on_error: default
     effects:

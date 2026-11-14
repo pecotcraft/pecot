@@ -52,7 +52,7 @@ async function succeed(): Promise<void> {
 
 async function exitWith3(): Promise<void> {
   await Promise.resolve()
-  throw new CommandExit(3)
+  throw new CommandExit(3, 'content-invalid')
 }
 
 async function badParameter(): Promise<void> {
@@ -83,7 +83,7 @@ describe('runWithExit', () => {
 
   it('ほかの例外はそのまま伝える', async () => {
     await expect(runWithExit(boom)).rejects.toThrow('boom')
-    expect(new CommandExit(2).exitCode).toBe(2)
+    expect(new CommandExit(2, 'invalid-input').exitCode).toBe(2)
   })
 })
 

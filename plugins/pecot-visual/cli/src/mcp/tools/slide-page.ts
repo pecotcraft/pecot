@@ -26,9 +26,10 @@ import {
 } from '../../commands/slidev-project/theme.js'
 import { NodeThemeFiles } from '../../infra/slidev-theme/fs.js'
 import { createDiagnostics } from '../../diagnostics.js'
+import { failureKindOf, type FailureKind, type FailureReason } from '../../domain/_shared/failure-kind.js'
 import { extractSkeleton, isFrontmatterBlock } from '../../domain/slidev-theme/skeleton.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
-import type { ToolResult } from '../result.js'
+import type { FailedToolResult, ToolResultBody } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import {
   captureCommandOutput,
@@ -96,13 +97,14 @@ const slidePageInput = z.object({
 失敗時の ToolResult (stdout / stderr は呼び出し側が付ける)。
 */
 function failure(
-  reason: string,
+  reason: FailureReason,
   detail: string,
   extra: Readonly<Record<string, unknown>> = {},
-): Omit<ToolResult, 'stdout' | 'stderr'> {
+): Omit<FailedToolResult, 'stdout' | 'stderr'> {
   return {
     ok: false,
     exitCode: SLIDE_PAGE_EXIT_CODE,
+    kind: failureKindOf(reason),
     artifacts: [],
     data: { event: 'slide.page.error', reason, detail, ...extra },
     message: detail,
@@ -111,7 +113,7 @@ function failure(
 
 type PageFileName
   = | { readonly ok: true, readonly filename: string }
-    | { readonly ok: false, readonly reason: string, readonly detail: string }
+    | { readonly ok: false, readonly reason: FailureKind, readonly detail: string }
 
 /**
 `file` を pages/ 直下のファイル名へ正規化する。
@@ -216,7 +218,7 @@ type ReferenceReader = (file: string) => Promise<string>
 テーマの解決・宣言の失敗を、slide_page の失敗応答にする。reason は `slide theme` と同じ。
 復旧の案内（CLI と MCP の両方の手順）は、例外の文言が持つ。
 */
-function themeFailure(error: unknown): Omit<ToolResult, 'stdout' | 'stderr'> {
+function themeFailure(error: unknown): Omit<FailedToolResult, 'stdout' | 'stderr'> {
   return failure(slideThemeErrorToReason(error), formatError(error))
 }
 
@@ -232,7 +234,7 @@ async function generatePage(
   // CommandOutput の stderr は WritableStream で write が mutate のため readonly 化できない。
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   output: Readonly<CommandOutput>,
-): Promise<Omit<ToolResult, 'stdout' | 'stderr'>> {
+): Promise<ToolResultBody> {
   const file = normalizePageFileName(input.file)
   if (!file.ok) return failure(file.reason, file.detail)
 

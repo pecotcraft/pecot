@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PecotError } from '../../../domain/errors.js'
-import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError, isClosedByAnotherRequest, isMissingReferenceError } from '../errors.js'
+import { asNotFoundError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError, isClosedByAnotherRequest, isMissingReferenceError } from '../errors.js'
 
 describe('GitHubAPIError', () => {
   it('基本的なエラーは状態コードと本文を持たない', () => {
@@ -66,5 +66,21 @@ describe('isClosedByAnotherRequest', () => {
     [422, undefined, false],
   ])('状態 %s・本文 %j は %s', (statusCode, responseBody, expected) => {
     expect(isClosedByAnotherRequest(new GitHubAPIError('m', { statusCode, responseBody }))).toBe(expected)
+  })
+})
+
+describe('asNotFoundError', () => {
+  it('GraphQL の type が NOT_FOUND の GitHubAPIError は、同じ文の GitHubNotFoundError にする', () => {
+    const converted = asNotFoundError(new GitHubAPIError('GraphQL query error: x', { errorType: 'NOT_FOUND' }))
+    expect(converted).toBeInstanceOf(GitHubNotFoundError)
+    expect(converted).toMatchObject({ message: 'GraphQL query error: x', errorType: 'NOT_FOUND' })
+  })
+
+  it.for([
+    { name: 'type が別', error: new GitHubAPIError('e', { errorType: 'FORBIDDEN' }) },
+    { name: 'type が無い', error: new GitHubAPIError('e') },
+    { name: 'GitHubAPIError でない', error: new PecotError('e') },
+  ])('$name の例外は、そのまま返す', ({ error }) => {
+    expect(asNotFoundError(error)).toBe(error)
   })
 })

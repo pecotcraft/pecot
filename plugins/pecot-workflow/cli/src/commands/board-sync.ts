@@ -10,7 +10,7 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GraphqlRateLimit } from '../infra/github/repos.js'
 import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
 import type { BoardContext } from './board-judgment.js'
-import { defineCommand } from './command-definition.js'
+import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
 import { commandHint, hinted, placeholder } from './command-hint.js'
 import { NO_ACTIVE_PROJECT, stopWith } from './command-stop.js'
@@ -52,15 +52,15 @@ function resolveConfig(out: Readonly<Output>, project: string | undefined): Proj
   if (project !== undefined) {
     // 一覧は projects/ の *.json の名前なので、一致すれば ../ などの外のパスにならない
     const name = project.endsWith('.json') ? project.slice(0, -'.json'.length) : project
-    return listProjectConfigNames().includes(name) ? loadConfig(path.join(projectsDirectory(), `${name}.json`)) : stopWith(out, `project config not found: ${project}\navailable: ${availableNames()}`)
+    return listProjectConfigNames().includes(name) ? loadConfig(path.join(projectsDirectory(), `${name}.json`)) : stopWith(out, `project config not found: ${project}\navailable: ${availableNames()}`, 'project-not-found')
   }
   const active = loadActiveConfig()
   if (active !== undefined) return active
   const names = listProjectConfigNames()
   const [only] = names
-  if (only === undefined) return stopWith(out, NO_ACTIVE_PROJECT)
+  if (only === undefined) return stopWith(out, NO_ACTIVE_PROJECT, 'no-active-project')
   if (names.length === 1) return loadConfig(path.join(projectsDirectory(), `${only}.json`))
-  return stopWith(out, hinted`no active project, and ${String(names.length)} project configs exist\nrun: ${commandHint(['board', 'sync'], { project: placeholder('NAME') })}\navailable: ${names.join(', ')}`)
+  return stopWith(out, hinted`no active project, and ${String(names.length)} project configs exist\nrun: ${commandHint(['board', 'sync'], { project: placeholder('NAME') })}\navailable: ${names.join(', ')}`, 'no-active-project')
 }
 
 // 窓が途中で切り替わると前後の used を比べられないので、使用量の行を省く
@@ -92,7 +92,6 @@ const boardSyncCommand = defineCommand({
     const out = createOutput(input.dry_run, io)
     const config = resolveConfig(out, input.project)
     const client = makeClient(out, config)
-    if (client === undefined) return 1
     const before = await client.getGraphqlRateLimit()
     let read: BoardRead
     try {
@@ -110,7 +109,7 @@ const boardSyncCommand = defineCommand({
     if (failures === 0 && pruneFailures === 0) return 0
     if (failures > 0) out.error(failureMessage(failures))
     if (pruneFailures > 0) out.error(deleteFailureMessage(pruneFailures))
-    return 1
+    throw new CommandExit(1, 'partial-failure')
   },
 })
 
