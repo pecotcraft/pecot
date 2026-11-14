@@ -4,7 +4,7 @@
 
 ## 前提
 
-- `board_sync` を含む版の `@pecot/workflow-mcp` が npm に出ている必要がある。雛形は major の最新に追従するので、その版が出るまでは、コマンドを見つけられずに実行が失敗する
+- `board_sync` は `@pecot/workflow-mcp` の 6.0.0 から入っている。雛形は、実行の行に書いた major の最新に追従する
 - 利用者のリポが GHES にあるときは、次の 2 つも前提になる
   - SHA で固定した版の action（`actions/checkout`・`actions/setup-node`・`actions/create-github-app-token`）を使える
   - Actions の実行環境から npm の registry に届く
@@ -33,6 +33,13 @@
 - blocked by の付け外し
 - カードの移動
 - PR の本文を後から直して、Issue と結び付けたとき（`edited`）
+
+### merge queue のリポ
+
+PR を merge queue がマージしたときも、`pull_request_target` の `closed` の実行が起き、secret が渡ります。
+
+- 確かめた実行では、actor は PR を出して queue へ入れた人と同じだった。PR を出した人と queue へ入れた人が違う場合は、確かめていない
+- `Closes #N` で閉じた Issue の `issues` の実行も、別に起きる。同じ group の実行は順に動き、どちらも成功する
 
 ## ボードが複数のリポを持つとき
 
@@ -75,6 +82,13 @@ Actions の checkout には `.active` が入りません。`.pecot/config/projec
 - リポの variable `PECOT_BOARD_SYNC_USE_PAT` に `true` を置く
 - リポの secret `PECOT_BOARD_SYNC_TOKEN` に PAT を置く
 
+fine-grained PAT は、この 2 つの場面に使えません。
+
+- 個人のアカウントの Projects を扱えない
+- token の持ち主は 1 つで、持ち主の違うリポとボードをまたげない
+
+根拠は GitHub の [personal access token の文書](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)です。ボードとリポが同じ組織なら、PAT より GitHub App を使います。
+
 ## 実行の結果
 
 書き込みが 1 件でも失敗すると、実行が失敗（終了コード 1）で終わります。token の権限が足りないときは、ここで気づけます。
@@ -93,9 +107,27 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 - private のリポでは、1 回の実行が切り上げで 1 分として数えられる。毎時の実行は、月に約 720 回だ
 - 料金は GitHub の Actions の料金のページで確かめる
 
+### GraphQL の点数
+
+1 回の実行で使う点数は、ボードの大きさで決まります。GitHub の点数の計算法でクエリを数えると、上限は次の式です。
+
+`4 × ⌈N / 100⌉ + R + W + S`
+
+| 記号 | 数えるもの | 1 回の点数 |
+|---|---|---|
+| N | ボードの全アイテムの数。`Done` と閉じた Issue も含む | 100 件の 1 ページで 4 点。1 件ごとに 4 つの一覧を読むため |
+| R | 個別に読む Issue の数。`Ready`・`Blocked`・`Active`・`In Review` の開いた Issue。前提の無い `Ready` と、PR・Tracker を除く | 1 件 1 点。前提が 9 件以上ある Issue は 2 点以上 |
+| W | 書き込む列と札の数。ログの `moved:`・`set:` の行の数 | 1 回 1 点として数える |
+| S | 積む先の PR を引き足した数。前提の PR が開発ブランチに届かないときだけ起きる | 1 回 1 点 |
+
+- 例: N が 31・R が 7・W が 4・S が 0 の実行は、式で 15 点になる。終わりの行の値は 8 点だった
+- token の点数は 1 時間に 5000 点だ。App の token は installation ごとに数える
+- PAT は、持ち主が手元で使う点数と 5000 点を分け合う
+- 終わりの `count: GraphQL points used` の行は、前後の実行と点数が入れ替わって見えることがある（0 点の実行もあった）。1 回の値ではなく、数回の平均で読む
+
 ## 版を固定する
 
-雛形は `npx -y --prefix=/ @pecot/workflow-mcp@5 board sync` を打ち、major の最新に追従します。`@5.1.0` のように書くと、版を固定できます。
+雛形は `npx -y --prefix=/ @pecot/workflow-mcp@6 board sync` を打ち、major の最新に追従します。`@6.0.0` のように書くと、版を固定できます。
 
 ## 試す
 

@@ -81,4 +81,4 @@ jobs:
       - name: Sync the board
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}
-        run: npx -y --prefix=/ @pecot/workflow-mcp@5 board sync
+        run: npx -y --prefix=/ @pecot/workflow-mcp@6 board sync

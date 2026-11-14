@@ -1,9 +1,10 @@
 // 配布する board sync のワークフローの雛形が、安全な形・版の追従・文書との一致を保つことを確かめる。
 // actionlint は pre-commit が掛ける（.pre-commit-config.yaml の actionlint-system が雛形も対象にする）。
-import { readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -32,13 +33,34 @@ interface Workflow {
 // eslint-disable-next-line no-restricted-syntax
 const workflow = parse(template) as Workflow
 const steps = workflow.jobs['sync']?.steps ?? []
+const defaultPlansDirectory = path.resolve(pluginRoot, '..', '..', '.nx', 'version-plans')
 
-function pluginMajor(): string {
+// major の plan が未消費なら、次のリリースの major と比べる。雛形はリリースより前の PR で直すため
+function nextReleaseMajor(plansDirectory = defaultPlansDirectory): string {
+  const major = manifestMajor()
+  return hasPendingMajorPlan(plansDirectory) ? String(Number(major) + 1) : major
+}
+
+function manifestMajor(): string {
   if (typeof manifest !== 'object' || manifest === null || !('version' in manifest) || typeof manifest.version !== 'string') {
     throw new TypeError('plugin.json に version が無い')
   }
   const [major = ''] = manifest.version.split('.', 1)
   return major
+}
+
+// nx は plan の frontmatter を YAML で読み、major の別名（feat と fix に感嘆符を付けた形）も受ける
+function hasPendingMajorPlan(plansDirectory: string): boolean {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 引数で受けた plan の置き場だけを見る
+  const names = existsSync(plansDirectory) ? readdirSync(plansDirectory).filter(name => name.endsWith('.md')) : []
+  return names.some((name) => {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 引数で受けた置き場の plan だけを読む
+    const plan = readFileSync(path.join(plansDirectory, name), 'utf8')
+    const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(plan)?.[1] ?? ''
+    const bumps: unknown = parse(front)
+    const bump = typeof bumps === 'object' && bumps !== null && 'pecot-workflow' in bumps ? String(bumps['pecot-workflow']) : ''
+    return ['major', 'feat!', 'fix!'].includes(bump)
+  })
 }
 
 function documentSection(heading: string): string {
@@ -50,8 +72,17 @@ function documentSection(heading: string): string {
 }
 
 describe('board sync のワークフローの雛形', () => {
-  it('npx の版指定が plugin.json の major と一致する', () => {
-    expect(active).toContain(`@pecot/workflow-mcp@${pluginMajor()} board sync`)
+  it('npx の版指定が、次のリリースの major と一致する', () => {
+    expect(active).toContain(`@pecot/workflow-mcp@${nextReleaseMajor()} board sync`)
+  })
+
+  it('文書に出てくる版の major が、次のリリースの major と一致する', () => {
+    const majors = [
+      ...Array.from(document.matchAll(/@pecot\/workflow-mcp@(\d+)/g), match => match[1]),
+      ...Array.from(document.matchAll(/`@(\d+)\.\d+\.\d+`/g), match => match[1]),
+    ]
+    expect(majors.length).toBeGreaterThanOrEqual(2)
+    expect(new Set(majors)).toEqual(new Set([nextReleaseMajor()]))
   })
 
   it('3 つの契機がそろっている', () => {
@@ -85,7 +116,7 @@ describe('board sync のワークフローの雛形', () => {
 
   it('run に式を埋め込まない', () => {
     const runs = steps.filter(step => step.run !== undefined)
-    expect(runs.map(step => step.run)).toEqual(['npx -y --prefix=/ @pecot/workflow-mcp@' + pluginMajor() + ' board sync'])
+    expect(runs.map(step => step.run)).toEqual(['npx -y --prefix=/ @pecot/workflow-mcp@' + nextReleaseMajor() + ' board sync'])
     for (const step of runs) expect(step.run).not.toContain('${{')
   })
 
@@ -130,5 +161,52 @@ describe('board sync のワークフローの雛形', () => {
     })
     expect(fromDocument).toEqual(fromTemplate)
     expect(permissionLines).toHaveLength(2)
+  })
+})
+
+describe('次のリリースの major の判定', () => {
+  let plansDirectory = ''
+  const currentMajor = manifestMajor()
+
+  beforeEach(() => {
+    plansDirectory = mkdtempSync(path.join(tmpdir(), 'board-sync-plans-'))
+  })
+
+  afterEach(() => {
+    rmSync(plansDirectory, { recursive: true, force: true })
+  })
+
+  function writePlan(content: string): void {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- テストが作った一時のディレクトリに書く
+    writeFileSync(path.join(plansDirectory, 'plan.md'), content)
+  }
+
+  it.for([
+    { name: 'major', content: '---\npecot-workflow: major\n---\n\nbody\n' },
+    { name: 'キーと値をクォートで囲んだ major', content: '---\n"pecot-workflow": "major"\n---\n\nbody\n' },
+    {
+      name: '別名の feat（感嘆符付き）',
+      content: '---\npecot-workflow: feat!\n---\n\nbody\n',
+    },
+    {
+      name: '別名の fix（感嘆符付き）',
+      content: '---\npecot-workflow: fix!\n---\n\nbody\n',
+    },
+    { name: '改行が CRLF の major', content: '---\r\npecot-workflow: major\r\n---\r\n\r\nbody\r\n' },
+  ])('$name の plan があると、plugin.json の次の major を返す', ({ content }) => {
+    writePlan(content)
+    expect(nextReleaseMajor(plansDirectory)).toBe(String(Number(currentMajor) + 1))
+  })
+
+  it.for([
+    { name: 'patch', content: '---\npecot-workflow: patch\n---\n\nbody\n' },
+    { name: '本文の行にだけ pecot-workflow: major を書いた patch', content: '---\npecot-workflow: patch\n---\n\npecot-workflow: major\n' },
+  ])('$name の plan だけなら、plugin.json の major を返す', ({ content }) => {
+    writePlan(content)
+    expect(nextReleaseMajor(plansDirectory)).toBe(currentMajor)
+  })
+
+  it('plan の置き場が無いと、plugin.json の major を返す', () => {
+    expect(nextReleaseMajor(path.join(plansDirectory, 'missing'))).toBe(currentMajor)
   })
 })
